@@ -6698,7 +6698,15 @@ CTranslatorExprToDXL::PdxlnArray
 									)
 						);
 
-	TranslateScalarChildren(pexpr, pdxlnArray);
+	const ULONG ulArity = CUtils::UlScalarArrayArity(pexpr);
+
+	for (ULONG ul = 0; ul < ulArity; ul++)
+	{
+		CExpression *pexprChild = CUtils::PScalarArrayExprChildAt(m_pmp, pexpr, ul);
+		CDXLNode *pdxlnChild = PdxlnScalar(pexprChild);
+		pdxlnArray->AddChild(pdxlnChild);
+		pexprChild->Release();
+	}
 
 	return pdxlnArray;
 }

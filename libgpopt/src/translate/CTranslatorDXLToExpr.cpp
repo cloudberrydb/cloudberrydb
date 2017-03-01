@@ -3166,7 +3166,13 @@ CTranslatorDXLToExpr::PexprArray
 	
 	DrgPexpr *pdrgpexprChildren = PdrgpexprChildren(pdxln);
 
-	return GPOS_NEW(m_pmp) CExpression(m_pmp, popArray, pdrgpexprChildren);
+	CExpression *pexprArray = GPOS_NEW(m_pmp) CExpression(m_pmp, popArray, pdrgpexprChildren);
+
+	CExpression *pexprCollapsedArray = CUtils::PexprCollapseConstArray(m_pmp, pexprArray);
+
+	pexprArray->Release();
+
+	return pexprCollapsedArray;
 }
 
 //---------------------------------------------------------------------------
