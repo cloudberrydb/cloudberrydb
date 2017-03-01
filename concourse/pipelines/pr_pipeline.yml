@@ -69,12 +69,34 @@ resources:
       versioned_file: gpdb_pr/gpdb_artifacts/bin_gpdb.tar.gz
 
 jobs:
-  - name: compile_gpdb_centos6
+  - name: compile_gpdb_open_source_centos6
+    public: true
+    max_in_flight: 1
     plan:
     - aggregate:
       - get: gpdb_pr
         trigger: true
-      - get: gpaddon_src 
+        version: every
+      - get: centos-gpdb-dev-6
+    - task: compile_gpdb
+      file: gpdb_pr/concourse/tasks/compile_gpdb_open_source.yml
+      image: centos-gpdb-dev-6
+      input_mapping:
+        gpdb_src: gpdb_pr
+      on_failure:
+        put: gpdb_pr
+        params:
+          path: gpdb_pr
+          status: failure
+
+  - name: compile_gpdb_centos6
+    max_in_flight: 1
+    plan:
+    - aggregate:
+      - get: gpdb_pr
+        trigger: true
+        version: every
+      - get: gpaddon_src
       - get: centos-gpdb-dev-6
     - put: gpdb_pr
       params:
@@ -102,24 +124,6 @@ jobs:
       - put: bin_gpdb_centos
         params:
           file: gpdb_artifacts/bin_gpdb.tar.gz
-
-  - name: compile_gpdb_open_source_centos6
-    public: true
-    plan:
-    - aggregate:
-      - get: gpdb_pr
-        trigger: true
-      - get: centos-gpdb-dev-6
-    - task: compile_gpdb
-      file: gpdb_pr/concourse/tasks/compile_gpdb_open_source.yml
-      image: centos-gpdb-dev-6
-      input_mapping:
-        gpdb_src: gpdb_pr
-      on_failure:
-        put: gpdb_pr
-        params:
-          path: gpdb_pr
-          status: failure
 
   # Stage 2: Run tests
   - name: icw_planner_centos6
