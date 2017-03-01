@@ -225,3 +225,62 @@ select * from mytable where ZeroFunc(i)=0 and i=-1 order by i;
 -- cleanup
 drop function ZeroFunc(int) cascade;
 drop table mytable cascade;
+
+
+-- start_ignore
+create language plpythonu;
+-- end_ignore
+
+
+-- @description Tests for static partition selection (MPP-24709, GPSQL-2879)
+
+create or replace function get_selected_parts(explain_query text) returns text as
+$$
+rv = plpy.execute('explain ' + explain_query)
+search_text = 'Partition Selector'
+result = []
+result.append(0)
+result.append(0)
+for i in range(len(rv)):
+    cur_line = rv[i]['QUERY PLAN']
+    if search_text.lower() in cur_line.lower():
+        j = i+1
+        temp_line = rv[j]['QUERY PLAN']
+        while temp_line.find('Partitions selected:') == -1:
+            j += 1
+            if j == len(rv) - 1:
+                break
+            temp_line = rv[j]['QUERY PLAN']
+
+        if temp_line.find('Partitions selected:') != -1:
+            result[0] = int(temp_line[temp_line.index('selected: ')+10:temp_line.index(' (out')])
+            result[1] = int(temp_line[temp_line.index('out of')+6:temp_line.index(')')])
+return result
+$$
+language plpythonu;
+
+drop table if exists partprune_foo;
+create table partprune_foo(a int, b int, c int) partition by range (b) (start (1) end (101) every (10));
+insert into partprune_foo select generate_series(1,5), generate_series(1,100), generate_series(1,10);
+analyze partprune_foo;
+
+select get_selected_parts(' select * from partprune_foo;');
+select * from partprune_foo;
+
+select get_selected_parts(' select * from partprune_foo where b = 35;');
+select * from partprune_foo where b = 35;
+
+select get_selected_parts(' select * from partprune_foo where b < 35;');
+select * from partprune_foo where b < 35;
+
+select get_selected_parts(' select * from partprune_foo where b in (5, 6, 14, 23);');
+select * from partprune_foo where b in (5, 6, 14, 23);
+
+select get_selected_parts(' select * from partprune_foo where b < 15 or b > 60;');
+select * from partprune_foo where b < 15 or b > 60;
+
+select get_selected_parts(' select * from partprune_foo where b = 150;');
+select * from partprune_foo where b = 150;
+
+select get_selected_parts(' select * from partprune_foo where b = a*5;');
+select * from partprune_foo where b = a*5;
