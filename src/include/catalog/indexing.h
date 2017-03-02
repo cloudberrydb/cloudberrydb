@@ -313,9 +313,13 @@ DECLARE_INDEX(pg_resqueuecapability_resqueueid_index, 6442, on pg_resqueuecapabi
 DECLARE_INDEX(pg_resqueuecapability_restypid_index, 6443, on pg_resqueuecapability using btree(restypid int2_ops));
 #define ResQueueCapabilityRestypidIndexId	6443
 
+DECLARE_UNIQUE_INDEX(pg_resgroup_oid_index, 6447, on pg_resgroup using btree(oid oid_ops));
+#define ResGroupOidIndexId	6447
 DECLARE_UNIQUE_INDEX(pg_resgroup_rsgname_index, 6444, on pg_resgroup using btree(rsgname name_ops));
 #define ResGroupRsgnameIndexId	6444
 
+DECLARE_UNIQUE_INDEX(pg_resgroupcapability_oid_index, 6448, on pg_resgroupcapability using btree(oid oid_ops));
+#define ResGroupCapabilityOidIndexId	6448
 DECLARE_UNIQUE_INDEX(pg_resgroupcapability_resgroupid_reslimittype_index, 6445, on pg_resgroupcapability using btree(resgroupid oid_ops, reslimittype int2_ops));
 #define ResGroupCapabilityResgroupidResLimittypeIndexId	6445
 
