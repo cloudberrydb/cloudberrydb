@@ -3563,9 +3563,14 @@ CommitTransaction(void)
 	if (willHaveObjectsFromSmgr)
 	{
 		MIRRORED_UNLOCK;
-		MyProc->inCommit = false;
 	}
-	
+
+	/* Let checkpoint go through now, defered from cleaning these in
+	 * ProcArrayClearTransaction.
+	 */
+	MyProc->inCommit = false;
+	MyProc->lxid = InvalidLocalTransactionId;
+
 	AtEOXact_MultiXact();
 
 	ResourceOwnerRelease(TopTransactionResourceOwner,
@@ -3825,7 +3830,7 @@ PrepareTransaction(void)
 	 * someone may think it is unlocked and recyclable.
 	 */
 	LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
-	ClearTransactionFromPgProc_UnderLock(MyProc);
+	ClearTransactionFromPgProc_UnderLock(MyProc, false);
 	LWLockRelease(ProcArrayLock);
 
 	/*

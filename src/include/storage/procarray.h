@@ -28,8 +28,8 @@ extern void ProcArrayRemove(PGPROC *proc, TransactionId latestXid);
 extern void ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit,
 						bool *needStateChangeFromDistributed,
 						bool *needNotifyCommittedDtxTransaction);
-extern void ProcArrayClearTransaction(PGPROC *proc);
-extern void ClearTransactionFromPgProc_UnderLock(PGPROC *proc);
+extern void ProcArrayClearTransaction(PGPROC *proc, bool commit);
+extern void ClearTransactionFromPgProc_UnderLock(PGPROC *proc, bool commit);
 
 extern bool TransactionIdIsInProgress(TransactionId xid);
 extern bool TransactionIdIsActive(TransactionId xid);

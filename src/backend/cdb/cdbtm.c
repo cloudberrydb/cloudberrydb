@@ -726,7 +726,7 @@ doInsertForgetCommitted(void)
 	 * master readers (e.g. those using  SnapshotNow for reading) the same as for
 	 * distributed transactions.
 	 */
-	ClearTransactionFromPgProc_UnderLock(MyProc);
+	ClearTransactionFromPgProc_UnderLock(MyProc, true);
 	releaseGxact_UnderLocks();
 
 	elog(DTM_DEBUG5, "doInsertForgetCommitted called releaseGxact");

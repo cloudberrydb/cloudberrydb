@@ -369,9 +369,10 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit,
  * not actually reporting the transaction's XID as no longer running --- it
  * will still appear as running because the 2PC's gxact is in the ProcArray
  * too.  We just have to clear out our own PGPROC.
+ *
  */
 void
-ProcArrayClearTransaction(PGPROC *proc)
+ProcArrayClearTransaction(PGPROC *proc, bool commit)
 {
 	/*
 	 * We can skip locking ProcArrayLock here, because this action does not
@@ -380,20 +381,29 @@ ProcArrayClearTransaction(PGPROC *proc)
 	 * ProcArray.
 	 */
 	proc->xid = InvalidTransactionId;
-	proc->lxid = InvalidLocalTransactionId;
 	proc->xmin = InvalidTransactionId;
 
 	proc->localDistribXactData.state = LOCALDISTRIBXACT_STATE_NONE;
 
 	/* redundant, but just in case */
 	proc->vacuumFlags &= ~PROC_VACUUM_STATE_MASK;
-	proc->inCommit = false;
 	proc->serializableIsoLevel = false;
 	proc->inDropTransaction = false;
 
 	/* Clear the subtransaction-XID cache too */
 	proc->subxids.nxids = 0;
 	proc->subxids.overflowed = false;
+
+	/* For commit, inCommit and lxid are cleared in CommitTransaction after
+	 * performing PT operations. It's done this way to correctly block
+	 * checkpoint till CommitTransaction completes the persistent table
+	 * updates.
+	 */
+	if (! commit)
+	{
+		proc->lxid = InvalidLocalTransactionId;
+		proc->inCommit = false;
+	}
 }
 
 /*
@@ -402,13 +412,13 @@ ProcArrayClearTransaction(PGPROC *proc)
  * Must be called while holding the ProcArrayLock.
  */
 void
-ClearTransactionFromPgProc_UnderLock(PGPROC *proc)
+ClearTransactionFromPgProc_UnderLock(PGPROC *proc, bool commit)
 {
 	/*
 	 * ProcArrayClearTransaction() doesn't take the lock, so we can just call it
 	 * directly.
 	 */
-	ProcArrayClearTransaction(proc);
+	ProcArrayClearTransaction(proc, commit);
 }
 
 /*
