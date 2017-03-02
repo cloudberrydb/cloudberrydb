@@ -75,8 +75,7 @@ CREATE TABLE mpp22263 (
 
 create index mpp22263_idx1 on mpp22263 using btree(unique1);
 
-explain
-select * from mpp22263, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)
+explain select * from mpp22263, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)
 WHERE mpp22263.unique1 = v.i and mpp22263.stringu1 = v.j;
 
 -- atmsort.pm masks out differences in the Filter line, so just memorizing
