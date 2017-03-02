@@ -1543,32 +1543,34 @@ GetSnapshotData(Snapshot snapshot, bool serializable)
 }
 
 /*
- * GetTransactionsInCommit -- Get the XIDs of transactions that are committing
+ * GetVirtualXIDsDelayingChkpt -- Get the VXIDs of transactions that are
+ * delaying checkpoint because they have critical actions in progress.
  *
- * Constructs an array of XIDs of transactions that are currently in commit
- * critical sections, as shown by having inCommit set in their PGPROC entries.
+ * Constructs an array of VXIDs of transactions that are currently in commit
+ * critical sections, as shown by having inCommit set in their PGXACT.
  *
- * *xids_p is set to a palloc'd array that should be freed by the caller.
- * The return value is the number of valid entries.
+ * Returns a palloc'd array that should be freed by the caller.
+ * *nvxids is the number of valid entries.
  *
  * Note that because backends set or clear inCommit without holding any lock,
  * the result is somewhat indeterminate, but we don't really care.  Even in
  * a multiprocessor with delayed writes to shared memory, it should be certain
  * that setting of inCommit will propagate to shared memory when the backend
- * takes the WALInsertLock, so we cannot fail to see an xact as inCommit if
+ * takes a lock, so we cannot fail to see a virtual xact as inCommit if
  * it's already inserted its commit record.  Whether it takes a little while
  * for clearing of inCommit to propagate is unimportant for correctness.
  */
-int
-GetTransactionsInCommit(TransactionId **xids_p)
+VirtualTransactionId *
+GetVirtualXIDsDelayingChkpt(int *nvxids)
 {
+	VirtualTransactionId *vxids;
 	ProcArrayStruct *arrayP = procArray;
-	TransactionId *xids;
-	int			nxids;
+	int			count = 0;
 	int			index;
 
-	xids = (TransactionId *) palloc(arrayP->maxProcs * sizeof(TransactionId));
-	nxids = 0;
+	/* allocate what's certainly enough result space */
+	vxids = (VirtualTransactionId *)
+		palloc(sizeof(VirtualTransactionId) * arrayP->maxProcs);
 
 	LWLockAcquire(ProcArrayLock, LW_SHARED);
 
@@ -1576,30 +1578,33 @@ GetTransactionsInCommit(TransactionId **xids_p)
 	{
 		volatile PGPROC *proc = arrayP->procs[index];
 
-		/* Fetch xid just once - see GetNewTransactionId */
-		TransactionId pxid = proc->xid;
+		if (proc->inCommit)
+		{
+			VirtualTransactionId vxid;
 
-		if (proc->inCommit && TransactionIdIsValid(pxid))
-			xids[nxids++] = pxid;
+			GET_VXID_FROM_PGPROC(vxid, *proc);
+			if (VirtualTransactionIdIsValid(vxid))
+				vxids[count++] = vxid;
+		}
 	}
 
 	LWLockRelease(ProcArrayLock);
 
-	*xids_p = xids;
-	return nxids;
+	*nvxids = count;
+	return vxids;
 }
 
 /*
- * HaveTransactionsInCommit -- Are any of the specified XIDs in commit?
+ * HaveVirtualXIDsDelayingChkpt -- Are any of the specified VXIDs delaying?
  *
- * This is used with the results of GetTransactionsInCommit to see if any
- * of the specified XIDs are still in their commit critical sections.
+ * This is used with the results of GetVirtualXIDsDelayingChkpt to see if any
+ * of the specified VXIDs are still in critical sections of code.
  *
- * Note: this is O(N^2) in the number of xacts that are/were in commit, but
+ * Note: this is O(N^2) in the number of vxacts that are/were delaying, but
  * those numbers should be small enough for it not to be a problem.
  */
 bool
-HaveTransactionsInCommit(TransactionId *xids, int nxids)
+HaveVirtualXIDsDelayingChkpt(VirtualTransactionId *vxids, int nvxids)
 {
 	bool		result = false;
 	ProcArrayStruct *arrayP = procArray;
@@ -1610,17 +1615,17 @@ HaveTransactionsInCommit(TransactionId *xids, int nxids)
 	for (index = 0; index < arrayP->numProcs; index++)
 	{
 		volatile PGPROC *proc = arrayP->procs[index];
+		VirtualTransactionId vxid;
 
-		/* Fetch xid just once - see GetNewTransactionId */
-		TransactionId pxid = proc->xid;
+		GET_VXID_FROM_PGPROC(vxid, *proc);
 
-		if (proc->inCommit && TransactionIdIsValid(pxid))
+		if (proc->inCommit && VirtualTransactionIdIsValid(vxid))
 		{
 			int			i;
 
-			for (i = 0; i < nxids; i++)
+			for (i = 0; i < nvxids; i++)
 			{
-				if (xids[i] == pxid)
+				if (VirtualTransactionIdEquals(vxid, vxids[i]))
 				{
 					result = true;
 					break;
