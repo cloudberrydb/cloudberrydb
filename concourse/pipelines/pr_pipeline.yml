@@ -32,7 +32,7 @@ resources:
       bucket: {{bucket-name}}
       region_name: {{aws-region}}
       secret_access_key: {{bucket-secret-access-key}}
-      versioned_file: gpdb_pr/deliverables/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip
+      versioned_file: gpdb_pr/deliverables/greenplum-db-(.*)-build-1-rhel6-x86_64.zip
 
   - name: installer_rhel6_gpdb_rc_md5
     type: s3
@@ -41,7 +41,7 @@ resources:
       bucket: {{bucket-name}}
       region_name: {{aws-region}}
       secret_access_key: {{bucket-secret-access-key}}
-      versioned_file: gpdb_pr/deliverables/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip.md5
+      versioned_file: gpdb_pr/deliverables/greenplum-db-(.*)-build-1-rhel6-x86_64.zip.md5
 
   - name: qautils_rhel6_tarball
     type: s3
@@ -254,15 +254,15 @@ jobs:
         packaged_gpdb: packaged_gpdb_rc
       params:
         INSTALL_SCRIPT_SRC: gpdb_src/gpAux/addon/license/installer-header-rhel-gpdb.sh
-        INSTALLER_ZIP: packaged_gpdb/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip
+        INSTALLER_ZIP: packaged_gpdb/greenplum-db-@GP_VERSION@-build-1-rhel6-x86_64.zip
         ADD_README_INSTALL: true
     - aggregate:
       - put: installer_rhel6_gpdb_rc
         params:
-          file: packaged_gpdb_rc/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip
+          file: packaged_gpdb_rc/greenplum-db-*-build-1-rhel6-x86_64.zip
       - put: installer_rhel6_gpdb_rc_md5
         params:
-          file: packaged_gpdb_rc/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip.md5
+          file: packaged_gpdb_rc/greenplum-db-*-build-1-rhel6-x86_64.zip.md5
       - put: qautils_rhel6_tarball
         params:
           file: rc_bin_gpdb/QAUtils-rhel6-x86_64.tar.gz
