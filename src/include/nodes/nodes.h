@@ -393,6 +393,7 @@ typedef enum NodeTag
 	T_AlterQueueStmt,
 	T_DropQueueStmt,
 	T_CreateResourceGroupStmt,
+	T_DropResourceGroupStmt,
 	T_LockStmt,
 	T_ConstraintsSetStmt,
 	T_ReindexStmt,

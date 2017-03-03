@@ -470,6 +470,7 @@ check_xact_readonly(Node *parsetree)
 		case T_DropdbStmt:
 		case T_RemoveFuncStmt:
 		case T_DropQueueStmt:
+		case T_DropResourceGroupStmt:
 		case T_DropRoleStmt:
 		case T_DropPLangStmt:
 		case T_RemoveOpClassStmt:
@@ -1743,6 +1744,9 @@ ProcessUtility(Node *parsetree,
 		case T_CreateResourceGroupStmt:
 			CreateResourceGroup((CreateResourceGroupStmt *) parsetree);
 			break;
+		case T_DropResourceGroupStmt:
+			DropResourceGroup((DropResourceGroupStmt *) parsetree);
+			break;
 
 			/*
 			 * ******************************** ROLE statements ****
@@ -2628,6 +2632,10 @@ CreateCommandTag(Node *parsetree)
 
 		case T_CreateResourceGroupStmt:
 			tag = "CREATE RESOURCE GROUP";
+			break;
+
+		case T_DropResourceGroupStmt:
+			tag = "DROP RESOURCE GROUP";
 			break;
 
 		case T_CreateRoleStmt:

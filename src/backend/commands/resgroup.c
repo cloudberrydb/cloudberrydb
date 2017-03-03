@@ -16,9 +16,11 @@
 #include "access/heapam.h"
 #include "catalog/heap.h"
 #include "catalog/oid_dispatch.h"
+#include "catalog/pg_authid.h"
 #include "catalog/pg_resgroup.h"
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdbvars.h"
+#include "commands/comment.h"
 #include "commands/defrem.h"
 #include "commands/resgroup.h"
 #include "miscadmin.h"
@@ -42,6 +44,7 @@ typedef struct ResourceGroupOptions
 
 static float floatFromText(const text* text, const char * prop);
 static void updateResgroupCapability(Oid groupid, ResourceGroupOptions *options);
+static void deleteResgroupCapability(Oid groupid);
 static int getResgroupOptionType(const char* defname);
 static void parseStmtOptions(CreateResourceGroupStmt *stmt, ResourceGroupOptions *options);
 static void validateCapabilities(Relation rel, Oid groupid, ResourceGroupOptions *options);
@@ -121,7 +124,6 @@ CreateResourceGroup(CreateResourceGroupStmt *stmt)
 	 */
 	groupid = simple_heap_insert(pg_resgroup_rel, tuple);
 	CatalogUpdateIndexes(pg_resgroup_rel, tuple);
-	heap_close(pg_resgroup_rel, NoLock);
 
 	/* process the WITH (...) list items */
 	updateResgroupCapability(groupid, &options);
@@ -142,6 +144,119 @@ CreateResourceGroup(CreateResourceGroupStmt *stmt)
 						   GetUserId(), /* not ownerid */
 						   "CREATE", "RESOURCE GROUP");
 	}
+
+	heap_close(pg_resgroup_rel, NoLock);
+}
+
+/*
+ * DROP RESOURCE GROUP
+ */
+void
+DropResourceGroup(DropResourceGroupStmt *stmt)
+{
+	Relation	 pg_resgroup_rel;
+	Relation	 authIdRel;
+	HeapTuple	 tuple;
+	ScanKeyData	 scankey;
+	SysScanDesc	 sscan;
+	ScanKeyData	 authid_scankey;
+	SysScanDesc	 authid_scan;
+	Oid			 groupid;
+
+
+	/* Permission check - only superuser can drop resource groups. */
+	if (!superuser())
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 errmsg("must be superuser to drop resource groups")));
+
+
+	/*
+	 * Check the pg_resgroup relation to be certain the resource group already
+	 * exists.
+	 */
+	pg_resgroup_rel = heap_open(ResGroupRelationId, RowExclusiveLock);
+
+	ScanKeyInit(&scankey,
+				Anum_pg_resgroup_rsgname,
+				BTEqualStrategyNumber, F_NAMEEQ,
+				CStringGetDatum(stmt->name));
+
+	sscan = systable_beginscan(pg_resgroup_rel, ResGroupRsgnameIndexId, true,
+							   SnapshotNow, 1, &scankey);
+
+	tuple = systable_getnext(sscan);
+	if (!HeapTupleIsValid(tuple))
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+				 errmsg("resource group \"%s\" does not exist",
+						stmt->name)));
+
+	/*
+	 * Remember the Oid, for destroying the in-memory
+	 * resource group later.
+	 */
+	groupid = HeapTupleGetOid(tuple);
+
+	/* cannot DROP default resource groups  */
+	if (groupid == DEFAULTRESGROUP_OID || groupid == ADMINRESGROUP_OID)
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("cannot drop default resource group \"%s\"",
+						stmt->name)));
+
+	/*
+	 * Check to see if any roles are in this resource group.
+	 */
+	authIdRel = heap_open(AuthIdRelationId, RowExclusiveLock);
+	ScanKeyInit(&authid_scankey,
+				Anum_pg_authid_rolresgroup,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(groupid));
+
+	authid_scan = systable_beginscan(authIdRel, AuthIdRolResGroupIndexId, true,
+									 SnapshotNow, 1, &authid_scankey);
+
+	if (HeapTupleIsValid(systable_getnext(authid_scan)))
+		ereport(ERROR,
+				(errcode(ERRCODE_DEPENDENT_OBJECTS_STILL_EXIST),
+				 errmsg("resource group \"%s\" is used by at least one role",
+						stmt->name)));
+
+	systable_endscan(authid_scan);
+	heap_close(authIdRel, RowExclusiveLock);
+
+	/*
+	 * Delete the resource group from the catalog.
+	 */
+	simple_heap_delete(pg_resgroup_rel, &tuple->t_self);
+
+	systable_endscan(sscan);
+
+	/* TODO: delete the actual objects in shared memory */
+
+	/*
+	 * Remove any comments on this resource group
+	 */
+	DeleteSharedComments(groupid, ResGroupRelationId);
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		CdbDispatchUtilityStatement((Node *) stmt,
+									DF_CANCEL_ON_ERROR|
+									DF_WITH_SNAPSHOT|
+									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
+									NULL);
+	}
+
+	/* metadata tracking */
+	MetaTrackDropObject(ResGroupRelationId, groupid);
+
+	/* drop the extended attributes for this resource group */
+	deleteResgroupCapability(groupid);
+
+	heap_close(pg_resgroup_rel, NoLock);
 }
 
 /**
@@ -237,6 +352,34 @@ updateResgroupCapability(Oid groupid,
 	heap_close(resgroup_capability_rel, NoLock);
 }
 
+static void
+deleteResgroupCapability(Oid groupid)
+{
+	Relation	 resgroup_capability_rel;
+	HeapTuple	 tuple;
+	ScanKeyData	 scankey;
+	SysScanDesc	 sscan;
+
+	resgroup_capability_rel = heap_open(ResGroupCapabilityRelationId,
+										RowExclusiveLock);
+
+	ScanKeyInit(&scankey,
+				Anum_pg_resgroupcapability_resgroupid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(groupid));
+
+	sscan = systable_beginscan(resgroup_capability_rel,
+							   ResGroupCapabilityResgroupidIndexId,
+							   true, SnapshotNow, 1, &scankey);
+
+	while ((tuple = systable_getnext(sscan)) != NULL)
+		simple_heap_delete(resgroup_capability_rel, &tuple->t_self);
+
+	systable_endscan(sscan);
+
+	heap_close(resgroup_capability_rel, NoLock);
+}
+
 /**
  * Get the option type from a name string.
  *
@@ -269,6 +412,7 @@ static void
 parseStmtOptions(CreateResourceGroupStmt *stmt, ResourceGroupOptions *options)
 {
 	ListCell *cell;
+	int types = 0;
 
 	foreach(cell, stmt->options)
 	{
@@ -279,6 +423,14 @@ parseStmtOptions(CreateResourceGroupStmt *stmt, ResourceGroupOptions *options)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 					 errmsg("option \"%s\" not recognized", defel->defname)));
+
+		if (types & (1 << type))
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					errmsg("Find duplicate resoure group resource type: %s",
+						   defel->defname)));
+		else
+			types |= 1 << type;
 
 		switch (type)
 		{

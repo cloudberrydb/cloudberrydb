@@ -16,5 +16,6 @@
 #include "nodes/parsenodes.h"
 
 extern void CreateResourceGroup(CreateResourceGroupStmt *stmt);
+extern void DropResourceGroup(DropResourceGroupStmt *stmt);
 
 #endif   /* RESGROUP_H */

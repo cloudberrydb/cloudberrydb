@@ -1884,6 +1884,12 @@ typedef struct CreateResourceGroupStmt
 	List	   *options;		/* List of DefElem nodes */
 } CreateResourceGroupStmt;
 
+typedef struct DropResourceGroupStmt
+{
+	NodeTag		type;
+	char	   *name;			/* resource group to remove */
+} DropResourceGroupStmt;
+
 /* ----------------------
  *	Create/Alter/Drop Role Statements
  *

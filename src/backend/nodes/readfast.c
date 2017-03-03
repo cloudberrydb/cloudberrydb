@@ -2488,6 +2488,16 @@ _readCreateResourceGroupStmt(void)
 	READ_DONE();
 }
 
+static DropResourceGroupStmt *
+_readDropResourceGroupStmt(void)
+{
+	READ_LOCALS(DropResourceGroupStmt);
+
+	READ_STRING_FIELD(name);
+
+	READ_DONE();
+}
+
 static CommentStmt *
 _readCommentStmt(void)
 {
@@ -3395,6 +3405,9 @@ readNodeBinary(void)
 
 			case T_CreateResourceGroupStmt:
 				return_value = _readCreateResourceGroupStmt();
+				break;
+			case T_DropResourceGroupStmt:
+				return_value = _readDropResourceGroupStmt();
 				break;
 
 			case T_CommentStmt:

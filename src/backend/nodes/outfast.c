@@ -1974,6 +1974,9 @@ _outNode(StringInfo str, void *obj)
 			case T_CreateResourceGroupStmt:
 				_outCreateResourceGroupStmt(str, obj);
 				break;
+			case T_DropResourceGroupStmt:
+				_outDropResourceGroupStmt(str, obj);
+				break;
 
             case T_CommentStmt:
                 _outCommentStmt(str, obj);
