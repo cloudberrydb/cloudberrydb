@@ -172,11 +172,4 @@ extern void AtAbort_ResScheduler(void);
 extern void ResHandleUtilityStmt(Portal portal, Node *stmt);
 extern bool ResLockUtilityPortal(Portal portal, float4 ignoreCostLimit);
 
-/**
- * Assert that the in-memory state matches the catalog table.
- */
-#ifdef USE_ASSERT_CHECKING
-extern void AssertMemoryLimitsMatch(void);
-#endif
-
 #endif   /* RESSCHEDULER_H */
