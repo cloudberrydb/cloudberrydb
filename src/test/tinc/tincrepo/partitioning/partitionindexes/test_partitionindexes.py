@@ -12,11 +12,3 @@ class PartitionIndexesTests(PartitionIndexesSQLTestCase):
     sql_dir = 'sql/'
     ans_dir = 'expected/'
     out_dir = 'output/'
-
-class PartitionIndexesiNotSupportedTests(PartitionIndexesSQLTestCase):
-    '''
-    @skip Tests related to unsupported features
-    '''
-    sql_dir = 'notsupportedsql/'
-    ans_dir = 'expected/'
-    out_dir = 'output/'
