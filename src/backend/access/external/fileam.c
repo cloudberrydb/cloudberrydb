@@ -397,8 +397,15 @@ external_endscan(FileScanDesc scan)
 	 */
 	if (!scan->fs_noop && scan->fs_file)
 	{
-		url_fclose(scan->fs_file, true, relname);
+		URL_FILE *f = scan->fs_file;
+
+		/*
+		 * Mark the handle as NULL before closing it, so that if something
+		 * goes wrong while closing, and we get called again during abort
+		 * processing, we will not try to close the source twice.
+		 */
 		scan->fs_file = NULL;
+		url_fclose(f, true, relname);
 	}
 
 	pfree(relname);
@@ -417,8 +424,15 @@ external_stopscan(FileScanDesc scan)
 	 */
 	if (!scan->fs_noop && scan->fs_file)
 	{
-		url_fclose(scan->fs_file, false, RelationGetRelationName(scan->fs_rd));
+		URL_FILE *f = scan->fs_file;
+
+		/*
+		 * Mark the handle as NULL before closing it, so that if something
+		 * goes wrong while closing, and we get called again during abort
+		 * processing, we will not try to close the source twice.
+		 */
 		scan->fs_file = NULL;
+		url_fclose(f, false, RelationGetRelationName(scan->fs_rd));
 	}
 }
 
@@ -688,10 +702,18 @@ external_insert_finish(ExternalInsertDesc extInsertDesc)
 	 */
 	if (extInsertDesc->ext_file)
 	{
-		char	   *relname = RelationGetRelationName(extInsertDesc->ext_rel);
+		char	   *relname = pstrdup(RelationGetRelationName(extInsertDesc->ext_rel));
+		URL_FILE   *f = extInsertDesc->ext_file;
 
-		url_fflush(extInsertDesc->ext_file, extInsertDesc->ext_pstate);
-		url_fclose(extInsertDesc->ext_file, true, relname);
+		/*
+		 * Mark the handle as NULL before closing it, so that if something
+		 * goes wrong while closing, and we get called again during abort
+		 * processing, we will not try to close the source twice.
+		 */
+		extInsertDesc->ext_file = NULL;
+		url_fflush(f, extInsertDesc->ext_pstate);
+		url_fclose(f, true, relname);
+		pfree(relname);
 	}
 
 	if (extInsertDesc->ext_formatter_data)
