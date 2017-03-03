@@ -1130,7 +1130,7 @@ class gpload:
         self.options.qv = self.INFO
         self.options.l = None
         self.lastcmdtime = ''
-        
+        self.cmdtime = ''
         seenv = False
         seenq = False
 
@@ -1836,7 +1836,7 @@ class gpload:
 
                 # Mark this column as having no mapping, which is important
                 # for do_insert()
-                self.from_columns.append([key,d[key],None, False])
+                self.from_columns.append([key.lower(),d[key].lower(),None, False])
         else:
             self.from_columns = self.into_columns
             self.from_cols_from_user = False
@@ -2126,11 +2126,10 @@ class gpload:
         elif len(delimiterValue) != 1:
             # is a escape sequence character like '\x1B' or '\u001B'?
             if len(delimiterValue.decode('unicode-escape')) == 1:
-                formatOpts += "delimiter '%s' " % \
-                    self.getconfig('gpload:input:delimiter', unicode)
+                formatOpts += "delimiter '%s' " % delimiterValue.decode('unicode-escape')
             # is a escape string syntax support by gpdb like E'\x1B' or E'\x\u001B'
             elif len(delimiterValue.lstrip("E'").rstrip("'").decode('unicode-escape')) ==1:
-                formatOpts += "delimiter %s " % self.getconfig('gpload:input:delimiter', unicode)
+                formatOpts += "delimiter '%s' " % delimiterValue.lstrip("E'").rstrip("'").decode('unicode-escape')
             else:
                 self.control_file_warning('''A delimiter must be single ASCII charactor, you can also use unprintable characters(for example: '\\x1c' / E'\\x1c' or '\\u001c' / E'\\u001c' ''')
                 self.control_file_error("Invalid delimiter, gpload quit immediately")
@@ -2342,10 +2341,16 @@ class gpload:
             else: # reuse_tables
                 queryStr = "select cmdtime, count(*) from gp_read_error_log('%s') group by cmdtime order by cmdtime desc limit 1" % pg.escape_string(self.extTableName)
                 results = self.db.query(queryStr.encode('utf-8')).getresult()
-                self.lastcmdtime = (results[0])[0]
                 global NUM_WARN_ROWS
-                NUM_WARN_ROWS = (results[0])[1]
-                return (results[0])[1];
+
+                if len(results) == 0:
+			NUM_WARN_ROWS = 0
+			return 0
+
+                if (results[0])[0] != self.cmdtime:
+                    self.lastcmdtime = (results[0])[0]
+                    NUM_WARN_ROWS = (results[0])[1]
+                    return (results[0])[1];
         return 0
     
     def report_errors(self):
@@ -2367,6 +2372,12 @@ class gpload:
         """
         Handle the INSERT case
         """
+        if self.reuse_tables:
+            queryStr = "select cmdtime from gp_read_error_log('%s') group by cmdtime order by cmdtime desc limit 1" % pg.escape_string(self.extTableName)
+            results = self.db.query(queryStr.encode('utf-8')).getresult()
+            if len(results) > 0:
+                self.cmdtime = (results[0])[0]
+
         self.log(self.DEBUG, "into columns " + str(self.into_columns))
         cols = filter(lambda a:a[2]!=None, self.into_columns)
         
