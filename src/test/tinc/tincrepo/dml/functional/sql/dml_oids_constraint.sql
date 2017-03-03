@@ -22,7 +22,7 @@ SELECT COUNT(*) FROM dml_heap_check_r;
 
 SELECT SUM(a) FROM dml_heap_check_r;
 DROP TABLE IF EXISTS tempoid;
-CREATE TABLE tempoid as SELECT oid,a FROM dml_heap_check_r ORDER BY 1;
+CREATE TABLE tempoid as SELECT oid,a FROM dml_heap_check_r DISTRIBUTED BY (a);
 
 UPDATE dml_heap_check_r set a = 110;
 SELECT SUM(a) FROM dml_heap_check_r;

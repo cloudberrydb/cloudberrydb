@@ -70,8 +70,7 @@ SELECT SUM(a) FROM dml_heap_check_r;
 
 DROP TABLE IF EXISTS tempoid;
 DROP TABLE
-CREATE TABLE tempoid as SELECT oid,a FROM dml_heap_check_r ORDER BY 1;
-psql:dml_oids_constraint_orca.sql:30: NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
+CREATE TABLE tempoid as SELECT oid,a FROM dml_heap_check_r DISTRIBUTED BY (a);
 SELECT 2
 UPDATE dml_heap_check_r set a = 110;
 psql:dml_oids_constraint_orca.sql:32: ERROR:  One or more assertions failed  (seg1 slice1 antova-mbp.local:40011 pid=32567)
