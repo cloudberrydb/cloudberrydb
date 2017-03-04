@@ -212,11 +212,10 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 		elog(DEBUG1, "Size not including the buffer pool %lu",
 			 (unsigned long) size);
 
-		size = add_size(size, BgWriterShmemSize());
 		size = add_size(size, AutoVacuumShmemSize());
 		size = add_size(size, BTreeShmemSize());
 		size = add_size(size, SyncScanShmemSize());
-		size = add_size(size, CheckpointShmemSize());
+		size = add_size(size, CheckpointerShmemSize());
 
 		size = add_size(size, WalSndShmemSize());
 		size = add_size(size, WalRcvShmemSize());
@@ -370,8 +369,7 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 	 */
 	PMSignalShmemInit();
 	ProcSignalShmemInit();
-	BgWriterShmemInit();
-	CheckpointShmemInit();
+	CheckpointerShmemInit();
 	WalSndShmemInit();
 	WalRcvShmemInit();
 	//AutoVacuumShmemInit();

@@ -355,8 +355,8 @@ AuxiliaryProcessMain(int argc, char *argv[])
 			case WalWriterProcess:
 				statmsg = "wal writer process";
 				break;
-			case CheckpointProcess:
-				statmsg = "checkpoint process";
+			case CheckpointerProcess:
+				statmsg = "checkpointer process";
 				break;
 			case WalReceiverProcess:
 				statmsg = "wal receiver process";
@@ -475,10 +475,10 @@ AuxiliaryProcessMain(int argc, char *argv[])
 			BackgroundWriterMain();
 			proc_exit(1);		/* should never return */
 
-		case CheckpointProcess:
-			/* don't set signals, checkpoint is similar to bgwriter and has its own agenda */
+		case CheckpointerProcess:
+			/* don't set signals, checkpointer is similar to bgwriter and has its own agenda */
 			InitXLOGAccess();
-			CheckpointMain();
+			CheckpointerMain();
 			proc_exit(1);		/* should never return */
 
 		case WalReceiverProcess:

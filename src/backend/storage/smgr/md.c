@@ -41,7 +41,7 @@
 /*
  * Special values for the segno arg to RememberFsyncRequest.
  *
- * Note that CompactBgwriterRequestQueue assumes that it's OK to remove an
+ * Note that CompactCheckpointerRequestQueue assumes that it's OK to remove an
  * fsync request from the queue if an identical, subsequent request is found.
  * See comments there before making changes here.
  */
@@ -80,7 +80,7 @@
  *	Inactive segments are those that once contained data but are currently
  *	not needed because of an mdtruncate() operation.  The reason for leaving
  *	them present at size zero, rather than unlinking them, is that other
- *	backends and/or the bgwriter might be holding open file references to
+ *	backends and/or the checkpointer might be holding open file references to
  *	such segments.	If the relation expands again after mdtruncate(), such
  *	that a deactivated segment becomes active again, it is important that
  *	such file references still be valid --- else data might get written
@@ -121,7 +121,7 @@ static MemoryContext MdCxt;		/* context for all md.c allocations */
 
 
 /*
- * In some contexts (currently, standalone backends and the bgwriter process)
+ * In some contexts (currently, standalone backends and the checkpointer process)
  * we keep track of pending fsync operations: we need to remember all relation
  * segments that have been written since the last checkpoint, so that we can
  * fsync them down to disk before completing the next checkpoint.  This hash
@@ -133,7 +133,7 @@ static MemoryContext MdCxt;		/* context for all md.c allocations */
  * a hash table, because we don't expect there to be any duplicate requests.
  *
  * (Regular backends do not track pending operations locally, but forward
- * them to the bgwriter.)
+ * them to the checkpointer.)
  */
 typedef struct
 {
@@ -1965,7 +1965,7 @@ mdsync(void)
 		if (!entry->canceled &&
 			SIMPLE_FAULT_INJECTOR(FsyncCounter) == FaultInjectorTypeSkip)
 		{
-			if (MyAuxProcType == CheckpointProcess)
+			if (MyAuxProcType == CheckpointerProcess)
 				elog(LOG, "checkpoint performing fsync for %d/%d/%d",
 					 entry->tag.rnode.spcNode, entry->tag.rnode.dbNode,
 					 entry->tag.rnode.relNode);
@@ -2245,10 +2245,10 @@ register_unlink(RelFileNode rnode)
 }
 
 /*
- * RememberFsyncRequest() -- callback from bgwriter side of fsync request
+ * RememberFsyncRequest() -- callback from checkpointer side of fsync request
  *
  * We stuff most fsync requests into the local hash table for execution
- * during the bgwriter's next checkpoint.  UNLINK requests go into a
+ * during the checkpointer's next checkpoint.  UNLINK requests go into a
  * separate linked list, however, because they get processed separately.
  *
  * The range of possible segment numbers is way less than the range of
@@ -2391,20 +2391,20 @@ ForgetRelationFsyncRequests(RelFileNode rnode)
 	else if (IsUnderPostmaster)
 	{
 		/*
-		 * Notify the bgwriter about it.  If we fail to queue the revoke
+		 * Notify the checkpointer about it.  If we fail to queue the revoke
 		 * message, we have to sleep and try again ... ugly, but hopefully
 		 * won't happen often.
 		 *
 		 * XXX should we CHECK_FOR_INTERRUPTS in this loop?  Escaping with an
 		 * error would leave the no-longer-used file still present on disk,
-		 * which would be bad, so I'm inclined to assume that the bgwriter
+		 * which would be bad, so I'm inclined to assume that the checkpointer
 		 * will always empty the queue soon.
 		 */
 		while (!ForwardFsyncRequest(rnode, FORGET_RELATION_FSYNC))
 			pg_usleep(10000L);	/* 10 msec seems a good number */
 
 		/*
-		 * Note we don't wait for the bgwriter to actually absorb the revoke
+		 * Note we don't wait for the checkpointer to actually absorb the revoke
 		 * message; see mdsync() for the implications.
 		 */
 	}

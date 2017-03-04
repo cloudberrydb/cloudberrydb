@@ -481,7 +481,7 @@ typedef enum
 	StartupPass3Process,
 	StartupPass4Process,
 	BgWriterProcess,
-	CheckpointProcess,
+	CheckpointerProcess,
 	WalWriterProcess,
 	WalReceiverProcess,
 	FilerepProcess,
@@ -492,7 +492,7 @@ extern AuxProcType MyAuxProcType; /* bootstrap.c */
 #define AmBootstrapProcess()        (MyAuxProcType == BootstrapProcess)
 #define AmStartupProcess()          (MyAuxProcType >= StartupProcess && MyAuxProcType <= StartupPass4Process)
 #define AmBackgroundWriterProcess() (MyAuxProcType == BgWriterProcess)
-#define AmCheckpointerProcess()     (MyAuxProcType == CheckpointProcess)
+#define AmCheckpointerProcess()     (MyAuxProcType == CheckpointerProcess)
 #define AmWalWriterProcess()        (MyAuxProcType == WalWriterProcess)
 #define AmWalReceiverProcess()      (MyAuxProcType == WalReceiverProcess)
 

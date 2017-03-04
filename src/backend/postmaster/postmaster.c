@@ -258,8 +258,8 @@ static pid_t StartupPID = 0,
 			StartupPass3PID = 0,
 			StartupPass4PID = 0,
 			BgWriterPID = 0,
+			CheckpointerPID = 0,
 			WalWriterPID = 0,
-			CheckpointPID = 0,
 			WalReceiverPID = 0,
 			AutoVacPID = 0,
 			PgArchPID = 0,
@@ -676,7 +676,7 @@ static void ShmemBackendArrayRemove(Backend *bn);
 #define StartupPass3DataBase()	StartChildProcess(StartupPass3Process)
 #define StartupPass4DataBase()	StartChildProcess(StartupPass4Process)
 #define StartBackgroundWriter() StartChildProcess(BgWriterProcess)
-#define StartCheckpointServer() StartChildProcess(CheckpointProcess)
+#define StartCheckpointer()     StartChildProcess(CheckpointerProcess)
 #define StartWalWriter()		StartChildProcess(WalWriterProcess)
 #define StartWalReceiver()		StartChildProcess(WalReceiverProcess)
 #define StartFilerepProcess()	StartChildProcess(FilerepProcess)
@@ -2479,14 +2479,14 @@ ServerLoop(void)
 						 (long)BgWriterPID);
 			}
 
-			if (CheckpointPID == 0 &&
+			if (CheckpointerPID == 0 &&
 			    pmState > PM_STARTUP_PASS4 &&
 			    pmState < PM_CHILD_STOP_BEGIN)
 			{
-				CheckpointPID = StartCheckpointServer();
+				CheckpointerPID = StartCheckpointer();
 				if (Debug_print_server_processes)
 					elog(LOG,"restarted 'checkpoint process' as pid %ld",
-						 (long)CheckpointPID);
+						 (long)CheckpointerPID);
 			}
 
 			/*
@@ -2498,7 +2498,7 @@ ServerLoop(void)
 				WalWriterPID = StartWalWriter();
 				if (Debug_print_server_processes)
 					elog(LOG,"restarted 'wal writer process' as pid %ld",
-						 (long)CheckpointPID);
+						 (long)CheckpointerPID);
 			}
 
 			/* If we have lost the autovacuum launcher, try to start a new one */
@@ -3987,7 +3987,7 @@ SIGHUP_handler(SIGNAL_ARGS)
         signal_child_if_up(StartupPass3PID, SIGHUP);
         signal_child_if_up(StartupPass4PID, SIGHUP);
 		signal_child_if_up(BgWriterPID, SIGHUP);
-		signal_child_if_up(CheckpointPID, SIGHUP);
+		signal_child_if_up(CheckpointerPID, SIGHUP);
 		signal_child_if_up(WalWriterPID, SIGHUP);
 		signal_child_if_up(WalReceiverPID, SIGHUP);
 		signal_child_if_up(FilerepPID, SIGHUP);
@@ -4109,7 +4109,7 @@ pmdie(SIGNAL_ARGS)
             signal_child_if_up(StartupPass4PID, SIGQUIT);
  			StopServices(0, SIGQUIT);
 			signal_child_if_up(BgWriterPID, SIGQUIT);
-			signal_child_if_up(CheckpointPID, SIGQUIT);
+			signal_child_if_up(CheckpointerPID, SIGQUIT);
 			signal_child_if_up(WalWriterPID, SIGQUIT);
 			signal_child_if_up(WalReceiverPID, SIGQUIT);
             signal_child_if_up(AutoVacPID, SIGQUIT);
@@ -4199,7 +4199,7 @@ do_immediate_shutdown_reaper(void)
         }
 
         zeroIfPidEqual(pid, &BgWriterPID);
-        zeroIfPidEqual(pid, &CheckpointPID);
+        zeroIfPidEqual(pid, &CheckpointerPID);
 		zeroIfPidEqual(pid, &WalReceiverPID);
 		zeroIfPidEqual(pid, &WalWriterPID);
         zeroIfPidEqual(pid, &AutoVacPID);
@@ -4241,13 +4241,13 @@ CommenceNormalOperations(void)
 				 (long)BgWriterPID);
 	}
 
-	if (CheckpointPID == 0)
+	if (CheckpointerPID == 0)
 	{
-		CheckpointPID = StartCheckpointServer();
+		CheckpointerPID = StartCheckpointer();
 		if (Debug_print_server_processes)
-			elog(LOG,"on startup successful: started 'checkpoint service' as pid %ld",
-				 (long)CheckpointPID);
-		didServiceProcessWork &= (CheckpointPID > 0);
+			elog(LOG,"on startup successful: started 'checkpointer' as pid %ld",
+				 (long)CheckpointerPID);
+		didServiceProcessWork &= (CheckpointerPID > 0);
 	}
 
 	/*
@@ -4751,17 +4751,17 @@ do_reaper()
 		}
 
 		/*
-		 * Was it the checkpoint server process?  Normal or FATAL exit can be
+		 * Was it the checkpointer process?  Normal or FATAL exit can be
 		 * ignored; we'll start a new one at the next iteration of the
 		 * postmaster's main loop, if necessary.  Any other exit condition
 		 * is treated as a crash.
 		 */
-		if (pid == CheckpointPID)
+		if (pid == CheckpointerPID)
 		{
-			CheckpointPID = 0;
+			CheckpointerPID = 0;
 			if (!EXIT_STATUS_0(exitstatus) && !EXIT_STATUS_1(exitstatus))
 				HandleChildCrash(pid, exitstatus,
-								 _("checkpoint process"));
+								 _("checkpointer process"));
 			continue;
 		}
 
@@ -5000,7 +5000,7 @@ do_reaper()
 		    StartupPass3PID != 0 ||
 		    StartupPass4PID != 0 ||
 		    BgWriterPID != 0 ||
-		    CheckpointPID != 0 ||
+		    CheckpointerPID != 0 ||
 		    FilerepPID  != 0 ||
 		    FilerepPeerResetPID != 0 ||
 			AutoVacPID != 0 ||
@@ -5129,8 +5129,8 @@ GetServerProcessTitle(int pid)
 
 	if (pid == BgWriterPID)
 		return "background writer process";
-	if (pid == CheckpointPID)
-		return "checkpoint process";
+	if (pid == CheckpointerPID)
+		return "checkpointer process";
 	if (pid == WalWriterPID)
 		return "walwriter process";
 	if (pid == WalReceiverPID)
@@ -5368,17 +5368,17 @@ HandleChildCrash(int pid, int exitstatus, const char *procname)
 	}
 
     /* Take care of the checkpoint too */
-	if (pid == CheckpointPID)
+	if (pid == CheckpointerPID)
     {
-        CheckpointPID = 0;
+        CheckpointerPID = 0;
     }
-	else if (CheckpointPID != 0 && !FatalError)
+	else if (CheckpointerPID != 0 && !FatalError)
 	{
 		ereport((Debug_print_server_processes ? LOG : DEBUG2),
 				(errmsg_internal("sending %s to process %d",
 								 (SendStop ? "SIGSTOP" : "SIGQUIT"),
-								 (int) CheckpointPID)));
-		signal_child(CheckpointPID, (SendStop ? SIGSTOP : SIGQUIT));
+								 (int) CheckpointerPID)));
+		signal_child(CheckpointerPID, (SendStop ? SIGSTOP : SIGQUIT));
 	}
 
     /* Take care of filerep too */
@@ -5741,7 +5741,7 @@ static PMState StateMachineCheck_WaitDeadEndChildren(void)
         {
             Assert(StartupPID == 0);
             Assert(BgWriterPID == 0);
-            Assert(CheckpointPID == 0);
+            Assert(CheckpointerPID == 0);
             Assert(AutoVacPID == 0);
         }
         /* syslogger is not considered here */
@@ -5773,7 +5773,7 @@ static PMState StateMachineCheck_WaitPreBgWriter(void)
     /* waiting for pre-bgwriter services to exit */
     bool moveToNextState = 
     		(!ServiceProcessesExist(/* excludeFlags */ PMSUBPROC_FLAG_STOP_AFTER_BGWRITER) &&
-    		 CheckpointPID == 0);
+    		 CheckpointerPID == 0);
     return moveToNextState ? (pmState+1) : pmState;
 }
 
@@ -5877,7 +5877,7 @@ StateMachineTransition_ShutdownPreBgWriter(void)
 {
     /* SIGUSR2, regardless of shutdown mode */
     StopServices(/* excludeFlags */ PMSUBPROC_FLAG_STOP_AFTER_BGWRITER, SIGUSR2 );
-	signal_child_if_up(CheckpointPID, SIGUSR2);
+	signal_child_if_up(CheckpointerPID, SIGUSR2);
 }
 
 /**
@@ -7706,7 +7706,7 @@ StartChildProcess(AuxProcType type)
     switch (type)
 	{
         case BgWriterProcess:
-		case CheckpointProcess:
+		case CheckpointerProcess:
         case StartupProcess:
         case StartupPass2Process:
 		case StartupPass3Process:
@@ -7782,7 +7782,7 @@ StartChildProcess(AuxProcType type)
 				ereport(LOG,
 				   (errmsg("could not fork background writer process: %m")));
 				break;
-			case CheckpointProcess:
+			case CheckpointerProcess:
 				ereport(LOG,
 				   (errmsg("could not fork background checkpoint process: %m")));
 				break;
