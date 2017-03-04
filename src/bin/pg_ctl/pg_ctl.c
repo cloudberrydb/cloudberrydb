@@ -508,7 +508,6 @@ test_postmaster_connection(bool do_checkpoint __attribute__((unused)))
 	static const char *backend_options = "'-c gp_session_role=utility'";
 
 	*portstr = '\0';
-	
 
 	/*
 	 * Look in post_opts for a -p switch.
@@ -585,13 +584,6 @@ test_postmaster_connection(bool do_checkpoint __attribute__((unused)))
 				strlcpy(portstr, p, Min((q - p) + 1, sizeof(portstr)));
 				/* keep looking, maybe there is another */
 			}
-
-			/*
-			 * Free the results of readfile.
-			 *
-			 * This is safe to call even if optlines is NULL.
-			 */
-			free_readfile(optlines);
 		}
 	}
 
