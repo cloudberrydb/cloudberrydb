@@ -65,7 +65,7 @@ non_discover_targets: aoco_compression filerep_end_to_end fts
 # stages for configuration requirements.
 
 storage: storage_vacuum_xidlimits aocoalter_catalog_loaders \
-	storage_queryfinish_and_transactionmanagement \
+	storage_uao_and_transactionmanagement \
 	storage_persistent_accessmethods_and_vacuum \
 	storage_filerep
 
