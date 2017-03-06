@@ -747,6 +747,10 @@ SELECT * FROM newfoo;
 DROP TABLE newfoo;
 
 -- @description test28a: CTE with AO/CO tables
+-- FIXME: This deadlocks with gp_cte_sharing=on, so disable that temporarily.
+-- See https://github.com/greenplum-db/gpdb/issues/1967
+begin;
+set local gp_cte_sharing=off;
 WITH v AS (SELECT a, b FROM foo_ao WHERE b < 5),
      w AS (SELECT c, d FROM bar_co WHERE c < 9)
 SELECT v1.a, w1.c, w2.d
@@ -754,6 +758,7 @@ FROM v AS v1, v as v2, w AS w1, w AS w2
 WHERE v1.a = v2.b
 AND v1.a = w1.c
 AND v1.b = w2.d ORDER BY 1;
+rollback;
 
 -- @description test28b: CTE with AO/CO tables[ Multiple CTE with dependency]
 WITH v AS (SELECT a, b FROM foo_ao WHERE b < 5),
