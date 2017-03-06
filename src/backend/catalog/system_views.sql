@@ -26,7 +26,8 @@ CREATE VIEW pg_roles AS
         rolcreaterexthttp,
         rolcreatewextgpfd,
         rolcreaterexthdfs,
-        rolcreatewexthdfs  
+        rolcreatewexthdfs,
+        rolresgroup
     FROM pg_authid;
 
 CREATE VIEW pg_shadow AS
