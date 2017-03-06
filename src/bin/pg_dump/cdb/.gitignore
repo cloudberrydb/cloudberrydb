@@ -8,3 +8,15 @@ cdb_restore
 cdb_restore_agent
 gpddboost
 *.so.dSYM
+
+# Files symlinked during build process
+/kwlookup.c
+/pg_backup_db.c
+/pg_backup_custom.c
+/pg_backup_files.c
+/pg_backup_null.c
+/pg_backup_tar.c
+/dumputils.c
+/common.c
+/pg_dump_sort.c
+/keywords.c
