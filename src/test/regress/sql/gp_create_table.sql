@@ -55,6 +55,27 @@ create unique index distpol_uidx on distpol(i);
 alter table distpol add primary key (i);
 drop table distpol;
 
+-- Make sure that distribution policy is derived correctly from PRIMARY KEY
+-- or UNIQUE index. Even with gp_create_table_random_default_distribution=on
+SET gp_create_table_random_default_distribution=on;
+
+create table distpol_no_pk (i int, j int, k int);
+create table distpol_with_pk (i int, j int, k int, PRIMARY KEY (i));
+create table distpol_with_unique (i int, j int, k int, CONSTRAINT uconn UNIQUE (i, j));
+
+select localoid::regclass, attrnums from gp_distribution_policy where
+  localoid IN ('distpol_no_pk'::regclass,
+               'distpol_with_pk'::regclass,
+	       'distpol_with_unique'::regclass);
+
+-- If a table is previously DISTRIBUTED RANDOMLY, you cannot add a primary key
+-- to it. (If it's previously distributed by another column, then you can add
+-- a primary key to it, but it will implicitly re-distribute it by the primary
+-- key column. That case is tested above already.)
+alter table distpol_no_pk add primary key (i);
+
+RESET gp_create_table_random_default_distribution;
+
 -- MPP-2872: set ops with distributed by should work as advertised
 create table distpol1 (i int, j int);
 create table distpol2 (i int, j int);
