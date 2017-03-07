@@ -88,6 +88,7 @@ jobs:
         params:
           path: gpdb_pr
           status: failure
+      timeout: 30m
 
   - name: compile_gpdb_centos6
     max_in_flight: 1
@@ -120,6 +121,7 @@ jobs:
         params:
           path: gpdb_pr
           status: failure
+      timeout: 45m
     - aggregate:
       - put: bin_gpdb_centos
         params:
@@ -148,7 +150,7 @@ jobs:
         MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off -c codegen=off' installcheck-world
         BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
         TEST_OS: centos
-      timeout: 2h30m
+      timeout: 1h
       on_failure:
         put: gpdb_pr
         params:
@@ -177,7 +179,7 @@ jobs:
         MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on -c codegen=on' installcheck-world
         BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
         TEST_OS: centos
-      timeout: 2h30m
+      timeout: 1h30m
       on_failure:
         put: gpdb_pr
         params:
@@ -209,6 +211,7 @@ jobs:
         params:
           path: gpdb_pr
           status: failure
+      timeout: 10m
 
   - name: report_pr_success
     plan:
@@ -259,6 +262,7 @@ jobs:
         INSTALL_SCRIPT_SRC: gpdb_src/gpAux/addon/license/installer-header-rhel-gpdb.sh
         INSTALLER_ZIP: packaged_gpdb/greenplum-db-@GP_VERSION@-build-1-rhel6-x86_64.zip
         ADD_README_INSTALL: true
+      timeout: 15m
     - aggregate:
       - put: installer_rhel6_gpdb_rc
         params:
