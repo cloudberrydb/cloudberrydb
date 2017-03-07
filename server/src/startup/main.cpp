@@ -50,6 +50,7 @@
 #include "unittest/gpopt/base/CColRefSetTest.h"
 #include "unittest/gpopt/base/CColumnFactoryTest.h"
 #include "unittest/gpopt/base/CDistributionSpecTest.h"
+#include "unittest/gpopt/base/CEquivalenceClassesTest.h"
 #include "unittest/gpopt/base/CFunctionalDependencyTest.h"
 #include "unittest/gpopt/base/CKeyCollectionTest.h"
 #include "unittest/gpopt/base/CMaxCardTest.h"
@@ -184,6 +185,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CSubqueryHandlerTest),
 #endif  // !defined(GPOS_32BIT)
 	GPOS_UNITTEST_STD(CEngineTest),
+	GPOS_UNITTEST_STD(CEquivalenceClassesTest),
 	GPOS_UNITTEST_STD(CExpressionTest),
 	GPOS_UNITTEST_STD(CJoinOrderTest),
 	GPOS_UNITTEST_STD(CKeyCollectionTest),

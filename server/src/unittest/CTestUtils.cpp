@@ -4590,4 +4590,31 @@ CTestUtils::EresUnittest_RunTestsWithoutAdditionalTraceFlags
 }
 
 
+// Create Equivalence Class based on the breakpoints
+DrgPcrs *
+CTestUtils::createEquivalenceClasses(IMemoryPool *pmp, CColRefSet *pcrs, INT setBoundary[]) {
+	INT i = 0;
+	ULONG bpIndex = 0;
+
+	DrgPcrs *pdrgcrs = GPOS_NEW(pmp) DrgPcrs(pmp);
+
+	CColRefSetIter crsi(*pcrs);
+	CColRefSet *pcrsLoop = GPOS_NEW(pmp) CColRefSet(pmp);
+
+	while (crsi.FAdvance())
+	{
+		if (i == setBoundary[bpIndex]) {
+			pdrgcrs->Append(pcrsLoop);
+			CColRefSet *pcrsLoop1 = GPOS_NEW(pmp) CColRefSet(pmp);
+			pcrsLoop = pcrsLoop1;
+			bpIndex++;
+		}
+
+		CColRef *pcr = crsi.Pcr();
+		pcrsLoop->Include(pcr);
+		i++;
+	}
+	pdrgcrs->Append(pcrsLoop);
+	return pdrgcrs;
+}
 // EOF

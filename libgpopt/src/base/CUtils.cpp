@@ -6299,4 +6299,46 @@ CUtils::FEquivalanceClassesDisjoint
 	phmcscrs->Release();
 	return true;
 }
+
+// check if the equivalance classes are same
+BOOL
+CUtils::FEquivalanceClassesEqual
+	(
+	IMemoryPool *pmp,
+	DrgPcrs *pdrgpcrsFst,
+	DrgPcrs *pdrgpcrsSnd
+	)
+{
+	const ULONG ulLenFrst = pdrgpcrsFst->UlLength();
+	const ULONG ulLenSecond = pdrgpcrsSnd->UlLength();
+
+	if (ulLenFrst != ulLenSecond) return false;
+
+	HMCrCrs *phmcscrs = GPOS_NEW(pmp) HMCrCrs(pmp);
+	for (ULONG ulFst = 0; ulFst < ulLenFrst; ulFst++)
+	{
+		CColRefSet *pcrsFst = (*pdrgpcrsFst)[ulFst];
+		CColRefSetIter crsi(*pcrsFst);
+		while (crsi.FAdvance())
+		{
+			CColRef *pcr = crsi.Pcr();
+			pcrsFst->AddRef();
+			phmcscrs->FInsert(pcr, pcrsFst);
+		}
+	}
+
+	for (ULONG ulSnd = 0; ulSnd < ulLenSecond; ulSnd++)
+	{
+		CColRefSet *pcrsSnd = (*pdrgpcrsSnd)[ulSnd];
+		CColRef *pcr = pcrsSnd->PcrAny();
+		CColRefSet *pcrs = phmcscrs->PtLookup(pcr);
+		if(!pcrsSnd->FEqual(pcrs))
+		{
+			phmcscrs->Release();
+			return false;
+		}
+	}
+	phmcscrs->Release();
+	return true;
+}
 // EOF

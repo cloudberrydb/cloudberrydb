@@ -1052,6 +1052,10 @@ namespace gpopt
 			// check if the equivalance classes are disjoint
 			static
 			BOOL FEquivalanceClassesDisjoint(IMemoryPool *pmp, const DrgPcrs *pdrgpcrs);
+
+			// check if the equivalance classes are same
+			static
+			BOOL FEquivalanceClassesEqual(IMemoryPool *pmp, DrgPcrs *pdrgpcrsFst, DrgPcrs *pdrgpcrsSnd);
 	}; // class CUtils
 
 } // namespace gpopt

@@ -820,6 +820,11 @@ namespace gpopt
 			// return the number of segments, default return GPOPT_TEST_SEGMENTS
 			static
 			ULONG UlSegments(COptimizerConfig *poconf);
+
+			// create Equivalence Class based on the breakpoints
+			static
+			DrgPcrs *
+			createEquivalenceClasses(IMemoryPool *pmp, CColRefSet *pcrs, INT setBoundary[]);
 	}; // class CTestUtils
 } // namespace gpopt
 

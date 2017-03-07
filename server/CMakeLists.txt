@@ -150,6 +150,8 @@ add_executable(gporca_test
                src/unittest/gpopt/base/CColRefSetIterTest.cpp
                include/unittest/gpopt/base/CColRefSetTest.h
                src/unittest/gpopt/base/CColRefSetTest.cpp
+               include/unittest/gpopt/base/CEquivalenceClassesTest.h
+               src/unittest/gpopt/base/CEquivalenceClassesTest.cpp
                include/unittest/gpopt/base/CFunctionalDependencyTest.h
                src/unittest/gpopt/base/CFunctionalDependencyTest.cpp
                include/unittest/gpopt/base/CMaxCardTest.h
@@ -255,6 +257,7 @@ if (GPOS_ARCH_BITS EQUAL 64)
 endif()
 
 add_orca_test(CEngineTest)
+add_orca_test(CEquivalenceClassesTest)
 add_orca_test(CExpressionTest)
 add_orca_test(CJoinOrderTest)
 add_orca_test(CKeyCollectionTest)
