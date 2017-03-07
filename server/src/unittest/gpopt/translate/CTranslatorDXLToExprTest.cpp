@@ -50,6 +50,7 @@ const CHAR *szQueryLimit = "../data/dxl/expressiontests/LimitQuery.xml";
 const CHAR *szQueryLimitNoOffset = "../data/dxl/expressiontests/LimitQueryNoOffset.xml";
 const CHAR *szQueryTVF = "../data/dxl/expressiontests/TableValuedFunctionQuery.xml";
 static const CHAR *szQueryScalarSubquery = "../data/dxl/expressiontests/ScalarSubqueryQuery.xml";
+const CHAR *szScalarConstArray = "../data/dxl/expressiontests/CScalarConstArray.xml";
 
 static
 const CHAR *
@@ -83,6 +84,7 @@ CTranslatorDXLToExprTest::EresUnittest()
 				GPOS_UNITTEST_FUNC(CTranslatorDXLToExprTest::EresUnittest_LimitNoOffset),
 				GPOS_UNITTEST_FUNC(CTranslatorDXLToExprTest::EresUnittest_ScalarSubquery),
 				GPOS_UNITTEST_FUNC(CTranslatorDXLToExprTest::EresUnittest_TVF),
+				GPOS_UNITTEST_FUNC(CTranslatorDXLToExprTest::EresUnittest_SelectQueryWithConstInList)
 		};
 
 	return CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
@@ -504,6 +506,64 @@ CTranslatorDXLToExprTest::EresUnittest_SelectQueryWithConst()
 	}
 
 	return EresTranslateAndCheck(pmp, m_rgszDXLFileNames[1], pstrExpected);
+}
+
+
+// Test translating a DXL Tree for the query (select * from r where a in (5,6,7))
+// into Expr Tree
+GPOS_RESULT
+CTranslatorDXLToExprTest::EresUnittest_SelectQueryWithConstInList()
+{
+	CAutoMemoryPool amp;
+	IMemoryPool *pmp = amp.Pmp();
+
+	CWStringDynamic *pstrExpected = NULL;
+
+	// setup a file-based provider
+	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
+	pmdp->AddRef();
+	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+
+	// manually create the Expr Tree
+	{
+		// install opt context in TLS
+		CAutoOptCtxt aoc
+					(
+					pmp,
+					&mda,
+					NULL,  /* pceeval */
+					CTestUtils::Pcm(pmp)
+					);
+		CExpression *pexprLgGet = PexprGet(pmp);
+		CLogicalGet *popGet = CLogicalGet::PopConvert(pexprLgGet->Pop());
+
+		// the output column references from the logical get
+		DrgPcr *pdrgpcr = popGet->PdrgpcrOutput();
+		GPOS_ASSERT(NULL != pdrgpcr && 2 == pdrgpcr->UlSafeLength());
+
+		CColRef *pcr =  (*pdrgpcr)[0];
+		ULONG ulVal1 = 5;
+		CExpression *pexprScConst1 = CUtils::PexprScalarConstInt4(pmp, ulVal1);
+		ULONG ulVal2 = 6;
+		CExpression *pexprScConst2 = CUtils::PexprScalarConstInt4(pmp, ulVal2);
+		ULONG ulVal3 = 7;
+		CExpression *pexprScConst3 = CUtils::PexprScalarConstInt4(pmp, ulVal3);
+		DrgPexpr *pexprScalarChildren = GPOS_NEW(pmp) DrgPexpr(pmp);
+		pexprScalarChildren->Append(pexprScConst1);
+		pexprScalarChildren->Append(pexprScConst2);
+		pexprScalarChildren->Append(pexprScConst3);
+
+		CExpression *pexprScalarArrayCmp = CUtils::PexprScalarArrayCmp(pmp, CScalarArrayCmp::EarrcmpAny, IMDType::EcmptEq, pexprScalarChildren, pcr);
+		CExpression *pexprScalarArrayCmpCollapsed = CUtils::PexprCollapseConstArray(pmp, pexprScalarArrayCmp);
+		pexprScalarArrayCmp->Release();
+		CExpression *pexprExpected = CUtils::PexprLogicalSelect(pmp, pexprLgGet, pexprScalarArrayCmpCollapsed);
+		pstrExpected = Pstr(pmp, pexprExpected);
+
+		//clean up
+		pexprExpected->Release();
+	}
+
+	return EresTranslateAndCheck(pmp, szScalarConstArray, pstrExpected);
 }
 
 

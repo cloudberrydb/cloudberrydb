@@ -83,6 +83,7 @@ namespace gpopt
 			static GPOS_RESULT EresUnittest_LimitNoOffset();
 			static GPOS_RESULT EresUnittest_ScalarSubquery();
 			static GPOS_RESULT EresUnittest_TVF();
+			static GPOS_RESULT EresUnittest_SelectQueryWithConstInList();
 			
 	}; // class CTranslatorDXLToExprTest
 }
