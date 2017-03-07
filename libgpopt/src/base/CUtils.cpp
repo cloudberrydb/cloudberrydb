@@ -1958,6 +1958,7 @@ CUtils::PdrgpexprDedup
 {
 	const ULONG ulSize = pdrgpexpr->UlLength();
 	DrgPexpr *pdrgpexprDedup = GPOS_NEW(pmp) DrgPexpr(pmp);
+
 	for (ULONG ulOuter = 0; ulOuter < ulSize; ulOuter++)
 	{
 		CExpression *pexprOne = (*pdrgpexpr)[ulOuter];
@@ -3568,8 +3569,8 @@ CUtils::PdrgpcrsMergeEquivClasses
 //		CUtils::PdrgpcrsIntersectEquivClasses
 //
 //	@doc:
-//		Intersect 2 arrays of equivalence classes. This is accomplished by doing
-//		pairwise intersection between elements of the two arrays
+//		Intersect 2 arrays of equivalence classes. This is accomplished by using
+//		a hashmap to find intersects between two arrays of colomun referance sets
 //
 //---------------------------------------------------------------------------
 DrgPcrs *
@@ -3580,28 +3581,77 @@ CUtils::PdrgpcrsIntersectEquivClasses
 	DrgPcrs *pdrgpcrsSnd
 	)
 {
+	GPOS_ASSERT(CUtils::FEquivalanceClassesDisjoint(pmp,pdrgpcrsFst));
+	GPOS_ASSERT(CUtils::FEquivalanceClassesDisjoint(pmp,pdrgpcrsSnd));
+
 	DrgPcrs *pdrgpcrs = GPOS_NEW(pmp) DrgPcrs(pmp);
 
 	const ULONG ulLenFst = pdrgpcrsFst->UlLength();
 	const ULONG ulLenSnd = pdrgpcrsSnd->UlLength();
+
+	// nothing to intersect, so return empty array
+	if (ulLenSnd == 0 || ulLenFst == 0)
+	{
+		return pdrgpcrs;
+	}
+
+	HMCrCrs *phmcscrs = GPOS_NEW(pmp) HMCrCrs(pmp);
+	HMCrCr *phmcscrDone = GPOS_NEW(pmp) HMCrCr(pmp);
+
+	// populate a hashmap in this loop
 	for (ULONG ulFst = 0; ulFst < ulLenFst; ulFst++)
 	{
 		CColRefSet *pcrsFst = (*pdrgpcrsFst)[ulFst];
-		for (ULONG ulSnd = 0; ulSnd < ulLenSnd; ulSnd++)
-		{
-			CColRefSet *pcrsSnd = (*pdrgpcrsSnd)[ulSnd];
-			CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp);
-			pcrs->Include(pcrsFst);
-			pcrs->Intersection(pcrsSnd);
-			if (0 == pcrs->CElements())
-			{
-				pcrs->Release();
-				continue;
-			}
 
-			pdrgpcrs->Append(pcrs);
+		// because the equivalence classes are disjoint, a single column will only be a member
+		// of one equivalence class. therefore, we create a hash map keyed on one column
+		CColRefSetIter crsi(*pcrsFst);
+		while (crsi.FAdvance())
+		{
+			CColRef *pcr = crsi.Pcr();
+			pcrsFst->AddRef();
+			phmcscrs->FInsert(pcr, pcrsFst);
 		}
 	}
+
+	// probe the hashmap with the equivalence classes
+	for (ULONG ulSnd = 0; ulSnd < ulLenSnd; ulSnd++)
+	{
+		CColRefSet *pcrsSnd = (*pdrgpcrsSnd)[ulSnd];
+
+		// iterate on column references in the equivalence class
+		CColRefSetIter crsi(*pcrsSnd);
+		while (crsi.FAdvance())
+		{
+			// lookup a column in the hashmap
+			CColRef *pcr = crsi.Pcr();
+			CColRefSet *pcrs = phmcscrs->PtLookup(pcr);
+			CColRef *pcrDone = phmcscrDone->PtLookup(pcr);
+
+			// continue if we don't find this column or if that column
+			// is already processed and outputed as an intersection of two
+			// column referance sets
+			if (NULL != pcrs && pcrDone == NULL)
+			{
+				CColRefSet *pcrsNew = GPOS_NEW(pmp) CColRefSet(pmp);
+				pcrsNew->Include(pcrsSnd);
+				pcrsNew->Intersection(pcrs);
+				pdrgpcrs->Append(pcrsNew);
+
+				CColRefSetIter hmpcrs(*pcrsNew);
+				// now that we have created an intersection, any additional matches to these
+				// columns would create a duplicate intersect, so we add those columns to
+				// the DONE hash map
+				while (hmpcrs.FAdvance())
+				{
+					CColRef *pcrProcessed = hmpcrs.Pcr();
+					phmcscrDone->FInsert(pcrProcessed, pcrProcessed);
+				}
+			}
+		}
+	}
+	phmcscrDone->Release();
+	phmcscrs->Release();
 
 	return pdrgpcrs;
 }
@@ -6206,4 +6256,47 @@ INT CUtils::IDatumCmp
 	return 1;
 }
 
+// check if the equivalance classes are disjoint
+BOOL
+CUtils::FEquivalanceClassesDisjoint
+	(
+	IMemoryPool *pmp,
+	const DrgPcrs *pdrgpcrs
+	)
+{
+	const ULONG ulLen = pdrgpcrs->UlLength();
+
+	// nothing to check
+	if (ulLen == 0)
+	{
+		return true;
+	}
+
+	HMCrCrs *phmcscrs = GPOS_NEW(pmp) HMCrCrs(pmp);
+
+	// populate a hashmap in this loop
+	for (ULONG ulFst = 0; ulFst < ulLen; ulFst++)
+	{
+		CColRefSet *pcrsFst = (*pdrgpcrs)[ulFst];
+
+		CColRefSetIter crsi(*pcrsFst);
+		while (crsi.FAdvance())
+		{
+			CColRef *pcr = crsi.Pcr();
+			pcrsFst->AddRef();
+
+			// if there is already an entry for the column referance it means the column is
+			// part of another set which shows the equivalance classes are not disjoint
+			if(!phmcscrs->FInsert(pcr, pcrsFst))
+			{
+				phmcscrs->Release();
+				pcrsFst->Release();
+				return false;
+			}
+		}
+	}
+
+	phmcscrs->Release();
+	return true;
+}
 // EOF

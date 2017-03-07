@@ -1048,6 +1048,10 @@ namespace gpopt
 			// compares two Idatums, useful for sorting functions
 			static
 			INT IDatumCmp(const void *pv1, const void *pv2);
+
+			// check if the equivalance classes are disjoint
+			static
+			BOOL FEquivalanceClassesDisjoint(IMemoryPool *pmp, const DrgPcrs *pdrgpcrs);
 	}; // class CUtils
 
 } // namespace gpopt
