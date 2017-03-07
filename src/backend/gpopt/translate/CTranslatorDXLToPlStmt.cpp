@@ -969,8 +969,10 @@ CTranslatorDXLToPlStmt::PlExternalScanUriList
 	
 	if (extentry->iswritable)
 	{
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtExternalScanError,
-				GPOS_WSZ_LIT("It is not possible to read from a WRITABLE external table. Create the table as READABLE instead."));
+		// This should match the same error in createplan.c
+		RaiseGpdbError(ERRCODE_WRONG_OBJECT_TYPE, // errcode
+					   "cannot read from a WRITABLE external table", // errmsg
+					   "Create the table as READABLE instead."); // errhint
 	}
 
 	//get the total valid primary segdb count
@@ -997,8 +999,10 @@ CTranslatorDXLToPlStmt::PlExternalScanUriList
 	{
 		if (!gp_external_enable_exec)
 		{
-			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtExternalScanError,
-					GPOS_WSZ_LIT("Using external tables with OS level commands is disabled. Use (set gp_external_enable_exec = on) to enable"));
+			// This should match the same error in createplan.c
+			RaiseGpdbError(ERRCODE_GP_FEATURE_NOT_CONFIGURED, // errcode
+						   "Using external tables with OS level commands (EXECUTE clause) is disabled", // errmsg
+						   "To enable set gp_external_enable_exec=on"); // errhint
 		}
 		fUsingExecute = true;
 	}

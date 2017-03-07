@@ -196,6 +196,10 @@ create writable external web table wet_pos4(a text, b text) execute 'some comman
 create writable external table wet_neg1(a text, b text) location('file://@hostname@@abs_srcdir@/badt1.tbl') format 'text';
 create writable external table wet_neg1(a text, b text) location('gpfdist://foo:7070/wet.out', 'gpfdist://foo:7070/wet.out') format 'text';
 create writable external web table wet_pos5(a text, b text) execute 'some command' on segment 0 format 'text';
+
+-- cannot read from a WRITABLE external table.
+select * from wet_pos4;
+
 --
 -- test CREATE EXTERNAL TABLE privileges
 --

@@ -1873,6 +1873,35 @@ gpdb::SzMemoryContextStrdup
 	return NULL;
 }
 
+// Helper function to throw an error with errcode, message and hint, like you
+// would with ereport(...) in the backend. This could be extended for other
+// fields, but this is all we need at the moment.
+void
+gpdb::RaiseGpdbErrorImpl
+	(
+	int xerrcode,
+	const char *xerrmsg,
+	const char *xerrhint,
+	const char *filename,
+	int lineno,
+	const char *funcname
+	)
+{
+	GP_WRAP_START;
+	{
+		// We cannot use the ereport() macro here, because we want to pass on
+		// the caller's filename and line number. This is essentially an
+		// expanded version of ereport(). It will be caught by the
+		// GP_WRAP_END, and propagated up as a C++ exception, to be
+		// re-thrown as a Postgres error once we leave the C++ land.
+		if (errstart(ERROR, filename, lineno, funcname, TEXTDOMAIN))
+			errfinish (errcode(xerrcode),
+					   errmsg("%s", xerrmsg),
+					   xerrhint ? errhint("%s", xerrhint) : 0);
+	}
+	GP_WRAP_END;
+}
+
 char *
 gpdb::SzNodeToString
 	(

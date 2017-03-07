@@ -708,12 +708,6 @@ HINT:  Writable external tables may use 'gpfdist', 'gpfdists' or 'gphdfs' URIs o
 create writable external web table wet_pos5(a text, b text) execute 'some command' on segment 0 format 'text';
 ERROR:  ON clause may not be used with a writable external table
 --
--- SELECT from WET (negative)
---
-select * from wet_pos1;
-ERROR:  it is not possible to read from a WRITABLE external table.
-HINT:  Create the table as READABLE instead
---
 -- WET: export some data with INSERT SELECT, INSERT and COPY. 
 --
 COPY reg_region FROM STDIN DELIMITER '|';

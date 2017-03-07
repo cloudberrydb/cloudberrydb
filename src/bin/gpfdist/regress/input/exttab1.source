@@ -446,11 +446,6 @@ create writable external table wet_neg1(a text, b text) location('file://@hostna
 create writable external web table wet_pos5(a text, b text) execute 'some command' on segment 0 format 'text';
 
 --
--- SELECT from WET (negative)
---
-select * from wet_pos1;
-
---
 -- WET: export some data with INSERT SELECT, INSERT and COPY. 
 --
 COPY reg_region FROM STDIN DELIMITER '|';

@@ -296,6 +296,10 @@ LINE 1: ...t, b text) location('gpfdist://foo:7070/wet.out', 'gpfdist:/...
                                                              ^
 create writable external web table wet_pos5(a text, b text) execute 'some command' on segment 0 format 'text';
 ERROR:  ON clause may not be used with a writable external table
+-- cannot read from a WRITABLE external table.
+select * from wet_pos4;
+ERROR:  cannot read from a WRITABLE external table
+HINT:  Create the table as READABLE instead.
 --
 -- test CREATE EXTERNAL TABLE privileges
 --

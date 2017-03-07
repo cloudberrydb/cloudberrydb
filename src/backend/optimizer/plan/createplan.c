@@ -1247,9 +1247,9 @@ create_externalscan_plan(PlannerInfo *root, Path *best_path,
 
 	if (rel->writable)
 		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-		errmsg("it is not possible to read from a WRITABLE external table."),
-				 errhint("Create the table as READABLE instead")));
+				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+				 errmsg("cannot read from a WRITABLE external table"),
+				 errhint("Create the table as READABLE instead.")));
 
 
 	if (rel->rejectlimit != -1)
