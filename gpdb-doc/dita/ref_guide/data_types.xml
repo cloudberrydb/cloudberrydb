@@ -40,4 +40,11 @@ in distribution key columns.</entry></row><row><entry colname="col1">real</entry
               /></entry><entry colname="col2"/><entry colname="col3">1 byte + <i>string size</i></entry><entry colname="col4">strings of any length</entry><entry colname="col5">variable unlimited length</entry></row><row><entry colname="col1">time [ (p) ] [ without time zone ]</entry><entry colname="col2"/><entry colname="col3">8 bytes</entry><entry colname="col4">00:00:00[.000000] - 24:00:00[.000000]</entry><entry colname="col5">time of day only</entry></row><row><entry colname="col1">time [ (p) ] with time zone</entry><entry colname="col2">timetz</entry><entry colname="col3">12 bytes</entry><entry colname="col4">00:00:00+1359 - 24:00:00-1359</entry><entry colname="col5">time of day only, with time zone</entry></row><row><entry colname="col1">timestamp [ (p) ] [ without time zone ] </entry><entry colname="col2"/><entry colname="col3">8 bytes</entry><entry colname="col4">4713 BC - 294,277 AD </entry><entry colname="col5">both date and time</entry></row><row><entry colname="col1">timestamp [ (p) ] with time zone</entry><entry colname="col2">timestamptz</entry><entry colname="col3">8 bytes</entry><entry colname="col4">4713 BC - 294,277 AD </entry><entry colname="col5">both date and time, with time zone</entry></row>
 <row><entry colname="col1">uuid</entry><entry colname="col2"/><entry colname="col3">32 bytes</entry><entry colname="col4"></entry><entry colname="col5">Universally Unique Identifiers according to RFC 4122, ISO/IEC 9834-8:2005</entry></row>
 <row><entry colname="col1">xml<xref href="#topic1/if139219" scope="local" type="fn" format="dita"/></entry><entry colname="col2"/><entry colname="col3">1 byte + <i>xml size</i></entry><entry colname="col4">xml of any length</entry><entry colname="col5">variable unlimited length</entry></row>
+          <row>
+            <entry colname="col1">txid_snapshot</entry>
+            <entry colname="col2"/>
+            <entry colname="col3"/>
+            <entry colname="col4"/>
+            <entry colname="col5">user-level transaction ID snapshot</entry>
+          </row>
 </tbody></tgroup></table></body></topic>
