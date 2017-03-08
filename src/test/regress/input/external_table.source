@@ -201,51 +201,6 @@ create writable external web table wet_pos5(a text, b text) execute 'some comman
 -- cannot read from a WRITABLE external table.
 select * from wet_pos4;
 
---
--- test CREATE EXTERNAL TABLE privileges
---
-CREATE ROLE exttab1_su SUPERUSER; -- SU with no privs in pg_auth
-CREATE ROLE exttab1_u1 CREATEEXTTABLE(protocol='gpfdist', type='readable'); 
-CREATE ROLE exttab1_u2 CREATEEXTTABLE(protocol='gpfdist', type='writable'); 
-CREATE ROLE exttab1_u3 CREATEEXTTABLE(protocol='gpfdist') NOCREATEEXTTABLE(protocol='gpfdist', type='readable'); -- fail due to conflict 
-CREATE ROLE exttab1_u4 CREATEEXTTABLE(protocol='gphdfs', type='readable'); 
-CREATE ROLE exttab1_u5 CREATEEXTTABLE(protocol='gphdfs', type='writable'); 
-CREATE ROLE exttab1_u6 NOCREATEEXTTABLE(protocol='gphdfs', type='readable') NOCREATEEXTTABLE(protocol='gphdfs', type='writable');
-CREATE ROLE exttab1_u7 CREATEEXTTABLE(protocol='gphdfs') NOCREATEEXTTABLE(protocol='gphdfs', type='readable'); -- fail due to conflict 
-CREATE ROLE exttab1_u7 CREATEEXTTABLE(protocol='gphdfs', type='writable') NOCREATEEXTTABLE(protocol='gphdfs', type='writable'); -- fail due to conflict 
-
-
-SET SESSION AUTHORIZATION exttab1_su;
-create readable external table auth_ext_test1(a int) location ('gpfdist://host:8000/file') format 'text';
-
-SET SESSION AUTHORIZATION exttab1_u1;
-create readable external table auth_ext_test2(a int) location ('gpfdist://host:8000/file') format 'text';
-create writable external table auth_ext_test3(a int) location ('gpfdist://host:8000/file') format 'text'; -- fail
-
-SET SESSION AUTHORIZATION exttab1_u2;
-create writable external table auth_ext_test3(a int) location ('gpfdist://host:8000/file') format 'text';
-create readable external table auth_ext_test3b(a int) location ('gpfdist://host:8000/file') format 'text'; -- fail
-
-RESET SESSION AUTHORIZATION;
-ALTER ROLE exttab1_u2 NOCREATEEXTTABLE(protocol='gpfdist', type='writable');
-SET SESSION AUTHORIZATION exttab1_u2;
-create writable external table auth_ext_test4(a int) location ('gpfdist://host:8000/file') format 'text'; -- fail
-RESET SESSION AUTHORIZATION;
-
-
-drop external table auth_ext_test1;
-drop external table auth_ext_test2;
-drop external table auth_ext_test3;
-drop external table auth_ext_test5;
-drop external table auth_ext_test7;
-
-DROP ROLE exttab1_su;
-DROP ROLE exttab1_u1;
-DROP ROLE exttab1_u2;
-DROP ROLE exttab1_u4;
-DROP ROLE exttab1_u5;
-DROP ROLE exttab1_u6;
-
 drop external table check_ps;
 drop external table check_env;
 drop external table wet_pos4;
