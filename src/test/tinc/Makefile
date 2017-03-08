@@ -64,11 +64,6 @@ non_discover_targets: aoco_compression filerep_end_to_end fts
 # Refer to the properties of the pulse project and individual build
 # stages for configuration requirements.
 
-storage: storage_vacuum_xidlimits aocoalter_catalog_loaders \
-	storage_uao_and_transactionmanagement \
-	storage_persistent_accessmethods_and_vacuum \
-	storage_filerep
-
 storage_vacuum_xidlimits:
 	$(TESTER) $(DISCOVER) \
 	-s tincrepo/mpp/gpdb/tests/storage/vacuum \
@@ -110,8 +105,6 @@ storage_filerep:
 # Refer to the properties of the pulse project and individual build
 # stages for configuration requirements.
 
-walrep_multinode: walrep_1 walrep_2
-
 walrep_1:
 	$(TESTER) $(DISCOVER) -t tincrepo/mpp/gpdb/tests/storage/walrepl \
 	-s gpactivatestandby \
@@ -145,10 +138,6 @@ walrep_2:
 # Refer to the properties of the pulse project and individual build
 # stages for configuration requirements.
 
-aoco_compression: aoco_compression_large_01 aoco_compression_large_02 \
-	aoco_compression_large_03 aoco_compression_large_04 \
-	aoco_compression_small aoco_compression_small_serial
-
 aoco_compression_large_01:
 	$(TESTER) mpp.gpdb.tests.storage.aoco_compression.test_func_aococompression_large_01
 
@@ -174,9 +163,6 @@ aoco_compression_small_serial:
 # Refer to the properties of the pulse project and individual build
 # stages for configuration requirements.
 
-filerep_end_to_end: filerep_end_to_end_full_primary filerep_end_to_end_incr_primary \
-	filerep_end_to_end_full_mirror filerep_end_to_end_incr_mirror
-
 filerep_end_to_end_full_primary:
 	$(TESTER) mpp.gpdb.tests.storage.filerep_end_to_end.test_filerep_e2e.FilerepE2EScenarioTestCase.test_full_primary
 
@@ -196,10 +182,6 @@ filerep_end_to_end_incr_mirror:
 #
 # Refer to the properties of the pulse project and individual build
 # stages for configuration requirements.
-
-pgtwophase: test_pg_twophase_01_10 test_pg_twophase_11_20 \
-	test_pg_twophase_21_30 test_pg_twophase_31_40 test_pg_twophase_41_49 \
-	test_switch_01_12 test_switch_13_24 test_switch_25_33
 
 test_pg_twophase_01_10:
 	$(TESTER) $(DISCOVER) \
@@ -249,8 +231,6 @@ test_switch_25_33:
 # Refer to the properties of the pulse project and individual build
 # stages for configuration requirements.
 
-fts: fts_transitions_part01 fts_transitions_part02 fts_transitions_part03
-
 fts_transitions_part01:
 	$(TESTER) mpp.gpdb.tests.storage.fts.fts_transitions.test_fts_transitions_01
 
@@ -280,10 +260,6 @@ sub_transaction_limit_removal:
 #
 # Refer to the properties of the pulse project and individual build
 # stages for configuration requirements.
-
-filerep_schematopology_crashrecov: crash_recovery_04_10 crash_recovery_11_20 \
-	crash_recovery_21_30 crash_recovery_31_42 \
-	crash_recovery_filerep_end_to_end crash_recovery_schema_topology
 
 crash_recovery_04_10:
 	$(TESTER) $(DISCOVER) \
