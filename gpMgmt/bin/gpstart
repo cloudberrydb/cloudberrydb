@@ -109,8 +109,9 @@ class GpStart:
                     logger.warning("****************************************************************************")
                 else:
                     logger.info('Master-only start requested in configuration without a standby master.')
-                if not userinput.ask_yesno(None, "\nContinue with master-only startup", 'N'):
-                    raise UserAbortedException()
+                if self.interactive:
+                    if not userinput.ask_yesno(None, "\nContinue with master-only startup", 'N'):
+                        raise UserAbortedException()
 
         try:
             # Disable Ctrl-C
