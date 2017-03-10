@@ -8,7 +8,7 @@
     <ul>
       <li id="pt222286">
         <xref href="#topic2" type="topic" format="dita"/>
-       </li>
+      </li>
       <li id="pt222315">
         <xref href="#topic6" type="topic" format="dita"/>
       </li>
@@ -45,7 +45,9 @@
         <p>When using Greenplum Database PL/pgSQL, limitations include</p>
         <ul>
           <li id="pt219857">Triggers are not supported</li>
-          <li id="pt222490">Cursors are forward moving only (not scrollable) </li>
+          <li id="pt222490">Cursors are forward moving only (not scrollable)</li>
+          <li>Updatable cursors (<codeph>UPDATE...WHERE CURRENT OF</codeph> and
+              <codeph>DELETE...WHERE CURRENT OF</codeph>) are not supported.</li>
         </ul>
         <p>For information about Greenplum Database SQL conformance, see <xref
             href="../feature_summary.xml#topic1"/> in the <cite>Greenplum Database Reference
