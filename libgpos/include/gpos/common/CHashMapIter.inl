@@ -34,7 +34,7 @@ namespace gpos
 		: 
 		m_ptm(ptm),
 		m_ulChain(0),
-		m_ulElement((ULONG)-1)
+		m_ulKey(0)
 	{
 		GPOS_ASSERT(NULL != ptm);
 	}
@@ -45,8 +45,7 @@ namespace gpos
 	//		CHashMapIter::FAdvance
 	//
 	//	@doc:
-	//		Advance cursor; increment element position -- if not existent, try
-	//		to find next existing hash chain;
+	//		Get the next existent hash chain
 	//
 	//---------------------------------------------------------------------------
 	template <class K, class T, 
@@ -57,24 +56,12 @@ namespace gpos
 	BOOL
 	CHashMapIter<K, T,pfnHash, pfnEq, pfnDestroyK, pfnDestroyT>::FAdvance()
 	{
-		// bump counter
-		m_ulElement++;
-
-		// if position is not valid, find next valid element
-		while (m_ulChain < m_ptm->m_ulSize)
+		if (m_ulKey < m_ptm->m_pdrgKeys->UlLength())
 		{
-			typename TMap::DrgHashChain *pdrgchain;
-			pdrgchain = m_ptm->m_ppdrgchain[m_ulChain];
-			
-			if (NULL != pdrgchain && m_ulElement < pdrgchain->UlLength())
-			{
-				return true;
-			}
-
-			m_ulElement = 0;
-			m_ulChain++;
+			m_ulKey++;
+			return true;
 		}
-		
+
 		return false;
 	}
 
@@ -94,16 +81,11 @@ namespace gpos
 	const typename CHashMap<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT>::CHashMapElem *
 	CHashMapIter<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT>::Phme() const
 	{
-		typename TMap::DrgHashChain *pdrgchain;
-		pdrgchain = m_ptm->m_ppdrgchain[m_ulChain];
-		GPOS_ASSERT(NULL != pdrgchain);
-			
-		if (m_ulElement < pdrgchain->UlLength())
-		{
-			return (*pdrgchain)[m_ulElement];
-		}
-		
-		return NULL;
+		typename TMap::CHashMapElem *phme = NULL;
+		K *k = (*(m_ptm->m_pdrgKeys))[m_ulKey-1];
+		m_ptm->Lookup(k, &phme);
+
+		return phme;
 	}
 
 

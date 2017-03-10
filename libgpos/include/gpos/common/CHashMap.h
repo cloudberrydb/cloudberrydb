@@ -109,10 +109,14 @@ namespace gpos
 		
 			// number of entries
 			ULONG m_ulEntries;
-		
+
 			// each hash chain is an array of hashmap elements
 			typedef CDynamicPtrArray<CHashMapElem, CleanupDelete> DrgHashChain;
 			DrgHashChain **m_ppdrgchain;
+
+			// array for keys
+			typedef CDynamicPtrArray<K, CleanupNULL> DrgKeys;
+			DrgKeys *m_pdrgKeys;
 
 			// private copy ctor
 			CHashMap(const CHashMap<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT> &);

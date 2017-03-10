@@ -45,9 +45,9 @@ namespace gpos
 			// current hashchain
 			ULONG m_ulChain;
 
-			// current cursor
-			ULONG m_ulElement;
-			
+			// current key
+			ULONG m_ulKey;
+
 			// is initialized?
 			BOOL m_fInit;
 
