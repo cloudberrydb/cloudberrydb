@@ -102,7 +102,7 @@ namespace gpos
 			};
 
 			// memory pool
-			IMemoryPool *m_pmp;
+			IMemoryPool *const m_pmp;
 			
 			// size
 			ULONG m_ulSize;
@@ -112,11 +112,14 @@ namespace gpos
 
 			// each hash chain is an array of hashmap elements
 			typedef CDynamicPtrArray<CHashMapElem, CleanupDelete> DrgHashChain;
-			DrgHashChain **m_ppdrgchain;
+			DrgHashChain **const m_ppdrgchain;
 
 			// array for keys
+			// We use CleanupNULL because the keys are owned by the hash table
 			typedef CDynamicPtrArray<K, CleanupNULL> DrgKeys;
-			DrgKeys *m_pdrgKeys;
+			DrgKeys *const m_pdrgKeys;
+
+			DrgPi *const m_pdrgPiFilledBuckets;
 
 			// private copy ctor
 			CHashMap(const CHashMap<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT> &);
