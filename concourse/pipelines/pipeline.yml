@@ -436,7 +436,7 @@ jobs:
         BEHAVE_TAGS: persistent_rebuild
         BLDWRAP_POSTGRES_CONF_ADDONS: ""
     - task: persistent_table_rebuild_crash_recovery
-      file: gpdb_src/concourse/tasks/tinc_gpdb.gyml
+      file: gpdb_src/concourse/tasks/tinc_gpdb.yml
       image: centos-gpdb-dev-6
       params:
         MAKE_TEST_COMMAND: persistent_table_rebuild
