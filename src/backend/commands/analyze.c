@@ -49,6 +49,7 @@
 #include "utils/pg_rusage.h"
 #include "utils/syscache.h"
 #include "utils/tuplesort.h"
+#include "utils/tuplesort_mk.h"
 
 
 /* Data structure for Algorithm S from Knuth 3.4.2 */
