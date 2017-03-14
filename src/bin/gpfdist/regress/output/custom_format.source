@@ -10494,7 +10494,7 @@ FORMAT 'CUSTOM' (formatter='fixedwidth_out', s1='10',
     n3='10', n4='10', n5='10', n6='10', n7='15',line_delim='qwertyuiopasdfghjklzxcvbnm');
 -- Output data
 INSERT INTO tbl_out_fixedwidth SELECT * FROM tbl_ext_fixedwidth ORDER BY s1;
-\! cat /home/gpadmin/gpdb/src/bin/gpfdist/regress/data/fixedwidth/fixedwidth_out.tbl | wc
+\! cat @abs_srcdir@/data/fixedwidth/fixedwidth_out.tbl | wc
       0     151    1510
 -- Clean out the output file
 SELECT * FROM clean_out_file;
