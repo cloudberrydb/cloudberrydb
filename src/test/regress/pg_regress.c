@@ -428,7 +428,13 @@ convert_line(char *line, replacements *repls)
 	replace_string(line, "@DLSUFFIX@", repls->dlsuffix);
 	replace_string(line, "@bindir@", repls->bindir);
 	if (repls->orientation)
+	{
 		replace_string(line, "@orientation@", repls->orientation);
+		if (strcmp(repls->orientation, "row") == 0)
+			replace_string(line, "@aoseg@", "aoseg");
+		else
+			replace_string(line, "@aoseg@", "aocsseg");
+	}
 }
 
 /*
