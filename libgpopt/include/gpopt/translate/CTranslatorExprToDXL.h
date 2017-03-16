@@ -416,8 +416,9 @@ namespace gpopt
 			// translate partition filter list
 			CDXLNode *PdxlnPartFilterList(CExpression *pexpr, BOOL fEqFilters);
 
-			// check whether the given partition selector has equality filters on
-			// all partitioning levels
+			// check whether the given partition selector only has equality filters
+			// or no filters on all partitioning levels. return false if it has
+			// non-equality filters.
 			BOOL FEqPartFiltersAllLevels(CExpression *pexpr, BOOL fCheckGeneralFilters);
 
 			// translate a filter-based partition selector

@@ -4570,9 +4570,12 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorFilter
 //		CTranslatorExprToDXL::FEqPartFiltersAllLevels
 //
 //	@doc:
-//		Check whether the given partition selector has equality filters on
-//		all partitioning levels. If fCheckGeneralFilters is true then the function
-//		checks the general filters as well. Otherwise, only the EqFilters are considered
+//		Check whether the given partition selector only has equality filters
+//		or no filters on all partitioning levels. Return false if it has
+//		non-equality filters. If fCheckGeneralFilters is true then the function
+//		checks whether the content of general filter is conjunction of equality
+//		filter or not. If it is false, we always view the general filter as
+//		non-equality filter if the pexprFilter is not null.
 //
 //---------------------------------------------------------------------------
 BOOL
@@ -4592,10 +4595,12 @@ CTranslatorExprToDXL::FEqPartFiltersAllLevels
 		CExpression *pexprEqFilter = popSelector->PexprEqFilter(ul);
 		CExpression *pexprFilter = popSelector->PexprFilter(ul);
 
-		if (NULL == pexprEqFilter &&
-			(!fCheckGeneralFilters || NULL == pexprFilter || !CPredicateUtils::FConjunctionOfEqComparisons(m_pmp, pexprFilter)))
+		if (NULL == pexprEqFilter && NULL != pexprFilter)
 		{
-			return false;
+			if (!fCheckGeneralFilters || !CPredicateUtils::FConjunctionOfEqComparisons(m_pmp, pexprFilter))
+			{
+				return false;
+			}
 		}
 	}
 

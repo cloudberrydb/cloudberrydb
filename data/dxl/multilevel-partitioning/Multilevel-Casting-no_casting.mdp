@@ -404,45 +404,12 @@ explain select * from TestPartitionFilterCasting where p3 = 1.0;
             <dxl:PartEqFilters>
               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAQABAA==" DoubleValue="1.000000"/>
             </dxl:PartEqFilters>
             <dxl:PartFilters>
               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-              <dxl:Or>
-                <dxl:And>
-                  <dxl:Or>
-                    <dxl:And>
-                      <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.1755.1.0">
-                        <dxl:PartBound Level="2" Type="0.1700.1.0" LowerBound="true"/>
-                        <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAQABAA==" DoubleValue="1.000000"/>
-                      </dxl:Comparison>
-                      <dxl:PartBoundInclusion Level="2" LowerBound="true"/>
-                    </dxl:And>
-                    <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1754.1.0">
-                      <dxl:PartBound Level="2" Type="0.1700.1.0" LowerBound="true"/>
-                      <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAQABAA==" DoubleValue="1.000000"/>
-                    </dxl:Comparison>
-                  </dxl:Or>
-                  <dxl:Or>
-                    <dxl:And>
-                      <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1757.1.0">
-                        <dxl:PartBound Level="2" Type="0.1700.1.0" LowerBound="false"/>
-                        <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAQABAA==" DoubleValue="1.000000"/>
-                      </dxl:Comparison>
-                      <dxl:PartBoundInclusion Level="2" LowerBound="false"/>
-                    </dxl:And>
-                    <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.1756.1.0">
-                      <dxl:PartBound Level="2" Type="0.1700.1.0" LowerBound="false"/>
-                      <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAQABAA==" DoubleValue="1.000000"/>
-                    </dxl:Comparison>
-                  </dxl:Or>
-                </dxl:And>
-                <dxl:Or>
-                  <dxl:PartBoundOpen Level="2" LowerBound="true"/>
-                  <dxl:PartBoundOpen Level="2" LowerBound="false"/>
-                </dxl:Or>
-              </dxl:Or>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
             </dxl:PartFilters>
             <dxl:ResidualFilter>
               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>

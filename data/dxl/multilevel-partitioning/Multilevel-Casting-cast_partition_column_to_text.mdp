@@ -425,45 +425,12 @@ explain select * from TestPartitionFilterCasting where p2 = '2015-01-01';
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:PartEqFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWE=" LintValue="160440876"/>
               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
             </dxl:PartEqFilters>
             <dxl:PartFilters>
-              <dxl:Or>
-                <dxl:And>
-                  <dxl:Or>
-                    <dxl:And>
-                      <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.665.1.0">
-                        <dxl:PartBound Level="0" Type="0.1043.1.0" LowerBound="true"/>
-                        <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWE=" LintValue="160440876"/>
-                      </dxl:Comparison>
-                      <dxl:PartBoundInclusion Level="0" LowerBound="true"/>
-                    </dxl:And>
-                    <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.664.1.0">
-                      <dxl:PartBound Level="0" Type="0.1043.1.0" LowerBound="true"/>
-                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWE=" LintValue="160440876"/>
-                    </dxl:Comparison>
-                  </dxl:Or>
-                  <dxl:Or>
-                    <dxl:And>
-                      <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.667.1.0">
-                        <dxl:PartBound Level="0" Type="0.1043.1.0" LowerBound="false"/>
-                        <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWE=" LintValue="160440876"/>
-                      </dxl:Comparison>
-                      <dxl:PartBoundInclusion Level="0" LowerBound="false"/>
-                    </dxl:And>
-                    <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.666.1.0">
-                      <dxl:PartBound Level="0" Type="0.1043.1.0" LowerBound="false"/>
-                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWE=" LintValue="160440876"/>
-                    </dxl:Comparison>
-                  </dxl:Or>
-                </dxl:And>
-                <dxl:Or>
-                  <dxl:PartBoundOpen Level="0" LowerBound="true"/>
-                  <dxl:PartBoundOpen Level="0" LowerBound="false"/>
-                </dxl:Or>
-              </dxl:Or>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
             </dxl:PartFilters>
