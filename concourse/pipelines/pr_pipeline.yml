@@ -41,6 +41,11 @@ jobs:
       - get: centos-gpdb-dev-6
       - get: gpaddon_src
 
+    - put: gpdb_pr
+      params:
+        path: gpdb_pr
+        status: pending
+
     - aggregate:
       - task: compile_gpdb_open_source_centos6
         file: gpdb_pr/concourse/tasks/compile_gpdb_open_source.yml
