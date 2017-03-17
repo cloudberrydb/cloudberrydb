@@ -900,7 +900,7 @@ ExecEvalWholeRowVar(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 				oldcontext = MemoryContextSwitchTo(econtext->ecxt_per_query_memory);
 				wrvstate->wrv_junkFilter =
 					ExecInitJunkFilter(subplan->plan->targetlist,
-									   ExecGetResultType(subplan),
+									   ExecGetResultType(subplan)->tdhasoid,
 									   NULL);
 				MemoryContextSwitchTo(oldcontext);
 			}
