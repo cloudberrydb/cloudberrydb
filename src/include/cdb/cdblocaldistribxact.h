@@ -46,13 +46,11 @@ typedef struct LocalDistribXactData
 extern void LocalDistribXact_StartOnMaster(
 	DistributedTransactionTimeStamp	newDistribTimeStamp,
 	DistributedTransactionId 		newDistribXid,
-	TransactionId					*newLocalXid,
 	LocalDistribXactData			*masterLocalDistribXactRef);
 
 extern void LocalDistribXact_StartOnSegment(
 	DistributedTransactionTimeStamp	newDistribTimeStamp,
-	DistributedTransactionId 		newDistribXid,
-	TransactionId					*newLocalXid);
+	DistributedTransactionId 		newDistribXid);
 
 extern void LocalDistribXact_ChangeState(PGPROC *proc,
 	LocalDistribXactState		newState);

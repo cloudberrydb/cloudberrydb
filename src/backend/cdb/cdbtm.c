@@ -2275,8 +2275,6 @@ initGxact(TMGXACT * gxact)
 
 	gxact->sessionId = gp_session_id;
 
-	gxact->localXid = InvalidTransactionId;
-
 	gxact->explicitBeginRemembered = false;
 
 	gxact->localDistribXactData.state = LOCALDISTRIBXACT_STATE_NONE;
@@ -2482,9 +2480,17 @@ createDtxSnapshot(
 		if (count >= distribSnapshotWithLocalMapping->header.maxCount)
 			elog(ERROR, "Too many distributed transactions for snapshot");
 
-
 		inProgressEntryArray[count].distribXid = inProgressXid;
-		inProgressEntryArray[count].localXid = gxact_candidate->localXid;
+
+		/*
+		 * This is used only for optimization during
+		 * DistributedSnapshotWithLocalMapping_CommittedTest(). So, if
+		 * localXid = InvalidTransactionId it gets populatd correctly based on
+		 * consulation with distributed log. Since we are lazily allocating
+		 * local transactionID, gxact_candidate can't provide correct value
+		 * here.
+		 */
+		inProgressEntryArray[count].localXid = InvalidTransactionId;
 
 		count++;
 
@@ -2566,8 +2572,7 @@ createDtxErrorCallback(int code, Datum arg)
  * Create a global transaction context from share memory.
  */
 void
-createDtx(DistributedTransactionId		*distribXid,
-		  TransactionId 				*localXid)
+createDtx(DistributedTransactionId		*distribXid)
 {
 	TMGXACT    	*gxact;
 
@@ -2609,11 +2614,9 @@ createDtx(DistributedTransactionId		*distribXid,
 		LocalDistribXact_StartOnMaster(
 			*shmDistribTimeStamp,
 			gxact->gxid,
-			&gxact->localXid,
 			&gxact->localDistribXactData);
 
 		*distribXid = gxact->gxid;
-		*localXid = gxact->localXid;
 	}
 	PG_END_ENSURE_ERROR_CLEANUP(createDtxErrorCallback, 0);
 
@@ -2783,7 +2786,7 @@ forcedDistributedCommitted(XLogRecPtr *recptr)
 {
 	elog(DTM_DEBUG5,
 		 "forcedDistributedCommitted entering in state = %s for gid = %s (xlog record %X/%X)",
-		DtxStateToString(currentGxact->state), currentGxact->gid, recptr->xlogid, recptr->xrecoff);
+		 DtxStateToString(currentGxact->state), currentGxact->gid, recptr->xlogid, recptr->xrecoff);
 
 	getTmLock();
 	Assert(currentGxact->state == DTX_STATE_INSERTED_COMMITTED);

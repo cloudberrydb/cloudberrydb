@@ -252,6 +252,53 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit,
 	if (needNotifyCommittedDtxTransaction)
 		*needNotifyCommittedDtxTransaction = false;
 
+	LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
+
+	if (MyProc->localDistribXactData.state != LOCALDISTRIBXACT_STATE_NONE)
+	{
+		switch (DistributedTransactionContext)
+		{
+			case DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE:
+				LocalDistribXact_ChangeState(MyProc,
+											 isCommit ? 
+											 LOCALDISTRIBXACT_STATE_COMMITDELIVERY :
+											 LOCALDISTRIBXACT_STATE_ABORTDELIVERY);
+				if (needStateChangeFromDistributed)
+					*needStateChangeFromDistributed = true;
+				break;
+
+			case DTX_CONTEXT_QE_TWO_PHASE_EXPLICIT_WRITER:
+			case DTX_CONTEXT_QE_TWO_PHASE_IMPLICIT_WRITER:
+			case DTX_CONTEXT_QE_AUTO_COMMIT_IMPLICIT:
+				LocalDistribXact_ChangeState(MyProc,
+											 isCommit ?
+											 LOCALDISTRIBXACT_STATE_COMMITTED :
+											 LOCALDISTRIBXACT_STATE_ABORTED);
+				break;
+
+			case DTX_CONTEXT_QE_READER:
+			case DTX_CONTEXT_QE_ENTRY_DB_SINGLETON:
+				// QD or QE Writer will handle it.
+				break;
+
+			case DTX_CONTEXT_QD_RETRY_PHASE_2:
+			case DTX_CONTEXT_QE_PREPARED:
+			case DTX_CONTEXT_QE_FINISH_PREPARED:
+				elog(PANIC, "Unexpected distribute transaction context: '%s'",
+					 DtxContextToString(DistributedTransactionContext));
+
+			default:
+				elog(PANIC, "Unrecognized DTX transaction context: %d",
+					 (int) DistributedTransactionContext);
+		}
+	}
+
+	if (isCommit && notifyCommittedDtxTransactionIsNeeded())
+	{
+		Assert(needNotifyCommittedDtxTransaction);
+		*needNotifyCommittedDtxTransaction = true;
+	}
+	
 	if (TransactionIdIsValid(latestXid))
 	{
 		/*
@@ -263,53 +310,8 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit,
 		Assert(TransactionIdIsValid(proc->xid) ||
 			   (IsBootstrapProcessingMode() && latestXid == BootstrapTransactionId));
 
-		LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
-
-		if (MyProc->localDistribXactData.state != LOCALDISTRIBXACT_STATE_NONE)
-		{
-			switch (DistributedTransactionContext)
-			{
-				case DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE:
-					LocalDistribXact_ChangeState(MyProc,
-						isCommit ? 
-							LOCALDISTRIBXACT_STATE_COMMITDELIVERY :
-							LOCALDISTRIBXACT_STATE_ABORTDELIVERY);
-					if (needStateChangeFromDistributed)
-						*needStateChangeFromDistributed = true;
-					break;
-				
-				case DTX_CONTEXT_QE_TWO_PHASE_EXPLICIT_WRITER:
-				case DTX_CONTEXT_QE_TWO_PHASE_IMPLICIT_WRITER:
-				case DTX_CONTEXT_QE_AUTO_COMMIT_IMPLICIT:
-					LocalDistribXact_ChangeState(MyProc,
-						isCommit ?
-							LOCALDISTRIBXACT_STATE_COMMITTED :
-							LOCALDISTRIBXACT_STATE_ABORTED);
-					break;
-				
-				case DTX_CONTEXT_QE_READER:
-				case DTX_CONTEXT_QE_ENTRY_DB_SINGLETON:
-					// QD or QE Writer will handle it.
-					break;
-
-				case DTX_CONTEXT_QD_RETRY_PHASE_2:
-				case DTX_CONTEXT_QE_PREPARED:
-				case DTX_CONTEXT_QE_FINISH_PREPARED:
-					elog(PANIC, "Unexpected distribute transaction context: '%s'",
-						 DtxContextToString(DistributedTransactionContext));
-
-				default:
-					elog(PANIC, "Unrecognized DTX transaction context: %d",
-						 (int) DistributedTransactionContext);
-			}
-		}
-
-		if (isCommit && notifyCommittedDtxTransactionIsNeeded())
-		{
-			Assert(needNotifyCommittedDtxTransaction);
-			*needNotifyCommittedDtxTransaction = true;
-		}
-		else
+		if ((needNotifyCommittedDtxTransaction == NULL) ||
+			(! *needNotifyCommittedDtxTransaction))
 		{
 			proc->xid = InvalidTransactionId;
 			proc->lxid = InvalidLocalTransactionId;
@@ -336,8 +338,6 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit,
 		if (TransactionIdPrecedes(ShmemVariableCache->latestCompletedXid,
 								  latestXid))
 			ShmemVariableCache->latestCompletedXid = latestXid;
-
-		LWLockRelease(ProcArrayLock);
 	}
 	else
 	{
@@ -359,6 +359,8 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit,
 		Assert(proc->subxids.nxids == 0);
 		Assert(proc->subxids.overflowed == false);
 	}
+
+	LWLockRelease(ProcArrayLock);
 }
 
 

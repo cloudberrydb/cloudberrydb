@@ -73,55 +73,37 @@ void
 LocalDistribXact_StartOnMaster(
 	DistributedTransactionTimeStamp	newDistribTimeStamp,
 	DistributedTransactionId 		newDistribXid,
-	TransactionId					*newLocalXid,
 	LocalDistribXactData			*masterLocalDistribXactRef)
 {
 	LocalDistribXactData *ele = masterLocalDistribXactRef;
-	TransactionId	localXid;
 
 	Assert(newDistribTimeStamp != 0);
 	Assert(newDistribXid != InvalidDistributedTransactionId);
-	Assert(newLocalXid != NULL);
 	Assert(masterLocalDistribXactRef != NULL);
-
-	localXid = GetNewTransactionId(false, false);
-								// NOT subtrans, DO NOT Set PROC struct xid;
 
 	ele->distribTimeStamp = newDistribTimeStamp;
 	ele->distribXid = newDistribXid;
 	ele->state = LOCALDISTRIBXACT_STATE_ACTIVE;
-
-	MyProc->xid = localXid;
-	*newLocalXid = localXid;
 }
 
 void
 LocalDistribXact_StartOnSegment(
 	DistributedTransactionTimeStamp	newDistribTimeStamp,
-	DistributedTransactionId 		newDistribXid,
-	TransactionId					*newLocalXid)
+	DistributedTransactionId 		newDistribXid)
 {
 	LocalDistribXactData *ele = &MyProc->localDistribXactData;
-	TransactionId	localXid;
 
 	MIRRORED_LOCK_DECLARE;
 
 	Assert(newDistribTimeStamp != 0);
 	Assert(newDistribXid != InvalidDistributedTransactionId);
-	Assert(newLocalXid != NULL);
 
 	MIRRORED_LOCK;
 	LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
 
-	localXid = GetNewTransactionId(false, false);
-								// NOT subtrans, DO NOT Set PROC struct xid;
-
 	ele->distribTimeStamp = newDistribTimeStamp;
 	ele->distribXid = newDistribXid;
 	ele->state = LOCALDISTRIBXACT_STATE_ACTIVE;
-
-	MyProc->xid = localXid;
-	*newLocalXid = localXid;
 
 	LWLockRelease(ProcArrayLock);
 	MIRRORED_UNLOCK;
