@@ -369,8 +369,6 @@ CTranslatorDXLToExpr::PexprTranslateScalar
 	GPOS_ASSERT_IMP(NULL != pdrgpul, NULL != pdrgpcr);
 	GPOS_ASSERT_IMP(NULL != pdrgpul, pdrgpul->UlLength() == pdrgpcr->UlLength());
 
-	CAutoTimer at("\n[OPT]: Scalar DXL To Scalar Expr Translation Time", GPOS_FTRACE(EopttracePrintOptStats));
-
 	if (EdxloptypeScalar != pdxln->Pdxlop()->Edxloperatortype())
 	{
 		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnexpectedOp, pdxln->Pdxlop()->PstrOpName()->Wsz());
