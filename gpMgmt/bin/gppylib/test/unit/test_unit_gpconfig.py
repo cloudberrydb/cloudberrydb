@@ -144,6 +144,11 @@ class GpConfig(GpTestCase):
             self.subject.parseargs()
         self.subject.logger.error.assert_called_once_with("--file option requires that MASTER_DATA_DIRECTORY be set")
 
+    def test_option_show_without_MASTER_DATA_DIR_will_not_raise(self):
+        sys.argv = ["gpconfig", "--show", "statement_mem"]
+        del self.os_env["MASTER_DATA_DIRECTORY"]
+        self.subject.parseargs()
+
     @patch('sys.stdout', new_callable=StringIO)
     def test_option_f_will_report_presence_of_setting(self, mock_stdout):
         sys.argv = ["gpconfig", "--show", "my_property_name", "--file"]

@@ -26,6 +26,7 @@ longShow = set(["port"])
 logger = get_default_logger()
 setup_tool_logging(EXECNAME, getLocalHostname(), getUserName())
 
+
 def parseargs():
     parser = OptParser(option_class=OptChecker)
     parser.remove_option('-h')
@@ -67,12 +68,14 @@ def validate_mutual_options(options):
     if user is None or user is ' ':
         log_and_raise("USER environment variable must be set.")
 
-    if options.change and options.remove:
-        log_and_raise("Multiple actions specified.  See the --help info.")
     if options.file and not options.show:
         log_and_raise("'--file' option must accompany '--show' option")
+    if options.file and "MASTER_DATA_DIRECTORY" not in os.environ:
+        log_and_raise("--file option requires that MASTER_DATA_DIRECTORY be set")
     if options.remove and (options.value or options.primaryvalue or options.mirrorvalue or options.mastervalue):
         log_and_raise("remove action does not take a value, primary value, mirror value or master value parameter")
+    if options.change and options.remove:
+        log_and_raise("Multiple actions specified.  See the --help info.")
     if options.change and (not options.value and (not options.mirrorvalue and not options.primaryvalue)):
         log_and_raise("change requested but value not specified")
     if options.change and options.mastervalue and options.masteronly:
@@ -83,9 +86,6 @@ def validate_mutual_options(options):
         log_and_raise("%s value cannot be different on master and segments" % options.entry)
     if options.value and (not options.mastervalue):
         options.mastervalue = options.value
-    if "MASTER_DATA_DIRECTORY" not in os.environ:
-        log_and_raise("--file option requires that MASTER_DATA_DIRECTORY be set")
-
 
 
 class JetPackQuery:
@@ -138,7 +138,7 @@ class Guc:
             if newval[0] != '0':
                 logger.warn(
                     'Permission not entered in octal format.It was interpreted as Decimal.  %s in Octal = 0%s' % (
-                    newval, int(newval, 8)))
+                        newval, int(newval, 8)))
         elif self.name == "gp_default_storage_options":
             newval = newval.strip()
             # Value must be enclosed in single quotes else postgres
@@ -163,7 +163,7 @@ class Guc:
 
     def print_info(self):
         print "[name: %s] [unit: %s] [context: %s] [vartype: %s] [min_val: %s] [max_val: %s]" % (
-        self.name, self.unit, self.context, self.vartype, self.min_val, self.max_val)
+            self.name, self.unit, self.context, self.vartype, self.min_val, self.max_val)
 
 
 def confirm_user():
@@ -401,7 +401,6 @@ def log_and_raise(err_str):
 
 
 def do_show_from_file(gucname, long_format):
-
     dburl = dbconn.DbURL()
     gparray = GpArray.initFromCatalog(dburl, utility=True)
 
