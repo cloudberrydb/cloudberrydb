@@ -3289,41 +3289,6 @@ heap_truncate(List *relids)
 			trel = heap_open(toastrelid, AccessExclusiveLock);
 			relations = lappend(relations, trel);
 		}
-
-		/*
-		 * CONCERN: Not clear this EVER makes sense for Append-Only.
-		 */
-		if (RelationIsAoRows(rel) || RelationIsAoCols(rel))
-		{
-			/* If there is an aoseg table, add it to the list too */
-			aosegrelid = rel->rd_appendonly->segrelid;
-			if (OidIsValid(aosegrelid))
-			{
-				Relation aosegrel;
-
-				aosegrel = heap_open(aosegrelid, AccessExclusiveLock);
-				relations = lappend(relations, aosegrel);
-			}
-
-			/* If there is an aoblkdir table, add it to the list too */
-			aoblkdirrelid = rel->rd_appendonly->blkdirrelid;
-			if (OidIsValid(aoblkdirrelid))
-			{
-				Relation aoblkdirrel;
-
-				aoblkdirrel = heap_open(aoblkdirrelid, AccessExclusiveLock);
-				relations = lappend(relations, aoblkdirrel);
-			}
-
-			aovisimaprelid = rel->rd_appendonly->visimaprelid;
-			if (OidIsValid(aovisimaprelid))
-			{
-				Relation aovisimaprel;
-
-				aovisimaprel = heap_open(aovisimaprelid, AccessExclusiveLock);
-				relations = lappend(relations, aovisimaprel);
-			}
-		}
 	}
 
 	/* Don't allow truncate on tables that are referenced by foreign keys */
@@ -3334,15 +3299,45 @@ heap_truncate(List *relids)
 	{
 		Relation	rel = lfirst(cell);
 
-		/* Truncate the actual file (and discard buffers) */
-		RelationTruncate(
-					rel, 
+		/*
+		 * Truncating AO and auxiliary tables' relfiles, like in case
+		 * of heap tables, leaves the AO table in an inconsistent
+		 * state at the end of commit:
+		 *
+		 *    - The aoseg table indicates no segfiles on disk.
+		 *    - AO segment files are truncated, with EOF = 0.
+		 *    - The EOF recorded in persistent tables for the AO
+		 *      segment files, however, is greater than 0 if the
+		 *      transaction inserted tuples in the AO table.
+		 *
+		 * One may think of resetting the EOF in persistent tables to
+		 * 0.  Beware, EOF of AO segfiles can only increase.  Filerep
+		 * incremental recovery relies on this assumption.
+		 *
+		 * Therefore, ON COMMIT DELETE ROWS action for AO tables is
+		 * implemented by creating new segment file and scheduling
+		 * existing one for drop at the end of commit.  TRUNCATE TABLE
+		 * command works the same way.  At some point, all temporary
+		 * tables should be exempt from persistent tables/lifecycle
+		 * management.
+		 */
+
+		if (RelationIsAoRows(rel) || RelationIsAoCols(rel))
+		{
+			TruncateRelfiles(rel);
+			reindex_relation(RelationGetRelid(rel), true);
+		}
+		else
+		{
+			/* Truncate the actual file (and discard buffers) */
+			RelationTruncate(
+					rel,
 					0,
 					/* markPersistentAsPhysicallyTruncated */ false);
 
-		/* If this relation has indexes, truncate the indexes too */
-		RelationTruncateIndexes(rel);
-
+			/* If this relation has indexes, truncate the indexes too */
+			RelationTruncateIndexes(rel);
+		}
 		/*
 		 * Close the relation, but keep exclusive lock on it until commit.
 		 */

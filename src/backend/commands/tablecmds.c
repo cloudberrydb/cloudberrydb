@@ -981,6 +981,86 @@ RelationToRemoveIsTemp(const RangeVar *relation, DropBehavior behavior)
 	return isTemp;
 }
 
+static bool
+CheckExclusiveAccess(Relation rel)
+{
+	if (LockRelationNoWait(rel, AccessExclusiveLock) !=
+		LOCKACQUIRE_ALREADY_HELD)
+	{
+		UnlockRelation(rel, AccessExclusiveLock);
+		return false;
+	}
+	return true;
+}
+
+/*
+ * Allocate new relfiles for the specified relation and schedule old
+ * relfile for deletion.  Caller must hold AccessExclusiveLock on the
+ * relation.
+ */
+void
+TruncateRelfiles(Relation rel)
+{
+	Oid			heap_relid;
+	Oid			toast_relid;
+	Oid			aoseg_relid = InvalidOid;
+	Oid			aoblkdir_relid = InvalidOid;
+	Oid			aovisimap_relid = InvalidOid;
+
+	Assert(CheckExclusiveAccess(rel));
+
+	/*
+	 * Create a new empty storage file for the relation, and assign it as
+	 * the relfilenode value.	The old storage file is scheduled for
+	 * deletion at commit.
+	 */
+	setNewRelfilenode(rel, RecentXmin);
+
+	heap_relid = RelationGetRelid(rel);
+	toast_relid = rel->rd_rel->reltoastrelid;
+
+	if (RelationIsAoRows(rel) ||
+		RelationIsAoCols(rel))
+		GetAppendOnlyEntryAuxOids(heap_relid, SnapshotNow,
+								  &aoseg_relid,
+								  &aoblkdir_relid, NULL,
+								  &aovisimap_relid, NULL);
+
+	/*
+	 * The same for the toast table, if any.
+	 */
+	if (OidIsValid(toast_relid))
+	{
+		rel = relation_open(toast_relid, AccessExclusiveLock);
+		setNewRelfilenode(rel, RecentXmin);
+		heap_close(rel, NoLock);
+	}
+
+	/*
+	 * The same for the aoseg table, if any.
+	 */
+	if (OidIsValid(aoseg_relid))
+	{
+		rel = relation_open(aoseg_relid, AccessExclusiveLock);
+		setNewRelfilenode(rel, RecentXmin);
+		heap_close(rel, NoLock);
+	}
+
+	if (OidIsValid(aoblkdir_relid))
+	{
+		rel = relation_open(aoblkdir_relid, AccessExclusiveLock);
+		setNewRelfilenode(rel, RecentXmin);
+		heap_close(rel, NoLock);
+	}
+
+	if (OidIsValid(aovisimap_relid))
+	{
+		rel = relation_open(aovisimap_relid, AccessExclusiveLock);
+		setNewRelfilenode(rel, RecentXmin);
+		heap_close(rel, NoLock);
+	}
+}
+
 /*
  * ExecuteTruncate
  *		Executes a TRUNCATE command.
@@ -1146,69 +1226,12 @@ ExecuteTruncate(TruncateStmt *stmt)
 	foreach(cell, rels)
 	{
 		Relation	rel = (Relation) lfirst(cell);
-		Oid			heap_relid;
-		Oid			toast_relid;
-		Oid			aoseg_relid = InvalidOid;
-		Oid			aoblkdir_relid = InvalidOid;
-		Oid			aovisimap_relid = InvalidOid;
-
-		/*
-		 * Create a new empty storage file for the relation, and assign it as
-		 * the relfilenode value.	The old storage file is scheduled for
-		 * deletion at commit.
-		 */
-		setNewRelfilenode(rel, RecentXmin);
-
-		heap_relid = RelationGetRelid(rel);
-		toast_relid = rel->rd_rel->reltoastrelid;
-
-		heap_close(rel, NoLock);
-
-		if (RelationIsAoRows(rel) ||
-			RelationIsAoCols(rel))
-			GetAppendOnlyEntryAuxOids(heap_relid, SnapshotNow,
-									  &aoseg_relid,
-									  &aoblkdir_relid, NULL,
-									  &aovisimap_relid, NULL);
-
-		/*
-		 * The same for the toast table, if any.
-		 */
-		if (OidIsValid(toast_relid))
-		{
-			rel = relation_open(toast_relid, AccessExclusiveLock);
-			setNewRelfilenode(rel, RecentXmin);
-			heap_close(rel, NoLock);
-		}
-
-		/*
-		 * The same for the aoseg table, if any.
-		 */
-		if (OidIsValid(aoseg_relid))
-		{
-			rel = relation_open(aoseg_relid, AccessExclusiveLock);
-			setNewRelfilenode(rel, RecentXmin);
-			heap_close(rel, NoLock);
-		}
-
-		if (OidIsValid(aoblkdir_relid))
-		{
-			rel = relation_open(aoblkdir_relid, AccessExclusiveLock);
-			setNewRelfilenode(rel, RecentXmin);
-			heap_close(rel, NoLock);
-		}
-	
-		if (OidIsValid(aovisimap_relid))
-		{
-			rel = relation_open(aovisimap_relid, AccessExclusiveLock);
-			setNewRelfilenode(rel, RecentXmin);
-			heap_close(rel, NoLock);
-		}
-
+		TruncateRelfiles(rel);
 		/*
 		 * Reconstruct the indexes to match, and we're done.
 		 */
-		reindex_relation(heap_relid, true);
+		reindex_relation(RelationGetRelid(rel), true);
+		heap_close(rel, NoLock);
 	}
 
 	if (Gp_role == GP_ROLE_DISPATCH)

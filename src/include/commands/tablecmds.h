@@ -76,6 +76,8 @@ extern void AlterRelationNamespaceInternal(Relation classRel, Oid relOid,
 
 extern void CheckTableNotInUse(Relation rel, const char *stmt);
 
+extern void TruncateRelfiles(Relation rel);
+
 extern void ExecuteTruncate(TruncateStmt *stmt);
 
 extern void renameatt(Oid myrelid,
@@ -126,4 +128,5 @@ extern List *make_dist_clause(Relation rel);
 extern Oid transformFkeyCheckAttrs(Relation pkrel,
 								   int numattrs, int16 *attnums,
 								   Oid *opclasses);
+
 #endif   /* TABLECMDS_H */
