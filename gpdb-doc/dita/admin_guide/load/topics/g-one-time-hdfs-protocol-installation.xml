@@ -6,7 +6,7 @@
    <body>
       <p>Install and configure Hadoop for use with <codeph>gphdfs</codeph> as follows:<ol
             id="ol_whb_fxz_h4">
-            <li id="du188617">Install Java 1.6 or later on <b>all</b> Greenplum Database hosts:
+            <li id="du188617">Install Java 1.7 or later on <b>all</b> Greenplum Database hosts:
                master, segment, and standby master.</li>
             <li id="du225465">Install a compatible Hadoop distribution on all hosts. The
                distribution must be the same on all hosts. For Hadoop installation information, see
