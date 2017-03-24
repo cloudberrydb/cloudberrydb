@@ -72,10 +72,6 @@ class GpDebugMain(YamlMain):
           help: Hosts file
           type: string
           dest: hostsfile
-        -o:
-          help: Output file with details and gpkill commands
-          type: string
-          dest: outputfile
         --orphans:
           help: Search cluster for orphan processes
           action: store_const
@@ -307,28 +303,6 @@ class GpDebugMain(YamlMain):
                 self.logger.info("Era: %s" % prev)
                 tabLog.outputTable()
             self.logger.info("--------------------------------------------")
-
-
-    def generate_output_file(self):
-        ""
-        if self.options.outputfile is None:
-            return
-
-        self.logger.info('writing gpkill script to %s' % self.options.outputfile)
-
-        with open(self.options.outputfile, 'w') as f:
-            for host, lines in self.results.items():
-                prev = None
-                for line in lines:
-                    host2, era, sessid, pid, detail = line.split('|')
-                    assert host == host2
-                    if era != prev:
-                        f.write('# era %s\n' % era)
-                        prev = era
-                    f.write('# sessid %s\n' % sessid)
-                    f.write('# %s\n' % detail)
-                    f.write('gpssh -h %s gpkill %s\n\n' % (host, pid))
-
 
     #
     # Scenario: Check Host For Orphans (segment hosts, via search for orphans)
