@@ -4,7 +4,7 @@
 
 """
   gpdebug
-  Copyright (c) EMC/Greenplum Inc 2011. All Rights Reserved. 
+  Copyright (c) EMC/Greenplum Inc 2011. All Rights Reserved.
 """
 import os, signal, time
 
@@ -59,7 +59,7 @@ class GpDebugMain(YamlMain):
           dest: masterDataDirectory
           metavar: 'MASTERDATADIR'
           help: |
-            Optional. The master host data directory. 
+            Optional. The master host data directory.
             If not specified, the value set for $MASTER_DATA_DIRECTORY will be used.
       Troubleshooting Options:
         --pid:
@@ -254,15 +254,15 @@ class GpDebugMain(YamlMain):
         commands = {}
         for host in self.hosts_list:
             cmdlist = [
-                '$GPHOME/bin/gpdebug', 
+                '$GPHOME/bin/gpdebug',
                 '-q',
                 '--orphans-host',
                 '--era', str(self.era),
                 '--host', str(host)
             ]
-            if self.options.all: 
+            if self.options.all:
                 cmdlist.append('--all')
-            if self.options.detailed: 
+            if self.options.detailed:
                 cmdlist.append('--detailed')
             for s in self.session_ids:
                 cmdlist.append('--sessid')
@@ -307,7 +307,7 @@ class GpDebugMain(YamlMain):
                 self.logger.info("Era: %s" % prev)
                 tabLog.outputTable()
             self.logger.info("--------------------------------------------")
-            
+
 
     def generate_output_file(self):
         ""
