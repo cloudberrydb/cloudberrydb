@@ -92,7 +92,21 @@ setup_sshd() {
   ssh_keyscan_for_user gpadmin
 }
 
+determine_os() {
+  if [ -f /etc/redhat-release ] ; then
+    echo "centos"
+    return
+  fi
+  if [ -f /etc/os-release ] && grep -q '^NAME=.*SLES' /etc/os-release ; then
+    echo "sles"
+    return
+  fi
+  echo "Could not determine operating system type" >/dev/stderr
+  exit 1
+}
+
 _main() {
+  TEST_OS=$(determine_os)
   setup_gpadmin_user
   setup_sshd
 }
