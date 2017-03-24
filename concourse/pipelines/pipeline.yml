@@ -178,7 +178,7 @@ resources:
   type: time
   source:
     location: America/Los_Angeles
-    days: [Sunday, Monday, Tuesday, Wednesday, Thursday]
+    days: [Sunday, Monday, Tuesday, Wednesday, Thursday, Friday]
     start: 6:00 AM
     stop: 7:00 AM
 
