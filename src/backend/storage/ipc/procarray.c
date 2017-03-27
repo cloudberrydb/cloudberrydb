@@ -998,7 +998,7 @@ FillInDistributedSnapshot(Snapshot snapshot)
 				{
 					dslm->inProgressEntryArray[i].distribXid = ds->inProgressXidArray[i];
 
-					/* UNDONE: Lookup in distributed cache. */
+					/* Lookup in distributed cache. */
 					dslm->inProgressEntryArray[i].localXid = InvalidTransactionId;
 				}
 			}
