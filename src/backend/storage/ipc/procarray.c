@@ -244,29 +244,20 @@ ProcArrayRemove(PGPROC *proc, TransactionId latestXid)
  */
 void
 ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit,
-						bool *needStateChangeFromDistributed,
 						bool *needNotifyCommittedDtxTransaction)
 {
-	if (needStateChangeFromDistributed)
-		*needStateChangeFromDistributed = false;
 	if (needNotifyCommittedDtxTransaction)
 		*needNotifyCommittedDtxTransaction = false;
 
-	LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
-
+	/*
+	 * MyProc->localDistribXactData is only used for debugging purpose by
+	 * backend itself on segments only hence okay to modify without holding
+	 * the lock.
+	 */
 	if (MyProc->localDistribXactData.state != LOCALDISTRIBXACT_STATE_NONE)
 	{
 		switch (DistributedTransactionContext)
 		{
-			case DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE:
-				LocalDistribXact_ChangeState(MyProc,
-											 isCommit ? 
-											 LOCALDISTRIBXACT_STATE_COMMITDELIVERY :
-											 LOCALDISTRIBXACT_STATE_ABORTDELIVERY);
-				if (needStateChangeFromDistributed)
-					*needStateChangeFromDistributed = true;
-				break;
-
 			case DTX_CONTEXT_QE_TWO_PHASE_EXPLICIT_WRITER:
 			case DTX_CONTEXT_QE_TWO_PHASE_IMPLICIT_WRITER:
 			case DTX_CONTEXT_QE_AUTO_COMMIT_IMPLICIT:
@@ -281,6 +272,7 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit,
 				// QD or QE Writer will handle it.
 				break;
 
+			case DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE:
 			case DTX_CONTEXT_QD_RETRY_PHASE_2:
 			case DTX_CONTEXT_QE_PREPARED:
 			case DTX_CONTEXT_QE_FINISH_PREPARED:
@@ -301,6 +293,7 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit,
 	
 	if (TransactionIdIsValid(latestXid))
 	{
+		LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
 		/*
 		 * We must lock ProcArrayLock while clearing proc->xid, so that we do
 		 * not exit the set of "running" transactions while someone else is
@@ -338,6 +331,8 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit,
 		if (TransactionIdPrecedes(ShmemVariableCache->latestCompletedXid,
 								  latestXid))
 			ShmemVariableCache->latestCompletedXid = latestXid;
+
+		LWLockRelease(ProcArrayLock);
 	}
 	else
 	{
@@ -359,8 +354,6 @@ ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit,
 		Assert(proc->subxids.nxids == 0);
 		Assert(proc->subxids.overflowed == false);
 	}
-
-	LWLockRelease(ProcArrayLock);
 }
 
 

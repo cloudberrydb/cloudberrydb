@@ -2277,8 +2277,6 @@ initGxact(TMGXACT * gxact)
 
 	gxact->explicitBeginRemembered = false;
 
-	gxact->localDistribXactData.state = LOCALDISTRIBXACT_STATE_NONE;
-
     gxact->xminDistributedSnapshot = 0;
 
 	gxact->bumpedPhase1Count = false;
@@ -2543,32 +2541,6 @@ createDtxSnapshot(
 }
 
 /*
- * Introduced by MPP-9829.
- *
- * Fail safe in regards to the shmControlLock and ProcArrayLock.
- *
- * Generally speaking, we defer to LWLockReleaseAll to clean up our held_lwlocks. In
- * the case of an ERROR, this results from AbortTransaction. And in the case of a FATAL,
- * this results from a ProcKill towards the end of proc_exit.
- *
- * Unfortunately, two subtleties are dealt with here. In the case of an ERROR where this
- * current process continues to exist, ControlLockCount must be reset to coincide with
- * the cleanup of shmControlLock. Also, during a FATAL, we'd like to release the ProcArrayLock;
- * otherwise, we'd PANIC when trying to reacquire the ProcArrayLock for the purposes
- * of the ProcArrayRemove nearing the end of proc_exit.
- */
-static void
-createDtxErrorCallback(int code, Datum arg)
-{
-	HOLD_INTERRUPTS();
-	ControlLockCount = 1;
-	releaseTmLock();
-
-	HOLD_INTERRUPTS();
-	LWLockRelease(ProcArrayLock);
-}
-
-/*
  * Create a global transaction context from share memory.
  */
 void
@@ -2602,23 +2574,7 @@ createDtx(DistributedTransactionId		*distribXid)
 	initGxact(gxact);
 	generateGID(gxact->gid, &gxact->gxid);
 
-	/*
-	 * MPP-9829: don't hold these if we're throwing an error. if
-	 * we *do* hold them, we'll just cause a PANIC later.
-	 */
-	PG_ENSURE_ERROR_CLEANUP(createDtxErrorCallback, 0);
-	{
-		/*
-		 * This routine requires the ProcArrayLock to already be held.
-		 */
-		LocalDistribXact_StartOnMaster(
-			*shmDistribTimeStamp,
-			gxact->gxid,
-			&gxact->localDistribXactData);
-
-		*distribXid = gxact->gxid;
-	}
-	PG_END_ENSURE_ERROR_CLEANUP(createDtxErrorCallback, 0);
+	*distribXid = gxact->gxid;
 
 	/*
 	 * Until we get our first distributed snapshot, we use our
@@ -2658,12 +2614,8 @@ releaseGxact_UnderLocks(void)
 	}
 
 	elog(DTM_DEBUG5,
-		 "releaseGxact called for gid = %s (index = %d)", currentGxact->gid, currentGxact->debugIndex);
-
-	/*
-	 * Protected by ProcArrayLock.
-	 */
-	currentGxact->localDistribXactData.state = LOCALDISTRIBXACT_STATE_NONE;
+		 "releaseGxact called for gid = %s (index = %d)",
+		 currentGxact->gid, currentGxact->debugIndex);
 
 	/* find slot of current transaction */
 
@@ -2940,12 +2892,15 @@ generateGID(char *gid, DistributedTransactionId *gxid)
 		ereport(FATAL,
 			(errmsg("reached limit of %u global transactions per start", LastDistributedTransactionId)));
 	}
+	Assert(*shmDistribTimeStamp != 0);
 
 	*gxid = ++(*shmGIDSeq);
 	sprintf(gid, "%u-%.10u", *shmDistribTimeStamp, (*gxid));
 	if (strlen(gid) >= TMGIDSIZE)
 		elog(PANIC, "Distribute transaction identifier too long (%d)",
 			 (int)strlen(gid));
+
+	Assert(*gxid != InvalidDistributedTransactionId);
 }
 
 /*

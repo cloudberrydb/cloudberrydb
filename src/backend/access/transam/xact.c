@@ -3016,26 +3016,32 @@ StartTransaction(void)
 			if (DistributedTransactionContext == DTX_CONTEXT_QE_TWO_PHASE_EXPLICIT_WRITER ||
 				DistributedTransactionContext == DTX_CONTEXT_QE_TWO_PHASE_IMPLICIT_WRITER)
 			{
-				/*
-				 * Start distributed XID.
-				 */
-				LocalDistribXact_StartOnSegment(
-					QEDtxContextInfo.distributedTimeStamp,
-					QEDtxContextInfo.distributedXid);
-
 				s->distribXid = QEDtxContextInfo.distributedXid;
 
-				elog((Debug_print_full_dtm ? LOG : DEBUG5),
-					 "LocalDistribXact_StartOnSegment returned %s",
-					 LocalDistribXact_DisplayString(MyProc));
+				Assert(QEDtxContextInfo.distributedTimeStamp != 0);
+				Assert(QEDtxContextInfo.distributedXid != InvalidDistributedTransactionId);
+
+				/*
+				 * Update distributed XID info, this is only used for
+				 * debugging.
+				 */
+				LocalDistribXactData *ele = &MyProc->localDistribXactData;
+				ele->distribTimeStamp = QEDtxContextInfo.distributedTimeStamp;
+				ele->distribXid = QEDtxContextInfo.distributedXid;
+				ele->state = LOCALDISTRIBXACT_STATE_ACTIVE;
 			}
 
 			if (SharedLocalSnapshotSlot != NULL)
 			{
 				elog((Debug_print_full_dtm ? LOG : DEBUG5),
 					 "qExec writer setting distributedXid: %d sharedQDxid %d (shared xid %u -> %u) ready %s (shared timeStamp = " INT64_FORMAT " -> " INT64_FORMAT ")",
-					 QEDtxContextInfo.distributedXid, SharedLocalSnapshotSlot->QDxid, SharedLocalSnapshotSlot->xid, s->transactionId,
-					 SharedLocalSnapshotSlot->ready ? "true" : "false", SharedLocalSnapshotSlot->startTimestamp, xactStartTimestamp);
+					 QEDtxContextInfo.distributedXid,
+					 SharedLocalSnapshotSlot->QDxid,
+					 SharedLocalSnapshotSlot->xid,
+					 s->transactionId,
+					 SharedLocalSnapshotSlot->ready ? "true" : "false",
+					 SharedLocalSnapshotSlot->startTimestamp,
+					 xactStartTimestamp);
 
 				SharedLocalSnapshotSlot->xid = s->transactionId;
 				SharedLocalSnapshotSlot->startTimestamp = stmtStartTimestamp;
@@ -3052,23 +3058,14 @@ StartTransaction(void)
 			 * MPP: we're a QE Reader.
 			 */
 			Assert (SharedLocalSnapshotSlot != NULL);
-
-			elog((Debug_print_full_dtm ? LOG : DEBUG5), "qExec reader: distributedXid %d sharedlocalsnapshot->QDxid %d sharedsnapshots: %s",
-				 QEDtxContextInfo.distributedXid, SharedLocalSnapshotSlot->QDxid, 
-				 SharedSnapshotDump());
-
-			elog((Debug_print_snapshot_dtm ? LOG : DEBUG5),
-				 "[Distributed Snapshot #%u] *Reader Match?* gxid %u == %u allow currcid %d ~~ %d (StartTransaction, gxid = %u, slot #%d, '%s')", 
-				 QEDtxContextInfo.distributedSnapshot.header.distribSnapshotId,
-				 QEDtxContextInfo.distributedXid,
-				 SharedLocalSnapshotSlot->QDxid,
-				 QEDtxContextInfo.curcid,
-				 SharedLocalSnapshotSlot->QDcid,
-				 getDistributedTransactionId(),
-				 SharedLocalSnapshotSlot->slotid,
-				 DtxContextToString(DistributedTransactionContext));
-
 			s->distribXid = QEDtxContextInfo.distributedXid;
+
+			elog((Debug_print_full_dtm ? LOG : DEBUG5), "qExec reader: distributedXid %d currcid %d gxid = %u DtxContext '%s' sharedsnapshots: %s",
+				 QEDtxContextInfo.distributedXid,
+				 QEDtxContextInfo.curcid,
+				 getDistributedTransactionId(),
+				 DtxContextToString(DistributedTransactionContext),
+				 SharedSnapshotDump());
 		}
 		break;
 	
@@ -3172,7 +3169,6 @@ CommitTransaction(void)
 	TransactionId latestXid;
 
 	TransactionId localXid;
-	bool needStateChangeFromDistributed = false;
 	bool needNotifyCommittedDtxTransaction = false;
 	bool willHaveObjectsFromSmgr;
 
@@ -3331,7 +3327,6 @@ CommitTransaction(void)
 	 */
 	ProcArrayEndTransaction(MyProc, latestXid,
 							true,
-							&needStateChangeFromDistributed,
 							&needNotifyCommittedDtxTransaction);
 	/*
 	 * Note that in GPDB, ProcArrayEndTransaction does *not* clear the PGPROC
@@ -3427,7 +3422,6 @@ CommitTransaction(void)
 						 RESOURCE_RELEASE_AFTER_LOCKS,
 						 true, true);
 
-
 	/* Check we've released all catcache entries */
 	AtEOXact_CatCache(true);
 
@@ -3455,17 +3449,6 @@ CommitTransaction(void)
 	ResetSharedSnapshotSubxids(SharedLocalSnapshotSlot);
 
 	finishDistributedTransactionContext("CommitTransaction", false);
-
-	if (MyProc->localDistribXactData.state != LOCALDISTRIBXACT_STATE_NONE)
-	{
-		LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
-
-		if (needStateChangeFromDistributed)
-			LocalDistribXact_ChangeState(MyProc,
-										 LOCALDISTRIBXACT_STATE_COMMITTED);
-
-		LWLockRelease(ProcArrayLock);
-	}
 
 	if (gp_local_distributed_cache_stats)
 	{
@@ -3911,9 +3894,7 @@ AbortTransaction(void)
 	 * must be done _before_ releasing locks we hold and _after_
 	 * RecordTransactionAbort.
 	 */
-	ProcArrayEndTransaction(MyProc, latestXid, false,
-							NULL,
-							NULL);
+	ProcArrayEndTransaction(MyProc, latestXid, false, NULL);
 
 	/*
 	 * Post-abort cleanup.	See notes in CommitTransaction() concerning

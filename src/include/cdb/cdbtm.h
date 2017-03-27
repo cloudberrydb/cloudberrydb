@@ -214,8 +214,6 @@ typedef struct TMGXACT
 
 	int							sessionId;
 	
-	LocalDistribXactData		localDistribXactData;
-	
 	bool						explicitBeginRemembered;
 
 	DistributedTransactionId	xminDistributedSnapshot;
