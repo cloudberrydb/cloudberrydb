@@ -1666,13 +1666,14 @@ psql_completion(char *text, int start, int end)
 		COMPLETE_WITH_LIST(list_CREATERESOURCEGROUP);
 	 }
 
-/* DROP RESOURCE GROUP */
-	else if (pg_strcasecmp(prev3_wd, "DROP") == 0 &&
+/* CREATE/DROP RESOURCE GROUP */
+	else if ((pg_strcasecmp(prev3_wd, "CREATE") == 0 ||
+			  pg_strcasecmp(prev3_wd, "DROP") == 0) &&
 			 pg_strcasecmp(prev2_wd, "RESOURCE") == 0 &&
 			 pg_strcasecmp(prev_wd, "GROUP") == 0)
 		COMPLETE_WITH_QUERY(Query_for_list_of_resgroups);
 
-/* CREATE RESOURCE GROUP */
+/* CREATE RESOURCE GROUP <name> */
 	else if (pg_strcasecmp(prev4_wd, "CREATE") == 0 &&
 			 pg_strcasecmp(prev3_wd, "RESOURCE") == 0 &&
 			 pg_strcasecmp(prev2_wd, "GROUP") == 0)
