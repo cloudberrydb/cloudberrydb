@@ -18,6 +18,7 @@
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CPhysicalPartitionSelector.h"
 #include "gpopt/operators/CPredicateUtils.h"
+#include "gpopt/base/CColRef.h"
 
 using namespace gpopt;
 
@@ -257,14 +258,16 @@ CPhysicalPartitionSelector::FMatch
 
 	CPhysicalPartitionSelector *popPartSelector = CPhysicalPartitionSelector::PopConvert(pop);
 
-	return popPartSelector->UlScanId() == m_ulScanId &&
-			popPartSelector->Pmdid()->FEquals(Pmdid()) &&
-			FMatchPartCnstr(popPartSelector->m_ppartcnstrmap) &&
-			popPartSelector->Pdrgpdrgpcr()->FEqual(m_pdrgpdrgpcr) &&
-			popPartSelector->m_ppartcnstr->FEquivalent(m_ppartcnstr) &&
-			FMatchExprMaps(popPartSelector->m_phmulexprEqPredicates, m_phmulexprEqPredicates) &&
-			FMatchExprMaps(popPartSelector->m_phmulexprPredicates, m_phmulexprPredicates) &&
-			CUtils::FEqual(popPartSelector->m_pexprResidual, m_pexprResidual);
+	BOOL fScanIdCmp = popPartSelector->UlScanId() == m_ulScanId;
+	BOOL fMdidCmp = popPartSelector->Pmdid()->FEquals(Pmdid());
+	BOOL fPartCnstrMapCmp = FMatchPartCnstr(popPartSelector->m_ppartcnstrmap);
+	BOOL fColRefCmp = CColRef::FEqual(popPartSelector->Pdrgpdrgpcr(), m_pdrgpdrgpcr) ;
+	BOOL fPartCnstrEquiv = popPartSelector->m_ppartcnstr->FEquivalent(m_ppartcnstr) ;
+	BOOL fEqPredCmp = FMatchExprMaps(popPartSelector->m_phmulexprEqPredicates, m_phmulexprEqPredicates) ;
+	BOOL fPredCmp = FMatchExprMaps(popPartSelector->m_phmulexprPredicates, m_phmulexprPredicates) ;
+	BOOL fResPredCmp = CUtils::FEqual(popPartSelector->m_pexprResidual, m_pexprResidual);
+
+	return fScanIdCmp && fMdidCmp && fPartCnstrMapCmp && fColRefCmp && fPartCnstrEquiv && fEqPredCmp && fResPredCmp && fPredCmp;
 }
 
 //---------------------------------------------------------------------------

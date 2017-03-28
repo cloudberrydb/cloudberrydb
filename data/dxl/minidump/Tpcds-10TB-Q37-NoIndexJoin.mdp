@@ -20526,7 +20526,7 @@ select  i_item_id
         </dxl:LogicalGroupBy>
       </dxl:LogicalLimit>
     </dxl:Query>
-	<dxl:Plan Id="0" SpaceSize="6407566">
+	<dxl:Plan Id="0" SpaceSize="6366800">
       <dxl:Limit>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="54582.024442" Rows="4.196915" Width="127"/>

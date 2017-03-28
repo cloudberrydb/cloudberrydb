@@ -143,6 +143,10 @@ namespace gpopt
 			static
 			BOOL FEqual(const DrgPcr *pdrgpcr1, const DrgPcr *pdrgpcr2);
 
+			// check if the the array of column reference arrays are equal
+			static
+			BOOL FEqual(const DrgDrgPcr *pdrgdrgpcr1, const DrgDrgPcr *pdrgdrgpcr2);
+
 			// type of column reference (base/computed)
 			virtual
 			Ecolreftype Ecrt() const = 0;

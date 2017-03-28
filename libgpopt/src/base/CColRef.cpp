@@ -164,5 +164,34 @@ CColRef::FEqual
 	return pdrgpcr1->FEqual(pdrgpcr2);
 }
 
+// check if the the array of column references are equal. Note that since we have unique
+// copy of the column references, we can compare pointers.
+BOOL
+CColRef::FEqual
+	(
+	const DrgDrgPcr *pdrgdrgpcr1,
+	const DrgDrgPcr *pdrgdrgpcr2
+	)
+{
+	ULONG ulLen1 = pdrgdrgpcr1->UlSafeLength();
+	ULONG ulLen2 = pdrgdrgpcr2->UlSafeLength();
+
+	if (ulLen1 != ulLen2)
+	{
+		return false;
+	}
+
+	for (ULONG ulLevel = 0; ulLevel < ulLen1; ulLevel++)
+	{
+		BOOL fEqual = (*pdrgdrgpcr1)[ulLevel]->FEqual((*pdrgdrgpcr2)[ulLevel]);
+		if (!fEqual)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 // EOF
 
