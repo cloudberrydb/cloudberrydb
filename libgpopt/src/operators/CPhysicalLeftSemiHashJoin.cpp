@@ -91,7 +91,7 @@ CPhysicalLeftSemiHashJoin::PppsRequired
 	ULONG // ulOptReq
 	)
 {
-	return PppsRequiredHashJoinChild(pmp, exprhdl, pppsRequired, ulChildIndex, pdrgpdpCtxt);
+	return PppsRequiredJoinChild(pmp, exprhdl, pppsRequired, ulChildIndex, pdrgpdpCtxt);
 }
 
 // EOF
