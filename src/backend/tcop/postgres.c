@@ -93,6 +93,7 @@
 #include "postmaster/backoff.h"
 #include <pthread.h>
 #include "utils/resscheduler.h"
+#include "utils/resgroup.h"
 #include "pgstat.h"
 #include "executor/nodeFunctionscan.h"
 #include "cdb/cdbfilerep.h"
@@ -4624,6 +4625,8 @@ PostgresMain(int argc, char *argv[],
 	 */
 	if (IsResQueueEnabled() && Gp_role == GP_ROLE_DISPATCH && !am_walsender)
 		InitResQueues();
+	else if (IsResGroupEnabled() && (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE) && !am_walsender)
+		InitResGroups();
 
 	/*
 	 * Now all GUC states are fully set up.  Report them to client if
