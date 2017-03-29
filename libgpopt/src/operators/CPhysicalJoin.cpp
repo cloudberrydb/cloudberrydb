@@ -1129,7 +1129,8 @@ CPhysicalJoin::PppsRequiredCompute
 	IMemoryPool *pmp,
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
-	ULONG ulChildIndex
+	ULONG ulChildIndex,
+	BOOL fNLJoin
 	)
 {
 	CPartIndexMap *ppim = pppsRequired->Ppim();
@@ -1172,21 +1173,43 @@ CPhysicalJoin::PppsRequiredCompute
 			pcrsAllowedRefs = pcrsOutputInner;
 		}
 
-		if (1 == ulChildIndex && !fOuterPartConsumer)
+		if(fNLJoin)
 		{
-			// always push through required partition propagation for consumers on the
-			// inner side of the hash join
-			DrgPpartkeys *pdrgppartkeys = exprhdl.Pdprel(1 /*ulChildIndex*/)->Ppartinfo()->PdrgppartkeysByScanId(ulPartIndexId);
-			GPOS_ASSERT(NULL != pdrgppartkeys);
-			pdrgppartkeys->AddRef();
+			if (0 == ulChildIndex && fOuterPartConsumer)
+			{
+				// always push through required partition propagation for consumers on the
+				// outer side of the nested loop join
+				DrgPpartkeys *pdrgppartkeys = ppartinfo->PdrgppartkeysByScanId(ulPartIndexId);
+				GPOS_ASSERT(NULL != pdrgppartkeys);
+				pdrgppartkeys->AddRef();
 
-			ppimResult->AddRequiredPartPropagation(ppim, ulPartIndexId, CPartIndexMap::EppraPreservePropagators, pdrgppartkeys);
+				ppimResult->AddRequiredPartPropagation(ppim, ulPartIndexId, CPartIndexMap::EppraPreservePropagators, pdrgppartkeys);
+			}
+			else
+			{
+				// check if there is an interesting condition involving the partition key
+				CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*ulChildIndex*/);
+				AddFilterOnPartKey(pmp, true /*fNLJoin*/, pexprScalar, ppim, ppfm, ulChildIndex, ulPartIndexId, fOuterPartConsumer, ppimResult, ppfmResult, pcrsAllowedRefs);
+			}
 		}
 		else
 		{
-			// look for a filter on the part key
-			CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*ulChildIndex*/);
-			AddFilterOnPartKey(pmp, false /*fNLJoin*/, pexprScalar, ppim, ppfm, ulChildIndex, ulPartIndexId, fOuterPartConsumer, ppimResult, ppfmResult, pcrsAllowedRefs);
+			if (1 == ulChildIndex && !fOuterPartConsumer)
+			{
+				// always push through required partition propagation for consumers on the
+				// inner side of the hash join
+				DrgPpartkeys *pdrgppartkeys = exprhdl.Pdprel(1 /*ulChildIndex*/)->Ppartinfo()->PdrgppartkeysByScanId(ulPartIndexId);
+				GPOS_ASSERT(NULL != pdrgppartkeys);
+				pdrgppartkeys->AddRef();
+
+				ppimResult->AddRequiredPartPropagation(ppim, ulPartIndexId, CPartIndexMap::EppraPreservePropagators, pdrgppartkeys);
+			}
+			else
+			{
+				// look for a filter on the part key
+				CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*ulChildIndex*/);
+				AddFilterOnPartKey(pmp, false /*fNLJoin*/, pexprScalar, ppim, ppfm, ulChildIndex, ulPartIndexId, fOuterPartConsumer, ppimResult, ppfmResult, pcrsAllowedRefs);
+			}
 		}
 	}
 
@@ -1203,7 +1226,8 @@ CPhysicalJoin::PppsRequiredJoinChild
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG ulChildIndex,
-	DrgPdp * //pdrgpdpCtxt
+	DrgPdp *, //pdrgpdpCtxt,
+	BOOL fNLJoin
 	)
 {
 	GPOS_ASSERT(NULL != pppsRequired);
@@ -1211,7 +1235,7 @@ CPhysicalJoin::PppsRequiredJoinChild
 	CPartPropReq *pppr = PpprCreate(pmp, exprhdl, pppsRequired, ulChildIndex);
 	if (NULL == pppr)
 	{
-		return PppsRequiredCompute(pmp, exprhdl, pppsRequired, ulChildIndex);
+		return PppsRequiredCompute(pmp, exprhdl, pppsRequired, ulChildIndex, fNLJoin);
 	}
 
 	CAutoMutex am(m_mutexJoin);
@@ -1220,7 +1244,7 @@ CPhysicalJoin::PppsRequiredJoinChild
 	CPartitionPropagationSpec *ppps = m_phmpp->PtLookup(pppr);
 	if (NULL == ppps)
 	{
-		ppps = PppsRequiredCompute(pmp, exprhdl, pppsRequired, ulChildIndex);
+		ppps = PppsRequiredCompute(pmp, exprhdl, pppsRequired, ulChildIndex, fNLJoin);
 #ifdef GPOS_DEBUG
 		BOOL fSuccess =
 #endif // GPOS_DEBUG

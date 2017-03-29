@@ -223,7 +223,7 @@ CPhysicalNLJoin::PppsRequiredNLJoinChild
 	CExpressionHandle &exprhdl,
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG ulChildIndex,
-	DrgPdp *, //pdrgpdpCtxt,
+	DrgPdp *pdrgpdpCtxt,
 	ULONG ulOptReq
 	)
 {
@@ -238,65 +238,7 @@ CPhysicalNLJoin::PppsRequiredNLJoinChild
 	}
 	GPOS_ASSERT(0 == ulOptReq);
 
-	CPartIndexMap *ppim = pppsRequired->Ppim();
-	CPartFilterMap *ppfm = pppsRequired->Ppfm();
-
-	DrgPul *pdrgpul = ppim->PdrgpulScanIds(pmp);
-	
-	CPartIndexMap *ppimResult = GPOS_NEW(pmp) CPartIndexMap(pmp);
-	CPartFilterMap *ppfmResult = GPOS_NEW(pmp) CPartFilterMap(pmp);
-
-	CPartInfo *ppartinfoOuter = exprhdl.Pdprel(0)->Ppartinfo();
-
-	CColRefSet *pcrsOutputOuter = exprhdl.Pdprel(0)->PcrsOutput();
-	CColRefSet *pcrsOutputInner = exprhdl.Pdprel(1)->PcrsOutput();
-
-	const ULONG ulPartIndexIds = pdrgpul->UlLength();
-		
-	for (ULONG ul = 0; ul < ulPartIndexIds; ul++)
-	{
-		ULONG ulPartIndexId = *((*pdrgpul)[ul]);
-		if (ppfm->FContainsScanId(ulPartIndexId))
-		{
-			GPOS_ASSERT(NULL != ppfm->Pexpr(ulPartIndexId));
-			// a selection-based propagation request pushed from above: do not propagate any
-			// further as the join will reduce cardinality and thus may select more partitions
-			// for scanning
-			continue;
-		}
-		
-		BOOL fOuterPartConsumer = ppartinfoOuter->FContainsScanId(ulPartIndexId);
-
-		// in order to find interesting join predicates that can be used for DPE,
-		// one side of the predicate must be the partition key, while the other side must only contain
-		// references from the join child that does not have the partition consumer
-		CColRefSet *pcrsAllowedRefs = pcrsOutputOuter;
-		if (fOuterPartConsumer)
-		{
-			pcrsAllowedRefs = pcrsOutputInner;
-		}
-
-		if (0 == ulChildIndex && fOuterPartConsumer)
-		{
-			// always push through required partition propagation for consumers on the
-			// outer side of the nested loop join
-			DrgPpartkeys *pdrgppartkeys = ppartinfoOuter->PdrgppartkeysByScanId(ulPartIndexId);
-			GPOS_ASSERT(NULL != pdrgppartkeys);
-			pdrgppartkeys->AddRef();
-
-			ppimResult->AddRequiredPartPropagation(ppim, ulPartIndexId, CPartIndexMap::EppraPreservePropagators, pdrgppartkeys);
-		}
-		else
-		{
-			// check if there is an interesting condition involving the partition key
-			CExpression *pexprScalar = exprhdl.PexprScalarChild(2 /*ulChildIndex*/);
-			AddFilterOnPartKey(pmp, true /*fNLJoin*/, pexprScalar, ppim, ppfm, ulChildIndex, ulPartIndexId, fOuterPartConsumer, ppimResult, ppfmResult, pcrsAllowedRefs);
-		}
-	}
-	
-	pdrgpul->Release();
-
-	return GPOS_NEW(pmp) CPartitionPropagationSpec(ppimResult, ppfmResult);
+	return PppsRequiredJoinChild(pmp, exprhdl, pppsRequired, ulChildIndex, pdrgpdpCtxt, true);
 }
 
 

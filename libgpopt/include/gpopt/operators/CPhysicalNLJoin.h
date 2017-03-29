@@ -37,7 +37,6 @@ namespace gpopt
 			
 			// helper function for computing the required partition propagation 
 			// spec for the children of a nested loop join
-			static
 			CPartitionPropagationSpec *PppsRequiredNLJoinChild
 				(
 				IMemoryPool *pmp,
