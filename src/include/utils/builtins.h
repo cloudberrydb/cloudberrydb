@@ -1102,6 +1102,9 @@ extern Datum pg_resqueue_status_kv(PG_FUNCTION_ARGS);
 /* utils/resgroup/resgroup.c */
 extern Datum pg_resgroup_get_status_kv(PG_FUNCTION_ARGS);
 
+/* utils/adt/matrix.c */
+extern Datum matrix_add(PG_FUNCTION_ARGS);
+
 /* utils/adt/pivot.c */
 Datum int4_pivot_accum(PG_FUNCTION_ARGS);
 Datum int8_pivot_accum(PG_FUNCTION_ARGS);
