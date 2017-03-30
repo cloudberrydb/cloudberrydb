@@ -6124,6 +6124,18 @@ StartupXLOG_InProduction(void)
 
 	elog(LOG, "Oldest active transaction from prepared transactions %u", oldestActiveXID);
 
+	/*
+	 * Initialize TransactionXmin to current oldestActiveXID, generally
+	 * initialized during GetSnapshotData(). This is to avoid situations where
+	 * scanning pg_authid or other tables mostly in BuildFlatFiles() below via
+	 * SnapshotNow may try to chase down pg_subtrans for older "sub-committed"
+	 * transaction, file corresponding to which may not and is not supposed to
+	 * exist. Setting this here will avoid calling SubTransGetParent() in
+	 * TransactionIdDidCommit() for older XIDs. Also, set RecentGlobalXmin
+	 * since Heap access method functions needs it to have good value as well.
+	 */
+	TransactionXmin = RecentGlobalXmin = oldestActiveXID;
+
 	/* Start up the commit log and related stuff, too */
 	StartupCLOG();
 	StartupSUBTRANS(oldestActiveXID);
