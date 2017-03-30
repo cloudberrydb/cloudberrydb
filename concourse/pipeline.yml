@@ -41,15 +41,6 @@ resources:
     secret_access_key: {{s3_secret_access_key}}
     versioned_file: bin_xerces_centos5.tar.gz
 
-- name: bin_xerces_osx32
-  type: s3
-  source:
-    access_key_id: {{s3_access_key_id}}
-    bucket: {{bucket-name}}
-    region_name: {{aws-region}}
-    secret_access_key: {{s3_secret_access_key}}
-    versioned_file: bin_xerces_osx32.tar.gz
-
 - name: bin_orca_centos5_debug
   type: s3
   source:
@@ -67,24 +58,6 @@ resources:
     region_name: {{aws-region}}
     secret_access_key: {{s3_secret_access_key}}
     versioned_file: bin_orca_centos5_release.tar.gz
-
-- name: bin_orca_osx32_debug
-  type: s3
-  source:
-    access_key_id: {{s3_access_key_id}}
-    bucket: {{bucket-name}}
-    region_name: {{aws-region}}
-    secret_access_key: {{s3_secret_access_key}}
-    versioned_file: bin_orca_osx32_debug.tar.gz
-
-- name: bin_orca_osx32_release
-  type: s3
-  source:
-    access_key_id: {{s3_access_key_id}}
-    bucket: {{bucket-name}}
-    region_name: {{aws-region}}
-    secret_access_key: {{s3_secret_access_key}}
-    versioned_file: bin_orca_osx32_release.tar.gz
 
 - name: regression_diffs
   type: s3
@@ -125,8 +98,6 @@ jobs:
       passed:
       - orca_centos5_release
       - orca_centos5_debug
-      - orca_osx32_release
-      - orca_osx32_debug
       trigger: true
     - get: bin_orca_centos5_release
       passed:
@@ -134,12 +105,6 @@ jobs:
     - get: bin_orca_centos5_debug
       passed:
       - orca_centos5_debug
-    - get: bin_orca_osx32_release
-      passed:
-      - orca_osx32_release
-    - get: bin_orca_osx32_debug
-      passed:
-      - orca_osx32_debug
   - task: orca_publish_tag
     file: orca_src/concourse/publish_tag.yml
   - put: orca_github_release
@@ -150,8 +115,6 @@ jobs:
       globs:
         - orca_github_release_stage/bin_orca_centos5_release.tar.gz
         - orca_github_release_stage/bin_orca_centos5_debug.tar.gz
-        - orca_github_release_stage/bin_orca_osx32_release.tar.gz
-        - orca_github_release_stage/bin_orca_osx32_debug.tar.gz
 
 - name: xerces_centos5
   max_in_flight: 2
@@ -168,18 +131,6 @@ jobs:
     - put: bin_xerces_centos5
       params:
         from: package_tarball_centos5/bin_xerces_centos5.tar.gz
-
-- name: xerces_osx32
-  plan:
-    - get: xerces_patch
-      trigger: true
-    - task: build
-      file: xerces_patch/concourse/xerces-c/build_xerces_osx32.yml
-    - task: package_tarball
-      file: xerces_patch/concourse/xerces-c/package_tarball_osx32.yml
-    - put: bin_xerces_osx32
-      params:
-        from: package_tarball_osx32/bin_xerces_osx32.tar.gz
 
 - name: orca_centos5_release
   max_in_flight: 2
@@ -212,40 +163,6 @@ jobs:
   - put: bin_orca_centos5_debug
     params:
       from: package_tarball_debug/bin_orca_centos5_debug.tar.gz
-
-- name: orca_osx32_release
-  serial_groups:
-    - osx
-  plan:
-  - get: orca_src
-    trigger: true
-  - get: bin_xerces_osx32
-    passed:
-    - xerces_osx32
-  - task: build_and_test_release
-    file: orca_src/concourse/build_and_test_osx32_release.yml
-  - task: package_tarball_release
-    file: orca_src/concourse/package_tarball_osx32_release.yml
-  - put: bin_orca_osx32_release
-    params:
-      from: package_tarball_osx32_release/bin_orca_osx32_release.tar.gz
-
-- name: orca_osx32_debug
-  serial_groups:
-    - osx
-  plan:
-  - get: orca_src
-    trigger: true
-  - get: bin_xerces_osx32
-    passed:
-    - xerces_osx32
-  - task: build_and_test_debug
-    file: orca_src/concourse/build_and_test_osx32_debug.yml
-  - task: package_tarball_debug
-    file: orca_src/concourse/package_tarball_osx32_debug.yml
-  - put: bin_orca_osx32_debug
-    params:
-      from: package_tarball_osx32_debug/bin_orca_osx32_debug.tar.gz
 
 - name: build_gpdb
   plan:
