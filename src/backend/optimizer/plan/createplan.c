@@ -92,7 +92,7 @@ static ValuesScan *create_valuesscan_plan(PlannerInfo *root, Path *best_path,
 static BitmapAppendOnlyScan *create_bitmap_appendonly_scan_plan(PlannerInfo *root,
 								   BitmapAppendOnlyPath *best_path,
 								   List *tlist, List *scan_clauses);
-static Plan *create_nestloop_plan(PlannerInfo *root, NestPath *best_path,
+static NestLoop *create_nestloop_plan(PlannerInfo *root, NestPath *best_path,
 					 Plan *outer_plan, Plan *inner_plan);
 static MergeJoin *create_mergejoin_plan(PlannerInfo *root, MergePath *best_path,
 					  Plan *outer_plan, Plan *inner_plan);
@@ -2691,7 +2691,7 @@ remove_isnotfalse(List *clauses)
  *
  *****************************************************************************/
 
-static Plan *
+static NestLoop *
 create_nestloop_plan(PlannerInfo *root,
 					 NestPath *best_path,
 					 Plan *outer_plan,
@@ -2876,7 +2876,7 @@ create_nestloop_plan(PlannerInfo *root,
 	if (prefetch)
 		join_plan->join.prefetch_inner = true;
 
-	return (Plan *) join_plan;
+	return join_plan;
 }
 
 static MergeJoin *
