@@ -38,6 +38,7 @@ CMDRelationGPDB::CMDRelationGPDB
 	DrgPmdcol *pdrgpmdcol,
 	DrgPul *pdrgpulDistrColumns,
 	DrgPul *pdrgpulPartColumns,
+	DrgPsz *pdrgpszPartTypes,
 	ULONG ulPartitions,
 	BOOL fConvertHashToRandom,
 	DrgPdrgPul *pdrgpdrgpulKeys,
@@ -59,6 +60,7 @@ CMDRelationGPDB::CMDRelationGPDB
 	m_pdrgpulDistrColumns(pdrgpulDistrColumns),
 	m_fConvertHashToRandom(fConvertHashToRandom),
 	m_pdrgpulPartColumns(pdrgpulPartColumns),
+	m_pdrgpszPartTypes(pdrgpszPartTypes),
 	m_ulPartitions(ulPartitions),
 	m_pdrgpdrgpulKeys(pdrgpdrgpulKeys),
 	m_pdrgpmdidIndices(pdrgpmdidIndices),
@@ -134,6 +136,7 @@ CMDRelationGPDB::~CMDRelationGPDB()
 	m_pdrgpmdcol->Release();
 	CRefCount::SafeRelease(m_pdrgpulDistrColumns);
 	CRefCount::SafeRelease(m_pdrgpulPartColumns);
+	CRefCount::SafeRelease(m_pdrgpszPartTypes);
 	CRefCount::SafeRelease(m_pdrgpdrgpulKeys);
 	m_pdrgpmdidIndices->Release();
 	m_pdrgpmdidTriggers->Release();
@@ -440,6 +443,21 @@ CMDRelationGPDB::UlPartColumns() const
 	return m_pdrgpulPartColumns->UlSafeLength();
 }
 
+// Retrieve list of partition types
+DrgPsz *
+CMDRelationGPDB::PdrgpszPartTypes() const
+{
+	return m_pdrgpszPartTypes;
+}
+
+// Returns the partition type of the given level
+CHAR
+CMDRelationGPDB::SzPartType(ULONG ulLevel) const
+{
+	return *(*m_pdrgpszPartTypes)[ulLevel];
+}
+
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CMDRelationGPDB::PmdcolPartColumn
@@ -678,6 +696,14 @@ CMDRelationGPDB::Serialize
 		CWStringDynamic *pstrPartKeys = CDXLUtils::PstrSerialize(m_pmp, m_pdrgpulPartColumns);
 		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenPartKeys), pstrPartKeys);
 		GPOS_DELETE(pstrPartKeys);
+	}
+
+	if (m_pdrgpszPartTypes)
+	{
+		// serialize partition types
+		CWStringDynamic *pstrPartTypes = CDXLUtils::PstrSerializeSz(m_pmp, m_pdrgpszPartTypes);
+		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenPartTypes), pstrPartTypes);
+		GPOS_DELETE(pstrPartTypes);
 	}
 	
 	if (m_fConvertHashToRandom)

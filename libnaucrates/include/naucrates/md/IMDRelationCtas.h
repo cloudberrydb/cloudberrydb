@@ -75,6 +75,22 @@ namespace gpmd
 				return NULL;
 			}
 			
+			// retrieve list of partition types
+			virtual
+			DrgPsz *PdrgpszPartTypes() const
+			{
+				GPOS_ASSERT(!"CTAS tables have no partition types");
+				return NULL;
+			}
+
+			// retrieve the partition column at the given position
+			virtual
+			CHAR SzPartType(ULONG /*ulPos*/) const
+			{
+				GPOS_ASSERT(!"CTAS tables have no partition types");
+				return (CHAR) 0;
+			}
+
 			// return true if a hash distributed table needs to be considered as random
 			virtual
 			BOOL FConvertHashToRandom() const

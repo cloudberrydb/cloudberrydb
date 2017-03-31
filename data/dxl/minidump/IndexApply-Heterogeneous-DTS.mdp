@@ -255,7 +255,7 @@ WHERE tt.event_ts &gt;= tq.ets AND
       <dxl:ColumnStatistics Mdid="1.16033575.1.1.8" Name="xmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.16033575.1.1.1" Name="sym" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.16033575.1.1.0" Name="ets" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:Relation Mdid="0.16033575.1.0" Name="my_tq_agg_small_part" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="10,11,5" PartitionColumns="2">
+      <dxl:Relation Mdid="0.16033575.1.0" Name="my_tq_agg_small_part" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="10,11,5" PartitionColumns="2" PartitionTypes="r">
         <dxl:Columns>
           <dxl:Column Name="ets" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -314,7 +314,7 @@ WHERE tt.event_ts &gt;= tq.ets AND
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:RelationStatistics Mdid="2.16033575.1.1" Name="my_tq_agg_small_part" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.16033575.1.1" Name="my_tq_agg_small_part" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="10,11,5" PartitionColumns="2">
+      <dxl:Relation Mdid="0.16033575.1.1" Name="my_tq_agg_small_part" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="10,11,5" PartitionColumns="2" PartitionTypes="r">
         <dxl:Columns>
           <dxl:Column Name="ets" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>

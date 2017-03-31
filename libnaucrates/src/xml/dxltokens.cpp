@@ -250,6 +250,8 @@ CDXLTokens::Init
 			{EdxltokenScalarPartBoundLower, GPOS_WSZ_LIT("LowerBound")},
 			{EdxltokenScalarPartBoundInclusion, GPOS_WSZ_LIT("PartBoundInclusion")},
 			{EdxltokenScalarPartBoundOpen, GPOS_WSZ_LIT("PartBoundOpen")},
+			{EdxltokenScalarPartListValues, GPOS_WSZ_LIT("PartListValues")},
+			{EdxltokenScalarPartListNullTest, GPOS_WSZ_LIT("PartListNullTest")},
 			{EdxltokenScalarResidualFilter, GPOS_WSZ_LIT("ResidualFilter")},
 			{EdxltokenScalarPropagationExpr, GPOS_WSZ_LIT("PropagationExpression")},
 			{EdxltokenScalarPrintableFilter, GPOS_WSZ_LIT("PrintableFilter")},
@@ -504,6 +506,7 @@ CDXLTokens::Init
 			{EdxltokenDistrColumns, GPOS_WSZ_LIT("DistributionColumns")},
 			
 			{EdxltokenPartKeys, GPOS_WSZ_LIT("PartitionColumns")},
+			{EdxltokenPartTypes, GPOS_WSZ_LIT("PartitionTypes")},
 			{EdxltokenNumLeafPartitions, GPOS_WSZ_LIT("NumberLeafPartitions")},
 
 			{EdxltokenTypeInt4, GPOS_WSZ_LIT("Int4")},

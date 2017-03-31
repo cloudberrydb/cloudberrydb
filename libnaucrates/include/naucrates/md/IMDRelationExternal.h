@@ -86,6 +86,22 @@ namespace gpmd
 				return NULL;
 			}
 
+			// retrieve list of partition types
+			virtual
+			DrgPsz *PdrgpszPartTypes() const
+			{
+				GPOS_ASSERT(!"External tables have no partition types");
+				return NULL;
+			}
+
+			// retrieve the partition type at the given position
+			virtual
+			CHAR SzPartType(ULONG /*ulPos*/) const
+			{
+				GPOS_ASSERT(!"External tables have no partition types");
+				return (CHAR) 0;
+			}
+
 			// part constraint
 			virtual
 			IMDPartConstraint *Pmdpartcnstr() const

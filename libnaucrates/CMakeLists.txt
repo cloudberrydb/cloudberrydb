@@ -403,6 +403,10 @@ add_library(naucrates
             src/operators/CDXLScalarPartBoundOpen.cpp
             include/naucrates/dxl/operators/CDXLScalarPartDefault.h
             src/operators/CDXLScalarPartDefault.cpp
+            include/naucrates/dxl/operators/CDXLScalarPartListValues.h
+            src/operators/CDXLScalarPartListValues.cpp
+            include/naucrates/dxl/operators/CDXLScalarPartListNullTest.h
+            src/operators/CDXLScalarPartListNullTest.cpp
             include/naucrates/dxl/operators/CDXLScalarPartOid.h
             src/operators/CDXLScalarPartOid.cpp
             include/naucrates/dxl/operators/CDXLScalarProjElem.h
@@ -729,6 +733,10 @@ add_library(naucrates
             src/parser/CParseHandlerScalarPartBoundOpen.cpp
             include/naucrates/dxl/parser/CParseHandlerScalarPartDefault.h
             src/parser/CParseHandlerScalarPartDefault.cpp
+            include/naucrates/dxl/parser/CParseHandlerScalarPartListValues.h
+            src/parser/CParseHandlerScalarPartListValues.cpp
+            include/naucrates/dxl/parser/CParseHandlerScalarPartListNullTest.h
+            src/parser/CParseHandlerScalarPartListNullTest.cpp
             include/naucrates/dxl/parser/CParseHandlerScalarPartOid.h
             src/parser/CParseHandlerScalarPartOid.cpp
             include/naucrates/dxl/parser/CParseHandlerScalarSubPlan.h

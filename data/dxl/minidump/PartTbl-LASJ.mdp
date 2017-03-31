@@ -500,7 +500,7 @@
       <dxl:ColumnStatistics Mdid="1.259515.1.1.7" Name="cmax" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.259515.1.1.6" Name="xmax" Width="8.000000"/>
       <dxl:RelationStatistics Mdid="2.259515.1.1" Name="foo3_p" Rows="500.000000"/>
-      <dxl:Relation Mdid="0.259515.1.1" Name="foo3_p" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="9,3" PartitionColumns="2">
+      <dxl:Relation Mdid="0.259515.1.1" Name="foo3_p" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="9,3" PartitionColumns="2" PartitionTypes="l">
         <dxl:Columns>
           <dxl:Column Name="i" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>

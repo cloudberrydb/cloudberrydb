@@ -149,6 +149,9 @@ namespace gpos
 	// array of strings
 	typedef CDynamicPtrArray<CWStringBase, CleanupDelete> DrgPstr;
 
+	// arrays of chars
+	typedef CDynamicPtrArray<CHAR, CleanupDelete> DrgPsz;
+
 }
 
 #include "CDynamicPtrArray.inl"

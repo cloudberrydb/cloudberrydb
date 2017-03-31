@@ -80,6 +80,9 @@ namespace gpmd
 			// indices of partition columns
 			DrgPul *m_pdrgpulPartColumns;
 			
+			// partition types
+			DrgPsz *m_pdrgpszPartTypes;
+
 			// number of partition
 			ULONG m_ulPartitions;
 
@@ -131,6 +134,7 @@ namespace gpmd
 				DrgPmdcol *pdrgpmdcol,
 				DrgPul *pdrgpulDistrColumns,
 				DrgPul *pdrgpulPartColumns,
+				DrgPsz *pdrgpszPartTypes,
 				ULONG ulPartitions,
 				BOOL fConvertHashToRandom,
 				DrgPdrgPul *pdrgpdrgpul,
@@ -243,6 +247,14 @@ namespace gpmd
 			// retrieve the partition key column at the given position
 			virtual 
 			const IMDColumn *PmdcolPartColumn(ULONG ulPos) const;
+
+			// retrieve list of partition types
+			virtual
+			DrgPsz *PdrgpszPartTypes() const;
+
+			// retrieve the partition type of the given level
+			virtual
+			CHAR SzPartType(ULONG ulLevel) const;
 
 			// number of indices
 			virtual 

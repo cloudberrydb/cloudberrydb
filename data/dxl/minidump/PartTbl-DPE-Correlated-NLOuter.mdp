@@ -195,7 +195,7 @@ select (select h.i from t2) from h where h.j = 1;
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
       <dxl:RelationStatistics Mdid="2.16612.1.1" Name="h" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.16612.1.1" Name="h" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="1" Keys="7,8,2" PartitionColumns="0" NumberLeafPartitions="2">
+      <dxl:Relation Mdid="0.16612.1.1" Name="h" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="1" Keys="7,8,2" PartitionColumns="0" PartitionTypes="r" NumberLeafPartitions="2">
         <dxl:Columns>
           <dxl:Column Name="j" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>

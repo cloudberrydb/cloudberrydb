@@ -158,7 +158,7 @@
       <dxl:ColumnStatistics Mdid="1.323803.1.1.5" Name="cmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.323803.1.1.4" Name="xmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:RelationStatistics Mdid="2.323581.1.1" Name="r" Rows="0.000000"/>
-      <dxl:Relation Mdid="0.323581.1.1" Name="r" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="7,1" PartitionColumns="0">
+      <dxl:Relation Mdid="0.323581.1.1" Name="r" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="7,1" PartitionColumns="0" PartitionTypes="r">
         <dxl:Columns>
           <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -202,7 +202,7 @@
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:RelationStatistics Mdid="2.323803.1.1" Name="s" Rows="0.000000"/>
-      <dxl:Relation Mdid="0.323803.1.1" Name="s" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="7,1" PartitionColumns="0">
+      <dxl:Relation Mdid="0.323803.1.1" Name="s" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="7,1" PartitionColumns="0" PartitionTypes="r">
         <dxl:Columns>
           <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>

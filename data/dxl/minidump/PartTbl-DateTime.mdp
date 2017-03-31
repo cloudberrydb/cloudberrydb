@@ -214,7 +214,7 @@
       <dxl:ColumnStatistics Mdid="1.254292.1.1.5" Name="l_extendedprice" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.254292.1.1.4" Name="l_quantity" Width="8.000000"/>
       <dxl:RelationStatistics Mdid="2.254292.1.1" Name="lineitem" Rows="0.000000"/>
-      <dxl:Relation Mdid="0.254292.1.1" Name="lineitem" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="22,16" PartitionColumns="10">
+      <dxl:Relation Mdid="0.254292.1.1" Name="lineitem" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="22,16" PartitionColumns="10" PartitionTypes="r">
         <dxl:Columns>
           <dxl:Column Name="l_orderkey" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>

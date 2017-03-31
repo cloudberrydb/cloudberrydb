@@ -157,6 +157,8 @@
 #include "naucrates/dxl/parser/CParseHandlerScalarPartBound.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarPartBoundInclusion.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarPartBoundOpen.h"
+#include "naucrates/dxl/parser/CParseHandlerScalarPartListValues.h"
+#include "naucrates/dxl/parser/CParseHandlerScalarPartListNullTest.h"
 
 #include "naucrates/dxl/parser/CParseHandlerLogicalConstTable.h"
 

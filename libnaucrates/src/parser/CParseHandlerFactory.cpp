@@ -202,6 +202,8 @@ CParseHandlerFactory::Init
 			{EdxltokenScalarPartBound, &PphScalarPartBound},
 			{EdxltokenScalarPartBoundInclusion, &PphScalarPartBoundInclusion},
 			{EdxltokenScalarPartBoundOpen, &PphScalarPartBoundOpen},
+			{EdxltokenScalarPartListValues, &PphScalarPartListValues},
+			{EdxltokenScalarPartListNullTest, &PphScalarPartListNullTest},
 
 			{EdxltokenScalarSubquery, &PphScalarSubquery},
 			{EdxltokenScalarBitmapAnd, &PphScalarBitmapBoolOp},
@@ -1575,6 +1577,30 @@ CParseHandlerFactory::PphScalarPartBoundOpen
 	)
 {
 	return GPOS_NEW(pmp) CParseHandlerScalarPartBoundOpen(pmp, pphm, pphRoot);
+}
+
+// Creates a parse handler for parsing a scalar part list values
+CParseHandlerBase *
+CParseHandlerFactory::PphScalarPartListValues
+	(
+	IMemoryPool *pmp,
+	CParseHandlerManager *pphm,
+	CParseHandlerBase *pphRoot
+	)
+{
+	return GPOS_NEW(pmp) CParseHandlerScalarPartListValues(pmp, pphm, pphRoot);
+}
+
+// Creates a parse handler for parsing a scalar part list null test
+CParseHandlerBase *
+CParseHandlerFactory::PphScalarPartListNullTest
+	(
+	IMemoryPool *pmp,
+	CParseHandlerManager *pphm,
+	CParseHandlerBase *pphRoot
+	)
+{
+	return GPOS_NEW(pmp) CParseHandlerScalarPartListNullTest(pmp, pphm, pphRoot);
 }
 
 //---------------------------------------------------------------------------

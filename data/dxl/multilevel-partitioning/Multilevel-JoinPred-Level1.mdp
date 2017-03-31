@@ -119,7 +119,7 @@ select * from pt, t where pt.k = t.t1;
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:RelationStatistics Mdid="2.16556.1.1" Name="pt" Rows="30.000000" EmptyRelation="false"/>
-      <dxl:Relation Mdid="0.16556.1.1" Name="pt" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="4,5,3" PartitionColumns="2,1">
+      <dxl:Relation Mdid="0.16556.1.1" Name="pt" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="4,5,3" PartitionColumns="2,1" PartitionTypes="r,r">
         <dxl:Columns>
           <dxl:Column Name="i" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>

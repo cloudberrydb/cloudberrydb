@@ -148,7 +148,7 @@
       <dxl:ColumnStatistics Mdid="1.27118.1.1.0" Name="a" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.27118.1.1.1" Name="b" Width="8.000000"/>
       <dxl:RelationStatistics Mdid="2.27118.1.1" Name="p" Rows="0.000000"/>
-      <dxl:Relation Mdid="0.27118.1.1" Name="p" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="8,2" PartitionColumns="1">
+      <dxl:Relation Mdid="0.27118.1.1" Name="p" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="8,2" PartitionColumns="1" PartitionTypes="r">
         <dxl:Columns>
           <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>

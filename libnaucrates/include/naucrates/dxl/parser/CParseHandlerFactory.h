@@ -676,6 +676,24 @@ namespace gpdxl
 				CParseHandlerBase *pph
 				);
 
+			// construct a scalar part list values
+			static
+			CParseHandlerBase *PphScalarPartListValues
+				(
+				IMemoryPool* pmp,
+				CParseHandlerManager *pphm,
+				CParseHandlerBase *pph
+				);
+
+			// construct a scalar part list null test
+			static
+			CParseHandlerBase *PphScalarPartListNullTest
+				(
+				IMemoryPool* pmp,
+				CParseHandlerManager *pphm,
+				CParseHandlerBase *pph
+				);
+
 			// construct a direct dispatch info parse handler
 			static
 			CParseHandlerBase *PphDirectDispatchInfo

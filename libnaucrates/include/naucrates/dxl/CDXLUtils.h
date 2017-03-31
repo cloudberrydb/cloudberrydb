@@ -444,6 +444,14 @@ namespace gpdxl
 				const DrgPdrgPul *pdrgpul
 				);
 
+			// serialize a list of chars into a comma-separate string
+			static
+			CWStringDynamic *PstrSerializeSz
+				(
+				IMemoryPool *pmp,
+				const DrgPsz *pdrgpsz
+				);
+
 			// decode a byte array from a string
 			static 
 			BYTE *PByteArrayFromStr

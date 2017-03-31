@@ -20,7 +20,7 @@ select * from t2 left outer join t1 on t1.b = t2.d where t1.b is null;
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:RelationStatistics Mdid="2.507276.1.1" Name="t1" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.507276.1.1" Name="t1" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="7,8,2" PartitionColumns="1" NumberLeafPartitions="2">
+      <dxl:Relation Mdid="0.507276.1.1" Name="t1" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="7,8,2" PartitionColumns="1" PartitionTypes="r" NumberLeafPartitions="2">
         <dxl:Columns>
           <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>

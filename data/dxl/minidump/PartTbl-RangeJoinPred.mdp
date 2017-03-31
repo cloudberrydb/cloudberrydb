@@ -454,7 +454,7 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:RelationStatistics Mdid="2.1279380.1.1" Name="stg_xdr_crce_cdr" Rows="766993024.000000" EmptyRelation="false"/>
-      <dxl:Relation Mdid="0.1279380.1.1" Name="stg_xdr_crce_cdr" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="58,59,57" PartitionColumns="9">
+      <dxl:Relation Mdid="0.1279380.1.1" Name="stg_xdr_crce_cdr" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="58,59,57" PartitionColumns="9" PartitionTypes="r">
         <dxl:Columns>
           <dxl:Column Name="id" Attno="1" Mdid="0.20.1.0" Nullable="true">
             <dxl:DefaultValue/>

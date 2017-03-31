@@ -218,7 +218,7 @@
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:RelationStatistics Mdid="2.290141.1.1" Name="pt" Rows="100.000000"/>
-      <dxl:Relation Mdid="0.290141.1.1" Name="pt" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="11,5" PartitionColumns="4">
+      <dxl:Relation Mdid="0.290141.1.1" Name="pt" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="11,5" PartitionColumns="4" PartitionTypes="r">
         <dxl:Columns>
           <dxl:Column Name="dist" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>

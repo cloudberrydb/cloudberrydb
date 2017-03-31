@@ -91,6 +91,8 @@ const CHAR *rgszPartTblFileNames[] =
 	"../data/dxl/minidump/PartTbl-CSQ-NonPartKey.mdp",
 	"../data/dxl/minidump/PartTbl-LeftOuterHashJoin-DPE-IsNull.mdp",
 	"../data/dxl/minidump/PartTbl-LeftOuterNLJoin-DPE-IsNull.mdp",
+	"../data/dxl/minidump/PartTbl-List-DPE-Varchar-Predicates.mdp",
+	"../data/dxl/minidump/PartTbl-List-DPE-Int-Predicates.mdp",
 
 	};
 

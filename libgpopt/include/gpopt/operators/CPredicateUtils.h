@@ -63,10 +63,6 @@ namespace gpopt
 			// no column references and no volatile functions
 			static
 			BOOL FValidRefsOnly(CExpression *pexprScalar, CColRefSet *pcrsAllowedRefs);
-
-			// reverse the comparison, for example "<" => ">", "<=" => "=> 
-			static
-			IMDType::ECmpType EcmptReverse(IMDType::ECmpType ecmpt);
 			
 			// helper to add explicit casting to left child of given equality predicate
 			static
@@ -125,6 +121,10 @@ namespace gpopt
 			CPredicateUtils(const CPredicateUtils &);
 
 		public:
+
+			// reverse the comparison, for example "<" => ">", "<=" => "=>
+			static
+			IMDType::ECmpType EcmptReverse(IMDType::ECmpType ecmpt);
 
 			// check if the expression is a boolean scalar identifier
 			static

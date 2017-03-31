@@ -53,7 +53,7 @@ select * from pt where gender in ( 'F', 'FM');
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
       <dxl:RelationStatistics Mdid="2.33297.1.1" Name="pt" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.33297.1.1" Name="pt" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="7,8,2" PartitionColumns="1" NumberLeafPartitions="3">
+      <dxl:Relation Mdid="0.33297.1.1" Name="pt" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="7,8,2" PartitionColumns="1" PartitionTypes="l" NumberLeafPartitions="3">
         <dxl:Columns>
           <dxl:Column Name="id" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -123,30 +123,7 @@ select * from pt where gender in ( 'F', 'FM');
         <dxl:SumAgg Mdid="0.2108.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:GPDBScalarOp Mdid="0.665.1.0" Name="&lt;=" ComparisonType="LEq" ReturnsNullOnNullInput="true">
-        <dxl:LeftType Mdid="0.25.1.0"/>
-        <dxl:RightType Mdid="0.25.1.0"/>
-        <dxl:ResultType Mdid="0.16.1.0"/>
-        <dxl:OpFunc Mdid="0.741.1.0"/>
-        <dxl:Commutator Mdid="0.667.1.0"/>
-        <dxl:InverseOp Mdid="0.666.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-          <dxl:OpClass Mdid="0.3035.1.0"/>
-        </dxl:OpClasses>
-      </dxl:GPDBScalarOp>
-      <dxl:GPDBScalarOp Mdid="0.664.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
-        <dxl:LeftType Mdid="0.25.1.0"/>
-        <dxl:RightType Mdid="0.25.1.0"/>
-        <dxl:ResultType Mdid="0.16.1.0"/>
-        <dxl:OpFunc Mdid="0.740.1.0"/>
-        <dxl:Commutator Mdid="0.666.1.0"/>
-        <dxl:InverseOp Mdid="0.667.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-          <dxl:OpClass Mdid="0.3035.1.0"/>
-        </dxl:OpClasses>
-      </dxl:GPDBScalarOp>
+      <dxl:MDCast Mdid="3.25.1.0;1043.1.0" Name="varchar" BinaryCoercible="true" SourceTypeId="0.25.1.0" DestinationTypeId="0.1043.1.0" CastFuncId="0.0.0.0"/>
       <dxl:Type Mdid="0.25.1.0" Name="text" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="false" PassByValue="false">
         <dxl:EqualityOp Mdid="0.98.1.0"/>
         <dxl:InequalityOp Mdid="0.531.1.0"/>
@@ -162,31 +139,6 @@ select * from pt where gender in ( 'F', 'FM');
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:MDCast Mdid="3.25.1.0;1043.1.0" Name="varchar" BinaryCoercible="true" SourceTypeId="0.25.1.0" DestinationTypeId="0.1043.1.0" CastFuncId="0.0.0.0"/>
-      <dxl:GPDBScalarOp Mdid="0.667.1.0" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
-        <dxl:LeftType Mdid="0.25.1.0"/>
-        <dxl:RightType Mdid="0.25.1.0"/>
-        <dxl:ResultType Mdid="0.16.1.0"/>
-        <dxl:OpFunc Mdid="0.743.1.0"/>
-        <dxl:Commutator Mdid="0.665.1.0"/>
-        <dxl:InverseOp Mdid="0.664.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-          <dxl:OpClass Mdid="0.3035.1.0"/>
-        </dxl:OpClasses>
-      </dxl:GPDBScalarOp>
-      <dxl:GPDBScalarOp Mdid="0.666.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true">
-        <dxl:LeftType Mdid="0.25.1.0"/>
-        <dxl:RightType Mdid="0.25.1.0"/>
-        <dxl:ResultType Mdid="0.16.1.0"/>
-        <dxl:OpFunc Mdid="0.742.1.0"/>
-        <dxl:Commutator Mdid="0.664.1.0"/>
-        <dxl:InverseOp Mdid="0.665.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.1994.1.0"/>
-          <dxl:OpClass Mdid="0.3035.1.0"/>
-        </dxl:OpClasses>
-      </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.607.1.0"/>
         <dxl:InequalityOp Mdid="0.608.1.0"/>
@@ -346,101 +298,26 @@ select * from pt where gender in ( 'F', 'FM');
             <dxl:PartFilters>
               <dxl:Or>
                 <dxl:Or>
-                  <dxl:And>
-                    <dxl:Or>
-                      <dxl:And>
-                        <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.665.1.0">
-                          <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                            <dxl:PartBound Level="0" Type="0.1043.1.0" LowerBound="true"/>
-                          </dxl:Cast>
-                          <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                            <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABUY=" LintValue="160743980"/>
-                          </dxl:Cast>
-                        </dxl:Comparison>
-                        <dxl:PartBoundInclusion Level="0" LowerBound="true"/>
-                      </dxl:And>
-                      <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.664.1.0">
-                        <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                          <dxl:PartBound Level="0" Type="0.1043.1.0" LowerBound="true"/>
-                        </dxl:Cast>
-                        <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                          <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABUY=" LintValue="160743980"/>
-                        </dxl:Cast>
-                      </dxl:Comparison>
-                    </dxl:Or>
-                    <dxl:Or>
-                      <dxl:And>
-                        <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.667.1.0">
-                          <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                            <dxl:PartBound Level="0" Type="0.1043.1.0" LowerBound="false"/>
-                          </dxl:Cast>
-                          <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                            <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABUY=" LintValue="160743980"/>
-                          </dxl:Cast>
-                        </dxl:Comparison>
-                        <dxl:PartBoundInclusion Level="0" LowerBound="false"/>
-                      </dxl:And>
-                      <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.666.1.0">
-                        <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                          <dxl:PartBound Level="0" Type="0.1043.1.0" LowerBound="false"/>
-                        </dxl:Cast>
-                        <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                          <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABUY=" LintValue="160743980"/>
-                        </dxl:Cast>
-                      </dxl:Comparison>
-                    </dxl:Or>
-                  </dxl:And>
-                  <dxl:And>
-                    <dxl:Or>
-                      <dxl:And>
-                        <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.665.1.0">
-                          <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                            <dxl:PartBound Level="0" Type="0.1043.1.0" LowerBound="true"/>
-                          </dxl:Cast>
-                          <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                            <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABkZN" LintValue="689808164"/>
-                          </dxl:Cast>
-                        </dxl:Comparison>
-                        <dxl:PartBoundInclusion Level="0" LowerBound="true"/>
-                      </dxl:And>
-                      <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.664.1.0">
-                        <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                          <dxl:PartBound Level="0" Type="0.1043.1.0" LowerBound="true"/>
-                        </dxl:Cast>
-                        <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                          <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABkZN" LintValue="689808164"/>
-                        </dxl:Cast>
-                      </dxl:Comparison>
-                    </dxl:Or>
-                    <dxl:Or>
-                      <dxl:And>
-                        <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.667.1.0">
-                          <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                            <dxl:PartBound Level="0" Type="0.1043.1.0" LowerBound="false"/>
-                          </dxl:Cast>
-                          <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                            <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABkZN" LintValue="689808164"/>
-                          </dxl:Cast>
-                        </dxl:Comparison>
-                        <dxl:PartBoundInclusion Level="0" LowerBound="false"/>
-                      </dxl:And>
-                      <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.666.1.0">
-                        <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                          <dxl:PartBound Level="0" Type="0.1043.1.0" LowerBound="false"/>
-                        </dxl:Cast>
-                        <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                          <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABkZN" LintValue="689808164"/>
-                        </dxl:Cast>
-                      </dxl:Comparison>
-                    </dxl:Or>
-                  </dxl:And>
+                  <dxl:ArrayComp OperatorName="=" OperatorMdid="0.98.1.0" OperatorType="Any">
+                    <dxl:Cast TypeMdid="0.1043.1.0" FuncId="0.0.0.0">
+                      <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                        <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABUY=" LintValue="160743980"/>
+                      </dxl:Cast>
+                    </dxl:Cast>
+                    <dxl:PartListValues Level="0" ResultType="0.1015.1.0" ElementType="0.1043.1.0"/>
+                  </dxl:ArrayComp>
+                  <dxl:DefaultPart Level="0"/>
                 </dxl:Or>
                 <dxl:Or>
+                  <dxl:ArrayComp OperatorName="=" OperatorMdid="0.98.1.0" OperatorType="Any">
+                    <dxl:Cast TypeMdid="0.1043.1.0" FuncId="0.0.0.0">
+                      <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                        <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABkZN" LintValue="689808164"/>
+                      </dxl:Cast>
+                    </dxl:Cast>
+                    <dxl:PartListValues Level="0" ResultType="0.1015.1.0" ElementType="0.1043.1.0"/>
+                  </dxl:ArrayComp>
                   <dxl:DefaultPart Level="0"/>
-                  <dxl:Or>
-                    <dxl:PartBoundOpen Level="0" LowerBound="true"/>
-                    <dxl:PartBoundOpen Level="0" LowerBound="false"/>
-                  </dxl:Or>
                 </dxl:Or>
               </dxl:Or>
             </dxl:PartFilters>

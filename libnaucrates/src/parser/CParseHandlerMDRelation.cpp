@@ -50,6 +50,7 @@ CParseHandlerMDRelation::CParseHandlerMDRelation
 	m_pdrgpulDistrColumns(NULL),
 	m_fConvertHashToRandom(false),
 	m_pdrgpulPartColumns(NULL),
+	m_pdrgpszPartTypes(NULL),
 	m_ulPartitions(0),
 	m_pdrgpdrgpulKeys(NULL),
 	m_ppartcnstr(NULL),
@@ -141,6 +142,19 @@ CParseHandlerMDRelation::StartElement
 														m_pphm->Pmm(),
 														xmlszPartColumns,
 														EdxltokenPartKeys,
+														EdxltokenRelation
+														);
+	}
+
+	const XMLCh *xmlszPartTypes = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenPartTypes));
+
+	if (NULL != xmlszPartTypes)
+	{
+		m_pdrgpszPartTypes = CDXLOperatorFactory::PdrgpszFromXMLCh
+														(
+														m_pphm->Pmm(),
+														xmlszPartTypes,
+														EdxltokenPartTypes,
 														EdxltokenRelation
 														);
 	}
@@ -238,6 +252,7 @@ CParseHandlerMDRelation::EndElement
 									pdrgpmdcol,
 									m_pdrgpulDistrColumns,
 									m_pdrgpulPartColumns,
+									m_pdrgpszPartTypes,
 									m_ulPartitions,
 									m_fConvertHashToRandom,
 									m_pdrgpdrgpulKeys,

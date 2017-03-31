@@ -68,6 +68,13 @@ namespace gpmd
 				EreldistrSentinel
 			};
 
+			// Partition type of a partitioned relation
+			enum Erelpartitiontype
+			{
+				ErelpartitionRange = 'r',
+				ErelpartitionList = 'l'
+			};
+
 		protected:
 
 			// serialize an array of column ids into a comma-separated string
@@ -167,6 +174,14 @@ namespace gpmd
 			virtual 
 			const IMDColumn *PmdcolPartColumn(ULONG ulPos) const = 0;
 			
+			// retrieve list of partition types
+			virtual
+			DrgPsz *PdrgpszPartTypes() const = 0;
+
+			// retrieve the partition type of the given partition level
+			virtual
+			CHAR SzPartType(ULONG ulPos) const = 0;
+
 			// number of indices
 			virtual 
 			ULONG UlIndices() const = 0;

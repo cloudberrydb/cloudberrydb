@@ -108,7 +108,7 @@ explain select * from foo where b is not null;
       <dxl:ColumnStatistics Mdid="1.7292649.1.1.7" Name="cmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.7292649.1.1.6" Name="xmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:RelationStatistics Mdid="2.7292649.1.1" Name="foo" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.7292649.1.1" Name="foo" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="8,9,3" PartitionColumns="1">
+      <dxl:Relation Mdid="0.7292649.1.1" Name="foo" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="8,9,3" PartitionColumns="1" PartitionTypes="l">
         <dxl:Columns>
           <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -284,30 +284,9 @@ explain select * from foo where b is not null;
             </dxl:PartEqFilters>
             <dxl:PartFilters>
               <dxl:Or>
-                <dxl:And>
-                  <dxl:Not>
-                    <dxl:Or>
-                      <dxl:DefaultPart Level="0"/>
-                      <dxl:Or>
-                        <dxl:PartBoundOpen Level="0" LowerBound="true"/>
-                        <dxl:PartBoundOpen Level="0" LowerBound="false"/>
-                      </dxl:Or>
-                    </dxl:Or>
-                  </dxl:Not>
-                  <dxl:And>
-                    <dxl:IsNotNull>
-                      <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
-                    </dxl:IsNotNull>
-                    <dxl:IsNotNull>
-                      <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
-                    </dxl:IsNotNull>
-                  </dxl:And>
-                </dxl:And>
-                <dxl:Or>
-                  <dxl:PartBoundOpen Level="0" LowerBound="true"/>
-                  <dxl:PartBoundOpen Level="0" LowerBound="false"/>
-                </dxl:Or>
-              </dxl:Or>
+	            <dxl:PartListNullTest Level="0" IsNull="false"/>
+	            <dxl:DefaultPart Level="0"/>
+	          </dxl:Or>
             </dxl:PartFilters>
             <dxl:ResidualFilter>
               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>

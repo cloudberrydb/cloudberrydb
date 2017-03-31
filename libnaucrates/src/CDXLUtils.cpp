@@ -1973,6 +1973,34 @@ CDXLUtils::PstrSerialize
 	return pstrKeys;
 }
 
+// Serialize a list of chars into a comma-separated string
+CWStringDynamic *
+CDXLUtils::PstrSerializeSz
+	(
+	IMemoryPool *pmp,
+	const DrgPsz *pdrgsz
+	)
+{
+	CWStringDynamic *pstr = GPOS_NEW(pmp) CWStringDynamic(pmp);
+
+	ULONG ulLength = pdrgsz->UlLength();
+	for (ULONG ul = 0; ul < ulLength; ul++)
+	{
+		CHAR tValue = *((*pdrgsz)[ul]);
+		if (ul == ulLength - 1)
+		{
+			// last element: do not print a comma
+			pstr->AppendFormat(GPOS_WSZ_LIT("%c"), tValue);
+		}
+		else
+		{
+			pstr->AppendFormat(GPOS_WSZ_LIT("%c%ls"), tValue, CDXLTokens::PstrToken(EdxltokenComma)->Wsz());
+		}
+	}
+
+	return pstr;
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CDXLUtils::SzFromWsz

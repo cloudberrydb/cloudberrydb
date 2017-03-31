@@ -534,6 +534,17 @@ namespace gpdxl
 				SINT sDefaultValue = 0
 				);
 
+			// converts the XMLCh into char. Will raise an exception if the
+			// argument cannot be converted to char
+			static
+			CHAR CValueFromXmlstr
+				(
+				CDXLMemoryManager *pmm,
+				const XMLCh *xmlsz,
+				Edxltoken edxltokenAttr,
+				Edxltoken edxltokenElement
+				);
+
 			// converts the XMLCh into oid. Will raise an exception if the
 			// argument cannot be converted to OID
 			static
@@ -789,6 +800,17 @@ namespace gpdxl
 						edxltokenElement
 						);
 			}
+
+			// parse a comma-separated list of CHAR partition types into a dynamic array.
+			// will raise an exception if list is not well-formed
+			static
+			DrgPsz *PdrgpszFromXMLCh
+				(
+				CDXLMemoryManager *pmm,
+				const XMLCh *xmlsz,
+				Edxltoken edxltokenAttr,
+				Edxltoken edxltokenElement
+				);
 
 			// parse a semicolon-separated list of comma-separated unsigned 
 			// long numbers into a dynamc array of unsigned integer arrays
