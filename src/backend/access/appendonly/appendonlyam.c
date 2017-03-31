@@ -1571,6 +1571,9 @@ finishWriteBlock(AppendOnlyInsertDesc aoInsertDesc)
 			executorBlockKind = AoExecutorBlockKind_SingleRow;
 		}
 
+		aoInsertDesc->storageWrite.lastWriteBeginPosition =
+			BufferedAppendNextBufferPosition(&(aoInsertDesc->storageWrite.bufferedAppend));
+
 		AppendOnlyStorageWrite_FinishBuffer(
 							&aoInsertDesc->storageWrite,
 							dataLen,

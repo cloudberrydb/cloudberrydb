@@ -926,6 +926,9 @@ datumstreamwrite_block_orig(DatumStreamWrite * acc)
 										  &acc->blockWrite,
 										  buffer);
 
+	acc->ao_write.lastWriteBeginPosition =
+		BufferedAppendNextBufferPosition(&(acc->ao_write.bufferedAppend));
+
 	/* Write it out */
 	AppendOnlyStorageWrite_FinishBuffer(
 										&acc->ao_write,
@@ -976,6 +979,9 @@ datumstreamwrite_block_dense(DatumStreamWrite * acc)
 	writesz = DatumStreamBlockWrite_Block(
 										  &acc->blockWrite,
 										  buffer);
+
+	acc->ao_write.lastWriteBeginPosition =
+		BufferedAppendNextBufferPosition(&(acc->ao_write.bufferedAppend));
 
 	/* Write it out */
 	AppendOnlyStorageWrite_FinishBuffer(
