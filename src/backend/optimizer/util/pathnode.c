@@ -854,6 +854,12 @@ add_path(PlannerInfo *root, RelOptInfo *parent_rel, Path *new_path)
     List      **which_pathlist;
     List       *pathlist;
 
+	/*
+	 * This is a convenient place to check for query cancel --- no part of the
+	 * planner goes very long without calling add_path().
+	 */
+	CHECK_FOR_INTERRUPTS();
+
     if (!new_path)
         return;
 
