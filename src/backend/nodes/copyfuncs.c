@@ -2742,6 +2742,27 @@ _copyPartBoundOpenExpr(const PartBoundOpenExpr *from)
 	return newnode;
 }
 
+static PartListRuleExpr *
+_copyPartListRuleExpr(const PartListRuleExpr *from)
+{
+	PartListRuleExpr *newnode = makeNode(PartListRuleExpr);
+	COPY_SCALAR_FIELD(level);
+	COPY_SCALAR_FIELD(resulttype);
+	COPY_SCALAR_FIELD(elementtype);
+
+	return newnode;
+}
+
+static PartListNullTestExpr *
+_copyPartListNullTestExpr(const PartListNullTestExpr *from)
+{
+	PartListNullTestExpr *newnode = makeNode(PartListNullTestExpr);
+	COPY_SCALAR_FIELD(level);
+	COPY_SCALAR_FIELD(nulltesttype);
+
+	return newnode;
+}
+
 static Query *
 _copyQuery(Query *from)
 {
@@ -5204,6 +5225,12 @@ copyObject(void *from)
 			break;
 		case T_PartBoundOpenExpr:
 			retval = _copyPartBoundOpenExpr(from);
+			break;
+		case T_PartListRuleExpr:
+			retval = _copyPartListRuleExpr(from);
+			break;
+		case T_PartListNullTestExpr:
+			retval = _copyPartListNullTestExpr(from);
 			break;
 		case T_RangeTblEntry:
 			retval = _copyRangeTblEntry(from);

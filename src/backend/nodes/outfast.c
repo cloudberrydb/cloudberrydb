@@ -1945,6 +1945,14 @@ _outNode(StringInfo str, void *obj)
 				_outPartBoundOpenExpr(str, obj);
 				break;
 
+			case T_PartListRuleExpr:
+				_outPartListRuleExpr(str, obj);
+				break;
+
+			case T_PartListNullTestExpr:
+				_outPartListNullTestExpr(str, obj);
+				break;
+
 			case T_CreateTrigStmt:
 				_outCreateTrigStmt(str, obj);
 				break;
