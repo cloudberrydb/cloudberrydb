@@ -295,8 +295,6 @@ add_library(naucrates
             src/operators/CDXLPhysicalRowTrigger.cpp
             include/naucrates/dxl/operators/CDXLPhysicalSequence.h
             src/operators/CDXLPhysicalSequence.cpp
-            include/naucrates/dxl/operators/CDXLPhysicalSharedScan.h
-            src/operators/CDXLPhysicalSharedScan.cpp
             include/naucrates/dxl/operators/CDXLPhysicalSort.h
             src/operators/CDXLPhysicalSort.cpp
             include/naucrates/dxl/operators/CDXLPhysicalSplit.h
@@ -767,8 +765,6 @@ add_library(naucrates
             src/parser/CParseHandlerSearchStrategy.cpp
             include/naucrates/dxl/parser/CParseHandlerSequence.h
             src/parser/CParseHandlerSequence.cpp
-            include/naucrates/dxl/parser/CParseHandlerSharedScan.h
-            src/parser/CParseHandlerSharedScan.cpp
             include/naucrates/dxl/parser/CParseHandlerSort.h
             src/parser/CParseHandlerSort.cpp
             include/naucrates/dxl/parser/CParseHandlerSortCol.h

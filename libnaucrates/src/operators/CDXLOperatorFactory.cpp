@@ -576,67 +576,6 @@ CDXLOperatorFactory::PdxlopSort
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLOperatorFactory::PdxlopSharedScan
-//
-//	@doc:
-//		Construct a shared scan operator
-//
-//---------------------------------------------------------------------------
-CDXLPhysical *
-CDXLOperatorFactory::PdxlopSharedScan
-	(
-	CDXLMemoryManager *pmm,
-	const Attributes &attrs
-	)
-{
-	// get the memory pool from the memory manager
-	IMemoryPool *pmp = pmm->Pmp();
-	
-	// parse spooling info from the attributes
-	
-	// parse spool id
-	ULONG ulSpoolId = UlValueFromAttrs
-								(
-								pmm,
-								attrs,
-								EdxltokenSpoolId,
-								EdxltokenPhysicalSharedScan
-								);
-	
-	// parse spool type
-	const XMLCh *xmlszSpoolType = XmlstrFromAttrs
-											(
-											attrs,
-											EdxltokenSpoolType,
-											EdxltokenPhysicalSharedScan
-											);
-	
-	Edxlspooltype edxlsptype = EdxlsptypeParseSpoolType(xmlszSpoolType);
-	
-	// is this a multi-slice spool
-	BOOL fMultiSlice = FValueFromAttrs
-								(
-								pmm,
-								attrs,
-								EdxltokenSpoolMultiSlice,
-								EdxltokenPhysicalSharedScan
-								);
-
-	// parse id of executor slice
-	INT iExecutorSlice = IValueFromAttrs
-								(
-								pmm,
-								attrs,
-								EdxltokenExecutorSliceId,
-								EdxltokenPhysicalSharedScan
-								);
-
-	CDXLSpoolInfo *pspoolinfo = GPOS_NEW(pmp) CDXLSpoolInfo(ulSpoolId, edxlsptype, fMultiSlice, iExecutorSlice);
-	return GPOS_NEW(pmp) CDXLPhysicalSharedScan(pmp, pspoolinfo);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CDXLOperatorFactory::PdxlopMaterialize
 //
 //	@doc:
@@ -3711,46 +3650,6 @@ CDXLOperatorFactory::EdxljtParseIndexScanDirection
 	}
 
 	return EdxlisdSentinel;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CDXLOperatorFactory::EdxlsptypeParseSpoolType
-//
-//	@doc:
-//		Parse a spool type from the attribute value of a shared scan node.
-//		Raise an exception if spool type value is invalid.
-//
-//---------------------------------------------------------------------------
-Edxlspooltype
-CDXLOperatorFactory::EdxlsptypeParseSpoolType
-	(
-	const XMLCh *xmlszSpoolType
-	)
-{
-	Edxlspooltype edxlsptype = EdxlspoolSentinel;
-	
-	if(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenSpoolMaterialize),
-			xmlszSpoolType))
-	{
-		edxlsptype = EdxlspoolMaterialize;
-	}
-	else if(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenSpoolSort),
-			xmlszSpoolType))
-	{
-		edxlsptype = EdxlspoolSort;
-	}
-	else
-	{
-		GPOS_RAISE
-			(
-			gpdxl::ExmaDXL,
-			gpdxl::ExmiDXLInvalidAttributeValue,
-			CDXLTokens::PstrToken(EdxltokenSpoolType)->Wsz(),
-			CDXLTokens::PstrToken(EdxltokenPhysicalSharedScan)->Wsz()
-			);		
-	}
-	return edxlsptype;
 }
 
 //---------------------------------------------------------------------------

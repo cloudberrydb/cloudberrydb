@@ -120,7 +120,6 @@ CDXLTokens::Init
 			{EdxltokenPhysicalSubqueryScan, GPOS_WSZ_LIT("SubqueryScan")},
 			{EdxltokenPhysicalResult, GPOS_WSZ_LIT("Result")},
 			{EdxltokenPhysicalAppend, GPOS_WSZ_LIT("Append")},
-			{EdxltokenPhysicalSharedScan, GPOS_WSZ_LIT("SharedScan")},
 			{EdxltokenPhysicalMaterialize, GPOS_WSZ_LIT("Materialize")},
 			{EdxltokenPhysicalSequence, GPOS_WSZ_LIT("Sequence")},
 			{EdxltokenPhysicalDynamicTableScan, GPOS_WSZ_LIT("DynamicTableScan")},

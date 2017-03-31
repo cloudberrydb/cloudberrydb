@@ -141,7 +141,6 @@
 #include "naucrates/dxl/parser/CParseHandlerScalarNullIf.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarInitPlan.h"
 #include "naucrates/dxl/parser/CParseHandlerAppend.h"
-#include "naucrates/dxl/parser/CParseHandlerSharedScan.h"
 #include "naucrates/dxl/parser/CParseHandlerMaterialize.h"
 #include "naucrates/dxl/parser/CParseHandlerArray.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarSubPlan.h"

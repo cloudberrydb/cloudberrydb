@@ -250,10 +250,6 @@ namespace gpdxl
 			static
 			CDXLPhysical *PdxlopSort(CDXLMemoryManager *pmm, const Attributes &attrs);
 
-			// create a shared scan operator
-			static
-			CDXLPhysical *PdxlopSharedScan(CDXLMemoryManager *pmm, const Attributes &attrs);
-			
 			// create a materialize operator
 			static
 			CDXLPhysical *PdxlopMaterialize(CDXLMemoryManager *pmm, const Attributes &attrs);
@@ -866,9 +862,6 @@ namespace gpdxl
 				const CWStringConst *pstrIndexScanDirection
 				);
 
-			static
-			Edxlspooltype EdxlsptypeParseSpoolType(const XMLCh *xmlszSpoolType);
-			
 			// parse system id
 			static
 			CSystemId Sysid(CDXLMemoryManager *pmm, const Attributes &attrs, Edxltoken edxltokenAttr, Edxltoken edxltokenElement);

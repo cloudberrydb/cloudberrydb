@@ -477,15 +477,6 @@ namespace gpdxl
 				CParseHandlerBase *pphRoot
 				);
 			
-			// construct a shared scan parse handler
-			static
-			CParseHandlerBase *PphSharedScan
-				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
-				);
-			
 			// construct a materialize parse handler
 			static
 			CParseHandlerBase *PphMaterialize

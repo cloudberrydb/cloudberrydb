@@ -96,7 +96,6 @@ namespace gpdxl
 		EdxltokenPhysicalSubqueryScan,
 		EdxltokenPhysicalAggregate,
 		EdxltokenPhysicalAppend,
-		EdxltokenPhysicalSharedScan,
 		EdxltokenPhysicalMaterialize,
 		EdxltokenPhysicalSequence,
 		EdxltokenPhysicalDynamicTableScan,

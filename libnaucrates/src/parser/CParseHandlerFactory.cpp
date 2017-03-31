@@ -123,7 +123,6 @@ CParseHandlerFactory::Init
 			{EdxltokenPhysicalLimit, &PphLimit},
 			{EdxltokenPhysicalSort, &PphSort},
 			{EdxltokenPhysicalAppend, &PphAppend},
-			{EdxltokenPhysicalSharedScan, &PphSharedScan},
 			{EdxltokenPhysicalMaterialize, &PphMaterialize},
 		 	{EdxltokenPhysicalDynamicTableScan, &PphDynamicTableScan},
 		 	{EdxltokenPhysicalDynamicIndexScan, &PphDynamicIndexScan},
@@ -1177,25 +1176,6 @@ CParseHandlerFactory::PphAppend
 	)
 {
 	return GPOS_NEW(pmp) CParseHandlerAppend(pmp, pphm, pphRoot);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphSharedScan
-//
-//	@doc:
-//		Creates a parse handler for parsing a shared scan operator
-//
-//---------------------------------------------------------------------------
-CParseHandlerBase *
-CParseHandlerFactory::PphSharedScan
-	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
-	)
-{
-	return GPOS_NEW(pmp) CParseHandlerSharedScan(pmp, pphm, pphRoot);
 }
 
 //---------------------------------------------------------------------------

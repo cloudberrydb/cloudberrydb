@@ -492,7 +492,6 @@
 			<xsd:element name="Limit" type="dxl:LimitType"/>
 			<xsd:element name="Sort" type="dxl:SortType"/>
 			<xsd:element name="Append" type="dxl:AppendType"/>
-			<xsd:element name="SharedScan" type="dxl:SharedScanType"/>
 			<xsd:element name="Materialize" type="dxl:MaterializeType"/>
 			<xsd:element name="DynamicTableScan" type="dxl:DynamicTableScanType"/>
 			<xsd:element name="PartitionSelector" type="dxl:PartitionSelectorType"/>
@@ -910,33 +909,6 @@
 	  </xsd:complexContent>
 	</xsd:complexType>
 		
-	<xsd:complexType name="SharedScanType">
-		<xsd:complexContent>
-			<xsd:extension base="dxl:PhysicalOpType">
-				<xsd:sequence>
-					<xsd:element name="ProjList" type="dxl:ProjectListType"/>
-					<xsd:element name="Filter" type="dxl:FilterType"/>
-					<!-- Child -->
-					<xsd:choice minOccurs="0">
-						<xsd:element name="Sort" type="dxl:SortType"/>
-						<xsd:element name="Materialize" type="dxl:MaterializeType"/>
-					</xsd:choice>
-				</xsd:sequence>
-				<xsd:attribute name="SpoolId" type="xsd:unsignedLong" use="required"/>
-				<xsd:attribute name="SpoolType" use="required">
-					<xsd:simpleType>
-						<xsd:restriction base="xsd:string">
-							<xsd:enumeration value="Materialize"/>
-							<xsd:enumeration value="Sort"/>
-						</xsd:restriction>						
-					</xsd:simpleType>
-				</xsd:attribute>
-				<xsd:attribute name="MultiSliceSpool" type="xsd:boolean" use="required"/>
-				<xsd:attribute name="ExecutorSliceId" type="xsd:integer" use="required"/>
-			</xsd:extension>
-		</xsd:complexContent>
-	</xsd:complexType>
-	
 	<xsd:complexType name="MaterializeType">
 		<xsd:complexContent>
 			<xsd:extension base="dxl:PhysicalOpType">

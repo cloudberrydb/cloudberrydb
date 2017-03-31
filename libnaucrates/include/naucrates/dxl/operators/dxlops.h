@@ -36,7 +36,6 @@
 #include "naucrates/dxl/operators/CDXLPhysicalSort.h"
 #include "naucrates/dxl/operators/CDXLPhysicalResult.h"
 #include "naucrates/dxl/operators/CDXLPhysicalAppend.h"
-#include "naucrates/dxl/operators/CDXLPhysicalSharedScan.h"
 #include "naucrates/dxl/operators/CDXLPhysicalMaterialize.h"
 #include "naucrates/dxl/operators/CDXLPhysicalSequence.h"
 #include "naucrates/dxl/operators/CDXLPhysicalDynamicTableScan.h"

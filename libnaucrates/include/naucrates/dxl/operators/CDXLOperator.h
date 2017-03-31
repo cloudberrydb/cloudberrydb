@@ -147,7 +147,6 @@ namespace gpdxl
 		EdxlopPhysicalAgg,
 		EdxlopPhysicalSort,
 		EdxlopPhysicalAppend,
-		EdxlopPhysicalSharedScan,
 		EdxlopPhysicalMaterialize,
 		EdxlopPhysicalSequence,
 		EdxlopPhysicalDynamicTableScan,
