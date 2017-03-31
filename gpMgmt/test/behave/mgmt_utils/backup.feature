@@ -2129,7 +2129,7 @@ Feature: Validate command line arguments
         When the user runs "gpdbrestore -a -t 30160101010101 -u /tmp"
         Then gpdbrestore should return a return code of 0
         And the user runs "psql -f test/behave/mgmt_utils/steps/data/check_metadata.sql bkdb > /tmp/check_metadata.out"
-        And verify that the contents of the files "/tmp/check_metadata.ans" and "test/behave/mgmt_utils/steps/data/check_metadata.out" are identical
+        And verify that the contents of the files "test/behave/mgmt_utils/steps/data/check_metadata.ans" and "/tmp/check_metadata.out" are identical
         And the directory "/tmp/db_dumps" is removed or does not exist
         And the directory "/tmp/check_metadata.out" is removed or does not exist
 
