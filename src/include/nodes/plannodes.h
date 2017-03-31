@@ -367,13 +367,6 @@ typedef struct Append
 	List	   *appendplans;
 	bool		isTarget;
 	bool 		isZapped;
-
-	/*
-	 * Indicate whether the subnodes of this Append node contain
-	 * cross-slice shared nodes, and one of these subnodes running
-	 * on the same slice as this Append node.
-	 */
-	bool 		hasXslice;
 } Append;
 
 /*
