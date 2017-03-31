@@ -178,7 +178,7 @@ CPhysicalPartitionSelector::FMatchPartCnstr
 		return NULL == m_ppartcnstrmap && NULL == ppartcnstrmap;
 	}
 
-	return FSubsetPartCnstr(m_ppartcnstrmap, ppartcnstrmap) &&
+	return m_ppartcnstrmap->UlEntries() == ppartcnstrmap->UlEntries() &&
 			FSubsetPartCnstr(ppartcnstrmap, m_ppartcnstrmap);
 }
 
