@@ -654,14 +654,7 @@ create_join_plan(PlannerInfo *root, JoinPath *best_path)
 	 * quals.
 	 */
 	if (root->hasPseudoConstantQuals)
-	{
-		/*
-		 * MPP-2328: don't create a gating plan for the hash-child of a
-		 * NL-join
-		 */
-		if (!IsA(plan, HashJoin) ||outer_plan != NULL)
-			plan = create_gating_plan(root, plan, best_path->joinrestrictinfo);
-	}
+		plan = create_gating_plan(root, plan, best_path->joinrestrictinfo);
 
 #ifdef NOT_USED
 
