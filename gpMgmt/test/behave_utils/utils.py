@@ -8,7 +8,6 @@ import stat
 import time
 import glob
 import shutil
-import difflib
 
 import yaml
 
@@ -296,13 +295,9 @@ def get_table_data_to_file(filename, tablename, dbname):
         print "Exception: %s" % str(e)
     conn.close()
 
-def diff_files(expected_file, result_file):
-    with open (expected_file,'r') as expected_f:
-        with open(result_file, 'r') as result_f:
-            diff_contents = difflib.unified_diff(expected_f.readlines(), result_f.readlines())
-    diff_contents = ''.join(diff_contents)
-    if diff_contents:
-        raise Exception('Expected file %s does not match result file %s. Diff Contents: %s\r' % (expected_file, result_file, diff_contents))
+def diff_backup_restore_data(context, backup_file, restore_file):
+    if not filecmp.cmp(backup_file, restore_file):
+        raise Exception('%s and %s do not match' % (backup_file, restore_file))
 
 def validate_restore_data(context, new_table, dbname, backedup_table=None, backedup_dbname=None):
     if new_table == "public.gpcrondump_history":
@@ -327,7 +322,7 @@ def validate_restore_data(context, new_table, dbname, backedup_table=None, backe
     restore_filename = dbname + '_' + new_table.strip()
     restore_path = os.path.join(current_dir, './test/data', restore_filename + "_restore")
 
-    diff_files(backup_path, restore_path)
+    diff_backup_restore_data(context, backup_path, restore_path)
 
 def validate_restore_data_in_file(context, tablename, dbname, file_name, backedup_table=None):
     filename = file_name + "_restore"
@@ -338,7 +333,7 @@ def validate_restore_data_in_file(context, tablename, dbname, file_name, backedu
     else:
         backup_file = os.path.join(current_dir, './test/data', file_name + "_backup")
     restore_file = os.path.join(current_dir, './test/data', file_name + "_restore")
-    diff_files(backup_file, restore_file)
+    diff_backup_restore_data(context, backup_file, restore_file)
 
 def validate_db_data(context, dbname, expected_table_count, backedup_dbname=None):
     tbls = get_table_names(dbname)
@@ -859,7 +854,7 @@ def validate_distribution_policy(context, dbname):
     current_dir = os.getcwd()
     backup_file = os.path.join(current_dir, './test/data', dbname.strip() + "_dist_policy_backup")
     restore_file = os.path.join(current_dir, './test/data', dbname.strip() + "_dist_policy_restore")
-    diff_files(backup_file, restore_file)
+    diff_backup_restore_data(context, backup_file, restore_file)
 
 def check_row_count(tablename, dbname, nrows):
     NUM_ROWS_QUERY = 'select count(*) from %s' % tablename
