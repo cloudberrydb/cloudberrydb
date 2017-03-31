@@ -170,7 +170,7 @@ namespace gpopt
 					const
 			{
 				GPOS_ASSERT(NULL != pcter);
-				return this->FSubset(pcter) && pcter->FSubset(this);
+				return (m_phmcter->UlEntries() == pcter->m_phmcter->UlEntries()) && this->FSubset(pcter);
 			}
 
 			// check if current requirement is a subset of the given one
