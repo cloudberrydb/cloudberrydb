@@ -3505,7 +3505,8 @@ DATA(insert OID = 2289 ( pg_relation_size		PGNSP PGUID 12 1 0 f f t f v 1 20 "25
 DESCR("disk space usage for the specified table or index");
 DATA(insert OID = 2286 ( pg_total_relation_size		PGNSP PGUID 12 1 0 f f t f v 1 20 "26" _null_ _null_ _null_ pg_total_relation_size_oid - _null_ _null_ ));
 DESCR("total disk space usage for the specified table and associated indexes and toast tables");
-DATA(insert OID = 2287 ( pg_total_relation_size		PGNSP PGUID 12 1 0 f f t f v 1 20 "25" _null_ _null_ _null_ pg_total_relation_size_name - _null_ _null_ ));
+/* 2287 is used for RECORDARRAYOID in upstream postgreSQL */
+DATA(insert OID = 3287 ( pg_total_relation_size		PGNSP PGUID 12 1 0 f f t f v 1 20 "25" _null_ _null_ _null_ pg_total_relation_size_name - _null_ _null_ ));
 DESCR("total disk space usage for the specified table and associated indexes and toast tables");
 DATA(insert OID = 2288 ( pg_size_pretty			PGNSP PGUID 12 1 0 f f t f v 1 25 "20" _null_ _null_ _null_ pg_size_pretty - _null_ _null_ ));
 DESCR("convert a long int to a human readable text using size units");
@@ -4547,23 +4548,6 @@ DESCR("read the error log for the specified external table");
 /* gp_truncate_error_log(text) => bool */ 
 DATA(insert OID = 3069 ( gp_truncate_error_log  PGNSP PGUID 12 1 0 0 f f t f v 1 0 16 f "25" _null_ _null_ _null_ _null_ gp_truncate_error_log _null_ _null_ _null_ m ));
 DESCR("truncate the error log for the specified external table");
-
-/* record comparison */
-DATA(insert OID = 2981 (  record_eq		   PGNSP PGUID 12 1 0 0 f f t f i 2 16 "2249 2249" _null_ _null_ _null_ record_eq _null_ _null_ _null_ ));
-DESCR("record equal");
-DATA(insert OID = 2982 (  record_ne		   PGNSP PGUID 12 1 0 0 f f t f i 2 16 "2249 2249" _null_ _null_ _null_ record_ne _null_ _null_ _null_ ));
-DESCR("record not equal");
-DATA(insert OID = 2983 (  record_lt		   PGNSP PGUID 12 1 0 0 f f t f i 2 16 "2249 2249" _null_ _null_ _null_ record_lt _null_ _null_ _null_ ));
-DESCR("record less than");
-DATA(insert OID = 2984 (  record_gt		   PGNSP PGUID 12 1 0 0 f f t f i 2 16 "2249 2249" _null_ _null_ _null_ record_gt _null_ _null_ _null_ ));
-DESCR("record greater than");
-DATA(insert OID = 2985 (  record_le		   PGNSP PGUID 12 1 0 0 f f t f i 2 16 "2249 2249" _null_ _null_ _null_ record_le _null_ _null_ _null_ ));
-DESCR("record less than or equal");
-DATA(insert OID = 2986 (  record_ge		   PGNSP PGUID 12 1 0 0 f f t f i 2 16 "2249 2249" _null_ _null_ _null_ record_ge _null_ _null_ _null_ ));
-DESCR("record greater than or equal");
-DATA(insert OID = 2987 (  btrecordcmp	   PGNSP PGUID 12 1 0 0 f f t f i 2 23 "2249 2249" _null_ _null_ _null_ btrecordcmp _null_ _null_ _null_ ));
-DESCR("btree less-equal-greater");
-
 
 /*
  * Symbolic values for provolatile column: these indicate whether the result
