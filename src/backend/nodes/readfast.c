@@ -299,6 +299,17 @@ _readPartOidExpr(void)
 	READ_DONE();
 }
 
+static PartSelectedExpr *
+_readPartSelectedExpr(void)
+{
+	READ_LOCALS(PartSelectedExpr);
+
+	READ_INT_FIELD(dynamicScanId);
+	READ_OID_FIELD(partOid);
+
+	READ_DONE();
+}
+
 static PartDefaultExpr *
 _readPartDefaultExpr(void)
 {
@@ -2301,6 +2312,7 @@ _readPartitionSelector(void)
 	READ_BOOL_FIELD(staticSelection);
 	READ_NODE_FIELD(staticPartOids);
 	READ_NODE_FIELD(staticScanIds);
+	READ_NODE_FIELD(partTabTargetlist);
 
 	readPlanInfo((Plan *)local_node);
 
@@ -3314,6 +3326,9 @@ readNodeBinary(void)
 				break;
 			case T_PartOidExpr:
 				return_value = _readPartOidExpr();
+				break;
+			case T_PartSelectedExpr:
+				return_value = _readPartSelectedExpr();
 				break;
 			case T_PartDefaultExpr:
 				return_value = _readPartDefaultExpr();

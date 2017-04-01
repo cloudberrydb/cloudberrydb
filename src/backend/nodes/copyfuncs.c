@@ -1224,6 +1224,7 @@ _copyPartitionSelector(const PartitionSelector *from)
 	COPY_SCALAR_FIELD(staticSelection);
 	COPY_NODE_FIELD(staticPartOids);
 	COPY_NODE_FIELD(staticScanIds);
+	COPY_NODE_FIELD(partTabTargetlist);
 
 	return newnode;
 }
@@ -2698,6 +2699,16 @@ _copyPartOidExpr(const PartOidExpr *from)
 {
 	PartOidExpr *newnode = makeNode(PartOidExpr);
 	COPY_SCALAR_FIELD(level);
+
+	return newnode;
+}
+
+static PartSelectedExpr *
+_copyPartSelectedExpr(const PartSelectedExpr *from)
+{
+	PartSelectedExpr *newnode = makeNode(PartSelectedExpr);
+	COPY_SCALAR_FIELD(dynamicScanId);
+	COPY_SCALAR_FIELD(partOid);
 
 	return newnode;
 }
@@ -5213,6 +5224,9 @@ copyObject(void *from)
 			break;
 		case T_PartOidExpr:
 			retval = _copyPartOidExpr(from);
+			break;
+		case T_PartSelectedExpr:
+			retval = _copyPartSelectedExpr(from);
 			break;
 		case T_PartDefaultExpr:
 			retval = _copyPartDefaultExpr(from);
