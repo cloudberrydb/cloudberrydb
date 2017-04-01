@@ -934,9 +934,9 @@ AppendOnlyStorageWrite_IsBufferAllocated(AppendOnlyStorageWrite *storageWrite)
  * Return the beginning of the last write position of the write buffer.
  */
 int64
-AppendOnlyStorageWrite_LastWriteBeginPosition(AppendOnlyStorageWrite *storageWrite)
+AppendOnlyStorageWrite_LogicalBlockStartOffset(AppendOnlyStorageWrite *storageWrite)
 {
-	return storageWrite->lastWriteBeginPosition;
+	return storageWrite->logicalBlockStartOffset;
 }
 
 /*
@@ -1714,7 +1714,7 @@ AppendOnlyStorageWrite_Content(AppendOnlyStorageWrite *storageWrite,
 
 			memcpy(data, content, contentLen);
 
-			storageWrite->lastWriteBeginPosition =
+			storageWrite->logicalBlockStartOffset =
 				BufferedAppendNextBufferPosition(&(storageWrite->bufferedAppend));
 
 			AppendOnlyStorageWrite_FinishBuffer(storageWrite,
@@ -1754,7 +1754,7 @@ AppendOnlyStorageWrite_Content(AppendOnlyStorageWrite *storageWrite,
 														rowCount,
 														compressedLen);
 
-			storageWrite->lastWriteBeginPosition =
+			storageWrite->logicalBlockStartOffset =
 				BufferedAppendNextBufferPosition(&(storageWrite->bufferedAppend));
 
 			/*
@@ -1783,7 +1783,7 @@ AppendOnlyStorageWrite_Content(AppendOnlyStorageWrite *storageWrite,
 		 * Write the "Large" content in fragments.
 		 */
 
-		storageWrite->lastWriteBeginPosition =
+		storageWrite->logicalBlockStartOffset =
 			BufferedAppendNextBufferPosition(&(storageWrite->bufferedAppend));
 
 		/*
