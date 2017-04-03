@@ -23,7 +23,6 @@
 /* Things defined in this header */
 typedef struct TMGXACT_LOG           TMGXACT_LOG;
 typedef struct CdbExplain_Agg        CdbExplain_Agg;
-typedef struct CdbCellBuf            CdbCellBuf;
 
 /* From "cdb/cdbtm.h" */
 struct TMGXACT_LOG
@@ -55,29 +54,6 @@ struct CdbExplain_Agg
     int         vcnt;           /* count of values > 0 */
     int         imax;           /* id of 1st observation having maximum value */
 };
-
-/* From "cdb/cdbcellbuf.h" */
-/*
- * CdbCellBuf
- *   - A container for small fixed-size items.
- */
-struct CdbCellBuf
-{
-    char           *cbeg;               /* first cell in active bunch */
-    char           *cfree;              /* end of used cells in active bunch */
-    char           *cend;               /* end of cells in active bunch */
-    uint16          cellbytes;          /* size of one cell (bytes) */
-    int16           offset_nearby;      /* distance in bytes from this struct to
-                                         *   nearby cells provided by caller */
-    int             nearby_bunch_len;   /* cellbytes * number of nearby cells */
-    int             expand_bunch_len;   /* cellbytes * number of cells per
-                                         *   expansion bunch */
-    long            nfull_total;        /* total number of occupied cells */
-    struct CdbCellBuf_Bumper   *head;   /* beginning of first expansion bunch */
-    struct CdbCellBuf_Bumper   *tail;   /* beginning of last expansion bunch */
-    MemoryContext   context;            /* memory context for expansion */
-};
-
 
 #endif
 

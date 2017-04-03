@@ -17,7 +17,7 @@
 #define EXECHYBRIDHASHAGG_H
 
 #include "executor/nodeAgg.h" /* Must see AggStatePerGroupData. */
-#include "cdb/cdbpublic.h"    /* CdbExplain_Agg / CdbCellBuf */
+#include "cdb/cdbpublic.h"    /* CdbExplain_Agg */
 #include "utils/memutils.h"
 #include "executor/execWorkfile.h"
 #include "utils/workfile_mgr.h"
@@ -184,7 +184,6 @@ typedef struct HashAggTable
 	 * The space to buffer the free hash entries and AggStatePerGroups. Using this,
 	 * we can reduce palloc/pfree calls.
 	 */
-	CdbCellBuf entry_buf;
 	MPool *group_buf;
 
 	/* Shared temporary structure */
