@@ -43,7 +43,7 @@ namespace gpopt
 			// CTE DXL nodes
 			const DrgPdxln *m_pdrgpdxlnCTE;
 
-			CWStringDynamic *m_pstrQuery;
+			IMemoryPool *m_pmp;
 			
 			// private copy ctor
 			CSerializableQuery(const CSerializableQuery&);
@@ -51,30 +51,15 @@ namespace gpopt
 		public:
 
 			// ctor
-			CSerializableQuery(const CDXLNode *pdxlnQuery, const DrgPdxln *pdrgpdxlnQueryOutput, const DrgPdxln *pdrgpdxlnCTE);
+			CSerializableQuery(const CDXLNode *pdxlnQuery, const DrgPdxln *pdrgpdxlnQueryOutput, const DrgPdxln *pdrgpdxlnCTE, IMemoryPool *pmp);
 
 			// dtor
 			virtual
 			~CSerializableQuery();
 
-			// serialize query to string
-			void Serialize(IMemoryPool *pmp);
-
-			// calculate space needed for serialization
+			// serialize object to passed stream
 			virtual
-			ULONG_PTR UlpRequiredSpace()
-			{
-				if (NULL == m_pstrQuery)
-				{
-					return 0;
-				}
-				
-				return m_pstrQuery->UlLength();
-			}
-
-			// serialize object to passed buffer
-			virtual
-			ULONG_PTR UlpSerialize(WCHAR *wszBuffer, ULONG_PTR ulpAllocSize);
+			void Serialize(COstream &oos);
 
 	}; // class CSerializableQuery
 }

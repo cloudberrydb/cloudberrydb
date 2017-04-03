@@ -11,6 +11,7 @@
 
 #include "gpos/common/CBitSet.h"
 #include "gpos/error/CErrorHandlerStandard.h"
+#include "gpos/io/CFileDescriptor.h"
 
 #include "naucrates/dxl/operators/CDXLNode.h"
 #include "naucrates/md/IMDProvider.h"
@@ -36,6 +37,7 @@
 #include "gpopt/optimizer/COptimizer.h"
 #include "gpopt/cost/ICostModel.h"
 
+#include <fstream>
 
 using namespace gpos;
 using namespace gpdxl;
@@ -199,28 +201,34 @@ COptimizer::PdxlnOptimize
 
 	BOOL fMinidump = GPOS_FTRACE(EopttraceMinidump);
 
+	// If minidump was requested, open the minidump file and initialize
+	// minidumper. (We create the minidumper object even if we're not
+	// dumping, but without the Init-call, it will stay inactive.)
 	CMiniDumperDXL mdmp(pmp);
+	CAutoP<std::wofstream> minidumpWos;
+	CAutoP<COstreamBasic> minidumpOs;
 	if (fMinidump)
 	{
-		mdmp.Init();
-	}
+		CHAR szFileName[GPOS_FILE_NAME_BUF_SIZE];
 
+		CMinidumperUtils::GenerateMinidumpFileName(szFileName, GPOS_FILE_NAME_BUF_SIZE, ulSessionId, ulCmdId, szMinidumpFileName);
+
+		// Note: std::wofstream won't throw an error on failure. The stream is merely marked as
+		// failed. We could check the state, and avoid the overhead of serializing the
+		// minidump if it failed, but it's hardly worth optimizing for an error case.
+		minidumpWos = GPOS_NEW(pmp) std::wofstream(szFileName);
+		minidumpOs = GPOS_NEW(pmp) COstreamBasic(minidumpWos.Pt());
+
+		mdmp.Init(minidumpOs.Pt());
+	}
 	CDXLNode *pdxlnPlan = NULL;
 	CErrorHandlerStandard errhdl;
 	GPOS_TRY_HDL(&errhdl)
 	{
 		CSerializableStackTrace serStack;
-		CSerializableOptimizerConfig serOptConfig(poconf);
+		CSerializableOptimizerConfig serOptConfig(poconf, pmp);
 		CSerializableMDAccessor serMDA(pmda);
-		CSerializableQuery serQuery(pdxlnQuery, pdrgpdxlnQueryOutput, pdrgpdxlnCTE);
-		
-		if (fMinidump)
-		{
-			// pre-serialize query and optimizer configurations
-			serStack.AllocateBuffer(pmp);
-			serOptConfig.Serialize(pmp);
-			serQuery.Serialize(pmp);
-		}
+		CSerializableQuery serQuery(pdxlnQuery, pdrgpdxlnQueryOutput, pdrgpdxlnCTE, pmp);
 
 		{			
 			poconf->AddRef();
@@ -268,9 +276,8 @@ COptimizer::PdxlnOptimize
 
 			if (fMinidump)
 			{
-				CSerializablePlan serPlan(pdxlnPlan, poconf->Pec()->UllPlanId(), poconf->Pec()->UllPlanSpaceSize());
-				serPlan.Serialize(pmp);
-				CMinidumperUtils::Finalize(&mdmp, true /* fSerializeErrCtxt*/, ulSessionId, ulCmdId, szMinidumpFileName);
+				CSerializablePlan serPlan(pdxlnPlan, poconf->Pec()->UllPlanId(), poconf->Pec()->UllPlanSpaceSize(), pmp);
+				CMinidumperUtils::Finalize(&mdmp, true /* fSerializeErrCtxt*/);
 				GPOS_CHECK_ABORT;
 			}
 			
@@ -290,7 +297,7 @@ COptimizer::PdxlnOptimize
 	{
 		if (fMinidump)
 		{
-			CMinidumperUtils::Finalize(&mdmp, false /* fSerializeErrCtxt*/, ulSessionId, ulCmdId, szMinidumpFileName);
+			CMinidumperUtils::Finalize(&mdmp, false /* fSerializeErrCtxt*/);
 			HandleExceptionAfterFinalizingMinidump(ex);
 		}
 

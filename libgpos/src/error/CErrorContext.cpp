@@ -199,47 +199,20 @@ CErrorContext::Serialize()
 		return;
 	}
 
-	// calculate entry size
-	ULONG_PTR ulpEntrySize =
-			m_pmdr->UlpRequiredSpaceEntryHeader() + m_pmdr->UlpRequiredSpaceEntryFooter();
-	for (CSerializable *pserial = m_listSerial.PtFirst();
-	     NULL != pserial;
-	     pserial = m_listSerial.PtNext(pserial))
-	{
-		ulpEntrySize += pserial->UlpRequiredSpace();
-
-	}
-
-	// attempt to reserve space in mini-dumper
-	WCHAR *wszEntry = m_pmdr->WszReserve(ulpEntrySize);
-	if (NULL == wszEntry)
-	{
-		return;
-	}
-
-	WCHAR *wszEntryElem = wszEntry;
-	ULONG_PTR ulpRemainingSpace = ulpEntrySize;
+	// get mini-dumper's stream to serialize to
+	COstream& oos = m_pmdr->GetOStream();
 
 	// serialize objects to reserved space
-	ULONG_PTR ulpEntry = m_pmdr->UlpSerializeEntryHeader(wszEntryElem, ulpRemainingSpace);
-	wszEntryElem += ulpEntry;
-	ulpRemainingSpace -= ulpEntry;
+	m_pmdr->SerializeEntryHeader();
 
 	for (CSerializable *pserial = m_listSerial.PtFirst();
 	     NULL != pserial;
 	     pserial = m_listSerial.PtNext(pserial))
 	{
-		ulpEntry = pserial->UlpSerialize(wszEntryElem, ulpRemainingSpace);
-		wszEntryElem += ulpEntry;
-		ulpRemainingSpace -= ulpEntry;
+		pserial->Serialize(oos);
 	}
 
-	ulpEntry = m_pmdr->UlpSerializeEntryFooter(wszEntryElem, ulpRemainingSpace);
-	wszEntryElem += ulpEntry;
-	ulpRemainingSpace -= ulpEntry;
-
-	GPOS_ASSERT(0 == ulpRemainingSpace &&
-	            "discrepancy between calculated and actual minidump entry size");
+	m_pmdr->SerializeEntryFooter();
 }
 
 

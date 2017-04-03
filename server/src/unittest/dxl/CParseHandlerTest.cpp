@@ -474,24 +474,27 @@ CParseHandlerTest::EresParseAndSerializePlan
 	GPOS_CHECK_ABORT;
 
 	oss << "Serializing parsed tree" << std::endl;
-	CWStringDynamic *pstr = CDXLUtils::PstrSerializePlan(pmp, pdxlnRoot, ullPlanId, ullPlanSpaceSize, true /*fSerializeHeaderFooter*/, true /*fIndent*/);
+
+	CWStringDynamic strPlan(pmp);
+	COstreamString osPlan(&strPlan);
+
+	CDXLUtils::SerializePlan(pmp, osPlan, pdxlnRoot, ullPlanId, ullPlanSpaceSize, true /*fSerializeHeaderFooter*/, true /*fIndent*/);
 
 	GPOS_CHECK_ABORT;
 
 	CWStringDynamic dstrExpected(pmp);
 	dstrExpected.AppendFormat(GPOS_WSZ_LIT("%s"), szDXL);
 
-	if (!dstrExpected.FEquals(pstr))
+	if (!dstrExpected.FEquals(&strPlan))
 	{
 		GPOS_TRACE(dstrExpected.Wsz());
-		GPOS_TRACE(pstr->Wsz());
+		GPOS_TRACE(strPlan.Wsz());
 
 		GPOS_ASSERT(!"Not matching");
 	}
 	
 	// cleanup
 	pdxlnRoot->Release();
-	GPOS_DELETE(pstr);
 	GPOS_DELETE_ARRAY(szDXL);
 	
 	return GPOS_OK;
@@ -537,19 +540,22 @@ CParseHandlerTest::EresParseAndSerializeQuery
 	CDXLNode *pdxlnRoot = const_cast<CDXLNode *>(pq2dxlresult->Pdxln());
 	DrgPdxln* pdrgpdxln = const_cast<DrgPdxln* >(pq2dxlresult->PdrgpdxlnOutputCols());
 	DrgPdxln* pdrgpdxlnCTE = const_cast<DrgPdxln* >(pq2dxlresult->PdrgpdxlnCTE());
-	CWStringDynamic *pstr = CDXLUtils::PstrSerializeQuery(pmp, pdxlnRoot, pdrgpdxln, pdrgpdxlnCTE, true /*fSerializeHeaderFooter*/, true /*fIndent*/);
+
+	CWStringDynamic queryStr(pmp);
+	COstreamString queryOs(&queryStr);
+
+	CDXLUtils::SerializeQuery(pmp, queryOs, pdxlnRoot, pdrgpdxln, pdrgpdxlnCTE, true /*fSerializeHeaderFooter*/, true /*fIndent*/);
 
 	CWStringDynamic dstrExpected(pmp);
 	dstrExpected.AppendFormat(GPOS_WSZ_LIT("%s"), szDXL);
 
-	if (!dstrExpected.FEquals(pstr))
+	if (!dstrExpected.FEquals(&queryStr))
 	{
-			GPOS_TRACE(pstr->Wsz());
+		GPOS_TRACE(queryStr.Wsz());
 	}
 
 	// cleanup
 	GPOS_DELETE(pq2dxlresult);
-	GPOS_DELETE(pstr);
 	GPOS_DELETE_ARRAY(szDXL);
 
 	return GPOS_OK;

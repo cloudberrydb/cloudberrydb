@@ -38,10 +38,6 @@ namespace gpopt
 	class CMinidumperUtils
 	{
 		public:
-			// dump to file
-			static
-			void Dump(const CHAR *szFileName, CMiniDumperDXL *pmdmp);
-		
 			// load a minidump
 			static
 			CDXLMinidump *PdxlmdLoad(IMemoryPool *pmp, const CHAR *szFileName);
@@ -55,10 +51,7 @@ namespace gpopt
 			void Finalize
 				(
 				CMiniDumperDXL *pmdp,
-				BOOL fSerializeErrCtx,
-				ULONG ulSessionId,
-				ULONG ulCmdId,
-				const CHAR *szMinidumpFileName = NULL	// name of minidump file to be created
+				BOOL fSerializeErrCtx
 				);
 			
 			// load and execute the minidump in the specified file

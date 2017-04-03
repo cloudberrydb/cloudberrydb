@@ -41,40 +41,26 @@ namespace gpopt
 			// optimizer configurations
 			const COptimizerConfig *m_poconf;
 
-			// serialized optimizer configuration options
-			CWStringDynamic *m_pstrOptimizerConfig;
-			
+			IMemoryPool *m_pmp;
+
 			// private copy ctor
 			CSerializableOptimizerConfig(const CSerializableOptimizerConfig&);
 
-			// calculate space needed for serialization of traceflags
-			ULONG_PTR UlpRequiredSpaceTraceflags();
-
-			// serialize traceflags to passed buffer
-			ULONG_PTR UlpSerializeTraceflags(WCHAR *wszBuffer, ULONG_PTR ulpAllocSize);
-
-			// serialize footer
-			ULONG_PTR UlpSerializeFooter(WCHAR *wszBuffer, ULONG_PTR ulpAllocSize);
+			// serialize traceflags to passed stream
+			void SerializeTraceflags(COstream& oos);
 			
 		public:
 
 			// ctor
-			CSerializableOptimizerConfig(const COptimizerConfig *poconf);
+			CSerializableOptimizerConfig(const COptimizerConfig *poconf, IMemoryPool *pmp);
 
 			// dtor
 			virtual
 			~CSerializableOptimizerConfig();
 
-			// serialize optimizer configurations to string
-			void Serialize(IMemoryPool *pmp);
-
-			// calculate space needed for serialization
+			// serialize object to passed stream
 			virtual
-			ULONG_PTR UlpRequiredSpace();
-
-			// serialize object to passed buffer
-			virtual
-			ULONG_PTR UlpSerialize(WCHAR *wszBuffer, ULONG_PTR ulpAllocSize);
+			void Serialize(COstream& oos);
 
 	}; // class CSerializableOptimizerConfig
 }

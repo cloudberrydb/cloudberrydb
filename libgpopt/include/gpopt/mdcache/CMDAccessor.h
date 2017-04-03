@@ -358,17 +358,11 @@ namespace gpopt
 				CStatisticsConfig *pstatsconf = NULL
 				);
 			
-			// calculate space necessary for serializing sysids
-			ULONG_PTR UlpRequiredSysIdSpace();
-
-			// calculate space necessary for serializing MD objects
-			ULONG_PTR UlpRequiredSpace();
+			// serialize object to passed stream
+			void Serialize(COstream &oos);
 			
-			// serialize object to passed buffer
-			ULONG_PTR UlpSerialize(WCHAR *wszBuffer, ULONG_PTR ulpAllocSize);
-			
-			// serialize system ids to passed buffer
-			ULONG_PTR UlpSerializeSysid(WCHAR *wszBuffer, ULONG_PTR ulpAllocSize);
+			// serialize system ids to passed stream
+			void SerializeSysid(COstream &oos);
 	};
 }
 

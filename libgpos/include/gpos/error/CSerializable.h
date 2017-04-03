@@ -41,13 +41,9 @@ namespace gpos
 			virtual
 			~CSerializable();
 
-			// calculate space needed for serialization
+			// serialize object to passed stream
 			virtual
-			ULONG_PTR UlpRequiredSpace() = 0;
-
-			// serialize object to passed buffer
-			virtual
-			ULONG_PTR UlpSerialize(WCHAR *wszBuffer, ULONG_PTR ulpAllocSize) = 0;
+			void Serialize(COstream &oos) = 0;
 
 			// link for list in error context
 			SLink m_linkErrCtxt;

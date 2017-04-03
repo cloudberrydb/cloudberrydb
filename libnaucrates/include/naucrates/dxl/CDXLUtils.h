@@ -233,9 +233,10 @@ namespace gpdxl
 
 			// serialize a DXL query tree into DXL Document
 			static 
-			CWStringDynamic *PstrSerializeQuery
+			void SerializeQuery
 				(
 				IMemoryPool *pmp,
+				IOstream& os,
 				const CDXLNode *pdxlnQuery,
 				const DrgPdxln *pdrgpdxlnQueryOutput,
 				const DrgPdxln *pdrgpdxlnCTE,
@@ -253,9 +254,10 @@ namespace gpdxl
 
 			// serialize a plan into DXL
 			static 
-			CWStringDynamic *PstrSerializePlan
+			void SerializePlan
 				(
 				IMemoryPool *pmp,
+				IOstream &os,
 				const CDXLNode *pdxln,
 				ULLONG ullPlanId,
 				ULLONG ullPlanSpaceSize,
@@ -275,7 +277,7 @@ namespace gpdxl
 
 			// serialize statistics objects into DXL and write to stream
 			static 
-			void PstrSerializeStatistics
+			void SerializeStatistics
 				(
 				IMemoryPool *pmp,
 				CMDAccessor *pmda,
@@ -287,7 +289,7 @@ namespace gpdxl
 
 			// serialize metadata objects into DXL and write to stream
 			static 
-			void PstrSerializeMetadata
+			void SerializeMetadata
 				(
 				IMemoryPool *pmp,
 				const DrgPimdobj *pdrgpmdobj,
@@ -340,9 +342,10 @@ namespace gpdxl
 			
 			// serialize optimizer configuration
 			static
-			CWStringDynamic *PstrSerializeOptimizerConfig
+			void SerializeOptimizerConfig
 				(
 				IMemoryPool *pmp,
+				IOstream &os,
 				const COptimizerConfig *poconf,
 				BOOL fIndent
 				);

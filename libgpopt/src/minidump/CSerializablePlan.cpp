@@ -33,14 +33,16 @@ CSerializablePlan::CSerializablePlan
 	(
 	const CDXLNode *pdxlnPlan,
 	ULLONG ullPlanId,
-	ULLONG ullPlanSpaceSize
+	ULLONG ullPlanSpaceSize,
+	IMemoryPool *pmp
 	)
 	:
 	CSerializable(),
 	m_pdxlnPlan(pdxlnPlan),
 	m_pstrPlan(NULL),
 	m_ullPlanId(ullPlanId),
-	m_ullPlanSpaceSize(ullPlanSpaceSize)
+	m_ullPlanSpaceSize(ullPlanSpaceSize),
+	m_pmp(pmp)
 {
 	GPOS_ASSERT(NULL != pdxlnPlan);
 }
@@ -64,59 +66,25 @@ CSerializablePlan::~CSerializablePlan()
 //		CSerializablePlan::Serialize
 //
 //	@doc:
-//		Serialize plan to string
+//		Serialize contents into provided stream
 //
 //---------------------------------------------------------------------------
 void
 CSerializablePlan::Serialize
 	(
-	IMemoryPool *pmp
+	COstream &oos
 	)
 {
-	GPOS_ASSERT(NULL == m_pstrPlan);
-
-	m_pstrPlan = CDXLUtils::PstrSerializePlan
+	CDXLUtils::SerializePlan
 				(
-				pmp,
+				m_pmp,
+				oos,
 				m_pdxlnPlan,
 				m_ullPlanId,
 				m_ullPlanSpaceSize,
 				false /*fSerializeHeaders*/,
 				false /*fIndent*/
 				);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CSerializablePlan::UlpSerialize
-//
-//	@doc:
-//		Serialize contents into provided buffer
-//
-//---------------------------------------------------------------------------
-ULONG_PTR
-CSerializablePlan::UlpSerialize
-	(
-	WCHAR *wszBuffer, 
-	ULONG_PTR ulpAllocSize
-	)
-{
-	ULONG_PTR ulpRequiredSpace = UlpRequiredSpace();
-	
-	GPOS_RTL_ASSERT(ulpAllocSize >= ulpRequiredSpace);
-	
-	if (0 < ulpRequiredSpace)
-	{
-		(void) clib::PvMemCpy
-			(
-			(BYTE *) wszBuffer,
-			(BYTE *) m_pstrPlan->Wsz(),
-			ulpRequiredSpace * GPOS_SIZEOF(WCHAR)
-			);
-	}
-	
-	return ulpRequiredSpace;
 }
 
 // EOF

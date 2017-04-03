@@ -86,19 +86,18 @@ CDXLUtilsTest::EresUnittest_SerializeQuery()
 	{
 		for (ULONG ulIndent = 0; ulIndent < GPOS_ARRAY_SIZE(rgfIndentation); ulIndent++)
 		{
-			CWStringDynamic *pstr = 
-					CDXLUtils::PstrSerializeQuery
-								(
-								pmp, 
-								presult->Pdxln(), 
-								presult->PdrgpdxlnOutputCols(),
-								presult->PdrgpdxlnCTE(),
-								rgfHeaders[ulHeaders], 
-								rgfIndentation[ulIndent]
-								);
 			oss << "Headers: " << rgfHeaders[ulHeaders] << ", indentation: " << rgfIndentation[ulIndent] << std::endl;
-			oss << pstr->Wsz() << std::endl;
-			GPOS_DELETE(pstr);
+			CDXLUtils::SerializeQuery
+				(
+				pmp,
+				oss,
+				presult->Pdxln(),
+				presult->PdrgpdxlnOutputCols(),
+				presult->PdrgpdxlnCTE(),
+				rgfHeaders[ulHeaders],
+				rgfIndentation[ulIndent]
+				);
+			oss << std::endl;
 		}
 	}
 	
@@ -145,10 +144,9 @@ CDXLUtilsTest::EresUnittest_SerializePlan()
 	{
 		for (ULONG ulIndent = 0; ulIndent < GPOS_ARRAY_SIZE(rgfIndentation); ulIndent++)
 		{
-			CWStringDynamic *pstr = CDXLUtils::PstrSerializePlan(pmp, pdxln, ullPlanId, ullPlanSpaceSize, rgfHeaders[ulHeaders], rgfIndentation[ulIndent]);
 			oss << "Headers: " << rgfHeaders[ulHeaders] << ", indentation: " << rgfIndentation[ulIndent] << std::endl;
-			oss << pstr->Wsz() << std::endl;
-			GPOS_DELETE(pstr);
+			CDXLUtils::SerializePlan(pmp, oss, pdxln, ullPlanId, ullPlanSpaceSize, rgfHeaders[ulHeaders], rgfIndentation[ulIndent]);
+			oss << std::endl;
 		}
 	}
 	

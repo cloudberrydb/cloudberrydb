@@ -37,10 +37,10 @@ namespace gpopt
 			CMDAccessor *m_pmda;
 			
 			// serialize header
-			ULONG_PTR UlpSerializeHeader(WCHAR *wszBuffer, ULONG_PTR ulpAllocSize);
+			void SerializeHeader(COstream &oos);
 			
 			// serialize footer
-			ULONG_PTR UlpSerializeFooter(WCHAR *wszBuffer, ULONG_PTR ulpAllocSize);
+			void SerializeFooter(COstream &oos);
 
 			// private copy ctor
 			CSerializableMDAccessor(const CSerializableMDAccessor&);
@@ -55,14 +55,10 @@ namespace gpopt
 			virtual
 			~CSerializableMDAccessor()
 			{}
-
-			// calculate space needed for serialization
-			virtual
-			ULONG_PTR UlpRequiredSpace();
 			
-			// serialize object to passed buffer
+			// serialize object to passed stream
 			virtual
-			ULONG_PTR UlpSerialize(WCHAR *wszBuffer, ULONG_PTR ulpAllocSize);
+			void Serialize(COstream &oos);
 
 	}; // class CSerializableMDAccessor
 }

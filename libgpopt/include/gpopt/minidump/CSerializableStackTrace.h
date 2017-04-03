@@ -33,14 +33,6 @@ namespace gpopt
 	//---------------------------------------------------------------------------
 	class CSerializableStackTrace : public CSerializable
 	{
-		private:
-
-			// buffer used for creating the stack trace
-			WCHAR *m_wszBuffer;
-
-			// was buffer successfully allocated?
-			BOOL m_fAllocated;
-
 		public:
 
 			// ctor
@@ -50,16 +42,9 @@ namespace gpopt
 			virtual
 			~CSerializableStackTrace();
 
-			// allocate buffer
-			void AllocateBuffer(IMemoryPool *pmp);
-
-			// calculate space needed for serialization
+			// serialize object to passed stream
 			virtual
-			ULONG_PTR UlpRequiredSpace();
-
-			// serialize object to passed buffer
-			virtual
-			ULONG_PTR UlpSerialize(WCHAR *wszBuffer, ULONG_PTR ulpAllocSize);
+			void Serialize(COstream& oos);
 
 	}; // class CSerializableStackTrace
 }

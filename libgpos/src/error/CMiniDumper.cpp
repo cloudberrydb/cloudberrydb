@@ -19,7 +19,6 @@
 
 using namespace gpos;
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CMiniDumper::CMiniDumper
@@ -30,20 +29,15 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CMiniDumper::CMiniDumper
 	(
-	IMemoryPool *pmp,
-	ULONG_PTR ulpCapacity
+	IMemoryPool *pmp
 	)
 	:
 	m_pmp(pmp),
-	m_wszBuffer(NULL),
-	m_ulpUsed(0),
-	m_ulpCapacity(ulpCapacity),
 	m_fInit(false),
 	m_fFinal(false),
-	m_fConverted(false)
+	m_oos(NULL)
 {
 	GPOS_ASSERT(NULL != pmp);
-	GPOS_ASSERT(0 < ulpCapacity);
 }
 
 
@@ -69,8 +63,6 @@ CMiniDumper::~CMiniDumper()
 			this
 #endif // GPOS_DEBUG
 			);
-
-		GPOS_DELETE_ARRAY(m_wszBuffer);
 	}
 }
 
@@ -84,17 +76,16 @@ CMiniDumper::~CMiniDumper()
 //
 //---------------------------------------------------------------------------
 void
-CMiniDumper::Init()
+CMiniDumper::Init(COstream *oos)
 {
 	GPOS_ASSERT(!m_fInit);
 	GPOS_ASSERT(!m_fFinal);
-	GPOS_ASSERT(NULL == m_wszBuffer);
-
-	m_wszBuffer = GPOS_NEW_ARRAY(m_pmp, WCHAR, m_ulpCapacity);
 
 	CTask *ptsk = CTask::PtskSelf();
 
 	GPOS_ASSERT(NULL != ptsk);
+
+	m_oos = oos;
 
 	ptsk->PerrctxtConvert()->Register(this);
 
@@ -117,12 +108,8 @@ CMiniDumper::Finalize()
 {
 	GPOS_ASSERT(m_fInit);
 	GPOS_ASSERT(!m_fFinal);
-	GPOS_ASSERT(m_ulpUsed < m_ulpCapacity);
 
 	SerializeFooter();
-
-	// finalize string to print
-	m_wszBuffer[m_ulpUsed] = WCHAR_EOS;
 
 	m_fFinal = true;
 }
@@ -130,92 +117,20 @@ CMiniDumper::Finalize()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMiniDumper::WszReserve
+//		CMiniDumper::GetOStream
 //
 //	@doc:
-//		Reserve space for minidump entry
+//		Get stream to serialize to
 //
 //---------------------------------------------------------------------------
-WCHAR *
-CMiniDumper::WszReserve
+COstream&
+CMiniDumper::GetOStream
 	(
-	ULONG_PTR ulpSize
 	)
 {
 	GPOS_ASSERT(m_fInit);
 
-	// after minidump is finalized, no more entries can be added
-	if (m_fFinal)
-	{
-		return NULL;
-	}
-
-	while (m_ulpCapacity > m_ulpUsed + ulpSize)
-	{
-		ULONG_PTR ulpOld = m_ulpUsed;
-		ULONG_PTR ulpNew = ulpOld + ulpSize;
-
-		if (FCompareSwap(&m_ulpUsed, ulpOld, ulpNew))
-		{
-			return m_wszBuffer + ulpOld;
-		}
-	}
-
-	return NULL;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMiniDumper::OsPrint
-//
-//	@doc:
-//		Write to output stream
-//
-//---------------------------------------------------------------------------
-IOstream&
-CMiniDumper::OsPrint
-	(
-	IOstream &os
-	)
-	const
-{
-	GPOS_ASSERT(m_fInit);
-	GPOS_ASSERT(m_fFinal);
-	GPOS_ASSERT(!m_fConverted);
-
-	return os << m_wszBuffer;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMiniDumper::ConvertToMultiByte
-//
-//	@doc:
-//		Convert to multi-byte format
-//
-//---------------------------------------------------------------------------
-ULONG_PTR
-CMiniDumper::UlpConvertToMultiByte()
-{
-	GPOS_ASSERT(m_fInit);
-	GPOS_ASSERT(m_fFinal);
-	GPOS_ASSERT(!m_fConverted);
-
-	LINT li = clib::LWcsToMbs
-		(
-		reinterpret_cast<CHAR*>(m_wszBuffer),
-		m_wszBuffer,
-		m_ulpCapacity * sizeof(WCHAR)
-		);
-	GPOS_RTL_ASSERT(0 < li);
-
-	// ensure string is terminated
-	m_wszBuffer[m_ulpCapacity - 1] = WCHAR_EOS;
-	m_fConverted = true;
-
-	return ULONG_PTR(li);
+	return *m_oos;
 }
 
 

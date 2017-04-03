@@ -37,6 +37,8 @@
 #include "unittest/gpopt/translate/CTranslatorExprToDXLTest.h"
 #include "unittest/gpopt/CTestUtils.h"
 
+#include <fstream>
+
 static
 const CHAR *szQueryFile= "../data/dxl/minidump/Query.xml";
 
@@ -76,15 +78,16 @@ CMiniDumperDXLTest::EresUnittest_Basic()
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
 	IMemoryPool *pmp = amp.Pmp();
 
+	CWStringDynamic minidumpstr(pmp);
+	COstreamString oss(&minidumpstr);
 	CMiniDumperDXL mdrs(pmp);
-	mdrs.Init();
+	mdrs.Init(&oss);
 	
 	CHAR szFileName[GPOS_FILE_NAME_BUF_SIZE];
 
 	GPOS_TRY
 	{
 		CSerializableStackTrace serStackTrace;
-		serStackTrace.AllocateBuffer(pmp);
 		
 		// read the dxl document
 		CHAR *szQueryDXL = CDXLUtils::SzRead(pmp, szQueryFile);
@@ -94,8 +97,7 @@ CMiniDumperDXLTest::EresUnittest_Basic()
 				CDXLUtils::PdxlnParseDXLQuery(pmp, szQueryDXL, NULL);
 		GPOS_CHECK_ABORT;
 
-		CSerializableQuery serQuery(ptroutput->Pdxln(), ptroutput->PdrgpdxlnOutputCols(), ptroutput->PdrgpdxlnCTE());
-		serQuery.Serialize(pmp);
+		CSerializableQuery serQuery(ptroutput->Pdxln(), ptroutput->PdrgpdxlnOutputCols(), ptroutput->PdrgpdxlnCTE(), pmp);
 		
 		// setup a file-based provider
 		CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
@@ -159,8 +161,7 @@ CMiniDumperDXLTest::EresUnittest_Basic()
 
 		CEngine eng(pmp);
 
-		CSerializableOptimizerConfig serOptConfig(poconf);
-		serOptConfig.Serialize(pmp);
+		CSerializableOptimizerConfig serOptConfig(poconf, pmp);
 		
 		eng.Init(pqc, NULL /*pdrgpss*/);
 		eng.Optimize();
@@ -183,8 +184,7 @@ CMiniDumperDXLTest::EresUnittest_Basic()
 		CDXLNode *pdxlnPlan = ptrexprtodxl.PdxlnTranslate(pexprPlan, pqc->PdrgPcr(), pqc->Pdrgpmdname());
 		GPOS_ASSERT(NULL != pdxlnPlan);
 		
-		CSerializablePlan serPlan(pdxlnPlan, poconf->Pec()->UllPlanId(), poconf->Pec()->UllPlanSpaceSize());
-		serPlan.Serialize(pmp);
+		CSerializablePlan serPlan(pdxlnPlan, poconf->Pec()->UllPlanId(), poconf->Pec()->UllPlanSpaceSize(), pmp);
 		GPOS_CHECK_ABORT;
 
 		// simulate an exception 
@@ -206,16 +206,18 @@ CMiniDumperDXLTest::EresUnittest_Basic()
 		CWStringDynamic str(pmp);
 		COstreamString oss(&str);
 		oss << std::endl << "Minidump" << std::endl;
-		oss << mdrs;
+		oss << minidumpstr.Wsz();
 		oss << std::endl;
 		
 		// dump the same to a temp file
 		ULONG ulSessionId = 1;
 		ULONG ulCommandId = 1;
+
 		CMinidumperUtils::GenerateMinidumpFileName(szFileName, GPOS_FILE_NAME_BUF_SIZE, ulSessionId, ulCommandId, NULL /*szMinidumpFileName*/);
 
-		CMinidumperUtils::Dump(szFileName, &mdrs);
-		
+		std::wofstream osMinidump(szFileName);
+		osMinidump << minidumpstr.Wsz();
+
 		oss << "Minidump file: " << szFileName << std::endl;
 
 		GPOS_TRACE(str.Wsz());

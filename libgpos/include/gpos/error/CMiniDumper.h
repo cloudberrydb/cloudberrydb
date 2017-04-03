@@ -12,9 +12,7 @@
 #define GPOS_CMiniDumper_H
 
 #include "gpos/base.h"
-
-#define GPOS_MINIDUMPER_DEFAULT_CAPACITY	(4 * 1024 * 1024)
-
+#include "gpos/io/COstream.h"
 
 namespace gpos
 {
@@ -33,35 +31,25 @@ namespace gpos
 			// memory pool
 			IMemoryPool *m_pmp;
 
-			// pre-allocated buffer;
-			// used to serialize objects
-			WCHAR *m_wszBuffer;
-
-			// used buffer size
-			volatile ULONG_PTR m_ulpUsed;
-
-			// buffer capacity
-			const ULONG_PTR m_ulpCapacity;
-
 			// flag indicating if handler is initialized
 			BOOL m_fInit;
 
 			// flag indicating if handler is finalized
 			BOOL m_fFinal;
 
-			// flag indicating if buffer has been converted to multi-byte format
-			BOOL m_fConverted;
-
 			// private copy ctor
 			CMiniDumper(const CMiniDumper&);
+
+		protected:
+			// stream to serialize objects to
+			COstream *m_oos;
 
 		public:
 
 			// ctor
 			CMiniDumper
 				(
-				IMemoryPool *pmp,
-				ULONG_PTR ulpCapacity = GPOS_MINIDUMPER_DEFAULT_CAPACITY
+				IMemoryPool *pmp
 				);
 
 			// dtor
@@ -69,25 +57,13 @@ namespace gpos
 			~CMiniDumper();
 
 			// initialize
-			void Init();
+			void Init(COstream *oos);
 
 			// finalize
 			void Finalize();
 
-			// reserve space for minidump entry
-			WCHAR *WszReserve(ULONG_PTR ulpSize);
-
-			// write to output stream
-			IOstream &OsPrint(IOstream &os) const;
-
-			// convert to multi-byte string
-			ULONG_PTR UlpConvertToMultiByte();
-
-			// raw accessor to buffer
-			const BYTE *Pb() const
-			{
-				return reinterpret_cast<const BYTE*>(m_wszBuffer);
-			}
+			// get stream to serialize to
+			COstream& GetOStream();
 
 			// serialize minidump header
 			virtual
@@ -97,30 +73,15 @@ namespace gpos
 			virtual
 			void SerializeFooter() = 0;
 
-			// size to reserve for entry header
-			virtual
-			ULONG_PTR UlpRequiredSpaceEntryHeader() = 0;
-
-			// size to reserve for entry header
-			virtual
-			ULONG_PTR UlpRequiredSpaceEntryFooter() = 0;
-
 			// serialize entry header
 			virtual
-			ULONG_PTR UlpSerializeEntryHeader(WCHAR *wszEntry, ULONG_PTR ulpAllocSize) = 0;
+			void SerializeEntryHeader() = 0;
 
 			// serialize entry footer
 			virtual
-			ULONG_PTR UlpSerializeEntryFooter(WCHAR *wszEntry, ULONG_PTR ulpAllocSize) = 0;
+			void SerializeEntryFooter() = 0;
 
 	}; // class CMiniDumper
-
-	// shorthand for printing
-	inline
-	IOstream &operator << (IOstream &os, const CMiniDumper &mdr)
-	{
-		return mdr.OsPrint(os);
-	}
 }
 
 #endif // !GPOS_CMiniDumper_H

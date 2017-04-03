@@ -920,16 +920,17 @@ CDXLUtils::ValidateDXL
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLUtils::PstrSerializeQuery
+//		CDXLUtils::SerializeQuery
 //
 //	@doc:
 //		Serialize a DXL Query tree into a DXL document
 //
 //---------------------------------------------------------------------------
-CWStringDynamic *
-CDXLUtils::PstrSerializeQuery
+void
+CDXLUtils::SerializeQuery
 	(
 	IMemoryPool *pmp,
+	IOstream &os,
 	const CDXLNode *pdxlnQuery,
 	const DrgPdxln *pdrgpdxlnQueryOutput,
 	const DrgPdxln *pdrgpdxlnCTE,
@@ -942,12 +943,7 @@ CDXLUtils::PstrSerializeQuery
 
 	CAutoTimer at("\n[OPT]: DXL Query Serialization Time", GPOS_FTRACE(EopttracePrintOptStats));
 
-	CWStringDynamic *pstr = GPOS_NEW(pmp) CWStringDynamic(pmp);
-
-	// create a string stream to hold the result of serialization
-	COstreamString oss(pstr);
-
-	CXMLSerializer xmlser(pmp, oss, fIndent);
+	CXMLSerializer xmlser(pmp, os, fIndent);
 
 	if (fSerializeHeaderFooter)
 	{
@@ -984,8 +980,6 @@ CDXLUtils::PstrSerializeQuery
 	{
 		SerializeFooter(&xmlser);
 	}
-	
-	return pstr;
 }
 
 
@@ -1019,16 +1013,17 @@ CDXLUtils::PstrSerializeULLONG
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLUtils::PstrSerializePlan
+//		CDXLUtils::SerializePlan
 //
 //	@doc:
 //		Serialize a DXL tree into a DXL document
 //
 //---------------------------------------------------------------------------
-CWStringDynamic *
-CDXLUtils::PstrSerializePlan
+void
+CDXLUtils::SerializePlan
 	(
 	IMemoryPool *pmp,
+	IOstream& os,
 	const CDXLNode *pdxln,
 	ULLONG ullPlanId,
 	ULLONG ullPlanSpaceSize,
@@ -1041,12 +1036,7 @@ CDXLUtils::PstrSerializePlan
 
 	CAutoTimer at("\n[OPT]: DXL Plan Serialization Time", GPOS_FTRACE(EopttracePrintOptStats));
 
-	CWStringDynamic *pstr = GPOS_NEW(pmp) CWStringDynamic(pmp);
-	
-	// create a string stream to hold the result of serialization
-	COstreamString oss(pstr);
-	
-	CXMLSerializer xmlser(pmp, oss, fIndent);
+	CXMLSerializer xmlser(pmp, os, fIndent);
 	
 	if (fSerializeHeaderFooter)
 	{
@@ -1068,14 +1058,11 @@ CDXLUtils::PstrSerializePlan
 	{
 		SerializeFooter(&xmlser);
 	}
-	
-
-	return pstr;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLUtils::PstrSerializeMetadata
+//		CDXLUtils::SerializeMetadata
 //
 //	@doc:
 //		Serialize a list of MD objects into a DXL document and write to
@@ -1083,7 +1070,7 @@ CDXLUtils::PstrSerializePlan
 //
 //---------------------------------------------------------------------------
 void
-CDXLUtils::PstrSerializeMetadata
+CDXLUtils::SerializeMetadata
 	(
 	IMemoryPool *pmp,
 	const DrgPimdobj *pdrgpmdobj,
@@ -1180,10 +1167,11 @@ CDXLUtils::PstrSerializeMetadata
 //		Serialize optimizer configuration
 //
 //---------------------------------------------------------------------------
-CWStringDynamic *
-CDXLUtils::PstrSerializeOptimizerConfig
+void
+CDXLUtils::SerializeOptimizerConfig
 	(
 	IMemoryPool *pmp,
+	IOstream &os,
 	const COptimizerConfig *poconf,
 	BOOL fIndent
 	)
@@ -1196,12 +1184,7 @@ CDXLUtils::PstrSerializeOptimizerConfig
 	const ICostModel *pcm = poconf->Pcm();
 	const CHint *phint = poconf->Phint();
 
-	CWStringDynamic *pstr = GPOS_NEW(pmp) CWStringDynamic(pmp);
-
-	// create a string stream to hold the result of serialization
-	COstreamString oss(pstr);
-
-	CXMLSerializer xmlser(pmp, oss, fIndent);
+	CXMLSerializer xmlser(pmp, os, fIndent);
 
 	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenOptimizerConfig));
 	
@@ -1234,8 +1217,6 @@ CDXLUtils::PstrSerializeOptimizerConfig
 	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenJoinOrderDPThreshold), phint->UlJoinOrderDPLimit());
 	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenBroadcastThreshold), phint->UlBroadcastThreshold());
 	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenHint));
-
-	return pstr;
 }
 
 
@@ -1439,7 +1420,7 @@ CDXLUtils::PstrSerializeStatistics
 	// create a string stream to hold the result of serialization
 	COstreamString oss(pstr);
 
-	CDXLUtils::PstrSerializeStatistics(pmp, pmda, pdrgpstat, oss, fSerializeHeaderFooter, fIndent);
+	CDXLUtils::SerializeStatistics(pmp, pmda, pdrgpstat, oss, fSerializeHeaderFooter, fIndent);
 
 	return pstr;
 }
@@ -1454,7 +1435,7 @@ CDXLUtils::PstrSerializeStatistics
 //
 //---------------------------------------------------------------------------
 void
-CDXLUtils::PstrSerializeStatistics
+CDXLUtils::SerializeStatistics
 	(
 	IMemoryPool *pmp,
 	CMDAccessor *pmda,
@@ -1520,7 +1501,7 @@ CDXLUtils::PstrSerializeMetadata
 	// create a string stream to hold the result of serialization
 	COstreamString oss(pstr);
 	
-	CDXLUtils::PstrSerializeMetadata(pmp, pdrgpmdobj, oss, fSerializeHeaderFooter, fIndent);
+	CDXLUtils::SerializeMetadata(pmp, pdrgpmdobj, oss, fSerializeHeaderFooter, fIndent);
 
 	return pstr;
 }

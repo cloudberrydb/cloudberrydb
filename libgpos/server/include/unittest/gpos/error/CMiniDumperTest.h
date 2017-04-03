@@ -59,21 +59,13 @@ namespace gpos
 					virtual
 					void SerializeFooter();
 
-					// size to reserve for entry header
-					virtual
-					ULONG_PTR UlpRequiredSpaceEntryHeader();
-
-					// size to reserve for entry footer
-					virtual
-					ULONG_PTR UlpRequiredSpaceEntryFooter();
-
 					// serialize entry header
 					virtual
-					ULONG_PTR UlpSerializeEntryHeader(WCHAR *wszEntry, ULONG_PTR ulpAllocSize);
+					void SerializeEntryHeader();
 
 					// serialize entry footer
 					virtual
-					ULONG_PTR UlpSerializeEntryFooter(WCHAR *wszEntry, ULONG_PTR ulpAllocSize);
+					void SerializeEntryFooter();
 
 			}; // class CMiniDumperStream
 
@@ -87,11 +79,6 @@ namespace gpos
 			//---------------------------------------------------------------------------
 			class CSerializableStack : public CSerializable
 			{
-				private:
-
-					// buffer used for creating the stack trace
-					WCHAR m_wszBuffer[GPOS_MINIDUMP_BUF_SIZE];
-
 				public:
 
 					// ctor
@@ -101,13 +88,9 @@ namespace gpos
 					virtual
 					~CSerializableStack();
 
-					// calculate space needed for serialization
+					// serialize object to passed stream
 					virtual
-					ULONG_PTR UlpRequiredSpace();
-
-					// serialize object to passed buffer
-					virtual
-					ULONG_PTR UlpSerialize(WCHAR *wszBuffer, ULONG_PTR ulpAllocSize);
+					void Serialize(COstream &oos);
 
 			}; // class CSerializableStack
 

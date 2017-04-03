@@ -25,9 +25,6 @@ using namespace gpopt;
 // size of temporary buffer for expanding XML entry header
 #define GPOPT_THREAD_HEADER_SIZE 128
 
-// size of buffer used to serialize minidump -- creation fails if its size exceeds this number
-#define GPOPT_DXL_MINIDUMP_SIZE (16 * 1024 * 1024)
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CMiniDumperDXL::CMiniDumperDXL
@@ -41,7 +38,7 @@ CMiniDumperDXL::CMiniDumperDXL
 	IMemoryPool *pmp
 	)
 	:
-	CMiniDumper(pmp, GPOPT_DXL_MINIDUMP_SIZE)
+	CMiniDumper(pmp)
 {
 }
 
@@ -58,38 +55,6 @@ CMiniDumperDXL::~CMiniDumperDXL()
 {
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CMiniDumperDXL::UlpRequiredSpaceEntryHeader
-//
-//	@doc:
-//		Size to reserve for entry header
-//
-//---------------------------------------------------------------------------
-ULONG_PTR
-CMiniDumperDXL::UlpRequiredSpaceEntryHeader()
-{
-	WCHAR szBuffer[GPOPT_THREAD_HEADER_SIZE];
-
-	return UlpSerializeEntryHeader(szBuffer, GPOS_ARRAY_SIZE(szBuffer));
-
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMiniDumperDXL::UlpRequiredSpaceEntryFooter
-//
-//	@doc:
-//		Size to reserve for entry footer
-//
-//---------------------------------------------------------------------------
-ULONG_PTR
-CMiniDumperDXL::UlpRequiredSpaceEntryFooter()
-{
-	return GPOS_WSZ_LENGTH(CDXLSections::m_wszThreadFooter);
-}
-
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -102,11 +67,7 @@ CMiniDumperDXL::UlpRequiredSpaceEntryFooter()
 void
 CMiniDumperDXL::SerializeHeader()
 {
-	const WCHAR *wsz = CDXLSections::m_wszDocumentHeader;
-	ULONG ulLength = GPOS_WSZ_LENGTH(wsz);
-	
-	WCHAR *wszHeader = WszReserve(ulLength);
-	(void) clib::PvMemCpy(wszHeader, (BYTE *) wsz, ulLength * GPOS_SIZEOF(WCHAR));	
+	*m_oos << CDXLSections::m_wszDocumentHeader;
 }
 
 
@@ -121,28 +82,20 @@ CMiniDumperDXL::SerializeHeader()
 void
 CMiniDumperDXL::SerializeFooter()
 {
-	const WCHAR *wsz = CDXLSections::m_wszDocumentFooter;
-	ULONG ulLength = GPOS_WSZ_LENGTH(wsz);
-
-	WCHAR *wszFooter = WszReserve(ulLength);
-	(void) clib::PvMemCpy(wszFooter, (BYTE *) wsz, ulLength * GPOS_SIZEOF(WCHAR));
+	*m_oos << CDXLSections::m_wszDocumentFooter;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMiniDumperDXL::UlpSerializeEntryHeader
+//		CMiniDumperDXL::SerializeEntryHeader
 //
 //	@doc:
 //		Serialize entry header
 //
 //---------------------------------------------------------------------------
-ULONG_PTR
-CMiniDumperDXL::UlpSerializeEntryHeader
-	(
-	WCHAR * wszEntry,
-	ULONG_PTR ulpAllocSize
-	)
+void
+CMiniDumperDXL::SerializeEntryHeader()
 {
 	WCHAR wszBuffer[GPOPT_THREAD_HEADER_SIZE];
 	
@@ -153,37 +106,22 @@ CMiniDumperDXL::UlpSerializeEntryHeader
 		CWorker::PwrkrSelf()->UlThreadId()
 		);
 
-	ULONG_PTR ulpSize = (ULONG_PTR) str.UlLength();
-	
-	GPOS_RTL_ASSERT(ulpSize <= ulpAllocSize);
-	
-	(void) clib::PvMemCpy(wszEntry, (WCHAR *) wszBuffer, ulpSize * GPOS_SIZEOF(WCHAR));
-
-	return ulpSize;
-
+	*m_oos << str.Wsz();
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMiniDumperDXL::UlpSerializeEntryFooter
+//		CMiniDumperDXL::SerializeEntryFooter
 //
 //	@doc:
 //		Serialize entry footer
 //
 //---------------------------------------------------------------------------
-ULONG_PTR
-CMiniDumperDXL::UlpSerializeEntryFooter
-	(
-	WCHAR *wszEntry,
-	ULONG_PTR ulpAllocSize
-	)
+void
+CMiniDumperDXL::SerializeEntryFooter	()
 {
-	ULONG_PTR ulpLength = UlpRequiredSpaceEntryFooter();
-	GPOS_RTL_ASSERT(ulpLength <= ulpAllocSize);
-	
-	(void) clib::PvMemCpy(wszEntry, (BYTE *) CDXLSections::m_wszThreadFooter, ulpLength * GPOS_SIZEOF(WCHAR));
-	return ulpLength;
+	*m_oos << CDXLSections::m_wszThreadFooter;
 }
 
 // EOF

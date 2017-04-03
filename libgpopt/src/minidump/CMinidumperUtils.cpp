@@ -43,59 +43,12 @@
 #include "gpopt/optimizer/COptimizerConfig.h"
 #include "gpopt/translate/CTranslatorDXLToExpr.h"
 
+#include <fstream>
+
 using namespace gpos;
 using namespace gpopt;
 using namespace gpdxl;
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMinidumperUtils::Dump
-//
-//	@doc:
-//		Serialize minidump to file
-//
-//---------------------------------------------------------------------------
-void
-CMinidumperUtils::Dump
-	(
-	const CHAR *szFileName,
-	CMiniDumperDXL *pmdmp
-	)
-{
-	GPOS_ASSERT(NULL != szFileName && NULL != pmdmp);
-
-	CAutoTimer at("\n[OPT]: Minidump Dumping Time", GPOS_FTRACE(EopttracePrintOptStats));
-	CAutoSuspendAbort asa;
-
-	const ULONG ulWrPerms = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-
-	GPOS_TRY
-	{
-		CFileWriter fw;
-		fw.Open(szFileName, ulWrPerms);
-	
-		// convert to multi-byte string
-		ULONG_PTR ulpLength = pmdmp->UlpConvertToMultiByte();
-		
-		const BYTE *pb = pmdmp->Pb();
-		
-		fw.Write(pb, ulpLength);
-		fw.Close();
-
-	}
-	GPOS_CATCH_EX(ex)
-	{
-		// ignore exceptions during minidumping
-		GPOS_RESET_EX;
-	}
-	GPOS_CATCH_END;
-
-	// reset time slice
-#ifdef GPOS_DEBUG
-    CWorker::PwrkrSelf()->ResetTimeSlice();
-#endif // GPOS_DEBUG
-}
-
+using namespace std;
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -274,10 +227,7 @@ void
 CMinidumperUtils::Finalize
 	(
 	CMiniDumperDXL *pmdmp,
-	BOOL fSerializeErrCtx,
-	ULONG ulSessionId,
-	ULONG ulCmdId,
-	const CHAR *szMinidumpFileName
+	BOOL fSerializeErrCtx
 	)
 {
 	CAutoTraceFlag atf1(EtraceSimulateAbort, false);
@@ -292,16 +242,6 @@ CMinidumperUtils::Finalize
 	}
 	
 	pmdmp->Finalize();
-
-	// create a filename and dump to file
-	CHAR szFileName[GPOS_FILE_NAME_BUF_SIZE];
-	GenerateMinidumpFileName(szFileName, GPOS_FILE_NAME_BUF_SIZE, ulSessionId, ulCmdId, szMinidumpFileName);
-	Dump(szFileName, pmdmp);
-
-	// reset time slice
-#ifdef GPOS_DEBUG
-    CWorker::PwrkrSelf()->ResetTimeSlice();
-#endif // GPOS_DEBUG
 }
 
 //---------------------------------------------------------------------------

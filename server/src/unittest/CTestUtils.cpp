@@ -3162,8 +3162,10 @@ CTestUtils::EresTranslate
 
 	COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
 
-	CWStringDynamic *pstrTranslatedPlan =
-		CDXLUtils::PstrSerializePlan(pmp, pdxlnPlan, poconf->Pec()->UllPlanId(), poconf->Pec()->UllPlanSpaceSize(), true /*fSerializeHeaderFooter*/, true /*fIndent*/);
+	CWStringDynamic strTranslatedPlan(pmp);
+	COstreamString osTranslatedPlan(&strTranslatedPlan);
+
+	CDXLUtils::SerializePlan(pmp, osTranslatedPlan, pdxlnPlan, poconf->Pec()->UllPlanId(), poconf->Pec()->UllPlanSpaceSize(), true /*fSerializeHeaderFooter*/, true /*fIndent*/);
 
 	GPOS_TRACE(str.Wsz());
 	GPOS_RESULT eres = GPOS_OK;
@@ -3175,7 +3177,7 @@ CTestUtils::EresTranslate
 		CWStringDynamic strExpectedPlan(pmp);
 		strExpectedPlan.AppendFormat(GPOS_WSZ_LIT("%s"), szExpectedPlan);
 
-		eres = EresCompare(oss, pstrTranslatedPlan, &strExpectedPlan, fIgnoreMismatch);
+		eres = EresCompare(oss, &strTranslatedPlan, &strExpectedPlan, fIgnoreMismatch);
 		GPOS_DELETE_ARRAY(szExpectedPlan);
 	}
 
@@ -3184,7 +3186,6 @@ CTestUtils::EresTranslate
 	pexprPlan->Release();
 	pdxlnPlan->Release();
 	GPOS_DELETE_ARRAY(szQueryDXL);
-	GPOS_DELETE(pstrTranslatedPlan);
 	GPOS_DELETE(ptroutput);
 	GPOS_DELETE(pqc);
 	return eres;
@@ -3263,10 +3264,8 @@ CTestUtils::FPlanMatch
 	{
 		CAutoTrace at(pmp);
 		at.Os() << "Expected plan is NULL. Actual: " << std::endl;
-		CWStringDynamic *pstrActual = CDXLUtils::PstrSerializePlan(pmp, pdxlnActual, ullPlanIdActual, ullPlanSpaceSizeActual, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
-		at.Os()  << pstrActual->Wsz() << std::endl;
-
-		GPOS_DELETE(pstrActual);
+		CDXLUtils::SerializePlan(pmp, at.Os(), pdxlnActual, ullPlanIdActual, ullPlanSpaceSizeActual, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
+		at.Os() << std::endl;
 
 		return false;
 	}
@@ -3275,10 +3274,8 @@ CTestUtils::FPlanMatch
 	{
 		CAutoTrace at(pmp);
 		at.Os()  << "Actual plan is NULL. Expected: " << std::endl;
-		CWStringDynamic *pstrExpected = CDXLUtils::PstrSerializePlan(pmp, pdxlnExpected, ullPlanIdExpected, ullPlanSpaceSizeExpected, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
-		at.Os()  << pstrExpected->Wsz() << std::endl;
-
-		GPOS_DELETE(pstrExpected);
+		CDXLUtils::SerializePlan(pmp, at.Os(), pdxlnExpected, ullPlanIdExpected, ullPlanSpaceSizeExpected, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
+		at.Os()  << std::endl;
 
 		return false;
 	}		
@@ -3288,40 +3285,40 @@ CTestUtils::FPlanMatch
 	
 	// plan id's and space sizes are already compared before this point,
 	// overwrite PlanId's and space sizes with zeros to pass string comparison on plan body
-	CWStringDynamic *pstrActual = CDXLUtils::PstrSerializePlan(pmp, pdxlnActual, 0 /*ullPlanIdActual*/, 0 /*ullPlanSpaceSizeActual*/, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
+	CWStringDynamic strActual(pmp);
+	COstreamString osActual(&strActual);
+	CDXLUtils::SerializePlan(pmp, osActual, pdxlnActual, 0 /*ullPlanIdActual*/, 0 /*ullPlanSpaceSizeActual*/, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
 	GPOS_CHECK_ABORT;
 
-	CWStringDynamic *pstrExpected = CDXLUtils::PstrSerializePlan(pmp, pdxlnExpected, 0 /*ullPlanIdExpected*/, 0 /*ullPlanSpaceSizeExpected*/, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
+	CWStringDynamic strExpected(pmp);
+	COstreamString osExpected(&strExpected);
+	CDXLUtils::SerializePlan(pmp, osExpected, pdxlnExpected, 0 /*ullPlanIdExpected*/, 0 /*ullPlanSpaceSizeExpected*/, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
 	GPOS_CHECK_ABORT;
-	
-	BOOL fResult = pstrActual->FEquals(pstrExpected);
 
-	// cleanup
-	GPOS_DELETE(pstrActual);
-	GPOS_DELETE(pstrExpected);
+	BOOL fResult = strActual.FEquals(&strExpected);
 
 	if (!fResult)
 	{
 		// serialize plans again to restore id's and space size before printing error message
-		CWStringDynamic *pstrActual = CDXLUtils::PstrSerializePlan(pmp, pdxlnActual, ullPlanIdActual, ullPlanSpaceSizeActual, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
+		CWStringDynamic strActual(pmp);
+		COstreamString osActual(&strActual);
+		CDXLUtils::SerializePlan(pmp, osActual, pdxlnActual, ullPlanIdActual, ullPlanSpaceSizeActual, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
 		GPOS_CHECK_ABORT;
 
-		CWStringDynamic *pstrExpected = CDXLUtils::PstrSerializePlan(pmp, pdxlnExpected, ullPlanIdExpected, ullPlanSpaceSizeExpected, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
+		CWStringDynamic strExpected(pmp);
+		COstreamString osExpected(&strExpected);
+		CDXLUtils::SerializePlan(pmp, osExpected, pdxlnExpected, ullPlanIdExpected, ullPlanSpaceSizeExpected, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
 		GPOS_CHECK_ABORT;
 
 		{
 			CAutoTrace at(pmp);
 
 			at.Os() << "Actual: " << std::endl;
-			at.Os()  << pstrActual->Wsz() << std::endl;
+			at.Os()  << strActual.Wsz() << std::endl;
 		}
 
 		os << "Expected: " << std::endl;
-		os << pstrExpected->Wsz() << std::endl;
-
-		// cleanup
-		GPOS_DELETE(pstrActual);
-		GPOS_DELETE(pstrExpected);
+		os << strExpected.Wsz() << std::endl;
 	}
 	
 	
@@ -4119,17 +4116,17 @@ CTestUtils::EresCheckOptimizedPlan
 				{
 					CAutoTrace at(pmp);
 					at.Os() << "Failed check for minidump " << rgszFileNames[ul] << std::endl;
-					CWStringDynamic *pstrPlan = CDXLUtils::PstrSerializePlan
+					CDXLUtils::SerializePlan
 						(
 						pmp,
+						at.Os(),
 						pdxlnPlan,
 						0, // ullPlanId
 						0, // ullPlanSpaceSize
 						true, // fSerializeHeaderFooter
 						true // fIndent
 						);
-					at.Os() << pstrPlan->Wsz() << std::endl;
-					GPOS_DELETE(pstrPlan);
+					at.Os() << std::endl;
 				}
 			}
 

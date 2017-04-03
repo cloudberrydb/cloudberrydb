@@ -43,125 +43,60 @@ CSerializableMDAccessor::CSerializableMDAccessor
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CSerializableMDAccessor::UlpRequiredSpace
+//		CSerializableMDAccessor::SerializeHeader
 //
 //	@doc:
-//		Calculate space needed for serialization
+//		Serialize header into provided stream
 //
 //---------------------------------------------------------------------------
-ULONG_PTR
-CSerializableMDAccessor::UlpRequiredSpace()
-{
-	return GPOS_WSZ_LENGTH(CDXLSections::m_wszMetadataHeaderPrefix) +
-			GPOS_WSZ_LENGTH(CDXLSections::m_wszMetadataHeaderSuffix)  + 
-			m_pmda->UlpRequiredSysIdSpace() +
-			m_pmda->UlpRequiredSpace() + 
-			GPOS_WSZ_LENGTH(CDXLSections::m_wszMetadataFooter);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CSerializableMDAccessor::UlpSerializeHeader
-//
-//	@doc:
-//		Serialize header into provided buffer
-//
-//---------------------------------------------------------------------------
-ULONG_PTR
-CSerializableMDAccessor::UlpSerializeHeader
+void
+CSerializableMDAccessor::SerializeHeader
 	(
-	WCHAR *wszBuffer,
-	ULONG_PTR ulpAllocSize
+	COstream &oos
 	)
 {
-	const WCHAR *wszHeaderPrefix = CDXLSections::m_wszMetadataHeaderPrefix;
-	ULONG ulHeaderPrefixLength = GPOS_WSZ_LENGTH(wszHeaderPrefix);
-	
-	GPOS_RTL_ASSERT(ulpAllocSize >= ulHeaderPrefixLength);
+	oos << CDXLSections::m_wszMetadataHeaderPrefix;
 
-	(void) clib::PvMemCpy
-		(
-		(BYTE *) wszBuffer,
-		(BYTE *) wszHeaderPrefix,
-		ulHeaderPrefixLength * GPOS_SIZEOF(WCHAR)
-		);
-	
-	wszBuffer += ulHeaderPrefixLength;
-	ulpAllocSize -= ulHeaderPrefixLength;
-	
-	ULONG_PTR ulpSysidLength = m_pmda->UlpSerializeSysid(wszBuffer, ulpAllocSize);
-	
-	wszBuffer += ulpSysidLength;
-	ulpAllocSize -= ulpSysidLength;
-	
+	m_pmda->SerializeSysid(oos);
+
 	// serialize header suffix ">"
-	const WCHAR *wszHeaderSuffix = CDXLSections::m_wszMetadataHeaderSuffix;
-	ULONG ulHeaderSuffixLength = GPOS_WSZ_LENGTH(wszHeaderSuffix);
-	
-	GPOS_RTL_ASSERT(ulpAllocSize >= ulHeaderSuffixLength);
-
-	(void) clib::PvMemCpy
-		(
-		(BYTE *) wszBuffer,
-		(BYTE *) wszHeaderSuffix,
-		ulHeaderSuffixLength * GPOS_SIZEOF(WCHAR)
-		);
-		
-	return ulHeaderPrefixLength + ulHeaderSuffixLength + ulpSysidLength;
+	oos << CDXLSections::m_wszMetadataHeaderSuffix;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CSerializableMDAccessor::UlpSerializeFooter
+//		CSerializableMDAccessor::SerializeFooter
 //
 //	@doc:
-//		Serialize footer into provided buffer
+//		Serialize footer into provided stream
 //
 //---------------------------------------------------------------------------
-ULONG_PTR
-CSerializableMDAccessor::UlpSerializeFooter
+void
+CSerializableMDAccessor::SerializeFooter
 	(
-	WCHAR *wszBuffer,
-	ULONG_PTR ulpAllocSize
+	COstream& oos
 	)
 {
-	const WCHAR *wszFooter = CDXLSections::m_wszMetadataFooter;
-	
-	ULONG ulFooterLength = GPOS_WSZ_LENGTH(wszFooter);
-	
-	GPOS_RTL_ASSERT(ulpAllocSize >= ulFooterLength);
-
-	(void) clib::PvMemCpy
-		(
-		(BYTE *) wszBuffer,
-		(BYTE *) wszFooter,
-		ulFooterLength * GPOS_SIZEOF(WCHAR)
-		);
-	
-	return ulFooterLength;
+	oos << CDXLSections::m_wszMetadataFooter;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CSerializableMDAccessor::UlpSerialize
+//		CSerializableMDAccessor::Serialize
 //
 //	@doc:
-//		Serialize contents into provided buffer
+//		Serialize contents into provided stream
 //
 //---------------------------------------------------------------------------
-ULONG_PTR
-CSerializableMDAccessor::UlpSerialize
+void
+CSerializableMDAccessor::Serialize
 	(
-	WCHAR *wszBuffer, 
-	ULONG_PTR ulpAllocSize
+	COstream &oos
 	)
 {
-	ULONG_PTR ulpRequiredSpace = UlpRequiredSpace();
-	
-	ULONG_PTR ulpHeaderSize = UlpSerializeHeader(wszBuffer, ulpAllocSize);
-	ULONG_PTR ulpMDASize = m_pmda->UlpSerialize(wszBuffer + ulpHeaderSize, ulpAllocSize - ulpHeaderSize);
-	(void) UlpSerializeFooter(wszBuffer + ulpHeaderSize + ulpMDASize, ulpAllocSize - ulpHeaderSize - ulpMDASize);
-	return ulpRequiredSpace;
+	SerializeHeader(oos);
+	m_pmda->Serialize(oos);
+	SerializeFooter(oos);
 }
 
 // EOF

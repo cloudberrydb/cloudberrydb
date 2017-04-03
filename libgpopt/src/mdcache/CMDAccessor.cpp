@@ -1371,80 +1371,18 @@ CMDAccessor::Pdatum
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDAccessor::UlpRequiredSysIdSpace
+//		CMDAccessor::Serialize
 //
 //	@doc:
-//		Calculate space needed for serialization of system ids
+//		Serialize MD object into provided stream
 //
 //---------------------------------------------------------------------------
-ULONG_PTR
-CMDAccessor::UlpRequiredSysIdSpace()
-{
-	ULONG_PTR ulpRequiredSpace = 0;
-	
-	MDPHTIter mdhtit(m_shtProviders);
-	ULONG ulElems = 0;
-	
-	while (mdhtit.FAdvance())
-	{
-		MDPHTIterAccessor mdhtitacc(mdhtit);
-		SMDProviderElem *pmdpelem = mdhtitacc.Pt();
-		CSystemId sysid = pmdpelem->Sysid();
-		
-		ulpRequiredSpace += 2 + // "system_type." 
-							GPOS_WSZ_LENGTH(sysid.Wsz());
-		ulElems++;
-	}
-	
-	// add up the necessary commas
-	return ulpRequiredSpace + ulElems - 1;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMDAccessor::UlpRequiredSpace
-//
-//	@doc:
-//		Calculate space needed for serialization
-//
-//---------------------------------------------------------------------------
-ULONG_PTR
-CMDAccessor::UlpRequiredSpace()
-{
-	ULONG_PTR ulpRequiredSpace = 0;
-	
-	MDHTIter mdhtit(m_shtCacheAccessors);
-
-	while (mdhtit.FAdvance())
-	{
-		MDHTIterAccessor mdhtitacc(mdhtit);
-		SMDAccessorElem *pmdaccelem = mdhtitacc.Pt();
-		
-		IMDCacheObject *pimdobj = pmdaccelem->Pimdobj();
-		ulpRequiredSpace += pimdobj->Pstr()->UlLength();
-	}
-	
-	return ulpRequiredSpace;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMDAccessor::UlpSerialize
-//
-//	@doc:
-//		Serialize MD object into provided buffer
-//
-//---------------------------------------------------------------------------
-ULONG_PTR
-CMDAccessor::UlpSerialize
+void
+CMDAccessor::Serialize
 	(
-	WCHAR *wszBuffer, 
-	ULONG_PTR ulpAllocSize
+	COstream& oos
 	)
 {
-	ULONG_PTR ulpRequiredSpace = UlpRequiredSpace();
-	GPOS_RTL_ASSERT(ulpAllocSize >= ulpRequiredSpace);
-	
 	MDHTIter mdhtit(m_shtCacheAccessors);
 
 	while (mdhtit.FAdvance())
@@ -1455,41 +1393,25 @@ CMDAccessor::UlpSerialize
 		
 		IMDCacheObject *pimdobj = pmdaccelem->Pimdobj();
 		const CWStringDynamic *pstr = pimdobj->Pstr();
-		
-		GPOS_RTL_ASSERT(ulpAllocSize >= pstr->UlLength());
-		
-		(void) clib::PvMemCpy
-			(
-			(BYTE *) wszBuffer,
-			(BYTE *) pstr->Wsz(),
-			pstr->UlLength() * GPOS_SIZEOF(WCHAR)
-			);
-		
-		wszBuffer += pstr->UlLength();
-		ulpAllocSize -= pstr->UlLength();
+
+		oos << pstr->Wsz();
 	}
-	
-	return ulpRequiredSpace;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMDAccessor::UlpSerializeSysid
+//		CMDAccessor::SerializeSysid
 //
 //	@doc:
-//		Serialize the system ids into provided buffer
+//		Serialize the system ids into provided stream
 //
 //---------------------------------------------------------------------------
-ULONG_PTR
-CMDAccessor::UlpSerializeSysid
+void
+CMDAccessor::SerializeSysid
 	(
-	WCHAR *wszBuffer, 
-	ULONG_PTR ulpAllocSize
+	COstream &oos
 	)
 {
-	ULONG_PTR ulpRequiredSpace = UlpRequiredSysIdSpace();
-	GPOS_RTL_ASSERT(ulpAllocSize >= ulpRequiredSpace);
-	
 	ULONG ul = 0;
 	MDPHTIter mdhtit(m_shtProviders);
 
@@ -1510,21 +1432,9 @@ CMDAccessor::UlpSerializeSysid
 		
 		str.AppendFormat(GPOS_WSZ_LIT("%d.%ls"), sysid.Emdidt(), sysid.Wsz());
 
-		GPOS_RTL_ASSERT(ulpAllocSize >= str.UlLength());
-
-		(void) clib::PvMemCpy
-			(
-			(BYTE *) wszBuffer,
-			(BYTE *) str.Wsz(),
-			str.UlLength() * GPOS_SIZEOF(WCHAR)
-			);
-		
-		wszBuffer += str.UlLength();
-		ulpAllocSize -= str.UlLength();
+		oos << str.Wsz();
 		ul++;
 	}
-	
-	return ulpRequiredSpace;
 }
 
 

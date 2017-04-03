@@ -61,7 +61,10 @@ CMiniDumperTest::EresUnittest_Basic()
 	IMemoryPool *pmp = amp.Pmp();
 
 	CMiniDumperStream mdrs(pmp);
-	mdrs.Init();
+
+	CWStringDynamic minidumpstr(pmp);
+	COstreamString oss(&minidumpstr);
+	mdrs.Init(&oss);
 
 	GPOS_TRY
 	{
@@ -73,22 +76,7 @@ CMiniDumperTest::EresUnittest_Basic()
 
 		GPOS_RESET_EX;
 
-		CWStringDynamic wstr(pmp);
-		COstreamString oss(&wstr);
-
-		oss << mdrs;
-
-		GPOS_TRACE(wstr.Wsz());
-
-		// check conversion to multi-byte string
-#ifdef GPOS_DEBUG
-		ULONG_PTR ulp =
-#endif // GPOS_DEBUG
-		mdrs.UlpConvertToMultiByte();
-
-		GPOS_ASSERT(ulp == wstr.UlLength());
-
-		std::cout << reinterpret_cast<const CHAR*>(mdrs.Pb());
+		GPOS_TRACE(minidumpstr.Wsz());
 	}
 	GPOS_CATCH_END;
 
@@ -112,8 +100,10 @@ CMiniDumperTest::EresUnittest_Concurrency()
 
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
 
+	CWStringDynamic minidumpstr(pmp);
+	COstreamString oss(&minidumpstr);
 	CMiniDumperStream mdrs(pmp);
-	mdrs.Init();
+	mdrs.Init(&oss);
 
 	GPOS_TRY
 	{
@@ -147,12 +137,7 @@ CMiniDumperTest::EresUnittest_Concurrency()
 
 		GPOS_RESET_EX;
 
-		CWStringDynamic wstr(pmp);
-		COstreamString oss(&wstr);
-
-		oss << mdrs;
-
-		GPOS_TRACE(wstr.Wsz());
+		GPOS_TRACE(minidumpstr.Wsz());
 	}
 	GPOS_CATCH_END;
 
@@ -271,40 +256,6 @@ CMiniDumperTest::CMiniDumperStream::~CMiniDumperStream()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMiniDumperTest::CMiniDumperStream::UlpRequiredSpaceEntryHeader
-//
-//	@doc:
-//		Size to reserve for entry header
-//
-//---------------------------------------------------------------------------
-ULONG_PTR
-CMiniDumperTest::CMiniDumperStream::UlpRequiredSpaceEntryHeader()
-{
-	WCHAR rgbBuffer[GPOS_MINIDUMP_BUF_SIZE];
-
-	return UlpSerializeEntryHeader(rgbBuffer, GPOS_ARRAY_SIZE(rgbBuffer));
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMiniDumperTest::CMiniDumperStream::UlpRequiredSpaceEntryFooter
-//
-//	@doc:
-//		Size to reserve for entry footer
-//
-//---------------------------------------------------------------------------
-ULONG_PTR
-CMiniDumperTest::CMiniDumperStream::UlpRequiredSpaceEntryFooter()
-{
-	WCHAR rgbBuffer[GPOS_MINIDUMP_BUF_SIZE];
-
-	return UlpSerializeEntryFooter(rgbBuffer, GPOS_ARRAY_SIZE(rgbBuffer));
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CMiniDumperTest::CMiniDumperStream::UlSerializeHeader
 //
 //	@doc:
@@ -314,14 +265,7 @@ CMiniDumperTest::CMiniDumperStream::UlpRequiredSpaceEntryFooter()
 void
 CMiniDumperTest::CMiniDumperStream::SerializeHeader()
 {
-	const WCHAR *wsz = GPOS_WSZ_LIT("\n<MINIDUMP_TEST>\n");
-	ULONG ulSize = GPOS_WSZ_LENGTH(wsz);
-
-	WCHAR *wszHeader = WszReserve(ulSize);
-	if (NULL != wszHeader)
-	{
-		(void) clib::PvMemCpy(wszHeader, (BYTE *) wsz, ulSize * GPOS_SIZEOF(WCHAR));
-	}
+	*m_oos << "\n<MINIDUMP_TEST>\n";
 }
 
 
@@ -336,31 +280,20 @@ CMiniDumperTest::CMiniDumperStream::SerializeHeader()
 void
 CMiniDumperTest::CMiniDumperStream::SerializeFooter()
 {
-	const WCHAR *wsz = GPOS_WSZ_LIT("</MINIDUMP_TEST>\n");
-	ULONG ulSize = GPOS_WSZ_LENGTH(wsz);
-
-	WCHAR *wszFooter = WszReserve(ulSize);
-	if (NULL != wszFooter)
-	{
-		(void) clib::PvMemCpy(wszFooter, (BYTE *) wsz, ulSize * GPOS_SIZEOF(WCHAR));
-	}
+	*m_oos << "</MINIDUMP_TEST>\n";
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMiniDumperTest::CMiniDumperStream::UlpSerializeEntryHeader
+//		CMiniDumperTest::CMiniDumperStream::SerializeEntryHeader
 //
 //	@doc:
 //		Serialize entry header
 //
 //---------------------------------------------------------------------------
-ULONG_PTR
-CMiniDumperTest::CMiniDumperStream::UlpSerializeEntryHeader
-	(
-	WCHAR *wszEntry,
-	ULONG_PTR ulpAllocSize
-	)
+void
+CMiniDumperTest::CMiniDumperStream::SerializeEntryHeader()
 {
 	WCHAR wszBuffer[GPOS_MINIDUMP_BUF_SIZE];
 	CWStringStatic wstr(wszBuffer, GPOS_ARRAY_SIZE(wszBuffer));
@@ -370,42 +303,24 @@ CMiniDumperTest::CMiniDumperStream::UlpSerializeEntryHeader
 		CWorker::PwrkrSelf()->UlThreadId()
 		);
 
-	ULONG_PTR ulpSize = std::min
-		(
-		(ULONG_PTR) wstr.UlLength(),
-		ulpAllocSize
-		);
-	(void) clib::PvMemCpy(wszEntry, (WCHAR *) wszBuffer, ulpSize * GPOS_SIZEOF(WCHAR));
-
-	return ulpSize;
+	*m_oos << wstr.Wsz();
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMiniDumperTest::CMiniDumperStream::UlpSerializeEntryFooter
+//		CMiniDumperTest::CMiniDumperStream::SerializeEntryFooter
 //
 //	@doc:
 //		Serialize entry footer
 //
 //---------------------------------------------------------------------------
-ULONG_PTR
-CMiniDumperTest::CMiniDumperStream::UlpSerializeEntryFooter
+void
+CMiniDumperTest::CMiniDumperStream::SerializeEntryFooter
 	(
-	WCHAR *wszEntry,
-	ULONG_PTR ulpAllocSize
 	)
 {
-	const WCHAR *wsz = GPOS_WSZ_LIT("</THREAD>\n");
-	ULONG_PTR ulpSize = std::min
-		(
-		(ULONG_PTR) GPOS_WSZ_LENGTH(wsz),
-		ulpAllocSize
-		);
-
-	(void) clib::PvMemCpy(wszEntry, (WCHAR *) wsz, ulpSize * GPOS_SIZEOF(WCHAR));
-
-	return ulpSize;
+	*m_oos << "</THREAD>\n";
 }
 
 
@@ -438,32 +353,16 @@ CMiniDumperTest::CSerializableStack::~CSerializableStack()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMiniDumperTest::CSerializableStack::UlpRequiredSpace
+//		CMiniDumperTest::CSerializableStack::Serialize
 //
 //	@doc:
-//		Calculate space needed for serialization
+//		Serialize object to passed stream
 //
 //---------------------------------------------------------------------------
-ULONG_PTR
-CMiniDumperTest::CSerializableStack::UlpRequiredSpace()
-{
-	return UlpSerialize(m_wszBuffer, GPOS_ARRAY_SIZE(m_wszBuffer));
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMiniDumperTest::CSerializableStack::UlpSerialize
-//
-//	@doc:
-//		Serialize object to passed buffer
-//
-//---------------------------------------------------------------------------
-ULONG_PTR
-CMiniDumperTest::CSerializableStack::UlpSerialize
+void
+CMiniDumperTest::CSerializableStack::Serialize
 	(
-	WCHAR *wszEntry,
-	ULONG_PTR ulpAllocSize
+	COstream& oos
 	)
 {
 	WCHAR wszStackBuffer[GPOS_MINIDUMP_BUF_SIZE];
@@ -476,20 +375,7 @@ CMiniDumperTest::CSerializableStack::UlpSerialize
 
 	wstr.AppendFormat(GPOS_WSZ_LIT("</STACK_TRACE>\n"));
 
-	ULONG_PTR ulpSize = std::min
-		(
-		(ULONG_PTR) wstr.UlLength(),
-		ulpAllocSize
-		);
-
-	(void) clib::PvMemCpy
-		(
-		(BYTE *) wszEntry,
-		(BYTE *) wszStackBuffer,
-		ulpSize * GPOS_SIZEOF(WCHAR)
-		);
-
-	return ulpSize;
+	oos << wstr.Wsz();
 }
 
 

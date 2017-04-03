@@ -46,36 +46,23 @@ namespace gpopt
 			// plan space size
 			ULLONG m_ullPlanSpaceSize;
 
+			IMemoryPool *m_pmp;
+
 			// private copy ctor
 			CSerializablePlan(const CSerializablePlan&);
 
 		public:
 
 			// ctor
-			CSerializablePlan(const CDXLNode *pdxlnPlan, ULLONG ullPlanId, ULLONG ullPlanSpaceSize);
+			CSerializablePlan(const CDXLNode *pdxlnPlan, ULLONG ullPlanId, ULLONG ullPlanSpaceSize, IMemoryPool *pmp);
 
 			// dtor
 			virtual
 			~CSerializablePlan();
 
-			// calculate space needed for serialization
-			virtual
-			ULONG_PTR UlpRequiredSpace()
-			{
-				if (NULL == m_pstrPlan)
-				{
-					return 0;
-				}
-				
-				return m_pstrPlan->UlLength();
-			}
-
-			// serialize plan to string
-			void Serialize(IMemoryPool *pmp);
-
 			// serialize object to passed buffer
 			virtual
-			ULONG_PTR UlpSerialize(WCHAR *wszBuffer, ULONG_PTR ulpAllocSize);
+			void Serialize(COstream& oos);
 
 	}; // class CSerializablePlan
 }
