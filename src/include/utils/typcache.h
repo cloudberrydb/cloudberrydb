@@ -75,8 +75,6 @@ typedef struct TypeCacheEntry
 #define TYPECACHE_TUPDESC			0x0040
 #define TYPECACHE_BTREE_OPFAMILY	0x0080
 
-extern int32 NextRecordTypmod;
-
 extern TypeCacheEntry *lookup_type_cache(Oid type_id, int flags);
 
 extern TupleDesc lookup_rowtype_tupdesc(Oid type_id, int32 typmod);
@@ -88,6 +86,6 @@ extern TupleDesc lookup_rowtype_tupdesc_copy(Oid type_id, int32 typmod);
 
 extern void assign_record_type_typmod(TupleDesc tupDesc);
 
-extern List *build_tuple_node_list(int start);
+extern void build_tuple_node_list(List **transientTypeList);
 
 #endif   /* TYPCACHE_H */

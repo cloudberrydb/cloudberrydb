@@ -1163,6 +1163,7 @@ TypeGetTupleDesc(Oid typeoid, List *colaliases)
 			/* The tuple type is now an anonymous record type */
 			tupdesc->tdtypeid = RECORDOID;
 			tupdesc->tdtypmod = -1;
+			tupdesc->tdqdtypmod = -1;
 		}
 	}
 	else if (functypclass == TYPEFUNC_SCALAR)

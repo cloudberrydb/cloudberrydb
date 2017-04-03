@@ -434,9 +434,12 @@ ExecInitTableFunction(TableFunctionScan *node, EState *estate, int eflags)
 	scanstate->inputscan->subdesc  = inputdesc;
 
 	/* Determine projection information for subplan */
+	TupleDesc cleanTupType = ExecCleanTypeFromTL(subplan->plan->targetlist, 
+						     false /* hasoid */);
+
 	scanstate->inputscan->junkfilter =
 		ExecInitJunkFilter(subplan->plan->targetlist, 
-						   false,
+						   cleanTupType,
 						   NULL  /* slot */);
 	BlessTupleDesc(scanstate->inputscan->junkfilter->jf_cleanTupType);
 

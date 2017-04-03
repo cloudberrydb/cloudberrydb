@@ -425,6 +425,7 @@ Relation DirectOpen_Open(
 		direct->descData.constr = &direct->constrData;
 		direct->descData.tdtypeid = pgClass->reltype;
 		direct->descData.tdtypmod = -1;
+		direct->descData.tdqdtypmod = -1;
 		direct->descData.tdhasoid = relHasOid;
 		direct->descData.tdrefcount = 1;
 
