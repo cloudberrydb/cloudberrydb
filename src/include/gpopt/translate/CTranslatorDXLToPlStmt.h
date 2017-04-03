@@ -62,8 +62,6 @@ struct SubPlan;
 struct Result;
 struct Material;
 struct ShareInputScan;
-typedef Scan SeqScan;
-typedef OpExpr DistinctExpr;
 struct WindowFrame;
 //struct Const;
 //struct List;

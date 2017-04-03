@@ -24,12 +24,12 @@
 extern const char * show_session_authorization(void);
 extern char *get_database_name(Oid dbid);
 
-static void gpmon_record_kv(apr_int32_t tmid, apr_int32_t ssid, apr_int32_t ccnt,
+static void gpmon_record_kv(int32 tmid, int32 ssid, int32 ccnt,
 						 const char* key,
 						 const char* value,
 						 bool extraNewLine);
-static void gpmon_record_update(apr_int32_t tmid, apr_int32_t ssid,
-								apr_int32_t ccnt, apr_int32_t status);
+static void gpmon_record_update(int32 tmid, int32 ssid,
+								int32 ccnt, int32 status);
 static const char* gpmon_null_subst(const char* input);
 
 
@@ -110,7 +110,7 @@ void gpmon_init(void)
  * Boolean value extraByte indicates whether an additional newline is desired. This is
  * necessary because gpmon overwrites the last byte to indicate status.
  */
-static void gpmon_record_kv(apr_int32_t tmid, apr_int32_t ssid, apr_int32_t ccnt,
+static void gpmon_record_kv(int32 tmid, int32 ssid, int32 ccnt,
 				  const char* key,
 				  const char* value,
 				  bool extraNewLine)
@@ -137,8 +137,8 @@ static void gpmon_record_kv(apr_int32_t tmid, apr_int32_t ssid, apr_int32_t ccnt
 	fclose(fp);
 }
 
-void gpmon_record_update(apr_int32_t tmid, apr_int32_t ssid, apr_int32_t ccnt,
-						 apr_int32_t status)
+void gpmon_record_update(int32 tmid, int32 ssid, int32 ccnt,
+						 int32 status)
 {
 	char fname[GPMON_DIR_MAX_PATH];
 	FILE *fp;
@@ -157,10 +157,10 @@ void gpmon_record_update(apr_int32_t tmid, apr_int32_t ssid, apr_int32_t ccnt,
 	fclose(fp);
 }
 
-void gpmon_gettmid(apr_int32_t* tmid)
+void gpmon_gettmid(int32* tmid)
 {
     char buff[TMGIDSIZE] = {0};
-    apr_int32_t xid;
+    int32 xid;
     getDistributedTransactionIdentifier(buff);
     sscanf(buff, "%d-%d", tmid, &xid);
 } 

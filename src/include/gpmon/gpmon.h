@@ -1,18 +1,9 @@
 #ifndef GPMON_H
 #define GPMON_H
 
-#ifdef POSTGRES_H
-void gpmon_init(void);
-typedef int64 apr_int64_t;
-typedef int32 apr_int32_t;
-typedef int16 apr_int16_t;
-typedef uint8 apr_byte_t;
-typedef uint16 apr_uint16_t;
-typedef uint32 apr_uint32_t;
-typedef uint64 apr_uint64_t;
-#endif
+extern void gpmon_init(void);
 
-extern apr_int64_t gpmon_tick;
+extern int64 gpmon_tick;
 typedef struct gpmon_packet_t gpmon_packet_t;
 typedef struct gpmon_qlogkey_t gpmon_qlogkey_t;
 typedef struct gpmon_qlog_t gpmon_qlog_t;
@@ -62,7 +53,7 @@ extern void gpmon_qlog_query_end(gpmon_packet_t *gpmonPacket);
 extern void gpmon_qlog_query_error(gpmon_packet_t *gpmonPacket);
 extern void gpmon_qlog_query_canceling(gpmon_packet_t *gpmonPacket);
 extern void gpmon_send(gpmon_packet_t*);
-extern void gpmon_gettmid(apr_int32_t*);
+extern void gpmon_gettmid(int32*);
 
 /* ------------------------------------------------------------------
          FSINFO
@@ -78,9 +69,9 @@ struct gpmon_fsinfo_t
 {
 	gpmon_fsinfokey_t key;
 
-	apr_int64_t bytes_used;
-	apr_int64_t bytes_available;
-	apr_int64_t bytes_total;
+	int64 bytes_used;
+	int64 bytes_available;
+	int64 bytes_total;
 };
 
 /* ------------------------------------------------------------------
@@ -93,12 +84,12 @@ struct gpmon_metrics_t
 	char hname[NAMEDATALEN];
 	struct
 	{
-		apr_uint64_t total, used, actual_used, actual_free;
+		uint64 total, used, actual_used, actual_free;
 	} mem;
 
 	struct
 	{
-		apr_uint64_t total, used, page_in, page_out;
+		uint64 total, used, page_in, page_out;
 	} swap;
 
 	struct
@@ -113,12 +104,12 @@ struct gpmon_metrics_t
 
 	struct
 	{
-		apr_uint64_t ro_rate, wo_rate, rb_rate, wb_rate;
+		uint64 ro_rate, wo_rate, rb_rate, wb_rate;
 	} disk;
 
 	struct
 	{
-		apr_uint64_t rp_rate, wp_rate, rb_rate, wb_rate;
+		uint64 rp_rate, wp_rate, rb_rate, wb_rate;
 	} net;
 };
 
@@ -129,9 +120,9 @@ struct gpmon_metrics_t
 
 struct gpmon_qlogkey_t {
     /* if you modify this, do not forget to edit gpperfmon/src/gpmon/gpmonlib.c:gpmon_ntohpkt() */
-	apr_int32_t tmid;  /* transaction time */
-    apr_int32_t ssid; /* session id */
-    apr_int32_t ccnt; /* command count */
+	int32 tmid;  /* transaction time */
+    int32 ssid; /* session id */
+    int32 ccnt; /* command count */
 };
 
 /* ------------------------------------------------------------------
@@ -140,7 +131,7 @@ struct gpmon_qlogkey_t {
 struct gpmon_query_seginfo_key_t
 {
 	gpmon_qlogkey_t		qkey;
-	apr_int16_t			segid; /* segment id */
+	int16		segid; /* segment id */
 };
 
 struct gpmon_query_seginfo_t
@@ -150,18 +141,18 @@ struct gpmon_query_seginfo_t
 	 * final rowsout for segid = -1 and sliceid = 1, otherwise -1
 	 * if not exist for this segment.
 	 */
-	apr_int64_t					final_rowsout;
-	apr_uint64_t				sum_cpu_elapsed;
-	apr_uint64_t				sum_measures_rows_in;
+	int64				final_rowsout;
+	uint64				sum_cpu_elapsed;
+	uint64				sum_measures_rows_in;
 };
 
 /* process metrics ... filled in by gpsmon */
 typedef struct gpmon_proc_metrics_t gpmon_proc_metrics_t;
 struct gpmon_proc_metrics_t {
-    apr_uint32_t fd_cnt;		/* # opened files / sockets etc */
+    uint32 fd_cnt;		/* # opened files / sockets etc */
     float        cpu_pct;	/* cpu usage % */
     struct {
-    	apr_uint64_t size, resident, share;
+		uint64 size, resident, share;
     } mem;
 };
 
@@ -181,10 +172,10 @@ struct gpmon_qlog_t
 	gpmon_qlogkey_t key;
 	char        user[NAMEDATALEN];
 	char        db[NAMEDATALEN];
-	apr_int32_t tsubmit, tstart, tfin;
-	apr_int32_t status;		/* GPMON_QLOG_STATUS_XXXXXX */
-	apr_int32_t cost;
-	apr_int64_t cpu_elapsed; /* CPU elapsed for query */
+	int32 tsubmit, tstart, tfin;
+	int32 status;		/* GPMON_QLOG_STATUS_XXXXXX */
+	int32 cost;
+	int64 cpu_elapsed; /* CPU elapsed for query */
 	gpmon_proc_metrics_t p_metrics;
 };
 
@@ -194,9 +185,9 @@ struct gpmon_qlog_t
    ------------------------------------------------------------------ */
 
 typedef struct gpmon_qexec_hash_key_t {
-	apr_int16_t segid;	/* segment id */
-	apr_int32_t pid; 	/* process id */
-	apr_int16_t nid;	/* plan node id */
+	int16 segid;	/* segment id */
+	int32 pid; 	/* process id */
+	int16 nid;	/* plan node id */
 }gpmon_qexec_hash_key_t;
 
 /* XXX According to CK.
@@ -204,9 +195,9 @@ typedef struct gpmon_qexec_hash_key_t {
  */
 typedef struct gpmon_qexeckey_t {
     /* if you modify this, do not forget to edit gpperfmon/src/gpmon/gpmonlib.c:gpmon_ntohpkt() */
-    apr_int32_t tmid;  /* transaction time */
-    apr_int32_t ssid; /* session id */
-    apr_int16_t ccnt;	/* command count */
+    int32 tmid;  /* transaction time */
+    int32 ssid; /* session id */
+    int16 ccnt;	/* command count */
     gpmon_qexec_hash_key_t hash_key;
 }gpmon_qexeckey_t;
 
@@ -230,39 +221,39 @@ enum {
 
 struct gpmon_qexec_t {
 	/* if you modify this, do not forget to edit gpperfmon/src/gpmon/gpmonlib.c:gpmon_ntohpkt() */
-	gpmon_qexeckey_t 		key;
-	apr_int32_t  			pnid;	/* plan parent node id */
-	char        			_hname[NAMEDATALEN];
-	apr_uint16_t			nodeType; 					/* using enum PerfmonNodeType */
-	apr_byte_t 				status;    /* node status using PerfmonNodeStatus */
-	apr_int32_t 			tstart, tduration; /* start (wall clock) time and duration.  XXX Leave as 0 for now. */
-	apr_uint64_t 			p_mem, p_memmax;   /* XXX Aset instrumentation.  Leave as 0 for now. */
-	apr_uint64_t			_cpu_elapsed; /* CPU elapsed for iter */
+	gpmon_qexeckey_t key;
+	int32  		pnid;	/* plan parent node id */
+	char		_hname[NAMEDATALEN];
+	uint16		nodeType; 					/* using enum PerfmonNodeType */
+	uint8		status;    /* node status using PerfmonNodeStatus */
+	int32 		tstart, tduration; /* start (wall clock) time and duration.  XXX Leave as 0 for now. */
+	uint64 		p_mem, p_memmax;   /* XXX Aset instrumentation.  Leave as 0 for now. */
+	uint64		_cpu_elapsed; /* CPU elapsed for iter */
 	gpmon_proc_metrics_t 	_p_metrics;
-	apr_uint64_t 			rowsout, rowsout_est;
-	apr_uint64_t 			measures[GPMON_QEXEC_M_COUNT];
-	char 					relation_name[SCAN_REL_NAME_BUF_SIZE];
+	uint64 		rowsout, rowsout_est;
+	uint64 		measures[GPMON_QEXEC_M_COUNT];
+	char		relation_name[SCAN_REL_NAME_BUF_SIZE];
 };
 
 /*
  * Segment-related statistics
  */
 struct gpmon_seginfo_t {
-	apr_int32_t dbid; 							// dbid as in gp_segment_configuration
+	int32 dbid; 							// dbid as in gp_segment_configuration
 	char hostname[NAMEDATALEN];					// hostname without NIC extension
-	apr_uint64_t dynamic_memory_used;			// allocated memory in bytes
-	apr_uint64_t dynamic_memory_available;		// available memory in bytes,
+	uint64 dynamic_memory_used;			// allocated memory in bytes
+	uint64 dynamic_memory_available;		// available memory in bytes,
 };
 
 /*
 //we could clean up the primary and mirror stats using this basicStat struct
 typedef struct gpmon_filerep_basicStat_s
 {
-		apr_uint32_t count;
-		apr_uint32_t time_avg;
-		apr_uint32_t time_max;
-		apr_uint32_t size_avg;
-		apr_uint32_t size_max;
+		uint32 count;
+		uint32 time_avg;
+		uint32 time_max;
+		uint32 size_avg;
+		uint32 size_max;
 
 } gpmon_filerep_basicStat_s;
 */
@@ -274,53 +265,53 @@ typedef struct gpmon_filerep_primarystats_s
 
 	//NOTE: 32 bits can store over an hour of microseconds - we will not worry about this
 	// EVENT: write systemcall on primary
-	apr_uint32_t write_syscall_size_avg;
-	apr_uint32_t write_syscall_size_max;
-	apr_uint32_t write_syscall_time_avg; // microseconds;
-	apr_uint32_t write_syscall_time_max; // microseconds;
-	apr_uint32_t write_syscall_count;
+	uint32 write_syscall_size_avg;
+	uint32 write_syscall_size_max;
+	uint32 write_syscall_time_avg; // microseconds;
+	uint32 write_syscall_time_max; // microseconds;
+	uint32 write_syscall_count;
 
 	// EVENT: fsync systemcall on primary
-	apr_uint32_t fsync_syscall_time_avg; // microseconds;
-	apr_uint32_t fsync_syscall_time_max; // microseconds;
-	apr_uint32_t fsync_syscall_count;
+	uint32 fsync_syscall_time_avg; // microseconds;
+	uint32 fsync_syscall_time_max; // microseconds;
+	uint32 fsync_syscall_count;
 
 	// EVENT: putting write message into shared memory
-	apr_uint32_t write_shmem_size_avg;
-	apr_uint32_t write_shmem_size_max;
-	apr_uint32_t write_shmem_time_avg; // microseconds;
-	apr_uint32_t write_shmem_time_max; // microseconds;
-	apr_uint32_t write_shmem_count;
+	uint32 write_shmem_size_avg;
+	uint32 write_shmem_size_max;
+	uint32 write_shmem_time_avg; // microseconds;
+	uint32 write_shmem_time_max; // microseconds;
+	uint32 write_shmem_count;
 
 	// EVENT: putting fsync message into shared memory
-	apr_uint32_t fsync_shmem_time_avg; // microseconds;
-	apr_uint32_t fsync_shmem_time_max; // microseconds;
-	apr_uint32_t fsync_shmem_count;
+	uint32 fsync_shmem_time_avg; // microseconds;
+	uint32 fsync_shmem_time_max; // microseconds;
+	uint32 fsync_shmem_count;
 
 	// EVENT: Roundtrip from sending fsync message to mirror to get ack back on primary
-	apr_uint32_t roundtrip_fsync_msg_time_avg; // microseconds;
-	apr_uint32_t roundtrip_fsync_msg_time_max; // microseconds;
-	apr_uint32_t roundtrip_fsync_msg_count;
+	uint32 roundtrip_fsync_msg_time_avg; // microseconds;
+	uint32 roundtrip_fsync_msg_time_max; // microseconds;
+	uint32 roundtrip_fsync_msg_count;
 
 	// EVENT: Roundtrip from sending test message to mirror to getting back on primary
-	apr_uint32_t roundtrip_test_msg_time_avg; // microseconds;
-	apr_uint32_t roundtrip_test_msg_time_max; // microseconds;
-	apr_uint32_t roundtrip_test_msg_count;
+	uint32 roundtrip_test_msg_time_avg; // microseconds;
+	uint32 roundtrip_test_msg_time_max; // microseconds;
+	uint32 roundtrip_test_msg_count;
 } gpmon_filerep_primarystats_s;
 
 typedef struct gpmon_filerep_mirrorstats_s
 {
 	// EVENT: write systemcall on mirror
-	apr_uint32_t write_syscall_size_avg;
-	apr_uint32_t write_syscall_size_max;
-	apr_uint32_t write_syscall_time_avg; // microseconds;
-	apr_uint32_t write_syscall_time_max; // microseconds;
-	apr_uint32_t write_syscall_count;
+	uint32 write_syscall_size_avg;
+	uint32 write_syscall_size_max;
+	uint32 write_syscall_time_avg; // microseconds;
+	uint32 write_syscall_time_max; // microseconds;
+	uint32 write_syscall_count;
 
 	// EVENT: fsync systemcall on mirror
-	apr_uint32_t fsync_syscall_time_avg; // microseconds;
-	apr_uint32_t fsync_syscall_time_max; // microseconds;
-	apr_uint32_t fsync_syscall_count;
+	uint32 fsync_syscall_time_avg; // microseconds;
+	uint32 fsync_syscall_time_max; // microseconds;
+	uint32 fsync_syscall_count;
 } gpmon_filerep_mirrorstats_s;
 
 
@@ -332,9 +323,9 @@ typedef union gpmon_filerep_stats_u {
 typedef struct gpmmon_filerep_key_t
 {
 	char primary_hostname[NAMEDATALEN];
-	apr_uint16_t primary_port;
+	uint16 primary_port;
 	char mirror_hostname[NAMEDATALEN];
-	apr_uint16_t mirror_port;
+	uint16 mirror_port;
 
 } gpmmon_filerep_key_t;
 
@@ -359,8 +350,8 @@ struct gpmon_filerepinfo_t
    ------------------------------------------------------------------ */
 
 struct gpmon_hello_t {
-    apr_int64_t signature;
-    apr_int32_t pid; /* pid of gpsmon */
+    int64 signature;
+    int32 pid; /* pid of gpsmon */
 };
 
 
@@ -394,9 +385,9 @@ enum gpmon_pkttype_t {
 
 struct gpmon_packet_t {
     /* if you modify this, do not forget to edit gpperfmon/src/gpmon/gpmonlib.c:gpmon_ntohpkt() */
-    apr_int32_t magic;
-    apr_int16_t version;
-    apr_int16_t pkttype;
+    int32 magic;
+    int16 version;
+    int16 pkttype;
     union {
 		gpmon_hello_t   hello;
 		gpmon_metrics_t metrics;

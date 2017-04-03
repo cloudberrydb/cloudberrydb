@@ -56,9 +56,6 @@ struct List;
 struct SubLink;
 struct SubPlan;
 
-typedef OpExpr DistinctExpr;
-
-
 namespace gpdxl
 {
 	using namespace gpopt;

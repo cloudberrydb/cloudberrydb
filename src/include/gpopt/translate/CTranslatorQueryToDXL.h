@@ -36,9 +36,6 @@ namespace gpopt
 
 struct Query;
 struct RangeTblEntry;
-struct GroupingClause;
-struct SortClause;
-typedef SortClause GroupClause;
 struct Const;
 struct List;
 struct CommonTableExpr;

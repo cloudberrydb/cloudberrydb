@@ -1333,7 +1333,7 @@ typedef struct FileRepGpmonRecord_s {
 		//should we use gettimeofday and struct timeval instead?
 		TimestampTz startTime;
 		TimestampTz endTime;
-		apr_uint32_t size;
+		int32 size;
 
 } FileRepGpmonRecord_s;
 

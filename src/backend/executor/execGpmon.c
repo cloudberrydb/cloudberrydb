@@ -106,8 +106,7 @@ void InitPlanNodeGpmonPkt(Plan *plan, gpmon_packet_t *gpmon_pkt, EState *estate,
 
 	gpmon_pkt->u.qexec.pnid = plan->plan_parent_node_id;
 
-
-	gpmon_pkt->u.qexec.nodeType = (apr_uint16_t)type;
+	gpmon_pkt->u.qexec.nodeType = (uint16) type;
 
 	gpmon_pkt->u.qexec.rowsout = 0;
 	gpmon_pkt->u.qexec.rowsout_est = rowsout_est / rowsout_adjustment_factor;

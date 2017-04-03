@@ -21,7 +21,6 @@
 
 // fwd declarations
 typedef struct SysScanDescData *SysScanDesc;
-typedef struct SnapshotData *Snapshot;
 typedef int LOCKMODE;
 struct TypeCacheEntry;
 typedef struct NumericData *Numeric;
@@ -32,7 +31,6 @@ struct Value;
 typedef struct tupleDesc *TupleDesc;
 struct Query;
 typedef struct ScanKeyData *ScanKey;
-typedef uint16 StrategyNumber;
 struct Bitmapset;
 struct Plan;
 struct ListCell;
