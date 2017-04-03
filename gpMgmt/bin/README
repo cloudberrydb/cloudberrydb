@@ -29,7 +29,6 @@ Where Things Go
 
 List of Management Scripts Written in Perl
 ------------------------------------------
-bin/gpugpart.pl         -  Upgrades postgres style partition to Greenplum partitioning
 bin/run_operator_tests.pl -
 
 List of Management Scripts Written in Bash
