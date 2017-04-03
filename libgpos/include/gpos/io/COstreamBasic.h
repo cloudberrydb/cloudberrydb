@@ -47,6 +47,10 @@ namespace gpos
 						
 			// implement << operator				
 			virtual IOstream& operator<< (const WCHAR *);
+
+			// implement << operator
+			virtual IOstream& operator<< (const WCHAR);
+
 	};
 
 }

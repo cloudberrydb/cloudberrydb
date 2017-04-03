@@ -38,10 +38,10 @@ namespace gpopt
 	{
 		private:
 
+			IMemoryPool *m_pmp;
+
 			// optimizer configurations
 			const COptimizerConfig *m_poconf;
-
-			IMemoryPool *m_pmp;
 
 			// private copy ctor
 			CSerializableOptimizerConfig(const CSerializableOptimizerConfig&);
@@ -52,7 +52,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CSerializableOptimizerConfig(const COptimizerConfig *poconf, IMemoryPool *pmp);
+			CSerializableOptimizerConfig(IMemoryPool *pmp, const COptimizerConfig *poconf);
 
 			// dtor
 			virtual

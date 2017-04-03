@@ -541,17 +541,17 @@ CParseHandlerTest::EresParseAndSerializeQuery
 	DrgPdxln* pdrgpdxln = const_cast<DrgPdxln* >(pq2dxlresult->PdrgpdxlnOutputCols());
 	DrgPdxln* pdrgpdxlnCTE = const_cast<DrgPdxln* >(pq2dxlresult->PdrgpdxlnCTE());
 
-	CWStringDynamic queryStr(pmp);
-	COstreamString queryOs(&queryStr);
+	CWStringDynamic wstrQuery(pmp);
+	COstreamString osQuery(&wstrQuery);
 
-	CDXLUtils::SerializeQuery(pmp, queryOs, pdxlnRoot, pdrgpdxln, pdrgpdxlnCTE, true /*fSerializeHeaderFooter*/, true /*fIndent*/);
+	CDXLUtils::SerializeQuery(pmp, osQuery, pdxlnRoot, pdrgpdxln, pdrgpdxlnCTE, true /*fSerializeHeaderFooter*/, true /*fIndent*/);
 
 	CWStringDynamic dstrExpected(pmp);
 	dstrExpected.AppendFormat(GPOS_WSZ_LIT("%s"), szDXL);
 
-	if (!dstrExpected.FEquals(&queryStr))
+	if (!dstrExpected.FEquals(&wstrQuery))
 	{
-		GPOS_TRACE(queryStr.Wsz());
+		GPOS_TRACE(wstrQuery.Wsz());
 	}
 
 	// cleanup

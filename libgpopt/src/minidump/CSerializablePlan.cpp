@@ -31,18 +31,18 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CSerializablePlan::CSerializablePlan
 	(
+	IMemoryPool *pmp,
 	const CDXLNode *pdxlnPlan,
 	ULLONG ullPlanId,
-	ULLONG ullPlanSpaceSize,
-	IMemoryPool *pmp
+	ULLONG ullPlanSpaceSize
 	)
 	:
 	CSerializable(),
+	m_pmp(pmp),
 	m_pdxlnPlan(pdxlnPlan),
 	m_pstrPlan(NULL),
 	m_ullPlanId(ullPlanId),
-	m_ullPlanSpaceSize(ullPlanSpaceSize),
-	m_pmp(pmp)
+	m_ullPlanSpaceSize(ullPlanSpaceSize)
 {
 	GPOS_ASSERT(NULL != pdxlnPlan);
 }

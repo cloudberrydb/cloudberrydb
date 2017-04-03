@@ -42,13 +42,13 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CSerializableOptimizerConfig::CSerializableOptimizerConfig
 	(
-	const COptimizerConfig *poconf,
-	IMemoryPool *pmp
+	IMemoryPool *pmp,
+	const COptimizerConfig *poconf
 	)
 	:
 	CSerializable(),
-	m_poconf(poconf),
-	m_pmp(pmp)
+	m_pmp(pmp),
+	m_poconf(poconf)
 {
 	GPOS_ASSERT(NULL != poconf);
 }

@@ -31,17 +31,17 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CSerializableQuery::CSerializableQuery
 	(
-	const CDXLNode *pdxlnQuery, 
+	IMemoryPool *pmp,
+	const CDXLNode *pdxlnQuery,
 	const DrgPdxln *pdrgpdxlnQueryOutput,
-	const DrgPdxln *pdrgpdxlnCTE,
-	IMemoryPool *pmp
+	const DrgPdxln *pdrgpdxlnCTE
 	)
 	:
 	CSerializable(),
+	m_pmp(pmp),
 	m_pdxlnQuery(pdxlnQuery),
 	m_pdrgpdxlnQueryOutput(pdrgpdxlnQueryOutput),
-	m_pdrgpdxlnCTE(pdrgpdxlnCTE),
-	m_pmp(pmp)
+	m_pdrgpdxlnCTE(pdrgpdxlnCTE)
 {
 	GPOS_ASSERT(NULL != pdxlnQuery);
 	GPOS_ASSERT(NULL != pdrgpdxlnQueryOutput);

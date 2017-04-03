@@ -422,20 +422,6 @@ CXMLSerializer::WriteEscaped
 {
 	GPOS_ASSERT(NULL != pstr);
 	
-	const ULONG ulSpecialChars = 8;
-	
-	const WCHAR *wszSpecialChars[][ulSpecialChars] = 
-	{
-	{GPOS_WSZ_LIT("\""), GPOS_WSZ_LIT("&quot;")},
-	{GPOS_WSZ_LIT("'"), GPOS_WSZ_LIT("&apos;")},
-	{GPOS_WSZ_LIT("<"), GPOS_WSZ_LIT("&lt;")},
-	{GPOS_WSZ_LIT(">"), GPOS_WSZ_LIT("&gt;")},
-	{GPOS_WSZ_LIT("&"), GPOS_WSZ_LIT("&amp;")},
-	{GPOS_WSZ_LIT("\t"), GPOS_WSZ_LIT("&#x9;")},
-	{GPOS_WSZ_LIT("\n"), GPOS_WSZ_LIT("&#xA;")},
-	{GPOS_WSZ_LIT("\r"), GPOS_WSZ_LIT("&#xD;")}
-	};
-	
 	const ULONG ulLength = pstr->UlLength();
 	const WCHAR *wsz = pstr->Wsz();
 	
@@ -443,24 +429,34 @@ CXMLSerializer::WriteEscaped
 	{
 		const WCHAR wc = wsz[ulA];
 		
-		const WCHAR *wszEscaped = NULL;
-		
-		for (ULONG ulB = 0; ulB < ulSpecialChars; ulB++)
+		switch (wc)
 		{
-			if (0 == clib::IWcsNCmp(&wc, wszSpecialChars[ulB][0], 1 /*ulNum*/))
-			{
-				wszEscaped = wszSpecialChars[ulB][1];
+			case GPOS_WSZ_LIT('\"'):
+				os << GPOS_WSZ_LIT("&quot;");
 				break;
-			}
-		}
-		
-		if (NULL != wszEscaped)
-		{
-			os << wszEscaped;
-		}
-		else
-		{
-			os << wc;
+			case GPOS_WSZ_LIT('\''):
+				os << GPOS_WSZ_LIT("&apos;");
+				break;
+			case GPOS_WSZ_LIT('<'):
+				os << GPOS_WSZ_LIT("&lt;");
+				break;
+			case GPOS_WSZ_LIT('>'):
+				os << GPOS_WSZ_LIT("&gt;");
+				break;
+			case GPOS_WSZ_LIT('&'):
+				os << GPOS_WSZ_LIT("&amp;");
+				break;
+			case GPOS_WSZ_LIT('\t'):
+				os << GPOS_WSZ_LIT("&#x9;");
+				break;
+			case GPOS_WSZ_LIT('\n'):
+				os << GPOS_WSZ_LIT("&#xA;");
+				break;
+			case GPOS_WSZ_LIT('\r'):
+				os << GPOS_WSZ_LIT("&#xD;");
+				break;
+			default:
+				os << wc;
 		}
 	}
 }

@@ -33,7 +33,9 @@ namespace gpopt
 	class CSerializablePlan : public CSerializable
 	{
 		private:
-			
+
+			IMemoryPool *m_pmp;
+
 			// plan DXL node
 			const CDXLNode *m_pdxlnPlan;
 
@@ -46,7 +48,6 @@ namespace gpopt
 			// plan space size
 			ULLONG m_ullPlanSpaceSize;
 
-			IMemoryPool *m_pmp;
 
 			// private copy ctor
 			CSerializablePlan(const CSerializablePlan&);
@@ -54,7 +55,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CSerializablePlan(const CDXLNode *pdxlnPlan, ULLONG ullPlanId, ULLONG ullPlanSpaceSize, IMemoryPool *pmp);
+			CSerializablePlan(IMemoryPool *pmp, const CDXLNode *pdxlnPlan, ULLONG ullPlanId, ULLONG ullPlanSpaceSize);
 
 			// dtor
 			virtual

@@ -62,8 +62,8 @@ CMiniDumperTest::EresUnittest_Basic()
 
 	CMiniDumperStream mdrs(pmp);
 
-	CWStringDynamic minidumpstr(pmp);
-	COstreamString oss(&minidumpstr);
+	CWStringDynamic wstrMinidump(pmp);
+	COstreamString oss(&wstrMinidump);
 	mdrs.Init(&oss);
 
 	GPOS_TRY
@@ -76,7 +76,7 @@ CMiniDumperTest::EresUnittest_Basic()
 
 		GPOS_RESET_EX;
 
-		GPOS_TRACE(minidumpstr.Wsz());
+		GPOS_TRACE(wstrMinidump.Wsz());
 	}
 	GPOS_CATCH_END;
 
@@ -100,8 +100,8 @@ CMiniDumperTest::EresUnittest_Concurrency()
 
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
 
-	CWStringDynamic minidumpstr(pmp);
-	COstreamString oss(&minidumpstr);
+	CWStringDynamic wstrMinidump(pmp);
+	COstreamString oss(&wstrMinidump);
 	CMiniDumperStream mdrs(pmp);
 	mdrs.Init(&oss);
 
@@ -137,7 +137,7 @@ CMiniDumperTest::EresUnittest_Concurrency()
 
 		GPOS_RESET_EX;
 
-		GPOS_TRACE(minidumpstr.Wsz());
+		GPOS_TRACE(wstrMinidump.Wsz());
 	}
 	GPOS_CATCH_END;
 

@@ -52,5 +52,23 @@ COstreamBasic::operator <<
 	return *this;
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		COstreamBasic::operator<<
+//
+//	@doc:
+//		WCHAR write thru;
+//
+//---------------------------------------------------------------------------
+IOstream&
+COstreamBasic::operator <<
+    (
+	const WCHAR wc
+    )
+{
+	m_pos = &(*m_pos << wc);
+	return *this;
+}
+
 // EOF
 

@@ -205,8 +205,8 @@ COptimizer::PdxlnOptimize
 	// minidumper. (We create the minidumper object even if we're not
 	// dumping, but without the Init-call, it will stay inactive.)
 	CMiniDumperDXL mdmp(pmp);
-	CAutoP<std::wofstream> minidumpWos;
-	CAutoP<COstreamBasic> minidumpOs;
+	CAutoP<std::wofstream> wosMinidump;
+	CAutoP<COstreamBasic> osMinidump;
 	if (fMinidump)
 	{
 		CHAR szFileName[GPOS_FILE_NAME_BUF_SIZE];
@@ -216,19 +216,19 @@ COptimizer::PdxlnOptimize
 		// Note: std::wofstream won't throw an error on failure. The stream is merely marked as
 		// failed. We could check the state, and avoid the overhead of serializing the
 		// minidump if it failed, but it's hardly worth optimizing for an error case.
-		minidumpWos = GPOS_NEW(pmp) std::wofstream(szFileName);
-		minidumpOs = GPOS_NEW(pmp) COstreamBasic(minidumpWos.Pt());
+		wosMinidump = GPOS_NEW(pmp) std::wofstream(szFileName);
+		osMinidump = GPOS_NEW(pmp) COstreamBasic(wosMinidump.Pt());
 
-		mdmp.Init(minidumpOs.Pt());
+		mdmp.Init(osMinidump.Pt());
 	}
 	CDXLNode *pdxlnPlan = NULL;
 	CErrorHandlerStandard errhdl;
 	GPOS_TRY_HDL(&errhdl)
 	{
 		CSerializableStackTrace serStack;
-		CSerializableOptimizerConfig serOptConfig(poconf, pmp);
+		CSerializableOptimizerConfig serOptConfig(pmp, poconf);
 		CSerializableMDAccessor serMDA(pmda);
-		CSerializableQuery serQuery(pdxlnQuery, pdrgpdxlnQueryOutput, pdrgpdxlnCTE, pmp);
+		CSerializableQuery serQuery(pmp, pdxlnQuery, pdrgpdxlnQueryOutput, pdrgpdxlnCTE);
 
 		{			
 			poconf->AddRef();
@@ -276,7 +276,7 @@ COptimizer::PdxlnOptimize
 
 			if (fMinidump)
 			{
-				CSerializablePlan serPlan(pdxlnPlan, poconf->Pec()->UllPlanId(), poconf->Pec()->UllPlanSpaceSize(), pmp);
+				CSerializablePlan serPlan(pmp, pdxlnPlan, poconf->Pec()->UllPlanId(), poconf->Pec()->UllPlanSpaceSize());
 				CMinidumperUtils::Finalize(&mdmp, true /* fSerializeErrCtxt*/);
 				GPOS_CHECK_ABORT;
 			}
