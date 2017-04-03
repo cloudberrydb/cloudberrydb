@@ -55,7 +55,6 @@ CContextDXLToPlStmt::CContextDXLToPlStmt
 	m_pintocl(NULL),
 	m_pdistrpolicy(NULL)
 {
-	m_phmuldxltrctxSharedScan = GPOS_NEW(m_pmp) HMUlDxltrctx(m_pmp);
 	m_phmulcteconsumerinfo = GPOS_NEW(m_pmp) HMUlCTEConsumerInfo(m_pmp);
 	m_pdrgpulNumSelectors = GPOS_NEW(m_pmp) DrgPul(m_pmp);
 }
@@ -70,7 +69,6 @@ CContextDXLToPlStmt::CContextDXLToPlStmt
 //---------------------------------------------------------------------------
 CContextDXLToPlStmt::~CContextDXLToPlStmt()
 {
-	m_phmuldxltrctxSharedScan->Release();
 	m_phmulcteconsumerinfo->Release();
 	m_pdrgpulNumSelectors->Release();
 }
@@ -361,49 +359,6 @@ CContextDXLToPlStmt::AddCtasInfo
 	
 	m_pintocl = pintocl;
 	m_pdistrpolicy = pdistrpolicy;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CContextDXLToPlStmt::PdxltrctxForSharedScan
-//
-//	@doc:
-//		Returns the context for the shared scan with the given spool id
-//
-//---------------------------------------------------------------------------
-const CDXLTranslateContext *
-CContextDXLToPlStmt::PdxltrctxForSharedScan
-	(
-	ULONG ulSpoolId
-	)
-{
-	const CDXLTranslateContext *pdxltrctx = m_phmuldxltrctxSharedScan->PtLookup(&ulSpoolId);
-	return pdxltrctx;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CContextDXLToPlStmt::AddSharedScanTranslationContext
-//
-//	@doc:
-//		Stores the context for the shared scan with the given spool id
-//
-//---------------------------------------------------------------------------
-void
-CContextDXLToPlStmt::AddSharedScanTranslationContext
-	(
-	ULONG ulSpoolId,
-	CDXLTranslateContext *pdxltrctx
-	)
-{
-	ULONG *pul = GPOS_NEW(m_pmp) ULONG(ulSpoolId);
-
-#ifdef GPOS_DEBUG
-	BOOL fInserted =
-#endif
-	m_phmuldxltrctxSharedScan->FInsert(pul, pdxltrctx);
-
-	GPOS_ASSERT(fInserted);
 }
 
 // EOF

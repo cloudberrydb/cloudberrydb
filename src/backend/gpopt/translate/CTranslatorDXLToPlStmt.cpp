@@ -58,42 +58,6 @@ using namespace gpmd;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		ShtypeFromSpoolInfo
-//
-//	@doc:
-//		Helper function for extracting the GPDB share type from a DXL spool info object
-//
-//---------------------------------------------------------------------------
-ShareType
-ShtypeFromSpoolInfo(const CDXLSpoolInfo *pspoolinfo)
-{
-	ShareType shtype = SHARE_NOTSHARED;
-
-	GPOS_ASSERT(NULL != pspoolinfo);
-
-	if (EdxlspoolMaterialize == pspoolinfo->Edxlsptype())
-	{
-		shtype = SHARE_MATERIAL;
-		if (pspoolinfo->FMultiSlice())
-		{
-			shtype = SHARE_MATERIAL_XSLICE;
-		}
-	}
-	else if (EdxlspoolSort == pspoolinfo->Edxlsptype())
-	{
-		shtype = SHARE_SORT;
-		if (pspoolinfo->FMultiSlice())
-		{
-			shtype = SHARE_SORT_XSLICE;
-		}
-	}
-
-	return shtype;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CTranslatorDXLToPlStmt::CTranslatorDXLToPlStmt
 //
 //	@doc:
@@ -156,7 +120,6 @@ CTranslatorDXLToPlStmt::InitTranslators()
 	{
 			{EdxlopPhysicalTableScan,				&gpopt::CTranslatorDXLToPlStmt::PtsFromDXLTblScan},
 			{EdxlopPhysicalExternalScan,			&gpopt::CTranslatorDXLToPlStmt::PtsFromDXLTblScan},
-			//{EdxlopPhysicalIndexOnlyScan,			&gpopt::CTranslatorDXLToPlStmt::PiosFromDXLIndexOnlyScan},
 			{EdxlopPhysicalIndexScan,				&gpopt::CTranslatorDXLToPlStmt::PisFromDXLIndexScan},
 			{EdxlopPhysicalHashJoin, 				&gpopt::CTranslatorDXLToPlStmt::PhjFromDXLHJ},
 			{EdxlopPhysicalNLJoin, 					&gpopt::CTranslatorDXLToPlStmt::PnljFromDXLNLJ},
@@ -174,7 +137,6 @@ CTranslatorDXLToPlStmt::InitTranslators()
 			{EdxlopPhysicalResult, 					&gpopt::CTranslatorDXLToPlStmt::PresultFromDXLResult},
 			{EdxlopPhysicalAppend, 					&gpopt::CTranslatorDXLToPlStmt::PappendFromDXLAppend},
 			{EdxlopPhysicalMaterialize, 			&gpopt::CTranslatorDXLToPlStmt::PmatFromDXLMaterialize},
-			{EdxlopPhysicalSharedScan, 				&gpopt::CTranslatorDXLToPlStmt::PshscanFromDXLSharedScan},
 			{EdxlopPhysicalSequence, 				&gpopt::CTranslatorDXLToPlStmt::PplanSequence},
 			{EdxlopPhysicalDynamicTableScan,		&gpopt::CTranslatorDXLToPlStmt::PplanDTS},
 			{EdxlopPhysicalDynamicIndexScan,		&gpopt::CTranslatorDXLToPlStmt::PplanDIS},
@@ -3693,103 +3655,6 @@ CTranslatorDXLToPlStmt::PmatFromDXLMaterialize
 	pdrgpdxltrctx->Release();
 
 	return (Plan *) pmat;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorDXLToPlStmt::PshscanFromDXLSharedScan
-//
-//	@doc:
-//		Translate DXL materialize node into GPDB Material plan node
-//
-//---------------------------------------------------------------------------
-Plan *
-CTranslatorDXLToPlStmt::PshscanFromDXLSharedScan
-	(
-	const CDXLNode *pdxlnSharedScan,
-	CDXLTranslateContext *pdxltrctxOut,
-	Plan *pplanParent,
-	DrgPdxltrctx *pdrgpdxltrctxPrevSiblings
-	)
-{
-	// create sort plan node
-	ShareInputScan *pshscan = MakeNode(ShareInputScan);
-
-	CDXLPhysicalSharedScan *pdxlopShscan = CDXLPhysicalSharedScan::PdxlopConvert(pdxlnSharedScan->Pdxlop());
-
-	// set spooling info
-	const CDXLSpoolInfo *pspoolinfo = pdxlopShscan->Pspoolinfo();
-
-	pshscan->share_id = pspoolinfo->UlSpoolId();
-	pshscan->driver_slice = pspoolinfo->IExecutorSlice();
-	pshscan->share_type = ShtypeFromSpoolInfo(pspoolinfo);
-
-	GPOS_ASSERT(SHARE_NOTSHARED != pshscan->share_type);
-
-	Plan *pplan = &(pshscan->scan.plan);
-	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
-	pplan->plan_parent_node_id = IPlanId(pplanParent);
-
-	// translate operator costs
-	TranslatePlanCosts
-		(
-		CDXLPhysicalProperties::PdxlpropConvert(pdxlnSharedScan->Pdxlprop())->Pdxlopcost(),
-		&(pplan->startup_cost),
-		&(pplan->total_cost),
-		&(pplan->plan_rows),
-		&(pplan->plan_width)
-		);
-
-	CDXLTranslateContext *pdxltrctxChild = NULL;
-
-	if (EdxlshscanIndexSentinel == pdxlnSharedScan->UlArity())
-	{
-		// translate shared scan child
-		CDXLNode *pdxlnChild = (*pdxlnSharedScan)[EdxlshscanIndexChild];
-		pdxltrctxChild = GPOS_NEW(m_pmp) CDXLTranslateContext(m_pmp, false, pdxltrctxOut->PhmColParam());
-
-		Plan *pplanChild = PplFromDXL(pdxlnChild, pdxltrctxChild, pplan, pdrgpdxltrctxPrevSiblings);
-
-		pplan->lefttree = pplanChild;
-		pplan->nMotionNodes = pplanChild->nMotionNodes;
-
-		// store translation context
-		m_pctxdxltoplstmt->AddSharedScanTranslationContext(pspoolinfo->UlSpoolId(), pdxltrctxChild);
-	}
-	else
-	{
-		// no direct child: we must have translated the actual spool for this shared scan already
-		// find the corresponding translation context
-		pdxltrctxChild = const_cast<CDXLTranslateContext*>(m_pctxdxltoplstmt->PdxltrctxForSharedScan(pspoolinfo->UlSpoolId()));
-	}
-
-	GPOS_ASSERT(NULL != pdxltrctxChild);
-
-	CDXLNode *pdxlnPrL = (*pdxlnSharedScan)[EdxlshscanIndexProjList];
-	CDXLNode *pdxlnFilter = (*pdxlnSharedScan)[EdxlshscanIndexFilter];
-
-	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);
-	pdrgpdxltrctx->Append(pdxltrctxChild);
-
-	// translate proj list and filter
-	TranslateProjListAndFilter
-		(
-		pdxlnPrL,
-		pdxlnFilter,
-		NULL,			// translate context for the base table
-		pdrgpdxltrctx,
-		&pplan->targetlist,
-		&pplan->qual,
-		pdxltrctxOut,
-		pplan
-		);
-
-	SetParamIds(pplan);
-
-	// cleanup
-	pdrgpdxltrctx->Release();
-
-	return (Plan *) pshscan;
 }
 
 //---------------------------------------------------------------------------
