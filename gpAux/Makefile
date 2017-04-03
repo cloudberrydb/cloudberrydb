@@ -11,10 +11,10 @@ all : devel
 
 # Targets for building GPDB with various options
 # (development builds)
-.PHONY : devel devel_faultinj 
+.PHONY : devel devel_faultinj
 
 # (release builds)
-.PHONY : dist dist_prof 
+.PHONY : dist dist_prof
 
 # Targets recognized by the PostgreSQL makefile (GNUmakefile)
 .PHONY : all install installdirs uninstall distprep
@@ -184,7 +184,7 @@ PG_LANG=false
 endif
 
 ifneq (false, ${PG_LANG})
-CONFIGFLAGS+= --with-perl --with-python 
+CONFIGFLAGS+= --with-perl --with-python
 ifdef TCL_CFG
 CONFIGFLAGS+= --with-tcl-config=${TCL_CFG}
 endif
@@ -254,7 +254,7 @@ BLD_CONFIG_SHELL=$($(BLD_ARCH)_CONFIG_SHELL)
 
 $(GPPGDIR)/GNUmakefile : $(GPPGDIR)/configure  env.sh
 	rm -rf $(INSTLOC)
-	mkdir -p $(GPPGDIR) 
+	mkdir -p $(GPPGDIR)
 	if [ "$(BLD_ARCH)" = "win32" ]; then \
 		$(MAKE) -C $(GPPGDIR)/src/bin/gpfdist/ext BLD_TOP=$(BLD_TOP); \
 	fi
@@ -267,7 +267,7 @@ $(GPPGDIR)/GNUmakefile : $(GPPGDIR)/configure  env.sh
 
 Debug/GNUmakefile : $(GPPGDIR)/configure  env.sh
 	rm -rf $(INSTLOC)
-	mkdir -p Debug 
+	mkdir -p Debug
 	cd Debug && CC="$(strip $(BLD_CC) $(BLD_CFLAGS))"        \
                 CFLAGS=$(INSTCFLAGS) $(BLD_CONFIG_SHELL)     \
                 ./configure $(CONFIGFLAGS)                   \
@@ -277,7 +277,7 @@ Debug/GNUmakefile : $(GPPGDIR)/configure  env.sh
 
 Release/GNUmakefile : $(GPPGDIR)/configure  env.sh
 	rm -rf $(INSTLOC)
-	mkdir -p Release 
+	mkdir -p Release
 	cd Release && CC="$(strip $(BLD_CC) $(BLD_CFLAGS))"     \
                   CFLAGS=$(INSTCFLAGS) $(BLD_CONFIG_SHELL)  \
                   ./configure $(CONFIGFLAGS)                \
@@ -474,7 +474,7 @@ dist_prof : CLIENTINSTLOC=$(CLIENTDISTPATH)
 dist_prof : CONNECTIVITYINSTLOC=$(CONNECTIVITYDISTPATH)
 dist_prof : LOADERSINSTLOC=$(LOADERSDISTPATH)
 dist_prof : GPPERFMONINSTLOC=$(GPPERFMONDISTPATH)
-dist_prof : CONFIGFLAGS+= --enable-testutils 
+dist_prof : CONFIGFLAGS+= --enable-testutils
 ifdef ENABLE_VPATH_BUILD
 dist_prof : BUILDDIR=Release
 dist_prof : ISCONFIG=$(BUILDDIR)/GNUmakefile
@@ -535,8 +535,6 @@ LOADERSINSTLOC_DOCS=$(LOADERSINSTLOC)/docs
 LOADERSINSTLOC_OPENSOURCE=$(LOADERSINSTLOC)/thirdparty
 
 CONNECTIVITYINSTLOC=$(CONNECTIVITY_HOME_DIR)/greenplum-connectivity
-CONNECTIVITYINSTLOC_JDBC=$(CONNECTIVITYINSTLOC)/drivers/jdbc
-CONNECTIVITYINSTLOC_ODBC=$(CONNECTIVITYINSTLOC)/drivers/odbc
 CONNECTIVITYINSTLOC_LIB=$(CONNECTIVITYINSTLOC)/lib
 CONNECTIVITYINSTLOC_INCLUDE=$(CONNECTIVITYINSTLOC)/include
 CONNECTIVITYINSTLOC_DOCS=$(CONNECTIVITYINSTLOC)/docs
@@ -665,22 +663,11 @@ else
 	# ---- load LD_LIBRARY_PATH with the GPDB library set and build the ODBC drivers ----
 	cd $(INSTLOC)/ && \
 	  . ./greenplum_path.sh; \
-	  cd $(BLD_TOP)/client/odbc/src && \
-	    $(MAKE) all
 	# ---- copy GPDB fileset ----
 	mkdir -p $(CONNECTIVITYINSTLOC_LIB)
 	(cd $(INSTLOC)/lib && $(TAR) cf - *) | (cd $(CONNECTIVITYINSTLOC_LIB)/ && $(TAR) xvpf -)$(check_pipe_for_errors)
 	mkdir -p $(CONNECTIVITYINSTLOC_INCLUDE)
 	(cd $(INSTLOC)/include && $(TAR) cf - *) | (cd $(CONNECTIVITYINSTLOC_INCLUDE)/ && $(TAR) xvpf -)$(check_pipe_for_errors)
-	# ---- copy JDBC fileset ----
-	mkdir -p $(CONNECTIVITYINSTLOC_JDBC)
-	cp -fp client/jdbc/*.jar $(CONNECTIVITYINSTLOC_JDBC)
-	# ---- copy ODBC fileset ----
-	mkdir -p $(CONNECTIVITYINSTLOC_ODBC)
-	(cd client/odbc/src/greenplum-connectivity/odbc/ && $(TAR) cf - --exclude=*.la *) | (cd $(CONNECTIVITYINSTLOC_ODBC)/ && $(TAR) xvf -)$(check_pipe_for_errors)
-	# ---- copy scripts fileset ----
-	mkdir -p $(CONNECTIVITYINSTLOC)
-	cp -f client/scripts/greenplum_$@_path$(SCRIPT) $(CONNECTIVITYINSTLOC)/
 
 	# ---- copy license files ----
 	cp ${BLD_TOP}/../LICENSE $(CONNECTIVITYINSTLOC)
@@ -691,24 +678,9 @@ else
 
 	# ---- updating the version in required packages ----
 	@$(MAKE) set_scripts_version INSTLOC=$(CONNECTIVITYINSTLOC)
+  cd client/install/src/unix/ && \
+     $(MAKE) TAR=$(TAR) PRODUCT=Connectivity PACKAGE=greenplum-connectivity README=GPConnectUnix VERSION=$(VERSION) INSTALL_SRC=$(CONNECTIVITYINSTLOC) INSTALL_DIR=../../../..
 
-ifneq "$(findstring win,$(BLD_ARCH))" "win"
-	cd client/install/src/unix/ && \
-	  $(MAKE) TAR=$(TAR) PRODUCT=Connectivity PACKAGE=greenplum-connectivity README=GPConnectUnix VERSION=$(VERSION) INSTALL_SRC=$(CONNECTIVITYINSTLOC) INSTALL_DIR=../../../..
-else
-	if [ "$(BLD_PACKAGING_PID)" = "" ]; then \
-	    echo "ERROR: BLD_PACKAGING_PID must have a value for Windows packaging operations; check your Makefile"; \
-	    exit 1; \
-	fi
-	ssh build@harpy 'if [ -d $(BLD_PACKAGING_PID) ]; then rm -rf $(BLD_PACKAGING_PID); fi'
-	ssh build@harpy 'mkdir -p $(BLD_PACKAGING_PID)/packaging/src/windows'
-	scp -r client/install/src/windows/* build@harpy:$(BLD_PACKAGING_PID)/packaging/src/windows/
-	scp -r $(CONNECTIVITYINSTLOC) build@harpy:$(BLD_PACKAGING_PID)/packaging/
-	ssh build@harpy 'cd $(BLD_PACKAGING_PID)/packaging/src/windows/ && make PACKAGE=greenplum-$@ VERSION=$(VERSION) SRCDIR=../../$(notdir $(CONNECTIVITYINSTLOC))'
-	scp build@harpy:$(BLD_PACKAGING_PID)/packaging/greenplum-$@-$(VERSION)-WinXP-x86_32.msi .
-	chmod 755 greenplum-$@-$(VERSION)-WinXP-x86_32.msi
-	ssh build@harpy 'rm -rf $(BLD_PACKAGING_PID)'
-endif
 endif
 
 clients :
@@ -727,13 +699,6 @@ else
 ifneq "$(FILESET_LIB_GCC)" ""
 	(cd $(CLIENTINSTLOC_LIB)/ && $(TAR) cf - -C $(FILESET_LIB_GCC_LOC) $(FILESET_LIB_GCC) | $(TAR) xpf -)$(check_pipe_for_errors)
 endif
-	# ---- copy docs fileset ----
-	mkdir -p $(CLIENTINSTLOC_DOCS)
-	cp -rpf client/docs/release/$(CLIENT_SQLDOCS) $(CLIENTINSTLOC_DOCS)/
-	# ---- copy scripts fileset ----
-	mkdir -p $(CLIENTINSTLOC)
-	cp -f client/scripts/greenplum_$@_path$(SCRIPT) $(CLIENTINSTLOC)/
-
 	# ---- copy license files ----
 	cp ${BLD_TOP}/../LICENSE $(CLIENTINSTLOC)
 	cp ${BLD_TOP}/../NOTICE $(CLIENTINSTLOC)
@@ -743,24 +708,9 @@ endif
 
 	# ---- Updating the version in required packages ----
 	@$(MAKE) set_scripts_version INSTLOC=$(CLIENTINSTLOC)
+  cd client/install/src/unix/ && \
+      $(MAKE) TAR=$(TAR) PRODUCT=Clients PACKAGE=greenplum-clients README=GPClientToolsUnix VERSION=`perl -pe 's, ,-,g' ../../../../../VERSION` INSTALL_SRC=$(CLIENTINSTLOC) INSTALL_DIR=../../../..
 
-ifneq "$(findstring win,$(BLD_ARCH))" "win"
-	cd client/install/src/unix/ && \
-	  $(MAKE) TAR=$(TAR) PRODUCT=Clients PACKAGE=greenplum-clients README=GPClientToolsUnix VERSION=`perl -pe 's, ,-,g' ../../../../../VERSION` INSTALL_SRC=$(CLIENTINSTLOC) INSTALL_DIR=../../../..
-else
-	if [ "$(BLD_PACKAGING_PID)" = "" ]; then \
-	    echo "ERROR: BLD_PACKAGING_PID must have a value for Windows packaging operations; check your Makefile"; \
-	    exit 1; \
-	fi
-	ssh build@harpy 'if [ -d $(BLD_PACKAGING_PID) ]; then rm -rf $(BLD_PACKAGING_PID); fi'
-	ssh build@harpy 'mkdir -p $(BLD_PACKAGING_PID)/packaging/src/windows'
-	scp -r client/install/src/windows/* build@harpy:$(BLD_PACKAGING_PID)/packaging/src/windows/
-	scp -r $(CLIENTINSTLOC) build@harpy:$(BLD_PACKAGING_PID)/packaging/
-	ssh build@harpy 'cd $(BLD_PACKAGING_PID)/packaging/src/windows/ && make PACKAGE=greenplum-$@ VERSION=$(VERSION) SRCDIR=../../$(notdir $(CLIENTINSTLOC))'
-	scp build@harpy:$(BLD_PACKAGING_PID)/packaging/greenplum-$@-$(VERSION)-WinXP-x86_32.msi .
-	chmod 755 greenplum-$@-$(VERSION)-WinXP-x86_32.msi
-	ssh build@harpy 'rm -rf $(BLD_PACKAGING_PID)'
-endif
 endif
 
 loaders :
@@ -802,9 +752,6 @@ endif
 ifneq "$(findstring $(BLD_ARCH),sol10_sparc_32)" ""
 	(cd /usr/local/lib/ && $(TAR) cf - libiconv.so* libexpat.so*) | (cd $(LOADERSINSTLOC_LIB)/ && $(TAR) xpf -)$(check_pipe_for_errors)
 endif
-	# ---- copy scripts fileset ----
-	mkdir -p $(LOADERSINSTLOC)
-	cp -f client/scripts/greenplum_$@_path$(SCRIPT) $(LOADERSINSTLOC)/
 
 	# ---- copy license files ----
 	cp ${BLD_TOP}/../LICENSE $(LOADERSINSTLOC)
@@ -814,24 +761,9 @@ endif
 
 	# ---- updating the version in required packages ----
 	@$(MAKE) set_scripts_version INSTLOC=$(LOADERSINSTLOC)
+  cd client/install/src/unix/ && \
+      $(MAKE) TAR=$(TAR) PRODUCT=Loaders PACKAGE=greenplum-loaders README=GPLoadToolsUnix VERSION=`perl -pe 's, ,-,g' ../../../../../VERSION` INSTALL_SRC=$(LOADERSINSTLOC) INSTALL_DIR=../../../..
 
-ifneq "$(findstring win,$(BLD_ARCH))" "win"
-	cd client/install/src/unix/ && \
-	  $(MAKE) TAR=$(TAR) PRODUCT=Loaders PACKAGE=greenplum-loaders README=GPLoadToolsUnix VERSION=`perl -pe 's, ,-,g' ../../../../../VERSION` INSTALL_SRC=$(LOADERSINSTLOC) INSTALL_DIR=../../../..
-else
-	if [ "$(BLD_PACKAGING_PID)" = "" ]; then \
-	    echo "ERROR: BLD_PACKAGING_PID must have a value for Windows packaging operations; check your Makefile"; \
-	    exit 1; \
-	fi
-	ssh build@harpy 'if [ -d $(BLD_PACKAGING_PID) ]; then rm -rf $(BLD_PACKAGING_PID); fi'
-	ssh build@harpy 'mkdir -p $(BLD_PACKAGING_PID)/packaging/src/windows'
-	scp -r client/install/src/windows/* build@harpy:$(BLD_PACKAGING_PID)/packaging/src/windows/
-	scp -r $(LOADERSINSTLOC) build@harpy:$(BLD_PACKAGING_PID)/packaging/
-	ssh build@harpy 'cd $(BLD_PACKAGING_PID)/packaging/src/windows/ && make PACKAGE=greenplum-$@ VERSION=$(VERSION) SRCDIR=../../$(notdir $(LOADERSINSTLOC))'
-	scp build@harpy:$(BLD_PACKAGING_PID)/packaging/greenplum-$@-$(VERSION)-WinXP-x86_32.msi .
-	chmod 755 greenplum-$@-$(VERSION)-WinXP-x86_32.msi
-	ssh build@harpy 'rm -rf $(BLD_PACKAGING_PID)'
-endif
 endif
 
 #---------------------------------------------------------------------
@@ -921,7 +853,7 @@ SET_VERSION_SCRIPTS = \
 	lib/python/gppylib/mainUtils.py \
 	$(NULL)
 
-set_scripts_version : 
+set_scripts_version :
 	@for file in $(SET_VERSION_SCRIPTS); do \
 	    if [ -f $(INSTLOC)/$${file} ]; then \
 	        perl $(BLD_TOP)/../putversion $(INSTLOC)/$${file} ; \
@@ -948,7 +880,7 @@ mkorafce:
 mkpgbench:
 	@cd $(BUILDDIR)/contrib/pgbench && $(MAKE) install
 
-mkpgbouncer: 
+mkpgbouncer:
 ifeq "$(shell uname -s)" "Darwin"
 	echo "pgbouncer can't build on Mac"
 else
@@ -995,7 +927,7 @@ mgmtcopy :
 	#Copy the management utilities
 	mkdir -p $(INSTLOC)/bin
 	mkdir -p $(INSTLOC)/lib
-	mkdir -p $(INSTLOC)/lib/python	
+	mkdir -p $(INSTLOC)/lib/python
 	mkdir -p $(INSTLOC)/sbin
 	#Setup /lib/python contents
 	cp -rp $(GPMGMT)/bin/gppylib $(INSTLOC)/lib/python
@@ -1198,7 +1130,6 @@ clean :
 	@if [ -d $(GPPGDIR) -a -f $(GPPGDIR)/GNUmakefile ]; then cd $(GPPGDIR); $(MAKE) clean; fi
 	@if [ -d $(GPMGMT)/bin ]; then cd $(GPMGMT)/bin; $(MAKE) clean; fi
 	@if [ -d $(GPPERFMON) ]; then cd $(GPPERFMON); $(MAKE) clean; fi
-	@if [ -d client/odbc/src/Makefile ]; then cd client/odbc/src; $(MAKE) clean; fi
 
 distclean :
 #	@if [ ! -f $(ISCONFIG) ]; then echo "GPDB root not configured, no need to clean it"; fi
@@ -1207,7 +1138,6 @@ distclean :
 	@if [ -d $(GPPGDIR) -a -f $(GPPGDIR)/GNUmakefile ]; then cd $(GPPGDIR); $(MAKE) distclean; fi
 	@if [ -d $(GPMGMT)/bin ]; then cd $(GPMGMT)/bin; $(MAKE) distclean; fi
 	@if [ -d $(GPPERFMON) ]; then cd $(GPPERFMON); $(MAKE) clean; fi
-	@if [ -d client/odbc/src/Makefile ]; then cd client/odbc/src; $(MAKE) clean; fi
 	@rm -f VERSION
 	@rm -f env.sh
 
