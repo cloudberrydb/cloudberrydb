@@ -10,7 +10,7 @@ set gp_enable_column_oriented_table=on;
 SELECT SUM(a) FROM dml_heap_r;
 
 DROP TABLE IF EXISTS tempoid;
-CREATE TABLE tempoid as SELECT oid,a FROM dml_heap_r ORDER BY 1;
+CREATE TABLE tempoid as SELECT oid,a FROM dml_heap_r DISTRIBUTED BY (a);
 
 DELETE FROM dml_heap_r WHERE a is NULL;
 
