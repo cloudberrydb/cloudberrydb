@@ -1253,7 +1253,7 @@ pq_getmessage(StringInfo s, int maxlen)
  * Wrapper of simple pthread locking functionality, using pthread_mutex_trylock
  * and loop to make it interruptible when waiting the lock;
  *
- * return true if successfuly acquires the lock, false if unable to get the lock
+ * return true if successfully acquires the lock, false if unable to get the lock
  * and interrupted by SIGTERM, otherwise, infinitely loop to acquire the mutex.
  *
  * If we are going to return false, we close the socket to client; this is crucial

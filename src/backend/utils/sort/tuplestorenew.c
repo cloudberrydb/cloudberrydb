@@ -190,7 +190,7 @@ bool ntuplestore_is_readerwriter_reader(NTupleStore *nts) { return nts->rwflag =
 /* Accessor to the tuplestore.
  * 
  * About the pos of an Accessor. 
- * An acessor has a pos, pos.blockn == -1 implies the postion is not valid.  
+ * An accessor has a pos, pos.blockn == -1 implies the position is not valid.
  * Else, pos.blockn should be the same as blockn of the current page.
  * If the pos.blockn is valid, then pos.slotn should also be a valid slotn in the 
  * page, or
@@ -198,7 +198,7 @@ bool ntuplestore_is_readerwriter_reader(NTupleStore *nts) { return nts->rwflag =
  *			first valid slot,
  *		2. it may equals page->header.slotn, which indicates it is positioned just after
  *			the last slot,
- * the two positons are handy when we advance the accessor.
+ * the two positions are handy when we advance the accessor.
  */
 struct NTupleStoreAccessor
 {

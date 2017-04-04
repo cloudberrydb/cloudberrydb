@@ -455,7 +455,7 @@ class GppkgTestCase(unittest.TestCase):
 
     def check_rpm_uninstall(self, rpm_package_name):
         """
-        Checks if an rpm has been uninstalled successfuly.
+        Checks if an rpm has been uninstalled successfully.
 
         @param rpm_package_name: Name of rpm package of the form <name>-<version>-<release>
         @type rpm_package_name: str

@@ -672,7 +672,7 @@ PersistentRecovery_HandlePass2XLogRec(
 				 xid);
 		
 		/*
-		 * We keep track of comitted, aborted, and prepared transactions so 'Create Pending' 
+		 * We keep track of committed, aborted, and prepared transactions so 'Create Pending'
 		 * objects can be attached to these transaction entries and not get automatically
 		 * aborted by Crash Recovery.
 		 */

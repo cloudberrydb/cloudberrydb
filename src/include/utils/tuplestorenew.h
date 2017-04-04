@@ -41,25 +41,25 @@ extern void ntuplestore_trim(NTupleStore* ts, NTupleStorePos *pos);
 extern NTupleStoreAccessor *ntuplestore_create_accessor(NTupleStore *ts, bool isWriter);
 extern void ntuplestore_destroy_accessor(NTupleStoreAccessor *acc);
 
-/* Put slot/data automatically postion the accessor to the last entry */
+/* Put slot/data and automatically position the accessor to the last entry */
 extern void ntuplestore_acc_put_tupleslot(NTupleStoreAccessor *tsa, TupleTableSlot *slot);
 extern void ntuplestore_acc_put_data(NTupleStoreAccessor *tsa, void *data, int len);
 
-/* return true if sucess, false if beyond last (first) valid position */
+/* return true if success, false if beyond last (first) valid position */
 extern bool ntuplestore_acc_advance(NTupleStoreAccessor *tsa, int n);
 
 /* Get data.  The slot/pointer returned is guaranteed to be valid till the accessor
  * call advance.
- * NOTE: trim may make current postion of an accessor invalid.  It is caller's reponsibilty
+ * NOTE: trim may make current position of an accessor invalid.  It is caller's reponsibilty
  * to make sure trim does not trim too far ahead
  */
 extern bool ntuplestore_acc_current_tupleslot(NTupleStoreAccessor *tsa, TupleTableSlot *slot);
 extern bool ntuplestore_acc_current_data(NTupleStoreAccessor *tsa, void **data, int *len);
 
-/* Tell/seek postion of accessor. */
+/* Tell/seek position of accessor. */
 
 /* Tell fill in the pos, return false if accessor points to an invalid position.
- * Caller can pass in pos = NULL to simply tell if the accessor is at a valid postion.
+ * Caller can pass in pos = NULL to simply tell if the accessor is at a valid position.
  */
 extern bool ntuplestore_acc_tell(NTupleStoreAccessor *tsa, NTupleStorePos *pos);
 

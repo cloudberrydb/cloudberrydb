@@ -419,8 +419,8 @@ RemoveTableSpace(List *names, DropBehavior behavior, bool missing_ok)
 	 * Schedule the removal the physical infrastructure.
 	 *
 	 * Note: This only schedules the delete, the delete won't actually occur
-	 * until after the transaction has comitted.  This should however do
-	 * everything it can to assure that the delete will occur sucessfully,
+	 * until after the transaction has committed.  This should however do
+	 * everything it can to assure that the delete will occur successfully,
 	 * e.g. check permissions etc.
 	 */
 

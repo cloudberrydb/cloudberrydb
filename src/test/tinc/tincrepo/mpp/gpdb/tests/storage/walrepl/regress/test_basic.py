@@ -56,7 +56,7 @@ class regress(mpp.gpdb.tests.storage.walrepl.run.StandbyRunMixin, MPPTestCase):
            paramerters.
         2. Perform explicit checkpoints and wait so that they get replicated.
         3. Then promote the standby, wait and then try to access it.
-        4. If we can successfuly access it, its a Pass otherwise a Fail.
+        4. If we can successfully access it, its a Pass otherwise a Fail.
         """
 
         PSQL.run_sql_command('DROP table if exists foo')

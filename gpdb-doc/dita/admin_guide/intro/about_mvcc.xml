@@ -155,7 +155,7 @@
         </tgroup>
       </table>
       <p>The Greenplum Database SQL commands allow you to request <codeph>READ UNCOMMITTED</codeph>,
-          <codeph>READ COMITTED</codeph>, or <codeph>SERIALIZABLE</codeph>. Greenplum Database
+          <codeph>READ COMMITTED</codeph>, or <codeph>SERIALIZABLE</codeph>. Greenplum Database
         treats <codeph>READ UNCOMMITTED</codeph> the same as <codeph>READ COMMITTED</codeph>.
         Requesting <codeph>REPEATABLE READ</codeph> produces an error; use
           <codeph>SERIALIZABLE</codeph> instead. The default isolation mode is <codeph>READ

@@ -276,7 +276,7 @@ access through an operator.
    process makes sure that the function pointer initally points to the regular version of *F*.
 5. Replace the actual function call in GPDB with a call to the above function pointer.
 
-After `ExecInit`, manager uses `CodegenInterface` to generate the runtime code. On sucessful generation,
+After `ExecInit`, manager uses `CodegenInterface` to generate the runtime code. On successful generation,
 manager swaps the function pointer (see Step 3) to point to the generated version of *F*. Note that, *GC*
 stores the target function *F* along with a reference to a function pointer to *F* (see Step 3). This
 mechanism allows manager to fallback on the regular version of *F* when code generation fails.  
