@@ -1,0 +1,42 @@
+resources:
+- name: gpdb_src
+  type: git
+  source:
+    branch: {{gpdb-git-branch}}
+    private_key: {{gpdb-git-key}}
+    uri: {{gpdb-git-remote}}
+
+- name: centos-coverity
+  type: docker-image
+  source:
+    repository: pivotaldata/centos-coverity
+    username: {{docker_username}}
+    password: {{docker_password}}
+
+- name: coverity_twice_weekly
+  type: time
+  source:
+    location: America/Los_Angeles
+    days: [Monday, Thursday]
+    start: 4:00 AM
+    stop: 5:00 AM
+
+jobs:
+
+- name: coverity_scan
+  plan:
+  - get: coverity_twice_weekly
+    trigger: true
+  - aggregate:
+    - get: gpdb_src
+    - get: centos-coverity
+  - task: scan_with_coverity
+    file: gpdb_src/concourse/tasks/scan_with_coverity.yml
+    image: centos-coverity
+    params:
+      IVYREPO_HOST: {{ivyrepo_host}}
+      IVYREPO_REALM: {{ivyrepo_realm}}
+      IVYREPO_USER: {{ivyrepo_user}}
+      IVYREPO_PASSWD: {{ivyrepo_passwd}}
+      COVERITY_TOKEN: {{coverity_token}}
+      COVERITY_EMAIL: {{coverity_email}}
