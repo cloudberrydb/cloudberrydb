@@ -178,7 +178,7 @@ def connect(dburl, utility=False, verbose=False,
     timeout  = dburl.timeout
     cnx      = None
 
-    # All quotation and escaping here are to handle database name containig
+    # All quotation and escaping here are to handle database name containing
     # special characters like ' and \ and white spaces.
 
     # Need to escape backslashes and single quote in db name

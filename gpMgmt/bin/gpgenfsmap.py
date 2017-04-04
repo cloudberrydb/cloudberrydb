@@ -6,7 +6,7 @@ gpgenfsmap.py     Generates a mapping of Servers, Filesystems, GPDB Filespaces a
 Options: 
     -h, -?, --help   Print this usage.
     -p --port        Port to use to connect to DB.  Defaults to $PGPORT
-    -u --username    Username to connect to DB.  Defaaults to $PGUSER
+    -u --username    Username to connect to DB.  Defaults to $PGUSER
     -n --host        Hostname to connect to DB. Defaults to $PGHOST
     -w --password    Password to connect to DB.
     -v, --verbose    Enable verbose Logging.  Adds messages to stdout that will may break programs that parse the fsmap output.
