@@ -169,12 +169,11 @@
             <sectiondiv id="section5">
                 <b>Limitation for the Source and Destination Systems</b>
                 <p>If you are copying data from a system with a larger number of segments to a
-                    system fewer number of segment hosts. The total number of primary segments on
+                    system with a fewer number of segment hosts, then the total number of primary segments on
                     the destination system must be greater than or equal to the total number of
                     segment hosts on the source system. </p>
-                <p>For example, a quarter rack V1 DCA has a total of 24 primary segments. The means
-                    the source side cannot have more than 24 segment hosts (one and one-half
-                    racks).</p>
+                <p>For example, assume a destination system has a total of 24 primary
+                    segments. This means that the source system cannot have more than 24 segment hosts.</p>
                 <p>When you copy data from a source Greenplum Database system with a larger number
                     of primary segment instances than on the destination system, the data transfer
                     might be slower when compared to a transfer where the source system has fewer
