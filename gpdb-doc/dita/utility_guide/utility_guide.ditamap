@@ -60,5 +60,5 @@
         </topicref>
         <topicref href="orafce_ref.xml"/>
         <topicref href="dblink.xml"/>
-    </topicref><topicref href="../../index.html" scope="external" navtitle="Greenplum Database Docs Home" format="html" otherprops="pivotal"/>
+    </topicref><topicref href="../../homenav.html" scope="external" navtitle="Greenplum Database Docs Home" format="html" otherprops="pivotal"/>
 </map>
