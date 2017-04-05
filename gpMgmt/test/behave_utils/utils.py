@@ -840,7 +840,7 @@ def get_dist_policy_to_file(filename, dbname):
                 pg_class c \
                 INNER JOIN \
                 gp_distribution_policy p \
-                ON (c.relfilenode = p.localoid) \
+                ON (c.oid = p.localoid) \
                 AND \
                 c.relstorage != 'x' \
             ORDER BY c.relname"
