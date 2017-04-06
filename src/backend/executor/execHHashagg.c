@@ -751,7 +751,7 @@ agg_hash_initial_pass(AggState *aggstate)
 	MemTupleBinding *mt_bind = aggstate->hashslot->tts_mt_bind;
 
 	Assert(hashtable);
-	AssertImply(!streaming, hashtable->state == HASHAGG_BEFORE_FIRST_PASS);
+	AssertImply(!streaming, aggstate->hashaggstatus == HASHAGG_BEFORE_FIRST_PASS);
 	elog(HHA_MSG_LVL,
 		 "HashAgg: initial pass -- beginning to load hash table");
 
@@ -775,8 +775,6 @@ agg_hash_initial_pass(AggState *aggstate)
 	/*
 	 * Process outer-plan tuples, until we exhaust the outer plan.
 	 */
-	hashtable->pass = 0;
-
 	while(true)
 	{
 		HashKey hashkey;
@@ -1256,6 +1254,7 @@ spill_hash_table(AggState *aggstate)
 			}
 
 			hashtable->buckets[bucket_no] = NULL;
+			hashtable->bloom[bucket_no] = 0;
 		}
 	}
 
