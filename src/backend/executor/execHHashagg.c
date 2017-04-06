@@ -74,22 +74,32 @@ typedef enum InputRecordType
 	(mpool_bytes_used((hashtable)->group_buf))
 
 #define SANITY_CHECK_METADATA_SIZE(hashtable) \
-    do { \
-       if ((hashtable)->mem_for_metadata >= (hashtable)->max_mem) \
-		   ereport(ERROR, (errcode(ERRCODE_GP_INTERNAL_ERROR), \
-						   errmsg(ERRMSG_GP_INSUFFICIENT_STATEMENT_MEMORY)));\
-    } while (0)
+	do { \
+		Assert((hashtable)->mem_for_metadata > 0); \
+		Assert((hashtable)->mem_for_metadata > (hashtable)->nbuckets * OVERHEAD_PER_BUCKET); \
+		if ((hashtable)->mem_for_metadata >= (hashtable)->max_mem) \
+			ereport(ERROR, (errcode(ERRCODE_GP_INTERNAL_ERROR), \
+				errmsg(ERRMSG_GP_INSUFFICIENT_STATEMENT_MEMORY)));\
+	} while (0)
 
 #define GET_TOTAL_USED_SIZE(hashtable) \
-   (GET_USED_BUFFER_SIZE(hashtable) + (hashtable)->mem_for_metadata)
+		(GET_USED_BUFFER_SIZE(hashtable) + (hashtable)->mem_for_metadata)
+
+#define AVAIL_MEM(hashtable) \
+		(hashtable->max_mem - GET_TOTAL_USED_SIZE(hashtable))
 
 #define HAVE_FREESPACE(hashtable) \
-   (GET_TOTAL_USED_SIZE(hashtable) < (hashtable)->max_mem)
+		(AVAIL_MEM(hashtable) > 0)
+
+/* Actual memory needed per bucket = entry pointer + bloom value */
+#define OVERHEAD_PER_BUCKET (sizeof(HashAggBucket) + sizeof(uint64))
 
 #define BLOOMVAL(hashkey) ((uint64)1) << (((hashkey) >> 23) & 0x3f);
 
 #define BUCKET_IDX(hashtable, hashkey) \
-		(((hashkey) >> (hashtable)->pshift) % (hashtable)->nbuckets)
+		(((hashkey) >> (hashtable)->pshift) & ((hashtable)->nbuckets - 1))
+
+#define LOG2(x) (ceil(log((x)) / log(2)))
 
 /* Methods that handle batch files */
 static SpillSet *createSpillSet(unsigned branching_factor, unsigned parent_hash_bit);
@@ -107,13 +117,15 @@ static void *readHashEntry(AggState *aggstate,
 /* Methods for hash table */
 static uint32 calc_hash_value(AggState* aggstate, TupleTableSlot *inputslot);
 static void spill_hash_table(AggState *aggstate);
+static void expand_hash_table(AggState *aggstate);
 static void init_agg_hash_iter(HashAggTable* ht);
 static HashAggEntry *lookup_agg_hash_entry(AggState *aggstate, void *input_record,
 										   InputRecordType input_type, int32 input_size,
 										   uint32 hashkey, bool *p_isnew);
 static void agg_hash_table_stat_upd(HashAggTable *ht);
-static void reset_agg_hash_table(AggState *aggstate);
+static void reset_agg_hash_table(AggState *aggstate, int64 nentries);
 static bool agg_hash_reload(AggState *aggstate);
+static void reCalcNumberBatches(HashAggTable *hashtable, SpillFile *spill_file);
 static inline void *mpool_cxt_alloc(void *manager, Size len);
 
 static inline void *mpool_cxt_alloc(void *manager, Size len)
@@ -156,7 +168,6 @@ calc_hash_value(AggState* aggstate, TupleTableSlot *inputslot)
 		
 		else
 			hashtable->hashkey_buf[i] = 0xdeadbeef;
-		
 	}
 
 	MemoryContextSwitchTo(oldContext);
@@ -461,7 +472,7 @@ lookup_agg_hash_entry(AggState *aggstate,
 
 	if (entry == NULL)
 	{
-		/* Create a new matching entry. */
+		/* Entry not found! Create a new matching entry. */
 		switch(input_type)
 		{
 			case INPUT_RECORD_TUPLE:
@@ -476,11 +487,21 @@ lookup_agg_hash_entry(AggState *aggstate,
 			
 		if (entry != NULL)
 		{
+			if (hashtable->expandable &&
+					hashtable->num_entries >= (hashtable->nbuckets * gp_hashagg_groups_per_bucket))
+			{
+				/* The hashtable is denser than envisioned; increase the number of buckets */
+				expand_hash_table(aggstate);
+				/* Recompute bucket_idx in case nbuckets changed */
+				bucket_idx = BUCKET_IDX(hashtable, hashkey);
+			}
+
 			entry->next = hashtable->buckets[bucket_idx];
 			hashtable->buckets[bucket_idx] = entry;
 			hashtable->bloom[bucket_idx] |= bloomval;
 			
-			hashtable->num_ht_groups++;
+			++hashtable->num_ht_groups;
+			++hashtable->num_entries;
 
 			*p_isnew = true; /* created a new entry */
 		}
@@ -494,42 +515,47 @@ lookup_agg_hash_entry(AggState *aggstate,
 	return entry;
 }
 
+/*
+ * Compute HHashTable entry size
+ *
+ * int numaggs    Est # of aggregate functions.
+ * int keywidth   Est per entry size of hash key.
+ * int transpace  Est per entry size of by-ref values.
+ */
+double
+agg_hash_entrywidth(int numaggs, int keywidth, int transpace)
+{
+	return sizeof(HashAggEntry)
+		+ numaggs * sizeof(AggStatePerGroupData)
+		+ keywidth
+		+ transpace;
+}
+
 /* Function: calcHashAggTableSizes
  *
  * Check if the current memory quota is enough to handle the aggregation
  * in the hash-based fashion.
  */
-#define OVERHEAD_PER_ENTRY ((double)sizeof(uint32))/gp_hashagg_groups_per_bucket
-
 bool
 calcHashAggTableSizes(double memquota,	/* Memory quota in bytes. */
 					  double ngroups,	/* Est # of groups. */
-					  int numaggs,		/* Est # of aggregate functions */
-					  int keywidth,	/* Est per entry size of hash key. */
-					  int transpace,	/* Est per entry size of by-ref values. */
+					  double entrywidth, /* calculcate from agg_hash_entrywidth */
 					  bool force,      /* true => succeed even if work_mem too small */
 					  HashAggTableSizes   *out_hats)
 {
+	double entrysize, nbuckets, nentries;
+
+	/* Assume we don't need to spill */
 	bool expectSpill = false;
+	double nbatches = 0, batchfile_mem = 0, entries_mem = 0, buckets_mem = 0;
 
-	int entrywidth = sizeof(HashAggEntry)
-		+ numaggs * sizeof(AggStatePerGroupData)
-		+ keywidth
-		+ transpace;
-	
-	double nbuckets;
+	Assert(ngroups >= 0);
 
-	/* Hash Entries */
-	double nentries;
-	double entrysize = OVERHEAD_PER_ENTRY + entrywidth; 
-	
-	double nbatches = 0;	
-	double batchfile_buffer_size = BATCHFILE_METADATA;
+	/* Estimate the overhead per entry in the hash table */
+	entrysize = entrywidth + OVERHEAD_PER_BUCKET / gp_hashagg_groups_per_bucket;
 
-	elog(HHA_MSG_LVL, "HashAgg: ngroups = %g, numaggs = %d, keywidth = %d, transpace = %d",
-		 ngroups, numaggs, keywidth, transpace);
-	elog(HHA_MSG_LVL, "HashAgg: memquota = %g, entrysize = %g, batchfile_buffer_size = %g",
-		 memquota, entrysize, batchfile_buffer_size);
+	elog(HHA_MSG_LVL, "HashAgg: ngroups = %g, memquota = %g, entrysize = %g",
+		 ngroups, memquota, entrysize);
 
 	/*
 	 * When all groups can not fit in the memory, we compute
@@ -538,38 +564,86 @@ calcHashAggTableSizes(double memquota,	/* Memory quota in bytes. */
 	 */			
 	if (memquota < ngroups*entrysize)
 	{
-		/* Set nbatches to its default value. */
 		nbatches = gp_hashagg_default_nbatches;
+		batchfile_mem = BATCHFILE_METADATA * (1 + nbatches);
 		expectSpill = true;
 
-		/* If the memory quota is smaller than the overhead for batch files,
+		/*
+		 * If the memory quota is smaller than the overhead for batch files,
 		 * return false. Note that we will always keep at most (nbatches + 1)
 		 * batches in the memory.
 		 */
-		if (memquota < (nbatches + 1) * batchfile_buffer_size)
+		if (memquota < batchfile_mem)
 		{
 			elog(HHA_MSG_LVL, "HashAgg: not enough memory for the overhead of batch files.");
 			return false;
 		}
-	}   
+	}
 
-	nentries = floor((memquota - nbatches * batchfile_buffer_size) / entrysize);
-	
-    /* Allocate at least a few hash entries regardless of memquota. */
-    nentries = Max(nentries, gp_hashagg_groups_per_bucket);
+	/* Reserve memory for batch files (if any are expected) */
+	memquota -= batchfile_mem;
 
-	nbuckets = ceil(nentries/gp_hashagg_groups_per_bucket);
+	/* How many entries will memquota allow ? */
+	nentries = floor(memquota / entrysize);
 
-	/* Set nbuckets to the power of 2. */
-	nbuckets = (((unsigned)1) << ((unsigned)ceil(log(nbuckets) / log(2))));
+	/* Yet, allocate only as many as needed */
+	nentries = Min(ngroups, nentries);
+
+	/* but at least a few hash entries as required */
+	nentries = Max(nentries, gp_hashagg_groups_per_bucket);
+	entries_mem = nentries * entrywidth;
+
+	/*
+	 * If the memory quota is smaller than the minimum number of entries
+	 * required, return false
+	 */
+	if ((memquota - entries_mem) <= 0)
+	{
+		elog(HHA_MSG_LVL, "HashAgg: not enough memory for the overhead of buckets.");
+		return false;
+	}
+
+	memquota -= entries_mem;
+
+	/* Determine the number of buckets */
+	nbuckets = ceil(nentries / gp_hashagg_groups_per_bucket);
+
+	/* Use only as many allowed by memory */
+	nbuckets = Min(nbuckets, floor(memquota / OVERHEAD_PER_BUCKET));
+
+	/* Set nbuckets to the next power of 2. */
+	nbuckets = (((unsigned)1) << ((unsigned) LOG2(nbuckets)));
+
+	if ((nbuckets * OVERHEAD_PER_BUCKET) > memquota)
+	{
+		/*
+		 * If the current nentries and nbuckets will make us go OOM, nbuckets was
+		 * rounded up too high. Reduce the nbuckets to a lower power of 2
+		 */
+		nbuckets = nbuckets / 2;
+	}
 
 	/*
 	 * Always set nbuckets greater than gp_hashagg_default_nbatches since
 	 * the spilling relies on this fact to choose which files to spill
 	 * groups to.
+	 * Note: gp_hashagg_default_nbatches must be a power of two
 	 */
-	if (nbuckets < gp_hashagg_default_nbatches)
-		nbuckets = gp_hashagg_default_nbatches;
+	nbuckets = Max(nbuckets, gp_hashagg_default_nbatches);
+	buckets_mem = nbuckets * OVERHEAD_PER_BUCKET;
+
+	/* Reserve memory for the entries + hash table */
+	memquota -= buckets_mem;
+
+	if (memquota < 0)
+	{
+		elog(HHA_MSG_LVL, "HashAgg: not enough memory for the hash table parameters chosen:");
+		elog(HHA_MSG_LVL, "HashAgg: nbuckets = %d, nentries = %d, nbatches = %d",
+			 (int)nbuckets, (int)nentries, (int)nbatches);
+		elog(HHA_MSG_LVL, "HashAgg: ngroups = %d, gp_hashagg_groups_per_bucket = %d",
+			 (int)ngroups, (int)gp_hashagg_groups_per_bucket);
+		return false;
+	}
 
 	if (nbatches > UINT_MAX || nentries > UINT_MAX || nbuckets > UINT_MAX)
 	{
@@ -584,21 +658,21 @@ calcHashAggTableSizes(double memquota,	/* Memory quota in bytes. */
 		}
 	}
 
-    if (out_hats)
-    {
-        out_hats->nbuckets = (unsigned)nbuckets;
-        out_hats->nentries = (unsigned)nentries;
+	if (out_hats)
+	{
+		out_hats->nbuckets = (unsigned)nbuckets;
+		out_hats->nentries = (unsigned)nentries;
 		out_hats->nbatches = (unsigned)nbatches;
-		out_hats->hashentry_width = entrysize;
+		out_hats->hashentry_width = entrywidth;
 		out_hats->spill = expectSpill;
-        out_hats->workmem_initial = (unsigned)(nbatches * batchfile_buffer_size);
-        out_hats->workmem_per_entry = (unsigned)entrysize;
-    }
+		out_hats->workmem_initial = (unsigned)(batchfile_mem);
+		out_hats->workmem_per_entry = (unsigned) entrysize;
+	}
 	
 	elog(HHA_MSG_LVL, "HashAgg: nbuckets = %d, nentries = %d, nbatches = %d",
 		 (int)nbuckets, (int)nentries, (int)nbatches);
 	elog(HHA_MSG_LVL, "HashAgg: expected memory footprint = %d",
-		(int)( nentries*entrywidth + nbuckets*sizeof(HashAggEntry*) + nbatches*batchfile_buffer_size));
+		(int)(batchfile_mem + buckets_mem + entries_mem));
 	
 	return true;
 }
@@ -666,48 +740,51 @@ static Size est_hash_tuple_size(TupleTableSlot *hashslot, List *hash_needed)
 HashAggTable *
 create_agg_hash_table(AggState *aggstate)
 {
+	int keywidth;
+	double entrywidth;
 	HashAggTable *hashtable;
 	Agg *agg = (Agg *)aggstate->ss.ps.plan;
 	MemoryContext oldcxt;
 
 	oldcxt = MemoryContextSwitchTo(aggstate->aggcontext);
-	hashtable = (HashAggTable *)palloc0(sizeof(HashAggTable));
+	hashtable = (HashAggTable *) palloc0(sizeof(HashAggTable));
 
 	hashtable->entry_cxt = AllocSetContextCreate(aggstate->aggcontext, 
-												 "HashAggTableContext",
+												 "HashAggTableEntryContext",
 												 ALLOCSET_DEFAULT_MINSIZE,
 												 ALLOCSET_DEFAULT_INITSIZE,
 												 ALLOCSET_DEFAULT_MAXSIZE);
 
 	uint64 operatorMemKB = PlanStateOperatorMemKB( (PlanState *) aggstate);
 
+	keywidth = est_hash_tuple_size(aggstate->ss.ss_ScanTupleSlot, aggstate->hash_needed);
+	keywidth = Min(keywidth, agg->plan.plan_width);
+
+	entrywidth = agg_hash_entrywidth(aggstate->numaggs, keywidth, agg->transSpace);
+
 	if (!calcHashAggTableSizes(1024.0 * (double) operatorMemKB,
-							   (double)agg->numGroups,
-							   aggstate->numaggs,
-							   Min(est_hash_tuple_size(aggstate->ss.ss_ScanTupleSlot,
-													   aggstate->hash_needed),
-								   agg->plan.plan_width),
-							   agg->transSpace,
-							   true,
-							   &(hashtable->hats)))
+							agg->numGroups,
+							entrywidth,
+							true,
+							&(hashtable->hats)))
 	{
 		elog(ERROR, ERRMSG_GP_INSUFFICIENT_STATEMENT_MEMORY);
 	}
 
 	/* Initialize the hash buckets */
 	hashtable->nbuckets = hashtable->hats.nbuckets;
-	hashtable->total_buckets = hashtable->nbuckets;
-	hashtable->buckets = (HashAggEntry **) palloc0(hashtable->nbuckets * sizeof(HashAggEntry *));
+	hashtable->buckets = (HashAggBucket *) palloc0(hashtable->nbuckets * sizeof(HashAggBucket));
 	hashtable->bloom = (uint64 *) palloc0(hashtable->nbuckets * sizeof(uint64));
 
 	hashtable->pshift = 0;
+	hashtable->expandable = true;
 
 	MemoryContextSwitchTo(hashtable->entry_cxt);
 	
 	/* Initialize buffer for hash entries */
 	hashtable->group_buf = mpool_create(hashtable->entry_cxt,
 										"GroupsAndAggs Context");
-	hashtable->groupaggs = (GroupKeysAndAggs *)palloc0(sizeof(GroupKeysAndAggs));
+	hashtable->groupaggs = (GroupKeysAndAggs *) palloc0(sizeof(GroupKeysAndAggs));
 
 	/* Set hashagg's memory manager */
 	aggstate->mem_manager.alloc = mpool_cxt_alloc;
@@ -718,10 +795,9 @@ create_agg_hash_table(AggState *aggstate)
 	MemoryContextSwitchTo(oldcxt);
 
 	hashtable->max_mem = 1024.0 * operatorMemKB;
-	hashtable->mem_for_metadata = sizeof(HashAggTable)
-		+ hashtable->nbuckets * sizeof(HashAggEntry *)
-		+ hashtable->nbuckets * sizeof(uint64)
-		+ sizeof(GroupKeysAndAggs);
+	hashtable->mem_for_metadata = sizeof(HashAggTable) +
+			hashtable->nbuckets * OVERHEAD_PER_BUCKET +
+			sizeof(GroupKeysAndAggs);
 	hashtable->mem_wanted = hashtable->mem_for_metadata;
 	hashtable->mem_used = hashtable->mem_for_metadata;
 
@@ -730,6 +806,8 @@ create_agg_hash_table(AggState *aggstate)
 	MemSet(padding_dummy, 0, MAXIMUM_ALIGNOF);
 	
 	init_agg_hash_iter(hashtable);
+
+	Assert(hashtable->mem_for_metadata > 0);
 
 	return hashtable;
 }
@@ -774,7 +852,6 @@ agg_hash_initial_pass(AggState *aggstate)
 		outerslot = hashtable->prev_slot;
 		hashtable->prev_slot = NULL;
 	}
-	
 	else
 	{
 		outerslot = ExecProcNode(outerPlanState(aggstate));
@@ -840,12 +917,15 @@ agg_hash_initial_pass(AggState *aggstate)
 			{
 				Assert(tuple_remaining);
 				hashtable->prev_slot = outerslot;
+				/* Stream existing entries instead of spilling */
 				break;
 			}
 
-			/* CDB: Report statistics for EXPLAIN ANALYZE. */
 			if (!hashtable->is_spilling && aggstate->ss.ps.instrument)
+			{
+				/* Update in-memory hash table statistics before spilling. */
 				agg_hash_table_stat_upd(hashtable);
+			}
 
 			spill_hash_table(aggstate);
 
@@ -876,6 +956,7 @@ agg_hash_initial_pass(AggState *aggstate)
 		{
 			Assert(tuple_remaining);
 			ExecClearTuple(aggstate->hashslot);
+			/* Pause and stream entries before reading the next tuple */
 			break;
 		}
 
@@ -888,7 +969,7 @@ agg_hash_initial_pass(AggState *aggstate)
 
 	if (hashtable->is_spilling)
 	{
-        int freed_size = 0;
+		int freed_size = 0;
 
 		/*
 		 * Split out the rest of groups in the hashtable if spilling has already
@@ -896,8 +977,10 @@ agg_hash_initial_pass(AggState *aggstate)
 		 * any more.
 		 */
 		spill_hash_table(aggstate);
-        freed_size = suspendSpillFiles(hashtable->spill_set);
-        hashtable->mem_for_metadata -= freed_size;
+		freed_size = suspendSpillFiles(hashtable->spill_set);
+		hashtable->mem_for_metadata -= freed_size;
+
+		Assert(hashtable->mem_for_metadata > 0);
 
 		if (aggstate->ss.ps.instrument)
 		{
@@ -905,9 +988,11 @@ agg_hash_initial_pass(AggState *aggstate)
 		}
 	}
 
-    /* CDB: Report statistics for EXPLAIN ANALYZE. */
-    if (!hashtable->is_spilling && aggstate->ss.ps.instrument)
-        agg_hash_table_stat_upd(hashtable);
+	if (!hashtable->is_spilling && aggstate->ss.ps.instrument)
+	{
+		/* Update in-memory hash table statistics if not already done when spilling */
+		agg_hash_table_stat_upd(hashtable);
+	}
 
 	AssertImply(tuple_remaining, streaming);
 	if(tuple_remaining) 
@@ -1130,7 +1215,8 @@ obtain_spill_set(HashAggTable *hashtable)
 		Assert(parent_spill_set != NULL);
 		unsigned parent_hash_bit = hashtable->curr_spill_file->batch_hash_bit;
 		set_hash_bit = parent_hash_bit +
-		  (unsigned)ceil(log(parent_spill_set->num_spill_files)/log(2));
+			(unsigned) LOG2(parent_spill_set->num_spill_files);
+
 	  }
 	else
 		p_spill_set = &(hashtable->spill_set);
@@ -1181,6 +1267,7 @@ static void
 spill_hash_table(AggState *aggstate)
 {
 	HashAggTable *hashtable = aggstate->hhashtable;
+	elog(HHA_MSG_LVL, "Spilling hash table at %ld entries", hashtable->num_entries);
 	SpillSet *spill_set;
 	SpillFile *spill_file;
 	int bucket_no;
@@ -1199,7 +1286,7 @@ spill_hash_table(AggState *aggstate)
 		hashtable->work_set->metadata.buckets = hashtable->nbuckets;
 		//aggstate->workfiles_created = true;
 	}
-	
+
 	/* Book keeping. */
 	hashtable->is_spilling = true;
 
@@ -1213,6 +1300,16 @@ spill_hash_table(AggState *aggstate)
 	{
 		int alloc_size = 0;
 
+		/*
+		 * getSpillFile() requires a large amount of memory (BATCHFILE_METADATA =
+		 * ~16 KB) per spill file it creates.  Since the hash table is already out
+		 * of memory when spilling, it will have to overuse memory than is allowed.
+		 * This could not have been pre-allocated that would have wasted memory,
+		 * allowing us not to spill in the first place.
+		 * FIXME : The amount of memory required at this point can be reduced
+		 * substantially by suspending the file after it's written to (see
+		 * suspendSpillFiles).
+		 */
 		spill_file = getSpillFile(hashtable->work_set, spill_set, file_no, &alloc_size);
 		Assert(spill_file != NULL);
 			
@@ -1269,10 +1366,94 @@ spill_hash_table(AggState *aggstate)
 	/* Reset the buffer */
 	mpool_reset(hashtable->group_buf);
 
+	/* Reset in-memory entries count */
+	hashtable->num_entries = 0;
+
 	elog(HHA_MSG_LVL, "HashAgg: spill " INT64_FORMAT " groups",
 		 hashtable->num_spill_groups - old_num_spill_groups);
 
 	MemoryContextSwitchTo(oldcxt);
+}
+
+static void
+expand_hash_table(AggState *aggstate)
+{
+	unsigned mem_needed, old_nbuckets, bucket_idx, new_bucket_idx;
+	uint32 hashkey;
+	uint64 bloomval;
+	HashAggEntry *entry, *nextentry;
+	HashAggTable *hashtable = aggstate->hhashtable;
+
+#ifdef USE_ASSERT_CHECKING
+	unsigned nentries = 0;
+#endif
+
+	Assert(hashtable);
+	old_nbuckets = hashtable->nbuckets;
+
+	/* Make sure there is memory available for additional buckets */
+	mem_needed = old_nbuckets * OVERHEAD_PER_BUCKET;
+	if (mem_needed > AVAIL_MEM(hashtable) || hashtable->nbuckets > (UINT_MAX / 2))
+	{
+		/* Cannot double the buckets if there is not enough space */
+		elog(HHA_MSG_LVL, "HashAgg: cannot grow the number of buckets!");
+		elog(HHA_MSG_LVL, "HashAgg: mem needed = %d available = %d; nbuckets = %d",
+				mem_needed, (unsigned) AVAIL_MEM(hashtable), hashtable->nbuckets);
+		hashtable->expandable = false;
+		return;
+	}
+	elog(HHA_MSG_LVL, "Growing the hash table to %d buckets with %ld entries",
+			hashtable->nbuckets * 2, hashtable->num_entries);
+
+	Assert(hashtable->nbuckets > 1);
+
+	/* OK, do it */
+
+	hashtable->nbuckets = hashtable->nbuckets * 2;
+	hashtable->mem_for_metadata += old_nbuckets * OVERHEAD_PER_BUCKET;
+	hashtable->mem_wanted = Max(hashtable->mem_wanted, hashtable->mem_for_metadata);
+
+	Assert(GET_TOTAL_USED_SIZE(hashtable) < hashtable->max_mem);
+
+	hashtable->buckets = (HashAggBucket *) repalloc(hashtable->buckets,
+		hashtable->nbuckets * sizeof(HashAggBucket));
+	hashtable->bloom =  (uint64 *) repalloc(hashtable->bloom,
+		hashtable->nbuckets * sizeof(uint64));
+
+	memset(hashtable->bloom, 0, hashtable->nbuckets * sizeof(uint64));
+	memset(hashtable->buckets + old_nbuckets, 0, old_nbuckets * sizeof(HashAggBucket));
+
+	/* Iterate all the entries from the hashtable move them as needed */
+	for(bucket_idx=0; bucket_idx < old_nbuckets; ++bucket_idx)
+	{
+		entry = hashtable->buckets[bucket_idx];
+		hashtable->buckets[bucket_idx] = NULL;
+
+		while(entry != NULL)
+		{
+			nextentry = entry->next;
+			hashkey = entry->hashvalue;
+			bloomval = BLOOMVAL(hashkey);
+
+			new_bucket_idx = BUCKET_IDX(hashtable, hashkey);
+
+			Assert(new_bucket_idx == bucket_idx ||
+					new_bucket_idx == bucket_idx + old_nbuckets);
+
+			/* Insert this at the head of the bucket */
+			entry->next = hashtable->buckets[new_bucket_idx];
+			hashtable->buckets[new_bucket_idx] = entry;
+			hashtable->bloom[new_bucket_idx] |= bloomval;
+
+			entry = nextentry;
+#ifdef USE_ASSERT_CHECKING
+			++nentries;
+#endif
+		}
+	}
+
+	Assert(hashtable->mem_for_metadata > 0);
+	Assert(nentries == hashtable->num_entries);
 }
 
 /*
@@ -1356,26 +1537,32 @@ writeHashEntry(AggState *aggstate, BatchFileInfo *file_info,
 
 /*
  * agg_hash_table_stat_upd
- *      collect hash chain statistics for EXPLAIN ANALYZE
+ *   Collect buckets and hash chain statistics of the in-memory hash table for
+ *   EXPLAIN ANALYZE
  */
 static void
-agg_hash_table_stat_upd(HashAggTable *ht)
+agg_hash_table_stat_upd(HashAggTable *hashtable)
 {
-    unsigned int	i;
+	unsigned int	i;
 
-    for (i = 0; i < ht->nbuckets; i++)
-    {
-        HashAggEntry   *entry = ht->buckets[i];
-        int             chainlength = 0;
+	for (i = 0; i < hashtable->nbuckets; i++)
+	{
+		HashAggEntry   *entry = hashtable->buckets[i];
+		int             chainlength = 0;
 
-        if (entry)
-        {
-            for (chainlength = 0; entry; chainlength++)
-                entry = entry->next;
-            cdbexplain_agg_upd(&ht->chainlength, chainlength, i);
-        }
-    }
-}                               /* agg_hash_table_stat_upd */
+		if (entry)
+		{
+			for (chainlength = 0; entry; chainlength++)
+				entry = entry->next;
+			cdbexplain_agg_upd(&hashtable->chainlength, chainlength, i);
+		}
+	}
+
+	hashtable->total_buckets += hashtable->nbuckets;
+
+	/* Cannot use more buckets than have been created */
+	Assert(hashtable->chainlength.vcnt <= hashtable->total_buckets);
+}
 
 /* Function: init_agg_hash_iter
  *
@@ -1502,7 +1689,7 @@ agg_hash_stream(AggState *aggstate)
 	elog(HHA_MSG_LVL,
 		"HashAgg: streaming");
 
-	reset_agg_hash_table(aggstate);
+	reset_agg_hash_table(aggstate, 0 /* don't reallocate buckets */);
 	
 	return agg_hash_initial_pass(aggstate);
 }
@@ -1523,22 +1710,27 @@ agg_hash_reload(AggState *aggstate)
 	bool has_tuples = false;
 	SpillFile *spill_file = hashtable->curr_spill_file;
 
+	Assert(spill_file && spill_file->file_info);
+
+	reset_agg_hash_table(aggstate, spill_file->file_info->ntuples);
+	reCalcNumberBatches(hashtable, spill_file);
+
 	/*
 	 * Record the start value for mem_for_metadata, since its value
 	 * has already been accumulated into mem_wanted. Any more memory
 	 * added to mem_for_metadata after this point will be added to
 	 * mem_wanted at the end of loading hashtable.
 	 */
-	uint64 start_mem_for_metadata = hashtable->mem_for_metadata;
+	Assert(hashtable->mem_for_metadata > 0);
+	double start_mem_for_metadata = hashtable->mem_for_metadata;
 
 	Assert(spill_file != NULL && spill_file->parent_spill_set != NULL);
 
 	hashtable->is_spilling = false;
 	hashtable->num_reloads++;
-	hashtable->total_buckets += hashtable->nbuckets;
 
 	hashtable->pshift = spill_file->batch_hash_bit +
-		(unsigned)ceil(log(spill_file->parent_spill_set->num_spill_files)/log(2));
+		(unsigned) LOG2(spill_file->parent_spill_set->num_spill_files);
 
 
 	if (spill_file->file_info != NULL &&
@@ -1597,11 +1789,13 @@ agg_hash_reload(AggState *aggstate)
 						(errcode(ERRCODE_GP_INTERNAL_ERROR),
 								 ERRMSG_GP_INSUFFICIENT_STATEMENT_MEMORY));
 
-			/* CDB: Report statistics for EXPLAIN ANALYZE. */
-			if (!hashtable->is_spilling && aggstate->ss.ps.instrument)
-				agg_hash_table_stat_upd(hashtable);
-
 			elog(gp_workfile_caching_loglevel, "HashAgg: respill occurring in agg_hash_reload while loading batch data");
+
+			if (!hashtable->is_spilling && aggstate->ss.ps.instrument)
+			{
+				/* Update in-memory hash table statistics before spilling. */
+				agg_hash_table_stat_upd(hashtable);
+			}
 
 			spill_hash_table(aggstate);
 
@@ -1684,9 +1878,11 @@ agg_hash_reload(AggState *aggstate)
 			 GET_BUFFER_SIZE(hashtable));
 	}
 
-	/* CDB: Report statistics for EXPLAIN ANALYZE. */
 	if (!hashtable->is_spilling && aggstate->ss.ps.instrument)
+	{
+		/* Update in-memory hash table statistics if not already done when spilling */
 		agg_hash_table_stat_upd(hashtable);
+	}
 
 	return has_tuples;
 }
@@ -1733,7 +1929,7 @@ reCalcNumberBatches(HashAggTable *hashtable, SpillFile *spill_file)
 	    nbatches = 4;
 
 	/* Set the number batches to the power of 2 */
-	nbatches = (((unsigned)1) << (unsigned)ceil(log(nbatches) / log(2)));
+	nbatches = (((unsigned)1) << (unsigned) LOG2(nbatches));
 
 	/*
 	 * We limit the number of batches to the default one.
@@ -1769,8 +1965,6 @@ agg_hash_next_pass(AggState *aggstate)
 	if (hashtable->spill_set == NULL)
 		return false;
 
-	reset_agg_hash_table(aggstate);
-
 	elog(HHA_MSG_LVL, "HashAgg: outputed " INT64_FORMAT " groups.", hashtable->num_output_groups);
 
 	if (hashtable->curr_spill_file == NULL)
@@ -1795,6 +1989,8 @@ agg_hash_next_pass(AggState *aggstate)
 		hashtable->mem_for_metadata -= closeSpillFile(aggstate, spill_set, file_no);
 		file_no++;
 	}
+
+	Assert(hashtable->mem_for_metadata > 0);
 
 	/* Find the next SpillSet */
 	while (spill_set != NULL)
@@ -1833,6 +2029,8 @@ agg_hash_next_pass(AggState *aggstate)
 			break;
 		}
 
+		Assert(hashtable->mem_for_metadata > 0);
+
 		if (file_no < spill_set->num_spill_files)
 			break;
 
@@ -1857,6 +2055,7 @@ agg_hash_next_pass(AggState *aggstate)
 		/* Close parent_spillfile */
 		hashtable->mem_for_metadata -= closeSpillFile(aggstate, spill_set,
 													  parent_spillfile->index_in_parent);
+		Assert(hashtable->mem_for_metadata > 0);
 	}
 	
 	if (spill_set != NULL)
@@ -1865,12 +2064,6 @@ agg_hash_next_pass(AggState *aggstate)
 		
 		hashtable->curr_spill_file = &(spill_set->spill_files[file_no]);
 
-		/*
-		 * Reset the number of batches if respilling is required.
-		 * Note that we may over-estimate the number of batches, but it is still
-		 * better than under-estimate it.
-		 */
-		reCalcNumberBatches(hashtable, hashtable->curr_spill_file);
 		
 		elog(HHA_MSG_LVL, "HashAgg: processing %d level batch file %d",
 			 spill_set->level, file_no);
@@ -1956,17 +2149,74 @@ Gpmon_ResetAggHashTable(AggState* aggstate)
  *
  * Clear the hash table content anchored by the bucket array.
  */
-void reset_agg_hash_table(AggState *aggstate)
+void reset_agg_hash_table(AggState *aggstate, int64 nentries)
 {
 	HashAggTable *hashtable = aggstate->hhashtable;
+	bool reallocate_buckets = true;
+	double old_nbuckets;
+	HashAggTableSizes hats;
+	MemoryContext oldcxt;
 	
 	elog(HHA_MSG_LVL,
 		"HashAgg: resetting " INT64_FORMAT "-entry hash table",
 		hashtable->num_ht_groups);
-	
-	MemSet(hashtable->buckets, 0, hashtable->nbuckets * sizeof(HashAggEntry*));
-	MemSet(hashtable->bloom, 0, hashtable->nbuckets * sizeof(uint64));
+
+	Assert(hashtable->buckets && hashtable->bloom);
+
+	/*
+	 * Determine whether to reallocate buckets. Especially avoid re-allocation if
+	 * already the right size
+	 */
+	reallocate_buckets = nentries > 0 &&
+		calcHashAggTableSizes(hashtable->max_mem,
+			nentries,
+			hashtable->hats.hashentry_width,
+			true,
+			&hats) &&
+		(hats.nbuckets != hashtable->nbuckets);
+
+	if (reallocate_buckets)
+	{
+		Assert(hats.nbuckets > 0);
+		old_nbuckets = hashtable->nbuckets;
+		oldcxt = MemoryContextSwitchTo(aggstate->aggcontext);
+
+		Assert(hashtable->mem_for_metadata > hashtable->nbuckets * OVERHEAD_PER_BUCKET);
+
+		/* Recalculate memory used with the increase/decrease in nbuckets */
+		hashtable->mem_for_metadata +=
+			((hats.nbuckets - old_nbuckets) * OVERHEAD_PER_BUCKET);
+		hashtable->nbuckets = hats.nbuckets;
+
+		/* Copy relevant stats into the hashtable */
+		hashtable->hats.nbuckets = hats.nbuckets;
+		hashtable->hats.nentries = hats.nentries;
+
+		pfree(hashtable->buckets);
+		pfree(hashtable->bloom);
+
+		hashtable->buckets = (HashAggBucket *) palloc0(hashtable->nbuckets * sizeof(HashAggBucket));
+		hashtable->bloom = (uint64 *) palloc0(hashtable->nbuckets * sizeof(uint64));
+
+		hashtable->expandable = true;
+
+		MemoryContextSwitchTo(oldcxt);
+
+		Assert(AVAIL_MEM(hashtable) > 0);
+		elog(HHA_MSG_LVL, "Resetting with %d buckets for %d entries",
+				hashtable->nbuckets, hats.nentries);
+	}
+	else
+	{
+		/* No need to reallocated buckets. Reset to zero. */
+		MemSet(hashtable->buckets, 0, hashtable->nbuckets * sizeof(HashAggBucket));
+		MemSet(hashtable->bloom, 0, hashtable->nbuckets * sizeof(uint64));
+	}
+
+	Assert(hashtable->mem_for_metadata > 0);
+
 	hashtable->num_ht_groups = 0;
+	hashtable->num_entries = 0;
 
 	hashtable->pshift = 0;
 

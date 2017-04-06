@@ -937,7 +937,7 @@ typedef struct Agg
 	 */
 	bool        lastAgg;
 
-	/* Should we stream this agg */
+	/* Stream entries when out of memory instead of spilling to disk */
 	bool 		streaming;
 } Agg;
 

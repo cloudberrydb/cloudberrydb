@@ -5008,6 +5008,7 @@ add_agg_cost(PlannerInfo *root, Plan *plan,
 	Path		agg_path;		/* dummy for result of cost_agg */
 	QualCost	qual_cost;
 	HashAggTableSizes hash_info;
+	double entrywidth;
 
 	UnusedArg(grpColIdx);
 	UnusedArg(num_nullcols);
@@ -5027,12 +5028,13 @@ add_agg_cost(PlannerInfo *root, Plan *plan,
 
 	if (aggstrategy == AGG_HASHED)
 	{
+		/* The following estimate is very rough but good enough for planning. */
+		entrywidth = agg_hash_entrywidth(numAggs,
+								   sizeof(HeapTupleData) + sizeof(HeapTupleHeaderData) + plan->plan_width,
+								   transSpace);
 		if (!calcHashAggTableSizes(global_work_mem(root),
 								   numGroups,
-								   numAggs,
-								   /* The following estimate is very rough but good enough for planning. */
-								   sizeof(HeapTupleData) + sizeof(HeapTupleHeaderData) + plan->plan_width,
-								   transSpace,
+								   entrywidth,
 								   true,
 								   &hash_info))
 		{

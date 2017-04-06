@@ -46,6 +46,8 @@ typedef struct HashAggEntry
 	bool is_primodial; /* indicates if this entry is there before spilling. */
 } HashAggEntry;
 
+typedef HashAggEntry* HashAggBucket;
+
 /* A SpillFile controls access to a temporary file used to hold  
  * transition tuples spilled from the hash table in order to free 
  * up space.
@@ -151,7 +153,7 @@ typedef struct HashAggTable
 	MemoryContext   entry_cxt;	/* memory context for hash table entries */
 
 	unsigned nbuckets;
-	HashAggEntry  **buckets;
+	HashAggBucket  *buckets;
 	uint64 *bloom;
 
 	/* hashkey bitshift amount to determine bucket - used when spilling */
@@ -196,15 +198,19 @@ typedef struct HashAggTable
 	uint32 num_reloads; /* number of times reloading a batch file */
 	uint32 num_batches; /* number of batch files */
 	uint64 num_tuples; /* Total input tuples so far*/
-	uint64 num_output_groups; /* Total output groups */
-	uint64 num_ht_groups; /* number of groups in the hash table */
+	uint64 num_output_groups; /* number of groups/entries output by the iterator */
+	uint64 num_ht_groups; /* number of in-memory and spilled groups/entries */
+	uint64 num_entries; /* number of currently in-memory groups/entries */
 	uint64 num_spill_groups; /* number of spilled groups */
 	uint32 num_overflows; /* number of times hash table overflows */
-	uint64 total_buckets; /* total number of buckets allocated */
+
 	bool is_spilling; /* indicate that spilling happened for this batch. */
+	bool expandable;  /* hash table buckets still have space to grow */
 	struct TupleTableSlot *prev_slot; /* a slot that is read previously. */
 
+	/* Statistics used for EXPLAIN ANALYZE */
 	CdbExplain_Agg      chainlength;
+	uint64 total_buckets; /* total of nbuckets across spills and reloads */
 } HashAggTable;
 
 extern HashAggTable *create_agg_hash_table(AggState *aggstate);
@@ -217,12 +223,19 @@ extern void destroy_agg_hash_table(AggState *aggstate);
 extern void agg_hash_explain(AggState *aggstate);
 extern HashAggEntry *agg_hash_iter(AggState *aggstate);
 
+/*
+ * Compute HHashTable entry size
+ *
+ * int numaggs    Est # of aggregate functions.
+ * int keywidth   Est per entry size of hash key.
+ * int transpace  Est per entry size of by-ref values.
+ */
+extern double agg_hash_entrywidth(int numaggs, int keywidth, int transpace);
+
 extern bool 
 calcHashAggTableSizes(double memquota,	/* Memory quota in bytes. */
-					   double ngroups,	/* Est # of groups. */
-					   int numaggs,		/* Est # of aggregate functions */
-					   int keywidth,	/* Est per entry size of hash key. */
-					   int transpace,	/* Est per entry size of by-ref values. */
+					   double ngroups,	/* estimate number of groups (hash table entries) */
+					   double entrywidth, /* calculate from agg_hash_entrywidth */
 					   bool force,	/* true => succeed even if work_mem too small */
 					   HashAggTableSizes	*out_hats);
 #endif

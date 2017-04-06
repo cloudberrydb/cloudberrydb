@@ -42,4 +42,55 @@ select * from (select max(i1) from testhagg group by i2) foo order by 1 limit 10
 select * from hashagg_spill.is_workfile_created('explain analyze select max(i1) from testhagg group by i2;');
 select * from hashagg_spill.is_workfile_created('explain analyze select max(i1) from testhagg group by i2 limit 45000;');
 
+
+-- Test HashAgg with increasing amount of overflows
+
+reset all;
+
+-- Returns the number of overflows from EXPLAIN ANALYZE output
+create or replace function hashagg_spill.num_hashagg_overflows(explain_query text)
+returns setof int as
+$$
+import re
+query = "select count(*) as nsegments from gp_segment_configuration where role='p' and content >= 0;"
+rv = plpy.execute(query)
+rv = plpy.execute(explain_query)
+result = []
+for i in range(len(rv)):
+    cur_line = rv[i]['QUERY PLAN']
+    p = re.compile('.+\((seg[\d]+).+ ([\d+]) overflows;')
+    m = p.match(cur_line)
+    if m:
+      overflows = int(m.group(2))
+      result.append(overflows)
+return result
+$$
+language plpythonu;
+
+-- Test agg spilling scenarios
+drop table if exists aggspill;
+create table aggspill (i int, j int, t text) distributed by (i);
+insert into aggspill select i, i*2, i::text from generate_series(1, 10000) i;
+insert into aggspill select i, i*2, i::text from generate_series(1, 100000) i;
+insert into aggspill select i, i*2, i::text from generate_series(1, 1000000) i;
+
+-- No spill with large statement memory 
+set statement_mem = '125MB';
+select count(*) from (select i, count(*) from aggspill group by i,j having count(*) = 1) g;
+
+-- Reduce the statement memory to induce spilling
+set statement_mem = '10MB';
+select overflows >= 1 from hashagg_spill.num_hashagg_overflows('explain analyze
+select count(*) from (select i, count(*) from aggspill group by i,j having count(*) = 2) g') overflows;
+select count(*) from (select i, count(*) from aggspill group by i,j having count(*) = 2) g;
+
+-- Reduce the statement memory, nbatches and entrysize even further to cause multiple overflows
+set gp_hashagg_default_nbatches = 4;
+set statement_mem = '5MB';
+
+select overflows > 1 from hashagg_spill.num_hashagg_overflows('explain analyze
+select count(*) from (select i, count(*) from aggspill group by i,j,t having count(*) = 3) g') overflows;
+
+select count(*) from (select i, count(*) from aggspill group by i,j,t having count(*) = 3) g;
+
 drop schema hashagg_spill cascade;

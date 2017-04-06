@@ -2725,7 +2725,7 @@ choose_hashed_grouping(PlannerInfo *root,
 	int			numGroupCols;
 	double		cheapest_path_rows;
 	int			cheapest_path_width;
-	Size		hashentrysize;
+	double		hashentrysize;
 	List	   *current_pathkeys;
 	Path		hashed_p;
 	Path		sorted_p;
@@ -2793,23 +2793,13 @@ choose_hashed_grouping(PlannerInfo *root,
 	}
 
 	/* Estimate per-hash-entry space at tuple width... */
-
-	/*
-	 * (Should improve this estimate since not all attributes are saved in a
-	 * hash table entry's grouping key tuple.)
-	 */
-	hashentrysize = MAXALIGN(cheapest_path_width) + MAXALIGN(sizeof(MemTupleData));
-	/* plus space for pass-by-ref transition values... */
-	hashentrysize += agg_counts->transitionSpace;
-	/* plus the per-hash-entry overhead */
-	hashentrysize += hash_agg_entry_size(agg_counts->numAggs);
+	hashentrysize = agg_hash_entrywidth(agg_counts->numAggs,
+							   sizeof(HeapTupleData) + sizeof(HeapTupleHeaderData) + cheapest_path_width,
+							   agg_counts->transitionSpace);
 
 	if (!calcHashAggTableSizes(global_work_mem(root),
 							   dNumGroups,
-							   agg_counts->numAggs,
-							   /* The following estimate is very rough but good enough for planning. */
-							   sizeof(HeapTupleData) + sizeof(HeapTupleHeaderData) + cheapest_path_width,
-							   agg_counts->transitionSpace,
+							   hashentrysize,
 							   false,
 							   &hash_info))
 	{
