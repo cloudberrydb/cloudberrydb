@@ -230,8 +230,6 @@ jobs:
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
     image: centos-gpdb-dev-6
-    output_mapping:
-      sync_tools_gpdb: sync_tools_gpdb_centos6
     params:
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
@@ -266,8 +264,6 @@ jobs:
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
     image: centos-gpdb-dev-7
-    output_mapping:
-      sync_tools_gpdb: sync_tools_gpdb_centos7
     params:
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
