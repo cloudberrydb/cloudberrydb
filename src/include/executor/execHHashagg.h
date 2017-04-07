@@ -154,6 +154,9 @@ typedef struct HashAggTable
 	HashAggEntry  **buckets;
 	uint64 *bloom;
 
+	/* hashkey bitshift amount to determine bucket - used when spilling */
+	unsigned pshift;
+
 	/* Overflow batches */
 	SpillSet       *spill_set;
 	/* Representation of all workfile names, used by the workfile manager */

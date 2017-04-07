@@ -86,6 +86,11 @@ typedef enum InputRecordType
 #define HAVE_FREESPACE(hashtable) \
    (GET_TOTAL_USED_SIZE(hashtable) < (hashtable)->max_mem)
 
+#define BLOOMVAL(hashkey) ((uint64)1) << (((hashkey) >> 23) & 0x3f);
+
+#define BUCKET_IDX(hashtable, hashkey) \
+		(((hashkey) >> (hashtable)->pshift) % (hashtable)->nbuckets)
+
 /* Methods that handle batch files */
 static SpillSet *createSpillSet(unsigned branching_factor, unsigned parent_hash_bit);
 static int closeSpillFile(AggState *aggstate, SpillSet *spill_set, int file_no);
@@ -105,7 +110,7 @@ static void spill_hash_table(AggState *aggstate);
 static void init_agg_hash_iter(HashAggTable* ht);
 static HashAggEntry *lookup_agg_hash_entry(AggState *aggstate, void *input_record,
 										   InputRecordType input_type, int32 input_size,
-										   uint32 hashkey, unsigned parent_hash_bit, bool *p_isnew);
+										   uint32 hashkey, bool *p_isnew);
 static void agg_hash_table_stat_upd(HashAggTable *ht);
 static void reset_agg_hash_table(AggState *aggstate);
 static bool agg_hash_reload(AggState *aggstate);
@@ -376,7 +381,7 @@ static HashAggEntry *
 lookup_agg_hash_entry(AggState *aggstate,
 					  void *input_record,
 					  InputRecordType input_type, int32 input_size,
-					  uint32 hashkey, unsigned parent_hash_bit, bool *p_isnew)
+					  uint32 hashkey, bool *p_isnew)
 {
 	HashAggEntry *entry;
 	HashAggTable *hashtable = aggstate->hhashtable;
@@ -393,8 +398,9 @@ lookup_agg_hash_entry(AggState *aggstate,
 		*p_isnew = false;
 
 	oldcxt = MemoryContextSwitchTo(tmpcontext->ecxt_per_tuple_memory);
-	bucket_idx = (hashkey >> parent_hash_bit) % (hashtable->nbuckets);
-	bloomval = ((uint64)1) << ((hashkey >> 23) & 0x3f);
+
+	bucket_idx = BUCKET_IDX(hashtable, hashkey);
+	bloomval = BLOOMVAL(hashkey);
 	entry = (0 == (hashtable->bloom[bucket_idx] & bloomval) ? NULL :
 			 hashtable->buckets[bucket_idx]);
 
@@ -691,8 +697,10 @@ create_agg_hash_table(AggState *aggstate)
 	/* Initialize the hash buckets */
 	hashtable->nbuckets = hashtable->hats.nbuckets;
 	hashtable->total_buckets = hashtable->nbuckets;
-	hashtable->buckets = (HashAggEntry **)palloc0(hashtable->nbuckets * sizeof(HashAggEntry *));
-	hashtable->bloom = (uint64 *)palloc0(hashtable->nbuckets * sizeof(uint64));
+	hashtable->buckets = (HashAggEntry **) palloc0(hashtable->nbuckets * sizeof(HashAggEntry *));
+	hashtable->bloom = (uint64 *) palloc0(hashtable->nbuckets * sizeof(uint64));
+
+	hashtable->pshift = 0;
 
 	MemoryContextSwitchTo(hashtable->entry_cxt);
 	
@@ -812,7 +820,7 @@ agg_hash_initial_pass(AggState *aggstate)
 		 * input tuple's group. */
 		hashkey = calc_hash_value(aggstate, outerslot);
 		entry = lookup_agg_hash_entry(aggstate, (void *)outerslot,
-									  INPUT_RECORD_TUPLE, 0, hashkey, 0, &isNew);
+									  INPUT_RECORD_TUPLE, 0, hashkey, &isNew);
 		
 		if (entry == NULL)
 		{
@@ -842,7 +850,7 @@ agg_hash_initial_pass(AggState *aggstate)
 			spill_hash_table(aggstate);
 
 			entry = lookup_agg_hash_entry(aggstate, (void *)outerslot,
-										  INPUT_RECORD_TUPLE, 0, hashkey, 0, &isNew);
+										  INPUT_RECORD_TUPLE, 0, hashkey, &isNew);
 		}
 
 		setGroupAggs(hashtable, mt_bind, entry);
@@ -1514,7 +1522,6 @@ agg_hash_reload(AggState *aggstate)
 	ExprContext *tmpcontext = aggstate->tmpcontext; /* per input tuple context */
 	bool has_tuples = false;
 	SpillFile *spill_file = hashtable->curr_spill_file;
-	int reloaded_hash_bit;
 
 	/*
 	 * Record the start value for mem_for_metadata, since its value
@@ -1530,7 +1537,7 @@ agg_hash_reload(AggState *aggstate)
 	hashtable->num_reloads++;
 	hashtable->total_buckets += hashtable->nbuckets;
 
-	reloaded_hash_bit = spill_file->batch_hash_bit +
+	hashtable->pshift = spill_file->batch_hash_bit +
 		(unsigned)ceil(log(spill_file->parent_spill_set->num_spill_files)/log(2));
 
 
@@ -1575,7 +1582,7 @@ agg_hash_reload(AggState *aggstate)
 		tmpcontext->ecxt_outertuple = aggstate->hashslot;
 
 		entry = lookup_agg_hash_entry(aggstate, input, INPUT_RECORD_GROUP_AND_AGGS, input_size,
-									  hashkey, reloaded_hash_bit, &isNew);
+									  hashkey, &isNew);
 		
 		if (entry == NULL)
 		{
@@ -1599,7 +1606,7 @@ agg_hash_reload(AggState *aggstate)
 			spill_hash_table(aggstate);
 
 			entry = lookup_agg_hash_entry(aggstate, input, INPUT_RECORD_GROUP_AND_AGGS, input_size,
-										  hashkey, reloaded_hash_bit, &isNew);
+										  hashkey, &isNew);
 		}
 
 		if (!isNew)
@@ -1946,6 +1953,8 @@ void reset_agg_hash_table(AggState *aggstate)
 	MemSet(hashtable->buckets, 0, hashtable->nbuckets * sizeof(HashAggEntry*));
 	MemSet(hashtable->bloom, 0, hashtable->nbuckets * sizeof(uint64));
 	hashtable->num_ht_groups = 0;
+
+	hashtable->pshift = 0;
 
 	mpool_reset(hashtable->group_buf);
 
