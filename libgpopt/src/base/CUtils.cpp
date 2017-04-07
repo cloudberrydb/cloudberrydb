@@ -1958,27 +1958,28 @@ CUtils::PdrgpexprDedup
 {
 	const ULONG ulSize = pdrgpexpr->UlLength();
 	DrgPexpr *pdrgpexprDedup = GPOS_NEW(pmp) DrgPexpr(pmp);
+	HMExprUl *phmexprul = GPOS_NEW(pmp) HMExprUl(pmp);
 
-	for (ULONG ulOuter = 0; ulOuter < ulSize; ulOuter++)
+	for (ULONG ul = 0; ul < ulSize; ul++)
 	{
-		CExpression *pexprOne = (*pdrgpexpr)[ulOuter];
-		BOOL fDuplicate = false;
-		for (ULONG ulInner = ulOuter + 1; !fDuplicate && ulInner < ulSize; ulInner++)
+		CExpression *pexpr = (*pdrgpexpr)[ul];
+		pexpr->AddRef();
+		ULONG *pulValue = GPOS_NEW(pmp) ULONG(ul);
+		if (phmexprul->FInsert(pexpr, pulValue))
 		{
-			CExpression *pexprTwo = (*pdrgpexpr)[ulInner];
-			if (FEqual(pexprOne, pexprTwo))
-			{
-				fDuplicate = true;
-			}
+			pexpr->AddRef();
+			pdrgpexprDedup->Append(pexpr);
 		}
-
-		if (!fDuplicate)
+		else
 		{
-			pexprOne->AddRef();
-			pdrgpexprDedup->Append(pexprOne);
+			// since the insert is not successful, we need to neutralize
+			// the AddRef and GPOS_NEW for the ULONG value.
+			GPOS_DELETE(pulValue);
+			pexpr->Release();
 		}
 	}
 
+	phmexprul->Release();
 	return pdrgpexprDedup;
 }
 

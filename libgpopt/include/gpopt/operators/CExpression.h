@@ -308,6 +308,10 @@ namespace gpopt
 			static
 			ULONG UlHash(const CExpression *pexpr);
 
+			// static hash function
+			static
+			ULONG UlHashDedup(const CExpression *pexpr);
+
 			// rehydrate expression from a given cost context and child expressions
 			static
 			CExpression *PexprRehydrate(IMemoryPool *pmp, CCostContext *pcc, DrgPexpr *pdrgpexpr, CDrvdPropCtxtPlan *pdpctxtplan);

@@ -1058,6 +1058,9 @@ namespace gpopt
 			BOOL FEquivalanceClassesEqual(IMemoryPool *pmp, DrgPcrs *pdrgpcrsFst, DrgPcrs *pdrgpcrsSnd);
 	}; // class CUtils
 
+	// hash map from expression to expression
+	typedef CHashMap<CExpression, ULONG, CExpression::UlHashDedup, CUtils::FEqual,
+				CleanupRelease<CExpression>, CleanupDelete<ULONG> > HMExprUl;
 } // namespace gpopt
 
 #ifdef GPOS_DEBUG

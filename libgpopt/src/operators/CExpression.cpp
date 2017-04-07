@@ -1307,13 +1307,50 @@ CExpression::UlHash
 	const ULONG ulArity = pexpr->UlArity();
 	for (ULONG ul = 0; ul < ulArity; ul++)
 	{
-
 		ulHash = UlCombineHashes(ulHash, UlHash((*pexpr)[ul]));
 	}
 
 	return ulHash;
 }
 
+
+// Less strict hash function to support expressions that are not order
+// sensitive. This hash function specifically used in CUtils::PdrgpexprDedup
+// for deduping the expressions in a given list.
+ULONG
+CExpression::UlHashDedup
+	(
+	const CExpression *pexpr
+	)
+{
+	GPOS_CHECK_STACK_SIZE;
+
+	ULONG ulHash = pexpr->Pop()->UlHash();
+
+	const ULONG ulArity = pexpr->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ul++)
+	{
+		if(pexpr->Pop()->FInputOrderSensitive())
+		{
+			// If the two expressions are order sensitive, then even though
+			// thir inputs are the same, if the order of the inputs are not the
+			// same, hash function puts two different expressions into separate
+			// buckets.
+			// e.g logically a < b is not equal to b < a
+			ulHash = UlCombineHashes(ulHash, UlHash((*pexpr)[ul]));
+		}
+		else
+		{
+			// If the two expressions are not order sensitive and their
+			// inputs are the same, the expressions are considered as equal
+			// and fall into the same bucket in the hash map.
+			//  e.g logically a = b is equal to b = a
+			ulHash ^= UlHash((*pexpr)[ul]);
+		}
+	}
+
+	return ulHash;
+}
 
 //---------------------------------------------------------------------------
 //	@function:
