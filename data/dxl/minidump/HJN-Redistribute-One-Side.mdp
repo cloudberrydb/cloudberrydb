@@ -4719,6 +4719,14 @@
           <dxl:JoinFilter/>
           <dxl:HashCondList>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+              <dxl:Ident ColId="1" ColName="l_partkey" TypeMdid="0.23.1.0"/>
+              <dxl:Ident ColId="30" ColName="o_shippriority" TypeMdid="0.23.1.0"/>
+            </dxl:Comparison>
+            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+              <dxl:Ident ColId="0" ColName="l_orderkey" TypeMdid="0.23.1.0"/>
+              <dxl:Ident ColId="24" ColName="o_custkey" TypeMdid="0.23.1.0"/>
+            </dxl:Comparison>
+            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
               <dxl:Ident ColId="3" ColName="l_linenumber" TypeMdid="0.23.1.0"/>
               <dxl:FuncExpr FuncId="0.819.1.0" FuncRetSet="false" TypeMdid="0.23.1.0">
                 <dxl:Ident ColId="25" ColName="o_orderstatus" TypeMdid="0.1042.1.0"/>
@@ -4729,14 +4737,6 @@
                 <dxl:Ident ColId="2" ColName="l_suppkey" TypeMdid="0.23.1.0"/>
               </dxl:Cast>
               <dxl:Ident ColId="26" ColName="o_totalprice" TypeMdid="0.1700.1.0"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-              <dxl:Ident ColId="1" ColName="l_partkey" TypeMdid="0.23.1.0"/>
-              <dxl:Ident ColId="30" ColName="o_shippriority" TypeMdid="0.23.1.0"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-              <dxl:Ident ColId="0" ColName="l_orderkey" TypeMdid="0.23.1.0"/>
-              <dxl:Ident ColId="24" ColName="o_custkey" TypeMdid="0.23.1.0"/>
             </dxl:Comparison>
           </dxl:HashCondList>
           <dxl:TableScan>

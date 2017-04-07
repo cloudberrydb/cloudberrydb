@@ -377,6 +377,7 @@
         </dxl:LogicalSelect>
       </dxl:LogicalGroupBy>
     </dxl:Query>
+  </dxl:Thread>
 <dxl:Plan Id="0" SpaceSize="110000">
   <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
     <dxl:Properties>
@@ -496,11 +497,11 @@
                 <dxl:HashCondList>
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                     <dxl:Ident ColId="17" ColName="max" TypeMdid="0.23.1.0"/>
-                    <dxl:Ident ColId="1" ColName="?column?" TypeMdid="0.23.1.0"/>
+                    <dxl:Ident ColId="2" ColName="min" TypeMdid="0.23.1.0"/>
                   </dxl:Comparison>
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                     <dxl:Ident ColId="17" ColName="max" TypeMdid="0.23.1.0"/>
-                    <dxl:Ident ColId="2" ColName="min" TypeMdid="0.23.1.0"/>
+                    <dxl:Ident ColId="1" ColName="?column?" TypeMdid="0.23.1.0"/>
                   </dxl:Comparison>
                 </dxl:HashCondList>
                 <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
@@ -629,7 +630,7 @@
                     <dxl:And>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                         <dxl:Ident ColId="1" ColName="?column?" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                        <dxl:Ident ColId="2" ColName="min" TypeMdid="0.23.1.0"/>
                       </dxl:Comparison>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                         <dxl:Ident ColId="2" ColName="min" TypeMdid="0.23.1.0"/>
@@ -637,7 +638,7 @@
                       </dxl:Comparison>
                       <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                         <dxl:Ident ColId="1" ColName="?column?" TypeMdid="0.23.1.0"/>
-                        <dxl:Ident ColId="2" ColName="min" TypeMdid="0.23.1.0"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
                       </dxl:Comparison>
                     </dxl:And>
                   </dxl:Filter>
@@ -803,5 +804,4 @@
     </dxl:Result>
   </dxl:GatherMotion>
 </dxl:Plan>
-  </dxl:Thread>
 </dxl:DXLMessage>

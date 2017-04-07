@@ -4680,7 +4680,7 @@
         </dxl:And>
       </dxl:LogicalJoin>
     </dxl:Query>
-   <dxl:Plan Id="0" SpaceSize="381198">
+   <dxl:Plan Id="0" SpaceSize="337846">
   <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
     <dxl:Properties>
       <dxl:Cost StartupCost="0" TotalCost="746849019.723779" Rows="10325183.250315" Width="550"/>
@@ -4921,11 +4921,11 @@
       <dxl:JoinFilter/>
       <dxl:HashCondList>
         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-          <dxl:Ident ColId="54" ColName="ps_suppkey" TypeMdid="0.23.1.0"/>
+          <dxl:Ident ColId="32" ColName="l_suppkey" TypeMdid="0.23.1.0"/>
           <dxl:Ident ColId="16" ColName="s_suppkey" TypeMdid="0.23.1.0"/>
         </dxl:Comparison>
         <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-          <dxl:Ident ColId="32" ColName="l_suppkey" TypeMdid="0.23.1.0"/>
+          <dxl:Ident ColId="54" ColName="ps_suppkey" TypeMdid="0.23.1.0"/>
           <dxl:Ident ColId="16" ColName="s_suppkey" TypeMdid="0.23.1.0"/>
         </dxl:Comparison>
       </dxl:HashCondList>
@@ -5029,7 +5029,7 @@
         <dxl:SortingColumnList/>
         <dxl:HashExprList>
           <dxl:HashExpr TypeMdid="0.23.1.0">
-            <dxl:Ident ColId="54" ColName="ps_suppkey" TypeMdid="0.23.1.0"/>
+            <dxl:Ident ColId="32" ColName="l_suppkey" TypeMdid="0.23.1.0"/>
           </dxl:HashExpr>
         </dxl:HashExprList>
         <dxl:HashJoin JoinType="Inner">
@@ -5137,11 +5137,11 @@
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
               <dxl:Ident ColId="31" ColName="l_partkey" TypeMdid="0.23.1.0"/>
-              <dxl:Ident ColId="0" ColName="p_partkey" TypeMdid="0.23.1.0"/>
+              <dxl:Ident ColId="53" ColName="ps_partkey" TypeMdid="0.23.1.0"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
               <dxl:Ident ColId="31" ColName="l_partkey" TypeMdid="0.23.1.0"/>
-              <dxl:Ident ColId="53" ColName="ps_partkey" TypeMdid="0.23.1.0"/>
+              <dxl:Ident ColId="0" ColName="p_partkey" TypeMdid="0.23.1.0"/>
             </dxl:Comparison>
           </dxl:HashCondList>
           <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">

@@ -6,11 +6,12 @@
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:CostModelConfig CostModelType="0" SegmentsForCosting="2"/>
-      <dxl:TraceFlags Value="101013,103001,103016,104002"/>
+      <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="2147483647" ArrayExpansionThreshold="2147483647" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000"/>
+      <dxl:TraceFlags Value="101013,103001,103016,103022,104002"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:RelationStatistics Mdid="2.106508.1.1" Name="mpp_r6756" Rows="0.000000" EmptyRelation="false"/>
-      <dxl:Relation Mdid="0.106508.1.1" Name="mpp_r6756" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Random" Keys="10,4" PartitionColumns="0">
+      <dxl:Relation Mdid="0.106508.1.1" Name="mpp_r6756" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Random" Keys="10,4" PartitionColumns="0" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="a" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -223,7 +224,7 @@
         <dxl:IntermediateResultType Mdid="0.20.1.0"/>
       </dxl:GPDBAgg>
       <dxl:RelationStatistics Mdid="2.106604.1.1" Name="mpp_s6756" Rows="8.000000" EmptyRelation="false"/>
-      <dxl:Relation Mdid="0.106604.1.1" Name="mpp_s6756" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Random" Keys="9,3">
+      <dxl:Relation Mdid="0.106604.1.1" Name="mpp_s6756" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Random" Keys="9,3" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="c" Attno="1" Mdid="0.23.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -820,12 +821,12 @@
                     <dxl:Ident ColId="171" ColName="a" TypeMdid="0.23.1.0"/>
                   </dxl:Comparison>
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                    <dxl:Ident ColId="193" ColName="d" TypeMdid="0.23.1.0"/>
-                    <dxl:Ident ColId="182" ColName="c" TypeMdid="0.23.1.0"/>
-                  </dxl:Comparison>
-                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                     <dxl:Ident ColId="204" ColName="e" TypeMdid="0.23.1.0"/>
                     <dxl:Ident ColId="171" ColName="a" TypeMdid="0.23.1.0"/>
+                  </dxl:Comparison>
+                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                    <dxl:Ident ColId="193" ColName="d" TypeMdid="0.23.1.0"/>
+                    <dxl:Ident ColId="182" ColName="c" TypeMdid="0.23.1.0"/>
                   </dxl:Comparison>
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                     <dxl:Ident ColId="204" ColName="e" TypeMdid="0.23.1.0"/>
@@ -2360,12 +2361,12 @@
                       <dxl:Ident ColId="87" ColName="a" TypeMdid="0.23.1.0"/>
                     </dxl:Comparison>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                      <dxl:Ident ColId="109" ColName="d" TypeMdid="0.23.1.0"/>
-                      <dxl:Ident ColId="98" ColName="c" TypeMdid="0.23.1.0"/>
-                    </dxl:Comparison>
-                    <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                       <dxl:Ident ColId="120" ColName="e" TypeMdid="0.23.1.0"/>
                       <dxl:Ident ColId="87" ColName="a" TypeMdid="0.23.1.0"/>
+                    </dxl:Comparison>
+                    <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                      <dxl:Ident ColId="109" ColName="d" TypeMdid="0.23.1.0"/>
+                      <dxl:Ident ColId="98" ColName="c" TypeMdid="0.23.1.0"/>
                     </dxl:Comparison>
                     <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
                       <dxl:Ident ColId="120" ColName="e" TypeMdid="0.23.1.0"/>
