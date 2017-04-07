@@ -59,7 +59,7 @@
 #include "utils/lsyscache.h"
 #include "utils/relcache.h"
 #include "utils/syscache.h"
-
+#include "cdb/cdbpersistentstore.h"
 
 /* GUC variable */
 bool	synchronize_seqscans = true;
@@ -6061,4 +6061,38 @@ heap_sync(Relation rel)
 		smgrimmedsync(toastrel->rd_smgr);
 		heap_close(toastrel, AccessShareLock);
 	}
+}
+
+/*
+ * Function checks if its okay to generate xlog record for the relation in
+ * question. It does same from perspective in GPDB need to have persistent
+ * table information to be added to xlog records. So, for tables where PT info
+ * is not needed can proceed, but for relations where PT info is must for xlog
+ * record, if it can be fetched then fetches and signal go ahead else just
+ * returns xlog should not be generated.
+ */
+bool
+RelationAllowedToGenerateXLogRecord(Relation relation)
+{
+	if (InRecovery)
+		return false;
+
+	if (GpPersistent_SkipXLogInfo(relation->rd_id))
+		return true;
+
+	/*
+	 * Only for non-system table fetch the info if not present. Incase of
+	 * system table like pg_class if trying to fetch the informatiom here it
+	 * may lead to infinite recursion as for reading pg_class tuple will have
+	 * to read gp_relation_node tuple to get PT info for which need to read
+	 * back pg_class tuple, hence avoid the same.
+	 */
+	if (relation->rd_id >= FirstNormalObjectId)
+		RelationFetchGpRelationNodeForXLog(relation);
+
+	if (relation->rd_segfile0_relationnodeinfo.isPresent &&
+		!relation->rd_segfile0_relationnodeinfo.tidAllowedToBeZero)
+		return true;
+
+	return false;
 }

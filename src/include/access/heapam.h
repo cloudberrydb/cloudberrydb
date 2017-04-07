@@ -156,6 +156,8 @@ RelationFetchGpRelationNodeForXLog(Relation relation)
 	}
 }
 
+extern bool
+RelationAllowedToGenerateXLogRecord(Relation relation);
 
 typedef enum
 {
