@@ -1884,40 +1884,54 @@ agg_hash_next_pass(AggState *aggstate)
 	}
 	
 	/* Report statistics for EXPLAIN ANALYZE. */
-    if (!more && aggstate->ss.ps.instrument)
-    {
-        Instrumentation    *instr = aggstate->ss.ps.instrument;
-        StringInfo          hbuf = aggstate->ss.ps.cdbexplainbuf;
+	if (!more && aggstate->ss.ps.instrument)
+	{
+		Instrumentation    *instr = aggstate->ss.ps.instrument;
 
 		instr->workmemwanted = Max(instr->workmemwanted, hashtable->mem_wanted);
 		instr->workmemused = hashtable->mem_used;
+	}
 
+	return more;
+}
+
+/*
+ * Append hashtable statistics to explain buffer for EXPLAIN ANALYZE
+ */
+void
+agg_hash_explain(AggState *aggstate)
+{
+	HashAggTable *hashtable = aggstate->hhashtable;
+	StringInfo hbuf = aggstate->ss.ps.cdbexplainbuf;
+
+	/* If the hash table spilled */
+	if (hashtable->num_spill_groups > 0 )
+	{
 		appendStringInfo(hbuf,
-						 INT64_FORMAT " groups total in %d batches",
-						 hashtable->num_output_groups,
-						 hashtable->num_batches);
+				INT64_FORMAT " groups total in %d batches",
+				hashtable->num_output_groups,
+				hashtable->num_batches);
 		
 		appendStringInfo(hbuf,
-						 "; %d overflows"
-						 "; " INT64_FORMAT " spill groups",
-						 hashtable->num_overflows,
-						 hashtable->num_spill_groups);
+				"; %d overflows"
+				"; " INT64_FORMAT " spill groups",
+				hashtable->num_overflows,
+				hashtable->num_spill_groups);
 
 		appendStringInfo(hbuf, ".\n");
-
-        /* Hash chain statistics */
-        if (hashtable->chainlength.vcnt > 0)
-            appendStringInfo(hbuf,
-                             "Hash chain length %.1f avg, %.0f max,"
-                             " using %d of " INT64_FORMAT " buckets.\n",
-                             cdbexplain_agg_avg(&hashtable->chainlength),
-                             hashtable->chainlength.vmax,
-                             hashtable->chainlength.vcnt,
-                             hashtable->total_buckets);
 	}
-	
-	
-	return more;
+
+	/* Hash chain statistics */
+	if (hashtable->chainlength.vcnt > 0)
+	{
+		appendStringInfo(hbuf,
+				"Hash chain length %.1f avg, %.0f max,"
+				" using %d of " INT64_FORMAT " buckets.\n",
+				cdbexplain_agg_avg(&hashtable->chainlength),
+				hashtable->chainlength.vmax,
+				hashtable->chainlength.vcnt,
+				hashtable->total_buckets);
+	}
 }
 
 /* Resets all gpmon states for this agg and sends an updated gpmon packet */
@@ -1974,6 +1988,7 @@ void destroy_agg_hash_table(AggState *aggstate)
 	
 	if ( agg->aggstrategy == AGG_HASHED && aggstate->hhashtable != NULL )
 	{
+
 		elog(HHA_MSG_LVL,
 			"HashAgg: destroying hash table -- ngroup=" INT64_FORMAT " ntuple=" INT64_FORMAT,
 			aggstate->hhashtable->num_ht_groups,

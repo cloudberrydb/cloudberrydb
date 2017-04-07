@@ -214,6 +214,7 @@ extern bool agg_hash_next_pass(AggState *aggstate);
 extern bool agg_hash_continue_pass(AggState *aggstate);
 extern void destroy_agg_hash_table(AggState *aggstate);
 
+extern void agg_hash_explain(AggState *aggstate);
 extern HashAggEntry *agg_hash_iter(AggState *aggstate);
 
 extern bool 

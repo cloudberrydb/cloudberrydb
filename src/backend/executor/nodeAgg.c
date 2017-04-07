@@ -1059,6 +1059,11 @@ ExecAgg(AggState *node)
 
 				case HASHAGG_END_OF_PASSES:
 					node->agg_done = true;
+					/* Append stats before destroying the htable for EXPLAIN ANALYZE */
+					if (node->ss.ps.instrument)
+					{
+						agg_hash_explain(node);
+					}
 					ExecEagerFreeAgg(node);
 					return NULL;
 
