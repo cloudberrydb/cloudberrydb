@@ -393,11 +393,7 @@ CMDIndexGPDB::DebugPrint
 	
 	os << "Index name: " << (Mdname()).Pstr()->Wsz() << std::endl;
 	os << "Index type: " << PstrIndexType(m_emdindt)->Wsz() << std::endl;
-		
-	os << "Indexed relation id: ";
-	PmdidRel()->OsPrint(os);
-	os << std::endl;
-	
+
 	os << "Index keys: ";
 	for (ULONG ul = 0; ul < UlKeys(); ul++)
 	{

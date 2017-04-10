@@ -45,18 +45,14 @@ namespace gpmd
 				EmdindBitmap,	// bitmap
 				EmdindSentinel
 			};
-			
+
 			// object type
 			virtual
 			Emdtype Emdt() const
 			{
 				return EmdtInd;
 			}
-		
-			// mdid of indexed relation
-			virtual
-			IMDId *PmdidRel() const = 0;
-						
+
 			// is the index clustered
 			virtual
 			BOOL FClustered() const = 0;
