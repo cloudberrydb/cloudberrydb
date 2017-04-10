@@ -36,7 +36,6 @@ CMDIndexGPDB::CMDIndexGPDB
 	IMemoryPool *pmp, 
 	IMDId *pmdid, 
 	CMDName *pmdname,
-	IMDId *pmdidRel, 
 	BOOL fClustered, 
 	IMDIndex::EmdindexType emdindt,
 	IMDId *pmdidItemType,
@@ -50,7 +49,6 @@ CMDIndexGPDB::CMDIndexGPDB
 	m_pmp(pmp),
 	m_pmdid(pmdid),
 	m_pmdname(pmdname),
-	m_pmdidRel(pmdidRel),
 	m_fClustered(fClustered),
 	m_emdindt(emdindt),
 	m_pmdidItemType(pmdidItemType),
@@ -61,7 +59,6 @@ CMDIndexGPDB::CMDIndexGPDB
 	m_pmdpartcnstr(pmdpartcnstr)
 {
 	GPOS_ASSERT(pmdid->FValid());
-	GPOS_ASSERT(pmdidRel->FValid());
 	GPOS_ASSERT(IMDIndex::EmdindSentinel > emdindt);
 	GPOS_ASSERT(NULL != pdrgpulKeyCols);
 	GPOS_ASSERT(0 < pdrgpulKeyCols->UlSafeLength());
@@ -86,7 +83,6 @@ CMDIndexGPDB::~CMDIndexGPDB()
 	GPOS_DELETE(m_pmdname);
 	GPOS_DELETE(m_pstr);
 	m_pmdid->Release();
-	m_pmdidRel->Release();
 	CRefCount::SafeRelease(m_pmdidItemType);
 	m_pdrgpulKeyCols->Release();
 	m_pdrgpulIncludedCols->Release();
@@ -120,20 +116,6 @@ CMDName
 CMDIndexGPDB::Mdname() const
 {
 	return *m_pmdname;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMDIndexGPDB::PmdidRel
-//
-//	@doc:
-//		Returns the metadata id of the indexed relation
-//
-//---------------------------------------------------------------------------
-IMDId *
-CMDIndexGPDB::PmdidRel() const
-{
-	return m_pmdidRel;
 }
 
 //---------------------------------------------------------------------------
@@ -335,7 +317,6 @@ CMDIndexGPDB::Serialize
 	
 	m_pmdid->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMdid));
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenName), m_pmdname->Pstr());
-	m_pmdidRel->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenRelationMdid));
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIndexClustered), m_fClustered);
 	
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIndexType), PstrIndexType(m_emdindt));

@@ -42,7 +42,6 @@ CParseHandlerMDIndex::CParseHandlerMDIndex
 	CParseHandlerMetadataObject(pmp, pphm, pphRoot),
 	m_pmdid(NULL),
 	m_pmdname(NULL),
-	m_pmdidRel(NULL),
 	m_fClustered(false),
 	m_emdindt(IMDIndex::EmdindSentinel),
 	m_pmdidItemType(NULL),
@@ -120,9 +119,6 @@ CParseHandlerMDIndex::StartElement
 	// create a copy of the string in the CMDName constructor
 	m_pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, pstrColName);
 	GPOS_DELETE(pstrColName);
-
-	// parse mdid of indexed relation
-	m_pmdidRel = CDXLOperatorFactory::PmdidFromAttrs(m_pphm->Pmm(), attrs, EdxltokenRelationMdid, EdxltokenIndex);
 
 	// parse index clustering, key columns and included columns information
 	m_fClustered = CDXLOperatorFactory::FValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenIndexClustered, EdxltokenIndex);
@@ -212,8 +208,7 @@ CParseHandlerMDIndex::EndElement
 							(
 							m_pmp, 
 							m_pmdid, 
-							m_pmdname, 
-							m_pmdidRel, 
+							m_pmdname,
 							m_fClustered, 
 							m_emdindt,
 							m_pmdidItemType,

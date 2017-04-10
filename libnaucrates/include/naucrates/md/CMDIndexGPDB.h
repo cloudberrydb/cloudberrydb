@@ -45,9 +45,6 @@ namespace gpmd
 						
 			// table name
 			CMDName *m_pmdname;
-			
-			// mdid of indexed relation
-			IMDId *m_pmdidRel;
 
 			// is the index clustered
 			BOOL m_fClustered;
@@ -87,7 +84,6 @@ namespace gpmd
 				IMemoryPool *pmp, 
 				IMDId *pmdid, 
 				CMDName *pmdname,
-				IMDId *pmdidRel, 
 				BOOL fClustered, 
 				EmdindexType emdindt,
 				IMDId *pmdidItemType,
@@ -110,10 +106,6 @@ namespace gpmd
 			virtual 
 			CMDName Mdname() const;
 
-			// mdid of indexed relation
-			virtual
-			IMDId *PmdidRel() const;
-			
 			// is the index clustered
 			virtual
 			BOOL FClustered() const;
