@@ -41,9 +41,6 @@ namespace gpopt
 			// mdid of the index
 			IMDId *m_pmdidIndex;
 
-			// mdid of the table
-			IMDId *m_pmdidTable;
-
 			// name of index
 			CName m_name;
 
@@ -66,7 +63,6 @@ namespace gpopt
 				(
 				IMemoryPool *pmp,
 				IMDId *pmdidIndex,
-				IMDId *pmdidTable,
 				const CName &name,
 				DrgPcoldesc *pdrgcoldescKeyCols,
 				DrgPcoldesc *pdrgcoldescIncludedCols,
@@ -87,12 +83,6 @@ namespace gpopt
 			IMDId *Pmdid() const
 			{
 				return m_pmdidIndex;
-			}
-
-			// table mdid
-			IMDId *PmdidTable() const
-			{
-				return m_pmdidTable;
 			}
 
 			// index name

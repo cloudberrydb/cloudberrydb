@@ -30,7 +30,6 @@ CIndexDescriptor::CIndexDescriptor
 	(
 	IMemoryPool *pmp,
 	IMDId *pmdidIndex,
-	IMDId *pmdidTable,
 	const CName &name,
 	DrgPcoldesc *pdrgcoldescKeyCols,
 	DrgPcoldesc *pdrgcoldescIncludedCols,
@@ -38,7 +37,6 @@ CIndexDescriptor::CIndexDescriptor
 	)
 	:
 	m_pmdidIndex(pmdidIndex),
-	m_pmdidTable(pmdidTable),
 	m_name(pmp, name),
 	m_pdrgpcoldescKeyCols(pdrgcoldescKeyCols),
 	m_pdrgpcoldescIncludedCols(pdrgcoldescIncludedCols),
@@ -46,7 +44,6 @@ CIndexDescriptor::CIndexDescriptor
 {
 	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(pmdidIndex->FValid());
-	GPOS_ASSERT(pmdidTable->FValid());
 	GPOS_ASSERT(NULL != pdrgcoldescKeyCols);
 	GPOS_ASSERT(NULL != pdrgcoldescIncludedCols);
 }
@@ -62,7 +59,6 @@ CIndexDescriptor::CIndexDescriptor
 CIndexDescriptor::~CIndexDescriptor()
 {
 	m_pmdidIndex->Release();
-	m_pmdidTable->Release();
 
 	m_pdrgpcoldescKeyCols->Release();
 	m_pdrgpcoldescIncludedCols->Release();
@@ -121,7 +117,6 @@ CIndexDescriptor::Pindexdesc
 	DrgPcoldesc *pdrgpcoldesc = ptabdesc->Pdrgpcoldesc();
 
 	pmdindex->Pmdid()->AddRef();
-	pmdindex->PmdidRel()->AddRef();
 
 	// array of index column descriptors
 	DrgPcoldesc *pdrgcoldescKey = GPOS_NEW(pmp) DrgPcoldesc(pmp);
@@ -148,7 +143,6 @@ CIndexDescriptor::Pindexdesc
 											(
 											pmp,
 											pmdindex->Pmdid(),
-											pmdindex->PmdidRel(),
 											CName(&strIndexName),
 											pdrgcoldescKey,
 											pdrgcoldescIncluded,
