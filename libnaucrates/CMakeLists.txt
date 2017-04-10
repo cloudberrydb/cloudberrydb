@@ -371,8 +371,6 @@ add_library(naucrates
             src/operators/CDXLScalarIfStmt.cpp
             include/naucrates/dxl/operators/CDXLScalarIndexCondList.h
             src/operators/CDXLScalarIndexCondList.cpp
-            include/naucrates/dxl/operators/CDXLScalarInitPlan.h
-            src/operators/CDXLScalarInitPlan.cpp
             include/naucrates/dxl/operators/CDXLScalarJoinFilter.h
             src/operators/CDXLScalarJoinFilter.cpp
             include/naucrates/dxl/operators/CDXLScalarLimitCount.h
@@ -705,8 +703,6 @@ add_library(naucrates
             src/parser/CParseHandlerScalarIdent.cpp
             include/naucrates/dxl/parser/CParseHandlerScalarIfStmt.h
             src/parser/CParseHandlerScalarIfStmt.cpp
-            include/naucrates/dxl/parser/CParseHandlerScalarInitPlan.h
-            src/parser/CParseHandlerScalarInitPlan.cpp
             include/naucrates/dxl/parser/CParseHandlerScalarLimitCount.h
             src/parser/CParseHandlerScalarLimitCount.cpp
             include/naucrates/dxl/parser/CParseHandlerScalarLimitOffset.h

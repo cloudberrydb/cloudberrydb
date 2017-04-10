@@ -865,26 +865,6 @@ CDXLOperatorFactory::PdxlopBooleanTest
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLOperatorFactory::PdxlopInitPlan
-//
-//	@doc:
-//		Construct an InitPlan node
-//
-//---------------------------------------------------------------------------
-CDXLScalar *
-CDXLOperatorFactory::PdxlopInitPlan
-	(
-	CDXLMemoryManager *pmm
-	)
-{
-	// get the memory pool from the memory manager
-	IMemoryPool *pmp = pmm->Pmp();
-	
-	return GPOS_NEW(pmp) CDXLScalarInitPlan(pmp);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CDXLOperatorFactory::PdxlopSubPlan
 //
 //	@doc:

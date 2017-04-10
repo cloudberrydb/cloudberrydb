@@ -286,10 +286,6 @@ namespace gpdxl
 			static
 			CDXLScalar *PdxlopBooleanTest(CDXLMemoryManager *pmm, const EdxlBooleanTestType);
 
-			// create an initplan operator
-			static
-			CDXLScalar *PdxlopInitPlan(CDXLMemoryManager *pmm);
-
 			// create a subplan operator
 			static
 			CDXLScalar *PdxlopSubPlan

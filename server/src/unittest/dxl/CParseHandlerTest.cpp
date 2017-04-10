@@ -61,7 +61,6 @@ CParseHandlerTest::m_rgszPlanDXLFileNames[] =
 		"../data/dxl/parse_tests/q21-SubqueryScan.xml",
 		"../data/dxl/parse_tests/q22-Result.xml",
 		"../data/dxl/parse_tests/q23-MJ.xml",
-		"../data/dxl/parse_tests/q24-Append.xml",
 		"../data/dxl/parse_tests/q25-AppendPartTable.xml",
 		"../data/dxl/parse_tests/q28-Materialize.xml",
 		"../data/dxl/parse_tests/q38-DynamicScan-PartitionSelector.xml",
