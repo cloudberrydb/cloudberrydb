@@ -27,8 +27,7 @@
 DistributedSnapshotCommitted 
 DistributedSnapshotWithLocalMapping_CommittedTest(
 	DistributedSnapshotWithLocalMapping		*dslm,
-	TransactionId 							localXid,
-	bool									isXmax)
+	TransactionId 							localXid)
 {
 	DistributedSnapshotHeader *header = &dslm->header;
 	DistributedSnapshotMapEntry *inProgressEntryArray = dslm->inProgressEntryArray;
