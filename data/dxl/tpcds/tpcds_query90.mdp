@@ -3441,7 +3441,7 @@
       <dxl:GPDBFunc Mdid="0.1703.1.0" Name="numeric" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
         <dxl:ResultType Mdid="0.1700.1.0"/>
       </dxl:GPDBFunc>
-      <dxl:Index Mdid="0.1961709.1.0" Name="web_page_pkey" RelationMdid="0.1961683.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20">
+      <dxl:Index Mdid="0.1961709.1.0" Name="web_page_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
         </dxl:OpClasses>
@@ -9405,7 +9405,7 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:Index Mdid="0.1961249.1.0" Name="time_dim_pkey" RelationMdid="0.1961223.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16">
+      <dxl:Index Mdid="0.1961249.1.0" Name="time_dim_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
         </dxl:OpClasses>
@@ -12214,7 +12214,7 @@
       <dxl:GPDBFunc Mdid="0.1781.1.0" Name="numeric" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
         <dxl:ResultType Mdid="0.1700.1.0"/>
       </dxl:GPDBFunc>
-      <dxl:Index Mdid="0.1961663.1.0" Name="household_demographics_pkey" RelationMdid="0.1961637.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11">
+      <dxl:Index Mdid="0.1961663.1.0" Name="household_demographics_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
         </dxl:OpClasses>

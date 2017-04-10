@@ -23,7 +23,7 @@ explain select * from t where c2 = 'HEAP' or c4 = 't' or c5 = 'f';
       <dxl:TraceFlags Value="102004,102005,102006,102007,102024,102025,102121,103001,103016"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
-      <dxl:Index Mdid="0.21849037.1.0" Name="idx_t_1" RelationMdid="0.21849009.1.0" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="3" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13">
+      <dxl:Index Mdid="0.21849037.1.0" Name="idx_t_1" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="3" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.3017.1.0"/>
         </dxl:OpClasses>
@@ -243,12 +243,12 @@ explain select * from t where c2 = 'HEAP' or c4 = 't' or c5 = 'f';
           <dxl:UpperBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:Index Mdid="0.21849058.1.0" Name="idx_t_2" RelationMdid="0.21849009.1.0" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="4" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13">
+      <dxl:Index Mdid="0.21849058.1.0" Name="idx_t_2" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="4" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.3017.1.0"/>
         </dxl:OpClasses>
       </dxl:Index>
-      <dxl:Index Mdid="0.21849079.1.0" Name="idx_t_3" RelationMdid="0.21849009.1.0" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13">
+      <dxl:Index Mdid="0.21849079.1.0" Name="idx_t_3" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.3035.1.0"/>
         </dxl:OpClasses>

@@ -312,7 +312,7 @@ Table X (int i, int j) is distributed by i, column i has index
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:Index Mdid="0.17159874.1.0" Name="idx_x_j" RelationMdid="0.16422594.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
+      <dxl:Index Mdid="0.17159874.1.0" Name="idx_x_j" IsClustered="false" IndexType="B-tree" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
         </dxl:OpClasses>
@@ -333,7 +333,7 @@ Table X (int i, int j) is distributed by i, column i has index
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
-      <dxl:Index Mdid="0.17159920.1.0" Name="idx_x_i" RelationMdid="0.16422594.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
+      <dxl:Index Mdid="0.17159920.1.0" Name="idx_x_i" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
         </dxl:OpClasses>

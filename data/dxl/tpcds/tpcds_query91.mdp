@@ -5057,7 +5057,7 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:Index Mdid="0.1961065.1.0" Name="customer_demographics_pkey" RelationMdid="0.1961039.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15">
+      <dxl:Index Mdid="0.1961065.1.0" Name="customer_demographics_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
         </dxl:OpClasses>
@@ -12655,7 +12655,7 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2452903"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:Index Mdid="0.1961111.1.0" Name="date_dim_pkey" RelationMdid="0.1961085.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34">
+      <dxl:Index Mdid="0.1961111.1.0" Name="date_dim_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
         </dxl:OpClasses>
@@ -16997,12 +16997,12 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:Index Mdid="0.1961663.1.0" Name="household_demographics_pkey" RelationMdid="0.1961637.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11">
+      <dxl:Index Mdid="0.1961663.1.0" Name="household_demographics_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
         </dxl:OpClasses>
       </dxl:Index>
-      <dxl:Index Mdid="0.1961019.1.0" Name="customer_address_pkey" RelationMdid="0.1960993.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19">
+      <dxl:Index Mdid="0.1961019.1.0" Name="customer_address_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
         </dxl:OpClasses>

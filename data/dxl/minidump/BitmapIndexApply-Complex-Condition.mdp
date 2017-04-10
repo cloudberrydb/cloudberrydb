@@ -46,7 +46,7 @@ EXPLAIN SELECT * FROM s i1, t t2 where t2.c2 = i1.c2  and t2.c3 > i1.c3 or t2.c1
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Index Mdid="0.31264085.1.0" Name="idx_t_1" RelationMdid="0.31264029.1.0" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13">
+      <dxl:Index Mdid="0.31264085.1.0" Name="idx_t_1" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
@@ -141,7 +141,7 @@ EXPLAIN SELECT * FROM s i1, t t2 where t2.c2 = i1.c2  and t2.c3 > i1.c3 or t2.c1
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Index Mdid="0.31264106.1.0" Name="idx_t_2" RelationMdid="0.31264029.1.0" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="1,2" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13">
+      <dxl:Index Mdid="0.31264106.1.0" Name="idx_t_2" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="1,2" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.3035.1.0"/>
           <dxl:OpClass Mdid="0.3022.1.0"/>

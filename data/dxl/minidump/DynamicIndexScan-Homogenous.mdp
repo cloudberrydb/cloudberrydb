@@ -139,7 +139,7 @@
       </dxl:GPDBFunc>
       <dxl:ColumnStatistics Mdid="1.27118.1.1.7" Name="tableoid" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.27118.1.1.6" Name="cmax" Width="8.000000"/>
-      <dxl:Index Mdid="0.27322.1.0" Name="p_ind" RelationMdid="0.27118.1.1" IsClustered="false" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8">
+      <dxl:Index Mdid="0.27322.1.0" Name="p_ind" IsClustered="false" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>

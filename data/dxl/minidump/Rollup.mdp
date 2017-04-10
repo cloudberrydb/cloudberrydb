@@ -68,12 +68,12 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Index Mdid="0.67041.1.0" Name="index_67041" RelationMdid="0.67018.1.1" IsClustered="false" KeyColumns="1" IncludedColumns="1">
+      <dxl:Index Mdid="0.67041.1.0" Name="index_67041" IsClustered="false" KeyColumns="1" IncludedColumns="1">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
       </dxl:Index>
-      <dxl:Index Mdid="0.66697.1.0" Name="index_66697" RelationMdid="0.66674.1.1" IsClustered="false" KeyColumns="1" IncludedColumns="1">
+      <dxl:Index Mdid="0.66697.1.0" Name="index_66697" IsClustered="false" KeyColumns="1" IncludedColumns="1">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>

@@ -611,7 +611,7 @@ inferred from the second operator (c4 = 'f')
           <dxl:OpClass Mdid="0.3017.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
-      <dxl:Index Mdid="0.22226547.1.0" Name="idx_t_1" RelationMdid="0.22226519.1.0" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="3" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13">
+      <dxl:Index Mdid="0.22226547.1.0" Name="idx_t_1" IsClustered="false" IndexType="Bitmap" IndexItemType="0.2283.1.0" KeyColumns="3" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.3017.1.0"/>
         </dxl:OpClasses>

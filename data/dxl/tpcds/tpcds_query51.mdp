@@ -4151,7 +4151,7 @@
         <dxl:SumAgg Mdid="0.2108.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Index Mdid="0.1962077.1.0" Name="store_sales_pkey" RelationMdid="0.1962051.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="2,9" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29">
+      <dxl:Index Mdid="0.1962077.1.0" Name="store_sales_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="2,9" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
           <dxl:OpClass Mdid="0.1978.1.0"/>
@@ -12230,7 +12230,7 @@
           <dxl:OpClass Mdid="0.3022.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
-      <dxl:Index Mdid="0.1961985.1.0" Name="web_sales_pkey" RelationMdid="0.1961959.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="3,17" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40">
+      <dxl:Index Mdid="0.1961985.1.0" Name="web_sales_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="3,17" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
           <dxl:OpClass Mdid="0.1978.1.0"/>
@@ -15285,7 +15285,7 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7200"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:Index Mdid="0.1961111.1.0" Name="date_dim_pkey" RelationMdid="0.1961085.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34">
+      <dxl:Index Mdid="0.1961111.1.0" Name="date_dim_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
         </dxl:OpClasses>

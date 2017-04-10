@@ -2242,7 +2242,7 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Index Mdid="0.1961433.1.0" Name="store_pkey" RelationMdid="0.1961407.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35">
+      <dxl:Index Mdid="0.1961433.1.0" Name="store_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
         </dxl:OpClasses>
@@ -6378,7 +6378,7 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:Index Mdid="0.1961249.1.0" Name="time_dim_pkey" RelationMdid="0.1961223.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16">
+      <dxl:Index Mdid="0.1961249.1.0" Name="time_dim_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
         </dxl:OpClasses>
@@ -8722,7 +8722,7 @@
         <dxl:IntermediateResultType Mdid="0.20.1.0"/>
       </dxl:GPDBAgg>
       <dxl:RelationStatistics Mdid="2.1961407.1.1" Name="store" Rows="12.000000" EmptyRelation="false"/>
-      <dxl:Index Mdid="0.1961663.1.0" Name="household_demographics_pkey" RelationMdid="0.1961637.1.0" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11">
+      <dxl:Index Mdid="0.1961663.1.0" Name="household_demographics_pkey" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
         </dxl:OpClasses>
