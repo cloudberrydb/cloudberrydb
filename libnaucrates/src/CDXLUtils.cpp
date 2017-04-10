@@ -2068,25 +2068,6 @@ CDXLUtils::SzRead
 }
 
 //---------------------------------------------------------------------------
-//		CDXLUtils::Pmdid
-//
-//	@doc:
-//		Manufacture a metadata id object with dummy version number given the object id.
-//
-//		NOTE: currently a dummy implementation
-//
-//---------------------------------------------------------------------------
-CMDIdGPDB *
-CDXLUtils::Pmdid
-	(
-	IMemoryPool *pmp,
-	OID oid
-	)
-{
-	return GPOS_NEW(pmp) CMDIdGPDB(oid, 1 /*ulMajor*/, 1 /*ulMinor*/);
-}
-
-//---------------------------------------------------------------------------
 //	@function:
 //		CDXLUtils::SerializeBound
 //

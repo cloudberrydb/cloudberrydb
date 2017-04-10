@@ -468,10 +468,6 @@ namespace gpdxl
 			static 
 			CHAR *SzFromWsz(IMemoryPool *pmp, const WCHAR *wsz);
 			
-			// wrap the supplied oid into a metadata id object with dummy version number
-			static 
-			CMDIdGPDB *Pmdid(IMemoryPool *pmp, OID oid);
-
 			// serialize a double value in a string
 			static 
 			CWStringDynamic *PstrFromDouble
