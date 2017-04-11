@@ -493,15 +493,6 @@ extern int codegen_optimization_level;
  */
 extern bool	optimizer_partition_selection_log;
 
-/*
- * During insertion in a table with parquet partitions,
- * require tuples to be sorted by partition key.
- *
- * This reduces the amount of memory required during execution by
- * keeping only one partition open at a time.
- */
-extern bool gp_parquet_insert_sort;
-
 extern char  *gp_email_smtp_server;
 extern char  *gp_email_smtp_userid;
 extern char  *gp_email_smtp_password;

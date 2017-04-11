@@ -935,17 +935,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"gp_parquet_insert_sort", PGC_USERSET, RESOURCES_MEM,
-			gettext_noop("Enable sorting of tuples during insertion in parquet partitioned tables."),
-			gettext_noop("Reduces memory usage required for insertion by keeping on part open at a time"),
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-
-		},
-		&gp_parquet_insert_sort,
-		true, NULL, NULL
-	},
-
-	{
 		{"gp_enable_mk_sort", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("Enable multi-key sort."),
 			gettext_noop("A faster sort."),
