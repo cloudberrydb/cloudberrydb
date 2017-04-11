@@ -215,6 +215,7 @@ CBitSet *CXform::PbsHeterogeneousIndexXforms
 
 	(void) pbs->FExchangeSet(GPOPT_DISABLE_XFORM_TF(CXform::ExfSelect2PartialDynamicIndexGet));
 	(void) pbs->FExchangeSet(GPOPT_DISABLE_XFORM_TF(CXform::ExfInnerJoin2PartialDynamicIndexGetApply));
+	(void) pbs->FExchangeSet(GPOPT_DISABLE_XFORM_TF(CXform::ExfInnerJoinWithInnerSelect2PartialDynamicIndexGetApply));
 
 	return pbs;
 }
