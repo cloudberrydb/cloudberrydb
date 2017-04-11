@@ -1011,6 +1011,7 @@ ExecAgg(AggState *node)
 			bool		tupremain;
 
 			node->hhashtable = create_agg_hash_table(node);
+			node->hashaggstatus = HASHAGG_BEFORE_FIRST_PASS;
 			tupremain = agg_hash_initial_pass(node);
 
 			if (streaming)
