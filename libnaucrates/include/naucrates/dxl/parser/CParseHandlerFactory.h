@@ -955,15 +955,6 @@ namespace gpdxl
 				CParseHandlerBase *pphRoot
 				);
 
-			// construct an init plan parse handler
-			static
-			CParseHandlerBase *PphScalarInitPlan
-				(
-				IMemoryPool *pmp,
-				CParseHandlerManager *pphm,
-				CParseHandlerBase *pphRoot
-				);
-
 			// construct a sub plan parse handler
 			static
 			CParseHandlerBase *PphScalarSubPlan

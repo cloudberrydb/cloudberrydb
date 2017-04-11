@@ -139,7 +139,6 @@
 #include "naucrates/dxl/parser/CParseHandlerScalarMinMax.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarNullTest.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarNullIf.h"
-#include "naucrates/dxl/parser/CParseHandlerScalarInitPlan.h"
 #include "naucrates/dxl/parser/CParseHandlerAppend.h"
 #include "naucrates/dxl/parser/CParseHandlerMaterialize.h"
 #include "naucrates/dxl/parser/CParseHandlerArray.h"

@@ -192,7 +192,6 @@ CDXLTokens::Init
 			{EdxltokenScalarSwitch, GPOS_WSZ_LIT("Switch")},
 			{EdxltokenScalarSwitchCase, GPOS_WSZ_LIT("SwitchCase")},
 			{EdxltokenScalarCaseTest, GPOS_WSZ_LIT("CaseTest")},
-			{EdxltokenScalarInitPlan, GPOS_WSZ_LIT("InitPlan")},
 			{EdxltokenScalarSubPlan, GPOS_WSZ_LIT("SubPlan")},
 			{EdxltokenScalarJoinFilter, GPOS_WSZ_LIT("JoinFilter")},
 			{EdxltokenScalarRecheckCondFilter, GPOS_WSZ_LIT("RecheckCond")},

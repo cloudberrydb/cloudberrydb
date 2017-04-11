@@ -44,7 +44,6 @@ namespace gpdxl
 		ExmiPlStmt2DXLConversion,
 		ExmiDXL2PlStmtConversion,
 		ExmiDXL2PlStmtExternalScanError,
-		ExmiDXL2PlStmtMissingPlanForInitPlanTranslation,
 		ExmiDXL2PlStmtMissingPlanForSubPlanTranslation,
 		ExmiQuery2DXLAttributeNotFound,
 		ExmiQuery2DXLUnsupportedFeature,

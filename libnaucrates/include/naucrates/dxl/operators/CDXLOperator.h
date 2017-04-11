@@ -103,7 +103,6 @@ namespace gpdxl
 		EdxlopScalarAggref,
 		EdxlopScalarArrayComp,
 		EdxlopScalarBooleanTest,
-		EdxlopScalarInitPlan,
 		EdxlopScalarSubPlan,
 		EdxlopScalarWindowFrameEdge,
 

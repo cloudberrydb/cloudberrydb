@@ -98,12 +98,6 @@ gpdxl::EresExceptionInit
 					 1, //
 					 GPOS_WSZ_WSZLEN("GPDB Expression type not supported in DXL")),
 
-			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtMissingPlanForInitPlanTranslation),
-					 CException::ExsevError,
-					 GPOS_WSZ_WSZLEN("DXL-to-PlStmt: Missing Plan During InitPlan Translation"),
-					 0, //
-					 GPOS_WSZ_WSZLEN("DXL-to-PlStmt: Missing Plan During InitPlan Translation")),
-
 			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtMissingPlanForSubPlanTranslation),
 					 CException::ExsevError,
 					 GPOS_WSZ_WSZLEN("DXL-to-PlStmt: Missing Plan During SubPlan Translation"),

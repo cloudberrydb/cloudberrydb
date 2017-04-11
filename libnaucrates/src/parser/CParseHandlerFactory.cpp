@@ -170,7 +170,6 @@ CParseHandlerFactory::Init
 			{EdxltokenScalarBoolTestIsNotFalse, &PphBooleanTest},
 			{EdxltokenScalarBoolTestIsUnknown, &PphBooleanTest},
 			{EdxltokenScalarBoolTestIsNotUnknown, &PphBooleanTest},
-			{EdxltokenScalarInitPlan, &PphScalarInitPlan},
 			{EdxltokenScalarSubPlan, &PphScalarSubPlan},
 			{EdxltokenScalarConstValue, &PphScalarConstValue},
 			{EdxltokenScalarIfStmt, &PphIfStmt},
@@ -2056,25 +2055,6 @@ CParseHandlerFactory::PphScalarArrayCoerceExpr
 	)
 {
 	return GPOS_NEW(pmp) CParseHandlerScalarArrayCoerceExpr(pmp, pphm, pphRoot);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarInitPlan
-//
-//	@doc:
-//		Creates a parse handler for parsing an InitPlan
-//
-//---------------------------------------------------------------------------
-CParseHandlerBase *
-CParseHandlerFactory::PphScalarInitPlan
-	(
-	IMemoryPool *pmp,
-	CParseHandlerManager *pphm,
-	CParseHandlerBase *pphRoot
-	)
-{
-	return GPOS_NEW(pmp) CParseHandlerScalarInitPlan(pmp, pphm, pphRoot);
 }
 
 //---------------------------------------------------------------------------

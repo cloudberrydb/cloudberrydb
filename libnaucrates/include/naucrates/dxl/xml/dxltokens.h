@@ -150,7 +150,6 @@ namespace gpdxl
 		EdxltokenScalarIfStmt,
 		EdxltokenScalarSwitch,
 		EdxltokenScalarSwitchCase,
-		EdxltokenScalarInitPlan,
 		EdxltokenScalarSubPlan,
 		EdxltokenScalarJoinFilter,
 		EdxltokenScalarRecheckCondFilter,
