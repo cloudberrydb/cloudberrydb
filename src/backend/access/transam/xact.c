@@ -3337,9 +3337,9 @@ CommitTransaction(void)
 	 * must be done _before_ releasing locks we hold and _after_
 	 * RecordTransactionCommit.
 	 */
-	ProcArrayEndTransaction(MyProc, latestXid,
-							true,
-							&needNotifyCommittedDtxTransaction);
+	needNotifyCommittedDtxTransaction = ProcArrayEndTransaction(MyProc,
+																latestXid,
+																true);
 	/*
 	 * Note that in GPDB, ProcArrayEndTransaction does *not* clear the PGPROC
 	 * entry, if it sets *needNotifyCommittedDtxTransaction!
@@ -3910,7 +3910,7 @@ AbortTransaction(void)
 	 * must be done _before_ releasing locks we hold and _after_
 	 * RecordTransactionAbort.
 	 */
-	ProcArrayEndTransaction(MyProc, latestXid, false, NULL);
+	ProcArrayEndTransaction(MyProc, latestXid, false);
 
 	/*
 	 * Post-abort cleanup.	See notes in CommitTransaction() concerning
