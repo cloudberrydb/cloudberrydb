@@ -2124,7 +2124,6 @@ typedef struct NestLoopState
 	bool		nl_NeedNewOuter;
 	bool		nl_MatchedOuter;
 	bool		nl_innerSquelchNeeded;	/*CDB*/
-	bool		nl_QuitIfEmptyInner;    /*CDB*/
 	bool		shared_outer;
 	bool		prefetch_inner;
 	bool		reset_inner; /*CDB-OLAP*/
