@@ -48,7 +48,7 @@ mkgpcloud:
 	PATH=$(INSTLOC)/bin:$(PATH) $(MAKE) -C gpcloud/bin/gpcheckcloud USE_PGXS=1 install
 
 # Only include include these files when running enterprise build
-ENTERPRISE_TARGETS="mkgphdfs"
+ENTERPRISE_TARGETS="mkgphdfs mkorafce"
 ifneq ($(findstring $(MAKECMDGOALS), $(ENTERPRISE_TARGETS)),)
 include $(BLD_TOP)/Makefile.global
 include $(BLD_TOP)/Makefile.thirdparty
