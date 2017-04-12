@@ -167,6 +167,7 @@ extern bool tbm_is_empty(const HashBitmap *tbm);
 extern void tbm_begin_iterate(HashBitmap *tbm);
 extern bool tbm_iterate(Node *tbm, TBMIterateResult *output);
 
+extern void stream_move_node(StreamBitmap *strm, StreamBitmap *other, StreamType kind);
 extern void stream_add_node(StreamBitmap *strm, StreamNode *node, StreamType kind);
 extern StreamNode *tbm_create_stream_node(HashBitmap *tbm);
 extern bool bitmap_stream_iterate(StreamNode *n, PagetableEntry *e);

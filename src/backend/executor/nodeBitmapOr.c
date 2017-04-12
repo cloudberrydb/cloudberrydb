@@ -170,17 +170,7 @@ MultiExecBitmapOr(BitmapOrState *node)
 				if(node->bitmap != subresult)
 				{
 					StreamBitmap *s = (StreamBitmap *)subresult;
-					stream_add_node((StreamBitmap *)node->bitmap, 
-									s->streamNode, BMS_OR);
-					/* node->bitmap should be the only owner of the newly created OR StreamNode */
-					s->streamNode = NULL;
-
-					/*
-					 * Don't free subresult here, as we are still using the StreamNode inside it.
-					 * For Planner, this would introduce memory leak. For optimizer, however,
-					 * BitmapIndexScan would free the bitmap at the end of the scan of the part
-					 */
-				}
+					stream_move_node((StreamBitmap *)node->bitmap, s, BMS_OR);				}
 			}
 			else
 				node->bitmap = subresult;

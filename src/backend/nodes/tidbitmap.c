@@ -1134,6 +1134,23 @@ make_opstream(StreamType kind, StreamNode *n1, StreamNode *n2)
 }
 
 /*
+ * stream_move_node - move a streamnode from StreamBitMap (source)'s streamnode
+ * to given StreamBitMap(destination). Also transfer the ownership of source streamnode by
+ * resetting to NULL.
+ */
+void
+stream_move_node(StreamBitmap *destination, StreamBitmap *source, StreamType kind)
+{
+	Assert(NULL != destination);
+	Assert(NULL != source);
+	stream_add_node(destination,
+			source->streamNode, kind);
+	/* destination owns the streamNode and hence resetting it to NULL for source->streamNode. */
+	source->streamNode = NULL;
+}
+
+
+/*
  * stream_add_node() - add a new node to a bitmap stream
  * node is a base node -- i.e., an index/external
  * kind is one of BMS_INDEX, BMS_OR or BMS_AND
