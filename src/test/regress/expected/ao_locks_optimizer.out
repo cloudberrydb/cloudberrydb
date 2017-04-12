@@ -1,6 +1,6 @@
 -- @Description The locks held after different operations
-CREATE TABLE ao (a INT, b INT) WITH (appendonly=true) distributed by (a);
-INSERT INTO ao SELECT i as a, i as b FROM generate_series(1, 100) AS i;
+CREATE TABLE ao_locks_table (a INT, b INT) WITH (appendonly=true) distributed by (a);
+INSERT INTO ao_locks_table SELECT i as a, i as b FROM generate_series(1, 100) AS i;
 create or replace view locktest_master as
 select coalesce(
   case when relname like 'pg_toast%index' then 'toast index'
@@ -53,66 +53,66 @@ SELECT coalesce(
   group by relname, relation, mode, locktype;
 -- Actual test begins
 BEGIN;
-INSERT INTO ao VALUES (200, 200);
-SELECT * FROM locktest_master where coalesce = 'ao' or
+INSERT INTO ao_locks_table VALUES (200, 200);
+SELECT * FROM locktest_master where coalesce = 'ao_locks_table' or
  coalesce like 'aovisimap%' or coalesce like 'aoseg%';
- coalesce |        mode         |         locktype         |  node  
-----------+---------------------+--------------------------+--------
- ao       | AccessExclusiveLock | append-only segment file | master
- ao       | RowExclusiveLock    | relation                 | master
+    coalesce    |        mode         |         locktype         |  node  
+----------------+---------------------+--------------------------+--------
+ ao_locks_table | AccessExclusiveLock | append-only segment file | master
+ ao_locks_table | RowExclusiveLock    | relation                 | master
 (2 rows)
 
-SELECT * FROM locktest_segments where coalesce = 'ao' or
+SELECT * FROM locktest_segments where coalesce = 'ao_locks_table' or
  coalesce like 'aovisimap%' or coalesce like 'aoseg%';
- coalesce |        mode         |         locktype         |   node    
-----------+---------------------+--------------------------+-----------
- ao       | AccessExclusiveLock | append-only segment file | 1 segment
- ao       | RowExclusiveLock    | relation                 | 1 segment
+    coalesce    |        mode         |         locktype         |   node    
+----------------+---------------------+--------------------------+-----------
+ ao_locks_table | AccessExclusiveLock | append-only segment file | 1 segment
+ ao_locks_table | RowExclusiveLock    | relation                 | 1 segment
 (2 rows)
 
 COMMIT;
 BEGIN;
-DELETE FROM ao WHERE a = 1;
-SELECT * FROM locktest_master where coalesce = 'ao' or
+DELETE FROM ao_locks_table WHERE a = 1;
+SELECT * FROM locktest_master where coalesce = 'ao_locks_table' or
  coalesce like 'aovisimap%' or coalesce like 'aoseg%';
- coalesce |        mode         |         locktype         |  node  
-----------+---------------------+--------------------------+--------
- ao       | AccessExclusiveLock | append-only segment file | master
- ao       | AccessShareLock     | relation                 | master
- ao       | ExclusiveLock       | relation                 | master
+    coalesce    |        mode         |         locktype         |  node  
+----------------+---------------------+--------------------------+--------
+ ao_locks_table | AccessExclusiveLock | append-only segment file | master
+ ao_locks_table | AccessShareLock     | relation                 | master
+ ao_locks_table | ExclusiveLock       | relation                 | master
 (3 rows)
 
-SELECT * FROM locktest_segments where coalesce = 'ao' or
+SELECT * FROM locktest_segments where coalesce = 'ao_locks_table' or
  coalesce like 'aovisimap%' or coalesce like 'aoseg%';
     coalesce     |       mode       | locktype |    node    
 -----------------+------------------+----------+------------
- aovisimap table | RowExclusiveLock | relation | 1 segment
- ao              | AccessShareLock  | relation | n segments
- ao              | RowExclusiveLock | relation | n segments
  aovisimap index | RowExclusiveLock | relation | 1 segment
+ ao_locks_table  | RowExclusiveLock | relation | n segments
+ ao_locks_table  | AccessShareLock  | relation | n segments
+ aovisimap table | RowExclusiveLock | relation | 1 segment
 (4 rows)
 
 COMMIT;
 BEGIN;
-UPDATE ao SET b = -1 WHERE a = 2;
-SELECT * FROM locktest_master where coalesce = 'ao' or
+UPDATE ao_locks_table SET b = -1 WHERE a = 2;
+SELECT * FROM locktest_master where coalesce = 'ao_locks_table' or
  coalesce like 'aovisimap%' or coalesce like 'aoseg%';
- coalesce |        mode         |         locktype         |  node  
-----------+---------------------+--------------------------+--------
- ao       | AccessExclusiveLock | append-only segment file | master
- ao       | AccessShareLock     | relation                 | master
- ao       | ExclusiveLock       | relation                 | master
+    coalesce    |        mode         |         locktype         |  node  
+----------------+---------------------+--------------------------+--------
+ ao_locks_table | AccessExclusiveLock | append-only segment file | master
+ ao_locks_table | AccessShareLock     | relation                 | master
+ ao_locks_table | ExclusiveLock       | relation                 | master
 (3 rows)
 
-SELECT * FROM locktest_segments where coalesce = 'ao' or
+SELECT * FROM locktest_segments where coalesce = 'ao_locks_table' or
  coalesce like 'aovisimap%' or coalesce like 'aoseg%';
     coalesce     |        mode         |         locktype         |    node    
 -----------------+---------------------+--------------------------+------------
+ ao_locks_table  | AccessShareLock     | relation                 | n segments
  aovisimap table | RowExclusiveLock    | relation                 | 1 segment
- ao              | AccessExclusiveLock | append-only segment file | 1 segment
- ao              | AccessShareLock     | relation                 | n segments
- ao              | RowExclusiveLock    | relation                 | n segments
+ ao_locks_table  | AccessExclusiveLock | append-only segment file | 1 segment
  aovisimap index | RowExclusiveLock    | relation                 | 1 segment
+ ao_locks_table  | RowExclusiveLock    | relation                 | n segments
 (5 rows)
 
 COMMIT;
