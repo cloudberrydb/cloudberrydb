@@ -980,7 +980,10 @@ FillInDistributedSnapshot(Snapshot snapshot)
 
 				dslm->header.distribTransactionTimeStamp = ds->header.distribTransactionTimeStamp;
 				dslm->header.distribSnapshotId = ds->header.distribSnapshotId;
-				
+				Assert(ds->header.xminAllDistributedSnapshots);
+				Assert(ds->header.xminAllDistributedSnapshots <= ds->header.xmin);
+				dslm->header.xminAllDistributedSnapshots = ds->header.xminAllDistributedSnapshots;
+
 				dslm->header.xmin = ds->header.xmin;
 				dslm->header.xmax = ds->header.xmax;
 				dslm->header.count = ds->header.count;
