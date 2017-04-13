@@ -1,15 +1,15 @@
 create schema bfv_partition;
 set search_path=bfv_partition;
----
---- Initial setup for all the partitioning test for this suite
----
+--
+-- Initial setup for all the partitioning test for this suite
+--
 -- start_ignore
 create language plpythonu;
 ERROR:  language "plpythonu" already exists
 -- end_ignore
 create or replace function count_operator(query text, operator text) returns int as
 $$
-rv = plpy.execute('EXPLAIN' + query)
+rv = plpy.execute('EXPLAIN ' + query)
 search_text = operator
 result = 0
 for i in range(len(rv)):
@@ -32,9 +32,9 @@ for i in range(len(rv)):
 return result
 $$
 language plpythonu;
----
---- Tests if it produces SIGSEGV from "select from partition_table group by rollup or cube function"
----
+--
+-- Tests if it produces SIGSEGV from "select from partition_table group by rollup or cube function"
+--
 -- SETUP
 -- start_ignore
 drop table if exists mpp7980;
@@ -85,9 +85,9 @@ select cust_type, subscription_status,count(distinct subscription_id),sum(voice_
 -- start_ignore
 drop table mpp7980;
 -- end_ignore
----
---- Tests if it is using casting comparator for partition selector with compatible types
----
+--
+-- Tests if it is using casting comparator for partition selector with compatible types
+--
 -- SETUP
 CREATE TABLE TIMESTAMP_MONTH_rangep_STARTINCL (i1 int, f2 timestamp)
 partition by range (f2)
@@ -367,9 +367,9 @@ DROP TABLE TIMESTAMP_MONTH_listp;
 DROP TABLE TIMESTAMP_MONTH_rangep_STARTEXCL;
 DROP TABLE TIMESTAMP_MONTH_rangep_STARTINCL;
 -- end_ignore
----
---- Data Engineer can see partition key in psql
----
+--
+-- Data Engineer can see partition key in psql
+--
 -- SETUP
 -- start_ignore
 DROP TABLE IF EXISTS T26002_T1;
@@ -569,9 +569,9 @@ drop table if exists mpp23195_t2;
 set optimizer_enable_bitmapscan=off;
 set optimizer_enable_indexjoin=off;
 -- end_ignore
----
---- Check we have Dynamic Index Scan operator and check we have Nest loop operator
----
+--
+-- Check we have Dynamic Index Scan operator and check we have Nest loop operator
+--
 -- SETUP
 -- start_ignore
 drop table if exists mpp21834_t1;
@@ -631,9 +631,9 @@ select enable_xform('CXformInnerJoin2HashJoin');
 (1 row)
 
 -- end_ignore
----
---- A rescanning of DTS with its own partition selector (under sequence node)
----
+--
+-- A rescanning of DTS with its own partition selector (under sequence node)
+--
 -- SETUP
 -- start_ignore
 set optimizer_enable_broadcast_nestloop_outer_child=on;
@@ -906,9 +906,9 @@ select t2.a, t1.a from mpp23288 as t1 join mpp23288 as t2 on t1.a < t2.a and t2.
 drop table if exists mpp23288;
 set optimizer_enable_broadcast_nestloop_outer_child=off;
 -- end_ignore
----
---- Testing whether test gives wrong results with partition tables when sub-partitions are distributed differently than the parent partition.
----
+--
+-- Testing whether test gives wrong results with partition tables when sub-partitions are distributed differently than the parent partition.
+--
 -- SETUP
 -- start_ignore
 drop table if exists pt;
@@ -987,9 +987,9 @@ HINT:  To drop other indexes on child partitions, drop each one explicitly.
 drop table if exists pt;
 drop table if exists t;
 -- end_ignore
----
---- Tests if DynamicIndexScan sets tuple descriptor of the planstate->ps_ResultTupleSlot
----
+--
+-- Tests if DynamicIndexScan sets tuple descriptor of the planstate->ps_ResultTupleSlot
+--
 -- SETUP
 -- start_ignore
 drop table if exists mpp24151_t;
@@ -1258,9 +1258,9 @@ select enable_xform('CXformDynamicGet2DynamicTableScan');
 (1 row)
 
 -- end_ignore
----
---- No DPE (Dynamic Partition Elimination) on second child of a union under a join
----
+--
+-- No DPE (Dynamic Partition Elimination) on second child of a union under a join
+--
 -- SETUP
 -- start_ignore
 drop table if exists t;
@@ -1383,9 +1383,9 @@ drop table p2;
 drop table p3;
 drop table p;
 -- end_ignore
----
---- Gracefully handle NULL partition set from BitmapTableScan, DynamicTableScan and DynamicIndexScan
----
+--
+-- Gracefully handle NULL partition set from BitmapTableScan, DynamicTableScan and DynamicIndexScan
+--
 -- SETUP
 -- start_ignore
 drop table if exists dts;
@@ -1534,9 +1534,9 @@ select enable_xform('CXformDynamicGet2DynamicTableScan');
 (1 row)
 
 -- end_ignore
----
---- Partition elimination for heterogenous DynamicIndexScans
----
+--
+-- Partition elimination for heterogenous DynamicIndexScans
+--
 -- SETUP
 -- start_ignore
 drop table if exists pp;
@@ -1603,9 +1603,9 @@ select enable_xform('CXformDynamicGet2DynamicTableScan') ;
 (1 row)
 
 -- end_ignore
----
---- Partition elimination with implicit CAST on the partitioning key
----
+--
+-- Partition elimination with implicit CAST on the partitioning key
+--
 -- SETUP
 -- start_ignore
 set optimizer_segments=2;
@@ -1684,9 +1684,9 @@ reset optimizer_segments;
 drop function if exists find_operator(query text, operator_name text);
 drop function if exists count_operator(query text, operator_name text);
 -- end_ignore
----
---- Partition table with appendonly leaf, full join
----
+--
+-- Partition table with appendonly leaf, full join
+--
 -- SETUP
 -- start_ignore
 DROP TABLE IF EXISTS foo;
@@ -1715,9 +1715,9 @@ NOTICE:  CREATE TABLE will create partition "bar_1_prt_1_2_prt_2" for table "bar
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2" for table "bar"
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2_2_prt_1" for table "bar_1_prt_2"
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2_2_prt_2" for table "bar_1_prt_2"
+-- end_ignore
 INSERT INTO foo VALUES (1);
 INSERT INTO bar VALUES (2,3);
--- end_ignore
 SELECT * FROM foo FULL JOIN bar ON foo.a = bar.b;
  a | b | c 
 ---+---+---
@@ -1730,9 +1730,9 @@ SELECT * FROM foo FULL JOIN bar ON foo.a = bar.b;
 DROP TABLE IF EXISTS foo;
 DROP TABLE IF EXISTS bar;
 -- end_ignore
----
---- Partition table with appendonly set at middlevel partition, full join
----
+--
+-- Partition table with appendonly set at middlevel partition, full join
+--
 -- SETUP
 -- start_ignore
 DROP TABLE IF EXISTS foo;
@@ -1761,9 +1761,9 @@ NOTICE:  CREATE TABLE will create partition "bar_1_prt_1_2_prt_2" for table "bar
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2" for table "bar"
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2_2_prt_1" for table "bar_1_prt_2"
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2_2_prt_2" for table "bar_1_prt_2"
+-- end_ignore
 INSERT INTO foo VALUES (1);
 INSERT INTO bar VALUES (2,3);
--- end_ignore
 SELECT * FROM foo FULL JOIN bar ON foo.a = bar.b;
  a | b | c 
 ---+---+---
@@ -1776,9 +1776,9 @@ SELECT * FROM foo FULL JOIN bar ON foo.a = bar.b;
 DROP TABLE IF EXISTS foo;
 DROP TABLE IF EXISTS bar;
 -- end_ignore
----
---- Partition table with appendonly set at root partition, full join
----
+--
+-- Partition table with appendonly set at root partition, full join
+--
 -- SETUP
 -- start_ignore
 DROP TABLE IF EXISTS foo;
@@ -1807,9 +1807,9 @@ NOTICE:  CREATE TABLE will create partition "bar_1_prt_1_2_prt_2" for table "bar
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2" for table "bar"
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2_2_prt_1" for table "bar_1_prt_2"
 NOTICE:  CREATE TABLE will create partition "bar_1_prt_2_2_prt_2" for table "bar_1_prt_2"
+-- end_ignore
 INSERT INTO foo VALUES (1);
 INSERT INTO bar VALUES (2,3);
--- end_ignore
 SELECT * FROM foo FULL JOIN bar ON foo.a = bar.b;
  a | b | c 
 ---+---+---
