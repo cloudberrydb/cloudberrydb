@@ -1,5 +1,6 @@
 
 # GPDB-specific tests
+test: heap-serializable-vacuum-freeze
 test: heap-serializable-vacuum
 test: ao-serializable-read
 test: ao-serializable-vacuum
