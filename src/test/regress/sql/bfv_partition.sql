@@ -746,9 +746,9 @@ INSERT INTO bar VALUES (2,3);
 SELECT * FROM foo FULL JOIN bar ON foo.a = bar.b;
 
 
----
---- Test EXPLAIN on a hash agg that has a Sequence + Partition Selector below it.
----
+--
+-- Test a hash agg that has a Sequence + Partition Selector below it.
+--
 
 -- SETUP
 -- start_ignore

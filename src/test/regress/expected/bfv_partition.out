@@ -1817,9 +1817,9 @@ SELECT * FROM foo FULL JOIN bar ON foo.a = bar.b;
    | 2 | 3
 (2 rows)
 
----
---- Test EXPLAIN on a hash agg that has a Sequence + Partition Selector below it.
----
+--
+-- Test a hash agg that has a Sequence + Partition Selector below it.
+--
 -- SETUP
 -- start_ignore
 DROP TABLE IF EXISTS bar;
