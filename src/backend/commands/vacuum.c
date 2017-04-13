@@ -3215,7 +3215,7 @@ scan_heap(VRelStats *vacrelstats, Relation onerel,
 				 * freezing.
 				 */
 				if (heap_freeze_tuple(tuple.t_data, FreezeLimit,
-									  InvalidBuffer))
+									  InvalidBuffer, false))
 					frozen[nfrozen++] = offnum;
 			}
 		}						/* scan along page */

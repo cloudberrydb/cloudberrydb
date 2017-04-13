@@ -4333,7 +4333,7 @@ heap_inplace_update(Relation relation, HeapTuple tuple)
  */
 bool
 heap_freeze_tuple(HeapTupleHeader tuple, TransactionId cutoff_xid,
-				  Buffer buf)
+				  Buffer buf, bool xlog_replay)
 {
 	bool		changed = false;
 	TransactionId xid;
@@ -4377,25 +4377,48 @@ recheck_xmax:
 		if (TransactionIdIsNormal(xid) &&
 			TransactionIdPrecedes(xid, cutoff_xid))
 		{
-			if (buf != InvalidBuffer)
-			{
-				/* trade in share lock for exclusive lock */
-				LockBuffer(buf, BUFFER_LOCK_UNLOCK);
-				LockBuffer(buf, BUFFER_LOCK_EXCLUSIVE);
-				buf = InvalidBuffer;
-				goto recheck_xmax;		/* see comment above */
-			}
-			HeapTupleHeaderSetXmax(tuple, InvalidTransactionId);
-
 			/*
-			 * The tuple might be marked either XMAX_INVALID or XMAX_COMMITTED
-			 * + LOCKED.  Normalize to INVALID just to be sure no one gets
-			 * confused.
+			 * Need to prevent case where due to distributed visibility the
+			 * tuple is visible, but it may still have xmax lower than local
+			 * cutoff_xid, in that case xmax shouldn't get treated as aborted
+			 * transaction and marked as InvalidTransactionId. Hence, first
+			 * check if xmax is committed or not. Only if committed and
+			 * hintbit for tuple says distributed snapshot can be ignored
+			 * which means globally there exists no snapshot with distributed
+			 * xid lower than this xmax, this tuple can be freezed. This
+			 * allows freezing of xmax for aborted delete scenarios in which
+			 * case distributedness doesn't matter. Visibility checks or
+			 * HeapTupleSatisfiesVacuum() called before reaching here will set
+			 * this hintbit, allowing us to avoid consulting the distributed
+			 * log again. Refer for further details
+			 * DistributedSnapshotWithLocalMapping_CommittedTest. For xlog
+			 * replay no need to check the hint-bits, just let the replay
+			 * perform its duties.
 			 */
-			tuple->t_infomask &= ~HEAP_XMAX_COMMITTED;
-			tuple->t_infomask |= HEAP_XMAX_INVALID;
-			HeapTupleHeaderClearHotUpdated(tuple);
-			changed = true;
+			if (xlog_replay ||
+				!(tuple->t_infomask & HEAP_XMAX_COMMITTED) ||
+				(tuple->t_infomask2 & HEAP_XMAX_DISTRIBUTED_SNAPSHOT_IGNORE))
+			{
+				if (buf != InvalidBuffer)
+				{
+					/* trade in share lock for exclusive lock */
+					LockBuffer(buf, BUFFER_LOCK_UNLOCK);
+					LockBuffer(buf, BUFFER_LOCK_EXCLUSIVE);
+					buf = InvalidBuffer;
+					goto recheck_xmax;		/* see comment above */
+				}
+				HeapTupleHeaderSetXmax(tuple, InvalidTransactionId);
+
+				/*
+				 * The tuple might be marked either XMAX_INVALID or XMAX_COMMITTED
+				 * + LOCKED.  Normalize to INVALID just to be sure no one gets
+				 * confused.
+				 */
+				tuple->t_infomask &= ~HEAP_XMAX_COMMITTED;
+				tuple->t_infomask |= HEAP_XMAX_INVALID;
+				HeapTupleHeaderClearHotUpdated(tuple);
+				changed = true;
+			}
 		}
 	}
 	else
@@ -5065,7 +5088,7 @@ heap_xlog_freeze(XLogRecPtr lsn, XLogRecord *record)
 			ItemId		lp = PageGetItemId(page, *offsets);
 			HeapTupleHeader tuple = (HeapTupleHeader) PageGetItem(page, lp);
 
-			(void) heap_freeze_tuple(tuple, cutoff_xid, InvalidBuffer);
+			(void) heap_freeze_tuple(tuple, cutoff_xid, InvalidBuffer, true);
 			offsets++;
 		}
 	}
