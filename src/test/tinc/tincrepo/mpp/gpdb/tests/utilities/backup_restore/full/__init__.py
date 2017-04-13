@@ -1150,7 +1150,7 @@ class BackupTestCase(TINCTestCase):
         if bu_options == None:
             cmdBackup = gpc + DBNAME +' -a -G --ddboost'
         else:
-            cmdBackup = gpc + DBNAME +' -a -G --ddboost --max-streams=80 ' + bu_options
+            cmdBackup = gpc + DBNAME +' -a -G --ddboost --max-streams=15 ' + bu_options
 
         tinctest.logger.info("[%s]" % name)
         tinctest.logger.info("Executing gpcrondump of database %s to DD via ddboost using command" % (DBNAME))
@@ -1205,7 +1205,7 @@ class BackupTestCase(TINCTestCase):
         if bu_options == None:
             cmdBackup = gpc + DBNAME +' -a -G --ddboost --incremental'
         else:
-            cmdBackup = gpc + DBNAME +' -a -G --ddboost --max-streams=80 --incremental' + bu_options
+            cmdBackup = gpc + DBNAME +' -a -G --ddboost --max-streams=15 --incremental' + bu_options
 
         tinctest.logger.info("[%s]" % name)
         tinctest.logger.info("Executing gpcrondump of database %s to DD via ddboost using command" % (DBNAME))
@@ -1271,7 +1271,7 @@ class CancelReplicateThreader(threading.Thread):
             msg = "Replication of backup set %s was terminated as expected\n" % self.bu_set
             tinctest.logger.info(msg)
         '''
-        cmdRepl = "gpmfr.py --replicate=\"%s\" --max-streams=80 --master-port=%s" % (self.bu_set, port)
+        cmdRepl = "gpmfr.py --replicate=\"%s\" --max-streams=15 --master-port=%s" % (self.bu_set, port)
         #self.cmd = subprocess.Popen(cmdRepl,shell=True)
         self.cmd = subprocess.Popen(cmdRepl)
 
