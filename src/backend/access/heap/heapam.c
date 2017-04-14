@@ -4345,22 +4345,36 @@ heap_freeze_tuple(HeapTupleHeader tuple, TransactionId cutoff_xid,
 	if (TransactionIdIsNormal(xid) &&
 		TransactionIdPrecedes(xid, cutoff_xid))
 	{
-		if (buf != InvalidBuffer)
-		{
-			/* trade in share lock for exclusive lock */
-			LockBuffer(buf, BUFFER_LOCK_UNLOCK);
-			LockBuffer(buf, BUFFER_LOCK_EXCLUSIVE);
-			buf = InvalidBuffer;
-		}
-		HeapTupleHeaderSetXmin(tuple, FrozenTransactionId);
-
 		/*
-		 * Might as well fix the hint bits too; usually XMIN_COMMITTED will
-		 * already be set here, but there's a small chance not.
+		 * Will consult distributed snapshot and freeze xmin only if globally
+		 * can be seen by *all* the transactions. Hence, protects against case
+		 * where xmin of tuple is lower than cutoff_xid but tuple may not be
+		 * seen via some distributed snapshot. Missing to check the
+		 * distributed perspective will go ahead to freeze the xmin, making
+		 * the tuple visible to everyone yielding wrong result means breakage
+		 * of snapshot isolation.
 		 */
-		Assert(!(tuple->t_infomask & HEAP_XMIN_INVALID));
-		tuple->t_infomask |= HEAP_XMIN_COMMITTED;
-		changed = true;
+		if (xlog_replay ||
+			(tuple->t_infomask2 & HEAP_XMIN_DISTRIBUTED_SNAPSHOT_IGNORE) ||
+			localXidSatisfiesAnyDistributedSnapshot(xid) == false)
+		{
+			if (buf != InvalidBuffer)
+			{
+				/* trade in share lock for exclusive lock */
+				LockBuffer(buf, BUFFER_LOCK_UNLOCK);
+				LockBuffer(buf, BUFFER_LOCK_EXCLUSIVE);
+				buf = InvalidBuffer;
+			}
+			HeapTupleHeaderSetXmin(tuple, FrozenTransactionId);
+
+			/*
+			 * Might as well fix the hint bits too; usually XMIN_COMMITTED will
+			 * already be set here, but there's a small chance not.
+			 */
+			Assert(!(tuple->t_infomask & HEAP_XMIN_INVALID));
+			tuple->t_infomask |= HEAP_XMIN_COMMITTED;
+			changed = true;
+		}
 	}
 
 	/*
