@@ -1734,7 +1734,7 @@ Feature: Validate command line arguments
         When the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_ao_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/134_special_ao_table_data.ans"
 
     Scenario: 135 Gpdbrestore, --change-schema option does not work with -S schema level restore option
-        Given the backup test is initialized
+        Given the backup test is initialized for special characters
         And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
         And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
         And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"

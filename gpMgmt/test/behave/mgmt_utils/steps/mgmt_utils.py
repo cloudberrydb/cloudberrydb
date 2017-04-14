@@ -3914,6 +3914,7 @@ def impl(context):
         Given the database is running
         And database "bkdb" is dropped and recreated
         And there are no backup files
+        And the backup files in "/tmp" are deleted
     ''')
 
 @given('the backup test is initialized with database "{dbname}"')

@@ -2,21 +2,18 @@
 Feature: Validate command line arguments
 
     Scenario: gpdbrestore list_backup option with -e
-        Given the backup test is initialized
-        And there are no backup files
+        Given the backup test is initialized with no backup files
         When the user runs "gpdbrestore -a -e --list-backup -t 20160101010101"
         Then gpdbrestore should return a return code of 2
         And gpdbrestore should print "Cannot specify --list-backup and -e together" to stdout
 
     Scenario: gpdbrestore, -s option with special chars
-        Given the backup test is initialized
-        And there are no backup files
+        Given the backup test is initialized with no backup files
         When the user runs command "gpdbrestore -s " DB\`~@#\$%^&*()_-+[{]}|\\;:.;\n\t \\'/?><;2 ""
         Then gpdbrestore should print "Name has an invalid character" to stdout
 
     Scenario: Funny characters in the table name or schema name for gpdbrestore
-        Given the backup test is initialized
-        And there are no backup files
+        Given the backup test is initialized with no backup files
         And database "testdb" exists
         And there is a "heap" table "public.table1" in "testdb" with data
         When the user runs command "gpcrondump -a -x testdb"
@@ -41,8 +38,7 @@ Feature: Validate command line arguments
         And gpdbrestore should print "Name has an invalid character" to stdout
 
     Scenario: gpdbrestore -b with Full timestamp
-        Given the backup test is initialized
-        And there are no backup files
+        Given the backup test is initialized with no backup files
         And there is a "ao" table "public.ao_index_table" in "bkdb" with data
         When the user runs "gpcrondump -a -x bkdb"
         Then gpcrondump should return a return code of 0
@@ -53,8 +49,7 @@ Feature: Validate command line arguments
         Then gpdbrestore should return a return code of 0
 
     Scenario: Output info gpdbrestore
-        Given the backup test is initialized
-        And there are no backup files
+        Given the backup test is initialized with no backup files
         And there is a "ao" table "public.ao_index_table" in "bkdb" with data
         When the user runs "gpcrondump -a -x bkdb"
         Then gpcrondump should return a return code of 0
