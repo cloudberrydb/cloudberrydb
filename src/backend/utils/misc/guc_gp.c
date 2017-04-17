@@ -553,7 +553,6 @@ bool		optimizer_dml_constraints;
 bool		optimizer_enable_master_only_queries;
 bool		optimizer_multilevel_partitioning;
 bool		optimizer_enable_derive_stats_all_groups;
-bool		optimizer_explain_show_status;
 bool		optimizer_prefer_scalar_dqa_multistage_agg;
 bool 		optimizer_parallel_union;
 bool		optimizer_array_constraints;
@@ -2798,16 +2797,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&optimizer_enable_derive_stats_all_groups,
 		false, NULL, NULL
-	},
-
-	{
-		{"optimizer_explain_show_status", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Display optimizer version information in explain messages."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&optimizer_explain_show_status,
-		true, NULL, NULL
 	},
 
 	{
