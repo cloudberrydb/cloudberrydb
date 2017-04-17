@@ -37,6 +37,13 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 	bool							found;
 	DistributedTransactionId		distribXid = InvalidDistributedTransactionId;
 
+	/*
+	 * Return early if local xid is not normal as it cannot have distributed
+	 * xid associated with it.
+	 */
+	if (!TransactionIdIsNormal(localXid))
+		return DISTRIBUTEDSNAPSHOT_COMMITTED_IGNORE;
+
 	count = header->count;
 
 	/*
