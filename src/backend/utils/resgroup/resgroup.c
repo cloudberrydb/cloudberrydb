@@ -17,8 +17,8 @@
 #include "cdb/cdbvars.h"
 #include "cdb/memquota.h"
 #include "commands/resgroupcmds.h"
-#include "funcapi.h"
 #include "miscadmin.h"
+#include "pgstat.h"
 #include "storage/ipc.h"
 #include "storage/latch.h"
 #include "storage/lmgr.h"
@@ -30,6 +30,7 @@
 #include "utils/memutils.h"
 #include "utils/resgroup.h"
 #include "utils/resowner.h"
+#include "utils/resource_manager.h"
 
 /* GUC */
 int		MaxResourceGroups;
@@ -52,90 +53,6 @@ static bool ResGroupCreate(Oid groupId);
 static void AtProcExit_ResGroup(int code, Datum arg);
 static void ResGroupWaitCancel(void);
 
-Datum
-pg_resgroup_get_status_kv(PG_FUNCTION_ARGS)
-{
-	FuncCallContext *funcctx;
-
-	if (SRF_IS_FIRSTCALL())
-	{
-		MemoryContext oldcontext;
-		TupleDesc	tupdesc;
-		int			nattr = 3;
-
-		funcctx = SRF_FIRSTCALL_INIT();
-
-		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
-
-		tupdesc = CreateTemplateTupleDesc(nattr, false);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "rsgid", OIDOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "prop", TEXTOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "value", TEXTOID, -1, 0);
-
-		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
-
-		if (PG_ARGISNULL(0))
-		{
-			funcctx->max_calls = 0;
-		}
-		else
-		{
-			/* dummy output */
-			funcctx->max_calls = 2;
-			funcctx->user_fctx = palloc0(sizeof(Datum) * funcctx->max_calls);
-			((Datum *) funcctx->user_fctx)[0] = ObjectIdGetDatum(6437);
-			((Datum *) funcctx->user_fctx)[1] = ObjectIdGetDatum(6438);
-		}
-
-		MemoryContextSwitchTo(oldcontext);
-	}
-
-	/* stuff done on every call of the function */
-	funcctx = SRF_PERCALL_SETUP();
-
-	if (funcctx->call_cntr < funcctx->max_calls)
-	{
-		/* for each row */
-		char *		prop = text_to_cstring(PG_GETARG_TEXT_P(0));
-		Datum		values[3];
-		bool		nulls[3];
-		HeapTuple	tuple;
-
-		MemSet(values, 0, sizeof(values));
-		MemSet(nulls, 0, sizeof(nulls));
-
-		values[0] = ((Datum *) funcctx->user_fctx)[funcctx->call_cntr];
-		values[1] = CStringGetTextDatum(prop);
-
-		/* Fill with dummy values */
-		if (!strcmp(prop, "num_running"))
-			values[2] = CStringGetTextDatum("1");
-		else if (!strcmp(prop, "num_queueing"))
-			values[2] = CStringGetTextDatum("0");
-		else if (!strcmp(prop, "cpu_usage"))
-			values[2] = CStringGetTextDatum("0.0");
-		else if (!strcmp(prop, "memory_usage"))
-			values[2] = CStringGetTextDatum("0.0");
-		else if (!strcmp(prop, "total_queue_duration"))
-			values[2] = CStringGetTextDatum("00:00:00");
-		else if (!strcmp(prop, "num_queued"))
-			values[2] = CStringGetTextDatum("0");
-		else if (!strcmp(prop, "num_executed"))
-			values[2] = CStringGetTextDatum("0");
-		else
-			/* unknown property name */
-			nulls[2] = true;
-
-		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
-
-		SRF_RETURN_NEXT(funcctx, HeapTupleGetDatum(tuple));
-	}
-	else
-	{
-		/* nothing left */
-		SRF_RETURN_DONE(funcctx);
-	}
-}
 
 /*
  * Estimate size the resource group structures will need in
@@ -231,7 +148,7 @@ AllocResGroupEntry(Oid groupId)
  * Remove a resource group entry from the hash table
  */
 void
-FreeResGroupEntry(Oid groupId)
+FreeResGroupEntry(Oid groupId, char *name)
 {
 	ResGroup group;
 
@@ -249,13 +166,16 @@ FreeResGroupEntry(Oid groupId)
 
 	if (group->nRunning > 0)
 	{
+		int nQuery = group->nRunning + group->waitProcs.size;
 		LWLockRelease(ResGroupLock);
 
+		Assert(name != NULL);
 		ereport(ERROR,
 				(errcode(ERRCODE_DEPENDENT_OBJECTS_STILL_EXIST),
-				 errmsg("Cannot drop resource group with Oid %d", groupId),
-				 errhint("There are running transactions in this group."
-						 "Please terminate the queries first, or try dropping the group later.")));
+				 errmsg("Cannot drop resource group \"%s\" with Oid %d", name, groupId),
+				 errhint(" The resource group is currently managing %d query(ies) and cannot be dropped.\n"
+						 "\tTerminate the queries first or try dropping the group later.\n"
+						 "\tThe view pg_stat_activity tracks the queries managed by resource groups.", nQuery)));
 	}
 
 #ifdef USE_ASSERT_CHECKING
@@ -312,7 +232,7 @@ InitResGroups(void)
 					(errcode(ERRCODE_OUT_OF_MEMORY),
 			 		errmsg("not enough shared memory for resource groups")));
 
-		numGroups ++;
+		numGroups++;
 		Assert(numGroups <= MaxResourceGroups);
 	}
 	systable_endscan(sscan);
@@ -325,6 +245,58 @@ exit:
 	heap_close(relResGroup, AccessShareLock);
 	CurrentResourceOwner = NULL;
 	ResourceOwnerDelete(owner);
+}
+
+/*
+ *  Retrieve statistic information of type from resource group
+ */
+int
+ResGroupGetStat(Oid groupId, ResGroupStatType type)
+{
+	ResGroup group;
+	int ret;
+
+	if (!IsResGroupEnabled())
+		return 0;
+
+	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
+
+	group = ResGroupHashFind(groupId);
+	if (group == NULL)
+	{
+		LWLockRelease(ResGroupLock);
+
+		ereport(ERROR,
+				(errcode(ERRCODE_DATA_CORRUPTED),
+				 errmsg("Cannot find resource group with Oid %d in shared memory", groupId)));
+	}
+
+	switch (type)
+	{
+		case RES_GROUP_STAT_NRUNNING:
+			ret = group->nRunning;
+			break;
+		case RES_GROUP_STAT_NQUEUEING:
+			ret = group->waitProcs.size;
+			break;
+		case RES_GROUP_STAT_TOTAL_EXECUTED:
+			ret = group->totalExecuted;
+			break;
+		case RES_GROUP_STAT_TOTAL_QUEUED:
+			ret = group->totalQueued;
+			break;
+		case RES_GROUP_STAT_TOTAL_QUEUE_TIME:
+			ret = group->totalQueuedTime;
+			break;
+		default:
+			ereport(ERROR,
+					(errcode(ERRCODE_INTERNAL_ERROR),
+					 errmsg("Invalid stat type %d", type)));
+	}
+
+	LWLockRelease(ResGroupLock);
+
+	return ret;
 }
 
 /*
@@ -349,6 +321,9 @@ ResGroupCreate(Oid groupId)
 	group->groupId = groupId;
 	group->nRunning = 0;
 	ProcQueueInit(&group->waitProcs);
+	group->totalExecuted = 0;
+	group->totalQueued = 0;
+	group->totalQueuedTime = 0;
 
 	return true;
 }
@@ -364,15 +339,14 @@ ResGroupSlotAcquire(void)
 	ResGroup	group;
 	Oid			groupId;
 	int			concurrencyLimit;
+	long		secs;
+	int			usecs;
 
 	groupId = GetResGroupIdForRole(GetUserId());
 	if (groupId == InvalidOid)
 		groupId = superuser() ? ADMINRESGROUP_OID : DEFAULTRESGROUP_OID;
 
 	CurrentResGroupId = groupId;
-
-	if (groupId == ADMINRESGROUP_OID)
-		return;
 
 	concurrencyLimit = GetConcurrencyForGroup(groupId);
 
@@ -388,9 +362,10 @@ ResGroupSlotAcquire(void)
 			 	 errmsg("Cannot find resource group %d in shared memory", groupId)));
 	}
 
-	if (group->nRunning < concurrencyLimit) 
+	if (concurrencyLimit == RESGROUP_CONCURRENCY_UNLIMITED || group->nRunning < concurrencyLimit)
 	{
-		group->nRunning ++;
+		group->nRunning++;
+		group->totalExecuted++;
 		LWLockRelease(ResGroupLock);
 		return;
 	}
@@ -399,7 +374,15 @@ ResGroupSlotAcquire(void)
 
 	/*
 	 * The waking process has granted us the slot.
+	 * Update the statistic information of the resource group.
 	 */
+	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
+	group->totalExecuted++;
+	TimestampDifference(pgstat_fetch_resgroup_queue_timestamp(),
+						GetCurrentTimestamp(),
+						&secs, &usecs);
+	group->totalQueuedTime += secs;
+	LWLockRelease(ResGroupLock);
 }
 
 /*
@@ -415,8 +398,6 @@ ResGroupSlotRelease(void)
 	PGPROC		*waitProc;
 
 	Assert(CurrentResGroupId != InvalidOid);
-	if (CurrentResGroupId == ADMINRESGROUP_OID)
-		return;
 
 	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
 
@@ -431,6 +412,7 @@ ResGroupSlotRelease(void)
 
 	waitQueue = &(group->waitProcs);
 	
+	/* If the concurrency is RESGROUP_CONCURRENCY_UNLIMITED, the wait queue should also be empty */
 	if (waitQueue->size == 0)
 	{
 		Assert(waitQueue->links.next == MAKE_OFFSET(&waitQueue->links) &&
@@ -445,7 +427,7 @@ ResGroupSlotRelease(void)
 	/* wake up one process in the wait queue */
 	waitProc = (PGPROC *) MAKE_PTR(waitQueue->links.next);
 	SHMQueueDelete(&(waitProc->links));
-	waitQueue->size --;
+	waitQueue->size--;
 
 	LWLockRelease(ResGroupLock);
 
@@ -470,6 +452,10 @@ ResGroupWait(ResGroup group)
 	headProc = (PGPROC *) &(waitQueue->links);
 	SHMQueueInsertBefore(&(headProc->links), &(proc->links));
 	waitQueue->size++;
+
+	group->totalQueued++;
+
+	pgstat_report_resgroup_wait(GetCurrentTimestamp(), group->groupId);
 
 	LWLockRelease(ResGroupLock);
 
@@ -501,6 +487,8 @@ ResGroupWait(ResGroup group)
 	PG_END_TRY();
 
 	localResWaiting = false;
+
+	pgstat_report_waiting(PGBE_WAITING_NONE);
 }
 
 /*
@@ -583,6 +571,8 @@ ResGroupWaitCancel(void)
 	ResGroup group;
 	PROC_QUEUE	*waitQueue;
 	PGPROC		*waitProc;
+	long		secs;
+	int			usecs;
 	bool		granted = false;
 
 	if (CurrentResGroupId == InvalidOid)
@@ -611,9 +601,16 @@ ResGroupWaitCancel(void)
 		granted = true;
 	}
 
+	TimestampDifference(pgstat_fetch_resgroup_queue_timestamp(),
+						GetCurrentTimestamp(),
+						&secs, &usecs);
+	group->totalQueuedTime += secs;
+
 	waitQueue = &(group->waitProcs);
 	if (granted)
 	{
+		group->totalExecuted++;
+
 		if (waitQueue->size == 0)
 		{
 			Assert(waitQueue->links.next == MAKE_OFFSET(&waitQueue->links) &&
@@ -649,4 +646,6 @@ ResGroupWaitCancel(void)
 
 	LWLockRelease(ResGroupLock);
 	localResWaiting = false;
+
+	pgstat_report_waiting(PGBE_WAITING_NONE);
 }

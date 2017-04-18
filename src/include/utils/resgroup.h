@@ -27,6 +27,9 @@ typedef struct ResGroupData
 	Oid			groupId;		/* Id for this group */
 	int 		nRunning;		/* number of running trans */
 	PROC_QUEUE	waitProcs;
+	int			totalExecuted;	/* total number of executed trans */
+	int			totalQueued;	/* total number of queued trans	*/
+	int			totalQueuedTime;/* total queue time */
 } ResGroupData;
 typedef ResGroupData *ResGroup;
 
@@ -40,6 +43,16 @@ typedef struct ResGroupControl
 	bool			loaded;
 } ResGroupControl;
 
+/* Type of statistic infomation */
+typedef enum
+{
+	RES_GROUP_STAT_NRUNNING = 0,
+	RES_GROUP_STAT_NQUEUEING,
+	RES_GROUP_STAT_TOTAL_EXECUTED,
+	RES_GROUP_STAT_TOTAL_QUEUED,
+	RES_GROUP_STAT_TOTAL_QUEUE_TIME,
+} ResGroupStatType;
+
 /*
  * Functions in resgroup.c
  */
@@ -51,11 +64,14 @@ extern void ResGroupControlInit(void);
 extern void	InitResGroups(void);
 
 extern void AllocResGroupEntry(Oid groupId);
-extern void FreeResGroupEntry(Oid groupId);
+extern void FreeResGroupEntry(Oid groupId, char *name);
 
 /* Acquire and release resource group slot */
 extern void ResGroupSlotAcquire(void);
 extern void ResGroupSlotRelease(void);
+
+/* Retrieve statistic information of type from resource group */
+extern int ResGroupGetStat(Oid groupId, ResGroupStatType type);
 
 #define LOG_RESGROUP_DEBUG(...) \
 	do {if (Debug_resource_group) elog(__VA_ARGS__); } while(false);

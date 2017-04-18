@@ -1,17 +1,18 @@
 /*-------------------------------------------------------------------------
  *
- * resgroup.c
+ * resgroupcmds.c
  *	  Commands for manipulating resource group.
  *
  * Copyright (c) 2006-2017, Greenplum inc.
  *
  * IDENTIFICATION
- *    src/backend/commands/resgroup.c
+ *    src/backend/commands/resgroupcmds.c
  *
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
 
+#include "funcapi.h"
 #include "access/genam.h"
 #include "access/heapam.h"
 #include "access/xact.h"
@@ -303,7 +304,7 @@ DropResourceGroup(DropResourceGroupStmt *stmt)
 		 * modifying catalog, since the check of no exiting running transaction may
 		 * fail
 		 */
-		FreeResGroupEntry(groupid);
+		FreeResGroupEntry(groupid, stmt->name);
 
 		/* Argument of callback function should be allocated in heap region */
 		callbackArg = (Oid *)MemoryContextAlloc(TopMemoryContext, sizeof(Oid));
@@ -371,7 +372,7 @@ GetResGroupIdForRole(Oid roleid)
 	}
 
 	/* must access tuple before systable_endscan */
-	groupId = heap_getattr(tuple, Anum_pg_authid_rolresgroup, rel->rd_att, NULL);
+	groupId = DatumGetObjectId(heap_getattr(tuple, Anum_pg_authid_rolresgroup, rel->rd_att, NULL));
 
 	systable_endscan(sscan);
 
@@ -391,6 +392,115 @@ GetResGroupIdForRole(Oid roleid)
 	}
 
 	return groupId;
+}
+
+/*
+ * Get status of resource groups
+ */
+Datum
+pg_resgroup_get_status_kv(PG_FUNCTION_ARGS)
+{
+	FuncCallContext *funcctx;
+
+	if (SRF_IS_FIRSTCALL())
+	{
+		MemoryContext oldcontext;
+		TupleDesc	tupdesc;
+		int			nattr = 3;
+
+		funcctx = SRF_FIRSTCALL_INIT();
+
+		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
+
+		tupdesc = CreateTemplateTupleDesc(nattr, false);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "rsgid", OIDOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "prop", TEXTOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "value", TEXTOID, -1, 0);
+
+		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
+
+		if (PG_ARGISNULL(0))
+		{
+			funcctx->max_calls = 0;
+		}
+		else
+		{
+			Relation pg_resgroup_rel;
+			SysScanDesc sscan;
+			HeapTuple tuple;
+
+			funcctx->user_fctx = palloc0(sizeof(Datum) * MaxResourceGroups);
+
+			pg_resgroup_rel = heap_open(ResGroupRelationId, AccessShareLock);
+
+			sscan = systable_beginscan(pg_resgroup_rel, InvalidOid, false,
+									   SnapshotNow, 0, NULL);
+			while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
+			{
+				Assert(funcctx->max_calls < MaxResourceGroups);
+				((Datum *) funcctx->user_fctx)[funcctx->max_calls++] = ObjectIdGetDatum(HeapTupleGetOid(tuple));
+			}
+			systable_endscan(sscan);
+
+			heap_close(pg_resgroup_rel, AccessShareLock);
+		}
+
+		MemoryContextSwitchTo(oldcontext);
+	}
+
+	/* stuff done on every call of the function */
+	funcctx = SRF_PERCALL_SETUP();
+
+	if (funcctx->call_cntr < funcctx->max_calls)
+	{
+		/* for each row */
+		char *		prop = text_to_cstring(PG_GETARG_TEXT_P(0));
+		Datum		values[3];
+		bool		nulls[3];
+		HeapTuple	tuple;
+		Oid			groupId;
+		int			statVal;
+		char		statValStr[10];
+
+		MemSet(values, 0, sizeof(values));
+		MemSet(nulls, 0, sizeof(nulls));
+
+		values[0] = ((Datum *) funcctx->user_fctx)[funcctx->call_cntr];
+		values[1] = CStringGetTextDatum(prop);
+
+		groupId = DatumGetObjectId(values[0]);
+
+		/* Fill with dummy values */
+		if (!strcmp(prop, "num_running"))
+			statVal = ResGroupGetStat(groupId, RES_GROUP_STAT_NRUNNING);
+		else if (!strcmp(prop, "num_queueing"))
+			statVal = ResGroupGetStat(groupId, RES_GROUP_STAT_NQUEUEING);
+		else if (!strcmp(prop, "cpu_usage"))
+			statVal = 0;
+		else if (!strcmp(prop, "memory_usage"))
+			statVal = 0;
+		else if (!strcmp(prop, "total_queue_duration"))
+			statVal = ResGroupGetStat(groupId, RES_GROUP_STAT_TOTAL_QUEUE_TIME);
+		else if (!strcmp(prop, "num_queued"))
+			statVal = ResGroupGetStat(groupId, RES_GROUP_STAT_TOTAL_QUEUED);
+		else if (!strcmp(prop, "num_executed"))
+			statVal = ResGroupGetStat(groupId, RES_GROUP_STAT_TOTAL_EXECUTED);
+		else
+			/* unknown property name */
+			nulls[2] = true;
+
+		snprintf(statValStr, sizeof(statValStr), "%d", statVal);
+		values[2] = CStringGetTextDatum(statValStr);
+
+		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
+
+		SRF_RETURN_NEXT(funcctx, HeapTupleGetDatum(tuple));
+	}
+	else
+	{
+		/* nothing left */
+		SRF_RETURN_DONE(funcctx);
+	}
 }
 
 /*
@@ -522,7 +632,7 @@ createResGroupAbortCallback(ResourceReleasePhase phase,
 		 * FreeResGroupEntry would acquire LWLock, since this callback is called
 		 * after LWLockReleaseAll in AbortTransaction, it is safe here
 		 */
-		FreeResGroupEntry(groupId);
+		FreeResGroupEntry(groupId, NULL);
 	}
 
 	UnregisterResourceReleaseCallback(createResGroupAbortCallback, arg);
@@ -823,6 +933,44 @@ GetResGroupIdForName(char *name, LOCKMODE lockmode)
 	heap_close(rel, lockmode);
 
 	return rsgid;
+}
+
+/*
+ * GetResGroupNameForId -- Return the resource group name for an Oid
+ */
+char *
+GetResGroupNameForId(Oid oid, LOCKMODE lockmode)
+{
+	Relation	rel;
+	ScanKeyData scankey;
+	SysScanDesc scan;
+	HeapTuple	tuple;
+	char		*name = NULL;
+
+	rel = heap_open(ResGroupRelationId, lockmode);
+
+	/* SELECT rsgname FROM pg_resgroup WHERE oid = :1 */
+	ScanKeyInit(&scankey,
+				ObjectIdAttributeNumber,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(oid));
+	scan = systable_beginscan(rel, ResGroupOidIndexId, true,
+							  SnapshotNow, 1, &scankey);
+
+	tuple = systable_getnext(scan);
+	if (HeapTupleIsValid(tuple))
+	{
+		bool isnull;
+		Datum nameDatum = heap_getattr(tuple, Anum_pg_resgroup_rsgname, rel->rd_att, &isnull);
+		Assert (!isnull);
+		Name resGroupName = DatumGetName(nameDatum);
+		name = pstrdup(NameStr(*resGroupName));
+	}
+
+	systable_endscan(scan);
+	heap_close(rel, lockmode);
+
+	return name;
 }
 
 /*

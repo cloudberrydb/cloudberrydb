@@ -20,6 +20,7 @@ extern void DropResourceGroup(DropResourceGroupStmt *stmt);
 
 /* catalog access function */
 extern Oid GetResGroupIdForName(char *name, LOCKMODE lockmode);
+extern char *GetResGroupNameForId(Oid oid, LOCKMODE lockmode);
 extern int GetConcurrencyForGroup(int groupId);
 extern Oid GetResGroupIdForRole(Oid roleid);
 
