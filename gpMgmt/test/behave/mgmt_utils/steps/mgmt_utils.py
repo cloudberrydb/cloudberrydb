@@ -4105,6 +4105,42 @@ def impl(context):
         time.sleep(5)
         current_time = datetime.now()
 
+@when('wait until the process "{proc}" goes down')
+@then('wait until the process "{proc}" goes down')
+@given('wait until the process "{proc}" goes down')
+def impl(context, proc):
+    cmd = Command(name='pgrep for %s' % proc, cmdStr="pgrep %s" % proc)
+    start_time = current_time = datetime.now()
+    while (current_time - start_time).seconds < 120:
+        cmd.run()
+        if cmd.get_results().rc != 0: # 1 is a good outcome; 2 or 3 we should fail fast because they're errors
+            break
+        time.sleep(2)
+        current_time = datetime.now()
+    context.ret_code = cmd.get_results().rc
+    context.error_message = ''
+    if context.ret_code > 1:
+        context.error_message = 'pgrep internal error'
+    check_return_code(context, 1) # 1 means no processes matched, but search was successful
+
+@when('wait until the process "{proc}" is up')
+@then('wait until the process "{proc}" is up')
+@given('wait until the process "{proc}" is up')
+def impl(context, proc):
+    cmd = Command(name='pgrep for %s' % proc, cmdStr="pgrep %s" % proc)
+    start_time = current_time = datetime.now()
+    while (current_time - start_time).seconds < 120:
+        cmd.run()
+        if cmd.get_results().rc != 1: # 0 is a good outcome; 2 or 3 we should fail fast because they're errors
+            break
+        time.sleep(2)
+        current_time = datetime.now()
+    context.ret_code = cmd.get_results().rc
+    context.error_message = ''
+    if context.ret_code > 1:
+        context.error_message = 'pgrep internal error'
+    check_return_code(context, 0) # 0 means one or more processes were matched
+
 @when('run gppersistent_rebuild with the saved content id')
 @then('run gppersistent_rebuild with the saved content id')
 def impl(context):
