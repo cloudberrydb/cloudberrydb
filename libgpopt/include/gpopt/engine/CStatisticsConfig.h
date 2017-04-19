@@ -50,9 +50,8 @@ namespace gpopt
 			// damping factor for group by
 			CDouble m_dDampingFactorGroupBy;
 
-			// hash map of md ids and information of columns with missing statistics
-			//HMMDIdMissingstatscol *m_phmmdidcolinfo;
-			HMMDIdMDId *m_phmmdidcolinfo;
+			// hash set of md ids for columns with missing statistics
+			HSMDId *m_phsmdidcolinfo;
 
 			// mutex for locking entry when accessing / changing missing statistics column info
 			CMutex m_mutexMissingColStats;

@@ -41,14 +41,14 @@ CStatisticsConfig::CStatisticsConfig
 	m_dDampingFactorFilter(dDampingFactorFilter),
 	m_dDampingFactorJoin(dDampingFactorJoin),
 	m_dDampingFactorGroupBy(dDampingFactorGroupBy),
-	m_phmmdidcolinfo(NULL)
+	m_phsmdidcolinfo(NULL)
 {
 	GPOS_ASSERT(CDouble(0.0) < dDampingFactorFilter);
 	GPOS_ASSERT(CDouble(0.0) < dDampingFactorJoin);
 	GPOS_ASSERT(CDouble(0.0) < dDampingFactorGroupBy);
 
 	//m_phmmdidcolinfo = New(m_pmp) HMMDIdMissingstatscol(m_pmp);
-	m_phmmdidcolinfo = GPOS_NEW(m_pmp) HMMDIdMDId(m_pmp);
+	m_phsmdidcolinfo = GPOS_NEW(m_pmp) HSMDId(m_pmp);
 }
 
 
@@ -63,7 +63,7 @@ CStatisticsConfig::CStatisticsConfig
 //---------------------------------------------------------------------------
 CStatisticsConfig::~CStatisticsConfig()
 {
-	m_phmmdidcolinfo->Release();
+	m_phsmdidcolinfo->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -82,16 +82,14 @@ CStatisticsConfig::AddMissingStatsColumn
 {
 	GPOS_ASSERT(NULL != pmdidCol);
 
-	// add the new column information to the hash map
+	// add the new column information to the hash set
 	// to be sure that no one else does this at the same time, lock the mutex
 	CAutoMutex am(m_mutexMissingColStats);
 	am.Lock();
 
-	if (NULL == m_phmmdidcolinfo->PtLookup(pmdidCol))
+	if (m_phsmdidcolinfo->FInsert(pmdidCol))
 	{
 		pmdidCol->AddRef();
-		pmdidCol->AddRef();
-		m_phmmdidcolinfo->FInsert(pmdidCol, pmdidCol);
 	}
 }
 
@@ -115,10 +113,10 @@ CStatisticsConfig::CollectMissingStatsColumns
 	CAutoMutex am(m_mutexMissingColStats);
 	am.Lock();
 
-	HMIterMDIdMDId hmiter(m_phmmdidcolinfo);
-	while (hmiter.FAdvance())
+	HSIterMDId hsiter(m_phsmdidcolinfo);
+	while (hsiter.FAdvance())
 	{
-		CMDIdColStats *pmdidColStats = CMDIdColStats::PmdidConvert(const_cast<IMDId *>(hmiter.Pt()));
+		CMDIdColStats *pmdidColStats = CMDIdColStats::PmdidConvert(const_cast<IMDId *>(hsiter.Pt()));
 		pmdidColStats->AddRef();
 		pdrgmdid->Append(pmdidColStats);
 	}

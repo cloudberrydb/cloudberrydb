@@ -16,8 +16,8 @@
 
 #include "gpos/base.h"
 #include "gpos/common/CDynamicPtrArray.h"
-#include "gpos/common/CHashMap.h"
-#include "gpos/common/CHashMapIter.h"
+#include "gpos/common/CHashSet.h"
+#include "gpos/common/CHashSetIter.h"
 #include "gpos/string/CWStringConst.h"
 
 #include "naucrates/dxl/gpdb_types.h"
@@ -218,13 +218,11 @@ namespace gpmd
 	// common structures over metadata id elements
 	typedef CDynamicPtrArray<IMDId, CleanupRelease> DrgPmdid;
 
-    // hash map from mdid to mdid
-    typedef CHashMap<IMDId, IMDId, IMDId::UlHashMDId, IMDId::FEqualMDId,
-    		CleanupRelease<IMDId>, CleanupRelease<IMDId> > HMMDIdMDId;
+    // hash set for mdid
+    typedef CHashSet<IMDId, IMDId::UlHashMDId, IMDId::FEqualMDId, CleanupRelease<IMDId> > HSMDId;
 
-    // iterator over the hash map from column id to information of missing statistics column info
-    typedef CHashMapIter<IMDId, IMDId, IMDId::UlHashMDId, IMDId::FEqualMDId,
-    		CleanupRelease<IMDId>, CleanupRelease<IMDId> > HMIterMDIdMDId;
+    // iterator over the hash set for column id information for missing statistics
+    typedef CHashSetIter<IMDId, IMDId::UlHashMDId, IMDId::FEqualMDId, CleanupRelease<IMDId> > HSIterMDId;
 }
 
 
