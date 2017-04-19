@@ -12,6 +12,7 @@
 #define GPOPT_CUtils_H
 
 #include "gpos/error/CAutoTrace.h"
+#include "gpos/common/CHashSet.h"
 
 #include "gpopt/base/CColRef.h"
 #include "gpopt/base/COrderSpec.h"
@@ -1058,9 +1059,8 @@ namespace gpopt
 			BOOL FEquivalanceClassesEqual(IMemoryPool *pmp, DrgPcrs *pdrgpcrsFst, DrgPcrs *pdrgpcrsSnd);
 	}; // class CUtils
 
-	// hash map from expression to expression
-	typedef CHashMap<CExpression, ULONG, CExpression::UlHashDedup, CUtils::FEqual,
-				CleanupRelease<CExpression>, CleanupDelete<ULONG> > HMExprUl;
+	// hash set from expressions
+	typedef CHashSet<CExpression, CExpression::UlHashDedup, CUtils::FEqual, CleanupRelease<CExpression> > HSExpr;
 } // namespace gpopt
 
 #ifdef GPOS_DEBUG
