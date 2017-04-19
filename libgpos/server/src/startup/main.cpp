@@ -32,6 +32,7 @@
 #include "unittest/gpos/common/CHashMapTest.h"
 #include "unittest/gpos/common/CHashMapIterTest.h"
 #include "unittest/gpos/common/CHashSetTest.h"
+#include "unittest/gpos/common/CHashSetIterTest.h"
 #include "unittest/gpos/common/CListTest.h"
 #include "unittest/gpos/common/CRefCountTest.h"
 #include "unittest/gpos/common/CStackTest.h"
@@ -91,6 +92,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CHashMapTest),
 	GPOS_UNITTEST_STD(CHashMapIterTest),
 	GPOS_UNITTEST_STD(CHashSetTest),
+	GPOS_UNITTEST_STD(CHashSetIterTest),
 	GPOS_UNITTEST_STD(CRefCountTest),
 	GPOS_UNITTEST_STD(CListTest),
 	GPOS_UNITTEST_STD(CStackTest),

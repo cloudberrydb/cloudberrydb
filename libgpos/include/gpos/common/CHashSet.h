@@ -29,6 +29,13 @@
 namespace gpos
 {
 
+	// fwd declaration
+	template <class T,
+		ULONG (*pfnHash)(const T*),
+		BOOL (*pfnEq)(const T*, const T*),
+		void (*pfnDestroy)(T*)>
+	class CHashSetIter;
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CHashSet
@@ -43,6 +50,8 @@ namespace gpos
 				void (*pfnDestroy)(T*)>
 	class CHashSet : public CRefCount
 	{
+		// fwd declaration
+		friend class CHashSetIter<T, pfnHash, pfnEq, pfnDestroy>;
 
 		private:
 
@@ -101,6 +110,13 @@ namespace gpos
 			typedef CDynamicPtrArray<CHashSetElem, CleanupDelete> DrgHashChain;
 			DrgHashChain **m_ppdrgchain;
 
+			// array for elements
+			// We use CleanupNULL because the elements are owned by the hash table
+			typedef CDynamicPtrArray<T, CleanupNULL> DrgElements;
+			DrgElements *const m_pdrgElements;
+
+			DrgPi *const m_pdrgPiFilledBuckets;
+
 			// private copy ctor
 			CHashSet(const CHashSet<T, pfnHash, pfnEq, pfnDestroy> &);
 
@@ -114,6 +130,9 @@ namespace gpos
 
 			// clear elements
 			void Clear();
+
+			// lookup an element by its key
+			void Lookup(const T *pt, CHashSetElem **pphse) const;
 
 		public:
 

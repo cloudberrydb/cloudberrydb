@@ -1,20 +1,8 @@
-//---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2015 Pivotal, Inc.
+//	Copyright (C) 2017 Pivotal Software, Inc.
 //
-//	@filename:
-//		CHashSet.inl
-//
-//	@doc:
-//		Inline implementation of hash set template
-//
-//	@owner: 
-//		solimm1
-//
-//	@test:
-//
-//
-//---------------------------------------------------------------------------
+//  Inline implementation of hash set template
+
 #ifndef GPOS_CHashSet_INL
 #define GPOS_CHashSet_INL
 
@@ -23,15 +11,8 @@
 namespace gpos
 {	
 
-	//---------------------------------------------------------------------------
-	//	@class:
-	//		CHashSet::CHashSetElem::CHashSetElem
-	//
-	//	@doc:
-	//		ctor
-	//
-	//---------------------------------------------------------------------------
-	template <class T, 
+	// ctor
+	template <class T,
 				ULONG (*pfnHash)(const T*), 
 				BOOL (*pfnEq)(const T*, const T*),
 				void (*pfnDestroy)(T*)>
@@ -48,15 +29,8 @@ namespace gpos
 	}
 	
 	
-	//---------------------------------------------------------------------------
-	//	@class:
-	//		CHashSet::CHashSetElem::~CHashSetElem
-	//
-	//	@doc:
-	//		dtor
-	//
-	//---------------------------------------------------------------------------
-	template <class T, 
+	// dtor
+	template <class T,
 				ULONG (*pfnHash)(const T*), 
 				BOOL (*pfnEq)(const T*, const T*),
 				void (*pfnDestroy)(T*)>
@@ -71,15 +45,8 @@ namespace gpos
 	}
 	
 		
-	//---------------------------------------------------------------------------
-	//	@class:
-	//		CHashSet::CHashSet
-	//
-	//	@doc:
-	//		ctor
-	//
-	//---------------------------------------------------------------------------
-	template <class T, 
+	// ctor
+	template <class T,
 				ULONG (*pfnHash)(const T*), 
 				BOOL (*pfnEq)(const T*, const T*),
 				void (*pfnDestroy)(T*)>
@@ -91,24 +58,19 @@ namespace gpos
 		: 
 		m_pmp(pmp), 
 		m_ulSize(ulSize),
-		m_ulEntries(0)
+		m_ulEntries(0),
+		m_ppdrgchain(GPOS_NEW_ARRAY(m_pmp, DrgHashChain*, m_ulSize)),
+		m_pdrgElements(GPOS_NEW(m_pmp) DrgElements(m_pmp)),
+		m_pdrgPiFilledBuckets(GPOS_NEW(pmp) DrgPi(pmp))
 	{
 		GPOS_ASSERT(ulSize > 0);
 		
-		m_ppdrgchain = GPOS_NEW_ARRAY(m_pmp, DrgHashChain*, m_ulSize);
 		(void) clib::PvMemSet(m_ppdrgchain, 0, m_ulSize * sizeof(DrgHashChain*));
 	}
 
 
-	//---------------------------------------------------------------------------
-	//	@class:
-	//		CHashSet::~CHashSet
-	//
-	//	@doc:
-	//		dtor
-	//
-	//---------------------------------------------------------------------------
-	template <class T, 
+	// dtor
+	template <class T,
 				ULONG (*pfnHash)(const T*), 
 				BOOL (*pfnEq)(const T*, const T*),
 				void (*pfnDestroy)(T*)>
@@ -118,30 +80,26 @@ namespace gpos
 		Clear();
 		
 		GPOS_DELETE_ARRAY(m_ppdrgchain);
+		m_pdrgElements->Release();
+		m_pdrgPiFilledBuckets->Release();
 	}
 
 
-	//---------------------------------------------------------------------------
-	//	@class:
-	//		CHashSet::Clear
-	//
-	//	@doc:
-	//		Destroy all hash chains; delete elements as per destroy function
-	//
-	//---------------------------------------------------------------------------
-	template <class T, 
+	// Destroy all hash chains; delete elements as per destroy function
+	template <class T,
 				ULONG (*pfnHash)(const T*), 
 				BOOL (*pfnEq)(const T*, const T*),
 				void (*pfnDestroy)(T*)>
 	void
 	CHashSet<T, pfnHash, pfnEq, pfnDestroy>::Clear()
 	{
-		for (ULONG ul = 0; ul < m_ulSize; ul++)
+		for (ULONG i = 0; i < m_pdrgPiFilledBuckets->UlLength(); i++)
 		{
 			// release each hash chain
-			CRefCount::SafeRelease(m_ppdrgchain[ul]);
+			m_ppdrgchain[*(*m_pdrgPiFilledBuckets)[i]]->Release();
 		}
 		m_ulEntries = 0;
+		m_pdrgPiFilledBuckets->Clear();
 	}
 
 
@@ -173,25 +131,22 @@ namespace gpos
 		if (NULL == *ppdrgchain)
 		{
 			*ppdrgchain = GPOS_NEW(m_pmp) DrgHashChain(m_pmp);
+			INT iBucket = pfnHash(pt) % m_ulSize;
+			m_pdrgPiFilledBuckets->Append(GPOS_NEW(m_pmp) INT(iBucket));
 		}
 		
 		CHashSetElem *phse = GPOS_NEW(m_pmp) CHashSetElem(pt, true /*fOwn*/);
 		(*ppdrgchain)->Append(phse);
 		
 		m_ulEntries++;
+		m_pdrgElements->Append(pt);
+
 		return true;
 	}
 	
 
-	//---------------------------------------------------------------------------
-	//	@class:
-	//		CHashSet::FExists
-	//
-	//	@doc:
-	//		Look up element by given key
-	//
-	//---------------------------------------------------------------------------
-	template <class T, 
+	// Look up element by given element
+	template <class T,
 				ULONG (*pfnHash)(const T*), 
 				BOOL (*pfnEq)(const T*, const T*),
 				void (*pfnDestroy)(T*)>
@@ -213,6 +168,34 @@ namespace gpos
 		
 		return false;
 	}
+
+	// Look up element
+	template <class T,
+	ULONG (*pfnHash)(const T*),
+	BOOL (*pfnEq)(const T*, const T*),
+	void (*pfnDestroy)(T*)>
+	void
+	CHashSet<T, pfnHash, pfnEq, pfnDestroy>::Lookup
+	(
+	const T *pt,
+	CHashSetElem **pphse // output : pointer to found set entry
+	)
+	const
+	{
+		GPOS_ASSERT(NULL != pphse);
+
+		CHashSetElem hse(const_cast<T*>(pt), false /*fOwn*/);
+		CHashSetElem *phse = NULL;
+		DrgHashChain **ppdrgchain = PpdrgChain(pt);
+		if (NULL != *ppdrgchain)
+		{
+			phse = (*ppdrgchain)->PtLookup(&hse);
+			GPOS_ASSERT_IMP(NULL != phse, *phse == hse);
+		}
+
+		*pphse = phse;
+	}
+
 }
 
 

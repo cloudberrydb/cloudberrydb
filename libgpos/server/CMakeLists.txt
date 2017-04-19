@@ -40,6 +40,7 @@ add_executable(gpos_test
                src/unittest/gpos/common/CEnumSetTest.cpp
                src/unittest/gpos/common/CHashMapIterTest.cpp
                src/unittest/gpos/common/CHashMapTest.cpp
+               src/unittest/gpos/common/CHashSetIterTest.cpp
                src/unittest/gpos/common/CHashSetTest.cpp
                src/unittest/gpos/common/CListTest.cpp
                src/unittest/gpos/common/CRefCountTest.cpp
@@ -109,6 +110,7 @@ add_gpos_test(CDoubleTest)
 add_gpos_test(CHashMapTest)
 add_gpos_test(CHashMapIterTest)
 add_gpos_test(CHashSetTest)
+add_gpos_test(CHashSetIterTest)
 add_gpos_test(CRefCountTest)
 add_gpos_test(CListTest)
 add_gpos_test(CStackTest)
