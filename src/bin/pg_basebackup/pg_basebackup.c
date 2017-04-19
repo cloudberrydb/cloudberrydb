@@ -868,9 +868,9 @@ ReceiveAndUnpackTarFile(PGconn *conn, PGresult *res, int rownum)
 	FILE	   *file = NULL;
 
 	if (basetablespace)
-		strcpy(current_path, basedir);
+		strlcpy(current_path, basedir, sizeof(current_path));
 	else
-		strcpy(current_path, PQgetvalue(res, rownum, 2));
+		strlcpy(current_path, PQgetvalue(res, rownum, 2), sizeof(current_path));
 
 	/*
 	 * Get the COPY data
@@ -1329,6 +1329,7 @@ BaseBackup(void)
 	int			i;
 	char		xlogstart[64];
 	char		xlogend[64];
+	char 	   *exclude_list;
 
 	/*
 	 * Connect in replication mode to the server
@@ -1375,8 +1376,15 @@ BaseBackup(void)
 			 showprogress ? "PROGRESS" : "",
 			 includewal && !streamwal ? "WAL" : "",
 			 fastcheckpoint ? "FAST" : "",
-			 includewal ? "NOWAIT" : "",
-			 build_exclude_list(excludes, num_exclude));
+			 includewal ? "NOWAIT" : "");
+	exclude_list = build_exclude_list(excludes, num_exclude);
+	if (strlcat(current_path, exclude_list, sizeof(current_path)) >= sizeof(current_path))
+	{
+		fprintf(stderr, _("%s: exclude list too large\n"), progname);
+		free(exclude_list);
+		disconnect_and_exit(1);
+	}
+	free(exclude_list);
 
 	if (PQsendQuery(conn, current_path) == 0)
 	{
