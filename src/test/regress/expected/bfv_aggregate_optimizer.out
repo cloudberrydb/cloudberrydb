@@ -115,7 +115,7 @@ from toy
 window w as (order by id rows 2 preceding);
 ERROR:  aggregate functions with no prelimfn or invprelimfn are not yet supported as window functions
 --
--- Error executing for aggregate with anyarry as return type
+-- Error executing for aggregate with anyarray as return type
 --
 -- SETUP
 CREATE OR REPLACE FUNCTION tfp(anyarray,anyelement) RETURNS anyarray AS

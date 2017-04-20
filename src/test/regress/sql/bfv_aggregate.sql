@@ -56,7 +56,7 @@ from toy
 window w as (order by id rows 2 preceding);
 
 --
--- Error executing for aggregate with anyarry as return type
+-- Error executing for aggregate with anyarray as return type
 --
 
 -- SETUP
