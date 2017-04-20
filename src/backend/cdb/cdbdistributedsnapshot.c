@@ -16,6 +16,84 @@
 #include "utils/tqual.h"
 
 /*
+ * Purpose of this function is on pretty same lines as
+ * HeapTupleSatisfiesVacuum() just more from distributed perspective.
+ *
+ * Helps to determine the status of tuples for VACUUM, PagePruning and
+ * FREEZING purposes. Here, what we mainly want to know is:
+ * - if a tuple is potentially visible to *any* running transaction GLOBALLY
+ * in cluster. If so, it can't be removed yet by VACUUM.
+ * - also, if a tuple is visible to *all* current and future transactions,
+ *   then it can be freezed by VACUUM.
+ *
+ * xminAllDistributedSnapshots is a cutoff XID (obtained from distributed
+ * snapshot). Tuples deleted by dxids >= xminAllDistributedSnapshots are
+ * deemed "recently dead"; they might still be visible to some open
+ * transaction globally, so we can't remove them, even if we see that the
+ * deleting transaction has committed and even if locally its lower than
+ * OldestXmin.
+ *
+ * Function is coded with conservative mind-set, to make sure tuples are
+ * deleted or freezed only if can be evaluated and guaranteed to be known
+ * meeting above mentioned criteria. So, any scenarios in which global
+ * snapshot can't be checked it returns to not do anything to the tuple. For
+ * example running vacuum in utility mode for particular QE directly, in which
+ * case don't have distributed snapshot to check against, it will not allow
+ * marking tuples DEAD just based on local information.
+ */
+bool
+localXidSatisfiesAnyDistributedSnapshot(TransactionId localXid)
+{
+	DistributedSnapshotCommitted distributedSnapshotCommitted;
+	Assert(TransactionIdIsNormal(localXid));
+
+	/*
+	 * For single user mode operation like initdb time, let the vacuum
+	 * cleanout and freeze tuples.
+	 */
+	if (!IsUnderPostmaster || !IsNormalProcessingMode())
+		return false;
+
+	/*
+	 * If don't have snapshot, can't check the global visibility and hence
+	 * return not to perform clean the tuple.
+	 */
+	if (NULL == SerializableSnapshot)
+		return true;
+
+	/* Only if we have distributed snapshot, evaluate against it */
+	if (SerializableSnapshot->haveDistribSnapshot)
+	{
+		distributedSnapshotCommitted =
+			DistributedSnapshotWithLocalMapping_CommittedTest(
+				&SerializableSnapshot->distribSnapshotWithLocalMapping,
+				localXid,
+				true);
+
+		switch (distributedSnapshotCommitted)
+		{
+			case DISTRIBUTEDSNAPSHOT_COMMITTED_INPROGRESS:
+				return true;
+
+			case DISTRIBUTEDSNAPSHOT_COMMITTED_IGNORE:
+				return false;
+
+			default:
+				elog(ERROR,
+					 "unrecognized distributed committed test result: %d for localXid %u",
+					 (int) distributedSnapshotCommitted, localXid);
+				break;
+		}
+	}
+
+	/*
+	 * If don't have distributed snapshot to check, return it can be seen and
+	 * hence not to be cleaned-up.
+	 */
+	return true;
+}
+
+/*
  * DistributedSnapshotWithLocalMapping_CommittedTest
  *		Is the given XID still-in-progress according to the
  *      distributed snapshot?  Or, is the transaction strictly local
@@ -27,7 +105,8 @@
 DistributedSnapshotCommitted 
 DistributedSnapshotWithLocalMapping_CommittedTest(
 	DistributedSnapshotWithLocalMapping		*dslm,
-	TransactionId 							localXid)
+	TransactionId 							localXid,
+	bool isVacuumCheck)
 {
 	DistributedSnapshotHeader *header = &dslm->header;
 	DistributedSnapshotMapEntry *inProgressEntryArray = dslm->inProgressEntryArray;
@@ -128,17 +207,22 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 										dslm->header.distribTransactionTimeStamp,
 										distribXid);
 
-	if (header->xminAllDistributedSnapshots != InvalidDistributedTransactionId)
-	{
-		/*
-		 * If this distributed transaction is older than all the distributed
-		 * snapshots, then we can ignore it from now on.
-		 */
-		Assert(header->xmin >= header->xminAllDistributedSnapshots);
+	Assert(header->xminAllDistributedSnapshots != InvalidDistributedTransactionId);
+	/*
+	 * If this distributed transaction is older than all the distributed
+	 * snapshots, then we can ignore it from now on.
+	 */
+	Assert(header->xmin >= header->xminAllDistributedSnapshots);
 		
-		if (distribXid < dslm->header.xminAllDistributedSnapshots)
-			return DISTRIBUTEDSNAPSHOT_COMMITTED_IGNORE;
-	}
+	if (distribXid < dslm->header.xminAllDistributedSnapshots)
+		return DISTRIBUTEDSNAPSHOT_COMMITTED_IGNORE;
+
+	/*
+	 * If called to check for purpose of vacuum, in-progress is not
+	 * interesting to check and hence just return.
+	 */
+	if (isVacuumCheck)
+		return DISTRIBUTEDSNAPSHOT_COMMITTED_INPROGRESS;
 
 	/* Any xid < xmin is not in-progress */
 	if (distribXid < header->xmin)

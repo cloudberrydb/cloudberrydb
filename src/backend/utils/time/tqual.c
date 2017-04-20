@@ -1350,6 +1350,23 @@ HeapTupleSatisfiesVacuum(Relation relation, HeapTupleHeader tuple, TransactionId
 	if (!TransactionIdPrecedes(HeapTupleHeaderGetXmax(tuple), OldestXmin))
 		return HEAPTUPLE_RECENTLY_DEAD;
 
+	/*
+	 * Okay here means based on local visibility rules the tuple can be
+	 * reported as DEAD, lets check from distributed visibility if its still
+	 * LIVE. This is performed to avoid removing the tuple still needed based
+	 * on distributed snapshot.
+	 */
+	if (TransactionIdIsNormal(HeapTupleHeaderGetXmax(tuple)) &&
+		!(tuple->t_infomask2 & HEAP_XMAX_DISTRIBUTED_SNAPSHOT_IGNORE))
+	{
+		if (localXidSatisfiesAnyDistributedSnapshot(HeapTupleHeaderGetXmax(tuple)))
+			return HEAPTUPLE_RECENTLY_DEAD;
+
+		tuple->t_infomask2 |= HEAP_XMAX_DISTRIBUTED_SNAPSHOT_IGNORE;
+		markDirty(buffer, relation, tuple, /* isXmin */ false);
+		return HEAPTUPLE_DEAD;
+	}
+
 	/* Otherwise, it's dead and removable */
 	return HEAPTUPLE_DEAD;
 }
@@ -1553,7 +1570,7 @@ XidInMVCCSnapshot(TransactionId xid, Snapshot snapshot,
 		distributedSnapshotCommitted =
 			DistributedSnapshotWithLocalMapping_CommittedTest(
 				&snapshot->distribSnapshotWithLocalMapping,
-				xid);
+				xid, false);
 
 		switch (distributedSnapshotCommitted)
 		{
