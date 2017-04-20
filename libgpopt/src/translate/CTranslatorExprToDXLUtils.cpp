@@ -564,7 +564,7 @@ CTranslatorExprToDXLUtils::UlPartKeyLevel
 //		CTranslatorExprToDXLUtils::PdxlnPartialScanTestRange
 //
 //	@doc:
-// 		Construct a test expression for the given range  
+// 		Construct a test expression for the given range or list
 //		based part constraint
 //
 //---------------------------------------------------------------------------
@@ -589,6 +589,17 @@ CTranslatorExprToDXLUtils::PdxlnPartialScanTestRange
 	else // list partition
 	{
 		IDatum *pdatum = prng->PdatumLeft();
+		if (pdatum == NULL)
+		{
+			// TODO: In case of default partitions, we end up with NULL for Left and Right Datum.
+			// Currently we fallback and should handle it better in future.
+			GPOS_RAISE
+				(
+				gpdxl::ExmaDXL,
+				gpdxl::ExmiExpr2DXLUnsupportedFeature,
+				GPOS_WSZ_LIT("Queries over default list partition that have indexes")
+				);
+		}
 		GPOS_ASSERT(pdatum->FMatch(prng->PdatumRight()));
 
 		CDXLDatum *pdxldatum = Pdxldatum(pmp, pmda, pdatum);
