@@ -1409,7 +1409,7 @@ BaseBackup(void)
 				progname);
 		disconnect_and_exit(1);
 	}
-	strcpy(xlogstart, PQgetvalue(res, 0, 0));
+	strlcpy(xlogstart, PQgetvalue(res, 0, 0), sizeof(xlogstart));
 	if (verbose && includewal)
 		fprintf(stderr, "transaction log start point: %s\n", xlogstart);
 	PQclear(res);
@@ -1509,7 +1509,7 @@ BaseBackup(void)
 				progname);
 		disconnect_and_exit(1);
 	}
-	strcpy(xlogend, PQgetvalue(res, 0, 0));
+	strlcpy(xlogend, PQgetvalue(res, 0, 0), sizeof(xlogend));
 	if (verbose && includewal)
 		fprintf(stderr, "transaction log end point: %s\n", xlogend);
 	PQclear(res);
