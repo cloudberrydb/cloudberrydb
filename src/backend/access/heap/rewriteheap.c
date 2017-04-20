@@ -339,7 +339,7 @@ rewrite_heap_tuple(RewriteState state,
 	 * we can get the right things to happen by passing InvalidBuffer for the
 	 * buffer.
 	 */
-	heap_freeze_tuple(new_tuple->t_data, state->rs_freeze_xid, InvalidBuffer, false);
+	heap_freeze_tuple(new_tuple->t_data, &state->rs_freeze_xid, InvalidBuffer, false);
 
 	/*
 	 * Invalid ctid means that ctid should point to the tuple itself. We'll
@@ -654,4 +654,11 @@ raw_heap_insert(RewriteState state, HeapTuple tup)
 	/* If heaptup is a private copy, release it. */
 	if (heaptup != tup)
 		heap_freetuple(heaptup);
+}
+
+TransactionId
+get_rewrite_freeze_xid(RewriteState state)
+{
+	Assert(state != NULL);
+	return state->rs_freeze_xid;
 }

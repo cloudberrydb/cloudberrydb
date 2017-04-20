@@ -729,7 +729,7 @@ lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 				 * Each non-removable tuple must be checked to see if it needs
 				 * freezing.  Note we already have exclusive buffer lock.
 				 */
-				if (heap_freeze_tuple(tuple.t_data, FreezeLimit,
+				if (heap_freeze_tuple(tuple.t_data, &FreezeLimit,
 									  InvalidBuffer, false))
 					frozen[nfrozen++] = offnum;
 			}

@@ -4330,9 +4330,22 @@ heap_inplace_update(Relation relation, HeapTuple tuple)
  * exclusive lock ensures no other backend is in process of checking the
  * tuple status.  Also, getting exclusive lock makes it safe to adjust the
  * infomask bits.
+ *
+ * In GPDB, cutoff_xid is passed as pointer, as this function may change its
+ * value. cutoff_xid passed in is just based on local visibility and hence may
+ * not be met always. Function checks localxid from distributed aspect and may
+ * not be able to freeze (remove) all xids lower than cutoff_xid if still
+ * needed from distributed visibility perspective. So, for such cases the
+ * cutoff_xid (freeze limit) is lowered and updated new lower value reflected
+ * back to caller. Using the same caller can then correctly set *relfrozenxid*
+ * of the relation. If this is not done, relation may have xids lower than
+ * relfrozenxid which is wrong. As based on relfrozenxid, datfrozenxid gets
+ * set, which finally controls cut-off point for clog or distributed commit
+ * log. Not correctly reflecting relfrozenxid may end-up trying to read
+ * non-existent clog files.
  */
 bool
-heap_freeze_tuple(HeapTupleHeader tuple, TransactionId cutoff_xid,
+heap_freeze_tuple(HeapTupleHeader tuple, TransactionId *cutoff_xid,
 				  Buffer buf, bool xlog_replay)
 {
 	bool		changed = false;
@@ -4343,7 +4356,7 @@ heap_freeze_tuple(HeapTupleHeader tuple, TransactionId cutoff_xid,
 
 	xid = HeapTupleHeaderGetXmin(tuple);
 	if (TransactionIdIsNormal(xid) &&
-		TransactionIdPrecedes(xid, cutoff_xid))
+		TransactionIdPrecedes(xid, *cutoff_xid))
 	{
 		/*
 		 * Will consult distributed snapshot and freeze xmin only if globally
@@ -4375,6 +4388,10 @@ heap_freeze_tuple(HeapTupleHeader tuple, TransactionId cutoff_xid,
 			tuple->t_infomask |= HEAP_XMIN_COMMITTED;
 			changed = true;
 		}
+		else
+		{
+			*cutoff_xid = xid;
+		}
 	}
 
 	/*
@@ -4389,7 +4406,7 @@ recheck_xmax:
 	{
 		xid = HeapTupleHeaderGetXmax(tuple);
 		if (TransactionIdIsNormal(xid) &&
-			TransactionIdPrecedes(xid, cutoff_xid))
+			TransactionIdPrecedes(xid, *cutoff_xid))
 		{
 			/*
 			 * Need to prevent case where due to distributed visibility the
@@ -4433,6 +4450,10 @@ recheck_xmax:
 				HeapTupleHeaderClearHotUpdated(tuple);
 				changed = true;
 			}
+			else
+			{
+				*cutoff_xid = xid;
+			}
 		}
 	}
 	else
@@ -4465,7 +4486,7 @@ recheck_xvac:
 	{
 		xid = HeapTupleHeaderGetXvac(tuple);
 		if (TransactionIdIsNormal(xid) &&
-			TransactionIdPrecedes(xid, cutoff_xid))
+			TransactionIdPrecedes(xid, *cutoff_xid))
 		{
 			if (buf != InvalidBuffer)
 			{
@@ -5102,7 +5123,7 @@ heap_xlog_freeze(XLogRecPtr lsn, XLogRecord *record)
 			ItemId		lp = PageGetItemId(page, *offsets);
 			HeapTupleHeader tuple = (HeapTupleHeader) PageGetItem(page, lp);
 
-			(void) heap_freeze_tuple(tuple, cutoff_xid, InvalidBuffer, true);
+			(void) heap_freeze_tuple(tuple, &cutoff_xid, InvalidBuffer, true);
 			offsets++;
 		}
 	}

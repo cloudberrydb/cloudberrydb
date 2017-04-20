@@ -987,6 +987,9 @@ copy_heap_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex)
 
 	index_endscan(scan);
 
+	/* Update FreezeXid based on adjustments made by heap_freeze_tuple() */
+	FreezeXid = get_rewrite_freeze_xid(rwstate);
+
 	/* Write out any remaining tuples, and fsync if needed */
 	end_heap_rewrite(rwstate);
 
