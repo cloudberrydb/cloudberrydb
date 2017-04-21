@@ -828,10 +828,14 @@ CGroupExpression::Transform
 
 	CTimerUser timer;
 
+	*pulElapsedTime = 0;
 	// check traceflag and compatibility with origin xform
 	if (GPOPT_FDISABLED_XFORM(pxform->Exfid())|| !pxform->FCompatible(m_exfidOrigin))
 	{
-		*pulElapsedTime = timer.UlElapsedMS();
+		if (GPOS_FTRACE(EopttracePrintOptStats))
+		{
+			*pulElapsedTime = timer.UlElapsedMS();
+		}
 		return;
 	}
 
@@ -841,7 +845,10 @@ CGroupExpression::Transform
 	exprhdl.DeriveProps(NULL /*pdpctxt*/);
 	if (CXform::ExfpNone == pxform->Exfp(exprhdl))
 	{
-		*pulElapsedTime = timer.UlElapsedMS();
+		if (GPOS_FTRACE(EopttracePrintOptStats))
+		{
+			*pulElapsedTime = timer.UlElapsedMS();
+		}
 		return;
 	}
 
@@ -881,7 +888,10 @@ CGroupExpression::Transform
 	// post-prcoessing before applying xform to group expression
 	PostprocessTransform(pmpLocal, pmp, pxform);
 
-	*pulElapsedTime = timer.UlElapsedMS();
+	if (GPOS_FTRACE(EopttracePrintOptStats))
+	{
+		*pulElapsedTime = timer.UlElapsedMS();
+	}
 }
 
 
