@@ -251,7 +251,7 @@ class COptTasks
 
 		// print warning messages for columns with missing statistics
 		static
-		void PrintMissingStatsWarning(IMemoryPool *pmp, CMDAccessor *pmda, DrgPmdid *pdrgmdidCol, HMMDIdMDId *phmmdidRel);
+		void PrintMissingStatsWarning(IMemoryPool *pmp, CMDAccessor *pmda, DrgPmdid *pdrgmdidCol, HSMDId *phsmdidRel);
 
 	public:
 
