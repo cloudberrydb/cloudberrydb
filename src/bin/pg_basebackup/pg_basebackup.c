@@ -1371,7 +1371,7 @@ BaseBackup(void)
 	 */
 	PQescapeStringConn(conn, escaped_label, label, sizeof(escaped_label), &i);
 	snprintf(current_path, sizeof(current_path),
-			 "BASE_BACKUP LABEL '%s' %s %s %s %s %s",
+			 "BASE_BACKUP LABEL '%s' %s %s %s %s",
 			 escaped_label,
 			 showprogress ? "PROGRESS" : "",
 			 includewal && !streamwal ? "WAL" : "",
@@ -1381,10 +1381,12 @@ BaseBackup(void)
 	if (strlcat(current_path, exclude_list, sizeof(current_path)) >= sizeof(current_path))
 	{
 		fprintf(stderr, _("%s: exclude list too large\n"), progname);
-		free(exclude_list);
+		if (num_exclude != 0)
+			free(exclude_list);
 		disconnect_and_exit(1);
 	}
-	free(exclude_list);
+	if (num_exclude != 0)
+		free(exclude_list);
 
 	if (PQsendQuery(conn, current_path) == 0)
 	{
