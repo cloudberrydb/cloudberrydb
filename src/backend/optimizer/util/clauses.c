@@ -59,7 +59,6 @@ typedef struct
 	bool		transform_stable_funcs;
 	bool		recurse_queries; /* recurse into query structures */
 	bool		recurse_sublink_testexpr; /* recurse into sublink test expressions */
-	bool		transform_functions_returning_composite_values; /* transform functions returning constants of composite values */
 	Size        max_size; /* max constant binary size in bytes, 0: no restrictions */
 } eval_const_expressions_context;
 
@@ -1797,10 +1796,6 @@ fold_constants(PlannerGlobal *glob, Query *q, ParamListInfo boundParams, Size ma
 	context.transform_stable_funcs = true;	/* safe transformations only */
 	context.recurse_queries = true; /* recurse into query structures */
 	context.recurse_sublink_testexpr = false; /* do not recurse into sublink test expressions */
-	context.transform_functions_returning_composite_values = true;
-
-	/* when optimizer is on then do not fold functions that return a constant of composite values */
-	context.transform_functions_returning_composite_values = false;
 
 	context.max_size = max_size;
 	
