@@ -407,7 +407,7 @@ class GpdbRestore(Operation):
 
         self._get_timestamp_for_validation(root)
 
-        report_filename = self.generate_filename("report")
+        report_filename = self.context.generate_filename("report")
         self.context.compress, self.context.target_db = self.context.get_compress_and_dbname_from_report_file(report_filename)
 
     def _validate_db_host_path(self):
