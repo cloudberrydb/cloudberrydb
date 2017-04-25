@@ -14,6 +14,7 @@
 #include "gpos/error/CMessageRepository.h"
 #include "gpos/error/CMiniDumper.h"
 #include "gpos/error/CSerializable.h"
+#include "gpos/task/CAutoSuspendAbort.h"
 
 using namespace gpos;
 
@@ -42,6 +43,7 @@ CErrorContext::CErrorContext
 	m_ulSev(CException::ExsevError),
 	m_fPending(false),
 	m_fRethrow(false),
+	m_fSerializing(false),
 	m_wss(m_wsz, GPOS_ARRAY_SIZE(m_wsz)),
 	m_pmdr(pmdr)
 {
@@ -78,6 +80,7 @@ CErrorContext::Reset()
 	
 	m_fPending = false;
 	m_fRethrow = false;
+	m_fSerializing = false;
 	m_exc = CException::m_excInvalid;
 	m_wss.Reset();
 }
@@ -98,6 +101,9 @@ CErrorContext::Record
 	VA_LIST vl
 	)
 {
+	if (m_fSerializing)
+		return;
+
 #ifdef GPOS_DEBUG
 	if (m_fPending)
 	{
@@ -194,11 +200,19 @@ CErrorContext::CopyPropErrCtxt
 void
 CErrorContext::Serialize()
 {
+	if (m_fSerializing)
+		return;
+
 	if (NULL == m_pmdr || m_listSerial.FEmpty())
 	{
 		return;
 	}
 
+	m_fSerializing = true;
+
+	// Abort might throw an error, so prevent aborting to
+	// avoid recursion.
+	CAutoSuspendAbort asa;
 	// get mini-dumper's stream to serialize to
 	COstream& oos = m_pmdr->GetOStream();
 
@@ -213,6 +227,8 @@ CErrorContext::Serialize()
 	}
 
 	m_pmdr->SerializeEntryFooter();
+
+	m_fSerializing = false;
 }
 
 

@@ -49,6 +49,9 @@ namespace gpos
 			// flag to indicate if handled yet
 			BOOL m_fRethrow;
 
+			// flag to indicate that we are currently serializing this.
+			BOOL m_fSerializing;
+
 			// error message buffer
 			WCHAR m_wsz[GPOS_ERROR_MESSAGE_BUFFER_SIZE];
 			
