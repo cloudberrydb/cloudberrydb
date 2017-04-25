@@ -300,3 +300,49 @@ select * from bm_table_foo where d = 3 and (d = 1 or d = 2);
 -- otherwise segments will eliminate nodes.
 select * from bm_table_foo where d = 2 and (d = 1 or d = 2);
 
+-- double free mixed bitmap indexes (StreamBitmap with HashBitmap)
+CREATE TABLE bmheapcrash (
+    btree_col2 date DEFAULT now(),
+    bitmap_col text NOT NULL,
+    btree_col1 character varying(50) NOT NULL,
+    dist_col serial
+)
+DISTRIBUTED BY (dist_col);
+
+CREATE INDEX bm_heap_idx ON bmheapcrash USING bitmap (bitmap_col);
+CREATE INDEX bt_heap_idx ON bmheapcrash USING btree (btree_col1);
+CREATE INDEX bt_heap_idx_2 ON bmheapcrash USING btree (btree_col2);
+
+INSERT INTO bmheapcrash (btree_col2, bitmap_col, btree_col1)
+SELECT date '2015-01-01' + (i % (365 * 2)), i % 1000, 'abcdefg' || (i% 1000)
+from generate_series(1,10000) as i;
+
+select count(1) from bmheapcrash where bitmap_col = '999' AND btree_col1 = 'abcdefg999';
+select count(1) from bmheapcrash where bitmap_col = '999' OR btree_col1 = 'abcdefg999';
+select count(1) from bmheapcrash where bitmap_col = '999' OR btree_col1 = 'abcdefg999' AND btree_col2 = '2015-01-01';
+select count(1) from bmheapcrash where bitmap_col = '999' AND btree_col1 = 'abcdefg999' OR btree_col2 = '2015-01-01';
+
+select count(1) from bmheapcrash where btree_col1 = 'abcdefg999' AND bitmap_col = '999';
+select count(1) from bmheapcrash where btree_col1 = 'abcdefg999' OR bitmap_col = '999' AND btree_col2 = '2015-01-01';
+select count(1) from bmheapcrash where btree_col1 = 'abcdefg999' AND bitmap_col = '999' OR btree_col2 = '2015-01-01';
+select count(1) from bmheapcrash where btree_col1 = 'abcdefg999' AND btree_col2 = '2015-01-01' OR bitmap_col = '999';
+select count(1) from bmheapcrash where btree_col1 = 'abcdefg999' AND btree_col2 = '2015-01-01' AND bitmap_col = '999';
+select count(1) from bmheapcrash where btree_col1 = 'abcdefg999' OR btree_col2 = '2015-01-01' AND bitmap_col = '999';
+select count(1) from bmheapcrash where btree_col1 = 'abcdefg999' OR btree_col2 = '2015-01-01' OR bitmap_col = '999';
+
+set enable_bitmapscan=on; 
+set enable_hashjoin=off; 
+set enable_indexscan=on; 
+set enable_nestloop=on; 
+set enable_seqscan=off;
+
+select count(1) from bmheapcrash where btree_col1 = 'abcdefg999' AND bitmap_col = '999' OR bitmap_col = '888' OR btree_col2 = '2015-01-01';
+select count(1) from bmheapcrash b1, bmheapcrash b2 where b1.bitmap_col = b2.bitmap_col or b1.bitmap_col = '999' and b1.btree_col1 = 'abcdefg999';
+
+select disable_xform('CXformInnerJoin2HashJoin');
+with bm as (select * from bmheapcrash where btree_col1 = 'abcdefg999' AND bitmap_col = '999' OR bitmap_col = '888' OR btree_col2 = '2015-01-01')
+select count(1) from bm b1, bm b2 where b1.dist_col = b2.dist_col;
+
+-- qual with like, any.
+with bm as (select * from bmheapcrash where (btree_col1 like 'abcde%') AND bitmap_col in ('999', '888'))
+select count(1) from bm b1, bm b2 where b1.dist_col = b2.dist_col;

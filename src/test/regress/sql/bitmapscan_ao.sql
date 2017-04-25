@@ -190,6 +190,14 @@ set enable_seqscan=off;
 select count(1) from bmcrash where btree_col1 = 'abcdefg999' AND bitmap_col = '999' OR bitmap_col = '888' OR btree_col2 = '2015-01-01';
 select count(1) from bmcrash b1, bmcrash b2 where b1.bitmap_col = b2.bitmap_col or b1.bitmap_col = '999' and b1.btree_col1 = 'abcdefg999';
 
+select disable_xform('CXformInnerJoin2HashJoin');
+with bm as (select * from bmcrash where btree_col1 = 'abcdefg999' AND bitmap_col = '999' OR bitmap_col = '888' OR btree_col2 = '2015-01-01')
+select count(1) from bm b1, bm b2 where b1.dist_col = b2.dist_col;
+
+-- qual with like, any.
+with bm as (select * from bmcrash where (btree_col1 like 'abcde%') AND bitmap_col in ('999', '888'))
+select count(1) from bm b1, bm b2 where b1.dist_col = b2.dist_col;
+
 -- start_ignore
 drop schema bm_ao cascade;
 -- end_ignore
