@@ -101,6 +101,7 @@ static const char *assign_gp_idf_deduplicate(const char *newval, bool doit,
 						  GucSource source);
 static const char *assign_explain_memory_verbosity(const char *newval, bool doit, GucSource source);
 static bool assign_dispatch_log_stats(bool newval, bool doit, GucSource source);
+static bool assign_gp_hashagg_default_nbatches(int newval, bool doit, GucSource source);
 
 static const char *assign_debug_dtm_action(const char *newval,
 						bool doit, GucSource source);
@@ -4078,12 +4079,14 @@ struct config_int ConfigureNamesInt_gp[] =
 
 	{
 		{"gp_hashagg_default_nbatches", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Default number of batches for hashagg's (re-)spilling phases"),
-			NULL,
+			gettext_noop("Default number of batches for hashagg's (re-)spilling phases."),
+			gettext_noop("Must be a power of two."),
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
 		},
 		&gp_hashagg_default_nbatches,
-		32, 4, 1000000, NULL, NULL
+		32, 4, 1048576,
+		assign_gp_hashagg_default_nbatches,
+		NULL
 	},
 
 	{
@@ -5837,6 +5840,29 @@ assign_dispatch_log_stats(bool newval, bool doit, GucSource source)
 	}
 	return true;
 }
+
+bool
+assign_gp_hashagg_default_nbatches(int newval, bool doit, GucSource source)
+{
+	/* Must be a power of two */
+	if (0 == (newval & (newval - 1)))
+	{
+		if (doit)
+		{
+			gp_hashagg_default_nbatches = newval;
+		}
+	}
+	else
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+			errmsg("gp_hashagg_default_nbatches must be a power of two: %d",
+					(int) newval)));
+	}
+	return true; /* OK */
+}
+
+
 
 #ifdef USE_CONNECTEMC
 static const char *
