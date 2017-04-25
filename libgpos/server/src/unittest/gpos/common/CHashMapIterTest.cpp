@@ -10,6 +10,7 @@
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"
+#include "gpos/common/CAutoRef.h"
 #include "gpos/common/CHashMapIter.h"
 #include "gpos/memory/CAutoMemoryPool.h"
 #include "gpos/test/CUnittest.h"
@@ -54,16 +55,16 @@ CHashMapIterTest::EresUnittest_Basic()
 	IMemoryPool *pmp = amp.Pmp();
 
 	// test data
-	ULONG_PTR rgul[] = {1,2,3,4,5,6,7,8,9};
+	ULONG rgul[] = {1,2,3,4,5,6,7,8,9};
 	const ULONG ulCnt = GPOS_ARRAY_SIZE(rgul);
 	
-	typedef CHashMap<ULONG_PTR, ULONG_PTR, 
-		UlHashPtr<ULONG_PTR>, gpos::FEqual<ULONG_PTR>,
-		CleanupNULL<ULONG_PTR>, CleanupNULL<ULONG_PTR> > Map;
+	typedef CHashMap<ULONG, ULONG, 
+		UlHashPtr<ULONG>, gpos::FEqual<ULONG>,
+		CleanupNULL<ULONG>, CleanupNULL<ULONG> > Map;
 
-	typedef CHashMapIter<ULONG_PTR, ULONG_PTR, 
-		UlHashPtr<ULONG_PTR>, gpos::FEqual<ULONG_PTR>,
-		CleanupNULL<ULONG_PTR>, CleanupNULL<ULONG_PTR> > MapIter;
+	typedef CHashMapIter<ULONG, ULONG, 
+		UlHashPtr<ULONG>, gpos::FEqual<ULONG>,
+		CleanupNULL<ULONG>, CleanupNULL<ULONG> > MapIter;
 
 
 	// using N - 2 slots guarantees collisions
@@ -76,29 +77,31 @@ CHashMapIterTest::EresUnittest_Basic()
 	GPOS_ASSERT(!miEmpty.FAdvance());
 	
 #endif // GPOS_DEBUG
-	
+
+	typedef CDynamicPtrArray<const ULONG, CleanupNULL> DrgPul;
+	CAutoRef<DrgPul> pdrgpulKeys(GPOS_NEW(pmp) DrgPul(pmp)), pdrgpulValues(GPOS_NEW(pmp) DrgPul(pmp));
 	// load map and iterate over it after each step
 	for (ULONG ul = 0; ul < ulCnt; ++ul)
 	{
 		(void) pm->FInsert(&rgul[ul], &rgul[ul]);
-	
-		// checksum over keys
-		ULONG_PTR ulpChkSumKey = 0;
+		pdrgpulKeys->Append(&rgul[ul]);
+		pdrgpulValues->Append(&rgul[ul]);
 
-		// checksum over values
-		ULONG_PTR ulpChkSumValue = 0;
-			
+		CAutoRef<DrgPul> pdrgpulIterKeys(GPOS_NEW(pmp) DrgPul(pmp)), pdrgpulIterValues(GPOS_NEW(pmp) DrgPul(pmp));
+
 		// iterate over full map
 		MapIter mi(pm);
 		while (mi.FAdvance())
 		{
-			ulpChkSumKey += *(mi.Pk());
-			ulpChkSumValue += *(mi.Pt());
+			pdrgpulIterKeys->Append(mi.Pk());
+			pdrgpulIterValues->Append(mi.Pt());
 		}
-		
-		// use Gauss's formula for checksum-ing
-		GPOS_ASSERT(ulpChkSumKey == ulpChkSumValue);
-		GPOS_ASSERT(ulpChkSumKey == ((ul + 2) * (ul + 1)) / 2);
+
+		pdrgpulIterKeys->Sort();
+		pdrgpulIterValues->Sort();
+
+		GPOS_ASSERT(pdrgpulKeys->FEqual(pdrgpulIterKeys.Pt()));
+		GPOS_ASSERT(pdrgpulValues->FEqual(pdrgpulIterValues.Pt()));
 	}
 	
 	pm->Release();
