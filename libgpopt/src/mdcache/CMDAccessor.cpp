@@ -1383,19 +1383,34 @@ CMDAccessor::Serialize
 	COstream& oos
 	)
 {
-	MDHTIter mdhtit(m_shtCacheAccessors);
+	ULONG nentries = m_shtCacheAccessors.UlpEntries();
+	IMDCacheObject **cacheEntries;
+	CAutoRg<IMDCacheObject*> aCacheEntries;
+	ULONG ul;
 
-	while (mdhtit.FAdvance())
+	// Iterate the hash table and insert all entries to the array.
+	// The iterator holds a lock on the hash table, so we must not
+	// do anything non-trivial that might e.g. allocate memory,
+	// while iterating.
+	cacheEntries = GPOS_NEW_ARRAY(m_pmp, IMDCacheObject *, nentries);
+	aCacheEntries = cacheEntries;
 	{
-		MDHTIterAccessor mdhtitacc(mdhtit);
-		SMDAccessorElem *pmdaccelem = mdhtitacc.Pt();
-		GPOS_ASSERT(NULL != pmdaccelem);
-		
-		IMDCacheObject *pimdobj = pmdaccelem->Pimdobj();
-		const CWStringDynamic *pstr = pimdobj->Pstr();
-
-		oos << pstr->Wsz();
+		MDHTIter mdhtit(m_shtCacheAccessors);
+		ul = 0;
+		while (mdhtit.FAdvance())
+		{
+			MDHTIterAccessor mdhtitacc(mdhtit);
+			SMDAccessorElem *pmdaccelem = mdhtitacc.Pt();
+			GPOS_ASSERT(NULL != pmdaccelem);
+			cacheEntries[ul++] = pmdaccelem->Pimdobj();
+		}
+		GPOS_ASSERT(ul == nentries);
 	}
+
+	// Now that we're done iterating and no longer hold the lock,
+	// serialize the entries.
+	for (ul = 0; ul < nentries; ul++)
+		oos << cacheEntries[ul]->Pstr()->Wsz();
 }
 
 //---------------------------------------------------------------------------
