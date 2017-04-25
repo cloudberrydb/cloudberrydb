@@ -124,8 +124,17 @@ CWorker::Execute(CTask *ptsk)
 #endif // GPOS_DEBUG
 
 	m_ptsk = ptsk;
-	m_ptsk->Execute();
-	m_ptsk = NULL;
+	GPOS_TRY
+	{
+		m_ptsk->Execute();
+		m_ptsk = NULL;
+	}
+	GPOS_CATCH_EX(ex)
+	{
+		m_ptsk = NULL;
+		GPOS_RETHROW(ex);
+	}
+	GPOS_CATCH_END;
 }
 
 
