@@ -36,7 +36,7 @@ SELECT ALLTABLES.oid, ALLTABLES.schemaname, ALLTABLES.tablename FROM
     (SELECT n.nspname AS schemaname, c.relname AS tablename
     FROM pg_class c LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
     LEFT JOIN pg_tablespace t ON t.oid = c.reltablespace
-    WHERE c.relkind = 'r'::"CHAR" AND c.oid > 16384 AND (c.relnamespace > 16384 OR n.nspname = 'public')
+    WHERE c.relkind = 'r'::CHAR AND c.oid > 16384 AND (c.relnamespace > 16384 OR n.nspname = 'public')
     EXCEPT
     ((SELECT x.schemaname, x.partitiontablename FROM
     (SELECT DISTINCT schemaname, tablename, partitiontablename, partitionlevel FROM pg_partitions) AS X,
@@ -563,7 +563,7 @@ def get_table_names(dbname):
             FROM pg_class c\
             LEFT JOIN pg_namespace n ON n.oid = c.relnamespace\
             LEFT JOIN pg_tablespace t ON t.oid = c.reltablespace\
-            WHERE c.relkind = 'r'::"CHAR" AND c.oid > 16384 AND (c.relnamespace > 16384 OR n.nspname = 'public')
+            WHERE c.relkind = 'r'::CHAR AND c.oid > 16384 AND (c.relnamespace > 16384 OR n.nspname = 'public')
                   AND n.nspname NOT LIKE 'pg_temp_%'
           """
 
