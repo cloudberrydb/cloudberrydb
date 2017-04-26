@@ -1160,7 +1160,7 @@ def validate_num_restored_tables(context, num_tables, dbname, backedup_dbname=No
     num_validate_tables = 0
     for t in tbls:
         name = '%s.%s' % (t[0], t[1])
-        count = getRows(dbname, "SELECT count(*) FROM %S" % name)[0][0]
+        count = getRows(dbname, "SELECT count(*) FROM %s" % name)[0][0]
         if count == 0:
             continue
         else:
