@@ -426,13 +426,20 @@ class UAO_FaultInjection_TestCase(MPPTestCase):
         (sql_file2, out_file2, ans_file2) = self.get_sql_files("uao_crash_update_intran2")
         if not os.path.exists(os.path.dirname(out_file1)):
             os.mkdir(os.path.dirname(out_file1))
-        set_fault_in_seg_panic = 'source %s/greenplum_path.sh;gpfaultinjector -p %s -f appendonly_update -t foo -y panic --seg_dbid 2'  % (os.getenv('GPHOME'), os.getenv('PGPORT'))
-        set_fault_in_seg_reset = 'source %s/greenplum_path.sh;gpfaultinjector -p %s -f appendonly_update -t foo -y reset --seg_dbid 2'  % (os.getenv('GPHOME'), os.getenv('PGPORT'))
+
+        # We set the fault in appendonly_update and appendonly_insert
+        # because planner will go through appendonly_update and ORCA
+        # will do appendonly_delete and appendonly_insert
+        set_fault_in_seg_panic_update = 'source %s/greenplum_path.sh;gpfaultinjector -p %s -f appendonly_update -t foo -y panic --seg_dbid 2'  % (os.getenv('GPHOME'), os.getenv('PGPORT'))
+        set_fault_in_seg_reset_update = 'source %s/greenplum_path.sh;gpfaultinjector -p %s -f appendonly_update -t foo -y reset --seg_dbid 2'  % (os.getenv('GPHOME'), os.getenv('PGPORT'))
+        set_fault_in_seg_panic_insert = 'source %s/greenplum_path.sh;gpfaultinjector -p %s -f appendonly_insert -t foo -y panic --seg_dbid 2'  % (os.getenv('GPHOME'), os.getenv('PGPORT'))
+        set_fault_in_seg_reset_insert = 'source %s/greenplum_path.sh;gpfaultinjector -p %s -f appendonly_insert -t foo -y reset --seg_dbid 2'  % (os.getenv('GPHOME'), os.getenv('PGPORT'))
         cmd_type = 'fault injector'
 
         PSQL.run_sql_file(setup_file)
-        gpfaultinjector = Command(cmd_type, set_fault_in_seg_panic)
-
+        gpfaultinjector = Command(cmd_type, set_fault_in_seg_panic_update)
+        gpfaultinjector.run()
+        gpfaultinjector = Command(cmd_type, set_fault_in_seg_panic_insert)
         gpfaultinjector.run()
 
         PSQL.run_sql_file(sql_file1, out_file=out_file1)
@@ -441,7 +448,9 @@ class UAO_FaultInjection_TestCase(MPPTestCase):
 
         PSQL.wait_for_database_up();
 
-        gpfaultinjector = Command(cmd_type, set_fault_in_seg_reset)
+        gpfaultinjector = Command(cmd_type, set_fault_in_seg_reset_update)
+        gpfaultinjector.run()
+        gpfaultinjector = Command(cmd_type, set_fault_in_seg_reset_insert)
         gpfaultinjector.run()
 
         PSQL.run_sql_file(sql_file2, out_file=out_file2)
@@ -456,13 +465,20 @@ class UAO_FaultInjection_TestCase(MPPTestCase):
         (sql_file2, out_file2, ans_file2) = self.get_sql_files("uaocs_crash_update_intran2")
         if not os.path.exists(os.path.dirname(out_file1)):
             os.mkdir(os.path.dirname(out_file1))
-        set_fault_in_seg_panic = 'source %s/greenplum_path.sh;gpfaultinjector -p %s -f appendonly_update -t foo -y panic --seg_dbid 2'  % (os.getenv('GPHOME'), os.getenv('PGPORT'))
-        set_fault_in_seg_reset = 'source %s/greenplum_path.sh;gpfaultinjector -p %s -f appendonly_update -t foo -y reset --seg_dbid 2'  % (os.getenv('GPHOME'), os.getenv('PGPORT'))
+
+        # We set the fault in appendonly_update and appendonly_insert
+        # because planner will go through appendonly_update and ORCA
+        # will do appendonly_delete and appendonly_insert
+        set_fault_in_seg_panic_update = 'source %s/greenplum_path.sh;gpfaultinjector -p %s -f appendonly_update -t foo -y panic --seg_dbid 2'  % (os.getenv('GPHOME'), os.getenv('PGPORT'))
+        set_fault_in_seg_reset_update = 'source %s/greenplum_path.sh;gpfaultinjector -p %s -f appendonly_update -t foo -y reset --seg_dbid 2'  % (os.getenv('GPHOME'), os.getenv('PGPORT'))
+        set_fault_in_seg_panic_insert = 'source %s/greenplum_path.sh;gpfaultinjector -p %s -f appendonly_insert -t foo -y panic --seg_dbid 2'  % (os.getenv('GPHOME'), os.getenv('PGPORT'))
+        set_fault_in_seg_reset_insert = 'source %s/greenplum_path.sh;gpfaultinjector -p %s -f appendonly_insert -t foo -y reset --seg_dbid 2'  % (os.getenv('GPHOME'), os.getenv('PGPORT'))
         cmd_type = 'fault injector'
 
         PSQL.run_sql_file(setup_file)
-        gpfaultinjector = Command(cmd_type, set_fault_in_seg_panic)
-
+        gpfaultinjector = Command(cmd_type, set_fault_in_seg_panic_update)
+        gpfaultinjector.run()
+        gpfaultinjector = Command(cmd_type, set_fault_in_seg_panic_insert)
         gpfaultinjector.run()
 
         PSQL.run_sql_file(sql_file1, out_file=out_file1)
@@ -471,7 +487,9 @@ class UAO_FaultInjection_TestCase(MPPTestCase):
 
         PSQL.wait_for_database_up();
 
-        gpfaultinjector = Command(cmd_type, set_fault_in_seg_reset)
+        gpfaultinjector = Command(cmd_type, set_fault_in_seg_reset_update)
+        gpfaultinjector.run()
+        gpfaultinjector = Command(cmd_type, set_fault_in_seg_reset_insert)
         gpfaultinjector.run()
 
         PSQL.run_sql_file(sql_file2, out_file=out_file2)

@@ -11,6 +11,8 @@
 -- s/\s+\(.*\.[ch]:\d+\)/ (SOMEFILE:SOMEFUNC)/
 -- m/ /
 -- s/\s+\(.*\.[ch]:\d+\)/ (faultinjector.c:xxx)/
+-- m/fault name:'appendonly_[a-z]+'/
+-- s/fault name:'appendonly_[a-z]+'/fault name:'appendonly_command'/
 -- end_matchsubs
 -- start_matchignore
 --
