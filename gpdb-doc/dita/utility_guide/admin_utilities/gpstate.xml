@@ -169,7 +169,7 @@
             </row>
             <row>
               <entry colname="col1">Greenplum mirroring status</entry>
-              <entry colname="col2">physical mirroring, SAN or none</entry>
+              <entry colname="col2">physical mirroring or none</entry>
             </row>
             <row>
               <entry colname="col1">Master standby</entry>
