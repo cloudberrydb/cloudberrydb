@@ -380,17 +380,6 @@ select * from csq_t4 order by a;
  9999 | 8
 (4 rows)
 
-delete from csq_t4 where csq_t4.a = (select x from csq_t5);
-psql:/path/sql_file:1: ERROR:  more than one row returned by a subquery used as an expression  (seg1 rh55-qavm45:40001 pid=17330)
-select * from csq_t4 order by a;
-  a   | b 
-------+---
-    9 | 4
-   25 | 6
- 3333 | 2
- 9999 | 8
-(4 rows)
-
 delete from csq_t4 where exists (select (y*2)>b from csq_t5 where a=x);
 DELETE 0
 select * from csq_t4 order by a;

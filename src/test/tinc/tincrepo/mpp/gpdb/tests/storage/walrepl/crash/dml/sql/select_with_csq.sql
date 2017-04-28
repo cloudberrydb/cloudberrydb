@@ -113,8 +113,6 @@ select * from A order by A.i, A.j;
 select * from csq_t4 order by a;
 delete from csq_t4 where a <= (select min(y) from csq_t5 where x=a);
 select * from csq_t4 order by a;
-delete from csq_t4 where csq_t4.a = (select x from csq_t5);
-select * from csq_t4 order by a;
 delete from csq_t4 where exists (select (y*2)>b from csq_t5 where a=x);
 select * from csq_t4 order by a;
 delete from csq_t4  where csq_t4.a = (select x from csq_t5 where a=x);
