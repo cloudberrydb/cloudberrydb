@@ -1451,7 +1451,7 @@ expand_hash_table(AggState *aggstate)
 #endif
 		}
 	}
-
+	hashtable->num_expansions++;
 	Assert(hashtable->mem_for_metadata > 0);
 	Assert(nentries == hashtable->num_entries);
 }
@@ -2119,11 +2119,13 @@ agg_hash_explain(AggState *aggstate)
 	{
 		appendStringInfo(hbuf,
 				"Hash chain length %.1f avg, %.0f max,"
-				" using %d of " INT64_FORMAT " buckets.\n",
+				" using %d of " INT64_FORMAT " buckets"
+				"; total %d expansions.\n",
 				cdbexplain_agg_avg(&hashtable->chainlength),
 				hashtable->chainlength.vmax,
 				hashtable->chainlength.vcnt,
-				hashtable->total_buckets);
+				hashtable->total_buckets,
+				hashtable->num_expansions);
 	}
 }
 

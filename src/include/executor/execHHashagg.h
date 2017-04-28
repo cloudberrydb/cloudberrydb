@@ -203,6 +203,7 @@ typedef struct HashAggTable
 	uint64 num_entries; /* number of currently in-memory groups/entries */
 	uint64 num_spill_groups; /* number of spilled groups */
 	uint32 num_overflows; /* number of times hash table overflows */
+	uint32 num_expansions; /* number of times hash table is expanded */
 
 	bool is_spilling; /* indicate that spilling happened for this batch. */
 	bool expandable;  /* hash table buckets still have space to grow */
