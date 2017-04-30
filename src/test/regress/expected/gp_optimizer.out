@@ -38,7 +38,6 @@ set optimizer_log=on;
 set optimizer=on;
 set optimizer_enable_indexjoin=on;
 set optimizer_trace_fallback = on;
-----------------------------------------------------------------------
 -- expected fall back to the planner
 select sum(distinct a), count(distinct b) from orca.r;
 INFO:  GPORCA failed to produce a plan, falling back to planner
@@ -2149,7 +2148,6 @@ select 129::bigint, 5623::int, 45::smallint from orca.r;
 (20 rows)
 
 --  distributed tables
-----------------------------------------------------------------------
 set optimizer=off;
 create table orca.foo (x1 int, x2 int, x3 int);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x1' as the Greenplum Database data distribution key for this table.
@@ -2160,7 +2158,6 @@ insert into orca.foo select i,i+1,i+2 from generate_series(1,10) i;
 insert into orca.bar1 select i,i+1,i+2 from generate_series(1,20) i;
 insert into orca.bar2 select i,i+1,i+2 from generate_series(1,30) i;
 set optimizer=on;
-----------------------------------------------------------------------
 -- produces result node
 select x2 from orca.foo where x1 in (select x2 from orca.bar1);
  x2 
@@ -2392,7 +2389,6 @@ select count(*) from orca.foo x where x.x1 > (select count(*)+1 from orca.bar1 y
      8
 (1 row)
 
-----------------------------------------------------------------------
 set optimizer=off;
 drop table orca.r cascade;
 create table orca.r(a int, b int) distributed by (a);
@@ -2405,7 +2401,6 @@ insert into orca.s select i%7, i%2 from generate_series(1,30) i;
 analyze orca.r;
 analyze orca.s;
 set optimizer=on;
-----------------------------------------------------------------------
 select * from orca.r, orca.s where r.a=s.c;
  a | b | c | d 
 ---+---+---+---
@@ -3149,7 +3144,6 @@ select r.* from orca.r, orca.s where s.c=2;
  19 | 1
 (100 rows)
 
-----------------------------------------------------------------------
 set optimizer=off;
 create table orca.m();
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
@@ -3163,7 +3157,6 @@ insert into orca.m select i-1, i%2 from generate_series(1,35) i;
 insert into orca.m1 select i-2, i%3 from generate_series(1,25) i;
 insert into orca.r values (null, 1);
 set optimizer=on;
-----------------------------------------------------------------------
 -- join types
 select r.a, s.c from orca.r left outer join orca.s on(r.a=s.c);
  a  | c 
@@ -3589,11 +3582,9 @@ select * from ((select a as x from orca.r) union (select 1 as x )) as foo order 
    
 (21 rows)
 
-----------------------------------------------------------------------
 set optimizer=off;
 insert into orca.m values (1,-1), (1,2), (1,1);
 set optimizer=on;
-----------------------------------------------------------------------
 -- computed columns
 select a,a,a+b from orca.m;
  a  | a  | ?column? 
@@ -4519,7 +4510,6 @@ SELECT a from orca.m UNION ALL select b from orca.m UNION ALL select a+b from or
  35
 (96 rows)
 
-----------------------------------------------------------------------
 set optimizer=off;
 drop table if exists orca.foo;
 create table orca.foo(a int, b int, c int, d int);
@@ -4533,8 +4523,7 @@ HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sur
 insert into orca.foo select i, i%2, i%4, i-1 from generate_series(1,40)i;
 insert into orca.bar select i, i%3, i%2 from generate_series(1,30)i;
 set optimizer=on;
-----------------------------------------------------------------------
---- distinct operation
+-- distinct operation
 SELECT distinct a, b from orca.foo;
  a  | b 
 ----+---
@@ -4955,7 +4944,7 @@ SELECT distinct foo.a, bar.b, sum(bar.c+foo.c) from orca.foo, orca.bar where foo
  39 | 1 |   4
 (20 rows)
 
---- window operations
+-- window operations
 select row_number() over() from orca.foo order by 1;
  row_number 
 ------------
@@ -6499,7 +6488,7 @@ select lead(c,c+d,1000) over(order by c,d) from orca.s order by 1;
  1000
 (30 rows)
 
---- cte 
+-- cte 
 with x as (select a, b from orca.r)
 select rank() over(partition by a, case when b = 0 then a+b end order by b asc) as rank_within_parent from x order by a desc ,case when a+b = 0 then a end ,b;
  rank_within_parent 
@@ -6648,7 +6637,6 @@ INFO:  GPORCA failed to produce a plan, falling back to planner
  20 | 2
 (18 rows)
 
-----------------------------------------------------------------------
 set optimizer=off;
 drop table if exists orca.rcte;
 NOTICE:  table "rcte" does not exist, skipping
@@ -6658,7 +6646,6 @@ HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sur
 insert into orca.rcte select i, i%2, i%3 from generate_series(1,40)i;
 -- select disable_xform('CXformInlineCTEConsumer');
 set optimizer=on;
-----------------------------------------------------------------------
 with x as (select * from orca.rcte where a < 10) select * from x x1, x x2;
  a | b | c | a | b | c 
 ---+---+---+---+---+---
@@ -7785,7 +7772,6 @@ with x as (select * from orca.r) select * from x order by a;
 (21 rows)
 
 -- with x as (select * from orca.rcte where a < 10) select * from x x1, x x2 where x2.a = x1.b limit 1;
-----------------------------------------------------------------------
 -- correlated execution
 select (select 1 union select 2);
 ERROR:  One or more assertions failed
@@ -7924,7 +7910,6 @@ with v as (select a,b from orca.r, orca.s where a=c)  select c from orca.s group
  6
 (7 rows)
 
-----------------------------------------------------------------------
 set optimizer=off;
 CREATE TABLE orca.onek (
 unique1 int4,
@@ -7954,7 +7939,6 @@ insert into orca.onek values (439,5,1,3,9,19,9,39,39,439,439,18,19,'XQAAAA','FAA
 insert into orca.onek values (670,6,0,2,0,10,0,70,70,170,670,0,1,'UZAAAA','GAAAAA','OOOOxx');
 insert into orca.onek values (543,7,1,3,3,3,3,43,143,43,543,6,7,'XUAAAA','HAAAAA','VVVVxx');
 set optimizer=on;
-----------------------------------------------------------------------
 select ten, sum(distinct four) from orca.onek a
 group by ten 
 having exists (select 1 from orca.onek b where sum(distinct a.four) = b.four);
@@ -7974,7 +7958,6 @@ HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sur
 NOTICE:  CREATE TABLE will create partition "pp_1_prt_pp1" for table "pp"
 create index pp_a on orca.pp(a);
 NOTICE:  building index for child partition "pp_1_prt_pp1"
-----------------------------------------------------------------------
 -- list partition tests 
 -- test homogeneous partitions 
 drop table if exists orca.t;
@@ -8943,7 +8926,7 @@ select count(*) from (select gp_segment_id,ctid,tableoid from orca.p1 group by g
     14
 (1 row)
 
---- MPP-25194: histograms on text columns are dropped in ORCA. NDVs of these histograms should be added to NDVRemain
+-- MPP-25194: histograms on text columns are dropped in ORCA. NDVs of these histograms should be added to NDVRemain
 CREATE TABLE orca.tmp_verd_s_pp_provtabs_agt_0015_extract1 (
     uid136 character(16),
     tab_nr smallint,
@@ -9060,7 +9043,7 @@ SELECT generate_series(1,10) UNION SELECT 1;
               10
 (10 rows)
 
---- warning messages for missing stats
+-- warning messages for missing stats
 create table foo_missing_stats(a int, b int);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
@@ -9337,9 +9320,7 @@ select enable_xform('CXformDynamicGet2DynamicTableScan');
 (1 row)
 
 reset optimizer_enable_bitmapscan;
------------------------------------------------
 -- More BitmapTableScan & BitmapIndexScan tests
------------------------------------------------
 set optimizer_enable_bitmapscan=on;
 create schema bm;
 -- Bitmap index scan on Heterogeneous parts with dropped columns
@@ -9688,9 +9669,7 @@ select enable_xform('CXformLeftSemiJoin2HashJoin');
 (1 row)
 
 reset optimizer_enable_bitmapscan;
--------------------------------------------------
 -- End of BitmapTableScan & BitmapIndexScan tests
--------------------------------------------------
 set optimizer_enable_constant_expression_evaluation=on;
 CREATE TABLE my_tt_agg_opt (
     symbol character(16),
@@ -10168,14 +10147,12 @@ EXPLAIN SELECT * FROM bitmap_test WHERE a in ('1', '2', 47);
 drop table if exists foo;
 NOTICE:  table "foo" does not exist, skipping
 -- end_ignore
-create table foo(a int, b int);
+create table foo(a int, b int) distributed by (a);
 -- The amount of log messages you get depends on a lot of options, but any
 -- difference in the output will make the test fail. Disable log_statement
 -- and log_min_duration_statement, they are the most obvious ones.
 set log_statement='none';
 set log_min_duration_statement=-1;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 set client_min_messages='log';
 select count(*) from foo group by cube(a,b);
 LOG:  2016-08-19 10:46:53:360703 PDT,THD000,NOTICE,"Feature not supported by the Pivotal Query Optimizer: Cube",
