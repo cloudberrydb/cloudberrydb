@@ -84,20 +84,20 @@ jobs:
           gpdb_src: gpdb_pr
           bin_gpdb: gpdb_artifacts
         params:
-          MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off -c codegen=off' installcheck-world
+          MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off' installcheck-world
           BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
           TEST_OS: centos
         timeout: 1h
         on_failure: *pr_failure
 
-      - task: icw_gporca_codegen_centos6
+      - task: icw_gporca_orca_centos6
         file: gpdb_pr/concourse/tasks/ic_gpdb.yml
         image: centos-gpdb-dev-6
         input_mapping:
           gpdb_src: gpdb_pr
           bin_gpdb: gpdb_artifacts
         params:
-          MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on -c codegen=on' installcheck-world
+          MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on' installcheck-world
           BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
           TEST_OS: centos
         timeout: 1h30m
