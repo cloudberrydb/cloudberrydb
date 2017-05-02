@@ -64,6 +64,15 @@ function _main() {
       zypper addrepo --no-gpgcheck http://download.opensuse.org/distribution/11.4/repo/oss/ ossrepo
       zypper -n install krb5-server
       cp /usr/lib/mit/sbin/krb5kdc /usr/sbin/
+      # Kerberos upgrades perl, so we have to re-do the symlink. Ideally, we
+      # wouldn't have a symlink at all, but this step is necessary as long as
+      # we build against a different version of perl, and explicitly link to
+      # that version.
+      # See gpdb/src/pl/plperl/GNUmakefile line 22:
+      # perl_lib := $(basename $(notdir $(wildcard $(perl_archlibexp)/CORE/perl[5-9]*.lib)))
+      local libperl_path
+      libperl_path="$(rpm -ql perl | grep libperl.so)"
+      ln -sf "$libperl_path" /lib64/libperl.so || return 1
     fi
 
     time configure
