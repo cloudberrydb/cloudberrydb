@@ -68,6 +68,11 @@
 		</section>
 		<p conref="../../../ref_guide/sql_commands/ALTER_OPERATOR_CLASS.xml#topic1/sql_command_desc"/>
 		<codeblock conref="../../../ref_guide/sql_commands/ALTER_OPERATOR_CLASS.xml#topic1/sql_command_synopsis"/>
+		<section>
+			<title>ALTER OPERATOR FAMILY</title>
+		</section>
+		<p conref="../../../ref_guide/sql_commands/ALTER_OPERATOR_FAMILY.xml#topic1/sql_command_desc"/>
+		<codeblock conref="../../../ref_guide/sql_commands/ALTER_OPERATOR_FAMILY.xml#topic1/sql_command_synopsis"/>
 		<section id="ae1903443">
 			<title>ALTER PROTOCOL</title>
 		</section>
@@ -113,6 +118,11 @@
 		</section>
 		<p conref="../../../ref_guide/sql_commands/ALTER_USER.xml#topic1/sql_command_desc"/>
 		<codeblock conref="../../../ref_guide/sql_commands/ALTER_USER.xml#topic1/sql_command_synopsis"/>
+		<section>
+			<title>ALTER VIEW</title>
+		</section>
+		<p conref="../../../ref_guide/sql_commands/ALTER_VIEW.xml#topic1/sql_command_desc"/>
+		<codeblock conref="../../../ref_guide/sql_commands/ALTER_VIEW.xml#topic1/sql_command_synopsis"/>
 		<section id="ae1903817">
 			<title>ANALYZE</title>
 		</section>
@@ -216,6 +226,11 @@
 			conref="../../../ref_guide/sql_commands/CREATE_OPERATOR_CLASS.xml#topic1/sql_command_desc"/>
 		<codeblock conref="../../../ref_guide/sql_commands/CREATE_OPERATOR_CLASS.xml#topic1/sql_command_synopsis"/>
 		<section>
+			<title>CREATE OPERATOR FAMILY</title>
+		</section>
+		<p conref="../../../ref_guide/sql_commands/CREATE_OPERATOR_FAMILY.xml#topic1/sql_command_desc"/>
+		<codeblock conref="../../../ref_guide/sql_commands/CREATE_OPERATOR_FAMILY.xml#topic1/sql_command_synopsis"/>
+		<section>
 						<title>CREATE PROTOCOL</title>
 					</section>
 				<p conref="../../../ref_guide/sql_commands/CREATE_PROTOCOL.xml#topic1/sql_command_desc"/>
@@ -291,6 +306,11 @@
 		</section>
 		<p conref="../../../ref_guide/sql_commands/DELETE.xml#topic1/sql_command_desc"/>
 		<codeblock conref="../../../ref_guide/sql_commands/DELETE.xml#topic1/sql_command_synopsis"/>
+		<section>
+			<title>DISCARD</title>
+		</section>
+		<p conref="../../../ref_guide/sql_commands/DISCARD.xml#topic1/sql_command_desc"/>
+		<codeblock conref="../../../ref_guide/sql_commands/DISCARD.xml#topic1/sql_command_synopsis"/>
 		<section id="ae1904815">
 			<title>DROP AGGREGATE</title>
 		</section>
@@ -356,6 +376,11 @@
 		</section>
 		<p conref="../../../ref_guide/sql_commands/DROP_OPERATOR_CLASS.xml#topic1/sql_command_desc"/>
 		<codeblock conref="../../../ref_guide/sql_commands/DROP_OPERATOR_CLASS.xml#topic1/sql_command_synopsis"/>
+		<section>
+			<title>DROP OPERATOR FAMILY</title>
+		</section>
+		<p conref="../../../ref_guide/sql_commands/DROP_OPERATOR_FAMILY.xml#topic1/sql_command_desc"/>
+		<codeblock conref="../../../ref_guide/sql_commands/DROP_OPERATOR_FAMILY.xml#topic1/sql_command_synopsis"/>
 		<section id="ae1904893">
 			<title>DROP OWNED</title>
 		</section>

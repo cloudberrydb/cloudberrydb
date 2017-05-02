@@ -17,6 +17,7 @@
 			<topicref href="sql_commands/ALTER_LANGUAGE.xml"/>
 			<topicref href="sql_commands/ALTER_OPERATOR.xml"/>
 			<topicref href="sql_commands/ALTER_OPERATOR_CLASS.xml"/>
+			<topicref href="sql_commands/ALTER_OPERATOR_FAMILY.xml"/>
 			<topicref href="sql_commands/ALTER_PROTOCOL.xml"/>
 			<topicref href="sql_commands/ALTER_RESOURCE_QUEUE.xml"/>
 			<topicref href="sql_commands/ALTER_ROLE.xml"/>
@@ -27,6 +28,7 @@
 			<topicref href="sql_commands/ALTER_TRIGGER.xml" otherprops="op-hidden"/>
 			<topicref href="sql_commands/ALTER_TYPE.xml"/>
 			<topicref href="sql_commands/ALTER_USER.xml"/>
+			<topicref href="sql_commands/ALTER_VIEW.xml"/>
 			<topicref href="sql_commands/ANALYZE.xml"/>
 			<topicref href="sql_commands/BEGIN.xml"/>
 			<topicref href="sql_commands/CHECKPOINT.xml"/>
@@ -47,6 +49,7 @@
 			<topicref href="sql_commands/CREATE_LANGUAGE.xml"/>
 			<topicref href="sql_commands/CREATE_OPERATOR.xml"/>
 			<topicref href="sql_commands/CREATE_OPERATOR_CLASS.xml"/>
+			<topicref href="sql_commands/CREATE_OPERATOR_FAMILY.xml"/>
 			<topicref href="sql_commands/CREATE_PROTOCOL.xml"/>
 			<topicref href="sql_commands/CREATE_RESOURCE_QUEUE.xml"/>
 			<topicref href="sql_commands/CREATE_ROLE.xml"/>
@@ -63,6 +66,7 @@
 			<topicref href="sql_commands/DEALLOCATE.xml"/>
 			<topicref href="sql_commands/DECLARE.xml"/>
 			<topicref href="sql_commands/DELETE.xml"/>
+			<topicref href="sql_commands/DISCARD.xml"/>
 			<topicref href="sql_commands/DO.xml"/>
 			<topicref href="sql_commands/DROP_AGGREGATE.xml"/>
 			<topicref href="sql_commands/DROP_CAST.xml"/>
@@ -77,6 +81,7 @@
 			<topicref href="sql_commands/DROP_LANGUAGE.xml"/>
 			<topicref href="sql_commands/DROP_OPERATOR.xml"/>
 			<topicref href="sql_commands/DROP_OPERATOR_CLASS.xml"/>
+			<topicref href="sql_commands/DROP_OPERATOR_FAMILY.xml"/>
 			<topicref href="sql_commands/DROP_OWNED.xml"/>
 			<topicref href="sql_commands/DROP_PROTOCOL.xml"/>
 			<topicref href="sql_commands/DROP_RESOURCE_QUEUE.xml"/>
