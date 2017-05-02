@@ -1,6 +1,6 @@
 This directory contains various server extensions and tools, for use with
 the Greenplum server. Some of them are copies of various open source
-projects (e.g. pljava), some are proprietary Greenplum-only modules.
+projects, some are Greenplum-only modules.
 
 The philosophy is that each module within extensions/ can be built
 independently, without checking out the whole main repository. You should
