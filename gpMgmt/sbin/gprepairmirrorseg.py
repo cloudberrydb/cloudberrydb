@@ -33,7 +33,6 @@ try:
     from gppylib.gpparseopts import OptParser, OptChecker
     from gppylib.gplog import *
     from gppylib.db import dbconn
-    from gppylib.db import catalog
     from gppylib.userinput import *
     from pygresql.pgdb import DatabaseError
     from pygresql import pg

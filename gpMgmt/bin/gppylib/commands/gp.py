@@ -12,7 +12,6 @@ import re
 
 from gppylib.gplog import *
 from gppylib.db import dbconn
-from gppylib.db import catalog
 from gppylib import gparray
 from gppylib.commands.base import *
 from unix import *

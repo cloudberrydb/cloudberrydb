@@ -155,7 +155,6 @@ commands/test_pg   - some tests for commands/pg.py
   
 db/catalog.py      - Wrappers for executing certain queries
    \- also contains some goofy wrappers for catalog tables
-    - GpConfigurationTable no longer actually looks at gp_configuration... (bad design?)
 db/dbconn.py       - Connections to the database
   |
   +- ConnectionError - subclass of a StandardError (unused?)

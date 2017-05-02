@@ -747,7 +747,7 @@ def get_user_tables(host, port, user, databases=None, full=False, partition_tran
     """
 
     # We need to use this SQL query because we only want the top level
-    # partition.  If we use gpcatalog.get_usertable_list we will dupe data.
+    # partition.
     table_sql_part1 = """
 SELECT
     n.nspname, c.relname, c.relstorage

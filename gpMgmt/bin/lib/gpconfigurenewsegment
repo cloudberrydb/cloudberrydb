@@ -7,7 +7,6 @@ from optparse import Option, OptionGroup, OptionParser, OptionValueError, SUPPRE
 from gppylib.gpparseopts import OptParser, OptChecker
 from gppylib.commands.gp import ModifyPostgresqlConfSetting, SegmentStart, SegmentStop
 from gppylib.db import dbconn
-from gppylib.db import catalog
 from gppylib.commands import unix
 from gppylib.commands.pg import DbStatus
 from gppylib import gplog

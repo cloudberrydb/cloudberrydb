@@ -24,7 +24,7 @@ import os, sys, getopt, socket, StringIO, signal, time
 from gppylib import gparray, gplog, pgconf, userinput, utils
 from gppylib.util import gp_utils
 from gppylib.commands import base, gp, pg, unix
-from gppylib.db import catalog, dbconn
+from gppylib.db import dbconn
 from gppylib.gpparseopts import OptParser, OptChecker
 from gppylib.operations.startSegments import *
 from gppylib.operations.buildMirrorSegments import *

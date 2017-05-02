@@ -16,7 +16,7 @@ from optparse import Option, OptionGroup, OptionParser, OptionValueError
 from gppylib.gpparseopts import OptParser, OptChecker
 from gppylib import gplog, gparray, pgconf
 from gppylib.commands import base, gp, pg, unix
-from gppylib.db import catalog, dbconn
+from gppylib.db import dbconn
 from gppylib.utils import parseKeyColonValueLines
 
 logger = gplog.get_default_logger()
