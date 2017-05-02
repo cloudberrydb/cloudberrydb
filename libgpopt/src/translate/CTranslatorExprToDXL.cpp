@@ -3256,6 +3256,7 @@ CTranslatorExprToDXL::PdxlnCorrelatedNLJoin
 	{
 		case COperator::EopPhysicalTableScan:
 		{
+			pdxlprop->AddRef();
 			// create and return a table scan node
 			pdxln = PdxlnTblScanFromNLJoinOuter(pexprOuterChild, pdxlnCond, pdrgpcr, pdrgpdsBaseTables, pulNonGatherMotions, pdxlprop);
 			break;
@@ -3263,6 +3264,7 @@ CTranslatorExprToDXL::PdxlnCorrelatedNLJoin
 
 		case COperator::EopPhysicalFilter:
 		{
+			pdxlprop->AddRef();
 			pdxln = PdxlnResultFromNLJoinOuter(pexprOuterChild, pdxlnCond, pdrgpcr, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, pdxlprop);
 			break;
 		}
@@ -3411,7 +3413,6 @@ CTranslatorExprToDXL::PdxlnTblScanFromNLJoinOuter
 	)
 {
 	// create a table scan over the input expression, without a filter
-	pdxlprop->AddRef();
 	CDXLNode *pdxlnTblScan = PdxlnTblScan
 								(
 								pexprRelational,
@@ -3486,6 +3487,7 @@ CTranslatorExprToDXL::PdxlnResultFromNLJoinOuter
 {
 	// create a result node from the input expression
 	CDXLNode *pdxlnResult = PdxlnResult(pexprRelational, pdrgpcr, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, pdxlprop);
+	pdxlprop->Release();
 
 	// In case the OuterChild is a physical sequence, it will already have the filter in the partition selector and
 	// dynamic scan, thus we should not replace the filter.
