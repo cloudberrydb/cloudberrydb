@@ -48,11 +48,15 @@ typedef struct ResGroupControl
 /* Type of statistic infomation */
 typedef enum
 {
+	RES_GROUP_STAT_UNKNOWN = -1,
+
 	RES_GROUP_STAT_NRUNNING = 0,
 	RES_GROUP_STAT_NQUEUEING,
 	RES_GROUP_STAT_TOTAL_EXECUTED,
 	RES_GROUP_STAT_TOTAL_QUEUED,
 	RES_GROUP_STAT_TOTAL_QUEUE_TIME,
+	RES_GROUP_STAT_CPU_USAGE,
+	RES_GROUP_STAT_MEM_USAGE,
 } ResGroupStatType;
 
 /*
@@ -72,8 +76,11 @@ extern void FreeResGroupEntry(Oid groupId);
 extern void ResGroupSlotAcquire(void);
 extern void ResGroupSlotRelease(void);
 
+/* Assign current process to the associated resource group */
+extern void AssignResGroup(void);
+
 /* Retrieve statistic information of type from resource group */
-extern void ResGroupGetStat(Oid groupId, ResGroupStatType type, char *retStr, int retStrLen);
+extern void ResGroupGetStat(Oid groupId, ResGroupStatType type, char *retStr, int retStrLen, const char *prop);
 
 extern void ResGroupAlterCheckForWakeup(Oid groupId);
 extern void ResGroupDropCheckForWakeup(Oid groupId, bool isCommit);

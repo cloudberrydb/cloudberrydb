@@ -92,6 +92,9 @@ extern void ProcessInterrupts(const char* filename, int lineno);
 extern void BackoffBackendTick(void);
 extern bool gp_enable_resqueue_priority;
 
+/* in utils/resource_manager.h */
+extern bool IsResQueueEnabled(void);
+
 /*
  * We don't want to include the entire vmem_tracker.h, and so,
  * declare the only function we use from vmem_tracker.h.
@@ -124,7 +127,7 @@ do { \
 	}\
 	if (InterruptPending) \
 		ProcessInterrupts(__FILE__, __LINE__); \
-	if (gp_enable_resqueue_priority)	\
+	if (IsResQueueEnabled() && gp_enable_resqueue_priority)	\
 		BackoffBackendTick(); \
 	ReportOOMConsumption(); \
 	RedZoneHandler_DetectRunawaySession();\
@@ -134,7 +137,7 @@ do { \
 do { \
 	if (InterruptPending) \
 		ProcessInterrupts(__FILE__, __LINE__); \
-	if (gp_enable_resqueue_priority)	\
+	if (IsResQueueEnabled() && gp_enable_resqueue_priority)	\
 		BackoffBackendTick(); \
 	ReportOOMConsumption(); \
 	RedZoneHandler_DetectRunawaySession();\

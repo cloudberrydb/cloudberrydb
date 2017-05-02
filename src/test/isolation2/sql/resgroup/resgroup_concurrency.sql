@@ -2,12 +2,6 @@
 0:CREATE RESOURCE GROUP rg_concurrency_test WITH (concurrency=2, cpu_rate_limit=.02, memory_limit=.02);
 0:SELECT r.rsgname, num_running, num_queueing, num_queued, num_executed FROM gp_toolkit.gp_resgroup_status s, pg_resgroup r WHERE s.groupid=r.oid AND r.rsgname='rg_concurrency_test';
 
--- enable resource group and restart cluster.
--- start_ignore
-! gpconfig -c gp_resource_manager -v group;
-! gpstop -rai;
--- end_ignore
-
 -- test1: test gp_toolkit.gp_resgroup_status and pg_stat_activity
 -- no query has been assigned to the this group
 1:SELECT r.rsgname, num_running, num_queueing, num_queued, num_executed FROM gp_toolkit.gp_resgroup_status s, pg_resgroup r WHERE s.groupid=r.oid AND r.rsgname='rg_concurrency_test';
@@ -66,7 +60,7 @@
 25&:BEGIN;
 21:SELECT r.rsgname, num_running, num_queueing, num_queued, num_executed FROM gp_toolkit.gp_resgroup_status s, pg_resgroup r WHERE s.groupid=r.oid AND r.rsgname='rg_concurrency_test';
 21:SELECT concurrency,proposed_concurrency FROM gp_toolkit.gp_resgroup_config WHERE groupname='rg_concurrency_test';
--- Alter concurrency 3->2, the 'proposed' of pg_resgroupcapability will be set to 2. 
+-- Alter concurrency 3->2, the 'proposed' of pg_resgroupcapability will be set to 2.
 21:ALTER RESOURCE GROUP rg_concurrency_test SET CONCURRENCY 2;
 21:SELECT concurrency,proposed_concurrency FROM gp_toolkit.gp_resgroup_config WHERE groupname='rg_concurrency_test';
 -- When one transaction is finished, queueing transaction won't be woken up. There're 2 running transactions and 1 queueing transaction.
@@ -78,7 +72,7 @@
 -- Finish another transaction, one queueing transaction will be woken up, there're 2 running transactions and 1 queueing transaction.
 22:END;
 21:SELECT r.rsgname, num_running, num_queueing, num_queued, num_executed FROM gp_toolkit.gp_resgroup_status s, pg_resgroup r WHERE s.groupid=r.oid AND r.rsgname='rg_concurrency_test';
--- Alter concurrency 2->2, the 'value' and 'proposed' of pg_resgroupcapability will be set to 2. 
+-- Alter concurrency 2->2, the 'value' and 'proposed' of pg_resgroupcapability will be set to 2.
 21:ALTER RESOURCE GROUP rg_concurrency_test SET CONCURRENCY 2;
 21:SELECT concurrency,proposed_concurrency FROM gp_toolkit.gp_resgroup_config WHERE groupname='rg_concurrency_test';
 -- Finish another transaction, one queueing transaction will be woken up, there're 2 running transactions and 0 queueing transaction.
@@ -120,7 +114,7 @@
 32:END;
 32:RESET ROLE;
 
--- DROP is committed 
+-- DROP is committed
 31:BEGIN;
 31:DROP ROLE role_concurrency_test;
 31:DROP RESOURCE GROUP rg_concurrency_test;
@@ -132,9 +126,3 @@
 32<:
 33:SELECT r.rsgname, num_running, num_queueing, num_queued, num_executed FROM gp_toolkit.gp_resgroup_status s, pg_resgroup r WHERE s.groupid=r.oid AND r.rsgname='rg_concurrency_test';
 
-
--- reset the GUC and restart cluster.
--- start_ignore
-! gpconfig -r gp_resource_manager;
-! gpstop -rai;
--- end_ignore

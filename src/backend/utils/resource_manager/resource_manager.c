@@ -19,3 +19,17 @@
  */
 bool	ResourceScheduler = false;						/* Is scheduling enabled? */
 ResourceManagerPolicy Gp_resource_manager_policy;
+
+bool
+IsResQueueEnabled(void)
+{
+	return ResourceScheduler &&
+		Gp_resource_manager_policy == RESOURCE_MANAGER_POLICY_QUEUE;
+}
+
+bool
+IsResGroupEnabled(void)
+{
+	return ResourceScheduler &&
+		Gp_resource_manager_policy == RESOURCE_MANAGER_POLICY_GROUP;
+}

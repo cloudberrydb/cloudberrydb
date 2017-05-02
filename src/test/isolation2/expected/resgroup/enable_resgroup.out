@@ -1,0 +1,29 @@
+-- start_ignore
+! rmdir /sys/fs/cgroup/cpu/gpdb;
+
+! rmdir /sys/fs/cgroup/cpuacct/gpdb;
+
+! mkdir /sys/fs/cgroup/cpu/gpdb;
+
+! mkdir /sys/fs/cgroup/cpuacct/gpdb;
+
+! chmod 755 /sys/fs/cgroup/cpu/gpdb;
+
+! chmod 755 /sys/fs/cgroup/cpuacct/gpdb;
+
+-- end_ignore
+
+-- enable resource group and restart cluster.
+-- start_ignore
+! gpconfig -c gp_resource_manager -v group;
+20170502:01:28:12:000367 gpconfig:sdw6:gpadmin-[WARNING]:-Managing queries with resource groups is an experimental feature. A work-in-progress version is enabled.
+20170502:01:28:13:000367 gpconfig:sdw6:gpadmin-[INFO]:-completed successfully
+
+! gpstop -rai;
+-- end_ignore
+
+SHOW gp_resource_manager;
+gp_resource_manager
+-------------------
+group              
+(1 row)

@@ -20,6 +20,7 @@ try:
     from gpconfig_modules.database_segment_guc import DatabaseSegmentGuc
     from gpconfig_modules.file_segment_guc import FileSegmentGuc
     from gpconfig_modules.guc_collection import GucCollection
+    from gppylib.gpresgroup import GpResGroup
 except ImportError as err:
     sys.exit('Cannot import modules.  Please check that you have sourced '
              'greenplum_path.sh.  Detail: ' + str(err))
@@ -137,6 +138,9 @@ class Guc:
                 LOGGER.warn("Managing queries with resource groups is an "
                             "experimental feature. A work-in-progress version is "
                             "enabled.")
+                msg = GpResGroup().validate()
+                if msg is not None:
+                    return msg
             elif newval != "queue":
                 return "the value of gp_resource_manager must be 'group' or 'queue'"
 

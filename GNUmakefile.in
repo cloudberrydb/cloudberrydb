@@ -148,6 +148,8 @@ installcheck-world:
 	$(MAKE) -C gpMgmt/bin installcheck
 	gpcheckcat -A
 
+installcheck-resgroup:
+	$(MAKE) -C src/test/isolation2 $@
 
 # Run mock tests, that don't require a running server. Arguably these should
 # be part of [install]check-world, but we treat them more like part of

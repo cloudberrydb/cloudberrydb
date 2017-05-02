@@ -94,6 +94,7 @@
 #include <pthread.h>
 #include "utils/resscheduler.h"
 #include "utils/resgroup.h"
+#include "utils/resgroup-ops.h"
 #include "pgstat.h"
 #include "executor/nodeFunctionscan.h"
 #include "cdb/cdbfilerep.h"
@@ -4637,9 +4638,15 @@ PostgresMain(int argc, char *argv[],
 	 * Initialize resource scheduler hash structure.
 	 */
 	if (IsResQueueEnabled() && Gp_role == GP_ROLE_DISPATCH && !am_walsender)
+	{
 		InitResQueues();
+	}
 	else if (IsResGroupEnabled() && (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE) && !am_walsender)
+	{
 		InitResGroups();
+		AssignResGroup();
+		ResGroupOps_AdjustGUCs();
+	}
 
 	/*
 	 * Now all GUC states are fully set up.  Report them to client if

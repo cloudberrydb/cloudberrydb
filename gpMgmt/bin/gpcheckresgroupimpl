@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+#
+# Copyright (c) 2017, Pivotal Software Inc.
+#
+
+import os
+import sys
+
+class dummy(object):
+
+    def validate_all(self):
+        exit("resource group is not supported on this platform")
+
+class cgroup(object):
+
+    mount_point = "/sys/fs/cgroup/"
+    tab = { 'r': os.R_OK, 'w': os.W_OK, 'x': os.X_OK, 'f': os.F_OK }
+    impl = "cgroup"
+    error_prefix = " is not properly configured: "
+
+    def validate_all(self):
+        """
+        Check the permissions of the toplevel gpdb cgroup dirs.
+
+        The checks should keep in sync with
+        src/backend/utils/resgroup/resgroup-ops-cgroup.c
+        """
+
+        self.validate_permission("cpu/gpdb/", "rwx")
+        self.validate_permission("cpu/gpdb/cgroup.procs", "rw")
+        self.validate_permission("cpu/gpdb/cpu.cfs_period_us", "rw")
+        self.validate_permission("cpu/gpdb/cpu.cfs_quota_us", "rw")
+        self.validate_permission("cpu/gpdb/cpu.shares", "rw")
+
+        self.validate_permission("cpuacct/gpdb/", "rwx")
+        self.validate_permission("cpuacct/gpdb/cgroup.procs", "rw")
+        self.validate_permission("cpuacct/gpdb/cpuacct.usage", "r")
+        self.validate_permission("cpuacct/gpdb/cpuacct.stat", "r")
+
+    def die(self, msg):
+        exit(self.impl + self.error_prefix + msg)
+
+    def validate_permission(self, path, mode):
+        """
+        Validate permission on path.
+        If path is a dir it must ends with '/'.
+        """
+        try:
+            fullpath = os.path.join(self.mount_point, path)
+            pathtype = path[-1] == "/" and "directory" or "file"
+            modebits = reduce(lambda x, y: x | y,
+                              map(lambda x: self.tab[x], mode), 0)
+
+            if not os.path.exists(fullpath):
+                self.die("%s '%s' does not exist" % (pathtype, fullpath))
+
+            if not os.access(fullpath, modebits):
+                self.die("%s '%s' permission denied: require permission '%s'" \
+                         % (pathtype, fullpath, mode))
+        except IOError, e:
+            self.die("can't check permission on %s '%s': %s" \
+                     % (pathtype, fullpath, str(e)))
+
+if __name__ == '__main__':
+    if sys.platform.startswith('linux'):
+        cgroup().validate_all()
+    else:
+        dummy().validate_all()

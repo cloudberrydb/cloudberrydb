@@ -34,8 +34,8 @@ atmsort.pm:
 explain.pm:
 	rm -f $@ && $(LN_S) $(top_builddir)/src/test/regress/explain.pm
 
-pg_isolation2_regress$(X): isolation2_main.o pg_regress.o
-	$(CC) $(CFLAGS) $^ $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) $(LIBS) -o $@
+pg_isolation2_regress$(X): isolation2_main.o pg_regress.o submake-libpq submake-libpgport
+	$(CC) $(CFLAGS) $(filter %.o,$^) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) $(LIBS) -o $@
 
 clean distclean:
 	rm -f pg_isolation2_regress$(X) $(OBJS) isolation2_main.o
@@ -45,3 +45,6 @@ clean distclean:
 
 installcheck: all gpdiff.pl gpstringsubs.pl
 	./pg_isolation2_regress --init-file=$(top_builddir)/src/test/regress/init_file --psqldir='$(PSQLDIR)' --inputdir=$(srcdir) --ao-dir=uao --schedule=$(srcdir)/isolation2_schedule
+
+installcheck-resgroup: all gpdiff.pl gpstringsubs.pl
+	./pg_isolation2_regress --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_resgroup --psqldir='$(PSQLDIR)' --inputdir=$(srcdir) --ao-dir=uao --dbname=isolation2resgrouptest --schedule=$(srcdir)/isolation2_resgroup_schedule

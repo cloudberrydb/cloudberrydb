@@ -528,6 +528,26 @@ jobs:
     params:
       TEST_OS: centos
 
+- name: regression_tests_resource_group
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [compile_gpdb_centos6]
+    - get: bin_gpdb
+      resource: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: centos-gpdb-dev-6
+  - task: ic_gpdb_resgroup
+    file: gpdb_src/concourse/tasks/ic_gpdb_resgroup.yml
+    privileged: true
+    image: centos-gpdb-dev-6
+    params:
+      MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off -c codegen=off' installcheck-resgroup
+      BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
+      TEST_OS: centos
+
+
 - name: regression_tests_gpcloud_centos
   plan:
   - aggregate:

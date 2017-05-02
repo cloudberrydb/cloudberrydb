@@ -42,6 +42,7 @@
 #include "storage/procarray.h"
 #include "utils/builtins.h"
 #include "utils/guc.h"
+#include "utils/resgroup.h"
 #include "utils/resscheduler.h"
 #include "utils/syscache.h"
 
@@ -687,6 +688,11 @@ SetCurrentRoleId(Oid roleid, bool is_superuser)
 	if ((Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE) && IsResQueueEnabled())
 	{
 		SetResQueueId();
+	}
+
+	if ((Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE) && IsResGroupEnabled())
+	{
+		AssignResGroup();
 	}
 
 	SetConfigOption("is_superuser",

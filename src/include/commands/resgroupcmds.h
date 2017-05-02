@@ -23,6 +23,7 @@ extern void AlterResourceGroup(AlterResourceGroupStmt *stmt);
 extern Oid GetResGroupIdForName(char *name, LOCKMODE lockmode);
 extern char *GetResGroupNameForId(Oid oid, LOCKMODE lockmode);
 extern void GetConcurrencyForResGroup(int groupId, int *value, int *proposed);
+extern float GetCpuRateLimitForResGroup(int groupId);
 extern Oid GetResGroupIdForRole(Oid roleid);
 
 #endif   /* RESGROUPCMDS_H */

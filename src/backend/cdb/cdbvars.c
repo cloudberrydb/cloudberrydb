@@ -27,6 +27,7 @@
 #include "utils/memutils.h"
 #include "utils/resource_manager.h"
 #include "utils/resgroup.h"
+#include "utils/resgroup-ops.h"
 #include "storage/bfz.h"
 #include "storage/proc.h"
 #include "cdb/memquota.h"
@@ -1206,7 +1207,10 @@ gpvars_assign_gp_resource_manager_policy(const char *newval, bool doit, GucSourc
 	else if (!pg_strcasecmp("queue", newval))
 		newtype = RESOURCE_MANAGER_POLICY_QUEUE;
 	else if (!pg_strcasecmp("group", newval))
+	{
+		ResGroupOps_Bless();
 		newtype = RESOURCE_MANAGER_POLICY_GROUP;
+	}
 	else
 		elog(ERROR, "unknown resource manager policy: current policy is '%s'", gpvars_show_gp_resource_manager_policy());
 

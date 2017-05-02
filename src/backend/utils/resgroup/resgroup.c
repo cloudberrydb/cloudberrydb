@@ -17,6 +17,7 @@
 #include "cdb/cdbvars.h"
 #include "cdb/memquota.h"
 #include "commands/resgroupcmds.h"
+#include "funcapi.h"
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "storage/ipc.h"
@@ -29,6 +30,7 @@
 #include "utils/fmgroids.h"
 #include "utils/memutils.h"
 #include "utils/resgroup.h"
+#include "utils/resgroup-ops.h"
 #include "utils/resowner.h"
 #include "utils/resource_manager.h"
 
@@ -196,16 +198,23 @@ InitResGroups(void)
 	if (pResGroupControl->loaded)
 		goto exit;
 
+	ResGroupOps_Init();
+
 	numGroups = 0;
 	sscan = systable_beginscan(relResGroup, InvalidOid, false, SnapshotNow, 0, NULL);
 	while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
 	{
-		bool groupOK = ResGroupCreate(HeapTupleGetOid(tuple));
+		Oid groupId = HeapTupleGetOid(tuple);
+		bool groupOK = ResGroupCreate(groupId);
+		float cpu_rate_limit = GetCpuRateLimitForResGroup(groupId);
 
 		if (!groupOK)
 			ereport(PANIC,
 					(errcode(ERRCODE_OUT_OF_MEMORY),
 			 		errmsg("not enough shared memory for resource groups")));
+
+		ResGroupOps_CreateGroup(groupId);
+		ResGroupOps_SetCpuRateLimit(groupId, cpu_rate_limit);
 
 		numGroups++;
 		Assert(numGroups <= MaxResourceGroups);
@@ -380,7 +389,7 @@ void ResGroupAlterCheckForWakeup(Oid groupId)
  *  Retrieve statistic information of type from resource group
  */
 void
-ResGroupGetStat(Oid groupId, ResGroupStatType type, char *retStr, int retStrLen)
+ResGroupGetStat(Oid groupId, ResGroupStatType type, char *retStr, int retStrLen, const char *prop)
 {
 	ResGroup group;
 
@@ -423,7 +432,7 @@ ResGroupGetStat(Oid groupId, ResGroupStatType type, char *retStr, int retStrLen)
 		default:
 			ereport(ERROR,
 					(errcode(ERRCODE_INTERNAL_ERROR),
-					 errmsg("Invalid stat type %d", type)));
+					 errmsg("Invalid stat type %s", prop)));
 	}
 
 	LWLockRelease(ResGroupLock);
@@ -640,6 +649,13 @@ ResGroupSlotRelease(void)
 	SetLatch(&waitProc->procLatch);
 
 	CurrentResGroupId = InvalidOid;
+}
+
+void
+AssignResGroup(void)
+{
+	Oid groupId = GetResGroupIdForRole(GetUserId());
+	ResGroupOps_AssignGroup(groupId, MyProcPid);
 }
 
 /*
