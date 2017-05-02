@@ -1273,7 +1273,7 @@ CTranslatorExprToDXL::PdxlnResult
 	(
 	CExpression *pexprRelational,
 	DrgPcr *pdrgpcr,
-	DrgPds *pdrgpdsBaseTables, 
+	DrgPds *pdrgpdsBaseTables,
 	ULONG *pulNonGatherMotions,
 	BOOL *pfDML,
 	CDXLNode *pdxlnScalar,
@@ -1281,30 +1281,61 @@ CTranslatorExprToDXL::PdxlnResult
 	)
 {
 	GPOS_ASSERT(NULL != pexprRelational);
-	GPOS_ASSERT(NULL != pdxlprop);
 
 	// translate relational child expression
 	CDXLNode *pdxlnChild = Pdxln(pexprRelational, pdrgpcr, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, false /*fRemap*/, false /*fRoot */);
 
-	// wrap condition in a DXL filter node
-	CDXLNode *pdxlnFilter = PdxlnFilter(pdxlnScalar);
+	return PdxlnResultFromScalarConditionAndDxlChild
+	(
+	pexprRelational,
+	pdxlnChild,
+	pdrgpcr,
+	pdxlnScalar,
+	pdxlprop
+	);
+}
 
-	GPOS_ASSERT(NULL != pexprRelational->Prpp());
-	CColRefSet *pcrsOutput = pexprRelational->Prpp()->PcrsRequired();
-	CDXLNode *pdxlnPrL = PdxlnProjList(pcrsOutput, pdrgpcr);
+CDXLNode *
+CTranslatorExprToDXL::PdxlnResultFromScalarConditionAndDxlChild
+	(
+	CExpression *pexprRelational,
+	CDXLNode *pdxlnChild,
+	DrgPcr *pdrgpcr,
+	CDXLNode *pdxlnScalar,
+	CDXLPhysicalProperties *pdxlprop
+	)
+{
+	GPOS_ASSERT(NULL != pdxlprop);
+	// for a true condition, just translate the child
+	if (CTranslatorExprToDXLUtils::FScalarConstTrue(m_pmda, pdxlnScalar))
+	{
+		pdxlnScalar->Release();
+		pdxlprop->Release();
+		return pdxlnChild;
+	}
+	// create a result node over outer child
+	else
+	{
+		// wrap condition in a DXL filter node
+		CDXLNode *pdxlnFilter = PdxlnFilter(pdxlnScalar);
 
-	// create an empty one-time filter
-	CDXLNode *pdxlnOneTimeFilter = GPOS_NEW(m_pmp) CDXLNode(m_pmp, GPOS_NEW(m_pmp) CDXLScalarOneTimeFilter(m_pmp));
+		GPOS_ASSERT(NULL != pexprRelational->Prpp());
+		CColRefSet *pcrsOutput = pexprRelational->Prpp()->PcrsRequired();
+		CDXLNode *pdxlnPrL = PdxlnProjList(pcrsOutput, pdrgpcr);
 
-	return CTranslatorExprToDXLUtils::PdxlnResult
-										(
-										m_pmp,
-										pdxlprop,
-										pdxlnPrL,
-										pdxlnFilter,
-										pdxlnOneTimeFilter,
-										pdxlnChild
-										);
+		// create an empty one-time filter
+		CDXLNode *pdxlnOneTimeFilter = GPOS_NEW(m_pmp) CDXLNode(m_pmp, GPOS_NEW(m_pmp) CDXLScalarOneTimeFilter(m_pmp));
+
+		return CTranslatorExprToDXLUtils::PdxlnResult
+		(
+		 m_pmp,
+		 pdxlprop,
+		 pdxlnPrL,
+		 pdxlnFilter,
+		 pdxlnOneTimeFilter,
+		 pdxlnChild
+		 );
+	}
 }
 
 
@@ -1493,7 +1524,7 @@ CTranslatorExprToDXL::PdxlnResult
 						(
 						pexprRelational, 
 						pexprScalar,
-						Pdxlprop(pexprFilter), 
+						Pdxlprop(pexprFilter),
 						pdrgpcr,
 						pdrgpdsBaseTables
 						);
@@ -3237,18 +3268,9 @@ CTranslatorExprToDXL::PdxlnCorrelatedNLJoin
 
 		default:
 		{
-			// for a true condition, just translate the child
-			if (CTranslatorExprToDXLUtils::FScalarConstTrue(m_pmda, pdxlnCond))
-			{
-				pdxlnCond->Release();
-				pdxln = Pdxln(pexprOuterChild, pdrgpcr, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, false /*fRemap*/, false /*fRoot*/);
-			}
-			else
-			{
-				// create a result node over outer child
-				pdxlprop->AddRef();
-				pdxln = PdxlnResult(pexprOuterChild, pdrgpcr, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, pdxlnCond, pdxlprop);
-			}
+			// create a result node over outer child
+			pdxlprop->AddRef();
+			pdxln = PdxlnResult(pexprOuterChild, pdrgpcr, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, pdxlnCond, pdxlprop);
 		}
 	}
 

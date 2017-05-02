@@ -218,6 +218,17 @@ namespace gpopt
 
 			CDXLNode *PdxlnResult(CExpression *pexprFilter, DrgPcr *pdrgpcr, DrgPds *pdrgpdsBaseTables, ULONG *pulNonGatherMotions, BOOL *pfDML);
 
+			// given a DXL plan tree pdxlnChild which represents the physical plan pexprRelational, construct a DXL
+			// Result node that filters on top of it using the scalar condition pdxlnScalar
+			CDXLNode *PdxlnResultFromScalarConditionAndDxlChild
+				(
+				CExpression *pexprRelational,
+				CDXLNode *pdxlnChild,
+				DrgPcr *pdrgpcr,
+				CDXLNode *pdxlnScalar,
+				CDXLPhysicalProperties *pdxlprop
+				);
+
 			CDXLNode *PdxlnResult
 				(
 				CExpression *pexprFilter, 
