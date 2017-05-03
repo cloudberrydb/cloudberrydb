@@ -220,13 +220,13 @@ namespace gpopt
 
 			// given a DXL plan tree pdxlnChild which represents the physical plan pexprRelational, construct a DXL
 			// Result node that filters on top of it using the scalar condition pdxlnScalar
-			CDXLNode *PdxlnResultFromScalarConditionAndDxlChild
+			CDXLNode *PdxlnAddScalarFilterOnRelationalChild
 				(
-				CExpression *pexprRelational,
-				CDXLNode *pdxlnChild,
-				DrgPcr *pdrgpcr,
-				CDXLNode *pdxlnScalar,
-				CDXLPhysicalProperties *pdxlprop
+				CDXLNode *pdxlnRelationalChild,
+				CDXLNode *pdxlnScalarChild,
+				CDXLPhysicalProperties *pdxlprop,
+				CColRefSet *pcrsOutput,
+				DrgPcr *pdrgpcrOrder
 				);
 
 			CDXLNode *PdxlnResult

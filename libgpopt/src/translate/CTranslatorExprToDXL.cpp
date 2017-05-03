@@ -1283,58 +1283,58 @@ CTranslatorExprToDXL::PdxlnResult
 	GPOS_ASSERT(NULL != pexprRelational);
 
 	// translate relational child expression
-	CDXLNode *pdxlnChild = Pdxln(pexprRelational, pdrgpcr, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, false /*fRemap*/, false /*fRoot */);
+	CDXLNode *pdxlnRelationalChild = Pdxln(pexprRelational, pdrgpcr, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, false /*fRemap*/, false /*fRoot */);
+	GPOS_ASSERT(NULL != pexprRelational->Prpp());
+	CColRefSet *pcrsOutput = pexprRelational->Prpp()->PcrsRequired();
 
-	return PdxlnResultFromScalarConditionAndDxlChild
-	(
-	pexprRelational,
-	pdxlnChild,
-	pdrgpcr,
-	pdxlnScalar,
-	pdxlprop
-	);
+	return PdxlnAddScalarFilterOnRelationalChild
+			(
+			pdxlnRelationalChild,
+			pdxlnScalar,
+			pdxlprop,
+			pcrsOutput,
+			pdrgpcr
+			);
 }
 
 CDXLNode *
-CTranslatorExprToDXL::PdxlnResultFromScalarConditionAndDxlChild
+CTranslatorExprToDXL::PdxlnAddScalarFilterOnRelationalChild
 	(
-	CExpression *pexprRelational,
-	CDXLNode *pdxlnChild,
-	DrgPcr *pdrgpcr,
-	CDXLNode *pdxlnScalar,
-	CDXLPhysicalProperties *pdxlprop
+	CDXLNode *pdxlnRelationalChild,
+	CDXLNode *pdxlnScalarChild,
+	CDXLPhysicalProperties *pdxlprop,
+	CColRefSet *pcrsOutput,
+	DrgPcr *pdrgpcrOrder
 	)
 {
 	GPOS_ASSERT(NULL != pdxlprop);
 	// for a true condition, just translate the child
-	if (CTranslatorExprToDXLUtils::FScalarConstTrue(m_pmda, pdxlnScalar))
+	if (CTranslatorExprToDXLUtils::FScalarConstTrue(m_pmda, pdxlnScalarChild))
 	{
-		pdxlnScalar->Release();
+		pdxlnScalarChild->Release();
 		pdxlprop->Release();
-		return pdxlnChild;
+		return pdxlnRelationalChild;
 	}
 	// create a result node over outer child
 	else
 	{
 		// wrap condition in a DXL filter node
-		CDXLNode *pdxlnFilter = PdxlnFilter(pdxlnScalar);
+		CDXLNode *pdxlnFilter = PdxlnFilter(pdxlnScalarChild);
 
-		GPOS_ASSERT(NULL != pexprRelational->Prpp());
-		CColRefSet *pcrsOutput = pexprRelational->Prpp()->PcrsRequired();
-		CDXLNode *pdxlnPrL = PdxlnProjList(pcrsOutput, pdrgpcr);
+		CDXLNode *pdxlnPrL = PdxlnProjList(pcrsOutput, pdrgpcrOrder);
 
 		// create an empty one-time filter
 		CDXLNode *pdxlnOneTimeFilter = GPOS_NEW(m_pmp) CDXLNode(m_pmp, GPOS_NEW(m_pmp) CDXLScalarOneTimeFilter(m_pmp));
 
 		return CTranslatorExprToDXLUtils::PdxlnResult
-		(
-		 m_pmp,
-		 pdxlprop,
-		 pdxlnPrL,
-		 pdxlnFilter,
-		 pdxlnOneTimeFilter,
-		 pdxlnChild
-		 );
+				(
+				m_pmp,
+				pdxlprop,
+				pdxlnPrL,
+				pdxlnFilter,
+				pdxlnOneTimeFilter,
+				pdxlnRelationalChild
+				);
 	}
 }
 
@@ -3512,12 +3512,7 @@ CTranslatorExprToDXL::PdxlnResultFromNLJoinOuter
 			CDXLNode *pdxlnOrigCond = (*pdxlnOrigFilter)[0];
 			pdxlnOrigCond->AddRef();
 
-			CDXLNode *pdxlnBoolExpr = PdxlnScBoolExpr
-			(
-			Edxland,
-			pdxlnOrigCond,
-			pdxlnCond
-			);
+			CDXLNode *pdxlnBoolExpr = PdxlnScBoolExpr(Edxland, pdxlnOrigCond, pdxlnCond);
 
 			// add the new filter to the result replacing its original
 			// empty filter
@@ -3526,7 +3521,19 @@ CTranslatorExprToDXL::PdxlnResultFromNLJoinOuter
 		}
 			break;
 		case EdxlopPhysicalSequence:
-			pdxlnCond->Release();
+		{
+			pdxlprop->AddRef();
+			GPOS_ASSERT(NULL != pexprRelational->Prpp());
+			CColRefSet *pcrsOutput = pexprRelational->Prpp()->PcrsRequired();
+			pdxlnResult = PdxlnAddScalarFilterOnRelationalChild
+							(
+							pdxlnResult,
+							pdxlnCond,
+							pdxlprop,
+							pcrsOutput,
+							pdrgpcr
+							);
+		}
 			break;
 		default:
 			pdxlnCond->Release();
