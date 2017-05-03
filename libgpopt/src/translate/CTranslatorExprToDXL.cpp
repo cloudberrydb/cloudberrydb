@@ -1520,11 +1520,12 @@ CTranslatorExprToDXL::PdxlnResult
 		case COperator::EopPhysicalIndexScan:
 		case COperator::EopPhysicalDynamicIndexScan:
 		{
+			pdxlprop->AddRef();
 			return PdxlnIndexScanWithInlinedCondition
 						(
 						pexprRelational, 
 						pexprScalar,
-						Pdxlprop(pexprFilter),
+						pdxlprop,
 						pdrgpcr,
 						pdrgpdsBaseTables
 						);
