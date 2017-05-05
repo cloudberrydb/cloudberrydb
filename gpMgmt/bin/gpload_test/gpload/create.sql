@@ -1,4 +1,6 @@
-\c reuse_gptest
+DROP DATABASE IF EXISTS gptest;
+CREATE DATABASE gptest;
+\c gptest
 
 DROP TABLE IF EXISTS lineitem;
 CREATE TABLE lineitem (

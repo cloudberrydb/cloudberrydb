@@ -16,7 +16,7 @@ from pygresql import pg
 """
 Global Values
 """
-DBNAME = "gptest"
+DBNAME = "postgres"
 USER = os.environ.get( "LOGNAME" )
 HOST = socket.gethostname()
 GPHOME = os.getenv("GPHOME")
@@ -249,11 +249,11 @@ def initialize():
     os.environ['PGDATABASE'] = 'gptest'
 
     if platform.system() not in ['Windows', 'Microsoft']:
-        run("psql -U "+user+" -d gptest -h "+get_hostname()+" -p "+get_port()+" -f " + MYD + "/drop.sql 2>&1")
-        run("psql -U "+user+" -d gptest -h "+get_hostname()+" -p "+get_port()+" -f " + MYD + "/create.sql 2>&1")
+        run("psql -U "+user+" -d "+DBNAME+" -h "+get_hostname()+" -p "+get_port()+" -f " + MYD + "/drop.sql 2>&1")
+        run("psql -U "+user+" -d "+DBNAME+" -h "+get_hostname()+" -p "+get_port()+" -f " + MYD + "/create.sql 2>&1")
     else:
-        run('psql -h '+get_hostname()+' -U '+os.environ.get('USER')+' -d gptest -p '+get_port()+' -f ' + MYD + '/drop.sql')
-        run('psql -h '+get_hostname()+' -U '+os.environ.get('USER')+' -d gptest -p '+get_port()+' -f ' + MYD + '/create.sql')
+        run('psql -h '+get_hostname()+' -U '+os.environ.get('USER')+' -d '+DBNAME+' -p '+get_port()+' -f ' + MYD + '/drop.sql')
+        run('psql -h '+get_hostname()+' -U '+os.environ.get('USER')+' -d '+DBNAME+' -p '+get_port()+' -f ' + MYD + '/create.sql')
     if os.path.isfile(configPath + "/config_file"):
         os.system(windows_path(remove_command + " " + configPath + "/config_file"))
     if os.path.isfile(MYD + "/log.log"):
@@ -390,54 +390,12 @@ class GPLoad_Env_TestCase(unittest.TestCase):
 
         return True
 
-    def checkFileEqual( self, file1, file2, optionalFlags = ""):
-
-        """
-        PURPOSE: check file1 equals to file2
-            optionalFlags: these are passed to gpdiff to control the comparison
-                (e.g. indicate what to ignore).
-            ignoreInfoLines: set to True to ignore lines from gpcheckcat (and
-                possibly other sources) that contain "[INFO]" so we get diffs
-                only for errors, warnings, etc.
-        LAST MODIFIED:
-            2010-05-06 mgilkey
-                I added the ignoreInfoLines option so that we can ignore
-                differences in gpcheckcat output that are not significant.
-            2010-02-22 mgilkey
-                I added the "optionalFlags" parameter.
-        """
-
-        optionalFlags += " -gpd_ignore_plans "
-        if os.path.exists(file2 + ".orca"):
-            file2 = file2 + ".orca"
-        self.failUnless( isFileEqual( file1, file2, optionalFlags) )
-        return True
-
-    def runTest_5432(self,num):
-	 """
-	 LAST MODIFIED:
-		2013-12-16 pertendk
-		Added this function to run tests when port is 5432
-	 """
-         file = MYD + '/query'+str(num)+'.diff'
-         if os.path.isfile(file):
-             run(windows_path(remove_command+" "+file))
-         modify_sql_file(num)
-         file = mkpath('query%d.sql' %num )
-         (ok, out) = runfile(file)
-         file1 = mkpath('query%d.ans.5432' %num)
-         file2 = mkpath('query%d.out' %num)
-         self.checkFileEqual(file2,file1)
-
     def testQuery00(self):
         "0  gpload setup"
         for num in range(1,6):
            f = open(mkpath('query%d.sql' % num),'w')
-           f.write("\! gpload -f "+mkpath('config/config_file')+ " -d reuse_gptest")
+           f.write("\! gpload -f "+mkpath('config/config_file')+ " -d gptest")
            f.close()
-        if platform.system() not in ['Windows', 'Microsoft']:
-            run("psql -U "+os.environ.get('USER')+" -d gptest -h "+get_hostname()+" -p "+get_port()+" -f " + MYD + "/query0.sql 2>&1")
-######################################################################################
 
     def testQuery01(self):
         "1  get username from environment variable 'USER'"
@@ -457,8 +415,6 @@ class GPLoad_Env_TestCase(unittest.TestCase):
         del os.environ['PGUSER']
         self.doTest(3)
 
-#########################################################################################
-
     def testQuery04(self):
         "4  specify port, user and hostname"
         os.environ['PGPORT'] = get_port()
@@ -470,7 +426,8 @@ class GPLoad_Env_TestCase(unittest.TestCase):
         os.environ['PGPORT'] = get_port()
         self.doTest(5)
 
-#########################################################################
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(GPLoad_Env_TestCase)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    runner = unittest.TextTestRunner(verbosity=2)
+    ret = not runner.run(suite).wasSuccessful()
+    sys.exit(ret)

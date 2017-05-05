@@ -79,7 +79,7 @@ UPD = os.path.abspath(mkpath('..'))
 if UPD not in sys.path:
     sys.path.append(UPD)
 
-DBNAME = "gptest"
+DBNAME = "postgres"
 USER = os.environ.get( "LOGNAME" )
 HOST = socket.gethostname()
 GPHOME = os.getenv("GPHOME")
@@ -562,4 +562,6 @@ class GPLoad_FormatOpts_TestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     suite = unittest.TestLoader().loadTestsFromTestCase(GPLoad_FormatOpts_TestCase)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    runner = unittest.TextTestRunner(verbosity=2)
+    ret = not runner.run(suite).wasSuccessful()
+    sys.exit(ret)

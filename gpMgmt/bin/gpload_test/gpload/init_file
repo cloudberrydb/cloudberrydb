@@ -105,8 +105,8 @@ s/(gpfdist says:.*)/GP_IGNORE: $1/
 
 # Hai: to ignore the line like "2011-08-11 12:17:57|INFO|setting schema 'public' for table 'lineitem'"
 # which is added as fix of MPP-12916
--- m/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})|INFO|setting schema/
--- s/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})|INFO|setting schema*/GP_IGNORE: /
+m/.*INFO\|setting schema/
+s/.*INFO\|setting schema.*/GP_IGNORE: /
 
 -- m/public.\"lineitem\"/
 -- s/public.\"lineitem\"/lineitem/g
