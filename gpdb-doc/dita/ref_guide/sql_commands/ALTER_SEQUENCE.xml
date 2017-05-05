@@ -8,6 +8,8 @@
      [CACHE <varname>cache</varname>] [[ NO ] CYCLE] 
      [OWNED BY {<varname>table.column</varname> | NONE}]
 
+ALTER SEQUENCE <varname>name</varname> RENAME TO <varname>new_name
+</varname>
 ALTER SEQUENCE <varname>name</varname> SET SCHEMA <varname>new_schema</varname></codeblock></section><section id="section3"><title>Description</title><p><codeph>ALTER SEQUENCE</codeph> changes the parameters of an existing
 sequence generator. Any parameters not specifically set in the <codeph>ALTER
 SEQUENCE</codeph> command retain their prior settings.</p><p>You must own the sequence to use <codeph>ALTER SEQUENCE</codeph>.
@@ -40,19 +42,22 @@ table) is dropped, the sequence will be automatically dropped as well.
 If specified, this association replaces any previously specified association
 for the sequence. The specified table must have the same owner and be
 in the same schema as the sequence. Specifying <codeph>OWNED BY NONE</codeph>
-removes any existing table column association.</pd></plentry><plentry><pt><varname>new_schema</varname></pt><pd>The new schema for the sequence.</pd></plentry></parml></section><section id="section5"><title>Notes</title><p>To avoid blocking of concurrent transactions that obtain numbers from
-the same sequence, <codeph>ALTER SEQUENCE</codeph>'s effects on the
-sequence generation parameters are never rolled back; those changes take
-effect immediately and are not reversible. However, the <codeph>OWNED
-BY</codeph> and <codeph>SET SCHEMA</codeph> clauses are ordinary catalog
-updates and can be rolled back.</p><p><codeph>ALTER SEQUENCE</codeph> will not immediately affect <codeph>nextval</codeph>
+removes any existing table column association.</pd></plentry>
+        <plentry>
+          <pt><varname>new_name</varname></pt>
+          <pd>The new name for the sequence.</pd>
+        </plentry><plentry><pt><varname>new_schema</varname></pt><pd>The new schema for the sequence.</pd></plentry></parml></section><section id="section5"><title>Notes</title><p>To avoid blocking of concurrent transactions that obtain numbers from the same sequence,
+          <codeph>ALTER SEQUENCE</codeph>'s effects on the sequence generation parameters are never
+        rolled back; those changes take effect immediately and are not reversible. However, the
+          <codeph>OWNED BY</codeph>, <codeph>RENAME TO</codeph>, and <codeph>SET SCHEMA</codeph>
+        clauses are ordinary catalog updates and can be rolled back.</p><p><codeph>ALTER SEQUENCE</codeph> will not immediately affect <codeph>nextval</codeph>
 results in sessions, other than the current one, that have preallocated
 (cached) sequence values. They will use up all cached values prior to
 noticing the changed sequence generation parameters. The current session
 will be affected immediately.</p><p>Some variants of <codeph><xref href="./ALTER_TABLE.xml#topic1" type="topic" format="dita"
           /></codeph> can be used with sequences as well. For example, to rename a sequence use
-          <codeph>ALTER TABLE RENAME</codeph>.</p></section><section id="section6"><title>Examples</title><p>Restart a sequence called <codeph>serial</codeph> at <codeph>105</codeph>:</p><codeblock>ALTER SEQUENCE serial RESTART WITH 105;</codeblock></section><section id="section7"><title>Compatibility</title><p><codeph>ALTER SEQUENCE</codeph> conforms to the SQL standard, except
-for the <codeph>OWNED BY</codeph> and <codeph>SET SCHEMA</codeph> clauses,
-which are Greenplum Database extensions.</p></section><section id="section8"><title>See Also</title><p><codeph><xref href="./CREATE_SEQUENCE.xml#topic1" type="topic" format="dita"/></codeph>,
+          <codeph>ALTER TABLE RENAME</codeph>.</p></section><section id="section6"><title>Examples</title><p>Restart a sequence called <codeph>serial</codeph> at <codeph>105</codeph>:</p><codeblock>ALTER SEQUENCE serial RESTART WITH 105;</codeblock></section><section id="section7"><title>Compatibility</title><p><codeph>ALTER SEQUENCE</codeph> conforms to the SQL standard, except for the <codeph>OWNED
+          BY</codeph>, <codeph>RENAME TO</codeph>, and <codeph>SET SCHEMA</codeph> clauses, which
+        are Greenplum Database extensions.</p></section><section id="section8"><title>See Also</title><p><codeph><xref href="./CREATE_SEQUENCE.xml#topic1" type="topic" format="dita"/></codeph>,
             <codeph><xref href="./DROP_SEQUENCE.xml#topic1" type="topic" format="dita"/></codeph>,
             <codeph><xref href="./ALTER_TABLE.xml#topic1" type="topic" format="dita"/></codeph></p></section></body></topic>
