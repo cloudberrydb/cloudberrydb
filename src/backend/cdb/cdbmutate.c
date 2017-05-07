@@ -72,6 +72,12 @@ typedef struct
 	List	   *cursorPositions;
 } pre_dispatch_function_evaluation_context;
 
+typedef struct SubPlanWalkerContext
+{
+	plan_tree_base_prefix base; /* Required prefix for plan_tree_walker/mutator */
+	Bitmapset	   *bms_subplans; /* Bitmapset for used subplans */
+} SubPlanWalkerContext;
+
 static Node *
 pre_dispatch_function_evaluation_mutator(Node *node,
 										 pre_dispatch_function_evaluation_context * context);
@@ -106,6 +112,8 @@ doesUpdateAffectPartitionCols(PlannerInfo  *root,
                               Query        *query);
 
 static bool replace_shareinput_targetlists_walker(Node *node, PlannerGlobal *glob, bool fPop);
+
+static bool subplan_walker(Node *node, SubPlanWalkerContext *context);
 
 /*
  * Given an expression, return true if it contains anything non-constant.
@@ -2975,6 +2983,65 @@ void remove_unused_initplans(Plan *top_plan, PlannerInfo *root)
 
 	bms_free(context.paramids);
 	bms_free(context.scanrelids);
+}
+
+static bool
+subplan_walker(Node *node, SubPlanWalkerContext *context)
+{
+	if (node == NULL)
+		return false;
+
+	if (IsA(node, SubPlan))
+	{
+		SubPlan *subplan = (SubPlan *) node;
+		int i = subplan->plan_id - 1;
+		if (!bms_is_member(i, context->bms_subplans))
+			context->bms_subplans = bms_add_member(context->bms_subplans, i);
+		else
+			return false;
+	}
+	return plan_tree_walker(node, subplan_walker, context);
+}
+
+/*
+ * Remove unused subplans from PlannerGlobal subplans
+ */
+void
+remove_unused_subplans(Plan *top_plan, PlannerInfo *root)
+{
+	SubPlanWalkerContext context;
+	List		*glob_subplans = root->glob->subplans;
+	ListCell	*lc;
+	int 		i;
+	int 		num_subplans = list_length(glob_subplans);
+
+	if (num_subplans == 0)
+		return;
+
+	context.base.node = (Node *) root;
+	context.bms_subplans = NULL;
+
+	subplan_walker((Node *) top_plan, &context);
+
+	for (i = 0; i < num_subplans; i++)
+	{
+		if (!bms_is_member(i, context.bms_subplans))
+		{
+			/*
+			 * This subplan is unused. Replace it in the global list of
+			 * subplans with a dummy. (We can't just remove it from the
+			 * global list, because that would screw up the plan_id
+			 * numbering of the subplans).
+			 */
+			lc = list_nth_cell(glob_subplans, i);
+			pfree(lfirst(lc));
+			lfirst(lc) = make_result(root, NIL,
+									 (Node *) list_make1(makeBoolConst(false, false)),
+									 NULL);
+		}
+	}
+
+	bms_free(context.bms_subplans);
 }
 
 Node *
