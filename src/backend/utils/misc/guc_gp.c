@@ -4516,7 +4516,7 @@ struct config_int ConfigureNamesInt_gp[] =
 			GUC_UNIT_KB | GUC_GPDB_ADDOPT
 		},
 		&optimizer_mdcache_size,
-		0, 0, INT_MAX, NULL, NULL
+		16384, 0, INT_MAX, NULL, NULL
 	},
 
 	{
