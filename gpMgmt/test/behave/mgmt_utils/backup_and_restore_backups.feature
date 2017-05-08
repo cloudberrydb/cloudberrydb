@@ -1020,7 +1020,7 @@ Feature: Validate command line arguments
         And the full backup timestamp from gpcrondump is stored
         And all the data from the remote segments in "bkdb67" are stored in path "/tmp/custom_timestamps" for "full"
         And verify that the file "/tmp/custom_timestamps/db_dumps/20140101/gp_dump_status_0_2_20140101010101" does not contain "reading indexes"
-        And verify that the file "/tmp/custom_timestamps/db_dumps/20140101/gp_dump_status_-1_1_20140101010101" contains "reading indexes"
+        And verify that the file "/tmp/custom_timestamps/db_dumps/20140101/gp_dump_status_*_1_20140101010101" contains "reading indexes"
 
     Scenario: 68 Restore -T for incremental dump should restore metadata/postdata objects for tablenames with English and multibyte (chinese) characters
         Given the backup test is initialized with database "bkdb68"

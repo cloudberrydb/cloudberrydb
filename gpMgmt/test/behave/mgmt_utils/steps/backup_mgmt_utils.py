@@ -3,6 +3,7 @@
 import os
 import socket
 import gzip
+import glob
 from gppylib.commands.base import Command, REMOTE, WorkerPool, CommandResult
 from gppylib.db import dbconn
 from gppylib.gparray import GpArray
@@ -212,8 +213,8 @@ def impl(context, target):
             fd.close()
 
 def __get_dump_metadata_path(context, dump_dir):
-    filename = "gp_dump_-1_1_%s.gz" % context.backup_timestamp
-    metadata_path = os.path.join(dump_dir, "db_dumps", context.backup_timestamp[0:8], filename)
+    filename = "gp_dump_*_1_%s.gz" % context.backup_timestamp
+    metadata_path = glob.glob(os.path.join(dump_dir, "db_dumps", context.backup_timestamp[0:8], filename))[0]
     return metadata_path
 
 def get_comment_keys(line):
