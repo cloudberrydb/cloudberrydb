@@ -3258,6 +3258,7 @@ eval_const_expressions_mutator(Node *node,
 		newfslink->lefthand = fslink->lefthand;
 		newfslink->righthand = fslink->righthand;
 		newfslink->quals = quals;
+		newfslink->try_join_unique = fslink->try_join_unique;
 		return (Node *) newfslink;
 	}
 
