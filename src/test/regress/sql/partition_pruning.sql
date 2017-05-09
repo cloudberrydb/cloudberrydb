@@ -13,6 +13,7 @@
 set enable_seqscan=off;
 set enable_bitmapscan=on;
 set enable_indexscan=on;
+set max_stack_depth to '500kB';
 
 create schema partition_pruning;
 set search_path to partition_pruning, public;
