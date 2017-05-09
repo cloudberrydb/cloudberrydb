@@ -375,6 +375,15 @@ FETCH ABSOLUTE 3 IN CUR;
 CLOSE CUR;
 
 COMMIT;
+--
+-- Change of Gp_interconnect_queue_depth after a Cursor will success
+BEGIN;
+
+DECLARE CUR SCROLL CURSOR FOR SELECT * FROM ctest WHERE id >= 990::bigint order by 1;
+SET gp_interconnect_queue_depth to 20;
+FETCH ABSOLUTE 1 IN CUR;
+
+COMMIT;
 --start_ignore
 DROP INDEX if exists ctest_id_idx;
 DROP TABLE if exists ctest;

@@ -1914,7 +1914,7 @@ putRxBufferAndSendAck(MotionConn *conn, AckSendParam *param)
 
 	conn->pkt_q[conn->pkt_q_head] = NULL;
 	conn->pBuff = NULL;
-	conn->pkt_q_head = (conn->pkt_q_head + 1) % Gp_interconnect_queue_depth;
+	conn->pkt_q_head = (conn->pkt_q_head + 1) % conn->pkt_q_capacity;
 	conn->pkt_q_size--;
 
 #ifdef AMS_VERBOSE_LOGGING
@@ -1926,7 +1926,7 @@ putRxBufferAndSendAck(MotionConn *conn, AckSendParam *param)
 	conn->conn_info.extraSeq = seq;
 
 	/* Send an Ack to the sender. */
-	if ((seq % 2 == 0) || (Gp_interconnect_queue_depth == 1))
+	if ((seq % 2 == 0) || (conn->pkt_q_capacity == 1))
 	{
 		if (param != NULL)
 		{
@@ -3084,14 +3084,16 @@ SetupUDPIFCInterconnect_Internal(EState *estate)
 			{
 				numValidProcs++;
 
-				/* update the max buffer count of our rx buffer pool.  */
-				rx_buffer_pool.maxCount += Gp_interconnect_queue_depth;
-
 				/* rx_buffer_queue */
+				conn->pkt_q_capacity = Gp_interconnect_queue_depth; 
 				conn->pkt_q_size = 0;
 				conn->pkt_q_head = 0;
 				conn->pkt_q_tail = 0;
-				conn->pkt_q = (uint8 **) palloc0(Gp_interconnect_queue_depth * sizeof(uint8 *));
+				conn->pkt_q = (uint8 **) palloc0(conn->pkt_q_capacity * sizeof(uint8 *));
+
+				/* update the max buffer count of our rx buffer pool.  */
+				rx_buffer_pool.maxCount += conn->pkt_q_capacity;
+
 
 				/* connection header info (defining characteristics of this connection) */
 				MemSet(&conn->conn_info, 0, sizeof(conn->conn_info));
@@ -3229,7 +3231,7 @@ freeDisorderedPackets(MotionConn *conn)
 	if (conn->pkt_q == NULL)
 		return;
 
-	for(k = 0; k < Gp_interconnect_queue_depth; k++)
+	for(k = 0; k < conn->pkt_q_capacity; k++)
 	{
 		icpkthdr *buf = (icpkthdr *)conn->pkt_q[k];
 		if (buf != NULL)
@@ -3468,7 +3470,7 @@ TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
 					if (conn->cdbProc == NULL)
 						continue;
 
-					rx_buffer_pool.maxCount -= Gp_interconnect_queue_depth;
+					rx_buffer_pool.maxCount -= conn->pkt_q_capacity;
 
 					/* out of memory has occurred, break out */
 					if (!conn->pkt_q)
@@ -4703,7 +4705,7 @@ handleDisorderPacket(MotionConn *conn, int pos, uint32 tailSeq, icpkthdr *pkt)
 		#endif
 		}
 		tailSeq++;
-		start = (start + 1) % Gp_interconnect_queue_depth;
+		start = (start + 1) % conn->pkt_q_capacity;
 	}
 
 #ifdef AMS_VERBOSE_LOGGING
@@ -5770,7 +5772,7 @@ handleDataPacket(MotionConn *conn, icpkthdr *pkt, struct sockaddr_storage *peer,
 	 * Thus, the following condition is used.
 	 *
 	 */
-	if (pkt->seq <= Gp_interconnect_queue_depth)
+	if (pkt->seq <= conn->pkt_q_capacity)
 	{
 		/* fill in the peer.  Need to cast away "volatile".  ugly */
 		memset((void *)&conn->peer, 0, sizeof(conn->peer));
@@ -5871,7 +5873,7 @@ handleDataPacket(MotionConn *conn, icpkthdr *pkt, struct sockaddr_storage *peer,
 
 	/* headSeq is the seq for the head packet. */
 	uint32 headSeq = conn->conn_info.seq - conn->pkt_q_size;
-	if ((conn->pkt_q_size == Gp_interconnect_queue_depth) || (pkt->seq - headSeq >= Gp_interconnect_queue_depth))
+	if ((conn->pkt_q_size == conn->pkt_q_capacity) || (pkt->seq - headSeq >= conn->pkt_q_capacity))
 	{
 		/*
 		 * Error case: NO RX SPACE or out of range pkt
@@ -5886,7 +5888,7 @@ handleDataPacket(MotionConn *conn, icpkthdr *pkt, struct sockaddr_storage *peer,
 	/* put the packet at the his position */
 	bool toWakeup = false;
 
-	int pos = (pkt->seq - 1) % Gp_interconnect_queue_depth;
+	int pos = (pkt->seq - 1) % conn->pkt_q_capacity;
 	if (conn->pkt_q[pos] == NULL)
 	{
 		conn->pkt_q[pos] = (uint8 *)pkt;
@@ -5901,15 +5903,15 @@ handleDataPacket(MotionConn *conn, icpkthdr *pkt, struct sockaddr_storage *peer,
 		if (pos == conn->pkt_q_tail)
 		{
 			/* move the queue tail */
-			for(;conn->pkt_q[conn->pkt_q_tail] != NULL && conn->pkt_q_size < Gp_interconnect_queue_depth;)
+			for(;conn->pkt_q[conn->pkt_q_tail] != NULL && conn->pkt_q_size < conn->pkt_q_capacity;)
 			{
 				conn->pkt_q_size++;
-				conn->pkt_q_tail = (conn->pkt_q_tail + 1) % Gp_interconnect_queue_depth;
+				conn->pkt_q_tail = (conn->pkt_q_tail + 1) % conn->pkt_q_capacity;
 				conn->conn_info.seq++;
 			}
 
 			/* set the EOS flag */
-			if (((icpkthdr *)(conn->pkt_q[(conn->pkt_q_tail + Gp_interconnect_queue_depth - 1) % Gp_interconnect_queue_depth]))->flags & UDPIC_FLAGS_EOS)
+			if (((icpkthdr *)(conn->pkt_q[(conn->pkt_q_tail + conn->pkt_q_capacity - 1) % conn->pkt_q_capacity]))->flags & UDPIC_FLAGS_EOS)
 			{
 				conn->conn_info.flags |= UDPIC_FLAGS_EOS;
 				if (DEBUG1 >= log_min_messages)
@@ -6417,6 +6419,7 @@ cacheFuturePacket(icpkthdr *pkt, struct sockaddr_storage *peer, int peer_len)
 		memset((void *) conn, 0, sizeof(MotionConn));
 		memcpy(&conn->conn_info, pkt, sizeof(icpkthdr));
 
+		conn->pkt_q_capacity = Gp_interconnect_queue_depth;
 		conn->pkt_q_size = Gp_interconnect_queue_depth;
 		conn->pkt_q = (uint8 **) malloc(Gp_interconnect_queue_depth * sizeof(uint8 *));
 
@@ -6637,7 +6640,7 @@ dumpConnections(ChunkTransportStateEntry *pEntry, const char *fname)
 		if (!ic_control_info.isSender)
 		{
 			fprintf(ofile, "pkt_q_size=%d pkt_q_head=%d pkt_q_tail=%d pkt_q=%p\n", conn->pkt_q_size, conn->pkt_q_head, conn->pkt_q_tail, conn->pkt_q);
-			for(j = 0; j < Gp_interconnect_queue_depth; j++)
+			for(j = 0; j < conn->pkt_q_capacity; j++)
 			{
 				if (conn->pkt_q != NULL && conn->pkt_q[j] != NULL)
 				{

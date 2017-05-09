@@ -251,7 +251,8 @@ struct MotionConn
 	socklen_t peer_len;					/* And remember the actual length */
 
 	/* a queue of maximum length Gp_interconnect_queue_depth */
-	int			pkt_q_size;
+	int			pkt_q_capacity;			/*max capacity of the queue*/
+	int			pkt_q_size;				/*number of packets in the queue*/
 	int			pkt_q_head;
 	int			pkt_q_tail;
 	uint8		**pkt_q;
