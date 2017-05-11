@@ -37,7 +37,7 @@ AC_DEFUN([PGAC_CHECK_ORCA_LIBS],
 [
 AC_LANG_PUSH([C++])
 AC_CHECK_LIB(gpos, gpos_init, [], [AC_MSG_ERROR([library 'gpos' is required for Pivotal Query Optimizer (orca)])])
-AC_CHECK_LIB(gpdbcost, main, [], [AC_MSG_ERROR([library 'gpdbcost' is required for Pivotal Query Optimizer (orca)])], [-lgpopt])
+AC_CHECK_LIB(gpdbcost, main, [], [AC_MSG_ERROR([library 'gpdbcost' is required for Pivotal Query Optimizer (orca)])], [-lgpopt -lnaucrates])
 AC_CHECK_LIB(naucrates, InitDXL, [], [AC_MSG_ERROR([library 'naucrates' is required for Pivotal Query Optimizer (orca)])], [-lgpopt])
 AC_CHECK_LIB(gpopt, gpopt_init, [], [AC_MSG_ERROR([library 'gpopt' is required for Pivotal Query Optimizer (orca)])])
 AC_LANG_POP([C++])
