@@ -1110,7 +1110,7 @@ vacuumStatement_Relation(VacuumStmt *vacstmt, Oid relid,
 				onerel = open_relation_and_check_permission(vacstmt, relid, RELKIND_RELATION, false);
 			}		
 
-			if (!vacstmt->appendonly_compaction_vacuum_cleanup)
+			if (onerel == NULL)
 			{
 				CommitTransactionCommand();
 				continue;
