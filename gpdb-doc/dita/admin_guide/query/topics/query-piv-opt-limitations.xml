@@ -16,6 +16,7 @@
   <topic id="topic_kgn_vxl_vp">
     <title>Unsupported SQL Query Features</title>
     <body>
+
       <p>These are unsupported features when GPORCA is enabled (the default): <ul id="ul_ndm_gyl_vp">
           <li>Indexed expressions (an index defined as expression based on one or more columns of
             the table)</li>
@@ -46,8 +47,8 @@
     <title>Performance Regressions</title>
     <body>
       <p>The following features are known performance regressions that occur with GPORCA
-          enabled::<ul id="ul_zp2_4yl_vp">
-          <li>Short running queries - For GPORCA, short running queries might encounter additional
+          enabled:<ul id="ul_zp2_4yl_vp">
+           <li>Short running queries - For GPORCA, short running queries might encounter additional
             overhead due to GPORCA enhancements for determining an optimal query execution
             plan.</li>
           <li><cmdname>ANALYZE</cmdname> - For GPORCA, the <cmdname>ANALYZE</cmdname> command
@@ -57,8 +58,7 @@
             partition and distribution keys might require additional overhead. </li>
         </ul></p>
       <p>Also, enhanced functionality of the features from previous versions could result in
-        additional time required when GPORCA executes SQL statements with the
-        features. </p>
+        additional time required when GPORCA executes SQL statements with the features. </p>
     </body>
   </topic>
 </topic>
