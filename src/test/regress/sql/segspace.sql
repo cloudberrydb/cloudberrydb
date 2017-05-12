@@ -309,17 +309,22 @@ format 'text';
 -- end_ignore
 
 create or replace function workset_cleanup_test()
-returns integer as
+returns boolean as
 $func$
+declare                                          
+  sub_work_set_cnt  integer;
+  top_work_set_cnt 	integer;
 begin
+  select count(*) into top_work_set_cnt from gp_toolkit.gp_workfile_entries;
    for i in 1..2 loop
      begin
        select * from exttest a, exttest b;
      exception when others then
        raise notice 'caught exception: %', sqlerrm;
      end;
+     select count(*) into sub_work_set_cnt from gp_toolkit.gp_workfile_entries;
    end loop;
-  return (select count(*) from gp_toolkit.gp_workfile_entries);
+  return top_work_set_cnt = sub_work_set_cnt;
 end;
 $func$ language plpgsql;
 
