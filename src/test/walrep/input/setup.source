@@ -1,0 +1,14 @@
+create or replace function test_connect(text, text) RETURNS bool AS
+ '@abs_builddir@/gplibpq@DLSUFFIX@' LANGUAGE C VOLATILE STRICT NO SQL;
+
+create or replace function test_disconnect() RETURNS bool AS
+ '@abs_builddir@/gplibpq@DLSUFFIX@' LANGUAGE C VOLATILE STRICT NO SQL;
+
+create or replace function test_receive() RETURNS bool AS
+ '@abs_builddir@/gplibpq@DLSUFFIX@' LANGUAGE C VOLATILE STRICT NO SQL;
+
+create or replace function test_send() RETURNS bool AS
+ '@abs_builddir@/gplibpq@DLSUFFIX@' LANGUAGE C VOLATILE STRICT NO SQL;
+
+create or replace function test_receive_and_verify(text, text) RETURNS bool AS
+ '@abs_builddir@/gplibpq@DLSUFFIX@' LANGUAGE C VOLATILE STRICT NO SQL;

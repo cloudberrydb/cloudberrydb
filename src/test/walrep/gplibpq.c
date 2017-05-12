@@ -21,32 +21,50 @@ static struct
 	XLogRecPtr	Flush;
 } LogstreamResult;
 
-static void test_XLogWalRcvProcessMsg(unsigned char type,
-								char *buf, Size len);
+static void test_XLogWalRcvProcessMsg(unsigned char type, char *buf,
+									  Size len, XLogRecPtr *logStreamStart);
 static void test_XLogWalRcvWrite(char *buf, Size nbytes, XLogRecPtr recptr);
 static void test_XLogWalRcvSendReply(void);
-static void test_ProcessWalSndrMessage(char *type, XLogRecPtr walEnd,
-						   TimestampTz sendTime);
+static void test_PrintLog(char *type, XLogRecPtr walPtr,
+						  TimestampTz sendTime);
 
 Datum test_connect(PG_FUNCTION_ARGS);
 Datum test_disconnect(PG_FUNCTION_ARGS);
 Datum test_receive(PG_FUNCTION_ARGS);
 Datum test_send(PG_FUNCTION_ARGS);
-Datum test_scenario1(PG_FUNCTION_ARGS);
+Datum test_receive_and_verify(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(test_connect);
 PG_FUNCTION_INFO_V1(test_disconnect);
 PG_FUNCTION_INFO_V1(test_receive);
 PG_FUNCTION_INFO_V1(test_send);
-PG_FUNCTION_INFO_V1(test_scenario1);
+PG_FUNCTION_INFO_V1(test_receive_and_verify);
+
+static void
+string_to_xlogrecptr(text *location, XLogRecPtr *rec)
+{
+	char *locationstr = DatumGetCString(
+		DirectFunctionCall1(textout,
+							PointerGetDatum(location)));
+
+	if (sscanf(locationstr, "%X/%X", &rec->xlogid, &rec->xrecoff) != 2)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("could not parse transaction log location \"%s\"",
+						locationstr)));
+}
 
 Datum
 test_connect(PG_FUNCTION_ARGS)
 {
 	char *conninfo = TextDatumGetCString(PG_GETARG_DATUM(0));
-	bool	result;
+	text *location = PG_GETARG_TEXT_P(1);
+	bool result;
+	XLogRecPtr startpoint;
 
-	result = walrcv_connect(conninfo, GetRedoRecPtr());
+	string_to_xlogrecptr(location, &startpoint);
+
+	result = walrcv_connect(conninfo, startpoint);
 	PG_RETURN_BOOL(result);
 }
 
@@ -80,52 +98,50 @@ test_send(PG_FUNCTION_ARGS)
 }
 
 Datum
-test_scenario1(PG_FUNCTION_ARGS)
+test_receive_and_verify(PG_FUNCTION_ARGS)
 {
-	char *conninfo = TextDatumGetCString(PG_GETARG_DATUM(0));
-	unsigned char	type;
+	text	   *start_location = PG_GETARG_TEXT_P(0);
+	text       *end_location = PG_GETARG_TEXT_P(1);
+	XLogRecPtr startpoint;
+	XLogRecPtr endpoint;
+	unsigned char type;
 	char   *buf;
-	int		len;
+	int     len;
 
-	if (!walrcv_connect(conninfo, GetRedoRecPtr()))
-		elog(ERROR, "could not connect");
+	string_to_xlogrecptr(start_location, &startpoint);
+	string_to_xlogrecptr(end_location, &endpoint);
 
-	for (;;)
+	/* Pending to check why first walrcv_receive returns nothing */
+	walrcv_receive(NAPTIME_PER_CYCLE, &type, &buf, &len);
+
+	if (walrcv_receive(NAPTIME_PER_CYCLE, &type, &buf, &len))
 	{
-		CHECK_FOR_INTERRUPTS();
-		if (walrcv_receive(NAPTIME_PER_CYCLE, &type, &buf, &len))
-		{
-			elog(INFO, "got message: type = %c", type);
+		XLogRecPtr logStreamStart;
+		/* Accept the received data, and process it */
+		test_XLogWalRcvProcessMsg(type, buf, len, &logStreamStart);
 
-			/* Accept the received data, and process it */
-			test_XLogWalRcvProcessMsg(type, buf, len);
+		/* Compare received everthing from start */
+		if (startpoint.xlogid != logStreamStart.xlogid ||
+			startpoint.xrecoff != logStreamStart.xrecoff)
+			PG_RETURN_BOOL(false);
 
-			/* Receive any more data we can without sleeping */
-			while (walrcv_receive(0, &type, &buf, &len))
-				test_XLogWalRcvProcessMsg(type, buf, len);
+		/* Compare received everthing till end */
+		if (endpoint.xlogid != LogstreamResult.Write.xlogid ||
+			endpoint.xrecoff != LogstreamResult.Write.xrecoff)
+			PG_RETURN_BOOL(false);
 
-			/* Let the primary know that we received some data. */
-			test_XLogWalRcvSendReply();
-		}
-		else
-		{
-			/*
-			 *
-			 * We didn't receive anything new, but send a status update to the
-			 * master anyway, to report any progress in applying WAL.
-			 */
-			test_XLogWalRcvSendReply();
-		}
+		PG_RETURN_BOOL(true);
 	}
 
-	PG_RETURN_NULL();
+	PG_RETURN_BOOL(false);
 }
 
 /*
  * Accept the message from XLOG stream, and process it.
  */
 static void
-test_XLogWalRcvProcessMsg(unsigned char type, char *buf, Size len)
+test_XLogWalRcvProcessMsg(unsigned char type, char *buf,
+						  Size len, XLogRecPtr *logStreamStart)
 {
 	switch (type)
 	{
@@ -139,9 +155,13 @@ test_XLogWalRcvProcessMsg(unsigned char type, char *buf, Size len)
 							 errmsg_internal("invalid WAL message received from primary")));
 				/* memcpy is required here for alignment reasons */
 				memcpy(&msghdr, buf, sizeof(WalDataMessageHeader));
+				logStreamStart->xlogid = msghdr.dataStart.xlogid;
+				logStreamStart->xrecoff = msghdr.dataStart.xrecoff;
 
-				test_ProcessWalSndrMessage("wal records",
-										   msghdr.walEnd, msghdr.sendTime);
+				test_PrintLog("wal end records",
+							  msghdr.dataStart, msghdr.sendTime);
+				test_PrintLog("wal end records",
+							  msghdr.walEnd, msghdr.sendTime);
 
 				buf += sizeof(WalDataMessageHeader);
 				len -= sizeof(WalDataMessageHeader);
@@ -163,8 +183,8 @@ test_XLogWalRcvProcessMsg(unsigned char type, char *buf, Size len)
 						keepalive.walEnd.xlogid,
 						keepalive.walEnd.xrecoff,
 						timestamptz_to_str(keepalive.sendTime));
-				test_ProcessWalSndrMessage("keep alive",
-										   keepalive.walEnd, keepalive.sendTime);
+				test_PrintLog("keep alive",
+							  keepalive.walEnd, keepalive.sendTime);
 				break;
 			}
 		default:
@@ -174,7 +194,6 @@ test_XLogWalRcvProcessMsg(unsigned char type, char *buf, Size len)
 									 type)));
 	}
 }
-
 
 /*
  * Write XLOG data to disk.
@@ -202,7 +221,7 @@ test_XLogWalRcvWrite(char *buf, Size nbytes, XLogRecPtr recptr)
 
 			XLByteToSeg(recptr, recvId, recvSeg);
 			XLogFileName(recvFilePath, recvFileTLI, recvId, recvSeg);
-			elog(INFO, "would open: %s", recvFilePath);
+			elog(DEBUG1, "would open: %s", recvFilePath);
 			recvFileTLI = 1;
 		}
 
@@ -259,10 +278,10 @@ test_XLogWalRcvSendReply(void)
  * Just show the walEnd/sendTime information
  */
 static void
-test_ProcessWalSndrMessage(char *type, XLogRecPtr walEnd,
+test_PrintLog(char *type, XLogRecPtr walPtr,
 						   TimestampTz sendTime)
 {
-	elog(INFO, "%s: %X/%X at %s", type,
-				walEnd.xlogid, walEnd.xrecoff,
+	elog(DEBUG1, "%s: %X/%X at %s", type,
+				walPtr.xlogid, walPtr.xrecoff,
 				timestamptz_to_str(sendTime));
 }

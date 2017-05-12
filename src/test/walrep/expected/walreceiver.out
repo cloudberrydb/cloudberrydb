@@ -1,0 +1,107 @@
+-- negative cases
+SELECT test_receive();
+ERROR:  could not receive data from WAL stream: connection pointer is NULL (gp_libpqwalreceiver.c:403)
+SELECT test_send();
+ERROR:  could not send data to WAL stream: connection pointer is NULL (gp_libpqwalreceiver.c:430)
+SELECT test_disconnect();
+ test_disconnect 
+-----------------
+ t
+(1 row)
+
+-- Test connection
+SELECT test_connect('', pg_current_xlog_location());
+ test_connect 
+--------------
+ t
+(1 row)
+
+-- Should report 1 replication
+SELECT count(*) FROM pg_stat_replication;
+ count 
+-------
+     1
+(1 row)
+
+SELECT test_disconnect();
+ test_disconnect 
+-----------------
+ t
+(1 row)
+
+SELECT count(*) FROM pg_stat_replication;
+ count 
+-------
+     0
+(1 row)
+
+-- Test connection passing hostname
+SELECT test_connect('host=localhost', pg_current_xlog_location());
+ test_connect 
+--------------
+ t
+(1 row)
+
+SELECT count(*) FROM pg_stat_replication;
+ count 
+-------
+     1
+(1 row)
+
+SELECT test_disconnect();
+ test_disconnect 
+-----------------
+ t
+(1 row)
+
+SELECT count(*) FROM pg_stat_replication;
+ count 
+-------
+     0
+(1 row)
+
+-- create table and store current_xlog_location.
+create TEMP table tmp(startpoint text);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'startpoint' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+CREATE FUNCTION select_tmp() RETURNS text AS $$
+select startpoint from tmp;
+$$ LANGUAGE SQL;
+insert into tmp select pg_current_xlog_location();
+-- lets generate some xlogs
+create table testwalreceiver(a int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+insert into testwalreceiver select * from generate_series(0, 9);
+-- Connect and receive the xlogs, validate everything was received from start to
+-- end
+SELECT test_connect('', select_tmp());
+ test_connect 
+--------------
+ t
+(1 row)
+
+SELECT test_receive_and_verify(select_tmp(), pg_current_xlog_location());
+ test_receive_and_verify 
+-------------------------
+ t
+(1 row)
+
+SELECT test_send();
+ test_send 
+-----------
+ t
+(1 row)
+
+SELECT test_receive();
+ test_receive 
+--------------
+ f
+(1 row)
+
+SELECT test_disconnect();
+ test_disconnect 
+-----------------
+ t
+(1 row)
+
