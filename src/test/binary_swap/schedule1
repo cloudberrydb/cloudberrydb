@@ -1,0 +1,2 @@
+test: pg_dumpall_current
+test: gpcheckcat

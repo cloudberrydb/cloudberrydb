@@ -1,0 +1,5 @@
+test: pg_dumpall_current
+test: diff_dumps
+test: inserts
+test: pg_dumpall_current
+test: gpcheckcat

@@ -1,0 +1,5 @@
+results
+regression.out
+regression.diffs
+dump_current.sql
+dump_other.sql
