@@ -941,7 +941,7 @@ CDXLUtils::SerializeQuery
 	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(NULL != pdxlnQuery && NULL != pdrgpdxlnQueryOutput);
 
-	CAutoTimer at("\n[OPT]: DXL Query Serialization Time", GPOS_FTRACE(EopttracePrintOptStats));
+	CAutoTimer at("\n[OPT]: DXL Query Serialization Time", GPOS_FTRACE(EopttracePrintOptimizationStatistics));
 
 	CXMLSerializer xmlser(pmp, os, fIndent);
 
@@ -1034,7 +1034,7 @@ CDXLUtils::SerializePlan
 	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(NULL != pdxln);
 
-	CAutoTimer at("\n[OPT]: DXL Plan Serialization Time", GPOS_FTRACE(EopttracePrintOptStats));
+	CAutoTimer at("\n[OPT]: DXL Plan Serialization Time", GPOS_FTRACE(EopttracePrintOptimizationStatistics));
 
 	CXMLSerializer xmlser(pmp, os, fIndent);
 	

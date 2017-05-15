@@ -184,7 +184,7 @@ CSearchStrategyTest::EresUnittest_Timeout()
 {
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
-	CAutoTraceFlag atf(EopttracePrintOptStats, true);
+	CAutoTraceFlag atf(EopttracePrintOptimizationStatistics, true);
 	CParseHandlerDXL *pphDXL = CDXLUtils::PphdxlParseDXLFile(pmp,"../data/dxl/search/timeout-strategy.xml", NULL);
 	DrgPss *pdrgpss = pphDXL->Pdrgpss();
 	pdrgpss->AddRef();

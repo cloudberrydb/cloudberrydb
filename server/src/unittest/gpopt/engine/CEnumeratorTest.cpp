@@ -728,7 +728,7 @@ CEnumeratorTest::EresUnittest_CheckNoOneStageAgg()
 	return
 		EresUnittest_CheckPlans
 			(
-			EopttracePreferMultiStageAgg,
+			EopttraceForceMultiStageAgg,
 			FHasNoOneStageAgg,
 			&m_ulSamplingTestNoOneStageAgg,
 			rgszCheckPlansNoOneStageAgg,

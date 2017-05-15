@@ -170,7 +170,7 @@ CEngine::Init
 	}
 	GPOS_ASSERT(0 < m_pdrgpss->UlLength());
 
-	if (GPOS_FTRACE(EopttracePrintOptStats))
+	if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
 	{
 		// initialize per-stage xform calls array
 		const ULONG ulStages = m_pdrgpss->UlLength();
@@ -367,7 +367,7 @@ CEngine::InsertXformResult
 	GPOS_ASSERT(CXform::ExfInvalid != exfidOrigin);
 	GPOS_ASSERT(NULL != pgexprOrigin);
 
-	if (GPOS_FTRACE(EopttracePrintOptStats) && 0 < pxfres->Pdrgpexpr()->UlLength())
+	if (GPOS_FTRACE(EopttracePrintOptimizationStatistics) && 0 < pxfres->Pdrgpexpr()->UlLength())
 	{
 		(void) m_pxfs->FExchangeSet(exfidOrigin);
 		(void) UlpExchangeAdd(&(*m_pdrgpulpXformCalls)[m_ulCurrSearchStage][exfidOrigin], 1);
@@ -439,7 +439,7 @@ CEngine::DeriveStats
 	CHAR *sz = CUtils::SzFromWsz(m_pmp, const_cast<WCHAR *>(str.Wsz()));
 
 	{
-		CAutoTimer at(sz, GPOS_FTRACE(EopttracePrintOptStats));
+		CAutoTimer at(sz, GPOS_FTRACE(EopttracePrintOptimizationStatistics));
 		// derive stats on root group
 		CEngine::DeriveStats(pmpLocal, m_pmp, PgroupRoot(), NULL /*prprel*/);
 	}
@@ -1321,7 +1321,7 @@ CEngine::RecursiveOptimize()
 {
 	COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
 
-	CAutoTimer at("\n[OPT]: Total Optimization Time", GPOS_FTRACE(EopttracePrintOptStats));
+	CAutoTimer at("\n[OPT]: Total Optimization Time", GPOS_FTRACE(EopttracePrintOptimizationStatistics));
 
 	const ULONG ulSearchStages = m_pdrgpss->UlLength();
 	for (ULONG ul = 0; !FSearchTerminated() && ul < ulSearchStages; ul++)
@@ -1468,7 +1468,7 @@ CEngine::FinalizeExploration()
 		m_pmemo->DeriveStatsIfAbsent(m_pmp);
 	}
 
-	if (GPOS_FTRACE(EopttracePrintMemoExplrd))
+	if (GPOS_FTRACE(EopttracePrintMemoAfterExploration))
 	{
 		{
 			CAutoTrace at(m_pmp);
@@ -1481,7 +1481,7 @@ CEngine::FinalizeExploration()
 		}
 	}
 
-	if (GPOS_FTRACE(EopttracePrintOptStats))
+	if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
 	{
 		CAutoTrace at(m_pmp);
 		(void) OsPrintMemoryConsumption(at.Os(), "Memory consumption after exploration ");
@@ -1501,7 +1501,7 @@ CEngine::FinalizeExploration()
 void
 CEngine::FinalizeImplementation()
 {
-	if (GPOS_FTRACE(EopttracePrintMemoImpld))
+	if (GPOS_FTRACE(EopttracePrintMemoAfterImplementation))
 	{
 		{
 			CAutoTrace at(m_pmp);
@@ -1514,7 +1514,7 @@ CEngine::FinalizeImplementation()
 		}
 	}
 
-	if (GPOS_FTRACE(EopttracePrintOptStats))
+	if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
 	{
 		CAutoTrace at(m_pmp);
 		(void) OsPrintMemoryConsumption(at.Os(), "Memory consumption after implementation ");
@@ -1558,7 +1558,7 @@ CEngine::PrintActivatedXforms
 	)
 	const
 {
-	if (GPOS_FTRACE(EopttracePrintOptStats))
+	if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
 	{
 		os << std::endl << "[OPT]: <Begin Xforms - stage " << m_ulCurrSearchStage << ">" << std::endl;
 		CXformSetIter xsi(*m_pxfs);
@@ -1617,7 +1617,7 @@ CEngine::OsPrintMemoryConsumption
 void
 CEngine::ProcessTraceFlags()
 {
-	if (GPOS_FTRACE(EopttracePrintMemoOptd))
+	if (GPOS_FTRACE(EopttracePrintMemoAfterOptimization))
 	{
 		{
 			CAutoTrace at(m_pmp);
@@ -1630,7 +1630,7 @@ CEngine::ProcessTraceFlags()
 		}
 	}
 
-	if (GPOS_FTRACE(EopttracePrintOptStats))
+	if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
 	{
 		CAutoTrace at(m_pmp);
 
@@ -1674,7 +1674,7 @@ CEngine::Optimize()
 {
 	COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
 
-	CAutoTimer at("\n[OPT]: Total Optimization Time", GPOS_FTRACE(EopttracePrintOptStats));
+	CAutoTimer at("\n[OPT]: Total Optimization Time", GPOS_FTRACE(EopttracePrintOptimizationStatistics));
 
 	if (GPOS_FTRACE(EopttraceParallel))
 	{
@@ -1686,7 +1686,7 @@ CEngine::Optimize()
 	}
 
 	{
-		if (GPOS_FTRACE(EopttracePrintOptStats))
+		if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
 		{
 			CAutoTrace atSearch(m_pmp);
 			atSearch.Os() << "[OPT]: Search terminated at stage " << m_ulCurrSearchStage << "/" << m_pdrgpss->UlLength();

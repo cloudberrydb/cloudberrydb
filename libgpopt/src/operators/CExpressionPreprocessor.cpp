@@ -2226,7 +2226,7 @@ CExpressionPreprocessor::PexprPreprocess
 	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(NULL != pexpr);
 
-	CAutoTimer at("\n[OPT]: Expression Preprocessing Time", GPOS_FTRACE(EopttracePrintOptStats));
+	CAutoTimer at("\n[OPT]: Expression Preprocessing Time", GPOS_FTRACE(EopttracePrintOptimizationStatistics));
 
 	// (1) remove unused CTE anchors
 	CExpression *pexprNoUnusedCTEs = PexprRemoveUnusedCTEs(pmp, pexpr);

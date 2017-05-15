@@ -1718,7 +1718,7 @@ CGroup::OsPrintGrpOptCtxts
 	const CHAR *szPrefix
 	)
 {
-	if (!FScalar() && !FDuplicateGroup() && GPOS_FTRACE(EopttracePrintOptCtxt))
+	if (!FScalar() && !FDuplicateGroup() && GPOS_FTRACE(EopttracePrintOptimizationContext))
 	{
 		os << szPrefix << "Grp OptCtxts:" << std::endl;
 
@@ -1813,7 +1813,7 @@ CGroup::OsPrintGrpProps
 	const CHAR *szPrefix
 	)
 {
-	if (!FDuplicateGroup() && GPOS_FTRACE(EopttracePrintGrpProps))
+	if (!FDuplicateGroup() && GPOS_FTRACE(EopttracePrintGroupProperties))
 	{
 		os << szPrefix << "Grp Props:" << std::endl
 		   << szPrefix << szPrefix << *m_pdp << std::endl;

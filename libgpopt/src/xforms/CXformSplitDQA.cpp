@@ -173,10 +173,9 @@ CXformSplitDQA::Transform
 	pxfres->Add(pexprAlt1);
 
 	BOOL fScalarDQA = (0 == CLogicalGbAgg::PopConvert(pexpr->Pop())->Pdrgpcr()->UlSafeLength());
-
-	if (!(GPOS_FTRACE(EopttracePreferScalarDQAMultiStageAgg) && fScalarDQA)) {
-		// if prefer multi-stage aggregate plan by this traceflag
-		// and this is a scalar DQA, then skip this local/global option.
+	BOOL fForce3StageScalarDQA = GPOS_FTRACE(EopttraceForceThreeStageScalarDQA);
+	if (!(fForce3StageScalarDQA && fScalarDQA)) {
+		// we skip this option if it is a Scalar DQA and we only want plans with 3-stages of aggregation
 
 		// local/global for both scalar and non-scalar aggregates.
 		CExpression *pexprAlt2 = PexprSplitIntoLocalDQAGlobalAgg
@@ -193,9 +192,8 @@ CXformSplitDQA::Transform
 		pxfres->Add(pexprAlt2);
 	}
 
-	if (fScalarDQA && !GPOS_FTRACE(EopttracePreferScalarDQAMultiStageAgg)) {
-		// if prefer multi-stage aggregate plan by this traceflag
-		// then skip this 2-stage option for scalar DQA.
+	if (fScalarDQA && !fForce3StageScalarDQA) {
+		// if only want 3-stage DQA then skip this 2-stage option for scalar DQA.
 
 		// special case for 'scalar DQA' only, transform to 2-stage aggregate.
 		// It's beneficial for distinct column same as distributed column.

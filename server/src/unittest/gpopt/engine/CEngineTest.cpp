@@ -71,16 +71,15 @@ CEngineTest::EresUnittest_Basic()
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
 
-	CAutoTraceFlag atf1(EopttracePrintOptStats, true);
-	CAutoTraceFlag atf2(EopttracePrintMemoExplrd, true);
-	CAutoTraceFlag atf3(EopttracePrintMemoImpld, true);
-	CAutoTraceFlag atf4(EopttracePrintMemoOptd, true);
+	CAutoTraceFlag atf1(EopttracePrintOptimizationStatistics, true);
+	CAutoTraceFlag atf2(EopttracePrintMemoAfterExploration, true);
+	CAutoTraceFlag atf3(EopttracePrintMemoAfterImplementation, true);
+	CAutoTraceFlag atf4(EopttracePrintMemoAfterOptimization, true);
 	CAutoTraceFlag atf5(EopttraceParallel, true);
 	CAutoTraceFlag atf6(EopttracePrintXform, true);
-	CAutoTraceFlag atf7(EopttracePrintGrpProps, true);
-	CAutoTraceFlag atf8(EopttracePrintOptCtxt, true);
+	CAutoTraceFlag atf7(EopttracePrintGroupProperties, true);
+	CAutoTraceFlag atf8(EopttracePrintOptimizationContext, true);
 	CAutoTraceFlag atf9(EopttracePrintXformPattern, true);
-	CAutoTraceFlag atf10(EopttracePrintOptStats, true);
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;

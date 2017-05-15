@@ -607,7 +607,7 @@ CMemo::GroupMerge()
 	GPOS_ASSERT(m_pgroupRoot->FExplored());
 	GPOS_ASSERT(!m_pgroupRoot->FImplemented());
 
-	CAutoTimer at("\n[OPT]: Group Merge Time", GPOS_FTRACE(EopttracePrintOptStats));
+	CAutoTimer at("\n[OPT]: Group Merge Time", GPOS_FTRACE(EopttracePrintOptimizationStatistics));
 
 	// keep merging groups until we have no new duplicates
 	BOOL fNewDupGroups = true;

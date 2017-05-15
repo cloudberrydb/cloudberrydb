@@ -215,7 +215,7 @@ CGroupExpression::SetOptimizationLevel()
 	}
 	else if (CUtils::FPhysicalAgg(m_pop))
 	{
-		BOOL fPreferMultiStageAgg = GPOS_FTRACE(EopttracePreferMultiStageAgg);
+		BOOL fPreferMultiStageAgg = GPOS_FTRACE(EopttraceForceMultiStageAgg);
 		if (!fPreferMultiStageAgg && COperator::EopPhysicalHashAgg == m_pop->Eopid())
 		{
 			// if we choose agg plans based on cost only (no preference for multi-stage agg), 
@@ -224,7 +224,7 @@ CGroupExpression::SetOptimizationLevel()
 			return;
 		}
 
-		// if we prefer plans with multi-stage agg, we optimize any multi-stage agg
+		// if we only want plans with multi-stage agg, we generate multi-stage agg
 		// first to avoid later optimization of one stage agg if possible                                   
 		BOOL fMultiStage = CPhysicalAgg::PopConvert(m_pop)->FMultiStage();
 		if (fPreferMultiStageAgg && fMultiStage)
@@ -832,7 +832,7 @@ CGroupExpression::Transform
 	// check traceflag and compatibility with origin xform
 	if (GPOPT_FDISABLED_XFORM(pxform->Exfid())|| !pxform->FCompatible(m_exfidOrigin))
 	{
-		if (GPOS_FTRACE(EopttracePrintOptStats))
+		if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
 		{
 			*pulElapsedTime = timer.UlElapsedMS();
 		}
@@ -845,7 +845,7 @@ CGroupExpression::Transform
 	exprhdl.DeriveProps(NULL /*pdpctxt*/);
 	if (CXform::ExfpNone == pxform->Exfp(exprhdl))
 	{
-		if (GPOS_FTRACE(EopttracePrintOptStats))
+		if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
 		{
 			*pulElapsedTime = timer.UlElapsedMS();
 		}
@@ -888,7 +888,7 @@ CGroupExpression::Transform
 	// post-prcoessing before applying xform to group expression
 	PostprocessTransform(pmpLocal, pmp, pxform);
 
-	if (GPOS_FTRACE(EopttracePrintOptStats))
+	if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
 	{
 		*pulElapsedTime = timer.UlElapsedMS();
 	}
@@ -1089,7 +1089,7 @@ CGroupExpression::PrintXform
 	CXformResult *pxfres
 	)
 {
-	if (NULL != pexpr && GPOS_FTRACE(EopttracePrintXform) && !GPOS_FTRACE(EopttraceDisablePrintXformRes))
+	if (NULL != pexpr && GPOS_FTRACE(EopttracePrintXform) && GPOS_FTRACE(EopttracePrintXformResults))
 	{
 		CAutoTrace at(pmp);
 		IOstream &os(at.Os());
@@ -1117,7 +1117,7 @@ CGroupExpression::OsPrintCostContexts
 	const CHAR *szPrefix
 	)
 {
-	if (Pop()->FPhysical() && GPOS_FTRACE(EopttracePrintOptCtxt))
+	if (Pop()->FPhysical() && GPOS_FTRACE(EopttracePrintOptimizationContext))
 	{
 		// print cost contexts
 		os << szPrefix << szPrefix << "Cost Ctxts:" << std::endl;

@@ -205,7 +205,7 @@ CScheduler::ExecuteJobs
 				Complete(pj);
 
 #ifdef GPOS_DEBUG
-				if (GPOS_FTRACE(EopttracePrintScheduler))
+				if (GPOS_FTRACE(EopttracePrintJobScheduler))
 				{
 					CAutoTrace at(psc->PmpGlobal());
 

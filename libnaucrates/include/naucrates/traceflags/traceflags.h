@@ -32,35 +32,35 @@ namespace gpos
 		// print xform info
 		EopttracePrintXform = 101002,
 
-		// disable printing input and output of xforms
-		EopttraceDisablePrintXformRes = 101003,
+		// print input and output of xforms
+		EopttracePrintXformResults = 101003,
 
 		// print MEMO after exploration
-		EopttracePrintMemoExplrd = 101004,
+		EopttracePrintMemoAfterExploration = 101004,
 
 		// print MEMO after implementation
-		EopttracePrintMemoImpld = 101005,
+		EopttracePrintMemoAfterImplementation = 101005,
 
 		// print MEMO after optimization
-		EopttracePrintMemoOptd = 101006,
+		EopttracePrintMemoAfterOptimization = 101006,
 
 		// print jobs in scheduler on each job completion
-		EopttracePrintScheduler = 101007,
+		EopttracePrintJobScheduler = 101007,
 
 		// print expression properties
-		EopttracePrintExprProps = 101008,
+		EopttracePrintExpressionProperties = 101008,
 
 		// print group properties
-		EopttracePrintGrpProps = 101009,
+		EopttracePrintGroupProperties = 101009,
 
 		// print optimization context
-		EopttracePrintOptCtxt = 101010,
+		EopttracePrintOptimizationContext = 101010,
 
 		// print xform pattern
 		EopttracePrintXformPattern = 101011,
 
 		// print optimizer's stats
-		EopttracePrintOptStats = 101012,
+		EopttracePrintOptimizationStatistics = 101012,
 
 		// enable plan enumeration
 		EopttraceEnumeratePlans = 101013,
@@ -130,8 +130,8 @@ namespace gpos
 		// Enable plan space pruning
 		EopttraceEnableSpacePruning = 103014,
 
-		// Prefer multi-stage aggregation whenever a multi-stage agg plan is possible
-		EopttracePreferMultiStageAgg = 103015,
+		// Always pick multi-stage aggregation whenever such a plan is generated
+		EopttraceForceMultiStageAgg = 103015,
 
 		// Enable generating (Redistribute, Broadcast) alternative for hash join children
 		EopttraceEnableRedistributeBroadcastHashJoin = 103016,
@@ -151,8 +151,8 @@ namespace gpos
 		// enforce evaluating subqueries using correlated joins (subplans in GPDB)
 		EopttraceEnforceCorrelatedExecution = 103021,
 
-		// prefer plans that expand multiple distinct qualified aggregates into join of single distinct aggregates
-		EopttracePreferExpandedMDQAs = 103022,
+		// Always pick plans that expand multiple distinct qualified aggregates into join of single distinct aggregates
+		EopttraceForceExpandedMDQAs = 103022,
 
 		// prevent optimizing CTE producer side based on requirements enforced on top of CTE consumer
 		EopttraceDisablePushingCTEConsumerReqsToCTEProducer = 103023,
@@ -179,14 +179,14 @@ namespace gpos
 		// derive new statistics for dynamic scans when partition elimination applies
 		EopttraceDeriveStatsForDPE = 104002,
 
-		// avoid collecting information about columns with missing statistics
-		EopttraceDonotCollectMissingStatsCols = 104003,
+		// print information about columns with missing statistics
+		EopttracePrintColsWithMissingStats = 104003,
 
 		// do not trigger stats derivation for all groups after exploration
 		EopttraceDonotDeriveStatsForAllGroups = 104004,
-                
-		// Prefer plans that split scalar DQA into multiple stage aggregates other than 2-stage aggregates.
-		EopttracePreferScalarDQAMultiStageAgg = 104005,
+
+		// Always pick plans that split scalar DQA into a plan with 3-stage aggregation
+		EopttraceForceThreeStageScalarDQA = 104005,
 
 		///////////////////////////////////////////////////////
 		/////////// constant expression evaluator flags ///////

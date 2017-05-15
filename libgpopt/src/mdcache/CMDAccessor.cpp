@@ -441,7 +441,7 @@ CMDAccessor::~CMDAccessor()
 	m_shtProviders.DestroyEntries(DestroyProviderElement);
 	GPOS_DELETE(m_pmdpGeneric);
 
-	if (GPOS_FTRACE(EopttracePrintOptStats))
+	if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
 	{
 		// print fetch time and lookup time
 		CAutoTrace at(m_pmp);
@@ -603,7 +603,7 @@ CMDAccessor::Pimdobj
 			pmdobjNew = gpdxl::CDXLUtils::PimdobjParseDXL(pmp, a_pstr.Pt(), NULL /* XSD path */);
 			GPOS_ASSERT(NULL != pmdobjNew);
 
-			if (GPOS_FTRACE(EopttracePrintOptStats))
+			if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
 			{
 				// add fetch time in msec
 				CDouble dFetch(timerFetch.UlElapsedUS() / CDouble(GPOS_USEC_IN_MSEC));
@@ -671,7 +671,7 @@ CMDAccessor::Pimdobj
 	pimdobj = pmdaccelem->Pimdobj();
 	GPOS_ASSERT(NULL != pimdobj);
 	
-	if (GPOS_FTRACE(EopttracePrintOptStats))
+	if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
 	{
 		// add lookup time in msec
 		CDouble dLookup(timerLookup.UlElapsedUS() / CDouble(GPOS_USEC_IN_MSEC));
@@ -1123,7 +1123,7 @@ CMDAccessor::RecordColumnStats
 	GPOS_ASSERT(NULL != phist);
 	phmulhist->FInsert(GPOS_NEW(pmp) ULONG(ulColId), phist);
 
-	BOOL fGuc = !GPOS_FTRACE(EopttraceDonotCollectMissingStatsCols);
+	BOOL fGuc = GPOS_FTRACE(EopttracePrintColsWithMissingStats);
 	BOOL fRecordMissingStats = !fEmptyTable && fGuc && !fSystemCol
 								&& (NULL != pstatsconf) && phist->FColStatsMissing();
 	if (fRecordMissingStats)

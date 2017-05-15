@@ -345,7 +345,7 @@ CTranslatorDXLToExpr::PexprTranslateQuery
 	const DrgPdxln *pdrgpdxlnCTE
 	)
 {
-	CAutoTimer at("\n[OPT]: DXL To Expr Translation Time", GPOS_FTRACE(EopttracePrintOptStats));
+	CAutoTimer at("\n[OPT]: DXL To Expr Translation Time", GPOS_FTRACE(EopttracePrintOptimizationStatistics));
 
 	return Pexpr(pdxln, pdrgpdxlnQueryOutput, pdrgpdxlnCTE);
 }

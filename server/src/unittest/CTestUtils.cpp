@@ -4542,7 +4542,7 @@ CTestUtils::EresUnittest_RunTests
 	CAutoTraceFlag atf3(EopttraceDeriveStatsForDPE, true /*fVal*/);
 
 	// prefer MDQA
-	CAutoTraceFlag atf5(EopttracePreferExpandedMDQAs, true);
+	CAutoTraceFlag atf5(EopttraceForceExpandedMDQAs, true);
 
 	GPOS_RESULT eres = EresUnittest_RunTestsWithoutAdditionalTraceFlags
 						(

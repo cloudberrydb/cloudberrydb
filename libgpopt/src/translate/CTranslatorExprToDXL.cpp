@@ -272,7 +272,7 @@ CTranslatorExprToDXL::PdxlnTranslate
 	DrgPmdname *pdrgpmdname
 	)
 {
-	CAutoTimer at("\n[OPT]: Expr To DXL Translation Time", GPOS_FTRACE(EopttracePrintOptStats));
+	CAutoTimer at("\n[OPT]: Expr To DXL Translation Time", GPOS_FTRACE(EopttracePrintOptimizationStatistics));
 
 	GPOS_ASSERT(NULL == m_pdpplan);
 	
