@@ -23,7 +23,8 @@ class GpdbBuildBase:
         return 2
 	
     def install_dependency(self, dependency_name):
-        return subprocess.call("tar -xzf " + dependency_name + "/*.tar.gz -C /usr/local", shell=True)
+        subprocess.call("tar -xzf " + dependency_name + "/*.tar.gz -C /usr/local", shell=True)
+        return subprocess.call(["ldconfig", "/usr/local/lib"])
     
     def configure(self):
         return subprocess.call(["./configure",
