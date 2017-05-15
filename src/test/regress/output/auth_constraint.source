@@ -1,7 +1,6 @@
 --- By design, every boolean query (which doesn't error out) in this test must return true.
 --- For reference, 2011-08-30 was a Tuesday!
 ---
-set optimizer_disable_missing_stats_collection = on;
 CREATE FUNCTION check_auth_time_constraints(cstring, timestamptz)
     RETURNS bool
     AS '@abs_builddir@/regress@DLSUFFIX@'

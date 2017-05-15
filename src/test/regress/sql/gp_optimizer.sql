@@ -902,7 +902,7 @@ select count(*) from foo_missing_stats where a = 10;
 with x as (select * from foo_missing_stats) select count(*) from x x1, x x2 where x1.a = x2.a;
 with x as (select * from foo_missing_stats) select count(*) from x x1, x x2 where x1.a = x2.b;
 
-set optimizer_disable_missing_stats_collection = on;
+set optimizer_print_missing_stats = off;
 
 -- Push components of disjunctive predicates
 create table cust(cid integer, firstname text, lastname text) distributed by (cid);

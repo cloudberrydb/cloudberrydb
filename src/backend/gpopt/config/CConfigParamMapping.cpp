@@ -48,63 +48,63 @@ CConfigParamMapping::SConfigMappingElem CConfigParamMapping::m_elem[] =
 		},
 
 		{
-		EopttraceDisablePrintXformRes,
-		&optimizer_disable_xform_result_printing,
+		EopttracePrintXformResults,
+		&optimizer_print_xform_results,
 		false, // m_fNegate
-		GPOS_WSZ_LIT("Disable printing input and output of xforms.")
+		GPOS_WSZ_LIT("Print input and output of xforms.")
 		},
 
 		{
-		EopttracePrintMemoExplrd,
+		EopttracePrintMemoAfterExploration,
 		&optimizer_print_memo_after_exploration,
 		false, // m_fNegate
 		GPOS_WSZ_LIT("Prints MEMO after exploration.")
 		},
 
 		{
-		EopttracePrintMemoImpld,
+		EopttracePrintMemoAfterImplementation,
 		&optimizer_print_memo_after_implementation,
 		false, // m_fNegate
 		GPOS_WSZ_LIT("Prints MEMO after implementation.")
 		},
 
 		{
-		EopttracePrintMemoOptd,
+		EopttracePrintMemoAfterOptimization,
 		&optimizer_print_memo_after_optimization,
 		false, // m_fNegate
 		GPOS_WSZ_LIT("Prints MEMO after optimization.")
 		},
 
 		{
-		EopttracePrintScheduler,
+		EopttracePrintJobScheduler,
 		&optimizer_print_job_scheduler,
 		false, // m_fNegate
 		GPOS_WSZ_LIT("Prints jobs in scheduler on each job completion.")
 		},
 
 		{
-		EopttracePrintExprProps,
+		EopttracePrintExpressionProperties,
 		&optimizer_print_expression_properties,
 		false, // m_fNegate
 		GPOS_WSZ_LIT("Prints expression properties.")
 		},
 
 		{
-		EopttracePrintGrpProps,
+		EopttracePrintGroupProperties,
 		&optimizer_print_group_properties,
 		false, // m_fNegate
 		GPOS_WSZ_LIT("Prints group properties.")
 		},
 
 		{
-		EopttracePrintOptCtxt,
+		EopttracePrintOptimizationContext,
 		&optimizer_print_optimization_context,
 		false, // m_fNegate
 		GPOS_WSZ_LIT("Prints optimization context.")
 		},
 
 		{
-		EopttracePrintOptStats,
+		EopttracePrintOptimizationStatistics,
 		&optimizer_print_optimization_stats,
 		false, // m_fNegate
 		GPOS_WSZ_LIT("Prints optimization stats.")
@@ -209,17 +209,17 @@ CConfigParamMapping::SConfigMappingElem CConfigParamMapping::m_elem[] =
 		},
 
 		{
-		EopttracePreferMultiStageAgg,
-		&optimizer_prefer_multistage_agg,
+		EopttraceForceMultiStageAgg,
+		&optimizer_force_multistage_agg,
 		false, // m_fNegate
-		GPOS_WSZ_LIT("Prefer multistage agg in optimizer.")
+		GPOS_WSZ_LIT("Force optimizer to always pick multistage aggregates when such a plan alternative is generated.")
 		},
 
 		{
-		EopttraceDonotCollectMissingStatsCols,
-		&optimizer_disable_missing_stats_collection,
+		EopttracePrintColsWithMissingStats,
+		&optimizer_print_missing_stats,
 		false, // m_fNegate
-		GPOS_WSZ_LIT("Disable collection of columns with missing statistics.")
+		GPOS_WSZ_LIT("Print columns with missing statistics.")
 		},
 
 		{
@@ -314,10 +314,10 @@ CConfigParamMapping::SConfigMappingElem CConfigParamMapping::m_elem[] =
 		},
 
 		{
-		EopttracePreferExpandedMDQAs,
-		&optimizer_prefer_expanded_distinct_aggs,
+		EopttraceForceExpandedMDQAs,
+		&optimizer_force_expanded_distinct_aggs,
 		false,  // m_fNegate
-		GPOS_WSZ_LIT("Prefer plans that expand multiple distinct aggregates into join of single distinct aggregate")
+		GPOS_WSZ_LIT("Always pick plans that expand multiple distinct aggregates into join of single distinct aggregate in the optimizer")
 		},
 
 		{
@@ -335,10 +335,10 @@ CConfigParamMapping::SConfigMappingElem CConfigParamMapping::m_elem[] =
 		},
 
 		{
-		EopttracePreferScalarDQAMultiStageAgg,
-		&optimizer_prefer_scalar_dqa_multistage_agg,
+		EopttraceForceThreeStageScalarDQA,
+		&optimizer_force_three_stage_scalar_dqa,
 		false, // m_fNegate
-		GPOS_WSZ_LIT("Prefer multistage aggregates for scalar distinct qualified aggregate in the optimizer.")
+		GPOS_WSZ_LIT("Force optimizer to always pick 3 stage aggregate plan for scalar distinct qualified aggregate.")
 		},
 
 		{

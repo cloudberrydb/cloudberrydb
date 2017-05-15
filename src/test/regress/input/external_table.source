@@ -25,7 +25,6 @@
 -- s/cat\: cannot open (.*)$/cat\: $1\: NO SUCH FILE/
 --
 -- end_matchsubs
-set optimizer_disable_missing_stats_collection = on;
 CREATE TABLE REG_REGION (R_REGIONKEY INT, R_NAME CHAR(25), R_COMMENT VARCHAR(152)) DISTRIBUTED BY (R_REGIONKEY);
 
 -- --------------------------------------

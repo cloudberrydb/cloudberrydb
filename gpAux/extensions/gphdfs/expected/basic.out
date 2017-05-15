@@ -1,7 +1,7 @@
 --
 -- Create demoprot (for testing)
 --
-set optimizer_disable_missing_stats_collection = on;
+set optimizer_print_missing_stats = off;
 CREATE OR REPLACE FUNCTION write_to_file() RETURNS integer as '$libdir/gpextprotocol.so', 'demoprot_export' LANGUAGE C STABLE NO SQL;
 CREATE OR REPLACE FUNCTION read_from_file() RETURNS integer as '$libdir/gpextprotocol.so', 'demoprot_import' LANGUAGE C STABLE NO SQL;
 DROP PROTOCOL IF EXISTS demoprot;

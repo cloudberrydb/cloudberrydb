@@ -4401,7 +4401,7 @@ CTranslatorDXLToPlStmt::PlDirectDispatchSegIds
 	CDXLDirectDispatchInfo *pdxlddinfo
 	)
 {
-	if (!optimizer_direct_dispatch || NULL == pdxlddinfo)
+	if (!optimizer_enable_direct_dispatch || NULL == pdxlddinfo)
 	{
 		return NIL;
 	}

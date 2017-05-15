@@ -10,6 +10,6 @@ abort;
 insert into ao1 select i, i from generate_series(1, 1000) i;
 
 -- start_ignore
-set optimizer_disable_missing_stats_collection=on;
+set optimizer_print_missing_stats=off;
 -- end_ignore
 select * from ao1;

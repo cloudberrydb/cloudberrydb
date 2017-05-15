@@ -117,22 +117,21 @@ analyze multi_stage_test;
 
 -- TEST
 set optimizer_segments=2;
-set optimizer_prefer_multistage_agg = on;
+set optimizer_force_multistage_agg = on;
 select count_operator('select count(*) from multi_stage_test group by b;','GroupAggregate');
 
-set optimizer_prefer_multistage_agg = off;
+set optimizer_force_multistage_agg = off;
 select count_operator('select count(*) from multi_stage_test group by b;','GroupAggregate');
 
 --CLEANUP
 reset optimizer_segments;
-set optimizer_prefer_multistage_agg = off;
+set optimizer_force_multistage_agg = off;
 
 --
 -- Testing not picking HashAgg for aggregates without preliminary functions
 --
-
 -- SETUP
-SET optimizer_disable_missing_stats_collection=on;
+set optimizer_print_missing_stats = off;
 CREATE TABLE attribute_table (product_id integer, attribute_id integer,attribute text, attribute2 text,attribute_ref_lists text,short_name text,attribute6 text,attribute5 text,measure double precision,unit character varying(60)) DISTRIBUTED BY (product_id ,attribute_id);
 -- create the transition function
 CREATE OR REPLACE FUNCTION do_concat(text,text)
@@ -159,8 +158,6 @@ UPDATE pg_class set reltuples=524592::real, relpages=2708::integer where oid = '
 select count_operator('select product_id,concat(E''#attribute_''||attribute_id::varchar||E'':''||attribute) as attr FROM attribute_table GROUP BY product_id;','HashAggregate');
 
 -- CLEANUP
-SET optimizer_disable_missing_stats_collection=off;
-
 
 --
 -- Testing fallback to planner when the agg used in window does not have either prelim or inverse prelim function.

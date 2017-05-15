@@ -59,8 +59,8 @@ using namespace gpnaucrates;
 using namespace gpmd;
 
 extern bool	optimizer_enable_ctas;
-extern bool optimizer_dml_triggers;
-extern bool optimizer_dml_constraints;
+extern bool optimizer_enable_dml_triggers;
+extern bool optimizer_enable_dml_constraints;
 extern bool optimizer_enable_multiple_distinct_aggs;
 
 // OIDs of variants of LEAD window function
@@ -621,7 +621,7 @@ CTranslatorQueryToDXL::PdxlnSPJForGroupingSets
 CDXLNode *
 CTranslatorQueryToDXL::PdxlnFromQuery()
 {
-	CAutoTimer at("\n[OPT]: Query To DXL Translation Time", GPOS_FTRACE(EopttracePrintOptStats));
+	CAutoTimer at("\n[OPT]: Query To DXL Translation Time", GPOS_FTRACE(EopttracePrintOptimizationStatistics));
 
 	switch (m_pquery->commandType)
 	{
@@ -667,13 +667,13 @@ CTranslatorQueryToDXL::PdxlnInsert()
 
 	CDXLTableDescr *pdxltabdesc = CTranslatorUtils::Pdxltabdesc(m_pmp, m_pmda, m_pidgtorCol, prte, &m_fHasDistributedTables);
 	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxltabdesc->Pmdid());
-	if (!optimizer_dml_triggers && CTranslatorUtils::FRelHasTriggers(m_pmp, m_pmda, pmdrel, Edxldmlinsert))
+	if (!optimizer_enable_dml_triggers && CTranslatorUtils::FRelHasTriggers(m_pmp, m_pmda, pmdrel, Edxldmlinsert))
 	{
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("INSERT with triggers"));
 	}
 
 	BOOL fRelHasConstraints = CTranslatorUtils::FRelHasConstraints(pmdrel);
-	if (!optimizer_dml_constraints && fRelHasConstraints)
+	if (!optimizer_enable_dml_constraints && fRelHasConstraints)
 	{
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("INSERT with constraints"));
 	}
@@ -1068,7 +1068,7 @@ CTranslatorQueryToDXL::PdxlnDelete()
 
 	CDXLTableDescr *pdxltabdesc = CTranslatorUtils::Pdxltabdesc(m_pmp, m_pmda, m_pidgtorCol, prte, &m_fHasDistributedTables);
 	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxltabdesc->Pmdid());
-	if (!optimizer_dml_triggers && CTranslatorUtils::FRelHasTriggers(m_pmp, m_pmda, pmdrel, Edxldmldelete))
+	if (!optimizer_enable_dml_triggers && CTranslatorUtils::FRelHasTriggers(m_pmp, m_pmda, pmdrel, Edxldmldelete))
 	{
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("DELETE with triggers"));
 	}
@@ -1117,12 +1117,12 @@ CTranslatorQueryToDXL::PdxlnUpdate()
 
 	CDXLTableDescr *pdxltabdesc = CTranslatorUtils::Pdxltabdesc(m_pmp, m_pmda, m_pidgtorCol, prte, &m_fHasDistributedTables);
 	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxltabdesc->Pmdid());
-	if (!optimizer_dml_triggers && CTranslatorUtils::FRelHasTriggers(m_pmp, m_pmda, pmdrel, Edxldmlupdate))
+	if (!optimizer_enable_dml_triggers && CTranslatorUtils::FRelHasTriggers(m_pmp, m_pmda, pmdrel, Edxldmlupdate))
 	{
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("UPDATE with triggers"));
 	}
 	
-	if (!optimizer_dml_constraints && CTranslatorUtils::FRelHasConstraints(pmdrel))
+	if (!optimizer_enable_dml_constraints && CTranslatorUtils::FRelHasConstraints(pmdrel))
 	{
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("UPDATE with constraints"));
 	}

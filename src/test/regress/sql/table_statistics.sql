@@ -3,7 +3,7 @@ drop schema stat_heap1 cascade;
 create schema stat_heap1;
 set search_path=stat_heap1,"$user",public;
 \echo '-- end_ignore'
-set optimizer_disable_missing_stats_collection = on;
+set optimizer_print_missing_stats = off;
 -- Regular Table
 Drop table if exists stat_heap_t1;
 

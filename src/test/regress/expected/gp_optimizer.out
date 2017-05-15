@@ -9103,7 +9103,7 @@ HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For 
     16
 (1 row)
 
-set optimizer_disable_missing_stats_collection = on;
+set optimizer_print_missing_stats = off;
 -- Push components of disjunctive predicates
 create table cust(cid integer, firstname text, lastname text) distributed by (cid);
 create table datedim(date_sk integer, year integer, moy integer) distributed by (date_sk);

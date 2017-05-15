@@ -5,7 +5,7 @@
 -- --------------------------------------
 -- check platform and start 'gpfdist'
 -- --------------------------------------
-set optimizer_disable_missing_stats_collection = on;
+set optimizer_print_missing_stats = off;
 
 CREATE EXTERNAL WEB TABLE gpfdist_start (x text)
 execute E'((@bindir@/gpfdist -p 7575 -d @abs_srcdir@/data/fixedwidth/  </dev/null >/dev/null 2>&1 &); sleep 1; echo "starting...") '

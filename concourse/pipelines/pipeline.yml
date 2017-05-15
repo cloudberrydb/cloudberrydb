@@ -1275,7 +1275,7 @@ jobs:
       image: centos-gpdb-dev-6
       params:
         MAKE_TEST_COMMAND: optimizer_functional_part1
-        BLDWRAP_POSTGRES_CONF_ADDONS: fsync=off optimizer_disable_missing_stats_collection=on
+        BLDWRAP_POSTGRES_CONF_ADDONS: fsync=off optimizer_print_missing_stats=off
         TEST_OS: centos
     - task: optimizer_functional_part2
       timeout: 3h
@@ -1283,7 +1283,7 @@ jobs:
       image: centos-gpdb-dev-6
       params:
         MAKE_TEST_COMMAND: optimizer_functional_part2
-        BLDWRAP_POSTGRES_CONF_ADDONS: fsync=off optimizer_disable_missing_stats_collection=on
+        BLDWRAP_POSTGRES_CONF_ADDONS: fsync=off optimizer_print_missing_stats=off
         TEST_OS: centos
 
 - name: MU_ddboost_full
