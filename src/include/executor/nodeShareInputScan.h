@@ -16,8 +16,6 @@ extern int ExecCountSlotsShareInputScan(ShareInputScan* node);
 extern ShareInputScanState *ExecInitShareInputScan(ShareInputScan *node, EState *estate, int eflags);
 extern TupleTableSlot *ExecShareInputScan(ShareInputScanState *node);
 extern void ExecEndShareInputScan(ShareInputScanState *node);
-extern void ExecShareInputScanMarkPos(ShareInputScanState *node);
-extern void ExecShareInputScanRestrPos(ShareInputScanState *node);
 extern void ExecShareInputScanReScan(ShareInputScanState *node, ExprContext *exprCtxt);
 extern void ExecEagerFreeShareInputScan(ShareInputScanState *node);
 
