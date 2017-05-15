@@ -30,8 +30,8 @@ typedef enum
 	JSON_TOKEN_TRUE,
 	JSON_TOKEN_FALSE,
 	JSON_TOKEN_NULL,
-	JSON_TOKEN_END,
-}	JsonTokenType;
+	JSON_TOKEN_END
+} JsonTokenType;
 
 
 /*
@@ -74,7 +74,7 @@ typedef void (*json_scalar_action) (void *state, char *token, JsonTokenType toke
  * to doing a pure parse with no side-effects, and is therefore exactly
  * what the json input routines do.
  */
-typedef struct jsonSemAction
+typedef struct JsonSemAction
 {
 	void	   *semstate;
 	json_struct_action object_start;
@@ -86,7 +86,7 @@ typedef struct jsonSemAction
 	json_aelem_action array_element_start;
 	json_aelem_action array_element_end;
 	json_scalar_action scalar;
-}	jsonSemAction, *JsonSemAction;
+} JsonSemAction;
 
 /*
  * parse_json will parse the string in the lex calling the
@@ -97,7 +97,7 @@ typedef struct jsonSemAction
  * points to. If the action pointers are NULL the parser
  * does nothing and just continues.
  */
-extern void pg_parse_json(JsonLexContext *lex, JsonSemAction sem);
+extern void pg_parse_json(JsonLexContext *lex, JsonSemAction *sem);
 
 /*
  * constructor for JsonLexContext, with or without strval element.
@@ -106,5 +106,12 @@ extern void pg_parse_json(JsonLexContext *lex, JsonSemAction sem);
  * it should be avoided if the de-escaped lexeme is not required.
  */
 extern JsonLexContext *makeJsonLexContext(text *json, bool need_escapes);
+
+/*
+ * Utility function to check if a string is a valid JSON number.
+ *
+ * str agrument does not need to be nul-terminated.
+ */
+extern bool IsValidJsonNumber(const char * str, int len);
 
 #endif   /* JSONAPI_H */

@@ -3,7 +3,7 @@
  * json.h
  *	  Declarations for JSON data type support.
  *
- * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2013, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/json.h
@@ -26,7 +26,12 @@ extern Datum array_to_json(PG_FUNCTION_ARGS);
 extern Datum array_to_json_pretty(PG_FUNCTION_ARGS);
 extern Datum row_to_json(PG_FUNCTION_ARGS);
 extern Datum row_to_json_pretty(PG_FUNCTION_ARGS);
-extern void  escape_json(StringInfo buf, const char *str);
+extern Datum to_json(PG_FUNCTION_ARGS);
+
+extern Datum json_agg_transfn(PG_FUNCTION_ARGS);
+extern Datum json_agg_finalfn(PG_FUNCTION_ARGS);
+
+extern void escape_json(StringInfo buf, const char *str);
 
 /* functions in jsonfuncs.c */
 extern Datum json_object_field(PG_FUNCTION_ARGS);
