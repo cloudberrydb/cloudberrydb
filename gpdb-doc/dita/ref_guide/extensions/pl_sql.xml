@@ -252,6 +252,52 @@ $$ LANGUAGE plpgsql VOLATILE;</codeblock>
           inside a PL/pgSQL function, use the SQL command <codeph>CREATE TABLE AS</codeph>.</note>
       </body>
     </topic>
+
+    <topic xml:lang="en" id="topic_lsh_5n5_2z1313">
+      <title>Example: Using Default Argument Values</title>
+      <body>
+        <p>You can declare PL/pgSQL functions with default values for some or all input arguments.
+          The default values are inserted whenever the function is called with fewer than the 
+          declared number of 
+          arguments. Because arguments can only be omitted from the end of the actual argument
+          list, you must provide default values for all arguments after an argument defined with
+          a default value.</p>
+        <p>For example:</p>
+        <p>
+          <codeblock>CREATE FUNCTION use_default_args(a int, b int DEFAULT 2, c int DEFAULT 3)
+    RETURNS int AS $$
+DECLARE
+    sum int;
+BEGIN
+    sum := $1 + $2 + $3;
+    RETURN sum;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT use_default_args(10, 20, 30);
+ use_default_args
+------------------
+               60
+(1 row)
+
+SELECT use_default_args(10, 20);
+ use_default_args
+------------------
+               33
+(1 row)
+
+SELECT use_default_args(10);
+ use_default_args
+------------------
+               15
+(1 row)
+</codeblock>
+        </p>
+        <p>You can also use the <codeph>=</codeph> sign in place of the keyword <codeph>DEFAULT</codeph>.</p>
+    </body>
+  </topic>
+
+
     <topic xml:lang="en" id="topic_lsh_5n5_2z">
       <title>Example: Using Polymorphic Data Types </title>
       <body>

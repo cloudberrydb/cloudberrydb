@@ -2,7 +2,7 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1"><title id="bs20941">CREATE FUNCTION</title><body><p id="sql_command_desc">Defines a new function.</p><section id="section2"><title>Synopsis</title><codeblock id="sql_command_synopsis">CREATE [OR REPLACE] FUNCTION <varname>name</varname>    
-    ( [ [<varname>argmode</varname>] [<varname>argname</varname>] <varname>argtype</varname> [, ...] ] )
+    ( [ [<varname>argmode</varname>] [<varname>argname</varname>] <varname>argtype</varname> [ { DEFAULT | = } <varname>defexpr</varname> ] [, ...] ] )
       [ RETURNS { [ SETOF ] rettype 
         | TABLE ([{ argname argtype | LIKE other table }
           [, ...]])
@@ -11,6 +11,7 @@
     | IMMUTABLE | STABLE | VOLATILE
     | CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT
     | [EXTERNAL] SECURITY INVOKER | [EXTERNAL] SECURITY DEFINE
+    | COST <varname>execution_cost</varname>
     | SET <varname>configuration_parameter</varname> { TO <varname>value</varname> | = <varname>value</varname> | FROM CURRENT }
     | AS '<varname>definition</varname>'
     | AS '<varname>obj_file</varname>', '<varname>link_symbol</varname>' } ...
@@ -60,7 +61,13 @@ that the actual argument type is either incompletely specified, or outside
 the set of ordinary SQL data types. </pd><pd>The type of a column is referenced by writing
                             <codeph><varname>tablename</varname>.<varname>columnname</varname>%TYPE</codeph>. Using this
                         feature can sometimes help make a function independent of changes to the
-                        definition of a table. </pd></plentry><plentry><pt><varname>rettype</varname></pt><pd>The return data type (optionally schema-qualified). The return type
+                        definition of a table. </pd></plentry>
+<plentry><pt><varname>defexpr</varname></pt><pd>An expression to be used as the default value if
+  the parameter is not specified. The expression must be coercible to the argument type of the
+  parameter. Only <codeph>IN</codeph> and <codeph>INOUT</codeph> parameters can have a default
+  value. Each input parameter in the argument list that follows a parameter with a default value
+  must have a default value as well.</pd></plentry>
+<plentry><pt><varname>rettype</varname></pt><pd>The return data type (optionally schema-qualified). The return type
 can be a base, composite, or domain type, or may reference the type of
 a table column. Depending on the implementation language it may also
 be allowed to specify pseudotypes such as <codeph>cstring</codeph>. If
@@ -114,6 +121,14 @@ to be executed with the privileges of the user that created it. The key
 word <codeph>EXTERNAL</codeph> is allowed for SQL conformance, but it
 is optional since, unlike in SQL, this feature applies to all functions
 not just external ones.</pd></plentry>
+<plentry> <pt>COST <varname>execution_cost</varname></pt>
+<pd>A positive number identifying the estimated execution cost for the function,
+in <xref href="https://www.postgresql.org/docs/8.3/static/runtime-config-query.html#GUC-CPU-OPERATOR-COST" scope="external" format="html">cpu_operator_cost</xref> units.
+If the function returns a set, <varname>execution_cost</varname> identifies the
+cost per returned row. If the cost is not specified, C-language and internal
+functions default to 1 unit, while functions in other languages default to 100 
+units. The planner tries to evaluate the function less often when you specify
+larger <varname>execution_cost</varname> values.</pd></plentry>
                 <plentry>
                     <pt><varname>configuration_parameter</varname></pt>
                     <pt><varname>value</varname></pt>
@@ -153,9 +168,16 @@ be used for several different functions so long as they have distinct
 argument types. However, the C names of all functions must be different,
 so you must give overloaded C functions different C names (for example,
 use the argument types as part of the C names). </p><p>Two functions are considered the same if they have the same names
-and input argument types, ignoring any OUT parameters. Thus for example
+and input argument types, ignoring any <codeph>OUT</codeph> parameters. Thus for example
 these declarations conflict:</p><codeblock>CREATE FUNCTION foo(int) ...
-CREATE FUNCTION foo(int, out text) ...</codeblock><p>When repeated <codeph>CREATE FUNCTION</codeph> calls refer to the same
+CREATE FUNCTION foo(int, out text) ...</codeblock>
+<p>Functions that have different argument type lists are not considered to conflict at
+creation time, but if argument defaults are provided, they might conflict in use.
+For example, consider:</p><codeblock>CREATE FUNCTION foo(int) ...
+CREATE FUNCTION foo(int, int default 42) ...</codeblock>
+<p>The call <codeph>foo(10)</codeph>, will fail due to the ambiguity about which function should
+be called.</p>
+<p>When repeated <codeph>CREATE FUNCTION</codeph> calls refer to the same
 object file, the file is only loaded once. To unload and reload the file,
 use the <codeph>LOAD</codeph> command. </p><p>To be able to define a function, the user must have the <codeph>USAGE</codeph>
 privilege on the language.</p><p>It is often helpful to use dollar quoting to write the function definition
@@ -227,7 +249,9 @@ SELECT * FROM dup(42);</codeblock></section><section id="section9"><title>Compat
 Greenplum Database version is similar but not fully compatible. The attributes
 are not portable, neither are the different available languages. </p><p>For compatibility with some other database systems, <varname>argmode</varname>
 can be written either before or after <varname>argname</varname>. But only the first
-way is standard-compliant. </p></section><section id="section10"><title>See Also</title><p><codeph><xref href="ALTER_FUNCTION.xml#topic1" type="topic" format="dita"/></codeph>,
+way is standard-compliant. </p>
+<p>The SQL standard does not specify parameter defaults.</p>
+</section><section id="section10"><title>See Also</title><p><codeph><xref href="ALTER_FUNCTION.xml#topic1" type="topic" format="dita"/></codeph>,
                         <codeph><xref href="./DROP_FUNCTION.xml#topic1" type="topic" format="dita"
                     /></codeph>, <codeph><xref href="./LOAD.xml#topic1" type="topic" format="dita"
                     /></codeph></p></section></body></topic>

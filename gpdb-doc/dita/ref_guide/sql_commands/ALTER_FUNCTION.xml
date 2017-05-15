@@ -14,6 +14,7 @@ ALTER FUNCTION <varname>name</varname> ( [ [<varname>argmode</varname>] [<varnam
    SET SCHEMA <varname>new_schema</varname></codeblock><p>where <varname>action</varname> is one of:</p><codeblock>{CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT}
 {IMMUTABLE | STABLE | VOLATILE}
 {[EXTERNAL] SECURITY INVOKER | [EXTERNAL] SECURITY DEFINER}
+COST <varname>execution_cost</varname>
 SET <varname>configuration_parameter</varname> { TO | = } { <varname>value</varname> | DEFAULT }
 SET <varname>configuration_parameter</varname> FROM CURRENT
 RESET <varname>configuration_parameter</varname>
@@ -45,6 +46,9 @@ for more information.</pd></plentry><plentry><pt>IMMUTABLE</pt><pt>STABLE</pt><p
 <codeph>CREATE FUNCTION</codeph> for details. </pd></plentry><plentry><pt>[ EXTERNAL ] SECURITY INVOKER</pt><pt>[ EXTERNAL ] SECURITY DEFINER</pt><pd>Change whether the function is a security definer or not. The key
 word <codeph>EXTERNAL</codeph> is ignored for SQL conformance. See <codeph>CREATE
 FUNCTION</codeph> for more information about this capability.</pd></plentry>
+        <plentry><pt>COST <varname>execution_cost</varname></pt>
+        <pd>Change the estimated execution cost of the function. See <codeph>CREATE
+FUNCTION</codeph> for more information.</pd></plentry>
         <plentry>
           <pt><varname>configuration_parameter</varname></pt>
           <pt><varname>value</varname></pt>
