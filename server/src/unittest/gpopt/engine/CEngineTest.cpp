@@ -264,7 +264,7 @@ CEngineTest::EresUnittest_AppendStats()
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
 
-	CAutoTraceFlag atf(EopttracePrintGrpProps, true);
+	CAutoTraceFlag atf(EopttracePrintGroupProperties, true);
 
 	// setup a file-based provider
 	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;

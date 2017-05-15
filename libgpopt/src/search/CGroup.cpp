@@ -2201,7 +2201,7 @@ CGroup::CostLowerBound
 void
 CGroup::DbgPrint()
 {
-	CAutoTraceFlag atf(EopttracePrintGrpProps, true);
+	CAutoTraceFlag atf(EopttracePrintGroupProperties, true);
 	CAutoTrace at(m_pmp);
 	(void) this->OsPrint(at.Os());
 }

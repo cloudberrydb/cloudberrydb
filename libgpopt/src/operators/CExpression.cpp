@@ -1196,7 +1196,7 @@ CExpression::PrintProperties
 void
 CExpression::DbgPrint() const
 {
-	CAutoTraceFlag atf(EopttracePrintExprProps, true);
+	CAutoTraceFlag atf(EopttracePrintExpressionProperties, true);
 	CAutoTrace at(m_pmp);
 	(void) this->OsPrint(at.Os());
 }
@@ -1265,7 +1265,7 @@ CExpression::OsPrint
 	CPrintPrefix pfx(ppfx, szChildPrefix);
 
 #ifdef GPOS_DEBUG
-	if (GPOS_FTRACE(EopttracePrintExprProps))
+	if (GPOS_FTRACE(EopttracePrintExpressionProperties))
 	{
 		PrintProperties(os, pfx);
 	}
