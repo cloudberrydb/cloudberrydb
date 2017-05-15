@@ -8,6 +8,11 @@ resources:
   source:
     branch: master
     uri: https://github.com/greenplum-db/gpdb
+    ignore_paths:
+      - README.md
+      - LICENSE
+      - COPYRIGHT
+      - .gitignore
 
 - name: orca_github_release
   type: github-release
