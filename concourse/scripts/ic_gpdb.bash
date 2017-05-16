@@ -82,6 +82,10 @@ function _main() {
     time make_cluster
     time gen_env
     time run_test
+
+    if [ "${TEST_BINARY_SWAP}" == "true" ]; then
+        time ./gpdb_src/concourse/scripts/test_binary_swap_gpdb.bash
+    fi
 }
 
 _main "$@"

@@ -7,6 +7,9 @@ GPDB_ARTIFACTS_DIR=$(pwd)/$OUTPUT_ARTIFACT_DIR
 
 CWDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+GPDB_SRC_PATH=${GPDB_SRC_PATH:=gpdb_src}
+GPDB_BIN_FILENAME=${GPDB_BIN_FILENAME:="bin_gpdb.tar.gz"}
+
 function expand_glob_ensure_exists() {
   local -a glob=($*)
   [ -e "${glob[0]}" ]
@@ -44,7 +47,7 @@ function prep_env_for_centos() {
     ;;
   esac
 
-  ln -sf $(pwd)/gpdb_src/gpAux/ext/${BLDARCH}/python-2.7.12 /opt/python-2.7.12
+  ln -sf $(pwd)/$GPDB_SRC_PATH/gpAux/ext/${BLDARCH}/python-2.7.12 /opt/python-2.7.12
   export PATH=${JAVA_HOME}/bin:${PATH}
 }
 
@@ -55,7 +58,7 @@ function prep_env_for_sles() {
 }
 
 function generate_build_number() {
-  pushd gpdb_src
+  pushd $GPDB_SRC_PATH
     #Only if its git repro, add commit SHA as build number
     # BUILD_NUMBER file is used by getversion file in GPDB to append to version
     if [ -d .git ] ; then
@@ -65,7 +68,7 @@ function generate_build_number() {
 }
 
 function make_sync_tools() {
-  pushd gpdb_src/gpAux
+  pushd $GPDB_SRC_PATH/gpAux
     # Requires these variables in the env:
     # IVYREPO_HOST IVYREPO_REALM IVYREPO_USER IVYREPO_PASSWD
     make sync_tools
@@ -73,11 +76,11 @@ function make_sync_tools() {
 }
 
 function link_tools_for_sles() {
-  ln -sf "$(expand_glob_ensure_exists "$(pwd)"/gpdb_src/gpAux/ext/*/python-2.7.12 )" /opt
+  ln -sf "$(expand_glob_ensure_exists "$(pwd)"/${GPDB_SRC_PATH}/gpAux/ext/*/python-2.7.12 )" /opt
 }
 
 function build_gpdb() {
-  pushd gpdb_src/gpAux
+  pushd $GPDB_SRC_PATH/gpAux
     # Use -j4 to speed up the build. (Doesn't seem worth trying to guess a better
     # value based on number of CPUs or anything like that. Going above -j4 wouldn't
     # make it much faster, and -j4 is small enough to not hurt too badly even on
@@ -91,20 +94,20 @@ function build_gpdb() {
 }
 
 function build_gppkg() {
-  pushd gpdb_src/gpAux
+  pushd $GPDB_SRC_PATH/gpAux
     make gppkg BLD_TARGETS="gppkg" INSTLOC="$GREENPLUM_INSTALL_DIR" GPPKGINSTLOC="$GPDB_ARTIFACTS_DIR" RELENGTOOLS=/opt/releng/tools
   popd
 }
 
 function unittest_check_gpdb() {
-  pushd gpdb_src
+  pushd $GPDB_SRC_PATH
     source $GREENPLUM_INSTALL_DIR/greenplum_path.sh
     make GPROOT=/usr/local unittest-check
   popd
 }
 
 function export_gpdb() {
-  TARBALL="$GPDB_ARTIFACTS_DIR"/bin_gpdb.tar.gz
+  TARBALL="$GPDB_ARTIFACTS_DIR"/$GPDB_BIN_FILENAME
   pushd $GREENPLUM_INSTALL_DIR
     source greenplum_path.sh
     python -m compileall -x test .
@@ -114,7 +117,7 @@ function export_gpdb() {
 }
 
 function export_gpdb_extensions() {
-  pushd gpdb_src/gpAux
+  pushd $GPDB_SRC_PATH/gpAux
     if ls greenplum-*zip* 1>/dev/null 2>&1; then
       chmod 755 greenplum-*zip*
       cp greenplum-*zip* "$GPDB_ARTIFACTS_DIR"/
@@ -126,7 +129,7 @@ function export_gpdb_extensions() {
 }
 
 function export_gpdb_win32_ccl() {
-    pushd gpdb_src/gpAux
+    pushd $GPDB_SRC_PATH/gpAux
     if [ -f "$(find . -maxdepth 1 -name 'greenplum-*.msi' -print -quit)" ] ; then
         cp greenplum-*.msi "$GPDB_ARTIFACTS_DIR"/
     fi
@@ -173,7 +176,7 @@ function _main() {
   # symlink and `cd`s to the actual directory. Currently the Makefile in the
   # addon directory assumes that it is located in a particular location under
   # the source tree and hence needs to be copied over.
-  rsync -auv gpaddon_src/ gpdb_src/gpAux/$ADDON_DIR
+  rsync -auv gpaddon_src/ $GPDB_SRC_PATH/gpAux/$ADDON_DIR
   build_gpdb "${BLD_TARGET_OPTION[@]}"
   build_gppkg
   if [ "$TARGET_OS" != "win32" ] ; then

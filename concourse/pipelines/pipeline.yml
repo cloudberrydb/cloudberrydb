@@ -13,6 +13,16 @@ resources:
     - gpdb-doc/*
     - README*
 
+- name: gpdb_src_binary_swap
+  type: git
+  source:
+    branch: {{gpdb-binary_swap-git-tag}}
+    private_key: {{gpdb-git-key}}
+    uri: {{gpdb-git-remote}}
+    ignore_paths:
+    - gpdb-doc/*
+    - README*
+
 - name: gpaddon_src
   type: git
   source:
@@ -59,6 +69,15 @@ resources:
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
     versioned_file: {{bin_gpdb_centos_versioned_file}}
+
+- name: binary_swap_gpdb_centos6
+  type: s3
+  source:
+    access_key_id: {{bucket-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{bucket-secret-access-key}}
+    versioned_file: {{binary_swap_gpdb_centos_versioned_file}}
 
 - name: bin_gpdb_centos7
   type: s3
@@ -425,6 +444,33 @@ jobs:
       params:
         file: gpdb_artifacts/greenplum-loaders-*-WinXP-x86_32.msi
 
+# This acts like a cache as this job will only be run once to get a
+# binary to use for our binary swap compatibility tests. Setting a new
+# tag or branch for the gpdb_src_binary_swap resource via set-pipeline
+# will replace the cached binary.
+- name: compile_gpdb_binary_swap_centos6
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      resource: gpdb_src_binary_swap
+      trigger: true
+    - get: gpaddon_src
+    - get: centos-gpdb-dev-6
+  - task: compile_gpdb
+    file: gpdb_src/concourse/tasks/compile_gpdb.yml
+    image: centos-gpdb-dev-6
+    params:
+      IVYREPO_HOST: {{ivyrepo_host}}
+      IVYREPO_REALM: {{ivyrepo_realm}}
+      IVYREPO_USER: {{ivyrepo_user}}
+      IVYREPO_PASSWD: {{ivyrepo_passwd}}
+      TARGET_OS: centos
+      TARGET_OS_VERSION: 6
+  - aggregate:
+    - put: binary_swap_gpdb_centos6
+      params:
+        file: gpdb_artifacts/bin_gpdb.tar.gz
+
 # Stage 2a: Run regression tests against binaries (make installcheck-world and similar)
 
 - name: icw_planner_centos6
@@ -436,9 +482,13 @@ jobs:
       resource: bin_gpdb_centos6
       passed: [compile_gpdb_centos6]
       trigger: true
+    - get: binary_swap_gpdb
+      resource: binary_swap_gpdb_centos6
+      passed: [compile_gpdb_binary_swap_centos6]
+      trigger: true
     - get: centos-gpdb-dev-6
   - task: ic_gpdb
-    file: gpdb_src/concourse/tasks/ic_gpdb.yml
+    file: gpdb_src/concourse/tasks/ic_gpdb_binary_swap.yml
     image: centos-gpdb-dev-6
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off' installcheck-world
