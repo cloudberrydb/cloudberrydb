@@ -3254,7 +3254,8 @@
   <topic id="gp_enable_gpperfmon">
     <title>gp_enable_gpperfmon</title>
     <body>
-      <p>Enables or disables the data collection agents that populate the <codeph>gpperfmon</codeph> database for Greenplum Command Center.</p>
+      <p>Enables or disables the data collection agents that populate the <codeph>gpperfmon</codeph>
+        database for Greenplum Command Center.</p>
       <table id="gp_enable_gpperfmon_table">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
@@ -3840,10 +3841,11 @@
     <title>gp_gpperfmon_send_interval</title>
     <body>
       <p>Sets the frequency that the Greenplum Database server processes send query execution
-        updates to the data collection agent processes used to populate the <codeph>gpperfmon</codeph> database for Command Center. Query operations
-        (iterators) executed during this interval are sent through UDP to the segment monitor
-        agents. If you find that an excessive number of UDP packets are dropped during long-running,
-        complex queries, you may consider increasing this value.</p>
+        updates to the data collection agent processes used to populate the
+          <codeph>gpperfmon</codeph> database for Command Center. Query operations (iterators)
+        executed during this interval are sent through UDP to the segment monitor agents. If you
+        find that an excessive number of UDP packets are dropped during long-running, complex
+        queries, you may consider increasing this value.</p>
       <table id="gp_gpperfmon_send_interval_table">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
@@ -4146,7 +4148,7 @@
   <topic id="gp_interconnect_setup_timeout">
     <title>gp_interconnect_setup_timeout</title>
     <body>
-      <note>This parameter is deprecated, as it applies only to an interconnect type  that is no
+      <note>This parameter is deprecated, as it applies only to an interconnect type that is no
         longer supported (<codeph>UDP</codeph>).</note>
       <table id="gp_interconnect_setup_timeout_table">
         <tgroup cols="3">
@@ -4208,9 +4210,12 @@
       <p>Sets the networking protocol used for Greenplum Database interconnect traffic. UDPIFC
         specifies using UDP with flow control for interconnect traffic, and is the only value
         supported.</p>
-      <p>UDPIFC (the default) specifies using UDP with flow control for interconnect traffic. Specify the
-         interconnect flow control method with <xref href="#gp_interconnect_fc_method" format="dita"/>.</p>
-      <p>With TCP as the interconnect protocol, Greenplum Database has an upper limit of 1000 segment instances - less than that if the query workload involves complex, multi-slice queries.</p>
+      <p>UDPIFC (the default) specifies using UDP with flow control for interconnect traffic.
+        Specify the interconnect flow control method with <xref href="#gp_interconnect_fc_method"
+          format="dita"/>.</p>
+      <p>With TCP as the interconnect protocol, Greenplum Database has an upper limit of 1000
+        segment instances - less than that if the query workload involves complex, multi-slice
+        queries.</p>
       <table id="table_jn5_frn_xv">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
@@ -8019,7 +8024,7 @@
             <row>
               <entry colname="col1">Boolean</entry>
               <entry colname="col2">on</entry>
-              <entry colname="col3">session</entry>
+              <entry colname="col3">master<p>session</p><p>reload</p></entry>
             </row>
           </tbody>
         </tgroup>
