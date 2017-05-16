@@ -58,7 +58,7 @@
     <section id="section5">
       <title>Notes</title>
       <p>The PL/pgSQL language is installed on the Greenplum Database system and is registered in a
-        user created database. The PL/Python language is installed by default. Other languages are
+        user created database. The PL/Python language is installed by default, but not registered. Other languages are
         not installed or registered. The system catalog <codeph>pg_language</codeph> contains
         information about the registered languages in a database.</p>
       <p>The user must have <codeph>USAGE</codeph> privilege for the procedural language, or must be
