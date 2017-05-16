@@ -343,6 +343,23 @@ ERROR_CHK () {
 	LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
 
+RETRY () {
+	RETVAL=$?
+	if [[ "$CURRENT" =~ "ssh" ]]; then
+		for i in 2 4 8; do
+			sleep $i
+			LOG_MSG "[WARN]:-Retrying command -- $CURRENT"
+			eval "$CURRENT"
+			if [ $? = 0 ]; then
+				RETVAL=0
+				# There seems to be no way of grabbing the return code of a
+				# trap other than saving it to a variable
+				return
+			fi
+		done
+	fi
+}
+
 SED_PG_CONF () {
 	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
 	SED_TMP_FILE=/tmp/sed_text.$$
@@ -367,65 +384,65 @@ SED_PG_CONF () {
 				fi
 			else
 				if [ $KEEP_PREV -eq 0 ];then
-					$SED -i'.bak1' -e "s/${SEARCH_TXT}/${SUB_TXT} #${SEARCH_TXT}/g" $FILENAME
+					$SED -i'.bak1' -e "s/${SEARCH_TXT}/${SUB_TXT} #${SEARCH_TXT}/" $FILENAME
 				else
-					$SED -i'.bak1' -e "s/${SEARCH_TXT}.*/${SUB_TXT}/g" $FILENAME
+					$SED -i'.bak1' -e "s/${SEARCH_TXT}.*/${SUB_TXT}/" $FILENAME
 				fi
 				RETVAL=$?
 				if [ $RETVAL -ne 0 ]; then
-					LOG_MSG "[WARN]:-Failed to replace $SEARCH_TXT in $FILENAME"
-					ERROR_EXIT=1
+					ERROR_EXIT "[FATAL]:-Failed to replace $SEARCH_TXT in $FILENAME" 2
 				else
 					LOG_MSG "[INFO]:-Replaced line in $FILENAME"
 					$RM -f ${FILENAME}.bak1
 				fi
-				$SED -i'.bak2' -e "s/^#${SEARCH_TXT}/${SEARCH_TXT}/g" $FILENAME
+				$SED -i'.bak2' -e "s/^#${SEARCH_TXT}/${SEARCH_TXT}/" $FILENAME
 				RETVAL=$?
 				if [ $RETVAL -ne 0 ]; then
-					LOG_MSG "[WARN]:-Failed to replace #$SEARCH_TXT in $FILENAME"
-					ERROR_EXIT=1
+					ERROR_EXIT "[FATAL]:-Failed to replace #$SEARCH_TXT in $FILENAME" 2
 				else
 					LOG_MSG "[INFO]:-Replaced line in $FILENAME"
 					$RM -f ${FILENAME}.bak2
 				fi
 			fi
 	else
+		# trap DEBUG will always be called first, when other traps are triggered.
+		# We need to make sure that we save the current running command, so
+		# that the RETRY function re-runs the command
+		trap 'CURRENT=$BASH_COMMAND' DEBUG
+		# Call out retry for commands that fail
+		trap RETRY ERR
+		RETVAL=0 # RETVAL gets modified in RETRY function whenever the trap is called
+
 		if [ `$TRUSTED_SHELL $SED_HOST "$GREP -c \"${SEARCH_TXT}\" $FILENAME"` -gt 1 ]; then
 			LOG_MSG "[INFO]:-Found more than 1 instance of $SEARCH_TXT in $FILENAME on $SED_HOST, will append" 1
 			APPEND=1
 		fi
 		if [ `$TRUSTED_SHELL $SED_HOST "$GREP -c \"${SEARCH_TXT}\" $FILENAME"` -eq 0 ] || [ $APPEND -eq 1 ]; then
 			$TRUSTED_SHELL $SED_HOST "$ECHO \"$SUB_TXT\" >> $FILENAME"
-			RETVAL=$?
 			if [ $RETVAL -ne 0 ]; then
-				LOG_MSG "[WARN]:-Failed to append line $SUB_TXT to $FILENAME on $SED_HOST"
-				ERROR_EXIT=1
+				ERROR_EXIT "[FATAL]:-Failed to append line $SUB_TXT to $FILENAME on $SED_HOST" 2
 			else
 				LOG_MSG "[INFO]:-Appended line $SUB_TXT to $FILENAME on $SED_HOST" 1
 			fi
 		else
 			if [ $KEEP_PREV -eq 0 ];then
-				$ECHO "s/${SEARCH_TXT}/${SUB_TXT} #${SEARCH_TXT}/g" > $SED_TMP_FILE
+				$ECHO "s/${SEARCH_TXT}/${SUB_TXT} #${SEARCH_TXT}/" > $SED_TMP_FILE
 			else
-				$ECHO "s/${SEARCH_TXT}.*/${SUB_TXT}/g" > $SED_TMP_FILE
+				$ECHO "s/${SEARCH_TXT}.*/${SUB_TXT}/" > $SED_TMP_FILE
 			fi
 			$CAT $SED_TMP_FILE | $TRUSTED_SHELL ${SED_HOST} $DD of=$SED_TMP_FILE > /dev/null 2>&1
 			$TRUSTED_SHELL $SED_HOST "sed -i'.bak1' -f $SED_TMP_FILE $FILENAME" > /dev/null 2>&1
-			RETVAL=$?
 			if [ $RETVAL -ne 0 ]; then
-				LOG_MSG "[WARN]:-Failed to insert $SUB_TXT in $FILENAME on $SED_HOST"
-				ERROR_EXIT=1
+				ERROR_EXIT "[FATAL]:-Failed to insert $SUB_TXT in $FILENAME on $SED_HOST" 2
 			else
 				LOG_MSG "[INFO]:-Replaced line in $FILENAME on $SED_HOST"
 				$TRUSTED_SHELL $SED_HOST "$RM -f ${FILENAME}.bak1" > /dev/null 2>&1
 			fi
-			$ECHO "s/^#${SEARCH_TXT}/${SEARCH_TXT}/g" > $SED_TMP_FILE
+			$ECHO "s/^#${SEARCH_TXT}/${SEARCH_TXT}/" > $SED_TMP_FILE
 			$CAT $SED_TMP_FILE | $TRUSTED_SHELL ${SED_HOST} $DD of=$SED_TMP_FILE > /dev/null 2>&1
 			$TRUSTED_SHELL $SED_HOST "sed -i'.bak2' -f $SED_TMP_FILE $FILENAME" > /dev/null 2>&1
-			RETVAL=$?
 			if [ $RETVAL -ne 0 ]; then
-				LOG_MSG "[WARN]:-Failed to substitute #${SEARCH_TXT} in $FILENAME on $SED_HOST"
-				ERROR_EXIT=1
+				ERROR_EXIT "[FATAL]:-Failed to substitute #${SEARCH_TXT} in $FILENAME on $SED_HOST" 2
 			else
 				LOG_MSG "[INFO]:-Replaced line in $FILENAME on $SED_HOST"
 				$TRUSTED_SHELL $SED_HOST "$RM -f ${FILENAME}.bak2" > /dev/null 2>&1
@@ -434,6 +451,8 @@ SED_PG_CONF () {
 
 			$RM -f $SED_TMP_FILE
 		fi
+
+		trap - ERR DEBUG # Disable trap
 	fi
 	LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
