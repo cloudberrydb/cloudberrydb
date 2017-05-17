@@ -18,6 +18,7 @@
        | ('s3://<varname>S3_endpoint</varname>[:<varname>port</varname>]/<varname>bucket_name</varname>/[<varname>S3_prefix</varname>]
              [region=<varname>S3-region</varname>]
             [config=<varname>config_file</varname>]')
+     [ON MASTER]
      FORMAT 'TEXT' 
            [( [HEADER]
               [DELIMITER [AS] '<varname>delimiter</varname>' | 'OFF']
@@ -99,6 +100,7 @@ CREATE WRITABLE EXTERNAL TABLE <varname>table_name</varname>
      LOCATION('s3://<varname>S3_endpoint</varname>[:<varname>port</varname>]/<varname>bucket_name</varname>/[<varname>S3_prefix</varname>]
             [region=<varname>S3-region</varname>]
             [config=<varname>config_file</varname>]')
+      [ON MASTER]
       FORMAT 'TEXT' 
                [( [DELIMITER [AS] '<varname>delimiter</varname>']
                [NULL [AS] '<varname>null string</varname>']
@@ -189,6 +191,9 @@ CREATE WRITABLE EXTERNAL WEB TABLE <varname>table_name</varname>
             Writable external web tables output data to an executable program that can accept an
             input stream of data. External web tables are not rescannable during query
             execution.</pd>
+          <pd>The <codeph>s3</codeph> protocol does not support external web tables. You can,
+            however, create an external web table that executes a third-party tool to read data
+            from or write data to S3 directly.</pd>
         </plentry>
         <plentry>
           <pt>
@@ -221,7 +226,7 @@ CREATE WRITABLE EXTERNAL WEB TABLE <varname>table_name</varname>
           <pt>LOCATION <varname>('protocol://host[:port]/path/file' [, ...])</varname></pt>
           <pd>For readable external tables, specifies the URI of the external data source(s) to be
             used to populate the external table or web table. Regular readable external tables allow
-            the <codeph>gpfdist</codeph> or <codeph>file</codeph> protocols. Eexternal web tables
+            the <codeph>gpfdist</codeph> or <codeph>file</codeph> protocols. External web tables
             allow the <codeph>http</codeph> protocol. If <codeph>port</codeph> is omitted, port
               <codeph>8080</codeph> is assumed for <codeph>http</codeph> and
               <codeph>gpfdist</codeph> protocols, and port 9000 for the <codeph>gphdfs</codeph>
@@ -296,7 +301,7 @@ CREATE WRITABLE EXTERNAL WEB TABLE <varname>table_name</varname>
             the S3 endpoint and bucket name where data files are uploaded for the table. For
             writable external tables you can specify an optional S3 file prefix to use when creating
             new files for data inserted to the table.</pd>
-          <pd>If you specify an <varname>S3_prefix</varname> for read-only s3 tables, the
+          <pd>If you specify an <varname>S3_prefix</varname> for read-only S3 tables, the
               <codeph>s3</codeph> protocol selects those all those files that have the specified S3
             file prefix.</pd>
           <pd>
@@ -352,6 +357,12 @@ CREATE WRITABLE EXTERNAL WEB TABLE <varname>table_name</varname>
           <pd>For information about the <codeph>s3</codeph> protocol, see <xref
               href="../../admin_guide/load/topics/g-s3-protocol.xml#amazon-emr">s3://
               Protocol</xref> in the <cite>Greenplum Database Administrator Guide</cite>.</pd>
+        </plentry>
+        <plentry>
+          <pt>ON MASTER</pt>
+          <pd>Permitted only on readable and writable external tables created with the 
+            <codeph>s3</codeph> protocol. Restricts all table-related
+	    operations to the Greenplum master segment.</pd>
         </plentry>
         <plentry>
           <pt>EXECUTE <varname>'command'</varname> [ON ...]</pt>
