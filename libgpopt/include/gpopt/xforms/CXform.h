@@ -325,6 +325,11 @@ namespace gpopt
 			static
 			CBitSet *PbsHeterogeneousIndexXforms(IMemoryPool *pmp);
 
+			// returns a set containing all xforms that generate a plan with a hash join
+			// caller takes ownership of the returned set
+			static
+			CBitSet *PbsHashJoinXforms(IMemoryPool *pmp);
+
 	}; // class CXform
 	
 	// shorthand for printing

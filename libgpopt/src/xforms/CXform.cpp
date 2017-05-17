@@ -220,5 +220,23 @@ CBitSet *CXform::PbsHeterogeneousIndexXforms
 	return pbs;
 }
 
+//	returns a set containing all xforms that generate a plan with hash join
+//	Caller takes ownership of the returned set
+CBitSet *CXform::PbsHashJoinXforms
+	(
+	IMemoryPool *pmp
+	)
+{
+	CBitSet *pbs = GPOS_NEW(pmp) CBitSet(pmp, EopttraceSentinel);
+
+	(void) pbs->FExchangeSet(GPOPT_DISABLE_XFORM_TF(CXform::ExfInnerJoin2HashJoin));
+	(void) pbs->FExchangeSet(GPOPT_DISABLE_XFORM_TF(CXform::ExfLeftOuterJoin2HashJoin));
+	(void) pbs->FExchangeSet(GPOPT_DISABLE_XFORM_TF(CXform::ExfLeftSemiJoin2HashJoin));
+	(void) pbs->FExchangeSet(GPOPT_DISABLE_XFORM_TF(CXform::ExfLeftAntiSemiJoin2HashJoin));
+	(void) pbs->FExchangeSet(GPOPT_DISABLE_XFORM_TF(CXform::ExfLeftAntiSemiJoinNotIn2HashJoinNotIn));
+
+	return pbs;
+}
+
 // EOF
 
