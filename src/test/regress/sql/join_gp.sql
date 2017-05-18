@@ -38,8 +38,8 @@ set enable_nestloop to off;
 DROP TABLE IF EXISTS alpha;
 DROP TABLE IF EXISTS theta;
 
-CREATE TABLE alpha (i int, j int);
-CREATE TABLE theta (i int, j char(10000000));
+CREATE TABLE alpha (i int, j int) distributed by (i);
+CREATE TABLE theta (i int, j char(10000000)) distributed by (i);
 
 INSERT INTO alpha values (1, 1), (2, 2);
 INSERT INTO theta values (1, 'f'), (2, 'g');
@@ -96,7 +96,7 @@ select * from t1,t2 where t1.x = 100 and t1.x = t2.y and t1.x <= t2.x;
 
 create table hjn_test (i int, j int) distributed by (i,j);
 insert into hjn_test values(3, 4);
-create table int4_tbl (f1 int);
+create table int4_tbl (f1 int) distributed by (f1);
 insert into int4_tbl values(123456), (-2147483647), (0), (-123456), (2147483647);
 select count(*) from hjn_test, (select 3 as bar) foo where hjn_test.i = least (foo.bar,4) and hjn_test.j = 4;
 select count(*) from hjn_test, (select 3 as bar) foo where hjn_test.i = least (foo.bar,(array[4])[1]) and hjn_test.j = (array[4])[1];
@@ -135,12 +135,7 @@ left outer join (tjoin2 left outer join tjoin3 on tjoin2.id=tjoin3.id) on tjoin1
 
 
 set enable_hashjoin to off;
--- Disable hashjoin forms fo ORCA
-select disable_xform('CXformInnerJoin2HashJoin');
-select disable_xform('CXformLeftAntiSemiJoin2HashJoin');
-select disable_xform('CXformLeftAntiSemiJoinNotIn2HashJoinNotIn');
-select disable_xform('CXformLeftOuterJoin2HashJoin');
-select disable_xform('CXformLeftSemiJoin2HashJoin');
+set optimizer_enable_hashjoin = off;
 
 select count(*) from hjn_test, (select 3 as bar) foo where hjn_test.i = least (foo.bar,4) and hjn_test.j = 4;
 select count(*) from hjn_test, (select 3 as bar) foo where hjn_test.i = least (foo.bar,(array[4])[1]) and hjn_test.j = (array[4])[1];
@@ -149,13 +144,7 @@ select count(*) from hjn_test, (select 3 as bar) foo where hjn_test.i = least (f
 select * from int4_tbl a join int4_tbl b on (a.f1 = (select f1 from int4_tbl c where c.f1=b.f1));
 
 reset enable_hashjoin;
-
--- Enable hashjoin forms fo ORCA
-select enable_xform('CXformInnerJoin2HashJoin');
-select enable_xform('CXformLeftAntiSemiJoin2HashJoin');
-select enable_xform('CXformLeftAntiSemiJoinNotIn2HashJoinNotIn');
-select enable_xform('CXformLeftOuterJoin2HashJoin');
-select enable_xform('CXformLeftSemiJoin2HashJoin');
+reset optimizer_enable_hashjoin;
 
 -- In case of Left Anti Semi Join, if the left rel is empty a dummy join
 -- should be created

@@ -44,19 +44,11 @@ u_zj =
 AND u_folio = (SELECT max(u_folio)  FROM q68t792_temp c WHERE a.u_vtgnr <= c.u_vtgnr  and a.u_zj <= c.u_zj)
 order by u_vtgnr, u_zj, u_folio;
 
---
 -- Fix bug in Expression to DXL translation for correlated queries when optimizer is turned on.
---
-set optimizer = on;
-
 CREATE TABLE t1 (a int, b int) DISTRIBUTED BY (a);
 CREATE TABLE t2 (a int, b int) DISTRIBUTED BY (a);
 CREATE TABLE x (a int) DISTRIBUTED BY (a);
-
--- intent is to: expect to have 'table scan' operator in query plan
-select count_operator('select * from x where a=  (select sum(t1.a)  from t1 inner join (select x.a as outer_ref, * from t2) as foo on (foo.a=t1.a+ outer_ref)  group by foo.a);', 'Table Scan') > 0;
-
-reset optimizer;
+select * from x where a=  (select sum(t1.a)  from t1 inner join (select x.a as outer_ref, * from t2) as foo on (foo.a=t1.a+ outer_ref)  group by foo.a);
 
 SET statement_timeout = 0;
 SET client_encoding = 'UTF8';
@@ -524,10 +516,8 @@ where
 create table mpp_bfv_1(col1 int, col2 text, col3 numeric) distributed by (col1);
 
 -- this cannot go to the _setup file, because it is not propagated here
--- start_ignore
-select disable_xform('CXformIndexGet2IndexScan');
+set optimizer_enable_indexscan = off;
 set optimizer_enable_master_only_queries = on;
--- end_ignore
 
 -- query that mentions no tables should have no motions
 select count_operator('select substr(''abc'', 2)', 'Motion');
@@ -545,9 +535,7 @@ select count_operator('select * from generate_series(1,10)', 'Motion');
 select count_operator('select col2 from mpp_bfv_1;', 'Motion');
 
 -- this cannot go to the _teardown file, because it is not propagated here
--- start_ignore
-select enable_xform('CXformIndexGet2IndexScan');
--- end_ignore
+reset optimizer_enable_indexscan;
 
 create table mpp_bfv_2(a int, b text, primary key (a)) distributed by (a);
 

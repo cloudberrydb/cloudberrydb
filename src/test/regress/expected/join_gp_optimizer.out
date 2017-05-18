@@ -59,8 +59,8 @@ select count(*) from hjtest a1, hjtest a2 where a2.i = least (a1.i,4) and a2.j =
   ON (alpha.i = theta.i)
  i | j | i | j 
 ---+---+---+---
-CREATE TABLE alpha (i int, j int);
-CREATE TABLE theta (i int, j char(10000000));
+CREATE TABLE alpha (i int, j int) distributed by (i);
+CREATE TABLE theta (i int, j char(10000000)) distributed by (i);
 DROP TABLE IF EXISTS alpha;
 DROP TABLE IF EXISTS theta;
 FROM gp_dist_random('alpha') FULL OUTER JOIN gp_dist_random('theta')
@@ -173,9 +173,7 @@ select * from t1,t2 where t1.x = 100 and t1.x = t2.y and t1.x <= t2.x;
 --
 create table hjn_test (i int, j int) distributed by (i,j);
 insert into hjn_test values(3, 4);
-create table int4_tbl (f1 int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f1' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+create table int4_tbl (f1 int) distributed by (f1);
 insert into int4_tbl values(123456), (-2147483647), (0), (-123456), (2147483647);
 select count(*) from hjn_test, (select 3 as bar) foo where hjn_test.i = least (foo.bar,4) and hjn_test.j = 4;
  count 
@@ -264,37 +262,7 @@ left outer join (tjoin2 left outer join tjoin3 on tjoin2.id=tjoin3.id) on tjoin1
 (12 rows)
 
 set enable_hashjoin to off;
--- Disable hashjoin forms fo ORCA
-select disable_xform('CXformInnerJoin2HashJoin');
-            disable_xform             
---------------------------------------
- CXformInnerJoin2HashJoin is disabled
-(1 row)
-
-select disable_xform('CXformLeftAntiSemiJoin2HashJoin');
-                disable_xform                
----------------------------------------------
- CXformLeftAntiSemiJoin2HashJoin is disabled
-(1 row)
-
-select disable_xform('CXformLeftAntiSemiJoinNotIn2HashJoinNotIn');
-                     disable_xform                     
--------------------------------------------------------
- CXformLeftAntiSemiJoinNotIn2HashJoinNotIn is disabled
-(1 row)
-
-select disable_xform('CXformLeftOuterJoin2HashJoin');
-              disable_xform               
-------------------------------------------
- CXformLeftOuterJoin2HashJoin is disabled
-(1 row)
-
-select disable_xform('CXformLeftSemiJoin2HashJoin');
-              disable_xform              
------------------------------------------
- CXformLeftSemiJoin2HashJoin is disabled
-(1 row)
-
+set optimizer_enable_hashjoin = off;
 select count(*) from hjn_test, (select 3 as bar) foo where hjn_test.i = least (foo.bar,4) and hjn_test.j = 4;
  count 
 -------
@@ -330,37 +298,7 @@ select * from int4_tbl a join int4_tbl b on (a.f1 = (select f1 from int4_tbl c w
 (5 rows)
 
 reset enable_hashjoin;
--- Enable hashjoin forms fo ORCA
-select enable_xform('CXformInnerJoin2HashJoin');
-            enable_xform             
--------------------------------------
- CXformInnerJoin2HashJoin is enabled
-(1 row)
-
-select enable_xform('CXformLeftAntiSemiJoin2HashJoin');
-                enable_xform                
---------------------------------------------
- CXformLeftAntiSemiJoin2HashJoin is enabled
-(1 row)
-
-select enable_xform('CXformLeftAntiSemiJoinNotIn2HashJoinNotIn');
-                     enable_xform                     
-------------------------------------------------------
- CXformLeftAntiSemiJoinNotIn2HashJoinNotIn is enabled
-(1 row)
-
-select enable_xform('CXformLeftOuterJoin2HashJoin');
-              enable_xform               
------------------------------------------
- CXformLeftOuterJoin2HashJoin is enabled
-(1 row)
-
-select enable_xform('CXformLeftSemiJoin2HashJoin');
-              enable_xform              
-----------------------------------------
- CXformLeftSemiJoin2HashJoin is enabled
-(1 row)
-
+reset optimizer_enable_hashjoin;
 -- In case of Left Anti Semi Join, if the left rel is empty a dummy join
 -- should be created
 drop table if exists foo;

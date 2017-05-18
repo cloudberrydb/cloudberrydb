@@ -134,7 +134,7 @@ insert into foo VALUES(54321);
 
 set optimizer_segments=64;
 set optimizer_enable_bitmapscan=on; 
-select disable_xform('CXformInnerJoin2HashJoin');
+set optimizer_enable_hashjoin=off;
 select disable_xform('CXformInnerJoin2IndexGetApply');
 
 -- end_ignore
@@ -190,7 +190,7 @@ set enable_seqscan=off;
 select count(1) from bmcrash where btree_col1 = 'abcdefg999' AND bitmap_col = '999' OR bitmap_col = '888' OR btree_col2 = '2015-01-01';
 select count(1) from bmcrash b1, bmcrash b2 where b1.bitmap_col = b2.bitmap_col or b1.bitmap_col = '999' and b1.btree_col1 = 'abcdefg999';
 
-select disable_xform('CXformInnerJoin2HashJoin');
+set optimizer_enable_hashjoin=off;
 with bm as (select * from bmcrash where btree_col1 = 'abcdefg999' AND bitmap_col = '999' OR bitmap_col = '888' OR btree_col2 = '2015-01-01')
 select count(1) from bm b1, bm b2 where b1.dist_col = b2.dist_col;
 

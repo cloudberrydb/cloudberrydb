@@ -447,6 +447,26 @@ CConfigParamMapping::PbsPack
 		pbsHeterogeneousIndex->Release();
 	}
 
+	if (!optimizer_enable_hashjoin)
+	{
+		// disable hash-join if the corresponding GUC is turned off
+		CBitSet *pbsHashJoin = CXform::PbsHashJoinXforms(pmp);
+		pbs->Union(pbsHashJoin);
+		pbsHashJoin->Release();
+	}
+
+	if (!optimizer_enable_dynamictablescan)
+	{
+		// disable dynamic table scan if the corresponding GUC is turned off
+		pbs->FExchangeSet(GPOPT_DISABLE_XFORM_TF(CXform::ExfDynamicGet2DynamicTableScan));
+	}
+
+	if (!optimizer_enable_indexscan)
+	{
+		// disable index scan if the corresponding GUC is turned off
+		pbs->FExchangeSet(GPOPT_DISABLE_XFORM_TF(CXform::ExfIndexGet2IndexScan));
+	}
+
 	return pbs;
 }
 

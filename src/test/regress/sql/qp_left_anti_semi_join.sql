@@ -2,8 +2,8 @@
 create schema lasj;
 set search_path='lasj';
 
-create table foo (a int, b int);
-create table bar (x int, y int);
+create table foo (a int, b int) distributed by (a);
+create table bar (x int, y int) distributed by (x);
 
 insert into foo values (1, 2);
 insert into foo values (12, 20);
@@ -22,8 +22,7 @@ insert into bar values (NULL, NULL);
 -- We will run the same queries with hash joins enabled, and disabled. First,
 -- disabled.
 set enable_hashjoin=off;
-SELECT disable_xform('CXformLeftAntiSemiJoin2HashJoin');
-
+set optimizer_enable_hashjoin = off;
 -- empty outer, non-empty inner
 SELECT * FROM foo WHERE b = -1 AND a = ALL (SELECT x FROM bar WHERE y <= 100);
 
@@ -75,8 +74,7 @@ SELECT * FROM foo WHERE a NOT IN (SELECT x FROM bar);
 
 -- Now run the same tests again, with hashjoins enabled.
 set enable_hashjoin=on;
-SELECT enable_xform('CXformLeftAntiSemiJoin2HashJoin');
-
+set optimizer_enable_hashjoin = on;
 -- empty outer, non-empty inner
 SELECT * FROM foo WHERE b = -1 AND a = ALL (SELECT x FROM bar WHERE y <= 100);
 

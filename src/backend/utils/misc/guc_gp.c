@@ -509,6 +509,9 @@ bool		optimizer_enable_partial_index;
 bool		optimizer_enable_dml_triggers;
 bool		optimizer_enable_dml_constraints;
 bool		optimizer_enable_master_only_queries;
+bool		optimizer_enable_hashjoin;
+bool		optimizer_enable_dynamictablescan;
+bool		optimizer_enable_indexscan;
 
 /* Optimizer plan enumeration related GUCs */
 bool		optimizer_enumerate_plans;
@@ -2782,6 +2785,36 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&optimizer_enable_master_only_queries,
 		false, NULL, NULL
+	},
+
+	{
+		{"optimizer_enable_hashjoin", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Enables the optimizer's use of hash join plans."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_enable_hashjoin,
+		true, NULL, NULL
+	},
+
+	{
+		{"optimizer_enable_dynamictablescan", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Enables the optimizer's use of plans with dynamic table scan."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_enable_dynamictablescan,
+		true, NULL, NULL
+	},
+
+	{
+		{"optimizer_enable_indexscan", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Enables the optimizer's use of plans with index scan."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_enable_indexscan,
+		true, NULL, NULL
 	},
 
 	{

@@ -162,10 +162,7 @@ create index idx23383_b on Tbl23383_partitioned(b);
 -- heterogenous indexes
 create index idx23383_c on Tbl23383_partitioned_1_prt_p1(c);
 create index idx23383_cd on Tbl23383_partitioned_1_prt_p2(c,d);
--- start_ignore
-select disable_xform('CXformDynamicGet2DynamicTableScan');
--- end_ignore
-
+set optimizer_enable_dynamictablescan = off;
 select count_index_scans('explain select * from Tbl23383_partitioned where b=''1''');
 select * from Tbl23383_partitioned where b='1';
 

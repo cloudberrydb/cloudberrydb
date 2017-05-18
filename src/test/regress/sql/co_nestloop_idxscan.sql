@@ -19,7 +19,7 @@ explain select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b wh
 select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
 
 -- test with nested loop join
-select disable_xform('CXformInnerJoin2HashJoin');
+set optimizer_enable_hashjoin = off;
 set enable_hashjoin=off;
 explain select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
 select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
@@ -31,6 +31,6 @@ set enable_seqscan = off;
 -- end_ignore
 explain select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
 select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
-select enable_xform('CXformInnerJoin2HashJoin');
+set optimizer_enable_hashjoin = on;
 
 drop schema co_nestloop_idxscan cascade;

@@ -2496,7 +2496,7 @@ WHERE tq.sym = tt.symbol AND
 GROUP BY 1
 ORDER BY 1 asc ;
 
-select disable_xform('CXformInnerJoin2HashJoin');
+set optimizer_enable_hashjoin = off;
 set enable_hashjoin=off;
 set enable_seqscan=off;
 set enable_mergejoin=off;
@@ -2528,4 +2528,4 @@ WHERE tq.sym = tt.symbol AND
 GROUP BY 1
 ORDER BY 1 asc ;
 
-select enable_xform('CXformInnerJoin2HashJoin');  
+set optimizer_enable_hashjoin = on;  

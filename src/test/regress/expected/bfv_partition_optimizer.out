@@ -594,14 +594,7 @@ create table mpp21834_t2(i int, j int);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- TEST
--- start_ignore
-select disable_xform('CXformInnerJoin2HashJoin');
-            disable_xform             
---------------------------------------
- CXformInnerJoin2HashJoin is disabled
-(1 row)
-
--- end_ignore
+set optimizer_enable_hashjoin = off;
 select find_operator('analyze select * from mpp21834_t2,mpp21834_t1 where mpp21834_t2.i < mpp21834_t1.i;','Dynamic Index Scan');
  find_operator 
 ---------------
@@ -624,12 +617,7 @@ WARNING:  Only dropped the index "index_1"
 HINT:  To drop other indexes on child partitions, drop each one explicitly.
 drop table if exists mpp21834_t2;
 drop table if exists mpp21834_t1;
-select enable_xform('CXformInnerJoin2HashJoin');
-            enable_xform             
--------------------------------------
- CXformInnerJoin2HashJoin is enabled
-(1 row)
-
+reset optimizer_enable_hashjoin;
 -- end_ignore
 --
 -- A rescanning of DTS with its own partition selector (under sequence node)
@@ -1034,14 +1022,7 @@ insert into mpp24151_t select i, i % 6, 'hello' || i, 'bar' from generate_series
 analyze mpp24151_pt;
 analyze mpp24151_t;
 -- TEST
--- start_ignore
-select disable_xform('CXformDynamicGet2DynamicTableScan');
-                 disable_xform                 
------------------------------------------------
- CXformDynamicGet2DynamicTableScan is disabled
-(1 row)
-
--- end_ignore
+set optimizer_enable_dynamictablescan = off;
 select count_operator('select * from mpp24151_t, mpp24151_pt where tid = ptid and pt1 = E''hello0'';','Result');
  count_operator 
 ----------------
@@ -1251,12 +1232,7 @@ WARNING:  Only dropped the index "pt1_idx"
 HINT:  To drop other indexes on child partitions, drop each one explicitly.
 drop table if exists mpp24151_t;
 drop table if exists mpp24151_pt;
-select enable_xform('CXformDynamicGet2DynamicTableScan');
-                 enable_xform                 
-----------------------------------------------
- CXformDynamicGet2DynamicTableScan is enabled
-(1 row)
-
+reset optimizer_enable_dynamictablescan
 -- end_ignore
 --
 -- No DPE (Dynamic Partition Elimination) on second child of a union under a join
@@ -1477,14 +1453,7 @@ select find_operator('(select * from dts where c2 = 1) union (select * from dts 
 ----+----
 (0 rows)
 
--- start_ignore
-select disable_xform('CXformDynamicGet2DynamicTableScan');
-                 disable_xform                 
------------------------------------------------
- CXformDynamicGet2DynamicTableScan is disabled
-(1 row)
-
--- end_ignore
+set optimizer_enable_dynamictablescan = off;
 select find_operator('(select * from dis where c3 = 1) union (select * from dis where c3 = 2) union (select * from dis where c3 = 3) union (select * from dis where c3 = 4) union (select * from dis where c3 = 5) union (select * from dis where c3 = 6) union (select * from dis where c3 = 7) union (select * from dis where c3 = 8) union (select * from dis where c3 = 9) union (select * from dis where c3 = 10);', 'Dynamic Index Scan');
  find_operator 
 ---------------
@@ -1527,12 +1496,7 @@ WARNING:  Only dropped the index "dis_index"
 HINT:  To drop other indexes on child partitions, drop each one explicitly.
 drop table if exists dis;
 drop table if exists dts;
-select enable_xform('CXformDynamicGet2DynamicTableScan');
-                 enable_xform                 
-----------------------------------------------
- CXformDynamicGet2DynamicTableScan is enabled
-(1 row)
-
+reset optimizer_enable_dynamictablescan;
 -- end_ignore
 --
 -- Partition elimination for heterogenous DynamicIndexScans
@@ -1563,14 +1527,7 @@ create index pp_1_prt_1_idx on pp_1_prt_1(c);
 create index pp_rest_1_idx on pp_1_prt_2(c,a);
 create index pp_rest_2_idx on pp_1_prt_3(c,a);
 -- TEST
--- start_ignore
-select disable_xform('CXformDynamicGet2DynamicTableScan') ;
-                 disable_xform                 
------------------------------------------------
- CXformDynamicGet2DynamicTableScan is disabled
-(1 row)
-
--- end_ignore
+set optimizer_enable_dynamictablescan = off;
 select * from pp where b=2 and c=2;
  a | b | c 
 ---+---+---
@@ -1588,20 +1545,9 @@ drop index if exists pp_rest_2_idx;
 drop index if exists pp_rest_1_idx;
 drop index if exists pp_1_prt_1_idx;
 drop table if exists pp;
-select enable_xform('CXformDynamicGet2DynamicTableScan') ;
-                 enable_xform                 
-----------------------------------------------
- CXformDynamicGet2DynamicTableScan is enabled
-(1 row)
-
+reset optimizer_enable_dynamictablescan;
 reset optimizer_segments;
 set optimizer_partition_selection_log=off;
-select enable_xform('CXformDynamicGet2DynamicTableScan') ;
-                 enable_xform                 
-----------------------------------------------
- CXformDynamicGet2DynamicTableScan is enabled
-(1 row)
-
 -- end_ignore
 --
 -- Partition elimination with implicit CAST on the partitioning key

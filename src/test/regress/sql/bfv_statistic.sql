@@ -1,22 +1,5 @@
 create schema bfv_statistic;
 set search_path=bfv_statistic;
-
--- start_ignore
-create language plpythonu;
--- end_ignore
-
-create or replace function check_row_count(query text, expected integer) returns text as
-$$
-output = plpy.execute(query)
-rows = output[0]['QUERY PLAN'].split('rows=')[1].split()[0]
-if int(rows) == expected:
-	return "true"
-return "false"
-$$
-language plpythonu;
-
-set optimizer = on;
-
 create table foo (a int, b int) distributed by (a);
 insert into foo values (1,1);
 insert into foo values (0,1);
@@ -27,8 +10,8 @@ analyze foo;
 -- current statistics
 select stanullfrac, stadistinct, stanumbers1 from pg_statistic where starelid='foo'::regclass and staattnum=1;
 
--- exercise the translator
-select check_row_count('explain select * from foo where a is not null and b >= 1;', 3);
+-- exercise GPORCA translator
+explain select * from foo where a is not null and b >= 1;
 
 create table foo2(a int) distributed by (a);
 insert into foo2 select generate_series(1,5);
@@ -41,14 +24,14 @@ analyze foo2;
 -- current stats
 select stanumbers1, stavalues1 from pg_statistic where starelid='foo2'::regclass;
 
-select check_row_count('explain select a from foo2 where a > 1 order by a;', 14);
+explain select a from foo2 where a > 1 order by a;
 
 -- change stats manually so that MCV and MCF numbers do not match
 set allow_system_table_mods=DML;
 update pg_statistic set stavalues1='{6,3,1,5,4,2}'::int[] where starelid='foo2'::regclass;
 
 -- excercise the translator
-select check_row_count('explain select a from foo2 where a > 1 order by a;', 8);
+explain select a from foo2 where a > 1 order by a;
 
 --
 -- test missing statistics
@@ -63,7 +46,6 @@ select * from gp_toolkit.gp_stats_missing where smischema = 'public' AND  smitab
 -- for Orca's Split Operator ensure that the columns needed for stats derivation is correct
 --
 
-set optimizer=on;
 set gp_create_table_random_default_distribution=off;
 
 CREATE TABLE bar_dml (
@@ -92,8 +74,6 @@ WITH (appendonly=true) DISTRIBUTED RANDOMLY;
 
 update bar_dml set (zhlg_org, zhlg_typ_org) = (zhlg, zhlg_typ);
 
-reset optimizer;
-
 --
 -- Cardinality estimation when there is no histogram and MCV
 --
@@ -106,13 +86,11 @@ analyze foo4;
 
 select stanullfrac, stadistinct, stanumbers1 from pg_statistic where starelid='foo4'::regclass and staattnum=1;
 
-select check_row_count('explain select a from foo4 where a > 888;', 1);
+explain select a from foo4 where a > 888;
 
 --
 -- Testing that the merging of memo groups inside Orca does not crash cardinality estimation inside Orca
 --
-
-set optimizer = on;
 
 create table t1(c1 int);
 insert into t1 values(1);
@@ -122,20 +100,6 @@ select v from (select max(c1) as v, 1 as r from t1 union select 1 as v, 2 as r )
 select v from (select max(c1) as v, 1 as r from t1 union all select 1 as v, 2 as r ) as foo group by v;
 
 select v from (select max(c1) as v, 1 as r from t1 union select 1 as v, 2 as r ) as foo;
-
-select disable_xform('CXformPushGbBelowUnionAll');
-select v from (select max(c1) as v, 1 as r from t1 union select 1 as v, 2 as r ) as foo group by v;
-select enable_xform('CXformPushGbBelowUnionAll');
-
-select disable_xform('CXformPushGbBelowUnion');
-select v from (select max(c1) as v, 1 as r from t1 union select 1 as v, 2 as r ) as foo group by v;
-select enable_xform('CXformPushGbBelowUnion');
-
-select disable_xform('CXformSimplifyGbAgg');
-select v from (select max(c1) as v, 1 as r from t1 union select 1 as v, 2 as r ) as foo group by v;
-select enable_xform('CXformSimplifyGbAgg');
-
-reset optimizer;
 
 --
 -- test the generation of histogram boundaries for numeric and real data types

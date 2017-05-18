@@ -339,7 +339,7 @@ set enable_seqscan=off;
 select count(1) from bmheapcrash where btree_col1 = 'abcdefg999' AND bitmap_col = '999' OR bitmap_col = '888' OR btree_col2 = '2015-01-01';
 select count(1) from bmheapcrash b1, bmheapcrash b2 where b1.bitmap_col = b2.bitmap_col or b1.bitmap_col = '999' and b1.btree_col1 = 'abcdefg999';
 
-select disable_xform('CXformInnerJoin2HashJoin');
+set optimizer_enable_hashjoin = off;
 with bm as (select * from bmheapcrash where btree_col1 = 'abcdefg999' AND bitmap_col = '999' OR bitmap_col = '888' OR btree_col2 = '2015-01-01')
 select count(1) from bm b1, bm b2 where b1.dist_col = b2.dist_col;
 

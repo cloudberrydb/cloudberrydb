@@ -329,14 +329,7 @@ NOTICE:  building index for child partition "tbl23383_partitioned_1_prt_p2"
 -- heterogenous indexes
 create index idx23383_c on Tbl23383_partitioned_1_prt_p1(c);
 create index idx23383_cd on Tbl23383_partitioned_1_prt_p2(c,d);
--- start_ignore
-select disable_xform('CXformDynamicGet2DynamicTableScan');
-                 disable_xform                 
------------------------------------------------
- CXformDynamicGet2DynamicTableScan is disabled
-(1 row)
-
--- end_ignore
+set optimizer_enable_dynamictablescan = off;
 select count_index_scans('explain select * from Tbl23383_partitioned where b=''1''');
  count_index_scans 
 -------------------
