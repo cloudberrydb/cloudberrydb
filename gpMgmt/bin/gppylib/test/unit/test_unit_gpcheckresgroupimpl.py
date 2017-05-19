@@ -3,7 +3,7 @@
 # Copyright (c) 2017, Pivotal Software Inc.
 #
 
-import unittest2 as unittest
+import unittest
 import os
 import sys
 import shutil
