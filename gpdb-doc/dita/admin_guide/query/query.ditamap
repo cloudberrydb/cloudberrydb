@@ -17,6 +17,7 @@
         <topicref href="topics/defining-queries.xml"/>
         <topicref href="topics/functions-operators.xml"/>
         <topicref href="topics/json-data.xml"/>
+        <topicref href="topics/xml-data.xml"/>
         <topicref href="topics/query-performance.xml"/>
         <topicref href="topics/spill-files.xml"/>
         <topicref href="topics/query-profiling.xml"/>
