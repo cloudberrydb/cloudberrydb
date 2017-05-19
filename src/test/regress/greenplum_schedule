@@ -75,11 +75,6 @@ test: resource_queue
 test: resource_queue_function
 test: wrkloadadmin
 
-# set gp_resource_manager and restart cluster to enable resource group
-test: resource_group_setup
-test: resource_group
-test: resource_group_cleanup
-
 # gp_toolkit performs a vacuum and checks that it truncated the relation. That
 # might not happen if other backends are holding transactions open, preventing
 # vacuum from removing dead tuples.
