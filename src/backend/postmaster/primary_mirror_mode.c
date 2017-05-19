@@ -1060,8 +1060,8 @@ primaryMirrorCheckNICFailure()
 	acquireModuleSpinLockAndMaybeStartCriticalSection(true);
 	{
 		/* get local and peer host names */
-		strncpy(localHost, (const char *) pmModuleState->hostAddress, sizeof(localHost));
-		strncpy(peerHost, (const char *) pmModuleState->peerAddress, sizeof(peerHost));
+		strlcpy(localHost, (const char *) pmModuleState->hostAddress, sizeof(localHost));
+		strlcpy(peerHost, (const char *) pmModuleState->peerAddress, sizeof(peerHost));
 	}
 	releaseModuleSpinLockAndEndCriticalSectionAsNeeded();
 
@@ -2415,7 +2415,7 @@ isFilespaceInfoConsistent(void)
 				(errcode(ERRCODE_RAISE_EXCEPTION),
 				 errmsg("Transaction files filespace Inconsistent. Filespace oid %d filespace flatfile locations - local:%s peer %s, "
 						"Filespace gp_persistent_filespace_node locations - local:%s peer:%s", filespaceOid, (char*)pmModuleState->txnFilespacePath,
-						(char*)pmModuleState->peerTxnFilespacePath, primaryFilespaceLocation, mirrorFilespaceLocation),
+						(char*)pmModuleState->peerTxnFilespacePath, primaryFilespaceLocation, mirrorFilespaceLocation ? mirrorFilespaceLocation : ""),
 				 errSendAlert(true)));
 		ret = false;
 		goto cleanup;
@@ -2437,12 +2437,12 @@ isFilespaceInfoConsistent(void)
 			ret = false;
 			goto cleanup;
 		}
+		pfree(mirrorFilespaceLocation);
+		mirrorFilespaceLocation = NULL;
 	}
 
-	if (primaryFilespaceLocation)
-		pfree(primaryFilespaceLocation);
-	if (mirrorFilespaceLocation)
-		pfree(mirrorFilespaceLocation);
+	pfree(primaryFilespaceLocation);
+	primaryFilespaceLocation = NULL;
 
 	filespaceOid = primaryMirrorGetTempFilespaceOID();
 	ret = true;
@@ -2469,7 +2469,7 @@ isFilespaceInfoConsistent(void)
 				(errcode(ERRCODE_RAISE_EXCEPTION),
 				 errmsg("Temporary files filespace Inconsistent. Filespace oid %d filespace flatfile locations - local:%s peer %s, "
 						"Filespace gp_persistent_filespace_node locations - local:%s peer:%s", filespaceOid, (char*)pmModuleState->txnFilespacePath,
-						(char*)pmModuleState->peerTxnFilespacePath, primaryFilespaceLocation, mirrorFilespaceLocation),
+						(char*)pmModuleState->peerTxnFilespacePath, primaryFilespaceLocation, mirrorFilespaceLocation ? mirrorFilespaceLocation : ""),
 				 errSendAlert(true)));
 		ret = false;
 		goto cleanup;
@@ -2494,8 +2494,7 @@ isFilespaceInfoConsistent(void)
 	}
 
 cleanup:
-	if (primaryFilespaceLocation)
-		pfree(primaryFilespaceLocation);
+	pfree(primaryFilespaceLocation);
 	if (mirrorFilespaceLocation)
 		pfree(mirrorFilespaceLocation);
 
@@ -2528,8 +2527,11 @@ primaryMirrorPopulateFilespaceInfo(void)
 			pch = strtok(buffer, " ");
 			dbId = atoi(pch);
 			pch = strtok(NULL, " ");
-			strcpy(filespacePath, pch);
+			if (strlcpy(filespacePath, pch, MAXPGPATH) >= MAXPGPATH)
+				filespacePath[0] = '\0';
 		}
+		else
+			filespacePath[0] = '\0';
 
 		/* Check if there is an entry for the mirror temp filespace as well */
 		MemSet(buffer, 0, MAXPGPATH);
@@ -2540,25 +2542,30 @@ primaryMirrorPopulateFilespaceInfo(void)
 			pch = strtok(buffer, " ");
 			peerDbId = atoi(pch);
 			pch = strtok(NULL, " ");
-			strcpy(peerFilespacePath, pch);
+			if (strlcpy(peerFilespacePath, pch, MAXPGPATH) >= MAXPGPATH)
+				peerFilespacePath[0] = '\0';
 		}
+		else
+			peerFilespacePath[0] = '\0';
 
-		/* Populate the local and peer filepsace paths */
+		/* Populate the local and peer filespace paths */
 		if (dbId == GpIdentity.dbid)
 		{
-			strcpy((char*)&(pmModuleState->tempFilespacePath[0]), filespacePath);
-			strcpy((char*)&(pmModuleState->peerTempFilespacePath[0]), peerFilespacePath);
+			strlcpy((char*)&(pmModuleState->tempFilespacePath[0]), filespacePath, MAXPGPATH);
+			strlcpy((char*)&(pmModuleState->peerTempFilespacePath[0]), peerFilespacePath, MAXPGPATH);
 		}
 		else
 		{
 			Insist(peerDbId == GpIdentity.dbid);
-			strcpy((char*)&(pmModuleState->tempFilespacePath[0]), peerFilespacePath);
-			strcpy((char*)&(pmModuleState->peerTempFilespacePath[0]), filespacePath);
+			strlcpy((char*)&(pmModuleState->tempFilespacePath[0]), peerFilespacePath, MAXPGPATH);
+			strlcpy((char*)&(pmModuleState->peerTempFilespacePath[0]), filespacePath, MAXPGPATH);
 		}
 
 		/* If we have a valid path name */
 		if  (pmModuleState->tempFilespacePath[0])
 			pmModuleState->isUsingDefaultFilespaceForTempFiles = 0;
+		else
+			pmModuleState->tempFilespaceOID = 0;
 
 		fclose(fp);
 
@@ -2585,8 +2592,11 @@ primaryMirrorPopulateFilespaceInfo(void)
 			pch = strtok(buffer, " ");
 			dbId = atoi(pch);
 			pch = strtok(NULL, " ");
-			strcpy(filespacePath, pch);
+			if (strlcpy(filespacePath, pch, MAXPGPATH) >= MAXPGPATH)
+				filespacePath[0] = '\0';
 		}
+		else
+			filespacePath[0] = '\0';
 
 		/* Check if there is an entry for the mirror transaction filespace as well */
 		MemSet(buffer, 0, MAXPGPATH);
@@ -2597,28 +2607,33 @@ primaryMirrorPopulateFilespaceInfo(void)
 			pch = strtok(buffer, " ");
 			peerDbId = atoi(pch);
 			pch = strtok(NULL, " ");
-			strcpy(peerFilespacePath, pch);
+			if (strlcpy(peerFilespacePath, pch, MAXPGPATH) >= MAXPGPATH)
+				peerFilespacePath[0] = '\0';
 		}
+		else
+			peerFilespacePath[0] = '\0';
 
 		/* Populate the local and peer filepsace paths */
 		if (dbId == GpIdentity.dbid)
 		{
-			strcpy((char*)&(pmModuleState->txnFilespacePath[0]), filespacePath);
-			strcpy((char*)&(pmModuleState->peerTxnFilespacePath[0]), peerFilespacePath);
+			strlcpy((char*)&(pmModuleState->txnFilespacePath[0]), filespacePath, MAXPGPATH);
+			strlcpy((char*)&(pmModuleState->peerTxnFilespacePath[0]), peerFilespacePath, MAXPGPATH);
 		}
 		else
 		{
 			if (peerDbId)
 			{
 				Insist(peerDbId == GpIdentity.dbid);
-				strcpy((char*)&(pmModuleState->txnFilespacePath[0]), peerFilespacePath);
-				strcpy((char*)&(pmModuleState->peerTxnFilespacePath[0]), filespacePath);
+				strlcpy((char*)&(pmModuleState->txnFilespacePath[0]), peerFilespacePath, MAXPGPATH);
+				strlcpy((char*)&(pmModuleState->peerTxnFilespacePath[0]), filespacePath, MAXPGPATH);
 			}
 		}
 
 		/* If we have a valid path name */
 		if (pmModuleState->txnFilespacePath[0])
 			pmModuleState->isUsingDefaultFilespaceForTxnFiles = 0;
+		else
+			pmModuleState->txnFilespaceOID = SYSTEMFILESPACE_OID;
 
 		fclose(fp);
 
