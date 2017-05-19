@@ -488,7 +488,7 @@ public class Fum
   {
     return (value == null)
       ? true
-      : (value.intValue() % 1) == 0;
+      : (value.intValue() % 2) == 0;
   }
 }</codeblock>
         <p>The following two statements both yield true:</p>
