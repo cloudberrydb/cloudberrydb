@@ -2721,20 +2721,8 @@ NOTICE:  table "exttab_with_on_master" does not exist, skipping
 -- Create external table with on clause
 CREATE EXTERNAL TABLE exttab_with_on_master( i int, j text )
 LOCATION ('file://@hostname@@abs_srcdir@/data/exttab_few_errors.data') ON MASTER FORMAT 'TEXT' (DELIMITER '|');
-\d exttab_with_on_master
-External table "public.exttab_with_on_master"
- Column |  Type   | Modifiers 
---------+---------+-----------
- i      | integer | 
- j      | text    | 
-Type: readable
-Encoding: UTF8
-Format type: text
-Format options: delimiter '|' null '\N' escape '\'
-External options: {}
-External location: file://@hostname@@abs_srcdir@/data/exttab_few_errors.data
-Execute on: master segment
-
+SELECT * FROM exttab_with_on_master;
+ERROR:  'ON MASTER' is not supported by this protocol yet.
 DROP EXTERNAL TABLE IF EXISTS exttab_with_on_master;
 -- start_ignore
 DROP EXTERNAL TABLE IF EXISTS exttab_with_option_empty;

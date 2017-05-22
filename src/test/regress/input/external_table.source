@@ -1336,7 +1336,7 @@ DROP EXTERNAL TABLE IF EXISTS exttab_with_on_master;
 CREATE EXTERNAL TABLE exttab_with_on_master( i int, j text )
 LOCATION ('file://@hostname@@abs_srcdir@/data/exttab_few_errors.data') ON MASTER FORMAT 'TEXT' (DELIMITER '|');
 
-\d exttab_with_on_master
+SELECT * FROM exttab_with_on_master;
 
 DROP EXTERNAL TABLE IF EXISTS exttab_with_on_master;
 
