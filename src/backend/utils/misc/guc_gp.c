@@ -5063,7 +5063,7 @@ struct config_string ConfigureNamesString_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&gp_log_gang_str,
-		"terse", gpvars_assign_gp_log_gang, gpvars_show_gp_log_gang
+		"off", gpvars_assign_gp_log_gang, gpvars_show_gp_log_gang
 	},
 
 	{
