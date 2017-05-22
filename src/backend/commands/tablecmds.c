@@ -1549,7 +1549,7 @@ MergeAttributes(List *schema, List *supers, bool istemp, bool isPartitioned,
 						(errmsg("merging multiple inherited definitions of column \"%s\"",
 								attributeName)));
 				def = (ColumnDef *) list_nth(inhSchema, exist_attno - 1);
-				defTypeId = typenameTypeId(NULL, def->typname, &deftypmod);
+				defTypeId = typenameTypeId(NULL, def->typeName, &deftypmod);
 				if (defTypeId != attribute->atttypid ||
 					deftypmod != attribute->atttypmod)
 					ereport(ERROR,
@@ -1557,7 +1557,7 @@ MergeAttributes(List *schema, List *supers, bool istemp, bool isPartitioned,
 						errmsg("inherited column \"%s\" has a type conflict",
 							   attributeName),
 							 errdetail("%s versus %s",
-									   TypeNameToString(def->typname),
+									   TypeNameToString(def->typeName),
 									   format_type_be(attribute->atttypid))));
 				def->inhcount++;
 				/* Merge of NOT NULL constraints = OR 'em together */
@@ -1594,7 +1594,7 @@ MergeAttributes(List *schema, List *supers, bool istemp, bool isPartitioned,
 				 */
 				def = makeNode(ColumnDef);
 				def->colname = pstrdup(attributeName);
-				def->typname = makeTypeNameFromOid(attribute->atttypid,
+				def->typeName = makeTypeNameFromOid(attribute->atttypid,
 													attribute->atttypmod);
 				def->inhcount = 1;
 				def->is_local = false;
@@ -1735,16 +1735,16 @@ MergeAttributes(List *schema, List *supers, bool istemp, bool isPartitioned,
 				   (errmsg("merging column \"%s\" with inherited definition",
 						   attributeName)));
 				def = (ColumnDef *) list_nth(inhSchema, exist_attno - 1);
-				defTypeId = typenameTypeId(NULL, def->typname, &deftypmod);
-				newTypeId = typenameTypeId(NULL, newdef->typname, &newtypmod);
+				defTypeId = typenameTypeId(NULL, def->typeName, &deftypmod);
+				newTypeId = typenameTypeId(NULL, newdef->typeName, &newtypmod);
 				if (defTypeId != newTypeId || deftypmod != newtypmod)
 					ereport(ERROR,
 							(errcode(ERRCODE_DATATYPE_MISMATCH),
 							 errmsg("column \"%s\" has a type conflict",
 									attributeName),
 							 errdetail("%s versus %s",
-									   TypeNameToString(def->typname),
-									   TypeNameToString(newdef->typname))));
+									   TypeNameToString(def->typeName),
+									   TypeNameToString(newdef->typeName))));
 				/* Mark the column as locally defined */
 				def->is_local = true;
 				/* Merge of NOT NULL constraints = OR 'em together */
@@ -5838,7 +5838,7 @@ ATExecAddColumn(AlteredTableInfo *tab, Relation rel,
 			int32		ctypmod;
 
 			/* Okay if child matches by type */
-			ctypeId = typenameTypeId(NULL, colDef->typname, &ctypmod);
+			ctypeId = typenameTypeId(NULL, colDef->typeName, &ctypmod);
 
 			if (ctypeId != childatt->atttypid ||
 				ctypmod != childatt->atttypmod)
@@ -5896,7 +5896,7 @@ ATExecAddColumn(AlteredTableInfo *tab, Relation rel,
 						MaxHeapAttributeNumber)));
 	i = minattnum + 1;
 
-	typeTuple = typenameType(NULL, colDef->typname, &typmod);
+	typeTuple = typenameType(NULL, colDef->typeName, &typmod);
 	tform = (Form_pg_type) GETSTRUCT(typeTuple);
 	typeOid = HeapTupleGetOid(typeTuple);
 
@@ -5920,7 +5920,7 @@ ATExecAddColumn(AlteredTableInfo *tab, Relation rel,
 	attribute->atttypmod = typmod;
 	attribute->attnum = i;
 	attribute->attbyval = tform->typbyval;
-	attribute->attndims = list_length(colDef->typname->arrayBounds);
+	attribute->attndims = list_length(colDef->typeName->arrayBounds);
 	attribute->attstorage = tform->typstorage;
 	attribute->attalign = tform->typalign;
 	attribute->attnotnull = colDef->is_not_null;
@@ -6078,7 +6078,7 @@ ATExecAddColumn(AlteredTableInfo *tab, Relation rel,
 		else
 		{
 			/* Use the type specific storage directive, if one exists */
-			c->encoding = TypeNameGetStorageDirective(colDef->typname);
+			c->encoding = TypeNameGetStorageDirective(colDef->typeName);
 			
 			if (!c->encoding)
 				c->encoding = default_column_encoding_clause();
@@ -11475,7 +11475,7 @@ prebuild_temp_table(Relation rel, RangeVar *tmpname, List *distro, List *opts,
 			}
 
 			tname->location = -1;
-			cd->typname = tname;
+			cd->typeName = tname;
 			cs->tableElts = lappend(cs->tableElts, cd);
 		}
 		q = parse_analyze((Node *)cs, NULL, NULL, 0);

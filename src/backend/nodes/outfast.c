@@ -806,7 +806,7 @@ _outCreateDomainStmt(StringInfo str, CreateDomainStmt *node)
 {
 	WRITE_NODE_TYPE("CREATEDOMAINSTMT");
 	WRITE_NODE_FIELD(domainname);
-	WRITE_NODE_FIELD(typname);
+	WRITE_NODE_FIELD(typeName);
 	WRITE_NODE_FIELD(constraints);
 }
 
@@ -815,7 +815,7 @@ _outAlterDomainStmt(StringInfo str, AlterDomainStmt *node)
 {
 	WRITE_NODE_TYPE("ALTERDOMAINSTMT");
 	WRITE_CHAR_FIELD(subtype);
-	WRITE_NODE_FIELD(typname);
+	WRITE_NODE_FIELD(typeName);
 	WRITE_STRING_FIELD(name);
 	WRITE_NODE_FIELD(def);
 	WRITE_ENUM_FIELD(behavior, DropBehavior);
@@ -827,7 +827,7 @@ _outColumnDef(StringInfo str, ColumnDef *node)
 	WRITE_NODE_TYPE("COLUMNDEF");
 
 	WRITE_STRING_FIELD(colname);
-	WRITE_NODE_FIELD(typname);
+	WRITE_NODE_FIELD(typeName);
 	WRITE_INT_FIELD(inhcount);
 	WRITE_BOOL_FIELD(is_local);
 	WRITE_BOOL_FIELD(is_not_null);
@@ -860,7 +860,7 @@ _outTypeCast(StringInfo str, TypeCast *node)
 	WRITE_NODE_TYPE("TYPECAST");
 
 	WRITE_NODE_FIELD(arg);
-	WRITE_NODE_FIELD(typname);
+	WRITE_NODE_FIELD(typeName);
 }
 
 static void
@@ -1056,7 +1056,7 @@ _outAConst(StringInfo str, A_Const *node)
 	WRITE_NODE_TYPE("A_CONST");
 
 	_outValue(str, &(node->val));
-	WRITE_NODE_FIELD(typname);
+	WRITE_NODE_FIELD(typeName);
 	WRITE_INT_FIELD(location);  /*CDB*/
 
 }

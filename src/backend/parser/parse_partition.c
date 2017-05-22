@@ -326,16 +326,16 @@ transformPartitionBy(ParseState *pstate, CreateStmtContext *cxt,
 
 				if (lookup_opclass)
 				{
-					typeid = column->typname->typid;
+					typeid = column->typeName->typid;
 
 					if (!OidIsValid(typeid))
 					{
 						int32		typmod;
 
-						typeid = typenameTypeId(pstate, column->typname, &typmod);
+						typeid = typenameTypeId(pstate, column->typeName, &typmod);
 
-						column->typname->typid = typeid;
-						column->typname->typemod = typmod;
+						column->typeName->typid = typeid;
+						column->typeName->typemod = typmod;
 					}
 				}
 				break;
@@ -1977,7 +1977,7 @@ deparse_partition_rule(Node *pNode, char *outbuf, size_t outsize)
 
 				if (acs->val.type == T_String)
 				{
-					if (acs->typname)	/* deal with explicit types */
+					if (acs->typeName)	/* deal with explicit types */
 					{
 						/*
 						 * XXX XXX: simple types only -- need to handle
@@ -1986,7 +1986,7 @@ deparse_partition_rule(Node *pNode, char *outbuf, size_t outsize)
 
 						snprintf(outbuf, outsize, "\'%s\'::%s",
 								 acs->val.val.str,
-								 TypeNameToString(acs->typname));
+								 TypeNameToString(acs->typeName));
 					}
 					else
 					{
@@ -2136,7 +2136,7 @@ make_prule_catalog(ParseState *pstate,
 
 		acs->val.type = T_String;
 		acs->val.val.str = pstrdup(parent_tab_name->relname);
-		acs->typname = SystemTypeName("text");
+		acs->typeName = SystemTypeName("text");
 		acs->location = -1;
 
 		vl1 = list_make1(acs);
@@ -2144,7 +2144,7 @@ make_prule_catalog(ParseState *pstate,
 		acs = makeNode(A_Const);
 		acs->val.type = T_String;
 		acs->val.val.str = pstrdup(child_name_str);
-		acs->typname = SystemTypeName("text");
+		acs->typeName = SystemTypeName("text");
 		acs->location = -1;
 
 		vl1 = lappend(vl1, acs);
@@ -2152,7 +2152,7 @@ make_prule_catalog(ParseState *pstate,
 		acs = makeNode(A_Const);
 		acs->val.type = T_String;
 		acs->val.val.str = pstrdup(exprBuf);
-		acs->typname = SystemTypeName("text");
+		acs->typeName = SystemTypeName("text");
 		acs->location = -1;
 
 		vl1 = lappend(vl1, acs);
@@ -2160,7 +2160,7 @@ make_prule_catalog(ParseState *pstate,
 		acs = makeNode(A_Const);
 		acs->val.type = T_String;
 		acs->val.val.str = pstrdup(ruleBuf);
-		acs->typname = SystemTypeName("text");
+		acs->typeName = SystemTypeName("text");
 		acs->location = -1;
 
 		vl1 = lappend(vl1, acs);
@@ -2952,13 +2952,13 @@ preprocess_range_spec(partValidationState *vstate)
 			if (strcmp(column->colname, colname) == 0)
 			{
 				found = true;
-				if (!OidIsValid(column->typname->typid))
+				if (!OidIsValid(column->typeName->typid))
 				{
-					column->typname->typid =
-						typenameTypeId(vstate->pstate, column->typname,
-									   &column->typname->typemod);
+					column->typeName->typid =
+						typenameTypeId(vstate->pstate, column->typeName,
+									   &column->typeName->typemod);
 				}
-				typname = column->typname;
+				typname = column->typeName;
 				break;
 			}
 		}
@@ -4619,13 +4619,13 @@ validate_list_partition(partValidationState *vstate)
 			if (strcmp(column->colname, colname) == 0)
 			{
 				found = true;
-				if (!OidIsValid(column->typname->typid))
+				if (!OidIsValid(column->typeName->typid))
 				{
-					column->typname->typid
-						= typenameTypeId(vstate->pstate, column->typname,
-										 &column->typname->typemod);
+					column->typeName->typid
+						= typenameTypeId(vstate->pstate, column->typeName,
+										 &column->typeName->typemod);
 				}
-				typname = column->typname;
+				typname = column->typeName;
 				break;
 			}
 		}

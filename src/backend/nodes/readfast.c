@@ -744,8 +744,8 @@ _readAConst(void)
 	 		break;
 	}
 
-	local_node->typname = NULL;
-	READ_NODE_FIELD(typname);
+	local_node->typeName = NULL;
+	READ_NODE_FIELD(typeName);
     READ_INT_FIELD(location);   /*CDB*/
 	READ_DONE();
 }
@@ -1364,7 +1364,7 @@ _readAlterDomainStmt(void)
 	READ_LOCALS(AlterDomainStmt);
 
 	READ_CHAR_FIELD(subtype);
-	READ_NODE_FIELD(typname);
+	READ_NODE_FIELD(typeName);
 	READ_STRING_FIELD(name);
 	READ_NODE_FIELD(def);
 	READ_ENUM_FIELD(behavior, DropBehavior); Assert(local_node->behavior <= DROP_CASCADE);

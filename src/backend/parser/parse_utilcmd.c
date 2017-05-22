@@ -394,23 +394,23 @@ transformColumnDefinition(ParseState *pstate, CreateStmtContext *cxt,
 
 	/* Check for SERIAL pseudo-types */
 	is_serial = false;
-	if (list_length(column->typname->names) == 1)
+	if (list_length(column->typeName->names) == 1)
 	{
-		char	   *typname = strVal(linitial(column->typname->names));
+		char	   *typname = strVal(linitial(column->typeName->names));
 
 		if (strcmp(typname, "serial") == 0 ||
 			strcmp(typname, "serial4") == 0)
 		{
 			is_serial = true;
-			column->typname->names = NIL;
-			column->typname->typid = INT4OID;
+			column->typeName->names = NIL;
+			column->typeName->typid = INT4OID;
 		}
 		else if (strcmp(typname, "bigserial") == 0 ||
 				 strcmp(typname, "serial8") == 0)
 		{
 			is_serial = true;
-			column->typname->names = NIL;
-			column->typname->typid = INT8OID;
+			column->typeName->names = NIL;
+			column->typeName->typid = INT8OID;
 		}
 	}
 
@@ -497,7 +497,7 @@ transformColumnDefinition(ParseState *pstate, CreateStmtContext *cxt,
 		snamenode = makeNode(A_Const);
 		snamenode->val.type = T_String;
 		snamenode->val.val.str = qstring;
-		snamenode->typname = SystemTypeName("regclass");
+		snamenode->typeName = SystemTypeName("regclass");
 		snamenode->location = -1;					/* CDB */
 		funccallnode = makeNode(FuncCall);
 		funccallnode->funcname = SystemFuncName("nextval");
@@ -751,7 +751,7 @@ transformInhRelation(ParseState *pstate, CreateStmtContext *cxt,
 		 */
 		def = makeNode(ColumnDef);
 		def->colname = pstrdup(attributeName);
-		def->typname = makeTypeNameFromOid(attribute->atttypid,
+		def->typeName = makeTypeNameFromOid(attribute->atttypid,
 											attribute->atttypmod);
 		def->inhcount = 0;
 		def->is_local = true;
@@ -1618,7 +1618,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 				column = (ColumnDef *) lfirst(columns);
 				colindex++;
 
-				typeOid = typenameTypeId(NULL, column->typname, &typmod);
+				typeOid = typenameTypeId(NULL, column->typeName, &typmod);
 
 				/*
 				 * if we can hash on this type, or if it's an array type (which
@@ -1728,7 +1728,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 							Oid			typeOid;
 							int32		typmod;
 
-							typeOid = typenameTypeId(NULL, column->typname, &typmod);
+							typeOid = typenameTypeId(NULL, column->typeName, &typmod);
 							
 							/*
 							 * To be a part of a distribution key, this type must
@@ -3383,7 +3383,7 @@ transformColumnType(ParseState *pstate, ColumnDef *column)
 	/*
 	 * All we really need to do here is verify that the type is valid.
 	 */
-	Type		ctype = typenameType(pstate, column->typname, NULL);
+	Type		ctype = typenameType(pstate, column->typeName, NULL);
 
 	ReleaseSysCache(ctype);
 }
@@ -3944,7 +3944,7 @@ transformAttributeEncoding(List *stenc, CreateStmt *stmt, CreateStmtContext *cxt
 					c->encoding = copyObject(deflt->encoding);
 				else
 				{
-					List *te = TypeNameGetStorageDirective(d->typname);
+					List *te = TypeNameGetStorageDirective(d->typeName);
 
 					if (te)
 						c->encoding = copyObject(te);

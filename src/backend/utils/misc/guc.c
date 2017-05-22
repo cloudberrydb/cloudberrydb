@@ -5337,7 +5337,7 @@ flatten_set_variable_args(const char *name, List *args)
 				break;
 			case T_String:
 				val = strVal(&arg->val);
-				if (arg->typname != NULL)
+				if (arg->typeName != NULL)
 				{
 					/*
 					 * Must be a ConstInterval argument for TIME ZONE. Coerce
@@ -5349,7 +5349,7 @@ flatten_set_variable_args(const char *name, List *args)
 					Datum		interval;
 					char	   *intervalout;
 
-					typoid = typenameTypeId(NULL, arg->typname, &typmod);
+					typoid = typenameTypeId(NULL, arg->typeName, &typmod);
 					Assert(typoid == INTERVALOID);
 
 					interval =

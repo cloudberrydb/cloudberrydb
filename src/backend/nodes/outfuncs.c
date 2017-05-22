@@ -2646,7 +2646,7 @@ _outCreateDomainStmt(StringInfo str, CreateDomainStmt *node)
 {
 	WRITE_NODE_TYPE("CREATEDOMAINSTMT");
 	WRITE_NODE_FIELD(domainname);
-	WRITE_NODE_FIELD_AS(typname, typename);
+	WRITE_NODE_FIELD_AS(typeName, typename);
 	WRITE_NODE_FIELD(constraints);
 }
 #endif /* COMPILING_BINARY_FUNCS */
@@ -2657,7 +2657,7 @@ _outAlterDomainStmt(StringInfo str, AlterDomainStmt *node)
 {
 	WRITE_NODE_TYPE("ALTERDOMAINSTMT");
 	WRITE_CHAR_FIELD(subtype);
-	WRITE_NODE_FIELD_AS(typname, typename);
+	WRITE_NODE_FIELD_AS(typeName, typename);
 	WRITE_STRING_FIELD(name);
 	WRITE_NODE_FIELD(def);
 	WRITE_ENUM_FIELD(behavior, DropBehavior);
@@ -3303,7 +3303,7 @@ _outColumnDef(StringInfo str, ColumnDef *node)
 	WRITE_NODE_TYPE("COLUMNDEF");
 
 	WRITE_STRING_FIELD(colname);
-	WRITE_NODE_FIELD_AS(typname, typename);
+	WRITE_NODE_FIELD_AS(typeName, typename);
 	WRITE_INT_FIELD(inhcount);
 	WRITE_BOOL_FIELD(is_local);
 	WRITE_BOOL_FIELD(is_not_null);
@@ -3340,7 +3340,7 @@ _outTypeCast(StringInfo str, TypeCast *node)
 	WRITE_NODE_TYPE("TYPECAST");
 
 	WRITE_NODE_FIELD(arg);
-	WRITE_NODE_FIELD_AS(typname, typename);
+	WRITE_NODE_FIELD_AS(typeName, typename);
 }
 #endif /* COMPILING_BINARY_FUNCS */
 
@@ -3844,7 +3844,7 @@ _outAConst(StringInfo str, A_Const *node)
 	appendStringInfoChar(str, ' ');
 
 	_outValue(str, &(node->val));
-	WRITE_NODE_FIELD_AS(typname, typename);
+	WRITE_NODE_FIELD_AS(typeName, typename);
     /*
      * CDB: For now we don't serialize the 'location' field, for compatibility
      * so stored constants can be read by pre-3.2 releases.  Anyway it's only
@@ -4225,7 +4225,7 @@ _outAlterTypeStmt(StringInfo str, AlterTypeStmt *node)
 {
 	WRITE_NODE_TYPE("ALTERTYPESTMT");
 
-	WRITE_NODE_FIELD(typname);
+	WRITE_NODE_FIELD(typeName);
 	WRITE_NODE_FIELD(encoding);
 }
 

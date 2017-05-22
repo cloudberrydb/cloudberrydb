@@ -1341,9 +1341,9 @@ FigureColnameInternal(Node *node, char **name)
 			}
 			break;
 		case T_A_Const:
-			if (((A_Const *) node)->typname != NULL)
+			if (((A_Const *) node)->typeName != NULL)
 			{
-				*name = strVal(llast(((A_Const *) node)->typname->names));
+				*name = strVal(llast(((A_Const *) node)->typeName->names));
 				return 1;
 			}
 			break;
@@ -1352,9 +1352,9 @@ FigureColnameInternal(Node *node, char **name)
 											 name);
 			if (strength <= 1)
 			{
-				if (((TypeCast *) node)->typname != NULL)
+				if (((TypeCast *) node)->typeName != NULL)
 				{
-					*name = strVal(llast(((TypeCast *) node)->typname->names));
+					*name = strVal(llast(((TypeCast *) node)->typeName->names));
 					return 1;
 				}
 			}

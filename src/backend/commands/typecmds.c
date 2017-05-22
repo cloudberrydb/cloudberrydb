@@ -689,7 +689,7 @@ DefineDomain(CreateDomainStmt *stmt)
 	bool		saw_default = false;
 	bool		typNotNull = false;
 	bool		nullDefined = false;
-	int32		typNDims = list_length(stmt->typname->arrayBounds);
+	int32		typNDims = list_length(stmt->typeName->arrayBounds);
 	HeapTuple	typeTup;
 	List	   *schema = stmt->constraints;
 	ListCell   *listptr;
@@ -729,7 +729,7 @@ DefineDomain(CreateDomainStmt *stmt)
 	/*
 	 * Look up the base type.
 	 */
-	typeTup = typenameType(NULL, stmt->typname, &basetypeMod);
+	typeTup = typenameType(NULL, stmt->typeName, &basetypeMod);
 	baseType = (Form_pg_type) GETSTRUCT(typeTup);
 	basetypeoid = HeapTupleGetOid(typeTup);
 
@@ -745,7 +745,7 @@ DefineDomain(CreateDomainStmt *stmt)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATATYPE_MISMATCH),
 				 errmsg("\"%s\" is not a valid base type for a domain",
-						TypeNameToString(stmt->typname))));
+						TypeNameToString(stmt->typeName))));
 
 	/* passed by value */
 	byValue = baseType->typbyval;
@@ -2835,7 +2835,7 @@ AlterTypeNamespaceInternal(Oid typeOid, Oid nspOid,
 void
 AlterType(AlterTypeStmt *stmt)
 {
-	TypeName	   *typname = stmt->typname;
+	TypeName	   *typname = stmt->typeName;
 	Oid				typid;
 	int32			typmod;
 	HeapTuple		tup;

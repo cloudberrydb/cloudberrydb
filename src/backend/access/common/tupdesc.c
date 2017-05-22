@@ -549,10 +549,10 @@ BuildDescForRelation(List *schema)
 		attnum++;
 
 		attname = entry->colname;
-		atttypid = typenameTypeId(NULL, entry->typname, &atttypmod);
-		attdim = list_length(entry->typname->arrayBounds);
+		atttypid = typenameTypeId(NULL, entry->typeName, &atttypmod);
+		attdim = list_length(entry->typeName->arrayBounds);
 
-		if (entry->typname->setof)
+		if (entry->typeName->setof)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
 					 errmsg("column \"%s\" cannot be declared SETOF",

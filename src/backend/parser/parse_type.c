@@ -300,7 +300,7 @@ typenameTypeMod(ParseState *pstate, const TypeName *typename, Type typ)
 				cstr = (char *) palloc(32);
 				snprintf(cstr, 32, "%ld", (long) ac->val.val.ival);
 			}
-			else if (ac->typname == NULL)		/* no casts allowed */
+			else if (ac->typeName == NULL)		/* no casts allowed */
 			{
 				/* otherwise we can just use the str field directly. */
 				cstr = ac->val.val.str;
@@ -611,7 +611,7 @@ parseTypeString(const char *str, Oid *type_id, int32 *typmod_p)
 		typecast->arg == NULL ||
 		!IsA(typecast->arg, A_Const))
 		goto fail;
-	typename = typecast->typname;
+	typename = typecast->typeName;
 	if (typename == NULL ||
 		!IsA(typename, TypeName))
 		goto fail;

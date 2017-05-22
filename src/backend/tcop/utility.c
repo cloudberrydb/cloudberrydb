@@ -1226,23 +1226,23 @@ ProcessUtility(Node *parsetree,
 						 * Recursively alter column default for table and, if
 						 * requested, for descendants
 						 */
-						AlterDomainDefault(stmt->typname,
+						AlterDomainDefault(stmt->typeName,
 										   stmt->def);
 						break;
 					case 'N':	/* ALTER DOMAIN DROP NOT NULL */
-						AlterDomainNotNull(stmt->typname,
+						AlterDomainNotNull(stmt->typeName,
 										   false);
 						break;
 					case 'O':	/* ALTER DOMAIN SET NOT NULL */
-						AlterDomainNotNull(stmt->typname,
+						AlterDomainNotNull(stmt->typeName,
 										   true);
 						break;
 					case 'C':	/* ADD CONSTRAINT */
-						AlterDomainAddConstraint(stmt->typname,
+						AlterDomainAddConstraint(stmt->typeName,
 												 stmt->def);
 						break;
 					case 'X':	/* DROP CONSTRAINT */
-						AlterDomainDropConstraint(stmt->typname,
+						AlterDomainDropConstraint(stmt->typeName,
 												  stmt->name,
 												  stmt->behavior);
 						break;

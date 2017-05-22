@@ -411,48 +411,48 @@ DefineSequence(CreateSeqStmt *seq)
 		switch (i)
 		{
 			case SEQ_COL_NAME:
-				coldef->typname = makeTypeNameFromOid(NAMEOID, -1);
+				coldef->typeName = makeTypeNameFromOid(NAMEOID, -1);
 				coldef->colname = "sequence_name";
 				namestrcpy(&name, seq->sequence->relname);
 				value[i - 1] = NameGetDatum(&name);
 				break;
 			case SEQ_COL_LASTVAL:
-				coldef->typname = makeTypeNameFromOid(INT8OID, -1);
+				coldef->typeName = makeTypeNameFromOid(INT8OID, -1);
 				coldef->colname = "last_value";
 				value[i - 1] = Int64GetDatumFast(new.last_value);
 				break;
 			case SEQ_COL_INCBY:
-				coldef->typname = makeTypeNameFromOid(INT8OID, -1);
+				coldef->typeName = makeTypeNameFromOid(INT8OID, -1);
 				coldef->colname = "increment_by";
 				value[i - 1] = Int64GetDatumFast(new.increment_by);
 				break;
 			case SEQ_COL_MAXVALUE:
-				coldef->typname = makeTypeNameFromOid(INT8OID, -1);
+				coldef->typeName = makeTypeNameFromOid(INT8OID, -1);
 				coldef->colname = "max_value";
 				value[i - 1] = Int64GetDatumFast(new.max_value);
 				break;
 			case SEQ_COL_MINVALUE:
-				coldef->typname = makeTypeNameFromOid(INT8OID, -1);
+				coldef->typeName = makeTypeNameFromOid(INT8OID, -1);
 				coldef->colname = "min_value";
 				value[i - 1] = Int64GetDatumFast(new.min_value);
 				break;
 			case SEQ_COL_CACHE:
-				coldef->typname = makeTypeNameFromOid(INT8OID, -1);
+				coldef->typeName = makeTypeNameFromOid(INT8OID, -1);
 				coldef->colname = "cache_value";
 				value[i - 1] = Int64GetDatumFast(new.cache_value);
 				break;
 			case SEQ_COL_LOG:
-				coldef->typname = makeTypeNameFromOid(INT8OID, -1);
+				coldef->typeName = makeTypeNameFromOid(INT8OID, -1);
 				coldef->colname = "log_cnt";
 				value[i - 1] = Int64GetDatum((int64) 0);
 				break;
 			case SEQ_COL_CYCLE:
-				coldef->typname = makeTypeNameFromOid(BOOLOID, -1);
+				coldef->typeName = makeTypeNameFromOid(BOOLOID, -1);
 				coldef->colname = "is_cycled";
 				value[i - 1] = BoolGetDatum(new.is_cycled);
 				break;
 			case SEQ_COL_CALLED:
-				coldef->typname = makeTypeNameFromOid(BOOLOID, -1);
+				coldef->typeName = makeTypeNameFromOid(BOOLOID, -1);
 				coldef->colname = "is_called";
 				value[i - 1] = BoolGetDatum(false);
 				break;

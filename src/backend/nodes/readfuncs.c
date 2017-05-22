@@ -1219,8 +1219,8 @@ _readAConst(void)
 		}
 	}
 
-	local_node->typname = NULL;
-	READ_NODE_FIELD(typname);
+	local_node->typeName = NULL;
+	READ_NODE_FIELD(typeName);
 
     /* CDB: 'location' field is not serialized */
     local_node->location = -1;
@@ -1951,7 +1951,7 @@ _readColumnDef(void)
 	READ_LOCALS(ColumnDef);
 
 	READ_STRING_FIELD(colname);
-	READ_NODE_FIELD(typname);
+	READ_NODE_FIELD(typeName);
 	READ_INT_FIELD(inhcount);
 	READ_BOOL_FIELD(is_local);
 	READ_BOOL_FIELD(is_not_null);
@@ -2013,7 +2013,7 @@ _readTypeCast(void)
 	READ_LOCALS(TypeCast);
 
 	READ_NODE_FIELD(arg);
-	READ_NODE_FIELD(typname);
+	READ_NODE_FIELD(typeName);
 
 	READ_DONE();
 }
@@ -2378,7 +2378,7 @@ _readCreateDomainStmt(void)
 	READ_LOCALS(CreateDomainStmt);
 
 	READ_NODE_FIELD(domainname);
-	READ_NODE_FIELD(typname);
+	READ_NODE_FIELD(typeName);
 	READ_NODE_FIELD(constraints);
 
 	READ_DONE();
@@ -2391,7 +2391,7 @@ _readAlterDomainStmt(void)
 	READ_LOCALS(AlterDomainStmt);
 
 	READ_CHAR_FIELD(subtype);
-	READ_NODE_FIELD(typname);
+	READ_NODE_FIELD(typeName);
 	READ_STRING_FIELD(name);
 	READ_NODE_FIELD(def);
 	READ_ENUM_FIELD(behavior, DropBehavior);
@@ -2854,7 +2854,7 @@ _readAlterTypeStmt(void)
 {
 	READ_LOCALS(AlterTypeStmt);
 
-	READ_NODE_FIELD(typname);
+	READ_NODE_FIELD(typeName);
 	READ_NODE_FIELD(encoding);
 
 	READ_DONE();

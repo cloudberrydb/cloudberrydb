@@ -1046,7 +1046,7 @@ static bool
 _equalAlterDomainStmt(AlterDomainStmt *a, AlterDomainStmt *b)
 {
 	COMPARE_SCALAR_FIELD(subtype);
-	COMPARE_NODE_FIELD(typname);
+	COMPARE_NODE_FIELD(typeName);
 	COMPARE_STRING_FIELD(name);
 	COMPARE_NODE_FIELD(def);
 	COMPARE_SCALAR_FIELD(behavior);
@@ -1520,7 +1520,7 @@ static bool
 _equalCreateDomainStmt(CreateDomainStmt *a, CreateDomainStmt *b)
 {
 	COMPARE_NODE_FIELD(domainname);
-	COMPARE_NODE_FIELD(typname);
+	COMPARE_NODE_FIELD(typeName);
 	COMPARE_NODE_FIELD(constraints);
 
 	return true;
@@ -2043,7 +2043,7 @@ _equalAConst(A_Const *a, A_Const *b)
 {
 	if (!equal(&a->val, &b->val))		/* hack for in-line Value field */
 		return false;
-	COMPARE_NODE_FIELD(typname);
+	COMPARE_NODE_FIELD(typeName);
 	/* do not compare 'location' field */;
 
 	return true;
@@ -2123,7 +2123,7 @@ static bool
 _equalTypeCast(TypeCast *a, TypeCast *b)
 {
 	COMPARE_NODE_FIELD(arg);
-	COMPARE_NODE_FIELD(typname);
+	COMPARE_NODE_FIELD(typeName);
 
 	return true;
 }
@@ -2175,7 +2175,7 @@ static bool
 _equalColumnDef(ColumnDef *a, ColumnDef *b)
 {
 	COMPARE_STRING_FIELD(colname);
-	COMPARE_NODE_FIELD(typname);
+	COMPARE_NODE_FIELD(typeName);
 	COMPARE_SCALAR_FIELD(inhcount);
 	COMPARE_SCALAR_FIELD(is_local);
 	COMPARE_SCALAR_FIELD(is_not_null);
@@ -2415,7 +2415,7 @@ _equalTableValueExpr(TableValueExpr *a, TableValueExpr *b)
 static bool
 _equalAlterTypeStmt(AlterTypeStmt *a, AlterTypeStmt *b)
 {
-	COMPARE_NODE_FIELD(typname);
+	COMPARE_NODE_FIELD(typeName);
 	COMPARE_NODE_FIELD(encoding);
 
 	return true;

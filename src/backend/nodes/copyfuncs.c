@@ -2451,7 +2451,7 @@ _copyAConst(A_Const *from)
 			break;
 	}
 
-	COPY_NODE_FIELD(typname);
+	COPY_NODE_FIELD(typeName);
 	COPY_SCALAR_FIELD(location);    /*CDB*/
 
 	return newnode;
@@ -2581,7 +2581,7 @@ _copyTypeCast(TypeCast *from)
 	TypeCast   *newnode = makeNode(TypeCast);
 
 	COPY_NODE_FIELD(arg);
-	COPY_NODE_FIELD(typname);
+	COPY_NODE_FIELD(typeName);
 
 	return newnode;
 }
@@ -2606,7 +2606,7 @@ _copyColumnDef(ColumnDef *from)
 	ColumnDef  *newnode = makeNode(ColumnDef);
 
 	COPY_STRING_FIELD(colname);
-	COPY_NODE_FIELD(typname);
+	COPY_NODE_FIELD(typeName);
 	COPY_SCALAR_FIELD(inhcount);
 	COPY_SCALAR_FIELD(is_local);
 	COPY_SCALAR_FIELD(is_not_null);
@@ -2981,7 +2981,7 @@ _copyAlterDomainStmt(AlterDomainStmt *from)
 	AlterDomainStmt *newnode = makeNode(AlterDomainStmt);
 
 	COPY_SCALAR_FIELD(subtype);
-	COPY_NODE_FIELD(typname);
+	COPY_NODE_FIELD(typeName);
 	COPY_STRING_FIELD(name);
 	COPY_NODE_FIELD(def);
 	COPY_SCALAR_FIELD(behavior);
@@ -3682,7 +3682,7 @@ _copyCreateDomainStmt(CreateDomainStmt *from)
 	CreateDomainStmt *newnode = makeNode(CreateDomainStmt);
 
 	COPY_NODE_FIELD(domainname);
-	COPY_NODE_FIELD(typname);
+	COPY_NODE_FIELD(typeName);
 	COPY_NODE_FIELD(constraints);
 
 	return newnode;
@@ -4389,7 +4389,7 @@ _copyAlterTypeStmt(AlterTypeStmt *from)
 {
 	AlterTypeStmt *newnode = makeNode(AlterTypeStmt);
 
-	COPY_NODE_FIELD(typname);
+	COPY_NODE_FIELD(typeName);
 	COPY_NODE_FIELD(encoding);
 
 	return newnode;

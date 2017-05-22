@@ -1975,7 +1975,7 @@ zone_value:
 									(errcode(ERRCODE_SYNTAX_ERROR),
 									 errmsg("time zone interval must be HOUR or HOUR TO MINUTE"),
 									 scanner_errposition(@3)));
-						n->typname->typmods = list_make1(makeIntConst($3, @3));
+						n->typeName->typmods = list_make1(makeIntConst($3, @3));
 					}
 					$$ = (Node *)n;
 				}
@@ -1988,7 +1988,7 @@ zone_value:
 								(errcode(ERRCODE_SYNTAX_ERROR),
 								 errmsg("time zone interval must be HOUR or HOUR TO MINUTE"),
 									 scanner_errposition(@6)));
-					n->typname->typmods = list_make2(makeIntConst($6, @6),
+					n->typeName->typmods = list_make2(makeIntConst($6, @6),
 													 makeIntConst($3, @3));
 					$$ = (Node *)n;
 				}
@@ -3547,7 +3547,7 @@ columnDef:	ColId Typename ColQualList opt_storage_encoding
 				{
 					ColumnDef *n = makeNode(ColumnDef);
 					n->colname = $1;
-					n->typname = $2;
+					n->typeName = $2;
 					n->constraints = $3;
 					n->is_local = true;
 					n->encoding = $4;
@@ -4637,7 +4637,7 @@ CreateAsElement:
 				{
 					ColumnDef *n = makeNode(ColumnDef);
 					n->colname = $1;
-					n->typname = NULL;
+					n->typeName = NULL;
 					n->inhcount = 0;
 					n->is_local = true;
 					n->is_not_null = false;
@@ -4913,7 +4913,7 @@ ExtcolumnDef:	ColId Typename
 		{
 			ColumnDef *n = makeNode(ColumnDef);
 			n->colname = $1;
-			n->typname = $2;
+			n->typeName = $2;
 			n->is_local = true;
 			n->is_not_null = false;
 			n->constraints = NIL;
@@ -7581,7 +7581,7 @@ AlterTypeStmt: ALTER TYPE_P SimpleTypename SET DEFAULT ENCODING definition
 				{
 					AlterTypeStmt *n = makeNode(AlterTypeStmt);
 
-					n->typname = $3;
+					n->typeName = $3;
 					n->encoding = $7;
 					$$ = (Node *)n;
 				}
@@ -8533,7 +8533,7 @@ CreateDomainStmt:
 				{
 					CreateDomainStmt *n = makeNode(CreateDomainStmt);
 					n->domainname = $3;
-					n->typname = $5;
+					n->typeName = $5;
 					n->constraints = $6;
 					$$ = (Node *)n;
 				}
@@ -8545,7 +8545,7 @@ AlterDomainStmt:
 				{
 					AlterDomainStmt *n = makeNode(AlterDomainStmt);
 					n->subtype = 'T';
-					n->typname = $3;
+					n->typeName = $3;
 					n->def = $4;
 					$$ = (Node *)n;
 				}
@@ -8554,7 +8554,7 @@ AlterDomainStmt:
 				{
 					AlterDomainStmt *n = makeNode(AlterDomainStmt);
 					n->subtype = 'N';
-					n->typname = $3;
+					n->typeName = $3;
 					$$ = (Node *)n;
 				}
 			/* ALTER DOMAIN <domain> SET NOT NULL */
@@ -8562,7 +8562,7 @@ AlterDomainStmt:
 				{
 					AlterDomainStmt *n = makeNode(AlterDomainStmt);
 					n->subtype = 'O';
-					n->typname = $3;
+					n->typeName = $3;
 					$$ = (Node *)n;
 				}
 			/* ALTER DOMAIN <domain> ADD CONSTRAINT ... */
@@ -8570,7 +8570,7 @@ AlterDomainStmt:
 				{
 					AlterDomainStmt *n = makeNode(AlterDomainStmt);
 					n->subtype = 'C';
-					n->typname = $3;
+					n->typeName = $3;
 					n->def = $5;
 					$$ = (Node *)n;
 				}
@@ -8579,7 +8579,7 @@ AlterDomainStmt:
 				{
 					AlterDomainStmt *n = makeNode(AlterDomainStmt);
 					n->subtype = 'X';
-					n->typname = $3;
+					n->typeName = $3;
 					n->name = $6;
 					n->behavior = $7;
 					$$ = (Node *)n;
@@ -10298,7 +10298,7 @@ TableFuncElement:	ColId Typename
 				{
 					ColumnDef *n = makeNode(ColumnDef);
 					n->colname = $1;
-					n->typname = $2;
+					n->typeName = $2;
 					n->constraints = NIL;
 					n->is_local = true;
 					$$ = (Node *)n;
@@ -11574,7 +11574,7 @@ func_expr:	simple_func FILTER '(' WHERE a_expr ')'
 
 					s->val.type = T_String;
 					s->val.val.str = "now";
-					s->typname = SystemTypeName("text");
+					s->typeName = SystemTypeName("text");
 
 					d = SystemTypeName("date");
 
@@ -11591,7 +11591,7 @@ func_expr:	simple_func FILTER '(' WHERE a_expr ')'
 
 					s->val.type = T_String;
 					s->val.val.str = "now";
-					s->typname = SystemTypeName("text");
+					s->typeName = SystemTypeName("text");
 
 					d = SystemTypeName("timetz");
 
@@ -11608,7 +11608,7 @@ func_expr:	simple_func FILTER '(' WHERE a_expr ')'
 
 					s->val.type = T_String;
 					s->val.val.str = "now";
-					s->typname = SystemTypeName("text");
+					s->typeName = SystemTypeName("text");
 					d = SystemTypeName("timetz");
 					d->typmods = list_make1(makeIntConst($3, @3));
 
@@ -11642,7 +11642,7 @@ func_expr:	simple_func FILTER '(' WHERE a_expr ')'
 
 					s->val.type = T_String;
 					s->val.val.str = "now";
-					s->typname = SystemTypeName("text");
+					s->typeName = SystemTypeName("text");
 
 					d = SystemTypeName("timestamptz");
 					d->typmods = list_make1(makeIntConst($3, @3));
@@ -11660,7 +11660,7 @@ func_expr:	simple_func FILTER '(' WHERE a_expr ')'
 
 					s->val.type = T_String;
 					s->val.val.str = "now";
-					s->typname = SystemTypeName("text");
+					s->typeName = SystemTypeName("text");
 
 					d = SystemTypeName("time");
 
@@ -11677,7 +11677,7 @@ func_expr:	simple_func FILTER '(' WHERE a_expr ')'
 
 					s->val.type = T_String;
 					s->val.val.str = "now";
-					s->typname = SystemTypeName("text");
+					s->typeName = SystemTypeName("text");
 					d = SystemTypeName("time");
 					d->typmods = list_make1(makeIntConst($3, @3));
 
@@ -11694,7 +11694,7 @@ func_expr:	simple_func FILTER '(' WHERE a_expr ')'
 
 					s->val.type = T_String;
 					s->val.val.str = "now";
-					s->typname = SystemTypeName("text");
+					s->typeName = SystemTypeName("text");
 
 					d = SystemTypeName("timestamp");
 
@@ -11711,7 +11711,7 @@ func_expr:	simple_func FILTER '(' WHERE a_expr ')'
 
 					s->val.type = T_String;
 					s->val.val.str = "now";
-					s->typname = SystemTypeName("text");
+					s->typeName = SystemTypeName("text");
 
 					d = SystemTypeName("timestamp");
 					d->typmods = list_make1(makeIntConst($3, @3));
@@ -12827,8 +12827,8 @@ AexprConst: Iconst
 				{
 					/* generic type 'literal' syntax */
 					A_Const *n = makeNode(A_Const);
-					n->typname = makeTypeNameFromNameList($1);
-					n->typname->location = @1;
+					n->typeName = makeTypeNameFromNameList($1);
+					n->typeName->location = @1;
 					n->val.type = T_String;
 					n->val.val.str = $2;
 					n->location = @1;                   /*CDB*/
@@ -12838,9 +12838,9 @@ AexprConst: Iconst
 				{
 					/* generic syntax with a type modifier */
 					A_Const *n = makeNode(A_Const);
-					n->typname = makeTypeNameFromNameList($1);
-					n->typname->typmods = $3;
-					n->typname->location = @1;
+					n->typeName = makeTypeNameFromNameList($1);
+					n->typeName->typmods = $3;
+					n->typeName->location = @1;
 					n->val.type = T_String;
 					n->val.val.str = $5;
 					n->location = @1;                   /*CDB*/
@@ -12849,7 +12849,7 @@ AexprConst: Iconst
 			| ConstTypename Sconst
 				{
 					A_Const *n = makeNode(A_Const);
-					n->typname = $1;
+					n->typeName = $1;
 					n->val.type = T_String;
 					n->val.val.str = $2;
 					n->location = @2;                   /*CDB*/
@@ -12858,23 +12858,23 @@ AexprConst: Iconst
 			| ConstInterval Sconst opt_interval
 				{
 					A_Const *n = makeNode(A_Const);
-					n->typname = $1;
+					n->typeName = $1;
 					n->val.type = T_String;
 					n->val.val.str = $2;
 					n->location = @2;                   /*CDB*/
 					/* precision is not specified, but fields may be... */
 					if ($3 != INTERVAL_FULL_RANGE)
-						n->typname->typmods = list_make1(makeIntConst($3, @3));
+						n->typeName->typmods = list_make1(makeIntConst($3, @3));
 					$$ = (Node *)n;
 				}
 			| ConstInterval '(' Iconst ')' Sconst opt_interval
 				{
 					A_Const *n = makeNode(A_Const);
-					n->typname = $1;
+					n->typeName = $1;
 					n->val.type = T_String;
 					n->val.val.str = $5;
 					n->location = @1;                   /*CDB*/
-					n->typname->typmods = list_make2(makeIntConst($6, @6),
+					n->typeName->typmods = list_make2(makeIntConst($6, @6),
 													 makeIntConst($3, @3));
 					$$ = (Node *)n;
 				}
@@ -13832,7 +13832,7 @@ makeTypeCast(Node *arg, TypeName *typename, int location)
 {
 	TypeCast *n = makeNode(TypeCast);
 	n->arg = arg;
-	n->typname = typename;
+	n->typeName = typename;
 	n->location = location;
 	return (Node *) n;
 }
@@ -13844,7 +13844,7 @@ makeStringConst(char *str, TypeName *typname, int location)
 
 	n->val.type = T_String;
 	n->val.val.str = str;
-	n->typname = typname;
+	n->typeName = typname;
 	n->location = location;
 
 	return (Node *)n;
@@ -13857,7 +13857,7 @@ makeIntConst(int val, int location)
 	n->val.type = T_Integer;
 	n->val.val.ival = val;
 	n->location = location;
-	n->typname = SystemTypeName("int4");
+	n->typeName = SystemTypeName("int4");
 
 	return (Node *)n;
 }
@@ -13870,7 +13870,7 @@ makeFloatConst(char *str, int location)
 	n->val.type = T_Float;
 	n->val.val.str = str;
 	n->location = location;
-	n->typname = SystemTypeName("float8");
+	n->typeName = SystemTypeName("float8");
 
 	return (Node *)n;
 }
@@ -13919,7 +13919,7 @@ makeBoolAConst(bool state, int location)
 	A_Const *n = makeNode(A_Const);
 	n->val.type = T_String;
 	n->val.val.str = (state ? "t" : "f");
-	n->typname = SystemTypeName("bool");
+	n->typeName = SystemTypeName("bool");
 	n->location = location;
 	return n;
 }

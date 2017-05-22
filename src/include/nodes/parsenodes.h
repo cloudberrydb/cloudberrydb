@@ -280,7 +280,7 @@ typedef struct A_Const
 {
 	NodeTag		type;
 	Value		val;			/* value (includes type info, see value.h) */
-	TypeName   *typname;		/* typecast, or NULL if none */
+	TypeName   *typeName;		/* typecast, or NULL if none */
 	int			location;		/* token location, or -1 if unknown */
 } A_Const;
 
@@ -297,7 +297,7 @@ typedef struct TypeCast
 {
 	NodeTag		type;
 	Node	   *arg;			/* the expression being casted */
-	TypeName   *typname;		/* the target type */
+	TypeName   *typeName;		/* the target type */
 	int			location;		/* token location, or -1 if unknown */
 } TypeCast;
 
@@ -447,7 +447,7 @@ typedef struct ColumnDef
 {
 	NodeTag		type;
 	char	   *colname;		/* name of column */
-	TypeName   *typname;		/* type of column */
+	TypeName   *typeName;		/* type of column */
 	int			inhcount;		/* number of times column is inherited */
 	bool		is_local;		/* column has local (non-inherited) def'n */
 	bool		is_not_null;	/* NOT NULL constraint specified? */
@@ -1314,7 +1314,7 @@ typedef struct AlterDomainStmt
 								 *	X = drop constraint
 								 *------------
 								 */
-	List	   *typname;		/* domain to work on */
+	List	   *typeName;		/* domain to work on */
 	char	   *name;			/* column or constraint name to act on */
 	Node	   *def;			/* definition of default or constraint */
 	DropBehavior behavior;		/* RESTRICT or CASCADE for DROP cases */
@@ -2001,7 +2001,7 @@ typedef struct CreateDomainStmt
 {
 	NodeTag		type;
 	List	   *domainname;		/* qualified name (list of Value strings) */
-	TypeName   *typname;		/* the base type */
+	TypeName   *typeName;		/* the base type */
 	List	   *constraints;	/* constraints (list of Constraint nodes) */
 } CreateDomainStmt;
 
@@ -2361,7 +2361,7 @@ typedef struct AlterOwnerStmt
 typedef struct AlterTypeStmt
 {
 	NodeTag		type;
-	TypeName   *typname;
+	TypeName   *typeName;
 	List	   *encoding;
 } AlterTypeStmt;
 

@@ -141,10 +141,10 @@ transformExpr(ParseState *pstate, Node *expr)
 				Value	   *val = &con->val;
 
 				result = (Node *) make_const(pstate, val, con->location);
-				if (con->typname != NULL) {
-					con->typname->location = con->location;
+				if (con->typeName != NULL) {
+					con->typeName->location = con->location;
 					result = typecast_expression(pstate, result,
-												 con->typname);
+												 con->typeName);
 				}
 				break;
 			}
@@ -182,7 +182,7 @@ transformExpr(ParseState *pstate, Node *expr)
 					Oid			elementType;
 					int32		targetTypmod;
 
-					targetType = typenameTypeId(pstate, tc->typname,
+					targetType = typenameTypeId(pstate, tc->typeName,
 												&targetTypmod);
 
 					elementType = get_element_type(targetType);
@@ -207,7 +207,7 @@ transformExpr(ParseState *pstate, Node *expr)
 				}
 
 				arg = transformExpr(pstate, tc->arg);
-				result = typecast_expression(pstate, arg, tc->typname);
+				result = typecast_expression(pstate, arg, tc->typeName);
 				break;
 			}
 
@@ -476,7 +476,7 @@ parse_expr_location(Expr *expr)
 
             loc = parse_expr_location((Expr *)typecast->arg);
             if (loc < 0)
-                loc = parse_expr_location((Expr *)typecast->typname);
+                loc = parse_expr_location((Expr *)typecast->typeName);
             break;
         }
 
@@ -931,7 +931,7 @@ exprIsNullConstant(Node *arg)
 		A_Const    *con = (A_Const *) arg;
 
 		if (con->val.type == T_Null &&
-			con->typname == NULL)
+			con->typeName == NULL)
 			return true;
 	}
 	return false;

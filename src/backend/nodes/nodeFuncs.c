@@ -309,7 +309,7 @@ exprLocation(Node *expr)
 				 * so any of the components might be leftmost.
 				 */
 				loc = exprLocation(tc->arg);
-				loc = leftmostLoc(loc, tc->typname->location);
+				loc = leftmostLoc(loc, tc->typeName->location);
 				loc = leftmostLoc(loc, tc->location);
 			}
 			break;
