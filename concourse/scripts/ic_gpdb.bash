@@ -62,8 +62,9 @@ function _main() {
     # This ugly block exists since sles11 installs kerberos at a different path that is a test-only dependency
     if [ "$TEST_OS" == "sles" ]; then
       zypper addrepo --no-gpgcheck http://download.opensuse.org/distribution/11.4/repo/oss/ ossrepo
-      zypper -n install krb5-server
+      zypper -n install krb5 krb5-client krb5-server
       cp /usr/lib/mit/sbin/krb5kdc /usr/sbin/
+      export PATH=/usr/lib/mit/sbin/:$PATH
       # Kerberos upgrades perl, so we have to re-do the symlink. Ideally, we
       # wouldn't have a symlink at all, but this step is necessary as long as
       # we build against a different version of perl, and explicitly link to

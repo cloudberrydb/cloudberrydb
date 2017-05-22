@@ -60,20 +60,20 @@ LD_LIBRARY_PATH= kinit -k -t ./client.keytab krbtestuser@GPDB.EXAMPLE
 # Test that we can connect, now that we have run kinit.
 #
 echo "Testing connection, should succeed and print version"
-psql "dbname=postgres hostaddr=127.0.0.1 krbsrvname=postgres  host=localhost user=krbtestuser" -c "SELECT version()"
+psql -P pager=off "dbname=postgres hostaddr=127.0.0.1 krbsrvname=postgres  host=localhost user=krbtestuser" -c "SELECT version()"
 
 ###
 # Also test expiration
-psql "dbname=template1" -c "ALTER USER krbtestuser valid until '2014-04-10 11:46:00-07'"
+psql -P pager=off "dbname=template1" -c "ALTER USER krbtestuser valid until '2014-04-10 11:46:00-07'"
 
 # should not be able to connect anymore
 echo "Testing connection, with expired user account. Should not succeed"
 ! psql "dbname=postgres hostaddr=127.0.0.1 krbsrvname=postgres  host=localhost user=krbtestuser" -c "SELECT version()"
 
-psql "dbname=template1" -c "ALTER USER krbtestuser valid until '2054-04-10 11:46:00-07'"
+psql -P pager=off "dbname=template1" -c "ALTER USER krbtestuser valid until '2054-04-10 11:46:00-07'"
 # now it should succeed again.
 echo "Testing connection, with user account with expiration in future. Should succeed"
-psql "dbname=postgres hostaddr=127.0.0.1 krbsrvname=postgres  host=localhost user=krbtestuser" -c "SELECT version()"
+psql -P pager=off "dbname=postgres hostaddr=127.0.0.1 krbsrvname=postgres  host=localhost user=krbtestuser" -c "SELECT version()" 
 
 ###
 # All done! Restore previous pg_hba.conf and postgresql.conf
