@@ -7,9 +7,9 @@
     <p>This chapter includes the following information:</p>
     <ul>
       <li id="pz219023"><xref href="#topic2" type="topic" format="dita"/></li>
-      <li id="pz213664"><xref href="#topic3" type="topic" format="dita"/></li>
-      <li><xref href="#topic_eqm_klx_hw" format="dita"/></li>
-      <li id="pz213668"><xref href="#topic6" type="topic" format="dita"/></li>
+      <li id="pz213664" otherprops="pivotal"><xref href="#topic3" type="topic" format="dita"/></li>
+      <li otherprops="pivotal"><xref href="#topic_eqm_klx_hw" format="dita"/></li>
+      <li id="pz213668" otherprops="pivotal"><xref href="#topic6" type="topic" format="dita"/></li>
       <li id="pz215253"><xref href="#topic9" type="topic" format="dita"/></li>
       <li id="pz213676"><xref href="#topic10" type="topic" format="dita"/></li>
     </ul>
@@ -29,13 +29,13 @@
           format="dita"/>.</p>
     </body>
   </topic>
-  <topic id="topic3" xml:lang="en">
+  <topic id="topic3" xml:lang="en" otherprops="pivotal">
     <title id="pz214493">Installing MADlib</title>
     <body>
       <p>For Pivotal Greenplum Database, the MADlib extension is available as a package. Download
-        the package from <xref href="https://network.pivotal.io" scope="external"
-          format="html" class="- topic/xref ">Pivotal Network</xref> and then install it with the
-        Greenplum Package Manager (<codeph>gppkg</codeph>). </p>
+        the package from <xref href="https://network.pivotal.io" scope="external" format="html"
+          class="- topic/xref ">Pivotal Network</xref> and then install it with the Greenplum
+        Package Manager (<codeph>gppkg</codeph>). </p>
       <p>To install MADlib on Greenplum Database, you install the Greenplum MADlib package on
         Greenplum Database and then install the MADlib function libraries on the databases that use
         MADlib. For the versions of the MADlib extension supported by your version of Greenplum
@@ -57,8 +57,8 @@
               href="https://network.pivotal.io/products/pivotal-gpdb" format="html" scope="external"
               >Pivotal Network</xref>, then copy it to the master host.</li>
           <li id="pz216990">Install the software package by running the <codeph>gppkg</codeph>
-            command. This example installs the MADlib 1.9.1 package on a Linux
-            system:<codeblock>$ gppkg -i madlib-ossv1.9.1_pv1.9.6_gpdb&lt;version>-rhel6-x86_64.gppkg</codeblock></li>
+            command. This example installs the MADlib 1.11 package on a Linux
+            system:<codeblock>$ gppkg -i madlib-ossv1.11_pv1.9.8_gpdb&lt;version>-rhel6-x86_64.gppkg</codeblock></li>
         </ol>
       </body>
     </topic>
@@ -87,7 +87,7 @@
       </body>
     </topic>
   </topic>
-  <topic id="topic_eqm_klx_hw">
+  <topic id="topic_eqm_klx_hw" otherprops="pivotal">
     <title>Upgrading MADlib </title>
     <body>
       <p>You upgrade an installed MADlib package with the Greenplum Database <codeph>gppkg</codeph>
@@ -96,11 +96,11 @@
     <topic id="topic_tb3_2gd_3w">
       <title>Upgrading a MADlib Package</title>
       <body>
-        <p>These steps upgrade an installed MADlib package to MADlib 1.9.1.</p>
+        <p>These steps upgrade an installed MADlib package to MADlib 1.11.</p>
         <ol>
           <li> Run the <codeph>gppkg</codeph> utility with the <codeph>-u</codeph> option. This
             command upgrades an installed MADlib package to MADlib
-            1.9.1.<codeblock>gppkg -u madlib-ossv1.9.1_pv1.9.6_gpdb&lt;version>-rhel6-x86_64.gppkg</codeblock></li>
+            1.11.<codeblock>gppkg -u madlib-ossv1.11_pv1.9.8_gpdb&lt;version>-rhel6-x86_64.gppkg</codeblock></li>
         </ol>
       </body>
     </topic>
@@ -116,7 +116,7 @@
       </body>
     </topic>
   </topic>
-  <topic id="topic6" xml:lang="en">
+  <topic id="topic6" xml:lang="en" otherprops="pivotal">
     <title id="pz213704">Uninstalling MADlib</title>
     <body>
       <ul>
@@ -142,7 +142,7 @@
           utility with the <codeph>-r</codeph> option to uninstall the MADlib package. When removing
           the package you must specify the package and version. This example uninstalls MADlib
           package version 1.9.</p>
-        <codeblock>$ gppkg -r madlib-ossv1.9_pv1.9.5_gpdb&lt;version></codeblock>
+        <codeblock>$ gppkg -r madlib-ossv1.11_pv1.9.8_gpdb&lt;version>-rhel6-x86_64.gppkg</codeblock>
         <p>You can run the <codeph>gppkg</codeph> utility with the options <codeph>-q --all</codeph>
           to list the installed extensions and their versions.</p>
         <p>After you uninstall the package, restart the database.</p>

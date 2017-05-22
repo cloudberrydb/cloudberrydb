@@ -19,8 +19,8 @@
       views, roles, user-defined functions, and resource queues. Configuration files, including
         <codeph>postgres.conf</codeph> and <codeph>pg_hba.conf</codeph>, must be transferred
       manually by an administrator. Extensions installed in the database with
-      <codeph>gppkg</codeph>, such as MADlib and programming language extensions, must be installed
-      in the destination database by an administrator. </p>
+      <codeph>gppkg</codeph>, such as MADlib, must be installed in the destination database by an
+      administrator. </p>
     <p>See the <cite>Greenplum Database Utility Guide</cite> for complete syntax and usage
       information for the <codeph>gptransfer</codeph> utility. </p>
     <section>
