@@ -39,7 +39,6 @@ alter table orca.s add column d int;
 insert into orca.s select i, i/2 from generate_series(1,30) i;
 
 set optimizer_log=on;
-set optimizer=on;
 set optimizer_enable_indexjoin=on;
 set optimizer_trace_fallback = on;
 -- expected fall back to the planner
@@ -79,8 +78,6 @@ select 129::bigint, 5623::int, 45::smallint from orca.r;
 
 --  distributed tables
 
-set optimizer=off;
-
 create table orca.foo (x1 int, x2 int, x3 int);
 create table orca.bar1 (x1 int, x2 int, x3 int) distributed randomly;
 create table orca.bar2 (x1 int, x2 int, x3 int) distributed randomly;
@@ -89,8 +86,6 @@ insert into orca.foo select i,i+1,i+2 from generate_series(1,10) i;
 
 insert into orca.bar1 select i,i+1,i+2 from generate_series(1,20) i;
 insert into orca.bar2 select i,i+1,i+2 from generate_series(1,30) i;
-
-set optimizer=on;
 
 -- produces result node
 
@@ -128,8 +123,6 @@ select count(*)+1 from orca.foo x where x.x1 > (select count(*)+1 from orca.bar1
 select count(*)+1 from orca.foo x where x.x1 > (select count(*) from orca.bar1 y where y.x1 = x.x2);
 select count(*) from orca.foo x where x.x1 > (select count(*)+1 from orca.bar1 y where y.x1 = x.x2);
 
-set optimizer=off;
-
 drop table orca.r cascade;
 create table orca.r(a int, b int) distributed by (a);
 create unique index r_a on orca.r(a);
@@ -145,8 +138,6 @@ insert into orca.s select i%7, i%2 from generate_series(1,30) i;
 analyze orca.r;
 analyze orca.s;
 
-set optimizer=on;
-
 select * from orca.r, orca.s where r.a=s.c;
 
 -- Materialize node
@@ -154,8 +145,6 @@ select * from orca.r, orca.s where r.a<s.c+1 or r.a>s.c;
 
 -- empty target list
 select r.* from orca.r, orca.s where s.c=2;
-
-set optimizer=off;
 
 create table orca.m();
 alter table orca.m add column a int;
@@ -169,8 +158,6 @@ insert into orca.m select i-1, i%2 from generate_series(1,35) i;
 insert into orca.m1 select i-2, i%3 from generate_series(1,25) i;
 
 insert into orca.r values (null, 1);
-
-set optimizer=on;
 
 -- join types
 select r.a, s.c from orca.r left outer join orca.s on(r.a=s.c);
@@ -212,11 +199,7 @@ select * from orca.r where a = (select 1);
 -- union with const table
 select * from ((select a as x from orca.r) union (select 1 as x )) as foo order by x;
 
-set optimizer=off;
-
 insert into orca.m values (1,-1), (1,2), (1,1);
-
-set optimizer=on;
 
 -- computed columns
 select a,a,a+b from orca.m;
@@ -250,8 +233,6 @@ select array[array[a,b]], array[b] from orca.r;
 select a, b from orca.m union select b,a from orca.m;
 SELECT a from orca.m UNION ALL select b from orca.m UNION ALL select a+b from orca.m group by 1;
 
-set optimizer=off;
-
 drop table if exists orca.foo;
 create table orca.foo(a int, b int, c int, d int);
 
@@ -260,8 +241,6 @@ create table orca.bar(a int, b int, c int);
 
 insert into orca.foo select i, i%2, i%4, i-1 from generate_series(1,40)i;
 insert into orca.bar select i, i%3, i%2 from generate_series(1,30)i;
-
-set optimizer=on;
 
 -- distinct operation
 SELECT distinct a, b from orca.foo;
@@ -302,15 +281,10 @@ select 1 as v from orca.foo full join orca.bar on (foo.d = bar.a) group by d;
 select * from orca.r where a in (select count(*)+1 as v from orca.foo full join orca.bar on (foo.d = bar.a) group by d+r.b);
 select * from orca.r where r.a in (select d+r.b+1 as v from orca.foo full join orca.bar on (foo.d = bar.a) group by d+r.b) order by r.a, r.b;
 
-set optimizer=off;
-
 drop table if exists orca.rcte;
 create table orca.rcte(a int, b int, c int);
 
 insert into orca.rcte select i, i%2, i%3 from generate_series(1,40)i;
-
--- select disable_xform('CXformInlineCTEConsumer');
-set optimizer=on;
 
 with x as (select * from orca.rcte where a < 10) select * from x x1, x x2;
 with x as (select * from orca.rcte where a < 10) select * from x x1, x x2 where x2.a = x1.b;
@@ -338,7 +312,6 @@ select a, c from orca.r, orca.s where a  = any  (select c from orca.r) order by 
 select a, c from orca.r, orca.s where a  <> all (select c) order by a, c limit 10;
 select a, (select (select (select c from orca.s where a=c group by c))) as subq from orca.r order by a;
 with v as (select a,b from orca.r, orca.s where a=c)  select c from orca.s group by c having count(*) not in (select b from v where a=c) order by c;
-set optimizer=off;
 
 CREATE TABLE orca.onek (
 unique1 int4,
@@ -366,8 +339,6 @@ insert into orca.onek values (883,4,1,3,3,3,3,83,83,383,883,6,7,'ZHAAAA','EAAAAA
 insert into orca.onek values (439,5,1,3,9,19,9,39,39,439,439,18,19,'XQAAAA','FAAAAA','HHHHxx');
 insert into orca.onek values (670,6,0,2,0,10,0,70,70,170,670,0,1,'UZAAAA','GAAAAA','OOOOxx');
 insert into orca.onek values (543,7,1,3,3,3,3,43,143,43,543,6,7,'XUAAAA','HAAAAA','VVVVxx');
-
-set optimizer=on;
 
 select ten, sum(distinct four) from orca.onek a
 group by ten 
@@ -591,11 +562,10 @@ insert into orca.t_employee values('01-07-2012'::date,1,'tag1','(1, ''foo'')'::o
 insert into orca.t_employee values('01-08-2012'::date,2,'tag1','(2, ''foo'')'::orca.employee);
 
 set optimizer_enable_constant_expression_evaluation=on;
-
-select disable_xform('CXformDynamicGet2DynamicTableScan');
+set optimizer_enable_dynamictablescan = off;
 explain select * from orca.t_employee where user_id = 2;
 select * from orca.t_employee where user_id = 2;
-select enable_xform('CXformDynamicGet2DynamicTableScan');
+reset optimizer_enable_dynamictablescan;
 
 reset optimizer_enable_constant_expression_evaluation;
 reset optimizer_enable_partial_index;
@@ -975,13 +945,12 @@ alter table orca.bm_dyn_test_onepart add partition part5 values(5);
 insert into orca.bm_dyn_test_onepart values(2, 5, '2');
 
 set optimizer_enable_bitmapscan=on;
-select disable_xform('CXformDynamicGet2DynamicTableScan');
-
+set optimizer_enable_dynamictablescan = off;
 -- gather on 1 segment because of direct dispatch
 explain select * from orca.bm_dyn_test_onepart where i=2 and t='2';
 select * from orca.bm_dyn_test_onepart where i=2 and t='2';
 
-select enable_xform('CXformDynamicGet2DynamicTableScan');
+reset optimizer_enable_dynamictablescan;
 reset optimizer_enable_bitmapscan;
 
 -- More BitmapTableScan & BitmapIndexScan tests
@@ -1117,9 +1086,7 @@ name character varying(40)
 
 insert into bm.outer_tab select i % 10, i % 5, i % 2 from generate_series(1, 100) i;
 
-select disable_xform('CXformInnerJoin2HashJoin');
-select disable_xform('CXformLeftSemiJoin2HashJoin');
-
+set optimizer_enable_hashjoin = off;
 select count(1) from bm.outer_tab;
 select count(1) from bm.het_bm;
 
@@ -1127,8 +1094,7 @@ select sum(id) id_sum, sum(i) i_sum, sum(j) j_sum from bm.outer_tab as ot join b
 where het_bm.i between 2 and 5;
 
 drop schema bm cascade;
-select enable_xform('CXformInnerJoin2HashJoin');
-select enable_xform('CXformLeftSemiJoin2HashJoin');
+reset optimizer_enable_hashjoin;
 reset optimizer_enable_bitmapscan;
 -- End of BitmapTableScan & BitmapIndexScan tests
 
@@ -1225,8 +1191,7 @@ insert into idxscan_inner values (13, 3, 'zzzz');
 analyze idxscan_outer;
 analyze idxscan_inner;
 
-select disable_xform('CXformInnerJoin2HashJoin');
-select disable_xform('CXformLeftSemiJoin2HashJoin');
+set optimizer_enable_hashjoin = off;
 
 explain select id, comment from idxscan_outer as o join idxscan_inner as i on o.id = i.productid
 where ordernum between 10 and 20;
@@ -1234,8 +1199,7 @@ where ordernum between 10 and 20;
 select id, comment from idxscan_outer as o join idxscan_inner as i on o.id = i.productid
 where ordernum between 10 and 20;
 
-select enable_xform('CXformInnerJoin2HashJoin');
-select enable_xform('CXformLeftSemiJoin2HashJoin');
+reset optimizer_enable_hashjoin;
 
 drop table idxscan_outer;
 drop table idxscan_inner;
