@@ -6422,10 +6422,20 @@
   <topic id="max_appendonly_tables">
     <title>max_appendonly_tables</title>
     <body>
-      <p>Sets the maximum number of append-optimized relations that can be written to or loaded
-        concurrently. Append-optimized table partitions and subpartitions are considered as unique
-        tables against this limit. Increasing the limit will allocate more shared memory at server
-        start.</p>
+      <p>Sets the maximum number of concurrent transactions that can write to or update
+        append-optimized tables. Transactions that exceed the maximum return an error.</p>
+      <p>Operations that are counted are <codeph>INSERT</codeph>, <codeph>UPDATE</codeph>,
+          <codeph>COPY</codeph>, and <codeph>VACUUM</codeph> operations. The limit is only for
+        in-progress transactions. Once a transaction ends (either aborted or committed), it is no
+        longer counted against this limit.</p>
+      <p>For operations against a partitioned table, each subpartition (child table) that is an
+        append-optimized table and is changed counts as a single table towards the maximum. For
+        example, a partitioned table <codeph>p_tbl</codeph> is defined with three subpartitions that
+        are append-optimized tables <codeph>p_tbl_ao1</codeph>, <codeph>p_tbl_ao2</codeph>, and
+          <codeph>p_tbl_ao3</codeph>. An <codeph>INSERT</codeph> or <codeph>UPDATE</codeph> command
+        against the partitioned table <codeph>p_tbl</codeph> that changes append-optimized tables
+          <codeph>p_tbl_ao1</codeph> and <codeph>p_tbl_ao2</codeph> is counted as two transactions. </p>
+      <p>Increasing the limit allocates more shared memory on the master host at server start.</p>
       <table id="max_appendonly_tables_table">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
