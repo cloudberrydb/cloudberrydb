@@ -104,7 +104,7 @@ For PDF, the connectivity tools ditamap requires the pdf-note transform -->
               height="306px"/></li>
           <li id="ok156261">For the driver, <b>PostgreSQL Unicode</b> is the recommended choice.
             Unicode (UTF-8) is the default database encoding for Greenplum Database. There is also a
-              <b>PostgeSQL ANSI</b> driver which can handle some multi-byte character sets and LATIN
+              <b>PostgreSQL ANSI</b> driver which can handle some multi-byte character sets and LATIN
             character sets.<image href="images/win_0005.png" placement="break" width="414px"
               height="282px"/></li>
           <li id="ok157005">Fill in the connection information for your database (on the Greenplum

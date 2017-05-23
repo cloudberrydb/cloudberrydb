@@ -375,7 +375,7 @@ python setup.py build &amp;&amp; python setup.py install</codeblock></li>
           commands download tar files into the directory
           <codeph>packages</codeph>:<codeblock>wget --directory-prefix=packages http://github.com/xianyi/OpenBLAS/tarball/v0.2.8
 wget --directory-prefix=packages http://sourceforge.net/projects/numpy/files/NumPy/1.8.0/numpy-1.8.0.tar.gz/download</codeblock></p>
-        <p>Distribute the software to the Geeenplum Database hosts. For example, if you download the
+        <p>Distribute the software to the Greenplum Database hosts. For example, if you download the
           software to <codeph>/home/gpadmin/packages</codeph> these commands create the directory on
           the hosts and copies the software to hosts for the hosts listed in the
             <codeph>gpdb_remotes</codeph>
