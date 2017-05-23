@@ -440,6 +440,7 @@ extern bool optimizer_enable_master_only_queries;
 extern bool optimizer_enable_hashjoin;
 extern bool optimizer_enable_dynamictablescan;
 extern bool optimizer_enable_indexscan;
+extern bool optimizer_enable_tablescan;
 
 /* Optimizer plan enumeration related GUCs */
 extern bool optimizer_enumerate_plans;

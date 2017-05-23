@@ -754,10 +754,10 @@ SELECT f3, myagg3(f1) from (select * from array_table order by f1 limit 10) as f
 create table mpp22453(a int, d date);
 insert into mpp22453 values (1, '2012-01-01'), (2, '2012-01-02'), (3, '2012-12-31');
 create index mpp22453_idx on mpp22453(d);
-select disable_xform('CXformGet2TableScan');
+set optimizer_enable_tablescan = off;
 select * from mpp22453 where d > date '2012-01-31' + interval '1 day' ;
 select * from mpp22453 where d > '2012-02-01';
-select enable_xform('CXformGet2TableScan');
+reset optimizer_enable_tablescan;
 
 -- MPP-22791: SIGSEGV when querying a table with default partition only
 create table mpp22791(a int, b int) partition by range(b) (default partition d);
@@ -1126,10 +1126,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql volatile;
 
+-- start_ignore
 select disable_xform('CXformInnerJoin2DynamicIndexGetApply');
 select disable_xform('CXformInnerJoin2HashJoin');
 select disable_xform('CXformInnerJoin2IndexGetApply');
 select disable_xform('CXformInnerJoin2NLJoin');
+-- end_ignore
 
 set optimizer_enable_partial_index=on;
 set optimizer_enable_indexjoin=on;
@@ -1150,10 +1152,12 @@ reset optimizer_enable_constant_expression_evaluation;
 reset optimizer_enable_indexjoin;
 reset optimizer_enable_partial_index;
 
+-- start_ignore
 select enable_xform('CXformInnerJoin2DynamicIndexGetApply');
 select enable_xform('CXformInnerJoin2HashJoin');
 select enable_xform('CXformInnerJoin2IndexGetApply');
 select enable_xform('CXformInnerJoin2NLJoin');
+-- end_ignore
 
 -- MPP-25661: IndexScan crashing for qual with reference to outer tuple
 drop table if exists idxscan_outer;

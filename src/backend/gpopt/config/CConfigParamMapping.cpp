@@ -461,6 +461,12 @@ CConfigParamMapping::PbsPack
 		pbs->FExchangeSet(GPOPT_DISABLE_XFORM_TF(CXform::ExfDynamicGet2DynamicTableScan));
 	}
 
+	if (!optimizer_enable_tablescan)
+	{
+		// disable table scan if the corresponding GUC is turned off
+		pbs->FExchangeSet(GPOPT_DISABLE_XFORM_TF(CXform::ExfGet2TableScan));
+	}
+
 	if (!optimizer_enable_indexscan)
 	{
 		// disable index scan if the corresponding GUC is turned off
