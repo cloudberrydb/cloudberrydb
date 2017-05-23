@@ -266,12 +266,8 @@ createDir(Oid group, const char *comp)
 
 	buildPath(group, comp, "", path, pathsize);
 
-	if (access(path, F_OK))
-	{
-		/* the dir is not created yet, create it */
-		if (mkdir(path, 0755) && errno != EEXIST)
-			return false;
-	}
+	if (mkdir(path, 0755) && errno != EEXIST)
+		return false;
 
 	return true;
 }
@@ -376,7 +372,7 @@ readData(Oid group, const char *comp, const char *prop, char *data, size_t datas
 	if (fd < 0)
 		CGROUP_ERROR("can't open file '%s': %s", path, strerror(errno));
 
-	size_t ret = read(fd, data, datasize);
+	ssize_t ret = read(fd, data, datasize);
 
 	/* save errno before close() */
 	int err = errno;
@@ -403,7 +399,7 @@ writeData(Oid group, const char *comp, const char *prop, char *data, size_t data
 	if (fd < 0)
 		CGROUP_ERROR("can't open file '%s': %s", path, strerror(errno));
 
-	size_t ret = write(fd, data, datasize);
+	ssize_t ret = write(fd, data, datasize);
 
 	/* save errno before close */
 	int err = errno;
