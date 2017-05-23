@@ -7,13 +7,14 @@ CREATE WRITABLE EXTERNAL TABLE s3write_quick_write_with_encrypt (date text, time
 CREATE WRITABLE EXTERNAL TABLE s3write_quick_write_no_encryption (date text, time text, open float, high float, low float,
         volume int) LOCATION('s3://s3-us-west-2.amazonaws.com/@write_encrypt_prefix@/quick/ config=@config_file@') FORMAT 'csv';
 
-SELECT * FROM s3write_quick_read;
+SELECT * FROM s3write_quick_read_with_encrypt;
 
 INSERT INTO s3write_quick_write_with_encrypt (date, time, open, high, low, volume) VALUES ('2016-07-28', '12:00:00', 0.5, 0.5, 0.3, 1);
 
+-- conflict with the bucket policy, should fail
 INSERT INTO s3write_quick_write_no_encryption (date, time, open, high, low, volume) VALUES ('2016-07-28', '12:00:00', 0.5, 0.5, 0.3, 1);
 
-SELECT * FROM s3write_quick_read;
+SELECT * FROM s3write_quick_read_with_encrypt;
 
 DROP EXTERNAL TABLE IF EXISTS s3write_quick_read_with_encrypt;
 DROP EXTERNAL TABLE IF EXISTS s3write_quick_write_with_encrypt;
