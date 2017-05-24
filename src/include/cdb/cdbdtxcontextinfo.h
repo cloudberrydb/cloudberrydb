@@ -8,6 +8,7 @@
  */
 #ifndef CDBDTXCONTEXTINFO_H
 #define CDBDTXCONTEXTINFO_H
+#include "utils/tqual.h"
 
 #define DtxContextInfo_StaticInit {0,InvalidDistributedTransactionId,TmGid_Init,0,false,false,DistributedSnapshot_StaticInit,0,0}
 
@@ -36,9 +37,7 @@ extern DtxContextInfo QEDtxContextInfo;
 
 extern void DtxContextInfo_Reset(DtxContextInfo *dtxContextInfo);
 extern void DtxContextInfo_CreateOnMaster(DtxContextInfo *dtxContextInfo,
-										  DistributedSnapshotWithLocalMapping *dslm,
-										  CommandId curcid,
-										  int txnOptions);
+										  int txnOptions, Snapshot snapshot);
 extern int DtxContextInfo_SerializeSize(DtxContextInfo *dtxContextInfo);
 
 extern void DtxContextInfo_Serialize(char *buffer, DtxContextInfo *dtxContextInfo);

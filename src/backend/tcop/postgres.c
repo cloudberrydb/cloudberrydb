@@ -5139,8 +5139,8 @@ PostgresMain(int argc, char *argv[],
 						SetCurrentRoleId(ouid, ouid_is_super); /* Set the outer UserId */
 
 					// UNDONE: Make this more official...
-					if (TempDtxContextInfo.distributedSnapshot.header.maxCount == 0)
-						TempDtxContextInfo.distributedSnapshot.header.maxCount = max_prepared_xacts;
+					if (TempDtxContextInfo.distributedSnapshot.maxCount == 0)
+						TempDtxContextInfo.distributedSnapshot.maxCount = max_prepared_xacts;
 
 					setupQEDtxContext(&TempDtxContextInfo);
 

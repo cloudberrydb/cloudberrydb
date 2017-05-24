@@ -3095,7 +3095,7 @@ StartTransaction(void)
 	elog((Debug_print_snapshot_dtm ? LOG : DEBUG5),
 		 "[Distributed Snapshot #%u] *StartTransaction* (gxid = %u, xid = %u, '%s')", 
 		 (SerializableSnapshot == NULL ? 0 :
-		  SerializableSnapshot->distribSnapshotWithLocalMapping.header.distribSnapshotId),
+		  SerializableSnapshot->distribSnapshotWithLocalMapping.ds.distribSnapshotId),
 		 getDistributedTransactionId(),
 		 s->transactionId,
 		 DtxContextToString(DistributedTransactionContext));

@@ -243,8 +243,8 @@ qdSerializeDtxContextInfo(int *size, bool wantSnapshot, bool inCursor,
 			snapshot = LatestSnapshot;
 			elog((Debug_print_snapshot_dtm ? LOG : DEBUG5),
 				 "[Distributed Snapshot #%u] *QD Use Latest* currcid = %d (gxid = %u, '%s')",
-				 LatestSnapshot->distribSnapshotWithLocalMapping.header.
-				 distribSnapshotId, LatestSnapshot->curcid,
+				 LatestSnapshot->distribSnapshotWithLocalMapping.ds.distribSnapshotId,
+				 LatestSnapshot->curcid,
 				 getDistributedTransactionId(),
 				 DtxContextToString(DistributedTransactionContext));
 		}
@@ -256,8 +256,8 @@ qdSerializeDtxContextInfo(int *size, bool wantSnapshot, bool inCursor,
 			snapshot = SerializableSnapshot;
 			elog((Debug_print_snapshot_dtm ? LOG : DEBUG5),
 				 "[Distributed Snapshot #%u] *QD Use Serializable* currcid = %d (gxid = %u, '%s')",
-				 SerializableSnapshot->distribSnapshotWithLocalMapping.header.
-				 distribSnapshotId, SerializableSnapshot->curcid,
+				 SerializableSnapshot->distribSnapshotWithLocalMapping.ds.distribSnapshotId,
+				 SerializableSnapshot->curcid,
 				 getDistributedTransactionId(),
 				 DtxContextToString(DistributedTransactionContext));
 
@@ -268,17 +268,8 @@ qdSerializeDtxContextInfo(int *size, bool wantSnapshot, bool inCursor,
 	{
 		case DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE:
 		case DTX_CONTEXT_LOCAL_ONLY:
-			if (snapshot != NULL)
-			{
-				DtxContextInfo_CreateOnMaster(&TempQDDtxContextInfo,
-											  &snapshot->distribSnapshotWithLocalMapping,
-											  snapshot->curcid, txnOptions);
-			}
-			else
-			{
-				DtxContextInfo_CreateOnMaster(&TempQDDtxContextInfo,
-											  NULL, 0, txnOptions);
-			}
+			DtxContextInfo_CreateOnMaster(&TempQDDtxContextInfo,
+										  txnOptions, snapshot);
 
 			TempQDDtxContextInfo.cursorContext = inCursor;
 

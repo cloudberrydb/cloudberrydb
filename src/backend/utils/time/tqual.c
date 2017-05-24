@@ -1397,7 +1397,7 @@ GetTransactionSnapshot(void)
 	if (IsXactIsoLevelSerializable)
 	{
 		elog((Debug_print_snapshot_dtm ? LOG : DEBUG5),"[Distributed Snapshot #%u] *Serializable Skip* (gxid = %u, '%s')",
-			 (SerializableSnapshot == NULL ? 0 : SerializableSnapshot->distribSnapshotWithLocalMapping.header.distribSnapshotId),
+			 (SerializableSnapshot == NULL ? 0 : SerializableSnapshot->distribSnapshotWithLocalMapping.ds.distribSnapshotId),
 			 getDistributedTransactionId(),
 			 DtxContextToString(DistributedTransactionContext));
 
@@ -1407,7 +1407,7 @@ GetTransactionSnapshot(void)
 	}
 
 	elog((Debug_print_snapshot_dtm ? LOG : DEBUG5),"[Distributed Snapshot #%u] (gxid = %u, '%s')",
-		 (LatestSnapshot == NULL ? 0 : LatestSnapshot->distribSnapshotWithLocalMapping.header.distribSnapshotId),
+		 (LatestSnapshot == NULL ? 0 : LatestSnapshot->distribSnapshotWithLocalMapping.ds.distribSnapshotId),
 		 getDistributedTransactionId(),
 		 DtxContextToString(DistributedTransactionContext));
 
@@ -1457,11 +1457,13 @@ CopySnapshot(Snapshot snapshot)
 		size += snapshot->subxcnt * sizeof(TransactionId);
 
 	if (snapshot->haveDistribSnapshot &&
-		snapshot->distribSnapshotWithLocalMapping.header.count > 0)
+		snapshot->distribSnapshotWithLocalMapping.ds.count > 0)
 	{
 		dsoff = size;
-		size += snapshot->distribSnapshotWithLocalMapping.header.count *
-			sizeof(DistributedSnapshotMapEntry);
+		size += snapshot->distribSnapshotWithLocalMapping.ds.count *
+			sizeof(DistributedTransactionId);
+		size += snapshot->distribSnapshotWithLocalMapping.currentLocalXidsCount *
+			sizeof(TransactionId);
 	}
 
 	newsnap = (Snapshot) palloc(size);
@@ -1488,18 +1490,40 @@ CopySnapshot(Snapshot snapshot)
 		newsnap->subxip = NULL;
 
 	if (snapshot->haveDistribSnapshot &&
-		snapshot->distribSnapshotWithLocalMapping.header.count > 0)
+		snapshot->distribSnapshotWithLocalMapping.ds.count > 0)
 	{
-		newsnap->distribSnapshotWithLocalMapping.inProgressEntryArray =
-			(DistributedSnapshotMapEntry *) ((char *) newsnap + dsoff);
-		memcpy(newsnap->distribSnapshotWithLocalMapping.inProgressEntryArray,
-			   snapshot->distribSnapshotWithLocalMapping.inProgressEntryArray,
-			   snapshot->distribSnapshotWithLocalMapping.header.count *
-			   sizeof(DistributedSnapshotMapEntry));
+		newsnap->distribSnapshotWithLocalMapping.ds.inProgressXidArray =
+			(DistributedTransactionId*) ((char *) newsnap + dsoff);
+		memcpy(newsnap->distribSnapshotWithLocalMapping.ds.inProgressXidArray,
+			   snapshot->distribSnapshotWithLocalMapping.ds.inProgressXidArray,
+			   snapshot->distribSnapshotWithLocalMapping.ds.count *
+			   sizeof(DistributedTransactionId));
+
+		/* Update the maxCount as memory was only allocated equal to count */
+		newsnap->distribSnapshotWithLocalMapping.ds.maxCount =
+			snapshot->distribSnapshotWithLocalMapping.ds.count;
+
+		/*
+		 * Increment offset to point to next chunk of memory allocated for
+		 * cache.
+		 */
+		dsoff +=snapshot->distribSnapshotWithLocalMapping.ds.count *
+			sizeof(DistributedTransactionId);
+
+		/* Copy the local xid cache */
+		newsnap->distribSnapshotWithLocalMapping.inProgressMappedLocalXids =
+			(TransactionId*) ((char *) newsnap + dsoff);
+		memcpy(newsnap->distribSnapshotWithLocalMapping.inProgressMappedLocalXids,
+			   snapshot->distribSnapshotWithLocalMapping.inProgressMappedLocalXids,
+			   snapshot->distribSnapshotWithLocalMapping.currentLocalXidsCount *
+			   sizeof(TransactionId));
+
+		newsnap->distribSnapshotWithLocalMapping.maxLocalXidsCount =
+			snapshot->distribSnapshotWithLocalMapping.currentLocalXidsCount;
 	}
 	else
 	{
-		newsnap->distribSnapshotWithLocalMapping.inProgressEntryArray = NULL;
+		newsnap->distribSnapshotWithLocalMapping.ds.inProgressXidArray = NULL;
 	}
 
 	return newsnap;

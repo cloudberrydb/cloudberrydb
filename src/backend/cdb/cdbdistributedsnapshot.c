@@ -108,11 +108,8 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 	TransactionId 							localXid,
 	bool isVacuumCheck)
 {
-	DistributedSnapshotHeader *header = &dslm->header;
-	DistributedSnapshotMapEntry *inProgressEntryArray = dslm->inProgressEntryArray;
-	int32							count;
+	DistributedSnapshot *ds = &dslm->ds;
 	uint32							i;
-	bool							found;
 	DistributedTransactionId		distribXid = InvalidDistributedTransactionId;
 
 	/*
@@ -122,27 +119,42 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 	if (!TransactionIdIsNormal(localXid))
 		return DISTRIBUTEDSNAPSHOT_COMMITTED_IGNORE;
 
-	count = header->count;
-
 	/*
-	 * Checking the distributed committed log can be expensive, so
-	 * make a scan through our distributed snapshot looking for a
-	 * possible corresponding local xid...
+	 * Checking the distributed committed log can be expensive, so make a scan
+	 * through our cache in distributed snapshot looking for a possible
+	 * corresponding local xid only if it has value in checking.
 	 */
-	for (i = 0; i < count; i++)
+	if (dslm->currentLocalXidsCount)
 	{
-		if (localXid == inProgressEntryArray[i].localXid)
+		Assert(TransactionIdIsNormal(dslm->minCachedLocalXid));
+		Assert(TransactionIdIsNormal(dslm->maxCachedLocalXid));
+
+		if (TransactionIdEquals(localXid, dslm->minCachedLocalXid) ||
+			TransactionIdEquals(localXid, dslm->maxCachedLocalXid))
+		{
 			return DISTRIBUTEDSNAPSHOT_COMMITTED_INPROGRESS;
+		}
+
+		if (TransactionIdFollows(localXid, dslm->minCachedLocalXid) &&
+			TransactionIdPrecedes(localXid, dslm->maxCachedLocalXid))
+		{
+			for (i = 0; i < dslm->currentLocalXidsCount; i++)
+			{
+				Assert(dslm->inProgressMappedLocalXids != NULL);
+				Assert(TransactionIdIsValid(dslm->inProgressMappedLocalXids[i]));
+
+				if (TransactionIdEquals(localXid, dslm->inProgressMappedLocalXids[i]))
+					return DISTRIBUTEDSNAPSHOT_COMMITTED_INPROGRESS;
+			}
+		}
 	}
 
 	/*
 	 * Is this local xid in a process-local cache we maintain?
 	 */
-	found = LocalDistribXactCache_CommittedFind(localXid,
-												dslm->header.distribTransactionTimeStamp,
-												&distribXid);
-
-	if (found)
+	if (LocalDistribXactCache_CommittedFind(localXid,
+											ds->distribTransactionTimeStamp,
+											&distribXid))
 	{
 		/*
 		 * We cache local-only committed transactions for better
@@ -151,8 +163,10 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 		if (distribXid == InvalidDistributedTransactionId)
 			return DISTRIBUTEDSNAPSHOT_COMMITTED_IGNORE;
 
-		// Fall below and evaluate the committed distributed transaction against
-		// the distributed snapshot.
+		/*
+		 * Fall below and evaluate the committed distributed transaction
+		 * against the distributed snapshot.
+		 */
 	}
 	else
 	{
@@ -175,8 +189,21 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 			 * Committed distributed transactions from other DTM starts are
 			 * weeded out.
 			 */
-			if (checkDistribTimeStamp != header->distribTransactionTimeStamp)
+			if (checkDistribTimeStamp != ds->distribTransactionTimeStamp)
 				return DISTRIBUTEDSNAPSHOT_COMMITTED_IGNORE;
+
+			/*
+			 * We have a distributed committed xid that corresponds to the local xid.
+			 */
+			Assert(distribXid != InvalidDistributedTransactionId);
+
+			/*
+			 * Since we did not find it in our process local cache, add it.
+			 */
+			LocalDistribXactCache_AddCommitted(
+				localXid, 
+				ds->distribTransactionTimeStamp,
+				distribXid);
 		}
 		else
 		{
@@ -186,35 +213,21 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 			 * transaction, it must be local-only.
 			 */
 			LocalDistribXactCache_AddCommitted(localXid,
-											   dslm->header.distribTransactionTimeStamp,
+											   ds->distribTransactionTimeStamp,
 											   /* distribXid */ InvalidDistributedTransactionId);
 
 			return DISTRIBUTEDSNAPSHOT_COMMITTED_IGNORE;
 		}
 	}
-	
-	/*
-	 * We have a distributed committed xid that corresponds to the local xid.
-	 */
-	Assert(distribXid != InvalidDistributedTransactionId);
 
-	/*
-	 * If we did not find it in our cache, add it.
-	 */
-	if (!found)
-		LocalDistribXactCache_AddCommitted(
-										localXid, 
-										dslm->header.distribTransactionTimeStamp,
-										distribXid);
-
-	Assert(header->xminAllDistributedSnapshots != InvalidDistributedTransactionId);
+	Assert(ds->xminAllDistributedSnapshots != InvalidDistributedTransactionId);
 	/*
 	 * If this distributed transaction is older than all the distributed
 	 * snapshots, then we can ignore it from now on.
 	 */
-	Assert(header->xmin >= header->xminAllDistributedSnapshots);
+	Assert(ds->xmin >= ds->xminAllDistributedSnapshots);
 		
-	if (distribXid < dslm->header.xminAllDistributedSnapshots)
+	if (distribXid < ds->xminAllDistributedSnapshots)
 		return DISTRIBUTEDSNAPSHOT_COMMITTED_IGNORE;
 
 	/*
@@ -225,40 +238,59 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 		return DISTRIBUTEDSNAPSHOT_COMMITTED_INPROGRESS;
 
 	/* Any xid < xmin is not in-progress */
-	if (distribXid < header->xmin)
+	if (distribXid < ds->xmin)
 		return DISTRIBUTEDSNAPSHOT_COMMITTED_VISIBLE;
 
 	/* Any xid >= xmax is in-progress, distributed xmax points to the
 	 * committer, so it must be visible, so ">" instead of ">=" */
-	if (distribXid > header->xmax)
+	if (distribXid > ds->xmax)
 	{
 		elog((Debug_print_snapshot_dtm ? LOG : DEBUG5),
-			 "distributedsnapshot committed but invisible: distribXid %d header->xmax %d header->xmin %d header->distribSnapshotId %d",
-			 distribXid, header->xmax, header->xmin, header->distribSnapshotId);
+			 "distributedsnapshot committed but invisible: distribXid %d dxmax %d dxmin %d distribSnapshotId %d",
+			 distribXid, ds->xmax, ds->xmin, ds->distribSnapshotId);
 
 		return DISTRIBUTEDSNAPSHOT_COMMITTED_INPROGRESS;
 	}
 
-	for (i = 0; i < count; i++)
+	for (i = 0; i < ds->count; i++)
 	{
-		if (distribXid == inProgressEntryArray[i].distribXid)
+		if (distribXid == ds->inProgressXidArray[i])
 		{
 			/*
 			 * Save the relationship to the local xid so we may avoid checking
-			 * the distributed committed log in a subsequent check.
+			 * the distributed committed log in a subsequent check. We can
+			 * only record local xids till cache size permits.
 			 */
-			if (inProgressEntryArray[i].localXid == InvalidTransactionId)
-				inProgressEntryArray[i].localXid = localXid;
+			if (dslm->currentLocalXidsCount < dslm->maxLocalXidsCount)
+			{
+				Assert(dslm->inProgressMappedLocalXids != NULL);
+
+				dslm->inProgressMappedLocalXids[dslm->currentLocalXidsCount++] =
+					localXid;
+
+				if (!TransactionIdIsValid(dslm->minCachedLocalXid) ||
+					TransactionIdPrecedes(localXid, dslm->minCachedLocalXid))
+				{
+					dslm->minCachedLocalXid = localXid;
+				}
+
+				if (!TransactionIdIsValid(dslm->maxCachedLocalXid) ||
+					TransactionIdFollows(localXid, dslm->maxCachedLocalXid))
+				{
+					dslm->maxCachedLocalXid = localXid;
+				}
+			}
+
 			return DISTRIBUTEDSNAPSHOT_COMMITTED_INPROGRESS;
 		}
 
 		/*
-		 * Leverage the fact that inProgressEntryArray is sorted in ascending
+		 * Leverage the fact that ds->inProgressXidArray is sorted in ascending
 		 * order based on distribXid while creating the snapshot in
 		 * createDtxSnapshot. So, can fail fast once known are lower than
 		 * rest of them.
 		 */
-		if (distribXid < inProgressEntryArray[i].distribXid)
+		if (distribXid < ds->inProgressXidArray[i])
 			break;
 	}
 
@@ -269,22 +301,20 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 }
 
 /*
- * Reset all fields except header.maxCount and the malloc'd pointer
- * for inProgressXidArray.
+ * Reset all fields except maxCount and the malloc'd pointer for
+ * inProgressXidArray.
  */
 void
 DistributedSnapshot_Reset(DistributedSnapshot *distributedSnapshot)
 {
-	DistributedSnapshotHeader *header = &distributedSnapshot->header;
+	distributedSnapshot->distribTransactionTimeStamp = 0;
+	distributedSnapshot->xminAllDistributedSnapshots = InvalidDistributedTransactionId;
+	distributedSnapshot->distribSnapshotId = 0;
+	distributedSnapshot->xmin = InvalidDistributedTransactionId;
+	distributedSnapshot->xmax = InvalidDistributedTransactionId;
+	distributedSnapshot->count = 0;
 	
-	header->distribTransactionTimeStamp = 0;
-	header->xminAllDistributedSnapshots = InvalidDistributedTransactionId;		
-	header->distribSnapshotId = 0;		
-	header->xmin = InvalidDistributedTransactionId;		
-	header->xmax = InvalidDistributedTransactionId;		
-	header->count = 0;	
-	// Leave maxCount alone
-	// Leave inProgressXidArray alone.
+	/* maxCount and inProgressXidArray left untouched */
 }
 
 /*
@@ -296,20 +326,20 @@ DistributedSnapshot_Copy(
 	DistributedSnapshot *target,
 	DistributedSnapshot *source)
 {
-	if (source->header.maxCount <= 0 ||
-	    source->header.count > source->header.maxCount)
+	if (source->maxCount <= 0 ||
+	    source->count > source->maxCount)
 		elog(ERROR,"Invalid distributed snapshot (maxCount %d, count %d)",
-		     source->header.maxCount, source->header.count);
+		     source->maxCount, source->count);
 
 	DistributedSnapshot_Reset(target);
 
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
 		 "DistributedSnapshot_Copy target maxCount %d, inProgressXidArray %p, and "
 		 "source maxCount %d, count %d, inProgressXidArray %p", 
-	 	 target->header.maxCount,
+		 target->maxCount,
 	 	 target->inProgressXidArray,
-	 	 source->header.maxCount,
-		 source->header.count,
+		 source->maxCount,
+		 source->count,
 		 source->inProgressXidArray);
 
 	/*
@@ -317,13 +347,13 @@ DistributedSnapshot_Copy(
 	 * transactions, check against that space.  Otherwise,
 	 * use the source maxCount as guide in allocating space.
 	 */
-	if (target->header.maxCount > 0)
+	if (target->maxCount > 0)
 	{
 		Assert(target->inProgressXidArray != NULL);
 		
-		if(source->header.count > target->header.maxCount)
+		if(source->count > target->maxCount)
 			elog(ERROR,"Too many distributed transactions for snapshot (maxCount %d, count %d)",
-			     target->header.maxCount, source->header.count);
+			     target->maxCount, source->count);
 	}
 	else
 	{
@@ -331,24 +361,151 @@ DistributedSnapshot_Copy(
 		
 		target->inProgressXidArray = 
 			(DistributedTransactionId*)
-					malloc(source->header.maxCount * sizeof(DistributedTransactionId));
+					malloc(source->maxCount * sizeof(DistributedTransactionId));
 		if (target->inProgressXidArray == NULL)
 			ereport(ERROR,
 					(errcode(ERRCODE_OUT_OF_MEMORY),
 					 errmsg("out of memory")));
-		target->header.maxCount = source->header.maxCount;
+		target->maxCount = source->maxCount;
 	}
 
-	target->header.distribTransactionTimeStamp = source->header.distribTransactionTimeStamp;
-	target->header.xminAllDistributedSnapshots = source->header.xminAllDistributedSnapshots;
-	target->header.distribSnapshotId = source->header.distribSnapshotId;
+	target->distribTransactionTimeStamp = source->distribTransactionTimeStamp;
+	target->xminAllDistributedSnapshots = source->xminAllDistributedSnapshots;
+	target->distribSnapshotId = source->distribSnapshotId;
 
-	target->header.xmin = source->header.xmin;
-	target->header.xmax = source->header.xmax;
-	target->header.count = source->header.count;
+	target->xmin = source->xmin;
+	target->xmax = source->xmax;
+	target->count = source->count;
 
 	memcpy(
 		target->inProgressXidArray, 
 		source->inProgressXidArray, 
-		source->header.count * sizeof(DistributedTransactionId));
+		source->count * sizeof(DistributedTransactionId));
+}
+
+int
+DistributedSnapshot_SerializeSize(DistributedSnapshot *ds)
+{
+	return sizeof(DistributedTransactionTimeStamp) +
+		sizeof(DistributedSnapshotId) +
+		/*xminAllDistributedSnapshots, xmin, xmax */
+		3 * sizeof(DistributedTransactionId) +
+		/* count, maxCount */
+		2 * sizeof(int32) +
+		/* Size of inProgressXidArray */
+		sizeof(DistributedTransactionId) * ds->count;
+}
+
+int
+DistributedSnapshot_Serialize(DistributedSnapshot *ds, char *buf)
+{
+	char *p = buf;
+
+	memcpy(p, &ds->distribTransactionTimeStamp, sizeof(DistributedTransactionTimeStamp));
+	p += sizeof(DistributedTransactionTimeStamp);
+	memcpy(p, &ds->xminAllDistributedSnapshots, sizeof(DistributedTransactionId));
+	p += sizeof(DistributedTransactionId);
+	memcpy(p, &ds->distribSnapshotId, sizeof(DistributedSnapshotId));
+	p += sizeof(DistributedSnapshotId);
+	memcpy(p, &ds->xmin, sizeof(DistributedTransactionId));
+	p += sizeof(DistributedTransactionId);
+	memcpy(p, &ds->xmax, sizeof(DistributedTransactionId));
+	p += sizeof(DistributedTransactionId);
+	memcpy(p, &ds->count, sizeof(int32));
+	p += sizeof(int32);
+	memcpy(p, &ds->maxCount, sizeof(int32));
+	p += sizeof(int32);
+
+	memcpy(p, ds->inProgressXidArray, sizeof(DistributedTransactionId)*ds->count);
+	p += sizeof(DistributedTransactionId)*ds->count;
+
+	Assert((p - buf) == DistributedSnapshot_SerializeSize(ds));
+
+	return (p - buf);
+}
+
+int
+DistributedSnapshot_Deserialize(const char *buf, DistributedSnapshot *ds)
+{
+	const char *p = buf;
+	int32 maxCount;
+
+	memcpy(&ds->distribTransactionTimeStamp, p, sizeof(DistributedTransactionTimeStamp));
+	p += sizeof(DistributedTransactionTimeStamp);
+	memcpy(&ds->xminAllDistributedSnapshots, p, sizeof(DistributedTransactionId));
+	p += sizeof(DistributedTransactionId);
+	memcpy(&ds->distribSnapshotId, p, sizeof(DistributedSnapshotId));
+	p += sizeof(DistributedSnapshotId);
+	memcpy(&ds->xmin, p, sizeof(DistributedTransactionId));
+	p += sizeof(DistributedTransactionId);
+	memcpy(&ds->xmax, p, sizeof(DistributedTransactionId));
+	p += sizeof(DistributedTransactionId);
+	memcpy(&ds->count, p, sizeof(int32));
+	p += sizeof(int32);
+
+	/*
+	 * Copy this one to a local variable first.
+	 */
+	memcpy(&maxCount, p, sizeof(int32));
+	p += sizeof(int32);
+	if (maxCount < 0 || ds->count > maxCount)
+	{
+		elog(ERROR, "Invalid distributed snapshot received (maxCount %d, count %d)",
+			 maxCount, ds->count);
+	}
+
+	/*
+	 * If we have allocated space for the in-progress distributed
+	 * transactions, check against that space.  Otherwise,
+	 * use the received maxCount as guide in allocating space.
+	 */
+	if (ds->inProgressXidArray != NULL)
+	{
+		if (ds->maxCount == 0)
+		{
+			elog(ERROR, "Bad allocation of in-progress array");
+		}
+
+		if (ds->count > ds->maxCount)
+		{
+			elog(ERROR, "Too many distributed transactions for snapshot (maxCount %d, count %d)",
+				 ds->maxCount, ds->count);
+		}
+	}
+	else
+	{
+		if (maxCount > 0)
+		{
+			if (maxCount < ds->maxCount)
+			{
+				maxCount = ds->maxCount;
+			}
+			else
+			{
+				ds->maxCount = maxCount;
+			}
+
+			ds->inProgressXidArray = (DistributedTransactionId *)malloc(maxCount * sizeof(DistributedTransactionId));
+			if (ds->inProgressXidArray == NULL)
+			{
+				ereport(ERROR,
+						(errcode(ERRCODE_OUT_OF_MEMORY),
+						 errmsg("out of memory")));
+			}
+		}
+	}
+
+	if (ds->count > 0)
+	{
+		int xipsize;
+		Assert(ds->inProgressXidArray != NULL);
+
+		xipsize = sizeof(DistributedTransactionId) * ds->count;
+		memcpy(ds->inProgressXidArray, p, xipsize);
+		p += xipsize;
+	}
+
+	Assert((p - buf) == DistributedSnapshot_SerializeSize(ds));
+
+	return (p - buf);
 }

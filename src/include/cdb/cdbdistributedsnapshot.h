@@ -12,28 +12,9 @@
 /* This is a shipped header, do not include other files under "cdb" */
 #include "c.h"     /* DistributedTransactionId */
 
+#define DistributedSnapshot_StaticInit {0,0,0,0,0,0}
 
-/*
- * Combine global and local information captured while scanning the
- * distributed transactions so they can be sorted as a unit.
- *
- * For sub-transaction same distribXid can be associated with multiple
- * localXid, but currently we cache only one localXid for distribXid, for
- * others we will consult the distributed_log. Opportunity exist though to
- * improve performance by caching every localXid corresponding to distribXid,
- * in inProgressEntryArray.
- */
-typedef struct DistributedSnapshotMapEntry
-{
-	DistributedTransactionId 	distribXid;
-
-	TransactionId 				localXid;
-
-} DistributedSnapshotMapEntry;
-
-#define DistributedSnapshotHeader_StaticInit {0,0,0,0,0,0}
-
-typedef struct DistributedSnapshotHeader
+typedef struct DistributedSnapshot
 {
 	DistributedTransactionTimeStamp		distribTransactionTimeStamp;
 										/*
@@ -66,43 +47,29 @@ typedef struct DistributedSnapshotHeader
 										 * Max entry count for 
 										 * inProgress*Array.
 										 */
-} DistributedSnapshotHeader;
 
-#define DistributedSnapshotWithLocalMapping_StaticInit {DistributedSnapshotHeader_StaticInit,NULL}
+	/* Array of distributed transactions in progress. */
+	DistributedTransactionId        *inProgressXidArray;
+} DistributedSnapshot;
 
 /*
- * GP: Global information about which transactions are visible for a distributed
- * transaction.
- *
- * The changable aspects related to a transaction like sub-transactions and
- * command number are stored separately.
+ * GPDB: Snapshot stores this information to check tuple visibility against
+ * distributed transactions.
  */
 typedef struct DistributedSnapshotWithLocalMapping
 {
-	DistributedSnapshotHeader		header;
-	
-	DistributedSnapshotMapEntry 	*inProgressEntryArray;
-										/* 
-										 * Array of distributed transactions
-										 * in progress, optionally with the
-										 * associated local xid.
-										 */
+	DistributedSnapshot ds;
 
+	/*
+	 * Cache to perform quick check for localXid, populated after reverse
+	 * mapping distributed xid to local xid.
+	 */
+	TransactionId minCachedLocalXid;
+	TransactionId maxCachedLocalXid;
+	int32 currentLocalXidsCount;
+	int32 maxLocalXidsCount;
+	TransactionId *inProgressMappedLocalXids;
 } DistributedSnapshotWithLocalMapping;
-
-#define DistributedSnapshot_StaticInit {DistributedSnapshotHeader_StaticInit,NULL}
-
-typedef struct DistributedSnapshot
-{
-	DistributedSnapshotHeader		header;
-		
-	DistributedTransactionId 		*inProgressXidArray;
-										/* 
-										 * Array of distributed transactions
-										 * in progress.
-										 */
-
-} DistributedSnapshot;
 
 typedef enum
 {
@@ -110,7 +77,6 @@ typedef enum
 	DISTRIBUTEDSNAPSHOT_COMMITTED_INPROGRESS,
 	DISTRIBUTEDSNAPSHOT_COMMITTED_VISIBLE,
 	DISTRIBUTEDSNAPSHOT_COMMITTED_IGNORE
-	
 } DistributedSnapshotCommitted;
 
 extern bool
@@ -128,5 +94,13 @@ extern void DistributedSnapshot_Copy(
 	DistributedSnapshot *target,
 	DistributedSnapshot *source);
 
-#endif   /* CDBDISTRIBUTEDSNAPSHOT_H */
+extern int
+DistributedSnapshot_SerializeSize(DistributedSnapshot *ds);
 
+extern int
+DistributedSnapshot_Serialize(DistributedSnapshot *ds, char *buf);
+
+extern int
+DistributedSnapshot_Deserialize(const char *buf, DistributedSnapshot *ds);
+
+#endif   /* CDBDISTRIBUTEDSNAPSHOT_H */

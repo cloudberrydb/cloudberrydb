@@ -6,7 +6,7 @@
 
 #include "../cdbtm.c"
 
-#define SIZE_OF_IN_PROGRESS_ARRAY (10 * sizeof(DistributedSnapshotMapEntry))
+#define SIZE_OF_IN_PROGRESS_ARRAY (10 * sizeof(DistributedTransactionId))
 
 void setup(TmControlBlock *controlBlock, TMGXACT *gxact_array)
 {
@@ -37,8 +37,15 @@ test__createDtxSnapshot(void **state)
 	TMGXACT gxact_array[5];
 	TmControlBlock controlBlock;
 	DistributedSnapshotWithLocalMapping distribSnapshotWithLocalMapping;
-	distribSnapshotWithLocalMapping.inProgressEntryArray = (DistributedSnapshotMapEntry *)malloc(SIZE_OF_IN_PROGRESS_ARRAY);
-	distribSnapshotWithLocalMapping.header.maxCount = 10;
+	DistributedSnapshot *ds = &distribSnapshotWithLocalMapping.ds;
+
+	ds->inProgressXidArray =
+		(DistributedTransactionId*)malloc(SIZE_OF_IN_PROGRESS_ARRAY);
+	ds->maxCount = 10;
+
+	distribSnapshotWithLocalMapping.inProgressMappedLocalXids =
+		(TransactionId*) malloc(1 * sizeof(TransactionId));
+	distribSnapshotWithLocalMapping.maxLocalXidsCount = 1;
 
 	setup(&controlBlock, &gxact_array);
 
@@ -58,14 +65,14 @@ test__createDtxSnapshot(void **state)
 	/********************************************************
 	 * Basic case, no other in progress transaction in system
 	 */
-	memset(distribSnapshotWithLocalMapping.inProgressEntryArray, 0, SIZE_OF_IN_PROGRESS_ARRAY);
+	memset(ds->inProgressXidArray, 0, SIZE_OF_IN_PROGRESS_ARRAY);
 	createDtxSnapshot(&distribSnapshotWithLocalMapping);
 
 	/* perform all the validations */
-	assert_true(distribSnapshotWithLocalMapping.header.xminAllDistributedSnapshots == 20);
-	assert_true(distribSnapshotWithLocalMapping.header.xmin == 20);
-	assert_true(distribSnapshotWithLocalMapping.header.xmax == 25);
-	assert_true(distribSnapshotWithLocalMapping.header.count == 0);
+	assert_true(ds->xminAllDistributedSnapshots == 20);
+	assert_true(ds->xmin == 20);
+	assert_true(ds->xmax == 25);
+	assert_true(ds->count == 0);
 	assert_true(currentGxact->xminDistributedSnapshot == 20);
 
 	/*************************************************************************
@@ -84,14 +91,14 @@ test__createDtxSnapshot(void **state)
 	shmGxactArray[2]->xminDistributedSnapshot = 20;
 	(*shmNumGxacts)++;
 
-	memset(distribSnapshotWithLocalMapping.inProgressEntryArray, 0, SIZE_OF_IN_PROGRESS_ARRAY);
+	memset(ds->inProgressXidArray, 0, SIZE_OF_IN_PROGRESS_ARRAY);
 	createDtxSnapshot(&distribSnapshotWithLocalMapping);
 
 	/* perform all the validations */
-	assert_true(distribSnapshotWithLocalMapping.header.xminAllDistributedSnapshots == 5);
-	assert_true(distribSnapshotWithLocalMapping.header.xmin == 10);
-	assert_true(distribSnapshotWithLocalMapping.header.xmax == 30);
-	assert_true(distribSnapshotWithLocalMapping.header.count == 2);
+	assert_true(ds->xminAllDistributedSnapshots == 5);
+	assert_true(ds->xmin == 10);
+	assert_true(ds->xmax == 30);
+	assert_true(ds->count == 2);
 	assert_true(currentGxact->xminDistributedSnapshot == 10);
 
 	/*************************************************************************
@@ -108,21 +115,22 @@ test__createDtxSnapshot(void **state)
 	shmGxactArray[4]->xminDistributedSnapshot = 7;
 	(*shmNumGxacts)++;
 
-	memset(distribSnapshotWithLocalMapping.inProgressEntryArray, 0, SIZE_OF_IN_PROGRESS_ARRAY);
+	memset(ds->inProgressXidArray, 0, SIZE_OF_IN_PROGRESS_ARRAY);
 	createDtxSnapshot(&distribSnapshotWithLocalMapping);
 
 	/* perform all the validations */
-	assert_true(distribSnapshotWithLocalMapping.header.xminAllDistributedSnapshots == 5);
-	assert_true(distribSnapshotWithLocalMapping.header.xmin == 7);
-	assert_true(distribSnapshotWithLocalMapping.header.xmax == 30);
-	assert_true(distribSnapshotWithLocalMapping.header.count == 4);
+	assert_true(ds->xminAllDistributedSnapshots == 5);
+	assert_true(ds->xmin == 7);
+	assert_true(ds->xmax == 30);
+	assert_true(ds->count == 4);
 	assert_true(currentGxact->xminDistributedSnapshot == 7);
-	assert_true(distribSnapshotWithLocalMapping.inProgressEntryArray[0].distribXid == 7);
-	assert_true(distribSnapshotWithLocalMapping.inProgressEntryArray[1].distribXid == 10);
-	assert_true(distribSnapshotWithLocalMapping.inProgressEntryArray[2].distribXid == 15);
-	assert_true(distribSnapshotWithLocalMapping.inProgressEntryArray[3].distribXid == 30);
+	assert_true(ds->inProgressXidArray[0] == 7);
+	assert_true(ds->inProgressXidArray[1] == 10);
+	assert_true(ds->inProgressXidArray[2] == 15);
+	assert_true(ds->inProgressXidArray[3] == 30);
 
-	free(distribSnapshotWithLocalMapping.inProgressEntryArray);
+	free(distribSnapshotWithLocalMapping.inProgressMappedLocalXids);
+	free(ds->inProgressXidArray);
 	free(shmGxactArray[0]);
 }
 

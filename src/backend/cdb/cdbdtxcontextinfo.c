@@ -33,62 +33,15 @@ DtxContextInfo_RewindSegmateSync(void)
 	syncCount--;
 }
 
-static void
-DtxContextInfo_CopyDistributedSnapshot(
-	DistributedSnapshot 				*ds,
-	DistributedSnapshotWithLocalMapping *dslm)
-{
-	int i;
-
-	ds->header.distribTransactionTimeStamp = dslm->header.distribTransactionTimeStamp;	
-	ds->header.xminAllDistributedSnapshots = dslm->header.xminAllDistributedSnapshots;		
-	ds->header.distribSnapshotId = dslm->header.distribSnapshotId;		
-	ds->header.xmin = dslm->header.xmin;		
-	ds->header.xmax = dslm->header.xmax;		
-	ds->header.count = dslm->header.count;	
-	// Leave maxCount alone
-	
-	// UNDONE: Common routine?
-	/*
-	 * If we have allocated space for the in-progress distributed
-	 * transactions, check against that space.  Otherwise,
-	 * use the received maxCount as guide in allocating space.
-	 */
-	if (ds->header.maxCount > 0)
-	{
-		Assert(ds->inProgressXidArray != NULL);
-		
-		if(dslm->header.count > ds->header.maxCount)
-			elog(ERROR,"Too many distributed transactions for snapshot (maxCount %d, count %d)",
-			     ds->header.maxCount, dslm->header.count);
-	}
-	else
-	{
-		Assert(ds->inProgressXidArray == NULL);
-		
-		ds->inProgressXidArray = 
-			(DistributedTransactionId*)
-					malloc(dslm->header.maxCount * sizeof(DistributedTransactionId));
-		if (ds->inProgressXidArray == NULL)
-			ereport(ERROR,
-					(errcode(ERRCODE_OUT_OF_MEMORY),
-					 errmsg("out of memory")));
-		ds->header.maxCount = dslm->header.maxCount;
-	}
-
-	for (i = 0; i < ds->header.count; i++)
-	{
-		ds->inProgressXidArray[i] =
-			dslm->inProgressEntryArray[i].distribXid;
-	}
-}
-
 void
 DtxContextInfo_CreateOnMaster(DtxContextInfo *dtxContextInfo,
-							  DistributedSnapshotWithLocalMapping *dslm,
-							  CommandId curcid, int txnOptions)
+							  int txnOptions, Snapshot snapshot)
 {
 	int i;
+	CommandId curcid = 0;
+
+	if (snapshot)
+		curcid = snapshot->curcid;
 
 	DtxContextInfo_Reset(dtxContextInfo);
 
@@ -125,11 +78,11 @@ DtxContextInfo_CreateOnMaster(DtxContextInfo *dtxContextInfo,
 		 dtxContextInfo->distributedXid, syncCacheXid, dtxContextInfo->nestingLevel,
 		 dtxContextInfo->segmateSync, syncCount);
 
-	if (dslm == NULL)
-		dtxContextInfo->haveDistributedSnapshot = false;
-	else
+	dtxContextInfo->haveDistributedSnapshot = false;
+	if (snapshot && snapshot->haveDistribSnapshot)
 	{
-		DtxContextInfo_CopyDistributedSnapshot(&dtxContextInfo->distributedSnapshot, dslm);
+		DistributedSnapshot_Copy(&dtxContextInfo->distributedSnapshot,
+								 &snapshot->distribSnapshotWithLocalMapping.ds);
 		dtxContextInfo->haveDistributedSnapshot = true;
 	}
 
@@ -151,13 +104,13 @@ DtxContextInfo_CreateOnMaster(DtxContextInfo *dtxContextInfo,
 			 "DtxContextInfo_CreateOnMaster distributedXid = %u, "
 		     "distributedSnapshotHeader (xminAllDistributedSnapshots %u, xmin = %u, xmax = %u, count = %d, maxCount %d)",
 			 dtxContextInfo->distributedXid,
-			 ds->header.xminAllDistributedSnapshots,
-			 ds->header.xmin, 
-			 ds->header.xmax,
-			 ds->header.count,
-			 ds->header.maxCount);
+			 ds->xminAllDistributedSnapshots,
+			 ds->xmin,
+			 ds->xmax,
+			 ds->count,
+			 ds->maxCount);
 		
-		for (i = 0; i < ds->header.count; i++)
+		for (i = 0; i < ds->count; i++)
 		{
 			elog((Debug_print_full_dtm ? LOG : DEBUG5),
 				 "....    distributedSnapshotData->xip[%d] = %u", 
@@ -175,16 +128,6 @@ DtxContextInfo_CreateOnMaster(DtxContextInfo *dtxContextInfo,
 			 IsoLevelAsUpperString(mppTxOptions_IsoLevel(txnOptions)),
 			 (isMppTxOptions_ReadOnly(txnOptions) ? "true" : "false")); 
 	}
-}
-
-static int
-DistributedHeader_SerializeSize(DistributedSnapshotHeader *dsh)
-{
-	return sizeof(DistributedTransactionTimeStamp) +	// distributedTransactionTimeStamp
-		   sizeof(DistributedTransactionId) +			// xminAllDistributedSnapshots
-		   sizeof(DistributedSnapshotId) +				// distributedSnapshotId
-	       2 * sizeof(DistributedTransactionId) +		// xmin, xmax
-	       2 * sizeof(int32);							// count, maxCount
 }
 
 int 
@@ -208,10 +151,8 @@ DtxContextInfo_SerializeSize(DtxContextInfo *dtxContextInfo)
 
 	if (dtxContextInfo->haveDistributedSnapshot)
 	{
-		DistributedSnapshot *ds = &dtxContextInfo->distributedSnapshot;
-
-		size += DistributedHeader_SerializeSize(&ds->header);
-		size += sizeof(DistributedTransactionId) * ds->header.count;
+		size += DistributedSnapshot_SerializeSize(
+			&dtxContextInfo->distributedSnapshot);
 	}
 
 	size += sizeof(int);		/* distributedTxnOptions */
@@ -269,22 +210,7 @@ DtxContextInfo_Serialize(char *buffer, DtxContextInfo *dtxContextInfo)
 
 	if (dtxContextInfo->haveDistributedSnapshot)
 	{
-		memcpy(p, &ds->header.distribTransactionTimeStamp, sizeof(DistributedTransactionTimeStamp)); 
-		p += sizeof(DistributedTransactionTimeStamp);
-		memcpy(p, &ds->header.xminAllDistributedSnapshots, sizeof(DistributedTransactionId)); 
-		p += sizeof(DistributedTransactionId);
-		memcpy(p, &ds->header.distribSnapshotId, sizeof(DistributedSnapshotId)); 
-		p += sizeof(DistributedSnapshotId);
-		memcpy(p, &ds->header.xmin, sizeof(DistributedTransactionId)); 
-		p += sizeof(DistributedTransactionId);
-		memcpy(p, &ds->header.xmax, sizeof(DistributedTransactionId)); 
-		p += sizeof(DistributedTransactionId);
-		memcpy(p, &ds->header.count, sizeof(int32)); p += sizeof(int32);
-		memcpy(p, &ds->header.maxCount, sizeof(int32)); p += sizeof(int32);
-
-		memcpy(p, ds->inProgressXidArray, sizeof(DistributedTransactionId)*ds->header.count); 
-		p += sizeof(DistributedTransactionId)*ds->header.count;
-
+		p += DistributedSnapshot_Serialize(ds, p);
 	}
 
 	memcpy(p, &dtxContextInfo->distributedTxnOptions, sizeof(int));
@@ -305,12 +231,12 @@ DtxContextInfo_Serialize(char *buffer, DtxContextInfo *dtxContextInfo)
 		{
 			elog((Debug_print_full_dtm ? LOG : DEBUG5),
 				 "distributedSnapshotHeader (xminAllDistributedSnapshots %u, xmin = %u, xmax = %u, count = %d, maxCount = %d)",
-				 ds->header.xminAllDistributedSnapshots,
-				 ds->header.xmin, 
-				 ds->header.xmax,
-				 ds->header.count,
-				 ds->header.maxCount);
-			for (i = 0; i < ds->header.count; i++)
+				 ds->xminAllDistributedSnapshots,
+				 ds->xmin,
+				 ds->xmax,
+				 ds->count,
+				 ds->maxCount);
+			for (i = 0; i < ds->count; i++)
 			{
 				elog((Debug_print_full_dtm ? LOG : DEBUG5),
 					 "....    inProgressXidArray[%d] = %u", 
@@ -318,7 +244,7 @@ DtxContextInfo_Serialize(char *buffer, DtxContextInfo *dtxContextInfo)
 			}
 			elog((Debug_print_snapshot_dtm ? LOG : DEBUG5),
 				 "[Distributed Snapshot #%u] *Serialize* currcid = %d (gxid = %u, '%s')", 
-			 	 ds->header.distribSnapshotId,
+				 ds->distribSnapshotId,
 			 	 dtxContextInfo->curcid,
 			 	 getDistributedTransactionId(),
 				 DtxContextToString(DistributedTransactionContext));
@@ -387,14 +313,14 @@ DtxContextInfo_Copy(
 
 	if (target->haveDistributedSnapshot)
 		elog((Debug_print_full_dtm ? LOG : DEBUG5),
-			 "distributed snapshot header {timestamp %u, xminAllDistributedSnapshots %u, snapshot id %d, "
+			 "distributed snapshot {timestamp %u, xminAllDistributedSnapshots %u, snapshot id %d, "
 			 "xmin %u, count %d, xmax %u}",
-			 target->distributedSnapshot.header.distribTransactionTimeStamp,
-			 target->distributedSnapshot.header.xminAllDistributedSnapshots,
-			 target->distributedSnapshot.header.distribSnapshotId,
-			 target->distributedSnapshot.header.xmin,
-			 target->distributedSnapshot.header.count,
-			 target->distributedSnapshot.header.xmax);
+			 target->distributedSnapshot.distribTransactionTimeStamp,
+			 target->distributedSnapshot.xminAllDistributedSnapshots,
+			 target->distributedSnapshot.distribSnapshotId,
+			 target->distributedSnapshot.xmin,
+			 target->distributedSnapshot.count,
+			 target->distributedSnapshot.xmax);
 		 
 }
 
@@ -410,9 +336,7 @@ DtxContextInfo_Deserialize(const char *serializedDtxContextInfo,
 
 	if (serializedDtxContextInfolen > 0)
 	{
-		int xipsize;
 		const char *p = serializedDtxContextInfo;
-		int32 maxCount;
 
 		elog((Debug_print_full_dtm ? LOG : DEBUG5),
 			 "DtxContextInfo_Deserialize serializedDtxContextInfolen = %d.",
@@ -457,81 +381,7 @@ DtxContextInfo_Deserialize(const char *serializedDtxContextInfo,
 
 		if (dtxContextInfo->haveDistributedSnapshot)
 		{
-			memcpy(&ds->header.distribTransactionTimeStamp, p, sizeof(DistributedTransactionTimeStamp));
-			p += sizeof(DistributedTransactionTimeStamp);
-			memcpy(&ds->header.xminAllDistributedSnapshots, p, sizeof(DistributedTransactionId));
-			p += sizeof(DistributedTransactionId);
-			memcpy(&ds->header.distribSnapshotId, p, sizeof(DistributedSnapshotId));
-			p += sizeof(DistributedSnapshotId);
-			memcpy(&ds->header.xmin, p, sizeof(DistributedTransactionId));
-			p += sizeof(DistributedTransactionId);
-			memcpy(&ds->header.xmax, p, sizeof(DistributedTransactionId));
-			p += sizeof(DistributedTransactionId);
-			memcpy(&ds->header.count, p, sizeof(int32));
-			p += sizeof(int32);
-
-			/*
-			 * Copy this one to a local variable first.
-			 */
-			memcpy(&maxCount, p, sizeof(int32));
-			p += sizeof(int32);
-			if (maxCount < 0 || ds->header.count > maxCount)
-			{
-				elog(ERROR, "Invalid distributed snapshot received (maxCount %d, count %d)",
-				     maxCount, ds->header.count);
-			}
-
-			/*
-			 * If we have allocated space for the in-progress distributed
-			 * transactions, check against that space.  Otherwise,
-			 * use the received maxCount as guide in allocating space.
-			 */
-			if (ds->inProgressXidArray != NULL)
-			{
-				if (ds->header.maxCount == 0)
-				{
-					elog(ERROR, "Bad allocation of in-progress array");
-				}
-
-				if (ds->header.count > ds->header.maxCount)
-				{
-					elog(ERROR, "Too many distributed transactions for snapshot (maxCount %d, count %d)",
-					     ds->header.maxCount, ds->header.count);
-				}
-			}
-			else
-			{
-				Assert(ds->inProgressXidArray == NULL);
-
-				if (maxCount > 0)
-				{
-					if (maxCount < ds->header.maxCount)
-					{
-						maxCount = ds->header.maxCount;
-					}
-					else
-					{
-						ds->header.maxCount = maxCount;
-					}
-
-					ds->inProgressXidArray = (DistributedTransactionId *)malloc(maxCount * sizeof(DistributedTransactionId));
-					if (ds->inProgressXidArray == NULL)
-					{
-						ereport(ERROR,
-								(errcode(ERRCODE_OUT_OF_MEMORY),
-								 errmsg("out of memory")));
-					}
-				}
-			}
-
-			if (ds->header.count > 0)
-			{
-				Assert(ds->inProgressXidArray != NULL);
-
-				xipsize = sizeof(DistributedTransactionId) * ds->header.count;
-				memcpy(ds->inProgressXidArray, p, xipsize);
-				p += xipsize;
-			}
+			p += DistributedSnapshot_Deserialize(p, ds);
 		}
 		else
 		{
@@ -555,13 +405,13 @@ DtxContextInfo_Deserialize(const char *serializedDtxContextInfo,
 			{
 				elog((Debug_print_full_dtm ? LOG : DEBUG5),
 				     "distributedSnapshotHeader (xminAllDistributedSnapshots %u, xmin = %u, xmax = %u, count = %d, maxCount = %d)",
-				     ds->header.xminAllDistributedSnapshots,
-					 ds->header.xmin,
-					 ds->header.xmax,
-					 ds->header.count,
-					 ds->header.maxCount);
+				     ds->xminAllDistributedSnapshots,
+					 ds->xmin,
+					 ds->xmax,
+					 ds->count,
+					 ds->maxCount);
 
-				for (i = 0; i < ds->header.count; i++)
+				for (i = 0; i < ds->count; i++)
 				{
 					elog((Debug_print_full_dtm ? LOG : DEBUG5),
 						 "....    inProgressXidArray[%d] = %u",
@@ -570,7 +420,7 @@ DtxContextInfo_Deserialize(const char *serializedDtxContextInfo,
 
 				elog((Debug_print_snapshot_dtm ? LOG : DEBUG5),
 					 "[Distributed Snapshot #%u] *Deserialize* currcid = %d (gxid = %u, '%s')",
-					 ds->header.distribSnapshotId,
+					 ds->distribSnapshotId,
 					 dtxContextInfo->curcid,
 					 getDistributedTransactionId(),
 					 DtxContextToString(DistributedTransactionContext));

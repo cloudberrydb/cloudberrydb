@@ -1005,30 +1005,30 @@ LogDistributedSnapshotInfo(Snapshot snapshot, const char *prefix)
 	DistributedSnapshotWithLocalMapping *mapping =
 		&(snapshot->distribSnapshotWithLocalMapping);
 
+	DistributedSnapshot *ds = &mapping->ds;
+
 	char message[MESSAGE_LEN];
 	snprintf(message, MESSAGE_LEN, "%s Distributed snapshot info: "
 			 "xminAllDistributedSnapshots=%d, distribSnapshotId=%d"
 			 ", xmin=%d, xmax=%d, count=%d",
 			 prefix,
-			 mapping->header.xminAllDistributedSnapshots,
-			 mapping->header.distribSnapshotId,
-			 mapping->header.xmin,
-			 mapping->header.xmax,
-			 mapping->header.count);
+			 ds->xminAllDistributedSnapshots,
+			 ds->distribSnapshotId,
+			 ds->xmin,
+			 ds->xmax,
+			 ds->count);
 
 	snprintf(message, MESSAGE_LEN, "%s, In progress array: {",
 			 message);
 
-	for (int no = 0; no < mapping->header.count; no++)
+	for (int no = 0; no < ds->count; no++)
 	{
 		if (no != 0)
-			snprintf(message, MESSAGE_LEN, "%s, (%d,%d)",
-					 message, mapping->inProgressEntryArray[no].distribXid,
-					 mapping->inProgressEntryArray[no].localXid);
+			snprintf(message, MESSAGE_LEN, "%s, (dx%d)",
+					 message, ds->inProgressXidArray[no]);
 		else
-			snprintf(message, MESSAGE_LEN, "%s (%d,%d)",
-					 message, mapping->inProgressEntryArray[no].distribXid,
-					 mapping->inProgressEntryArray[no].localXid);
+			snprintf(message, MESSAGE_LEN, "%s (dx%d)",
+					 message, ds->inProgressXidArray[no]);
 	}
 
 	elog(LOG, "%s}", message);
