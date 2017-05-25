@@ -97,6 +97,8 @@ test_send(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(true);
 }
 
+#define NUM_RETRIES 50
+
 Datum
 test_receive_and_verify(PG_FUNCTION_ARGS)
 {
@@ -111,26 +113,36 @@ test_receive_and_verify(PG_FUNCTION_ARGS)
 	string_to_xlogrecptr(start_location, &startpoint);
 	string_to_xlogrecptr(end_location, &endpoint);
 
-	/* Pending to check why first walrcv_receive returns nothing */
-	walrcv_receive(NAPTIME_PER_CYCLE, &type, &buf, &len);
-
-	if (walrcv_receive(NAPTIME_PER_CYCLE, &type, &buf, &len))
+	for (int i=0; i < NUM_RETRIES; i++)
 	{
-		XLogRecPtr logStreamStart;
-		/* Accept the received data, and process it */
-		test_XLogWalRcvProcessMsg(type, buf, len, &logStreamStart);
+		if (walrcv_receive(NAPTIME_PER_CYCLE, &type, &buf, &len))
+		{
+			XLogRecPtr logStreamStart;
+			/* Accept the received data, and process it */
+			test_XLogWalRcvProcessMsg(type, buf, len, &logStreamStart);
 
-		/* Compare received everthing from start */
-		if (startpoint.xlogid != logStreamStart.xlogid ||
-			startpoint.xrecoff != logStreamStart.xrecoff)
-			PG_RETURN_BOOL(false);
+			/* Compare received everthing from start */
+			if (startpoint.xlogid != logStreamStart.xlogid ||
+				startpoint.xrecoff != logStreamStart.xrecoff)
+			{
+				elog(ERROR, "Start point (%X/%X) differs from expected (%X/%X)",
+					 logStreamStart.xlogid, logStreamStart.xrecoff,
+					 startpoint.xlogid, startpoint.xrecoff);
+			}
 
-		/* Compare received everthing till end */
-		if (endpoint.xlogid != LogstreamResult.Write.xlogid ||
-			endpoint.xrecoff != LogstreamResult.Write.xrecoff)
-			PG_RETURN_BOOL(false);
+			/* Compare received everything till end */
+			if (endpoint.xlogid != LogstreamResult.Write.xlogid ||
+				endpoint.xrecoff != LogstreamResult.Write.xrecoff)
+			{
+				elog(ERROR, "End point (%X/%X) differs from expected (%X/%X)",
+					 LogstreamResult.Write.xlogid, LogstreamResult.Write.xrecoff,
+					 endpoint.xlogid, endpoint.xrecoff);
+			}
 
-		PG_RETURN_BOOL(true);
+			PG_RETURN_BOOL(true);
+		}
+
+		elog(LOG, "walrcv_receive didn't return anything, retry...%d", i);
 	}
 
 	PG_RETURN_BOOL(false);
