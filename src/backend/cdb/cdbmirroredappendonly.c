@@ -29,6 +29,14 @@
 #include "cdb/cdbpersistentstore.h"
 #include "cdb/cdbpersistentrecovery.h"
 
+#ifdef USE_SEGWALREP
+#include "cdb/cdbappendonlyam.h"
+
+
+static void insert_ao_xlog(MirroredAppendOnlyOpen *open, void *buffer,
+						   int32 bufferLen);
+#endif		/* USE_SEGWALREP */
+
 static void MirroredAppendOnly_SetUpMirrorAccess(
 	RelFileNode					*relFileNode,
 			/* The tablespace, database, and relation OIDs for the open. */
@@ -2189,6 +2197,12 @@ void MirroredAppendOnly_Append(
 	if (StorageManagerMirrorMode_DoPrimaryWork(open->mirrorMode) &&
 		!open->copyToMirror)
 	{
+
+#ifdef USE_SEGWALREP
+		/* Log each varblock to the XLog. */
+		insert_ao_xlog(open, buffer, bufferLen);
+#endif		/* USE_SEGWALREP */
+
 		errno = 0;
 
 		if ((int) FileWrite(open->primaryFile, buffer, bufferLen) != bufferLen)
@@ -2208,6 +2222,42 @@ void MirroredAppendOnly_Append(
 	*mirrorDataLossOccurred = open->mirrorDataLossOccurred;	// Keep reporting -- it may have occurred anytime during the open session.
 
 }
+
+#ifdef USE_SEGWALREP
+/*
+ * Insert an AO XLOG/AOCO record
+ */
+static void insert_ao_xlog(MirroredAppendOnlyOpen *open, void *buffer,
+						   int32 bufferLen)
+{
+	xl_ao_insert	xlaoinsert;
+	XLogRecData		rdata[2];
+
+	xlaoinsert.node = open->relFileNode;
+	xlaoinsert.segment_filenum = open->segmentFileNum;
+
+	/*
+	 * Using FileSeek to fetch the current write offset.
+	 * Passing 0 offset with SEEK_CUR avoids actual disk-io,
+	 * as it just returns from VFDCache the current file position value.
+	 * Make sure to populate this before the FileWrite call else the file
+	 * pointer has moved forward.
+	 */
+	xlaoinsert.offset = FileSeek(open->primaryFile, 0, SEEK_CUR);
+
+	rdata[0].data = (char*) &xlaoinsert;
+	rdata[0].len = SizeOfAOInsert;
+	rdata[0].buffer = InvalidBuffer;
+	rdata[0].next = &(rdata[1]);
+
+	rdata[1].data = (char*) buffer;
+	rdata[1].len = bufferLen;
+	rdata[1].buffer = InvalidBuffer;
+	rdata[1].next = NULL;
+
+	XLogInsert(RM_APPEND_ONLY_ID, XLOG_APPENDONLY_INSERT, rdata);
+}
+#endif		/* USE_SEGWALREP */
 
 // -----------------------------------------------------------------------------
 // Truncate

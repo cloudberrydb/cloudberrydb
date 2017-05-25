@@ -10,6 +10,7 @@
 #include "access/xlog_internal.h"
 #include "replication/walprotocol.h"
 #include "replication/walreceiver.h"
+#include "cdb/cdbappendonlyam.h"
 
 PG_MODULE_MAGIC;
 
@@ -28,17 +29,25 @@ static void test_XLogWalRcvSendReply(void);
 static void test_PrintLog(char *type, XLogRecPtr walPtr,
 						  TimestampTz sendTime);
 
+#ifdef USE_SEGWALREP
+static int check_ao_record_present(unsigned char type, char *buf, Oid spc_node,
+								   Oid db_node, Oid rel_node, Size len,
+								   uint64 eof[], bool aoco);
+#endif		/* USE_SEGWALREP */
+
 Datum test_connect(PG_FUNCTION_ARGS);
 Datum test_disconnect(PG_FUNCTION_ARGS);
 Datum test_receive(PG_FUNCTION_ARGS);
 Datum test_send(PG_FUNCTION_ARGS);
 Datum test_receive_and_verify(PG_FUNCTION_ARGS);
+Datum test_xlog_ao(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(test_connect);
 PG_FUNCTION_INFO_V1(test_disconnect);
 PG_FUNCTION_INFO_V1(test_receive);
 PG_FUNCTION_INFO_V1(test_send);
 PG_FUNCTION_INFO_V1(test_receive_and_verify);
+PG_FUNCTION_INFO_V1(test_xlog_ao);
 
 static void
 string_to_xlogrecptr(text *location, XLogRecPtr *rec)
@@ -170,13 +179,14 @@ test_XLogWalRcvProcessMsg(unsigned char type, char *buf,
 				logStreamStart->xlogid = msghdr.dataStart.xlogid;
 				logStreamStart->xrecoff = msghdr.dataStart.xrecoff;
 
-				test_PrintLog("wal end records",
+				test_PrintLog("wal start records",
 							  msghdr.dataStart, msghdr.sendTime);
 				test_PrintLog("wal end records",
 							  msghdr.walEnd, msghdr.sendTime);
 
 				buf += sizeof(WalDataMessageHeader);
 				len -= sizeof(WalDataMessageHeader);
+
 				test_XLogWalRcvWrite(buf, len, msghdr.dataStart);
 				break;
 			}
@@ -293,7 +303,123 @@ static void
 test_PrintLog(char *type, XLogRecPtr walPtr,
 						   TimestampTz sendTime)
 {
-	elog(DEBUG1, "%s: %X/%X at %s", type,
-				walPtr.xlogid, walPtr.xrecoff,
-				timestamptz_to_str(sendTime));
+	elog(DEBUG1, "%s: %X/%X at %s", type, walPtr.xlogid, walPtr.xrecoff,
+		 timestamptz_to_str(sendTime));
 }
+
+
+/*
+ * Verify that XLOG records are being generated for AO tables and are getting
+ * shipped to the WAL receiver.
+ */
+Datum
+test_xlog_ao(PG_FUNCTION_ARGS)
+{
+	int		  num_found = 0;
+
+#ifdef USE_SEGWALREP
+	char         *conninfo = TextDatumGetCString(PG_GETARG_DATUM(0));
+	text         *start_location = PG_GETARG_TEXT_P(1);
+	Oid           spc_node = PG_GETARG_OID(2);
+	Oid           db_node = PG_GETARG_OID(3);
+	Oid           rel_node = PG_GETARG_OID(4);
+	uint64       *eof = (uint64 *)ARR_DATA_PTR(PG_GETARG_ARRAYTYPE_P(5));
+	bool		  aoco = PG_GETARG_BOOL(6);
+	XLogRecPtr    startpoint;
+	unsigned char type;
+	char         *buf;
+	int           len;
+
+	string_to_xlogrecptr(start_location, &startpoint);
+
+	if (!walrcv_connect(conninfo, startpoint))
+		elog(ERROR, "could not connect");
+
+	for (int i = 0; i < NUM_RETRIES; i++)
+	{
+		if (walrcv_receive(NAPTIME_PER_CYCLE, &type, &buf, &len))
+		{
+			num_found = check_ao_record_present(type, buf, spc_node, db_node,
+												rel_node, len, eof, aoco);
+			break;
+		}
+		else
+			elog(LOG, "walrcv_receive didn't return anything, retry...%d", i);
+	}
+
+	walrcv_disconnect();
+#endif		/* USE_SEGWALREP */
+
+	PG_RETURN_INT32(num_found);
+}
+
+#ifdef USE_SEGWALREP
+/*
+ * Verify that AO/AOCO XLOG record is present in buf.
+ * Returns the number of AO/AOCO XLOG records found in buf.
+ */
+static int
+check_ao_record_present(unsigned char type, char *buf, Oid spc_node,
+						Oid db_node, Oid rel_node, Size len, uint64 eof[100],
+						bool aoco)
+{
+	WalDataMessageHeader msghdr;
+	uint32               i = 0;
+	int                  num_found = 0;
+	int 				 segfilenum = 0;
+
+	if (type != 'w')
+		return false;
+
+	if (len < sizeof(WalDataMessageHeader))
+		ereport(ERROR,
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg_internal("invalid WAL message received from primary")));
+
+	Assert(buf != NULL);
+
+	/* memcpy is required here for alignment reasons */
+	memcpy(&msghdr, buf, sizeof(WalDataMessageHeader));
+
+	test_PrintLog("wal start record", msghdr.dataStart, msghdr.sendTime);
+	test_PrintLog("wal end record", msghdr.walEnd, msghdr.sendTime);
+
+	buf += sizeof(WalDataMessageHeader);
+	len -= sizeof(WalDataMessageHeader);
+
+	/* process the xlog records one at a time and check if it is an AO/AOCO record */
+	while (i < len)
+	{
+		XLogRecord *xlrec = (XLogRecord *)(buf + i);
+		i += MAXALIGN(xlrec->xl_tot_len);
+
+		if (xlrec->xl_rmid == RM_APPEND_ONLY_ID)
+		{
+			xl_ao_insert *xlaoinsert = (xl_ao_insert *)XLogRecGetData(xlrec);
+
+			if (aoco)
+				segfilenum = AOTupleId_MultiplierSegmentFileNum * num_found + 1;
+			else
+				segfilenum = 1;
+
+			if (xlaoinsert->node.spcNode == spc_node &&
+				xlaoinsert->node.dbNode == db_node &&
+				xlaoinsert->node.relNode == rel_node &&
+				xlaoinsert->segment_filenum == segfilenum &&
+				xlaoinsert->offset == 0 &&
+				xlrec->xl_len - SizeOfAOInsert == eof[num_found])
+				num_found++;
+			else
+			{
+				elog(INFO, "Expected values: relfile %u/%u/%u segfile/offset %u/%u eof %lu",
+					 spc_node, db_node, rel_node, segfilenum, 0, eof[num_found]);
+				elog(INFO, "Actual values: relfile %u/%u/%u segfile/offset %u/%lu eof %lu",
+					 xlaoinsert->node.spcNode, xlaoinsert->node.dbNode,
+					 xlaoinsert->node.relNode, xlaoinsert->segment_filenum,
+					 xlaoinsert->offset, xlrec->xl_len - SizeOfAOInsert);
+			}
+		}
+	}
+	return num_found;
+}
+#endif		/* USE_SEGWALREP */
