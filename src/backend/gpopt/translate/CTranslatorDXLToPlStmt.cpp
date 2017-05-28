@@ -116,7 +116,7 @@ CTranslatorDXLToPlStmt::InitTranslators()
 	}
 
 	// array mapping operator type to translator function
-	STranslatorMapping rgTranslators[] =
+	static const STranslatorMapping rgTranslators[] =
 	{
 			{EdxlopPhysicalTableScan,				&gpopt::CTranslatorDXLToPlStmt::PtsFromDXLTblScan},
 			{EdxlopPhysicalExternalScan,			&gpopt::CTranslatorDXLToPlStmt::PtsFromDXLTblScan},

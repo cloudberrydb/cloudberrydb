@@ -84,7 +84,7 @@ CTranslatorDXLToScalar::PexprFromDXLNodeScalar
 	CMappingColIdVar *pmapcidvar
 	)
 {
-	STranslatorElem rgTranslators[] =
+	static const STranslatorElem rgTranslators[] =
 	{
 		{EdxlopScalarIdent, &CTranslatorDXLToScalar::PexprFromDXLNodeScId},
 		{EdxlopScalarCmp, &CTranslatorDXLToScalar::PopexprFromDXLNodeScCmp},
@@ -1358,7 +1358,7 @@ CTranslatorDXLToScalar::PconstFromDXLDatum
 {
 	GPOS_ASSERT(NULL != pdxldatum);
 	
-	SDatumTranslatorElem rgTranslators[] =
+	static const SDatumTranslatorElem rgTranslators[] =
 		{
 			{CDXLDatum::EdxldatumInt2 , &CTranslatorDXLToScalar::PconstInt2},
 			{CDXLDatum::EdxldatumInt4 , &CTranslatorDXLToScalar::PconstInt4},

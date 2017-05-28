@@ -99,7 +99,7 @@ CTranslatorScalarToDXL::EdxlbooltypeFromGPDBBoolType
 	)
 	const
 {
-	ULONG rgrgulMapping[][2] =
+	static ULONG rgrgulMapping[][2] =
 		{
 		{NOT_EXPR, Edxlnot},
 		{AND_EXPR, Edxland},
@@ -202,7 +202,7 @@ CTranslatorScalarToDXL::PdxlnScOpFromExpr
 	BOOL *pfHasDistributedTables // output
 	)
 {
-	STranslatorElem rgTranslators[] =
+	static const STranslatorElem rgTranslators[] =
 	{
 		{T_Var, &CTranslatorScalarToDXL::PdxlnScIdFromVar},
 		{T_OpExpr, &CTranslatorScalarToDXL::PdxlnScOpExprFromExpr},
@@ -690,7 +690,7 @@ CTranslatorScalarToDXL::PdxlnScBooleanTestFromExpr
 
 	GPOS_ASSERT(NULL != pbooleantest->arg);
 
-	ULONG rgrgulMapping[][2] =
+	static ULONG rgrgulMapping[][2] =
 		{
 		{IS_TRUE, EdxlbooleantestIsTrue},
 		{IS_NOT_TRUE, EdxlbooleantestIsNotTrue},
@@ -1299,7 +1299,7 @@ CTranslatorScalarToDXL::PdxlnScAggrefFromAggref
 	GPOS_ASSERT(IsA(pexpr, Aggref));
 	const Aggref *paggref = (Aggref *) pexpr;
 
-	ULONG rgrgulMapping[][2] =
+	static ULONG rgrgulMapping[][2] =
 		{
 		{AGGSTAGE_NORMAL, EdxlaggstageNormal},
 		{AGGSTAGE_PARTIAL, EdxlaggstagePartial},
@@ -1373,7 +1373,7 @@ CTranslatorScalarToDXL::Edxlfb
 	)
 	const
 {
-	ULONG rgrgulMapping[][2] =
+	static ULONG rgrgulMapping[][2] =
 			{
 			{WINDOW_UNBOUND_PRECEDING, EdxlfbUnboundedPreceding},
 			{WINDOW_BOUND_PRECEDING, EdxlfbBoundedPreceding},
@@ -1439,7 +1439,7 @@ CTranslatorScalarToDXL::Pdxlwf
 	EdxlFrameBoundary edxlfbLead = Edxlfb(pwindowframe->lead->kind, pwindowframe->lead->val);
 	EdxlFrameBoundary edxlfbTrail = Edxlfb(pwindowframe->trail->kind, pwindowframe->trail->val);
 
-	ULONG rgrgulExclusionMapping[][2] =
+	static ULONG rgrgulExclusionMapping[][2] =
 			{
 			{WINDOW_EXCLUSION_NULL, EdxlfesNulls},
 			{WINDOW_EXCLUSION_CUR_ROW, EdxlfesCurrentRow},
@@ -1551,7 +1551,7 @@ CTranslatorScalarToDXL::PdxlnScWindowref
 
 	const WindowRef *pwindowref = (WindowRef *) pexpr;
 
-	ULONG rgrgulMapping[][2] =
+	static ULONG rgrgulMapping[][2] =
 		{
 		{WINSTAGE_IMMEDIATE, EdxlwinstageImmediate},
 		{WINSTAGE_PRELIMINARY, EdxlwinstagePreliminary},
@@ -2088,7 +2088,7 @@ CTranslatorScalarToDXL::Pdxldatum
 	Datum datum
 	)
 {
-	SDXLDatumTranslatorElem rgTranslators[] =
+	static const SDXLDatumTranslatorElem rgTranslators[] =
 		{
 			{IMDType::EtiInt2  , &CTranslatorScalarToDXL::PdxldatumInt2},
 			{IMDType::EtiInt4  , &CTranslatorScalarToDXL::PdxldatumInt4},
