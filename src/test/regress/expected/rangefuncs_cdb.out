@@ -167,10 +167,10 @@ BEGIN
 END
 $$  LANGUAGE plpgsql;
 -- function in select clause
---   Fails: plperl does not support SFRM_Materialize
+--   Fails: plpgsql does not support SFRM_Materialize
 select foor(1);
 ERROR:  set-valued function called in context that cannot accept a set
-CONTEXT:  PL/Perl function "foor"
+CONTEXT:  PL/pgSQL function "foor"
 -- expanding columns in the select list
 --    Fails: record type not registered
 select (foor(1)).*;
@@ -190,10 +190,10 @@ select * from foor(1) as (fooid int, f2 int);
 (2 rows)
 
 -- function over function (executed on master) 
---    Fails: plperl does not support SFRM_Materialize
+--    Fails: plpgsql does not support SFRM_Materialize
 select foor(fooid), * from foor(3) as (fooid int, f2 int);
 ERROR:  set-valued function called in context that cannot accept a set
-CONTEXT:  PL/Perl function "foor"
+CONTEXT:  PL/pgSQL function "foor"
 -- Joining with a table
 select * from foo2, foor(3) z(fooid int, f2 int) where foo2.f2 = z.f2;
  fooid | f2 | fooid | f2 

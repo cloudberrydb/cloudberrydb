@@ -99,7 +99,7 @@ END
 $$  LANGUAGE plpgsql;
 
 -- function in select clause
---   Fails: plperl does not support SFRM_Materialize
+--   Fails: plpgsql does not support SFRM_Materialize
 select foor(1);
 
 -- expanding columns in the select list
@@ -114,7 +114,7 @@ select * from foor(1);
 select * from foor(1) as (fooid int, f2 int);
 
 -- function over function (executed on master) 
---    Fails: plperl does not support SFRM_Materialize
+--    Fails: plpgsql does not support SFRM_Materialize
 select foor(fooid), * from foor(3) as (fooid int, f2 int);
 
 -- Joining with a table
