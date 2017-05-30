@@ -180,24 +180,17 @@ con6 /gpdata/*/pg_log/gpdb*.csv' &gt; seglog.out
             </p>
         </body>
         <topic id="topic9" xml:lang="en" otherprops="pivotal">
-            <title id="jc155267">Gathering Information for Pivotal Support</title>
+            <title id="jc155267">Gathering Information for Pivotal Customer Support</title>
             <body>
-                <p>The Greenplum Database <codeph>gpsupport</codeph> utility can collect information
-                    from a Greenplum Database system. You can then send the information file to
-                    Pivotal Customer Support to aid the diagnosis of Greenplum Database errors or
-                    system failures. For example, this <cmdname>gpsupport</cmdname> command collects
-                    all logs from the listed segment hosts in a Greenplum Database cluster:</p>
-                <p>
-                    <codeblock>$ gpsupport collect logs segs sdw1,sdw2,sdw3-1</codeblock>
-                </p>
-                <p>The <codeph>gpsupport</codeph> utility can also collect other information such as
-                    core files, previously run queries, and database schema information. The utility
-                    can perform some diagnostics tests on the database catalog the database network. </p>
-                <p>The <codeph>gpsupport</codeph> utility is available from <xref
-                        href="https://network.pivotal.io" scope="external" format="html"
-                        class="- topic/xref ">Pivotal Network</xref> and the documentation is
-                    available from the <xref href="http://gpdb.docs.pivotal.io/" scope="external"
-                        format="html" class="- topic/xref ">Pivotal Documentation</xref> site.</p>
+                <p>The Greenplum Magic Tool (GPMT) utility can run diagnostics and collect
+                    information from a Greenplum Database system. You can then send the information
+                    to Pivotal Customer Support to aid the diagnosis of Greenplum Database errors or
+                    system failures.</p>
+                <p>The GPMT  utility is available from the <xref
+                        href="https://discuss.pivotal.io/hc/en-us/categories/200072608-Pivotal-Greenplum-Knowledge-Base"
+                        format="html" scope="external">Pivotal Knowledge Base</xref> on the <xref
+                        href="https://discuss.pivotal.io/hc/en-us/articles/217546277-Greenplum-Magic-Tool-GPMT-"
+                        format="html" scope="external">GPMT</xref> page.</p>
             </body>
         </topic>
     </topic>
