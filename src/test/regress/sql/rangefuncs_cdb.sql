@@ -17,22 +17,24 @@ INSERT INTO foo2 VALUES
   (1, 111);
 
 -- In Greenplum we do not support functions which call SQL from the segments
--- for this reason we have rewritten this test to use plperl functions rather
+-- for this reason we have rewritten this test to use plpgsql functions rather
 -- than SQL language functions.
--- start_ignore
-create language plperlu;
--- end_ignore
 set optimizer_segments = 3;
 --
 -- RETURNS SETOF foo2
 --
-CREATE OR REPLACE FUNCTION foost(int) returns setof foo2 as 
-$$ 
-  my $value = shift;
-  return_next {"fooid", $value, "f2", 11};
-  return_next {"fooid", $value, "f2", 33};
-  return ;
-$$ language plperlu NO SQL;
+CREATE OR REPLACE FUNCTION foost(int) returns setof foo2 as
+$$
+DECLARE
+r foo2%rowtype;
+BEGIN
+  r.fooid := $1; r.f2 := 11;
+  RETURN NEXT r;
+  r.fooid := $1; r.f2 := 33;
+  RETURN NEXT r;
+  RETURN;
+END
+$$ language plpgsql;
 
 -- function in select clause
 select foost(1);
@@ -83,13 +85,18 @@ DROP FUNCTION foost(int);
 --
 -- RETURNS SETOF record
 --
-CREATE OR REPLACE FUNCTION foor(int) returns setof record as 
-$$ 
-  my $value = shift;
-  return_next {"fooid", $value, "f2", 11};
-  return_next {"fooid", $value, "f2", 33};
-  return ;
-$$ language plperlu NO SQL;
+CREATE OR REPLACE FUNCTION foor(int) RETURNS setof record AS
+$$
+DECLARE
+rec record;
+BEGIN
+   rec:= ($1, 11);
+   RETURN NEXT rec;
+   rec:= ($1, 33);
+   RETURN NEXT rec;
+   return;
+END
+$$  LANGUAGE plpgsql;
 
 -- function in select clause
 --   Fails: plperl does not support SFRM_Materialize
@@ -151,14 +158,16 @@ DROP FUNCTION foor(int);
 --
 -- RETURNS SETOF record, with OUT parameters
 --
-CREATE OR REPLACE FUNCTION fooro(int, out fooid int, out f2 int) 
-returns setof record as 
-$$ 
-  my $value = shift;
-  return_next {"fooid", $value, "f2", 11};
-  return_next {"fooid", $value, "f2", 33};
-  return ;
-$$ language plperlu NO SQL;
+CREATE OR REPLACE FUNCTION fooro(int, out fooid int, out f2 int) RETURNS SETOF RECORD AS
+$$
+BEGIN
+  fooid := $1; f2 := 11;
+  RETURN NEXT;
+  fooid := $1; f2 := 33;
+  RETURN NEXT;
+  RETURN;
+END;
+$$ LANGUAGE plpgsql;
 
 -- function in select clause
 select fooro(1);
@@ -206,13 +215,16 @@ DROP FUNCTION fooro;
 --
 -- RETURNS TABLE
 --
-CREATE OR REPLACE FUNCTION foot(int) returns TABLE(fooid int, f2 int) as 
-$$ 
-  my $value = shift;
-  return_next {"fooid", $value, "f2", 11};
-  return_next {"fooid", $value, "f2", 33};
-  return ;
-$$ language plperlu NO SQL;
+CREATE OR REPLACE FUNCTION foot(int) returns TABLE(fooid int, f2 int) as
+$$
+BEGIN
+  fooid := $1; f2 := 11;
+  RETURN NEXT;
+  fooid := $1; f2 := 33;
+  RETURN NEXT;
+  RETURN;
+END
+$$ language plpgsql;
 
 -- function in select clause
 select foot(1);
