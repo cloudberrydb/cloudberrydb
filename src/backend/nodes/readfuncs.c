@@ -2755,14 +2755,14 @@ _readSlice(void)
 
 	READ_INT_FIELD(sliceIndex);
 	READ_INT_FIELD(rootIndex);
+	READ_INT_FIELD(parentIndex);
+	READ_NODE_FIELD(children); /* List of int index */
 	READ_ENUM_FIELD(gangType, GangType);
 	READ_INT_FIELD(gangSize);
 	READ_INT_FIELD(numGangMembersToBeActive);
 	READ_BOOL_FIELD(directDispatch.isDirectDispatch);
 	READ_NODE_FIELD(directDispatch.contentIds); /* List of int index */
 	READ_DUMMY_FIELD(primaryGang, NULL);
-	READ_INT_FIELD(parentIndex); /* List of int index */
-	READ_NODE_FIELD(children); /* List of int index */
 	READ_NODE_FIELD(primaryProcesses); /* List of (CDBProcess *) */
 
 	READ_DONE();

@@ -4064,14 +4064,14 @@ _outSlice(StringInfo str, Slice *node)
 	WRITE_NODE_TYPE("SLICE");
 	WRITE_INT_FIELD(sliceIndex);
 	WRITE_INT_FIELD(rootIndex);
+	WRITE_INT_FIELD(parentIndex);
+	WRITE_NODE_FIELD(children); /* List of int index */
 	WRITE_ENUM_FIELD(gangType,GangType);
 	WRITE_INT_FIELD(gangSize);
 	WRITE_INT_FIELD(numGangMembersToBeActive);
 	WRITE_BOOL_FIELD(directDispatch.isDirectDispatch);
 	WRITE_NODE_FIELD(directDispatch.contentIds); /* List of int */
 	WRITE_DUMMY_FIELD(primaryGang);
-	WRITE_INT_FIELD(parentIndex); /* List of int index */
-	WRITE_NODE_FIELD(children); /* List of int index */
 	WRITE_NODE_FIELD(primaryProcesses); /* List of (CDBProcess *) */
 }
 
