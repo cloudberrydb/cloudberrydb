@@ -43,3 +43,21 @@ AC_CHECK_LIB(gpopt, gpopt_init, [], [AC_MSG_ERROR([library 'gpopt' is required f
 AC_LANG_POP([C++])
 ]
 )
+
+AC_DEFUN([PGAC_CHECK_ORCA_VERSION],
+[
+AC_MSG_CHECKING([[Checking ORCA version]])
+AC_LANG_PUSH([C++])
+AC_RUN_IFELSE([AC_LANG_PROGRAM([[
+#include "gpopt/version.h"
+#include <string.h>
+]],
+[
+return strncmp("2.32.", GPORCA_VERSION_STRING, 5);
+])],
+[AC_MSG_RESULT([[ok]])],
+[AC_MSG_ERROR([Your ORCA version is expected to be 2.32.XXX])]
+)
+AC_LANG_POP([C++])
+])# PGAC_CHECK_ORCA_VERSION
+
