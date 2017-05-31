@@ -46,11 +46,40 @@ namespace gpos
 				IMemoryPool *pmp,
 				CDynamicPtrArray<T, pfnDestroy> *pdrgSubsequence,
 				CDynamicPtrArray<T, pfnDestroy> *pdrg
-				);
+				)
+            {
+                GPOS_ASSERT(NULL != pdrgSubsequence);
+                GPOS_ASSERT(NULL != pdrg);
+
+                ULONG ulSubsequence = pdrgSubsequence->UlLength();
+                ULONG ulSequence = pdrg->UlLength();
+                DrgPul *pdrgpulIndexes = GPOS_NEW(pmp) DrgPul(pmp);
+
+                for (ULONG ul1 = 0; ul1 < ulSubsequence; ul1++)
+                {
+                    T* pT = (*pdrgSubsequence)[ul1];
+                    BOOL fFound = false;
+                    for (ULONG ul2 = 0; ul2 < ulSequence; ul2++)
+                    {
+                        if (pT == (*pdrg)[ul2])
+                        {
+                            pdrgpulIndexes->Append(GPOS_NEW(pmp) ULONG(ul2));
+                            fFound = true;
+                            break;
+                        }
+                    }
+
+                    if (!fFound)
+                    {
+                        pdrgpulIndexes->Release();
+                        return NULL;
+                    }
+                }
+
+                return pdrgpulIndexes;
+            }
 	};
 }
-
-#include "gpos/common/CDynamicPtrArrayUtils.inl"
 
 #endif // !GPOS_CDynamicPtrArrayUtils_H
 

@@ -49,24 +49,49 @@ namespace gpos
 				(const CSyncHashtableAccessByIter<T, K, S>&);
 
 			// returns the first valid element starting from the given element
-			T *PtFirstValid(T *pt) const;
+			T *PtFirstValid(T *pt) const
+            {
+                GPOS_ASSERT(NULL != pt);
+
+                T *ptCurrent = pt;
+                while (NULL != ptCurrent &&
+                       !Base::Sht().FValid(Base::Sht().Key(ptCurrent)))
+                {
+                    ptCurrent = Base::PtNext(ptCurrent);
+                }
+
+                return ptCurrent;
+            }
 
 		public:
 
 			// ctor
 			explicit
 			CSyncHashtableAccessByIter<T, K, S>
-				(CSyncHashtableIter<T, K, S> &iter);
+				(CSyncHashtableIter<T, K, S> &iter)
+            :
+            Base(iter.m_ht, iter.m_ulBucketIndex),
+            m_iter(iter)
+            {
+            }
 
 			// returns the element pointed to by iterator
-			T *Pt() const;
+			T *Pt() const
+            {
+                GPOS_ASSERT(m_iter.m_fInvalidInserted &&
+                            "Iterator's advance is not called");
+
+                // advance in the current bucket until finding a valid element;
+                // this is needed because the next valid element pointed to by
+                // iterator might have been deleted by another client just before
+                // using the accessor
+
+                return PtFirstValid(m_iter.m_ptInvalid);
+            }
 
 	}; // class CSyncHashtableAccessByIter
 
 }
-
-// include implementation
-#include "gpos/common/CSyncHashtableAccessByIter.inl"
 
 #endif // !GPOS_CSyncHashtableAccessByIter_H
 

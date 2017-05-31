@@ -22,7 +22,6 @@ add_library(naucrates
             include/naucrates/dxl/parser/CParseHandlerStacktrace.h
             include/naucrates/dxl/parser/parsehandlers.h
             include/naucrates/md/CGPDBTypeHelper.h
-            include/naucrates/md/CGPDBTypeHelper.inl
             include/naucrates/md/IMDAggregate.h
             include/naucrates/md/IMDCast.h
             include/naucrates/md/IMDCheckConstraint.h

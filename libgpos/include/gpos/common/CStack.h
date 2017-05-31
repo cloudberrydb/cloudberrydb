@@ -41,27 +41,65 @@ namespace gpos
 		public:
 			
 			// c'tor
-			CStack<T> (IMemoryPool *pmp, ULONG ulMinSize = 4);
+			CStack<T> (IMemoryPool *pmp, ULONG ulMinSize = 4)
+            : m_ulSize(0)
+            {
+                m_dpa = GPOS_NEW(pmp) CDynamicPtrArray<T, CleanupNULL>(pmp, ulMinSize, 10);
+            }
 			
 			// destructor 
-			virtual ~CStack();
+			virtual ~CStack()
+            {
+                m_dpa->Release();
+            }
 						
 			// push element onto stack
-			void Push(T *);
+			void Push(T *pt)
+            {
+                GPOS_ASSERT(m_dpa != NULL && "Dynamic array missing");
+                GPOS_ASSERT(m_ulSize <= m_dpa->UlLength() && "The top of stack cannot be beyond the underlying array");
+
+                // if the stack was Popped before, reuse that space by replacing the element
+                if (m_ulSize < m_dpa->UlLength())
+                {
+                    m_dpa->Replace(m_ulSize, pt);
+                }
+                else
+                {
+                    m_dpa->Append(pt);
+                }
+
+                m_ulSize++;
+            }
 						
 			// pop top element
-			T*	Pop();
+			T*	Pop()
+            {
+                GPOS_ASSERT(!this->FEmpty() && "Cannot pop from empty stack");
+
+                T *pt = (*m_dpa)[m_ulSize - 1];
+                m_ulSize--;
+                return pt;
+            }
 			
 			// peek at top element
-			const T* Peek() const;
+			const T* Peek() const
+            {
+                GPOS_ASSERT(!this->FEmpty() && "Cannot peek into empty stack");
+
+                const T *pt = (*m_dpa)[m_ulSize - 1];
+
+                return pt;
+            }
 			
 			// is stack empty?
-			BOOL FEmpty() const;
+			BOOL FEmpty() const
+            {
+                return (m_ulSize == 0);
+            }
 	};
 	
 }
-
-#include "CStack.inl"
 
 #endif // !GPOPT_CStack_H
 

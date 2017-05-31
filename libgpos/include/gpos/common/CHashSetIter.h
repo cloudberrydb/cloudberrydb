@@ -43,12 +43,26 @@ namespace gpos
 			CHashSetIter(const CHashSetIter<T, pfnHash, pfnEq, pfnDestroy> &);
 			
 			// method to return the current element
-			const typename TSet::CHashSetElem *Phse() const;
+			const typename TSet::CHashSetElem *Phse() const
+            {
+                typename TSet::CHashSetElem *phse = NULL;
+                T *t = (*(m_pts->m_pdrgElements))[m_ulElement-1];
+                m_pts->Lookup(t, &phse);
+
+                return phse;
+            }
 
 		public:
 		
 			// ctor
-			CHashSetIter<T, pfnHash, pfnEq, pfnDestroy> (TSet *);
+			CHashSetIter<T, pfnHash, pfnEq, pfnDestroy> (TSet *pts)
+            :
+            m_pts(pts),
+            m_ulChain(0),
+            m_ulElement(0)
+            {
+                GPOS_ASSERT(NULL != pts);
+            }
 
 			// dtor
 			virtual
@@ -56,17 +70,31 @@ namespace gpos
 			{}
 
 			// advance iterator to next element
-			BOOL FAdvance();
-			
+			BOOL FAdvance()
+            {
+                if (m_ulElement < m_pts->m_pdrgElements->UlLength())
+                {
+                    m_ulElement++;
+                    return true;
+                }
+
+                return false;
+            }
+
 			// current element
-			const T *Pt() const;
+			const T *Pt() const
+            {
+                const typename TSet::CHashSetElem *phse = Phse();
+                if (NULL != phse)
+                {
+                    return phse->Pt();
+                }
+                return NULL;
+            }
 
 	}; // class CHashSetIter
 
 }
-
-// inline'd functions
-#include "CHashSetIter.inl"
 
 #endif // !GPOS_CHashSetIter_H
 

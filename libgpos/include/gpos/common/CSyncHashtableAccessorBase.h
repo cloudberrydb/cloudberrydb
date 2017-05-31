@@ -63,11 +63,22 @@ namespace gpos
 				(
 				CSyncHashtable<T, K, S> &ht,
 				ULONG ulBucketIndex
-				);
+				)
+            :
+            m_ht(ht),
+            m_bucket(m_ht.Bucket(ulBucketIndex))
+            {
+                // acquire spin lock on bucket
+                m_bucket.m_slock.Lock();
+            }
 
 			// dtor
 			virtual
-			~CSyncHashtableAccessorBase<T, K, S>();
+			~CSyncHashtableAccessorBase<T, K, S>()
+            {
+                // unlock bucket
+                m_bucket.m_slock.Unlock();
+            }
 
 			// accessor to hashtable
 			CSyncHashtable<T, K, S>& Sht() const
@@ -82,31 +93,76 @@ namespace gpos
 			}
 
 			// returns the first element in the hash chain
-			T *PtFirst() const;
+			T *PtFirst() const
+            {
+                return m_bucket.m_list.PtFirst();
+            }
 
 			// finds the element next to the given one
-			T *PtNext(T *pt) const;
+			T *PtNext(T *pt) const
+            {
+                GPOS_ASSERT(NULL != pt);
+
+                // make sure element is in this hash chain
+                GPOS_ASSERT(GPOS_OK == m_bucket.m_list.EresFind(pt));
+
+                return m_bucket.m_list.PtNext(pt);
+            }
 
 			// inserts element at the head of hash chain
-			void Prepend(T *pt);
+			void Prepend(T *pt)
+            {
+                GPOS_ASSERT(NULL != pt);
+
+                m_bucket.m_list.Prepend(pt);
+
+                // increase number of entries
+                (void) UlpExchangeAdd(&(m_ht.m_ulpEntries), 1);
+            }
 
 			// adds first element before second element
-			void Prepend(T *pt, T *ptNext);
+			void Prepend(T *pt, T *ptNext)
+            {
+                GPOS_ASSERT(NULL != pt);
+
+                // make sure element is in this hash chain
+                GPOS_ASSERT(GPOS_OK == m_bucket.m_list.EresFind(ptNext));
+
+                m_bucket.m_list.Prepend(pt, ptNext);
+
+                // increase number of entries
+                (void) UlpExchangeAdd(&(m_ht.m_ulpEntries), 1);
+            }
 
 			// adds first element after second element
-			void Append(T *pt, T *ptPrev);
+			void Append(T *pt, T *ptPrev)
+            {
+                GPOS_ASSERT(NULL != pt);
+
+                // make sure element is in this hash chain
+                GPOS_ASSERT(GPOS_OK == m_bucket.m_list.EresFind(ptPrev));
+
+                m_bucket.m_list.Append(pt, ptPrev);
+
+                // increase number of entries
+                (void) UlpExchangeAdd(&(m_ht.m_ulpEntries), 1);
+            }
 
 		public:
 
 			// unlinks element
-			void Remove(T *pt);
+			void Remove(T *pt)
+            {
+                // not NULL and is-list-member checks are done in CList
+                m_bucket.m_list.Remove(pt);
+
+                // decrease number of entries
+                (void) UlpExchangeAdd(&(m_ht.m_ulpEntries), -1);
+            }
 
 	}; // class CSyncHashtableAccessorBase
 
 }
-
-// include inline definition of accessor implementation
-#include "gpos/common/CSyncHashtableAccessorBase.inl"
 
 #endif // GPOS_CSyncHashtableAccessorBase_H_
 

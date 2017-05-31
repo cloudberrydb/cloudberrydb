@@ -18,7 +18,8 @@
 #include "gpos/common/CEnumSet.h"
 
 #include "gpopt/base/CStateMachine.h"
-
+#include "gpopt/engine/CEngine.h"
+#include "gpopt/search/CSchedulerContext.h"
 
 namespace gpopt
 {
@@ -77,7 +78,20 @@ namespace gpopt
 				const WCHAR wszStates[estSentinel][GPOPT_FSM_NAME_LENGTH],
 				const WCHAR wszEvent[estSentinel][GPOPT_FSM_NAME_LENGTH]
 #endif // GPOS_DEBUG
-				);
+				)
+            {
+                Reset();
+
+                m_sm.Init
+                (
+                 rgfTransitions
+#ifdef GPOS_DEBUG
+                 ,
+                 wszStates,
+                 wszEvent
+#endif // GPOS_DEBUG
+                 );
+            }
 
 			// match action with state
 			void SetAction
@@ -93,10 +107,58 @@ namespace gpopt
 			}
 
 			// run the state machine
-			BOOL FRun(CSchedulerContext *psc, CJob *pjOwner);
+			BOOL FRun(CSchedulerContext *psc, CJob *pjOwner)
+            {
+                GPOS_ASSERT(NULL != psc);
+                GPOS_ASSERT(NULL != pjOwner);
+
+                TEnumState estCurrent = estSentinel;
+                TEnumState estNext = estSentinel;
+                do
+                {
+                    // check if current search stage is timed-out
+                    if (psc->Peng()->PssCurrent()->FTimedOut())
+                    {
+                        // cleanup job state and terminate state machine
+                        pjOwner->Cleanup();
+                        return true;
+                    }
+
+                    // find current state
+                    estCurrent = m_sm.Estate();
+
+                    // get the function associated with current state
+                    PFuncAction pfunc = m_rgPfuncAction[estCurrent];
+                    GPOS_ASSERT(NULL != pfunc);
+
+                    // execute the function to get an event
+                    TEnumEvent eev = pfunc(psc, pjOwner);
+
+                    // use the event to transition state machine
+                    estNext = estCurrent;
+#ifdef GPOS_DEBUG
+                    BOOL fSucceeded =
+#endif // GPOS_DEBUG
+                    m_sm.FTransition(eev, estNext);
+
+                    GPOS_ASSERT(fSucceeded);
+                }
+                while (estNext != estCurrent && estNext != m_sm.TesFinal());
+
+                return (estNext == m_sm.TesFinal());
+            }
 
 			// reset state machine
-			void Reset();
+			void Reset()
+            {
+                m_sm.Reset();
+
+                // initialize actions array
+                for (ULONG i = 0; i < estSentinel; i++)
+                {
+                    m_rgPfuncAction[i] = NULL;
+                }
+            }
 
 #ifdef GPOS_DEBUG
 			// dump history
@@ -140,9 +202,6 @@ namespace gpopt
 
 	}; // class CJobStateMachine
 }
-
-
-#include "gpopt/search/CJobStateMachine.inl"
 
 #endif // !GPOPT_CJobStateMachine_H
 

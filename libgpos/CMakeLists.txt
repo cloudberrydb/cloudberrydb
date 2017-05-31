@@ -31,41 +31,25 @@ add_library(gpos
             include/gpos/common/CAutoRef.h
             include/gpos/common/CAutoRg.h
             include/gpos/common/CDouble.h
-            include/gpos/common/CDouble.inl
             include/gpos/common/CDynamicPtrArray.h
-            include/gpos/common/CDynamicPtrArray.inl
             include/gpos/common/CDynamicPtrArrayUtils.h
-            include/gpos/common/CDynamicPtrArrayUtils.inl
             include/gpos/common/CEnumSet.h
             include/gpos/common/CEnumSetIter.h
             include/gpos/common/CHashMap.h
-            include/gpos/common/CHashMap.inl
             include/gpos/common/CHashMapIter.h
-            include/gpos/common/CHashMapIter.inl
             include/gpos/common/CHashSet.h
-            include/gpos/common/CHashSet.inl
             include/gpos/common/CHashSetIter.h
-            include/gpos/common/CHashSetIter.inl
             include/gpos/common/clibtypes.h
             include/gpos/common/CList.h
-            include/gpos/common/CList.inl
             include/gpos/common/CRefCount.h
             include/gpos/common/CStack.h
-            include/gpos/common/CStack.inl
             include/gpos/common/CSyncHashtable.h
-            include/gpos/common/CSyncHashtable.inl
             include/gpos/common/CSyncHashtableAccessByIter.h
-            include/gpos/common/CSyncHashtableAccessByIter.inl
             include/gpos/common/CSyncHashtableAccessByKey.h
-            include/gpos/common/CSyncHashtableAccessByKey.inl
             include/gpos/common/CSyncHashtableAccessorBase.h
-            include/gpos/common/CSyncHashtableAccessorBase.inl
             include/gpos/common/CSyncHashtableIter.h
-            include/gpos/common/CSyncHashtableIter.inl
             include/gpos/common/CSyncList.h
-            include/gpos/common/CSyncList.inl
             include/gpos/common/CSyncPool.h
-            include/gpos/common/CSyncPool.inl
             include/gpos/common/ITimer.h
             include/gpos/common/pthreadtypes.h
             include/gpos/error/CAutoLogger.h
@@ -85,9 +69,7 @@ add_library(gpos
             include/gpos/net/nettypes.h
             include/gpos/sync/CAtomicCounter.h
             include/gpos/sync/CMutex.h
-            include/gpos/sync/CMutex.inl
             include/gpos/sync/CSpinlock.h
-            include/gpos/sync/CSpinlock.inl
             include/gpos/task/CTaskId.h
             include/gpos/task/CTaskLocalStorageObject.h
             include/gpos/task/CTraceFlagIter.h

@@ -24,6 +24,7 @@
 #include "gpos/types.h"
 
 #include "gpos/common/CList.h"
+#include "gpos/sync/atomic.h"
 
 namespace gpos
 {
@@ -46,7 +47,18 @@ namespace gpos
 			CList<T> m_list;
 
 			// back-off after too many attempts
-			void CheckBackOff(ULONG &ulAttempts) const;
+			void CheckBackOff(ULONG &ulAttempts) const
+            {
+                if (++ulAttempts == GPOS_SPIN_ATTEMPTS)
+                {
+                    // back-off
+                    clib::USleep(GPOS_SPIN_BACKOFF);
+
+                    ulAttempts = 0;
+
+                    GPOS_CHECK_ABORT;
+                }
+            }
 
 			// no copy ctor
 			CSyncList(const CSyncList&);
@@ -58,7 +70,8 @@ namespace gpos
 			{}
 
 			// dtor
-			~CSyncList();
+			~CSyncList()
+            {}
 
 			// init function to facilitate arrays
 			void Init
@@ -70,10 +83,77 @@ namespace gpos
 			}
 
 			// insert element at the head of the list;
-			void Push(T *pt);
+			void Push(T *pt)
+            {
+                GPOS_ASSERT(NULL != pt);
+                GPOS_ASSERT(m_list.PtFirst() != pt);
+
+                ULONG ulAttempts = 0;
+                SLink &linkElem = m_list.Link(pt);
+
+    #ifdef GPOS_DEBUG
+                void *pvHeadNext = linkElem.m_pvNext;
+    #endif // GPOS_DEBUG
+
+                GPOS_ASSERT(NULL == linkElem.m_pvNext);
+
+                // keep spinning until passed element becomes the head
+                while (true)
+                {
+                    T *ptHead = m_list.PtFirst();
+
+                    GPOS_ASSERT(pt != ptHead && "Element is already inserted");
+                    GPOS_ASSERT(pvHeadNext == linkElem.m_pvNext && "Element is concurrently accessed");
+
+                    // set current head as next element
+                    linkElem.m_pvNext = ptHead;
+    #ifdef GPOS_DEBUG
+                    pvHeadNext = linkElem.m_pvNext;
+    #endif // GPOS_DEBUG
+
+                    // attempt to set element as head
+                    if (FCompareSwap<T>((volatile T**) &m_list.m_ptHead, ptHead, pt))
+                    {
+                        break;
+                    }
+
+                    CheckBackOff(ulAttempts);
+                }
+            }
 
 			// remove element from the head of the list;
-			T *Pop();
+			T *Pop()
+            {
+                ULONG ulAttempts = 0;
+                T *ptHeadOld = NULL;
+
+                // keep spinning until the head is removed
+                while (true)
+                {
+                    // get current head
+                    ptHeadOld = m_list.PtFirst();
+                    if (NULL == ptHeadOld)
+                    {
+                        break;
+                    }
+
+                    // second element becomes the new head
+                    SLink &linkElem = m_list.Link(ptHeadOld);
+                    T *ptHeadNew = static_cast<T*>(linkElem.m_pvNext);
+
+                    // attempt to set new head
+                    if (FCompareSwap<T>((volatile T**) &m_list.m_ptHead, ptHeadOld, ptHeadNew))
+                    {
+                        // reset link
+                        linkElem.m_pvNext = NULL;
+                        break;
+                    }
+
+                    CheckBackOff(ulAttempts);
+                }
+
+                return ptHeadOld;
+            }
 
 			// get first element
 			T *PtFirst()
@@ -128,10 +208,6 @@ namespace gpos
 
 	}; // class CSyncList
 }
-
-
-// include implementation
-#include "CSyncList.inl"
 
 #endif // !GPOS_CSyncList_H
 

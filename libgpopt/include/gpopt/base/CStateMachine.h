@@ -71,6 +71,12 @@ namespace gpopt
 
 #ifdef GPOS_DEBUG
 
+#define GRAPHVIZ_SHAPE(shape,x)		\
+"node [shape = " << shape << " ]; \"" << x << "\" ; node [shape = circle];"
+
+#define GRAPHVIZ_DOUBLE_CIRCLE(x)	GRAPHVIZ_SHAPE("doublecircle",x)
+#define GRAPHVIZ_BOX(x)				GRAPHVIZ_SHAPE("box",x)
+
 			// state names
 			const WCHAR *m_rgwszStates[tenumstateSentinel];
 
@@ -87,19 +93,52 @@ namespace gpopt
 			TEnumEvent m_tenumeventHistory[GPOPT_FSM_HISTORY];
 
 			// track event
-			void RecordHistory(TEnumEvent tenumevent, TEnumState tenumstate);
+			void RecordHistory(TEnumEvent tenumevent, TEnumState tenumstate)
+            {
+                ULONG ulHistory = m_ulHistory % GPOPT_FSM_HISTORY;
+
+                m_tenumeventHistory[ulHistory] = tenumevent;
+                m_tenumstateHistory[ulHistory] = tenumstate;
+
+                ++m_ulHistory;
+            }
 			
 			// resolve names for states
-			const WCHAR *WszState(TEnumState tenumstate) const;
+			const WCHAR *WszState(TEnumState tenumstate) const
+            {
+                GPOS_ASSERT(m_fInit);
+                GPOS_ASSERT(0 <= tenumstate && tenumstate < tenumstateSentinel);
+
+                return m_rgwszStates[tenumstate];
+            }
 			
 			// resolve names for events
-			const WCHAR *WszEvent(TEnumEvent tenumevent) const;
+			const WCHAR *WszEvent(TEnumEvent tenumevent) const
+            {
+                GPOS_ASSERT(m_fInit);
+                GPOS_ASSERT(0 <= tenumevent && tenumevent < tenumeventSentinel);
+
+                return m_rgwszEvents[tenumevent];
+            }
 
 			// retrieve all states -- enum might have 'holes'
-			void States(EsetStates *peset) const;
+			void States(EsetStates *peset) const
+            {
+                for(ULONG ul = 0; ul < tenumstateSentinel; ul++)
+                {
+                    (void) peset->FExchangeSet((TEnumState) ul);
+                }
+            }
 			
 			// determine all possible transitions between 2 given states
-			void Transitions(TEnumState tenumstate, TEnumState tenumevent, EsetEvents *peset) const;
+			void Transitions(TEnumState tenumstateOld, TEnumState tenumstateNew, EsetEvents *peset) const
+            {
+                TEnumEvent tenumevent = m_rgrgtenumeventTransitions[tenumstateOld][tenumstateNew];
+                if (tenumeventSentinel != tenumevent)
+                {
+                    (void) peset->FExchangeSet(tenumevent);
+                }
+            }
 
 			// shorthand for walker function type
 			typedef void (*PfWalker)
@@ -112,30 +151,88 @@ namespace gpopt
 					);
 
 			// generic walker function, called for every edge in the graph
-			void Walk(IMemoryPool *pmp, PfWalker, void *pvContext) const;
+			void Walk(IMemoryPool *pmp, PfWalker Pfpv, void *pvContext) const
+            {
+                // retrieve all states
+                EsetStates *pesetStates = GPOS_NEW(pmp) EsetStates(pmp);
+                States(pesetStates);
+
+                // loop through all sink states
+                EsetStatesIter esetIterSink(*pesetStates);
+                while(esetIterSink.FAdvance())
+                {
+                    TEnumState tenumstateSink = esetIterSink.TBit();
+
+                    // loop through all source states
+                    EsetStatesIter esetIterSource(*pesetStates);
+                    while(esetIterSource.FAdvance())
+                    {
+                        TEnumState tenumstateSource = esetIterSource.TBit();
+
+                        // for all pairs of states (source, sink)
+                        // compute possible transitions
+                        EsetEvents *pesetEvents = GPOS_NEW(pmp) EsetEvents(pmp);
+                        Transitions(tenumstateSource, tenumstateSink, pesetEvents);
+
+                        // loop through all connecting edges
+                        EsetEventsIter esetIterTrans(*pesetEvents);
+                        while(esetIterTrans.FAdvance())
+                        {
+                            // apply walker function
+                            Pfpv(this, tenumstateSource, tenumstateSink, esetIterTrans.TBit(), pvContext);
+                        }
+
+                        pesetEvents->Release();
+                    }
+                }
+
+                pesetStates->Release();
+            }
 
 			// print function -- used with walker
 			static
 			void Diagram
 				(
 				const CStateMachine *psm,
-				TEnumState tenumstateOld,
-				TEnumState tenumstateNew,
+				TEnumState tenumstateSource,
+				TEnumState tenumstateSink,
 				TEnumEvent tenumevent,
 				void *pvContext
-				);
+				)
+            {
+                IOstream &os = *(IOstream*)pvContext;
+
+                os
+                << "\""
+                << psm->WszState(tenumstateSource)
+                << "\" -> \""
+                << psm->WszState(tenumstateSink)
+                << "\" [ label = \""
+                << psm->WszEvent(tenumevent)
+                << "\" ];"
+                << std::endl;
+            }
 
 			
 			// check for unreachable nodes -- used with walker
 			static
 			void Unreachable
 				(
-				const CStateMachine *psm,
-				TEnumState tenumstateOld,
-				TEnumState tenumstateNew,
-				TEnumEvent tenumevent,
+				const CStateMachine *,
+				TEnumState tenumstateSource,
+				TEnumState tenumstateSink,
+				TEnumEvent ,
 				void *pvContext
-				);
+				)
+            {
+                EsetStates &eset = *(EsetStates*)pvContext;
+
+                if (tenumstateSource != tenumstateSink)
+                {
+                    // reachable -- remove from set of unreachables
+                    (void) eset.FExchangeClear(tenumstateSink);
+                }
+            }
 #endif // GPOS_DEBUG
 
 			// actual implementation of transition
@@ -144,7 +241,30 @@ namespace gpopt
 				TEnumState tenumstateOld,
 				TEnumEvent tenumevent,
 				TEnumState &tenumstateNew
-				) const;
+				) const
+            {
+                GPOS_ASSERT(tenumevent < tenumeventSentinel);
+                GPOS_ASSERT(m_fInit);
+
+                for (ULONG ulOuter = 0; ulOuter < tenumstateSentinel; ulOuter++)
+                {
+                    if (m_rgrgtenumeventTransitions[tenumstateOld][ulOuter] == tenumevent)
+                    {
+#ifdef GPOS_DEBUG
+                        // make sure there isn't another transition possible for the same event
+                        for (ULONG ulInner = ulOuter + 1; ulInner < tenumstateSentinel; ulInner++)
+                        {
+                            GPOS_ASSERT(m_rgrgtenumeventTransitions[tenumstateOld][ulInner] != tenumevent);
+                        }
+#endif // GPOS_DEBUG
+
+                        tenumstateNew = (TEnumState) ulOuter;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
 
 			// hidden copy ctor
 			CStateMachine<TEnumState, tenumstateSentinel, TEnumEvent, tenumeventSentinel>
@@ -173,23 +293,75 @@ namespace gpopt
 			// initialize state machine
 			void Init
 				(
-				const TEnumEvent rgrgtenumstateTransitions[tenumstateSentinel][tenumstateSentinel]
+				const TEnumEvent rgrgtenumeventTransitions[tenumstateSentinel][tenumstateSentinel]
 #ifdef GPOS_DEBUG
 				,
 				const WCHAR rgwszStates[tenumstateSentinel][GPOPT_FSM_NAME_LENGTH],
 				const WCHAR rgwszEvents[tenumeventSentinel][GPOPT_FSM_NAME_LENGTH]
 #endif // GPOS_DEBUG
-				);
+				)
+            {
+                GPOS_ASSERT(!m_fInit);
+
+                for (ULONG ulOuter = 0; ulOuter < tenumstateSentinel; ulOuter++)
+                {
+                    for (ULONG ulInner = 0; ulInner < tenumstateSentinel; ulInner++)
+                    {
+                        m_rgrgtenumeventTransitions[ulOuter][ulInner] = rgrgtenumeventTransitions[ulOuter][ulInner];
+                    }
+                }
+
+#ifdef GPOS_DEBUG
+                for (ULONG ul = 0; ul < tenumstateSentinel; ul++)
+                {
+                    m_rgwszStates[ul] = rgwszStates[ul];
+                }
+
+                for (ULONG ul = 0; ul < tenumeventSentinel; ul++)
+                {
+                    m_rgwszEvents[ul] = rgwszEvents[ul];
+                }
+#endif // GPOS_DEBUG
+
+                m_tenumstate = TesInitial();
+                m_fInit = true;
+            }
 
 			// dtor
 			~CStateMachine()
 			{};
 						
 			// attempt transition
-			BOOL FTransition(TEnumEvent tenumevent, TEnumState &tenumstate);
+			BOOL FTransition(TEnumEvent tenumevent, TEnumState &tenumstate)
+            {
+                TEnumState tenumstateNew;
+                BOOL fSucceeded = FAttemptTransition(m_tenumstate, tenumevent, tenumstateNew);
+
+                if (fSucceeded)
+                {
+                    m_tenumstate = tenumstateNew;
+#ifdef GPOS_DEBUG
+                    RecordHistory(tenumevent, m_tenumstate);
+#endif // GPOS_DEBUG
+                }
+
+                tenumstate = m_tenumstate;
+                return fSucceeded;
+            }
 			
 			// shorthand if current state and return value are not needed
-			void Transition(TEnumEvent tenumevent);
+			void Transition(TEnumEvent tenumevent)
+            {
+                TEnumState tenumstateDummy;
+#ifdef GPOS_DEBUG
+                BOOL fCheck =
+#else
+                (void)
+#endif // GPOS_DEBUG
+                FTransition(tenumevent, tenumstateDummy);
+
+                GPOS_ASSERT(fCheck && "Event rejected");
+            }
 
 			// inspect current state; to be used only in assertions
 			TEnumState Estate() const
@@ -218,13 +390,74 @@ namespace gpopt
 
 #ifdef GPOS_DEBUG
 			// dump history
-			IOstream &OsHistory(IOstream &os) const;
+			IOstream &OsHistory(IOstream &os) const
+            {
+                ULONG ulElems = std::min(m_ulHistory, GPOPT_FSM_HISTORY);
+
+                ULONG ulStart = m_ulHistory + 1;
+                if (m_ulHistory < GPOPT_FSM_HISTORY)
+                {
+                    // if we haven't rolled over, just start at 0
+                    ulStart = 0;
+                }
+
+                os << "State Machine History (" << (void*)this << ")" << std::endl;
+
+                for (ULONG ul = 0; ul < ulElems; ul++)
+                {
+                    ULONG ulPos = (ulStart + ul) % GPOPT_FSM_HISTORY;
+                    os
+                    << ul << ": "
+                    << WszEvent(m_tenumeventHistory[ulPos])
+                    << " (event) -> " 
+                    << WszState(m_tenumstateHistory[ulPos])
+                    << " (state)" 
+                    << std::endl;
+                }
+
+                return os;
+            }
 			
 			// check for unreachable states
-			BOOL FReachable(IMemoryPool *pmp) const;
+			BOOL FReachable(IMemoryPool *pmp) const
+            {
+                TEnumState *pestate = NULL;
+                ULONG ulSize = 0;
+                Unreachable(pmp, &pestate, &ulSize);
+                GPOS_DELETE_ARRAY(pestate);
+
+                return  (ulSize == 0);
+            }
 			
 			// compute array of unreachable states
-			void Unreachable(IMemoryPool *pmp, TEnumState **ppestate, ULONG *pulSize) const;
+			void Unreachable(IMemoryPool *pmp, TEnumState **ppestate, ULONG *pulSize) const
+            {
+                GPOS_ASSERT(NULL != ppestate);
+                GPOS_ASSERT(NULL != pulSize);
+
+                // initialize output array
+                *ppestate = GPOS_NEW_ARRAY(pmp, TEnumState, tenumstateSentinel);
+                for (ULONG ul = 0; ul < tenumstateSentinel; ul++)
+                {
+                    (*ppestate)[ul] = tenumstateSentinel;
+                }
+
+                // mark all states unreachable at first
+                EsetStates *peset = GPOS_NEW(pmp) EsetStates(pmp);
+                States(peset);
+
+                Walk(pmp, Unreachable, peset);
+
+                // store remaining states in output array
+                EsetStatesIter esetIter(*peset);
+                ULONG ul = 0;
+                while (esetIter.FAdvance())
+                {
+                    (*ppestate)[ul++] = esetIter.TBit();
+                }
+                *pulSize = ul;
+                peset->Release();
+            }
 
 			// dump Moore diagram in graphviz format
 			IOstream &OsDiagramToGraphviz
@@ -233,14 +466,44 @@ namespace gpopt
 				IOstream &os,
 				const WCHAR *wszTitle
 				)
-				const;
+				const
+            {
+                os
+                << "digraph " << wszTitle << " { "
+                << std::endl
+                << GRAPHVIZ_DOUBLE_CIRCLE(WszState(TesInitial()))
+                << std::endl;
+
+                // get unreachable states
+                EsetStates *peset = GPOS_NEW(pmp) EsetStates(pmp);
+                States(peset);
+
+                Walk(pmp, Unreachable, peset);
+
+                // print all unreachable nodes using BOXes
+                EsetStatesIter esetIter(*peset);
+                while(esetIter.FAdvance())
+                {
+                    os
+                    << GRAPHVIZ_BOX(WszState(esetIter.TBit()))
+                    << std::endl;
+                }
+                peset->Release();
+
+                // print the remainder of the diagram by writing all edges only;
+                // nodes are implicit;
+                Walk(pmp, Diagram, &os);
+
+                os << "} " << std::endl;
+                return os;
+            }
+
 #endif // GPOS_DEBUG
 
 	}; // class CStateMachine
 }
 
 
-#include "gpopt/base/CStateMachine.inl"
 
 #endif // !GPOPT_CStateMachine_H
 

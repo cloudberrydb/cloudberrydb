@@ -55,12 +55,26 @@ namespace gpos
 			CHashMapIter(const CHashMapIter<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT> &);
 			
 			// method to return the current element
-			const typename TMap::CHashMapElem *Phme() const;
+			const typename TMap::CHashMapElem *Phme() const
+            {
+                typename TMap::CHashMapElem *phme = NULL;
+                K *k = (*(m_ptm->m_pdrgKeys))[m_ulKey-1];
+                m_ptm->Lookup(k, &phme);
+
+                return phme;
+            }
 
 		public:
 		
 			// ctor
-			CHashMapIter<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT> (TMap *);
+			CHashMapIter<K, T, pfnHash, pfnEq, pfnDestroyK, pfnDestroyT> (TMap *ptm)
+            :
+            m_ptm(ptm),
+            m_ulChain(0),
+            m_ulKey(0)
+            {
+                GPOS_ASSERT(NULL != ptm);
+            }
 
 			// dtor
 			virtual
@@ -68,20 +82,42 @@ namespace gpos
 			{}
 
 			// advance iterator to next element
-			BOOL FAdvance();
+			BOOL FAdvance()
+            {
+                if (m_ulKey < m_ptm->m_pdrgKeys->UlLength())
+                {
+                    m_ulKey++;
+                    return true;
+                }
+
+                return false;
+            }
 			
 			// current key
-			const K *Pk() const;
+			const K *Pk() const
+            {
+                const typename TMap::CHashMapElem *phme = Phme();
+                if (NULL != phme)
+                {
+                    return phme->Pk();
+                }
+                return NULL;
+            }
 
 			// current value
-			const T *Pt() const;
+			const T *Pt() const
+            {
+                const typename TMap::CHashMapElem *phme = Phme();
+                if (NULL != phme)
+                {
+                    return phme->Pt();
+                }
+                return NULL;
+            }
 
 	}; // class CHashMapIter
 
 }
-
-// inline'd functions
-#include "CHashMapIter.inl"
 
 #endif // !GPOS_CHashMapIter_H
 

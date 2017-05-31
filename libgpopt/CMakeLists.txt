@@ -19,7 +19,6 @@ add_library(gpopt
             include/gpopt/base/CMaxCard.h
             include/gpopt/base/CPropSpec.h
             include/gpopt/base/CStateMachine.h
-            include/gpopt/base/CStateMachine.inl
             include/gpopt/base/CUtils.inl
             include/gpopt/base/IComparator.h
             include/gpopt/cost/CCost.h
@@ -46,9 +45,7 @@ add_library(gpopt
             include/gpopt/operators/CScalarSubqueryNotExists.h
             include/gpopt/operators/ops.h
             include/gpopt/search/CJobStateMachine.h
-            include/gpopt/search/CJobStateMachine.inl
             include/gpopt/search/CTreeMap.h
-            include/gpopt/search/CTreeMap.inl
             include/gpopt/spinlock.h
             include/gpopt/xforms/CXformAntiSemiJoinAntiSemiJoinNotInSwap.h
             include/gpopt/xforms/CXformAntiSemiJoinAntiSemiJoinSwap.h
@@ -59,10 +56,8 @@ add_library(gpopt
             include/gpopt/xforms/CXformAntiSemiJoinNotInSemiJoinSwap.h
             include/gpopt/xforms/CXformAntiSemiJoinSemiJoinSwap.h
             include/gpopt/xforms/CXformApply2Join.h
-            include/gpopt/xforms/CXformApply2Join.inl
             include/gpopt/xforms/CXformContext.h
             include/gpopt/xforms/CXformImplementCorrelatedApply.h
-            include/gpopt/xforms/CXformImplementCorrelatedApply.inl
             include/gpopt/xforms/CXformImplementInnerCorrelatedApply.h
             include/gpopt/xforms/CXformImplementLeftAntiSemiCorrelatedApply.h
             include/gpopt/xforms/CXformImplementLeftAntiSemiCorrelatedApplyNotIn.h
@@ -73,13 +68,11 @@ add_library(gpopt
             include/gpopt/xforms/CXformInnerJoinAntiSemiJoinSwap.h
             include/gpopt/xforms/CXformInnerJoinSemiJoinSwap.h
             include/gpopt/xforms/CXformJoinSwap.h
-            include/gpopt/xforms/CXformJoinSwap.inl
             include/gpopt/xforms/CXformLeftAntiSemiJoinNotIn2CrossProduct.h
             include/gpopt/xforms/CXformLeftSemiApplyIn2LeftSemiJoin.h
             include/gpopt/xforms/CXformLeftSemiApplyIn2LeftSemiJoinNoCorrelations.h
             include/gpopt/xforms/CXformLeftSemiApplyInWithExternalCorrs2InnerJoin.h
             include/gpopt/xforms/CXformPushGbBelowSetOp.h
-            include/gpopt/xforms/CXformPushGbBelowSetOp.inl
             include/gpopt/xforms/CXformPushGbBelowUnion.h
             include/gpopt/xforms/CXformPushGbBelowUnionAll.h
             include/gpopt/xforms/CXformSelect2DynamicBitmapBoolOp.h

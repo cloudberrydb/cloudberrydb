@@ -11,6 +11,8 @@
 #ifndef GPOS_CDouble_H
 #define GPOS_CDouble_H
 
+#include <math.h>
+
 #include "gpos/base.h"
 
 #define GPOS_FP_ABS_MIN	(1e-250)	// min value: 4.94066e-324
@@ -34,20 +36,75 @@ namespace gpos
 			DOUBLE m_d;
 
 			// check validity in ctor
-			inline void CheckValidity();
+			inline void CheckValidity()
+            {
+                GPOS_ASSERT(0.0 < GPOS_FP_ABS_MIN);
+                GPOS_ASSERT(GPOS_FP_ABS_MIN < GPOS_FP_ABS_MAX);
+
+                double dAbs = fabs(m_d);
+
+                if (GPOS_FP_ABS_MAX < dAbs)
+                {
+                    SetSignedVal(GPOS_FP_ABS_MAX);
+                }
+
+                if (GPOS_FP_ABS_MIN > dAbs)
+                {
+                    SetSignedVal(GPOS_FP_ABS_MIN);
+                }
+            }
 
 			// assign value while maintaining current sign
-			inline void SetSignedVal(DOUBLE dVal);
+			inline void SetSignedVal(DOUBLE dVal)
+            {
+                if (0.0 <= m_d)
+                {
+                    m_d = dVal;
+                }
+                else
+                {
+                    m_d = -dVal;
+                }
+            }
 
 
 		public:
 
 			// ctors
-			inline CDouble(DOUBLE d);
-			inline CDouble(ULLONG ul);
-			inline CDouble(ULONG ul);
-			inline CDouble(LINT ul);
-			inline CDouble(INT ul);
+			inline CDouble(DOUBLE d)
+            :
+            m_d(d)
+            {
+                CheckValidity();
+            }
+
+			inline CDouble(ULLONG ull)
+            :
+            m_d(DOUBLE(ull))
+            {
+                CheckValidity();
+            }
+
+			inline CDouble(ULONG ul)
+            :
+            m_d(DOUBLE(ul))
+            {
+                CheckValidity();
+            }
+
+			inline CDouble(LINT li)
+            :
+            m_d(DOUBLE(li))
+            {
+                CheckValidity();
+            }
+
+			inline CDouble(INT i)
+            :
+            m_d(DOUBLE(i))
+            {
+                CheckValidity();
+            }
 
 			// dtor
 			inline ~CDouble()
@@ -60,39 +117,89 @@ namespace gpos
 			}
 
 			// assignment
-			inline CDouble& operator=(const CDouble&);
+			inline CDouble& operator=(const CDouble &fpRight)
+            {
+                this->m_d = fpRight.m_d;
+
+                return (*this);
+            }
 
 			// arithmetic operators
-			friend CDouble operator + (const CDouble &fpLeft, const CDouble &fpRight);
-			friend CDouble operator - (const CDouble &fpLeft, const CDouble &fpRight);
-			friend CDouble operator * (const CDouble &fpLeft, const CDouble &fpRight);
-			friend CDouble operator / (const CDouble &fpLeft, const CDouble &fpRight);
+			friend CDouble operator + (const CDouble &fpLeft, const CDouble &fpRight)
+            {
+                return CDouble(fpLeft.m_d + fpRight.m_d);
+            }
+
+			friend CDouble operator - (const CDouble &fpLeft, const CDouble &fpRight)
+            {
+                return CDouble(fpLeft.m_d - fpRight.m_d);
+            }
+
+			friend CDouble operator * (const CDouble &fpLeft, const CDouble &fpRight)
+            {
+                return CDouble(fpLeft.m_d * fpRight.m_d);
+            }
+
+			friend CDouble operator / (const CDouble &fpLeft, const CDouble &fpRight)
+            {
+                return CDouble(fpLeft.m_d / fpRight.m_d);
+            }
 
 			// negation
-			friend CDouble operator - (const CDouble &fp);
+			friend CDouble operator - (const CDouble &fp)
+            {
+                return CDouble(-fp.m_d);
+            }
 
 			// logical operators
-			friend BOOL operator == (const CDouble &fpLeft, const CDouble &fpRight);
+			friend BOOL operator == (const CDouble &fpLeft, const CDouble &fpRight)
+            {
+                CDouble fpCompare(fpLeft.m_d - fpRight.m_d);
+
+                return (fabs(fpCompare.m_d) == GPOS_FP_ABS_MIN);
+            }
+
 			friend BOOL operator != (const CDouble &fpLeft, const CDouble &fpRight);
 			friend BOOL operator < (const CDouble &fpLeft, const CDouble &fpRight);
 			friend BOOL operator <= (const CDouble &fpLeft, const CDouble &fpRight);
-			friend BOOL operator > (const CDouble &fpLeft, const CDouble &fpRight);
+			friend BOOL operator > (const CDouble &fpLeft, const CDouble &fpRight)
+            {
+                CDouble fpCompare(fpLeft.m_d - fpRight.m_d);
+
+                return (fpCompare.m_d > GPOS_FP_ABS_MIN);
+            }
+
 			friend BOOL operator >= (const CDouble &fpLeft, const CDouble &fpRight);
 
 			// absolute
-			inline CDouble FpAbs() const;
+			inline CDouble FpAbs() const
+            {
+                return CDouble(fabs(m_d));
+            }
 
 			// floor
-			inline CDouble FpFloor() const;
+			inline CDouble FpFloor() const
+            {
+                return CDouble(floor(m_d));
+            }
 
 			// ceiling
-			inline CDouble FpCeil() const;
+			inline CDouble FpCeil() const
+            {
+                return CDouble(ceil(m_d));
+            }
 
 			// power
-			inline CDouble FpPow(const CDouble &fp) const;
+			inline CDouble FpPow(const CDouble &fp) const
+            {
+                return CDouble(pow(m_d, fp.m_d));
+            }
 
 			// log to the base 2
-			inline CDouble FpLog2() const;
+			inline CDouble FpLog2() const
+            {
+                return CDouble(log2(m_d));
+            }
 
 			// print to stream
 			inline IOstream &OsPrint
@@ -106,7 +213,10 @@ namespace gpos
 
 			// compare two double values using given precision
 			inline static
-			BOOL FEqual(DOUBLE dLeft, DOUBLE dRight, DOUBLE dPrecision = GPOS_FP_ABS_MIN);
+			BOOL FEqual(DOUBLE dLeft, DOUBLE dRight, DOUBLE dPrecision = GPOS_FP_ABS_MIN)
+            {
+                return fabs(dRight - dLeft) <= dPrecision;
+            }
 
 	}; // class CDouble
 
@@ -170,9 +280,6 @@ namespace gpos
 		return fp.OsPrint(os);
 	}
 }
-
-// inlined implementation
-#include "CDouble.inl"
 
 #endif // !GPOS_CDouble_H
 
