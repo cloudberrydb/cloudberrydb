@@ -1027,19 +1027,20 @@ WriteEmptyXLOG(void)
 	 */
 	fp = fopen(TXN_FILESPACE_FLATFILE, "r");
 	if (fp)
-        {
-                MemSet(buf, 0, BUFFER_LEN);
-                if (fgets(buf, BUFFER_LEN, fp))
+	{
+		MemSet(buf, 0, BUFFER_LEN);
+		if (fgets(buf, BUFFER_LEN, fp))
 			;	/* First line is Filespace OID, skip it */
 
-                MemSet(buf, 0, BUFFER_LEN);
-                if (fgets(buf, BUFFER_LEN, fp))
-                {
-                        buf[strlen(buf)-1]='\0';
-                        pch = strtok(buf, " ");	/* The first part is DBID. Skip it */
-                        pch = strtok(NULL, " ");
-                        sprintf(path,"%s/%s", pch, XLOGDIR);
-                }
+		MemSet(buf, 0, BUFFER_LEN);
+		if (fgets(buf, BUFFER_LEN, fp))
+		{
+			buf[strlen(buf)-1]='\0';
+			pch = strtok(buf, " ");	/* The first part is DBID. Skip it */
+			pch = strtok(NULL, " ");
+			sprintf(path,"%s/%s", pch, XLOGDIR);
+		}
+		fclose(fp);
 	}
 	else
 	{

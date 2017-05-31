@@ -969,6 +969,12 @@ MirrorFlatFile(
 
 	errno = 0;
 
+	/*
+	 * This is mainly important to set mirroredOpen.isActive to false, to
+	 * avoid calling MirroredFlatFile_Close on uninitialized pointer.
+	 */
+	MemSet(&mirroredOpen, 0, sizeof(MirroredFlatFileOpen));
+
 	if (isTxnDir(subDirectory))
 	{
 		dir = makeRelativeToTxnFilespace(subDirectory);

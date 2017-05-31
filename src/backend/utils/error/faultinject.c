@@ -221,6 +221,7 @@ gp_fault_inject_impl(int32 reason, int64 arg)
                                 hdr.chunk_no = 0;
                                 hdr.is_last = 't';
                                 hdr.log_format = 'X';
+								hdr.is_segv_msg = 'f';
                                 hdr.log_line_number = reason;
                                 hdr.next = -1;
                                 write(2, &hdr, sizeof(PipeProtoHeader));

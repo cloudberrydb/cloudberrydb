@@ -1862,17 +1862,20 @@ checkIODataDirectory(void)
 				if (fd < 0)
 				{
 					failure = true;
-					ereport(LOG, (errcode_for_file_access(), 
-							errmsg("FTS: could not create file \"%s\": %m", 
+					ereport(LOG, (errcode_for_file_access(),
+							errmsg("FTS: could not create file \"%s\": %m",
 								filename)));
 				}
-				strncpy(dataAligned, FTS_PROBE_MAGIC_STRING, magic_len);
-				if (write(fd, dataAligned, BLCKSZ) != BLCKSZ)
+				else
 				{
-					ereport(LOG, (errcode_for_file_access(), 
-							errmsg("FTS: could not write file \"%s\" : %m", 
-								filename)));
-					failure = true;
+					strncpy(dataAligned, FTS_PROBE_MAGIC_STRING, magic_len);
+					if (write(fd, dataAligned, BLCKSZ) != BLCKSZ)
+					{
+						ereport(LOG, (errcode_for_file_access(), 
+									  errmsg("FTS: could not write file \"%s\" : %m", 
+											 filename)));
+						failure = true;
+					}
 				}
 			}
 			else

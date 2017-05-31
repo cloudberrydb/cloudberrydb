@@ -610,7 +610,7 @@ gp_persistent_relation_node_check(PG_FUNCTION_ARGS)
 			/* Skip to the innermost loop */
 			fdata->databaseDir = fdata->tablespaceDir;
 			fdata->tablespaceDir = NULL;
-			strncpy(fdata->databaseDirName, fdata->tablespaceDirName, 
+			strlcpy(fdata->databaseDirName, fdata->tablespaceDirName,
 					MAXPGPATH);
 		}
 	}

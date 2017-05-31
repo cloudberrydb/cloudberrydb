@@ -1868,14 +1868,7 @@ AtEOXact_AppendOnly_StateTransition(AORelHashEntry aoentry, int segno,
 	oldstate = segfilestat->state;
 	if (segfilestat->state == INSERT_USE)
 	{
-		if (!segfilestat->aborted)
-		{
-			segfilestat->state = AVAILABLE;
-		}
-		else
-		{
-			segfilestat->state = AVAILABLE;
-		}
+		segfilestat->state = AVAILABLE;
 	}
 	else if (segfilestat->state == DROP_USE)
 	{
