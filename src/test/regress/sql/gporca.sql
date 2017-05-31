@@ -1398,6 +1398,12 @@ create table foo (a int, b character varying(10));
 -- Query should not fallback to planner
 explain select * from foo where b in ('1', '2');
 
+set optimizer_enable_ctas = off;
+set client_min_messages='log';
+create table foo_ctas(a) as (select generate_series(1,10)) distributed by (a);
+reset client_min_messages;
+reset optimizer_enable_ctas;
+
 -- clean up
 drop schema orca cascade;
 reset optimizer_segments;
