@@ -13,12 +13,16 @@
 #ifndef SHAREDSNAPSHOT_H
 #define SHAREDSNAPSHOT_H
 
+#include "utils/combocid.h"
+#include "utils/tqual.h"
+
 /* MPP Shared Snapshot */
 typedef struct SharedSnapshotSlot
 {
 	int4			slotindex;  /* where in the array this one is. */
 	int4	 		slotid;
 	pid_t	 		pid; /* pid of writer seg */
+	PGPROC			*writer_proc;
 	TransactionId	xid;
 	CommandId       cid;
 	TimestampTz		startTimestamp;
@@ -26,13 +30,10 @@ typedef struct SharedSnapshotSlot
 	volatile CommandId		QDcid;
 	volatile bool			ready;
 	volatile uint32			segmateSync;
-	uint32		total_subcnt;	/* Total # of subxids */
-	uint32		inmemory_subcnt;    /* subxids in memory */
-	TransactionId   subxids[MaxGpSavePoints];
 	uint32			combocidcnt;
 	ComboCidKeyData combocids[MaxComboCids];
 	SnapshotData	snapshot;
-
+	LWLockId        slotLock;
 } SharedSnapshotSlot;
 
 extern volatile SharedSnapshotSlot *SharedLocalSnapshotSlot;
@@ -50,5 +51,7 @@ extern void dumpSharedLocalSnapshot_forCursor(void);
 extern void readSharedLocalSnapshot_forCursor(Snapshot snapshot);
 
 extern void AtEOXact_SharedSnapshot(void);
+
+#define NUM_SHARED_SNAPSHOT_SLOTS (2 * max_prepared_xacts)
 
 #endif   /* SHAREDSNAPSHOT_H */
