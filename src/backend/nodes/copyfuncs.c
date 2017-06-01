@@ -2148,23 +2148,6 @@ _copyRestrictInfo(RestrictInfo *from)
 }
 
 /*
- * _copyFlattenedSubLink
- */
-static FlattenedSubLink *
-_copyFlattenedSubLink(FlattenedSubLink *from)
-{
-	FlattenedSubLink *newnode = makeNode(FlattenedSubLink);
-	
-	COPY_SCALAR_FIELD(jointype);
-	COPY_BITMAPSET_FIELD(lefthand);
-	COPY_BITMAPSET_FIELD(righthand);
-	COPY_NODE_FIELD(quals);
-	COPY_SCALAR_FIELD(try_join_unique);	/* CDB */
-	
-	return newnode;
-}
-
-/*
  * _copySpecialJoinInfo
  */
 static SpecialJoinInfo *
@@ -4835,9 +4818,6 @@ copyObject(void *from)
 			break;
 		case T_RestrictInfo:
 			retval = _copyRestrictInfo(from);
-			break;
-		case T_FlattenedSubLink:
-			retval = _copyFlattenedSubLink(from);
 			break;
 		case T_SpecialJoinInfo:
 			retval = _copySpecialJoinInfo(from);
