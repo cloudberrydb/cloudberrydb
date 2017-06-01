@@ -5310,8 +5310,6 @@ CommitSubTransaction(void)
 		elog(WARNING, "CommitSubTransaction while in %s state",
 			 TransStateAsString(s->state));
 
-	SIMPLE_FAULT_INJECTOR(SubtransactionRelease);
-
 	/* Pre-commit processing goes here -- nothing to do at the moment */
 
 	s->state = TRANS_COMMIT;
@@ -5430,8 +5428,6 @@ AbortSubTransaction(void)
 	if (s->state != TRANS_INPROGRESS)
 		elog(WARNING, "AbortSubTransaction while in %s state",
 			 TransStateAsString(s->state));
-
-	SIMPLE_FAULT_INJECTOR(SubtransactionRollback);
 
 	s->state = TRANS_ABORT;
 
