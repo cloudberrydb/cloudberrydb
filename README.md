@@ -13,6 +13,8 @@
 
 Welcome to GPORCA, the Greenplum Next Generation Query Optimizer!
 
+Want to [Contribute](#contribute)?
+
 GPORCA supports various build types: debug, release with debug info, release.
 On x86 systems, GPORCA can also be built as a 32-bit or 64-bit library. You'll
 need CMake 3.0 or higher to build GPORCA. Get it from cmake.org, or your
@@ -49,6 +51,7 @@ make
 sudo make install
 ```
 
+<a name="test"></a>
 ## Test GPORCA
 
 To run all GPORCA tests, simply use the `ctest` command from the build directory
@@ -87,6 +90,7 @@ To run a specific minidump, for example for `../data/dxl/minidump/TVFRandom.mdp`
 Note that some tests use assertions that are only enabled for DEBUG builds, so
 DEBUG-mode tests tend to be more rigorous.
 
+<a name="addtest"></a>
 ## Adding tests
 
 Most of the regression tests come in the form of a "minidump" file.
@@ -322,3 +326,23 @@ rm -rf /usr/local/lib/libgpdbcost.so*
 rm -rf /usr/local/lib/libgpopt.so*
 rm -rf /usr/local/lib/libgpos.so*
 ```
+
+<a name="contribute"></a>
+# How to Contribute
+
+We accept contributions via [Github Pull requests](https://help.github.com/articles/using-pull-requests) only.
+
+Follow the steps below to open a PR:
+1. Fork the project’s repository
+1. Create your own feature branch (e.g. `git checkout -b better_orca`) and make changes on this branch.
+    * Follow the previous sections on this page to setup and build in your environment.
+1. Run through all the [tests](#test) in your feature branch and ensure they are successful.
+    * Follow the [Add tests](#addtest) section to add new tests.
+1. Push your local branch to your fork (e.g. `git push origin better_orca`) and [submit a pull request](https://help.github.com/articles/creating-a-pull-request)
+
+Your contribution will be analyzed for product fit and engineering quality prior to merging.  
+Note: All contributions must be sent using GitHub Pull Requests.  
+
+**Your pull request is much more likely to be accepted if it is small and focused with a clear message that conveys the intent of your change.**
+
+Overall we follow GPDB's comprehensive contribution policy. Please refer to it [here](https://github.com/greenplum-db/gpdb#contributing) for details.
