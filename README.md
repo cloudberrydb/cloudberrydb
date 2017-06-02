@@ -96,8 +96,7 @@ throughout the codebase, but a few larger additions worth noting:
   optimizer with Greenplum. The translator library is written in C++
   code, and contains glue code for translating plans and queries
   between the DXL format used by ORCA, and the PostgreSQL internal
-  representation. This goes unused, unless building with
-  _--enable-orca_.
+  representation.
 
 * __src/backend/gp_libpq_fe/__
 
@@ -111,16 +110,48 @@ throughout the codebase, but a few larger additions worth noting:
   FTS is a process that runs in the master node, and periodically
   polls the segments to maintain the status of each segment.
 
-## Building GPDB
+## Build Greenplum Database with GPORCA
 
-Some configure options are nominally optional, but required to pass
-all regression tests. The minimum set of options for running the
-regression tests successfully is:
+Currently GPDB assumes ORCA libraries and headers are available in the targeted
+system and tries to build with ORCA by default.  For your convenience, here are
+the steps of how to build the optimizer. For the most up-to-date way of
+building, see the README at the following repositories:
 
-`./configure --with-perl --with-python --with-libxml`
+1. https://github.com/greenplum-db/gp-xerces
+1. https://github.com/greenplum-db/gporca
 
-### Build GPDB with Planner
+<a name="buildOrca"></a>
+### Build the optimizer
 
+1. Install our patched version of Xerces-C
+
+    ```
+    git clone https://github.com/greenplum-db/gp-xerces
+    mkdir gp-xerces/build
+    cd gp-xerces/build
+    ../configure
+    make install
+    ```
+
+1. ORCA requires [CMake](https://cmake.org) and
+   [Ninja](https://ninja-build.org/), make sure you have them installed.
+   Installation instructions vary, please check the CMake and Ninja websites.
+
+1. Install ORCA, the query optimizer:
+
+    ```
+    git clone https://github.com/greenplum-db/gporca
+    mkdir gporca/build
+    cd gporca/build
+    cmake -GNinja ..
+    ninja install
+    ```
+    **Note**: Get the latest ORCA `git pull --ff-only` if you see an error message like below:
+    ```
+    checking Checking ORCA version... configure: error: Your ORCA version is expected to be 2.33.XXX
+    ```
+    
+### Build the database
 ```
 # Clean environment
 make distclean
@@ -161,27 +192,30 @@ The TCP port for the regression test can be changed on the fly:
 PGPORT=15432 make installcheck-world
 ```
 
-
-### Build GPDB with GPORCA
-You must first install the below libraries in the below order (see the READMEs on each repository):
-
-1. https://github.com/greenplum-db/gp-xerces
-2. https://github.com/greenplum-db/gporca
-
-Next, change your `configure` command to have the additional option `--enable-orca`.
-```
-# Configure build environment to install at /usr/local/gpdb
-# Enable GPORCA
-# Build with perl module (PL/Perl)
-# Build with python module (PL/Python)
-# Build with XML support
-./configure --with-perl --with-python --with-libxml --enable-orca --prefix=/usr/local/gpdb
-```
-
 Once build and started, run `psql` and check the GPOPT (e.g. GPORCA) version:
 
 ```
 select gp_opt_version();
+```
+
+To turn ORCA off and use legacy planner for query optimization:
+```
+set optimizer=off;
+```
+
+
+### Build GPDB without GPORCA
+Currently, GPDB is built with ORCA by default so latest ORCA libraries and headers need
+to be available in the environment. [Build and Install](#buildOrca) the latest ORCA.
+
+If you want to build GPDB without ORCA, configure requires `--disable-orca` flag to be set.
+
+```
+# Clean environment
+make distclean
+
+# Configure build environment to install at /usr/local/gpdb
+./configure --disable-orca --with-perl --with-python --with-libxml --prefix=/usr/local/gpdb
 ```
 
 ### Build GPDB with code generation enabled
