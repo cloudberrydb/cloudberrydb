@@ -196,6 +196,8 @@ enable_mapreduce    = @enable_mapreduce@
 enable_gpcloud 	    = @enable_gpcloud@
 enable_gpperfmon    = @enable_gpperfmon@
 
+enable_segwalrep    = @enable_segwalrep@
+
 python_includespec	= @python_includespec@
 python_libdir		= @python_libdir@
 python_libspec		= @python_libspec@
