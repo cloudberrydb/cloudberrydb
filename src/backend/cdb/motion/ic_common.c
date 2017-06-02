@@ -689,7 +689,7 @@ forceEosToPeers(MotionLayerState       *mlStates,
 void
 TeardownInterconnect(ChunkTransportState *transportStates,
 					 MotionLayerState *mlStates,
-					 bool forceEOS)
+					 bool forceEOS, bool hasError)
 {
 	if (Gp_interconnect_type == INTERCONNECT_TYPE_UDPIFC)
 	{
@@ -697,7 +697,7 @@ TeardownInterconnect(ChunkTransportState *transportStates,
 	}
 	else if (Gp_interconnect_type == INTERCONNECT_TYPE_TCP)
 	{
-		TeardownTCPInterconnect(transportStates, mlStates, forceEOS);
+		TeardownTCPInterconnect(transportStates, mlStates, forceEOS, hasError);
 	}
 }
 

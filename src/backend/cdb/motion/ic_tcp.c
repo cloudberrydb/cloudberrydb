@@ -1950,7 +1950,7 @@ SetupTCPInterconnect(EState *estate)
 void
 TeardownTCPInterconnect(ChunkTransportState *transportStates,
 					 MotionLayerState *mlStates,
-					 bool forceEOS)
+					 bool forceEOS, bool hasError)
 {
 	ListCell   *cell;
 	ChunkTransportStateEntry *pEntry = NULL;
@@ -2068,7 +2068,7 @@ TeardownTCPInterconnect(ChunkTransportState *transportStates,
 
 		getChunkTransportState(transportStates, mySlice->sliceIndex, &pEntry);
 
-		if (forceEOS)
+		if (forceEOS && !hasError)
 			forceEosToPeers(mlStates, transportStates, mySlice->sliceIndex);
 
 		for (i = 0; i < pEntry->numConns; i++)
@@ -2624,8 +2624,19 @@ RecvTupleChunkFromAnyTCP(MotionLayerState *mlStates,
 
 	getChunkTransportState(transportStates, motNodeID, &pEntry);
 	pMNEntry = getMotionNodeEntry(mlStates, motNodeID, "RecvTupleChunkFromAny");
+
+	int retry = 0;
 	do
 	{
+		/* Every 2 seconds */
+		if (retry++ > 4)
+		{
+			retry = 0;
+			/* check to see if the dispatcher should cancel */
+			if (Gp_role == GP_ROLE_DISPATCH)
+				checkForCancelFromQD(transportStates);
+		}
+
 		struct timeval timeout = tval;
 
 		/* make sure we check for these. */

@@ -117,7 +117,7 @@ extern void SetupInterconnect(struct EState *estate);
  */
 extern void TeardownInterconnect(ChunkTransportState *transportStates,
 								 MotionLayerState *mlStates,
-								 bool forceEOS);
+								 bool forceEOS, bool hasError);
 
 extern void SetupSequenceServer(const char *host, int port);
 extern void TeardownSequenceServer(void);
@@ -321,7 +321,7 @@ extern void SetupTCPInterconnect(struct EState *estate);
 extern void SetupUDPIFCInterconnect(struct EState *estate);
 extern void TeardownTCPInterconnect(ChunkTransportState *transportStates,
 								 MotionLayerState *mlStates,
-								 bool forceEOS);
+								 bool forceEOS, bool hasError);
 extern void TeardownUDPIFCInterconnect(ChunkTransportState *transportStates,
 								 MotionLayerState *mlStates,
 								 bool forceEOS);
