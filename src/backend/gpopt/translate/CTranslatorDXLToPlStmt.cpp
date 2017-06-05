@@ -2449,11 +2449,29 @@ CTranslatorDXLToPlStmt::PplanMotionFromDXLMotion
 
 	const DrgPi *pdrgpiInputSegmentIds = pdxlopMotion->PdrgpiInputSegIds();
 
+
+	// only one sender
 	if (1 == pdrgpiInputSegmentIds->UlLength())
 	{
-		// only one sender - child has a singleton flow
-		pflow->flotype = FLOW_SINGLETON;
 		pflow->segindex = *((*pdrgpiInputSegmentIds)[0]);
+
+		// only one segment in total
+		if (1 == gpdb::UlSegmentCountGP())
+		{
+			if (pflow->segindex == MASTER_CONTENT_ID)
+				// sender is on master, must be singleton flow
+				pflow->flotype = FLOW_SINGLETON;
+			else
+				// sender is on segment, can not tell it's singleton or
+				// all-segment flow, just treat it as all-segment flow so
+				// it can be promoted to writer gang later if needed.
+				pflow->flotype = FLOW_UNDEFINED;
+		}
+		else
+		{
+			// multiple segments, must be singleton flow
+			pflow->flotype = FLOW_SINGLETON;
+		}
 	}
 	else
 	{

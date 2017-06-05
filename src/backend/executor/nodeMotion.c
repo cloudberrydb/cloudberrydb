@@ -916,7 +916,8 @@ ExecInitMotion(Motion * node, EState *estate, int eflags)
 				Assert(recvSlice->gangSize == 1);
 				Assert(node->outputSegIdx[0] >= 0
 					   ? (recvSlice->gangType == GANGTYPE_SINGLETON_READER ||
-						  recvSlice->gangType == GANGTYPE_ENTRYDB_READER)
+						  recvSlice->gangType == GANGTYPE_ENTRYDB_READER ||
+						  (recvSlice->gangType == GANGTYPE_PRIMARY_READER && 1 == getgpsegmentCount()))
 					   : recvSlice->gangType == GANGTYPE_ENTRYDB_READER);
 			}
 		}
