@@ -108,6 +108,8 @@ SessionState_Acquire(int sessionId)
 		acquired->isModifiedSessionId = false;
 #endif
 
+		acquired->resGroupId = InvalidOid;
+
 		/*
 		 * Make sure that the lock is reset to released. Note: this doesn't
 		 * have a matching SpinLockAcquire. We are just resetting the lock

@@ -22,6 +22,8 @@
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/faultinjector.h"
+#include "utils/resgroup.h"
+#include "utils/session_state.h"
 #include "miscadmin.h"
 
 #include "cdb/cdbdisp.h"
@@ -975,6 +977,7 @@ buildGpQueryString(struct CdbDispatcherState *ds,
 	Oid	sessionUserId = GetSessionUserId();
 	Oid	outerUserId = GetOuterUserId();
 	Oid	currentUserId = GetUserId();
+	Oid	currentResourceGroupId = MySessionState->resGroupId;
 	bool sessionUserIsSuper = superuser_arg(GetSessionUserId());
 	bool outerUserIsSuper = superuser_arg(GetSessionUserId());
 
@@ -992,6 +995,7 @@ buildGpQueryString(struct CdbDispatcherState *ds,
 		sizeof(sessionUserId) + 1 /* sessionUserIsSuper */	+
 		sizeof(outerUserId) + 1 /* outerUserIsSuper */	+
 		sizeof(currentUserId) +
+		sizeof(currentResourceGroupId) +
 		sizeof(rootIdx) +
 		sizeof(n32) * 2 /* currentStatementStartTimestamp */  +
 		sizeof(command_len) +
@@ -1054,6 +1058,10 @@ buildGpQueryString(struct CdbDispatcherState *ds,
 	tmp = htonl(currentUserId);
 	memcpy(pos, &tmp, sizeof(currentUserId));
 	pos += sizeof(currentUserId);
+
+	tmp = htonl(currentResourceGroupId);
+	memcpy(pos, &tmp, sizeof(currentResourceGroupId));
+	pos += sizeof(currentResourceGroupId);
 
 	tmp = htonl(rootIdx);
 	memcpy(pos, &tmp, sizeof(rootIdx));

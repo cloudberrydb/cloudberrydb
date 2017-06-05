@@ -731,6 +731,12 @@ AtAbort_Portals(void)
 		if (portal->status == PORTAL_ACTIVE)
 			portal->status = PORTAL_FAILED;
 
+		if (portal->is_extended_query && portal->queryDesc != NULL)
+		{
+			Assert(portal->queryDesc->estate != NULL);
+			portal->queryDesc->estate->cancelUnfinished = true;
+		}
+
 		/*
 		 * Do nothing else to cursors held over from a previous transaction.
 		 */

@@ -16,8 +16,6 @@
  */
 extern int MaxResourceGroups;
 
-extern Oid	CurrentGroupId;
-
 /*
  * Data structures
  */
@@ -32,6 +30,13 @@ typedef struct ResGroupData
 	Interval	totalQueuedTime;/* total queue time */
 
 	bool		lockedForDrop;  /* true if resource group is dropped but not committed yet */
+
+	/*
+	 * memory usage of this group, should always equal to the
+	 * sum of session memory(session_state->sessionVmem) that
+	 * belongs to this group
+	 */
+	uint32		totalMemoryUsage;
 } ResGroupData;
 typedef ResGroupData *ResGroup;
 
@@ -77,10 +82,15 @@ extern void ResGroupSlotAcquire(void);
 extern void ResGroupSlotRelease(void);
 
 /* Assign current process to the associated resource group */
-extern void AssignResGroup(void);
+extern void AssignResGroup(Oid groupId);
+extern void SetCurrentResGroup(void);
+extern void ResetCurrentResGroup(void);
 
 /* Retrieve statistic information of type from resource group */
 extern void ResGroupGetStat(Oid groupId, ResGroupStatType type, char *retStr, int retStrLen, const char *prop);
+
+/* Update the memory usage of resource group */
+extern void ResGroupUpdateMemoryUsage(int32 memoryChunks);
 
 extern void ResGroupAlterCheckForWakeup(Oid groupId);
 extern void ResGroupDropCheckForWakeup(Oid groupId, bool isCommit);

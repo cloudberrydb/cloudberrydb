@@ -4644,7 +4644,6 @@ PostgresMain(int argc, char *argv[],
 	else if (IsResGroupEnabled() && (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE) && !am_walsender)
 	{
 		InitResGroups();
-		AssignResGroup();
 		ResGroupOps_AdjustGUCs();
 	}
 
@@ -5039,6 +5038,7 @@ PostgresMain(int argc, char *argv[],
 					Oid suid;
 					Oid ouid;
 					Oid cuid;
+					Oid resgroupId;
 					bool suid_is_super = false;
 					bool ouid_is_super = false;
 
@@ -5066,6 +5066,10 @@ PostgresMain(int argc, char *argv[],
 					if(pq_getmsgbyte(&input_message) == 1)
 						ouid_is_super = true;
 					cuid = pq_getmsgint(&input_message, 4);
+					resgroupId = pq_getmsgint(&input_message, 4);
+
+					if (IsResGroupEnabled())
+						AssignResGroup(resgroupId);
 
 					rootIdx = pq_getmsgint(&input_message, 4);
 

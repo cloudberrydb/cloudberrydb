@@ -19,6 +19,7 @@
 #include "port/atomics.h"
 #include "utils/faultinjection.h"
 #include "utils/vmem_tracker.h"
+#include "utils/resgroup.h"
 #include "utils/session_state.h"
 
 /* External dependencies within the runaway cleanup framework */
@@ -199,6 +200,8 @@ VmemTracker_ReserveVmemChunks(int32 numChunksToReserve)
 	int32 total = pg_atomic_add_fetch_u32((pg_atomic_uint32 *)&MySessionState->sessionVmem, numChunksToReserve);
 	Assert(total > (int32) 0);
 
+	ResGroupUpdateMemoryUsage(numChunksToReserve);
+
 	/* We don't support vmem usage from non-owner thread */
 	Assert(MemoryProtection_IsOwnerThread());
 
@@ -216,6 +219,7 @@ VmemTracker_ReserveVmemChunks(int32 numChunksToReserve)
 		{
 			/* Revert the reserved space, but don't revert the prev_alloc as we have already set the firstTime to false */
 			pg_atomic_sub_fetch_u32((pg_atomic_uint32 *)&MySessionState->sessionVmem, numChunksToReserve);
+			ResGroupUpdateMemoryUsage(-numChunksToReserve);
 			return MemoryFailure_QueryMemoryExhausted;
 		}
 		waiverUsed = true;
@@ -236,7 +240,7 @@ VmemTracker_ReserveVmemChunks(int32 numChunksToReserve)
 		{
 			/* Revert query memory reservation */
 			pg_atomic_sub_fetch_u32((pg_atomic_uint32 *)&MySessionState->sessionVmem, numChunksToReserve);
-
+			ResGroupUpdateMemoryUsage(-numChunksToReserve);
 			/* Revert vmem reservation */
 			pg_atomic_sub_fetch_u32((pg_atomic_uint32 *)segmentVmemChunks, numChunksToReserve);
 
@@ -277,6 +281,7 @@ VmemTracker_ReleaseVmemChunks(int reduction)
 	Assert(*segmentVmemChunks >= 0);
 	Assert(NULL != MySessionState);
 	pg_atomic_sub_fetch_u32((pg_atomic_uint32 *)&MySessionState->sessionVmem, reduction);
+	ResGroupUpdateMemoryUsage(-reduction);
 	Assert(0 <= MySessionState->sessionVmem);
 	trackedVmemChunks -= reduction;
 }

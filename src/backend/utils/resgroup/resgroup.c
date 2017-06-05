@@ -20,6 +20,7 @@
 #include "funcapi.h"
 #include "miscadmin.h"
 #include "pgstat.h"
+#include "port/atomics.h"
 #include "storage/ipc.h"
 #include "storage/latch.h"
 #include "storage/lmgr.h"
@@ -29,18 +30,25 @@
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
 #include "utils/memutils.h"
-#include "utils/resgroup.h"
 #include "utils/resgroup-ops.h"
-#include "utils/resowner.h"
+#include "utils/resgroup.h"
 #include "utils/resource_manager.h"
+#include "utils/resowner.h"
+#include "utils/session_state.h"
 
 /* GUC */
 int		MaxResourceGroups;
 
-/* global variables */
-Oid			CurrentResGroupId = InvalidOid;
-
 /* static variables */
+
+/*
+ * Global variable 'CurrentResGroup' is used to optimize the
+ * access to the current resource group. This pointer is valid
+ * in the lifetime of a transaction as the resource group could
+ * be dropped concurrently.
+ */
+static ResGroup	CurrentResGroup = NULL;
+
 static ResGroupControl *pResGroupControl;
 
 static bool localResWaiting = false;
@@ -429,6 +437,9 @@ ResGroupGetStat(Oid groupId, ResGroupStatType type, char *retStr, int retStrLen,
 			strncpy(retStr, durationStr, retStrLen);
 			break;
 		}
+		case RES_GROUP_STAT_MEM_USAGE:
+			snprintf(retStr, retStrLen, "%d", group->totalMemoryUsage);
+			break;
 		default:
 			ereport(ERROR,
 					(errcode(ERRCODE_INTERNAL_ERROR),
@@ -436,6 +447,38 @@ ResGroupGetStat(Oid groupId, ResGroupStatType type, char *retStr, int retStrLen,
 	}
 
 	LWLockRelease(ResGroupLock);
+}
+
+/*
+ * Update the memory usage of resource group
+ */
+void
+ResGroupUpdateMemoryUsage(int32 memoryChunks)
+{
+	ResGroup group;
+
+	if (!IsResGroupEnabled())
+		return;
+
+	group = CurrentResGroup;
+
+	/* CurrentResGroup is NULL if it's not in a transaction */
+	if (group == NULL)
+	{
+		LWLockAcquire(ResGroupLock, LW_SHARED);
+		group = ResGroupHashFind(MySessionState->resGroupId);
+		LWLockRelease(ResGroupLock);
+
+		/*
+		 * If the resource group is dropped, ignore it here.
+		 * The memory used by this session(session_state->sessionVmem) will
+		 * be added to the new resource group.
+		 */
+		if (group == NULL)
+			return;
+	}
+
+	pg_atomic_add_fetch_u32((pg_atomic_uint32*)&group->totalMemoryUsage, memoryChunks);
 }
 
 /*
@@ -497,6 +540,7 @@ ResGroupCreate(Oid groupId)
 	ProcQueueInit(&group->waitProcs);
 	group->totalExecuted = 0;
 	group->totalQueued = 0;
+	group->totalMemoryUsage = 0;
 	memset(&group->totalQueuedTime, 0, sizeof(group->totalQueuedTime));
 	group->lockedForDrop = false;
 
@@ -519,7 +563,6 @@ ResGroupSlotAcquire(void)
 	groupId = GetResGroupIdForRole(GetUserId());
 	if (groupId == InvalidOid)
 		groupId = superuser() ? ADMINRESGROUP_OID : DEFAULTRESGROUP_OID;
-	CurrentResGroupId = groupId;
 
 	GetConcurrencyForResGroup(groupId, NULL, &concurrencyProposed);
 
@@ -541,6 +584,20 @@ retry:
 					 errmsg("Cannot find resource group %d in shared memory", groupId)));
 	}
 
+	/* update memory accounting when switch resource group */
+	if (MySessionState->resGroupId != groupId)
+	{
+		ResGroup prevGroup = ResGroupHashFind(MySessionState->resGroupId);;
+		if (prevGroup != NULL)
+			prevGroup->totalMemoryUsage -= MySessionState->sessionVmem;
+
+		group->totalMemoryUsage += MySessionState->sessionVmem;
+
+		MySessionState->resGroupId = groupId;
+		ResGroupOps_AssignGroup(groupId, MyProcPid);
+	}
+	CurrentResGroup = group;
+
 	/* wait on the queue if the group is locked for drop */
 	if (group->lockedForDrop)
 	{
@@ -557,13 +614,12 @@ retry:
 	{
 		group->nRunning++;
 		group->totalExecuted++;
-
 		LWLockRelease(ResGroupLock);
 		pgstat_report_resgroup(0, group->groupId);
 		return;
 	}
 
-	/* wait on the queue for a slot */
+	/* We have to wait for the slot */
 	ResGroupWait(group, false);
 
 	/*
@@ -604,20 +660,12 @@ ResGroupSlotRelease(void)
 	PGPROC		*waitProc;
 	int			concurrencyProposed;
 
-	Assert(CurrentResGroupId != InvalidOid);
+	group = CurrentResGroup;
+	Assert(group != NULL);
 
-	GetConcurrencyForResGroup(CurrentResGroupId, NULL, &concurrencyProposed);
+	GetConcurrencyForResGroup(group->groupId, NULL, &concurrencyProposed);
 
 	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
-
-	group = ResGroupHashFind(CurrentResGroupId);
-	if (group == NULL)
-	{
-		LWLockRelease(ResGroupLock);
-		ereport(ERROR,
-				(errcode(ERRCODE_DATA_CORRUPTED),
-			 	 errmsg("Cannot find resource group %d in shared memory", CurrentResGroupId)));
-	}
 
 	waitQueue = &(group->waitProcs);
 	
@@ -633,7 +681,7 @@ ResGroupSlotRelease(void)
 		group->nRunning--;
 
 		LWLockRelease(ResGroupLock);
-		CurrentResGroupId = InvalidOid;
+		CurrentResGroup = NULL;
 
 		return;
 	}
@@ -648,14 +696,75 @@ ResGroupSlotRelease(void)
 	waitProc->resWaiting = false;
 	SetLatch(&waitProc->procLatch);
 
-	CurrentResGroupId = InvalidOid;
+	CurrentResGroup = NULL;
 }
 
+/*
+ * Assign a resource group to QE process
+ */
 void
-AssignResGroup(void)
+AssignResGroup(Oid groupId)
 {
-	Oid groupId = GetResGroupIdForRole(GetUserId());
+	ResGroup group;
+	ResGroup prevGroup;
+
+	Assert(Gp_role == GP_ROLE_EXECUTE);
+
+	if (MySessionState->resGroupId == groupId)
+	{
+		ResGroupOps_AssignGroup(groupId, MyProcPid);
+		return;
+	}
+
+	Assert(groupId != InvalidOid);
+
+	/* update memory accounting when switch resource group */
+	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
+	prevGroup = ResGroupHashFind(MySessionState->resGroupId);;
+	if (prevGroup != NULL)
+		prevGroup->totalMemoryUsage -= MySessionState->sessionVmem;
+
+	group = ResGroupHashFind(groupId);
+	Assert(group != NULL);
+	group->totalMemoryUsage += MySessionState->sessionVmem;
+	LWLockRelease(ResGroupLock);
+
+	/* update resource group id */
+	MySessionState->resGroupId = groupId;
+
 	ResGroupOps_AssignGroup(groupId, MyProcPid);
+}
+
+/*
+ * Call this function at the beginning of the transaction on QE
+ * to set CurrentResGroup.
+ */
+void
+SetCurrentResGroup(void)
+{
+	ResGroup group;
+
+	Assert(Gp_role == GP_ROLE_EXECUTE);
+	if (MySessionState->resGroupId == InvalidOid)
+		return;
+
+	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
+	group = ResGroupHashFind(MySessionState->resGroupId);
+	Assert(group != NULL);
+	LWLockRelease(ResGroupLock);
+
+	CurrentResGroup = group;
+}
+
+/*
+ * Call this function at the end of the transaction on QE to reset
+ * CurrentResGroup.
+ */
+void
+ResetCurrentResGroup(void)
+{
+	Assert(Gp_role == GP_ROLE_EXECUTE);
+	CurrentResGroup = NULL;
 }
 
 /*
@@ -679,9 +788,9 @@ ResGroupWait(ResGroup group, bool isLocked)
 
 	if (!isLocked)
 		group->totalQueued++;
-	pgstat_report_resgroup(GetCurrentTimestamp(), group->groupId);
 
 	LWLockRelease(ResGroupLock);
+	pgstat_report_resgroup(GetCurrentTimestamp(), group->groupId);
 
 	/* similar to lockAwaited in ProcSleep for interrupt cleanup */
 	localResWaiting = true;
@@ -729,6 +838,9 @@ ResGroupHashNew(Oid groupId)
 	ResGroup	group = NULL;
 
 	Assert(LWLockHeldExclusiveByMe(ResGroupLock));
+
+	if (groupId == InvalidOid)
+		return NULL;
 
 	group = (ResGroup)
 		hash_search(pResGroupControl->htbl, (void *) &groupId, HASH_ENTER_NULL, &found);
@@ -810,27 +922,18 @@ ResGroupWaitCancel()
 	PGPROC		*waitProc;
 
 	/* Process exit without waiting for slot */
-	if (CurrentResGroupId == InvalidOid || !localResWaiting)
+	group = CurrentResGroup;
+	if (group == NULL || !localResWaiting)
 		return;
 
 	/* We are sure to be interrupted in the for loop of ResGroupWait now */
 	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
-	group = ResGroupHashFind(CurrentResGroupId);
-
-	/* Group was concurrenty dropped */
-	if (group == NULL)
-	{
-		LWLockRelease(ResGroupLock);
-		localResWaiting = false;
-		pgstat_report_waiting(PGBE_WAITING_NONE);
-		return;
-	}
-
-	waitQueue = &(group->waitProcs);
 
 	if (MyProc->links.next != INVALID_OFFSET)
 	{
 		/* Still waiting on the queue when get interrupted, remove myself from the queue */
+		waitQueue = &(group->waitProcs);
+
 		Assert(waitQueue->size > 0);
 		Assert(MyProc->resWaiting);
 
@@ -839,12 +942,13 @@ ResGroupWaitCancel()
 		SHMQueueDelete(&(MyProc->links));
 		waitQueue->size--;
 	}
-	else if (MyProc->links.next == INVALID_OFFSET && !MyProc->resGranted)
+	else if (MyProc->links.next == INVALID_OFFSET && MyProc->resGranted)
 	{
 		/* Woken up by a slot holder */
 		group->totalExecuted++;
 		addTotalQueueDuration(group);
 
+		waitQueue = &(group->waitProcs);
 		if (waitQueue->size == 0)
 		{
 			/* This is the last transaction on the wait queue, don't have to wake up others */
@@ -868,7 +972,7 @@ ResGroupWaitCancel()
 	else
 	{
 		/*
-		 * The transaction of DROP RESOURCE GROUP is abortted,
+		 * The transaction of DROP RESOURCE GROUP is finished,
 		 * ResGroupSlotAcquire will do the retry.
 		 */
 	}
@@ -876,4 +980,5 @@ ResGroupWaitCancel()
 	LWLockRelease(ResGroupLock);
 	localResWaiting = false;
 	pgstat_report_waiting(PGBE_WAITING_NONE);
+	CurrentResGroup = NULL;
 }

@@ -5,6 +5,7 @@
 #include "postgres.h"
 #include "funcapi.h"
 #include "tablefuncapi.h"
+#include "miscadmin.h"
 
 #include <float.h>
 #include <math.h>

@@ -56,6 +56,7 @@ typedef struct ResourceGroupStatusRow
 	Datum oid;
 
 	double cpuAvgUsage;
+	StringInfo memoryUsage;
 } ResourceGroupStatusRow;
 
 typedef struct ResourceGroupStatusContext
@@ -81,6 +82,7 @@ static void dropResGroupAbortCallback(ResourceReleasePhase phase, bool isCommit,
 static void alterResGroupCommitCallback(ResourceReleasePhase phase, bool isCommit, bool isTopLevel, void *arg);
 static ResGroupStatType propNameToType(const char *name);
 static void getCpuUsage(ResourceGroupStatusContext *ctx);
+static void getMemoryUsage(ResourceGroupStatusContext *ctx, const char *prop);
 
 /*
  * CREATE RESOURCE GROUP
@@ -678,6 +680,92 @@ getCpuUsage(ResourceGroupStatusContext *ctx)
 }
 
 /*
+ * Get memory usage.
+ *
+ * On QD this function dispatch the request to all QEs, collecting both
+ * QEs' and QD's memory usage.
+ *
+ * On QE this function only collect the memory usage on itself.
+ *
+ * Memory usage is returned in JSON format.
+ */
+static void
+getMemoryUsage(ResourceGroupStatusContext *ctx, const char *prop)
+{
+	int i, j;
+
+	if (!IsResGroupEnabled())
+		return;
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		CdbPgResults cdb_pgresults = {NULL, 0};
+		StringInfoData buffer;
+
+		initStringInfo(&buffer);
+		appendStringInfo(&buffer, "SELECT rsgid, value FROM pg_resgroup_get_status_kv('memory_usage') order by rsgid");
+
+		CdbDispatchCommand(buffer.data, DF_WITH_SNAPSHOT, &cdb_pgresults);
+
+		if (cdb_pgresults.numResults == 0)
+			elog(ERROR, "gp_resgroup_status didn't get back any memory usage statistics from the segDBs");
+
+		for (i = 0; i < cdb_pgresults.numResults; i++)
+		{
+			struct pg_result *pg_result = cdb_pgresults.pg_results[i];
+
+			/*
+			 * Any error here should have propagated into errbuf, so we shouldn't
+			 * ever see anything other that tuples_ok here.  But, check to be
+			 * sure.
+			 */
+			if (PQresultStatus(pg_result) != PGRES_TUPLES_OK)
+			{
+				cdbdisp_clearCdbPgResults(&cdb_pgresults);
+				elog(ERROR, "gp_resgroup_status: resultStatus not tuples_Ok");
+			}
+
+			Assert(PQntuples(pg_result) == ctx->nrows);
+			for (j = 0; j < ctx->nrows; j++)
+			{
+				const char *result;
+				ResourceGroupStatusRow *row = &ctx->rows[j];
+				Oid rsgid = pg_atoi(PQgetvalue(pg_result, j, 0), sizeof(Oid), 0);
+
+				if (row->memoryUsage->len == 0)
+				{
+					char statVal[MAXDATELEN + 1];
+
+					row->oid = rsgid;
+					ResGroupGetStat(rsgid, RES_GROUP_STAT_MEM_USAGE, statVal, sizeof(statVal), prop);
+					appendStringInfo(row->memoryUsage, "{\"%d\":%s", GpIdentity.segindex, statVal);
+				}
+
+				result = PQgetvalue(pg_result, j, 1);
+				appendStringInfo(row->memoryUsage, ", %s", result);
+
+				if (i == cdb_pgresults.numResults - 1)
+					appendStringInfoChar(row->memoryUsage, '}');
+			}
+		}
+
+		cdbdisp_clearCdbPgResults(&cdb_pgresults);
+	}
+	else
+	{
+		for (j = 0; j < ctx->nrows; j++)
+		{
+			char statVal[MAXDATELEN + 1];
+			ResourceGroupStatusRow *row = &ctx->rows[j];
+			Oid groupId = DatumGetObjectId(row->oid);
+
+			ResGroupGetStat(groupId, RES_GROUP_STAT_MEM_USAGE, statVal, sizeof(statVal), prop);
+			appendStringInfo(row->memoryUsage, "\"%d\":%s", GpIdentity.segindex, statVal);
+		}
+	}
+}
+
+/*
  * Get status of resource groups
  */
 Datum
@@ -728,6 +816,7 @@ pg_resgroup_get_status_kv(PG_FUNCTION_ARGS)
 			{
 				Assert(funcctx->max_calls < MaxResourceGroups);
 				ctx->rows[funcctx->max_calls].cpuAvgUsage = 0;
+				ctx->rows[funcctx->max_calls].memoryUsage = makeStringInfo();
 				ctx->rows[funcctx->max_calls++].oid =
 					ObjectIdGetDatum(HeapTupleGetOid(tuple));
 			}
@@ -741,6 +830,9 @@ pg_resgroup_get_status_kv(PG_FUNCTION_ARGS)
 			{
 				case RES_GROUP_STAT_CPU_USAGE:
 					getCpuUsage(ctx);
+					break;
+				case RES_GROUP_STAT_MEM_USAGE:
+					getMemoryUsage(ctx, prop);
 					break;
 				default:
 					break;
@@ -793,9 +885,10 @@ pg_resgroup_get_status_kv(PG_FUNCTION_ARGS)
 				break;
 
 			case RES_GROUP_STAT_MEM_USAGE:
-				/* not supported yet, fill with dummy value */
-				snprintf(statVal, sizeof(statVal), "%d", 0);
-				values[2] = CStringGetTextDatum(statVal);
+				if (IsResGroupEnabled())
+					values[2] = CStringGetTextDatum(row->memoryUsage->data);
+				else
+					values[2] = CStringGetTextDatum("{}");
 				break;
 		}
 

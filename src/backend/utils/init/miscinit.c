@@ -690,11 +690,6 @@ SetCurrentRoleId(Oid roleid, bool is_superuser)
 		SetResQueueId();
 	}
 
-	if ((Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE) && IsResGroupEnabled())
-	{
-		AssignResGroup();
-	}
-
 	SetConfigOption("is_superuser",
 					is_superuser ? "on" : "off",
 					PGC_INTERNAL, PGC_S_OVERRIDE);
