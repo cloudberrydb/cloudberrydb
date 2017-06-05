@@ -13202,6 +13202,7 @@ unreserved_keyword:
 			| STDOUT
 			| STORAGE
 			| STRICT_P
+			| STRIP_P
 			| SUBPARTITION
 			| SUBPARTITIONS
 			| SUPERUSER_P
@@ -13235,6 +13236,7 @@ unreserved_keyword:
 			| VIEW
 			| VOLATILE
 			| WEB /* gp */
+			| WHITESPACE_P
 			| WITHIN
 			| WITHOUT
 			| WORK
@@ -13476,7 +13478,6 @@ PartitionIdentKeyword: ABORT_P
 			| STDOUT
 			| STORAGE
 			| STRICT_P
-			| STRIP_P
 			| SUBPARTITION
 			| SUBPARTITIONS
 			| SUPERUSER_P
@@ -13505,7 +13506,6 @@ PartitionIdentKeyword: ABORT_P
 			| VIEW
 			| VALUE_P
 			| VOLATILE
-			| WHITESPACE_P
 			| WORK
 			| WRITE
 			| ZONE
