@@ -693,12 +693,7 @@ ALTER TABLE <varname>name</varname>
                 <section id="section5">
                         <title>Notes</title>
                         <p>The table name specified in the <codeph>ALTER TABLE</codeph> command
-                                cannot be the following table names:<ul id="ul_kd3_c3k_54">
-                                        <li>The name of a partition within a table. </li>
-                                        <li>The name of a table specified in the <codeph>LOG ERRORS
-                                                  INTO</codeph> clause of the <codeph>CREATE
-                                                  EXTERNAL TABLE</codeph> command.</li>
-                                </ul></p>
+                                cannot be the name of a partition within a table. </p>
                         <p>Take special care when altering or dropping columns that are part of the
                                 Greenplum Database distribution key as this can change the
                                 distribution policy for the table.</p>
