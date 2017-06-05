@@ -44,6 +44,7 @@ WORKDIR gpdb
 
 RUN ./configure --with-python --with-perl --enable-mapreduce \
                 --with-libxml --enable-debug --prefix=/usr/local/gpdb \
+                --disable-gpcloud \
     && time make -j4    \
     && make install     \
     && ./docker/prep_for_ssh.bash \

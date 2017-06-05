@@ -6,7 +6,7 @@ ADD . gpdb/
 
 WORKDIR gpdb
 
-RUN ./configure --with-python --with-perl --enable-mapreduce --with-libxml --prefix=/usr/local/gpdb
+RUN ./configure --with-python --with-perl --enable-mapreduce --with-libxml --prefix=/usr/local/gpdb --disable-gpcloud
 RUN time make -j4
 RUN make install
 
