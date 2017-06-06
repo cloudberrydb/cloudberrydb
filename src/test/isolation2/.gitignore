@@ -1,5 +1,7 @@
 regression.diffs
 regression.out
+*/dummy.sql
+*/dummy.out
 
 # Local binaries and symbolic links
 /pg_isolation2_regress
