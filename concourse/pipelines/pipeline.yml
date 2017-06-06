@@ -16,9 +16,9 @@ resources:
 - name: gpdb_src_binary_swap
   type: git
   source:
-    branch: {{gpdb-binary_swap-git-tag}}
+    branch: {{gpdb-binary-swap-git-tag}}
     private_key: {{gpdb-git-key}}
-    uri: {{gpdb-git-remote}}
+    uri: {{gpdb-binary-swap-git-remote}}
     ignore_paths:
     - gpdb-doc/*
     - README*
