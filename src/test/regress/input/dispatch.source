@@ -280,3 +280,22 @@ SELECT dtx_dispatch_f(foo.c1) FROM (SELECT c1 FROM dtx_dispatch_t WHERE c1='1' l
 
 DROP FUNCTION dtx_dispatch_f(integer);
 DROP TABLE dtx_dispatch_t;
+
+-- Test interconnect is shut down under portal failure
+CREATE OR REPLACE FUNCTION numActiveMotionConns() RETURNS INT
+AS '@abs_builddir@/regress@DLSUFFIX@', 'numActiveMotionConns' LANGUAGE C;
+
+CREATE TABLE foo_test AS SELECT i AS c1 FROM generate_series(1, 10) i;
+
+SELECT c1/0 FROM foo_test WHERE c1 = 1;
+SELECT numActiveMotionConns();
+
+BEGIN;
+DECLARE C1 CURSOR FOR SELECT * FROM foo_test;
+FETCH BACKWARD 1 FROM C1;
+END;
+
+SELECT numActiveMotionConns();
+
+DROP FUNCTION numActiveMotionConns();
+DROP TABLE foo_test;

@@ -19,6 +19,7 @@
 #include "cdb/memquota.h"
 #include "cdb/cdbgang.h"
 #include "cdb/cdbvars.h"
+#include "cdb/ml_ipc.h"
 #include "commands/sequence.h"
 #include "commands/trigger.h"
 #include "executor/executor.h"
@@ -85,6 +86,9 @@ extern Datum cleanupAllGangs(PG_FUNCTION_ARGS);
 
 /* check if QD has gangs exist */
 extern Datum hasGangsExist(PG_FUNCTION_ARGS);
+
+/* return the number of active motion connections */
+extern Datum numActiveMotionConns(PG_FUNCTION_ARGS);
 
 /*
  * check if backends exist
@@ -2479,6 +2483,15 @@ hasGangsExist(PG_FUNCTION_ARGS)
 	if (GangsExist())
 		PG_RETURN_BOOL(true);
 	PG_RETURN_BOOL(false);
+}
+
+PG_FUNCTION_INFO_V1(numActiveMotionConns);
+Datum numActiveMotionConns(PG_FUNCTION_ARGS)
+{
+	uint32 num = 0;
+	if (Gp_interconnect_type == INTERCONNECT_TYPE_UDPIFC)
+		num = getActiveMotionConns();
+	PG_RETURN_UINT32(num);
 }
 
 PG_FUNCTION_INFO_V1(hasBackendsExist);

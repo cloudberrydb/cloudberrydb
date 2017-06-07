@@ -521,6 +521,10 @@ PersistHoldablePortal(Portal portal)
 		/* Uncaught error while executing portal: mark it dead */
 		portal->status = PORTAL_FAILED;
 
+		/* GPDB: cleanup dispatch and teardown interconnect */
+		if (portal->queryDesc)
+			mppExecutorCleanup(portal->queryDesc);
+
 		/* Restore global vars and propagate error */
 		ActivePortal = saveActivePortal;
 		ActiveSnapshot = saveActiveSnapshot;
