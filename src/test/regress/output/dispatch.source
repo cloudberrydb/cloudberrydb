@@ -371,3 +371,29 @@ HINT:  dispatching DTX commands to a busy gang
 CONTEXT:  PL/pgSQL function "dtx_dispatch_f" line 1 during statement block entry
 DROP FUNCTION dtx_dispatch_f(integer);
 DROP TABLE dtx_dispatch_t;
+-- Test interconnect is shut down under portal failure
+CREATE OR REPLACE FUNCTION numActiveMotionConns() RETURNS INT
+AS '@abs_builddir@/regress@DLSUFFIX@', 'numActiveMotionConns' LANGUAGE C;
+CREATE TABLE foo_test AS SELECT i AS c1 FROM generate_series(1, 10) i;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
+SELECT c1/0 FROM foo_test WHERE c1 = 1;
+ERROR:  division by zero  (seg1 slice1 11.111.111.116:25433 pid=166651)
+SELECT numActiveMotionConns();
+ numactivemotionconns
+----------------------
+                    0
+(1 row)
+
+BEGIN;
+DECLARE C1 CURSOR FOR SELECT * FROM foo_test;
+FETCH BACKWARD 1 FROM C1;
+ERROR:  backward scan is not supported in this version of Greenplum Database
+END;
+SELECT numActiveMotionConns();
+ numactivemotionconns
+----------------------
+                    0
+(1 row)
+
+DROP FUNCTION numActiveMotionConns();
+DROP TABLE foo_test;
