@@ -32,7 +32,7 @@ static void test_PrintLog(char *type, XLogRecPtr walPtr,
 #ifdef USE_SEGWALREP
 static int check_ao_record_present(unsigned char type, char *buf, Oid spc_node,
 								   Oid db_node, Oid rel_node, Size len,
-								   uint64 eof[], bool aoco);
+								   uint64 eof[], uint32 xrecoff, bool aoco);
 #endif		/* USE_SEGWALREP */
 
 Datum test_connect(PG_FUNCTION_ARGS);
@@ -329,8 +329,11 @@ test_xlog_ao(PG_FUNCTION_ARGS)
 	unsigned char type;
 	char         *buf;
 	int           len;
+	uint32         xrecoff;
 
 	string_to_xlogrecptr(start_location, &startpoint);
+	xrecoff = startpoint.xrecoff;
+
 
 	if (!walrcv_connect(conninfo, startpoint))
 		elog(ERROR, "could not connect");
@@ -340,7 +343,7 @@ test_xlog_ao(PG_FUNCTION_ARGS)
 		if (walrcv_receive(NAPTIME_PER_CYCLE, &type, &buf, &len))
 		{
 			num_found = check_ao_record_present(type, buf, spc_node, db_node,
-												rel_node, len, eof, aoco);
+												rel_node, len, eof, xrecoff, aoco);
 			break;
 		}
 		else
@@ -361,7 +364,7 @@ test_xlog_ao(PG_FUNCTION_ARGS)
 static int
 check_ao_record_present(unsigned char type, char *buf, Oid spc_node,
 						Oid db_node, Oid rel_node, Size len, uint64 eof[100],
-						bool aoco)
+						uint32 xrecoff, bool aoco)
 {
 	WalDataMessageHeader msghdr;
 	uint32               i = 0;
@@ -390,12 +393,58 @@ check_ao_record_present(unsigned char type, char *buf, Oid spc_node,
 	/* process the xlog records one at a time and check if it is an AO/AOCO record */
 	while (i < len)
 	{
-		XLogRecord *xlrec = (XLogRecord *)(buf + i);
-		i += MAXALIGN(xlrec->xl_tot_len);
+		XLogRecord 		   *xlrec = (XLogRecord *)(buf + i);
+		XLogPageHeaderData *hdr = (XLogPageHeaderData *)xlrec;
+		XLogContRecord     *contrecord;
+		uint32 			    avail_in_block = XLOG_BLCKSZ - ((xrecoff + i) % XLOG_BLCKSZ);
 
-		if (xlrec->xl_rmid == RM_APPEND_ONLY_ID)
+		elog(DEBUG1, "len/offset:%u/%u, avail_in_block = %u",
+			 xlrec->xl_tot_len, i, avail_in_block);
+
+		if (hdr->xlp_magic == XLOG_PAGE_MAGIC)
 		{
-			xl_ao_insert *xlaoinsert = (xl_ao_insert *)XLogRecGetData(xlrec);
+			/*
+			 * If we encounter a page header, check if it is a continuation
+			 * record and skip the page header and the remaining data to move
+			 * on to the next xlog record. If it is not a continuation record,
+			 * skip only the page header and move on to the next record.
+			 */
+			if (hdr->xlp_info & XLP_FIRST_IS_CONTRECORD)
+			{
+				contrecord = (XLogContRecord *)((char *)hdr + XLogPageHeaderSize(hdr));
+				elog(DEBUG1, "remaining length of record = %u", contrecord->xl_rem_len);
+				i += MAXALIGN(XLogPageHeaderSize(hdr) + SizeOfXLogContRecord +
+							  contrecord->xl_rem_len);
+			}
+			else
+				i += XLogPageHeaderSize(hdr);
+		}
+		else if (xlrec->xl_rmid == RM_APPEND_ONLY_ID)
+		{
+			xl_ao_insert *xlaoinsert = palloc0(xlrec->xl_tot_len);
+
+			if (xlrec->xl_tot_len > avail_in_block)
+			{
+				/*
+				 * The AO record is split across two pages and needs to be
+				 * reassembled
+				 */
+				char aobuf[XLOG_BLCKSZ];
+				memcpy(aobuf, xlrec, avail_in_block);
+				elog(DEBUG1, "copied partial record of %u bytes", avail_in_block);
+				contrecord = (XLogContRecord *)((char *)xlrec + avail_in_block +
+							  XLogPageHeaderSize(hdr));
+				memcpy(aobuf + avail_in_block, ((char *)contrecord + SizeOfXLogContRecord),
+					   contrecord->xl_rem_len);
+				memcpy(xlaoinsert, XLogRecGetData(aobuf), xlrec->xl_tot_len);
+				i += avail_in_block +
+					 MAXALIGN(XLogPageHeaderSize(hdr) + SizeOfXLogContRecord + contrecord->xl_rem_len);
+			}
+			else
+			{
+				memcpy(xlaoinsert, XLogRecGetData(xlrec), sizeof(xl_ao_insert));
+				i += MAXALIGN(xlrec->xl_tot_len);
+			}
 
 			if (aoco)
 				segfilenum = AOTupleId_MultiplierSegmentFileNum * num_found + 1;
@@ -418,6 +467,19 @@ check_ao_record_present(unsigned char type, char *buf, Oid spc_node,
 					 xlaoinsert->node.relNode, xlaoinsert->segment_filenum,
 					 xlaoinsert->offset, xlrec->xl_len - SizeOfAOInsert);
 			}
+		}
+		else
+		{
+			/*
+			 * Either the entire record is too long to fit into the current
+			 * page or there is not enough space remaining in the current page
+			 * to write the XLogHeader. So skip the remaining bytes to move
+			 * onto the next page.
+			 */
+			if (xlrec->xl_tot_len > avail_in_block || avail_in_block < SizeOfXLogRecord)
+				i += avail_in_block;
+			else
+				i += MAXALIGN(xlrec->xl_tot_len);
 		}
 	}
 	return num_found;
