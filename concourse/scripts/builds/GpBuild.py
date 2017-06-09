@@ -13,6 +13,7 @@ class GpBuild(GpdbBuildBase):
                                 "--with-perl",
                                 "--with-libxml",
                                 "--with-python",
+                                "--disable=gpcloud",
                                 "--prefix=/usr/local/gpdb"], cwd="gpdb_src")
 
     def icg(self):
