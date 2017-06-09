@@ -336,6 +336,7 @@ jobs:
       IVYREPO_REALM: {{ivyrepo_realm}}
       IVYREPO_USER: {{ivyrepo_user}}
       IVYREPO_PASSWD: {{ivyrepo_passwd}}
+      CONFIGURE_FLAGS: {{configure_flags}}
       TARGET_OS: centos
       TARGET_OS_VERSION: 6
       BLD_TARGETS: "clients loaders"
@@ -360,6 +361,8 @@ jobs:
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb_open_source.yml
     image: centos-gpdb-dev-6
+    params:
+        CONFIGURE_FLAGS: {{configure_flags}}
 
 - name: compile_gpdb_centos7
   plan:
@@ -376,6 +379,7 @@ jobs:
       IVYREPO_REALM: {{ivyrepo_realm}}
       IVYREPO_USER: {{ivyrepo_user}}
       IVYREPO_PASSWD: {{ivyrepo_passwd}}
+      CONFIGURE_FLAGS: {{configure_flags}}
       TARGET_OS: centos
       TARGET_OS_VERSION: 7
       BLD_TARGETS: "clients loaders"
@@ -405,6 +409,7 @@ jobs:
       IVYREPO_REALM: {{ivyrepo_realm}}
       IVYREPO_USER: {{ivyrepo_user}}
       IVYREPO_PASSWD: {{ivyrepo_passwd}}
+      CONFIGURE_FLAGS: {{configure_flags}}
       TARGET_OS: sles
       TARGET_OS_VERSION:
       BLD_TARGETS: "clients loaders"
@@ -494,6 +499,7 @@ jobs:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off' installcheck-world
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
       TEST_OS: centos
+      CONFIGURE_FLAGS: {{configure_flags}}
 
 - name: icw_gporca_centos6
   plan:
@@ -512,6 +518,7 @@ jobs:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on' installcheck-world
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
       TEST_OS: centos
+      CONFIGURE_FLAGS: {{configure_flags}}
 
 - name: icw_gporca_centos7
   serial: true
@@ -531,6 +538,7 @@ jobs:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on' installcheck-world
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
       TEST_OS: centos
+      CONFIGURE_FLAGS: {{configure_flags}}
 
 - name: icw_gporca_sles11
   serial: true
@@ -550,6 +558,7 @@ jobs:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on' installcheck-world
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
       TEST_OS: sles
+      CONFIGURE_FLAGS: {{configure_flags}}
 
 - name: icw_planner_ictcp_centos6
   plan:

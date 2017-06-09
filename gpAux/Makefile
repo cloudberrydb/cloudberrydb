@@ -177,6 +177,10 @@ BLD_CONFIGFLAGS=$($(BLD_ARCH)_CONFIGFLAGS)
 
 CONFIGFLAGS=$(strip $(BLD_CONFIGFLAGS) --with-pgport=$(DEFPORT) --with-libedit-preferred $(BLD_DEPLOYMENT_SETTING))
 
+ifdef CONFIGURE_FLAGS
+CONFIGFLAGS+= $(CONFIGURE_FLAGS)
+endif
+
 # PL/Python does not compile on Tiger, skipping it on AIX
 ifneq "$(findstring $(BLD_ARCH),aix5_ppc_64 aix5_ppc_32)" ""
 PG_LANG=false

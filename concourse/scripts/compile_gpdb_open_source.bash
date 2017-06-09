@@ -48,7 +48,7 @@ function build_gpdb() {
     source /opt/gcc_env.sh
     CC=$(which gcc) CXX=$(which g++) ./configure --enable-mapreduce --with-perl --with-libxml \
 	--disable-orca --with-python --disable-gpfdist --prefix=${GREENPLUM_INSTALL_DIR} \
-	--enable-codegen --with-codegen-prefix=/opt/llvm-3.7.1
+	--enable-codegen --with-codegen-prefix=/opt/llvm-3.7.1 ${CONFIGURE_FLAGS}
     # Use -j4 to speed up the build. (Doesn't seem worth trying to guess a better
     # value based on number of CPUs or anything like that. Going above -j4 wouldn't
     # make it much faster, and -j4 is small enough to not hurt too badly even on

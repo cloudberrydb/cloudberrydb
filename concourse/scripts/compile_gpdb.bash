@@ -172,6 +172,7 @@ function _main() {
   # environment variable, so that quicklz support is available in enterprise
   # builds.
   export ADDON_DIR=addon
+  export CONFIGURE_FLAGS=${CONFIGURE_FLAGS}
   # We cannot symlink the addon directory here because `make -C` resolves the
   # symlink and `cd`s to the actual directory. Currently the Makefile in the
   # addon directory assumes that it is located in a particular location under
