@@ -187,7 +187,7 @@ jobs:
       - xerces_centos5
     - get: gpdb_src
       params:
-        submodules: all
+        submodules: none
   - task: build_with_orca
     file: gpdb_src/concourse/tasks/build_with_orca.yml
   - task: package_tarball
