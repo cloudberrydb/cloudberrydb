@@ -4453,20 +4453,25 @@ class RelationObject(GPObject):
         self.paroid = None
 
     def reportAllIssues(self):
+        oid = 'N/A' if self.oid is None else self.oid
+        nspname = 'N/A' if self.nspname is None else self.nspname
+        relname = 'N/A' if self.relname is None else self.relname
+
         if self.isTopLevel():
             myprint('')
             myprint('----------------------------------------------------')
-            if self.relkind == 'c':
-                myprint('Type oid: %d' % (self.oid))
-                myprint('Type name: %s.%s' % (self.nspname, self.relname))
-            else:
-                myprint('Relation oid: %d' % (self.oid))
-                myprint('Relation name: %s.%s' % (self.nspname, self.relname))
+
+            objname = 'Type' if self.relkind == 'c' else 'Relation'
+            myprint('%s oid: %d' % (objname, oid))
+            myprint('%s schema: %s' % (objname, nspname))
+            myprint('%s name: %s' % (objname, relname))
+
         else:
             myprint('    Sub-object: ')
             myprint('    ----------------------------------------------------')
-            myprint('    Relation oid: %d' % (self.oid))
-            myprint('    Relation name: %s.%s' % (self.nspname, self.relname))
+            myprint('    Relation oid: %d' % oid)
+            myprint('    Relation schema: %s' % nspname)
+            myprint('    Relation name: %s' % relname)
         myprint('')
         GPObject.reportAllIssues(self)
 
@@ -4495,7 +4500,7 @@ def getRelInfo(objects):
     if objects == {}: return
 
     oids = [oid for (oid, catname) in objects if catname == 'pg_class']
-    if oids == []: return
+    if oids == [] or None in oids: return
 
     qry = """
           SELECT oid, relname, nspname, relkind, paroid
@@ -4762,8 +4767,8 @@ def main():
 
         # Reset global variables
         GV.reset_stmt_queues()
-        GPObjects = {}
-        GPObjectGraph = {}
+        GPObjects.clear()
+        GPObjectGraph.clear()
         GV.dbname = dbname
         myprint('')
         myprint("Connected as user \'%s\' to database '%s', port '%d', gpdb version '%s'" \
