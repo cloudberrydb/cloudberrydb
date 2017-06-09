@@ -2874,7 +2874,6 @@ def _checkAllTablesForMissingEntries():
     return catalog_issues
 # -------------------------------------------------------------------------------
 
-
 def checkTableMissingEntry(cat):
     catname = cat.getTableName()
     pkey = cat.getPrimaryKey()
@@ -2960,6 +2959,12 @@ def checkMirroringMatching():
         myprint('  Execution error: ' + str(ex))
 
 # -------------------------------------------------------------------------------
+
+# Exclude these tuples from the catalog table scan
+# pg_depend: classid 2603 (pg_amproc) is excluded because their OIDs can be
+#            nonsynchronous (catalog.c:RelationNeedsSynchronizedOIDs())
+MISSING_ENTRY_EXCLUDE = {'pg_depend': 'WHERE classid != 2603'}
+
 def missingEntryQuery(max_content, catname, pkey, castedPkey):
     # =================
     #  Missing / Extra
@@ -2974,12 +2979,13 @@ def missingEntryQuery(max_content, catname, pkey, castedPkey):
     #     If the nulls are <= 1/2 the result report those segments as "missing"
     #     If the non-nulls are <= 1/2 the result report those segments as "extra"
 
+    catalog_exclude = MISSING_ENTRY_EXCLUDE.get(catname, "")
     qry = """
           SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 
           -- distribute catalog table from master, so that we can avoid to gather
           CREATE TEMPORARY TABLE _tmp_master ON COMMIT DROP AS
-              SELECT gp_segment_id segid, {primary_key} FROM {catalog};
+              SELECT gp_segment_id segid, {primary_key} FROM {catalog} {catalog_exclude};
           SELECT {oidcasted_pk}, exists, array_agg(segid order by segid) as segids
           FROM
           (
@@ -2996,7 +3002,7 @@ def missingEntryQuery(max_content, catname, pkey, castedPkey):
                LEFT OUTER JOIN
                ( SELECT segid, {primary_key} FROM _tmp_master
                  UNION ALL
-                 SELECT gp_segment_id as segid, {primary_key} FROM gp_dist_random('{catalog}')
+                 SELECT gp_segment_id as segid, {primary_key} FROM gp_dist_random('{catalog}') {catalog_exclude}
                ) actual USING (segid, {primary_key})
           ) missing_extra
           WHERE subcount <= ({max_content}+2)/2.0
@@ -3004,6 +3010,7 @@ def missingEntryQuery(max_content, catname, pkey, castedPkey):
           """.format(oidcasted_pk=','.join(castedPkey),
                      primary_key=','.join(pkey),
                      catalog=catname,
+                     catalog_exclude=catalog_exclude,
                      max_content=max_content)
 
     return qry
@@ -3181,6 +3188,9 @@ def checkDuplicateEntry():
     tables = GV.catalog.getCatalogTables()
 
     for cat in sorted(tables):
+        ## pg_depend does not care about duplicates at the moment
+        if cat == 'pg_depend':
+            continue
         checkTableDuplicateEntry(cat)
 
 
@@ -3798,6 +3808,7 @@ TableMainColumn['pg_attribute'] = ['attrelid', 'pg_class']
 TableMainColumn['pg_attribute_encoding'] = ['attrelid', 'pg_class']
 TableMainColumn['pg_auth_member'] = ['roleid', 'pg_authid']
 TableMainColumn['pg_autovacuum'] = ['vacrelid', 'pg_class']
+TableMainColumn['pg_depend'] = ['objid', 'pg_class']
 TableMainColumn['pg_exttable'] = ['reloid', 'pg_class']
 TableMainColumn['pg_foreign_table'] = ['reloid', 'pg_class']
 TableMainColumn['pg_index'] = ['indexrelid', 'pg_class']
