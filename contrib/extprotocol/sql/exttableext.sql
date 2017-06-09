@@ -568,7 +568,8 @@ select max(cnt) - min(cnt)  > 20 from t;
     ALTER EXTERNAL TABLE exttabtest_r_invalid ADD COLUMN value3 int;
 
     -- Access RET again with changed structure, the data file format is invalid now
-    SELECT count(*) from exttabtest_r_invalid;
+    -- Comment this out since output file is undeterministic
+    -- SELECT count(*) from exttabtest_r_invalid;
 
     -- Drop a column (id) from RET
     ALTER EXTERNAL TABLE exttabtest_r_invalid DROP COLUMN id;
