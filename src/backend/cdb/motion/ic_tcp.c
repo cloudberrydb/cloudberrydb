@@ -138,7 +138,7 @@ static ChunkTransportStateEntry *startOutgoingConnections(ChunkTransportState *t
 														  Slice *sendSlice,
 														  int *pOutgoingCount);
 
-static void format_fd_set(StringInfo buf, int nfds, mpp_fd_set fds, char* pfx, char *sfx);
+static void format_fd_set(StringInfo buf, int nfds, mpp_fd_set *fds, char* pfx, char *sfx);
 static char *format_sockaddr(struct sockaddr *sa, char* buf, int bufsize);
 
 static void setupOutgoingConnection(ChunkTransportState *transportStates,
@@ -325,6 +325,7 @@ setupTCPListeningSocket(int backlog, int *listenerSocketFd, uint16 *listenerPort
 	else
 		*listenerPort = ntohs(((struct sockaddr_in*)&addr)->sin_port);
 
+	freeaddrinfo(addrs);
 	return;
 
 error:
@@ -332,6 +333,7 @@ error:
 	if (fd >= 0)
 		closesocket(fd);
 	errno = errnoSave;
+	freeaddrinfo(addrs);
 	ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 					errmsg("Interconnect Error: Could not set up tcp listener socket."),
 					errdetail("%m%s", fun)));
@@ -1697,9 +1699,9 @@ SetupTCPInterconnect(EState *estate)
 		{
 			initStringInfo(&logbuf);
 
-			format_fd_set(&logbuf, highsock+1, rset, "r={", "} ");
-			format_fd_set(&logbuf, highsock+1, wset, "w={", "} ");
-			format_fd_set(&logbuf, highsock+1, eset, "e={", "}");
+			format_fd_set(&logbuf, highsock+1, &rset, "r={", "} ");
+			format_fd_set(&logbuf, highsock+1, &wset, "w={", "} ");
+			format_fd_set(&logbuf, highsock+1, &eset, "e={", "}");
 
 			elapsed_ms = gp_get_elapsed_ms(&startTime);
 
@@ -1735,9 +1737,9 @@ SetupTCPInterconnect(EState *estate)
 				if (n > 0)
 				{
 					appendStringInfo(&logbuf, "result=%d  Ready: ", n);
-					format_fd_set(&logbuf, highsock+1, rset, "r={", "} ");
-					format_fd_set(&logbuf, highsock+1, wset, "w={", "} ");
-					format_fd_set(&logbuf, highsock+1, eset, "e={", "}");
+					format_fd_set(&logbuf, highsock+1, &rset, "r={", "} ");
+					format_fd_set(&logbuf, highsock+1, &wset, "w={", "} ");
+					format_fd_set(&logbuf, highsock+1, &eset, "e={", "}");
 				}
 				else
 					appendStringInfoString(&logbuf, n < 0 ? "error" : "timeout");
@@ -2170,12 +2172,9 @@ TeardownTCPInterconnect(ChunkTransportState *transportStates,
 	transportStates->activated = false;
 	transportStates->sliceTable = NULL;
 
-	if (transportStates != NULL)
-	{
-		if (transportStates->states != NULL)
-			pfree(transportStates->states);
-		pfree(transportStates);
-	}
+	if (transportStates->states != NULL)
+		pfree(transportStates->states);
+	pfree(transportStates);
 
 	if (forceEOS)
 		RESUME_INTERRUPTS();
@@ -2216,14 +2215,14 @@ print_connection(ChunkTransportState *transportStates, int fd, const char *msg)
 #endif
 
 void
-format_fd_set(StringInfo buf, int nfds, mpp_fd_set fds, char* pfx, char *sfx)
+format_fd_set(StringInfo buf, int nfds, mpp_fd_set *fds, char* pfx, char *sfx)
 {
 	int     i;
 
 	appendStringInfoString(buf, pfx);
 	for (i = 1; i < nfds; i++)
 	{
-		if (MPP_FD_ISSET(i, &fds))
+		if (MPP_FD_ISSET(i, fds))
 			appendStringInfo(buf, "%d,", i);
 	}
 
