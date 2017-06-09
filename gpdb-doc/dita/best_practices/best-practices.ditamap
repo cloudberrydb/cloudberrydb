@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE bookmap PUBLIC "-//OASIS//DTD DITA BookMap//EN" "bookmap.dtd">
+<bookmap xmlns:ditaarch="http://dita.oasis-open.org/architecture/2005/" id="book">
+    <booktitle>
+        <mainbooktitle>Greenplum Database Best Practices</mainbooktitle>
+    </booktitle>
+    <frontmatter>
+    </frontmatter>
+    <chapter href="intro.xml">
+        <topicref href="summary.xml"/>
+    </chapter>
+    <chapter href="sysconfig.xml"/>
+    <chapter href="schema.xml"/>
+    <chapter href="workloads.xml"/>
+    <chapter href="maintenance.xml">
+        <topicref href="analyze.xml"/>
+        <topicref href="bloat.xml"/>
+        <topicref href="logfiles.xml"/>
+    </chapter>
+    <chapter href="data_loading.xml"/>
+    <chapter href="gptransfer.xml"/>
+    <chapter href="security.xml"/>
+    <chapter href="encryption.xml"/>
+    <chapter href="kerberos-hdfs.xml"/>
+    <chapter href="tuning_queries.xml"/>
+    <chapter href="ha.xml"/>
+</bookmap>

@@ -373,7 +373,7 @@
         <p>The following diagram shows a group mirroring configuration with eight primary segments
           on four hosts. </p>
         <p>
-          <image href="../graphics/group-mirrors.png" id="image_igx_wds_wt"/>
+          <image href="./graphics/group-mirrors.png" id="image_igx_wds_wt"/>
         </p>
         <p>Unless both the primary and mirror of the same segment instance fail, up to half of your
           hosts can fail and the cluster will continue to run as long as resources (CPU, memory, and
@@ -394,7 +394,7 @@
         <p>The following diagram shows the spread mirroring configuration for a cluster with three
           primaries on four hosts. </p>
         <p>
-          <image href="../graphics/spread-mirrors.png" id="image_src_r2s_wt"/>
+          <image href="./graphics/spread-mirrors.png" id="image_src_r2s_wt"/>
         </p>
         <p>Expanding a cluster with spread mirroring requires more planning and may take more time.
           You must either add a set of hosts equal to the number of primaries per host plus one, or
@@ -415,7 +415,7 @@
         <p>The following diagram shows a single block mirroring configuration for a block of four
           hosts, each with eight primary segments:</p>
         <p>
-          <image href="../graphics/block-mirrors-4x8.png" id="image_uy3_dfs_wt"/>
+          <image href="./graphics/block-mirrors-4x8.png" id="image_uy3_dfs_wt"/>
         </p>
         <p>If there are eight hosts, an additional four-host block is added with the mirrors for
           primary segments 32 through 63 set up in the same pattern. </p>
