@@ -1,9 +1,12 @@
 #!/usr/bin/python2
 
 import optparse
+import os
+import shutil
+import stat
 import subprocess
 import sys
-import shutil
+
 from builds.GpBuild import GpBuild
 
 def install_gpdb(dependency_name):
@@ -17,6 +20,7 @@ def install_gpdb(dependency_name):
 
 def create_gpadmin_user():
     status = subprocess.call("gpdb_src/concourse/scripts/setup_gpadmin_user.bash")
+    os.chmod('/bin/ping', os.stat('/bin/ping').st_mode | stat.S_ISUID)
     if status:
         return status
 
