@@ -1,5 +1,5 @@
 platform: linux
-image: docker:///yolo/gpdbdev#centos6
+rootfs_uri: docker:///yolo/gpdbdev#centos6
 inputs:
   - name: gpdb_src
   - name: bin_orca
