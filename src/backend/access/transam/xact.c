@@ -5516,7 +5516,6 @@ static void
 CleanupSubTransaction(void)
 {
 	TransactionState s = CurrentTransactionState;
-	TransactionId localXid = s->transactionId;
 
 	ShowTransactionState("CleanupSubTransaction");
 

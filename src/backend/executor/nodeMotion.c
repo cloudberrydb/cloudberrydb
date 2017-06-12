@@ -166,10 +166,9 @@ bool isMotionGather(const Motion *m)
 static void
 setMotionStatsForGpmon(MotionState *node)
 {
-	MotionLayerState *mlStates = (MotionLayerState *)node->ps.state->motionlayer_context;
 	ChunkTransportState *transportStates = node->ps.state->interconnect_context;
 	int motionId = ((Motion *) node->ps.plan)->motionID;
-	MotionNodeEntry *mlEntry = getMotionNodeEntry(mlStates, motionId, "setMotionStatsForGpmon");
+
 	ChunkTransportStateEntry *transportEntry = NULL;
 	getChunkTransportState(transportStates, motionId, &transportEntry);
 	uint64 avgAckTime = 0;

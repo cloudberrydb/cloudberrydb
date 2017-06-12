@@ -78,18 +78,6 @@ char *fileRepMirrorHostAddress = NULL;
 int fileRepMirrorPort = -1;
 bool fileRepFullResync = false;
 
-/*
- * Add a flag to determine whether to re-rank the ipv4 and ipv6 addrs after
- * getaddrinfo(); when we detect ipv6 is disabled during filerep procedure by
- * outer cause, do not re-rank the addrs, i.e, choose the ipv4 addrs to send
- * packets.
- */
-#ifdef HAVE_IPV6
-static bool prefer_ipv6 = true;
-#else
-static bool prefer_ipv6 = false;
-#endif
-
 /****************************************/
 FileRepConsumerProcIndex_e 	fileRepProcIndex = FileRepMessageTypeXLog;
 
