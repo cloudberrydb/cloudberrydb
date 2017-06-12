@@ -2503,6 +2503,9 @@ typedef struct WindowState
 
 	/* Indicate if any function need a peer count. */
 	bool		need_peercount;
+
+	/* Indicate if child is done returning tuples */
+	bool	    is_input_done;
 } WindowState;
 
 /* ----------------

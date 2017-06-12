@@ -1652,3 +1652,16 @@ select foo.a, sum(b) over (partition by bar.a order by bar.b) from foo, bar wher
 explain select foo.a, sum(b) over (partition by bar.a order by bar.b) from foo, bar where foo.a = bar.a;
 
 drop table foo, bar;
+
+-- Test to verify fix for https://github.com/greenplum-db/gpdb/issues/2571
+drop table if exists foo;
+drop table if exists bar;
+create table foo (a int, b int) distributed by (a);
+create table bar (c int, d int) distributed by (c);
+insert into foo select i,i from generate_series(1,10) i;
+insert into bar select i,i from generate_series(1,10) i;
+set optimizer_segments to 1; 
+SELECT bar.*, count(*) OVER() AS e FROM foo, bar where foo.b = bar.d;
+
+reset optimizer_segments;
+drop table foo, bar;

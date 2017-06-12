@@ -4531,6 +4531,9 @@ fetchCurrentRow(WindowState * wstate)
 		wstate->cur_slot_is_new = false;
 	else
 	{
+		if (wstate->is_input_done)
+			return NULL;
+
 		/* Fetch the first tuple from the outer plan */
 		TupleTableSlot *slot = ExecProcNode(outerPlanState(wstate));
 
@@ -4766,7 +4769,10 @@ fetchTupleSlotThroughBuf(WindowState * wstate)
 		TupleTableSlot *slot = ExecProcNode(outerPlanState(wstate));
 
 		if (TupIsNull(slot))
+		{
+			wstate->is_input_done = true;
 			return NULL;
+		}
 
 		Gpmon_Incr_Rows_In(GpmonPktFromWindowState(wstate));
 		CheckSendPlanStateGpmonPkt(&wstate->ps);
@@ -6251,6 +6257,8 @@ ExecReScanWindow(WindowState * node, ExprContext *exprCtxt)
 	resetFrameBuffers(node);
 
 	ExecEagerFreeWindow(node);
+
+	node->is_input_done = false;
 
 	Assert(outerPlanState(node));
 
