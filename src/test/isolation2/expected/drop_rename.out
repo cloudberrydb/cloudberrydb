@@ -47,7 +47,7 @@ ALTER
 1:commit;
 COMMIT
 2<:  <... completed>
-ERROR:  tuple concurrently updated (heapam.c:2661)
+ERROR:  relation "t2" does not exist
 2:select count(*) from newt2;
 count
 -----
