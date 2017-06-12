@@ -638,7 +638,7 @@ setupSeqServerConnection(char *seqServerHost, uint16 seqServerPort)
 		pg_freeaddrinfo_all(hint.ai_family, addrs);
 		ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 						errmsg("Interconnect Error: Could not connect to seqserver (connection: %d, host: %s, port: %d).", savedSeqServerFd, seqServerHost, seqServerPort),
-		                errdetail("%m%s", "connect"), errprintstack(true)));
+		                errdetail("%s: %m", "connect"), errprintstack(true)));
 	}
 
 	pg_freeaddrinfo_all(hint.ai_family, addrs);
@@ -648,7 +648,7 @@ setupSeqServerConnection(char *seqServerHost, uint16 seqServerPort)
 		ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 						errmsg("Interconnect Error: Could not set seqserver socket"
 						       "to non-blocking mode."),
-			            errdetail("%m%s sockfd=%d", "fcntl", savedSeqServerFd)));
+			            errdetail("%s sockfd=%d: %m", "fcntl", savedSeqServerFd)));
 }
 
 void

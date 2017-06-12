@@ -1104,7 +1104,7 @@ checkRxThreadError()
 
 		ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 						errmsg("Interconnect encountered an error"),
-						errdetail("%m%s", "in receive background thread,")));
+						errdetail("%s: %m", "in receive background thread,")));
 	}
 	pthread_mutex_unlock(&ic_control_info.errorLock);
 }
@@ -1310,7 +1310,7 @@ error:
 	errno = errnoSave;
 	ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 					errmsg("Interconnect Error: Could not set up udp listener socket."),
-					errdetail("%m%s", fun)));
+					errdetail("%s: %m", fun)));
 	return;
 }
 
@@ -2146,7 +2146,7 @@ error:
 	errno = errnoSave;
 	ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 					errmsg("Interconnect Error: Could not set up udp listener socket."),
-					errdetail("%m%s", fun)));
+					errdetail("%s: %m", fun)));
 	/* Make GCC not complain. */
 	return 0;
 }

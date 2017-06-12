@@ -4007,13 +4007,6 @@ send_message_to_frontend(ErrorData *edata)
  * We must replace %m with the appropriate strerror string, since vsnprintf
  * won't know what to do with it.
  *
- * CDB: "%m%s" expands to the strerror string along with the decimal errno,
- * embedding the %s in the message.  Note there is no space between the
- * %m and %s.  For example,
- *      errmsg("System error: %m%s; retry in %d sec", "bind", 15)
- * produces something like this (assuming errno == EADDRINUSE):
- *      "System error: Address already in use (bind errno 98); retry in 15 sec"
- *
  * The result is a palloc'd string.
  */
 static char *
@@ -4044,11 +4037,6 @@ expand_fmt_string(const char *fmt, ErrorData *edata)
 					if (*cp2 == '%')
 						appendStringInfoCharMacro(&buf, '%');
 					appendStringInfoCharMacro(&buf, *cp2);
-				}
-				if (cp[1] == '%' && cp[2] == 's')   /*CDB: "%m%s" */
-				{
-					appendStringInfo(&buf, " (%%s errno %d)", edata->saved_errno);
-					cp += 2;
 				}
 			}
 			else
