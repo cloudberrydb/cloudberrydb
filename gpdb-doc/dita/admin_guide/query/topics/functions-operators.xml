@@ -73,7 +73,11 @@
                     </tbody>
                 </tgroup>
             </table>
-            <p>Refer to the PostgreSQL <xref href="https://www.postgresql.org/docs/8.3/static/xfunc-volatility.html" scope="external" format="html">Function Volatility Categories</xref> documentation for additional information about the Greenplum Database function volatility classifications.</p>
+            <p>Refer to the PostgreSQL <xref
+                    href="https://www.postgresql.org/docs/8.3/static/xfunc-volatility.html"
+                    scope="external" format="html">Function Volatility Categories</xref>
+                documentation for additional information about the Greenplum Database function
+                volatility classifications.</p>
             <p>In Greenplum Database, data is divided up across segments — each segment is a
                 distinct PostgreSQL database. To prevent inconsistent or unexpected results, do not
                 execute functions classified as <codeph>VOLATILE</codeph> at the segment level if
@@ -101,12 +105,21 @@ SELECT foo();
                     (<codeph>rangeFuncs</codeph>) or functions that use the
                     <codeph>refCursor</codeph> datatype.</p>
         </body>
-    <topic id="topic281" xml:lang="en">
-        <title id="in1414519">Function Volatility and Plan Caching</title>
-        <body>
-            <p>There is relatively little difference between the <codeph>STABLE</codeph> and <codeph>IMMUTABLE</codeph> function volatility categories for simple interactive queries that are planned and immediately executed. It does not matter much whether a function is executed once during planning or once during query execution startup. But there is a big difference when you save the plan and reuse it later. If you mislabel a function <codeph>IMMUTABLE</codeph>, Greenplum Database may prematurely fold it to a constant during planning, possibly reusing a stale value during subsequent execution of the plan. You may run into this hazard when using <codeph>PREPARE</codeph>d statements, or when using languages such as PL/pgSQL that cache plans.</p>
-        </body>
-    </topic>
+        <topic id="topic281" xml:lang="en">
+            <title id="in1414519">Function Volatility and Plan Caching</title>
+            <body>
+                <p>There is relatively little difference between the <codeph>STABLE</codeph> and
+                        <codeph>IMMUTABLE</codeph> function volatility categories for simple
+                    interactive queries that are planned and immediately executed. It does not
+                    matter much whether a function is executed once during planning or once during
+                    query execution startup. But there is a big difference when you save the plan
+                    and reuse it later. If you mislabel a function <codeph>IMMUTABLE</codeph>,
+                    Greenplum Database may prematurely fold it to a constant during planning,
+                    possibly reusing a stale value during subsequent execution of the plan. You may
+                    run into this hazard when using <codeph>PREPARE</codeph>d statements, or when
+                    using languages such as PL/pgSQL that cache plans.</p>
+            </body>
+        </topic>
     </topic>
     <topic id="topic28" xml:lang="en">
         <title id="in141451">User-Defined Functions</title>
@@ -125,7 +138,7 @@ SELECT foo();
             <p>In Greenplum Database, the shared library files for user-created functions must
                 reside in the same library path location on every host in the Greenplum Database
                 array (masters, segments, and mirrors).</p>
-        <p>You can also create and execute anonymous code blocks that are written in a Greenplum
+            <p>You can also create and execute anonymous code blocks that are written in a Greenplum
                 Database procedural language such as PL/pgSQL. The anonymous blocks run as transient
                 anonymous functions. For information about creating and executing anonymous blocks,
                 see the <xref href="../../../ref_guide/sql_commands/DO.xml#topic1"
@@ -270,6 +283,16 @@ SELECT foo();
                         <row>
                             <entry colname="col1">
                                 <xref format="html"
+                                    href="https://www.postgresql.org/docs/8.3/static/functions-enum.html"
+                                    scope="external"> Enum Support Functions </xref>
+                            </entry>
+                            <entry colname="col2"/>
+                            <entry colname="col3"/>
+                            <entry colname="col4"/>
+                        </row>
+                        <row>
+                            <entry colname="col1">
+                                <xref format="html"
                                     href="https://www.postgresql.org/docs/8.3/static/functions-geometry.html"
                                     scope="external">
                                     <ph>Geometric Functions and Operators</ph>
@@ -391,20 +414,15 @@ SELECT foo();
                                 <i>All session information functions</i>
                                 <p>
                                     <i>All access privilege inquiry functions</i>
-                                </p>
-                                <p>
+                                </p><p>
                                     <i>All schema visibility inquiry functions</i>
-                                </p>
-                                <p>
+                                </p><p>
                                     <i>All system catalog information functions</i>
-                                </p>
-                                <p>
+                                </p><p>
                                     <i>All comment information functions</i>
-                                </p>
-                                <p>
+                                </p><p>
                                     <i>All transaction ids and snapshots</i>
-                                </p>
-                            </entry>
+                                </p></entry>
                             <entry colname="col4"/>
                         </row>
                         <row>
@@ -419,21 +437,69 @@ SELECT foo();
                                     >set_config<p>pg_cancel_backend</p><p>pg_reload_conf</p><p>pg_rotate_logfile</p><p>pg_start_backup</p><p>pg_stop_backup</p><p>pg_size_pretty</p><p>pg_ls_dir</p><p>pg_read_file</p><p>pg_stat_file</p></entry>
                             <entry colname="col3">current_setting<p><i>All database object size
                                         functions</i></p></entry>
-                            <entry colname="col4"/>
+                            <entry colname="col4"><b>Note:</b> The function
+                                    <codeph>pg_column_size</codeph> displays bytes required to store
+                                the value, possibly with TOAST compression.</entry>
                         </row>
                         <row>
                             <entry colname="col1">
                                 <xref format="html"
-                                    href="https://www.postgresql.org/docs/9.1/static/functions-xml.html"
-                                    scope="external">XML Functions</xref>
-                            </entry>
+                                    href="http://www.postgresql.org/docs/9.1/interactive/functions-xml.html"
+                                    scope="external">XML Functions</xref> and function-like
+                                expressions </entry>
                             <entry colname="col2"/>
-                            <entry colname="col3">xmlagg(xml)<p>xmlexists(text,
-                                    xml)</p><p>xml_is_well_formed(text)</p><p>xml_is_well_formed_document(text)</p><p>xml_is_well_formed_content(text)</p><p>xpath(text,
-                                    xml)</p><p>xpath(text, xml, text[])</p><p>xpath_exists(text,
-                                    xml)</p><p>xpath_exists(text, xml,
-                                    text[])</p><p>xml(text)</p><p>text(xml)</p><p>xmlcomment(xml)</p><p>xmlconcat2(xml,
-                                    xml)</p></entry>
+                            <entry colname="col3">
+                                <p>cursor_to_xml(cursor refcursor, count int, nulls boolean,
+                                    tableforest boolean, targetns text)</p>
+                                <p>cursor_to_xmlschema(cursor refcursor, nulls boolean, tableforest
+                                    boolean, targetns text)</p>
+                                <p>database_to_xml(nulls boolean, tableforest boolean, targetns
+                                    text)</p>
+                                <p>database_to_xmlschema(nulls boolean, tableforest boolean,
+                                    targetns text)</p>
+                                <p>database_to_xml_and_xmlschema(nulls boolean, tableforest boolean,
+                                    targetns text)</p>
+                                <p>query_to_xml(query text, nulls boolean, tableforest boolean,
+                                    targetns text)</p>
+                                <p>query_to_xmlschema(query text, nulls boolean, tableforest
+                                    boolean, targetns text)</p>
+                                <p>query_to_xml_and_xmlschema(query text, nulls boolean, tableforest
+                                    boolean, targetns text)</p>
+                                <p>schema_to_xml(schema name, nulls boolean, tableforest boolean,
+                                    targetns text)</p>
+                                <p>schema_to_xmlschema(schema name, nulls boolean, tableforest
+                                    boolean, targetns text)</p>
+                                <p>schema_to_xml_and_xmlschema(schema name, nulls boolean,
+                                    tableforest boolean, targetns text)</p>
+                                <p>table_to_xml(tbl regclass, nulls boolean, tableforest boolean,
+                                    targetns text)</p>
+                                <p>table_to_xmlschema(tbl regclass, nulls boolean, tableforest
+                                    boolean, targetns text)</p>
+                                <p>table_to_xml_and_xmlschema(tbl regclass, nulls boolean,
+                                    tableforest boolean, targetns text)</p>
+                                <p>xmlagg(xml)</p>
+                                <p>xmlconcat(xml[, ...])</p>
+                                <p>xmlelement(name name [, xmlattributes(value [AS attname] [, ...
+                                    ])] [, content, ...])</p>
+                                <p>xmlexists(text, xml)</p>
+                                <p>xmlforest(content [AS name] [, ...])</p>
+                                <p>xml_is_well_formed(text)</p>
+                                <p>xml_is_well_formed_document(text)</p>
+                                <p>xml_is_well_formed_content(text)</p>
+                                <p>xmlparse ( { DOCUMENT | CONTENT } value)</p>
+                                <p>xpath(text, xml)</p>
+                                <p>xpath(text, xml, text[])</p>
+                                <p>xpath_exists(text, xml)</p>
+                                <p>xpath_exists(text, xml, text[])</p>
+                                <p>xmlpi(name target [, content])</p>
+                                <p>xmlroot(xml, version text | no value [, standalone yes|no|no
+                                    value])</p>
+                                <p>xmlserialize ( { DOCUMENT | CONTENT } value AS type )</p>
+                                <p>xml(text)</p>
+                                <p>text(xml)</p>
+                                <p>xmlcomment(xml)</p>
+                                <p>xmlconcat2(xml, xml)</p>
+                            </entry>
                             <entry colname="col4"/>
                         </row>
                     </tbody>
@@ -547,8 +613,7 @@ SELECT foo();
                         </row>
                         <row>
                             <entry colname="col1">
-                                <codeph>last_value<i>expr</i></codeph>
-                            </entry>
+                                <codeph>last_value(<i>expr</i></codeph>)</entry>
                             <entry colname="col2">same as input <i>expr</i> type</entry>
                             <entry colname="col3">
                                 <codeph>LAST_VALUE(<i>expr</i>) OVER ( [PARTITION BY <i>expr</i>]
@@ -583,7 +648,7 @@ SELECT foo();
                             <entry colname="col1">
                                 <codeph>ntile(<i>expr</i>)</codeph>
                             </entry>
-                            <entry colname="col2">bigint</entry>
+                            <entry colname="col2"><codeph>bigint</codeph></entry>
                             <entry colname="col3">
                                 <codeph>NTILE(<i>expr</i>) OVER ( [PARTITION BY <i>expr</i>] ORDER
                                     BY <i>expr</i> )</codeph>
@@ -609,7 +674,7 @@ SELECT foo();
                             <entry colname="col1">
                                 <codeph>rank()</codeph>
                             </entry>
-                            <entry colname="col2">bigint</entry>
+                            <entry colname="col2"><codeph>bigint</codeph></entry>
                             <entry colname="col3">
                                 <codeph>RANK () OVER ( [PARTITION BY <i>expr</i>] ORDER BY <i>expr
                                     </i>)</codeph>
