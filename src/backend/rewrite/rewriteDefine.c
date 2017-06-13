@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/rewrite/rewriteDefine.c,v 1.124 2008/01/01 19:45:51 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/rewrite/rewriteDefine.c,v 1.130 2008/10/04 21:56:54 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -717,16 +717,14 @@ setRuleCheckAsUser_Query(Query *qry, Oid userid)
 	}
 
 	/* If there are sublinks, search for them and process their RTEs */
-	/* ignore subqueries in rtable because we already processed them */
 	if (qry->hasSubLinks)
 		query_tree_walker(qry, setRuleCheckAsUser_walker, (void *) &userid,
-						  QTW_IGNORE_RT_SUBQUERIES);
+						  QTW_IGNORE_RC_SUBQUERIES);
 }
 
 
 /*
  * Change the firing semantics of an existing rule.
- *
  */
 void
 EnableDisableRule(Relation rel, const char *rulename,

@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/rewrite/rewriteHandler.c,v 1.177.2.1 2008/09/24 16:52:53 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/rewrite/rewriteHandler.c,v 1.181 2008/10/04 21:56:54 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -258,11 +258,11 @@ AcquireRewriteLocks(Query *parsetree)
 
 	/*
 	 * Recurse into sublink subqueries, too.  But we already did the ones in
-	 * the rtable.
+	 * the rtable and cteList.
 	 */
 	if (parsetree->hasSubLinks)
 		query_tree_walker(parsetree, acquireLocksOnSubLinks, NULL,
-						  QTW_IGNORE_RT_SUBQUERIES);
+						  QTW_IGNORE_RC_SUBQUERIES);
 }
 
 /*
@@ -1273,6 +1273,35 @@ markQueryForLocking(Query *qry, Node *jtnode, bool forUpdate, bool noWait)
 			markQueryForLocking(rte->subquery, (Node *) rte->subquery->jointree,
 								forUpdate, noWait);
 		}
+		else if (rte->rtekind == RTE_CTE)
+		{
+			/*
+			 * We allow FOR UPDATE/SHARE of a WITH query to be propagated into
+			 * the WITH, but it doesn't seem very sane to allow this for a
+			 * reference to an outer-level WITH (compare
+			 * transformLockingClause).  Which simplifies life here.
+			 */
+			CommonTableExpr *cte = NULL;
+			ListCell   *lc;
+
+			if (rte->ctelevelsup > 0 || rte->self_reference)
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("SELECT FOR UPDATE/SHARE cannot be applied to an outer-level WITH query")));
+			foreach(lc, qry->cteList)
+			{
+				cte = (CommonTableExpr *) lfirst(lc);
+				if (strcmp(cte->ctename, rte->ctename) == 0)
+					break;
+			}
+			if (lc == NULL)				/* shouldn't happen */
+				elog(ERROR, "could not find CTE \"%s\"", rte->ctename);
+			/* should be analyzed by now */
+			Assert(IsA(cte->ctequery, Query));
+			markQueryForLocking((Query *) cte->ctequery,
+								(Node *) ((Query *) cte->ctequery)->jointree,
+								forUpdate, noWait);
+		}
 	}
 	else if (IsA(jtnode, FromExpr))
 	{
@@ -1340,6 +1369,7 @@ static Query *
 fireRIRrules(Query *parsetree, List *activeRIRs)
 {
 	int			rt_index;
+	ListCell   *lc;
 
 	/*
 	 * don't try to convert this into a foreach loop, because rtable list can
@@ -1453,7 +1483,6 @@ fireRIRrules(Query *parsetree, List *activeRIRs)
 	}
 
 	/* Recurse into subqueries in WITH */
-	ListCell *lc;
 	foreach(lc, parsetree->cteList)
 	{
 		CommonTableExpr *cte = (CommonTableExpr *) lfirst(lc);
@@ -1464,11 +1493,11 @@ fireRIRrules(Query *parsetree, List *activeRIRs)
 
 	/*
 	 * Recurse into sublink subqueries, too.  But we already did the ones in
-	 * the rtable.
+	 * the rtable and cteList.
 	 */
 	if (parsetree->hasSubLinks)
 		query_tree_walker(parsetree, fireRIRonSubLink, (void *) activeRIRs,
-						  QTW_IGNORE_RT_SUBQUERIES);
+						  QTW_IGNORE_RC_SUBQUERIES);
 
 	return parsetree;
 }

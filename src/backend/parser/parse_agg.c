@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_agg.c,v 1.79 2008/01/01 19:45:50 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_agg.c,v 1.84 2008/10/04 21:56:54 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -208,11 +208,27 @@ parseCheckAggregates(ParseState *pstate, Query *qry)
 	bool		have_non_var_grouping;
 	ListCell   *l;
 	bool		hasJoinRTEs;
+	bool		hasSelfRefRTEs;
 	PlannerInfo *root;
 	Node	   *clause;
 
 	/* This should only be called if we found aggregates or grouping */
 	Assert(pstate->p_hasAggs || qry->groupClause || qry->havingQual);
+
+	/*
+	 * Scan the range table to see if there are JOIN or self-reference CTE
+	 * entries.  We'll need this info below.
+	 */
+	hasJoinRTEs = hasSelfRefRTEs = false;
+	foreach(l, pstate->p_rtable)
+	{
+		RangeTblEntry *rte = (RangeTblEntry *) lfirst(l);
+
+		if (rte->rtekind == RTE_JOIN)
+			hasJoinRTEs = true;
+		else if (rte->rtekind == RTE_CTE && rte->self_reference)
+			hasSelfRefRTEs = true;
+	}
 
 	/*
 	 * Aggregates and window functions must never appear in WHERE or 
@@ -266,20 +282,6 @@ parseCheckAggregates(ParseState *pstate, Query *qry)
 	 * underlying vars, so that aliased and unaliased vars will be correctly
 	 * taken as equal.	We can skip the expense of doing this if no rangetable
 	 * entries are RTE_JOIN kind.
-	 */
-	hasJoinRTEs = false;
-	foreach(l, pstate->p_rtable)
-	{
-		RangeTblEntry *rte = (RangeTblEntry *) lfirst(l);
-
-		if (rte->rtekind == RTE_JOIN)
-		{
-			hasJoinRTEs = true;
-			break;
-		}
-	}
-
-	/*
 	 * We use the planner's flatten_join_alias_vars routine to do the
 	 * flattening; it wants a PlannerInfo root node, which fortunately can be
 	 * mostly dummy.
@@ -342,6 +344,16 @@ parseCheckAggregates(ParseState *pstate, Query *qry)
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("correlated subquery cannot contain percentile functions")));
 	}
+
+	/*
+	 * Per spec, aggregates can't appear in a recursive term.
+	 */
+	if (pstate->p_hasAggs && hasSelfRefRTEs)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_RECURSION),
+				 errmsg("aggregates not allowed in a recursive query's recursive term"),
+				 parser_errposition(pstate,
+									locate_agg_of_level((Node *) qry, 0))));
 }
 
 

@@ -881,16 +881,249 @@ with capitals(code,id) as
 (select country.code,id,city.name from city,country 
  where city.countrycode = country.code AND city.id = country.capital)
 select * from capitals;
-ERROR:  specified number of columns in WITH query "capitals" must not exceed the number of available columns
-LINE 1: with capitals(code,id) as 
-             ^
+ code |  id  |               name                
+------+------+-----------------------------------
+ AIA  |   62 | The Valley
+ ARE  |   65 | Abu Dhabi
+ AUS  |  135 | Canberra
+ BHS  |  148 | Nassau
+ BHR  |  149 | al-Manama
+ BGD  |  150 | Dhaka
+ BLZ  |  185 | Belmopan
+ BWA  |  204 | Gaborone
+ CYM  |  553 | George Town
+ CHL  |  554 | Santiago de Chile
+ COK  |  583 | Avarua
+ CRI  |  584 | San Jose
+ DJI  |  585 | Djibouti
+ DMA  |  586 | Roseau
+ ERI  |  652 | Asmara
+ ETH  |  756 | Addis Abeba
+ GAB  |  902 | Libreville
+ GEO  |  905 | Tbilisi
+ GIB  |  915 | Gibraltar
+ GLP  |  919 | Basse-Terre
+ GUM  |  921 | Agaaa
+ HTI  |  929 | Port-au-Prince
+ SJM  |  938 | Longyearbyen
+ IDN  |  939 | Jakarta
+ IND  | 1109 | New Delhi
+ IRN  | 1380 | Teheran
+ JAM  | 1530 | Kingston
+ JPN  | 1532 | Tokyo
+ CAF  | 1889 | Bangui
+ COM  | 2295 | Moroni
+ COD  | 2298 | Kinshasa
+ CYP  | 2430 | Nicosia
+ LVA  | 2434 | Riga
+ LBN  | 2438 | Beirut
+ LIE  | 2446 | Vaduz
+ MAC  | 2454 | Macao
+ MWI  | 2462 | Lilongwe
+ MLI  | 2482 | Bamako
+ MLT  | 2484 | Valletta
+ MAR  | 2486 | Rabat
+ MTQ  | 2508 | Fort-de-France
+ MRT  | 2509 | Nouakchott
+ MCO  | 2695 | Monaco-Ville
+ MOZ  | 2698 | Maputo
+ NPL  | 2729 | Kathmandu
+ NIU  | 2805 | Alofi
+ NFK  | 2806 | Kingston
+ CIV  | 2814 | Yamoussoukro
+ PAK  | 2831 | Islamabad
+ PLW  | 2881 | Koror
+ PER  | 2890 | Lima
+ GNQ  | 2972 | Malabo
+ QAT  | 2973 | Doha
+ GUF  | 3014 | Cayenne
+ SHN  | 3063 | Jamestown
+ LCA  | 3065 | Castries
+ VCT  | 3066 | Kingstown
+ STP  | 3172 | Sao Tome
+ SAU  | 3173 | Riyadh
+ SEN  | 3198 | Dakar
+ SVN  | 3212 | Ljubljana
+ SUR  | 3243 | Paramaribo
+ SWZ  | 3244 | Mbabane
+ SYR  | 3250 | Damascus
+ THA  | 3320 | Bangkok
+ TKL  | 3333 | Fakaofo
+ TON  | 3334 | Nukualofa
+ TTO  | 3336 | Port-of-Spain
+ TUN  | 3349 | Tunis
+ TUR  | 3358 | Ankara
+ TKM  | 3419 | Ashgabat
+ UKR  | 3426 | Kyiv
+ NCL  | 3493 | Noumea
+ WLF  | 3536 | Mata-Utu
+ EST  | 3791 | Tallinn
+ AFG  |    1 | Kabul
+ ANT  |   33 | Willemstad
+ ALB  |   34 | Tirana
+ DZA  |   35 | Alger
+ ATG  |   63 | Saint Johns
+ ARG  |   69 | Buenos Aires
+ BRB  |  174 | Bridgetown
+ BEN  |  187 | Porto-Novo
+ BTN  |  192 | Thimphu
+ BOL  |  194 | La Paz
+ GBR  |  456 | London
+ VGB  |  537 | Road Town
+ BRN  |  538 | Bandar Seri Begawan
+ BDI  |  552 | Bujumbura
+ DOM  |  587 | Santo Domingo de Guzman
+ ECU  |  594 | Quito
+ EGY  |  608 | Cairo
+ SLV  |  645 | San Salvador
+ PHL  |  766 | Manila
+ GMB  |  904 | Banjul
+ GRD  |  916 | Saint Georges
+ GTM  |  922 | Ciudad de Guatemala
+ HND  |  933 | Tegucigalpa
+ IRQ  | 1365 | Baghdad
+ ISR  | 1450 | Jerusalem
+ ITA  | 1464 | Roma
+ AUT  | 1523 | Wien
+ YEM  | 1780 | Sanaa
+ CXR  | 1791 | Flying Fish Cove
+ YUG  | 1792 | Beograd
+ KAZ  | 1864 | Astana
+ COG  | 2296 | Brazzaville
+ CCK  | 2317 | West Island
+ GRC  | 2401 | Athenai
+ HRV  | 2409 | Zagreb
+ LBR  | 2440 | Monrovia
+ LBY  | 2441 | Tripoli
+ LUX  | 2452 | Luxembourg [Luxemburg/Letzebuerg]
+ MKD  | 2460 | Skopje
+ MYS  | 2464 | Kuala Lumpur
+ MUS  | 2511 | Port-Louis
+ FSM  | 2689 | Palikir
+ MSR  | 2697 | Plymouth
+ NAM  | 2726 | Windhoek
+ NRU  | 2728 | Yaren
+ NIC  | 2734 | Managua
+ NGA  | 2754 | Abuja
+ PNG  | 2884 | Port Moresby
+ PRY  | 2885 | Asuncion
+ PCN  | 2912 | Adamstown
+ POL  | 2928 | Warszawa
+ FRA  | 2974 | Paris
+ REU  | 3017 | Saint-Denis
+ ROM  | 3018 | Bucuresti
+ SPM  | 3067 | Saint-Pierre
+ WSM  | 3169 | Apia
+ SMR  | 3171 | San Marino
+ SGP  | 3208 | Singapore
+ SVK  | 3209 | Bratislava
+ LKA  | 3217 | Colombo
+ SDN  | 3225 | Khartum
+ CHE  | 3248 | Bern
+ TGO  | 3332 | Lome
+ TCD  | 3337 | NDjamena
+ CZE  | 3339 | Praha
+ TCA  | 3423 | Cockburn Town
+ TUV  | 3424 | Funafuti
+ URY  | 3492 | Montevideo
+ NZL  | 3499 | Wellington
+ VUT  | 3537 | Port-Vila
+ VAT  | 3538 | Citta del Vaticano
+ VEN  | 3539 | Caracas
+ RUS  | 3580 | Moscow
+ VNM  | 3770 | Hanoi
+ NLD  |    5 | Amsterdam
+ ASM  |   54 | Fagatogo
+ AND  |   55 | Andorra la Vella
+ AGO  |   56 | Luanda
+ ARM  |  126 | Yerevan
+ ABW  |  129 | Oranjestad
+ AZE  |  144 | Baku
+ BEL  |  179 | Bruxelles [Brussel]
+ BMU  |  191 | Hamilton
+ BIH  |  201 | Sarajevo
+ BRA  |  211 | Brasilia
+ BGR  |  539 | Sofija
+ BFA  |  549 | Ouagadougou
+ ESP  |  653 | Madrid
+ ZAF  |  716 | Pretoria
+ FLK  |  763 | Stanley
+ FJI  |  764 | Suva
+ FRO  |  901 | Torshavn
+ GHA  |  910 | Accra
+ GRL  |  917 | Nuuk
+ GIN  |  926 | Conakry
+ GNB  |  927 | Bissau
+ GUY  |  928 | Georgetown
+ HKG  |  937 | Victoria
+ IRL  | 1447 | Dublin
+ ISL  | 1449 | Reykjavik
+ TMP  | 1522 | Dili
+ JOR  | 1786 | Amman
+ KHM  | 1800 | Phnom Penh
+ CMR  | 1804 | Yaounde
+ CAN  | 1822 | Ottawa
+ CPV  | 1859 | Praia
+ KEN  | 1881 | Nairobi
+ CHN  | 1891 | Peking
+ KGZ  | 2253 | Bishkek
+ KIR  | 2256 | Bairiki
+ COL  | 2257 | Santafe de Bogota
+ PRK  | 2318 | Pyongyang
+ KOR  | 2331 | Seoul
+ CUB  | 2413 | La Habana
+ KWT  | 2429 | Kuwait
+ LAO  | 2432 | Vientiane
+ LSO  | 2437 | Maseru
+ LTU  | 2447 | Vilnius
+ ESH  | 2453 | El-Aaiun
+ MDG  | 2455 | Antananarivo
+ MDV  | 2463 | Male
+ MHL  | 2507 | Dalap-Uliga-Darrit
+ MYT  | 2514 | Mamoutzou
+ MEX  | 2515 | Ciudad de Mexico
+ MDA  | 2690 | Chisinau
+ MNG  | 2696 | Ulan Bator
+ MMR  | 2710 | Rangoon (Yangon)
+ NER  | 2738 | Niamey
+ NOR  | 2807 | Oslo
+ OMN  | 2821 | Masqat
+ PAN  | 2882 | Ciudad de Panama
+ MNP  | 2913 | Garapan
+ PRT  | 2914 | Lisboa
+ PRI  | 2919 | San Juan
+ PYF  | 3016 | Papeete
+ RWA  | 3047 | Kigali
+ SWE  | 3048 | Stockholm
+ KNA  | 3064 | Basseterre
+ DEU  | 3068 | Berlin
+ SLB  | 3161 | Honiara
+ ZMB  | 3162 | Lusaka
+ SYC  | 3206 | Victoria
+ SLE  | 3207 | Freetown
+ SOM  | 3214 | Mogadishu
+ FIN  | 3236 | Helsinki [Helsingfors]
+ TJK  | 3261 | Dushanbe
+ TWN  | 3263 | Taipei
+ TZA  | 3306 | Dodoma
+ DNK  | 3315 | Kobenhavn
+ UGA  | 3425 | Kampala
+ HUN  | 3483 | Budapest
+ UZB  | 3503 | Toskent
+ BLR  | 3520 | Minsk
+ USA  | 3813 | Washington
+ VIR  | 4067 | Charlotte Amalie
+ ZWE  | 4068 | Harare
+ PSE  | 4074 | Gaza
+(232 rows)
+
 --query 2
 with lang_total(lang_count,code,countrycode,name) as
 ( select count(*) as lang_count,country.code,countrylanguage.countrycode
   from country join countrylanguage on (country.code=countrylanguage.countrycode and governmentform='Federal Republic')
   group by country.code,countrylanguage.countrycode order by country.code)
 select * from lang_total;
-ERROR:  specified number of columns in WITH query "lang_total" must not exceed the number of available columns
+ERROR:  WITH query "lang_total" has 3 columns available but 4 columns specified
 LINE 1: with lang_total(lang_count,code,countrycode,name) as
              ^
 -- queries with CTEs using hash joins
@@ -8627,17 +8860,17 @@ View definition:
           WHERE country.code = city.countrycode AND country.code = countrylanguage.countrycode
           GROUP BY country.code, country.name
         )
-( SELECT allcountrystats.city_cnt, allcountrystats.lang_cnt, allcountrystats.name, denseregions."REGION_SURFACE_AREA", longlivingregions."REGION_LIFETIME", longlivingregions."REGION_POP", longlivingregions.lang_count, longlivingregions."REGION_GNP", longlivingregions.region
-   FROM longlivingregions, denseregions, allcountrystats, country
-  WHERE longlivingregions.region = denseregions.region AND allcountrystats.code = country.code AND country.region = longlivingregions.region AND country.indepyear >= 1800 AND country.indepyear <= 1850
+        (         SELECT allcountrystats.city_cnt, allcountrystats.lang_cnt, allcountrystats.name, denseregions."REGION_SURFACE_AREA", longlivingregions."REGION_LIFETIME", longlivingregions."REGION_POP", longlivingregions.lang_count, longlivingregions."REGION_GNP", longlivingregions.region
+                   FROM longlivingregions, denseregions, allcountrystats, country
+                  WHERE longlivingregions.region = denseregions.region AND allcountrystats.code = country.code AND country.region = longlivingregions.region AND country.indepyear >= 1800 AND country.indepyear <= 1850
+        UNION ALL 
+                 SELECT allcountrystats.city_cnt, allcountrystats.lang_cnt, allcountrystats.name, denseregions."REGION_SURFACE_AREA", longlivingregions."REGION_LIFETIME", longlivingregions."REGION_POP", longlivingregions.lang_count, longlivingregions."REGION_GNP", longlivingregions.region
+                   FROM longlivingregions, denseregions, allcountrystats, country
+                  WHERE longlivingregions.region = denseregions.region AND allcountrystats.code = country.code AND country.region = longlivingregions.region AND country.indepyear >= 1850 AND country.indepyear <= 1900)
 UNION ALL 
- SELECT allcountrystats.city_cnt, allcountrystats.lang_cnt, allcountrystats.name, denseregions."REGION_SURFACE_AREA", longlivingregions."REGION_LIFETIME", longlivingregions."REGION_POP", longlivingregions.lang_count, longlivingregions."REGION_GNP", longlivingregions.region
-   FROM longlivingregions, denseregions, allcountrystats, country
-  WHERE longlivingregions.region = denseregions.region AND allcountrystats.code = country.code AND country.region = longlivingregions.region AND country.indepyear >= 1850 AND country.indepyear <= 1900)
-UNION ALL 
- SELECT allcountrystats.city_cnt, allcountrystats.lang_cnt, allcountrystats.name, denseregions."REGION_SURFACE_AREA", longlivingregions."REGION_LIFETIME", longlivingregions."REGION_POP", longlivingregions.lang_count, longlivingregions."REGION_GNP", longlivingregions.region
-   FROM longlivingregions, denseregions, allcountrystats, country
-  WHERE longlivingregions.region = denseregions.region AND allcountrystats.code = country.code AND country.region = longlivingregions.region AND country.indepyear > 1900;
+         SELECT allcountrystats.city_cnt, allcountrystats.lang_cnt, allcountrystats.name, denseregions."REGION_SURFACE_AREA", longlivingregions."REGION_LIFETIME", longlivingregions."REGION_POP", longlivingregions.lang_count, longlivingregions."REGION_GNP", longlivingregions.region
+           FROM longlivingregions, denseregions, allcountrystats, country
+          WHERE longlivingregions.region = denseregions.region AND allcountrystats.code = country.code AND country.region = longlivingregions.region AND country.indepyear > 1900;
 
 select city_cnt,lang_cnt,name,region from view_with_shared_scans order by name LIMIT 50;
  city_cnt | lang_cnt |                 name                  |          region           

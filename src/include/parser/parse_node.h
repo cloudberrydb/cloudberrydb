@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/parser/parse_node.h,v 1.53 2008/01/01 19:45:58 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/parser/parse_node.h,v 1.57 2008/10/04 21:56:55 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -52,6 +52,10 @@ struct HTAB;  /* utils/hsearch.h */
  * refer to the JOIN, not the member tables).  Also, we put POSTQUEL-style
  * implicit RTEs into p_relnamespace but not p_varnamespace, so that they
  * do not affect the set of columns available for unqualified references.
+ *
+ * p_ctenamespace: list of CommonTableExprs (WITH items) that are visible
+ * at the moment.  This is different from p_relnamespace because you have
+ * to make an RTE before you can access a CTE.
  *
  * p_paramtypes: an array of p_numparams type OIDs for $n parameter symbols
  * (zeroth entry in array corresponds to $1).  If p_variableparams is true, the
@@ -116,7 +120,7 @@ extern void setup_parser_errposition_callback(ParseCallbackState *pcbstate,
 extern void cancel_parser_errposition_callback(ParseCallbackState *pcbstate);
 
 extern Var *make_var(ParseState *pstate, RangeTblEntry *rte, int attrno,
-		 int location);
+					 int location);
 extern Oid	transformArrayType(Oid arrayType);
 extern ArrayRef *transformArraySubscripts(ParseState *pstate,
 						 Node *arrayBase,

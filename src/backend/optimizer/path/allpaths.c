@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/allpaths.c,v 1.168.2.4 2009/03/10 20:58:41 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/allpaths.c,v 1.174 2008/10/04 21:56:53 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -66,7 +66,9 @@ static void set_tablefunction_pathlist(PlannerInfo *root, RelOptInfo *rel,
 static void set_values_pathlist(PlannerInfo *root, RelOptInfo *rel,
 					RangeTblEntry *rte);
 static void set_cte_pathlist(PlannerInfo *root, RelOptInfo *rel,
-				 RangeTblEntry *rte);
+							 RangeTblEntry *rte);
+static void set_worktable_pathlist(PlannerInfo *root, RelOptInfo *rel,
+								   RangeTblEntry *rte);
 static RelOptInfo *make_rel_from_joinlist(PlannerInfo *root, List *joinlist);
 static Query *push_down_restrict(PlannerInfo *root, RelOptInfo *rel,
 				   RangeTblEntry *rte, Index rti, Query *subquery);
@@ -218,7 +220,7 @@ set_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
 	}
 	else if (rel->rtekind == RTE_FUNCTION)
 	{
-		/* RangeFunction --- generate a separate plan for it */
+		/* RangeFunction --- generate a suitable path for it */
 		set_function_pathlist(root, rel, rte);
 	}
 	else if (rel->rtekind == RTE_TABLEFUNCTION)
@@ -228,12 +230,16 @@ set_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
 	}
 	else if (rel->rtekind == RTE_VALUES)
 	{
-		/* Values list --- generate a separate plan for it */
+		/* Values list --- generate a suitable path for it */
 		set_values_pathlist(root, rel, rte);
 	}
 	else if (rel->rtekind == RTE_CTE)
 	{
-		set_cte_pathlist(root, rel, rte);
+		/* CTE reference --- generate a suitable path for it */
+		if (rte->self_reference)
+			set_worktable_pathlist(root, rel, rte);
+		else
+			set_cte_pathlist(root, rel, rte);
 	}
 	else
 	{
@@ -703,8 +709,11 @@ set_subquery_pathlist(PlannerInfo *root, RelOptInfo *rel,
 		/* Generate the plan for the subquery */
 		config = CopyPlannerConfig(root->config);
 
-		rel->subplan = subquery_planner(root->glob, subquery, root, tuple_fraction,
-										&subroot, config);
+		rel->subplan = subquery_planner(root->glob, subquery,
+									root,
+									false, tuple_fraction,
+									&subroot,
+									config);
 		rel->subrtable = subroot->parse->rtable;
 	}
 	else
@@ -787,6 +796,7 @@ set_tablefunction_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rt
 
 	/* Plan input subquery */
 	rel->subplan = subquery_planner(root->glob, rte->subquery, root,
+									false,
 									0.0, //tuple_fraction
 									& subroot,
 									config);
@@ -965,7 +975,7 @@ set_cte_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 		 */
 		subquery = push_down_restrict(root, rel, rte, rel->relid, subquery);
 
-		subplan = subquery_planner(cteroot->glob, subquery, root,
+		subplan = subquery_planner(cteroot->glob, subquery, root, false,
 								   tuple_fraction, &subroot, config);
 
 		subrtable = subroot->parse->rtable;
@@ -999,7 +1009,7 @@ set_cte_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 			 */
 			config->gp_cte_sharing = false;
 
-			subplan = subquery_planner(cteroot->glob, subquery, cteroot,
+			subplan = subquery_planner(cteroot->glob, subquery, cteroot, false,
 									   tuple_fraction, &subroot, config);
 
 			cteplaninfo->shared_plan = prepare_plan_for_sharing(cteroot, subplan);
@@ -1027,6 +1037,48 @@ set_cte_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 
 	/* Generate appropriate path */
 	add_path(root, rel, create_ctescan_path(root, rel, pathkeys));
+
+	/* Select cheapest path (pretty easy in this case...) */
+	set_cheapest(root, rel);
+}
+
+/*
+ * set_worktable_pathlist
+ *		Build the (single) access path for a self-reference CTE RTE
+ */
+static void
+set_worktable_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
+{
+	Plan	   *cteplan;
+	PlannerInfo *cteroot;
+	Index		levelsup;
+
+	/*
+	 * We need to find the non-recursive term's plan, which is in the plan
+	 * level that's processing the recursive UNION, which is one level
+	 * *below* where the CTE comes from.
+	 */
+	levelsup = rte->ctelevelsup;
+	if (levelsup == 0)			/* shouldn't happen */
+		elog(ERROR, "bad levelsup for CTE \"%s\"", rte->ctename);
+	levelsup--;
+	cteroot = root;
+	while (levelsup-- > 0)
+	{
+		cteroot = cteroot->parent_root;
+		if (!cteroot)			/* shouldn't happen */
+			elog(ERROR, "bad levelsup for CTE \"%s\"", rte->ctename);
+	}
+	cteplan = cteroot->non_recursive_plan;
+	if (!cteplan)				/* shouldn't happen */
+		elog(ERROR, "could not find plan for CTE \"%s\"", rte->ctename);
+
+	/* Mark rel with estimated output rows, width, etc */
+	set_cte_size_estimates(root, rel, cteplan);
+
+	/* Generate appropriate path */
+	// FIXME : CTE_MERGE : Do we want pathkeys for `create_worktablescan_path`?
+	add_path(root, rel, create_worktablescan_path(root, rel));
 
 	/* Select cheapest path (pretty easy in this case...) */
 	set_cheapest(root, rel);

@@ -1143,9 +1143,20 @@ LINE 1: ..._sum(total) as (select sum(value) from with_test1 into total...
 with my_sum(group_total) as (select i, sum(value) from with_test1 group by i)
 select *
 from my_sum;
-ERROR:  specified number of columns in WITH query "my_sum" must not exceed the number of available columns
-LINE 1: with my_sum(group_total) as (select i, sum(value) from with_...
-             ^
+ group_total | sum 
+-------------+-----
+           9 | 180
+           8 | 170
+           7 | 160
+           6 | 150
+           4 | 130
+           3 | 120
+           5 | 140
+           1 | 100
+           2 | 110
+           0 |  90
+(10 rows)
+
 with my_sum as (select i, sum(value) as i from with_test1 group by i)
 select *
 from my_sum;

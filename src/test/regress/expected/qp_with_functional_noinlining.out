@@ -497,11 +497,11 @@ CREATE VIEW cte_view as
  e      | integer | 
 View definition:
  WITH cte(e) AS (
-         SELECT bar.d
-           FROM bar
-INTERSECT 
-         SELECT foo.a
-           FROM foo
+                 SELECT bar.d
+                   FROM bar
+        INTERSECT 
+                 SELECT foo.a
+                   FROM foo
  LIMIT 10
         )
  SELECT cte.e

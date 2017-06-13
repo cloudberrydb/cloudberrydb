@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/setrefs.c,v 1.141.2.1 2008/06/17 14:51:38 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/setrefs.c,v 1.145 2008/10/04 21:56:53 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -662,7 +662,28 @@ set_plan_refs(PlannerGlobal *glob, Plan *plan, int rtoffset)
 					fix_scan_list(glob, splan->values_lists, rtoffset);
 			}
 			break;
+		case T_CteScan:
+			{
+				CteScan *splan = (CteScan *) plan;
 
+				splan->scan.scanrelid += rtoffset;
+				splan->scan.plan.targetlist =
+					fix_scan_list(glob, splan->scan.plan.targetlist, rtoffset);
+				splan->scan.plan.qual =
+					fix_scan_list(glob, splan->scan.plan.qual, rtoffset);
+			}
+			break;
+		case T_WorkTableScan:
+			{
+				WorkTableScan *splan = (WorkTableScan *) plan;
+
+				splan->scan.scanrelid += rtoffset;
+				splan->scan.plan.targetlist =
+					fix_scan_list(glob, splan->scan.plan.targetlist, rtoffset);
+				splan->scan.plan.qual =
+					fix_scan_list(glob, splan->scan.plan.qual, rtoffset);
+			}
+			break;
 		case T_NestLoop:
 		case T_MergeJoin:
 		case T_HashJoin:
@@ -868,6 +889,11 @@ set_plan_refs(PlannerGlobal *glob, Plan *plan, int rtoffset)
 											  rtoffset);
 				}
 			}
+			break;
+		case T_RecursiveUnion:
+			/* This doesn't evaluate targetlist or check quals either */
+			set_dummy_tlist_references(plan, rtoffset);
+			Assert(plan->qual == NIL);
 			break;
 		case T_BitmapAnd:
 			{

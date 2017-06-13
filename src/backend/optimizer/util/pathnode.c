@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/pathnode.c,v 1.142.2.1 2008/04/21 20:54:24 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/pathnode.c,v 1.148 2008/10/04 21:56:53 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1097,7 +1097,7 @@ create_aocs_path(PlannerInfo *root, RelOptInfo *rel)
 	pathnode->path.pathtype = T_AOCSScan;
 	pathnode->path.parent = rel;
 	pathnode->path.pathkeys = NIL;	/* seqscan has unordered result */
-	
+
 	pathnode->path.locus = cdbpathlocus_from_baserel(root, rel);
 	pathnode->path.motionHazard = false;
 	pathnode->path.rescannable = true;
@@ -1671,7 +1671,7 @@ create_material_path(PlannerInfo *root, RelOptInfo *rel, Path *subpath)
  *	  Creates a path representing elimination of distinct rows from the
  *	  input data.
  */
-static UniquePath *
+UniquePath *
 create_unique_path(PlannerInfo *root,
                    Path        *subpath,
                    List        *distinct_on_exprs,
@@ -2386,13 +2386,13 @@ create_valuesscan_path(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 
 /*
  * create_ctescan_path
- *	  Creates a path corresponding to a scan of a CTE,
+ *	  Creates a path corresponding to a scan of a non-self-reference CTE,
  *	  returning the pathnode.
  */
 Path *
 create_ctescan_path(PlannerInfo *root, RelOptInfo *rel, List *pathkeys)
 {
-	Path *pathnode = makeNode(Path);
+	Path	   *pathnode = makeNode(Path);
 
 	pathnode->pathtype = T_CteScan;
 	pathnode->parent = rel;
@@ -2408,6 +2408,27 @@ create_ctescan_path(PlannerInfo *root, RelOptInfo *rel, List *pathkeys)
 	pathnode->rescannable = false;
 	pathnode->sameslice_relids = NULL;
 
+
+	cost_ctescan(pathnode, root, rel);
+
+	return pathnode;
+}
+
+/*
+ * create_worktablescan_path
+ *	  Creates a path corresponding to a scan of a self-reference CTE,
+ *	  returning the pathnode.
+ */
+Path *
+create_worktablescan_path(PlannerInfo *root, RelOptInfo *rel)
+{
+	Path	   *pathnode = makeNode(Path);
+
+	pathnode->pathtype = T_WorkTableScan;
+	pathnode->parent = rel;
+	pathnode->pathkeys = NIL;	/* result is always unordered */
+
+	/* Cost is the same as for a regular CTE scan */
 	cost_ctescan(pathnode, root, rel);
 
 	return pathnode;

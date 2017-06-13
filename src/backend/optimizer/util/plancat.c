@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/plancat.c,v 1.140.2.1 2008/04/01 00:48:44 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/plancat.c,v 1.152 2008/10/04 21:56:53 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -937,8 +937,8 @@ relation_excluded_by_constraints(PlannerInfo *root,
  * dropped cols.
  *
  * We also support building a "physical" tlist for subqueries, functions,
- * and values lists, since the same optimization can occur in SubqueryScan,
- * FunctionScan, and ValuesScan nodes.
+ * values lists, and CTEs, since the same optimization can occur in
+ * SubqueryScan, FunctionScan, ValuesScan, CteScan, and WorkTableScan nodes.
  */
 List *
 build_physical_tlist(PlannerInfo *root, RelOptInfo *rel)
@@ -1018,9 +1018,10 @@ build_physical_tlist(PlannerInfo *root, RelOptInfo *rel)
 			}
 			break;
 
-		case RTE_CTE:
-		case RTE_FUNCTION:
 		case RTE_TABLEFUNCTION:
+		case RTE_FUNCTION:
+		case RTE_CTE:
+			/* Not all of these can have dropped cols, but share code anyway */
 			expandRTE(rte, varno, 0, -1, true /* include dropped */ ,
 					  NULL, &colvars);
 			foreach(l, colvars)

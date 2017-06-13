@@ -21,7 +21,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/prep/prepjointree.c,v 1.49.2.1 2008/08/14 20:31:59 heikki Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/prep/prepjointree.c,v 1.55 2008/10/04 21:56:53 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -69,6 +69,7 @@ static void fix_in_clause_relids(List *in_info_list, int varno,
 static void fix_append_rel_relids(List *append_rel_list, int varno,
 					  Relids subrelids);
 static Node *find_jointree_node_for_rel(Node *jtnode, int relid);
+static bool is_simple_union_all_recurse(Node *setOp, Query *setOpQuery, List *colTypes);
 
 extern void UpdateScatterClause(Query *query, List *newtlist);
 
@@ -408,10 +409,19 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
 	subroot->parse = subquery;
 	subroot->glob = root->glob;
 	subroot->query_level = root->query_level;
+	subroot->parent_root = root->parent_root;
 	subroot->planner_cxt = CurrentMemoryContext;
 	subroot->init_plans = NIL;
+	subroot->cte_plan_ids = NIL;
+	subroot->eq_classes = NIL;
 	subroot->in_info_list = NIL;
 	subroot->append_rel_list = NIL;
+	subroot->hasRecursion = false;
+	subroot->wt_param_id = -1;
+	subroot->non_recursive_plan = NULL;
+
+	/* No CTEs to worry about */
+	Assert(subquery->cteList == NIL);
 
 	subroot->list_cteplaninfo = NIL;
 	if (subroot->parse->cteList != NIL)
@@ -701,8 +711,8 @@ is_simple_subquery(PlannerInfo *root, Query *subquery)
 		return false;
 
 	/*
-	 * Can't pull up a subquery involving grouping, aggregation, windowing,
-	 * sorting, limiting, or WITH.
+	 * Can't pull up a subquery involving grouping, aggregation, sorting,
+	 * limiting, or WITH.  (XXX WITH could possibly be allowed later)
 	 */
 	if (subquery->hasAggs ||
 	    subquery->hasWindFuncs ||
@@ -748,7 +758,79 @@ is_simple_subquery(PlannerInfo *root, Query *subquery)
 	return true;
 }
 
+/*
+ * is_simple_union_all
+ *	  Check a subquery to see if it's a simple UNION ALL.
+ *
+ * We require all the setops to be UNION ALL (no mixing) and there can't be
+ * any datatype coercions involved, ie, all the leaf queries must emit the
+ * same datatypes.
+ */
+static bool
+is_simple_union_all(Query *subquery)
+{
+	SetOperationStmt *topop;
 
+	/* Let's just make sure it's a valid subselect ... */
+	if (!IsA(subquery, Query) ||
+		subquery->commandType != CMD_SELECT ||
+		subquery->utilityStmt != NULL ||
+		subquery->intoClause != NULL)
+		elog(ERROR, "subquery is bogus");
+
+	/* Is it a set-operation query at all? */
+	topop = (SetOperationStmt *) subquery->setOperations;
+	if (!topop)
+		return false;
+	Assert(IsA(topop, SetOperationStmt));
+
+	/* Can't handle ORDER BY, LIMIT/OFFSET, locking, or WITH */
+	if (subquery->sortClause ||
+		subquery->limitOffset ||
+		subquery->limitCount ||
+		subquery->rowMarks ||
+		subquery->cteList)
+		return false;
+
+	/* Recursively check the tree of set operations */
+	return is_simple_union_all_recurse((Node *) topop, subquery,
+									   topop->colTypes);
+}
+
+static bool
+is_simple_union_all_recurse(Node *setOp, Query *setOpQuery, List *colTypes)
+{
+	if (IsA(setOp, RangeTblRef))
+	{
+		RangeTblRef *rtr = (RangeTblRef *) setOp;
+		RangeTblEntry *rte = rt_fetch(rtr->rtindex, setOpQuery->rtable);
+		Query	   *subquery = rte->subquery;
+
+		Assert(subquery != NULL);
+
+		/* Leaf nodes are OK if they match the toplevel column types */
+		/* We don't have to compare typmods here */
+		return tlist_same_datatypes(subquery->targetList, colTypes, true);
+	}
+	else if (IsA(setOp, SetOperationStmt))
+	{
+		SetOperationStmt *op = (SetOperationStmt *) setOp;
+
+		/* Must be UNION ALL */
+		if (op->op != SETOP_UNION || !op->all)
+			return false;
+
+		/* Recurse to check inputs */
+		return is_simple_union_all_recurse(op->larg, setOpQuery, colTypes) &&
+			is_simple_union_all_recurse(op->rarg, setOpQuery, colTypes);
+	}
+	else
+	{
+		elog(ERROR, "unrecognized node type: %d",
+			 (int) nodeTag(setOp));
+		return false;			/* keep compiler quiet */
+	}
+}
 
 /*
  * has_nullable_targetlist

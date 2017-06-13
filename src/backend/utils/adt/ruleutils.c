@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/ruleutils.c,v 1.306 2009/08/01 19:59:41 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/ruleutils.c,v 1.285 2008/10/04 21:56:54 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -2181,8 +2181,8 @@ static void
 get_with_clause(Query *query, deparse_context *context)
 {
 	StringInfo	buf = context->buf;
-	const char *sep;
-	ListCell   *l;
+	const char	*sep;
+	ListCell	*l;
 
 	if (query->cteList == NIL)
 		return;
@@ -2250,6 +2250,7 @@ get_select_query_def(Query *query, deparse_context *context,
 {
 	StringInfo	buf = context->buf;
 	bool		force_colno;
+	const char *sep;
 	ListCell   *l;
 
 	/* Insert the WITH clause if given */
@@ -2257,8 +2258,8 @@ get_select_query_def(Query *query, deparse_context *context,
 
 	/*
 	 * If the Query node has a setOperations tree, then it's the top level of
-	 * a UNION/INTERSECT/EXCEPT query; only the ORDER BY and LIMIT fields are
-	 * interesting in the top query itself.
+	 * a UNION/INTERSECT/EXCEPT query; only the WITH, ORDER BY and LIMIT
+	 * fields are interesting in the top query itself.
 	 */
 	if (query->setOperations)
 	{
@@ -2569,6 +2570,12 @@ get_setop_query(Node *setOp, Query *query, deparse_context *context,
 	{
 		SetOperationStmt *op = (SetOperationStmt *) setOp;
 
+		if (PRETTY_INDENT(context))
+		{
+			context->indentLevel += PRETTYINDENT_STD;
+			appendStringInfoSpaces(buf, PRETTYINDENT_STD);
+		}
+
 		/*
 		 * We force parens whenever nesting two SetOperationStmts. There are
 		 * some cases in which parens are needed around a leaf query too, but
@@ -2616,6 +2623,9 @@ get_setop_query(Node *setOp, Query *query, deparse_context *context,
 		get_setop_query(op->rarg, query, context, resultDesc);
 		if (need_paren)
 			appendStringInfoChar(buf, ')');
+
+		if (PRETTY_INDENT(context))
+			context->indentLevel -= PRETTYINDENT_STD;
 	}
 	else
 	{
@@ -2871,11 +2881,15 @@ get_insert_query_def(Query *query, deparse_context *context)
 	}
 	else if (values_rte)
 	{
+		/* A WITH clause is possible here */
+		get_with_clause(query, context);
 		/* Add the multi-VALUES expression lists */
 		get_values_def(values_rte->values_lists, context);
 	}
 	else if (strippedexprs)
 	{
+		/* A WITH clause is possible here */
+		get_with_clause(query, context);
 		/* Add the single-VALUES expression list */
 		appendContextKeyword(context, "VALUES (",
 							 -PRETTYINDENT_STD, PRETTYINDENT_STD, 2);
@@ -5748,6 +5762,7 @@ get_sublink_expr(SubLink *sublink, deparse_context *context)
 			need_paren = false;
 			break;
 
+		case CTE_SUBLINK:		/* shouldn't occur in a SubLink */
 		default:
 			elog(ERROR, "unrecognized sublink type: %d",
 				 (int) sublink->subLinkType);

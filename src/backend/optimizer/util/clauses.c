@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/clauses.c,v 1.254.2.3 2008/08/26 02:16:39 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/clauses.c,v 1.268 2008/10/04 21:56:53 tgl Exp $
  *
  * HISTORY
  *	  AUTHOR			DATE			MAJOR EVENT
@@ -3546,6 +3546,7 @@ inline_function(Oid funcid, Oid result_type, List *args,
 		querytree->intoClause ||
 		querytree->hasAggs ||
 		querytree->hasSubLinks ||
+		querytree->cteList ||
 		querytree->rtable ||
 		querytree->jointree->fromlist ||
 		querytree->jointree->quals ||

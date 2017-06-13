@@ -12,7 +12,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/gram.y,v 2.606 2008/02/07 21:07:55 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/gram.y,v 2.625 2008/10/04 21:56:54 tgl Exp $
  *
  * HISTORY
  *	  AUTHOR			DATE			MAJOR EVENT
@@ -456,10 +456,6 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 				opt_table_partition_split_into
 %type <boolean>	opt_comma
 %type <node> 	OptTabPartitionStorageAttr
-
-%type <node> 	common_table_expr
-%type <with> 	with_clause
-%type <list>	cte_list
 %type <node>	opt_time
 
 %type <node>	column_reference_storage_directive
@@ -472,6 +468,10 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <node>	xmlexists_argument
 %type <ival>	document_or_content
 %type <boolean> xml_whitespace_option
+
+%type <node> 	common_table_expr
+%type <with> 	with_clause
+%type <list>	cte_list
 
 
 /*
@@ -539,9 +539,9 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 
 	QUOTE
 
-	READ REAL REASSIGN RECHECK REFERENCES REINDEX RELATIVE_P RELEASE RENAME
-	REPEATABLE REPLACE REPLICA RESET RESTART RESTRICT RETURNING RETURNS REVOKE
-	RIGHT ROLE ROLLBACK ROW ROWS RULE
+	READ REAL REASSIGN RECHECK RECURSIVE REFERENCES REINDEX RELATIVE_P RELEASE
+	RENAME REPEATABLE REPLACE REPLICA RESET RESTART RESTRICT RETURNING RETURNS
+	REVOKE RIGHT ROLE ROLLBACK ROW ROWS RULE
 
 	SAVEPOINT SCHEMA SCROLL SEARCH SECOND_P SECURITY SELECT SEQUENCE
 	SERIALIZABLE SESSION SESSION_USER SET SETOF SHARE
@@ -600,7 +600,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 
 	QUEUE
 
-	RANDOMLY RANGE READABLE READS RECURSIVE REF REJECT_P RESOURCE
+	RANDOMLY RANGE READABLE READS REF REJECT_P RESOURCE
 	ROLLUP ROOTPARTITION
 
 	SCATTER SEGMENT SETS SPLIT SQL SUBPARTITION SUBPARTITIONS
@@ -9347,7 +9347,7 @@ select_no_parens:
 										NULL);
 					$$ = $1;
 				}
-			| with_clause select_clause
+			| with_clause simple_select
 				{
 					insertSelectOptions((SelectStmt *) $2, NULL, NIL,
 										NULL, NULL,
@@ -9397,10 +9397,10 @@ select_clause:
  *		(SELECT foo UNION SELECT bar) ORDER BY baz
  * not
  *		SELECT foo UNION (SELECT bar ORDER BY baz)
- * Likewise FOR UPDATE and LIMIT.  Therefore, those clauses are described
- * as part of the select_no_parens production, not simple_select.
- * This does not limit functionality, because you can reintroduce sort and
- * limit clauses inside parentheses.
+ * Likewise for WITH, FOR UPDATE and LIMIT.  Therefore, those clauses are
+ * described as part of the select_no_parens production, not simple_select.
+ * This does not limit functionality, because you can reintroduce these
+ * clauses inside parentheses.
  *
  * NOTE: only the leftmost component SelectStmt should have INTO.
  * However, this is not checked by the grammar; parse analysis must check it.
@@ -14082,11 +14082,10 @@ insertSelectOptions(SelectStmt *stmt,
 		if (stmt->withClause)
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
-					 errmsg("syntax error at or near \"WITH\""),
-					 scanner_errposition(exprLocation((Node *)withClause))));
-		stmt->withClause = (WithClause *)withClause;
+					 errmsg("multiple WITH clauses not allowed"),
+					 scanner_errposition(exprLocation((Node *) withClause))));
+		stmt->withClause = withClause;
 	}
-
 }
 
 static Node *

@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_relation.c,v 1.130.2.1 2008/04/05 01:58:28 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_relation.c,v 1.136 2008/10/04 21:56:54 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -398,6 +398,43 @@ GetRTEByRangeTablePosn(ParseState *pstate,
 	}
 	Assert(varno > 0 && varno <= list_length(pstate->p_rtable));
 	return rt_fetch(varno, pstate->p_rtable);
+}
+
+/*
+ * Fetch the CTE for a CTE-reference RTE.
+ *
+ * rtelevelsup is the number of query levels above the given pstate that the
+ * RTE came from.  Callers that don't have this information readily available
+ * may pass -1 instead.
+ */
+CommonTableExpr *
+GetCTEForRTE(ParseState *pstate, RangeTblEntry *rte, int rtelevelsup)
+{
+	Index		levelsup;
+	ListCell   *lc;
+
+	/* Determine RTE's levelsup if caller didn't know it */
+	if (rtelevelsup < 0)
+		(void) RTERangeTablePosn(pstate, rte, &rtelevelsup);
+
+	Assert(rte->rtekind == RTE_CTE);
+	levelsup = rte->ctelevelsup + rtelevelsup;
+	while (levelsup-- > 0)
+	{
+		pstate = pstate->parentParseState;
+		if (!pstate)			/* shouldn't happen */
+			elog(ERROR, "bad levelsup for CTE \"%s\"", rte->ctename);
+	}
+	foreach(lc, pstate->p_ctenamespace)
+	{
+		CommonTableExpr *cte = (CommonTableExpr *) lfirst(lc);
+
+		if (strcmp(cte->ctename, rte->ctename) == 0)
+			return cte;
+	}
+	/* shouldn't happen */
+	elog(ERROR, "could not find CTE \"%s\"", rte->ctename);
+	return NULL;				/* keep compiler quiet */
 }
 
 /*
@@ -1350,19 +1387,19 @@ addRangeTableEntryForJoin(ParseState *pstate,
 }
 
 /*
- * Add an entry for a CTE to the pstate's range table (p_rtable).
+ * Add an entry for a CTE reference to the pstate's range table (p_rtable).
  *
- * This is just like addRangeTableEntry() except that it makes a CTE RTE.
+ * This is much like addRangeTableEntry() except that it makes a CTE RTE.
  */
 RangeTblEntry *
 addRangeTableEntryForCTE(ParseState *pstate,
 						 CommonTableExpr *cte,
 						 Index levelsup,
-						 RangeVar *rangeVar,
+						 Alias *alias,
 						 bool inFromCl)
 {
 	RangeTblEntry *rte = makeNode(RangeTblEntry);
-	char	   *refname;
+	char	   *refname = alias ? alias->aliasname : cte->ctename;
 	Alias	   *eref;
 	int			numaliases;
 	int			varattno;
@@ -1379,17 +1416,12 @@ addRangeTableEntryForCTE(ParseState *pstate,
 	if (!rte->self_reference)
 		cte->cterefcount++;
 
-	/* Currently, we only support SELECT in WITH query */
-	AssertImply(IsA(cte->ctequery, Query),
-				((Query *) cte->ctequery)->commandType == CMD_SELECT);
-
 	rte->ctecoltypes = cte->ctecoltypes;
 	rte->ctecoltypmods = cte->ctecoltypmods;
 
-	rte->alias = rangeVar->alias;
-	refname = rte->alias ? rte->alias->aliasname : cte->ctename;
-	if (rte->alias)
-		eref = copyObject(rte->alias);
+	rte->alias = alias;
+	if (alias)
+		eref = copyObject(alias);
 	else
 		eref = makeAlias(refname, NIL);
 	numaliases = list_length(eref->colnames);
@@ -1403,11 +1435,10 @@ addRangeTableEntryForCTE(ParseState *pstate,
 			eref->colnames = lappend(eref->colnames, lfirst(lc));
 	}
 	if (varattno < numaliases)
-	{
 		ereport(ERROR,
-				(errcode(ERRCODE_SYNTAX_ERROR),
-				 errmsg(ERRMSG_GP_WITH_COLUMNS_MISMATCH, refname)));
-	}
+				(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
+				 errmsg("table \"%s\" has %d columns available but %d columns specified",
+						refname, varattno, numaliases)));
 
 	rte->eref = eref;
 
@@ -1715,44 +1746,6 @@ expandRTE(RangeTblEntry *rte, int rtindex, int sublevels_up,
 				}
 			}
 			break;
-		case RTE_CTE:
-			{
-				ListCell *aliasp_item = list_head(rte->eref->colnames);
-				ListCell *lct;
-				ListCell *lcm;
-
-				varattno = 0;
-				forboth(lct, rte->ctecoltypes,
-						lcm, rte->ctecoltypmods)
-				{
-					Oid coltype = lfirst_oid(lct);
-					int32 coltypmod = lfirst_int(lcm);
-
-					varattno++;
-
-					if (colnames)
-					{
-						/* Assume there is one alias per output column */
-						Assert(IsA(lfirst(aliasp_item), String));
-						char *label = strVal(lfirst(aliasp_item));
-
-						*colnames = lappend(*colnames, makeString(pstrdup(label)));
-						aliasp_item = lnext(aliasp_item);
-					}
-
-					if (colvars)
-					{
-						Var	*varnode;
-
-						varnode = makeVar(rtindex, varattno,
-										  coltype, coltypmod,
-										  sublevels_up);
-						*colvars = lappend(*colvars, varnode);
-					}
-				}
-			}
-			break;
-			
 		case RTE_TABLEFUNCTION:
 		case RTE_FUNCTION:
 			{
@@ -1916,6 +1909,41 @@ expandRTE(RangeTblEntry *rte, int rtindex, int sublevels_up,
 										  sublevels_up);
 						varnode->location = location;
 
+						*colvars = lappend(*colvars, varnode);
+					}
+				}
+			}
+			break;
+		case RTE_CTE:
+			{
+				ListCell   *aliasp_item = list_head(rte->eref->colnames);
+				ListCell   *lct;
+				ListCell   *lcm;
+
+				varattno = 0;
+				forboth(lct, rte->ctecoltypes, lcm, rte->ctecoltypmods)
+				{
+					Oid		coltype = lfirst_oid(lct);
+					int32	coltypmod = lfirst_int(lcm);
+
+					varattno++;
+
+					if (colnames)
+					{
+						/* Assume there is one alias per output column */
+						char	   *label = strVal(lfirst(aliasp_item));
+
+						*colnames = lappend(*colnames, makeString(pstrdup(label)));
+						aliasp_item = lnext(aliasp_item);
+					}
+
+					if (colvars)
+					{
+						Var		   *varnode;
+
+						varnode = makeVar(rtindex, varattno,
+										  coltype, coltypmod,
+										  sublevels_up);
 						*colvars = lappend(*colvars, varnode);
 					}
 				}

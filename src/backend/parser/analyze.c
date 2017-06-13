@@ -18,7 +18,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- *	$PostgreSQL: pgsql/src/backend/parser/analyze.c,v 1.371.2.2 2009/01/30 16:59:10 tgl Exp $
+ *	$PostgreSQL: pgsql/src/backend/parser/analyze.c,v 1.380 2008/10/04 21:56:54 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -46,13 +46,13 @@
 #include "parser/parse_coerce.h"
 #include "parser/parse_expr.h"
 #include "parser/parse_func.h"
+#include "parser/parse_cte.h"
 #include "parser/parse_oper.h"
 #include "parser/parse_partition.h"
 #include "parser/parse_relation.h"
 #include "parser/parse_target.h"
 #include "parser/parse_type.h"
 #include "parser/parse_utilcmd.h"
-#include "parser/parse_cte.h"
 #include "parser/parsetree.h"
 
 #include "utils/builtins.h"
@@ -121,7 +121,7 @@ static bool isSimplyUpdatableQuery(Query *query);
 static bool isSetopLeaf(SelectStmt *stmt);
 static int collectSetopTypes(ParseState *pstate, SelectStmt *stmt,
 							 List **types, List **typmods);
-static void transformLockingClause(Query *qry, LockingClause *lc);
+static void transformLockingClause(ParseState *pstate, Query *qry, LockingClause *lc);
 static bool check_parameter_resolution_walker(Node *node, ParseState *pstate);
 
 static void setQryDistributionPolicy(SelectStmt *stmt, Query *qry);
@@ -501,6 +501,8 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 		pstate->p_relnamespace = NIL;
 		sub_varnamespace = pstate->p_varnamespace;
 		pstate->p_varnamespace = NIL;
+		/* There can't be any outer WITH to worry about */
+		Assert(pstate->p_ctenamespace == NIL);
 	}
 	else
 	{
@@ -563,15 +565,16 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 		free_parsestate(sub_pstate);
 
 		/* The grammar should have produced a SELECT, but it might have INTO */
-		Assert(IsA(selectQuery, Query));
-		Assert(selectQuery->commandType == CMD_SELECT);
-		Assert(selectQuery->utilityStmt == NULL);
+		if (!IsA(selectQuery, Query) ||
+			selectQuery->commandType != CMD_SELECT ||
+			selectQuery->utilityStmt != NULL)
+			elog(ERROR, "unexpected non-SELECT command in INSERT ... SELECT");
 		if (selectQuery->intoClause)
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
 					 errmsg("INSERT ... SELECT cannot specify INTO"),
 					 parser_errposition(pstate,
-						   exprLocation((Node *) selectQuery->intoClause))));
+										exprLocation((Node *) selectQuery->intoClause))));
 
 		/*
 		 * Make the source be a subquery in the INSERT's rangetable, and add
@@ -616,6 +619,14 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 		 */
 		List	   *exprsLists = NIL;
 		int			sublist_length = -1;
+
+		/* process the WITH clause */
+		if (selectStmt->withClause)
+		{
+			qry->hasRecursive = selectStmt->withClause->recursive;
+			qry->cteList = transformWithClause(pstate, selectStmt->withClause);
+			qry->hasModifyingCTE = pstate->p_hasModifyingCTE;
+		}
 
 		foreach(lc, selectStmt->valuesLists)
 		{
@@ -709,6 +720,14 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 		List	   *valuesLists = selectStmt->valuesLists;
 
 		Assert(list_length(valuesLists) == 1);
+
+		/* process the WITH clause */
+		if (selectStmt->withClause)
+		{
+			qry->hasRecursive = selectStmt->withClause->recursive;
+			qry->cteList = transformWithClause(pstate, selectStmt->withClause);
+			qry->hasModifyingCTE = pstate->p_hasModifyingCTE;
+		}
 
 		/* Do basic expression transformation (same as a ROW() expr) */
 		exprList = transformExpressionList(pstate,
@@ -1507,14 +1526,6 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 
 	qry->commandType = CMD_SELECT;
 
-	/* process the WITH clause */
-	if (stmt->withClause != NULL)
-	{
-		qry->hasRecursive = stmt->withClause->recursive;
-		qry->cteList = transformWithClause(pstate, stmt->withClause);
-		qry->hasModifyingCTE = pstate->p_hasModifyingCTE;
-	}
-
 	/* make FOR UPDATE/FOR SHARE info available to addRangeTableEntry */
 	pstate->p_locking_clause = stmt->lockingClause;
 
@@ -1523,6 +1534,14 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 	 * about them.
 	 */
 	pstate->p_win_clauses = stmt->windowClause;
+
+	/* process the WITH clause */
+	if (stmt->withClause)
+	{
+		qry->hasRecursive = stmt->withClause->recursive;
+		qry->cteList = transformWithClause(pstate, stmt->withClause);
+		qry->hasModifyingCTE = pstate->p_hasModifyingCTE;
+	}
 
 	/* process the FROM clause */
 	transformFromClause(pstate, stmt->fromClause);
@@ -1555,6 +1574,8 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 	/*
 	 * Transform sorting/grouping stuff.  Do ORDER BY first because both
 	 * transformGroupClause and transformDistinctClause need the results.
+	 * Note that these functions can also change the targetList, so it's
+	 * passed to them by reference.
 	 */
 	qry->sortClause = transformSortClause(pstate,
 										  stmt->sortClause,
@@ -1637,7 +1658,7 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 
 	foreach(l, stmt->lockingClause)
 	{
-		transformLockingClause(qry, (LockingClause *) lfirst(l));
+		transformLockingClause(pstate, qry, (LockingClause *) lfirst(l));
 	}
 
 	/*
@@ -1684,8 +1705,8 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 	Assert(stmt->scatterClause == NIL);
 	Assert(stmt->op == SETOP_NONE);
 
-	/* process the WITH clause independently of all else */
-	if (stmt->withClause != NULL)
+	/* process the WITH clause */
+	if (stmt->withClause)
 	{
 		qry->hasRecursive = stmt->withClause->recursive;
 		qry->cteList = transformWithClause(pstate, stmt->withClause);
@@ -1728,6 +1749,7 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 
 		exprsLists = lappend(exprsLists, sublist);
 
+		/* Check for DEFAULT and build per-column expression lists */
 		i = 0;
 		foreach(lc2, sublist)
 		{
@@ -1906,14 +1928,6 @@ transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
 
 	qry->commandType = CMD_SELECT;
 
-	/* process the WITH clause independently of all else */
-	if (stmt->withClause != NULL)
-	{
-		qry->hasRecursive = stmt->withClause->recursive;
-		qry->cteList = transformWithClause(pstate, stmt->withClause);
-		qry->hasModifyingCTE = pstate->p_hasModifyingCTE;
-	}
-
 	/*
 	 * Find leftmost leaf SelectStmt; extract the one-time-only items from it
 	 * and from the top-level node.
@@ -1953,6 +1967,14 @@ transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("SELECT FOR UPDATE/SHARE is not allowed with UNION/INTERSECT/EXCEPT")));
+
+	/* process the WITH clause */
+	if (stmt->withClause)
+	{
+		qry->hasRecursive = stmt->withClause->recursive;
+		qry->cteList = transformWithClause(pstate, stmt->withClause);
+		qry->hasModifyingCTE = pstate->p_hasModifyingCTE;
+	}
 
 	/*
 	 * Before transforming the subtrees, we collect all the data types
@@ -2122,21 +2144,22 @@ transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
 		TargetEntry *lefttle = (TargetEntry *) lfirst(left_tlist);
 		char	   *colName;
 		TargetEntry *tle;
-		Expr	   *expr;
+		Var		   *var;
 
 		Assert(!lefttle->resjunk);
 		colName = pstrdup(lefttle->resname);
-		expr = (Expr *) makeVar(leftmostRTI,
-								lefttle->resno,
-								colType,
-								colTypmod,
-								0);
-		tle = makeTargetEntry(expr,
+		var = makeVar(leftmostRTI,
+					  lefttle->resno,
+					  colType,
+					  colTypmod,
+					  0);
+		var->location = exprLocation((Node *) lefttle->expr);
+		tle = makeTargetEntry((Expr *) var,
 							  (AttrNumber) pstate->p_next_resno++,
 							  colName,
 							  false);
 		qry->targetList = lappend(qry->targetList, tle);
-		targetvars = lappend(targetvars, expr);
+		targetvars = lappend(targetvars, var);
 		targetnames = lappend(targetnames, makeString(colName));
 		left_tlist = lnext(left_tlist);
 	}
@@ -2230,7 +2253,7 @@ transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
 
 	foreach(l, lockingClause)
 	{
-		transformLockingClause(qry, (LockingClause *) lfirst(l));
+		transformLockingClause(pstate, qry, (LockingClause *) lfirst(l));
 	}
 
 	return qry;
@@ -2239,6 +2262,13 @@ transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
 /*
  * transformSetOperationTree
  *		Recursively transform leaves and internal nodes of a set-op tree
+ *
+ * In addition to returning the transformed node, we return a list of
+ * expression nodes showing the type, typmod, and location (for error messages)
+ * of each output column of the set-op node.  This is used only during the
+ * internal recursion of this function.  At the upper levels we use
+ * SetToDefault nodes for this purpose, since they carry exactly the fields
+ * needed, but any other expression node type would do as well.
  */
 static Node *
 transformSetOperationTree(ParseState *pstate, SelectStmt *stmt)
@@ -2873,6 +2903,7 @@ transformDeclareCursorStmt(ParseState *pstate, DeclareCursorStmt *stmt)
 
 	result = transformStmt(pstate, stmt->query);
 
+	/* Grammar should not have allowed anything but SELECT */
 	if (!IsA(result, Query) ||
 		result->commandType != CMD_SELECT ||
 		result->utilityStmt != NULL)
@@ -3024,10 +3055,10 @@ CheckSelectLocking(Query *qry)
  * This basically involves replacing names by integer relids.
  *
  * NB: if you need to change this, see also markQueryForLocking()
- * in rewriteHandler.c.
+ * in rewriteHandler.c, and isLockedRel() in parse_relation.c.
  */
 static void
-transformLockingClause(Query *qry, LockingClause *lc)
+transformLockingClause(ParseState *pstate, Query *qry, LockingClause *lc)
 {
 	List	   *lockedRels = lc->lockedRels;
 	ListCell   *l;
@@ -3069,7 +3100,31 @@ transformLockingClause(Query *qry, LockingClause *lc)
 					 * FOR UPDATE/SHARE of subquery is propagated to all of
 					 * subquery's rels
 					 */
-					transformLockingClause(rte->subquery, allrels);
+					transformLockingClause(pstate, rte->subquery, allrels);
+					break;
+				case RTE_CTE:
+					{
+						/*
+						 * We allow FOR UPDATE/SHARE of a WITH query to be
+						 * propagated into the WITH, but it doesn't seem
+						 * very sane to allow this for a reference to an
+						 * outer-level WITH.  And it definitely wouldn't
+						 * work for a self-reference, since we're not done
+						 * analyzing the CTE anyway.
+						 */
+						CommonTableExpr *cte;
+
+						if (rte->ctelevelsup > 0 || rte->self_reference)
+							ereport(ERROR,
+									(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+									 errmsg("SELECT FOR UPDATE/SHARE cannot be applied to an outer-level WITH query")));
+						cte = GetCTEForRTE(pstate, rte, -1);
+						/* should be analyzed by now */
+						Assert(IsA(cte->ctequery, Query));
+						transformLockingClause(pstate,
+											   (Query *) cte->ctequery,
+											   allrels);
+					}
 					break;
 				default:
 					/* ignore JOIN, SPECIAL, FUNCTION RTEs */
@@ -3083,6 +3138,7 @@ transformLockingClause(Query *qry, LockingClause *lc)
 		foreach(l, lockedRels)
 		{
 			char	   *relname = strVal(lfirst(l));
+			RangeVar   *thisrel = (RangeVar *) lfirst(l);
 
 			i = 0;
 			foreach(rt, qry->rtable)
@@ -3110,7 +3166,7 @@ transformLockingClause(Query *qry, LockingClause *lc)
 							 * FOR UPDATE/SHARE of subquery is propagated to
 							 * all of subquery's rels
 							 */
-							transformLockingClause(rte->subquery, allrels);
+							transformLockingClause(pstate, rte->subquery, allrels);
 							break;
 						case RTE_JOIN:
 							ereport(ERROR,
@@ -3136,6 +3192,32 @@ transformLockingClause(Query *qry, LockingClause *lc)
 							ereport(ERROR,
 									(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 									 errmsg("SELECT FOR UPDATE/SHARE cannot be applied to VALUES")));
+							break;
+						case RTE_CTE:
+							{
+								/*
+								 * We allow FOR UPDATE/SHARE of a WITH query
+								 * to be propagated into the WITH, but it
+								 * doesn't seem very sane to allow this for a
+								 * reference to an outer-level WITH.  And it
+								 * definitely wouldn't work for a
+								 * self-reference, since we're not done
+								 * analyzing the CTE anyway.
+								 */
+								CommonTableExpr *cte;
+
+								if (rte->ctelevelsup > 0 || rte->self_reference)
+									ereport(ERROR,
+											(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+											 errmsg("SELECT FOR UPDATE/SHARE cannot be applied to an outer-level WITH query"),
+											 parser_errposition(pstate, thisrel->location)));
+								cte = GetCTEForRTE(pstate, rte, -1);
+								/* should be analyzed by now */
+								Assert(IsA(cte->ctequery, Query));
+								transformLockingClause(pstate,
+													   (Query *) cte->ctequery,
+													   allrels);
+							}
 							break;
 						default:
 							elog(ERROR, "unrecognized RTE type: %d",

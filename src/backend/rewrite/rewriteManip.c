@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/rewrite/rewriteManip.c,v 1.107.2.1 2008/08/14 20:31:59 heikki Exp $
+ *	  $PostgreSQL: pgsql/src/backend/rewrite/rewriteManip.c,v 1.114 2008/10/04 21:56:54 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -188,8 +188,8 @@ bool
 checkExprHasSubLink(Node *node)
 {
 	/*
-	 * If a Query is passed, examine it --- but we need not recurse into
-	 * sub-Queries or CTE list.
+	 * If a Query is passed, examine it --- but we should not recurse into
+	 * sub-Queries that are in its rangetable or CTE list.
 	 */
 	return query_or_expression_tree_walker(node,
 										   checkExprHasSubLink_walker,
@@ -539,7 +539,7 @@ adjust_relid_set(Relids relids, int oldrelid, int newrelid)
  * that sublink are not affected, only outer references to vars that belong
  * to the expression's original query level or parents thereof.
  *
- * Aggref nodes are adjusted similarly.
+ * Likewise for other nodes containing levelsup fields, such as Aggref.
  *
  * NOTE: although this has the form of a walker, we cheat and modify the
  * Var nodes in-place.	The given expression tree should have been copied
@@ -633,7 +633,8 @@ IncrementVarSublevelsUp_walker(Node *node,
 		context->min_sublevels_up++;
 		result = query_tree_walker((Query *) node,
 								   IncrementVarSublevelsUp_walker,
-								   (void *) context, QTW_EXAMINE_RTES);
+								   (void *) context,
+								   QTW_EXAMINE_RTES);
 		context->min_sublevels_up--;
 		return result;
 	}
@@ -696,7 +697,7 @@ IncrementVarSublevelsUp_rtable(List *rtable, int delta_sublevels_up,
 	range_table_walker(rtable,
 					   IncrementVarSublevelsUp_walker,
 					   (void *) &context,
-					   0);
+					   QTW_EXAMINE_RTES);
 }
 
 

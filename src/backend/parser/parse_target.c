@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_target.c,v 1.158 2008/01/01 19:45:51 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_target.c,v 1.165 2008/10/04 21:56:54 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -284,25 +284,6 @@ markTargetListOrigin(ParseState *pstate, TargetEntry *tle,
 				tle->resorigcol = ste->resorigcol;
 			}
 			break;
-		case RTE_CTE:
-			/* Similar to RTE_SUBQUERY */
-			if (attnum != InvalidAttrNumber)
-			{
-				/* Find the CommonTableExpr based on the query name */
-				CommonTableExpr *cte = GetCTEForRTE(pstate, rte, netlevelsup);
-				Assert(cte != NULL);
-				
-				TargetEntry *ste = get_tle_by_resno(GetCTETargetList(cte), attnum);
-				if (ste == NULL || ste->resjunk)
-				{
-					elog(ERROR, "WITH query %s does not have attribute %d",
-						 rte->ctename, attnum);
-				}
-				
-				tle->resorigtbl = ste->resorigtbl;
-				tle->resorigcol = ste->resorigcol;
-			}
-			break;
 		case RTE_JOIN:
 			/* Join RTE --- recursively inspect the alias variable */
 			if (attnum != InvalidAttrNumber)
@@ -318,8 +299,26 @@ markTargetListOrigin(ParseState *pstate, TargetEntry *tle,
 		case RTE_TABLEFUNCTION:
 		case RTE_FUNCTION:
 		case RTE_VALUES:
-        case RTE_VOID:
+		case RTE_VOID:
 			/* not a simple relation, leave it unmarked */
+			break;
+		case RTE_CTE:
+			/* CTE reference: copy up from the subquery */
+			if (attnum != InvalidAttrNumber)
+			{
+				CommonTableExpr *cte = GetCTEForRTE(pstate, rte, netlevelsup);
+				TargetEntry *ste;
+
+				/* should be analyzed by now */
+				Assert(IsA(cte->ctequery, Query));
+				ste = get_tle_by_resno(((Query *) cte->ctequery)->targetList,
+									   attnum);
+				if (ste == NULL || ste->resjunk)
+					elog(ERROR, "subquery %s does not have attribute %d",
+						 rte->eref->aliasname, attnum);
+				tle->resorigtbl = ste->resorigtbl;
+				tle->resorigcol = ste->resorigcol;
+			}
 			break;
 	}
 }
@@ -339,7 +338,7 @@ markTargetListOrigin(ParseState *pstate, TargetEntry *tle,
  * colname		target column name (ie, name of attribute to be assigned to)
  * attrno		target attribute number
  * indirection	subscripts/field names for target column, if any
- * location		error cursor position, or -1
+ * location		error cursor position for the target column, or -1
  *
  * Returns the modified expression.
  */
@@ -424,7 +423,8 @@ transformAssignedExpr(ParseState *pstate,
 			 */
 			colVar = (Node *) make_var(pstate,
 									   pstate->p_target_rangetblentry,
-									   attrno, location);
+									   attrno,
+									   location);
 		}
 
 		expr = (Expr *)
@@ -829,7 +829,7 @@ checkInsertTargets(ParseState *pstate, List *cols, List **attrnos)
  * ExpandColumnRefStar()
  *		Transforms foo.* into a list of expressions or targetlist entries.
  *
- * This handles the case where '*' appears as the last or only name in a
+ * This handles the case where '*' appears as the last or only item in a
  * ColumnRef.  The code is shared between the case of foo.* at the top level
  * in a SELECT target list (where we want TargetEntry nodes in the result)
  * and foo.* in a ROW() or VALUES() construct (where we want just bare
@@ -1182,6 +1182,22 @@ expandRecordVariable(ParseState *pstate, Var *var, int levelsup)
 				/* else fall through to inspect the expression */
 			}
 			break;
+		case RTE_JOIN:
+			/* Join RTE --- recursively inspect the alias variable */
+			Assert(attnum > 0 && attnum <= list_length(rte->joinaliasvars));
+			expr = (Node *) list_nth(rte->joinaliasvars, attnum - 1);
+			if (IsA(expr, Var))
+				return expandRecordVariable(pstate, (Var *) expr, netlevelsup);
+			/* else fall through to inspect the expression */
+			break;
+		case RTE_TABLEFUNCTION:
+		case RTE_FUNCTION:
+
+			/*
+			 * We couldn't get here unless a function is declared with one of
+			 * its result columns as RECORD, which is not allowed.
+			 */
+			break;
 		case RTE_CTE:
 			if (!rte->self_reference)
 			{
@@ -1220,25 +1236,9 @@ expandRecordVariable(ParseState *pstate, Var *var, int levelsup)
 				/* else fall through to inspect the expression */
 			}
 			break;
-		case RTE_JOIN:
-			/* Join RTE --- recursively inspect the alias variable */
-			Assert(attnum > 0 && attnum <= list_length(rte->joinaliasvars));
-			expr = (Node *) list_nth(rte->joinaliasvars, attnum - 1);
-			if (IsA(expr, Var))
-				return expandRecordVariable(pstate, (Var *) expr, netlevelsup);
-			/* else fall through to inspect the expression */
-			break;
-		case RTE_TABLEFUNCTION:
-		case RTE_FUNCTION:
-
-			/*
-			 * We couldn't get here unless a function is declared with one of
-			 * its result columns as RECORD, which is not allowed.
-			 */
-			break;
-        case RTE_VOID:
-            Insist(0);
-            break;
+		case RTE_VOID:
+	            Insist(0);
+        	    break;
 	}
 
 	/*

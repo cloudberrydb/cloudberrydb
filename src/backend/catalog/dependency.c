@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/dependency.c,v 1.69.2.1 2008/07/11 16:08:50 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/dependency.c,v 1.81 2008/10/04 21:56:52 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1529,7 +1529,7 @@ find_expr_references_walker(Node *node,
 		 * Add whole-relation refs for each plain relation mentioned in the
 		 * subquery's rtable, as well as datatype refs for any datatypes used
 		 * as a RECORD function's output.  (Note: query_tree_walker takes care
-		 * of recursing into RTE_FUNCTION and RTE_SUBQUERY RTEs, so no need to
+		 * of recursing into RTE_FUNCTION RTEs, subqueries, etc, so no need to
 		 * do that here.  But keep it from looking at join alias lists.)
 		 */
 		foreach(rtable, query->rtable)
