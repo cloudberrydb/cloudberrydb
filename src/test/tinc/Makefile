@@ -55,7 +55,6 @@ aocoalter_catalog_loaders:
 	-s catalog/mpp25256 \
 	-s catalog/oid_inconsistency \
 	-s catalog/udf_exception_handling \
-	-s catalog/upgrade \
 	-s storage/loaders
 
 storage_uao_and_transactionmanagement:
