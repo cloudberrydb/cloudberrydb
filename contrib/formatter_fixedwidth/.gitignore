@@ -1,0 +1,7 @@
+# Generated subdirectories
+/expected/
+/results/
+/sql/
+
+regression.diffs
+regression.out

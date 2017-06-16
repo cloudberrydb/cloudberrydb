@@ -11,6 +11,7 @@ pgbouncer.pid
 
 # Local binaries
 /pg_regress
+/twophase_pqexecparams
 
 # Generated subdirectories
 /tmp_check/

@@ -31,3 +31,9 @@ gang_mgmt.out
 guc_env_var.out
 dispatch.out
 workfile_mgr_test.out
+bb_memory_quota.out
+bb_mpph.out
+psql_gpdb_du.out
+session_level_memory_consumption.out
+sreh_optimizer.out
+transient_types.out

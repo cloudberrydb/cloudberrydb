@@ -1,6 +1,10 @@
-# Local binaries
+# Local binaries and symbolic links
 /isolationtester
 /pg_isolation_regress
+/atmsort.pm
+/explain.pm
+/gpdiff.pl
+/gpstringsubs.pl
 
 # Local generated source files
 /specparse.c

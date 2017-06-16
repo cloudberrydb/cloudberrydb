@@ -1,0 +1,3 @@
+# Generated files
+/pg_hba.conf.*
+/postgresql.conf.*
