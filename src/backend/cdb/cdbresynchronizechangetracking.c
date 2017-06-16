@@ -3280,18 +3280,9 @@ ChangeTracking_GetLastChangeTrackingLogEndLoc(XLogRecPtr *lastChangeTrackingLogE
 				retval = false;
 				break;
 			}
-			
-			numBlocks = position / CHANGETRACKING_BLCKSZ;
-			
-			if (numBlocks == 0)
-			{
-				position = 0;
-			}
-			else
-			{ 
-				position = (numBlocks - 1) * CHANGETRACKING_BLCKSZ;
-			}
 
+			numBlocks = position / CHANGETRACKING_BLCKSZ;
+			position = (numBlocks - 1) * CHANGETRACKING_BLCKSZ;
 			FileSeek(file, position, SEEK_SET); 		
 		}
 		else
