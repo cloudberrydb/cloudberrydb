@@ -3511,6 +3511,7 @@ def impl(context, partitionnum, tablename, dbname):
 
 @when('table "{tablename}" is dropped in "{dbname}"')
 @then('table "{tablename}" is dropped in "{dbname}"')
+@given('table "{tablename}" is dropped in "{dbname}"')
 def impl(context, tablename, dbname):
     drop_table_if_exists(context, table_name=tablename, dbname=dbname)
 
@@ -4534,8 +4535,8 @@ def impl(context, user_table, catalog_table, primary_key, db_name):
             conn.commit()
 
 
-@when(
-    'the entry for the table "{user_table}" is removed from "{catalog_table}" with key "{primary_key}" in the database "{db_name}" on the first primary segment')
+@when('the entry for the table "{user_table}" is removed from "{catalog_table}" with key "{primary_key}" in the database "{db_name}" on the first primary segment')
+@given('the entry for the table "{user_table}" is removed from "{catalog_table}" with key "{primary_key}" in the database "{db_name}" on the first primary segment')
 def impl(context, user_table, catalog_table, primary_key, db_name):
     host, port = get_primary_segment_host_port()
     delete_qry = "delete from %s where %s='%s'::regclass::oid;" % (catalog_table, primary_key, user_table)
