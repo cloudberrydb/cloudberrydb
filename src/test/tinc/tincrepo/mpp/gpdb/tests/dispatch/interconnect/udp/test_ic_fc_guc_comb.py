@@ -19,8 +19,9 @@ import fnmatch
 import os
 import tinctest
 
-from tinctest.models.gpdb.sql import SQLTestCase
-from tinctest.lib import local_path, PSQL
+from mpp.models import SQLTestCase
+from tinctest.lib import local_path
+from mpp.lib.PSQL import PSQL
 
 '''
 UDP ic flow control sql tests
@@ -109,7 +110,7 @@ class UDPICFCTestCases(SQLTestCase):
         gucValue_recv = self.getGUCvalue(self.gp_interconnect_queue_depth)
         gucValue_snd = self.getGUCvalue(self.gp_interconnect_snd_queue_depth)
 
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
 	
         self.setGUCvalue(self.gp_interconnect_queue_depth, gucValue_recv)
@@ -132,7 +133,7 @@ class UDPICFCTestCases(SQLTestCase):
         gucValue_snd = self.getGUCvalue(self.gp_interconnect_snd_queue_depth)        
         gucValue_fc = self.getGUCvalue(self.gp_interconnect_fc_method)
  
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
 
         self.setGUCvalue(self.gp_interconnect_queue_depth, gucValue_recv)

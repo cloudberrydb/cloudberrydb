@@ -23,9 +23,9 @@ import re
 import sys
 import platform
 
-
-from tinctest.models.gpdb.sql import SQLTestCase
-from tinctest.lib import local_path, PSQL
+from mpp.models import SQLTestCase
+from tinctest.lib import local_path
+from mpp.lib.PSQL import PSQL
 from gppylib.commands.base import Command
 #from gppylib import gpversion
 
@@ -183,7 +183,7 @@ class UDPICShortReadTestCases(UDPICTestCases):
         except:
             self.skipTest("GUC " + self.gp_udpic_fault_inject_percent + " not defined")
 
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
         self.assertTrue(result)
 
@@ -208,7 +208,7 @@ class UDPICShortReadTestCases(UDPICTestCases):
 
     '''
     def test_short_read_regression(self):
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'),
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'),
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
         self.assertTrue(result)
     '''
@@ -241,7 +241,7 @@ class UDPICFullTestCases(UDPICTestCases):
         start_time = time.strftime('%I:%M:%S',time.localtime(time.time()))
         tinctest.logger.debug('start time:%s ' % start_time)
 
-        test_ret = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'),
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
 
         self.assertTrue(test_ret)
@@ -327,7 +327,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x101 seq_array=1 drop_times=1\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log' )
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -349,7 +349,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x101 seq_array=2 drop_times=1\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log' )
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -370,7 +370,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x101 seq_array=2 drop_times=3\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -390,7 +390,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x101 seq_array=1 drop_times=3\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -410,7 +410,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x101 seq_array=1,3,5,7,9,11 drop_times=1\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -430,7 +430,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x101 seq_array=2,4,6,8 drop_times=1\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -450,7 +450,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x101 seq_array=2,3,4,7,8 drop_times=1\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -470,7 +470,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x101 seq_array=2,3,4,7,8 drop_times=3\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -489,7 +489,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x101 seq_array=1,3,5,7,9,11 drop_times=3\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -510,7 +510,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x101 seq_array=2,4,6,8 drop_times=3\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -531,7 +531,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x101 percent=1000\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -551,7 +551,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x101 percent=5000\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -571,7 +571,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x101 percent=8000\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -592,7 +592,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x102 seq_array=1 drop_times=1\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -612,7 +612,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x102 seq_array=2 drop_times=1\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -633,7 +633,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x102 seq_array=2 drop_times=3\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -653,7 +653,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x102 seq_array=1 drop_times=3\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -673,7 +673,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x102 seq_array=2,3,4,7,8 drop_times=1\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -693,7 +693,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x102 seq_array=2,4,6,8 drop_times=1\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -713,7 +713,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x102 seq_array=2,3,4,7,8 drop_times=3\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -733,7 +733,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x102 seq_array=2,4,6,8 drop_times=3\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -754,7 +754,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x102 percent=1000\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -775,7 +775,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x102 percent=5000\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -795,7 +795,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x108 drop_times=1\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -815,7 +815,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x108 drop_times=3\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -835,7 +835,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x108 percent=5000\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -855,7 +855,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko drop_all=1 percent=1000\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -873,7 +873,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
             self.skipTest("GUC " + self.gp_interconnect_fc_method + " not defined")
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko drop_all=1 percent=2000\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -895,7 +895,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko drop_all=1 percent=3000\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -916,7 +916,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko drop_all=1 percent=5000\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -937,7 +937,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
                                                sudo rmmod ickm.ko\"')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko drop_all=1 percent=7000\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -950,7 +950,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
     def test_disorder_fuc_muti_5(self):
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x401 seq_array=3,5,7,9,11  timeout=5\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -962,7 +962,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
     def test_disorder_fuc_muti_10(self):
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x401 seq_array=2,4,6,8,12 timeout=10\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -974,7 +974,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
     def test_disorder_fuc_1_10(self):
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x401 seq_array=1 timeout=10\"') 
         self.assertTrue(result)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -989,7 +989,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x401 seq_array=3  timeout=5\"') 
         self.assertTrue(result)
         setGUC(local_path(self.common_sql + self.sql_prefix),gp_interconnect_queue_depth=2,gp_interconnect_snd_queue_depth=2)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -1005,7 +1005,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x401 seq_array=2  timeout=5\"') 
         self.assertTrue(result)
         setGUC(local_path(self.common_sql + self.sql_prefix),gp_interconnect_queue_depth=2,gp_interconnect_snd_queue_depth=2)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 
@@ -1021,7 +1021,7 @@ class UDPICPacketControlTestCases(UDPICTestCases):
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x401 seq_array=4  timeout=5\"') 
         self.assertTrue(result)
         setGUC(local_path(self.common_sql + self.sql_prefix),gp_interconnect_queue_depth=2,gp_interconnect_snd_queue_depth=2)
-        test_ret = self._run_test(local_path(self.common_sql + self.sql_prefix + '.sql'),
+        test_ret = self.run_sql_file(local_path(self.common_sql + self.sql_prefix + '.sql'),
                                 local_path(self.common_sql + self.sql_prefix + '.ans'))
         ret_log = runShellCommand(self.log_str + self._testMethodName + '.log')
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo rmmod ickm.ko \"') 

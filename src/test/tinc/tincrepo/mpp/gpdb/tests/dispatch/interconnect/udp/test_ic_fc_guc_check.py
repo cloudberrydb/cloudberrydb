@@ -20,8 +20,9 @@ import os
 import tinctest
 import platform
 
-from tinctest.models.gpdb.sql import SQLTestCase
-from tinctest.lib import local_path, PSQL
+from mpp.models import SQLTestCase
+from tinctest.lib import local_path
+from mpp.lib.PSQL import PSQL
 from test_udpic import runShellCommand
 
 '''
@@ -158,7 +159,7 @@ class UDPICFCTestCases(SQLTestCase):
         result = runShellCommand('gpssh' + self.hoststr +  ' \"export PATH=$PATH:/sbin;sudo insmod ickm.ko ict_type=0x101 seq_array=2 drop_times=5\"') 
         self.assertTrue(result)
         
-        sql_result = self._run_test(local_path(self.gucCheck_sql + str(self._testMethodName) + suffix +'.sql'), 
+        sql_result = self.run_sql_file(local_path(self.gucCheck_sql + str(self._testMethodName) + suffix +'.sql'), 
                                 local_path(self.gucCheck_sql + str(self._testMethodName) + suffix + '.ans'))
 
         result = runShellCommand('gpssh' + self.hoststr + ' \"sudo cat /proc/ickmlog \"' + '> ickm.log') 

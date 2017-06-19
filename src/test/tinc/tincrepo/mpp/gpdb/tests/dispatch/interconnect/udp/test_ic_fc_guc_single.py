@@ -19,8 +19,9 @@ import fnmatch
 import os
 import tinctest
 
-from tinctest.models.gpdb.sql import SQLTestCase
-from tinctest.lib import local_path, PSQL
+from mpp.models import SQLTestCase
+from tinctest.lib import local_path
+from mpp.lib.PSQL import PSQL
 
 '''
 UDP ic flow control sql tests
@@ -106,7 +107,7 @@ class UDPICFCTestCases(SQLTestCase):
 
         gucValue = self.getGUCvalue(self.gp_interconnect_queue_depth)
 
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
 
         self.setGUCvalue(self.gp_interconnect_queue_depth, gucValue)
@@ -121,7 +122,7 @@ class UDPICFCTestCases(SQLTestCase):
 
         gucValue = self.getGUCvalue(self.gp_interconnect_queue_depth)
 
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
 
         self.setGUCvalue(self.gp_interconnect_queue_depth, gucValue)
@@ -136,7 +137,7 @@ class UDPICFCTestCases(SQLTestCase):
         
         gucValue = self.getGUCvalue(self.gp_interconnect_snd_queue_depth)
         
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
         
         self.setGUCvalue(self.gp_interconnect_snd_queue_depth, gucValue)
@@ -152,7 +153,7 @@ class UDPICFCTestCases(SQLTestCase):
 
         gucValue = self.getGUCvalue(self.gp_interconnect_snd_queue_depth)
 
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'),
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'),
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
 
         self.setGUCvalue(self.gp_interconnect_snd_queue_depth, gucValue)
@@ -168,7 +169,7 @@ class UDPICFCTestCases(SQLTestCase):
 
         gucValue = self.getGUCvalue(self.gp_interconnect_min_retries_before_timeout)        
 
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
 
         self.setGUCvalue(self.gp_interconnect_min_retries_before_timeout, gucValue)        
@@ -184,7 +185,7 @@ class UDPICFCTestCases(SQLTestCase):
         
         gucValue = self.getGUCvalue(self.gp_interconnect_transmit_timeout)
 
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
 
         self.setGUCvalue(self.gp_interconnect_transmit_timeout, gucValue[:-1])
@@ -200,7 +201,7 @@ class UDPICFCTestCases(SQLTestCase):
 
         gucValue = self.getGUCvalue(self.gp_interconnect_cache_future_packets)
 
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
 
         self.setGUCvalue(self.gp_interconnect_cache_future_packets, gucValue)
@@ -216,7 +217,7 @@ class UDPICFCTestCases(SQLTestCase):
 
         gucValue = self.getGUCvalue(self.gp_interconnect_default_rtt)
 
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
 
         self.setGUCvalue(self.gp_interconnect_default_rtt, gucValue[:-2])
@@ -232,7 +233,7 @@ class UDPICFCTestCases(SQLTestCase):
 
         gucValue = self.getGUCvalue(self.gp_interconnect_fc_method)
         
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
         
         self.setGUCvalue(self.gp_interconnect_fc_method, gucValue)
@@ -248,7 +249,7 @@ class UDPICFCTestCases(SQLTestCase):
 
         gucValue = self.getGUCvalue(self.gp_interconnect_hash_multiplier)
 
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
 
         self.setGUCvalue(self.gp_interconnect_hash_multiplier, gucValue)
@@ -264,7 +265,7 @@ class UDPICFCTestCases(SQLTestCase):
         
         gucValue = self.getGUCvalue(self.gp_interconnect_min_rto)
     
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
         
         self.setGUCvalue(self.gp_interconnect_min_rto, gucValue[:-2])
@@ -280,7 +281,7 @@ class UDPICFCTestCases(SQLTestCase):
 
         gucValue = self.getGUCvalue(self.gp_interconnect_timer_checking_period)
         
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
 
         self.setGUCvalue(self.gp_interconnect_timer_checking_period, gucValue[:-2])
@@ -296,7 +297,7 @@ class UDPICFCTestCases(SQLTestCase):
 
         gucValue = self.getGUCvalue(self.gp_interconnect_timer_period)
 
-        result = self._run_test(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
+        result = self.run_sql_file(local_path(self.common_sql + str(self._testMethodName) + '.sql'), 
                                 local_path(self.common_sql + str(self._testMethodName) + '.ans'))
         
         self.setGUCvalue(self.gp_interconnect_timer_period, gucValue[:-2])

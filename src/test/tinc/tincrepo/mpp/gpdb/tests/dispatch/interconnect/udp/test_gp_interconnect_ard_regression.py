@@ -23,8 +23,9 @@ import time
 import subprocess
 import platform
 
-from tinctest.models.gpdb.sql import SQLTestCase
-from tinctest.lib import local_path, PSQL
+from mpp.models import SQLTestCase
+from tinctest.lib import local_path
+from mpp.lib.PSQL import PSQL
 from gppylib.commands.base import Command
 
 '''
