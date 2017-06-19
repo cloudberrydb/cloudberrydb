@@ -120,6 +120,7 @@
 #include "unittest/gpopt/xforms/CXformFactoryTest.h"
 
 #include "unittest/dxl/statistics/CStatisticsTest.h"
+#include "unittest/dxl/statistics/CJoinCardinalityTest.h"
 #include "unittest/gpopt/cost/CCostTest.h"
 
 using namespace gpos;
@@ -163,6 +164,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CParseHandlerManagerTest),
 	GPOS_UNITTEST_STD(CParseHandlerTest),
 	GPOS_UNITTEST_STD(CStatisticsTest),
+	GPOS_UNITTEST_STD(CJoinCardinalityTest),
 	GPOS_UNITTEST_STD(CTranslatorDXLToExprTest),
 	GPOS_UNITTEST_STD(CTranslatorExprToDXLTest),
 	GPOS_UNITTEST_STD(CXMLSerializerTest),

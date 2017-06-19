@@ -21,6 +21,7 @@
 #include "naucrates/statistics/CStatistics.h"
 #include "naucrates/statistics/CStatisticsUtils.h"
 #include "naucrates/statistics/CScaleFactorUtils.h"
+#include "naucrates/statistics/CHistogramUtils.h"
 
 #include "gpopt/base/CColRef.h"
 
@@ -49,14 +50,7 @@ const CDouble CHistogram::DDefaultNDVFreqRemain(0.0);
 // sample size used to estimate skew
 #define GPOPT_SKEW_SAMPLE_SIZE 1000
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::CHistogram
-//
-//	@doc:
-//		Ctor
-//
-//---------------------------------------------------------------------------
+// ctor
 CHistogram::CHistogram
 	(
 	DrgPbucket *pdrgppbucket,
@@ -76,14 +70,7 @@ CHistogram::CHistogram
 	GPOS_ASSERT(NULL != pdrgppbucket);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::CHistogram
-//
-//	@doc:
-//		Ctor
-//
-//---------------------------------------------------------------------------
+// ctor
 CHistogram::CHistogram
 	(
 	DrgPbucket *pdrgppbucket,
@@ -114,15 +101,7 @@ CHistogram::CHistogram
 	GPOS_ASSERT_IMP(dDistinctRemain < CStatistics::DEpsilon, dFreqRemain < CStatistics::DEpsilon);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::SetNullFrequency
-//
-//	@doc:
-//		Set histograms null frequency
-//
-//---------------------------------------------------------------------------
+// set histograms null frequency
 void
 CHistogram::SetNullFrequency
 	(
@@ -133,15 +112,7 @@ CHistogram::SetNullFrequency
 	m_dNullFreq = dNullFreq;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::OsPrint
-//
-//	@doc:
-//		Print function
-//
-//---------------------------------------------------------------------------
+//	print function
 IOstream&
 CHistogram::OsPrint
 	(
@@ -180,14 +151,7 @@ CHistogram::OsPrint
 	return os;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::FEmpty
-//
-//	@doc:
-//		Check if histogram is empty
-//
-//---------------------------------------------------------------------------
+// check if histogram is empty
 BOOL
 CHistogram::FEmpty
 	()
@@ -196,14 +160,7 @@ CHistogram::FEmpty
 	return (0 == m_pdrgppbucket->UlLength() && CStatistics::DEpsilon > m_dNullFreq && CStatistics::DEpsilon > m_dDistinctRemain);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistLessThanOrLessThanEqual
-//
-//	@doc:
-//		Construct new histogram with less than or less than equal to filter
-//
-//---------------------------------------------------------------------------
+// construct new histogram with less than or less than equal to filter
 CHistogram *
 CHistogram::PhistLessThanOrLessThanEqual
 	(
@@ -259,15 +216,7 @@ CHistogram::PhistLessThanOrLessThanEqual
 					);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PdrgppbucketNEqual
-//
-//	@doc:
-//		Return an array buckets after applying non equality filter on the histogram buckets
-//
-//---------------------------------------------------------------------------
+// return an array buckets after applying non equality filter on the histogram buckets
 DrgPbucket *
 CHistogram::PdrgppbucketNEqual
 	(
@@ -307,15 +256,7 @@ CHistogram::PdrgppbucketNEqual
 	return pdrgppbucketNew;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistNEqual
-//
-//	@doc:
-//		Construct new histogram with not equal filter
-//
-//---------------------------------------------------------------------------
+// construct new histogram with not equal filter
 CHistogram *
 CHistogram::PhistNEqual
 	(
@@ -332,15 +273,7 @@ CHistogram::PhistNEqual
 	return GPOS_NEW(pmp) CHistogram(pdrgppbucket, true /*fWellDefined*/, dNullFreq, m_dDistinctRemain, m_dFreqRemain);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistNEqual
-//
-//	@doc:
-//		Construct new histogram with IDF filter
-//
-//---------------------------------------------------------------------------
+// construct new histogram with IDF filter
 CHistogram *
 CHistogram::PhistIDF
 	(
@@ -362,15 +295,7 @@ CHistogram::PhistIDF
 	return GPOS_NEW(pmp) CHistogram(pdrgppbucket, true /*fWellDefined*/, dNullFreq, m_dDistinctRemain, m_dFreqRemain);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PdrgppbucketEqual
-//
-//	@doc:
-//		Return an array buckets after applying equality filter on the histogram buckets
-//
-//---------------------------------------------------------------------------
+// return an array buckets after applying equality filter on the histogram buckets
 DrgPbucket *
 CHistogram::PdrgppbucketEqual
 	(
@@ -415,15 +340,7 @@ CHistogram::PdrgppbucketEqual
 	return pdrgppbucket;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistEqual
-//
-//	@doc:
-//		Construct new histogram with equality filter
-//
-//---------------------------------------------------------------------------
+// construct new histogram with equality filter
 CHistogram *
 CHistogram::PhistEqual
 	(
@@ -463,15 +380,7 @@ CHistogram::PhistEqual
 	return GPOS_NEW(pmp) CHistogram(pdrgppbucket);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistINDF
-//
-//	@doc:
-//		Construct new histogram with INDF filter
-//
-//---------------------------------------------------------------------------
+// construct new histogram with INDF filter
 CHistogram *
 CHistogram::PhistINDF
 	(
@@ -514,15 +423,7 @@ CHistogram::PhistINDF
 					);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistGreaterThanOrGreaterThanEqual
-//
-//	@doc:
-//		Construct new histogram with greater than or greater than equal filter
-//
-//---------------------------------------------------------------------------
+// construct new histogram with greater than or greater than equal filter
 CHistogram *
 CHistogram::PhistGreaterThanOrGreaterThanEqual
 	(
@@ -592,15 +493,7 @@ CHistogram::PhistGreaterThanOrGreaterThanEqual
 					);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::DFrequency
-//
-//	@doc:
-//		Sum of frequencies from buckets.
-//
-//---------------------------------------------------------------------------
+// sum of frequencies from buckets.
 CDouble
 CHistogram::DFrequency
 	()
@@ -622,15 +515,7 @@ CHistogram::DFrequency
 	return dFrequency + m_dFreqRemain;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::DDistinct
-//
-//	@doc:
-//		Sum of number of distinct values from buckets
-//
-//---------------------------------------------------------------------------
+// sum of number of distinct values from buckets
 CDouble
 CHistogram::DDistinct
 	()
@@ -652,15 +537,7 @@ CHistogram::DDistinct
 	return dDistinct + dDistinctNull + m_dDistinctRemain;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::CapNDVs
-//
-//	@doc:
-//		Cap the total number of distinct values (NDVs) in buckets to the number of rows
-//
-//---------------------------------------------------------------------------
+// cap the total number of distinct values (NDVs) in buckets to the number of rows
 void
 CHistogram::CapNDVs
 	(
@@ -688,15 +565,7 @@ CHistogram::CapNDVs
 	m_dDistinctRemain = m_dDistinctRemain * dScaleRatio;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::FNormalized
-//
-//	@doc:
-//		Sum of frequencies is approx 1.0
-//
-//---------------------------------------------------------------------------
+// sum of frequencies is approx 1.0
 BOOL
 CHistogram::FNormalized
 	()
@@ -708,17 +577,10 @@ CHistogram::FNormalized
 			&& dFrequency < CDouble(1.0) + CStatistics::DEpsilon);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::FValid
-//
-//	@doc:
-//		Is histogram well formed? Checks are:
+//	check if histogram is well formed? Checks are:
 //		1. Buckets should be in order (if applicable)
 //		2. Buckets should not overlap
 //		3. Frequencies should add up to less than 1.0
-//
-//---------------------------------------------------------------------------
 BOOL
 CHistogram::FValid
 	()
@@ -746,15 +608,7 @@ CHistogram::FValid
 	return true;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistFilterNormalized
-//
-//	@doc:
-//		Construct new histogram with filter and normalize
-//		output histogram
-//
-//---------------------------------------------------------------------------
+// construct new histogram with filter and normalize output histogram
 CHistogram *
 CHistogram::PhistFilterNormalized
 	(
@@ -780,16 +634,9 @@ CHistogram::PhistFilterNormalized
 	return phistAfter;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistJoinNormalized
-//
-//	@doc:
-//		Construct new histogram by joining with another and normalize
-//		output histogram. If the join is not an equality join the function
-//		returns an empty histogram
-//
-//---------------------------------------------------------------------------
+// construct new histogram by joining with another and normalize
+// output histogram. If the join is not an equality join the function
+// returns an empty histogram
 CHistogram *
 CHistogram::PhistJoinNormalized
 	(
@@ -865,15 +712,7 @@ CHistogram::PhistJoinNormalized
 	return phistAfter;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::DInEqualityJoinScaleFactor
-//
-//	@doc:
-//		Scalar factor of inequality (!=) join condition
-//
-//---------------------------------------------------------------------------
+// scalar factor of inequality (!=) join condition
 CDouble
 CHistogram::DInEqualityJoinScaleFactor
 	(
@@ -916,16 +755,8 @@ CHistogram::DInEqualityJoinScaleFactor
 	return dScaleFactor;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistLASJoinNormalized
-//
-//	@doc:
-//		Construct new histogram by left anti semi join with another and normalize
-//		output histogram
-//
-//---------------------------------------------------------------------------
+// construct new histogram by left anti semi join with another and normalize
+// output histogram
 CHistogram *
 CHistogram::PhistLASJoinNormalized
 	(
@@ -974,15 +805,7 @@ CHistogram::PhistLASJoinNormalized
 	return phistAfter;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistFilter
-//
-//	@doc:
-//		Construct new histogram after applying the filter (no normalization)
-//
-//---------------------------------------------------------------------------
+// construct new histogram after applying the filter (no normalization)
 CHistogram *
 CHistogram::PhistFilter
 	(
@@ -1038,15 +861,7 @@ CHistogram::PhistFilter
 	return phistAfter;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistJoin
-//
-//	@doc:
-//		Construct new histogram by joining with another histogram, no normalization
-//
-//---------------------------------------------------------------------------
+// construct new histogram by joining with another histogram, no normalization
 CHistogram *
 CHistogram::PhistJoin
 	(
@@ -1072,14 +887,7 @@ CHistogram::PhistJoin
 	return  GPOS_NEW(pmp) CHistogram( GPOS_NEW(pmp) DrgPbucket(pmp), false /* fWellDefined */);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistLASJ
-//
-//	@doc:
-//		Construct new histogram by LASJ with another histogram, no normalization
-//
-//---------------------------------------------------------------------------
+// construct new histogram by LASJ with another histogram, no normalization
 CHistogram *
 CHistogram::PhistLASJ
 	(
@@ -1170,17 +978,8 @@ CHistogram::PhistLASJ
 	return GPOS_NEW(pmp) CHistogram(pdrgppbucketNew, true /*fWellDefined*/, dNullFreq, m_dDistinctRemain, m_dFreqRemain);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::DNormalize
-//
-//	@doc:
-//		Scales frequencies on histogram so that they add up to 1.0.
-//		Returns the scaling factor that was employed. Should not be
-//		called on empty histogram.
-//
-//---------------------------------------------------------------------------
+// scales frequencies on histogram so that they add up to 1.0.
+// Returns the scaling factor that was employed. Should not be called on empty histogram.
 CDouble
 CHistogram::DNormalize()
 {
@@ -1210,14 +1009,7 @@ CHistogram::DNormalize()
 	return dScaleFactor;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistCopy
-//
-//	@doc:
-//		Deep copy of histogram
-//
-//---------------------------------------------------------------------------
+// deep copy of histogram
 CHistogram *
 CHistogram::PhistCopy
 	(
@@ -1241,15 +1033,7 @@ CHistogram::PhistCopy
 	return phistCopy;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::FSupportsFilter
-//
-//	@doc:
-//		Is statistics comparison type supported for filter?
-//
-//---------------------------------------------------------------------------
+// is statistics comparison type supported for filter?
 BOOL
 CHistogram::FSupportsFilter
 	(
@@ -1273,15 +1057,7 @@ CHistogram::FSupportsFilter
 	}
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::FSupportsJoin
-//
-//	@doc:
-//		Is comparison type supported for join?
-//
-//---------------------------------------------------------------------------
+// is comparison type supported for join?
 BOOL
 CHistogram::FSupportsJoin
 	(
@@ -1291,15 +1067,7 @@ CHistogram::FSupportsJoin
 	return (CStatsPred::EstatscmptOther != escmpt);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistJoinEquality
-//
-//	@doc:
-//		Construct a new histogram with equality join
-//
-//---------------------------------------------------------------------------
+// construct a new histogram with equality join
 CHistogram *
 CHistogram::PhistJoinEquality
 	(
@@ -1317,6 +1085,61 @@ CHistogram::PhistJoinEquality
 
 	CDouble dFreqJoinBuckets1(0.0);
 	CDouble dFreqJoinBuckets2(0.0);
+
+	CDouble dDistinctRemain(0.0);
+	CDouble dFreqRemain(0.0);
+
+	BOOL fNDVBasedJoinCardEstimation1 = CHistogramUtils::FNDVBasedCardEstimation(this);
+	BOOL fNDVBasedJoinCardEstimation2 = CHistogramUtils::FNDVBasedCardEstimation(phist);
+
+	if (fNDVBasedJoinCardEstimation1 || fNDVBasedJoinCardEstimation2)
+	{
+		// compute the number of non-null distinct values in the input histograms
+		CDouble dNDV1 = this->DDistinct();
+		CDouble dFreqRemain1 = this->DFrequency();
+		CDouble dNullFreq1 = this->DNullFreq();
+		if (CStatistics::DEpsilon < dNullFreq1)
+		{
+			dNDV1 = std::max(CDouble(0.0), (dNDV1 - 1.0));
+			dFreqRemain1 = dFreqRemain1 - dNullFreq1;
+		}
+
+		CDouble dNDV2 = phist->DDistinct();
+		CDouble dFreqRemain2 = phist->DFrequency();
+		CDouble dNullFreq2 = phist->DNullFreq();
+		if (CStatistics::DEpsilon < phist->DNullFreq())
+		{
+			dNDV2 = std::max(CDouble(0.0), (dNDV2 - 1.0));
+			dFreqRemain2 = dFreqRemain2 - dNullFreq2;
+		}
+
+		// the estimated number of distinct value is the minimum of the non-null
+		// distinct values of the two inputs.
+		dDistinctRemain = std::min(dNDV1, dNDV2);
+
+		// the frequency of a tuple in this histogram (with frequency dFreqRemain1) joining with
+		// a tuple in another relation (with frequency dFreqRemain2) is a product of the two frequencies divided by
+		// the maximum NDV of the two inputs
+
+		// Example: consider two relations A and B with 10 tuples each. Let both relations have no nulls.
+		// Let A have 2 distinct values, while B have 5 distinct values. Under uniform distribution of NDVs
+		// for statistics purposes we can view A = (1,2,1,2,1,2,1,2,1,2) and B = (1,2,3,4,5,1,2,3,4,5)
+		// Join Cardinality is 20, with frequency of the join tuple being 0.2 (since cartesian product is 100).
+		// dFreqRemain1 = dFreqRemain2 = 1, and std::max(dNDV1, dNDV2) = 5. Therefore dFreqRemain = 1/5 = 0.2
+		if (CStatistics::DEpsilon < dDistinctRemain)
+		{
+			dFreqRemain = dFreqRemain1 * dFreqRemain2 / std::max(dNDV1, dNDV2);
+		}
+
+		return GPOS_NEW(pmp) CHistogram
+								(
+								pdrgppbucketJoin,
+								true /*fWellDefined*/,
+								0.0 /*dNullFreq*/,
+								dDistinctRemain,
+								dFreqRemain
+								);
+	}
 
 	while (ul1 < ulBuckets1 && ul2 < ulBuckets2)
 	{
@@ -1363,9 +1186,6 @@ CHistogram::PhistJoinEquality
 		}
 	}
 
-	CDouble dDistinctRemain = 0.0;
-	CDouble dFreqRemain = 0.0;
-
 	ComputeJoinNDVRemainInfo
 		(
 		this,
@@ -1380,15 +1200,7 @@ CHistogram::PhistJoinEquality
 	return GPOS_NEW(pmp) CHistogram(pdrgppbucketJoin, true /*fWellDefined*/, 0.0 /*dNullFreq*/, dDistinctRemain, dFreqRemain);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistJoinINDF
-//
-//	@doc:
-//		Construct a new histogram for an INDF join predicate
-//
-//---------------------------------------------------------------------------
+// construct a new histogram for an INDF join predicate
 CHistogram *
 CHistogram::PhistJoinINDF
 	(
@@ -1408,16 +1220,7 @@ CHistogram::PhistJoinINDF
 	return phistJoin;
 }
 
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::FCanComputeJoinNDVRemain
-//
-//	@doc:
-//		Check if we can compute NDVRemain for JOIN histogram for the given
-//		input histograms
-//---------------------------------------------------------------------------
+// check if we can compute NDVRemain for JOIN histogram for the given input histograms
 BOOL
 CHistogram::FCanComputeJoinNDVRemain
 	(
@@ -1451,15 +1254,7 @@ CHistogram::FCanComputeJoinNDVRemain
 	return false;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::ComputeJoinNDVRemainInfo
-//
-//	@doc:
-//		Compute the effects of the NDV and frequency of the tuples not captured
-//		by the histogram
-//---------------------------------------------------------------------------
+// compute the effects of the NDV and frequency of the tuples not captured by the histogram
 void
 CHistogram::ComputeJoinNDVRemainInfo
 	(
@@ -1542,16 +1337,7 @@ CHistogram::ComputeJoinNDVRemainInfo
 	*pdFreqRemain = dFreqJoinRemain;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistGroupByNormalized
-//
-//	@doc:
-//		Construct new histogram by removing dups and normalize
-//		output histogram
-//
-//---------------------------------------------------------------------------
+// construct new histogram by removing duplicates and normalize output histogram
 CHistogram *
 CHistogram::PhistGroupByNormalized
 	(
@@ -1621,14 +1407,7 @@ CHistogram::PhistGroupByNormalized
 	return phistAfter;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistUnionAllNormalized
-//
-//	@doc:
-//		Construct new histogram based on union all operation
-//
-//---------------------------------------------------------------------------
+// construct new histogram based on union all operation
 CHistogram *
 CHistogram::PhistUnionAllNormalized
 	(
@@ -1714,14 +1493,7 @@ CHistogram::PhistUnionAllNormalized
 	return phistResult;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::UlAddResidualUnionAllBucket
-//
-//	@doc:
-//		Add residual bucket in the union all operation to the array of
-//		buckets in the histogram
-//---------------------------------------------------------------------------
+// add residual bucket in the union all operation to the array of buckets in the histogram
 ULONG
 CHistogram::UlAddResidualUnionAllBucket
 	(
@@ -1746,14 +1518,7 @@ CHistogram::UlAddResidualUnionAllBucket
 	return ulIndex;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::AddBuckets
-//
-//	@doc:
-//		Add buckets from one array to another
-//
-//---------------------------------------------------------------------------
+// add buckets from one array to another
 void
 CHistogram::AddBuckets
 	(
@@ -1777,14 +1542,7 @@ CHistogram::AddBuckets
 	}
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::CleanupResidualBucket
-//
-//	@doc:
-//		Cleanup residual buckets
-//
-//---------------------------------------------------------------------------
+// cleanup residual buckets
 void
 CHistogram::CleanupResidualBucket
 	(
@@ -1800,14 +1558,7 @@ CHistogram::CleanupResidualBucket
 	}
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PbucketNext
-//
-//	@doc:
-//		Get the next bucket for union / union all
-//
-//---------------------------------------------------------------------------
+// get the next bucket for union / union all
 CBucket *
 CHistogram::PbucketNext
 	(
@@ -1831,13 +1582,7 @@ CHistogram::PbucketNext
 	return (*phist) [*pulBucketIndex];
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistUnionNormalized
-//
-//	@doc:
-//		Construct new histogram based on union operation
-//---------------------------------------------------------------------------
+//	construct new histogram based on union operation
 CHistogram *
 CHistogram::PhistUnionNormalized
 	(
@@ -1962,14 +1707,7 @@ CHistogram::PhistUnionNormalized
 	return phistResult;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistUpdatedFrequency
-//
-//	@doc:
-//		Create a new histogram with updated bucket frequency
-//
-//---------------------------------------------------------------------------
+// create a new histogram with updated bucket frequency
 CHistogram *
 CHistogram::PhistUpdatedFrequency
 	(
@@ -2037,14 +1775,7 @@ CHistogram::PhistUpdatedFrequency
 							);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::UlAddResidualUnionBucket
-//
-//	@doc:
-//		Add residual bucket in an union operation to the array of buckets
-//		in the histogram
-//---------------------------------------------------------------------------
+// add residual bucket in an union operation to the array of buckets in the histogram
 ULONG
 CHistogram::UlAddResidualUnionBucket
 	(
@@ -2073,14 +1804,7 @@ CHistogram::UlAddResidualUnionBucket
 	return ulIndex + 1;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::AddBuckets
-//
-//	@doc:
-//		Add buckets from one array to another
-//
-//---------------------------------------------------------------------------
+// add buckets from one array to another
 void
 CHistogram::AddBuckets
 	(
@@ -2106,14 +1830,7 @@ CHistogram::AddBuckets
 	}
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::operator []
-//
-//	@doc:
-//		Accessor for n-th bucket. Returns NULL if outside bounds
-//
-//---------------------------------------------------------------------------
+// accessor for n-th bucket. Returns NULL if outside bounds
 CBucket *
 CHistogram::operator []
 	(
@@ -2128,14 +1845,7 @@ CHistogram::operator []
 	return NULL;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::Pdxlstatsdercol
-//
-//	@doc:
-//		Translate the histogram into a the dxl derived column statistics
-//
-//---------------------------------------------------------------------------
+// translate the histogram into a the dxl derived column statistics
 CDXLStatsDerivedColumn *
 CHistogram::Pdxlstatsdercol
 	(
@@ -2175,15 +1885,7 @@ CHistogram::Pdxlstatsdercol
 	return GPOS_NEW(pmp) CDXLStatsDerivedColumn(ulColId, dWidth, m_dNullFreq, m_dDistinctRemain, m_dFreqRemain, pdrgpdxlbucket);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::UlRandomBucketIndex
-//
-//	@doc:
-//		Randomly pick a bucket index based on bucket frequency values
-//
-//---------------------------------------------------------------------------
+// randomly pick a bucket index based on bucket frequency values
 ULONG
 CHistogram::UlRandomBucketIndex
 	(
@@ -2217,26 +1919,16 @@ CHistogram::UlRandomBucketIndex
 	return ulSize - 1;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::ComputeSkew
+// estimate data skew by sampling histogram buckets,
+// the estimate value is >= 1.0, where 1.0 indicates no skew
 //
-//	@doc:
-//		Estimate data skew by sampling histogram buckets,
-//		the estimate value is >= 1.0, where 1.0 indicates no skew
+// skew is estimated by computing the second and third moments of
+// sample distribution: for a sample of size n, where x_bar is sample mean,
+// skew is estimated as (m_3/m_2^(1.5)), where m_2 = 1/n Sum ((x -x_bar)^2), and
+// m_3 = 1/n Sum ((x -x_bar)^3)
 //
-//		skew is estimated by computing the second and third moments of
-//		sample distribution: for a sample of size n, where x_bar is sample
-//		mean, skew is estimated as (m_3/m_2^(1.5)),
-//		where m_2 = 1/n Sum ((x -x_bar)^2), and
-//		m_3 = 1/n Sum ((x -x_bar)^3)
-//
-//		since we use skew as multiplicative factor in cost model, this function
-//		returns (1.0 + |skew estimate|)
-//
-//
-//---------------------------------------------------------------------------
+// since we use skew as multiplicative factor in cost model, this function
+// returns (1.0 + |skew estimate|)
 void
 CHistogram::ComputeSkew()
 {
@@ -2279,15 +1971,7 @@ CHistogram::ComputeSkew()
 	m_dSkew =  CDouble(1.0 + fabs(dm3 / pow(dm2, 1.5)));
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistDefault
-//
-//	@doc:
-//		Create the default histogram for a given column reference
-//
-//---------------------------------------------------------------------------
+// create the default histogram for a given column reference
 CHistogram *
 CHistogram::PhistDefault
 	(
@@ -2307,14 +1991,7 @@ CHistogram::PhistDefault
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CHistogram::PhistDefaultBoolColStats
-//
-//	@doc:
-//		Create the default non-empty histogram for a boolean column
-//
-//---------------------------------------------------------------------------
+// create the default non-empty histogram for a boolean column
 CHistogram *
 CHistogram::PhistDefaultBoolColStats
 	(

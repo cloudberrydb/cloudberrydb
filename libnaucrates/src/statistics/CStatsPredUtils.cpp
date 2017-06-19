@@ -1035,7 +1035,7 @@ CStatsPredUtils::PstatspredBoolean
 //		Helper function to extract the statistics join filter from a given join predicate
 //
 //---------------------------------------------------------------------------
-CStatisticsJoin *
+CStatsPredJoin *
 CStatsPredUtils::PstatsjoinExtract
 	(
 	IMemoryPool *pmp,
@@ -1078,10 +1078,10 @@ CStatsPredUtils::PstatsjoinExtract
 		{
 			if (ulIndexLeft < ulIndexRight)
 			{
-				return GPOS_NEW(pmp) CStatisticsJoin(pcrLeft->UlId(), escmpt, pcrRight->UlId());
+				return GPOS_NEW(pmp) CStatsPredJoin(pcrLeft->UlId(), escmpt, pcrRight->UlId());
 			}
 
-			return GPOS_NEW(pmp) CStatisticsJoin(pcrRight->UlId(), escmpt, pcrLeft->UlId());
+			return GPOS_NEW(pmp) CStatsPredJoin(pcrRight->UlId(), escmpt, pcrLeft->UlId());
 		}
 	}
 
@@ -1098,15 +1098,15 @@ CStatsPredUtils::PstatsjoinExtract
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CStatsPredUtils::PdrgpstatsjoinExtract
+//		CStatsPredUtils::PdrgpstatspredjoinExtract
 //
 //	@doc:
 //		Helper function to extract array of statistics join filter
 //		from an array of join predicates
 //
 //---------------------------------------------------------------------------
-DrgPstatsjoin *
-CStatsPredUtils::PdrgpstatsjoinExtract
+DrgPstatspredjoin *
+CStatsPredUtils::PdrgpstatspredjoinExtract
 	(
 	IMemoryPool *pmp,
 	CExpression *pexprScalar,
@@ -1118,7 +1118,7 @@ CStatsPredUtils::PdrgpstatsjoinExtract
 	GPOS_ASSERT(NULL != pexprScalar);
 	GPOS_ASSERT(NULL != pdrgpcrsOutput);
 
-	DrgPstatsjoin *pdrgpstatsjoin = GPOS_NEW(pmp) DrgPstatsjoin(pmp);
+	DrgPstatspredjoin *pdrgpstatspredjoin = GPOS_NEW(pmp) DrgPstatspredjoin(pmp);
 
 	DrgPexpr *pdrgpexprUnsupported = GPOS_NEW(pmp) DrgPexpr(pmp);
 
@@ -1128,7 +1128,7 @@ CStatsPredUtils::PdrgpstatsjoinExtract
 	for (ULONG ul = 0; ul < ulSize; ul++)
 	{
 		CExpression *pexprPred = (*pdrgpexprConjuncts) [ul];
-		CStatisticsJoin *pstatsjoin = PstatsjoinExtract
+		CStatsPredJoin *pstatsjoin = PstatsjoinExtract
 										(
 										pmp,
 										pexprPred,
@@ -1138,7 +1138,7 @@ CStatsPredUtils::PdrgpstatsjoinExtract
 										);
 		if (NULL != pstatsjoin)
 		{
-			pdrgpstatsjoin->Append(pstatsjoin);
+			pdrgpstatspredjoin->Append(pstatsjoin);
 		}
 	}
 
@@ -1159,20 +1159,20 @@ CStatsPredUtils::PdrgpstatsjoinExtract
 	pdrgpexprUnsupported->Release();
 	pdrgpexprConjuncts->Release();
 
-	return pdrgpstatsjoin;
+	return pdrgpstatspredjoin;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CStatsPredUtils::Pdrgpstatsjoin
+//		CStatsPredUtils::Pdrgpstatspredjoin
 //
 //	@doc:
 //		Helper function to extract array of statistics join filter from
 //		an expression
 //---------------------------------------------------------------------------
-DrgPstatsjoin *
-CStatsPredUtils::Pdrgpstatsjoin
+DrgPstatspredjoin *
+CStatsPredUtils::Pdrgpstatspredjoin
 	(
 	IMemoryPool *pmp,
 	CExpressionHandle &exprhdl,
@@ -1188,7 +1188,7 @@ CStatsPredUtils::Pdrgpstatsjoin
 
 	// extract all the conjuncts
 	CStatsPred *pstatspredUnsupported = NULL;
-	DrgPstatsjoin *pdrgpstatsjoin = PdrgpstatsjoinExtract
+	DrgPstatspredjoin *pdrgpstatspredjoin = PdrgpstatspredjoinExtract
 										(
 										pmp,
 										pexprScalar,
@@ -1202,20 +1202,20 @@ CStatsPredUtils::Pdrgpstatsjoin
 	CRefCount::SafeRelease(pstatspredUnsupported);
 	pexprScalar->Release();
 
-	return pdrgpstatsjoin;
+	return pdrgpstatspredjoin;
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CStatsPredUtils::Pdrgpstatsjoin
+//		CStatsPredUtils::Pdrgpstatspredjoin
 //
 //	@doc:
 //		Extract statistics join information
 //
 //---------------------------------------------------------------------------
-DrgPstatsjoin *
-CStatsPredUtils::Pdrgpstatsjoin
+DrgPstatspredjoin *
+CStatsPredUtils::Pdrgpstatspredjoin
 	(
 	IMemoryPool *pmp,
 	CExpressionHandle &exprhdl
@@ -1224,7 +1224,7 @@ CStatsPredUtils::Pdrgpstatsjoin
 	// in case of subquery in join predicate, we return empty stats
 	if (exprhdl.Pdpscalar(exprhdl.UlArity() - 1)->FHasSubquery())
 	{
-		return GPOS_NEW(pmp) DrgPstatsjoin(pmp);
+		return GPOS_NEW(pmp) DrgPstatspredjoin(pmp);
 	}
 
 	DrgPcrs *pdrgpcrsOutput = GPOS_NEW(pmp) DrgPcrs(pmp);
@@ -1240,7 +1240,7 @@ CStatsPredUtils::Pdrgpstatsjoin
 	CExpression *pexprScalar = exprhdl.PexprScalarChild(exprhdl.UlArity() - 1);
 	CColRefSet *pcrsOuterRefs = exprhdl.Pdprel()->PcrsOuter();
 
-	DrgPstatsjoin *pdrgpstats = Pdrgpstatsjoin(pmp, exprhdl, pexprScalar, pdrgpcrsOutput, pcrsOuterRefs);
+	DrgPstatspredjoin *pdrgpstats = Pdrgpstatspredjoin(pmp, exprhdl, pexprScalar, pdrgpcrsOutput, pcrsOuterRefs);
 
 	// clean up
 	pdrgpcrsOutput->Release();

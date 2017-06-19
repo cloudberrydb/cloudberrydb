@@ -42,9 +42,6 @@ namespace gpnaucrates
 	class CStatisticsTest
 	{
 
-		// shorthand for functions for generating the join predicates
-		typedef DrgPstatsjoin *(FnPdrgpstatjoin)(IMemoryPool *pmp);
-
 		// shorthand for functions for generating the disjunctive filter predicates
 		typedef CStatsPred *(FnPstatspredDisj)(IMemoryPool *pmp);
 
@@ -110,61 +107,6 @@ namespace gpnaucrates
 
 			}; // SBucketsIntersectTestElem
 
-			// test case for join evaluation
-			struct SStatsJoinSTestCase
-			{
-				// input stats dxl file
-				const CHAR *m_szInputFile;
-
-				// output stats dxl file
-				const CHAR *m_szOutputFile;
-
-				// is the join a left outer join
-				BOOL m_fLeftOuterJoin;
-
-				// join predicate generation function pointer
-				FnPdrgpstatjoin *m_pf;
-			}; // SStatsJoinSTestCase
-
-			// int4 histogram test cases
-			struct SHistogramTestCase
-			{
-				// number of buckets in the histogram
-				ULONG m_ulBuckets;
-
-				// number of distinct values per bucket
-				CDouble m_dNDVPerBucket;
-
-				// percentage of tuples that are null
-				BOOL m_fNullFreq;
-
-				// number of remain distinct values
-				CDouble m_dNDVRemain;
-
-			}; // SHistogramTestCase
-
-			// test case for join evaluation with NDVRemain
-			struct SStatsJoinNDVRemainTestCase
-			{
-				// column identifier for the first histogram
-				ULONG m_ulCol1;
-
-				// column identifier for the second histogram
-				ULONG m_ulCol2;
-
-				// number of buckets in the output
-				ULONG m_ulBucketsJoin;
-
-				// cumulative number of distinct values in the buckets of the join histogram
-				CDouble m_dNDVBucketsJoin;
-
-				// NDV remain of the join histogram
-				CDouble m_dNDVRemainJoin;
-
-				// frequency of the NDV remain in the join histogram
-				CDouble m_dFreqRemainJoin;
-			}; // SStatsJoinNDVRemainTestCase
-
 			// test case for disjunctive filter evaluation
 			struct SStatsFilterSTestCase
 			{
@@ -187,22 +129,6 @@ namespace gpnaucrates
 				// output stats dxl file
 				const CHAR *m_szOutputFile;
 			};
-
-			// helper methods
-			static
-			CPoint *PpointGeneric(IMemoryPool *pmp, OID oid, CWStringDynamic *pstrValueEncoded, LINT lValue);
-
-			static
-			CPoint *PpointNumeric(IMemoryPool *pmp, CWStringDynamic *pstrEncodedValue, CDouble dValue);
-
-			static
-			CBucket *Pbucket(IMemoryPool *pmp, INT iLower, INT iUpper, CDouble, CDouble);
-
-			static
-			CBucket *Pbucket(IMemoryPool *pmp, BOOL fValue, CDouble);
-
-			static
-			CBucket *Pbucket(IMemoryPool *pmp, INT iLower, INT iUpper, BOOL fLowerClosed, BOOL fUpperClosed, CDouble dFrequency, CDouble dDistinct);
 
 			// create filter on int4 types
 			static
@@ -240,46 +166,17 @@ namespace gpnaucrates
 				DrgPstatspred *pgrgpstatspred
 				);
 
-			// print methods
-			static
-			void Print(IMemoryPool *pmp, const char *pcPrefix, const CHistogram *phist);
-
-			static
-			void Print(IMemoryPool *pmp, const char *pcPrefix, const CBucket *pbucket);
-
-			// produce example histogram
-			static
-			CHistogram* PhistExampleInt4(IMemoryPool *pmp);
-
 			// generate int histogram having tuples not covered by buckets,
 			// including null fraction and nDistinctRemain
 			static
 			CHistogram* PhistExampleInt4Remain(IMemoryPool *pmp);
 
-			// generate int histogram based on the NDV and bucket information provided
-			static
-			CHistogram* PhistInt4Remain
-						(
-						IMemoryPool *pmp,
-						ULONG ulBuckets,
-						CDouble dNDVPerBucket,
-						BOOL fNullFreq,
-						CDouble dNDVRemain
-						);
-
 			static
 			CHistogram* PhistExampleInt4Dim(IMemoryPool *pmp);
-
-			static
-			CHistogram* PhistExampleBool(IMemoryPool *pmp);
 
 			// create a numeric predicate on a particular column
 			static
 			DrgPstatspred *PdrgppredfilterNumeric(IMemoryPool *pmp, ULONG ulColId, SStatsCmpValElem statsCmpValElem);
-
-			// helper method to generate join predicates for stats evaluation
-			static
-			DrgPstatsjoin *Pdrgpstatsjoin1(IMemoryPool *pmp);
 
 			// helper function that generates an array of ULONG pointers
 			static
@@ -301,14 +198,6 @@ namespace gpnaucrates
 				return pdrgpul;
 			}
 
-			// generate join predicate over columns that contain null values
-			static
-			DrgPstatsjoin *PdrgpstatsjoinNullableCols(IMemoryPool *pmp);
-
-			// helper method to generate join predicates for stats evaluation
-			static
-			DrgPstatsjoin *Pdrgpstatsjoin2(IMemoryPool *pmp);
- 
  			// helper method to iterate over an array generated filter predicates for stats evaluation
 			static
 			GPOS_RESULT EresUnittest_CStatistics(SStatsFilterSTestCase rgstatsdisjtc[], ULONG ulTestCases);
@@ -329,10 +218,6 @@ namespace gpnaucrates
 			BOOL FMatchBucketBoundary(CBucket *pbucket1, CBucket *pbucket2);
 
 		public:
-
-			// helper method
-			static
-			void Print(IMemoryPool *, const CStatistics *);
 
 			// generate an array of filter given a column identifier, comparison type, and array of integer point
 			static

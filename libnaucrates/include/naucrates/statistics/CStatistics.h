@@ -123,7 +123,7 @@ namespace gpnaucrates
 							(
 							IMemoryPool *pmp,
 							const IStatistics *pistatsOther,
-							DrgPstatsjoin *pdrgpstatsjoin,
+							DrgPstatspredjoin *pdrgpstatspredjoin,
 							IStatistics::EStatsJoinType ejst,
 							BOOL fIgnoreLasjHistComputation
 							)
@@ -141,7 +141,7 @@ namespace gpnaucrates
 						const CStatistics *pstatsOuter,
 						const CStatistics *pstatsInner,
 						CStatistics *pstatsInnerJoin,
-						DrgPstatsjoin *pdrgpstatsjoin,
+						DrgPstatspredjoin *pdrgpstatspredjoin,
 						CDouble dRowsInnerJoin,
 						CDouble *pdRowsLASJ
 						);
@@ -149,10 +149,6 @@ namespace gpnaucrates
 			// helper method to add width information
 			static
 			void AddWidthInfo(IMemoryPool *pmp, HMUlDouble *phmuldoubleSrc, HMUlDouble *phmuldoubleDest);
-
-			// helper method to append histograms from one map to the other
-			static
-			void AddHistograms(IMemoryPool *pmp, HMUlHist *phmulhistSrc, HMUlHist *phmulhistDest);
 
 			// helper method to add histograms where the column ids have been remapped
 			static
@@ -174,17 +170,6 @@ namespace gpnaucrates
 			static
 			void AddWidthInfoWithRemap(IMemoryPool *pmp, HMUlDouble *phmuldoubleSrc, HMUlDouble *phmuldoubleDest, HMUlCr *phmulcr, BOOL fMustExist);
 
-			// check if the column is a new column for statistic calculation
-			static
-			BOOL FNewStatsColumn
-					(
-					ULONG ulColId,
-					ULONG ulColIdLast
-					)
-			{
-				return (ULONG_MAX == ulColId || ulColId != ulColIdLast);
-			}
-
 			// helper for inner-joining histograms
 			static
 			void InnerJoinHistograms
@@ -192,7 +177,7 @@ namespace gpnaucrates
 				IMemoryPool *pmp,
 				CHistogram *phist1,
 				CHistogram *phist2,
-				CStatisticsJoin *pstatsjoin,
+				CStatsPredJoin *pstatsjoin,
 				CDouble dRows1,
 				CDouble dRows2,
 				CHistogram **pphist1, // output: histogram 1 after join
@@ -208,7 +193,7 @@ namespace gpnaucrates
 				IMemoryPool *pmp,
 				CHistogram *phist1,
 				CHistogram *phist2,
-				CStatisticsJoin *pstatsjoin,
+				CStatsPredJoin *pstatsjoin,
 				CDouble dRows1,
 				CDouble dRows2,
 				CHistogram **pphist1, // output: histogram 1 after join
@@ -225,7 +210,7 @@ namespace gpnaucrates
 				IMemoryPool *pmp,
 				CHistogram *phist1,
 				CHistogram *phist2,
-				CStatisticsJoin *pstatsjoin,
+				CStatsPredJoin *pstatsjoin,
 				CDouble dRows1,
 				CDouble dRows2,
 				BOOL fLASJ, // if true, use anti-semi join semantics, otherwise use inner join semantics
@@ -259,22 +244,6 @@ namespace gpnaucrates
 					CHistogram *phistInner,
 					CHistogram *phistJoin
 					);
-
-			// add dummy histogram buckets and column width for the array of columns
-			static
-			void AddDummyHistogramAndWidthInfo
-					(
-					IMemoryPool *pmp,
-					CColumnFactory *pcf,
-					HMUlHist *phmulhistOutput,
-					HMUlDouble *phmuldoubleWidthOutput,
-					const DrgPul *pdrgpul,
-					BOOL fEmpty
-					);
-
-			// add dummy histogram buckets for the columns in the input histogram
-			static
-			void AddEmptyHistogram(IMemoryPool *pmp, HMUlHist *phmulhistOutput, HMUlHist *phmulhistInput);
 
 		public:
 
@@ -369,11 +338,11 @@ namespace gpnaucrates
 
 			// inner join with another stats structure
 			virtual
-			CStatistics *PstatsInnerJoin(IMemoryPool *pmp, const IStatistics *pistatsOther, DrgPstatsjoin *pdrgpstatsjoin) const;
+			CStatistics *PstatsInnerJoin(IMemoryPool *pmp, const IStatistics *pistatsOther, DrgPstatspredjoin *pdrgpstatspredjoin) const;
 
 			// LOJ with another stats structure
 			virtual
-			CStatistics *PstatsLOJ(IMemoryPool *pmp, const IStatistics *pistatsOther, DrgPstatsjoin *pdrgpstatsjoin) const;
+			CStatistics *PstatsLOJ(IMemoryPool *pmp, const IStatistics *pistatsOther, DrgPstatspredjoin *pdrgpstatspredjoin) const;
 
 			// left anti semi join with another stats structure
 			virtual
@@ -381,14 +350,14 @@ namespace gpnaucrates
 							(
 							IMemoryPool *pmp,
 							const IStatistics *pstatsOther,
-							DrgPstatsjoin *pdrgpstatsjoin,
+							DrgPstatspredjoin *pdrgpstatspredjoin,
 							BOOL fIgnoreLasjHistComputation // except for the case of LOJ cardinality estimation this flag is always
                                                             // "true" since LASJ stats computation is very aggressive
 							) const;
 
 			// semi join stats computation
 			virtual
-			CStatistics *PstatsLSJoin(IMemoryPool *pmp, const IStatistics *pstatsInner, DrgPstatsjoin *pdrgpstatsjoin) const;
+			CStatistics *PstatsLSJoin(IMemoryPool *pmp, const IStatistics *pstatsInner, DrgPstatspredjoin *pdrgpstatspredjoin) const;
 
 			// group by
 			virtual
@@ -481,90 +450,6 @@ namespace gpnaucrates
 			// return the index of the array of upper bound ndvs to which column reference belongs
 			virtual
 			ULONG UlIndexUpperBoundNDVs(const CColRef *pcr);
-
-			// create a new hash map of histograms after applying a conjunctive or disjunctive filter
-			static
-			HMUlHist *PhmulhistApplyConjOrDisjFilter
-					(
-					IMemoryPool *pmp,
-					CStatisticsConfig *pstatsconf,
-					HMUlHist *phmulhistInput,
-					CDouble dRowsInput,
-					CStatsPred *pstatspred,
-					CDouble *pdScaleFactor
-					);
-
-			// create a new histogram after applying the filter that is not an AND/OR predicate
-			static
-			CHistogram *PhistSimpleFilter
-					(
-					IMemoryPool *pmp,
-					CStatsPred *pstatspred,
-					CBitSet *pbsFilterColIds,
-					CHistogram *phistBefore,
-					CDouble *pdScaleFactorLast,
-					ULONG *pulColIdLast
-					);
-
-			// create a new histogram for an unsupported predicate
-			static
-			CHistogram *PhistUnsupportedPred
-				(
-				IMemoryPool *pmp,
-				CStatsPredUnsupported *pstatspred,
-				CBitSet *pbsFilterColIds,
-				CHistogram *phistBefore,
-				CDouble *pdScaleFactorLast,
-				ULONG *pulColIdLast
-				);
-
-			// create a new histogram after applying a point filter
-			static
-			CHistogram *PhistPointFilter
-					(
-					IMemoryPool *pmp,
-					CStatsPredPoint *pstatspred,
-					CBitSet *pbsFilterColIds,
-					CHistogram *phistBefore,
-					CDouble *pdScaleFactorLast,
-					ULONG *pulColIdLast
-					);
-
-			// create a new histogram after applying a LIKE filter
-			static
-			CHistogram *PhistLikeFilter
-				(
-				IMemoryPool *pmp,
-				CStatsPredLike *pstatspred,
-				CBitSet *pbsFilterColIds,
-				CHistogram *phistBefore,
-				CDouble *pdScaleFactorLast,
-				ULONG *pulColIdLast
-				);
-
-			// create new hash map of histograms after applying the conjunction predicate
-			static
-			HMUlHist *PhmulhistApplyConjFilter
-						(
-						IMemoryPool *pmp,
-						CStatisticsConfig *pstatsconf,
-						HMUlHist *phmulhistIntermediate,
-						CDouble dRowsInput,
-						CStatsPredConj *pstatspredConj,
-						CDouble *pdScaleFactor
-						);
-
-			// create new hash map of histograms after applying the disjunctive predicate
-			static
-			HMUlHist *PhmulhistApplyDisjFilter
-						(
-						IMemoryPool *pmp,
-						CStatisticsConfig *pstatsconf,
-						HMUlHist *phmulhistInput,
-						CDouble dRowsInput,
-						CStatsPredDisj *pstatspred,
-						CDouble *pdScaleFactor
-						);
 
 			// return the column identifiers of all columns statistics maintained
 			virtual

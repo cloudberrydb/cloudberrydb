@@ -155,7 +155,7 @@ namespace gpopt
 
 			// helper function to extract statistics join filter from a given join predicate
 			static
-			CStatisticsJoin *PstatsjoinExtract
+			CStatsPredJoin *PstatsjoinExtract
 								(
 								IMemoryPool *pmp,
 								CExpression *pexprJoinPred,
@@ -183,7 +183,7 @@ namespace gpopt
 
 			// helper function to extract array of statistics join filter from an array of join predicates
 			static
-			DrgPstatsjoin *PdrgpstatsjoinExtract
+			DrgPstatspredjoin *PdrgpstatspredjoinExtract
 								(
 								IMemoryPool *pmp,
 								CExpression *pexprScalar,
@@ -194,11 +194,11 @@ namespace gpopt
 
 			// helper function to extract array of statistics join filter from an expression handle
 			static
-			DrgPstatsjoin *Pdrgpstatsjoin(IMemoryPool *pmp, CExpressionHandle &exprhdl);
+			DrgPstatspredjoin *Pdrgpstatspredjoin(IMemoryPool *pmp, CExpressionHandle &exprhdl);
 
 			// helper function to extract array of statistics join filter from an expression
 			static
-			DrgPstatsjoin *Pdrgpstatsjoin
+			DrgPstatspredjoin *Pdrgpstatspredjoin
 								(
 								IMemoryPool *pmp,
 								CExpressionHandle &exprhdl,

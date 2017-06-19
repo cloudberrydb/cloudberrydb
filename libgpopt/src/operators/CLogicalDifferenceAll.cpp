@@ -173,7 +173,7 @@ CLogicalDifferenceAll::PstatsDerive
 
 	// compute the statistics for LASJ
 	CColRefSet *pcrsOuterRefs = exprhdl.Pdprel()->PcrsOuter();
-	DrgPstatsjoin *pdrgpstatsjoin = CStatsPredUtils::Pdrgpstatsjoin
+	DrgPstatspredjoin *pdrgpstatspredjoin = CStatsPredUtils::Pdrgpstatspredjoin
 														(
 														pmp, 
 														exprhdl, 
@@ -185,13 +185,13 @@ CLogicalDifferenceAll::PstatsDerive
 											(
 											pmp,
 											pstatsInner,
-											pdrgpstatsjoin,
+											pdrgpstatspredjoin,
 											true /* fIgnoreLasjHistComputation*/
 											);
 
 	// clean up
 	pexprScCond->Release();
-	pdrgpstatsjoin->Release();
+	pdrgpstatspredjoin->Release();
 	pdrgpcrsOutput->Release();
 
 	return pstatsLASJ;

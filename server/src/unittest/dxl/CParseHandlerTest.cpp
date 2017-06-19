@@ -24,7 +24,7 @@
 
 #include "unittest/base.h"
 #include "unittest/dxl/CParseHandlerTest.h"
-#include "unittest/dxl/statistics/CStatisticsTest.h"
+#include "unittest/dxl/statistics/CCardinalityTestUtils.h"
 #include "unittest/gpopt/CTestUtils.h"
 
 #include "naucrates/md/CMDRequest.h"
@@ -740,7 +740,7 @@ CParseHandlerTest::EresParseAndSerializeStatistics
 
 	pstats->DRows();
 	oss << "Statistics:" << std::endl;
-	CStatisticsTest::Print(pmp, pstats);
+	CCardinalityTestUtils::PrintStats(pmp, pstats);
 
 	GPOS_CHECK_ABORT;
 

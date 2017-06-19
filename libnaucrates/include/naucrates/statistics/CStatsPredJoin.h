@@ -3,13 +3,13 @@
 //	Copyright (C) 2012 EMC Corp.
 //
 //	@filename:
-//		CStatisticsJoin.h
+//		CStatsPredJoin.h
 //
 //	@doc:
-//		Join on statistics
+//		Join predicate used for join cardinality estimation
 //---------------------------------------------------------------------------
-#ifndef GPNAUCRATES_CStatisticsJoin_H
-#define GPNAUCRATES_CStatisticsJoin_H
+#ifndef GPNAUCRATES_CStatsPredJoin_H
+#define GPNAUCRATES_CStatsPredJoin_H
 
 #include "gpos/base.h"
 #include "gpos/common/CRefCount.h"
@@ -22,20 +22,20 @@ namespace gpnaucrates
 
 	//---------------------------------------------------------------------------
 	//	@class:
-	//		CStatisticsJoin
+	//		CStatsPredJoin
 	//
 	//	@doc:
-	//		Join on statistics
+	//		Join predicate used for join cardinality estimation
 	//---------------------------------------------------------------------------
-	class CStatisticsJoin : public CRefCount
+	class CStatsPredJoin : public CRefCount
 	{
 		private:
 
 			// private copy ctor
-			CStatisticsJoin(const CStatisticsJoin &);
+			CStatsPredJoin(const CStatsPredJoin &);
 
 			// private assignment operator
-			CStatisticsJoin& operator=(CStatisticsJoin &);
+			CStatsPredJoin& operator=(CStatsPredJoin &);
 
 			// column id
 			ULONG m_ulColId1;
@@ -49,7 +49,7 @@ namespace gpnaucrates
 		public:
 
 			// c'tor
-			CStatisticsJoin
+			CStatsPredJoin
 				(
 				ULONG ulColId1,
 				CStatsPred::EStatsCmpType escmpt,
@@ -80,15 +80,15 @@ namespace gpnaucrates
 
 			// d'tor
 			virtual
-			~CStatisticsJoin()
+			~CStatsPredJoin()
 			{}
 
-	}; // class CStatisticsJoin
+	}; // class CStatsPredJoin
 
 	// array of filters
-	typedef CDynamicPtrArray<CStatisticsJoin, CleanupRelease> DrgPstatsjoin;
+	typedef CDynamicPtrArray<CStatsPredJoin, CleanupRelease> DrgPstatspredjoin;
 }
 
-#endif // !GPNAUCRATES_CStatisticsJoin_H
+#endif // !GPNAUCRATES_CStatsPredJoin_H
 
 // EOF

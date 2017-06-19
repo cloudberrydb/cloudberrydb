@@ -44,7 +44,7 @@ add_library(naucrates
             include/naucrates/md/IMDTypeInt4.h
             include/naucrates/md/IMDTypeInt8.h
             include/naucrates/md/IMDTypeOid.h
-            include/naucrates/statistics/CStatisticsJoin.h
+            include/naucrates/statistics/CStatsPredJoin.h
             include/naucrates/statistics/CStatsPred.h
             include/naucrates/statistics/IBucket.h
             include/naucrates/statistics/IStatistics.h
@@ -804,6 +804,8 @@ add_library(naucrates
             src/statistics/CBucket.cpp
             include/naucrates/statistics/CHistogram.h
             src/statistics/CHistogram.cpp
+            include/naucrates/statistics/CHistogramUtils.h
+            src/statistics/CHistogramUtils.cpp
             include/naucrates/statistics/CPoint.h
             src/statistics/CPoint.cpp
             include/naucrates/statistics/CScaleFactorUtils.h

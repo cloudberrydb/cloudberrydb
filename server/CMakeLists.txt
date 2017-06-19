@@ -13,6 +13,7 @@ check_cxx_compiler_flag("-Wno-long-long"
                         COMPILER_HAS_WNO_LONG_LONG)
 if (COMPILER_HAS_WNO_LONG_LONG)
     set_source_files_properties(src/unittest/dxl/statistics/CStatisticsTest.cpp
+                                src/unittest/dxl/statistics/CJoinCardinalityTest.cpp
                                 src/unittest/gpopt/base/CConstraintTest.cpp
                                 src/unittest/gpopt/metadata/CPartConstraintTest.cpp
                                 PROPERTIES COMPILE_FLAGS "-Wno-long-long")
@@ -20,7 +21,9 @@ endif()
 
 add_executable(gporca_test
                include/unittest/base.h
+               include/unittest/dxl/statistics/CCardinalityTestUtils.h
                include/unittest/dxl/statistics/CStatisticsTest.h
+               include/unittest/dxl/statistics/CJoinCardinalityTest.h
                include/unittest/gpopt/base/CConstraintTest.h
                include/unittest/gpopt/CTestUtils.inl
                include/unittest/gpopt/metadata/CPartConstraintTest.h
@@ -45,8 +48,12 @@ add_executable(gporca_test
                include/unittest/dxl/CParseHandlerTest.h
                src/unittest/dxl/CParseHandlerTest.cpp
                include/unittest/dxl/base/CDatumTest.h
+               include/unittest/dxl/statistics/CCardinalityTestUtils.h
+               src/unittest/dxl/statistics/CCardinalityTestUtils.cpp
                include/unittest/dxl/statistics/CStatisticsTest.h
                src/unittest/dxl/statistics/CStatisticsTest.cpp
+               include/unittest/dxl/statistics/CJoinCardinalityTest.h
+               src/unittest/dxl/statistics/CJoinCardinalityTest.cpp
                src/unittest/dxl/base/CDatumTest.cpp
                include/unittest/gpopt/translate/CTranslatorExprToDXLTest.h
                src/unittest/gpopt/translate/CTranslatorExprToDXLTest.cpp
@@ -236,6 +243,7 @@ add_orca_test(CMinidumpWithConstExprEvaluatorTest)
 add_orca_test(CParseHandlerManagerTest)
 add_orca_test(CParseHandlerTest)
 add_orca_test(CStatisticsTest)
+add_orca_test(CJoinCardinalityTest)
 add_orca_test(CTranslatorDXLToExprTest)
 add_orca_test(CTranslatorExprToDXLTest)
 add_orca_test(CXMLSerializerTest)

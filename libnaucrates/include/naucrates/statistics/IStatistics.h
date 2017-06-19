@@ -1,4 +1,4 @@
-//---------------------------------------------------------------------------
+	//---------------------------------------------------------------------------
 //	Greenplum Database
 //	Copyright (C) 2012 EMC Corp.
 //
@@ -17,7 +17,7 @@
 
 #include "naucrates/statistics/CStatsPred.h"
 #include "naucrates/statistics/CStatsPredPoint.h"
-#include "naucrates/statistics/CStatisticsJoin.h"
+#include "naucrates/statistics/CStatsPredJoin.h"
 #include "naucrates/statistics/CHistogram.h"
 #include "naucrates/md/CDXLStatsDerivedRelation.h"
 
@@ -151,7 +151,7 @@ namespace gpnaucrates
 						(
 						IMemoryPool *pmp,
 						const IStatistics *pistatsOther,
-						DrgPstatsjoin *pdrgpstatsjoin
+						DrgPstatspredjoin *pdrgpstatspredjoin
 						)
 						const = 0;
 
@@ -161,7 +161,7 @@ namespace gpnaucrates
 						(
 						IMemoryPool *pmp,
 						const IStatistics *pistatsOther,
-						DrgPstatsjoin *pdrgpstatsjoin
+						DrgPstatspredjoin *pdrgpstatspredjoin
 						)
 						const = 0;
 
@@ -171,7 +171,7 @@ namespace gpnaucrates
 						(
 						IMemoryPool *pmp,
 						const IStatistics *pstatsInner,
-						DrgPstatsjoin *pdrgpstatsjoin
+						DrgPstatspredjoin *pdrgpstatspredjoin
 						)
 						const = 0;
 
@@ -181,7 +181,7 @@ namespace gpnaucrates
 						(
 						IMemoryPool *pmp,
 						const IStatistics *pistatsOther,
-						DrgPstatsjoin *pdrgpstatsjoin,
+						DrgPstatspredjoin *pdrgpstatspredjoin,
 						BOOL fIgnoreLasjHistComputation
 						)
 						const = 0;

@@ -158,7 +158,7 @@ namespace gpopt
 			IStatistics *PstatsDerive
 				(
 				IMemoryPool *pmp,
-				DrgPstatsjoin *pdrgpstatsjoin,
+				DrgPstatspredjoin *pdrgpstatspredjoin,
 				IStatistics *pstatsOuter,
 				IStatistics *pstatsInner
 				);

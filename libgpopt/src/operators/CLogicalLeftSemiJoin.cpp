@@ -1,4 +1,4 @@
-//---------------------------------------------------------------------------
+	//---------------------------------------------------------------------------
 //	Greenplum Database
 //	Copyright (C) 2011 EMC Corp.
 //
@@ -142,12 +142,12 @@ IStatistics *
 CLogicalLeftSemiJoin::PstatsDerive
 	(
 	IMemoryPool *pmp,
-	DrgPstatsjoin *pdrgpstatsjoin,
+	DrgPstatspredjoin *pdrgpstatspredjoin,
 	IStatistics *pstatsOuter,
 	IStatistics *pstatsInner
 	)
 {
-	return pstatsOuter->PstatsLSJoin(pmp, pstatsInner, pdrgpstatsjoin);
+	return pstatsOuter->PstatsLSJoin(pmp, pstatsInner, pdrgpstatspredjoin);
 }
 
 
@@ -171,10 +171,10 @@ CLogicalLeftSemiJoin::PstatsDerive
 	GPOS_ASSERT(Esp(exprhdl) > EspNone);
 	IStatistics *pstatsOuter = exprhdl.Pstats(0);
 	IStatistics *pstatsInner = exprhdl.Pstats(1);
-	DrgPstatsjoin *pdrgpstatsjoin = CStatsPredUtils::Pdrgpstatsjoin(pmp, exprhdl);
-	IStatistics *pstatsSemiJoin = PstatsDerive(pmp, pdrgpstatsjoin, pstatsOuter, pstatsInner);
+	DrgPstatspredjoin *pdrgpstatspredjoin = CStatsPredUtils::Pdrgpstatspredjoin(pmp, exprhdl);
+	IStatistics *pstatsSemiJoin = PstatsDerive(pmp, pdrgpstatspredjoin, pstatsOuter, pstatsInner);
 
-	pdrgpstatsjoin->Release();
+	pdrgpstatspredjoin->Release();
 
 	return pstatsSemiJoin;
 }

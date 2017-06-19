@@ -12,6 +12,8 @@
 #include "naucrates/dxl/CDXLUtils.h"
 #include "naucrates/statistics/CStatistics.h"
 #include "naucrates/statistics/CStatisticsUtils.h"
+#include "naucrates/statistics/CHistogramUtils.h"
+
 #include "naucrates/statistics/CScaleFactorUtils.h"
 
 #include "gpos/common/CBitSet.h"
@@ -52,14 +54,7 @@ const CDouble CStatistics::DDefaultDistinctValues(1000.0);
 // the default value for operators that have no cardinality estimation risk
 const ULONG CStatistics::ulStatsEstimationNoRisk = 1;
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::CStatistics
-//
-//	@doc:
-//		Ctor
-//
-//---------------------------------------------------------------------------
+// ctor
 CStatistics::CStatistics
 	(
 	IMemoryPool *pmp,
@@ -89,14 +84,7 @@ CStatistics::CStatistics
 	m_pstatsconf = COptCtxt::PoctxtFromTLS()->Poconf()->Pstatsconf();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::~CStatistics
-//
-//	@doc:
-//		Dtor
-//
-//---------------------------------------------------------------------------
+// Dtor
 CStatistics::~CStatistics()
 {
 	m_phmulhist->Release();
@@ -104,15 +92,7 @@ CStatistics::~CStatistics()
 	m_pdrgpubndvs->Release();
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PdWidth
-//
-//	@doc:
-//		Look up the width of a particular column
-//
-//---------------------------------------------------------------------------
+// look up the width of a particular column
 const CDouble *
 CStatistics::PdWidth
 	(
@@ -124,14 +104,7 @@ CStatistics::PdWidth
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::CapNDVs
-//
-//	@doc:
-//		Cap the total number of distinct values (NDVs) in buckets to the number of rows
-//
-//---------------------------------------------------------------------------
+//	cap the total number of distinct values (NDVs) in buckets to the number of rows
 void
 CStatistics::CapNDVs
 	(
@@ -148,15 +121,7 @@ CStatistics::CapNDVs
 	}
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsFilter
-//
-//	@doc:
-//		Create new structure from a list of statistics filters
-//
-//---------------------------------------------------------------------------
+// create new structure from a list of statistics filters
 CStatistics *
 CStatistics::PstatsFilter
 	(
@@ -176,7 +141,7 @@ CStatistics::PstatsFilter
 	if (FEmpty())
 	{
 		phmulhistNew = GPOS_NEW(pmp) HMUlHist(pmp);
-		AddEmptyHistogram(pmp, phmulhistNew, m_phmulhist);
+		CHistogramUtils::AddEmptyHistogram(pmp, phmulhistNew, m_phmulhist);
 	}
 	else
 	{
@@ -184,30 +149,30 @@ CStatistics::PstatsFilter
 		{
 			CStatsPredDisj *pstatspred = CStatsPredDisj::PstatspredConvert(pstatspredBase);
 
-			phmulhistNew  = PhmulhistApplyDisjFilter
-							(
-							pmp,
-							m_pstatsconf,
-							m_phmulhist,
-							dRowsInput,
-							pstatspred,
-							&dScaleFactor
-							);
+			phmulhistNew  = CHistogramUtils::PhmulhistApplyDisjFilter
+												(
+												pmp,
+												m_pstatsconf,
+												m_phmulhist,
+												dRowsInput,
+												pstatspred,
+												&dScaleFactor
+												);
 		}
 		else
 		{
 			GPOS_ASSERT(CStatsPred::EsptConj == pstatspredBase->Espt());
 			CStatsPredConj *pstatspred = CStatsPredConj::PstatspredConvert(pstatspredBase);
 			ulNumPredicates = pstatspred->UlFilters();
-			phmulhistNew = PhmulhistApplyConjFilter
-							(
-							pmp,
-							m_pstatsconf,
-							m_phmulhist,
-							dRowsInput,
-							pstatspred,
-							&dScaleFactor
-							);
+			phmulhistNew = CHistogramUtils::PhmulhistApplyConjFilter
+											(
+											pmp,
+											m_pstatsconf,
+											m_phmulhist,
+											dRowsInput,
+											pstatspred,
+											&dScaleFactor
+											);
 		}
 
 		GPOS_ASSERT(DMinRows.DVal() <= dScaleFactor.DVal());
@@ -241,583 +206,7 @@ CStatistics::PstatsFilter
 	return pstatsFilter;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PhistPointFilter
-//
-//	@doc:
-//		Create a new histograms after applying the point filter
-//
-//---------------------------------------------------------------------------
-CHistogram *
-CStatistics::PhistPointFilter
-	(
-	IMemoryPool *pmp,
-	CStatsPredPoint *pstatspred,
-	CBitSet *pbsFilterColIds,
-	CHistogram *phistBefore,
-	CDouble *pdScaleFactorLast,
-	ULONG *pulColIdLast
-	)
-{
-	GPOS_ASSERT(NULL != pstatspred);
-	GPOS_ASSERT(NULL != pbsFilterColIds);
-	GPOS_ASSERT(NULL != phistBefore);
-
-	const ULONG ulColId = pstatspred->UlColId();
-	GPOS_ASSERT(CHistogram::FSupportsFilter(pstatspred->Escmpt()));
-
-	CPoint *ppoint = pstatspred->Ppoint();
-
-	// note column id
-	(void) pbsFilterColIds->FExchangeSet(ulColId);
-
-	CDouble dScaleFactorLocal(1.0);
-	CHistogram *phistAfter = phistBefore->PhistFilterNormalized(pmp, pstatspred->Escmpt(), ppoint, &dScaleFactorLocal);
-
-	GPOS_ASSERT(DOUBLE(1.0) <= dScaleFactorLocal.DVal());
-
-	*pdScaleFactorLast = *pdScaleFactorLast * dScaleFactorLocal;
-	*pulColIdLast = ulColId;
-
-	return phistAfter;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PhistLikeFilter
-//
-//	@doc:
-//		Create a new histograms after applying the LIKE filter
-//
-//---------------------------------------------------------------------------
-CHistogram *
-CStatistics::PhistLikeFilter
-	(
-	IMemoryPool *pmp,
-	CStatsPredLike *pstatspred,
-	CBitSet *pbsFilterColIds,
-	CHistogram *phistBefore,
-	CDouble *pdScaleFactorLast,
-	ULONG *pulColIdLast
-	)
-{
-	GPOS_ASSERT(NULL != pstatspred);
-	GPOS_ASSERT(NULL != pbsFilterColIds);
-	GPOS_ASSERT(NULL != phistBefore);
-
-	const ULONG ulColId = pstatspred->UlColId();
-
-	// note column id
-	(void) pbsFilterColIds->FExchangeSet(ulColId);
-	CHistogram *phistAfter = phistBefore->PhistCopy(pmp);
-
-	*pdScaleFactorLast = *pdScaleFactorLast * pstatspred->DDefaultScaleFactor();
-	*pulColIdLast = ulColId;
-
-	return phistAfter;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PhmulhistApplyConjFilter
-//
-//	@doc:
-//		Create new hash map of histograms after applying conjunctive predicates
-//
-//---------------------------------------------------------------------------
-HMUlHist *
-CStatistics::PhmulhistApplyConjFilter
-	(
-	IMemoryPool *pmp,
-	CStatisticsConfig *pstatsconf,
-	HMUlHist *phmulhistInput,
-	CDouble dRowsInput,
-	CStatsPredConj *pstatspredConj,
-	CDouble *pdScaleFactor
-	)
-{
-	GPOS_ASSERT(NULL != pstatsconf);
-	GPOS_ASSERT(NULL != phmulhistInput);
-	GPOS_ASSERT(NULL != pstatspredConj);
-
-	pstatspredConj->Sort();
-
-	CBitSet *pbsFilterColIds = GPOS_NEW(pmp) CBitSet(pmp);
-	DrgPdouble *pdrgpdScaleFactor = GPOS_NEW(pmp) DrgPdouble(pmp);
-
-	// create copy of the original hash map of colid -> histogram
-	HMUlHist *phmulhistResult = CStatisticsUtils::PhmulhistCopy(pmp, phmulhistInput);
-
-	// properties of last seen column
-	CDouble dScaleFactorLast(1.0);
-	ULONG ulColIdLast = ULONG_MAX;
-
-	// iterate over filters and update corresponding histograms
-	const ULONG ulFilters = pstatspredConj->UlFilters();
-	for (ULONG ul = 0; ul < ulFilters; ul++)
-	{
-		CStatsPred *pstatspredChild = pstatspredConj->Pstatspred(ul);
-
-		GPOS_ASSERT(CStatsPred::EsptConj != pstatspredChild->Espt());
-
-		// get the components of the statistics filter
-		ULONG ulColId = pstatspredChild->UlColId();
-
-		if (CStatsPredUtils::FUnsupportedPredOnDefinedCol(pstatspredChild))
-		{
-			// for example, (expression OP const) where expression is a defined column like (a+b)
-			CStatsPredUnsupported *pstatspredUnsupported = CStatsPredUnsupported::PstatspredConvert(pstatspredChild);
-			pdrgpdScaleFactor->Append(GPOS_NEW(pmp) CDouble(pstatspredUnsupported->DScaleFactor()));
-
-			continue;
-		}
-
-		// the histogram to apply filter on
-		CHistogram *phistBefore = NULL;
-		if (FNewStatsColumn(ulColId, ulColIdLast))
-		{
-			pdrgpdScaleFactor->Append( GPOS_NEW(pmp) CDouble(dScaleFactorLast));
-			dScaleFactorLast = CDouble(1.0);
-		}
-
-		if (CStatsPred::EsptDisj != pstatspredChild->Espt())
-		{
-			GPOS_ASSERT(ULONG_MAX != ulColId);
-			phistBefore = phmulhistResult->PtLookup(&ulColId)->PhistCopy(pmp);
-			GPOS_ASSERT(NULL != phistBefore);
-
-			CHistogram *phistResult = NULL;
-			phistResult = PhistSimpleFilter(pmp, pstatspredChild, pbsFilterColIds, phistBefore, &dScaleFactorLast, &ulColIdLast);
-			GPOS_DELETE(phistBefore);
-
-			GPOS_ASSERT(NULL != phistResult);
-
-			CHistogram *phistInput = phmulhistInput->PtLookup(&ulColId);
-			GPOS_ASSERT(NULL != phistInput);
-			if (phistInput->FEmpty())
-			{
-				// input histogram is empty so scaling factor does not make sense.
-				// if the input itself is empty, then scaling factor is of no effect
-				dScaleFactorLast = 1 / CHistogram::DDefaultSelectivity;
-			}
-
-			CStatisticsUtils::AddHistogram(pmp, ulColId, phistResult, phmulhistResult, true /* fReplaceOld */);
-			GPOS_DELETE(phistResult);
-		}
-		else
-		{
-			CStatsPredDisj *pstatspredDisj = CStatsPredDisj::PstatspredConvert(pstatspredChild);
-
-			phmulhistResult->AddRef();
-			HMUlHist *phmulhistDisjInput = phmulhistResult;
-
-			CDouble dScaleFactorDisj(1.0);
-			CDouble dRowsDisjInput(DMinRows.DVal());
-
-			if (ULONG_MAX != ulColId)
-			{
-				// The disjunction predicate uses a single column. The input rows to the disjunction
-				// is obtained by scaling attained so far on that column
-				dRowsDisjInput = std::max(DMinRows.DVal(), (dRowsInput / dScaleFactorLast).DVal());
-			}
-			else
-			{
-				// the disjunction uses multiple columns therefore cannot reason about the number of input rows
-				// to the disjunction
-				dRowsDisjInput = dRowsInput.DVal();
-			}
-
-			HMUlHist *phmulhistAfterDisj = PhmulhistApplyDisjFilter
-											(
-											pmp,
-											pstatsconf,
-											phmulhistResult,
-											dRowsDisjInput,
-											pstatspredDisj,
-											&dScaleFactorDisj
-											);
-
-			// replace intermediate result with the newly generated result from the disjunction
-			if (ULONG_MAX != ulColId)
-			{
-				CHistogram *phistResult = phmulhistAfterDisj->PtLookup(&ulColId);
-				CStatisticsUtils::AddHistogram(pmp, ulColId, phistResult, phmulhistResult, true /* fReplaceOld */);
-				phmulhistAfterDisj->Release();
-
-				dScaleFactorLast = dScaleFactorLast * dScaleFactorDisj;
-			}
-			else
-			{
-				dScaleFactorLast = dScaleFactorDisj.DVal();
-				phmulhistResult->Release();
-				phmulhistResult = phmulhistAfterDisj;
-			}
-
-			ulColIdLast = ulColId;
-			phmulhistDisjInput->Release();
-		}
-	}
-
-	// scaling factor of the last predicate
-	pdrgpdScaleFactor->Append(GPOS_NEW(pmp) CDouble(dScaleFactorLast));
-
-	GPOS_ASSERT(NULL != pdrgpdScaleFactor);
-	CScaleFactorUtils::SortScalingFactor(pdrgpdScaleFactor, true /* fDescending */);
-
-	*pdScaleFactor = CScaleFactorUtils::DScaleFactorCumulativeConj(pstatsconf, pdrgpdScaleFactor);
-
-	// clean up
-	pdrgpdScaleFactor->Release();
-	pbsFilterColIds->Release();
-
-	return phmulhistResult;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PhmulhistApplyDisjFilter
-//
-//	@doc:
-//		Create new hash map of histograms after applying disjunctive predicates
-//
-//---------------------------------------------------------------------------
-HMUlHist *
-CStatistics::PhmulhistApplyDisjFilter
-	(
-	IMemoryPool *pmp,
-	CStatisticsConfig *pstatsconf,
-	HMUlHist *phmulhistInput,
-	CDouble dRowsInput,
-	CStatsPredDisj *pstatspredDisj,
-	CDouble *pdScaleFactor
-	)
-{
-	GPOS_ASSERT(NULL != pstatsconf);
-	GPOS_ASSERT(NULL != phmulhistInput);
-	GPOS_ASSERT(NULL != pstatspredDisj);
-	
-	CBitSet *pbsStatsNonUpdateableCols = CStatisticsUtils::PbsNonUpdatableHistForDisj(pmp, pstatspredDisj);
-
-	pstatspredDisj->Sort();
-
-	CBitSet *pbsFilterColIds = GPOS_NEW(pmp) CBitSet(pmp);
-	DrgPdouble *pdrgpdScaleFactor = GPOS_NEW(pmp) DrgPdouble(pmp);
-
-	HMUlHist *phmulhistResultDisj = GPOS_NEW(pmp) HMUlHist(pmp);
-
-	CHistogram *phistPrev = NULL;
-	ULONG ulColIdPrev = ULONG_MAX;
-	CDouble dScaleFactorPrev(dRowsInput);
-
-	CDouble dRowsCumulative(DMinRows.DVal());
-
-	// iterate over filters and update corresponding histograms
-	const ULONG ulFilters = pstatspredDisj->UlFilters();
-	for (ULONG ul = 0; ul < ulFilters; ul++)
-	{
-		CStatsPred *pstatspredChild = pstatspredDisj->Pstatspred(ul);
-
-		// get the components of the statistics filter
-		ULONG ulColId = pstatspredChild->UlColId();
-
-		if (CStatsPredUtils::FUnsupportedPredOnDefinedCol(pstatspredChild))
-		{
-			CStatsPredUnsupported *pstatspredUnsupported = CStatsPredUnsupported::PstatspredConvert(pstatspredChild);
-			pdrgpdScaleFactor->Append(GPOS_NEW(pmp) CDouble(pstatspredUnsupported->DScaleFactor()));
-
-			continue;
-		}
-
-		if (FNewStatsColumn(ulColId, ulColIdPrev))
-		{
-			pdrgpdScaleFactor->Append(GPOS_NEW(pmp) CDouble(dScaleFactorPrev.DVal()));
-			CStatisticsUtils::UpdateDisjStatistics
-								(
-								pmp,
-								pbsStatsNonUpdateableCols,
-								dRowsInput,
-								dRowsCumulative,
-								phistPrev,
-								phmulhistResultDisj,
-								ulColIdPrev
-								);
-			phistPrev = NULL;
-		}
-
-		CHistogram *phist = phmulhistInput->PtLookup(&ulColId);
-		CHistogram *phistDisjChildCol = NULL;
-
-		BOOL fPredSimple = !CStatsPredUtils::FConjOrDisjPred(pstatspredChild);
-		BOOL fColIdPresent = (ULONG_MAX != ulColId);
-		HMUlHist *phmulhistChild = NULL;
-		CDouble dScaleFactorChild(1.0);
-
-		if (fPredSimple)
-		{
-			GPOS_ASSERT(NULL != phist);
-			phistDisjChildCol = PhistSimpleFilter(pmp, pstatspredChild, pbsFilterColIds, phist, &dScaleFactorChild, &ulColIdPrev);
-
-			CHistogram *phistInput = phmulhistInput->PtLookup(&ulColId);
-			GPOS_ASSERT(NULL != phistInput);
-			if (phistInput->FEmpty())
-			{
-				// input histogram is empty so scaling factor does not make sense.
-				// if the input itself is empty, then scaling factor is of no effect
-				dScaleFactorChild = 1 / CHistogram::DDefaultSelectivity;
-			}
-		}
-		else
-		{
-			phmulhistChild = PhmulhistApplyConjOrDisjFilter
-								  	  	(
-								  	  	pmp,
-								  	  	pstatsconf,
-								  	  	phmulhistInput,
-								  	  	dRowsInput,
-								  	  	pstatspredChild,
-								  	  	&dScaleFactorChild
-								  	  	);
-
-			GPOS_ASSERT_IMP(CStatsPred::EsptDisj == pstatspredChild->Espt(), ULONG_MAX != ulColId);
-
-			if (fColIdPresent)
-			{
-				// conjunction or disjunction uses only a single column
-				phistDisjChildCol = phmulhistChild->PtLookup(&ulColId)->PhistCopy(pmp);
-			}
-		}
-
-		CDouble dRowsDisjChild = dRowsInput / dScaleFactorChild;
-		if (fColIdPresent)
-		{
-			// 1. a simple predicate (a == 5), (b LIKE "%%GOOD%%")
-			// 2. conjunctive / disjunctive predicate where each of its component are predicates on the same column
-			// e.g. (a <= 5 AND a >= 1), a in (5, 1)
-			GPOS_ASSERT(NULL != phistDisjChildCol);
-
-			if (NULL == phistPrev)
-			{
-				phistPrev = phistDisjChildCol;
-				dRowsCumulative = dRowsDisjChild;
-			}
-			else
-			{
-				// statistics operation already conducted on this column
-				CDouble dRowOutput(0.0);
-				CHistogram *phistNew = phistPrev->PhistUnionNormalized(pmp, dRowsCumulative, phistDisjChildCol, dRowsDisjChild, &dRowOutput);
-				dRowsCumulative = dRowOutput;
-
-				GPOS_DELETE(phistPrev);
-				GPOS_DELETE(phistDisjChildCol);
-				phistPrev = phistNew;
-			}
-			
-			dScaleFactorPrev = dRowsInput / std::max(DMinRows.DVal(), dRowsCumulative.DVal());
-			ulColIdPrev = ulColId;
-		}
-		else
-		{
-			// conjunctive predicate where each of it component are predicates on different columns
-			// e.g. ((a <= 5) AND (b LIKE "%%GOOD%%"))
-			GPOS_ASSERT(NULL != phmulhistChild);
-			GPOS_ASSERT(NULL == phistDisjChildCol);
-
-			CDouble dRowsCurrentEst = dRowsInput / CScaleFactorUtils::DScaleFactorCumulativeDisj(pstatsconf, pdrgpdScaleFactor, dRowsInput);
-			HMUlHist *phmulhistMerge = CStatisticsUtils::PhmulhistMergeAfterDisjChild
-													  	  (
-													  	  pmp,
-													  	  pbsStatsNonUpdateableCols,
-													  	  phmulhistResultDisj,
-													  	  phmulhistChild,
-													  	  dRowsCurrentEst,
-													  	  dRowsDisjChild
-													  	  );
-			phmulhistResultDisj->Release();
-			phmulhistResultDisj = phmulhistMerge;
-
-			phistPrev = NULL;
-			dScaleFactorPrev = dScaleFactorChild;
-			ulColIdPrev = ulColId;
-		}
-
-		CRefCount::SafeRelease(phmulhistChild);
-	}
-
-	// process the result and scaling factor of the last predicate
-	CStatisticsUtils::UpdateDisjStatistics
-						(
-						pmp,
-						pbsStatsNonUpdateableCols,
-						dRowsInput,
-						dRowsCumulative,
-						phistPrev,
-						phmulhistResultDisj,
-						ulColIdPrev
-						);
-	phistPrev = NULL;
-	pdrgpdScaleFactor->Append(GPOS_NEW(pmp) CDouble(std::max(DMinRows.DVal(), dScaleFactorPrev.DVal())));
-
-	*pdScaleFactor = CScaleFactorUtils::DScaleFactorCumulativeDisj(pstatsconf, pdrgpdScaleFactor, dRowsInput);
-
-	AddHistograms(pmp, phmulhistInput, phmulhistResultDisj);
-	
-	pbsStatsNonUpdateableCols->Release();
-
-	// clean up
-	pdrgpdScaleFactor->Release();
-	pbsFilterColIds->Release();
-
-	return phmulhistResultDisj;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PhmulhistApplyConjOrDisjFilter
-//
-//	@doc:
-//		Create a new hash map of histograms after applying a conjunctive
-//		or a disjunctive filter
-//
-//---------------------------------------------------------------------------
-HMUlHist *
-CStatistics::PhmulhistApplyConjOrDisjFilter
-	(
-	IMemoryPool *pmp,
-	CStatisticsConfig *pstatsconf,
-	HMUlHist *phmulhistInput,
-	CDouble dRowsInput,
-	CStatsPred *pstatspred,
-	CDouble *pdScaleFactor
-	)
-{
-	GPOS_ASSERT(NULL != pstatspred);
-	GPOS_ASSERT(NULL != pstatsconf);
-	GPOS_ASSERT(NULL != phmulhistInput);
-
-	HMUlHist *phmulhistAfter = NULL;
-
-	if (CStatsPred::EsptConj == pstatspred->Espt())
-	{
-		CStatsPredConj *pstatspredConj = CStatsPredConj::PstatspredConvert(pstatspred);
-		return PhmulhistApplyConjFilter
-				(
-				pmp,
-				pstatsconf,
-				phmulhistInput,
-				dRowsInput,
-				pstatspredConj,
-				pdScaleFactor
-				);
-	}
-
-	CStatsPredDisj *pstatspredDisj = CStatsPredDisj::PstatspredConvert(pstatspred);
-	phmulhistAfter  = PhmulhistApplyDisjFilter
-						(
-						pmp,
-						pstatsconf,
-						phmulhistInput,
-						dRowsInput,
-						pstatspredDisj,
-						pdScaleFactor
-						);
-
-	GPOS_ASSERT(NULL != phmulhistAfter);
-
-	return phmulhistAfter;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PhistSimpleFilter
-//
-//	@doc:
-//		Create a new histograms after applying the filter that is not
-//		an AND/OR predicate
-//
-//---------------------------------------------------------------------------
-CHistogram *
-CStatistics::PhistSimpleFilter
-	(
-	IMemoryPool *pmp,
-	CStatsPred *pstatspred,
-	CBitSet *pbsFilterColIds,
-	CHistogram *phistBefore,
-	CDouble *pdScaleFactorLast,
-	ULONG *pulColIdLast
-	)
-{
-	if (CStatsPred::EsptPoint == pstatspred->Espt())
-	{
-		CStatsPredPoint *pstatspredPoint = CStatsPredPoint::PstatspredConvert(pstatspred);
-		return PhistPointFilter(pmp, pstatspredPoint, pbsFilterColIds, phistBefore, pdScaleFactorLast, pulColIdLast);
-	}
-
-	if (CStatsPred::EsptLike == pstatspred->Espt())
-	{
-		CStatsPredLike *pstatspredLike = CStatsPredLike::PstatspredConvert(pstatspred);
-
-		return PhistLikeFilter(pmp, pstatspredLike, pbsFilterColIds, phistBefore, pdScaleFactorLast, pulColIdLast);
-	}
-
-	CStatsPredUnsupported *pstatspredUnsupported = CStatsPredUnsupported::PstatspredConvert(pstatspred);
-
-	return PhistUnsupportedPred(pmp, pstatspredUnsupported, pbsFilterColIds, phistBefore, pdScaleFactorLast, pulColIdLast);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PhistUnsupportedPred
-//
-//	@doc:
-//		Create a new histograms for an unsupported predicate
-//
-//---------------------------------------------------------------------------
-CHistogram *
-CStatistics::PhistUnsupportedPred
-	(
-	IMemoryPool *pmp,
-	CStatsPredUnsupported *pstatspred,
-	CBitSet *pbsFilterColIds,
-	CHistogram *phistBefore,
-	CDouble *pdScaleFactorLast,
-	ULONG *pulColIdLast
-	)
-{
-	GPOS_ASSERT(NULL != pstatspred);
-	GPOS_ASSERT(NULL != pbsFilterColIds);
-	GPOS_ASSERT(NULL != phistBefore);
-
-	const ULONG ulColId = pstatspred->UlColId();
-
-	// note column id
-	(void) pbsFilterColIds->FExchangeSet(ulColId);
-
-	// generate after histogram
-	CHistogram *phistAfter = phistBefore->PhistCopy(pmp);
-	GPOS_ASSERT(NULL != phistAfter);
-
-	*pdScaleFactorLast = *pdScaleFactorLast * pstatspred->DScaleFactor();
-	*pulColIdLast = ulColId;
-
-	return phistAfter;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::OsPrint
-//
-//	@doc:
-//		Print function
-//
-//---------------------------------------------------------------------------
+// helper print function
 IOstream &
 CStatistics::OsPrint
 	(
@@ -860,30 +249,14 @@ CStatistics::OsPrint
 	return os;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::DRows
-//
-//	@doc:
-//		Actual number of rows per statistics
-//
-//---------------------------------------------------------------------------
+//	return the total number of rows for this statistics object
 CDouble
 CStatistics::DRows() const
 {
 	return m_dRows;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::DSkew
-//
-//	@doc:
-//		Skew estimate for given column
-//
-//---------------------------------------------------------------------------
+// return the estimated skew of the given column
 CDouble
 CStatistics::DSkew
 	(
@@ -900,14 +273,7 @@ CStatistics::DSkew
 	return phist->DSkew();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::DWidth
-//
-//	@doc:
-//		Width in bytes
-//
-//---------------------------------------------------------------------------
+// return total width in bytes
 CDouble
 CStatistics::DWidth() const
 {
@@ -921,14 +287,7 @@ CStatistics::DWidth() const
 	return dWidth.FpCeil();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::DWidth
-//
-//	@doc:
-//		Width in bytes of a set of columns
-//
-//---------------------------------------------------------------------------
+// return the width in bytes of a set of columns
 CDouble
 CStatistics::DWidth
 	(
@@ -960,15 +319,7 @@ CStatistics::DWidth
 	return dWidth.FpCeil();
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::DWidth
-//
-//	@doc:
-//		Width in bytes of a set of columns
-//
-//---------------------------------------------------------------------------
+// return width in bytes of a set of columns
 CDouble
 CStatistics::DWidth
 	(
@@ -988,15 +339,7 @@ CStatistics::DWidth
 	return dWidth;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsDummy
-//
-//	@doc:
-//		Dummy statistics object
-//
-//---------------------------------------------------------------------------
+// return dummy statistics object
 CStatistics *
 CStatistics::PstatsDummy
 	(
@@ -1016,7 +359,7 @@ CStatistics::PstatsDummy
 	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
 
 	BOOL fEmpty = (CStatistics::DEpsilon >= dRows);
-	AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhist, phmuldoubleWidth, pdrgpulColIds, fEmpty);
+	CHistogramUtils::AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhist, phmuldoubleWidth, pdrgpulColIds, fEmpty);
 
 	CStatistics *pstats = GPOS_NEW(pmp) CStatistics(pmp, phmulhist, phmuldoubleWidth, dRows, fEmpty);
 	CreateAndInsertUpperBoundNDVs(pmp, pstats, pdrgpulColIds, dRows);
@@ -1024,14 +367,7 @@ CStatistics::PstatsDummy
 	return pstats;
 }
 
-//---------------------------------------------------------------------------
-//      @function:
-//              CStatistics::CreateAndInsertUpperBoundNDVs
-//
-//      @doc:
-//              Add upper bound ndvs information for a given set of columns
-//
-//---------------------------------------------------------------------------
+// add upper bound ndvs information for a given set of columns
 void
 CStatistics::CreateAndInsertUpperBoundNDVs
 	(
@@ -1067,14 +403,7 @@ CStatistics::CreateAndInsertUpperBoundNDVs
 	}
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsDummy
-//
-//	@doc:
-//		Dummy stats object
-//
-//---------------------------------------------------------------------------
+//	return dummy statistics object
 CStatistics *
 CStatistics::PstatsDummy
 	(
@@ -1127,21 +456,13 @@ CStatistics::PstatsDummy
 	return pstats;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsJoinDriver
-//
-//	@doc:
-//		Main driver to generate join stats
-//
-//---------------------------------------------------------------------------
+// main driver to generate join stats
 CStatistics *
 CStatistics::PstatsJoinDriver
 	(
 	IMemoryPool *pmp,
 	const IStatistics *pistatsOther,
-	DrgPstatsjoin *pdrgpstatsjoin,
+	DrgPstatspredjoin *pdrgpstatspredjoin,
 	IStatistics::EStatsJoinType esjt,
 	BOOL fIgnoreLasjHistComputation
 	)
@@ -1149,7 +470,7 @@ CStatistics::PstatsJoinDriver
 {
 	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(NULL != pistatsOther);
-	GPOS_ASSERT(NULL != pdrgpstatsjoin);
+	GPOS_ASSERT(NULL != pdrgpstatspredjoin);
 
 	BOOL fLASJ = (IStatistics::EsjtLeftAntiSemiJoin == esjt);
 	BOOL fSemiJoin = IStatistics::FSemiJoin(esjt);
@@ -1161,9 +482,9 @@ CStatistics::PstatsJoinDriver
 
 	// build a bitset with all join columns
 	CBitSet *pbsJoinColIds = GPOS_NEW(pmp) CBitSet(pmp);
-	for (ULONG ul = 0; ul < pdrgpstatsjoin->UlLength(); ul++)
+	for (ULONG ul = 0; ul < pdrgpstatspredjoin->UlLength(); ul++)
 	{
-		CStatisticsJoin *pstatsjoin = (*pdrgpstatsjoin)[ul];
+		CStatsPredJoin *pstatsjoin = (*pdrgpstatspredjoin)[ul];
 		(void) pbsJoinColIds->FExchangeSet(pstatsjoin->UlColId1());
 		if (!fSemiJoin)
 		{
@@ -1180,13 +501,13 @@ CStatistics::PstatsJoinDriver
 	}
 
 	DrgPdouble *pdrgpd = GPOS_NEW(pmp) DrgPdouble(pmp);
-	const ULONG ulJoinConds = pdrgpstatsjoin->UlLength();
+	const ULONG ulJoinConds = pdrgpstatspredjoin->UlLength();
 
 	BOOL fEmptyOutput = false;
 	// iterate over joins
 	for (ULONG ul = 0; ul < ulJoinConds; ul++)
 	{
-		CStatisticsJoin *pstatsjoin = (*pdrgpstatsjoin)[ul];
+		CStatsPredJoin *pstatsjoin = (*pdrgpstatspredjoin)[ul];
 		ULONG ulColId1 = pstatsjoin->UlColId1();
 		ULONG ulColId2 = pstatsjoin->UlColId2();
 
@@ -1274,14 +595,7 @@ CStatistics::PstatsJoinDriver
 	return pstatsJoin;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::FEmptyJoinInput
-//
-//	@doc:
-//		Check if the input statistics from join statistics computation empty
-//
-//---------------------------------------------------------------------------
+//	check if the input statistics from join statistics computation empty
 BOOL
 CStatistics::FEmptyJoinInput
 	(
@@ -1302,15 +616,8 @@ CStatistics::FEmptyJoinInput
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::FEmptyJoinStats
-//
-//	@doc:
-//		Check if the join statistics object is empty output based on the input
-//		histograms and the join histograms
-//
-//---------------------------------------------------------------------------
+// check if the join statistics object is empty output based on the input
+// histograms and the join histograms
 BOOL
 CStatistics::FEmptyJoinStats
 	(
@@ -1331,14 +638,7 @@ CStatistics::FEmptyJoinStats
 		   (!phistOuter->FEmpty() && !phistInner->FEmpty() && phistJoin->FEmpty());
 	}
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::DJoinCardinality
-//
-//	@doc:
-//		Return join cardinality based on scaling factor and join type
-//
-//---------------------------------------------------------------------------
+// return join cardinality based on scaling factor and join type
 CDouble
 CStatistics::DJoinCardinality
 	(
@@ -1379,28 +679,20 @@ CStatistics::DJoinCardinality
 	return std::max(DMinRows.DVal(), (dCartesianProduct / dScaleFactor).DVal());
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsLOJ
-//
-//	@doc:
-//		Join with another stats structure
-//
-//---------------------------------------------------------------------------
+//	return statistics object after performing LOJ operation with another statistics structure
 CStatistics *
 CStatistics::PstatsLOJ
 	(
 	IMemoryPool *pmp,
 	const IStatistics *pstatsOther,
-	DrgPstatsjoin *pdrgpstatsjoin
+	DrgPstatspredjoin *pdrgpstatspredjoin
 	)
 	const
 {
 	GPOS_ASSERT(NULL != pstatsOther);
-	GPOS_ASSERT(NULL != pdrgpstatsjoin);
+	GPOS_ASSERT(NULL != pdrgpstatspredjoin);
 
-	CStatistics *pstatsInnerJoin = PstatsInnerJoin(pmp, pstatsOther, pdrgpstatsjoin);
+	CStatistics *pstatsInnerJoin = PstatsInnerJoin(pmp, pstatsOther, pdrgpstatspredjoin);
 	CDouble dRowsInnerJoin = pstatsInnerJoin->DRows();
 	CDouble dRowsLASJ(1.0);
 
@@ -1414,7 +706,7 @@ CStatistics::PstatsLOJ
 								this,
 								pstatsInnerSide,
 								pstatsInnerJoin,
-								pdrgpstatsjoin,
+								pdrgpstatspredjoin,
 								dRowsInnerJoin,
 								&dRowsLASJ
 								);
@@ -1451,16 +743,8 @@ CStatistics::PstatsLOJ
 	return pstatsLOJ;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PhmulhistLOJ
-//
-//	@doc:
-//		Create a new hash map of histograms for LOJ from the histograms
-//		of the outer child and the histograms of the inner join
-//
-//---------------------------------------------------------------------------
+//	create a new hash map of histograms for LOJ from the histograms
+//	of the outer child and the histograms of the inner join
 HMUlHist *
 CStatistics::PhmulhistLOJ
 	(
@@ -1468,21 +752,21 @@ CStatistics::PhmulhistLOJ
 	const CStatistics *pstatsOuter,
 	const CStatistics *pstatsInner,
 	CStatistics *pstatsInnerJoin,
-	DrgPstatsjoin *pdrgpstatsjoin,
+	DrgPstatspredjoin *pdrgpstatspredjoin,
 	CDouble dRowsInnerJoin,
 	CDouble *pdRowsLASJ
 	)
 {
 	GPOS_ASSERT(NULL != pstatsOuter);
 	GPOS_ASSERT(NULL != pstatsInner);
-	GPOS_ASSERT(NULL != pdrgpstatsjoin);
+	GPOS_ASSERT(NULL != pdrgpstatspredjoin);
 	GPOS_ASSERT(NULL != pstatsInnerJoin);
 
 	// build a bitset with all outer child columns contributing to the join
 	CBitSet *pbsOuterJoinCol = GPOS_NEW(pmp) CBitSet(pmp);
-	for (ULONG ul1 = 0; ul1 < pdrgpstatsjoin->UlLength(); ul1++)
+	for (ULONG ul1 = 0; ul1 < pdrgpstatspredjoin->UlLength(); ul1++)
 	{
-		CStatisticsJoin *pstatsjoin = (*pdrgpstatsjoin)[ul1];
+		CStatsPredJoin *pstatsjoin = (*pdrgpstatspredjoin)[ul1];
 		(void) pbsOuterJoinCol->FExchangeSet(pstatsjoin->UlColId1());
 	}
 
@@ -1491,7 +775,7 @@ CStatistics::PhmulhistLOJ
 											(
 											pmp,
 											pstatsInner,
-											pdrgpstatsjoin,
+											pdrgpstatspredjoin,
 											false /* fIgnoreLasjHistComputation */
 											);
 	CDouble dRowsLASJ(0.0);
@@ -1554,15 +838,7 @@ CStatistics::PhmulhistLOJ
 	return phmulhistLOJ;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::AddHistogramLOJInner
-//
-//	@doc:
-//		Helper function to add histograms of the inner side of a LOJ
-//
-//---------------------------------------------------------------------------
+// helper function to add histograms of the inner side of a LOJ
 void
 CStatistics::AddHistogramsLOJInner
 	(
@@ -1604,34 +880,26 @@ CStatistics::AddHistogramsLOJInner
 	}
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsLSJoin
-//
-//	@doc:
-//		Semi join with another stats structure
-//
-//---------------------------------------------------------------------------
+//	return statistics object after performing semi-join with another statistics structure
 CStatistics *
 CStatistics::PstatsLSJoin
 	(
 	IMemoryPool *pmp,
 	const IStatistics *pstatsInner,
-	DrgPstatsjoin *pdrgpstatsjoin
+	DrgPstatspredjoin *pdrgpstatspredjoin
 	)
 	const
 {
 	GPOS_ASSERT(NULL != pstatsInner);
-	GPOS_ASSERT(NULL != pdrgpstatsjoin);
+	GPOS_ASSERT(NULL != pdrgpstatspredjoin);
 
-	const ULONG ulLen = pdrgpstatsjoin->UlLength();
+	const ULONG ulLen = pdrgpstatspredjoin->UlLength();
 
 	// iterate over all inner columns and perform a group by to remove duplicates
 	DrgPul *pdrgpulInnerColumnIds = GPOS_NEW(pmp) DrgPul(pmp);
 	for (ULONG ul = 0; ul < ulLen; ul++)
 	{
-		ULONG ulInnerColId = ((*pdrgpstatsjoin)[ul])->UlColId2();
+		ULONG ulInnerColId = ((*pdrgpstatspredjoin)[ul])->UlColId2();
 		pdrgpulInnerColumnIds->Append(GPOS_NEW(pmp) ULONG(ulInnerColId));
 	}
 
@@ -1649,7 +917,7 @@ CStatistics::PstatsLSJoin
 									(
 									pmp,
 									pstatsInnerNoDups,
-									pdrgpstatsjoin,
+									pdrgpstatspredjoin,
 									IStatistics::EsjtLeftSemiJoin /* esjt */,
 									true /* fIgnoreLasjHistComputation */
 									);
@@ -1662,21 +930,14 @@ CStatistics::PstatsLSJoin
 	return pstatsSemiJoin;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::LASJoinHistograms
-//
-//	@doc:
-//		Helper for LAS-joining histograms
-//
-//---------------------------------------------------------------------------
+// helper for LAS-joining histograms
 void
 CStatistics::LASJoinHistograms
 	(
 	IMemoryPool *pmp,
 	CHistogram *phist1,
 	CHistogram *phist2,
-	CStatisticsJoin *pstatsjoin,
+	CStatsPredJoin *pstatsjoin,
 	CDouble dRows1,
 	CDouble ,//dRows2,
 	CHistogram **pphist1, // output: histogram 1 after join
@@ -1739,22 +1000,14 @@ CStatistics::LASJoinHistograms
 	*pphist2 = NULL;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::InnerJoinHistograms
-//
-//	@doc:
-//		Helper for inner-joining histograms
-//
-//---------------------------------------------------------------------------
+// helper for inner-joining histograms
 void
 CStatistics::InnerJoinHistograms
 	(
 	IMemoryPool *pmp,
 	CHistogram *phist1,
 	CHistogram *phist2,
-	CStatisticsJoin *pstatsjoin,
+	CStatsPredJoin *pstatsjoin,
 	CDouble dRows1,
 	CDouble dRows2,
 	CHistogram **pphist1, // output: histogram 1 after join
@@ -1839,22 +1092,14 @@ CStatistics::InnerJoinHistograms
 	*pphist2 = phist2->PhistCopy(pmp);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::JoinHistograms
-//
-//	@doc:
-//		Helper for joining histograms
-//
-//---------------------------------------------------------------------------
+// helper for joining histograms
 void
 CStatistics::JoinHistograms
 	(
 	IMemoryPool *pmp,
 	CHistogram *phist1,
 	CHistogram *phist2,
-	CStatisticsJoin *pstatsjoin,
+	CStatsPredJoin *pstatsjoin,
 	CDouble dRows1,
 	CDouble dRows2,
 	BOOL fLASJ, // if true, use anti-semi join semantics, otherwise use inner join semantics
@@ -1896,150 +1141,54 @@ CStatistics::JoinHistograms
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsInnerJoin
-//
-//	@doc:
-//		Left anti semi join with another stats structure
-//
-//---------------------------------------------------------------------------
+// return statistics object after performing inner join
 CStatistics *
 CStatistics::PstatsInnerJoin
 	(
 	IMemoryPool *pmp,
 	const IStatistics *pistatsOther,
-	DrgPstatsjoin *pdrgpstatsjoin
+	DrgPstatspredjoin *pdrgpstatspredjoin
 	)
 	const
 {
 	GPOS_ASSERT(NULL != pistatsOther);
-	GPOS_ASSERT(NULL != pdrgpstatsjoin);
+	GPOS_ASSERT(NULL != pdrgpstatspredjoin);
 
 	return PstatsJoinDriver
 			(
 			pmp,
 			pistatsOther,
-			pdrgpstatsjoin,
+			pdrgpstatspredjoin,
 			IStatistics::EsjtInnerJoin /* esjt */,
 			true /* fIgnoreLasjHistComputation */
 			);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsLASJoin
-//
-//	@doc:
-//		Left anti semi join with another stats structure
-//
-//---------------------------------------------------------------------------
+//		return statistics object after performing LASJ
 CStatistics *
 CStatistics::PstatsLASJoin
 	(
 	IMemoryPool *pmp,
 	const IStatistics *pistatsOther,
-	DrgPstatsjoin *pdrgpstatsjoin,
+	DrgPstatspredjoin *pdrgpstatspredjoin,
 	BOOL fIgnoreLasjHistComputation
 	)
 	const
 {
 	GPOS_ASSERT(NULL != pistatsOther);
-	GPOS_ASSERT(NULL != pdrgpstatsjoin);
+	GPOS_ASSERT(NULL != pdrgpstatspredjoin);
 
 	return PstatsJoinDriver
 			(
 			pmp,
 			pistatsOther,
-			pdrgpstatsjoin,
+			pdrgpstatspredjoin,
 			IStatistics::EsjtLeftAntiSemiJoin /* esjt */,
 			fIgnoreLasjHistComputation
 			);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::AddDummyHistogramAndWidthInfo
-//
-//	@doc:
-//		Add dummy histogram buckets and column information for the array of columns
-//
-//---------------------------------------------------------------------------
-void
-CStatistics::AddDummyHistogramAndWidthInfo
-	(
-	IMemoryPool *pmp,
-	CColumnFactory *pcf,
-	HMUlHist *phmulhistOutput,
-	HMUlDouble *phmuldoubleWidthOutput,
-	const DrgPul *pdrgpul,
-	BOOL fEmpty
-	)
-{
-	GPOS_ASSERT(NULL != pcf);
-	GPOS_ASSERT(NULL != phmulhistOutput);
-	GPOS_ASSERT(NULL != phmuldoubleWidthOutput);
-	GPOS_ASSERT(NULL != pdrgpul);
-
-	const ULONG ulCount = pdrgpul->UlLength();
-	// for computed aggregates, we're not going to be very smart right now
-	for (ULONG ul = 0; ul < ulCount; ul++)
-	{
-		ULONG ulColId = *(*pdrgpul)[ul];
-
-		CColRef *pcr = pcf->PcrLookup(ulColId);
-		GPOS_ASSERT(NULL != pcr);
-
-		CHistogram *phist = CHistogram::PhistDefault(pmp, pcr, fEmpty);
-		phmulhistOutput->FInsert(GPOS_NEW(pmp) ULONG(ulColId), phist);
-
-		CDouble dWidth = CStatisticsUtils::DDefaultColumnWidth(pcr->Pmdtype());
-		phmuldoubleWidthOutput->FInsert(GPOS_NEW(pmp) ULONG(ulColId), GPOS_NEW(pmp) CDouble(dWidth));
-	}
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::AddEmptyHistogram
-//
-//	@doc:
-//		Add empty histogram for the columns in the input histogram
-//
-//---------------------------------------------------------------------------
-void
-CStatistics::AddEmptyHistogram
-	(
-	IMemoryPool *pmp,
-	HMUlHist *phmulhistOutput,
-	HMUlHist *phmulhistInput
-	)
-{
-	GPOS_ASSERT(NULL != phmulhistOutput);
-	GPOS_ASSERT(NULL != phmulhistInput);
-
-	HMIterUlHist hmiterulhist(phmulhistInput);
-	while (hmiterulhist.FAdvance())
-	{
-		ULONG ulColId = *(hmiterulhist.Pk());
-
-		// empty histogram
-		CHistogram *phist =  GPOS_NEW(pmp) CHistogram(GPOS_NEW(pmp) DrgPbucket(pmp), false /* fWellDefined */);
-		phmulhistOutput->FInsert(GPOS_NEW(pmp) ULONG(ulColId), phist);
-	}
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsGroupBy
-//
-//	@doc:
-//		Group by computation
-//
-//---------------------------------------------------------------------------
+// return statistics object after Group by computation
 CStatistics *
 CStatistics::PstatsGroupBy
 	(
@@ -2063,15 +1212,15 @@ CStatistics::PstatsGroupBy
 	if (FEmpty())
 	{
 		// add dummy histograms for the aggregates and grouping columns
-		AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhist, phmuldoubleWidth, pdrgpulAgg, true /* fEmpty */);
-		AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhist, phmuldoubleWidth, pdrgpulGC, true /* fEmpty */);
+		CHistogramUtils::AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhist, phmuldoubleWidth, pdrgpulAgg, true /* fEmpty */);
+		CHistogramUtils::AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhist, phmuldoubleWidth, pdrgpulGC, true /* fEmpty */);
 
 		pstatsAgg = GPOS_NEW(pmp) CStatistics(pmp, phmulhist, phmuldoubleWidth, dRowsAgg, true /* fEmpty */);
 	}
 	else
 	{
 		// for computed aggregates, we're not going to be very smart right now
-		AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhist, phmuldoubleWidth, pdrgpulAgg, false /* fEmpty */);
+		CHistogramUtils::AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhist, phmuldoubleWidth, pdrgpulAgg, false /* fEmpty */);
 
 		CColRefSet *pcrsGrpColComputed = GPOS_NEW(pmp) CColRefSet(pmp);
 		CColRefSet *pcrsGrpColsForStats = CStatisticsUtils::PcrsGrpColsForStats(pmp, pdrgpulGC, pcrsGrpColComputed);
@@ -2108,14 +1257,7 @@ CStatistics::PstatsGroupBy
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsProject
-//
-//	@doc:
-//      Create a statistics object for a project operation
-//
-//---------------------------------------------------------------------------
+//  return a statistics object for a project operation
 CStatistics *
 CStatistics::PstatsProject
 	(
@@ -2232,15 +1374,7 @@ CStatistics::PstatsProject
 	return pstatsProject;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::AddNotExcludedHistograms
-//
-//	@doc:
-//		Helper method to copy stats on columns that are not excluded by bitset
-//
-//---------------------------------------------------------------------------
+//	helper method to copy statistics on columns that are not excluded by bitset
 void
 CStatistics::AddNotExcludedHistograms
 	(
@@ -2267,15 +1401,7 @@ CStatistics::AddNotExcludedHistograms
 	}
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::AddWidthInfo
-//
-//	@doc:
-//		Add width information
-//
-//---------------------------------------------------------------------------
+//	add width information
 void
 CStatistics::AddWidthInfo
 	(
@@ -2300,39 +1426,7 @@ CStatistics::AddWidthInfo
 	}
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::AddHistograms
-//
-//	@doc:
-//		Append given histograms to current object
-//
-//---------------------------------------------------------------------------
-void
-CStatistics::AddHistograms
-	(
-	IMemoryPool *pmp,
-	HMUlHist *phmulhistSrc,
-	HMUlHist *phmulhistDest
-	)
-{
-	HMIterUlHist hmiterulhist(phmulhistSrc);
-	while (hmiterulhist.FAdvance())
-	{
-		ULONG ulColId = *(hmiterulhist.Pk());
-		const CHistogram *phist = hmiterulhist.Pt();
-		CStatisticsUtils::AddHistogram(pmp, ulColId, phist, phmulhistDest);
-	}
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsUnionAll
-//
-//	@doc:
-//		Union all operation
-//
-//---------------------------------------------------------------------------
+// return statistics object after union all operation with input statistics object
 CStatistics *
 CStatistics::PstatsUnionAll
 	(
@@ -2364,7 +1458,7 @@ CStatistics::PstatsUnionAll
 	CDouble dRowsUnionAll = DMinRows;
 	if (fEmptyUnionAll)
 	{
-		AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhistNew, phmuldoubleWidth, pdrgpulOutput, true /*fEmpty*/);
+		CHistogramUtils::AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhistNew, phmuldoubleWidth, pdrgpulOutput, true /*fEmpty*/);
 	}
 	else
 	{
@@ -2429,14 +1523,7 @@ CStatistics::PstatsUnionAll
 	return pstatsUnionAll;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsLimit
-//
-//	@doc:
-//		Limit operation
-//
-//---------------------------------------------------------------------------
+//	compute the statistics of a limit operation
 CStatistics *
 CStatistics::PstatsLimit
 	(
@@ -2451,7 +1538,7 @@ CStatistics::PstatsLimit
 	CDouble dRowsLimit = DMinRows;
 	if (FEmpty())
 	{
-		AddEmptyHistogram(pmp, phmulhistNew, m_phmulhist);
+		CHistogramUtils::AddEmptyHistogram(pmp, phmulhistNew, m_phmulhist);
 	}
 	else
 	{
@@ -2492,15 +1579,7 @@ CStatistics::PstatsLimit
 	return pstatsLimit;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::Prprel
-//
-//	@doc:
-//		Return required props associated with stats object
-//
-//---------------------------------------------------------------------------
+//	return required props associated with statistics object
 CReqdPropRelational *
 CStatistics::Prprel
 	(
@@ -2527,15 +1606,7 @@ CStatistics::Prprel
 	return GPOS_NEW(pmp) CReqdPropRelational(pcrs);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::AppendStats
-//
-//	@doc:
-//		Append given stats to current object
-//
-//---------------------------------------------------------------------------
+// append given statistics to current object
 void
 CStatistics::AppendStats
 	(
@@ -2545,22 +1616,14 @@ CStatistics::AppendStats
 {
 	CStatistics *pstats = CStatistics::PstatsConvert(pstatsInput);
 
-	AddHistograms(pmp, pstats->m_phmulhist, m_phmulhist);
+	CHistogramUtils::AddHistograms(pmp, pstats->m_phmulhist, m_phmulhist);
 	GPOS_CHECK_ABORT;
 
 	AddWidthInfo(pmp, pstats->m_phmuldoubleWidth, m_phmuldoubleWidth);
 	GPOS_CHECK_ABORT;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsCopy
-//
-//	@doc:
-//		Copy stats object
-//
-//---------------------------------------------------------------------------
+// copy statistics object
 IStatistics *
 CStatistics::PstatsCopy
 	(
@@ -2571,14 +1634,7 @@ CStatistics::PstatsCopy
 	return PstatsScale(pmp, CDouble(1.0) /*dFactor*/);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsScale
-//
-//	@doc:
-//		Return a copy of this stats object scaled by a given factor
-//
-//---------------------------------------------------------------------------
+// return a copy of this statistics object scaled by a given factor
 IStatistics *
 CStatistics::PstatsScale
 	(
@@ -2590,7 +1646,7 @@ CStatistics::PstatsScale
 	HMUlHist *phmulhistNew = GPOS_NEW(pmp) HMUlHist(pmp);
 	HMUlDouble *phmuldoubleNew = GPOS_NEW(pmp) HMUlDouble(pmp);
 
-	AddHistograms(pmp, m_phmulhist, phmulhistNew);
+	CHistogramUtils::AddHistograms(pmp, m_phmulhist, phmulhistNew);
 	GPOS_CHECK_ABORT;
 
 	AddWidthInfo(pmp, m_phmuldoubleWidth, phmuldoubleNew);
@@ -2621,14 +1677,7 @@ CStatistics::PstatsScale
 	return pstatsScaled;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PstatsCopyWithRemap
-//
-//	@doc:
-//		Copy stats object with remapped column ids
-//
-//---------------------------------------------------------------------------
+//	copy statistics object with re-mapped column ids
 IStatistics *
 CStatistics::PstatsCopyWithRemap
 	(
@@ -2676,15 +1725,8 @@ CStatistics::PstatsCopyWithRemap
 	return pstatsCopy;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::PdrgulColIds
-//
-//	@doc:
-//		Return the column identifiers of all columns whose statistics are
-//		maintained by the stats object
-//---------------------------------------------------------------------------
+//	return the column identifiers of all columns whose statistics are
+//	maintained by the statistics object
 DrgPul *
 CStatistics::PdrgulColIds
 	(
@@ -2704,16 +1746,7 @@ CStatistics::PdrgulColIds
 	return pdrgpul;
 }
 
-
-//
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::Pcrs
-//
-//	@doc:
-//		Return the set of column references we have stats for
-//
-//---------------------------------------------------------------------------
+// return the set of column references we have statistics for
 CColRefSet *
 CStatistics::Pcrs
 	(
@@ -2737,15 +1770,7 @@ CStatistics::Pcrs
 	return pcrs;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::AddHistogramsWithRemap
-//
-//	@doc:
-//		Append given histograms to current object where the column ids have been remapped
-//
-//---------------------------------------------------------------------------
+//	append given histograms to current object where the column ids have been re-mapped
 void
 CStatistics::AddHistogramsWithRemap
 	(
@@ -2776,15 +1801,7 @@ CStatistics::AddHistogramsWithRemap
 	}
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::AddWidthInfoWithRemap
-//
-//	@doc:
-//		Add width information where the column ids have been remapped
-//
-//---------------------------------------------------------------------------
+// add width information where the column ids have been re-mapped
 void
 CStatistics::AddWidthInfoWithRemap
 	(
@@ -2823,16 +1840,9 @@ CStatistics::AddWidthInfoWithRemap
 	}
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::ComputeCardUpperBounds
-//
-//	@doc:
-//		For the output stats object, compute its upper bound cardinality
-// 		mapping based on the bounding method estimated output cardinality
-//      and information maintained in the current stats object
-//---------------------------------------------------------------------------
+//	for the output statistics object, compute its upper bound cardinality
+// 	mapping based on the bounding method estimated output cardinality
+//  and information maintained in the current statistics object
 void
 CStatistics::ComputeCardUpperBounds
 	(
@@ -2866,14 +1876,7 @@ CStatistics::ComputeCardUpperBounds
 	}
 }
 
-
-//---------------------------------------------------------------------------
-//      @function:
-//              CStatistics::UlIndexUpperBoundNDVs
-//
-//      @doc:
-//              Return the index of the array of upper bound ndvs to which column reference belongs
-//---------------------------------------------------------------------------
+// return the index of the array of upper bound ndvs to which column reference belongs
 ULONG
 CStatistics::UlIndexUpperBoundNDVs
 (
@@ -2897,14 +1900,7 @@ CStatistics::UlIndexUpperBoundNDVs
 	return ULONG_MAX;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::AddCardUpperBound
-//
-//	@doc:
-//		Add upper bound of source cardinality
-//---------------------------------------------------------------------------
+// add upper bound of source cardinality
 void
 CStatistics::AddCardUpperBound
 	(
@@ -2919,15 +1915,7 @@ CStatistics::AddCardUpperBound
 	m_pdrgpubndvs->Append(pubndv);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatistics::Pdxlstatsderrel
-//
-//	@doc:
-//		Return the dxl representation of the statistics object
-//
-//---------------------------------------------------------------------------
+// return the dxl representation of the statistics object
 CDXLStatsDerivedRelation *
 CStatistics::Pdxlstatsderrel
 	(
@@ -2954,15 +1942,7 @@ CStatistics::Pdxlstatsderrel
 	return GPOS_NEW(pmp) CDXLStatsDerivedRelation(m_dRows, FEmpty(), pdrgpdxlstatsdercol);
 }
 
-
-//---------------------------------------------------------------------------
-//      @function:
-//              CStatistics::DUpperBoundNDVs
-//
-//      @doc:
-//      Return the upper bound of ndvs for a column reference
-//
-//---------------------------------------------------------------------------
+// return the upper bound of ndvs for a column reference
 CDouble
 CStatistics::DUpperBoundNDVs
 	(
@@ -2988,14 +1968,7 @@ CStatistics::DUpperBoundNDVs
 }
 
 
-//---------------------------------------------------------------------------
-//      @function:
-//              CStatistics::DColumnDistinctValues
-//
-//      @doc:
-//      Look up the number of distinct values of a particular column
-//
-//---------------------------------------------------------------------------
+// look up the number of distinct values of a particular column
 CDouble
 CStatistics::DNDV
 	(

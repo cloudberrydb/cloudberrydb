@@ -1252,7 +1252,7 @@ CStatisticsUtils::PstatsJoinArray
 		pdrgpcrsOutput->Append(pstatsCurrent->Pcrs(pmp));
 
 		CStatsPred *pstatspredUnsupported = NULL;
-		DrgPstatsjoin *pdrgpstatsjoin = CStatsPredUtils::PdrgpstatsjoinExtract
+		DrgPstatspredjoin *pdrgpstatspredjoin = CStatsPredUtils::PdrgpstatspredjoinExtract
 															(
 															pmp,
 															pexprScalar,
@@ -1263,11 +1263,11 @@ CStatisticsUtils::PstatsJoinArray
 		IStatistics *pstatsNew = NULL;
 		if (fOuterJoin)
 		{
-			pstatsNew = pstats->PstatsLOJ(pmp, pstatsCurrent, pdrgpstatsjoin);
+			pstatsNew = pstats->PstatsLOJ(pmp, pstatsCurrent, pdrgpstatspredjoin);
 		}
 		else
 		{
-			pstatsNew = pstats->PstatsInnerJoin(pmp, pstatsCurrent, pdrgpstatsjoin);
+			pstatsNew = pstats->PstatsInnerJoin(pmp, pstatsCurrent, pdrgpstatspredjoin);
 		}
 		pstats->Release();
 		pstats = pstatsNew;
@@ -1289,7 +1289,7 @@ CStatisticsUtils::PstatsJoinArray
 			pstatspredUnsupported->Release();
 		}
 
-		pdrgpstatsjoin->Release();
+		pdrgpstatspredjoin->Release();
 		pdrgpcrsOutput->Release();
 	}
 
@@ -1457,7 +1457,7 @@ CStatisticsUtils::PstatsDynamicScan
 
 	// extract all the conjuncts
 	CStatsPred *pstatspredUnsupported = NULL;
-	DrgPstatsjoin *pdrgpstatsjoin = CStatsPredUtils::PdrgpstatsjoinExtract
+	DrgPstatspredjoin *pdrgpstatspredjoin = CStatsPredUtils::PdrgpstatspredjoinExtract
 														(
 														pmp,
 														pexprScalar,
@@ -1466,14 +1466,14 @@ CStatisticsUtils::PstatsDynamicScan
 														&pstatspredUnsupported
 														);
 
-	IStatistics *pstatLSJoin = pstatsBase->PstatsLSJoin(pmp, pstatsPartSelector, pdrgpstatsjoin);
+	IStatistics *pstatLSJoin = pstatsBase->PstatsLSJoin(pmp, pstatsPartSelector, pdrgpstatspredjoin);
 
 	// TODO:  May 15 2014, handle unsupported predicates for LS joins
 	// cleanup
 	CRefCount::SafeRelease(pstatspredUnsupported);
 	pdrgpcrsOutput->Release();
 	pcrsOuterRefs->Release();
-	pdrgpstatsjoin->Release();
+	pdrgpstatspredjoin->Release();
 
 	return pstatLSJoin;
 }
@@ -2230,6 +2230,5 @@ CStatisticsUtils::DDefaultColumnWidth
 
        return dWidth;
 }
-
 
 // EOF

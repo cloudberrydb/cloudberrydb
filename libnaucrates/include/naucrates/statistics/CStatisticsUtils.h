@@ -23,6 +23,7 @@
 #include "naucrates/statistics/CStatsPredUtils.h"
 #include "naucrates/statistics/CStatsPredDisj.h"
 #include "naucrates/statistics/CStatsPredUnsupported.h"
+
 #include "naucrates/base/IDatum.h"
 
 namespace gpopt

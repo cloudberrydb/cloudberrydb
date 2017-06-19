@@ -34,11 +34,9 @@
 #include "gpopt/operators/CScalarProjectElement.h"
 
 #include "naucrates/dxl/CDXLUtils.h"
-#include "naucrates/dxl/operators/CDXLDatumGeneric.h"
-#include "naucrates/dxl/operators/CDXLDatumStatsDoubleMappable.h"
-#include "naucrates/dxl/operators/CDXLDatumStatsLintMappable.h"
 
 #include "unittest/base.h"
+#include "unittest/dxl/statistics/CCardinalityTestUtils.h"
 #include "unittest/dxl/statistics/CStatisticsTest.h"
 #include "unittest/gpopt/CTestUtils.h"
 
@@ -112,8 +110,6 @@ CStatisticsTest::EresUnittest()
 		// GPOS_UNITTEST_FUNC(CStatisticsTest::EresUnittest_CStatisticsSelectDerivation),
 		GPOS_UNITTEST_FUNC(CStatisticsTest::EresUnittest_Skew),
 		GPOS_UNITTEST_FUNC_ASSERT(CStatisticsTest::EresUnittest_CHistogramValid),
-		GPOS_UNITTEST_FUNC(CStatisticsTest::EresUnittest_Join),
-		GPOS_UNITTEST_FUNC(CStatisticsTest::EresUnittest_JoinNDVRemain),
 		GPOS_UNITTEST_FUNC(CStatisticsTest::EresUnittest_CBucketIntersect),
 		GPOS_UNITTEST_FUNC(CStatisticsTest::EresUnittest_CStatisticsFilter),
 		GPOS_UNITTEST_FUNC(CStatisticsTest::EresUnittest_CStatisticsFilterConj),
@@ -335,128 +331,6 @@ CStatisticsTest::EresUnittest_CPointBool()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CStatisticsTest::EresUnittest_JoinNDVRemain
-//
-//	@doc:
-//		Join of histograms with NDVRemain information
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CStatisticsTest::EresUnittest_JoinNDVRemain()
-{
-	// create memory pool
-	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
-
-	SHistogramTestCase rghisttc[] =
-	{
-		{0, 0, false, 0}, // empty histogram
-		{10, 100, false, 0},  // distinct values only in buckets
-		{0, 0, false, 1000},   // distinct values only in NDVRemain
-		{5, 100, false, 500} // distinct values spread in both buckets and NDVRemain
-	};
-
-	HMUlHist *phmulhist = GPOS_NEW(pmp) HMUlHist(pmp);
-
-	const ULONG ulHist = GPOS_ARRAY_SIZE(rghisttc);
-	for (ULONG ul1 = 0; ul1 < ulHist; ul1++)
-	{
-		SHistogramTestCase elem = rghisttc[ul1];
-
-		ULONG ulBuckets = elem.m_ulBuckets;
-		CDouble dNDVPerBucket = elem.m_dNDVPerBucket;
-		BOOL fNullFreq = elem.m_fNullFreq;
-		CDouble dNDVRemain = elem.m_dNDVRemain;
-
-		CHistogram *phist = PhistInt4Remain(pmp, ulBuckets, dNDVPerBucket, fNullFreq, dNDVRemain);
-#ifdef GPOS_DEBUG
-			BOOL fResult =
-#endif // GPOS_DEBUG
-		phmulhist->FInsert(GPOS_NEW(pmp) ULONG(ul1), phist);
-		GPOS_ASSERT(fResult);
-	}
-
-	SStatsJoinNDVRemainTestCase rgjoinndvrtc[] =
-	{
-		// cases where we are joining with an empty histogram
-	    // first two columns refer to the histogram entries that are joining
-		{0, 0, 0, CDouble(0.0), CDouble(0.0), CDouble(0.0)},
-		{0, 1, 0, CDouble(0.0), CDouble(0.0), CDouble(0.0)},
-		{0, 2, 0, CDouble(0.0), CDouble(0.0), CDouble(0.0)},
-		{0, 3, 0, CDouble(0.0), CDouble(0.0), CDouble(0.0)},
-
-		{1, 0, 0, CDouble(0.0), CDouble(0.0), CDouble(0.0)},
-		{2, 0, 0, CDouble(0.0), CDouble(0.0), CDouble(0.0)},
-		{3, 0, 0, CDouble(0.0), CDouble(0.0), CDouble(0.0)},
-
-		// cases where one or more input histogram has only buckets and no remaining NDV information
-		{1, 1, 10, CDouble(1000.00), CDouble(0.0), CDouble(0.0)},
-		{1, 3, 5, CDouble(500.00), CDouble(500.0), CDouble(0.333333)},
-		{3, 1, 5, CDouble(500.00), CDouble(500.0), CDouble(0.333333)},
-
-		// cases where for one or more input histogram has only remaining NDV information and no buckets
-		{1, 2, 0, CDouble(0.0), CDouble(1000.0), CDouble(1.0)},
-		{2, 1, 0, CDouble(0.0), CDouble(1000.0), CDouble(1.0)},
-		{2, 2, 0, CDouble(0.0), CDouble(1000.0), CDouble(1.0)},
-		{2, 3, 0, CDouble(0.0), CDouble(1000.0), CDouble(1.0)},
-		{3, 2, 0, CDouble(0.0), CDouble(1000.0), CDouble(1.0)},
-
-		// cases where both buckets and NDV remain information available for both inputs
-		{3, 3, 5, CDouble(500.0), CDouble(500.0), CDouble(0.5)},
-	};
-
-	GPOS_RESULT eres = GPOS_OK;
-	const ULONG ulTestCases = GPOS_ARRAY_SIZE(rgjoinndvrtc);
-	for (ULONG ul2 = 0; ul2 < ulTestCases && (GPOS_FAILED != eres); ul2++)
-	{
-		SStatsJoinNDVRemainTestCase elem = rgjoinndvrtc[ul2];
-		ULONG ulColId1 = elem.m_ulCol1;
-		ULONG ulColId2 = elem.m_ulCol2;
-		CHistogram *phist1 = phmulhist->PtLookup(&ulColId1);
-		CHistogram *phist2 = phmulhist->PtLookup(&ulColId2);
-
-		CHistogram *phistJoin = phist1->PhistJoin(pmp, CStatsPred::EstatscmptEq, phist2);
-
-		{
-			CAutoTrace at(pmp);
-			at.Os() <<  std::endl << "Input Histogram 1" <<  std::endl;
-			phist1->OsPrint(at.Os());
-			at.Os() << "Input Histogram 2" <<  std::endl;
-			phist2->OsPrint(at.Os());
-			at.Os() << "Join Histogram" <<  std::endl;
-			phistJoin->OsPrint(at.Os());
-
-			phistJoin->DNormalize();
-
-			at.Os() <<  std::endl << "Normalized Join Histogram" <<  std::endl;
-			phistJoin->OsPrint(at.Os());
-		}
-
-		ULONG ulBucketsJoin = elem.m_ulBucketsJoin;
-		CDouble dNDVBucketsJoin = elem.m_dNDVBucketsJoin;
-		CDouble dNDVRemainJoin = elem.m_dNDVRemainJoin;
-		CDouble dFreqRemainJoin = elem.m_dFreqRemainJoin;
-
-		CDouble dDiffNDVJoin(fabs((dNDVBucketsJoin - CStatisticsUtils::DDistinct(phistJoin->Pdrgpbucket())).DVal()));
-		CDouble dDiffNDVRemainJoin(fabs((dNDVRemainJoin - phistJoin->DDistinctRemain()).DVal()));
-		CDouble dDiffFreqRemainJoin(fabs((dFreqRemainJoin - phistJoin->DFreqRemain()).DVal()));
-
-		if (phistJoin->UlBuckets() != ulBucketsJoin || (dDiffNDVJoin > CStatistics::DEpsilon)
-			|| (dDiffNDVRemainJoin > CStatistics::DEpsilon) || (dDiffFreqRemainJoin > CStatistics::DEpsilon))
-		{
-			eres = GPOS_FAILED;
-		}
-
-		GPOS_DELETE(phistJoin);
-	}
-	// clean up
-	phmulhist->Release();
-
-	return eres;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CStatisticsTest::EresUnittest_CBucketInt4
 //
 //	@doc:
@@ -476,8 +350,8 @@ CStatisticsTest::EresUnittest_CBucketInt4()
 	CPoint *ppoint3 = CTestUtils::PpointInt4(pmp, 3);
 
 	// bucket [1,1]
-	CBucket *pbucket1 = Pbucket(pmp, 1, 1, CDouble(1.0), CDouble(1.0));
-	Print(pmp, "b1", pbucket1);
+	CBucket *pbucket1 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 1, 1, CDouble(1.0), CDouble(1.0));
+	CCardinalityTestUtils::PrintBucket(pmp, "b1", pbucket1);
 
 	GPOS_RTL_ASSERT_MSG(pbucket1->FContains(ppoint1), "[1,1] must contain 1");
 	GPOS_RTL_ASSERT_MSG(CDouble(1.0) == pbucket1->DOverlap(ppoint1),
@@ -486,8 +360,8 @@ CStatisticsTest::EresUnittest_CBucketInt4()
 	GPOS_RTL_ASSERT_MSG(!pbucket1->FContains(ppoint2), "[1,1] must not contain 2");
 
 	// bucket [1,3)
-	CBucket *pbucket2 = Pbucket(pmp, 1, 3, CDouble(1.0), CDouble(10.0));
-	Print(pmp, "b2", pbucket2);
+	CBucket *pbucket2 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 1, 3, CDouble(1.0), CDouble(10.0));
+	CCardinalityTestUtils::PrintBucket(pmp, "b2", pbucket2);
 
 	// overlap of [1,2) w.r.t [1,3) should be about 50%
 	CDouble dOverlap = pbucket2->DOverlap(ppoint2);
@@ -502,8 +376,8 @@ CStatisticsTest::EresUnittest_CBucketInt4()
 	GPOS_RTL_ASSERT(0.99 <= dWidth && dWidth <= 1.01);
 
 	// bucket [1,2] and (2,4)
-	CBucket *pbucket3 = Pbucket(pmp, 1, 2, true, true, CDouble(1.0), CDouble(1.0));
-	CBucket *pbucket4 = Pbucket(pmp, 2, 4, false, false, CDouble(1.0), CDouble(1.0));
+	CBucket *pbucket3 = CCardinalityTestUtils::PbucketInteger(pmp, 1, 2, true, true, CDouble(1.0), CDouble(1.0));
+	CBucket *pbucket4 = CCardinalityTestUtils::PbucketInteger(pmp, 2, 4, false, false, CDouble(1.0), CDouble(1.0));
 
 	// point FBefore
 	GPOS_RTL_ASSERT_MSG(pbucket4->FBefore(ppoint2), "2 must be before (2,4)");
@@ -542,7 +416,7 @@ CStatisticsTest::EresUnittest_CBucketBool()
 	CPoint *p2 = CTestUtils::PpointBool(pmp, false);
 
 	// bucket for true
-	CBucket *pbucket = Pbucket(pmp, true, CDouble(1.0));
+	CBucket *pbucket = CCardinalityTestUtils::PbucketSingletonBoolVal(pmp, true, CDouble(1.0));
 
 	GPOS_RTL_ASSERT_MSG(pbucket->FContains(p1), "true bucket must contain true");
 	GPOS_RTL_ASSERT_MSG(CDouble(1.0) == pbucket->DOverlap(p1), "overlap must 1.0");
@@ -557,127 +431,6 @@ CStatisticsTest::EresUnittest_CBucketBool()
 
 	return GPOS_OK;
 }
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsTest::EresUnittest_Join
-//
-//	@doc:
-//		Join buckets tests;
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CStatisticsTest::EresUnittest_Join()
-{
-	// create memory pool
-	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-
-	SStatsJoinSTestCase rgstatsjointc[] =
-	{
-		{"../data/dxl/statistics/Join-Statistics-Input.xml", "../data/dxl/statistics/Join-Statistics-Output.xml", false, Pdrgpstatsjoin1},
-		{"../data/dxl/statistics/Join-Statistics-Input-Null-Bucket.xml", "../data/dxl/statistics/Join-Statistics-Output-Null-Bucket.xml", false, PdrgpstatsjoinNullableCols},
-		{"../data/dxl/statistics/LOJ-Input.xml", "../data/dxl/statistics/LOJ-Output.xml", true, PdrgpstatsjoinNullableCols},
-		{"../data/dxl/statistics/Join-Statistics-Input-Only-Nulls.xml", "../data/dxl/statistics/Join-Statistics-Output-Only-Nulls.xml", false, PdrgpstatsjoinNullableCols},
-		{"../data/dxl/statistics/Join-Statistics-Input-Only-Nulls.xml", "../data/dxl/statistics/Join-Statistics-Output-LOJ-Only-Nulls.xml", true, PdrgpstatsjoinNullableCols},
-		// TODO:  - Sep 13, 2013 re-enable after dDistinct value is fixed in a cleaner way
-//		{"../data/dxl/statistics/Join-Statistics-DDistinct-Input.xml", "../data/dxl/statistics/Join-Statistics-DDistinct-Output.xml", false, Pdrgpstatsjoin2},
-
-	};
-
-	const ULONG ulTestCases = GPOS_ARRAY_SIZE(rgstatsjointc);
-	for (ULONG ul = 0; ul < ulTestCases; ul++)
-	{
-		SStatsJoinSTestCase elem = rgstatsjointc[ul];
-
-		// read input/output DXL file
-		CHAR *szDXLInput = CDXLUtils::SzRead(pmp, elem.m_szInputFile);
-		CHAR *szDXLOutput = CDXLUtils::SzRead(pmp, elem.m_szOutputFile);
-		BOOL fLeftOuterJoin = elem.m_fLeftOuterJoin;
-
-		GPOS_CHECK_ABORT;
-
-		// parse the input statistics objects
-		DrgPdxlstatsderrel *pdrgpdxlstatsderrel = CDXLUtils::PdrgpdxlstatsderrelParseDXL(pmp, szDXLInput, NULL);
-		DrgPstats *pdrgpstatBefore = CDXLUtils::PdrgpstatsTranslateStats(pmp, pmda, pdrgpdxlstatsderrel);
-		pdrgpdxlstatsderrel->Release();
-
-		GPOS_ASSERT(NULL != pdrgpstatBefore);
-		GPOS_ASSERT(2 == pdrgpstatBefore->UlLength());
-		CStatistics *pstats1 = (*pdrgpstatBefore)[0];
-		CStatistics *pstats2 = (*pdrgpstatBefore)[1];
-
-		GPOS_CHECK_ABORT;
-
-		// generate the join conditions
-		FnPdrgpstatjoin *pf = elem.m_pf;
-		GPOS_ASSERT(NULL != pf);
-		DrgPstatsjoin *pdrgpstatsjoin = pf(pmp);
-
-		// calculate the output stats
-		CStatistics *pstatsOutput = NULL;
-		if (fLeftOuterJoin)
-		{
-			pstatsOutput = pstats1->PstatsLOJ(pmp, pstats2, pdrgpstatsjoin);
-		}
-		else
-		{
-			pstatsOutput = pstats1->PstatsInnerJoin(pmp, pstats2, pdrgpstatsjoin);
-		}
-		GPOS_ASSERT(NULL != pstatsOutput);
-
-		DrgPstats *pdrgpstatOutput = GPOS_NEW(pmp) DrgPstats(pmp);
-		pdrgpstatOutput->Append(pstatsOutput);
-
-		// serialize and compare against expected stats
-		CWStringDynamic *pstrOutput = CDXLUtils::PstrSerializeStatistics
-													(
-													pmp,
-													pmda,
-													pdrgpstatOutput,
-													true /*fSerializeHeaderFooter*/,
-													true /*fIndent*/
-													);
-		CWStringDynamic dstrExpected(pmp);
-		dstrExpected.AppendFormat(GPOS_WSZ_LIT("%s"), szDXLOutput);
-
-		GPOS_RESULT eres = GPOS_OK;
-		CWStringDynamic str(pmp);
-		COstreamString oss(&str);
-
-		// compare the two dxls
-		if (!pstrOutput->FEquals(&dstrExpected))
-		{
-			oss << "Output does not match expected DXL document" << std::endl;
-			oss << "Actual: " << std::endl;
-			oss << pstrOutput->Wsz() << std::endl;
-			oss << "Expected: " << std::endl;
-			oss << dstrExpected.Wsz() << std::endl;
-			GPOS_TRACE(str.Wsz());
-			
-			eres = GPOS_FAILED;
-		}
-
-		// clean up
-		pdrgpstatBefore->Release();
-		pdrgpstatOutput->Release();
-		pdrgpstatsjoin->Release();
-
-		GPOS_DELETE_ARRAY(szDXLInput);
-		GPOS_DELETE_ARRAY(szDXLOutput);
-		GPOS_DELETE(pstrOutput);
-
-		if (GPOS_FAILED == eres)
-		{
-			return eres;
-		}
-	}
-
-	return GPOS_OK;
-}
-
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -768,70 +521,6 @@ CStatisticsTest::EresUnittest_GbAggWithRepeatedGbCols()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CStatisticsTest::Pdrgpstatsjoin1
-//
-//	@doc:
-//		Generate join predicates
-//
-//---------------------------------------------------------------------------
-DrgPstatsjoin *
-CStatisticsTest::Pdrgpstatsjoin1
-	(
-	IMemoryPool *pmp
-	)
-{
-	DrgPstatsjoin *pdrgpstatsjoin = GPOS_NEW(pmp) DrgPstatsjoin(pmp);
-	pdrgpstatsjoin->Append(GPOS_NEW(pmp) CStatisticsJoin(16, CStatsPred::EstatscmptEq, 32));
-	pdrgpstatsjoin->Append(GPOS_NEW(pmp) CStatisticsJoin(0, CStatsPred::EstatscmptEq, 31));
-	pdrgpstatsjoin->Append(GPOS_NEW(pmp) CStatisticsJoin(54, CStatsPred::EstatscmptEq, 32));
-	pdrgpstatsjoin->Append(GPOS_NEW(pmp) CStatisticsJoin(53, CStatsPred::EstatscmptEq, 31));
-
-	return pdrgpstatsjoin;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsTest::PdrgpstatsjoinNullableCols
-//
-//	@doc:
-//		Generate join predicate over columns that contain null values
-//
-//---------------------------------------------------------------------------
-DrgPstatsjoin *
-CStatisticsTest::PdrgpstatsjoinNullableCols
-	(
-	IMemoryPool *pmp
-	)
-{
-	DrgPstatsjoin *pdrgpstatsjoin = GPOS_NEW(pmp) DrgPstatsjoin(pmp);
-	pdrgpstatsjoin->Append(GPOS_NEW(pmp) CStatisticsJoin(1, CStatsPred::EstatscmptEq, 2));
-
-	return pdrgpstatsjoin;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsTest::Pdrgpstatsjoin2
-//
-//	@doc:
-//		Generate join predicates
-//
-//---------------------------------------------------------------------------
-DrgPstatsjoin *
-CStatisticsTest::Pdrgpstatsjoin2
-	(
-	IMemoryPool *pmp
-	)
-{
-	DrgPstatsjoin *pdrgpstatsjoin = GPOS_NEW(pmp) DrgPstatsjoin(pmp);
-	pdrgpstatsjoin->Append(GPOS_NEW(pmp) CStatisticsJoin(0, CStatsPred::EstatscmptEq, 8));
-
-	return pdrgpstatsjoin;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CStatisticsTest::EresUnittest_CBucketIntersect
 //
 //	@doc:
@@ -867,7 +556,7 @@ CStatisticsTest::EresUnittest_CBucketIntersect()
 	const ULONG ulLen = GPOS_ARRAY_SIZE(rgBucketsIntersectTestElem);
 	for (ULONG ul = 0; ul < ulLen; ul++)
 	{
-		CBucket *pbucket1 = Pbucket
+		CBucket *pbucket1 = CCardinalityTestUtils::PbucketInteger
 								(
 								pmp,
 								rgBucketsIntersectTestElem[ul].m_iLb1,
@@ -878,7 +567,7 @@ CStatisticsTest::EresUnittest_CBucketIntersect()
 								CDouble(100.0)
 								);
 
-		CBucket *pbucket2 = Pbucket
+		CBucket *pbucket2 = CCardinalityTestUtils::PbucketInteger
 								(
 								pmp,
 								rgBucketsIntersectTestElem[ul].m_iLb2,
@@ -902,7 +591,7 @@ CStatisticsTest::EresUnittest_CBucketIntersect()
 			CDouble dDummy1(0.0);
 			CDouble dDummy2(0.0);
 			CBucket *pbucketOuput = pbucket1->PbucketIntersect(pmp, pbucket2, &dDummy1, &dDummy2);
-			CBucket *pbucketExpected = Pbucket
+			CBucket *pbucketExpected = CCardinalityTestUtils::PbucketInteger
 											(
 											pmp,
 											rgBucketsIntersectTestElem[ul].m_iLbOutput,
@@ -1003,7 +692,7 @@ CStatisticsTest::EresUnittest_CBucketScale()
 	CPoint *ppoint1 = CTestUtils::PpointInt4(pmp, 10);
 
 	// bucket [1,100)
-	CBucket *pbucket1 = Pbucket(pmp, 1, 100, CDouble(0.5), CDouble(20.0));
+	CBucket *pbucket1 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 1, 100, CDouble(0.5), CDouble(20.0));
 
 	CBucket *pbucket2 = pbucket1->PbucketScaleUpper(pmp, ppoint1, false /* fIncludeUpper */);
 
@@ -1053,28 +742,28 @@ CStatisticsTest::EresUnittest_CBucketDifference()
 	IMemoryPool *pmp = amp.Pmp();
 
 	// bucket [1,100)
-	CBucket *pbucket1 = Pbucket(pmp, 1, 100, CDouble(1.0), CDouble(1.0));
+	CBucket *pbucket1 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 1, 100, CDouble(1.0), CDouble(1.0));
 
 	// bucket [50,75)
-	CBucket *pbucket2 = Pbucket(pmp, 50, 60, CDouble(1.0), CDouble(1.0));
+	CBucket *pbucket2 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 50, 60, CDouble(1.0), CDouble(1.0));
 
 	// bucket [200, 300)
-	CBucket *pbucket3 = Pbucket(pmp, 200, 300, CDouble(1.0), CDouble(1.0));
+	CBucket *pbucket3 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 200, 300, CDouble(1.0), CDouble(1.0));
 
 	CBucket *pbucket4 = NULL;
 	CBucket *pbucket5 = NULL;
 	pbucket1->Difference(pmp, pbucket2, &pbucket4, &pbucket5);
 	GPOS_RTL_ASSERT(NULL != pbucket4);
 	GPOS_RTL_ASSERT(NULL != pbucket5);
-	Print(pmp, "pbucket4", pbucket4);
-	Print(pmp, "pbucket5", pbucket4);
+	CCardinalityTestUtils::PrintBucket(pmp, "pbucket4", pbucket4);
+	CCardinalityTestUtils::PrintBucket(pmp, "pbucket5", pbucket4);
 
 	CBucket *pbucket6 = NULL;
 	CBucket *pbucket7 = NULL;
 	pbucket1->Difference(pmp, pbucket3, &pbucket6, &pbucket7);
 	GPOS_RTL_ASSERT(NULL != pbucket6);
 	GPOS_RTL_ASSERT(NULL == pbucket7);
-	Print(pmp, "pbucket6", pbucket6);
+	CCardinalityTestUtils::PrintBucket(pmp, "pbucket6", pbucket6);
 
 	GPOS_DELETE(pbucket1);
 	GPOS_DELETE(pbucket2);
@@ -1084,182 +773,6 @@ CStatisticsTest::EresUnittest_CBucketDifference()
 	GPOS_DELETE(pbucket6);
 
 	return GPOS_OK;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsTest::PpointNumeric
-//
-//	@doc:
-//		Create a point from a encoded value of numeric datatype
-//
-//---------------------------------------------------------------------------
-CPoint *
-CStatisticsTest::PpointNumeric
-	(
-	IMemoryPool *pmp,
-	CWStringDynamic *pstrEncodedValue,
-	CDouble dValue
-	)
-{
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	CMDIdGPDB *pmdid = GPOS_NEW(pmp) CMDIdGPDB(CMDIdGPDB::m_mdidNumeric);
-	const IMDType *pmdtype = pmda->Pmdtype(pmdid);
-
-	ULONG ulbaSize = 0;
-	BYTE *pba = CDXLUtils::PByteArrayFromStr(pmp, pstrEncodedValue, &ulbaSize);
-
-	CDXLDatumStatsDoubleMappable *pdxldatum = GPOS_NEW(pmp) CDXLDatumStatsDoubleMappable
-											(
-											pmp,
-											pmdid,
-											pmdtype->FByValue() /*fConstByVal*/,
-											false /*fConstNull*/,
-											pba,
-											ulbaSize,
-											dValue
-											);
-
-	IDatum *pdatum = pmdtype->Pdatum(pmp, pdxldatum);
-	CPoint *ppoint = GPOS_NEW(pmp) CPoint(pdatum);
-	pdxldatum->Release();
-
-	return ppoint;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsTest::PpointGeneric
-//
-//	@doc:
-//		Create a point from an encoded value of specific datatype
-//
-//---------------------------------------------------------------------------
-CPoint *
-CStatisticsTest::PpointGeneric
-	(
-	IMemoryPool *pmp,
-	OID oid,
-	CWStringDynamic *pstrEncodedValue,
-	LINT lValue
-	)
-{
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-
-	IMDId *pmdid = GPOS_NEW(pmp) CMDIdGPDB(oid);
-	IDatum *pdatum = CTestUtils::PdatumGeneric(pmp, pmda, pmdid, pstrEncodedValue, lValue);
-	CPoint *ppoint = GPOS_NEW(pmp) CPoint(pdatum);
-
-	return ppoint;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsTest::Pbucket
-//
-//	@doc:
-//		Create a bucket
-//
-//---------------------------------------------------------------------------
-CBucket *
-CStatisticsTest::Pbucket
-	(
-	IMemoryPool *pmp,
-	INT iLower,
-	INT iUpper,
-	CDouble dFrequency,
-	CDouble dDistinct
-	)
-{
-	CPoint *ppLower = CTestUtils::PpointInt4(pmp, iLower);
-	CPoint *ppUpper = CTestUtils::PpointInt4(pmp, iUpper);
-
-	BOOL fUpperClosed = false;
-	if (ppLower->FEqual(ppUpper))
-	{
-		fUpperClosed = true;
-	}
-	CBucket *pbucket = GPOS_NEW(pmp) CBucket
-									(
-									ppLower,
-									ppUpper,
-									true /* fLowerClosed */,
-									fUpperClosed,
-									dFrequency,
-									dDistinct
-									);
-
-	return pbucket;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsTest::Pbucket
-//
-//	@doc:
-//		Create a bucket
-//
-//---------------------------------------------------------------------------
-CBucket *
-CStatisticsTest::Pbucket
-	(
-	IMemoryPool *pmp,
-	INT iLower,
-	INT iUpper,
-	BOOL fLowerClosed,
-	BOOL fUpperClosed,
-	CDouble dFrequency,
-	CDouble dDistinct
-	)
-{
-	CPoint *ppLower = CTestUtils::PpointInt4(pmp, iLower);
-	CPoint *ppUpper = CTestUtils::PpointInt4(pmp, iUpper);
-
-	CBucket *pbucket = GPOS_NEW(pmp) CBucket
-									(
-									ppLower,
-									ppUpper,
-									fLowerClosed,
-									fUpperClosed,
-									dFrequency,
-									dDistinct
-									);
-
-	return pbucket;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsTest::Pbucket
-//
-//	@doc:
-//		Create a bucket
-//
-//---------------------------------------------------------------------------
-CBucket *
-CStatisticsTest::Pbucket
-	(
-	IMemoryPool *pmp,
-	BOOL fValue,
-	CDouble dFrequency
-	)
-{
-	CPoint *ppLower = CTestUtils::PpointBool(pmp, fValue);
-
-	// lower bound is also upper bound
-	ppLower->AddRef();
-	CBucket *pbucket = GPOS_NEW(pmp) CBucket
-									(
-									ppLower,
-									ppLower,
-									true /* fClosedUpper */,
-									true /* fClosedUpper */,
-									dFrequency,
-									1.0
-									);
-
-	return pbucket;
 }
 
 //---------------------------------------------------------------------------
@@ -1278,52 +791,52 @@ CStatisticsTest::EresUnittest_CHistogramInt4()
 	IMemoryPool *pmp = amp.Pmp();
 
 	// original histogram
-	CHistogram *phist = PhistExampleInt4(pmp);
-	Print(pmp, "phist", phist);
+	CHistogram *phist = CCardinalityTestUtils::PhistExampleInt4(pmp);
+	CCardinalityTestUtils::PrintHist(pmp, "phist", phist);
 
 	// test edge case of PbucketGreaterThan
 	CPoint *ppoint0 = CTestUtils::PpointInt4(pmp, 9);
 	CHistogram *phist0 = phist->PhistFilter(pmp, CStatsPred::EstatscmptG, ppoint0);
-	Print(pmp, "phist0", phist0);
+	CCardinalityTestUtils::PrintHist(pmp, "phist0", phist0);
 	GPOS_RTL_ASSERT(phist0->UlBuckets() == 9);
 
 	CPoint *ppoint1 = CTestUtils::PpointInt4(pmp, 35);
 	CHistogram *phist1 = phist->PhistFilter(pmp, CStatsPred::EstatscmptL, ppoint1);
-	Print(pmp, "phist1", phist1);
+	CCardinalityTestUtils::PrintHist(pmp, "phist1", phist1);
 	GPOS_RTL_ASSERT(phist1->UlBuckets() == 4);
 
 	// edge case where point is equal to upper bound
 	CPoint *ppoint2 = CTestUtils::PpointInt4(pmp, 50);
 	CHistogram *phist2 = phist->PhistFilter(pmp, CStatsPred::EstatscmptL,ppoint2);
-	Print(pmp, "phist2", phist2);
+	CCardinalityTestUtils::PrintHist(pmp, "phist2", phist2);
 	GPOS_RTL_ASSERT(phist2->UlBuckets() == 5);
 
 	// equality check
 	CPoint *ppoint3 = CTestUtils::PpointInt4(pmp, 100);
 	CHistogram *phist3 = phist->PhistFilter(pmp, CStatsPred::EstatscmptEq, ppoint3);
-	Print(pmp, "phist3", phist3);
+	CCardinalityTestUtils::PrintHist(pmp, "phist3", phist3);
 	GPOS_RTL_ASSERT(phist3->UlBuckets() == 1);
 
 	// normalized output after filter
 	CPoint *ppoint4 = CTestUtils::PpointInt4(pmp, 100);
 	CDouble dScaleFactor(0.0);
 	CHistogram *phist4 = phist->PhistFilterNormalized(pmp, CStatsPred::EstatscmptEq, ppoint4, &dScaleFactor);
-	Print(pmp, "phist4", phist4);
+	CCardinalityTestUtils::PrintHist(pmp, "phist4", phist4);
 	GPOS_RTL_ASSERT(phist4->FValid());
 
 	// lasj
 	CHistogram *phist5 = phist->PhistLASJ(pmp, CStatsPred::EstatscmptEq, phist2);
-	Print(pmp, "phist5", phist5);
+	CCardinalityTestUtils::PrintHist(pmp, "phist5", phist5);
 	GPOS_RTL_ASSERT(phist5->UlBuckets() == 5);
 
 	// inequality check
 	CHistogram *phist6 = phist->PhistFilter(pmp, CStatsPred::EstatscmptNEq, ppoint2);
-	Print(pmp, "phist6", phist6);
+	CCardinalityTestUtils::PrintHist(pmp, "phist6", phist6);
 	GPOS_RTL_ASSERT(phist6->UlBuckets() == 10);
 
 	// histogram with null fraction and remaining tuples
 	CHistogram *phist7 = PhistExampleInt4Remain(pmp);
-	Print(pmp, "phist7", phist7);
+	CCardinalityTestUtils::PrintHist(pmp, "phist7", phist7);
 	CPoint *ppoint5 = CTestUtils::PpointInt4(pmp, 20);
 
 	// equality check, hitting remaining tuples
@@ -1333,7 +846,7 @@ CStatisticsTest::EresUnittest_CHistogramInt4()
 
 	// greater than, hitting remaining tuples
 	CHistogram *phist9 = phist7->PhistFilter(pmp, CStatsPred::EstatscmptG, ppoint1);
-	Print(pmp, "phist9", phist9);
+	CCardinalityTestUtils::PrintHist(pmp, "phist9", phist9);
 	GPOS_RTL_ASSERT(fabs((phist9->DFrequency() - 0.26).DVal()) < CStatistics::DEpsilon);
 	GPOS_RTL_ASSERT(fabs((phist9->DDistinct() - 1.8).DVal()) < CStatistics::DEpsilon);
 
@@ -1383,8 +896,8 @@ CStatisticsTest::EresUnittest_CHistogramBool()
 
 	// generate histogram of the form [false, false), [true,true)
 	DrgPbucket *pdrgppbucket = GPOS_NEW(pmp) DrgPbucket(pmp);
-	CBucket *pbucketFalse = Pbucket(pmp, false, 0.1);
-	CBucket *pbucketTrue = Pbucket(pmp, false, 0.9);
+	CBucket *pbucketFalse = CCardinalityTestUtils::PbucketSingletonBoolVal(pmp, false, 0.1);
+	CBucket *pbucketTrue = CCardinalityTestUtils::PbucketSingletonBoolVal(pmp, false, 0.9);
 	pdrgppbucket->Append(pbucketFalse);
 	pdrgppbucket->Append(pbucketTrue);
 	CHistogram *phist =  GPOS_NEW(pmp) CHistogram(pdrgppbucket);
@@ -1393,7 +906,7 @@ CStatisticsTest::EresUnittest_CHistogramBool()
 	CPoint *ppoint1 = CTestUtils::PpointBool(pmp, false);
 	CDouble dScaleFactor(0.0);
 	CHistogram *phist1 = phist->PhistFilterNormalized(pmp, CStatsPred::EstatscmptEq, ppoint1, &dScaleFactor);
-	Print(pmp, "phist1", phist1);
+	CCardinalityTestUtils::PrintHist(pmp, "phist1", phist1);
 	GPOS_RTL_ASSERT(phist1->UlBuckets() == 1);
 
 	// clean up
@@ -1403,90 +916,6 @@ CStatisticsTest::EresUnittest_CHistogramBool()
 
 	return GPOS_OK;
 }
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsTest::Print
-//
-//	@doc:
-//		Dump bucket
-//
-//---------------------------------------------------------------------------
-void
-CStatisticsTest::Print
-	(
-	IMemoryPool *pmp,
-	const char *pcPrefix,
-	const CBucket *pbucket
-	)
-{
-	CWStringDynamic str(pmp);
-	COstreamString oss(&str);
-
-	oss << pcPrefix << " = ";
-	pbucket->OsPrint(oss);
-	oss << std::endl;
-	GPOS_TRACE(str.Wsz());
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsTest::Print
-//
-//	@doc:
-//		Dump histogram output
-//
-//---------------------------------------------------------------------------
-void
-CStatisticsTest::Print
-	(
-	IMemoryPool *pmp,
-	const char *pcPrefix,
-	const CHistogram *phist
-	)
-{
-	CWStringDynamic str(pmp);
-	COstreamString oss(&str);
-
-	oss << pcPrefix << " = ";
-	phist->OsPrint(oss);
-	oss << std::endl;
-	GPOS_TRACE(str.Wsz());
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsTest::PhistExampleInt4
-//
-//	@doc:
-//		Generates example int histogram
-//
-//---------------------------------------------------------------------------
-CHistogram*
-CStatisticsTest::PhistExampleInt4
-	(
-	IMemoryPool *pmp
-	)
-{
-	// generate histogram of the form [0, 10), [10, 20), [20, 30) ... [80, 90)
-	DrgPbucket *pdrgppbucket = GPOS_NEW(pmp) DrgPbucket(pmp);
-	for (ULONG ulIdx = 0; ulIdx < 9; ulIdx++)
-	{
-		INT iLower = INT(ulIdx * 10);
-		INT iUpper = iLower + INT(10);
-		CDouble dFrequency(0.1);
-		CDouble dDistinct(4.0);
-		CBucket *pbucket = Pbucket(pmp, iLower, iUpper, dFrequency, dDistinct);
-		pdrgppbucket->Append(pbucket);
-	}
-
-	// add an additional singleton bucket [100, 100]
-	pdrgppbucket->Append(Pbucket(pmp, 100, 100, 0.1, 1.0));
-
-	return  GPOS_NEW(pmp) CHistogram(pdrgppbucket);
-}
-
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -1511,61 +940,12 @@ CStatisticsTest::PhistExampleInt4Remain
 		INT iUpper = iLower;
 		CDouble dFrequency(0.1);
 		CDouble dDistinct(1.0);
-		CBucket *pbucket = Pbucket(pmp, iLower, iUpper, dFrequency, dDistinct);
+		CBucket *pbucket = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, iLower, iUpper, dFrequency, dDistinct);
 		pdrgppbucket->Append(pbucket);
 	}
 
 	return GPOS_NEW(pmp) CHistogram(pdrgppbucket, true, 0.1 /*dNullFreq*/, 2.0 /*dDistinctRemain*/, 0.4 /*dFreqRemain*/);
 }
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsTest::PhistInt4Remain
-//
-//	@doc:
-//		Generate int histogram based on the NDV and bucket information provided
-//
-//---------------------------------------------------------------------------
-CHistogram*
-CStatisticsTest::PhistInt4Remain
-	(
-	IMemoryPool *pmp,
-	ULONG ulBuckets,
-	CDouble dNDVPerBucket,
-	BOOL fNullFreq,
-	CDouble dNDVRemain
-	)
-{
-	// generate histogram of the form [0, 100), [100, 200), [200, 300) ...
-	DrgPbucket *pdrgppbucket = GPOS_NEW(pmp) DrgPbucket(pmp);
-	for (ULONG ulIdx = 0; ulIdx < ulBuckets; ulIdx++)
-	{
-		INT iLower = INT(ulIdx * 100);
-		INT iUpper = INT((ulIdx + 1) * 100);
-		CDouble dFrequency(0.1);
-		CDouble dDistinct = dNDVPerBucket;
-		CBucket *pbucket = Pbucket(pmp, iLower, iUpper, dFrequency, dDistinct);
-		pdrgppbucket->Append(pbucket);
-	}
-
-	CDouble dFreq = CStatisticsUtils::DFrequency(pdrgppbucket);
-	CDouble dNullFreq(0.0);
-	if (fNullFreq && 1 > dFreq)
-	{
-		dNullFreq = 0.1;
-		dFreq = dFreq + dNullFreq;
-	}
-
-	CDouble dFreqRemain = (1 - dFreq);
-	if (dFreqRemain < CStatistics::DEpsilon || dNDVRemain < CStatistics::DEpsilon)
-	{
-		dFreqRemain = CDouble(0.0);
-	}
-
-	return GPOS_NEW(pmp) CHistogram(pdrgppbucket, true, dNullFreq, dNDVRemain, dFreqRemain);
-}
-
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -1589,32 +969,10 @@ CStatisticsTest::PhistExampleInt4Dim
 		INT iUpper = iLower + INT(10);
 		CDouble dFrequency(0.1);
 		CDouble dDistinct(10.0);
-		CBucket *pbucket = Pbucket(pmp, iLower, iUpper, dFrequency, dDistinct);
+		CBucket *pbucket = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, iLower, iUpper, dFrequency, dDistinct);
 		pdrgppbucket->Append(pbucket);
 	}
 
-	return  GPOS_NEW(pmp) CHistogram(pdrgppbucket);
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsTest::PhistExampleBool
-//
-//	@doc:
-//		Generates example bool histogram
-//
-//---------------------------------------------------------------------------
-CHistogram*
-CStatisticsTest::PhistExampleBool
-	(
-	IMemoryPool *pmp
-	)
-{
-	DrgPbucket *pdrgppbucket = GPOS_NEW(pmp) DrgPbucket(pmp);
-	CBucket *pbucketFalse = Pbucket(pmp, false, 0.1);
-	CBucket *pbucketTrue = Pbucket(pmp, true, 0.2);
-	pdrgppbucket->Append(pbucketFalse);
-	pdrgppbucket->Append(pbucketTrue);
 	return  GPOS_NEW(pmp) CHistogram(pdrgppbucket);
 }
 
@@ -1980,7 +1338,7 @@ CStatisticsTest::PdrgppredfilterNumeric
 													(
 													ulColId,
 													statsCmpValElem.m_escmpt,
-													PpointNumeric(pmp, pstrNumeric, statsCmpValElem.m_dVal)
+													CCardinalityTestUtils::PpointNumeric(pmp, pstrNumeric, statsCmpValElem.m_dVal)
 													);
 	pdrgpstatspred->Append(pstatspred);
 	GPOS_DELETE(pstrNumeric);
@@ -2016,12 +1374,12 @@ CStatisticsTest::EresUnittest_CStatisticsCompare
 	CDouble dRowsInput = pstatsInput->DRows();
 
 	GPOS_TRACE(GPOS_WSZ_LIT("Statistics before"));
-	CStatisticsTest::Print(pmp, pstatsInput);
+	CCardinalityTestUtils::PrintStats(pmp, pstatsInput);
 
 	CStatistics *pstatsOutput = pstatsInput->PstatsFilter(pmp, pstatspred, true /* fCapNdvs */);
 
 	GPOS_TRACE(GPOS_WSZ_LIT("Statistics after"));
-	CStatisticsTest::Print(pmp, pstatsOutput);
+	CCardinalityTestUtils::PrintStats(pmp, pstatsOutput);
 
 	// output array of stats objects
 	DrgPstats *pdrgpstatOutput = GPOS_NEW(pmp) DrgPstats(pmp);
@@ -2066,7 +1424,7 @@ CStatisticsTest::EresUnittest_CStatisticsCompare
 		CStatistics *pstatsOutput2 = pstatsOutput->PstatsFilter(pmp, pstatspred, true /* fCapNdvs */);
 		pstatsOutput2->DRows();
 		GPOS_TRACE(GPOS_WSZ_LIT("Statistics after another filter"));
-		CStatisticsTest::Print(pmp, pstatsOutput2);
+		CCardinalityTestUtils::PrintStats(pmp, pstatsOutput2);
 
 		// output array of stats objects
 		DrgPstats *pdrgpstatOutput2 = GPOS_NEW(pmp) DrgPstats(pmp);
@@ -2208,10 +1566,10 @@ CStatisticsTest::EresUnittest_CStatisticsBasic()
 	HMUlHist *phmulhist = GPOS_NEW(pmp) HMUlHist(pmp);
 
 	// generate bool histogram for column 1
-	phmulhist->FInsert(GPOS_NEW(pmp) ULONG(1), PhistExampleBool(pmp));
+	phmulhist->FInsert(GPOS_NEW(pmp) ULONG(1), CCardinalityTestUtils::PhistExampleBool(pmp));
 
 	// generate int histogram for column 2
-	phmulhist->FInsert(GPOS_NEW(pmp) ULONG(2), PhistExampleInt4(pmp));
+	phmulhist->FInsert(GPOS_NEW(pmp) ULONG(2), CCardinalityTestUtils::PhistExampleInt4(pmp));
 
 	// array capturing columns for which width information is available
 	HMUlDouble *phmuldoubleWidth = GPOS_NEW(pmp) HMUlDouble(pmp);
@@ -2228,7 +1586,7 @@ CStatisticsTest::EresUnittest_CStatisticsBasic()
 	GPOS_TRACE(GPOS_WSZ_LIT("pstats"));
 
 	// before stats
-	Print(pmp, pstats);
+	CCardinalityTestUtils::PrintStats(pmp, pstats);
 
 	// create a filter: column 1: [25,45), column 2: [true, true)
 	DrgPstatspred *pdrgpstatspred = Pdrgpstatspred1(pmp);
@@ -2240,7 +1598,7 @@ CStatisticsTest::EresUnittest_CStatisticsBasic()
 	GPOS_TRACE(GPOS_WSZ_LIT("pstats1 after filter"));
 
 	// after stats
-	Print(pmp, pstats1);
+	CCardinalityTestUtils::PrintStats(pmp, pstats1);
 
 	// create another statistics structure with a single int4 column with id 10
 	HMUlHist *phmulhist2 = GPOS_NEW(pmp) HMUlHist(pmp);
@@ -2252,17 +1610,17 @@ CStatisticsTest::EresUnittest_CStatisticsBasic()
 	CStatistics *pstats2 = GPOS_NEW(pmp) CStatistics(pmp, phmulhist2, phmuldoubleWidth2, 100.0 /* dRows */, false /* fEmpty */);
 
 	GPOS_TRACE(GPOS_WSZ_LIT("pstats2"));
-	Print(pmp, pstats2);
+	CCardinalityTestUtils::PrintStats(pmp, pstats2);
 
 	// join pstats with pstats2
-	CStatisticsJoin *pstatsjoin = GPOS_NEW(pmp) CStatisticsJoin(2, CStatsPred::EstatscmptEq, 10);
-	DrgPstatsjoin *pdrgpstatsjoin = GPOS_NEW(pmp) DrgPstatsjoin(pmp);
-	pdrgpstatsjoin->Append(pstatsjoin);
-	CStatistics *pstats3 = pstats->PstatsInnerJoin(pmp, pstats2, pdrgpstatsjoin);
+	CStatsPredJoin *pstatspredjoin = GPOS_NEW(pmp) CStatsPredJoin(2, CStatsPred::EstatscmptEq, 10);
+	DrgPstatspredjoin *pdrgpstatspredjoin = GPOS_NEW(pmp) DrgPstatspredjoin(pmp);
+	pdrgpstatspredjoin->Append(pstatspredjoin);
+	CStatistics *pstats3 = pstats->PstatsInnerJoin(pmp, pstats2, pdrgpstatspredjoin);
 
 	GPOS_TRACE(GPOS_WSZ_LIT("pstats3 = pstats JOIN pstats2 on (col2 = col10)"));
 	// after stats
-	Print(pmp, pstats3);
+	CCardinalityTestUtils::PrintStats(pmp, pstats3);
 
 	// group by pstats on columns 1 and 2
 	DrgPul *pdrgpulGC = GPOS_NEW(pmp) DrgPul(pmp);
@@ -2273,13 +1631,13 @@ CStatisticsTest::EresUnittest_CStatisticsBasic()
 	CStatistics *pstats4 = pstats->PstatsGroupBy(pmp, pdrgpulGC, pdrgpulAgg, NULL /*pbsKeys*/);
 
 	GPOS_TRACE(GPOS_WSZ_LIT("pstats4 = pstats group by"));
-	Print(pmp, pstats4);
+	CCardinalityTestUtils::PrintStats(pmp, pstats4);
 
 	// LASJ stats
-	CStatistics *pstats5 = pstats->PstatsLASJoin(pmp, pstats2, pdrgpstatsjoin, true /* fIgnoreLasjHistComputation */);
+	CStatistics *pstats5 = pstats->PstatsLASJoin(pmp, pstats2, pdrgpstatspredjoin, true /* fIgnoreLasjHistComputation */);
 
 	GPOS_TRACE(GPOS_WSZ_LIT("pstats5 = pstats LASJ pstats2 on (col2 = col10)"));
-	Print(pmp, pstats5);
+	CCardinalityTestUtils::PrintStats(pmp, pstats5);
 
 	// union all
 	DrgPul *pdrgpulColIds = GPOS_NEW(pmp) DrgPul(pmp);
@@ -2292,12 +1650,12 @@ CStatisticsTest::EresUnittest_CStatisticsBasic()
 	CStatistics *pstats6 = pstats->PstatsUnionAll(pmp, pstats, pdrgpulColIds, pdrgpulColIds, pdrgpulColIds);
 
 	GPOS_TRACE(GPOS_WSZ_LIT("pstats6 = pstats1 union all pstats1"));
-	Print(pmp, pstats6);
+	CCardinalityTestUtils::PrintStats(pmp, pstats6);
 
 	CStatistics *pstats7 = pstats->PstatsLimit(pmp, CDouble(4.0));
 
 	GPOS_TRACE(GPOS_WSZ_LIT("pstats7 = pstats limit 4"));
-	Print(pmp, pstats7);
+	CCardinalityTestUtils::PrintStats(pmp, pstats7);
 
 	pstats->Release();
 	pstats1->Release();
@@ -2308,7 +1666,7 @@ CStatisticsTest::EresUnittest_CStatisticsBasic()
 	pstats6->Release();
 	pstats7->Release();
 	pstatspred->Release();
-	pdrgpstatsjoin->Release();
+	pdrgpstatspredjoin->Release();
 	pdrgpulGC->Release();
 	pdrgpulAgg->Release();
 	pdrgpulColIds->Release();
@@ -2590,25 +1948,25 @@ CStatisticsTest::PstatspredDisjOverConjSameCol3
 
 	// predicate is a == 's' AND b == 2001
 	DrgPstatspred *pdrgpstatspredConj1 = GPOS_NEW(pmp) DrgPstatspred(pmp);
-	pdrgpstatspredConj1->Append(GPOS_NEW(pmp) CStatsPredPoint(142, CStatsPred::EstatscmptEq, PpointGeneric(pmp, GPDB_TEXT, pstrS, 160588332)));
+	pdrgpstatspredConj1->Append(GPOS_NEW(pmp) CStatsPredPoint(142, CStatsPred::EstatscmptEq, CCardinalityTestUtils::PpointGeneric(pmp, GPDB_TEXT, pstrS, 160588332)));
 	pdrgpstatspredConj1->Append(GPOS_NEW(pmp) CStatsPredPoint(113, CStatsPred::EstatscmptEq, CTestUtils::PpointInt4(pmp, 2001)));
 	pdrgpstatspredDisj->Append(GPOS_NEW(pmp) CStatsPredConj(pdrgpstatspredConj1));
 
 	// predicate is a == 's' AND b == 2002
 	DrgPstatspred *pdrgpstatspredConj2 = GPOS_NEW(pmp) DrgPstatspred(pmp);
-	pdrgpstatspredConj2->Append(GPOS_NEW(pmp) CStatsPredPoint(142, CStatsPred::EstatscmptEq, PpointGeneric(pmp, GPDB_TEXT, pstrS, 160588332)));
+	pdrgpstatspredConj2->Append(GPOS_NEW(pmp) CStatsPredPoint(142, CStatsPred::EstatscmptEq, CCardinalityTestUtils::PpointGeneric(pmp, GPDB_TEXT, pstrS, 160588332)));
 	pdrgpstatspredConj2->Append(GPOS_NEW(pmp) CStatsPredPoint(113, CStatsPred::EstatscmptEq, CTestUtils::PpointInt4(pmp, 2002)));
 	pdrgpstatspredDisj->Append(GPOS_NEW(pmp) CStatsPredConj(pdrgpstatspredConj2));
 
 	// predicate is a == 'w' AND b == 2001
 	DrgPstatspred *pdrgpstatspredConj3 = GPOS_NEW(pmp) DrgPstatspred(pmp);
-	pdrgpstatspredConj3->Append(GPOS_NEW(pmp) CStatsPredPoint(142, CStatsPred::EstatscmptEq, PpointGeneric(pmp, GPDB_TEXT, pstrW, 160621100)));
+	pdrgpstatspredConj3->Append(GPOS_NEW(pmp) CStatsPredPoint(142, CStatsPred::EstatscmptEq, CCardinalityTestUtils::PpointGeneric(pmp, GPDB_TEXT, pstrW, 160621100)));
 	pdrgpstatspredConj3->Append(GPOS_NEW(pmp) CStatsPredPoint(113, CStatsPred::EstatscmptEq, CTestUtils::PpointInt4(pmp, 2001)));
 	pdrgpstatspredDisj->Append(GPOS_NEW(pmp) CStatsPredConj(pdrgpstatspredConj3));
 
 	// predicate is a == 'w' AND b == 2002
 	DrgPstatspred *pdrgpstatspredConj4 = GPOS_NEW(pmp) DrgPstatspred(pmp);
-	pdrgpstatspredConj4->Append(GPOS_NEW(pmp) CStatsPredPoint(142, CStatsPred::EstatscmptEq, PpointGeneric(pmp, GPDB_TEXT, pstrW, 160621100)));
+	pdrgpstatspredConj4->Append(GPOS_NEW(pmp) CStatsPredPoint(142, CStatsPred::EstatscmptEq, CCardinalityTestUtils::PpointGeneric(pmp, GPDB_TEXT, pstrW, 160621100)));
 	pdrgpstatspredConj4->Append(GPOS_NEW(pmp) CStatsPredPoint(113, CStatsPred::EstatscmptEq, CTestUtils::PpointInt4(pmp, 2002)));
 	pdrgpstatspredDisj->Append(GPOS_NEW(pmp) CStatsPredConj(pdrgpstatspredConj4));
 
@@ -2639,27 +1997,27 @@ CStatisticsTest::PstatspredDisjOverConjSameCol4
 
 	// predicate is a == 's' AND b == 2001 AND c > 0
 	DrgPstatspred *pdrgpstatspredConj1 = GPOS_NEW(pmp) DrgPstatspred(pmp);
-	pdrgpstatspredConj1->Append(GPOS_NEW(pmp) CStatsPredPoint(91, CStatsPred::EstatscmptEq, PpointGeneric(pmp, GPDB_TEXT, pstrS, 160588332)));
+	pdrgpstatspredConj1->Append(GPOS_NEW(pmp) CStatsPredPoint(91, CStatsPred::EstatscmptEq, CCardinalityTestUtils::PpointGeneric(pmp, GPDB_TEXT, pstrS, 160588332)));
 	pdrgpstatspredConj1->Append(GPOS_NEW(pmp) CStatsPredPoint(61, CStatsPred::EstatscmptEq, CTestUtils::PpointInt4(pmp, 2001)));
 	pdrgpstatspredConj1->Append(GPOS_NEW(pmp) CStatsPredPoint(90, CStatsPred::EstatscmptG, CTestUtils::PpointInt4(pmp, 0)));
 	pdrgpstatspredDisj->Append(GPOS_NEW(pmp) CStatsPredConj(pdrgpstatspredConj1));
 
 	// predicate is a == 's' AND b == 2002
 	DrgPstatspred *pdrgpstatspredConj2 = GPOS_NEW(pmp) DrgPstatspred(pmp);
-	pdrgpstatspredConj2->Append(GPOS_NEW(pmp) CStatsPredPoint(91, CStatsPred::EstatscmptEq, PpointGeneric(pmp, GPDB_TEXT, pstrS, 160588332)));
+	pdrgpstatspredConj2->Append(GPOS_NEW(pmp) CStatsPredPoint(91, CStatsPred::EstatscmptEq, CCardinalityTestUtils::PpointGeneric(pmp, GPDB_TEXT, pstrS, 160588332)));
 	pdrgpstatspredConj2->Append(GPOS_NEW(pmp) CStatsPredPoint(61, CStatsPred::EstatscmptEq, CTestUtils::PpointInt4(pmp, 2002)));
 	pdrgpstatspredDisj->Append(GPOS_NEW(pmp) CStatsPredConj(pdrgpstatspredConj2));
 
 	// predicate is a == 'w' AND b == 2001 AND c > 0
 	DrgPstatspred *pdrgpstatspredConj3 = GPOS_NEW(pmp) DrgPstatspred(pmp);
-	pdrgpstatspredConj3->Append(GPOS_NEW(pmp) CStatsPredPoint(91, CStatsPred::EstatscmptEq, PpointGeneric(pmp, GPDB_TEXT, pstrW, 160621100)));
+	pdrgpstatspredConj3->Append(GPOS_NEW(pmp) CStatsPredPoint(91, CStatsPred::EstatscmptEq, CCardinalityTestUtils::PpointGeneric(pmp, GPDB_TEXT, pstrW, 160621100)));
 	pdrgpstatspredConj3->Append(GPOS_NEW(pmp) CStatsPredPoint(61, CStatsPred::EstatscmptEq, CTestUtils::PpointInt4(pmp, 2001)));
 	pdrgpstatspredConj1->Append(GPOS_NEW(pmp) CStatsPredPoint(90, CStatsPred::EstatscmptG, CTestUtils::PpointInt4(pmp, 0)));
 	pdrgpstatspredDisj->Append(GPOS_NEW(pmp) CStatsPredConj(pdrgpstatspredConj3));
 
 	// predicate is a == 'w' AND b == 2002
 	DrgPstatspred *pdrgpstatspredConj4 = GPOS_NEW(pmp) DrgPstatspred(pmp);
-	pdrgpstatspredConj4->Append(GPOS_NEW(pmp) CStatsPredPoint(91, CStatsPred::EstatscmptEq, PpointGeneric(pmp, GPDB_TEXT, pstrW, 160621100)));
+	pdrgpstatspredConj4->Append(GPOS_NEW(pmp) CStatsPredPoint(91, CStatsPred::EstatscmptEq, CCardinalityTestUtils::PpointGeneric(pmp, GPDB_TEXT, pstrW, 160621100)));
 	pdrgpstatspredConj4->Append(GPOS_NEW(pmp) CStatsPredPoint(61, CStatsPred::EstatscmptEq, CTestUtils::PpointInt4(pmp, 2002)));
 	pdrgpstatspredDisj->Append(GPOS_NEW(pmp) CStatsPredConj(pdrgpstatspredConj4));
 
@@ -2687,7 +2045,7 @@ CStatisticsTest::PstatspredConj
 
 	// predicate is a == 'w' AND b == 2001 AND c > 0
 	DrgPstatspred *pdrgpstatspredConj3 = GPOS_NEW(pmp) DrgPstatspred(pmp);
-	pdrgpstatspredConj3->Append(GPOS_NEW(pmp) CStatsPredPoint(594, CStatsPred::EstatscmptEq, PpointGeneric(pmp, GPDB_TEXT, pstrW, 160621100)));
+	pdrgpstatspredConj3->Append(GPOS_NEW(pmp) CStatsPredPoint(594, CStatsPred::EstatscmptEq, CCardinalityTestUtils::PpointGeneric(pmp, GPDB_TEXT, pstrW, 160621100)));
 	pdrgpstatspredConj3->Append(GPOS_NEW(pmp) CStatsPredPoint(592, CStatsPred::EstatscmptEq, CTestUtils::PpointInt4(pmp, 2001)));
 	pdrgpstatspredConj3->Append(GPOS_NEW(pmp) CStatsPredPoint(593, CStatsPred::EstatscmptG, CTestUtils::PpointInt4(pmp, 0)));
 
@@ -3087,31 +2445,6 @@ CStatisticsTest::Pdrgpstatspred2
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CStatisticsTest::Print
-//
-//	@doc:
-//		Dump statistics output
-//
-//---------------------------------------------------------------------------
-void
-CStatisticsTest::Print
-	(
-	IMemoryPool *pmp,
-	const CStatistics *pstats
-	)
-{
-	CWStringDynamic str(pmp);
-	COstreamString oss(&str);
-
-	oss << "Statistics = ";
-	pstats->OsPrint(oss);
-	oss << std::endl;
-	GPOS_TRACE(str.Wsz());
-
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CStatisticsTest::EresUnittest_CHistogramValid
 //
 //	@doc:
@@ -3128,9 +2461,9 @@ CStatisticsTest::EresUnittest_CHistogramValid()
 	DrgPbucket *pdrgppbucket = GPOS_NEW(pmp) DrgPbucket(pmp);
 
 	// generate histogram of the form [0, 10), [9, 20)
-	CBucket *pbucket1 = Pbucket(pmp, 0, 10, 0.1, 2.0);
+	CBucket *pbucket1 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 0, 10, 0.1, 2.0);
 	pdrgppbucket->Append(pbucket1);
-	CBucket *pbucket2 = Pbucket(pmp, 9, 20, 0.1, 2.0);
+	CBucket *pbucket2 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 9, 20, 0.1, 2.0);
 	pdrgppbucket->Append(pbucket2);
 
 	// original histogram
@@ -3233,14 +2566,14 @@ CStatisticsTest::StatsFilterNumeric
 												(
 												ulColId,
 												CStatsPred::EstatscmptGEq,
-												PpointNumeric(pmp, pstrLowerEncoded, dValLower)
+												CCardinalityTestUtils::PpointNumeric(pmp, pstrLowerEncoded, dValLower)
 												);
 
 	CStatsPredPoint *pstatspred2 = GPOS_NEW(pmp) CStatsPredPoint
 												(
 												ulColId,
 												CStatsPred::EstatscmptL,
-												PpointNumeric(pmp, pstrUpperEncoded, dValUpper)
+												CCardinalityTestUtils::PpointNumeric(pmp, pstrUpperEncoded, dValUpper)
 												);
 
 	pdrgpstatspred->Append(pstatspred1);
@@ -3272,14 +2605,14 @@ CStatisticsTest::StatsFilterGeneric
 												(
 												ulColId,
 												CStatsPred::EstatscmptGEq,
-												PpointGeneric(pmp, oid, pstrLowerEncoded, lValueLower)
+												CCardinalityTestUtils::PpointGeneric(pmp, oid, pstrLowerEncoded, lValueLower)
 												);
 
 	CStatsPredPoint *pstatspred2 = GPOS_NEW(pmp) CStatsPredPoint
 												(
 												ulColId,
 												CStatsPred::EstatscmptL,
-												PpointGeneric(pmp, oid, pstrUpperEncoded, lValueUpper)
+												CCardinalityTestUtils::PpointGeneric(pmp, oid, pstrUpperEncoded, lValueUpper)
 												);
 
 	pdrgpstatspred->Append(pstatspred1);
@@ -3326,14 +2659,14 @@ CStatisticsTest::EresUnittest_Skew()
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
 
-	CBucket *pbucket1 = Pbucket(pmp, 1, 100, CDouble(0.6), CDouble(100.0));
-	CBucket *pbucket2 = Pbucket(pmp, 101, 200, CDouble(0.2), CDouble(100.0));
-	CBucket *pbucket3 = Pbucket(pmp, 201, 300, CDouble(0.2), CDouble(100.0));
-	CBucket *pbucket4 = Pbucket(pmp, 301, 400, CDouble(0.2), CDouble(100.0));
-	CBucket *pbucket5 = Pbucket(pmp, 401, 500, CDouble(0.2), CDouble(100.0));
-	CBucket *pbucket6 = Pbucket(pmp, 501, 600, CDouble(0.2), CDouble(100.0));
-	CBucket *pbucket7 = Pbucket(pmp, 601, 700, CDouble(0.2), CDouble(100.0));
-	CBucket *pbucket8 = Pbucket(pmp, 701, 800, CDouble(0.2), CDouble(100.0));
+	CBucket *pbucket1 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 1, 100, CDouble(0.6), CDouble(100.0));
+	CBucket *pbucket2 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 101, 200, CDouble(0.2), CDouble(100.0));
+	CBucket *pbucket3 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 201, 300, CDouble(0.2), CDouble(100.0));
+	CBucket *pbucket4 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 301, 400, CDouble(0.2), CDouble(100.0));
+	CBucket *pbucket5 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 401, 500, CDouble(0.2), CDouble(100.0));
+	CBucket *pbucket6 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 501, 600, CDouble(0.2), CDouble(100.0));
+	CBucket *pbucket7 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 601, 700, CDouble(0.2), CDouble(100.0));
+	CBucket *pbucket8 = CCardinalityTestUtils::PbucketIntegerClosedLowerBound(pmp, 701, 800, CDouble(0.2), CDouble(100.0));
 
 	DrgPbucket *pdrgppbucket1 = GPOS_NEW(pmp) DrgPbucket(pmp);
 	pdrgppbucket1->Append(pbucket1);
@@ -3630,7 +2963,7 @@ CStatisticsTest::EresUnittest_CStatisticsAccumulateCard()
 	for (ULONG ul = 0; ul < ulCols; ul ++)
 	{
 		// generate histogram of the form [0, 10), [10, 20), [20, 30), [80, 90), [100,100]
-		phmulhist->FInsert(GPOS_NEW(pmp) ULONG(ul), PhistExampleInt4(pmp));
+		phmulhist->FInsert(GPOS_NEW(pmp) ULONG(ul), CCardinalityTestUtils::PhistExampleInt4(pmp));
 
 		// width for int
 		phmuldoubleWidth->FInsert(GPOS_NEW(pmp) ULONG(ul), GPOS_NEW(pmp) CDouble(4.0));
@@ -3646,7 +2979,7 @@ CStatisticsTest::EresUnittest_CStatisticsAccumulateCard()
 									);
 	CDouble dRows = pstats->DRows();
 	GPOS_TRACE(GPOS_WSZ_LIT("\nOriginal Stats:\n"));
-	Print(pmp, pstats);
+	CCardinalityTestUtils::PrintStats(pmp, pstats);
 
 	// (1)
 	// create disjunctive filter
@@ -3660,7 +2993,7 @@ CStatisticsTest::EresUnittest_CStatisticsAccumulateCard()
 	CStatistics *pstats1 = pstats->PstatsFilter(pmp, pstatspredDisj, true /* fCapNdvs */);
 	CDouble dRows1 = pstats1->DRows();
 	GPOS_TRACE(GPOS_WSZ_LIT("\n\nStats after disjunctive filter [Col0=5 OR Col1=200 OR Col2=200]:\n"));
-	Print(pmp, pstats1);
+	CCardinalityTestUtils::PrintStats(pmp, pstats1);
 
 	pstatspredDisj->Release();
 
@@ -3674,7 +3007,7 @@ CStatisticsTest::EresUnittest_CStatisticsAccumulateCard()
 	CStatistics *pstats2 = pstats->PstatsFilter(pmp, pstatspredConj1, true /* fCapNdvs */);
 	CDouble dRows2 = pstats2->DRows();
 	GPOS_TRACE(GPOS_WSZ_LIT("\n\nStats after point filter [Col0=5]:\n"));
-	Print(pmp, pstats2);
+	CCardinalityTestUtils::PrintStats(pmp, pstats2);
 
 	pstatspredConj1->Release();
 
@@ -3693,7 +3026,7 @@ CStatisticsTest::EresUnittest_CStatisticsAccumulateCard()
 	CStatistics *pstats3 = pstats->PstatsFilter(pmp, pstatspredConj2, true /* fCapNdvs */);
 	CDouble dRows3 = pstats3->DRows();
 	GPOS_TRACE(GPOS_WSZ_LIT("\n\nStats after conjunctive filter [Col0=5 AND Col1=200 AND Col2=200]:\n"));
-	Print(pmp, pstats3);
+	CCardinalityTestUtils::PrintStats(pmp, pstats3);
 
 	pstatspredConj2->Release();
 	GPOS_ASSERT(dRows3 < dRows2  && "Conjunctive filter passes more rows than than point filter");
@@ -3709,7 +3042,7 @@ CStatisticsTest::EresUnittest_CStatisticsAccumulateCard()
 	CStatistics *pstats4 = pstats->PstatsFilter(pmp, pstatspredDisj1, true /* fCapNdvs */);
 	CDouble dRows4 = pstats4->DRows();
 	GPOS_TRACE(GPOS_WSZ_LIT("\n\nStats after disjunctive filter [Col1=200 OR Col2=200]:\n"));
-	Print(pmp, pstats4);
+	CCardinalityTestUtils::PrintStats(pmp, pstats4);
 
 	pstatspredDisj1->Release();
 
@@ -3726,7 +3059,7 @@ CStatisticsTest::EresUnittest_CStatisticsAccumulateCard()
 	CStatistics *pstats5 = pstats->PstatsFilter(pmp, pstatspredConj3, true /* fCapNdvs */);
 	CDouble dRows5 = pstats5->DRows();
 	GPOS_TRACE(GPOS_WSZ_LIT("\n\nStats after conjunctive filter [Col0=5 AND Col1=200]:\n"));
-	Print(pmp, pstats5);
+	CCardinalityTestUtils::PrintStats(pmp, pstats5);
 
 	pstatspredConj3->Release();
 

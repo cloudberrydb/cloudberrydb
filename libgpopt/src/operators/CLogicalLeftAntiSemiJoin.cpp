@@ -149,17 +149,17 @@ CLogicalLeftAntiSemiJoin::PstatsDerive
 	GPOS_ASSERT(Esp(exprhdl) > EspNone);
 	IStatistics *pstatsOuter = exprhdl.Pstats(0);
 	IStatistics *pstatsInner = exprhdl.Pstats(1);
-	DrgPstatsjoin *pdrgpstatsjoin = CStatsPredUtils::Pdrgpstatsjoin(pmp, exprhdl);
+	DrgPstatspredjoin *pdrgpstatspredjoin = CStatsPredUtils::Pdrgpstatspredjoin(pmp, exprhdl);
 	IStatistics *pstatsLASJoin = pstatsOuter->PstatsLASJoin
 												(
 												pmp,
 												pstatsInner,
-												pdrgpstatsjoin,
+												pdrgpstatspredjoin,
 												true /* fIgnoreLasjHistComputation */
 												);
 
 	// clean up
-	pdrgpstatsjoin->Release();
+	pdrgpstatspredjoin->Release();
 
 	return pstatsLASJoin;
 }

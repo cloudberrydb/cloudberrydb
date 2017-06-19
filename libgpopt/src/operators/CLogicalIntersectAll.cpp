@@ -194,7 +194,7 @@ CLogicalIntersectAll::PstatsDerive
 	// TODO:  Jan 8th 2012, add the stats for window operation
 	CExpression *pexprScCond = CUtils::PexprConjINDFCond(pmp, pdrgpdrgpcrInput);
 	CColRefSet *pcrsOuterRefs = exprhdl.Pdprel()->PcrsOuter();
-	DrgPstatsjoin *pdrgpstatsjoin = CStatsPredUtils::Pdrgpstatsjoin
+	DrgPstatspredjoin *pdrgpstatspredjoin = CStatsPredUtils::Pdrgpstatspredjoin
 														(
 														pmp, 
 														exprhdl, 
@@ -202,11 +202,11 @@ CLogicalIntersectAll::PstatsDerive
 														pdrgpcrsOutput, 
 														pcrsOuterRefs
 														);
-	IStatistics *pstatsSemiJoin = CLogicalLeftSemiJoin::PstatsDerive(pmp, pdrgpstatsjoin, pstatsOuter, pstatsInner);
+	IStatistics *pstatsSemiJoin = CLogicalLeftSemiJoin::PstatsDerive(pmp, pdrgpstatspredjoin, pstatsOuter, pstatsInner);
 
 	// clean up
 	pexprScCond->Release();
-	pdrgpstatsjoin->Release();
+	pdrgpstatspredjoin->Release();
 
 	return pstatsSemiJoin;
 }
