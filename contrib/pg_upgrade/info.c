@@ -597,7 +597,7 @@ get_rel_infos(migratorContext *ctx, const DbInfo *dbinfo,
 					aocsseg->segno = atoi(PQgetvalue(aores, j, PQfnumber(aores, "segno")));
 					aocsseg->tupcount = atoll(PQgetvalue(aores, j, PQfnumber(aores, "tupcount")));
 					aocsseg->varblockcount = atoll(PQgetvalue(aores, j, PQfnumber(aores, "varblockcount")));
-					aocsseg->vpinfo = strdup(PQgetvalue(aores, j, PQfnumber(aores, "vpinfo")));
+					aocsseg->vpinfo = pg_strdup(ctx, PQgetvalue(aores, j, PQfnumber(aores, "vpinfo")));
 					aocsseg->modcount = atoll(PQgetvalue(aores, j, PQfnumber(aores, "modcount")));
 					aocsseg->state = atoi(PQgetvalue(aores, j, PQfnumber(aores, "state")));
 					aocsseg->version = atoi(PQgetvalue(aores, j, PQfnumber(aores, "formatversion")));
@@ -651,7 +651,7 @@ get_rel_infos(migratorContext *ctx, const DbInfo *dbinfo,
 
 				aovisimap->segno = atoi(PQgetvalue(aores, j, PQfnumber(aores, "segno")));
 				aovisimap->first_row_no = atoll(PQgetvalue(aores, j, PQfnumber(aores, "first_row_no")));
-				aovisimap->visimap = strdup(PQgetvalue(aores, j, PQfnumber(aores, "visimap")));
+				aovisimap->visimap = pg_strdup(ctx, PQgetvalue(aores, j, PQfnumber(aores, "visimap")));
 			}
 
 			PQclear(aores);

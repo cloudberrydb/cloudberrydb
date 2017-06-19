@@ -190,7 +190,7 @@ parseCommandLine(migratorContext *ctx, int argc, char *argv[])
 			pg_log(ctx, PG_FATAL, "Cannot write to log file %s\n", ctx->logfile);
 	}
 	else
-		ctx->logfile = strdup(DEVNULL);
+		ctx->logfile = pg_strdup(ctx, DEVNULL);
 
 	/* if no debug file name, output to the terminal */
 	if (ctx->debug && !ctx->debug_fd)
