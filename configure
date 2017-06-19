@@ -730,9 +730,9 @@ with_perl
 with_tcl
 enable_thread_safety
 INCLUDES
+enable_segwalrep
 HAVE_CXX11
 enable_gpcloud
-enable_segwalrep
 enable_mapreduce
 enable_netbackup
 enable_ddboost
@@ -6930,7 +6930,6 @@ $as_echo "#define HAVE_CXX11 1" >>confdefs.h
 
 
 fi # fi
-
 
 #
 # Enable segment WAL replication
