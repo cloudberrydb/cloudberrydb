@@ -88,13 +88,14 @@ unlink_obj(char *path, uint8 info)
 	if (info == MMXLOG_REMOVE_DIR)
 	{
 		/* same behaviour as dropdb(), RemoveFileSpace(), RemoveTableSpace() */
-		elog(DEBUG1, "removing directory, as requested %s", path);
+		if (Debug_print_qd_mirroring)
+			elog(LOG, "removing directory, as requested %s", path);
 		rmtree(path, true);
 	}
 	else if (info == MMXLOG_REMOVE_FILE)
 	{
 		if (Debug_print_qd_mirroring)
-			elog(DEBUG1, "unlinking file, as requested %s", path);
+			elog(LOG, "unlinking file, as requested %s", path);
 
 		if (unlink(path) < 0)
 		{
@@ -338,13 +339,14 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		if (Debug_persistent_recovery_print)
 		{
 			elog(PersistentRecovery_DebugPrintLevel(),
-				 "mmxlog_redo: remove file request %d: path \"%s\", filespace %u, %u/%u/%u, primary dbid %u, path \"%s\"; mirror dbid %u, path \"%s\"",
+				 "mmxlog_redo: remove file request %d: path \"%s\", filespace %u, %u/%u/%u, segment file number %d, primary dbid %u, path \"%s\"; mirror dbid %u, path \"%s\"",
 				 info,
 				 path,
 				 xlrec->filespace,
 				 xlrec->tablespace,
 				 xlrec->database,
 				 xlrec->relfilenode,
+				 xlrec->segnum,
 				 xlrec->u.dbid.master,
 				 xlrec->master_path,
 				 xlrec->u.dbid.mirror,
@@ -614,7 +616,7 @@ emit_mmxlog_fs_record(mm_fs_obj_type type, Oid filespace,
 					  relfilenode, segnum);
 
 	if (Debug_print_qd_mirroring)
-		elog(DEBUG1, "XLOG: type = %i, flags = %i, dbid = (%u, %u), path = (%s, %s)",
+		elog(LOG, "XLOG: type = %i, flags = %x, dbid = (%u, %u), path = (%s, %s)",
 			 type, flags, xlrec.u.dbid.master, xlrec.u.dbid.mirror,
 			 xlrec.master_path, xlrec.mirror_path);
 
@@ -637,7 +639,7 @@ mmxlog_log_remove_filespace(Oid filespace)
 	XLogRecPtr beginLoc;
 
 	if (Debug_print_qd_mirroring)
-		elog(DEBUG1, "emitting drop filespace record for %u",
+		elog(LOG, "emitting drop filespace record for %u",
 			 filespace);
 	emitted =
 		emit_mmxlog_fs_record(
@@ -673,7 +675,7 @@ mmxlog_log_remove_tablespace(Oid tablespace)
 	XLogRecPtr beginLoc;
 
 	if (Debug_print_qd_mirroring)
-		elog(DEBUG1, "emitting drop tablespace record for %u",
+		elog(LOG, "emitting drop tablespace record for %u",
 			 tablespace);
 	emitted =
 		emit_mmxlog_fs_record(
@@ -709,7 +711,7 @@ mmxlog_log_remove_database(Oid tablespace, Oid database)
 	XLogRecPtr beginLoc;
 
 	if (Debug_print_qd_mirroring)
-		elog(DEBUG1, "emitting drop database record for %u/%u",
+		elog(LOG, "emitting drop database record for %u/%u",
 			 tablespace, database);
 	emitted =
 		emit_mmxlog_fs_record(
@@ -747,7 +749,7 @@ mmxlog_log_remove_relfilenode(Oid tablespace, Oid database, Oid relfilenode,
 	XLogRecPtr beginLoc;
 
 	if (Debug_print_qd_mirroring)
-		elog(DEBUG1, "emitting drop relfilenode record for %u/%u/%u",
+		elog(LOG, "emitting drop relfilenode record for %u/%u/%u",
 			 tablespace, database, relfilenode);
 	emitted =
 		emit_mmxlog_fs_record(
