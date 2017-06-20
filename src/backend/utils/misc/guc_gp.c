@@ -198,7 +198,6 @@ bool		Debug_persistent_bootstrap_print = false;
 bool		persistent_integrity_checks = true;
 bool		debug_persistent_ptcat_verification = false;
 bool		debug_print_persistent_checks = false;
-bool		Debug_bulk_load_bypass_wal = true;
 bool		Debug_persistent_appendonly_commit_count_print = false;
 bool		Debug_cancel_print = false;
 bool		Debug_datumstream_write_print_small_varlena_info = false;
@@ -1672,16 +1671,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&debug_print_persistent_checks,
 		false, NULL, NULL
-	},
-
-	{
-		{"Debug_bulk_load_bypass_wal", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Use new bulk load bypass WAL logic."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_bulk_load_bypass_wal,
-		true, NULL, NULL
 	},
 
 	{

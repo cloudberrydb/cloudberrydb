@@ -721,20 +721,21 @@ static bool CheckForStandbyTrigger(void);
  */
 bool XLog_CanBypassWal(void)
 {
-	if (Debug_bulk_load_bypass_wal)
-	{
-		/*
-		 * We need the XLOG to be transmitted to the standby master since
-		 * it is not using FileRep technology yet.  Master also could skip
-		 * some of the WAL operations for optimization when standby is not
-		 * configured, but for now we lean towards safety.
-		 */
-		return GpIdentity.segindex != MASTER_CONTENT_ID;
-	}
-	else
-	{
-		return false;
-	}
+#ifdef USE_SEGWALREP
+	/*
+	 * Wal replication enabled for segments, shouldn't skip anything from
+	 * wal.
+	 */
+	return false;
+#else
+	/*
+	 * We need the XLOG to be transmitted to the standby master since it is
+	 * not using FileRep technology yet. Master also could skip some of the
+	 * WAL operations for optimization when standby is not configured, but for
+	 * now we lean towards safety.
+	 */
+	return GpIdentity.segindex != MASTER_CONTENT_ID;
+#endif
 }
 
 /*
