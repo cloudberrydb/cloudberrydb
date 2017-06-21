@@ -237,18 +237,35 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 	START_CODE_GENERATOR_MANAGER(CodegenManager);
 	{
 
+	int localMotionId = LocallyExecutingSliceIndex(estate);
+
+	/*
+	 * For most plan nodes the ascendant motion is the parent motion
+	 * node. However, subplans are different. They can be executed under
+	 * different slices, although appearing in another slice. Other
+	 * exception includes two stage agg where agg node on the master
+	 * does not have any parent motion. Any time we see such null parent
+	 * motion, we assume they are not alien. They either assume "citizen"
+	 * status under a subplan, or they are the root of the execution on
+	 * the master.
+	 */
+	Motion *parentMotion = (Motion *) node->motionNode;
+	int parentMotionId = parentMotion != NULL ? parentMotion->motionID : UNSET_SLICE_ID;
 
 	/*
 	 * Is current plan node supposed to execute in current slice?
-	 * Special case is sending motion node, which is supposed to
-	 * update estate->currentSliceIdInPlan inside ExecInitMotion,
-	 * but wouldn't get a chance to do so until called in the code
-	 * below. But, we want to set up a memory account for sender
-	 * motion before we call ExecInitMotion to make sure we don't
-	 * miss its allocation memory
+	 * Special case is sending motion node, which may be at the root
+	 * and therefore parentless. We can sending motions motionId to
+	 * determine its alien status.
+	 *
+	 * On master we don't do alien elimination because of EXPLAIN ANALYZE
+	 * gathering stats from all slices.
 	 */
-	bool isAlienPlanNode = !((currentSliceId == origSliceIdInPlan) ||
-			(nodeTag(node) == T_Motion && ((Motion*)node)->motionID == currentSliceId));
+	bool isAlienPlanNode = !((localMotionId == parentMotionId) || (parentMotionId == UNSET_SLICE_ID) ||
+			(nodeTag(node) == T_Motion && ((Motion*)node)->motionID == localMotionId) || Gp_segment == -1);
+
+	/* We cannot have alien nodes if we are eliminating aliens */
+	AssertImply(estate->eliminateAliens, !isAlienPlanNode);
 
 	/*
 	 * As of 03/28/2014, there is no support for BitmapTableScan
@@ -1517,7 +1534,7 @@ transportUpdateNodeWalker(PlanState *node, void *context)
 	 */
 	if (IsA(node, MotionState))
 	{
-		((MotionState *) node)->ps.state->interconnect_context = (ChunkTransportState *) context;
+		node->state->interconnect_context = (ChunkTransportState *) context;
 		/* visit subtree */
 	}
 

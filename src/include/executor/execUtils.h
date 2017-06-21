@@ -24,6 +24,11 @@ extern void InitRootSlices(QueryDesc *queryDesc);
 extern void AssignGangs(QueryDesc *queryDesc);
 extern void ReleaseGangs(QueryDesc *queryDesc);
 
+extern Motion *findSenderMotion(PlannedStmt *plannedstmt, int sliceIndex);
+extern Bitmapset *getLocallyExecutableSubplans(PlannedStmt *plannedstmt, Plan *root);
+extern void ExtractParamsFromInitPlans(PlannedStmt *plannedstmt, Plan *root, EState *estate);
+extern void AssignParentMotionToPlanNodes(PlannedStmt *plannedstmt);
+
 #ifdef USE_ASSERT_CHECKING
 struct PlannedStmt;
 extern void AssertSliceTableIsValid(SliceTable *st, struct PlannedStmt *pstmt);

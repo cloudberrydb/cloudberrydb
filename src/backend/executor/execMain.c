@@ -523,6 +523,20 @@ ExecutorStart(QueryDesc *queryDesc, int eflags)
 		}
 	}
 
+	/*
+	 * We don't eliminate aliens if we don't have an MPP plan
+	 * or we are executing on master.
+	 *
+	 * TODO: eliminate aliens even on master, if not EXPLAIN ANALYZE
+	 */
+	estate->eliminateAliens = execute_pruned_plan && queryDesc->plannedstmt->nMotionNodes > 0 && Gp_segment != -1;
+
+	/*
+	 * Assign a Motion Node to every Plan Node. This makes it
+	 * easy to identify which slice any Node belongs to
+	 */
+	AssignParentMotionToPlanNodes(queryDesc->plannedstmt);
+
 	/* If the interconnect has been set up; we need to catch any
 	 * errors to shut it down -- so we have to wrap InitPlan in a PG_TRY() block. */
 	PG_TRY();
@@ -1598,7 +1612,6 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 	PlanState  *planstate;
 	TupleDesc	tupType;
 	ListCell   *l;
-	int			i;
 	bool		shouldDispatch = Gp_role == GP_ROLE_DISPATCH && plannedstmt->planTree->dispatch == DISPATCH_PARALLEL;
 
 	Assert(plannedstmt->intoPolicy == NULL
@@ -1795,35 +1808,72 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 	 * ExecInitSubPlan expects to be able to find these entries.
 	 */
 	Assert(estate->es_subplanstates == NIL);
-	i = 1;						/* subplan indices count from 1 */
-	foreach(l, plannedstmt->subplans)
+	Bitmapset *locallyExecutableSubplans = NULL;
+	Plan *start_plan_node = plannedstmt->planTree;
+
+	/*
+	 * If eliminateAliens is true then we extract the local Motion node
+	 * and subplans for our current slice. This enables us to call ExecInitNode
+	 * for only a subset of the plan tree.
+	 */
+	if (estate->eliminateAliens)
 	{
-		Plan	   *subplan = (Plan *) lfirst(l);
-		PlanState  *subplanstate;
-		int			sp_eflags;
+		Motion *m = findSenderMotion(plannedstmt, LocallyExecutingSliceIndex(estate));
 
 		/*
-		 * A subplan will never need to do BACKWARD scan nor MARK/RESTORE.
-		 *
-		 * GPDB: We always set the REWIND flag, to delay eagerfree.
+		 * We may not have any motion in the current slice, e.g., in insert query
+		 * the root may not have any motion.
 		 */
-		sp_eflags = eflags & EXEC_FLAG_EXPLAIN_ONLY;
-		sp_eflags |= EXEC_FLAG_REWIND;
-
-		subplanstate = ExecInitNode(subplan, estate, sp_eflags);
-
-		estate->es_subplanstates = lappend(estate->es_subplanstates,
-										   subplanstate);
-
-		i++;
+		if (NULL != m)
+		{
+			start_plan_node = (Plan *) m;
+		}
+		/* Compute SubPlans' root plan nodes for SubPlans reachable from this plan root */
+		locallyExecutableSubplans = getLocallyExecutableSubplans(plannedstmt, start_plan_node);
 	}
+
+	int subplan_idx = 0;
+	foreach(l, plannedstmt->subplans)
+	{
+		PlanState  *subplanstate = NULL;
+		int			sp_eflags = 0;
+
+		/*
+		 * Initialize only the subplans that are reachable from our local slice.
+		 * If alien elimination is not turned on, then all subplans are considered
+		 * reachable.
+		 */
+		if (!estate->eliminateAliens || bms_is_member(subplan_idx, locallyExecutableSubplans))
+		{
+			/*
+			 * A subplan will never need to do BACKWARD scan nor MARK/RESTORE.
+			 *
+			 * GPDB: We always set the REWIND flag, to delay eagerfree.
+			 */
+			sp_eflags = eflags & EXEC_FLAG_EXPLAIN_ONLY;
+			sp_eflags |= EXEC_FLAG_REWIND;
+
+			Plan	   *subplan = (Plan *) lfirst(l);
+			subplanstate = ExecInitNode(subplan, estate, sp_eflags);
+		}
+
+		estate->es_subplanstates = lappend(estate->es_subplanstates, subplanstate);
+
+		++subplan_idx;
+	}
+
+	/* No more use for locallyExecutableSubplans */
+	bms_free(locallyExecutableSubplans);
+
+	/* Extract all precomputed parameters from init plans */
+	ExtractParamsFromInitPlans(plannedstmt, plannedstmt->planTree, estate);
 
 	/*
 	 * Initialize the private state information for all the nodes in the query
 	 * tree.  This opens files, allocates storage and leaves us ready to start
 	 * processing tuples.
 	 */
-	planstate = ExecInitNode(plannedstmt->planTree, estate, eflags);
+	planstate = ExecInitNode(start_plan_node, estate, eflags);
 
 	queryDesc->planstate = planstate;
 
@@ -2499,8 +2549,10 @@ ExecEndPlan(PlanState *planstate, EState *estate)
 	foreach(l, estate->es_subplanstates)
 	{
 		PlanState  *subplanstate = (PlanState *) lfirst(l);
-
-		ExecEndNode(subplanstate);
+		if (subplanstate != NULL)
+		{
+			ExecEndNode(subplanstate);
+		}
 	}
 
 	/*

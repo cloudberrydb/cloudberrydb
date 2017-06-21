@@ -156,7 +156,7 @@ formatTuple(StringInfo buf, HeapTuple tup, TupleDesc tupdesc, Oid *outputFunArra
  */
 bool isMotionGather(const Motion *m)
 {
-	return (m->motionType == MOTIONTYPE_FIXED 
+	return (m->motionType == MOTIONTYPE_FIXED
 			&& m->numOutputSegs == 1);
 }
 
@@ -973,9 +973,13 @@ ExecInitMotion(Motion * node, EState *estate, int eflags)
 	ExecInitResultTupleSlot(estate, &motionstate->ps);
 
 	/*
-	 * initializes child nodes.
+	 * Initializes child nodes. If alien elimination is on,
+	 * we skip children of receiver motion.
 	 */
-	outerPlanState(motionstate) = ExecInitNode(outerPlan(node), estate, eflags);
+	if (!estate->eliminateAliens || motionstate->mstype == MOTIONSTATE_SEND)
+	{
+		outerPlanState(motionstate) = ExecInitNode(outerPlan(node), estate, eflags);
+	}
 
 	/*
 	 * initialize tuple type.  no need to initialize projection info

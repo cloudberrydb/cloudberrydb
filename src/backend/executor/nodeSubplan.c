@@ -723,45 +723,9 @@ ExecInitSubPlan(SubPlan *subplan, PlanState *parent)
 			ParamExecData *prmExec = &(estate->es_param_exec_vals[paramid]);
 
 			/**
-			 * Has this parameter been already 
-			 * evaluated as part of preprocess_initplan()? If so,
-			 * we shouldn't re-evaluate it. If it has been evaluated,
-			 * we will simply substitute the actual value from
-			 * the external parameters.
+			 * If we need to evaluate a parameter, save the planstate to do so.
 			 */
-			if (Gp_role == GP_ROLE_EXECUTE && subplan->is_initplan)
-			{	
-				ParamListInfo paramInfo = estate->es_param_list_info;
-				ParamExternData *prmExt = NULL;
-				int extParamIndex = -1;
-
-				Assert(paramInfo);
-				Assert(paramInfo->numParams > 0);
-
-				/*
-				 * To locate the value of this pre-evaluated parameter, we need to find
-				 * its location in the external parameter list.
-				 */
-				extParamIndex = paramInfo->numParams - estate->es_plannedstmt->nParamExec + paramid;
-
-				prmExt = &paramInfo->params[extParamIndex];
-
-				/* Make sure the types are valid */
-				if (!OidIsValid(prmExt->ptype))
-				{
-					prmExec->execPlan = NULL;
-					prmExec->isnull = true;
-					prmExec->value = (Datum) 0;
-				}
-				else
-				{
-					/** Hurray! Copy value from external parameter and don't bother setting up execPlan. */
-					prmExec->execPlan = NULL;
-					prmExec->isnull = prmExt->isnull;
-					prmExec->value = prmExt->value;
-				}
-			}
-			else
+			if ((Gp_role != GP_ROLE_EXECUTE || !subplan->is_initplan))
 			{
 				prmExec->execPlan = sstate;
 			}
