@@ -497,7 +497,7 @@ rel_has_external_partition(Oid relid)
 }
 
 /*
- * check if a Query struct has external partion relation
+ * Check if a Query struct has external partition relation
  */
 bool
 query_has_external_partition(Query *query)
