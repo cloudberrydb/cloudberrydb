@@ -127,7 +127,7 @@ CWStringTest::EresUnittest_AppendFormat()
 	CAutoMemoryPool amp
 		(
 		CAutoMemoryPool::ElcExc,
-		CMemoryPoolManager::EatSlab,
+		CMemoryPoolManager::EatTracker,
 		false /*fThreadSafe*/,
 		1024 * 1024 /*ullSizeMax*/
 		);

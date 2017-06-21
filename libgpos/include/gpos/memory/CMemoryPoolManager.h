@@ -42,8 +42,7 @@ namespace gpos
 			enum EAllocType
 			{
 				EatTracker,
-				EatStack,
-				EatSlab
+				EatStack
 			};
 
 		private:

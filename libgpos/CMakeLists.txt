@@ -167,18 +167,12 @@ add_library(gpos
             src/memory/CMemoryPoolInjectFault.cpp
             include/gpos/memory/CMemoryPoolManager.h
             src/memory/CMemoryPoolManager.cpp
-            include/gpos/memory/CMemoryPoolSlab.h
-            src/memory/CMemoryPoolSlab.cpp
             include/gpos/memory/CMemoryPoolStack.h
             src/memory/CMemoryPoolStack.cpp
             include/gpos/memory/CMemoryPoolTracker.h
             src/memory/CMemoryPoolTracker.cpp
             include/gpos/memory/CMemoryVisitorPrint.h
             src/memory/CMemoryVisitorPrint.cpp
-            include/gpos/memory/CSlab.h
-            src/memory/CSlab.cpp
-            include/gpos/memory/CSlabCache.h
-            src/memory/CSlabCache.cpp
             include/gpos/memory/IMemoryPool.h
             src/memory/IMemoryPool.cpp
             include/gpos/net/netutils.h

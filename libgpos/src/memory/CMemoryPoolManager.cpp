@@ -21,7 +21,6 @@
 #include "gpos/memory/CMemoryPoolAlloc.h"
 #include "gpos/memory/CMemoryPoolInjectFault.h"
 #include "gpos/memory/CMemoryPoolManager.h"
-#include "gpos/memory/CMemoryPoolSlab.h"
 #include "gpos/memory/CMemoryPoolStack.h"
 #include "gpos/memory/CMemoryPoolTracker.h"
 #include "gpos/memory/CMemoryVisitorPrint.h"
@@ -201,15 +200,6 @@ CMemoryPoolManager::PmpNew
 	{
 		case CMemoryPoolManager::EatTracker:
 			return GPOS_NEW(m_pmpInternal) CMemoryPoolTracker
-						(
-						pmpUnderlying,
-						ullCapacity,
-						fThreadSafe,
-						fOwnsUnderlying
-						);
-
-		case CMemoryPoolManager::EatSlab:
-			return GPOS_NEW(m_pmpInternal) CMemoryPoolSlab
 						(
 						pmpUnderlying,
 						ullCapacity,

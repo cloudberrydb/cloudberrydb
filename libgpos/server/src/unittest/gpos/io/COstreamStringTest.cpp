@@ -112,7 +112,7 @@ COstreamStringTest::EresUnittest_OOM()
 	CAutoMemoryPool amp
 		(
 		CAutoMemoryPool::ElcExc,
-		CMemoryPoolManager::EatSlab,
+		CMemoryPoolManager::EatTracker,
 		false /*fThreadSafe*/,
 		1024
 		);
