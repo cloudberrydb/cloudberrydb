@@ -34,6 +34,7 @@
 #include "utils/guc.h"
 #include "cdb/cdbpersistentrecovery.h"
 #include "cdb/cdbpersistentfilesysobj.h"
+#include "cdb/cdbmirroredappendonly.h"
 
 static void tblspc_get_filespace_paths(Oid tblspc, int16 master_dbid,
 									   int16 mirror_dbid,
@@ -399,7 +400,34 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 			}
 		}
 
-		smgrdounlink(
+		/*
+		 * segnum greater than 0 definitely means its for AO or CO table,
+		 * hence perform unlink for that specific file. But segnum == 0 can be
+		 * for AO or Heap table but based on current xlog record structure for
+		 * xl_mm_fs_obj, it provides no hint for the same.
+		 *
+		 * GPDB_SEGWALREP_TODO: Handle correctly the AO or CO table segnum ==
+		 * 0 deletion specific case.
+		 */
+		if (xlrec->segnum > 0)
+		{
+			int primaryError;
+			MirroredAppendOnly_Drop(
+				&rnode,
+				xlrec->segnum,
+				NULL,
+				true,
+				&primaryError,
+				&mirrorDataLossOccurred);
+		}
+		else
+		{
+			/*
+			 * smgrdounlink() currently is specifically coded for dropping files
+			 * which are not for AO or CO tables because it finds and then drops
+			 * files in sequence like .1, .2, ...
+			 */
+			smgrdounlink(
 				&rnode,
 				/* isLocalBuf */ false,
 				/* relationName */ NULL,
@@ -407,6 +435,7 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 				/* isRedo */ true,		// Don't generate Master Mirroring records...
 				/* ignoreNonExistence */ true,
 				&mirrorDataLossOccurred);
+		}
 	}
 	else
 		elog(PANIC, "unknown mmxlog op code %u", info);
