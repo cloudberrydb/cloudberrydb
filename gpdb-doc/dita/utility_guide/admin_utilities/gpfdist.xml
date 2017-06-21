@@ -48,8 +48,6 @@
         another host, simply copy the utility over to that host and add <codeph>gpfdist</codeph> to
         your <codeph>$PATH</codeph>.</p>
       <note type="note">When using IPv6, always enclose the numeric IP address in brackets.</note>
-      <p>You can also run <codeph>gpfdist</codeph> as a Windows Service. See <xref
-          href="#topic1/section5" type="section" format="dita"/> for more details.</p>
     </section>
     <section id="section4">
       <title>Options</title>
@@ -176,39 +174,6 @@
           <pd>Displays the version of this utility.</pd>
         </plentry>
       </parml>
-    </section>
-    <section id="section5">
-      <title id="ku139434">Running gpfdist as a Windows Service</title>
-      <p>Greenplum Database Loaders allow <codeph>gpfdist</codeph> to run as a Windows Service. </p>
-      <p>Follow the instructions below to download, register and activate <codeph>gpfdist</codeph>
-        as a service: </p>
-      <ol>
-        <li id="ku139499" otherprops="pivotal">Update your Greenplum Database Loader package to the
-          latest version. This package is available from <xref href="https://network.pivotal.io"
-            scope="external" format="html">Pivotal Network</xref>. </li>
-        <li id="ku139444">Register <codeph>gpfdist</codeph> as a Windows service:<ol>
-            <li id="ku139445">Open a Windows command window</li>
-            <li id="ku139446">Run the following
-                command:<codeblock>sc create gpfdist binpath= "<varname>path_to_gpfdist.exe</varname> -p 8081 -d External\load\files\path -l Log\file\path"</codeblock><p>You
-                can create multiple instances of <codeph>gpfdist</codeph> by running the same
-                command again, with a unique name and port number for each
-              instance:</p><codeblock>sc create gpfdist<varname>N</varname> binpath= "<varname>path_to_gpfdist.exe</varname> -p 8082 -d External\load\files\path -l Log\file\path"</codeblock></li>
-          </ol></li>
-        <li id="ku139450">Activate the <codeph>gpfdist</codeph> service:<ol>
-            <li id="ku139451">Open the Windows Control Panel and select <b>Administrative Tools &gt;
-                Services</b>.</li>
-            <li id="ku139452">Highlight then right-click on the <codeph>gpfdist</codeph> service in
-              the list of services.</li>
-            <li id="ku139453">Select <b>Properties</b> from the right-click menu, the Service
-              Properties window opens.<p>Note that you can also stop this service from the Service
-                Properties window.</p></li>
-            <li id="ku139455">Optional: Change the <b>Startup Type</b> to <b>Automatic</b> (after a
-              system restart, this service will be running), then under <b>Service</b> status, click
-                <b>Start</b>.</li>
-            <li id="ku139456">Click <b>OK</b>.</li>
-          </ol></li>
-      </ol>
-      <p>Repeat the above steps for each instance of <codeph>gpfdist</codeph> that you created. </p>
     </section>
     <section id="section6">
       <title>Examples</title>
