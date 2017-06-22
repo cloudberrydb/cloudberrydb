@@ -158,6 +158,17 @@ insert into bar select generate_series(1,10);
 explain select a from foo where a<1 and a>1 and not exists (select c from bar where c=a);
 select a from foo where a<1 and a>1 and not exists (select c from bar where c=a);
 
+-- The merge join executor code doesn't support LASJ_NOTIN joins. Make sure
+-- the planner doesn't create an invalid plan with them.
+create index index_foo on foo (a);
+create index index_bar on bar (c);
+
+set enable_nestloop to off;
+set enable_hashjoin to off;
+set enable_mergejoin to on;
+
+select * from foo where a not in (select c from bar where c <= 5);
+
 -- Cleanup
 set client_min_messages='warning'; -- silence drop-cascade NOTICEs
 drop schema pred cascade;

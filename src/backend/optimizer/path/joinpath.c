@@ -562,6 +562,10 @@ match_unsorted_outer(PlannerInfo *root,
 		if (useallclauses && list_length(mergeclauses) != list_length(mergeclause_list))
 			continue;
 
+		/* The merge join executor code doesn't support LASJ_NOTIN */
+		if (jointype == JOIN_LASJ_NOTIN)
+			continue;
+
 		/* Compute the required ordering of the inner path */
 		innersortkeys = make_inner_pathkeys_for_merge(root,
 													  mergeclauses,
