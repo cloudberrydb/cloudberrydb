@@ -762,6 +762,17 @@ hashclauses_for_join(List *restrictlist,
 			continue;			/* not hashjoinable */
 
 		/*
+		 * A qual like "(a = b) IS NOT FALSE" is treated as hashable in
+		 * check_hashjoinable(), for the benefit of LASJ joins. It will be
+		 * hashed like "a = b", but the special LASJ handlng in the hash join
+		 * executor node will ensure that NULLs are treated correctly. For
+		 * other kinds of joins, we cannot use "(a = b) IS NOT FALSE" as a
+		 * hash qual.
+		 */
+		if (jointype != JOIN_LASJ_NOTIN && IsA(restrictinfo->clause, BooleanTest))
+			continue;
+
+		/*
 		 * If processing an outer join, only use its own join clauses for
 		 * hashing.  For inner joins we need not be so picky.
 		 */

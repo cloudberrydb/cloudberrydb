@@ -148,6 +148,16 @@ select * from p;
 delete from p where b = 1 or (b=2 and a in (select b from r));
 select * from p;
 
+
+-- Test planning of IS NOT FALSE. We used treat "(a = b) IS NOT FALSE" as
+-- hash joinable, and create a plan with a hash join on "(a = b)". That
+-- was wrong, because NULLs are treated differently.
+create table booltest (b bool);
+insert into booltest values ('t');
+insert into booltest values (null);
+select * from booltest a, booltest b where (a.b = b.b) is not false;
+
+
 -- start_ignore
 drop table if exists bfv_planner_x;
 drop table if exists testbadsql;
