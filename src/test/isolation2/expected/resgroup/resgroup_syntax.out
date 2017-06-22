@@ -4,7 +4,7 @@
 
 --start_ignore
 DROP ROLE IF EXISTS rg_test_role;
-NOTICE:  role "rg_test_role" does not exist, skipping
+DROP
 --end_ignore
 CREATE ROLE rg_test_role;
 CREATE
@@ -185,3 +185,47 @@ ALTER
 
 DROP RESOURCE GROUP rg_test_group;
 DROP
+
+-- ----------------------------------------------------------------------
+-- Test: create/alter/drop a resource group in subtransaction
+-- ----------------------------------------------------------------------
+
+-- CREATE RESOURCE GROUP cannot run inside a subtransaction
+BEGIN;
+BEGIN
+SAVEPOINT rg_savepoint;
+SAVEPOINT
+CREATE RESOURCE GROUP rg_test_group WITH (concurrency=1, cpu_rate_limit=.05, memory_limit=.05, memory_redzone_limit=.7);
+ERROR:  CREATE RESOURCE GROUP cannot run inside a subtransaction
+ROLLBACK TO SAVEPOINT rg_savepoint;
+ROLLBACK
+ABORT;
+ABORT
+
+-- ALTER RESOURCE GROUP cannot run inside a subtransaction
+BEGIN;
+BEGIN
+CREATE RESOURCE GROUP rg_test_group WITH (concurrency=1, cpu_rate_limit=.05, memory_limit=.05, memory_redzone_limit=.7);
+CREATE
+SAVEPOINT rg_savepoint;
+SAVEPOINT
+ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 10;
+ERROR:  ALTER RESOURCE GROUP cannot run inside a subtransaction
+ROLLBACK TO SAVEPOINT rg_savepoint;
+ROLLBACK
+ABORT;
+ABORT
+
+-- DROP RESOURCE GROUP cannot run inside a subtransaction
+BEGIN;
+BEGIN
+CREATE RESOURCE GROUP rg_test_group WITH (concurrency=1, cpu_rate_limit=.05, memory_limit=.05, memory_redzone_limit=.7);
+CREATE
+SAVEPOINT rg_savepoint;
+SAVEPOINT
+DROP RESOURCE GROUP rg_test_group;
+ERROR:  DROP RESOURCE GROUP cannot run inside a subtransaction
+ROLLBACK TO SAVEPOINT rg_savepoint;
+ROLLBACK
+ABORT;
+ABORT

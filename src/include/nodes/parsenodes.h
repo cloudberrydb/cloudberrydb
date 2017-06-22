@@ -1894,7 +1894,7 @@ typedef struct AlterResourceGroupStmt
 {
 	NodeTag		type;
 	char	   *name;			/* resource group to alter */
-	int			concurrency;
+	List	   *options;		/* List of DefElem nodes */
 } AlterResourceGroupStmt;
 
 /* ----------------------

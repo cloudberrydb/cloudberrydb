@@ -97,3 +97,30 @@ ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 2;
 ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 1000;
 
 DROP RESOURCE GROUP rg_test_group;
+
+-- ----------------------------------------------------------------------
+-- Test: create/alter/drop a resource group in subtransaction
+-- ----------------------------------------------------------------------
+
+-- CREATE RESOURCE GROUP cannot run inside a subtransaction
+BEGIN;
+SAVEPOINT rg_savepoint;
+CREATE RESOURCE GROUP rg_test_group WITH (concurrency=1, cpu_rate_limit=.05, memory_limit=.05, memory_redzone_limit=.7);
+ROLLBACK TO SAVEPOINT rg_savepoint;
+ABORT;
+
+-- ALTER RESOURCE GROUP cannot run inside a subtransaction
+BEGIN;
+CREATE RESOURCE GROUP rg_test_group WITH (concurrency=1, cpu_rate_limit=.05, memory_limit=.05, memory_redzone_limit=.7);
+SAVEPOINT rg_savepoint;
+ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 10;
+ROLLBACK TO SAVEPOINT rg_savepoint;
+ABORT;
+
+-- DROP RESOURCE GROUP cannot run inside a subtransaction
+BEGIN;
+CREATE RESOURCE GROUP rg_test_group WITH (concurrency=1, cpu_rate_limit=.05, memory_limit=.05, memory_redzone_limit=.7);
+SAVEPOINT rg_savepoint;
+DROP RESOURCE GROUP rg_test_group;
+ROLLBACK TO SAVEPOINT rg_savepoint;
+ABORT;

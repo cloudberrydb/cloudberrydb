@@ -92,7 +92,7 @@ extern void ResGroupGetStat(Oid groupId, ResGroupStatType type, char *retStr, in
 /* Update the memory usage of resource group */
 extern void ResGroupUpdateMemoryUsage(int32 memoryChunks);
 
-extern void ResGroupAlterCheckForWakeup(Oid groupId);
+extern void ResGroupAlterCheckForWakeup(Oid groupId, int value, int proposed);
 extern void ResGroupDropCheckForWakeup(Oid groupId, bool isCommit);
 extern void ResGroupCheckForDrop(Oid groupId, char *name);
 extern int CalcConcurrencyValue(int groupId, int val, int proposed, int newProposed);

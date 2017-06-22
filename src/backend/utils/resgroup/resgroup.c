@@ -344,14 +344,11 @@ void ResGroupDropCheckForWakeup(Oid groupId, bool isCommit)
  * Wake up the backends in the wait queue when 'concurrency' is increased.
  * This function is called in the callback function of ALTER RESOURCE GROUP.
  */
-void ResGroupAlterCheckForWakeup(Oid groupId)
+void ResGroupAlterCheckForWakeup(Oid groupId, int value, int proposed)
 {
-	int	proposed;
 	int wakeNum;
 	PROC_QUEUE	*waitQueue;
 	ResGroup	group;
-
-	GetConcurrencyForResGroup(groupId, NULL, &proposed);
 
 	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
 

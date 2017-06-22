@@ -248,6 +248,9 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <list>	OptQueueList
 %type <defelt>	OptQueueElem
 
+%type <list>	OptResourceGroupList
+%type <defelt>	OptResourceGroupElem
+
 %type <str>		OptSchemaName
 %type <list>	OptSchemaEltList
 
@@ -1302,13 +1305,27 @@ DropResourceGroupStmt:
  *
  *****************************************************************************/
 AlterResourceGroupStmt:
-			ALTER RESOURCE GROUP_P name SET CONCURRENCY SignedIconst
+			ALTER RESOURCE GROUP_P name SET OptResourceGroupList
 				 {
 					AlterResourceGroupStmt *n = makeNode(AlterResourceGroupStmt);
 					n->name = $4;
-					n->concurrency = $7;
+					n->options = $6;
 					$$ = (Node *)n;
 				 }
+		;
+
+/*
+ * Option for ALTER RESOURCE GROUP
+ */
+OptResourceGroupList: OptResourceGroupElem			{ $$ = list_make1($1); }
+		;
+
+OptResourceGroupElem:
+			CONCURRENCY IntegerOnly
+				{
+					/* was "concurrency" */
+					$$ = makeDefElem("concurrency", (Node *)$2);
+				}
 		;
 
 /*****************************************************************************

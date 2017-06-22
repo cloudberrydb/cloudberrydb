@@ -6,5 +6,6 @@ test: resgroup/resgroup_cpu_rate_limit
 test: resgroup/resgroup_concurrency
 test: resgroup/drop_resgroup
 test: resgroup/resgroup_memory
+test: resgroup/resgroup_callback
 
 test: resgroup/disable_resgroup
