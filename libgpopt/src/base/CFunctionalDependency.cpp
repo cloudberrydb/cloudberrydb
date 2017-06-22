@@ -164,9 +164,9 @@ CFunctionalDependency::UlHash
 	)
 {
 	ULONG ulHash = 0;
-	const ULONG ulSize = pdrgpfd->UlSafeLength();
 	if (NULL != pdrgpfd)
 	{
+		const ULONG ulSize = pdrgpfd->UlLength();
 		for (ULONG ul = 0; ul < ulSize; ul++)
 		{
 			ulHash = gpos::UlCombineHashes(ulHash, (*pdrgpfd)[ul]->UlHash());
@@ -192,23 +192,29 @@ CFunctionalDependency::FEqual
 	const DrgPfd *pdrgpfdSnd
 	)
 {
-	const ULONG ulLenFst = pdrgpfdFst->UlSafeLength();
-	const ULONG ulLenSnd = pdrgpfdSnd->UlSafeLength();
-	BOOL fEqual = (ulLenFst == ulLenSnd);
+	if (NULL == pdrgpfdFst && NULL == pdrgpfdSnd)
+		return true;	/* both empty */
 
-	if (NULL != pdrgpfdFst && NULL != pdrgpfdSnd)
+	if (NULL == pdrgpfdFst || NULL == pdrgpfdSnd)
+		return false;	/* one is empty, the other is not */
+
+	const ULONG ulLenFst = pdrgpfdFst->UlLength();
+	const ULONG ulLenSnd = pdrgpfdSnd->UlLength();
+
+	if (ulLenFst != ulLenSnd)
+	  return false;
+
+	BOOL fEqual = true;
+	for (ULONG ulFst = 0; fEqual && ulFst < ulLenFst; ulFst++)
 	{
-		for (ULONG ulFst = 0; fEqual && ulFst < ulLenFst; ulFst++)
+		const CFunctionalDependency *pfdFst = (*pdrgpfdFst)[ulFst];
+		BOOL fMatch = false;
+		for (ULONG ulSnd = 0; !fMatch && ulSnd < ulLenSnd; ulSnd++)
 		{
-			const CFunctionalDependency *pfdFst = (*pdrgpfdFst)[ulFst];
-			BOOL fMatch = false;
-			for (ULONG ulSnd = 0; !fMatch && ulSnd < ulLenSnd; ulSnd++)
-			{
-				const CFunctionalDependency *pfdSnd = (*pdrgpfdSnd)[ulSnd];
-				fMatch = pfdFst->FEqual(pfdSnd);
-			}
-			fEqual = fMatch;
+			const CFunctionalDependency *pfdSnd = (*pdrgpfdSnd)[ulSnd];
+			fMatch = pfdFst->FEqual(pfdSnd);
 		}
+		fEqual = fMatch;
 	}
 
 	return fEqual;
@@ -231,10 +237,14 @@ CFunctionalDependency::PcrsKeys
 	)
 {
 	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp);
-	const ULONG ulSize = pdrgpfd->UlSafeLength();
-	for (ULONG ul = 0; ul < ulSize; ul++)
+
+	if (pdrgpfd != NULL)
 	{
-		pcrs->Include((*pdrgpfd)[ul]->PcrsKey());
+		const ULONG ulSize = pdrgpfd->UlLength();
+		for (ULONG ul = 0; ul < ulSize; ul++)
+		{
+			pcrs->Include((*pdrgpfd)[ul]->PcrsKey());
+		}
 	}
 
 	return pcrs;

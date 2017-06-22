@@ -1651,11 +1651,13 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefilters()
 
 	CColRefSet *pcrsInner = CDrvdPropRelational::Pdprel((*pexprJoin)[1]->PdpDerive())->PcrsOutput();
 	DrgPcr *pdrgpcrInner = pcrsInner->Pdrgpcr(pmp);
-	GPOS_ASSERT(3 <= pdrgpcrInner->UlSafeLength());
+	GPOS_ASSERT(pdrgpcrInner != NULL);
+	GPOS_ASSERT(3 <= pdrgpcrInner->UlLength());
 
 	CColRefSet *pcrsOuter = CDrvdPropRelational::Pdprel((*pexprJoin)[0]->PdpDerive())->PcrsOutput();
 	DrgPcr *pdrgpcrOuter = pcrsOuter->Pdrgpcr(pmp);
-	GPOS_ASSERT(3 <= pdrgpcrOuter->UlSafeLength());
+	GPOS_ASSERT(pdrgpcrOuter != NULL);
+	GPOS_ASSERT(3 <= pdrgpcrOuter->UlLength());
 
 	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
 
@@ -1854,11 +1856,13 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefiltersPartialPush()
 
 	CColRefSet *pcrsInner = CDrvdPropRelational::Pdprel((*pexprJoin)[1]->PdpDerive())->PcrsOutput();
 	DrgPcr *pdrgpcrInner = pcrsInner->Pdrgpcr(pmp);
-	GPOS_ASSERT(3 <= pdrgpcrInner->UlSafeLength());
+	GPOS_ASSERT(NULL != pdrgpcrInner);
+	GPOS_ASSERT(3 <= pdrgpcrInner->UlLength());
 
 	CColRefSet *pcrsOuter = CDrvdPropRelational::Pdprel((*pexprJoin)[0]->PdpDerive())->PcrsOutput();
 	DrgPcr *pdrgpcrOuter = pcrsOuter->Pdrgpcr(pmp);
-	GPOS_ASSERT(3 <= pdrgpcrOuter->UlSafeLength());
+	GPOS_ASSERT(NULL != pdrgpcrOuter);
+	GPOS_ASSERT(3 <= pdrgpcrOuter->UlLength());
 
 	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
 

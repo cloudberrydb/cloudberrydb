@@ -78,7 +78,8 @@ namespace gpopt
 		CLogicalGet *popGetPartitioned = CLogicalGet::PopConvert(pexprGetPartitioned->Pop());
 		const DrgDrgPcr *pdrgpdrgpcr = popGetPartitioned->PdrgpdrgpcrPartColumns();
 
-		GPOS_ASSERT(0 < pdrgpdrgpcr->UlSafeLength());
+		GPOS_ASSERT(pdrgpdrgpcr != NULL);
+		GPOS_ASSERT(0 < pdrgpdrgpcr->UlLength());
 		DrgPcr *pdrgpcr = (*pdrgpdrgpcr)[0];
 		GPOS_ASSERT(1 == pdrgpcr->UlLength());
 		CColRef *pcrPartKey = (*pdrgpcr)[0];

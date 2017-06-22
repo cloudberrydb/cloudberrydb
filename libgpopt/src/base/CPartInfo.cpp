@@ -39,7 +39,8 @@ CPartInfo::CPartInfoEntry::CPartInfoEntry
 	m_ppartcnstrRel(ppartcnstrRel)
 {
 	GPOS_ASSERT(pmdid->FValid());
-	GPOS_ASSERT(0 < pdrgppartkeys->UlSafeLength());
+	GPOS_ASSERT(pdrgppartkeys != NULL);
+	GPOS_ASSERT(0 < pdrgppartkeys->UlLength());
 	GPOS_ASSERT(NULL != ppartcnstrRel);
 }
 

@@ -105,10 +105,6 @@ CDynamicPtrArrayTest::EresUnittest_Basic()
 	DrgULONG *pdrgULONG = GPOS_NEW(pmp) DrgULONG(pmp, 1);
 	ULONG c = 256;
 
-	// safe length test
-	GPOS_ASSERT(0 == ((DrgULONG*)NULL)->UlSafeLength());
-
-
 	// add elements incl trigger resize of array
 	for (ULONG_PTR ulpK = c; ulpK > 0; ulpK--)
 	{
@@ -163,7 +159,6 @@ CDynamicPtrArrayTest::EresUnittest_Ownership()
 		pdrgULONG->Append(pul);
 		GPOS_ASSERT(k + 1 == pdrgULONG->UlLength());
 		GPOS_ASSERT(pul == (*pdrgULONG)[k]);
-		GPOS_ASSERT(pdrgULONG->UlLength() == pdrgULONG->UlSafeLength());
 	}
 	pdrgULONG->Release();
 

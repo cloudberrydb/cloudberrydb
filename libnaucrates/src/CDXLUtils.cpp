@@ -486,7 +486,7 @@ CDXLUtils::PmdidParseDXL
 	// collect metadata objects from dxl parse handler
 	DrgPmdid *pdrgpmdid = pphdxl->Pdrgpmdid();
 	
-	GPOS_ASSERT(1 == pdrgpmdid->UlSafeLength());
+	GPOS_ASSERT(1 == pdrgpmdid->UlLength());
 	
 	IMDId *pmdid = (*pdrgpmdid)[0];
 	pmdid->AddRef();

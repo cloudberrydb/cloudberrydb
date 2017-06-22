@@ -350,7 +350,7 @@ CMDRelationGPDB::UlSystemColumns() const
 ULONG
 CMDRelationGPDB::UlKeySets() const
 {	
-	return m_pdrgpdrgpulKeys->UlSafeLength();
+	return (m_pdrgpdrgpulKeys == NULL) ? 0 : m_pdrgpdrgpulKeys->UlLength();
 }
 
 //---------------------------------------------------------------------------
@@ -384,7 +384,7 @@ CMDRelationGPDB::PdrgpulKeyset
 ULONG
 CMDRelationGPDB::UlDistrColumns() const
 {	
-	return m_pdrgpulDistrColumns->UlSafeLength();
+	return (m_pdrgpulDistrColumns == NULL) ? 0 : m_pdrgpulDistrColumns->UlLength();
 }
 
 //---------------------------------------------------------------------------
@@ -440,7 +440,7 @@ CMDRelationGPDB::UlPartitions() const
 ULONG
 CMDRelationGPDB::UlPartColumns() const
 {	
-	return m_pdrgpulPartColumns->UlSafeLength();
+	return (m_pdrgpulPartColumns == NULL) ? 0 : m_pdrgpulPartColumns->UlLength();
 }
 
 // Retrieve list of partition types
@@ -682,8 +682,7 @@ CMDRelationGPDB::Serialize
 	}
 	
 	// serialize key sets
-	const ULONG ulKeySets = m_pdrgpdrgpulKeys->UlSafeLength();
-	if (0 < ulKeySets)
+	if (m_pdrgpdrgpulKeys != NULL && m_pdrgpdrgpulKeys->UlLength() > 0)
 	{
 		CWStringDynamic *pstrKeys = CDXLUtils::PstrSerialize(m_pmp, m_pdrgpdrgpulKeys);
 		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenKeys), pstrKeys);

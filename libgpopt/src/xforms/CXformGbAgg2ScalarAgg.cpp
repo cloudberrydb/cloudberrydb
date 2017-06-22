@@ -105,9 +105,8 @@ CXformGbAgg2ScalarAgg::Transform
 	pexprScalar->AddRef();
 
 	DrgPcr *pdrgpcrArgDQA = popAgg->PdrgpcrArgDQA();
-	if (0 != pdrgpcrArgDQA->UlSafeLength())
+	if (pdrgpcrArgDQA != NULL && 0 != pdrgpcrArgDQA->UlLength())
 	{
-		GPOS_ASSERT(NULL != pdrgpcrArgDQA);
 		pdrgpcrArgDQA->AddRef();
 	}
 

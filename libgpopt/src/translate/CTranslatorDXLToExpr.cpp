@@ -258,7 +258,7 @@ CTranslatorDXLToExpr::Pexpr
 
 	BOOL fGenerateRequiredColumns = COperator::EopLogicalUpdate != pexpr->Pop()->Eopid();
 	
-	const ULONG ulLen = pdrgpdxlnQueryOutput->UlSafeLength();
+	const ULONG ulLen = pdrgpdxlnQueryOutput->UlLength();
 	for (ULONG ul = 0; ul < ulLen; ul++)
 	{
 		CDXLNode *pdxlnIdent = (*pdrgpdxlnQueryOutput)[ul];
@@ -594,7 +594,7 @@ CTranslatorDXLToExpr::PexprLogicalGet
 	CExpression *pexpr = GPOS_NEW(m_pmp) CExpression(m_pmp, popGet);
 
 	GPOS_ASSERT(NULL != pdrgpcr);
-	GPOS_ASSERT(pdrgpcr->UlSafeLength() == pdxltabdesc->UlArity());
+	GPOS_ASSERT(pdrgpcr->UlLength() == pdxltabdesc->UlArity());
 
 	const ULONG ulColumns = pdrgpcr->UlLength();
 	// construct the mapping between the DXL ColId and CColRef

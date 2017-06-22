@@ -173,8 +173,8 @@ CColRef::FEqual
 	const DrgDrgPcr *pdrgdrgpcr2
 	)
 {
-	ULONG ulLen1 = pdrgdrgpcr1->UlSafeLength();
-	ULONG ulLen2 = pdrgdrgpcr2->UlSafeLength();
+	ULONG ulLen1 = (pdrgdrgpcr1 == NULL) ? 0 : pdrgdrgpcr1->UlLength();
+	ULONG ulLen2 = (pdrgdrgpcr2 == NULL) ? 0 : pdrgdrgpcr2->UlLength();
 
 	if (ulLen1 != ulLen2)
 	{

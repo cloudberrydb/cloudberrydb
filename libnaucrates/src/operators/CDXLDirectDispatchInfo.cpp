@@ -81,7 +81,7 @@ CDXLDirectDispatchInfo::Serialize
 {
 	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenDirectDispatchInfo));
 	
-	const ULONG ulValueCombinations = m_pdrgpdrgpdxldatum->UlSafeLength();
+	const ULONG ulValueCombinations = (m_pdrgpdrgpdxldatum == NULL) ? 0 : m_pdrgpdrgpdxldatum->UlLength();
 	
 	for (ULONG ulA = 0; ulA < ulValueCombinations; ulA++)
 	{

@@ -276,7 +276,7 @@ CExpression::CExpression
 {
 	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(NULL != pop);
-	GPOS_ASSERT(pgexpr->UlArity() == pdrgpexpr->UlSafeLength());
+	GPOS_ASSERT(pgexpr->UlArity() == (pdrgpexpr == NULL ? 0 : pdrgpexpr->UlLength()));
 	GPOS_ASSERT(NULL != pgexpr->Pgroup());
 
 	CopyGroupPropsAndStats(pstatsInput);

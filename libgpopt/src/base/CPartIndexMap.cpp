@@ -54,7 +54,8 @@ CPartIndexMap::CPartTableInfo::CPartTableInfo
 				"Invalid manipulator type");
 
 	GPOS_ASSERT(pmdid->FValid());
-	GPOS_ASSERT(0 < pdrgppartkeys->UlSafeLength());
+	GPOS_ASSERT(pdrgppartkeys != NULL);
+	GPOS_ASSERT(0 < pdrgppartkeys->UlLength());
 	GPOS_ASSERT(NULL != ppartcnstrRel);
 	GPOS_ASSERT_IMP(CPartIndexMap::EpimConsumer != epim, 0 == ulPropagators);
 

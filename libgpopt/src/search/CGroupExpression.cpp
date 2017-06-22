@@ -1001,7 +1001,7 @@ CGroupExpression::UlHash
 	
 	ULONG ulHash = pop->UlHash();
 	
-	ULONG ulArity = pdrgpgroup->UlSafeLength();
+	ULONG ulArity = pdrgpgroup->UlLength();
 	for (ULONG i = 0; i < ulArity; i++)
 	{
 		ulHash = UlCombineHashes(ulHash, (*pdrgpgroup)[i]->UlHash());

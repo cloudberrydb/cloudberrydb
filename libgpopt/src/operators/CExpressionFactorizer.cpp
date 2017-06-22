@@ -691,7 +691,7 @@ CExpressionFactorizer::AddInferredFiltersFromArray
 	DrgPexpr *pdrgpexprInferredFilters
 	)
 {
-	const ULONG ulEntryLength = pdrgpdrgpexpr->UlSafeLength();
+	const ULONG ulEntryLength = (pdrgpdrgpexpr == NULL) ? 0 : pdrgpdrgpexpr->UlLength();
 	if (ulEntryLength == ulDisjChildrenLength)
 	{
 		DrgPexpr *pdrgpexprDisjuncts = GPOS_NEW(pmp) DrgPexpr(pmp);

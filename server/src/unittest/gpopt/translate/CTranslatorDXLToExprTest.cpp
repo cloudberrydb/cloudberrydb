@@ -436,7 +436,7 @@ CTranslatorDXLToExprTest::EresUnittest_SelectQuery()
 		// the output column references from the logical get
 		DrgPcr *pdrgpcr = popGet->PdrgpcrOutput();
 
-		GPOS_ASSERT(NULL != pdrgpcr && 2 == pdrgpcr->UlSafeLength());
+		GPOS_ASSERT(NULL != pdrgpcr && 2 == pdrgpcr->UlLength());
 
 		CColRef *pcrLeft =  (*pdrgpcr)[0];
 		CColRef *pcrRight = (*pdrgpcr)[1];
@@ -491,7 +491,7 @@ CTranslatorDXLToExprTest::EresUnittest_SelectQueryWithConst()
 
 		// the output column references from the logical get
 		DrgPcr *pdrgpcr = popGet->PdrgpcrOutput();
-		GPOS_ASSERT(NULL != pdrgpcr && 2 == pdrgpcr->UlSafeLength());
+		GPOS_ASSERT(NULL != pdrgpcr && 2 == pdrgpcr->UlLength());
 
 		CColRef *pcrLeft =  (*pdrgpcr)[0];
 		ULONG ulVal = 5;
@@ -539,7 +539,7 @@ CTranslatorDXLToExprTest::EresUnittest_SelectQueryWithConstInList()
 
 		// the output column references from the logical get
 		DrgPcr *pdrgpcr = popGet->PdrgpcrOutput();
-		GPOS_ASSERT(NULL != pdrgpcr && 2 == pdrgpcr->UlSafeLength());
+		GPOS_ASSERT(NULL != pdrgpcr && 2 == pdrgpcr->UlLength());
 
 		CColRef *pcr =  (*pdrgpcr)[0];
 		ULONG ulVal1 = 5;
@@ -607,7 +607,7 @@ CTranslatorDXLToExprTest::EresUnittest_SelectQueryWithBoolExpr()
 		// the output column references from the logical get
 		DrgPcr *pdrgpcr = popGet->PdrgpcrOutput();
 
-		GPOS_ASSERT(NULL != pdrgpcr && 2 == pdrgpcr->UlSafeLength());
+		GPOS_ASSERT(NULL != pdrgpcr && 2 == pdrgpcr->UlLength());
 
 		// create a scalar compare for a = 5
 		CColRef *pcrLeft =  (*pdrgpcr)[0];
@@ -676,7 +676,7 @@ CTranslatorDXLToExprTest::EresUnittest_SelectQueryWithScalarOp()
 		// the output column references from the logical get
 		DrgPcr *pdrgpcr = popGet->PdrgpcrOutput();
 
-		GPOS_ASSERT(NULL != pdrgpcr && 2 == pdrgpcr->UlSafeLength());
+		GPOS_ASSERT(NULL != pdrgpcr && 2 == pdrgpcr->UlLength());
 
 		// create a scalar op (arithmetic) for b + 2
 		CColRef *pcrLeft =  (*pdrgpcr)[1];

@@ -367,7 +367,7 @@ CMDRelationExternalGPDB::PmdidFmtErrRel() const
 ULONG
 CMDRelationExternalGPDB::UlKeySets() const
 {
-	return m_pdrgpdrgpulKeys->UlSafeLength();
+	return (m_pdrgpdrgpulKeys == NULL) ? 0 : m_pdrgpdrgpulKeys->UlLength();
 }
 
 //---------------------------------------------------------------------------
@@ -401,7 +401,7 @@ CMDRelationExternalGPDB::PdrgpulKeyset
 ULONG
 CMDRelationExternalGPDB::UlDistrColumns() const
 {
-	return m_pdrgpulDistrColumns->UlSafeLength();
+	return (m_pdrgpulDistrColumns == NULL) ? 0 : m_pdrgpulDistrColumns->UlLength();
 }
 
 //---------------------------------------------------------------------------
@@ -576,8 +576,7 @@ CMDRelationExternalGPDB::Serialize
 	}
 
 	// serialize key sets
-	const ULONG ulKeySets = m_pdrgpdrgpulKeys->UlSafeLength();
-	if (0 < ulKeySets)
+	if (m_pdrgpdrgpulKeys != NULL && 0 < m_pdrgpdrgpulKeys->UlLength())
 	{
 		CWStringDynamic *pstrKeys = CDXLUtils::PstrSerialize(m_pmp, m_pdrgpdrgpulKeys);
 		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenKeys), pstrKeys);

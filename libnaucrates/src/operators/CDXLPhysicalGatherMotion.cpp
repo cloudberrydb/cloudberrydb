@@ -60,7 +60,8 @@ CDXLPhysicalGatherMotion::Edxlop() const
 INT
 CDXLPhysicalGatherMotion::IOutputSegIdx() const
 {
-	GPOS_ASSERT(1 == m_pdrgpiOutputSegIds->UlSafeLength());
+	GPOS_ASSERT(NULL != m_pdrgpiOutputSegIds);
+	GPOS_ASSERT(1 == m_pdrgpiOutputSegIds->UlLength());
 	return *((*m_pdrgpiOutputSegIds)[0]);
 }
 
@@ -128,8 +129,10 @@ CDXLPhysicalGatherMotion::AssertValid
 {
 	// assert proj list and filter are valid
 	CDXLPhysical::AssertValid(pdxln, fValidateChildren);
-	GPOS_ASSERT(0 < m_pdrgpiInputSegIds->UlSafeLength());
-	GPOS_ASSERT(1 == m_pdrgpiOutputSegIds->UlSafeLength());
+	GPOS_ASSERT(m_pdrgpiInputSegIds != NULL);
+	GPOS_ASSERT(0 < m_pdrgpiInputSegIds->UlLength());
+	GPOS_ASSERT(m_pdrgpiOutputSegIds != NULL);
+	GPOS_ASSERT(1 == m_pdrgpiOutputSegIds->UlLength());
 
 	GPOS_ASSERT(EdxlgmIndexSentinel == pdxln->UlArity());
 	

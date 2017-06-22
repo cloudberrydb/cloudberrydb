@@ -227,7 +227,8 @@ CDXLLogicalConstTable::AssertValid
 	) const
 {
 	// assert validity of col descr
-	GPOS_ASSERT(0 < m_pdrgpdxlcd->UlSafeLength());
+	GPOS_ASSERT(m_pdrgpdxlcd != NULL);
+	GPOS_ASSERT(0 < m_pdrgpdxlcd->UlLength());
 	GPOS_ASSERT(0 == pdxln->UlArity());
 }
 #endif // GPOS_DEBUG

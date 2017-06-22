@@ -82,7 +82,7 @@ CTranslatorExprToDXL::CTranslatorExprToDXL
 {
 	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(NULL != pmda);
-	GPOS_ASSERT_IMP(NULL != pdrgpiSegments, (0 < pdrgpiSegments->UlSafeLength()));
+	GPOS_ASSERT_IMP(NULL != pdrgpiSegments, (0 < pdrgpiSegments->UlLength()));
 
 	InitScalarTranslators();
 	InitPhysicalTranslators();

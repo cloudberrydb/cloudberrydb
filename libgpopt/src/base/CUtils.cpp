@@ -1,4 +1,4 @@
-	//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 //	Greenplum Database
 //	Copyright (C) 2009 Greenplum, Inc.
 //
@@ -4675,13 +4675,16 @@ CUtils::FFunctionallyDependent
 	// not a constant: check if column is functionally dependent on the key
 	DrgPfd *pdrgpfd = pdprel->Pdrgpfd();
 
-	const ULONG ulSize = pdrgpfd->UlSafeLength();
-	for (ULONG ul = 0; ul < ulSize; ul++)
+	if (pdrgpfd != NULL)
 	{
-		CFunctionalDependency *pfd = (*pdrgpfd)[ul];
-		if (pfd->FFunctionallyDependent(pcrsKey, pcr))
+		const ULONG ulSize = pdrgpfd->UlLength();
+		for (ULONG ul = 0; ul < ulSize; ul++)
 		{
-			return true;
+			CFunctionalDependency *pfd = (*pdrgpfd)[ul];
+			if (pfd->FFunctionallyDependent(pcrsKey, pcr))
+			{
+				return true;
+			}
 		}
 	}
 	

@@ -184,19 +184,6 @@ namespace gpos
                 return m_ulSize;
             }
 
-			// safe version of length -- handles NULL pointers
-			ULONG UlSafeLength() const
-            {
-                if (NULL == this)
-                {
-                    return 0;
-                }
-                else
-                {
-                    return UlLength();
-                }
-            }
-			
 			// sort array
 			void Sort(PfnCompare pfncompare = PtrCmp)
             {

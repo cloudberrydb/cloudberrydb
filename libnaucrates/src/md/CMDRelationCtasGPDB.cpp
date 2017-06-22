@@ -236,7 +236,7 @@ CMDRelationCtasGPDB::UlPosFromAttno
 ULONG
 CMDRelationCtasGPDB::UlDistrColumns() const
 {
-	return m_pdrgpulDistrColumns->UlSafeLength();
+	return (m_pdrgpulDistrColumns == NULL) ? 0 : m_pdrgpulDistrColumns->UlLength();
 }
 
 //---------------------------------------------------------------------------

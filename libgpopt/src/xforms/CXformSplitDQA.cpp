@@ -172,7 +172,8 @@ CXformSplitDQA::Transform
         
 	pxfres->Add(pexprAlt1);
 
-	BOOL fScalarDQA = (0 == CLogicalGbAgg::PopConvert(pexpr->Pop())->Pdrgpcr()->UlSafeLength());
+	DrgPcr *pDrgPcr = CLogicalGbAgg::PopConvert(pexpr->Pop())->Pdrgpcr();
+	BOOL fScalarDQA = (pDrgPcr == NULL || pDrgPcr->UlLength() == 0);
 	BOOL fForce3StageScalarDQA = GPOS_FTRACE(EopttraceForceThreeStageScalarDQA);
 	if (!(fForce3StageScalarDQA && fScalarDQA)) {
 		// we skip this option if it is a Scalar DQA and we only want plans with 3-stages of aggregation

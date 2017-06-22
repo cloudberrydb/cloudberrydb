@@ -102,7 +102,7 @@ CDXLTableDescr::Pmdname() const
 ULONG
 CDXLTableDescr::UlArity() const
 {
-	return m_pdrgdxlcd->UlSafeLength();
+	return (m_pdrgdxlcd == NULL) ? 0 : m_pdrgdxlcd->UlLength();
 }
 
 //---------------------------------------------------------------------------

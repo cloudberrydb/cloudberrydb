@@ -55,7 +55,7 @@ CPhysicalAgg::CPhysicalAgg
 	GPOS_ASSERT_IMP(EgbaggtypeGlobal != egbaggtype, fMultiStage);
 
 	ULONG ulDistrReqs = 1;
-	if (0 == pdrgpcrMinimal->UlSafeLength())
+	if (pdrgpcrMinimal == NULL || 0 == pdrgpcrMinimal->UlLength())
 	{
 		pdrgpcr->AddRef();
 		m_pdrgpcrMinimal = pdrgpcr;
@@ -76,7 +76,7 @@ CPhysicalAgg::CPhysicalAgg
 		//		possible data skew
 
 		ulDistrReqs = 2;
-		if (0 != pdrgpcrArgDQA->UlSafeLength())
+		if (pdrgpcrArgDQA != NULL && 0 != pdrgpcrArgDQA->UlLength())
 		{
 			// If the local aggregate has distinct columns we generate
 			// one optimization requests for its children:
@@ -226,7 +226,7 @@ CPhysicalAgg::PdsRequiredAgg
 		return PdsEnforceMaster(pmp, exprhdl, pdsInput, ulChildIndex);
 	}
 
-	if (COperator::EgbaggtypeLocal == m_egbaggtype && 0 != m_pdrgpcrArgDQA->UlSafeLength())
+	if (COperator::EgbaggtypeLocal == m_egbaggtype && m_pdrgpcrArgDQA != NULL && 0 != m_pdrgpcrArgDQA->UlLength())
 	{
 		GPOS_ASSERT(0 == ulOptReq);
 		return PdsMaximalHashed(pmp, m_pdrgpcrArgDQA);
@@ -590,7 +590,8 @@ CPhysicalAgg::FMatch
 	{
 		if (CColRef::FEqual(m_pdrgpcrMinimal, popAgg->m_pdrgpcrMinimal))
 		{
-			return (0 == m_pdrgpcrArgDQA->UlSafeLength()) || CColRef::FEqual(m_pdrgpcrArgDQA, popAgg->PdrgpcrArgDQA());
+			return (m_pdrgpcrArgDQA == NULL || 0 == m_pdrgpcrArgDQA->UlLength()) ||
+				CColRef::FEqual(m_pdrgpcrArgDQA, popAgg->PdrgpcrArgDQA());
 		}
 	}
 

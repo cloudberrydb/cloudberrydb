@@ -100,7 +100,7 @@ namespace gpdxl
 			inline
 			ULONG UlArity() const
 			{
-				return m_pdrgpdxln->UlSafeLength();
+				return (m_pdrgpdxln == NULL) ? 0 : m_pdrgpdxln->UlLength();
 			}
 			
 			// accessor for operator
