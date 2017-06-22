@@ -6338,4 +6338,111 @@ CUtils::FEquivalanceClassesEqual
 	phmcscrs->Release();
 	return true;
 }
+
+// This function provides a check for a plan with CTE, if both
+// CTEProducer and CTEConsumer are executed on the same locality.
+// If it is not the case, the plan is bogus and cannot be executed
+// by the executor, therefore it throws an exception causing fallback
+// to planner.
+//
+// The overall algorithm for detecting CTE producer and consumer
+// inconsistency employs a HashMap while preorder traversing the tree.
+// Preorder traversal will guarantee that we visit the producer before
+// we visit the consumer. In this regard, when we see a CTE producer,
+// we add its CTE id as a key and its execution locality as a value to
+// the HashMap.
+// And when we encounter the matching CTE consumer while we traverse the
+// tree, we check if the locality matches by looking up the CTE id from
+// the HashMap. If we see a non-matching locality, we report the
+// anamoly.
+//
+// We change the locality and push it down the tree whenever we detect
+// a motion and the motion type enforces a locality change. We pass the
+// locality type by value instead of referance to avoid locality changes
+// affect parent and sibling localities.
+void
+CUtils::ValidateCTEProducerConsumerLocality
+	(
+	IMemoryPool *pmp,
+	CExpression *pexpr,
+	EExecLocalityType eelt,
+	HMUlUl *phmulul // Hash Map containing the CTE Producer id and its execution locality
+	)
+{
+	COperator *pop = pexpr->Pop();
+	if (COperator::EopPhysicalCTEProducer == pop->Eopid())
+	{
+		// record the location (either master or segment or singleton)
+		// where the CTE producer is being executed
+		ULONG ulCTEID = CPhysicalCTEProducer::PopConvert(pop)->UlCTEId();
+		phmulul->FInsert(GPOS_NEW(pmp) ULONG(ulCTEID), GPOS_NEW(pmp) ULONG(eelt));
+	}
+	else if (COperator::EopPhysicalCTEConsumer == pop->Eopid())
+	{
+		ULONG ulCTEID = CPhysicalCTEConsumer::PopConvert(pop)->UlCTEId();
+		ULONG *pulLocProducer = phmulul->PtLookup(&ulCTEID);
+
+		// check if the CTEConsumer is being executed in the same location
+		// as the CTE Producer
+		if (NULL == pulLocProducer || *pulLocProducer != (ULONG) eelt)
+		{
+			phmulul->Release();
+			GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiCTEProducerConsumerMisAligned, ulCTEID);
+		}
+	}
+	// In case of a Gather motion, the execution locality is set to segments
+	// since the child of Gather motion executes on segments
+	else if (COperator::EopPhysicalMotionGather == pop->Eopid())
+	{
+		eelt = EeltSegments;
+	}
+	else if (COperator::EopPhysicalMotionHashDistribute == pop->Eopid() || COperator::EopPhysicalMotionRandom == pop->Eopid() || COperator::EopPhysicalMotionBroadcast == pop->Eopid())
+	{
+		// For any of these physical motions, the outer child's execution needs to be
+		// tracked for depending upon the distribution spec
+		CDrvdPropPlan *pdpplanChild = CDrvdPropPlan::Pdpplan((*pexpr)[0]->PdpDerive());
+		CDistributionSpec *pdsChild = pdpplanChild->Pds();
+
+		eelt = CUtils::ExecLocalityType(pdsChild);
+	}
+
+	const ULONG ulLen = pexpr->UlArity();
+	for (ULONG ul = 0; ul < ulLen; ul++)
+	{
+		CExpression *pexprChild = (*pexpr)[ul];
+
+		if (!pexprChild->Pop()->FScalar())
+		{
+			ValidateCTEProducerConsumerLocality(pmp, pexprChild, eelt, phmulul);
+		}
+	}
+}
+
+// get execution locality type
+CUtils::EExecLocalityType
+CUtils::ExecLocalityType
+	(
+	CDistributionSpec *pds
+	)
+{
+	EExecLocalityType eelt;
+	if (CDistributionSpec::EdtSingleton == pds->Edt() || CDistributionSpec::EdtStrictSingleton == pds->Edt())
+	{
+		CDistributionSpecSingleton *pdss = CDistributionSpecSingleton::PdssConvert(pds);
+		if (pdss->FOnMaster())
+		{
+			eelt = EeltMaster;
+		}
+		else
+		{
+			eelt = EeltSingleton;
+		}
+	}
+	else
+	{
+		eelt = EeltSegments;
+	}
+	return eelt;
+}
+
 // EOF

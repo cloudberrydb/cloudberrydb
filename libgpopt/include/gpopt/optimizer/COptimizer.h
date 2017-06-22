@@ -90,6 +90,9 @@ namespace gpopt
 			static
 			void PrintQueryOrPlan(IMemoryPool *pmp, CExpression *pexpr, CQueryContext *pqc = NULL);
 
+			// Check for a plan with CTE, if both CTEProducer and CTEConsumer are executed on the same locality.
+			static
+			void CheckCTEConsistency(IMemoryPool *pmp, CExpression *pexpr);
 		public:
 			
 			// main optimizer function 

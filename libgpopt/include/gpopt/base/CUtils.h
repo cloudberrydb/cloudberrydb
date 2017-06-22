@@ -27,6 +27,7 @@
 #include "gpopt/operators/CScalarSubquery.h"
 #include "gpopt/operators/CScalarAggFunc.h"
 #include "naucrates/md/CMDTypeInt4GPDB.h"
+#include "naucrates/statistics/IStatistics.h"
 
 // fwd declarations
 namespace gpmd
@@ -59,6 +60,7 @@ namespace gpopt
 	{
 
 		private:
+
 			// check if the expression is a scalar boolean const
 			static
 			BOOL FScalarConstBool(CExpression *pexpr, BOOL fVal);
@@ -81,6 +83,13 @@ namespace gpopt
 
 		public:
 
+			enum EExecLocalityType
+			{
+				EeltMaster,
+				EeltSegments,
+				EeltSingleton
+			};
+
 #ifdef GPOS_DEBUG
 
 			// print given expression to debug trace
@@ -98,6 +107,11 @@ namespace gpopt
 			//-------------------------------------------------------------------
 			// Helpers for generating expressions
 			//-------------------------------------------------------------------
+
+			// recursively check for a plan with CTE, if both CTEProducer and CTEConsumer are executed on the same locality.
+			// raises an exception if CTE Producer and CTE Consumer does not have the same locality
+			static
+			void ValidateCTEProducerConsumerLocality(IMemoryPool *pmp, CExpression *pexpr, EExecLocalityType edt, HMUlUl *phmulul);
 
 			// Check is a comparison between given types or a comparison after casting
 			// one side to an another exists
@@ -1057,6 +1071,10 @@ namespace gpopt
 			// check if the equivalance classes are same
 			static
 			BOOL FEquivalanceClassesEqual(IMemoryPool *pmp, DrgPcrs *pdrgpcrsFst, DrgPcrs *pdrgpcrsSnd);
+
+			// get execution locality
+			static
+			EExecLocalityType ExecLocalityType(CDistributionSpec *pds);
 	}; // class CUtils
 
 	// hash set from expressions

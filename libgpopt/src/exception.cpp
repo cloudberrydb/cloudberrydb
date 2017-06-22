@@ -88,6 +88,12 @@ gpopt::EresExceptionInit
 					 GPOS_WSZ_WSZLEN("Expecting a scalar expression without a subquery, received a %s"),
 					 1,
 					 GPOS_WSZ_WSZLEN("Non scalar expression or scalar expression with a subquery")),
+
+			CMessage(CException(gpopt::ExmaGPOPT, gpopt::ExmiCTEProducerConsumerMisAligned),
+					 CException::ExsevError,
+					 GPOS_WSZ_WSZLEN("CTE Producer-Consumer execution locality mismatch for CTE id %lld"),
+					 1,
+					 GPOS_WSZ_WSZLEN("CTE Producer-Consumer execution locality mismatch")),
 	};
 
 	GPOS_RESULT eres = GPOS_FAILED;

@@ -22,6 +22,7 @@
 #include "gpopt/engine/CEngine.h"
 #include "gpopt/engine/CEnumeratorConfig.h"
 #include "gpopt/engine/CStatisticsConfig.h"
+#include "gpopt/exception.h"
 #include "gpopt/minidump/CMiniDumperDXL.h"
 #include "gpopt/minidump/CMinidumperUtils.h"
 #include "gpopt/minidump/CSerializableStackTrace.h"
@@ -340,6 +341,28 @@ COptimizer::HandleExceptionAfterFinalizingMinidump
 	GPOS_RETHROW(ex);
 }
 
+// This function provides an entry point to check for a plan with CTE,
+// if both CTEProducer and CTEConsumer are executed on the same locality.
+// If it is not the case, the plan is bogus and cannot be executed
+// by the executor and an exception is raised.
+//
+// To be able to enter the recursive logic, the execution locality of root
+// is determined before the recursive call.
+void
+COptimizer::CheckCTEConsistency
+	(
+	IMemoryPool *pmp,
+	CExpression *pexpr
+	)
+{
+	HMUlUl *phmulul = GPOS_NEW(pmp) HMUlUl(pmp);
+	CDrvdPropPlan *pdpplanChild = CDrvdPropPlan::Pdpplan(pexpr->PdpDerive());
+	CDistributionSpec *pdsChild = pdpplanChild->Pds();
+
+	CUtils::EExecLocalityType eelt = CUtils::ExecLocalityType(pdsChild);
+	CUtils::ValidateCTEProducerConsumerLocality(pmp, pexpr, eelt, phmulul);
+	phmulul->Release();
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -365,6 +388,8 @@ COptimizer::PexprOptimize
 
 	CExpression *pexprPlan = eng.PexprExtractPlan();
 	(void) pexprPlan->PrppCompute(pmp, pqc->Prpp());
+
+	CheckCTEConsistency(pmp, pexprPlan);
 
 	GPOS_CHECK_ABORT;
 
