@@ -50,10 +50,10 @@ building, see the README at the following repositories:
     ```
     git clone https://github.com/greenplum-db/gp-xerces
     mkdir gp-xerces/build
-    pushd gp-xerces/build
+    cd gp-xerces/build
     ../configure
     make install
-    popd
+    cd ../..
     ```
 
 1. ORCA requires [CMake](https://cmake.org) and
@@ -65,10 +65,10 @@ building, see the README at the following repositories:
     ```
     git clone https://github.com/greenplum-db/gporca
     mkdir gporca/build
-    pushd gporca/build
+    cd gporca/build
     cmake -GNinja ..
     ninja install
-    popd
+    cd ../..
     ```
     **Note**: Get the latest ORCA `git pull --ff-only` if you see an error message like below:
     ```
@@ -89,9 +89,6 @@ building, see the README at the following repositories:
     
 ### Build the database
 ```
-# Clean environment
-make distclean
-
 # Configure build environment to install at /usr/local/gpdb
 ./configure --with-perl --with-python --with-libxml --prefix=/usr/local/gpdb
 
@@ -137,6 +134,11 @@ select gp_opt_version();
 To turn ORCA off and use legacy planner for query optimization:
 ```
 set optimizer=off;
+```
+
+If you want to clean all generated files
+```
+make distclean
 ```
 
 ## Running tests
