@@ -8866,6 +8866,11 @@ makeArchive(char *filename)
 			g_fout = CreateArchive(filename, archCustom, compressLevel, archModeWrite);
 			break;
 
+		case 'f':
+		case 'F':
+			g_fout = CreateArchive(filename, archFiles, compressLevel, archModeWrite);
+			break;
+
 		case 'p':
 		case 'P':
 			plainText = 1;
