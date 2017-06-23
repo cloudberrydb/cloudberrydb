@@ -89,7 +89,7 @@
 #include "cdb/cdbpersistentfilesysobj.h"
 #include "cdb/cdbpersistentcheck.h"
 
-
+extern uint32 bootstrap_data_checksum_version;
 
 /* File path names (all relative to $PGDATA) */
 #define RECOVERY_COMMAND_FILE	"recovery.conf"
@@ -5273,6 +5273,10 @@ ReadControlFile(void)
 	SetConfigOption("lc_ctype", ControlFile->lc_ctype,
 					PGC_INTERNAL, PGC_S_OVERRIDE);
 
+	/* Make the initdb settings visible as GUC variables, too */
+	SetConfigOption("data_checksums", DataChecksumsEnabled() ? "yes" : "no",
+					PGC_INTERNAL, PGC_S_OVERRIDE);
+
 	if (!ControlFileWatcher->watcherInitialized)
 	{
 		ControlFileWatcherSaveInitial();
@@ -5421,6 +5425,16 @@ GetSystemIdentifier(void)
 {
 	Assert(ControlFile != NULL);
 	return ControlFile->system_identifier;
+}
+
+/*
+ * Are checksums enabled for data pages?
+ */
+bool
+DataChecksumsEnabled(void)
+{
+	Assert(ControlFile != NULL);
+	return (ControlFile->data_checksum_version > 0);
 }
 
 /*
@@ -5675,6 +5689,8 @@ BootStrapXLOG(void)
 	ControlFile->time = checkPoint.time;
 	ControlFile->checkPoint = checkPoint.redo;
 	ControlFile->checkPointCopy = checkPoint;
+	ControlFile->data_checksum_version = bootstrap_data_checksum_version;
+
 	/* some additional ControlFile fields are set in WriteControlFile() */
 
 	WriteControlFile();
