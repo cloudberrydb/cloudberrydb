@@ -186,7 +186,9 @@ static void get_set_pwd(void);
 static void setup_depend(void);
 static void setup_sysviews(void);
 static void setup_description(void);
+#if 0
 static void setup_collation(void);
+#endif
 static void setup_conversion(void);
 static void setup_dictionary(void);
 static void setup_privileges(void);
@@ -1699,17 +1701,26 @@ setup_description(void)
 	check_ok();
 }
 
+#if 0
 /*
  * populate pg_collation
+ *
+ * GPDB: Do not create collations at database initialization time. Instead,
+ * the system administrator is expected to run pg_import_system_collations() on
+ * every database that needs them. This ensures that collations are synchronized
+ * on all segments.
  */
 static void
 setup_collation(void)
 {
 	PG_CMD_DECL;
+
+	fputs(_("creating collations ... "), stdout);
+	fflush(stdout);
+
 	PG_CMD_OPEN;
 
-	PG_CMD_PUTS("SELECT pg_import_system_collations(false"
-					", (SELECT oid FROM pg_namespace WHERE nspname = 'pg_catalog') ) ;\n\n");
+	PG_CMD_PUTS("SELECT pg_import_system_collations( (SELECT oid FROM pg_namespace WHERE nspname = 'pg_catalog') ) ;\n\n");
 
 	/* Add an SQL-standard name */
 	PG_CMD_PRINTF2("INSERT INTO pg_collation "
@@ -1724,6 +1735,7 @@ setup_collation(void)
 	PG_CMD_CLOSE;
 	check_ok();
 }
+#endif
 
 /*
  * load conversion functions
@@ -3557,7 +3569,9 @@ main(int argc, char *argv[])
 
 		setup_description();
 
+#if 0
 		setup_collation();
+#endif
 
 		setup_conversion();
 

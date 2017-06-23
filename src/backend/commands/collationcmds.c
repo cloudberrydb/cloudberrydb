@@ -36,11 +36,19 @@
 static void AlterCollationOwner_internal(Relation rel, Oid collationOid,
 							 Oid newOwnerId);
 
+typedef struct
+{
+	char	   *localename;		/* name of locale, as per "locale -a" */
+	char	   *alias;			/* shortened alias for same */
+	int			enc;			/* encoding */
+} CollAliasData;
+
+
 /*
  * CREATE COLLATION
  */
 void
-DefineCollation(List *names, List *parameters)
+DefineCollation(List *names, List *parameters, bool if_not_exists)
 {
 	char	   *collName;
 	Oid			collNamespace;
@@ -138,7 +146,8 @@ DefineCollation(List *names, List *parameters)
 							 GetDatabaseEncoding(),
 							 collcollate,
 							 collctype,
-							 false);
+							 if_not_exists,
+							 false);	/* not quiet */
 
 	if (!OidIsValid(newoid))
 		return;
@@ -447,13 +456,18 @@ AlterCollationNamespace_oid(Oid collOid, Oid newNspOid)
 }
 
 
+/* will we use "locale -a" in pg_import_system_collations? */
+#if defined(HAVE_LOCALE_T) && !defined(WIN32)
+#define READ_LOCALE_A_OUTPUT
+#endif
+
+#ifdef READ_LOCALE_A_OUTPUT
 /*
  * "Normalize" a locale name, stripping off encoding tags such as
  * ".utf8" (e.g., "en_US.utf8" -> "en_US", but "br_FR.iso885915@euro"
  * -> "br_FR@euro").  Return true if a new, different name was
  * generated.
  */
-pg_attribute_unused()
 static bool
 normalize_locale_name(char *new, const char *old)
 {
@@ -482,116 +496,204 @@ normalize_locale_name(char *new, const char *old)
 	return changed;
 }
 
+/*
+ * qsort comparator for CollAliasData items
+ */
+static int
+cmpaliases(const void *a, const void *b)
+{
+	const CollAliasData *ca = (const CollAliasData *) a;
+	const CollAliasData *cb = (const CollAliasData *) b;
 
+	/* comparing localename is enough because other fields are derived */
+	return strcmp(ca->localename, cb->localename);
+}
+#endif							/* READ_LOCALE_A_OUTPUT */
+
+
+/*
+ * pg_import_system_collations: add known system collations to pg_collation
+ */
 Datum
 pg_import_system_collations(PG_FUNCTION_ARGS)
 {
-#if defined(HAVE_LOCALE_T) && !defined(WIN32)
-	bool		if_not_exists = PG_GETARG_BOOL(0);
-	Oid         nspid = PG_GETARG_OID(1);
+	Oid			nspid = PG_GETARG_OID(0);
+	int			ncreated = 0;
 
-	FILE	   *locale_a_handle;
-	char		localebuf[NAMEDATALEN]; /* we assume ASCII so this is fine */
-	int			count = 0;
-#endif
+	/* silence compiler warning if we have no locale implementation at all */
+	(void) nspid;
 
 	if (!superuser())
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				 (errmsg("must be superuser to import system collations"))));
 
-#if defined(HAVE_LOCALE_T) && !defined(WIN32)
-	//GPDB_93_MERGE_FIXME: put back use of OpenPipeStream after it has been merged in
-	locale_a_handle = popen("locale -a", "r");
-	if (locale_a_handle == NULL)
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not execute command \"%s\": %m",
-						"locale -a")));
-
-	while (fgets(localebuf, sizeof(localebuf), locale_a_handle))
+	/* Load collations known to libc, using "locale -a" to enumerate them */
+#ifdef READ_LOCALE_A_OUTPUT
 	{
-		int			i;
-		size_t		len;
-		int			enc;
-		bool		skip;
-		char		alias[NAMEDATALEN];
+		FILE	   *locale_a_handle;
+		char		localebuf[NAMEDATALEN]; /* we assume ASCII so this is fine */
+		int			nvalid = 0;
+		Oid			collid;
+		CollAliasData *aliases;
+		int			naliases,
+					maxaliases,
+					i;
 
-		len = strlen(localebuf);
+		/* expansible array of aliases */
+		maxaliases = 100;
+		aliases = (CollAliasData *) palloc(maxaliases * sizeof(CollAliasData));
+		naliases = 0;
 
-		if (len == 0 || localebuf[len - 1] != '\n')
+		//GPDB_93_MERGE_FIXME: put back use of OpenPipeStream after it has been merged in
+		locale_a_handle = popen("locale -a", "r");
+		if (locale_a_handle == NULL)
+			ereport(ERROR,
+					(errcode_for_file_access(),
+					 errmsg("could not execute command \"%s\": %m",
+							"locale -a")));
+
+		while (fgets(localebuf, sizeof(localebuf), locale_a_handle))
 		{
-			elog(DEBUG1, "locale name too long, skipped: \"%s\"", localebuf);
-			continue;
-		}
-		localebuf[len - 1] = '\0';
+			size_t		len;
+			int			enc;
+			bool		skip;
+			char		alias[NAMEDATALEN];
 
-		/*
-		 * Some systems have locale names that don't consist entirely of ASCII
-		 * letters (such as "bokm&aring;l" or "fran&ccedil;ais").  This is
-		 * pretty silly, since we need the locale itself to interpret the
-		 * non-ASCII characters. We can't do much with those, so we filter
-		 * them out.
-		 */
-		skip = false;
-		for (i = 0; i < len; i++)
-		{
-			if (IS_HIGHBIT_SET(localebuf[i]))
+			len = strlen(localebuf);
+
+			if (len == 0 || localebuf[len - 1] != '\n')
 			{
-				skip = true;
-				break;
+				elog(DEBUG1, "locale name too long, skipped: \"%s\"", localebuf);
+				continue;
+			}
+			localebuf[len - 1] = '\0';
+
+			/*
+			 * Some systems have locale names that don't consist entirely of
+			 * ASCII letters (such as "bokm&aring;l" or "fran&ccedil;ais").
+			 * This is pretty silly, since we need the locale itself to
+			 * interpret the non-ASCII characters. We can't do much with
+			 * those, so we filter them out.
+			 */
+			skip = false;
+			for (i = 0; i < len; i++)
+			{
+				if (IS_HIGHBIT_SET(localebuf[i]))
+				{
+					skip = true;
+					break;
+				}
+			}
+			if (skip)
+			{
+				elog(DEBUG1, "locale name has non-ASCII characters, skipped: \"%s\"", localebuf);
+				continue;
+			}
+
+			enc = pg_get_encoding_from_locale(localebuf, false);
+			if (enc < 0)
+			{
+				/* error message printed by pg_get_encoding_from_locale() */
+				continue;
+			}
+			if (!PG_VALID_BE_ENCODING(enc))
+				continue;		/* ignore locales for client-only encodings */
+			if (enc == PG_SQL_ASCII)
+				continue;		/* C/POSIX are already in the catalog */
+
+			/* count valid locales found in operating system */
+			nvalid++;
+
+			/*
+			 * Create a collation named the same as the locale, but quietly
+			 * doing nothing if it already exists.  This is the behavior we
+			 * need even at initdb time, because some versions of "locale -a"
+			 * can report the same locale name more than once.  And it's
+			 * convenient for later import runs, too, since you just about
+			 * always want to add on new locales without a lot of chatter
+			 * about existing ones.
+			 */
+			collid = CollationCreate(localebuf, nspid, GetUserId(),
+									 enc, localebuf, localebuf,
+									 true, true);
+
+			if (OidIsValid(collid))
+			{
+				ncreated++;
+
+				/* Must do CCI between inserts to handle duplicates correctly */
+				CommandCounterIncrement();
+			}
+
+			/*
+			 * Generate aliases such as "en_US" in addition to "en_US.utf8"
+			 * for ease of use.  Note that collation names are unique per
+			 * encoding only, so this doesn't clash with "en_US" for LATIN1,
+			 * say.
+			 *
+			 * However, it might conflict with a name we'll see later in the
+			 * "locale -a" output.  So save up the aliases and try to add them
+			 * after we've read all the output.
+			 */
+			if (normalize_locale_name(alias, localebuf))
+			{
+				if (naliases >= maxaliases)
+				{
+					maxaliases *= 2;
+					aliases = (CollAliasData *)
+						repalloc(aliases, maxaliases * sizeof(CollAliasData));
+				}
+				aliases[naliases].localename = pstrdup(localebuf);
+				aliases[naliases].alias = pstrdup(alias);
+				aliases[naliases].enc = enc;
+				naliases++;
 			}
 		}
-		if (skip)
-		{
-			elog(DEBUG1, "locale name has non-ASCII characters, skipped: \"%s\"", localebuf);
-			continue;
-		}
 
-		enc = pg_get_encoding_from_locale(localebuf, false);
-		if (enc < 0)
-		{
-			/* error message printed by pg_get_encoding_from_locale() */
-			continue;
-		}
-		if (!PG_VALID_BE_ENCODING(enc))
-			continue;			/* ignore locales for client-only encodings */
-		if (enc == PG_SQL_ASCII)
-			continue;			/* C/POSIX are already in the catalog */
 
-		count++;
-
-		CollationCreate(localebuf, nspid, GetUserId(), enc,
-						localebuf, localebuf, if_not_exists);
-
-		CommandCounterIncrement();
+		//GPDB_93_MERGE_FIXME: put back use of ClosePipestream after it has been merged in
+		pclose(locale_a_handle);
 
 		/*
-		 * Generate aliases such as "en_US" in addition to "en_US.utf8" for
-		 * ease of use.  Note that collation names are unique per encoding
-		 * only, so this doesn't clash with "en_US" for LATIN1, say.
-		 *
-		 * This always runs in "if not exists" mode, to skip aliases that
-		 * conflict with an existing locale name for the same encoding.  For
-		 * example, "br_FR.iso88591" is normalized to "br_FR", both for
-		 * encoding LATIN1.  But the unnormalized locale "br_FR" already
-		 * exists for LATIN1.
+		 * Before processing the aliases, sort them by locale name.  The point
+		 * here is that if "locale -a" gives us multiple locale names with the
+		 * same encoding and base name, say "en_US.utf8" and "en_US.utf-8", we
+		 * want to pick a deterministic one of them.  First in ASCII sort
+		 * order is a good enough rule.  (Before PG 10, the code corresponding
+		 * to this logic in initdb.c had an additional ordering rule, to
+		 * prefer the locale name exactly matching the alias, if any.  We
+		 * don't need to consider that here, because we would have already
+		 * created such a pg_collation entry above, and that one will win.)
 		 */
-		if (normalize_locale_name(alias, localebuf))
+		if (naliases > 1)
+			qsort((void *) aliases, naliases, sizeof(CollAliasData), cmpaliases);
+
+		/* Now add aliases, ignoring any that match pre-existing entries */
+		for (i = 0; i < naliases; i++)
 		{
-			CollationCreate(alias, nspid, GetUserId(), enc,
-							localebuf, localebuf, true);
-			CommandCounterIncrement();
+			char	   *locale = aliases[i].localename;
+			char	   *alias = aliases[i].alias;
+			int			enc = aliases[i].enc;
+
+			collid = CollationCreate(alias, nspid, GetUserId(),
+									 enc, locale, locale,
+									 true, true);
+
+			if (OidIsValid(collid))
+			{
+				ncreated++;
+
+				CommandCounterIncrement();
+			}
 		}
+
+		/* Give a warning if "locale -a" seems to be malfunctioning */
+		if (nvalid == 0)
+			ereport(WARNING,
+					(errmsg("no usable system locales were found")));
 	}
+#endif							/* READ_LOCALE_A_OUTPUT */
 
-	//GPDB_93_MERGE_FIXME: put back use of ClosePipestream after it has been merged in
-	pclose(locale_a_handle);
-
-	if (count == 0)
-		ereport(ERROR,
-				(errmsg("no usable system locales were found")));
-#endif	/* not HAVE_LOCALE_T && not WIN32 */
-
-	PG_RETURN_VOID();
+	PG_RETURN_INT32(ncreated);
 }
