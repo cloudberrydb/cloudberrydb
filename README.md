@@ -373,6 +373,26 @@ CLA if they fall under the rubric of [obvious fixes](https://cla.pivotal.io/abou
 However, since our GitHub workflow checks for CLA by default you may find it
 easier to submit one instead of claiming an "obvious fix" exception.
 
+### Licensing of Greenplum contributions
+
+If the contribution you're submitting is original work, you can assume that Pivotal
+will release it as part of an overall Greenplum release available to the downstream
+consumers under the Apache License, Version 2.0. However, in addition to that, Pivotal 
+may also decide to release it under a different license (such as [PostgreSQL License](https://www.postgresql.org/about/licence/) to the upstream consumers that require it. A typical example here would be Pivotal
+upstreaming your contribution back to PostgreSQL community (which can be done either
+verbatim or your contribution being upstreamed as part of the larger changeset). 
+
+If the contribution you're submitting is NOT original work you have to indicate the name
+of the license and also make sure that it is similar in terms to the Apache License 2.0.
+Apache Software Foundation maintains a list of these licenses under [Category A](https://www.apache.org/legal/resolved.html#category-a). In addition to that, you may be required to make proper attribution in the
+[NOTICE file](https://github.com/greenplum-db/gpdb/blob/master/NOTICE) file similar to [these examples](https://github.com/greenplum-db/gpdb/blob/master/NOTICE#L278).
+
+Finally, keep in mind that it is NEVER a good idea to remove licensing headers from
+the work that is not your original one. Even if you are using parts of the file that
+originally had a licensing header at the top you should err on the side of preserving it.
+As always, if you are no quite sure about the licensing implications of your contributions
+feel free to reach out to us on the developer mailing list.
+
 ### Coding guidelines
 
 Your chances of getting feedback and seeing your code merged into the project
