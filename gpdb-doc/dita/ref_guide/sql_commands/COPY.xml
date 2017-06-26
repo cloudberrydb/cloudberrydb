@@ -385,7 +385,7 @@ COPY {table [(<varname>column</varname> [, ...])] | (<varname>query</varname>)} 
         does not apply a cost value or memory value to a <codeph>COPY</codeph> command, resource
         queues with only cost or memory limits do not affect the running of <codeph>COPY</codeph>
         commands.</p>
-      <p>A non-superuser can runs can run these types of <codeph>COPY</codeph> commands:<ul
+      <p>A non-superuser can run only these types of <codeph>COPY</codeph> commands:<ul
           id="ul_bf3_2pk_zs">
           <li><codeph>COPY FROM</codeph> command where the source is <codeph>stdin</codeph></li>
           <li><codeph>COPY TO</codeph> command where the destination is <codeph>stdout</codeph></li>
