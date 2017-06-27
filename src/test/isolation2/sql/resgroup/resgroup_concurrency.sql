@@ -126,3 +126,38 @@
 32<:
 33:SELECT r.rsgname, num_running, num_queueing, num_queued, num_executed FROM gp_toolkit.gp_resgroup_status s, pg_resgroup r WHERE s.groupid=r.oid AND r.rsgname='rg_concurrency_test';
 
+-- test5: concurrently alter resource group cpu rate limit
+
+-- start_ignore
+DROP RESOURCE GROUP rg1_concurrency_test;
+DROP RESOURCE GROUP rg2_concurrency_test;
+-- end_ignore
+
+CREATE RESOURCE GROUP rg1_concurrency_test WITH (concurrency=2, cpu_rate_limit=0.1, memory_limit=0.2);
+CREATE RESOURCE GROUP rg2_concurrency_test WITH (concurrency=2, cpu_rate_limit=0.2, memory_limit=0.2);
+
+41:BEGIN;
+41:ALTER RESOURCE GROUP rg1_concurrency_test SET CPU_RATE_LIMIT 0.35;
+42:BEGIN;
+42&:ALTER RESOURCE GROUP rg2_concurrency_test SET CPU_RATE_LIMIT 0.35;
+41:ABORT;
+42<:
+42:COMMIT;
+SELECT g.rsgname, c.cpu_rate_limit FROM gp_toolkit.gp_resgroup_config c, pg_resgroup g WHERE c.groupid=g.oid ORDER BY g.oid;
+
+DROP RESOURCE GROUP rg1_concurrency_test;
+DROP RESOURCE GROUP rg2_concurrency_test;
+
+CREATE RESOURCE GROUP rg1_concurrency_test WITH (concurrency=2, cpu_rate_limit=0.1, memory_limit=0.2);
+CREATE RESOURCE GROUP rg2_concurrency_test WITH (concurrency=2, cpu_rate_limit=0.2, memory_limit=0.2);
+
+41:BEGIN;
+41:ALTER RESOURCE GROUP rg1_concurrency_test SET CPU_RATE_LIMIT 0.35;
+42:BEGIN;
+42&:ALTER RESOURCE GROUP rg2_concurrency_test SET CPU_RATE_LIMIT 0.35;
+41:COMMIT;
+42<:
+SELECT g.rsgname, c.cpu_rate_limit FROM gp_toolkit.gp_resgroup_config c, pg_resgroup g WHERE c.groupid=g.oid ORDER BY g.oid;
+
+DROP RESOURCE GROUP rg1_concurrency_test;
+DROP RESOURCE GROUP rg2_concurrency_test;

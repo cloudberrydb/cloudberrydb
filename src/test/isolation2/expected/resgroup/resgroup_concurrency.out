@@ -289,3 +289,73 @@ rsgname|num_running|num_queueing|num_queued|num_executed
 -------+-----------+------------+----------+------------
 (0 rows)
 
+-- test5: concurrently alter resource group cpu rate limit
+
+-- start_ignore
+DROP RESOURCE GROUP rg1_concurrency_test;
+ERROR:  resource group "rg1_concurrency_test" does not exist
+DROP RESOURCE GROUP rg2_concurrency_test;
+ERROR:  resource group "rg2_concurrency_test" does not exist
+-- end_ignore
+
+CREATE RESOURCE GROUP rg1_concurrency_test WITH (concurrency=2, cpu_rate_limit=0.1, memory_limit=0.2);
+CREATE
+CREATE RESOURCE GROUP rg2_concurrency_test WITH (concurrency=2, cpu_rate_limit=0.2, memory_limit=0.2);
+CREATE
+
+41:BEGIN;
+BEGIN
+41:ALTER RESOURCE GROUP rg1_concurrency_test SET CPU_RATE_LIMIT 0.35;
+ALTER
+42:BEGIN;
+BEGIN
+42&:ALTER RESOURCE GROUP rg2_concurrency_test SET CPU_RATE_LIMIT 0.35;  <waiting ...>
+41:ABORT;
+ABORT
+42<:  <... completed>
+ALTER
+42:COMMIT;
+COMMIT
+SELECT g.rsgname, c.cpu_rate_limit FROM gp_toolkit.gp_resgroup_config c, pg_resgroup g WHERE c.groupid=g.oid ORDER BY g.oid;
+rsgname             |cpu_rate_limit
+--------------------+--------------
+default_group       |0.3           
+admin_group         |0.1           
+rg1_concurrency_test|0.10          
+rg2_concurrency_test|0.35          
+(4 rows)
+
+DROP RESOURCE GROUP rg1_concurrency_test;
+DROP
+DROP RESOURCE GROUP rg2_concurrency_test;
+DROP
+
+CREATE RESOURCE GROUP rg1_concurrency_test WITH (concurrency=2, cpu_rate_limit=0.1, memory_limit=0.2);
+CREATE
+CREATE RESOURCE GROUP rg2_concurrency_test WITH (concurrency=2, cpu_rate_limit=0.2, memory_limit=0.2);
+CREATE
+
+41:BEGIN;
+BEGIN
+41:ALTER RESOURCE GROUP rg1_concurrency_test SET CPU_RATE_LIMIT 0.35;
+ALTER
+42:BEGIN;
+BEGIN
+42&:ALTER RESOURCE GROUP rg2_concurrency_test SET CPU_RATE_LIMIT 0.35;  <waiting ...>
+41:COMMIT;
+COMMIT
+42<:  <... completed>
+ERROR:  total cpu_rate_limit exceeded the limit of 1.0
+SELECT g.rsgname, c.cpu_rate_limit FROM gp_toolkit.gp_resgroup_config c, pg_resgroup g WHERE c.groupid=g.oid ORDER BY g.oid;
+rsgname             |cpu_rate_limit
+--------------------+--------------
+default_group       |0.3           
+admin_group         |0.1           
+rg1_concurrency_test|0.35          
+rg2_concurrency_test|0.20          
+(4 rows)
+
+DROP RESOURCE GROUP rg1_concurrency_test;
+DROP
+DROP RESOURCE GROUP rg2_concurrency_test;
+DROP

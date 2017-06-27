@@ -496,7 +496,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 	CHARACTER CHARACTERISTICS CHECK CHECKPOINT CLASS CLOSE
 	CLUSTER COALESCE COLLATE COLUMN COMMENT COMMIT
 	COMMITTED CONCURRENCY CONCURRENTLY CONFIGURATION CONNECTION CONSTRAINT CONSTRAINTS
-	CONTENT_P CONVERSION_P COPY COST CREATE CREATEDB
+	CONTENT_P CONVERSION_P COPY COST CPU_RATE_LIMIT CREATE CREATEDB
 	CREATEROLE CREATEUSER CROSS CSV CURRENT_P CURRENT_DATE CURRENT_ROLE
 	CURRENT_TIME CURRENT_TIMESTAMP CURRENT_USER CURSOR CYCLE
 
@@ -700,6 +700,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 			%nonassoc CONVERSION_P
 			%nonassoc COPY
 			%nonassoc COST
+			%nonassoc CPU_RATE_LIMIT
 			%nonassoc CREATEDB
 			%nonassoc CREATEEXTTABLE
 			%nonassoc CREATEROLE
@@ -1325,6 +1326,10 @@ OptResourceGroupElem:
 				{
 					/* was "concurrency" */
 					$$ = makeDefElem("concurrency", (Node *)$2);
+				}
+			| CPU_RATE_LIMIT FloatOnly
+				{
+					$$ = makeDefElem("cpu_rate_limit", (Node *)$2);
 				}
 		;
 
@@ -13017,6 +13022,7 @@ unreserved_keyword:
 			| CONVERSION_P
 			| COPY
 			| COST
+			| CPU_RATE_LIMIT
 			| CREATEDB
 			| CREATEEXTTABLE
 			| CREATEROLE
@@ -13327,6 +13333,7 @@ PartitionIdentKeyword: ABORT_P
 			| CONVERSION_P
 			| COPY
 			| COST
+			| CPU_RATE_LIMIT
 			| CREATEDB
 			| CREATEEXTTABLE
 			| CREATEROLE

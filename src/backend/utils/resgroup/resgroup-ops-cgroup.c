@@ -608,6 +608,39 @@ ResGroupOps_AssignGroup(Oid group, int pid)
 }
 
 /*
+ * Lock the OS group. While the group is locked it won't be removed by other
+ * processes.
+ *
+ * This function would block if block is true, otherwise it return with -1
+ * immediately.
+ *
+ * On success it return a fd to the OS group, pass it to
+ * ResGroupOps_UnLockGroup() to unblock it.
+ */
+int
+ResGroupOps_LockGroup(Oid group, bool block)
+{
+	char path[MAXPGPATH];
+	size_t pathsize = sizeof(path);
+
+	buildPath(group, "cpu", "", path, pathsize);
+
+	return lockDir(path, block);
+}
+
+/*
+ * Unblock a OS group.
+ *
+ * fd is the value returned by ResGroupOps_LockGroup().
+ */
+void
+ResGroupOps_UnLockGroup(Oid group, int fd)
+{
+	if (fd >= 0)
+		close(fd);
+}
+
+/*
  * Set the cpu rate limit for the OS group.
  *
  * cpu_rate_limit should be within (0.0, 1.0].
