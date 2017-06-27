@@ -13,6 +13,7 @@
 #include "access/xlog.h"
 #include "access/xlogdefs.h"
 #include "storage/relfilenode.h"
+#include "utils/guc.h"
 #include "utils/pg_crc.h"
 
 #define CHANGETRACKINGDIR  "pg_changetracking"
@@ -20,7 +21,6 @@
 #define CHANGETRACKING_BLCKSZ BLCKSZ
 #define	CHANGETRACKING_XLOGDATASZ (128 * 1024)
 #define CHANGETRACKING_METABUFLEN 128
-#define CHANGETRACKING_MAX_RESULT_SIZE (64 * 1024)
 #define CHANGETRACKING_COMPACT_THRESHOLD (1 * 1024 * 1024 * 1024) /* 1GB */
 
 /*

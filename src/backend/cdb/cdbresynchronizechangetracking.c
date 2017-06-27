@@ -1566,9 +1566,9 @@ static void ChangeTracking_AddResultEntry(ChangeTrackingResult *result,
  * the list of block numbers and the end LSN of each.
  * 
  * We restrict the total number of changes that this routine returns
- * to CHANGETRACKING_MAX_RESULT_SIZE, in order to not overflow memory.
+ * to gp_filerep_ct_batch_size, in order to not overflow memory.
  * If a specific relation is expected to have more than this number
- * of changes, this routine will return the first CHANGETRACKING_MAX_RESULT_SIZE
+ * of changes, this routine will return the first gp_filerep_ct_batch_size
  * change, along with setting the 'ask_for_more' flag in the result to
  * indicate to the caller that a request with the same relation should
  * be issued when ready. When this happens the caller should use the
@@ -1630,8 +1630,7 @@ ChangeTrackingResult* ChangeTracking_GetChanges(ChangeTrackingRequest *request)
 	 * and indicate that there are more records to return in the next call with the same
 	 * request (we don't return the last record found. we'll return it next time).
 	 */
-	appendStringInfo(&sqlstmt, "LIMIT %d", CHANGETRACKING_MAX_RESULT_SIZE + 1);
-	
+	appendStringInfo(&sqlstmt, "LIMIT %d", gp_filerep_ct_batch_size + 1);
 	bool old_enable_groupagg = enable_groupagg;
 	enable_groupagg = false; /* disable sort group agg -- our query works better with hash agg */
 	
@@ -1663,11 +1662,11 @@ ChangeTrackingResult* ChangeTracking_GetChanges(ChangeTrackingRequest *request)
 			int i;
 			
 			/* 
-			 * if got CHANGETRACKING_MAX_RESULT_SIZE changes or less, it means we 
+			 * if got gp_filerep_ct_batch_size changes or less, it means we 
 			 * satisfied all the requests. If not, it means there are still more 
 			 * results to return in the next calls.
 			 */
-			bool	satisfied_request = (proc <= CHANGETRACKING_MAX_RESULT_SIZE);
+			bool	satisfied_request = (proc <= gp_filerep_ct_batch_size);
 
 			/*
 			 * Iterate through each result tuple
@@ -1715,9 +1714,9 @@ ChangeTrackingResult* ChangeTracking_GetChanges(ChangeTrackingRequest *request)
 							elog(ERROR, "internal error in ChangeTracking_GetChanges(): caller "
 										"passed in an invalid request (expecting more than %d "
 										"result entries for more than a single relation)",
-										CHANGETRACKING_MAX_RESULT_SIZE);
+										gp_filerep_ct_batch_size);
 						
-						result = ChangeTracking_FormResult(CHANGETRACKING_MAX_RESULT_SIZE);
+						result = ChangeTracking_FormResult(gp_filerep_ct_batch_size);
 						
 						/* tell caller to call us again with the same relation (but different start lsn) */
 						result->ask_for_more = true;
@@ -1737,7 +1736,7 @@ ChangeTrackingResult* ChangeTracking_GetChanges(ChangeTrackingRequest *request)
 				 * skip the last "extra" entry if satisfied_request is false, and suggest
 				 * the lsn to use in the next request for this same relation. 
 				 */
-				if(i == CHANGETRACKING_MAX_RESULT_SIZE)
+				if(i == gp_filerep_ct_batch_size)
 				{
 					Assert(!satisfied_request);
 					Assert(result->ask_for_more);

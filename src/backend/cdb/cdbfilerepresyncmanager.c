@@ -1681,7 +1681,7 @@ FileRepPrimary_GetResyncEntry(ChangeTrackingRequest **request)
 			{
 				changedPageCount += entry->mirrorBufpoolResyncChangedPageCount;
 				
-				if (changedPageCount > CHANGETRACKING_MAX_RESULT_SIZE )
+				if (changedPageCount > gp_filerep_ct_batch_size )
 				{
 					if (NumberOfRelations == 0)
 					{
@@ -1754,7 +1754,7 @@ FileRepPrimary_GetResyncEntry(ChangeTrackingRequest **request)
 					 * If GetChanges() was called with more than 1 relfilenode/SN at a time AND it sees more than 
 					 * 64K changes it will be an internal error.
 					 */
-					if (entry->mirrorBufpoolResyncChangedPageCount > CHANGETRACKING_MAX_RESULT_SIZE)
+					if (entry->mirrorBufpoolResyncChangedPageCount > gp_filerep_ct_batch_size)
 					{
 						Assert(NumberOfRelations == 1);
 					}

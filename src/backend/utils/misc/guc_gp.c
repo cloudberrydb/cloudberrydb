@@ -303,6 +303,7 @@ int			gp_connection_send_timeout;
 int			gp_filerep_tcp_keepalives_idle;
 int			gp_filerep_tcp_keepalives_interval;
 int			gp_filerep_tcp_keepalives_count;
+int			gp_filerep_ct_batch_size;
 
 int			WalSendClientTimeout = 30000;		/* 30 seconds. */
 
@@ -3651,6 +3652,15 @@ struct config_int ConfigureNamesInt_gp[] =
 		2, 0, INT_MAX, NULL, NULL
 	},
 
+	{
+		{"gp_filerep_ct_batch_size", PGC_USERSET, GP_ARRAY_TUNING,
+			gettext_noop("Maximum number of blocks from changetracking log that"
+						 " a filerep resync worker processes at one time."),
+		 NULL,
+		},
+		&gp_filerep_ct_batch_size,
+		64 * 1024, 1, INT_MAX, NULL, NULL
+	},
 
 	{
 		{"max_resource_queues", PGC_POSTMASTER, RESOURCES_MGM,
