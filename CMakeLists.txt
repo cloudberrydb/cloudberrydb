@@ -5,8 +5,8 @@ project(gpopt LANGUAGES CXX C)
 
 set(GPORCA_VERSION_MAJOR 2)
 set(GPORCA_VERSION_MINOR 34)
-set(GPORCA_VERSION_PATCH_DONT_BUMP_ME 0)
-set(GPORCA_VERSION_STRING "${GPORCA_VERSION_MAJOR}.${GPORCA_VERSION_MINOR}.${GPORCA_VERSION_PATCH_DONT_BUMP_ME}")
+set(GPORCA_VERSION_PATCH 1)
+set(GPORCA_VERSION_STRING "${GPORCA_VERSION_MAJOR}.${GPORCA_VERSION_MINOR}.${GPORCA_VERSION_PATCH}")
 
 # Whenever an ABI-breaking change is made to GPORCA, this should be incremented.
 # ABI changes include removing functions, and adding or removing function
