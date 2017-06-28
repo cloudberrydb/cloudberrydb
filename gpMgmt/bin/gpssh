@@ -19,13 +19,8 @@ Usage: gpssh [--version] [-?v] [-h host] [-f hostfile] [cmd]
 import os
 import sys
 
-progname = os.path.split(sys.argv[0])[-1]
+# todo is this necessary?
 sys.path.insert(1, sys.path[0] + '/lib')
-
-if sys.version_info < (2, 5, 0):
-    sys.exit(
-'''Error: %s is supported on Python versions 2.5 or greater
-Please upgrade python installed on this machine.''' % progname)
 
 import getopt
 import atexit
@@ -69,13 +64,11 @@ def usage(exitarg):
     sys.exit(exitarg)
 
 
-#############
 def print_version():
     print '%s version $Revision$' % GV.script_name
     sys.exit(0)
 
 
-#############
 def parseCommandLine():
     try:
         (options, args) = getopt.getopt(sys.argv[1:], '?evsh:f:D:u:d:t:', ['version'])
@@ -224,52 +217,63 @@ def interactive():
             pass
 
 
-try:
-    # Parse options from the command line
-    parseCommandLine()
+def main():
+    if sys.version_info < (2, 5, 0):
+        sys.exit(
+            '''Error: %s is supported on Python versions 2.5 or greater
+            Please upgrade python installed on this machine.''' % os.path.split(sys.argv[0])[-1])
 
-    # Parse gpssh.conf file
-    parseConfigFile()
+    try:
+        # Parse options from the command line
+        parseCommandLine()
 
-    # Acquire the list of hosts from command line arguments
-    hostlist = ssh_utils.HostList()
-    for h in GV.opt['-h']:
-        hostlist.add(h)
-    if GV.opt['-f']:
-        hostlist.parseFile(GV.opt['-f'])
+        # Parse gpssh.conf file
+        parseConfigFile()
 
-    # Filter out non-unique hostnames unless the -D option is provided
-    if not GV.opt['-D']:
-        GV.opt['-h'] = hostlist.filterMultiHomedHosts()
-    else:
-        GV.opt['-h'] = hostlist.get()
+        # Acquire the list of hosts from command line arguments
+        hostlist = ssh_utils.HostList()
+        for h in GV.opt['-h']:
+            hostlist.add(h)
+        if GV.opt['-f']:
+            hostlist.parseFile(GV.opt['-f'])
 
-    if len(GV.opt['-h']) == 0:
-        usage('Error: missing hosts in -h and/or -f arguments')
+        # Filter out non-unique hostnames unless the -D option is provided
+        if not GV.opt['-D']:
+            GV.opt['-h'] = hostlist.filterMultiHomedHosts()
+        else:
+            GV.opt['-h'] = hostlist.get()
 
-    # If a single command was passed to us, implement a single command session
-    if GV.argcmd:
-        try:
-            GV.session = ssh_utils.Session()
-            GV.session.verbose = GV.opt['-v']
-            GV.session.login(GV.opt['-h'], GV.USER, GV.DELAY_BEFORE_SEND, GV.PROMPT_VALIDATION_TIMEOUT)
-            GV.session.echoCommand = GV.opt['-e']
-            if GV.opt['-s']:
-                GV.session.executeCommand("source {0}/greenplum_path.sh".format(os.environ["GPHOME"]))
-            output = GV.session.executeCommand(GV.argcmd)
-            GV.session.writeCommandOutput(output)
-            if GV.session.verbose: print '[INFO] completed successfully'
-            sys.stdout.flush()
-        except ssh_utils.Session.SessionError, e:
-            print 'Error: %s' % e
-            pass
+        if len(GV.opt['-h']) == 0:
+            usage('Error: missing hosts in -h and/or -f arguments')
 
-    else:  # Otherwise, implement an interactive session
-        interactive()
+        # If a single command was passed to us, implement a single command session
+        if GV.argcmd:
+            try:
+                GV.session = ssh_utils.Session()
+                GV.session.verbose = GV.opt['-v']
+                GV.session.login(GV.opt['-h'], GV.USER, GV.DELAY_BEFORE_SEND, GV.PROMPT_VALIDATION_TIMEOUT)
+                GV.session.echoCommand = GV.opt['-e']
+                if GV.opt['-s']:
+                    GV.session.executeCommand("source {0}/greenplum_path.sh".format(os.environ["GPHOME"]))
+                output = GV.session.executeCommand(GV.argcmd)
+                GV.session.writeCommandOutput(output)
+                if GV.session.verbose: print '[INFO] completed successfully'
+                sys.stdout.flush()
+            except ssh_utils.Session.SessionError, e:
+                print 'Error: %s' % e
+                pass
 
-    return_code = sessionCleanup()
-    sys.exit(return_code)
+        else:  # Otherwise, implement an interactive session
+            interactive()
 
-except KeyboardInterrupt:
-    sessionCleanup()
-    sys.exit('\nInterrupted...')
+        return_code = sessionCleanup()
+        sys.exit(return_code)
+
+    except KeyboardInterrupt:
+        sessionCleanup()
+        sys.exit('\nInterrupted...')
+
+
+#############
+if __name__ == '__main__':
+    main()
