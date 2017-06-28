@@ -78,3 +78,7 @@ def after_scenario(context, scenario):
 
         if os.path.isdir('%s/gpAdminLogs.bk' % home_dir):
             shutil.move('%s/gpAdminLogs.bk' % home_dir, '%s/gpAdminLogs' % home_dir)
+
+    if 'gpssh' in context.feature.tags:
+        run_command(context, 'sudo tc qdisc del dev lo root netem')
+

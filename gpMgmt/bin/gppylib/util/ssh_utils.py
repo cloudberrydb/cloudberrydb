@@ -9,8 +9,9 @@ import os
 import sys
 import socket
 import threading
-from gppylib.commands.base import WorkerPool, REMOTE, ExecutionError
+from gppylib.commands.base import WorkerPool, REMOTE
 from gppylib.commands.unix import Hostname, Echo
+from gpssh_modules import gppxssh_wrapper
 
 sys.path.insert(1, sys.path[0] + '/lib')
 from pexpect import pxssh
@@ -166,8 +167,8 @@ class Session(cmd.Cmd):
         self.peerStringFormatRaw = "[%%%ds]" % cnt
         return self.peerStringFormatRaw
 
-    def login(self, hostList=None, userName=None, delaybeforesend=0.05, sync_multiplier=1.0):
-        '''This is the normal entry point used to add host names to the object and log in to each of them'''
+    def login(self, hostList=None, userName=None, delaybeforesend=0.05, sync_multiplier=1.0, sync_retries=3):
+        """This is the normal entry point used to add host names to the object and log in to each of them"""
         if self.verbose: print '\n[Reset ...]'
         if not (self.hostList or hostList):
             raise self.SessionError('No host list available to Login method')
@@ -181,7 +182,8 @@ class Session(cmd.Cmd):
             self.hostList = []
             for host in hostList:
                 self.hostList.append(host)
-        if userName: self.userName = userName  # We have a new userName to use
+        if userName:
+            self.userName = userName  # We have a new userName to use
 
         # MPP-6583.  Save off term type and set to nothing before creating ssh process
         origTERM = os.getenv('TERM', None)
@@ -190,24 +192,21 @@ class Session(cmd.Cmd):
         good_list = []
         print_lock = threading.Lock()
 
-        def connect_host(host):
-            self.hostList.append(host)
-            p = pxssh.pxssh(delaybeforesend=delaybeforesend,
-                            options={"StrictHostKeyChecking": "no",
-                                     "BatchMode": "yes"})
+        def connect_host(hostname, p):
+            self.hostList.append(hostname)
             try:
                 # The sync_multiplier value is passed onto pexpect.pxssh which is used to determine timeout
                 # values for prompt verification after an ssh connection is established.
-                p.login(host, self.userName, sync_multiplier=sync_multiplier)
-                p.x_peer = host
+                p.login(hostname, self.userName, sync_multiplier=sync_multiplier)
+                p.x_peer = hostname
                 p.x_pid = p.pid
                 good_list.append(p)
                 if self.verbose:
                     with print_lock:
-                        print '[INFO] login %s' % host
+                        print '[INFO] login %s' % hostname
             except Exception as e:
                 with print_lock:
-                    print '[ERROR] unable to login to %s' % host
+                    print '[ERROR] unable to login to %s' % hostname
                     if type(e) is pxssh.ExceptionPxssh:
                         print e
                     elif type(e) is pxssh.EOF:
@@ -217,7 +216,11 @@ class Session(cmd.Cmd):
 
         thread_list = []
         for host in hostList:
-            t = threading.Thread(target=connect_host, args=(host,))
+            p = gppxssh_wrapper.PxsshWrapper(delaybeforesend=delaybeforesend,
+                                             sync_retries=sync_retries,
+                                             options={"StrictHostKeyChecking": "no",
+                                                      "BatchMode": "yes"})
+            t = threading.Thread(target=connect_host, args=(host, p))
             t.start()
             thread_list.append(t)
 

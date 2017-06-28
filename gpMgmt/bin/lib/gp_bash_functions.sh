@@ -848,6 +848,16 @@ delaybeforesend = 0.05
 # value will have a small runtime impact at the beginning of
 # gpssh.
 prompt_validation_timeout = 1.0
+
+# sync_retries specifies how many times to try the pxssh
+# connection verification.
+# Setting this value to 1 means gpssh will immediately pass
+# along pxssh's best effort.
+# Increasing this value will allow for slow network connections,
+# cpu load, or other slowness on the segment host, but will
+# also delay feedback when a connection cannot be established
+# for other reasons
+sync_retries = 3
 _EOF_
         LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }

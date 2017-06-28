@@ -23,3 +23,11 @@ Feature: gpssh behave tests
         Then gpssh should return a return code of 0
         And gpssh should print "unable to login to localhost" to stdout
         And gpssh should print "could not synchronize with original prompt" to stdout
+
+    Scenario: gpssh succeeds when network has latency
+        When the user runs command "sudo tc qdisc add dev lo root netem delay 4000ms"
+        Then sudo should return a return code of 0
+        When the user runs "gpssh -h localhost echo 'hello I am testing'"
+        Then gpssh should return a return code of 0
+        And gpssh should print "hello I am testing" to stdout
+        # We depend on environment.py#after_scenario() to delete the artificial latency
