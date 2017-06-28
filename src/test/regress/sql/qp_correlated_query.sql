@@ -104,7 +104,9 @@ select A.i, B.i, C.j from A, B, C where A.j not in (select C.j from C where C.j 
 select A.j from A, B, C where A.j = (select C.j from C where C.j = A.j and C.i in (select B.i from B where C.i = B.i and B.i !=10)) order by A.j limit 10;
 
 -- MPP-14222
+explain select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C.j = A.j and C.i not in (select B.i from B where C.i = B.i and B.i !=10)) order by A.i, B.i, C.j limit 10;
 select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C.j = A.j and C.i not in (select B.i from B where C.i = B.i and B.i !=10)) order by A.i, B.i, C.j limit 10;
+explain select A.j from A, B, C where A.j = (select C.j from C where C.j = A.j and C.i not in (select B.i from B where C.i = B.i and B.i !=10)) order by A.j limit 10;
 select A.j from A, B, C where A.j = (select C.j from C where C.j = A.j and C.i not in (select B.i from B where C.i = B.i and B.i !=10)) order by A.j limit 10;
 
 
@@ -128,8 +130,11 @@ select * from A where A.j = any (select C.j from C,B where C.j = A.j and B.i = a
 -- Planner should fail due to skip-level correlation not supported. ORCA should pass
 select * from A,B where A.j = any (select C.j from C where C.j = A.j and B.i = any (select C.i from C where C.i != 10 and C.i = A.i)) order by 1,2,3,4;
 
+explain select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C.j = A.j and C.i = any (select B.i from B where C.i = B.i and B.i !=10)) order by A.i, B.i, C.j limit 10;
 select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C.j = A.j and C.i = any (select B.i from B where C.i = B.i and B.i !=10)) order by A.i, B.i, C.j limit 10;
+explain select A.i, B.i, C.j from A, B, C where A.j = any ( select C.j from C where not exists(select C.i from C,A where C.i = A.i and C.i =10)) order by A.i, B.i, C.j limit 10;
 select A.i, B.i, C.j from A, B, C where A.j = any ( select C.j from C where not exists(select C.i from C,A where C.i = A.i and C.i =10)) order by A.i, B.i, C.j limit 10;
+explain select A.i, B.i, C.j from A, B, C where A.j = any (select C.j from C where C.j = A.j and not exists (select sum(B.i) from B where C.i = B.i and C.i !=10)) order by A.i, B.i, C.j limit 10;
 select A.i, B.i, C.j from A, B, C where A.j = any (select C.j from C where C.j = A.j and not exists (select sum(B.i) from B where C.i = B.i and C.i !=10)) order by A.i, B.i, C.j limit 10;
 
 
@@ -148,8 +153,11 @@ select * from A,B where exists (select * from C where C.j = A.j and B.i = all (s
 select * from A,B where exists (select * from C where C.j = A.j and B.i = all (select min(C.j) from C where C.j = 1)) order by 1,2,3,4;
 -- Planner should fail due to skip-level correlation not supported. ORCA should pass
 select * from A,B where exists (select * from C where C.j = A.j and B.i = all (select min(C.j) from C where C.j = B.j)) order by 1,2,3,4;
+explain select A.i, B.i, C.j from A, B, C where A.j = (select sum(C.j) from C where C.j = A.j and C.i = all (select B.i from B where C.i = B.i and B.i !=10)) order by A.i, B.i, C.j limit 10;
 select A.i, B.i, C.j from A, B, C where A.j = (select sum(C.j) from C where C.j = A.j and C.i = all (select B.i from B where C.i = B.i and B.i !=10)) order by A.i, B.i, C.j limit 10;
+explain select A.i, B.i, C.j from A, B, C where A.j < all ( select C.j from C where not exists(select C.i from C,A where C.i = A.i and C.i =10)) order by A.i, B.i, C.j limit 10;
 select A.i, B.i, C.j from A, B, C where A.j < all ( select C.j from C where not exists(select C.i from C,A where C.i = A.i and C.i =10)) order by A.i, B.i, C.j limit 10;
+explain select A.i, B.i, C.j from A, B, C where A.j = all (select C.j from C where C.j = A.j and not exists (select sum(B.i) from B where C.i = B.i and C.i !=10)) order by A.i, B.i, C.j limit 10;
 select A.i, B.i, C.j from A, B, C where A.j = all (select C.j from C where C.j = A.j and not exists (select sum(B.i) from B where C.i = B.i and C.i !=10)) order by A.i, B.i, C.j limit 10;
 
 
@@ -202,8 +210,11 @@ select * from A where exists (select * from C,B where C.j = A.j and exists (sele
 
 select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C.j = A.j and not exists (select B.i from B where C.i = B.i and B.i !=10)) order by A.i, B.i, C.j limit 10;
 select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C.j = A.j and not exists (select sum(B.i) from B where C.i = B.i and C.i !=10)) order by A.i, B.i, C.j limit 10;
+explain select C.j from C where not exists (select max(B.i) from B  where C.i = B.i having max(B.i) is not null) order by C.j;
 select C.j from C where not exists (select max(B.i) from B  where C.i = B.i having max(B.i) is not null) order by C.j;
+explain select C.j from C where not exists (select max(B.i) from B  where C.i = B.i offset 1000) order by C.j;
 select C.j from C where not exists (select max(B.i) from B  where C.i = B.i offset 1000) order by C.j;
+explain select C.j from C where not exists (select rank() over (order by B.i) from B  where C.i = B.i) order by C.j;
 select C.j from C where not exists (select rank() over (order by B.i) from B  where C.i = B.i) order by C.j;
 
 

@@ -1,6 +1,6 @@
 -- start_ignore
 create schema subselect_gp;
-set search_path to subselect_gp;
+set search_path to subselect_gp, public;
 -- end_ignore
 set optimizer_enable_master_only_queries = on;
 set optimizer_segments = 3;
@@ -628,3 +628,79 @@ SELECT bar_s.c FROM bar_s, foo_s WHERE foo_s.b = (SELECT max(i) FROM baz_s WHERE
 DROP TABLE bar_s;
 DROP TABLE foo_s;
 DROP TABLE baz_s;
+
+--
+-- EXPLAIN tests for queries in subselect.sql to significant plan changes
+--
+
+-- Set up some simple test tables
+
+CREATE TABLE SUBSELECT_TBL (
+  f1 integer,
+  f2 integer,
+  f3 float
+);
+
+INSERT INTO SUBSELECT_TBL VALUES (1, 2, 3);
+INSERT INTO SUBSELECT_TBL VALUES (2, 3, 4);
+INSERT INTO SUBSELECT_TBL VALUES (3, 4, 5);
+INSERT INTO SUBSELECT_TBL VALUES (1, 1, 1);
+INSERT INTO SUBSELECT_TBL VALUES (2, 2, 2);
+INSERT INTO SUBSELECT_TBL VALUES (3, 3, 3);
+INSERT INTO SUBSELECT_TBL VALUES (6, 7, 8);
+INSERT INTO SUBSELECT_TBL VALUES (8, 9, NULL);
+
+ANALYZE SUBSELECT_TBL;
+
+-- Uncorrelated subselects
+
+EXPLAIN SELECT '' AS six, f1 AS "Uncorrelated Field" FROM SUBSELECT_TBL
+  WHERE f1 IN (SELECT f2 FROM SUBSELECT_TBL) ORDER BY 2;
+
+EXPLAIN SELECT '' AS six, f1 AS "Uncorrelated Field" FROM SUBSELECT_TBL
+  WHERE f1 IN (SELECT f2 FROM SUBSELECT_TBL WHERE
+    f2 IN (SELECT f1 FROM SUBSELECT_TBL)) ORDER BY 2;
+
+EXPLAIN SELECT '' AS three, f1, f2
+  FROM SUBSELECT_TBL
+  WHERE (f1, f2) NOT IN (SELECT f2, CAST(f3 AS int4) FROM SUBSELECT_TBL
+                         WHERE f3 IS NOT NULL) ORDER BY 2,3;
+-- Correlated subselects
+
+EXPLAIN SELECT '' AS six, f1 AS "Correlated Field", f2 AS "Second Field"
+  FROM SUBSELECT_TBL upper
+  WHERE f1 IN (SELECT f2 FROM SUBSELECT_TBL WHERE f1 = upper.f1) ORDER BY 2,3;
+
+EXPLAIN SELECT '' AS six, f1 AS "Correlated Field", f3 AS "Second Field"
+  FROM SUBSELECT_TBL upper
+  WHERE f1 IN
+    (SELECT f2 FROM SUBSELECT_TBL WHERE CAST(upper.f2 AS float) = f3) ORDER BY 2,3;
+
+EXPLAIN SELECT '' AS six, f1 AS "Correlated Field", f3 AS "Second Field"
+  FROM SUBSELECT_TBL upper
+  WHERE f3 IN (SELECT upper.f1 + f2 FROM SUBSELECT_TBL
+               WHERE f2 = CAST(f3 AS integer)) ORDER BY 2,3;
+
+EXPLAIN SELECT '' AS five, f1 AS "Correlated Field"
+  FROM SUBSELECT_TBL
+  WHERE (f1, f2) IN (SELECT f2, CAST(f3 AS int4) FROM SUBSELECT_TBL
+                     WHERE f3 IS NOT NULL) ORDER BY 2;
+
+--
+-- Test cases to catch unpleasant interactions between IN-join processing
+-- and subquery pullup.
+--
+
+EXPLAIN select count(*) from
+  (select 1 from tenk1 a
+   where unique1 IN (select hundred from tenk1 b)) ss;
+EXPLAIN select count(distinct ss.ten) from
+  (select ten from tenk1 a
+   where unique1 IN (select hundred from tenk1 b)) ss;
+EXPLAIN select count(*) from
+  (select 1 from tenk1 a
+   where unique1 IN (select distinct hundred from tenk1 b)) ss;
+EXPLAIN select count(distinct ss.ten) from
+  (select ten from tenk1 a
+   where unique1 IN (select distinct hundred from tenk1 b)) ss;
+

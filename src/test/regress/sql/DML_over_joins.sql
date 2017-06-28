@@ -80,8 +80,10 @@ delete from s;
 insert into r select generate_series(1, 10000), generate_series(1, 10000) * 3;
 insert into s select generate_series(1, 100), generate_series(1, 100) * 4;
 
+explain update s set b = b + 1 where exists (select 1 from r where s.a = r.b);
 update s set b = b + 1 where exists (select 1 from r where s.a = r.b);
 
+explain delete from s where exists (select 1 from r where s.a = r.b);
 delete from s where exists (select 1 from r where s.a = r.b);
 -- ----------------------------------------------------------------------
 -- Test: heap_motion1.sql
