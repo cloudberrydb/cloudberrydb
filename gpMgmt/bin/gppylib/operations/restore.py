@@ -579,13 +579,15 @@ class RestoreDatabase(Operation):
         # This section is also where we filter out tables that are not in restore_tables
         with open(stats_filename, "w") as outfile:
             with open(stats_path, "r") as infile:
-                table_pattern = compile("-- Schema: (\w+), Table: (\w+), Attribute: (\w+)")
+                table_attribute_pattern = compile("-- Schema: (\w+), Table: (\w+), Attribute: (\w+)")
+                table_pattern_pg_class = compile("-- Schema: (\w+), Table: (\w+)")
                 print_toggle = True
                 replace_toggle = False
                 new_oid = ""
                 new_attnum = ""
                 for line in infile:
-                    matches = search(table_pattern, line)
+                    matches = search(table_attribute_pattern, line)
+                    pg_class_match = search(table_pattern_pg_class, line)
                     if matches:
                         tablename = '%s.%s' % (matches.group(1), matches.group(2))
                         attname = '%s.%s' % (tablename, matches.group(3))
@@ -602,6 +604,12 @@ class RestoreDatabase(Operation):
                                 replace_toggle = False
                         else:
                             print_toggle = False
+                    elif pg_class_match:
+                        tablename = '%s.%s' % (pg_class_match.group(1), pg_class_match.group(2))
+                        if len(self.context.restore_tables) == 0 or tablename in self.context.restore_tables:
+                            print_toggle=True
+                        else:
+                            print_toggle=False
                     if replace_toggle and "::oid" in line:
                         line = "    %s::oid,\n" % new_oid
                     if replace_toggle and "::smallint" in line:
