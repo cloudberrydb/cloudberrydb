@@ -27,7 +27,6 @@ if sys.version_info < (2, 5, 0):
 '''Error: %s is supported on Python versions 2.5 or greater
 Please upgrade python installed on this machine.''' % progname)
 
-
 import getopt
 import atexit
 import signal
@@ -36,6 +35,7 @@ import time
 import ConfigParser
 from gppylib.util import ssh_utils
 from gppylib.gpparseopts import OptParser
+
 
 #
 # all the command line options
@@ -55,7 +55,9 @@ class __globals__:
     DELAY_BEFORE_SEND = None
     PROMPT_VALIDATION_TIMEOUT = None
 
+
 GV = __globals__()
+
 
 ################
 def usage(exitarg):
@@ -72,6 +74,7 @@ def print_version():
     print '%s version $Revision$' % GV.script_name
     sys.exit(0)
 
+
 #############
 def parseCommandLine():
     try:
@@ -79,20 +82,29 @@ def parseCommandLine():
     except Exception, e:
         usage('Error: ' + str(e))
     for (switch, val) in options:
-        if (switch == '-?'):              usage(0)
-        elif (switch[1] in 'evDs'):    GV.opt[switch] = True
-        elif (switch[1] in 'f'):      GV.opt[switch] = val
-        elif (switch == '-h'):        GV.opt[switch].append(val)
-        elif (switch == '--version'): print_version()
-        elif (switch[1] in 'u'):      GV.USER = val
-        elif (switch == '-d'):        GV.DELAY_BEFORE_SEND = float(val)
-        elif (switch == '-t'):	      GV.PROMPT_VALIDATION_TIMEOUT = float(val)
+        if (switch == '-?'):
+            usage(0)
+        elif (switch[1] in 'evDs'):
+            GV.opt[switch] = True
+        elif (switch[1] in 'f'):
+            GV.opt[switch] = val
+        elif (switch == '-h'):
+            GV.opt[switch].append(val)
+        elif (switch == '--version'):
+            print_version()
+        elif (switch[1] in 'u'):
+            GV.USER = val
+        elif (switch == '-d'):
+            GV.DELAY_BEFORE_SEND = float(val)
+        elif (switch == '-t'):
+            GV.PROMPT_VALIDATION_TIMEOUT = float(val)
     hf = (len(GV.opt['-h']) and 1 or 0) + (GV.opt['-f'] and 1 or 0)
     if hf != 1:
         usage('Error: please specify at least one of -h or -f args, but not both')
 
     if (len(args) >= 1):
         GV.argcmd = " ".join(args)
+
 
 def parseConfigFile():
     if GV.DELAY_BEFORE_SEND is not None and GV.PROMPT_VALIDATION_TIMEOUT is not None:
@@ -128,53 +140,59 @@ def parseConfigFile():
         print 'Using delaybeforesend %s and prompt_validation_timeout %s' % (GV.DELAY_BEFORE_SEND,
                                                                              GV.PROMPT_VALIDATION_TIMEOUT)
 
+
 def sessionCleanup():
     while True:
         try:
             return_code = 0
-            if GV.session: 
-                if GV.session.verbose: print '\n[Cleanup...]'; 
+            if GV.session:
+                if GV.session.verbose: print '\n[Cleanup...]';
                 return_code = GV.session.close()
             GV.session = None
             return return_code
         except KeyboardInterrupt:
             pass
 
+
 sigint_time = 0
+
+
 def sigint_handle(signum, frame):
     global sigint_time
     now = time.time()
-    if now - sigint_time >= 3: 
+    if now - sigint_time >= 3:
         sigint_time = now
         raise KeyboardInterrupt
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     print '\n[Exiting...]'
     sys.exit(1)
 
+
 def sighup_handle(signum, frame):
     sys.exit(1)
+
 
 def interactive():
     try:
         import readline
-        #Read in the saved command history, if any
+        # Read in the saved command history, if any
         histfile = os.path.join(os.environ["HOME"], ".gshist")
         # Set the maximum number of commands to 100
         readline.set_history_length(500)
         try:
-            readline.read_history_file(histfile)            
+            readline.read_history_file(histfile)
         except IOError:
             pass
-        
-        #MPP-4054 - let's check the permissons before we register
+
+        # MPP-4054 - let's check the permissons before we register
         try:
-            f=open(histfile,'a')
+            f = open(histfile, 'a')
             atexit.register(readline.write_history_file, histfile)
-            f.close()                        
+            f.close()
         except IOError:
             print "\n[WARN] Unable to write to gpssh history file: '%s'. Please check permissions." % histfile
-        
-            
+
+
     except Exception, e:
         print "Note: command history unsupported on this machine ..."
 
@@ -185,9 +203,9 @@ def interactive():
         try:
             if not GV.session:
                 GV.session = ssh_utils.Session()
-                GV.session.verbose=GV.opt['-v']
+                GV.session.verbose = GV.opt['-v']
                 GV.session.login(GV.opt['-h'], GV.USER, GV.DELAY_BEFORE_SEND, GV.PROMPT_VALIDATION_TIMEOUT)
-                GV.session.echoCommand=GV.opt['-e']
+                GV.session.echoCommand = GV.opt['-e']
             if GV.opt['-s']:
                 GV.session.executeCommand("source {0}/greenplum_path.sh".format(os.environ["GPHOME"]))
             GV.session.cmdloop()
@@ -205,21 +223,22 @@ def interactive():
             GV.session.reset()
             pass
 
+
 try:
-    #Parse options from the command line
+    # Parse options from the command line
     parseCommandLine()
 
-    #Parse gpssh.conf file
+    # Parse gpssh.conf file
     parseConfigFile()
 
-    #Acquire the list of hosts from command line arguments
+    # Acquire the list of hosts from command line arguments
     hostlist = ssh_utils.HostList()
     for h in GV.opt['-h']:
         hostlist.add(h)
     if GV.opt['-f']:
         hostlist.parseFile(GV.opt['-f'])
 
-    #Filter out non-unique hostnames unless the -D option is provided
+    # Filter out non-unique hostnames unless the -D option is provided
     if not GV.opt['-D']:
         GV.opt['-h'] = hostlist.filterMultiHomedHosts()
     else:
@@ -228,26 +247,26 @@ try:
     if len(GV.opt['-h']) == 0:
         usage('Error: missing hosts in -h and/or -f arguments')
 
-    #If a single command was passed to us, implement a single command session
+    # If a single command was passed to us, implement a single command session
     if GV.argcmd:
-            try:
-                GV.session = ssh_utils.Session()
-                GV.session.verbose=GV.opt['-v']
-                GV.session.login(GV.opt['-h'], GV.USER, GV.DELAY_BEFORE_SEND, GV.PROMPT_VALIDATION_TIMEOUT)
-                GV.session.echoCommand=GV.opt['-e']
-                if GV.opt['-s']:
-                    GV.session.executeCommand("source {0}/greenplum_path.sh".format(os.environ["GPHOME"]))
-                output=GV.session.executeCommand(GV.argcmd)
-                GV.session.writeCommandOutput(output)
-                if GV.session.verbose: print '[INFO] completed successfully'
-                sys.stdout.flush()
-            except ssh_utils.Session.SessionError, e:
-                print 'Error: %s' % e
-                pass
+        try:
+            GV.session = ssh_utils.Session()
+            GV.session.verbose = GV.opt['-v']
+            GV.session.login(GV.opt['-h'], GV.USER, GV.DELAY_BEFORE_SEND, GV.PROMPT_VALIDATION_TIMEOUT)
+            GV.session.echoCommand = GV.opt['-e']
+            if GV.opt['-s']:
+                GV.session.executeCommand("source {0}/greenplum_path.sh".format(os.environ["GPHOME"]))
+            output = GV.session.executeCommand(GV.argcmd)
+            GV.session.writeCommandOutput(output)
+            if GV.session.verbose: print '[INFO] completed successfully'
+            sys.stdout.flush()
+        except ssh_utils.Session.SessionError, e:
+            print 'Error: %s' % e
+            pass
 
-    else: #Otherwise, implement an interactive session
+    else:  # Otherwise, implement an interactive session
         interactive()
-    
+
     return_code = sessionCleanup()
     sys.exit(return_code)
 
