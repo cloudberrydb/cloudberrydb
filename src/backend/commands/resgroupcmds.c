@@ -38,6 +38,8 @@
 
 #define RESGROUP_DEFAULT_CONCURRENCY (20)
 #define RESGROUP_DEFAULT_REDZONE_LIMIT (0.8)
+#define RESGROUP_DEFAULT_MEM_SHARED_QUOTA (0.2)
+#define RESGROUP_DEFAULT_MEM_SPILL_RATIO (0.2)
 
 
 /*
@@ -49,6 +51,8 @@ typedef struct ResourceGroupOptions
 	float cpuRateLimit;
 	float memoryLimit;
 	float redzoneLimit;
+	float memSharedQuota;
+	float memSpillRatio;
 } ResourceGroupOptions;
 
 typedef struct ResourceGroupStatusRow
@@ -665,6 +669,29 @@ GetCpuRateLimitForResGroup(int groupId)
 }
 
 /*
+ * Get memory capabilities of one resource group in pg_resgroupcapability.
+ * TODO: scan the catalog table only once?
+ */
+void
+GetMemoryCapabilitiesForResGroup(int groupId, float *memoryLimit, float *sharedQuota, float *spillRatio)
+{
+	char *valueStr;
+	char *proposedStr;
+
+	getResgroupCapabilityEntry(groupId, RESGROUP_LIMIT_TYPE_MEMORY,
+							   &valueStr, &proposedStr);
+	*memoryLimit = str2Float(valueStr, "memory_limit");
+
+	getResgroupCapabilityEntry(groupId, RESGROUP_LIMIT_TYPE_MEMORY_SHARED_QUOTA,
+							   &valueStr, &proposedStr);
+	*sharedQuota = str2Float(valueStr, "memory_shared_quota");
+
+	getResgroupCapabilityEntry(groupId, RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO,
+							   &valueStr, &proposedStr);
+	*spillRatio = str2Float(valueStr, "memory_spill_ratio");
+}
+
+/*
  * Get resource group id for a role in pg_authid
  */
 Oid
@@ -1140,6 +1167,10 @@ getResgroupOptionType(const char* defname)
 		return RESGROUP_LIMIT_TYPE_CONCURRENCY;
 	else if (strcmp(defname, "memory_redzone_limit") == 0)
 		return RESGROUP_LIMIT_TYPE_MEMORY_REDZONE;
+	else if (strcmp(defname, "memory_shared_quota") == 0)
+		return RESGROUP_LIMIT_TYPE_MEMORY_SHARED_QUOTA;
+	else if (strcmp(defname, "memory_spill_ratio") == 0)
+		return RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO;
 	else
 		return RESGROUP_LIMIT_TYPE_UNKNOWN;
 }
@@ -1208,6 +1239,14 @@ parseStmtOptions(CreateResourceGroupStmt *stmt, ResourceGroupOptions *options)
 							errmsg("memory_redzone_limit range is (.5, 1]")));
 				break;
 
+			case RESGROUP_LIMIT_TYPE_MEMORY_SHARED_QUOTA:
+				options->memSharedQuota = roundf(defGetNumeric(defel) * 100) / 100;
+				break;
+
+			case RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO:
+				options->memSpillRatio = roundf(defGetNumeric(defel) * 100) / 100;
+				break;
+
 			default:
 				Assert(!"unexpected options");
 				break;
@@ -1219,11 +1258,23 @@ parseStmtOptions(CreateResourceGroupStmt *stmt, ResourceGroupOptions *options)
 				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 				errmsg("must specify both memory_limit and cpu_rate_limit")));
 
-	if (options->concurrency == 0)
+	if (!(types & (1 << RESGROUP_LIMIT_TYPE_CONCURRENCY)))
 		options->concurrency = RESGROUP_DEFAULT_CONCURRENCY;
 
-	if (options->redzoneLimit == 0)
+	if (!(types & (1 << RESGROUP_LIMIT_TYPE_MEMORY_REDZONE)))
 		options->redzoneLimit = RESGROUP_DEFAULT_REDZONE_LIMIT;
+
+	if (!(types & (1 << RESGROUP_LIMIT_TYPE_MEMORY_SHARED_QUOTA)))
+		options->memSharedQuota = RESGROUP_DEFAULT_MEM_SHARED_QUOTA;
+
+	if (!(types & (1 << RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO)))
+		options->memSpillRatio = RESGROUP_DEFAULT_MEM_SPILL_RATIO;
+
+	if (options->memSpillRatio + options->memSharedQuota > 1.f)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("The sum of memory_shared_quota (%.2f) and memory_spill_ratio (%.2f) exceeds 1.0",
+						options->memSharedQuota, options->memSpillRatio)));
 }
 
 /*
@@ -1373,6 +1424,12 @@ insertResgroupCapabilities(Oid groupid,
 
 	sprintf(value, "%.2f", options->redzoneLimit);
 	insertResgroupCapabilityEntry(resgroup_capability_rel, groupid, RESGROUP_LIMIT_TYPE_MEMORY_REDZONE, value);
+
+	sprintf(value, "%.2f", options->memSharedQuota);
+	insertResgroupCapabilityEntry(resgroup_capability_rel, groupid, RESGROUP_LIMIT_TYPE_MEMORY_SHARED_QUOTA, value);
+
+	sprintf(value, "%.2f", options->memSpillRatio);
+	insertResgroupCapabilityEntry(resgroup_capability_rel, groupid, RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO, value);
 
 	heap_close(resgroup_capability_rel, NoLock);
 }
@@ -1576,6 +1633,8 @@ getResgroupCapabilityEntry(int groupId, int type, char **value, char **proposed)
 	tuple = systable_getnext(sscan);
 	if (!HeapTupleIsValid(tuple))
 	{
+		char buf[64];
+
 		systable_endscan(sscan);
 		heap_close(relResGroupCapability, AccessShareLock);
 
@@ -1583,6 +1642,22 @@ getResgroupCapabilityEntry(int groupId, int type, char **value, char **proposed)
 		{
 			CurrentResourceOwner = NULL;
 			ResourceOwnerDelete(owner);
+		}
+
+		/* for backward compatibility */
+		switch (type)
+		{
+			case RESGROUP_LIMIT_TYPE_MEMORY_SHARED_QUOTA:
+				snprintf(buf, sizeof(buf), "%.2f", RESGROUP_DEFAULT_MEM_SHARED_QUOTA);
+				*value = pstrdup(buf);
+				*proposed = pstrdup(buf);
+				return;
+
+			case RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO:
+				snprintf(buf, sizeof(buf), "%.2f", RESGROUP_DEFAULT_MEM_SPILL_RATIO);
+				*value = pstrdup(buf);
+				*proposed = pstrdup(buf);
+				return;
 		}
 
 		ereport(ERROR,

@@ -146,3 +146,14 @@ ResGroupOps_GetCpuCores(void)
 	unsupported_system();
 	return 1;
 }
+
+/*
+ * Get the total memory on the system.
+ * (total RAM * overcommit_ratio + total Swap)
+ */
+int
+ResGroupOps_GetTotalMemory(void)
+{
+	unsupported_system();
+	return 0;
+}

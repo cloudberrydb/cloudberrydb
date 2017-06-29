@@ -359,7 +359,10 @@ int			gp_resqueue_priority_grouping_timeout;
 double		gp_resqueue_priority_cpucores_per_segment;
 char	   *gp_resqueue_priority_default_value;
 bool		gp_debug_resqueue_priority = false;
+
+/* Resource group GUCs */
 double		gp_resource_group_cpu_limit;
+double		gp_resource_group_memory_limit;
 
 /* Perfmon segment GUCs */
 int			gp_perfmon_segment_interval;
@@ -4795,6 +4798,15 @@ struct config_real ConfigureNamesReal_gp[] =
 			NULL
 		},
 		&gp_resource_group_cpu_limit,
+		0.9, 0.1, 1.0, NULL, NULL
+	},
+
+	{
+		{"gp_resource_group_memory_limit", PGC_POSTMASTER, RESOURCES,
+			gettext_noop("Maximum percentage of memory resources assigned to a cluster."),
+			NULL
+		},
+		&gp_resource_group_memory_limit,
 		0.9, 0.1, 1.0, NULL, NULL
 	},
 

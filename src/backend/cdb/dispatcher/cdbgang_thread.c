@@ -302,7 +302,8 @@ thread_DoConnect(void *arg)
 		build_gpqeid_param(gpqeid, sizeof(gpqeid),
 						   segdbDesc->segindex,
 						   pParms->type == GANGTYPE_PRIMARY_WRITER,
-						   pParms->gangId);
+						   pParms->gangId,
+						   segdbDesc->segment_database_info->hostSegs);
 
 		/* check the result in createGang */
 		cdbconn_doConnect(segdbDesc, gpqeid, pParms->connectOptions);

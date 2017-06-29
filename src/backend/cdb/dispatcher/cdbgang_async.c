@@ -110,7 +110,8 @@ create_gang_retry:
 			build_gpqeid_param(gpqeid, sizeof(gpqeid),
 							   segdbDesc->segindex,
 							   type == GANGTYPE_PRIMARY_WRITER,
-							   gang_id);
+							   gang_id,
+							   segdbDesc->segment_database_info->hostSegs);
 
 			options = makeOptions();
 
