@@ -33,7 +33,7 @@ to the segments, and collects the results.
 ## Building Greenplum Database with GPORCA
 
 ### Installing dependencies
-A. For macOS X developers, follow [these steps](README.macOS.md) for getting your system ready for GPDB
+A. For macOS developers, follow [these steps](README.macOS.md) for getting your system ready for GPDB
 
 Or
 
