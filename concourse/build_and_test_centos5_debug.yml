@@ -9,6 +9,10 @@ inputs:
   - name: orca_src
 outputs:
   - name: build_and_test_debug
+
+caches:
+  - path: .ccache
+
 run:
   path: orca_src/concourse/build_and_test.py
   args:

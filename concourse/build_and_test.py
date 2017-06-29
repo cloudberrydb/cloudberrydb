@@ -48,7 +48,16 @@ def make():
         "-j" + str(num_cpus()),
         "-l" + str(2 * num_cpus()),
         ],
-        cwd="build")
+        cwd="build",
+        env=ccache_env()
+        )
+
+
+def ccache_env():
+    env = os.environ.copy()
+    env['CCACHE_DIR'] = os.getcwd() + '/.ccache'
+    return env
+
 
 def run_tests():
     return subprocess.call(["ctest",
