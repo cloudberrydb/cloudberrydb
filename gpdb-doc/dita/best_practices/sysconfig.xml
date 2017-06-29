@@ -13,8 +13,7 @@
     <section id="file_system">
       <title>File System</title>
       <p>XFS is the best practice file system for Greenplum Database data directories. XFS should be
-        mounted with the following mount options:
-        <codeblock>rw,noatime,inode64,allocsize=16m</codeblock></p>
+        mounted with the following mount options: <codeblock>rw,noatime,inode64</codeblock></p>
     </section>
     <section id="port_config">
       <title>Port Configuration</title>
