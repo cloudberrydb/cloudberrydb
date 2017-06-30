@@ -610,14 +610,14 @@ class RestoreDatabase(Operation):
                             print_toggle=True
                         else:
                             print_toggle=False
-                    if replace_toggle and "::oid" in line:
-                        line = "    %s::oid,\n" % new_oid
-                    if replace_toggle and "::smallint" in line:
-                        line = "    %s::smallint,\n" % new_attnum
-                        replace_toggle = False
-                    if replace_toggle and "DELETE FROM" in line:
+                    elif replace_toggle and "DELETE FROM" in line:
                         line = re.sub("starelid = (\w+)", "starelid = %s" % new_oid, line)
                         line = re.sub("staattnum = (\w+)", "staattnum = %s" % new_attnum, line)
+                    elif replace_toggle and "::oid" in line:
+                        line = "    %s::oid,\n" % new_oid
+                    elif replace_toggle and "::smallint" in line:
+                        line = "    %s::smallint,\n" % new_attnum
+                        replace_toggle = False
                     if print_toggle:
                         outfile.write(line)
 
