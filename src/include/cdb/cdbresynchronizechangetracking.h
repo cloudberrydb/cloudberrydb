@@ -299,10 +299,16 @@ void ChangeTracking_FreeIncrementalChangeList(IncrementalChangeList* iclist);
 
 typedef struct ChangeTrackingRequestEntry
 {
-	XLogRecPtr		lsn_start;
-	XLogRecPtr		lsn_end;
-	RelFileNode 	relFileNode; 	/* The tablespace, database, and relation OIDs for the requested relation. */
-
+	/* Changed relation. */	
+	RelFileNode 	relFileNode;
+	/*
+	 * Block number of the last block fetched from CT log.  This is used only
+	 * when the number of changed blocks for a relation is greater than
+	 * gp_filerep_ct_batch_size.  The changed blocks are obtained in fixed
+	 * sized batche.  The last_fetched block number determines where to start
+	 * the next batch from.
+	 */
+	BlockNumber		last_fetched;
 } ChangeTrackingRequestEntry;
 
 typedef struct ChangeTrackingRequest
@@ -313,10 +319,28 @@ typedef struct ChangeTrackingRequest
 	
 } ChangeTrackingRequest;
 
+/*
+ * Changed block of a buffer pooled relation (heap).  All the information in
+ * this object is obtained from CT log.
+ */
 typedef struct ChangeTrackingResultEntry
 {
-	RelFileNode 	relFileNode; 	/* The tablespace, database, and relation OIDs for the requested relation. */
+	RelFileNode 	relFileNode;
 	BlockNumber		block_num;
+	/*
+	 * Most recent location in XLOG for a change made to this block while a
+	 * primary segment was tracking changes.  If a new change happens to the
+	 * block after primary segment has transitioned from changetracking to
+	 * resync, the block's LSN value will be newer than lsn_end.  If so, the
+	 * block will be mirrored already at the time the change was written on
+	 * primary and doesn't need to be shipped to mirror during resync.
+	 *
+	 * In theory, a single global "last change-tracked LSN"
+	 * (XLogLastChangeTrackedLoc() or fileRepResyncShmem->endIncrResyncLSN)
+	 * should be suffice to decide whether a page should be sent to mirror
+	 * during resync or not.  Keeping track of lsn_end for each block of every
+	 * relation seems redundant.  We leave this as TODO.
+	 */
 	XLogRecPtr		lsn_end;
 
 } ChangeTrackingResultEntry;
@@ -327,15 +351,11 @@ typedef struct ChangeTrackingResult
 	int							count;
 	int							max_count;
 	bool						ask_for_more;		/* there are more results for this rel. ask for them */
-	XLogRecPtr					next_start_lsn;		/* when asking again, use this lsn as start lsn      */
-	
 } ChangeTrackingResult;
 
 extern ChangeTrackingRequest* ChangeTracking_FormRequest(int count);
 extern void ChangeTracking_AddRequestEntry(ChangeTrackingRequest* request, 
-										   RelFileNode		relFileNode,
-										   XLogRecPtr*		lsn_start,
-										   XLogRecPtr*		lsn_end);
+										   RelFileNode		relFileNode);
 
 extern ChangeTrackingResult* ChangeTracking_GetChanges(ChangeTrackingRequest* request);
 extern void ChangeTracking_FreeRequest(ChangeTrackingRequest* request);

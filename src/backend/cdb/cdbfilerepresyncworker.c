@@ -525,7 +525,14 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 
 	while (1)
 	{
-		/* allow flushing buffers from buffer pool during scan */
+		/*
+		 * ChangeTracking_GetChanges() invokes a SQL query using SPI, which
+		 * could result in dirty buffers being written out.  Setting
+		 * readBufferRequest indicates that these writes are performed on
+		 * primary as well as mirror.  When readBufferRequest flag is unset,
+		 * resync workers send changed blocks only to mirror without writing
+		 * them on primary.
+		 */
 		FileRepResync_SetReadBufferRequest();
 		if ((result = ChangeTracking_GetChanges(request)) != NULL) 
 		{
@@ -577,7 +584,14 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 					goto flush_check;
 				}
 				
-				/* allow flushing buffers from buffer pool during scan */
+				/*
+				 * ReadBuffer() may need to write out a dirty buffer to make
+				 * room in buffer cache.  Setting readBufferRequest indicates
+				 * that resync worker process should perform writes on primary.
+				 * When readBufferRequest flag is unset, resync workers send
+				 * changed blocks only to mirror without writing them on
+				 * primary.
+				 */
 				FileRepResync_SetReadBufferRequest();
 				buf = ReadBuffer_Resync(smgr_relation,
 										result->entries[ii].block_num);
@@ -684,7 +698,34 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 							 break;
 						}
 					}
-								 
+					else
+					{
+						Assert(result->count == gp_filerep_ct_batch_size);
+						Assert(request->count == 1);
+						/*
+						 * Update last_fetched block in request so that the
+						 * next call to GetChanges() knows where to start
+						 * fetching changed blocks from.
+						 */
+						if (RelFileNodeEquals(request->entries[0].relFileNode,
+											  result->entries[ii].relFileNode))
+						{
+							request->entries[0].last_fetched =
+								result->entries[ii].block_num;
+							elog(LOG, "%u/%u/%u last fetched block %d",
+								 request->entries[0].relFileNode.spcNode,
+								 request->entries[0].relFileNode.dbNode,
+								 request->entries[0].relFileNode.relNode,
+								 request->entries[0].last_fetched);
+						}
+						else
+							elog(ERROR, "changetracking request not found for "
+								 "%u/%u/%u, block %d",
+								 result->entries[ii].relFileNode.spcNode,
+								 result->entries[ii].relFileNode.dbNode,
+								 result->entries[ii].relFileNode.relNode,
+								 result->entries[ii].block_num);
+					}
 				}			
 							
 				if (count > thresholdCount)
@@ -706,17 +747,8 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 		} // if ((result = ChangeTracking_GetChanges(request)) != NULL) 
 		
 		FileRepResync_ResetReadBufferRequest();
-			
-		if (result != NULL && result->ask_for_more == true)
-		{
-			Assert(request->count == 1);
-			request->entries[0].lsn_start = result->next_start_lsn;
-		}
-		else
-		{
+		if (result == NULL || result->ask_for_more == false)
 			break;
-		}
-
 	} // while(1) 
 		
 	ChangeTracking_FreeRequest(request);

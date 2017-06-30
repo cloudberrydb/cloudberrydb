@@ -1649,8 +1649,18 @@ FileRepResync_CheckProgress(void)
 	return countProgress;
 }
 
-/* 
- * 
+/*
+ * This function returns either of two output parameters.  For relations that
+ * can be resynchronized using changed blocks recorded in CT log, "request"
+ * object is created and returned as output parameter.  These are the relations
+ * whose mirrorDataSynchronizationState in persistent table is PageIncremental.
+ * E.g. regular heap tables on which insert/update/delete was run while primary
+ * was in changetracking.  Second category of relations are appendonly tables
+ * or heap tables whose mirrorDataSynchronizationState is ScanIncremental.
+ * These are persistent tables and heap tables that were truncated when primary
+ * was in changetracking.  Changed blocks recorded in CT log are NOT used for
+ * resynchronizing these tables.  The CT hash entry is directly returned in
+ * this case.
  */
 FileRepResyncHashEntry_s*
 FileRepPrimary_GetResyncEntry(ChangeTrackingRequest **request)
@@ -1681,7 +1691,7 @@ FileRepPrimary_GetResyncEntry(ChangeTrackingRequest **request)
 			{
 				changedPageCount += entry->mirrorBufpoolResyncChangedPageCount;
 				
-				if (changedPageCount > gp_filerep_ct_batch_size )
+				if (changedPageCount > gp_filerep_ct_batch_size)
 				{
 					if (NumberOfRelations == 0)
 					{
@@ -1726,8 +1736,7 @@ FileRepPrimary_GetResyncEntry(ChangeTrackingRequest **request)
 		if (NumberOfRelations > 0)
 		{
 			int			count = 0;
-			XLogRecPtr	endResyncLSN = FileRepResync_GetEndIncrResyncLSN();
-			
+
 			requestLocal = ChangeTracking_FormRequest(NumberOfRelations);				
 			
 			hash_seq_init(&hash_status, fileRepResyncShmem->fileRepResyncHash);
@@ -1744,26 +1753,30 @@ FileRepPrimary_GetResyncEntry(ChangeTrackingRequest **request)
 				{
 					
 					/*
-					 * When a single SN has more than 64K, it must be called in GetChanges by itself 
-					 * (without other relfilenodes). The GetChanges() routine will return the first 64K changes, 
-					 * plus an indication that GetChanges() did not finish with this relation. When the consumer 
-					 * sees this “not done yet” flag, he needs to call GetChanges() for this relfilenode again
-					 * (when ready) and pass the end lsn from the previous call as the beginning lsn for this call. 
-					 * GetChanges() will then return the next 64K changes, etc, etc. 
+					 * When a single relation has more changed blocks than
+					 * gp_filerep_ct_batch_size, it must be called in
+					 * ChangeTracking_GetChanges() by itself (with no other
+					 * relation).  The GetChanges() routine will return the
+					 * first batch of changes, plus an indication that
+					 * GetChanges() did not finish with this relation
+					 * (ask_for_more flag).  The caller must invoke
+					 * GetChanges() for this relation again (when ready) and
+					 * pass the last block number from the previous call as the
+					 * beginning block number for this call.  GetChanges() will
+					 * then return the next batch of changes and this will
+					 * continue until ask_for_more flag is returned as false.
 					 *
-					 * If GetChanges() was called with more than 1 relfilenode/SN at a time AND it sees more than 
-					 * 64K changes it will be an internal error.
+					 * If GetChanges() was called with more than 1 relation
+					 * (persistent serial number) at a time AND it sees more
+					 * than gp_filerep_ct_batch_size changes it will be an
+					 * internal error.
 					 */
 					if (entry->mirrorBufpoolResyncChangedPageCount > gp_filerep_ct_batch_size)
 					{
 						Assert(NumberOfRelations == 1);
 					}
-					
-					ChangeTracking_AddRequestEntry(requestLocal, 
-												   entry->relFileNode,
-												   &entry->mirrorBufpoolResyncCkptLoc,   //beginIncrResyncLSN,
-												   &endResyncLSN);	
-										
+
+					ChangeTracking_AddRequestEntry(requestLocal, entry->relFileNode);
 					found = TRUE;
 					fileRepResyncShmem->writeCount--;
 					fileRepResyncShmem->resyncInProgressCount++;

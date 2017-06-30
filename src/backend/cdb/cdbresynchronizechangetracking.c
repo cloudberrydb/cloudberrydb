@@ -1481,14 +1481,13 @@ ChangeTrackingRequest* ChangeTracking_FormRequest(int max_count)
 }
 
 /*
- * Add an entry to the request. An entry is a specification of a relation
- * and the start/end LSN of interest. If start LSN isn't needed, the caller
- * must specify 0/0 for now.  
+ * Add an entry to CT request.  An entry is a relfilenode of a relation whose
+ * changed blocks recorded in CT log need to be resynchronized with mirror.
+ * The block number last_fetched indicates the last block number of this
+ * relation fetched and sent to mirror by a resync worker.
  */
-void ChangeTracking_AddRequestEntry(ChangeTrackingRequest *request, 
-									RelFileNode		relFileNode,
-									XLogRecPtr*		lsn_start,
-									XLogRecPtr*		lsn_end)
+void ChangeTracking_AddRequestEntry(ChangeTrackingRequest *request,
+									RelFileNode		relFileNode)
 {
 	ChangeTrackingRequestEntry* entry;
 	
@@ -1499,9 +1498,7 @@ void ChangeTracking_AddRequestEntry(ChangeTrackingRequest *request,
 	entry->relFileNode.relNode = relFileNode.relNode;
 	entry->relFileNode.spcNode = relFileNode.spcNode;
 	entry->relFileNode.dbNode = relFileNode.dbNode;
-	entry->lsn_start = *lsn_start;  
-	entry->lsn_end = *lsn_end;
-	
+	entry->last_fetched = 0;
 	request->count++;
 }
 
@@ -1527,8 +1524,6 @@ static ChangeTrackingResult* ChangeTracking_FormResult(int max_count)
 	result->count = 0;
 	result->max_count = max_count;
 	result->ask_for_more = false;
-	result->next_start_lsn.xlogid = 0;
-	result->next_start_lsn.xrecoff = 0;	
 	result->entries = (ChangeTrackingResultEntry*) palloc(sizeof(ChangeTrackingResultEntry) * max_count);
 	
 	return result;
@@ -1565,15 +1560,14 @@ static void ChangeTracking_AddResultEntry(ChangeTrackingResult *result,
  * found in the change tracking log file this routine will return
  * the list of block numbers and the end LSN of each.
  * 
- * We restrict the total number of changes that this routine returns
- * to gp_filerep_ct_batch_size, in order to not overflow memory.
- * If a specific relation is expected to have more than this number
- * of changes, this routine will return the first gp_filerep_ct_batch_size
- * change, along with setting the 'ask_for_more' flag in the result to
- * indicate to the caller that a request with the same relation should
- * be issued when ready. When this happens the caller should use the
- * value returned in 'next_start_lsn' in each subsequent calls as the
- * begin lsn value in the request entry for this relation.
+ * We restrict the total number of changes that this routine returns to
+ * gp_filerep_ct_batch_size, in order to not overflow memory.  If a specific
+ * relation is expected to have more than this number of changes, this routine
+ * will return the first gp_filerep_ct_batch_size change, along with setting
+ * the 'ask_for_more' flag in the result to indicate to the caller that a
+ * request with the same relation should be issued when ready.  When this
+ * happens the caller should set last_fetched in the relation's request to the
+ * highest block number seen so far.
  */
 ChangeTrackingResult* ChangeTracking_GetChanges(ChangeTrackingRequest *request)
 {
@@ -1598,25 +1592,23 @@ ChangeTrackingResult* ChangeTracking_GetChanges(ChangeTrackingRequest *request)
 
 	for(i = 0 ; i < request->count ;  i++)
 	{
-		XLogRecPtr 	lsn_start = request->entries[i].lsn_start;
-		XLogRecPtr 	lsn_end  = request->entries[i].lsn_end;
-
 		Oid 	space = request->entries[i].relFileNode.spcNode;
 		Oid 	db = request->entries[i].relFileNode.dbNode;
 		Oid 	rel = request->entries[i].relFileNode.relNode;
-				
+		BlockNumber last_fetched = request->entries[i].last_fetched;
+
 		if(i != 0)
 			appendStringInfo(&sqlstmt, "OR ");
 		
 		appendStringInfo(&sqlstmt, "(space = %u AND "
 								   "db = %u AND "
-								   "rel = %u AND "
-								   "xlogloc <= '(%X/%X)' AND "
-								   "xlogloc >= '(%X/%X)') ",
-								   space, db, rel, lsn_end.xlogid, lsn_end.xrecoff, 
-								   lsn_start.xlogid, lsn_start.xrecoff);
-		
-		/* TODO: use gpxloglocout() to format the '(%X/%X)' instead of doing it manually here */
+								   "rel = %u",
+								   space, db, rel);
+		if (last_fetched > 0)
+			appendStringInfo(&sqlstmt, " AND blocknum > %u) ", last_fetched);
+		else
+			appendStringInfo(&sqlstmt, ") ");
+
 	}
 	appendStringInfo(&sqlstmt, "GROUP BY space, db, rel, blocknum "
 							   "ORDER BY space, db, rel, blocknum ");
@@ -1733,16 +1725,13 @@ ChangeTrackingResult* ChangeTracking_GetChanges(ChangeTrackingRequest *request)
 				/* TODO: in the above should use DatumGetXLogLoc instead, but it's not public */
 			
 				/* 
-				 * skip the last "extra" entry if satisfied_request is false, and suggest
-				 * the lsn to use in the next request for this same relation. 
+				 * skip the last "extra" entry if satisfied_request is false
 				 */
 				if(i == gp_filerep_ct_batch_size)
 				{
 					Assert(!satisfied_request);
 					Assert(result->ask_for_more);
-					result->next_start_lsn = *endlsn;
 					MemoryContextSwitchTo(cxt_save);
-					
 					break;
 				}
 
