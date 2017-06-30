@@ -1398,76 +1398,28 @@ CPredicateUtils::FCompareIdentToConst
 	return true;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FIdentCmpConstIgnoreCast
-//
-//	@doc:
-// 		Is the given expression of the form (col cmp constant)
-//		ignoring casting on either sides
-//---------------------------------------------------------------------------
-BOOL
-CPredicateUtils::FIdentCmpConstIgnoreCast
-	(
-	CExpression *pexpr
-	)
-{
-	COperator *pop = pexpr->Pop();
-
-	if (COperator::EopScalarCmp != pop->Eopid())
-	{
-		return false;
-	}
-
-	CExpression *pexprLeft = (*pexpr)[0];
-	CExpression *pexprRight = (*pexpr)[1];
-
-	// col cmp const
-	if (COperator::EopScalarIdent == pexprLeft->Pop()->Eopid() && COperator::EopScalarConst == pexprRight->Pop()->Eopid())
-	{
-		return true;
-	}
-
-	// cast(col) cmp const
-	if (CScalarIdent::FCastedScId(pexprLeft) && COperator::EopScalarConst == pexprRight->Pop()->Eopid())
-	{
-		return true;
-	}
-
-	// col cmp cast(constant)
-	if (COperator::EopScalarIdent == pexprLeft->Pop()->Eopid() && CScalarConst::FCastedConst(pexprRight))
-	{
-		return true;
-	}
-
-	// cast(col) cmp cast(constant)
-	if (CScalarIdent::FCastedScId(pexprLeft) && CScalarConst::FCastedConst(pexprRight))
-	{
-		return true;
-	}
-
-	return false;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FIdentIDFConstIgnoreCast
-//
-//	@doc:
-// 		Is the given expression is of the form (col IS DISTINCT FROM const)
-//		ignoring cast on either sides
-//---------------------------------------------------------------------------
+// is the given expression is of the form (col IS DISTINCT FROM const)
+// ignoring cast on either sides
 BOOL
 CPredicateUtils::FIdentIDFConstIgnoreCast
-	(
+(
 	CExpression *pexpr
+	)
+{
+	return FIdentCompareConstIgnoreCast(pexpr, COperator::EopScalarIsDistinctFrom);
+}
+
+// is the given expression of the form (col cmp constant) ignoring casting on either sides
+BOOL
+CPredicateUtils::FIdentCompareConstIgnoreCast
+	(
+	CExpression *pexpr,
+	COperator::EOperatorId eopid
 	)
 {
 	COperator *pop = pexpr->Pop();
 
-	if (COperator::EopScalarIsDistinctFrom != pop->Eopid())
+	if (eopid != pop->Eopid())
 	{
 		return false;
 	}
@@ -1522,7 +1474,7 @@ CPredicateUtils::FIdentINDFConstIgnoreCast
 		return false;
 	}
 
-	return FIdentIDFConstIgnoreCast((*pexpr)[0]);
+	return FIdentCompareConstIgnoreCast((*pexpr)[0], COperator::EopScalarIsDistinctFrom);
 }
 
 //---------------------------------------------------------------------------
