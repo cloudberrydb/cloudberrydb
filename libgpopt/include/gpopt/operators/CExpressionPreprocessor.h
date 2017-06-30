@@ -194,6 +194,10 @@ namespace gpopt
 			static BOOL
 			FConvert2InIsConvertable(CExpression *pexpr, CScalarBoolOp::EBoolOperator eboolop);
 
+			// reorder the scalar cmp children to ensure that left child is Scalar Ident and right Child is Scalar Const
+			static CExpression *
+			PexprReorderScalarCmpChildren(IMemoryPool *pmp, CExpression *pexpr);
+
 			// private ctor
 			CExpressionPreprocessor();
 

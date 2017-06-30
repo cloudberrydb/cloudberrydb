@@ -21,6 +21,7 @@
 #include "gpopt/operators/CExpressionHandle.h"
 
 #include "naucrates/md/IMDTypeBool.h"
+#include "naucrates/md/IMDScalarOp.h"
 
 using namespace gpopt;
 using namespace gpmd;
@@ -179,6 +180,51 @@ CScalarCmp::Eber
 	return EberUnknown;
 }
 
+// get metadata id of the commuted operator
+IMDId *
+CScalarCmp::PmdidCommuteOp
+	(
+	CMDAccessor *pmda,
+	COperator *pop
+	)
+{
+	CScalarCmp *popScalarCmp = dynamic_cast<CScalarCmp *>(pop);
+	const IMDScalarOp *pmdScalarCmpOp = pmda->Pmdscop(popScalarCmp->PmdidOp());
+
+	IMDId *pmdidScalarCmpCommute = pmdScalarCmpOp->PmdidOpCommute();
+	return pmdidScalarCmpCommute;
+}
+
+// get the string representation of a metadata object
+CWStringConst *
+CScalarCmp::Pstr
+	(
+	IMemoryPool *pmp,
+	CMDAccessor *pmda,
+	IMDId *pmdid
+	)
+{
+	pmdid->AddRef();
+	return GPOS_NEW(pmp) CWStringConst(pmp, (pmda->Pmdscop(pmdid)->Mdname().Pstr())->Wsz());
+}
+
+// get commuted scalar comparision operator
+CScalarCmp *
+CScalarCmp::PopCommutedOp
+	(
+	IMemoryPool *pmp,
+	COperator *pop
+	)
+{
+	
+	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+	IMDId *pmdid = PmdidCommuteOp(pmda, pop);
+	if (NULL != pmdid && pmdid->FValid())
+	{
+		return GPOS_NEW(pmp) CScalarCmp(pmp, pmdid, Pstr(pmp, pmda, pmdid), CUtils::Ecmpt(pmdid));
+	}
+	return NULL;
+}
 
 //---------------------------------------------------------------------------
 //	@function:

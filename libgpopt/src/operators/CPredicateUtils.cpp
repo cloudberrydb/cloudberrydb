@@ -2167,20 +2167,15 @@ CPredicateUtils::PexprIndexLookupKeyOnRight
 	if (CUtils::FScalarCmp(pexprScalar))
 	{
 		CScalarCmp *popScCmp = CScalarCmp::PopConvert(pexprScalar->Pop());
-		
-		const IMDScalarOp *pmdscalarop = pmda->Pmdscop(popScCmp->PmdidOp());
-		IMDId *pmdidscalaropCommute = pmdscalarop->PmdidOpCommute();
+		CScalarCmp *popScCmpCommute = popScCmp->PopCommutedOp(pmp, pexprScalar->Pop());
 
-		if (pmdidscalaropCommute->FValid())
+		if (popScCmpCommute)
 		{
 
 			// build new comparison after switching arguments and using commutative comparison operator
 			pexprRight->AddRef();
 			pexprLeft->AddRef();
-			pmdidscalaropCommute->AddRef();
-			const CWStringConst *pstr = pmda->Pmdscop(pmdidscalaropCommute)->Mdname().Pstr();
-
-			CExpression *pexprCommuted = CUtils::PexprScalarCmp(pmp, pexprRight, pexprLeft, *pstr, pmdidscalaropCommute);
+			CExpression *pexprCommuted = GPOS_NEW(pmp) CExpression(pmp, popScCmpCommute, pexprRight, pexprLeft);
 			CExpression *pexprIndexCond = PexprIndexLookupKeyOnLeft(pmp, pmda, pexprCommuted, pmdindex, pdrgpcrIndex, pcrsOuterRefs);
 			pexprCommuted->Release();
 

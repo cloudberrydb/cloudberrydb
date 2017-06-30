@@ -301,9 +301,9 @@ SELECT * FROM my_tq_agg_small tq WHERE 110 >= tq.ets;
       </dxl:OutputColumns>
       <dxl:CTEList/>
       <dxl:LogicalSelect>
-        <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="110"/>
+        <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
           <dxl:Ident ColId="1" ColName="ets" TypeMdid="0.23.1.0"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="110"/>
         </dxl:Comparison>
         <dxl:LogicalGet>
           <dxl:TableDescriptor Mdid="0.31763855.1.1" TableName="my_tq_agg_small">
@@ -372,9 +372,9 @@ SELECT * FROM my_tq_agg_small tq WHERE 110 >= tq.ets;
 	      </dxl:ProjList>
 	      <dxl:Filter/>
 	      <dxl:RecheckCond>
-	        <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-	          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="110"/>
+	        <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
 	          <dxl:Ident ColId="0" ColName="ets" TypeMdid="0.23.1.0"/>
+	          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="110"/>
 	        </dxl:Comparison>
 	      </dxl:RecheckCond>
 	      <dxl:BitmapIndexProbe>

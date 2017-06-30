@@ -149,6 +149,20 @@ namespace gpopt
 
 				return dynamic_cast<CScalarCmp*>(pop);
 			}
+		
+			// get commuted scalar comparision operator
+			virtual
+			CScalarCmp *PopCommutedOp(IMemoryPool *pmp, COperator *pop);
+		
+			// get the string representation of a metadata object
+			static
+			CWStringConst *Pstr(IMemoryPool *pmp, CMDAccessor *pmda, IMDId *pmdid);
+
+			// get metadata id of the commuted operator
+			static
+			IMDId *PmdidCommuteOp(CMDAccessor *pmda, COperator *pop);
+		
+		
 
 	}; // class CScalarCmp
 

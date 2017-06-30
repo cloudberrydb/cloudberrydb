@@ -2206,6 +2206,51 @@ CExpressionPreprocessor::PexprPruneProjListProjectOrGbAgg
 	return pexprResult;
 }
 
+
+// reorder the child for scalar comparision to ensure that left child is a scalar ident and right child is a scalar const if not
+CExpression *
+CExpressionPreprocessor::PexprReorderScalarCmpChildren
+	(
+	IMemoryPool *pmp,
+	CExpression *pexpr
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
+
+	COperator *pop = pexpr->Pop();
+	if (CUtils::FScalarCmp(pexpr) || COperator::EopScalarIsDistinctFrom == pexpr->Pop()->Eopid())
+	{
+		GPOS_ASSERT(2 == pexpr->UlArity());
+		CExpression *pexprLeft = (*pexpr)[0];
+		CExpression *pexprRight = (*pexpr)[1];
+
+		if (CUtils::FScalarConst(pexprLeft) && CUtils::FScalarIdent(pexprRight))
+		{
+			CScalarCmp *popScalarCmpCommuted = (dynamic_cast<CScalarCmp *>(pop))->PopCommutedOp(pmp, pop);
+			if (popScalarCmpCommuted)
+			{
+				pexprLeft->AddRef();
+				pexprRight->AddRef();
+				return GPOS_NEW(pmp) CExpression(pmp, popScalarCmpCommuted, pexprRight, pexprLeft);
+			}
+		}
+	}
+
+	// process children
+	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
+	const ULONG ulChildren = pexpr->UlArity();
+
+	for (ULONG ul = 0; ul < ulChildren; ul++)
+	{
+		CExpression *pexprChild = PexprReorderScalarCmpChildren(pmp, (*pexpr)[ul]);
+		pdrgpexpr->Append(pexprChild);
+	}
+
+	pop->AddRef();
+	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexpr);
+}
+
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CExpressionPreprocessor::PexprPreprocess
@@ -2353,7 +2398,12 @@ CExpressionPreprocessor::PexprPreprocess
 	GPOS_CHECK_ABORT;
 	pexprCollapsedProjects->Release();
 
-	return pexprSubquery;
+	// (24) reorder the children of scalar cmp operator to ensure that left child is scalar ident and right child is scalar const
+	CExpression *pexrReorderedScalarCmpChildren = PexprReorderScalarCmpChildren(pmp, pexprSubquery);
+	GPOS_CHECK_ABORT;
+	pexprSubquery->Release();
+
+	return pexrReorderedScalarCmpChildren;
 }
 
 // EOF

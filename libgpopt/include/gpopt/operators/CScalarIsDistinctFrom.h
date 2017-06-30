@@ -71,35 +71,15 @@ namespace gpopt
 			}
 
 			virtual
-			BOOL FMatch
-				(
-				COperator *pop
-				)
-				const
-			{
-				if (pop->Eopid() == Eopid())
-				{
-					CScalarIsDistinctFrom *popIDF = CScalarIsDistinctFrom::PopConvert(pop);
-
-					// match if operator mdids are identical
-					return PmdidOp()->FEquals(popIDF->PmdidOp());
-				}
-
-				return false;
-			}
+			BOOL FMatch(COperator *pop) const;
 
 			// conversion function
 			static
-			CScalarIsDistinctFrom *PopConvert
-				(
-				COperator *pop
-				)
-			{
-				GPOS_ASSERT(NULL != pop);
-				GPOS_ASSERT(EopScalarIsDistinctFrom == pop->Eopid());
+			CScalarIsDistinctFrom *PopConvert(COperator *pop);
 
-				return reinterpret_cast<CScalarIsDistinctFrom*>(pop);
-			}
+			// get commuted scalar IDF operator
+			virtual
+			CScalarIsDistinctFrom *PopCommutedOp(IMemoryPool *pmp, COperator *pop);
 
 	}; // class CScalarIsDistinctFrom
 
