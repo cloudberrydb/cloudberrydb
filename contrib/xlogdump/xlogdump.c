@@ -543,6 +543,10 @@ dumpXLogRecord(XLogRecord *record, bool header_only)
 			print_rmgr_seq(curRecPtr, record, info);
 			break;
 
+		case RM_MMXLOG_ID:
+			print_rmgr_mmxlog(curRecPtr, record, info);
+			break;
+
 #ifdef USE_SEGWALREP
 		case RM_APPEND_ONLY_ID:
 			print_rmgr_ao(curRecPtr, record, info);
