@@ -1808,7 +1808,6 @@ void
 redoDtxCheckPoint(TMGXACT_CHECKPOINT *gxact_checkpoint)
 {
 	int committedCount;
-	int segmentCount;
 
 	int i;
 
@@ -1817,9 +1816,7 @@ redoDtxCheckPoint(TMGXACT_CHECKPOINT *gxact_checkpoint)
 	 */
 
 	committedCount = gxact_checkpoint->committedCount;
-	segmentCount = gxact_checkpoint->segmentCount;
-	elog(DTM_DEBUG5, "redoDtxCheckPoint has committedCount = %d, "
-		 "segmentCount = %d", committedCount, segmentCount);
+	elog(DTM_DEBUG5, "redoDtxCheckPoint has committedCount = %d", committedCount);
 	if (Debug_persistent_recovery_print)
 	{
 		elog(PersistentRecovery_DebugPrintLevel(),
@@ -2847,7 +2844,6 @@ getDtxCheckPointInfoAndLock(char **result, int *result_size)
 	}
 
 	gxact_checkpoint->committedCount = actual;
-	gxact_checkpoint->segmentCount = 0;		/* UNDONE: Not used yet. */
 
 	*result = (char*)gxact_checkpoint;
 	*result_size = TMGXACT_CHECKPOINT_BYTES(actual);

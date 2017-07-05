@@ -36,8 +36,6 @@ struct TMGXACT_LOG
 typedef struct TMGXACT_CHECKPOINT
 {
 	int						committedCount;
-	int						segmentCount;
-
     /* Array [0..committedCount-1] of TMGXACT_LOG structs begins here */
 	TMGXACT_LOG				committedGxactArray[1];
 }	TMGXACT_CHECKPOINT;

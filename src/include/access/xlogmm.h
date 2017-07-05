@@ -79,17 +79,12 @@ typedef struct dbdir_map
 	Oid databaseoid;
 } dbdir_map;
 
-
 /*
  * Container of filespaces/tablespaces used to accumulate mappings
  */
 typedef struct fspc_agg_state
 {
-	union
-	{
-		int count;
-		int64 dummy;
-	};
+	int count;
 	fspc_map maps[0]; /* variable length */
 } fspc_agg_state;
 
@@ -98,11 +93,7 @@ typedef struct fspc_agg_state
 
 typedef struct tspc_agg_state
 {
-	union
-	{
-		int count;
-		int64 dummy;
-	};
+	int count;
 	tspc_map maps[0]; /* variable length */
 } tspc_agg_state;
 
@@ -111,11 +102,7 @@ typedef struct tspc_agg_state
 
 typedef struct dbdir_agg_state
 {
-	union
-	{
-		int count;
-		int64 dummy;
-	};
+	int count;
 	dbdir_map maps[0]; /* variable length */
 } dbdir_agg_state;
 
