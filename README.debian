@@ -14,6 +14,7 @@ apt-get install -y libcurl4-dev
 apt-get install -y libbz2-dev
 apt-get install -y python-dev
 apt-get install -y ssh
+apt-get install -y libapr1-dev
 
 apt-get install -y libcurl4-dev
 Package libcurl4-dev is a virtual package provided by:
