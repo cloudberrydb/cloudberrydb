@@ -435,7 +435,7 @@ CCostContext::FBetterThan
 	// RULE 2: hashed distribution is preferred to random distribution since
 	// it preserves knowledge of hash key
 	if (CDistributionSpec::EdtHashed == Pdpplan()->Pds()->Edt() &&
-		CDistributionSpec::EdtRandom == Pdpplan()->Pds()->Edt())
+		CDistributionSpec::EdtRandom == pcc->Pdpplan()->Pds()->Edt())
 	{
 		return true;
 	}
