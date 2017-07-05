@@ -760,31 +760,37 @@ class CatThread(threading.Thread):
         self.theLock = sharedLock
 
     def run(self):
-        if windowsPlatform == True:
-           while 1:
-               # Windows select does not support select on non-file fd's, so we can use the lock fix. Deadlock is possible here.
-               # We need to look into the Python windows module to see if there is another way to do this in Windows.
-               line = self.fd.readline()
-               if line=='':
-                   break
-               self.gpload.log(self.gpload.DEBUG, 'gpfdist: ' + line.strip('\n'))
-        else:
-           while 1:
-               retList = select.select( [self.fd]
-                                      , []
-                                      , []
-                                      , 1
-                                      )
-               if retList[0] == [self.fd]:
-                  self.theLock.acquire()
-                  line = self.fd.readline()
-                  self.theLock.release()
-               else:
-                  continue
-               if line=='':
-                  break
-               self.gpload.log(self.gpload.DEBUG, 'gpfdist: ' + line.strip('\n'))
-
+        try:
+            if windowsPlatform == True:
+                while 1:
+                    # Windows select does not support select on non-file fd's, so we can use the lock fix. Deadlock is possible here.
+                    # We need to look into the Python windows module to see if there is another way to do this in Windows.
+                    line = self.fd.readline()
+                    if line=='':
+                        break
+                    self.gpload.log(self.gpload.LOG, 'gpfdist: ' + line.strip('\n'))
+            else:
+                while 1:
+                    retList = select.select( [self.fd]
+                                            , []
+                                            , []
+                                            , 1
+                                            )
+                    if retList[0] == [self.fd]:
+                        self.theLock.acquire()
+                        line = self.fd.readline()
+                        self.theLock.release()
+                    else:
+                        continue
+                    if line=='':
+                        break
+                    self.gpload.log(self.gpload.LOG, 'gpfdist: ' + line.strip('\n'))
+        except Exception, e:
+            # close fd so that not block the worker thread because of stdout/stderr pipe not finish/closed.
+            self.fd.close()
+            sys.stderr.write("\n\nWarning: gpfdist log halt because Log Thread '%s' got an exception: %s \n" % (self.getName(), str(e)))
+            self.gpload.log(self.gpload.WARN, "gpfdist log halt because Log Thread '%s' got an exception: %s" % (self.getName(), str(e)))
+            raise
 
 class Progress(threading.Thread):
     """
@@ -1304,12 +1310,16 @@ class gpload:
         """
         Level is either DEBUG, LOG, INFO, ERROR. a is the message
         """
-        t = time.localtime()
-        str = '|'.join(
+        try:
+            t = time.localtime()
+            str = '|'.join(
                        [datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S'),
                         self.elevel2str(level), a]) + '\n'
 
-        str = str.encode('utf-8')
+            str = str.encode('utf-8')
+        except Exception, e:
+            # log even if contains non-utf8 data and pass this exception
+            self.logfile.write("\nWarning: Log() threw an exception: %s \n" % (e))
 
         if level <= self.options.qv:
             sys.stdout.write(str)
