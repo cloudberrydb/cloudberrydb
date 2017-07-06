@@ -348,18 +348,24 @@ print_rmgr_xact(XLogRecPtr cur, XLogRecord *record, uint8 info, bool hideTimesta
 
 		memcpy(&xlrec, XLogRecGetData(record), sizeof(xlrec));
 #if PG_VERSION_NUM >= 90000
-		snprintf(buf, sizeof(buf), "commit prepared xid:%d, dbid:%d, spcid:%d, commit at %s",
-			 xlrec.xid,
-			 xlrec.crec.dbId, xlrec.crec.tsId,
-			 str_time(_timestamptz_to_time_t(xlrec.crec.xact_time)));
+		snprintf(buf, sizeof(buf), "commit prepared xid:%d, dxid:%d, dtimeStamp:%d dbid:%d, spcid:%d, commit at %s",
+				 xlrec.xid,
+				 xlrec.distribXid,
+				 xlrec.distribTimeStamp,
+				 xlrec.crec.dbId, xlrec.crec.tsId,
+				 str_time(_timestamptz_to_time_t(xlrec.crec.xact_time)));
 #elif PG_VERSION_NUM >= 80300
-		snprintf(buf, sizeof(buf), "commit prepared xid:%d, commit at %s",
-			 xlrec.xid,
-			 str_time(_timestamptz_to_time_t(xlrec.crec.xact_time)));
+		snprintf(buf, sizeof(buf), "commit prepared xid:%d, dxid:%d, dtimeStamp:%d commit at %s",
+				 xlrec.xid,
+				 xlrec.distribXid,
+				 xlrec.distribTimeStamp,
+				 str_time(_timestamptz_to_time_t(xlrec.crec.xact_time)));
 #else
-		snprintf(buf, sizeof(buf), "commit prepared xid:%d, commit at %s",
-			 xlrec.xid,
-			 str_time(_timestamptz_to_time_t(xlrec.crec.xtime)));
+		snprintf(buf, sizeof(buf), "commit prepared xid:%d, dxid:%d, dtimeStamp:%d commit at %s",
+				 xlrec.xid,
+				 xlrec.distribXid,
+				 xlrec.distribTimeStamp,
+				 str_time(_timestamptz_to_time_t(xlrec.crec.xtime)));
 #endif
 		}
 		break;

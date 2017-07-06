@@ -135,6 +135,8 @@ typedef struct xl_xact_abort
 typedef struct xl_xact_commit_prepared
 {
 	TransactionId xid;			/* XID of prepared xact */
+	DistributedTransactionTimeStamp distribTimeStamp;
+	DistributedTransactionId        distribXid;
 	xl_xact_commit crec;		/* COMMIT record */
 	/* MORE DATA FOLLOWS AT END OF STRUCT */
 } xl_xact_commit_prepared;

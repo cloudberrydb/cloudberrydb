@@ -2050,8 +2050,16 @@ RecordTransactionCommitPrepared(TransactionId xid,
 	 */
 	Assert(MyProc->inCommit);
 
+	/*
+	 * Crack open the gid to get the DTM start time and distributed
+	 * transaction id.
+	 */
+	dtxCrackOpenGid(gid, &distribTimeStamp, &distribXid);
+
 	/* Emit the XLOG commit record */
 	xlrec.xid = xid;
+	xlrec.distribTimeStamp = distribTimeStamp;
+	xlrec.distribXid = distribXid;
 	xlrec.crec.xtime = time(NULL);
 	xlrec.crec.persistentCommitObjectCount = persistentCommitObjectCount;
 	xlrec.crec.nsubxacts = nchildren;
@@ -2121,12 +2129,6 @@ RecordTransactionCommitPrepared(TransactionId xid,
 
 	if (max_wal_senders > 0)
 		WalSndWakeup();
-
-	/*
-	 * Crack open the gid to get the DTM start time and distributed
-	 * transaction id.
-	 */
-	dtxCrackOpenGid(gid, &distribTimeStamp, &distribXid);
 
 	/* UNDONE: What are the locking issues here? */
 	/*

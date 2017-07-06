@@ -5865,15 +5865,25 @@ xact_get_distributed_info_from_commit(xl_xact_commit *xlrec)
 	return (TMGXACT_LOG*) &sub_xids[xlrec->nsubxacts];
 }
 
-
 static void
-xact_redo_commit(xl_xact_commit *xlrec, TransactionId xid)
+xact_redo_commit(xl_xact_commit *xlrec, TransactionId xid,
+				 DistributedTransactionId distribXid,
+				 DistributedTransactionTimeStamp distribTimeStamp)
 {
 	uint8	   *data;
 	PersistentEndXactRecObjects persistentCommitObjects;
 	TransactionId *sub_xids;
 	TransactionId max_xid;
 	int			i;
+
+	if (distribXid != 0 && distribTimeStamp != 0)
+	{
+		DistributedLog_SetCommitted(
+			xid,
+			distribTimeStamp,
+			distribXid,
+			/* isRedo */ true);
+	}
 
 	TransactionIdCommit(xid);
 
@@ -6072,7 +6082,7 @@ xact_redo(XLogRecPtr beginLoc __attribute__((unused)), XLogRecPtr lsn __attribut
 	{
 		xl_xact_commit *xlrec = (xl_xact_commit *) XLogRecGetData(record);
 
-		xact_redo_commit(xlrec, record->xl_xid);
+		xact_redo_commit(xlrec, record->xl_xid, 0, 0);
 	}
 	else if (info == XLOG_XACT_ABORT)
 	{
@@ -6090,7 +6100,7 @@ xact_redo(XLogRecPtr beginLoc __attribute__((unused)), XLogRecPtr lsn __attribut
 	{
 		xl_xact_commit_prepared *xlrec = (xl_xact_commit_prepared *) XLogRecGetData(record);
 
-		xact_redo_commit(&xlrec->crec, xlrec->xid);
+		xact_redo_commit(&xlrec->crec, xlrec->xid, xlrec->distribXid, xlrec->distribTimeStamp);
 		RemoveTwoPhaseFile(xlrec->xid, false);
 	}
 	else if (info == XLOG_XACT_ABORT_PREPARED)
