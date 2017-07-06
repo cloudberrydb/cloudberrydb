@@ -217,8 +217,7 @@ tables have a similar issue, since the implementation encodes the eof
 for each file of the cols of a segno in a single raw vpinfo struct
 (containing a variable length array) that is stored in a catalog
 column as a bytea.  In particular (see MPP-10900), we assume that
-platform is 64-bit aligned little-endian (x86), with the exception
-that all Mac is 32-bit aligned.
+platform is 64-bit aligned little-endian (x86).
 
 =head1 AUTHORS
 
@@ -499,6 +498,7 @@ sub ignore_list
 		gp_temporary_files_filespace
 		gp_transaction_files_filespace
 		slru_checksum_file
+                errlog
 		);
 
 	# add any other expressions (eg user-supplied)
@@ -756,8 +756,8 @@ sub get_presh2_txt
 #			
 #			if ($readlen && ($readlen < $bufl))
 #			{
-#				warn "file $filnam shorter than $orig_sz bytes";
-#				die "read only $cur_sz bytes (last block $readlen bytes vs $bufl)" ;
+#				warn "file $filnam shorter than $orig_sz bytes\n";
+#				die "read only $cur_sz bytes (last block $readlen bytes vs $bufl)\n" ;
 #			}
 #			
 #			if ($bufsiz > $sz)
@@ -1241,21 +1241,11 @@ sub find_eof_in_vpinfo
 
 		my $nentry = $ppp[0];
 
-		# MPP-10900: treat all platforms as 64 bit aligned (except
-		# mac).  XXX XXX: May need to get a bit more sophisticated at
-		# a later date to handle platforms like 64 bit mac, 32 bit
-		# Centos, or Sparc.
-		my $isMac = 0;
-
-		$isMac = 
-			($Config{'osname'} =~ m/darwin|mac|apple/i);
-
 		# two 64 bit (I2) fields in each entry, so multiply by 4
 		my $nentry2 = $nentry * 4;
 
-		# the mac is 32 bit aligned, but other platforms are 64 bit
-		# aligned, so we need another 32 bits of packing.
-		$nentry2++ unless $isMac;
+		# 64 bit aligned, so we need another 32 bits of packing.
+		$nentry2++;
 
 		@ppp = unpack("I2 I$nentry2", $bigbuf);
 
@@ -1264,7 +1254,7 @@ sub find_eof_in_vpinfo
 		shift @ppp;
 
 		# and discard the packing...
-		shift @ppp unless $isMac;
+		shift @ppp;
 
 #		print "\nppp: \n",Data::Dumper->Dump(\@ppp);
 
@@ -1584,7 +1574,7 @@ sub get_relfilenode_func
 			}
 
 			unless (exists($rnod->{relkind})
-					&& ($rnod->{relkind} =~ m/^(r|o|t|i)$/))
+					&& ($rnod->{relkind} =~ m/^(r|o|t|i|b|m|S)$/))
 			{
 				$bstat = 0;
 				print Data::Dumper->Dump([$vv2]),"\n";
