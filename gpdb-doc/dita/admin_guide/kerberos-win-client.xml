@@ -221,9 +221,8 @@ kinit</codeblock></li>
         for single sign-on to a Greenplum Database system. </p>
       <p>You configure an AD user account to support logging in with Kerberos authentication. </p>
       <p>With AD single sign-on, a Windows user can use Active Directory credentials with a Windows
-        client application to log into a Greenplum Database system. For example, a Windows user can
-        use Active Directory credentials with PGadmin III to access a Greenplum Database system.
-        Also, for Windows applications that use ODBC, the ODBC driver can use Active Directory
+        client application to log into a Greenplum Database system. 
+        For Windows applications that use ODBC, the ODBC driver can use Active Directory
         credentials to connect to a Greenplum Database system.</p>
       <note>Greenplum Database clients that run on Windows, like <codeph>gpload</codeph>, connect
         with Greenplum Database directly and do not use Active Directory. For information about
@@ -403,15 +402,6 @@ psql -h prod1.example.local -U dev1</codeblock>
         <title>Single Sign-On Examples</title>
         <p>These single sign-on examples that use AD and Kerberos assume that the AD user
             <codeph>dev1</codeph> configured for single sign-on is logged into the Windows desktop. </p>
-        <p>This example connects to Greenplum Database from pgAdmin III with single sign-on. You
-          must specify the fully qualified hostname as the Host and the Windows user ID
-            (<codeph>dev1</codeph>) as the Username when completing the New Server Registration.</p>
-        <p>
-          <image href="graphics/kerb-pgadmin-config.png" placement="break" width="319px"
-            height="327px" id="image_rb2_jfx_tv"/>
-        </p>
-        <p>Also, when you reconnect to the database, pgAdmin III prompts for a password. When
-          prompted, leave the field blank and click OK. </p>
         <p>This example configures Aginity Workbench for Greenplum Database. When using single
           sign-on, you enable Use Integrated Security.</p>
         <p>
