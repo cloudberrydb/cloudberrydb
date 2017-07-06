@@ -14,12 +14,11 @@ directory, but was originally copy-pasted from append-only code, and
 the high-level layout of the files is the same.
 
 
-Segment file format
--------------------
+# Segment file format
 
 The tuples in an append-optimized table are stored in a number of
 "segment files", or "segfiles" for short. The segment files are stored
-in the data directory, in files name "<relfilenode>.<segno>", just like
+in the data directory, in files name "`<relfilenode>.<segno>`", just like
 heap tables.  Unlike heap tables, each segment in an append-only table
 can have different size, and some of them can even be missing. They can
 also be larger than 1 GB, and are not expanded in BLCKSZ-sized blocks,
@@ -37,24 +36,22 @@ cdbappendonlystorage_int.h. The header also contains two checksums,
 one for the header, and another for the whole block.
 
 
-pg_appendonly table
--------------------
+# pg_appendonly table
 
-The "pg_appendonly" catalog table stores extra information for each AO
-table.  You can think of it as an extension of pg_class.
+The "`pg_appendonly`" catalog table stores extra information for each AO
+table.  You can think of it as an extension of `pg_class`.
 
 
-Aosegments table
-----------------
+# Aosegments table
 
 In addition to the segment files that store the user data, there are
 three auxiliary heap tables for each AO table, which store metadata.
-The aosegments table is always named as "pg_aoseg.pg_aoseg_<oid>",
-where <oid> is the initial Oid with which the table was created. This
+The aosegments table is always named as "`pg_aoseg.pg_aoseg_<oid>`",
+where `<oid>` is the initial Oid with which the table was created. This
 is not guaranteed to match the current Oid of the aosegments table,
 as some ALTER TABLE operations will rewrite the table causing the
 Oid to change. In order to find the aosegments table of an AO table,
-the "pg_catalog.pg_appendonly" catalog relation must be queried.
+the "`pg_catalog.pg_appendonly`" catalog relation must be queried.
 Aosegment tables are similar to the TOAST tables, for heaps. An
 append-only table can have a TOAST table, too, in addition to the
 AO-specific auxiliary tables.
@@ -75,22 +72,21 @@ that transaction will still see the old EOF value, and therefore also
 ignore the newly-inserted data.
 
 
-Visibility map table
---------------------
+# Visibility map table
 
 The visibility map for each AO table is stored in a heap table named
-"pg_aoseg.pg_aovisimap_<oid>".  It is not to be confused with
+"`pg_aoseg.pg_aovisimap_<oid>`".  It is not to be confused with
 the visibility map used for heaps in PostgreSQL 8.4 and above!
 
-The AO visibility map is used to implement DELETEs and UPDATEs. An
-UPDATE in PostgreSQL is like DELETE+INSERT. In heap tables, the ctid
+The AO visibility map is used to implement `DELETEs` and `UPDATEs`. An
+`UPDATE` in PostgreSQL is like `DELETE+INSERT`. In heap tables, the ctid
 field is used to implement update-chain-following when updates are
-done in in READ COMMITTED mode, but AO tables don't store that
+done in in `READ COMMITTED` mode, but AO tables don't store that
 information, so an update of a recently updated row in read committed
 mode behaves as if the row was deleted.
 
 The AO visiblity map works as an overlay, over the data. When a row
-is DELETEd from an AO table, the original tuple is not modified. Instead,
+is `DELETEd` from an AO table, the original tuple is not modified. Instead,
 the tuple is marked as dead in the visibility map.
 
 The tuples in the visibility map follow the normal MVCC rules. When
@@ -105,8 +101,7 @@ visibility, and it will therefore still see the old AO tuple as
 visible.
 
 
-Block directory table
----------------------
+# Block directory table
 
 The block directory is used to enable random access to an append-only
 table. Normally, the blocks in an append-only table are read
@@ -117,29 +112,27 @@ the AO tuple with given TID. So there is one extra level of indirection
 with index scans on an AO table, compared to a heap table.
 
 The block directory is only created if it's needed, by the first
-CREATE INDEX command on an AO table.
+`CREATE INDEX` command on an AO table.
 
 
-TIDs and indexes
-----------------
+# TIDs and indexes
 
 Indexes, and much of the rest of the system, expect every tuple to
-have a unique physical identifier, the Tuple Identifier, or TID. In a
+have a unique physical identifier, the Tuple Identifier, or `TID`. In a
 heap table, it consists of the heap block number, and item number in
 the page. An AO table uses a very different physical layout,
 however. A row can be located by the combination of the segfile number
 its in, and its row number within the segfile. Those two numbers are
 mapped to the heap-style block+offset number, so that they look like
-regular heap TIDs, and can be passed around the rest of the system,
+regular heap `TIDs`, and can be passed around the rest of the system,
 and stored in indexes. See appendonlytid.h for details.
 
 
-Vacuum
-------
+# Vacuum
 
 Append-only segment files are read-only after they're written, so
 Vacuum cannot modify them either. Vacuum reads tuples from an existing
 segment file, leaves out those tuples that are dead, and writes other
 tuples back to a different segment file. Finally, the old segment file
-is deleted. This is like VACUUM FULL on heap tables: new index entries
+is deleted. This is like `VACUUM FULL` on heap tables: new index entries
 are created for every moved tuple.
