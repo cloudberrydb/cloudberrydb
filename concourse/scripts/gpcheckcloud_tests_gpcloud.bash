@@ -15,7 +15,7 @@ function gen_env(){
 	if [ "$overwrite_gpcloud" = "true" ]
 	then
 		cd "\${1}/gpdb_src/gpAux/extensions/gpcloud"
-		make install -C bin/gpcheckcloud
+		make install -C bin/gpcheckcloud USE_PGXS=1
 	fi
 
 	cd "\${1}/gpdb_src/gpAux/extensions/gpcloud/regress"
