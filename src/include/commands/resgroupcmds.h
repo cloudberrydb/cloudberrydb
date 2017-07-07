@@ -23,10 +23,10 @@ extern void AlterResourceGroup(AlterResourceGroupStmt *stmt);
 extern Oid GetResGroupIdForName(char *name, LOCKMODE lockmode);
 extern char *GetResGroupNameForId(Oid oid, LOCKMODE lockmode);
 extern void GetConcurrencyForResGroup(int groupId, int *value, int *proposed);
-extern float GetCpuRateLimitForResGroup(int groupId);
+extern int GetCpuRateLimitForResGroup(int groupId);
 extern Oid GetResGroupIdForRole(Oid roleid);
-extern void GetMemoryCapabilitiesForResGroup(int groupId, float *memoryLimit,
-											 float *sharedQuota, float *spillRatio);
+extern void GetMemoryCapabilitiesForResGroup(int groupId, int *memoryLimit,
+											 int *sharedQuota, int *spillRatio);
 extern void AtEOXact_ResGroup(bool isCommit);
 
 #endif   /* RESGROUPCMDS_H */

@@ -37,10 +37,23 @@
 #include "utils/syscache.h"
 
 #define RESGROUP_DEFAULT_CONCURRENCY (20)
-#define RESGROUP_DEFAULT_REDZONE_LIMIT (0.8)
-#define RESGROUP_DEFAULT_MEM_SHARED_QUOTA (0.2)
-#define RESGROUP_DEFAULT_MEM_SPILL_RATIO (0.2)
+#define RESGROUP_DEFAULT_MEM_SHARED_QUOTA (20)
+#define RESGROUP_DEFAULT_MEM_SPILL_RATIO (20)
 
+#define RESGROUP_MIN_CONCURRENCY	(1)
+#define RESGROUP_MAX_CONCURRENCY	(MaxConnections)
+
+#define RESGROUP_MIN_CPU_RATE_LIMIT	(1)
+#define RESGROUP_MAX_CPU_RATE_LIMIT	(100)
+
+#define RESGROUP_MIN_MEMORY_LIMIT	(1)
+#define RESGROUP_MAX_MEMORY_LIMIT	(100)
+
+#define RESGROUP_MIN_MEMORY_SHARED_QUOTA	(0)
+#define RESGROUP_MAX_MEMORY_SHARED_QUOTA	(100)
+
+#define RESGROUP_MIN_MEMORY_SPILL_RATIO		(1)
+#define RESGROUP_MAX_MEMORY_SPILL_RATIO		(100)
 
 /*
  * Internal struct to store the group settings.
@@ -48,28 +61,11 @@
 typedef struct ResourceGroupOptions
 {
 	int concurrency;
-	float cpuRateLimit;
-	float memoryLimit;
-	float redzoneLimit;
-	float memSharedQuota;
-	float memSpillRatio;
+	int cpuRateLimit;
+	int memoryLimit;
+	int memSharedQuota;
+	int memSpillRatio;
 } ResourceGroupOptions;
-
-typedef struct ResourceGroupStatusRow
-{
-	Datum oid;
-
-	double cpuAvgUsage;
-	StringInfo memoryUsage;
-} ResourceGroupStatusRow;
-
-typedef struct ResourceGroupStatusContext
-{
-	ResGroupStatType type;
-
-	int nrows;
-	ResourceGroupStatusRow rows[1];
-} ResourceGroupStatusContext;
 
 /*
  * The context to pass to callback in ALTER resource group
@@ -111,8 +107,8 @@ static ResourceGroupCallbackItem ResourceGroup_callbacks_head =
 
 static ResourceGroupCallbackItem *ResourceGroup_callbacks = &ResourceGroup_callbacks_head;
 
-static float str2Float(const char *str, const char *prop);
-static float text2Float(const text *text, const char *prop);
+static int str2Int(const char *str, const char *prop);
+static int text2Int(const text *text, const char *prop);
 static int getResgroupOptionType(const char* defname);
 static void parseStmtOptions(CreateResourceGroupStmt *stmt, ResourceGroupOptions *options);
 static void validateCapabilities(Relation rel, Oid groupid, ResourceGroupOptions *options, bool newGroup);
@@ -124,9 +120,6 @@ static void deleteResgroupCapabilities(Oid groupid);
 static void createResGroupAbortCallback(bool isCommit, void *arg);
 static void dropResGroupAbortCallback(bool isCommit, void *arg);
 static void alterResGroupCommitCallback(bool isCommit, void *arg);
-static ResGroupStatType propNameToType(const char *name);
-static void getCpuUsage(ResourceGroupStatusContext *ctx);
-static void getMemoryUsage(ResourceGroupStatusContext *ctx, const char *prop);
 static void registerResourceGroupCallback(ResourceGroupCallback callback, void *arg);
 
 /*
@@ -466,8 +459,8 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 	int			concurrencyVal;
 	int			concurrencyProposed;
 	int			newConcurrency;
-	float		cpuRateLimitVal;
-	float		cpuRateLimitNew;
+	int			cpuRateLimitVal;
+	int			cpuRateLimitNew;
 	DefElem		*defel;
 	int			limitType;
 	bool		needDispatch = true;
@@ -494,23 +487,29 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 	{
 		case RESGROUP_LIMIT_TYPE_CONCURRENCY:
 			concurrency = defGetInt64(defel);
-			if (concurrency < RESGROUP_CONCURRENCY_UNLIMITED)
+			if (concurrency < RESGROUP_MIN_CONCURRENCY)
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_LIMIT_VALUE),
 						 errmsg("concurrency limit cannot be less than %d",
-								RESGROUP_CONCURRENCY_UNLIMITED)));
+								RESGROUP_MIN_CONCURRENCY)));
+			if (concurrency > RESGROUP_MAX_CONCURRENCY)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_LIMIT_VALUE),
+						 errmsg("concurrency limit cannot be greater than 'max_connections'")));
 			break;
 
 		case RESGROUP_LIMIT_TYPE_CPU:
 			cpuRateLimitNew = defGetNumeric(defel);
-			if (cpuRateLimitNew <= .01f)
+			if (cpuRateLimitNew < RESGROUP_MIN_CPU_RATE_LIMIT)
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_LIMIT_VALUE),
-						 errmsg("cpu rate limit must be greater than 0.01")));
-			if (cpuRateLimitNew >= 1.0)
+						 errmsg("cpu rate limit must be greater than %d",
+								RESGROUP_MIN_CPU_RATE_LIMIT)));
+			if (cpuRateLimitNew > RESGROUP_MAX_CPU_RATE_LIMIT)
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_LIMIT_VALUE),
-						 errmsg("cpu rate limit must be less than 1.00")));
+						 errmsg("cpu rate limit must be less than %d",
+								RESGROUP_MAX_CPU_RATE_LIMIT)));
 			/* overall limit will be verified later after groupid is known */
 			break;
 
@@ -575,7 +574,6 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 
 		case RESGROUP_LIMIT_TYPE_CPU:
 			cpuRateLimitVal = GetCpuRateLimitForResGroup(groupid);
-			cpuRateLimitVal = roundf(cpuRateLimitVal * 100) / 100;
 
 			if (cpuRateLimitVal < cpuRateLimitNew)
 			{
@@ -584,11 +582,10 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 				options.concurrency = 0;
 				options.cpuRateLimit = cpuRateLimitNew;
 				options.memoryLimit = 0;
-				options.redzoneLimit = 0;
 
 				/*
 				 * In validateCapabilities() we scan all the resource groups
-				 * to check whether the total cpu_rate_limit exceed 1.0 or not.
+				 * to check whether the total cpu_rate_limit exceed 100 or not.
 				 * We need to use ExclusiveLock here to prevent concurrent
 				 * increase on different resource group.
 				 */
@@ -599,10 +596,8 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 				heap_close(resgroup_capability_rel, NoLock);
 			}
 
-			snprintf(valueStr, sizeof(valueStr),
-					 "%.2f", cpuRateLimitNew);
-			snprintf(proposedStr, sizeof(proposedStr),
-					 "%.2f", cpuRateLimitNew);
+			snprintf(valueStr, sizeof(valueStr), "%d", cpuRateLimitNew);
+			snprintf(proposedStr, sizeof(proposedStr), "%d", cpuRateLimitNew);
 			updateResgroupCapabilityEntry(groupid, limitType,
 										  valueStr, proposedStr);
 
@@ -656,7 +651,7 @@ GetConcurrencyForResGroup(int groupId, int *value, int *proposed)
 /*
  * Get 'cpu_rate_limit' of one resource group in pg_resgroupcapability.
  */
-float
+int
 GetCpuRateLimitForResGroup(int groupId)
 {
 	char *valueStr;
@@ -665,7 +660,7 @@ GetCpuRateLimitForResGroup(int groupId)
 	getResgroupCapabilityEntry(groupId, RESGROUP_LIMIT_TYPE_CPU,
 							   &valueStr, &proposedStr);
 
-	return str2Float(valueStr, "cpu_rate_limit");
+	return str2Int(valueStr, "cpu_rate_limit");
 }
 
 /*
@@ -673,22 +668,22 @@ GetCpuRateLimitForResGroup(int groupId)
  * TODO: scan the catalog table only once?
  */
 void
-GetMemoryCapabilitiesForResGroup(int groupId, float *memoryLimit, float *sharedQuota, float *spillRatio)
+GetMemoryCapabilitiesForResGroup(int groupId, int *memoryLimit, int *sharedQuota, int *spillRatio)
 {
 	char *valueStr;
 	char *proposedStr;
 
 	getResgroupCapabilityEntry(groupId, RESGROUP_LIMIT_TYPE_MEMORY,
 							   &valueStr, &proposedStr);
-	*memoryLimit = str2Float(valueStr, "memory_limit");
+	*memoryLimit = str2Int(valueStr, "memory_limit");
 
 	getResgroupCapabilityEntry(groupId, RESGROUP_LIMIT_TYPE_MEMORY_SHARED_QUOTA,
 							   &valueStr, &proposedStr);
-	*sharedQuota = str2Float(valueStr, "memory_shared_quota");
+	*sharedQuota = str2Int(valueStr, "memory_shared_quota");
 
 	getResgroupCapabilityEntry(groupId, RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO,
 							   &valueStr, &proposedStr);
-	*spillRatio = str2Float(valueStr, "memory_spill_ratio");
+	*spillRatio = str2Int(valueStr, "memory_spill_ratio");
 }
 
 /*
@@ -763,393 +758,6 @@ GetResGroupIdForRole(Oid roleid)
 }
 
 /*
- * Convert from property name to ResGroupStatType.
- */
-static ResGroupStatType
-propNameToType(const char *name)
-{
-	if (!strcmp(name, "num_running"))
-		return RES_GROUP_STAT_NRUNNING;
-	else if (!strcmp(name, "num_queueing"))
-		return RES_GROUP_STAT_NQUEUEING;
-	else if (!strcmp(name, "cpu_usage"))
-		return RES_GROUP_STAT_CPU_USAGE;
-	else if (!strcmp(name, "memory_usage"))
-		return RES_GROUP_STAT_MEM_USAGE;
-	else if (!strcmp(name, "total_queue_duration"))
-		return RES_GROUP_STAT_TOTAL_QUEUE_TIME;
-	else if (!strcmp(name, "num_queued"))
-		return RES_GROUP_STAT_TOTAL_QUEUED;
-	else if (!strcmp(name, "num_executed"))
-		return RES_GROUP_STAT_TOTAL_EXECUTED;
-	else
-		return RES_GROUP_STAT_UNKNOWN;
-}
-
-/*
- * Get cpu usage.
- *
- * On QD this function dispatch the request to all QEs, collecting both
- * QEs' and QD's cpu usage and calculate the average.
- *
- * On QE this function only collect the cpu usage on itself.
- *
- * Cpu usage is a ratio within [0%, 100%], however due to error the actual
- * value might be greater than 100%, that's not a bug.
- */
-static void
-getCpuUsage(ResourceGroupStatusContext *ctx)
-{
-	int64 *usages;
-	TimestampTz *timestamps;
-	int nsegs = 1;
-	int ncores;
-	int i, j;
-
-	if (!IsResGroupEnabled())
-		return;
-
-	usages = palloc(sizeof(*usages) * ctx->nrows);
-	timestamps = palloc(sizeof(*timestamps) * ctx->nrows);
-
-	ncores = ResGroupOps_GetCpuCores();
-
-	for (j = 0; j < ctx->nrows; j++)
-	{
-		ResourceGroupStatusRow *row = &ctx->rows[j];
-		Oid rsgid = DatumGetObjectId(row->oid);
-
-		usages[j] = ResGroupOps_GetCpuUsage(rsgid);
-		timestamps[j] = GetCurrentTimestamp();
-	}
-
-	if (Gp_role == GP_ROLE_DISPATCH)
-	{
-		CdbPgResults cdb_pgresults = {NULL, 0};
-		StringInfoData buffer;
-
-		initStringInfo(&buffer);
-		appendStringInfo(&buffer, "SELECT rsgid, value FROM pg_resgroup_get_status_kv('cpu_usage')");
-
-		CdbDispatchCommand(buffer.data, DF_WITH_SNAPSHOT, &cdb_pgresults);
-
-		if (cdb_pgresults.numResults == 0)
-			elog(ERROR, "gp_resgroup_status didn't get back any cpu usage statistics from the segDBs");
-
-		nsegs += cdb_pgresults.numResults;
-
-		for (i = 0; i < cdb_pgresults.numResults; i++)
-		{
-			struct pg_result *pg_result = cdb_pgresults.pg_results[i];
-
-			/*
-			 * Any error here should have propagated into errbuf, so we shouldn't
-			 * ever see anything other that tuples_ok here.  But, check to be
-			 * sure.
-			 */
-			if (PQresultStatus(pg_result) != PGRES_TUPLES_OK)
-			{
-				cdbdisp_clearCdbPgResults(&cdb_pgresults);
-				elog(ERROR, "gp_resgroup_status: resultStatus not tuples_Ok");
-			}
-			else
-			{
-				Assert(PQntuples(pg_result) == ctx->nrows);
-				for (j = 0; j < ctx->nrows; j++)
-				{
-					double usage;
-					const char *result;
-					ResourceGroupStatusRow *row = &ctx->rows[j];
-					Oid rsgid = pg_atoi(PQgetvalue(pg_result, j, 0),
-										sizeof(Oid), 0);
-					/*
-					 * we assume QD and QE shall have the same order
-					 * for all the resgroups, but in case this assumption
-					 * failed we do a full lookup
-					 */
-					if (rsgid != DatumGetObjectId(row->oid))
-					{
-						int k;
-						for (k = 0; k < ctx->nrows; k++)
-						{
-							row = &ctx->rows[k];
-							if (rsgid == DatumGetObjectId(row->oid))
-								break;
-						}
-						if (k == ctx->nrows)
-							elog(ERROR, "gp_resgroup_status: inconsistent resgroups between QD and QE");
-					}
-
-					result = PQgetvalue(pg_result, j, 1);
-					sscanf(result, "%lf", &usage);
-
-					row->cpuAvgUsage += usage;
-				}
-			}
-		}
-
-		cdbdisp_clearCdbPgResults(&cdb_pgresults);
-	}
-	else
-	{
-		pg_usleep(300000);
-	}
-
-	for (j = 0; j < ctx->nrows; j++)
-	{
-		int64 duration;
-		long secs;
-		int usecs;
-		int64 usage;
-		ResourceGroupStatusRow *row = &ctx->rows[j];
-		Oid rsgid = DatumGetObjectId(row->oid);
-
-		usage = ResGroupOps_GetCpuUsage(rsgid) - usages[j];
-
-		TimestampDifference(timestamps[j], GetCurrentTimestamp(),
-							&secs, &usecs);
-
-		duration = secs * 1000000 + usecs;
-
-		/*
-		 * usage is the cpu time (nano seconds) obtained by this group
-		 * in the time duration (micro seconds), so cpu time on one core
-		 * can be calculated as:
-		 *
-		 *     usage / 1000 / duration / ncores
-		 *
-		 * To convert it to percentange we should multiple 100%.
-		 */
-		row->cpuAvgUsage += usage / 10.0 / duration / ncores;
-		row->cpuAvgUsage /= nsegs;
-	}
-}
-
-/*
- * Get memory usage.
- *
- * On QD this function dispatch the request to all QEs, collecting both
- * QEs' and QD's memory usage.
- *
- * On QE this function only collect the memory usage on itself.
- *
- * Memory usage is returned in JSON format.
- */
-static void
-getMemoryUsage(ResourceGroupStatusContext *ctx, const char *prop)
-{
-	int i, j;
-
-	if (!IsResGroupEnabled())
-		return;
-
-	if (Gp_role == GP_ROLE_DISPATCH)
-	{
-		CdbPgResults cdb_pgresults = {NULL, 0};
-		StringInfoData buffer;
-
-		initStringInfo(&buffer);
-		appendStringInfo(&buffer, "SELECT rsgid, value FROM pg_resgroup_get_status_kv('memory_usage') order by rsgid");
-
-		CdbDispatchCommand(buffer.data, DF_WITH_SNAPSHOT, &cdb_pgresults);
-
-		if (cdb_pgresults.numResults == 0)
-			elog(ERROR, "gp_resgroup_status didn't get back any memory usage statistics from the segDBs");
-
-		for (i = 0; i < cdb_pgresults.numResults; i++)
-		{
-			struct pg_result *pg_result = cdb_pgresults.pg_results[i];
-
-			/*
-			 * Any error here should have propagated into errbuf, so we shouldn't
-			 * ever see anything other that tuples_ok here.  But, check to be
-			 * sure.
-			 */
-			if (PQresultStatus(pg_result) != PGRES_TUPLES_OK)
-			{
-				cdbdisp_clearCdbPgResults(&cdb_pgresults);
-				elog(ERROR, "gp_resgroup_status: resultStatus not tuples_Ok");
-			}
-
-			Assert(PQntuples(pg_result) == ctx->nrows);
-			for (j = 0; j < ctx->nrows; j++)
-			{
-				const char *result;
-				ResourceGroupStatusRow *row = &ctx->rows[j];
-				Oid rsgid = pg_atoi(PQgetvalue(pg_result, j, 0), sizeof(Oid), 0);
-
-				if (row->memoryUsage->len == 0)
-				{
-					char statVal[MAXDATELEN + 1];
-
-					row->oid = rsgid;
-					ResGroupGetStat(rsgid, RES_GROUP_STAT_MEM_USAGE, statVal, sizeof(statVal), prop);
-					appendStringInfo(row->memoryUsage, "{\"%d\":%s", GpIdentity.segindex, statVal);
-				}
-
-				result = PQgetvalue(pg_result, j, 1);
-				appendStringInfo(row->memoryUsage, ", %s", result);
-
-				if (i == cdb_pgresults.numResults - 1)
-					appendStringInfoChar(row->memoryUsage, '}');
-			}
-		}
-
-		cdbdisp_clearCdbPgResults(&cdb_pgresults);
-	}
-	else
-	{
-		for (j = 0; j < ctx->nrows; j++)
-		{
-			char statVal[MAXDATELEN + 1];
-			ResourceGroupStatusRow *row = &ctx->rows[j];
-			Oid groupId = DatumGetObjectId(row->oid);
-
-			ResGroupGetStat(groupId, RES_GROUP_STAT_MEM_USAGE, statVal, sizeof(statVal), prop);
-			appendStringInfo(row->memoryUsage, "\"%d\":%s", GpIdentity.segindex, statVal);
-		}
-	}
-}
-
-/*
- * Get status of resource groups
- */
-Datum
-pg_resgroup_get_status_kv(PG_FUNCTION_ARGS)
-{
-	FuncCallContext *funcctx;
-	ResourceGroupStatusContext *ctx;
-
-	if (SRF_IS_FIRSTCALL())
-	{
-		MemoryContext oldcontext;
-		TupleDesc	tupdesc;
-		int			nattr = 3;
-
-		funcctx = SRF_FIRSTCALL_INIT();
-
-		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
-
-		tupdesc = CreateTemplateTupleDesc(nattr, false);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "rsgid", OIDOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "prop", TEXTOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "value", TEXTOID, -1, 0);
-
-		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
-
-		if (PG_ARGISNULL(0))
-		{
-			funcctx->max_calls = 0;
-		}
-		else
-		{
-			Relation pg_resgroup_rel;
-			SysScanDesc sscan;
-			HeapTuple tuple;
-			char *		prop = text_to_cstring(PG_GETARG_TEXT_P(0));
-
-			int ctxsize = sizeof(ResourceGroupStatusContext) +
-				sizeof(ResourceGroupStatusRow) * (MaxResourceGroups - 1);
-
-			funcctx->user_fctx = palloc(ctxsize);
-			ctx = (ResourceGroupStatusContext *) funcctx->user_fctx;
-
-			pg_resgroup_rel = heap_open(ResGroupRelationId, AccessShareLock);
-
-			sscan = systable_beginscan(pg_resgroup_rel, InvalidOid, false,
-									   SnapshotNow, 0, NULL);
-			while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
-			{
-				Assert(funcctx->max_calls < MaxResourceGroups);
-				ctx->rows[funcctx->max_calls].cpuAvgUsage = 0;
-				ctx->rows[funcctx->max_calls].memoryUsage = makeStringInfo();
-				ctx->rows[funcctx->max_calls++].oid =
-					ObjectIdGetDatum(HeapTupleGetOid(tuple));
-			}
-			systable_endscan(sscan);
-
-			heap_close(pg_resgroup_rel, AccessShareLock);
-
-			ctx->nrows = funcctx->max_calls;
-			ctx->type = propNameToType(prop);
-			switch (ctx->type)
-			{
-				case RES_GROUP_STAT_CPU_USAGE:
-					getCpuUsage(ctx);
-					break;
-				case RES_GROUP_STAT_MEM_USAGE:
-					getMemoryUsage(ctx, prop);
-					break;
-				default:
-					break;
-			}
-		}
-
-		MemoryContextSwitchTo(oldcontext);
-	}
-
-	/* stuff done on every call of the function */
-	funcctx = SRF_PERCALL_SETUP();
-	ctx = (ResourceGroupStatusContext *) funcctx->user_fctx;
-
-	if (funcctx->call_cntr < funcctx->max_calls)
-	{
-		/* for each row */
-		char *		prop = text_to_cstring(PG_GETARG_TEXT_P(0));
-		Datum		values[3];
-		bool		nulls[3];
-		HeapTuple	tuple;
-		Oid			groupId;
-		char		statVal[MAXDATELEN + 1];
-		ResourceGroupStatusRow *row = &ctx->rows[funcctx->call_cntr];
-
-		MemSet(values, 0, sizeof(values));
-		MemSet(nulls, 0, sizeof(nulls));
-		MemSet(statVal, 0, sizeof(statVal));
-
-		values[0] = row->oid;
-		values[1] = CStringGetTextDatum(prop);
-
-		groupId = DatumGetObjectId(values[0]);
-
-		switch (ctx->type)
-		{
-			default:
-			case RES_GROUP_STAT_NRUNNING:
-			case RES_GROUP_STAT_NQUEUEING:
-			case RES_GROUP_STAT_TOTAL_EXECUTED:
-			case RES_GROUP_STAT_TOTAL_QUEUED:
-			case RES_GROUP_STAT_TOTAL_QUEUE_TIME:
-				ResGroupGetStat(groupId, ctx->type, statVal, sizeof(statVal), prop);
-				values[2] = CStringGetTextDatum(statVal);
-				break;
-
-			case RES_GROUP_STAT_CPU_USAGE:
-				snprintf(statVal, sizeof(statVal), "%.2lf%%",
-						 row->cpuAvgUsage);
-				values[2] = CStringGetTextDatum(statVal);
-				break;
-
-			case RES_GROUP_STAT_MEM_USAGE:
-				if (IsResGroupEnabled())
-					values[2] = CStringGetTextDatum(row->memoryUsage->data);
-				else
-					values[2] = CStringGetTextDatum("{}");
-				break;
-		}
-
-		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
-
-		SRF_RETURN_NEXT(funcctx, HeapTupleGetDatum(tuple));
-	}
-	else
-	{
-		/* nothing left */
-		SRF_RETURN_DONE(funcctx);
-	}
-}
-
-/*
  * Get the option type from a name string.
  *
  * @param defname  the name string
@@ -1165,8 +773,6 @@ getResgroupOptionType(const char* defname)
 		return RESGROUP_LIMIT_TYPE_MEMORY;
 	else if (strcmp(defname, "concurrency") == 0)
 		return RESGROUP_LIMIT_TYPE_CONCURRENCY;
-	else if (strcmp(defname, "memory_redzone_limit") == 0)
-		return RESGROUP_LIMIT_TYPE_MEMORY_REDZONE;
 	else if (strcmp(defname, "memory_shared_quota") == 0)
 		return RESGROUP_LIMIT_TYPE_MEMORY_SHARED_QUOTA;
 	else if (strcmp(defname, "memory_spill_ratio") == 0)
@@ -1209,42 +815,56 @@ parseStmtOptions(CreateResourceGroupStmt *stmt, ResourceGroupOptions *options)
 		{
 			case RESGROUP_LIMIT_TYPE_CONCURRENCY:
 				options->concurrency = defGetInt64(defel);
-				if (options->concurrency < 0 || options->concurrency > MaxConnections)
+				if (options->concurrency < RESGROUP_MIN_CONCURRENCY ||
+					options->concurrency > RESGROUP_MAX_CONCURRENCY)
 					ereport(ERROR,
 							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-							errmsg("concurrency range is [0, MaxConnections]")));
+							errmsg("concurrency range is [%d, 'max_connections']",
+								   RESGROUP_MIN_CONCURRENCY)));
 				break;
 
 			case RESGROUP_LIMIT_TYPE_CPU:
-				options->cpuRateLimit = roundf(defGetNumeric(defel) * 100) / 100;
-				if (options->cpuRateLimit <= .01f || options->cpuRateLimit >= 1.0)
+				options->cpuRateLimit = defGetNumeric(defel);
+				if (options->cpuRateLimit < RESGROUP_MIN_CPU_RATE_LIMIT ||
+					options->cpuRateLimit > RESGROUP_MAX_CPU_RATE_LIMIT)
 					ereport(ERROR,
 							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-							errmsg("cpu_rate_limit range is (.01, 1)")));
+							errmsg("cpu_rate_limit range is [%d, %d]",
+								   RESGROUP_MIN_CPU_RATE_LIMIT,
+								   RESGROUP_MAX_CPU_RATE_LIMIT)));
 				break;
 
 			case RESGROUP_LIMIT_TYPE_MEMORY:
-				options->memoryLimit = roundf(defGetNumeric(defel) * 100) / 100;
-				if (options->memoryLimit <= .01f || options->memoryLimit >= 1.0)
+				options->memoryLimit = defGetNumeric(defel);
+				if (options->memoryLimit < RESGROUP_MIN_MEMORY_LIMIT ||
+					options->memoryLimit > RESGROUP_MAX_MEMORY_LIMIT)
 					ereport(ERROR,
 							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-							errmsg("memory_limit range is (.01, 1)")));
-				break;
-
-			case RESGROUP_LIMIT_TYPE_MEMORY_REDZONE:
-				options->redzoneLimit = roundf(defGetNumeric(defel) * 100) / 100;
-				if (options->redzoneLimit <= .5f || options->redzoneLimit > 1.0)
-					ereport(ERROR,
-							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-							errmsg("memory_redzone_limit range is (.5, 1]")));
+							errmsg("memory_limit range is [%d, %d]",
+								   RESGROUP_MIN_MEMORY_LIMIT,
+								   RESGROUP_MAX_MEMORY_LIMIT)));
 				break;
 
 			case RESGROUP_LIMIT_TYPE_MEMORY_SHARED_QUOTA:
-				options->memSharedQuota = roundf(defGetNumeric(defel) * 100) / 100;
+				options->memSharedQuota = defGetNumeric(defel);
+				if (options->memSharedQuota < RESGROUP_MIN_MEMORY_SHARED_QUOTA ||
+					options->memSharedQuota > RESGROUP_MAX_MEMORY_SHARED_QUOTA)
+					ereport(ERROR,
+							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+							errmsg("memory_shared_quota range is [%d, %d]",
+								   RESGROUP_MIN_MEMORY_SHARED_QUOTA,
+								   RESGROUP_MAX_MEMORY_SHARED_QUOTA)));
 				break;
 
 			case RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO:
-				options->memSpillRatio = roundf(defGetNumeric(defel) * 100) / 100;
+				options->memSpillRatio = defGetNumeric(defel);
+				if (options->memSpillRatio < RESGROUP_MIN_MEMORY_SPILL_RATIO ||
+					options->memSpillRatio > RESGROUP_MAX_MEMORY_SPILL_RATIO)
+					ereport(ERROR,
+							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+							errmsg("memory_spill_ratio range is [%d, %d]",
+								   RESGROUP_MIN_MEMORY_SPILL_RATIO,
+								   RESGROUP_MAX_MEMORY_SPILL_RATIO)));
 				break;
 
 			default:
@@ -1261,20 +881,18 @@ parseStmtOptions(CreateResourceGroupStmt *stmt, ResourceGroupOptions *options)
 	if (!(types & (1 << RESGROUP_LIMIT_TYPE_CONCURRENCY)))
 		options->concurrency = RESGROUP_DEFAULT_CONCURRENCY;
 
-	if (!(types & (1 << RESGROUP_LIMIT_TYPE_MEMORY_REDZONE)))
-		options->redzoneLimit = RESGROUP_DEFAULT_REDZONE_LIMIT;
-
 	if (!(types & (1 << RESGROUP_LIMIT_TYPE_MEMORY_SHARED_QUOTA)))
 		options->memSharedQuota = RESGROUP_DEFAULT_MEM_SHARED_QUOTA;
 
 	if (!(types & (1 << RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO)))
 		options->memSpillRatio = RESGROUP_DEFAULT_MEM_SPILL_RATIO;
 
-	if (options->memSpillRatio + options->memSharedQuota > 1.f)
+	if (options->memSpillRatio + options->memSharedQuota > RESGROUP_MAX_MEMORY_LIMIT)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-				 errmsg("The sum of memory_shared_quota (%.2f) and memory_spill_ratio (%.2f) exceeds 1.0",
-						options->memSharedQuota, options->memSpillRatio)));
+				 errmsg("The sum of memory_shared_quota (%d) and memory_spill_ratio (%d) exceeds %d",
+						options->memSharedQuota, options->memSpillRatio,
+						RESGROUP_MAX_MEMORY_LIMIT)));
 }
 
 /*
@@ -1416,19 +1034,16 @@ insertResgroupCapabilities(Oid groupid,
 	sprintf(value, "%d", options->concurrency);
 	insertResgroupCapabilityEntry(resgroup_capability_rel, groupid, RESGROUP_LIMIT_TYPE_CONCURRENCY, value);
 
-	sprintf(value, "%.2f", options->cpuRateLimit);
+	sprintf(value, "%d", options->cpuRateLimit);
 	insertResgroupCapabilityEntry(resgroup_capability_rel, groupid, RESGROUP_LIMIT_TYPE_CPU, value);
 
-	sprintf(value, "%.2f", options->memoryLimit);
+	sprintf(value, "%d", options->memoryLimit);
 	insertResgroupCapabilityEntry(resgroup_capability_rel, groupid, RESGROUP_LIMIT_TYPE_MEMORY, value);
 
-	sprintf(value, "%.2f", options->redzoneLimit);
-	insertResgroupCapabilityEntry(resgroup_capability_rel, groupid, RESGROUP_LIMIT_TYPE_MEMORY_REDZONE, value);
-
-	sprintf(value, "%.2f", options->memSharedQuota);
+	sprintf(value, "%d", options->memSharedQuota);
 	insertResgroupCapabilityEntry(resgroup_capability_rel, groupid, RESGROUP_LIMIT_TYPE_MEMORY_SHARED_QUOTA, value);
 
-	sprintf(value, "%.2f", options->memSpillRatio);
+	sprintf(value, "%d", options->memSpillRatio);
 	insertResgroupCapabilityEntry(resgroup_capability_rel, groupid, RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO, value);
 
 	heap_close(resgroup_capability_rel, NoLock);
@@ -1501,7 +1116,7 @@ updateResgroupCapabilityEntry(Oid groupid, uint16 type, char *value, char *propo
  * Validate the capabilities.
  *
  * The policy is resouces can't be over used, take memory for example,
- * all the allocated memory can not exceed 1.0.
+ * all the allocated memory can not exceed 100.
  *
  * Also detect for duplicate settings for the group.
  *
@@ -1517,8 +1132,8 @@ validateCapabilities(Relation rel,
 {
 	HeapTuple tuple;
 	SysScanDesc sscan;
-	float totalCpu = options->cpuRateLimit;
-	float totalMem = options->memoryLimit;
+	int totalCpu = options->cpuRateLimit;
+	int totalMem = options->memoryLimit;
 
 	sscan = systable_beginscan(rel, InvalidOid, false, SnapshotNow, 0, NULL);
 
@@ -1539,19 +1154,21 @@ validateCapabilities(Relation rel,
 
 		if (resgCapability->reslimittype == RESGROUP_LIMIT_TYPE_CPU)
 		{
-			totalCpu += text2Float(&resgCapability->value, "cpu_rate_limit");
-			if (totalCpu > 1.0)
+			totalCpu += text2Int(&resgCapability->value, "cpu_rate_limit");
+			if (totalCpu > RESGROUP_MAX_CPU_RATE_LIMIT)
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-						errmsg("total cpu_rate_limit exceeded the limit of 1.0")));
+						errmsg("total cpu_rate_limit exceeded the limit of %d",
+							   RESGROUP_MAX_CPU_RATE_LIMIT)));
 		}
 		else if (resgCapability->reslimittype == RESGROUP_LIMIT_TYPE_MEMORY)
 		{
-			totalMem += text2Float(&resgCapability->value, "memory_limit");
-			if (totalMem > 1.0)
+			totalMem += text2Int(&resgCapability->value, "memory_limit");
+			if (totalMem > RESGROUP_MAX_MEMORY_LIMIT)
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-						errmsg("total memory_limit exceeded the limit of 1.0")));
+						errmsg("total memory_limit exceeded the limit of %d",
+							   RESGROUP_MAX_MEMORY_LIMIT)));
 		}
 	}
 
@@ -1633,8 +1250,6 @@ getResgroupCapabilityEntry(int groupId, int type, char **value, char **proposed)
 	tuple = systable_getnext(sscan);
 	if (!HeapTupleIsValid(tuple))
 	{
-		char buf[64];
-
 		systable_endscan(sscan);
 		heap_close(relResGroupCapability, AccessShareLock);
 
@@ -1642,22 +1257,6 @@ getResgroupCapabilityEntry(int groupId, int type, char **value, char **proposed)
 		{
 			CurrentResourceOwner = NULL;
 			ResourceOwnerDelete(owner);
-		}
-
-		/* for backward compatibility */
-		switch (type)
-		{
-			case RESGROUP_LIMIT_TYPE_MEMORY_SHARED_QUOTA:
-				snprintf(buf, sizeof(buf), "%.2f", RESGROUP_DEFAULT_MEM_SHARED_QUOTA);
-				*value = pstrdup(buf);
-				*proposed = pstrdup(buf);
-				return;
-
-			case RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO:
-				snprintf(buf, sizeof(buf), "%.2f", RESGROUP_DEFAULT_MEM_SPILL_RATIO);
-				*value = pstrdup(buf);
-				*proposed = pstrdup(buf);
-				return;
 		}
 
 		ereport(ERROR,
@@ -1794,13 +1393,13 @@ GetResGroupNameForId(Oid oid, LOCKMODE lockmode)
 }
 
 /*
- * Convert a C str to a float value.
+ * Convert a C str to a integer value.
  *
  * @param str   the C str
  * @param prop  the property name
  */
-static float
-str2Float(const char *str, const char *prop)
+static int
+str2Int(const char *str, const char *prop)
 {
 	char *end = NULL;
 	double val = strtod(str, &end);
@@ -1812,20 +1411,20 @@ str2Float(const char *str, const char *prop)
 				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 				errmsg("%s requires a numeric value", prop)));
 
-	return (float) val;
+	return floor(val);
 }
 
 /*
- * Convert a text to a float value.
+ * Convert a text to a integer value.
  *
  * @param text  the text
  * @param prop  the property name
  */
-static float
-text2Float(const text *text, const char *prop)
+static int
+text2Int(const text *text, const char *prop)
 {
 	char *str = DatumGetCString(DirectFunctionCall1(textout,
 								 PointerGetDatum(text)));
 
-	return str2Float(str, prop);
+	return str2Int(str, prop);
 }

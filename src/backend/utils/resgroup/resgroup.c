@@ -40,7 +40,7 @@
 #include "utils/vmem_tracker.h"
 
 #define InvalidSlotId	(-1)
-#define RESGROUP_MAX_CONCURRENCY	90
+#define RESGROUP_MAX_SLOTS	90
 
 /*
  * Data structures
@@ -121,7 +121,7 @@ typedef struct ResGroupData
 	uint32		memUsage;
 	uint32		memSharedUsage;
 
-	ResGroupSlotData slots[RESGROUP_MAX_CONCURRENCY];
+	ResGroupSlotData slots[RESGROUP_MAX_SLOTS];
 } ResGroupData;
 
 typedef struct ResGroupControl
@@ -335,7 +335,7 @@ InitResGroups(void)
 	{
 		Oid groupId = HeapTupleGetOid(tuple);
 		bool groupOK = ResGroupCreate(groupId);
-		float cpu_rate_limit = GetCpuRateLimitForResGroup(groupId);
+		int cpu_rate_limit = GetCpuRateLimitForResGroup(groupId);
 
 		if (!groupOK)
 			ereport(PANIC,
@@ -491,9 +491,7 @@ void ResGroupAlterCheckForWakeup(Oid groupId, int value, int proposed)
 
 	waitQueue = &(group->waitProcs);
 
-	if (proposed == RESGROUP_CONCURRENCY_UNLIMITED)
-		wakeNum = waitQueue->size;
-	else if (proposed <= group->nRunning)
+	if (proposed <= group->nRunning)
 		wakeNum = 0;
 	else
 		wakeNum = Min(proposed - group->nRunning, waitQueue->size);
@@ -521,13 +519,13 @@ void ResGroupAlterCheckForWakeup(Oid groupId, int value, int proposed)
 /*
  *  Retrieve statistic information of type from resource group
  */
-void
-ResGroupGetStat(Oid groupId, ResGroupStatType type, char *retStr, int retStrLen, const char *prop)
+Datum
+ResGroupGetStat(Oid groupId, ResGroupStatType type)
 {
 	ResGroupData	*group;
+	Datum result;
 
-	if (!IsResGroupEnabled())
-		return;
+	Assert(IsResGroupEnabled());
 
 	LWLockAcquire(ResGroupLock, LW_SHARED);
 
@@ -544,35 +542,32 @@ ResGroupGetStat(Oid groupId, ResGroupStatType type, char *retStr, int retStrLen,
 	switch (type)
 	{
 		case RES_GROUP_STAT_NRUNNING:
-			snprintf(retStr, retStrLen, "%d", group->nRunning);
+			result = Int32GetDatum(group->nRunning);
 			break;
 		case RES_GROUP_STAT_NQUEUEING:
-			snprintf(retStr, retStrLen, "%d", group->waitProcs.size);
+			result = Int32GetDatum(group->waitProcs.size);
 			break;
 		case RES_GROUP_STAT_TOTAL_EXECUTED:
-			snprintf(retStr, retStrLen, "%d", group->totalExecuted);
+			result = Int32GetDatum(group->totalExecuted);
 			break;
 		case RES_GROUP_STAT_TOTAL_QUEUED:
-			snprintf(retStr, retStrLen, "%d", group->totalQueued);
+			result = Int32GetDatum(group->totalQueued);
 			break;
 		case RES_GROUP_STAT_TOTAL_QUEUE_TIME:
-		{
-			Datum durationDatum = DirectFunctionCall1(interval_out, IntervalPGetDatum(&group->totalQueuedTime));
-			char *durationStr = DatumGetCString(durationDatum);
-			strncpy(retStr, durationStr, retStrLen);
+			result = IntervalPGetDatum(&group->totalQueuedTime);
 			break;
-		}
 		case RES_GROUP_STAT_MEM_USAGE:
-			snprintf(retStr, retStrLen, "%d",
-					 VmemTracker_ConvertVmemChunksToMB(group->memUsage));
+			result = Int32GetDatum(VmemTracker_ConvertVmemChunksToMB(group->memUsage));
 			break;
 		default:
 			ereport(ERROR,
 					(errcode(ERRCODE_INTERNAL_ERROR),
-					 errmsg("Invalid stat type %s", prop)));
+					 errmsg("Invalid stat type %d", type)));
 	}
 
 	LWLockRelease(ResGroupLock);
+
+	return result;
 }
 
 /*
@@ -781,7 +776,7 @@ CalcConcurrencyValue(int groupId, int val, int proposed, int newProposed)
 				 errmsg("Cannot find resource group with Oid %d in shared memory", groupId)));
 	}
 
-	if (newProposed == RESGROUP_CONCURRENCY_UNLIMITED || group->nRunning <= newProposed)
+	if (group->nRunning <= newProposed)
 		ret = newProposed;
 	else if (group->nRunning <= proposed)
 		ret = proposed;
@@ -832,7 +827,7 @@ getFreeSlot(void)
 
 	Assert(LWLockHeldExclusiveByMe(ResGroupLock));
 
-	for (i = 0; i < RESGROUP_MAX_CONCURRENCY; i++)
+	for (i = 0; i < RESGROUP_MAX_SLOTS; i++)
 	{
 		if (MyResGroupSharedInfo->slots[i].inUse)
 			continue;
@@ -903,7 +898,7 @@ retry:
 	}
 
 	/* acquire a slot */
-	if (concurrencyProposed == RESGROUP_CONCURRENCY_UNLIMITED || group->nRunning < concurrencyProposed)
+	if (group->nRunning < concurrencyProposed)
 	{
 		group->nRunning++;
 		group->totalExecuted++;
@@ -965,8 +960,7 @@ ResGroupSlotRelease(void)
 
 	waitQueue = &(group->waitProcs);
 
-	/* If the concurrency is RESGROUP_CONCURRENCY_UNLIMITED, the wait queue should also be empty */
-	if ((RESGROUP_CONCURRENCY_UNLIMITED != concurrencyProposed  && group->nRunning > concurrencyProposed) ||
+	if ((group->nRunning > concurrencyProposed) ||
 		waitQueue->size == 0)
 	{
 		AssertImply(waitQueue->size == 0,
@@ -1076,7 +1070,7 @@ AssignResGroupOnMaster(void)
 	ResGroupSlotData	*slot;
 	ResGroupProcData	*procInfo;
 	int		concurrency;
-	float	memoryLimit, sharedQuota, spillRatio;
+	int		memoryLimit, sharedQuota, spillRatio;
 	int		slotId;
 	Oid		groupId;
 	int32	slotMemUsage;
@@ -1094,9 +1088,6 @@ AssignResGroupOnMaster(void)
 	/* Get config information */
 	GetMemoryCapabilitiesForResGroup(groupId, &memoryLimit, &sharedQuota, &spillRatio);
 	GetConcurrencyForResGroup(groupId, NULL, &concurrency);
-	/* TODO: handle (concurrency == -1) properly */
-	if (concurrency == RESGROUP_CONCURRENCY_UNLIMITED)
-		concurrency = 20; /* FIXME */
 
 	/* Init slot */
 	sharedInfo = MyResGroupSharedInfo;
@@ -1104,18 +1095,18 @@ AssignResGroupOnMaster(void)
 	slot->sessionId = gp_session_id;
 	slot->segmentChunks = ResGroupOps_GetTotalMemory()
 		* gp_resource_group_memory_limit / pResGroupControl->segmentsOnMaster;
-	slot->memLimit = slot->segmentChunks * memoryLimit;
-	slot->memSharedQuota = slot->memLimit * sharedQuota;
-	slot->memQuota = slot->memLimit * (1 - sharedQuota) / concurrency;
+	slot->memLimit = slot->segmentChunks * memoryLimit / 100;
+	slot->memSharedQuota = slot->memLimit * sharedQuota / 100;
+	slot->memQuota = slot->memLimit * (100 - sharedQuota) / concurrency / 100;
 	pg_atomic_add_fetch_u32((pg_atomic_uint32*)&slot->nProcs, 1);
 	Assert(slot->memLimit > 0);
 	Assert(slot->memQuota > 0);
 
 	/* Init MyResGroupProcInfo */
 	procInfo->slotId = slotId;
-	procInfo->config.memoryLimit = memoryLimit * 100;
-	procInfo->config.sharedQuota = sharedQuota * 100;
-	procInfo->config.spillRatio = spillRatio * 100;
+	procInfo->config.memoryLimit = memoryLimit;
+	procInfo->config.sharedQuota = sharedQuota;
+	procInfo->config.spillRatio = spillRatio;
 	procInfo->config.concurrency = concurrency;
 	Assert(pResGroupControl != NULL);
 	Assert(pResGroupControl->segmentsOnMaster > 0);

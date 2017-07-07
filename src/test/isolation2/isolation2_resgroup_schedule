@@ -8,6 +8,5 @@ test: resgroup_concurrency
 test: resgroup_memory_statistic
 test: resgroup_memory_limit
 test: resgroup_cpu_rate_limit
-test: drop_resgroup
 
 test: disable_resgroup

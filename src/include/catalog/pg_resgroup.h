@@ -68,11 +68,8 @@ DATA(insert OID = 6438 ( admin_group, 0 ));
 #define RESGROUP_LIMIT_TYPE_CONCURRENCY	1
 #define RESGROUP_LIMIT_TYPE_CPU			2
 #define RESGROUP_LIMIT_TYPE_MEMORY		3
-#define RESGROUP_LIMIT_TYPE_MEMORY_REDZONE	4
-#define RESGROUP_LIMIT_TYPE_MEMORY_SHARED_QUOTA 5
-#define RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO  6
-
-#define RESGROUP_CONCURRENCY_UNLIMITED (-1)
+#define RESGROUP_LIMIT_TYPE_MEMORY_SHARED_QUOTA 4
+#define RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO  5
 
 CATALOG(pg_resgroupcapability,6439) BKI_SHARED_RELATION
 {
@@ -110,18 +107,22 @@ typedef FormData_pg_resgroupcapability *Form_pg_resgroupcapability;
 
 DATA(insert ( 6437, 1, 20, 20 ));
 
-DATA(insert ( 6437, 2, 0.3, 0.3 ));
+DATA(insert ( 6437, 2, 30, 30 ));
 
-DATA(insert ( 6437, 3, 0.3, 0.3 ));
+DATA(insert ( 6437, 3, 30, 30 ));
 
-DATA(insert ( 6437, 4, 0.8, 0.8 ));
+DATA(insert ( 6437, 4, 50, 50 ));
 
-DATA(insert ( 6438, 1, -1, -1 ));
+DATA(insert ( 6437, 5, 20, 20 ));
 
-DATA(insert ( 6438, 2, 0.1, 0.1 ));
+DATA(insert ( 6438, 1, 10, 10 ));
 
-DATA(insert ( 6438, 3, 0.1, 0.1 ));
+DATA(insert ( 6438, 2, 10, 10 ));
 
-DATA(insert ( 6438, 4, 0.8, 0.8 ));
+DATA(insert ( 6438, 3, 10, 10 ));
+
+DATA(insert ( 6438, 4, 50, 50 ));
+
+DATA(insert ( 6438, 5, 20, 20 ));
 
 #endif   /* PG_RESGROUP_H */

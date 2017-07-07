@@ -293,6 +293,10 @@ DESCR("terminate a server process");
 DATA(insert OID = 6065 ( pg_resgroup_get_status_kv  PGNSP PGUID 12 1 1000 0 f f f t v 1 0 2249 f "25" "{25,26,25,25}" "{i,o,o,o}" "{prop_in,rsgid,prop,value}" _null_ pg_resgroup_get_status_kv _null_ _null_ _null_ n ));
 DESCR("statistics: information about resource groups in key-value style");
 
+/* pg_resgroup_get_status(IN groupid oid, OUT groupid oid, OUT num_running int4, OUT num_queueing int4, OUT num_queued int4, OUT num_executed int4, OUT total_queue_duration interval, OUT cpu_usage json, OUT memory_usage json) => SETOF pg_catalog.record */ 
+DATA(insert OID = 6066 ( pg_resgroup_get_status  PGNSP PGUID 12 1 1000 0 f f f t v 1 0 2249 f "26" "{26,26,23,23,23,23,1186,114,114}" "{i,o,o,o,o,o,o,o,o}" "{groupid,groupid,num_running,num_queueing,num_queued,num_executed,total_queue_duration,cpu_usage,memory_usage}" _null_ pg_resgroup_get_status _null_ _null_ _null_ n ));
+DESCR("statistics: information about resource groups");
+
 /* pg_resqueue_status() => SETOF record */ 
 DATA(insert OID = 6030 ( pg_resqueue_status  PGNSP PGUID 12 1 1000 0 f f t t v 0 0 2249 f "" _null_ _null_ _null_ _null_ pg_resqueue_status _null_ _null_ _null_ n ));
 DESCR("Return resource queue information");

@@ -1327,7 +1327,7 @@ OptResourceGroupElem:
 					/* was "concurrency" */
 					$$ = makeDefElem("concurrency", (Node *)$2);
 				}
-			| CPU_RATE_LIMIT FloatOnly
+			| CPU_RATE_LIMIT IntegerOnly
 				{
 					$$ = makeDefElem("cpu_rate_limit", (Node *)$2);
 				}

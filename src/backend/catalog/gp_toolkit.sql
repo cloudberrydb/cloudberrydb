@@ -1840,22 +1840,28 @@ CREATE VIEW gp_toolkit.gp_resgroup_config AS
         T2.value    AS cpu_rate_limit,
         T3.value    AS memory_limit,
         T3.proposed AS proposed_memory_limit,
-        T4.value    AS memory_redzone_limit
+        T4.value    AS memory_shared_quota,
+        T4.proposed AS proposed_memory_shared_quota,
+        T5.value    AS memory_spill_ratio,
+        T5.proposed AS proposed_memory_spill_ratio
     FROM
         pg_resgroup G,
         pg_resgroupcapability T1,
         pg_resgroupcapability T2,
         pg_resgroupcapability T3,
-        pg_resgroupcapability T4
+        pg_resgroupcapability T4,
+        pg_resgroupcapability T5
     WHERE
         G.oid = T1.resgroupid
     AND G.oid = T2.resgroupid
     AND G.oid = T3.resgroupid
     AND G.oid = T4.resgroupid
+    AND G.oid = T5.resgroupid
     AND T1.reslimittype = 1
     AND T2.reslimittype = 2
     AND T3.reslimittype = 3
     AND T4.reslimittype = 4
+    AND T5.reslimittype = 5
     ;
 
 GRANT SELECT ON gp_toolkit.gp_resgroup_config TO public;
@@ -1870,31 +1876,10 @@ GRANT SELECT ON gp_toolkit.gp_resgroup_config TO public;
 --------------------------------------------------------------------------------
 
 CREATE VIEW gp_toolkit.gp_resgroup_status AS
-    SELECT
-        T1.rsgid AS groupid,
-        T1.value AS num_running,
-        T2.value AS num_queueing,
-        T3.value AS cpu_usage,
-        T4.value AS memory_usage,
-        T5.value AS total_queue_duration,
-        T6.value AS num_queued,
-        T7.value AS num_executed
-    FROM
-        pg_resgroup_get_status_kv('num_running') AS T1,
-        pg_resgroup_get_status_kv('num_queueing') AS T2,
-        pg_resgroup_get_status_kv('cpu_usage') AS T3,
-        pg_resgroup_get_status_kv('memory_usage') AS T4,
-        pg_resgroup_get_status_kv('total_queue_duration') AS T5,
-        pg_resgroup_get_status_kv('num_queued') AS T6,
-        pg_resgroup_get_status_kv('num_executed') AS T7
-    WHERE
-        T1.rsgid = T2.rsgid
-    AND T1.rsgid = T3.rsgid
-    AND T1.rsgid = T4.rsgid
-    AND T1.rsgid = T5.rsgid
-    AND T1.rsgid = T6.rsgid
-    AND T1.rsgid = T7.rsgid
-    ;
+    SELECT r.rsgname, s.*
+    FROM pg_resgroup_get_status(null) AS s,
+         pg_resgroup AS r
+    WHERE s.groupid = r.oid;
 
 GRANT SELECT ON gp_toolkit.gp_resgroup_status TO public;
 

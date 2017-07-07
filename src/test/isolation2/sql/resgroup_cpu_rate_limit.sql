@@ -4,10 +4,10 @@ DROP VIEW IF EXISTS busy;
 DROP VIEW IF EXISTS cancel_all;
 DROP FUNCTION IF EXISTS round_percentage(text);
 DROP TABLE IF EXISTS bigtable;
-DROP ROLE IF EXISTS r1;
-DROP ROLE IF EXISTS r2;
-DROP RESOURCE GROUP g1;
-DROP RESOURCE GROUP g2;
+DROP ROLE IF EXISTS role1_cpu_test;
+DROP ROLE IF EXISTS role2_cpu_test;
+DROP RESOURCE GROUP rg1_cpu_test;
+DROP RESOURCE GROUP rg2_cpu_test;
 -- end_ignore
 
 --
@@ -15,21 +15,21 @@ DROP RESOURCE GROUP g2;
 --
 
 CREATE TABLE bigtable AS
-	SELECT i AS c1, 'abc' AS c2
-	FROM generate_series(1,100000) i;
+    SELECT i AS c1, 'abc' AS c2
+    FROM generate_series(1,100000) i;
 
 -- the cpu usage limitation has an error rate about +-7.5%,
 -- and also we want to satisfy the 0.1:0.2 rate under 90% overall limitation
 -- so we round the cpu rate by 15%
-CREATE FUNCTION round_percentage(text) RETURNS text AS $$
-    SELECT (round(rtrim($1, '%') :: double precision / 15) * 15) :: text || '%'
+CREATE OR REPLACE FUNCTION round_percentage(json) RETURNS text AS $$
+    SELECT (round(avg(value::text::float)/15)*15)::text||'%'
+    FROM json_each_text($1)
 $$ LANGUAGE sql;
 
-CREATE VIEW cpu_status AS
-    SELECT g.rsgname, round_percentage(s.cpu_usage)
-    FROM gp_toolkit.gp_resgroup_status s, pg_resgroup g
-    WHERE s.groupid=g.oid
-    ORDER BY g.oid;
+CREATE OR REPLACE VIEW cpu_status AS
+    SELECT s.rsgname, round_percentage(s.cpu_usage)
+    FROM gp_toolkit.gp_resgroup_status s
+    ORDER BY s.groupid;
 
 CREATE VIEW busy AS
     SELECT count(*)
@@ -47,9 +47,9 @@ CREATE VIEW busy AS
     ;
 
 CREATE VIEW cancel_all AS
-	SELECT pg_cancel_backend(procpid)
-	FROM pg_stat_activity
-	WHERE current_query LIKE 'SELECT * FROM busy%';
+    SELECT pg_cancel_backend(procpid)
+    FROM pg_stat_activity
+    WHERE current_query LIKE 'SELECT * FROM busy%';
 
 --
 -- check gpdb cgroup configuration
@@ -68,38 +68,38 @@ CREATE VIEW cancel_all AS
 -- SUB/shares := TOP/shares * cpu_rate_limit
 --
 
-! python -c "print $(cat /sys/fs/cgroup/cpu/gpdb/$(psql -d isolation2resgrouptest -Aqtc "SELECT oid FROM pg_resgroup WHERE rsgname='default_group'")/cpu.shares) == int($(cat /sys/fs/cgroup/cpu/gpdb/cpu.shares) * $(psql -d isolation2resgrouptest -Aqtc "SELECT value FROM pg_resgroupcapability c, pg_resgroup g WHERE c.resgroupid=g.oid AND reslimittype=2 AND g.rsgname='default_group'"))";
+! python -c "print $(cat /sys/fs/cgroup/cpu/gpdb/$(psql -d isolation2resgrouptest -Aqtc "SELECT oid FROM pg_resgroup WHERE rsgname='default_group'")/cpu.shares) == int($(cat /sys/fs/cgroup/cpu/gpdb/cpu.shares) * $(psql -d isolation2resgrouptest -Aqtc "SELECT value FROM pg_resgroupcapability c, pg_resgroup g WHERE c.resgroupid=g.oid AND reslimittype=2 AND g.rsgname='default_group'") / 100)";
 
-! python -c "print $(cat /sys/fs/cgroup/cpu/gpdb/$(psql -d isolation2resgrouptest -Aqtc "SELECT oid FROM pg_resgroup WHERE rsgname='admin_group'")/cpu.shares) == int($(cat /sys/fs/cgroup/cpu/gpdb/cpu.shares) * $(psql -d isolation2resgrouptest -Aqtc "SELECT value FROM pg_resgroupcapability c, pg_resgroup g WHERE c.resgroupid=g.oid AND reslimittype=2 AND g.rsgname='admin_group'"))";
+! python -c "print $(cat /sys/fs/cgroup/cpu/gpdb/$(psql -d isolation2resgrouptest -Aqtc "SELECT oid FROM pg_resgroup WHERE rsgname='admin_group'")/cpu.shares) == int($(cat /sys/fs/cgroup/cpu/gpdb/cpu.shares) * $(psql -d isolation2resgrouptest -Aqtc "SELECT value FROM pg_resgroupcapability c, pg_resgroup g WHERE c.resgroupid=g.oid AND reslimittype=2 AND g.rsgname='admin_group'") / 100)";
 
 -- create two resource groups
-CREATE RESOURCE GROUP g1 WITH (concurrency=5, cpu_rate_limit=0.1, memory_limit=0.2);
-CREATE RESOURCE GROUP g2 WITH (concurrency=5, cpu_rate_limit=0.2, memory_limit=0.2);
+CREATE RESOURCE GROUP rg1_cpu_test WITH (concurrency=5, cpu_rate_limit=10, memory_limit=20);
+CREATE RESOURCE GROUP rg2_cpu_test WITH (concurrency=5, cpu_rate_limit=20, memory_limit=20);
 
--- check g1 configuration
-! python -c "print $(cat /sys/fs/cgroup/cpu/gpdb/$(psql -d isolation2resgrouptest -Aqtc "SELECT oid FROM pg_resgroup WHERE rsgname='g1'")/cpu.shares) == int($(cat /sys/fs/cgroup/cpu/gpdb/cpu.shares) * 0.1)";
+-- check rg1_cpu_test configuration
+! python -c "print $(cat /sys/fs/cgroup/cpu/gpdb/$(psql -d isolation2resgrouptest -Aqtc "SELECT oid FROM pg_resgroup WHERE rsgname='rg1_cpu_test'")/cpu.shares) == int($(cat /sys/fs/cgroup/cpu/gpdb/cpu.shares) * 0.1)";
 
--- check g2 configuration
-! python -c "print $(cat /sys/fs/cgroup/cpu/gpdb/$(psql -d isolation2resgrouptest -Aqtc "SELECT oid FROM pg_resgroup WHERE rsgname='g2'")/cpu.shares) == int($(cat /sys/fs/cgroup/cpu/gpdb/cpu.shares) * 0.2)";
+-- check rg2_cpu_test configuration
+! python -c "print $(cat /sys/fs/cgroup/cpu/gpdb/$(psql -d isolation2resgrouptest -Aqtc "SELECT oid FROM pg_resgroup WHERE rsgname='rg2_cpu_test'")/cpu.shares) == int($(cat /sys/fs/cgroup/cpu/gpdb/cpu.shares) * 0.2)";
 
 -- create two roles and assign them to above groups
-CREATE ROLE r1 RESOURCE GROUP g1;
-CREATE ROLE r2 RESOURCE GROUP g2;
-GRANT ALL ON busy TO r1;
-GRANT ALL ON busy TO r2;
+CREATE ROLE role1_cpu_test RESOURCE GROUP rg1_cpu_test;
+CREATE ROLE role2_cpu_test RESOURCE GROUP rg2_cpu_test;
+GRANT ALL ON busy TO role1_cpu_test;
+GRANT ALL ON busy TO role2_cpu_test;
 
 -- prepare parallel queries in the two groups
-10: SET ROLE TO r1;
-11: SET ROLE TO r1;
-12: SET ROLE TO r1;
-13: SET ROLE TO r1;
-14: SET ROLE TO r1;
+10: SET ROLE TO role1_cpu_test;
+11: SET ROLE TO role1_cpu_test;
+12: SET ROLE TO role1_cpu_test;
+13: SET ROLE TO role1_cpu_test;
+14: SET ROLE TO role1_cpu_test;
 
-20: SET ROLE TO r2;
-21: SET ROLE TO r2;
-22: SET ROLE TO r2;
-23: SET ROLE TO r2;
-24: SET ROLE TO r2;
+20: SET ROLE TO role2_cpu_test;
+21: SET ROLE TO role2_cpu_test;
+22: SET ROLE TO role2_cpu_test;
+23: SET ROLE TO role2_cpu_test;
+24: SET ROLE TO role2_cpu_test;
 
 --
 -- now we get prepared.
@@ -142,10 +142,10 @@ SELECT * FROM cancel_all;
 -- when there are multiple groups with parallel queries,
 -- they should share the cpu usage by their cpu_usage settings,
 --
--- g1:g2 is 0.1:0.2 => 1:2, so:
+-- rg1_cpu_test:rg2_cpu_test is 0.1:0.2 => 1:2, so:
 --
--- - g1 gets 90% * 1/3 => 30%;
--- - g2 gets 90% * 2/3 => 60%;
+-- - rg1_cpu_test gets 90% * 1/3 => 30%;
+-- - rg2_cpu_test gets 90% * 2/3 => 60%;
 --
 
 10&: SELECT * FROM busy;
@@ -178,3 +178,11 @@ SELECT * FROM cancel_all;
 23<:
 24<:
 -- end_ignore
+
+-- cleanup
+REVOKE ALL ON busy FROM role1_cpu_test;
+REVOKE ALL ON busy FROM role2_cpu_test;
+DROP ROLE role1_cpu_test;
+DROP ROLE role2_cpu_test;
+DROP RESOURCE GROUP rg1_cpu_test;
+DROP RESOURCE GROUP rg2_cpu_test;

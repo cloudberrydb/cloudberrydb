@@ -54,7 +54,7 @@ extern void UnassignResGroupOnMaster(void);
 extern void SwitchResGroupOnSegment(const char *buf, int len);
 
 /* Retrieve statistic information of type from resource group */
-extern void ResGroupGetStat(Oid groupId, ResGroupStatType type, char *retStr, int retStrLen, const char *prop);
+extern Datum ResGroupGetStat(Oid groupId, ResGroupStatType type);
 
 extern void ResGroupDumpMemoryInfo(void);
 

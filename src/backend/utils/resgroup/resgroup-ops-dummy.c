@@ -118,10 +118,10 @@ ResGroupOps_UnLockGroup(Oid group, int fd)
 /*
  * Set the cpu rate limit for the OS group.
  *
- * cpu_rate_limit should be within (0.0, 1.0].
+ * cpu_rate_limit should be within [0, 100].
  */
 void
-ResGroupOps_SetCpuRateLimit(Oid group, float cpu_rate_limit)
+ResGroupOps_SetCpuRateLimit(Oid group, int cpu_rate_limit)
 {
 	unsupported_system();
 }

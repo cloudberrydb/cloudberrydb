@@ -8,6 +8,7 @@
 -- enable resource group and restart cluster.
 -- start_ignore
 ! gpconfig -c gp_resource_manager -v group;
+! gpconfig -c gp_resource_group_cpu_limit -v 0.5;
 ! gpstop -rai;
 -- end_ignore
 

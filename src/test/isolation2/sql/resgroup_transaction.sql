@@ -19,7 +19,7 @@ CREATE OR REPLACE VIEW rg_test_monitor AS
 -- CREATE then ROLLBACK
 BEGIN;
 	CREATE RESOURCE GROUP rg_test_group
-		WITH (concurrency=10, cpu_rate_limit=.10, memory_limit=.10);
+		WITH (concurrency=10, cpu_rate_limit=10, memory_limit=10);
 	SELECT * FROM rg_test_monitor;
 ROLLBACK;
 SELECT * FROM rg_test_monitor;
@@ -27,7 +27,7 @@ SELECT * FROM rg_test_monitor;
 -- CREATE, DROP then ROLLBACK
 BEGIN;
 	CREATE RESOURCE GROUP rg_test_group
-		WITH (concurrency=10, cpu_rate_limit=.10, memory_limit=.10);
+		WITH (concurrency=10, cpu_rate_limit=10, memory_limit=10);
 	SELECT * FROM rg_test_monitor;
 
 	DROP RESOURCE GROUP rg_test_group;
@@ -38,13 +38,13 @@ SELECT * FROM rg_test_monitor;
 -- CREATE, ALTER then ROLLBACK
 BEGIN;
 	CREATE RESOURCE GROUP rg_test_group
-		WITH (concurrency=10, cpu_rate_limit=.10, memory_limit=.10);
+		WITH (concurrency=10, cpu_rate_limit=10, memory_limit=10);
 	SELECT * FROM rg_test_monitor;
 
 	ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 11;
 	SELECT * FROM rg_test_monitor;
 
-	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 0.11;
+	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 11;
 	SELECT * FROM rg_test_monitor;
 ROLLBACK;
 SELECT * FROM rg_test_monitor;
@@ -52,13 +52,13 @@ SELECT * FROM rg_test_monitor;
 -- CREATE, ALTER, DROP then ROLLBACK
 BEGIN;
 	CREATE RESOURCE GROUP rg_test_group
-		WITH (concurrency=10, cpu_rate_limit=.10, memory_limit=.10);
+		WITH (concurrency=10, cpu_rate_limit=10, memory_limit=10);
 	SELECT * FROM rg_test_monitor;
 
 	ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 11;
 	SELECT * FROM rg_test_monitor;
 
-	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 0.11;
+	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 11;
 	SELECT * FROM rg_test_monitor;
 
 	DROP RESOURCE GROUP rg_test_group;
@@ -73,7 +73,7 @@ SELECT * FROM rg_test_monitor;
 -- CREATE then COMMIT
 BEGIN;
 	CREATE RESOURCE GROUP rg_test_group
-		WITH (concurrency=10, cpu_rate_limit=.10, memory_limit=.10);
+		WITH (concurrency=10, cpu_rate_limit=10, memory_limit=10);
 	SELECT * FROM rg_test_monitor;
 COMMIT;
 SELECT * FROM rg_test_monitor;
@@ -83,7 +83,7 @@ SELECT * FROM rg_test_monitor;
 -- CREATE, DROP then COMMIT
 BEGIN;
 	CREATE RESOURCE GROUP rg_test_group
-		WITH (concurrency=10, cpu_rate_limit=.10, memory_limit=.10);
+		WITH (concurrency=10, cpu_rate_limit=10, memory_limit=10);
 	SELECT * FROM rg_test_monitor;
 
 	DROP RESOURCE GROUP rg_test_group;
@@ -94,13 +94,13 @@ SELECT * FROM rg_test_monitor;
 -- CREATE, ALTER then COMMIT
 BEGIN;
 	CREATE RESOURCE GROUP rg_test_group
-		WITH (concurrency=10, cpu_rate_limit=.10, memory_limit=.10);
+		WITH (concurrency=10, cpu_rate_limit=10, memory_limit=10);
 	SELECT * FROM rg_test_monitor;
 
 	ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 11;
 	SELECT * FROM rg_test_monitor;
 
-	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 0.11;
+	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 11;
 	SELECT * FROM rg_test_monitor;
 COMMIT;
 SELECT * FROM rg_test_monitor;
@@ -110,13 +110,13 @@ SELECT * FROM rg_test_monitor;
 -- CREATE, ALTER, DROP then COMMIT
 BEGIN;
 	CREATE RESOURCE GROUP rg_test_group
-		WITH (concurrency=10, cpu_rate_limit=.10, memory_limit=.10);
+		WITH (concurrency=10, cpu_rate_limit=10, memory_limit=10);
 	SELECT * FROM rg_test_monitor;
 
 	ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 11;
 	SELECT * FROM rg_test_monitor;
 
-	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 0.11;
+	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 11;
 	SELECT * FROM rg_test_monitor;
 
 	DROP RESOURCE GROUP rg_test_group;
@@ -129,7 +129,7 @@ SELECT * FROM rg_test_monitor;
 -- ----------------------------------------------------------------------
 
 CREATE RESOURCE GROUP rg_test_group
-	WITH (concurrency=10, cpu_rate_limit=.10, memory_limit=.10);
+	WITH (concurrency=10, cpu_rate_limit=10, memory_limit=10);
 
 -- DROP then ROLLBACK
 BEGIN;
@@ -143,7 +143,7 @@ BEGIN;
 	ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 11;
 	SELECT * FROM rg_test_monitor;
 
-	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 0.11;
+	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 11;
 	SELECT * FROM rg_test_monitor;
 ROLLBACK;
 SELECT * FROM rg_test_monitor;
@@ -153,7 +153,7 @@ BEGIN;
 	ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 11;
 	SELECT * FROM rg_test_monitor;
 
-	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 0.11;
+	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 11;
 	SELECT * FROM rg_test_monitor;
 
 	DROP RESOURCE GROUP rg_test_group;
@@ -172,7 +172,7 @@ BEGIN;
 COMMIT;
 SELECT * FROM rg_test_monitor;
 CREATE RESOURCE GROUP rg_test_group
-	WITH (concurrency=10, cpu_rate_limit=.10, memory_limit=.10);
+	WITH (concurrency=10, cpu_rate_limit=10, memory_limit=10);
 SELECT * FROM rg_test_monitor;
 
 -- ALTER then COMMIT
@@ -180,7 +180,7 @@ BEGIN;
 	ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 11;
 	SELECT * FROM rg_test_monitor;
 
-	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 0.11;
+	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 11;
 	SELECT * FROM rg_test_monitor;
 COMMIT;
 SELECT * FROM rg_test_monitor;
@@ -190,7 +190,7 @@ BEGIN;
 	ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 12;
 	SELECT * FROM rg_test_monitor;
 
-	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 0.12;
+	ALTER RESOURCE GROUP rg_test_group SET CPU_RATE_LIMIT 12;
 	SELECT * FROM rg_test_monitor;
 
 	DROP RESOURCE GROUP rg_test_group;
@@ -199,35 +199,31 @@ COMMIT;
 SELECT * FROM rg_test_monitor;
 
 -- ----------------------------------------------------------------------
--- Test: manage resource group in subtransaction must fail
+-- Test: create/alter/drop a resource group in subtransaction
 -- ----------------------------------------------------------------------
 
--- CREATE in subtransaction
+-- CREATE RESOURCE GROUP cannot run inside a subtransaction
 BEGIN;
-	SAVEPOINT sub1;
-		CREATE RESOURCE GROUP rg_test_group
-			WITH (concurrency=10, cpu_rate_limit=.10, memory_limit=.10);
-ROLLBACK;
-SELECT * FROM rg_test_monitor;
+	SAVEPOINT rg_savepoint;
+	CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=5, memory_limit=5);
+	ROLLBACK TO SAVEPOINT rg_savepoint;
+ABORT;
 
--- ALTER and DROP in subtransaction
-CREATE RESOURCE GROUP rg_test_group
-	WITH (concurrency=10, cpu_rate_limit=.10, memory_limit=.10);
-SELECT * FROM rg_test_monitor;
+-- ALTER RESOURCE GROUP cannot run inside a subtransaction
 BEGIN;
-	SAVEPOINT sub1;
-	ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 11;
-ROLLBACK;
+	CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=5, memory_limit=5);
+	SAVEPOINT rg_savepoint;
+	ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 10;
+	ROLLBACK TO SAVEPOINT rg_savepoint;
+ABORT;
+
+-- DROP RESOURCE GROUP cannot run inside a subtransaction
 BEGIN;
-	SAVEPOINT sub1;
-	ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 11;
-ROLLBACK;
-BEGIN;
-	SAVEPOINT sub1;
+	CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=5, memory_limit=5);
+	SAVEPOINT rg_savepoint;
 	DROP RESOURCE GROUP rg_test_group;
-ROLLBACK;
-DROP RESOURCE GROUP rg_test_group;
-SELECT * FROM rg_test_monitor;
+	ROLLBACK TO SAVEPOINT rg_savepoint;
+ABORT;
 
 -- cleanup
 DROP VIEW rg_test_monitor;

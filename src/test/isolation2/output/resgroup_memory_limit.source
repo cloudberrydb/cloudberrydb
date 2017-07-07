@@ -16,7 +16,7 @@ CREATE
 -- so each resgroup slot gets a fixed memory quota of 0.5.
 --
 
-CREATE RESOURCE GROUP rg1_memory_test WITH (concurrency=2, cpu_rate_limit=0.1, memory_limit=0.5, memory_shared_quota=0.0);
+CREATE RESOURCE GROUP rg1_memory_test WITH (concurrency=2, cpu_rate_limit=10, memory_limit=50, memory_shared_quota=0);
 CREATE
 CREATE ROLE role1_memory_test RESOURCE GROUP rg1_memory_test;
 CREATE
@@ -147,7 +147,7 @@ DROP ROLE role1_memory_test;
 DROP
 DROP RESOURCE GROUP rg1_memory_test;
 DROP
-CREATE RESOURCE GROUP rg1_memory_test WITH (concurrency=2, cpu_rate_limit=0.1, memory_limit=0.1, memory_shared_quota=0.4);
+CREATE RESOURCE GROUP rg1_memory_test WITH (concurrency=2, cpu_rate_limit=10, memory_limit=10, memory_shared_quota=40);
 CREATE
 CREATE ROLE role1_memory_test RESOURCE GROUP rg1_memory_test;
 CREATE

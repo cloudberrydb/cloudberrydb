@@ -1,4 +1,6 @@
 -- start_ignore
+! chmod 755 /sys/fs/cgroup/cpu/gpdb/*/;
+! chmod 755 /sys/fs/cgroup/cpuacct/gpdb/*/;
 ! rmdir /sys/fs/cgroup/cpu/gpdb/*/;
 ! rmdir /sys/fs/cgroup/cpuacct/gpdb/*/;
 ! rmdir /sys/fs/cgroup/cpu/gpdb;
