@@ -1063,7 +1063,6 @@ FaultInjector_NewHashEntry(
 	{
 		case ChangeTrackingDisable:
 		case FileRepConsumerVerification:
-		case StartPrepareTx:
 		case FileRepResync:
 		case FileRepResyncInProgress:
 		case FileRepResyncWorker:
@@ -1078,31 +1077,7 @@ FaultInjector_NewHashEntry(
 		case FileRepTransitionToChangeTracking:
 		case FileRepIsOperationCompleted:
 		case FileRepImmediateShutdownRequested:
-			
-		case FinishPreparedTransactionCommitPass1FromCreatePendingToCreated:
-		case FinishPreparedTransactionCommitPass2FromCreatePendingToCreated:
-			
-		case FinishPreparedTransactionCommitPass1FromDropInMemoryToDropPending:
-		case FinishPreparedTransactionCommitPass2FromDropInMemoryToDropPending:
-			
-		case FinishPreparedTransactionCommitPass1AbortingCreateNeeded:
-		case FinishPreparedTransactionCommitPass2AbortingCreateNeeded:
-			
-		case FinishPreparedTransactionAbortPass1FromCreatePendingToAbortingCreate:
-//		case FinishPreparedTransactionAbortPass2FromCreatePendingToAbortingCreate:
-			
-		case FinishPreparedTransactionAbortPass1AbortingCreateNeeded:
-		case FinishPreparedTransactionAbortPass2AbortingCreateNeeded:
-		case TwoPhaseTransactionCommitPrepared:
-		case TwoPhaseTransactionAbortPrepared:
-		
 		case FileRepChangeTrackingCompacting:
-
-		/* We do not use vmem on master. Therefore, we only attempt large palloc on segments. */
-		case MultiExecHashLargeVmem:
-		case FaultInBackgroundWriterMain:
-		case SendQEDetailsInitBackend:
-			
 			if (fileRepRole != FileRepPrimaryRole)
 			{
 				FiLockRelease();
@@ -1119,20 +1094,10 @@ FaultInjector_NewHashEntry(
 			}			
 			break;
 		
-		case FaultBeforePendingDeleteRelationEntry:
-		case FaultBeforePendingDeleteDatabaseEntry:
-		case FaultBeforePendingDeleteTablespaceEntry:
-		case FaultBeforePendingDeleteFilespaceEntry:	
 		case FileRepConsumer:
 		case FileRepSender:
 		case FileRepReceiver:
 		case FileRepFlush:
-		case Postmaster:
-		case PgControl:
-		case PgXlog:
-		case SegmentTransitionRequest:
-		case SegmentProbeResponse:
-			
 			if (fileRepRole != FileRepPrimaryRole && fileRepRole != FileRepMirrorRole)
 			{
 				FiLockRelease();
@@ -1175,6 +1140,38 @@ FaultInjector_NewHashEntry(
 			}			
 			break;
 			
+
+		case StartPrepareTx:
+		case FinishPreparedTransactionCommitPass1FromCreatePendingToCreated:
+		case FinishPreparedTransactionCommitPass2FromCreatePendingToCreated:
+			
+		case FinishPreparedTransactionCommitPass1FromDropInMemoryToDropPending:
+		case FinishPreparedTransactionCommitPass2FromDropInMemoryToDropPending:
+			
+		case FinishPreparedTransactionCommitPass1AbortingCreateNeeded:
+		case FinishPreparedTransactionCommitPass2AbortingCreateNeeded:
+			
+		case FinishPreparedTransactionAbortPass1FromCreatePendingToAbortingCreate:
+			
+		case FinishPreparedTransactionAbortPass1AbortingCreateNeeded:
+		case FinishPreparedTransactionAbortPass2AbortingCreateNeeded:
+		case TwoPhaseTransactionCommitPrepared:
+		case TwoPhaseTransactionAbortPrepared:
+		
+		/* We do not use vmem on master. Therefore, we only attempt large palloc on segments. */
+		case MultiExecHashLargeVmem:
+		case FaultInBackgroundWriterMain:
+		case SendQEDetailsInitBackend:
+		
+		case FaultBeforePendingDeleteRelationEntry:
+		case FaultBeforePendingDeleteDatabaseEntry:
+		case FaultBeforePendingDeleteTablespaceEntry:
+		case FaultBeforePendingDeleteFilespaceEntry:	
+		case PgControl:
+		case PgXlog:
+		case SegmentTransitionRequest:
+		case SegmentProbeResponse:
+
 		case LocalTmRecordTransactionCommit:
 		case Checkpoint:
 		case AbortTransactionFail:
@@ -1204,7 +1201,7 @@ FaultInjector_NewHashEntry(
 				goto exit;
 			}			
 			break;
-			
+
 		default:
 			break;
 	}
