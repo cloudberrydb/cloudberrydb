@@ -893,7 +893,6 @@ retry:
 	}
 
 	MyResGroupSharedInfo = group;
-	MyResGroupProcInfo->groupId = groupId;
 
 	/* wait on the queue if the group is locked for drop */
 	if (group->lockedForDrop)
@@ -1085,21 +1084,22 @@ AssignResGroupOnMaster(void)
 	int32	slotMemUsage;
 	int32	sharedMemUsage;
 
-	/* Acquire slot */
-	procInfo = MyResGroupProcInfo;
-	slotId = ResGroupSlotAcquire();
-	groupId = procInfo->groupId;
-	Assert(slotId != InvalidSlotId);
-	Assert(groupId != InvalidOid);
 	Assert(Gp_role == GP_ROLE_DISPATCH);
+
+	/* Acquire slot */
+	slotId = ResGroupSlotAcquire();
+	Assert(slotId != InvalidSlotId);
 	Assert(MyResGroupSharedInfo != NULL);
+	sharedInfo = MyResGroupSharedInfo;
+	groupId = sharedInfo->groupId;
+	Assert(groupId != InvalidOid);
+	Assert(!MyResGroupProcInfo->doMemCheck);
 
 	/* Get config information */
 	GetMemoryCapabilitiesForResGroup(groupId, &memoryLimit, &sharedQuota, &spillRatio);
 	GetConcurrencyForResGroup(groupId, NULL, &concurrency);
 
 	/* Init slot */
-	sharedInfo = MyResGroupSharedInfo;
 	slot = &sharedInfo->slots[slotId];
 	slot->sessionId = gp_session_id;
 	slot->segmentChunks = ResGroupOps_GetTotalMemory()
@@ -1112,6 +1112,8 @@ AssignResGroupOnMaster(void)
 	Assert(slot->memQuota > 0);
 
 	/* Init MyResGroupProcInfo */
+	procInfo = MyResGroupProcInfo;
+	procInfo->groupId = groupId;
 	procInfo->slotId = slotId;
 	procInfo->config.memoryLimit = memoryLimit;
 	procInfo->config.sharedQuota = sharedQuota;
