@@ -107,8 +107,6 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/EquivClassesLimit.mdp",
 		"../data/dxl/minidump/Date-TimeStamp-HashJoin.mdp",
 		"../data/dxl/minidump/TimeStamp-Date-HashJoin.mdp",
-		"../data/dxl/minidump/Exists-SuperfluousEquality.mdp",
-		"../data/dxl/minidump/NotExists-SuperfluousEquality.mdp",
 		"../data/dxl/minidump/MultiLevel-CorrelatedExec.mdp",
 		"../data/dxl/minidump/OneLevel-CorrelatedExec.mdp",
 		"../data/dxl/minidump/MultiLevel-IN-Subquery.mdp",
@@ -146,8 +144,6 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/SubqAll-To-ScalarSubq.mdp",
 		"../data/dxl/minidump/SubqAll-Limit1.mdp",
 		"../data/dxl/minidump/ProjectUnderSubq.mdp",
-		"../data/dxl/minidump/SubqExists-With-External-Corrs.mdp",
-		"../data/dxl/minidump/SubqExists-Without-External-Corrs.mdp",
 #ifndef GPOS_DEBUG
 		"../data/dxl/minidump/TPCDS-39-InnerJoin-JoinEstimate.mdp",
 		"../data/dxl/minidump/TPCH-Partitioned-256GB.mdp",

@@ -37,14 +37,7 @@
 using namespace gpopt;
 using namespace gpmd;
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FNegatedBooleanScalarIdent
-//
-//	@doc:
-//		Check if the expression is a negated boolean scalar identifier
-//
-//---------------------------------------------------------------------------
+// check if the expression is a negated boolean scalar identifier
 BOOL
 CPredicateUtils::FNegatedBooleanScalarIdent
 	(
@@ -61,14 +54,7 @@ CPredicateUtils::FNegatedBooleanScalarIdent
 	return false;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FBooleanScalarIdent
-//
-//	@doc:
-//		Check if the expression is a boolean scalar identifier
-//
-//---------------------------------------------------------------------------
+// check if the expression is a boolean scalar identifier
 BOOL
 CPredicateUtils::FBooleanScalarIdent
 	(
@@ -89,14 +75,7 @@ CPredicateUtils::FBooleanScalarIdent
 	return false;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FEquality
-//
-//	@doc:
-//		Is the given expression an equality comparison
-//
-//---------------------------------------------------------------------------
+// is the given expression an equality comparison
 BOOL
 CPredicateUtils::FEquality
 	(
@@ -106,15 +85,7 @@ CPredicateUtils::FEquality
 	return FComparison(pexpr, IMDType::EcmptEq);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FComparison
-//
-//	@doc:
-//		Is the given expression a comparison
-//
-//---------------------------------------------------------------------------
+// is the given expression a comparison
 BOOL
 CPredicateUtils::FComparison
 	(
@@ -126,15 +97,7 @@ CPredicateUtils::FComparison
 	return COperator::EopScalarCmp == pexpr->Pop()->Eopid();
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FComparison
-//
-//	@doc:
-//		Is the given expression a comparison of the given type
-//
-//---------------------------------------------------------------------------
+// is the given expression a comparison of the given type
 BOOL
 CPredicateUtils::FComparison
 	(
@@ -157,18 +120,10 @@ CPredicateUtils::FComparison
 	return ecmpt == popScCmp->Ecmpt();
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FComparison
-//
-//	@doc:
-//		Is the given expression a comparison over the given column. A comparison
-//		can only be between the given column and an expression involving only
-//		the allowed columns. If the allowed columns set is NULL, then we only want
-//		constant comparisons.
-//
-//---------------------------------------------------------------------------
+// Is the given expression a comparison over the given column. A comparison
+// can only be between the given column and an expression involving only
+// the allowed columns. If the allowed columns set is NULL, then we only want
+// constant comparisons.
 BOOL
 CPredicateUtils::FComparison
 	(
@@ -200,16 +155,9 @@ CPredicateUtils::FComparison
 	return false;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FValidRefsOnly
-//
-//	@doc:
-//		Check whether the given expression contains references to only the given
-//		columns. If pcrsAllowedRefs is NULL, then check whether the expression has
-//		no column references and no volatile functions
-//
-//---------------------------------------------------------------------------
+// Check whether the given expression contains references to only the given
+// columns. If pcrsAllowedRefs is NULL, then check whether the expression has
+// no column references and no volatile functions
 BOOL
 CPredicateUtils::FValidRefsOnly
 	(
@@ -227,14 +175,7 @@ CPredicateUtils::FValidRefsOnly
 			IMDFunction::EfsVolatile != pdpscalar->Pfp()->Efs();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FConjunctionOfEqComparisons
-//
-//	@doc:
-//		Is the given expression a conjunction of equality comparisons
-//
-//---------------------------------------------------------------------------
+// is the given expression a conjunction of equality comparisons
 BOOL 
 CPredicateUtils::FConjunctionOfEqComparisons
 	(
@@ -265,14 +206,7 @@ CPredicateUtils::FConjunctionOfEqComparisons
 	return true;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FHasNegatedChild
-//
-//	@doc:
-//		Does the given expression have any NOT children?
-//
-//---------------------------------------------------------------------------
+// does the given expression have any NOT children?
 BOOL
 CPredicateUtils::FHasNegatedChild
 	(
@@ -293,16 +227,7 @@ CPredicateUtils::FHasNegatedChild
 	return false;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::CollectChildren
-//
-//	@doc:
-//		Append logical and scalar children of the given expression to
-//		the given arrays
-//
-//---------------------------------------------------------------------------
+// append logical and scalar children of the given expression to the given arrays
 void
 CPredicateUtils::CollectChildren
 	(
@@ -331,15 +256,7 @@ CPredicateUtils::CollectChildren
 	}
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::CollectConjuncts
-//
-//	@doc:
-//		Recursively collect conjuncts
-//
-//---------------------------------------------------------------------------
+// recursively collect conjuncts
 void
 CPredicateUtils::CollectConjuncts
 	(
@@ -364,15 +281,7 @@ CPredicateUtils::CollectConjuncts
 	}
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::CollectDisjuncts
-//
-//	@doc:
-//		Recursively collect disjuncts
-//
-//---------------------------------------------------------------------------
+// recursively collect disjuncts
 void
 CPredicateUtils::CollectDisjuncts
 	(
@@ -397,15 +306,7 @@ CPredicateUtils::CollectDisjuncts
 	}
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PdrgpexprConjuncts
-//
-//	@doc:
-//		Extract conjuncts from a predicate
-//
-//---------------------------------------------------------------------------
+// extract conjuncts from a predicate
 DrgPexpr *
 CPredicateUtils::PdrgpexprConjuncts
 	(
@@ -419,15 +320,7 @@ CPredicateUtils::PdrgpexprConjuncts
 	return pdrgpexpr;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PdrgpexprDisjuncts
-//
-//	@doc:
-//		Extract disjuncts from a predicate
-//
-//---------------------------------------------------------------------------
+// extract disjuncts from a predicate
 DrgPexpr *
 CPredicateUtils::PdrgpexprDisjuncts
 	(
@@ -441,17 +334,9 @@ CPredicateUtils::PdrgpexprDisjuncts
 	return pdrgpexpr;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PdrgpexprExpandDisjuncts
-//
-//	@doc:
-//		This function expects an array of disjuncts (children of OR operator),
-//		the function expands disjuncts in the given array by converting
-//		ArrayComparison to AND/OR tree and deduplicating resulting disjuncts
-//
-//---------------------------------------------------------------------------
+// This function expects an array of disjuncts (children of OR operator),
+// the function expands disjuncts in the given array by converting
+// ArrayComparison to AND/OR tree and deduplicating resulting disjuncts
 DrgPexpr *
 CPredicateUtils::PdrgpexprExpandDisjuncts
 	(
@@ -504,16 +389,9 @@ CPredicateUtils::PdrgpexprExpandDisjuncts
 	return pdrgpexprResult;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PdrgpexprExpandConjuncts
-//
-//	@doc:
-//		This function expects an array of conjuncts (children of AND operator),
-//		the function expands conjuncts in the given array by converting
-//		ArrayComparison to AND/OR tree and deduplicating resulting conjuncts
-//
-//---------------------------------------------------------------------------
+// This function expects an array of conjuncts (children of AND operator),
+// the function expands conjuncts in the given array by converting
+// ArrayComparison to AND/OR tree and deduplicating resulting conjuncts
 DrgPexpr *
 CPredicateUtils::PdrgpexprExpandConjuncts
 	(
@@ -566,15 +444,7 @@ CPredicateUtils::PdrgpexprExpandConjuncts
 	return pdrgpexprResult;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FSkippable
-//
-//	@doc:
-//		Check if a conjunct/disjunct can be skipped
-//
-//---------------------------------------------------------------------------
+// check if a conjunct/disjunct can be skipped
 BOOL
 CPredicateUtils::FSkippable
 	(
@@ -586,15 +456,8 @@ CPredicateUtils::FSkippable
 			&& CUtils::FScalarConstFalse(pexpr)));
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FReducible
-//
-//	@doc:
-//		Check if a conjunction/disjunction can be reduced to a constant
-//		True/False based on the given conjunct/disjunct
-//
-//---------------------------------------------------------------------------
+// check if a conjunction/disjunction can be reduced to a constant
+// True/False based on the given conjunct/disjunct
 BOOL
 CPredicateUtils::FReducible
 	(
@@ -606,14 +469,7 @@ CPredicateUtils::FReducible
 			|| (!fConjunction && CUtils::FScalarConstTrue(pexpr)));
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::EcmptReverse
-//
-//	@doc:
-//		Reverse the given operator type, for example > => <, <= => >=
-//
-//---------------------------------------------------------------------------
+// reverse the given operator type, for example > => <, <= => >=
 IMDType::ECmpType
 CPredicateUtils::EcmptReverse
 	(
@@ -650,14 +506,7 @@ CPredicateUtils::EcmptReverse
 	return IMDType::EcmptOther;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FLikePredicate
-//
-//	@doc:
-//		Is the condition a LIKE predicate
-//---------------------------------------------------------------------------
+// is the condition a LIKE predicate
 BOOL
 CPredicateUtils::FLikePredicate
 	(
@@ -682,14 +531,7 @@ CPredicateUtils::FLikePredicate
 	return true;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FLikePredicate
-//
-//	@doc:
-//		Is the condition a LIKE predicate
-//---------------------------------------------------------------------------
+// is the condition a LIKE predicate
 BOOL
 CPredicateUtils::FLikePredicate
 	(
@@ -708,15 +550,7 @@ CPredicateUtils::FLikePredicate
 	return FLikePredicate(pmdid);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::ExtractLikePredComponents
-//
-//	@doc:
-//		Extract the components of a LIKE predicate
-//
-//---------------------------------------------------------------------------
+// extract the components of a LIKE predicate
 void
 CPredicateUtils::ExtractLikePredComponents
 	(
@@ -767,15 +601,7 @@ CPredicateUtils::ExtractLikePredComponents
 	}
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::ExtractComponents
-//
-//	@doc:
-//		Extract components in a comparison expression on the given key
-//
-//---------------------------------------------------------------------------
+// extract components in a comparison expression on the given key
 void
 CPredicateUtils::ExtractComponents
 	(
@@ -815,15 +641,7 @@ CPredicateUtils::ExtractComponents
 	GPOS_ASSERT(NULL != *ppexprKey && NULL != *ppexprOther);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprConjDisj
-//
-//	@doc:
-//		Create conjunction/disjunction from array of components;
-//		Takes ownership over the given array of expressions
-//
-//---------------------------------------------------------------------------
+// create conjunction/disjunction from array of components; Takes ownership over the given array of expressions
 CExpression *
 CPredicateUtils::PexprConjDisj
 	(
@@ -894,14 +712,7 @@ CPredicateUtils::PexprConjDisj
 	return pexprResult;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprConjunction
-//
-//	@doc:
-//		Create conjunction from array of components;
-//
-//---------------------------------------------------------------------------
+// create conjunction from array of components;
 CExpression *
 CPredicateUtils::PexprConjunction
 	(
@@ -912,14 +723,7 @@ CPredicateUtils::PexprConjunction
 	return PexprConjDisj(pmp, pdrgpexpr, true /*fConjunction*/);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprDisjunction
-//
-//	@doc:
-//		Create disjunction from array of components;
-//
-//---------------------------------------------------------------------------
+// create disjunction from array of components;
 CExpression *
 CPredicateUtils::PexprDisjunction
 	(
@@ -930,16 +734,7 @@ CPredicateUtils::PexprDisjunction
 	return PexprConjDisj(pmp, pdrgpexpr, false /*fConjunction*/);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprConjDisj
-//
-//	@doc:
-//		Create a conjunction/disjunction of two components;
-//		Does *not* take ownership over given expressions
-//
-//---------------------------------------------------------------------------
+// create a conjunction/disjunction of two components; Does *not* take ownership over given expressions
 CExpression *
 CPredicateUtils::PexprConjDisj
 	(
@@ -982,15 +777,7 @@ CPredicateUtils::PexprConjDisj
 	return PexprConjDisj(pmp, pdrgpexpr, fConjunction);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprConjunction
-//
-//	@doc:
-//		Create a conjunction of two components;
-//
-//---------------------------------------------------------------------------
+// create a conjunction of two components;
 CExpression *
 CPredicateUtils::PexprConjunction
 	(
@@ -1002,15 +789,7 @@ CPredicateUtils::PexprConjunction
 	return PexprConjDisj(pmp, pexprOne, pexprTwo, true /*fConjunction*/);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprDisjunction
-//
-//	@doc:
-//		Create a disjunction of two components;
-//
-//---------------------------------------------------------------------------
+// create a disjunction of two components;
 CExpression *
 CPredicateUtils::PexprDisjunction
 	(
@@ -1022,15 +801,7 @@ CPredicateUtils::PexprDisjunction
 	return PexprConjDisj(pmp, pexprOne, pexprTwo, false /*fConjunction*/);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PdrgpexprPlainEqualities
-//
-//	@doc:
-//		Extract equality predicates over scalar identifiers
-//
-//---------------------------------------------------------------------------
+// extract equality predicates over scalar identifiers
 DrgPexpr *
 CPredicateUtils::PdrgpexprPlainEqualities
 	(
@@ -1053,14 +824,7 @@ CPredicateUtils::PdrgpexprPlainEqualities
 	return pdrgpexprEqualities;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FPlainEquality
-//
-//	@doc:
-//		Is an expression an equality over scalar identifiers
-//
-//---------------------------------------------------------------------------
+// is an expression an equality over scalar identifiers
 BOOL
 CPredicateUtils::FPlainEquality
 	(
@@ -1082,15 +846,7 @@ CPredicateUtils::FPlainEquality
 	return false;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FSelfComparison
-//
-//	@doc:
-//		Is an expression a self comparison on some column
-//
-//---------------------------------------------------------------------------
+// is an expression a self comparison on some column
 BOOL
 CPredicateUtils::FSelfComparison
 	(
@@ -1127,15 +883,7 @@ CPredicateUtils::FSelfComparison
 	return false;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprEliminateSelfComparison
-//
-//	@doc:
-//		Eliminate self comparison and replace it with True or False if possible
-//
-//---------------------------------------------------------------------------
+// eliminate self comparison and replace it with True or False if possible
 CExpression *
 CPredicateUtils::PexprEliminateSelfComparison
 	(
@@ -1175,14 +923,7 @@ CPredicateUtils::PexprEliminateSelfComparison
 	return pexprNew;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FINDFScalarIdents
-//
-//	@doc:
-//		Is the given expression in the form (col1 Is NOT DISTINCT FROM col2)
-//
-//---------------------------------------------------------------------------
+// is the given expression in the form (col1 Is NOT DISTINCT FROM col2)
 BOOL
 CPredicateUtils::FINDFScalarIdents
 	(
@@ -1207,15 +948,7 @@ CPredicateUtils::FINDFScalarIdents
 			&& COperator::EopScalarIdent == pexprInner->Pop()->Eopid());
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FIDFScalarIdents
-//
-//	@doc:
-//		Is the given expression in the form (col1 Is DISTINCT FROM col2)
-//
-//---------------------------------------------------------------------------
+// is the given expression in the form (col1 Is DISTINCT FROM col2)
 BOOL
 CPredicateUtils::FIDFScalarIdents
 	(
@@ -1234,15 +967,7 @@ CPredicateUtils::FIDFScalarIdents
 			&& COperator::EopScalarIdent == pexprInner->Pop()->Eopid());
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FIDFFalse
-//
-//	@doc:
-//		Is the given expression in the form 'expr IS DISTINCT FROM false)'
-//
-//---------------------------------------------------------------------------
+// is the given expression in the form 'expr IS DISTINCT FROM false)'
 BOOL
 CPredicateUtils::FIDFFalse
 	(
@@ -1258,14 +983,7 @@ CPredicateUtils::FIDFFalse
 			CUtils::FScalarConstFalse((*pexpr)[1]);
 }
   
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FIDF
-//
-//	@doc:
-//		Is the given expression in the form (expr IS DISTINCT FROM expr)
-//
-//---------------------------------------------------------------------------
+// is the given expression in the form (expr IS DISTINCT FROM expr)
 BOOL
 CPredicateUtils::FIDF
 	(
@@ -1275,14 +993,7 @@ CPredicateUtils::FIDF
 	return (COperator::EopScalarIsDistinctFrom == pexpr->Pop()->Eopid());
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FINDF
-//
-//	@doc:
-//		Is the given expression in the form (expr Is NOT DISTINCT FROM expr)
-//
-//---------------------------------------------------------------------------
+// is the given expression in the form (expr Is NOT DISTINCT FROM expr)
 BOOL
 CPredicateUtils::FINDF
 	(
@@ -1292,16 +1003,7 @@ CPredicateUtils::FINDF
 	return (FNot(pexpr) && FIDF((*pexpr)[0]));
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprINDFConjunction
-//
-//	@doc:
-//		Generate a conjunction of INDF expressions between corresponding
-//		columns in the given arrays
-//
-//---------------------------------------------------------------------------
+// generate a conjunction of INDF expressions between corresponding columns in the given arrays
 CExpression *
 CPredicateUtils::PexprINDFConjunction
 	(
@@ -1325,15 +1027,7 @@ CPredicateUtils::PexprINDFConjunction
 	return PexprConjunction(pmp, pdrgpexpr);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FRangeOrEqComp
-//
-//	@doc:
-// 		Is the given expression a scalar range or equality comparison
-//
-//---------------------------------------------------------------------------
+// is the given expression a scalar range or equality comparison
 BOOL
 CPredicateUtils::FRangeOrEqComp
 	(
@@ -1358,15 +1052,7 @@ CPredicateUtils::FRangeOrEqComp
 	return true;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FCompareIdentToConst
-//
-//	@doc:
-// 		Is the given expression a comparison between a scalar ident and a constant
-//
-//---------------------------------------------------------------------------
+// is the given expression a comparison between a scalar ident and a constant
 BOOL
 CPredicateUtils::FCompareIdentToConst
 	(
@@ -1454,15 +1140,7 @@ CPredicateUtils::FIdentCompareConstIgnoreCast
 	return false;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FIdentINDFConstIgnoreCast
-//
-//	@doc:
-// 		Is the given expression of the form NOT (col IS DISTINCT FROM const)
-//		ignoring cast on either sides
-//---------------------------------------------------------------------------
+// is the given expression of the form NOT (col IS DISTINCT FROM const) ignoring cast on either sides
 BOOL
 CPredicateUtils::FIdentINDFConstIgnoreCast
 	(
@@ -1477,15 +1155,7 @@ CPredicateUtils::FIdentINDFConstIgnoreCast
 	return FIdentCompareConstIgnoreCast((*pexpr)[0], COperator::EopScalarIsDistinctFrom);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FCompareIdentToConstArray
-//
-//	@doc:
-// 		Is the given expression a comparison between a scalar ident
-//		and a constant array
-//
-//---------------------------------------------------------------------------
+// is the given expression a comparison between a scalar ident and a constant array
 BOOL
 CPredicateUtils::FCompareIdentToConstArray
 	(
@@ -1505,19 +1175,11 @@ CPredicateUtils::FCompareIdentToConstArray
 	return CUtils::FScalarConstArray(pexprArray);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprPartPruningPredicate
-//
-//	@doc:
-// 		Find a predicate that can be used for partition pruning with the given
-//		part key in the array of expressions if one exists. Relevant predicates
-//		are those that compare the partition key to expressions involving only
-//		the allowed columns. If the allowed columns set is NULL, then we only want
-//		constant comparisons.
-//
-//---------------------------------------------------------------------------
+// Find a predicate that can be used for partition pruning with the given
+// part key in the array of expressions if one exists. Relevant predicates
+// are those that compare the partition key to expressions involving only
+// the allowed columns. If the allowed columns set is NULL, then we only want
+// constant comparisons.
 CExpression *
 CPredicateUtils::PexprPartPruningPredicate
 	(
@@ -1574,15 +1236,8 @@ CPredicateUtils::PexprPartPruningPredicate
 	return PexprConjunction(pmp, pdrgpexprResult);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PdrgpexprAppendConjunctsDedup
-//
-//	@doc:
-//		Append the conjuncts from the given expression to the given array, removing
-//		any duplicates, and return the resulting array
-//
-//---------------------------------------------------------------------------
+// append the conjuncts from the given expression to the given array, removing
+// any duplicates, and return the resulting array
 DrgPexpr *
 CPredicateUtils::PdrgpexprAppendConjunctsDedup
 	(
@@ -1607,15 +1262,8 @@ CPredicateUtils::PdrgpexprAppendConjunctsDedup
 	return pdrgpexprNew;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FBoolPredicateOnColumn
-//
-//	@doc:
-//		Check if the given expression is a boolean expression on the
-//		given column, e.g. if its of the form "ScalarIdent(pcr)" or "Not(ScalarIdent(pcr))"
-//
-//---------------------------------------------------------------------------
+// check if the given expression is a boolean expression on the
+// given column, e.g. if its of the form "ScalarIdent(pcr)" or "Not(ScalarIdent(pcr))"
 BOOL
 CPredicateUtils::FBoolPredicateOnColumn
 	(
@@ -1635,15 +1283,8 @@ CPredicateUtils::FBoolPredicateOnColumn
 	return false;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FNullCheckOnColumn
-//
-//	@doc:
-//		Check if the given expression is a null check on the given column
-// 		i.e. "is null" or "is not null"
-//
-//---------------------------------------------------------------------------
+// check if the given expression is a null check on the given column
+// i.e. "is null" or "is not null"
 BOOL
 CPredicateUtils::FNullCheckOnColumn
 	(
@@ -1669,15 +1310,8 @@ CPredicateUtils::FNullCheckOnColumn
 	return false;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FScArrayCmpOnColumn
-//
-//	@doc:
-//		Check if the given expression is a scalar array cmp expression on the
-//		given column
-//
-//---------------------------------------------------------------------------
+// check if the given expression is a scalar array cmp expression on the
+// given column
 BOOL
 CPredicateUtils::FScArrayCmpOnColumn
 	(
@@ -1716,16 +1350,8 @@ CPredicateUtils::FScArrayCmpOnColumn
 	return fSupported;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FDisjunctionOnColumn
-//
-//	@doc:
-//		Check if the given expression is a disjunction of scalar cmp expression 
-//		on the given column
-//
-//---------------------------------------------------------------------------
+// check if the given expression is a disjunction of scalar cmp expression
+// on the given column
 BOOL
 CPredicateUtils::FDisjunctionOnColumn
 	(
@@ -1756,16 +1382,8 @@ CPredicateUtils::FDisjunctionOnColumn
 	return true;	
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FRangeComparison
-//
-//	@doc:
-//		Check if the given comparison type is one of the range comparisons, i.e. 
-//		LT, GT, LEq, GEq, Eq
-//
-//---------------------------------------------------------------------------
+// Check if the given comparison type is one of the range comparisons, i.e.
+// LT, GT, LEq, GEq, Eq
 BOOL
 CPredicateUtils::FRangeComparison
 	(
@@ -1775,18 +1393,11 @@ CPredicateUtils::FRangeComparison
 	return (IMDType::EcmptOther != ecmpt && IMDType::EcmptNEq != ecmpt);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprExtractPredicatesOnPartKeys
-//
-//	@doc:
-//		Extract interesting expressions involving the partitioning keys;
-//		the function Add-Refs the returned copy if not null. Relevant predicates
-//		are those that compare the partition keys to expressions involving only
-//		the allowed columns. If the allowed columns set is NULL, then we only want
-//		constant filters.
-//
-//---------------------------------------------------------------------------
+// extract interesting expressions involving the partitioning keys;
+// the function Add-Refs the returned copy if not null. Relevant predicates
+// are those that compare the partition keys to expressions involving only
+// the allowed columns. If the allowed columns set is NULL, then we only want
+// constant filters.
 CExpression *
 CPredicateUtils::PexprExtractPredicatesOnPartKeys
 	(
@@ -1876,15 +1487,7 @@ CPredicateUtils::PexprExtractPredicatesOnPartKeys
 	return PexprConjunction(pmp, pdrgpexpr);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprPredicateCol
-//
-//	@doc:
-//		Extract the constraint on the given column and return the corresponding
-//		scalar expression
-//
-//---------------------------------------------------------------------------
+// extract the constraint on the given column and return the corresponding scalar expression
 CExpression *
 CPredicateUtils::PexprPredicateCol
 	(
@@ -1921,14 +1524,7 @@ CPredicateUtils::PexprPredicateCol
 	return pexprCol;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FCompareColToConstOrCol
-//
-//	@doc:
-// 		Checks if comparison is between two columns, or a column and a const
-//
-//---------------------------------------------------------------------------
+// checks if comparison is between two columns, or a column and a const
 BOOL
 CPredicateUtils::FCompareColToConstOrCol
 	(
@@ -1953,14 +1549,7 @@ CPredicateUtils::FCompareColToConstOrCol
 			(fConstLeft && fColRight);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FConstColumn
-//
-//	@doc:
-// 		Checks if the given constraint specifies a constant column
-//
-//---------------------------------------------------------------------------
+// checks if the given constraint specifies a constant column
 BOOL
 CPredicateUtils::FConstColumn
 	(
@@ -1998,14 +1587,7 @@ CPredicateUtils::FConstColumn
 	return prng->FPoint() && !pcnstrInterval->FIncludesNull();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FColumnDisjunctionOfConst
-//
-//	@doc:
-// 		Checks if the given constraint specifies a set of constants for a column
-//
-//---------------------------------------------------------------------------
+// checks if the given constraint specifies a set of constants for a column
 BOOL
 CPredicateUtils::FColumnDisjunctionOfConst
 	(
@@ -2032,14 +1614,7 @@ CPredicateUtils::FColumnDisjunctionOfConst
 	return FColumnDisjunctionOfConst(pcnstrInterval, pcr);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FColumnDisjunctionOfConst
-//
-//	@doc:
-// 		Checks if the given constraint specifies a set of constants for a column
-//
-//---------------------------------------------------------------------------
+// checks if the given constraint specifies a set of constants for a column
 BOOL
 CPredicateUtils::FColumnDisjunctionOfConst
 	(
@@ -2075,15 +1650,7 @@ CPredicateUtils::FColumnDisjunctionOfConst
 	return true;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprIndexLookupKeyOnLeft
-//
-//	@doc:
-// 		Helper to create index lookup comparison predicate with index key
-//		on left side
-//
-//---------------------------------------------------------------------------
+// helper to create index lookup comparison predicate with index key on left side
 CExpression *
 CPredicateUtils::PexprIndexLookupKeyOnLeft
 	(
@@ -2139,16 +1706,7 @@ CPredicateUtils::PexprIndexLookupKeyOnLeft
 	return NULL;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprIndexLookupKeyOnRight
-//
-//	@doc:
-// 		Helper to create index lookup comparison predicate with index key
-//		on right side
-//
-//---------------------------------------------------------------------------
+// helper to create index lookup comparison predicate with index key on right side
 CExpression *
 CPredicateUtils::PexprIndexLookupKeyOnRight
 	(
@@ -2186,22 +1744,14 @@ CPredicateUtils::PexprIndexLookupKeyOnRight
 	return NULL;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprIndexLookup
-//
-//	@doc:
-// 		Check if given expression is a valid index lookup predicate, and
-//		return modified (as needed) expression to be used for index lookup,
-//		a scalar expression is a valid index lookup predicate if it is in one
-//		the two forms:
-//			[index-key CMP expr]
-//			[expr CMP index-key]
-//		where expr is a scalar expression that is free of index keys and
-//		may have outer references (in the case of index nested loops)
-//
-//---------------------------------------------------------------------------
+// Check if given expression is a valid index lookup predicate, and
+// return modified (as needed) expression to be used for index lookup,
+// a scalar expression is a valid index lookup predicate if it is in one
+// the two forms:
+//	[index-key CMP expr]
+//	[expr CMP index-key]
+// where expr is a scalar expression that is free of index keys and
+// may have outer references (in the case of index nested loops)
 CExpression *
 CPredicateUtils::PexprIndexLookup
 	(
@@ -2249,16 +1799,7 @@ CPredicateUtils::PexprIndexLookup
 	return NULL;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::ExtractIndexPredicates
-//
-//	@doc:
-// 		Split predicates into those that refer to an index key, and those that 
-//		don't 
-//
-//---------------------------------------------------------------------------
+// split predicates into those that refer to an index key, and those that don't
 void
 CPredicateUtils::ExtractIndexPredicates
 	(
@@ -2335,16 +1876,8 @@ CPredicateUtils::ExtractIndexPredicates
 	pcrsIndex->Release();
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::SeparateOuterRefs
-//
-//	@doc:
-// 		Split given scalar expression into two conjunctions; without outer
-//		references and with outer references
-//
-//---------------------------------------------------------------------------
+// split given scalar expression into two conjunctions; without outer
+// references and with outer references
 void
 CPredicateUtils::SeparateOuterRefs
 	(
@@ -2395,17 +1928,9 @@ CPredicateUtils::SeparateOuterRefs
 	*ppexprOuterRef = PexprConjunction(pmp, pdrgpexprOuterRefs);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprAddCast
-//
-//	@doc:
-// 		Add explicit casting to left child of given equality or INDF predicate
-//		and return resulting casted expression;
-//		the function returns NULL if operation failed
-//
-//---------------------------------------------------------------------------
+// add explicit casting to left child of given equality or INDF predicate
+// and return resulting casted expression;
+// the function returns NULL if operation failed
 CExpression *
 CPredicateUtils::PexprAddCast
 	(
@@ -2472,14 +1997,7 @@ CPredicateUtils::PexprAddCast
 	return pexprNewPred;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprCast
-//
-//	@doc:
-// 		Add explicit casting on the input expression to the destination type
-//
-//---------------------------------------------------------------------------
+// add explicit casting on the input expression to the destination type
 CExpression *
 CPredicateUtils::PexprCast
 	(
@@ -2499,14 +2017,7 @@ CPredicateUtils::PexprCast
 	return GPOS_NEW(pmp) CExpression(pmp, popCast, pexpr);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PdrgpexprCastEquality
-//
-//	@doc:
-// 		Add explicit casting to equality operations between compatible types
-//
-//---------------------------------------------------------------------------
+// add explicit casting to equality operations between compatible types
 DrgPexpr *
 CPredicateUtils::PdrgpexprCastEquality
 	(
@@ -2543,16 +2054,8 @@ CPredicateUtils::PdrgpexprCastEquality
 	return pdrgpexprNew;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprInverseComparison
-//
-//	@doc:
-// 		Convert predicates of the form (a Cmp b) into (a InvCmp b);
-//		where InvCmp is the inverse comparison (e.g., '=' --> '<>')
-//
-//---------------------------------------------------------------------------
+// convert predicates of the form (a Cmp b) into (a InvCmp b);
+// where InvCmp is the inverse comparison (e.g., '=' --> '<>')
 CExpression *
 CPredicateUtils::PexprInverseComparison
 	(
@@ -2574,16 +2077,8 @@ CPredicateUtils::PexprInverseComparison
 	return CUtils::PexprScalarCmp(pmp, (*pexprCmp)[0], (*pexprCmp)[1], *pstrFirst, pmdidInverseOp);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprPruneSuperfluosEquality
-//
-//	@doc:
-// 		Convert predicates of the form (true = (a Cmp b)) into (a Cmp b);
-//		do this operation recursively on deep expression tree
-//
-//---------------------------------------------------------------------------
+// convert predicates of the form (true = (a Cmp b)) into (a Cmp b);
+// do this operation recursively on deep expression tree
 CExpression *
 CPredicateUtils::PexprPruneSuperfluosEquality
 	(
@@ -2659,16 +2154,7 @@ CPredicateUtils::PexprPruneSuperfluosEquality
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexpr);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FCheckPredicateImplication
-//
-//	@doc:
-//		Determine if we should test predicate implication for stats
-//		computation
-//
-//---------------------------------------------------------------------------
+// determine if we should test predicate implication for statistics computation
 BOOL
 CPredicateUtils::FCheckPredicateImplication
 	(
@@ -2682,17 +2168,8 @@ CPredicateUtils::FCheckPredicateImplication
 		COperator::EopScalarIdent == (*pexprPred)[1]->Pop()->Eopid();
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FImpliedPredicate
-//
-//	@doc:
-//		Given a predicate and a list of equivalence classes,
-//		return true if that predicate is implied by given equivalence
-//		classes
-//
-//---------------------------------------------------------------------------
+// Given a predicate and a list of equivalence classes, return true if that predicate is
+// implied by given equivalence classes
 BOOL
 CPredicateUtils::FImpliedPredicate
 	(
@@ -2718,22 +2195,13 @@ CPredicateUtils::FImpliedPredicate
 	return false;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprRemoveImpliedConjuncts
+// Remove conjuncts that are implied based on child equivalence classes,
+// the main use case is minimizing join/selection predicates to avoid
+// cardinality under-estimation,
 //
-//	@doc:
-//		Remove conjuncts that are implied based on child equivalence
-//		classes,
-//		the main use case is minimizing join/selection predicates to avoid
-//		cardinality under-estimation,
-//
-//		for example, in the expression ((a=b) AND (a=c)), if a child
-//		equivalence class is {b,c}, then we remove the conjunct (a=c)
-//		since it can be implied from {b,c}, {a,b}
-//
-//---------------------------------------------------------------------------
+// for example, in the expression ((a=b) AND (a=c)), if a child
+// equivalence class is {b,c}, then we remove the conjunct (a=c)
+// since it can be implied from {b,c}, {a,b}
 CExpression *
 CPredicateUtils::PexprRemoveImpliedConjuncts
 	(
@@ -2781,16 +2249,9 @@ CPredicateUtils::PexprRemoveImpliedConjuncts
 	return PexprConjunction(pmp, pdrgpexprNewConjuncts);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FValidSemiJoinCorrelations
-//
-//	@doc:
-//		Check if given correlations are valid for (anti)semi-joins;
-//		we disallow correlations referring to inner child, since inner
-//		child columns are not visible above (anti)semi-join
-//
-//---------------------------------------------------------------------------
+// check if given correlations are valid for (anti)semi-joins;
+// we disallow correlations referring to inner child, since inner
+// child columns are not visible above (anti)semi-join
 BOOL
 CPredicateUtils::FValidSemiJoinCorrelations
 	(
@@ -2827,16 +2288,8 @@ CPredicateUtils::FValidSemiJoinCorrelations
 	return fValid;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FSimpleEqualityUsingCols
-//
-//	@doc:
-//		Check if given expression is (a conjunction of) simple column
-//		equality that use columns from the given column set
-//
-//---------------------------------------------------------------------------
+// check if given expression is (a conjunction of) simple column
+// equality that use columns from the given column set
 BOOL
 CPredicateUtils::FSimpleEqualityUsingCols
 	(
@@ -2869,16 +2322,7 @@ CPredicateUtils::FSimpleEqualityUsingCols
 	return fSuccess;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::PexprReplaceColsWithNulls
-//
-//	@doc:
-//		For all columns in the given expression and are members
-//		of the given column set, replace columns with NULLs
-//
-//---------------------------------------------------------------------------
+// for all columns in the given expression and are members of the given column set, replace columns with NULLs
 CExpression *
 CPredicateUtils::PexprReplaceColsWithNulls
 	(
@@ -2920,17 +2364,9 @@ CPredicateUtils::PexprReplaceColsWithNulls
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexpr);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FNullRejecting
-//
-//	@doc:
-//		Check if scalar expression evaluates to (NOT TRUE) when
-//		all columns in the given set that are included in the expression
-//		are set to NULL
-//
-//---------------------------------------------------------------------------
+// check if scalar expression evaluates to (NOT TRUE) when
+// all columns in the given set that are included in the expression
+// are set to NULL
 BOOL
 CPredicateUtils::FNullRejecting
 	(
@@ -2968,16 +2404,7 @@ CPredicateUtils::FNullRejecting
 	return (CScalar::EberNull == eber || CScalar::EberFalse == eber);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FNotIdent
-//
-//	@doc:
-// 		Returns true iff the given expression is a Not operator whose child is an
-//		identifier
-//
-//---------------------------------------------------------------------------
+// returns true iff the given expression is a Not operator whose child is an identifier
 BOOL
 CPredicateUtils::FNotIdent
 	(
@@ -2987,15 +2414,7 @@ CPredicateUtils::FNotIdent
 	return FNot(pexpr) && COperator::EopScalarIdent == (*pexpr)[0]->Pop()->Eopid();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FCompatiblePredicates
-//
-//	@doc:
-//		Returns true iff all predicates in the given array are compatible with
-//		the given index.
-//
-//---------------------------------------------------------------------------
+// returns true iff all predicates in the given array are compatible with the given index.
 BOOL
 CPredicateUtils::FCompatiblePredicates
 	(
@@ -3020,15 +2439,7 @@ CPredicateUtils::FCompatiblePredicates
 	return true;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FCompatibleIndexPredicates
-//
-//	@doc:
-//		Returns true iff the given predicate 'pexprPred' is compatible with the
-//		given index 'pmdindex'.
-//
-//---------------------------------------------------------------------------
+// returns true iff the given predicate 'pexprPred' is compatible with the given index 'pmdindex'.
 BOOL
 CPredicateUtils::FCompatibleIndexPredicate
 	(
@@ -3068,13 +2479,7 @@ CPredicateUtils::FCompatibleIndexPredicate
 	return (pmdindex->FCompatible(pmdobjScCmp, ulKeyPos));
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FContainsVolatileFunction
-//
-//	@doc:
-//		Check if given array of expressions contain a volatile function like random().
-//---------------------------------------------------------------------------
+// check if given array of expressions contain a volatile function like random().
 BOOL
 CPredicateUtils::FContainsVolatileFunction
 	(
@@ -3097,13 +2502,7 @@ CPredicateUtils::FContainsVolatileFunction
 	return false;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FContainsVolatileFunction
-//
-//	@doc:
-//		Check if the expression contains a volatile function like random().
-//---------------------------------------------------------------------------
+// check if the expression contains a volatile function like random().
 BOOL
 CPredicateUtils::FContainsVolatileFunction
 	(
@@ -3137,14 +2536,7 @@ CPredicateUtils::FContainsVolatileFunction
 	return false;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FConvertToCNF
-//
-//	@doc:
-//		Check if the expensive CNF conversion is beneficial in finding
-//		predicate for hash join
-//---------------------------------------------------------------------------
+// check if the expensive CNF conversion is beneficial in finding predicate for hash join
 BOOL
 CPredicateUtils::FConvertToCNF
 	(
@@ -3199,16 +2591,9 @@ CPredicateUtils::FConvertToCNF
 	}
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::CollectGrandChildrenUnionUnionAll
-//
-//	@doc:
-// 		If the nth child of the given union/union all expression is also a
-// 		union / union all expression, then collect the latter's children and
-//		set the input columns of the new n-ary union/unionall operator
-//---------------------------------------------------------------------------
+// if the nth child of the given union/union all expression is also a
+// union / union all expression, then collect the latter's children and
+// set the input columns of the new n-ary union/unionall operator
 void
 CPredicateUtils::CollectGrandChildrenUnionUnionAll
 	(
@@ -3281,14 +2666,7 @@ CPredicateUtils::CollectGrandChildrenUnionUnionAll
 	pdrgpul->Release();
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPredicateUtils::FCollapsibleChildUnionUnionAll
-//
-//	@doc:
-//		Check if we can collapse the nth child of the given union / union all operator
-//---------------------------------------------------------------------------
+// check if we can collapse the nth child of the given union / union all operator
 BOOL
 CPredicateUtils::FCollapsibleChildUnionUnionAll
 	(

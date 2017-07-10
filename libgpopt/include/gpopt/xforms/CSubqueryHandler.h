@@ -224,19 +224,6 @@ namespace gpopt
 			static
 			CExpression *PexprScalarIf(IMemoryPool *pmp, CColRef *pcrBool, CColRef *pcrSum, CColRef *pcrCount, CExpression *pexprSubquery);
 
-			// helper for creating a  correlated apply expression for existential subquery
-			static
-			BOOL FConvertExistOrQuantToScalarSubquery
-				(
-				IMemoryPool *pmp,
-				CExpression *pexprOuter,
-				CExpression *pexprSubquery,
-				BOOL fDisjunctionOrNegation,
-				ESubqueryCtxt esqctxt,
-				CExpression **ppexprNewOuter,
-				CExpression **ppexprResidualScalar
-				);
-
 			// helper for creating a correlated apply expression for existential subquery
 			static
 			BOOL FCreateCorrelatedApplyForExistentialSubquery

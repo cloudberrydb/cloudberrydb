@@ -942,68 +942,6 @@ CSubqueryHandler::FCreateOuterApply
 	return FCreateOuterApplyForScalarSubquery(pmp, pexprOuter, pexprInner, pexprSubquery, fOuterRefsUnderInner, ppexprNewOuter, ppexprResidualScalar);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CSubqueryHandler::FConvertExistOrQuantToScalarSubquery
-//
-//	@doc:
-//		Helper for converting quantified/existential to count(*)
-//		subqueries that will ultimately be executed using a correlated
-//		execution strategy;
-//
-//
-//---------------------------------------------------------------------------
-BOOL
-CSubqueryHandler::FConvertExistOrQuantToScalarSubquery
-	(
-	IMemoryPool *pmp,
-	CExpression *pexprOuter,
-	CExpression *pexprSubquery,
-	BOOL fDisjunctionOrNegation,
-	ESubqueryCtxt esqctxt,
-	CExpression **ppexprNewOuter,
-	CExpression **ppexprResidualScalar
-	)
-{
-	BOOL fExistential = CUtils::FExistentialSubquery(pexprSubquery->Pop());
-	GPOS_ASSERT(fExistential || CUtils::FQuantifiedSubquery(pexprSubquery->Pop()));
-
-	CExpression *pexprInnerNew = NULL;
-	if (fExistential)
-	{
-		CExpression *pexprNewSubquery = NULL;
-		CXformUtils::ExistentialToAgg(pmp, pexprSubquery, &pexprNewSubquery, ppexprResidualScalar);
-
-		(*pexprNewSubquery)[0]->AddRef();
-		pexprInnerNew = (*pexprNewSubquery)[0];
-		pexprNewSubquery->Release();
-	}
-	else
-	{
-		CExpression *pexprNewSubquery = NULL;
-		CXformUtils::QuantifiedToAgg(pmp, pexprSubquery, &pexprNewSubquery, ppexprResidualScalar);
-		(*pexprNewSubquery)[0]->AddRef();
-		pexprInnerNew = (*pexprNewSubquery)[0];
-		pexprNewSubquery->Release();
-	}
-
-	const CColRef *pcr = CScalarProjectElement::PopConvert((*(*pexprInnerNew)[1])[0]->Pop())->Pcr();
-	if (EsqctxtFilter == esqctxt && !fDisjunctionOrNegation)
-	{
-		*ppexprNewOuter =
-			CUtils::PexprLogicalApply<CLogicalInnerCorrelatedApply>(pmp, pexprOuter, pexprInnerNew, pcr, COperator::EopScalarSubquery);
-	}
-	else
-	{
-		// subquery occurs in a value context or disjunction, we need to create an outer apply expression
-		*ppexprNewOuter =
-			CUtils::PexprLogicalApply<CLogicalLeftOuterCorrelatedApply>(pmp, pexprOuter, pexprInnerNew, pcr, COperator::EopScalarSubquery);
-	}
-
-	return true;
-}
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CSubqueryHandler::FCreateCorrelatedApplyForQuantifiedSubquery
@@ -1649,12 +1587,23 @@ CSubqueryHandler::FRemoveExistentialSubquery
 	{
 		GPOS_ASSERT(EsqctxtFilter == esqctxt);
 
+		CDrvdPropRelational *pdpInner = CDrvdPropRelational::Pdprel(pexprInner->PdpDerive());
 		// for existential subqueries, any column produced by inner expression
 		// can be used to check for empty answers; we use first column for that
-		CColRef *pcr = CDrvdPropRelational::Pdprel(pexprInner->PdpDerive())->PcrsOutput()->PcrFirst();
+		CColRef *pcr = pdpInner->PcrsOutput()->PcrFirst();
 
 		if (COperator::EopScalarSubqueryExists == eopid)
 		{
+			CColRefSet *pcrsOuterRefs = pdpInner->PcrsOuter();
+
+			if (0 == pcrsOuterRefs->CElements())
+			{
+				// add a limit operator on top of the inner child if the subquery does not have
+				// any outer references. Adding Limit for the correlated case hinders pulling up
+				// predicates into an EXISTS join
+				pexprInner = CUtils::PexprLimit(pmp, pexprInner, 0, 1);
+			}
+
 			*ppexprNewOuter = CUtils::PexprLogicalApply<CLogicalLeftSemiApply>(pmp, pexprOuter, pexprInner, pcr, eopid);
 		}
 		else

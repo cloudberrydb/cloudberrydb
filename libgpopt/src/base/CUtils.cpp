@@ -58,14 +58,7 @@ using namespace gpmd;
 const ULONG ulBufferCapacity = 16 * 1024 * 1024;
 static WCHAR wszBuffer[ulBufferCapacity];
 
-//---------------------------------------------------------------------------
-//	@function:
-//		PrintExpr
-//
-//	@doc:
-//		Global wrapper for debug print of expression
-//
-//---------------------------------------------------------------------------
+// global wrapper for debug print of expression
 void PrintExpr
 	(
 	void *pv
@@ -74,14 +67,7 @@ void PrintExpr
 	gpopt::CUtils::PrintExpression((gpopt::CExpression*)pv);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PrintExpression
-//
-//	@doc:
-//		Debug print expression
-//
-//---------------------------------------------------------------------------
+// debug print expression
 void
 CUtils::PrintExpression
 	(
@@ -104,15 +90,7 @@ CUtils::PrintExpression
 	str.Reset();
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		PrintMemo
-//
-//	@doc:
-//		Global wrapper for debug print of memo
-//
-//---------------------------------------------------------------------------
+// global wrapper for debug print of memo
 void PrintMemo
 	(
 	void *pv
@@ -121,14 +99,7 @@ void PrintMemo
 	gpopt::CUtils::PrintMemo((gpopt::CMemo*)pv);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PrintMemo
-//
-//	@doc:
-//		Debug print Memo structure
-//
-//---------------------------------------------------------------------------
+// debug print Memo structure
 void
 CUtils::PrintMemo
 	(
@@ -153,14 +124,7 @@ CUtils::PrintMemo
 	str.Reset();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::OsPrintDrgPcoldesc
-//
-//	@doc:
-//		Helper function to print a column descriptor array
-//
-//---------------------------------------------------------------------------
+// helper function to print a column descriptor array
 IOstream &
 CUtils::OsPrintDrgPcoldesc
 	(
@@ -184,15 +148,7 @@ CUtils::OsPrintDrgPcoldesc
 
 #endif // GPOS_DEBUG
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarIdent
-//
-//	@doc:
-//		Generate a ScalarIdent expression
-//
-//---------------------------------------------------------------------------
+// generate a ScalarIdent expression
 CExpression *
 CUtils::PexprScalarIdent
 	(
@@ -205,15 +161,7 @@ CUtils::PexprScalarIdent
 	return GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarIdent(pmp, pcr));
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarProjectElement
-//
-//	@doc:
-//		Generate a ScalarProjectElement expression
-//
-//---------------------------------------------------------------------------
+// generate a ScalarProjectElement expression
 CExpression *
 CUtils::PexprScalarProjectElement
 	(
@@ -228,14 +176,7 @@ CUtils::PexprScalarProjectElement
 	return GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarProjectElement(pmp, pcr), pexpr);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PmdidScCmp
-//
-//	@doc:
-//		Return the scalar comparison operator id between the two types
-//
-//---------------------------------------------------------------------------
+// return the scalar comparison operator id between the two types
 IMDId *
 CUtils::PmdidScCmp
 	(
@@ -279,14 +220,7 @@ CUtils::PmdidScCmp
 	return pmda->Pmdsccmp(pmdidLeft, pmdidRight, ecmpt)->PmdidOp();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarCmp
-//
-//	@doc:
-//		Generate a comparison expression over two columns
-//
-//---------------------------------------------------------------------------
+// generate a comparison expression over two columns
 CExpression *
 CUtils::PexprScalarCmp
 	(
@@ -324,14 +258,8 @@ CUtils::PexprScalarCmp
 						);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FCmpOrCastedCmpExists
-//
-//	@doc:
-//		Check is a comparison between given types or a comparison after casting
-//		one side to an another exists
-//---------------------------------------------------------------------------
+// check is a comparison between given types or a comparison after casting
+// one side to an another exists
 BOOL
 CUtils::FCmpOrCastedCmpExists
 	(
@@ -360,14 +288,7 @@ CUtils::FCmpOrCastedCmpExists
 	return false;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarCmp
-//
-//	@doc:
-//		Generate a comparison expression between a column and an expression
-//
-//---------------------------------------------------------------------------
+// Generate a comparison expression between a column and an expression
 CExpression *
 CUtils::PexprScalarCmp
 	(
@@ -405,14 +326,7 @@ CUtils::PexprScalarCmp
 						);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarCmp
-//
-//	@doc:
-//		Generate a comparison expression between two columns
-//
-//---------------------------------------------------------------------------
+// Generate a comparison expression between two columns
 CExpression *
 CUtils::PexprScalarCmp
 	(
@@ -432,14 +346,7 @@ CUtils::PexprScalarCmp
 	return PexprScalarCmp(pmp, pexprLeft, pexprRight, ecmpt);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarCmp
-//
-//	@doc:
-//		Generate a comparison expression over a column and an expression
-//
-//---------------------------------------------------------------------------
+// Generate a comparison expression over a column and an expression
 CExpression *
 CUtils::PexprScalarCmp
 	(
@@ -458,14 +365,7 @@ CUtils::PexprScalarCmp
 	return PexprScalarCmp(pmp, pexprLeft, pexprRight, ecmpt);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarCmp
-//
-//	@doc:
-//		Generate a comparison expression between an expression and a column
-//
-//---------------------------------------------------------------------------
+// Generate a comparison expression between an expression and a column
 CExpression *
 CUtils::PexprScalarCmp
 	(
@@ -484,14 +384,7 @@ CUtils::PexprScalarCmp
 	return PexprScalarCmp(pmp, pexprLeft, pexprRight, ecmpt);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarCmp
-//
-//	@doc:
-//		Generate a comparison expression over an expression and a column
-//
-//---------------------------------------------------------------------------
+// Generate a comparison expression over an expression and a column
 CExpression *
 CUtils::PexprScalarCmp
 	(
@@ -529,14 +422,7 @@ CUtils::PexprScalarCmp
 						);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarCmp
-//
-//	@doc:
-//		Generate a comparison expression over two expressions
-//
-//---------------------------------------------------------------------------
+// Generate a comparison expression over two expressions
 CExpression *
 CUtils::PexprScalarCmp
 	(
@@ -574,14 +460,7 @@ CUtils::PexprScalarCmp
 						);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarCmp
-//
-//	@doc:
-//		Generate a comparison expression over two expressions
-//
-//---------------------------------------------------------------------------
+// Generate a comparison expression over two expressions
 CExpression *
 CUtils::PexprScalarCmp
 	(
@@ -641,14 +520,7 @@ CUtils::PexprScalarCmp
 	return pexprResult;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarEqCmp
-//
-//	@doc:
-//		Generate an equality comparison expression over two columns
-//
-//---------------------------------------------------------------------------
+// Generate an equality comparison expression over two columns
 CExpression *
 CUtils::PexprScalarEqCmp
 	(
@@ -663,14 +535,7 @@ CUtils::PexprScalarEqCmp
 	return PexprScalarCmp(pmp, pcrLeft, pcrRight, IMDType::EcmptEq);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarEqCmp
-//
-//	@doc:
-//		Generate an equality comparison expression over two expressions
-//
-//---------------------------------------------------------------------------
+// Generate an equality comparison expression over two expressions
 CExpression *
 CUtils::PexprScalarEqCmp
 	(
@@ -685,15 +550,7 @@ CUtils::PexprScalarEqCmp
 	return PexprScalarCmp(pmp, pexprLeft, pexprRight, IMDType::EcmptEq);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarEqCmp
-//
-//	@doc:
-//		Generate an equality comparison expression over a column reference and
-//		an expression
-//
-//---------------------------------------------------------------------------
+// Generate an equality comparison expression over a column reference and an expression
 CExpression *
 CUtils::PexprScalarEqCmp
 	(
@@ -708,15 +565,7 @@ CUtils::PexprScalarEqCmp
 	return PexprScalarCmp(pmp, pcrLeft, pexprRight, IMDType::EcmptEq);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarEqCmp
-//
-//	@doc:
-//		Generate an equality comparison expression over an expression and a
-//		column reference
-//
-//---------------------------------------------------------------------------
+// Generate an equality comparison expression over an expression and a column reference
 CExpression *
 CUtils::PexprScalarEqCmp
 	(
@@ -890,14 +739,7 @@ CUtils::PexprCollapseConstArray
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexpr);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarArrayCmp
-//
-//	@doc:
-//		Generate an ArrayCmp expression given an array of CScalarConst's
-//
-//---------------------------------------------------------------------------
+// generate an ArrayCmp expression given an array of CScalarConst's
 CExpression *
 CUtils::PexprScalarArrayCmp
 	(
@@ -941,14 +783,7 @@ CUtils::PexprScalarArrayCmp
 				);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprZeroCmp
-//
-//	@doc:
-//		Generate a comparison against Zero
-//
-//---------------------------------------------------------------------------
+// generate a comparison against Zero
 CExpression *
 CUtils::PexprCmpWithZero
 	(
@@ -978,14 +813,7 @@ CUtils::PexprCmpWithZero
 						);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprIDF
-//
-//	@doc:
-//		Generate an Is Distinct From expression
-//
-//---------------------------------------------------------------------------
+// generate an Is Distinct From expression
 CExpression *
 CUtils::PexprIDF
 	(
@@ -1035,15 +863,7 @@ CUtils::PexprIDF
 				);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprINDF
-//
-//	@doc:
-//		Generate an Is NOT Distinct From expression for two columns;
-//		the two columns must have the same type
-//
-//---------------------------------------------------------------------------
+// generate an Is NOT Distinct From expression for two columns; the two columns must have the same type
 CExpression *
 CUtils::PexprINDF
 	(
@@ -1058,15 +878,8 @@ CUtils::PexprINDF
 	return PexprINDF(pmp, PexprScalarIdent(pmp, pcrLeft), PexprScalarIdent(pmp, pcrRight));
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprINDF
-//
-//	@doc:
-//		Generate an Is NOT Distinct From expression for scalar expressions;
-//		the two expressions must have the same type
-//
-//---------------------------------------------------------------------------
+// Generate an Is NOT Distinct From expression for scalar expressions;
+// the two expressions must have the same type
 CExpression *
 CUtils::PexprINDF
 	(
@@ -1081,14 +894,7 @@ CUtils::PexprINDF
 	return PexprNegate(pmp, PexprIDF(pmp, pexprLeft, pexprRight));
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprIsNull
-//
-//	@doc:
-//		Generate an Is Null expression
-//
-//---------------------------------------------------------------------------
+// Generate an Is Null expression
 CExpression *
 CUtils::PexprIsNull
 	(
@@ -1100,14 +906,8 @@ CUtils::PexprIsNull
 
 	return GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarNullTest(pmp), pexpr);
 }
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprIsNotNull
-//
-//	@doc:
-//		Generate an Is Not Null expression
-//
-//---------------------------------------------------------------------------
+
+// Generate an Is Not Null expression
 CExpression *
 CUtils::PexprIsNotNull
 	(
@@ -1120,14 +920,7 @@ CUtils::PexprIsNotNull
 	return PexprNegate(pmp, PexprIsNull(pmp, pexpr));
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprIsNotFalse
-//
-//	@doc:
-//		Generate an Is Not False expression
-//
-//---------------------------------------------------------------------------
+// Generate an Is Not False expression
 CExpression *
 CUtils::PexprIsNotFalse
 	(
@@ -1140,15 +933,8 @@ CUtils::PexprIsNotFalse
 	return PexprIDF(pmp, pexpr, PexprScalarConstBool(pmp, false /*fVal*/));
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FUsesNullableCol
-//
-//	@doc:
-//		Find if a scalar expression uses a nullable column from the
-//		output of a logical expression
-//
-//---------------------------------------------------------------------------
+// Find if a scalar expression uses a nullable column from the
+// output of a logical expression
 BOOL
 CUtils::FUsesNullableCol
 	(
@@ -1171,14 +957,7 @@ CUtils::FUsesNullableCol
 	return fUsesNullableCol;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PcrExtractPartKey
-//
-//	@doc:
-//		Extract the partition key at the given level from the given array of partition keys
-//
-//---------------------------------------------------------------------------
+// Extract the partition key at the given level from the given array of partition keys
 CColRef *
 CUtils::PcrExtractPartKey
 	(
@@ -1195,14 +974,7 @@ CUtils::PcrExtractPartKey
 	return (*pdrgpcrPartKey)[0];
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FHasSubquery
-//
-//	@doc:
-//		Check for existence of subqueries
-//
-//---------------------------------------------------------------------------
+// check for existence of subqueries
 BOOL
 CUtils::FHasSubquery
 	(
@@ -1296,15 +1068,7 @@ CUtils::FHasCorrelatedApply
 	return false;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FHasOuterRefs
-//
-//	@doc:
-//		Check for existence of outer references
-//
-//---------------------------------------------------------------------------
+// check for existence of outer references
 BOOL
 CUtils::FHasOuterRefs
 	(
@@ -1318,15 +1082,7 @@ CUtils::FHasOuterRefs
 	return 0 < CDrvdPropRelational::Pdprel(pdp)->PcrsOuter()->CElements();
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FLogicalJoin
-//
-//	@doc:
-//		Check if a given operator is a logical join
-//
-//---------------------------------------------------------------------------
+// check if a given operator is a logical join
 BOOL
 CUtils::FLogicalJoin
 	(
@@ -1346,15 +1102,7 @@ CUtils::FLogicalJoin
 	return (NULL != popJoin);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FLogicalSetOp
-//
-//	@doc:
-//		Check if a given operator is a logical set operation
-//
-//---------------------------------------------------------------------------
+// check if a given operator is a logical set operation
 BOOL
 CUtils::FLogicalSetOp
 	(
@@ -1374,15 +1122,7 @@ CUtils::FLogicalSetOp
 	return (NULL != popSetOp);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FLogicalUnary
-//
-//	@doc:
-//		Check if a given operator is a logical unary operator
-//
-//---------------------------------------------------------------------------
+// check if a given operator is a logical unary operator
 BOOL
 CUtils::FLogicalUnary
 	(
@@ -1402,15 +1142,7 @@ CUtils::FLogicalUnary
 	return (NULL != popUnary);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FHashJoin
-//
-//	@doc:
-//		Check if a given operator is a hash join
-//
-//---------------------------------------------------------------------------
+// check if a given operator is a hash join
 BOOL
 CUtils::FHashJoin
 	(
@@ -1428,15 +1160,7 @@ CUtils::FHashJoin
 	return (NULL != popHJN);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FCorrelatedNLJoin
-//
-//	@doc:
-//		Check if a given operator is a correlated nested loops join
-//
-//---------------------------------------------------------------------------
+// check if a given operator is a correlated nested loops join
 BOOL
 CUtils::FCorrelatedNLJoin
 	(
@@ -1454,15 +1178,7 @@ CUtils::FCorrelatedNLJoin
 	return fCorrelatedNLJ;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FNLJoin
-//
-//	@doc:
-//		Check if a given operator is a nested loops join
-//
-//---------------------------------------------------------------------------
+// check if a given operator is a nested loops join
 BOOL
 CUtils::FNLJoin
 	(
@@ -1480,15 +1196,7 @@ CUtils::FNLJoin
 	return (NULL != popNLJ);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FPhysicalJoin
-//
-//	@doc:
-//		Check if a given operator is a logical join
-//
-//---------------------------------------------------------------------------
+// check if a given operator is a logical join
 BOOL
 CUtils::FPhysicalJoin
 	(
@@ -1500,15 +1208,7 @@ CUtils::FPhysicalJoin
 	return FHashJoin(pop) || FNLJoin(pop);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FPhysicalOuterJoin
-//
-//	@doc:
-//		Check if a given operator is a physical outer join
-//
-//---------------------------------------------------------------------------
+// check if a given operator is a physical outer join
 BOOL
 CUtils::FPhysicalOuterJoin
 	(
@@ -1522,15 +1222,7 @@ CUtils::FPhysicalOuterJoin
 		COperator::EopPhysicalCorrelatedLeftOuterNLJoin == pop->Eopid();
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FPhysicalScan
-//
-//	@doc:
-//		Check if a given operator is a physical agg
-//
-//---------------------------------------------------------------------------
+// check if a given operator is a physical agg
 BOOL
 CUtils::FPhysicalScan
 	(
@@ -1550,15 +1242,7 @@ CUtils::FPhysicalScan
 	return (NULL != popScan);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FPhysicalAgg
-//
-//	@doc:
-//		Check if a given operator is a physical agg
-//
-//---------------------------------------------------------------------------
+// check if a given operator is a physical agg
 BOOL
 CUtils::FPhysicalAgg
 	(
@@ -1578,14 +1262,7 @@ CUtils::FPhysicalAgg
 	return (NULL != popAgg);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FPhysicalMotion
-//
-//	@doc:
-//		Check if a given operator is a physical motion
-//
-//---------------------------------------------------------------------------
+// check if a given operator is a physical motion
 BOOL
 CUtils::FPhysicalMotion
 	(
@@ -1605,15 +1282,7 @@ CUtils::FPhysicalMotion
 	return (NULL != popMotion);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FEnforcer
-//
-//	@doc:
-//		Check if a given operator is an FEnforcer
-//
-//---------------------------------------------------------------------------
+// check if a given operator is an FEnforcer
 BOOL
 CUtils::FEnforcer
 	(
@@ -1630,14 +1299,7 @@ CUtils::FEnforcer
 		FPhysicalMotion(pop);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FApply
-//
-//	@doc:
-//		Check if a given operator is an Apply
-//
-//---------------------------------------------------------------------------
+// check if a given operator is an Apply
 BOOL
 CUtils::FApply
 	(
@@ -1657,15 +1319,7 @@ CUtils::FApply
 	return (NULL != popApply);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FCorrelatedApply
-//
-//	@doc:
-//		Check if a given operator is a correlated Apply
-//
-//---------------------------------------------------------------------------
+// check if a given operator is a correlated Apply
 BOOL
 CUtils::FCorrelatedApply
 	(
@@ -1683,15 +1337,7 @@ CUtils::FCorrelatedApply
 	return  fCorrelatedApply;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FLeftSemiApply
-//
-//	@doc:
-//		Check if a given operator is left semi apply
-//
-//---------------------------------------------------------------------------
+// check if a given operator is left semi apply
 BOOL
 CUtils::FLeftSemiApply
 	(
@@ -1709,14 +1355,7 @@ CUtils::FLeftSemiApply
 	return fLeftSemiApply;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FLeftAntiSemiApply
-//
-//	@doc:
-//		Check if a given operator is left anti semi apply
-//
-//---------------------------------------------------------------------------
+// check if a given operator is left anti semi apply
 BOOL
 CUtils::FLeftAntiSemiApply
 	(
@@ -1734,14 +1373,7 @@ CUtils::FLeftAntiSemiApply
 	return fLeftAntiSemiApply;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FSubquery
-//
-//	@doc:
-//		Check if a given operator is a subquery
-//
-//---------------------------------------------------------------------------
+// check if a given operator is a subquery
 BOOL
 CUtils::FSubquery
 	(
@@ -1759,15 +1391,7 @@ CUtils::FSubquery
 			COperator::EopScalarSubqueryAny == eopid);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FExistentialSubquery
-//
-//	@doc:
-//		Check if a given operator is existential subquery
-//
-//---------------------------------------------------------------------------
+// check if a given operator is existential subquery
 BOOL
 CUtils::FExistentialSubquery
 	(
@@ -1782,15 +1406,7 @@ CUtils::FExistentialSubquery
 			COperator::EopScalarSubqueryNotExists == eopid);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FQuantifiedSubquery
-//
-//	@doc:
-//		Check if a given operator is quantified subquery
-//
-//---------------------------------------------------------------------------
+// check if a given operator is quantified subquery
 BOOL
 CUtils::FQuantifiedSubquery
 	(
@@ -1805,16 +1421,8 @@ CUtils::FQuantifiedSubquery
 			COperator::EopScalarSubqueryAny == eopid);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FProjectConstTableWithOneScalarSubq
-//
-//	@doc:
-//		Check if given expression is a Project on ConstTable with one
-//		scalar subquery in Project List
-//
-//---------------------------------------------------------------------------
+// check if given expression is a Project on ConstTable with one
+// scalar subquery in Project List
 BOOL
 CUtils::FProjectConstTableWithOneScalarSubq
 	(
@@ -1838,15 +1446,7 @@ CUtils::FProjectConstTableWithOneScalarSubq
 	return false;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FProjElemWithScalarSubq
-//
-//	@doc:
-//		Check if given expression is a Project Element with scalar subquery
-//
-//---------------------------------------------------------------------------
+// check if given expression is a Project Element with scalar subquery
 BOOL
 CUtils::FProjElemWithScalarSubq
 	(
@@ -1859,15 +1459,7 @@ CUtils::FProjElemWithScalarSubq
 		COperator::EopScalarSubquery == (*pexpr)[0]->Pop()->Eopid());
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarSubqWithConstTblGet
-//
-//	@doc:
-//		Check if given expression is a scalar subquery with a ConstTableGet
-//		as the only child
-//
-//---------------------------------------------------------------------------
+// check if given expression is a scalar subquery with a ConstTableGet as the only child
 BOOL
 CUtils::FScalarSubqWithConstTblGet
 (
@@ -1886,14 +1478,7 @@ CUtils::FScalarSubqWithConstTblGet
 	return false;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FHasZeroOffset
-//
-//	@doc:
-//		Check if a limit expression has 0 offset
-//
-//---------------------------------------------------------------------------
+// check if a limit expression has 0 offset
 BOOL
 CUtils::FHasZeroOffset
 	(
@@ -1906,14 +1491,7 @@ CUtils::FHasZeroOffset
 	return FScalarConstIntZero((*pexpr)[1]);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarConstZero
-//
-//	@doc:
-//		Check if an expression is a 0 integer
-//
-//---------------------------------------------------------------------------
+// check if an expression is a 0 integer
 BOOL
 CUtils::FScalarConstIntZero
 	(
@@ -1941,14 +1519,7 @@ CUtils::FScalarConstIntZero
 	}
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpexprDedup
-//
-//	@doc:
-//		Deduplicate an array of expressions
-//
-//---------------------------------------------------------------------------
+// deduplicate an array of expressions
 DrgPexpr *
 CUtils::PdrgpexprDedup
 	(
@@ -1979,14 +1550,7 @@ CUtils::PdrgpexprDedup
 	return pdrgpexprDedup;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FEqual
-//
-//	@doc:
-//		Deep equality of expression arrays
-//
-//---------------------------------------------------------------------------
+// deep equality of expression arrays
 BOOL
 CUtils::FEqual
 	(
@@ -2021,14 +1585,7 @@ CUtils::FEqual
 	return fEqual;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FEqual
-//
-//	@doc:
-//		Deep equality of expression trees
-//
-//---------------------------------------------------------------------------
+// deep equality of expression trees
 BOOL
 CUtils::FEqual
 	(
@@ -2065,14 +1622,7 @@ CUtils::FEqual
 	return FMatchChildrenUnordered(pexprLeft, pexprRight);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FMatchChildrenUnordered
-//
-//	@doc:
-//		Check if two expressions have the same children in any order
-//
-//---------------------------------------------------------------------------
+// check if two expressions have the same children in any order
 BOOL
 CUtils::FMatchChildrenUnordered
 	(
@@ -2093,14 +1643,7 @@ CUtils::FMatchChildrenUnordered
 	return fEqual;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FMatchChildrenOrdered
-//
-//	@doc:
-//		Check if two expressions have the same children in the same order
-//
-//---------------------------------------------------------------------------
+// check if two expressions have the same children in the same order
 BOOL
 CUtils::FMatchChildrenOrdered
 	(
@@ -2121,15 +1664,7 @@ CUtils::FMatchChildrenOrdered
 	return fEqual;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::UlOccurrences
-//
-//	@doc:
-//		Return the number of occurrences of the given expression in the given
-//		array of expressions
-//
-//---------------------------------------------------------------------------
+// return the number of occurrences of the given expression in the given array of expressions
 ULONG
 CUtils::UlOccurrences
 	(
@@ -2152,14 +1687,7 @@ CUtils::UlOccurrences
 	return ulCount;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FEqualAny
-//
-//	@doc:
-//		Compare expression against an array of expressions
-//
-//---------------------------------------------------------------------------
+// compare expression against an array of expressions
 BOOL
 CUtils::FEqualAny
 	(
@@ -2179,15 +1707,7 @@ CUtils::FEqualAny
 	return fEqual;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FContains
-//
-//	@doc:
-//		Check if first expression array contains all expressions in
-//		second array
-//
-//---------------------------------------------------------------------------
+// check if first expression array contains all expressions in second array
 BOOL
 CUtils::FContains
 	(
@@ -2218,15 +1738,7 @@ CUtils::FContains
 	return fContains;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprNegate
-//
-//	@doc:
-//		Generate a Not expression on top of the given expression
-//
-//---------------------------------------------------------------------------
+// generate a Not expression on top of the given expression
 CExpression *
 CUtils::PexprNegate
 	(
@@ -2240,15 +1752,7 @@ CUtils::PexprNegate
 	return PexprScalarBoolOp(pmp, CScalarBoolOp::EboolopNot, pdrgpexpr);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarOp
-//
-//	@doc:
-//		Generate a ScalarOp expression over a column and an expression
-//
-//---------------------------------------------------------------------------
+// generate a ScalarOp expression over a column and an expression
 CExpression *
 CUtils::PexprScalarOp
 	(
@@ -2272,15 +1776,7 @@ CUtils::PexprScalarOp
 			);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarBoolOp
-//
-//	@doc:
-//		Generate a ScalarBoolOp expression
-//
-//---------------------------------------------------------------------------
+// generate a ScalarBoolOp expression
 CExpression *
 CUtils::PexprScalarBoolOp
 	(
@@ -2300,15 +1796,7 @@ CUtils::PexprScalarBoolOp
 			);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarConstBool
-//
-//	@doc:
-//		Generate a boolean scalar constant expression
-//
-//---------------------------------------------------------------------------
+// generate a boolean scalar constant expression
 CExpression *
 CUtils::PexprScalarConstBool
 	(
@@ -2329,15 +1817,7 @@ CUtils::PexprScalarConstBool
 	return pexpr;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarConstInt4
-//
-//	@doc:
-//		Generate an int4 scalar constant expression
-//
-//---------------------------------------------------------------------------
+// generate an int4 scalar constant expression
 CExpression *
 CUtils::PexprScalarConstInt4
 	(
@@ -2357,14 +1837,7 @@ CUtils::PexprScalarConstInt4
 	return pexpr;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarConstInt8
-//
-//	@doc:
-//		Generate an int8 scalar constant expression
-//
-//---------------------------------------------------------------------------
+// generate an int8 scalar constant expression
 CExpression *
 CUtils::PexprScalarConstInt8
 	(
@@ -2385,14 +1858,7 @@ CUtils::PexprScalarConstInt8
 	return pexpr;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarConstOid
-//
-//	@doc:
-//		Generate an oid scalar constant expression
-//
-//---------------------------------------------------------------------------
+// generate an oid scalar constant expression
 CExpression *
 CUtils::PexprScalarConstOid
 	(
@@ -2412,14 +1878,7 @@ CUtils::PexprScalarConstOid
 	return pexpr;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PcrFromProjElem
-//
-//	@doc:
-//		Get column reference defined by project element
-//
-//---------------------------------------------------------------------------
+// get column reference defined by project element
 CColRef *
 CUtils::PcrFromProjElem
 	(
@@ -2429,14 +1888,7 @@ CUtils::PcrFromProjElem
 	return (CScalarProjectElement::PopConvert(pexprPrEl->Pop()))->Pcr();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PopAggFunc
-//
-//	@doc:
-//		Generate an aggregate function operator
-//
-//---------------------------------------------------------------------------
+// generate an aggregate function operator
 CScalarAggFunc *
 CUtils::PopAggFunc
 	(
@@ -2456,14 +1908,7 @@ CUtils::PopAggFunc
 	return GPOS_NEW(pmp) CScalarAggFunc(pmp, pmdidAggFunc, pmdidResolvedReturnType, pstrAggFunc, fDistinct, eaggfuncstage, fSplit);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprAggFunc
-//
-//	@doc:
-//		Generate an aggregate function
-//
-//---------------------------------------------------------------------------
+// generate an aggregate function
 CExpression *
 CUtils::PexprAggFunc
 	(
@@ -2490,15 +1935,7 @@ CUtils::PexprAggFunc
 	return GPOS_NEW(pmp) CExpression(pmp, popScAggFunc, pdrgpexpr);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarFunc
-//
-//	@doc:
-//		Construct a scalar function
-//
-//---------------------------------------------------------------------------
+// construct a scalar function
 CExpression *
 CUtils::PexprScalarFunc
 	(
@@ -2517,14 +1954,7 @@ CUtils::PexprScalarFunc
 	return GPOS_NEW(pmp) CExpression(pmp, popScFunc, pdrgpexpr);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprCountStar
-//
-//	@doc:
-//		generate a count(*) expression
-//
-//---------------------------------------------------------------------------
+// generate a count(*) expression
 CExpression *
 CUtils::PexprCountStar
 	(
@@ -2545,15 +1975,7 @@ CUtils::PexprCountStar
 	return pexprCountStar;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprCountStar
-//
-//	@doc:
-//		Generate a GbAgg with count(*) function over the given expression
-//
-//---------------------------------------------------------------------------
+// generate a GbAgg with count(*) function over the given expression
 CExpression *
 CUtils::PexprCountStar
 	(
@@ -2579,15 +2001,7 @@ CUtils::PexprCountStar
 	return PexprLogicalGbAggGlobal(pmp, pdrgpcr, pexprLogical, pexprPrjList);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprCountStarAndSum
-//
-//	@doc:
-//		Generate a GbAgg with count(*) and sum(col) over the given expression
-//
-//---------------------------------------------------------------------------
+// generate a GbAgg with count(*) and sum(col) over the given expression
 CExpression *
 CUtils::PexprCountStarAndSum
 	(
@@ -2622,15 +2036,7 @@ CUtils::PexprCountStarAndSum
 	return PexprLogicalGbAggGlobal(pmp, pdrgpcr, pexprLogical, pexprPrjList);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FCountAggProjElem
-//
-//	@doc:
-//		Return True if passed expression is a Project Element defined on
-//		count(*)/count(Any) agg
-//
-//---------------------------------------------------------------------------
+// return True if passed expression is a Project Element defined on count(*)/count(Any) agg
 BOOL
 CUtils::FCountAggProjElem
 	(
@@ -2660,16 +2066,7 @@ CUtils::FCountAggProjElem
 	return FHasCountAgg((*pexprPrjElem)[0], ppcrCount);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FHasCountAgg
-//
-//	@doc:
-//		Check if the given expression has a count(*)/count(Any) agg,
-//		return the top-most found count column
-//
-//---------------------------------------------------------------------------
+// check if the given expression has a count(*)/count(Any) agg, return the top-most found count column
 BOOL
 CUtils::FHasCountAgg
 	(
@@ -2747,14 +2144,7 @@ CUtils::FHasCountAggMatchingColumn
 	return false;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprSum
-//
-//	@doc:
-//		generate a sum(col) expression
-//
-//---------------------------------------------------------------------------
+// generate a sum(col) expression
 CExpression *
 CUtils::PexprSum
 	(
@@ -2767,16 +2157,7 @@ CUtils::PexprSum
 	return PexprAgg(pmp, pmda, IMDType::EaggSum, pcr, false /*fDistinct*/);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprGbAggSum
-//
-//	@doc:
-//		Generate a GbAgg with sum(col) expressions for all columns in the
-//		passed array
-//
-//---------------------------------------------------------------------------
+// generate a GbAgg with sum(col) expressions for all columns in the passed array
 CExpression *
 CUtils::PexprGbAggSum
 	(
@@ -2807,15 +2188,7 @@ CUtils::PexprGbAggSum
 	return PexprLogicalGbAggGlobal(pmp, pdrgpcr, pexprLogical, pexprPrjList);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprCount
-//
-//	@doc:
-//		Generate a count(<distinct> col) expression
-//
-//---------------------------------------------------------------------------
+// generate a count(<distinct> col) expression
 CExpression *
 CUtils::PexprCount
 	(
@@ -2829,14 +2202,7 @@ CUtils::PexprCount
 	return PexprAgg(pmp, pmda, IMDType::EaggCount, pcr, fDistinct);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprMin
-//
-//	@doc:
-//		Generate a min(col) expression
-//
-//---------------------------------------------------------------------------
+// generate a min(col) expression
 CExpression *
 CUtils::PexprMin
 	(
@@ -2848,14 +2214,7 @@ CUtils::PexprMin
  	return PexprAgg(pmp, pmda, IMDType::EaggMin, pcr, false /*fDistinct*/);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprMin
-//
-//	@doc:
-//		Generate an aggregate expression of the specified type
-//
-//---------------------------------------------------------------------------
+// generate an aggregate expression of the specified type
 CExpression *
 CUtils::PexprAgg
 	(
@@ -2878,14 +2237,7 @@ CUtils::PexprAgg
 	return PexprAggFunc(pmp, pmdidAgg, pstr, pcr, fDistinct, EaggfuncstageGlobal /*fGlobal*/, false /*fSplit*/);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprLogicalSelect
-//
-//	@doc:
-//		Generate a select expression
-//
-//---------------------------------------------------------------------------
+// generate a select expression
 CExpression *
 CUtils::PexprLogicalSelect
 	(
@@ -2906,16 +2258,7 @@ CUtils::PexprLogicalSelect
 						);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprSafeSelect
-//
-//	@doc:
-//		If predicate is True return logical expression, otherwise return
-//		a new select node
-//
-//---------------------------------------------------------------------------
+// if predicate is True return logical expression, otherwise return a new select node
 CExpression *
 CUtils::PexprSafeSelect
 	(
@@ -2937,16 +2280,8 @@ CUtils::PexprSafeSelect
 	return PexprLogicalSelect(pmp, pexprLogical, pexprPred);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprCollapseSelect
-//
-//	@doc:
-//		Generate a select expression, if child is another Select expression
-//		collapse both Selects into one expression
-//
-//---------------------------------------------------------------------------
+// generate a select expression, if child is another Select expression
+// collapse both Selects into one expression
 CExpression *
 CUtils::PexprCollapseSelect
 	(
@@ -2978,15 +2313,7 @@ CUtils::PexprCollapseSelect
 	return GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CLogicalSelect(pmp), pexpr, pexprPredicate);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprLogicalProject
-//
-//	@doc:
-//		Generate a project expression
-//
-//---------------------------------------------------------------------------
+// generate a project expression
 CExpression *
 CUtils::PexprLogicalProject
 	(
@@ -3019,16 +2346,7 @@ CUtils::PexprLogicalProject
 						);
 }
 
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprLogicalSequenceProject
-//
-//	@doc:
-//		Generate a sequence project expression
-//
-//---------------------------------------------------------------------------
+// generate a sequence project expression
 CExpression *
 CUtils::PexprLogicalSequenceProject
 	(
@@ -3057,15 +2375,8 @@ CUtils::PexprLogicalSequenceProject
 			);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprLogicalProjectNulls
-//
-//	@doc:
-//		Construct a projection of NULL constants using the given column
-//		names and types on top of the given expression
-//
-//---------------------------------------------------------------------------
+// construct a projection of NULL constants using the given column
+// names and types on top of the given expression
 CExpression *
 CUtils::PexprLogicalProjectNulls
 	(
@@ -3082,15 +2393,8 @@ CUtils::PexprLogicalProjectNulls
 	return PexprLogicalProject(pmp, pexpr, pexprProjList, false /*fNewComputedCol*/);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarProjListConst
-//
-//	@doc:
-//		Construct a project list using the column names and types of the given
-//		array of column references, and the given datums
-//
-//---------------------------------------------------------------------------
+// construct a project list using the column names and types of the given
+// array of column references, and the given datums
 CExpression *
 CUtils::PexprScalarProjListConst
 	(
@@ -3140,14 +2444,7 @@ CUtils::PexprScalarProjListConst
 	return GPOS_NEW(pmp) CExpression(pmp, pscprl, pdrgpexprProjElems);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprAddProjection
-//
-//	@doc:
-//		Generate a project expression with one additional project element
-//
-//---------------------------------------------------------------------------
+// generate a project expression with one additional project element
 CExpression *
 CUtils::PexprAddProjection
 	(
@@ -3168,14 +2465,7 @@ CUtils::PexprAddProjection
 	return pexprProjection;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprAddProjection
-//
-//	@doc:
-//		Generate a project expression with one or more additional project elements
-//
-//---------------------------------------------------------------------------
+// generate a project expression with one or more additional project elements
 CExpression *
 CUtils::PexprAddProjection
 	(
@@ -3217,14 +2507,7 @@ CUtils::PexprAddProjection
 	return PexprLogicalProject(pmp, pexpr, pexprPrjList, true /*fNewComputedCol*/);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprLogicalGbAgg
-//
-//	@doc:
-//		Generate an aggregate expression
-//
-//---------------------------------------------------------------------------
+// generate an aggregate expression
 CExpression *
 CUtils::PexprLogicalGbAgg
 	(
@@ -3245,14 +2528,7 @@ CUtils::PexprLogicalGbAgg
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pexprRelational, pexprPrL);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprLogicalGbAggGlobal
-//
-//	@doc:
-//		Generate a global aggregate expression
-//
-//---------------------------------------------------------------------------
+// generate a global aggregate expression
 CExpression *
 CUtils::PexprLogicalGbAggGlobal
 	(
@@ -3265,14 +2541,7 @@ CUtils::PexprLogicalGbAggGlobal
 	return PexprLogicalGbAgg(pmp, pdrgpcr, pexprRelational, pexprProjList, COperator::EgbaggtypeGlobal);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FHasGlobalAggFunc
-//
-//	@doc:
-//		Check if given project list has a global aggregate function
-//
-//---------------------------------------------------------------------------
+// check if given project list has a global aggregate function
 BOOL
 CUtils::FHasGlobalAggFunc
 	(
@@ -3297,14 +2566,7 @@ CUtils::FHasGlobalAggFunc
 	return fGlobal;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::Ecmpt
-//
-//	@doc:
-// 		Return the comparison type for the given mdid
-//
-//---------------------------------------------------------------------------
+// return the comparison type for the given mdid
 IMDType::ECmpType
 CUtils::Ecmpt
 	(
@@ -3316,14 +2578,7 @@ CUtils::Ecmpt
 	return pmdscop->Ecmpt();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::Ecmpt
-//
-//	@doc:
-// 		Return the comparison type for the given mdid
-//
-//---------------------------------------------------------------------------
+// return the comparison type for the given mdid
 IMDType::ECmpType
 CUtils::Ecmpt
 	(
@@ -3335,14 +2590,7 @@ CUtils::Ecmpt
 	return pmdscop->Ecmpt();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarConstBool
-//
-//	@doc:
-//		Check if the expression is a scalar boolean const
-//
-//---------------------------------------------------------------------------
+// check if the expression is a scalar boolean const
 BOOL
 CUtils::FScalarConstBool
 	(
@@ -3366,15 +2614,7 @@ CUtils::FScalarConstBool
 	return false;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarConstTrue
-//
-//	@doc:
-//		Checks to see if the expression is a scalar const TRUE
-//
-//---------------------------------------------------------------------------
+// checks to see if the expression is a scalar const TRUE
 BOOL
 CUtils::FScalarConstTrue
 	(
@@ -3384,15 +2624,7 @@ CUtils::FScalarConstTrue
 	return FScalarConstBool(pexpr, true /*fVal*/);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarConstFalse
-//
-//	@doc:
-//		Checks to see if the expression is a scalar const FALSE
-//
-//---------------------------------------------------------------------------
+// checks to see if the expression is a scalar const FALSE
 BOOL
 CUtils::FScalarConstFalse
 	(
@@ -3402,14 +2634,7 @@ CUtils::FScalarConstFalse
 	return FScalarConstBool(pexpr, false /*fVal*/);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpcrNonSystemCols
-//
-//	@doc:
-//		Return an array of non-system columns in the given set
-//
-//---------------------------------------------------------------------------
+// return an array of non-system columns in the given set
 DrgPcr *
 CUtils::PdrgpcrNonSystemCols
 	(
@@ -3434,16 +2659,7 @@ CUtils::PdrgpcrNonSystemCols
 	return pdrgpcr;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpcrGroupingKey
-//
-//	@doc:
-//		Create an array of expression's output columns including a key for
-//		grouping
-//
-//---------------------------------------------------------------------------
+//	create an array of expression's output columns including a key for grouping
 DrgPcr *
 CUtils::PdrgpcrGroupingKey
 	(
@@ -3487,17 +2703,9 @@ CUtils::PdrgpcrGroupingKey
 	return pdrgpcr;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpcrsAddEquivClass
-//
-//	@doc:
-//		Add an equivalence class to the array. If the new equiv class contains
-//		columns from separate equiv classes, then these are merged. Returns a new
-//		array of equivalence classes
-//
-//---------------------------------------------------------------------------
+// add an equivalence class to the array. If the new equiv class contains
+// columns from separate equiv classes, then these are merged. Returns a new
+// array of equivalence classes
 DrgPcrs *
 CUtils::PdrgpcrsAddEquivClass
 	(
@@ -3528,14 +2736,7 @@ CUtils::PdrgpcrsAddEquivClass
 	return pdrgpcrsNew;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpcrsMergeEquivClasses
-//
-//	@doc:
-//		Merge 2 arrays of equivalence classes
-//
-//---------------------------------------------------------------------------
+// merge 2 arrays of equivalence classes
 DrgPcrs *
 CUtils::PdrgpcrsMergeEquivClasses
 	(
@@ -3561,15 +2762,8 @@ CUtils::PdrgpcrsMergeEquivClasses
 	return pdrgpcrsMerged;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpcrsIntersectEquivClasses
-//
-//	@doc:
-//		Intersect 2 arrays of equivalence classes. This is accomplished by using
-//		a hashmap to find intersects between two arrays of colomun referance sets
-//
-//---------------------------------------------------------------------------
+// intersect 2 arrays of equivalence classes. This is accomplished by using
+// a hashmap to find intersects between two arrays of colomun referance sets
 DrgPcrs *
 CUtils::PdrgpcrsIntersectEquivClasses
 	(
@@ -3653,15 +2847,7 @@ CUtils::PdrgpcrsIntersectEquivClasses
 	return pdrgpcrs;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpcrsCopyChildEquivClasses
-//
-//	@doc:
-//		Return a copy of equivalence classes from all children
-//
-//---------------------------------------------------------------------------
+// return a copy of equivalence classes from all children
 DrgPcrs *
 CUtils::PdrgpcrsCopyChildEquivClasses
 	(
@@ -3696,15 +2882,7 @@ CUtils::PdrgpcrsCopyChildEquivClasses
 	return pdrgpcrs;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpcrExcludeColumns
-//
-//	@doc:
-//		Return a copy of the given array of columns, excluding the columns
-//		in the given colrefset
-//
-//---------------------------------------------------------------------------
+// return a copy of the given array of columns, excluding the columns in the given colrefset
 DrgPcr *
 CUtils::PdrgpcrExcludeColumns
 	(
@@ -3730,14 +2908,7 @@ CUtils::PdrgpcrExcludeColumns
 	return pdrgpcr;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::OsPrintDrgPcr
-//
-//	@doc:
-//		Helper function to print a colref array
-//
-//---------------------------------------------------------------------------
+// helper function to print a colref array
 IOstream &
 CUtils::OsPrintDrgPcr
 	(
@@ -3764,14 +2935,7 @@ CUtils::OsPrintDrgPcr
 	return os;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarCmp
-//
-//	@doc:
-//		 Check if given expression is a scalar comparison
-//
-//---------------------------------------------------------------------------
+// check if given expression is a scalar comparison
 BOOL
 CUtils::FScalarCmp
 	(
@@ -3781,15 +2945,7 @@ CUtils::FScalarCmp
 	return (COperator::EopScalarCmp == pexpr->Pop()->Eopid());
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarArrayCmp
-//
-//	@doc:
-//		 Check if given expression is a scalar array comparison
-//
-//---------------------------------------------------------------------------
+// check if given expression is a scalar array comparison
 BOOL
 CUtils::FScalarArrayCmp
 	(
@@ -3799,14 +2955,7 @@ CUtils::FScalarArrayCmp
 	return (COperator::EopScalarArrayCmp == pexpr->Pop()->Eopid());
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FHasOneStagePhysicalAgg
-//
-//	@doc:
-//		 Check if given expression has any one stage agg nodes
-//
-//---------------------------------------------------------------------------
+// check if given expression has any one stage agg nodes
 BOOL
 CUtils::FHasOneStagePhysicalAgg
 	(
@@ -3834,15 +2983,7 @@ CUtils::FHasOneStagePhysicalAgg
 	return false;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FOpExists
-//
-//	@doc:
-//		 Check if given operator exists in the given list
-//
-//---------------------------------------------------------------------------
+// check if given operator exists in the given list
 BOOL
 CUtils::FOpExists
 	(
@@ -3866,15 +3007,7 @@ CUtils::FOpExists
 	return false;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FHasOp
-//
-//	@doc:
-//		 Check if given expression has any operator in the given list
-//
-//---------------------------------------------------------------------------
+// check if given expression has any operator in the given list
 BOOL
 CUtils::FHasOp
 	(
@@ -3905,14 +3038,7 @@ CUtils::FHasOp
 	return false;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::UlInlinableCTEs
-//
-//	@doc:
-//		Return number of inlinable CTEs in the given expression
-//
-//---------------------------------------------------------------------------
+// return number of inlinable CTEs in the given expression
 ULONG
 CUtils::UlInlinableCTEs
 	(
@@ -3944,14 +3070,7 @@ CUtils::UlInlinableCTEs
 	return ulChildCTEs;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::UlJoins
-//
-//	@doc:
-//		Return number of joins in the given expression
-//
-//---------------------------------------------------------------------------
+// return number of joins in the given expression
 ULONG
 CUtils::UlJoins
 	(
@@ -3992,14 +3111,7 @@ CUtils::UlJoins
 	return ulJoins + ulChildJoins;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::UlSubqueries
-//
-//	@doc:
-//		Return number of subqueries in the given expression
-//
-//---------------------------------------------------------------------------
+// return number of subqueries in the given expression
 ULONG
 CUtils::UlSubqueries
 	(
@@ -4035,15 +3147,7 @@ CUtils::UlSubqueries
 	return ulSubqueries + ulChildSubqueries;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarBoolOp
-//
-//	@doc:
-//		 Check if given expression is a scalar boolean operator
-//
-//---------------------------------------------------------------------------
+// check if given expression is a scalar boolean operator
 BOOL
 CUtils::FScalarBoolOp
 	(
@@ -4053,14 +3157,7 @@ CUtils::FScalarBoolOp
 	return (COperator::EopScalarBoolOp == pexpr->Pop()->Eopid());
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarBoolOp
-//
-//	@doc:
-//		Is the given expression a scalar bool op of the passed type?
-//
-//---------------------------------------------------------------------------
+// is the given expression a scalar bool op of the passed type?
 BOOL
 CUtils::FScalarBoolOp
 	(
@@ -4077,14 +3174,7 @@ CUtils::FScalarBoolOp
 		eboolop == CScalarBoolOp::PopConvert(pop)->Eboolop();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarNullTest
-//
-//	@doc:
-//		 Check if given expression is a scalar null test
-//
-//---------------------------------------------------------------------------
+// check if given expression is a scalar null test
 BOOL
 CUtils::FScalarNullTest
 	(
@@ -4094,14 +3184,7 @@ CUtils::FScalarNullTest
 	return (COperator::EopScalarNullTest == pexpr->Pop()->Eopid());
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarNotNull
-//
-//	@doc:
-//		 Check if given expression is a NOT NULL predicate
-//
-//---------------------------------------------------------------------------
+// check if given expression is a NOT NULL predicate
 BOOL
 CUtils::FScalarNotNull
 	(
@@ -4112,14 +3195,7 @@ CUtils::FScalarNotNull
 			FScalarNullTest((*pexpr)[0]);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarIdent
-//
-//	@doc:
-//		 Check if given expression is a scalar identifier
-//
-//---------------------------------------------------------------------------
+// check if given expression is a scalar identifier
 BOOL
 CUtils::FScalarIdent
 	(
@@ -4129,14 +3205,7 @@ CUtils::FScalarIdent
 	return (COperator::EopScalarIdent == pexpr->Pop()->Eopid());
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarIdentBoolType
-//
-//	@doc:
-//		 Check if given expression is a scalar boolean identifier
-//
-//---------------------------------------------------------------------------
+// check if given expression is a scalar boolean identifier
 BOOL
 CUtils::FScalarIdentBoolType
 	(
@@ -4147,14 +3216,7 @@ CUtils::FScalarIdentBoolType
 			IMDType::EtiBool == CScalarIdent::PopConvert(pexpr->Pop())->Pcr()->Pmdtype()->Eti();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarArray
-//
-//	@doc:
-//		 Check if given expression is a scalar array
-//
-//---------------------------------------------------------------------------
+// check if given expression is a scalar array
 BOOL
 CUtils::FScalarArray
 	(
@@ -4164,14 +3226,7 @@ CUtils::FScalarArray
 	return (COperator::EopScalarArray == pexpr->Pop()->Eopid());
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarArrayCoerce
-//
-//	@doc:
-//		 Check if given expression is a scalar array coerce
-//
-//---------------------------------------------------------------------------
+// check if given expression is a scalar array coerce
 BOOL
 CUtils::FScalarArrayCoerce
 	(
@@ -4181,16 +3236,7 @@ CUtils::FScalarArrayCoerce
 	return (COperator::EopScalarArrayCoerceExpr == pexpr->Pop()->Eopid());
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarIdent
-//
-//	@doc:
-//		Is the given expression a scalar identifier with the given column
-//		reference
-//
-//---------------------------------------------------------------------------
+// is the given expression a scalar identifier with the given column reference
 BOOL
 CUtils::FScalarIdent
 	(
@@ -4205,14 +3251,7 @@ CUtils::FScalarIdent
 			CScalarIdent::PopConvert(pexpr->Pop())->Pcr() == pcr;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FScalarConst
-//
-//	@doc:
-//		Check if the expression is a scalar const
-//
-//---------------------------------------------------------------------------
+// check if the expression is a scalar const
 BOOL
 CUtils::FScalarConst
 	(
@@ -4222,14 +3261,7 @@ CUtils::FScalarConst
 	return (COperator::EopScalarConst == pexpr->Pop()->Eopid());
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FVarFreeExpr
-//
-//	@doc:
-//		Check if the expression is variable-free
-//
-//---------------------------------------------------------------------------
+// check if the expression is variable-free
 BOOL
 CUtils::FVarFreeExpr
 	(
@@ -4256,15 +3288,7 @@ CUtils::FVarFreeExpr
 	return 0 == pcrsUsed->CElements();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FPredicate
-//
-//	@doc:
-//		Check if the expression is a scalar predicate, i.e. bool op, comparison,
-//		or null test
-//
-//---------------------------------------------------------------------------
+// check if the expression is a scalar predicate, i.e. bool op, comparison, or null test
 BOOL
 CUtils::FPredicate
 	(
@@ -4280,15 +3304,7 @@ CUtils::FPredicate
 		FScalarNullTest(pexpr));
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FHasAllDefaultComparisons
-//
-//	@doc:
-//		Checks that the given type has all the comparisons: Eq, NEq, L, LEq, G,
-//		GEq.
-//
-//---------------------------------------------------------------------------
+// checks that the given type has all the comparisons: Eq, NEq, L, LEq, G, GEq.
 BOOL
 CUtils::FHasAllDefaultComparisons(const IMDType *pmdtype)
 {
@@ -4302,15 +3318,8 @@ CUtils::FHasAllDefaultComparisons(const IMDType *pmdtype)
 		IMDId::FValid(pmdtype->PmdidCmp(IMDType::EcmptGEq));
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FConstrainableType
-//
-//	@doc:
-//		Determine whether a type is supported for use in contradiction detection.
-//		The assumption is that we only compare data of the same type.
-//
-//---------------------------------------------------------------------------
+// determine whether a type is supported for use in contradiction detection.
+// The assumption is that we only compare data of the same type.
 BOOL
 CUtils::FConstrainableType
 	(
@@ -4331,14 +3340,7 @@ CUtils::FConstrainableType
 	return FHasAllDefaultComparisons(pmdtype);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FIntType
-//
-//	@doc:
-//		Determine whether a type is an integer type
-//
-//---------------------------------------------------------------------------
+// determine whether a type is an integer type
 BOOL
 CUtils::FIntType
 	(
@@ -4353,14 +3355,7 @@ CUtils::FIntType
 			IMDType::EtiInt8 == eti);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FUsesChildColsOnly
-//
-//	@doc:
-//		Check if a binary operator uses only columns produced by its children
-//
-//---------------------------------------------------------------------------
+// check if a binary operator uses only columns produced by its children
 BOOL
 CUtils::FUsesChildColsOnly
 	(
@@ -4381,16 +3376,7 @@ CUtils::FUsesChildColsOnly
 	return fUsesChildCols;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FInnerUsesExternalCols
-//
-//	@doc:
-//		Check if inner child of a binary operator uses columns not produced
-//		by outer child
-//
-//---------------------------------------------------------------------------
+// check if inner child of a binary operator uses columns not produced by outer child
 BOOL
 CUtils::FInnerUsesExternalCols
 	(
@@ -4409,17 +3395,7 @@ CUtils::FInnerUsesExternalCols
 	return !pcrsOutput->FSubset(pcrsOuterRefs);
 }
 
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FInnerUsesExternalColsOnly
-//
-//	@doc:
-//		Check if inner child of a binary operator uses only columns not
-//		produced by outer child
-//
-//---------------------------------------------------------------------------
+// check if inner child of a binary operator uses only columns not produced by outer child
 BOOL
 CUtils::FInnerUsesExternalColsOnly
 	(
@@ -4430,14 +3406,7 @@ CUtils::FInnerUsesExternalColsOnly
 			exprhdl.Pdprel(1)->PcrsOuter()->FDisjoint(exprhdl.Pdprel(0)->PcrsOutput());
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FComparisonPossible
-//
-//	@doc:
-//		Check if given columns have available comparison operators
-//
-//---------------------------------------------------------------------------
+// check if given columns have available comparison operators
 BOOL
 CUtils::FComparisonPossible
 	(
@@ -4462,14 +3431,7 @@ CUtils::FComparisonPossible
 	return true;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::UlCountOperator
-//
-//	@doc:
-//		counts the number of times a certain operator appears
-//
-//---------------------------------------------------------------------------
+// counts the number of times a certain operator appears
 ULONG
 CUtils::UlCountOperator
 	(
@@ -4491,14 +3453,7 @@ CUtils::UlCountOperator
 	return ulOpCnt;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpcrHashablePrefix
-//
-//	@doc:
-//		Return the max prefix of hashable columns for the given columns
-//
-//---------------------------------------------------------------------------
+// return the max prefix of hashable columns for the given columns
 DrgPcr *
 CUtils::PdrgpcrHashablePrefix
 	(
@@ -4525,15 +3480,7 @@ CUtils::PdrgpcrHashablePrefix
 	return pdrgpcrHashable;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpcrHashableSubset
-//
-//	@doc:
-//		Return the max subset of hashable columns for the given columns
-//
-//---------------------------------------------------------------------------
+// return the max subset of hashable columns for the given columns
 DrgPcr *
 CUtils::PdrgpcrHashableSubset
 	(
@@ -4559,14 +3506,7 @@ CUtils::PdrgpcrHashableSubset
 	return pdrgpcrHashable;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FHashable
-//
-//	@doc:
-//		Check if hashing is possible for the given columns
-//
-//---------------------------------------------------------------------------
+// check if hashing is possible for the given columns
 BOOL
 CUtils::FHashable
 	(
@@ -4590,15 +3530,7 @@ CUtils::FHashable
 	return true;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FLogicalDML
-//
-//	@doc:
-//		Check if given operator is a logical DML operator
-//
-//---------------------------------------------------------------------------
+// check if given operator is a logical DML operator
 BOOL
 CUtils::FLogicalDML
 	(
@@ -4614,15 +3546,7 @@ CUtils::FLogicalDML
 			COperator::EopLogicalUpdate == eopid;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::SzFromWsz
-//
-//	@doc:
-//		Return regular string from wide-character string
-//
-//---------------------------------------------------------------------------
+// return regular string from wide-character string
 CHAR *
 CUtils::SzFromWsz
 	(
@@ -4638,14 +3562,7 @@ CUtils::SzFromWsz
 	return sz;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FFunctionallyDependent
-//
-//	@doc:
-//		Is the given column functionally dependent on the given keyset
-//
-//---------------------------------------------------------------------------
+// is the given column functionally dependent on the given keyset
 BOOL
 CUtils::FFunctionallyDependent
 	(
@@ -4691,14 +3608,7 @@ CUtils::FFunctionallyDependent
 	return false;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::Pdrgpul
-//
-//	@doc:
-//		Construct an array of colids from the given array of column references
-//
-//---------------------------------------------------------------------------
+// construct an array of colids from the given array of column references
 DrgPul *
 CUtils::Pdrgpul
 	(
@@ -4719,15 +3629,7 @@ CUtils::Pdrgpul
 	return pdrgpul;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::GenerateFileName
-//
-//	@doc:
-//		Generate a timestamp-based filename in the provided buffer.
-//
-//---------------------------------------------------------------------------
+// generate a timestamp-based filename in the provided buffer.
 void
 CUtils::GenerateFileName
 	(
@@ -4791,14 +3693,7 @@ CUtils::GenerateFileName
 
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PcrRemap
-//
-//	@doc:
-//		Return the mapping of the given colref based on the given hashmap
-//
-//---------------------------------------------------------------------------
+// return the mapping of the given colref based on the given hashmap
 CColRef *
 CUtils::PcrRemap
 	(
@@ -4826,15 +3721,7 @@ CUtils::PcrRemap
 	return const_cast<CColRef*>(pcr);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PcrsRemap
-//
-//	@doc:
-//		Create a new colrefset corresponding to the given colrefset
-//		and based on the given mapping
-//
-//---------------------------------------------------------------------------
+// create a new colrefset corresponding to the given colrefset and based on the given mapping
 CColRefSet *
 CUtils::PcrsRemap
 	(
@@ -4860,15 +3747,8 @@ CUtils::PcrsRemap
 	return pcrsMapped;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpcrRemap
-//
-//	@doc:
-//		Create an array of column references corresponding to the given array
-//		and based on the given mapping
-//
-//---------------------------------------------------------------------------
+// create an array of column references corresponding to the given array
+// and based on the given mapping
 DrgPcr *
 CUtils::PdrgpcrRemap
 	(
@@ -4894,15 +3774,8 @@ CUtils::PdrgpcrRemap
 	return pdrgpcrNew;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpcrRemapAndCreate
-//
-//	@doc:
-//		Create an array of column references corresponding to the given array
-//		and based on the given mapping. Create new colrefs if necessary
-//
-//---------------------------------------------------------------------------
+// ceate an array of column references corresponding to the given array
+// and based on the given mapping. Create new colrefs if necessary
 DrgPcr *
 CUtils::PdrgpcrRemapAndCreate
 	(
@@ -4943,15 +3816,8 @@ CUtils::PdrgpcrRemapAndCreate
 	return pdrgpcrNew;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpdrgpcrRemap
-//
-//	@doc:
-//		Create an array of column arrays corresponding to the given array
-//		and based on the given mapping
-//
-//---------------------------------------------------------------------------
+// create an array of column arrays corresponding to the given array
+// and based on the given mapping
 DrgDrgPcr *
 CUtils::PdrgpdrgpcrRemap
 	(
@@ -4976,14 +3842,7 @@ CUtils::PdrgpdrgpcrRemap
 	return pdrgpdrgpcrNew;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpexprRemap
-//
-//	@doc:
-//		Remap given array of expressions with provided column mappings
-//
-//---------------------------------------------------------------------------
+// remap given array of expressions with provided column mappings
 DrgPexpr *
 CUtils::PdrgpexprRemap
 	(
@@ -5007,14 +3866,7 @@ CUtils::PdrgpexprRemap
 	return pdrgpexprNew;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PhmulcrMapping
-//
-//	@doc:
-//		Create col ID->ColRef mapping using the given ColRef arrays
-//
-//---------------------------------------------------------------------------
+// create col ID->ColRef mapping using the given ColRef arrays
 HMUlCr *
 CUtils::PhmulcrMapping
 	(
@@ -5032,16 +3884,7 @@ CUtils::PhmulcrMapping
 	return phmulcr;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::AddColumnMapping
-//
-//	@doc:
-//		Add col ID->ColRef mappings to the given hashmap based on the
-//		given ColRef arrays
-//
-//---------------------------------------------------------------------------
+// add col ID->ColRef mappings to the given hashmap based on the given ColRef arrays
 void
 CUtils::AddColumnMapping
 	(
@@ -5088,14 +3931,7 @@ CUtils::AddColumnMapping
 	}
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpcrExactCopy
-//
-//	@doc:
-//		Create a copy of the array of column references
-//
-//---------------------------------------------------------------------------
+// create a copy of the array of column references
 DrgPcr *
 CUtils::PdrgpcrExactCopy
 	(
@@ -5115,16 +3951,9 @@ CUtils::PdrgpcrExactCopy
 	return pdrgpcrNew;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpcrCopy
-//
-//	@doc:
-//		Create an array of new column references with the same names and types
-//		as the given column references. If the passed map is not null, mappings
-//		from old to copied variables are added to it.
-//
-//---------------------------------------------------------------------------
+// Create an array of new column references with the same names and types
+// as the given column references. If the passed map is not null, mappings
+// from old to copied variables are added to it.
 DrgPcr *
 CUtils::PdrgpcrCopy
 	(
@@ -5167,14 +3996,7 @@ CUtils::PdrgpcrCopy
 	return pdrgpcrNew;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FEqual
-//
-//	@doc:
-//		Equality check between two arrays of column refs. Inputs can be NULL
-//
-//---------------------------------------------------------------------------
+// equality check between two arrays of column refs. Inputs can be NULL
 BOOL
 CUtils::FEqual
 	(
@@ -5190,14 +4012,7 @@ CUtils::FEqual
 	return pdrgpcrFst->FEqual(pdrgpcrSnd);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::UlHashColArray
-//
-//	@doc:
-//		Compute hash value for an array of column references
-//
-//---------------------------------------------------------------------------
+// compute hash value for an array of column references
 ULONG
 CUtils::UlHashColArray
 	(
@@ -5217,15 +4032,8 @@ CUtils::UlHashColArray
 	return ulHash;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PcrsCTEProducerColumns
-//
-//	@doc:
-//		Return the set of column reference from the CTE Producer corresponding to the
-// 		subset of input columns from the CTE Consumer
-//
-//---------------------------------------------------------------------------
+// Return the set of column reference from the CTE Producer corresponding to the
+// subset of input columns from the CTE Consumer
 CColRefSet *
 CUtils::PcrsCTEProducerColumns
 	(
@@ -5252,15 +4060,8 @@ CUtils::PcrsCTEProducerColumns
 	return pcrsCTEProducer;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprConjINDFCond
-//
-//	@doc:
-//		Construct the join condition (AND-tree) of INDF condition
-//		from the array of input column reference arrays
-//
-//---------------------------------------------------------------------------
+// Construct the join condition (AND-tree) of INDF condition
+// from the array of input column reference arrays
 CExpression *
 CUtils::PexprConjINDFCond
 	(
@@ -5304,15 +4105,7 @@ CUtils::PexprConjINDFCond
 	return pexprScCond;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FBinaryCoercibleCastedScId
-//
-//	@doc:
-// 		Is the given expression a binary coercible cast of a scalar identifier
-//
-//---------------------------------------------------------------------------
+// is the given expression a binary coercible cast of a scalar identifier
 BOOL
 CUtils::FBinaryCoercibleCastedScId
 	(
@@ -5334,14 +4127,7 @@ CUtils::FBinaryCoercibleCastedScId
 		pcr == CScalarIdent::PopConvert(pexprChild->Pop())->Pcr();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FBinaryCoercibleCastedScId
-//
-//	@doc:
-// 		Is the given expression a binary coercible cast of a scalar identifier
-//
-//---------------------------------------------------------------------------
+// is the given expression a binary coercible cast of a scalar identifier
 BOOL
 CUtils::FBinaryCoercibleCastedScId
 	(
@@ -5361,15 +4147,7 @@ CUtils::FBinaryCoercibleCastedScId
 	return COperator::EopScalarIdent == pexprChild->Pop()->Eopid();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::UlPcrIndexContainingSet
-//
-//	@doc:
-//		Return index of the set containing given column;
-//		if column is not found, return ULONG_MAX
-//
-//---------------------------------------------------------------------------
+// return index of the set containing given column; if column is not found, return ULONG_MAX
 ULONG
 CUtils::UlPcrIndexContainingSet
 	(
@@ -5392,17 +4170,9 @@ CUtils::UlPcrIndexContainingSet
 	return ULONG_MAX;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PcrExtractFromScIdOrCastScId
-//
-//	@doc:
-// 		Extract the column reference if the given expression a scalar identifier
-// 		or a cast of a scalar identifier or a function that casts a scalar identifier.
-// 		Else return NULL.
-//
-//---------------------------------------------------------------------------
+// extract the column reference if the given expression a scalar identifier
+// or a cast of a scalar identifier or a function that casts a scalar identifier.
+// Else return NULL.
 const CColRef *
 CUtils::PcrExtractFromScIdOrCastScId
 	(
@@ -5434,15 +4204,7 @@ CUtils::PcrExtractFromScIdOrCastScId
 	return popScIdent->Pcr();
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprCast
-//
-//	@doc:
-//		Cast the input column reference to the destination mdid
-//
-//---------------------------------------------------------------------------
+// cast the input column reference to the destination mdid
 CExpression *
 CUtils::PexprCast
 	(
@@ -5466,14 +4228,7 @@ CUtils::PexprCast
 	return GPOS_NEW(pmp) CExpression(pmp, popCast, PexprScalarIdent(pmp, pcr));
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprCast
-//
-//	@doc:
-//		Cast the input expression to the destination mdid
-//
-//---------------------------------------------------------------------------
+// cast the input expression to the destination mdid
 CExpression *
 CUtils::PexprCast
 	(
@@ -5496,14 +4251,7 @@ CUtils::PexprCast
 	return GPOS_NEW(pmp) CExpression(pmp, popCast, pexpr);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FBinaryCoercibleCast
-//
-//	@doc:
-//		Check whether the given expression is a binary coercible cast of something
-//
-//---------------------------------------------------------------------------
+// check whether the given expression is a binary coercible cast of something
 BOOL
 CUtils::FBinaryCoercibleCast
 	(
@@ -5517,15 +4265,8 @@ CUtils::FBinaryCoercibleCast
 			CScalarCast::PopConvert(pop)->FBinaryCoercible();
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprRemoveRelabel
-//
-//	@doc:
-//		Return the given expression without any binary coercible casts
-// 		that exist on the top
-//
-//---------------------------------------------------------------------------
+// return the given expression without any binary coercible casts
+// that exist on the top
 CExpression *
 CUtils::PexprWithoutBinaryCoercibleCasts
 	(
@@ -5546,14 +4287,7 @@ CUtils::PexprWithoutBinaryCoercibleCasts
 	return pexprOutput;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FHasDuplicates
-//
-//	@doc:
-//		Check whether a colref array contains repeated items
-//
-//---------------------------------------------------------------------------
+// check whether a colref array contains repeated items
 BOOL
 CUtils::FHasDuplicates
 	(
@@ -5581,16 +4315,7 @@ CUtils::FHasDuplicates
 	return false;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprLogicalJoin
-//
-//	@doc:
-// 		Construct a logical join expression operator of the given type, with
-//		the given children
-//
-//---------------------------------------------------------------------------
+// construct a logical join expression operator of the given type, with the given children
 CExpression *
 CUtils::PexprLogicalJoin
 	(
@@ -5629,15 +4354,7 @@ CUtils::PexprLogicalJoin
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexpr);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PdrgpexprScalarIdents
-//
-//	@doc:
-// 		Construct an array of scalar ident expressions from the given array
-//		of column references
-//
-//---------------------------------------------------------------------------
+// construct an array of scalar ident expressions from the given array of column references
 DrgPexpr *
 CUtils::PdrgpexprScalarIdents
 	(
@@ -5660,14 +4377,7 @@ CUtils::PdrgpexprScalarIdents
 	return pdrgpexpr;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PcrsExtractColumns
-//
-//	@doc:
-//		Return used columns by expressions in the given array
-//
-//---------------------------------------------------------------------------
+// return used columns by expressions in the given array
 CColRefSet *
 CUtils::PcrsExtractColumns
 	(
@@ -5688,15 +4398,9 @@ CUtils::PcrsExtractColumns
 	return pcrs;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PhmulcnstrBoolConstOnPartKeys
-//
-//	@doc:
-//		Create a hashmap of constraints corresponding to a bool const on the given partkeys
-//		true - unbounded intervals with nulls
-//		false - empty intervals with no nulls
-//---------------------------------------------------------------------------
+// Create a hashmap of constraints corresponding to a bool const on the given partkeys
+// true - unbounded intervals with nulls
+// false - empty intervals with no nulls
 HMUlCnstr *
 CUtils::PhmulcnstrBoolConstOnPartKeys
 	(
@@ -5737,13 +4441,7 @@ CUtils::PhmulcnstrBoolConstOnPartKeys
 	return phmulcnstr;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PbsAllSet
-//
-//	@doc:
-//		Returns a new bitset of the given length, where all the bits are set
-//---------------------------------------------------------------------------
+// returns a new bitset of the given length, where all the bits are set
 CBitSet *
 CUtils::PbsAllSet
 	(
@@ -5760,13 +4458,7 @@ CUtils::PbsAllSet
 	return pbs;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PbsAllSet
-//
-//	@doc:
-//		Returns a new bitset, setting the bits in the given array
-//---------------------------------------------------------------------------
+// returns a new bitset, setting the bits in the given array
 CBitSet *
 CUtils::Pbs
 	(
@@ -5787,14 +4479,7 @@ CUtils::Pbs
 	return pbs;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PpartcnstrFromMDPartCnstr
-//
-//	@doc:
-//		Extract part constraint from metadata
-//
-//---------------------------------------------------------------------------
+// extract part constraint from metadata
 CPartConstraint *
 CUtils::PpartcnstrFromMDPartCnstr
 	(
@@ -5872,15 +4557,8 @@ CUtils::PpartcnstrFromMDPartCnstr
 	return GPOS_NEW(pmp) CPartConstraint(pmp, phmulcnstr, pbsDefaultParts, pmdpartcnstr->FUnbounded(), pdrgpdrgpcrPartKey);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprLogicalCTGDummy
-//
-//	@doc:
-//		Helper to create a dummy constant table expression;
-//		the table has one boolean column with value True and one row
-//
-//---------------------------------------------------------------------------
+// Helper to create a dummy constant table expression;
+// the table has one boolean column with value True and one row
 CExpression *
 CUtils::PexprLogicalCTGDummy
 	(
@@ -5906,16 +4584,7 @@ CUtils::PexprLogicalCTGDummy
 	return GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CLogicalConstTableGet(pmp, pdrgpcrCTG, pdrgpdrgpdatum));
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PcrMap
-//
-//	@doc:
-//		Map a column from source array to destination array based on
-//		position
-//
-//---------------------------------------------------------------------------
+// map a column from source array to destination array based on position
 CColRef *
 CUtils::PcrMap
 	(
@@ -5939,15 +4608,8 @@ CUtils::PcrMap
 	return pcrTarget;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FMotionOverUnresolvedPartConsumers
-//
-//	@doc:
-//		Check if the given operator is a motion and the derived relational 
-//		properties contain a consumer which is not in the required part consumers
-//
-//---------------------------------------------------------------------------
+// check if the given operator is a motion and the derived relational
+// properties contain a consumer which is not in the required part consumers
 BOOL
 CUtils::FMotionOverUnresolvedPartConsumers
 	(
@@ -5989,19 +4651,9 @@ CUtils::FMotionOverUnresolvedPartConsumers
 	return fHasUnresolvedConsumers;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::FDuplicateHazardMotion
-//
-//	@doc:
-//		Check if duplicate values can be generated when executing the given
-//		Motion expression,
-//		duplicates occur if Motion's input has replicated/universal distribution,
-//		which means that we have exactly the same copy of input on each host,
-//
-//
-//---------------------------------------------------------------------------
+// Check if duplicate values can be generated when executing the given Motion expression,
+// duplicates occur if Motion's input has replicated/universal distribution,
+// which means that we have exactly the same copy of input on each host,
 BOOL
 CUtils::FDuplicateHazardMotion
 	(
@@ -6023,13 +4675,7 @@ CUtils::FDuplicateHazardMotion
 	return fReplicatedInput;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprCollapseProjects
-//
-//	@doc:
-//		Collapse the top two project nodes like this, if unable return NULL;
+// Collapse the top two project nodes like this, if unable return NULL;
 //
 //	+--CLogicalProject                                            <-- pexpr
 //		|--CLogicalProject                                        <-- pexprRel
@@ -6044,8 +4690,6 @@ CUtils::FDuplicateHazardMotion
 //			  +--CScalarFunc ()
 //				 |--CScalarIdent "b" (1)
 //				 +--CScalarConst ()
-//
-//---------------------------------------------------------------------------
 CExpression *
 CUtils::PexprCollapseProjects
 	(
@@ -6199,14 +4843,7 @@ CUtils::PexprCollapseProjects
 						);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::AppendArrayExpr
-//
-//	@doc:
-//		Append expressions in the source array to destination array
-//
-//---------------------------------------------------------------------------
+// append expressions in the source array to destination array
 void CUtils::AppendArrayExpr
 		(
 		DrgPexpr *pdrgpexprSrc,
@@ -6225,14 +4862,7 @@ void CUtils::AppendArrayExpr
 	}
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::IDatumCmp
-//
-//	@doc:
-//		Compares two datums. Takes pointer pointer to a datums.
-//
-//---------------------------------------------------------------------------
+// compares two datums. Takes pointer pointer to a datums.
 INT CUtils::IDatumCmp
 		(
 		const void *pv1,
@@ -6446,6 +5076,26 @@ CUtils::ExecLocalityType
 		eelt = EeltSegments;
 	}
 	return eelt;
+}
+
+// generate a limit expression on top of the given relational child with the given offset and limit count
+CExpression *
+CUtils::PexprLimit
+       (
+       IMemoryPool *pmp,
+       CExpression *pexpr,
+       ULONG ulOffSet,
+       ULONG ulCount
+       )
+{
+       GPOS_ASSERT(pexpr);
+
+       COrderSpec *pos = GPOS_NEW(pmp) COrderSpec(pmp);
+       CLogicalLimit *popLimit = GPOS_NEW(pmp) CLogicalLimit(pmp, pos, true /* fGlobal */, true /* fHasCount */, false /*fTopLimitUnderDML*/);
+       CExpression *pexprLimitOffset = CUtils::PexprScalarConstInt8(pmp, ulOffSet);
+       CExpression *pexprLimitCount = CUtils::PexprScalarConstInt8(pmp, ulCount);
+
+       return GPOS_NEW(pmp) CExpression(pmp, popLimit, pexpr, pexprLimitOffset, pexprLimitCount);
 }
 
 // EOF

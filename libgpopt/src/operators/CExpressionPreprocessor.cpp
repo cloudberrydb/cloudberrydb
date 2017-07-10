@@ -41,14 +41,7 @@ using namespace gpopt;
 // maximum number of equality predicates to be derived from existing equalities
 #define GPOPT_MAX_DERIVED_PREDS 50
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprEliminateSelfComparison
-//
-//	@doc:
-//		Eliminate self comparisons in the given expression
-//
-//---------------------------------------------------------------------------
+// eliminate self comparisons in the given expression
 CExpression *
 CExpressionPreprocessor::PexprEliminateSelfComparison
 	(
@@ -81,15 +74,7 @@ CExpressionPreprocessor::PexprEliminateSelfComparison
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprChildren);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprPruneSuperfluousEquality
-//
-//	@doc:
-//		Remove superfluous equality operations
-//
-//
-//---------------------------------------------------------------------------
+// remove superfluous equality operations
 CExpression *
 CExpressionPreprocessor::PexprPruneSuperfluousEquality
 	(
@@ -121,20 +106,13 @@ CExpressionPreprocessor::PexprPruneSuperfluousEquality
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprChildren);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprTrimExistentialSubqueries
-//
-//	@doc:
-//		An existential subquery whose inner expression is a GbAgg
-//		with no grouping columns is replaced with a Boolean constant
+// an existential subquery whose inner expression is a GbAgg
+// with no grouping columns is replaced with a Boolean constant
 //
 //		Example:
 //
 //			exists(select sum(i) from X) --> True
 //			not exists(select sum(i) from X) --> False
-//
-//---------------------------------------------------------------------------
 CExpression *
 CExpressionPreprocessor::PexprTrimExistentialSubqueries
 	(
@@ -189,21 +167,12 @@ CExpressionPreprocessor::PexprTrimExistentialSubqueries
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprSimplifyQuantifiedSubqueries
+
+// a quantified subquery with maxcard 1 is simplified as a scalar subquery
 //
-//	@doc:
-//		A quantified subquery with maxcard 1 is simplified as a scalar
-//		subquery
-//
-//		Example:
-//
-//			a = ANY (select sum(i) from X) --> a = (select sum(i) from X)
-//			a <> ALL (select sum(i) from X) --> a <> (select sum(i) from X)
-//
-//
-//---------------------------------------------------------------------------
+// Example:
+//		a = ANY (select sum(i) from X) --> a = (select sum(i) from X)
+//		a <> ALL (select sum(i) from X) --> a <> (select sum(i) from X)
 CExpression *
 CExpressionPreprocessor::PexprSimplifyQuantifiedSubqueries
 	(
@@ -273,22 +242,10 @@ CExpressionPreprocessor::PexprSimplifyQuantifiedSubqueries
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprChildren);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprUnnestScalarSubqueries
-//
-//	@doc:
-//		Preliminary unnesting of scalar subqueries
-//
-//
-//		Example:
-//			Input:   SELECT k, (SELECT (SELECT Y.i FROM Y WHERE Y.j=X.j)) from X
-//			Output:  SELECT k, (SELECT Y.i FROM Y WHERE Y.j=X.j) from X
-//
-//
-//
-//---------------------------------------------------------------------------
+// preliminary unnesting of scalar subqueries
+// Example:
+// 		Input:   SELECT k, (SELECT (SELECT Y.i FROM Y WHERE Y.j=X.j)) from X
+//		Output:  SELECT k, (SELECT Y.i FROM Y WHERE Y.j=X.j) from X
 CExpression *
 CExpressionPreprocessor::PexprUnnestScalarSubqueries
 	(
@@ -388,16 +345,7 @@ CExpressionPreprocessor::PexprUnnestScalarSubqueries
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprChildren);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprRemoveSuperfluousLimit
-//
-//	@doc:
-//		An intermediate limit is removed if it has neither row count
-//		nor offset
-//
-//---------------------------------------------------------------------------
+// an intermediate limit is removed if it has neither row count nor offset
 CExpression *
 CExpressionPreprocessor::PexprRemoveSuperfluousLimit
 	(
@@ -441,17 +389,11 @@ CExpressionPreprocessor::PexprRemoveSuperfluousLimit
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprChildren);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprRemoveSuperfluousOuterRefs
+//	Remove outer references from order spec inside limit, grouping columns
+//	in GbAgg, and Partition/Order columns in window operators
 //
-//	@doc:
-//		Remove outer references from order spec inside limit, grouping columns
-//		in GbAgg, and Partition/Order columns in window operators
-//
-//		Example, for the schema: t(a, b), s(i, j)
-//		The query:
+//	Example, for the schema: t(a, b), s(i, j)
+//	The query:
 //			select * from t where a < all (select i from s order by j, b limit 1);
 //		should be equivalent to:
 //			select * from t where a < all (select i from s order by j limit 1);
@@ -467,9 +409,6 @@ CExpressionPreprocessor::PexprRemoveSuperfluousLimit
 //			select * from t where a in (select row_number() over (partition by t.a order by t.b) from s);
 //		is equivalent to:
 //			select * from t where a in (select row_number() over () from s);
-//
-//
-//---------------------------------------------------------------------------
 CExpression *
 CExpressionPreprocessor::PexprRemoveSuperfluousOuterRefs
 	(
@@ -594,15 +533,8 @@ CExpressionPreprocessor::PexprRemoveSuperfluousOuterRefs
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprChildren);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CUtils::PexprScalarBoolOpConvert2In
-//
-//	@doc:
-//		Generate a ScalarBoolOp expression or simply return the only expression
-//		in the array if there is only one.
-//
-//---------------------------------------------------------------------------
+// generate a ScalarBoolOp expression or simply return the only expression
+// in the array if there is only one.
 CExpression *
 CExpressionPreprocessor::PexprScalarBoolOpConvert2In
 	(
@@ -631,16 +563,9 @@ CExpressionPreprocessor::PexprScalarBoolOpConvert2In
 			);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::FConvert2InIsConvertable
-//
-//	@doc:
-//		Checks if the given expression is likely to be simplified by the constraints
-//		framework during array conversion. eboolop is the CScalarBoolOp type
-//		of the expression which contains the argument expression
-//
-//---------------------------------------------------------------------------
+// checks if the given expression is likely to be simplified by the constraints
+// framework during array conversion. eboolop is the CScalarBoolOp type
+// of the expression which contains the argument expression
 BOOL
 CExpressionPreprocessor::FConvert2InIsConvertable(CExpression *pexpr, CScalarBoolOp::EBoolOperator eboolopParent)
 {
@@ -672,16 +597,9 @@ CExpressionPreprocessor::FConvert2InIsConvertable(CExpression *pexpr, CScalarBoo
 	return fConvertableExpression;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprConvert2In
-//
-//	@doc:
-//		Converts series of AND or OR comparisons into array IN expressions. For
-//		example, x = 1 OR x = 2 will convert to x IN (1,2). This stage assumes
-//		the expression has been unnested using CExpressionUtils::PexprUnnest.
-//
-//---------------------------------------------------------------------------
+// converts series of AND or OR comparisons into array IN expressions. For
+// example, x = 1 OR x = 2 will convert to x IN (1,2). This stage assumes
+// the expression has been unnested using CExpressionUtils::PexprUnnest.
 CExpression *
 CExpressionPreprocessor::PexprConvert2In
 	(
@@ -757,14 +675,7 @@ CExpressionPreprocessor::PexprConvert2In
 
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprCollapseInnerJoins
-//
-//	@doc:
-//		Collapse cascaded inner joins into NAry-joins
-//
-//---------------------------------------------------------------------------
+// collapse cascaded inner joins into NAry-joins
 CExpression *
 CExpressionPreprocessor::PexprCollapseInnerJoins
 	(
@@ -840,15 +751,7 @@ CExpressionPreprocessor::PexprCollapseInnerJoins
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprChildren);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprCollapseProjects
-//
-//	@doc:
-//		Collapse cascaded logical project operators
-//
-//---------------------------------------------------------------------------
+// collapse cascaded logical project operators
 CExpression *
 CExpressionPreprocessor::PexprCollapseProjects
 	(
@@ -887,14 +790,8 @@ CExpressionPreprocessor::PexprCollapseProjects
 	return pexprCollapsed;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprProjBelowSubquery
-//
-//	@doc:
-//		Insert dummy project element below scalar subquery when the (a) the scalar
-//      subquery is below a project and (b) output column is an outer reference
-//---------------------------------------------------------------------------
+// insert dummy project element below scalar subquery when the (a) the scalar
+// subquery is below a project and (b) output column is an outer reference
 CExpression *
 CExpressionPreprocessor::PexprProjBelowSubquery
 	(
@@ -991,14 +888,7 @@ CExpressionPreprocessor::PexprProjBelowSubquery
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexpr);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprCollapseUnionUnionAll
-//
-//	@doc:
-//		Collapse cascaded union/union all into an NAry union/union all operator
-//
-//---------------------------------------------------------------------------
+// collapse cascaded union/union all into an NAry union/union all operator
 CExpression *
 CExpressionPreprocessor::PexprCollapseUnionUnionAll
 	(
@@ -1090,15 +980,7 @@ CExpressionPreprocessor::PexprCollapseUnionUnionAll
 	return GPOS_NEW(pmp) CExpression(pmp, popNew, pdrgpexprNew);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprOuterJoinToInnerJoin
-//
-//	@doc:
-//		Transform outer joins into inner joins
-//
-//---------------------------------------------------------------------------
+// transform outer joins into inner joins
 CExpression *
 CExpressionPreprocessor::PexprOuterJoinToInnerJoin
 	(
@@ -1168,16 +1050,7 @@ CExpressionPreprocessor::PexprOuterJoinToInnerJoin
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprChildren);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprConjEqualityPredicates
-//
-//	@doc:
-// 		Generate equality predicates between the columns in the given set,
-//		we cap the number of generated predicates by GPOPT_MAX_DERIVED_PREDS
-//
-//---------------------------------------------------------------------------
+// generate equality predicates between the columns in the given set,
 CExpression *
 CExpressionPreprocessor::PexprConjEqualityPredicates
 	(
@@ -1219,16 +1092,8 @@ CExpressionPreprocessor::PexprConjEqualityPredicates
 	return CPredicateUtils::PexprConjunction(pmp, pdrgpexpr);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::FEquivClassFromChild
-//
-//	@doc:
-// 		Check if all columns in the given equivalent class come from one of the
-//		children of the given expression
-//
-//---------------------------------------------------------------------------
+// check if all columns in the given equivalent class come from one of the
+// children of the given expression
 BOOL
 CExpressionPreprocessor::FEquivClassFromChild
 	(
@@ -1258,15 +1123,8 @@ CExpressionPreprocessor::FEquivClassFromChild
 	return false;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprAddEqualityPreds
-//
-//	@doc:
-// 		Additional equality predicates are generated based on the equivalence
-//		classes in the constraint properties of the expression.
-//
-//---------------------------------------------------------------------------
+// additional equality predicates are generated based on the equivalence
+// classes in the constraint properties of the expression.
 CExpression *
 CExpressionPreprocessor::PexprAddEqualityPreds
 	(
@@ -1346,16 +1204,9 @@ CExpressionPreprocessor::PexprAddEqualityPreds
 						);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprScalarPredicates
-//
-//	@doc:
-// 		Generate predicates for the given set of columns based on the given
-//		constraint property. Columns for which predicates are generated will be
-//		added to the set of processed columns
-//
-//---------------------------------------------------------------------------
+// generate predicates for the given set of columns based on the given
+// constraint property. Columns for which predicates are generated will be
+// added to the set of processed columns
 CExpression *
 CExpressionPreprocessor::PexprScalarPredicates
 	(
@@ -1401,17 +1252,9 @@ CExpressionPreprocessor::PexprScalarPredicates
 	return CPredicateUtils::PexprConjunction(pmp, pdrgpexpr);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprFromConstraintsScalar
-//
-//	@doc:
-// 		Process scalar expressions for generating additional predicates based on
-//		derived constraints. This function is needed because scalar expressions
-//		can have relational children when there are subqueries
-//
-//---------------------------------------------------------------------------
+// process scalar expressions for generating additional predicates based on
+// derived constraints. This function is needed because scalar expressions
+// can have relational children when there are subqueries
 CExpression *
 CExpressionPreprocessor::PexprFromConstraintsScalar
 	(
@@ -1454,16 +1297,8 @@ CExpressionPreprocessor::PexprFromConstraintsScalar
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprChildren);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprWithImpliedPredsOnLOJInnerChild
-//
-//	@doc:
-// 		Imply new predicates on LOJ's inner child based on constraints derived
-//		from LOJ's outer child and join predicate
-//
-//---------------------------------------------------------------------------
+// Imply new predicates on LOJ's inner child based on constraints derived
+// from LOJ's outer child and join predicate
 CExpression *
 CExpressionPreprocessor::PexprWithImpliedPredsOnLOJInnerChild
 	(
@@ -1522,50 +1357,40 @@ CExpressionPreprocessor::PexprWithImpliedPredsOnLOJInnerChild
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pexprNewOuter, pexprNewInner, pexprOuterJoinPred);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprOuterJoinInferPredsFromOuterChildToInnerChild
+// Infer predicate from outer child to inner child of the outer join,
 //
-//	@doc:
-// 		Infer predicate from outer child to inner child of the outer join,
+//	for LOJ expressions with predicates on outer child, e.g.,
 //
-//		for LOJ expressions with predicates on outer child, e.g.,
+//		+-LOJ(x=y)
+//  		|---Select(x=5)
+// 	    	|   	+----X
+// 	   		+----Y
 //
-//			+-LOJ(x=y)
-//   			|---Select(x=5)
-// 		    	|   	+----X
-// 	       		+----Y
+//	this function implies an equivalent predicate (y=5) on the inner child of LOJ:
 //
-//		this function implies an equivalent predicate (y=5) on the inner child of LOJ:
+//		+-LOJ(x=y)
+//			|---Select(x=5)
+//			|		+----X
+//			+---Select(y=5)
+//					+----Y
 //
-//			+-LOJ(x=y)
-//				|---Select(x=5)
-//				|		+----X
-//				+---Select(y=5)
-//						+----Y
+//	the correctness of this rewrite can be proven as follows:
+//		- By removing all tuples from Y that do not satisfy (y=5), the LOJ
+//		results, where x=y, are retained. The reason is that any such join result
+//		must satisfy (x=5 ^ x=y) which implies that (y=5).
 //
-//		the correctness of this rewrite can be proven as follows:
-//			- By removing all tuples from Y that do not satisfy (y=5), the LOJ
-//			results, where x=y, are retained. The reason is that any such join result
-//			must satisfy (x=5 ^ x=y) which implies that (y=5).
+//		- LOJ results that correspond to tuples from X not joining with any tuple
+//		from Y are also retained. The reason is that such join results can only be
+//		produced if for all tuples in Y, we have (y!=5). By selecting Y tuples where (y=5),
+//		if we end up with no Y tuples, the LOJ results will be generated by joining X with empty Y.
+//		This is the same as joining with all tuples from Y with (y!=5). If we end up with
+//		any tuple in Y satisfying (y=5), no LOJ results corresponding to X tuples not joining
+//		with Y can be produced.
 //
-//			- LOJ results that correspond to tuples from X not joining with any tuple
-//			from Y are also retained. The reason is that such join results can only be
-//			produced if for all tuples in Y, we have (y!=5). By selecting Y tuples where (y=5),
-//			if we end up with no Y tuples, the LOJ results will be generated by joining X with empty Y.
-//			This is the same as joining with all tuples from Y with (y!=5). If we end up with
-//			any tuple in Y satisfying (y=5), no LOJ results corresponding to X tuples not joining
-//			with Y can be produced.
-//
-//		to implement this rewrite in a general form, we need to imply general constraints on
-//		LOJ's inner child from constraints that exist on LOJ's outer child. The generated predicate
-//		from this inference can only be inserted below LOJ (on top of the inner child), and cannot be
-//		inserted on top of LOJ, otherwise we may wrongly convert LOJ to inner-join.
-//
-//
-//
-//---------------------------------------------------------------------------
+//	to implement this rewrite in a general form, we need to imply general constraints on
+//	LOJ's inner child from constraints that exist on LOJ's outer child. The generated predicate
+//	from this inference can only be inserted below LOJ (on top of the inner child), and cannot be
+//	inserted on top of LOJ, otherwise we may wrongly convert LOJ to inner-join.
 CExpression *
 CExpressionPreprocessor::PexprOuterJoinInferPredsFromOuterChildToInnerChild
 	(
@@ -1597,18 +1422,10 @@ CExpressionPreprocessor::PexprOuterJoinInferPredsFromOuterChildToInnerChild
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexpr);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprFromConstraints
-//
-//	@doc:
-// 		Additional predicates are generated based on the derived constraint
-//		properties of the expression. No predicates are generated for the columns
-//		in the already processed set. This set is expanded with more columns
-//		that get processed along the way
-//
-//---------------------------------------------------------------------------
+// additional predicates are generated based on the derived constraint
+// properties of the expression. No predicates are generated for the columns
+// in the already processed set. This set is expanded with more columns
+// that get processed along the way
 CExpression *
 CExpressionPreprocessor::PexprFromConstraints
 	(
@@ -1677,15 +1494,8 @@ CExpressionPreprocessor::PexprFromConstraints
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprChildren);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprPruneEmptySubtrees
-//
-//	@doc:
-// 		Eliminate subtrees that have a zero output cardinality, replacing them
-//		with a const table get with the same output schema and zero tuples
-//
-//---------------------------------------------------------------------------
+// eliminate subtrees that have a zero output cardinality, replacing them
+// with a const table get with the same output schema and zero tuples
 CExpression *
 CExpressionPreprocessor::PexprPruneEmptySubtrees
 	(
@@ -1728,15 +1538,7 @@ CExpressionPreprocessor::PexprPruneEmptySubtrees
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexpr);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprRemoveUnusedCTEs
-//
-//	@doc:
-// 		Eliminate CTE Anchors for CTEs that have zero consumers
-//
-//---------------------------------------------------------------------------
+// eliminate CTE Anchors for CTEs that have zero consumers
 CExpression *
 CExpressionPreprocessor::PexprRemoveUnusedCTEs
 	(
@@ -1771,16 +1573,8 @@ CExpressionPreprocessor::PexprRemoveUnusedCTEs
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexpr);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::CollectCTEPredicates
-//
-//	@doc:
-//		For all consumers of the same CTE, collect all selection predicates
-//		on top of these consumers, if any, and store them in hash map
-//
-//---------------------------------------------------------------------------
+// for all consumers of the same CTE, collect all selection predicates
+// on top of these consumers, if any, and store them in hash map
 void
 CExpressionPreprocessor::CollectCTEPredicates
 	(
@@ -1833,15 +1627,7 @@ CExpressionPreprocessor::CollectCTEPredicates
 	}
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::AddPredsToCTEProducers
-//
-//	@doc:
-//		Add CTE predicates collected from consumers to producer expressions
-//
-//---------------------------------------------------------------------------
+// add CTE predicates collected from consumers to producer expressions
 void
 CExpressionPreprocessor::AddPredsToCTEProducers
 	(
@@ -1896,16 +1682,7 @@ CExpressionPreprocessor::AddPredsToCTEProducers
 	phm->Release();
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprAddPredicatesFromConstraints
-//
-//	@doc:
-//		Derive constraints on given expression, and add new predicates
-//		by implication
-//
-//---------------------------------------------------------------------------
+// derive constraints on given expression, and add new predicates by implication
 CExpression *
 CExpressionPreprocessor::PexprAddPredicatesFromConstraints
 	(
@@ -1935,15 +1712,7 @@ CExpressionPreprocessor::PexprAddPredicatesFromConstraints
 	return pexprDeduped;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprInferPredicates
-//
-//	@doc:
-//		 Driver for inferring predicates from constraints
-//
-//---------------------------------------------------------------------------
+// driver for inferring predicates from constraints
 CExpression *
 CExpressionPreprocessor::PexprInferPredicates
 	(
@@ -1973,34 +1742,28 @@ CExpressionPreprocessor::PexprInferPredicates
 	return pexprWithPreds;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprPruneUnusedComputedCols
+//	Workhorse for pruning unused computed columns
 //
-//	@doc:
-//		 Workhorse for pruning unused computed columns
+//	The required columns passed by the query is passed to this pre-processing
+//	stage and the list of columns are copied to a new list. This driver function
+//	calls the PexprPruneUnusedComputedColsRecursive function with the copied
+//	required column set. The original required columns set is not modified by
+//	this preprocessor.
 //
-//		 The required columns passed by the query is passed to this pre-processing
-//		 stage and the list of columns are copied to a new list. This driver function
-//		 calls the PexprPruneUnusedComputedColsRecursive function with the copied
-//		 required column set. The original required columns set is not modified by
-//		 this preprocessor.
+// 	Extra copy of the required columns set is avoided in each recursive call by
+//	creating a one-time copy and passing it by reference for all the recursive
+//	calls.
 //
-//		 Extra copy of the required columns set is avoided in each recursive call by
-//		 creating a one-time copy and passing it by reference for all the recursive
-//		 calls.
+//	The functional behavior of the PruneUnusedComputedCols changed slightly
+//	because we do not delete the required column set at the end of every
+//	call but pass it to the next and consecutive recursive calls. However,
+//	it is safe to add required columns by each operator we traverse, because non
+//	of the required columns from other child of a tree will appear on the project
+//	list of the other children.
 //
-//		 The functional behavior of the PruneUnusedComputedCols changed slightly
-//		 because we do not delete the required column set at the end of every
-//		 call but pass it to the next and consecutive recursive calls. However,
-//		 it is safe to add required columns by each operator we traverse, because non
-//		 of the required columns from other child of a tree will appear on the project
-//		 list of the other children.
-//
-//		 Therefore, the added columns to the required columns which is caused by
-//		 the recursive call and passing by reference will not have a bad affect
-//		 on the overall result.
-//---------------------------------------------------------------------------
+// Therefore, the added columns to the required columns which is caused by
+// the recursive call and passing by reference will not have a bad affect
+// on the overall result.
 CExpression *
 CExpressionPreprocessor::PexprPruneUnusedComputedCols
 	(
@@ -2024,14 +1787,7 @@ CExpressionPreprocessor::PexprPruneUnusedComputedCols
 	return pExprNew;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprPruneUnusedComputedColsRecursive
-//
-//	@doc:
-//		 Workhorse for pruning unused computed columns
-//
-//---------------------------------------------------------------------------
+// Workhorse for pruning unused computed columns
 CExpression *
 CExpressionPreprocessor::PexprPruneUnusedComputedColsRecursive
 	(
@@ -2102,16 +1858,8 @@ CExpressionPreprocessor::PexprPruneUnusedComputedColsRecursive
 
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprPruneProjListProjectOrGbAgg
-//
-//	@doc:
-//		Construct new Project or GroupBy operator without unused computed
-//		columns as project elements
-//
-//---------------------------------------------------------------------------
+// Construct new Project or GroupBy operator without unused computed
+// columns as project elements
 CExpression *
 CExpressionPreprocessor::PexprPruneProjListProjectOrGbAgg
 	(
@@ -2206,7 +1954,6 @@ CExpressionPreprocessor::PexprPruneProjListProjectOrGbAgg
 	return pexprResult;
 }
 
-
 // reorder the child for scalar comparision to ensure that left child is a scalar ident and right child is a scalar const if not
 CExpression *
 CExpressionPreprocessor::PexprReorderScalarCmpChildren
@@ -2250,16 +1997,7 @@ CExpressionPreprocessor::PexprReorderScalarCmpChildren
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexpr);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CExpressionPreprocessor::PexprPreprocess
-//
-//	@doc:
-//		Main driver,
-//		preprocessing of input logical expression
-//
-//---------------------------------------------------------------------------
+// main driver, pre-processing of input logical expression
 CExpression *
 CExpressionPreprocessor::PexprPreprocess
 	(
