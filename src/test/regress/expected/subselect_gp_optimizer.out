@@ -134,19 +134,21 @@ NOTICE:  table "mrs_t1" does not exist, skipping
 create table mrs_t1(x int) distributed by (x);
 insert into mrs_t1 select generate_series(1,20);
 explain select * from mrs_t1 where exists (select x from mrs_t1 where x < -1);
-                                            QUERY PLAN                                             
----------------------------------------------------------------------------------------------------
- Gather Motion 2:1  (slice2; segments: 2)  (cost=0.00..1293.00 rows=20 width=4)
-   ->  Nested Loop EXISTS Join  (cost=0.00..1293.00 rows=10 width=4)
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..1293.00 rows=20 width=4)
+   ->  Nested Loop EXISTS Join  (cost=0.00..1293.00 rows=7 width=4)
          Join Filter: true
-         ->  Table Scan on mrs_t1  (cost=0.00..431.00 rows=10 width=4)
-         ->  Materialize  (cost=0.00..431.00 rows=2 width=1)
-               ->  Broadcast Motion 2:2  (slice1; segments: 2)  (cost=0.00..431.00 rows=2 width=1)
-                     ->  Table Scan on mrs_t1  (cost=0.00..431.00 rows=1 width=1)
-                           Filter: x < (-1)
- Settings:  optimizer=on; optimizer_segments=3
- Optimizer status: PQO version 1.621
-(10 rows)
+         ->  Table Scan on mrs_t1  (cost=0.00..431.00 rows=7 width=4)
+         ->  Materialize  (cost=0.00..431.00 rows=1 width=1)
+               ->  Broadcast Motion 1:3  (slice2)  (cost=0.00..431.00 rows=3 width=1)
+                     ->  Limit  (cost=0.00..431.00 rows=1 width=1)
+                           ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=1)
+                                 ->  Table Scan on mrs_t1  (cost=0.00..431.00 rows=1 width=1)
+                                       Filter: x < (-1)
+ Settings:  optimizer_nestloop_factor=1; optimizer_segments=3
+ Optimizer status: PQO version 2.35.1
+(12 rows)
 
 select * from mrs_t1 where exists (select x from mrs_t1 where x < -1) order by 1;
  x 
@@ -154,19 +156,21 @@ select * from mrs_t1 where exists (select x from mrs_t1 where x < -1) order by 1
 (0 rows)
 
 explain select * from mrs_t1 where exists (select x from mrs_t1 where x = 1);
-                                            QUERY PLAN                                             
----------------------------------------------------------------------------------------------------
- Gather Motion 2:1  (slice2; segments: 2)  (cost=0.00..1293.00 rows=20 width=4)
-   ->  Nested Loop EXISTS Join  (cost=0.00..1293.00 rows=10 width=4)
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..1293.00 rows=20 width=4)
+   ->  Nested Loop EXISTS Join  (cost=0.00..1293.00 rows=7 width=4)
          Join Filter: true
-         ->  Table Scan on mrs_t1  (cost=0.00..431.00 rows=10 width=4)
-         ->  Materialize  (cost=0.00..431.00 rows=2 width=1)
-               ->  Broadcast Motion 2:2  (slice1; segments: 2)  (cost=0.00..431.00 rows=2 width=1)
-                     ->  Table Scan on mrs_t1  (cost=0.00..431.00 rows=1 width=1)
-                           Filter: x = 1
- Settings:  optimizer=on; optimizer_segments=3
- Optimizer status: PQO version 1.621
-(10 rows)
+         ->  Table Scan on mrs_t1  (cost=0.00..431.00 rows=7 width=4)
+         ->  Materialize  (cost=0.00..431.00 rows=1 width=1)
+               ->  Broadcast Motion 1:3  (slice2)  (cost=0.00..431.00 rows=3 width=1)
+                     ->  Limit  (cost=0.00..431.00 rows=1 width=1)
+                           ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=1)
+                                 ->  Table Scan on mrs_t1  (cost=0.00..431.00 rows=1 width=1)
+                                       Filter: x = 1
+ Settings:  optimizer_nestloop_factor=1; optimizer_segments=3
+ Optimizer status: PQO version 2.35.1
+(12 rows)
 
 select * from mrs_t1 where exists (select x from mrs_t1 where x = 1) order by 1;
  x  
