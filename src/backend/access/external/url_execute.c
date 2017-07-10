@@ -62,9 +62,11 @@ typedef struct URL_EXECUTE_FILE
 
 static int popen_with_stderr(int *rwepipe, const char *exe, bool forwrite);
 static int pclose_with_stderr(int pid, int *rwepipe, StringInfo sinfo);
+static void pclose_without_stderr(int *rwepipe);
 static char *interpretError(int exitCode, char *buf, size_t buflen, char *err, size_t errlen);
 static const char *getSignalNameFromCode(int signo);
 static void read_err_msg(int fid, StringInfo sinfo);
+static void cleanup_execute_handle(execute_handle_t *h);
 
 
 /*
@@ -95,8 +97,30 @@ create_execute_handle(void)
 	return h;
 }
 
+/*
+ * Close any open handles on abort.
+ */
 static void
 destroy_execute_handle(execute_handle_t *h)
+{
+	int hpid = h->pid;
+
+	cleanup_execute_handle(h);
+	if (h->pid != -1)
+	{
+#ifndef WIN32
+		int			status;
+		waitpid(hpid, &status, 0);
+#endif
+	}
+
+}
+
+/*
+ * Cleanup open handles.
+ */
+static void
+cleanup_execute_handle(execute_handle_t *h)
 {
 	/* unlink from linked list first */
 	if (h->prev)
@@ -112,15 +136,6 @@ destroy_execute_handle(execute_handle_t *h)
 	/* We don't bother reading possible error message from the pipe */
 	if (h->pipes[EXEC_ERR_P] != -1)
 		close(h->pipes[EXEC_ERR_P]);
-
-	if (h->pid != -1)
-	{
-#ifndef WIN32
-		int			status;
-
-		waitpid(h->pid, &status, 0);
-#endif
-	}
 
 	pfree(h);
 }
@@ -284,14 +299,17 @@ url_execute_fclose(URL_FILE *file, bool failOnError, const char *relname)
 	URL_EXECUTE_FILE *efile = (URL_EXECUTE_FILE *) file;
 	StringInfoData sinfo;
 	char	   *url;
-	int			ret;
+	int			ret=0;
 
 	initStringInfo(&sinfo);
 
 	/* close the child process and related pipes */
-	ret = pclose_with_stderr(efile->handle->pid, efile->handle->pipes, &sinfo);
+	if(failOnError)
+		ret = pclose_with_stderr(efile->handle->pid, efile->handle->pipes, &sinfo);
+	else
+		pclose_without_stderr(efile->handle->pipes);
 
-	destroy_execute_handle(efile->handle);
+	cleanup_execute_handle(efile->handle);
 	efile->handle = NULL;
 	
 	url = pstrdup(file->url);	
@@ -753,4 +771,20 @@ pclose_with_stderr(int pid, int *pipes, StringInfo sinfo)
 #endif
 
 	return status;
+}
+
+/*
+ * pclose_without_stderr
+ *
+ * close our data and error pipes
+ * we don't probe for any error message or suspend the current process.
+ * this function is meant for scenarios when the current slice doesn't
+ * need to wait for the error message available at the completion of
+ * the child process.
+ */
+static void
+pclose_without_stderr(int *pipes)
+{
+	close(pipes[EXEC_DATA_P]);
+	close(pipes[EXEC_ERR_P]);
 }
