@@ -55,11 +55,25 @@ typedef struct AOTupleId
          /* top most 25 bits */           /* 15 bits from bytes_4_5 */
 
 /* ~_Init zeroes the 2 regular fields and sets the always on field to 1. */
-#define AOTupleIdInit_Init(h)                {(h)->bytes_0_1=0;(h)->bytes_2_3=0;(h)->bytes_4_5=0x8000;}
-#define AOTupleIdInit_segmentFileNum(h,e)    {(h)->bytes_0_1|=(((uint16)(0x007F&((uint16)(e))))<<9);}
-#define AOTupleIdInit_rowNum(h,e)            {(h)->bytes_0_1|=((uint16)((INT64CONST(0x000000FFFFFFFFFF)&(e))>>31));\
-											  (h)->bytes_2_3|=((uint16)((INT64CONST(0x000000007FFFFFFF)&(e))>>15));\
-											  (h)->bytes_4_5|=((0x7FFF&((uint16)(e))));}
+static inline void
+AOTupleIdInit_Init(AOTupleId *h)
+{
+	h->bytes_0_1 = 0;
+	h->bytes_2_3 = 0;
+	h->bytes_4_5 = 0x8000;
+}
+static inline void
+AOTupleIdInit_segmentFileNum(AOTupleId *h, uint16 e)
+{
+	h->bytes_0_1 |= ((uint16) (0x007F & e)) << 9;
+}
+static inline void
+AOTupleIdInit_rowNum(AOTupleId *h, uint64 e)
+{
+	h->bytes_0_1 |= (uint16) ((INT64CONST(0x000000FFFFFFFFFF) & e) >> 31);
+	h->bytes_2_3 |= (uint16) ((INT64CONST(0x000000007FFFFFFF) & e) >> 15);
+	h->bytes_4_5 |= 0x7FFF & e;
+}
 
 #define AOTupleId_MaxRowNum            INT64CONST(1099511627775) 		// 40 bits, or 1099511627775 (1099 trillion).
 #define AOTupleId_MaxRowNum_CommaStr  "1,099,511,627,775"
