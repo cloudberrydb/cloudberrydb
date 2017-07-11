@@ -97,7 +97,7 @@ open_all_datumstreamread_segfiles(Relation rel,
 	char	   *basepath = relpath(rel->rd_node);
 	int			i;
 
-	Assert(proj);
+	Assert(proj_atts);
 
 	for (i = 0; i < num_proj_atts; i++)
 	{
