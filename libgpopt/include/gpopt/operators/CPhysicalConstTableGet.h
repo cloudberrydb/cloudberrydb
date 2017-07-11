@@ -304,6 +304,10 @@ namespace gpopt
 				return dynamic_cast<CPhysicalConstTableGet*>(pop);
 			}
 		
+			// debug print
+			virtual
+			IOstream &OsPrint(IOstream &) const;
+
 	}; // class CPhysicalConstTableGet
 
 }

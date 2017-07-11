@@ -395,6 +395,53 @@ CPhysicalConstTableGet::EpetRewindability
 	return CEnfdProp::EpetUnnecessary;
 }
 
+// print values in const table
+IOstream &
+CPhysicalConstTableGet::OsPrint
+(
+	IOstream &os
+	)
+const
+{
+	if (m_fPattern)
+	{
+		return COperator::OsPrint(os);
+	}
+	else
+	{
+		os << SzId() << " ";
+		os << "Columns: [";
+		CUtils::OsPrintDrgPcr(os, m_pdrgpcrOutput);
+		os << "] ";
+		os << "Values: [";
+		for (ULONG ulA = 0; ulA < m_pdrgpdrgpdatum->UlLength(); ulA++)
+		{
+			if (0 < ulA)
+			{
+				os << "; ";
+			}
+			os << "(";
+			DrgPdatum *pdrgpdatum = (*m_pdrgpdrgpdatum)[ulA];
+
+			const ULONG ulLen = pdrgpdatum->UlLength();
+			for (ULONG ulB = 0; ulB < ulLen; ulB++)
+			{
+				IDatum *pdatum = (*pdrgpdatum)[ulB];
+				pdatum->OsPrint(os);
+
+				if (ulB < ulLen-1)
+				{
+					os << ", ";
+				}
+			}
+			os << ")";
+		}
+		os << "]";
+	}
+
+	return os;
+}
+
 
 // EOF
 
