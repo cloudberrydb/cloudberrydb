@@ -30,6 +30,7 @@
 #include "cdb/cdbpersistentrecovery.h"
 
 #ifdef USE_SEGWALREP
+#include "access/xlogutils.h"
 #include "cdb/cdbappendonlyam.h"
 
 
@@ -2400,10 +2401,8 @@ ao_xlog_insert(XLogRecord *record)
 	file = PathNameOpenFile(path, O_RDWR | PG_BINARY, 0600);
 	if (file < 0)
 	{
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not open file '%s': %m",
-						path)));
+		XLogAOSegmentFile(xlrec->node, xlrec->segment_filenum);
+		return;
 	}
 
 	seek_offset = FileSeek(file, xlrec->offset, SEEK_SET);
