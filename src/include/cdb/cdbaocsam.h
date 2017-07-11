@@ -143,7 +143,6 @@ typedef struct AOCSFetchDescData
 
 	int				totalSegfiles;
 	struct AOCSFileSegInfo **segmentFileInfo;
-	bool			*proj;
 
 	char			*segmentFileName;
 	int				segmentFileNameMaxLen;

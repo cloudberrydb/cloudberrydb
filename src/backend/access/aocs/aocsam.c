@@ -1140,7 +1140,6 @@ aocs_fetch_init(Relation relation,
 	aocsFetchDesc->basepath = basePath;
 
 	Assert(proj);
-	aocsFetchDesc->proj = proj;
 
 	aocsFetchDesc->segmentFileInfo =
 		GetAllAOCSFileSegInfo(relation, appendOnlyMetaDataSnapshot, &aocsFetchDesc->totalSegfiles);

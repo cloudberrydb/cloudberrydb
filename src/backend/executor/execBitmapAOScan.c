@@ -124,7 +124,6 @@ BitmapAOScanEnd(ScanState *scanState)
 		}
 		else if (scanState->tableType == TableTypeAOCS)
 		{
-			pfree(((AOCSFetchDesc)node->scanDesc)->proj);
 			aocs_fetch_finish(node->scanDesc);
 		}
 		else
