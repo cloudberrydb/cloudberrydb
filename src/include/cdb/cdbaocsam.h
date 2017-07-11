@@ -101,7 +101,10 @@ typedef struct AOCSScanDescData
 
 	struct AOCSFileSegInfo **seginfo;
 	struct DatumStreamRead **ds;
-	bool *proj;
+
+	/* Column numbers (starting from 0) of columns we need to fetch */
+	int		   *proj_atts;
+	int			num_proj_atts;
 
 	/* synthetic system attributes */
 	ItemPointerData cdb_fake_ctid;
