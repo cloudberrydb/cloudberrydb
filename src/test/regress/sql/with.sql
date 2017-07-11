@@ -276,6 +276,21 @@ WITH RECURSIVE x(n) AS (SELECT 1 EXCEPT SELECT n+1 FROM x)
 WITH RECURSIVE x(n) AS (SELECT 1 EXCEPT ALL SELECT n+1 FROM x)
 	SELECT * FROM x;
 
+-- Set operations within the recursive term with a self-reference.
+-- Currently set operations in the recursive term involving the cte itself must
+-- be prevented. The reason for this is that such a query may lead to a plan
+-- where there is a motion between the RecursiveUnion node and the
+-- WorkTableScan node.
+CREATE TEMPORARY TABLE z(x int primary key);
+WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM (SELECT * FROM x UNION SELECT * FROM z)foo)
+	SELECT * FROM x;
+
+-- Set operation in recursive term that does not have a self-reference
+-- This is supported
+CREATE TEMPORARY TABLE u(x int primary key);
+WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM (SELECT * from z UNION SELECT * FROM u)foo, x where foo.x = x.n)
+	SELECT * FROM x;
+
 -- no non-recursive term
 WITH RECURSIVE x(n) AS (SELECT n FROM x)
 	SELECT * FROM x;

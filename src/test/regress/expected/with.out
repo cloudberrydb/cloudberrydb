@@ -514,6 +514,27 @@ WITH RECURSIVE x(n) AS (SELECT 1 EXCEPT ALL SELECT n+1 FROM x)
 ERROR:  recursive query "x" does not have the form non-recursive-term UNION ALL recursive-term
 LINE 1: WITH RECURSIVE x(n) AS (SELECT 1 EXCEPT ALL SELECT n+1 FROM ...
                        ^
+-- Set operations within the recursive term with a self-reference.
+-- Currently set operations in the recursive term involving the cte itself must
+-- be prevented. The reason for this is that such a query may lead to a plan
+-- where there is a motion between the RecursiveUnion node and the
+-- WorkTableScan node.
+CREATE TEMPORARY TABLE z(x int primary key);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "z_pkey" for table "z"
+WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM (SELECT * FROM x UNION SELECT * FROM z)foo)
+	SELECT * FROM x;
+ERROR:  Self reference of "x" within recursive term not supported
+-- Set operation in recursive term that does not have a self-reference
+-- This is supported
+CREATE TEMPORARY TABLE u(x int primary key);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "u_pkey" for table "u"
+WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM (SELECT * from z UNION SELECT * FROM u)foo, x where foo.x = x.n)
+	SELECT * FROM x;
+ n 
+---
+ 1
+(1 row)
+
 -- no non-recursive term
 WITH RECURSIVE x(n) AS (SELECT n FROM x)
 	SELECT * FROM x;
@@ -610,9 +631,7 @@ WITH RECURSIVE foo(i) AS
           UNION ALL
        SELECT i+1 FROM foo WHERE i < 5)
 ) SELECT * FROM foo;
-ERROR:  recursive reference to query "foo" must not appear more than once
-LINE 6:        SELECT i+1 FROM foo WHERE i < 5)
-                               ^
+ERROR:  Self reference of "foo" within recursive term not supported
 WITH RECURSIVE foo(i) AS
     (values (1)
     UNION ALL
@@ -621,9 +640,7 @@ WITH RECURSIVE foo(i) AS
           UNION ALL
        SELECT i+1 FROM foo WHERE i < 5) AS t
 ) SELECT * FROM foo;
-ERROR:  recursive reference to query "foo" must not appear more than once
-LINE 7:        SELECT i+1 FROM foo WHERE i < 5) AS t
-                               ^
+ERROR:  Self reference of "foo" within recursive term not supported
 WITH RECURSIVE foo(i) AS
     (values (1)
     UNION ALL
@@ -631,9 +648,7 @@ WITH RECURSIVE foo(i) AS
           EXCEPT
        SELECT i+1 FROM foo WHERE i < 5)
 ) SELECT * FROM foo;
-ERROR:  recursive reference to query "foo" must not appear within EXCEPT
-LINE 6:        SELECT i+1 FROM foo WHERE i < 5)
-                               ^
+ERROR:  Self reference of "foo" within recursive term not supported
 WITH RECURSIVE foo(i) AS
     (values (1)
     UNION ALL
@@ -641,9 +656,7 @@ WITH RECURSIVE foo(i) AS
           INTERSECT
        SELECT i+1 FROM foo WHERE i < 5)
 ) SELECT * FROM foo;
-ERROR:  recursive reference to query "foo" must not appear more than once
-LINE 6:        SELECT i+1 FROM foo WHERE i < 5)
-                               ^
+ERROR:  Self reference of "foo" within recursive term not supported
 -- Wrong type induced from non-recursive term
 WITH RECURSIVE foo(i) AS
    (SELECT i FROM (VALUES(1),(2)) t(i)
