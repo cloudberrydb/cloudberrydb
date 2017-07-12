@@ -66,7 +66,8 @@
     <body>
       <section>
         <p>You install and configure NetBackup client software on the Greenplum Database master host
-          and all segment hosts. </p>
+          and all segment hosts. The NetBackup client software must be able to communicate with the
+          NetBackup server software.</p>
         <ol id="ol_ojl_gbz_3p">
           <li>Install the NetBackup client software on Greenplum Database hosts. See the NetBackup
             installation documentation for information on installing NetBackup clients on UNIX
