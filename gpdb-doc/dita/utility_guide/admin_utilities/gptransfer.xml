@@ -98,6 +98,14 @@
                 "Migrating Data with Gptransfer" in the <cite>Greenplum Database Administrator
                     Guide</cite>.</p>
         </section>
+        <section>
+            <title>About Database, Schema, and Table Names</title>
+            <p>When you transfer an entire database, schema and table names in the database can
+                contain only alphanumeric characters and the underscore character
+                    (<codeph>_</codeph>). Also, Unicode characters are not supported. The same
+                naming restrictions apply when you specify a database, schema, or table as an option
+                or in a file.</p>
+        </section>
         <section id="section4">
             <title>Notes</title>
             <p>The <cmdname>gptransfer</cmdname> utility efficiently transfers tables with large
