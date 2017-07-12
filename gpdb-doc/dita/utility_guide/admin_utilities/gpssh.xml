@@ -148,7 +148,7 @@
             <codeblock>[gpssh]
 delaybeforesend = 0.05
 prompt_validation_timeout = 1.0
-sync_retries = 3</codeblock>
+sync_retries = 5</codeblock>
             <p>These are the <codeph>gpssh.conf</codeph> parameters.</p>
             <parml>
                 <plentry>
@@ -169,18 +169,18 @@ sync_retries = 3</codeblock>
                 </plentry>
                 <plentry>
                     <pt>sync_retries = <varname>attempts</varname></pt>
-                    <pd>A non-negative integer that specifies the maximum
-                        number of retry attempts that <codeph>gpssh</codeph>
-                        performs to try connecting to a Greenplum Database
-                        remote host. The default is 3. If the value is 0,
-                        <codeph>gpssh</codeph> returns an error if the initial
-                        connection attempt fails. This parameter cannot be
-                        configured with a command-line option.</pd>
-                    <pd>Increasing this value compensates for slow network
-                        performance or performance issues such as heavy CPU or
-                        I/O load on the segment host. However, when a
-                        connection cannot be established, an increased value
-                        also increases the delay when an error is returned.</pd>
+                    <pd>A non-negative integer that specifies the maximum number of times that
+                            <codeph>gpssh</codeph> attempts to connect to a remote Greenplum
+                        Database host. The default is 3. If the value is 0, <codeph>gpssh</codeph>
+                        returns an error if the initial connection attempt fails. Increasing the
+                        number of attempts also increases the time between retry attempts. This
+                        parameter cannot be configured with a command-line option. </pd>
+                    <pd>The <codeph>-t</codeph> option also affects the time between retry
+                        attempts.</pd>
+                    <pd>Increasing this value can compensate for slow network performance or segment
+                        host performance issues such as heavy CPU or I/O load. However, when a
+                        connection cannot be established, an increased value also increases the
+                        delay when an error is retuned.</pd>
                 </plentry>
             </parml>
         </section>
