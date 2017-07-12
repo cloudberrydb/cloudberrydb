@@ -26,5 +26,13 @@
                 <cmdname>gpfdist</cmdname> tests, use the <codeph>-V</codeph> option.</p>
         <p>For information about IPv6 and IPv4 networking, see your operating system
             documentation.</p>
+        <p>When reading or writing data with the <codeph>gpfdist</codeph> or
+                <codeph>gfdists</codeph> protocol, the <codeph>gpfdist</codeph> utility rejects HTTP
+            requests that do not include <codeph>X-GP-PROTO</codeph> in the request header. If
+                <codeph>X-GP-PROTO</codeph> is not detected in the header request
+                <codeph>gpfist</codeph> returns a 400 error in the status line of the HTTP response
+            header: <codeph>400 invalid request (no gp-proto)</codeph>.</p>
+        <p>Greenplum Database includes <codeph>X-GP-PROTO</codeph> in the HTTP request header to
+            indicate that the request is from Greenplum Database. </p>
     </body>
 </topic>
