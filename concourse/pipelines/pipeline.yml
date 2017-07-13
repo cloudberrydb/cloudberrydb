@@ -689,6 +689,7 @@ jobs:
       params:
         MAKE_TEST_COMMAND: persistent_table_rebuild
         TEST_OS: centos
+        CONFIGURE_FLAGS: {{configure_flags}}
 
 - name: fts
   plan:
@@ -709,6 +710,7 @@ jobs:
         MAKE_TEST_COMMAND: fts_transitions_part01
         BLDWRAP_POSTGRES_CONF_ADDONS: gp_segment_connect_timeout=20 gp_fts_probe_interval=20
         TEST_OS: centos
+        CONFIGURE_FLAGS: {{configure_flags}}
     - task: fts_transitions_part02
       file: gpdb_src/concourse/tasks/tinc_gpdb.yml
       image: centos-gpdb-dev-6
@@ -716,6 +718,7 @@ jobs:
         MAKE_TEST_COMMAND: fts_transitions_part02
         BLDWRAP_POSTGRES_CONF_ADDONS: gp_segment_connect_timeout=20 gp_fts_probe_interval=20
         TEST_OS: centos
+        CONFIGURE_FLAGS: {{configure_flags}}
     - task: fts_transitions_part03
       file: gpdb_src/concourse/tasks/tinc_gpdb.yml
       image: centos-gpdb-dev-6
@@ -723,6 +726,7 @@ jobs:
         MAKE_TEST_COMMAND: fts_transitions_part03
         BLDWRAP_POSTGRES_CONF_ADDONS: gp_segment_connect_timeout=20 gp_fts_probe_interval=20
         TEST_OS: centos
+        CONFIGURE_FLAGS: {{configure_flags}}
 
 - name: storage
   plan:
@@ -741,12 +745,14 @@ jobs:
       params:
         MAKE_TEST_COMMAND: aocoalter_catalog_loaders
         TEST_OS: centos
+        CONFIGURE_FLAGS: {{configure_flags}}
       image: centos-gpdb-dev-6
     - task: storage_persistent_accessmethods_and_vacuum
       file: gpdb_src/concourse/tasks/tinc_gpdb.yml
       params:
         MAKE_TEST_COMMAND: storage_persistent_accessmethods_and_vacuum
         TEST_OS: centos
+        CONFIGURE_FLAGS: {{configure_flags}}
       image: centos-gpdb-dev-6
       timeout: 3h
     - task: storage_filerep
@@ -754,6 +760,7 @@ jobs:
       params:
         MAKE_TEST_COMMAND: storage_filerep
         TEST_OS: centos
+        CONFIGURE_FLAGS: {{configure_flags}}
       image: centos-gpdb-dev-6
       timeout: 3h
     - task: storage_uao_transactionmanagement
@@ -761,6 +768,7 @@ jobs:
       params:
         MAKE_TEST_COMMAND: storage_uao_and_transactionmanagement
         TEST_OS: centos
+        CONFIGURE_FLAGS: {{configure_flags}}
       image: centos-gpdb-dev-6
       timeout: 3h
     - task: storage_vacuum_xidlimits
@@ -768,6 +776,7 @@ jobs:
       params:
         MAKE_TEST_COMMAND: storage_vacuum_xidlimits
         TEST_OS: centos
+        CONFIGURE_FLAGS: {{configure_flags}}
       image: centos-gpdb-dev-6
       timeout: 3h
 
@@ -788,6 +797,7 @@ jobs:
     params:
       MAKE_TEST_COMMAND: memory_accounting
       TEST_OS: "centos"
+      CONFIGURE_FLAGS: {{configure_flags}}
 
 - name: regression_tests_gphdfs_centos
   plan:
@@ -1329,6 +1339,7 @@ jobs:
     params:
       MAKE_TEST_COMMAND: runaway_query
       TEST_OS: "centos"
+      CONFIGURE_FLAGS: {{configure_flags}}
 
 - name: QP_optimizer-functional
   plan:
@@ -1350,6 +1361,7 @@ jobs:
         MAKE_TEST_COMMAND: optimizer_functional_part1
         BLDWRAP_POSTGRES_CONF_ADDONS: fsync=off optimizer_print_missing_stats=off
         TEST_OS: centos
+        CONFIGURE_FLAGS: {{configure_flags}}
     - task: optimizer_functional_part2
       timeout: 3h
       file: gpdb_src/concourse/tasks/tinc_gpdb.yml
@@ -1358,3 +1370,4 @@ jobs:
         MAKE_TEST_COMMAND: optimizer_functional_part2
         BLDWRAP_POSTGRES_CONF_ADDONS: fsync=off optimizer_print_missing_stats=off
         TEST_OS: centos
+        CONFIGURE_FLAGS: {{configure_flags}}
