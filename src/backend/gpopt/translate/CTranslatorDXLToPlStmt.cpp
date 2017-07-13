@@ -539,8 +539,16 @@ CTranslatorDXLToPlStmt::MapLocationsFdist
 
 	if (ulLocations > ulParticipatingSegments)
 	{
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtExternalScanError,
-				GPOS_WSZ_LIT("There are more external files (URLs) than primary segments that can read them"));
+		// This should match the same error in createplan.c
+		char msgbuf[200];
+
+		snprintf(msgbuf, sizeof(msgbuf),
+				 "There are more external files (URLs) than primary segments that can read them. Found %d URLs and %d primary segments.",
+				 ulLocations, ulParticipatingSegments);
+
+		RaiseGpdbError(ERRCODE_INVALID_TABLE_DEFINITION, // errcode
+					   msgbuf, // errmsg
+					   NULL);  // errhint
 	}
 
 	BOOL fDone = false;
