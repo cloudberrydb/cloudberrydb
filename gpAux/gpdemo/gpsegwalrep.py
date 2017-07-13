@@ -33,6 +33,7 @@ import threading
 from gppylib.db import dbconn
 
 PRINT_LOCK = threading.Lock()
+THREAD_LOCK = threading.Lock()
 
 def runcommands(commands, thread_name, command_finish, exit_on_error=True):
     output = []
@@ -40,7 +41,8 @@ def runcommands(commands, thread_name, command_finish, exit_on_error=True):
     for command in commands:
         try:
             output.append('Running command... %s' % command)
-            output = output + subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True).split('\n')
+            with THREAD_LOCK:
+                output = output + subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True).split('\n')
         except subprocess.CalledProcessError, e:
             output.append(str(e))
             if exit_on_error:
