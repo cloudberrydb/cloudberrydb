@@ -82,6 +82,8 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/Correlated-LASJ-With-Outer-Expr.mdp",
 		"../data/dxl/minidump/Correlated-SemiJoin.mdp",
 		"../data/dxl/minidump/CorrelatedSemiJoin-True.mdp",
+		"../data/dxl/minidump/CorrelatedIN-LeftSemiJoin-True.mdp",
+		"../data/dxl/minidump/CorrelatedIN-LeftSemiNotIn-True.mdp",
 		"../data/dxl/minidump/Correlated-AntiSemiJoin.mdp",
 		"../data/dxl/minidump/CorrelatedAntiSemiJoin-True.mdp",
 		"../data/dxl/minidump/Correlation-With-Casting-1.mdp",
