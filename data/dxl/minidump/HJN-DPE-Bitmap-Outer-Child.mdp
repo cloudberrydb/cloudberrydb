@@ -948,9 +948,6 @@ select * from dbs_target, dbs_helper where dbs_target.c1 = dbs_helper.c1 and dbs
 	          <dxl:ProjElem ColId="12" Alias="c3">
 	            <dxl:Ident ColId="12" ColName="c3" TypeMdid="0.23.1.0"/>
 	          </dxl:ProjElem>
-	          <dxl:ProjElem ColId="20" Alias="ColRef_0020">
-	            <dxl:PartOid Level="0"/>
-	          </dxl:ProjElem>
 	        </dxl:ProjList>
 	        <dxl:PartEqFilters>
 	          <dxl:Ident ColId="12" ColName="c3" TypeMdid="0.23.1.0"/>

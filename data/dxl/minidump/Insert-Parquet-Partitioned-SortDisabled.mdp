@@ -239,53 +239,12 @@
         </dxl:LogicalGet>
       </dxl:LogicalInsert>
     </dxl:Query>
-<dxl:Plan Id="0" SpaceSize="2">
-  <dxl:DMLInsert Columns="0,1" ActionCol="10" OidCol="9" CtidCol="0" SegmentIdCol="0" InputSorted="false">
-    <dxl:Properties>
-      <dxl:Cost StartupCost="0" TotalCost="3.074219" Rows="1.000000" Width="16"/>
-    </dxl:Properties>
-    <dxl:DirectDispatchInfo/>
-    <dxl:ProjList>
-      <dxl:ProjElem ColId="0" Alias="a">
-        <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="1" Alias="b">
-        <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-    </dxl:ProjList>
-    <dxl:TableDescriptor Mdid="0.1319741.1.1" TableName="p_parquet">
-      <dxl:Columns>
-        <dxl:Column ColId="11" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
-        <dxl:Column ColId="12" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
-        <dxl:Column ColId="13" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-        <dxl:Column ColId="14" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-        <dxl:Column ColId="15" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-      </dxl:Columns>
-    </dxl:TableDescriptor>
-    <dxl:Result>
-      <dxl:Properties>
-        <dxl:Cost StartupCost="0" TotalCost="2.042969" Rows="1.000000" Width="16"/>
-      </dxl:Properties>
-      <dxl:ProjList>
-        <dxl:ProjElem ColId="0" Alias="a">
-          <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="1" Alias="b">
-          <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="9" Alias="ColRef_0009">
-          <dxl:Ident ColId="9" ColName="ColRef_0009" TypeMdid="0.26.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="10" Alias="ColRef_0010">
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-        </dxl:ProjElem>
-      </dxl:ProjList>
-      <dxl:Filter/>
-      <dxl:OneTimeFilter/>
-      <dxl:PartitionSelector RelationMdid="0.1319741.1.1" PartitionLevels="1" ScanId="0">
+    <dxl:Plan Id="0" SpaceSize="2">
+      <dxl:DMLInsert Columns="0,1" ActionCol="10" OidCol="0" CtidCol="0" SegmentIdCol="0" InputSorted="false">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="1.027344" Rows="1.000000" Width="20"/>
+          <dxl:Cost StartupCost="0" TotalCost="3.058594" Rows="1.000000" Width="16"/>
         </dxl:Properties>
+        <dxl:DirectDispatchInfo/>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="a">
             <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
@@ -293,28 +252,19 @@
           <dxl:ProjElem ColId="1" Alias="b">
             <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="9" Alias="ColRef_0009">
-            <dxl:PartOid Level="0"/>
-          </dxl:ProjElem>
         </dxl:ProjList>
-        <dxl:PartEqFilters>
-          <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
-        </dxl:PartEqFilters>
-        <dxl:PartFilters>
-          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-        </dxl:PartFilters>
-        <dxl:ResidualFilter>
-          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-        </dxl:ResidualFilter>
-        <dxl:PropagationExpression>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
-        </dxl:PropagationExpression>
-        <dxl:PrintableFilter>
-          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-        </dxl:PrintableFilter>
-        <dxl:TableScan>
+        <dxl:TableDescriptor Mdid="0.1319741.1.1" TableName="p_parquet">
+          <dxl:Columns>
+            <dxl:Column ColId="11" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="12" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+            <dxl:Column ColId="13" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+            <dxl:Column ColId="14" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+            <dxl:Column ColId="15" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+          </dxl:Columns>
+        </dxl:TableDescriptor>
+        <dxl:Result>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="0.007812" Rows="1.000000" Width="16"/>
+            <dxl:Cost StartupCost="0" TotalCost="2.035156" Rows="1.000000" Width="12"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="a">
@@ -323,25 +273,69 @@
             <dxl:ProjElem ColId="1" Alias="b">
               <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
+            <dxl:ProjElem ColId="10" Alias="ColRef_0010">
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+            </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
-          <dxl:TableDescriptor Mdid="0.1095673.1.1" TableName="r">
-            <dxl:Columns>
-              <dxl:Column ColId="0" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
-              <dxl:Column ColId="1" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
-              <dxl:Column ColId="2" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-              <dxl:Column ColId="3" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-              <dxl:Column ColId="4" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-              <dxl:Column ColId="5" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-              <dxl:Column ColId="6" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-              <dxl:Column ColId="7" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-              <dxl:Column ColId="8" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-            </dxl:Columns>
-          </dxl:TableDescriptor>
-        </dxl:TableScan>
-      </dxl:PartitionSelector>
-    </dxl:Result>
-  </dxl:DMLInsert>
-</dxl:Plan>
+          <dxl:OneTimeFilter/>
+          <dxl:PartitionSelector RelationMdid="0.1319741.1.1" PartitionLevels="1" ScanId="0">
+            <dxl:Properties>
+              <dxl:Cost StartupCost="0" TotalCost="1.023438" Rows="1.000000" Width="16"/>
+            </dxl:Properties>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="0" Alias="a">
+                <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="1" Alias="b">
+                <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:PartEqFilters>
+              <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
+            </dxl:PartEqFilters>
+            <dxl:PartFilters>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+            </dxl:PartFilters>
+            <dxl:ResidualFilter>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+            </dxl:ResidualFilter>
+            <dxl:PropagationExpression>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
+            </dxl:PropagationExpression>
+            <dxl:PrintableFilter>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+            </dxl:PrintableFilter>
+            <dxl:TableScan>
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0" TotalCost="0.007812" Rows="1.000000" Width="16"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="0" Alias="a">
+                  <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="1" Alias="b">
+                  <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:TableDescriptor Mdid="0.1095673.1.1" TableName="r">
+                <dxl:Columns>
+                  <dxl:Column ColId="0" Attno="1" ColName="a" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="1" Attno="2" ColName="b" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="2" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                  <dxl:Column ColId="3" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                  <dxl:Column ColId="4" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                  <dxl:Column ColId="5" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                  <dxl:Column ColId="6" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                  <dxl:Column ColId="7" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                  <dxl:Column ColId="8" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                </dxl:Columns>
+              </dxl:TableDescriptor>
+            </dxl:TableScan>
+          </dxl:PartitionSelector>
+        </dxl:Result>
+      </dxl:DMLInsert>
+    </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>

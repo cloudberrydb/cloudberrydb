@@ -614,11 +614,7 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
                 <dxl:Properties>
                   <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
                 </dxl:Properties>
-                <dxl:ProjList>
-                  <dxl:ProjElem ColId="19" Alias="ColRef_0019">
-                    <dxl:PartOid Level="0"/>
-                  </dxl:ProjElem>
-                </dxl:ProjList>
+                <dxl:ProjList/>
                 <dxl:PartEqFilters>
                   <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
                 </dxl:PartEqFilters>
@@ -694,9 +690,6 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
                 <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
               </dxl:Properties>
               <dxl:ProjList>
-                <dxl:ProjElem ColId="20" Alias="ColRef_0020">
-                  <dxl:PartOid Level="0"/>
-                </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:PartEqFilters>
                 <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="6"/>

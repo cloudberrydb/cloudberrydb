@@ -383,11 +383,7 @@ explain select i, count(j) from pt2 group by i;
                   <dxl:Properties>
                     <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
                   </dxl:Properties>
-                  <dxl:ProjList>
-                    <dxl:ProjElem ColId="12" Alias="ColRef_0012">
-                      <dxl:PartOid Level="0"/>
-                    </dxl:ProjElem>
-                  </dxl:ProjList>
+                  <dxl:ProjList/>
                   <dxl:PartEqFilters>
                     <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
                   </dxl:PartEqFilters>

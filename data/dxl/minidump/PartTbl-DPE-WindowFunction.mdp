@@ -780,9 +780,6 @@
           <dxl:ProjElem ColId="9" Alias="count">
             <dxl:Ident ColId="9" ColName="count" TypeMdid="0.20.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="19" Alias="ColRef_0019">
-            <dxl:PartOid Level="0"/>
-          </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:PartEqFilters>
           <dxl:Ident ColId="1" ColName="b" TypeMdid="0.1082.1.0"/>

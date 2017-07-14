@@ -629,9 +629,6 @@
           <dxl:ProjElem ColId="15" Alias="t2">
             <dxl:Ident ColId="15" ColName="t2" TypeMdid="0.25.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="23" Alias="ColRef_0023">
-            <dxl:PartOid Level="0"/>
-          </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:PartEqFilters>
           <dxl:Ident ColId="13" ColName="tid" TypeMdid="0.23.1.0"/>

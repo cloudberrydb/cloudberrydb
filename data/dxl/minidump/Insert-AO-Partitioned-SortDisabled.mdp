@@ -399,9 +399,9 @@
       </dxl:LogicalInsert>
     </dxl:Query>
     <dxl:Plan Id="0" SpaceSize="2">
-      <dxl:DMLInsert Columns="0,1" ActionCol="10" OidCol="9" CtidCol="0" SegmentIdCol="0" InputSorted="false">
+      <dxl:DMLInsert Columns="0,1" ActionCol="10" OidCol="0" CtidCol="0" SegmentIdCol="0" InputSorted="false">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="431.417092" Rows="20.000000" Width="8"/>
+          <dxl:Cost StartupCost="0" TotalCost="431.312872" Rows="20.000000" Width="8"/>
         </dxl:Properties>
         <dxl:DirectDispatchInfo/>
         <dxl:ProjList>
@@ -423,7 +423,7 @@
         </dxl:TableDescriptor>
         <dxl:Result>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="431.000425" Rows="20.000000" Width="16"/>
+            <dxl:Cost StartupCost="0" TotalCost="431.000372" Rows="20.000000" Width="12"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="id">
@@ -431,9 +431,6 @@
             </dxl:ProjElem>
             <dxl:ProjElem ColId="1" Alias="year">
               <dxl:Ident ColId="1" ColName="year" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="9" Alias="ColRef_0009">
-              <dxl:Ident ColId="9" ColName="ColRef_0009" TypeMdid="0.26.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="10" Alias="ColRef_0010">
               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
@@ -443,7 +440,7 @@
           <dxl:OneTimeFilter/>
           <dxl:PartitionSelector RelationMdid="0.24643.1.1" PartitionLevels="1" ScanId="0">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000319" Rows="20.000000" Width="12"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000292" Rows="20.000000" Width="8"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="id">
@@ -451,9 +448,6 @@
               </dxl:ProjElem>
               <dxl:ProjElem ColId="1" Alias="year">
                 <dxl:Ident ColId="1" ColName="year" TypeMdid="0.23.1.0"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="9" Alias="ColRef_0009">
-                <dxl:PartOid Level="0"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:PartEqFilters>

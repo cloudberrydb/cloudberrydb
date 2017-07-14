@@ -6629,9 +6629,6 @@
                 <dxl:ProjElem ColId="29" Alias="hostname">
                   <dxl:Ident ColId="29" ColName="hostname" TypeMdid="0.1043.1.0"/>
                 </dxl:ProjElem>
-                <dxl:ProjElem ColId="44" Alias="ColRef_0044">
-                  <dxl:PartOid Level="0"/>
-                </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:PartEqFilters>
                 <dxl:Ident ColId="27" ColName="date" TypeMdid="0.1114.1.0"/>

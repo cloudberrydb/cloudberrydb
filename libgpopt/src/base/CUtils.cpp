@@ -31,6 +31,7 @@
 #include "gpopt/search/CMemo.h"
 #include "gpopt/mdcache/CMDAccessorUtils.h"
 #include "gpopt/exception.h"
+#include "gpopt/optimizer/COptimizerConfig.h"
 
 #include "naucrates/base/IDatumInt2.h"
 #include "naucrates/base/IDatumInt4.h"
@@ -5081,21 +5082,38 @@ CUtils::ExecLocalityType
 // generate a limit expression on top of the given relational child with the given offset and limit count
 CExpression *
 CUtils::PexprLimit
-       (
-       IMemoryPool *pmp,
-       CExpression *pexpr,
-       ULONG ulOffSet,
-       ULONG ulCount
-       )
+	(
+	IMemoryPool *pmp,
+	CExpression *pexpr,
+	ULONG ulOffSet,
+	ULONG ulCount
+	)
 {
-       GPOS_ASSERT(pexpr);
+	GPOS_ASSERT(pexpr);
+	
+	COrderSpec *pos = GPOS_NEW(pmp) COrderSpec(pmp);
+	CLogicalLimit *popLimit = GPOS_NEW(pmp) CLogicalLimit(pmp, pos, true /* fGlobal */, true /* fHasCount */, false /*fTopLimitUnderDML*/);
+	CExpression *pexprLimitOffset = CUtils::PexprScalarConstInt8(pmp, ulOffSet);
+	CExpression *pexprLimitCount = CUtils::PexprScalarConstInt8(pmp, ulCount);
+	
+	return GPOS_NEW(pmp) CExpression(pmp, popLimit, pexpr, pexprLimitOffset, pexprLimitCount);
+}
+	
+// generate part oid
+BOOL
+CUtils::FGeneratePartOid
+	(
+	IMDId *pmdid
+	)
+{
+	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+	const IMDRelation *pmdrel = pmda->Pmdrel(pmdid);
+	BOOL fInsertSortOnParquet = (!GPOS_FTRACE(EopttraceDisableSortForDMLOnParquet) && pmdrel->Erelstorage() == IMDRelation::ErelstorageAppendOnlyParquet);
 
-       COrderSpec *pos = GPOS_NEW(pmp) COrderSpec(pmp);
-       CLogicalLimit *popLimit = GPOS_NEW(pmp) CLogicalLimit(pmp, pos, true /* fGlobal */, true /* fHasCount */, false /*fTopLimitUnderDML*/);
-       CExpression *pexprLimitOffset = CUtils::PexprScalarConstInt8(pmp, ulOffSet);
-       CExpression *pexprLimitCount = CUtils::PexprScalarConstInt8(pmp, ulCount);
+	COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
+	BOOL fInsertSortOnRows = (pmdrel->Erelstorage() == IMDRelation::ErelstorageAppendOnlyRows) && (poconf->Phint()->UlMinNumOfPartsToRequireSortOnInsert() <= pmdrel->UlPartitions());
 
-       return GPOS_NEW(pmp) CExpression(pmp, popLimit, pexpr, pexprLimitOffset, pexprLimitCount);
+	return fInsertSortOnParquet || fInsertSortOnRows;
 }
 
 // EOF

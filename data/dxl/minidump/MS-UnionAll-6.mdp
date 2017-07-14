@@ -1047,11 +1047,7 @@
                           <dxl:Properties>
                             <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
                           </dxl:Properties>
-                          <dxl:ProjList>
-                            <dxl:ProjElem ColId="102" Alias="ColRef_0102">
-                              <dxl:PartOid Level="0"/>
-                            </dxl:ProjElem>
-                          </dxl:ProjList>
+                          <dxl:ProjList/>
                           <dxl:PartEqFilters>
                             <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZxQAAA==" DoubleValue="451267200000000.000000"/>
                           </dxl:PartEqFilters>
@@ -1316,9 +1312,6 @@
                             <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
                           </dxl:Properties>
                           <dxl:ProjList>
-                            <dxl:ProjElem ColId="103" Alias="ColRef_0103">
-                              <dxl:PartOid Level="0"/>
-                            </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:PartEqFilters>
                             <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZxQAAA==" DoubleValue="451267200000000.000000"/>
@@ -1584,9 +1577,6 @@
                             <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
                           </dxl:Properties>
                           <dxl:ProjList>
-                            <dxl:ProjElem ColId="104" Alias="ColRef_0104">
-                              <dxl:PartOid Level="0"/>
-                            </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:PartEqFilters>
                             <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZxQAAA==" DoubleValue="451267200000000.000000"/>

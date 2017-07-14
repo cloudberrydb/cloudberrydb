@@ -572,9 +572,6 @@
                       <dxl:ProjElem ColId="75" Alias="w_warehouse_sk">
                         <dxl:Ident ColId="75" ColName="w_warehouse_sk" TypeMdid="0.23.1.0"/>
                       </dxl:ProjElem>
-                      <dxl:ProjElem ColId="597" Alias="ColRef_0597">
-                        <dxl:PartOid Level="0"/>
-                      </dxl:ProjElem>
                     </dxl:ProjList>
                     <dxl:PartEqFilters>
                       <dxl:Ident ColId="11" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
@@ -688,11 +685,7 @@
                             <dxl:Properties>
                               <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
                             </dxl:Properties>
-                            <dxl:ProjList>
-                              <dxl:ProjElem ColId="596" Alias="ColRef_0596">
-                                <dxl:PartOid Level="0"/>
-                              </dxl:ProjElem>
-                            </dxl:ProjList>
+                            <dxl:ProjList/>
                             <dxl:PartEqFilters>
                               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2000"/>
                             </dxl:PartEqFilters>

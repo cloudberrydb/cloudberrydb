@@ -66,7 +66,6 @@ CPhysicalDML::CPhysicalDML
 	GPOS_ASSERT(NULL != pdrgpcrSource);
 	GPOS_ASSERT(NULL != pbsModified);
 	GPOS_ASSERT(NULL != pcrAction);
-	GPOS_ASSERT(NULL != pcrTableOid);
 	GPOS_ASSERT_IMP(CLogicalDML::EdmlDelete == edmlop || CLogicalDML::EdmlUpdate == edmlop,
 					NULL != pcrCtid && NULL != pcrSegmentId);
 
@@ -619,7 +618,11 @@ CPhysicalDML::ComputeRequiredLocalColumns
 	// include source columns
 	m_pcrsRequiredLocal->Include(m_pdrgpcrSource);
 	m_pcrsRequiredLocal->Include(m_pcrAction);
-	m_pcrsRequiredLocal->Include(m_pcrTableOid);
+
+	if (m_pcrTableOid != NULL)
+	{
+		m_pcrsRequiredLocal->Include(m_pcrTableOid);
+	}
 
 	if (CLogicalDML::EdmlDelete == m_edmlop || CLogicalDML::EdmlUpdate == m_edmlop)
 	{
@@ -661,9 +664,14 @@ CPhysicalDML::OsPrint
 	CUtils::OsPrintDrgPcr(os, m_pdrgpcrSource);
 	os	<< "], Action: (";
 	m_pcrAction->OsPrint(os);
-	os << "), Oid: (";
-	m_pcrTableOid->OsPrint(os);
 	os << ")";
+
+	if (m_pcrTableOid != NULL)
+	{
+		os << ", Oid: (";
+		m_pcrTableOid->OsPrint(os);
+		os << ")";
+	}
 
 	if (CLogicalDML::EdmlDelete == m_edmlop || CLogicalDML::EdmlUpdate == m_edmlop)
 	{

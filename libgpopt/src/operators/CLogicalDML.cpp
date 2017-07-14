@@ -93,13 +93,16 @@ CLogicalDML::CLogicalDML
 	GPOS_ASSERT(NULL != pdrgpcrSource);
 	GPOS_ASSERT(NULL != pbsModified);
 	GPOS_ASSERT(NULL != pcrAction);
-	GPOS_ASSERT(NULL != pcrTableOid);
 	GPOS_ASSERT_IMP(EdmlDelete == edmlop || EdmlUpdate == edmlop,
 					NULL != pcrCtid && NULL != pcrSegmentId);
 
 	m_pcrsLocalUsed->Include(m_pdrgpcrSource);
 	m_pcrsLocalUsed->Include(m_pcrAction);
-	m_pcrsLocalUsed->Include(m_pcrTableOid);
+	if (NULL != m_pcrTableOid)
+	{
+		m_pcrsLocalUsed->Include(m_pcrTableOid);
+
+	}
 	if (NULL != m_pcrCtid)
 	{
 		m_pcrsLocalUsed->Include(m_pcrCtid);
@@ -400,9 +403,14 @@ CLogicalDML::OsPrint
 	CUtils::OsPrintDrgPcr(os, m_pdrgpcrSource);
 	os	<< "], Action: (";
 	m_pcrAction->OsPrint(os);
-	os << "), Oid: (";
-	m_pcrTableOid->OsPrint(os);
 	os << ")";
+
+	if (m_pcrTableOid != NULL)
+	{
+		os << ", Oid: (";
+		m_pcrTableOid->OsPrint(os);
+		os << ")";
+	}
 
 	if (EdmlDelete == m_edmlop || EdmlUpdate == m_edmlop)
 	{

@@ -1980,11 +1980,7 @@ WHERE
 	                            <dxl:Properties>
 	                              <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
 	                            </dxl:Properties>
-	                            <dxl:ProjList>
-	                              <dxl:ProjElem ColId="209" Alias="ColRef_0209">
-	                                <dxl:PartOid Level="0"/>
-	                              </dxl:ProjElem>
-	                            </dxl:ProjList>
+	                            <dxl:ProjList/>
 	                            <dxl:PartEqFilters>
 	                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
 	                            </dxl:PartEqFilters>
@@ -2072,9 +2068,6 @@ WHERE
 	                            <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
 	                          </dxl:Properties>
 	                          <dxl:ProjList>
-	                            <dxl:ProjElem ColId="210" Alias="ColRef_0210">
-	                              <dxl:PartOid Level="0"/>
-	                            </dxl:ProjElem>
 	                          </dxl:ProjList>
 	                          <dxl:PartEqFilters>
 	                            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
@@ -2216,9 +2209,6 @@ WHERE
 	                            <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
 	                          </dxl:Properties>
 	                          <dxl:ProjList>
-	                            <dxl:ProjElem ColId="211" Alias="ColRef_0211">
-	                              <dxl:PartOid Level="0"/>
-	                            </dxl:ProjElem>
 	                          </dxl:ProjList>
 	                          <dxl:PartEqFilters>
 	                            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
@@ -2298,9 +2288,6 @@ WHERE
 	                          <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
 	                        </dxl:Properties>
 	                        <dxl:ProjList>
-	                          <dxl:ProjElem ColId="212" Alias="ColRef_0212">
-	                            <dxl:PartOid Level="0"/>
-	                          </dxl:ProjElem>
 	                        </dxl:ProjList>
 	                        <dxl:PartEqFilters>
 	                          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>

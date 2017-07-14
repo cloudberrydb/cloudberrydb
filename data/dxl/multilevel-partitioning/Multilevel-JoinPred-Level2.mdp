@@ -885,9 +885,6 @@ select * from pt, t where pt.j = t.t1;
               <dxl:ProjElem ColId="7" Alias="t2">
                 <dxl:Ident ColId="7" ColName="t2" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
-              <dxl:ProjElem ColId="11" Alias="ColRef_0011">
-                <dxl:PartOid Level="1"/>
-              </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:PartEqFilters>
               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>

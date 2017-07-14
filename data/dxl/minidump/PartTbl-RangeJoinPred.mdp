@@ -5476,9 +5476,6 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
           <dxl:ProjElem ColId="78" Alias="row_effective_to_dtm">
             <dxl:Ident ColId="78" ColName="row_effective_to_dtm" TypeMdid="0.1082.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="82" Alias="ColRef_0082">
-            <dxl:PartOid Level="0"/>
-          </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:PartEqFilters>
           <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>

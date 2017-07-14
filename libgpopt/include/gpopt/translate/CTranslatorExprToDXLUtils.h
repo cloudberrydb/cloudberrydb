@@ -412,7 +412,8 @@ namespace gpopt
 				BOOL fUseChildProjList,
 				CDXLNode *pdxlnPrLChild,
 				CColRef *pcrOid,
-				ULONG ulPartLevels
+				ULONG ulPartLevels,
+				BOOL fGeneratePartOid
 				);
 
 			// construct the propagation expression for a partition selector

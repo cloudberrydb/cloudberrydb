@@ -15044,9 +15044,6 @@ WHERE ((sale_type = 's'::text AND dyear = 2001 AND year_total &gt; 0::numeric) O
                     <dxl:ProjElem ColId="63" Alias="d_moy">
                       <dxl:Ident ColId="63" ColName="d_moy" TypeMdid="0.23.1.0"/>
                     </dxl:ProjElem>
-                    <dxl:ProjElem ColId="94" Alias="ColRef_0094">
-                      <dxl:PartOid Level="0"/>
-                    </dxl:ProjElem>
                   </dxl:ProjList>
                   <dxl:PartEqFilters>
                     <dxl:Ident ColId="55" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
@@ -15102,11 +15099,7 @@ WHERE ((sale_type = 's'::text AND dyear = 2001 AND year_total &gt; 0::numeric) O
                         <dxl:Properties>
                           <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
                         </dxl:Properties>
-                        <dxl:ProjList>
-                          <dxl:ProjElem ColId="93" Alias="ColRef_0093">
-                            <dxl:PartOid Level="0"/>
-                          </dxl:ProjElem>
-                        </dxl:ProjList>
+                        <dxl:ProjList/>
                         <dxl:PartEqFilters>
                           <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
                         </dxl:PartEqFilters>

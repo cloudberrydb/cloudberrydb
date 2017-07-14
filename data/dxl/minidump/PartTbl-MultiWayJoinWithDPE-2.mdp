@@ -1961,9 +1961,6 @@
           <dxl:ProjElem ColId="57" Alias="d_current_year">
             <dxl:Ident ColId="57" ColName="d_current_year" TypeMdid="0.1042.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="68" Alias="ColRef_0068">
-            <dxl:PartOid Level="0"/>
-          </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:PartEqFilters>
           <dxl:Ident ColId="30" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
@@ -2359,11 +2356,7 @@
                   <dxl:Properties>
                     <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
                   </dxl:Properties>
-                  <dxl:ProjList>
-                    <dxl:ProjElem ColId="67" Alias="ColRef_0067">
-                      <dxl:PartOid Level="0"/>
-                    </dxl:ProjElem>
-                  </dxl:ProjList>
+                  <dxl:ProjList/>
                   <dxl:PartEqFilters>
                     <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
                   </dxl:PartEqFilters>

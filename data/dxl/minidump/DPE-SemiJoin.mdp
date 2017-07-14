@@ -1258,11 +1258,7 @@ Select * from X where X.a < ANY (select a from P);
 	                  <dxl:Properties>
 	                    <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
 	                  </dxl:Properties>
-	                  <dxl:ProjList>
-	                    <dxl:ProjElem ColId="17" Alias="ColRef_0017">
-	                      <dxl:PartOid Level="0"/>
-	                    </dxl:ProjElem>
-	                  </dxl:ProjList>
+	                  <dxl:ProjList/>
 	                  <dxl:PartEqFilters>
 	                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
 	                  </dxl:PartEqFilters>

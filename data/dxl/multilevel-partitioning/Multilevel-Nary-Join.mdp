@@ -2005,9 +2005,6 @@ select * from pt, foo, bar where pt.k=foo.a and pt.j = bar.a;
                 <dxl:ProjElem ColId="12" Alias="b">
                   <dxl:Ident ColId="12" ColName="b" TypeMdid="0.23.1.0"/>
                 </dxl:ProjElem>
-                <dxl:ProjElem ColId="16" Alias="ColRef_0016">
-                  <dxl:PartOid Level="1"/>
-                </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:PartEqFilters>
                 <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
@@ -2148,9 +2145,6 @@ select * from pt, foo, bar where pt.k=foo.a and pt.j = bar.a;
               </dxl:ProjElem>
               <dxl:ProjElem ColId="7" Alias="b">
                 <dxl:Ident ColId="7" ColName="b" TypeMdid="0.23.1.0"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="17" Alias="ColRef_0017">
-                <dxl:PartOid Level="1"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:PartEqFilters>

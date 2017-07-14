@@ -1320,7 +1320,8 @@ CTranslatorExprToDXLUtils::PdxlnPrLPartitionSelector
 	BOOL fUseChildProjList,
 	CDXLNode *pdxlnPrLChild,
 	CColRef *pcrOid,
-	ULONG ulPartLevels
+	ULONG ulPartLevels,
+	BOOL fGeneratePartOid
 	)
 {
 	GPOS_ASSERT_IMP(fUseChildProjList, NULL != pdxlnPrLChild);
@@ -1335,19 +1336,22 @@ CTranslatorExprToDXLUtils::PdxlnPrLPartitionSelector
 		pdxlnPrL = GPOS_NEW(pmp) CDXLNode(pmp, GPOS_NEW(pmp) CDXLScalarProjList(pmp));
 	}
 
-	// add to it the Oid column
-	if (NULL == pcrOid)
+	if (fGeneratePartOid)
 	{
-		const IMDTypeOid *pmdtype = pmda->PtMDType<IMDTypeOid>();
-		pcrOid = pcf->PcrCreate(pmdtype);
-	}
+		// add to it the Oid column
+		if (NULL == pcrOid)
+		{
+			const IMDTypeOid *pmdtype = pmda->PtMDType<IMDTypeOid>();
+			pcrOid = pcf->PcrCreate(pmdtype);
+		}
 
-	CMDName *pmdname = GPOS_NEW(pmp) CMDName(pmp, pcrOid->Name().Pstr());
-	CDXLScalarProjElem *pdxlopPrEl = GPOS_NEW(pmp) CDXLScalarProjElem(pmp, pcrOid->UlId(), pmdname);
-	CDXLNode *pdxlnPrEl = GPOS_NEW(pmp) CDXLNode(pmp, pdxlopPrEl);
-	CDXLNode *pdxlnPartOid = GPOS_NEW(pmp) CDXLNode(pmp, GPOS_NEW(pmp) CDXLScalarPartOid(pmp, ulPartLevels-1));
-	pdxlnPrEl->AddChild(pdxlnPartOid);
-	pdxlnPrL->AddChild(pdxlnPrEl);
+		CMDName *pmdname = GPOS_NEW(pmp) CMDName(pmp, pcrOid->Name().Pstr());
+		CDXLScalarProjElem *pdxlopPrEl = GPOS_NEW(pmp) CDXLScalarProjElem(pmp, pcrOid->UlId(), pmdname);
+		CDXLNode *pdxlnPrEl = GPOS_NEW(pmp) CDXLNode(pmp, pdxlopPrEl);
+		CDXLNode *pdxlnPartOid = GPOS_NEW(pmp) CDXLNode(pmp, GPOS_NEW(pmp) CDXLScalarPartOid(pmp, ulPartLevels-1));
+		pdxlnPrEl->AddChild(pdxlnPartOid);
+		pdxlnPrL->AddChild(pdxlnPrEl);
+	}
 
 	return pdxlnPrL;
 }

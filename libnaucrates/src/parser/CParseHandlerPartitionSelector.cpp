@@ -66,37 +66,53 @@ CParseHandlerPartitionSelector::StartElement
 {
 	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPhysicalPartitionSelector), xmlszLocalname))
 	{
-		GPOS_ASSERT (NULL == m_pmdidRel);
-
-		// parse table id
-		m_pmdidRel = CDXLOperatorFactory::PmdidFromAttrs(m_pphm->Pmm(), attrs, EdxltokenRelationMdid, EdxltokenPhysicalPartitionSelector);
-
-		// parse number of levels
-		m_ulLevels = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenPhysicalPartitionSelectorLevels, EdxltokenPhysicalPartitionSelector);
-
-		// parse scan id
-		m_ulScanId = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenPhysicalPartitionSelectorScanId, EdxltokenPhysicalPartitionSelector);
-
-		// parse handlers for all the scalar children
-		CParseHandlerBase *pphOpListFilters = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalarOpList), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphOpListFilters);
-
-		CParseHandlerBase *pphOpListEqFilters = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalarOpList), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphOpListEqFilters);
-
-		// parse handler for the proj list
-		CParseHandlerBase *pphPrL = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalarProjList), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphPrL);
-
-		// parse handler for the properties of the operator
-		CParseHandlerBase *pphProp = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenProperties), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphProp);
-
-		// store parse handlers
-		this->Append(pphProp);
-		this->Append(pphPrL);
-		this->Append(pphOpListEqFilters);
-		this->Append(pphOpListFilters);
+		// PartitionSelector node may have another PartitionSelector node as a child
+		if (NULL != m_pmdidRel)
+		{
+			// instantiate the parse handler
+			CParseHandlerBase *pphChild = CParseHandlerFactory::Pph(m_pmp, xmlszLocalname, m_pphm, this);
+			
+			GPOS_ASSERT(NULL != pphChild);
+			
+			// activate the parse handler
+			m_pphm->ActivateParseHandler(pphChild);
+			this->Append(pphChild);
+			
+			// pass the startElement message for the specialized parse handler to process
+			pphChild->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+		}
+		else
+		{
+			// parse table id
+			m_pmdidRel = CDXLOperatorFactory::PmdidFromAttrs(m_pphm->Pmm(), attrs, EdxltokenRelationMdid, EdxltokenPhysicalPartitionSelector);
+			
+			// parse number of levels
+			m_ulLevels = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenPhysicalPartitionSelectorLevels, EdxltokenPhysicalPartitionSelector);
+			
+			// parse scan id
+			m_ulScanId = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenPhysicalPartitionSelectorScanId, EdxltokenPhysicalPartitionSelector);
+			
+			// parse handlers for all the scalar children
+			CParseHandlerBase *pphOpListFilters = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalarOpList), m_pphm, this);
+			m_pphm->ActivateParseHandler(pphOpListFilters);
+			
+			CParseHandlerBase *pphOpListEqFilters = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalarOpList), m_pphm, this);
+			m_pphm->ActivateParseHandler(pphOpListEqFilters);
+			
+			// parse handler for the proj list
+			CParseHandlerBase *pphPrL = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalarProjList), m_pphm, this);
+			m_pphm->ActivateParseHandler(pphPrL);
+			
+			// parse handler for the properties of the operator
+			CParseHandlerBase *pphProp = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenProperties), m_pphm, this);
+			m_pphm->ActivateParseHandler(pphProp);
+			
+			// store parse handlers
+			this->Append(pphProp);
+			this->Append(pphPrL);
+			this->Append(pphOpListEqFilters);
+			this->Append(pphOpListFilters);
+		}
 	}
 	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarResidualFilter), xmlszLocalname))
 	{

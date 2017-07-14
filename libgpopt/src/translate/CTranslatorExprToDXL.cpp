@@ -44,6 +44,8 @@
 #include "gpopt/translate/CTranslatorDXLToExpr.h"
 #include "gpopt/translate/CTranslatorExprToDXLUtils.h"
 
+#include "gpopt/base/CUtils.h"
+
 #include "naucrates/base/IDatumInt8.h"
 #include "naucrates/base/CDatumBoolGPDB.h"
 
@@ -4226,6 +4228,7 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorDML
 	CDXLNode *pdxlnChild = Pdxln(pexprChild, pdrgpcr, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, false /*fRemap*/, false /*fRoot*/);
 
 	// construct project list
+	IMDId *pmdid = popSelector->Pmdid();
 	GPOS_ASSERT(1 <= pdxlnChild->UlArity());
 	CDXLNode *pdxlnPrL = CTranslatorExprToDXLUtils::PdxlnPrLPartitionSelector
 							(
@@ -4236,7 +4239,8 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorDML
 							true, //fUseChildProjList
 							(*pdxlnChild)[0],
 							popSelector->PcrOid(),
-							popSelector->UlPartLevels()
+							popSelector->UlPartLevels(),
+							CUtils::FGeneratePartOid(pmdid)
 							);
 
 	// translate filters
@@ -4380,6 +4384,8 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorExpand
 	CDXLNode *pdxlnChild = PdxlnPartitionSelectorChild(pexprChild, pexprScalarCond, pdxlprop, pdrgpcr, pdrgpdsBaseTables, pulNonGatherMotions, pfDML);
 
 	// project list
+	IMDId *pmdid = popSelector->Pmdid();
+	const IMDRelation *pmdrel = (IMDRelation *) m_pmda->Pmdrel(pmdid);
 	CDXLNode *pdxlnPrL = CTranslatorExprToDXLUtils::PdxlnPrLPartitionSelector
 							(
 							m_pmp,
@@ -4389,7 +4395,8 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorExpand
 							false, //fUseChildProjList
 							NULL, //pdxlnPrLchild
 							NULL, //pcrOid
-							ulLevels
+							ulLevels,
+							CUtils::FGeneratePartOid(pmdid)
 							);
 
 	// translate filters
@@ -4401,7 +4408,6 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorExpand
 	// construct propagation expression
 	CPartIndexMap *ppimDrvd = m_pdpplan->Ppim();
 	ULONG ulScanId = popSelector->UlScanId();
-	const IMDRelation *pmdrel = (IMDRelation *) m_pmda->Pmdrel(popSelector->Pmdid());
 	CDXLNode *pdxlnPropagation = CTranslatorExprToDXLUtils::PdxlnPropExprPartitionSelector
 									(
 									m_pmp,
@@ -4517,6 +4523,8 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorFilter
 	BOOL fNeedSequence = pdprel->Ppartinfo()->FContainsScanId(popSelector->UlScanId());
 
 	// project list
+	IMDId *pmdid = popSelector->Pmdid();
+	const IMDRelation *pmdrel = (IMDRelation *) m_pmda->Pmdrel(pmdid);
 	CDXLNode *pdxlnPrL = CTranslatorExprToDXLUtils::PdxlnPrLPartitionSelector
 							(
 							m_pmp,
@@ -4526,7 +4534,8 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorFilter
 							!fNeedSequence,
 							pdxlnPrLChild,
 							NULL /*pcrOid*/,
-							ulLevels
+							ulLevels,
+							CUtils::FGeneratePartOid(pmdid)
 							);
 
 	// translate filters
@@ -4536,7 +4545,6 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorFilter
 	TranslatePartitionFilters(pexpr, fPassThrough, &pdxlnEqFilters, &pdxlnFilters, &pdxlnResidual);
 
 	// construct propagation expression
-	const IMDRelation *pmdrel = (IMDRelation *) m_pmda->Pmdrel(popSelector->Pmdid());
 	CDXLNode *pdxlnPropagation = CTranslatorExprToDXLUtils::PdxlnPropExprPartitionSelector
 									(
 									m_pmp,
@@ -5256,8 +5264,10 @@ CTranslatorExprToDXL::PdxlnDML
 	ulAction = pcrAction->UlId();
 
 	CColRef *pcrOid = popDML->PcrTableOid();
-	GPOS_ASSERT(NULL != pcrOid);
-	ulOid = pcrOid->UlId();
+	if (pcrOid != NULL)
+	{
+		ulOid = pcrOid->UlId();
+	}
 
 	CColRef *pcrCtid = popDML->PcrCtid();
 	CColRef *pcrSegmentId = popDML->PcrSegmentId();

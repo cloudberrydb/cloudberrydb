@@ -20768,9 +20768,6 @@ select  i_item_id
                             <dxl:ProjElem ColId="40" Alias="d_date_sk">
                               <dxl:Ident ColId="40" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
                             </dxl:ProjElem>
-                            <dxl:ProjElem ColId="117" Alias="ColRef_0117">
-                              <dxl:PartOid Level="0"/>
-                            </dxl:ProjElem>
                           </dxl:ProjList>
                           <dxl:PartEqFilters>
                             <dxl:Ident ColId="40" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
@@ -20828,11 +20825,7 @@ select  i_item_id
                                   <dxl:Properties>
                                     <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
                                   </dxl:Properties>
-                                  <dxl:ProjList>
-                                    <dxl:ProjElem ColId="116" Alias="ColRef_0116">
-                                      <dxl:PartOid Level="0"/>
-                                    </dxl:ProjElem>
-                                  </dxl:ProjList>
+                                  <dxl:ProjList/>
                                   <dxl:PartEqFilters>
                                     <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
                                   </dxl:PartEqFilters>
@@ -20993,9 +20986,6 @@ select  i_item_id
                               <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
                             </dxl:Properties>
                             <dxl:ProjList>
-                              <dxl:ProjElem ColId="118" Alias="ColRef_0118">
-                                <dxl:PartOid Level="0"/>
-                              </dxl:ProjElem>
                             </dxl:ProjList>
                             <dxl:PartEqFilters>
                               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>

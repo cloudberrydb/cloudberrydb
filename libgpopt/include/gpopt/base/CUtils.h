@@ -1078,6 +1078,10 @@ namespace gpopt
 
 			// generate a limit expression on top of the given relational child with the given offset and limit count
 			static CExpression *PexprLimit(IMemoryPool *pmp, CExpression *pexpr, ULONG ulOffSet, ULONG ulCount);
+
+			// generate part oid
+			static
+			BOOL FGeneratePartOid(IMDId *pmdid);
 	}; // class CUtils
 
 	// hash set from expressions

@@ -10554,9 +10554,6 @@
 	          <dxl:ProjElem ColId="27" Alias="d_date_sk">
 	            <dxl:Ident ColId="27" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
 	          </dxl:ProjElem>
-	          <dxl:ProjElem ColId="67" Alias="ColRef_0067">
-	            <dxl:PartOid Level="0"/>
-	          </dxl:ProjElem>
 	        </dxl:ProjList>
 	        <dxl:PartEqFilters>
 	          <dxl:Ident ColId="27" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
@@ -10617,11 +10614,7 @@
 	                <dxl:Properties>
 	                  <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
 	                </dxl:Properties>
-	                <dxl:ProjList>
-	                  <dxl:ProjElem ColId="66" Alias="ColRef_0066">
-	                    <dxl:PartOid Level="0"/>
-	                  </dxl:ProjElem>
-	                </dxl:ProjList>
+	                <dxl:ProjList/>
 	                <dxl:PartEqFilters>
 	                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2001"/>
 	                </dxl:PartEqFilters>
