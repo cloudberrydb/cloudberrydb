@@ -45,9 +45,7 @@ CCostTest::EresUnittest()
 		GPOS_UNITTEST_FUNC(CCostTest::EresUnittest_Bool),
 		GPOS_UNITTEST_FUNC(CCostTest::EresUnittest_Arithmetic),
 		GPOS_UNITTEST_FUNC(CCostTest::EresUnittest_Params),
-		GPOS_UNITTEST_FUNC(CCostTest::EresUnittest_CalibratedCostModel),
 		GPOS_UNITTEST_FUNC(CCostTest::EresUnittest_Parsing),
-
 		GPOS_UNITTEST_FUNC(EresUnittest_SetParams),
 
 		// TODO: : re-enable test after resolving exception throwing problem on OSX
@@ -243,16 +241,31 @@ CCostTest::EresUnittest_Params()
 	pmdp->AddRef();
 	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
 
-	// install opt context in TLS
-	CAutoOptCtxt aoc
-					(
-					pmp,
-					&mda,
-					NULL, /* pceeval */
-					CTestUtils::Pcm(pmp)
-					);
+	{
+		// install opt context in TLS
+		CAutoOptCtxt aoc
+						(
+						pmp,
+						&mda,
+						NULL, /* pceeval */
+						CTestUtils::Pcm(pmp)
+						);
 
-	TestParams(pmp, false /*fCalibrated*/);
+		TestParams(pmp, false /*fCalibrated*/);
+	}
+
+	{
+		// install opt context in TLS
+		CAutoOptCtxt aoc
+						(
+						pmp,
+						&mda,
+						NULL, /* pceeval */
+						GPOS_NEW(pmp) CCostModelGPDB(pmp, GPOPT_TEST_SEGMENTS)
+						);
+
+		TestParams(pmp, true /*fCalibrated*/);
+	}
 
 	return GPOS_OK;
 }
@@ -301,78 +314,6 @@ CCostTest::EresUnittest_ParsingWithException()
 	IMemoryPool *pmp = amp.Pmp();
 	CParseHandlerDXL *pphDXL = CDXLUtils::PphdxlParseDXLFile(pmp,"../data/dxl/cost/wrong-cost.xml", NULL);
 	GPOS_DELETE(pphDXL);
-
-	return GPOS_OK;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CCostTest::EresUnittest_CalibratedCostModel
-//
-//	@doc:
-//		GPDB's calibrated cost model test
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CCostTest::EresUnittest_CalibratedCostModel()
-{
-	CAutoTraceFlag atf1(EtraceSimulateOOM, false);
-	CAutoTraceFlag atf2(EtraceSimulateAbort, false);
-	CAutoTraceFlag atf3(EtraceSimulateIOError, false);
-	CAutoTraceFlag atf4(EtraceSimulateNetError, false);
-
-	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
-
-	// setup a file-based provider
-	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
-	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
-
-	ICostModel *pcm = GPOS_NEW(pmp) CCostModelGPDB(pmp, GPOPT_TEST_SEGMENTS);
-	pcm->AddRef();
-
-	{
-		// install opt context in TLS
-		CAutoOptCtxt aoc
-						(
-						pmp,
-						&mda,
-						NULL, /* pceeval */
-						pcm
-						);
-
-
-		TestParams(pmp, true /*fCalibrated*/);
-	}
-
-	// minidump files
-	const CHAR *rgszFileNamesCalibratedCostModel[] =
-	{
-		"../data/dxl/minidump/PartTbl-MultiWayJoinWithDPE.mdp",
-		"../data/dxl/tpch/q2.mdp",
-		"../data/dxl/minidump/CTE-4.mdp",
-		"../data/dxl/minidump/Lead-Lag-WinFuncs.mdp",
-	};
-
-	COptimizerConfig* poconf = COptimizerConfig::PoconfDefault(pmp, pcm);
-
-	for (ULONG ul = 0; ul < GPOS_ARRAY_SIZE(rgszFileNamesCalibratedCostModel); ul++)
-	{
-		CDXLNode *pdxlnPlan = CMinidumperUtils::PdxlnExecuteMinidump
-							(
-							pmp,
-							rgszFileNamesCalibratedCostModel[ul],
-							GPOPT_TEST_SEGMENTS,
-							1 /*ulSessionId*/,
-							1 /*ulCmdId*/,
-							poconf,
-							NULL /*pceeval*/
-							);
-		pdxlnPlan->Release();
-	}
-
-	poconf->Release();
 
 	return GPOS_OK;
 }

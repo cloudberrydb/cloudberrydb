@@ -42,7 +42,6 @@ namespace gpopt
 			static GPOS_RESULT EresUnittest_Params();
 			static GPOS_RESULT EresUnittest_Parsing();
 			static GPOS_RESULT EresUnittest_ParsingWithException();
-			static GPOS_RESULT EresUnittest_CalibratedCostModel();
 			static GPOS_RESULT EresUnittest_SetParams();
 
 	}; // class CCostTest
