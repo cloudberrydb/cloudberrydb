@@ -49,6 +49,7 @@
 #include "naucrates/dxl/operators/CDXLPhysicalAssert.h"
 #include "naucrates/dxl/operators/CDXLPhysicalCTEConsumer.h"
 #include "naucrates/dxl/operators/CDXLPhysicalCTEProducer.h"
+#include "naucrates/dxl/operators/CDXLPhysicalValuesScan.h"
 
 #include "naucrates/dxl/operators/CDXLTableDescr.h"
 #include "naucrates/dxl/operators/CDXLIndexDescr.h"
@@ -121,6 +122,7 @@
 #include "naucrates/dxl/operators/CDXLScalarPartBoundOpen.h"
 #include "naucrates/dxl/operators/CDXLScalarPartListValues.h"
 #include "naucrates/dxl/operators/CDXLScalarPartListNullTest.h"
+#include "naucrates/dxl/operators/CDXLScalarValuesList.h"
 
 #include "naucrates/dxl/operators/CDXLLogicalTVF.h"
 #include "naucrates/dxl/operators/CDXLLogicalGet.h"

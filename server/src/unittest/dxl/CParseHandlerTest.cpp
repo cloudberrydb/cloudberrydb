@@ -83,7 +83,7 @@ CParseHandlerTest::m_rgszPlanDXLFileNames[] =
 		"../data/dxl/parse_tests/q71-DynamicBitmapTableScan.xml",
 		"../data/dxl/parse_tests/q72-BitmapBoolOp.xml",
 		"../data/dxl/parse_tests/q74-DirectDispatchInfo.xml",
-
+		"../data/dxl/parse_tests/q76-ValuesScan.xml",
  	};
 
 // files for tests involving dxl representation of queries

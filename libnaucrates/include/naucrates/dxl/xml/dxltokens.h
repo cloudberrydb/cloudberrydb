@@ -105,6 +105,7 @@ namespace gpdxl
 		EdxltokenPhysicalPartitionSelector,
 		EdxltokenPhysicalPartitionSelectorLevels,
 		EdxltokenPhysicalPartitionSelectorScanId,
+		EdxltokenPhysicalValuesScan,
 
 		EdxltokenPhysicalCTEProducer,
 		EdxltokenPhysicalCTEConsumer,
@@ -215,6 +216,7 @@ namespace gpdxl
 		EdxltokenScalarPropagationExpr,
 		EdxltokenScalarPrintableFilter,
 		EdxltokenScalarBitmapIndexProbe,
+		EdxltokenScalarValuesList,
 
 		EdxltokenWindowFrame,
 		EdxltokenScalarWindowFrameLeadingEdge,

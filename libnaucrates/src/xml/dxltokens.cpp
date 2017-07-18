@@ -119,6 +119,7 @@ CDXLTokens::Init
 			{EdxltokenPhysicalAggregate, GPOS_WSZ_LIT("Aggregate")},
 			{EdxltokenPhysicalSubqueryScan, GPOS_WSZ_LIT("SubqueryScan")},
 			{EdxltokenPhysicalResult, GPOS_WSZ_LIT("Result")},
+			{EdxltokenPhysicalValuesScan, GPOS_WSZ_LIT("Values")},
 			{EdxltokenPhysicalAppend, GPOS_WSZ_LIT("Append")},
 			{EdxltokenPhysicalMaterialize, GPOS_WSZ_LIT("Materialize")},
 			{EdxltokenPhysicalSequence, GPOS_WSZ_LIT("Sequence")},
@@ -257,6 +258,7 @@ CDXLTokens::Init
 			{EdxltokenScalarSubPlanParamList, GPOS_WSZ_LIT("ParamList")},
 			{EdxltokenScalarSubPlanParam, GPOS_WSZ_LIT("Param")},
 			{EdxltokenScalarSubPlanTestExpr, GPOS_WSZ_LIT("TestExpr")},
+			{EdxltokenScalarValuesList, GPOS_WSZ_LIT("ValuesList")},
 
 			{EdxltokenValue, GPOS_WSZ_LIT("Value")},
 			{EdxltokenTypeId, GPOS_WSZ_LIT("TypeMdid")},

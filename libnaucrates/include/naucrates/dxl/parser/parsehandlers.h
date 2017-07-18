@@ -89,6 +89,7 @@
 
 #include "naucrates/dxl/parser/CParseHandlerLogicalTVF.h"
 #include "naucrates/dxl/parser/CParseHandlerPhysicalTVF.h"
+#include "naucrates/dxl/parser/CParseHandlerValuesScan.h"
 
 #include "naucrates/dxl/parser/CParseHandlerPhysicalDML.h"
 #include "naucrates/dxl/parser/CParseHandlerPhysicalSplit.h"
@@ -157,6 +158,7 @@
 #include "naucrates/dxl/parser/CParseHandlerScalarPartBoundOpen.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarPartListValues.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarPartListNullTest.h"
+#include "naucrates/dxl/parser/CParseHandlerScalarValuesList.h"
 
 #include "naucrates/dxl/parser/CParseHandlerLogicalConstTable.h"
 

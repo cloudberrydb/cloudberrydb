@@ -288,6 +288,8 @@ add_library(naucrates
             src/operators/CDXLPhysicalRedistributeMotion.cpp
             include/naucrates/dxl/operators/CDXLPhysicalResult.h
             src/operators/CDXLPhysicalResult.cpp
+            include/naucrates/dxl/operators/CDXLPhysicalValuesScan.h
+            src/operators/CDXLPhysicalValuesScan.cpp
             include/naucrates/dxl/operators/CDXLPhysicalRoutedDistributeMotion.h
             src/operators/CDXLPhysicalRoutedDistributeMotion.cpp
             include/naucrates/dxl/operators/CDXLPhysicalRowTrigger.h
@@ -400,6 +402,8 @@ add_library(naucrates
             src/operators/CDXLScalarPartDefault.cpp
             include/naucrates/dxl/operators/CDXLScalarPartListValues.h
             src/operators/CDXLScalarPartListValues.cpp
+            include/naucrates/dxl/operators/CDXLScalarValuesList.h
+            src/operators/CDXLScalarValuesList.cpp
             include/naucrates/dxl/operators/CDXLScalarPartListNullTest.h
             src/operators/CDXLScalarPartListNullTest.cpp
             include/naucrates/dxl/operators/CDXLScalarPartOid.h
@@ -636,6 +640,8 @@ add_library(naucrates
             src/parser/CParseHandlerPhysicalTVF.cpp
             include/naucrates/dxl/parser/CParseHandlerPhysicalWindow.h
             src/parser/CParseHandlerPhysicalWindow.cpp
+            include/naucrates/dxl/parser/CParseHandlerValuesScan.h
+            src/parser/CParseHandlerValuesScan.cpp
             include/naucrates/dxl/parser/CParseHandlerPlan.h
             src/parser/CParseHandlerPlan.cpp
             include/naucrates/dxl/parser/CParseHandlerProjElem.h
@@ -754,6 +760,8 @@ add_library(naucrates
             src/parser/CParseHandlerScalarWindowFrameEdge.cpp
             include/naucrates/dxl/parser/CParseHandlerScalarWindowRef.h
             src/parser/CParseHandlerScalarWindowRef.cpp
+            include/naucrates/dxl/parser/CParseHandlerScalarValuesList.h
+            src/parser/CParseHandlerScalarValuesList.cpp
             include/naucrates/dxl/parser/CParseHandlerSearchStage.h
             src/parser/CParseHandlerSearchStage.cpp
             include/naucrates/dxl/parser/CParseHandlerSearchStrategy.h

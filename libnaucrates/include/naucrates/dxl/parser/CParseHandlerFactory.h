@@ -1604,6 +1604,24 @@ namespace gpdxl
 				CParseHandlerBase *pphRoot
 				);
 
+			// construct a scalar values list parse handler
+			static
+			CParseHandlerBase *PphScalarValuesList
+				(
+				IMemoryPool *pmp,
+				CParseHandlerManager *pphm,
+				CParseHandlerBase *pphRoot
+				);
+
+			// construct a values scan parse handler
+			static
+			CParseHandlerBase *PphValuesScan
+				(
+				IMemoryPool *pmp,
+				CParseHandlerManager *pphm,
+				CParseHandlerBase *pphRoot
+				);
+
 		public:
 			
 			// initialize mappings of tokens to parse handlers

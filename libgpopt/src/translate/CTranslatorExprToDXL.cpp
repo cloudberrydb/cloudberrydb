@@ -2068,7 +2068,7 @@ CTranslatorExprToDXL::PdxlnResultFromConstTableGet
 {
 	GPOS_ASSERT(NULL != pexprCTG);
 	
-	CPhysicalConstTableGet *popCTG = CPhysicalConstTableGet::PopConvert(pexprCTG->Pop()); 
+	CPhysicalConstTableGet *popCTG = CPhysicalConstTableGet::PopConvert(pexprCTG->Pop());
 	
 	// construct project list from the const table get values
 	DrgPcr *pdrgpcrCTGOutput = popCTG->PdrgpcrOutput();
@@ -2092,8 +2092,7 @@ CTranslatorExprToDXL::PdxlnResultFromConstTableGet
 	}
 	else
 	{
-		// TODO:  - Feb 29, 2012; add support for CTGs with multiple rows
-		GPOS_ASSERT(1 == ulRows);
+		GPOS_ASSERT(1 <= ulRows);
 		pdrgpdatum = (*pdrgpdrgdatum)[0];
 		pdrgpdatum->AddRef();
 		CDXLNode *pdxlnCond = NULL;
@@ -2104,18 +2103,44 @@ CTranslatorExprToDXL::PdxlnResultFromConstTableGet
 		}
 	}
 
-	pdxlnPrL = PdxlnProjListFromConstTableGet(pdrgpcr, pdrgpcrCTGOutput, pdrgpdatum);
-	pdrgpdatum->Release();
+	// if CTG has multiple rows then it has to be a valuescan of constants,
+	// else, a Result node is created
+	if (ulRows > 1)
+	{
+		GPOS_ASSERT(NULL != pdrgpcrCTGOutput);
 
-	return CTranslatorExprToDXLUtils::PdxlnResult
-										(
-										m_pmp,
-										Pdxlprop(pexprCTG),
-										pdxlnPrL,
-										PdxlnFilter(NULL),
-										pdxlnOneTimeFilter,
-										NULL //pdxlnChild
-										);
+		CColRefSet *pcrsOutput = GPOS_NEW(m_pmp) CColRefSet(m_pmp);
+		pcrsOutput->Include(pdrgpcrCTGOutput);
+
+		pdxlnPrL = PdxlnProjList(pcrsOutput, pdrgpcr);
+		pcrsOutput->Release();
+
+		CDXLNode *pdxlnValuesScan = CTranslatorExprToDXLUtils::PdxlnValuesScan
+																(
+																m_pmp,
+																Pdxlprop(pexprCTG),
+																pdxlnPrL,
+																pdrgpdrgdatum
+																);
+		pdxlnOneTimeFilter->Release();
+		pdrgpdatum->Release();
+
+		return pdxlnValuesScan;
+	}
+	else
+	{
+		pdxlnPrL = PdxlnProjListFromConstTableGet(pdrgpcr, pdrgpcrCTGOutput, pdrgpdatum);
+		pdrgpdatum->Release();
+		return CTranslatorExprToDXLUtils::PdxlnResult
+											(
+											m_pmp,
+											Pdxlprop(pexprCTG),
+											pdxlnPrL,
+											PdxlnFilter(NULL),
+											pdxlnOneTimeFilter,
+											NULL //pdxlnChild
+											);
+	}
 }
 
 //---------------------------------------------------------------------------

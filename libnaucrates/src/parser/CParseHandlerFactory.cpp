@@ -285,7 +285,9 @@ CParseHandlerFactory::Init
 			{EdxltokenCostParams, &PphCostParams},
 			{EdxltokenCostParam, &PphCostParam},
 
-			{EdxltokenScalarExpr, &PphScalarExpr}
+			{EdxltokenScalarExpr, &PphScalarExpr},
+			{EdxltokenScalarValuesList, &PphScalarValuesList},
+			{EdxltokenPhysicalValuesScan, &PphValuesScan}
 
 	};
 	
@@ -3568,6 +3570,30 @@ CParseHandlerFactory::PphMDGPDBCheckConstraint
 	)
 {
 	return GPOS_NEW(pmp) CParseHandlerMDGPDBCheckConstraint(pmp, pphm, pphRoot);
+}
+
+// creates a parse handler for parsing a Values List operator
+CParseHandlerBase *
+CParseHandlerFactory::PphScalarValuesList
+	(
+	IMemoryPool *pmp,
+	CParseHandlerManager *pphm,
+	CParseHandlerBase *pphRoot
+	)
+{
+	return GPOS_NEW(pmp) CParseHandlerScalarValuesList(pmp, pphm, pphRoot);
+}
+
+// creates a parse handler for parsing a Values Scan operator
+CParseHandlerBase *
+CParseHandlerFactory::PphValuesScan
+(
+	IMemoryPool *pmp,
+	CParseHandlerManager *pphm,
+	CParseHandlerBase *pphRoot
+	)
+{
+	return GPOS_NEW(pmp) CParseHandlerValuesScan(pmp, pphm, pphRoot);
 }
 
 // EOF

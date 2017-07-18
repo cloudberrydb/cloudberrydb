@@ -1708,6 +1708,52 @@ CTranslatorExprToDXLUtils::PdxlnResult
 	return pdxlnResult;
 }
 
+// create a DXL Value Scan node
+CDXLNode *
+CTranslatorExprToDXLUtils::PdxlnValuesScan
+	(
+	IMemoryPool *pmp,
+	CDXLPhysicalProperties *pdxlprop,
+	CDXLNode *pdxlnPrL,
+	DrgPdrgPdatum *pdrgpdrgdatum
+	)
+{
+	CDXLPhysicalValuesScan *pdxlop = GPOS_NEW(pmp) CDXLPhysicalValuesScan(pmp);
+	CDXLNode *pdxlnValuesScan = GPOS_NEW(pmp) CDXLNode(pmp, pdxlop);
+	pdxlnValuesScan->SetProperties(pdxlprop);
+
+	pdxlnValuesScan->AddChild(pdxlnPrL);
+
+	const ULONG ulTuples = pdrgpdrgdatum->UlLength();
+
+	for (ULONG ulTuplePos = 0; ulTuplePos < ulTuples; ulTuplePos++)
+	{
+		DrgPdatum *pdrgpdatum = (*pdrgpdrgdatum)[ulTuplePos];
+		pdrgpdatum->AddRef();
+		const ULONG ulCols = pdrgpdatum->UlLength();
+		CDXLScalarValuesList *values = GPOS_NEW(pmp) CDXLScalarValuesList(pmp);
+		CDXLNode *pdxlnValueList = GPOS_NEW(pmp) CDXLNode(pmp, values);
+
+		for (ULONG ulColPos = 0; ulColPos < ulCols; ulColPos++)
+		{
+			IDatum *pdatum = (*pdrgpdatum)[ulColPos];
+			CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+			const IMDType *pmdtype = pmda->Pmdtype(pdatum->Pmdid());
+
+			CDXLNode *pdxlnValue = GPOS_NEW(pmp) CDXLNode(pmp, pmdtype->PdxlopScConst(pmp, pdatum));
+			pdxlnValueList->AddChild(pdxlnValue);
+		}
+		pdrgpdatum->Release();
+		pdxlnValuesScan->AddChild(pdxlnValueList);
+	}
+
+#ifdef GPOS_DEBUG
+	pdxlop->AssertValid(pdxlnValuesScan, true /* fValidateChildren */);
+#endif
+
+	return pdxlnValuesScan;
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CTranslatorExprToDXLUtils::PdxlnPartitionSelector
