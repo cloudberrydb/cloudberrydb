@@ -92,6 +92,8 @@ static void checkWellFormedRecursion(CteState *cstate);
 static bool checkWellFormedRecursionWalker(Node *node, CteState *cstate);
 static void checkWellFormedSelectStmt(SelectStmt *stmt, CteState *cstate);
 
+static void checkSelfRefInRangeSubSelect(SelectStmt *stmt, CteState *cstate);
+static void checkWindowFuncInRecursiveTerm(SelectStmt *stmt, CteState *cstate);
 
 /*
  * transformWithClause -
@@ -715,58 +717,6 @@ checkWellFormedRecursion(CteState *cstate)
 }
 
 /*
- * Check that a child of a set operation in the recursive term does not contain
- * a self-reference.
- *
- * Due to the current limitations about detecting a WorkTableScan in a sub tree
- * of a plan Path we have opted to initially disallow queries where a motion may
- * be placed between the RecursiveUnion and the WorkTableScan. Self-reference
- * set operations in the recursive term are one such category of queries
- *
- * Eg.
- *
- * This query is not currently supported because the cte 'x' is referenced by
- * the set operation in the recursive term '(SELECT * FROM x
- * UNION SELECT * FROM z)'
- *
- * WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM (SELECT * FROM x
- * UNION SELECT * FROM z)foo)
-	SELECT * FROM x;
- */
-static bool
-checkSelfRefInSetOpWalker(Node *node, CteState *cstate) {
-
-	if (node == NULL)
-		return false;
-
-	if (IsA(node, RangeVar))
-	{
-		CommonTableExpr *mycte = cstate->items[cstate->curitem].cte;
-		RangeVar *rv = (RangeVar *) node;
-		if (strcmp(mycte->ctename, rv->relname) == 0)
-			return true;
-	}
-	if (IsA(node, SelectStmt))
-	{
-		SelectStmt *stmt = (SelectStmt *)node;
-		ListCell *lc;
-
-		if (stmt->fromClause == NULL)
-			return false;
-
-		foreach(lc, stmt->fromClause)
-		{
-			if (checkSelfRefInSetOpWalker((Node *) lfirst(lc), cstate))
-				return true;
-		}
-	}
-
-	return raw_expression_tree_walker(node,
-									  checkSelfRefInSetOpWalker,
-									  (void *) cstate);
-}
-
-/*
  * Tree walker function to detect invalid self-references in a recursive query.
  */
 static bool
@@ -830,21 +780,6 @@ checkWellFormedRecursionWalker(Node *node, CteState *cstate)
 		SelectStmt *stmt = (SelectStmt *) node;
 		ListCell *lc;
 
-		if (stmt->op != SETOP_NONE)
-		{
-			CommonTableExpr *mycte = cstate->items[cstate->curitem].cte;
-			if (cstate->context != RECURSION_NONRECURSIVETERM)
-			{
-				if (checkSelfRefInSetOpWalker(stmt->larg, cstate) || checkSelfRefInSetOpWalker(stmt->rarg, cstate))
-				{
-					ereport(ERROR,
-							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-							 errmsg("Self reference of \"%s\" within recursive term not supported", mycte->ctename),
-							 -1));
-					return true;
-				}
-			}
-		}
 
 		if (stmt->withClause)
 		{
@@ -888,7 +823,28 @@ checkWellFormedRecursionWalker(Node *node, CteState *cstate)
 			}
 		}
 		else
-				checkWellFormedSelectStmt(stmt, cstate);
+			checkWellFormedSelectStmt(stmt, cstate);
+
+		if (cstate->context == RECURSION_OK)
+		{
+			if (stmt->distinctClause)
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("DISTINCT in a recursive query is not implemented"),
+						 parser_errposition(cstate->pstate,
+											exprLocation((Node *) stmt->distinctClause))));
+			if (stmt->groupClause)
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("GROUP BY in a recursive query is not implemented"),
+						 parser_errposition(cstate->pstate,
+											exprLocation((Node *) stmt->groupClause))));
+
+			checkWindowFuncInRecursiveTerm(stmt, cstate);
+		}
+
+		checkSelfRefInRangeSubSelect(stmt, cstate);
+
 		/* We're done examining the SelectStmt */
 		return false;
 	}
@@ -954,6 +910,19 @@ checkWellFormedRecursionWalker(Node *node, CteState *cstate)
 		checkWellFormedRecursionWalker(sl->subselect, cstate);
 		cstate->context = save_context;
 		checkWellFormedRecursionWalker(sl->testexpr, cstate);
+		return false;
+	}
+	if (IsA(node, RangeSubselect))
+	{
+		RangeSubselect *rs = (RangeSubselect *) node;
+
+		/*
+		 * we intentionally override outer context, since subquery is
+		 * independent
+		 */
+		cstate->context = RECURSION_SUBLINK;
+		checkWellFormedRecursionWalker(rs->subquery, cstate);
+		cstate->context = save_context;
 		return false;
 	}
 	return raw_expression_tree_walker(node,
@@ -1029,3 +998,56 @@ checkWellFormedSelectStmt(SelectStmt *stmt, CteState *cstate)
 		}
 	}
 }
+
+/*
+ * Check if a recursive cte is referred to in a RangeSubSelect's SelectStmt.
+ * This is currently not supported and is checked for in the parsing stage
+ */
+static void
+checkSelfRefInRangeSubSelect(SelectStmt *stmt, CteState *cstate)
+{
+	ListCell *lc;
+	RecursionContext cxt = cstate->context;
+
+	foreach(lc, stmt->fromClause)
+	{
+		if (IsA((Node *) lfirst(lc), RangeSubselect))
+		{
+			cstate->context = RECURSION_SUBLINK;
+			RangeSubselect *rs = (RangeSubselect *) lfirst(lc);
+			SelectStmt *subquery = (SelectStmt *) rs->subquery;
+			checkWellFormedSelectStmt(subquery, cstate);
+		}
+	}
+	cstate->context = cxt;
+}
+
+/*
+ * Check if the recursive term of a recursive cte contains a window function.
+ * This is currently not supported and is checked for in the parsting stage
+ */
+static void
+checkWindowFuncInRecursiveTerm(SelectStmt *stmt, CteState *cstate)
+{
+	ListCell *lc;
+	foreach(lc, stmt->targetList)
+	{
+		if (IsA((Node *) lfirst(lc), ResTarget))
+		{
+			ResTarget *rt = (ResTarget *) lfirst(lc);
+			if (IsA(rt->val, FuncCall))
+			{
+				FuncCall *fc = (FuncCall *) rt->val;
+				if (fc->over != NULL)
+				{
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg("Window Functions in a recursive query is not implemented"),
+							 parser_errposition(cstate->pstate,
+												exprLocation((Node *) fc))));
+				}
+			}
+		}
+	}
+}
+

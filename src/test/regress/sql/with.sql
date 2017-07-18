@@ -287,6 +287,7 @@ WITH RECURSIVE x(n) AS (SELECT 1 EXCEPT SELECT n+1 FROM x)
 WITH RECURSIVE x(n) AS (SELECT 1 EXCEPT ALL SELECT n+1 FROM x)
 	SELECT * FROM x;
 
+-- GPDB Specific Error Cases
 -- Set operations within the recursive term with a self-reference.
 -- Currently set operations in the recursive term involving the cte itself must
 -- be prevented. The reason for this is that such a query may lead to a plan
@@ -309,6 +310,31 @@ WITH RECURSIVE x(n) AS (SELECT n FROM x)
 -- recursive term in the left hand side (strictly speaking, should allow this)
 WITH RECURSIVE x(n) AS (SELECT n FROM x UNION ALL SELECT 1)
 	SELECT * FROM x;
+
+-- recursive term with a self-reference within a subquery is not allowed
+WITH RECURSIVE cte(level, id) as (
+	SELECT 1, 2
+	UNION ALL
+	SELECT level+1, c FROM (SELECT * FROM cte OFFSET 0) foo, bar)
+SELECT * FROM cte LIMIT 10;
+
+-- recursive term with a distinct operation is not allowed
+WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT distinct(n+1) FROM x)
+  SELECT * FROM x;
+
+-- recursive term with a group by operation is not allowed
+CREATE TEMPORARY TABLE bar(c int);
+WITH RECURSIVE x(n) AS (
+	SELECT 1,2
+	UNION ALL
+	SELECT level+1, c FROM x, bar GROUP BY 1,2)
+  SELECT * FROM x LIMIT 10;
+
+WITH RECURSIVE x(n) AS (
+	SELECT 1,2
+	UNION ALL
+	SELECT level+1, row_number() over() FROM x, bar)
+  SELECT * FROM x LIMIT 10;
 
 CREATE TEMPORARY TABLE y (a INTEGER);
 INSERT INTO y SELECT generate_series(1, 10);
