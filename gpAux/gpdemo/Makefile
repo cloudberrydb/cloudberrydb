@@ -38,7 +38,7 @@ cluster create-demo-cluster:
 
 create-segwalrep-cluster:
 	@WITH_MIRRORS=false ./demo_cluster.sh
-	@./gpsegwalrep.py init
+	@./gpsegwalrep.py init --host `hostname`
 	@./gpsegwalrep.py start
 	@echo""
 
