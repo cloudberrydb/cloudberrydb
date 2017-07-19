@@ -106,10 +106,9 @@ Feature: Validate command line arguments
     @ddpartI
     Scenario: 11 Backup and restore with -G only
         Given the old timestamps are read from json
-        When the user runs gpdbrestore -e with the stored timestamp and options "-G only"
+        When the user runs gpdbrestore without -e with the stored timestamp and options "-G only"
         Then gpdbrestore should return a return code of 0
         And verify that a role "foo_user" exists in database "bkdb11"
-        And verify that there is no table "public.heap_table" in "bkdb11"
         And the user runs "psql -c 'DROP ROLE foo_user' bkdb11"
 
     @valgrind
@@ -1152,7 +1151,8 @@ Feature: Validate command line arguments
         Given the old timestamps are read from json
         When the user runs gpdbrestore -e with the stored timestamp
         Then gpdbrestore should return a return code of 0
-        And verify that "test_gpadmin=C/" appears in the datacl for database "bkdb119"
+        And verify that "user_grant=C/" appears in the datacl for database "bkdb119"
+        And the user runs "psql -c 'DROP ROLE user_grant' bkdb11"
 
     Scenario: 120 Simple full backup and restore with special character
         Given the old timestamps are read from json

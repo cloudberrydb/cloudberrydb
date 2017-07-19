@@ -172,7 +172,6 @@ Feature: Validate command line arguments
     @ddpartI
     Scenario: 11 Backup and restore with -G only
         Given the backup test is initialized with database "bkdb11"
-        And there is a "heap" table "public.heap_table" in "bkdb11" with data
         And the user runs "psql -c 'CREATE ROLE foo_user' bkdb11"
         And verify that a role "foo_user" exists in database "bkdb11"
         When the user runs "gpcrondump -a -x bkdb11 -G"
@@ -1685,10 +1684,10 @@ Feature: Validate command line arguments
     @ddpartIII
     Scenario: 119 Backup database grants
         Given the backup test is initialized with database "bkdb119"
-        And the user runs """psql -c "DROP ROLE IF EXISTS test_gpadmin" bkdb119"""
-        And the user runs """psql -c "CREATE ROLE test_gpadmin LOGIN ENCRYPTED PASSWORD 'changeme' SUPERUSER INHERIT CREATEDB CREATEROLE RESOURCE QUEUE pg_default;" bkdb119"""
+        And the user runs """psql -c "DROP ROLE IF EXISTS user_grant" bkdb119"""
+        And the user runs """psql -c "CREATE ROLE user_grant LOGIN ENCRYPTED PASSWORD 'changeme' SUPERUSER INHERIT CREATEDB CREATEROLE RESOURCE QUEUE pg_default;" bkdb119"""
         Then psql should return a return code of 0
-        When the user runs "psql -d bkdb119 -c "GRANT CREATE ON DATABASE bkdb119 to test_gpadmin ;""
+        When the user runs "psql -d bkdb119 -c "GRANT CREATE ON DATABASE bkdb119 to user_grant ;""
         Then psql should return a return code of 0
         When the user runs "gpcrondump -a -x bkdb119"
         Then gpcrondump should return a return code of 0
