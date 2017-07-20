@@ -108,8 +108,8 @@ Feature: Validate command line arguments
         Given the old timestamps are read from json
         When the user runs gpdbrestore without -e with the stored timestamp and options "-G only"
         Then gpdbrestore should return a return code of 0
-        And verify that a role "foo_user" exists in database "bkdb11"
-        And the user runs "psql -c 'DROP ROLE foo_user' bkdb11"
+        And verify that a role "foo_user" exists in database "template1"
+        And the user runs "psql -c 'DROP ROLE foo_user' template1"
 
     @valgrind
     Scenario: 12 Valgrind test of gp_restore for incremental backup
@@ -1147,6 +1147,7 @@ Feature: Validate command line arguments
         And verify that "blocksize=65536" appears in the datconfig for database "bkdb118"
 
     @ddpartIII
+    @skip_for_gpdb_43
     Scenario: 119 Backup database grants
         Given the old timestamps are read from json
         When the user runs gpdbrestore -e with the stored timestamp

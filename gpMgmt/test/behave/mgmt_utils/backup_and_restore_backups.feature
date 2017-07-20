@@ -1682,6 +1682,7 @@ Feature: Validate command line arguments
         And the timestamp from gpcrondump is stored
 
     @ddpartIII
+    @skip_for_gpdb_43
     Scenario: 119 Backup database grants
         Given the backup test is initialized with database "bkdb119"
         And the user runs """psql -c "DROP ROLE IF EXISTS user_grant" bkdb119"""
