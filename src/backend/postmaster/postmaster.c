@@ -3262,10 +3262,9 @@ static void processTransitionRequest_getFaultInjectStatus(void * buf, int *offse
 #endif
 }
 
-char *
+static void
 processTransitionRequest_faultInject(void * inputBuf, int *offsetPtr, int length)
 {
-	StringInfo buf = makeStringInfo();
 #ifdef FAULT_INJECTOR
 	bool wasRead;
 	char *faultName = readNextStringFromString(inputBuf, offsetPtr, length);
@@ -3276,14 +3275,16 @@ processTransitionRequest_faultInject(void * inputBuf, int *offsetPtr, int length
 	int numOccurrences = readIntFromString(inputBuf, offsetPtr, length, &wasRead);
 	int sleepTimeSeconds = readIntFromString(inputBuf, offsetPtr, length, &wasRead);
 	FaultInjectorEntry_s	faultInjectorEntry;
+	char buf[1000];
 
 	init_ps_display("filerep fault inject process", "", "", "");
 
 	if ( ! wasRead)
 	{
+		sendPrimaryMirrorTransitionResult(PROTOCOL_VIOLATION);
 		ereport(COMMERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION),
 							errmsg("invalid fault injection packet (missing some data values)")));
-		appendStringInfo(buf, "Failure: invalid fault injection packet (missing some data values)");
+		snprintf(buf, sizeof(buf), "Failure: invalid fault injection packet (missing some data values)");
 		goto exit;
 	}
 
@@ -3296,7 +3297,7 @@ processTransitionRequest_faultInject(void * inputBuf, int *offsetPtr, int length
 		ereport(COMMERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION),
 							errmsg("could not recognize fault name")));
 
-		appendStringInfo(buf, "Failure: could not recognize fault name");
+		snprintf(buf, sizeof(buf), "Failure: could not recognize fault name");
 		goto exit;
 	}
 
@@ -3306,7 +3307,7 @@ processTransitionRequest_faultInject(void * inputBuf, int *offsetPtr, int length
 		ereport(COMMERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION),
 							errmsg("could not recognize fault type")));
 
-		appendStringInfo(buf, "Failure: could not recognize fault type");
+		snprintf(buf, sizeof(buf), "Failure: could not recognize fault type");
 		goto exit;
 	}
 
@@ -3315,7 +3316,7 @@ processTransitionRequest_faultInject(void * inputBuf, int *offsetPtr, int length
 		ereport(COMMERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION),
 							errmsg("invalid sleep time, allowed range [0, 7200 sec]")));
 
-		appendStringInfo(buf, "Failure: invalid sleep time, allowed range [0, 7200 sec]");
+		snprintf(buf, sizeof(buf), "Failure: invalid sleep time, allowed range [0, 7200 sec]");
 		goto exit;
 	}
 
@@ -3324,7 +3325,7 @@ processTransitionRequest_faultInject(void * inputBuf, int *offsetPtr, int length
 		ereport(COMMERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION),
 							errmsg("could not recognize DDL statement")));
 
-		appendStringInfo(buf, "Failure: could not recognize DDL statement");
+		snprintf(buf, sizeof(buf), "Failure: could not recognize DDL statement");
 		goto exit;
 	}
 
@@ -3337,26 +3338,28 @@ processTransitionRequest_faultInject(void * inputBuf, int *offsetPtr, int length
 		ereport(COMMERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION),
 							errmsg("invalid occurrence number, allowed range [1, 1000]")));
 
-		appendStringInfo(buf, "Failure: invalid occurrence number, allowed range [1, 1000]");
+		snprintf(buf, sizeof(buf), "Failure: invalid occurrence number, allowed range [1, 1000]");
 		goto exit;
 	}
 
 
 	if (FaultInjector_SetFaultInjection(&faultInjectorEntry) == STATUS_OK) {
 		if (faultInjectorEntry.faultInjectorType == FaultInjectorTypeStatus) {
-			appendStringInfo(buf, "%s", faultInjectorEntry.bufOutput);
+			snprintf(buf, sizeof(buf), "%s", faultInjectorEntry.bufOutput);
 		} else {
-			appendStringInfo(buf, "Success:");
+			snprintf(buf, sizeof(buf), "Success:");
 		}
 	} else {
-		appendStringInfo(buf, "Failure: %s", faultInjectorEntry.bufOutput);
+		snprintf(buf, sizeof(buf), "Failure: %s", faultInjectorEntry.bufOutput);
 	}
 
 exit:
+	sendPrimaryMirrorTransitionResult(buf);
+
 #else
-	appendStringInfo(buf, "Failure: Fault Injector not available");
+	sendPrimaryMirrorTransitionResult("Failure: Fault Injector not available");
 #endif
-	return buf->data;
+
 }
 
 /**
@@ -3438,9 +3441,7 @@ processPrimaryMirrorTransitionRequest(Port *port, void *pkt)
 	}
 	else if (strcmp("faultInject", targetModeStr) == 0)
 	{
-		const char *response =
-			processTransitionRequest_faultInject(buf, &offset, length);
-		sendPrimaryMirrorTransitionResult(response);
+		processTransitionRequest_faultInject(buf, &offset, length);
 	}
 	else
 	{
