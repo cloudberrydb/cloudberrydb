@@ -10,5 +10,5 @@ CREATE FUNCTION gp_inject_fault(
   sleeptime int4,
   db_id smallint)
 RETURNS boolean
-AS '@abs_builddir@/regress@DLSUFFIX@'
+AS '@bindir@/postgres'
 LANGUAGE C VOLATILE STRICT NO SQL;
