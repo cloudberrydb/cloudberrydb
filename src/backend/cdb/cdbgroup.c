@@ -2548,6 +2548,8 @@ List *make_subplan_tlist(List *tlist, Node *havingQual,
 	Assert( dqa_args != NIL? pnum_dqas != NULL && pcols_dqas != NULL: true );
 	
 	sub_tlist = flatten_tlist(tlist);
+	// 8.4-9.0:MERGE-FIXME: Should we pass includePlaceHolderVars as true
+	// in pull_var_clause ?
 	extravars = pull_var_clause(havingQual, false);
 	sub_tlist = add_to_flat_tlist(sub_tlist, extravars, false /* resjunk */);
 	list_free(extravars);
@@ -6165,6 +6167,8 @@ within_agg_join_plans(PlannerInfo *root,
 	 * in the upper aggregate target list rather than in this join target list.
 	 */
 	join_tlist = flatten_tlist(root->parse->targetList);
+	// 8.4-9.0:MERGE-FIXME: Should we pass includePlaceHolderVars as true
+	// in pull_var_clause ?
 	extravars = pull_var_clause(root->parse->havingQual, false);
 	join_tlist = add_to_flat_tlist(join_tlist, extravars, false);
 
@@ -6206,6 +6210,8 @@ within_agg_join_plans(PlannerInfo *root,
 								   false);
 
 	/* add vars from flow expression: MPP-20076 */
+	// 8.4-9.0:MERGE-FIXME: Should we pass includePlaceHolderVars as true
+	// in pull_var_clause ?
 	extravars = pull_var_clause((Node *) outer_plan->flow->hashExpr, false);
 	join_tlist = add_to_flat_tlist(join_tlist, extravars, false /*resjunk*/);
 
@@ -6381,6 +6387,8 @@ within_agg_final_agg(PlannerInfo *root,
 
 	/* add vars from flow expression: MPP-20076 */
 	List *targetList = root->parse->targetList;
+	// 8.4-9.0:MERGE-FIXME: Should we pass includePlaceHolderVars as true
+	// in pull_var_clause ?
 	List *extravars = pull_var_clause((Node *) result_plan->flow->hashExpr, false);
 	targetList = add_to_flat_tlist(targetList, extravars, true /*resjunk*/);
 	list_free(extravars);
