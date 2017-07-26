@@ -39,6 +39,7 @@
 #include "naucrates/dxl/parser/CParseHandlerColStatsBucket.h"
 #include "naucrates/dxl/parser/CParseHandlerMDCast.h"
 #include "naucrates/dxl/parser/CParseHandlerMDScCmp.h"
+#include "naucrates/dxl/parser/CParseHandlerMDArrayCoerceCast.h"
 
 #include "naucrates/dxl/parser/CParseHandlerPhysicalOp.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarOp.h"

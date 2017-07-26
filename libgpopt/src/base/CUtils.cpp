@@ -47,6 +47,7 @@
 #include "naucrates/md/IMDTypeOid.h"
 #include "naucrates/md/CMDIdGPDB.h"
 #include "naucrates/md/IMDCast.h"
+#include "naucrates/md/CMDArrayCoerceCastGPDB.h"
 #include "naucrates/md/CMDIdScCmp.h"
 #include "naucrates/traceflags/traceflags.h"
 
@@ -4224,9 +4225,34 @@ CUtils::PexprCast
 
 	pmdidDest->AddRef();
 	pmdcast->PmdidCastFunc()->AddRef();
+	CExpression *pexpr;
 
-	CScalarCast *popCast = GPOS_NEW(pmp) CScalarCast(pmp, pmdidDest, pmdcast->PmdidCastFunc(), pmdcast->FBinaryCoercible());
-	return GPOS_NEW(pmp) CExpression(pmp, popCast, PexprScalarIdent(pmp, pcr));
+	if(pmdcast->EmdPathType() == IMDCast::EmdtArrayCoerce)
+	{
+		CMDArrayCoerceCastGPDB *parrayCoerceCast = (CMDArrayCoerceCastGPDB *) pmdcast;
+		pexpr = GPOS_NEW(pmp) CExpression
+									(
+									pmp,
+									GPOS_NEW(pmp) CScalarArrayCoerceExpr
+														(
+														pmp,
+														parrayCoerceCast->PmdidCastFunc(),
+														pmdidDest,
+														parrayCoerceCast->IMod(),
+														parrayCoerceCast->FIsExplicit(),
+														(COperator::ECoercionForm) parrayCoerceCast->Ecf(),
+														parrayCoerceCast->ILoc()
+														),
+									PexprScalarIdent(pmp, pcr)
+									);
+	}
+	else
+	{
+	
+		CScalarCast *popCast = GPOS_NEW(pmp) CScalarCast(pmp, pmdidDest, pmdcast->PmdidCastFunc(), pmdcast->FBinaryCoercible());
+		pexpr = GPOS_NEW(pmp) CExpression(pmp, popCast, PexprScalarIdent(pmp, pcr));
+	}
+	return pexpr;
 }
 
 // cast the input expression to the destination mdid
@@ -4247,9 +4273,35 @@ CUtils::PexprCast
 
 	pmdidDest->AddRef();
 	pmdcast->PmdidCastFunc()->AddRef();
+	CExpression *pexprCast;
+	
+	if(pmdcast->EmdPathType() == IMDCast::EmdtArrayCoerce)
+	{
+		CMDArrayCoerceCastGPDB *parrayCoerceCast = (CMDArrayCoerceCastGPDB *) pmdcast;
+		pexprCast = GPOS_NEW(pmp) CExpression
+									(
+									pmp,
+									GPOS_NEW(pmp) CScalarArrayCoerceExpr
+														(
+														pmp,
+														parrayCoerceCast->PmdidCastFunc(),
+														pmdidDest,
+														parrayCoerceCast->IMod(),
+														parrayCoerceCast->FIsExplicit(),
+														(COperator::ECoercionForm) parrayCoerceCast->Ecf(),
+														parrayCoerceCast->ILoc()
+														),
+									pexpr
+									);
+	}
+	else
+	{
+		
+		CScalarCast *popCast = GPOS_NEW(pmp) CScalarCast(pmp, pmdidDest, pmdcast->PmdidCastFunc(), pmdcast->FBinaryCoercible());
+		pexprCast = GPOS_NEW(pmp) CExpression(pmp, popCast, pexpr);
+	}
 
-	CScalarCast *popCast = GPOS_NEW(pmp) CScalarCast(pmp, pmdidDest, pmdcast->PmdidCastFunc(), pmdcast->FBinaryCoercible());
-	return GPOS_NEW(pmp) CExpression(pmp, popCast, pexpr);
+	return pexprCast;
 }
 
 // check whether the given expression is a binary coercible cast of something

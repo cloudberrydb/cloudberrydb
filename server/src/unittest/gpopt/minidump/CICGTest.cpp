@@ -221,6 +221,8 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/SemiJoin2Select-EnforceSubplan.mdp",
 		"../data/dxl/minidump/EstimateJoinRowsForCastPredicates.mdp",
 		"../data/dxl/minidump/MissingBoolColStats.mdp",
+		"../data/dxl/minidump/ArrayCoerceCast.mdp",
+		"../data/dxl/minidump/SimpleArrayCoerceCast.mdp",
 #ifndef GPOS_DEBUG
 		// TODO:  - 06/29/2015: the row estimate for 32-bit rhel is off in the 6th decimel place
 		"../data/dxl/minidump/retail_28.mdp",

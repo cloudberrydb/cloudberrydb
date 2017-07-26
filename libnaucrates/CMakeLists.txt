@@ -88,6 +88,8 @@ add_library(naucrates
             src/md/CMDAggregateGPDB.cpp
             include/naucrates/md/CMDCastGPDB.h
             src/md/CMDCastGPDB.cpp
+            include/naucrates/md/CMDArrayCoerceCastGPDB.h
+            src/md/CMDArrayCoerceCastGPDB.cpp
             include/naucrates/md/CMDCheckConstraintGPDB.h
             src/md/CMDCheckConstraintGPDB.cpp
             include/naucrates/md/CMDColumn.h
@@ -572,6 +574,8 @@ add_library(naucrates
             src/parser/CParseHandlerMaterialize.cpp
             include/naucrates/dxl/parser/CParseHandlerMDCast.h
             src/parser/CParseHandlerMDCast.cpp
+            include/naucrates/dxl/parser/CParseHandlerMDArrayCoerceCast.h
+            src/parser/CParseHandlerMDArrayCoerceCast.cpp
             include/naucrates/dxl/parser/CParseHandlerMDGPDBAgg.h
             src/parser/CParseHandlerMDGPDBAgg.cpp
             include/naucrates/dxl/parser/CParseHandlerMDGPDBCheckConstraint.h

@@ -102,6 +102,7 @@ CParseHandlerFactory::Init
 			{EdxltokenColumnStatsBucket, &PphColStatsBucket},
 			{EdxltokenGPDBCast, &PphMDCast},
 			{EdxltokenGPDBMDScCmp, &PphMDScCmp},
+			{EdxltokenGPDBArrayCoerceCast, &PphMDArrayCoerceCast},
 
 			{EdxltokenPhysical, &PphPhysOp},
 
@@ -3587,13 +3588,25 @@ CParseHandlerFactory::PphScalarValuesList
 // creates a parse handler for parsing a Values Scan operator
 CParseHandlerBase *
 CParseHandlerFactory::PphValuesScan
-(
+	(
 	IMemoryPool *pmp,
 	CParseHandlerManager *pphm,
 	CParseHandlerBase *pphRoot
 	)
 {
 	return GPOS_NEW(pmp) CParseHandlerValuesScan(pmp, pphm, pphRoot);
+}
+
+// creates a parse handler for parsing GPDB-specific array coerce cast metadata
+CParseHandlerBase *
+CParseHandlerFactory::PphMDArrayCoerceCast
+	(
+	IMemoryPool *pmp,
+	CParseHandlerManager *pphm,
+	CParseHandlerBase *pphRoot
+	)
+{
+	return GPOS_NEW(pmp) CParseHandlerMDArrayCoerceCast(pmp, pphm, pphRoot);
 }
 
 // EOF

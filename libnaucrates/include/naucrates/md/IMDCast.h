@@ -35,6 +35,15 @@ namespace gpmd
 	{	
 		public:
 
+			// type of coercion pathway
+			enum EmdCoercepathType
+			{
+				EmdtNone,			/* failed to find any coercion pathway */
+				EmdtFunc,			/* apply the specified coercion function */
+				EmdtRelabelType,	/* binary-compatible cast, no function */
+				EmdtArrayCoerce		/* need an ArrayCoerceExpr node */
+			};
+
 			// object type
 			virtual
 			Emdtype Emdt() const
@@ -57,6 +66,10 @@ namespace gpmd
 			// cast function id
 			virtual 
 			IMDId *PmdidCastFunc() const = 0;
+
+			// return the coercion path type
+			virtual
+			EmdCoercepathType EmdPathType() const = 0;
 	};
 		
 }

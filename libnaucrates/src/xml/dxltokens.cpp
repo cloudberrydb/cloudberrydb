@@ -630,6 +630,8 @@ CDXLTokens::Init
 			{EdxltokenGPDBCastSrcType, GPOS_WSZ_LIT("SourceTypeId")},
 			{EdxltokenGPDBCastDestType, GPOS_WSZ_LIT("DestinationTypeId")},
 			{EdxltokenGPDBCastFuncId, GPOS_WSZ_LIT("CastFuncId")},
+			{EdxltokenGPDBCastCoercePathType, GPOS_WSZ_LIT("CoercePathType")},
+			{EdxltokenGPDBArrayCoerceCast, GPOS_WSZ_LIT("ArrayCoerceCast")},
 			
 			{EdxltokenGPDBMDScCmp, GPOS_WSZ_LIT("MDScalarComparison")},
 			

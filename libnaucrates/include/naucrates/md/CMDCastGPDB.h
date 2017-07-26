@@ -33,6 +33,10 @@ namespace gpmd
 	class CMDCastGPDB : public IMDCast
 	{
 		private:
+			// private copy ctor
+			CMDCastGPDB(const CMDCastGPDB &);
+
+		protected:
 			// memory pool
 			IMemoryPool *m_pmp;
 			
@@ -56,9 +60,9 @@ namespace gpmd
 			
 			// cast func id
 			IMDId *m_pmdidCastFunc;
-			
-			// private copy ctor
-			CMDCastGPDB(const CMDCastGPDB &);
+
+			// coercion path type
+			EmdCoercepathType m_emdPathType;
 			
 		public:
 			// ctor
@@ -70,7 +74,8 @@ namespace gpmd
 				IMDId *pmdidSrc,
 				IMDId *pmdidDest,
 				BOOL fBinaryCoercible,
-				IMDId *pmdidCastFunc
+				IMDId *pmdidCastFunc,
+				EmdCoercepathType emdPathType = EmdtNone
 				);
 			
 			// dtor
@@ -103,7 +108,11 @@ namespace gpmd
 			// is this a cast between binary coeercible types, i.e. the types are binary compatible
 			virtual 
 			BOOL FBinaryCoercible() const;
-			
+
+			// return the coercion path type
+			virtual
+			EmdCoercepathType EmdPathType() const;
+
 			// cast function id
 			virtual 
 			IMDId *PmdidCastFunc() const;
