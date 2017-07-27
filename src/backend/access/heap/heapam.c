@@ -3271,8 +3271,8 @@ l2:
 			XLogRecPtr	recptr;
 			XLogRecData	rdata[2];
 
-			xlrec.target.node = relation->rd_node;
-			xlrec.target.tid = oldtup.t_self;
+			xl_heaptid_set(&xlrec.target, relation, &oldtup.t_self);
+
 			xlrec.locking_xid = xid;
 			xlrec.xid_is_mxact = false;
 			xlrec.shared_lock = false;
