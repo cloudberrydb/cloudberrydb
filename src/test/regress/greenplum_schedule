@@ -15,7 +15,6 @@
 #   hitting max_connections limit on segments.
 #
 
-=======
 # Creates helper function for injecting faults.  Subsequent tests can
 # make use of it.  So this 'test' should be run first.
 test: create_fault_function
