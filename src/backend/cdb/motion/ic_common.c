@@ -240,7 +240,7 @@ InitMotionLayerIPC(void)
 
 	Gp_listener_port = (udp_listener<<16) | tcp_listener;
 
-	elog(LOG, "Interconnect listening on tcp port %d udp port %d (0x%x)", tcp_listener, udp_listener, Gp_listener_port);
+	elog(DEBUG1, "Interconnect listening on tcp port %d udp port %d (0x%x)", tcp_listener, udp_listener, Gp_listener_port);
 }
 
 /* See ml_ipc.h */
