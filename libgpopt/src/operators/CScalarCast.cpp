@@ -80,7 +80,7 @@ CScalarCast::FMatch
 
 		// match if the return type oids are identical
 		return pscop->PmdidType()->FEquals(m_pmdidReturnType) &&
-				((!pscop->PmdidFunc()->FValid() && !m_pmdidFunc->FValid()) || pscop->PmdidFunc()->FEquals(m_pmdidFunc));
+				((!IMDId::FValid(pscop->PmdidFunc()) && !IMDId::FValid(m_pmdidFunc)) || pscop->PmdidFunc()->FEquals(m_pmdidFunc));
 	}
 
 	return false;

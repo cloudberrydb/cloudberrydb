@@ -95,12 +95,7 @@ CMDIdGPDBCtas::FEquals
 //---------------------------------------------------------------------------
 BOOL CMDIdGPDBCtas::FValid() const
 {
-	// FIXME(chasseur): in well-formed C++ code, the implicit 'this' pointer in
-	// a member method can never be NULL; however, some callers may invoke this
-	// method from a (possibly-NULL) pointer with the '->' operator; callers
-	// should be modified to explicitly do NULL-checks on pointers so that this
-	// method does not rely on undefined behavior
-	return NULL != this && !FEquals(&CMDIdGPDBCtas::m_mdidInvalidKey);
+	return !FEquals(&CMDIdGPDBCtas::m_mdidInvalidKey);
 }
 
 //---------------------------------------------------------------------------

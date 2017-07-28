@@ -113,7 +113,7 @@ CMDAccessorUtils::FCmpExists
 	if (pmdidLeft->FEquals(pmdidRight))
 	{
 		const IMDType *pmdtypeLeft = pmda->Pmdtype(pmdidLeft);
-		return pmdtypeLeft->PmdidCmp(ecmpt)->FValid();
+		return IMDId::FValid(pmdtypeLeft->PmdidCmp(ecmpt));
 	}
 
 	GPOS_TRY

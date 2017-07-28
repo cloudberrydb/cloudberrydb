@@ -1000,7 +1000,6 @@ CPartIndexMap::OsPrint
 	)
 	const
 {
-	GPOS_ASSERT(NULL != this);
 	PartIndexMapIter pimi(m_pim);
 	while (pimi.FAdvance())
 	{

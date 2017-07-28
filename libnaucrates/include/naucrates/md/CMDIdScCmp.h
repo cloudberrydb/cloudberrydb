@@ -102,7 +102,7 @@ namespace gpmd
 			virtual
 			BOOL FValid() const
 			{
-				return m_pmdidLeft->FValid() && m_pmdidRight->FValid() && IMDType::EcmptOther != m_ecmpt;
+				return IMDId::FValid(m_pmdidLeft) && IMDId::FValid(m_pmdidRight) && IMDType::EcmptOther != m_ecmpt;
 			}
 
 			// serialize mdid in DXL as the value of the specified attribute 

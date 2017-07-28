@@ -220,7 +220,7 @@ CMDCastGPDB::DebugPrint
 		os << ", binary-coercible";
 	}
 	
-	if (m_pmdidCastFunc->FValid())
+	if (IMDId::FValid(m_pmdidCastFunc))
 	{
 		os << ", Cast func id: ";
 		PmdidCastFunc()->OsPrint(os);

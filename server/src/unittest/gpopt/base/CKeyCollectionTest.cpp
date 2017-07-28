@@ -95,7 +95,6 @@ CKeyCollectionTest::EresUnittest_Basics()
 
 	pkc->Add(pcrs);	
 	GPOS_ASSERT(pkc->FKey(pcrs));
-	GPOS_ASSERT(!((CKeyCollection*)NULL)->FKey(pcrs));
 	
 	DrgPcr *pdrgpcr = pkc->PdrgpcrKey(pmp);
 	GPOS_ASSERT(pkc->FKey(pmp, pdrgpcr));
@@ -177,7 +176,6 @@ CKeyCollectionTest::EresUnittest_Subsumes()
 	pkc->Add(pcrs2);
 
 	GPOS_ASSERT(pkc->FKey(pcrs2));
-	GPOS_ASSERT(!((CKeyCollection*)NULL)->FKey(pcrs2));
 
 	// get the second key
 	DrgPcr *pdrgpcr = pkc->PdrgpcrKey(pmp, 1);

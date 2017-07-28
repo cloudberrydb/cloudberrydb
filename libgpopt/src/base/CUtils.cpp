@@ -3423,7 +3423,7 @@ CUtils::FComparisonPossible
 	{
 		CColRef *pcr = (*pdrgpcr)[ul];
 		const IMDType *pmdtype = pcr->Pmdtype();
-		if (!pmdtype->PmdidCmp(ecmpt)->FValid())
+		if (!IMDId::FValid(pmdtype->PmdidCmp(ecmpt)))
 		{
 			return false;
 		}

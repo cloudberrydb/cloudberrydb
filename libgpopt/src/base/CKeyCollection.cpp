@@ -122,7 +122,6 @@ CKeyCollection::Add
 	CColRefSet *pcrs
 	)
 {
-	GPOS_ASSERT(NULL != this);
 	GPOS_ASSERT(!FKey(pcrs) && "no duplicates allowed");
 	
 	m_pdrgpcrs->Append(pcrs);
@@ -146,16 +145,6 @@ CKeyCollection::FKey
 	)
 	const
 {
-	// FIXME(chasseur): in well-formed C++ code, the implicit 'this' pointer in
-	// a member method can never be NULL; however, some callers may invoke this
-	// method from a (possibly-NULL) pointer with the '->' operator; callers
-	// should be modified to explicitly do NULL-checks on pointers so that this
-	// method does not rely on undefined behavior
-	if (NULL == this)
-	{
-		return false;
-	}
-
 	const ULONG ulSets = m_pdrgpcrs->UlLength();
 	for (ULONG ul = 0; ul < ulSets; ul++)
 	{
@@ -198,16 +187,6 @@ CKeyCollection::FKey
 	)
 	const
 {
-	// FIXME(chasseur): in well-formed C++ code, the implicit 'this' pointer in
-	// a member method can never be NULL; however, some callers may invoke this
-	// method from a (possibly-NULL) pointer with the '->' operator; callers
-	// should be modified to explicitly do NULL-checks on pointers so that this
-	// method does not rely on undefined behavior
-	if (NULL == this)
-	{
-		return false;
-	}
-
 	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp);
 	pcrs->Include(pdrgpcr);
 	
@@ -234,15 +213,6 @@ CKeyCollection::PdrgpcrTrim
 	)
 	const
 {
-	// FIXME(chasseur): in well-formed C++ code, the implicit 'this' pointer in
-	// a member method can never be NULL; however, some callers may invoke this
-	// method from a (possibly-NULL) pointer with the '->' operator; callers
-	// should be modified to explicitly do NULL-checks on pointers so that this
-	// method does not rely on undefined behavior
-	if (NULL == this) {
-		return NULL;
-	}
-
 	DrgPcr *pdrgpcrTrim = NULL;
 	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp);
 	pcrs->Include(pdrgpcr);

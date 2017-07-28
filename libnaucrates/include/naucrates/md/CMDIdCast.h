@@ -106,7 +106,7 @@ namespace gpmd
 			virtual
 			BOOL FValid() const
 			{
-				return m_pmdidSrc->FValid() && m_pmdidDest->FValid();
+				return IMDId::FValid(m_pmdidSrc) && IMDId::FValid(m_pmdidDest);
 			}
 
 			// serialize mdid in DXL as the value of the specified attribute 
