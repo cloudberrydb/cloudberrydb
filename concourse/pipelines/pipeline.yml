@@ -800,7 +800,7 @@ jobs:
       image: centos-gpdb-dev-6
       params:
         MAKE_TEST_COMMAND: fts_transitions_part01
-        BLDWRAP_POSTGRES_CONF_ADDONS: gp_segment_connect_timeout=20 gp_fts_probe_interval=20
+        BLDWRAP_POSTGRES_CONF_ADDONS: gp_segment_connect_timeout=35 gp_fts_probe_interval=20
         TEST_OS: centos
         CONFIGURE_FLAGS: {{configure_flags}}
     - task: fts_transitions_part02
@@ -808,7 +808,7 @@ jobs:
       image: centos-gpdb-dev-6
       params:
         MAKE_TEST_COMMAND: fts_transitions_part02
-        BLDWRAP_POSTGRES_CONF_ADDONS: gp_segment_connect_timeout=20 gp_fts_probe_interval=20
+        BLDWRAP_POSTGRES_CONF_ADDONS: gp_segment_connect_timeout=35 gp_fts_probe_interval=20
         TEST_OS: centos
         CONFIGURE_FLAGS: {{configure_flags}}
     - task: fts_transitions_part03
@@ -816,7 +816,7 @@ jobs:
       image: centos-gpdb-dev-6
       params:
         MAKE_TEST_COMMAND: fts_transitions_part03
-        BLDWRAP_POSTGRES_CONF_ADDONS: gp_segment_connect_timeout=20 gp_fts_probe_interval=20
+        BLDWRAP_POSTGRES_CONF_ADDONS: gp_segment_connect_timeout=35 gp_fts_probe_interval=20
         TEST_OS: centos
         CONFIGURE_FLAGS: {{configure_flags}}
 
