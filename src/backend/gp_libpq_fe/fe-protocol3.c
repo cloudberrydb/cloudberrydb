@@ -76,7 +76,8 @@ pqParseInput3(PGconn *conn)
 	char		id;
 	int			msgLength;
 	int			avail;
-	int			numRejected = 0;
+	int			numRejected  = 0;
+	int			numCompleted = 0;
 
 	/*
 	 * Loop to parse successive complete messages available in the buffer.
@@ -477,6 +478,13 @@ pqParseInput3(PGconn *conn)
 						return;
 
 					conn->result->numRejected += numRejected;
+
+					/* Optionally receive completed number when COPY FROM ON SEGMENT */
+					if (msgLength >= 8 && !pqGetInt(&numCompleted, 4, conn))
+					{
+						conn->result->numCompleted += numCompleted;
+					}
+
 					break;
 				case 'Y':       /* CDB: statistical response from QE to QD */
 					/* for certain queries, the stats may arrive
