@@ -23,7 +23,7 @@ test__ComputeMemLimitForChildGroups_rounding(void **state)
 	parentGroup->childGroups = lappend(parentGroup->childGroups, childGroup1);
 	parentGroup->childGroups = lappend(parentGroup->childGroups, childGroup2);
 
-	gp_resqueue_memory_policy_auto_fixed_mem = 100;
+	*gp_resmanager_memory_policy_auto_fixed_mem = 100;
 
 	/* Case where rounding does not cause error */
 	parentGroup->groupMemKB = 3000;

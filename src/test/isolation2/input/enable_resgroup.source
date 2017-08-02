@@ -7,8 +7,18 @@
 
 -- enable resource group and restart cluster.
 -- start_ignore
+! rm -f /tmp/.resgroup_mem_helper.sh;
+! echo 'mem=$(free -b | grep "^Mem:" | (read a b c; echo $b))' >>/tmp/.resgroup_mem_helper.sh;
+! echo 'swap=$(free -b | grep "^Swap:" | (read a b c; echo $b))' >>/tmp/.resgroup_mem_helper.sh;
+! echo 'overcommit=$(cat /proc/sys/vm/overcommit_ratio)' >>/tmp/.resgroup_mem_helper.sh;
+! echo 'total=$((swap + mem * overcommit / 100))' >>/tmp/.resgroup_mem_helper.sh;
+! echo 'limit=$(((2 << 30) * 10000 * 4 / 3 / total))' >>/tmp/.resgroup_mem_helper.sh;
+! echo '[ "$limit" -le 9000 ] || limit=9000' >>/tmp/.resgroup_mem_helper.sh;
+! echo 'limitf=$(printf "0.%04d" $limit)' >>/tmp/.resgroup_mem_helper.sh;
+! echo 'gpconfig -c gp_resource_group_memory_limit -v $limitf' >>/tmp/.resgroup_mem_helper.sh;
+! bash /tmp/.resgroup_mem_helper.sh;
+! rm -f /tmp/.resgroup_mem_helper.sh;
 ! gpconfig -c gp_resource_manager -v group;
-! gpconfig -c gp_resource_group_cpu_limit -v 0.5;
 ! gpstop -rai;
 -- end_ignore
 

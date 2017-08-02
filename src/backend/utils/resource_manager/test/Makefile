@@ -1,4 +1,4 @@
-subdir=src/backend/utils/resscheduler
+subdir=src/backend/utils/resource_manager
 top_builddir=../../../../..
 include $(top_builddir)/src/Makefile.global
 

@@ -44,6 +44,15 @@
 #define RESGROUP_MAX_SLOTS	90
 
 /*
+ * GUC variables.
+ */
+char                		*gp_resgroup_memory_policy_str = NULL;
+ResManagerMemoryPolicy     	gp_resgroup_memory_policy = RESMANAGER_MEMORY_POLICY_NONE;
+bool						gp_log_resgroup_memory = false;
+int							gp_resgroup_memory_policy_auto_fixed_mem;
+bool						gp_resgroup_print_operator_memory_limits = false;
+
+/*
  * Data structures
  */
 
@@ -95,6 +104,7 @@ typedef struct ResGroupSlotData
 	int				memSharedQuota;	/* shared memory quota of current resource group */
 
 	int				memQuota;	/* memory quota of current slot */
+	int				memSpill;	/* memory spill of current slot */
 	uint32			memUsage;	/* total memory usage of procs belongs to this slot */
 	int				nProcs;		/* number of procs in this slot */
 	bool			inUse;
@@ -803,6 +813,21 @@ CalcConcurrencyValue(int groupId, int val, int proposed, int newProposed)
 	return ret;
 }
 
+int
+ResourceGroupGetQueryMemoryLimit(void)
+{
+	ResGroupSlotData	*slot;
+	Assert(MyResGroupSharedInfo != NULL);
+	Assert(MyResGroupProcInfo != NULL);
+	Assert(MyResGroupProcInfo->slotId != InvalidOid);
+
+	if (IsResManagerMemoryPolicyNone())
+		return 0;
+
+	slot = &MyResGroupSharedInfo->slots[MyResGroupProcInfo->slotId];
+	return slot->memSpill << VmemTracker_GetChunkSizeInBits();
+}
+
 /*
  * ResGroupCreate -- initialize the elements for a resource group.
  *
@@ -1198,6 +1223,7 @@ AssignResGroupOnMaster(void)
 	slot->memLimit = slot->segmentChunks * memoryLimit / 100;
 	slot->memSharedQuota = slot->memLimit * sharedQuota / 100;
 	slot->memQuota = slot->memLimit * (100 - sharedQuota) / concurrency / 100;
+	slot->memSpill = slot->memLimit * spillRatio / concurrency / 100;
 	Assert(slot->memLimit > 0);
 	Assert(slot->memQuota > 0);
 
@@ -1346,6 +1372,10 @@ SwitchResGroupOnSegment(const char *buf, int len)
 	slot->memSharedQuota = slot->memLimit * procInfo->config.sharedQuota / 100;
 	slot->memQuota = slot->memLimit
 		* (100 - procInfo->config.sharedQuota)
+		/ procInfo->config.concurrency
+		/ 100;
+	slot->memSpill = slot->memLimit
+		* procInfo->config.spillRatio
 		/ procInfo->config.concurrency
 		/ 100;
 	Assert(slot->memLimit > 0);
@@ -1612,10 +1642,9 @@ ResGroupGetMemInfo(int *memLimit, int *slotQuota, int *sharedQuota)
 	int segmentMem = totalMem * gp_resource_group_memory_limit / hostSegment;
 
 	*memLimit = segmentMem * procInfo->config.memoryLimit / 100;
-	*slotQuota = segmentMem
-		* procInfo->config.memoryLimit
+	*slotQuota = *memLimit
 		* (100 - procInfo->config.sharedQuota)
 		/ procInfo->config.concurrency
-		/ 10000;
-	*sharedQuota = segmentMem * procInfo->config.memoryLimit * procInfo->config.sharedQuota / 10000;
+		/ 100;
+	*sharedQuota = *memLimit * procInfo->config.sharedQuota / 100;
 }

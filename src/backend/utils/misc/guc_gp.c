@@ -39,6 +39,7 @@
 #include "utils/inval.h"
 #include "utils/resscheduler.h"
 #include "utils/resgroup.h"
+#include "utils/resource_manager.h"
 #include "utils/vmem_tracker.h"
 
 /*
@@ -2361,6 +2362,17 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
+
+		{"gp_log_resgroup_memory", PGC_USERSET, LOGGING_WHAT,
+			gettext_noop("Prints out messages related to resource group's memory management."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
+		},
+		&gp_log_resgroup_memory,
+		false, NULL, NULL
+	},
+
+	{
 		{"gp_resqueue_print_operator_memory_limits", PGC_USERSET, LOGGING_WHAT,
 			gettext_noop("Prints out the memory limit for operators (in explain) assigned by resource queue's "
 						 "memory management."),
@@ -2368,6 +2380,17 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
 		},
 		&gp_resqueue_print_operator_memory_limits,
+		false, NULL, NULL
+	},
+
+	{
+		{"gp_resgroup_print_operator_memory_limits", PGC_USERSET, LOGGING_WHAT,
+			gettext_noop("Prints out the memory limit for operators (in explain) assigned by resource group's "
+						 "memory management."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
+		},
+		&gp_resgroup_print_operator_memory_limits,
 		false, NULL, NULL
 	},
 
@@ -4484,6 +4507,16 @@ struct config_int ConfigureNamesInt_gp[] =
 	},
 
 	{
+		{"gp_resgroup_memory_policy_auto_fixed_mem", PGC_USERSET, RESOURCES_MEM,
+			gettext_noop("Sets the fixed amount of memory reserved for non-memory intensive operators in the AUTO policy."),
+			NULL,
+			GUC_UNIT_KB | GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_resgroup_memory_policy_auto_fixed_mem,
+		100, 50, INT_MAX, NULL, NULL
+	},
+
+	{
 		{"gp_backup_directIO_read_chunk_mb", PGC_USERSET, DEVELOPER_OPTIONS,
 			gettext_noop("Size of read Chunk buffer in directIO dump (in MB)"),
 			NULL,
@@ -4817,7 +4850,7 @@ struct config_real ConfigureNamesReal_gp[] =
 			NULL
 		},
 		&gp_resource_group_memory_limit,
-		0.9, 0.1, 1.0, NULL, NULL
+		0.9, 0.0001, 1.0, NULL, NULL
 	},
 
 	{
@@ -5344,6 +5377,15 @@ struct config_string ConfigureNamesString_gp[] =
 		},
 		&gp_resqueue_memory_policy_str,
 		"none", gpvars_assign_gp_resqueue_memory_policy, gpvars_show_gp_resqueue_memory_policy
+	},
+
+	{
+		{"gp_resgroup_memory_policy", PGC_SUSET, RESOURCES_MGM,
+			gettext_noop("Sets the policy for memory allocation of queries."),
+			gettext_noop("Valid values are AUTO, EAGER_FREE.")
+		},
+		&gp_resgroup_memory_policy_str,
+		"eager_free", gpvars_assign_gp_resgroup_memory_policy, gpvars_show_gp_resgroup_memory_policy
 	},
 
 	{

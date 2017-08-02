@@ -5,7 +5,7 @@
  *
  *
  * Copyright (c) 2010, Greenplum inc
- * 
+ *
  *-------------------------------------------------------------------------*/
 
 #include "postgres.h"
@@ -13,20 +13,28 @@
 #include "cdb/memquota.h"
 #include "cdb/cdbllize.h"
 #include "storage/lwlock.h"
-#include "commands/queue.h"
-#include "catalog/pg_resqueue.h"
 #include "utils/relcache.h"
 #include "executor/execdesc.h"
-#include "utils/resscheduler.h"
+#include "utils/resource_manager.h"
 #include "access/heapam.h"
 #include "miscadmin.h"
-#include "utils/guc_tables.h"
 #include "cdb/cdbvars.h"
 #include "optimizer/clauses.h"
 #include "parser/parsetree.h"
+#include "tcop/pquery.h"
+
+ResManagerMemoryPolicy		gp_resmanager_memory_policy_default = RESMANAGER_MEMORY_POLICY_NONE;
+bool						gp_log_resmanager_memory_default = false;
+int							gp_resmanager_memory_policy_auto_fixed_mem_default = 100;
+bool						gp_resmanager_print_operator_memory_limits_default = false;
+
+ResManagerMemoryPolicy		*gp_resmanager_memory_policy = &gp_resmanager_memory_policy_default;
+bool						*gp_log_resmanager_memory = &gp_log_resmanager_memory_default;
+int							*gp_resmanager_memory_policy_auto_fixed_mem = &gp_resmanager_memory_policy_auto_fixed_mem_default;
+bool						*gp_resmanager_print_operator_memory_limits = &gp_resmanager_print_operator_memory_limits_default;
 
 /**
- * Policy Auto. This contains information that will be used by Policy AUTO 
+ * Policy Auto. This contains information that will be used by Policy AUTO
  */
 typedef struct PolicyAutoContext
 {
@@ -44,7 +52,6 @@ static bool PolicyAutoPrelimWalker(Node *node, PolicyAutoContext *context);
 static bool	PolicyAutoAssignWalker(Node *node, PolicyAutoContext *context);
 static bool IsAggMemoryIntensive(Agg *agg);
 static bool IsMemoryIntensiveOperator(Node *node, PlannedStmt *stmt);
-static double minDouble(double a, double b);
 
 struct OperatorGroupNode;
 
@@ -98,27 +105,6 @@ typedef struct PolicyEagerFreeContext
 } PolicyEagerFreeContext;
 
 /**
- * GUCs
- */
-char                		*gp_resqueue_memory_policy_str = NULL;
-ResQueueMemoryPolicy		gp_resqueue_memory_policy = RESQUEUE_MEMORY_POLICY_NONE;
-bool						gp_log_resqueue_memory = false;
-int							gp_resqueue_memory_policy_auto_fixed_mem;
-const int					gp_resqueue_memory_log_level=NOTICE;
-bool						gp_resqueue_print_operator_memory_limits = false;
-
-/**
- * Minimum of two doubles 
- */
-static double minDouble(double a, double b)
-{
-	if (a < b) 
-		return a; 
-	else 
-		return b;
-}
-
-/**
  * Is an agg operator memory intensive? The following cases mean it is:
  * 1. If agg strategy is hashed
  * 2. If targetlist or qual contains a DQA
@@ -135,26 +121,26 @@ static bool IsAggMemoryIntensive(Agg *agg)
 	}
 
 	AggClauseCounts aggInfo;
-	
+
 	/* Zero it out */
 	MemSet(&aggInfo, 0, sizeof(aggInfo));
 
 	Plan *plan = (Plan *) &(agg->plan);
 	count_agg_clauses((Node *) plan->targetlist, &aggInfo);
 	count_agg_clauses((Node *) plan->qual, &aggInfo);
-	
+
 	/* Case 2 */
 	if (aggInfo.numDistinctAggs >0)
 	{
 		return true;
 	}
-	
+
 	/* Case 3 */
 	if (aggInfo.aggOrder != NIL )
 	{
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -199,17 +185,17 @@ IsBlockingOperator(Node *node)
 {
 	switch(nodeTag(node))
 	{
-		case T_BitmapIndexScan: 
+		case T_BitmapIndexScan:
 		case T_Hash:
 		case T_Sort:
 			return true;
 
 		case T_Material:
 			return IsMaterialBlockingOperator((Material *)node);
-		   
+
 		case T_Agg:
 			return IsAggBlockingOperator((Agg *)node);
-			
+
 		default:
 			return false;
 	}
@@ -359,9 +345,9 @@ static bool PolicyAutoPrelimWalker(Node *node, PolicyAutoContext *context)
 	{
 		return false;
 	}
-	
+
 	Assert(node);
-	Assert(context);	
+	Assert(context);
 	if (is_plan_node(node))
 	{
 		if (IsMemoryIntensiveOperator(node, context->plannedStmt))
@@ -383,20 +369,20 @@ static bool PolicyAutoPrelimWalker(Node *node, PolicyAutoContext *context)
  */
 static bool PolicyAutoAssignWalker(Node *node, PolicyAutoContext *context)
 {
-	const uint64 nonMemIntenseOpMemKB = (uint64) gp_resqueue_memory_policy_auto_fixed_mem;
+	const uint64 nonMemIntenseOpMemKB = (uint64) (*gp_resmanager_memory_policy_auto_fixed_mem);
 
 	if (node == NULL)
 	{
 		return false;
 	}
-	
+
 	Assert(node);
 	Assert(context);
-	
+
 	if (is_plan_node(node))
 	{
 		Plan *planNode = (Plan *) node;
-		
+
 		/**
 		 * If the operator is not a memory intensive operator, give it fixed amount of memory.
 		 */
@@ -406,16 +392,16 @@ static bool PolicyAutoAssignWalker(Node *node, PolicyAutoContext *context)
 		}
 		else
 		{
-			planNode->operatorMemKB = (uint64) ( (double) context->queryMemKB 
-					- (double) context->numNonMemIntensiveOperators * nonMemIntenseOpMemKB) 
+			planNode->operatorMemKB = (uint64) ( (double) context->queryMemKB
+					- (double) context->numNonMemIntensiveOperators * nonMemIntenseOpMemKB)
 					/ context->numMemIntensiveOperators;
 		}
 
 		Assert(planNode->operatorMemKB > 0);
 
-		if (gp_log_resqueue_memory)
+		if (LogResManagerMemory())
 		{
-			elog(gp_resqueue_memory_log_level, "assigning plan node memory = %dKB", (int )planNode->operatorMemKB);
+			elog(GP_RESMANAGER_MEMORY_LOG_LEVEL, "assigning plan node memory = %dKB", (int )planNode->operatorMemKB);
 		}
 	}
 	return plan_tree_walker(node, PolicyAutoAssignWalker, context);
@@ -426,7 +412,7 @@ static bool PolicyAutoAssignWalker(Node *node, PolicyAutoContext *context)
  * there are in a plan. It walks the plan again and allocates a fixed amount to every non-memory intensive operators.
  * It distributes the rest of the memory available to other operators.
  */
- void PolicyAutoAssignOperatorMemoryKB(PlannedStmt *stmt, uint64 memAvailableBytes)
+void PolicyAutoAssignOperatorMemoryKB(PlannedStmt *stmt, uint64 memAvailableBytes)
 {
 	 PolicyAutoContext ctx;
 	 exec_init_plan_tree_base(&ctx.base, stmt);
@@ -434,28 +420,28 @@ static bool PolicyAutoAssignWalker(Node *node, PolicyAutoContext *context)
 	 ctx.numMemIntensiveOperators = 0;
 	 ctx.numNonMemIntensiveOperators = 0;
 	 ctx.plannedStmt = stmt;
-	 
+
 #ifdef USE_ASSERT_CHECKING
-	 bool result = 
+	 bool result =
 #endif
 			 PolicyAutoPrelimWalker((Node *) stmt->planTree, &ctx);
-	 
+
 	 Assert(!result);
 	 Assert(ctx.numMemIntensiveOperators + ctx.numNonMemIntensiveOperators > 0);
-	 
-	 if (ctx.queryMemKB <= ctx.numNonMemIntensiveOperators * gp_resqueue_memory_policy_auto_fixed_mem)
+
+	 if (ctx.queryMemKB <= ctx.numNonMemIntensiveOperators * (*gp_resmanager_memory_policy_auto_fixed_mem))
 	 {
 		 elog(ERROR, ERRMSG_GP_INSUFFICIENT_STATEMENT_MEMORY);
 	 }
-	 
+
 #ifdef USE_ASSERT_CHECKING
-	 result = 
-#endif			 
+	 result =
+#endif
 			 PolicyAutoAssignWalker((Node *) stmt->planTree, &ctx);
-	 
+
 	 Assert(!result);
 }
- 
+
 /**
  * What should be query mem such that memory intensive operators get a certain minimum amount of memory.
  * Return value is in KB.
@@ -464,8 +450,8 @@ static bool PolicyAutoAssignWalker(Node *node, PolicyAutoContext *context)
  {
 	 Assert(stmt);
 	 Assert(minOperatorMemKB > 0);
-	 
-	 const uint64 nonMemIntenseOpMemKB = (uint64) gp_resqueue_memory_policy_auto_fixed_mem;
+
+	 const uint64 nonMemIntenseOpMemKB = (uint64) (*gp_resmanager_memory_policy_auto_fixed_mem);
 
 	 PolicyAutoContext ctx;
 	 exec_init_plan_tree_base(&ctx.base, stmt);
@@ -473,20 +459,20 @@ static bool PolicyAutoAssignWalker(Node *node, PolicyAutoContext *context)
 	 ctx.numMemIntensiveOperators = 0;
 	 ctx.numNonMemIntensiveOperators = 0;
 	 ctx.plannedStmt = stmt;
-	 
+
 #ifdef USE_ASSERT_CHECKING
-	 bool result = 
+	 bool result =
 #endif
 			 PolicyAutoPrelimWalker((Node *) stmt->planTree, &ctx);
-	 
+
 	 Assert(!result);
 	 Assert(ctx.numMemIntensiveOperators + ctx.numNonMemIntensiveOperators > 0);
-	 
+
 	 /**
 	  * Right now, the inverse is straightforward.
 	  * TODO: Siva - employ binary search to find the right value.
 	  */
-	 uint64 requiredStatementMemKB = ctx.numNonMemIntensiveOperators * nonMemIntenseOpMemKB 
+	 uint64 requiredStatementMemKB = ctx.numNonMemIntensiveOperators * nonMemIntenseOpMemKB
 			 + ctx.numMemIntensiveOperators * minOperatorMemKB;
 
 	 return requiredStatementMemKB;
@@ -516,7 +502,7 @@ IncrementOperatorCount(Node *node, OperatorGroupNode *groupNode, PlannedStmt *st
 {
 	Assert(node != NULL);
 	Assert(groupNode != NULL);
-	
+
 	if (IsMemoryIntensiveOperator(node, stmt))
 	{
 		groupNode->numMemIntenseOps++;
@@ -551,7 +537,7 @@ CreateOperatorGroupForOperator(Node *node,
 	Assert(is_plan_node(node));
 
 	OperatorGroupNode *groupNode = context->groupNode;
-	
+
 	/*
 	 * If the group tree has not been built, we create the first operator
 	 * group here.
@@ -560,7 +546,7 @@ CreateOperatorGroupForOperator(Node *node,
 	{
 		groupNode = CreateOperatorGroupNode(context->nextGroupId, NULL);
 		Assert(groupNode != NULL);
-		
+
 		context->groupTree = groupNode;
 		context->groupTree->groupMemKB = context->queryMemKB;
 		context->nextGroupId++;
@@ -574,7 +560,7 @@ CreateOperatorGroupForOperator(Node *node,
 	else if (IsRootOperatorInGroup(node))
 	{
 		Assert(groupNode != NULL);
-		
+
 		OperatorGroupNode *parentGroupNode = groupNode;
 		groupNode = CreateOperatorGroupNode(context->nextGroupId, groupNode);
 		if (parentGroupNode != NULL)
@@ -602,7 +588,7 @@ FindOperatorGroupForOperator(Node *node,
 	OperatorGroupNode *groupNode = context->groupNode;
 
 	/*
-	 * If this is the beginning of the walk (or the current group is NULL), 
+	 * If this is the beginning of the walk (or the current group is NULL),
 	 * this operator node belongs to the first operator group.
 	 */
 	if (groupNode == NULL)
@@ -619,7 +605,7 @@ FindOperatorGroupForOperator(Node *node,
 	else if (IsRootOperatorInGroup(node))
 	{
 		Assert(context->groupNode != NULL);
-		
+
 		ListCell *lc = NULL;
 		OperatorGroupNode *childGroup = NULL;
 		foreach(lc, context->groupNode->childGroups)
@@ -630,7 +616,7 @@ FindOperatorGroupForOperator(Node *node,
 				break;
 			}
 		}
-		
+
 		Assert(childGroup != NULL);
 		groupNode = childGroup;
 		context->nextGroupId++;
@@ -661,7 +647,7 @@ FindOperatorGroupForNode(Node *node,
 	Assert(is_plan_node(node));
 
 	OperatorGroupNode *groupNode = context->groupNode;
-	
+
 	if (context->groupNode == NULL)
 	{
 		if (isPrelimWalker)
@@ -737,8 +723,8 @@ ComputeAvgMemKBForMemIntenseOp(OperatorGroupNode *groupNode)
 	{
 		return 0;
 	}
-	
-	const uint64 nonMemIntenseOpMemKB = (uint64)gp_resqueue_memory_policy_auto_fixed_mem;
+
+	const uint64 nonMemIntenseOpMemKB = (uint64)(*gp_resmanager_memory_policy_auto_fixed_mem);
 
 	return (((double)groupNode->groupMemKB -
 			 (double)groupNode->numNonMemIntenseOps * nonMemIntenseOpMemKB) /
@@ -754,7 +740,7 @@ static void
 ComputeMemLimitForChildGroups(OperatorGroupNode *parentGroupNode)
 {
 	Assert(parentGroupNode != NULL);
-	
+
 	uint64 totalNumMemIntenseOps = 0;
 	uint64 totalNumNonMemIntenseOps = 0;
 
@@ -770,21 +756,21 @@ ComputeMemLimitForChildGroups(OperatorGroupNode *parentGroupNode)
 		{
 			return;
 		}
-		
-		totalNumMemIntenseOps += 
+
+		totalNumMemIntenseOps +=
 			Max(childGroup->maxNumConcMemIntenseOps, childGroup->numMemIntenseOps);
-		totalNumNonMemIntenseOps += 
+		totalNumNonMemIntenseOps +=
 			Max(childGroup->maxNumConcNonMemIntenseOps, childGroup->numNonMemIntenseOps);
 	}
 
-	const uint64 nonMemIntenseOpMemKB = (uint64)gp_resqueue_memory_policy_auto_fixed_mem;
+	const uint64 nonMemIntenseOpMemKB = (uint64)(*gp_resmanager_memory_policy_auto_fixed_mem);
 
 	foreach(lc, parentGroupNode->childGroups)
 	{
 		OperatorGroupNode *childGroup = (OperatorGroupNode *)lfirst(lc);
-		
+
 		Assert(childGroup->groupMemKB == 0);
-		
+
 		if (parentGroupNode->groupMemKB < totalNumNonMemIntenseOps * nonMemIntenseOpMemKB)
 		{
 			ereport(ERROR,
@@ -802,7 +788,7 @@ ComputeMemLimitForChildGroups(OperatorGroupNode *parentGroupNode)
 		}
 
 		Assert(parentGroupNode->groupMemKB > 0);
-		
+
 		/*
 		 * MPP-23130
 		 * In memory policy eager free, scaleFactor is used to balance memory allocated to
@@ -837,25 +823,25 @@ PolicyEagerFreePrelimWalker(Node *node, PolicyEagerFreeContext *context)
 	{
 		return false;
 	}
-	
+
 	Assert(node);
 	Assert(context);
 
 	OperatorGroupNode *parentGroupNode = NULL;
 	bool isTopPlanNode = false;
-	
+
 	if (is_plan_node(node))
 	{
 		if (context->groupTree == NULL)
 		{
 			isTopPlanNode = true;
 		}
-		
+
 		context->groupNode = CreateOperatorGroupForOperator(node, context);
 		Assert(context->groupNode != NULL);
 
 		IncrementOperatorCount(node, context->groupNode, context->plannedStmt);
-		
+
 		/*
 		 * We also increment the parent group's counter if this node
 		 * is the root node in a new group.
@@ -869,7 +855,7 @@ PolicyEagerFreePrelimWalker(Node *node, PolicyEagerFreeContext *context)
 
 	bool result = plan_tree_walker(node, PolicyEagerFreePrelimWalker, context);
 	Assert(!result);
-	
+
 	/*
 	 * If this node is the top nodoe in a group, at this point, we should have all info about
 	 * its child groups. We then calculate the maximum number of potential concurrently
@@ -879,29 +865,29 @@ PolicyEagerFreePrelimWalker(Node *node, PolicyEagerFreeContext *context)
 	if (isTopPlanNode || IsRootOperatorInGroup(node))
 	{
 		Assert(context->groupNode != NULL);
-			
+
 		uint64 maxNumConcNonMemIntenseOps = 0;
 		uint64 maxNumConcMemIntenseOps = 0;
-			
+
 		ListCell *lc;
 		foreach(lc, context->groupNode->childGroups)
 		{
 			OperatorGroupNode *childGroup = (OperatorGroupNode *)lfirst(lc);
-			maxNumConcNonMemIntenseOps += 
+			maxNumConcNonMemIntenseOps +=
 				Max(childGroup->maxNumConcNonMemIntenseOps, childGroup->numNonMemIntenseOps);
 			maxNumConcMemIntenseOps +=
 				Max(childGroup->maxNumConcMemIntenseOps, childGroup->numMemIntenseOps);
 		}
-		
+
 		Assert(context->groupNode->maxNumConcNonMemIntenseOps == 0 &&
 			   context->groupNode->maxNumConcMemIntenseOps == 0);
 		context->groupNode->maxNumConcNonMemIntenseOps = maxNumConcNonMemIntenseOps;
 		context->groupNode->maxNumConcMemIntenseOps = maxNumConcMemIntenseOps;
-		
+
 		/* Reset the groupNode to point to its parentGroupNode */
 		context->groupNode = GetParentOperatorGroup(context->groupNode);
 	}
-	
+
 	return result;
 }
 
@@ -916,16 +902,16 @@ PolicyEagerFreeAssignWalker(Node *node, PolicyEagerFreeContext *context)
 	{
 		return false;
 	}
-	
+
 	Assert(node);
 	Assert(context);
-	
-	const uint64 nonMemIntenseOpMemKB = (uint64)gp_resqueue_memory_policy_auto_fixed_mem;
+
+	const uint64 nonMemIntenseOpMemKB = (uint64)(*gp_resmanager_memory_policy_auto_fixed_mem);
 
 	if (is_plan_node(node))
 	{
 		Plan *planNode = (Plan *)node;
-		
+
 		context->groupNode = FindOperatorGroupForOperator(node, context);
 		Assert(context->groupNode != NULL);
 
@@ -975,7 +961,7 @@ PolicyEagerFreeAssignWalker(Node *node, PolicyEagerFreeContext *context)
 
 	bool result = plan_tree_walker(node, PolicyEagerFreeAssignWalker, context);
 	Assert(!result);
-	
+
 	/*
 	 * If this node is the root in a group, we reset some values in the context.
 	 */
@@ -1008,12 +994,12 @@ PolicyEagerFreeAssignOperatorMemoryKB(PlannedStmt *stmt, uint64 memAvailableByte
 	ctx.plannedStmt = stmt;
 
 #ifdef USE_ASSERT_CHECKING
-	bool result = 
+	bool result =
 #endif
 		PolicyEagerFreePrelimWalker((Node *) stmt->planTree, &ctx);
-	 
+
 	Assert(!result);
-	
+
 	/*
 	 * Reset groupNode and nextGroupId so that we can start from the
 	 * beginning of the group tree.
@@ -1024,7 +1010,7 @@ PolicyEagerFreeAssignOperatorMemoryKB(PlannedStmt *stmt, uint64 memAvailableByte
 	/*
 	 * Check if memory exceeds the limit in the root group
 	 */
-	const uint64 nonMemIntenseOpMemKB = (uint64)gp_resqueue_memory_policy_auto_fixed_mem;
+	const uint64 nonMemIntenseOpMemKB = (uint64)(*gp_resmanager_memory_policy_auto_fixed_mem);
 	if (ctx.groupTree->groupMemKB < ctx.groupTree->numNonMemIntenseOps * nonMemIntenseOpMemKB)
 	{
 		ereport(ERROR,
@@ -1033,169 +1019,29 @@ PolicyEagerFreeAssignOperatorMemoryKB(PlannedStmt *stmt, uint64 memAvailableByte
 	}
 
 #ifdef USE_ASSERT_CHECKING
-	result = 
-#endif			 
+	result =
+#endif
 		PolicyEagerFreeAssignWalker((Node *) stmt->planTree, &ctx);
-	 
+
 	Assert(!result);
 }
 
- /**
-  * What is the memory limit on a queue per the catalog in bytes. Returns -1 if not set.
-  */
-int64 ResourceQueueGetMemoryLimitInCatalog(Oid queueId)
-{
-	int memoryLimitKB = -1;
-	
-	Assert(queueId != InvalidOid);
-		
-	List * capabilitiesList = GetResqueueCapabilityEntry(queueId); /* This is a list of lists */
-
-	ListCell *le = NULL; 
-	foreach(le, capabilitiesList)
-	{
-		List *entry = NULL;
-		Value *key = NULL;		
-		entry = (List *) lfirst(le);
-		Assert(entry);
-		key = (Value *) linitial(entry);
-		Assert(key->type == T_Integer); /* This is resource type id */
-		if (intVal(key) == PG_RESRCTYPE_MEMORY_LIMIT)
-		{
-			Value *val = lsecond(entry);
-			Assert(val->type == T_String);
-
-#ifdef USE_ASSERT_CHECKING			
-			bool result = 
-
-#endif
-					parse_int(strVal(val), &memoryLimitKB, GUC_UNIT_KB, NULL);
-
-			Assert(result);
-		}
-	}
-	list_free(capabilitiesList);
-
-	Assert(memoryLimitKB == -1 || memoryLimitKB > 0);
-	
-	if (memoryLimitKB == -1)
-	{
-		return (int64) -1;
-	}
-	
-	return (int64) memoryLimitKB * 1024;
-
-}
- 
-/**
- * Get memory limit associated with queue in bytes. 
- * Returns -1 if a limit does not exist.
+/*
+ * Calculate the amount of memory reserved for the query
  */
-int64 ResourceQueueGetMemoryLimit(Oid queueId)
+int64
+ResourceManagerGetQueryMemoryLimit(PlannedStmt* stmt)
 {
-	int64 memoryLimitBytes = -1;
-	
-	Assert(queueId != InvalidOid);
-		
-	if (gp_resqueue_memory_policy != RESQUEUE_MEMORY_POLICY_NONE)
-	{
-		memoryLimitBytes = ResourceQueueGetMemoryLimitInCatalog(queueId);
-	}
-		
-	return memoryLimitBytes;
+	if (Gp_role != GP_ROLE_DISPATCH)
+		return 0;
+
+	Assert(gp_session_id > -1);
+	Assert(ActivePortal != NULL);
+
+	if (IsResQueueEnabled())
+		return ResourceQueueGetQueryMemoryLimit(stmt, ActivePortal->queueId);
+	if (IsResGroupEnabled())
+		return ResourceGroupGetQueryMemoryLimit();
+
+	return 0;
 }
-
-/**
- * Given a queueid, how much memory should a query take in bytes.
- */
-uint64 ResourceQueueGetQueryMemoryLimit(PlannedStmt *stmt, Oid queueId)
-{		
-	Assert(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY);
-	Assert(gp_resqueue_memory_policy == RESQUEUE_MEMORY_POLICY_AUTO ||
-		   gp_resqueue_memory_policy == RESQUEUE_MEMORY_POLICY_EAGER_FREE);
-	Assert(queueId != InvalidOid);
-	
-	/** Assert that I do not hold lwlock */
-	Assert(!LWLockHeldExclusiveByMe(ResQueueLock));
-
-	int64 resqLimitBytes = ResourceQueueGetMemoryLimit(queueId);
-
-	/**
-	 * If there is no memory limit on the queue, simply use statement_mem.
-	 */
-	AssertImply(resqLimitBytes < 0, resqLimitBytes == -1);
-	if (resqLimitBytes == -1)
-	{
-		return (uint64) statement_mem * 1024L;
-	}
-	
-	/**
-	 * This method should only be called while holding exclusive lock on ResourceQueues. This means
-	 * that nobody can modify any resource queue while current process is performing this computation.
-	 */
-	LWLockAcquire(ResQueueLock, LW_EXCLUSIVE);
-
-	ResQueue resQueue = ResQueueHashFind(queueId);
-	
-	LWLockRelease(ResQueueLock);
-
-	Assert(resQueue);	
-	int numSlots = (int) ceil(resQueue->limits[RES_COUNT_LIMIT].threshold_value);
-	double costLimit = (double) resQueue->limits[RES_COST_LIMIT].threshold_value;
-	double planCost = stmt->planTree->total_cost;
-	
-	if (planCost < 1.0)
-		planCost = 1.0;
-
-	Assert(planCost > 0.0);
-	
-	if (gp_log_resqueue_memory)
-	{
-		elog(gp_resqueue_memory_log_level, "numslots: %d, costlimit: %f", numSlots, costLimit);
-	}
-	
-	if (numSlots < 1)
-	{
-		/** there is no statement limit set */
-		numSlots = 1;
-	}
-	
-	if (costLimit < 0.0)
-	{
-		/** there is no cost limit set */
-		costLimit = planCost;
-	}
-
-	double minRatio = minDouble( 1.0/ (double) numSlots, planCost / costLimit);
-	
-	minRatio = minDouble(minRatio, 1.0);
-
-	if (gp_log_resqueue_memory)
-	{
-		elog(gp_resqueue_memory_log_level, "slotratio: %0.3f, costratio: %0.3f, minratio: %0.3f",
-				1.0/ (double) numSlots, planCost / costLimit, minRatio);
-	}
-	
-	uint64 queryMem = (uint64) resqLimitBytes * minRatio;
-	
-	/**
-	 * If user requests more using statement_mem, grant that.
-	 */
-	if (queryMem < statement_mem * 1024L)
-	{
-		queryMem = (uint64) statement_mem * 1024L;
-	}
-	
-	return queryMem;
-}
-
-/**
- * How much memory should superuser queries get?
- */
-uint64 ResourceQueueGetSuperuserQueryMemoryLimit(void)
-{
-	Assert(superuser());
-	return (uint64) statement_mem * 1024L;
-}
-
-

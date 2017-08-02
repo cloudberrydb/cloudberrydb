@@ -14,6 +14,13 @@
 /*
  * GUC variables.
  */
+typedef enum ResManagerMemoryPolicy ResManagerMemoryPolicy;
+extern ResManagerMemoryPolicy   gp_resgroup_memory_policy;
+extern char                		*gp_resgroup_memory_policy_str;
+extern bool						gp_log_resgroup_memory;
+extern int						gp_resgroup_memory_policy_auto_fixed_mem;
+extern bool						gp_resgroup_print_operator_memory_limits;
+
 extern int MaxResourceGroups;
 extern double gp_resource_group_cpu_limit;
 extern double gp_resource_group_memory_limit;
@@ -71,6 +78,8 @@ extern int CalcConcurrencyValue(int groupId, int val, int proposed, int newPropo
 
 /* test helper function */
 extern void ResGroupGetMemInfo(int *memLimit, int *slotQuota, int *sharedQuota);
+
+extern int ResourceGroupGetQueryMemoryLimit(void);
 
 #define LOG_RESGROUP_DEBUG(...) \
 	do {if (Debug_resource_group) elog(__VA_ARGS__); } while(false);
