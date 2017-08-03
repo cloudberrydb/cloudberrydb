@@ -5114,6 +5114,7 @@ PROCESS_SEGMENT_DATA:
 
 		CopyFromProcessDataFileHeader(cstate, cdbCopy, &file_has_oids);
 		CopyInitDataParser(cstate);
+		no_more_data = false;
 
 		goto PROCESS_SEGMENT_DATA;
 	}
