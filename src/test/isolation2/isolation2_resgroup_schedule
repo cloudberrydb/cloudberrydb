@@ -5,8 +5,12 @@ test: resgroup_syntax
 test: resgroup_transaction
 
 test: resgroup_concurrency
+test: resgroup_alter_concurrency
 test: resgroup_memory_statistic
 test: resgroup_memory_limit
+test: resgroup_cpu_rate_limit
+
+# memory spill tests
 test: resgroup_memory_hashagg_spill
 test: resgroup_memory_hashjoin_spill
 test: resgroup_memory_materialize_spill
@@ -14,6 +18,5 @@ test: resgroup_memory_sisc_mat_sort
 test: resgroup_memory_sisc_sort_spill
 test: resgroup_memory_sort_spill
 test: resgroup_memory_spilltodisk
-test: resgroup_cpu_rate_limit
 
 test: disable_resgroup

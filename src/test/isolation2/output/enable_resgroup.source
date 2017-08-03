@@ -42,6 +42,9 @@
 20170502:01:28:12:000367 gpconfig:sdw6:gpadmin-[WARNING]:-Managing queries with resource groups is an experimental feature. A work-in-progress version is enabled.
 20170502:01:28:13:000367 gpconfig:sdw6:gpadmin-[INFO]:-completed successfully
 
+! gpconfig -c gp_resource_group_cpu_limit -v 0.9;
+20170803:10:42:57:015929 gpconfig:nyu-vm-centos:gpadmin-[INFO]:-completed successfully
+
 ! gpstop -rai;
 -- end_ignore
 

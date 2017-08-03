@@ -19,6 +19,7 @@
 ! bash /tmp/.resgroup_mem_helper.sh;
 ! rm -f /tmp/.resgroup_mem_helper.sh;
 ! gpconfig -c gp_resource_manager -v group;
+! gpconfig -c gp_resource_group_cpu_limit -v 0.9;
 ! gpstop -rai;
 -- end_ignore
 

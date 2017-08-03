@@ -25,6 +25,8 @@ extern int MaxResourceGroups;
 extern double gp_resource_group_cpu_limit;
 extern double gp_resource_group_memory_limit;
 
+struct ResGroupConfigSnapshot;
+
 /* Type of statistic infomation */
 typedef enum
 {
@@ -54,7 +56,8 @@ extern void AllocResGroupEntry(Oid groupId);
 extern void FreeResGroupEntry(Oid groupId);
 
 extern void SerializeResGroupInfo(StringInfo str);
-extern void DeserializeResGroupInfo(const char *buf, int len);
+extern void DeserializeResGroupInfo(struct ResGroupConfigSnapshot *config,
+									const char *buf, int len);
 
 extern bool ShouldAssignResGroupOnMaster(void);
 extern void AssignResGroupOnMaster(void);
