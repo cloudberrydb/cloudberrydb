@@ -63,10 +63,6 @@ namespace gpopt
 			// no column references and no volatile functions
 			static
 			BOOL FValidRefsOnly(CExpression *pexprScalar, CColRefSet *pcrsAllowedRefs);
-			
-			// helper to add explicit casting to left child of given equality predicate
-			static
-			CExpression *PexprAddCast(IMemoryPool *pmp, CExpression *pexprPred);
 
 			// determine which predicates we should test implication for
 			static
@@ -461,10 +457,6 @@ namespace gpopt
 			static
 			CExpression *PexprInverseComparison(IMemoryPool *pmp, CExpression *pexprCmp);
 
-			// add explicit casting to equality operations between compatible types
-			static
-			DrgPexpr *PdrgpexprCastEquality(IMemoryPool *pmp, CExpression *pexpr);
-
 			// prune unnecessary equality operations
 			static
 			CExpression *PexprPruneSuperfluosEquality(IMemoryPool *pmp, CExpression *pexpr);
@@ -508,10 +500,6 @@ namespace gpopt
 			// split given scalar expression into two conjunctions; without and with outer references
 			static
 			void SeparateOuterRefs(IMemoryPool *pmp, CExpression *pexprScalar, CColRefSet *pcrsOuter, CExpression **ppexprLocal, CExpression **ppexprOuterRef);
-
-			// add explicit casting on the input expression to the destination type
-			static
-			CExpression *PexprCast(IMemoryPool *pmp, CMDAccessor *pmda, CExpression *pexpr, IMDId *pmdidDest);
 
 			// is the condition a LIKE predicate
 			static

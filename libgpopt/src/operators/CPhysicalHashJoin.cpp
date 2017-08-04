@@ -13,6 +13,7 @@
 #include "gpos/sync/CAutoMutex.h"
 
 #include "gpopt/base/CUtils.h"
+#include "gpopt/base/CCastUtils.h"
 #include "gpopt/base/COptCtxt.h"
 #include "gpopt/base/CDistributionSpecReplicated.h"
 #include "gpopt/base/CDistributionSpecNonSingleton.h"
@@ -309,11 +310,11 @@ CPhysicalHashJoin::PdshashedMatching
 	DrgPexpr *pdrgpexprTargetNoCast = GPOS_NEW(pmp) DrgPexpr(pmp);
 	for (ULONG ul = 0; ul < ulSourceSize; ul++)
 	{
-		CExpression *pexpr = CUtils::PexprWithoutBinaryCoercibleCasts((*pdrgpexprSource)[ul]);
+		CExpression *pexpr = CCastUtils::PexprWithoutBinaryCoercibleCasts((*pdrgpexprSource)[ul]);
 		pexpr->AddRef();
 		pdrgpexprSourceNoCast->Append(pexpr);
 
-		pexpr = CUtils::PexprWithoutBinaryCoercibleCasts((*pdrgpexprTarget)[ul]);
+		pexpr = CCastUtils::PexprWithoutBinaryCoercibleCasts((*pdrgpexprTarget)[ul]);
 		pexpr->AddRef();
 		pdrgpexprTargetNoCast->Append(pexpr);
 	}
@@ -322,7 +323,7 @@ CPhysicalHashJoin::PdshashedMatching
 	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
 	for (ULONG ulDlvrdIdx = 0; ulDlvrdIdx < ulDlvrdSize; ulDlvrdIdx++)
 	{
-		CExpression *pexprDlvrd = CUtils::PexprWithoutBinaryCoercibleCasts((*pdrgpexprDist)[ulDlvrdIdx]);
+		CExpression *pexprDlvrd = CCastUtils::PexprWithoutBinaryCoercibleCasts((*pdrgpexprDist)[ulDlvrdIdx]);
 		for (ULONG ulIdx = 0; ulIdx < ulSourceSize; ulIdx++)
 		{
 			if (CUtils::FEqual(pexprDlvrd, (*pdrgpexprSourceNoCast)[ulIdx]))

@@ -113,7 +113,7 @@ namespace gpopt
 			static
 			void ValidateCTEProducerConsumerLocality(IMemoryPool *pmp, CExpression *pexpr, EExecLocalityType edt, HMUlUl *phmulul);
 
-			// Check is a comparison between given types or a comparison after casting
+			// check is a comparison between given types or a comparison after casting
 			// one side to an another exists
 			static
 			BOOL FCmpOrCastedCmpExists(IMDId *pmdidLeft, IMDId *pmdidRight, IMDType::ECmpType ecmpt);
@@ -920,20 +920,6 @@ namespace gpopt
 			static
 			ULONG UlHashColArray(const DrgPcr *pdrgpcr, const ULONG ulMaxCols = 5);
 
-			// is the given expression a binary coercible cast of a scalar identifier for the given column
-			static
-			BOOL FBinaryCoercibleCastedScId(CExpression *pexpr, CColRef *pcr);
-			
-			// is the given expression a binary coercible cast of a scalar identifier
-			static
-			BOOL FBinaryCoercibleCastedScId(CExpression *pexpr);
-
-			// extract the column reference if the given expression a scalar identifier
-			// or a cast of a scalar identifier or a function that casts a scalar identifier. 
-			// Else return NULL.
-			static
-			const CColRef *PcrExtractFromScIdOrCastScId(CExpression *pexpr);
-
 			// return the set of column reference from the CTE Producer corresponding to the
 			// subset of input columns from the CTE Consumer
 			static
@@ -948,22 +934,9 @@ namespace gpopt
 			static
 			BOOL FHasDuplicates(const DrgPcr *pdrgpcr);
 
-			// cast the input column reference to the destination mdid
-			static
-			CExpression *PexprCast( IMemoryPool *pmp, CMDAccessor *pmda, const CColRef *pcr, IMDId *pmdidDest);
-
 			// cast the input expression to the destination mdid
 			static
 			CExpression *PexprCast(IMemoryPool *pmp, CMDAccessor *pmda, CExpression *pexpr, IMDId *pmdidDest);
-
-			// check whether the given expression is a binary coercible cast of something
-			static
-			BOOL FBinaryCoercibleCast(CExpression *pexpr);
-
-			// return the given expression without any binary coercible casts
-			// that exist on the top
-			static
-			CExpression *PexprWithoutBinaryCoercibleCasts(CExpression *pexpr);
 
 			// construct a logical join expression of the given type, with the given children
 			static

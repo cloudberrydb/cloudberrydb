@@ -205,6 +205,8 @@ add_library(gpopt
             src/base/CRewindabilitySpec.cpp
             include/gpopt/base/CUtils.h
             src/base/CUtils.cpp
+            include/gpopt/base/CCastUtils.h
+            src/base/CCastUtils.cpp
             include/gpopt/base/CWindowFrame.h
             src/base/CWindowFrame.cpp
             include/gpopt/base/IColConstraintsMapper.h

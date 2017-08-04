@@ -12,6 +12,7 @@
 #include "naucrates/traceflags/traceflags.h"
 #include "gpopt/base/COptCtxt.h"
 #include "gpopt/base/CUtils.h"
+#include "gpopt/base/CCastUtils.h"
 #include "gpopt/base/CColRefSet.h"
 #include "gpopt/base/CColRefSetIter.h"
 #include "gpopt/base/CDistributionSpecHashed.h"
@@ -192,12 +193,12 @@ CDistributionSpecHashed::FMatchSubset
 
 	for (ULONG ulOuter = 0; ulOuter < ulOwnExprs; ulOuter++)
 	{
-		CExpression *pexprOwn = CUtils::PexprWithoutBinaryCoercibleCasts((*m_pdrgpexpr)[ulOuter]);
+		CExpression *pexprOwn = CCastUtils::PexprWithoutBinaryCoercibleCasts((*m_pdrgpexpr)[ulOuter]);
 
 		BOOL fFound = false;
 		for (ULONG ulInner = 0; ulInner < ulOtherExprs; ulInner++)
 		{
-			CExpression *pexprOther = CUtils::PexprWithoutBinaryCoercibleCasts((*(pdsHashed->m_pdrgpexpr))[ulInner]);
+			CExpression *pexprOther = CCastUtils::PexprWithoutBinaryCoercibleCasts((*(pdsHashed->m_pdrgpexpr))[ulInner]);
 			if (CUtils::FEqual(pexprOwn, pexprOther))
 			{
 				fFound = true;
@@ -406,8 +407,8 @@ CDistributionSpecHashed::FMatchHashedDistribution
 	const ULONG ulLen = m_pdrgpexpr->UlLength();
 	for (ULONG ul = 0; ul < ulLen; ul++)
 	{
-		if (!CUtils::FEqual(CUtils::PexprWithoutBinaryCoercibleCasts((*(pdshashed->m_pdrgpexpr))[ul]),
-							CUtils::PexprWithoutBinaryCoercibleCasts((*m_pdrgpexpr)[ul])))
+		if (!CUtils::FEqual(CCastUtils::PexprWithoutBinaryCoercibleCasts((*(pdshashed->m_pdrgpexpr))[ul]),
+							CCastUtils::PexprWithoutBinaryCoercibleCasts((*m_pdrgpexpr)[ul])))
 		{
 			return false;
 		}

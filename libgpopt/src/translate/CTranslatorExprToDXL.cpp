@@ -45,6 +45,7 @@
 #include "gpopt/translate/CTranslatorExprToDXLUtils.h"
 
 #include "gpopt/base/CUtils.h"
+#include "gpopt/base/CCastUtils.h"
 
 #include "naucrates/base/IDatumInt8.h"
 #include "naucrates/base/CDatumBoolGPDB.h"
@@ -4909,7 +4910,7 @@ CTranslatorExprToDXL::PdxlnPredOnPartKey
 	{
 #ifdef GPOS_DEBUG
 		CExpression *pexprChild = (*pexprPred)[0];
-		GPOS_ASSERT(CUtils::FScalarIdent(pexprChild, pcrPartKey) || CUtils::FBinaryCoercibleCastedScId(pexprChild, pcrPartKey));
+		GPOS_ASSERT(CUtils::FScalarIdent(pexprChild, pcrPartKey) || CCastUtils::FBinaryCoercibleCastedScId(pexprChild, pcrPartKey));
 #endif //GPOS_DEBUG
 
 		return PdxlnScNullTestPartKey(pmdidTypePartKey, ulPartLevel, fRangePart, true /*fIsNull*/);
@@ -4920,7 +4921,7 @@ CTranslatorExprToDXL::PdxlnPredOnPartKey
 #ifdef GPOS_DEBUG
 		CExpression *pexprIsNull = (*pexprPred)[0];
 		CExpression *pexprChild = (*pexprIsNull)[0];
-		GPOS_ASSERT(CUtils::FScalarIdent(pexprChild, pcrPartKey) || CUtils::FBinaryCoercibleCastedScId(pexprChild, pcrPartKey));
+		GPOS_ASSERT(CUtils::FScalarIdent(pexprChild, pcrPartKey) || CCastUtils::FBinaryCoercibleCastedScId(pexprChild, pcrPartKey));
 #endif //GPOS_DEBUG
 
 		*pfEQComparison = true;

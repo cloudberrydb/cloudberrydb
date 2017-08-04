@@ -264,29 +264,29 @@ CUtils::PexprScalarCmp
 // one side to an another exists
 BOOL
 CUtils::FCmpOrCastedCmpExists
-	(
+(
 	IMDId *pmdidLeft,
 	IMDId *pmdidRight,
 	IMDType::ECmpType ecmpt
 	)
 {
 	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-
+	
 	if (CMDAccessorUtils::FCmpExists(pmda, pmdidLeft, pmdidRight, ecmpt))
 	{
 		return true;
 	}
-
+	
 	if (CMDAccessorUtils::FCmpExists(pmda, pmdidRight, pmdidRight, ecmpt) && CMDAccessorUtils::FCastExists(pmda, pmdidLeft, pmdidRight))
 	{
 		return true;
 	}
-
+	
 	if (CMDAccessorUtils::FCmpExists(pmda, pmdidLeft, pmdidLeft, ecmpt) && CMDAccessorUtils::FCastExists(pmda, pmdidRight, pmdidLeft))
 	{
 		return true;
 	}
-
+	
 	return false;
 }
 
@@ -4107,48 +4107,6 @@ CUtils::PexprConjINDFCond
 	return pexprScCond;
 }
 
-// is the given expression a binary coercible cast of a scalar identifier
-BOOL
-CUtils::FBinaryCoercibleCastedScId
-	(
-	CExpression *pexpr,
-	CColRef *pcr
-	)
-{
-	GPOS_ASSERT(NULL != pexpr);
-	
-	if (!FBinaryCoercibleCast(pexpr))
-	{
-		return false;
-	}
-	
-	CExpression *pexprChild = (*pexpr)[0];
-	
-	// cast(col1)
-	return COperator::EopScalarIdent == pexprChild->Pop()->Eopid() &&
-		pcr == CScalarIdent::PopConvert(pexprChild->Pop())->Pcr();
-}
-
-// is the given expression a binary coercible cast of a scalar identifier
-BOOL
-CUtils::FBinaryCoercibleCastedScId
-	(
-	CExpression *pexpr
-	)
-{
-	GPOS_ASSERT(NULL != pexpr);
-	
-	if (!FBinaryCoercibleCast(pexpr))
-	{
-		return false;
-	}
-	
-	CExpression *pexprChild = (*pexpr)[0];
-	
-	// cast(col1)
-	return COperator::EopScalarIdent == pexprChild->Pop()->Eopid();
-}
-
 // return index of the set containing given column; if column is not found, return ULONG_MAX
 ULONG
 CUtils::UlPcrIndexContainingSet
@@ -4172,93 +4130,10 @@ CUtils::UlPcrIndexContainingSet
 	return ULONG_MAX;
 }
 
-// extract the column reference if the given expression a scalar identifier
-// or a cast of a scalar identifier or a function that casts a scalar identifier.
-// Else return NULL.
-const CColRef *
-CUtils::PcrExtractFromScIdOrCastScId
-	(
-	CExpression *pexpr
-	)
-{
-	GPOS_ASSERT(NULL != pexpr);
-
-	BOOL fScIdent = COperator::EopScalarIdent == pexpr->Pop()->Eopid();
-	BOOL fCastedScIdent = CScalarIdent::FCastedScId(pexpr);
-
-	// col or cast(col)
-	if (!fScIdent && !fCastedScIdent)
-	{
-		return NULL;
-	}
-
-	CScalarIdent *popScIdent = NULL;
-	if (fScIdent)
-	{
-		popScIdent = CScalarIdent::PopConvert(pexpr->Pop());
-	}
-	else
-	{
-		GPOS_ASSERT(fCastedScIdent);
-		popScIdent = CScalarIdent::PopConvert((*pexpr)[0]->Pop());
-	}
-
-	return popScIdent->Pcr();
-}
-
-// cast the input column reference to the destination mdid
-CExpression *
-CUtils::PexprCast
-	(
-	IMemoryPool *pmp,
-	CMDAccessor *pmda,
-	const CColRef *pcr,
-	IMDId *pmdidDest
-	)
-{
-	GPOS_ASSERT(NULL != pmdidDest);
-
-	IMDId *pmdidSrc = pcr->Pmdtype()->Pmdid();
-	GPOS_ASSERT(CMDAccessorUtils::FCastExists(pmda, pmdidSrc, pmdidDest));
-
-	const IMDCast *pmdcast = pmda->Pmdcast(pmdidSrc, pmdidDest);
-
-	pmdidDest->AddRef();
-	pmdcast->PmdidCastFunc()->AddRef();
-	CExpression *pexpr;
-
-	if(pmdcast->EmdPathType() == IMDCast::EmdtArrayCoerce)
-	{
-		CMDArrayCoerceCastGPDB *parrayCoerceCast = (CMDArrayCoerceCastGPDB *) pmdcast;
-		pexpr = GPOS_NEW(pmp) CExpression
-									(
-									pmp,
-									GPOS_NEW(pmp) CScalarArrayCoerceExpr
-														(
-														pmp,
-														parrayCoerceCast->PmdidCastFunc(),
-														pmdidDest,
-														parrayCoerceCast->IMod(),
-														parrayCoerceCast->FIsExplicit(),
-														(COperator::ECoercionForm) parrayCoerceCast->Ecf(),
-														parrayCoerceCast->ILoc()
-														),
-									PexprScalarIdent(pmp, pcr)
-									);
-	}
-	else
-	{
-	
-		CScalarCast *popCast = GPOS_NEW(pmp) CScalarCast(pmp, pmdidDest, pmdcast->PmdidCastFunc(), pmdcast->FBinaryCoercible());
-		pexpr = GPOS_NEW(pmp) CExpression(pmp, popCast, PexprScalarIdent(pmp, pcr));
-	}
-	return pexpr;
-}
-
 // cast the input expression to the destination mdid
 CExpression *
 CUtils::PexprCast
-	(
+(
 	IMemoryPool *pmp,
 	CMDAccessor *pmda,
 	CExpression *pexpr,
@@ -4268,9 +4143,9 @@ CUtils::PexprCast
 	GPOS_ASSERT(NULL != pmdidDest);
 	IMDId *pmdidSrc = CScalar::PopConvert(pexpr->Pop())->PmdidType();
 	GPOS_ASSERT(CMDAccessorUtils::FCastExists(pmda, pmdidSrc, pmdidDest));
-
+	
 	const IMDCast *pmdcast = pmda->Pmdcast(pmdidSrc, pmdidDest);
-
+	
 	pmdidDest->AddRef();
 	pmdcast->PmdidCastFunc()->AddRef();
 	CExpression *pexprCast;
@@ -4279,20 +4154,20 @@ CUtils::PexprCast
 	{
 		CMDArrayCoerceCastGPDB *parrayCoerceCast = (CMDArrayCoerceCastGPDB *) pmdcast;
 		pexprCast = GPOS_NEW(pmp) CExpression
-									(
-									pmp,
-									GPOS_NEW(pmp) CScalarArrayCoerceExpr
-														(
-														pmp,
-														parrayCoerceCast->PmdidCastFunc(),
-														pmdidDest,
-														parrayCoerceCast->IMod(),
-														parrayCoerceCast->FIsExplicit(),
-														(COperator::ECoercionForm) parrayCoerceCast->Ecf(),
-														parrayCoerceCast->ILoc()
-														),
-									pexpr
-									);
+		(
+		 pmp,
+		 GPOS_NEW(pmp) CScalarArrayCoerceExpr
+		 (
+		  pmp,
+		  parrayCoerceCast->PmdidCastFunc(),
+		  pmdidDest,
+		  parrayCoerceCast->IMod(),
+		  parrayCoerceCast->FIsExplicit(),
+		  (COperator::ECoercionForm) parrayCoerceCast->Ecf(),
+		  parrayCoerceCast->ILoc()
+		  ),
+		 pexpr
+		 );
 	}
 	else
 	{
@@ -4300,44 +4175,8 @@ CUtils::PexprCast
 		CScalarCast *popCast = GPOS_NEW(pmp) CScalarCast(pmp, pmdidDest, pmdcast->PmdidCastFunc(), pmdcast->FBinaryCoercible());
 		pexprCast = GPOS_NEW(pmp) CExpression(pmp, popCast, pexpr);
 	}
-
+	
 	return pexprCast;
-}
-
-// check whether the given expression is a binary coercible cast of something
-BOOL
-CUtils::FBinaryCoercibleCast
-	(
-	CExpression *pexpr
-	)
-{
-	GPOS_ASSERT(NULL != pexpr);
-	COperator *pop = pexpr->Pop();
-
-	return COperator::EopScalarCast == pop->Eopid() &&
-			CScalarCast::PopConvert(pop)->FBinaryCoercible();
-}
-
-// return the given expression without any binary coercible casts
-// that exist on the top
-CExpression *
-CUtils::PexprWithoutBinaryCoercibleCasts
-	(
-	CExpression *pexpr
-	)
-{
-	GPOS_ASSERT(NULL != pexpr);
-	GPOS_ASSERT(pexpr->Pop()->FScalar());
-
-	CExpression *pexprOutput = pexpr;
-
-	while (FBinaryCoercibleCast(pexprOutput))
-	{
-		GPOS_ASSERT(1 == pexprOutput->UlArity());
-		pexprOutput = (*pexprOutput)[0];
-	}
-
-	return pexprOutput;
 }
 
 // check whether a colref array contains repeated items

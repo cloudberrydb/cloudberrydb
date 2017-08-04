@@ -12,6 +12,7 @@
 #include "gpos/base.h"
 
 #include "gpopt/base/CUtils.h"
+#include "gpopt/base/CCastUtils.h"
 #include "gpopt/exception.h"
 #include "gpopt/operators/ops.h"
 #include "gpopt/operators/CExpressionUtils.h"
@@ -287,7 +288,7 @@ CStatsPredUtils::Pstatspred
 	GPOS_ASSERT(COperator::EopScalarIdent == pexprLeft->Pop()->Eopid() || CScalarIdent::FCastedScId(pexprLeft));
 	GPOS_ASSERT(COperator::EopScalarConst == pexprRight->Pop()->Eopid() || CScalarConst::FCastedConst(pexprRight));
 
-	const CColRef *pcr = CUtils::PcrExtractFromScIdOrCastScId(pexprLeft);
+	const CColRef *pcr = CCastUtils::PcrExtractFromScIdOrCastScId(pexprLeft);
 	CScalarConst *popScalarConst = CScalarConst::PopExtractFromConstOrCastConst(pexprRight);
 	GPOS_ASSERT(NULL != popScalarConst);
 
@@ -365,8 +366,8 @@ CStatsPredUtils::FCmpColsIgnoreCast
 		pexprRight = (*pexpr)[1];
 	}
 
-	(*ppcrLeft) = CUtils::PcrExtractFromScIdOrCastScId(pexprLeft);
-	(*ppcrRight) = CUtils::PcrExtractFromScIdOrCastScId(pexprRight);
+	(*ppcrLeft) = CCastUtils::PcrExtractFromScIdOrCastScId(pexprLeft);
+	(*ppcrRight) = CCastUtils::PcrExtractFromScIdOrCastScId(pexprRight);
 
 	if (NULL == *ppcrLeft || NULL == *ppcrRight)
 	{

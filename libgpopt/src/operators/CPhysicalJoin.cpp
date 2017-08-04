@@ -12,6 +12,7 @@
 #include "gpos/base.h"
 
 #include "gpopt/base/CUtils.h"
+#include "gpopt/base/CCastUtils.h"
 #include "gpopt/base/CDistributionSpecAny.h"
 #include "gpopt/base/CDistributionSpecReplicated.h"
 
@@ -699,7 +700,7 @@ CPhysicalJoin::FHashJoinPossible
 	GPOS_ASSERT(NULL != ppexprResult);
 
 	// introduce explicit casting, if needed
-	DrgPexpr *pdrgpexpr = CPredicateUtils::PdrgpexprCastEquality(pmp,  (*pexpr)[2]);
+	DrgPexpr *pdrgpexpr = CCastUtils::PdrgpexprCastEquality(pmp,  (*pexpr)[2]);
 
 	// identify hashkeys
 	ULONG ulPreds = pdrgpexpr->UlLength();
