@@ -33,6 +33,7 @@ class PGTerminateBackendTincTestCase(TINCTestCase):
 
     def __init__(self, methodName):
         super(PGTerminateBackendTincTestCase,self).__init__(methodName)
+        self.terminate_backend_message = 'test pg_terminate_backend'
 
     def setup_table(self):
         create_table = 'create table foo as select i a, i b from generate_series(1, 10)i;'
@@ -45,7 +46,11 @@ class PGTerminateBackendTincTestCase(TINCTestCase):
         """
         MAX_TRY = 5
         counter = 0
-        get_backend_pid = 'SELECT procpid FROM pg_stat_activity WHERE current_query like \'create temp table t as select%\';'
+
+        # XXX: It's best effort to grab the procid for `create temp table t %`. It's not guaranted to be the oldest one.
+        # Occasionally, with ORCA enabled, there are multiple slices reported with same statement, but different procids.
+        # In this case, the oldest one is usually the first procid for the entire query.
+        get_backend_pid = 'SELECT procpid FROM pg_stat_activity WHERE current_query like \'create temp table t as select%\' ORDER BY procpid LIMIT 1;'
         result = PSQL.run_sql_command(get_backend_pid, flags = '-q -t', dbname = self.db_name)
         tinctest.logger.info('result from getting backend procepid is %s'%result)
         procpid = result.strip()
@@ -55,27 +60,33 @@ class PGTerminateBackendTincTestCase(TINCTestCase):
             counter += 1
         if counter == MAX_TRY:
             raise Exception('unable to select out the backend process pid')
-        kill_backend = 'SELECT pg_terminate_backend(%s);'%procpid
+
+        kill_backend = 'SELECT pg_terminate_backend(%s, \'%s\');'%(procpid, self.terminate_backend_message)
         result = PSQL.run_sql_command(kill_backend, flags = '-q -t', dbname = self.db_name)
         tinctest.logger.info('result from pg_terminate_backend is %s'%result)
+        if 't' != result.strip():
+            raise Exception('Failed to execute pg_terminate_backend!')
+
         # check if the process was terminated already
         result = PSQL.run_sql_command(get_backend_pid, flags = '-q -t', dbname = self.db_name)
         procpid_after_terminate = result.strip()
         counter = 0
-        while procpid_after_terminate == procpid and counter < MAX_TRY:
+        while procpid_after_terminate and counter < MAX_TRY:
             result = PSQL.run_sql_command(get_backend_pid, flags = '-q -t', dbname = self.db_name)
             procpid_after_terminate = result.strip()  
             counter += 1
             time.sleep(1)
         if counter == MAX_TRY:
             raise Exception('Running pg_terminated_backend failed!')
-            
 
     def backend_start(self):
         """Run backend process """
         backend_sql = '''create temp table t as select (select case when pg_sleep(20)
                 is null then 1 end from foo limit 1) from foo;'''
-        PSQL.run_sql_command(backend_sql, flags = '-q -t', dbname = self.db_name)
+        results = {'rc':0, 'stdout':'', 'stderr':''}
+        PSQL.run_sql_command(backend_sql, flags = '-q -t', dbname = self.db_name, results = results)
+        if self.terminate_backend_message not in results['stderr']:
+            raise Exception('Backend should be terminated with message \'%s\'!' % self.terminate_backend_message)
 
     def get_linenum_pglog(self):
         """
@@ -97,6 +108,11 @@ class PGTerminateBackendTincTestCase(TINCTestCase):
 
     def verify_mpp21545(self):
         """
+        Customer reported this issue where postmaster got PANIC while a certain backend got terminated.
+        This will trigger the recovery process, and disturb the availability of the entire cluster.
+
+        This verification is to ensure there is NO PANIC on postmaster.
+
         After the pg_terminate_backend(), check if new log file has been generated, if so,
         append all new content into a string, plus new content from previous log file(if log
         msg cross two logfiles).
