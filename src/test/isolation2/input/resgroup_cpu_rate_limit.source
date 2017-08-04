@@ -21,15 +21,26 @@ CREATE TABLE bigtable AS
 -- the cpu usage limitation has an error rate about +-7.5%,
 -- and also we want to satisfy the 0.1:0.2 rate under 90% overall limitation
 -- so we round the cpu rate by 15%
-CREATE OR REPLACE FUNCTION round_percentage(json) RETURNS text AS $$
-    SELECT (round(avg(value::text::float)/15)*15)::text||'%'
-    FROM json_each_text($1)
+CREATE OR REPLACE FUNCTION round_percentage(float) RETURNS text AS $$
+    SELECT (round($1/15)*15)::text||'%'
 $$ LANGUAGE sql;
 
 CREATE OR REPLACE VIEW cpu_status AS
-    SELECT s.rsgname, round_percentage(s.cpu_usage)
-    FROM gp_toolkit.gp_resgroup_status s
-    ORDER BY s.groupid;
+    SELECT b.rsgname, round_percentage(avg(b.cpu)) AS cpu
+    FROM
+       gp_segment_configuration gsc,
+       (
+          SELECT btrim((cpu->'key')::text, '"')::int AS content,
+                 (cpu->'value') ::text::float AS cpu, rsgname 
+          FROM
+             (
+                SELECT rsgname, row_to_json(json_each(cpu_usage::json)) AS cpu 
+                FROM gp_toolkit.gp_resgroup_status
+             ) a
+       ) b 
+    WHERE gsc.content = b.content AND gsc.role = 'p' AND gsc.content <> -1
+    GROUP BY b.rsgname
+    ORDER BY b.rsgname;
 
 CREATE VIEW busy AS
     SELECT count(*)

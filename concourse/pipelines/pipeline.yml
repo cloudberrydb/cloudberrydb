@@ -660,6 +660,32 @@ jobs:
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
       TEST_OS: centos
 
+- name: icw_resource_group
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [compile_gpdb_centos6]
+    - get: bin_gpdb
+      resource: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: ccp_src
+    - get: centos-gpdb-dev-6
+  - put: terraform
+    params:
+      <<: *ccp_create_params
+  - task: gen_cluster
+    file: ccp_src/ci/tasks/gen_cluster.yml
+    input_mapping:
+      gpdb_binary: bin_gpdb
+    on_failure:
+      <<: *ccp_destroy
+  - task: run_tests
+    file: gpdb_src/concourse/tasks/ic_gpdb_resgroup.yml
+    image: centos-gpdb-dev-6
+    on_failure:
+      <<: *debug_sleep
+  - *ccp_destroy
 
 - name: MU_check_centos
   plan:

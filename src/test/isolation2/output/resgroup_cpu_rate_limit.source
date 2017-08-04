@@ -14,9 +14,9 @@ DROP
 DROP ROLE IF EXISTS role2_cpu_test;
 DROP
 DROP RESOURCE GROUP rg1_cpu_test;
-DROP
+ERROR:  resource group "rg1_cpu_test" does not exist
 DROP RESOURCE GROUP rg2_cpu_test;
-DROP
+ERROR:  resource group "rg2_cpu_test" does not exist
 -- end_ignore
 
 --
@@ -29,10 +29,10 @@ CREATE 100000
 -- the cpu usage limitation has an error rate about +-7.5%,
 -- and also we want to satisfy the 0.1:0.2 rate under 90% overall limitation
 -- so we round the cpu rate by 15%
-CREATE OR REPLACE FUNCTION round_percentage(json) RETURNS text AS $$ SELECT (round(avg(value::text::float)/15)*15)::text||'%' FROM json_each_text($1) $$ LANGUAGE sql;
+CREATE OR REPLACE FUNCTION round_percentage(float) RETURNS text AS $$ SELECT (round($1/15)*15)::text||'%' $$ LANGUAGE sql;
 CREATE
 
-CREATE OR REPLACE VIEW cpu_status AS SELECT s.rsgname, round_percentage(s.cpu_usage) FROM gp_toolkit.gp_resgroup_status s ORDER BY s.groupid;
+CREATE OR REPLACE VIEW cpu_status AS SELECT b.rsgname, round_percentage(avg(b.cpu)) AS cpu FROM gp_segment_configuration gsc, ( SELECT btrim((cpu->'key')::text, '"')::int AS content, (cpu->'value') ::text::float AS cpu, rsgname FROM ( SELECT rsgname, row_to_json(json_each(cpu_usage::json)) AS cpu FROM gp_toolkit.gp_resgroup_status ) a ) b WHERE gsc.content = b.content AND gsc.role = 'p' AND gsc.content <> -1 GROUP BY b.rsgname ORDER BY b.rsgname;
 CREATE
 
 CREATE VIEW busy AS SELECT count(*) FROM bigtable t1, bigtable t2, bigtable t3, bigtable t4, bigtable t5 WHERE 0 = (t1.c1 % 2 + 10000)! AND 0 = (t2.c1 % 2 + 10000)! AND 0 = (t3.c1 % 2 + 10000)! AND 0 = (t4.c1 % 2 + 10000)! AND 0 = (t5.c1 % 2 + 10000)! ;
@@ -126,12 +126,12 @@ SET
 --
 
 SELECT * FROM cpu_status;
-rsgname      |round_percentage
--------------+----------------
-default_group|0%              
-admin_group  |0%              
-rg1_cpu_test |0%              
-rg2_cpu_test |0%              
+rsgname      |cpu
+-------------+---
+admin_group  |0% 
+default_group|0% 
+rg1_cpu_test |0% 
+rg2_cpu_test |0% 
 (4 rows)
 
 --
@@ -156,12 +156,12 @@ pg_sleep
         
 (1 row)
 SELECT * FROM cpu_status;
-rsgname      |round_percentage
--------------+----------------
-default_group|0%              
-admin_group  |0%              
-rg1_cpu_test |90%             
-rg2_cpu_test |0%              
+rsgname      |cpu
+-------------+---
+admin_group  |0% 
+default_group|0% 
+rg1_cpu_test |90%
+rg2_cpu_test |0% 
 (4 rows)
 
 -- start_ignore
@@ -215,12 +215,12 @@ pg_sleep
         
 (1 row)
 SELECT * FROM cpu_status;
-rsgname      |round_percentage
--------------+----------------
-default_group|0%              
-admin_group  |0%              
-rg1_cpu_test |30%             
-rg2_cpu_test |60%             
+rsgname      |cpu
+-------------+---
+admin_group  |0% 
+default_group|0% 
+rg1_cpu_test |30%
+rg2_cpu_test |60%
 (4 rows)
 
 -- start_ignore

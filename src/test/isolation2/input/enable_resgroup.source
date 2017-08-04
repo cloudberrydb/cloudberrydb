@@ -20,6 +20,7 @@
 ! rm -f /tmp/.resgroup_mem_helper.sh;
 ! gpconfig -c gp_resource_manager -v group;
 ! gpconfig -c gp_resource_group_cpu_limit -v 0.9;
+! gpconfig -c max_connections -v 250 -m 25;
 ! gpstop -rai;
 -- end_ignore
 
