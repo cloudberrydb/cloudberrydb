@@ -12,6 +12,7 @@ groups:
   - icw_gporca_centos7
   - icw_gporca_sles11
   - icw_planner_ictcp_centos6
+  - icw_resource_group
   - MU_check_centos
   - regression_tests_gpcloud_centos
   - MM_gpperfmon
@@ -1547,6 +1548,7 @@ jobs:
     - icw_gporca_centos7
     - icw_gporca_sles11
     - icw_planner_ictcp_centos6
+    - icw_resource_group
     - MU_check_centos
     - regression_tests_gpcloud_centos
     - MM_gpperfmon
