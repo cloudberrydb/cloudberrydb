@@ -18,6 +18,8 @@
 #include "utils/guc.h"
 #include "catalog/gp_segment_config.h"
 #include "cdb/cdbvars.h"
+#include "gp-libpq-fe.h"
+#include "gp-libpq-int.h"
 #include "cdb/cdbfts.h"
 #include "cdb/cdbdisp.h"
 #include "cdb/cdbutil.h"
