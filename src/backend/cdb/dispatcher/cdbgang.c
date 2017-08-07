@@ -99,7 +99,9 @@ static CdbComponentDatabaseInfo *findDatabaseInfoBySegIndex(
 		CdbComponentDatabases *cdbs, int segIndex);
 static void addGangToAllocated(Gang *gp);
 static Gang *getAvailableGang(GangType type, int size, int content);
+#ifdef USE_ASSERT_CHECKING
 static bool readerGangsExist(void);
+#endif
 
 /*
  * Create a reader gang.

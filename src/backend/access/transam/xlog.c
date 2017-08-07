@@ -129,7 +129,6 @@ bool		XLOG_DEBUG = false;
 /* these are derived from XLOG_sync_method by assign_xlog_sync_method */
 int			sync_method = DEFAULT_SYNC_METHOD;
 static int	open_sync_bit = DEFAULT_SYNC_FLAGBIT;
-static Relation	XLogSaveBufferForHint_Relation = NULL;
 
 /*
  * walreceiver process receives xlog data from walsender process.
