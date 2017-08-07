@@ -10275,11 +10275,8 @@ copy_buffer_pool_data(Relation rel, SMgrRelation dst,
 		if (!PageIsVerified(page, blkno))
 			ereport(ERROR,
 					(errcode(ERRCODE_DATA_CORRUPTED),
-					 errmsg("invalid page in block %u of relation %s/%s/%s",
-							blkno,
-							src->smgr_rnode.spcNode,
-							src->smgr_rnode.dbNode,
-							src->smgr_rnode.relNode)));
+					 errmsg("invalid page in block %u of relation %s",
+							blkno, relpath(src->smgr_rnode))));
 
 		/* XLOG stuff */
 		if (useWal)

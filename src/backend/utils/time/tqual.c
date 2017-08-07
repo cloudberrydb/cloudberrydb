@@ -138,11 +138,7 @@ markDirty(Buffer buffer, Relation relation, HeapTupleHeader tuple, bool isXmin)
 	 * The GUC gp_disable_tuple_hints is on.  Do further evaluation whether we want to write out the
 	 * buffer or not.
 	 */
-	if (relation == NULL)
-	{
-		MarkBufferDirtyHint(buffer, relation);
-		return;
-	}
+	Assert(relation != NULL);
 
 	if (relation->rd_issyscat)
 	{
