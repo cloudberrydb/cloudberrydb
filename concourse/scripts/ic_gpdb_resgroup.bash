@@ -13,7 +13,7 @@ prepare_cgroups() {
     local groups="hugetlb freezer pids devices cpuset blkio net_prio net_cls cpuacct cpu memory perf_event"
 
     ssh -t $gpdb_host_alias "sudo bash -c '(\
-        yum install bzip2-devel; \
+        yum install -d1 -y bzip2-devel; \
         mkdir -p $basedir; \
         mount -t tmpfs tmpfs $basedir; \
         for group in $groups; do \
