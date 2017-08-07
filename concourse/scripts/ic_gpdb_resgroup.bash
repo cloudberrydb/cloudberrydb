@@ -13,6 +13,7 @@ prepare_cgroups() {
     local groups="hugetlb freezer pids devices cpuset blkio net_prio net_cls cpuacct cpu memory perf_event"
 
     ssh -t $gpdb_host_alias "sudo bash -c '(\
+        yum install bzip2-devel; \
         mkdir -p $basedir; \
         mount -t tmpfs tmpfs $basedir; \
         for group in $groups; do \
@@ -39,7 +40,7 @@ run_resgroup_test() {
         export MASTER_DATA_DIRECTORY=/data/gpdata/master/gpseg-1; \
 
         cd /home/gpadmin/gpdb_src; \
-        ./configure --prefix=/usr/local/greenplum-db-devel --without-zlib --without-rt --without-libcurl --without-libedit-preferred --without-docdir --without-PACKAGE --without-readline --disable-gpcloud --disable-gpfdist --disable-orca ${CONFIGURE_FLAGS}; \
+        ./configure --prefix=/usr/local/greenplum-db-devel --without-zlib --without-rt --without-libcurl --without-libedit-preferred --without-docdir --without-readline --disable-gpcloud --disable-gpfdist --disable-orca ${CONFIGURE_FLAGS}; \
         cd /home/gpadmin/gpdb_src/src/test/regress && make;\
         ssh sdw1 \"mkdir -p /home/gpadmin/gpdb_src/src/test/regress\";\
         ssh sdw1 \"mkdir -p /home/gpadmin/gpdb_src/src/test/isolation2\";\
