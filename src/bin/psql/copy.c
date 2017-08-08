@@ -8,8 +8,8 @@
 #include "postgres_fe.h"
 #include "copy.h"
 
+#include <ctype.h>
 #include <signal.h>
-#include <string.h>
 #include <sys/stat.h>
 #ifndef WIN32
 #include <unistd.h>				/* for isatty */
@@ -253,7 +253,7 @@ trim(char *s)
 		}
 		if (!(isspace(*write) && isspace(*read)))
 		{
-			*(++write) = *(read);
+			*(++write) = toupper(*read);
 		}
 		read++;
 	}
@@ -268,7 +268,7 @@ is_on_segment(char * after_tofrom)
 		return false;
 	char *s = pg_strdup(after_tofrom);
 	trim(s);
-	if (strcasestr(s, "ON SEGMENT"))
+	if (strstr(s, "ON SEGMENT"))
 	{
 		on_segment = true;
 	}
