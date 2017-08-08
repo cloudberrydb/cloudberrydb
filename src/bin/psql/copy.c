@@ -9,6 +9,7 @@
 #include "copy.h"
 
 #include <signal.h>
+#include <string.h>
 #include <sys/stat.h>
 #ifndef WIN32
 #include <unistd.h>				/* for isatty */
