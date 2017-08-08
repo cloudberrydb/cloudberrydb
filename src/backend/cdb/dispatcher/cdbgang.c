@@ -314,17 +314,13 @@ isPrimaryWriterGangAlive(void)
 /*
  * Check the segment failure reason by comparing connection error message.
  */
-bool segment_failure_due_to_recovery(struct PQExpBufferData* error_message)
+bool
+segment_failure_due_to_recovery(const char *error_message)
 {
-	char *fatal = NULL, *message = NULL, *ptr = NULL;
+	char *fatal = NULL, *ptr = NULL;
 	int fatal_len = 0;
 
 	if (error_message == NULL)
-		return false;
-
-	message = error_message->data;
-
-	if (message == NULL)
 		return false;
 
 	fatal = _("FATAL");
@@ -338,14 +334,14 @@ bool segment_failure_due_to_recovery(struct PQExpBufferData* error_message)
 	 * the strings a lot we have to take extreme care with looking at
 	 * the string.
 	 */
-	ptr = strstr(message, fatal);
+	ptr = strstr(error_message, fatal);
 	if ((ptr != NULL) && ptr[fatal_len] == ':')
 	{
-		if (strstr(message, _(POSTMASTER_IN_STARTUP_MSG)))
+		if (strstr(error_message, _(POSTMASTER_IN_STARTUP_MSG)))
 		{
 			return true;
 		}
-		if (strstr(message, _(POSTMASTER_IN_RECOVERY_MSG)))
+		if (strstr(error_message, _(POSTMASTER_IN_RECOVERY_MSG)))
 		{
 			return true;
 		}

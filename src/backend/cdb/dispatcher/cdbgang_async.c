@@ -179,7 +179,7 @@ create_gang_retry:
 						break;
 
 					case PGRES_POLLING_FAILED:
-						if (segment_failure_due_to_recovery(&segdbDesc->conn->errorMessage))
+						if (segment_failure_due_to_recovery(PQerrorMessage(segdbDesc->conn)))
 						{
 							in_recovery_mode_count++;
 							connStatusDone[i] = true;
