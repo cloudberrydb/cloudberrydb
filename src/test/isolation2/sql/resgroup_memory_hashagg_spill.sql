@@ -21,6 +21,8 @@ for i in range(len(rv)):
     if search_text.lower() in cur_line.lower():
         p = re.compile('.+\((seg[\d]+).+ Workfile: \(([\d+]) spilling\)')
         m = p.match(cur_line)
+        if not m:
+            continue
         workfile_created = int(m.group(2))
         cur_row = int(workfile_created == nsegments)
         result.append(cur_row)

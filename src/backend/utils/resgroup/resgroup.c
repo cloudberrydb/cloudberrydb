@@ -1509,6 +1509,8 @@ SwitchResGroupOnSegment(const char *buf, int len)
 	AssertImply(prevGroupId != InvalidOid,
 				prevSlotId != InvalidSlotId);
 
+	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
+
 	if (procInfo->groupId == InvalidOid)
 	{
 		prevSharedInfo = MyResGroupSharedInfo;
@@ -1527,20 +1529,31 @@ SwitchResGroupOnSegment(const char *buf, int len)
 			Assert(MyResGroupSharedInfo == NULL);
 		}
 
+		LWLockRelease(ResGroupLock);
 		return;
 	}
 
-	/* previouse resource group is valid and not dropped yet */
 	if (MyResGroupSharedInfo != NULL && MyResGroupSharedInfo->groupId != InvalidOid)
 	{
 		prevSharedInfo = MyResGroupSharedInfo;
-		Assert(prevSharedInfo->groupId == prevGroupId);
-		prevSlot = &prevSharedInfo->slots[prevSlotId];
+		if (prevSharedInfo->groupId == prevGroupId)
+		{
+			/* previous resource group is valid and not dropped yet */
+			prevSlot = &prevSharedInfo->slots[prevSlotId];
+		}
+		else
+		{
+			/* previous resource group is already dropped */
+			prevSharedInfo = NULL;
+			prevSlot = NULL;
+			prevGroupId = InvalidOid;
+			prevSlotId = InvalidSlotId;
+		}
 	}
 
-	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
 	sharedInfo = ResGroupHashFind(procInfo->groupId);
 	Assert(sharedInfo != NULL);
+
 	LWLockRelease(ResGroupLock);
 
 	/* Init MyResGroupProcInfo */
@@ -1584,7 +1597,7 @@ SwitchResGroupOnSegment(const char *buf, int len)
 	procInfo->doMemCheck = true;
 
 	/* Add into cgroup */
-	ResGroupOps_AssignGroup(sharedInfo->groupId, MyProcPid);
+	ResGroupOps_AssignGroup(procInfo->groupId, MyProcPid);
 }
 
 /*
