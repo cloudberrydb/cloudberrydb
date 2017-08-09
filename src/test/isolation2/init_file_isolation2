@@ -3,3 +3,9 @@
 m/^\d+.*gpfaultinjector.*-\[INFO\]:-/
 s/^\d+.*gpfaultinjector.*-\[INFO\]:-//
 -- end_matchignore
+
+-- start_matchsubs
+# entry db matches
+m/\s+\(entry db(.*)+\spid=\d+\)/
+s/\s+\(entry db(.*)+\spid=\d+\)//
+-- end_matchsubs
