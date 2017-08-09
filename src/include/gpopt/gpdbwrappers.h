@@ -18,6 +18,7 @@
 #include "postgres.h"
 #include "access/attnum.h"
 #include "utils/faultinjector.h"
+#include "parser/parse_coerce.h"
 
 // fwd declarations
 typedef struct SysScanDescData *SysScanDesc;
@@ -242,7 +243,7 @@ namespace gpdb {
 	Node *PnodePartConstraintRel(Oid oidRel, List **pplDefaultLevels);
 
 	// get the cast function for the specified source and destination types
-	bool FCastFunc(Oid oidSrc, Oid oidDest, bool *is_binary_coercible, Oid *oidCastFunc);
+	bool FCastFunc(Oid oidSrc, Oid oidDest, bool *is_binary_coercible, Oid *oidCastFunc, CoercionPathType *pathtype);
 	
 	// get type of operator
 	unsigned int UlCmpt(Oid oidOp, Oid oidLeft, Oid oidRight);
