@@ -4386,15 +4386,6 @@ CUtils::PpartcnstrFromMDPartCnstr
 	GPOS_ASSERT(NULL != pdrgpdrgpcrPartKey);
 
 	const ULONG ulLevels = pdrgpdrgpcrPartKey->UlLength();
-	if (NULL == pmdpartcnstr)
-	{
-		// no constraint found in metadata: construct an unbounded constraint
-		HMUlCnstr *phmulcnstr = PhmulcnstrBoolConstOnPartKeys(pmp, pdrgpdrgpcrPartKey, true /*fVal*/);
-		CBitSet *pbsDefaultParts = PbsAllSet(pmp, ulLevels);
-		pdrgpdrgpcrPartKey->AddRef();
-
-		return GPOS_NEW(pmp) CPartConstraint(pmp, phmulcnstr, pbsDefaultParts, true /*fUnbounded*/, pdrgpdrgpcrPartKey);
-	}
 
 	if (fDummyConstraint)
 	{
