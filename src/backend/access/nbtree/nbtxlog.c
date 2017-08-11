@@ -14,12 +14,9 @@
  */
 #include "postgres.h"
 
-#include "miscadmin.h"
-
 #include "access/nbtree.h"
 #include "access/transam.h"
 #include "utils/guc.h"
-#include "cdb/cdbfilerepprimary.h"
 
 /*
  * We must keep track of expected insertions due to page splits, and apply

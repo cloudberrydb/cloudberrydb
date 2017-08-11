@@ -13,10 +13,9 @@
  */
 
 #include "postgres.h"
+
 #include "access/gin.h"
 #include "miscadmin.h"
-#include "storage/lwlock.h"
-#include "cdb/cdbfilerepprimary.h"
 
 /*
  * Locks buffer by needed method for search.

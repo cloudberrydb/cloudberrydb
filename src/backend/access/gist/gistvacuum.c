@@ -21,7 +21,6 @@
 #include "miscadmin.h"
 #include "storage/freespace.h"
 #include "utils/memutils.h"
-#include "cdb/cdbfilerepprimary.h"
 
 typedef struct GistBulkDeleteResult
 {

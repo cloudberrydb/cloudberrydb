@@ -19,7 +19,6 @@
 #include "access/heapam.h"
 #include "utils/memutils.h"
 #include "utils/guc.h"
-#include "cdb/cdbfilerepprimary.h"
 
 static MemoryContext opCtx;		/* working memory for operations */
 static MemoryContext topCtx;

@@ -17,13 +17,12 @@
  */
 
 #include "postgres.h"
-#include "miscadmin.h"
+
 #include "access/genam.h"
 #include "access/hash.h"
 #include "catalog/index.h"
 #include "commands/vacuum.h"
-#include "nodes/tidbitmap.h"
-#include "cdb/cdbfilerepprimary.h"
+
 
 /* Working state for hashbuild and its callback */
 typedef struct

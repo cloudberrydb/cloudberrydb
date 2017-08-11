@@ -28,9 +28,7 @@
 #include "storage/freespace.h"
 #include "storage/lmgr.h"
 #include "utils/inval.h"
-#include "access/heapam.h"	// For RelationFetchGpRelationNodeForXLog.
-#include "utils/guc.h"
-#include "cdb/cdbfilerepprimary.h"
+#include "access/heapam.h"	/* For RelationFetchGpRelationNodeForXLog. */
 
 /*
  *	_bt_initmetapage() -- Fill a page buffer with a correct metapage image

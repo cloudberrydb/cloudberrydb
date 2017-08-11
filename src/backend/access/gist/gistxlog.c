@@ -18,7 +18,6 @@
 #include "miscadmin.h"
 #include "utils/memutils.h"
 #include "utils/guc.h"
-#include "cdb/cdbfilerepprimary.h"
 
 typedef struct
 {

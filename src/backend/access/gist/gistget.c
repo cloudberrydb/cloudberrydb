@@ -20,7 +20,6 @@
 #include "nodes/tidbitmap.h"
 #include "pgstat.h"
 #include "utils/memutils.h"
-#include "cdb/cdbfilerepprimary.h"
 
 
 static OffsetNumber gistfindnext(IndexScanDesc scan, OffsetNumber n,

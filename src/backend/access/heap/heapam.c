@@ -48,8 +48,6 @@
 #include "access/xact.h"
 #include "catalog/catalog.h"
 #include "catalog/namespace.h"
-#include "cdb/cdbfilerepprimary.h"
-#include "cdb/cdbvars.h"
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "storage/procarray.h"
@@ -59,7 +57,10 @@
 #include "utils/lsyscache.h"
 #include "utils/relcache.h"
 #include "utils/syscache.h"
+
 #include "cdb/cdbpersistentstore.h"
+#include "cdb/cdbvars.h"
+
 
 /* GUC variable */
 bool	synchronize_seqscans = true;

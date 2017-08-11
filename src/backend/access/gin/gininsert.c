@@ -19,7 +19,6 @@
 #include "catalog/index.h"
 #include "miscadmin.h"
 #include "utils/memutils.h"
-#include "cdb/cdbfilerepprimary.h"
 
 
 typedef struct

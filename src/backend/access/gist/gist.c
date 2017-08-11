@@ -19,7 +19,6 @@
 #include "catalog/index.h"
 #include "miscadmin.h"
 #include "utils/memutils.h"
-#include "cdb/cdbfilerepprimary.h"
 
 /* Working state for gistbuild and its callback */
 typedef struct

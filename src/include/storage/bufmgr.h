@@ -14,6 +14,8 @@
 #ifndef BUFMGR_H
 #define BUFMGR_H
 
+#include "cdb/cdbfilerepprimary.h"
+#include "miscadmin.h"
 #include "storage/buf.h"
 #include "storage/buf_internals.h"
 #include "storage/bufpage.h"

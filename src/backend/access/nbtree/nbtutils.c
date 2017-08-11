@@ -25,7 +25,6 @@
 #include "storage/lwlock.h"
 #include "storage/shmem.h"
 #include "utils/lsyscache.h"
-#include "cdb/cdbfilerepprimary.h"
 
 
 static bool _bt_compare_scankey_args(IndexScanDesc scan, ScanKey op,

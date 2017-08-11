@@ -18,7 +18,6 @@
  */
 #include "postgres.h"
 
-#include "miscadmin.h"
 #include "access/genam.h"
 #include "access/nbtree.h"
 #include "catalog/index.h"
@@ -29,8 +28,6 @@
 #include "storage/lmgr.h"
 #include "utils/memutils.h"
 #include "utils/guc.h"
-#include "nodes/tidbitmap.h"
-#include "cdb/cdbfilerepprimary.h"
 
 
 /* Working state for btbuild and its callback */

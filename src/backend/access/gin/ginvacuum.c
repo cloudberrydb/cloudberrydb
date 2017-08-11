@@ -20,8 +20,6 @@
 #include "storage/freespace.h"
 #include "storage/freespace.h"
 #include "commands/vacuum.h"
-#include "storage/lwlock.h"
-#include "cdb/cdbfilerepprimary.h"
 
 typedef struct
 {

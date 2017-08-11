@@ -17,7 +17,6 @@
 #include "access/bitmap.h"
 #include "access/xlogutils.h"
 #include "utils/guc.h"
-#include "cdb/cdbfilerepprimary.h"
 
 static void forget_incomplete_insert_bitmapwords(RelFileNode node,
 									 xl_bm_bitmapwords* newWords);
