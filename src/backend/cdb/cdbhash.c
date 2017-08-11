@@ -10,7 +10,6 @@
  */
 #include "postgres.h"
 
-#include <assert.h>
 #include "access/tuptoaster.h"
 #include "utils/builtins.h"
 #include "catalog/pg_type.h"
@@ -85,7 +84,7 @@ makeCdbHash(int numsegs)
 {
 	CdbHash    *h;
 
-	assert(numsegs > 0);		/* verify number of segments is legal. */
+	Assert(numsegs > 0);		/* verify number of segments is legal. */
 
 	/* Create a pointer to a CdbHash that includes the hash properties */
 	h = palloc(sizeof(CdbHash));
@@ -655,7 +654,7 @@ cdbhashreduce(CdbHash *h)
 								 * therefore initialize to this value for
 								 * error checking? */
 
-	assert(h->reducealg == REDUCE_BITMASK || h->reducealg == REDUCE_LAZYMOD);
+	Assert(h->reducealg == REDUCE_BITMASK || h->reducealg == REDUCE_LAZYMOD);
 
 	/*
 	 * Reduce our 32-bit hash value to a segment number

@@ -7,7 +7,6 @@
  */
 #include <unistd.h>
 #include <sys/stat.h>
-#include <assert.h>
 #include <dirent.h>
 #include <sys/wait.h>
 
@@ -984,7 +983,7 @@ gp_backup_launch__(PG_FUNCTION_ARGS)
 	/* Restore process interval timers */
 	restoreTimers(&savetimers);
 
-	assert(pszSaveBackupfileName != NULL && pszSaveBackupfileName[0] != '\0');
+	Assert(pszSaveBackupfileName != NULL && pszSaveBackupfileName[0] != '\0');
 
 	return DirectFunctionCall1(textin, CStringGetDatum(pszSaveBackupfileName));
 }
@@ -1442,7 +1441,7 @@ gp_restore_launch__(PG_FUNCTION_ARGS)
 	/* Restore process interval timers */
 	restoreTimers(&savetimers);
 
-	assert(pszBackupFileName != NULL && pszBackupFileName[0] != '\0');
+	Assert(pszBackupFileName != NULL && pszBackupFileName[0] != '\0');
 
 	return DirectFunctionCall1(textin, CStringGetDatum(pszBackupFileName));
 }
@@ -1631,7 +1630,7 @@ gp_write_backup_file__(PG_FUNCTION_ARGS)
 	fclose(f);
 	f = NULL;
 
-	assert(pszFileName != NULL && pszFileName[0] != '\0');
+	Assert(pszFileName != NULL && pszFileName[0] != '\0');
 
 	return DirectFunctionCall1(textin, CStringGetDatum(pszFileName));
 }
@@ -1923,7 +1922,7 @@ formBackupFilePathName(char *pszBackupDirectory, char *pszBackupKey, bool is_com
 
 	/* Now add up the length of the pieces */
 	len = strlen(pszBackupDirectory);
-	assert(len >= 1);
+	Assert(len >= 1);
 	if (pszBackupDirectory[strlen(pszBackupDirectory) - 1] != '/')
 	{
 		len++;
@@ -2013,7 +2012,7 @@ formStatusFilePathName(char *pszBackupDirectory, char *pszBackupKey, bool bIsBac
 
 	/* Now add up the length of the pieces */
 	len = strlen(pszBackupDirectory);
-	assert(len >= 1);
+	Assert(len >= 1);
 	if (pszBackupDirectory[strlen(pszBackupDirectory) - 1] != '/')
 		len++;
 
