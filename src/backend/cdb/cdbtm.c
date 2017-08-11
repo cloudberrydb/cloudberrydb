@@ -3751,8 +3751,6 @@ finishDistributedTransactionContext (char* debugCaller, bool aborted)
 	   (currentGxact->state != DTX_STATE_RETRY_COMMIT_PREPARED &&
 	    currentGxact->state != DTX_STATE_RETRY_ABORT_PREPARED))
 	{
-/*		PleaseDebugMe("finishDistributedTransactionContext currentGxact == NULL"); */
-
 		elog(FATAL, "Expected currentGxact to be NULL at this point.  Found gid =%s, gxid = %u (state = %s, caller = %s)",
 			currentGxact->gid, currentGxact->gxid, DtxStateToString(currentGxact->state), debugCaller);
 	}

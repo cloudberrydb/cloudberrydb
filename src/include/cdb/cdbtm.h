@@ -346,7 +346,6 @@ extern void performDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 					DistributedTransactionId gxid, DtxContextInfo *contextInfo);
 extern void UtilityModeFindOrCreateDtmRedoFile(void);
 extern void UtilityModeCloseDtmRedoFile(void);
-extern void PleaseDebugMe(char *caller);
 
 extern bool doDispatchSubtransactionInternalCmd(DtxProtocolCommand cmdType);
 

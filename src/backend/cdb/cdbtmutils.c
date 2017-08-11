@@ -21,7 +21,6 @@
 #include <sys/stat.h>
 
 #include "cdb/cdbtm.h"
-#include "miscadmin.h"
 #include "storage/shmem.h"
 #include "storage/ipc.h"
 #include "cdb/cdbdisp_query.h"
@@ -120,18 +119,5 @@ char* DtxContextToString(DtxContext context)
 		case DTX_CONTEXT_QE_PREPARED: return "Segment Prepared";
 		case DTX_CONTEXT_QE_FINISH_PREPARED: return "Segment Finish Prepared";
 		default: return "Unknown";
-	}
-}
-
-void
-PleaseDebugMe(char *caller)
-{
-	int i;
-
-	for (i = 0; i < 300;i++)
-	{
-		elog(LOG, "%s  --> Now would be a good time to debug pid = %d", caller, MyProcPid);
-		elog(NOTICE, "%s  --> Now would be a good time to debug pid = %d", caller, MyProcPid);
-		pg_usleep(1000000L);
 	}
 }
