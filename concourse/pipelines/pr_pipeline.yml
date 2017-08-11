@@ -74,7 +74,7 @@ jobs:
           BLD_TARGETS: "clients loaders"
 
       - task: validate_pipeline
-        file: gpdb_src/concourse/tasks/validate_pipeline.yml
+        file: gpdb_pr/concourse/tasks/validate_pipeline.yml
         image: centos-gpdb-dev-6
         input_mapping:
           gpdb_src: gpdb_pr
