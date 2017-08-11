@@ -771,78 +771,6 @@
         <dxl:Indexes/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
-        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
-          <dxl:Or>
-            <dxl:Or>
-              <dxl:Or>
-                <dxl:Or>
-                  <dxl:Or>
-                    <dxl:And>
-                      <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                        <dxl:Ident ColId="1" ColName="ss_sold_date_sk" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2450815"/>
-                      </dxl:Comparison>
-                      <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
-                        <dxl:Ident ColId="1" ColName="ss_sold_date_sk" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2451179"/>
-                      </dxl:Comparison>
-                    </dxl:And>
-                    <dxl:And>
-                      <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                        <dxl:Ident ColId="1" ColName="ss_sold_date_sk" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2451180"/>
-                      </dxl:Comparison>
-                      <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
-                        <dxl:Ident ColId="1" ColName="ss_sold_date_sk" TypeMdid="0.23.1.0"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2451544"/>
-                      </dxl:Comparison>
-                    </dxl:And>
-                  </dxl:Or>
-                  <dxl:And>
-                    <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                      <dxl:Ident ColId="1" ColName="ss_sold_date_sk" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2451545"/>
-                    </dxl:Comparison>
-                    <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
-                      <dxl:Ident ColId="1" ColName="ss_sold_date_sk" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2451910"/>
-                    </dxl:Comparison>
-                  </dxl:And>
-                </dxl:Or>
-                <dxl:And>
-                  <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                    <dxl:Ident ColId="1" ColName="ss_sold_date_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2451911"/>
-                  </dxl:Comparison>
-                  <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
-                    <dxl:Ident ColId="1" ColName="ss_sold_date_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2452275"/>
-                  </dxl:Comparison>
-                </dxl:And>
-              </dxl:Or>
-              <dxl:And>
-                <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                  <dxl:Ident ColId="1" ColName="ss_sold_date_sk" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2452276"/>
-                </dxl:Comparison>
-                <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
-                  <dxl:Ident ColId="1" ColName="ss_sold_date_sk" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2452640"/>
-                </dxl:Comparison>
-              </dxl:And>
-            </dxl:Or>
-            <dxl:And>
-              <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                <dxl:Ident ColId="1" ColName="ss_sold_date_sk" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2452641"/>
-              </dxl:Comparison>
-              <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
-                <dxl:Ident ColId="1" ColName="ss_sold_date_sk" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2453005"/>
-              </dxl:Comparison>
-            </dxl:And>
-          </dxl:Or>
-        </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:RelationStatistics Mdid="2.897052.1.1" Name="date_dim" Rows="73049.000000"/>
       <dxl:Relation Mdid="0.897052.1.1" Name="date_dim" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="0,6;34,28" PartitionColumns="6" PartitionTypes="r">
@@ -956,18 +884,6 @@
         <dxl:Indexes/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
-        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-              <dxl:Ident ColId="7" ColName="d_year" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1900"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.523.1.0">
-              <dxl:Ident ColId="7" ColName="d_year" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2100"/>
-            </dxl:Comparison>
-          </dxl:And>
-        </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:ColumnStatistics Mdid="1.904881.1.1.25" Name="cmin" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.904881.1.1.24" Name="xmin" Width="8.000000"/>

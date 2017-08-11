@@ -526,16 +526,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="oxMAAA==" DoubleValue="434332800000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:ColumnStatistics Mdid="1.17364111.1.1.25" Name="productid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
@@ -658,16 +648,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="rxQAAA==" DoubleValue="457488000000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:ColumnStatistics Mdid="1.17421490.1.1.31" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
@@ -798,16 +778,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="rxQAAA==" DoubleValue="457488000000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:ColumnStatistics Mdid="1.17463072.1.1.31" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
@@ -954,16 +924,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="rxQAAA==" DoubleValue="457488000000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:RelationStatistics Mdid="2.17463072.1.1" Name="mr_star1_voldrip_col_part" Rows="0.000000" EmptyRelation="true"/>
@@ -1070,16 +1030,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="rxQAAA==" DoubleValue="457488000000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:RelationStatistics Mdid="2.17446437.1.1" Name="mr_star1_skew_col_part" Rows="0.000000" EmptyRelation="true"/>
@@ -1187,16 +1137,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="rxQAAA==" DoubleValue="457488000000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:Relation Mdid="0.17392806.1.1" Name="mr_star1_gammas_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
@@ -1302,16 +1242,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="oxMAAA==" DoubleValue="434332800000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:ColumnStatistics Mdid="1.17471384.1.1.27" Name="valuationmodelid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
@@ -1458,16 +1388,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="rxQAAA==" DoubleValue="457488000000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:ColumnStatistics Mdid="1.17421490.1.1.29" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
@@ -1599,16 +1519,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="rxQAAA==" DoubleValue="457488000000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:Relation Mdid="0.17384494.1.1" Name="mr_star1_fxdeltas_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
@@ -1714,16 +1624,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="rxQAAA==" DoubleValue="457488000000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:RelationStatistics Mdid="2.17429813.1.1" Name="mr_star1_position_col_part" Rows="0.000000" EmptyRelation="true"/>
@@ -1830,16 +1730,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="rxQAAA==" DoubleValue="457488000000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:RelationStatistics Mdid="2.17421490.1.1" Name="mr_star1_netexposure_col_part" Rows="0.000000" EmptyRelation="true"/>
@@ -1946,16 +1836,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="rxQAAA==" DoubleValue="457488000000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:ColumnStatistics Mdid="1.17463072.1.1.29" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
@@ -2102,16 +1982,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="rxQAAA==" DoubleValue="457488000000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
     </dxl:Metadata>

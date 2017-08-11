@@ -1011,18 +1011,6 @@
        <dxl:Indexes/>                                                                                                                                          
        <dxl:Triggers/>
        <dxl:CheckConstraints/> 
-       <dxl:PartConstraint Unbounded="false" DefaultPartition="">
-         <dxl:And>                                                                                
-         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">                   
-           <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>                               
-           <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>      
-         </dxl:Comparison>                                                                      
-         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">                     
-           <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>                               
-           <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>      
-         </dxl:Comparison>                                                                      
-       </dxl:And>
-       </dxl:PartConstraint>
      </dxl:Relation>
     <dxl:Relation Mdid="0.5678.1.0" Name="P" IsTemporary="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" PartitionColumns="0" PartitionTypes="r">
       <dxl:Columns>
@@ -1039,18 +1027,6 @@
       <dxl:Indexes/>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
-      <dxl:PartConstraint Unbounded="false" DefaultPartition="">
-         <dxl:And>                                                                                
-         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">                   
-           <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>                               
-           <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>      
-         </dxl:Comparison>                                                                      
-         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">                     
-           <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>                               
-           <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>      
-         </dxl:Comparison>                                                                      
-       </dxl:And>
-       </dxl:PartConstraint>
     </dxl:Relation>
     <dxl:Relation Mdid="0.5678.1.1" Name="P" IsTemporary="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" PartitionColumns="0" PartitionTypes="r">
       <dxl:Columns>
@@ -1067,18 +1043,6 @@
       <dxl:Indexes/>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
-      <dxl:PartConstraint Unbounded="false" DefaultPartition="">
-         <dxl:And>                                                                                
-         <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">                   
-           <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>                               
-           <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>      
-         </dxl:Comparison>                                                                      
-         <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">                     
-           <dxl:Ident ColId="1" ColName="a" TypeMdid="0.23.1.0"/>                               
-           <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>      
-         </dxl:Comparison>                                                                      
-       </dxl:And>
-       </dxl:PartConstraint>
     </dxl:Relation>
     <dxl:Relation Mdid="0.1258.5.1" Name="S" IsTemporary="true" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="0,1">
       <dxl:Columns>

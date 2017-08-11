@@ -5379,18 +5379,6 @@
         <dxl:Indexes/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
-        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="11" ColName="l_shipdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="lvT//w==" DoubleValue="-252460800000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="11" ColName="l_shipdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="df7//w==" DoubleValue="-34128000000000"/>
-            </dxl:Comparison>
-          </dxl:And>
-        </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:MDCast Mdid="3.23.1.0;1700.1.0" Name="numeric" BinaryCoercible="false" SourceTypeId="0.23.1.0" DestinationTypeId="0.1700.1.0" CastFuncId="0.1740.1.0"/>
       <dxl:ColumnStatistics Mdid="1.3317742.1.1.11" Name="cmin" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
@@ -6971,18 +6959,6 @@
         <dxl:Indexes/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
-        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="5" ColName="o_orderdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="lvT//w==" DoubleValue="-252460800000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="5" ColName="o_orderdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="/P3//w==" DoubleValue="-44582400000000"/>
-            </dxl:Comparison>
-          </dxl:And>
-        </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:Relation Mdid="0.3317716.1.1" Name="customer" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="14,8">
         <dxl:Columns>

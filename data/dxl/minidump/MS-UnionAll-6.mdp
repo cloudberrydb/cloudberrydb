@@ -279,16 +279,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="oxMAAA==" DoubleValue="434332800000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:ColumnStatistics Mdid="1.17327104.1.1.27" Name="valuationmodelid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
@@ -445,16 +435,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="oxMAAA==" DoubleValue="434332800000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:GPDBScalarOp Mdid="0.1093.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
@@ -606,16 +586,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="rxQAAA==" DoubleValue="457488000000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="3" ColName="businessdate" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZhUAAA==" DoubleValue="473299200000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:ColumnStatistics Mdid="1.17327104.1.1.31" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>

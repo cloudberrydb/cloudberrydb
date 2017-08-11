@@ -641,16 +641,6 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1325.1.0">
-              <dxl:Ident ColId="10" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1184.1.0" IsNull="false" IsByValue="true" Value="AOBM0g0fAQA=" DoubleValue="315619200000000.000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1322.1.0">
-              <dxl:Ident ColId="10" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1184.1.0" IsNull="false" IsByValue="true" Value="AKCHrIquAQA=" DoubleValue="473385600000000.000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">

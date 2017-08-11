@@ -566,16 +566,6 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1098.1.0">
-              <dxl:Ident ColId="2" ColName="b" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="RQ4AAA==" DoubleValue="315619200000000"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1095.1.0">
-              <dxl:Ident ColId="2" ColName="b" TypeMdid="0.1082.1.0"/>
-              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="SQ4AAA==" DoubleValue="315964800000000"/>
-            </dxl:Comparison>
-          </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:RelationStatistics Mdid="2.71822.1.1" Name="jpat" Rows="10000.000000"/>

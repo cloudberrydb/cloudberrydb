@@ -28,6 +28,10 @@ ULONG CPartTblTest::m_ulPartTblTestCounter = 0;  // start from first test
 // minidump files
 const CHAR *rgszPartTblFileNames[] =
 	{
+	"../data/dxl/minidump/NoPartConstraint-WhenNoDefaultPartsAndIndices.mdp",
+	"../data/dxl/minidump/PartConstraint-WhenIndicesAndNoDefaultParts.mdp",
+	"../data/dxl/minidump/PartConstraint-WithOnlyDefaultPartInfo.mdp",
+	"../data/dxl/minidump/PartConstraint-WhenDefaultPartsAndIndices.mdp",
 	"../data/dxl/minidump/CorrelatedNLJ-PartSelector-Subplan.mdp",
 	"../data/dxl/minidump/DonotPushPartConstThruLimit.mdp",
 	"../data/dxl/minidump/PartTbl-DPE-Correlated-NLOuter.mdp",

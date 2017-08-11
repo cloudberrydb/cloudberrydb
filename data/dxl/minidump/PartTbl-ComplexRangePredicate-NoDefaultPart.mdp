@@ -194,66 +194,6 @@
         <dxl:Indexes/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
-        <dxl:PartConstraint DefaultPartition="" Unbounded="false">
-          <dxl:Or>
-            <dxl:Or>
-              <dxl:Or>
-                <dxl:Or>
-                  <dxl:And>
-                    <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                      <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                    </dxl:Comparison>
-                    <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-                      <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
-                    </dxl:Comparison>
-                  </dxl:And>
-                  <dxl:And>
-                    <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                      <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
-                    </dxl:Comparison>
-                    <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-                      <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
-                    </dxl:Comparison>
-                  </dxl:And>
-                </dxl:Or>
-                <dxl:And>
-                  <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                    <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
-                  </dxl:Comparison>
-                  <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-                    <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
-                  </dxl:Comparison>
-                </dxl:And>
-              </dxl:Or>
-              <dxl:And>
-                <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                  <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
-                </dxl:Comparison>
-                <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-                  <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
-                </dxl:Comparison>
-              </dxl:And>
-            </dxl:Or>
-            <dxl:And>
-              <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.525.1.0">
-                <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9"/>
-              </dxl:Comparison>
-              <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-                <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
-              </dxl:Comparison>
-            </dxl:And>
-          </dxl:Or>
-        </dxl:PartConstraint>
       </dxl:Relation>
     </dxl:Metadata>
     <dxl:Query>

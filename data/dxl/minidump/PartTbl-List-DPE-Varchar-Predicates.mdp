@@ -209,25 +209,6 @@ select * from pt where gender is null;
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:Or>
-            <dxl:Or>
-              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-                <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                  <dxl:Ident ColId="2" ColName="gender" TypeMdid="0.1043.1.0"/>
-                </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABUY=" LintValue="160743980"/>
-              </dxl:Comparison>
-              <dxl:IsNull>
-                <dxl:Ident ColId="2" ColName="gender" TypeMdid="0.1043.1.0"/>
-              </dxl:IsNull>
-            </dxl:Or>
-            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-              <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                <dxl:Ident ColId="2" ColName="gender" TypeMdid="0.1043.1.0"/>
-              </dxl:Cast>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABU0=" LintValue="160801324"/>
-            </dxl:Comparison>
-          </dxl:Or>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:ColumnStatistics Mdid="1.321479.1.1.7" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>

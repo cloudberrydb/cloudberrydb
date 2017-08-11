@@ -87,25 +87,6 @@ select * from pt where gender in ( 'F', 'FM');
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
-          <dxl:Or>
-            <dxl:Or>
-              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-                <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                  <dxl:Ident ColId="2" ColName="gender" TypeMdid="0.1043.1.0"/>
-                </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABUY=" LintValue="160743980"/>
-              </dxl:Comparison>
-              <dxl:IsNull>
-                <dxl:Ident ColId="2" ColName="gender" TypeMdid="0.1043.1.0"/>
-              </dxl:IsNull>
-            </dxl:Or>
-            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-              <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                <dxl:Ident ColId="2" ColName="gender" TypeMdid="0.1043.1.0"/>
-              </dxl:Cast>
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABU0=" LintValue="160801324"/>
-            </dxl:Comparison>
-          </dxl:Or>
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
