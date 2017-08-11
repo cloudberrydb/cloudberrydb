@@ -1648,7 +1648,7 @@ tmShmemInit(void)
 /*
  * restore global transaction during tm log recovery
  */
-void
+static void
 restoreGxact(TMGXACT_LOG * gxact_log, DtxState state)
 {
 	Assert (gxact_log != NULL);

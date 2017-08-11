@@ -538,7 +538,7 @@ flushIncomingData(int fd)
  * RETURNS
  *	 Initialized ChunkTransportState for the Sending Motion Node Id.
  */
-ChunkTransportStateEntry *
+static ChunkTransportStateEntry *
 startOutgoingConnections(ChunkTransportState *transportStates,
 						 Slice	*sendSlice,
 						 int	*pOutgoingCount)
@@ -608,7 +608,7 @@ startOutgoingConnections(ChunkTransportState *transportStates,
  *          send registration message when socket becomes write-ready.
  *      mcsSendRegMsg or mcsStarted if connect() completed successfully.
  */
-void
+static void
 setupOutgoingConnection(ChunkTransportState *transportStates, ChunkTransportStateEntry *pEntry, MotionConn *conn)
 {
 	CdbProcess         *cdbProc = conn->cdbProc;
@@ -825,7 +825,7 @@ setupOutgoingConnection(ChunkTransportState *transportStates, ChunkTransportStat
  *
  * Called when connect() succeeds or fails.
  */
-void
+static void
 updateOutgoingConnection(ChunkTransportState *transportStates, ChunkTransportStateEntry *pEntry, MotionConn *conn, int errnoSave)
 {
 	socklen_t   sizeoferrno = sizeof(errnoSave);
@@ -1237,7 +1237,7 @@ old_conn:
  * Returns a newly palloc'ed MotionConn object; or NULL if the listening
  * socket does not have any pending connection requests.
  */
-MotionConn *
+static MotionConn *
 acceptIncomingConnection(void)
 {
 	int			newsockfd;
