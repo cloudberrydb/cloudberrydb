@@ -18,13 +18,11 @@
 #include "cdb/cdbpartition.h"
 #include "cdb/cdbvars.h"		/* Gp_segment */
 #include "executor/execUtils.h"
-#include "executor/executor.h"	/* ExecStateTreeWalker */
 #include "executor/instrument.h"	/* Instrumentation */
 #include "lib/stringinfo.h"		/* StringInfo */
 #include "libpq/pqformat.h"		/* pq_beginmessage() etc. */
 #include "utils/memutils.h"		/* MemoryContextGetPeakSpace() */
 #include "cdb/memquota.h"
-#include "inttypes.h"
 #include "utils/vmem_tracker.h"
 #include "parser/parsetree.h"
 

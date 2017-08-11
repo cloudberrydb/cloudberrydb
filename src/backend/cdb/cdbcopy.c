@@ -20,7 +20,6 @@
 #include "cdb/cdbdispatchresult.h"
 #include "cdb/cdbfts.h"
 #include "cdb/cdbgang.h"
-#include "cdb/cdbsrlz.h"
 #include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"
 #include "commands/copy.h"

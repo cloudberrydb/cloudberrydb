@@ -18,13 +18,9 @@
 
 #include "postgres.h"
 
-#include <pthread.h>
-
 #include "nodes/execnodes.h"            /* Slice, SliceTable */
 #include "nodes/pg_list.h"
 #include "nodes/print.h"
-#include "utils/memutils.h"
-#include "utils/hsearch.h"
 #include "miscadmin.h"
 #include "libpq/libpq-be.h"
 #include "libpq/ip.h"
@@ -48,21 +44,11 @@
  * good match for the maximum number of QEs. Slow insert performance will
  * result if it is too low.
  */
-#define MAX_BIND_RETRIES	12
 #define CONNECT_RETRY_MS	4000
 #define CONNECT_AGGRESSIVERETRY_MS	500
 
 /* listener backlog is calculated at listener-creation time */
 int			listenerBacklog = 128;
-
-#ifdef HAVE_POLL_H
-#include <poll.h>
-#endif
-#ifdef HAVE_SYS_POLL_H
-#include <sys/poll.h>
-#endif
-
-#include "port.h"
 
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -113,7 +99,7 @@ WSAPoll(
 #define poll WSAPoll
 
 /*
- * Postgres normally uses it's own custom select implementation
+ * Postgres normally uses its own custom select implementation
  * on Windows, but they haven't implemented execeptfds, which
  * we use here.  So, undef this to use the normal Winsock version
  * for now

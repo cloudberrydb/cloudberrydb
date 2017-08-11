@@ -14,30 +14,8 @@
  */
 #include "postgres.h"
 
-#include <time.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/file.h>
-#include <sys/stat.h>
-
 #include "cdb/cdbtm.h"
-#include "storage/shmem.h"
-#include "storage/ipc.h"
-#include "cdb/cdbdisp_query.h"
-#include "cdb/cdbdtxcontextinfo.h"
-
-#include "cdb/cdbvars.h"
-#include "access/transam.h"
 #include "access/xact.h"
-#include "gp-libpq-fe.h"
-#include "gp-libpq-int.h"
-#include "cdb/cdbfts.h"
-#include "lib/stringinfo.h"
-#include "access/twophase.h"
-#include "access/distributedlog.h"
-#include "postmaster/postmaster.h"
-
-#include "cdb/cdbllize.h"
 
 /*
  * Crack open the gid to get the DTM start time and distributed

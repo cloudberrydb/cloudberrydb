@@ -21,7 +21,6 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbdisp.h"
 
-#include <fcntl.h>
 #include <limits.h>
 #include <unistd.h>
 #include <arpa/inet.h>

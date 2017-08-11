@@ -10,10 +10,8 @@
 #include "postgres.h"
 
 #include <time.h>
+#include <sys/types.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <sys/file.h>
-#include <sys/stat.h>
 
 #include "catalog/pg_authid.h"
 #include "cdb/cdbtm.h"
@@ -44,7 +42,6 @@
 #include "cdb/cdbllize.h"
 #include "utils/faultinjector.h"
 #include "utils/fmgroids.h"
-#include "utils/memutils.h"
 #include "utils/sharedsnapshot.h"
 
 extern bool Test_print_direct_dispatch_info;

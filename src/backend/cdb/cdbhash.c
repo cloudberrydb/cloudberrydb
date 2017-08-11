@@ -10,9 +10,6 @@
  */
 #include "postgres.h"
 
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <assert.h>
 #include "access/tuptoaster.h"
 #include "utils/builtins.h"
@@ -27,7 +24,6 @@
 #include "utils/datetime.h"
 #include "utils/nabstime.h"
 #include "utils/varbit.h"
-#include "utils/acl.h"
 #include "utils/uuid.h"
 #include "fmgr.h"
 #include "utils/fmgroids.h"

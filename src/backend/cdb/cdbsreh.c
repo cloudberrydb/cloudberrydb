@@ -18,7 +18,6 @@
 #include "catalog/namespace.h"
 #include "catalog/pg_attribute.h"
 #include "catalog/pg_exttable.h"
-#include "catalog/pg_depend.h"
 #include "catalog/pg_type.h"
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdbdispatchresult.h"
@@ -34,10 +33,7 @@
 #include "miscadmin.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
-#include "utils/lsyscache.h"
-#include "utils/syscache.h"
 #include "utils/bytea.h"
-#include "nodes/makefuncs.h"
 
 static int  GetNextSegid(CdbSreh *cdbsreh);
 static void PreprocessByteaData(char *src);
