@@ -9384,31 +9384,3 @@ findPartitionNodeEntry(PartitionNode *partitionNode, Oid partOid)
 
 	return childNode;
 }
-
-/*
- * createValueArrays
- *   Create an Datum/bool array that will be used to populate partition key value.
- *
- * The size of this array is based on the attribute number of the partition key.
- */
-void
-createValueArrays(int keyAttno, Datum **values, bool **isnull)
-{
-	*values = palloc0(keyAttno * sizeof(Datum));
-	*isnull = palloc(keyAttno * sizeof(bool));
-
-	MemSet(*isnull, true, keyAttno * sizeof(bool));
-}
-
-/*
- * freeValueArrays
- *    Free Datum/bool array.
- */
-void
-freeValueArrays(Datum *values, bool *isnull)
-{
-	Assert (NULL != values);
-	Assert (NULL != isnull);
-	pfree(values);
-	pfree(isnull);
-}

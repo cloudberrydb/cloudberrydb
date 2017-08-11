@@ -250,12 +250,6 @@ extern void
 findPartitionMetadataEntry(List *partsMetadata, Oid partOid, PartitionNode **partsAndRules,
 							PartitionAccessMethods **accessMethods);
 
-extern void
-createValueArrays(int keyAttno, Datum **values, bool **isnull);
-
-extern void
-freeValueArrays(Datum *values, bool *isnull);
-
 extern PartitionRule*
 get_next_level_matched_partition(PartitionNode *partnode, Datum *values, bool *isnull,
 								TupleDesc tupdesc, PartitionAccessMethods *accessMethods, Oid exprTypid);
