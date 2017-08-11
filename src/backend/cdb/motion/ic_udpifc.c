@@ -2663,8 +2663,6 @@ startOutgoingUDPConnections(ChunkTransportState *transportStates,
 			conn->state = mcsSetupOutgoingConnection;
 			conn->route = i++;
 
-			conn->waitEOS = false;
-
 			(*pOutgoingCount)++;
 		}
 
@@ -6600,7 +6598,7 @@ dumpConnections(ChunkTransportStateEntry *pEntry, const char *fname)
 		fprintf(ofile, "conns[%d] motNodeId=%d: remoteContentId=%d pid=%d sockfd=%d remote=%s local=%s "
 				"capacity=%d sentSeq=%d receivedAckSeq=%d consumedSeq=%d rtt=" UINT64_FORMAT
 				" dev=" UINT64_FORMAT " deadlockCheckBeginTime=" UINT64_FORMAT " route=%d msgSize=%d msgPos=%p"
-				" recvBytes=%d tupleCount=%d waitEOS=%d stillActive=%d stopRequested=%d "
+				" recvBytes=%d tupleCount=%d stillActive=%d stopRequested=%d "
 				"state=%d\n",
 				 i, pEntry->motNodeId,
 				 conn->remoteContentId,
@@ -6610,7 +6608,7 @@ dumpConnections(ChunkTransportStateEntry *pEntry, const char *fname)
 				 conn->localHostAndPort,
 				 conn->capacity, conn->sentSeq, conn->receivedAckSeq, conn->consumedSeq,
 				 conn->rtt, conn->dev, conn->deadlockCheckBeginTime, conn->route, conn->msgSize, conn->msgPos,
-				 conn->recvBytes, conn->tupleCount, conn->waitEOS, conn->stillActive, conn->stopRequested,
+				 conn->recvBytes, conn->tupleCount, conn->stillActive, conn->stopRequested,
 				 conn->state);
 		fprintf(ofile, "conn_info [%s: seq %d extraSeq %d]: motNodeId %d, crc %d len %d "
 				"srcContentId %d dstDesContentId %d "

@@ -175,7 +175,6 @@ static void test__createWriterGang(void **state)
 		assert_int_equal(segdb->errcode, 0);
 		assert_int_equal(segdb->error_message.len, 0);
 		assert_int_equal(segdb->motionListener, motionListener);
-		assert_int_equal(segdb->myAgent, NULL);
 		assert_int_equal(segdb->segindex, i);
 
 		validateCdbInfo(segdb->segment_database_info, segdb->segindex);
@@ -225,7 +224,6 @@ static void test__createReaderGang(void **state)
 		assert_int_equal(segdb->errcode, 0);
 		assert_int_equal(segdb->error_message.len, 0);
 		assert_int_equal(segdb->motionListener, motionListener);
-		assert_int_equal(segdb->myAgent, NULL);
 		assert_int_equal(segdb->segindex, i);
 
 		validateCdbInfo(segdb->segment_database_info, segdb->segindex);

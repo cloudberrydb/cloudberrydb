@@ -240,7 +240,6 @@ void cdbconn_initSegmentDescriptor(SegmentDatabaseDescriptor *segdbDesc,
 	segdbDesc->conn = NULL;
 	segdbDesc->motionListener = 0;
 	segdbDesc->backendPid = 0;
-	segdbDesc->myAgent = NULL;
 
 	/*whoami*/
 	segdbDesc->whoami = NULL;
