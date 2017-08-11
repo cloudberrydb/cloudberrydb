@@ -27,7 +27,6 @@
 #include "postgres.h"
 
 #include "access/hash.h"
-#include "access/tuptoaster.h"
 
 
 /* Note: this is used for both "char" and boolean datatypes */
@@ -155,8 +154,6 @@ hashname(PG_FUNCTION_ARGS)
 	return hash_any((unsigned char *) key, keylen);
 }
 
-
-extern void varattrib_untoast_ptr_len(Datum d, char **datastart, int *len, void **tofree);
 Datum
 hashtext(PG_FUNCTION_ARGS)
 {
@@ -170,6 +167,9 @@ hashtext(PG_FUNCTION_ARGS)
 	 */
 	result = hash_any((unsigned char *) VARDATA_ANY(key),
 					  VARSIZE_ANY_EXHDR(key));
+
+	/* Avoid leaking memory for toasted inputs */
+	PG_FREE_IF_COPY(key, 0);
 
 	return result;
 }
@@ -186,6 +186,9 @@ hashvarlena(PG_FUNCTION_ARGS)
 
 	result = hash_any((unsigned char *) VARDATA_ANY(key),
 					  VARSIZE_ANY_EXHDR(key));
+
+	/* Avoid leaking memory for toasted inputs */
+	PG_FREE_IF_COPY(key, 0);
 
 	return result;
 }
