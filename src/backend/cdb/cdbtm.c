@@ -68,17 +68,12 @@ static volatile bool *shmTmRecoverred;
 static volatile DistributedTransactionTimeStamp *shmDistribTimeStamp;
 static volatile DistributedTransactionId *shmGIDSeq = NULL;
 static volatile int *shmNumGxacts;
-static int *shmCurrentPhase1Count;
 
 static int	ControlLockCount = 0;
-
-volatile int *shmSegmentCount;
-volatile int *shmSegmentStatesByteLen;
 
 uint32 					 *shmNextSnapshotId;
 
 volatile bool	*shmDtmStarted;
-volatile bool	*shmDtmRecoveryDeferred; /* when starting in readonly mode */
 
 /* global transaction array */
 static TMGXACT **shmGxactArray;
@@ -657,15 +652,6 @@ doPrepareTransaction(void)
 	getTmLock();
 	Assert(currentGxact->state == DTX_STATE_ACTIVE_DISTRIBUTED);
 	setCurrentGxactState( DTX_STATE_PREPARING );
-
-	/*
-	 * We keep a current count of the number of DTX transactions between
-	 * 'PREPARING' and confirmed 'COMMIT' or 'ABORT'.
-	 *
-	 * To simplify bookkeeping, we turn on a flag in the gxact object.
-	 */
-	(*shmCurrentPhase1Count)++;
-	currentGxact->bumpedPhase1Count = true;
 	releaseTmLock();
 
 	elog(DTM_DEBUG5, "doPrepareTransaction moved to state = %s", DtxStateToString(currentGxact->state));
@@ -1639,12 +1625,8 @@ tmShmemInit(void)
 		*shmGIDSeq = FirstDistributedTransactionId;
 	}
 	shmDtmStarted = &shared->DtmStarted;
-	shmDtmRecoveryDeferred = &shared->DtmDeferRecovery;
-	shmSegmentCount = &shared->SegmentCount;
-	shmSegmentStatesByteLen = &shared->SegmentsStatesByteLen;
 	shmNextSnapshotId = &shared->NextSnapshotId;
 	shmNumGxacts = &shared->num_active_xacts;
-	shmCurrentPhase1Count = &shared->currentPhase1Count;
 	shmGxactArray = shared->gxact_array;
 
 	if (!IsUnderPostmaster)
@@ -2276,8 +2258,6 @@ initGxact(TMGXACT * gxact)
 
 	gxact->xminDistributedSnapshot = InvalidDistributedTransactionId;
 
-	gxact->bumpedPhase1Count = false;
-
 	gxact->badPrepareGangs = false;
 
 	gxact->retryPhase2RecursionStop = false;
@@ -2655,11 +2635,6 @@ releaseGxact_UnderLocks(void)
 		shmGxactArray[*shmNumGxacts] = currentGxact;
 	}
 
-	if (currentGxact->bumpedPhase1Count)
-	{
-		(*shmCurrentPhase1Count)--;
-	}
-
 	currentGxact = NULL;
 }
 
@@ -2919,6 +2894,8 @@ getMaxDistributedXid(void)
 static void
 recoverTM(void)
 {
+	bool		dtmRecoveryDeferred;
+
 	/* intialize fts sync count */
 	verifyFtsSyncCount();
 
@@ -2940,10 +2917,10 @@ recoverTM(void)
 		}
 		currentGxact = NULL;
 
-		*shmDtmRecoveryDeferred = true;
+		dtmRecoveryDeferred = true;
 	}
 	else
-		*shmDtmRecoveryDeferred = false;
+		dtmRecoveryDeferred = false;
 
 	if (Gp_role == GP_ROLE_UTILITY)
 	{
@@ -2951,7 +2928,7 @@ recoverTM(void)
 		return;
 	}
 
-	if (!*shmDtmRecoveryDeferred)
+	if (!dtmRecoveryDeferred)
 	{
 		/*
 		 * Attempt to recover all in-doubt transactions.

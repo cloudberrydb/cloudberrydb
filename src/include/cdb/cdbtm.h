@@ -222,8 +222,6 @@ typedef struct TMGXACT
 	 */
 	DistributedTransactionId	xminDistributedSnapshot;
 
-	bool						bumpedPhase1Count;
-
 	bool						badPrepareGangs;
 
 	bool						retryPhase2RecursionStop;
@@ -259,16 +257,8 @@ typedef struct TmControlBlock
 	DistributedTransactionTimeStamp	distribTimeStamp;
 	DistributedTransactionId	seqno;
 	bool						DtmStarted;
-	bool						DtmDeferRecovery;
-	int							SegmentCount;
-	int							SegmentsStatesByteLen;
 	uint32						NextSnapshotId;
 	int							num_active_xacts;
-	int							currentPhase1Count;
-									/* Current count of how many DTX 
-									 * transactions are between 'PREPARING'
-									 * and confirmed 'COMMIT' or 'ABORT'.
-									 */
 
     /* Array [0..max_tm_gxacts-1] of TMGXACT ptrs is appended starting here */
 	TMGXACT  			       *gxact_array[1];
@@ -282,8 +272,6 @@ extern DtxContext DistributedTransactionContext;
 
 /* state variables for how much of the log file has been flushed */
 extern volatile bool *shmDtmStarted;
-extern volatile int *shmSegmentCount;
-extern volatile int *shmSegmentsStatesByteLen;
 
 extern char *DtxStateToString(DtxState state);
 extern char *DtxProtocolCommandToString(DtxProtocolCommand command);
