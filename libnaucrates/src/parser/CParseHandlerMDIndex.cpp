@@ -190,7 +190,7 @@ CParseHandlerMDIndex::EndElement
 		CParseHandlerScalarOp *pphPartCnstr = dynamic_cast<CParseHandlerScalarOp *>((*this)[1]);
 		CDXLNode *pdxlnPartConstraint = pphPartCnstr->Pdxln();
 		pdxlnPartConstraint->AddRef();
-		m_ppartcnstr = GPOS_NEW(m_pmp) CMDPartConstraintGPDB(m_pmp, pdxlnPartConstraint, m_pdrgpulDefaultParts, m_fPartConstraintUnbounded);
+		m_ppartcnstr = GPOS_NEW(m_pmp) CMDPartConstraintGPDB(m_pmp, m_pdrgpulDefaultParts, m_fPartConstraintUnbounded, pdxlnPartConstraint);
 		return;
 	}
 	

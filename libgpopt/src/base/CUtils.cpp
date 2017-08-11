@@ -4383,14 +4383,14 @@ CUtils::PpartcnstrFromMDPartCnstr
 	BOOL fDummyConstraint
 	)
 {
-	GPOS_ASSERT(NULL != pdrgpdrgpcrPartKey);
-
-	const ULONG ulLevels = pdrgpdrgpcrPartKey->UlLength();
-
 	if (fDummyConstraint)
 	{
 		return GPOS_NEW(pmp) CPartConstraint(true /*fUninterpreted*/);
 	}
+
+	GPOS_ASSERT(NULL != pdrgpdrgpcrPartKey);
+
+	const ULONG ulLevels = pdrgpdrgpcrPartKey->UlLength();
 
 	CExpression *pexprPartCnstr = pmdpartcnstr->Pexpr(pmp, pmda, pdrgpcrOutput);
 

@@ -31,17 +31,16 @@ using namespace gpopt;
 CMDPartConstraintGPDB::CMDPartConstraintGPDB
 	(
 	IMemoryPool *pmp,
-	CDXLNode *pdxln,
 	DrgPul *pdrgpulDefaultParts,
-	BOOL fUnbounded
+	BOOL fUnbounded,
+	CDXLNode *pdxln
 	)
 	:
 	m_pmp(pmp),
-	m_pdxln(pdxln),
 	m_pdrgpulDefaultParts(pdrgpulDefaultParts),
-	m_fUnbounded(fUnbounded)
+	m_fUnbounded(fUnbounded),
+	m_pdxln(pdxln)
 {
-	GPOS_ASSERT(NULL != pdxln);
 	GPOS_ASSERT(NULL != pdrgpulDefaultParts);
 }
 
@@ -55,7 +54,8 @@ CMDPartConstraintGPDB::CMDPartConstraintGPDB
 //---------------------------------------------------------------------------
 CMDPartConstraintGPDB::~CMDPartConstraintGPDB()
 {
-	m_pdxln->Release();
+	if (NULL != m_pdxln)
+		m_pdxln->Release();
 	m_pdrgpulDefaultParts->Release();
 }
 
@@ -137,7 +137,8 @@ CMDPartConstraintGPDB::Serialize
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenPartConstraintUnbounded), m_fUnbounded);
 
 	// serialize the scalar expression
-	m_pdxln->SerializeToDXL(pxmlser);
+	if (NULL != m_pdxln)
+		m_pdxln->SerializeToDXL(pxmlser);
 
 	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
 						CDXLTokens::PstrToken(EdxltokenPartConstraint));

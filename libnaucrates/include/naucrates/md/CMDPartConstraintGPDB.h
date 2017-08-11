@@ -50,19 +50,18 @@ namespace gpmd
 			// memory pool
 			IMemoryPool *m_pmp;
 
-			// the DXL representation of the part constraint
-			CDXLNode *m_pdxln;
-
 			// included default partitions
 			DrgPul *m_pdrgpulDefaultParts;
 			
 			// is constraint unbounded
 			BOOL m_fUnbounded;
-			
+
+			// the DXL representation of the part constraint
+			CDXLNode *m_pdxln;
 		public:
 
 			// ctor
-			CMDPartConstraintGPDB(IMemoryPool *pmp, CDXLNode *pdxln, DrgPul *pdrgpulDefaultParts, BOOL fUnbounded);
+			CMDPartConstraintGPDB(IMemoryPool *pmp, DrgPul *pdrgpulDefaultParts, BOOL fUnbounded, CDXLNode *pdxln);
 
 			// dtor
 			virtual

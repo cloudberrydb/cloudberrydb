@@ -91,10 +91,17 @@ CParseHandlerMDRelation::StartElement
 		}
 		m_fPartConstraintUnbounded = CDXLOperatorFactory::FValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenPartConstraintUnbounded, EdxltokenRelation);
 
-		// parse handler for part constraints
-		CParseHandlerBase *pphPartConstraint= CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalar), m_pphm, this);
-		m_pphm->ActivateParseHandler(pphPartConstraint);
-		this->Append(pphPartConstraint);
+		CParseHandlerMetadataIdList *pphMdidlIndices = dynamic_cast<CParseHandlerMetadataIdList*>((*this)[1]);
+
+		// relcache translator will send partition constraint expression only when a partitioned relation has indices
+		if (pphMdidlIndices->Pdrgpmdid()->UlLength() > 0)
+		{
+			// parse handler for part constraints
+			CParseHandlerBase *pphPartConstraint= CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalar), m_pphm, this);
+			m_pphm->ActivateParseHandler(pphPartConstraint);
+			this->Append(pphPartConstraint);
+		}
+
 		return;
 	}
 
@@ -205,12 +212,22 @@ CParseHandlerMDRelation::EndElement
 	const XMLCh* const // xmlszQname
 	)
 {
+	CParseHandlerMetadataIdList *pphMdidlIndices = dynamic_cast<CParseHandlerMetadataIdList*>((*this)[1]);
 	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPartConstraint), xmlszLocalname))
 	{
-		CParseHandlerScalarOp *pphPartCnstr = dynamic_cast<CParseHandlerScalarOp *>((*this)[UlLength() - 1]);
-		CDXLNode *pdxlnPartConstraint = pphPartCnstr->Pdxln();
-		pdxlnPartConstraint->AddRef();
-		m_ppartcnstr = GPOS_NEW(m_pmp) CMDPartConstraintGPDB(m_pmp, pdxlnPartConstraint, m_pdrgpulDefaultParts, m_fPartConstraintUnbounded);
+		// relcache translator will send partition constraint expression only when a partitioned relation has indices
+		if (pphMdidlIndices->Pdrgpmdid()->UlLength() > 0)
+		{
+			CParseHandlerScalarOp *pphPartCnstr = dynamic_cast<CParseHandlerScalarOp *>((*this)[UlLength() - 1]);
+			CDXLNode *pdxlnPartConstraint = pphPartCnstr->Pdxln();
+			pdxlnPartConstraint->AddRef();
+			m_ppartcnstr = GPOS_NEW(m_pmp) CMDPartConstraintGPDB(m_pmp, m_pdrgpulDefaultParts, m_fPartConstraintUnbounded, pdxlnPartConstraint);
+		}
+		else
+		{
+			// no partition constraint expression
+			m_ppartcnstr = GPOS_NEW(m_pmp) CMDPartConstraintGPDB(m_pmp, m_pdrgpulDefaultParts, m_fPartConstraintUnbounded, NULL);
+		}
 		return;
 	}
 
@@ -222,7 +239,6 @@ CParseHandlerMDRelation::EndElement
 	
 	// construct metadata object from the created child elements
 	CParseHandlerMetadataColumns *pphMdCol = dynamic_cast<CParseHandlerMetadataColumns *>((*this)[0]);
-	CParseHandlerMetadataIdList *pphMdidlIndices = dynamic_cast<CParseHandlerMetadataIdList*>((*this)[1]);
 	CParseHandlerMetadataIdList *pphMdidlTriggers = dynamic_cast<CParseHandlerMetadataIdList*>((*this)[2]);
 	CParseHandlerMetadataIdList *pphMdidlCheckConstraints = dynamic_cast<CParseHandlerMetadataIdList*>((*this)[3]);
 
