@@ -164,6 +164,13 @@ includecheck:
 
 pg_regress_call = ./pg_regress --inputdir=$(srcdir) --multibyte=$(MULTIBYTE) $(MAXCONNOPT) $(NOLOCALE) --init-file=$(srcdir)/init_file
 
+# These are currently skipped because they don't work yet for segment wal replication
+# segspace: cannot restart database at the moment
+# filespace: segment wal replication does not handle filespaces yet
+ifeq ($(enable_segwalrep), yes)
+pg_regress_call := $(pg_regress_call) --exclude-tests="segspace_setup segspace segspace_cleanup filespace"
+endif
+
 check: all
 	$(pg_regress_call) --temp-install=./tmp_check --top-builddir=$(top_builddir) --srcdir=$(abs_srcdir) --temp-port=$(TEMP_PORT) --schedule=$(srcdir)/parallel_schedule 
 
