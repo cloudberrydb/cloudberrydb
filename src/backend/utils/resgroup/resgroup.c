@@ -53,7 +53,7 @@
  * We choose the name "stocks" instead of "shares" or "quota" because they
  * have other meanings in resource groups.
  */
-#define RESGROUP_MAX_MEM_STOCKS		1000000
+#define RESGROUP_MAX_MEM_STOCKS		1000000LL
 
 /*
  * GUC variables.
@@ -198,6 +198,9 @@ static void ResGroupWait(ResGroupData *group, bool isLocked);
 static bool ResGroupCreate(Oid groupId);
 static void AtProcExit_ResGroup(int code, Datum arg);
 static void ResGroupWaitCancel(void);
+static int memSharedUsage2Percent(const ResGroupOpts *opts, int32 memSharedUsage);
+static int memStocks2Percent(const ResGroupOpts *opts, int32 memStocks);
+static bool validMemUsage(ResGroupData *group, const ResGroupOpts *opts);
 static void attachToSlot(ResGroupData *group,
 						 ResGroupSlotData *slot,
 						 ResGroupProcData *self);
@@ -345,6 +348,7 @@ InitResGroups(void)
 	int			numGroups;
 	CdbComponentDatabases *cdbComponentDBs;
 	CdbComponentDatabaseInfo *qdinfo;
+	ResGroupCaps		caps;
 
 	on_shmem_exit(AtProcExit_ResGroup, 0);
 	if (pResGroupControl->loaded)
@@ -382,9 +386,12 @@ InitResGroups(void)
 	sscan = systable_beginscan(relResGroup, InvalidOid, false, SnapshotNow, 0, NULL);
 	while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
 	{
+		int cpuRateLimit;
 		Oid groupId = HeapTupleGetOid(tuple);
 		bool groupOK = ResGroupCreate(groupId);
-		int cpu_rate_limit = GetCpuRateLimitForResGroup(groupId);
+
+		GetResGroupCapabilities(groupId, &caps);
+		cpuRateLimit = caps.cpuRateLimit.value;
 
 		if (!groupOK)
 			ereport(PANIC,
@@ -392,7 +399,7 @@ InitResGroups(void)
 			 		errmsg("not enough shared memory for resource groups")));
 
 		ResGroupOps_CreateGroup(groupId);
-		ResGroupOps_SetCpuRateLimit(groupId, cpu_rate_limit);
+		ResGroupOps_SetCpuRateLimit(groupId, cpuRateLimit);
 
 		numGroups++;
 		Assert(numGroups <= MaxResourceGroups);
@@ -516,7 +523,8 @@ ResGroupDropCheckForWakeup(Oid groupId, bool isCommit)
  * Wake up the backends in the wait queue when 'concurrency' is increased.
  * This function is called in the callback function of ALTER RESOURCE GROUP.
  */
-void ResGroupAlterCheckForWakeup(Oid groupId, int value, int proposed)
+void
+ResGroupAlterCheckForWakeup(Oid groupId)
 {
 	PROC_QUEUE	*waitQueue;
 	ResGroupData	*group;
@@ -805,16 +813,28 @@ ResGroupReleaseMemory(int32 memoryChunks)
 }
 
 /*
- * Calculate the new concurrency 'value' of pg_resgroupcapability
+ * Decide the new resource group concurrency capabilities
+ * of pg_resgroupcapability.
+ *
+ * The decision is based on current runtime information:
+ * - 'proposed' will always be set to the latest setting;
+ * - 'value' will be set to the most recent version of concurrency
+ *   with which current nRunning doesn't exceed the limit;
  */
-int
-CalcConcurrencyValue(int groupId, int val, int proposed, int newProposed)
+void
+ResGroupDecideConcurrencyCaps(Oid groupId,
+							  ResGroupCaps *caps,
+							  const ResGroupOpts *opts)
 {
 	ResGroupData	*group;
-	int			ret;
 
+	/* If resource group is not in use we can always pick the new settings. */
 	if (!IsResGroupEnabled())
-		return newProposed;
+	{
+		caps->concurrency.value = opts->concurrency;
+		caps->concurrency.proposed = opts->concurrency;
+		return;
+	}
 
 	LWLockAcquire(ResGroupLock, LW_SHARED);
 
@@ -828,15 +848,76 @@ CalcConcurrencyValue(int groupId, int val, int proposed, int newProposed)
 				 errmsg("Cannot find resource group with Oid %d in shared memory", groupId)));
 	}
 
-	if (group->nRunning <= newProposed)
-		ret = newProposed;
-	else if (group->nRunning <= proposed)
-		ret = proposed;
-	else
-		ret = val;
+	/*
+	 * If the runtime usage information doesn't exceed the new setting
+	 * then we can pick this setting as the new 'value'.
+	 */
+	if (group->nRunning <= opts->concurrency)
+		caps->concurrency.value = opts->concurrency;
+
+	/* 'proposed' is always set with latest setting */
+	caps->concurrency.proposed = opts->concurrency;
 
 	LWLockRelease(ResGroupLock);
-	return ret;
+}
+
+/*
+ * Decide the new resource group memory capabilities
+ * of pg_resgroupcapability.
+ *
+ * The decision is based on current runtime information:
+ * - 'proposed' will always be set to the latest setting;
+ * - 'value' will be set to the most recent version of memory settings
+ *   with which current memory quota usage and memory shared usage
+ *   doesn't exceed the limit;
+ */
+void
+ResGroupDecideMemoryCaps(int groupId,
+						 ResGroupCaps *caps,
+						 const ResGroupOpts *opts)
+{
+	ResGroupData	*group;
+
+	/* If resource group is not in use we can always pick the new settings. */
+	if (!IsResGroupEnabled())
+	{
+		caps->memLimit.value = opts->memLimit;
+		caps->memLimit.proposed = opts->memLimit;
+
+		caps->memSharedQuota.value = opts->memSharedQuota;
+		caps->memSharedQuota.proposed = opts->memSharedQuota;
+
+		return;
+	}
+
+	LWLockAcquire(ResGroupLock, LW_SHARED);
+
+	group = ResGroupHashFind(groupId);
+	if (group == NULL)
+	{
+		LWLockRelease(ResGroupLock);
+
+		ereport(ERROR,
+				(errcode(ERRCODE_DATA_CORRUPTED),
+				 errmsg("Cannot find resource group with Oid %d in shared memory",
+						groupId)));
+	}
+
+	/*
+	 * If the runtime usage information doesn't exceed the new settings
+	 * then we can pick these settings as the new 'value's.
+	 */
+	if (validMemUsage(group, opts))
+	{
+		caps->memLimit.value = opts->memLimit;
+		caps->memSharedQuota.value = opts->memSharedQuota;
+	}
+
+	/* 'proposed' is always set with latest setting */
+	caps->memSharedQuota.proposed = opts->memSharedQuota;
+	caps->memLimit.proposed = opts->memLimit;
+
+	LWLockRelease(ResGroupLock);
 }
 
 int
@@ -884,6 +965,102 @@ ResGroupCreate(Oid groupId)
 	memset(&group->totalQueuedTime, 0, sizeof(group->totalQueuedTime));
 	group->lockedForDrop = false;
 	memset(group->slots, 0, sizeof(group->slots));
+
+	return true;
+}
+
+/*
+ * Convert memSharedUsage to percentage.
+ *
+ * The calculation is based on the passed opts.
+ *
+ * When a resgroup's shared memory is fully used the percentage is 100%.
+ */
+static int
+memSharedUsage2Percent(const ResGroupOpts *opts, int32 memSharedUsage)
+{
+	int				nsegments;
+	int32			segmentChunks;
+	int32			memLimitInChunks;
+	int32			memSharedQuotaInChunks;
+	int				percent;
+
+	/*
+	 * When memSharedUsage == 0 then return 0;
+	 * When memSharedUsage < 0 then return a negative percentage.
+	 *
+	 * There is no need to check memSharedQuota in such cases.
+	 */
+	if (memSharedUsage <= 0)
+		return memSharedUsage;
+
+	/* Return -1 if memSharedQuota is 0 and memSharedUsage > 0 */
+	if (!opts->memSharedQuota)
+		return -1;
+
+	nsegments = Gp_role == GP_ROLE_DISPATCH
+		? pResGroupControl->segmentsOnMaster : host_segments;
+	Assert(nsegments > 0);
+
+	segmentChunks = ResGroupOps_GetTotalMemory() *
+		gp_resource_group_memory_limit / nsegments;
+	memLimitInChunks = segmentChunks * opts->memLimit / 100;
+	memSharedQuotaInChunks = memLimitInChunks * opts->memSharedQuota / 100;
+	Assert(memSharedQuotaInChunks > 0);
+	percent = memSharedUsage * 100 / memSharedQuotaInChunks;
+
+	return percent;
+}
+
+/*
+ * Convert memStocks to percentage.
+ *
+ * The calculation is based on the passed opts.
+ *
+ * When a resgroup's stocks is fully consumed the percentage is 100%.
+ */
+static int
+memStocks2Percent(const ResGroupOpts *opts, int32 memStocks)
+{
+	int32			groupMemStocks;
+	int				percent;
+
+	/*
+	 * When memStocks == 0 then return 0;
+	 * When memStocks < 0 then return a negative percentage.
+	 */
+	if (memStocks <= 0)
+		return memStocks;
+
+	groupMemStocks = RESGROUP_MAX_MEM_STOCKS *
+		opts->memLimit * (100 - opts->memSharedQuota) / 100 / 100;
+	Assert(groupMemStocks > 0);
+	percent = memStocks * 100 / groupMemStocks;
+
+	return percent;
+}
+
+/*
+ * Check whether memStocks and memSharedUsage both have valid percentages
+ * with the passed (memLimit, memSharedQuota).
+ */
+static bool
+validMemUsage(ResGroupData *group, const ResGroupOpts *opts)
+{
+	int32			memStocks;
+	int32			memSharedUsage;
+	int				percent;
+
+	memStocks = group->memStocksGranted;
+	memSharedUsage = group->memSharedUsage;
+
+	percent = memSharedUsage2Percent(opts, memSharedUsage);
+	if (percent < 0 || percent > 100)
+		return false;
+
+	percent = memStocks2Percent(opts, memStocks);
+	if (percent < 0 || percent > 100)
+		return false;
 
 	return true;
 }
@@ -1009,6 +1186,7 @@ getSlot(ResGroupData *group)
 	int32				segmentChunks;
 	int32				memLimit;
 	int					slotId;
+	ResGroupCaps		caps;
 
 	Assert(LWLockHeldExclusiveByMe(ResGroupLock));
 	Assert(Gp_role == GP_ROLE_DISPATCH);
@@ -1016,21 +1194,24 @@ getSlot(ResGroupData *group)
 	Assert(group != NULL);
 	Assert(group->groupId != InvalidOid);
 
+	/* Get resgroup config snapshot */
+	GetResGroupCapabilities(group->groupId, &caps);
+	config.concurrency = caps.concurrency.proposed;
+	config.memoryLimit = caps.memLimit.value;
+	config.sharedQuota = caps.memSharedQuota.value;
+	config.spillRatio = caps.memSpillRatio.value;
+
 	/* First check if the concurrency limit is reached */
-	GetConcurrencyForResGroup(group->groupId, NULL, &config.concurrency);
 	Assert(config.concurrency > 0);
 
 	if (group->nRunning >= config.concurrency)
 		return InvalidSlotId;
 
 	/* Then check for memory stocks */
-	GetMemoryCapabilitiesForResGroup(group->groupId,
-									 &config.memoryLimit,
-									 &config.sharedQuota,
-									 &config.spillRatio);
 	Assert(pResGroupControl->segmentsOnMaster > 0);
 
-	groupMemStocks = RESGROUP_MAX_MEM_STOCKS * config.memoryLimit / 100;
+	groupMemStocks = RESGROUP_MAX_MEM_STOCKS * config.memoryLimit *
+		(100 - config.sharedQuota) / 100 / 100;
 	slotMemStocks = groupMemStocks / config.concurrency;
 
 	Assert(slotMemStocks > 0);
@@ -1128,6 +1309,7 @@ static int
 ResGroupSlotAcquire(void)
 {
 	ResGroupData	*group;
+	ResGroupCaps	caps;
 	Oid			groupId;
 	int			concurrencyProposed;
 	bool		retried = false;
@@ -1138,7 +1320,8 @@ ResGroupSlotAcquire(void)
 	if (groupId == InvalidOid)
 		groupId = superuser() ? ADMINRESGROUP_OID : DEFAULTRESGROUP_OID;
 
-	GetConcurrencyForResGroup(groupId, NULL, &concurrencyProposed);
+	GetResGroupCapabilities(groupId, &caps);
+	concurrencyProposed = caps.concurrency.proposed;
 
 retry:
 	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);

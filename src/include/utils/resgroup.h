@@ -12,6 +12,52 @@
 #define RES_GROUP_H
 
 #include "cdb/memquota.h"
+#include "catalog/pg_resgroup.h"
+
+/*
+ * Resource group capability.
+ */
+typedef struct ResGroupCap
+{
+	int		value;
+	int		proposed;
+} ResGroupCap;
+
+/*
+ * Resource group capabilities.
+ *
+ * These are usually a snapshot of the pg_resgroupcapability table
+ * for a resource group.
+ *
+ * The properties must be in the same order as ResGroupLimitType.
+ */
+typedef struct ResGroupCaps
+{
+	ResGroupCap		__unknown;
+	ResGroupCap		concurrency;
+	ResGroupCap		cpuRateLimit;
+	ResGroupCap		memLimit;
+	ResGroupCap		memSharedQuota;
+	ResGroupCap		memSpillRatio;
+} ResGroupCaps;
+
+/*
+ * Resource group setting options.
+ *
+ * These can represent the effective settings of a resource group,
+ * or the new settings from ALTER RESOURCE GROUP syntax.
+ *
+ * The properties must be in the same order as ResGroupLimitType.
+ */
+typedef struct ResGroupOpts
+{
+	int32			__unknown;
+	int32			concurrency;
+	int32			cpuRateLimit;
+	int32			memLimit;
+	int32			memSharedQuota;
+	int32			memSpillRatio;
+} ResGroupOpts;
 
 /*
  * GUC variables.
@@ -75,10 +121,15 @@ extern bool ResGroupReserveMemory(int32 memoryChunks, int32 overuseChunks, bool 
 /* Update the memory usage of resource group */
 extern void ResGroupReleaseMemory(int32 memoryChunks);
 
-extern void ResGroupAlterCheckForWakeup(Oid groupId, int value, int proposed);
+extern void ResGroupAlterCheckForWakeup(Oid groupId);
 extern void ResGroupDropCheckForWakeup(Oid groupId, bool isCommit);
 extern void ResGroupCheckForDrop(Oid groupId, char *name);
-extern int CalcConcurrencyValue(int groupId, int val, int proposed, int newProposed);
+extern void ResGroupDecideMemoryCaps(int groupId,
+									 ResGroupCaps *caps,
+									 const ResGroupOpts *opts);
+extern void ResGroupDecideConcurrencyCaps(Oid groupId,
+										  ResGroupCaps *caps,
+										  const ResGroupOpts *opts);
 
 /* test helper function */
 extern void ResGroupGetMemInfo(int *memLimit, int *slotQuota, int *sharedQuota);

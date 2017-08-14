@@ -161,7 +161,9 @@ ERROR:  cpu_rate_limit range is [1, 100]
 CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=0);
 ERROR:  memory_limit range is [1, 100]
 CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=0.9);
-ERROR:  memory_limit range is [1, 100]
+ERROR:  invalid input syntax for integer: "0.9"
+CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=1.9);
+ERROR:  invalid input syntax for integer: "1.9"
 -- negative: concurrency should be in [1, max_connections]
 CREATE RESOURCE GROUP rg_test_group WITH (concurrency=-1, cpu_rate_limit=10, memory_limit=10);
 ERROR:  concurrency range is [1, 'max_connections']
@@ -196,10 +198,6 @@ CREATE
 DROP RESOURCE GROUP rg_test_group;
 DROP
 CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=1);
-CREATE
-DROP RESOURCE GROUP rg_test_group;
-DROP
-CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=60.9);
 CREATE
 DROP RESOURCE GROUP rg_test_group;
 DROP

@@ -2881,6 +2881,9 @@ resGroupPalloc(PG_FUNCTION_ARGS)
 	int count;
 	int i;
 
+	if (!IsResGroupEnabled())
+		PG_RETURN_INT32(0);
+
 	ResGroupGetMemInfo(&memLimit, &slotQuota, &sharedQuota);
 	size = ceilf(memLimit * ratio);
 	count = size / 512;
