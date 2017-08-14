@@ -1496,7 +1496,6 @@ heap_create_with_catalog(const char *relname,
 	 */
 	stdRdOptions = (StdRdOptions*) heap_reloptions(
 			relkind, reloptions, !valid_opts);
-	heap_test_override_reloptions(relkind, stdRdOptions, &safefswritesize);
 	appendOnlyRel = stdRdOptions->appendonly;
 	validateAppendOnlyRelOptions(appendOnlyRel,
 								 stdRdOptions->blocksize,

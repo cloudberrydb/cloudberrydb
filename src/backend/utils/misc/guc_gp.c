@@ -1890,16 +1890,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"gp_test_orientation_override", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("For testing purposes, change the default of the orientation to column."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&gp_test_orientation_override,
-		false, NULL, NULL
-	},
-
-	{
 		{"gp_permit_persistent_metadata_update", PGC_SUSET, DEVELOPER_OPTIONS,
 			gettext_noop("Permit updates to persistent metadata tables."),
 			gettext_noop("For system repair by experts."),
@@ -3431,26 +3421,6 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&Test_compresslevel_override,
 		DEFAULT_COMPRESS_LEVEL, 0, 9, NULL, NULL
-	},
-
-	{
-		{"test_blocksize_override", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("For testing purposes, the override value for append only blocksize when non-default."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Test_blocksize_override,
-		DEFAULT_APPENDONLY_BLOCK_SIZE, MIN_APPENDONLY_BLOCK_SIZE, MAX_APPENDONLY_BLOCK_SIZE, NULL, NULL
-	},
-
-	{
-		{"test_safefswritesize_override", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("For testing purposes, the override value for append only safefswritesize when non-default."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&Test_safefswritesize_override,
-		DEFAULT_FS_SAFE_WRITE_SIZE, 0, INT_MAX, NULL, NULL
 	},
 
 	{
