@@ -1493,7 +1493,6 @@ heap_create_with_catalog(const char *relname,
 	/*
 	 * Was "appendonly" specified in the relopts? If yes, fix our relstorage.
 	 * Also, check for override (debug) GUCs.
-	 * During upgrade, do not validate because we accept tidycat options as well.
 	 */
 	stdRdOptions = (StdRdOptions*) heap_reloptions(
 			relkind, reloptions, !valid_opts);
