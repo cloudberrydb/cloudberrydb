@@ -84,6 +84,7 @@ char	   *inputdir = ".";
 char	   *outputdir = ".";
 char	   *psqldir = PGBINDIR;
 bool 		optimizer_enabled = false;
+bool 		resgroup_enabled = false;
 static _stringlist *loadlanguage = NULL;
 static int	max_connections = 0;
 static char *encoding = NULL;
@@ -2289,12 +2290,14 @@ trim_white_space(char *str)
  * variable "optimizer_enabled" accordingly.
  *
  * @param feature_name Name of the feature to be checked (i.e., optimizer or codegen)
+ * @param feature_value Expected value when the feature is enabled (i.e., on or group)
  * @param on_msg Message to be printed when the feature is enabled
  * @param off_msg Message to be printed when the feature is disabled
  * @return true if the feature is enabled; false otherwise
  */
 static bool
-check_feature_status(const char *feature_name, const char *on_msg, const char *off_msg)
+check_feature_status(const char *feature_name, const char *feature_value,
+					 const char *on_msg, const char *off_msg)
 {
 	char psql_cmd[MAXPGPATH];
 	char statusfilename[MAXPGPATH];
@@ -2330,19 +2333,16 @@ check_feature_status(const char *feature_name, const char *on_msg, const char *o
 	while (fgets(line, sizeof(line), statusfile))
 	{
 		char *trimmed = trim_white_space(line);
-		if (strncmp(trimmed, "on", 2) == 0)
+		if (strcmp(trimmed, feature_value) == 0)
 		{
 			status(_("%s"), on_msg);
 			isEnabled = true;
 			break;
 		}
-
-		if (strncmp(trimmed, "off", 3) == 0)
-		{
-			status(_("%s"), off_msg);
-			break;
-		}
 	}
+	if (!isEnabled)
+		status(_("%s"), off_msg);
+
 	status_end();
 	fclose(statusfile);
 	unlink(statusfilename);
@@ -2749,14 +2749,21 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 	/*
 	 * Find out if optimizer is on or off
 	 */
-	optimizer_enabled = check_feature_status("optimizer",
+	optimizer_enabled = check_feature_status("optimizer", "on",
 			"Optimizer enabled. Using optimizer answer files whenever possible",
 			"Optimizer disabled. Using planner answer files");
 
 	/*
+	 * Find out if gp_resource_manager is group or not
+	 */
+	resgroup_enabled = check_feature_status("gp_resource_manager", "group",
+			"Resource group enabled. Using resource group answer files whenever possible",
+			"Resource group disabled. Using default answer files");
+
+	/*
 	 * Find out if codegen is on or off
 	 */
-	check_feature_status("codegen", "Codegen enabled", "Codegen disabled");
+	check_feature_status("codegen", "on", "Codegen enabled", "Codegen disabled");
 
 	/*
 	 * Ready to run the tests

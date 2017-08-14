@@ -2395,6 +2395,9 @@ checkResourceQueueMemoryLimits(PG_FUNCTION_ARGS)
 	ResQueue queue;
 	double v1, v2;
 
+	if (!IsResQueueEnabled())
+		return (Datum)0;
+
 	if (queueName == NULL)
 		return (Datum)0;
 

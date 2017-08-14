@@ -41,7 +41,7 @@
 #include "utils/vmem_tracker.h"
 
 #define InvalidSlotId	(-1)
-#define RESGROUP_MAX_SLOTS	90
+#define RESGROUP_MAX_SLOTS	300
 
 /*
  * Stock is a virtual unit used to manage the memory quota in resource groups.
