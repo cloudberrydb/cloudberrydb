@@ -11,9 +11,7 @@
 
 use strict;
 use warnings;
-use POSIX;
 use File::Spec;
-use Config;
 use Getopt::Long qw(GetOptions);
 Getopt::Long::Configure qw(pass_through);
 
@@ -186,14 +184,11 @@ sub gpdiff_files
 
     unless (defined($d2d) && exists($d2d->{equiv}))
     {
-        # check for start_equiv unless already doing equiv check
-
-        # get the count of matching lines
-        my $grepout = `grep -c start_equiv $f1`;
-        chomp $grepout;
-
-        $need_equiv = $grepout;
-#        $need_equiv = 0;
+        # check if the file contains any "start_equiv" directives, unless
+        # already doing equiv check
+        open(FILE, $f1);
+        $need_equiv = (grep{/start_equiv/} <FILE>);
+        close FILE;
 
         if ($need_equiv)
         {
