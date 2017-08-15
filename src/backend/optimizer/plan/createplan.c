@@ -2668,7 +2668,6 @@ create_ctescan_plan(PlannerInfo *root, Path *best_path,
 	return scan_plan;
 }
 
-
 /*
  * create_worktablescan_plan
  *	 Returns a worktablescan plan for the base relation scanned by 'best_path'
@@ -2696,7 +2695,7 @@ create_worktablescan_plan(PlannerInfo *root, Path *best_path,
 	 */
 	levelsup = rte->ctelevelsup;
 	if (levelsup == 0)			/* shouldn't happen */
-			elog(ERROR, "bad levelsup for CTE \"%s\"", rte->ctename);
+		elog(ERROR, "bad levelsup for CTE \"%s\"", rte->ctename);
 	levelsup--;
 	cteroot = root;
 	while (levelsup-- > 0)
@@ -2705,7 +2704,7 @@ create_worktablescan_plan(PlannerInfo *root, Path *best_path,
 		if (!cteroot)			/* shouldn't happen */
 			elog(ERROR, "bad levelsup for CTE \"%s\"", rte->ctename);
 	}
-	if (cteroot->wt_param_id < 0)	/* shouldn't happen */
+	if (cteroot->wt_param_id < 0)		/* shouldn't happen */
 		elog(ERROR, "could not find param ID for CTE \"%s\"", rte->ctename);
 
 	/* Sort clauses into best execution order */

@@ -4403,7 +4403,6 @@ get_rule_expr(Node *node, deparse_context *context,
 								IsA(strip_implicit_coercions(linitial(args)),
 									CaseTestExpr))
 								w = (Node *) lsecond(args);
-
 						}
 					}
 
@@ -5081,7 +5080,8 @@ get_func_expr(FuncExpr *expr, deparse_context *context,
 	}
 
 	appendStringInfo(buf, "%s(",
-					 generate_function_name(funcoid, nargs, argtypes, &is_variadic));
+					 generate_function_name(funcoid, nargs, argtypes,
+											&is_variadic));
 	nargs = 0;
 	foreach(l, expr->args)
 	{
@@ -6525,7 +6525,8 @@ generate_relation_name(Oid relid, List *namespaces)
  * The result includes all necessary quoting and schema-prefixing.
  */
 static char *
-generate_function_name(Oid funcid, int nargs, Oid *argtypes, bool *is_variadic)
+generate_function_name(Oid funcid, int nargs, Oid *argtypes,
+					   bool *is_variadic)
 {
 	HeapTuple	proctup;
 	Form_pg_proc procform;
