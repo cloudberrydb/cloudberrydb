@@ -287,10 +287,10 @@ server_side_encryption = sse-s3
             with the <codeph>s3</codeph> protocol configuration parameter <codeph>proxy</codeph> or
             an environment variable. If the configuration parameter is set, the environment
             variables are ignored. </p>
-         <p>To specify proxy with an environment variable, you set the environment variable a based
+         <p>To specify proxy with an environment variable, you set the environment variable based
             on the protocol: <codeph>http_proxy</codeph>, <codeph>https_proxy</codeph>, or
-               <codeph>socks_proxy</codeph>. You can specify a different URL each protocol by
-            setting the appropriate environment variable. . S3 also supports these environment
+               <codeph>socks_proxy</codeph>. You can specify a different URL for each protocol by
+            setting the appropriate environment variable. S3 supports these environment
                variables.<ul id="ul_cy3_km2_r1b">
                <li><codeph>all_proxy</codeph> specifies the proxy URL that is used if an environment
                   variable for a specific protocol is not set. </li>
