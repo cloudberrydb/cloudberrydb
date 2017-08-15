@@ -4546,35 +4546,18 @@ DefineDispatchSavepoint(char *name)
 	/* First we attempt to create on the QEs */
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		char	   *cmd = NULL;
-		bool		freecmd;
+		char	   *cmd;
 
-		if (name != NULL)
-		{
-			cmd = palloc(sizeof("SAVEPOINT ") + strlen(name));
-			Assert(cmd != NULL);
-			if (cmd == NULL)
-				elog(ERROR, "Can't define savepoint name too long (%s)", name);
-			sprintf(cmd, "SAVEPOINT %s", name);
-			freecmd = true;
-		}
-		else
-		{
-			cmd = "SAVEPOINT";
-			freecmd = false;
-		}
+		cmd = psprintf("SAVEPOINT %s", name);
 
 		/*
 		 * dispatch a DTX command, in the event of an error, this call
 		 * will either exit via elog()/ereport() or return false
 		 */
 		if (!dispatchDtxCommand(cmd))
-		{
 			elog(ERROR, "Could not create a new savepoint (%s)", cmd);
-		}
 
-		if (freecmd)
-			pfree(cmd);
+		pfree(cmd);
 	}
 
 	DefineSavepoint(name);
@@ -4694,35 +4677,18 @@ ReleaseSavepoint(List *options)
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		char	   *cmd = NULL;
-		bool		freecmd;
+		char	   *cmd;
 
-		if (name != NULL)
-		{
-			cmd = palloc(sizeof("RELEASE SAVEPOINT ") + strlen(name));
-			Assert(cmd != NULL);
-			if (cmd == NULL)
-				elog(ERROR, "Can't release savepoint name too long (%s)", name);
-			sprintf(cmd, "RELEASE SAVEPOINT %s", name);
-			freecmd = true;
-		}
-		else
-		{
-			cmd = "RELEASE SAVEPOINT";
-			freecmd = false;
-		}
+		cmd = psprintf("RELEASE SAVEPOINT %s", name);
 
 		/*
 		 * dispatch a DTX command, in the event of an error, this call will
 		 * either exit via elog()/ereport() or return false
 		 */
 		if (!dispatchDtxCommand(cmd))
-		{
 			elog(ERROR, "Could not release savepoint (%s)", cmd);
-		}
 
-		if (freecmd)
-			pfree(cmd);
+		pfree(cmd);
 	}
 
 	for (target = s; PointerIsValid(target); target = target->parent)
@@ -4875,34 +4841,20 @@ static void
 DispatchRollbackToSavepoint(char *name)
 {
 	char	   *cmd;
-	bool		freecmd;
 
-	if (name != NULL)
-	{
-		cmd = palloc(sizeof("ROLLBACK TO SAVEPOINT ") + strlen(name));
-		Assert(cmd != NULL);
-		if (cmd == NULL)
-			elog(ERROR, "Can't rollback to savepoint, name too long (%s)", name);
-		sprintf(cmd, "ROLLBACK TO SAVEPOINT %s", name);
-		freecmd = true;
-	}
-	else
-	{
-		cmd = "ROLLBACK TO SAVEPOINT";
-		freecmd = false;
-	}
+	if (!name)
+		elog(ERROR, "could not find savepoint name for ROLLBACK TO SAVEPOINT");
+
+	cmd = psprintf("ROLLBACK TO SAVEPOINT %s", name);
 
 	/*
 	 * dispatch a DTX command, in the event of an error, this call will
 	 * either exit via elog()/ereport() or return false
 	 */
 	if (!dispatchDtxCommand(cmd))
-	{
 		elog(ERROR, "Could not rollback to savepoint (%s)", cmd);
-	}
 
-	if (freecmd)
-		pfree(cmd);
+	pfree(cmd);
 }
 
 /*
