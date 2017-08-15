@@ -31,11 +31,6 @@
 #include "utils/memutils.h"
 #include "utils/syscache.h"
 
-typedef struct
-{
-	const char *name;
-	AclMode		value;
-} priv_map;
 
 /*
  * We frequently need to test whether a given role is a member of some other
