@@ -2508,11 +2508,11 @@ heap_drop_with_catalog(Oid relid)
 
 /*
  * Store a default expression for column attnum of relation rel.
- * The expression must be presented as a nodeToString() string.
  */
 void
 StoreAttrDefault(Relation rel, AttrNumber attnum, Node *expr)
 {
+	char	   *adbin;
 	char	   *adsrc;
 	Relation	adrel;
 	HeapTuple	tuple;
@@ -2524,6 +2524,11 @@ StoreAttrDefault(Relation rel, AttrNumber attnum, Node *expr)
 	Oid			attrdefOid;
 	ObjectAddress colobject,
 				defobject;
+
+	/*
+	 * Flatten expression to string form for storage.
+	 */
+	adbin = nodeToString(expr);
 
 	/*
 	 * Also deparse it to form the mostly-obsolete adsrc field.
@@ -2538,7 +2543,7 @@ StoreAttrDefault(Relation rel, AttrNumber attnum, Node *expr)
 	 */
 	values[Anum_pg_attrdef_adrelid - 1] = RelationGetRelid(rel);
 	values[Anum_pg_attrdef_adnum - 1] = attnum;
-	values[Anum_pg_attrdef_adbin - 1] = CStringGetTextDatum(nodeToString(expr));
+	values[Anum_pg_attrdef_adbin - 1] = CStringGetTextDatum(adbin);
 	values[Anum_pg_attrdef_adsrc - 1] = CStringGetTextDatum(adsrc);
 
 	adrel = heap_open(AttrDefaultRelationId, RowExclusiveLock);
@@ -2562,6 +2567,7 @@ StoreAttrDefault(Relation rel, AttrNumber attnum, Node *expr)
 	pfree(DatumGetPointer(values[Anum_pg_attrdef_adbin - 1]));
 	pfree(DatumGetPointer(values[Anum_pg_attrdef_adsrc - 1]));
 	heap_freetuple(tuple);
+	pfree(adbin);
 	pfree(adsrc);
 
 	/*
