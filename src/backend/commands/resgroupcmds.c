@@ -178,12 +178,6 @@ CreateResourceGroup(CreateResourceGroupStmt *stmt)
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				 errmsg("must be superuser to create resource groups")));
 
-	/* Subtransaction is not supported for resource group related operations */
-	if (IsSubTransaction())
-		ereport(ERROR,
-				(errcode(ERRCODE_ACTIVE_SQL_TRANSACTION),
-				 errmsg("CREATE RESOURCE GROUP cannot run inside a subtransaction")));
-
 	/*
 	 * Check for an illegal name ('none' is used to signify no group in ALTER
 	 * ROLE).
@@ -320,12 +314,6 @@ DropResourceGroup(DropResourceGroupStmt *stmt)
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				 errmsg("must be superuser to drop resource groups")));
 
-	/* Subtransaction is not supported for resource group related operations */
-	if (IsSubTransaction())
-		ereport(ERROR,
-				(errcode(ERRCODE_ACTIVE_SQL_TRANSACTION),
-				 errmsg("DROP RESOURCE GROUP cannot run inside a subtransaction")));
-
 	/*
 	 * Check the pg_resgroup relation to be certain the resource group already
 	 * exists.
@@ -448,12 +436,6 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				 errmsg("must be superuser to alter resource groups")));
-
-	/* Subtransaction is not supported for resource group related operations */
-	if (IsSubTransaction())
-		ereport(ERROR,
-				(errcode(ERRCODE_ACTIVE_SQL_TRANSACTION),
-				 errmsg("ALTER RESOURCE GROUP cannot run inside a subtransaction")));
 
 	/* Currently we only support to ALTER one limit at one time */
 	Assert(list_length(stmt->options) == 1);
