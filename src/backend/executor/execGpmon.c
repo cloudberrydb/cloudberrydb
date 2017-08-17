@@ -66,8 +66,6 @@ void InitPlanNodeGpmonPkt(Plan *plan, gpmon_packet_t *gpmon_pkt, EState *estate)
 	gpmon_pkt->u.qexec.key.hash_key.pid = MyProcPid;
 	gpmon_pkt->u.qexec.key.hash_key.nid = plan->plan_node_id;
 
-	gpmon_pkt->u.qexec.pnid = plan->plan_parent_node_id;
-
 	gpmon_pkt->u.qexec.rowsout = 0;
 
 	gpmon_pkt->u.qexec.status = (uint8)PMNS_Initialize;

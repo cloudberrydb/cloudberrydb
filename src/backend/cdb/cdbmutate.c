@@ -1861,14 +1861,12 @@ static void shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerGlobal *g
 typedef struct
 {
 	int			nextPlanId;
-	List	   *planNodes;
 } assign_plannode_id_walker_context;
 
 static void
 assign_plannode_id_walker(Node *node, assign_plannode_id_walker_context *ctxt)
 {
 	Plan	   *plan;
-	Plan	   *parent;
 
 	if(node == NULL)
 		return;
@@ -1891,15 +1889,6 @@ assign_plannode_id_walker(Node *node, assign_plannode_id_walker_context *ctxt)
 	plan = (Plan *) node;
 
 	plan->plan_node_id = ++ctxt->nextPlanId;
-
-	parent = ctxt->planNodes == NIL ? NIL : linitial(ctxt->planNodes);
-
-	if(!parent)
-		plan->plan_parent_node_id = -1;
-	else
-		plan->plan_parent_node_id = parent->plan_node_id;
-
-	ctxt->planNodes = lcons(plan, ctxt->planNodes);
 
 	if(IsA(node, Append))
 	{
@@ -1933,8 +1922,6 @@ assign_plannode_id_walker(Node *node, assign_plannode_id_walker_context *ctxt)
 		assign_plannode_id_walker((Node *)plan->righttree, ctxt);
 		assign_plannode_id_walker((Node *)plan->initPlan, ctxt);
 	}
-
-	list_delete_first(ctxt->planNodes);
 }
 
 /*
@@ -2602,22 +2589,16 @@ apply_shareinput_xslice(Plan *plan, PlannerGlobal *glob)
 void assign_plannode_id(PlannedStmt *stmt)
 {
 	assign_plannode_id_walker_context ctxt;
+	ListCell *lc;
 
-	/* We only care about planNodes and nextPlanId, so initialize them. */
-	ctxt.planNodes = NIL;
 	ctxt.nextPlanId = 0;
 
 	assign_plannode_id_walker((Node *) stmt->planTree, &ctxt);
 
-	ctxt.planNodes = NIL;
-
-	ListCell *lc = NULL;
 	foreach (lc, stmt->subplans)
 	{
 		Plan *subplan = lfirst(lc);
 		Assert(subplan);
-
-		ctxt.planNodes = NIL;
 
 		assign_plannode_id_walker((Node *) subplan, &ctxt);
 	}

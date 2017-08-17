@@ -171,9 +171,7 @@ _copyOidAssignment(OidAssignment *from)
 static void
 CopyPlanFields(Plan *from, Plan *newnode)
 {
-
 	COPY_SCALAR_FIELD(plan_node_id);
-	COPY_SCALAR_FIELD(plan_parent_node_id);
 
 	COPY_SCALAR_FIELD(startup_cost);
 	COPY_SCALAR_FIELD(total_cost);
