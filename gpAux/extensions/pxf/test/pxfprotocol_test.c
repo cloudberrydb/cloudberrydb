@@ -107,6 +107,7 @@ test_pxfprotocol_import_first_call(void **state)
 
     /* set mock behavior for uri parsing */
     GPHDUri* gphd_uri = palloc0(sizeof(GPHDUri));
+    gphd_uri->fragments = palloc(sizeof(List));
     expect_string(parseGPHDUri, uri_str, uri_param_segwork);
     will_return(parseGPHDUri, gphd_uri);
 
