@@ -2248,7 +2248,6 @@ get_select_query_def(Query *query, deparse_context *context,
 {
 	StringInfo	buf = context->buf;
 	bool		force_colno;
-	const char *sep;
 	ListCell   *l;
 
 	/* Insert the WITH clause if given */
