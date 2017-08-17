@@ -376,9 +376,10 @@ class GpConfig(GpTestCase):
             pass
         self.assertEqual(len(self.subject.read_only_gucs), 2)
 
-    def setup_for_testing_quoting_string_values(self, vartype, value, additional_args=[]):
+    def setup_for_testing_quoting_string_values(self, vartype, value, additional_args=None):
         sys.argv = ["gpconfig", "--change", "my_property_name", "--value", value]
-        sys.argv.append(additional_args)
+        if additional_args:
+            sys.argv.extend(additional_args)
         self.cursor.set_result_for_testing([['my_property_name', 'setting', 'unit', 'short_desc',
                                              'context', vartype, 'min_val', 'max_val']])
 

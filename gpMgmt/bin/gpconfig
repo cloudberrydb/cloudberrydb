@@ -358,17 +358,11 @@ def do_change(options):
     pool.haltWork()
     pool.joinWorkers()
 
-    params = []
-    for item in sys.argv[1:]:
-        if isinstance(item, list):
-            params.extend(item)
-        else:
-            params.append(item)
-
+    params = " ".join(sys.argv[1:])
     if failure:
-        LOGGER.error("finished with errors, parameter string '%s'" % (" ".join(params)))
+        LOGGER.error("finished with errors, parameter string '%s'" % params)
     else:
-        LOGGER.info("completed successfully with parameters '%s'" % (" ".join(params)))
+        LOGGER.info("completed successfully with parameters '%s'" % params)
 
 
 def quote_string(guc, value):
