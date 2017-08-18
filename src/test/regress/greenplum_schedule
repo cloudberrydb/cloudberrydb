@@ -179,7 +179,7 @@ test: ao_checksum_corruption AOCO_Compression2 table_statistics
 test: metadata_track
 test: workfile_mgr_test
 
-# Test psql \du output
-test: psql_gpdb_du
+# Test psql backslash commands
+test: psql_gp_commands
 
 # end of tests
