@@ -12671,11 +12671,10 @@ target_el:	a_expr AS ColLabel
 			 * as an infix expression, which we accomplish by assigning
 			 * IDENT a precedence higher than POSTFIXOP.
 			 *
-			 * In GPDB, we extent this to allow most
-			 * unreserved_keywords by also assigning them a
-			 * precedence.  There are certain keywords that can't work
-			 * without the as: reserved_keywords, the date modifier
-			 * suffixes (DAY, MONTH, YEAR, etc) and a few other
+			 * In GPDB, we extend this to allow most unreserved_keywords by
+			 * also assigning them a precedence.  There are certain keywords
+			 * that can't work without the as: reserved_keywords, the date
+			 * modifier suffixes (DAY, MONTH, YEAR, etc) and a few other
 			 * obscure cases.
 			 */
 			| a_expr IDENT
