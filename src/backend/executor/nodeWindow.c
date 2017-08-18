@@ -467,10 +467,10 @@ typedef WindowFrameBufferData *WindowFrameBuffer;
 
 static WindowFrameBuffer createRangeFrameBuffer(Datum trail_range,
 					   Datum lead_range,
-					   int bytes);
+					   int64 bytes);
 static WindowFrameBuffer createRowsFrameBuffer(long int trail_rows,
 					  long int lead_rows,
-					  int bytes);
+					  int64 bytes);
 static WindowFrameBuffer resetFrameBuffer(WindowFrameBuffer buffer);
 static void appendToFrameBuffer(WindowStatePerLevel level_state,
 					WindowState * wstate,
@@ -593,7 +593,7 @@ static void setEmptyFrame(WindowStatePerLevel level_state,
  * Create the tuplestore and all accessors.
  */
 static void
-initFrameBuffer(WindowFrameBuffer buffer, int bytes)
+initFrameBuffer(WindowFrameBuffer buffer, int64 bytes)
 {
 	buffer->tuplestore = ntuplestore_create(bytes);
 
@@ -613,7 +613,7 @@ initFrameBuffer(WindowFrameBuffer buffer, int bytes)
  * createRangeFrameBuffer -- create a new WindowFrameBuffer of the RANGE type.
  */
 static WindowFrameBuffer
-createRangeFrameBuffer(Datum trail_range, Datum lead_range, int bytes)
+createRangeFrameBuffer(Datum trail_range, Datum lead_range, int64 bytes)
 {
 	WindowFrameBuffer buffer =
 	(WindowFrameBuffer) palloc0(sizeof(WindowFrameBufferData));
@@ -631,7 +631,7 @@ createRangeFrameBuffer(Datum trail_range, Datum lead_range, int bytes)
  * createRowsFrameBuffer -- create a new WindowFrameBuffer of the ROWS type.
  */
 static WindowFrameBuffer
-createRowsFrameBuffer(long int trail_rows, long int lead_rows, int bytes)
+createRowsFrameBuffer(long int trail_rows, long int lead_rows, int64 bytes)
 {
 	WindowFrameBuffer buffer =
 	(WindowFrameBuffer) palloc0(sizeof(WindowFrameBufferData));
@@ -653,7 +653,7 @@ static void
 createFrameBuffers(WindowState * wstate)
 {
 	int			level;
-	int			bytes;
+	int64		bytes;
 
 	if (wstate->numlevels <= 0)
 		return;
