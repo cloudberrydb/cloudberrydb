@@ -4322,7 +4322,6 @@ make_nestloop(List *tlist,
 	node->join.jointype = jointype;
 	node->join.joinqual = joinclauses;
 
-
 	return node;
 }
 
