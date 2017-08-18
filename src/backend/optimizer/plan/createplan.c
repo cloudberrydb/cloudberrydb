@@ -1997,10 +1997,6 @@ create_indexscan_plan(PlannerInfo *root,
 	 * predicate, but only in a plain SELECT; when scanning a target relation
 	 * of UPDATE/DELETE/SELECT FOR UPDATE, we must leave such quals in the
 	 * plan so that they'll be properly rechecked by EvalPlanQual testing.
-	 *
-	 * While at it, we strip off the RestrictInfos to produce a list of plain
-	 * expressions (this loop replaces extract_actual_clauses used in the
-	 * other routines in this file).  We have to ignore pseudoconstants.
 	 */
 	qpqual = NIL;
 	foreach(l, scan_clauses)
@@ -2027,11 +2023,14 @@ create_indexscan_plan(PlannerInfo *root,
 						continue;
 			}
 		}
-		qpqual = lappend(qpqual, rinfo->clause);
+		qpqual = lappend(qpqual, rinfo);
 	}
 
 	/* Sort clauses into best execution order */
 	qpqual = order_qual_clauses(root, qpqual);
+
+	/* Reduce RestrictInfo list to bare expressions; ignore pseudoconstants */
+	qpqual = extract_actual_clauses(qpqual, false);
 
 	/* Finally ready to build the plan node */
 	scan_plan = make_indexscan(tlist,
@@ -2651,11 +2650,11 @@ create_ctescan_plan(PlannerInfo *root, Path *best_path,
 
 	Assert(scan_relid > 0);
 
-	/* Reduce RestrictInfo list to bare expressions; ignore pseudoconstants */
-	scan_clauses = extract_actual_clauses(scan_clauses, false);
-
 	/* Sort clauses into best execution order */
 	scan_clauses = order_qual_clauses(root, scan_clauses);
+
+	/* Reduce RestrictInfo list to bare expressions; ignore pseudoconstants */
+	scan_clauses = extract_actual_clauses(scan_clauses, false);
 
 	scan_plan = make_subqueryscan(root, tlist,
 								  scan_clauses,
