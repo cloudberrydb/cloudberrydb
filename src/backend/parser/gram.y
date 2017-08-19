@@ -364,18 +364,6 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <node>	def_arg columnElem where_clause where_or_current_clause
 				a_expr b_expr c_expr simple_func func_expr AexprConst indirection_el
 				columnref in_expr having_clause func_table array_expr
-%type <list>	window_definition_list window_clause
-%type <boolean>	window_frame_units
-%type <ival>	window_frame_exclusion
-%type <node>	window_spec
-%type <node>	window_frame_extent
-				window_frame_start window_frame_preceding window_frame_between
-				window_frame_bound window_frame_following 
-				window_frame_clause opt_window_frame_clause
-%type <list>	window_partition_clause opt_window_partition_clause
-				opt_window_order_clause
-%type <str>		opt_window_name window_name
-
 %type <list>	row type_list array_expr_list
 %type <node>	case_expr case_arg when_clause when_operand case_default
 %type <list>	when_clause_list
@@ -475,6 +463,18 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <node> 	common_table_expr
 %type <with> 	with_clause
 %type <list>	cte_list
+
+%type <list>	window_definition_list window_clause
+%type <boolean>	window_frame_units
+%type <ival>	window_frame_exclusion
+%type <node>	window_spec
+%type <node>	window_frame_extent
+				window_frame_start window_frame_preceding window_frame_between
+				window_frame_bound window_frame_following 
+				window_frame_clause opt_window_frame_clause
+%type <list>	window_partition_clause opt_window_partition_clause
+				opt_window_order_clause
+%type <str>		opt_window_name window_name
 
 
 /*
@@ -9750,167 +9750,6 @@ having_clause:
 			| /*EMPTY*/								{ $$ = NULL; }
 		;
 
-window_clause:
-			WINDOW window_definition_list			{ $$ = $2; }
-			| /*EMPTY*/								{ $$ = NIL; }
-		;
-
-window_definition_list: 
-			window_name AS '(' window_spec ')'
-				{
-                    ((WindowSpec *)$4)->name = $1;
-                    ((WindowSpec *)$4)->location = @3;
-					$$ = list_make1($4);
-				}
-			| window_definition_list ',' window_name AS '(' window_spec ')'
-				{
-					((WindowSpec *)$6)->name = $3;
-					((WindowSpec *)$6)->location = @5;
-					$$ = lappend($1, $6);
-				}
-		;
-
-window_spec: opt_window_name opt_window_partition_clause 
-				opt_window_order_clause opt_window_frame_clause
-				{
-					WindowSpec *n = makeNode(WindowSpec);
-					n->parent = $1;
-					n->partition = $2;
-					n->order = $3;
-					n->frame = (WindowFrame *)$4;
-					n->location = -1;
-					$$ = (Node *)n;
-				}
-		;
-
-opt_window_name: window_name { $$ = $1; }
-			| /*EMPTY*/ { $$ = NULL; }
-		;
-
-opt_window_partition_clause: window_partition_clause { $$ = $1; }
-			| /*EMPTY*/ { $$ = NIL; }
-		;
-
-window_partition_clause: PARTITION BY sortby_list { $$ = (List *)$3; }
-		;
-
-opt_window_order_clause: sort_clause { $$ = $1; }
-			| /*EMPTY*/ { $$ = NIL; }
-        ;
-
-opt_window_frame_clause: window_frame_clause { $$ = $1; }
-		| /*EMPTY*/ { $$ = NULL; }
-		;
-
-window_frame_clause: window_frame_units window_frame_extent 
-			window_frame_exclusion
-				{
-					WindowFrame *n = makeNode(WindowFrame);
-					n->is_rows = $1;
-					setWindowExclude(n, $3);
-
-					if (IsA($2, List))
-					{
-						List *ex = (List *)$2;
-
-						n->trail = (WindowFrameEdge *)linitial(ex);
-						n->lead = (WindowFrameEdge *)lsecond(ex);
-						n->is_between = true;
-					}
-					else
-					{
-						Assert(IsA($2, WindowFrameEdge));
-						n->trail = (WindowFrameEdge *)$2;
-						n->lead = NULL;
-						n->is_between = false;
-					}
-					$$ = (Node *)n;
-				}
-		;
-
-/* units are either rows (true) otherwise false */
-window_frame_units: ROWS { $$ = true; }
-			| RANGE { $$ = false; }
-		;
-
-window_frame_extent:
-			window_frame_start { $$ = $1; }
-			| window_frame_between { $$ = $1; }
-		;
-
-window_frame_start:
-			UNBOUNDED PRECEDING
-				{
-					WindowFrameEdge *n = makeNode(WindowFrameEdge);
-					n->kind = WINDOW_UNBOUND_PRECEDING;
-					n->val = NULL;
-					$$ = (Node *)n;
-				}
-			| window_frame_preceding
-				{
-					WindowFrameEdge *n = makeNode(WindowFrameEdge);
-					n->kind = WINDOW_BOUND_PRECEDING;
-					n->val = $1;
-					$$ = (Node *)n;
-				}
-			| CURRENT_P ROW
-				{
-					WindowFrameEdge *n = makeNode(WindowFrameEdge);
-					n->kind = WINDOW_CURRENT_ROW;
-					$$ = (Node *)n;
-				}
-		;
-
-window_frame_preceding: a_expr PRECEDING 
-				{ 
-					$$ = (Node *)$1;
-				}
-		;
-
-window_frame_between: 
-			BETWEEN window_frame_bound AND window_frame_bound
-				{
-					/* slightly dodgy hack */
-					$$ = (Node *)list_make2($2, $4);
-				}
-		;
-
-/*
- * Be careful that we don't allow BETWEEN UNBOUND PRECEDING AND
- * UNBOUND PRECEDING
- */
-
-window_frame_bound:
-			window_frame_start { $$ = $1; }
-			| UNBOUNDED FOLLOWING 
-				{
-					WindowFrameEdge *n = makeNode(WindowFrameEdge);
-					n->kind = WINDOW_UNBOUND_FOLLOWING;
-					n->val = NULL;
-					$$ = (Node *)n;
-				}
-			| window_frame_following
-				{
-					WindowFrameEdge *n = makeNode(WindowFrameEdge);
-					n->kind = WINDOW_BOUND_FOLLOWING;
-					n->val = $1;
-					$$ = (Node *)n;
-				}
-		;
-
-window_frame_following: a_expr FOLLOWING 
-				{ 
-					$$ = (Node *)$1;
-				}
-		;
-
-window_frame_exclusion: EXCLUDE CURRENT_P ROW { $$ = WINDOW_EXCLUSION_CUR_ROW; }
-			| EXCLUDE GROUP_P { $$ = WINDOW_EXCLUSION_GROUP; }
-			| EXCLUDE TIES  { $$ = WINDOW_EXCLUSION_TIES; }
-			| EXCLUDE NO OTHERS { $$ = WINDOW_EXCLUSION_NO_OTHERS; }
-			| /*EMPTY*/ { $$ = WINDOW_EXCLUSION_NULL; }
-		;
-
 for_locking_clause:
 			for_locking_items						{ $$ = $1; }
 			| FOR READ ONLY							{ $$ = NIL; }
@@ -12235,6 +12074,171 @@ xmlexists_argument:
 				{
 					$$ = $4;
 				}
+		;
+
+
+/*
+ * Window Definitions
+ */
+window_clause:
+			WINDOW window_definition_list			{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+window_definition_list:
+			window_name AS '(' window_spec ')'
+				{
+                    ((WindowSpec *)$4)->name = $1;
+                    ((WindowSpec *)$4)->location = @3;
+					$$ = list_make1($4);
+				}
+			| window_definition_list ',' window_name AS '(' window_spec ')'
+				{
+					((WindowSpec *)$6)->name = $3;
+					((WindowSpec *)$6)->location = @5;
+					$$ = lappend($1, $6);
+				}
+		;
+
+window_spec: opt_window_name opt_window_partition_clause
+				opt_window_order_clause opt_window_frame_clause
+				{
+					WindowSpec *n = makeNode(WindowSpec);
+					n->parent = $1;
+					n->partition = $2;
+					n->order = $3;
+					n->frame = (WindowFrame *)$4;
+					n->location = -1;
+					$$ = (Node *)n;
+				}
+		;
+
+opt_window_name: window_name { $$ = $1; }
+			| /*EMPTY*/ { $$ = NULL; }
+		;
+
+opt_window_partition_clause: window_partition_clause { $$ = $1; }
+			| /*EMPTY*/ { $$ = NIL; }
+		;
+
+window_partition_clause: PARTITION BY sortby_list { $$ = (List *)$3; }
+		;
+
+opt_window_order_clause: sort_clause { $$ = $1; }
+			| /*EMPTY*/ { $$ = NIL; }
+        ;
+
+opt_window_frame_clause: window_frame_clause { $$ = $1; }
+		| /*EMPTY*/ { $$ = NULL; }
+		;
+
+window_frame_clause: window_frame_units window_frame_extent
+			window_frame_exclusion
+				{
+					WindowFrame *n = makeNode(WindowFrame);
+					n->is_rows = $1;
+					setWindowExclude(n, $3);
+
+					if (IsA($2, List))
+					{
+						List *ex = (List *)$2;
+
+						n->trail = (WindowFrameEdge *)linitial(ex);
+						n->lead = (WindowFrameEdge *)lsecond(ex);
+						n->is_between = true;
+					}
+					else
+					{
+						Assert(IsA($2, WindowFrameEdge));
+						n->trail = (WindowFrameEdge *)$2;
+						n->lead = NULL;
+						n->is_between = false;
+					}
+					$$ = (Node *)n;
+				}
+		;
+
+/* units are either rows (true) otherwise false */
+window_frame_units: ROWS { $$ = true; }
+			| RANGE { $$ = false; }
+		;
+
+window_frame_extent:
+			window_frame_start { $$ = $1; }
+			| window_frame_between { $$ = $1; }
+		;
+
+window_frame_start:
+			UNBOUNDED PRECEDING
+				{
+					WindowFrameEdge *n = makeNode(WindowFrameEdge);
+					n->kind = WINDOW_UNBOUND_PRECEDING;
+					n->val = NULL;
+					$$ = (Node *)n;
+				}
+			| window_frame_preceding
+				{
+					WindowFrameEdge *n = makeNode(WindowFrameEdge);
+					n->kind = WINDOW_BOUND_PRECEDING;
+					n->val = $1;
+					$$ = (Node *)n;
+				}
+			| CURRENT_P ROW
+				{
+					WindowFrameEdge *n = makeNode(WindowFrameEdge);
+					n->kind = WINDOW_CURRENT_ROW;
+					$$ = (Node *)n;
+				}
+		;
+
+window_frame_preceding: a_expr PRECEDING
+				{
+					$$ = (Node *)$1;
+				}
+		;
+
+window_frame_between:
+			BETWEEN window_frame_bound AND window_frame_bound
+				{
+					/* slightly dodgy hack */
+					$$ = (Node *)list_make2($2, $4);
+				}
+		;
+
+/*
+ * Be careful that we don't allow BETWEEN UNBOUND PRECEDING AND
+ * UNBOUND PRECEDING
+ */
+
+window_frame_bound:
+			window_frame_start { $$ = $1; }
+			| UNBOUNDED FOLLOWING
+				{
+					WindowFrameEdge *n = makeNode(WindowFrameEdge);
+					n->kind = WINDOW_UNBOUND_FOLLOWING;
+					n->val = NULL;
+					$$ = (Node *)n;
+				}
+			| window_frame_following
+				{
+					WindowFrameEdge *n = makeNode(WindowFrameEdge);
+					n->kind = WINDOW_BOUND_FOLLOWING;
+					n->val = $1;
+					$$ = (Node *)n;
+				}
+		;
+
+window_frame_following: a_expr FOLLOWING
+				{
+					$$ = (Node *)$1;
+				}
+		;
+
+window_frame_exclusion: EXCLUDE CURRENT_P ROW { $$ = WINDOW_EXCLUSION_CUR_ROW; }
+			| EXCLUDE GROUP_P { $$ = WINDOW_EXCLUSION_GROUP; }
+			| EXCLUDE TIES  { $$ = WINDOW_EXCLUSION_TIES; }
+			| EXCLUDE NO OTHERS { $$ = WINDOW_EXCLUSION_NO_OTHERS; }
+			| /*EMPTY*/ { $$ = WINDOW_EXCLUSION_NULL; }
 		;
 
 
