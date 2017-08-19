@@ -173,28 +173,22 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 }
 
 %type <node>	stmt schema_stmt
-		AlterDatabaseStmt AlterDatabaseSetStmt AlterDomainStmt
-		AlterGroupStmt
-		AlterObjectSchemaStmt AlterOwnerStmt AlterQueueStmt AlterSeqStmt AlterTableStmt
+		AlterDatabaseStmt AlterDatabaseSetStmt AlterDomainStmt AlterGroupStmt
+		AlterObjectSchemaStmt AlterOwnerStmt AlterSeqStmt AlterTableStmt
 		AlterExtensionStmt AlterExtensionContentsStmt
-		AlterUserStmt AlterUserSetStmt AlterResourceGroupStmt AlterRoleStmt AlterRoleSetStmt
+		AlterUserStmt AlterUserSetStmt AlterRoleStmt AlterRoleSetStmt
 		AnalyzeStmt ClosePortalStmt ClusterStmt CommentStmt
 		ConstraintsSetStmt CopyStmt CreateAsStmt CreateCastStmt
-		CreateDomainStmt CreateExtensionStmt CreateExternalStmt CreateFileSpaceStmt CreateGroupStmt
-		CreateOpClassStmt
+		CreateDomainStmt CreateExtensionStmt CreateGroupStmt CreateOpClassStmt
 		CreateOpFamilyStmt AlterOpFamilyStmt CreatePLangStmt
-		CreateQueueStmt CreateResourceGroupStmt CreateSchemaStmt CreateSeqStmt CreateStmt
-		CreateTableSpaceStmt
-		CreateAssertStmt CreateTrigStmt 
-		CreateUserStmt CreateRoleStmt
+		CreateSchemaStmt CreateSeqStmt CreateStmt CreateTableSpaceStmt
+		CreateAssertStmt CreateTrigStmt CreateUserStmt CreateRoleStmt
 		CreatedbStmt DeclareCursorStmt DefineStmt DeleteStmt DiscardStmt DoStmt
-		DropGroupStmt DropOpClassStmt DropOpFamilyStmt DropPLangStmt DropQueueStmt DropResourceGroupStmt DropStmt
+		DropGroupStmt DropOpClassStmt DropOpFamilyStmt DropPLangStmt DropStmt
 		DropAssertStmt DropTrigStmt DropRuleStmt DropCastStmt DropRoleStmt
-		DropUserStmt DropdbStmt
-		ExplainStmt
-		ExtTypedesc FetchStmt
+		DropUserStmt DropdbStmt ExplainStmt FetchStmt
 		GrantStmt GrantRoleStmt IndexStmt InsertStmt ListenStmt LoadStmt
-		LockStmt NotifyStmt OptSingleRowErrorHandling ExplainableStmt PreparableStmt
+		LockStmt NotifyStmt ExplainableStmt PreparableStmt
 		CreateFunctionStmt AlterFunctionStmt ReindexStmt RemoveAggrStmt
 		RemoveFuncStmt RemoveOperStmt RenameStmt RevokeStmt RevokeRoleStmt
 		RuleActionStmt RuleActionStmtOrEmpty RuleStmt
@@ -205,7 +199,13 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 		DeallocateStmt PrepareStmt ExecuteStmt
 		DropOwnedStmt ReassignOwnedStmt
 		AlterTSConfigurationStmt AlterTSDictionaryStmt
-		AlterTypeStmt 
+
+/* GPDB-specific commands */
+%type <node>	AlterTypeStmt AlterQueueStmt AlterResourceGroupStmt
+		CreateExternalStmt CreateFileSpaceStmt
+		CreateQueueStmt CreateResourceGroupStmt
+		DropQueueStmt DropResourceGroupStmt
+		ExtTypedesc OptSingleRowErrorHandling
 
 %type <node>    deny_login_role deny_interval deny_point deny_day_specifier
 
@@ -215,22 +215,26 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <node>	alter_column_default opclass_item opclass_drop alter_using
 %type <ival>	add_drop opt_asc_desc opt_nulls_order
 
-%type <node>	alter_table_cmd alter_rel_cmd alter_table_partition_id_spec
-				alter_table_partition_cmd
-				alter_table_partition_id_spec_with_opt_default
+%type <node>	alter_table_cmd alter_rel_cmd
 %type <list>	alter_table_cmds alter_rel_cmds
-				part_values_clause multi_spec_value_list part_values_single
+
+%type <node>	alter_table_partition_cmd alter_table_partition_id_spec
+				alter_table_partition_id_spec_with_opt_default
+%type <list>	part_values_clause multi_spec_value_list part_values_single
 %type <ival>	opt_table_partition_exchange_validate partition_hash_keyword
 				partition_coalesce_keyword
 
 %type <dbehavior>	opt_drop_behavior
 
 %type <list>	createdb_opt_list alterdb_opt_list copy_opt_list
-				ext_on_clause_list format_opt format_opt_list format_def_list transaction_mode_list
+				transaction_mode_list
+%type <defelt>	createdb_opt_item alterdb_opt_item copy_opt_item
+				transaction_mode_item
+
+%type <list>	ext_on_clause_list format_opt format_opt_list format_def_list
 				ext_options ext_options_opt ext_options_list
 				ext_opt_encoding_list create_extension_opt_list alter_extension_opt_list
-%type <defelt>	createdb_opt_item alterdb_opt_item copy_opt_item
-				ext_on_clause_item format_opt_item format_def_item transaction_mode_item
+%type <defelt>	ext_on_clause_item format_opt_item format_def_item
 				ext_options_item
 				ext_opt_encoding_item create_extension_opt_item alter_extension_opt_item
 
@@ -318,7 +322,8 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <fun_param_mode> arg_class
 %type <typnam>	func_return func_type
 
-%type <boolean>  TriggerForType OptTemp OptWeb OptWritable OptSrehLimitType OptLogErrorTable
+%type <boolean>  TriggerForType OptTemp
+%type <boolean>  OptWeb OptWritable OptSrehLimitType OptLogErrorTable
 %type <oncommit> OnCommitOption
 
 %type <node>	for_locking_item
@@ -357,10 +362,12 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <istmt>	insert_rest
 
 %type <vsetstmt> set_rest SetResetClause
-%type <node>	TableElement ExtTableElement ConstraintElem TableFuncElement
-%type <node>	columnDef ExtcolumnDef
-%type <node>	cdb_string
+%type <node>	TableElement ConstraintElem TableFuncElement
+%type <node>	columnDef
 %type <defelt>	def_elem old_aggr_elem keyvalue_pair
+%type <node>	ExtTableElement
+%type <node>	ExtcolumnDef
+%type <node>	cdb_string
 %type <node>	def_arg columnElem where_clause where_or_current_clause
 				a_expr b_expr c_expr simple_func func_expr AexprConst indirection_el
 				columnref in_expr having_clause func_table array_expr
@@ -505,7 +512,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 	DICTIONARY DISABLE_P DISCARD DISTINCT DO DOCUMENT_P DOMAIN_P DOUBLE_P DROP
 
 	EACH ELSE ENABLE_P ENCODING ENCRYPTED END_P ENUM_P ESCAPE EXCEPT
-    EXCLUDING EXCLUSIVE EXECUTE EXISTS EXPLAIN EXTENSION EXTERNAL EXTRACT
+	EXCLUDING EXCLUSIVE EXECUTE EXISTS EXPLAIN EXTENSION EXTERNAL EXTRACT
 
 	FALSE_P FAMILY FETCH FIRST_P FLOAT_P FOR FORCE FOREIGN FORWARD
 	FREEZE FROM FULL FUNCTION
@@ -3575,7 +3582,7 @@ column_reference_storage_directive:
 					$$ = (Node *)n;
 				}
 		;
-				
+
 columnDef:	ColId Typename ColQualList opt_storage_encoding
 				{
 					ColumnDef *n = makeNode(ColumnDef);
