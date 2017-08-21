@@ -156,6 +156,8 @@
 				<topicref href="system_catalogs/gp_persistent_tablespace_node.xml"/>
 				<topicref href="system_catalogs/gp_pgdatabase.xml"/>
 				<topicref href="system_catalogs/gp_relation_node.xml"/>
+				<topicref href="system_catalogs/gp_resgroup_config.xml"/>
+				<topicref href="system_catalogs/gp_resgroup_status.xml"/>
 				<topicref href="system_catalogs/gp_resqueue_status.xml"/>
 				<topicref href="system_catalogs/gp_segment_configuration.xml"/>
 				<topicref href="system_catalogs/gp_transaction_log.xml"/>
