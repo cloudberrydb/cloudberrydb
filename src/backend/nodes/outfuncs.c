@@ -3558,15 +3558,6 @@ _outGroupId(StringInfo str, GroupId *node __attribute__((unused)))
 }
 
 static void
-_outWindowSpecParse(StringInfo str, WindowSpecParse *node)
-{
-	WRITE_NODE_TYPE("WINDOWSPECPARSE");
-
-	WRITE_STRING_FIELD(name);
-	WRITE_NODE_FIELD(elems);
-}
-
-static void
 _outWindowSpec(StringInfo str, WindowSpec *node)
 {
 	WRITE_NODE_TYPE("WINDOWSPEC");
@@ -5020,9 +5011,6 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_GroupId:
 				_outGroupId(str, obj);
-				break;
-			case T_WindowSpecParse:
-				_outWindowSpecParse(str, obj);
 				break;
 			case T_WindowSpec:
 				_outWindowSpec(str, obj);

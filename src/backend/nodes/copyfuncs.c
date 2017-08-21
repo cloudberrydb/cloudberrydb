@@ -2343,17 +2343,6 @@ _copyGroupId(GroupId *from)
 	return newnode;
 }
 
-static WindowSpecParse *
-_copyWindowSpecParse(WindowSpecParse *from)
-{
-	WindowSpecParse *newnode = makeNode(WindowSpecParse);
-
-	COPY_STRING_FIELD(name);
-	COPY_NODE_FIELD(elems);
-
-	return newnode;
-}
-
 static WindowSpec *
 _copyWindowSpec(WindowSpec *from)
 {
@@ -5340,9 +5329,6 @@ copyObject(void *from)
 			break;
 		case T_GroupId:
 			retval = _copyGroupId(from);
-			break;
-		case T_WindowSpecParse:
-			retval = _copyWindowSpecParse(from);
 			break;
 		case T_WindowSpec:
 			retval = _copyWindowSpec(from);

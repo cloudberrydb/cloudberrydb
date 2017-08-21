@@ -3302,9 +3302,6 @@ readNodeBinary(void)
 			case T_GroupId:
 				return_value = _readGroupId();
 				break;
-			case T_WindowSpecParse:
-				return_value = _readWindowSpecParse();
-				break;
 			case T_WindowSpec:
 				return_value = _readWindowSpec();
 				break;

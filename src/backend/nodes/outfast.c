@@ -1836,9 +1836,6 @@ _outNode(StringInfo str, void *obj)
 			case T_GroupId:
 				_outGroupId(str, obj);
 				break;
-			case T_WindowSpecParse:
-				_outWindowSpecParse(str, obj);
-				break;
 			case T_WindowSpec:
 				_outWindowSpec(str, obj);
 				break;
