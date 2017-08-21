@@ -194,7 +194,7 @@ CreateResourceGroup(CreateResourceGroupStmt *stmt)
 	pg_resgroup_rel = heap_open(ResGroupRelationId, ExclusiveLock);
 
 	/* Check if max_resource_group limit is reached */
-	sscan = systable_beginscan(pg_resgroup_rel, InvalidOid, false,
+	sscan = systable_beginscan(pg_resgroup_rel, ResGroupRsgnameIndexId, false,
 							   SnapshotNow, 0, NULL);
 	nResGroups = 0;
 	while (systable_getnext(sscan) != NULL)
@@ -1228,7 +1228,7 @@ validateCapabilities(Relation rel,
 	int totalCpu = options->cpuRateLimit;
 	int totalMem = options->memLimit;
 
-	sscan = systable_beginscan(rel, InvalidOid, false, SnapshotNow, 0, NULL);
+	sscan = systable_beginscan(rel, ResGroupCapabilityResgroupidIndexId, true, SnapshotNow, 0, NULL);
 
 	while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
 	{
