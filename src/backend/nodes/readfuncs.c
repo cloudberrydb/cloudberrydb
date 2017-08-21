@@ -483,7 +483,6 @@ _readGroupId(void)
 	READ_DONE();
 }
 
-#ifndef COMPILING_BINARY_FUNCS
 static WindowSpec *
 _readWindowSpec(void)
 {
@@ -498,7 +497,6 @@ _readWindowSpec(void)
 
 	READ_DONE();
 }
-#endif /* COMPILING_BINARY_FUNCS */
 
 static WindowFrame *
 _readWindowFrame(void)

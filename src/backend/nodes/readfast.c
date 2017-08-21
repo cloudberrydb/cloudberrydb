@@ -267,20 +267,6 @@ _readCurrentOfExpr(void)
 	READ_DONE();
 }
 
-static WindowSpec *
-_readWindowSpec(void)
-{
-	READ_LOCALS(WindowSpec);
-
-	READ_STRING_FIELD(name);
-	READ_STRING_FIELD(parent);
-	READ_NODE_FIELD(partition);
-	READ_NODE_FIELD(order);
-	READ_NODE_FIELD(frame);
-	READ_INT_FIELD(location);
-	READ_DONE();
-}
-
 static DMLActionExpr *
 _readDMLActionExpr(void)
 {
