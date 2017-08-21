@@ -1646,8 +1646,8 @@
           </thead>
           <tbody>
             <row>
-              <entry colname="col1">integer &gt; 0</entry>
-              <entry colname="col2">25</entry>
+              <entry colname="col1"> 0 > Integer > 10000</entry>
+              <entry colname="col2">100</entry>
               <entry colname="col3">master<p>session</p><p>reload</p></entry>
             </row>
           </tbody>
