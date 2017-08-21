@@ -66,7 +66,6 @@ CREATE RESOURCE GROUP rg1_memory_test WITH
 CREATE ROLE role1_memory_test SUPERUSER RESOURCE GROUP rg1_memory_test;
 SET ROLE TO role1_memory_test;
 
-SET statement_mem=1024;
 set gp_resgroup_print_operator_memory_limits=on;
 set enable_hashjoin = false;
 set enable_nestloop = true;

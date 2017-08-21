@@ -35,8 +35,6 @@ SET ROLE TO role1_memory_test;
 SET
 
 
-set statement_mem="3MB";
-SET
 set gp_resgroup_print_operator_memory_limits=on;
 SET
 set gp_cte_sharing=on;

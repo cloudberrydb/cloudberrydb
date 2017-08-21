@@ -60,8 +60,6 @@ CREATE
 SET ROLE TO role1_memory_test;
 SET
 
-SET statement_mem=1024;
-SET
 set gp_resgroup_print_operator_memory_limits=on;
 SET
 set enable_hashjoin = false;

@@ -424,6 +424,7 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 	int			concurrency;
 	int			cpuRateLimitNew;
 	int			memSharedQuotaNew;
+	int			memSpillRatioNew;
 	int			memLimitNew;
 	DefElem		*defel;
 	ResGroupLimitType	limitType;
@@ -500,6 +501,20 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 						 errmsg("memory limit must be less than %d",
 								RESGROUP_MAX_MEMORY_LIMIT)));
 			/* overall limit will be verified later after groupid is known */
+			break;
+		case RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO:
+			memSpillRatioNew = defGetInt64(defel);
+			if (memSpillRatioNew < RESGROUP_MIN_MEMORY_SPILL_RATIO)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_LIMIT_VALUE),
+						 errmsg("memory spill ratio must be greater than %d",
+								RESGROUP_MIN_MEMORY_SPILL_RATIO)));
+			if (memSpillRatioNew > RESGROUP_MAX_MEMORY_SPILL_RATIO)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_LIMIT_VALUE),
+						 errmsg("memory spill ratio must be less than %d",
+								RESGROUP_MAX_MEMORY_SPILL_RATIO)));
+			/* sum of shared and spill will be verified later after groupid is known */
 			break;
 
 		default:
@@ -594,6 +609,17 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 									 groupid, &opts, false);
 
 			ResGroupDecideMemoryCaps(groupid, &caps, &opts);
+			break;
+		case RESGROUP_LIMIT_TYPE_MEMORY_SPILL_RATIO:
+			if (caps.memSharedQuota.proposed + memSpillRatioNew > RESGROUP_MAX_MEMORY_LIMIT)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("The sum of memory_shared_quota (%d) and memory_spill_ratio (%d) exceeds %d",
+								caps.memSharedQuota.proposed, memSpillRatioNew,
+								RESGROUP_MAX_MEMORY_LIMIT)));
+
+			caps.memSpillRatio.value = memSpillRatioNew;
+			caps.memSpillRatio.proposed = memSpillRatioNew;
 			break;
 
 		default:
