@@ -164,10 +164,9 @@ typedef struct WindowStatePerLevelData
 	 */
 	bool		empty_frame;
 
-	/* XXX: merge the following 4 fields into 2 */
 	/* state for rows frame is simple (for now) */
-	long int	trail_rows;
-	long int	lead_rows;
+	int64		trail_rows;
+	int64		lead_rows;
 
 	/* state for range frame is more complex */
 	Datum		trail_range;
@@ -179,8 +178,8 @@ typedef struct WindowStatePerLevelData
 	 *
 	 * For preceding edges, these numbers are 0 or negative.
 	 */
-	long int	num_trail_rows;
-	long int	num_lead_rows;
+	int64		num_trail_rows;
+	int64		num_lead_rows;
 
 	/* state for frame edges (for both ROWS and RANGE frames) */
 	ExprState  *trail_expr;
@@ -431,15 +430,15 @@ typedef struct WindowFrameBufferData
 	 *
 	 * Currently, these two counters do not be modified after a trim operation.
 	 */
-	long int	num_rows_before;
-	long int	num_rows_after;
+	int64		num_rows_before;
+	int64		num_rows_after;
 
 	/*
 	 * The trailing and leading number of rows from current_row if this frame
 	 * is a ROW frame.
 	 */
-	long int	trail_rows;
-	long int	lead_rows;
+	int64		trail_rows;
+	int64		lead_rows;
 
 	/*
 	 * The trailing and leading range from current_row if this frame is a
@@ -468,8 +467,8 @@ typedef WindowFrameBufferData *WindowFrameBuffer;
 static WindowFrameBuffer createRangeFrameBuffer(Datum trail_range,
 					   Datum lead_range,
 					   int64 bytes);
-static WindowFrameBuffer createRowsFrameBuffer(long int trail_rows,
-					  long int lead_rows,
+static WindowFrameBuffer createRowsFrameBuffer(int64 trail_rows,
+					  int64 lead_rows,
 					  int64 bytes);
 static WindowFrameBuffer resetFrameBuffer(WindowFrameBuffer buffer);
 static void appendToFrameBuffer(WindowStatePerLevel level_state,
@@ -485,8 +484,8 @@ static bool hasEnoughDataInRange(WindowFrameBuffer buffer,
 static bool hasEnoughDataInRows(WindowFrameBuffer buffer,
 					WindowStatePerLevel level_state,
 					WindowState * wstate,
-					long int trail_rows,
-					long int lead_rows);
+					int64 trail_rows,
+					int64 lead_rows);
 static void computeFrameValue(WindowStatePerLevel level_state,
 				  WindowState * wstate,
 				  NTupleStoreAccessor * trail_reader,
@@ -631,7 +630,7 @@ createRangeFrameBuffer(Datum trail_range, Datum lead_range, int64 bytes)
  * createRowsFrameBuffer -- create a new WindowFrameBuffer of the ROWS type.
  */
 static WindowFrameBuffer
-createRowsFrameBuffer(long int trail_rows, long int lead_rows, int64 bytes)
+createRowsFrameBuffer(int64 trail_rows, int64 lead_rows, int64 bytes)
 {
 	WindowFrameBuffer buffer =
 	(WindowFrameBuffer) palloc0(sizeof(WindowFrameBufferData));
@@ -1598,7 +1597,7 @@ static bool
 hasEnoughDataInRows(WindowFrameBuffer buffer,
 					WindowStatePerLevel level_state,
 					WindowState * wstate,
-					long int trail_rows, long int lead_rows)
+					int64 trail_rows, int64 lead_rows)
 {
 	if (level_state->empty_frame)
 		return true;
@@ -4380,8 +4379,8 @@ adjustDelayBoundEdgeForRows(WindowStatePerLevel level_state,
 							WindowFrameEdge * edge,
 							ExprState *edge_expr,
 							NTupleStoreAccessor * edge_reader,
-							long int *p_request_num_rows,
-							long int *p_num_rows,
+							int64 *p_request_num_rows,
+							int64 *p_num_rows,
 							bool is_lead_edge)
 {
 	WindowFrameBuffer frame_buffer = level_state->frame_buffer;
@@ -5638,11 +5637,11 @@ init_frames(WindowState * wstate)
 				if (EDGE_IS_BOUND(frame->trail) &&
 					level_state->frame->trail->val != NULL)
 				{
-					long int	rows_param = 0;
+					int64		rows_param = 0;
 					bool		isnull = true;
 					Expr	   *expr = (Expr *)level_state->frame->trail->val;
 
-					expr = coerceType(expr, INT4OID);
+					expr = coerceType(expr, INT8OID);
 
 					level_state->trail_expr =
 						ExecInitExpr((Expr *)expr,
@@ -5672,11 +5671,11 @@ init_frames(WindowState * wstate)
 				if (EDGE_IS_BOUND(frame->lead) &&
 					level_state->frame->lead->val != NULL)
 				{
-					long int	rows_param = 0;
+					int64		rows_param = 0;
 					bool		isnull = true;
 					Expr	   *expr = (Expr *)level_state->frame->lead->val;
 
-					expr = coerceType(expr, INT4OID);
+					expr = coerceType(expr, INT8OID);
 
 					level_state->lead_expr =
 						ExecInitExpr((Expr *)expr,
