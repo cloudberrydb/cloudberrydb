@@ -5655,8 +5655,10 @@ init_frames(WindowState * wstate)
 												  econtext,
 												  &isnull,
 												  NULL);
-
-						Insist(!isnull);
+						if (isnull)
+							ereport(ERROR,
+									(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
+									 errmsg("frame starting offset must not be null")));
 					}
 
 					if (frame->trail->kind == WINDOW_BOUND_PRECEDING)
@@ -5686,8 +5688,10 @@ init_frames(WindowState * wstate)
 												  econtext,
 												  &isnull,
 												  NULL);
-
-						Insist(!isnull);
+						if (isnull)
+							ereport(ERROR,
+									(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
+									 errmsg("frame ending offset must not be null")));
 					}
 
 					if (frame->lead->kind == WINDOW_BOUND_PRECEDING)

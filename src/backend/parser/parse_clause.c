@@ -156,28 +156,6 @@ transformFromClause(ParseState *pstate, List *frmList)
 	}
 }
 
-static bool
-expr_null_check_walker(Node *node, void *context)
-{
-	if (!node)
-		return false;
-
-	if (IsA(node, Const))
-	{
-		Const *con = (Const *)node;
-
-		if (con->constisnull)
-			return true;
-	}
-	return expression_tree_walker(node, expr_null_check_walker, context);
-}
-
-static bool
-expr_contains_null_const(Expr *expr)
-{
-	return expr_null_check_walker((Node *)expr, NULL);
-}
-
 static void
 transformWindowFrameEdge(ParseState *pstate, WindowFrameEdge *e,
 						 WindowSpec *spec, Query *qry, bool is_rows)
@@ -204,11 +182,6 @@ transformWindowFrameEdge(ParseState *pstate, WindowFrameEdge *e,
 							 errmsg("ROWS parameter cannot be negative"),
 							 parser_errposition(pstate, con->location)));
 			}
-
-			if (expr_contains_null_const((Expr *)e->val))
-				ereport(ERROR,
-						(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
-						 errmsg("ROWS parameter cannot contain NULL value")));
 		}
 		else
 		{
