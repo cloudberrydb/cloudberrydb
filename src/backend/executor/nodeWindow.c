@@ -4011,7 +4011,7 @@ get_delay_edge(WindowFrameEdge * edge,
 				 errmsg("%s parameter cannot be NULL",
 						(is_rows ? "ROWS" : "RANGE"))));
 
-	if (is_rows && edge_param < 0)
+	if (is_rows && DatumGetInt64(edge_param) < 0)
 		ereport(ERROR,
 				(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
 				 errmsg("%s parameter cannot be negative",
@@ -5641,12 +5641,11 @@ init_frames(WindowState * wstate)
 					bool		isnull = true;
 					Expr	   *expr = (Expr *)level_state->frame->trail->val;
 
-					expr = coerceType(expr, INT8OID);
+					Assert(exprType((Node *) expr) == INT8OID);
 
 					level_state->trail_expr =
 						ExecInitExpr((Expr *)expr,
 									 (PlanState *) wstate);
-
 
 					if (!EDGE_IS_DELAYED_BOUND(frame->trail))
 					{
@@ -5658,6 +5657,10 @@ init_frames(WindowState * wstate)
 							ereport(ERROR,
 									(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
 									 errmsg("frame starting offset must not be null")));
+						if (DatumGetInt64(rows_param) < 0)
+							ereport(ERROR,
+									(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
+									 errmsg("ROWS parameter cannot be negative")));
 					}
 
 					if (frame->trail->kind == WINDOW_BOUND_PRECEDING)
@@ -5675,7 +5678,7 @@ init_frames(WindowState * wstate)
 					bool		isnull = true;
 					Expr	   *expr = (Expr *)level_state->frame->lead->val;
 
-					expr = coerceType(expr, INT8OID);
+					Assert(exprType((Node *) expr) == INT8OID);
 
 					level_state->lead_expr =
 						ExecInitExpr((Expr *)expr,
@@ -5691,6 +5694,10 @@ init_frames(WindowState * wstate)
 							ereport(ERROR,
 									(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
 									 errmsg("frame ending offset must not be null")));
+						if (DatumGetInt64(rows_param) < 0)
+							ereport(ERROR,
+									(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
+									 errmsg("ROWS parameter cannot be negative")));
 					}
 
 					if (frame->lead->kind == WINDOW_BOUND_PRECEDING)
@@ -6606,6 +6613,39 @@ ntile_final(PG_FUNCTION_ARGS)
 }
 
 /*
+ * Check that the 'offset' argument to LEAD or LAG function is
+ * valid.
+ */
+static void
+check_lead_lag_offset(int64 value, bool isnull, bool is_lead)
+{
+	if (isnull)
+	{
+		if (is_lead)
+			ereport(ERROR,
+					(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
+					 errmsg("LEAD offset cannot be NULL")));
+		else
+			ereport(ERROR,
+					(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
+					 errmsg("LAG offset cannot be NULL")));
+	}
+
+	if (value < 0)
+	{
+		if (is_lead)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("LEAD offset cannot be negative")));
+		else
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("LAG offset cannot be negative")));
+	}
+
+}
+
+/*
  * The common code for lead and lag.
  */
 static Datum
@@ -6628,23 +6668,9 @@ lead_lag_internal(PG_FUNCTION_ARGS, bool is_lead, bool *isnull)
 	 */
 	if (PG_NARGS() > 2)
 	{
-		int64		offset = 1;
-
-		if (PG_ARGISNULL(2))
-		{
-			if (is_lead)
-				elog(ERROR, "LEAD offset cannot be NULL");
-			else
-				elog(ERROR, "LAG offset cannot be NULL");
-		}
-
-		offset = PG_GETARG_INT64(2);
-		if (offset < 0)
-			ereport(ERROR,
-					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("%s offset cannot be negative",
-							is_lead ? "LEAD" : "LAG")));
-
+		check_lead_lag_offset(PG_GETARG_INT64(2),
+							  PG_ARGISNULL(2),
+							  is_lead);
 	}
 
 	/*
@@ -6949,7 +6975,11 @@ lead_lag_frame_maker(PG_FUNCTION_ARGS)
 	char		winkind;
 
 	if (list_length(wref->args) > 1)
-		offset = (Node *) list_nth(wref->args, 1);
+	{
+		offset = list_nth(wref->args, 1);
+		offset = coerce_to_specific_type(NULL, offset, INT8OID, "ROWS");
+		offset = eval_const_expressions(NULL, offset);
+	}
 	else
 	{
 		offset = (Node *) makeConst(INT8OID,
@@ -6996,6 +7026,20 @@ lead_lag_frame_maker(PG_FUNCTION_ARGS)
 			break;
 		default:
 			elog(ERROR, "internal window framing error");
+	}
+
+	/*
+	 * If the offset is a constant, we can check immediately that it's
+	 * valid.
+	 */
+	if (IsA(offset, Const))
+	{
+		Const *con = (Const *) offset;
+
+		Assert(con->consttype == INT8OID);
+
+		check_lead_lag_offset(DatumGetInt64(con->constvalue), con->constisnull,
+							  winkind == WINKIND_LEAD);
 	}
 
 	frame->trail->val = frame->lead->val = offset;

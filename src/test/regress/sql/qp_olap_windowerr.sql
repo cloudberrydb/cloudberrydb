@@ -4051,6 +4051,25 @@ SELECT sum(g) OVER (ORDER BY g ROWS BETWEEN (array[1,2, NULL])[1] PRECEDING AND 
 SELECT sum(g) OVER (ORDER BY g ROWS BETWEEN UNBOUNDED PRECEDING AND (array[1,2, NULL])[1] FOLLOWING) from generate_series(1, 5) g;
 
 
+-- The PRECEDING/FOLLOWING expression must be an integer (or coercible to
+-- an integer).
+SELECT sum(g) OVER (ORDER BY g  ROWS BETWEEN UNBOUNDED PRECEDING AND ('2'::text) FOLLOWING) from generate_series(1, 5) g;
+SELECT sum(g) OVER (ORDER BY g  ROWS BETWEEN UNBOUNDED PRECEDING AND '2' FOLLOWING) from generate_series(1, 5) g;
+SELECT sum(g) OVER (ORDER BY g  ROWS BETWEEN UNBOUNDED PRECEDING AND '2' || '' FOLLOWING) from generate_series(1, 5) g;
+SELECT sum(g) OVER (ORDER BY g  ROWS BETWEEN UNBOUNDED PRECEDING AND ('2' || '')::integer FOLLOWING) from generate_series(1, 5) g;
+SELECT sum(g) OVER (ORDER BY g  ROWS BETWEEN now() PRECEDING AND UNBOUNDED FOLLOWING) from generate_series(1, 5) g;
+
+-- And it must not be negative. Check with a constant, a stable expression that
+-- can be evaluated at planning time, and with a volatile expression.
+create function retneg() returns int4 as $$ begin return -1::int4; end; $$ language plpgsql volatile;
+
+SELECT sum(g) OVER (ORDER BY g  ROWS BETWEEN UNBOUNDED PRECEDING AND -123 FOLLOWING) from generate_series(1, 5) g;
+SELECT sum(g) OVER (ORDER BY g  ROWS BETWEEN UNBOUNDED PRECEDING AND '-123' FOLLOWING) from generate_series(1, 5) g;
+SELECT sum(g) OVER (ORDER BY g  ROWS BETWEEN UNBOUNDED PRECEDING AND ('-123' || '')::integer FOLLOWING) from generate_series(1, 5) g;
+SELECT sum(g) OVER (ORDER BY g  ROWS BETWEEN UNBOUNDED PRECEDING AND retneg() FOLLOWING) from generate_series(1, 5) g;
+
+drop function retneg();
+
 -- start_ignore
 CREATE TABLE filter_test (i int, j int) DISTRIBUTED BY (i);
 INSERT INTO filter_test VALUES (1, 1);

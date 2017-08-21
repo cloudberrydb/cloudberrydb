@@ -160,6 +160,8 @@ static void
 transformWindowFrameEdge(ParseState *pstate, WindowFrameEdge *e,
 						 WindowSpec *spec, Query *qry, bool is_rows)
 {
+	const char *constructName = NULL;
+
 	/* Only bound frame edges will have a value */
 	if (e->kind == WINDOW_BOUND_PRECEDING ||
 		e->kind == WINDOW_BOUND_FOLLOWING)
@@ -167,21 +169,12 @@ transformWindowFrameEdge(ParseState *pstate, WindowFrameEdge *e,
 		if (is_rows)
 		{
 			/* the e->val should already be transformed */
-			if (IsA(e->val, Const))
-			{
-				Const *con = (Const *)e->val;
 
-				if (con->consttype != INT4OID)
-					ereport(ERROR,
-							(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
-							 errmsg("ROWS parameter must be an integer expression"),
-							 parser_errposition(pstate, con->location)));
-				if (DatumGetInt32(con->constvalue) < 0)
-					ereport(ERROR,
-							(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
-							 errmsg("ROWS parameter cannot be negative"),
-							 parser_errposition(pstate, con->location)));
-			}
+			/*
+			 * Like LIMIT clause, simply coerce to int8
+			 */
+			constructName = "ROWS";
+			e->val = coerce_to_specific_type(pstate, e->val, INT8OID, constructName);
 		}
 		else
 		{
