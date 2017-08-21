@@ -1,3 +1,7 @@
+-- start_matchsubs
+-- m/INSERT \d+/
+-- s/INSERT \d+/INSERT/
+-- end_matchsubs
 create schema hashjoin_spill;
 set search_path to hashjoin_spill;
 

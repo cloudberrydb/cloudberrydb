@@ -1,3 +1,7 @@
+-- start_matchsubs
+-- m/INSERT \d+/
+-- s/INSERT \d+/INSERT/
+-- end_matchsubs
 create schema hashagg_spill;
 CREATE
 set search_path to hashagg_spill;
@@ -22,7 +26,7 @@ INSERT 51000
 DROP ROLE IF EXISTS role1_memory_test;
 DROP
 DROP RESOURCE GROUP rg1_memory_test;
-DROP
+ERROR:  resource group "rg1_memory_test" does not exist
 -- end_ignore
 CREATE ROLE role1_memory_test SUPERUSER;
 CREATE
