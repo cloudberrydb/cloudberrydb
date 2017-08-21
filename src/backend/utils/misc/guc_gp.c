@@ -2479,8 +2479,9 @@ struct config_bool ConfigureNamesBool_gp[] =
 
 	{
 		{"gp_recursive_cte_prototype", PGC_USERSET, QUERY_TUNING_METHOD,
-		 gettext_noop("Enable prototype implementation of recursive CTE"),
-		 NULL
+			gettext_noop("Enable prototype implementation of recursive CTE"),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&gp_recursive_cte_prototype,
 		false, NULL, NULL

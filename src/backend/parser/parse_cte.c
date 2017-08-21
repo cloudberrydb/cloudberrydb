@@ -1032,7 +1032,7 @@ checkSelfRefInRangeSubSelect(SelectStmt *stmt, CteState *cstate)
 
 /*
  * Check if the recursive term of a recursive cte contains a window function.
- * This is currently not supported and is checked for in the parsting stage
+ * This is currently not supported and is checked for in the parsing stage
  */
 static void
 checkWindowFuncInRecursiveTerm(SelectStmt *stmt, CteState *cstate)
