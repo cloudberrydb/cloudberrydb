@@ -105,6 +105,7 @@ typedef struct ResGroupSlotData
 typedef struct ResGroupData
 {
 	Oid			groupId;		/* Id for this group */
+	ResGroupCaps	caps;
 	int			nRunning;		/* number of running trans */
 	PROC_QUEUE	waitProcs;
 	int			totalExecuted;	/* total number of executed trans */
@@ -208,7 +209,6 @@ static void putSlot(ResGroupData *group, int slotId);
 static int ResGroupSlotAcquire(void);
 static void addTotalQueueDuration(ResGroupData *group);
 static void ResGroupSlotRelease(void);
-
 
 /*
  * Estimate size the resource group structures will need in
@@ -350,6 +350,8 @@ InitResGroups(void)
 	CdbComponentDatabases *cdbComponentDBs;
 	CdbComponentDatabaseInfo *qdinfo;
 	ResGroupCaps		caps;
+	Relation			relResGroup;
+	Relation			relResGroupCapability;
 
 	/*
 	 * On master, the postmaster does the initializtion
@@ -368,19 +370,7 @@ InitResGroups(void)
 	ResourceOwner owner = ResourceOwnerCreate(NULL, "InitResGroups");
 	CurrentResourceOwner = owner;
 
-	/*
-	 * The resgroup shared mem initialization must be serialized. Only the first session
-	 * should do the init.
-	 * Serialization is done by LW_EXCLUSIVE ResGroupLock. However, we must obtain all DB
-	 * locks before obtaining LWlock to prevent deadlock.
-	 */
-	Relation relResGroup = heap_open(ResGroupRelationId, AccessShareLock);
-	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
-
-	if (pResGroupControl->loaded)
-		goto exit;
-
-	if (Gp_role == GP_ROLE_DISPATCH)
+	if (Gp_role == GP_ROLE_DISPATCH && pResGroupControl->segmentsOnMaster == 0)
 	{
 		Assert(GpIdentity.segindex == MASTER_CONTENT_ID);
 		cdbComponentDBs = getCdbComponentDatabases();
@@ -389,6 +379,20 @@ InitResGroups(void)
 		Assert(pResGroupControl->segmentsOnMaster > 0);
 	}
 
+	/*
+	 * The resgroup shared mem initialization must be serialized. Only the first session
+	 * should do the init.
+	 * Serialization is done by LW_EXCLUSIVE ResGroupLock. However, we must obtain all DB
+	 * locks before obtaining LWlock to prevent deadlock.
+	 */
+	relResGroup = heap_open(ResGroupRelationId, AccessShareLock);
+	relResGroupCapability = heap_open(ResGroupCapabilityRelationId, AccessShareLock);
+	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
+
+	if (pResGroupControl->loaded)
+		goto exit;
+
+	/* These initialization must be done before ResGroupCreate() */
 	pResGroupControl->totalChunks = getSegmentChunks();
 	pResGroupControl->freeChunks = pResGroupControl->totalChunks;
 
@@ -425,6 +429,7 @@ InitResGroups(void)
 exit:
 	LWLockRelease(ResGroupLock);
 	heap_close(relResGroup, AccessShareLock);
+	heap_close(relResGroupCapability, AccessShareLock);
 	CurrentResourceOwner = NULL;
 	ResourceOwnerDelete(owner);
 }
@@ -541,6 +546,19 @@ ResGroupAlterOnCommit(Oid groupId,
 	ResGroupData	*group;
 	bool			shouldWakeUp;
 
+	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
+
+	group = ResGroupHashFind(groupId);
+	if (group == NULL)
+	{
+		LWLockRelease(ResGroupLock);
+		ereport(ERROR,
+				(errcode(ERRCODE_DATA_CORRUPTED),
+				errmsg("Cannot find resource group %d in shared memory", groupId)));
+	}
+
+	group->caps = *caps;
+
 	if (limittype == RESGROUP_LIMIT_TYPE_CPU)
 	{
 		volatile int savedInterruptHoldoffCount;
@@ -557,18 +575,8 @@ ResGroupAlterOnCommit(Oid groupId,
 		}
 		PG_END_TRY();
 
-		return;
-	}
-
-	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
-
-	group = ResGroupHashFind(groupId);
-	if (group == NULL)
-	{
 		LWLockRelease(ResGroupLock);
-		ereport(ERROR,
-				(errcode(ERRCODE_DATA_CORRUPTED),
-				errmsg("Cannot find resource group %d in shared memory", groupId)));
+		return;
 	}
 
 	shouldWakeUp = groupApplyMemCaps(group, caps);
@@ -975,6 +983,7 @@ ResGroupCreate(Oid groupId, const ResGroupCaps *caps)
 		return NULL;
 
 	group->groupId = groupId;
+	group->caps = *caps;
 	group->nRunning = 0;
 	ProcQueueInit(&group->waitProcs);
 	group->totalExecuted = 0;
@@ -1113,7 +1122,7 @@ getSlot(ResGroupData *group)
 	int32				slotMemQuota;
 	int32				memQuotaUsed;
 	int					slotId;
-	ResGroupCaps		caps;
+	ResGroupCaps		*caps;
 
 	Assert(LWLockHeldExclusiveByMe(ResGroupLock));
 	Assert(Gp_role == GP_ROLE_DISPATCH);
@@ -1121,22 +1130,21 @@ getSlot(ResGroupData *group)
 	Assert(group != NULL);
 	Assert(group->groupId != InvalidOid);
 
-	/* Get resgroup config snapshot */
-	GetResGroupCapabilities(group->groupId, &caps);
+	caps = &group->caps;
 
 	/* First check if the concurrency limit is reached */
-	Assert(caps.concurrency.proposed > 0);
+	Assert(caps->concurrency.proposed > 0);
 
-	if (group->nRunning >= caps.concurrency.proposed)
+	if (group->nRunning >= caps->concurrency.proposed)
 		return InvalidSlotId;
 
-	groupAcquireMemQuota(group, &caps);
+	groupAcquireMemQuota(group, caps);
 
 	/* Then check for memory stocks */
 	Assert(pResGroupControl->segmentsOnMaster > 0);
 
 	/* Calculate the expected per slot quota */
-	slotMemQuota = slotGetMemQuotaExpected(&caps);
+	slotMemQuota = slotGetMemQuotaExpected(caps);
 
 	Assert(slotMemQuota > 0);
 	Assert(group->memQuotaUsed >= 0);
@@ -1165,7 +1173,7 @@ getSlot(ResGroupData *group)
 	slot->memQuota = slotMemQuota;
 
 	/* Store the config snapshot to it */
-	slot->caps = caps;
+	slot->caps = *caps;
 
 	/* And finally increase nRunning */
 	pg_atomic_add_fetch_u32((pg_atomic_uint32*)&group->nRunning, 1);
@@ -1184,7 +1192,6 @@ putSlot(ResGroupData *group, int slotId)
 {
 	ResGroupSlotData	*slot;
 	bool				shouldWakeUp;
-	ResGroupCaps		caps;
 #ifdef USE_ASSERT_CHECKING
 	int32				memQuotaUsed;
 #endif
@@ -1209,8 +1216,7 @@ putSlot(ResGroupData *group, int slotId)
 								slot->memQuota);
 	Assert(memQuotaUsed >= 0);
 
-	GetResGroupCapabilities(group->groupId, &caps);
-	shouldWakeUp = groupReleaseMemQuota(group, slot, &caps);
+	shouldWakeUp = groupReleaseMemQuota(group, slot, &group->caps);
 	if (shouldWakeUp)
 		wakeupGroups(group->groupId);
 
@@ -1230,9 +1236,7 @@ static int
 ResGroupSlotAcquire(void)
 {
 	ResGroupData	*group;
-	ResGroupCaps	caps;
 	Oid			groupId;
-	int			concurrencyProposed;
 	bool		retried = false;
 
 	Assert(MyResGroupProcInfo->groupId == InvalidOid);
@@ -1240,9 +1244,6 @@ ResGroupSlotAcquire(void)
 	groupId = GetResGroupIdForRole(GetUserId());
 	if (groupId == InvalidOid)
 		groupId = superuser() ? ADMINRESGROUP_OID : DEFAULTRESGROUP_OID;
-
-	GetResGroupCapabilities(groupId, &caps);
-	concurrencyProposed = caps.concurrency.proposed;
 
 retry:
 	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
@@ -1279,7 +1280,7 @@ retry:
 	}
 
 	/* acquire a slot */
-	if (group->nRunning < concurrencyProposed)
+	if (group->nRunning < group->caps.concurrency.proposed)
 	{
 		/* should not been granted a slot yet */
 		Assert(MyProc->resSlotId == InvalidSlotId);
@@ -1465,9 +1466,6 @@ returnChunksToPool(Oid groupId, int32 chunks)
 	Assert(chunks > 0);
 
 	pResGroupControl->freeChunks += chunks;
-
-	Assert(pResGroupControl->freeChunks >= 0);
-	Assert(pResGroupControl->freeChunks <= pResGroupControl->totalChunks);
 
 	Assert(pResGroupControl->freeChunks >= 0);
 	Assert(pResGroupControl->freeChunks <= pResGroupControl->totalChunks);
@@ -1996,9 +1994,7 @@ SwitchResGroupOnSegment(const char *buf, int len)
 			prevSlot = &prevSharedInfo->slots[prevSlotId];
 			detachFromSlot(prevSharedInfo, prevSlot, procInfo);
 
-			LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
 			groupReleaseMemQuota(prevSharedInfo, prevSlot, &caps);
-			LWLockRelease(ResGroupLock);
 		}
 		else
 		{
@@ -2050,16 +2046,12 @@ SwitchResGroupOnSegment(const char *buf, int len)
 
 	if (prevSharedInfo != sharedInfo || prevSlot != slot)
 	{
-		ResGroupCaps prevCaps;
-		if (prevSharedInfo)
-			GetResGroupCapabilities(prevSharedInfo->groupId, &prevCaps);
-
 		LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
 		if (prevSharedInfo)
 		{
 			Assert(prevSlot != NULL);
 			detachFromSlot(prevSharedInfo, prevSlot, procInfo);
-			groupReleaseMemQuota(prevSharedInfo, prevSlot, &prevCaps);
+			groupReleaseMemQuota(prevSharedInfo, prevSlot, &prevSharedInfo->caps);
 		}
 
 		groupAcquireMemQuota(sharedInfo, &slot->caps);

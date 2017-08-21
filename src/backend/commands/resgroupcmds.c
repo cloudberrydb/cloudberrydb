@@ -542,11 +542,11 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 	/*
 	 * In validateCapabilities() we scan all the resource groups
 	 * to check whether the total cpu_rate_limit exceed 100 or not.
-	 * We need to use ExclusiveLock here to prevent concurrent
+	 * We need to use AccessExclusiveLock here to prevent concurrent
 	 * increase on different resource group.
 	 */
 	pg_resgroupcapability_rel = heap_open(ResGroupCapabilityRelationId,
-										  ExclusiveLock);
+										  AccessExclusiveLock);
 
 	/* Load currency resource group capabilities */
 	GetResGroupCapabilities(groupid, &caps);
@@ -667,7 +667,7 @@ GetResGroupCapabilities(Oid groupId, ResGroupCaps *resgroupCaps)
 				ObjectIdGetDatum(groupId));
 
 	sscan = systable_beginscan(relResGroupCapability,
-							   ResGroupCapabilityResgroupidResLimittypeIndexId,
+							   ResGroupCapabilityResgroupidIndexId,
 							   true,
 							   SnapshotNow, 1, &key);
 
@@ -1127,7 +1127,7 @@ updateResgroupCapabilities(Oid groupid, const ResGroupCaps *resgroupCaps)
 				BTEqualStrategyNumber, F_OIDEQ,
 				ObjectIdGetDatum(groupid));
 
-	sscan = systable_beginscan(resgroupCapabilityRel, ResGroupCapabilityResgroupidResLimittypeIndexId, true,
+	sscan = systable_beginscan(resgroupCapabilityRel, ResGroupCapabilityResgroupidIndexId, true,
 							   SnapshotNow, 1, &scankey);
 
 	MemSet(values, 0, sizeof(values));
