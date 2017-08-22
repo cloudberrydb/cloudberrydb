@@ -1743,6 +1743,7 @@ jobs:
     - MM_gpcheckcat
     - MM_gprecoverseg
     - MM_gpexpand
+    - MM_gpinitstandby
     - DPM_gptransfer-43x-to-5x
     - DPM_gptransfer-5x-to-5x
     - cs-pg-two-phase
