@@ -1571,28 +1571,33 @@ print_function_arguments(StringInfo buf, HeapTuple proctup,
 	int			inputargno;
 	int			nlackdefaults;
 	ListCell   *nextargdefault = NULL;
-	Datum       proargdefaults;
-	bool        isnull;
-	int         i;
+	int			i;
 
 	numargs = get_func_arg_info(proctup,
 								&argtypes, &argnames, &argmodes);
 
 	nlackdefaults = numargs;
-	proargdefaults = SysCacheGetAttr(PROCOID, proctup,
-									 Anum_pg_proc_proargdefaults, &isnull);
-	if (!isnull && print_defaults)
+	if (print_defaults && proc->pronargdefaults > 0)
 	{
-		char   *str;
-		List   *argdefaults;
+		Datum		proargdefaults;
+		bool		isnull;
 
-		str = TextDatumGetCString(proargdefaults);
-		argdefaults = (List *) stringToNode(str);
-		Assert(IsA(argdefaults, List));
-		pfree(str);
-		nextargdefault = list_head(argdefaults);
-		/* nlackdefaults counts only *input* arguments lacking defaults */
-		nlackdefaults = proc->pronargs - list_length(argdefaults);
+		proargdefaults = SysCacheGetAttr(PROCOID, proctup,
+										 Anum_pg_proc_proargdefaults,
+										 &isnull);
+		if (!isnull)
+		{
+			char	   *str;
+			List	   *argdefaults;
+
+			str = TextDatumGetCString(proargdefaults);
+			argdefaults = (List *) stringToNode(str);
+			Assert(IsA(argdefaults, List));
+			pfree(str);
+			nextargdefault = list_head(argdefaults);
+			/* nlackdefaults counts only *input* arguments lacking defaults */
+			nlackdefaults = proc->pronargs - list_length(argdefaults);
+		}
 	}
 
 	argsprinted = 0;
