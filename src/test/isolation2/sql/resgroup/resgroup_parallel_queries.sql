@@ -24,7 +24,11 @@ DECLARE /*in func*/
 	s1 int; /*in func*/
 	e1 int; /*in func*/
 BEGIN /*in func*/
-	select t[1]::int, t[2]::int into s1, e1 from regexp_split_to_array(range1, '-') t; /*in func*/
+	s1 = 0; /*in func*/
+	e1 = 0; /*in func*/
+	IF length(range1) > 0 THEN /*in func*/
+		select t[1]::int, t[2]::int into s1, e1 from regexp_split_to_array(range1, '-') t; /*in func*/
+	END IF; /*in func*/
 	FOR i IN 0..(times - 1) LOOP /*in func*/
 		IF length(command1) > 0 THEN /*in func*/
 			cmd = regexp_replace(command1, '%', (s1 + i % (e1 - s1 + 1))::text, 'g'); /*in func*/
@@ -213,5 +217,31 @@ select exec_commands_n('dblink_rg_test','DROP RESOURCE GROUP rg_test_g%', '', ''
 select dblink_disconnect('dblink_rg_test');
 -- end_ignore
 
+--
+-- 5*: Test connections in utility mode are not governed by resource group
+--
+create resource group rg_test_g8 with (concurrency= 1, cpu_rate_limit=1, memory_limit=1);
+create role rg_test_r8 login resource group rg_test_g8;
+51:select dblink_connect('dblink_rg_test51', 'dbname=isolation2resgrouptest user=rg_test_r8 options=''-c gp_session_role=utility''');
+52:select dblink_connect('dblink_rg_test52', 'dbname=isolation2resgrouptest user=rg_test_r8 options=''-c gp_session_role=utility''');
+53:select dblink_connect('dblink_rg_test53', 'dbname=isolation2resgrouptest user=rg_test_r8 options=''-c gp_session_role=utility''');
+
+51>:select exec_commands_n('dblink_rg_test51', 'select 1', 'begin', 'end', 100, '', true);
+51<:
+52>:select exec_commands_n('dblink_rg_test52', 'select 1', 'select 1', 'select 1', 100, '', true);
+52<:
+53>:select exec_commands_n('dblink_rg_test53', 'select 1', 'begin', 'abort', 100, '', true);
+53<:
+
+51:select dblink_disconnect('dblink_rg_test51');
+52:select dblink_disconnect('dblink_rg_test52');
+53:select dblink_disconnect('dblink_rg_test53');
+
+-- num_executed and num_queued must be zero
+select num_queued, num_executed from gp_toolkit.gp_resgroup_status where rsgname = 'rg_test_g8';
+drop role rg_test_r8;
+drop resource group rg_test_g8;
+
+-- clean up
 alter resource group admin_group set concurrency 20;
 select * from gp_toolkit.gp_resgroup_config;

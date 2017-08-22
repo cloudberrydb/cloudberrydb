@@ -53,7 +53,7 @@ ALTER
 -- # in command will be replaced by number specified by range randomly
 -- range, eg: 1-10
 -- Notice: now it only support SELECT statement return single integer
-CREATE or replace FUNCTION exec_commands_n /*in func*/ (dl_name text, command1 text, /*in func*/ command2 text, command3 text, /*in func*/ times integer, range1 text, fail_on_error bool) /*in func*/ RETURNS integer AS $$ /*in func*/ DECLARE /*in func*/ cmd text; /*in func*/ res int; /*in func*/ s1 int; /*in func*/ e1 int; /*in func*/ BEGIN /*in func*/ select t[1]::int, t[2]::int into s1, e1 from regexp_split_to_array(range1, '-') t; /*in func*/ FOR i IN 0..(times - 1) LOOP /*in func*/ IF length(command1) > 0 THEN /*in func*/ cmd = regexp_replace(command1, '%', (s1 + i % (e1 - s1 + 1))::text, 'g'); /*in func*/ cmd = regexp_replace(cmd, '#', (s1 + ((random()*100)::int) % (e1 - s1 + 1))::text, 'g'); /*in func*/ RAISE NOTICE '%', cmd; /*in func*/ IF lower(cmd) like 'select %' THEN /*in func*/ select * into res from dblink(dl_name, cmd, fail_on_error) t(c1 integer); /*in func*/ ELSE /*in func*/ perform dblink_exec(dl_name, cmd , fail_on_error); /*in func*/ END IF; /*in func*/ END IF; /*in func*/ IF length(command2) > 0 THEN /*in func*/ cmd = regexp_replace(command2, '%', (s1 + i % (e1 - s1 + 1))::text, 'g'); /*in func*/ cmd = regexp_replace(cmd, '#', (s1 + ((random()*100)::int) % (e1 - s1 + 1))::text, 'g'); /*in func*/ RAISE NOTICE '%', cmd; /*in func*/ IF lower(cmd) like 'select %' THEN /*in func*/ select * into res from dblink(dl_name, cmd, fail_on_error) t(c1 integer); /*in func*/ ELSE /*in func*/ perform dblink_exec(dl_name, cmd, fail_on_error); /*in func*/ END IF; /*in func*/ END IF; /*in func*/ IF length(command3) > 0 THEN /*in func*/ cmd = regexp_replace(command3, '%', (s1 + i % (e1 - s1 + 1))::text, 'g'); /*in func*/ cmd = regexp_replace(cmd, '#', (s1 + ((random()*100)::int) % (e1 - s1 + 1))::text, 'g'); /*in func*/ RAISE NOTICE '%', cmd; /*in func*/ IF lower(cmd) like 'select %' THEN /*in func*/ select * into res from dblink(dl_name, cmd, fail_on_error) t(c1 integer); /*in func*/ ELSE /*in func*/ perform dblink_exec(dl_name, cmd, fail_on_error); /*in func*/ END IF; /*in func*/ END IF; /*in func*/ END LOOP; /*in func*/ return times; /*in func*/ END;$$ /*in func*/ LANGUAGE 'plpgsql';
+CREATE or replace FUNCTION exec_commands_n /*in func*/ (dl_name text, command1 text, /*in func*/ command2 text, command3 text, /*in func*/ times integer, range1 text, fail_on_error bool) /*in func*/ RETURNS integer AS $$ /*in func*/ DECLARE /*in func*/ cmd text; /*in func*/ res int; /*in func*/ s1 int; /*in func*/ e1 int; /*in func*/ BEGIN /*in func*/ s1 = 0; /*in func*/ e1 = 0; /*in func*/ IF length(range1) > 0 THEN /*in func*/ select t[1]::int, t[2]::int into s1, e1 from regexp_split_to_array(range1, '-') t; /*in func*/ END IF; /*in func*/ FOR i IN 0..(times - 1) LOOP /*in func*/ IF length(command1) > 0 THEN /*in func*/ cmd = regexp_replace(command1, '%', (s1 + i % (e1 - s1 + 1))::text, 'g'); /*in func*/ cmd = regexp_replace(cmd, '#', (s1 + ((random()*100)::int) % (e1 - s1 + 1))::text, 'g'); /*in func*/ RAISE NOTICE '%', cmd; /*in func*/ IF lower(cmd) like 'select %' THEN /*in func*/ select * into res from dblink(dl_name, cmd, fail_on_error) t(c1 integer); /*in func*/ ELSE /*in func*/ perform dblink_exec(dl_name, cmd , fail_on_error); /*in func*/ END IF; /*in func*/ END IF; /*in func*/ IF length(command2) > 0 THEN /*in func*/ cmd = regexp_replace(command2, '%', (s1 + i % (e1 - s1 + 1))::text, 'g'); /*in func*/ cmd = regexp_replace(cmd, '#', (s1 + ((random()*100)::int) % (e1 - s1 + 1))::text, 'g'); /*in func*/ RAISE NOTICE '%', cmd; /*in func*/ IF lower(cmd) like 'select %' THEN /*in func*/ select * into res from dblink(dl_name, cmd, fail_on_error) t(c1 integer); /*in func*/ ELSE /*in func*/ perform dblink_exec(dl_name, cmd, fail_on_error); /*in func*/ END IF; /*in func*/ END IF; /*in func*/ IF length(command3) > 0 THEN /*in func*/ cmd = regexp_replace(command3, '%', (s1 + i % (e1 - s1 + 1))::text, 'g'); /*in func*/ cmd = regexp_replace(cmd, '#', (s1 + ((random()*100)::int) % (e1 - s1 + 1))::text, 'g'); /*in func*/ RAISE NOTICE '%', cmd; /*in func*/ IF lower(cmd) like 'select %' THEN /*in func*/ select * into res from dblink(dl_name, cmd, fail_on_error) t(c1 integer); /*in func*/ ELSE /*in func*/ perform dblink_exec(dl_name, cmd, fail_on_error); /*in func*/ END IF; /*in func*/ END IF; /*in func*/ END LOOP; /*in func*/ return times; /*in func*/ END;$$ /*in func*/ LANGUAGE 'plpgsql';
 CREATE
 
 --
@@ -143,15 +143,15 @@ dblink_connect
 --------------
 OK            
 (1 row)
-select exec_commands_n('dblink_rg_test','DROP ROLE rg_test_r%', '', '', 6, '1-6', false);
+select exec_commands_n('dblink_rg_test','DROP ROLE rg_test_r%', '', '', 7, '1-7', false);
 exec_commands_n
 ---------------
-6              
+7              
 (1 row)
-select exec_commands_n('dblink_rg_test','DROP RESOURCE GROUP rg_test_g%', '', '', 6, '1-6', false);
+select exec_commands_n('dblink_rg_test','DROP RESOURCE GROUP rg_test_g%', '', '', 7, '1-7', false);
 exec_commands_n
 ---------------
-6              
+7              
 (1 row)
 -- end_ignore
 
@@ -485,6 +485,76 @@ OK
 (1 row)
 -- end_ignore
 
+--
+-- 5*: Test connections in utility mode are not governed by resource group
+--
+create resource group rg_test_g8 with (concurrency= 1, cpu_rate_limit=1, memory_limit=1);
+CREATE
+create role rg_test_r8 login resource group rg_test_g8;
+CREATE
+51:select dblink_connect('dblink_rg_test51', 'dbname=isolation2resgrouptest user=rg_test_r8 options=''-c gp_session_role=utility''');
+dblink_connect
+--------------
+OK            
+(1 row)
+52:select dblink_connect('dblink_rg_test52', 'dbname=isolation2resgrouptest user=rg_test_r8 options=''-c gp_session_role=utility''');
+dblink_connect
+--------------
+OK            
+(1 row)
+53:select dblink_connect('dblink_rg_test53', 'dbname=isolation2resgrouptest user=rg_test_r8 options=''-c gp_session_role=utility''');
+dblink_connect
+--------------
+OK            
+(1 row)
+
+51>:select exec_commands_n('dblink_rg_test51', 'select 1', 'begin', 'end', 100, '', true);  <waiting ...>
+51<:  <... completed>
+exec_commands_n
+---------------
+100            
+(1 row)
+52>:select exec_commands_n('dblink_rg_test52', 'select 1', 'select 1', 'select 1', 100, '', true);  <waiting ...>
+52<:  <... completed>
+exec_commands_n
+---------------
+100            
+(1 row)
+53>:select exec_commands_n('dblink_rg_test53', 'select 1', 'begin', 'abort', 100, '', true);  <waiting ...>
+53<:  <... completed>
+exec_commands_n
+---------------
+100            
+(1 row)
+
+51:select dblink_disconnect('dblink_rg_test51');
+dblink_disconnect
+-----------------
+OK               
+(1 row)
+52:select dblink_disconnect('dblink_rg_test52');
+dblink_disconnect
+-----------------
+OK               
+(1 row)
+53:select dblink_disconnect('dblink_rg_test53');
+dblink_disconnect
+-----------------
+OK               
+(1 row)
+
+-- num_executed and num_queued must be zero
+select num_queued, num_executed from gp_toolkit.gp_resgroup_status where rsgname = 'rg_test_g8';
+num_queued|num_executed
+----------+------------
+0         |0           
+(1 row)
+drop role rg_test_r8;
+DROP
+drop resource group rg_test_g8;
+DROP
+
+-- clean up
 alter resource group admin_group set concurrency 20;
 ALTER
 select * from gp_toolkit.gp_resgroup_config;
