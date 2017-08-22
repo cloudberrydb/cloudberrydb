@@ -579,6 +579,9 @@
               <xref href="#log_statement_stats"/>
             </li>
             <li>
+              <xref href="#log_temp_files"/>
+            </li>
+            <li>
               <xref href="#log_timezone"/>
             </li>
             <li>
@@ -6591,6 +6594,40 @@
               <entry colname="col1">Boolean</entry>
               <entry colname="col2">off</entry>
               <entry colname="col3">master<p>session</p><p>reload</p><p>superuser</p></entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+    </body>
+  </topic>
+  <topic id="log_temp_files">
+    <title>log_temp_files</title>
+    <body>
+      <p>Controls logging of temporary file names and sizes. Temporary files can be created for
+        sorts, hashes,  temporary query results and spill files. A log entry is made in
+          <codeph>pg_log</codeph> for each temporary file when it is deleted. Depending on the
+        source of the temporary files, the log entry could be created on either the master and/or
+        segments. A <codeph>log_temp_files</codeph> value of zero logs all temporary file
+        information, while positive values log only files whose size is greater than or equal to the
+        specified number of kilobytes. The default setting is <codeph>-1</codeph>, which disables
+        logging. Only superusers can change this setting.</p>
+      <table id="log_temp_files_table">
+        <tgroup cols="3">
+          <colspec colnum="1" colname="col1" colwidth="1*"/>
+          <colspec colnum="2" colname="col2" colwidth="1*"/>
+          <colspec colnum="3" colname="col3" colwidth="1*"/>
+          <thead>
+            <row>
+              <entry colname="col1">Value Range</entry>
+              <entry colname="col2">Default</entry>
+              <entry colname="col3">Set Classifications</entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry colname="col1">Integer</entry>
+              <entry colname="col2">-1</entry>
+              <entry colname="col3">local<p>system</p><p>restart</p></entry>
             </row>
           </tbody>
         </tgroup>
