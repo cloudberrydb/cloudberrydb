@@ -399,17 +399,17 @@ typedef enum {
 #define GP_HEADER_VERSION_NUM 1
 
 /* The actual data block contents */
-#define PG_MODULE_MAGIC_DATA					\
-{												\
-	sizeof(Pg_magic_struct),					\
-	GP_VERSION_NUM / 100,						\
-	FUNC_MAX_ARGS,								\
-	INDEX_MAX_KEYS,								\
-	NAMEDATALEN,								\
-	FLOAT4PASSBYVAL,							\
-	FLOAT8PASSBYVAL,							\
-	PgMagicProductGreenplum,					\
-	GP_HEADER_VERSION_NUM,                    \
+#define PG_MODULE_MAGIC_DATA \
+{ \
+	sizeof(Pg_magic_struct), \
+	GP_VERSION_NUM / 100, \
+	FUNC_MAX_ARGS, \
+	INDEX_MAX_KEYS, \
+	NAMEDATALEN, \
+	FLOAT4PASSBYVAL, \
+	FLOAT8PASSBYVAL, \
+	PgMagicProductGreenplum, \
+	GP_HEADER_VERSION_NUM, \
 }
 
 #ifndef FLOAT4PASSBYVAL

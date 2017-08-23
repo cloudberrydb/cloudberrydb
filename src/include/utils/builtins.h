@@ -987,6 +987,8 @@ extern Datum numeric_demalg(PG_FUNCTION_ARGS); /* MPP */
 extern Datum int8_avg_demalg(PG_FUNCTION_ARGS); /* MPP */
 extern Datum float8_avg_demalg(PG_FUNCTION_ARGS); /* MPP */
 extern Datum numeric_avg_demalg(PG_FUNCTION_ARGS); /* MPP */
+
+/* complex_type.c */
 extern Datum complex_cmp(PG_FUNCTION_ARGS);
 extern Datum complex_lt(PG_FUNCTION_ARGS);
 extern Datum complex_gt(PG_FUNCTION_ARGS);
@@ -1208,7 +1210,7 @@ extern Datum test_quicklz_compression(PG_FUNCTION_ARGS);
 extern Datum percentile_cont_trans(PG_FUNCTION_ARGS);
 extern Datum percentile_disc_trans(PG_FUNCTION_ARGS);
 
-/* gp_partition_funtions.c */
+/* gp_partition_functions.c */
 extern void dumpDynamicTableScanPidIndex(EState *estate, int index);
 
 /* XForms */
