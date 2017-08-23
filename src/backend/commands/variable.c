@@ -558,9 +558,6 @@ assign_XactIsoLevel(const char *value, bool doit, GucSource source)
 	}
 	else if (strcmp(value, "repeatable read") == 0)
 	{
-		if (doit)
-			elog(ERROR, "Greenplum Database does not support REPEATABLE READ transactions.");
-
 		newXactIsoLevel = XACT_REPEATABLE_READ;
 	}
 	else if (strcmp(value, "read committed") == 0)
