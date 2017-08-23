@@ -5151,7 +5151,7 @@ PostgresMain(int argc, char *argv[],
 
 					elog((Debug_print_full_dtm ? LOG : DEBUG5), "MPP dispatched stmt from QD: %s.",query_string);
 
-					if (IsResGroupEnabled())
+					if (IsResGroupActivated() && resgroupInfoLen > 0)
 						SwitchResGroupOnSegment(resgroupInfoBuf, resgroupInfoLen);
 
 					if (suid > 0)

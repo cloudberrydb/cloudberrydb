@@ -268,7 +268,7 @@ CreateResourceGroup(CreateResourceGroupStmt *stmt)
 	heap_close(pg_resgroup_rel, NoLock);
 
 	/* Add this group into shared memory */
-	if (IsResGroupEnabled())
+	if (IsResGroupActivated())
 	{
 		Oid			*callbackArg;
 
@@ -396,7 +396,7 @@ DropResourceGroup(DropResourceGroupStmt *stmt)
 									NULL);
 	}
 
-	if (IsResGroupEnabled())
+	if (IsResGroupActivated())
 	{
 		ResGroupCheckForDrop(groupid, stmt->name);
 
@@ -644,7 +644,7 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 	/* Bump command counter to make this change visible in the callback function alterResGroupCommitCallback() */
 	CommandCounterIncrement();
 
-	if (IsResGroupEnabled())
+	if (IsResGroupActivated())
 	{
 		callbackCtx->caps = caps;
 		registerResourceGroupCallback(alterResGroupCommitCallback, (void *)callbackCtx);
