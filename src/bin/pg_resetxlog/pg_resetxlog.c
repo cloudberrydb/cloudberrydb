@@ -582,6 +582,7 @@ GuessControlValues(void)
 	ControlFile.enableIntTimes = FALSE;
 #endif
 	ControlFile.localeBuflen = LOCALE_NAME_BUFLEN;
+	ControlFile.data_checksum_version = PG_DATA_CHECKSUM_VERSION;
 
 	localeptr = setlocale(LC_COLLATE, "");
 	if (!localeptr)
