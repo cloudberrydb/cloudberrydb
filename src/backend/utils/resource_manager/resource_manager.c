@@ -15,6 +15,8 @@
 #include "cdb/memquota.h"
 #include "utils/guc.h"
 #include "utils/resource_manager.h"
+#include "utils/resgroup-ops.h"
+#include "replication/walsender.h"
 
 /*
  * GUC variables.
@@ -37,26 +39,40 @@ IsResGroupEnabled(void)
 }
 
 void
-InitResManager(void)
+ResManagerShmemInit(void)
 {
 	if (IsResQueueEnabled() && Gp_role == GP_ROLE_DISPATCH)
 	{
 		InitResScheduler();
 		InitResPortalIncrementHash();
-
-		gp_resmanager_memory_policy = &gp_resqueue_memory_policy;
-		gp_log_resmanager_memory = &gp_log_resqueue_memory;
-		gp_resmanager_print_operator_memory_limits = &gp_resqueue_print_operator_memory_limits;
-		gp_resmanager_memory_policy_auto_fixed_mem = &gp_resqueue_memory_policy_auto_fixed_mem;
 	}
 	else if (IsResGroupEnabled() && !IsUnderPostmaster)
 	{
 		ResGroupControlInit();
+	}
+}
 
+void
+InitResManager(void)
+{
+	if (IsResQueueEnabled() && Gp_role == GP_ROLE_DISPATCH && !am_walsender)
+	{
+		gp_resmanager_memory_policy = &gp_resqueue_memory_policy;
+		gp_log_resmanager_memory = &gp_log_resqueue_memory;
+		gp_resmanager_print_operator_memory_limits = &gp_resqueue_print_operator_memory_limits;
+		gp_resmanager_memory_policy_auto_fixed_mem = &gp_resqueue_memory_policy_auto_fixed_mem;
+
+		InitResQueues();
+	}
+	else if (IsResGroupEnabled() && (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE) && !am_walsender)
+	{
 		gp_resmanager_memory_policy = &gp_resgroup_memory_policy;
 		gp_log_resmanager_memory = &gp_log_resgroup_memory;
-		gp_resmanager_print_operator_memory_limits = &gp_resgroup_print_operator_memory_limits;
 		gp_resmanager_memory_policy_auto_fixed_mem = &gp_resgroup_memory_policy_auto_fixed_mem;
+		gp_resmanager_print_operator_memory_limits = &gp_resgroup_print_operator_memory_limits;
+
+		InitResGroups();
+		ResGroupOps_AdjustGUCs();
 	}
 	else
 	{
