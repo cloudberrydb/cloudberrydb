@@ -496,12 +496,6 @@ InitAuxiliaryProcess(void)
 	int			i;
 
 	/*
-	 * Set Gp_role to GP_ROLE_UTILITY to avoid auxiliary process from going
-	 * into any GP_ROLE_DISPATCH code paths if any exists.
-	 */
-	Gp_role = GP_ROLE_UTILITY;
-
-	/*
 	 * ProcGlobal should be set up already (if we are a backend, we inherit
 	 * this by fork() or EXEC_BACKEND mechanism from the postmaster).
 	 */
