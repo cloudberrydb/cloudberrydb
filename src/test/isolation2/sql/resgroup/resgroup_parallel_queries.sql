@@ -9,30 +9,37 @@
 alter resource group admin_group set concurrency 30;
 
 -- This function execute commands N times. 
--- % in command will be replaced by number specified by range sequentially
--- # in command will be replaced by number specified by range randomly 
+-- % in command will be replaced by number specified by range1 sequentially
+-- # in command will be replaced by number specified by range2 randomly 
 -- range, eg: 1-10 
 -- Notice: now it only support SELECT statement return single integer
 CREATE or replace FUNCTION exec_commands_n /*in func*/
 	(dl_name text, command1 text, /*in func*/
 	command2 text, command3 text, /*in func*/
-	times integer, range1 text, fail_on_error bool) /*in func*/
+	times integer, range1 text, range2 text, fail_on_error bool) /*in func*/
 RETURNS integer AS $$ /*in func*/
 DECLARE /*in func*/
 	cmd text; /*in func*/
 	res int; /*in func*/
-	s1 int; /*in func*/
-	e1 int; /*in func*/
+	s_r1 int; /*in func*/
+	e_r1 int; /*in func*/
+	s_r2 int; /*in func*/
+	e_r2 int; /*in func*/
 BEGIN /*in func*/
-	s1 = 0; /*in func*/
-	e1 = 0; /*in func*/
+	s_r1 = 0; /*in func*/
+	e_r1 = 0; /*in func*/
+	s_r2 = 0; /*in func*/
+	e_r2 = 0; /*in func*/
 	IF length(range1) > 0 THEN /*in func*/
-		select t[1]::int, t[2]::int into s1, e1 from regexp_split_to_array(range1, '-') t; /*in func*/
+		select t[1]::int, t[2]::int into s_r1, e_r1 from regexp_split_to_array(range1, '-') t; /*in func*/
+	END IF; /*in func*/
+	IF length(range2) > 0 THEN /*in func*/
+		select t[1]::int, t[2]::int into s_r2, e_r2 from regexp_split_to_array(range2, '-') t; /*in func*/
 	END IF; /*in func*/
 	FOR i IN 0..(times - 1) LOOP /*in func*/
 		IF length(command1) > 0 THEN /*in func*/
-			cmd = regexp_replace(command1, '%', (s1 + i % (e1 - s1 + 1))::text, 'g'); /*in func*/
-			cmd = regexp_replace(cmd, '#', (s1 + ((random()*100)::int) % (e1 - s1 + 1))::text, 'g'); /*in func*/
+			cmd = regexp_replace(command1, '%', (s_r1 + i % (e_r1 - s_r1 + 1))::text, 'g'); /*in func*/
+			cmd = regexp_replace(cmd, '#', (s_r2 + ((random()*100)::int) % (e_r2 - s_r2 + 1))::text, 'g'); /*in func*/
 			RAISE NOTICE '%', cmd; /*in func*/
 			IF lower(cmd) like 'select %' THEN /*in func*/
 				select * into res from dblink(dl_name, cmd, fail_on_error) t(c1 integer); /*in func*/
@@ -41,8 +48,8 @@ BEGIN /*in func*/
 			END IF; /*in func*/
 		END IF; /*in func*/
 		IF length(command2) > 0 THEN /*in func*/
-			cmd = regexp_replace(command2, '%', (s1 + i % (e1 - s1 + 1))::text, 'g'); /*in func*/
-			cmd = regexp_replace(cmd, '#', (s1 + ((random()*100)::int) % (e1 - s1 + 1))::text, 'g'); /*in func*/
+			cmd = regexp_replace(command2, '%', (s_r1 + i % (e_r1 - s_r1 + 1))::text, 'g'); /*in func*/
+			cmd = regexp_replace(cmd, '#', (s_r2 + ((random()*100)::int) % (e_r2 - s_r2 + 1))::text, 'g'); /*in func*/
 			RAISE NOTICE '%', cmd; /*in func*/
 			IF lower(cmd) like 'select %' THEN /*in func*/
 				select * into res from dblink(dl_name, cmd, fail_on_error) t(c1 integer); /*in func*/
@@ -51,8 +58,8 @@ BEGIN /*in func*/
 			END IF; /*in func*/
 		END IF; /*in func*/
 		IF length(command3) > 0 THEN /*in func*/
-			cmd = regexp_replace(command3, '%', (s1 + i % (e1 - s1 + 1))::text, 'g'); /*in func*/
-			cmd = regexp_replace(cmd, '#', (s1 + ((random()*100)::int) % (e1 - s1 + 1))::text, 'g'); /*in func*/
+			cmd = regexp_replace(command3, '%', (s_r1 + i % (e_r1 - s_r1 + 1))::text, 'g'); /*in func*/
+			cmd = regexp_replace(cmd, '#', (s_r2 + ((random()*100)::int) % (e_r2 - s_r2 + 1))::text, 'g'); /*in func*/
 			RAISE NOTICE '%', cmd; /*in func*/
 			IF lower(cmd) like 'select %' THEN /*in func*/
 				select * into res from dblink(dl_name, cmd, fail_on_error) t(c1 integer); /*in func*/
@@ -75,12 +82,12 @@ LANGUAGE 'plpgsql';
 5:select dblink_connect('dblink_rg_test5', 'dbname=isolation2resgrouptest');
 6:select dblink_connect('dblink_rg_test6', 'dbname=isolation2resgrouptest');
 
-1>:select exec_commands_n('dblink_rg_test1','CREATE RESOURCE GROUP rg_test_g# WITH (concurrency=#, cpu_rate_limit=#, memory_limit=#)', 'DROP RESOURCE GROUP rg_test_g#', 'ALTER RESOURCE GROUP rg_test_g# set concurrency #', 60, '1-6', false);
-2>:select exec_commands_n('dblink_rg_test2','CREATE RESOURCE GROUP rg_test_g# WITH (concurrency=#, cpu_rate_limit=#, memory_limit=#)', 'DROP RESOURCE GROUP rg_test_g#', 'ALTER RESOURCE GROUP rg_test_g# set concurrency#', 60, '1-6', false);
-3>:select exec_commands_n('dblink_rg_test3','CREATE RESOURCE GROUP rg_test_g# WITH (concurrency=#, cpu_rate_limit=#, memory_limit=#)', 'DROP RESOURCE GROUP rg_test_g#', 'ALTER RESOURCE GROUP rg_test_g# set cpu_rate_limit #', 60, '1-6', false);
-4>:select exec_commands_n('dblink_rg_test4','CREATE RESOURCE GROUP rg_test_g# WITH (concurrency=#, cpu_rate_limit=#, memory_limit=#)', 'DROP RESOURCE GROUP rg_test_g#', 'ALTER RESOURCE GROUP rg_test_g# set memory_limit #', 60, '1-6', false);
-5>:select exec_commands_n('dblink_rg_test5','CREATE RESOURCE GROUP rg_test_g# WITH (concurrency=#, cpu_rate_limit=#, memory_limit=#)', 'DROP RESOURCE GROUP rg_test_g#', 'ALTER RESOURCE GROUP rg_test_g# set memory_shared_quota #', 60, '1-6', false);
-6>:select exec_commands_n('dblink_rg_test6','CREATE RESOURCE GROUP rg_test_g# WITH (concurrency=#, cpu_rate_limit=#, memory_limit=#)', 'DROP RESOURCE GROUP rg_test_g#', 'ALTER RESOURCE GROUP rg_test_g# set memory_limit #', 60, '1-6', false);
+1>:select exec_commands_n('dblink_rg_test1','CREATE RESOURCE GROUP rg_test_g# WITH (concurrency=#, cpu_rate_limit=#, memory_limit=#)', 'DROP RESOURCE GROUP rg_test_g#', 'ALTER RESOURCE GROUP rg_test_g# set concurrency #', 60, '', '1-6', false);
+2>:select exec_commands_n('dblink_rg_test2','CREATE RESOURCE GROUP rg_test_g# WITH (concurrency=#, cpu_rate_limit=#, memory_limit=#)', 'DROP RESOURCE GROUP rg_test_g#', 'ALTER RESOURCE GROUP rg_test_g# set concurrency#', 60, '', '1-6', false);
+3>:select exec_commands_n('dblink_rg_test3','CREATE RESOURCE GROUP rg_test_g# WITH (concurrency=#, cpu_rate_limit=#, memory_limit=#)', 'DROP RESOURCE GROUP rg_test_g#', 'ALTER RESOURCE GROUP rg_test_g# set cpu_rate_limit #', 60, '', '1-6', false);
+4>:select exec_commands_n('dblink_rg_test4','CREATE RESOURCE GROUP rg_test_g# WITH (concurrency=#, cpu_rate_limit=#, memory_limit=#)', 'DROP RESOURCE GROUP rg_test_g#', 'ALTER RESOURCE GROUP rg_test_g# set memory_limit #', 60, '', '1-6', false);
+5>:select exec_commands_n('dblink_rg_test5','CREATE RESOURCE GROUP rg_test_g# WITH (concurrency=#, cpu_rate_limit=#, memory_limit=#)', 'DROP RESOURCE GROUP rg_test_g#', 'ALTER RESOURCE GROUP rg_test_g# set memory_shared_quota #', 60, '', '1-6', false);
+6>:select exec_commands_n('dblink_rg_test6','CREATE RESOURCE GROUP rg_test_g# WITH (concurrency=#, cpu_rate_limit=#, memory_limit=#)', 'DROP RESOURCE GROUP rg_test_g#', 'ALTER RESOURCE GROUP rg_test_g# set memory_limit #', 60, '', '1-6', false);
 
 1<:
 2<:
@@ -98,15 +105,15 @@ create table rg_test_bar as select i as c1, i as c2 from generate_series(1,1000)
 
 -- start_ignore
 select dblink_connect('dblink_rg_test', 'dbname=isolation2resgrouptest');
-select exec_commands_n('dblink_rg_test','DROP ROLE rg_test_r%', '', '', 7, '1-7', false);
-select exec_commands_n('dblink_rg_test','DROP RESOURCE GROUP rg_test_g%', '', '', 7, '1-7', false);
+select exec_commands_n('dblink_rg_test','DROP ROLE rg_test_r%', '', '', 7, '1-7', '', false);
+select exec_commands_n('dblink_rg_test','DROP RESOURCE GROUP rg_test_g%', '', '', 7, '1-7', '', false);
 -- end_ignore
 
 -- create 6 roles and 6 resource groups
-select exec_commands_n('dblink_rg_test','CREATE RESOURCE GROUP rg_test_g% WITH (concurrency=9, cpu_rate_limit=1, memory_limit=7)', '', '', 6, '1-6', true);
-select exec_commands_n('dblink_rg_test','CREATE ROLE rg_test_r% login resource group rg_test_g%;', '', '', 6, '1-6', true);
-select exec_commands_n('dblink_rg_test','GRANT ALL ON rg_test_foo to rg_test_r%;', '', '', 6, '1-6', true);
-select exec_commands_n('dblink_rg_test','GRANT ALL ON rg_test_bar to rg_test_r%;', '', '', 6, '1-6', true);
+select exec_commands_n('dblink_rg_test','CREATE RESOURCE GROUP rg_test_g% WITH (concurrency=9, cpu_rate_limit=1, memory_limit=7)', '', '', 6, '1-6', '', true);
+select exec_commands_n('dblink_rg_test','CREATE ROLE rg_test_r% login resource group rg_test_g%;', '', '', 6, '1-6', '', true);
+select exec_commands_n('dblink_rg_test','GRANT ALL ON rg_test_foo to rg_test_r%;', '', '', 6, '1-6', '',  true);
+select exec_commands_n('dblink_rg_test','GRANT ALL ON rg_test_bar to rg_test_r%;', '', '', 6, '1-6', '', true);
 
 select dblink_disconnect('dblink_rg_test');
 
@@ -118,52 +125,52 @@ select groupname, concurrency, cpu_rate_limit from gp_toolkit.gp_resgroup_config
 -- start 6 session to concurrently change resource group and run simple queries randomly
 -- BEGIN/END
 21: select dblink_connect('dblink_rg_test21', 'dbname=isolation2resgrouptest');
-21>: select exec_commands_n('dblink_rg_test21', 'set role rg_test_r#', 'BEGIN', 'END', 24000, '1-6', true);
+21>: select exec_commands_n('dblink_rg_test21', 'set role rg_test_r#', 'BEGIN', 'END', 24000, '', '1-6', true);
 -- BEGIN/ABORT
 22: select dblink_connect('dblink_rg_test22', 'dbname=isolation2resgrouptest');
-22>: select exec_commands_n('dblink_rg_test22', 'set role rg_test_r#', 'BEGIN', 'ABORT', 24000, '1-6', true);
+22>: select exec_commands_n('dblink_rg_test22', 'set role rg_test_r#', 'BEGIN', 'ABORT', 24000, '', '1-6', true);
 -- query with memory sensitive node
 23: select dblink_connect('dblink_rg_test23', 'dbname=isolation2resgrouptest');
-23>: select exec_commands_n('dblink_rg_test23', 'set role rg_test_r#', 'insert into rg_test_foo values (#, #)', 'select count(*) from rg_test_bar t1, rg_test_foo t2 where t1.c2=t2.c2 group by t1.c2', 3000, '1-6', true);
+23>: select exec_commands_n('dblink_rg_test23', 'set role rg_test_r#', 'insert into rg_test_foo values (#, #)', 'select count(*) from rg_test_bar t1, rg_test_foo t2 where t1.c2=t2.c2 group by t1.c2', 3000, '', '1-6', true);
 -- high cpu
 24: select dblink_connect('dblink_rg_test24', 'dbname=isolation2resgrouptest');
-24>: select exec_commands_n('dblink_rg_test24', 'set role rg_test_r#', 'insert into rg_test_bar values (#, #)', 'select count(*) from rg_test_bar where c2! = 1000', 60, '1-6', true);
+24>: select exec_commands_n('dblink_rg_test24', 'set role rg_test_r#', 'insert into rg_test_bar values (#, #)', 'select count(*) from rg_test_bar where c2! = 1000', 60, '', '1-6', true);
 -- simple select
 25: select dblink_connect('dblink_rg_test25', 'dbname=isolation2resgrouptest');
-25>: select exec_commands_n('dblink_rg_test25', 'set role rg_test_r#', 'select count(*) from rg_test_foo', 'select count(*) from rg_test_bar', 6000, '1-6', true);
+25>: select exec_commands_n('dblink_rg_test25', 'set role rg_test_r#', 'select count(*) from rg_test_foo', 'select count(*) from rg_test_bar', 6000, '', '1-6', true);
 -- vacuum
 26: select dblink_connect('dblink_rg_test26', 'dbname=isolation2resgrouptest');
-26>: select exec_commands_n('dblink_rg_test26', 'set role rg_test_r#', 'vacuum rg_test_bar', 'vacuum rg_test_foo', 6000, '1-6', true);
+26>: select exec_commands_n('dblink_rg_test26', 'set role rg_test_r#', 'vacuum rg_test_bar', 'vacuum rg_test_foo', 6000, '', '1-6', true);
 
 --
 -- 3* : Alter groups
 --
 -- start a new session to alter concurrency randomly
 31: select dblink_connect('dblink_rg_test31', 'dbname=isolation2resgrouptest');
-31>: select exec_commands_n('dblink_rg_test31', 'alter resource group rg_test_g% set concurrency #', '', '', 1000, '1-6', true);
+31>: select exec_commands_n('dblink_rg_test31', 'alter resource group rg_test_g% set concurrency #', '', '', 1000, '1-6', '1-5', true);
 
 -- start a new session to alter cpu_rate_limit randomly
 32: select dblink_connect('dblink_rg_test32', 'dbname=isolation2resgrouptest');
-32>: select exec_commands_n('dblink_rg_test32', 'alter resource group rg_test_g% set cpu_rate_limit #', '', '', 1000, '1-6', true);
+32>: select exec_commands_n('dblink_rg_test32', 'alter resource group rg_test_g% set cpu_rate_limit #', '', '', 1000, '1-6', '1-6', true);
 
 -- start a new session to alter memory_limit randomly
 33: select dblink_connect('dblink_rg_test33', 'dbname=isolation2resgrouptest');
-33>: select exec_commands_n('dblink_rg_test33', 'alter resource group rg_test_g% set memory_limit #', '', '', 1000, '1-6', true);
+33>: select exec_commands_n('dblink_rg_test33', 'alter resource group rg_test_g% set memory_limit #', '', '', 1000, '1-6', '1-7', true);
 
 -- start a new session to alter memory_shared_quota randomly
 34: select dblink_connect('dblink_rg_test34', 'dbname=isolation2resgrouptest');
-34>: select exec_commands_n('dblink_rg_test34', 'alter resource group rg_test_g% set memory_shared_quota #', '', '', 1000, '1-6', true);
+34>: select exec_commands_n('dblink_rg_test34', 'alter resource group rg_test_g% set memory_shared_quota #', '', '', 1000, '1-6', '1-80', true);
 
 --
 -- 4* : CREATE/DROP tables & groups
 --
 -- start a new session to create and drop table, it will cause massive catchup interrupt.
 41: select dblink_connect('dblink_rg_test41', 'dbname=isolation2resgrouptest');
-41>: select exec_commands_n('dblink_rg_test41', 'drop table if exists rg_test_t%', 'create table rg_test_t% (c1 int, c2 int)' ,'', 3000, '1-6', true);
+41>: select exec_commands_n('dblink_rg_test41', 'drop table if exists rg_test_t%', 'create table rg_test_t% (c1 int, c2 int)' ,'', 3000, '1-6', '', true);
 
 -- start a new session to create & drop resource group 
 42: select dblink_connect('dblink_rg_test42', 'dbname=isolation2resgrouptest');
-42>: select exec_commands_n('dblink_rg_test42', 'create resource group rg_test_g7 with (cpu_rate_limit=1, memory_limit=1)', 'drop resource group rg_test_g7', '', 1000, '1-6', true);
+42>: select exec_commands_n('dblink_rg_test42', 'create resource group rg_test_g7 with (cpu_rate_limit=1, memory_limit=1)', 'drop resource group rg_test_g7', '', 1000, '', '', true);
 
 -- start a new session to drop a resource group with running queries, it will failed because a role is associated with the resource group. 
 43>: drop resource group rg_test_g3;
@@ -212,8 +219,8 @@ select rsgname, sum((j->'value')::text::int) from t_1 group by rsgname ;
 drop table rg_test_foo;
 drop table rg_test_bar;
 select dblink_connect('dblink_rg_test', 'dbname=isolation2resgrouptest');
-select exec_commands_n('dblink_rg_test','DROP ROLE rg_test_r%', '', '', 6, '1-6', true);
-select exec_commands_n('dblink_rg_test','DROP RESOURCE GROUP rg_test_g%', '', '', 6, '1-6', true);
+select exec_commands_n('dblink_rg_test','DROP ROLE rg_test_r%', '', '', 6, '1-6', '', true);
+select exec_commands_n('dblink_rg_test','DROP RESOURCE GROUP rg_test_g%', '', '', 6, '1-6', '', true);
 select dblink_disconnect('dblink_rg_test');
 -- end_ignore
 
@@ -226,11 +233,11 @@ create role rg_test_r8 login resource group rg_test_g8;
 52:select dblink_connect('dblink_rg_test52', 'dbname=isolation2resgrouptest user=rg_test_r8 options=''-c gp_session_role=utility''');
 53:select dblink_connect('dblink_rg_test53', 'dbname=isolation2resgrouptest user=rg_test_r8 options=''-c gp_session_role=utility''');
 
-51>:select exec_commands_n('dblink_rg_test51', 'select 1', 'begin', 'end', 100, '', true);
+51>:select exec_commands_n('dblink_rg_test51', 'select 1', 'begin', 'end', 100, '', '', true);
 51<:
-52>:select exec_commands_n('dblink_rg_test52', 'select 1', 'select 1', 'select 1', 100, '', true);
+52>:select exec_commands_n('dblink_rg_test52', 'select 1', 'select 1', 'select 1', 100, '', '', true);
 52<:
-53>:select exec_commands_n('dblink_rg_test53', 'select 1', 'begin', 'abort', 100, '', true);
+53>:select exec_commands_n('dblink_rg_test53', 'select 1', 'begin', 'abort', 100, '', '', true);
 53<:
 
 51:select dblink_disconnect('dblink_rg_test51');
