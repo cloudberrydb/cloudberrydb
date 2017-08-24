@@ -39,3 +39,16 @@ select * from v_sourcetable;
 
 create view v_sourcetable1 as SELECT sourcetable.qty, vn, pn FROM sourcetable union select sourcetable.qty, sourcetable.vn, sourcetable.pn from sourcetable order by qty;
 select * from v_sourcetable1;
+
+
+-- Check that the row-comparison operator is serialized and deserialized
+-- correctly, when it's used in a view. This isn't particularly interesting,
+-- compared to all the other expression types, but we happened to have a
+-- silly bug that broke this particular case.
+
+create view v_sourcetable2 as
+  select a.cn as cn, a.vn as a_vn, b.vn as b_vn, a.pn as a_pn, b.pn as b_pn
+  from sourcetable a, sourcetable b
+  where row(a.*) < row(b.*)
+  and a.cn = 1 and b.cn = 1;
+select * from v_sourcetable2;
