@@ -85,7 +85,7 @@ static volatile sig_atomic_t got_SIGHUP = false;
 
 static char *probeDatabase = "postgres";
 
-static char failover_strategy=GpFaultStrategyMirrorLess;
+static char fault_strategy = GpFaultStrategyMirrorLess;
 
 /* struct holding segment configuration */
 static CdbComponentDatabases *cdb_component_dbs = NULL;
@@ -128,8 +128,6 @@ static uint32 transition
 
 static void updateConfiguration(FtsSegmentStatusChange *changes, int changeEntries);
 static bool probeUpdateConfig(FtsSegmentStatusChange *changes, int changeCount);
-
-static void getFailoverStrategy(char *strategy);
 
 /*
  * Main entry point for ftsprobe process.
@@ -477,9 +475,9 @@ void FtsLoop()
 			processing_fullscan = false;
 
 		readCdbComponentInfoAndUpdateStatus(probeContext);
-		getFailoverStrategy(&failover_strategy);
+		fault_strategy = get_gp_fault_strategy();
 
-		if (failover_strategy == GpFaultStrategyMirrorLess)
+		if (fault_strategy == GpFaultStrategyMirrorLess)
 		{
 			/* The dispatcher could have requested a scan so just ignore it and unblock the dispatcher */
 			if (processing_fullscan)
@@ -582,7 +580,11 @@ probePublishUpdate(uint8 *probe_results)
 	bool update_found = false;
 	int i;
 
-	Assert(failover_strategy == GpFaultStrategyFileRepMirrorred);
+#ifdef USE_SEGWALREP
+	Assert(fault_strategy == GpFaultStrategyWalRepMirrored);
+#else
+	Assert(fault_strategy == GpFaultStrategyFileRepMirrored);
+#endif
 
 	/* preprocess probe results to decide what is the current segment state */
 	FtsPreprocessProbeResultsFilerep(cdb_component_dbs, probe_results);
@@ -817,7 +819,11 @@ probeUpdateConfig(FtsSegmentStatusChange *changes, int changeCount)
 	int i;
 	char desc[SQL_CMD_BUF_SIZE];
 
-	Assert(failover_strategy == GpFaultStrategyFileRepMirrorred);
+#ifdef USE_SEGWALREP
+	Assert(fault_strategy == GpFaultStrategyWalRepMirrored);
+#else
+	Assert(fault_strategy == GpFaultStrategyFileRepMirrored);
+#endif
 
 	/*
 	 * Commit/abort transaction below will destroy
@@ -925,46 +931,14 @@ probeUpdateConfig(FtsSegmentStatusChange *changes, int changeCount)
 	return true;
 }
 
-static void
-getFailoverStrategy(char *strategy)
-{
-	Relation	strategy_rel;
-	HeapTuple	strategy_tup;
-	SysScanDesc sscan;
-
-	Assert(strategy != NULL);
-
-	strategy_rel = heap_open(GpFaultStrategyRelationId, AccessShareLock);
-
-	/*
-	 * SELECT * FROM gp_fault_strategy
-	 *
-	 * XXX XXX: only one of these?
-	 */
-	sscan = systable_beginscan(strategy_rel, InvalidOid, false, SnapshotNow, 0, NULL);
-	while (HeapTupleIsValid(strategy_tup = systable_getnext(sscan)))
-	{
-		Datum		strategy_datum;
-		bool		isNull = true;
-
-		strategy_datum = heap_getattr(strategy_tup, Anum_gp_fault_strategy_fault_strategy, RelationGetDescr(strategy_rel), &isNull);
-
-		if (isNull)
-			break;
-
-		*strategy = DatumGetChar(strategy_datum);
-	}
-
-	systable_endscan(sscan);
-	heap_close(strategy_rel, AccessShareLock);
-	return;
-}
-
-
 bool
 FtsIsSegmentAlive(CdbComponentDatabaseInfo *segInfo)
 {
-	Assert(failover_strategy == GpFaultStrategyFileRepMirrorred);
+#ifdef USE_SEGWALREP
+	Assert(fault_strategy == GpFaultStrategyWalRepMirrored);
+#else
+	Assert(fault_strategy == GpFaultStrategyFileRepMirrored);
+#endif
 
 	if (SEGMENT_IS_ACTIVE_MIRROR(segInfo) && SEGMENT_IS_ALIVE(segInfo))
 		return true;

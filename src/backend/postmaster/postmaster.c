@@ -3574,6 +3574,19 @@ processPrimaryMirrorTransitionRequest(Port *port, void *pkt)
 	}
 }
 
+#ifdef USE_SEGWALREP
+static void
+sendPrimaryMirrorTransitionQuery()
+{
+	StringInfoData buf;
+
+	initStringInfo(&buf);
+
+	pq_beginmessage(&buf, '\0');
+	pq_endmessage(&buf);
+	pq_flush();
+}
+#else
 static void
 sendPrimaryMirrorTransitionQuery(uint32 mode, uint32 segstate, uint32 datastate, uint32 faulttype)
 {
@@ -3591,6 +3604,7 @@ sendPrimaryMirrorTransitionQuery(uint32 mode, uint32 segstate, uint32 datastate,
 	pq_endmessage(&buf);
 	pq_flush();
 }
+#endif
 
 /**
  * Called during startup packet processing.
@@ -3601,6 +3615,10 @@ sendPrimaryMirrorTransitionQuery(uint32 mode, uint32 segstate, uint32 datastate,
 static void
 processPrimaryMirrorTransitionQuery(Port *port, void *pkt)
 {
+#ifdef USE_SEGWALREP
+	/* Send FTS probe response */
+	sendPrimaryMirrorTransitionQuery();
+#else
 	PrimaryMirrorTransitionPacket *transition = (PrimaryMirrorTransitionPacket *) pkt;
 	int length;
 
@@ -3683,6 +3701,7 @@ processPrimaryMirrorTransitionQuery(Port *port, void *pkt)
 	sendPrimaryMirrorTransitionQuery((uint32)pm_mode, (uint32)s_state, (uint32)d_state, (uint32)f_type);
 
 	return;
+#endif
 }
 
 /*
