@@ -214,50 +214,5 @@ gpos::UllMultiply
 	return ullRes;
 }
 
-
-#ifdef GPOS_DEBUG
-#if (GPOS_i386 || GPOS_i686 || GPOS_x86_64)
-//---------------------------------------------------------------------------
-//	@function:
-//		CAllocatedObject::FOnStack
-//
-//	@doc:
-//		Check if given pointer is inside the current call stack by retrieving
-//		(1) the stack pointer and (2) walk up to X stack frames up using the
-//		base/frame pointer;
-//		The pointer to check must be less than the base pointer and greater
-//		than the stack pointer;
-//
-//		NOTE: this works only for x86 architectures; on everything else, this
-//		test is much weaker and test only the stack pointer;
-//
-//---------------------------------------------------------------------------
-BOOL
-gpos::FOnStack
-	(
-	const void *pv
-	)
-{
-	ULONG_PTR ulp = (ULONG_PTR) pv;
-	
-	// stack pointer
-	ULONG_PTR ulpSp = 0;
-	GPOS_GET_STACK_POINTER(ulpSp);
-	
-	// base pointer
-	ULONG_PTR ulpBase = 0;
-	GPOS_GET_FRAME_POINTER(ulpBase);
-	
-	// search up to N stack frames
-	for(ULONG i = 0; i < GPOS_SEARCH_STACK_FRAMES && ulpBase != 0 && ulpBase < ulp; i++)
-	{
-		ulpBase = *((ULONG_PTR*) ulpBase);
-	}
-	
-	return ulpBase > ulp && ulp > ulpSp;
-}
-#endif // (GPOS_i386 || GPOS_i686 || GPOS_x86_64)
-#endif // GPOS_DEBUG
-
 // EOF
 

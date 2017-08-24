@@ -133,9 +133,6 @@ namespace gpos
 	// yield and sleep (time in muSec)
 	// note that in some platforms the minimum sleep interval is 1ms
 	void USleep(ULONG);
-	
-	// check if given pointer is on stack; only reliable on x86
-	BOOL FOnStack(const void *);
 
 	// add two unsigned long long values, throw an exception if overflow occurs
 	ULLONG UllAdd(ULLONG ullFst, ULLONG ullSnd);

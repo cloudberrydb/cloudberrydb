@@ -7,6 +7,7 @@
 //
 //	@doc:
 //		Implementation of classes of all objects that must reside on the stack;
+//		There used to be an assertion for that here, but it was too fragile.
 //---------------------------------------------------------------------------
 
 #include "gpos/utils.h"
@@ -25,10 +26,6 @@ using namespace gpos;
 //---------------------------------------------------------------------------
 CStackObject::CStackObject()
 {
-#if (GPOS_i386 || GPOS_i686 || GPOS_x86_64)
-	GPOS_ASSERT(true == gpos::FOnStack(this) &&
-	            "Object incorrectly allocated (stack/heap)");
-#endif // (GPOS_i386 || GPOS_i686 || GPOS_x86_64)
 }
 
 
