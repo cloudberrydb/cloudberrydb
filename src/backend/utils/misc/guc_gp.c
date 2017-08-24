@@ -3461,6 +3461,15 @@ struct config_int ConfigureNamesInt_gp[] =
 	},
 
 	{
+		{"memory_spill_ratio", PGC_USERSET, RESOURCES_MEM,
+			gettext_noop("Sets the memory_spill_ratio for resource group."),
+			NULL
+		},
+		&memory_spill_ratio,
+		20, 1, 100, NULL, NULL
+	},
+
+	{
 		{"max_statement_mem", PGC_SUSET, RESOURCES_MEM,
 			gettext_noop("Sets the maximum value for statement_mem setting."),
 			NULL,

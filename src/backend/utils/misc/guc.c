@@ -335,6 +335,7 @@ const char *const GucSource_Names[] =
 	 /* PGC_S_DATABASE */ "database",
 	 /* PGC_S_USER */ "user",
 	 /* PGC_S_CLIENT */ "client",
+	 /* PGC_S_RESGROUP */ "resource group",
 	 /* PGC_S_OVERRIDE */ "override",
 	 /* PGC_S_INTERACTIVE */ "interactive",
 	 /* PGC_S_TEST */ "test",

@@ -51,7 +51,7 @@ ResManagerMemoryPolicy     	gp_resgroup_memory_policy = RESMANAGER_MEMORY_POLICY
 bool						gp_log_resgroup_memory = false;
 int							gp_resgroup_memory_policy_auto_fixed_mem;
 bool						gp_resgroup_print_operator_memory_limits = false;
-
+int							memory_spill_ratio=20;
 /*
  * Data structures
  */
@@ -93,7 +93,6 @@ typedef struct ResGroupSlotData
 	ResGroupCaps	caps;
 
 	int32			memQuota;	/* memory quota of current slot */
-	int32			memSpill;	/* memory spill of current slot */
 	int32			memUsage;	/* total memory usage of procs belongs to this slot */
 	int				nProcs;		/* number of procs in this slot */
 	bool			inUse;
@@ -209,6 +208,8 @@ static void putSlot(ResGroupData *group, int slotId);
 static int ResGroupSlotAcquire(void);
 static void addTotalQueueDuration(ResGroupData *group);
 static void ResGroupSlotRelease(void);
+static void ResGroupSetMemorySpillRatio(const ResGroupCaps *caps);
+static void ResGroupCheckMemorySpillRatio(const ResGroupCaps *caps);
 
 /*
  * Estimate size the resource group structures will need in
@@ -951,15 +952,21 @@ int64
 ResourceGroupGetQueryMemoryLimit(void)
 {
 	ResGroupSlotData	*slot;
+	int64				memSpill;
+
 	Assert(MyResGroupSharedInfo != NULL);
 	Assert(MyResGroupProcInfo != NULL);
 	Assert(MyResGroupProcInfo->slotId != InvalidSlotId);
 
+	slot = &MyResGroupSharedInfo->slots[MyResGroupProcInfo->slotId];
+	ResGroupCheckMemorySpillRatio(&slot->caps);
+
 	if (IsResManagerMemoryPolicyNone())
 		return 0;
 
-	slot = &MyResGroupSharedInfo->slots[MyResGroupProcInfo->slotId];
-	return ((int64)slot->memSpill) << VmemTracker_GetChunkSizeInBits();
+	memSpill = slotGetMemSpill(&slot->caps);
+
+	return memSpill << VmemTracker_GetChunkSizeInBits();
 }
 
 /*
@@ -1543,7 +1550,7 @@ groupGetMemSharedExpected(const ResGroupCaps *caps)
 static int32
 groupGetMemSpillTotal(const ResGroupCaps *caps)
 {
-	return groupGetMemExpected(caps) * caps->memSpillRatio.proposed / 100;
+	return groupGetMemExpected(caps) * memory_spill_ratio / 100;
 }
 
 /*
@@ -1881,7 +1888,7 @@ AssignResGroupOnMaster(void)
 	slot = &sharedInfo->slots[slotId];
 	Assert(slot->memQuota > 0);
 	slot->sessionId = gp_session_id;
-	slot->memSpill = slotGetMemSpill(&slot->caps);
+	ResGroupSetMemorySpillRatio(&slot->caps);
 	pg_atomic_add_fetch_u32((pg_atomic_uint32*)&slot->nProcs, 1);
 	Assert(slot->memQuota > 0);
 
@@ -2041,7 +2048,7 @@ SwitchResGroupOnSegment(const char *buf, int len)
 	slot->sessionId = gp_session_id;
 	slot->caps = caps;
 	slot->memQuota = slotGetMemQuotaExpected(&caps);
-	slot->memSpill = slotGetMemSpill(&caps);
+	ResGroupSetMemorySpillRatio(&caps);
 	Assert(slot->memQuota > 0);
 
 	if (prevSharedInfo != sharedInfo || prevSlot != slot)
@@ -2301,6 +2308,26 @@ ResGroupWaitCancel(void)
 	localResWaiting = false;
 	pgstat_report_waiting(PGBE_WAITING_NONE);
 	MyResGroupSharedInfo = NULL;
+}
+
+static void
+ResGroupSetMemorySpillRatio(const ResGroupCaps *caps)
+{
+	char value[64];
+
+	snprintf(value, sizeof(value), "%d", caps->memSpillRatio.proposed);
+	set_config_option("memory_spill_ratio", value, PGC_USERSET, PGC_S_RESGROUP, GUC_ACTION_SET, true);
+}
+
+static void
+ResGroupCheckMemorySpillRatio(const ResGroupCaps *caps)
+{
+	if (caps->memSharedQuota.proposed + memory_spill_ratio > RESGROUP_MAX_MEMORY_LIMIT)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("The sum of memory_shared_quota (%d) and memory_spill_ratio (%d) exceeds %d",
+						caps->memSharedQuota.proposed, memory_spill_ratio,
+						RESGROUP_MAX_MEMORY_LIMIT)));
 }
 
 void

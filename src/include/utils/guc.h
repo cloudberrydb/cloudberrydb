@@ -97,6 +97,7 @@ typedef enum
 	PGC_S_DATABASE,				/* per-database setting */
 	PGC_S_USER,					/* per-user setting */
 	PGC_S_CLIENT,				/* from client connection request */
+	PGC_S_RESGROUP,				/* per-resgroup setting */
 	PGC_S_OVERRIDE,				/* special case to forcibly set default */
 	PGC_S_INTERACTIVE,			/* dividing line for error reporting */
 	PGC_S_TEST,					/* test per-database or per-user setting */
