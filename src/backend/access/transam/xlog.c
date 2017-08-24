@@ -8428,7 +8428,7 @@ UnpackCheckPointRecord(
 	}
 	else
 	{
-		Assert(remainderLen = ckptExtended->dtxCheckpointLen);
+		Assert(remainderLen == ckptExtended->dtxCheckpointLen);
 		ckptExtended->masterMirroringCheckpointLen = 0;
 		ckptExtended->ptas = NULL;
 	}
