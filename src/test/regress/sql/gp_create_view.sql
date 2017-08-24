@@ -29,6 +29,11 @@ insert into sourcetable values
   ( 4, 40, 700, '1401-6-1', 1, 1),
   ( 4, 40, 800, '1401-6-1', 1, 1);
 
+-- Check that the rows come out in order, if there's an ORDER BY in
+-- the view definition.
+--
+-- FIXME: gpdiff will unfortunately mask out any differences in the
+-- row order, so this test wouldn't catch a bug in that.
 create view  v_sourcetable as select * from sourcetable order by vn;
 select * from v_sourcetable;
 
