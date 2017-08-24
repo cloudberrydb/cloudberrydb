@@ -1111,7 +1111,6 @@ extern Datum matrix_add(PG_FUNCTION_ARGS);
 Datum int4_pivot_accum(PG_FUNCTION_ARGS);
 Datum int8_pivot_accum(PG_FUNCTION_ARGS);
 Datum float8_pivot_accum(PG_FUNCTION_ARGS);
-Datum unnest(PG_FUNCTION_ARGS);
 
 /* cdb/cdbpersistentbuild.c */
 Datum gp_persistent_build_db(PG_FUNCTION_ARGS);
