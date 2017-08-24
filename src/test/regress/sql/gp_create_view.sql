@@ -52,3 +52,5 @@ create view v_sourcetable2 as
   where row(a.*) < row(b.*)
   and a.cn = 1 and b.cn = 1;
 select * from v_sourcetable2;
+
+drop view v_sourcetable2;

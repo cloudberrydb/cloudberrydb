@@ -93,3 +93,4 @@ select * from v_sourcetable2;
   1 |   30 |   50 |  300 |  400
 (10 rows)
 
+drop view v_sourcetable2;
