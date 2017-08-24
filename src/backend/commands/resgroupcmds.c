@@ -392,7 +392,7 @@ DropResourceGroup(DropResourceGroupStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
-									NIL, /* FIXME */
+									NIL,
 									NULL);
 	}
 
@@ -637,7 +637,7 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
-									GetAssignedOidsForDispatch(), /* FIXME */
+									GetAssignedOidsForDispatch(),
 									NULL);
 	}
 
