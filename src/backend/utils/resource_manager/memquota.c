@@ -1035,6 +1035,10 @@ ResourceManagerGetQueryMemoryLimit(PlannedStmt* stmt)
 	if (Gp_role != GP_ROLE_DISPATCH)
 		return 0;
 
+	/* no limits in single user mode. */
+	if (!IsUnderPostmaster)
+		return 0;
+
 	Assert(gp_session_id > -1);
 	Assert(ActivePortal != NULL);
 
