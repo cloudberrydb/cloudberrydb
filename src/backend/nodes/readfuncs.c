@@ -493,7 +493,7 @@ _readWindowSpec(void)
 	READ_NODE_FIELD(partition);
 	READ_NODE_FIELD(order);
 	READ_NODE_FIELD(frame);
-	READ_INT_FIELD(location);
+	READ_LOCATION_FIELD(location);
 
 	READ_DONE();
 }
@@ -535,7 +535,7 @@ _readPercentileExpr(void)
 	READ_NODE_FIELD(sortTargets);
 	READ_NODE_FIELD(pcExpr);
 	READ_NODE_FIELD(tcExpr);
-	READ_INT_FIELD(location);
+	READ_LOCATION_FIELD(location);
 
 	READ_DONE();
 }
@@ -561,7 +561,7 @@ _readWithClause(void)
 
 	READ_NODE_FIELD(ctes);
 	READ_BOOL_FIELD(recursive);
-	READ_INT_FIELD(location);
+	READ_LOCATION_FIELD(location);
 
 	READ_DONE();
 }
@@ -574,7 +574,7 @@ _readCommonTableExpr(void)
 	READ_STRING_FIELD(ctename);
 	READ_NODE_FIELD(aliascolnames);
 	READ_NODE_FIELD(ctequery);
-	READ_INT_FIELD(location);
+	READ_LOCATION_FIELD(location);
 	READ_BOOL_FIELD(cterecursive);
 	READ_INT_FIELD(cterefcount);
 	READ_NODE_FIELD(ctecolnames);
@@ -1989,7 +1989,7 @@ _readSortBy(void)
 	READ_INT_FIELD(sortby_nulls);
 	READ_NODE_FIELD(useOp);
 	READ_NODE_FIELD(node);
-	READ_INT_FIELD(location);
+	READ_LOCATION_FIELD(location);
 
 	READ_DONE();
 }
