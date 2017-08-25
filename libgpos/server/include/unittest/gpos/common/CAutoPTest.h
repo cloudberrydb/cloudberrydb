@@ -41,11 +41,6 @@ namespace gpos
 			// unittests
 			static GPOS_RESULT EresUnittest();
 			static GPOS_RESULT EresUnittest_Basics();
-#ifdef GPOS_DEBUG
-#if (GPOS_i386 || GPOS_i686 || GPOS_x86_64)
-			static GPOS_RESULT EresUnittest_Allocation();
-#endif // (GPOS_i386 || GPOS_i686 || GPOS_x86_64)
-#endif // GPOS_DEBUG
 
 	}; // class CAutoPTest
 

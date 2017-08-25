@@ -34,12 +34,6 @@ CAutoPTest::EresUnittest()
 	CUnittest rgut[] =
 		{
 		GPOS_UNITTEST_FUNC(CAutoPTest::EresUnittest_Basics)
-#ifdef GPOS_DEBUG
-#if (GPOS_i386 || GPOS_i686 || GPOS_x86_64)
-		,
-		GPOS_UNITTEST_FUNC_ASSERT(CAutoPTest::EresUnittest_Allocation)
-#endif // (GPOS_i386 || GPOS_i686 || GPOS_x86_64)
-#endif // GPOS_DEBUG
 		};
 
 	return CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
@@ -106,34 +100,6 @@ CAutoPTest::EresUnittest_Basics()
 
 	return GPOS_OK;
 }
-
-#ifdef GPOS_DEBUG
-#if (GPOS_i386 || GPOS_i686 || GPOS_x86_64)
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CAutoPTest::EresUnittest_Allocation
-//
-//	@doc:
-//		Attempt illegal allocation of auto pointer outside of stack
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CAutoPTest::EresUnittest_Allocation()
-{
-	// create memory pool
-	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
-
-	// allocating auto object on heap must assert
-	CAutoP<ULONG> *papt = GPOS_NEW(pmp) CAutoP<ULONG>;
-	GPOS_DELETE(papt);
-
-	return GPOS_FAILED;
-}
-
-#endif // (GPOS_i386 || GPOS_i686 || GPOS_x86_64)
-#endif // GPOS_DEBUG
 
 // EOF
 
