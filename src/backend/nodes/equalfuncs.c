@@ -227,7 +227,6 @@ _equalWindowRef(WindowRef *a, WindowRef *b)
 	COMPARE_SCALAR_FIELD(winfnoid);
 	COMPARE_SCALAR_FIELD(restype);
 	COMPARE_NODE_FIELD(args);
-	COMPARE_SCALAR_FIELD(winlevelsup);
 	COMPARE_SCALAR_FIELD(windistinct);
 	COMPARE_SCALAR_FIELD(winspec);
 	COMPARE_SCALAR_FIELD(winindex);
