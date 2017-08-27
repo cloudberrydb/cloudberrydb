@@ -84,7 +84,7 @@ while (<>)
 	# Parse the DATA line enough to extract the middle part containing
 	# the columns. This leaves the "insert OID = part" in $begin, and
 	# the "));"  in $end.
-	if (m/^(DATA\(.*?\()(.*)(\)\s*\))/) {
+	if (m/^(DATA\(.*?\()(.*)(\)\s*\).*)/) {
 	    my $begin = $1;
 	    my $middle = $2;
 	    my $end = $3;
