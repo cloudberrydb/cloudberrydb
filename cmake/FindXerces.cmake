@@ -18,24 +18,6 @@ if (XERCES_FOUND)
   set(CMAKE_REQUIRED_INCLUDES
       "${XERCES_INCLUDE_DIRS} ${CMAKE_REQUIRED_INCLUDES}")
   include(CheckCXXSourceCompiles)
-  check_cxx_source_compiles("
-#include <stddef.h>
-#include \"xercesc/util/XMemory.hpp\"
-#include \"xercesc/dom/DOMImplementationList.hpp\"
-
-int main() {
-  xercesc::DOMImplementationList* derived_ptr = NULL;
-  xercesc::XMemory* base_ptr = derived_ptr;
-  return (base_ptr == derived_ptr) ? 0 : 1;
-}
-" XERCES_IS_PATCHED)
-  if (NOT XERCES_IS_PATCHED)
-    message(FATAL_ERROR "Found Xerces-C, but your installed version doesn't "
-                        "appear to be patched for compatibility with Greenplum. "
-                        "If a patched version of Xerces is installed alongside "
-                        "the upstream version, please explicitly specify it "
-                        "with XERCES_INCLUDE_DIR and XERCES_LIBRARY.")
-  endif()
 endif()
 
 mark_as_advanced(XERCES_INCLUDE_DIR XERCES_LIBRARY)
