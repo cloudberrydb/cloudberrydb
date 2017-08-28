@@ -5007,4 +5007,105 @@ CUtils::FGeneratePartOid
 	return fInsertSortOnParquet || fInsertSortOnRows;
 }
 
+// check if a given operator is a ANY subquery
+BOOL
+CUtils::FAnySubquery
+	(
+	COperator *pop
+	)
+{
+	GPOS_ASSERT(NULL != pop);
+
+	BOOL fInSubquery = false;
+	if (COperator::EopScalarSubqueryAny == pop->Eopid())
+	{
+		fInSubquery = true;
+	}
+
+
+	return fInSubquery;
+}
+
+// returns the expression under the Nth project element of a CLogicalProject
+CExpression *
+CUtils::PNthProjectElementExpr(CExpression *pexpr, ULONG ul)
+{
+	GPOS_ASSERT(pexpr->Pop()->Eopid() == COperator::EopLogicalProject);
+
+	// Logical Project's first child is relational child and the second
+	// child is the project list. We initially get the project list and then
+	// the nth element in the project list and finally expression under that
+	// element.
+	return (*(*(*pexpr)[1])[ul])[0];
+}
+
+// check if the Project list has an inner reference assuming project list has one projecet element
+BOOL
+CUtils::FInnerRefInProjectList
+	(
+	CExpression *pexpr
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
+	GPOS_ASSERT(COperator::EopLogicalProject == pexpr->Pop()->Eopid());
+
+	// extract output columns of the relational child
+	CColRefSet *pcrsOuterOutput = CDrvdPropRelational::Pdprel((*pexpr)[0]->PdpDerive())->PcrsOutput();
+
+	// Project List with one project element
+	CExpression *pexprInner = (*pexpr)[1];
+	GPOS_ASSERT(1 == pexprInner->UlArity());
+	BOOL fExprHasAnyCrFromCrs = CUtils::FExprHasAnyCrFromCrs(pexprInner, pcrsOuterOutput);
+
+	return fExprHasAnyCrFromCrs;
+}
+
+// Check if expression tree has a col being referenced in the CColRefSet passed as input
+BOOL
+CUtils::FExprHasAnyCrFromCrs
+	(
+	CExpression *pexpr,
+	CColRefSet *pcrs
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
+	GPOS_ASSERT(NULL != pcrs);
+	CColRef *pcr = NULL;
+
+	COperator::EOperatorId eopid = pexpr->Pop()->Eopid();
+	switch (eopid)
+	{
+		case COperator::EopScalarProjectElement:
+		{
+			// check project elements
+			CScalarProjectElement *popScalarProjectElement = CScalarProjectElement::PopConvert(pexpr->Pop());
+			pcr = (CColRef *) popScalarProjectElement->Pcr();
+			if (pcrs->FMember(pcr))
+				return true;
+			break;
+		}
+		case COperator::EopScalarIdent:
+		{
+			// Check scalarIdents
+			CScalarIdent *popScalarOp = CScalarIdent::PopConvert(pexpr->Pop());
+			pcr = (CColRef *) popScalarOp->Pcr();
+			if (pcrs->FMember(pcr))
+				return true;
+			break;
+		}
+		default:
+			break;
+	}
+
+	// recursively process children
+	const ULONG ulArity = pexpr->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ul++)
+	{
+		if (FExprHasAnyCrFromCrs((*pexpr)[ul], pcrs))
+			return true;
+	}
+
+	return false;
+}
+
 // EOF

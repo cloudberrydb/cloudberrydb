@@ -129,6 +129,14 @@ namespace gpopt
 			static
 			CExpression *PexprProjBelowSubquery(IMemoryPool *pmp, CExpression *pexpr, BOOL fUnderPrList);
 
+			// helper function to rewrite IN query to simple EXISTS with a predicate
+			static
+			CExpression *ConvertInToSimpleExists (IMemoryPool *pmp, CExpression *pexpr);
+
+			// rewrite IN subquery to EXIST subquery with a predicate
+			static
+			CExpression *PexprExistWithPredFromINSubq(IMemoryPool *pmp, CExpression *pexpr);
+
 			// collapse cascaded union/union all into an NAry union/union all operator
 			static
 			CExpression *PexprCollapseUnionUnionAll(IMemoryPool *pmp, CExpression *pexpr);

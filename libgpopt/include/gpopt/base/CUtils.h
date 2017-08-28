@@ -769,6 +769,22 @@ namespace gpopt
 			static
 			BOOL FScalarArrayCollapsed(CExpression *pexprArray);
 
+			// returns true if the subquery is a ScalarSubqueryAny
+			static
+			BOOL FAnySubquery(COperator *pop);
+
+			// returns the expression under the Nth project element of a CLogicalProject
+			static
+			CExpression *PNthProjectElementExpr(CExpression *pexpr, ULONG ul);
+
+			// check if the Project list has an inner reference assuming project list has one projecet element
+			static
+			BOOL FInnerRefInProjectList(CExpression *pexpr);
+
+			// Check if expression tree has a col being referenced in the CColRefSet passed as input
+			static
+			BOOL FExprHasAnyCrFromCrs(CExpression *pexpr, CColRefSet *pcrs);
+
 			// If it's a scalar array of all CScalarConst, collapse it into a single
 			// expression but keep the constants in the operator.
 			static

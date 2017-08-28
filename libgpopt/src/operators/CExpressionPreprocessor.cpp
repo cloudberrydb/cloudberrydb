@@ -1997,6 +1997,117 @@ CExpressionPreprocessor::PexprReorderScalarCmpChildren
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexpr);
 }
 
+// converts IN subquery with a project list to a predicate AND an EXISTS subquery
+CExpression *
+CExpressionPreprocessor::ConvertInToSimpleExists
+	(
+	IMemoryPool *pmp,
+	CExpression *pexpr
+	)
+{
+	COperator *pop = pexpr->Pop();
+	CExpression *pexprLogicalProject = (*pexpr)[0];
+
+	GPOS_ASSERT(COperator::EopLogicalProject == pexprLogicalProject->Pop()->Eopid());
+
+	// generate scalarOp expression by using column referance of the IN subquery's inner
+	// child's column referance as well as the expression extracted above from the
+	// project element
+	CExpression *pexprLeft = (*pexpr)[1];
+
+	if (CUtils::FSubquery(pexprLeft->Pop()))
+	{
+		return NULL;
+	}
+
+	// since Orca doesn't support IN subqueries of multiple columns such as
+	// (a,a) in (select foo.a, foo.a from ...) ,
+	// we only extract the first expression under the first project element in the
+	// project list and make it as the right operand to the scalar operation.
+	CExpression *pexprRight = CUtils::PNthProjectElementExpr(pexprLogicalProject, 0);
+
+	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+	IMDId *pmdid = CScalarSubqueryAny::PopConvert(pop)->PmdidOp();
+	const CWStringConst *pstr = pmda->Pmdscop(pmdid)->Mdname().Pstr();
+
+	pmdid->AddRef();
+	pexprRight->AddRef();
+	pexprLeft->AddRef();
+
+	CExpression *pexprScalarOp = CUtils::PexprScalarCmp(pmp, pexprLeft, pexprRight, *pstr, pmdid);
+
+	// EXISTS subquery becomes the logical projects relational child.
+	CExpression *pexprSubqOfExists = (*pexprLogicalProject)[0];
+	pexprSubqOfExists->AddRef();
+	CExpression *pexprScalarSubqExists = GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarSubqueryExists(pmp), pexprSubqOfExists);
+
+	// AND the generated predicate with the EXISTS subquery expression and return.
+	DrgPexpr *pdrgpexprBoolOperands = GPOS_NEW(pmp) DrgPexpr(pmp);
+
+	pdrgpexprBoolOperands->Append(pexprScalarOp);
+	pdrgpexprBoolOperands->Append(pexprScalarSubqExists);
+
+	return CUtils::PexprScalarBoolOp(pmp, CScalarBoolOp::EboolopAnd, pdrgpexprBoolOperands);
+}
+
+// rewrite IN subquery to EXIST subquery with a predicate
+// Example:
+// 		Input:   SELECT * FROM foo WHERE foo.a IN (SELECT foo.b+1 FROM bar);
+//		Output:  SELECT * FROM foo WHERE foo.a=foo.b+1 AND EXISTS (SELECT * FROM bar);
+CExpression *
+CExpressionPreprocessor::PexprExistWithPredFromINSubq
+	(
+	IMemoryPool *pmp,
+	CExpression *pexpr
+	)
+{
+	// protect against stack overflow during recursion
+	GPOS_CHECK_STACK_SIZE;
+	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != pexpr);
+
+	COperator *pop = pexpr->Pop();
+
+	// recursively process children
+	const ULONG ulArity = pexpr->UlArity();
+	pop->AddRef();
+
+	DrgPexpr *pdrgpexprChildren = GPOS_NEW(pmp) DrgPexpr(pmp);
+	for (ULONG ul = 0; ul < ulArity; ul++)
+	{
+		CExpression *pexprChild = PexprExistWithPredFromINSubq(pmp, (*pexpr)[ul]);
+		pdrgpexprChildren->Append(pexprChild);
+	}
+
+	CExpression *pexprNew = GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprChildren);
+
+	//Check if the inner is a SubqueryAny
+	if (CUtils::FAnySubquery(pop))
+	{
+		CExpression *pexprLogicalProject = (*pexprNew)[0];
+
+		// we do the conversion if the project list has an outer reference and
+		// it does not include any column from the relational child.
+		if (COperator::EopLogicalProject != pexprLogicalProject->Pop()->Eopid() ||
+			!CUtils::FHasOuterRefs(pexprLogicalProject) ||
+			CUtils::FInnerRefInProjectList(pexprLogicalProject))
+		{
+			return pexprNew;
+		}
+
+		CExpression *pexprNewConverted = ConvertInToSimpleExists(pmp, pexprNew);
+		if (NULL == pexprNewConverted)
+		{
+			return pexprNew;
+		}
+
+		pexprNew->Release();
+		return pexprNewConverted;
+	}
+
+	return pexprNew;
+}
+
 // main driver, pre-processing of input logical expression
 CExpression *
 CExpressionPreprocessor::PexprPreprocess
@@ -2141,7 +2252,12 @@ CExpressionPreprocessor::PexprPreprocess
 	GPOS_CHECK_ABORT;
 	pexprSubquery->Release();
 
-	return pexrReorderedScalarCmpChildren;
+	// (25) rewrite IN subquery to EXIST subquery with a predicate
+	CExpression *pexprExistWithPredFromINSubq = PexprExistWithPredFromINSubq(pmp, pexrReorderedScalarCmpChildren);
+	GPOS_CHECK_ABORT;
+	pexrReorderedScalarCmpChildren->Release();
+
+	return pexprExistWithPredFromINSubq;
 }
 
 // EOF
