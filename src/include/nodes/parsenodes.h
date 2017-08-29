@@ -2240,6 +2240,20 @@ typedef struct AlterFunctionStmt
 } AlterFunctionStmt;
 
 /* ----------------------
+ *		Drop {Function|Aggregate|Operator} Statement
+ * ----------------------
+ */
+typedef struct RemoveFuncStmt
+{
+	NodeTag		type;
+	ObjectType	kind;			/* function, aggregate, operator */
+	List	   *name;			/* qualified name of object to drop */
+	List	   *args;			/* types of the arguments */
+	DropBehavior behavior;		/* RESTRICT or CASCADE behavior */
+	bool		missing_ok;		/* skip error if missing? */
+} RemoveFuncStmt;
+
+/* ----------------------
  *		DO Statement
  *
  * DoStmt is the raw parser output, InlineCodeBlock is the execution-time API
@@ -2258,20 +2272,6 @@ typedef struct InlineCodeBlock
 	Oid			langOid;		/* OID of selected language */
 	bool		langIsTrusted;	/* trusted property of the language */
 } InlineCodeBlock;
-
-/* ----------------------
- *		Drop {Function|Aggregate|Operator} Statement
- * ----------------------
- */
-typedef struct RemoveFuncStmt
-{
-	NodeTag		type;
-	ObjectType	kind;			/* function, aggregate, operator */
-	List	   *name;			/* qualified name of object to drop */
-	List	   *args;			/* types of the arguments */
-	DropBehavior behavior;		/* RESTRICT or CASCADE behavior */
-	bool		missing_ok;		/* skip error if missing? */
-} RemoveFuncStmt;
 
 /* ----------------------
  *		Drop Operator Class Statement
