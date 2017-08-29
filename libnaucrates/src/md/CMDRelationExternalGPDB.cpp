@@ -74,7 +74,8 @@ CMDRelationExternalGPDB::CMDRelationExternalGPDB
 	m_phmululNonDroppedCols = GPOS_NEW(m_pmp) HMUlUl(m_pmp);
 	m_phmiulAttno2Pos = GPOS_NEW(m_pmp) HMIUl(m_pmp);
 	m_pdrgpulNonDroppedCols = GPOS_NEW(m_pmp) DrgPul(m_pmp);
-	
+	m_pdrgpdoubleColWidths = GPOS_NEW(pmp) DrgPdouble(pmp);
+
 	ULONG ulPosNonDropped = 0;
 	const ULONG ulArity = pdrgpmdcol->UlLength();
 	for (ULONG ul = 0; ul < ulArity; ul++)
@@ -107,6 +108,7 @@ CMDRelationExternalGPDB::CMDRelationExternalGPDB
 									GPOS_NEW(m_pmp) INT(pmdcol->IAttno()),
 									GPOS_NEW(m_pmp) ULONG(ul)
 									);
+		m_pdrgpdoubleColWidths->Append(GPOS_NEW(pmp) CDouble(pmdcol->UlLength()));
 	}
 	m_pstr = CDXLUtils::PstrSerializeMDObj(m_pmp, this, false /*fSerializeHeader*/, false /*fIndent*/);
 }
@@ -129,6 +131,7 @@ CMDRelationExternalGPDB::~CMDRelationExternalGPDB()
 	CRefCount::SafeRelease(m_pdrgpdrgpulKeys);
 	m_pdrgpmdIndexInfo->Release();
 	m_pdrgpmdidTriggers->Release();
+	m_pdrgpdoubleColWidths->Release();
 	m_pdrgpmdidCheckConstraint->Release();
 	CRefCount::SafeRelease(m_pmdidFmtErrRel);
 
@@ -193,6 +196,17 @@ CMDRelationExternalGPDB::UlColumns() const
 	GPOS_ASSERT(NULL != m_pdrgpmdcol);
 
 	return m_pdrgpmdcol->UlLength();
+}
+
+// Return the width of a column with regards to the position
+DOUBLE
+CMDRelationExternalGPDB::DColWidth
+(
+	ULONG ulPos
+	)
+const
+{
+	return (*m_pdrgpdoubleColWidths)[ulPos]->DVal();
 }
 
 //---------------------------------------------------------------------------

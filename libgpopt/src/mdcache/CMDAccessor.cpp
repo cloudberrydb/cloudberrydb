@@ -1140,14 +1140,8 @@ CMDAccessor::RecordColumnStats
 	}
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CMDAccessor::Pmdcolstats
-//
-//	@doc:
-//		Return the column statistics meta data object for a given column of a table
-//
-//---------------------------------------------------------------------------
+
+// Return the column statistics meta data object for a given column of a table
 const IMDColStats *
 CMDAccessor::Pmdcolstats
 	(
@@ -1227,6 +1221,7 @@ CMDAccessor::Pstats
 
 	// extract column widths
 	CColRefSetIter crsiWidth(*pcrsWidth);
+
 	while (crsiWidth.FAdvance())
 	{
 		CColRef *pcrWidth = crsiWidth.Pcr();
@@ -1239,11 +1234,7 @@ CMDAccessor::Pstats
 		INT iAttno = pcrtable->IAttno();
 		ULONG ulPos = pmdrel->UlPosFromAttno(iAttno);
 
-		// extract the width information
-		const IMDColStats *pmdcolstats = Pmdcolstats(pmp, pmdidRel, ulPos);
-		GPOS_ASSERT(NULL != pmdcolstats);
-
-		CDouble *pdWidth = GPOS_NEW(pmp) CDouble(pmdcolstats->DWidth());
+		CDouble *pdWidth = GPOS_NEW(pmp) CDouble(pmdrel->DColWidth(ulPos));
 		phmuldoubleWidth->FInsert(GPOS_NEW(pmp) ULONG(ulColId), pdWidth);
 	}
 

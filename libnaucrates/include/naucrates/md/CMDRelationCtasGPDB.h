@@ -96,6 +96,9 @@ namespace gpmd
 			// vartypemod list
 			DrgPi *m_pdrgpiVarTypeMod;
 
+			// array of column widths
+			DrgPdouble *m_pdrgpdoubleColWidths;
+
 			// private copy ctor
 			CMDRelationCtasGPDB(const CMDRelationCtasGPDB &);
 
@@ -177,7 +180,11 @@ namespace gpmd
 			// number of columns
 			virtual
 			ULONG UlColumns() const;
-			
+
+			// width of a column with regards to the position
+			virtual
+			DOUBLE DColWidth(ULONG ulPos) const;
+
 			// does relation have dropped columns
 			virtual
 			BOOL FHasDroppedColumns() const

@@ -103,6 +103,9 @@ namespace gpmd
 			// the original positions of all the non-dropped columns
 			DrgPul *m_pdrgpulNonDroppedCols;
 
+			// array of column widths including dropped columns
+			DrgPdouble *m_pdrgpdoubleColWidths;
+
 			// format type for the relation
 			const CWStringConst *PstrFormatType() const;
 
@@ -156,7 +159,11 @@ namespace gpmd
 			// number of columns
 			virtual
 			ULONG UlColumns() const;
-			
+
+			// width of a column with regards to the position
+			virtual
+			DOUBLE DColWidth(ULONG ulPos) const;
+
 			// does relation have dropped columns
 			virtual
 			BOOL FHasDroppedColumns() const; 

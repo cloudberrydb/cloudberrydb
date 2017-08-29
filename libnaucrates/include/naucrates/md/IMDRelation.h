@@ -106,7 +106,11 @@ namespace gpmd
 			// number of columns
 			virtual 
 			ULONG UlColumns() const = 0;
-			
+
+			// width of a column with regards to the position
+			virtual
+			DOUBLE DColWidth(ULONG ulPos) const = 0;
+
 			// does relation have dropped columns
 			virtual
 			BOOL FHasDroppedColumns() const = 0; 

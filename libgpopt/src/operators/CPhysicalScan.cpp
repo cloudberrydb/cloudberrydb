@@ -255,8 +255,8 @@ CPhysicalScan::ComputeTableStats
 {
 	GPOS_ASSERT(NULL == m_pstatsBaseTable);
 
-	CColRefSet *pcrsHist = GPOS_NEW(pmp) CColRefSet(pmp, m_pdrgpcrOutput);
-	CColRefSet *pcrsWidth = GPOS_NEW(pmp) CColRefSet(pmp);
+	CColRefSet *pcrsHist = GPOS_NEW(pmp) CColRefSet(pmp);
+	CColRefSet *pcrsWidth = GPOS_NEW(pmp) CColRefSet(pmp, m_pdrgpcrOutput);
 
 	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
 	m_pstatsBaseTable = pmda->Pstats(pmp, m_ptabdesc->Pmdid(), pcrsHist, pcrsWidth);
