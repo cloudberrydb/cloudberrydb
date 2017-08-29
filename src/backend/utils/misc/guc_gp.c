@@ -3314,7 +3314,7 @@ struct config_bool ConfigureNamesBool_gp[] =
 		{"gp_enable_segment_copy_checking", PGC_USERSET, CUSTOM_OPTIONS,
 			gettext_noop("Enable check the distribution key restriction on segment for command \"COPY FROM ON SEGMENT\"."),
 			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
 		},
 		&gp_enable_segment_copy_checking,
 		true, NULL, NULL
