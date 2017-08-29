@@ -8,9 +8,9 @@
          <strow>
             <stentry><p>
                   <codeph>client_min_messages</codeph>
-               </p><codeph>
-                  <p><codeph></codeph>gp_interconnect_debug_retry_interval</p>
-               </codeph><p>
+               </p>
+                  <p><codeph>gp_interconnect_debug_retry_interval</codeph></p>
+               <p>
                   <codeph>log_error_verbosity</codeph>
                </p><p>
                   <codeph>log_min_duration_statement</codeph>
