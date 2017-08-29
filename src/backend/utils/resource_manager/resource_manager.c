@@ -17,6 +17,7 @@
 #include "utils/resource_manager.h"
 #include "utils/resgroup-ops.h"
 #include "replication/walsender.h"
+#include "executor/spi.h"
 
 /*
  * GUC variables.
@@ -107,5 +108,10 @@ InitResManager(void)
 		gp_log_resmanager_memory = &gp_log_resmanager_memory_default;
 		gp_resmanager_memory_policy_auto_fixed_mem = &gp_resmanager_memory_policy_auto_fixed_mem_default;
 		gp_resmanager_print_operator_memory_limits = &gp_resmanager_print_operator_memory_limits_default;
+	}
+
+	if (!IsResManagerMemoryPolicyNone())
+	{
+		SPI_InitMemoryReservation();
 	}
 }

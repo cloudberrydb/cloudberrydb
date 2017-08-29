@@ -418,11 +418,6 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 	if (gp_enable_resqueue_priority)
 		BackoffStateInit();
 	
-	if (!IsResManagerMemoryPolicyNone())
-	{
-		SPI_InitMemoryReservation();
-	}
-	
 	/*
 	 * Now give loadable modules a chance to set up their shmem allocations
 	 */
