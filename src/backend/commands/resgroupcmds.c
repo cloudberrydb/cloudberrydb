@@ -34,6 +34,7 @@
 #include "utils/resgroup.h"
 #include "utils/resgroup-ops.h"
 #include "utils/resource_manager.h"
+#include "utils/resowner.h"
 #include "utils/syscache.h"
 
 #define RESGROUP_DEFAULT_CONCURRENCY (20)

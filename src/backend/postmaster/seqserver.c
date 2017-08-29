@@ -41,6 +41,7 @@
 #include "tcop/tcopprot.h"
 #include "utils/ps_status.h"
 #include "storage/backendid.h"
+#include "utils/resowner.h"
 #include "utils/syscache.h"
 
 #include "tcop/tcopprot.h"

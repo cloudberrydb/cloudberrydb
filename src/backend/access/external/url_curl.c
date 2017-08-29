@@ -25,6 +25,7 @@
 #include "cdb/cdbutil.h"
 #include "miscadmin.h"
 #include "utils/guc.h"
+#include "utils/resowner.h"
 #include "utils/uri.h"
 
 /*
