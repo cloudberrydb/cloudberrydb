@@ -9,7 +9,7 @@
             <stentry><p>
                   <codeph>client_min_messages</codeph>
                </p><codeph>
-                  <p>gp_interconnect_debug_retry_interval</p>
+                  <p><codeph></codeph>gp_interconnect_debug_retry_interval</p>
                </codeph><p>
                   <codeph>log_error_verbosity</codeph>
                </p><p>
