@@ -1798,13 +1798,8 @@ ResGroupSlotRelease(void)
 		waitQueue->size--;
 		waitProc->resGranted = true;
 		waitProc->resSlotId = slotId;	/* pass the slot to new query */
-		/* TODO: why we need to release the lock here? */
-		LWLockRelease(ResGroupLock);
-
 		waitProc->resWaiting = false;
 		SetLatch(&waitProc->procLatch);
-
-		LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
 	}
 
 	AssertImply(waitQueue->size == 0,
