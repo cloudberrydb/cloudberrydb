@@ -160,13 +160,13 @@ extern void BufferedAppendFinishBuffer(
     int32				 usedLen_uncompressed);
 
 /*
- * Returns the current file’s length.
+ * Returns the length of the current file.
  */
 extern int64 BufferedAppendFileLen(
     BufferedAppend *bufferedAppend);
 
 /*
- * Flushes the current file for append.  Caller is resposible for closing
+ * Flushes the current file for append.  Caller is responsible for closing
  * the file afterwards.
  */
 extern void BufferedAppendCompleteFile(

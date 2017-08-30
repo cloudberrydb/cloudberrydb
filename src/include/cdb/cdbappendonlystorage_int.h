@@ -13,7 +13,7 @@
 #include "cdb/cdbappendonlystorage.h"
 
 /*
- * For checksum protection that doesn’t require examining the unchecked data,
+ * For checksum protection that doesn't require examining the unchecked data,
  * we always use a 64 bit header.  
  *
  * So, 64 bit header + [ block checksum + header checksum ].  When the table
