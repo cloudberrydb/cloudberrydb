@@ -61,6 +61,8 @@ pygresql:
 	. $(prefix)/greenplum_path.sh && unset PYTHONHOME && \
 	if [ `uname -s` = 'HP-UX' ]; then \
 	    cd $(PYLIB_SRC)/$(PYGRESQL_DIR) && DESTDIR="$(DESTDIR)" CC="$(CC)" LDFLAGS="-L../../../../gpAux/ext/hpux_ia64/python-2.5.6/lib" python setup.py build; \
+	elif [ $(BLD_ARCH) = 'aix7_ppc_64' ]; then \
+	    cd $(PYLIB_SRC)/$(PYGRESQL_DIR) && DESTDIR="$(DESTDIR)" CC="$(CC)" python_64 setup.py build; \
 	else \
 	    cd $(PYLIB_SRC)/$(PYGRESQL_DIR) && DESTDIR="$(DESTDIR)" CC="$(CC)" python setup.py build; \
 	fi
@@ -68,6 +70,8 @@ pygresql:
 	mkdir -p $(PYLIB_DIR)/pygresql
 	if [ `uname -s` = 'Darwin' ]; then \
 	  cp -r $(PYLIB_SRC)/$(PYGRESQL_DIR)/build/lib.macosx*/* $(PYLIB_DIR)/pygresql; \
+	elif [ `uname -s` = 'AIX' ]; then \
+	  cp -r $(PYLIB_SRC)/$(PYGRESQL_DIR)/build/lib.aix*/* $(PYLIB_DIR)/pygresql; \
 	else \
 	  cp -r $(PYLIB_SRC)/$(PYGRESQL_DIR)/build/lib.linux*/* $(PYLIB_DIR)/pygresql; \
 	fi
@@ -118,9 +122,24 @@ PYCRYPTO_DIR=pycrypto-$(PYCRYPTO_VERSION)
 
 pycrypto:
 	@echo "--- pycrypto"
+ifeq "$(findstring $(BLD_ARCH),aix7_ppc_64 )" ""
 	cd $(PYLIB_SRC_EXT)/ && $(TAR) xzf $(PYCRYPTO_DIR).tar.gz
 	cd $(PYLIB_SRC_EXT)/$(PYCRYPTO_DIR)/ && CC="$(CC)" python setup.py build
 	cp -r $(PYLIB_SRC_EXT)/$(PYCRYPTO_DIR)/build/lib.*/Crypto $(PYLIB_DIR)
+endif
+
+#
+# PSI
+PSI_DIR=PSI-$(PSI_VERSION)
+
+ psi:
+	@echo "--- psi"
+ifeq "$(findstring $(BLD_ARCH),aix7_ppc_64 )" ""
+	cd $(PYLIB_SRC)/ && $(TAR) xzf $(PSI_DIR).tar.gz
+	cd $(PYLIB_SRC)/$(PSI_DIR)/ && CC="$(CC)" python setup.py build
+	cp -r $(PYLIB_SRC)/$(PSI_DIR)/build/lib.*/psi $(PYLIB_DIR)
+endif
+
 
 #
 # PSUTIL
@@ -130,10 +149,11 @@ PSUTIL_DIR=psutil-$(PSUTIL_VERSION)
 
 psutil:
 	@echo "--- psutil"
+ifeq "$(findstring $(BLD_ARCH),aix7_ppc_64 )" ""
 	cd $(PYLIB_SRC_EXT)/ && $(TAR) xzf $(PSUTIL_DIR).tar.gz
 	cd $(PYLIB_SRC_EXT)/$(PSUTIL_DIR)/ && CC="$(CC)" python setup.py build
 	cp -r $(PYLIB_SRC_EXT)/$(PSUTIL_DIR)/build/lib.*/psutil $(PYLIB_DIR)
-
+endif
 
 #
 # PYLINT
