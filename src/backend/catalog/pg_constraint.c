@@ -179,7 +179,7 @@ CreateConstraintEntry(const char *constraintName,
 	 */
 	if (conBin)
 		values[Anum_pg_constraint_conbin - 1] = DirectFunctionCall1(textin,
-													CStringGetDatum((char *) conBin));
+													CStringGetDatum(conBin));
 	else
 		nulls[Anum_pg_constraint_conbin - 1] = true;
 
@@ -188,7 +188,7 @@ CreateConstraintEntry(const char *constraintName,
 	 */
 	if (conSrc)
 		values[Anum_pg_constraint_consrc - 1] = DirectFunctionCall1(textin,
-													CStringGetDatum((char *) conSrc));
+													CStringGetDatum(conSrc));
 	else
 		nulls[Anum_pg_constraint_consrc - 1] = true;
 
@@ -669,7 +669,7 @@ AlterConstraintNamespaces(Oid ownerId, Oid oldNspId,
 						  Oid newNspId, bool isType, ObjectAddresses *objsMoved)
 {
 	Relation	conRel;
-	ScanKeyData	key[1];
+	ScanKeyData key[1];
 	SysScanDesc scan;
 	HeapTuple	tup;
 
@@ -699,7 +699,7 @@ AlterConstraintNamespaces(Oid ownerId, Oid oldNspId,
 	while (HeapTupleIsValid((tup = systable_getnext(scan))))
 	{
 		Form_pg_constraint conform = (Form_pg_constraint) GETSTRUCT(tup);
-		ObjectAddress thisobj;
+		ObjectAddress	thisobj;
 
 		thisobj.classId = ConstraintRelationId;
 		thisobj.objectId = HeapTupleGetOid(tup);

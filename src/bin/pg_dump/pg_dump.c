@@ -70,6 +70,7 @@ extern char *optarg;
 extern int	optind,
 			opterr;
 
+
 typedef struct
 {
 	const char *descr;			/* comment for an object */
@@ -908,7 +909,7 @@ main(int argc, char **argv)
 	 * Collect dependency data to assist in ordering the objects.
 	 */
 	getDependencies();
-	
+
 	setExtPartDependency(tblinfo, numTables);
 
 	/*
@@ -9849,7 +9850,7 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 	char	   *storage;
 	int			j,
 				k;
-	
+
 	/* Make sure we are in proper schema */
 	selectSourceSchema(tbinfo->dobj.namespace->dobj.name);
 

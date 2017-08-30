@@ -2821,23 +2821,25 @@ AddRelationConstraints(Relation rel,
 		if (cdef->contype != CONSTR_CHECK)
 			continue;
 
-		/*
-		 * Transform raw parsetree to executable expression, and verify
-		 * it's valid as a CHECK constraint
-		 */
 		if (cdef->raw_expr != NULL)
 		{
-			Insist(cdef->cooked_expr == NULL);
+			Assert(cdef->cooked_expr == NULL);
+
+			/*
+			 * Transform raw parsetree to executable expression, and verify
+			 * it's valid as a CHECK constraint.
+			 */
 			expr = cookConstraint(pstate, cdef->raw_expr,
 								  RelationGetRelationName(rel));
 		}
-		/*
-		 * Here, we assume the parser will only pass us valid CHECK
-		 * expressions, so we do no particular checking.
-		 */
 		else
 		{
-			Insist(cdef->cooked_expr != NULL);
+			Assert(cdef->cooked_expr != NULL);
+
+			/*
+			 * Here, we assume the parser will only pass us valid CHECK
+			 * expressions, so we do no particular checking.
+			 */
 			expr = stringToNode(cdef->cooked_expr);
 		}
 

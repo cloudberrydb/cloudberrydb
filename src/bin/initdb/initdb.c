@@ -60,14 +60,7 @@
 #include "mb/pg_wchar.h"
 #include "getaddrinfo.h"
 #include "getopt_long.h"
-#include "postgres.h"
 #include "miscadmin.h"
-
-#include "catalog/pg_tablespace.h"
-#include "catalog/pg_database.h"
-#include "catalog/pg_class.h"
-#include "storage/relfilenode.h"
-#include "access/persistentfilesysobjname.h"
 
 #ifndef HAVE_INT_OPTRESET
 int			optreset;
@@ -954,8 +947,6 @@ find_matching_ts_config(const char *lc_type)
 	free(langname);
 	return NULL;
 }
-
-
 
 
 /*
@@ -3422,9 +3413,9 @@ main(int argc, char *argv[])
 		   default_text_search_config);
 
 	if (data_checksums)
- 		printf(_("Data page checksums are enabled.\n"));
- 	else
- 		printf(_("Data page checksums are disabled.\n"));	
+		printf(_("Data page checksums are enabled.\n"));
+	else
+		printf(_("Data page checksums are disabled.\n"));
 
 	printf("\n");
 

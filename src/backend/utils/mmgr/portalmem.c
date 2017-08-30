@@ -325,7 +325,7 @@ PortalDefineQuery(Portal portal,
 	AssertState(portal->status == PORTAL_NEW);
 
 	AssertArg(sourceText != NULL);
-	Assert(commandTag != NULL || stmts == NIL);
+	AssertArg(commandTag != NULL || stmts == NIL);
 
 	portal->prepStmtName = prepStmtName;
 	portal->sourceText = sourceText;

@@ -1044,7 +1044,7 @@ SPI_cursor_open_with_args(const char *name,
 	/* Adjust stack so that SPI_cursor_open_internal doesn't complain */
 	_SPI_curid--;
 
-	/* SPI_cursor_open_internal expects to be called in procedure memory context */
+	/* SPI_cursor_open_internal must be called in procedure memory context */
 	_SPI_procmem();
 
 	result = SPI_cursor_open_internal(name, &plan, Values, Nulls,
@@ -1057,12 +1057,17 @@ SPI_cursor_open_with_args(const char *name,
 	return result;
 }
 
+
+/*
+ * SPI_cursor_open_internal()
+ *
+ *	Common code for SPI_cursor_open and SPI_cursor_open_with_args
+ */
 static Portal
 SPI_cursor_open_internal(const char *name, SPIPlanPtr plan,
 						 Datum *Values, const char *Nulls,
 						 bool read_only, int pflags)
 {
-
 	CachedPlanSource *plansource;
 	CachedPlan *cplan;
 	List	   *stmt_list;
@@ -1072,8 +1077,6 @@ SPI_cursor_open_internal(const char *name, SPIPlanPtr plan,
 	MemoryContext oldcontext;
 	Portal		portal;
 	int			k;
-
-	elog(DEBUG1, "SPI_cursor_open local: %s", name);
 
 	/*
 	 * Check that the plan is something the Portal code will special-case as
@@ -1750,7 +1753,7 @@ _SPI_prepare_plan(const char *src, SPIPlanPtr plan, ParamListInfo boundParams)
  * tcount: execution tuple-count limit, or 0 for none
  */
 static int
-_SPI_execute_plan(_SPI_plan * plan, ParamListInfo paramLI,
+_SPI_execute_plan(SPIPlanPtr plan, ParamListInfo paramLI,
 				  Snapshot snapshot, Snapshot crosscheck_snapshot,
 				  bool read_only, bool fire_triggers, long tcount)
 {
