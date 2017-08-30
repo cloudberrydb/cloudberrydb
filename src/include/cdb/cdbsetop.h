@@ -67,16 +67,10 @@ extern
 Motion* make_motion_hash(PlannerInfo *root, Plan *subplan, List *hashexprs);
 
 extern
-Motion* make_motion_multiplex(PlannerInfo *root, Plan *subplan);
-
-extern
 Motion* make_motion_gather_to_QD(Plan *subplan, bool keep_ordering);
 
 extern
 Motion* make_motion_gather_to_QE(Plan *subplan, bool keep_ordering);
-
-extern
-Motion* make_motion_cull_to_QE(Plan *subplan);
 
 extern
 Motion* make_motion_gather(Plan *subplan, int segindex, bool keep_ordering);

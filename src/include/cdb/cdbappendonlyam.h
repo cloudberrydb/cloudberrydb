@@ -169,7 +169,6 @@ typedef struct AppendOnlyScanDescData
 	Index       aos_scanrelid;
 	int			aos_nkeys;			/* number of scan keys */
 	ScanKey		aos_key;			/* array of scan key descriptors */
-	bool		aos_notoast;		/* using toast for this relation? */
 	
 	/* file segment scan state */
 	int			aos_filenamepath_maxlen;

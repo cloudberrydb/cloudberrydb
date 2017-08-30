@@ -224,8 +224,6 @@ typedef struct TMGXACT
 
 	bool						badPrepareGangs;
 
-	bool						retryPhase2RecursionStop;
-	
 	int							debugIndex;
 
 	bool						directTransaction;
@@ -319,8 +317,6 @@ extern void initTM(void);
 
 extern void getDtxCheckPointInfoAndLock(char **result, int *result_size);
 extern void freeDtxCheckPointInfoAndUnlock(char *info, int info_size, XLogRecPtr *recptr);
-
-extern void setRecoverTMOn(void);
 
 extern void verify_shared_snapshot_ready(void);
 

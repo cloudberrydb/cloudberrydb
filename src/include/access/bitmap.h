@@ -19,7 +19,6 @@
 #include "access/relscan.h"
 #include "access/sdir.h"
 #include "access/xlogutils.h"
-#include "nodes/tidbitmap.h"
 #include "storage/lock.h"
 #include "miscadmin.h"
 
@@ -809,10 +808,6 @@ extern uint64 _bitmap_findnexttid(BMBatchWords *words,
 								  BMIterateResult *result);
 extern void _bitmap_findnexttids(BMBatchWords *words,
 								 BMIterateResult *result, uint32 maxTids);
-extern bool _bitmap_getbitmapinpage(BMBatchWords* words,
-									BMIterateResult* result,
-									BlockNumber nextBlockNo,
-									PagetableEntry* entry);
 #ifdef NOT_USED /* we might use this later */
 extern void _bitmap_intersect(BMBatchWords **batches, uint32 numBatches,
 						   BMBatchWords *result);

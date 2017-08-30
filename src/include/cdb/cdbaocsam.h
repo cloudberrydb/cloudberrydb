@@ -19,7 +19,6 @@
 #include "executor/tuptable.h"
 #include "nodes/primnodes.h"
 #include "storage/block.h"
-#include "storage/lmgr.h"
 #include "utils/rel.h"
 #include "utils/tqual.h"
 #include "cdb/cdbappendonlyblockdirectory.h"

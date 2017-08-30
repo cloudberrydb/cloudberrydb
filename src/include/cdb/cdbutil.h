@@ -25,9 +25,6 @@
 #define cdb_randint(upper,lower) \
 	( (int) floor( cdb_rand()*(((upper)-(lower))+0.999999) ) + (lower) )
 
-
-#include "c.h"
-
 /* --------------------------------------------------------------------------------------------------
  * Structure for MPP 2.0 database information
  *
@@ -163,7 +160,6 @@ extern char *getDnsAddress(char *name, int port, int elevel);
 extern int16 master_standby_dbid(void);
 extern CdbComponentDatabaseInfo *dbid_get_dbinfo(int16 dbid);
 extern int16 contentid_get_dbid(int16 contentid, char role, bool getPreferredRoleNotCurrentRole);
-extern int16 my_mirror_dbid(void);
 
 /*
  * Returns the number of segments

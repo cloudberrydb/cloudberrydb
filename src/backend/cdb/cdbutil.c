@@ -19,10 +19,7 @@
 
 #include "access/genam.h"
 #include "catalog/gp_segment_config.h"
-#include "catalog/pg_type.h"
 #include "nodes/makefuncs.h"
-#include "parser/parse_oper.h"
-#include "parser/parse_type.h"
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
 #include "utils/memutils.h"
@@ -37,9 +34,7 @@
 #include "cdb/cdbtm.h"
 #include "gp-libpq-fe.h"
 #include "gp-libpq-int.h"
-#include "cdb/cdbfts.h"
 #include "libpq/ip.h"
-#include "utils/faultinjection.h"
 
 /*
  * Helper Functions
@@ -1325,60 +1320,6 @@ contentid_get_dbid(int16 contentid, char role, bool getPreferredRoleNotCurrentRo
 		Assert(systable_getnext(scan) == NULL); /* should be only 1 */
 	}
 
-	/* no need to hold the lock, it's a catalog */
-	systable_endscan(scan);
-	heap_close(rel, AccessShareLock);
-
-	return dbid;
-}
-
-/* 
- * Returns the dbid of the mirror. We can use the fact that
- * mirrors have the same contentid (stored in GpIdentity) and go from
- * there.
- */
-int16
-my_mirror_dbid(void)
-{
-	int16		dbid = 0;
-	int16		contentid = (int16) GpIdentity.segindex;
-	Relation	rel;
-	ScanKeyData scankey[2];
-	SysScanDesc scan;
-	HeapTuple	tup;
-
-	/*
-	 * Can only run on a master node, this restriction is due to the reliance
-	 * on the gp_segment_configuration table.  This may be able to be relaxed
-	 * by switching to a different method of checking.
-	 */
-	if (GpIdentity.segindex != MASTER_CONTENT_ID)
-		elog(ERROR, "my_mirror_dbid() executed on execution segment");
-
-	rel = heap_open(GpSegmentConfigRelationId, AccessShareLock);
-
-	/*
-	 * SELECT dbid FROM gp_segment_configuration
-	 * WHERE content = :1 AND role = :2
-	 */
-	ScanKeyInit(&scankey[0],
-				Anum_gp_segment_configuration_content,
-				BTEqualStrategyNumber, F_INT2EQ,
-				Int16GetDatum(contentid));
-	ScanKeyInit(&scankey[1],
-				Anum_gp_segment_configuration_role,
-				BTEqualStrategyNumber, F_CHAREQ,
-				CharGetDatum('m'));
-	/* no index */
-	scan = systable_beginscan(rel, InvalidOid, false,
-							  SnapshotNow, 2, scankey);
-	tup = systable_getnext(scan);
-	if (HeapTupleIsValid(tup))
-	{
-		dbid = ((Form_gp_segment_configuration) GETSTRUCT(tup))->dbid;
-		/* We expect a single result, assert this */
-		Assert(systable_getnext(scan) == NULL);
-	}
 	/* no need to hold the lock, it's a catalog */
 	systable_endscan(scan);
 	heap_close(rel, AccessShareLock);

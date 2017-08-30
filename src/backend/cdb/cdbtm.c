@@ -2257,8 +2257,6 @@ initGxact(TMGXACT * gxact)
 
 	gxact->badPrepareGangs = false;
 
-	gxact->retryPhase2RecursionStop = false;
-
 	gxact->directTransaction = false;
 	gxact->directTransactionContentId = 0;
 }
