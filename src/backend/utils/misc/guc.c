@@ -2962,42 +2962,37 @@ gp_guc_list_init(void)
 /*
  * gp_guc_list_show
  *
- * Given a list of GUCs (a List of struct config_generic), appends the
- * option names and values to caller's buffer, skipping any whose
- * source <= 'excluding'.  The 'pfx' string is inserted at the
- * beginning.  The 'fmt' string must contain two occurrences of "%s",
- * which are expanded to the GUC name and value, respectively.
+ * Given a list of GUCs (a List of struct config_generic), construct a
+ * human-readable string of the option names and current values, skipping
+ * any whose source <= 'excluding'.
  *
- * Returns the length of the string appended to the buffer.
+ * The result is a palloc'd string. If no options match, returns an
+ * empty string.
  */
-int
-gp_guc_list_show(struct StringInfoData    *buf,
-                  const char               *pfx,
-                  const char               *fmt,
-                  GucSource                 excluding,
-                  List                     *guclist)
+char *
+gp_guc_list_show(GucSource excluding, List *guclist)
 {
-    int         oldlen = buf->len;
-    ListCell   *cell;
-    char       *value;
-    struct config_generic  *gconf;
+	ListCell   *cell;
+	char	   *value;
+	StringInfoData buf;
+
+	initStringInfo(&buf);
 
 	foreach(cell, guclist)
 	{
-		gconf = (struct config_generic *)lfirst(cell);
+		struct config_generic *gconf = (struct config_generic *) lfirst(cell);
+
 		if (gconf->source > excluding)
         {
-            if (pfx)
-            {
-                appendStringInfoString(buf, pfx);
-                pfx = NULL;
-            }
+			if (buf.len > 0)
+				appendStringInfoString(&buf, "; ");
             value = _ShowOption(gconf, true);
-            appendStringInfo(buf, fmt, gconf->name, value);
+            appendStringInfo(&buf, "%s=%s", gconf->name, value);
             pfree(value);
         }
 	}
-    return buf->len - oldlen;
+
+	return buf.data;
 }                               /* gp_guc_list_show */
 
 

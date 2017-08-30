@@ -372,7 +372,7 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
 	StringInfoData buf;
 	EState     *estate = NULL;
 	int			eflags;
-	int         nb;
+	char	   *settings;
 	MemoryContext explaincxt = CurrentMemoryContext;
 
 	/*
@@ -650,13 +650,10 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
     /*
      * Show non-default GUC settings that might have affected the plan.
      */
-    nb = gp_guc_list_show(&buf, "Settings:  ", "%s=%s; ", PGC_S_DEFAULT,
-                           gp_guc_list_for_explain);
-    if (nb > 0)
-    {
-        truncateStringInfo(&buf, buf.len - 2);  /* drop final "; " */
-        appendStringInfoChar(&buf, '\n');
-    }
+	settings = gp_guc_list_show(PGC_S_DEFAULT, gp_guc_list_for_explain);
+	if (*settings)
+		appendStringInfo(&buf, "Settings:  %s\n", settings);
+	pfree(settings);
 
     /* Display optimizer status: either 'legacy query optimizer' or Orca version number */
 	appendStringInfo(&buf, "Optimizer status: ");
