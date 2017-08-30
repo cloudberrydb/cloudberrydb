@@ -862,7 +862,6 @@ typedef struct WindowRefExprState
 	List           *args;                        /* states of argument expressions */
 	bool           *argtypbyval;        /* pg_type.typbyval for each argument */
 	int16           *argtyplen;                /* pg_type.typlen of each argument */
-	int                        refno;                        /* index in window state's wrxstates list */
 	int                        funcno;                        /* index in window state's func_state array */
 	// bool                isAgg;                        /* aggregate-derived? */
 	char                winkind;                /* pg_window.winkind */

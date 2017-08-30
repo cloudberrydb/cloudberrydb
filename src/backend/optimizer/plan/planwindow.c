@@ -224,9 +224,7 @@ typedef struct WindowContext
 	/* List of PathKeys, one for each coplan. */
 	List           *subplans_pathkeys;
 	
-		
 	/* Map (ressortgrpref) --> (resno) in lower_tlist */
-	int				max_sortref;
 	AttrNumber	   *sortref_resno;
 	
 	/* Transient state for preprocess_window_tlist */
@@ -240,7 +238,7 @@ typedef struct WindowContext
 /* Forward declarations (local) */
 
 static WindowContext *newWindowContext(void);
-static void build_sortref_index(List *tlist, int *max_sortref, AttrNumber **sortref_resno);
+static void build_sortref_index(List *tlist, AttrNumber **sortref_resno);
 static void build_var_index(Query *parse, WindowContext *context);
 static int index_of_var(Var * var, WindowContext *context);
 static void preprocess_window_tlist(List *orig_tlist, WindowContext *context);
@@ -401,7 +399,6 @@ static WindowContext *newWindowContext()
 	context->offset_lim = 0;
 	context->offset_upper_varattrnos = NULL;
 	
-	context->max_sortref = 0;
 	context->sortref_resno = NULL;
 
 	context->cur_refinfo = NULL;
@@ -487,7 +484,7 @@ static int index_of_var(Var * var, WindowContext *context)
 /* Build a map of sortgroupref to resno for the given target list.
  * Store its maximum sortref value and the index where specified.
  */
-static void build_sortref_index(List *tlist, int *max_sortref, AttrNumber **sortref_resno)
+static void build_sortref_index(List *tlist, AttrNumber **sortref_resno)
 {
 	ListCell *lc;
 	AttrNumber *index = NULL;
@@ -509,7 +506,6 @@ static void build_sortref_index(List *tlist, int *max_sortref, AttrNumber **sort
 			index[tle->ressortgroupref] = tle->resno;
 	}
 	
-	*max_sortref = n;
 	*sortref_resno = index;
 }
 
@@ -718,7 +714,7 @@ static Node * window_tlist_mutator(Node *node, WindowContext *context)
 				
 				check_ntile_argument(new_ref->args, winspec, context->orig_tlist);
 			}
-							
+
 			/* Record the WindowRef and its Vars referenced set. */
 			new_ref->winindex = list_length(context->refinfos);
 			context->refinfos = lappend(context->refinfos, context->cur_refinfo);
@@ -1405,7 +1401,7 @@ make_lower_targetlist(Query *parse,
 	pfree(dummy);
 	dummy = NULL;
 	
-	build_sortref_index(lower_tlist, &context->max_sortref, &context->sortref_resno);
+	build_sortref_index(lower_tlist, &context->sortref_resno);
 
 	context->lower_tlist = lower_tlist;
 }
@@ -1714,7 +1710,7 @@ Plan *assure_collocation_and_order(
 		)
 {
 	Plan *result_plan;
-	List *sort_pathkeys = NULL;
+	List *sort_pathkeys = NIL;
 	double motion_cost_per_row = (gp_motion_cost_per_row > 0.0) ?
 					gp_motion_cost_per_row :
 					2.0 * cpu_tuple_cost;
@@ -1737,7 +1733,7 @@ Plan *assure_collocation_and_order(
 	if ( partkey_len == 0 ) /* Plan for single process locus. */
 	{
 		/* Assure sort order first */
-		if(sort_pathkeys != NULL)
+		if(sort_pathkeys != NIL)
 		{
 			if(!pathkeys_contained_in(sort_pathkeys, *pathkeys_ptr))
 			{
@@ -1759,8 +1755,7 @@ Plan *assure_collocation_and_order(
 	else  /* Plan for hash distributed locus. */
 	{
 		List *dist_keys = NIL;
-		List *dist_pathkeys = NIL;
-		List *dist_exprs = NIL;
+		List *dist_pathkeys;
 		ListCell *lc;
 		int n;
 		
@@ -1778,6 +1773,7 @@ Plan *assure_collocation_and_order(
 		/* Assure the required distribution. */
 		if ( ! cdbpathlocus_collocates(root, input_locus, dist_pathkeys, false /*exact_match*/) )
 		{
+			List *dist_exprs = NIL;
 			foreach (lc, dist_keys)
 			{
 				SortClause *sc = (SortClause*)lfirst(lc);
@@ -1826,7 +1822,7 @@ Plan *assure_order(
 		List **pathkeys_ptr)
 {
 	Plan *result_plan;
-	List *sort_pathkeys = NULL;
+	List *sort_pathkeys = NIL;
 
 	Assert( input_plan && (input_plan->flow || IsA(input_plan, Motion)) );
 	Assert( pathkeys_ptr && (*pathkeys_ptr == NIL || IsA(*pathkeys_ptr, List)) );
@@ -1840,7 +1836,7 @@ Plan *assure_order(
 			sort_pathkeys = canonicalize_pathkeys(root, sort_pathkeys);
 	}
 
-	if(sort_pathkeys != NULL)
+	if(sort_pathkeys != NIL)
 	{
 		if(!pathkeys_contained_in(sort_pathkeys, *pathkeys_ptr))
 		{

@@ -2459,7 +2459,6 @@ initWindowFuncState(WindowState * wstate, Window * node)
 		refno++;				/* First one is 0 */
 
 		/* Register the parent window state with the window ref state node. */
-		wrxstate->refno = refno;
 		wrxstate->windowstate = wstate;
 
 		/* Look for a previous duplicate window function */
@@ -6990,7 +6989,6 @@ lead_lag_frame_maker(PG_FUNCTION_ARGS)
 									true);
 	}
 
-	frame->system_generated = true;
 	frame->is_between = true;
 	frame->is_rows = true;
 	frame->trail = makeNode(WindowFrameEdge);
