@@ -746,9 +746,41 @@ CTranslatorRelcacheToDXL::Pdrgpmdcol
 
 		ULONG ulColLen = ULONG_MAX;
 		CMDIdGPDB *pmdidCol = GPOS_NEW(pmp) CMDIdGPDB(att->atttypid);
-		if ((pmdidCol->FEquals(&CMDIdGPDB::m_mdidBPChar) || pmdidCol->FEquals(&CMDIdGPDB::m_mdidVarChar)) && (VARHDRSZ < att->atttypmod))
+		HeapTuple heaptupleStats = gpdb::HtAttrStats(rel->rd_id, ul+1);
+
+		// Column width priority:
+		// 1. If there is average width kept in the stats for that column, pick that value.
+		// 2. If not, if it is a fixed length text type, pick the size of it. E.g if it is
+		//    varchar(10), assign 10 as the column length.
+		// 3. Else if it not dropped and a fixed length type such as int4, assign the fixed
+		//    length.
+		// 4. Otherwise, assign it to default column width which is 8.
+		if(HeapTupleIsValid(heaptupleStats))
+		{
+			Form_pg_statistic fpsStats = (Form_pg_statistic) GETSTRUCT(heaptupleStats);
+
+			// column width
+			ulColLen = fpsStats->stawidth;
+			gpdb::FreeHeapTuple(heaptupleStats);
+		}
+		else if ((pmdidCol->FEquals(&CMDIdGPDB::m_mdidBPChar) || pmdidCol->FEquals(&CMDIdGPDB::m_mdidVarChar)) && (VARHDRSZ < att->atttypmod))
 		{
 			ulColLen = (ULONG) att->atttypmod - VARHDRSZ;
+		}
+		else
+		{
+			DOUBLE dWidth = CStatistics::DDefaultColumnWidth.DVal();
+			ulColLen = (ULONG) dWidth;
+
+			if (!att->attisdropped)
+			{
+				IMDType *pmdtype = CTranslatorRelcacheToDXL::Pmdtype(pmp, pmdidCol);
+				if(pmdtype->FFixedLength())
+				{
+					ulColLen = pmdtype->UlLength();
+				}
+				pmdtype->Release();
+			}
 		}
 
 		CMDColumn *pmdcol = GPOS_NEW(pmp) CMDColumn
@@ -976,7 +1008,8 @@ CTranslatorRelcacheToDXL::AddSystemColumns
 										CTranslatorUtils::PmdidSystemColType(pmp, attno), 
 										false,	// fNullable
 										false,	// fDropped
-										NULL	// default value
+										NULL,	// default value
+										CTranslatorUtils::UlSystemColLength(attno)
 										);
 
 		pdrgpmdcol->Append(pmdcol);

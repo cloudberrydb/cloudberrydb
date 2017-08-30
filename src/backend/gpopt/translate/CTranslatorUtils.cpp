@@ -22,6 +22,7 @@
 #include "catalog/pg_type.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_trigger.h"
+#include "catalog/pg_statistic.h"
 #include "optimizer/walkers.h"
 #include "utils/rel.h"
 
@@ -35,6 +36,7 @@
 #include "gpos/string/CWStringDynamic.h"
 #include "gpopt/translate/CTranslatorUtils.h"
 #include "gpopt/translate/CDXLTranslateContext.h"
+#include "gpopt/translate/CTranslatorRelcacheToDXL.h"
 
 #include "naucrates/dxl/CDXLUtils.h"
 #include "naucrates/dxl/xml/dxltokens.h"
@@ -873,6 +875,49 @@ CTranslatorUtils::PmdidSystemColType
 				GPOS_WSZ_LIT("Invalid attribute number")
 				);
 			return NULL;
+	}
+}
+
+
+// Returns the length for the system column with given attno number
+const ULONG
+CTranslatorUtils::UlSystemColLength
+	(
+	AttrNumber attno
+	)
+{
+	GPOS_ASSERT(FirstLowInvalidHeapAttributeNumber < attno && 0 > attno);
+
+	switch (attno)
+	{
+		case SelfItemPointerAttributeNumber:
+			// tid type
+			return 6;
+
+		case ObjectIdAttributeNumber:
+		case TableOidAttributeNumber:
+			// OID type
+
+		case MinTransactionIdAttributeNumber:
+		case MaxTransactionIdAttributeNumber:
+			// xid type
+
+		case MinCommandIdAttributeNumber:
+		case MaxCommandIdAttributeNumber:
+			// cid type
+
+		case GpSegmentIdAttributeNumber:
+			// int4
+			return 4;
+
+		default:
+			GPOS_RAISE
+				(
+				gpdxl::ExmaDXL,
+				gpdxl::ExmiPlStmt2DXLConversion,
+				GPOS_WSZ_LIT("Invalid attribute number")
+				);
+			return ULONG_MAX;
 	}
 }
 

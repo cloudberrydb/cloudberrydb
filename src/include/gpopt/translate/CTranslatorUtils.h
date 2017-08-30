@@ -126,6 +126,10 @@ namespace gpdxl
 			static
 			const CWStringConst *PstrSystemColName(AttrNumber attno);
 
+			// returns the length for the system column with given attno number
+			static
+			const ULONG UlSystemColLength(AttrNumber attno);
+
 			// translate the join type from its GPDB representation into the DXL one
 			static
 			EdxlJoinType EdxljtFromJoinType(JoinType jt);
