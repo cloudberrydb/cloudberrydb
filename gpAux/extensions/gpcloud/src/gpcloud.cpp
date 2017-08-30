@@ -1,6 +1,3 @@
-// Required by building CPP dynamic library via Makefile of GPDB.
-#define PGDLLIMPORT "C"
-
 extern "C" {
 #include "postgres.h"
 
@@ -15,20 +12,18 @@ extern "C" {
 #include "utils/builtins.h"
 #include "utils/memutils.h"
 #include "utils/resowner.h"
-}
-
-#include "gpreader.h"
-#include "gpwriter.h"
 
 /* Do the module magic dance */
 PG_MODULE_MAGIC;
 PG_FUNCTION_INFO_V1(s3_export);
 PG_FUNCTION_INFO_V1(s3_import);
 
-extern "C" {
 Datum s3_export(PG_FUNCTION_ARGS);
 Datum s3_import(PG_FUNCTION_ARGS);
 }
+
+#include "gpreader.h"
+#include "gpwriter.h"
 
 string s3extErrorMessage;
 
