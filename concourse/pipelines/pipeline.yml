@@ -920,7 +920,7 @@ jobs:
     file: gpdb_src/concourse/tasks/run_behave.yml
     image: centos-gpdb-dev-6
     params:
-      BEHAVE_TAGS: gppkg
+      BEHAVE_FLAGS: --tags=gppkg
     on_failure:
       <<: *debug_sleep
   - *ccp_destroy
