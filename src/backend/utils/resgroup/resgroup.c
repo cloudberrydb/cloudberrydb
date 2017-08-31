@@ -2030,7 +2030,7 @@ SwitchResGroupOnSegment(const char *buf, int len)
 			prevSlot = &prevSharedInfo->slots[prevSlotId];
 			detachFromSlot(prevSharedInfo, prevSlot, procInfo);
 
-			groupReleaseMemQuota(prevSharedInfo, prevSlot, &caps);
+			groupReleaseMemQuota(prevSharedInfo, prevSlot, &prevSharedInfo->caps);
 		}
 		else
 		{
