@@ -27,7 +27,7 @@
       <p>MADlib can be used with PivotalR, an R package that enables users to interact with data
         resident in Greenplum Database using the R client. See <xref href="#topic_dxp_vq2_sv"
           format="dita"/>.</p>
-      <note>When using MADlib, set the server configuration parameter
+      <note>When using MADlib 1.11 and earlier, set the server configuration parameter
           <codeph>optimizer_control</codeph> to <codeph>on</codeph> (the default). If the parameter
         is set to <codeph>off</codeph>, these MADlib functions do not work: decision tree, random
         forest, LDA, k-Means, PMML export for decision tree, PMML export for random forest. <ph
@@ -518,11 +518,10 @@ insert into t1 values
   <topic id="topic10" xml:lang="en">
     <title id="pz213965">References</title>
     <body>
-      <p>MADlib web site is at <xref href="http://madlib.apache.org/" format="html"
-          scope="external">http://madlib.apache.org/</xref>.</p>
-      <p>MADlib documentation is at <xref
-          href="http://madlib.apache.org/documentation.html" format="html"
-          scope="external">http://madlib.apache.org/documentation.html</xref>.</p>
+      <p>MADlib web site is at <xref href="http://madlib.apache.org/" format="html" scope="external"
+          >http://madlib.apache.org/</xref>.</p>
+      <p>MADlib documentation is at <xref href="http://madlib.apache.org/documentation.html"
+          format="html" scope="external">http://madlib.apache.org/documentation.html</xref>.</p>
       <p>PivotalR is a first class R package that enables users to interact with data resident in
         Greenplum Database and MADLib using an R client.</p>
     </body>
