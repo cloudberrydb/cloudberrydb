@@ -183,8 +183,7 @@ static int32 slotGetMemSpill(const ResGroupCaps *caps);
 static void wakeupSlots(ResGroupData *group);
 static void wakeupGroups(Oid skipGroupId);
 static bool groupReleaseMemQuota(ResGroupData *group,
-								ResGroupSlotData *slot,
-								const ResGroupCaps *caps);
+								ResGroupSlotData *slot);
 static void groupAcquireMemQuota(ResGroupData *group, const ResGroupCaps *caps);
 static ResGroupData *ResGroupHashNew(Oid groupId);
 static ResGroupData *ResGroupHashFind(Oid groupId);
@@ -1229,7 +1228,7 @@ putSlot(ResGroupData *group, int slotId)
 								slot->memQuota);
 	Assert(memQuotaUsed >= 0);
 
-	shouldWakeUp = groupReleaseMemQuota(group, slot, &group->caps);
+	shouldWakeUp = groupReleaseMemQuota(group, slot);
 	if (shouldWakeUp)
 		wakeupGroups(group->groupId);
 
@@ -1667,13 +1666,14 @@ wakeupGroups(Oid skipGroupId)
  * * the group over-used shared quota
  */
 static bool 
-groupReleaseMemQuota(ResGroupData *group, ResGroupSlotData *slot, const ResGroupCaps *caps)
+groupReleaseMemQuota(ResGroupData *group, ResGroupSlotData *slot)
 {
 	int32		memQuotaNeedFree;
 	int32		memSharedNeeded;
 	int32		memQuotaToFree;
 	int32		memSharedToFree;
 	int32       memQuotaExpected;
+	ResGroupCaps *caps = &group->caps;
 
 	Assert(LWLockHeldExclusiveByMe(ResGroupLock));
 
@@ -2030,7 +2030,7 @@ SwitchResGroupOnSegment(const char *buf, int len)
 			prevSlot = &prevSharedInfo->slots[prevSlotId];
 			detachFromSlot(prevSharedInfo, prevSlot, procInfo);
 
-			groupReleaseMemQuota(prevSharedInfo, prevSlot, &prevSharedInfo->caps);
+			groupReleaseMemQuota(prevSharedInfo, prevSlot);
 		}
 		else
 		{
@@ -2087,7 +2087,7 @@ SwitchResGroupOnSegment(const char *buf, int len)
 		{
 			Assert(prevSlot != NULL);
 			detachFromSlot(prevSharedInfo, prevSlot, procInfo);
-			groupReleaseMemQuota(prevSharedInfo, prevSlot, &prevSharedInfo->caps);
+			groupReleaseMemQuota(prevSharedInfo, prevSlot);
 		}
 
 		groupAcquireMemQuota(sharedInfo, &slot->caps);
