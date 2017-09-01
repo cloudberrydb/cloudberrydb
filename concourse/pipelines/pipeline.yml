@@ -672,6 +672,7 @@ jobs:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off' installcheck-world
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
       TEST_OS: centos
+      TEST_BINARY_SWAP: false
       CONFIGURE_FLAGS: {{configure_flags}}
 
 - name: icw_gporca_centos6
