@@ -911,10 +911,6 @@ SELECT * FROM LINEITEM EXCEPT SELECT * FROM LINEITEM_2;
 
 --Test for `COPY FROM ON SEGMENT` checking the distribution key restriction 
 -- start_matchsubs
--- m/^ERROR:  Value of distribution key doesn't belong to segment with ID \d, it belongs to segment with ID \d.*$/
--- s/^ERROR:  Value of distribution key doesn't belong to segment with ID \d, it belongs to segment with ID \d.*$/ERROR:  Value of distribution key doesn't belong to segment/
--- m/^ERROR:  COPY FROM ON SEGMENT doesn't support checking distribution key restriction when the distribution policy of the partition table is different from the main table.*$/
--- s/^ERROR:  COPY FROM ON SEGMENT doesn't support checking distribution key restriction when the distribution policy of the partition table is different from the main table.*$/ERROR:  COPY FROM ON SEGMENT doesn't support checking distribution key restriction when the distribution policy of the partition table is different from the main table./
 -- m/^CONTEXT:  COPY .*, line \d*: .*$/
 -- s/^CONTEXT:  COPY .*, line \d*: .*$/CONTEXT:  COPY xxxxx line x: xxx/
 -- end_matchsubs
