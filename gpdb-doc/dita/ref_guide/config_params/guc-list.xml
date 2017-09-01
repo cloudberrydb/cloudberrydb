@@ -4878,6 +4878,7 @@
   <topic id="gp_resource_group_cpu_limit">
     <title>gp_resource_group_cpu_limit</title>
     <body>
+      <note type="warning">Resource group-based workload management is an experimental feature and is not intended for use in a production environment. Experimental features are subject to change without notice in future releases.</note>
       <p>Identifies the maximum percentage of system CPU resources to allocate to resource groups on
         each Greenplum Database segment node.</p>
       <table id="gp_resource_group_cpu_limit_table">
@@ -4906,6 +4907,7 @@
   <topic id="gp_resource_group_memory_limit">
     <title>gp_resource_group_memory_limit</title>
     <body>
+     <note type="warning">Resource group-based workload management is an experimental feature and is not intended for use in a production environment. Experimental features are subject to change without notice in future releases.</note>
       <p>Identifies the maximum percentage of system memory resources to allocate to resource groups
         on each Greenplum Database segment node.</p>
       <table id="gp_resource_group_memory_limit_table">
@@ -4934,6 +4936,7 @@
   <topic id="gp_resource_manager">
     <title>gp_resource_manager</title>
     <body>
+      <note type="warning">Resource group-based workload management is an experimental feature and is not intended for use in a production environment. Experimental features are subject to change without notice in future releases.</note>
       <p>Identifies the resource management scheme currently enabled in the Greenplum Database
         cluster. The default scheme is workload management using resource queues.</p>
       <table id="gp_resource_manager_table">
@@ -7210,6 +7213,7 @@
   <topic id="max_resource_groups">
     <title>max_resource_groups</title>
     <body>
+      <note type="warning">Resource group-based workload management is an experimental feature and is not intended for use in a production environment. Experimental features are subject to change without notice in future releases.</note>
       <p>Sets the maximum number of resource groups that you can create in a Greenplum Database
         system. Resource groups are defined system-wide.</p>
       <table id="max_resource_queues_table">
