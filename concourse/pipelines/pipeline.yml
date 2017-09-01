@@ -38,7 +38,6 @@ groups:
   - DPM_gptransfer-43x-to-5x
   - DPM_gptransfer-5x-to-5x
   - cs-pg-two-phase
-  - cs-walrepl-multinode
   - cs-filerep-schema-topology-crashrecov
   - cs-filerep-end-to-end
   - cs-aoco-compression
@@ -61,7 +60,6 @@ groups:
   - DPM_gptransfer-43x-to-5x
   - DPM_gptransfer-5x-to-5x
   - cs-pg-two-phase
-  - cs-walrepl-multinode
   - cs-filerep-schema-topology-crashrecov
   - cs-filerep-end-to-end
   - cs-aoco-compression
@@ -69,6 +67,8 @@ groups:
 
 - name: Adopted CCP
   jobs:
+  - cs_walrep_1
+  - cs_walrep_2
   - DPM_backup-restore
   - MM_gppkg
   - MM_gprecoverseg
@@ -1036,6 +1036,60 @@ jobs:
       image: centos-gpdb-dev-6
       timeout: 3h
 
+- name: cs_walrep_1
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [compile_gpdb_centos6]
+    - get: gpdb_binary
+      resource: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: ccp_src
+    - get: centos-gpdb-dev-6
+  - put: terraform
+    params:
+      <<: *ccp_create_params
+  - task: gen_cluster
+    file: ccp_src/ci/tasks/gen_cluster.yml
+    on_failure:
+      <<: *ccp_destroy
+  - task: run_tests
+    file: gpdb_src/concourse/tasks/run_tinc.yml
+    image: centos-gpdb-dev-6
+    params:
+      TINC_TARGET: walrep_1
+    on_failure:
+      <<: *debug_sleep
+  - *ccp_destroy
+
+- name: cs_walrep_2
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [compile_gpdb_centos6]
+    - get: gpdb_binary
+      resource: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: ccp_src
+    - get: centos-gpdb-dev-6
+  - put: terraform
+    params:
+      <<: *ccp_create_params
+  - task: gen_cluster
+    file: ccp_src/ci/tasks/gen_cluster.yml
+    on_failure:
+      <<: *ccp_destroy
+  - task: run_tests
+    file: gpdb_src/concourse/tasks/run_tinc.yml
+    image: centos-gpdb-dev-6
+    params:
+      TINC_TARGET: walrep_2
+    on_failure:
+      <<: *debug_sleep
+  - *ccp_destroy
+
 - name: QP_memory-accounting
   plan:
   - aggregate:
@@ -1478,24 +1532,6 @@ jobs:
       <<: *pulse_properties
       PULSE_PROJECT_NAME: "cs-pg-two-phase"
 
-- name: cs-walrepl-multinode
-  plan:
-  - aggregate: *post_packaging_gets_trigger_true
-  - task: trigger_pulse
-    tags: ["gpdb5-pulse-worker"]
-    file: gpdb_src/ci/pulse/api/trigger_pulse.yml
-    input_mapping: *input_mappings
-    params:
-      <<: *pulse_properties
-      PULSE_PROJECT_NAME: "cs-walrepl-multinode"
-  - task: monitor_pulse
-    attempts: 2
-    tags: ["gpdb5-pulse-worker"]
-    file: gpdb_src/ci/pulse/api/monitor_pulse.yml
-    params:
-      <<: *pulse_properties
-      PULSE_PROJECT_NAME: "cs-walrepl-multinode"
-
 - name: cs-filerep-schema-topology-crashrecov
   plan:
   - aggregate: *post_packaging_gets_trigger_true
@@ -1657,6 +1693,8 @@ jobs:
     - MM_pt-rebuild
     - fts
     - storage
+    - cs_walrep_1
+    - cs_walrep_2
     - QP_memory-accounting
     - regression_tests_gpcloud_centos
     - regression_tests_gphdfs_centos
@@ -1673,7 +1711,6 @@ jobs:
     - DPM_gptransfer-43x-to-5x
     - DPM_gptransfer-5x-to-5x
     - cs-pg-two-phase
-    - cs-walrepl-multinode
     - cs-filerep-schema-topology-crashrecov
     - cs-filerep-end-to-end
     - cs-aoco-compression
