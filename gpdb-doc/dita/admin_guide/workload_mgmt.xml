@@ -2,169 +2,12 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
-  <title id="iz173472">Workload Management with Resource Queues</title>
-  <shortdesc>Use Greenplum Database workload management to prioritize and allocate resources to
-    queries according to business requirements and to prevent queries from starting when resources
-    are unavailable.</shortdesc>
+  <title id="iz173472">Using Resource Queues</title>
   <body>
-    <p>This section describes Greenplum Database workload management, and explains how to use
-      resource queues to manage resources. Using resource queues, the available memory and CPU
-      resources can be allocated to the different types of queries that execute on your Greenplum
-      Database system. You can limit the number of concurrent queries, the amount of memory used to
-      execute a query, and the relative amount of CPU devoted to processing a query. </p>
-    <p>The primary resource management concerns are the number of queries that can execute
-      concurrently and the amount of memory to allocate to each query. Without limiting concurrency
-      and memory usage, it is not possible to guarantee acceptable performance. Memory is the
-      resource most likely to limit the processing capacity of the system. Therefore, we begin with
-      an overview of Greenplum Database memory usage. </p>
-  </body>
-  <topic id="topic_nm3_brl_zp">
-    <title>Overview of Memory Usage in Greenplum Database</title>
-    <shortdesc>Memory is a key resource for a Greenplum Database system and, when used efficiently,
-      can ensure high performance and throughput. This topic describes how segment host memory is
-      allocated between segments and the options available to administrators to configure
-      memory.</shortdesc>
-    <body id="body_bk2_fvw_wq">
-      <p>A Greenplum Database segment host runs multiple PostgreSQL instances, all sharing the
-        host's memory. The segments have an identical configuration and they consume similar amounts
-        of memory, CPU, and disk IO simultaneously, while working on queries in parallel. </p>
-      <p>For best query throughput, the memory configuration should be managed carefully. There are
-        memory configuration options at every level in Greenplum Database, from operating system
-        parameters, to managing workloads with resource queues, to setting the amount of memory
-        allocated to an individual query.</p>
-      <section>
-        <title>Segment Host Memory</title>
-        <p>On a Greenplum Database segment host, the available host memory is shared among all the
-          processes executing on the computer, including the operating system, Greenplum Database
-          segment instances, and other application processes. Administrators must determine what
-          Greenplum Database and non-Greenplum Database processes share the hosts' memory and
-          configure the system to use the memory efficiently. It is equally important to monitor
-          memory usage regularly to detect any changes in the way host memory is consumed by
-          Greenplum Database or other processes.</p>
-        <p>The following figure illustrates how memory is consumed on a Greenplum Database segment
-            host.<fig id="fig_py5_1sl_zp">
-            <title>Greenplum Database Segment Host Memory</title>
-            <image href="graphics/memory.png" id="image_iqn_dsl_zp"/>
-          </fig></p>
-        <p>Beginning at the bottom of the illustration, the line labeled <i>A</i> represents the
-          total host memory. The line directly above line <i>A</i> shows that the total host memory
-          comprises both physical RAM and swap space. </p>
-        <p>The line labelled <i>B</i> shows that the total memory available must be shared by
-          Greenplum Database and all other processes on the host. Non-Greenplum Database processes
-          include the operating system and any other applications, for example system monitoring
-          agents. Some applications may use a significant portion of memory and, as a result, you
-          may have to adjust the number of segments per Greenplum Database host or the amount of
-          memory per segment.</p>
-        <p>The segments (<i>C</i>) each get an equal share of the Greenplum Database Memory
-            (<i>B</i>). </p>
-        <p>Within a segment, <i>resource queues</i> govern how memory is allocated to execute a SQL
-          statement. Resource queues allow you to translate business requirements into execution
-          policies in your Greenplum Database system and to guard against queries that could degrade
-          performance.</p>
-        <p>Each statement submitted by a non-administrative user to a Greenplum Database system is
-          associated with a resource queue. The queue determines if the statement will be allowed to
-          execute and, when resources are available, allows it to execute. The statement may be
-          rejected, executed immediately, or queued to execute when resources are available.</p>
-        <p>You can create resource queues for different types of queries and reserve a fixed portion
-          of the segment memory for each queue. Alternatively, you can set a server configuration
-          parameter to specify how much memory to allocate for each query and place no maximum
-          memory restriction on the resource queue. </p>
-        <p>The query optimizer produces a query execution plan, consisting of a series of tasks
-          called <i>operators</i> (labeled <i>D</i> in the diagram). Operators perform tasks such as
-          table scans or joins, and typically produce intermediate query results by processing one
-          or more sets of input rows. Operators receive a share of the memory the resource queue
-          allocates to a query. If an operator cannot perform all of its work in the memory
-          allocated to it, it caches data on disk in <i>spill files</i>.</p>
-      </section>
-      <section>
-        <title>Options for Configuring Segment Host Memory</title>
-        <p>Host memory is the total memory shared by all applications on the segment host. The
-          amount of host memory can be configured using any of the following methods:<ul
-            id="ul_y5m_xzs_zp">
-            <li>Add more RAM to the nodes to increase the physical memory.</li>
-            <li>Allocate swap space to increase the size of virtual memory.</li>
-            <li>Set the kernel parameters <varname>vm.overcommit_memory</varname> and
-                <varname>vm.overcommit_ratio</varname> to configure how the operating system handles
-              large memory allocation requests.</li>
-          </ul></p>
-        <p>The physical RAM and OS configuration are usually managed by the platform team and system
-          administrators. <ph>See the <cite>Greenplum Database Installation
-              Guide</cite> for the recommended kernel parameter settings.</ph>
-        </p>
-        <p>The amount of memory to reserve for the operating system and other processes is workload
-          dependent. The minimum recommendation for operating system memory is 32GB, but if there is
-          much concurrency in Greenplum Database, increasing to 64GB of reserved memory may be
-          required. The largest user of operating system memory is SLAB, which increases as
-          Greenplum Database concurrency and the number of sockets used increases.</p>
-        <p>The <codeph>vm.overcommit_memory</codeph> kernel parameter should always be set to 2, the
-          only safe value for Greenplum Database.</p>
-        <p>The <codeph>vm.overcommit_ratio</codeph> kernel parameter sets the percentage of RAM that
-          is used for application processes, the remainder reserved for the operating system. The
-          default for Red Hat is 50 (50%). Setting this parameter too high may result in
-          insufficient memory reserved for the operating system, which can cause segment host
-          failure or database failure. Leaving the setting at the default of 50 is generally safe,
-          but conservative. Setting the value too low reduces the amount of concurrency and query
-          complexity that can be run at the same time by reducing the amount of memory available to
-          Greenplum Database. When increasing <codeph>vm.overcommit_ratio</codeph> it is important
-          to remember to always reserve some memory for operating system activities.</p>
-        <p>To calculate a safe value for <codeph>vm.overcommit_ratio</codeph>, first determine the
-          total memory available to Greenplum Database processes, called <codeph>gp_vmem</codeph>,
-          with this
-          formula:<codeblock>gp_vmem = ((SWAP + RAM) – (7.5GB + 0.05 * RAM)) / 1.7</codeblock></p>
-        <p>where <codeph>SWAP</codeph> is the swap space on the host in GB, and <codeph>RAM</codeph>
-          is the number of GB of RAM installed on the host. </p>
-        <p>Calculate the <codeph>vm.overcommit_ratio</codeph> value with this
-          formula:<codeblock>vm.overcommit_ratio = (RAM - 0.026 * gp_vmem) / RAM</codeblock></p>
-      </section>
-      <section id="section_nfn_q5r_bs">
-        <title>Configuring Greenplum Database Memory</title>
-        <p>Greenplum Database Memory is the amount of memory available to all Greenplum Database
-          segment instances. </p>
-        <p>When you set up the Greenplum Database cluster, you determine the number of primary
-          segments to run per host and the amount of memory to allocate for each segment. Depending
-          on the CPU cores, amount of physical RAM, and workload characteristics, the number of
-          segments is usually a value between 4 and 8. With segment mirroring enabled, it is
-          important to allocate memory for the maximum number of primary segments executing on a
-          host during a failure. For example, if you use the default grouping mirror configuration,
-          a segment host failure doubles the number of acting primaries on the host that has the
-          failed host's mirrors. Mirror configurations that spread each host's mirrors over multiple
-          other hosts can lower the maximum, allowing more memory to be allocated for each segment.
-          For example, if you use a block mirroring configuration with 4 hosts per block and 8
-          primary segments per host, a single host failure would cause other hosts in the block to
-          have a maximum of 11 active primaries, compared to 16 for the default grouping mirror
-          configuration.</p>
-        <p>The <varname>gp_vmem_protect_limit</varname> value is the amount of memory to allocate
-          each segment. It is estimated by calculating the memory available for all Greenplum
-          Database processes and dividing by the maximum number of primary segments during a
-          failure. If <varname>gp_vmem_protect_limit</varname> is set too high, queries can fail.
-          Use the following formulas to calculate a safe value for
-            <varname>gp_vmem_protect_limit</varname>.</p>
-        <p>Calculate <codeph>gp_vmem</codeph>, the memory available for all Greenplum Database
-          processes, using this
-          formula:<codeblock>gp_vmem = ((SWAP + RAM) – (7.5GB + 0.05 * RAM)) / 1.7</codeblock>where
-            <codeph>SWAP</codeph> is the host's swap space in GB and <codeph>RAM</codeph> is the RAM
-          installed on the host in GB.</p>
-        <p>Calculate <codeph>gp_vmem_protect_limit</codeph> using this
-          formula:<codeblock>gp_vmem_protect_limit = gp_vmem / max_acting_primary_segments</codeblock></p>
-        <p>where <codeph>max_acting_primary_segments</codeph> is the maximum number of primary
-          segments that could be running on a host when mirror segments are activated due to a host
-          or segment failure. </p>
-        <p>Another important Greenplum Database server configuration parameter is
-            <varname>statement_mem</varname>. This parameter sets the maximum amount of memory to
-          allocate to execute a query. To determine a value for this parameter, divide the amount of
-          memory per segment (<varname>gp_vmem_protect_limit</varname>), less a 10% safety margin,
-          by the maximum number of queries you expect to execute concurrently. The default Greenplum Database resource queue allows a maximum of 20 concurrent queries. Here
-          is a formula to calculate
-          <varname>statement_mem</varname>:<codeblock>(<varname>gp_vmem_protect_limit</varname> * .9 ) / <varname>max_expected_concurrent_queries</varname></codeblock></p>
-        <p>Resource queues allow greater control of the amount of memory allocated for queries. See
-            <xref href="#topic9" format="dita"/> for details.</p>
-      </section>
-    </body>
-  </topic>
-  <topic id="topic_rq">
-    <title>Overview of Managing Workloads with Resource Queues</title>
-    <body>
-      <p>Resource queues are the main tool for managing the degree of concurrency in a Greenplum
+     <p>Use Greenplum Database resource queues to prioritize and allocate resources to
+       queries according to business requirements and to prevent queries from starting when resources
+       are unavailable.</p>
+      <p>Resource queues are one tool to manage the degree of concurrency in a Greenplum
         Database system. Resource queues are database objects that you create with the
           <codeph>CREATE RESOURCE QUEUE</codeph> SQL statement. You can use them to manage the
         number of active queries that may execute concurrently, the amount of memory each type of
@@ -183,7 +26,7 @@
         query must wait until queue resources are free before it can run. Queries are evaluated on a
         first in, first out basis. If query prioritization is enabled, the active workload on the
         system is periodically assessed and processing resources are reallocated according to query
-        priority (see <xref href="#topic_rq/priorities" format="dita"/>). Roles with the
+        priority (see <xref href="#priorities" format="dita"/>). Roles with the
           <codeph>SUPERUSER</codeph> attribute are exempt from resource queue limits. Superuser
         queries always run immediately regardless of limits imposed by their assigned resource
         queue. </p>
@@ -248,7 +91,7 @@
           <codeph>MEMORY_LIMIT</codeph> parameter is set:</p>
       <ul id="ul_p5p_jxp_wq">
         <li>If no <codeph>MEMORY_LIMIT</codeph> is set for a resource queue, the amount of memory
-          allocated per query is the value of the <codeph>statement_mem</codeph> server
+          allocated per query is the value of the <codeph><xref href="../ref_guide/config_params/guc-list.xml#statement_mem" type="section">statement_mem</xref></codeph> server
           configuration parameter. The maximum memory the resource queue can use is the product of
             <codeph>statement_mem</codeph> and <codeph>ACTIVE_STATEMENTS</codeph>. </li>
         <li>When a <codeph>MEMORY_LIMIT</codeph> is set on a resource queue, the number of queries
@@ -272,8 +115,10 @@
         as well.</p>
       <p>Also, an SQL statement that is run during the execution of an <codeph>EXPLAIN
           ANALYZE</codeph> command is excluded from resource queues.</p>
-      <section>
-        <title>Resource Queue Example</title>
+  </body>
+  <topic id="topic111" xml:lang="en">
+    <title>Resource Queue Example</title>
+     <body>
         <p>The default resource queue, <codeph>pg_default</codeph>, allows a maximum of 20 active
           queries and allocates the same amount of memory to each. This is generally not adequate
           resource control for production systems. To ensure that the system meets performance
@@ -331,9 +176,11 @@
         <p>See the <codeph>CREATE RESOURCE QUEUE</codeph> and <codeph>CREATE/ALTER
             ROLE</codeph> statements in the <cite>Greenplum Database Reference Guide</cite> for help
           with command syntax and detailed reference information.</p>
-      </section>
-      <section>
+      </body>
+      </topic>
+      <topic id="topic113" xml:lang="en">
         <title>How Memory Limits Work</title>
+      <body>
         <p>Setting <codeph>MEMORY_LIMIT</codeph> on a resource queue sets the maximum amount of
           memory that all active queries submitted through the queue can consume for a segment
           instance. The amount of memory allotted to a query is the queue memory limit divided by
@@ -386,9 +233,11 @@
           unbounded amounts of memory.</p>
         <p>For more information on configuring memory limits on a resource queue, and other memory
           utilization controls, see <xref href="#topic12" type="topic" format="dita"/>.</p>
-      </section>
-      <section id="priorities">
+      </body>
+      </topic>
+      <topic id="priorities">
         <title>How Priorities Work</title>
+      <body>
         <p>The <codeph>PRIORITY</codeph> setting for a resource queue differs from the
             <codeph>MEMORY_LIMIT</codeph> and <codeph>ACTIVE_STATEMENTS</codeph> settings, which
           determine whether a query will be admitted to the queue and eventually executed. The
@@ -439,9 +288,9 @@
         </fig>
         <p>For more information about commands to set priorities, see <xref href="#topic16"
             type="topic" format="dita"/>.</p>
-      </section>
-    </body>
-  </topic>
+      </body>
+      </topic>
+  
   <topic id="topic8" xml:lang="en">
     <title id="iz153124">Steps to Enable Workload Management</title>
     <body>
@@ -650,7 +499,7 @@ MEMORY_LIMIT='2000MB');
         <p>When the query prioritization feature is enabled, resource queues are given a
             <codeph>MEDIUM</codeph> priority by default if not explicitly assigned. For more
           information on how priority settings are evaluated at runtime, see <xref
-            href="#topic_rq/priorities" type="section" format="dita"/>.</p>
+            href="#priorities" type="section" format="dita"/>.</p>
         <note type="important">In order for resource queue priority levels to be enforced on the
           active query workload, you must enable the query prioritization feature by setting the
           associated server configuration parameters. See <xref href="#topic9" type="topic"
@@ -773,6 +622,7 @@ MEMORY_LIMIT='2000MB');
         </li>
       </ul>
     </body>
+
     <topic id="topic23" xml:lang="en">
       <title id="iz151568">Viewing Queued Statements and Resource Queue Status</title>
       <body>

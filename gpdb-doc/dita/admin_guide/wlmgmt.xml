@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic
+  PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
+<topic id="topic1" xml:lang="en">
+  <title id="iz173472">Managing Workload and Resources</title>
+  <shortdesc>Greenplum Database workload management helps you prioritize and allocate resources to
+    queries according to business requirements and to prevent queries from starting when resources
+    are unavailable.</shortdesc>
+  <body>
+    <p>Using workload management, you can limit the number of concurrent queries, the amount of memory used to execute a query, and the relative amount of CPU devoted to processing a query. Greenplum Database provides two schemes to manage workload and resources - Resource Queues and Resource Groups.</p>
+      <note type="warning">Resource group-based workload management is an experimental feature and is not intended for use in a production environment. Experimental features are subject to change without notice in future releases.</note>
+    <p>Either resource queue-based or resource group-based workload management is active in Greenplum Database; both schemes can not be active at the same time.</p>
+    <p>Resource queue-based workload management is enabled by default when you install your Greenplum Database cluster. You can create and assign resource groups while resource queues are active.</p>
+    <p>You must explicitly enable resource groups to start using that workload management scheme.</p>
+
+    <p>The following table summarizes some of the differences between Resource Queues and Resource Groups.</p>
+     <table id="queue_group_compare">
+        <tgroup cols="3">
+          <colspec colnum="1" colname="col1" colwidth="1*"/>
+          <colspec colnum="2" colname="col2" colwidth="1*"/>
+          <colspec colnum="3" colname="col3" colwidth="1*"/>
+          <thead>
+            <row>
+              <entry colname="col1">Metric</entry>
+              <entry colname="col2">Resource Queues</entry>
+              <entry colname="col3">Resource Groups</entry>
+            </row>
+          </thead>
+          <tbody>
+            <row>
+              <entry colname="col1">Concurrency</entry>
+              <entry colname="col2">Managed at the query level</entry>
+              <entry colname="col3">Managed at the transaction level</entry>
+            </row>
+            <row>
+              <entry colname="col1">CPU</entry>
+              <entry colname="col2">Specify query priority</entry>
+              <entry colname="col3">Specify percentage of CPU resources; uses Linux Control Groups</entry>
+            </row>
+            <row>
+              <entry colname="col1">Memory</entry>
+              <entry colname="col2">Managed at the queue and operator level; users can over-subscribe</entry>
+              <entry colname="col3">Managed at the transaction level, with enhanced allocation and tracking; users cannot over-subscribe</entry>
+            </row>
+            <row>
+              <entry colname="col1">Memory Isolation</entry>
+              <entry colname="col2">None</entry>
+              <entry colname="col3">Memory is isolated between resource groups and between transactions within the same resource group</entry>
+            </row>
+            <row>
+              <entry colname="col1">Users</entry>
+              <entry colname="col2">Limits are applied only to non-admin users</entry>
+              <entry colname="col3">Limits are applied to <codeph>SUPERUSER</codeph> and non-admin users alike</entry>
+            </row>
+            <row>
+              <entry colname="col1">Queueing</entry>
+              <entry colname="col2">Queue only when no slot available</entry>
+              <entry colname="col3">Queue when no slot is available or not enough available memory</entry>
+            </row>
+            <row>
+              <entry colname="col1">Query Failure</entry>
+              <entry colname="col2">Query may fail immediately if not enough memory</entry>
+              <entry colname="col3">Query may fail after reaching transaction memory limit</entry>
+            </row>
+            <row>
+              <entry colname="col1">Limit Bypass</entry>
+              <entry colname="col2">Limits are not enforced for <codeph>SUPERUSER</codeph> roles and certain operators and functions</entry>
+              <entry colname="col3">No limit bypass cases</entry>
+            </row>
+          </tbody>
+        </tgroup>
+      </table>
+    </body>
+  </topic>
