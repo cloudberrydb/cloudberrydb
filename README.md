@@ -193,15 +193,6 @@ Currently, GPDB is built with ORCA by default so latest ORCA libraries and heade
 to be available in the environment. [Build and Install](#buildOrca) the latest ORCA.
 
 If you want to build GPDB without ORCA, configure requires `--disable-orca` flag to be set.
-
-### Building GPDB with PXF
-PXF is an extension framework for GPDB to enable access to external hadoop datasets.
-Refer to [PXF extension](https://github.com/greenplum-db/gpdb/tree/master/gpAux/extensions/pxf) for more information.
-Currently, GPDPB is built with PXF by default. If you don't need PXF, use --disable-pxf flag with configure.
-Also PXF requires curl version > 7.21.3. On most centos6 environments with curl version 7.19 compilation will fail due to this dependancy.
-You can either try upgrading your curl version, or simply disable pxf during build.
-
-
 ```
 # Clean environment
 make distclean
@@ -209,6 +200,15 @@ make distclean
 # Configure build environment to install at /usr/local/gpdb
 ./configure --disable-orca --with-perl --with-python --with-libxml --prefix=/usr/local/gpdb
 ```
+
+### Building GPDB without PXF
+PXF is an extension framework for GPDB to enable access to external hadoop datasets.
+Refer to [PXF extension](https://github.com/greenplum-db/gpdb/tree/master/gpAux/extensions/pxf) for more information.
+Currently, GPDPB is built with PXF by default.
+PXF requires curl version > 7.21.3. On most centos6 environments with curl version 7.19 compilation will fail due to this dependancy.
+You can either try upgrading your curl version, or simply disable pxf during build.
+If you don't need PXF, use --disable-pxf flag with configure.
+
 
 ### Building GPDB with code generation enabled
 
