@@ -1257,7 +1257,6 @@ _outWindowRef(StringInfo str, WindowRef *node)
 	WRITE_OID_FIELD(winfnoid);
 	WRITE_OID_FIELD(restype);
 	WRITE_NODE_FIELD(args);
-	WRITE_UINT_FIELD(winlevelsup);
 	WRITE_BOOL_FIELD(windistinct);
 	WRITE_UINT_FIELD(winspec);
 	WRITE_UINT_FIELD(winindex);

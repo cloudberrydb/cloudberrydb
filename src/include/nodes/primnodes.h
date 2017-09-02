@@ -337,7 +337,6 @@ typedef struct WindowRef
 	Oid			winfnoid;		/* pg_proc Oid of the window function */
 	Oid			restype;		/* type Oid of result of the window function */
 	List	   *args;			/* arguments */	
-	Index		winlevelsup;	/* FIXME: unused, but we cannot remove it right now because that would require a catalog change */
 	bool		windistinct;	/* TRUE if it's agg(DISTINCT ...) */
 	Index		winspec;		/* index into Query window clause */
 	
