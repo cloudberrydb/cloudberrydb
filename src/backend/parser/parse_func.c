@@ -138,23 +138,23 @@ agg_is_ordered(Oid funcid)
  */
 Node *
 ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
-                  List *agg_order, bool agg_star, bool agg_distinct, 
-                  bool func_variadic, bool is_column, WindowSpec *over,
+				  List *agg_order, bool agg_star, bool agg_distinct,
+				  bool func_variadic, bool is_column, WindowSpec *over,
 				  int location, Node *agg_filter)
 {
-	Oid			rettype = InvalidOid;
-	Oid			funcid = InvalidOid;
+	Oid			rettype;
+	Oid			funcid;
 	ListCell   *l;
 	ListCell   *nextl;
 	Node	   *first_arg = NULL;
 	int			nargs;
-	int			nvargs = 0;
-	int         nargsplusdefs;
+	int			nargsplusdefs;
 	Oid			actual_arg_types[FUNC_MAX_ARGS];
-	Oid		   *declared_arg_types = NULL;
-	List       *argdefaults = NULL;
-	Node	   *retval = NULL;
-	bool		retset = false;
+	Oid		   *declared_arg_types;
+	List	   *argdefaults;
+	Node	   *retval;
+	bool		retset;
+	int			nvargs;
 	FuncDetailCode fdresult;
 
 	/*
@@ -302,16 +302,15 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	 * func_get_detail looks up the function in the catalogs, does
 	 * disambiguation for polymorphic functions, handles inheritance, and
 	 * returns the funcid and type and set or singleton status of the
-	 * function's return value.  it also returns the true argument types to
-	 * the function. In the case of a variadic function call, the reported
+	 * function's return value.  It also returns the true argument types to
+	 * the function.  In the case of a variadic function call, the reported
 	 * "true" types aren't really what is in pg_proc: the variadic argument is
-	 * replaced by a suitable number of copies of its element type. We'll fix
-	 * it up below. We may also have to deal with default arguments.
+	 * replaced by a suitable number of copies of its element type.  We'll fix
+	 * it up below.  We may also have to deal with default arguments.
 	 */
-	fdresult = func_get_detail(funcname, fargs, nargs,
-							   actual_arg_types, !func_variadic, true,
-							   &funcid, &rettype, &retset,
-							   &nvargs,
+	fdresult = func_get_detail(funcname, fargs, nargs, actual_arg_types,
+							   !func_variadic, true,
+							   &funcid, &rettype, &retset, &nvargs,
 							   &declared_arg_types, &argdefaults);
 	if (fdresult == FUNCDETAIL_COERCION)
 	{
@@ -321,8 +320,7 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		 */
 		return coerce_type(pstate, linitial(fargs),
 						   actual_arg_types[0], rettype, -1,
-						   COERCION_EXPLICIT, COERCE_EXPLICIT_CALL,
-						   -1);
+						   COERCION_EXPLICIT, COERCE_EXPLICIT_CALL, location);
 	}
 	else if (fdresult == FUNCDETAIL_NORMAL)
 	{
@@ -421,7 +419,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	nargsplusdefs = nargs;
 	foreach(l, argdefaults)
 	{
-		Node    *expr = (Node *) lfirst(l);
+		Node	   *expr = (Node *) lfirst(l);
+
 		/* probably shouldn't happen ... */
 		if (nargsplusdefs >= FUNC_MAX_ARGS)
 			ereport(ERROR,
@@ -1075,6 +1074,15 @@ func_get_detail(List *funcname,
 {
 	FuncCandidateList raw_candidates;
 	FuncCandidateList best_candidate;
+
+	/* initialize output arguments to silence compiler warnings */
+	*funcid = InvalidOid;
+	*rettype = InvalidOid;
+	*retset = false;
+	*nvargs = 0;
+	*true_typeids = NULL;
+	if (argdefaults)
+		*argdefaults = NIL;
 
 	/* Get list of possible candidates from namespace search */
 	raw_candidates = FuncnameGetCandidates(funcname, nargs,
