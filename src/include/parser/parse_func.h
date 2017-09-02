@@ -50,8 +50,8 @@ extern FuncDetailCode func_get_detail(List *funcname, List *fargs,
 				int nargs, Oid *argtypes,
 				bool expand_variadic, bool expand_defaults,
 				Oid *funcid, Oid *rettype,
-				bool *retset, bool *retstrict,
-				bool *retordered, int *nvargs,
+				bool *retset,
+				int *nvargs,
 				Oid **true_typeids,
 				List **argdefaults);
 

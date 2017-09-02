@@ -6542,8 +6542,6 @@ generate_function_name(Oid funcid, int nargs, Oid *argtypes,
 	Oid			p_funcid;
 	Oid			p_rettype;
 	bool		p_retset;
-	bool        p_retstrict;
-	bool        p_retordered;
 	int			p_nvargs;
 	Oid		   *p_true_typeids;
 
@@ -6563,7 +6561,7 @@ generate_function_name(Oid funcid, int nargs, Oid *argtypes,
 	p_result = func_get_detail(list_make1(makeString(proname)),
 							   NIL, nargs, argtypes, false, false,
 							   &p_funcid, &p_rettype,
-							   &p_retset, &p_retstrict, &p_retordered,
+							   &p_retset,
 							   &p_nvargs, &p_true_typeids, NULL);
 	if ((p_result == FUNCDETAIL_NORMAL || p_result == FUNCDETAIL_AGGREGATE) &&
 		p_funcid == funcid)

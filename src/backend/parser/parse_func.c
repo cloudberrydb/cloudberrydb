@@ -60,6 +60,63 @@ typedef struct
 static bool 
 checkTableFunctions_walker(Node *node, check_table_func_context *context);
 
+static bool
+trans_fn_is_strict(Oid funcid)
+{
+	Form_pg_aggregate aggform;
+	HeapTuple	ftup;
+	Oid			transfn;
+
+	/*
+	 * All built in aggregations are strict except for int2_sum,
+	 * int4_sum, and int8_sum, all of which are logically strict, but are
+	 * simply defined as non-strict to bootstrap their calculations.
+	 * Since they are logically strict we will not change their results
+	 * by including extra nulls in the calculation so the rewrite won't
+	 * produce incorrect results.
+	 */
+	if (funcid >= SUM_OID_MIN && funcid <= SUM_OID_MAX)
+		return true;
+
+	ftup = SearchSysCache1(AGGFNOID,
+						   ObjectIdGetDatum(funcid));
+	if (!HeapTupleIsValid(ftup))	/* should not happen */
+		elog(ERROR, "cache lookup failed for aggregate %u", funcid);
+	aggform = (Form_pg_aggregate) GETSTRUCT(ftup);
+	transfn = aggform->aggtransfn;
+	ReleaseSysCache(ftup);
+
+	return func_strict(transfn);
+}
+
+static bool
+agg_is_ordered(Oid funcid)
+{
+	HeapTuple	ftup;
+	Datum		value;
+	bool		isnull;
+	bool		isordered;
+
+	ftup = SearchSysCache1(AGGFNOID,
+						   ObjectIdGetDatum(funcid));
+	if (!HeapTupleIsValid(ftup))	/* should not happen */
+		elog(ERROR, "cache lookup failed for aggregate %u", funcid);
+
+	/*
+	 * Check if this is an ordered aggregate - while aggordered
+	 * should never be null it comes after a variable length field
+	 * so we must access it via SysCacheGetAttr.
+	 */
+	value = SysCacheGetAttr(AGGFNOID, ftup,
+							Anum_pg_aggregate_aggordered,
+							&isnull);
+	isordered = (!isnull) && DatumGetBool(value);
+
+	ReleaseSysCache(ftup);
+
+	return isordered;
+}
+
 /*
  *	Parse a function call
  *
@@ -98,8 +155,6 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	List       *argdefaults = NULL;
 	Node	   *retval = NULL;
 	bool		retset = false;
-	bool        retstrict = false;
-	bool        retordered = false;
 	FuncDetailCode fdresult;
 
 	/*
@@ -255,8 +310,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	 */
 	fdresult = func_get_detail(funcname, fargs, nargs,
 							   actual_arg_types, !func_variadic, true,
-							   &funcid, &rettype, &retset, &retstrict,
-							   &retordered, &nvargs,
+							   &funcid, &rettype, &retset,
+							   &nvargs,
 							   &declared_arg_types, &argdefaults);
 	if (fdresult == FUNCDETAIL_COERCION)
 	{
@@ -288,7 +343,7 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 					 errmsg("DISTINCT specified, but %s is not an aggregate function",
 							NameListToString(funcname)),
 					 parser_errposition(pstate, location)));
-        if (agg_order)
+		if (agg_order)
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 					 errmsg("ORDER BY specified, but %s is not an ordered aggregate function",
@@ -518,9 +573,7 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		 * to return an incorrect answer, eg: count_null(i) filter (...) 
 		 * wouldn't differeniate between data nulls vs filtered values.
 		 */
-		if (agg_filter && !retstrict && 
-			(funcid < SUM_OID_MIN || funcid > SUM_OID_MAX))
-		{
+		if (agg_filter && !trans_fn_is_strict(funcid))
 		    ereport(ERROR,
 					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
 					 errmsg("function %s is not defined as STRICT",
@@ -529,7 +582,6 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 					 errhint("The filter clause is only supported over functions "
 							 "defined as STRICT."),
 					 parser_errposition(pstate, location)));
-		}
 
 		if (retset)
 			ereport(ERROR,
@@ -541,14 +593,12 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		 * If this is not an ordered aggregate, but it was called with an
 		 * aggregate order by specification then we must raise an error.
 		 */
-		if (!retordered && agg_order != NIL)
-		{
+		if (agg_order != NIL && !agg_is_ordered(funcid))
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 					 errmsg("ORDER BY specified, but %s is not an ordered aggregate function",
 							NameListToString(funcname)),
-					 parser_errposition(pstate, location)));			
-		}
+					 parser_errposition(pstate, location)));
 
 		/* 
 		 * ordered aggregates are not compatible with distinct
@@ -1019,11 +1069,9 @@ func_get_detail(List *funcname,
 				Oid *funcid,	/* return value */
 				Oid *rettype,	/* return value */
 				bool *retset,	/* return value */
-				bool *retstrict, /* return value */
-				bool *retordered, /* return value */
-				int	 *nvargs,	/* return value */
+				int *nvargs,	/* return value */
 				Oid **true_typeids,		/* return value */
-				List **argdefaults)     /* optional return value */
+				List **argdefaults)		/* optional return value */
 {
 	FuncCandidateList raw_candidates;
 	FuncCandidateList best_candidate;
@@ -1113,8 +1161,6 @@ func_get_detail(List *funcname,
 					*funcid = InvalidOid;
 					*rettype = targetType;
 					*retset = false;
-					*retstrict = false;
-					*retordered = false;
 					*nvargs = 0;
 					*true_typeids = argtypes;
 					return FUNCDETAIL_COERCION;
@@ -1162,10 +1208,7 @@ func_get_detail(List *funcname,
 	{
 		HeapTuple	ftup;
 		Form_pg_proc pform;
-		bool isagg = false;
-		bool isnull;
-		Datum datum;
-		int pronargdefaults;
+		FuncDetailCode result;
 
 		/*
 		 * If expanding variadics or defaults, the "best candidate" might
@@ -1188,26 +1231,19 @@ func_get_detail(List *funcname,
 		pform = (Form_pg_proc) GETSTRUCT(ftup);
 		*rettype = pform->prorettype;
 		*retset = pform->proretset;
-		*retstrict = pform->proisstrict;
-		*retordered = false;
-
-		datum = SysCacheGetAttr(PROCOID, ftup,
-							    Anum_pg_proc_pronargdefaults, &isnull);
-		pronargdefaults = DatumGetObjectId(datum);
-
 		/* fetch default args if caller wants 'em */
 		if (argdefaults)
 		{
 			if (best_candidate->ndargs > 0)
 			{
-				Datum       proargdefaults;
-				bool        isnull;
-				char       *str;
-				List       *defaults;
-				int         ndelete;
+				Datum		proargdefaults;
+				bool		isnull;
+				char	   *str;
+				List	   *defaults;
+				int			ndelete;
 
 				/* shouldn't happen, FuncnameGetCandidates messed up */
-				if (best_candidate->ndargs > pronargdefaults)
+				if (best_candidate->ndargs > pform->pronargdefaults)
 					elog(ERROR, "not enough default arguments");
 
 				proargdefaults = SysCacheGetAttr(PROCOID, ftup,
@@ -1227,46 +1263,12 @@ func_get_detail(List *funcname,
 			else
 				*argdefaults = NIL;
 		}
-
-		isagg = pform->proisagg;
-
+		if (pform->proisagg)
+			result = FUNCDETAIL_AGGREGATE;
+		else
+			result = FUNCDETAIL_NORMAL;
 		ReleaseSysCache(ftup);
-
-		/* 
-		 * For aggregate functions STRICTness is defined by the 
-		 * transition function 
-		 */
-		if (isagg)
-		{
-		    Form_pg_aggregate	aggform;
-			FmgrInfo			transfn;
-			Datum				value;
-			bool				isnull;
-
-			ftup = SearchSysCache1(AGGFNOID,
-								   ObjectIdGetDatum(best_candidate->oid));
-			if (!HeapTupleIsValid(ftup))	/* should not happen */
-			    elog(ERROR, "cache lookup failed for aggregate %u",
-					 best_candidate->oid);
-			aggform = (Form_pg_aggregate) GETSTRUCT(ftup);
-			fmgr_info(aggform->aggtransfn, &transfn);
-			*retstrict = transfn.fn_strict;
-
-			/* 
-			 * Check if this is an ordered aggregate - while aggordered
-			 * should never be null it comes after a variable length field
-			 * so we must access it via SysCacheGetAttr.
-			 */
-			value = SysCacheGetAttr(AGGFNOID, ftup,
-									Anum_pg_aggregate_aggordered,
-									&isnull);
-			*retordered = (!isnull) && DatumGetBool(value);
-
-			ReleaseSysCache(ftup);
-
-			return FUNCDETAIL_AGGREGATE;
-		}
-		return FUNCDETAIL_NORMAL;
+		return result;
 	}
 
 	return FUNCDETAIL_NOTFOUND;

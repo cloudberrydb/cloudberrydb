@@ -863,8 +863,6 @@ validate_describe_callback(List *describeQualName,
 	Oid					 describeReturnTypeOid;
 	Oid					 describeFuncOid;
 	bool				 describeReturnsSet;
-	bool				 describeIsOrdered;
-	bool				 describeIsStrict;
 	FuncDetailCode		 fdResult;
 	AclResult			 aclresult;
 	int					 i;
@@ -929,8 +927,6 @@ validate_describe_callback(List *describeQualName,
 							   &describeFuncOid,
 							   &describeReturnTypeOid, 
 							   &describeReturnsSet,
-							   &describeIsStrict, 
-							   &describeIsOrdered, 
 							   &nvargs,	
 							   &actualInputTypeOids,
 							   NULL);
