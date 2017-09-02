@@ -481,37 +481,10 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		winref->winfnoid = funcid;
 		winref->restype = rettype;
 		winref->args = fargs;
-
-		{
-			/*
-			 * Find if this "over" clause has already existed. If so,
-			 * We let the "winspec" for this WindowRef point to
-			 * the existing "over" clause. In this way, we will be able
-			 * to determine if two WindowRef nodes are actually equal,
-			 * see MPP-4268.
-			 */
-			int winspec = 0;
-			ListCell *over_lc = NULL;
-			
-			transformWindowSpec(pstate, over);
-			
-			foreach (over_lc, pstate->p_win_clauses)
-			{
-				Node *over1 = lfirst(over_lc);
-				if (equal(over1, over))
-					break;
-				winspec++;
-			}
-				
-			if (over_lc == NULL)
-				pstate->p_win_clauses = lappend(pstate->p_win_clauses, over);
-			winref->winspec = winspec;
-		}
-
 		winref->windistinct = agg_distinct;
 		winref->location = location;
 
-		transformWindowFuncCall(pstate, winref);
+		transformWindowFuncCall(pstate, winref, over);
 		retval = (Node *) winref;
 	}
 	else
