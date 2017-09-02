@@ -24,13 +24,13 @@
 #include "pxfuriparser.h"
 
 /* convert input string to upper case and prepend "X-GP-" prefix */
-char* normalize_key_name(const char* key);
+char	   *normalize_key_name(const char *key);
 
 /* get the name of the type, given the OID */
-char* TypeOidGetTypename(Oid typid);
+char	   *TypeOidGetTypename(Oid typid);
 
 /* Concatenate multiple literal strings using stringinfo */
-char* concat(int num_args, ...);
+char	   *concat(int num_args,...);
 
 #define PXF_CLUSTER       "default"
 #define PXF_PROFILE       "PROFILE"
@@ -41,4 +41,4 @@ char* concat(int num_args, ...);
 #define PxfDefaultHost    "localhost"
 #define PxfDefaultPort    51200
 
-#endif  // _PXFUTILS_H_
+#endif							/* _PXFUTILS_H_ */

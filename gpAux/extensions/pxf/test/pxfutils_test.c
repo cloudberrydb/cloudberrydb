@@ -31,61 +31,67 @@
 void
 test_normalize_key_name(void **state)
 {
-    char* replaced = normalize_key_name("bar");
-    assert_string_equal(replaced, "X-GP-BAR");
-    pfree(replaced);
+	char	   *replaced = normalize_key_name("bar");
 
-    replaced = normalize_key_name("FOO");
-    assert_string_equal(replaced, "X-GP-FOO");
-    pfree(replaced);
+	assert_string_equal(replaced, "X-GP-BAR");
+	pfree(replaced);
 
-    /* test null string */
-    MemoryContext old_context = CurrentMemoryContext;
-    PG_TRY();
-    {
-        replaced = normalize_key_name(NULL);
-        assert_false("Expected Exception");
-    }
-    PG_CATCH();
-    {
-        MemoryContextSwitchTo(old_context);
-        ErrorData *edata = CopyErrorData();
-        assert_true(edata->elevel == ERROR);
-        char* expected_message = pstrdup("internal error in pxfutils.c:normalize_key_name. Parameter key is null or empty.");
-        assert_string_equal(edata->message, expected_message);
-        pfree(expected_message);
-    }
-    PG_END_TRY();
+	replaced = normalize_key_name("FOO");
+	assert_string_equal(replaced, "X-GP-FOO");
+	pfree(replaced);
 
-    /* test empty string */
-    PG_TRY();
-    {
-        replaced = normalize_key_name("");
-        assert_false("Expected Exception");
-    }
-    PG_CATCH();
-    {
-        MemoryContextSwitchTo(old_context);
-        ErrorData *edata = CopyErrorData();
-        assert_true(edata->elevel == ERROR);
-        char* expected_message = pstrdup("internal error in pxfutils.c:normalize_key_name. Parameter key is null or empty.");
-        assert_string_equal(edata->message, expected_message);
-        pfree(expected_message);
-    }
-    PG_END_TRY();
+	/* test null string */
+	MemoryContext old_context = CurrentMemoryContext;
+
+	PG_TRY();
+	{
+		replaced = normalize_key_name(NULL);
+		assert_false("Expected Exception");
+	}
+	PG_CATCH();
+	{
+		MemoryContextSwitchTo(old_context);
+		ErrorData  *edata = CopyErrorData();
+
+		assert_true(edata->elevel == ERROR);
+		char	   *expected_message = pstrdup("internal error in pxfutils.c:normalize_key_name. Parameter key is null or empty.");
+
+		assert_string_equal(edata->message, expected_message);
+		pfree(expected_message);
+	}
+	PG_END_TRY();
+
+	/* test empty string */
+	PG_TRY();
+	{
+		replaced = normalize_key_name("");
+		assert_false("Expected Exception");
+	}
+	PG_CATCH();
+	{
+		MemoryContextSwitchTo(old_context);
+		ErrorData  *edata = CopyErrorData();
+
+		assert_true(edata->elevel == ERROR);
+		char	   *expected_message = pstrdup("internal error in pxfutils.c:normalize_key_name. Parameter key is null or empty.");
+
+		assert_string_equal(edata->message, expected_message);
+		pfree(expected_message);
+	}
+	PG_END_TRY();
 
 }
 
 int
-main(int argc, char* argv[])
+main(int argc, char *argv[])
 {
-    cmockery_parse_arguments(argc, argv);
+	cmockery_parse_arguments(argc, argv);
 
-    const UnitTest tests[] = {
-            unit_test(test_normalize_key_name)
-    };
+	const		UnitTest tests[] = {
+		unit_test(test_normalize_key_name)
+	};
 
-    MemoryContextInit();
+	MemoryContextInit();
 
-    return run_tests(tests);
+	return run_tests(tests);
 }
