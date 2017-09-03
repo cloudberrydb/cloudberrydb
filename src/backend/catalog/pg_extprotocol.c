@@ -175,6 +175,8 @@ ExtProtocolCreate(const char *protocolName,
 
 	/* dependency on owner */
 	recordDependencyOnOwner(ExtprotocolRelationId, protOid, GetUserId());
+	/* dependency on extension */
+	recordDependencyOnCurrentExtension(&myself, false);
 
 	return protOid;
 }
