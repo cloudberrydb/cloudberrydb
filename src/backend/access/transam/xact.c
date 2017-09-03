@@ -5204,6 +5204,9 @@ TransactionBlockStatusCode(void)
 	return 0;					/* keep compiler quiet */
 }
 
+/*
+ * IsSubTransaction
+ */
 bool
 IsSubTransaction(void)
 {
