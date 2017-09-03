@@ -668,29 +668,6 @@ _readUpdateStmt(void)
 	READ_DONE();
 }
 
-/*
- * _readFuncCall
- *
- * This parsenode is transformed during parse_analyze.
- * It not stored in views = no upgrade implication for changes
- */
-static FuncCall *
-_readFuncCall(void)
-{
-	READ_LOCALS(FuncCall);
-
-	READ_NODE_FIELD(funcname);
-	READ_NODE_FIELD(args);
-    READ_NODE_FIELD(agg_order);
-	READ_BOOL_FIELD(agg_star);
-	READ_BOOL_FIELD(agg_distinct);
-	READ_BOOL_FIELD(func_variadic);
-	READ_NODE_FIELD(over);
-	READ_INT_FIELD(location);
-	READ_NODE_FIELD(agg_filter);
-	READ_DONE();
-}
-
 static A_Const *
 _readAConst(void)
 {

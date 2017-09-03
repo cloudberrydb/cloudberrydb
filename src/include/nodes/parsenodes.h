@@ -317,13 +317,13 @@ typedef struct FuncCall
 	NodeTag		type;
 	List	   *funcname;		/* qualified name of function */
 	List	   *args;			/* the arguments (list of exprs) */
-    List       *agg_order;      /* ORDER BY (list of SortBy) */
+	List	   *agg_order;		/* ORDER BY (list of SortBy) */
+	Node	   *agg_filter;		/* FILTER clause, if any */
 	bool		agg_star;		/* argument was really '*' */
 	bool		agg_distinct;	/* arguments were labeled DISTINCT */
 	bool		func_variadic;	/* last argument was labeled VARIADIC */
-	int			location;		/* token location, or -1 if unknown */
 	struct WindowSpec *over;	/* OVER clause, if any */
-    Node       *agg_filter;     /* aggregation filter clause */
+	int			location;		/* token location, or -1 if unknown */
 } FuncCall;
 
 /*

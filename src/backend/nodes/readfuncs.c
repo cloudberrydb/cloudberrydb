@@ -1110,7 +1110,6 @@ _readArrayCoerceExpr(void)
 	READ_DONE();
 }
 
-#ifndef COMPILING_BINARY_FUNCS
 /*
  * _readFuncCall
  *
@@ -1124,18 +1123,16 @@ _readFuncCall(void)
 
 	READ_NODE_FIELD(funcname);
 	READ_NODE_FIELD(args);
-    READ_NODE_FIELD(agg_order);
+	READ_NODE_FIELD(agg_order);
+	READ_NODE_FIELD(agg_filter);
 	READ_BOOL_FIELD(agg_star);
 	READ_BOOL_FIELD(agg_distinct);
 	READ_BOOL_FIELD(func_variadic);
+	READ_NODE_FIELD(over);
     READ_INT_FIELD(location);
-
-	READ_NODE_FIELD(over);          /*CDB*/
-	READ_NODE_FIELD(agg_filter);    /*CDB*/
 
 	READ_DONE();
 }
-#endif /* COMPILING_BINARY_FUNCS */
 
 static DefElem *
 _readDefElem(void)

@@ -2514,13 +2514,13 @@ _copyFuncCall(FuncCall *from)
 
 	COPY_NODE_FIELD(funcname);
 	COPY_NODE_FIELD(args);
-    COPY_NODE_FIELD(agg_order);
+	COPY_NODE_FIELD(agg_order);
+	COPY_NODE_FIELD(agg_filter);
 	COPY_SCALAR_FIELD(agg_star);
 	COPY_SCALAR_FIELD(agg_distinct);
 	COPY_SCALAR_FIELD(func_variadic);
 	COPY_NODE_FIELD(over);
 	COPY_SCALAR_FIELD(location);
-	COPY_NODE_FIELD(agg_filter);
 
 	return newnode;
 }
