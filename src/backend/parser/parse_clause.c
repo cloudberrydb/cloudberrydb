@@ -708,7 +708,7 @@ transformWindowClause(ParseState *pstate, Query *qry)
 	/* If there are no window functions in the targetlist,
 	 * forget the window clause.
 	 */
-	if (!pstate->p_hasWindFuncs)
+	if (!pstate->p_hasWindowFuncs)
 	{
 		pstate->p_win_clauses = NIL;
 		qry->windowClause = NIL;
@@ -2851,7 +2851,7 @@ transformDistinctClause(ParseState *pstate, List *distinctlist,
 	{
 		/* We had SELECT DISTINCT */
 
-		if (!pstate->p_hasAggs && !pstate->p_hasWindFuncs && *groupClause == NIL)
+		if (!pstate->p_hasAggs && !pstate->p_hasWindowFuncs && *groupClause == NIL)
 		{
 			/*
 			 * MPP-15040

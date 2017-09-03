@@ -1280,7 +1280,7 @@ CQueryMutators::PqueryNormalizeHaving
 		pqueryNewSubquery->targetList = NIL;
 
 		pqueryNewSubquery->hasAggs = false;
-		pqueryNewSubquery->hasWindFuncs = false;
+		pqueryNewSubquery->hasWindowFuncs = false;
 		pqueryNewSubquery->hasSubLinks = false;
 
 		ListCell *plc = NULL;
@@ -1595,7 +1595,7 @@ CQueryMutators::FNeedsWindowPrLNormalization
 	const Query *pquery
 	)
 {
-	if (!pquery->hasWindFuncs)
+	if (!pquery->hasWindowFuncs)
 	{
 		return false;
 	}
@@ -1759,7 +1759,7 @@ CQueryMutators::PqueryNormalizeWindowPrL
 
 	GPOS_ASSERT(gpdb::UlListLength(pqueryNew->targetList) <= gpdb::UlListLength(pquery->targetList));
 
-	pqueryNew->hasWindFuncs = false;
+	pqueryNew->hasWindowFuncs = false;
 	ReassignSortClause(pqueryNew, pqueryDrdTbl);
 
 	return pqueryNew;

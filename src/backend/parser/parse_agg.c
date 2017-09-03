@@ -121,7 +121,7 @@ check_call(ParseState *pstate, Node *call)
 	if (is_agg)
 		pstate->p_hasAggs = true;
 	else 
-		pstate->p_hasWindFuncs = true;
+		pstate->p_hasWindowFuncs = true;
 }
 
 /*
@@ -212,7 +212,7 @@ transformWindowFuncCall(ParseState *pstate, WindowRef *wind,
 
 	check_call(pstate, (Node *)wind);
 
-	pstate->p_hasWindFuncs = true;
+	pstate->p_hasWindowFuncs = true;
 }
 
 /*
@@ -995,7 +995,7 @@ void
 parseProcessWindFuncs(ParseState *pstate, Query *qry)
 {
 	/* This should only be called if we found window functions */
-	Assert(pstate->p_hasWindFuncs);
+	Assert(pstate->p_hasWindowFuncs);
 
 	/*
 	 * Window functions must never appear in WHERE or 

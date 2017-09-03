@@ -296,7 +296,7 @@ window_planner(PlannerInfo *root, double tuple_fraction, List **pathkeys_ptr)
 	/* Assert existence of windowing in query. */
 	Assert(parse->targetList != NIL);
 	Assert(parse->windowClause != NULL);
-	Assert(parse->hasWindFuncs);	
+	Assert(parse->hasWindowFuncs);
 	/* Assert no unsupported stuff */
 	Assert(parse->setOperations == NULL);
 	Assert(!parse->hasAggs);
@@ -1303,7 +1303,7 @@ make_lower_targetlist(Query *parse,
 	SortClause *dummy;
 	ListCell   *lc;
 
-	Assert ( parse->hasWindFuncs );
+	Assert ( parse->hasWindowFuncs );
 	
 	/* Start with a "flattened" tlist (having just the vars mentioned in 
 	 * the targetlist or the window clause --- but no upper-level Vars; 
@@ -3958,7 +3958,7 @@ Plan *wrap_plan(PlannerInfo *root, Plan *plan, Query *query,
 	subquery->resultRelation = 0;
 	subquery->intoClause = NULL;
 	subquery->hasAggs = false;
-	subquery->hasWindFuncs = false;
+	subquery->hasWindowFuncs = false;
 	subquery->hasSubLinks = false;
 	subquery->returningList = NIL;
 	subquery->groupClause = NIL;
@@ -4084,7 +4084,7 @@ Query *copy_common_subquery(Query *original, List *targetList)
 	common->resultRelation = 0;
 	common->utilityStmt = NULL;
 	common->intoClause = NULL;
-	common->hasWindFuncs = false;
+	common->hasWindowFuncs = false;
 	common->hasSubLinks = false; /* XXX */
 	common->returningList = NIL;
 	common->distinctClause = NIL;

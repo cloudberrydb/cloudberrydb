@@ -84,7 +84,7 @@ typedef struct ParseState
 	Node	   *p_value_substitute;		/* what to replace VALUE with, if any */
 	bool		p_variableparams;
 	bool		p_hasAggs;
-	bool		p_hasWindFuncs;
+	bool		p_hasWindowFuncs;
 	bool		p_hasSubLinks;
 	bool		p_hasModifyingCTE;
 	bool		p_is_insert;
