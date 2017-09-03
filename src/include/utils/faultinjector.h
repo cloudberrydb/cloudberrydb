@@ -205,7 +205,6 @@ typedef enum FaultInjectorIdentifier_e {
 
 	RunawayCleanup,
 
-	OptTaskAllocateStringBuffer,
 	OptRelcacheTranslatorCatalogAccess,
 
 	SendQEDetailsInitBackend,
