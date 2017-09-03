@@ -457,7 +457,7 @@ transformWindowClause(ParseState *pstate, Query *qry)
 
 		clauseno++;
 
-		if (checkExprHasWindFuncs((Node *)ws))
+		if (checkExprHasWindowFuncs((Node *)ws))
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
 					 errmsg("cannot use window function in a window specification"),

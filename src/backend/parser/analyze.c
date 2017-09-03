@@ -955,7 +955,7 @@ transformGroupedWindows(Query *qry)
 	/* Check if there is a window function in the join tree. If so
 	 * we must mark hasWindowFuncs in the sub query as well.
 	 */
-	if (checkExprHasWindFuncs((Node *)subq->jointree))
+	if (checkExprHasWindowFuncs((Node *)subq->jointree))
 		subq->hasWindowFuncs = true;
 
 	/* Make the single range table entry for the outer query Q' as

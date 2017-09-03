@@ -39,6 +39,7 @@ static bool checkExprHasAggs_walker(Node *node,
 						checkExprHasAggs_context *context);
 static bool locate_agg_of_level_walker(Node *node,
 						   locate_agg_of_level_context *context);
+static bool contain_windowfuncs_walker(Node *node, void *context);
 static bool checkExprHasSubLink_walker(Node *node, void *context);
 static Relids offset_relid_set(Relids relids, int offset);
 static Relids adjust_relid_set(Relids relids, int oldrelid, int newrelid);
@@ -178,6 +179,86 @@ locate_agg_of_level_walker(Node *node,
 		return result;
 	}
 	return expression_tree_walker(node, locate_agg_of_level_walker,
+								  (void *) context);
+}
+
+/*
+ * checkExprHasWindowFuncs -
+ *	Check if an expression contains a window function call of the
+ *	current query level.
+ */
+bool
+checkExprHasWindowFuncs(Node *node)
+{
+	/*
+	 * Must be prepared to start with a Query or a bare expression tree; if
+	 * it's a Query, we don't want to increment sublevels_up.
+	 */
+	return query_or_expression_tree_walker(node,
+										   contain_windowfuncs_walker,
+										   NULL,
+										   0);
+}
+
+static bool
+contain_windowfuncs_walker(Node *node, void *context)
+{
+	if (node == NULL)
+		return false;
+	if (IsA(node, WindowRef))
+	{
+		return true;		/* abort the tree traversal and return true */
+	}
+	else if (IsA(node, SortBy))
+	{
+		SortBy	   *s = (SortBy *) node;
+		return contain_windowfuncs_walker(s->node, context);
+	}
+	else if (IsA(node, WindowFrame))
+	{
+		WindowFrame *f = (WindowFrame *) node;
+		if (contain_windowfuncs_walker((Node *)f->trail, context))
+			return true;
+		if (contain_windowfuncs_walker((Node *)f->lead, context))
+			return true;
+	}
+	else if (IsA(node, WindowFrameEdge))
+	{
+		WindowFrameEdge *e = (WindowFrameEdge *) node;
+
+		return contain_windowfuncs_walker(e->val, context);
+	}
+	else if (IsA(node, Query))
+	{
+		/* Recurse into subselects */
+		return query_tree_walker((Query *) node,
+								 contain_windowfuncs_walker,
+								 NULL, 0);
+	}
+	else if(IsA(node, A_Expr))
+	{
+		/* could be seen inside an untransformed window clause */
+		return false;
+	}
+	else if(IsA(node, ColumnRef))
+	{
+		/* could be seen inside an untransformed window clause */
+		return false;
+	}
+
+	else if (IsA(node, A_Const))
+	{
+		/* could be seen inside an untransformed window clause */
+		return false;
+	}
+
+	else if (IsA(node, TypeCast))
+	{
+		/* could be seen inside an untransformed window clause */
+		return false;
+	}
+
+	return expression_tree_walker(node, contain_windowfuncs_walker,
 								  (void *) context);
 }
 

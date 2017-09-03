@@ -2267,7 +2267,7 @@ transformPercentileExpr(ParseState *pstate, PercentileExpr *p)
 				 errmsg("argument of percentile function must not contain aggregates"),
 				 parser_errposition(pstate,
 									locate_agg_of_level(arg, 0))));
-	if (checkExprHasWindFuncs(arg))
+	if (checkExprHasWindowFuncs(arg))
 		ereport(ERROR,
 				(errcode(ERRCODE_GROUPING_ERROR),
 				 errmsg("argument of percentile function must not contain window functions"),
@@ -2475,7 +2475,7 @@ transformPercentileExpr(ParseState *pstate, PercentileExpr *p)
 					 errmsg("argument of percentile function must not contain aggregates"),
 					 parser_errposition(pstate,
 										locate_agg_of_level((Node *) p->sortTargets, 0))));
-		if (checkExprHasWindFuncs((Node *) p->sortTargets))
+		if (checkExprHasWindowFuncs((Node *) p->sortTargets))
 			ereport(ERROR,
 					(errcode(ERRCODE_GROUPING_ERROR),
 					 errmsg("argument of percentile function must not contain window functions"),

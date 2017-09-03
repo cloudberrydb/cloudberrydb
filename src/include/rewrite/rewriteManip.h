@@ -39,6 +39,7 @@ extern void AddInvertedQual(Query *parsetree, Node *qual);
 
 extern int	locate_agg_of_level(Node *node, int levelsup);
 extern bool checkExprHasAggs(Node *node);
+extern bool checkExprHasWindowFuncs(Node *node);
 extern bool checkExprHasSubLink(Node *node);
 
 extern Node *map_variable_attnos(Node *node,

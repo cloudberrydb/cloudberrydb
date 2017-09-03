@@ -88,7 +88,7 @@ check_call(ParseState *pstate, Node *call)
 					 parser_errposition(pstate,
 							   locate_agg_of_level((Node *) agg->args, 0))));
 
-		if (checkExprHasWindFuncs((Node *) agg->args))
+		if (checkExprHasWindowFuncs((Node *) agg->args))
 			ereport(ERROR,
 					(errcode(ERRCODE_GROUPING_ERROR),
 					 errmsg("window functions may not be used as arguments to aggregates")));
@@ -100,7 +100,7 @@ check_call(ParseState *pstate, Node *call)
 	 */
 	if (min_varlevel == 0 && !is_agg)
 	{
-		if (checkExprHasWindFuncs((Node *)((WindowRef *)call)->args))
+		if (checkExprHasWindowFuncs((Node *)((WindowRef *)call)->args))
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_GROUPING_ERROR),
@@ -276,15 +276,15 @@ parseCheckAggregates(ParseState *pstate, Query *qry)
 				 parser_errposition(pstate,
 				 locate_agg_of_level((Node *) qry->jointree->fromlist, 0))));
 
-	if (checkExprHasWindFuncs(qry->jointree->quals))
+	if (checkExprHasWindowFuncs(qry->jointree->quals))
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
 				 errmsg("window functions not allowed in WHERE clause")));
-	if (checkExprHasWindFuncs((Node *) qry->jointree->fromlist))
+	if (checkExprHasWindowFuncs((Node *) qry->jointree->fromlist))
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
 				 errmsg("window functions not allowed in JOIN conditions")));
-	if (checkExprHasWindFuncs((Node *) qry->havingQual))
+	if (checkExprHasWindowFuncs((Node *) qry->havingQual))
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
 				 errmsg("window functions not allowed in HAVING conditions")));
@@ -765,7 +765,7 @@ check_aggregate_ingroup(Node *grpcl, ParseState *pstate, List *targetList, List 
 					(errcode(ERRCODE_GROUPING_ERROR),
 					 errmsg("grouping() or group_id() not allowed in GROUP BY clause")));
 
-		if (checkExprHasWindFuncs(expr))
+		if (checkExprHasWindowFuncs(expr))
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
 					 errmsg("window functions not allowed in GROUP BY clause")));
@@ -773,92 +773,6 @@ check_aggregate_ingroup(Node *grpcl, ParseState *pstate, List *targetList, List 
 	}
 
 	return result;
-}
-
-static bool
-checkExprHasWindFuncs_walker(Node *node, void *context)
-{
-	if (node == NULL)
-		return false;
-	if (IsA(node, WindowRef))
-	{
-		return true;		/* abort the tree traversal and return true */
-	}
-	else if (IsA(node, SortBy))
-	{
-		SortBy *s = (SortBy *)node;
-		return checkExprHasWindFuncs_walker(s->node, context);
-	}
-	else if (IsA(node, WindowFrame))
-	{
-		WindowFrame *f = (WindowFrame *)node;
-		if (checkExprHasWindFuncs_walker((Node *)f->trail, context))
-			return true;
-		if (checkExprHasWindFuncs_walker((Node *)f->lead, context))
-			return true;
-	}
-	else if (IsA(node, WindowFrameEdge))
-	{
-		WindowFrameEdge *e = (WindowFrameEdge *)node;
-
-		return checkExprHasWindFuncs_walker(e->val, context);
-	}
-	else if (IsA(node, Query))
-	{
-		/* Recurse into subselects */
-		return query_tree_walker((Query *) node,
-								 checkExprHasWindFuncs_walker,
-								 (void *) context, 0);
-	}
-	else if(IsA(node, A_Expr))
-	{
-		/* could be seen inside an untransformed window clause */
-		return false;
-	}
-	else if(IsA(node, ColumnRef))
-	{
-		/* could be seen inside an untransformed window clause */
-		return false;
-	}
-
-	else if (IsA(node, A_Const))
-	{
-		/* could be seen inside an untransformed window clause */
-		return false;
-	}
-
-	else if (IsA(node, TypeCast))
-	{
-		/* could be seen inside an untransformed window clause */
-		return false;
-	}
-	
-	return expression_tree_walker(node, checkExprHasWindFuncs_walker,
-								  (void *) context);
-}
-
-/*
- * checkExprHasWindFuncs -
- *	Check if an expression contains a window function call.
- *
- * The objective of this routine is to detect whether there are window functions
- * belonging to the initial query level. Window functions belonging to 
- * subqueries or outer queries do NOT cause a true result.  We must recurse into
- * subqueries to detect outer-reference window functions that logically belong 
- * to the initial query level.
- *
- * Compare this function to checkExprHasAggs().
- */
-bool
-checkExprHasWindFuncs(Node *node)
-{
-	/*
-	 * Must be prepared to start with a Query or a bare expression tree; if
-	 * it's a Query, we don't want to increment sublevels_up.
-	 */
-	return query_or_expression_tree_walker(node,
-										   checkExprHasWindFuncs_walker,
-										   NULL, 0);
 }
 
 static bool
@@ -1007,12 +921,12 @@ parseProcessWindFuncs(ParseState *pstate, Query *qry)
 	 * problem is in WHERE.)
 	 */
 
-	if (checkExprHasWindFuncs(qry->jointree->quals))
+	if (checkExprHasWindowFuncs(qry->jointree->quals))
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
 				 errmsg("window functions not allowed in WHERE clause")));
 /*	if (checkExprHasAggs((Node *) qry->jointree->fromlist)) */
-	if (checkExprHasWindFuncs((Node *) qry->jointree->fromlist))
+	if (checkExprHasWindowFuncs((Node *) qry->jointree->fromlist))
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
 				 errmsg("window functions not allowed in JOIN conditions")));
