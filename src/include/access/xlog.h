@@ -200,8 +200,6 @@ extern bool XLog_CanBypassWal(void);
  */
 extern bool XLog_UnconvertedCanBypassWal(void);
 
-extern char *writeBufAligned;
-
 extern bool am_startup;
 
 #ifdef WAL_DEBUG
@@ -326,8 +324,6 @@ extern int XLogRecoverMirrorControlFile(void);
 extern int XLogAddRecordsToChangeTracking(
 	XLogRecPtr	*lastChangeTrackingEndLoc);
 extern void XLogInChangeTrackingTransition(void);
-
-extern void XLogInitMirroredAlignedBuffer(int32 bufferLen);
 
 extern void xlog_print_redo_read_buffer_not_found(
 		Relation		reln,
