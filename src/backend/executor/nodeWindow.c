@@ -4679,45 +4679,13 @@ fetchCurrentRow(WindowState * wstate)
 		{
 			if (level_state->is_rows)
 			{
-				if (equal(level_state->frame->lead, level_state->frame->trail))
-				{
-					NTupleStorePos pos;
-					bool		found = false;
-
-					level_state->num_trail_rows = level_state->num_lead_rows;
-					level_state->trail_rows = level_state->lead_rows;
-
-					found = ntuplestore_acc_tell(level_state->lead_reader, &pos);
-					if (found)
-					{
-						ntuplestore_acc_seek(level_state->trail_reader, &pos);
-
-						/* We back off one for the trailing edge. */
-						ntuplestore_acc_advance(level_state->trail_reader, -1);
-					}
-
-					else
-					{
-						if (level_state->num_trail_rows > 0 ||
-							level_state->trail_rows == 0)
-						{
-							ntuplestore_acc_seek_last(level_state->trail_reader);
-							if (level_state->num_trail_rows > 0)
-								level_state->num_trail_rows--;
-						}
-
-						else
-							ntuplestore_acc_set_invalid(level_state->trail_reader);
-					}
-				}
-				else
-					adjustDelayBoundEdgeForRows(level_state, wstate,
-												level_state->frame->trail,
-												level_state->trail_expr,
-												level_state->trail_reader,
-												&(level_state->trail_rows),
-											  &(level_state->num_trail_rows),
-												false);
+				adjustDelayBoundEdgeForRows(level_state, wstate,
+											level_state->frame->trail,
+											level_state->trail_expr,
+											level_state->trail_reader,
+											&(level_state->trail_rows),
+											&(level_state->num_trail_rows),
+											false);
 			}
 			else
 			{
