@@ -534,7 +534,6 @@ typedef struct DefElem
 	DefElemAction defaction;	/* unspecified action, or SET/ADD/DROP */
 } DefElem;
 
-
 /*
  * LockingClause - raw representation of FOR UPDATE/SHARE options
  *
@@ -1014,7 +1013,6 @@ typedef struct WindowSpec
  * nodes replaced by SetOperationStmt nodes.
  * ----------------------
  */
-
 typedef struct SetOperationStmt
 {
 	NodeTag		type;

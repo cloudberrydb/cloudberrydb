@@ -426,7 +426,6 @@ typedef struct FuncExpr
 	bool        is_tablefunc;   /* Is a TableFunction reference */
 } FuncExpr;
 
-
 /*
  * OpExpr - expression node for an operator invocation
  *
@@ -966,6 +965,50 @@ typedef struct MinMaxExpr
 } MinMaxExpr;
 
 /*
+ * XmlExpr - various SQL/XML functions requiring special grammar productions
+ *
+ * 'name' carries the "NAME foo" argument (already XML-escaped).
+ * 'named_args' and 'arg_names' represent an xml_attribute list.
+ * 'args' carries all other arguments.
+ *
+ * Note: result type/typmod/collation are not stored, but can be deduced
+ * from the XmlExprOp.  The type/typmod fields are just used for display
+ * purposes, and are NOT necessarily the true result type of the node.
+ * (We also use type == InvalidOid to mark a not-yet-parse-analyzed XmlExpr.)
+ */
+typedef enum XmlExprOp
+{
+	IS_XMLCONCAT,				/* XMLCONCAT(args) */
+	IS_XMLELEMENT,				/* XMLELEMENT(name, xml_attributes, args) */
+	IS_XMLFOREST,				/* XMLFOREST(xml_attributes) */
+	IS_XMLPARSE,				/* XMLPARSE(text, is_doc, preserve_ws) */
+	IS_XMLPI,					/* XMLPI(name [, args]) */
+	IS_XMLROOT,					/* XMLROOT(xml, version, standalone) */
+	IS_XMLSERIALIZE,			/* XMLSERIALIZE(is_document, xmlval) */
+	IS_DOCUMENT					/* xmlval IS DOCUMENT */
+} XmlExprOp;
+
+typedef enum
+{
+	XMLOPTION_DOCUMENT,
+	XMLOPTION_CONTENT
+} XmlOptionType;
+
+typedef struct XmlExpr
+{
+	Expr		xpr;
+	XmlExprOp	op;				/* xml function ID */
+	char	   *name;			/* name in xml(NAME foo ...) syntaxes */
+	List	   *named_args;		/* non-XML expressions for xml_attributes */
+	List	   *arg_names;		/* parallel list of Value strings */
+	List	   *args;			/* list of expressions */
+	XmlOptionType xmloption;	/* DOCUMENT or CONTENT */
+	Oid			type;			/* target type/typmod for XMLSERIALIZE */
+	int32		typmod;
+	int			location;		/* token location, or -1 if unknown */
+} XmlExpr;
+
+/*
  * NullIfExpr - a NULLIF expression
  *
  * Like DistinctExpr, this is represented the same as an OpExpr referencing
@@ -1018,50 +1061,6 @@ typedef struct BooleanTest
 	Expr	   *arg;			/* input expression */
 	BoolTestType booltesttype;	/* test type */
 } BooleanTest;
-
-/*
- * XmlExpr - various SQL/XML functions requiring special grammar productions
- *
- * 'name' carries the "NAME foo" argument (already XML-escaped).
- * 'named_args' and 'arg_names' represent an xml_attribute list.
- * 'args' carries all other arguments.
- *
- * Note: result type/typmod/collation are not stored, but can be deduced
- * from the XmlExprOp.  The type/typmod fields are just used for display
- * purposes, and are NOT necessarily the true result type of the node.
- * (We also use type == InvalidOid to mark a not-yet-parse-analyzed XmlExpr.)
- */
-typedef enum XmlExprOp
-{
-	IS_XMLCONCAT,				/* XMLCONCAT(args) */
-	IS_XMLELEMENT,				/* XMLELEMENT(name, xml_attributes, args) */
-	IS_XMLFOREST,				/* XMLFOREST(xml_attributes) */
-	IS_XMLPARSE,				/* XMLPARSE(text, is_doc, preserve_ws) */
-	IS_XMLPI,					/* XMLPI(name [, args]) */
-	IS_XMLROOT,					/* XMLROOT(xml, version, standalone) */
-	IS_XMLSERIALIZE,			/* XMLSERIALIZE(is_document, xmlval) */
-	IS_DOCUMENT					/* xmlval IS DOCUMENT */
-} XmlExprOp;
-
-typedef enum
-{
-	XMLOPTION_DOCUMENT,
-	XMLOPTION_CONTENT
-} XmlOptionType;
-
-typedef struct XmlExpr
-{
-	Expr		xpr;
-	XmlExprOp	op;				/* xml function ID */
-	char	   *name;			/* name in xml(NAME foo ...) syntaxes */
-	List	   *named_args;		/* non-XML expressions for xml_attributes */
-	List	   *arg_names;		/* parallel list of Value strings */
-	List	   *args;			/* list of expressions */
-	XmlOptionType xmloption;	/* DOCUMENT or CONTENT */
-	Oid			type;			/* target type/typmod for XMLSERIALIZE */
-	int32		typmod;
-	int			location;		/* token location, or -1 if unknown */
-} XmlExpr;
 
 /*
  * CoerceToDomain
