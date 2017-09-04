@@ -2237,6 +2237,18 @@ StartTransaction(void)
 	}
 
 	/*
+	 * Acquire a resource group slot.
+	 *
+	 * AssignResGroupOnMaster() might throw error, so call it before touch
+	 * transaction state.
+	 * Slot is successfully acquired when AssignResGroupOnMaster() is returned,
+	 * this slot will be release when transaction is committed or abortted,
+	 * so don't error out before transaction state is set to TRANS_START.
+	 */
+	if (ShouldAssignResGroupOnMaster())
+		AssignResGroupOnMaster();
+
+	/*
 	 * Let's just make sure the state stack is empty
 	 */
 	s = &TopTransactionStateData;
@@ -2248,11 +2260,6 @@ StartTransaction(void)
 	if (s->state != TRANS_DEFAULT)
 		elog(WARNING, "StartTransaction while in %s state",
 			 TransStateAsString(s->state));
-
-	/* Acquire a resource group slot at the beginning of a transaction */
-	if (ShouldAssignResGroupOnMaster())
-		AssignResGroupOnMaster();
-
 	/*
 	 * set the current transaction state information appropriately during
 	 * start processing

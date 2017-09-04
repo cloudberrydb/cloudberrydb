@@ -335,6 +335,8 @@ FaultInjectorIdentifierEnumToString[] = {
 		/* inject fault in FinishPreparedTransaction() after recording the commit prepared record */
 	_("gang_created"),
 		/* inject fault to report ERROR just after creating Gang */
+	_("resgroup_assigned_on_master"),
+		/* inject fault to report ERROR just after resource group is assigned on master */
 	_("not recognized"),
 };
 
