@@ -41,6 +41,7 @@
 #include "parser/parse_coerce.h"
 #include "parser/parse_func.h"
 #include "parser/parse_expr.h"
+#include "rewrite/rewriteManip.h"
 #include "tcop/tcopprot.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
@@ -77,7 +78,6 @@ static bool expression_returns_set_rows_walker(Node *node, double *count);
 static bool contain_subplans_walker(Node *node, void *context);
 static bool contain_mutable_functions_walker(Node *node, void *context);
 static bool contain_volatile_functions_walker(Node *node, void *context);
-static bool contain_window_functions_walker(Node *node, void *context);
 static bool contain_nonstrict_functions_walker(Node *node, void *context);
 static Relids find_nonnullable_rels_walker(Node *node, bool top_level);
 static bool is_strict_saop(ScalarArrayOpExpr *expr, bool falseOK);
@@ -573,6 +573,25 @@ count_agg_clauses_walker(Node *node, AggClauseCounts *counts)
 
 
 /*****************************************************************************
+ *		Window-function clause manipulation
+ *****************************************************************************/
+
+/*
+ * contain_window_function
+ *	  Recursively search for WindowFunc nodes within a clause.
+ *
+ * Since window functions don't have level fields, but are hard-wired to
+ * be associated with the current query level, this is just the same as
+ * rewriteManip.c's function.
+ */
+bool
+contain_window_function(Node *clause)
+{
+	return checkExprHasWindowFuncs(clause);
+}
+
+
+/*****************************************************************************
  *		Support for expressions returning sets
  *****************************************************************************/
 
@@ -959,42 +978,6 @@ contain_volatile_functions_walker(Node *node, void *context)
 		/* else fall through to check args */
 	}
 	return expression_tree_walker(node, contain_volatile_functions_walker,
-								  context);
-}
-
-
-/*****************************************************************************
- *		Check clauses for calls to window functions
- *****************************************************************************/
-
-/*
- * contain_window_functions
- *	  Recursively search for window functions within a clause.
- *
- * Returns true if any window function is found.
- *
- * Window function calls are only allowed in the target list of window
- * queries and may not be nested. We do not examine sub-selects for uses of
- * window functions because if there are any, they pertain to a different
- * planning level.
- */
-bool
-contain_window_functions(Node *clause)
-{
-	return contain_window_functions_walker(clause, NULL);
-}
-
-static bool
-contain_window_functions_walker(Node *node, void *context)
-{
-	if (node == NULL)
-		return false;
-	if (IsA(node, WindowRef))
-	{
-		return true;
-		/* else fall through to check args */
-	}
-	return expression_tree_walker(node, contain_window_functions_walker,
 								  context);
 }
 

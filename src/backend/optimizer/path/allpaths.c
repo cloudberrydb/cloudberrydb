@@ -1551,7 +1551,7 @@ qual_contains_winref(Query *topquery,
 										 subquery->targetList,
 										 CMD_SELECT, 0);
 
-		result = contain_windowref(qualNew, NULL);
+		result = contain_window_function(qualNew);
 		pfree(qualNew);
 	}
 

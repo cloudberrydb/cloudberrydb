@@ -1351,7 +1351,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 													  true);
 	}
 	else if ( parse->windowClause && parse->targetList &&
-			  contain_windowref((Node *)parse->targetList, NULL) )
+			  contain_window_function((Node *) parse->targetList) )
 	{
 		if (extract_nodes(NULL, (Node *) tlist, T_PercentileExpr) != NIL)
 		{

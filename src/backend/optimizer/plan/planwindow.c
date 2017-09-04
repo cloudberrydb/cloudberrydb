@@ -4097,23 +4097,6 @@ Query *copy_common_subquery(Query *original, List *targetList)
 }
 
 /*
- * Return true if a node contains WindowRefs.
- *
- * 'context' is not used in this function.
- */
-bool
-contain_windowref(Node *node, void *context)
-{
-	if (node == NULL)
-		return false;
-	
-	if (IsA(node, WindowRef))
-		return true;
-	
-	return expression_tree_walker(node, contain_windowref, NULL);
-}
-
-/*
  * Does the given window frame edge contains an expression that must be
  * evaluated at run time (i.e., may contain a Var)?
  */
