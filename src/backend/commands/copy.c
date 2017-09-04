@@ -124,7 +124,7 @@ uint64
 DoCopyInternal(const CopyStmt *stmt, const char *queryString, CopyState cstate);
 
 /* ==========================================================================
- * The follwing macros aid in major refactoring of data processing code (in
+ * The following macros aid in major refactoring of data processing code (in
  * CopyFrom(+Dispatch)). We use macros because in some cases the code must be in
  * line in order to work (for example elog_dismiss() in PG_CATCH) while in
  * other cases we'd like to inline the code for performance reasons.
