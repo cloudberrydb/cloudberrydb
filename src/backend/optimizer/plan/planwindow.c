@@ -3007,12 +3007,12 @@ static List *make_rowkey_targets()
 {
 	FuncExpr *seg;
 	WindowRef *row;
-	
+
 	seg = makeFuncExpr(MPP_EXECUTION_SEGMENT_OID, 
 					   MPP_EXECUTION_SEGMENT_TYPE, 
 					   NIL, 
 					   COERCE_DONTCARE);
-								  
+
 	row = makeNode(WindowRef);
 	row->winfnoid = ROW_NUMBER_OID;
 	row->restype = ROW_NUMBER_TYPE;
@@ -3020,7 +3020,8 @@ static List *make_rowkey_targets()
 	row->winspec = row->winindex = 0;
 	row->winstage = WINSTAGE_ROWKEY; /* so setrefs doesn't get confused  */
 	row->winlevel = 0;
-	
+	row->location = -1;
+
 	return list_make2(
 		makeTargetEntry((Expr*)seg, 1, pstrdup("segment_join_key"), false),
 		makeTargetEntry((Expr*)row, 1, pstrdup("row_join_key"), false) );
@@ -3090,7 +3091,7 @@ static AttrNumber addTargetToCoplan(Node *target, Coplan *coplan, WindowContext 
 static Aggref* makeWindowAggref(WindowRef *winref)
 {
 	Aggref *aggref = makeNode(Aggref);
-	
+
 	aggref->aggfnoid = winref->winfnoid;
 	aggref->aggtype = winref->restype;
 	aggref->args = copyObject(winref->args);
@@ -3098,6 +3099,7 @@ static Aggref* makeWindowAggref(WindowRef *winref)
 	aggref->aggstar = false; /* at this point in processing, doesn't matter */
 	aggref->aggdistinct = winref->windistinct;
 	aggref->aggstage = AGGSTAGE_NORMAL;
+	aggref->location = -1;
 
 	return aggref;
 }
@@ -3105,7 +3107,7 @@ static Aggref* makeWindowAggref(WindowRef *winref)
 static Aggref* makeAuxCountAggref()
 {
 	Aggref *aggref = makeNode(Aggref);
-	
+
 	aggref->aggfnoid = 2803; /* TODO count(*) oid define in pg_proc.h */
 	aggref->aggtype = 20; /* TODO count(*) result type oid in pg_proc.h */
 	aggref->args = NIL;
@@ -3113,7 +3115,8 @@ static Aggref* makeAuxCountAggref()
 	aggref->aggstar = true; 
 	aggref->aggdistinct = false; 
 	aggref->aggstage = AGGSTAGE_NORMAL;
-	
+	aggref->location = -1;
+
 	return aggref;
 }
 

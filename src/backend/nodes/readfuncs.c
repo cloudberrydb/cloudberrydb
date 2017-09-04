@@ -1352,6 +1352,7 @@ _readWindowRef(void)
 	READ_UINT_FIELD(winindex);
 	READ_ENUM_FIELD(winstage, WinStage);
 	READ_UINT_FIELD(winlevel);
+	READ_LOCATION_FIELD(location);
 
 	READ_DONE();
 }

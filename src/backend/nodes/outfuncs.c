@@ -1262,6 +1262,7 @@ _outWindowRef(StringInfo str, WindowRef *node)
 	WRITE_UINT_FIELD(winindex);
 	WRITE_ENUM_FIELD(winstage, WinStage);
 	WRITE_UINT_FIELD(winlevel);
+	WRITE_LOCATION_FIELD(location);
 }
 
 static void
