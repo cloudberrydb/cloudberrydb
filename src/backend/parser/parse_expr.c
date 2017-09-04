@@ -2271,7 +2271,8 @@ transformPercentileExpr(ParseState *pstate, PercentileExpr *p)
 		ereport(ERROR,
 				(errcode(ERRCODE_GROUPING_ERROR),
 				 errmsg("argument of percentile function must not contain window functions"),
-				 parser_errposition(pstate, exprLocation(arg))));
+				 parser_errposition(pstate,
+									locate_windowfunc(arg))));
 	if (checkExprHasGroupExtFuncs(arg))
 		ereport(ERROR,
 				(errcode(ERRCODE_GROUPING_ERROR),
@@ -2479,7 +2480,8 @@ transformPercentileExpr(ParseState *pstate, PercentileExpr *p)
 			ereport(ERROR,
 					(errcode(ERRCODE_GROUPING_ERROR),
 					 errmsg("argument of percentile function must not contain window functions"),
-					 parser_errposition(pstate, exprLocation((Node *) p->sortTargets))));
+					 parser_errposition(pstate,
+										locate_windowfunc((Node *) p->sortTargets))));
 		if (checkExprHasGroupExtFuncs((Node *) p->sortTargets))
 			ereport(ERROR,
 					(errcode(ERRCODE_GROUPING_ERROR),

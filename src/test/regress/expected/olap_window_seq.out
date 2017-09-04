@@ -7643,6 +7643,8 @@ ERROR:  cannot use window function in transform expression
 insert into wintest_for_window_seq values(1);
 update wintest_for_window_seq set i = count(*) over (order by i);
 ERROR:  cannot use window function in UPDATE
+LINE 1: update wintest_for_window_seq set i = count(*) over (order b...
+                                              ^
 -- domain suport
 create domain wintestd as int default count(*) over ();
 ERROR:  cannot use window function in default expression

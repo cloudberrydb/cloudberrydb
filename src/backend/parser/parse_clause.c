@@ -457,11 +457,12 @@ transformWindowClause(ParseState *pstate, Query *qry)
 
 		clauseno++;
 
-		if (checkExprHasWindowFuncs((Node *)ws))
+		if (checkExprHasWindowFuncs((Node *) ws))
 			ereport(ERROR,
-					(errcode(ERRCODE_SYNTAX_ERROR),
+					(errcode(ERRCODE_WINDOWING_ERROR),
 					 errmsg("cannot use window function in a window specification"),
-					 parser_errposition(pstate, ws->location)));
+					 parser_errposition(pstate,
+										locate_windowfunc((Node *) ws))));
 
 		/*
 		 * Loop through those clauses we've already processed to
