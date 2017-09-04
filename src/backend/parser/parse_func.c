@@ -354,8 +354,16 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 							"%s is not an aggregate function",
 							NameListToString(funcname)),
 					 parser_errposition(pstate, location)));
+
+		if (over)
+			ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+					 errmsg("OVER specified, but %s is not a window function nor an aggregate function",
+							NameListToString(funcname)),
+					 parser_errposition(pstate, location)));
 	}
-	else if (fdresult != FUNCDETAIL_AGGREGATE)
+	else if (!(fdresult == FUNCDETAIL_AGGREGATE ||
+			   fdresult == FUNCDETAIL_WINDOWFUNC))
 	{
 		/*
 		 * Oops.  Time to die.
@@ -476,7 +484,7 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	}
 
 	/* build the appropriate output structure */
-	if (fdresult == FUNCDETAIL_NORMAL && over == NULL)
+	if (fdresult == FUNCDETAIL_NORMAL)
 	{
 		FuncExpr   *funcexpr = makeNode(FuncExpr);
 
@@ -489,73 +497,10 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 
 		retval = (Node *) funcexpr;
 	}
-	else if(over != NULL)
-	{
-		/* must be a window function call */
-		WindowRef  *winref = makeNode(WindowRef);
-		HeapTuple	tuple;	
-		
-		if (retset)
-			ereport(ERROR,
-					(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
-					 errmsg("window functions may not return sets"),
-					 parser_errposition(pstate, location)));
-
-        if (agg_order)
-            ereport(ERROR,
-                    (errcode(ERRCODE_WRONG_OBJECT_TYPE),
-                     errmsg("aggregate ORDER BY is not implemented for window functions"),
-                     parser_errposition(pstate, location)));
-
-
-        /*
-         * If this is a "true" window function, rather than an aggregate
-         * derived window function then it will have a tuple in pg_window
-         */
-		tuple = SearchSysCache1(WINFNOID, ObjectIdGetDatum(funcid));
-		if (HeapTupleIsValid(tuple))
-		{
-			if (agg_filter)
-			    ereport(ERROR,
-						(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-						 errmsg("window function \"%s\" can not be used with a "
-								"filter clause",
-								NameListToString(funcname)),
-						 parser_errposition(pstate, location)));
-
-			/*
-			 * We perform more checks – such as whether the window
-			 * function requires ordering or permits a frame specification –
-			 * later in transformWindowClause(). It's too early at this stage.
-			 */
-
-			ReleaseSysCache(tuple);
-		}
-
-		winref->winfnoid = funcid;
-		winref->restype = rettype;
-		winref->args = fargs;
-		winref->windistinct = agg_distinct;
-		winref->location = location;
-
-		transformWindowFuncCall(pstate, winref, over);
-		retval = (Node *) winref;
-	}
-	else
+	else if (fdresult == FUNCDETAIL_AGGREGATE && !over)
 	{
 		/* aggregate function */
 		Aggref	   *aggref;
-
-		/*
-		 * Reject attempt to call a parameterless aggregate without (*)
-		 * syntax.	This is mere pedantry but some folks insisted ...
-		 */
-		if (fargs == NIL && !agg_star)
-			ereport(ERROR,
-					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-					 errmsg("%s(*) must be used to call a parameterless aggregate function",
-							NameListToString(funcname)),
-					 parser_errposition(pstate, location)));
 
 		/* 
 		 * We only support FILTER clauses over STRICT aggegation functions.
@@ -609,16 +554,16 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 					 errmsg("ORDER BY and DISTINCT are mutually exclusive"),
 					 parser_errposition(pstate, location)));
 		}
-        
-        /* 
-         * Build the aggregate node and transform it
-         *
-         * Note: aggorder is handled inside transformAggregateCall()
-         */
-        aggref = makeNode(Aggref);
-		aggref->aggfnoid    = funcid;
-		aggref->aggtype     = rettype;
-		aggref->args        = fargs;
+
+		/*
+		 * Build the aggregate node and transform it
+		 *
+		 * Note: aggorder is handled inside transformAggregateCall()
+		 */
+		aggref = makeNode(Aggref);
+		aggref->aggfnoid = funcid;
+		aggref->aggtype = rettype;
+		aggref->args = fargs;
 
 		/*
 		 * If we had a FILTER clause with a star, we replaced the star with
@@ -635,6 +580,71 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		transformAggregateCall(pstate, aggref, agg_order);
 
 		retval = (Node *) aggref;
+	}
+	else
+	{
+		/* must be a window function call */
+		WindowRef  *winref = makeNode(WindowRef);
+
+		/*
+		 * True window functions must be called with a window definition.
+		 */
+		if (!over)
+			ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+					 errmsg("window function call requires an OVER clause"),
+					 parser_errposition(pstate, location)));
+
+		if (retset)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
+					 errmsg("window functions may not return sets"),
+					 parser_errposition(pstate, location)));
+
+		if (agg_order)
+			ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+					 errmsg("aggregate ORDER BY is not implemented for window functions"),
+					 parser_errposition(pstate, location)));
+
+		if (fdresult == FUNCDETAIL_WINDOWFUNC && agg_filter)
+			ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+					 errmsg("window function \"%s\" can not be used with a "
+							"filter clause",
+							NameListToString(funcname)),
+					 parser_errposition(pstate, location)));
+
+		/*
+		 * We perform more checks – such as whether the window
+		 * function requires ordering or permits a frame specification –
+		 * later in transformWindowClause(). It's too early at this stage.
+		 */
+
+		winref->winfnoid = funcid;
+		winref->restype = rettype;
+		winref->args = fargs;
+		/* winref will be set by transformWindowFuncCall */
+		winref->windistinct = agg_distinct;
+		winref->location = location;
+
+		/*
+		 * Reject attempt to call a parameterless aggregate without (*)
+		 * syntax.	This is mere pedantry but some folks insisted ...
+		 *
+		 * GPDB: We allow this in GPDB.
+		 */
+#if 0
+		if (fdresult == FUNCDETAIL_AGGREGATE && fargs == NIL && !agg_star)
+			ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+					 errmsg("%s(*) must be used to call a parameterless aggregate function",
+							NameListToString(funcname)),
+					 parser_errposition(pstate, location)));
+#endif
+
+		transformWindowFuncCall(pstate, winref, over);
+		retval = (Node *) winref;
 	}
 
 	/*
@@ -1273,6 +1283,8 @@ func_get_detail(List *funcname,
 		}
 		if (pform->proisagg)
 			result = FUNCDETAIL_AGGREGATE;
+		else if (pform->proiswin)
+			result = FUNCDETAIL_WINDOWFUNC;
 		else
 			result = FUNCDETAIL_NORMAL;
 		ReleaseSysCache(ftup);
@@ -1707,7 +1719,6 @@ LookupAggNameTypeNames(List *aggname, List *argtypes, bool noError)
 	Oid			oid;
 	HeapTuple	ftup;
 	Form_pg_proc pform;
-	bool		 proisagg;
 
 	argcount = list_length(argtypes);
 	if (argcount > FUNC_MAX_ARGS)
@@ -1745,19 +1756,16 @@ LookupAggNameTypeNames(List *aggname, List *argtypes, bool noError)
 	}
 
 	/* Make sure it's an aggregate */
-	/* SELECT proisagg FROM pg_proc */
-
-	ftup = SearchSysCache1(PROCOID, ObjectIdGetDatum(oid));
+	ftup = SearchSysCache(PROCOID,
+						  ObjectIdGetDatum(oid),
+						  0, 0, 0);
 	if (!HeapTupleIsValid(ftup))	/* should not happen */
 		elog(ERROR, "cache lookup failed for function %u", oid);
 	pform = (Form_pg_proc) GETSTRUCT(ftup);
 
-	proisagg = pform->proisagg;
-
-	ReleaseSysCache(ftup);
-
-	if (!proisagg)
+	if (!pform->proisagg)
 	{
+		ReleaseSysCache(ftup);
 		if (noError)
 			return InvalidOid;
 		/* we do not use the (*) notation for functions... */
@@ -1767,6 +1775,8 @@ LookupAggNameTypeNames(List *aggname, List *argtypes, bool noError)
 						func_signature_string(aggname,
 											  argcount, argoids))));
 	}
+
+	ReleaseSysCache(ftup);
 
 	return oid;
 }
