@@ -19,6 +19,7 @@
 #include "nodes/plannodes.h"
 #include "nodes/relation.h"
 #include "optimizer/clauses.h" /* AggClauseCounts */
+#include "utils/uri.h"
 
 /* GUC parameters */
 #define DEFAULT_CURSOR_TUPLE_FRACTION 1.0 /* assume all rows will be fetched */
@@ -208,6 +209,8 @@ extern Plan *add_agg_cost(PlannerInfo *root, Plan *plan,
 		 long numGroups, int num_nullcols,
 		 int numAggs, int transSpace);
 extern Plan *plan_pushdown_tlist(PlannerInfo *root, Plan *plan, List *tlist);      /*CDB*/
+
+extern List *create_external_scan_uri_list(struct ExtTableEntry *extEntry, bool *ismasteronly);
 
 /*
  * prototypes for plan/initsplan.c

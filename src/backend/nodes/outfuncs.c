@@ -2044,16 +2044,7 @@ _outRelOptInfo(StringInfo str, RelOptInfo *node)
 	WRITE_UINT_FIELD(pages);
 	WRITE_FLOAT_FIELD(tuples, "%.0f");
 	WRITE_NODE_FIELD(subplan);
-	WRITE_NODE_FIELD(urilocationlist);
-	WRITE_NODE_FIELD(execlocationlist);
-	WRITE_STRING_FIELD(execcommand);
-	WRITE_CHAR_FIELD(fmttype);
-	WRITE_STRING_FIELD(fmtopts);
-	WRITE_INT_FIELD(rejectlimit);
-	WRITE_CHAR_FIELD(rejectlimittype);
-	WRITE_OID_FIELD(fmterrtbl);
-	WRITE_INT_FIELD(ext_encoding);
-	WRITE_BOOL_FIELD(writable);
+	/* no output function for ExtTableEntry */
 	WRITE_NODE_FIELD(subrtable);
 	WRITE_NODE_FIELD(baserestrictinfo);
 	WRITE_NODE_FIELD(joininfo);
