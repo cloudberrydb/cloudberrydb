@@ -148,7 +148,6 @@ typedef enum TBlockState
  */
 typedef struct TransactionStateData
 {
-	DistributedTransactionId distribXid;	/* My distributed transaction id, or Invalid if none. */
 	TransactionId transactionId;	/* my XID, or Invalid if none */
 	SubTransactionId subTransactionId;	/* my subxact ID */
 	char	   *name;			/* savepoint name, if any */
@@ -183,7 +182,6 @@ static TransactionState previousFastLink;
  * transaction at all, or when in a top-level transaction.
  */
 static TransactionStateData TopTransactionStateData = {
-	0,							/* distributed transaction id */
 	0,							/* transaction id */
 	0,							/* subtransaction id */
 	NULL,						/* savepoint name */
@@ -207,6 +205,9 @@ static TransactionStateData TopTransactionStateData = {
 };
 
 static TransactionState CurrentTransactionState = &TopTransactionStateData;
+
+/* distributed transaction id of current transaction, if any. */
+static DistributedTransactionId currentDistribXid;
 
 /*
  * The subtransaction ID and command ID assignment counters are global
@@ -415,7 +416,7 @@ GetAllTransactionXids(
 {
 	TransactionState s = CurrentTransactionState;
 
-	*distribXid = s->distribXid;
+	*distribXid = currentDistribXid;
 	*localXid = s->transactionId;
 	*subXid = s->subTransactionId;
 }
@@ -2329,7 +2330,7 @@ StartTransaction(void)
 			 * distributed transaction to a local transaction id for the
 			 * master database.
 			 */
-			createDtx(&s->distribXid);
+			createDtx(&currentDistribXid);
 
 			if (SharedLocalSnapshotSlot != NULL)
 			{
@@ -2380,7 +2381,7 @@ StartTransaction(void)
 			if (DistributedTransactionContext == DTX_CONTEXT_QE_TWO_PHASE_EXPLICIT_WRITER ||
 				DistributedTransactionContext == DTX_CONTEXT_QE_TWO_PHASE_IMPLICIT_WRITER)
 			{
-				s->distribXid = QEDtxContextInfo.distributedXid;
+				currentDistribXid = QEDtxContextInfo.distributedXid;
 
 				Assert(QEDtxContextInfo.distributedTimeStamp != 0);
 				Assert(QEDtxContextInfo.distributedXid != InvalidDistributedTransactionId);
@@ -2426,7 +2427,7 @@ StartTransaction(void)
 			 * MPP: we're a QE Reader.
 			 */
 			Assert (SharedLocalSnapshotSlot != NULL);
-			s->distribXid = QEDtxContextInfo.distributedXid;
+			currentDistribXid = QEDtxContextInfo.distributedXid;
 
 			ereport((Debug_print_full_dtm ? LOG : DEBUG5),
 					(errmsg("qExec reader: distributedXid %d currcid %d gxid = %u DtxContext '%s' sharedsnapshots: %s",
@@ -2824,7 +2825,7 @@ CommitTransaction(void)
 		LocalDistribXactCache_ShowStats("CommitTransaction");
 	}
 
-	s->distribXid = InvalidDistributedTransactionId;
+	currentDistribXid = InvalidDistributedTransactionId;
 	s->transactionId = InvalidTransactionId;
 	s->subTransactionId = InvalidSubTransactionId;
 	s->nestingLevel = 0;
@@ -3115,7 +3116,7 @@ PrepareTransaction(void)
 		LocalDistribXactCache_ShowStats("PrepareTransaction");
 	}
 
-	s->distribXid = InvalidDistributedTransactionId;
+	currentDistribXid = InvalidDistributedTransactionId;
 	s->transactionId = InvalidTransactionId;
 	s->subTransactionId = InvalidSubTransactionId;
 	s->nestingLevel = 0;
@@ -3380,7 +3381,7 @@ CleanupTransaction(void)
 
 	AtCleanup_Memory();			/* and transaction memory */
 
-	s->distribXid = InvalidDistributedTransactionId;
+	currentDistribXid = InvalidDistributedTransactionId;
 	s->transactionId = InvalidTransactionId;
 	s->subTransactionId = InvalidSubTransactionId;
 	s->nestingLevel = 0;
@@ -5557,7 +5558,6 @@ PushTransaction(void)
 	 * We can now stack a minimally valid subtransaction without fear of
 	 * failure.
 	 */
-	s->distribXid = p->distribXid;
 	s->transactionId = InvalidTransactionId;	/* until assigned */
 	s->subTransactionId = currentSubTransactionId;
 	s->parent = p;
