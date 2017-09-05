@@ -12,6 +12,7 @@ groups:
   - icw_gporca_centos7
   - icw_gporca_sles11
   - icw_planner_ictcp_centos6
+  - mpp_resource_group
   - MU_check_centos
   - MM_gpperfmon
   - MM_gpcheck
@@ -70,6 +71,7 @@ groups:
   jobs:
   - cs_walrep_1
   - cs_walrep_2
+  - mpp_resource_group
   - DPM_backup-restore
   - MM_gppkg
   - MM_gprecoverseg
@@ -762,6 +764,33 @@ jobs:
       MAKE_TEST_COMMAND: PGOPTIONS='-c gp_interconnect_type=tcp -c optimizer=off' installcheck-world
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
       TEST_OS: centos
+
+- name: mpp_resource_group
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [compile_gpdb_centos6]
+    - get: bin_gpdb
+      resource: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: ccp_src
+    - get: centos-gpdb-dev-6
+  - put: terraform
+    params:
+      <<: *ccp_create_params
+  - task: gen_cluster
+    file: ccp_src/ci/tasks/gen_cluster.yml
+    input_mapping:
+      gpdb_binary: bin_gpdb
+    on_failure:
+      <<: *ccp_destroy
+  - task: run_tests
+    file: gpdb_src/concourse/tasks/ic_gpdb_resgroup.yml
+    image: centos-gpdb-dev-6
+    on_failure:
+      <<: *debug_sleep
+  - *ccp_destroy
 
 - name: MU_check_centos
   plan:
@@ -1766,6 +1795,7 @@ jobs:
     - icw_gporca_centos7
     - icw_gporca_sles11
     - icw_planner_ictcp_centos6
+    - mpp_resource_group
     - MU_check_centos
     - MM_analyzedb
     - MM_gpinitsystem
