@@ -23,6 +23,8 @@ groups:
   - MM_pt-rebuild
   - fts
   - storage
+  - cs_walrep_1
+  - cs_walrep_2
   - QP_memory-accounting
   - regression_tests_gpcloud_centos
   - regression_tests_gphdfs_centos
