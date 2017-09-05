@@ -89,8 +89,6 @@ CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=0.9);
 CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=1.9);
 -- negative: concurrency should be in [1, max_connections]
 CREATE RESOURCE GROUP rg_test_group WITH (concurrency=-1, cpu_rate_limit=10, memory_limit=10);
-CREATE RESOURCE GROUP rg_test_group WITH (concurrency=0, cpu_rate_limit=10, memory_limit=10);
-CREATE RESOURCE GROUP rg_test_group WITH (concurrency=26, cpu_rate_limit=10, memory_limit=10);
 CREATE RESOURCE GROUP rg_test_group WITH (concurrency=26, cpu_rate_limit=10, memory_limit=10);
 
 -- memory_spill_ratio range is [0, 100]
@@ -111,7 +109,9 @@ CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=1, memory_limit=10);
 DROP RESOURCE GROUP rg_test_group;
 CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=1);
 DROP RESOURCE GROUP rg_test_group;
--- positive: concurrency should be in [1, max_connections]
+-- positive: concurrency should be in [0, max_connections]
+CREATE RESOURCE GROUP rg_test_group WITH (concurrency=0, cpu_rate_limit=10, memory_limit=10);
+DROP RESOURCE GROUP rg_test_group;
 CREATE RESOURCE GROUP rg_test_group WITH (concurrency=1, cpu_rate_limit=10, memory_limit=10);
 DROP RESOURCE GROUP rg_test_group;
 CREATE RESOURCE GROUP rg_test_group WITH (concurrency=25, cpu_rate_limit=10, memory_limit=10);
@@ -147,7 +147,7 @@ CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=5, memory_limit=5);
 
 -- ALTER RESOURCE GROUP SET CONCURRENCY N
 -- negative: concurrency should be in [1, max_connections]
-ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 0;
+ALTER RESOURCE GROUP admin_group SET CONCURRENCY 0;
 ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY -1;
 ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 26;
 ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY -0.5;
@@ -156,6 +156,7 @@ ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY a;
 ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 'abc';
 ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY '1';
 -- positive: concurrency should be in [1, max_connections]
+ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 0;
 ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 1;
 ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 2;
 ALTER RESOURCE GROUP rg_test_group SET CONCURRENCY 25;

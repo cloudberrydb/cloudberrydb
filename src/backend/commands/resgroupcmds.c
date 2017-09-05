@@ -42,7 +42,7 @@
 #define RESGROUP_DEFAULT_MEM_SHARED_QUOTA (20)
 #define RESGROUP_DEFAULT_MEM_SPILL_RATIO (20)
 
-#define RESGROUP_MIN_CONCURRENCY	(1)
+#define RESGROUP_MIN_CONCURRENCY	(0)
 #define RESGROUP_MAX_CONCURRENCY	(MaxConnections)
 
 #define RESGROUP_MIN_CPU_RATE_LIMIT	(1)
@@ -421,11 +421,11 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 	SysScanDesc	sscan;
 	Oid			groupid;
 	ResourceGroupAlterCallbackContext *callbackCtx;
-	int			concurrency;
-	int			cpuRateLimitNew;
-	int			memSharedQuotaNew;
-	int			memSpillRatioNew;
-	int			memLimitNew;
+	int			concurrency = -1;
+	int			cpuRateLimitNew = -1;
+	int			memSharedQuotaNew = -1;
+	int			memSpillRatioNew = -1;
+	int			memLimitNew = -1;
 	DefElem		*defel;
 	ResGroupLimitType	limitType;
 	ResGroupCaps		caps;
@@ -545,6 +545,15 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 	groupid = HeapTupleGetOid(tuple);
 	systable_endscan(sscan);
 	heap_close(pg_resgroup_rel, NoLock);
+
+	if (limitType == RESGROUP_LIMIT_TYPE_CONCURRENCY &&
+		concurrency == 0 &&
+		groupid == ADMINRESGROUP_OID)
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_LIMIT_VALUE),
+				 errmsg("admin_group must have at least one concurrency")));
+	}
 
 	/* Argument of callback function should be allocated in heap region */
 	callbackCtx = (ResourceGroupAlterCallbackContext *)
