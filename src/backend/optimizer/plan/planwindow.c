@@ -1556,7 +1556,7 @@ lookup_window_function(RefInfo *rinfo)
 		elog(ERROR, "cache lookup failed for function %u", fnoid);
 	proform = (Form_pg_proc) GETSTRUCT(tuple);
 	isagg = proform->proisagg;
-	iswin = proform->proiswin;
+	iswin = proform->proiswindow;
 	
 	if ( (!isagg) && (!iswin) )
 	{

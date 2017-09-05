@@ -1282,7 +1282,7 @@ func_get_detail(List *funcname,
 		}
 		if (pform->proisagg)
 			result = FUNCDETAIL_AGGREGATE;
-		else if (pform->proiswin)
+		else if (pform->proiswindow)
 			result = FUNCDETAIL_WINDOWFUNC;
 		else
 			result = FUNCDETAIL_NORMAL;

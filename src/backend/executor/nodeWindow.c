@@ -2439,7 +2439,7 @@ initWindowFuncState(WindowState * wstate, Window * node)
 		proform = (Form_pg_proc) GETSTRUCT(heap_tuple);
 
 		isAgg = proform->proisagg;
-		isWin = proform->proiswin;
+		isWin = proform->proiswindow;
 		isSet = proform->proretset;
 		winResType = proform->prorettype;
 		winOwner = proform->proowner;
