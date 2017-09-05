@@ -286,6 +286,7 @@ File subxip_file = 0;
 
 /* local function prototypes */
 static void AssignTransactionId(TransactionState s);
+static void AbortTransaction(void);
 static void AtAbort_Memory(void);
 static void AtCleanup_Memory(void);
 static void AtAbort_ResourceOwner(void);
@@ -300,7 +301,9 @@ static void CallSubXactCallbacks(SubXactEvent event,
 					 SubTransactionId mySubid,
 					 SubTransactionId parentSubid);
 static void CleanupTransaction(void);
+static void CommitTransaction(void);
 static TransactionId RecordTransactionAbort(bool isSubXact);
+static void StartTransaction(void);
 
 static void RecordSubTransactionCommit(void);
 static void StartSubTransaction(void);
@@ -326,14 +329,6 @@ static void DispatchRollbackToSavepoint(char *name);
 static bool IsCurrentTransactionIdForReader(TransactionId xid);
 
 extern void FtsCondSetTxnReadOnly(bool *);
-
-/*
- * Make the following three functions external because old dtrace
- * cannot reference static symbol.
- */
-extern void StartTransaction(void);
-extern void CommitTransaction(void);
-extern void AbortTransaction(void);
 
 char *
 XactInfoKind_Name(const XactInfoKind		kind)
@@ -2226,7 +2221,7 @@ SetSharedTransactionId_reader(TransactionId xid, CommandId cid)
 /*
  *	StartTransaction
  */
-void
+static void
 StartTransaction(void)
 {
 	TransactionState s;
@@ -2530,7 +2525,7 @@ StartTransaction(void)
  *
  * NB: if you change this routine, better look at PrepareTransaction too!
  */
-void
+static void
 CommitTransaction(void)
 {
 	MIRRORED_LOCK_DECLARE;
@@ -3139,7 +3134,7 @@ PrepareTransaction(void)
 /*
  *	AbortTransaction
  */
-void
+static void
 AbortTransaction(void)
 {
 	MIRRORED_LOCK_DECLARE;
