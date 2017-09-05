@@ -74,7 +74,6 @@ typedef struct
 	TargetEntry *tle;
 } grouped_window_ctx;
 
-static void parse_analyze_error_callback(void *parsestate);     /*CDB*/
 static Query *transformDeleteStmt(ParseState *pstate, DeleteStmt *stmt);
 static Query *transformInsertStmt(ParseState *pstate, InsertStmt *stmt);
 static List *transformInsertRow(ParseState *pstate, List *exprlist,
@@ -197,49 +196,12 @@ parse_sub_analyze(Node *parseTree, ParseState *parentParseState)
 	ParseState *pstate = make_parsestate(parentParseState);
 	Query	   *query;
 
-   	ErrorContextCallback errcontext;
-
-	/* CDB: Request a callback in case ereport or elog is called. */
-	errcontext.callback = parse_analyze_error_callback;
-	errcontext.arg = pstate;
-	errcontext.previous = error_context_stack;
-	error_context_stack = &errcontext;
-
 	query = transformStmt(pstate, parseTree);
-
-	/* CDB: Pop error context callback stack. */
-	error_context_stack = errcontext.previous;
 
 	free_parsestate(pstate);
 
 	return query;
 }
-
-
-/*
- * parse_analyze_error_callback
- *
- * Called during elog/ereport to add context information to the error message.
- */
-static void
-parse_analyze_error_callback(void *parsestate)
-{
-    ParseState             *pstate = (ParseState *)parsestate;
-    int                     location = -1;
-
-    /* No-op if errposition has already been set. */
-    if (geterrposition() > 0)
-        return;
-
-    /* NOTICE messages don't need any extra baggage. */
-    if (elog_getelevel() == NOTICE)
-        return;
-
-    /* Report approximate offset of error from beginning of statement text. */
-    if (location >= 0)
-        parser_errposition(pstate, location);
-}                               /* parse_analyze_error_callback */
-
 
 /*
  * transformStmt -
