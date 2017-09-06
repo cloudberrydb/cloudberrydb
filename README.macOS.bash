@@ -10,7 +10,6 @@ fi
 brew install bash-completion
 brew install conan
 brew install cmake # gporca
-brew install ninja # gporca
 brew install libyaml   # enables `--enable-mapreduce`
 brew install libevent # gpfdist
 brew install apr # gpperfmon
