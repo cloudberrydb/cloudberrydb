@@ -1,8 +1,6 @@
 
 -- test numeric hash join
 
-set gp_recursive_cte_prototype = true;
-
 set enable_hashjoin to on;
 set enable_mergejoin to off;
 set enable_nestloop to off;
