@@ -235,13 +235,6 @@ contain_windowfuncs_walker(Node *node, void *context)
 
 		return contain_windowfuncs_walker(e->val, context);
 	}
-	else if (IsA(node, Query))
-	{
-		/* Recurse into subselects */
-		return query_tree_walker((Query *) node,
-								 contain_windowfuncs_walker,
-								 NULL, 0);
-	}
 	else if(IsA(node, A_Expr))
 	{
 		/* could be seen inside an untransformed window clause */
@@ -265,6 +258,7 @@ contain_windowfuncs_walker(Node *node, void *context)
 		return false;
 	}
 
+	/* Mustn't recurse into subselects */
 	return expression_tree_walker(node, contain_windowfuncs_walker,
 								  (void *) context);
 }
