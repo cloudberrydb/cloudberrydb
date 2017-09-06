@@ -82,42 +82,6 @@ skipPadding(StringInfo serialTup)
 	serialTup->cursor = TYPEALIGN(TUPLE_CHUNK_ALIGN,serialTup->cursor);
 }
 
-/*
- * stringInfoGetInt32
- *
- * Pull a 4-byte integer out of str, at the current cursor location.  The
- * cursor is then incremented by 4.  If there is not 4 bytes left between the
- * cursor and the end of the string, an error is reported.
- *
- * The input is expected to be in the current architecture's byte-ordering.
- *
- * Hopefully this is faster than the stuff in stringinfo.c or pqformat.c!
- */
-static inline int32
-stringInfoGetInt32(StringInfo str)
-{
-	int32		res;
-
-	/* Make sure there are enough bytes left. */
-	if (str->len - str->cursor < 4)
-	{
-		ereport(ERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION),
-						errmsg("deserialize data underflow")));
-	}
-
-	/*
-	 * Pull out the int32.	We cast the pointer to the next part of the data
-	 * to an int32 pointer, and just retrieve the integer from that location
-	 * in the array.
-	 */
-	res = *((int32 *) (str->data + str->cursor));
-
-	/* Update the cursor. */
-	str->cursor += 4;
-
-	return res;
-}
-
 /* Look up all of the information that SerializeTuple() and DeserializeTuple()
  * need to perform their jobs quickly.	Also, scratchpad space is allocated
  * for serialization and desrialization of datum values, and for formation/
