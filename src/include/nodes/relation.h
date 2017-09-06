@@ -109,6 +109,7 @@ typedef struct PlannerGlobal
 	List	   *invalItems;		/* other dependencies, as PlanInvalItems */
 
 	bool		transientPlan;	/* redo plan when TransactionXmin changes? */
+	bool		oneoffPlan;		/* redo plan on every execution? */
 
 	ApplyShareInputContext share;	/* workspace for GPDB plan sharing */
 

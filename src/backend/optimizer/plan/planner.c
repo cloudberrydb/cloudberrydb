@@ -242,6 +242,7 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	glob->relationOids = NIL;
 	glob->invalItems = NIL;
 	glob->transientPlan = false;
+	glob->oneoffPlan = false;
 	/* ApplyShareInputContext initialization. */
 	glob->share.producers = NULL;
 	glob->share.producer_count = 0;
@@ -392,6 +393,7 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	result->commandType = parse->commandType;
 	result->canSetTag = parse->canSetTag;
 	result->transientPlan = glob->transientPlan;
+	result->oneoffPlan = glob->oneoffPlan;
 	result->planTree = top_plan;
 	result->rtable = glob->finalrtable;
 	result->resultRelations = root->resultRelations;
