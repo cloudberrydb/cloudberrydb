@@ -187,6 +187,10 @@ select groupname, concurrency, cpu_rate_limit from gp_toolkit.gp_resgroup_config
 -- start a new session to drop a resource group with running queries, it will failed because a role is associated with the resource group. 
 43>: drop resource group rg_test_g3;
 
+-- start a new session to acquire the status of resource groups
+44: select dblink_connect('dblink_rg_test44', 'dbname=isolation2resgrouptest');
+44>: select exec_commands_n('dblink_rg_test44', 'select count(*) from gp_toolkit.gp_resgroup_status;', '', '', 100, '', '', true);
+
 -- wait all sessions to finish
 21<:
 22<:
@@ -201,6 +205,7 @@ select groupname, concurrency, cpu_rate_limit from gp_toolkit.gp_resgroup_config
 41<:
 42<:
 43<:
+44<:
 
 21: select dblink_disconnect('dblink_rg_test21');
 22: select dblink_disconnect('dblink_rg_test22');
@@ -214,6 +219,7 @@ select groupname, concurrency, cpu_rate_limit from gp_toolkit.gp_resgroup_config
 34: select dblink_disconnect('dblink_rg_test34');
 41: select dblink_disconnect('dblink_rg_test41');
 42: select dblink_disconnect('dblink_rg_test42');
+44: select dblink_disconnect('dblink_rg_test44');
 
 21q:
 22q:

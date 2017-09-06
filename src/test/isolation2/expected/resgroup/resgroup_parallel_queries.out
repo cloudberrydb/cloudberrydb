@@ -333,6 +333,14 @@ OK
 -- start a new session to drop a resource group with running queries, it will failed because a role is associated with the resource group.
 43>: drop resource group rg_test_g3;  <waiting ...>
 
+-- start a new session to acquire the status of resource groups
+44: select dblink_connect('dblink_rg_test44', 'dbname=isolation2resgrouptest');
+dblink_connect
+--------------
+OK            
+(1 row)
+44>: select exec_commands_n('dblink_rg_test44', 'select count(*) from gp_toolkit.gp_resgroup_status;', '', '', 100, '', '', true);  <waiting ...>
+
 -- wait all sessions to finish
 21<:  <... completed>
 exec_commands_n
@@ -396,6 +404,11 @@ exec_commands_n
 (1 row)
 43<:  <... completed>
 ERROR:  resource group "rg_test_g3" is used by at least one role
+44<:  <... completed>
+exec_commands_n
+---------------
+100            
+(1 row)
 
 21: select dblink_disconnect('dblink_rg_test21');
 dblink_disconnect
@@ -453,6 +466,11 @@ dblink_disconnect
 OK               
 (1 row)
 42: select dblink_disconnect('dblink_rg_test42');
+dblink_disconnect
+-----------------
+OK               
+(1 row)
+44: select dblink_disconnect('dblink_rg_test44');
 dblink_disconnect
 -----------------
 OK               

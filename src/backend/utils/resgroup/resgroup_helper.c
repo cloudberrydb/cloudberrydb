@@ -251,7 +251,12 @@ pg_resgroup_get_status(PG_FUNCTION_ARGS)
 			funcctx->user_fctx = palloc(ctxsize);
 			ctx = (ResGroupStatCtx *) funcctx->user_fctx;
 
-			pg_resgroup_rel = heap_open(ResGroupRelationId, AccessShareLock);
+			/*
+			 * others may be creating/dropping resource group concurrently,
+			 * block until creating/dropping finish to avoid inconsistent
+			 * resource group metadata
+			 */
+			pg_resgroup_rel = heap_open(ResGroupRelationId, ExclusiveLock);
 
 			sscan = systable_beginscan(pg_resgroup_rel, InvalidOid, false,
 									   SnapshotNow, 0, NULL);
@@ -271,13 +276,14 @@ pg_resgroup_get_status(PG_FUNCTION_ARGS)
 				}
 			}
 			systable_endscan(sscan);
-			heap_close(pg_resgroup_rel, AccessShareLock);
 
 			ctx->nGroups = funcctx->max_calls;
 			qsort(ctx->groups, ctx->nGroups, sizeof(ctx->groups[0]), compareRow);
 
 			if (ctx->nGroups > 0)
 				getResUsage(ctx, inGroupId);
+
+			heap_close(pg_resgroup_rel, ExclusiveLock);
 		}
 
 		MemoryContextSwitchTo(oldcontext);
