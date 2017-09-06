@@ -84,7 +84,7 @@ select id from uav1 union select val from uav4 union select id from uav2;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -185,7 +185,7 @@ select id from uav1 union select val from uav4 union select id from uav2;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -701,7 +701,7 @@ select id from uav1 union select val from uav4 union select id from uav2;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

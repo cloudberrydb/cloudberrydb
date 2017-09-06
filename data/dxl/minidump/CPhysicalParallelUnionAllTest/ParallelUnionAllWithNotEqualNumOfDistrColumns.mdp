@@ -47,7 +47,7 @@ EXPLAIN SELECT a,b FROM foo UNION ALL SELECT c,d FROM bar;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -177,7 +177,7 @@ EXPLAIN SELECT a,b FROM foo UNION ALL SELECT c,d FROM bar;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

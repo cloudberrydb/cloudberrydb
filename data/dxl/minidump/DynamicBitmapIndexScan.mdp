@@ -40,7 +40,7 @@ see sql/DynamicBitmapIndexScan.sql
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -239,7 +239,7 @@ see sql/DynamicBitmapIndexScan.sql
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -307,9 +307,9 @@ see sql/DynamicBitmapIndexScan.sql
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.17270.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.17270.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">

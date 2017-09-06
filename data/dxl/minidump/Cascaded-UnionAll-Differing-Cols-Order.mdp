@@ -190,7 +190,7 @@ select a1, a2 from foo_a UNION ALL (select x1, x2 FROM (select b3, b2, b1 from f
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -320,7 +320,7 @@ select a1, a2 from foo_a UNION ALL (select x1, x2 FROM (select b3, b2, b1 from f
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -396,7 +396,7 @@ select a1, a2 from foo_a UNION ALL (select x1, x2 FROM (select b3, b2, b1 from f
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

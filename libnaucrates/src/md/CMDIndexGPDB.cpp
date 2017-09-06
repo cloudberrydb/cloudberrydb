@@ -39,7 +39,6 @@ CMDIndexGPDB::CMDIndexGPDB
 	BOOL fClustered, 
 	IMDIndex::EmdindexType emdindt,
 	IMDId *pmdidItemType,
-	BOOL fPartial,
 	DrgPul *pdrgpulKeyCols,
 	DrgPul *pdrgpulIncludedCols,
 	DrgPmdid *pdrgpmdidOpClasses,
@@ -52,7 +51,6 @@ CMDIndexGPDB::CMDIndexGPDB
 	m_fClustered(fClustered),
 	m_emdindt(emdindt),
 	m_pmdidItemType(pmdidItemType),
-	m_fPartial(fPartial),
 	m_pdrgpulKeyCols(pdrgpulKeyCols),
 	m_pdrgpulIncludedCols(pdrgpulIncludedCols),
 	m_pdrgpmdidOpClasses(pdrgpmdidOpClasses),
@@ -130,20 +128,6 @@ BOOL
 CMDIndexGPDB::FClustered() const
 {
 	return m_fClustered;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMDIndexGPDB::FPartial
-//
-//	@doc:
-//		Is the index partial
-//
-//---------------------------------------------------------------------------
-BOOL
-CMDIndexGPDB::FPartial() const
-{
-	return m_fPartial;
 }
 
 //---------------------------------------------------------------------------
@@ -323,10 +307,6 @@ CMDIndexGPDB::Serialize
 	if (NULL != m_pmdidItemType)
 	{
 		m_pmdidItemType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenIndexItemType));
-	}
-	if (m_fPartial)
-	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIndexPartial), m_fPartial);
 	}
 		
 	// serialize index keys

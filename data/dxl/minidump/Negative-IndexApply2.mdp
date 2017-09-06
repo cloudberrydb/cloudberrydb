@@ -197,9 +197,9 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.41880949.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.41880949.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
@@ -257,9 +257,9 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.41880949.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.41880949.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
@@ -354,9 +354,9 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.41881111.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.41881111.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
@@ -417,9 +417,9 @@ select * from z_p,tt_p where tt_p.i=5 and z_p.i=6;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.41881111.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.41881111.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">

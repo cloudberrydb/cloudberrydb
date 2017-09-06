@@ -209,9 +209,9 @@ EXPLAIN SELECT * FROM date_parts WHERE month BETWEEN 1 AND 4;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.3749921.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.3749921.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0,1,2" Unbounded="true">

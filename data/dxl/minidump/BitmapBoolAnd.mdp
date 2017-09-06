@@ -45,12 +45,12 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.145185.1.0"/>
-          <dxl:Index Mdid="0.145206.1.0"/>
-          <dxl:Index Mdid="0.145227.1.0"/>
-          <dxl:Index Mdid="0.145248.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.145185.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.145206.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.145227.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.145248.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -90,12 +90,12 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.145185.1.0"/>
-          <dxl:Index Mdid="0.145206.1.0"/>
-          <dxl:Index Mdid="0.145227.1.0"/>
-          <dxl:Index Mdid="0.145248.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.145185.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.145206.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.145227.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.145248.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -229,7 +229,7 @@
           <dxl:OpClass Mdid="0.1978.1.0"/>
           <dxl:OpClass Mdid="0.1979.1.0"/>
           <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>                
+        </dxl:OpClasses>
       </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.145159.1.1.7" Name="xmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.145159.1.1.6" Name="cmin" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>

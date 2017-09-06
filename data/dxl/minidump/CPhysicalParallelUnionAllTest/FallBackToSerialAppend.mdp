@@ -150,10 +150,10 @@ SELECT * FROM pp WHERE b=2 AND c=2;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2435371.1.0"/>
-          <dxl:Index Mdid="0.2435390.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2435371.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.2435390.1.0" IsPartial="true"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
@@ -201,7 +201,7 @@ SELECT * FROM pp WHERE b=2 AND c=2;
       </dxl:Type>
       <dxl:ColumnStatistics Mdid="1.2435227.1.1.7" Name="cmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.2435227.1.1.6" Name="xmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
-      <dxl:Index Mdid="0.2435371.1.0" Name="pp_1_prt_1_idx" IsClustered="false" IndexType="B-tree" IsPartial="true" KeyColumns="2" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
+      <dxl:Index Mdid="0.2435371.1.0" Name="pp_1_prt_1_idx" IsClustered="false" IndexType="B-tree" KeyColumns="2" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1976.1.0"/>
         </dxl:OpClasses>
@@ -218,7 +218,7 @@ SELECT * FROM pp WHERE b=2 AND c=2;
           </dxl:And>
         </dxl:PartConstraint>
       </dxl:Index>
-      <dxl:Index Mdid="0.2435390.1.0" Name="pp_rest_1_idx" IsClustered="false" IndexType="B-tree" IsPartial="true" KeyColumns="2,0" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
+      <dxl:Index Mdid="0.2435390.1.0" Name="pp_rest_1_idx" IsClustered="false" IndexType="B-tree" KeyColumns="2,0" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1976.1.0"/>
           <dxl:OpClass Mdid="0.1976.1.0"/>

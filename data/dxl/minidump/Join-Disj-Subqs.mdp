@@ -440,7 +440,7 @@ OR
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -592,11 +592,11 @@ OR
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2676.1.0"/>
-          <dxl:Index Mdid="0.2677.1.0"/>
-          <dxl:Index Mdid="0.6029.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2676.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2677.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.6029.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers>
           <dxl:Trigger Mdid="0.10303.1.0"/>
         </dxl:Triggers>
@@ -680,11 +680,11 @@ OR
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2676.1.0"/>
-          <dxl:Index Mdid="0.2677.1.0"/>
-          <dxl:Index Mdid="0.6029.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2676.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2677.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.6029.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers>
           <dxl:Trigger Mdid="0.10303.1.0"/>
         </dxl:Triggers>

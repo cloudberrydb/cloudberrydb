@@ -333,6 +333,14 @@ namespace gpdxl
 				CParseHandlerBase *pphRoot
 				);
 			
+			static
+			CParseHandlerBase * PphMDIndexInfoList
+				(
+				IMemoryPool *pmp,
+				CParseHandlerManager *pphm,
+				CParseHandlerBase *pphRoot
+				);
+
 			// construct a column MD parse handler
 			static
 			CParseHandlerBase *PphMetadataColumn

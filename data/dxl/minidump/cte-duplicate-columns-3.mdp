@@ -153,7 +153,7 @@ with x as (select a a1, a a2, b from foo) select * from x where a1 = 1 and a2 = 
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

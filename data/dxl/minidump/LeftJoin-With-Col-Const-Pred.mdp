@@ -24,26 +24,26 @@
         <dxl:Commutator Mdid="0.92.1.0"/>
         <dxl:InverseOp Mdid="0.630.1.0"/>
       </dxl:GPDBScalarOp>
-      <dxl:GPDBScalarOp Mdid="0.91.1.0" Name="=" ComparisonType="Eq"> 
-       <dxl:LeftType Mdid="0.16.1.0"/>                               
-       <dxl:RightType Mdid="0.16.1.0"/>                              
-       <dxl:ResultType Mdid="0.16.1.0"/>                             
-       <dxl:OpFunc Mdid="0.60.1.0"/>                                 
-       <dxl:Commutator Mdid="0.91.1.0"/>                             
-       <dxl:InverseOp Mdid="0.85.1.0"/>                              
-     </dxl:GPDBScalarOp> 
-      <dxl:GPDBScalarOp Mdid="0.413.1.0" Name="&gt;" ComparisonType="GT"> 
-       <dxl:LeftType Mdid="0.20.1.0"/>                                   
-       <dxl:RightType Mdid="0.20.1.0"/>                                  
-       <dxl:ResultType Mdid="0.16.1.0"/>                                 
-       <dxl:OpFunc Mdid="0.470.1.0"/>                                    
-       <dxl:Commutator Mdid="0.412.1.0"/>                                
-       <dxl:InverseOp Mdid="0.414.1.0"/>                                 
-     </dxl:GPDBScalarOp>    
-      <dxl:GPDBAgg Mdid="0.2108.1.0" Name="sum" IsSplittable="true"> 
-       <dxl:ResultType Mdid="0.20.1.0"/>                            
-       <dxl:IntermediateResultType Mdid="0.20.1.0"/>                
-     </dxl:GPDBAgg> 
+      <dxl:GPDBScalarOp Mdid="0.91.1.0" Name="=" ComparisonType="Eq">
+       <dxl:LeftType Mdid="0.16.1.0"/>
+       <dxl:RightType Mdid="0.16.1.0"/>
+       <dxl:ResultType Mdid="0.16.1.0"/>
+       <dxl:OpFunc Mdid="0.60.1.0"/>
+       <dxl:Commutator Mdid="0.91.1.0"/>
+       <dxl:InverseOp Mdid="0.85.1.0"/>
+     </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.413.1.0" Name="&gt;" ComparisonType="GT">
+       <dxl:LeftType Mdid="0.20.1.0"/>
+       <dxl:RightType Mdid="0.20.1.0"/>
+       <dxl:ResultType Mdid="0.16.1.0"/>
+       <dxl:OpFunc Mdid="0.470.1.0"/>
+       <dxl:Commutator Mdid="0.412.1.0"/>
+       <dxl:InverseOp Mdid="0.414.1.0"/>
+     </dxl:GPDBScalarOp>
+      <dxl:GPDBAgg Mdid="0.2108.1.0" Name="sum" IsSplittable="true">
+       <dxl:ResultType Mdid="0.20.1.0"/>
+       <dxl:IntermediateResultType Mdid="0.20.1.0"/>
+     </dxl:GPDBAgg>
       <dxl:Type Mdid="0.28.1.0" Name="xid" IsRedistributable="false" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.352.1.0"/>
         <dxl:InequalityOp Mdid="0.0.0.0"/>
@@ -1074,11 +1074,11 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2676.1.0"/>
-          <dxl:Index Mdid="0.2677.1.0"/>
-          <dxl:Index Mdid="0.6029.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2676.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2677.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.6029.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers>
           <dxl:Trigger Mdid="0.10307.1.0"/>
         </dxl:Triggers>
@@ -1130,8 +1130,7 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-        </dxl:Indexes>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -1501,8 +1500,7 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-        </dxl:Indexes>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -1623,8 +1621,7 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-        </dxl:Indexes>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -1840,8 +1837,7 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-        </dxl:Indexes>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

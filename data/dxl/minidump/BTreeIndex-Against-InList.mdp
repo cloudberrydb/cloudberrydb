@@ -3,7 +3,7 @@
 // B-tree index in constant array
 CREATE TABLE test as SELECT * FROM generate_series(1,1000000) as a distributed randomly;
 CREATE INDEX test_index ON test(a);
-SELECT * FROM test WHERE a in (1, 47); 
+SELECT * FROM test WHERE a in (1, 47);
 -->
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
@@ -239,9 +239,9 @@ SELECT * FROM test WHERE a in (1, 47);
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.41692.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.41692.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

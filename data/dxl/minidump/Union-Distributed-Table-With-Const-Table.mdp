@@ -46,10 +46,7 @@ Table X (int i, int j) is distributed by i
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.17159874.1.0"/>
-          <dxl:Index Mdid="0.17159920.1.0"/>
-        </dxl:Indexes>
+	<dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

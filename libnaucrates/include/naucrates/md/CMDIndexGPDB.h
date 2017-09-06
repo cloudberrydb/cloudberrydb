@@ -55,9 +55,6 @@ namespace gpmd
 			// type of items returned by index
 			IMDId *m_pmdidItemType;
 
-			// is the index partial
-			BOOL m_fPartial;
-
 			// index key columns
 			DrgPul *m_pdrgpulKeyCols;
 
@@ -87,7 +84,6 @@ namespace gpmd
 				BOOL fClustered, 
 				EmdindexType emdindt,
 				IMDId *pmdidItemType,
-				BOOL fPartial,
 				DrgPul *pdrgpulKeyCols,
 				DrgPul *pdrgpulIncludedCols,
 				DrgPmdid *pdrgpmdidOpClasses,
@@ -109,10 +105,6 @@ namespace gpmd
 			// is the index clustered
 			virtual
 			BOOL FClustered() const;
-			
-			// is index partial
-			virtual
-			BOOL FPartial() const;
 			
 			// index type
 			virtual

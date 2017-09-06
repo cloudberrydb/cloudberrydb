@@ -556,11 +556,11 @@ explain select * from t where c2 = 'HEAP' or c4 = 't' or c5 = 'f';
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.21849037.1.0"/>
-          <dxl:Index Mdid="0.21849058.1.0"/>
-          <dxl:Index Mdid="0.21849079.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.21849037.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.21849058.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.21849079.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -609,11 +609,11 @@ explain select * from t where c2 = 'HEAP' or c4 = 't' or c5 = 'f';
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.21849037.1.0"/>
-          <dxl:Index Mdid="0.21849058.1.0"/>
-          <dxl:Index Mdid="0.21849079.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.21849037.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.21849058.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.21849079.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

@@ -65,12 +65,12 @@ explain select * from r where a = 1 or b = 2;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.145185.1.0"/>
-          <dxl:Index Mdid="0.145206.1.0"/>
-          <dxl:Index Mdid="0.145227.1.0"/>
-          <dxl:Index Mdid="0.145248.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.145185.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.145206.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.145227.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.145248.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -110,12 +110,12 @@ explain select * from r where a = 1 or b = 2;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.145185.1.0"/>
-          <dxl:Index Mdid="0.145206.1.0"/>
-          <dxl:Index Mdid="0.145227.1.0"/>
-          <dxl:Index Mdid="0.145248.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.145185.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.145206.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.145227.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.145248.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

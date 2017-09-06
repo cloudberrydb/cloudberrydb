@@ -44,7 +44,7 @@ select * from t1 where a not in (select a from t2 where t2.b<>t1.b group by t2.a
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -489,7 +489,7 @@ select * from t1 where a not in (select a from t2 where t2.b<>t1.b group by t2.a
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

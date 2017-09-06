@@ -18,13 +18,13 @@
         <dxl:Commutator Mdid="0.523.1.0"/>
         <dxl:InverseOp Mdid="0.97.1.0"/>
       </dxl:GPDBScalarOp>
-      <dxl:GPDBScalarOp Mdid="0.609.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true"> 
-       <dxl:LeftType Mdid="0.26.1.0"/>                                                                 
-       <dxl:RightType Mdid="0.26.1.0"/>                                                                
-       <dxl:ResultType Mdid="0.16.1.0"/>                                                               
-       <dxl:OpFunc Mdid="0.716.1.0"/>                                                                  
-       <dxl:Commutator Mdid="0.610.1.0"/>                                                              
-       <dxl:InverseOp Mdid="0.612.1.0"/>                                                                                                                                            
+      <dxl:GPDBScalarOp Mdid="0.609.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+       <dxl:LeftType Mdid="0.26.1.0"/>
+       <dxl:RightType Mdid="0.26.1.0"/>
+       <dxl:ResultType Mdid="0.16.1.0"/>
+       <dxl:OpFunc Mdid="0.716.1.0"/>
+       <dxl:Commutator Mdid="0.610.1.0"/>
+       <dxl:InverseOp Mdid="0.612.1.0"/>
      </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
         <dxl:EqualityOp Mdid="0.91.1.0"/>
@@ -136,7 +136,7 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -187,9 +187,9 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.1095699.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.1095699.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

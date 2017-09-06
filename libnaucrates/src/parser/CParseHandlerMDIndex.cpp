@@ -45,7 +45,6 @@ CParseHandlerMDIndex::CParseHandlerMDIndex
 	m_fClustered(false),
 	m_emdindt(IMDIndex::EmdindSentinel),
 	m_pmdidItemType(NULL),
-	m_fPartial(false),
 	m_pdrgpulKeyCols(NULL),
 	m_pdrgpulIncludedCols(NULL),
 	m_ppartcnstr(NULL),
@@ -136,19 +135,6 @@ CParseHandlerMDIndex::StartElement
 							);
 	}
 
-	const XMLCh *xmlszIsPartial = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenIndexPartial));
-	
-	if (NULL != xmlszIsPartial)
-	{
-		m_fPartial = CDXLOperatorFactory::FValueFromXmlstr
-						(
-						m_pphm->Pmm(), 
-						xmlszIsPartial, 
-						EdxltokenIndexPartial, 
-						EdxltokenIndex
-						);
-	}
-
 	const XMLCh *xmlszIndexKeys = CDXLOperatorFactory::XmlstrFromAttrs(attrs, EdxltokenIndexKeyCols, EdxltokenIndex);
 	m_pdrgpulKeyCols = CDXLOperatorFactory::PdrgpulFromXMLCh(m_pphm->Pmm(), xmlszIndexKeys, EdxltokenIndexKeyCols, EdxltokenIndex);
 
@@ -212,7 +198,6 @@ CParseHandlerMDIndex::EndElement
 							m_fClustered, 
 							m_emdindt,
 							m_pmdidItemType,
-							m_fPartial, 
 							m_pdrgpulKeyCols, 
 							m_pdrgpulIncludedCols, 
 							pdrgpmdidOpClasses,

@@ -179,7 +179,7 @@ EXPLAIN SELECT pk from partitioned_table WHERE a > (select d from other_table wh
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -218,7 +218,7 @@ EXPLAIN SELECT pk from partitioned_table WHERE a > (select d from other_table wh
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

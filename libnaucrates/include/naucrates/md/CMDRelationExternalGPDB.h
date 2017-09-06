@@ -72,8 +72,8 @@ namespace gpmd
 			// array of key sets
 			DrgPdrgPul *m_pdrgpdrgpulKeys;
 
-			// array of index ids
-			DrgPmdid *m_pdrgpmdidIndices;
+			// array of index infos
+			DrgPmdIndexInfo *m_pdrgpmdIndexInfo;
 
 			// array of trigger ids
 			DrgPmdid *m_pdrgpmdidTriggers;
@@ -122,7 +122,7 @@ namespace gpmd
 				DrgPul *pdrgpulDistrColumns,
 				BOOL fConvertHashToRandom,
 				DrgPdrgPul *pdrgpdrgpul,
-				DrgPmdid *pdrgpmdidIndices,
+				DrgPmdIndexInfo *pdrgpmdIndexInfo,
 				DrgPmdid *pdrgpmdidTriggers,
 				DrgPmdid *pdrgpmdidCheckConstraint,
 				INT iRejectLimit,

@@ -47,7 +47,7 @@ EXPLAIN SELECT (SELECT count(*) FROM bar where c = a) FROM foo;
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes/>
+      <dxl:IndexInfoList/>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -189,7 +189,7 @@ EXPLAIN SELECT (SELECT count(*) FROM bar where c = a) FROM foo;
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes/>
+      <dxl:IndexInfoList/>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>

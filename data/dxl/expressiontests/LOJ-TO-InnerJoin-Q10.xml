@@ -49,7 +49,7 @@ select * from t1 left outer join t2 using (a) where (t1.b=t2.b and t2.a is not n
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -516,7 +516,7 @@ select * from t1 left outer join t2 using (a) where (t1.b=t2.b and t2.a is not n
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

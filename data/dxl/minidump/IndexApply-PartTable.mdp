@@ -29,7 +29,7 @@ set optimizer=on;
 set optimizer_enable_indexjoin=on;
 select disable_xform('CXformInnerJoin2HashJoin');
 select disable_xform('CXformInnerJoin2IndexGetApply');
-select disable_xform('CXformInnerJoin2NLJoin');                                                                                                                                                                                                                          
+select disable_xform('CXformInnerJoin2NLJoin');
 
 set optimizer_minidump = 'always';
 set optimizer_cost_model='legacy';
@@ -92,9 +92,9 @@ ORDER BY 1 asc ;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.16166830.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.16166830.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
@@ -150,9 +150,9 @@ ORDER BY 1 asc ;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.16166830.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.16166830.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
@@ -1285,7 +1285,7 @@ ORDER BY 1 asc ;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

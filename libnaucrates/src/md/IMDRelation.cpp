@@ -112,4 +112,14 @@ IMDRelation::PstrColumns
 	return pstr;
 }
 
+// check if index is partial given its mdid
+BOOL
+IMDRelation::FPartialIndex
+	(
+	IMDId * // mdid
+	) const
+{
+	return false;
+}
+
 // EOF

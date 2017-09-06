@@ -292,10 +292,10 @@ where a=1 and b=0;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.1962926.1.0"/>
-          <dxl:Index Mdid="0.1975983.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.1962926.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.1975983.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -332,10 +332,10 @@ where a=1 and b=0;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.1962926.1.0"/>
-          <dxl:Index Mdid="0.1975983.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.1962926.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.1975983.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

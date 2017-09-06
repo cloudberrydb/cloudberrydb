@@ -5,8 +5,8 @@ SQL:
 CREATE TABLE foo AS SELECT i as a, i+1 as b from generate_series(1,10)i;
 CREATE TABLE bar AS SELECT i as c, i+1 as d from generate_series(1,10)i;
 create table t as SELECT foo.a,foo.b,bar.d FROM foo,bar WHERE foo.a = bar.d;
-select * from 
-(SELECT bar.*, AVG(t.b) OVER(PARTITION BY t.a ORDER BY t.b desc) AS e FROM t,bar) foo, t  
+select * from
+(SELECT bar.*, AVG(t.b) OVER(PARTITION BY t.a ORDER BY t.b desc) AS e FROM t,bar) foo, t
 where e < 10;
 -->
   <dxl:Thread Id="0">
@@ -51,7 +51,7 @@ where e < 10;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -358,7 +358,7 @@ where e < 10;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

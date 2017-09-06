@@ -708,10 +708,10 @@ explain select * from t where (c1 = 10 and c5 < 20) or (c2 = '4' and c5> 100);
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.1632594.1.0"/>
-          <dxl:Index Mdid="0.1632615.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.1632594.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.1632615.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -760,10 +760,10 @@ explain select * from t where (c1 = 10 and c5 < 20) or (c2 = '4' and c5> 100);
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.1632594.1.0"/>
-          <dxl:Index Mdid="0.1632615.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.1632594.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.1632615.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

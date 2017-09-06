@@ -280,7 +280,7 @@ select x.c1 * x.c2, x.c3 from (select a, b, a+b from foo) x(c1,c2,c3);
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

@@ -23,21 +23,21 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Type Mdid="0.20.1.0" Name="Int8" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="8" PassByValue="true"> 
-       <dxl:EqualityOp Mdid="0.410.1.0"/>                                                                                                                     
-       <dxl:InequalityOp Mdid="0.411.1.0"/>                                                                                                                   
-       <dxl:LessThanOp Mdid="0.412.1.0"/>                                                                                                                     
-       <dxl:LessThanEqualsOp Mdid="0.414.1.0"/>                                                                                                               
-       <dxl:GreaterThanOp Mdid="0.413.1.0"/>                                                                                                                  
-       <dxl:GreaterThanEqualsOp Mdid="0.415.1.0"/>                                                                                                            
-       <dxl:ComparisonOp Mdid="0.351.1.0"/>                                                                                                                   
-       <dxl:ArrayType Mdid="0.1016.1.0"/>                                                                                                                     
-       <dxl:MinAgg Mdid="0.2131.1.0"/>                                                                                                                        
-       <dxl:MaxAgg Mdid="0.2115.1.0"/>                                                                                                                        
-       <dxl:AvgAgg Mdid="0.2100.1.0"/>                                                                                                                        
-       <dxl:SumAgg Mdid="0.2107.1.0"/>                                                                                                                        
-       <dxl:CountAgg Mdid="0.2147.1.0"/>                                                                                                                      
-     </dxl:Type> 
+      <dxl:Type Mdid="0.20.1.0" Name="Int8" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="8" PassByValue="true">
+       <dxl:EqualityOp Mdid="0.410.1.0"/>
+       <dxl:InequalityOp Mdid="0.411.1.0"/>
+       <dxl:LessThanOp Mdid="0.412.1.0"/>
+       <dxl:LessThanEqualsOp Mdid="0.414.1.0"/>
+       <dxl:GreaterThanOp Mdid="0.413.1.0"/>
+       <dxl:GreaterThanEqualsOp Mdid="0.415.1.0"/>
+       <dxl:ComparisonOp Mdid="0.351.1.0"/>
+       <dxl:ArrayType Mdid="0.1016.1.0"/>
+       <dxl:MinAgg Mdid="0.2131.1.0"/>
+       <dxl:MaxAgg Mdid="0.2115.1.0"/>
+       <dxl:AvgAgg Mdid="0.2100.1.0"/>
+       <dxl:SumAgg Mdid="0.2107.1.0"/>
+       <dxl:CountAgg Mdid="0.2147.1.0"/>
+     </dxl:Type>
       <dxl:Type Mdid="0.28.1.0" Name="xid" IsRedistributable="false" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.352.1.0"/>
         <dxl:InequalityOp Mdid="0.0.0.0"/>
@@ -170,7 +170,7 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

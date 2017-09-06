@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
 <!--
-SQL: 
+SQL:
 SELECT * FROM information_schema.tables;
 -->
   <dxl:Thread Id="0">
@@ -197,9 +197,9 @@ SELECT * FROM information_schema.tables;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.6041.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.6041.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -458,10 +458,10 @@ SELECT * FROM information_schema.tables;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2684.1.0"/>
-          <dxl:Index Mdid="0.2685.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2684.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2685.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -508,10 +508,10 @@ SELECT * FROM information_schema.tables;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2684.1.0"/>
-          <dxl:Index Mdid="0.2685.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2684.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2685.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -1090,10 +1090,10 @@ SELECT * FROM information_schema.tables;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2662.1.0"/>
-          <dxl:Index Mdid="0.2663.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2662.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2663.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -1214,10 +1214,10 @@ SELECT * FROM information_schema.tables;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2662.1.0"/>
-          <dxl:Index Mdid="0.2663.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2662.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2663.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

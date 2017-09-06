@@ -16,6 +16,7 @@
 #include "naucrates/dxl/parser/CParseHandlerMetadataColumns.h"
 #include "naucrates/dxl/parser/CParseHandlerMetadataIdList.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarOp.h"
+#include "naucrates/dxl/parser/CParseHandlerMDIndexInfoList.h"
 
 #include "naucrates/dxl/operators/CDXLOperatorFactory.h"
 
@@ -91,10 +92,9 @@ CParseHandlerMDRelation::StartElement
 		}
 		m_fPartConstraintUnbounded = CDXLOperatorFactory::FValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenPartConstraintUnbounded, EdxltokenRelation);
 
-		CParseHandlerMetadataIdList *pphMdidlIndices = dynamic_cast<CParseHandlerMetadataIdList*>((*this)[1]);
-
+		CParseHandlerMDIndexInfoList *pphMdlIndexInfo = dynamic_cast<CParseHandlerMDIndexInfoList*>((*this)[1]);
 		// relcache translator will send partition constraint expression only when a partitioned relation has indices
-		if (pphMdidlIndices->Pdrgpmdid()->UlLength() > 0)
+		if (pphMdlIndexInfo->PdrgpmdIndexInfo()->UlLength() > 0)
 		{
 			// parse handler for part constraints
 			CParseHandlerBase *pphPartConstraint= CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenScalar), m_pphm, this);
@@ -212,11 +212,11 @@ CParseHandlerMDRelation::EndElement
 	const XMLCh* const // xmlszQname
 	)
 {
-	CParseHandlerMetadataIdList *pphMdidlIndices = dynamic_cast<CParseHandlerMetadataIdList*>((*this)[1]);
+	CParseHandlerMDIndexInfoList *pphMdlIndexInfo = dynamic_cast<CParseHandlerMDIndexInfoList*>((*this)[1]);
 	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPartConstraint), xmlszLocalname))
 	{
 		// relcache translator will send partition constraint expression only when a partitioned relation has indices
-		if (pphMdidlIndices->Pdrgpmdid()->UlLength() > 0)
+		if (pphMdlIndexInfo->PdrgpmdIndexInfo()->UlLength() > 0)
 		{
 			CParseHandlerScalarOp *pphPartCnstr = dynamic_cast<CParseHandlerScalarOp *>((*this)[UlLength() - 1]);
 			CDXLNode *pdxlnPartConstraint = pphPartCnstr->Pdxln();
@@ -243,17 +243,17 @@ CParseHandlerMDRelation::EndElement
 	CParseHandlerMetadataIdList *pphMdidlCheckConstraints = dynamic_cast<CParseHandlerMetadataIdList*>((*this)[3]);
 
 	GPOS_ASSERT(NULL != pphMdCol->Pdrgpmdcol());
-	GPOS_ASSERT(NULL != pphMdidlIndices->Pdrgpmdid());
+	GPOS_ASSERT(NULL != pphMdlIndexInfo->PdrgpmdIndexInfo());
 	GPOS_ASSERT(NULL != pphMdidlCheckConstraints->Pdrgpmdid());
 
 	// refcount child objects
 	DrgPmdcol *pdrgpmdcol = pphMdCol->Pdrgpmdcol();
-	DrgPmdid *pdrgpmdidIndices = pphMdidlIndices->Pdrgpmdid();
+	DrgPmdIndexInfo *pdrgpmdIndexInfos = pphMdlIndexInfo->PdrgpmdIndexInfo();
 	DrgPmdid *pdrgpmdidTriggers = pphMdidlTriggers->Pdrgpmdid();
 	DrgPmdid *pdrgpmdidCheckConstraint = pphMdidlCheckConstraints->Pdrgpmdid();
  
 	pdrgpmdcol->AddRef();
-	pdrgpmdidIndices->AddRef();
+	pdrgpmdIndexInfos->AddRef();
  	pdrgpmdidTriggers->AddRef();
  	pdrgpmdidCheckConstraint->AddRef();
 
@@ -272,7 +272,7 @@ CParseHandlerMDRelation::EndElement
 									m_ulPartitions,
 									m_fConvertHashToRandom,
 									m_pdrgpdrgpulKeys,
-									pdrgpmdidIndices,
+									pdrgpmdIndexInfos,
 									pdrgpmdidTriggers,
 									pdrgpmdidCheckConstraint,
 									m_ppartcnstr,
@@ -354,9 +354,9 @@ CParseHandlerMDRelation::ParseChildNodes()
 	CParseHandlerBase *pphTriggerList = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenMetadataIdList), m_pphm, this);
 	m_pphm->ActivateParseHandler(pphTriggerList);
 
-	// parse handler for indices list
-	CParseHandlerBase *pphIndexList = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenMetadataIdList), m_pphm, this);
-	m_pphm->ActivateParseHandler(pphIndexList);
+	// parse handler for index info list
+	CParseHandlerBase *pphIndexInfoList = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenIndexInfoList), m_pphm, this);
+	m_pphm->ActivateParseHandler(pphIndexInfoList);
 
 	// parse handler for the columns
 	CParseHandlerBase *pphColumns = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenMetadataColumns), m_pphm, this);
@@ -364,7 +364,7 @@ CParseHandlerMDRelation::ParseChildNodes()
 
 	// store parse handlers
 	this->Append(pphColumns);
-	this->Append(pphIndexList);
+	this->Append(pphIndexInfoList);
  	this->Append(pphTriggerList);
  	this->Append(pphCheckConstraintList);
 }

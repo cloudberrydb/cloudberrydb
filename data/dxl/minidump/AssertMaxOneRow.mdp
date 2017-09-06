@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-<!-- 
-SQL: 
-select relfilenode as pg_toast_relidx from pg_class 
-where oid = (select reltoastidxid from pg_class 
+<!--
+SQL:
+select relfilenode as pg_toast_relidx from pg_class
+where oid = (select reltoastidxid from pg_class
 where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_storage_table'));
 -->
   <dxl:Thread Id="0">
@@ -872,10 +872,10 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2662.1.0"/>
-          <dxl:Index Mdid="0.2663.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2662.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2663.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -996,10 +996,10 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2662.1.0"/>
-          <dxl:Index Mdid="0.2663.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2662.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2663.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

@@ -176,7 +176,7 @@ EXPLAIN CREATE TABLE Test AS SELECT * FROM test_gpfdist_ext DISTRIBUTED BY (a);
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:ExternalRelation>

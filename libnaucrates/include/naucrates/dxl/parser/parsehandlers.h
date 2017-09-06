@@ -29,6 +29,7 @@
 #include "naucrates/dxl/parser/CParseHandlerMDRelationExternal.h"
 #include "naucrates/dxl/parser/CParseHandlerMDRelationCtas.h"
 #include "naucrates/dxl/parser/CParseHandlerMDIndex.h"
+#include "naucrates/dxl/parser/CParseHandlerMDIndexInfoList.h"
 #include "naucrates/dxl/parser/CParseHandlerMDGPDBCheckConstraint.h"
 #include "naucrates/dxl/parser/CParseHandlerMetadataIdList.h"
 #include "naucrates/dxl/parser/CParseHandlerMetadataColumns.h"

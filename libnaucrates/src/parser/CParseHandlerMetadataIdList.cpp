@@ -144,8 +144,7 @@ CParseHandlerMetadataIdList::EndElement
 	const XMLCh* const // xmlszQname
 	)
 {
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenIndexes), xmlszLocalname) ||
-		0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenTriggers), xmlszLocalname) ||
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenTriggers), xmlszLocalname) ||
 		0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPartitions), xmlszLocalname)||
 		0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCheckConstraints), xmlszLocalname) ||
 		0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenOpClasses), xmlszLocalname))
@@ -198,8 +197,7 @@ CParseHandlerMetadataIdList::FSupportedListType
 	const XMLCh* const xmlsz
 	)
 {
-	return (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenIndexes), xmlsz) ||
-			0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenTriggers), xmlsz)  ||
+	return (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenTriggers), xmlsz)  ||
 			0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenPartitions), xmlsz)  ||
 			0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCheckConstraints), xmlsz)  ||
 			0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenOpClasses), xmlsz));

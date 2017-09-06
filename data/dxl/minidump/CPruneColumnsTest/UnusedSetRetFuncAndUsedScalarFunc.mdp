@@ -183,7 +183,7 @@ select j from (select unnest(string_to_array(c, '|')) i, abs(d) j from foo) t;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

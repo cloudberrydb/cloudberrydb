@@ -137,7 +137,7 @@ insert into int4_tbl values(123456), (-2147483647), (0), (-123456), (2147483647)
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

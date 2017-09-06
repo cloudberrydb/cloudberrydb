@@ -57,10 +57,6 @@ namespace gpmd
 			virtual
 			BOOL FClustered() const = 0;
 			
-			// is index partial
-			virtual
-			BOOL FPartial() const = 0;
-			
 			// index type
 			virtual
 			EmdindexType Emdindt() const = 0;

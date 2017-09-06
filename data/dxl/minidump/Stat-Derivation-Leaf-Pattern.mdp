@@ -278,10 +278,10 @@ AND
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.3306.1.0"/>
-          <dxl:Index Mdid="0.3307.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.3306.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.3307.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -327,10 +327,10 @@ AND
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.3306.1.0"/>
-          <dxl:Index Mdid="0.3307.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.3306.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.3307.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -420,7 +420,7 @@ AND
          <dxl:OpClass Mdid="0.3028.1.0"/>                                                              
        </dxl:OpClasses>                                                                                
      </dxl:GPDBScalarOp>
-	 <dxl:Index Mdid="0.3307.1.0" Name="pg_foreign_data_wrapper_name_index" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12">
+     <dxl:Index Mdid="0.3307.1.0" Name="pg_foreign_data_wrapper_name_index" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1986.1.0"/>
         </dxl:OpClasses>
@@ -508,11 +508,11 @@ AND
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2676.1.0"/>
-          <dxl:Index Mdid="0.2677.1.0"/>
-          <dxl:Index Mdid="0.6029.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2676.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2677.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.6029.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers>
           <dxl:Trigger Mdid="0.10303.1.0"/>
         </dxl:Triggers>
@@ -596,11 +596,11 @@ AND
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2676.1.0"/>
-          <dxl:Index Mdid="0.2677.1.0"/>
-          <dxl:Index Mdid="0.6029.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2676.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2677.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.6029.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers>
           <dxl:Trigger Mdid="0.10303.1.0"/>
         </dxl:Triggers>

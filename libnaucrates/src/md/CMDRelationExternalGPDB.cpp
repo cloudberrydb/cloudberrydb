@@ -34,7 +34,7 @@ CMDRelationExternalGPDB::CMDRelationExternalGPDB
 	DrgPul *pdrgpulDistrColumns,
 	BOOL fConvertHashToRandom,
 	DrgPdrgPul *pdrgpdrgpulKeys,
-	DrgPmdid *pdrgpmdidIndices,
+	DrgPmdIndexInfo *pdrgpmdIndexInfo,
 	DrgPmdid *pdrgpmdidTriggers,
  	DrgPmdid *pdrgpmdidCheckConstraint,
 	INT iRejectLimit,
@@ -51,7 +51,7 @@ CMDRelationExternalGPDB::CMDRelationExternalGPDB
 	m_pdrgpulDistrColumns(pdrgpulDistrColumns),
 	m_fConvertHashToRandom(fConvertHashToRandom),
 	m_pdrgpdrgpulKeys(pdrgpdrgpulKeys),
-	m_pdrgpmdidIndices(pdrgpmdidIndices),
+	m_pdrgpmdIndexInfo(pdrgpmdIndexInfo),
 	m_pdrgpmdidTriggers(pdrgpmdidTriggers),
 	m_pdrgpmdidCheckConstraint(pdrgpmdidCheckConstraint),
 	m_iRejectLimit(iRejectLimit),
@@ -64,7 +64,7 @@ CMDRelationExternalGPDB::CMDRelationExternalGPDB
 {
 	GPOS_ASSERT(pmdid->FValid());
 	GPOS_ASSERT(NULL != pdrgpmdcol);
-	GPOS_ASSERT(NULL != pdrgpmdidIndices);
+	GPOS_ASSERT(NULL != pdrgpmdIndexInfo);
 	GPOS_ASSERT(NULL != pdrgpmdidTriggers);
 	GPOS_ASSERT(NULL != pdrgpmdidCheckConstraint);
 	GPOS_ASSERT_IMP(fConvertHashToRandom,
@@ -127,7 +127,7 @@ CMDRelationExternalGPDB::~CMDRelationExternalGPDB()
 	m_pdrgpmdcol->Release();
 	CRefCount::SafeRelease(m_pdrgpulDistrColumns);
 	CRefCount::SafeRelease(m_pdrgpdrgpulKeys);
-	m_pdrgpmdidIndices->Release();
+	m_pdrgpmdIndexInfo->Release();
 	m_pdrgpmdidTriggers->Release();
 	m_pdrgpmdidCheckConstraint->Release();
 	CRefCount::SafeRelease(m_pmdidFmtErrRel);
@@ -415,7 +415,7 @@ CMDRelationExternalGPDB::UlDistrColumns() const
 ULONG
 CMDRelationExternalGPDB::UlIndices() const
 {
-	return m_pdrgpmdidIndices->UlLength();
+	return m_pdrgpmdIndexInfo->UlLength();
 }
 
 //---------------------------------------------------------------------------
@@ -489,7 +489,7 @@ CMDRelationExternalGPDB::PmdidIndex
 	)
 	const
 {
-	return (*m_pdrgpmdidIndices)[ulPos];
+	return (*m_pdrgpmdIndexInfo)[ulPos]->Pmdid();
 }
 
 //---------------------------------------------------------------------------
@@ -611,10 +611,20 @@ CMDRelationExternalGPDB::Serialize
 	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
 						CDXLTokens::PstrToken(EdxltokenColumns));
 
-	// serialize index information
-	SerializeMDIdList(pxmlser, m_pdrgpmdidIndices,
-						CDXLTokens::PstrToken(EdxltokenIndexes),
-						CDXLTokens::PstrToken(EdxltokenIndex));
+	// serialize index infos
+	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
+						CDXLTokens::PstrToken(EdxltokenIndexInfoList));
+	const ULONG ulIndexes = m_pdrgpmdIndexInfo->UlLength();
+	for (ULONG ul = 0; ul < ulIndexes; ul++)
+	{
+		CMDIndexInfo *pmdIndexInfo = (*m_pdrgpmdIndexInfo)[ul];
+		pmdIndexInfo->Serialize(pxmlser);
+
+		GPOS_CHECK_ABORT;
+	}
+
+	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix),
+						CDXLTokens::PstrToken(EdxltokenIndexInfoList));
 
 	// serialize trigger information
 	SerializeMDIdList(pxmlser, m_pdrgpmdidTriggers,
@@ -678,8 +688,13 @@ CMDRelationExternalGPDB::DebugPrint
 
 	os << std::endl;
 
-	os << "Indexes: ";
-	CDXLUtils::DebugPrintDrgpmdid(os, m_pdrgpmdidIndices);
+	os << "Index Info: ";
+	const ULONG ulIndexes = m_pdrgpmdIndexInfo->UlLength();
+	for (ULONG ul = 0; ul < ulIndexes; ul++)
+	{
+		CMDIndexInfo *pmdIndexInfo = (*m_pdrgpmdIndexInfo)[ul];
+		pmdIndexInfo->DebugPrint(os);
+	}
 
 	os << "Triggers: ";
 	CDXLUtils::DebugPrintDrgpmdid(os, m_pdrgpmdidTriggers);

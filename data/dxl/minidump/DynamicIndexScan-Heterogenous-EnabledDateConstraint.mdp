@@ -80,7 +80,7 @@
           <dxl:OpClass Mdid="0.434.1.0"/>
           <dxl:OpClass Mdid="0.435.1.0"/>
           <dxl:OpClass Mdid="0.3022.1.0"/>
-        </dxl:OpClasses>  
+        </dxl:OpClasses>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.1095.1.0" Name="&lt;" ComparisonType="LT">
         <dxl:LeftType Mdid="0.1082.1.0"/>
@@ -186,7 +186,7 @@
       <dxl:GPDBFunc Mdid="0.6083.1.0" Name="gp_partition_propagation" ReturnsSet="false" Stability="Volatile" DataAccess="NoSQL" IsStrict="true">
         <dxl:ResultType Mdid="0.2278.1.0"/>
       </dxl:GPDBFunc>
-      <dxl:Index Mdid="0.318973.1.0" Name="test_orders_2_1_prt_orders_1_ind" IsClustered="false" IsPartial="true" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
+      <dxl:Index Mdid="0.318973.1.0" Name="test_orders_2_1_prt_orders_1_ind" IsClustered="false" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8,9">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.434.1.0"/>
         </dxl:OpClasses>
@@ -243,9 +243,9 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.318973.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.318973.1.0" IsPartial="true"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">

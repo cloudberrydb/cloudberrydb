@@ -101,7 +101,7 @@ WHERE tt.event_ts &gt;= tq.ets AND
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -294,10 +294,10 @@ WHERE tt.event_ts &gt;= tq.ets AND
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.16033719.1.0"/>
-          <dxl:Index Mdid="0.16033738.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.16033719.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.16033738.1.0" IsPartial="true"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
@@ -353,10 +353,10 @@ WHERE tt.event_ts &gt;= tq.ets AND
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.16033719.1.0"/>
-          <dxl:Index Mdid="0.16033738.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.16033719.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.16033738.1.0" IsPartial="true"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
@@ -374,7 +374,7 @@ WHERE tt.event_ts &gt;= tq.ets AND
       </dxl:Relation>
       <dxl:ColumnStatistics Mdid="1.16033549.1.1.7" Name="xmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.16033549.1.1.6" Name="cmin" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:Index Mdid="0.16033719.1.0" Name="my_tq_agg_small_part_ets_end_ts_ix_1" IsClustered="false" IndexType="B-tree" IsPartial="true" KeyColumns="0,4" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11">
+      <dxl:Index Mdid="0.16033719.1.0" Name="my_tq_agg_small_part_ets_end_ts_ix_1" IsClustered="false" IndexType="B-tree" KeyColumns="0,4" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
           <dxl:OpClass Mdid="0.1978.1.0"/>
@@ -402,7 +402,7 @@ WHERE tt.event_ts &gt;= tq.ets AND
       <dxl:GPDBFunc Mdid="0.6086.1.0" Name="gp_partition_inverse" ReturnsSet="true" Stability="Stable" DataAccess="NoSQL" IsStrict="true">
         <dxl:ResultType Mdid="0.2249.1.0"/>
       </dxl:GPDBFunc>
-      <dxl:Index Mdid="0.16033738.1.0" Name="my_tq_agg_small_part_ets_end_ts_ix_2" IsClustered="false" IndexType="B-tree" IsPartial="true" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11">
+      <dxl:Index Mdid="0.16033738.1.0" Name="my_tq_agg_small_part_ets_end_ts_ix_2" IsClustered="false" IndexType="B-tree" KeyColumns="0" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
         </dxl:OpClasses>

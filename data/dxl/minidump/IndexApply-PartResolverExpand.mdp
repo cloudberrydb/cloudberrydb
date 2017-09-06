@@ -3,10 +3,10 @@
 <!--
 SQL:
 create table x ( i text, j text, k text, m text) distributed by (i) ;
-create table y ( i text, j text, k text, m text) distributed by (j) 
-PARTITION BY RANGE(i) 
-( partition p0 end('a') exclusive, partition p1 start('a')  inclusive end('h') inclusive, 
-partition p2 start('h') exclusive end('p') inclusive,partition p3 start('p') exclusive end('x'), 
+create table y ( i text, j text, k text, m text) distributed by (j)
+PARTITION BY RANGE(i)
+( partition p0 end('a') exclusive, partition p1 start('a')  inclusive end('h') inclusive,
+partition p2 start('h') exclusive end('p') inclusive,partition p3 start('p') exclusive end('x'),
 default partition def);
 create INDEX y_idx on y (j);
 
@@ -294,7 +294,7 @@ select count(*) from x, y where (x.i > y.j AND x.j <= y.i);
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -335,9 +335,9 @@ select count(*) from x, y where (x.i > y.j AND x.j <= y.i);
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.26855161.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.26855161.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">
@@ -383,9 +383,9 @@ select count(*) from x, y where (x.i > y.j AND x.j <= y.i);
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.26855161.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.26855161.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="0" Unbounded="true">

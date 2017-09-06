@@ -473,8 +473,7 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-        </dxl:Indexes>
+	<dxl:IndexInfoList/>
         <dxl:Triggers>
           <dxl:Trigger Mdid="0.10307.1.0"/>
         </dxl:Triggers>
@@ -540,10 +539,10 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2671.1.0"/>
-          <dxl:Index Mdid="0.2672.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2671.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2672.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers>
           <dxl:Trigger Mdid="0.10306.1.0"/>
         </dxl:Triggers>
@@ -644,10 +643,10 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2697.1.0"/>
-          <dxl:Index Mdid="0.2698.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2697.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2698.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

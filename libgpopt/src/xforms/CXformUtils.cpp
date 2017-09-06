@@ -2858,7 +2858,7 @@ CXformUtils::PexprBuildIndexPlan
 	CWStringConst *pstrAlias = NULL;
 	ULONG ulPartIndex = ULONG_MAX;
 	DrgDrgPcr *pdrgpdrgpcrPart = NULL;
-	BOOL fPartialIndex = pmdindex->FPartial();
+	BOOL fPartialIndex = pmdrel->FPartialIndex(pmdindex->Pmdid());
 	ULONG ulSecondaryPartIndex = ULONG_MAX;
 	CPartConstraint *ppartcnstrRel = NULL;
 
@@ -3444,7 +3444,7 @@ CXformUtils::PexprBitmapForSelectCondition
 	{
 		const IMDIndex *pmdindex = pmda->Pmdindex(pmdrel->PmdidIndex(ul));
 		
-		if (!pmdindex->FPartial() && CXformUtils::FIndexApplicable
+		if (!pmdrel->FPartialIndex(pmdindex->Pmdid()) && CXformUtils::FIndexApplicable
 									(
 									pmp,
 									pmdindex,
@@ -3554,7 +3554,7 @@ CXformUtils::PexprBitmapForIndexLookup
 	{
 		const IMDIndex *pmdindex = pmda->Pmdindex(pmdrel->PmdidIndex(ul));
 
-		if (pmdindex->FPartial() || !CXformUtils::FIndexApplicable
+		if (pmdrel->FPartialIndex(pmdindex->Pmdid()) || !CXformUtils::FIndexApplicable
 									(
 									pmp,
 									pmdindex,
@@ -3957,7 +3957,7 @@ CXformUtils::PdrgpdrgppartdigCandidates
 		const IMDIndex *pmdindex = pmda->Pmdindex(pmdrel->PmdidIndex(ul));
 
 		if (!CXformUtils::FIndexApplicable(pmp, pmdindex, pmdrel, pdrgpcrOutput, pcrsReqd, pcrsScalarExpr, IMDIndex::EmdindBtree /*emdindtype*/) ||
-			!pmdindex->FPartial())
+			!pmdrel->FPartialIndex(pmdindex->Pmdid()))
 		{
 			// not a partial index (handled in another function), or index does not apply to predicate
 			continue;
@@ -4189,7 +4189,7 @@ CXformUtils::PexprPartialDynamicIndexGet
 	GPOS_ASSERT_IMP(NULL == pdrgpcrOuter, NULL == pcrsAcceptedOuterRefs);
 	GPOS_ASSERT_IMP(NULL != pdrgpcrOuter, NULL != pdrgpcrNewOuter);
 	GPOS_ASSERT(NULL != pmdindex);
-	GPOS_ASSERT(pmdindex->FPartial());
+	GPOS_ASSERT(pmdrel->FPartialIndex(pmdindex->Pmdid()));
 
 	DrgPcr *pdrgpcrIndexCols = PdrgpcrIndexKeys(pmp, popGet->PdrgpcrOutput(), pmdindex, pmdrel);
 

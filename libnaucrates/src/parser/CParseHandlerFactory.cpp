@@ -96,6 +96,7 @@ CParseHandlerFactory::Init
 			{EdxltokenRelationStats, &PphRelStats},
 			{EdxltokenColumnStats, &PphColStats},
 			{EdxltokenMetadataIdList, &PphMetadataIdList},
+			{EdxltokenIndexInfoList, &PphMDIndexInfoList},
 			{EdxltokenMetadataColumns, &PphMetadataColumns},
 			{EdxltokenMetadataColumn, &PphMetadataColumn},
 			{EdxltokenColumnDefaultValue, &PphColumnDefaultValueExpr},
@@ -853,6 +854,17 @@ CParseHandlerFactory::PphMetadataColumns
 	)
 {
 	return GPOS_NEW(pmp) CParseHandlerMetadataColumns(pmp, pphm, pphRoot);
+}
+
+CParseHandlerBase *
+CParseHandlerFactory::PphMDIndexInfoList
+	(
+	IMemoryPool *pmp,
+	CParseHandlerManager *pphm,
+	CParseHandlerBase *pphRoot
+	)
+{
+	return GPOS_NEW(pmp) CParseHandlerMDIndexInfoList(pmp, pphm, pphRoot);
 }
 
 //---------------------------------------------------------------------------

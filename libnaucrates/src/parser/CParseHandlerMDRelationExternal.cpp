@@ -17,6 +17,7 @@
 #include "naucrates/dxl/parser/CParseHandlerMetadataColumns.h"
 #include "naucrates/dxl/parser/CParseHandlerMetadataIdList.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarOp.h"
+#include "naucrates/dxl/parser/CParseHandlerMDIndexInfoList.h"
 
 #include "naucrates/dxl/operators/CDXLOperatorFactory.h"
 
@@ -132,22 +133,22 @@ CParseHandlerMDRelationExternal::EndElement
 
 	// construct metadata object from the created child elements
 	CParseHandlerMetadataColumns *pphMdCol = dynamic_cast<CParseHandlerMetadataColumns *>((*this)[0]);
-	CParseHandlerMetadataIdList *pphMdidlIndices = dynamic_cast<CParseHandlerMetadataIdList*>((*this)[1]);
+	CParseHandlerMDIndexInfoList *pphMdlIndexInfo = dynamic_cast<CParseHandlerMDIndexInfoList*>((*this)[1]);
 	CParseHandlerMetadataIdList *pphMdidlTriggers = dynamic_cast<CParseHandlerMetadataIdList*>((*this)[2]);
 	CParseHandlerMetadataIdList *pphMdidlCheckConstraints = dynamic_cast<CParseHandlerMetadataIdList*>((*this)[3]);
 
 	GPOS_ASSERT(NULL != pphMdCol->Pdrgpmdcol());
-	GPOS_ASSERT(NULL != pphMdidlIndices->Pdrgpmdid());
+	GPOS_ASSERT(NULL != pphMdlIndexInfo->PdrgpmdIndexInfo());
 	GPOS_ASSERT(NULL != pphMdidlCheckConstraints->Pdrgpmdid());
 
 	// refcount child objects
 	DrgPmdcol *pdrgpmdcol = pphMdCol->Pdrgpmdcol();
-	DrgPmdid *pdrgpmdidIndices = pphMdidlIndices->Pdrgpmdid();
+	DrgPmdIndexInfo *pdrgpmdIndexInfo = pphMdlIndexInfo->PdrgpmdIndexInfo();
 	DrgPmdid *pdrgpmdidTriggers = pphMdidlTriggers->Pdrgpmdid();
 	DrgPmdid *pdrgpmdidCheckConstraint = pphMdidlCheckConstraints->Pdrgpmdid();
 
 	pdrgpmdcol->AddRef();
-	pdrgpmdidIndices->AddRef();
+	pdrgpmdIndexInfo->AddRef();
  	pdrgpmdidTriggers->AddRef();
  	pdrgpmdidCheckConstraint->AddRef();
 
@@ -161,7 +162,7 @@ CParseHandlerMDRelationExternal::EndElement
 									m_pdrgpulDistrColumns,
 									m_fConvertHashToRandom,
 									m_pdrgpdrgpulKeys,
-									pdrgpmdidIndices,
+									pdrgpmdIndexInfo,
 									pdrgpmdidTriggers,
 									pdrgpmdidCheckConstraint,
 									m_iRejectLimit,

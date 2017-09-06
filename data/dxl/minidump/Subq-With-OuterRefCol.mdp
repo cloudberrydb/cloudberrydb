@@ -19,23 +19,23 @@
           <dxl:OpClass Mdid="0.1978.1.0"/>
           <dxl:OpClass Mdid="0.1979.1.0"/>
           <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>         
+        </dxl:OpClasses>
       </dxl:GPDBScalarOp>
-      <dxl:GPDBScalarOp Mdid="0.413.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true"> 
-       <dxl:LeftType Mdid="0.20.1.0"/>                                                                 
-       <dxl:RightType Mdid="0.20.1.0"/>                                                                
-       <dxl:ResultType Mdid="0.16.1.0"/>                                                               
-       <dxl:OpFunc Mdid="0.470.1.0"/>                                                                  
-       <dxl:Commutator Mdid="0.412.1.0"/>                                                              
-       <dxl:InverseOp Mdid="0.414.1.0"/>                                                               
-       <dxl:OpClasses>                                                                                 
-         <dxl:OpClass Mdid="0.1980.1.0"/>                                                              
-         <dxl:OpClass Mdid="0.3028.1.0"/>                                                              
-       </dxl:OpClasses>                                                                                
-     </dxl:GPDBScalarOp>                                                                               
-      <dxl:GPDBAgg Mdid="0.2803.1.0" Name="count" IsSplittable="true" HashAggCapable="true"> 
-       <dxl:ResultType Mdid="0.20.1.0"/>                                                    
-       <dxl:IntermediateResultType Mdid="0.20.1.0"/>                                        
+      <dxl:GPDBScalarOp Mdid="0.413.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true">
+       <dxl:LeftType Mdid="0.20.1.0"/>
+       <dxl:RightType Mdid="0.20.1.0"/>
+       <dxl:ResultType Mdid="0.16.1.0"/>
+       <dxl:OpFunc Mdid="0.470.1.0"/>
+       <dxl:Commutator Mdid="0.412.1.0"/>
+       <dxl:InverseOp Mdid="0.414.1.0"/>
+       <dxl:OpClasses>
+         <dxl:OpClass Mdid="0.1980.1.0"/>
+         <dxl:OpClass Mdid="0.3028.1.0"/>
+       </dxl:OpClasses>
+     </dxl:GPDBScalarOp>
+      <dxl:GPDBAgg Mdid="0.2803.1.0" Name="count" IsSplittable="true" HashAggCapable="true">
+       <dxl:ResultType Mdid="0.20.1.0"/>
+       <dxl:IntermediateResultType Mdid="0.20.1.0"/>
      </dxl:GPDBAgg>
      <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
         <dxl:EqualityOp Mdid="0.91.1.0"/>
@@ -338,10 +338,10 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.58398.1.0"/>
-          <dxl:Index Mdid="0.58417.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.58398.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.58417.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -380,7 +380,7 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

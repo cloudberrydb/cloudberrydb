@@ -497,7 +497,7 @@ SQL: select * from t1 where not exists(select a from t2 where t2.b<>t1.b group b
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -540,7 +540,7 @@ SQL: select * from t1 where not exists(select a from t2 where t2.b<>t1.b group b
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

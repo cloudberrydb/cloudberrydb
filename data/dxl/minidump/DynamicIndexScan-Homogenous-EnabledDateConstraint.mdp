@@ -86,7 +86,7 @@
           <dxl:OpClass Mdid="0.434.1.0"/>
           <dxl:OpClass Mdid="0.435.1.0"/>
           <dxl:OpClass Mdid="0.3022.1.0"/>
-        </dxl:OpClasses>  
+        </dxl:OpClasses>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.1095.1.0" Name="&lt;" ComparisonType="LT">
         <dxl:LeftType Mdid="0.1082.1.0"/>
@@ -285,10 +285,10 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.318839.1.0"/>
-          <dxl:Index Mdid="0.310765.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.318839.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.310765.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">

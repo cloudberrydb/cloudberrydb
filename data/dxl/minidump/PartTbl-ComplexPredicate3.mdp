@@ -177,7 +177,7 @@ explain select * from foo where (b = 25 and a > 10) or (b<15 and a>5);
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

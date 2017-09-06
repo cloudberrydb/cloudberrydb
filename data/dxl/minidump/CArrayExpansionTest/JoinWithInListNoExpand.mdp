@@ -48,7 +48,7 @@ select a,b from foo, bar where foo.a in (1,2,3,4,5,6) and foo.a = bar.c;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -177,7 +177,7 @@ select a,b from foo, bar where foo.a in (1,2,3,4,5,6) and foo.a = bar.c;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

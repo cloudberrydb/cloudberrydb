@@ -93,10 +93,10 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes>
-        <dxl:Index Mdid="0.2345.2.1"/>
-        <dxl:Index Mdid="0.2347.1.1"/>
-      </dxl:Indexes>
+      <dxl:IndexInfoList>
+        <dxl:IndexInfo Mdid="0.2345.2.1" IsPartial="false"/>
+        <dxl:IndexInfo Mdid="0.2347.1.1" IsPartial="false"/>
+      </dxl:IndexInfoList>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -143,7 +143,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -180,7 +180,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints>
          <dxl:CheckConstraint Mdid="0.561000.1.1"/>
@@ -204,7 +204,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -241,7 +241,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                                      
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation> 
@@ -260,7 +260,7 @@
            <dxl:DefaultValue/>                                                                                          
          </dxl:Column>                                                                                                  
        </dxl:Columns>                                                                                                   
-       <dxl:Indexes/>                                                                                                   
+       <dxl:IndexInfoList/>                                                                                                   
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -307,7 +307,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -320,7 +320,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -333,7 +333,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -346,7 +346,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -359,7 +359,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -372,7 +372,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation> 
@@ -388,7 +388,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -404,7 +404,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -420,7 +420,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -433,7 +433,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -446,7 +446,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -459,7 +459,7 @@
            <dxl:DefaultValue/>                                                                                            
          </dxl:Column>                                                                                                    
        </dxl:Columns>                                                                                                     
-       <dxl:Indexes/>                                                                                                     
+       <dxl:IndexInfoList/>                                                                                                     
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -496,7 +496,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -533,7 +533,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                                                           
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -570,7 +570,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                                                          
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -592,7 +592,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                                                                                                                                                        
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -607,7 +607,7 @@
            <dxl:DefaultValue/>                                                                                                                  
          </dxl:Column>                                                                                                                          
        </dxl:Columns>                                                                                                                           
-       <dxl:Indexes/>                                                                                                                           
+       <dxl:IndexInfoList/>                                                                                                                           
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -620,7 +620,7 @@
            <dxl:DefaultValue/>                                                                                                                  
          </dxl:Column>                                                                                                                          
        </dxl:Columns>                                                                                                                           
-       <dxl:Indexes/>                                                                                                                           
+       <dxl:IndexInfoList/>                                                                                                                           
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -633,7 +633,7 @@
            <dxl:DefaultValue/>                                                                                                                  
          </dxl:Column>                                                                                                                          
        </dxl:Columns>                                                                                                                           
-       <dxl:Indexes/>                                                                                                                           
+       <dxl:IndexInfoList/>                                                                                                                           
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -655,7 +655,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                                                                                                                                                        
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -671,7 +671,7 @@
           <dxl:DefaultValue/>                                                                                                                    
         </dxl:Column>                                                                                                                            
       </dxl:Columns>                                                                                                                             
-     <dxl:Indexes/>                                                                                                                             
+     <dxl:IndexInfoList/>                                                                                                                             
      <dxl:Triggers/>
      <dxl:CheckConstraints/>
   </dxl:Relation>
@@ -687,7 +687,7 @@
          <dxl:DefaultValue/>                                                                                                                    
        </dxl:Column>                                                                                                                       
      </dxl:Columns>                                                                                                                             
-   	<dxl:Indexes/>                                                                                                                             
+   	<dxl:IndexInfoList/>                                                                                                                             
     <dxl:Triggers/>
     <dxl:CheckConstraints/>
   </dxl:Relation>
@@ -703,7 +703,7 @@
          <dxl:DefaultValue/>                                                                                                                    
        </dxl:Column>                                                                                                                            
      </dxl:Columns>                                                                                                                             
-   	<dxl:Indexes/>                                                                                                                             
+   	<dxl:IndexInfoList/>                                                                                                                             
     <dxl:Triggers/>
     <dxl:CheckConstraints/>
   </dxl:Relation>
@@ -716,7 +716,7 @@
           <dxl:DefaultValue/>                                                                                                                    
         </dxl:Column>                                                                                                                            
       </dxl:Columns>                                                                                                                             
-     <dxl:Indexes/>                                                                                                                             
+     <dxl:IndexInfoList/>                                                                                                                             
      <dxl:Triggers/>
      <dxl:CheckConstraints/>
    </dxl:Relation>
@@ -729,7 +729,7 @@
           <dxl:DefaultValue/>                                                                                                                    
         </dxl:Column>                                                                                                                            
       </dxl:Columns>                                                                                                                             
-     <dxl:Indexes/>                                                                                                                             
+     <dxl:IndexInfoList/>                                                                                                                             
      <dxl:Triggers/>
      <dxl:CheckConstraints/>
    </dxl:Relation>
@@ -742,7 +742,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -755,7 +755,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -768,7 +768,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -784,7 +784,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -800,7 +800,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -816,7 +816,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -829,7 +829,7 @@
            <dxl:DefaultValue/>                                                                                            
          </dxl:Column>                                                                                                    
        </dxl:Columns>                                                                                                     
-       <dxl:Indexes/>                                                                                                     
+       <dxl:IndexInfoList/>                                                                                                     
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -842,7 +842,7 @@
            <dxl:DefaultValue/>                                                                                            
          </dxl:Column>                                                                                                    
        </dxl:Columns>                                                                                                     
-       <dxl:Indexes/>                                                                                                     
+       <dxl:IndexInfoList/>                                                                                                     
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>                                                                                           
@@ -854,10 +854,10 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes>
-        <dxl:Index Mdid="0.2345.2.1"/>
-        <dxl:Index Mdid="0.2347.1.1"/>
-      </dxl:Indexes>
+      <dxl:IndexInfoList>
+        <dxl:IndexInfo Mdid="0.2345.2.1" IsPartial="false"/>
+        <dxl:IndexInfo Mdid="0.2347.1.1" IsPartial="false"/>
+      </dxl:IndexInfoList>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -867,10 +867,10 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes>
-        <dxl:Index Mdid="0.2345.2.1"/>
-        <dxl:Index Mdid="0.2347.1.1"/>
-      </dxl:Indexes>
+      <dxl:IndexInfoList>
+        <dxl:IndexInfo Mdid="0.2345.2.1" IsPartial="false"/>
+        <dxl:IndexInfo Mdid="0.2347.1.1" IsPartial="false"/>
+      </dxl:IndexInfoList>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -880,10 +880,10 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes>
-        <dxl:Index Mdid="0.2345.2.1"/>
-        <dxl:Index Mdid="0.2347.1.1"/>
-      </dxl:Indexes>
+      <dxl:IndexInfoList>
+        <dxl:IndexInfo Mdid="0.2345.2.1" IsPartial="false"/>
+        <dxl:IndexInfo Mdid="0.2347.1.1" IsPartial="false"/>
+      </dxl:IndexInfoList>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -893,10 +893,10 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes>
-        <dxl:Index Mdid="0.2345.2.1"/>
-        <dxl:Index Mdid="0.2347.1.1"/>
-      </dxl:Indexes>
+      <dxl:IndexInfoList>
+        <dxl:IndexInfo Mdid="0.2345.2.1" IsPartial="false"/>
+        <dxl:IndexInfo Mdid="0.2347.1.1" IsPartial="false"/>
+      </dxl:IndexInfoList>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -906,10 +906,10 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes>
-        <dxl:Index Mdid="0.2345.2.1"/>
-        <dxl:Index Mdid="0.2347.1.1"/>
-      </dxl:Indexes>
+      <dxl:IndexInfoList>
+        <dxl:IndexInfo Mdid="0.2345.2.1" IsPartial="false"/>
+        <dxl:IndexInfo Mdid="0.2347.1.1" IsPartial="false"/>
+      </dxl:IndexInfoList>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -919,10 +919,10 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes>
-        <dxl:Index Mdid="0.2345.2.1"/>
-        <dxl:Index Mdid="0.2347.1.1"/>
-      </dxl:Indexes>
+      <dxl:IndexInfoList>
+        <dxl:IndexInfo Mdid="0.2345.2.1" IsPartial="false"/>
+        <dxl:IndexInfo Mdid="0.2347.1.1" IsPartial="false"/>
+      </dxl:IndexInfoList>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -932,10 +932,10 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes>
-        <dxl:Index Mdid="0.2345.2.1"/>
-        <dxl:Index Mdid="0.2347.1.1"/>
-      </dxl:Indexes>
+      <dxl:IndexInfoList>
+        <dxl:IndexInfo Mdid="0.2345.2.1" IsPartial="false"/>
+        <dxl:IndexInfo Mdid="0.2347.1.1" IsPartial="false"/>
+      </dxl:IndexInfoList>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -945,10 +945,10 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes>
-        <dxl:Index Mdid="0.2345.2.1"/>
-        <dxl:Index Mdid="0.2347.1.1"/>
-      </dxl:Indexes>
+      <dxl:IndexInfoList>
+        <dxl:IndexInfo Mdid="0.2345.2.1" IsPartial="false"/>
+        <dxl:IndexInfo Mdid="0.2347.1.1" IsPartial="false"/>
+      </dxl:IndexInfoList>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -958,10 +958,10 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes>
-        <dxl:Index Mdid="0.2345.2.1"/>
-        <dxl:Index Mdid="0.2347.1.1"/>
-      </dxl:Indexes>
+      <dxl:IndexInfoList>
+        <dxl:IndexInfo Mdid="0.2345.2.1" IsPartial="false"/>
+        <dxl:IndexInfo Mdid="0.2347.1.1" IsPartial="false"/>
+      </dxl:IndexInfoList>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -971,10 +971,10 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes>
-        <dxl:Index Mdid="0.2345.2.1"/>
-        <dxl:Index Mdid="0.2347.1.1"/>
-      </dxl:Indexes>
+      <dxl:IndexInfoList>
+        <dxl:IndexInfo Mdid="0.2345.2.1" IsPartial="false"/>
+        <dxl:IndexInfo Mdid="0.2347.1.1" IsPartial="false"/>
+      </dxl:IndexInfoList>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -1008,7 +1008,7 @@
            <dxl:DefaultValue/>                                                                                                                                 
          </dxl:Column>                                                                                                                                         
        </dxl:Columns>                                                                                                                                          
-       <dxl:Indexes/>                                                                                                                                          
+       <dxl:IndexInfoList/>                                                                                                                                          
        <dxl:Triggers/>
        <dxl:CheckConstraints/> 
      </dxl:Relation>
@@ -1024,7 +1024,7 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes/>
+      <dxl:IndexInfoList/>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -1040,7 +1040,7 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes/>
+      <dxl:IndexInfoList/>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -1055,9 +1055,9 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes>
-        <dxl:Index Mdid="0.2345.2.1"/>
-      </dxl:Indexes>
+      <dxl:IndexInfoList>
+        <dxl:IndexInfo Mdid="0.2345.2.1" IsPartial="false"/>
+      </dxl:IndexInfoList>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -1071,10 +1071,10 @@
            <dxl:DefaultValue/>                                                                                                                                                              
          </dxl:Column>                                                                                                                                                               
        </dxl:Columns>                                                                                                                                                                       
-       <dxl:Indexes>                                                                                                                                                                        
-         <dxl:Index Mdid="0.13144342.1.0"/>                                                                                                                                                 
-         <dxl:Index Mdid="0.13144285.1.0"/>                                                                                                                                                 
-       </dxl:Indexes>                                                                                                                                                                       
+       <dxl:IndexInfoList>                                                                                                                                                                        
+         <dxl:IndexInfo Mdid="0.13144342.1.0" IsPartial="true"/>                                                                                                                                                 
+         <dxl:IndexInfo Mdid="0.13144285.1.0" IsPartial="true"/>                                                                                                                                                 
+       </dxl:IndexInfoList>                                                                                                                                                                       
        <dxl:Triggers/>                                                                                                                                                                      
        <dxl:CheckConstraints/>                                                                                                                                                              
        <dxl:PartConstraint DefaultPartition="" Unbounded="false">                                                                                                                      
@@ -1172,7 +1172,7 @@
           <dxl:DefaultValue/>
         </dxl:Column>        
       </dxl:Columns>
-      <dxl:Indexes/>
+      <dxl:IndexInfoList/>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -1185,7 +1185,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                  
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -1198,7 +1198,7 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes/>
+      <dxl:IndexInfoList/>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -1211,7 +1211,7 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes/>
+      <dxl:IndexInfoList/>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -1224,7 +1224,7 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes/>
+      <dxl:IndexInfoList/>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -1237,7 +1237,7 @@
           <dxl:DefaultValue/>
         </dxl:Column>        
       </dxl:Columns>
-      <dxl:Indexes/>
+      <dxl:IndexInfoList/>
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -1463,7 +1463,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                  
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation> 
@@ -1596,7 +1596,7 @@
            <dxl:DefaultValue/>                                                                                                 
          </dxl:Column>                                                                                                         
        </dxl:Columns>                                                                                                          
-       <dxl:Indexes/>                                                                                                          
+       <dxl:IndexInfoList/>                                                                                                          
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>  
@@ -1613,7 +1613,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1630,7 +1630,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1647,7 +1647,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1664,7 +1664,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1681,7 +1681,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1698,7 +1698,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1715,7 +1715,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1732,7 +1732,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1749,7 +1749,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1766,7 +1766,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1783,7 +1783,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1800,7 +1800,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1817,7 +1817,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1834,7 +1834,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1851,7 +1851,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1868,7 +1868,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1885,7 +1885,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1902,7 +1902,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1919,7 +1919,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -1936,7 +1936,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                                                                                                                    
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -2061,7 +2061,7 @@
           <dxl:DefaultValue/>                                                                                          
         </dxl:Column>                                                                                                  
       </dxl:Columns>                                                                                                   
-      <dxl:Indexes/>                                                                                                   
+      <dxl:IndexInfoList/>                                                                                                   
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -2081,7 +2081,7 @@
           <dxl:DefaultValue/>                                                                                                  
         </dxl:Column>                                                                                                          
       </dxl:Columns>                                                                                                           
-      <dxl:Indexes/>                                                                                                           
+      <dxl:IndexInfoList/>                                                                                                           
       <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>                                                                                                
@@ -2209,7 +2209,7 @@
            <dxl:DefaultValue/>                                                                                                                  
          </dxl:Column>                                                                                                                          
        </dxl:Columns>                                                                                                                           
-       <dxl:Indexes/>                                                                                                                           
+       <dxl:IndexInfoList/>                                                                                                                           
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -2222,7 +2222,7 @@
            <dxl:DefaultValue/>                                                                                                                  
          </dxl:Column>                                                                                                                          
        </dxl:Columns>                                                                                                                           
-       <dxl:Indexes/>                                                                                                                           
+       <dxl:IndexInfoList/>                                                                                                                           
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -2238,7 +2238,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -2254,7 +2254,7 @@
            <dxl:DefaultValue/>                                                                                                                    
          </dxl:Column>                                                                                                                            
        </dxl:Columns>                                                                                                                             
-       <dxl:Indexes/>                                                                                                                             
+       <dxl:IndexInfoList/>                                                                                                                             
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -2267,7 +2267,7 @@
            <dxl:DefaultValue/>                                                                                                                                 
          </dxl:Column>                                                                                                                                         
        </dxl:Columns>                                                                                                                                          
-       <dxl:Indexes/>                                                                                                                                          
+       <dxl:IndexInfoList/>                                                                                                                                          
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -2280,7 +2280,7 @@
            <dxl:DefaultValue/>                                                                                                                                 
          </dxl:Column>                                                                                                                                         
        </dxl:Columns>                                                                                                                                          
-       <dxl:Indexes/>                                                                                                                                         
+       <dxl:IndexInfoList/>                                                                                                                                         
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -2315,7 +2315,7 @@
            <dxl:DefaultValue/>                                                                                                             
          </dxl:Column>                                                                                                                     
        </dxl:Columns>                                                                                                                     
-       <dxl:Indexes/>                                                                                                                     
+       <dxl:IndexInfoList/>                                                                                                                     
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>                                                                                                                      
@@ -2354,7 +2354,7 @@
            <dxl:DefaultValue/>                                                                                                             
          </dxl:Column>                                                                                                                     
        </dxl:Columns>                                                                                                                     
-       <dxl:Indexes/>                                                                                                                     
+       <dxl:IndexInfoList/>                                                                                                                     
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>                                                                                                                      
@@ -2392,7 +2392,7 @@
            <dxl:DefaultValue/>                                                                                                             
          </dxl:Column>                                                                                                                     
        </dxl:Columns>                                                                                                                     
-       <dxl:Indexes/>                                                                                                                     
+       <dxl:IndexInfoList/>                                                                                                                     
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>                                                                                                                      
@@ -2429,7 +2429,7 @@
            <dxl:DefaultValue/>                                                                                            
          </dxl:Column>                                                                                                    
        </dxl:Columns>                                                                                                                     
-       <dxl:Indexes/>                                                                                                                     
+       <dxl:IndexInfoList/>                                                                                                                     
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>                                                                                                                      
@@ -2466,7 +2466,7 @@
            <dxl:DefaultValue/>                                                                                            
          </dxl:Column>                                                                                                    
        </dxl:Columns>                                                                                                                     
-       <dxl:Indexes/>                                                                                                                     
+       <dxl:IndexInfoList/>                                                                                                                     
        <dxl:Triggers>                                                                                                                    
          <dxl:Trigger Mdid="0.561922.1.0"/>                                                                                              
          <dxl:Trigger Mdid="0.561921.1.0"/>                                                                                              
@@ -2507,7 +2507,7 @@
            <dxl:DefaultValue/>                                                                                            
          </dxl:Column>                                                                                                    
        </dxl:Columns>                                                                                                     
-       <dxl:Indexes/>                                                                                                     
+       <dxl:IndexInfoList/>                                                                                                     
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>                                                                                                      
@@ -2544,7 +2544,7 @@
            <dxl:DefaultValue/>                                                                                            
          </dxl:Column>                                                                                                    
        </dxl:Columns>                                                                                                     
-       <dxl:Indexes/>                                                                                                     
+       <dxl:IndexInfoList/>                                                                                                     
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>                                                                                                      
@@ -2581,7 +2581,7 @@
            <dxl:DefaultValue/>                                                                                            
          </dxl:Column>                                                                                                    
        </dxl:Columns>                                                                                                     
-       <dxl:Indexes/>                                                                                                     
+       <dxl:IndexInfoList/>                                                                                                     
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>                                                                                                      
@@ -2756,10 +2756,10 @@
            <dxl:DefaultValue/>                                                                                                              
          </dxl:Column>                                                                                                                      
        </dxl:Columns>                                                                                                                       
-       <dxl:Indexes>                                                                                                                        
-         <dxl:Index Mdid="0.197454.1.1"/>                                                                                                   
-         <dxl:Index Mdid="0.197514.1.1"/>                                                                                                   
-       </dxl:Indexes>                                                                                                                       
+       <dxl:IndexInfoList>                                                                                                                        
+         <dxl:IndexInfo Mdid="0.197454.1.1" IsPartial="false"/>                                                                                                   
+         <dxl:IndexInfo Mdid="0.197514.1.1" IsPartial="false"/>                                                                                                   
+       </dxl:IndexInfoList>                                                                                                                       
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
     </dxl:Relation>                                                                                                                        
@@ -2839,10 +2839,10 @@
            <dxl:DefaultValue/>                                                                                                             
          </dxl:Column>                                                                                                                     
        </dxl:Columns>                                                                                                                      
-       <dxl:Indexes>                                                                                                                       
-         <dxl:Index Mdid="0.17049.1.0"/>                                                                                                   
-         <dxl:Index Mdid="0.17959.1.0"/>                                                                                                   
-       </dxl:Indexes>                                                                                                                      
+       <dxl:IndexInfoList>                                                                                                                       
+         <dxl:IndexInfo Mdid="0.17049.1.0" IsPartial="false"/>                                                                                                   
+         <dxl:IndexInfo Mdid="0.17959.1.0" IsPartial="false"/>                                                                                                   
+       </dxl:IndexInfoList>                                                                                                                      
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -2876,7 +2876,7 @@
            <dxl:DefaultValue/>                                                                                                           
          </dxl:Column>                                                                                                                   
        </dxl:Columns>                                                                                                                    
-       <dxl:Indexes/>                                                                                                                    
+       <dxl:IndexInfoList/>                                                                                                                    
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -2913,7 +2913,7 @@
            <dxl:DefaultValue/>                                                                                                           
          </dxl:Column>                                                                                                                   
        </dxl:Columns>                                                                                                                    
-       <dxl:Indexes/>                                                                                                                    
+       <dxl:IndexInfoList/>                                                                                                                    
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -2957,7 +2957,7 @@
            <dxl:DefaultValue/>                                                                                                             
          </dxl:Column>                                                                                                                     
        </dxl:Columns>                                                                                                                      
-       <dxl:Indexes/>                                                                                                                      
+       <dxl:IndexInfoList/>                                                                                                                      
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>     
@@ -2981,7 +2981,7 @@
            <dxl:DefaultValue/>                                                                                                              
          </dxl:Column>                                                                                                                      
        </dxl:Columns>                                                                                                                       
-       <dxl:Indexes/>                                                                                                                       
+       <dxl:IndexInfoList/>                                                                                                                       
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -3015,7 +3015,7 @@
            <dxl:DefaultValue/>                                                                                                                                 
          </dxl:Column>                                                                                                                                         
        </dxl:Columns>                                                                                                                                          
-       <dxl:Indexes/>                                                                                                                                          
+       <dxl:IndexInfoList/>                                                                                                                                          
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -3052,7 +3052,7 @@
            <dxl:DefaultValue/>                                                                                                                                   
          </dxl:Column>                                                                                                                                           
        </dxl:Columns>                                                                                                                                            
-       <dxl:Indexes/>                                                                                                                                            
+       <dxl:IndexInfoList/>                                                                                                                                            
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -3089,7 +3089,7 @@
            <dxl:DefaultValue/>                                                                                                              
          </dxl:Column>                                                                                                                      
        </dxl:Columns>                                                                                                                       
-       <dxl:Indexes/>                                                                                                                       
+       <dxl:IndexInfoList/>                                                                                                                       
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -3123,7 +3123,7 @@
            <dxl:DefaultValue/>                                                                                                             
          </dxl:Column>                                                                                                                     
        </dxl:Columns>                                                                                                                      
-       <dxl:Indexes/>                                                                                                                      
+       <dxl:IndexInfoList/>                                                                                                                      
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -3160,7 +3160,7 @@
            <dxl:DefaultValue/>                                                                                                              
          </dxl:Column>                                                                                                                      
        </dxl:Columns>                                                                                                                       
-       <dxl:Indexes/>
+       <dxl:IndexInfoList/>
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
     </dxl:Relation>  
@@ -3391,9 +3391,9 @@
            <dxl:DefaultValue/>                                                                                                                            
          </dxl:Column>                                                                                                                                    
        </dxl:Columns>                                                                                                                                     
-       <dxl:Indexes>                                                                                                                                      
-         <dxl:Index Mdid="0.330333.1.0"/>                                                                                                                 
-       </dxl:Indexes>                                                                                                                                     
+       <dxl:IndexInfoList>                                                                                                                                      
+         <dxl:IndexInfo Mdid="0.330333.1.0" IsPartial="false"/>                                                                                                                 
+       </dxl:IndexInfoList>                                                                                                                                     
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -3427,7 +3427,7 @@
            <dxl:DefaultValue/>                                                                                                                  
          </dxl:Column>                                                                                                                          
        </dxl:Columns>                                                                                                                           
-       <dxl:Indexes/>                                                                                                                           
+       <dxl:IndexInfoList/>                                                                                                                           
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -3461,7 +3461,7 @@
            <dxl:DefaultValue/>                                                                                                                  
          </dxl:Column>                                                                                                                          
        </dxl:Columns>                                                                                                                           
-       <dxl:Indexes/>                                                                                                                           
+       <dxl:IndexInfoList/>                                                                                                                           
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -3495,7 +3495,7 @@
            <dxl:DefaultValue/>                                                                                                                  
          </dxl:Column>                                                                                                                          
        </dxl:Columns>                                                                                                                           
-       <dxl:Indexes/>                                                                                                                           
+       <dxl:IndexInfoList/>                                                                                                                           
        <dxl:Triggers/>
        <dxl:CheckConstraints/>
      </dxl:Relation>
@@ -3550,7 +3550,7 @@
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
-      <dxl:Indexes/>
+      <dxl:IndexInfoList/>
        <dxl:Triggers/>
       <dxl:CheckConstraints/>
     </dxl:Relation>
@@ -3617,9 +3617,9 @@
            <dxl:DefaultValue/>                                                                                                                                           
          </dxl:Column>                                                                                                                                                   
        </dxl:Columns>                                                                                                                                                    
-       <dxl:Indexes>                                                                                                                                                     
-         <dxl:Index Mdid="0.27324.1.0"/>                                                                                                                                 
-       </dxl:Indexes>                                                                                                                                                    
+       <dxl:IndexInfoList>                                                                                                                                                     
+         <dxl:IndexInfo Mdid="0.27324.1.0" IsPartial="true"/>                                                                                                                                 
+       </dxl:IndexInfoList>                                                                                                                                                    
        <dxl:Triggers/>                                                                                                                                                   
        <dxl:CheckConstraints/>                                                                                                                                           
      </dxl:Relation>
@@ -3677,7 +3677,7 @@
            <dxl:DefaultValue/>                                                                                                                      
          </dxl:Column>                                                                                                                              
        </dxl:Columns>                                                                                                                               
-       <dxl:Indexes/>                                                                                                                               
+       <dxl:IndexInfoList/>                                                                                                                               
        <dxl:Triggers/>                                                                                                                              
        <dxl:CheckConstraints/>                                                                                                                      
      </dxl:Relation>

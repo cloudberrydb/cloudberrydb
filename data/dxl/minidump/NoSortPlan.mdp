@@ -135,7 +135,7 @@
        <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1078.1.0"/>
           <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>        
+        </dxl:OpClasses>
       </dxl:GPDBScalarOp>
       <dxl:Index Mdid="0.3373430.1.0" Name="idx_yj" IsClustered="false" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8">
         <dxl:OpClasses>
@@ -172,9 +172,9 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.3373430.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.3373430.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -264,9 +264,9 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.3373430.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.3373430.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

@@ -487,8 +487,9 @@ namespace gpdxl
 		EdxltokenTypeBool,
 		
 		EdxltokenMetadataIdList,
-		
-		EdxltokenIndexes,
+		EdxltokenIndexInfoList,
+		EdxltokenIndexInfo,
+
 		EdxltokenIndex,
 		EdxltokenPartitions,
 		EdxltokenPartition,

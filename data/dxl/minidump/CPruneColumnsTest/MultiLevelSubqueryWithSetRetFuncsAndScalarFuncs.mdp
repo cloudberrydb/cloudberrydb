@@ -198,7 +198,7 @@ select count(*) from (select (select 1 as p) i, unnest(string_to_array(c, '|')) 
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

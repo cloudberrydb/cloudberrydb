@@ -56,9 +56,6 @@ namespace gpdxl
 			// for instance, for bitmap indexes, this is the type id of the bitmap
 			IMDId *m_pmdidItemType;
 
-			// is the index partial
-			BOOL m_fPartial;
-
 			// index keys
 			DrgPul *m_pdrgpulKeyCols;
 

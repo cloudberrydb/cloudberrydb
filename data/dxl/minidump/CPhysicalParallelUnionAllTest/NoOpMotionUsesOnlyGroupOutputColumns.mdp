@@ -169,7 +169,7 @@ EXPLAIN SELECT b, a FROM foo UNION ALL SELECT b, a FROM foo INTERSECT ALL SELECT
                         <dxl:DefaultValue/>
                     </dxl:Column>
                 </dxl:Columns>
-                <dxl:Indexes/>
+                <dxl:IndexInfoList/>
                 <dxl:Triggers/>
                 <dxl:CheckConstraints/>
             </dxl:Relation>

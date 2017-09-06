@@ -49,7 +49,6 @@ CLogicalDynamicIndexGet::CLogicalDynamicIndexGet
 {
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CLogicalDynamicIndexGet::CLogicalDynamicIndexGet
@@ -73,7 +72,7 @@ CLogicalDynamicIndexGet::CLogicalDynamicIndexGet
 	CPartConstraint *ppartcnstrRel
 	)
 	:
-	CLogicalDynamicGetBase(pmp, pnameAlias, ptabdesc, ulPartIndexId, pdrgpcrOutput, pdrgpdrgpcrPart, ulSecondaryPartIndexId, pmdindex->FPartial(), ppartcnstr, ppartcnstrRel),
+	CLogicalDynamicGetBase(pmp, pnameAlias, ptabdesc, ulPartIndexId, pdrgpcrOutput, pdrgpdrgpcrPart, ulSecondaryPartIndexId, FPartialIndex(ptabdesc, pmdindex), ppartcnstr, ppartcnstrRel),
 	m_pindexdesc(NULL),
 	m_ulOriginOpId(ulOriginOpId)
 {
@@ -203,6 +202,20 @@ CLogicalDynamicIndexGet::PopCopyWithRemappedColumns
 						ppartcnstr,
 						ppartcnstrRel
 						);
+}
+
+// Checking if index is partial given the table descriptor and mdid of the index
+BOOL
+CLogicalDynamicIndexGet::FPartialIndex
+	(
+	CTableDescriptor *ptabdesc,
+	const IMDIndex *pmdindex
+	)
+{
+	// refer to the relation on which this index is defined for index partial information
+	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+	const IMDRelation *pmdrel = pmda->Pmdrel(ptabdesc->Pmdid());
+	return pmdrel->FPartialIndex(pmdindex->Pmdid());
 }
 
 //---------------------------------------------------------------------------

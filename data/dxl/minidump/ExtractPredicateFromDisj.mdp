@@ -29,11 +29,11 @@ select c_customer_id customer_id
          ,c_birth_country
          ,c_login
          ,c_email_address
-         ,d_year 
+         ,d_year
 ) X
-WHERE ((sale_type = 's'::text AND dyear = 2001 AND year_total &gt; 0::numeric) OR 
-          (sale_type = 's'::text AND dyear = 2002) OR 
-          (sale_type = 'w'::text AND dmoy = 7 AND year_total &gt; 0::numeric) OR 
+WHERE ((sale_type = 's'::text AND dyear = 2001 AND year_total &gt; 0::numeric) OR
+          (sale_type = 's'::text AND dyear = 2002) OR
+          (sale_type = 'w'::text AND dmoy = 7 AND year_total &gt; 0::numeric) OR
           (sale_type = 'w'::text AND dyear = 2002 AND dmoy = 7))
 
 -->
@@ -6028,8 +6028,7 @@ WHERE ((sale_type = 's'::text AND dyear = 2001 AND year_total &gt; 0::numeric) O
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-        </dxl:Indexes>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -6142,8 +6141,7 @@ WHERE ((sale_type = 's'::text AND dyear = 2001 AND year_total &gt; 0::numeric) O
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-        </dxl:Indexes>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -14332,8 +14330,7 @@ WHERE ((sale_type = 's'::text AND dyear = 2001 AND year_total &gt; 0::numeric) O
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-        </dxl:Indexes>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -14404,7 +14401,7 @@ WHERE ((sale_type = 's'::text AND dyear = 2001 AND year_total &gt; 0::numeric) O
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
               <dxl:Ident ColId="64" ColName="d_moy" TypeMdid="0.23.1.0"/>
               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7"/>
-            </dxl:Comparison>            
+            </dxl:Comparison>
           </dxl:And>
         </dxl:Or>
         <dxl:LogicalProject>

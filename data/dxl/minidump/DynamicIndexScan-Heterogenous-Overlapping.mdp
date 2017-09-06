@@ -84,7 +84,7 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:Index Mdid="0.2732323.25.0" Name="p2_ind" IsClustered="false" IsPartial="true" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8">
+      <dxl:Index Mdid="0.2732323.25.0" Name="p2_ind" IsClustered="false" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
@@ -104,7 +104,7 @@
       <dxl:ColumnStatistics Mdid="1.27119.25.1.8" Name="1.27119.25.1.8" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.27119.25.1.0" Name="1.27119.25.1.0" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.27119.25.1.1" Name="1.27119.25.1.1" Width="8.000000"/>
-      <dxl:Index Mdid="0.27323.25.0" Name="p_ind" IsClustered="false" IsPartial="true" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8">
+      <dxl:Index Mdid="0.27323.25.0" Name="p_ind" IsClustered="false" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
@@ -236,10 +236,10 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.27323.25.0"/>
-          <dxl:Index Mdid="0.2732323.25.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.27323.25.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.2732323.25.0" IsPartial="true"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">

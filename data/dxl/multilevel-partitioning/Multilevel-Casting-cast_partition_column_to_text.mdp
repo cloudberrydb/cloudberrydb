@@ -275,7 +275,7 @@ explain select * from TestPartitionFilterCasting where p2 = '2015-01-01';
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

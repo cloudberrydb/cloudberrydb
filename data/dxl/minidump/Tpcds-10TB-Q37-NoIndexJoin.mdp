@@ -141,11 +141,11 @@ select  i_item_id
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.42125595.1.0"/>
-          <dxl:Index Mdid="0.42112159.1.0"/>
-          <dxl:Index Mdid="0.42121776.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.42125595.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42112159.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42121776.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
@@ -269,11 +269,11 @@ select  i_item_id
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.42125595.1.0"/>
-          <dxl:Index Mdid="0.42112159.1.0"/>
-          <dxl:Index Mdid="0.42121776.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.42125595.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42112159.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42121776.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
@@ -7504,15 +7504,15 @@ select  i_item_id
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.42118607.1.0"/>
-          <dxl:Index Mdid="0.42129756.1.0"/>
-          <dxl:Index Mdid="0.42129775.1.0"/>
-          <dxl:Index Mdid="0.42129794.1.0"/>
-          <dxl:Index Mdid="0.42129813.1.0"/>
-          <dxl:Index Mdid="0.42129832.1.0"/>
-          <dxl:Index Mdid="0.42129851.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.42118607.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129756.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129775.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129794.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129813.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129832.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129851.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -7606,15 +7606,15 @@ select  i_item_id
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.42118607.1.0"/>
-          <dxl:Index Mdid="0.42129756.1.0"/>
-          <dxl:Index Mdid="0.42129775.1.0"/>
-          <dxl:Index Mdid="0.42129794.1.0"/>
-          <dxl:Index Mdid="0.42129813.1.0"/>
-          <dxl:Index Mdid="0.42129832.1.0"/>
-          <dxl:Index Mdid="0.42129851.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.42118607.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129756.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129775.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129794.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129813.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129832.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129851.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -7822,18 +7822,18 @@ select  i_item_id
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.42121130.1.0"/>
-          <dxl:Index Mdid="0.42120864.1.0"/>
-          <dxl:Index Mdid="0.42120731.1.0"/>
-          <dxl:Index Mdid="0.42121529.1.0"/>
-          <dxl:Index Mdid="0.42121263.1.0"/>
-          <dxl:Index Mdid="0.42120598.1.0"/>
-          <dxl:Index Mdid="0.42121396.1.0"/>
-          <dxl:Index Mdid="0.42120997.1.0"/>
-          <dxl:Index Mdid="0.42120465.1.0"/>
-          <dxl:Index Mdid="0.42111849.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.42121130.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42120864.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42120731.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42121529.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42121263.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42120598.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42121396.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42120997.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42120465.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42111849.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
@@ -8102,18 +8102,18 @@ select  i_item_id
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.42121130.1.0"/>
-          <dxl:Index Mdid="0.42120864.1.0"/>
-          <dxl:Index Mdid="0.42120731.1.0"/>
-          <dxl:Index Mdid="0.42121529.1.0"/>
-          <dxl:Index Mdid="0.42121263.1.0"/>
-          <dxl:Index Mdid="0.42120598.1.0"/>
-          <dxl:Index Mdid="0.42121396.1.0"/>
-          <dxl:Index Mdid="0.42120997.1.0"/>
-          <dxl:Index Mdid="0.42120465.1.0"/>
-          <dxl:Index Mdid="0.42111849.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.42121130.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42120864.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42120731.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42121529.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42121263.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42120598.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42121396.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42120997.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42120465.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42111849.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
@@ -13032,12 +13032,12 @@ select  i_item_id
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.42118452.1.0"/>
-          <dxl:Index Mdid="0.42129661.1.0"/>
-          <dxl:Index Mdid="0.42129433.1.0"/>
-          <dxl:Index Mdid="0.42129547.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.42118452.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129661.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129433.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129547.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">
@@ -13149,12 +13149,12 @@ select  i_item_id
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.42118452.1.0"/>
-          <dxl:Index Mdid="0.42129661.1.0"/>
-          <dxl:Index Mdid="0.42129433.1.0"/>
-          <dxl:Index Mdid="0.42129547.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.42118452.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129661.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129433.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.42129547.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
         <dxl:PartConstraint DefaultPartition="" Unbounded="false">

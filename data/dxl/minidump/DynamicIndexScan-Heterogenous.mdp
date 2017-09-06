@@ -34,7 +34,7 @@
           <dxl:OpClass Mdid="0.1978.1.0"/>
           <dxl:OpClass Mdid="0.1979.1.0"/>
           <dxl:OpClass Mdid="0.3027.1.0"/>
-        </dxl:OpClasses>        
+        </dxl:OpClasses>
       </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.26.1.0" Name="oid" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.607.1.0"/>
@@ -86,7 +86,7 @@
       </dxl:Type>
       <dxl:ColumnStatistics Mdid="1.27119.1.1.5" Name="xmax" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.27119.1.1.4" Name="cmin" Width="8.000000"/>
-      <dxl:Index Mdid="0.27323.1.0" Name="p_ind" IsClustered="false" IsPartial="true" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8">
+      <dxl:Index Mdid="0.27323.1.0" Name="p_ind" IsClustered="false" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
@@ -103,7 +103,7 @@
           </dxl:And>
         </dxl:PartConstraint>
       </dxl:Index>
-      <dxl:Index Mdid="0.2732323.1.0" Name="p2_ind" IsClustered="false" IsPartial="true" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8">
+      <dxl:Index Mdid="0.2732323.1.0" Name="p2_ind" IsClustered="false" KeyColumns="1" IncludedColumns="0,1,2,3,4,5,6,7,8">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
@@ -233,10 +233,10 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.27323.1.0"/>
-          <dxl:Index Mdid="0.2732323.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.27323.1.0" IsPartial="true"/>
+          <dxl:IndexInfo Mdid="0.2732323.1.0" IsPartial="true"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
          <dxl:PartConstraint DefaultPartition="" Unbounded="false">
@@ -754,4 +754,3 @@
 </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>
-

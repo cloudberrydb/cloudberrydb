@@ -825,7 +825,7 @@
           <dxl:OpClass Mdid="0.1989.1.0"/>
           <dxl:OpClass Mdid="0.1990.1.0"/>
           <dxl:OpClass Mdid="0.3033.1.0"/>
-        </dxl:OpClasses>            
+        </dxl:OpClasses>
       </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.1009.1.0" Name="_text" IsRedistributable="true" IsHashable="false" IsComposite="false" IsFixedLength="false" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1070.1.0"/>
@@ -959,10 +959,10 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2662.1.0"/>
-          <dxl:Index Mdid="0.2663.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2662.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2663.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -1722,10 +1722,10 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.2662.1.0"/>
-          <dxl:Index Mdid="0.2663.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2662.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2663.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -1760,7 +1760,7 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

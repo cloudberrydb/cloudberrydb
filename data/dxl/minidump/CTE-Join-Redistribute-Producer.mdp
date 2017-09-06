@@ -48,7 +48,7 @@ with v as (select * from t1) select * from v v1, v v2 where v1.b=v2.b;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

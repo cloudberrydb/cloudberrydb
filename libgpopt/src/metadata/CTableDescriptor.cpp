@@ -368,28 +368,7 @@ CTableDescriptor::FDescriptorWithPartialIndexes()
 	const IMDRelation *pmdrel = pmda->Pmdrel(m_pmdid);
 	for (ULONG ul = 0; ul < ulIndices; ul++)
 	{
-		const IMDIndex *pmdindex = NULL;
-		GPOS_TRY
-		{
-			pmdindex = pmda->Pmdindex(pmdrel->PmdidIndex(ul));
-		}
-		GPOS_CATCH_EX(ex)
-		{
-			// if the index entry is not found, we probably read the metadata from a minidump
-			// in which this index is not used
-			if (GPOS_MATCH_EX(ex, gpdxl::ExmaMD, gpdxl::ExmiMDCacheEntryNotFound))
-			{
-				GPOS_RESET_EX;
-			}
-			else
-			{
-				// for all other exceptions, we bail out
-				GPOS_RETHROW(ex);
-			}
-		}
-		GPOS_CATCH_END;
-
-		if (NULL != pmdindex && pmdindex->FPartial())
+		if (pmdrel->FPartialIndex(pmdrel->PmdidIndex(ul)))
 		{
 			return true;
 		}

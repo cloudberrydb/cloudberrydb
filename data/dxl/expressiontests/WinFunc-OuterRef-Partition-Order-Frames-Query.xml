@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-<!-- 
+<!--
 SQL:
 select * from x where x.i in (select last_value(y.i) over(partition by x.i order by x.j rows between x.i preceding and x.j following) from y);
 -->
@@ -47,10 +47,10 @@ select * from x where x.i in (select last_value(y.i) over(partition by x.i order
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.17159874.1.0"/>
-          <dxl:Index Mdid="0.17159920.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.17159874.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.17159920.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -87,10 +87,10 @@ select * from x where x.i in (select last_value(y.i) over(partition by x.i order
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes>
-          <dxl:Index Mdid="0.17159874.1.0"/>
-          <dxl:Index Mdid="0.17159920.1.0"/>
-        </dxl:Indexes>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.17159874.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.17159920.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
@@ -653,7 +653,7 @@ select * from x where x.i in (select last_value(y.i) over(partition by x.i order
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

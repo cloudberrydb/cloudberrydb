@@ -42,7 +42,7 @@ SELECT 1 FROM (SELECT * FROM foo) t2 FULL JOIN (SELECT 1) t1 ON true;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:Indexes/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
