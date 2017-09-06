@@ -5506,8 +5506,11 @@ get_windowref_expr(WindowRef *wref, deparse_context *context)
 	appendStringInfo(buf, "%s(",
 					 generate_function_name(wref->winfnoid,
 											nargs, argtypes, NULL));
-
-	get_rule_expr((Node *) wref->args, context, true);
+	/* winstar can be set only in zero-argument aggregates */
+	if (wref->winstar)
+		appendStringInfoChar(buf, '*');
+	else
+		get_rule_expr((Node *) wref->args, context, true);
 	appendStringInfoChar(buf, ')');
 
 	/*

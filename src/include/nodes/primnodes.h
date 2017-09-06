@@ -337,9 +337,11 @@ typedef struct WindowRef
 	Oid			winfnoid;		/* pg_proc Oid of the window function */
 	Oid			restype;		/* type Oid of result of the window function */
 	List	   *args;			/* arguments */	
-	bool		windistinct;	/* TRUE if it's agg(DISTINCT ...) */
 	Index		winspec;		/* index into Query window clause */
-	
+	bool		winstar;		/* TRUE if argument list was really '*' */
+	bool		winagg;			/* is function a simple aggregate? */
+	bool		windistinct;	/* TRUE if it's agg(DISTINCT ...) */
+
 	/* Following fields are significant only in a Plan tree. */
 	Index		winindex;		/* RefInfo index during planning. */
 	WinStage	winstage;		/* Stage of execution. */

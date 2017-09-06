@@ -112,8 +112,8 @@ create view v_star as
   select count(*) over (partition by a)
   from testtab;
 select pg_get_viewdef('v_star');
-                           pg_get_viewdef                           
---------------------------------------------------------------------
- SELECT count() OVER(PARTITION BY testtab.a) AS count FROM testtab;
+                           pg_get_viewdef                            
+---------------------------------------------------------------------
+ SELECT count(*) OVER(PARTITION BY testtab.a) AS count FROM testtab;
 (1 row)
 

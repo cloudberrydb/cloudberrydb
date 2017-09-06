@@ -2480,6 +2480,7 @@ initWindowFuncState(WindowState * wstate, Window * node)
 		ReleaseSysCache(heap_tuple);
 
 		Assert(isAgg != isWin);
+		Assert(isAgg == winref->winagg);
 		Assert(!isSet);
 
 

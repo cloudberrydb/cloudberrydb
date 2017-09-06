@@ -1470,8 +1470,10 @@ _copyWindowRef(WindowRef *from)
 	COPY_SCALAR_FIELD(winfnoid);
 	COPY_SCALAR_FIELD(restype);
 	COPY_NODE_FIELD(args);
-	COPY_SCALAR_FIELD(windistinct);
 	COPY_SCALAR_FIELD(winspec);
+	COPY_SCALAR_FIELD(winstar);
+	COPY_SCALAR_FIELD(winagg);
+	COPY_SCALAR_FIELD(windistinct);
 	COPY_SCALAR_FIELD(winindex);
 	COPY_SCALAR_FIELD(winstage);
 	COPY_SCALAR_FIELD(winlevel);

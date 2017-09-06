@@ -624,6 +624,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		winref->restype = rettype;
 		winref->args = fargs;
 		/* winref will be set by transformWindowFuncCall */
+		winref->winstar = agg_star;
+		winref->winagg = (fdresult == FUNCDETAIL_AGGREGATE);
 		winref->windistinct = agg_distinct;
 		winref->location = location;
 

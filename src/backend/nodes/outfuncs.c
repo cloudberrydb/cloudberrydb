@@ -1258,8 +1258,10 @@ _outWindowRef(StringInfo str, WindowRef *node)
 	WRITE_OID_FIELD(winfnoid);
 	WRITE_OID_FIELD(restype);
 	WRITE_NODE_FIELD(args);
-	WRITE_BOOL_FIELD(windistinct);
 	WRITE_UINT_FIELD(winspec);
+	WRITE_BOOL_FIELD(winstar);
+	WRITE_BOOL_FIELD(winagg);
+	WRITE_BOOL_FIELD(windistinct);
 	WRITE_UINT_FIELD(winindex);
 	WRITE_ENUM_FIELD(winstage, WinStage);
 	WRITE_UINT_FIELD(winlevel);

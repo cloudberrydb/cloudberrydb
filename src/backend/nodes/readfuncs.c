@@ -1345,8 +1345,10 @@ _readWindowRef(void)
 	READ_OID_FIELD(winfnoid);
 	READ_OID_FIELD(restype);
 	READ_NODE_FIELD(args);
-	READ_BOOL_FIELD(windistinct);
 	READ_UINT_FIELD(winspec);
+	READ_BOOL_FIELD(winstar);
+	READ_BOOL_FIELD(winagg);
+	READ_BOOL_FIELD(windistinct);
 	READ_UINT_FIELD(winindex);
 	READ_ENUM_FIELD(winstage, WinStage);
 	READ_UINT_FIELD(winlevel);
