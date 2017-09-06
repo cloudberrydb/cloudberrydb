@@ -291,8 +291,6 @@ generate_recursion_plan(SetOperationStmt *setOp, PlannerInfo *root,
 	Plan	   *lplan;
 	Plan	   *rplan;
 	List	   *tlist;
-	bool		enableHashJoin;
-	bool		enableNestLoop;
 
 	/* Parser should have rejected other cases */
 	if (setOp->op != SETOP_UNION || !setOp->all)

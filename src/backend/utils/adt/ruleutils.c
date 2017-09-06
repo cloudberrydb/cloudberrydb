@@ -3689,12 +3689,8 @@ get_name_for_var_field(Var *var, int fieldno,
 														attnum);
 
 					if (ste == NULL || ste->resjunk)
-					{
-						ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR),
-											errmsg_internal(ERROR, "subquery %s does not have attribute %d",
-											rte->eref->aliasname, attnum);
-					}
-
+						elog(ERROR, "subquery %s does not have attribute %d",
+							 rte->eref->aliasname, attnum);
 					expr = (Node *) ste->expr;
 					if (IsA(expr, Var))
 					{

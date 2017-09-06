@@ -2067,7 +2067,6 @@ show_grouping_keys(Plan        *plan,
     appendStringInfo(str, "  %s: ", qlabel);
 
     Node *outerPlan = (Node *) outerPlan(subplan);
-    Node *innerPlan = (Node *) innerPlan(subplan);
 
 	/*
 	 * Dig the child nodes of the subplan. This logic should match that in
@@ -2079,10 +2078,10 @@ show_grouping_keys(Plan        *plan,
 		outerPlan = (Node *) llast(((Sequence *) subplan)->subplans);
 
 	/* Set up deparse context */
-	context = deparse_context_for_plan(subplan,
+	context = deparse_context_for_plan((Node *) subplan,
 									   outerPlan,
-										   es->rtable,
-										   es->pstmt->subplans);
+									   es->rtable,
+									   es->pstmt->subplans);
 
 	if (IsA(plan, Agg))
 	{
