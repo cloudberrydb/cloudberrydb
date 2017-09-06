@@ -516,6 +516,16 @@ assign_gp_session_role(const char *newval, bool doit, GucSource source __attribu
 		return NULL;
 	}
 
+	/* Force utility mode in a stand-alone backend. */
+	if (!IsPostmasterEnvironment && newrole != GP_ROLE_UTILITY)
+	{
+		if (source != PGC_S_DEFAULT)
+			elog(WARNING, "gp_session_role forced to 'utility' in single-user mode");
+
+		newval = strdup("utility");
+		newrole = GP_ROLE_UTILITY;
+	}
+
 	if (doit)
 	{
 		Gp_session_role = newrole;
