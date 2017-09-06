@@ -74,7 +74,7 @@
 	do { \
 		if (from->fldname) \
 		{ \
-			newnode->fldname = DatumGetPointer( \
+			newnode->fldname = (bytea *) DatumGetPointer( \
 					datumCopy(PointerGetDatum(from->fldname), false, len)); \
 		} \
 	} while (0)

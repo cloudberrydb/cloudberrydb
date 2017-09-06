@@ -155,7 +155,7 @@ inline static char extended_char(char* token, size_t length)
 
 /* Read a bytea field */
 #define READ_BYTEA_FIELD(fldname) \
-	local_node->fldname = DatumGetPointer(readDatum(false))
+	local_node->fldname = (bytea *) DatumGetPointer(readDatum(false))
 
 /* Set field to a given value, ignoring the value read from the input */
 #define READ_DUMMY_FIELD(fldname,fldvalue)  READ_SCALAR_FIELD(fldname, fldvalue)

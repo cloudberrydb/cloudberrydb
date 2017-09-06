@@ -127,7 +127,7 @@
 
 /* Read a bytea field */
 #define READ_BYTEA_FIELD(fldname) \
-	local_node->fldname = DatumGetPointer(readDatum(false))
+	local_node->fldname = (bytea *) DatumGetPointer(readDatum(false))
 
 /* Read a dummy field */
 #define READ_DUMMY_FIELD(fldname,fldvalue) \
