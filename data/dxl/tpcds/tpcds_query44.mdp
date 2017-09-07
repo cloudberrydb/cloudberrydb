@@ -207,8 +207,8 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.1962051.1.1.27" Name="cmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1962051.1.1.26" Name="xmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1962051.1.1.27" Name="cmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1962051.1.1.26" Name="xmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1962051.1.1.19" Name="ss_coupon_amt" Width="5.000000" NullFreq="0.047970" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.764868" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
@@ -2037,12 +2037,12 @@
       <dxl:GPDBFunc Mdid="0.7000.1.0" Name="row_number" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="false">
         <dxl:ResultType Mdid="0.20.1.0"/>
       </dxl:GPDBFunc>
-      <dxl:MDCast Mdid="3.23.1.0;20.1.0" Name="int8" BinaryCoercible="false" SourceTypeId="0.23.1.0" DestinationTypeId="0.20.1.0" CastFuncId="0.481.1.0"/>                 
-      <dxl:GPDBFunc Mdid="0.481.1.0" Name="int8" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true"> 
-       <dxl:ResultType Mdid="0.20.1.0"/>                                                                                     
-      </dxl:GPDBFunc>                    
-      <dxl:ColumnStatistics Mdid="1.1961361.1.1.25" Name="xmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1961361.1.1.24" Name="cmin" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:MDCast Mdid="3.23.1.0;20.1.0" Name="int8" BinaryCoercible="false" SourceTypeId="0.23.1.0" DestinationTypeId="0.20.1.0" CastFuncId="0.481.1.0"/>
+      <dxl:GPDBFunc Mdid="0.481.1.0" Name="int8" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
+        <dxl:ResultType Mdid="0.20.1.0"/>
+      </dxl:GPDBFunc>
+      <dxl:ColumnStatistics Mdid="1.1961361.1.1.25" Name="xmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1961361.1.1.24" Name="cmin" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1961361.1.1.17" Name="i_color" Width="21.000000" NullFreq="0.002498" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.017574" DistinctValues="3.720000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAGGFsbW9uZCAgICAgICAgICAgICAg" LintValue="536871732"/>
@@ -3514,8 +3514,8 @@
         <dxl:SumAgg Mdid="0.2114.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.1962051.1.1.25" Name="cmin" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1962051.1.1.24" Name="xmin" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1962051.1.1.25" Name="cmin" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1962051.1.1.24" Name="xmin" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1962051.1.1.17" Name="ss_ext_list_price" Width="9.000000" NullFreq="0.045908" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.029111" DistinctValues="5619.747237">
           <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAADAAAAgACADQI" DoubleValue="2.210000"/>
@@ -5299,8 +5299,8 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.1961361.1.1.27" Name="tableoid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1961361.1.1.26" Name="cmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1961361.1.1.27" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1961361.1.1.26" Name="cmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1961361.1.1.19" Name="i_container" Width="11.000000" NullFreq="0.002165" NdvRemain="1.000000" FreqRemain="0.003164">
         <dxl:StatsBucket Frequency="0.996836" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAADlVua25vd24gICA=" LintValue="438305716"/>
@@ -5726,7 +5726,7 @@
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:MDScalarComparison Mdid="4.20.1.0;23.1.0;2" Name="&lt;" ComparisonType="LT" LeftType="0.20.1.0" RightType="0.23.1.0" OperatorMdid="0.418.1.0"/>
-      <dxl:ColumnStatistics Mdid="1.1962051.1.1.23" Name="ctid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1962051.1.1.23" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1962051.1.1.15" Name="ss_ext_sales_price" Width="8.000000" NullFreq="0.046626" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.009375" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
@@ -6985,7 +6985,7 @@
           <dxl:OpClass Mdid="0.3032.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
-      <dxl:ColumnStatistics Mdid="1.1961361.1.1.28" Name="gp_segment_id" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1961361.1.1.28" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1961361.1.1.21" Name="i_product_name" Width="51.000000" NullFreq="0.001998" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.039709" DistinctValues="714.836868">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAANmFibGUgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg&#10;ICAgICAgICAg" LintValue="536871734"/>
@@ -8198,8 +8198,8 @@
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
-      <dxl:ColumnStatistics Mdid="1.1962051.1.1.29" Name="gp_segment_id" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1962051.1.1.28" Name="tableoid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1962051.1.1.29" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1962051.1.1.28" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1962051.1.1.21" Name="ss_net_paid_inc_tax" Width="8.000000" NullFreq="0.044751" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.011313" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
@@ -9972,8 +9972,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1920783"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.1961361.1.1.23" Name="xmin" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1961361.1.1.22" Name="ctid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1961361.1.1.23" Name="xmin" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1961361.1.1.22" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1961361.1.1.15" Name="i_size" Width="21.000000" NullFreq="0.002276" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.609335" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAGE4vQSAgICAgICAgICAgICAgICAg" LintValue="572523444"/>

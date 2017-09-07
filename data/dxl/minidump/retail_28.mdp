@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-<!--
+  <!--
 DBL: Retail Demo
 SQL:
 SELECT to_char(order_datetime,'YYYY-Q') as ship_month
@@ -27,7 +27,7 @@ ORDER BY to_char(order_datetime,'YYYY-Q')
       </dxl:GPDBFunc>
       <dxl:MDScalarComparison Mdid="4.1114.1.0;1082.1.0;3" Name="&lt;=" ComparisonType="LEq" LeftType="0.1114.1.0" RightType="0.1082.1.0" OperatorMdid="0.2372.1.0"/>
       <dxl:MDScalarComparison Mdid="4.1114.1.0;1082.1.0;2" Name="&lt;" ComparisonType="LT" LeftType="0.1114.1.0" RightType="0.1082.1.0" OperatorMdid="0.2371.1.0"/>
-      <dxl:ColumnStatistics Mdid="1.4435137.1.1.34" Name="gp_segment_id" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.4435137.1.1.34" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.4435137.1.1.27" Name="ship_phone_number" Width="14.000000" NullFreq="0.000000" NdvRemain="6146685.000000" FreqRemain="0.998882">
         <dxl:StatsBucket Frequency="0.000045" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAAESgwNDIpMTgwLTAyODg=" LintValue="936837940"/>
@@ -1064,8 +1064,8 @@ ORDER BY to_char(order_datetime,'YYYY-Q')
       <dxl:GPDBFunc Mdid="0.1574.1.0" Name="nextval" ReturnsSet="false" Stability="Volatile" DataAccess="NoSQL" IsStrict="true">
         <dxl:ResultType Mdid="0.20.1.0"/>
       </dxl:GPDBFunc>
-      <dxl:ColumnStatistics Mdid="1.4435137.1.1.33" Name="tableoid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.4435137.1.1.32" Name="ctid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.4435137.1.1.33" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.4435137.1.1.32" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.4435137.1.1.25" Name="ship_address_postal_code" Width="6.000000" NullFreq="0.000000" NdvRemain="28838.000000" FreqRemain="0.995864">
         <dxl:StatsBucket Frequency="0.000157" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAACTEzNDMz" LintValue="752247598"/>
@@ -4271,57 +4271,11 @@ ORDER BY to_char(order_datetime,'YYYY-Q')
         </dxl:LogicalGroupBy>
       </dxl:LogicalLimit>
     </dxl:Query>
-<dxl:Plan Id="0" SpaceSize="104">
-  <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
-    <dxl:Properties>
-      <dxl:Cost StartupCost="0" TotalCost="361508766.025297" Rows="16127439.413794" Width="25"/>
-    </dxl:Properties>
-    <dxl:ProjList>
-      <dxl:ProjElem ColId="35" Alias="ship_month">
-        <dxl:Ident ColId="35" ColName="ship_month" TypeMdid="0.25.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="6" Alias="item_shipment_status_code">
-        <dxl:Ident ColId="6" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="36" Alias="num_orders">
-        <dxl:Ident ColId="36" ColName="num_orders" TypeMdid="0.20.1.0"/>
-      </dxl:ProjElem>
-    </dxl:ProjList>
-    <dxl:Filter/>
-    <dxl:SortingColumnList>
-      <dxl:SortingColumn ColId="35" SortOperatorMdid="0.664.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
-      <dxl:SortingColumn ColId="6" SortOperatorMdid="0.664.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
-    </dxl:SortingColumnList>
-    <dxl:Sort SortDiscardDuplicates="false">
-      <dxl:Properties>
-        <dxl:Cost StartupCost="0" TotalCost="361311896.868391" Rows="16127439.413794" Width="25"/>
-      </dxl:Properties>
-      <dxl:ProjList>
-        <dxl:ProjElem ColId="35" Alias="ship_month">
-          <dxl:Ident ColId="35" ColName="ship_month" TypeMdid="0.25.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="6" Alias="item_shipment_status_code">
-          <dxl:Ident ColId="6" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="36" Alias="num_orders">
-          <dxl:Ident ColId="36" ColName="num_orders" TypeMdid="0.20.1.0"/>
-        </dxl:ProjElem>
-      </dxl:ProjList>
-      <dxl:Filter/>
-      <dxl:SortingColumnList>
-        <dxl:SortingColumn ColId="35" SortOperatorMdid="0.664.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
-        <dxl:SortingColumn ColId="6" SortOperatorMdid="0.664.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
-      </dxl:SortingColumnList>
-      <dxl:LimitCount/>
-      <dxl:LimitOffset/>
-      <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="false">
+    <dxl:Plan Id="0" SpaceSize="104">
+      <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="135474451.262045" Rows="16127439.413794" Width="25"/>
+          <dxl:Cost StartupCost="0" TotalCost="361508766.025297" Rows="16127439.413794" Width="25"/>
         </dxl:Properties>
-        <dxl:GroupingColumns>
-          <dxl:GroupingColumn ColId="35"/>
-          <dxl:GroupingColumn ColId="6"/>
-        </dxl:GroupingColumns>
         <dxl:ProjList>
           <dxl:ProjElem ColId="35" Alias="ship_month">
             <dxl:Ident ColId="35" ColName="ship_month" TypeMdid="0.25.1.0"/>
@@ -4330,61 +4284,61 @@ ORDER BY to_char(order_datetime,'YYYY-Q')
             <dxl:Ident ColId="6" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0"/>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="36" Alias="num_orders">
-            <dxl:AggFunc AggMdid="0.2147.1.0" AggDistinct="false" AggStage="Normal">
-              <dxl:Ident ColId="0" ColName="order_id" TypeMdid="0.1043.1.0"/>
-            </dxl:AggFunc>
+            <dxl:Ident ColId="36" ColName="num_orders" TypeMdid="0.20.1.0"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:Filter/>
-        <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="false">
+        <dxl:SortingColumnList>
+          <dxl:SortingColumn ColId="35" SortOperatorMdid="0.664.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
+          <dxl:SortingColumn ColId="6" SortOperatorMdid="0.664.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
+        </dxl:SortingColumnList>
+        <dxl:Sort SortDiscardDuplicates="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="112567262.623526" Rows="426921743.638855" Width="27"/>
+            <dxl:Cost StartupCost="0" TotalCost="361311896.868391" Rows="16127439.413794" Width="25"/>
           </dxl:Properties>
-          <dxl:GroupingColumns>
-            <dxl:GroupingColumn ColId="35"/>
-            <dxl:GroupingColumn ColId="6"/>
-            <dxl:GroupingColumn ColId="0"/>
-          </dxl:GroupingColumns>
           <dxl:ProjList>
-            <dxl:ProjElem ColId="0" Alias="order_id">
-              <dxl:Ident ColId="0" ColName="order_id" TypeMdid="0.1043.1.0"/>
+            <dxl:ProjElem ColId="35" Alias="ship_month">
+              <dxl:Ident ColId="35" ColName="ship_month" TypeMdid="0.25.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="6" Alias="item_shipment_status_code">
               <dxl:Ident ColId="6" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0"/>
             </dxl:ProjElem>
-            <dxl:ProjElem ColId="35" Alias="ship_month">
-              <dxl:Ident ColId="35" ColName="ship_month" TypeMdid="0.25.1.0"/>
+            <dxl:ProjElem ColId="36" Alias="num_orders">
+              <dxl:Ident ColId="36" ColName="num_orders" TypeMdid="0.20.1.0"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
-          <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+          <dxl:SortingColumnList>
+            <dxl:SortingColumn ColId="35" SortOperatorMdid="0.664.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
+            <dxl:SortingColumn ColId="6" SortOperatorMdid="0.664.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
+          </dxl:SortingColumnList>
+          <dxl:LimitCount/>
+          <dxl:LimitOffset/>
+          <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="false">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="78797084.636468" Rows="426921743.638855" Width="27"/>
+              <dxl:Cost StartupCost="0" TotalCost="135474451.262045" Rows="16127439.413794" Width="25"/>
             </dxl:Properties>
+            <dxl:GroupingColumns>
+              <dxl:GroupingColumn ColId="35"/>
+              <dxl:GroupingColumn ColId="6"/>
+            </dxl:GroupingColumns>
             <dxl:ProjList>
-              <dxl:ProjElem ColId="0" Alias="order_id">
-                <dxl:Ident ColId="0" ColName="order_id" TypeMdid="0.1043.1.0"/>
+              <dxl:ProjElem ColId="35" Alias="ship_month">
+                <dxl:Ident ColId="35" ColName="ship_month" TypeMdid="0.25.1.0"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="6" Alias="item_shipment_status_code">
                 <dxl:Ident ColId="6" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0"/>
               </dxl:ProjElem>
-              <dxl:ProjElem ColId="35" Alias="ship_month">
-                <dxl:Ident ColId="35" ColName="ship_month" TypeMdid="0.25.1.0"/>
+              <dxl:ProjElem ColId="36" Alias="num_orders">
+                <dxl:AggFunc AggMdid="0.2147.1.0" AggDistinct="false" AggStage="Normal">
+                  <dxl:Ident ColId="0" ColName="order_id" TypeMdid="0.1043.1.0"/>
+                </dxl:AggFunc>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:Filter/>
-            <dxl:SortingColumnList/>
-            <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.25.1.0">
-                <dxl:Ident ColId="35" ColName="ship_month" TypeMdid="0.25.1.0"/>
-              </dxl:HashExpr>
-              <dxl:HashExpr TypeMdid="0.1043.1.0">
-                <dxl:Ident ColId="6" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0"/>
-              </dxl:HashExpr>
-            </dxl:HashExprList>
-            <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="true">
+            <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="false">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="73168720.805292" Rows="426921743.638855" Width="27"/>
+                <dxl:Cost StartupCost="0" TotalCost="112567262.623526" Rows="426921743.638855" Width="27"/>
               </dxl:Properties>
               <dxl:GroupingColumns>
                 <dxl:GroupingColumn ColId="35"/>
@@ -4403,30 +4357,40 @@ ORDER BY to_char(order_datetime,'YYYY-Q')
                 </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:Filter/>
-              <dxl:Result>
+              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="39398542.818234" Rows="426921743.638855" Width="27"/>
+                  <dxl:Cost StartupCost="0" TotalCost="78797084.636468" Rows="426921743.638855" Width="27"/>
                 </dxl:Properties>
                 <dxl:ProjList>
-                  <dxl:ProjElem ColId="35" Alias="ship_month">
-                    <dxl:FuncExpr FuncId="0.2049.1.0" FuncRetSet="false" TypeMdid="0.25.1.0">
-                      <dxl:Ident ColId="7" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACllZWVktUQ==" LintValue="712123246"/>
-                    </dxl:FuncExpr>
-                  </dxl:ProjElem>
                   <dxl:ProjElem ColId="0" Alias="order_id">
                     <dxl:Ident ColId="0" ColName="order_id" TypeMdid="0.1043.1.0"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="6" Alias="item_shipment_status_code">
                     <dxl:Ident ColId="6" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0"/>
                   </dxl:ProjElem>
+                  <dxl:ProjElem ColId="35" Alias="ship_month">
+                    <dxl:Ident ColId="35" ColName="ship_month" TypeMdid="0.25.1.0"/>
+                  </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>
-                <dxl:OneTimeFilter/>
-                <dxl:Sequence>
+                <dxl:SortingColumnList/>
+                <dxl:HashExprList>
+                  <dxl:HashExpr TypeMdid="0.25.1.0">
+                    <dxl:Ident ColId="35" ColName="ship_month" TypeMdid="0.25.1.0"/>
+                  </dxl:HashExpr>
+                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                    <dxl:Ident ColId="6" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0"/>
+                  </dxl:HashExpr>
+                </dxl:HashExprList>
+                <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="true">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="28141816.155882" Rows="426921743.638855" Width="27"/>
+                    <dxl:Cost StartupCost="0" TotalCost="73168720.805292" Rows="426921743.638855" Width="27"/>
                   </dxl:Properties>
+                  <dxl:GroupingColumns>
+                    <dxl:GroupingColumn ColId="35"/>
+                    <dxl:GroupingColumn ColId="6"/>
+                    <dxl:GroupingColumn ColId="0"/>
+                  </dxl:GroupingColumns>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="0" Alias="order_id">
                       <dxl:Ident ColId="0" ColName="order_id" TypeMdid="0.1043.1.0"/>
@@ -4434,151 +4398,187 @@ ORDER BY to_char(order_datetime,'YYYY-Q')
                     <dxl:ProjElem ColId="6" Alias="item_shipment_status_code">
                       <dxl:Ident ColId="6" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0"/>
                     </dxl:ProjElem>
-                    <dxl:ProjElem ColId="7" Alias="order_datetime">
-                      <dxl:Ident ColId="7" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
+                    <dxl:ProjElem ColId="35" Alias="ship_month">
+                      <dxl:Ident ColId="35" ColName="ship_month" TypeMdid="0.25.1.0"/>
                     </dxl:ProjElem>
                   </dxl:ProjList>
-                  <dxl:PartitionSelector RelationMdid="0.4435137.1.1" PartitionLevels="1" ScanId="1">
+                  <dxl:Filter/>
+                  <dxl:Result>
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
-                    </dxl:Properties>
-                    <dxl:ProjList/>
-                    <dxl:PartEqFilters>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-                    </dxl:PartEqFilters>
-                    <dxl:PartFilters>
-                      <dxl:Or>
-                        <dxl:And>
-                          <dxl:Or>
-                            <dxl:And>
-                              <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.2065.1.0">
-                                <dxl:PartBound Level="0" Type="0.1114.1.0" LowerBound="false"/>
-                                <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKAEUCAmAQA=" DoubleValue="323395200000000.000000"/>
-                              </dxl:Comparison>
-                              <dxl:PartBoundInclusion Level="0" LowerBound="false"/>
-                            </dxl:And>
-                            <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.2064.1.0">
-                              <dxl:PartBound Level="0" Type="0.1114.1.0" LowerBound="false"/>
-                              <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKAEUCAmAQA=" DoubleValue="323395200000000.000000"/>
-                            </dxl:Comparison>
-                          </dxl:Or>
-                          <dxl:Or>
-                            <dxl:And>
-                              <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.2372.1.0">
-                                <dxl:PartBound Level="0" Type="0.1114.1.0" LowerBound="true"/>
-                                <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="+Q4AAA==" DoubleValue="331171200000000.000000"/>
-                              </dxl:Comparison>
-                              <dxl:PartBoundInclusion Level="0" LowerBound="true"/>
-                            </dxl:And>
-                            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.2371.1.0">
-                              <dxl:PartBound Level="0" Type="0.1114.1.0" LowerBound="true"/>
-                              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="+Q4AAA==" DoubleValue="331171200000000.000000"/>
-                            </dxl:Comparison>
-                          </dxl:Or>
-                        </dxl:And>
-                        <dxl:Or>
-                          <dxl:DefaultPart Level="0"/>
-                          <dxl:Or>
-                            <dxl:PartBoundOpen Level="0" LowerBound="true"/>
-                            <dxl:PartBoundOpen Level="0" LowerBound="false"/>
-                          </dxl:Or>
-                        </dxl:Or>
-                      </dxl:Or>
-                    </dxl:PartFilters>
-                    <dxl:ResidualFilter>
-                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-                    </dxl:ResidualFilter>
-                    <dxl:PropagationExpression>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                    </dxl:PropagationExpression>
-                    <dxl:PrintableFilter>
-                      <dxl:And>
-                        <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.2065.1.0">
-                          <dxl:Ident ColId="7" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKAEUCAmAQA=" DoubleValue="323395200000000.000000"/>
-                        </dxl:Comparison>
-                        <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.2372.1.0">
-                          <dxl:Ident ColId="7" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="+Q4AAA==" DoubleValue="331171200000000.000000"/>
-                        </dxl:Comparison>
-                      </dxl:And>
-                    </dxl:PrintableFilter>
-                  </dxl:PartitionSelector>
-                  <dxl:DynamicTableScan PartIndexId="1">
-                    <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="28141816.155882" Rows="426921743.638855" Width="27"/>
+                      <dxl:Cost StartupCost="0" TotalCost="39398542.818234" Rows="426921743.638855" Width="27"/>
                     </dxl:Properties>
                     <dxl:ProjList>
+                      <dxl:ProjElem ColId="35" Alias="ship_month">
+                        <dxl:FuncExpr FuncId="0.2049.1.0" FuncRetSet="false" TypeMdid="0.25.1.0">
+                          <dxl:Ident ColId="7" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
+                          <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACllZWVktUQ==" LintValue="712123246"/>
+                        </dxl:FuncExpr>
+                      </dxl:ProjElem>
                       <dxl:ProjElem ColId="0" Alias="order_id">
                         <dxl:Ident ColId="0" ColName="order_id" TypeMdid="0.1043.1.0"/>
                       </dxl:ProjElem>
                       <dxl:ProjElem ColId="6" Alias="item_shipment_status_code">
                         <dxl:Ident ColId="6" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0"/>
                       </dxl:ProjElem>
-                      <dxl:ProjElem ColId="7" Alias="order_datetime">
-                        <dxl:Ident ColId="7" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
-                      </dxl:ProjElem>
                     </dxl:ProjList>
-                    <dxl:Filter>
-                      <dxl:And>
-                        <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.2065.1.0">
+                    <dxl:Filter/>
+                    <dxl:OneTimeFilter/>
+                    <dxl:Sequence>
+                      <dxl:Properties>
+                        <dxl:Cost StartupCost="0" TotalCost="28141816.155882" Rows="426921743.638855" Width="27"/>
+                      </dxl:Properties>
+                      <dxl:ProjList>
+                        <dxl:ProjElem ColId="0" Alias="order_id">
+                          <dxl:Ident ColId="0" ColName="order_id" TypeMdid="0.1043.1.0"/>
+                        </dxl:ProjElem>
+                        <dxl:ProjElem ColId="6" Alias="item_shipment_status_code">
+                          <dxl:Ident ColId="6" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0"/>
+                        </dxl:ProjElem>
+                        <dxl:ProjElem ColId="7" Alias="order_datetime">
                           <dxl:Ident ColId="7" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKAEUCAmAQA=" DoubleValue="323395200000000.000000"/>
-                        </dxl:Comparison>
-                        <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.2372.1.0">
-                          <dxl:Ident ColId="7" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="+Q4AAA==" DoubleValue="331171200000000.000000"/>
-                        </dxl:Comparison>
-                      </dxl:And>
-                    </dxl:Filter>
-                    <dxl:TableDescriptor Mdid="0.4435137.1.1" TableName="order_lineitems">
-                      <dxl:Columns>
-                        <dxl:Column ColId="0" Attno="1" ColName="order_id" TypeMdid="0.1043.1.0" ColWidth="21"/>
-                        <dxl:Column ColId="1" Attno="2" ColName="order_item_id" TypeMdid="0.20.1.0"/>
-                        <dxl:Column ColId="2" Attno="3" ColName="product_id" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="3" Attno="4" ColName="product_name" TypeMdid="0.1043.1.0" ColWidth="2000"/>
-                        <dxl:Column ColId="4" Attno="5" ColName="customer_id" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="5" Attno="6" ColName="store_id" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="6" Attno="7" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0" ColWidth="30"/>
-                        <dxl:Column ColId="7" Attno="8" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
-                        <dxl:Column ColId="8" Attno="9" ColName="ship_datetime" TypeMdid="0.1114.1.0"/>
-                        <dxl:Column ColId="9" Attno="10" ColName="item_return_datetime" TypeMdid="0.1114.1.0"/>
-                        <dxl:Column ColId="10" Attno="11" ColName="item_refund_datetime" TypeMdid="0.1114.1.0"/>
-                        <dxl:Column ColId="11" Attno="12" ColName="product_category_id" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="12" Attno="13" ColName="product_category_name" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="13" Attno="14" ColName="payment_method_code" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                        <dxl:Column ColId="14" Attno="15" ColName="tax_amount" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="15" Attno="16" ColName="item_quantity" TypeMdid="0.23.1.0"/>
-                        <dxl:Column ColId="16" Attno="17" ColName="item_price" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="17" Attno="18" ColName="discount_amount" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="18" Attno="19" ColName="coupon_code" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                        <dxl:Column ColId="19" Attno="20" ColName="coupon_amount" TypeMdid="0.1700.1.0"/>
-                        <dxl:Column ColId="20" Attno="21" ColName="ship_address_line1" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="21" Attno="22" ColName="ship_address_line2" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="22" Attno="23" ColName="ship_address_line3" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="23" Attno="24" ColName="ship_address_city" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="24" Attno="25" ColName="ship_address_state" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="25" Attno="26" ColName="ship_address_postal_code" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                        <dxl:Column ColId="26" Attno="27" ColName="ship_address_country" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="27" Attno="28" ColName="ship_phone_number" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                        <dxl:Column ColId="28" Attno="29" ColName="ship_customer_name" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="29" Attno="30" ColName="ship_customer_email_address" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                        <dxl:Column ColId="30" Attno="31" ColName="ordering_session_id" TypeMdid="0.1043.1.0" ColWidth="30"/>
-                        <dxl:Column ColId="31" Attno="32" ColName="website_url" TypeMdid="0.1043.1.0" ColWidth="500"/>
-                        <dxl:Column ColId="32" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                        <dxl:Column ColId="33" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                        <dxl:Column ColId="34" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-                      </dxl:Columns>
-                    </dxl:TableDescriptor>
-                  </dxl:DynamicTableScan>
-                </dxl:Sequence>
-              </dxl:Result>
+                        </dxl:ProjElem>
+                      </dxl:ProjList>
+                      <dxl:PartitionSelector RelationMdid="0.4435137.1.1" PartitionLevels="1" ScanId="1">
+                        <dxl:Properties>
+                          <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
+                        </dxl:Properties>
+                        <dxl:ProjList/>
+                        <dxl:PartEqFilters>
+                          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                        </dxl:PartEqFilters>
+                        <dxl:PartFilters>
+                          <dxl:Or>
+                            <dxl:And>
+                              <dxl:Or>
+                                <dxl:And>
+                                  <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.2065.1.0">
+                                    <dxl:PartBound Level="0" Type="0.1114.1.0" LowerBound="false"/>
+                                    <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKAEUCAmAQA=" DoubleValue="323395200000000.000000"/>
+                                  </dxl:Comparison>
+                                  <dxl:PartBoundInclusion Level="0" LowerBound="false"/>
+                                </dxl:And>
+                                <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.2064.1.0">
+                                  <dxl:PartBound Level="0" Type="0.1114.1.0" LowerBound="false"/>
+                                  <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKAEUCAmAQA=" DoubleValue="323395200000000.000000"/>
+                                </dxl:Comparison>
+                              </dxl:Or>
+                              <dxl:Or>
+                                <dxl:And>
+                                  <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.2372.1.0">
+                                    <dxl:PartBound Level="0" Type="0.1114.1.0" LowerBound="true"/>
+                                    <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="+Q4AAA==" DoubleValue="331171200000000.000000"/>
+                                  </dxl:Comparison>
+                                  <dxl:PartBoundInclusion Level="0" LowerBound="true"/>
+                                </dxl:And>
+                                <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.2371.1.0">
+                                  <dxl:PartBound Level="0" Type="0.1114.1.0" LowerBound="true"/>
+                                  <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="+Q4AAA==" DoubleValue="331171200000000.000000"/>
+                                </dxl:Comparison>
+                              </dxl:Or>
+                            </dxl:And>
+                            <dxl:Or>
+                              <dxl:DefaultPart Level="0"/>
+                              <dxl:Or>
+                                <dxl:PartBoundOpen Level="0" LowerBound="true"/>
+                                <dxl:PartBoundOpen Level="0" LowerBound="false"/>
+                              </dxl:Or>
+                            </dxl:Or>
+                          </dxl:Or>
+                        </dxl:PartFilters>
+                        <dxl:ResidualFilter>
+                          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                        </dxl:ResidualFilter>
+                        <dxl:PropagationExpression>
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                        </dxl:PropagationExpression>
+                        <dxl:PrintableFilter>
+                          <dxl:And>
+                            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.2065.1.0">
+                              <dxl:Ident ColId="7" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
+                              <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKAEUCAmAQA=" DoubleValue="323395200000000.000000"/>
+                            </dxl:Comparison>
+                            <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.2372.1.0">
+                              <dxl:Ident ColId="7" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
+                              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="+Q4AAA==" DoubleValue="331171200000000.000000"/>
+                            </dxl:Comparison>
+                          </dxl:And>
+                        </dxl:PrintableFilter>
+                      </dxl:PartitionSelector>
+                      <dxl:DynamicTableScan PartIndexId="1">
+                        <dxl:Properties>
+                          <dxl:Cost StartupCost="0" TotalCost="28141816.155882" Rows="426921743.638855" Width="27"/>
+                        </dxl:Properties>
+                        <dxl:ProjList>
+                          <dxl:ProjElem ColId="0" Alias="order_id">
+                            <dxl:Ident ColId="0" ColName="order_id" TypeMdid="0.1043.1.0"/>
+                          </dxl:ProjElem>
+                          <dxl:ProjElem ColId="6" Alias="item_shipment_status_code">
+                            <dxl:Ident ColId="6" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0"/>
+                          </dxl:ProjElem>
+                          <dxl:ProjElem ColId="7" Alias="order_datetime">
+                            <dxl:Ident ColId="7" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
+                          </dxl:ProjElem>
+                        </dxl:ProjList>
+                        <dxl:Filter>
+                          <dxl:And>
+                            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.2065.1.0">
+                              <dxl:Ident ColId="7" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
+                              <dxl:ConstValue TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AKAEUCAmAQA=" DoubleValue="323395200000000.000000"/>
+                            </dxl:Comparison>
+                            <dxl:Comparison ComparisonOperator="&lt;=" OperatorMdid="0.2372.1.0">
+                              <dxl:Ident ColId="7" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
+                              <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="+Q4AAA==" DoubleValue="331171200000000.000000"/>
+                            </dxl:Comparison>
+                          </dxl:And>
+                        </dxl:Filter>
+                        <dxl:TableDescriptor Mdid="0.4435137.1.1" TableName="order_lineitems">
+                          <dxl:Columns>
+                            <dxl:Column ColId="0" Attno="1" ColName="order_id" TypeMdid="0.1043.1.0" ColWidth="21"/>
+                            <dxl:Column ColId="1" Attno="2" ColName="order_item_id" TypeMdid="0.20.1.0"/>
+                            <dxl:Column ColId="2" Attno="3" ColName="product_id" TypeMdid="0.23.1.0"/>
+                            <dxl:Column ColId="3" Attno="4" ColName="product_name" TypeMdid="0.1043.1.0" ColWidth="2000"/>
+                            <dxl:Column ColId="4" Attno="5" ColName="customer_id" TypeMdid="0.23.1.0"/>
+                            <dxl:Column ColId="5" Attno="6" ColName="store_id" TypeMdid="0.23.1.0"/>
+                            <dxl:Column ColId="6" Attno="7" ColName="item_shipment_status_code" TypeMdid="0.1043.1.0" ColWidth="30"/>
+                            <dxl:Column ColId="7" Attno="8" ColName="order_datetime" TypeMdid="0.1114.1.0"/>
+                            <dxl:Column ColId="8" Attno="9" ColName="ship_datetime" TypeMdid="0.1114.1.0"/>
+                            <dxl:Column ColId="9" Attno="10" ColName="item_return_datetime" TypeMdid="0.1114.1.0"/>
+                            <dxl:Column ColId="10" Attno="11" ColName="item_refund_datetime" TypeMdid="0.1114.1.0"/>
+                            <dxl:Column ColId="11" Attno="12" ColName="product_category_id" TypeMdid="0.23.1.0"/>
+                            <dxl:Column ColId="12" Attno="13" ColName="product_category_name" TypeMdid="0.1043.1.0" ColWidth="200"/>
+                            <dxl:Column ColId="13" Attno="14" ColName="payment_method_code" TypeMdid="0.1043.1.0" ColWidth="20"/>
+                            <dxl:Column ColId="14" Attno="15" ColName="tax_amount" TypeMdid="0.1700.1.0"/>
+                            <dxl:Column ColId="15" Attno="16" ColName="item_quantity" TypeMdid="0.23.1.0"/>
+                            <dxl:Column ColId="16" Attno="17" ColName="item_price" TypeMdid="0.1700.1.0"/>
+                            <dxl:Column ColId="17" Attno="18" ColName="discount_amount" TypeMdid="0.1700.1.0"/>
+                            <dxl:Column ColId="18" Attno="19" ColName="coupon_code" TypeMdid="0.1043.1.0" ColWidth="20"/>
+                            <dxl:Column ColId="19" Attno="20" ColName="coupon_amount" TypeMdid="0.1700.1.0"/>
+                            <dxl:Column ColId="20" Attno="21" ColName="ship_address_line1" TypeMdid="0.1043.1.0" ColWidth="200"/>
+                            <dxl:Column ColId="21" Attno="22" ColName="ship_address_line2" TypeMdid="0.1043.1.0" ColWidth="200"/>
+                            <dxl:Column ColId="22" Attno="23" ColName="ship_address_line3" TypeMdid="0.1043.1.0" ColWidth="200"/>
+                            <dxl:Column ColId="23" Attno="24" ColName="ship_address_city" TypeMdid="0.1043.1.0" ColWidth="200"/>
+                            <dxl:Column ColId="24" Attno="25" ColName="ship_address_state" TypeMdid="0.1043.1.0" ColWidth="200"/>
+                            <dxl:Column ColId="25" Attno="26" ColName="ship_address_postal_code" TypeMdid="0.1043.1.0" ColWidth="20"/>
+                            <dxl:Column ColId="26" Attno="27" ColName="ship_address_country" TypeMdid="0.1043.1.0" ColWidth="200"/>
+                            <dxl:Column ColId="27" Attno="28" ColName="ship_phone_number" TypeMdid="0.1043.1.0" ColWidth="20"/>
+                            <dxl:Column ColId="28" Attno="29" ColName="ship_customer_name" TypeMdid="0.1043.1.0" ColWidth="200"/>
+                            <dxl:Column ColId="29" Attno="30" ColName="ship_customer_email_address" TypeMdid="0.1043.1.0" ColWidth="200"/>
+                            <dxl:Column ColId="30" Attno="31" ColName="ordering_session_id" TypeMdid="0.1043.1.0" ColWidth="30"/>
+                            <dxl:Column ColId="31" Attno="32" ColName="website_url" TypeMdid="0.1043.1.0" ColWidth="500"/>
+                            <dxl:Column ColId="32" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                            <dxl:Column ColId="33" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                            <dxl:Column ColId="34" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                          </dxl:Columns>
+                        </dxl:TableDescriptor>
+                      </dxl:DynamicTableScan>
+                    </dxl:Sequence>
+                  </dxl:Result>
+                </dxl:Aggregate>
+              </dxl:RedistributeMotion>
             </dxl:Aggregate>
-          </dxl:RedistributeMotion>
-        </dxl:Aggregate>
-      </dxl:Aggregate>
-    </dxl:Sort>
-  </dxl:GatherMotion>
-</dxl:Plan>
+          </dxl:Aggregate>
+        </dxl:Sort>
+      </dxl:GatherMotion>
+    </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>

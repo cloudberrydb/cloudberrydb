@@ -76,7 +76,7 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.504088.1.1.24" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.504088.1.1.24" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.504088.1.1.17" Name="c_last_review_date" Width="11.000000">
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="14.640000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAADjI0NTIyODMgICA=" LintValue="1001128886"/>
@@ -780,8 +780,8 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.504088.1.1.19" Name="xmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.504088.1.1.18" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.504088.1.1.19" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.504088.1.1.18" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.504088.1.1.11" Name="c_birth_day" Width="4.000000">
         <dxl:StatsBucket Frequency="0.039230" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
@@ -1106,8 +1106,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1920794"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.504088.1.1.21" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.504088.1.1.20" Name="cmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.504088.1.1.21" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.504088.1.1.20" Name="cmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.504088.1.1.13" Name="c_birth_year" Width="4.000000">
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="2.760000">
           <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1924"/>
@@ -1472,8 +1472,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="499990"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.504088.1.1.23" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.504088.1.1.22" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.504088.1.1.23" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.504088.1.1.22" Name="cmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.504088.1.1.15" Name="c_login" Width="0.000000" NullFreq="1.000000">
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.504088.1.1.14" Name="c_birth_country" Width="9.000000">
@@ -1887,160 +1887,160 @@
         </dxl:UnionAll>
       </dxl:LogicalSelect>
     </dxl:Query>
-<dxl:Plan Id="0" SpaceSize="1">
-  <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
-    <dxl:Properties>
-      <dxl:Cost StartupCost="0" TotalCost="36092.076172" Rows="998707.000000" Width="8"/>
-    </dxl:Properties>
-    <dxl:ProjList>
-      <dxl:ProjElem ColId="25" Alias="sale_type">
-        <dxl:Ident ColId="25" ColName="sale_type" TypeMdid="0.25.1.0"/>
-      </dxl:ProjElem>
-    </dxl:ProjList>
-    <dxl:Filter/>
-    <dxl:SortingColumnList/>
-    <dxl:Append IsTarget="false" IsZapped="false">
-      <dxl:Properties>
-        <dxl:Cost StartupCost="0" TotalCost="32189.876953" Rows="998707.000000" Width="8"/>
-      </dxl:Properties>
-      <dxl:ProjList>
-        <dxl:ProjElem ColId="25" Alias="sale_type">
-          <dxl:Ident ColId="25" ColName="sale_type" TypeMdid="0.25.1.0"/>
-        </dxl:ProjElem>
-      </dxl:ProjList>
-      <dxl:Filter/>
-      <dxl:Result>
+    <dxl:Plan Id="0" SpaceSize="1">
+      <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="16094.430664" Rows="998706.000000" Width="8"/>
+          <dxl:Cost StartupCost="0" TotalCost="36092.076172" Rows="998707.000000" Width="8"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="25" Alias="sale_type">
             <dxl:Ident ColId="25" ColName="sale_type" TypeMdid="0.25.1.0"/>
           </dxl:ProjElem>
         </dxl:ProjList>
-        <dxl:Filter>
-          <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-            <dxl:Ident ColId="25" ColName="sale_type" TypeMdid="0.25.1.0"/>
-            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABXM=" LintValue="160588332"/>
-          </dxl:Comparison>
-        </dxl:Filter>
-        <dxl:OneTimeFilter/>
-        <dxl:Result>
+        <dxl:Filter/>
+        <dxl:SortingColumnList/>
+        <dxl:Append IsTarget="false" IsZapped="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="8291.040039" Rows="998706.000000" Width="8"/>
+            <dxl:Cost StartupCost="0" TotalCost="32189.876953" Rows="998707.000000" Width="8"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="25" Alias="sale_type">
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABXM=" LintValue="160588332"/>
+              <dxl:Ident ColId="25" ColName="sale_type" TypeMdid="0.25.1.0"/>
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
-          <dxl:OneTimeFilter/>
-          <dxl:TableScan>
+          <dxl:Result>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="487.649414" Rows="998706.000000" Width="1"/>
+              <dxl:Cost StartupCost="0" TotalCost="16094.430664" Rows="998706.000000" Width="8"/>
             </dxl:Properties>
-            <dxl:ProjList/>
-            <dxl:Filter/>
-            <dxl:TableDescriptor Mdid="0.504088.1.1" TableName="customer">
-              <dxl:Columns>
-                <dxl:Column ColId="0" Attno="1" ColName="c_customer_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="1" Attno="2" ColName="c_customer_id" TypeMdid="0.1042.1.0" ColWidth="16"/>
-                <dxl:Column ColId="2" Attno="3" ColName="c_current_cdemo_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="3" Attno="4" ColName="c_current_hdemo_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="4" Attno="5" ColName="c_current_addr_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="5" Attno="6" ColName="c_first_shipto_date_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="6" Attno="7" ColName="c_first_sales_date_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="7" Attno="8" ColName="c_salutation" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                <dxl:Column ColId="8" Attno="9" ColName="c_first_name" TypeMdid="0.1042.1.0" ColWidth="20"/>
-                <dxl:Column ColId="9" Attno="10" ColName="c_last_name" TypeMdid="0.1042.1.0" ColWidth="30"/>
-                <dxl:Column ColId="10" Attno="11" ColName="c_preferred_cust_flag" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                <dxl:Column ColId="11" Attno="12" ColName="c_birth_day" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="12" Attno="13" ColName="c_birth_month" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="13" Attno="14" ColName="c_birth_year" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="14" Attno="15" ColName="c_birth_country" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                <dxl:Column ColId="15" Attno="16" ColName="c_login" TypeMdid="0.1042.1.0" ColWidth="13"/>
-                <dxl:Column ColId="16" Attno="17" ColName="c_email_address" TypeMdid="0.1042.1.0" ColWidth="50"/>
-                <dxl:Column ColId="17" Attno="18" ColName="c_last_review_date" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                <dxl:Column ColId="18" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                <dxl:Column ColId="19" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="20" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-                <dxl:Column ColId="21" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="22" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-                <dxl:Column ColId="23" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="24" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-              </dxl:Columns>
-            </dxl:TableDescriptor>
-          </dxl:TableScan>
-        </dxl:Result>
-      </dxl:Result>
-      <dxl:Result>
-        <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="8292.047852" Rows="1.000000" Width="8"/>
-        </dxl:Properties>
-        <dxl:ProjList>
-          <dxl:ProjElem ColId="51" Alias="sale_type">
-            <dxl:Ident ColId="51" ColName="sale_type" TypeMdid="0.25.1.0"/>
-          </dxl:ProjElem>
-        </dxl:ProjList>
-        <dxl:Filter>
-          <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-            <dxl:Ident ColId="51" ColName="sale_type" TypeMdid="0.25.1.0"/>
-            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABXM=" LintValue="160588332"/>
-          </dxl:Comparison>
-        </dxl:Filter>
-        <dxl:OneTimeFilter/>
-        <dxl:Result>
-          <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="8291.040039" Rows="998706.000000" Width="8"/>
-          </dxl:Properties>
-          <dxl:ProjList>
-            <dxl:ProjElem ColId="51" Alias="sale_type">
-              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWM=" LintValue="160457260"/>
-            </dxl:ProjElem>
-          </dxl:ProjList>
-          <dxl:Filter/>
-          <dxl:OneTimeFilter/>
-          <dxl:TableScan>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="25" Alias="sale_type">
+                <dxl:Ident ColId="25" ColName="sale_type" TypeMdid="0.25.1.0"/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:Filter>
+              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
+                <dxl:Ident ColId="25" ColName="sale_type" TypeMdid="0.25.1.0"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABXM=" LintValue="160588332"/>
+              </dxl:Comparison>
+            </dxl:Filter>
+            <dxl:OneTimeFilter/>
+            <dxl:Result>
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0" TotalCost="8291.040039" Rows="998706.000000" Width="8"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="25" Alias="sale_type">
+                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABXM=" LintValue="160588332"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:OneTimeFilter/>
+              <dxl:TableScan>
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="487.649414" Rows="998706.000000" Width="1"/>
+                </dxl:Properties>
+                <dxl:ProjList/>
+                <dxl:Filter/>
+                <dxl:TableDescriptor Mdid="0.504088.1.1" TableName="customer">
+                  <dxl:Columns>
+                    <dxl:Column ColId="0" Attno="1" ColName="c_customer_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="1" Attno="2" ColName="c_customer_id" TypeMdid="0.1042.1.0" ColWidth="16"/>
+                    <dxl:Column ColId="2" Attno="3" ColName="c_current_cdemo_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="3" Attno="4" ColName="c_current_hdemo_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="4" Attno="5" ColName="c_current_addr_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="5" Attno="6" ColName="c_first_shipto_date_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="6" Attno="7" ColName="c_first_sales_date_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="7" Attno="8" ColName="c_salutation" TypeMdid="0.1042.1.0" ColWidth="10"/>
+                    <dxl:Column ColId="8" Attno="9" ColName="c_first_name" TypeMdid="0.1042.1.0" ColWidth="20"/>
+                    <dxl:Column ColId="9" Attno="10" ColName="c_last_name" TypeMdid="0.1042.1.0" ColWidth="30"/>
+                    <dxl:Column ColId="10" Attno="11" ColName="c_preferred_cust_flag" TypeMdid="0.1042.1.0" ColWidth="1"/>
+                    <dxl:Column ColId="11" Attno="12" ColName="c_birth_day" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="12" Attno="13" ColName="c_birth_month" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="13" Attno="14" ColName="c_birth_year" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="14" Attno="15" ColName="c_birth_country" TypeMdid="0.1043.1.0" ColWidth="20"/>
+                    <dxl:Column ColId="15" Attno="16" ColName="c_login" TypeMdid="0.1042.1.0" ColWidth="13"/>
+                    <dxl:Column ColId="16" Attno="17" ColName="c_email_address" TypeMdid="0.1042.1.0" ColWidth="50"/>
+                    <dxl:Column ColId="17" Attno="18" ColName="c_last_review_date" TypeMdid="0.1042.1.0" ColWidth="10"/>
+                    <dxl:Column ColId="18" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                    <dxl:Column ColId="19" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="20" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                    <dxl:Column ColId="21" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="22" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                    <dxl:Column ColId="23" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="24" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                  </dxl:Columns>
+                </dxl:TableDescriptor>
+              </dxl:TableScan>
+            </dxl:Result>
+          </dxl:Result>
+          <dxl:Result>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="487.649414" Rows="998706.000000" Width="1"/>
+              <dxl:Cost StartupCost="0" TotalCost="8292.047852" Rows="1.000000" Width="8"/>
             </dxl:Properties>
-            <dxl:ProjList/>
-            <dxl:Filter/>
-            <dxl:TableDescriptor Mdid="0.504088.1.1" TableName="customer">
-              <dxl:Columns>
-                <dxl:Column ColId="26" Attno="1" ColName="c_customer_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="27" Attno="2" ColName="c_customer_id" TypeMdid="0.1042.1.0" ColWidth="16"/>
-                <dxl:Column ColId="28" Attno="3" ColName="c_current_cdemo_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="29" Attno="4" ColName="c_current_hdemo_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="30" Attno="5" ColName="c_current_addr_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="31" Attno="6" ColName="c_first_shipto_date_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="32" Attno="7" ColName="c_first_sales_date_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="33" Attno="8" ColName="c_salutation" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                <dxl:Column ColId="34" Attno="9" ColName="c_first_name" TypeMdid="0.1042.1.0" ColWidth="20"/>
-                <dxl:Column ColId="35" Attno="10" ColName="c_last_name" TypeMdid="0.1042.1.0" ColWidth="30"/>
-                <dxl:Column ColId="36" Attno="11" ColName="c_preferred_cust_flag" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                <dxl:Column ColId="37" Attno="12" ColName="c_birth_day" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="38" Attno="13" ColName="c_birth_month" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="39" Attno="14" ColName="c_birth_year" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="40" Attno="15" ColName="c_birth_country" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                <dxl:Column ColId="41" Attno="16" ColName="c_login" TypeMdid="0.1042.1.0" ColWidth="13"/>
-                <dxl:Column ColId="42" Attno="17" ColName="c_email_address" TypeMdid="0.1042.1.0" ColWidth="50"/>
-                <dxl:Column ColId="43" Attno="18" ColName="c_last_review_date" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                <dxl:Column ColId="44" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                <dxl:Column ColId="45" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="46" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-                <dxl:Column ColId="47" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="48" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-                <dxl:Column ColId="49" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="50" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-              </dxl:Columns>
-            </dxl:TableDescriptor>
-          </dxl:TableScan>
-        </dxl:Result>
-      </dxl:Result>
-    </dxl:Append>
-  </dxl:GatherMotion>
-</dxl:Plan>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="51" Alias="sale_type">
+                <dxl:Ident ColId="51" ColName="sale_type" TypeMdid="0.25.1.0"/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:Filter>
+              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
+                <dxl:Ident ColId="51" ColName="sale_type" TypeMdid="0.25.1.0"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABXM=" LintValue="160588332"/>
+              </dxl:Comparison>
+            </dxl:Filter>
+            <dxl:OneTimeFilter/>
+            <dxl:Result>
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0" TotalCost="8291.040039" Rows="998706.000000" Width="8"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="51" Alias="sale_type">
+                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWM=" LintValue="160457260"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:OneTimeFilter/>
+              <dxl:TableScan>
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="487.649414" Rows="998706.000000" Width="1"/>
+                </dxl:Properties>
+                <dxl:ProjList/>
+                <dxl:Filter/>
+                <dxl:TableDescriptor Mdid="0.504088.1.1" TableName="customer">
+                  <dxl:Columns>
+                    <dxl:Column ColId="26" Attno="1" ColName="c_customer_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="27" Attno="2" ColName="c_customer_id" TypeMdid="0.1042.1.0" ColWidth="16"/>
+                    <dxl:Column ColId="28" Attno="3" ColName="c_current_cdemo_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="29" Attno="4" ColName="c_current_hdemo_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="30" Attno="5" ColName="c_current_addr_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="31" Attno="6" ColName="c_first_shipto_date_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="32" Attno="7" ColName="c_first_sales_date_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="33" Attno="8" ColName="c_salutation" TypeMdid="0.1042.1.0" ColWidth="10"/>
+                    <dxl:Column ColId="34" Attno="9" ColName="c_first_name" TypeMdid="0.1042.1.0" ColWidth="20"/>
+                    <dxl:Column ColId="35" Attno="10" ColName="c_last_name" TypeMdid="0.1042.1.0" ColWidth="30"/>
+                    <dxl:Column ColId="36" Attno="11" ColName="c_preferred_cust_flag" TypeMdid="0.1042.1.0" ColWidth="1"/>
+                    <dxl:Column ColId="37" Attno="12" ColName="c_birth_day" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="38" Attno="13" ColName="c_birth_month" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="39" Attno="14" ColName="c_birth_year" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="40" Attno="15" ColName="c_birth_country" TypeMdid="0.1043.1.0" ColWidth="20"/>
+                    <dxl:Column ColId="41" Attno="16" ColName="c_login" TypeMdid="0.1042.1.0" ColWidth="13"/>
+                    <dxl:Column ColId="42" Attno="17" ColName="c_email_address" TypeMdid="0.1042.1.0" ColWidth="50"/>
+                    <dxl:Column ColId="43" Attno="18" ColName="c_last_review_date" TypeMdid="0.1042.1.0" ColWidth="10"/>
+                    <dxl:Column ColId="44" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                    <dxl:Column ColId="45" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="46" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                    <dxl:Column ColId="47" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="48" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                    <dxl:Column ColId="49" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="50" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                  </dxl:Columns>
+                </dxl:TableDescriptor>
+              </dxl:TableScan>
+            </dxl:Result>
+          </dxl:Result>
+        </dxl:Append>
+      </dxl:GatherMotion>
+    </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>

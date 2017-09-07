@@ -25,25 +25,25 @@
         <dxl:InverseOp Mdid="0.630.1.0"/>
       </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.91.1.0" Name="=" ComparisonType="Eq">
-       <dxl:LeftType Mdid="0.16.1.0"/>
-       <dxl:RightType Mdid="0.16.1.0"/>
-       <dxl:ResultType Mdid="0.16.1.0"/>
-       <dxl:OpFunc Mdid="0.60.1.0"/>
-       <dxl:Commutator Mdid="0.91.1.0"/>
-       <dxl:InverseOp Mdid="0.85.1.0"/>
-     </dxl:GPDBScalarOp>
+        <dxl:LeftType Mdid="0.16.1.0"/>
+        <dxl:RightType Mdid="0.16.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.60.1.0"/>
+        <dxl:Commutator Mdid="0.91.1.0"/>
+        <dxl:InverseOp Mdid="0.85.1.0"/>
+      </dxl:GPDBScalarOp>
       <dxl:GPDBScalarOp Mdid="0.413.1.0" Name="&gt;" ComparisonType="GT">
-       <dxl:LeftType Mdid="0.20.1.0"/>
-       <dxl:RightType Mdid="0.20.1.0"/>
-       <dxl:ResultType Mdid="0.16.1.0"/>
-       <dxl:OpFunc Mdid="0.470.1.0"/>
-       <dxl:Commutator Mdid="0.412.1.0"/>
-       <dxl:InverseOp Mdid="0.414.1.0"/>
-     </dxl:GPDBScalarOp>
+        <dxl:LeftType Mdid="0.20.1.0"/>
+        <dxl:RightType Mdid="0.20.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.470.1.0"/>
+        <dxl:Commutator Mdid="0.412.1.0"/>
+        <dxl:InverseOp Mdid="0.414.1.0"/>
+      </dxl:GPDBScalarOp>
       <dxl:GPDBAgg Mdid="0.2108.1.0" Name="sum" IsSplittable="true">
-       <dxl:ResultType Mdid="0.20.1.0"/>
-       <dxl:IntermediateResultType Mdid="0.20.1.0"/>
-     </dxl:GPDBAgg>
+        <dxl:ResultType Mdid="0.20.1.0"/>
+        <dxl:IntermediateResultType Mdid="0.20.1.0"/>
+      </dxl:GPDBAgg>
       <dxl:Type Mdid="0.28.1.0" Name="xid" IsRedistributable="false" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.352.1.0"/>
         <dxl:InequalityOp Mdid="0.0.0.0"/>
@@ -127,11 +127,11 @@
         <dxl:Commutator Mdid="0.410.1.0"/>
         <dxl:InverseOp Mdid="0.411.1.0"/>
       </dxl:GPDBScalarOp>
-      <dxl:ColumnStatistics Mdid="1.1213.1.1.11" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1213.1.1.10" Name="cmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1213.1.1.11" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1213.1.1.10" Name="cmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.3" Name="spcacl" Width="0.000000" NullFreq="1.000000"/>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.2" Name="spclocation" Width="0.000000" NullFreq="1.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1260.1.1.19" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1260.1.1.19" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1260.1.1.11" Name="rolresqueue" Width="4.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="6055"/>
@@ -152,8 +152,8 @@
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.1260.1.1.18" Name="oid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1259.1.1.35" Name="cmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1259.1.1.34" Name="xmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1259.1.1.35" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1259.1.1.34" Name="xmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1259.1.1.27" Name="relfrozenxid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1259.1.1.26" Name="relhassubclass" Width="1.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
@@ -384,8 +384,8 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-       <dxl:ColumnStatistics Mdid="1.2608.1.1.13" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.2608.1.1.12" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.2608.1.1.13" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.2608.1.1.12" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.2608.1.1.5" Name="refobjsubid" Width="4.000000">
         <dxl:StatsBucket Frequency="0.968047" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
@@ -574,8 +574,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="10894"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.5011.1.1.17" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.5011.1.1.16" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.5011.1.1.17" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.5011.1.1.16" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.9" Name="parrangeend" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.8" Name="parrangestart" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.0" Name="paroid" Width="8.000000"/>
@@ -681,7 +681,7 @@
         <dxl:Commutator Mdid="0.610.1.0"/>
         <dxl:InverseOp Mdid="0.612.1.0"/>
       </dxl:GPDBScalarOp>
-      <dxl:ColumnStatistics Mdid="1.1213.1.1.9" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1213.1.1.9" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.1" Name="spcowner" Width="4.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="10"/>
@@ -690,8 +690,8 @@
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.8" Name="oid" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.0" Name="spcname" Width="64.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1260.1.1.24" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1260.1.1.17" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1260.1.1.24" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1260.1.1.17" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.1260.1.1.16" Name="rolcreatewexthdfs" Width="1.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
@@ -707,8 +707,8 @@
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.1260.1.1.0" Name="rolname" Width="64.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1259.1.1.33" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1259.1.1.32" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1259.1.1.33" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1259.1.1.32" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1259.1.1.25" Name="relhasrules" Width="1.000000">
         <dxl:StatsBucket Frequency="0.718101" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
@@ -866,24 +866,24 @@
       </dxl:GPDBAgg>
       <dxl:MDCast Mdid="3.18.1.0;18.1.0" Name="char" BinaryCoercible="true" SourceTypeId="0.18.1.0" DestinationTypeId="0.18.1.0" CastFuncId="0.0.0.0"/>
       <dxl:MDCast Mdid="3.26.1.0;26.1.0" Name="oid" BinaryCoercible="true" SourceTypeId="0.26.1.0" DestinationTypeId="0.26.1.0" CastFuncId="0.0.0.0"/>
-      <dxl:ColumnStatistics Mdid="1.2608.1.1.7" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.2608.1.1.7" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.2608.1.1.6" Name="deptype" Width="1.000000"/>
-      <dxl:ColumnStatistics Mdid="1.5011.1.1.19" Name="cmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.5011.1.1.18" Name="xmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.5011.1.1.19" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.5011.1.1.18" Name="xmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.11" Name="parlistvalues" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.10" Name="parrangeevery" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.3" Name="parname" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.2" Name="parparentrule" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1213.1.1.14" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1213.1.1.7" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1213.1.1.14" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1213.1.1.7" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.6" Name="spcfsoid" Width="4.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="3052"/>
           <dxl:UpperBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="3052"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.1260.1.1.23" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1260.1.1.22" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1260.1.1.23" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1260.1.1.22" Name="cmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1260.1.1.15" Name="rolcreaterexthdfs" Width="1.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
@@ -908,7 +908,7 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.1259.1.1.30" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1259.1.1.30" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.1259.1.1.23" Name="relhasoids" Width="1.000000">
         <dxl:StatsBucket Frequency="0.916914" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
@@ -1134,8 +1134,8 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.2608.1.1.9" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.2608.1.1.8" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.2608.1.1.9" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.2608.1.1.8" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.2608.1.1.1" Name="objid" Width="4.000000">
         <dxl:StatsBucket Frequency="0.898262" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="0"/>
@@ -1276,18 +1276,18 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="7175"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.5011.1.1.21" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.5011.1.1.20" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.5011.1.1.21" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.5011.1.1.20" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.13" Name="partemplatespace" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.12" Name="parreloptions" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.5" Name="parruleord" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.4" Name="parisdefault" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1213.1.1.13" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1213.1.1.12" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1213.1.1.13" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1213.1.1.12" Name="cmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.5" Name="spcmirlocations" Width="0.000000" NullFreq="1.000000"/>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.4" Name="spcprilocations" Width="0.000000" NullFreq="1.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1260.1.1.21" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1260.1.1.20" Name="cmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1260.1.1.21" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1260.1.1.20" Name="cmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1260.1.1.13" Name="rolcreaterexthttp" Width="1.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
@@ -1312,7 +1312,7 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.1259.1.1.37" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1259.1.1.37" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1259.1.1.28" Name="relacl" Width="36.000000" NullFreq="1.000000"/>
       <dxl:ColumnStatistics Mdid="1.1259.1.1.21" Name="relfkeys" Width="2.000000"/>
       <dxl:ColumnStatistics Mdid="1.1259.1.1.20" Name="relukeys" Width="2.000000"/>
@@ -1448,7 +1448,7 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="403"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.1259.1.1.36" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1259.1.1.36" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1259.1.1.29" Name="reloptions" Width="0.000000" NullFreq="1.000000"/>
       <dxl:RelationStatistics Mdid="2.1213.1.1" Name="pg_tablespace" Rows="2.000000"/>
       <dxl:RelationStatistics Mdid="2.1259.1.1" Name="pg_class" Rows="337.000000"/>
@@ -1625,8 +1625,8 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.2608.1.1.11" Name="cmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.2608.1.1.10" Name="xmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.2608.1.1.11" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.2608.1.1.10" Name="xmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.2608.1.1.3" Name="refclassid" Width="4.000000">
         <dxl:StatsBucket Frequency="0.515887" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="1247"/>
@@ -1842,7 +1842,7 @@
         <dxl:CheckConstraints/>
       </dxl:Relation>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.15" Name="oid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.5011.1.1.14" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.5011.1.1.14" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.7" Name="parrangeendincl" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.5011.1.1.6" Name="parrangestartincl" Width="8.000000"/>
     </dxl:Metadata>
@@ -2109,280 +2109,23 @@
         </dxl:LogicalProject>
       </dxl:LogicalLimit>
     </dxl:Query>
-<dxl:Plan Id="0" SpaceSize="680">
-  <dxl:Result>
-    <dxl:Properties>
-      <dxl:Cost StartupCost="0" TotalCost="40653003.069917" Rows="896.720000" Width="238"/>
-    </dxl:Properties>
-    <dxl:ProjList>
-      <dxl:ProjElem ColId="36" Alias="tableoid">
-        <dxl:Ident ColId="36" ColName="tableoid" TypeMdid="0.26.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="31" Alias="oid">
-        <dxl:Ident ColId="31" ColName="oid" TypeMdid="0.26.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="0" Alias="relname">
-        <dxl:Ident ColId="0" ColName="relname" TypeMdid="0.19.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="28" Alias="relacl">
-        <dxl:Ident ColId="28" ColName="relacl" TypeMdid="0.1034.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="15" Alias="relkind">
-        <dxl:Ident ColId="15" ColName="relkind" TypeMdid="0.18.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="16" Alias="relstorage">
-        <dxl:Ident ColId="16" ColName="relstorage" TypeMdid="0.18.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="1" Alias="relnamespace">
-        <dxl:Ident ColId="1" ColName="relnamespace" TypeMdid="0.26.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="100" Alias="rolname">
-        <dxl:SubPlan TypeMdid="0.19.1.0" SubPlanType="ScalarSubPlan">
-          <dxl:TestExpr/>
-          <dxl:ParamList>
-            <dxl:Param ColId="3" ColName="relowner" TypeMdid="0.26.1.0"/>
-          </dxl:ParamList>
-          <dxl:Result>
-            <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="114.285313" Rows="1.000000" Width="64"/>
-            </dxl:Properties>
-            <dxl:ProjList>
-              <dxl:ProjElem ColId="74" Alias="rolname">
-                <dxl:Ident ColId="74" ColName="rolname" TypeMdid="0.19.1.0"/>
-              </dxl:ProjElem>
-            </dxl:ProjList>
-            <dxl:Filter/>
-            <dxl:OneTimeFilter/>
-            <dxl:Result>
-              <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="114.285313" Rows="1.000000" Width="64"/>
-              </dxl:Properties>
-              <dxl:ProjList>
-                <dxl:ProjElem ColId="99" Alias="rolpassword">
-                  <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWI=" LintValue="160449068"/>
-                </dxl:ProjElem>
-                <dxl:ProjElem ColId="74" Alias="rolname">
-                  <dxl:Ident ColId="74" ColName="rolname" TypeMdid="0.19.1.0"/>
-                </dxl:ProjElem>
-              </dxl:ProjList>
-              <dxl:Filter/>
-              <dxl:OneTimeFilter/>
-              <dxl:TableScan>
-                <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="113.160313" Rows="1.000000" Width="64"/>
-                </dxl:Properties>
-                <dxl:ProjList>
-                  <dxl:ProjElem ColId="74" Alias="rolname">
-                    <dxl:Ident ColId="74" ColName="rolname" TypeMdid="0.19.1.0"/>
-                  </dxl:ProjElem>
-                </dxl:ProjList>
-                <dxl:Filter>
-                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
-                    <dxl:Ident ColId="92" ColName="oid" TypeMdid="0.26.1.0"/>
-                    <dxl:Ident ColId="3" ColName="relowner" TypeMdid="0.26.1.0"/>
-                  </dxl:Comparison>
-                </dxl:Filter>
-                <dxl:TableDescriptor Mdid="0.1260.1.1" TableName="pg_authid">
-                  <dxl:Columns>
-                    <dxl:Column ColId="74" Attno="1" ColName="rolname" TypeMdid="0.19.1.0"/>
-                    <dxl:Column ColId="75" Attno="2" ColName="rolsuper" TypeMdid="0.16.1.0"/>
-                    <dxl:Column ColId="76" Attno="3" ColName="rolinherit" TypeMdid="0.16.1.0"/>
-                    <dxl:Column ColId="77" Attno="4" ColName="rolcreaterole" TypeMdid="0.16.1.0"/>
-                    <dxl:Column ColId="78" Attno="5" ColName="rolcreatedb" TypeMdid="0.16.1.0"/>
-                    <dxl:Column ColId="79" Attno="6" ColName="rolcatupdate" TypeMdid="0.16.1.0"/>
-                    <dxl:Column ColId="80" Attno="7" ColName="rolcanlogin" TypeMdid="0.16.1.0"/>
-                    <dxl:Column ColId="81" Attno="8" ColName="rolconnlimit" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="82" Attno="9" ColName="rolpassword" TypeMdid="0.25.1.0"/>
-                    <dxl:Column ColId="83" Attno="10" ColName="rolvaliduntil" TypeMdid="0.1184.1.0"/>
-                    <dxl:Column ColId="84" Attno="11" ColName="rolconfig" TypeMdid="0.1009.1.0"/>
-                    <dxl:Column ColId="85" Attno="12" ColName="rolresqueue" TypeMdid="0.26.1.0"/>
-                    <dxl:Column ColId="86" Attno="13" ColName="rolcreaterextgpfd" TypeMdid="0.16.1.0"/>
-                    <dxl:Column ColId="87" Attno="14" ColName="rolcreaterexthttp" TypeMdid="0.16.1.0"/>
-                    <dxl:Column ColId="88" Attno="15" ColName="rolcreatewextgpfd" TypeMdid="0.16.1.0"/>
-                    <dxl:Column ColId="89" Attno="16" ColName="rolcreaterexthdfs" TypeMdid="0.16.1.0"/>
-                    <dxl:Column ColId="90" Attno="17" ColName="rolcreatewexthdfs" TypeMdid="0.16.1.0"/>
-                    <dxl:Column ColId="91" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                    <dxl:Column ColId="92" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
-                    <dxl:Column ColId="93" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-                    <dxl:Column ColId="94" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-                    <dxl:Column ColId="95" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-                    <dxl:Column ColId="96" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-                    <dxl:Column ColId="97" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                    <dxl:Column ColId="98" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-                  </dxl:Columns>
-                </dxl:TableDescriptor>
-              </dxl:TableScan>
-            </dxl:Result>
-          </dxl:Result>
-        </dxl:SubPlan>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="18" Alias="relchecks">
-        <dxl:Ident ColId="18" ColName="relchecks" TypeMdid="0.21.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="19" Alias="reltriggers">
-        <dxl:Ident ColId="19" ColName="reltriggers" TypeMdid="0.21.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="13" Alias="relhasindex">
-        <dxl:Ident ColId="13" ColName="relhasindex" TypeMdid="0.16.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="25" Alias="relhasrules">
-        <dxl:Ident ColId="25" ColName="relhasrules" TypeMdid="0.16.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="23" Alias="relhasoids">
-        <dxl:Ident ColId="23" ColName="relhasoids" TypeMdid="0.16.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="101" Alias="relistoasted">
-        <dxl:Comparison ComparisonOperator="&lt;&gt;" OperatorMdid="0.608.1.0">
-          <dxl:Ident ColId="9" ColName="reltoastrelid" TypeMdid="0.26.1.0"/>
-          <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="0"/>
-        </dxl:Comparison>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="42" Alias="owning_tab">
-        <dxl:Ident ColId="42" ColName="refobjid" TypeMdid="0.26.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="43" Alias="owning_col">
-        <dxl:Ident ColId="43" ColName="refobjsubid" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="117" Alias="reltablespace">
-        <dxl:SubPlan TypeMdid="0.19.1.0" SubPlanType="ScalarSubPlan">
-          <dxl:TestExpr/>
-          <dxl:ParamList>
-            <dxl:Param ColId="6" ColName="reltablespace" TypeMdid="0.26.1.0"/>
-          </dxl:ParamList>
-          <dxl:TableScan>
-            <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="126.140625" Rows="1.000000" Width="64"/>
-            </dxl:Properties>
-            <dxl:ProjList>
-              <dxl:ProjElem ColId="102" Alias="spcname">
-                <dxl:Ident ColId="102" ColName="spcname" TypeMdid="0.19.1.0"/>
-              </dxl:ProjElem>
-            </dxl:ProjList>
-            <dxl:Filter>
-              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
-                <dxl:Ident ColId="110" ColName="oid" TypeMdid="0.26.1.0"/>
-                <dxl:Ident ColId="6" ColName="reltablespace" TypeMdid="0.26.1.0"/>
-              </dxl:Comparison>
-            </dxl:Filter>
-            <dxl:TableDescriptor Mdid="0.1213.1.1" TableName="pg_tablespace">
-              <dxl:Columns>
-                <dxl:Column ColId="102" Attno="1" ColName="spcname" TypeMdid="0.19.1.0"/>
-                <dxl:Column ColId="103" Attno="2" ColName="spcowner" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="104" Attno="3" ColName="spclocation" TypeMdid="0.25.1.0"/>
-                <dxl:Column ColId="105" Attno="4" ColName="spcacl" TypeMdid="0.1034.1.0"/>
-                <dxl:Column ColId="106" Attno="5" ColName="spcprilocations" TypeMdid="0.1009.1.0"/>
-                <dxl:Column ColId="107" Attno="6" ColName="spcmirlocations" TypeMdid="0.1009.1.0"/>
-                <dxl:Column ColId="108" Attno="7" ColName="spcfsoid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="109" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                <dxl:Column ColId="110" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="111" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="112" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-                <dxl:Column ColId="113" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="114" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-                <dxl:Column ColId="115" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="116" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-              </dxl:Columns>
-            </dxl:TableDescriptor>
-          </dxl:TableScan>
-        </dxl:SubPlan>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="118" Alias="reloptions">
-        <dxl:FuncExpr FuncId="0.395.1.0" FuncRetSet="false" TypeMdid="0.25.1.0">
-          <dxl:Ident ColId="29" ColName="reloptions" TypeMdid="0.1009.1.0"/>
-          <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABUI=" LintValue="160711212"/>
-        </dxl:FuncExpr>
-      </dxl:ProjElem>
-    </dxl:ProjList>
-    <dxl:Filter/>
-    <dxl:OneTimeFilter/>
-    <dxl:Sort SortDiscardDuplicates="false">
-      <dxl:Properties>
-        <dxl:Cost StartupCost="0" TotalCost="382098.969292" Rows="896.720000" Width="149"/>
-      </dxl:Properties>
-      <dxl:ProjList>
-        <dxl:ProjElem ColId="0" Alias="relname">
-          <dxl:Ident ColId="0" ColName="relname" TypeMdid="0.19.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="1" Alias="relnamespace">
-          <dxl:Ident ColId="1" ColName="relnamespace" TypeMdid="0.26.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="3" Alias="relowner">
-          <dxl:Ident ColId="3" ColName="relowner" TypeMdid="0.26.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="6" Alias="reltablespace">
-          <dxl:Ident ColId="6" ColName="reltablespace" TypeMdid="0.26.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="9" Alias="reltoastrelid">
-          <dxl:Ident ColId="9" ColName="reltoastrelid" TypeMdid="0.26.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="13" Alias="relhasindex">
-          <dxl:Ident ColId="13" ColName="relhasindex" TypeMdid="0.16.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="15" Alias="relkind">
-          <dxl:Ident ColId="15" ColName="relkind" TypeMdid="0.18.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="16" Alias="relstorage">
-          <dxl:Ident ColId="16" ColName="relstorage" TypeMdid="0.18.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="18" Alias="relchecks">
-          <dxl:Ident ColId="18" ColName="relchecks" TypeMdid="0.21.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="19" Alias="reltriggers">
-          <dxl:Ident ColId="19" ColName="reltriggers" TypeMdid="0.21.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="23" Alias="relhasoids">
-          <dxl:Ident ColId="23" ColName="relhasoids" TypeMdid="0.16.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="25" Alias="relhasrules">
-          <dxl:Ident ColId="25" ColName="relhasrules" TypeMdid="0.16.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="28" Alias="relacl">
-          <dxl:Ident ColId="28" ColName="relacl" TypeMdid="0.1034.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="29" Alias="reloptions">
-          <dxl:Ident ColId="29" ColName="reloptions" TypeMdid="0.1009.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="31" Alias="oid">
-          <dxl:Ident ColId="31" ColName="oid" TypeMdid="0.26.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="36" Alias="tableoid">
-          <dxl:Ident ColId="36" ColName="tableoid" TypeMdid="0.26.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="42" Alias="refobjid">
-          <dxl:Ident ColId="42" ColName="refobjid" TypeMdid="0.26.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="43" Alias="refobjsubid">
-          <dxl:Ident ColId="43" ColName="refobjsubid" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-      </dxl:ProjList>
-      <dxl:Filter/>
-      <dxl:SortingColumnList>
-        <dxl:SortingColumn ColId="31" SortOperatorMdid="0.609.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
-      </dxl:SortingColumnList>
-      <dxl:LimitCount/>
-      <dxl:LimitOffset/>
-      <dxl:HashJoin JoinType="Left">
+    <dxl:Plan Id="0" SpaceSize="680">
+      <dxl:Result>
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="713.821289" Rows="896.720000" Width="149"/>
+          <dxl:Cost StartupCost="0" TotalCost="40173678.932290" Rows="896.720000" Width="238"/>
         </dxl:Properties>
         <dxl:ProjList>
+          <dxl:ProjElem ColId="36" Alias="tableoid">
+            <dxl:Ident ColId="36" ColName="tableoid" TypeMdid="0.26.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="31" Alias="oid">
+            <dxl:Ident ColId="31" ColName="oid" TypeMdid="0.26.1.0"/>
+          </dxl:ProjElem>
           <dxl:ProjElem ColId="0" Alias="relname">
             <dxl:Ident ColId="0" ColName="relname" TypeMdid="0.19.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="1" Alias="relnamespace">
-            <dxl:Ident ColId="1" ColName="relnamespace" TypeMdid="0.26.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="3" Alias="relowner">
-            <dxl:Ident ColId="3" ColName="relowner" TypeMdid="0.26.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="6" Alias="reltablespace">
-            <dxl:Ident ColId="6" ColName="reltablespace" TypeMdid="0.26.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="9" Alias="reltoastrelid">
-            <dxl:Ident ColId="9" ColName="reltoastrelid" TypeMdid="0.26.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="13" Alias="relhasindex">
-            <dxl:Ident ColId="13" ColName="relhasindex" TypeMdid="0.16.1.0"/>
+          <dxl:ProjElem ColId="28" Alias="relacl">
+            <dxl:Ident ColId="28" ColName="relacl" TypeMdid="0.1034.1.0"/>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="15" Alias="relkind">
             <dxl:Ident ColId="15" ColName="relkind" TypeMdid="0.18.1.0"/>
@@ -2390,61 +2133,171 @@
           <dxl:ProjElem ColId="16" Alias="relstorage">
             <dxl:Ident ColId="16" ColName="relstorage" TypeMdid="0.18.1.0"/>
           </dxl:ProjElem>
+          <dxl:ProjElem ColId="1" Alias="relnamespace">
+            <dxl:Ident ColId="1" ColName="relnamespace" TypeMdid="0.26.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="100" Alias="rolname">
+            <dxl:SubPlan TypeMdid="0.19.1.0" SubPlanType="ScalarSubPlan">
+              <dxl:TestExpr/>
+              <dxl:ParamList>
+                <dxl:Param ColId="3" ColName="relowner" TypeMdid="0.26.1.0"/>
+              </dxl:ParamList>
+              <dxl:Result>
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="114.285313" Rows="1.000000" Width="64"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="74" Alias="rolname">
+                    <dxl:Ident ColId="74" ColName="rolname" TypeMdid="0.19.1.0"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter/>
+                <dxl:OneTimeFilter/>
+                <dxl:Result>
+                  <dxl:Properties>
+                    <dxl:Cost StartupCost="0" TotalCost="114.285313" Rows="1.000000" Width="64"/>
+                  </dxl:Properties>
+                  <dxl:ProjList>
+                    <dxl:ProjElem ColId="99" Alias="rolpassword">
+                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABWI=" LintValue="160449068"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="74" Alias="rolname">
+                      <dxl:Ident ColId="74" ColName="rolname" TypeMdid="0.19.1.0"/>
+                    </dxl:ProjElem>
+                  </dxl:ProjList>
+                  <dxl:Filter/>
+                  <dxl:OneTimeFilter/>
+                  <dxl:TableScan>
+                    <dxl:Properties>
+                      <dxl:Cost StartupCost="0" TotalCost="113.160313" Rows="1.000000" Width="64"/>
+                    </dxl:Properties>
+                    <dxl:ProjList>
+                      <dxl:ProjElem ColId="74" Alias="rolname">
+                        <dxl:Ident ColId="74" ColName="rolname" TypeMdid="0.19.1.0"/>
+                      </dxl:ProjElem>
+                    </dxl:ProjList>
+                    <dxl:Filter>
+                      <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
+                        <dxl:Ident ColId="92" ColName="oid" TypeMdid="0.26.1.0"/>
+                        <dxl:Ident ColId="3" ColName="relowner" TypeMdid="0.26.1.0"/>
+                      </dxl:Comparison>
+                    </dxl:Filter>
+                    <dxl:TableDescriptor Mdid="0.1260.1.1" TableName="pg_authid">
+                      <dxl:Columns>
+                        <dxl:Column ColId="74" Attno="1" ColName="rolname" TypeMdid="0.19.1.0"/>
+                        <dxl:Column ColId="75" Attno="2" ColName="rolsuper" TypeMdid="0.16.1.0"/>
+                        <dxl:Column ColId="76" Attno="3" ColName="rolinherit" TypeMdid="0.16.1.0"/>
+                        <dxl:Column ColId="77" Attno="4" ColName="rolcreaterole" TypeMdid="0.16.1.0"/>
+                        <dxl:Column ColId="78" Attno="5" ColName="rolcreatedb" TypeMdid="0.16.1.0"/>
+                        <dxl:Column ColId="79" Attno="6" ColName="rolcatupdate" TypeMdid="0.16.1.0"/>
+                        <dxl:Column ColId="80" Attno="7" ColName="rolcanlogin" TypeMdid="0.16.1.0"/>
+                        <dxl:Column ColId="81" Attno="8" ColName="rolconnlimit" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="82" Attno="9" ColName="rolpassword" TypeMdid="0.25.1.0"/>
+                        <dxl:Column ColId="83" Attno="10" ColName="rolvaliduntil" TypeMdid="0.1184.1.0"/>
+                        <dxl:Column ColId="84" Attno="11" ColName="rolconfig" TypeMdid="0.1009.1.0"/>
+                        <dxl:Column ColId="85" Attno="12" ColName="rolresqueue" TypeMdid="0.26.1.0"/>
+                        <dxl:Column ColId="86" Attno="13" ColName="rolcreaterextgpfd" TypeMdid="0.16.1.0"/>
+                        <dxl:Column ColId="87" Attno="14" ColName="rolcreaterexthttp" TypeMdid="0.16.1.0"/>
+                        <dxl:Column ColId="88" Attno="15" ColName="rolcreatewextgpfd" TypeMdid="0.16.1.0"/>
+                        <dxl:Column ColId="89" Attno="16" ColName="rolcreaterexthdfs" TypeMdid="0.16.1.0"/>
+                        <dxl:Column ColId="90" Attno="17" ColName="rolcreatewexthdfs" TypeMdid="0.16.1.0"/>
+                        <dxl:Column ColId="91" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                        <dxl:Column ColId="92" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
+                        <dxl:Column ColId="93" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                        <dxl:Column ColId="94" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                        <dxl:Column ColId="95" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                        <dxl:Column ColId="96" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                        <dxl:Column ColId="97" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                        <dxl:Column ColId="98" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                      </dxl:Columns>
+                    </dxl:TableDescriptor>
+                  </dxl:TableScan>
+                </dxl:Result>
+              </dxl:Result>
+            </dxl:SubPlan>
+          </dxl:ProjElem>
           <dxl:ProjElem ColId="18" Alias="relchecks">
             <dxl:Ident ColId="18" ColName="relchecks" TypeMdid="0.21.1.0"/>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="19" Alias="reltriggers">
             <dxl:Ident ColId="19" ColName="reltriggers" TypeMdid="0.21.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="23" Alias="relhasoids">
-            <dxl:Ident ColId="23" ColName="relhasoids" TypeMdid="0.16.1.0"/>
+          <dxl:ProjElem ColId="13" Alias="relhasindex">
+            <dxl:Ident ColId="13" ColName="relhasindex" TypeMdid="0.16.1.0"/>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="25" Alias="relhasrules">
             <dxl:Ident ColId="25" ColName="relhasrules" TypeMdid="0.16.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="28" Alias="relacl">
-            <dxl:Ident ColId="28" ColName="relacl" TypeMdid="0.1034.1.0"/>
+          <dxl:ProjElem ColId="23" Alias="relhasoids">
+            <dxl:Ident ColId="23" ColName="relhasoids" TypeMdid="0.16.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="29" Alias="reloptions">
-            <dxl:Ident ColId="29" ColName="reloptions" TypeMdid="0.1009.1.0"/>
+          <dxl:ProjElem ColId="101" Alias="relistoasted">
+            <dxl:Comparison ComparisonOperator="&lt;&gt;" OperatorMdid="0.608.1.0">
+              <dxl:Ident ColId="9" ColName="reltoastrelid" TypeMdid="0.26.1.0"/>
+              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="0"/>
+            </dxl:Comparison>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="31" Alias="oid">
-            <dxl:Ident ColId="31" ColName="oid" TypeMdid="0.26.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="36" Alias="tableoid">
-            <dxl:Ident ColId="36" ColName="tableoid" TypeMdid="0.26.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="42" Alias="refobjid">
+          <dxl:ProjElem ColId="42" Alias="owning_tab">
             <dxl:Ident ColId="42" ColName="refobjid" TypeMdid="0.26.1.0"/>
           </dxl:ProjElem>
-          <dxl:ProjElem ColId="43" Alias="refobjsubid">
+          <dxl:ProjElem ColId="43" Alias="owning_col">
             <dxl:Ident ColId="43" ColName="refobjsubid" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="117" Alias="reltablespace">
+            <dxl:SubPlan TypeMdid="0.19.1.0" SubPlanType="ScalarSubPlan">
+              <dxl:TestExpr/>
+              <dxl:ParamList>
+                <dxl:Param ColId="6" ColName="reltablespace" TypeMdid="0.26.1.0"/>
+              </dxl:ParamList>
+              <dxl:TableScan>
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="126.140625" Rows="1.000000" Width="64"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="102" Alias="spcname">
+                    <dxl:Ident ColId="102" ColName="spcname" TypeMdid="0.19.1.0"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter>
+                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
+                    <dxl:Ident ColId="110" ColName="oid" TypeMdid="0.26.1.0"/>
+                    <dxl:Ident ColId="6" ColName="reltablespace" TypeMdid="0.26.1.0"/>
+                  </dxl:Comparison>
+                </dxl:Filter>
+                <dxl:TableDescriptor Mdid="0.1213.1.1" TableName="pg_tablespace">
+                  <dxl:Columns>
+                    <dxl:Column ColId="102" Attno="1" ColName="spcname" TypeMdid="0.19.1.0"/>
+                    <dxl:Column ColId="103" Attno="2" ColName="spcowner" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="104" Attno="3" ColName="spclocation" TypeMdid="0.25.1.0"/>
+                    <dxl:Column ColId="105" Attno="4" ColName="spcacl" TypeMdid="0.1034.1.0"/>
+                    <dxl:Column ColId="106" Attno="5" ColName="spcprilocations" TypeMdid="0.1009.1.0"/>
+                    <dxl:Column ColId="107" Attno="6" ColName="spcmirlocations" TypeMdid="0.1009.1.0"/>
+                    <dxl:Column ColId="108" Attno="7" ColName="spcfsoid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="109" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                    <dxl:Column ColId="110" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="111" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="112" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                    <dxl:Column ColId="113" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="114" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                    <dxl:Column ColId="115" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="116" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                  </dxl:Columns>
+                </dxl:TableDescriptor>
+              </dxl:TableScan>
+            </dxl:SubPlan>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="118" Alias="reloptions">
+            <dxl:FuncExpr FuncId="0.395.1.0" FuncRetSet="false" TypeMdid="0.25.1.0">
+              <dxl:Ident ColId="29" ColName="reloptions" TypeMdid="0.1009.1.0"/>
+              <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABUI=" LintValue="160711212"/>
+            </dxl:FuncExpr>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:Filter/>
-        <dxl:JoinFilter>
-          <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.92.1.0">
-            <dxl:Ident ColId="15" ColName="relkind" TypeMdid="0.18.1.0"/>
-            <dxl:ConstValue TypeMdid="0.18.1.0" IsNull="false" IsByValue="true" Value="Uw=="/>
-          </dxl:Comparison>
-        </dxl:JoinFilter>
-        <dxl:HashCondList>
-          <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
-            <dxl:Ident ColId="36" ColName="tableoid" TypeMdid="0.26.1.0"/>
-            <dxl:Ident ColId="38" ColName="classid" TypeMdid="0.26.1.0"/>
-          </dxl:Comparison>
-          <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
-            <dxl:Ident ColId="31" ColName="oid" TypeMdid="0.26.1.0"/>
-            <dxl:Ident ColId="39" ColName="objid" TypeMdid="0.26.1.0"/>
-          </dxl:Comparison>
-          <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
-            <dxl:Ident ColId="36" ColName="tableoid" TypeMdid="0.26.1.0"/>
-            <dxl:Ident ColId="41" ColName="refclassid" TypeMdid="0.26.1.0"/>
-          </dxl:Comparison>
-        </dxl:HashCondList>
-        <dxl:HashJoin JoinType="LeftAntiSemiJoinNotIn">
+        <dxl:OneTimeFilter/>
+        <dxl:Sort SortDiscardDuplicates="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="49.590820" Rows="1.000000" Width="141"/>
+            <dxl:Cost StartupCost="0" TotalCost="361895.471665" Rows="896.720000" Width="145"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="relname">
@@ -2495,18 +2348,22 @@
             <dxl:ProjElem ColId="36" Alias="tableoid">
               <dxl:Ident ColId="36" ColName="tableoid" TypeMdid="0.26.1.0"/>
             </dxl:ProjElem>
+            <dxl:ProjElem ColId="42" Alias="refobjid">
+              <dxl:Ident ColId="42" ColName="refobjid" TypeMdid="0.26.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="43" Alias="refobjsubid">
+              <dxl:Ident ColId="43" ColName="refobjsubid" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
-          <dxl:JoinFilter/>
-          <dxl:HashCondList>
-            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
-              <dxl:Ident ColId="31" ColName="oid" TypeMdid="0.26.1.0"/>
-              <dxl:Ident ColId="53" ColName="parchildrelid" TypeMdid="0.26.1.0"/>
-            </dxl:Comparison>
-          </dxl:HashCondList>
-          <dxl:TableScan>
+          <dxl:SortingColumnList>
+            <dxl:SortingColumn ColId="31" SortOperatorMdid="0.609.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
+          </dxl:SortingColumnList>
+          <dxl:LimitCount/>
+          <dxl:LimitOffset/>
+          <dxl:HashJoin JoinType="Left">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="47.954102" Rows="2.000000" Width="141"/>
+              <dxl:Cost StartupCost="0" TotalCost="712.465820" Rows="896.720000" Width="145"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="relname">
@@ -2557,154 +2414,297 @@
               <dxl:ProjElem ColId="36" Alias="tableoid">
                 <dxl:Ident ColId="36" ColName="tableoid" TypeMdid="0.26.1.0"/>
               </dxl:ProjElem>
-            </dxl:ProjList>
-            <dxl:Filter>
-              <dxl:ArrayComp OperatorName="=" OperatorMdid="0.92.1.0" OperatorType="Any">
-                <dxl:Ident ColId="15" ColName="relkind" TypeMdid="0.18.1.0"/>
-                <dxl:Array ArrayType="0.1002.1.0" ElementType="0.18.1.0" MultiDimensional="false">
-                  <dxl:ConstValue TypeMdid="0.18.1.0" IsNull="false" IsByValue="true" Value="cg=="/>
-                  <dxl:ConstValue TypeMdid="0.18.1.0" IsNull="false" IsByValue="true" Value="Uw=="/>
-                  <dxl:ConstValue TypeMdid="0.18.1.0" IsNull="false" IsByValue="true" Value="dg=="/>
-                  <dxl:ConstValue TypeMdid="0.18.1.0" IsNull="false" IsByValue="true" Value="Yw=="/>
-                </dxl:Array>
-              </dxl:ArrayComp>
-            </dxl:Filter>
-            <dxl:TableDescriptor Mdid="0.1259.1.1" TableName="pg_class">
-              <dxl:Columns>
-                <dxl:Column ColId="0" Attno="1" ColName="relname" TypeMdid="0.19.1.0"/>
-                <dxl:Column ColId="1" Attno="2" ColName="relnamespace" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="2" Attno="3" ColName="reltype" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="3" Attno="4" ColName="relowner" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="4" Attno="5" ColName="relam" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="5" Attno="6" ColName="relfilenode" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="6" Attno="7" ColName="reltablespace" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="7" Attno="8" ColName="relpages" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="8" Attno="9" ColName="reltuples" TypeMdid="0.700.1.0"/>
-                <dxl:Column ColId="9" Attno="10" ColName="reltoastrelid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="10" Attno="11" ColName="reltoastidxid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="11" Attno="12" ColName="relaosegrelid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="12" Attno="13" ColName="relaosegidxid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="13" Attno="14" ColName="relhasindex" TypeMdid="0.16.1.0"/>
-                <dxl:Column ColId="14" Attno="15" ColName="relisshared" TypeMdid="0.16.1.0"/>
-                <dxl:Column ColId="15" Attno="16" ColName="relkind" TypeMdid="0.18.1.0"/>
-                <dxl:Column ColId="16" Attno="17" ColName="relstorage" TypeMdid="0.18.1.0"/>
-                <dxl:Column ColId="17" Attno="18" ColName="relnatts" TypeMdid="0.21.1.0"/>
-                <dxl:Column ColId="18" Attno="19" ColName="relchecks" TypeMdid="0.21.1.0"/>
-                <dxl:Column ColId="19" Attno="20" ColName="reltriggers" TypeMdid="0.21.1.0"/>
-                <dxl:Column ColId="20" Attno="21" ColName="relukeys" TypeMdid="0.21.1.0"/>
-                <dxl:Column ColId="21" Attno="22" ColName="relfkeys" TypeMdid="0.21.1.0"/>
-                <dxl:Column ColId="22" Attno="23" ColName="relrefs" TypeMdid="0.21.1.0"/>
-                <dxl:Column ColId="23" Attno="24" ColName="relhasoids" TypeMdid="0.16.1.0"/>
-                <dxl:Column ColId="24" Attno="25" ColName="relhaspkey" TypeMdid="0.16.1.0"/>
-                <dxl:Column ColId="25" Attno="26" ColName="relhasrules" TypeMdid="0.16.1.0"/>
-                <dxl:Column ColId="26" Attno="27" ColName="relhassubclass" TypeMdid="0.16.1.0"/>
-                <dxl:Column ColId="27" Attno="28" ColName="relfrozenxid" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="28" Attno="29" ColName="relacl" TypeMdid="0.1034.1.0"/>
-                <dxl:Column ColId="29" Attno="30" ColName="reloptions" TypeMdid="0.1009.1.0"/>
-                <dxl:Column ColId="30" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                <dxl:Column ColId="31" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="32" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="33" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-                <dxl:Column ColId="34" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="35" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-                <dxl:Column ColId="36" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="37" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-              </dxl:Columns>
-            </dxl:TableDescriptor>
-          </dxl:TableScan>
-          <dxl:TableScan>
-            <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="0.007812" Rows="1.000000" Width="8"/>
-            </dxl:Properties>
-            <dxl:ProjList>
-              <dxl:ProjElem ColId="53" Alias="parchildrelid">
-                <dxl:Ident ColId="53" ColName="parchildrelid" TypeMdid="0.26.1.0"/>
+              <dxl:ProjElem ColId="42" Alias="refobjid">
+                <dxl:Ident ColId="42" ColName="refobjid" TypeMdid="0.26.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="43" Alias="refobjsubid">
+                <dxl:Ident ColId="43" ColName="refobjsubid" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:Filter/>
-            <dxl:TableDescriptor Mdid="0.5011.1.1" TableName="pg_partition_rule">
-              <dxl:Columns>
-                <dxl:Column ColId="52" Attno="1" ColName="paroid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="53" Attno="2" ColName="parchildrelid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="54" Attno="3" ColName="parparentrule" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="55" Attno="4" ColName="parname" TypeMdid="0.19.1.0"/>
-                <dxl:Column ColId="56" Attno="5" ColName="parisdefault" TypeMdid="0.16.1.0"/>
-                <dxl:Column ColId="57" Attno="6" ColName="parruleord" TypeMdid="0.21.1.0"/>
-                <dxl:Column ColId="58" Attno="7" ColName="parrangestartincl" TypeMdid="0.16.1.0"/>
-                <dxl:Column ColId="59" Attno="8" ColName="parrangeendincl" TypeMdid="0.16.1.0"/>
-                <dxl:Column ColId="60" Attno="9" ColName="parrangestart" TypeMdid="0.25.1.0"/>
-                <dxl:Column ColId="61" Attno="10" ColName="parrangeend" TypeMdid="0.25.1.0"/>
-                <dxl:Column ColId="62" Attno="11" ColName="parrangeevery" TypeMdid="0.25.1.0"/>
-                <dxl:Column ColId="63" Attno="12" ColName="parlistvalues" TypeMdid="0.25.1.0"/>
-                <dxl:Column ColId="64" Attno="13" ColName="parreloptions" TypeMdid="0.1009.1.0"/>
-                <dxl:Column ColId="65" Attno="14" ColName="partemplatespace" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="66" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                <dxl:Column ColId="67" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="68" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="69" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-                <dxl:Column ColId="70" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="71" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-                <dxl:Column ColId="72" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="73" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-              </dxl:Columns>
-            </dxl:TableDescriptor>
-          </dxl:TableScan>
-        </dxl:HashJoin>
-        <dxl:TableScan>
-          <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="225.298828" Rows="2240.800000" Width="20"/>
-          </dxl:Properties>
-          <dxl:ProjList>
-            <dxl:ProjElem ColId="38" Alias="classid">
-              <dxl:Ident ColId="38" ColName="classid" TypeMdid="0.26.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="39" Alias="objid">
-              <dxl:Ident ColId="39" ColName="objid" TypeMdid="0.26.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="41" Alias="refclassid">
-              <dxl:Ident ColId="41" ColName="refclassid" TypeMdid="0.26.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="42" Alias="refobjid">
-              <dxl:Ident ColId="42" ColName="refobjid" TypeMdid="0.26.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="43" Alias="refobjsubid">
-              <dxl:Ident ColId="43" ColName="refobjsubid" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-          </dxl:ProjList>
-          <dxl:Filter>
-            <dxl:And>
-              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                <dxl:Ident ColId="40" ColName="objsubid" TypeMdid="0.23.1.0"/>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
-              </dxl:Comparison>
+            <dxl:JoinFilter>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.92.1.0">
-                <dxl:Ident ColId="44" ColName="deptype" TypeMdid="0.18.1.0"/>
-                <dxl:ConstValue TypeMdid="0.18.1.0" IsNull="false" IsByValue="true" Value="YQ=="/>
+                <dxl:Ident ColId="15" ColName="relkind" TypeMdid="0.18.1.0"/>
+                <dxl:ConstValue TypeMdid="0.18.1.0" IsNull="false" IsByValue="true" Value="Uw=="/>
               </dxl:Comparison>
-            </dxl:And>
-          </dxl:Filter>
-          <dxl:TableDescriptor Mdid="0.2608.1.1" TableName="pg_depend">
-            <dxl:Columns>
-              <dxl:Column ColId="38" Attno="1" ColName="classid" TypeMdid="0.26.1.0"/>
-              <dxl:Column ColId="39" Attno="2" ColName="objid" TypeMdid="0.26.1.0"/>
-              <dxl:Column ColId="40" Attno="3" ColName="objsubid" TypeMdid="0.23.1.0"/>
-              <dxl:Column ColId="41" Attno="4" ColName="refclassid" TypeMdid="0.26.1.0"/>
-              <dxl:Column ColId="42" Attno="5" ColName="refobjid" TypeMdid="0.26.1.0"/>
-              <dxl:Column ColId="43" Attno="6" ColName="refobjsubid" TypeMdid="0.23.1.0"/>
-              <dxl:Column ColId="44" Attno="7" ColName="deptype" TypeMdid="0.18.1.0"/>
-              <dxl:Column ColId="45" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-              <dxl:Column ColId="46" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-              <dxl:Column ColId="47" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-              <dxl:Column ColId="48" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-              <dxl:Column ColId="49" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-              <dxl:Column ColId="50" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-              <dxl:Column ColId="51" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-            </dxl:Columns>
-          </dxl:TableDescriptor>
-        </dxl:TableScan>
-      </dxl:HashJoin>
-    </dxl:Sort>
-  </dxl:Result>
-</dxl:Plan>
+            </dxl:JoinFilter>
+            <dxl:HashCondList>
+              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
+                <dxl:Ident ColId="36" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                <dxl:Ident ColId="38" ColName="classid" TypeMdid="0.26.1.0"/>
+              </dxl:Comparison>
+              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
+                <dxl:Ident ColId="31" ColName="oid" TypeMdid="0.26.1.0"/>
+                <dxl:Ident ColId="39" ColName="objid" TypeMdid="0.26.1.0"/>
+              </dxl:Comparison>
+              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
+                <dxl:Ident ColId="36" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                <dxl:Ident ColId="41" ColName="refclassid" TypeMdid="0.26.1.0"/>
+              </dxl:Comparison>
+            </dxl:HashCondList>
+            <dxl:HashJoin JoinType="LeftAntiSemiJoinNotIn">
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0" TotalCost="48.243164" Rows="1.000000" Width="137"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="0" Alias="relname">
+                  <dxl:Ident ColId="0" ColName="relname" TypeMdid="0.19.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="1" Alias="relnamespace">
+                  <dxl:Ident ColId="1" ColName="relnamespace" TypeMdid="0.26.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="3" Alias="relowner">
+                  <dxl:Ident ColId="3" ColName="relowner" TypeMdid="0.26.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="6" Alias="reltablespace">
+                  <dxl:Ident ColId="6" ColName="reltablespace" TypeMdid="0.26.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="9" Alias="reltoastrelid">
+                  <dxl:Ident ColId="9" ColName="reltoastrelid" TypeMdid="0.26.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="13" Alias="relhasindex">
+                  <dxl:Ident ColId="13" ColName="relhasindex" TypeMdid="0.16.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="15" Alias="relkind">
+                  <dxl:Ident ColId="15" ColName="relkind" TypeMdid="0.18.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="16" Alias="relstorage">
+                  <dxl:Ident ColId="16" ColName="relstorage" TypeMdid="0.18.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="18" Alias="relchecks">
+                  <dxl:Ident ColId="18" ColName="relchecks" TypeMdid="0.21.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="19" Alias="reltriggers">
+                  <dxl:Ident ColId="19" ColName="reltriggers" TypeMdid="0.21.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="23" Alias="relhasoids">
+                  <dxl:Ident ColId="23" ColName="relhasoids" TypeMdid="0.16.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="25" Alias="relhasrules">
+                  <dxl:Ident ColId="25" ColName="relhasrules" TypeMdid="0.16.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="28" Alias="relacl">
+                  <dxl:Ident ColId="28" ColName="relacl" TypeMdid="0.1034.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="29" Alias="reloptions">
+                  <dxl:Ident ColId="29" ColName="reloptions" TypeMdid="0.1009.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="31" Alias="oid">
+                  <dxl:Ident ColId="31" ColName="oid" TypeMdid="0.26.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="36" Alias="tableoid">
+                  <dxl:Ident ColId="36" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:JoinFilter/>
+              <dxl:HashCondList>
+                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
+                  <dxl:Ident ColId="31" ColName="oid" TypeMdid="0.26.1.0"/>
+                  <dxl:Ident ColId="53" ColName="parchildrelid" TypeMdid="0.26.1.0"/>
+                </dxl:Comparison>
+              </dxl:HashCondList>
+              <dxl:TableScan>
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="46.622070" Rows="2.000000" Width="137"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="0" Alias="relname">
+                    <dxl:Ident ColId="0" ColName="relname" TypeMdid="0.19.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="1" Alias="relnamespace">
+                    <dxl:Ident ColId="1" ColName="relnamespace" TypeMdid="0.26.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="3" Alias="relowner">
+                    <dxl:Ident ColId="3" ColName="relowner" TypeMdid="0.26.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="6" Alias="reltablespace">
+                    <dxl:Ident ColId="6" ColName="reltablespace" TypeMdid="0.26.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="9" Alias="reltoastrelid">
+                    <dxl:Ident ColId="9" ColName="reltoastrelid" TypeMdid="0.26.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="13" Alias="relhasindex">
+                    <dxl:Ident ColId="13" ColName="relhasindex" TypeMdid="0.16.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="15" Alias="relkind">
+                    <dxl:Ident ColId="15" ColName="relkind" TypeMdid="0.18.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="16" Alias="relstorage">
+                    <dxl:Ident ColId="16" ColName="relstorage" TypeMdid="0.18.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="18" Alias="relchecks">
+                    <dxl:Ident ColId="18" ColName="relchecks" TypeMdid="0.21.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="19" Alias="reltriggers">
+                    <dxl:Ident ColId="19" ColName="reltriggers" TypeMdid="0.21.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="23" Alias="relhasoids">
+                    <dxl:Ident ColId="23" ColName="relhasoids" TypeMdid="0.16.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="25" Alias="relhasrules">
+                    <dxl:Ident ColId="25" ColName="relhasrules" TypeMdid="0.16.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="28" Alias="relacl">
+                    <dxl:Ident ColId="28" ColName="relacl" TypeMdid="0.1034.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="29" Alias="reloptions">
+                    <dxl:Ident ColId="29" ColName="reloptions" TypeMdid="0.1009.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="31" Alias="oid">
+                    <dxl:Ident ColId="31" ColName="oid" TypeMdid="0.26.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="36" Alias="tableoid">
+                    <dxl:Ident ColId="36" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter>
+                  <dxl:ArrayComp OperatorName="=" OperatorMdid="0.92.1.0" OperatorType="Any">
+                    <dxl:Ident ColId="15" ColName="relkind" TypeMdid="0.18.1.0"/>
+                    <dxl:Array ArrayType="0.1002.1.0" ElementType="0.18.1.0" MultiDimensional="false">
+                      <dxl:ConstValue TypeMdid="0.18.1.0" IsNull="false" IsByValue="true" Value="cg=="/>
+                      <dxl:ConstValue TypeMdid="0.18.1.0" IsNull="false" IsByValue="true" Value="Uw=="/>
+                      <dxl:ConstValue TypeMdid="0.18.1.0" IsNull="false" IsByValue="true" Value="dg=="/>
+                      <dxl:ConstValue TypeMdid="0.18.1.0" IsNull="false" IsByValue="true" Value="Yw=="/>
+                    </dxl:Array>
+                  </dxl:ArrayComp>
+                </dxl:Filter>
+                <dxl:TableDescriptor Mdid="0.1259.1.1" TableName="pg_class">
+                  <dxl:Columns>
+                    <dxl:Column ColId="0" Attno="1" ColName="relname" TypeMdid="0.19.1.0"/>
+                    <dxl:Column ColId="1" Attno="2" ColName="relnamespace" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="2" Attno="3" ColName="reltype" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="3" Attno="4" ColName="relowner" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="4" Attno="5" ColName="relam" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="5" Attno="6" ColName="relfilenode" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="6" Attno="7" ColName="reltablespace" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="7" Attno="8" ColName="relpages" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="8" Attno="9" ColName="reltuples" TypeMdid="0.700.1.0"/>
+                    <dxl:Column ColId="9" Attno="10" ColName="reltoastrelid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="10" Attno="11" ColName="reltoastidxid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="11" Attno="12" ColName="relaosegrelid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="12" Attno="13" ColName="relaosegidxid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="13" Attno="14" ColName="relhasindex" TypeMdid="0.16.1.0"/>
+                    <dxl:Column ColId="14" Attno="15" ColName="relisshared" TypeMdid="0.16.1.0"/>
+                    <dxl:Column ColId="15" Attno="16" ColName="relkind" TypeMdid="0.18.1.0"/>
+                    <dxl:Column ColId="16" Attno="17" ColName="relstorage" TypeMdid="0.18.1.0"/>
+                    <dxl:Column ColId="17" Attno="18" ColName="relnatts" TypeMdid="0.21.1.0"/>
+                    <dxl:Column ColId="18" Attno="19" ColName="relchecks" TypeMdid="0.21.1.0"/>
+                    <dxl:Column ColId="19" Attno="20" ColName="reltriggers" TypeMdid="0.21.1.0"/>
+                    <dxl:Column ColId="20" Attno="21" ColName="relukeys" TypeMdid="0.21.1.0"/>
+                    <dxl:Column ColId="21" Attno="22" ColName="relfkeys" TypeMdid="0.21.1.0"/>
+                    <dxl:Column ColId="22" Attno="23" ColName="relrefs" TypeMdid="0.21.1.0"/>
+                    <dxl:Column ColId="23" Attno="24" ColName="relhasoids" TypeMdid="0.16.1.0"/>
+                    <dxl:Column ColId="24" Attno="25" ColName="relhaspkey" TypeMdid="0.16.1.0"/>
+                    <dxl:Column ColId="25" Attno="26" ColName="relhasrules" TypeMdid="0.16.1.0"/>
+                    <dxl:Column ColId="26" Attno="27" ColName="relhassubclass" TypeMdid="0.16.1.0"/>
+                    <dxl:Column ColId="27" Attno="28" ColName="relfrozenxid" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="28" Attno="29" ColName="relacl" TypeMdid="0.1034.1.0"/>
+                    <dxl:Column ColId="29" Attno="30" ColName="reloptions" TypeMdid="0.1009.1.0"/>
+                    <dxl:Column ColId="30" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                    <dxl:Column ColId="31" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="32" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="33" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                    <dxl:Column ColId="34" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="35" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                    <dxl:Column ColId="36" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="37" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                  </dxl:Columns>
+                </dxl:TableDescriptor>
+              </dxl:TableScan>
+              <dxl:TableScan>
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="0.007812" Rows="1.000000" Width="8"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="53" Alias="parchildrelid">
+                    <dxl:Ident ColId="53" ColName="parchildrelid" TypeMdid="0.26.1.0"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter/>
+                <dxl:TableDescriptor Mdid="0.5011.1.1" TableName="pg_partition_rule">
+                  <dxl:Columns>
+                    <dxl:Column ColId="52" Attno="1" ColName="paroid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="53" Attno="2" ColName="parchildrelid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="54" Attno="3" ColName="parparentrule" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="55" Attno="4" ColName="parname" TypeMdid="0.19.1.0"/>
+                    <dxl:Column ColId="56" Attno="5" ColName="parisdefault" TypeMdid="0.16.1.0"/>
+                    <dxl:Column ColId="57" Attno="6" ColName="parruleord" TypeMdid="0.21.1.0"/>
+                    <dxl:Column ColId="58" Attno="7" ColName="parrangestartincl" TypeMdid="0.16.1.0"/>
+                    <dxl:Column ColId="59" Attno="8" ColName="parrangeendincl" TypeMdid="0.16.1.0"/>
+                    <dxl:Column ColId="60" Attno="9" ColName="parrangestart" TypeMdid="0.25.1.0"/>
+                    <dxl:Column ColId="61" Attno="10" ColName="parrangeend" TypeMdid="0.25.1.0"/>
+                    <dxl:Column ColId="62" Attno="11" ColName="parrangeevery" TypeMdid="0.25.1.0"/>
+                    <dxl:Column ColId="63" Attno="12" ColName="parlistvalues" TypeMdid="0.25.1.0"/>
+                    <dxl:Column ColId="64" Attno="13" ColName="parreloptions" TypeMdid="0.1009.1.0"/>
+                    <dxl:Column ColId="65" Attno="14" ColName="partemplatespace" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="66" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                    <dxl:Column ColId="67" Attno="-2" ColName="oid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="68" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="69" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                    <dxl:Column ColId="70" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="71" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                    <dxl:Column ColId="72" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="73" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                  </dxl:Columns>
+                </dxl:TableDescriptor>
+              </dxl:TableScan>
+            </dxl:HashJoin>
+            <dxl:TableScan>
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0" TotalCost="225.298828" Rows="2240.800000" Width="20"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="38" Alias="classid">
+                  <dxl:Ident ColId="38" ColName="classid" TypeMdid="0.26.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="39" Alias="objid">
+                  <dxl:Ident ColId="39" ColName="objid" TypeMdid="0.26.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="41" Alias="refclassid">
+                  <dxl:Ident ColId="41" ColName="refclassid" TypeMdid="0.26.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="42" Alias="refobjid">
+                  <dxl:Ident ColId="42" ColName="refobjid" TypeMdid="0.26.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="43" Alias="refobjsubid">
+                  <dxl:Ident ColId="43" ColName="refobjsubid" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter>
+                <dxl:And>
+                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                    <dxl:Ident ColId="40" ColName="objsubid" TypeMdid="0.23.1.0"/>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
+                  </dxl:Comparison>
+                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.92.1.0">
+                    <dxl:Ident ColId="44" ColName="deptype" TypeMdid="0.18.1.0"/>
+                    <dxl:ConstValue TypeMdid="0.18.1.0" IsNull="false" IsByValue="true" Value="YQ=="/>
+                  </dxl:Comparison>
+                </dxl:And>
+              </dxl:Filter>
+              <dxl:TableDescriptor Mdid="0.2608.1.1" TableName="pg_depend">
+                <dxl:Columns>
+                  <dxl:Column ColId="38" Attno="1" ColName="classid" TypeMdid="0.26.1.0"/>
+                  <dxl:Column ColId="39" Attno="2" ColName="objid" TypeMdid="0.26.1.0"/>
+                  <dxl:Column ColId="40" Attno="3" ColName="objsubid" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="41" Attno="4" ColName="refclassid" TypeMdid="0.26.1.0"/>
+                  <dxl:Column ColId="42" Attno="5" ColName="refobjid" TypeMdid="0.26.1.0"/>
+                  <dxl:Column ColId="43" Attno="6" ColName="refobjsubid" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="44" Attno="7" ColName="deptype" TypeMdid="0.18.1.0"/>
+                  <dxl:Column ColId="45" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                  <dxl:Column ColId="46" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                  <dxl:Column ColId="47" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                  <dxl:Column ColId="48" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                  <dxl:Column ColId="49" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                  <dxl:Column ColId="50" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                  <dxl:Column ColId="51" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                </dxl:Columns>
+              </dxl:TableDescriptor>
+            </dxl:TableScan>
+          </dxl:HashJoin>
+        </dxl:Sort>
+      </dxl:Result>
+    </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>

@@ -121,8 +121,8 @@
         <dxl:SumAgg Mdid="0.2114.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.520054.1.1.71" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.520054.1.1.70" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.71" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.70" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.520054.1.1.63" Name="fully_ins_pd_amt" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.520054.1.1.62" Name="aso_pd_amt" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.520054.1.1.55" Name="prov_fin_agrmt_typ_cd" Width="8.000000"/>
@@ -199,8 +199,8 @@
         <dxl:SumAgg Mdid="0.2109.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.520054.1.1.69" Name="cmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.520054.1.1.68" Name="xmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.69" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.68" Name="xmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.520054.1.1.61" Name="hra_pd_amt" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.520054.1.1.60" Name="facil_typ_cd" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.520054.1.1.53" Name="sub_liab_basis_cd" Width="8.000000"/>
@@ -217,8 +217,8 @@
       <dxl:ColumnStatistics Mdid="1.520054.1.1.12" Name="adm_dt" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.520054.1.1.5" Name="appr_unit_cnt" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.520054.1.1.4" Name="appr_day_cnt" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.520054.1.1.67" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.520054.1.1.66" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.67" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.66" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.520054.1.1.59" Name="clm_expan_id" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.520054.1.1.58" Name="serv_prov_spcl_cd" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.520054.1.1.51" Name="misc_pay_amt" Width="8.000000"/>
@@ -481,7 +481,7 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.520054.1.1.65" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.520054.1.1.65" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.520054.1.1.64" Name="alt_fnd_pd_amt" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.520054.1.1.57" Name="reimb_prov_spcl_cd" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.520054.1.1.56" Name="cust_fin_agrmt_typ_cd" Width="8.000000"/>

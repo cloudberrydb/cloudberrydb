@@ -207,8 +207,8 @@
         <dxl:SumAgg Mdid="0.2107.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.802906.1.1.33" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.802906.1.1.32" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.802906.1.1.33" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.802906.1.1.32" Name="cmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.25" Name="d_current_month" Width="2.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.24" Name="1.802906.1.1.24" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.17" Name="d_weekend" Width="2.000000"/>
@@ -322,10 +322,10 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2488070"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.810130.1.1.7" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.810130.1.1.6" Name="xmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.810176.1.1.7" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.810176.1.1.6" Name="cmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.810130.1.1.7" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.810130.1.1.6" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.810176.1.1.7" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.810176.1.1.6" Name="cmin" Width="4.000000"/>
       <dxl:GPDBScalarOp Mdid="0.1054.1.0" Name="=" ComparisonType="Eq">
         <dxl:LeftType Mdid="0.1042.1.0"/>
         <dxl:RightType Mdid="0.1042.1.0"/>
@@ -397,8 +397,8 @@
       <dxl:GPDBFunc Mdid="0.6084.1.0" Name="gp_partition_selection" ReturnsSet="false" Stability="Stable" DataAccess="NoSQL" IsStrict="true">
         <dxl:ResultType Mdid="0.26.1.0"/>
       </dxl:GPDBFunc>
-      <dxl:ColumnStatistics Mdid="1.802597.1.1.39" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.802597.1.1.38" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.802597.1.1.39" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.802597.1.1.38" Name="cmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.802597.1.1.31" Name="cs_net_paid_inc_ship" Width="9.000000"/>
       <dxl:ColumnStatistics Mdid="1.802597.1.1.30" Name="cs_net_paid_inc_tax" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.802597.1.1.23" Name="cs_ext_sales_price" Width="8.000000"/>
@@ -722,7 +722,7 @@
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.1978.1.0"/>
           <dxl:OpClass Mdid="0.3027.1.0"/>
-      </dxl:OpClasses>
+        </dxl:OpClasses>
       </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.29.1.0" Name="cid" IsRedistributable="false" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.385.1.0"/>
@@ -785,7 +785,7 @@
         <dxl:Commutator Mdid="0.523.1.0"/>
         <dxl:InverseOp Mdid="0.97.1.0"/>
       </dxl:GPDBScalarOp>
-      <dxl:ColumnStatistics Mdid="1.802906.1.1.34" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.802906.1.1.34" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.27" Name="d_current_year" Width="2.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.26" Name="d_current_quarter" Width="2.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.19" Name="d_first_dom" Width="4.000000"/>
@@ -794,10 +794,10 @@
       <dxl:ColumnStatistics Mdid="1.802906.1.1.10" Name="d_qoy" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.3" Name="d_month_seq" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.2" Name="d_date" Width="4.000000"/>
-      <dxl:ColumnStatistics Mdid="1.810130.1.1.5" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.810130.1.1.5" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.810130.1.1.4" Name="hd_vehicle_count" Width="4.000000"/>
-      <dxl:ColumnStatistics Mdid="1.810176.1.1.5" Name="xmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.810176.1.1.4" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.810176.1.1.5" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.810176.1.1.4" Name="ctid" Width="6.000000"/>
       <dxl:Index Mdid="0.812178.1.0" Name="date_dim_1_prt_p1_1_pkey" IsClustered="false" KeyColumns="0,6" IncludedColumns="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34">
         <dxl:OpClasses>
           <dxl:OpClass Mdid="0.3027.1.0"/>
@@ -823,8 +823,8 @@
       <dxl:GPDBFunc Mdid="0.6083.1.0" Name="gp_partition_propagation" ReturnsSet="false" Stability="Volatile" DataAccess="NoSQL" IsStrict="true">
         <dxl:ResultType Mdid="0.2278.1.0"/>
       </dxl:GPDBFunc>
-      <dxl:ColumnStatistics Mdid="1.802597.1.1.37" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.802597.1.1.36" Name="cmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.802597.1.1.37" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.802597.1.1.36" Name="cmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.802597.1.1.29" Name="cs_net_paid" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.802597.1.1.28" Name="cs_ext_ship_cost" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.802597.1.1.21" Name="cs_sales_price" Width="8.000000"/>
@@ -1266,16 +1266,16 @@
           </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.802906.1.1.29" Name="xmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.802906.1.1.28" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.802906.1.1.29" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.802906.1.1.28" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.21" Name="d_same_day_ly" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.20" Name="d_last_dom" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.13" Name="d_fy_week_seq" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.12" Name="d_fy_quarter_seq" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.5" Name="d_quarter_seq" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.4" Name="d_week_seq" Width="4.000000"/>
-      <dxl:ColumnStatistics Mdid="1.810130.1.1.11" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.810130.1.1.10" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.810130.1.1.11" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.810130.1.1.10" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.810130.1.1.3" Name="hd_dep_count" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.810130.1.1.2" Name="hd_buy_potential" Width="16.000000">
         <dxl:StatsBucket Frequency="0.166667" DistinctValues="1.000000">
@@ -1303,7 +1303,7 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAE1Vua25vd24gICAgICAgIA==" LintValue="34603828"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.810176.1.1.10" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.810176.1.1.10" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.810176.1.1.2" Name="inv_warehouse_sk" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.810176.1.1.3" Name="inv_quantity_on_hand" Width="4.000000">
         <dxl:StatsBucket Frequency="0.008903" DistinctValues="9.009231">
@@ -1599,8 +1599,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1000"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.802597.1.1.35" Name="xmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.802597.1.1.34" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.802597.1.1.35" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.802597.1.1.34" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.802597.1.1.27" Name="cs_coupon_amt" Width="5.000000"/>
       <dxl:ColumnStatistics Mdid="1.802597.1.1.26" Name="cs_ext_tax" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.802597.1.1.19" Name="cs_wholesale_cost" Width="8.000000"/>
@@ -2040,8 +2040,8 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.802906.1.1.31" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.802906.1.1.30" Name="cmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.802906.1.1.31" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.802906.1.1.30" Name="cmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.802906.1.1.23" Name="d_current_day" Width="2.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAABU4=" LintValue="160809516"/>
@@ -2318,8 +2318,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2100"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.810130.1.1.9" Name="cmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.810130.1.1.8" Name="xmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.810130.1.1.9" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.810130.1.1.8" Name="xmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.810130.1.1.1" Name="hd_income_band_sk" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.810130.1.1.0" Name="hd_demo_sk" Width="4.000000">
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="288.000000">
@@ -2423,8 +2423,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="7200"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.810176.1.1.9" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.810176.1.1.8" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.810176.1.1.9" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.810176.1.1.8" Name="cmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.810176.1.1.0" Name="inv_date_sk" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.810176.1.1.1" Name="inv_item_sk" Width="4.000000">
         <dxl:StatsBucket Frequency="0.016683" DistinctValues="280.470588">
@@ -2724,7 +2724,7 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="17998"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.802597.1.1.40" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.802597.1.1.40" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.802597.1.1.33" Name="cs_net_profit" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.802597.1.1.32" Name="cs_net_paid_inc_ship_tax" Width="9.000000"/>
       <dxl:ColumnStatistics Mdid="1.802597.1.1.25" Name="cs_ext_list_price" Width="9.000000"/>
@@ -3254,451 +3254,10 @@
         </dxl:LogicalJoin>
       </dxl:LogicalSelect>
     </dxl:Query>
-<dxl:Plan Id="0" SpaceSize="39453">
-  <dxl:HashJoin JoinType="Inner">
-    <dxl:Properties>
-      <dxl:Cost StartupCost="0" TotalCost="1639641028.915498" Rows="2777513851522853.000000" Width="382"/>
-    </dxl:Properties>
-    <dxl:ProjList>
-      <dxl:ProjElem ColId="0" Alias="cs_sold_date_sk">
-        <dxl:Ident ColId="0" ColName="cs_sold_date_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="1" Alias="cs_sold_time_sk">
-        <dxl:Ident ColId="1" ColName="cs_sold_time_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="2" Alias="cs_ship_date_sk">
-        <dxl:Ident ColId="2" ColName="cs_ship_date_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="3" Alias="cs_bill_customer_sk">
-        <dxl:Ident ColId="3" ColName="cs_bill_customer_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="4" Alias="cs_bill_cdemo_sk">
-        <dxl:Ident ColId="4" ColName="cs_bill_cdemo_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="5" Alias="cs_bill_hdemo_sk">
-        <dxl:Ident ColId="5" ColName="cs_bill_hdemo_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="6" Alias="cs_bill_addr_sk">
-        <dxl:Ident ColId="6" ColName="cs_bill_addr_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="7" Alias="cs_ship_customer_sk">
-        <dxl:Ident ColId="7" ColName="cs_ship_customer_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="8" Alias="cs_ship_cdemo_sk">
-        <dxl:Ident ColId="8" ColName="cs_ship_cdemo_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="9" Alias="cs_ship_hdemo_sk">
-        <dxl:Ident ColId="9" ColName="cs_ship_hdemo_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="10" Alias="cs_ship_addr_sk">
-        <dxl:Ident ColId="10" ColName="cs_ship_addr_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="11" Alias="cs_call_center_sk">
-        <dxl:Ident ColId="11" ColName="cs_call_center_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="12" Alias="cs_catalog_page_sk">
-        <dxl:Ident ColId="12" ColName="cs_catalog_page_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="13" Alias="cs_ship_mode_sk">
-        <dxl:Ident ColId="13" ColName="cs_ship_mode_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="14" Alias="cs_warehouse_sk">
-        <dxl:Ident ColId="14" ColName="cs_warehouse_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="15" Alias="cs_item_sk">
-        <dxl:Ident ColId="15" ColName="cs_item_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="16" Alias="cs_promo_sk">
-        <dxl:Ident ColId="16" ColName="cs_promo_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="17" Alias="cs_order_number">
-        <dxl:Ident ColId="17" ColName="cs_order_number" TypeMdid="0.20.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="18" Alias="cs_quantity">
-        <dxl:Ident ColId="18" ColName="cs_quantity" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="19" Alias="cs_wholesale_cost">
-        <dxl:Ident ColId="19" ColName="cs_wholesale_cost" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="20" Alias="cs_list_price">
-        <dxl:Ident ColId="20" ColName="cs_list_price" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="21" Alias="cs_sales_price">
-        <dxl:Ident ColId="21" ColName="cs_sales_price" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="22" Alias="cs_ext_discount_amt">
-        <dxl:Ident ColId="22" ColName="cs_ext_discount_amt" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="23" Alias="cs_ext_sales_price">
-        <dxl:Ident ColId="23" ColName="cs_ext_sales_price" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="24" Alias="cs_ext_wholesale_cost">
-        <dxl:Ident ColId="24" ColName="cs_ext_wholesale_cost" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="25" Alias="cs_ext_list_price">
-        <dxl:Ident ColId="25" ColName="cs_ext_list_price" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="26" Alias="cs_ext_tax">
-        <dxl:Ident ColId="26" ColName="cs_ext_tax" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="27" Alias="cs_coupon_amt">
-        <dxl:Ident ColId="27" ColName="cs_coupon_amt" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="28" Alias="cs_ext_ship_cost">
-        <dxl:Ident ColId="28" ColName="cs_ext_ship_cost" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="29" Alias="cs_net_paid">
-        <dxl:Ident ColId="29" ColName="cs_net_paid" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="30" Alias="cs_net_paid_inc_tax">
-        <dxl:Ident ColId="30" ColName="cs_net_paid_inc_tax" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="31" Alias="cs_net_paid_inc_ship">
-        <dxl:Ident ColId="31" ColName="cs_net_paid_inc_ship" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="32" Alias="cs_net_paid_inc_ship_tax">
-        <dxl:Ident ColId="32" ColName="cs_net_paid_inc_ship_tax" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="33" Alias="cs_net_profit">
-        <dxl:Ident ColId="33" ColName="cs_net_profit" TypeMdid="0.1700.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="41" Alias="inv_date_sk">
-        <dxl:Ident ColId="41" ColName="inv_date_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="42" Alias="inv_item_sk">
-        <dxl:Ident ColId="42" ColName="inv_item_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="43" Alias="inv_warehouse_sk">
-        <dxl:Ident ColId="43" ColName="inv_warehouse_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="44" Alias="inv_quantity_on_hand">
-        <dxl:Ident ColId="44" ColName="inv_quantity_on_hand" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="52" Alias="hd_demo_sk">
-        <dxl:Ident ColId="52" ColName="hd_demo_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="53" Alias="hd_income_band_sk">
-        <dxl:Ident ColId="53" ColName="hd_income_band_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="54" Alias="hd_buy_potential">
-        <dxl:Ident ColId="54" ColName="hd_buy_potential" TypeMdid="0.1042.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="55" Alias="hd_dep_count">
-        <dxl:Ident ColId="55" ColName="hd_dep_count" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="56" Alias="hd_vehicle_count">
-        <dxl:Ident ColId="56" ColName="hd_vehicle_count" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="64" Alias="d_date_sk">
-        <dxl:Ident ColId="64" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="65" Alias="d_date_id">
-        <dxl:Ident ColId="65" ColName="d_date_id" TypeMdid="0.1042.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="66" Alias="d_date">
-        <dxl:Ident ColId="66" ColName="d_date" TypeMdid="0.1082.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="67" Alias="d_month_seq">
-        <dxl:Ident ColId="67" ColName="d_month_seq" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="68" Alias="d_week_seq">
-        <dxl:Ident ColId="68" ColName="d_week_seq" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="69" Alias="d_quarter_seq">
-        <dxl:Ident ColId="69" ColName="d_quarter_seq" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="70" Alias="d_year">
-        <dxl:Ident ColId="70" ColName="d_year" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="71" Alias="d_dow">
-        <dxl:Ident ColId="71" ColName="d_dow" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="72" Alias="d_moy">
-        <dxl:Ident ColId="72" ColName="d_moy" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="73" Alias="d_dom">
-        <dxl:Ident ColId="73" ColName="d_dom" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="74" Alias="d_qoy">
-        <dxl:Ident ColId="74" ColName="d_qoy" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="75" Alias="d_fy_year">
-        <dxl:Ident ColId="75" ColName="d_fy_year" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="76" Alias="d_fy_quarter_seq">
-        <dxl:Ident ColId="76" ColName="d_fy_quarter_seq" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="77" Alias="d_fy_week_seq">
-        <dxl:Ident ColId="77" ColName="d_fy_week_seq" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="78" Alias="d_day_name">
-        <dxl:Ident ColId="78" ColName="d_day_name" TypeMdid="0.1042.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="79" Alias="d_quarter_name">
-        <dxl:Ident ColId="79" ColName="d_quarter_name" TypeMdid="0.1042.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="80" Alias="d_holiday">
-        <dxl:Ident ColId="80" ColName="d_holiday" TypeMdid="0.1042.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="81" Alias="d_weekend">
-        <dxl:Ident ColId="81" ColName="d_weekend" TypeMdid="0.1042.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="82" Alias="d_following_holiday">
-        <dxl:Ident ColId="82" ColName="d_following_holiday" TypeMdid="0.1042.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="83" Alias="d_first_dom">
-        <dxl:Ident ColId="83" ColName="d_first_dom" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="84" Alias="d_last_dom">
-        <dxl:Ident ColId="84" ColName="d_last_dom" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="85" Alias="d_same_day_ly">
-        <dxl:Ident ColId="85" ColName="d_same_day_ly" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="86" Alias="d_same_day_lq">
-        <dxl:Ident ColId="86" ColName="d_same_day_lq" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="87" Alias="d_current_day">
-        <dxl:Ident ColId="87" ColName="d_current_day" TypeMdid="0.1042.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="88" Alias="d_current_week">
-        <dxl:Ident ColId="88" ColName="d_current_week" TypeMdid="0.1042.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="89" Alias="d_current_month">
-        <dxl:Ident ColId="89" ColName="d_current_month" TypeMdid="0.1042.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="90" Alias="d_current_quarter">
-        <dxl:Ident ColId="90" ColName="d_current_quarter" TypeMdid="0.1042.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="91" Alias="d_current_year">
-        <dxl:Ident ColId="91" ColName="d_current_year" TypeMdid="0.1042.1.0"/>
-      </dxl:ProjElem>
-    </dxl:ProjList>
-    <dxl:Filter/>
-    <dxl:JoinFilter>
-      <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-        <dxl:Ident ColId="44" ColName="inv_quantity_on_hand" TypeMdid="0.23.1.0"/>
-        <dxl:Ident ColId="18" ColName="cs_quantity" TypeMdid="0.23.1.0"/>
-      </dxl:Comparison>
-    </dxl:JoinFilter>
-    <dxl:HashCondList>
-      <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-        <dxl:Ident ColId="15" ColName="cs_item_sk" TypeMdid="0.23.1.0"/>
-        <dxl:Ident ColId="42" ColName="inv_item_sk" TypeMdid="0.23.1.0"/>
-      </dxl:Comparison>
-    </dxl:HashCondList>
-    <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
-      <dxl:Properties>
-        <dxl:Cost StartupCost="0" TotalCost="1235993994.743914" Rows="561585145.245494" Width="366"/>
-      </dxl:Properties>
-      <dxl:ProjList>
-        <dxl:ProjElem ColId="0" Alias="cs_sold_date_sk">
-          <dxl:Ident ColId="0" ColName="cs_sold_date_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="1" Alias="cs_sold_time_sk">
-          <dxl:Ident ColId="1" ColName="cs_sold_time_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="2" Alias="cs_ship_date_sk">
-          <dxl:Ident ColId="2" ColName="cs_ship_date_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="3" Alias="cs_bill_customer_sk">
-          <dxl:Ident ColId="3" ColName="cs_bill_customer_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="4" Alias="cs_bill_cdemo_sk">
-          <dxl:Ident ColId="4" ColName="cs_bill_cdemo_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="5" Alias="cs_bill_hdemo_sk">
-          <dxl:Ident ColId="5" ColName="cs_bill_hdemo_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="6" Alias="cs_bill_addr_sk">
-          <dxl:Ident ColId="6" ColName="cs_bill_addr_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="7" Alias="cs_ship_customer_sk">
-          <dxl:Ident ColId="7" ColName="cs_ship_customer_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="8" Alias="cs_ship_cdemo_sk">
-          <dxl:Ident ColId="8" ColName="cs_ship_cdemo_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="9" Alias="cs_ship_hdemo_sk">
-          <dxl:Ident ColId="9" ColName="cs_ship_hdemo_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="10" Alias="cs_ship_addr_sk">
-          <dxl:Ident ColId="10" ColName="cs_ship_addr_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="11" Alias="cs_call_center_sk">
-          <dxl:Ident ColId="11" ColName="cs_call_center_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="12" Alias="cs_catalog_page_sk">
-          <dxl:Ident ColId="12" ColName="cs_catalog_page_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="13" Alias="cs_ship_mode_sk">
-          <dxl:Ident ColId="13" ColName="cs_ship_mode_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="14" Alias="cs_warehouse_sk">
-          <dxl:Ident ColId="14" ColName="cs_warehouse_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="15" Alias="cs_item_sk">
-          <dxl:Ident ColId="15" ColName="cs_item_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="16" Alias="cs_promo_sk">
-          <dxl:Ident ColId="16" ColName="cs_promo_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="17" Alias="cs_order_number">
-          <dxl:Ident ColId="17" ColName="cs_order_number" TypeMdid="0.20.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="18" Alias="cs_quantity">
-          <dxl:Ident ColId="18" ColName="cs_quantity" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="19" Alias="cs_wholesale_cost">
-          <dxl:Ident ColId="19" ColName="cs_wholesale_cost" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="20" Alias="cs_list_price">
-          <dxl:Ident ColId="20" ColName="cs_list_price" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="21" Alias="cs_sales_price">
-          <dxl:Ident ColId="21" ColName="cs_sales_price" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="22" Alias="cs_ext_discount_amt">
-          <dxl:Ident ColId="22" ColName="cs_ext_discount_amt" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="23" Alias="cs_ext_sales_price">
-          <dxl:Ident ColId="23" ColName="cs_ext_sales_price" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="24" Alias="cs_ext_wholesale_cost">
-          <dxl:Ident ColId="24" ColName="cs_ext_wholesale_cost" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="25" Alias="cs_ext_list_price">
-          <dxl:Ident ColId="25" ColName="cs_ext_list_price" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="26" Alias="cs_ext_tax">
-          <dxl:Ident ColId="26" ColName="cs_ext_tax" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="27" Alias="cs_coupon_amt">
-          <dxl:Ident ColId="27" ColName="cs_coupon_amt" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="28" Alias="cs_ext_ship_cost">
-          <dxl:Ident ColId="28" ColName="cs_ext_ship_cost" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="29" Alias="cs_net_paid">
-          <dxl:Ident ColId="29" ColName="cs_net_paid" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="30" Alias="cs_net_paid_inc_tax">
-          <dxl:Ident ColId="30" ColName="cs_net_paid_inc_tax" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="31" Alias="cs_net_paid_inc_ship">
-          <dxl:Ident ColId="31" ColName="cs_net_paid_inc_ship" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="32" Alias="cs_net_paid_inc_ship_tax">
-          <dxl:Ident ColId="32" ColName="cs_net_paid_inc_ship_tax" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="33" Alias="cs_net_profit">
-          <dxl:Ident ColId="33" ColName="cs_net_profit" TypeMdid="0.1700.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="52" Alias="hd_demo_sk">
-          <dxl:Ident ColId="52" ColName="hd_demo_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="53" Alias="hd_income_band_sk">
-          <dxl:Ident ColId="53" ColName="hd_income_band_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="54" Alias="hd_buy_potential">
-          <dxl:Ident ColId="54" ColName="hd_buy_potential" TypeMdid="0.1042.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="55" Alias="hd_dep_count">
-          <dxl:Ident ColId="55" ColName="hd_dep_count" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="56" Alias="hd_vehicle_count">
-          <dxl:Ident ColId="56" ColName="hd_vehicle_count" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="64" Alias="d_date_sk">
-          <dxl:Ident ColId="64" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="65" Alias="d_date_id">
-          <dxl:Ident ColId="65" ColName="d_date_id" TypeMdid="0.1042.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="66" Alias="d_date">
-          <dxl:Ident ColId="66" ColName="d_date" TypeMdid="0.1082.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="67" Alias="d_month_seq">
-          <dxl:Ident ColId="67" ColName="d_month_seq" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="68" Alias="d_week_seq">
-          <dxl:Ident ColId="68" ColName="d_week_seq" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="69" Alias="d_quarter_seq">
-          <dxl:Ident ColId="69" ColName="d_quarter_seq" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="70" Alias="d_year">
-          <dxl:Ident ColId="70" ColName="d_year" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="71" Alias="d_dow">
-          <dxl:Ident ColId="71" ColName="d_dow" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="72" Alias="d_moy">
-          <dxl:Ident ColId="72" ColName="d_moy" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="73" Alias="d_dom">
-          <dxl:Ident ColId="73" ColName="d_dom" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="74" Alias="d_qoy">
-          <dxl:Ident ColId="74" ColName="d_qoy" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="75" Alias="d_fy_year">
-          <dxl:Ident ColId="75" ColName="d_fy_year" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="76" Alias="d_fy_quarter_seq">
-          <dxl:Ident ColId="76" ColName="d_fy_quarter_seq" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="77" Alias="d_fy_week_seq">
-          <dxl:Ident ColId="77" ColName="d_fy_week_seq" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="78" Alias="d_day_name">
-          <dxl:Ident ColId="78" ColName="d_day_name" TypeMdid="0.1042.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="79" Alias="d_quarter_name">
-          <dxl:Ident ColId="79" ColName="d_quarter_name" TypeMdid="0.1042.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="80" Alias="d_holiday">
-          <dxl:Ident ColId="80" ColName="d_holiday" TypeMdid="0.1042.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="81" Alias="d_weekend">
-          <dxl:Ident ColId="81" ColName="d_weekend" TypeMdid="0.1042.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="82" Alias="d_following_holiday">
-          <dxl:Ident ColId="82" ColName="d_following_holiday" TypeMdid="0.1042.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="83" Alias="d_first_dom">
-          <dxl:Ident ColId="83" ColName="d_first_dom" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="84" Alias="d_last_dom">
-          <dxl:Ident ColId="84" ColName="d_last_dom" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="85" Alias="d_same_day_ly">
-          <dxl:Ident ColId="85" ColName="d_same_day_ly" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="86" Alias="d_same_day_lq">
-          <dxl:Ident ColId="86" ColName="d_same_day_lq" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="87" Alias="d_current_day">
-          <dxl:Ident ColId="87" ColName="d_current_day" TypeMdid="0.1042.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="88" Alias="d_current_week">
-          <dxl:Ident ColId="88" ColName="d_current_week" TypeMdid="0.1042.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="89" Alias="d_current_month">
-          <dxl:Ident ColId="89" ColName="d_current_month" TypeMdid="0.1042.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="90" Alias="d_current_quarter">
-          <dxl:Ident ColId="90" ColName="d_current_quarter" TypeMdid="0.1042.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="91" Alias="d_current_year">
-          <dxl:Ident ColId="91" ColName="d_current_year" TypeMdid="0.1042.1.0"/>
-        </dxl:ProjElem>
-      </dxl:ProjList>
-      <dxl:Filter/>
-      <dxl:SortingColumnList/>
+    <dxl:Plan Id="0" SpaceSize="39453">
       <dxl:HashJoin JoinType="Inner">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="1135632585.951018" Rows="561585145.245494" Width="366"/>
+          <dxl:Cost StartupCost="0" TotalCost="1639641028.915498" Rows="2777513851522853.000000" Width="382"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="cs_sold_date_sk">
@@ -3803,6 +3362,18 @@
           <dxl:ProjElem ColId="33" Alias="cs_net_profit">
             <dxl:Ident ColId="33" ColName="cs_net_profit" TypeMdid="0.1700.1.0"/>
           </dxl:ProjElem>
+          <dxl:ProjElem ColId="41" Alias="inv_date_sk">
+            <dxl:Ident ColId="41" ColName="inv_date_sk" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="42" Alias="inv_item_sk">
+            <dxl:Ident ColId="42" ColName="inv_item_sk" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="43" Alias="inv_warehouse_sk">
+            <dxl:Ident ColId="43" ColName="inv_warehouse_sk" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="44" Alias="inv_quantity_on_hand">
+            <dxl:Ident ColId="44" ColName="inv_quantity_on_hand" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
           <dxl:ProjElem ColId="52" Alias="hd_demo_sk">
             <dxl:Ident ColId="52" ColName="hd_demo_sk" TypeMdid="0.23.1.0"/>
           </dxl:ProjElem>
@@ -3904,16 +3475,21 @@
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:Filter/>
-        <dxl:JoinFilter/>
+        <dxl:JoinFilter>
+          <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
+            <dxl:Ident ColId="44" ColName="inv_quantity_on_hand" TypeMdid="0.23.1.0"/>
+            <dxl:Ident ColId="18" ColName="cs_quantity" TypeMdid="0.23.1.0"/>
+          </dxl:Comparison>
+        </dxl:JoinFilter>
         <dxl:HashCondList>
           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-            <dxl:Ident ColId="0" ColName="cs_sold_date_sk" TypeMdid="0.23.1.0"/>
-            <dxl:Ident ColId="64" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
+            <dxl:Ident ColId="15" ColName="cs_item_sk" TypeMdid="0.23.1.0"/>
+            <dxl:Ident ColId="42" ColName="inv_item_sk" TypeMdid="0.23.1.0"/>
           </dxl:Comparison>
         </dxl:HashCondList>
-        <dxl:HashJoin JoinType="Inner">
+        <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="1006203929.527117" Rows="561585145.245494" Width="236"/>
+            <dxl:Cost StartupCost="0" TotalCost="1235993994.743914" Rows="561585145.245494" Width="366"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="cs_sold_date_sk">
@@ -4033,18 +3609,96 @@
             <dxl:ProjElem ColId="56" Alias="hd_vehicle_count">
               <dxl:Ident ColId="56" ColName="hd_vehicle_count" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
+            <dxl:ProjElem ColId="64" Alias="d_date_sk">
+              <dxl:Ident ColId="64" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="65" Alias="d_date_id">
+              <dxl:Ident ColId="65" ColName="d_date_id" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="66" Alias="d_date">
+              <dxl:Ident ColId="66" ColName="d_date" TypeMdid="0.1082.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="67" Alias="d_month_seq">
+              <dxl:Ident ColId="67" ColName="d_month_seq" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="68" Alias="d_week_seq">
+              <dxl:Ident ColId="68" ColName="d_week_seq" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="69" Alias="d_quarter_seq">
+              <dxl:Ident ColId="69" ColName="d_quarter_seq" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="70" Alias="d_year">
+              <dxl:Ident ColId="70" ColName="d_year" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="71" Alias="d_dow">
+              <dxl:Ident ColId="71" ColName="d_dow" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="72" Alias="d_moy">
+              <dxl:Ident ColId="72" ColName="d_moy" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="73" Alias="d_dom">
+              <dxl:Ident ColId="73" ColName="d_dom" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="74" Alias="d_qoy">
+              <dxl:Ident ColId="74" ColName="d_qoy" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="75" Alias="d_fy_year">
+              <dxl:Ident ColId="75" ColName="d_fy_year" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="76" Alias="d_fy_quarter_seq">
+              <dxl:Ident ColId="76" ColName="d_fy_quarter_seq" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="77" Alias="d_fy_week_seq">
+              <dxl:Ident ColId="77" ColName="d_fy_week_seq" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="78" Alias="d_day_name">
+              <dxl:Ident ColId="78" ColName="d_day_name" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="79" Alias="d_quarter_name">
+              <dxl:Ident ColId="79" ColName="d_quarter_name" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="80" Alias="d_holiday">
+              <dxl:Ident ColId="80" ColName="d_holiday" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="81" Alias="d_weekend">
+              <dxl:Ident ColId="81" ColName="d_weekend" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="82" Alias="d_following_holiday">
+              <dxl:Ident ColId="82" ColName="d_following_holiday" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="83" Alias="d_first_dom">
+              <dxl:Ident ColId="83" ColName="d_first_dom" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="84" Alias="d_last_dom">
+              <dxl:Ident ColId="84" ColName="d_last_dom" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="85" Alias="d_same_day_ly">
+              <dxl:Ident ColId="85" ColName="d_same_day_ly" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="86" Alias="d_same_day_lq">
+              <dxl:Ident ColId="86" ColName="d_same_day_lq" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="87" Alias="d_current_day">
+              <dxl:Ident ColId="87" ColName="d_current_day" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="88" Alias="d_current_week">
+              <dxl:Ident ColId="88" ColName="d_current_week" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="89" Alias="d_current_month">
+              <dxl:Ident ColId="89" ColName="d_current_month" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="90" Alias="d_current_quarter">
+              <dxl:Ident ColId="90" ColName="d_current_quarter" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="91" Alias="d_current_year">
+              <dxl:Ident ColId="91" ColName="d_current_year" TypeMdid="0.1042.1.0"/>
+            </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
-          <dxl:JoinFilter/>
-          <dxl:HashCondList>
-            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-              <dxl:Ident ColId="5" ColName="cs_bill_hdemo_sk" TypeMdid="0.23.1.0"/>
-              <dxl:Ident ColId="52" ColName="hd_demo_sk" TypeMdid="0.23.1.0"/>
-            </dxl:Comparison>
-          </dxl:HashCondList>
-          <dxl:DynamicTableScan PartIndexId="1">
+          <dxl:SortingColumnList/>
+          <dxl:HashJoin JoinType="Inner">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="335401121.342072" Rows="3367164198.571393" Width="204"/>
+              <dxl:Cost StartupCost="0" TotalCost="1135632585.951018" Rows="561585145.245494" Width="366"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="cs_sold_date_sk">
@@ -4149,59 +3803,6 @@
               <dxl:ProjElem ColId="33" Alias="cs_net_profit">
                 <dxl:Ident ColId="33" ColName="cs_net_profit" TypeMdid="0.1700.1.0"/>
               </dxl:ProjElem>
-            </dxl:ProjList>
-            <dxl:Filter/>
-            <dxl:TableDescriptor Mdid="0.802597.1.1" TableName="catalog_sales">
-              <dxl:Columns>
-                <dxl:Column ColId="0" Attno="1" ColName="cs_sold_date_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="1" Attno="2" ColName="cs_sold_time_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="2" Attno="3" ColName="cs_ship_date_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="3" Attno="4" ColName="cs_bill_customer_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="4" Attno="5" ColName="cs_bill_cdemo_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="5" Attno="6" ColName="cs_bill_hdemo_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="6" Attno="7" ColName="cs_bill_addr_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="7" Attno="8" ColName="cs_ship_customer_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="8" Attno="9" ColName="cs_ship_cdemo_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="9" Attno="10" ColName="cs_ship_hdemo_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="10" Attno="11" ColName="cs_ship_addr_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="11" Attno="12" ColName="cs_call_center_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="12" Attno="13" ColName="cs_catalog_page_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="13" Attno="14" ColName="cs_ship_mode_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="14" Attno="15" ColName="cs_warehouse_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="15" Attno="16" ColName="cs_item_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="16" Attno="17" ColName="cs_promo_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="17" Attno="18" ColName="cs_order_number" TypeMdid="0.20.1.0"/>
-                <dxl:Column ColId="18" Attno="19" ColName="cs_quantity" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="19" Attno="20" ColName="cs_wholesale_cost" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="20" Attno="21" ColName="cs_list_price" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="21" Attno="22" ColName="cs_sales_price" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="22" Attno="23" ColName="cs_ext_discount_amt" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="23" Attno="24" ColName="cs_ext_sales_price" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="24" Attno="25" ColName="cs_ext_wholesale_cost" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="25" Attno="26" ColName="cs_ext_list_price" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="26" Attno="27" ColName="cs_ext_tax" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="27" Attno="28" ColName="cs_coupon_amt" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="28" Attno="29" ColName="cs_ext_ship_cost" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="29" Attno="30" ColName="cs_net_paid" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="30" Attno="31" ColName="cs_net_paid_inc_tax" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="31" Attno="32" ColName="cs_net_paid_inc_ship" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="32" Attno="33" ColName="cs_net_paid_inc_ship_tax" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="33" Attno="34" ColName="cs_net_profit" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="34" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                <dxl:Column ColId="35" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="36" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-                <dxl:Column ColId="37" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="38" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-                <dxl:Column ColId="39" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="40" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-              </dxl:Columns>
-            </dxl:TableDescriptor>
-          </dxl:DynamicTableScan>
-          <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
-            <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="189.500150" Rows="2400.004800" Width="32"/>
-            </dxl:Properties>
-            <dxl:ProjList>
               <dxl:ProjElem ColId="52" Alias="hd_demo_sk">
                 <dxl:Ident ColId="52" ColName="hd_demo_sk" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
@@ -4217,168 +3818,6 @@
               <dxl:ProjElem ColId="56" Alias="hd_vehicle_count">
                 <dxl:Ident ColId="56" ColName="hd_vehicle_count" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
-            </dxl:ProjList>
-            <dxl:Filter/>
-            <dxl:SortingColumnList/>
-            <dxl:TableScan>
-              <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="151.000075" Rows="1200.002400" Width="32"/>
-              </dxl:Properties>
-              <dxl:ProjList>
-                <dxl:ProjElem ColId="52" Alias="hd_demo_sk">
-                  <dxl:Ident ColId="52" ColName="hd_demo_sk" TypeMdid="0.23.1.0"/>
-                </dxl:ProjElem>
-                <dxl:ProjElem ColId="53" Alias="hd_income_band_sk">
-                  <dxl:Ident ColId="53" ColName="hd_income_band_sk" TypeMdid="0.23.1.0"/>
-                </dxl:ProjElem>
-                <dxl:ProjElem ColId="54" Alias="hd_buy_potential">
-                  <dxl:Ident ColId="54" ColName="hd_buy_potential" TypeMdid="0.1042.1.0"/>
-                </dxl:ProjElem>
-                <dxl:ProjElem ColId="55" Alias="hd_dep_count">
-                  <dxl:Ident ColId="55" ColName="hd_dep_count" TypeMdid="0.23.1.0"/>
-                </dxl:ProjElem>
-                <dxl:ProjElem ColId="56" Alias="hd_vehicle_count">
-                  <dxl:Ident ColId="56" ColName="hd_vehicle_count" TypeMdid="0.23.1.0"/>
-                </dxl:ProjElem>
-              </dxl:ProjList>
-              <dxl:Filter>
-                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1054.1.0">
-                  <dxl:Ident ColId="54" ColName="hd_buy_potential" TypeMdid="0.1042.1.0"/>
-                  <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAACj4xMDAwMA==" LintValue="266732324"/>
-                </dxl:Comparison>
-              </dxl:Filter>
-              <dxl:TableDescriptor Mdid="0.810130.1.1" TableName="household_demographics">
-                <dxl:Columns>
-                  <dxl:Column ColId="52" Attno="1" ColName="hd_demo_sk" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="53" Attno="2" ColName="hd_income_band_sk" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="54" Attno="3" ColName="hd_buy_potential" TypeMdid="0.1042.1.0" ColWidth="15"/>
-                  <dxl:Column ColId="55" Attno="4" ColName="hd_dep_count" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="56" Attno="5" ColName="hd_vehicle_count" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="57" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                  <dxl:Column ColId="58" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-                  <dxl:Column ColId="59" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-                  <dxl:Column ColId="60" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-                  <dxl:Column ColId="61" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-                  <dxl:Column ColId="62" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                  <dxl:Column ColId="63" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-                </dxl:Columns>
-              </dxl:TableDescriptor>
-            </dxl:TableScan>
-          </dxl:BroadcastMotion>
-        </dxl:HashJoin>
-        <dxl:PartitionSelector RelationMdid="0.802597.1.1" PartitionLevels="1" ScanId="1">
-          <dxl:Properties>
-            <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
-          </dxl:Properties>
-          <dxl:ProjList>
-            <dxl:ProjElem ColId="64" Alias="d_date_sk">
-              <dxl:Ident ColId="64" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="65" Alias="d_date_id">
-              <dxl:Ident ColId="65" ColName="d_date_id" TypeMdid="0.1042.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="66" Alias="d_date">
-              <dxl:Ident ColId="66" ColName="d_date" TypeMdid="0.1082.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="67" Alias="d_month_seq">
-              <dxl:Ident ColId="67" ColName="d_month_seq" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="68" Alias="d_week_seq">
-              <dxl:Ident ColId="68" ColName="d_week_seq" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="69" Alias="d_quarter_seq">
-              <dxl:Ident ColId="69" ColName="d_quarter_seq" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="70" Alias="d_year">
-              <dxl:Ident ColId="70" ColName="d_year" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="71" Alias="d_dow">
-              <dxl:Ident ColId="71" ColName="d_dow" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="72" Alias="d_moy">
-              <dxl:Ident ColId="72" ColName="d_moy" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="73" Alias="d_dom">
-              <dxl:Ident ColId="73" ColName="d_dom" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="74" Alias="d_qoy">
-              <dxl:Ident ColId="74" ColName="d_qoy" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="75" Alias="d_fy_year">
-              <dxl:Ident ColId="75" ColName="d_fy_year" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="76" Alias="d_fy_quarter_seq">
-              <dxl:Ident ColId="76" ColName="d_fy_quarter_seq" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="77" Alias="d_fy_week_seq">
-              <dxl:Ident ColId="77" ColName="d_fy_week_seq" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="78" Alias="d_day_name">
-              <dxl:Ident ColId="78" ColName="d_day_name" TypeMdid="0.1042.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="79" Alias="d_quarter_name">
-              <dxl:Ident ColId="79" ColName="d_quarter_name" TypeMdid="0.1042.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="80" Alias="d_holiday">
-              <dxl:Ident ColId="80" ColName="d_holiday" TypeMdid="0.1042.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="81" Alias="d_weekend">
-              <dxl:Ident ColId="81" ColName="d_weekend" TypeMdid="0.1042.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="82" Alias="d_following_holiday">
-              <dxl:Ident ColId="82" ColName="d_following_holiday" TypeMdid="0.1042.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="83" Alias="d_first_dom">
-              <dxl:Ident ColId="83" ColName="d_first_dom" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="84" Alias="d_last_dom">
-              <dxl:Ident ColId="84" ColName="d_last_dom" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="85" Alias="d_same_day_ly">
-              <dxl:Ident ColId="85" ColName="d_same_day_ly" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="86" Alias="d_same_day_lq">
-              <dxl:Ident ColId="86" ColName="d_same_day_lq" TypeMdid="0.23.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="87" Alias="d_current_day">
-              <dxl:Ident ColId="87" ColName="d_current_day" TypeMdid="0.1042.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="88" Alias="d_current_week">
-              <dxl:Ident ColId="88" ColName="d_current_week" TypeMdid="0.1042.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="89" Alias="d_current_month">
-              <dxl:Ident ColId="89" ColName="d_current_month" TypeMdid="0.1042.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="90" Alias="d_current_quarter">
-              <dxl:Ident ColId="90" ColName="d_current_quarter" TypeMdid="0.1042.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="91" Alias="d_current_year">
-              <dxl:Ident ColId="91" ColName="d_current_year" TypeMdid="0.1042.1.0"/>
-            </dxl:ProjElem>
-          </dxl:ProjList>
-          <dxl:PartEqFilters>
-            <dxl:Ident ColId="64" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
-          </dxl:PartEqFilters>
-          <dxl:PartFilters>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-          </dxl:PartFilters>
-          <dxl:ResidualFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-          </dxl:ResidualFilter>
-          <dxl:PropagationExpression>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-          </dxl:PropagationExpression>
-          <dxl:PrintableFilter>
-            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-              <dxl:Ident ColId="0" ColName="cs_sold_date_sk" TypeMdid="0.23.1.0"/>
-              <dxl:Ident ColId="64" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
-            </dxl:Comparison>
-          </dxl:PrintableFilter>
-          <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
-            <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="189.285943" Rows="838.491452" Width="130"/>
-            </dxl:Properties>
-            <dxl:ProjList>
               <dxl:ProjElem ColId="64" Alias="d_date_sk">
                 <dxl:Ident ColId="64" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
@@ -4465,10 +3904,371 @@
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:Filter/>
-            <dxl:SortingColumnList/>
-            <dxl:Sequence>
+            <dxl:JoinFilter/>
+            <dxl:HashCondList>
+              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                <dxl:Ident ColId="0" ColName="cs_sold_date_sk" TypeMdid="0.23.1.0"/>
+                <dxl:Ident ColId="64" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
+              </dxl:Comparison>
+            </dxl:HashCondList>
+            <dxl:HashJoin JoinType="Inner">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="135.061388" Rows="419.245726" Width="130"/>
+                <dxl:Cost StartupCost="0" TotalCost="1006203929.527117" Rows="561585145.245494" Width="236"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="0" Alias="cs_sold_date_sk">
+                  <dxl:Ident ColId="0" ColName="cs_sold_date_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="1" Alias="cs_sold_time_sk">
+                  <dxl:Ident ColId="1" ColName="cs_sold_time_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="2" Alias="cs_ship_date_sk">
+                  <dxl:Ident ColId="2" ColName="cs_ship_date_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="3" Alias="cs_bill_customer_sk">
+                  <dxl:Ident ColId="3" ColName="cs_bill_customer_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="4" Alias="cs_bill_cdemo_sk">
+                  <dxl:Ident ColId="4" ColName="cs_bill_cdemo_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="5" Alias="cs_bill_hdemo_sk">
+                  <dxl:Ident ColId="5" ColName="cs_bill_hdemo_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="6" Alias="cs_bill_addr_sk">
+                  <dxl:Ident ColId="6" ColName="cs_bill_addr_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="7" Alias="cs_ship_customer_sk">
+                  <dxl:Ident ColId="7" ColName="cs_ship_customer_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="8" Alias="cs_ship_cdemo_sk">
+                  <dxl:Ident ColId="8" ColName="cs_ship_cdemo_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="9" Alias="cs_ship_hdemo_sk">
+                  <dxl:Ident ColId="9" ColName="cs_ship_hdemo_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="10" Alias="cs_ship_addr_sk">
+                  <dxl:Ident ColId="10" ColName="cs_ship_addr_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="11" Alias="cs_call_center_sk">
+                  <dxl:Ident ColId="11" ColName="cs_call_center_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="12" Alias="cs_catalog_page_sk">
+                  <dxl:Ident ColId="12" ColName="cs_catalog_page_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="13" Alias="cs_ship_mode_sk">
+                  <dxl:Ident ColId="13" ColName="cs_ship_mode_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="14" Alias="cs_warehouse_sk">
+                  <dxl:Ident ColId="14" ColName="cs_warehouse_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="15" Alias="cs_item_sk">
+                  <dxl:Ident ColId="15" ColName="cs_item_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="16" Alias="cs_promo_sk">
+                  <dxl:Ident ColId="16" ColName="cs_promo_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="17" Alias="cs_order_number">
+                  <dxl:Ident ColId="17" ColName="cs_order_number" TypeMdid="0.20.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="18" Alias="cs_quantity">
+                  <dxl:Ident ColId="18" ColName="cs_quantity" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="19" Alias="cs_wholesale_cost">
+                  <dxl:Ident ColId="19" ColName="cs_wholesale_cost" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="20" Alias="cs_list_price">
+                  <dxl:Ident ColId="20" ColName="cs_list_price" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="21" Alias="cs_sales_price">
+                  <dxl:Ident ColId="21" ColName="cs_sales_price" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="22" Alias="cs_ext_discount_amt">
+                  <dxl:Ident ColId="22" ColName="cs_ext_discount_amt" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="23" Alias="cs_ext_sales_price">
+                  <dxl:Ident ColId="23" ColName="cs_ext_sales_price" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="24" Alias="cs_ext_wholesale_cost">
+                  <dxl:Ident ColId="24" ColName="cs_ext_wholesale_cost" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="25" Alias="cs_ext_list_price">
+                  <dxl:Ident ColId="25" ColName="cs_ext_list_price" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="26" Alias="cs_ext_tax">
+                  <dxl:Ident ColId="26" ColName="cs_ext_tax" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="27" Alias="cs_coupon_amt">
+                  <dxl:Ident ColId="27" ColName="cs_coupon_amt" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="28" Alias="cs_ext_ship_cost">
+                  <dxl:Ident ColId="28" ColName="cs_ext_ship_cost" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="29" Alias="cs_net_paid">
+                  <dxl:Ident ColId="29" ColName="cs_net_paid" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="30" Alias="cs_net_paid_inc_tax">
+                  <dxl:Ident ColId="30" ColName="cs_net_paid_inc_tax" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="31" Alias="cs_net_paid_inc_ship">
+                  <dxl:Ident ColId="31" ColName="cs_net_paid_inc_ship" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="32" Alias="cs_net_paid_inc_ship_tax">
+                  <dxl:Ident ColId="32" ColName="cs_net_paid_inc_ship_tax" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="33" Alias="cs_net_profit">
+                  <dxl:Ident ColId="33" ColName="cs_net_profit" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="52" Alias="hd_demo_sk">
+                  <dxl:Ident ColId="52" ColName="hd_demo_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="53" Alias="hd_income_band_sk">
+                  <dxl:Ident ColId="53" ColName="hd_income_band_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="54" Alias="hd_buy_potential">
+                  <dxl:Ident ColId="54" ColName="hd_buy_potential" TypeMdid="0.1042.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="55" Alias="hd_dep_count">
+                  <dxl:Ident ColId="55" ColName="hd_dep_count" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="56" Alias="hd_vehicle_count">
+                  <dxl:Ident ColId="56" ColName="hd_vehicle_count" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:JoinFilter/>
+              <dxl:HashCondList>
+                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                  <dxl:Ident ColId="5" ColName="cs_bill_hdemo_sk" TypeMdid="0.23.1.0"/>
+                  <dxl:Ident ColId="52" ColName="hd_demo_sk" TypeMdid="0.23.1.0"/>
+                </dxl:Comparison>
+              </dxl:HashCondList>
+              <dxl:DynamicTableScan PartIndexId="1">
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="335401121.342072" Rows="3367164198.571393" Width="204"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="0" Alias="cs_sold_date_sk">
+                    <dxl:Ident ColId="0" ColName="cs_sold_date_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="1" Alias="cs_sold_time_sk">
+                    <dxl:Ident ColId="1" ColName="cs_sold_time_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="2" Alias="cs_ship_date_sk">
+                    <dxl:Ident ColId="2" ColName="cs_ship_date_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="3" Alias="cs_bill_customer_sk">
+                    <dxl:Ident ColId="3" ColName="cs_bill_customer_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="4" Alias="cs_bill_cdemo_sk">
+                    <dxl:Ident ColId="4" ColName="cs_bill_cdemo_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="5" Alias="cs_bill_hdemo_sk">
+                    <dxl:Ident ColId="5" ColName="cs_bill_hdemo_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="6" Alias="cs_bill_addr_sk">
+                    <dxl:Ident ColId="6" ColName="cs_bill_addr_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="7" Alias="cs_ship_customer_sk">
+                    <dxl:Ident ColId="7" ColName="cs_ship_customer_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="8" Alias="cs_ship_cdemo_sk">
+                    <dxl:Ident ColId="8" ColName="cs_ship_cdemo_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="9" Alias="cs_ship_hdemo_sk">
+                    <dxl:Ident ColId="9" ColName="cs_ship_hdemo_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="10" Alias="cs_ship_addr_sk">
+                    <dxl:Ident ColId="10" ColName="cs_ship_addr_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="11" Alias="cs_call_center_sk">
+                    <dxl:Ident ColId="11" ColName="cs_call_center_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="12" Alias="cs_catalog_page_sk">
+                    <dxl:Ident ColId="12" ColName="cs_catalog_page_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="13" Alias="cs_ship_mode_sk">
+                    <dxl:Ident ColId="13" ColName="cs_ship_mode_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="14" Alias="cs_warehouse_sk">
+                    <dxl:Ident ColId="14" ColName="cs_warehouse_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="15" Alias="cs_item_sk">
+                    <dxl:Ident ColId="15" ColName="cs_item_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="16" Alias="cs_promo_sk">
+                    <dxl:Ident ColId="16" ColName="cs_promo_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="17" Alias="cs_order_number">
+                    <dxl:Ident ColId="17" ColName="cs_order_number" TypeMdid="0.20.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="18" Alias="cs_quantity">
+                    <dxl:Ident ColId="18" ColName="cs_quantity" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="19" Alias="cs_wholesale_cost">
+                    <dxl:Ident ColId="19" ColName="cs_wholesale_cost" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="20" Alias="cs_list_price">
+                    <dxl:Ident ColId="20" ColName="cs_list_price" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="21" Alias="cs_sales_price">
+                    <dxl:Ident ColId="21" ColName="cs_sales_price" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="22" Alias="cs_ext_discount_amt">
+                    <dxl:Ident ColId="22" ColName="cs_ext_discount_amt" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="23" Alias="cs_ext_sales_price">
+                    <dxl:Ident ColId="23" ColName="cs_ext_sales_price" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="24" Alias="cs_ext_wholesale_cost">
+                    <dxl:Ident ColId="24" ColName="cs_ext_wholesale_cost" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="25" Alias="cs_ext_list_price">
+                    <dxl:Ident ColId="25" ColName="cs_ext_list_price" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="26" Alias="cs_ext_tax">
+                    <dxl:Ident ColId="26" ColName="cs_ext_tax" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="27" Alias="cs_coupon_amt">
+                    <dxl:Ident ColId="27" ColName="cs_coupon_amt" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="28" Alias="cs_ext_ship_cost">
+                    <dxl:Ident ColId="28" ColName="cs_ext_ship_cost" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="29" Alias="cs_net_paid">
+                    <dxl:Ident ColId="29" ColName="cs_net_paid" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="30" Alias="cs_net_paid_inc_tax">
+                    <dxl:Ident ColId="30" ColName="cs_net_paid_inc_tax" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="31" Alias="cs_net_paid_inc_ship">
+                    <dxl:Ident ColId="31" ColName="cs_net_paid_inc_ship" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="32" Alias="cs_net_paid_inc_ship_tax">
+                    <dxl:Ident ColId="32" ColName="cs_net_paid_inc_ship_tax" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="33" Alias="cs_net_profit">
+                    <dxl:Ident ColId="33" ColName="cs_net_profit" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter/>
+                <dxl:TableDescriptor Mdid="0.802597.1.1" TableName="catalog_sales">
+                  <dxl:Columns>
+                    <dxl:Column ColId="0" Attno="1" ColName="cs_sold_date_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="1" Attno="2" ColName="cs_sold_time_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="2" Attno="3" ColName="cs_ship_date_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="3" Attno="4" ColName="cs_bill_customer_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="4" Attno="5" ColName="cs_bill_cdemo_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="5" Attno="6" ColName="cs_bill_hdemo_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="6" Attno="7" ColName="cs_bill_addr_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="7" Attno="8" ColName="cs_ship_customer_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="8" Attno="9" ColName="cs_ship_cdemo_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="9" Attno="10" ColName="cs_ship_hdemo_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="10" Attno="11" ColName="cs_ship_addr_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="11" Attno="12" ColName="cs_call_center_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="12" Attno="13" ColName="cs_catalog_page_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="13" Attno="14" ColName="cs_ship_mode_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="14" Attno="15" ColName="cs_warehouse_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="15" Attno="16" ColName="cs_item_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="16" Attno="17" ColName="cs_promo_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="17" Attno="18" ColName="cs_order_number" TypeMdid="0.20.1.0"/>
+                    <dxl:Column ColId="18" Attno="19" ColName="cs_quantity" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="19" Attno="20" ColName="cs_wholesale_cost" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="20" Attno="21" ColName="cs_list_price" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="21" Attno="22" ColName="cs_sales_price" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="22" Attno="23" ColName="cs_ext_discount_amt" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="23" Attno="24" ColName="cs_ext_sales_price" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="24" Attno="25" ColName="cs_ext_wholesale_cost" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="25" Attno="26" ColName="cs_ext_list_price" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="26" Attno="27" ColName="cs_ext_tax" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="27" Attno="28" ColName="cs_coupon_amt" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="28" Attno="29" ColName="cs_ext_ship_cost" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="29" Attno="30" ColName="cs_net_paid" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="30" Attno="31" ColName="cs_net_paid_inc_tax" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="31" Attno="32" ColName="cs_net_paid_inc_ship" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="32" Attno="33" ColName="cs_net_paid_inc_ship_tax" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="33" Attno="34" ColName="cs_net_profit" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="34" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                    <dxl:Column ColId="35" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="36" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                    <dxl:Column ColId="37" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="38" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                    <dxl:Column ColId="39" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="40" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                  </dxl:Columns>
+                </dxl:TableDescriptor>
+              </dxl:DynamicTableScan>
+              <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="189.500150" Rows="2400.004800" Width="32"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="52" Alias="hd_demo_sk">
+                    <dxl:Ident ColId="52" ColName="hd_demo_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="53" Alias="hd_income_band_sk">
+                    <dxl:Ident ColId="53" ColName="hd_income_band_sk" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="54" Alias="hd_buy_potential">
+                    <dxl:Ident ColId="54" ColName="hd_buy_potential" TypeMdid="0.1042.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="55" Alias="hd_dep_count">
+                    <dxl:Ident ColId="55" ColName="hd_dep_count" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="56" Alias="hd_vehicle_count">
+                    <dxl:Ident ColId="56" ColName="hd_vehicle_count" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter/>
+                <dxl:SortingColumnList/>
+                <dxl:TableScan>
+                  <dxl:Properties>
+                    <dxl:Cost StartupCost="0" TotalCost="151.000075" Rows="1200.002400" Width="32"/>
+                  </dxl:Properties>
+                  <dxl:ProjList>
+                    <dxl:ProjElem ColId="52" Alias="hd_demo_sk">
+                      <dxl:Ident ColId="52" ColName="hd_demo_sk" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="53" Alias="hd_income_band_sk">
+                      <dxl:Ident ColId="53" ColName="hd_income_band_sk" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="54" Alias="hd_buy_potential">
+                      <dxl:Ident ColId="54" ColName="hd_buy_potential" TypeMdid="0.1042.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="55" Alias="hd_dep_count">
+                      <dxl:Ident ColId="55" ColName="hd_dep_count" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="56" Alias="hd_vehicle_count">
+                      <dxl:Ident ColId="56" ColName="hd_vehicle_count" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                  </dxl:ProjList>
+                  <dxl:Filter>
+                    <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1054.1.0">
+                      <dxl:Ident ColId="54" ColName="hd_buy_potential" TypeMdid="0.1042.1.0"/>
+                      <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAACj4xMDAwMA==" LintValue="266732324"/>
+                    </dxl:Comparison>
+                  </dxl:Filter>
+                  <dxl:TableDescriptor Mdid="0.810130.1.1" TableName="household_demographics">
+                    <dxl:Columns>
+                      <dxl:Column ColId="52" Attno="1" ColName="hd_demo_sk" TypeMdid="0.23.1.0"/>
+                      <dxl:Column ColId="53" Attno="2" ColName="hd_income_band_sk" TypeMdid="0.23.1.0"/>
+                      <dxl:Column ColId="54" Attno="3" ColName="hd_buy_potential" TypeMdid="0.1042.1.0" ColWidth="15"/>
+                      <dxl:Column ColId="55" Attno="4" ColName="hd_dep_count" TypeMdid="0.23.1.0"/>
+                      <dxl:Column ColId="56" Attno="5" ColName="hd_vehicle_count" TypeMdid="0.23.1.0"/>
+                      <dxl:Column ColId="57" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                      <dxl:Column ColId="58" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                      <dxl:Column ColId="59" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                      <dxl:Column ColId="60" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                      <dxl:Column ColId="61" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                      <dxl:Column ColId="62" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                      <dxl:Column ColId="63" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                    </dxl:Columns>
+                  </dxl:TableDescriptor>
+                </dxl:TableScan>
+              </dxl:BroadcastMotion>
+            </dxl:HashJoin>
+            <dxl:PartitionSelector RelationMdid="0.802597.1.1" PartitionLevels="1" ScanId="1">
+              <dxl:Properties>
+                <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="64" Alias="d_date_sk">
@@ -4556,33 +4356,27 @@
                   <dxl:Ident ColId="91" ColName="d_current_year" TypeMdid="0.1042.1.0"/>
                 </dxl:ProjElem>
               </dxl:ProjList>
-              <dxl:PartitionSelector RelationMdid="0.802906.1.1" PartitionLevels="1" ScanId="3">
+              <dxl:PartEqFilters>
+                <dxl:Ident ColId="64" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
+              </dxl:PartEqFilters>
+              <dxl:PartFilters>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              </dxl:PartFilters>
+              <dxl:ResidualFilter>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              </dxl:ResidualFilter>
+              <dxl:PropagationExpression>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              </dxl:PropagationExpression>
+              <dxl:PrintableFilter>
+                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                  <dxl:Ident ColId="0" ColName="cs_sold_date_sk" TypeMdid="0.23.1.0"/>
+                  <dxl:Ident ColId="64" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
+                </dxl:Comparison>
+              </dxl:PrintableFilter>
+              <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
-                </dxl:Properties>
-                <dxl:ProjList/>
-                <dxl:PartEqFilters>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1999"/>
-                </dxl:PartEqFilters>
-                <dxl:PartFilters>
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-                </dxl:PartFilters>
-                <dxl:ResidualFilter>
-                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-                </dxl:ResidualFilter>
-                <dxl:PropagationExpression>
-                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
-                </dxl:PropagationExpression>
-                <dxl:PrintableFilter>
-                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                    <dxl:Ident ColId="70" ColName="d_year" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1999"/>
-                  </dxl:Comparison>
-                </dxl:PrintableFilter>
-              </dxl:PartitionSelector>
-              <dxl:DynamicTableScan PartIndexId="3">
-                <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="135.061388" Rows="419.245726" Width="130"/>
+                  <dxl:Cost StartupCost="0" TotalCost="189.285943" Rows="838.491452" Width="130"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="64" Alias="d_date_sk">
@@ -4670,120 +4464,266 @@
                     <dxl:Ident ColId="91" ColName="d_current_year" TypeMdid="0.1042.1.0"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
-                <dxl:Filter>
-                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-                    <dxl:Ident ColId="70" ColName="d_year" TypeMdid="0.23.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1999"/>
-                  </dxl:Comparison>
-                </dxl:Filter>
-                <dxl:TableDescriptor Mdid="0.802906.1.1" TableName="date_dim">
-                  <dxl:Columns>
-                    <dxl:Column ColId="64" Attno="1" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="65" Attno="2" ColName="d_date_id" TypeMdid="0.1042.1.0" ColWidth="16"/>
-                    <dxl:Column ColId="66" Attno="3" ColName="d_date" TypeMdid="0.1082.1.0"/>
-                    <dxl:Column ColId="67" Attno="4" ColName="d_month_seq" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="68" Attno="5" ColName="d_week_seq" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="69" Attno="6" ColName="d_quarter_seq" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="70" Attno="7" ColName="d_year" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="71" Attno="8" ColName="d_dow" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="72" Attno="9" ColName="d_moy" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="73" Attno="10" ColName="d_dom" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="74" Attno="11" ColName="d_qoy" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="75" Attno="12" ColName="d_fy_year" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="76" Attno="13" ColName="d_fy_quarter_seq" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="77" Attno="14" ColName="d_fy_week_seq" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="78" Attno="15" ColName="d_day_name" TypeMdid="0.1042.1.0" ColWidth="9"/>
-                    <dxl:Column ColId="79" Attno="16" ColName="d_quarter_name" TypeMdid="0.1042.1.0" ColWidth="6"/>
-                    <dxl:Column ColId="80" Attno="17" ColName="d_holiday" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                    <dxl:Column ColId="81" Attno="18" ColName="d_weekend" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                    <dxl:Column ColId="82" Attno="19" ColName="d_following_holiday" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                    <dxl:Column ColId="83" Attno="20" ColName="d_first_dom" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="84" Attno="21" ColName="d_last_dom" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="85" Attno="22" ColName="d_same_day_ly" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="86" Attno="23" ColName="d_same_day_lq" TypeMdid="0.23.1.0"/>
-                    <dxl:Column ColId="87" Attno="24" ColName="d_current_day" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                    <dxl:Column ColId="88" Attno="25" ColName="d_current_week" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                    <dxl:Column ColId="89" Attno="26" ColName="d_current_month" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                    <dxl:Column ColId="90" Attno="27" ColName="d_current_quarter" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                    <dxl:Column ColId="91" Attno="28" ColName="d_current_year" TypeMdid="0.1042.1.0" ColWidth="1"/>
-                    <dxl:Column ColId="92" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                    <dxl:Column ColId="93" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-                    <dxl:Column ColId="94" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-                    <dxl:Column ColId="95" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-                    <dxl:Column ColId="96" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-                    <dxl:Column ColId="97" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                    <dxl:Column ColId="98" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-                  </dxl:Columns>
-                </dxl:TableDescriptor>
-              </dxl:DynamicTableScan>
-            </dxl:Sequence>
-          </dxl:BroadcastMotion>
-        </dxl:PartitionSelector>
-      </dxl:HashJoin>
-    </dxl:GatherMotion>
-    <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
-      <dxl:Properties>
-        <dxl:Cost StartupCost="0" TotalCost="366902.000000" Rows="11740800.000000" Width="16"/>
-      </dxl:Properties>
-      <dxl:ProjList>
-        <dxl:ProjElem ColId="41" Alias="inv_date_sk">
-          <dxl:Ident ColId="41" ColName="inv_date_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="42" Alias="inv_item_sk">
-          <dxl:Ident ColId="42" ColName="inv_item_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="43" Alias="inv_warehouse_sk">
-          <dxl:Ident ColId="43" ColName="inv_warehouse_sk" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="44" Alias="inv_quantity_on_hand">
-          <dxl:Ident ColId="44" ColName="inv_quantity_on_hand" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-      </dxl:ProjList>
-      <dxl:Filter/>
-      <dxl:SortingColumnList/>
-      <dxl:Sequence>
-        <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="91725.000000" Rows="11740800.000000" Width="16"/>
-        </dxl:Properties>
-        <dxl:ProjList>
-          <dxl:ProjElem ColId="41" Alias="inv_date_sk">
-            <dxl:Ident ColId="41" ColName="inv_date_sk" TypeMdid="0.23.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="42" Alias="inv_item_sk">
-            <dxl:Ident ColId="42" ColName="inv_item_sk" TypeMdid="0.23.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="43" Alias="inv_warehouse_sk">
-            <dxl:Ident ColId="43" ColName="inv_warehouse_sk" TypeMdid="0.23.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="44" Alias="inv_quantity_on_hand">
-            <dxl:Ident ColId="44" ColName="inv_quantity_on_hand" TypeMdid="0.23.1.0"/>
-          </dxl:ProjElem>
-        </dxl:ProjList>
-        <dxl:PartitionSelector RelationMdid="0.810176.1.1" PartitionLevels="1" ScanId="2">
+                <dxl:Filter/>
+                <dxl:SortingColumnList/>
+                <dxl:Sequence>
+                  <dxl:Properties>
+                    <dxl:Cost StartupCost="0" TotalCost="135.061388" Rows="419.245726" Width="130"/>
+                  </dxl:Properties>
+                  <dxl:ProjList>
+                    <dxl:ProjElem ColId="64" Alias="d_date_sk">
+                      <dxl:Ident ColId="64" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="65" Alias="d_date_id">
+                      <dxl:Ident ColId="65" ColName="d_date_id" TypeMdid="0.1042.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="66" Alias="d_date">
+                      <dxl:Ident ColId="66" ColName="d_date" TypeMdid="0.1082.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="67" Alias="d_month_seq">
+                      <dxl:Ident ColId="67" ColName="d_month_seq" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="68" Alias="d_week_seq">
+                      <dxl:Ident ColId="68" ColName="d_week_seq" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="69" Alias="d_quarter_seq">
+                      <dxl:Ident ColId="69" ColName="d_quarter_seq" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="70" Alias="d_year">
+                      <dxl:Ident ColId="70" ColName="d_year" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="71" Alias="d_dow">
+                      <dxl:Ident ColId="71" ColName="d_dow" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="72" Alias="d_moy">
+                      <dxl:Ident ColId="72" ColName="d_moy" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="73" Alias="d_dom">
+                      <dxl:Ident ColId="73" ColName="d_dom" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="74" Alias="d_qoy">
+                      <dxl:Ident ColId="74" ColName="d_qoy" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="75" Alias="d_fy_year">
+                      <dxl:Ident ColId="75" ColName="d_fy_year" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="76" Alias="d_fy_quarter_seq">
+                      <dxl:Ident ColId="76" ColName="d_fy_quarter_seq" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="77" Alias="d_fy_week_seq">
+                      <dxl:Ident ColId="77" ColName="d_fy_week_seq" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="78" Alias="d_day_name">
+                      <dxl:Ident ColId="78" ColName="d_day_name" TypeMdid="0.1042.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="79" Alias="d_quarter_name">
+                      <dxl:Ident ColId="79" ColName="d_quarter_name" TypeMdid="0.1042.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="80" Alias="d_holiday">
+                      <dxl:Ident ColId="80" ColName="d_holiday" TypeMdid="0.1042.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="81" Alias="d_weekend">
+                      <dxl:Ident ColId="81" ColName="d_weekend" TypeMdid="0.1042.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="82" Alias="d_following_holiday">
+                      <dxl:Ident ColId="82" ColName="d_following_holiday" TypeMdid="0.1042.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="83" Alias="d_first_dom">
+                      <dxl:Ident ColId="83" ColName="d_first_dom" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="84" Alias="d_last_dom">
+                      <dxl:Ident ColId="84" ColName="d_last_dom" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="85" Alias="d_same_day_ly">
+                      <dxl:Ident ColId="85" ColName="d_same_day_ly" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="86" Alias="d_same_day_lq">
+                      <dxl:Ident ColId="86" ColName="d_same_day_lq" TypeMdid="0.23.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="87" Alias="d_current_day">
+                      <dxl:Ident ColId="87" ColName="d_current_day" TypeMdid="0.1042.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="88" Alias="d_current_week">
+                      <dxl:Ident ColId="88" ColName="d_current_week" TypeMdid="0.1042.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="89" Alias="d_current_month">
+                      <dxl:Ident ColId="89" ColName="d_current_month" TypeMdid="0.1042.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="90" Alias="d_current_quarter">
+                      <dxl:Ident ColId="90" ColName="d_current_quarter" TypeMdid="0.1042.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="91" Alias="d_current_year">
+                      <dxl:Ident ColId="91" ColName="d_current_year" TypeMdid="0.1042.1.0"/>
+                    </dxl:ProjElem>
+                  </dxl:ProjList>
+                  <dxl:PartitionSelector RelationMdid="0.802906.1.1" PartitionLevels="1" ScanId="3">
+                    <dxl:Properties>
+                      <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
+                    </dxl:Properties>
+                    <dxl:ProjList/>
+                    <dxl:PartEqFilters>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1999"/>
+                    </dxl:PartEqFilters>
+                    <dxl:PartFilters>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    </dxl:PartFilters>
+                    <dxl:ResidualFilter>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    </dxl:ResidualFilter>
+                    <dxl:PropagationExpression>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
+                    </dxl:PropagationExpression>
+                    <dxl:PrintableFilter>
+                      <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                        <dxl:Ident ColId="70" ColName="d_year" TypeMdid="0.23.1.0"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1999"/>
+                      </dxl:Comparison>
+                    </dxl:PrintableFilter>
+                  </dxl:PartitionSelector>
+                  <dxl:DynamicTableScan PartIndexId="3">
+                    <dxl:Properties>
+                      <dxl:Cost StartupCost="0" TotalCost="135.061388" Rows="419.245726" Width="130"/>
+                    </dxl:Properties>
+                    <dxl:ProjList>
+                      <dxl:ProjElem ColId="64" Alias="d_date_sk">
+                        <dxl:Ident ColId="64" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="65" Alias="d_date_id">
+                        <dxl:Ident ColId="65" ColName="d_date_id" TypeMdid="0.1042.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="66" Alias="d_date">
+                        <dxl:Ident ColId="66" ColName="d_date" TypeMdid="0.1082.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="67" Alias="d_month_seq">
+                        <dxl:Ident ColId="67" ColName="d_month_seq" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="68" Alias="d_week_seq">
+                        <dxl:Ident ColId="68" ColName="d_week_seq" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="69" Alias="d_quarter_seq">
+                        <dxl:Ident ColId="69" ColName="d_quarter_seq" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="70" Alias="d_year">
+                        <dxl:Ident ColId="70" ColName="d_year" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="71" Alias="d_dow">
+                        <dxl:Ident ColId="71" ColName="d_dow" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="72" Alias="d_moy">
+                        <dxl:Ident ColId="72" ColName="d_moy" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="73" Alias="d_dom">
+                        <dxl:Ident ColId="73" ColName="d_dom" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="74" Alias="d_qoy">
+                        <dxl:Ident ColId="74" ColName="d_qoy" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="75" Alias="d_fy_year">
+                        <dxl:Ident ColId="75" ColName="d_fy_year" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="76" Alias="d_fy_quarter_seq">
+                        <dxl:Ident ColId="76" ColName="d_fy_quarter_seq" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="77" Alias="d_fy_week_seq">
+                        <dxl:Ident ColId="77" ColName="d_fy_week_seq" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="78" Alias="d_day_name">
+                        <dxl:Ident ColId="78" ColName="d_day_name" TypeMdid="0.1042.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="79" Alias="d_quarter_name">
+                        <dxl:Ident ColId="79" ColName="d_quarter_name" TypeMdid="0.1042.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="80" Alias="d_holiday">
+                        <dxl:Ident ColId="80" ColName="d_holiday" TypeMdid="0.1042.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="81" Alias="d_weekend">
+                        <dxl:Ident ColId="81" ColName="d_weekend" TypeMdid="0.1042.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="82" Alias="d_following_holiday">
+                        <dxl:Ident ColId="82" ColName="d_following_holiday" TypeMdid="0.1042.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="83" Alias="d_first_dom">
+                        <dxl:Ident ColId="83" ColName="d_first_dom" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="84" Alias="d_last_dom">
+                        <dxl:Ident ColId="84" ColName="d_last_dom" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="85" Alias="d_same_day_ly">
+                        <dxl:Ident ColId="85" ColName="d_same_day_ly" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="86" Alias="d_same_day_lq">
+                        <dxl:Ident ColId="86" ColName="d_same_day_lq" TypeMdid="0.23.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="87" Alias="d_current_day">
+                        <dxl:Ident ColId="87" ColName="d_current_day" TypeMdid="0.1042.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="88" Alias="d_current_week">
+                        <dxl:Ident ColId="88" ColName="d_current_week" TypeMdid="0.1042.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="89" Alias="d_current_month">
+                        <dxl:Ident ColId="89" ColName="d_current_month" TypeMdid="0.1042.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="90" Alias="d_current_quarter">
+                        <dxl:Ident ColId="90" ColName="d_current_quarter" TypeMdid="0.1042.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="91" Alias="d_current_year">
+                        <dxl:Ident ColId="91" ColName="d_current_year" TypeMdid="0.1042.1.0"/>
+                      </dxl:ProjElem>
+                    </dxl:ProjList>
+                    <dxl:Filter>
+                      <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                        <dxl:Ident ColId="70" ColName="d_year" TypeMdid="0.23.1.0"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1999"/>
+                      </dxl:Comparison>
+                    </dxl:Filter>
+                    <dxl:TableDescriptor Mdid="0.802906.1.1" TableName="date_dim">
+                      <dxl:Columns>
+                        <dxl:Column ColId="64" Attno="1" ColName="d_date_sk" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="65" Attno="2" ColName="d_date_id" TypeMdid="0.1042.1.0" ColWidth="16"/>
+                        <dxl:Column ColId="66" Attno="3" ColName="d_date" TypeMdid="0.1082.1.0"/>
+                        <dxl:Column ColId="67" Attno="4" ColName="d_month_seq" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="68" Attno="5" ColName="d_week_seq" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="69" Attno="6" ColName="d_quarter_seq" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="70" Attno="7" ColName="d_year" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="71" Attno="8" ColName="d_dow" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="72" Attno="9" ColName="d_moy" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="73" Attno="10" ColName="d_dom" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="74" Attno="11" ColName="d_qoy" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="75" Attno="12" ColName="d_fy_year" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="76" Attno="13" ColName="d_fy_quarter_seq" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="77" Attno="14" ColName="d_fy_week_seq" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="78" Attno="15" ColName="d_day_name" TypeMdid="0.1042.1.0" ColWidth="9"/>
+                        <dxl:Column ColId="79" Attno="16" ColName="d_quarter_name" TypeMdid="0.1042.1.0" ColWidth="6"/>
+                        <dxl:Column ColId="80" Attno="17" ColName="d_holiday" TypeMdid="0.1042.1.0" ColWidth="1"/>
+                        <dxl:Column ColId="81" Attno="18" ColName="d_weekend" TypeMdid="0.1042.1.0" ColWidth="1"/>
+                        <dxl:Column ColId="82" Attno="19" ColName="d_following_holiday" TypeMdid="0.1042.1.0" ColWidth="1"/>
+                        <dxl:Column ColId="83" Attno="20" ColName="d_first_dom" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="84" Attno="21" ColName="d_last_dom" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="85" Attno="22" ColName="d_same_day_ly" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="86" Attno="23" ColName="d_same_day_lq" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="87" Attno="24" ColName="d_current_day" TypeMdid="0.1042.1.0" ColWidth="1"/>
+                        <dxl:Column ColId="88" Attno="25" ColName="d_current_week" TypeMdid="0.1042.1.0" ColWidth="1"/>
+                        <dxl:Column ColId="89" Attno="26" ColName="d_current_month" TypeMdid="0.1042.1.0" ColWidth="1"/>
+                        <dxl:Column ColId="90" Attno="27" ColName="d_current_quarter" TypeMdid="0.1042.1.0" ColWidth="1"/>
+                        <dxl:Column ColId="91" Attno="28" ColName="d_current_year" TypeMdid="0.1042.1.0" ColWidth="1"/>
+                        <dxl:Column ColId="92" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                        <dxl:Column ColId="93" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                        <dxl:Column ColId="94" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                        <dxl:Column ColId="95" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                        <dxl:Column ColId="96" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                        <dxl:Column ColId="97" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                        <dxl:Column ColId="98" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                      </dxl:Columns>
+                    </dxl:TableDescriptor>
+                  </dxl:DynamicTableScan>
+                </dxl:Sequence>
+              </dxl:BroadcastMotion>
+            </dxl:PartitionSelector>
+          </dxl:HashJoin>
+        </dxl:GatherMotion>
+        <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
           <dxl:Properties>
-            <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
-          </dxl:Properties>
-          <dxl:ProjList>
-          </dxl:ProjList>
-          <dxl:PartEqFilters>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-          </dxl:PartEqFilters>
-          <dxl:PartFilters>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-          </dxl:PartFilters>
-          <dxl:ResidualFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-          </dxl:ResidualFilter>
-          <dxl:PropagationExpression>
-            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-          </dxl:PropagationExpression>
-          <dxl:PrintableFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-          </dxl:PrintableFilter>
-        </dxl:PartitionSelector>
-        <dxl:DynamicTableScan PartIndexId="2">
-          <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="91725.000000" Rows="11740800.000000" Width="16"/>
+            <dxl:Cost StartupCost="0" TotalCost="366902.000000" Rows="11740800.000000" Width="16"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="41" Alias="inv_date_sk">
@@ -4800,25 +4740,85 @@
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
-          <dxl:TableDescriptor Mdid="0.810176.1.1" TableName="inventory">
-            <dxl:Columns>
-              <dxl:Column ColId="41" Attno="1" ColName="inv_date_sk" TypeMdid="0.23.1.0"/>
-              <dxl:Column ColId="42" Attno="2" ColName="inv_item_sk" TypeMdid="0.23.1.0"/>
-              <dxl:Column ColId="43" Attno="3" ColName="inv_warehouse_sk" TypeMdid="0.23.1.0"/>
-              <dxl:Column ColId="44" Attno="4" ColName="inv_quantity_on_hand" TypeMdid="0.23.1.0"/>
-              <dxl:Column ColId="45" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-              <dxl:Column ColId="46" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-              <dxl:Column ColId="47" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-              <dxl:Column ColId="48" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-              <dxl:Column ColId="49" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-              <dxl:Column ColId="50" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-              <dxl:Column ColId="51" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-            </dxl:Columns>
-          </dxl:TableDescriptor>
-        </dxl:DynamicTableScan>
-      </dxl:Sequence>
-    </dxl:GatherMotion>
-  </dxl:HashJoin>
-</dxl:Plan>
+          <dxl:SortingColumnList/>
+          <dxl:Sequence>
+            <dxl:Properties>
+              <dxl:Cost StartupCost="0" TotalCost="91725.000000" Rows="11740800.000000" Width="16"/>
+            </dxl:Properties>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="41" Alias="inv_date_sk">
+                <dxl:Ident ColId="41" ColName="inv_date_sk" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="42" Alias="inv_item_sk">
+                <dxl:Ident ColId="42" ColName="inv_item_sk" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="43" Alias="inv_warehouse_sk">
+                <dxl:Ident ColId="43" ColName="inv_warehouse_sk" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="44" Alias="inv_quantity_on_hand">
+                <dxl:Ident ColId="44" ColName="inv_quantity_on_hand" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:PartitionSelector RelationMdid="0.810176.1.1" PartitionLevels="1" ScanId="2">
+              <dxl:Properties>
+                <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+          </dxl:ProjList>
+              <dxl:PartEqFilters>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              </dxl:PartEqFilters>
+              <dxl:PartFilters>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              </dxl:PartFilters>
+              <dxl:ResidualFilter>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              </dxl:ResidualFilter>
+              <dxl:PropagationExpression>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+              </dxl:PropagationExpression>
+              <dxl:PrintableFilter>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              </dxl:PrintableFilter>
+            </dxl:PartitionSelector>
+            <dxl:DynamicTableScan PartIndexId="2">
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0" TotalCost="91725.000000" Rows="11740800.000000" Width="16"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="41" Alias="inv_date_sk">
+                  <dxl:Ident ColId="41" ColName="inv_date_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="42" Alias="inv_item_sk">
+                  <dxl:Ident ColId="42" ColName="inv_item_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="43" Alias="inv_warehouse_sk">
+                  <dxl:Ident ColId="43" ColName="inv_warehouse_sk" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="44" Alias="inv_quantity_on_hand">
+                  <dxl:Ident ColId="44" ColName="inv_quantity_on_hand" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:TableDescriptor Mdid="0.810176.1.1" TableName="inventory">
+                <dxl:Columns>
+                  <dxl:Column ColId="41" Attno="1" ColName="inv_date_sk" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="42" Attno="2" ColName="inv_item_sk" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="43" Attno="3" ColName="inv_warehouse_sk" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="44" Attno="4" ColName="inv_quantity_on_hand" TypeMdid="0.23.1.0"/>
+                  <dxl:Column ColId="45" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                  <dxl:Column ColId="46" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                  <dxl:Column ColId="47" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                  <dxl:Column ColId="48" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                  <dxl:Column ColId="49" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                  <dxl:Column ColId="50" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                  <dxl:Column ColId="51" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                </dxl:Columns>
+              </dxl:TableDescriptor>
+            </dxl:DynamicTableScan>
+          </dxl:Sequence>
+        </dxl:GatherMotion>
+      </dxl:HashJoin>
+    </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>

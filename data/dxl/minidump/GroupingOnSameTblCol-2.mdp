@@ -22,8 +22,8 @@
           <dxl:OpClass Mdid="0.3041.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
-      <dxl:ColumnStatistics Mdid="1.2372852.1.1.25" Name="tableoid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.2372852.1.1.24" Name="ctid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.2372852.1.1.25" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.2372852.1.1.24" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.2372852.1.1.17" Name="managed_by" Width="4.000000" NullFreq="0.871697" NdvRemain="22.000000" FreqRemain="0.872414">
         <dxl:StatsBucket Frequency="0.001212" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAAC0FNRVhQVUI=" LintValue="787497918"/>
@@ -553,7 +553,7 @@
         <dxl:SumAgg Mdid="0.2108.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.2284492.1.1.13" Name="ctid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.2284492.1.1.13" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.2284492.1.1.12" Name="create_ts" Width="8.000000" NullFreq="0.159529" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.035941" DistinctValues="13.857143">
           <dxl:LowerBound Closed="true" TypeMdid="0.1114.1.0" IsNull="false" IsByValue="true" Value="AMDXeUmFAQA=" DoubleValue="428025600000000.000000"/>
@@ -897,7 +897,7 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.2372852.1.1.26" Name="gp_segment_id" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.2372852.1.1.26" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.2372852.1.1.19" Name="managed_by_source" Width="7.000000" NullFreq="0.871697" NdvRemain="2.000000" FreqRemain="0.871697">
         <dxl:StatsBucket Frequency="0.000716" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAADkFJTSBGSUxURVI=" LintValue="148259772"/>
@@ -1466,8 +1466,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.2284492.1.1.15" Name="gp_segment_id" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.2284492.1.1.14" Name="tableoid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.2284492.1.1.15" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.2284492.1.1.14" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.2284492.1.1.7" Name="log_sys" Width="4.000000" NullFreq="0.693607" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.011349" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
@@ -4110,247 +4110,203 @@
       </dxl:LogicalProject>
     </dxl:Query>
     <dxl:Plan Id="0" SpaceSize="32">
-  <dxl:Result>
-    <dxl:Properties>
-      <dxl:Cost StartupCost="0" TotalCost="35527083.472527" Rows="17210680.000000" Width="4"/>
-    </dxl:Properties>
-    <dxl:ProjList>
-      <dxl:ProjElem ColId="43" Alias="?column?">
-        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-      </dxl:ProjElem>
-    </dxl:ProjList>
-    <dxl:Filter/>
-    <dxl:OneTimeFilter/>
-    <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
-      <dxl:Properties>
-        <dxl:Cost StartupCost="0" TotalCost="35527014.629807" Rows="17210680.000000" Width="1"/>
-      </dxl:Properties>
-      <dxl:ProjList/>
-      <dxl:Filter/>
-      <dxl:SortingColumnList/>
       <dxl:Result>
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="35526937.353854" Rows="17210680.000000" Width="1"/>
+          <dxl:Cost StartupCost="0" TotalCost="35526954.754047" Rows="17210680.000000" Width="4"/>
         </dxl:Properties>
-        <dxl:ProjList/>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="43" Alias="?column?">
+            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
         <dxl:Filter/>
         <dxl:OneTimeFilter/>
-        <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="false">
+        <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="35526937.353854" Rows="17210680.000000" Width="1"/>
+            <dxl:Cost StartupCost="0" TotalCost="35526885.911327" Rows="17210680.000000" Width="1"/>
           </dxl:Properties>
-          <dxl:GroupingColumns>
-            <dxl:GroupingColumn ColId="1"/>
-            <dxl:GroupingColumn ColId="5"/>
-            <dxl:GroupingColumn ColId="14"/>
-            <dxl:GroupingColumn ColId="12"/>
-            <dxl:GroupingColumn ColId="11"/>
-            <dxl:GroupingColumn ColId="23"/>
-          </dxl:GroupingColumns>
-          <dxl:ProjList>
-            <dxl:ProjElem ColId="1" Alias="uid">
-              <dxl:Ident ColId="1" ColName="uid" TypeMdid="0.1043.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="5" Alias="hostname">
-              <dxl:Ident ColId="5" ColName="hostname" TypeMdid="0.1043.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="14" Alias="asset_type">
-              <dxl:Ident ColId="14" ColName="asset_type" TypeMdid="0.1043.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="12" Alias="friendly_os">
-              <dxl:Ident ColId="12" ColName="friendly_os" TypeMdid="0.1043.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="11" Alias="os">
-              <dxl:Ident ColId="11" ColName="os" TypeMdid="0.1043.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="23" Alias="create_ts">
-              <dxl:Ident ColId="23" ColName="create_ts" TypeMdid="0.1114.1.0"/>
-            </dxl:ProjElem>
-          </dxl:ProjList>
+          <dxl:ProjList/>
           <dxl:Filter/>
-          <dxl:HashJoin JoinType="Inner">
+          <dxl:SortingColumnList/>
+          <dxl:Result>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="8932456.010147" Rows="73804661527.327255" Width="69"/>
+              <dxl:Cost StartupCost="0" TotalCost="35526808.635374" Rows="17210680.000000" Width="1"/>
             </dxl:Properties>
-            <dxl:ProjList>
-              <dxl:ProjElem ColId="1" Alias="uid">
-                <dxl:Ident ColId="1" ColName="uid" TypeMdid="0.1043.1.0"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="5" Alias="hostname">
-                <dxl:Ident ColId="5" ColName="hostname" TypeMdid="0.1043.1.0"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="11" Alias="os">
-                <dxl:Ident ColId="11" ColName="os" TypeMdid="0.1043.1.0"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="12" Alias="friendly_os">
-                <dxl:Ident ColId="12" ColName="friendly_os" TypeMdid="0.1043.1.0"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="14" Alias="asset_type">
-                <dxl:Ident ColId="14" ColName="asset_type" TypeMdid="0.1043.1.0"/>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="23" Alias="create_ts">
-                <dxl:Ident ColId="23" ColName="create_ts" TypeMdid="0.1114.1.0"/>
-              </dxl:ProjElem>
-            </dxl:ProjList>
+            <dxl:ProjList/>
             <dxl:Filter/>
-            <dxl:JoinFilter/>
-            <dxl:HashCondList>
-              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-                <dxl:FuncExpr FuncId="0.871.1.0" FuncRetSet="false" TypeMdid="0.25.1.0">
-                  <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                    <dxl:Ident ColId="5" ColName="hostname" TypeMdid="0.1043.1.0"/>
-                  </dxl:Cast>
-                </dxl:FuncExpr>
-                <dxl:FuncExpr FuncId="0.871.1.0" FuncRetSet="false" TypeMdid="0.25.1.0">
-                  <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                    <dxl:Ident ColId="29" ColName="hostname" TypeMdid="0.1043.1.0"/>
-                  </dxl:Cast>
-                </dxl:FuncExpr>
-              </dxl:Comparison>
-              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.2060.1.0">
-                <dxl:Ident ColId="23" ColName="create_ts" TypeMdid="0.1114.1.0"/>
-                <dxl:Ident ColId="27" ColName="date" TypeMdid="0.1114.1.0"/>
-              </dxl:Comparison>
-            </dxl:HashCondList>
-            <dxl:DynamicTableScan PartIndexId="1">
+            <dxl:OneTimeFilter/>
+            <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="false">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="6694.095532" Rows="17210680.000000" Width="79"/>
+                <dxl:Cost StartupCost="0" TotalCost="35526808.635374" Rows="17210680.000000" Width="1"/>
               </dxl:Properties>
+              <dxl:GroupingColumns>
+                <dxl:GroupingColumn ColId="1"/>
+                <dxl:GroupingColumn ColId="5"/>
+                <dxl:GroupingColumn ColId="14"/>
+                <dxl:GroupingColumn ColId="12"/>
+                <dxl:GroupingColumn ColId="11"/>
+                <dxl:GroupingColumn ColId="23"/>
+              </dxl:GroupingColumns>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="1" Alias="uid">
                   <dxl:Ident ColId="1" ColName="uid" TypeMdid="0.1043.1.0"/>
                 </dxl:ProjElem>
-                <dxl:ProjElem ColId="3" Alias="active">
-                  <dxl:Ident ColId="3" ColName="active" TypeMdid="0.16.1.0"/>
-                </dxl:ProjElem>
                 <dxl:ProjElem ColId="5" Alias="hostname">
                   <dxl:Ident ColId="5" ColName="hostname" TypeMdid="0.1043.1.0"/>
                 </dxl:ProjElem>
-                <dxl:ProjElem ColId="11" Alias="os">
-                  <dxl:Ident ColId="11" ColName="os" TypeMdid="0.1043.1.0"/>
+                <dxl:ProjElem ColId="14" Alias="asset_type">
+                  <dxl:Ident ColId="14" ColName="asset_type" TypeMdid="0.1043.1.0"/>
                 </dxl:ProjElem>
                 <dxl:ProjElem ColId="12" Alias="friendly_os">
                   <dxl:Ident ColId="12" ColName="friendly_os" TypeMdid="0.1043.1.0"/>
                 </dxl:ProjElem>
-                <dxl:ProjElem ColId="13" Alias="vendor">
-                  <dxl:Ident ColId="13" ColName="vendor" TypeMdid="0.1043.1.0"/>
-                </dxl:ProjElem>
-                <dxl:ProjElem ColId="14" Alias="asset_type">
-                  <dxl:Ident ColId="14" ColName="asset_type" TypeMdid="0.1043.1.0"/>
+                <dxl:ProjElem ColId="11" Alias="os">
+                  <dxl:Ident ColId="11" ColName="os" TypeMdid="0.1043.1.0"/>
                 </dxl:ProjElem>
                 <dxl:ProjElem ColId="23" Alias="create_ts">
                   <dxl:Ident ColId="23" ColName="create_ts" TypeMdid="0.1114.1.0"/>
                 </dxl:ProjElem>
               </dxl:ProjList>
-              <dxl:Filter>
-                <dxl:And>
-                  <dxl:Comparison ComparisonOperator="&lt;&gt;" OperatorMdid="0.531.1.0">
-                    <dxl:FuncExpr FuncId="0.871.1.0" FuncRetSet="false" TypeMdid="0.25.1.0">
-                      <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                        <dxl:Coalesce TypeMdid="0.1043.1.0">
-                          <dxl:Ident ColId="13" ColName="vendor" TypeMdid="0.1043.1.0"/>
-                          <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABA==" LintValue="159678980"/>
-                        </dxl:Coalesce>
-                      </dxl:Cast>
-                    </dxl:FuncExpr>
-                    <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACUFQUExF" LintValue="181445414"/>
-                  </dxl:Comparison>
-                  <dxl:Or>
-                    <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-                      <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                        <dxl:Ident ColId="14" ColName="asset_type" TypeMdid="0.1043.1.0"/>
-                      </dxl:Cast>
-                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAAClNFUlZFUg==" LintValue="978993980"/>
-                    </dxl:Comparison>
-                    <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-                      <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                        <dxl:Ident ColId="14" ColName="asset_type" TypeMdid="0.1043.1.0"/>
-                      </dxl:Cast>
-                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAAD1dPUktTVEFUSU9O" LintValue="730448766"/>
-                    </dxl:Comparison>
-                  </dxl:Or>
-                  <dxl:Ident ColId="3" ColName="active" TypeMdid="0.16.1.0"/>
-                </dxl:And>
-              </dxl:Filter>
-              <dxl:TableDescriptor Mdid="0.2372852.1.1" TableName="asset_records">
-                <dxl:Columns>
-                  <dxl:Column ColId="0" Attno="1" ColName="parent" TypeMdid="0.16.1.0"/>
-                  <dxl:Column ColId="1" Attno="2" ColName="uid" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="2" Attno="3" ColName="checkin_timestamp" TypeMdid="0.1114.1.0"/>
-                  <dxl:Column ColId="3" Attno="4" ColName="active" TypeMdid="0.16.1.0"/>
-                  <dxl:Column ColId="4" Attno="5" ColName="dns" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="5" Attno="6" ColName="hostname" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="6" Attno="7" ColName="netbios" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="7" Attno="8" ColName="domain" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="8" Attno="9" ColName="ip" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="9" Attno="10" ColName="subnet" TypeMdid="0.1043.1.0" ColWidth="2048"/>
-                  <dxl:Column ColId="10" Attno="11" ColName="mac" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="11" Attno="12" ColName="os" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="12" Attno="13" ColName="friendly_os" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="13" Attno="14" ColName="vendor" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="14" Attno="15" ColName="asset_type" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="15" Attno="16" ColName="is_portable" TypeMdid="0.16.1.0"/>
-                  <dxl:Column ColId="16" Attno="17" ColName="release_environment" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="17" Attno="18" ColName="managed_by" TypeMdid="0.1043.1.0" ColWidth="2048"/>
-                  <dxl:Column ColId="18" Attno="19" ColName="explicitly_managed_by" TypeMdid="0.16.1.0"/>
-                  <dxl:Column ColId="19" Attno="20" ColName="managed_by_source" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="20" Attno="21" ColName="region" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="21" Attno="22" ColName="country" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="22" Attno="23" ColName="state" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                  <dxl:Column ColId="23" Attno="24" ColName="create_ts" TypeMdid="0.1114.1.0"/>
-                  <dxl:Column ColId="24" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                  <dxl:Column ColId="25" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                  <dxl:Column ColId="26" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-                </dxl:Columns>
-              </dxl:TableDescriptor>
-            </dxl:DynamicTableScan>
-            <dxl:PartitionSelector RelationMdid="0.2372852.1.1" PartitionLevels="1" ScanId="1">
-              <dxl:Properties>
-                <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
-              </dxl:Properties>
-              <dxl:ProjList>
-                <dxl:ProjElem ColId="27" Alias="date">
-                  <dxl:Ident ColId="27" ColName="date" TypeMdid="0.1114.1.0"/>
-                </dxl:ProjElem>
-                <dxl:ProjElem ColId="29" Alias="hostname">
-                  <dxl:Ident ColId="29" ColName="hostname" TypeMdid="0.1043.1.0"/>
-                </dxl:ProjElem>
-              </dxl:ProjList>
-              <dxl:PartEqFilters>
-                <dxl:Ident ColId="27" ColName="date" TypeMdid="0.1114.1.0"/>
-              </dxl:PartEqFilters>
-              <dxl:PartFilters>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-              </dxl:PartFilters>
-              <dxl:ResidualFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-              </dxl:ResidualFilter>
-              <dxl:PropagationExpression>
-                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-              </dxl:PropagationExpression>
-              <dxl:PrintableFilter>
-                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.2060.1.0">
-                  <dxl:Ident ColId="23" ColName="create_ts" TypeMdid="0.1114.1.0"/>
-                  <dxl:Ident ColId="27" ColName="date" TypeMdid="0.1114.1.0"/>
-                </dxl:Comparison>
-              </dxl:PrintableFilter>
-              <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:Filter/>
+              <dxl:HashJoin JoinType="Inner">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="2363.432358" Rows="7354444.712200" Width="17"/>
+                  <dxl:Cost StartupCost="0" TotalCost="8932327.291667" Rows="73804661527.327255" Width="69"/>
                 </dxl:Properties>
                 <dxl:ProjList>
-                  <dxl:ProjElem ColId="27" Alias="date">
-                    <dxl:Ident ColId="27" ColName="date" TypeMdid="0.1114.1.0"/>
+                  <dxl:ProjElem ColId="1" Alias="uid">
+                    <dxl:Ident ColId="1" ColName="uid" TypeMdid="0.1043.1.0"/>
                   </dxl:ProjElem>
-                  <dxl:ProjElem ColId="29" Alias="hostname">
-                    <dxl:Ident ColId="29" ColName="hostname" TypeMdid="0.1043.1.0"/>
+                  <dxl:ProjElem ColId="5" Alias="hostname">
+                    <dxl:Ident ColId="5" ColName="hostname" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="11" Alias="os">
+                    <dxl:Ident ColId="11" ColName="os" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="12" Alias="friendly_os">
+                    <dxl:Ident ColId="12" ColName="friendly_os" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="14" Alias="asset_type">
+                    <dxl:Ident ColId="14" ColName="asset_type" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="23" Alias="create_ts">
+                    <dxl:Ident ColId="23" ColName="create_ts" TypeMdid="0.1114.1.0"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>
-                <dxl:SortingColumnList/>
-                <dxl:TableScan>
+                <dxl:JoinFilter/>
+                <dxl:HashCondList>
+                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
+                    <dxl:FuncExpr FuncId="0.871.1.0" FuncRetSet="false" TypeMdid="0.25.1.0">
+                      <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                        <dxl:Ident ColId="5" ColName="hostname" TypeMdid="0.1043.1.0"/>
+                      </dxl:Cast>
+                    </dxl:FuncExpr>
+                    <dxl:FuncExpr FuncId="0.871.1.0" FuncRetSet="false" TypeMdid="0.25.1.0">
+                      <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                        <dxl:Ident ColId="29" ColName="hostname" TypeMdid="0.1043.1.0"/>
+                      </dxl:Cast>
+                    </dxl:FuncExpr>
+                  </dxl:Comparison>
+                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.2060.1.0">
+                    <dxl:Ident ColId="23" ColName="create_ts" TypeMdid="0.1114.1.0"/>
+                    <dxl:Ident ColId="27" ColName="date" TypeMdid="0.1114.1.0"/>
+                  </dxl:Comparison>
+                </dxl:HashCondList>
+                <dxl:DynamicTableScan PartIndexId="1">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="727.160340" Rows="3677222.356100" Width="17"/>
+                    <dxl:Cost StartupCost="0" TotalCost="6575.772107" Rows="17210680.000000" Width="79"/>
+                  </dxl:Properties>
+                  <dxl:ProjList>
+                    <dxl:ProjElem ColId="1" Alias="uid">
+                      <dxl:Ident ColId="1" ColName="uid" TypeMdid="0.1043.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="3" Alias="active">
+                      <dxl:Ident ColId="3" ColName="active" TypeMdid="0.16.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="5" Alias="hostname">
+                      <dxl:Ident ColId="5" ColName="hostname" TypeMdid="0.1043.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="11" Alias="os">
+                      <dxl:Ident ColId="11" ColName="os" TypeMdid="0.1043.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="12" Alias="friendly_os">
+                      <dxl:Ident ColId="12" ColName="friendly_os" TypeMdid="0.1043.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="13" Alias="vendor">
+                      <dxl:Ident ColId="13" ColName="vendor" TypeMdid="0.1043.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="14" Alias="asset_type">
+                      <dxl:Ident ColId="14" ColName="asset_type" TypeMdid="0.1043.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="23" Alias="create_ts">
+                      <dxl:Ident ColId="23" ColName="create_ts" TypeMdid="0.1114.1.0"/>
+                    </dxl:ProjElem>
+                  </dxl:ProjList>
+                  <dxl:Filter>
+                    <dxl:And>
+                      <dxl:Comparison ComparisonOperator="&lt;&gt;" OperatorMdid="0.531.1.0">
+                        <dxl:FuncExpr FuncId="0.871.1.0" FuncRetSet="false" TypeMdid="0.25.1.0">
+                          <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                            <dxl:Coalesce TypeMdid="0.1043.1.0">
+                              <dxl:Ident ColId="13" ColName="vendor" TypeMdid="0.1043.1.0"/>
+                              <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABA==" LintValue="159678980"/>
+                            </dxl:Coalesce>
+                          </dxl:Cast>
+                        </dxl:FuncExpr>
+                        <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACUFQUExF" LintValue="181445414"/>
+                      </dxl:Comparison>
+                      <dxl:Or>
+                        <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
+                          <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                            <dxl:Ident ColId="14" ColName="asset_type" TypeMdid="0.1043.1.0"/>
+                          </dxl:Cast>
+                          <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAAClNFUlZFUg==" LintValue="978993980"/>
+                        </dxl:Comparison>
+                        <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
+                          <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                            <dxl:Ident ColId="14" ColName="asset_type" TypeMdid="0.1043.1.0"/>
+                          </dxl:Cast>
+                          <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAAD1dPUktTVEFUSU9O" LintValue="730448766"/>
+                        </dxl:Comparison>
+                      </dxl:Or>
+                      <dxl:Ident ColId="3" ColName="active" TypeMdid="0.16.1.0"/>
+                    </dxl:And>
+                  </dxl:Filter>
+                  <dxl:TableDescriptor Mdid="0.2372852.1.1" TableName="asset_records">
+                    <dxl:Columns>
+                      <dxl:Column ColId="0" Attno="1" ColName="parent" TypeMdid="0.16.1.0"/>
+                      <dxl:Column ColId="1" Attno="2" ColName="uid" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="2" Attno="3" ColName="checkin_timestamp" TypeMdid="0.1114.1.0"/>
+                      <dxl:Column ColId="3" Attno="4" ColName="active" TypeMdid="0.16.1.0"/>
+                      <dxl:Column ColId="4" Attno="5" ColName="dns" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="5" Attno="6" ColName="hostname" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="6" Attno="7" ColName="netbios" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="7" Attno="8" ColName="domain" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="8" Attno="9" ColName="ip" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="9" Attno="10" ColName="subnet" TypeMdid="0.1043.1.0" ColWidth="2048"/>
+                      <dxl:Column ColId="10" Attno="11" ColName="mac" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="11" Attno="12" ColName="os" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="12" Attno="13" ColName="friendly_os" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="13" Attno="14" ColName="vendor" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="14" Attno="15" ColName="asset_type" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="15" Attno="16" ColName="is_portable" TypeMdid="0.16.1.0"/>
+                      <dxl:Column ColId="16" Attno="17" ColName="release_environment" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="17" Attno="18" ColName="managed_by" TypeMdid="0.1043.1.0" ColWidth="2048"/>
+                      <dxl:Column ColId="18" Attno="19" ColName="explicitly_managed_by" TypeMdid="0.16.1.0"/>
+                      <dxl:Column ColId="19" Attno="20" ColName="managed_by_source" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="20" Attno="21" ColName="region" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="21" Attno="22" ColName="country" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="22" Attno="23" ColName="state" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                      <dxl:Column ColId="23" Attno="24" ColName="create_ts" TypeMdid="0.1114.1.0"/>
+                      <dxl:Column ColId="24" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                      <dxl:Column ColId="25" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                      <dxl:Column ColId="26" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                    </dxl:Columns>
+                  </dxl:TableDescriptor>
+                </dxl:DynamicTableScan>
+                <dxl:PartitionSelector RelationMdid="0.2372852.1.1" PartitionLevels="1" ScanId="1">
+                  <dxl:Properties>
+                    <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="27" Alias="date">
@@ -4360,41 +4316,85 @@
                       <dxl:Ident ColId="29" ColName="hostname" TypeMdid="0.1043.1.0"/>
                     </dxl:ProjElem>
                   </dxl:ProjList>
-                  <dxl:Filter>
-                    <dxl:Not>
-                      <dxl:IsNull>
-                        <dxl:Ident ColId="31" ColName="vendor_sla" TypeMdid="0.23.1.0"/>
-                      </dxl:IsNull>
-                    </dxl:Not>
-                  </dxl:Filter>
-                  <dxl:TableDescriptor Mdid="0.2284492.1.1" TableName="coverage">
-                    <dxl:Columns>
-                      <dxl:Column ColId="27" Attno="1" ColName="date" TypeMdid="0.1114.1.0"/>
-                      <dxl:Column ColId="28" Attno="2" ColName="vendor" TypeMdid="0.1043.1.0" ColWidth="32"/>
-                      <dxl:Column ColId="29" Attno="3" ColName="hostname" TypeMdid="0.1043.1.0" ColWidth="64"/>
-                      <dxl:Column ColId="30" Attno="4" ColName="ip" TypeMdid="0.1043.1.0" ColWidth="16"/>
-                      <dxl:Column ColId="31" Attno="5" ColName="vendor_sla" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="32" Attno="6" ColName="log_any" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="33" Attno="7" ColName="log_sec" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="34" Attno="8" ColName="log_sys" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="35" Attno="9" ColName="log_app" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="36" Attno="10" ColName="first_log" TypeMdid="0.1114.1.0"/>
-                      <dxl:Column ColId="37" Attno="11" ColName="last_log" TypeMdid="0.1114.1.0"/>
-                      <dxl:Column ColId="38" Attno="12" ColName="reason" TypeMdid="0.1043.1.0" ColWidth="256"/>
-                      <dxl:Column ColId="39" Attno="13" ColName="create_ts" TypeMdid="0.1114.1.0"/>
-                      <dxl:Column ColId="40" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                      <dxl:Column ColId="41" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                      <dxl:Column ColId="42" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-                    </dxl:Columns>
-                  </dxl:TableDescriptor>
-                </dxl:TableScan>
-              </dxl:BroadcastMotion>
-            </dxl:PartitionSelector>
-          </dxl:HashJoin>
-        </dxl:Aggregate>
+                  <dxl:PartEqFilters>
+                    <dxl:Ident ColId="27" ColName="date" TypeMdid="0.1114.1.0"/>
+                  </dxl:PartEqFilters>
+                  <dxl:PartFilters>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                  </dxl:PartFilters>
+                  <dxl:ResidualFilter>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                  </dxl:ResidualFilter>
+                  <dxl:PropagationExpression>
+                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                  </dxl:PropagationExpression>
+                  <dxl:PrintableFilter>
+                    <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.2060.1.0">
+                      <dxl:Ident ColId="23" ColName="create_ts" TypeMdid="0.1114.1.0"/>
+                      <dxl:Ident ColId="27" ColName="date" TypeMdid="0.1114.1.0"/>
+                    </dxl:Comparison>
+                  </dxl:PrintableFilter>
+                  <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+                    <dxl:Properties>
+                      <dxl:Cost StartupCost="0" TotalCost="2353.037303" Rows="7354444.712200" Width="17"/>
+                    </dxl:Properties>
+                    <dxl:ProjList>
+                      <dxl:ProjElem ColId="27" Alias="date">
+                        <dxl:Ident ColId="27" ColName="date" TypeMdid="0.1114.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="29" Alias="hostname">
+                        <dxl:Ident ColId="29" ColName="hostname" TypeMdid="0.1043.1.0"/>
+                      </dxl:ProjElem>
+                    </dxl:ProjList>
+                    <dxl:Filter/>
+                    <dxl:SortingColumnList/>
+                    <dxl:TableScan>
+                      <dxl:Properties>
+                        <dxl:Cost StartupCost="0" TotalCost="716.765285" Rows="3677222.356100" Width="17"/>
+                      </dxl:Properties>
+                      <dxl:ProjList>
+                        <dxl:ProjElem ColId="27" Alias="date">
+                          <dxl:Ident ColId="27" ColName="date" TypeMdid="0.1114.1.0"/>
+                        </dxl:ProjElem>
+                        <dxl:ProjElem ColId="29" Alias="hostname">
+                          <dxl:Ident ColId="29" ColName="hostname" TypeMdid="0.1043.1.0"/>
+                        </dxl:ProjElem>
+                      </dxl:ProjList>
+                      <dxl:Filter>
+                        <dxl:Not>
+                          <dxl:IsNull>
+                            <dxl:Ident ColId="31" ColName="vendor_sla" TypeMdid="0.23.1.0"/>
+                          </dxl:IsNull>
+                        </dxl:Not>
+                      </dxl:Filter>
+                      <dxl:TableDescriptor Mdid="0.2284492.1.1" TableName="coverage">
+                        <dxl:Columns>
+                          <dxl:Column ColId="27" Attno="1" ColName="date" TypeMdid="0.1114.1.0"/>
+                          <dxl:Column ColId="28" Attno="2" ColName="vendor" TypeMdid="0.1043.1.0" ColWidth="32"/>
+                          <dxl:Column ColId="29" Attno="3" ColName="hostname" TypeMdid="0.1043.1.0" ColWidth="64"/>
+                          <dxl:Column ColId="30" Attno="4" ColName="ip" TypeMdid="0.1043.1.0" ColWidth="16"/>
+                          <dxl:Column ColId="31" Attno="5" ColName="vendor_sla" TypeMdid="0.23.1.0"/>
+                          <dxl:Column ColId="32" Attno="6" ColName="log_any" TypeMdid="0.23.1.0"/>
+                          <dxl:Column ColId="33" Attno="7" ColName="log_sec" TypeMdid="0.23.1.0"/>
+                          <dxl:Column ColId="34" Attno="8" ColName="log_sys" TypeMdid="0.23.1.0"/>
+                          <dxl:Column ColId="35" Attno="9" ColName="log_app" TypeMdid="0.23.1.0"/>
+                          <dxl:Column ColId="36" Attno="10" ColName="first_log" TypeMdid="0.1114.1.0"/>
+                          <dxl:Column ColId="37" Attno="11" ColName="last_log" TypeMdid="0.1114.1.0"/>
+                          <dxl:Column ColId="38" Attno="12" ColName="reason" TypeMdid="0.1043.1.0" ColWidth="256"/>
+                          <dxl:Column ColId="39" Attno="13" ColName="create_ts" TypeMdid="0.1114.1.0"/>
+                          <dxl:Column ColId="40" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                          <dxl:Column ColId="41" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                          <dxl:Column ColId="42" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                        </dxl:Columns>
+                      </dxl:TableDescriptor>
+                    </dxl:TableScan>
+                  </dxl:BroadcastMotion>
+                </dxl:PartitionSelector>
+              </dxl:HashJoin>
+            </dxl:Aggregate>
+          </dxl:Result>
+        </dxl:GatherMotion>
       </dxl:Result>
-    </dxl:GatherMotion>
-  </dxl:Result>
-</dxl:Plan>
+    </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>

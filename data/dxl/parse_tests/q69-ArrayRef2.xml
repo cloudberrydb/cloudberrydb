@@ -69,7 +69,7 @@
                   <dxl:ConstValue TypeMdid="0.1007.1.0" IsNull="true" IsByValue="false"/>
                 </dxl:RefExpr>
                 <dxl:AssignExpr>
-                  <dxl:ConstValue TypeMdid="0.1007.1.0" IsNull="false" IsByValue="false" Value="AAAAOAMAAAAAAAAAFwAAAAEAAAACAAAAAgAAAAEAAAABAAAAAQAAAAAAAAAA&#xA;AAAAAQAAAAIAAAA="/>
+                  <dxl:ConstValue TypeMdid="0.1007.1.0" IsNull="false" IsByValue="false" Value="AAAAOAMAAAAAAAAAFwAAAAEAAAACAAAAAgAAAAEAAAABAAAAAQAAAAAAAAAA&#10;AAAAAQAAAAIAAAA="/>
                 </dxl:AssignExpr>
               </dxl:ArrayRef>
             </dxl:ProjElem>

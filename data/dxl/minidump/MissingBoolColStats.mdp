@@ -108,18 +108,18 @@ select b from foo_bool group by b;
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:GPDBScalarOp Mdid="0.58.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true"> 
-       <dxl:LeftType Mdid="0.16.1.0"/>                                                                
-       <dxl:RightType Mdid="0.16.1.0"/>                                                               
-       <dxl:ResultType Mdid="0.16.1.0"/>                                                              
-       <dxl:OpFunc Mdid="0.56.1.0"/>                                                                  
-       <dxl:Commutator Mdid="0.59.1.0"/>                                                              
-       <dxl:InverseOp Mdid="0.1695.1.0"/>                                                             
-       <dxl:OpClasses>                                                                                
-         <dxl:OpClass Mdid="0.424.1.0"/>                                                              
-         <dxl:OpClass Mdid="0.3017.1.0"/>                                                             
-       </dxl:OpClasses>                                                                               
-     </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.58.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.16.1.0"/>
+        <dxl:RightType Mdid="0.16.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.56.1.0"/>
+        <dxl:Commutator Mdid="0.59.1.0"/>
+        <dxl:InverseOp Mdid="0.1695.1.0"/>
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.424.1.0"/>
+          <dxl:OpClass Mdid="0.3017.1.0"/>
+        </dxl:OpClasses>
+      </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.1474154.1.1.7" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="1.000000" FreqRemain="0.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.1474154.1.1.6" Name="cmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.1474154.1.1.8" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="3.000000" FreqRemain="0.000000" ColStatsMissing="false"/>
@@ -291,4 +291,3 @@ select b from foo_bool group by b;
     </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>
-

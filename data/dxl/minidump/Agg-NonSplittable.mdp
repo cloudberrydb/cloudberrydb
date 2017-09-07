@@ -68,8 +68,8 @@
         <dxl:SumAgg Mdid="0.2114.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.109045.1.1.21" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.109045.1.1.20" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.109045.1.1.21" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.109045.1.1.20" Name="cmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.13" Name="stringu1" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.12" Name="even" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.5" Name="twenty" Width="8.000000"/>
@@ -138,7 +138,7 @@
         <dxl:ResultType Mdid="0.1700.1.0"/>
         <dxl:IntermediateResultType Mdid="0.17.1.0"/>
       </dxl:GPDBAgg>
-      <dxl:ColumnStatistics Mdid="1.109045.1.1.22" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.109045.1.1.22" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.15" Name="string4" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.14" Name="stringu2" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.7" Name="thousand" Width="8.000000"/>
@@ -220,14 +220,14 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.109045.1.1.17" Name="xmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.109045.1.1.16" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.109045.1.1.17" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.109045.1.1.16" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.9" Name="fivethous" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.8" Name="twothousand" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.1" Name="unique2" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.0" Name="unique1" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.109045.1.1.19" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.109045.1.1.18" Name="cmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.109045.1.1.19" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.109045.1.1.18" Name="cmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.11" Name="odd" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.10" Name="tenthous" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.2" Name="two" Width="8.000000"/>

@@ -31,19 +31,19 @@
         <dxl:Commutator Mdid="0.96.1.0"/>
         <dxl:InverseOp Mdid="0.518.1.0"/>
       </dxl:GPDBScalarOp>
-      <dxl:GPDBScalarOp Mdid="0.413.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true"> 
-       <dxl:LeftType Mdid="0.20.1.0"/>                                                                 
-       <dxl:RightType Mdid="0.20.1.0"/>                                                                
-       <dxl:ResultType Mdid="0.16.1.0"/>                                                               
-       <dxl:OpFunc Mdid="0.470.1.0"/>                                                                  
-       <dxl:Commutator Mdid="0.412.1.0"/>                                                              
-       <dxl:InverseOp Mdid="0.414.1.0"/>                                                               
-       <dxl:OpClasses>                                                                                 
-         <dxl:OpClass Mdid="0.1980.1.0"/>                                                              
-         <dxl:OpClass Mdid="0.3028.1.0"/>                                                              
-       </dxl:OpClasses>                                                                                
-     </dxl:GPDBScalarOp>
-	 <dxl:GPDBScalarOp Mdid="0.1754.1.0" Name="&lt;" ComparisonType="LT">
+      <dxl:GPDBScalarOp Mdid="0.413.1.0" Name="&gt;" ComparisonType="GT" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.20.1.0"/>
+        <dxl:RightType Mdid="0.20.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.470.1.0"/>
+        <dxl:Commutator Mdid="0.412.1.0"/>
+        <dxl:InverseOp Mdid="0.414.1.0"/>
+        <dxl:OpClasses>
+          <dxl:OpClass Mdid="0.1980.1.0"/>
+          <dxl:OpClass Mdid="0.3028.1.0"/>
+        </dxl:OpClasses>
+      </dxl:GPDBScalarOp>
+      <dxl:GPDBScalarOp Mdid="0.1754.1.0" Name="&lt;" ComparisonType="LT">
         <dxl:LeftType Mdid="0.1700.1.0"/>
         <dxl:RightType Mdid="0.1700.1.0"/>
         <dxl:ResultType Mdid="0.16.1.0"/>
@@ -75,14 +75,14 @@
         <dxl:Commutator Mdid="0.666.1.0"/>
         <dxl:InverseOp Mdid="0.667.1.0"/>
       </dxl:GPDBScalarOp>
-     <dxl:GPDBScalarOp Mdid="0.58.1.0" Name="&lt;" ComparisonType="LT"> 
-       <dxl:LeftType Mdid="0.16.1.0"/>                                  
-       <dxl:RightType Mdid="0.16.1.0"/>                                 
-       <dxl:ResultType Mdid="0.16.1.0"/>                                
-       <dxl:OpFunc Mdid="0.56.1.0"/>                                    
-       <dxl:Commutator Mdid="0.59.1.0"/>                                
-       <dxl:InverseOp Mdid="0.1695.1.0"/>                               
-     </dxl:GPDBScalarOp> 
+      <dxl:GPDBScalarOp Mdid="0.58.1.0" Name="&lt;" ComparisonType="LT">
+        <dxl:LeftType Mdid="0.16.1.0"/>
+        <dxl:RightType Mdid="0.16.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.56.1.0"/>
+        <dxl:Commutator Mdid="0.59.1.0"/>
+        <dxl:InverseOp Mdid="0.1695.1.0"/>
+      </dxl:GPDBScalarOp>
       <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
         <dxl:EqualityOp Mdid="0.91.1.0"/>
         <dxl:InequalityOp Mdid="0.85.1.0"/>
@@ -208,8 +208,8 @@
         <dxl:ResultType Mdid="0.20.1.0"/>
         <dxl:IntermediateResultType Mdid="0.20.1.0"/>
       </dxl:GPDBAgg>
-      <dxl:ColumnStatistics Mdid="1.738647.1.1.19" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.738647.1.1.18" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.738647.1.1.19" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.738647.1.1.18" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.738647.1.1.11" Name="month_name" Width="10.000000">
         <dxl:StatsBucket Frequency="0.083316" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAADUFQUklMICAgIA==" LintValue="556270372"/>
@@ -341,8 +341,8 @@
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.738647.1.1.2" Name="date_text_id" Width="9.000000"/>
-      <dxl:ColumnStatistics Mdid="1.740207.1.1.21" Name="cmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.740207.1.1.20" Name="xmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.740207.1.1.21" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.740207.1.1.20" Name="xmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.740207.1.1.13" Name="l_receiptdate" Width="4.000000">
         <dxl:StatsBucket Frequency="0.037705" DistinctValues="96.538462">
           <dxl:LowerBound Closed="true" TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="nvT//w==" DoubleValue="-251769600000000"/>
@@ -1307,7 +1307,7 @@
         <dxl:Commutator Mdid="0.2800.1.0"/>
         <dxl:InverseOp Mdid="0.2802.1.0"/>
       </dxl:GPDBScalarOp>
-      <dxl:ColumnStatistics Mdid="1.738647.1.1.17" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.738647.1.1.17" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.738647.1.1.16" Name="days_in_year" Width="4.000000">
         <dxl:StatsBucket Frequency="0.711676" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="365"/>
@@ -2144,8 +2144,8 @@
       <dxl:GPDBFunc Mdid="0.6085.1.0" Name="gp_partition_expansion" ReturnsSet="true" Stability="Stable" DataAccess="NoSQL" IsStrict="true">
         <dxl:ResultType Mdid="0.26.1.0"/>
       </dxl:GPDBFunc>
-      <dxl:ColumnStatistics Mdid="1.740207.1.1.23" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.740207.1.1.22" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.740207.1.1.23" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.740207.1.1.22" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.740207.1.1.15" Name="l_shipmode" Width="11.000000">
         <dxl:StatsBucket Frequency="0.136927" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAADkFJUiAgICAgICA=" LintValue="840958900"/>
@@ -2546,8 +2546,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAADgEAAgAJAFUTiBM=" DoubleValue="94949.500000"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.738647.1.1.23" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.738647.1.1.22" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.738647.1.1.23" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.738647.1.1.22" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.738647.1.1.15" Name="leap" Width="1.000000">
         <dxl:StatsBucket Frequency="0.711676" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
@@ -2880,7 +2880,7 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="5"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.740207.1.1.17" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.740207.1.1.17" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.740207.1.1.16" Name="l_comment" Width="27.000000">
         <dxl:StatsBucket Frequency="0.000115" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAAFSBhY2NvcmRpbmcgdG8gdGhl" LintValue="869835700"/>
@@ -3719,8 +3719,8 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.738647.1.1.21" Name="cmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.738647.1.1.20" Name="xmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.738647.1.1.21" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.738647.1.1.20" Name="xmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.738647.1.1.13" Name="quarter_number" Width="4.000000">
         <dxl:StatsBucket Frequency="0.248610" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
@@ -4001,8 +4001,8 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.740207.1.1.19" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.740207.1.1.18" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.740207.1.1.19" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.740207.1.1.18" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.740207.1.1.11" Name="l_shipdate" Width="4.000000">
         <dxl:StatsBucket Frequency="0.029184" DistinctValues="73.051106">
           <dxl:LowerBound Closed="true" TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="nfT//w==" DoubleValue="-251856000000000"/>
@@ -4973,7 +4973,7 @@
         </dxl:Or>
       </dxl:LogicalJoin>
     </dxl:Query>
-	<dxl:Plan Id="0" SpaceSize="5236">
+    <dxl:Plan Id="0" SpaceSize="5236">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="4513667802.853027" Rows="60175000.000000" Width="15"/>
@@ -5281,5 +5281,5 @@
         </dxl:NestedLoopJoin>
       </dxl:GatherMotion>
     </dxl:Plan>
- </dxl:Thread>
+  </dxl:Thread>
 </dxl:DXLMessage>

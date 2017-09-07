@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-<!--
+  <!--
 SQL:
 explain SELECT   s_name, 
          s_address 
@@ -567,7 +567,7 @@ ORDER BY s_name;
           <dxl:UpperBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAEzM0LTk5OS0zODMtMTU4Mw==" LintValue="669934564"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.11778256.1.1.9" Name="ctid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778256.1.1.9" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.11778256.1.1.8" Name="p_comment" Width="14.000000" NullFreq="0.000000" NdvRemain="91189.000000" FreqRemain="0.988358" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.000510" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAACSBibGl0" LintValue="573211438"/>
@@ -881,7 +881,7 @@ ORDER BY s_name;
         <dxl:SumAgg Mdid="0.2108.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.11778166.1.1.18" Name="gp_segment_id" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778166.1.1.18" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.11778166.1.1.11" Name="l_commitdate" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.037692" DistinctValues="94.384615">
           <dxl:LowerBound Closed="true" TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="tvT//w==" DoubleValue="-249696000000000.000000"/>
@@ -1826,8 +1826,8 @@ ORDER BY s_name;
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="63995680"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.11778286.1.1.7" Name="gp_segment_id" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
-      <dxl:ColumnStatistics Mdid="1.11778286.1.1.6" Name="tableoid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778286.1.1.7" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778286.1.1.6" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:GPDBScalarOp Mdid="0.410.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
         <dxl:LeftType Mdid="0.20.1.0"/>
         <dxl:RightType Mdid="0.20.1.0"/>
@@ -2248,7 +2248,7 @@ ORDER BY s_name;
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="24"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.11778349.1.1.7" Name="ctid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778349.1.1.7" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.11778349.1.1.6" Name="s_comment" Width="63.000000" NullFreq="0.000000" NdvRemain="75644774.000000" FreqRemain="0.998648" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.000052" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAANSBjYWpvbGUgc29tZXRpbWVzIHJlZ3VsYXIgcmVxdWVzdHMuIGlyb25p&#10;YyBpZGVhcyA=" LintValue="92275566"/>
@@ -2351,8 +2351,8 @@ ORDER BY s_name;
           <dxl:UpperBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAAUXVzdWFsIHJlcXVlc3RzIHdha2UgYmxpdGhlbHkuIGlkZWFzIGhhZ2ds&#10;ZS4gZmluYWwsIGV2ZW4gZm94ZXMgbmFnIGZsdWZmaWx5IGFi" LintValue="588006332"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.11778256.1.1.11" Name="gp_segment_id" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
-      <dxl:ColumnStatistics Mdid="1.11778256.1.1.10" Name="tableoid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778256.1.1.11" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778256.1.1.10" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.11778256.1.1.3" Name="p_brand" Width="11.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.042393" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAADkJyYW5kIzExICA=" LintValue="828638068"/>
@@ -2477,8 +2477,8 @@ ORDER BY s_name;
           <dxl:UpperBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAHU1hbnVmYWN0dXJlciM1ICAgICAgICAgICA=" LintValue="570426276"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.11778166.1.1.17" Name="tableoid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
-      <dxl:ColumnStatistics Mdid="1.11778166.1.1.16" Name="ctid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778166.1.1.17" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778166.1.1.16" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.11778166.1.1.9" Name="l_linestatus" Width="2.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.495028" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAABUY=" LintValue="160743980"/>
@@ -2715,7 +2715,7 @@ ORDER BY s_name;
           <dxl:UpperBound Closed="true" TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="38396397893"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.11778286.1.1.5" Name="ctid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778286.1.1.5" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.11778286.1.1.4" Name="ps_comment" Width="126.000000" NullFreq="0.000000" NdvRemain="10239899648.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:Type Mdid="0.1082.1.0" Name="date" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.1093.1.0"/>
@@ -2736,9 +2736,9 @@ ORDER BY s_name;
         <dxl:ResultType Mdid="0.1700.1.0"/>
         <dxl:IntermediateResultType Mdid="0.1700.1.0"/>
       </dxl:GPDBAgg>
-      <dxl:ColumnStatistics Mdid="1.11778196.1.1.6" Name="gp_segment_id" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
-      <dxl:ColumnStatistics Mdid="1.11778349.1.1.9" Name="gp_segment_id" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
-      <dxl:ColumnStatistics Mdid="1.11778349.1.1.8" Name="tableoid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778196.1.1.6" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778349.1.1.9" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778349.1.1.8" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.11778349.1.1.1" Name="s_name" Width="26.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.038462" DistinctValues="4923076.923077">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAHVN1cHBsaWVyIzAwMDAwMTE1MiAgICAgICA=" LintValue="858784566"/>
@@ -4151,8 +4151,8 @@ ORDER BY s_name;
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
-      <dxl:ColumnStatistics Mdid="1.11778196.1.1.5" Name="tableoid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
-      <dxl:ColumnStatistics Mdid="1.11778196.1.1.4" Name="ctid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778196.1.1.5" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
+      <dxl:ColumnStatistics Mdid="1.11778196.1.1.4" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.11778349.1.1.2" Name="s_address" Width="26.000000" NullFreq="0.000000" NdvRemain="128000000.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
       <dxl:ColumnStatistics Mdid="1.11778349.1.1.3" Name="s_nationkey" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="false">
         <dxl:StatsBucket Frequency="0.040401" DistinctValues="1.000000">
@@ -6360,7 +6360,7 @@ ORDER BY s_name;
     <dxl:Plan Id="0" SpaceSize="3879264">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="24324523.624994" Rows="49.989277" Width="52"/>
+          <dxl:Cost StartupCost="0" TotalCost="24077771.955737" Rows="49.989277" Width="52"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="1" Alias="s_name">
@@ -6376,7 +6376,7 @@ ORDER BY s_name;
         </dxl:SortingColumnList>
         <dxl:Sort SortDiscardDuplicates="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="24324523.613323" Rows="49.989277" Width="52"/>
+            <dxl:Cost StartupCost="0" TotalCost="24077771.944065" Rows="49.989277" Width="52"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="1" Alias="s_name">
@@ -6394,7 +6394,7 @@ ORDER BY s_name;
           <dxl:LimitOffset/>
           <dxl:HashJoin JoinType="Inner">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="24324523.579103" Rows="49.989277" Width="52"/>
+              <dxl:Cost StartupCost="0" TotalCost="24077771.909845" Rows="49.989277" Width="52"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="1" Alias="s_name">
@@ -6414,7 +6414,7 @@ ORDER BY s_name;
             </dxl:HashCondList>
             <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="24324092.565171" Rows="24.994638" Width="56"/>
+                <dxl:Cost StartupCost="0" TotalCost="24077340.896051" Rows="24.994638" Width="56"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="1" Alias="s_name">
@@ -6436,7 +6436,7 @@ ORDER BY s_name;
               </dxl:HashExprList>
               <dxl:HashJoin JoinType="In">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="24324092.562980" Rows="24.994638" Width="56"/>
+                  <dxl:Cost StartupCost="0" TotalCost="24077340.893860" Rows="24.994638" Width="56"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="1" Alias="s_name">
@@ -6459,7 +6459,7 @@ ORDER BY s_name;
                 </dxl:HashCondList>
                 <dxl:TableScan>
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="6450.200000" Rows="128000000.000000" Width="60"/>
+                    <dxl:Cost StartupCost="0" TotalCost="6098.200000" Rows="128000000.000000" Width="60"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="0" Alias="s_suppkey">
@@ -6493,7 +6493,7 @@ ORDER BY s_name;
                 </dxl:TableScan>
                 <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="24297038.198146" Rows="24.994638" Width="4"/>
+                    <dxl:Cost StartupCost="0" TotalCost="24050638.529026" Rows="24.994638" Width="4"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="18" Alias="ps_suppkey">
@@ -6509,7 +6509,7 @@ ORDER BY s_name;
                   </dxl:HashExprList>
                   <dxl:HashJoin JoinType="Inner">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="24297038.197990" Rows="24.994638" Width="4"/>
+                      <dxl:Cost StartupCost="0" TotalCost="24050638.528870" Rows="24.994638" Width="4"/>
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="18" Alias="ps_suppkey">
@@ -6537,7 +6537,7 @@ ORDER BY s_name;
                     </dxl:HashCondList>
                     <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
                       <dxl:Properties>
-                        <dxl:Cost StartupCost="0" TotalCost="3278937.245473" Rows="2559980032.000001" Width="12"/>
+                        <dxl:Cost StartupCost="0" TotalCost="3243737.576353" Rows="2559980032.000001" Width="12"/>
                       </dxl:Properties>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="17" Alias="ps_partkey">
@@ -6562,7 +6562,7 @@ ORDER BY s_name;
                       </dxl:HashExprList>
                       <dxl:HashJoin JoinType="Inner">
                         <dxl:Properties>
-                          <dxl:Cost StartupCost="0" TotalCost="3230860.820472" Rows="2559980032.000001" Width="12"/>
+                          <dxl:Cost StartupCost="0" TotalCost="3195661.151352" Rows="2559980032.000001" Width="12"/>
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="17" Alias="ps_partkey">
@@ -6585,7 +6585,7 @@ ORDER BY s_name;
                         </dxl:HashCondList>
                         <dxl:TableScan>
                           <dxl:Properties>
-                            <dxl:Cost StartupCost="0" TotalCost="479146.308544" Rows="10239899648.000000" Width="12"/>
+                            <dxl:Cost StartupCost="0" TotalCost="450986.584512" Rows="10239899648.000000" Width="12"/>
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="17" Alias="ps_partkey">
@@ -6614,7 +6614,7 @@ ORDER BY s_name;
                         </dxl:TableScan>
                         <dxl:TableScan>
                           <dxl:Properties>
-                            <dxl:Cost StartupCost="0" TotalCost="110958.137882" Rows="2559980032.000000" Width="4"/>
+                            <dxl:Cost StartupCost="0" TotalCost="103918.192794" Rows="2559980032.000000" Width="4"/>
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="25" Alias="p_partkey">
@@ -6643,7 +6643,7 @@ ORDER BY s_name;
                     </dxl:RedistributeMotion>
                     <dxl:Result>
                       <dxl:Properties>
-                        <dxl:Cost StartupCost="0" TotalCost="11357638.371520" Rows="22628309333.333336" Width="16"/>
+                        <dxl:Cost StartupCost="0" TotalCost="11146438.371520" Rows="22628309333.333336" Width="16"/>
                       </dxl:Properties>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="57" Alias="?column?">
@@ -6663,7 +6663,7 @@ ORDER BY s_name;
                       <dxl:OneTimeFilter/>
                       <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="false">
                         <dxl:Properties>
-                          <dxl:Cost StartupCost="0" TotalCost="11176611.896853" Rows="22628309333.333336" Width="16"/>
+                          <dxl:Cost StartupCost="0" TotalCost="10965411.896853" Rows="22628309333.333336" Width="16"/>
                         </dxl:Properties>
                         <dxl:GroupingColumns>
                           <dxl:GroupingColumn ColId="38"/>
@@ -6685,7 +6685,7 @@ ORDER BY s_name;
                         <dxl:Filter/>
                         <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
                           <dxl:Properties>
-                            <dxl:Cost StartupCost="0" TotalCost="8319108.994240" Rows="22628309333.333336" Width="16"/>
+                            <dxl:Cost StartupCost="0" TotalCost="8107908.994240" Rows="22628309333.333336" Width="16"/>
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="38" Alias="l_partkey">
@@ -6710,7 +6710,7 @@ ORDER BY s_name;
                           </dxl:HashExprList>
                           <dxl:Result>
                             <dxl:Properties>
-                              <dxl:Cost StartupCost="0" TotalCost="7752496.128533" Rows="22628309333.333336" Width="16"/>
+                              <dxl:Cost StartupCost="0" TotalCost="7541296.128533" Rows="22628309333.333336" Width="16"/>
                             </dxl:Properties>
                             <dxl:ProjList>
                               <dxl:ProjElem ColId="38" Alias="l_partkey">
@@ -6727,7 +6727,7 @@ ORDER BY s_name;
                             <dxl:OneTimeFilter/>
                             <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="true">
                               <dxl:Properties>
-                                <dxl:Cost StartupCost="0" TotalCost="7752496.128533" Rows="22628309333.333336" Width="16"/>
+                                <dxl:Cost StartupCost="0" TotalCost="7541296.128533" Rows="22628309333.333336" Width="16"/>
                               </dxl:Properties>
                               <dxl:GroupingColumns>
                                 <dxl:GroupingColumn ColId="38"/>
@@ -6749,7 +6749,7 @@ ORDER BY s_name;
                               <dxl:Filter/>
                               <dxl:TableScan>
                                 <dxl:Properties>
-                                  <dxl:Cost StartupCost="0" TotalCost="4894993.225920" Rows="22628309333.333336" Width="15"/>
+                                  <dxl:Cost StartupCost="0" TotalCost="4683793.225920" Rows="22628309333.333336" Width="15"/>
                                 </dxl:Properties>
                                 <dxl:ProjList>
                                   <dxl:ProjElem ColId="38" Alias="l_partkey">
@@ -6803,7 +6803,7 @@ ORDER BY s_name;
             </dxl:RedistributeMotion>
             <dxl:TableScan>
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.001829" Rows="50.000000" Width="4"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.001691" Rows="50.000000" Width="4"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="10" Alias="n_nationkey">

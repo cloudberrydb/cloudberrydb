@@ -53,17 +53,17 @@
         </dxl:Columns>
       </dxl:LogicalTVF>
     </dxl:Query>
-<dxl:Plan Id="0" SpaceSize="0">
-  <dxl:TableValuedFunction FuncId="0.1598.1.0" Name="random" TypeMdid="0.701.1.0">
-    <dxl:Properties>
-      <dxl:Cost StartupCost="0" TotalCost="0.015625" Rows="1.000000" Width="8"/>
-    </dxl:Properties>
-    <dxl:ProjList>
-      <dxl:ProjElem ColId="0" Alias="random">
-        <dxl:Ident ColId="0" ColName="random" TypeMdid="0.701.1.0"/>
-      </dxl:ProjElem>
-    </dxl:ProjList>
-  </dxl:TableValuedFunction>
-</dxl:Plan>
+    <dxl:Plan Id="0" SpaceSize="0">
+      <dxl:TableValuedFunction FuncId="0.1598.1.0" Name="random" TypeMdid="0.701.1.0">
+        <dxl:Properties>
+          <dxl:Cost StartupCost="0" TotalCost="0.015625" Rows="1.000000" Width="8"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="0" Alias="random">
+            <dxl:Ident ColId="0" ColName="random" TypeMdid="0.701.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+      </dxl:TableValuedFunction>
+    </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>

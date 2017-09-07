@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-<!--
+  <!--
 SQL:
 CREATE TABLE attribute_table (product_id integer, attribute_id integer,attribute text, attribute2 text,attribute_ref_lists text,short_name text,attribute6 text,attribute5 text,measure double precision,unit character varying(60)) DISTRIBUTED BY (product_id ,attribute_id);
 CREATE OR REPLACE FUNCTION do_concat(text,text) 
@@ -155,8 +155,8 @@ select product_id,concat('#attribute_'||attribute_id::varchar||':'||attribute) a
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.1553603.1.1.11" Name="xmin" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1553603.1.1.10" Name="ctid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1553603.1.1.11" Name="xmin" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1553603.1.1.10" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1553603.1.1.3" Name="attribute2" Width="10.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.106383" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABTE=" LintValue="161096236"/>
@@ -601,7 +601,7 @@ select product_id,concat('#attribute_'||attribute_id::varchar||':'||attribute) a
         <dxl:SumAgg Mdid="0.2111.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.1553603.1.1.16" Name="gp_segment_id" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1553603.1.1.16" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1553603.1.1.9" Name="unit" Width="3.000000" NullFreq="0.851064" NdvRemain="1.000000" FreqRemain="0.851064">
         <dxl:StatsBucket Frequency="0.021277" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABkdC" LintValue="689718060"/>
@@ -1017,8 +1017,8 @@ select product_id,concat('#attribute_'||attribute_id::varchar||':'||attribute) a
         <dxl:ResultType Mdid="0.25.1.0"/>
         <dxl:IntermediateResultType Mdid="0.25.1.0"/>
       </dxl:GPDBAgg>
-      <dxl:ColumnStatistics Mdid="1.1553603.1.1.15" Name="tableoid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1553603.1.1.14" Name="cmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1553603.1.1.15" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1553603.1.1.14" Name="cmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1553603.1.1.7" Name="attribute5" Width="36.000000" NullFreq="0.031915" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.106383" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABTE=" LintValue="161096236"/>
@@ -1466,8 +1466,8 @@ select product_id,concat('#attribute_'||attribute_id::varchar||':'||attribute) a
       <dxl:GPDBFunc Mdid="0.112.1.0" Name="text" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
         <dxl:ResultType Mdid="0.25.1.0"/>
       </dxl:GPDBFunc>
-      <dxl:ColumnStatistics Mdid="1.1553603.1.1.13" Name="xmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1553603.1.1.12" Name="cmin" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1553603.1.1.13" Name="xmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1553603.1.1.12" Name="cmin" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1553603.1.1.5" Name="short_name" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.297872" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABA==" LintValue="159678980"/>
@@ -1963,7 +1963,7 @@ select product_id,concat('#attribute_'||attribute_id::varchar||':'||attribute) a
     <dxl:Plan Id="0" SpaceSize="1">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="431.034075" Rows="22.000000" Width="12"/>
+          <dxl:Cost StartupCost="0" TotalCost="431.033403" Rows="22.000000" Width="12"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="product_id">
@@ -1977,7 +1977,7 @@ select product_id,concat('#attribute_'||attribute_id::varchar||':'||attribute) a
         <dxl:SortingColumnList/>
         <dxl:Aggregate AggregationStrategy="Sorted" StreamSafe="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="431.032890" Rows="22.000000" Width="12"/>
+            <dxl:Cost StartupCost="0" TotalCost="431.032217" Rows="22.000000" Width="12"/>
           </dxl:Properties>
           <dxl:GroupingColumns>
             <dxl:GroupingColumn ColId="0"/>
@@ -2008,7 +2008,7 @@ select product_id,concat('#attribute_'||attribute_id::varchar||':'||attribute) a
           <dxl:Filter/>
           <dxl:Sort SortDiscardDuplicates="false">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.032064" Rows="94.000000" Width="16"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.031391" Rows="94.000000" Width="16"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="product_id">
@@ -2029,7 +2029,7 @@ select product_id,concat('#attribute_'||attribute_id::varchar||':'||attribute) a
             <dxl:LimitOffset/>
             <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.008380" Rows="94.000000" Width="16"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.007708" Rows="94.000000" Width="16"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="0" Alias="product_id">
@@ -2051,7 +2051,7 @@ select product_id,concat('#attribute_'||attribute_id::varchar||':'||attribute) a
               </dxl:HashExprList>
               <dxl:TableScan>
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="431.004627" Rows="94.000000" Width="16"/>
+                  <dxl:Cost StartupCost="0" TotalCost="431.003955" Rows="94.000000" Width="16"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="0" Alias="product_id">

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-<!--
+  <!--
 SQL: select count(distinct a) over(partition by a), sum(distinct a) over(partition by b) from t;
 -->
   <dxl:Thread Id="0">
@@ -858,4 +858,3 @@ SQL: select count(distinct a) over(partition by a), sum(distinct a) over(partiti
     </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>
-

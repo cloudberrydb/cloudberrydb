@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-<!--
+  <!--
 SQL:
 CREATE TABLE foo (id int4);
 SELECT * FROM foo WHERE id::text = 'foo';

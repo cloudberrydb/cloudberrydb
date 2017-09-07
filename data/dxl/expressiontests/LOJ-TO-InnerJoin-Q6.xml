@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-<!--
+  <!--
 SQL:
  create table t1(a int, b int) distributed by (a);
  create table t2(a int, b int) distributed by (a);
@@ -303,4 +303,4 @@ WHERE func1(t1.a,t1.b) <> func2(func3(t2.a,t2.b)::int,t1.a);
       </dxl:LogicalSelect>
     </dxl:Query>
   </dxl:Thread>
- </dxl:DXLMessage>
+</dxl:DXLMessage>

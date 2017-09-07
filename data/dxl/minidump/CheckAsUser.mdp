@@ -53,8 +53,8 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.108944.1.1.5" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.108944.1.1.4" Name="cmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.108944.1.1.5" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.108944.1.1.4" Name="cmin" Width="4.000000"/>
       <dxl:GPDBScalarOp Mdid="0.97.1.0" Name="&lt;" ComparisonType="LT">
         <dxl:LeftType Mdid="0.23.1.0"/>
         <dxl:RightType Mdid="0.23.1.0"/>
@@ -108,9 +108,9 @@
         <dxl:SumAgg Mdid="0.2108.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.108944.1.1.7" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.108944.1.1.6" Name="cmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.108944.1.1.8" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.108944.1.1.7" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.108944.1.1.6" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.108944.1.1.8" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.108944.1.1.1" Name="b" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.108944.1.1.0" Name="a" Width="8.000000"/>
       <dxl:RelationStatistics Mdid="2.108944.1.1" Name="r" Rows="0.000000"/>
@@ -148,8 +148,8 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.108944.1.1.3" Name="xmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.108944.1.1.2" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.108944.1.1.3" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.108944.1.1.2" Name="ctid" Width="6.000000"/>
     </dxl:Metadata>
     <dxl:Query>
       <dxl:OutputColumns>

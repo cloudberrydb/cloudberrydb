@@ -23,7 +23,7 @@
             <dxl:Column ColId="0" Attno="1" ColName="column_0000" TypeMdid="0.23.1.0"/>
             <dxl:Column ColId="1" Attno="2" ColName="column_0001" TypeMdid="0.23.1.0"/>
             <dxl:Column ColId="2" Attno="3" ColName="column_0002" TypeMdid="0.23.1.0"/>
-            </dxl:Columns>
+          </dxl:Columns>
         </dxl:TableDescriptor>
       </dxl:LogicalGet>
     </dxl:LogicalLimit>

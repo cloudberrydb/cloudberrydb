@@ -58,22 +58,22 @@
         </dxl:Array>
       </dxl:LogicalTVF>
     </dxl:Query>
-<dxl:Plan Id="0" SpaceSize="1">
-  <dxl:TableValuedFunction FuncId="0.973889.1.0" Name="unnest1" TypeMdid="0.23.1.0">
-    <dxl:Properties>
-      <dxl:Cost StartupCost="0" TotalCost="7.812500" Rows="1000.000000" Width="4"/>
-    </dxl:Properties>
-    <dxl:ProjList>
-      <dxl:ProjElem ColId="0" Alias="unnest1">
-        <dxl:Ident ColId="0" ColName="unnest1" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-    </dxl:ProjList>
-    <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
-      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="123"/>
-      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="456"/>
-      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="789"/>
-    </dxl:Array>
-  </dxl:TableValuedFunction>
-</dxl:Plan>
+    <dxl:Plan Id="0" SpaceSize="1">
+      <dxl:TableValuedFunction FuncId="0.973889.1.0" Name="unnest1" TypeMdid="0.23.1.0">
+        <dxl:Properties>
+          <dxl:Cost StartupCost="0" TotalCost="7.812500" Rows="1000.000000" Width="4"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="0" Alias="unnest1">
+            <dxl:Ident ColId="0" ColName="unnest1" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="123"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="456"/>
+          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="789"/>
+        </dxl:Array>
+      </dxl:TableValuedFunction>
+    </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>

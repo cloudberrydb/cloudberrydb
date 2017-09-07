@@ -85,8 +85,8 @@
         <dxl:InverseOp Mdid="0.667.1.0"/>
       </dxl:GPDBScalarOp>
       <dxl:MDCast Mdid="3.1043.1.0;25.1.0" Name="text" BinaryCoercible="true" SourceTypeId="0.1043.1.0" DestinationTypeId="0.25.1.0" CastFuncId="0.0.0.0"/>
-      <dxl:ColumnStatistics Mdid="1.24588.1.1.9" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24588.1.1.8" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24588.1.1.9" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24588.1.1.8" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.24588.1.1.1" Name="r_name" Width="26.000000">
         <dxl:StatsBucket Frequency="0.200000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAHUFGUklDQSAgICAgICAgICAgICAgICAgICA=" LintValue="538968868"/>
@@ -131,8 +131,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.24611.1.1.9" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24611.1.1.8" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24611.1.1.9" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24611.1.1.8" Name="cmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.24611.1.1.1" Name="n_name" Width="26.000000">
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAHUFMR0VSSUEgICAgICAgICAgICAgICAgICA=" LintValue="2097956"/>
@@ -337,8 +337,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="24"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.24657.1.1.9" Name="cmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24657.1.1.8" Name="xmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24657.1.1.9" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24657.1.1.8" Name="xmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.24657.1.1.1" Name="ps_suppkey" Width="4.000000">
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="401.040000">
           <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
@@ -547,8 +547,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="199993"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.24634.1.1.9" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24634.1.1.8" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24634.1.1.9" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24634.1.1.8" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.24634.1.1.1" Name="s_name" Width="26.000000">
         <dxl:StatsBucket Frequency="0.038462" DistinctValues="383.538462">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAHVN1cHBsaWVyIzAwMDAwMDAwMSAgICAgICA=" LintValue="856687396"/>
@@ -761,7 +761,7 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10000"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.24749.1.1.9" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24749.1.1.9" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.24749.1.1.8" Name="p_comment" Width="14.000000"/>
       <dxl:ColumnStatistics Mdid="1.24749.1.1.1" Name="p_name" Width="33.000000"/>
       <dxl:ColumnStatistics Mdid="1.24749.1.1.0" Name="p_partkey" Width="4.000000">
@@ -1012,9 +1012,9 @@
         <dxl:SumAgg Mdid="0.2108.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.24588.1.1.3" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24588.1.1.3" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.24588.1.1.2" Name="r_comment" Width="67.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24611.1.1.10" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24611.1.1.10" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.24611.1.1.3" Name="n_comment" Width="75.000000"/>
       <dxl:ColumnStatistics Mdid="1.24611.1.1.2" Name="n_regionkey" Width="4.000000">
         <dxl:StatsBucket Frequency="0.200000" DistinctValues="1.000000">
@@ -1038,8 +1038,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="4"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.24657.1.1.11" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24657.1.1.10" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24657.1.1.11" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24657.1.1.10" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.24657.1.1.3" Name="ps_supplycost" Width="8.000000">
         <dxl:StatsBucket Frequency="0.038462" DistinctValues="3540.730769">
           <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAADAAAAgABAFgC" DoubleValue="1.060000"/>
@@ -1248,8 +1248,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="9999"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.24634.1.1.11" Name="cmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24634.1.1.10" Name="xmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24634.1.1.11" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24634.1.1.10" Name="xmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.24634.1.1.2" Name="s_address" Width="25.000000"/>
       <dxl:ColumnStatistics Mdid="1.24634.1.1.3" Name="s_nationkey" Width="4.000000">
         <dxl:StatsBucket Frequency="0.043800" DistinctValues="1.000000">
@@ -1353,8 +1353,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="24"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.24749.1.1.11" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24749.1.1.10" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24749.1.1.11" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24749.1.1.10" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.24749.1.1.3" Name="p_brand" Width="11.000000">
         <dxl:StatsBucket Frequency="0.041563" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAADkJyYW5kIzExICA=" LintValue="828638068"/>
@@ -1651,14 +1651,14 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.24588.1.1.5" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24588.1.1.4" Name="xmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24611.1.1.5" Name="xmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24611.1.1.4" Name="ctid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24657.1.1.5" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24588.1.1.5" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24588.1.1.4" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24611.1.1.5" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24611.1.1.4" Name="ctid" Width="6.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24657.1.1.5" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.24657.1.1.4" Name="ps_comment" Width="125.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24634.1.1.13" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24634.1.1.12" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24634.1.1.13" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24634.1.1.12" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.24634.1.1.5" Name="s_acctbal" Width="8.000000">
         <dxl:StatsBucket Frequency="0.038462" DistinctValues="382.923077">
           <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAADAAAAkDmA5gI" DoubleValue="-998.220000"/>
@@ -1871,8 +1871,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAEzM0LTk5OC05MDAtNDkxMQ==" LintValue="937304940"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.24749.1.1.13" Name="cmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24749.1.1.12" Name="xmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24749.1.1.13" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24749.1.1.12" Name="xmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.24749.1.1.5" Name="p_size" Width="4.000000">
         <dxl:StatsBucket Frequency="0.041764" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
@@ -2065,16 +2065,16 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.24588.1.1.7" Name="cmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24588.1.1.6" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24611.1.1.7" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24611.1.1.6" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24657.1.1.7" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24657.1.1.6" Name="xmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24634.1.1.7" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24588.1.1.7" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24588.1.1.6" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24611.1.1.7" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24611.1.1.6" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24657.1.1.7" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24657.1.1.6" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24634.1.1.7" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.24634.1.1.6" Name="s_comment" Width="63.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24749.1.1.15" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.24749.1.1.14" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24749.1.1.15" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.24749.1.1.14" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.24749.1.1.7" Name="p_retailprice" Width="8.000000">
         <dxl:StatsBucket Frequency="0.038462" DistinctValues="790.961538">
           <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAgCIAw==" DoubleValue="904.000000"/>

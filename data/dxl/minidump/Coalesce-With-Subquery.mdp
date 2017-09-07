@@ -83,20 +83,20 @@
         <dxl:OpFunc Mdid="0.467.1.0"/>
         <dxl:Commutator Mdid="0.410.1.0"/>
         <dxl:InverseOp Mdid="0.411.1.0"/>
-      </dxl:GPDBScalarOp>      
+      </dxl:GPDBScalarOp>
       <dxl:GPDBFunc Mdid="0.7000.1.0" Name="row_number" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="false">
-  	  	<dxl:ResultType Mdid="0.20.1.0"/>
+        <dxl:ResultType Mdid="0.20.1.0"/>
       </dxl:GPDBFunc>
-     <dxl:GPDBFunc Mdid="0.481.1.0" Name="int8" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true"> 
-       <dxl:ResultType Mdid="0.20.1.0"/>                                                                                     
-     </dxl:GPDBFunc>              
-      <dxl:ColumnStatistics Mdid="1.1213.1.1.11" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1213.1.1.10" Name="cmin" Width="8.000000"/>
+      <dxl:GPDBFunc Mdid="0.481.1.0" Name="int8" ReturnsSet="false" Stability="Immutable" DataAccess="NoSQL" IsStrict="true">
+        <dxl:ResultType Mdid="0.20.1.0"/>
+      </dxl:GPDBFunc>
+      <dxl:ColumnStatistics Mdid="1.1213.1.1.11" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1213.1.1.10" Name="cmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.3" Name="spcacl" Width="0.000000" NullFreq="1.000000">
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.2" Name="spclocation" Width="0.000000" NullFreq="1.000000">
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.1260.1.1.19" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1260.1.1.19" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1260.1.1.11" Name="rolresqueue" Width="4.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="6055"/>
@@ -118,8 +118,8 @@
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.1260.1.1.18" Name="oid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1262.1.1.18" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1262.1.1.11" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1262.1.1.18" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1262.1.1.11" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.1262.1.1.10" Name="datacl" Width="0.000000" NullFreq="1.000000">
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.1262.1.1.3" Name="datistemplate" Width="1.000000">
@@ -262,7 +262,7 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.1213.1.1.9" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1213.1.1.9" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.1" Name="spcowner" Width="4.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="10"/>
@@ -271,8 +271,8 @@
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.8" Name="oid" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.0" Name="spcname" Width="64.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1260.1.1.24" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1260.1.1.17" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1260.1.1.24" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1260.1.1.17" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.1260.1.1.16" Name="rolcreatewexthdfs" Width="1.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
@@ -290,8 +290,8 @@
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.1260.1.1.0" Name="rolname" Width="64.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1262.1.1.17" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1262.1.1.16" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1262.1.1.17" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1262.1.1.16" Name="cmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1262.1.1.9" Name="datconfig" Width="0.000000" NullFreq="1.000000">
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.1262.1.1.0" Name="datname" Width="64.000000"/>
@@ -350,16 +350,16 @@
       </dxl:Index>
       <dxl:MDCast Mdid="3.26.1.0;26.1.0" Name="oid" BinaryCoercible="true" SourceTypeId="0.26.1.0" DestinationTypeId="0.26.1.0" CastFuncId="0.0.0.0"/>
       <dxl:MDCast Mdid="3.23.1.0;20.1.0" Name="int8" BinaryCoercible="false" SourceTypeId="0.23.1.0" DestinationTypeId="0.20.1.0" CastFuncId="0.481.1.0"/>
-      <dxl:ColumnStatistics Mdid="1.1213.1.1.14" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1213.1.1.7" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1213.1.1.14" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1213.1.1.7" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.6" Name="spcfsoid" Width="4.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="3052"/>
           <dxl:UpperBound Closed="true" TypeMdid="0.26.1.0" IsNull="false" IsByValue="true" Value="3052"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.1260.1.1.23" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1260.1.1.22" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1260.1.1.23" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1260.1.1.22" Name="cmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1260.1.1.15" Name="rolcreaterexthdfs" Width="1.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
@@ -384,8 +384,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.1262.1.1.15" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1262.1.1.14" Name="cmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1262.1.1.15" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1262.1.1.14" Name="cmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1262.1.1.7" Name="datfrozenxid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1262.1.1.6" Name="datlastsysoid" Width="4.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
@@ -473,7 +473,7 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-	<dxl:IndexInfoList/>
+        <dxl:IndexInfoList/>
         <dxl:Triggers>
           <dxl:Trigger Mdid="0.10307.1.0"/>
         </dxl:Triggers>
@@ -548,14 +548,14 @@
         </dxl:Triggers>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.1213.1.1.13" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1213.1.1.12" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1213.1.1.13" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1213.1.1.12" Name="cmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.5" Name="spcmirlocations" Width="0.000000" NullFreq="1.000000">
       </dxl:ColumnStatistics>
       <dxl:ColumnStatistics Mdid="1.1213.1.1.4" Name="spcprilocations" Width="0.000000" NullFreq="1.000000">
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.1260.1.1.21" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1260.1.1.20" Name="cmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1260.1.1.21" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1260.1.1.20" Name="cmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1260.1.1.13" Name="rolcreaterexthttp" Width="1.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
@@ -580,7 +580,7 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.1262.1.1.13" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1262.1.1.13" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.1262.1.1.12" Name="oid" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.1262.1.1.5" Name="datconnlimit" Width="4.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
@@ -851,7 +851,7 @@
         </dxl:LogicalProject>
       </dxl:LogicalLimit>
     </dxl:Query>
-	<dxl:Plan Id="0" SpaceSize="2816">
+    <dxl:Plan Id="0" SpaceSize="2816">
       <dxl:Result>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="282440.388516" Rows="4.000000" Width="269"/>

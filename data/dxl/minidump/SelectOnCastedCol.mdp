@@ -161,8 +161,8 @@
         <dxl:SumAgg Mdid="0.2114.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.17068.1.1.17" Name="cmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.17068.1.1.16" Name="xmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.17068.1.1.17" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.17068.1.1.16" Name="xmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.17068.1.1.9" Name="ca_zip" Width="11.000000" NullFreq="0.031305">
         <dxl:StatsBucket Frequency="0.037012" DistinctValues="121.600000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAADjAwNjAxICAgICA=" LintValue="329778084"/>
@@ -987,8 +987,8 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.17068.1.1.19" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.17068.1.1.18" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.17068.1.1.19" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.17068.1.1.18" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.17068.1.1.11" Name="ca_gmt_offset" Width="7.000000" NullFreq="0.029896">
         <dxl:StatsBucket Frequency="0.001174" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAkAKAA==" DoubleValue="-10.000000"/>
@@ -1483,7 +1483,7 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.17068.1.1.13" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.17068.1.1.13" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.17068.1.1.12" Name="ca_location_type" Width="21.000000" NullFreq="0.030914">
         <dxl:StatsBucket Frequency="0.317746" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAGGFwYXJ0bWVudCAgICAgICAgICAg" LintValue="570426294"/>
@@ -1806,8 +1806,8 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAE1d5ICAgICAgICAgICAgIA==" LintValue="35652404"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.17068.1.1.15" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.17068.1.1.14" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.17068.1.1.15" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.17068.1.1.14" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.17068.1.1.7" Name="ca_county" Width="14.000000" NullFreq="0.189209">
         <dxl:StatsBucket Frequency="0.022874" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAAEEFkYW1zIENvdW50eQ==" LintValue="352789414"/>

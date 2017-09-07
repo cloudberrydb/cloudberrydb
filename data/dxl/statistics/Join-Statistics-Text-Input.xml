@@ -107,7 +107,7 @@
     </dxl:DerivedRelationStats>
     <dxl:DerivedRelationStats Rows="20.000000">
       <dxl:DerivedColumnStats ColId="8" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
-      <dxl:StatsBucket Frequency="0.052632" DistinctValues="1.052632">
+        <dxl:StatsBucket Frequency="0.052632" DistinctValues="1.052632">
           <dxl:LowerBound Closed="true" TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABTE=" LintValue="161096236"/>
           <dxl:UpperBound Closed="false" TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAABjEw" LintValue="881984300"/>
         </dxl:StatsBucket>

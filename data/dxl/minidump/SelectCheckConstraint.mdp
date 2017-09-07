@@ -263,66 +263,66 @@
         </dxl:LogicalGet>
       </dxl:LogicalSelect>
     </dxl:Query>
-<dxl:Plan Id="0" SpaceSize="0">
-  <dxl:Result>
-    <dxl:Properties>
-      <dxl:Cost StartupCost="0" TotalCost="0.000000" Rows="0.000000" Width="12"/>
-    </dxl:Properties>
-    <dxl:ProjList>
-      <dxl:ProjElem ColId="0" Alias="a">
-        <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="1" Alias="b">
-        <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="2" Alias="c">
-        <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-    </dxl:ProjList>
-    <dxl:Filter/>
-    <dxl:OneTimeFilter/>
-    <dxl:Result>
-      <dxl:Properties>
-        <dxl:Cost StartupCost="0" TotalCost="0.000000" Rows="0.000000" Width="12"/>
-      </dxl:Properties>
-      <dxl:ProjList>
-        <dxl:ProjElem ColId="0" Alias="a">
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="1" Alias="b">
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="2" Alias="c">
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="3" Alias="ctid">
-          <dxl:ConstValue TypeMdid="0.27.1.0" IsNull="true" IsByValue="false"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="4" Alias="xmin">
-          <dxl:ConstValue TypeMdid="0.28.1.0" IsNull="true" IsByValue="true"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="5" Alias="cmin">
-          <dxl:ConstValue TypeMdid="0.29.1.0" IsNull="true" IsByValue="true"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="6" Alias="xmax">
-          <dxl:ConstValue TypeMdid="0.28.1.0" IsNull="true" IsByValue="true"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="7" Alias="cmax">
-          <dxl:ConstValue TypeMdid="0.29.1.0" IsNull="true" IsByValue="true"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="8" Alias="tableoid">
-          <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="true" IsByValue="true"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="9" Alias="gp_segment_id">
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
-        </dxl:ProjElem>
-      </dxl:ProjList>
-      <dxl:Filter/>
-      <dxl:OneTimeFilter>
-        <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
-      </dxl:OneTimeFilter>
-    </dxl:Result>
-  </dxl:Result>
-</dxl:Plan>
+    <dxl:Plan Id="0" SpaceSize="0">
+      <dxl:Result>
+        <dxl:Properties>
+          <dxl:Cost StartupCost="0" TotalCost="0.000000" Rows="0.000000" Width="12"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="0" Alias="a">
+            <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="1" Alias="b">
+            <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="2" Alias="c">
+            <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:OneTimeFilter/>
+        <dxl:Result>
+          <dxl:Properties>
+            <dxl:Cost StartupCost="0" TotalCost="0.000000" Rows="0.000000" Width="12"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="0" Alias="a">
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="1" Alias="b">
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="2" Alias="c">
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="3" Alias="ctid">
+              <dxl:ConstValue TypeMdid="0.27.1.0" IsNull="true" IsByValue="false"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="4" Alias="xmin">
+              <dxl:ConstValue TypeMdid="0.28.1.0" IsNull="true" IsByValue="true"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="5" Alias="cmin">
+              <dxl:ConstValue TypeMdid="0.29.1.0" IsNull="true" IsByValue="true"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="6" Alias="xmax">
+              <dxl:ConstValue TypeMdid="0.28.1.0" IsNull="true" IsByValue="true"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="7" Alias="cmax">
+              <dxl:ConstValue TypeMdid="0.29.1.0" IsNull="true" IsByValue="true"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="8" Alias="tableoid">
+              <dxl:ConstValue TypeMdid="0.26.1.0" IsNull="true" IsByValue="true"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="9" Alias="gp_segment_id">
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter/>
+          <dxl:OneTimeFilter>
+            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
+          </dxl:OneTimeFilter>
+        </dxl:Result>
+      </dxl:Result>
+    </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>

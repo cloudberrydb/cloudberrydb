@@ -65,8 +65,8 @@
       <dxl:ColumnStatistics Mdid="1.92365.1.1.4" Name="c1051" Width="56639.000000"/>
       <dxl:ColumnStatistics Mdid="1.90124.1.1.0" Name="c0" Width="55337.000000"/>
       <dxl:ColumnStatistics Mdid="1.90124.1.1.1" Name="c1" Width="66121.000000"/>
-      <dxl:ColumnStatistics Mdid="1.92635.1.1.13" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.92635.1.1.12" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.92635.1.1.13" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.92635.1.1.12" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.92635.1.1.5" Name="c1195" Width="64714.000000"/>
       <dxl:ColumnStatistics Mdid="1.92635.1.1.4" Name="c1194" Width="96292.000000"/>
       <dxl:ColumnStatistics Mdid="1.91393.1.1.11" Name="c597" Width="80950.000000"/>
@@ -149,7 +149,7 @@
       </dxl:GPDBFunc>
       <dxl:ColumnStatistics Mdid="1.92635.1.1.7" Name="c1197" Width="66286.000000"/>
       <dxl:ColumnStatistics Mdid="1.92635.1.1.6" Name="c1196" Width="70669.000000"/>
-      <dxl:ColumnStatistics Mdid="1.91393.1.1.16" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.91393.1.1.16" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.91393.1.1.9" Name="c595" Width="80806.000000"/>
       <dxl:ColumnStatistics Mdid="1.91393.1.1.8" Name="c594" Width="58406.000000"/>
       <dxl:ColumnStatistics Mdid="1.91393.1.1.1" Name="c587" Width="58776.000000"/>
@@ -161,12 +161,12 @@
       <dxl:ColumnStatistics Mdid="1.92068.1.1.8" Name="c918" Width="74117.000000"/>
       <dxl:ColumnStatistics Mdid="1.92068.1.1.1" Name="c911" Width="63733.000000"/>
       <dxl:ColumnStatistics Mdid="1.92068.1.1.0" Name="c910" Width="58834.000000"/>
-      <dxl:ColumnStatistics Mdid="1.92365.1.1.9" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.92365.1.1.9" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.92365.1.1.8" Name="c1055" Width="72585.000000"/>
       <dxl:ColumnStatistics Mdid="1.92365.1.1.1" Name="c1048" Width="70002.000000"/>
       <dxl:ColumnStatistics Mdid="1.92365.1.1.0" Name="c1047" Width="75051.000000"/>
-      <dxl:ColumnStatistics Mdid="1.90124.1.1.5" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.90124.1.1.4" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.90124.1.1.5" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.90124.1.1.4" Name="ctid" Width="6.000000"/>
       <dxl:RelationStatistics Mdid="2.91393.1.1" Name="t49" Rows="10.000000"/>
       <dxl:Relation Mdid="0.91393.1.1" Name="t49" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="16,14">
         <dxl:Columns>
@@ -324,11 +324,11 @@
       <dxl:ColumnStatistics Mdid="1.92635.1.1.1" Name="c1191" Width="74056.000000"/>
       <dxl:ColumnStatistics Mdid="1.92635.1.1.0" Name="c1190" Width="74602.000000"/>
       <dxl:ColumnStatistics Mdid="1.92635.1.1.9" Name="c1199" Width="79376.000000"/>
-      <dxl:ColumnStatistics Mdid="1.91393.1.1.15" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.91393.1.1.14" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.91393.1.1.15" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.91393.1.1.14" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.91393.1.1.7" Name="c593" Width="70776.000000"/>
       <dxl:ColumnStatistics Mdid="1.91393.1.1.6" Name="c592" Width="58666.000000"/>
-      <dxl:ColumnStatistics Mdid="1.92068.1.1.22" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.92068.1.1.22" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.92068.1.1.15" Name="c925" Width="54094.000000"/>
       <dxl:ColumnStatistics Mdid="1.92068.1.1.7" Name="c917" Width="92882.000000"/>
       <dxl:ColumnStatistics Mdid="1.92068.1.1.6" Name="c916" Width="65586.000000"/>
@@ -362,11 +362,11 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.92365.1.1.11" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.92365.1.1.10" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.92365.1.1.11" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.92365.1.1.10" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.92365.1.1.2" Name="c1049" Width="72629.000000"/>
       <dxl:ColumnStatistics Mdid="1.92365.1.1.3" Name="c1050" Width="99445.000000"/>
-      <dxl:ColumnStatistics Mdid="1.90124.1.1.6" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.90124.1.1.6" Name="gp_segment_id" Width="4.000000"/>
       <dxl:RelationStatistics Mdid="2.92068.1.1" Name="t74" Rows="10.000000"/>
       <dxl:Relation Mdid="0.92068.1.1" Name="t74" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="22,20">
         <dxl:Columns>
@@ -444,7 +444,7 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.92635.1.1.11" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.92635.1.1.11" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.92635.1.1.10" Name="c1200" Width="74241.000000"/>
       <dxl:ColumnStatistics Mdid="1.92635.1.1.3" Name="c1193" Width="78963.000000"/>
       <dxl:ColumnStatistics Mdid="1.92635.1.1.2" Name="c1192" Width="58124.000000"/>
@@ -452,8 +452,8 @@
       <dxl:ColumnStatistics Mdid="1.91393.1.1.5" Name="c591" Width="88322.000000"/>
       <dxl:ColumnStatistics Mdid="1.91393.1.1.4" Name="c590" Width="67257.000000"/>
       <dxl:ColumnStatistics Mdid="1.91393.1.1.12" Name="c598" Width="71123.000000"/>
-      <dxl:ColumnStatistics Mdid="1.92068.1.1.21" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.92068.1.1.20" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.92068.1.1.21" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.92068.1.1.20" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.92068.1.1.13" Name="c923" Width="77751.000000"/>
       <dxl:ColumnStatistics Mdid="1.92068.1.1.12" Name="c922" Width="70405.000000"/>
       <dxl:ColumnStatistics Mdid="1.92068.1.1.5" Name="c915" Width="70536.000000"/>
@@ -864,7 +864,7 @@
         </dxl:LogicalProject>
       </dxl:LogicalLimit>
     </dxl:Query>
-	<dxl:Plan Id="0" SpaceSize="2350">
+    <dxl:Plan Id="0" SpaceSize="2350">
       <dxl:Limit>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="274377996915268.812500" Rows="100.000000" Width="128"/>

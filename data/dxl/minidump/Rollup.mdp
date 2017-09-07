@@ -78,8 +78,8 @@
           <dxl:OpClass Mdid="0.3027.1.0"/>
         </dxl:OpClasses>
       </dxl:Index>
-      <dxl:ColumnStatistics Mdid="1.66674.1.1.19" Name="gp_segment_id" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.66674.1.1.18" Name="tableoid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.66674.1.1.19" Name="gp_segment_id" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.66674.1.1.18" Name="tableoid" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.66674.1.1.11" Name="ca_gmt_offset" Width="7.000000" NullFreq="0.032020">
         <dxl:StatsBucket Frequency="0.437954" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAkAKAA==" DoubleValue="-10.000000"/>
@@ -255,8 +255,8 @@
         <dxl:SumAgg Mdid="0.2114.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.67018.1.1.27" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.67018.1.1.26" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.67018.1.1.27" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.67018.1.1.26" Name="cmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.67018.1.1.19" Name="i_container" Width="11.000000" NullFreq="0.002167">
         <dxl:StatsBucket Frequency="0.997833" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAADlVua25vd24gICA=" LintValue="438305716"/>
@@ -570,8 +570,8 @@
         <dxl:SumAgg Mdid="0.2108.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.66674.1.1.17" Name="cmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.66674.1.1.16" Name="xmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.66674.1.1.17" Name="cmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.66674.1.1.16" Name="xmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.66674.1.1.9" Name="ca_zip" Width="11.000000">
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="120.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAADjAwNjA4ICAgICA=" LintValue="330826676"/>
@@ -1007,8 +1007,8 @@
         <dxl:ResultType Mdid="0.20.1.0"/>
         <dxl:IntermediateResultType Mdid="0.20.1.0"/>
       </dxl:GPDBAgg>
-      <dxl:ColumnStatistics Mdid="1.67018.1.1.25" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.67018.1.1.24" Name="cmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.67018.1.1.25" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.67018.1.1.24" Name="cmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.67018.1.1.17" Name="i_color" Width="21.000000" NullFreq="0.004455">
         <dxl:StatsBucket Frequency="0.044447" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAGHNhbG1vbiAgICAgICAgICAgICAg" LintValue="932"/>
@@ -1585,8 +1585,8 @@
           <dxl:UpperBound Closed="false" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="18000"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.66674.1.1.15" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.66674.1.1.14" Name="xmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.66674.1.1.15" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.66674.1.1.14" Name="xmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.66674.1.1.7" Name="ca_county" Width="14.000000"/>
       <dxl:ColumnStatistics Mdid="1.66674.1.1.6" Name="ca_city" Width="9.000000"/>
       <dxl:RelationStatistics Mdid="2.66674.1.1" Name="customer_address" Rows="50301.000000"/>
@@ -1756,8 +1756,8 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.67018.1.1.23" Name="xmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.67018.1.1.22" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.67018.1.1.23" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.67018.1.1.22" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.67018.1.1.15" Name="i_size" Width="21.000000" NullFreq="0.002278">
         <dxl:StatsBucket Frequency="0.609944" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAGHBldGl0ZSAgICAgICAgICAgICAg" LintValue="820"/>
@@ -2094,7 +2094,7 @@
           <dxl:UpperBound Closed="false" TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAADAAAAgBXABAO" DoubleValue="87.360000"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.66674.1.1.13" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.66674.1.1.13" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.66674.1.1.12" Name="ca_location_type" Width="21.000000" NullFreq="0.029869">
         <dxl:StatsBucket Frequency="0.326413" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAGHNpbmdsZSBmYW1pbHkgICAgICAg" LintValue="304087988"/>
@@ -2293,7 +2293,7 @@
           <dxl:UpperBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAAE0JvdWxldmFyZCAgICAgIA==" LintValue="842007462"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.67018.1.1.28" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.67018.1.1.28" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.67018.1.1.21" Name="i_product_name" Width="51.000000">
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="718.640000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1042.1.0" IsNull="false" IsByValue="false" Value="AAAANmFibGUgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg&#10;ICAgICAgICAg" LintValue="536871734"/>
@@ -2886,163 +2886,10 @@
         </dxl:UnionAll>
       </dxl:LogicalCTEAnchor>
     </dxl:Query>
-<dxl:Plan Id="0" SpaceSize="13800">
-  <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
-    <dxl:Properties>
-      <dxl:Cost StartupCost="0" TotalCost="216102212311.562988" Rows="5071501.000000" Width="39"/>
-    </dxl:Properties>
-    <dxl:ProjList>
-      <dxl:ProjElem ColId="49" Alias="i_item_id">
-        <dxl:Ident ColId="49" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="50" Alias="ca_county">
-        <dxl:Ident ColId="50" ColName="ca_county" TypeMdid="0.1043.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="98" Alias="count">
-        <dxl:Ident ColId="98" ColName="count" TypeMdid="0.20.1.0"/>
-      </dxl:ProjElem>
-    </dxl:ProjList>
-    <dxl:Filter/>
-    <dxl:SortingColumnList/>
-    <dxl:Sequence>
-      <dxl:Properties>
-        <dxl:Cost StartupCost="0" TotalCost="216102115734.127930" Rows="5071501.000000" Width="39"/>
-      </dxl:Properties>
-      <dxl:ProjList>
-        <dxl:ProjElem ColId="49" Alias="i_item_id">
-          <dxl:Ident ColId="49" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="50" Alias="ca_county">
-          <dxl:Ident ColId="50" ColName="ca_county" TypeMdid="0.1043.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="98" Alias="count">
-          <dxl:Ident ColId="98" ColName="count" TypeMdid="0.20.1.0"/>
-        </dxl:ProjElem>
-      </dxl:ProjList>
-      <dxl:CTEProducer CTEId="0" Columns="21,7">
+    <dxl:Plan Id="0" SpaceSize="13800">
+      <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="215993179852.535156" Rows="907530642.000000" Width="1"/>
-        </dxl:Properties>
-        <dxl:ProjList>
-          <dxl:ProjElem ColId="21" Alias="i_item_id">
-            <dxl:Ident ColId="21" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
-          </dxl:ProjElem>
-          <dxl:ProjElem ColId="7" Alias="ca_county">
-            <dxl:Ident ColId="7" ColName="ca_county" TypeMdid="0.1043.1.0"/>
-          </dxl:ProjElem>
-        </dxl:ProjList>
-        <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
-          <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="215992293591.142578" Rows="907530642.000000" Width="31"/>
-          </dxl:Properties>
-          <dxl:ProjList>
-            <dxl:ProjElem ColId="21" Alias="i_item_id">
-              <dxl:Ident ColId="21" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="7" Alias="ca_county">
-              <dxl:Ident ColId="7" ColName="ca_county" TypeMdid="0.1043.1.0"/>
-            </dxl:ProjElem>
-          </dxl:ProjList>
-          <dxl:Filter/>
-          <dxl:JoinFilter>
-            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-          </dxl:JoinFilter>
-          <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
-            <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="450.288086" Rows="36084.000000" Width="17"/>
-            </dxl:Properties>
-            <dxl:ProjList>
-              <dxl:ProjElem ColId="21" Alias="i_item_id">
-                <dxl:Ident ColId="21" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
-              </dxl:ProjElem>
-            </dxl:ProjList>
-            <dxl:Filter/>
-            <dxl:SortingColumnList/>
-            <dxl:TableScan>
-              <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="149.762695" Rows="18042.000000" Width="17"/>
-              </dxl:Properties>
-              <dxl:ProjList>
-                <dxl:ProjElem ColId="21" Alias="i_item_id">
-                  <dxl:Ident ColId="21" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
-                </dxl:ProjElem>
-              </dxl:ProjList>
-              <dxl:Filter/>
-              <dxl:TableDescriptor Mdid="0.67018.1.1" TableName="item">
-                <dxl:Columns>
-                  <dxl:Column ColId="20" Attno="1" ColName="i_item_sk" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="21" Attno="2" ColName="i_item_id" TypeMdid="0.1042.1.0" ColWidth="16"/>
-                  <dxl:Column ColId="22" Attno="3" ColName="i_rec_start_date" TypeMdid="0.1082.1.0"/>
-                  <dxl:Column ColId="23" Attno="4" ColName="i_rec_end_date" TypeMdid="0.1082.1.0"/>
-                  <dxl:Column ColId="24" Attno="5" ColName="i_item_desc" TypeMdid="0.1043.1.0" ColWidth="200"/>
-                  <dxl:Column ColId="25" Attno="6" ColName="i_current_price" TypeMdid="0.1700.1.0"/>
-                  <dxl:Column ColId="26" Attno="7" ColName="i_wholesale_cost" TypeMdid="0.1700.1.0"/>
-                  <dxl:Column ColId="27" Attno="8" ColName="i_brand_id" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="28" Attno="9" ColName="i_brand" TypeMdid="0.1042.1.0" ColWidth="50"/>
-                  <dxl:Column ColId="29" Attno="10" ColName="i_class_id" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="30" Attno="11" ColName="i_class" TypeMdid="0.1042.1.0" ColWidth="50"/>
-                  <dxl:Column ColId="31" Attno="12" ColName="i_category_id" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="32" Attno="13" ColName="i_category" TypeMdid="0.1042.1.0" ColWidth="50"/>
-                  <dxl:Column ColId="33" Attno="14" ColName="i_manufact_id" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="34" Attno="15" ColName="i_manufact" TypeMdid="0.1042.1.0" ColWidth="50"/>
-                  <dxl:Column ColId="35" Attno="16" ColName="i_size" TypeMdid="0.1042.1.0" ColWidth="20"/>
-                  <dxl:Column ColId="36" Attno="17" ColName="i_formulation" TypeMdid="0.1042.1.0" ColWidth="20"/>
-                  <dxl:Column ColId="37" Attno="18" ColName="i_color" TypeMdid="0.1042.1.0" ColWidth="20"/>
-                  <dxl:Column ColId="38" Attno="19" ColName="i_units" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                  <dxl:Column ColId="39" Attno="20" ColName="i_container" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                  <dxl:Column ColId="40" Attno="21" ColName="i_manager_id" TypeMdid="0.23.1.0"/>
-                  <dxl:Column ColId="41" Attno="22" ColName="i_product_name" TypeMdid="0.1042.1.0" ColWidth="50"/>
-                  <dxl:Column ColId="42" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                  <dxl:Column ColId="43" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-                  <dxl:Column ColId="44" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-                  <dxl:Column ColId="45" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-                  <dxl:Column ColId="46" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-                  <dxl:Column ColId="47" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                  <dxl:Column ColId="48" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-                </dxl:Columns>
-              </dxl:TableDescriptor>
-            </dxl:TableScan>
-          </dxl:BroadcastMotion>
-          <dxl:TableScan>
-            <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="343.854492" Rows="50301.000000" Width="14"/>
-            </dxl:Properties>
-            <dxl:ProjList>
-              <dxl:ProjElem ColId="7" Alias="ca_county">
-                <dxl:Ident ColId="7" ColName="ca_county" TypeMdid="0.1043.1.0"/>
-              </dxl:ProjElem>
-            </dxl:ProjList>
-            <dxl:Filter/>
-            <dxl:TableDescriptor Mdid="0.66674.1.1" TableName="customer_address">
-              <dxl:Columns>
-                <dxl:Column ColId="0" Attno="1" ColName="ca_address_sk" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="1" Attno="2" ColName="ca_address_id" TypeMdid="0.1042.1.0" ColWidth="16"/>
-                <dxl:Column ColId="2" Attno="3" ColName="ca_street_number" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                <dxl:Column ColId="3" Attno="4" ColName="ca_street_name" TypeMdid="0.1043.1.0" ColWidth="60"/>
-                <dxl:Column ColId="4" Attno="5" ColName="ca_street_type" TypeMdid="0.1042.1.0" ColWidth="15"/>
-                <dxl:Column ColId="5" Attno="6" ColName="ca_suite_number" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                <dxl:Column ColId="6" Attno="7" ColName="ca_city" TypeMdid="0.1043.1.0" ColWidth="60"/>
-                <dxl:Column ColId="7" Attno="8" ColName="ca_county" TypeMdid="0.1043.1.0" ColWidth="30"/>
-                <dxl:Column ColId="8" Attno="9" ColName="ca_state" TypeMdid="0.1042.1.0" ColWidth="2"/>
-                <dxl:Column ColId="9" Attno="10" ColName="ca_zip" TypeMdid="0.1042.1.0" ColWidth="10"/>
-                <dxl:Column ColId="10" Attno="11" ColName="ca_country" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                <dxl:Column ColId="11" Attno="12" ColName="ca_gmt_offset" TypeMdid="0.1700.1.0"/>
-                <dxl:Column ColId="12" Attno="13" ColName="ca_location_type" TypeMdid="0.1042.1.0" ColWidth="20"/>
-                <dxl:Column ColId="13" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                <dxl:Column ColId="14" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="15" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-                <dxl:Column ColId="16" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-                <dxl:Column ColId="17" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-                <dxl:Column ColId="18" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="19" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-              </dxl:Columns>
-            </dxl:TableDescriptor>
-          </dxl:TableScan>
-        </dxl:NestedLoopJoin>
-      </dxl:CTEProducer>
-      <dxl:Append IsTarget="false" IsZapped="false">
-        <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="108742727.722656" Rows="5071501.000000" Width="39"/>
+          <dxl:Cost StartupCost="0" TotalCost="216102212311.562988" Rows="5071501.000000" Width="39"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="49" Alias="i_item_id">
@@ -3056,14 +2903,11 @@
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:Filter/>
-        <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="false">
+        <dxl:SortingColumnList/>
+        <dxl:Sequence>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="69552828.688477" Rows="5062500.000000" Width="39"/>
+            <dxl:Cost StartupCost="0" TotalCost="216102115734.127930" Rows="5071501.000000" Width="39"/>
           </dxl:Properties>
-          <dxl:GroupingColumns>
-            <dxl:GroupingColumn ColId="49"/>
-            <dxl:GroupingColumn ColId="50"/>
-          </dxl:GroupingColumns>
           <dxl:ProjList>
             <dxl:ProjElem ColId="49" Alias="i_item_id">
               <dxl:Ident ColId="49" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
@@ -3072,15 +2916,133 @@
               <dxl:Ident ColId="50" ColName="ca_county" TypeMdid="0.1043.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="98" Alias="count">
-              <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Final">
-                <dxl:Ident ColId="204" ColName="ColRef_0204" TypeMdid="0.20.1.0"/>
-              </dxl:AggFunc>
+              <dxl:Ident ColId="98" ColName="count" TypeMdid="0.20.1.0"/>
             </dxl:ProjElem>
           </dxl:ProjList>
-          <dxl:Filter/>
-          <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+          <dxl:CTEProducer CTEId="0" Columns="21,7">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="68974397.512695" Rows="5062500.000000" Width="39"/>
+              <dxl:Cost StartupCost="0" TotalCost="215993179852.535156" Rows="907530642.000000" Width="1"/>
+            </dxl:Properties>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="21" Alias="i_item_id">
+                <dxl:Ident ColId="21" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="7" Alias="ca_county">
+                <dxl:Ident ColId="7" ColName="ca_county" TypeMdid="0.1043.1.0"/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0" TotalCost="215992293591.142578" Rows="907530642.000000" Width="31"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="21" Alias="i_item_id">
+                  <dxl:Ident ColId="21" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="7" Alias="ca_county">
+                  <dxl:Ident ColId="7" ColName="ca_county" TypeMdid="0.1043.1.0"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:JoinFilter>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              </dxl:JoinFilter>
+              <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="450.288086" Rows="36084.000000" Width="17"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="21" Alias="i_item_id">
+                    <dxl:Ident ColId="21" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter/>
+                <dxl:SortingColumnList/>
+                <dxl:TableScan>
+                  <dxl:Properties>
+                    <dxl:Cost StartupCost="0" TotalCost="149.762695" Rows="18042.000000" Width="17"/>
+                  </dxl:Properties>
+                  <dxl:ProjList>
+                    <dxl:ProjElem ColId="21" Alias="i_item_id">
+                      <dxl:Ident ColId="21" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
+                    </dxl:ProjElem>
+                  </dxl:ProjList>
+                  <dxl:Filter/>
+                  <dxl:TableDescriptor Mdid="0.67018.1.1" TableName="item">
+                    <dxl:Columns>
+                      <dxl:Column ColId="20" Attno="1" ColName="i_item_sk" TypeMdid="0.23.1.0"/>
+                      <dxl:Column ColId="21" Attno="2" ColName="i_item_id" TypeMdid="0.1042.1.0" ColWidth="16"/>
+                      <dxl:Column ColId="22" Attno="3" ColName="i_rec_start_date" TypeMdid="0.1082.1.0"/>
+                      <dxl:Column ColId="23" Attno="4" ColName="i_rec_end_date" TypeMdid="0.1082.1.0"/>
+                      <dxl:Column ColId="24" Attno="5" ColName="i_item_desc" TypeMdid="0.1043.1.0" ColWidth="200"/>
+                      <dxl:Column ColId="25" Attno="6" ColName="i_current_price" TypeMdid="0.1700.1.0"/>
+                      <dxl:Column ColId="26" Attno="7" ColName="i_wholesale_cost" TypeMdid="0.1700.1.0"/>
+                      <dxl:Column ColId="27" Attno="8" ColName="i_brand_id" TypeMdid="0.23.1.0"/>
+                      <dxl:Column ColId="28" Attno="9" ColName="i_brand" TypeMdid="0.1042.1.0" ColWidth="50"/>
+                      <dxl:Column ColId="29" Attno="10" ColName="i_class_id" TypeMdid="0.23.1.0"/>
+                      <dxl:Column ColId="30" Attno="11" ColName="i_class" TypeMdid="0.1042.1.0" ColWidth="50"/>
+                      <dxl:Column ColId="31" Attno="12" ColName="i_category_id" TypeMdid="0.23.1.0"/>
+                      <dxl:Column ColId="32" Attno="13" ColName="i_category" TypeMdid="0.1042.1.0" ColWidth="50"/>
+                      <dxl:Column ColId="33" Attno="14" ColName="i_manufact_id" TypeMdid="0.23.1.0"/>
+                      <dxl:Column ColId="34" Attno="15" ColName="i_manufact" TypeMdid="0.1042.1.0" ColWidth="50"/>
+                      <dxl:Column ColId="35" Attno="16" ColName="i_size" TypeMdid="0.1042.1.0" ColWidth="20"/>
+                      <dxl:Column ColId="36" Attno="17" ColName="i_formulation" TypeMdid="0.1042.1.0" ColWidth="20"/>
+                      <dxl:Column ColId="37" Attno="18" ColName="i_color" TypeMdid="0.1042.1.0" ColWidth="20"/>
+                      <dxl:Column ColId="38" Attno="19" ColName="i_units" TypeMdid="0.1042.1.0" ColWidth="10"/>
+                      <dxl:Column ColId="39" Attno="20" ColName="i_container" TypeMdid="0.1042.1.0" ColWidth="10"/>
+                      <dxl:Column ColId="40" Attno="21" ColName="i_manager_id" TypeMdid="0.23.1.0"/>
+                      <dxl:Column ColId="41" Attno="22" ColName="i_product_name" TypeMdid="0.1042.1.0" ColWidth="50"/>
+                      <dxl:Column ColId="42" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                      <dxl:Column ColId="43" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                      <dxl:Column ColId="44" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                      <dxl:Column ColId="45" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                      <dxl:Column ColId="46" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                      <dxl:Column ColId="47" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                      <dxl:Column ColId="48" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                    </dxl:Columns>
+                  </dxl:TableDescriptor>
+                </dxl:TableScan>
+              </dxl:BroadcastMotion>
+              <dxl:TableScan>
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="343.854492" Rows="50301.000000" Width="14"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="7" Alias="ca_county">
+                    <dxl:Ident ColId="7" ColName="ca_county" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter/>
+                <dxl:TableDescriptor Mdid="0.66674.1.1" TableName="customer_address">
+                  <dxl:Columns>
+                    <dxl:Column ColId="0" Attno="1" ColName="ca_address_sk" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="1" Attno="2" ColName="ca_address_id" TypeMdid="0.1042.1.0" ColWidth="16"/>
+                    <dxl:Column ColId="2" Attno="3" ColName="ca_street_number" TypeMdid="0.1042.1.0" ColWidth="10"/>
+                    <dxl:Column ColId="3" Attno="4" ColName="ca_street_name" TypeMdid="0.1043.1.0" ColWidth="60"/>
+                    <dxl:Column ColId="4" Attno="5" ColName="ca_street_type" TypeMdid="0.1042.1.0" ColWidth="15"/>
+                    <dxl:Column ColId="5" Attno="6" ColName="ca_suite_number" TypeMdid="0.1042.1.0" ColWidth="10"/>
+                    <dxl:Column ColId="6" Attno="7" ColName="ca_city" TypeMdid="0.1043.1.0" ColWidth="60"/>
+                    <dxl:Column ColId="7" Attno="8" ColName="ca_county" TypeMdid="0.1043.1.0" ColWidth="30"/>
+                    <dxl:Column ColId="8" Attno="9" ColName="ca_state" TypeMdid="0.1042.1.0" ColWidth="2"/>
+                    <dxl:Column ColId="9" Attno="10" ColName="ca_zip" TypeMdid="0.1042.1.0" ColWidth="10"/>
+                    <dxl:Column ColId="10" Attno="11" ColName="ca_country" TypeMdid="0.1043.1.0" ColWidth="20"/>
+                    <dxl:Column ColId="11" Attno="12" ColName="ca_gmt_offset" TypeMdid="0.1700.1.0"/>
+                    <dxl:Column ColId="12" Attno="13" ColName="ca_location_type" TypeMdid="0.1042.1.0" ColWidth="20"/>
+                    <dxl:Column ColId="13" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                    <dxl:Column ColId="14" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="15" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                    <dxl:Column ColId="16" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                    <dxl:Column ColId="17" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                    <dxl:Column ColId="18" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="19" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                  </dxl:Columns>
+                </dxl:TableDescriptor>
+              </dxl:TableScan>
+            </dxl:NestedLoopJoin>
+          </dxl:CTEProducer>
+          <dxl:Append IsTarget="false" IsZapped="false">
+            <dxl:Properties>
+              <dxl:Cost StartupCost="0" TotalCost="108742727.722656" Rows="5071501.000000" Width="39"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="49" Alias="i_item_id">
@@ -3089,24 +3051,19 @@
               <dxl:ProjElem ColId="50" Alias="ca_county">
                 <dxl:Ident ColId="50" ColName="ca_county" TypeMdid="0.1043.1.0"/>
               </dxl:ProjElem>
-              <dxl:ProjElem ColId="204" Alias="ColRef_0204">
-                <dxl:Ident ColId="204" ColName="ColRef_0204" TypeMdid="0.20.1.0"/>
+              <dxl:ProjElem ColId="98" Alias="count">
+                <dxl:Ident ColId="98" ColName="count" TypeMdid="0.20.1.0"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:Filter/>
-            <dxl:SortingColumnList/>
-            <dxl:HashExprList>
-              <dxl:HashExpr TypeMdid="0.1042.1.0">
-                <dxl:Ident ColId="49" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
-              </dxl:HashExpr>
-              <dxl:HashExpr TypeMdid="0.1043.1.0">
-                <dxl:Ident ColId="50" ColName="ca_county" TypeMdid="0.1043.1.0"/>
-              </dxl:HashExpr>
-            </dxl:HashExprList>
-            <dxl:Result>
+            <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="false">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="68877991.483398" Rows="5062500.000000" Width="39"/>
+                <dxl:Cost StartupCost="0" TotalCost="69552828.688477" Rows="5062500.000000" Width="39"/>
               </dxl:Properties>
+              <dxl:GroupingColumns>
+                <dxl:GroupingColumn ColId="49"/>
+                <dxl:GroupingColumn ColId="50"/>
+              </dxl:GroupingColumns>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="49" Alias="i_item_id">
                   <dxl:Ident ColId="49" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
@@ -3114,35 +3071,41 @@
                 <dxl:ProjElem ColId="50" Alias="ca_county">
                   <dxl:Ident ColId="50" ColName="ca_county" TypeMdid="0.1043.1.0"/>
                 </dxl:ProjElem>
-                <dxl:ProjElem ColId="204" Alias="ColRef_0204">
-                  <dxl:Ident ColId="204" ColName="ColRef_0204" TypeMdid="0.20.1.0"/>
+                <dxl:ProjElem ColId="98" Alias="count">
+                  <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Final">
+                    <dxl:Ident ColId="204" ColName="ColRef_0204" TypeMdid="0.20.1.0"/>
+                  </dxl:AggFunc>
                 </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:Filter/>
-              <dxl:OneTimeFilter/>
-              <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="true">
+              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="68877991.483398" Rows="5062500.000000" Width="39"/>
+                  <dxl:Cost StartupCost="0" TotalCost="68974397.512695" Rows="5062500.000000" Width="39"/>
                 </dxl:Properties>
-                <dxl:GroupingColumns>
-                  <dxl:GroupingColumn ColId="49"/>
-                  <dxl:GroupingColumn ColId="50"/>
-                </dxl:GroupingColumns>
                 <dxl:ProjList>
-                  <dxl:ProjElem ColId="204" Alias="ColRef_0204">
-                    <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Partial"/>
-                  </dxl:ProjElem>
                   <dxl:ProjElem ColId="49" Alias="i_item_id">
                     <dxl:Ident ColId="49" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="50" Alias="ca_county">
                     <dxl:Ident ColId="50" ColName="ca_county" TypeMdid="0.1043.1.0"/>
                   </dxl:ProjElem>
+                  <dxl:ProjElem ColId="204" Alias="ColRef_0204">
+                    <dxl:Ident ColId="204" ColName="ColRef_0204" TypeMdid="0.20.1.0"/>
+                  </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>
-                <dxl:CTEConsumer CTEId="0" Columns="49,50">
+                <dxl:SortingColumnList/>
+                <dxl:HashExprList>
+                  <dxl:HashExpr TypeMdid="0.1042.1.0">
+                    <dxl:Ident ColId="49" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
+                  </dxl:HashExpr>
+                  <dxl:HashExpr TypeMdid="0.1043.1.0">
+                    <dxl:Ident ColId="50" ColName="ca_county" TypeMdid="0.1043.1.0"/>
+                  </dxl:HashExpr>
+                </dxl:HashExprList>
+                <dxl:Result>
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="13737036.084961" Rows="907530642.000000" Width="31"/>
+                    <dxl:Cost StartupCost="0" TotalCost="68877991.483398" Rows="5062500.000000" Width="39"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="49" Alias="i_item_id">
@@ -3151,198 +3114,235 @@
                     <dxl:ProjElem ColId="50" Alias="ca_county">
                       <dxl:Ident ColId="50" ColName="ca_county" TypeMdid="0.1043.1.0"/>
                     </dxl:ProjElem>
+                    <dxl:ProjElem ColId="204" Alias="ColRef_0204">
+                      <dxl:Ident ColId="204" ColName="ColRef_0204" TypeMdid="0.20.1.0"/>
+                    </dxl:ProjElem>
                   </dxl:ProjList>
-                </dxl:CTEConsumer>
-              </dxl:Aggregate>
-            </dxl:Result>
-          </dxl:RedistributeMotion>
-        </dxl:Aggregate>
-        <dxl:Result>
-          <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="37667349.493164" Rows="9000.000000" Width="33"/>
-          </dxl:Properties>
-          <dxl:ProjList>
-            <dxl:ProjElem ColId="99" Alias="i_item_id">
-              <dxl:Ident ColId="99" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="149" Alias="ca_county">
-              <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="148" Alias="count">
-              <dxl:Ident ColId="148" ColName="count" TypeMdid="0.20.1.0"/>
-            </dxl:ProjElem>
-          </dxl:ProjList>
-          <dxl:Filter/>
-          <dxl:OneTimeFilter/>
-          <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="false">
-            <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="37667058.454102" Rows="9000.000000" Width="25"/>
-            </dxl:Properties>
-            <dxl:GroupingColumns>
-              <dxl:GroupingColumn ColId="99"/>
-            </dxl:GroupingColumns>
-            <dxl:ProjList>
-              <dxl:ProjElem ColId="148" Alias="count">
-                <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Final">
-                  <dxl:Ident ColId="203" ColName="ColRef_0203" TypeMdid="0.20.1.0"/>
-                </dxl:AggFunc>
-              </dxl:ProjElem>
-              <dxl:ProjElem ColId="99" Alias="i_item_id">
-                <dxl:Ident ColId="99" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
-              </dxl:ProjElem>
-            </dxl:ProjList>
-            <dxl:Filter/>
-            <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+                  <dxl:Filter/>
+                  <dxl:OneTimeFilter/>
+                  <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="true">
+                    <dxl:Properties>
+                      <dxl:Cost StartupCost="0" TotalCost="68877991.483398" Rows="5062500.000000" Width="39"/>
+                    </dxl:Properties>
+                    <dxl:GroupingColumns>
+                      <dxl:GroupingColumn ColId="49"/>
+                      <dxl:GroupingColumn ColId="50"/>
+                    </dxl:GroupingColumns>
+                    <dxl:ProjList>
+                      <dxl:ProjElem ColId="204" Alias="ColRef_0204">
+                        <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Partial"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="49" Alias="i_item_id">
+                        <dxl:Ident ColId="49" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="50" Alias="ca_county">
+                        <dxl:Ident ColId="50" ColName="ca_county" TypeMdid="0.1043.1.0"/>
+                      </dxl:ProjElem>
+                    </dxl:ProjList>
+                    <dxl:Filter/>
+                    <dxl:CTEConsumer CTEId="0" Columns="49,50">
+                      <dxl:Properties>
+                        <dxl:Cost StartupCost="0" TotalCost="13737036.084961" Rows="907530642.000000" Width="31"/>
+                      </dxl:Properties>
+                      <dxl:ProjList>
+                        <dxl:ProjElem ColId="49" Alias="i_item_id">
+                          <dxl:Ident ColId="49" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
+                        </dxl:ProjElem>
+                        <dxl:ProjElem ColId="50" Alias="ca_county">
+                          <dxl:Ident ColId="50" ColName="ca_county" TypeMdid="0.1043.1.0"/>
+                        </dxl:ProjElem>
+                      </dxl:ProjList>
+                    </dxl:CTEConsumer>
+                  </dxl:Aggregate>
+                </dxl:Result>
+              </dxl:RedistributeMotion>
+            </dxl:Aggregate>
+            <dxl:Result>
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="37666398.274414" Rows="9000.000000" Width="25"/>
+                <dxl:Cost StartupCost="0" TotalCost="37667349.493164" Rows="9000.000000" Width="33"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="99" Alias="i_item_id">
                   <dxl:Ident ColId="99" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
                 </dxl:ProjElem>
-                <dxl:ProjElem ColId="203" Alias="ColRef_0203">
-                  <dxl:Ident ColId="203" ColName="ColRef_0203" TypeMdid="0.20.1.0"/>
+                <dxl:ProjElem ColId="149" Alias="ca_county">
+                  <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="148" Alias="count">
+                  <dxl:Ident ColId="148" ColName="count" TypeMdid="0.20.1.0"/>
                 </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:Filter/>
-              <dxl:SortingColumnList/>
-              <dxl:HashExprList>
-                <dxl:HashExpr TypeMdid="0.1042.1.0">
-                  <dxl:Ident ColId="99" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
-                </dxl:HashExpr>
-              </dxl:HashExprList>
-              <dxl:Result>
+              <dxl:OneTimeFilter/>
+              <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="false">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="37666287.411133" Rows="9000.000000" Width="25"/>
+                  <dxl:Cost StartupCost="0" TotalCost="37667058.454102" Rows="9000.000000" Width="25"/>
                 </dxl:Properties>
+                <dxl:GroupingColumns>
+                  <dxl:GroupingColumn ColId="99"/>
+                </dxl:GroupingColumns>
                 <dxl:ProjList>
+                  <dxl:ProjElem ColId="148" Alias="count">
+                    <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Final">
+                      <dxl:Ident ColId="203" ColName="ColRef_0203" TypeMdid="0.20.1.0"/>
+                    </dxl:AggFunc>
+                  </dxl:ProjElem>
                   <dxl:ProjElem ColId="99" Alias="i_item_id">
                     <dxl:Ident ColId="99" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
                   </dxl:ProjElem>
-                  <dxl:ProjElem ColId="203" Alias="ColRef_0203">
-                    <dxl:Ident ColId="203" ColName="ColRef_0203" TypeMdid="0.20.1.0"/>
-                  </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>
-                <dxl:OneTimeFilter/>
-                <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="true">
+                <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="37666287.411133" Rows="9000.000000" Width="25"/>
+                    <dxl:Cost StartupCost="0" TotalCost="37666398.274414" Rows="9000.000000" Width="25"/>
                   </dxl:Properties>
-                  <dxl:GroupingColumns>
-                    <dxl:GroupingColumn ColId="99"/>
-                  </dxl:GroupingColumns>
                   <dxl:ProjList>
-                    <dxl:ProjElem ColId="203" Alias="ColRef_0203">
-                      <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Partial"/>
-                    </dxl:ProjElem>
                     <dxl:ProjElem ColId="99" Alias="i_item_id">
                       <dxl:Ident ColId="99" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
                     </dxl:ProjElem>
+                    <dxl:ProjElem ColId="203" Alias="ColRef_0203">
+                      <dxl:Ident ColId="203" ColName="ColRef_0203" TypeMdid="0.20.1.0"/>
+                    </dxl:ProjElem>
                   </dxl:ProjList>
                   <dxl:Filter/>
-                  <dxl:CTEConsumer CTEId="0" Columns="99,100">
+                  <dxl:SortingColumnList/>
+                  <dxl:HashExprList>
+                    <dxl:HashExpr TypeMdid="0.1042.1.0">
+                      <dxl:Ident ColId="99" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
+                    </dxl:HashExpr>
+                  </dxl:HashExprList>
+                  <dxl:Result>
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="7533213.336914" Rows="907530642.000000" Width="17"/>
+                      <dxl:Cost StartupCost="0" TotalCost="37666287.411133" Rows="9000.000000" Width="25"/>
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="99" Alias="i_item_id">
                         <dxl:Ident ColId="99" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
                       </dxl:ProjElem>
-                      <dxl:ProjElem ColId="100" Alias="ca_county">
-                        <dxl:Ident ColId="100" ColName="ca_county" TypeMdid="0.1043.1.0"/>
+                      <dxl:ProjElem ColId="203" Alias="ColRef_0203">
+                        <dxl:Ident ColId="203" ColName="ColRef_0203" TypeMdid="0.20.1.0"/>
                       </dxl:ProjElem>
                     </dxl:ProjList>
-                  </dxl:CTEConsumer>
-                </dxl:Aggregate>
-              </dxl:Result>
-            </dxl:RedistributeMotion>
-          </dxl:Aggregate>
-        </dxl:Result>
-        <dxl:Result>
-          <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="1329395.670898" Rows="1.000000" Width="24"/>
-          </dxl:Properties>
-          <dxl:ProjList>
-            <dxl:ProjElem ColId="200" Alias="i_item_id">
-              <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="201" Alias="ca_county">
-              <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
-            </dxl:ProjElem>
-            <dxl:ProjElem ColId="199" Alias="count">
-              <dxl:Ident ColId="199" ColName="count" TypeMdid="0.20.1.0"/>
-            </dxl:ProjElem>
-          </dxl:ProjList>
-          <dxl:Filter/>
-          <dxl:OneTimeFilter/>
-          <dxl:RandomMotion InputSegments="-1" OutputSegments="0,1">
-            <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="1329394.647461" Rows="1.000000" Width="8"/>
-            </dxl:Properties>
-            <dxl:ProjList>
-              <dxl:ProjElem ColId="199" Alias="count">
-                <dxl:Ident ColId="199" ColName="count" TypeMdid="0.20.1.0"/>
-              </dxl:ProjElem>
-            </dxl:ProjList>
-            <dxl:Filter/>
-            <dxl:SortingColumnList/>
-            <dxl:Aggregate AggregationStrategy="Plain" StreamSafe="false">
+                    <dxl:Filter/>
+                    <dxl:OneTimeFilter/>
+                    <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="true">
+                      <dxl:Properties>
+                        <dxl:Cost StartupCost="0" TotalCost="37666287.411133" Rows="9000.000000" Width="25"/>
+                      </dxl:Properties>
+                      <dxl:GroupingColumns>
+                        <dxl:GroupingColumn ColId="99"/>
+                      </dxl:GroupingColumns>
+                      <dxl:ProjList>
+                        <dxl:ProjElem ColId="203" Alias="ColRef_0203">
+                          <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Partial"/>
+                        </dxl:ProjElem>
+                        <dxl:ProjElem ColId="99" Alias="i_item_id">
+                          <dxl:Ident ColId="99" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
+                        </dxl:ProjElem>
+                      </dxl:ProjList>
+                      <dxl:Filter/>
+                      <dxl:CTEConsumer CTEId="0" Columns="99,100">
+                        <dxl:Properties>
+                          <dxl:Cost StartupCost="0" TotalCost="7533213.336914" Rows="907530642.000000" Width="17"/>
+                        </dxl:Properties>
+                        <dxl:ProjList>
+                          <dxl:ProjElem ColId="99" Alias="i_item_id">
+                            <dxl:Ident ColId="99" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
+                          </dxl:ProjElem>
+                          <dxl:ProjElem ColId="100" Alias="ca_county">
+                            <dxl:Ident ColId="100" ColName="ca_county" TypeMdid="0.1043.1.0"/>
+                          </dxl:ProjElem>
+                        </dxl:ProjList>
+                      </dxl:CTEConsumer>
+                    </dxl:Aggregate>
+                  </dxl:Result>
+                </dxl:RedistributeMotion>
+              </dxl:Aggregate>
+            </dxl:Result>
+            <dxl:Result>
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="1329393.639648" Rows="1.000000" Width="8"/>
+                <dxl:Cost StartupCost="0" TotalCost="1329395.670898" Rows="1.000000" Width="24"/>
               </dxl:Properties>
-              <dxl:GroupingColumns/>
               <dxl:ProjList>
+                <dxl:ProjElem ColId="200" Alias="i_item_id">
+                  <dxl:ConstValue TypeMdid="0.1042.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="201" Alias="ca_county">
+                  <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
+                </dxl:ProjElem>
                 <dxl:ProjElem ColId="199" Alias="count">
-                  <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Final">
-                    <dxl:Ident ColId="202" ColName="ColRef_0202" TypeMdid="0.20.1.0"/>
-                  </dxl:AggFunc>
+                  <dxl:Ident ColId="199" ColName="count" TypeMdid="0.20.1.0"/>
                 </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:Filter/>
-              <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+              <dxl:OneTimeFilter/>
+              <dxl:RandomMotion InputSegments="-1" OutputSegments="0,1">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="1329392.608398" Rows="1.000000" Width="8"/>
+                  <dxl:Cost StartupCost="0" TotalCost="1329394.647461" Rows="1.000000" Width="8"/>
                 </dxl:Properties>
                 <dxl:ProjList>
-                  <dxl:ProjElem ColId="202" Alias="ColRef_0202">
-                    <dxl:Ident ColId="202" ColName="ColRef_0202" TypeMdid="0.20.1.0"/>
+                  <dxl:ProjElem ColId="199" Alias="count">
+                    <dxl:Ident ColId="199" ColName="count" TypeMdid="0.20.1.0"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>
                 <dxl:SortingColumnList/>
                 <dxl:Aggregate AggregationStrategy="Plain" StreamSafe="false">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="1329391.604492" Rows="1.000000" Width="8"/>
+                    <dxl:Cost StartupCost="0" TotalCost="1329393.639648" Rows="1.000000" Width="8"/>
                   </dxl:Properties>
                   <dxl:GroupingColumns/>
                   <dxl:ProjList>
-                    <dxl:ProjElem ColId="202" Alias="ColRef_0202">
-                      <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Partial"/>
+                    <dxl:ProjElem ColId="199" Alias="count">
+                      <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Final">
+                        <dxl:Ident ColId="202" ColName="ColRef_0202" TypeMdid="0.20.1.0"/>
+                      </dxl:AggFunc>
                     </dxl:ProjElem>
                   </dxl:ProjList>
                   <dxl:Filter/>
-                  <dxl:CTEConsumer CTEId="0" Columns="150,151">
+                  <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="443130.196289" Rows="907530642.000000" Width="1"/>
+                      <dxl:Cost StartupCost="0" TotalCost="1329392.608398" Rows="1.000000" Width="8"/>
                     </dxl:Properties>
                     <dxl:ProjList>
-                      <dxl:ProjElem ColId="150" Alias="i_item_id">
-                        <dxl:Ident ColId="150" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
-                      </dxl:ProjElem>
-                      <dxl:ProjElem ColId="151" Alias="ca_county">
-                        <dxl:Ident ColId="151" ColName="ca_county" TypeMdid="0.1043.1.0"/>
+                      <dxl:ProjElem ColId="202" Alias="ColRef_0202">
+                        <dxl:Ident ColId="202" ColName="ColRef_0202" TypeMdid="0.20.1.0"/>
                       </dxl:ProjElem>
                     </dxl:ProjList>
-                  </dxl:CTEConsumer>
+                    <dxl:Filter/>
+                    <dxl:SortingColumnList/>
+                    <dxl:Aggregate AggregationStrategy="Plain" StreamSafe="false">
+                      <dxl:Properties>
+                        <dxl:Cost StartupCost="0" TotalCost="1329391.604492" Rows="1.000000" Width="8"/>
+                      </dxl:Properties>
+                      <dxl:GroupingColumns/>
+                      <dxl:ProjList>
+                        <dxl:ProjElem ColId="202" Alias="ColRef_0202">
+                          <dxl:AggFunc AggMdid="0.2803.1.0" AggDistinct="false" AggStage="Partial"/>
+                        </dxl:ProjElem>
+                      </dxl:ProjList>
+                      <dxl:Filter/>
+                      <dxl:CTEConsumer CTEId="0" Columns="150,151">
+                        <dxl:Properties>
+                          <dxl:Cost StartupCost="0" TotalCost="443130.196289" Rows="907530642.000000" Width="1"/>
+                        </dxl:Properties>
+                        <dxl:ProjList>
+                          <dxl:ProjElem ColId="150" Alias="i_item_id">
+                            <dxl:Ident ColId="150" ColName="i_item_id" TypeMdid="0.1042.1.0"/>
+                          </dxl:ProjElem>
+                          <dxl:ProjElem ColId="151" Alias="ca_county">
+                            <dxl:Ident ColId="151" ColName="ca_county" TypeMdid="0.1043.1.0"/>
+                          </dxl:ProjElem>
+                        </dxl:ProjList>
+                      </dxl:CTEConsumer>
+                    </dxl:Aggregate>
+                  </dxl:GatherMotion>
                 </dxl:Aggregate>
-              </dxl:GatherMotion>
-            </dxl:Aggregate>
-          </dxl:RandomMotion>
-        </dxl:Result>
-      </dxl:Append>
-    </dxl:Sequence>
-  </dxl:GatherMotion>
-</dxl:Plan>
+              </dxl:RandomMotion>
+            </dxl:Result>
+          </dxl:Append>
+        </dxl:Sequence>
+      </dxl:GatherMotion>
+    </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>

@@ -89,47 +89,47 @@
         </dxl:Columns>
       </dxl:LogicalTVF>
     </dxl:Query>
-<dxl:Plan Id="0" SpaceSize="0">
-  <dxl:Result>
-    <dxl:Properties>
-      <dxl:Cost StartupCost="0" TotalCost="46.875000" Rows="1000.000000" Width="24"/>
-    </dxl:Properties>
-    <dxl:ProjList>
-      <dxl:ProjElem ColId="0" Alias="name">
-        <dxl:Ident ColId="0" ColName="name" TypeMdid="0.25.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="1" Alias="statement">
-        <dxl:Ident ColId="1" ColName="statement" TypeMdid="0.25.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="3" Alias="parameter_types">
-        <dxl:Ident ColId="3" ColName="parameter_types" TypeMdid="0.2211.1.0"/>
-      </dxl:ProjElem>
-    </dxl:ProjList>
-    <dxl:Filter/>
-    <dxl:OneTimeFilter/>
-    <dxl:TableValuedFunction FuncId="0.2510.1.0" Name="pg_prepared_statement" TypeMdid="0.2249.1.0">
-      <dxl:Properties>
-        <dxl:Cost StartupCost="0" TotalCost="46.875000" Rows="1000.000000" Width="24"/>
-      </dxl:Properties>
-      <dxl:ProjList>
-        <dxl:ProjElem ColId="0" Alias="name">
-          <dxl:Ident ColId="0" ColName="name" TypeMdid="0.25.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="1" Alias="statement">
-          <dxl:Ident ColId="1" ColName="statement" TypeMdid="0.25.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="2" Alias="prepare_time">
-          <dxl:Ident ColId="2" ColName="prepare_time" TypeMdid="0.1184.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="3" Alias="parameter_types">
-          <dxl:Ident ColId="3" ColName="parameter_types" TypeMdid="0.2211.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="4" Alias="from_sql">
-          <dxl:Ident ColId="4" ColName="from_sql" TypeMdid="0.16.1.0"/>
-        </dxl:ProjElem>
-      </dxl:ProjList>
-    </dxl:TableValuedFunction>
-  </dxl:Result>
-</dxl:Plan>
+    <dxl:Plan Id="0" SpaceSize="0">
+      <dxl:Result>
+        <dxl:Properties>
+          <dxl:Cost StartupCost="0" TotalCost="46.875000" Rows="1000.000000" Width="24"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="0" Alias="name">
+            <dxl:Ident ColId="0" ColName="name" TypeMdid="0.25.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="1" Alias="statement">
+            <dxl:Ident ColId="1" ColName="statement" TypeMdid="0.25.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="3" Alias="parameter_types">
+            <dxl:Ident ColId="3" ColName="parameter_types" TypeMdid="0.2211.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:OneTimeFilter/>
+        <dxl:TableValuedFunction FuncId="0.2510.1.0" Name="pg_prepared_statement" TypeMdid="0.2249.1.0">
+          <dxl:Properties>
+            <dxl:Cost StartupCost="0" TotalCost="46.875000" Rows="1000.000000" Width="24"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="0" Alias="name">
+              <dxl:Ident ColId="0" ColName="name" TypeMdid="0.25.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="1" Alias="statement">
+              <dxl:Ident ColId="1" ColName="statement" TypeMdid="0.25.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="2" Alias="prepare_time">
+              <dxl:Ident ColId="2" ColName="prepare_time" TypeMdid="0.1184.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="3" Alias="parameter_types">
+              <dxl:Ident ColId="3" ColName="parameter_types" TypeMdid="0.2211.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="4" Alias="from_sql">
+              <dxl:Ident ColId="4" ColName="from_sql" TypeMdid="0.16.1.0"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+        </dxl:TableValuedFunction>
+      </dxl:Result>
+    </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>

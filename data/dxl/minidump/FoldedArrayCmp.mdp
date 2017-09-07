@@ -53,15 +53,15 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-       <dxl:GPDBScalarOp Mdid="0.96.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true"> 
-       <dxl:LeftType Mdid="0.23.1.0"/>                                                             
-       <dxl:RightType Mdid="0.23.1.0"/>                                                            
-       <dxl:ResultType Mdid="0.16.1.0"/>                                                           
-       <dxl:OpFunc Mdid="0.65.1.0"/>                                                               
-       <dxl:Commutator Mdid="0.96.1.0"/>                                                           
-       <dxl:InverseOp Mdid="0.518.1.0"/>                                                           
-     </dxl:GPDBScalarOp>     
-      <dxl:ColumnStatistics Mdid="1.17029.1.1.8" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:GPDBScalarOp Mdid="0.96.1.0" Name="=" ComparisonType="Eq" ReturnsNullOnNullInput="true">
+        <dxl:LeftType Mdid="0.23.1.0"/>
+        <dxl:RightType Mdid="0.23.1.0"/>
+        <dxl:ResultType Mdid="0.16.1.0"/>
+        <dxl:OpFunc Mdid="0.65.1.0"/>
+        <dxl:Commutator Mdid="0.96.1.0"/>
+        <dxl:InverseOp Mdid="0.518.1.0"/>
+      </dxl:GPDBScalarOp>
+      <dxl:ColumnStatistics Mdid="1.17029.1.1.8" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.17029.1.1.1" Name="b" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.17029.1.1.0" Name="a" Width="8.000000"/>
       <dxl:Type Mdid="0.29.1.0" Name="cid" IsRedistributable="false" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
@@ -124,10 +124,10 @@
         <dxl:SumAgg Mdid="0.3217.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.17029.1.1.3" Name="xmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.17029.1.1.2" Name="ctid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.17029.1.1.5" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.17029.1.1.4" Name="cmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.17029.1.1.3" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.17029.1.1.2" Name="ctid" Width="6.000000"/>
+      <dxl:ColumnStatistics Mdid="1.17029.1.1.5" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.17029.1.1.4" Name="cmin" Width="4.000000"/>
       <dxl:RelationStatistics Mdid="2.17029.1.1" Name="r" Rows="1000.000000"/>
       <dxl:Relation Mdid="0.17029.1.1" Name="r" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="8,2">
         <dxl:Columns>
@@ -163,8 +163,8 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.17029.1.1.7" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.17029.1.1.6" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.17029.1.1.7" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.17029.1.1.6" Name="cmax" Width="4.000000"/>
     </dxl:Metadata>
     <dxl:Query>
       <dxl:OutputColumns>

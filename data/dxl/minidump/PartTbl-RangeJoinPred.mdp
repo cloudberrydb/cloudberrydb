@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-<!--
+  <!--
 gpsd is attached to GPSQL-2656
 
 Query:
@@ -17,8 +17,8 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
       <dxl:TraceFlags Value="102024,102025,102115,102116,102117,102119,102121,103001,103014,103015"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
-      <dxl:ColumnStatistics Mdid="1.1279380.1.1.59" Name="gp_segment_id" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1279380.1.1.58" Name="tableoid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1279380.1.1.59" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1279380.1.1.58" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1279380.1.1.51" Name="apn" Width="16.000000" NullFreq="0.852803" NdvRemain="2.000000" FreqRemain="0.852803">
         <dxl:StatsBucket Frequency="0.147197" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAAE3dhcGFjY2Vzcy5jby5ueg==" LintValue="60506934"/>
@@ -995,7 +995,7 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.1279380.1.1.57" Name="ctid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1279380.1.1.57" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1279380.1.1.56" Name="nrofsegments" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.199321" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
@@ -1720,7 +1720,7 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
         <dxl:OpFunc Mdid="0.850.1.0"/>
         <dxl:InverseOp Mdid="0.1210.1.0"/>
       </dxl:GPDBScalarOp>
-      <dxl:ColumnStatistics Mdid="1.1277041.1.1.19" Name="ctid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1277041.1.1.19" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1277041.1.1.18" Name="row_effective_to_dtm" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="2hQAAA==" DoubleValue="461203200000000.000000"/>
@@ -3584,8 +3584,8 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
           <dxl:UpperBound Closed="true" TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAADzY0Mjc4NDU1OTY4" LintValue="259982180"/>
         </dxl:StatsBucket>
       </dxl:ColumnStatistics>
-      <dxl:ColumnStatistics Mdid="1.1277041.1.1.21" Name="gp_segment_id" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.1277041.1.1.20" Name="tableoid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1277041.1.1.21" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.1277041.1.1.20" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.1277041.1.1.12" Name="latest_registration_flag" Width="1.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.773753" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
@@ -5162,253 +5162,18 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
         </dxl:And>
       </dxl:LogicalJoin>
     </dxl:Query>
-<dxl:Plan Id="0" SpaceSize="8">
-  <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
-    <dxl:Properties>
-      <dxl:Cost StartupCost="0" TotalCost="480974.595538" Rows="170321006.931670" Width="184"/>
-    </dxl:Properties>
-    <dxl:ProjList>
-      <dxl:ProjElem ColId="14" Alias="subscriberaddress">
-        <dxl:Ident ColId="14" ColName="subscriberaddress" TypeMdid="0.1043.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="9" Alias="sessioncreationtimestamp">
-        <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="60" Alias="customer_device_key">
-        <dxl:Ident ColId="60" ColName="customer_device_key" TypeMdid="0.20.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="61" Alias="imsi_number">
-        <dxl:Ident ColId="61" ColName="imsi_number" TypeMdid="0.1043.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="62" Alias="msisdn">
-        <dxl:Ident ColId="62" ColName="msisdn" TypeMdid="0.1043.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="63" Alias="imei_number">
-        <dxl:Ident ColId="63" ColName="imei_number" TypeMdid="0.1043.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="64" Alias="country">
-        <dxl:Ident ColId="64" ColName="country" TypeMdid="0.1043.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="65" Alias="carrier">
-        <dxl:Ident ColId="65" ColName="carrier" TypeMdid="0.1043.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="66" Alias="tac_cd">
-        <dxl:Ident ColId="66" ColName="tac_cd" TypeMdid="0.1043.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="67" Alias="source">
-        <dxl:Ident ColId="67" ColName="source" TypeMdid="0.1043.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="68" Alias="create_dtm">
-        <dxl:Ident ColId="68" ColName="create_dtm" TypeMdid="0.1082.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="69" Alias="update_dtm">
-        <dxl:Ident ColId="69" ColName="update_dtm" TypeMdid="0.1082.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="70" Alias="start_dtm">
-        <dxl:Ident ColId="70" ColName="start_dtm" TypeMdid="0.1184.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="71" Alias="end_dtm">
-        <dxl:Ident ColId="71" ColName="end_dtm" TypeMdid="0.1184.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="72" Alias="latest_registration_flag">
-        <dxl:Ident ColId="72" ColName="latest_registration_flag" TypeMdid="0.16.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="73" Alias="mkt_model">
-        <dxl:Ident ColId="73" ColName="mkt_model" TypeMdid="0.1043.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="74" Alias="created_by">
-        <dxl:Ident ColId="74" ColName="created_by" TypeMdid="0.1043.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="75" Alias="updated_by">
-        <dxl:Ident ColId="75" ColName="updated_by" TypeMdid="0.1043.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="76" Alias="process_run_id">
-        <dxl:Ident ColId="76" ColName="process_run_id" TypeMdid="0.23.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="77" Alias="row_effective_from_dtm">
-        <dxl:Ident ColId="77" ColName="row_effective_from_dtm" TypeMdid="0.1082.1.0"/>
-      </dxl:ProjElem>
-      <dxl:ProjElem ColId="78" Alias="row_effective_to_dtm">
-        <dxl:Ident ColId="78" ColName="row_effective_to_dtm" TypeMdid="0.1082.1.0"/>
-      </dxl:ProjElem>
-    </dxl:ProjList>
-    <dxl:Filter/>
-    <dxl:SortingColumnList/>
-    <dxl:HashJoin JoinType="Inner">
-      <dxl:Properties>
-        <dxl:Cost StartupCost="0" TotalCost="340262.192451" Rows="170321006.931670" Width="184"/>
-      </dxl:Properties>
-      <dxl:ProjList>
-        <dxl:ProjElem ColId="14" Alias="subscriberaddress">
-          <dxl:Ident ColId="14" ColName="subscriberaddress" TypeMdid="0.1043.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="9" Alias="sessioncreationtimestamp">
-          <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="60" Alias="customer_device_key">
-          <dxl:Ident ColId="60" ColName="customer_device_key" TypeMdid="0.20.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="61" Alias="imsi_number">
-          <dxl:Ident ColId="61" ColName="imsi_number" TypeMdid="0.1043.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="62" Alias="msisdn">
-          <dxl:Ident ColId="62" ColName="msisdn" TypeMdid="0.1043.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="63" Alias="imei_number">
-          <dxl:Ident ColId="63" ColName="imei_number" TypeMdid="0.1043.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="64" Alias="country">
-          <dxl:Ident ColId="64" ColName="country" TypeMdid="0.1043.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="65" Alias="carrier">
-          <dxl:Ident ColId="65" ColName="carrier" TypeMdid="0.1043.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="66" Alias="tac_cd">
-          <dxl:Ident ColId="66" ColName="tac_cd" TypeMdid="0.1043.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="67" Alias="source">
-          <dxl:Ident ColId="67" ColName="source" TypeMdid="0.1043.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="68" Alias="create_dtm">
-          <dxl:Ident ColId="68" ColName="create_dtm" TypeMdid="0.1082.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="69" Alias="update_dtm">
-          <dxl:Ident ColId="69" ColName="update_dtm" TypeMdid="0.1082.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="70" Alias="start_dtm">
-          <dxl:Ident ColId="70" ColName="start_dtm" TypeMdid="0.1184.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="71" Alias="end_dtm">
-          <dxl:Ident ColId="71" ColName="end_dtm" TypeMdid="0.1184.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="72" Alias="latest_registration_flag">
-          <dxl:Ident ColId="72" ColName="latest_registration_flag" TypeMdid="0.16.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="73" Alias="mkt_model">
-          <dxl:Ident ColId="73" ColName="mkt_model" TypeMdid="0.1043.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="74" Alias="created_by">
-          <dxl:Ident ColId="74" ColName="created_by" TypeMdid="0.1043.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="75" Alias="updated_by">
-          <dxl:Ident ColId="75" ColName="updated_by" TypeMdid="0.1043.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="76" Alias="process_run_id">
-          <dxl:Ident ColId="76" ColName="process_run_id" TypeMdid="0.23.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="77" Alias="row_effective_from_dtm">
-          <dxl:Ident ColId="77" ColName="row_effective_from_dtm" TypeMdid="0.1082.1.0"/>
-        </dxl:ProjElem>
-        <dxl:ProjElem ColId="78" Alias="row_effective_to_dtm">
-          <dxl:Ident ColId="78" ColName="row_effective_to_dtm" TypeMdid="0.1082.1.0"/>
-        </dxl:ProjElem>
-      </dxl:ProjList>
-      <dxl:Filter/>
-      <dxl:JoinFilter>
-        <dxl:And>
-          <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1325.1.0">
-            <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
-            <dxl:Ident ColId="70" ColName="start_dtm" TypeMdid="0.1184.1.0"/>
-          </dxl:Comparison>
-          <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1322.1.0">
-            <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
-            <dxl:Ident ColId="71" ColName="end_dtm" TypeMdid="0.1184.1.0"/>
-          </dxl:Comparison>
-        </dxl:And>
-      </dxl:JoinFilter>
-      <dxl:HashCondList>
-        <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-          <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-            <dxl:Ident ColId="14" ColName="subscriberaddress" TypeMdid="0.1043.1.0"/>
-          </dxl:Cast>
-          <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-            <dxl:Ident ColId="62" ColName="msisdn" TypeMdid="0.1043.1.0"/>
-          </dxl:Cast>
-        </dxl:Comparison>
-      </dxl:HashCondList>
-      <dxl:DynamicTableScan PartIndexId="1">
+    <dxl:Plan Id="0" SpaceSize="8">
+      <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="99143.002189" Rows="766993024.000000" Width="20"/>
+          <dxl:Cost StartupCost="0" TotalCost="478859.254744" Rows="170321006.931670" Width="184"/>
         </dxl:Properties>
         <dxl:ProjList>
-          <dxl:ProjElem ColId="9" Alias="sessioncreationtimestamp">
-            <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
-          </dxl:ProjElem>
           <dxl:ProjElem ColId="14" Alias="subscriberaddress">
             <dxl:Ident ColId="14" ColName="subscriberaddress" TypeMdid="0.1043.1.0"/>
           </dxl:ProjElem>
-        </dxl:ProjList>
-        <dxl:Filter/>
-        <dxl:TableDescriptor Mdid="0.1279380.1.1" TableName="stg_xdr_crce_cdr">
-          <dxl:Columns>
-            <dxl:Column ColId="0" Attno="1" ColName="id" TypeMdid="0.20.1.0"/>
-            <dxl:Column ColId="1" Attno="2" ColName="headerversion" TypeMdid="0.1043.1.0" ColWidth="32"/>
-            <dxl:Column ColId="2" Attno="3" ColName="tickettypeid" TypeMdid="0.23.1.0"/>
-            <dxl:Column ColId="3" Attno="4" ColName="success" TypeMdid="0.16.1.0"/>
-            <dxl:Column ColId="4" Attno="5" ColName="provider" TypeMdid="0.1043.1.0" ColWidth="255"/>
-            <dxl:Column ColId="5" Attno="6" ColName="application" TypeMdid="0.1043.1.0" ColWidth="255"/>
-            <dxl:Column ColId="6" Attno="7" ColName="tickettype" TypeMdid="0.1043.1.0" ColWidth="32"/>
-            <dxl:Column ColId="7" Attno="8" ColName="nodeid" TypeMdid="0.1043.1.0" ColWidth="255"/>
-            <dxl:Column ColId="8" Attno="9" ColName="tickettimestamp" TypeMdid="0.1184.1.0"/>
-            <dxl:Column ColId="9" Attno="10" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
-            <dxl:Column ColId="10" Attno="11" ColName="sessionid" TypeMdid="0.1043.1.0" ColWidth="255"/>
-            <dxl:Column ColId="11" Attno="12" ColName="transactionid" TypeMdid="0.1043.1.0" ColWidth="255"/>
-            <dxl:Column ColId="12" Attno="13" ColName="sequenceid" TypeMdid="0.1043.1.0" ColWidth="255"/>
-            <dxl:Column ColId="13" Attno="14" ColName="subscriberid" TypeMdid="0.1043.1.0" ColWidth="128"/>
-            <dxl:Column ColId="14" Attno="15" ColName="subscriberaddress" TypeMdid="0.1043.1.0" ColWidth="128"/>
-            <dxl:Column ColId="15" Attno="16" ColName="subscribertype" TypeMdid="0.1043.1.0" ColWidth="32"/>
-            <dxl:Column ColId="16" Attno="17" ColName="errorcode" TypeMdid="0.1043.1.0" ColWidth="128"/>
-            <dxl:Column ColId="17" Attno="18" ColName="groupid" TypeMdid="0.20.1.0"/>
-            <dxl:Column ColId="18" Attno="19" ColName="subscriberstate" TypeMdid="0.1043.1.0" ColWidth="128"/>
-            <dxl:Column ColId="19" Attno="20" ColName="subscriberstateinfo" TypeMdid="0.1043.1.0" ColWidth="128"/>
-            <dxl:Column ColId="20" Attno="21" ColName="languageid" TypeMdid="0.23.1.0"/>
-            <dxl:Column ColId="21" Attno="22" ColName="chargenotification" TypeMdid="0.1043.1.0" ColWidth="32"/>
-            <dxl:Column ColId="22" Attno="23" ColName="recordversion" TypeMdid="0.1043.1.0" ColWidth="32"/>
-            <dxl:Column ColId="23" Attno="24" ColName="crceoperation" TypeMdid="0.1043.1.0" ColWidth="255"/>
-            <dxl:Column ColId="24" Attno="25" ColName="chargemode" TypeMdid="0.1043.1.0" ColWidth="255"/>
-            <dxl:Column ColId="25" Attno="26" ColName="imsi" TypeMdid="0.1043.1.0" ColWidth="128"/>
-            <dxl:Column ColId="26" Attno="27" ColName="callingmsisdn" TypeMdid="0.1043.1.0" ColWidth="128"/>
-            <dxl:Column ColId="27" Attno="28" ColName="clipsuppressnumber" TypeMdid="0.16.1.0"/>
-            <dxl:Column ColId="28" Attno="29" ColName="calledmsisdn" TypeMdid="0.1043.1.0" ColWidth="128"/>
-            <dxl:Column ColId="29" Attno="30" ColName="destinationnetwork" TypeMdid="0.1043.1.0" ColWidth="255"/>
-            <dxl:Column ColId="30" Attno="31" ColName="destinationzone" TypeMdid="0.1043.1.0" ColWidth="128"/>
-            <dxl:Column ColId="31" Attno="32" ColName="traffictype" TypeMdid="0.1043.1.0" ColWidth="32"/>
-            <dxl:Column ColId="32" Attno="33" ColName="messagetypeindicator" TypeMdid="0.1043.1.0" ColWidth="32"/>
-            <dxl:Column ColId="33" Attno="34" ColName="bearertype" TypeMdid="0.1043.1.0" ColWidth="128"/>
-            <dxl:Column ColId="34" Attno="35" ColName="subscriberlocation" TypeMdid="0.1043.1.0" ColWidth="128"/>
-            <dxl:Column ColId="35" Attno="36" ColName="locationnetwork" TypeMdid="0.1043.1.0" ColWidth="255"/>
-            <dxl:Column ColId="36" Attno="37" ColName="answertime" TypeMdid="0.1184.1.0"/>
-            <dxl:Column ColId="37" Attno="38" ColName="maxcallcost" TypeMdid="0.20.1.0"/>
-            <dxl:Column ColId="38" Attno="39" ColName="callduration" TypeMdid="0.20.1.0"/>
-            <dxl:Column ColId="39" Attno="40" ColName="chargedduration" TypeMdid="0.20.1.0"/>
-            <dxl:Column ColId="40" Attno="41" ColName="referencenumber" TypeMdid="0.1043.1.0" ColWidth="255"/>
-            <dxl:Column ColId="41" Attno="42" ColName="chargefreeaction" TypeMdid="0.16.1.0"/>
-            <dxl:Column ColId="42" Attno="43" ColName="tariff" TypeMdid="0.1043.1.0" ColWidth="255"/>
-            <dxl:Column ColId="43" Attno="44" ColName="accountid" TypeMdid="0.20.1.0"/>
-            <dxl:Column ColId="44" Attno="45" ColName="accountdifference" TypeMdid="0.20.1.0"/>
-            <dxl:Column ColId="45" Attno="46" ColName="chargeamount" TypeMdid="0.20.1.0"/>
-            <dxl:Column ColId="46" Attno="47" ColName="currency" TypeMdid="0.1043.1.0" ColWidth="128"/>
-            <dxl:Column ColId="47" Attno="48" ColName="closingbalance" TypeMdid="0.20.1.0"/>
-            <dxl:Column ColId="48" Attno="49" ColName="crceresultcode" TypeMdid="0.1043.1.0" ColWidth="128"/>
-            <dxl:Column ColId="49" Attno="50" ColName="transparentdata" TypeMdid="0.25.1.0"/>
-            <dxl:Column ColId="50" Attno="51" ColName="additionalratinginfo" TypeMdid="0.1043.1.0" ColWidth="255"/>
-            <dxl:Column ColId="51" Attno="52" ColName="apn" TypeMdid="0.1043.1.0" ColWidth="255"/>
-            <dxl:Column ColId="52" Attno="53" ColName="transferredunits" TypeMdid="0.20.1.0"/>
-            <dxl:Column ColId="53" Attno="54" ColName="accounttype" TypeMdid="0.1043.1.0" ColWidth="128"/>
-            <dxl:Column ColId="54" Attno="55" ColName="ratinggroup" TypeMdid="0.23.1.0"/>
-            <dxl:Column ColId="55" Attno="56" ColName="roaming" TypeMdid="0.16.1.0"/>
-            <dxl:Column ColId="56" Attno="57" ColName="nrofsegments" TypeMdid="0.20.1.0"/>
-            <dxl:Column ColId="57" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-            <dxl:Column ColId="58" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-            <dxl:Column ColId="59" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-          </dxl:Columns>
-        </dxl:TableDescriptor>
-      </dxl:DynamicTableScan>
-      <dxl:PartitionSelector RelationMdid="0.1279380.1.1" PartitionLevels="1" ScanId="1">
-        <dxl:Properties>
-          <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
-        </dxl:Properties>
-        <dxl:ProjList>
+          <dxl:ProjElem ColId="9" Alias="sessioncreationtimestamp">
+            <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
+          </dxl:ProjElem>
           <dxl:ProjElem ColId="60" Alias="customer_device_key">
             <dxl:Ident ColId="60" ColName="customer_device_key" TypeMdid="0.20.1.0"/>
           </dxl:ProjElem>
@@ -5467,62 +5232,19 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
             <dxl:Ident ColId="78" ColName="row_effective_to_dtm" TypeMdid="0.1082.1.0"/>
           </dxl:ProjElem>
         </dxl:ProjList>
-        <dxl:PartEqFilters>
-          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-        </dxl:PartEqFilters>
-        <dxl:PartFilters>
-          <dxl:Or>
-            <dxl:And>
-              <dxl:Or>
-                <dxl:And>
-                  <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1325.1.0">
-                    <dxl:PartBound Level="0" Type="0.1184.1.0" LowerBound="false"/>
-                    <dxl:Ident ColId="70" ColName="start_dtm" TypeMdid="0.1184.1.0"/>
-                  </dxl:Comparison>
-                  <dxl:PartBoundInclusion Level="0" LowerBound="false"/>
-                </dxl:And>
-                <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.1324.1.0">
-                  <dxl:PartBound Level="0" Type="0.1184.1.0" LowerBound="false"/>
-                  <dxl:Ident ColId="70" ColName="start_dtm" TypeMdid="0.1184.1.0"/>
-                </dxl:Comparison>
-              </dxl:Or>
-              <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1322.1.0">
-                <dxl:PartBound Level="0" Type="0.1184.1.0" LowerBound="true"/>
-                <dxl:Ident ColId="71" ColName="end_dtm" TypeMdid="0.1184.1.0"/>
-              </dxl:Comparison>
-            </dxl:And>
-            <dxl:Or>
-              <dxl:DefaultPart Level="0"/>
-              <dxl:Or>
-                <dxl:PartBoundOpen Level="0" LowerBound="true"/>
-                <dxl:PartBoundOpen Level="0" LowerBound="false"/>
-              </dxl:Or>
-            </dxl:Or>
-          </dxl:Or>
-        </dxl:PartFilters>
-        <dxl:ResidualFilter>
-          <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-        </dxl:ResidualFilter>
-        <dxl:PropagationExpression>
-          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-        </dxl:PropagationExpression>
-        <dxl:PrintableFilter>
-          <dxl:And>
-            <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1325.1.0">
-              <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
-              <dxl:Ident ColId="70" ColName="start_dtm" TypeMdid="0.1184.1.0"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1322.1.0">
-              <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
-              <dxl:Ident ColId="71" ColName="end_dtm" TypeMdid="0.1184.1.0"/>
-            </dxl:Comparison>
-          </dxl:And>
-        </dxl:PrintableFilter>
-        <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+        <dxl:Filter/>
+        <dxl:SortingColumnList/>
+        <dxl:HashJoin JoinType="Inner">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="648.259246" Rows="29624.133333" Width="164"/>
+            <dxl:Cost StartupCost="0" TotalCost="338146.851658" Rows="170321006.931670" Width="184"/>
           </dxl:Properties>
           <dxl:ProjList>
+            <dxl:ProjElem ColId="14" Alias="subscriberaddress">
+              <dxl:Ident ColId="14" ColName="subscriberaddress" TypeMdid="0.1043.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="9" Alias="sessioncreationtimestamp">
+              <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
+            </dxl:ProjElem>
             <dxl:ProjElem ColId="60" Alias="customer_device_key">
               <dxl:Ident ColId="60" ColName="customer_device_key" TypeMdid="0.20.1.0"/>
             </dxl:ProjElem>
@@ -5582,10 +5304,109 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
-          <dxl:SortingColumnList/>
-          <dxl:TableScan>
+          <dxl:JoinFilter>
+            <dxl:And>
+              <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1325.1.0">
+                <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
+                <dxl:Ident ColId="70" ColName="start_dtm" TypeMdid="0.1184.1.0"/>
+              </dxl:Comparison>
+              <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1322.1.0">
+                <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
+                <dxl:Ident ColId="71" ColName="end_dtm" TypeMdid="0.1184.1.0"/>
+              </dxl:Comparison>
+            </dxl:And>
+          </dxl:JoinFilter>
+          <dxl:HashCondList>
+            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
+              <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                <dxl:Ident ColId="14" ColName="subscriberaddress" TypeMdid="0.1043.1.0"/>
+              </dxl:Cast>
+              <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                <dxl:Ident ColId="62" ColName="msisdn" TypeMdid="0.1043.1.0"/>
+              </dxl:Cast>
+            </dxl:Comparison>
+          </dxl:HashCondList>
+          <dxl:DynamicTableScan PartIndexId="1">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="584.675488" Rows="14812.066667" Width="164"/>
+              <dxl:Cost StartupCost="0" TotalCost="97033.771373" Rows="766993024.000000" Width="20"/>
+            </dxl:Properties>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="9" Alias="sessioncreationtimestamp">
+                <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
+              </dxl:ProjElem>
+              <dxl:ProjElem ColId="14" Alias="subscriberaddress">
+                <dxl:Ident ColId="14" ColName="subscriberaddress" TypeMdid="0.1043.1.0"/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:Filter/>
+            <dxl:TableDescriptor Mdid="0.1279380.1.1" TableName="stg_xdr_crce_cdr">
+              <dxl:Columns>
+                <dxl:Column ColId="0" Attno="1" ColName="id" TypeMdid="0.20.1.0"/>
+                <dxl:Column ColId="1" Attno="2" ColName="headerversion" TypeMdid="0.1043.1.0" ColWidth="32"/>
+                <dxl:Column ColId="2" Attno="3" ColName="tickettypeid" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="3" Attno="4" ColName="success" TypeMdid="0.16.1.0"/>
+                <dxl:Column ColId="4" Attno="5" ColName="provider" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                <dxl:Column ColId="5" Attno="6" ColName="application" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                <dxl:Column ColId="6" Attno="7" ColName="tickettype" TypeMdid="0.1043.1.0" ColWidth="32"/>
+                <dxl:Column ColId="7" Attno="8" ColName="nodeid" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                <dxl:Column ColId="8" Attno="9" ColName="tickettimestamp" TypeMdid="0.1184.1.0"/>
+                <dxl:Column ColId="9" Attno="10" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
+                <dxl:Column ColId="10" Attno="11" ColName="sessionid" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                <dxl:Column ColId="11" Attno="12" ColName="transactionid" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                <dxl:Column ColId="12" Attno="13" ColName="sequenceid" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                <dxl:Column ColId="13" Attno="14" ColName="subscriberid" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                <dxl:Column ColId="14" Attno="15" ColName="subscriberaddress" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                <dxl:Column ColId="15" Attno="16" ColName="subscribertype" TypeMdid="0.1043.1.0" ColWidth="32"/>
+                <dxl:Column ColId="16" Attno="17" ColName="errorcode" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                <dxl:Column ColId="17" Attno="18" ColName="groupid" TypeMdid="0.20.1.0"/>
+                <dxl:Column ColId="18" Attno="19" ColName="subscriberstate" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                <dxl:Column ColId="19" Attno="20" ColName="subscriberstateinfo" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                <dxl:Column ColId="20" Attno="21" ColName="languageid" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="21" Attno="22" ColName="chargenotification" TypeMdid="0.1043.1.0" ColWidth="32"/>
+                <dxl:Column ColId="22" Attno="23" ColName="recordversion" TypeMdid="0.1043.1.0" ColWidth="32"/>
+                <dxl:Column ColId="23" Attno="24" ColName="crceoperation" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                <dxl:Column ColId="24" Attno="25" ColName="chargemode" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                <dxl:Column ColId="25" Attno="26" ColName="imsi" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                <dxl:Column ColId="26" Attno="27" ColName="callingmsisdn" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                <dxl:Column ColId="27" Attno="28" ColName="clipsuppressnumber" TypeMdid="0.16.1.0"/>
+                <dxl:Column ColId="28" Attno="29" ColName="calledmsisdn" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                <dxl:Column ColId="29" Attno="30" ColName="destinationnetwork" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                <dxl:Column ColId="30" Attno="31" ColName="destinationzone" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                <dxl:Column ColId="31" Attno="32" ColName="traffictype" TypeMdid="0.1043.1.0" ColWidth="32"/>
+                <dxl:Column ColId="32" Attno="33" ColName="messagetypeindicator" TypeMdid="0.1043.1.0" ColWidth="32"/>
+                <dxl:Column ColId="33" Attno="34" ColName="bearertype" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                <dxl:Column ColId="34" Attno="35" ColName="subscriberlocation" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                <dxl:Column ColId="35" Attno="36" ColName="locationnetwork" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                <dxl:Column ColId="36" Attno="37" ColName="answertime" TypeMdid="0.1184.1.0"/>
+                <dxl:Column ColId="37" Attno="38" ColName="maxcallcost" TypeMdid="0.20.1.0"/>
+                <dxl:Column ColId="38" Attno="39" ColName="callduration" TypeMdid="0.20.1.0"/>
+                <dxl:Column ColId="39" Attno="40" ColName="chargedduration" TypeMdid="0.20.1.0"/>
+                <dxl:Column ColId="40" Attno="41" ColName="referencenumber" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                <dxl:Column ColId="41" Attno="42" ColName="chargefreeaction" TypeMdid="0.16.1.0"/>
+                <dxl:Column ColId="42" Attno="43" ColName="tariff" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                <dxl:Column ColId="43" Attno="44" ColName="accountid" TypeMdid="0.20.1.0"/>
+                <dxl:Column ColId="44" Attno="45" ColName="accountdifference" TypeMdid="0.20.1.0"/>
+                <dxl:Column ColId="45" Attno="46" ColName="chargeamount" TypeMdid="0.20.1.0"/>
+                <dxl:Column ColId="46" Attno="47" ColName="currency" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                <dxl:Column ColId="47" Attno="48" ColName="closingbalance" TypeMdid="0.20.1.0"/>
+                <dxl:Column ColId="48" Attno="49" ColName="crceresultcode" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                <dxl:Column ColId="49" Attno="50" ColName="transparentdata" TypeMdid="0.25.1.0"/>
+                <dxl:Column ColId="50" Attno="51" ColName="additionalratinginfo" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                <dxl:Column ColId="51" Attno="52" ColName="apn" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                <dxl:Column ColId="52" Attno="53" ColName="transferredunits" TypeMdid="0.20.1.0"/>
+                <dxl:Column ColId="53" Attno="54" ColName="accounttype" TypeMdid="0.1043.1.0" ColWidth="128"/>
+                <dxl:Column ColId="54" Attno="55" ColName="ratinggroup" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="55" Attno="56" ColName="roaming" TypeMdid="0.16.1.0"/>
+                <dxl:Column ColId="56" Attno="57" ColName="nrofsegments" TypeMdid="0.20.1.0"/>
+                <dxl:Column ColId="57" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                <dxl:Column ColId="58" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                <dxl:Column ColId="59" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+              </dxl:Columns>
+            </dxl:TableDescriptor>
+          </dxl:DynamicTableScan>
+          <dxl:PartitionSelector RelationMdid="0.1279380.1.1" PartitionLevels="1" ScanId="1">
+            <dxl:Properties>
+              <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="60" Alias="customer_device_key">
@@ -5646,45 +5467,224 @@ where d.msisdn=f.subscriberaddress and f.sessioncreationtimestamp >= d.start_dtm
                 <dxl:Ident ColId="78" ColName="row_effective_to_dtm" TypeMdid="0.1082.1.0"/>
               </dxl:ProjElem>
             </dxl:ProjList>
-            <dxl:Filter>
-              <dxl:Comparison ComparisonOperator="~~" OperatorMdid="0.1209.1.0">
-                <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+            <dxl:PartEqFilters>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+            </dxl:PartEqFilters>
+            <dxl:PartFilters>
+              <dxl:Or>
+                <dxl:And>
+                  <dxl:Or>
+                    <dxl:And>
+                      <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1325.1.0">
+                        <dxl:PartBound Level="0" Type="0.1184.1.0" LowerBound="false"/>
+                        <dxl:Ident ColId="70" ColName="start_dtm" TypeMdid="0.1184.1.0"/>
+                      </dxl:Comparison>
+                      <dxl:PartBoundInclusion Level="0" LowerBound="false"/>
+                    </dxl:And>
+                    <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.1324.1.0">
+                      <dxl:PartBound Level="0" Type="0.1184.1.0" LowerBound="false"/>
+                      <dxl:Ident ColId="70" ColName="start_dtm" TypeMdid="0.1184.1.0"/>
+                    </dxl:Comparison>
+                  </dxl:Or>
+                  <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1322.1.0">
+                    <dxl:PartBound Level="0" Type="0.1184.1.0" LowerBound="true"/>
+                    <dxl:Ident ColId="71" ColName="end_dtm" TypeMdid="0.1184.1.0"/>
+                  </dxl:Comparison>
+                </dxl:And>
+                <dxl:Or>
+                  <dxl:DefaultPart Level="0"/>
+                  <dxl:Or>
+                    <dxl:PartBoundOpen Level="0" LowerBound="true"/>
+                    <dxl:PartBoundOpen Level="0" LowerBound="false"/>
+                  </dxl:Or>
+                </dxl:Or>
+              </dxl:Or>
+            </dxl:PartFilters>
+            <dxl:ResidualFilter>
+              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+            </dxl:ResidualFilter>
+            <dxl:PropagationExpression>
+              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+            </dxl:PropagationExpression>
+            <dxl:PrintableFilter>
+              <dxl:And>
+                <dxl:Comparison ComparisonOperator="&gt;=" OperatorMdid="0.1325.1.0">
+                  <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
+                  <dxl:Ident ColId="70" ColName="start_dtm" TypeMdid="0.1184.1.0"/>
+                </dxl:Comparison>
+                <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.1322.1.0">
+                  <dxl:Ident ColId="9" ColName="sessioncreationtimestamp" TypeMdid="0.1184.1.0"/>
+                  <dxl:Ident ColId="71" ColName="end_dtm" TypeMdid="0.1184.1.0"/>
+                </dxl:Comparison>
+              </dxl:And>
+            </dxl:PrintableFilter>
+            <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0" TotalCost="642.149269" Rows="29624.133333" Width="164"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="60" Alias="customer_device_key">
+                  <dxl:Ident ColId="60" ColName="customer_device_key" TypeMdid="0.20.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="61" Alias="imsi_number">
+                  <dxl:Ident ColId="61" ColName="imsi_number" TypeMdid="0.1043.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="62" Alias="msisdn">
+                  <dxl:Ident ColId="62" ColName="msisdn" TypeMdid="0.1043.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="63" Alias="imei_number">
+                  <dxl:Ident ColId="63" ColName="imei_number" TypeMdid="0.1043.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="64" Alias="country">
+                  <dxl:Ident ColId="64" ColName="country" TypeMdid="0.1043.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="65" Alias="carrier">
+                  <dxl:Ident ColId="65" ColName="carrier" TypeMdid="0.1043.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="66" Alias="tac_cd">
+                  <dxl:Ident ColId="66" ColName="tac_cd" TypeMdid="0.1043.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="67" Alias="source">
+                  <dxl:Ident ColId="67" ColName="source" TypeMdid="0.1043.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="68" Alias="create_dtm">
+                  <dxl:Ident ColId="68" ColName="create_dtm" TypeMdid="0.1082.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="69" Alias="update_dtm">
+                  <dxl:Ident ColId="69" ColName="update_dtm" TypeMdid="0.1082.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="70" Alias="start_dtm">
+                  <dxl:Ident ColId="70" ColName="start_dtm" TypeMdid="0.1184.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="71" Alias="end_dtm">
+                  <dxl:Ident ColId="71" ColName="end_dtm" TypeMdid="0.1184.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="72" Alias="latest_registration_flag">
+                  <dxl:Ident ColId="72" ColName="latest_registration_flag" TypeMdid="0.16.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="73" Alias="mkt_model">
                   <dxl:Ident ColId="73" ColName="mkt_model" TypeMdid="0.1043.1.0"/>
-                </dxl:Cast>
-                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAADCVJUEhPTkUl" LintValue="187737006"/>
-              </dxl:Comparison>
-            </dxl:Filter>
-            <dxl:TableDescriptor Mdid="0.1277041.1.1" TableName="dim_customer_device">
-              <dxl:Columns>
-                <dxl:Column ColId="60" Attno="1" ColName="customer_device_key" TypeMdid="0.20.1.0"/>
-                <dxl:Column ColId="61" Attno="2" ColName="imsi_number" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                <dxl:Column ColId="62" Attno="3" ColName="msisdn" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                <dxl:Column ColId="63" Attno="4" ColName="imei_number" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                <dxl:Column ColId="64" Attno="5" ColName="country" TypeMdid="0.1043.1.0" ColWidth="32"/>
-                <dxl:Column ColId="65" Attno="6" ColName="carrier" TypeMdid="0.1043.1.0" ColWidth="32"/>
-                <dxl:Column ColId="66" Attno="7" ColName="tac_cd" TypeMdid="0.1043.1.0" ColWidth="20"/>
-                <dxl:Column ColId="67" Attno="8" ColName="source" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="68" Attno="9" ColName="create_dtm" TypeMdid="0.1082.1.0"/>
-                <dxl:Column ColId="69" Attno="10" ColName="update_dtm" TypeMdid="0.1082.1.0"/>
-                <dxl:Column ColId="70" Attno="11" ColName="start_dtm" TypeMdid="0.1184.1.0"/>
-                <dxl:Column ColId="71" Attno="12" ColName="end_dtm" TypeMdid="0.1184.1.0"/>
-                <dxl:Column ColId="72" Attno="13" ColName="latest_registration_flag" TypeMdid="0.16.1.0"/>
-                <dxl:Column ColId="73" Attno="14" ColName="mkt_model" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                <dxl:Column ColId="74" Attno="15" ColName="created_by" TypeMdid="0.1043.1.0" ColWidth="50"/>
-                <dxl:Column ColId="75" Attno="16" ColName="updated_by" TypeMdid="0.1043.1.0" ColWidth="50"/>
-                <dxl:Column ColId="76" Attno="17" ColName="process_run_id" TypeMdid="0.23.1.0"/>
-                <dxl:Column ColId="77" Attno="18" ColName="row_effective_from_dtm" TypeMdid="0.1082.1.0"/>
-                <dxl:Column ColId="78" Attno="19" ColName="row_effective_to_dtm" TypeMdid="0.1082.1.0"/>
-                <dxl:Column ColId="79" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                <dxl:Column ColId="80" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                <dxl:Column ColId="81" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-              </dxl:Columns>
-            </dxl:TableDescriptor>
-          </dxl:TableScan>
-        </dxl:BroadcastMotion>
-      </dxl:PartitionSelector>
-    </dxl:HashJoin>
-  </dxl:GatherMotion>
-</dxl:Plan>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="74" Alias="created_by">
+                  <dxl:Ident ColId="74" ColName="created_by" TypeMdid="0.1043.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="75" Alias="updated_by">
+                  <dxl:Ident ColId="75" ColName="updated_by" TypeMdid="0.1043.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="76" Alias="process_run_id">
+                  <dxl:Ident ColId="76" ColName="process_run_id" TypeMdid="0.23.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="77" Alias="row_effective_from_dtm">
+                  <dxl:Ident ColId="77" ColName="row_effective_from_dtm" TypeMdid="0.1082.1.0"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="78" Alias="row_effective_to_dtm">
+                  <dxl:Ident ColId="78" ColName="row_effective_to_dtm" TypeMdid="0.1082.1.0"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:SortingColumnList/>
+              <dxl:TableScan>
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="578.565510" Rows="14812.066667" Width="164"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="60" Alias="customer_device_key">
+                    <dxl:Ident ColId="60" ColName="customer_device_key" TypeMdid="0.20.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="61" Alias="imsi_number">
+                    <dxl:Ident ColId="61" ColName="imsi_number" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="62" Alias="msisdn">
+                    <dxl:Ident ColId="62" ColName="msisdn" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="63" Alias="imei_number">
+                    <dxl:Ident ColId="63" ColName="imei_number" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="64" Alias="country">
+                    <dxl:Ident ColId="64" ColName="country" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="65" Alias="carrier">
+                    <dxl:Ident ColId="65" ColName="carrier" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="66" Alias="tac_cd">
+                    <dxl:Ident ColId="66" ColName="tac_cd" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="67" Alias="source">
+                    <dxl:Ident ColId="67" ColName="source" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="68" Alias="create_dtm">
+                    <dxl:Ident ColId="68" ColName="create_dtm" TypeMdid="0.1082.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="69" Alias="update_dtm">
+                    <dxl:Ident ColId="69" ColName="update_dtm" TypeMdid="0.1082.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="70" Alias="start_dtm">
+                    <dxl:Ident ColId="70" ColName="start_dtm" TypeMdid="0.1184.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="71" Alias="end_dtm">
+                    <dxl:Ident ColId="71" ColName="end_dtm" TypeMdid="0.1184.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="72" Alias="latest_registration_flag">
+                    <dxl:Ident ColId="72" ColName="latest_registration_flag" TypeMdid="0.16.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="73" Alias="mkt_model">
+                    <dxl:Ident ColId="73" ColName="mkt_model" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="74" Alias="created_by">
+                    <dxl:Ident ColId="74" ColName="created_by" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="75" Alias="updated_by">
+                    <dxl:Ident ColId="75" ColName="updated_by" TypeMdid="0.1043.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="76" Alias="process_run_id">
+                    <dxl:Ident ColId="76" ColName="process_run_id" TypeMdid="0.23.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="77" Alias="row_effective_from_dtm">
+                    <dxl:Ident ColId="77" ColName="row_effective_from_dtm" TypeMdid="0.1082.1.0"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="78" Alias="row_effective_to_dtm">
+                    <dxl:Ident ColId="78" ColName="row_effective_to_dtm" TypeMdid="0.1082.1.0"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter>
+                  <dxl:Comparison ComparisonOperator="~~" OperatorMdid="0.1209.1.0">
+                    <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                      <dxl:Ident ColId="73" ColName="mkt_model" TypeMdid="0.1043.1.0"/>
+                    </dxl:Cast>
+                    <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAADCVJUEhPTkUl" LintValue="187737006"/>
+                  </dxl:Comparison>
+                </dxl:Filter>
+                <dxl:TableDescriptor Mdid="0.1277041.1.1" TableName="dim_customer_device">
+                  <dxl:Columns>
+                    <dxl:Column ColId="60" Attno="1" ColName="customer_device_key" TypeMdid="0.20.1.0"/>
+                    <dxl:Column ColId="61" Attno="2" ColName="imsi_number" TypeMdid="0.1043.1.0" ColWidth="20"/>
+                    <dxl:Column ColId="62" Attno="3" ColName="msisdn" TypeMdid="0.1043.1.0" ColWidth="20"/>
+                    <dxl:Column ColId="63" Attno="4" ColName="imei_number" TypeMdid="0.1043.1.0" ColWidth="20"/>
+                    <dxl:Column ColId="64" Attno="5" ColName="country" TypeMdid="0.1043.1.0" ColWidth="32"/>
+                    <dxl:Column ColId="65" Attno="6" ColName="carrier" TypeMdid="0.1043.1.0" ColWidth="32"/>
+                    <dxl:Column ColId="66" Attno="7" ColName="tac_cd" TypeMdid="0.1043.1.0" ColWidth="20"/>
+                    <dxl:Column ColId="67" Attno="8" ColName="source" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                    <dxl:Column ColId="68" Attno="9" ColName="create_dtm" TypeMdid="0.1082.1.0"/>
+                    <dxl:Column ColId="69" Attno="10" ColName="update_dtm" TypeMdid="0.1082.1.0"/>
+                    <dxl:Column ColId="70" Attno="11" ColName="start_dtm" TypeMdid="0.1184.1.0"/>
+                    <dxl:Column ColId="71" Attno="12" ColName="end_dtm" TypeMdid="0.1184.1.0"/>
+                    <dxl:Column ColId="72" Attno="13" ColName="latest_registration_flag" TypeMdid="0.16.1.0"/>
+                    <dxl:Column ColId="73" Attno="14" ColName="mkt_model" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                    <dxl:Column ColId="74" Attno="15" ColName="created_by" TypeMdid="0.1043.1.0" ColWidth="50"/>
+                    <dxl:Column ColId="75" Attno="16" ColName="updated_by" TypeMdid="0.1043.1.0" ColWidth="50"/>
+                    <dxl:Column ColId="76" Attno="17" ColName="process_run_id" TypeMdid="0.23.1.0"/>
+                    <dxl:Column ColId="77" Attno="18" ColName="row_effective_from_dtm" TypeMdid="0.1082.1.0"/>
+                    <dxl:Column ColId="78" Attno="19" ColName="row_effective_to_dtm" TypeMdid="0.1082.1.0"/>
+                    <dxl:Column ColId="79" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                    <dxl:Column ColId="80" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                    <dxl:Column ColId="81" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                  </dxl:Columns>
+                </dxl:TableDescriptor>
+              </dxl:TableScan>
+            </dxl:BroadcastMotion>
+          </dxl:PartitionSelector>
+        </dxl:HashJoin>
+      </dxl:GatherMotion>
+    </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>

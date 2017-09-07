@@ -9,7 +9,7 @@
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
     </dxl:Metadata>
-<dxl:Query>
+    <dxl:Query>
       <dxl:OutputColumns>
         <dxl:Ident ColId="1" ColName="c_custkey" TypeMdid="0.23.1.0"/>
         <dxl:Ident ColId="2" ColName="c_name" TypeMdid="0.1043.1.0"/>

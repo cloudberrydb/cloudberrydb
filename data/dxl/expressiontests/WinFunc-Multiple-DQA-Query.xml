@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-<!--
+  <!--
 SQL: select count(distinct a) over(), sum(distinct a) over() from t;
 -->
   <dxl:Thread Id="0">

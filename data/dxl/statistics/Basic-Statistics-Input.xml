@@ -19,7 +19,7 @@
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.080000" DistinctValues="10.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAQACAA==" DoubleValue="2.000000"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAQAEAA==" DoubleValue="3.000000"/> 
+          <dxl:UpperBound Closed="false" TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAQAEAA==" DoubleValue="3.000000"/>
         </dxl:StatsBucket>
       </dxl:DerivedColumnStats>
       <dxl:DerivedColumnStats ColId="4" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
@@ -29,7 +29,7 @@
         </dxl:StatsBucket>
         <dxl:StatsBucket Frequency="0.500000" DistinctValues="8.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="LBEAAA==" DoubleValue="379814400000000"/>
-          <dxl:UpperBound Closed="false" TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="MxEAAA==" DoubleValue="380419200000000"/> 
+          <dxl:UpperBound Closed="false" TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="MxEAAA==" DoubleValue="380419200000000"/>
         </dxl:StatsBucket>
       </dxl:DerivedColumnStats>
       <dxl:DerivedColumnStats ColId="5" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">

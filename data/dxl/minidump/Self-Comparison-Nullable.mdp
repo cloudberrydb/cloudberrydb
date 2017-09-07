@@ -61,8 +61,8 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.19639.1.1.7" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.19639.1.1.6" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.19639.1.1.7" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.19639.1.1.6" Name="cmax" Width="4.000000"/>
       <dxl:Type Mdid="0.29.1.0" Name="cid" IsRedistributable="false" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
         <dxl:EqualityOp Mdid="0.385.1.0"/>
         <dxl:InequalityOp Mdid="0.0.0.0"/>
@@ -108,11 +108,11 @@
         <dxl:SumAgg Mdid="0.2108.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.19639.1.1.5" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.19639.1.1.4" Name="cmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.19639.1.1.3" Name="xmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.19639.1.1.2" Name="ctid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.19639.1.1.8" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.19639.1.1.5" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.19639.1.1.4" Name="cmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.19639.1.1.3" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.19639.1.1.2" Name="ctid" Width="6.000000"/>
+      <dxl:ColumnStatistics Mdid="1.19639.1.1.8" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.19639.1.1.1" Name="b" Width="4.000000">
         <dxl:StatsBucket Frequency="0.500000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-<!-- 
+  <!-- 
 SQL: with v as (select 1 as one) select one from v union all select one from v union all select one from v;
 -->
   <dxl:Thread Id="0">

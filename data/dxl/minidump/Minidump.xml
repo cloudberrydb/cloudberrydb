@@ -44,36 +44,36 @@
         <dxl:Commutator Mdid="0.96.1.0"/>
         <dxl:InverseOp Mdid="0.518.1.0"/>
       </dxl:GPDBScalarOp>
-     <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true"> 
-       <dxl:EqualityOp Mdid="0.96.1.0"/>                                                                                                                      
-       <dxl:InequalityOp Mdid="0.518.1.0"/>                                                                                                                   
-       <dxl:LessThanOp Mdid="0.97.1.0"/>                                                                                                                      
-       <dxl:LessThanEqualsOp Mdid="0.523.1.0"/>                                                                                                               
-       <dxl:GreaterThanOp Mdid="0.521.1.0"/>                                                                                                                  
-       <dxl:GreaterThanEqualsOp Mdid="0.525.1.0"/>                                                                                                            
-       <dxl:ComparisonOp Mdid="0.351.1.0"/>                                                                                                                   
-       <dxl:ArrayType Mdid="0.1007.1.0"/>                                                                                                                     
-       <dxl:MinAgg Mdid="0.2132.1.0"/>                                                                                                                        
-       <dxl:MaxAgg Mdid="0.2116.1.0"/>                                                                                                                        
-       <dxl:AvgAgg Mdid="0.2101.1.0"/>                                                                                                                        
-       <dxl:SumAgg Mdid="0.2108.1.0"/>                                                                                                                        
-       <dxl:CountAgg Mdid="0.2147.1.0"/>                                                                                                                      
-     </dxl:Type> 
-     <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsFixedLength="true" Length="1" PassByValue="true"> 
-       <dxl:EqualityOp Mdid="0.91.1.0"/>                                                                                    
-       <dxl:InequalityOp Mdid="0.85.1.0"/>                                                                                  
-       <dxl:LessThanOp Mdid="0.58.1.0"/>                                                                                    
-       <dxl:LessThanEqualsOp Mdid="0.1694.1.0"/>                                                                            
-       <dxl:GreaterThanOp Mdid="0.59.1.0"/>                                                                                 
-       <dxl:GreaterThanEqualsOp Mdid="0.1695.1.0"/>                                                                         
-       <dxl:ComparisonOp Mdid="0.1693.1.0"/>                                                                                
-       <dxl:ArrayType Mdid="0.1000.1.0"/>
-       <dxl:MinAgg Mdid="0.0.0.0"/>                                                                                                                           
-       <dxl:MaxAgg Mdid="0.0.0.0"/>                                                                                                                           
-       <dxl:AvgAgg Mdid="0.0.0.0"/>                                                                                                                           
-       <dxl:SumAgg Mdid="0.0.0.0"/>                                                                                                                           
-       <dxl:CountAgg Mdid="0.2147.1.0"/>                                                                                   
-     </dxl:Type> 
+      <dxl:Type Mdid="0.23.1.0" Name="int4" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="4" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.96.1.0"/>
+        <dxl:InequalityOp Mdid="0.518.1.0"/>
+        <dxl:LessThanOp Mdid="0.97.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.523.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.521.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.525.1.0"/>
+        <dxl:ComparisonOp Mdid="0.351.1.0"/>
+        <dxl:ArrayType Mdid="0.1007.1.0"/>
+        <dxl:MinAgg Mdid="0.2132.1.0"/>
+        <dxl:MaxAgg Mdid="0.2116.1.0"/>
+        <dxl:AvgAgg Mdid="0.2101.1.0"/>
+        <dxl:SumAgg Mdid="0.2108.1.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
+      <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsFixedLength="true" Length="1" PassByValue="true">
+        <dxl:EqualityOp Mdid="0.91.1.0"/>
+        <dxl:InequalityOp Mdid="0.85.1.0"/>
+        <dxl:LessThanOp Mdid="0.58.1.0"/>
+        <dxl:LessThanEqualsOp Mdid="0.1694.1.0"/>
+        <dxl:GreaterThanOp Mdid="0.59.1.0"/>
+        <dxl:GreaterThanEqualsOp Mdid="0.1695.1.0"/>
+        <dxl:ComparisonOp Mdid="0.1693.1.0"/>
+        <dxl:ArrayType Mdid="0.1000.1.0"/>
+        <dxl:MinAgg Mdid="0.0.0.0"/>
+        <dxl:MaxAgg Mdid="0.0.0.0"/>
+        <dxl:AvgAgg Mdid="0.0.0.0"/>
+        <dxl:SumAgg Mdid="0.0.0.0"/>
+        <dxl:CountAgg Mdid="0.2147.1.0"/>
+      </dxl:Type>
       <dxl:Relation Mdid="0.35062.1.1" Name="s" IsTemporary="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="1">
         <dxl:Columns>
           <dxl:Column Name="c" Attno="1" Mdid="0.23.1.0" Nullable="true">

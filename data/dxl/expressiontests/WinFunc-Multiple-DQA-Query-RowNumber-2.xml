@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-<!--
+  <!--
 SQL:
 select dqa1+1, dqa2+2 , dqa3+3 from (  select count(distinct a) over(), sum(distinct a) over(), row_number() over() from t) as foo(dqa1,dqa2,dqa3); 
 -->
@@ -82,4 +82,3 @@ select dqa1+1, dqa2+2 , dqa3+3 from (  select count(distinct a) over(), sum(dist
     </dxl:Query>
   </dxl:Thread>
 </dxl:DXLMessage>
-

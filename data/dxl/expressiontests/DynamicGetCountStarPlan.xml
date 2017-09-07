@@ -36,7 +36,7 @@
                 </dxl:FuncExpr>
               </dxl:ProjElem>
             </dxl:ProjList>
-            <dxl:Filter/>                                                                                      
+            <dxl:Filter/>
             <dxl:OneTimeFilter/>
             <dxl:TableValuedFunction FuncId="0.32990.1.0" Name="gp_partition_expansion">
               <dxl:Properties>

@@ -9,7 +9,7 @@
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
     </dxl:Metadata>
-     <dxl:Query>
+    <dxl:Query>
       <dxl:OutputColumns>
         <dxl:Ident ColId="32" ColName="l_orderkey" TypeMdid="0.23.1.0"/>
         <dxl:Ident ColId="55" ColName="revenue" TypeMdid="0.1700.1.0"/>
@@ -661,5 +661,3 @@
     </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>
-    
-   

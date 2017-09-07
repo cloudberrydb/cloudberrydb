@@ -133,8 +133,8 @@ explain select * from t where c2 = 'HEAP' or c4 = 't' or c5 = 'f';
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.21849009.1.1.11" Name="cmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.21849009.1.1.10" Name="xmax" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.21849009.1.1.11" Name="cmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.21849009.1.1.10" Name="xmax" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.21849009.1.1.2" Name="c3" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="4.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="Rg4AAA==" DoubleValue="315705600000000.000000"/>
@@ -268,8 +268,8 @@ explain select * from t where c2 = 'HEAP' or c4 = 't' or c5 = 'f';
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.21849009.1.1.9" Name="cmin" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.21849009.1.1.8" Name="xmin" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.21849009.1.1.9" Name="cmin" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.21849009.1.1.8" Name="xmin" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.21849009.1.1.1" Name="c2" Width="5.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="1.000000" DistinctValues="1.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACEhFQVA=" LintValue="146146156"/>
@@ -391,7 +391,7 @@ explain select * from t where c2 = 'HEAP' or c4 = 't' or c5 = 'f';
           <dxl:OpClass Mdid="0.3017.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
-      <dxl:ColumnStatistics Mdid="1.21849009.1.1.7" Name="ctid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.21849009.1.1.7" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.21849009.1.1.6" Name="c7" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="4.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="3"/>
@@ -617,8 +617,8 @@ explain select * from t where c2 = 'HEAP' or c4 = 't' or c5 = 'f';
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.21849009.1.1.13" Name="gp_segment_id" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
-      <dxl:ColumnStatistics Mdid="1.21849009.1.1.12" Name="tableoid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.21849009.1.1.13" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
+      <dxl:ColumnStatistics Mdid="1.21849009.1.1.12" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000"/>
       <dxl:ColumnStatistics Mdid="1.21849009.1.1.5" Name="c6" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000">
         <dxl:StatsBucket Frequency="0.040000" DistinctValues="4.000000">
           <dxl:LowerBound Closed="true" TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
@@ -772,131 +772,131 @@ explain select * from t where c2 = 'HEAP' or c4 = 't' or c5 = 'f';
         </dxl:LogicalGet>
       </dxl:LogicalSelect>
     </dxl:Query>
-	 <dxl:Plan Id="0" SpaceSize="1">
-	  <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
-	    <dxl:Properties>
-	      <dxl:Cost StartupCost="0" TotalCost="38.345799" Rows="100.000000" Width="23"/>
-	    </dxl:Properties>
-	    <dxl:ProjList>
-	      <dxl:ProjElem ColId="0" Alias="c1">
-	        <dxl:Ident ColId="0" ColName="c1" TypeMdid="0.23.1.0"/>
-	      </dxl:ProjElem>
-	      <dxl:ProjElem ColId="1" Alias="c2">
-	        <dxl:Ident ColId="1" ColName="c2" TypeMdid="0.25.1.0"/>
-	      </dxl:ProjElem>
-	      <dxl:ProjElem ColId="2" Alias="c3">
-	        <dxl:Ident ColId="2" ColName="c3" TypeMdid="0.1082.1.0"/>
-	      </dxl:ProjElem>
-	      <dxl:ProjElem ColId="3" Alias="c4">
-	        <dxl:Ident ColId="3" ColName="c4" TypeMdid="0.16.1.0"/>
-	      </dxl:ProjElem>
-	      <dxl:ProjElem ColId="4" Alias="c5">
-	        <dxl:Ident ColId="4" ColName="c5" TypeMdid="0.16.1.0"/>
-	      </dxl:ProjElem>
-	      <dxl:ProjElem ColId="5" Alias="c6">
-	        <dxl:Ident ColId="5" ColName="c6" TypeMdid="0.23.1.0"/>
-	      </dxl:ProjElem>
-	      <dxl:ProjElem ColId="6" Alias="c7">
-	        <dxl:Ident ColId="6" ColName="c7" TypeMdid="0.23.1.0"/>
-	      </dxl:ProjElem>
-	    </dxl:ProjList>
-	    <dxl:Filter/>
-	    <dxl:SortingColumnList/>
-	    <dxl:BitmapTableScan>
-	      <dxl:Properties>
-	        <dxl:Cost StartupCost="0" TotalCost="38.333333" Rows="100.000000" Width="23"/>
-	      </dxl:Properties>
-	      <dxl:ProjList>
-	        <dxl:ProjElem ColId="0" Alias="c1">
-	          <dxl:Ident ColId="0" ColName="c1" TypeMdid="0.23.1.0"/>
-	        </dxl:ProjElem>
-	        <dxl:ProjElem ColId="1" Alias="c2">
-	          <dxl:Ident ColId="1" ColName="c2" TypeMdid="0.25.1.0"/>
-	        </dxl:ProjElem>
-	        <dxl:ProjElem ColId="2" Alias="c3">
-	          <dxl:Ident ColId="2" ColName="c3" TypeMdid="0.1082.1.0"/>
-	        </dxl:ProjElem>
-	        <dxl:ProjElem ColId="3" Alias="c4">
-	          <dxl:Ident ColId="3" ColName="c4" TypeMdid="0.16.1.0"/>
-	        </dxl:ProjElem>
-	        <dxl:ProjElem ColId="4" Alias="c5">
-	          <dxl:Ident ColId="4" ColName="c5" TypeMdid="0.16.1.0"/>
-	        </dxl:ProjElem>
-	        <dxl:ProjElem ColId="5" Alias="c6">
-	          <dxl:Ident ColId="5" ColName="c6" TypeMdid="0.23.1.0"/>
-	        </dxl:ProjElem>
-	        <dxl:ProjElem ColId="6" Alias="c7">
-	          <dxl:Ident ColId="6" ColName="c7" TypeMdid="0.23.1.0"/>
-	        </dxl:ProjElem>
-	      </dxl:ProjList>
-	      <dxl:Filter/>
-	      <dxl:RecheckCond>
-	        <dxl:Or>
-	          <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-	            <dxl:Ident ColId="1" ColName="c2" TypeMdid="0.25.1.0"/>
-	            <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACEhFQVA=" LintValue="146146156"/>
-	          </dxl:Comparison>
-	          <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.91.1.0">
-	            <dxl:Ident ColId="3" ColName="c4" TypeMdid="0.16.1.0"/>
-	            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-	          </dxl:Comparison>
-	          <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.91.1.0">
-	            <dxl:Ident ColId="4" ColName="c5" TypeMdid="0.16.1.0"/>
-	            <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
-	          </dxl:Comparison>
-	        </dxl:Or>
-	      </dxl:RecheckCond>
-	      <dxl:BitmapOr TypeMdid="0.2283.1.0">
-	        <dxl:BitmapOr TypeMdid="0.2283.1.0">
-	          <dxl:BitmapIndexProbe>
-	            <dxl:IndexCondList>
-	              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-	                <dxl:Ident ColId="1" ColName="c2" TypeMdid="0.25.1.0"/>
-	                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACEhFQVA=" LintValue="146146156"/>
-	              </dxl:Comparison>
-	            </dxl:IndexCondList>
-	            <dxl:IndexDescriptor Mdid="0.21849079.1.0" IndexName="idx_t_3"/>
-	          </dxl:BitmapIndexProbe>
-	          <dxl:BitmapIndexProbe>
-	            <dxl:IndexCondList>
-	              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.91.1.0">
-	                <dxl:Ident ColId="3" ColName="c4" TypeMdid="0.16.1.0"/>
-	                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-	              </dxl:Comparison>
-	            </dxl:IndexCondList>
-	            <dxl:IndexDescriptor Mdid="0.21849037.1.0" IndexName="idx_t_1"/>
-	          </dxl:BitmapIndexProbe>
-	        </dxl:BitmapOr>
-	        <dxl:BitmapIndexProbe>
-	          <dxl:IndexCondList>
-	            <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.91.1.0">
-	              <dxl:Ident ColId="4" ColName="c5" TypeMdid="0.16.1.0"/>
-	              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
-	            </dxl:Comparison>
-	          </dxl:IndexCondList>
-	          <dxl:IndexDescriptor Mdid="0.21849058.1.0" IndexName="idx_t_2"/>
-	        </dxl:BitmapIndexProbe>
-	      </dxl:BitmapOr>
-	      <dxl:TableDescriptor Mdid="0.21849009.1.1" TableName="t">
-	        <dxl:Columns>
-	          <dxl:Column ColId="0" Attno="1" ColName="c1" TypeMdid="0.23.1.0"/>
-	          <dxl:Column ColId="1" Attno="2" ColName="c2" TypeMdid="0.25.1.0"/>
-	          <dxl:Column ColId="2" Attno="3" ColName="c3" TypeMdid="0.1082.1.0"/>
-	          <dxl:Column ColId="3" Attno="4" ColName="c4" TypeMdid="0.16.1.0"/>
-	          <dxl:Column ColId="4" Attno="5" ColName="c5" TypeMdid="0.16.1.0"/>
-	          <dxl:Column ColId="5" Attno="6" ColName="c6" TypeMdid="0.23.1.0"/>
-	          <dxl:Column ColId="6" Attno="7" ColName="c7" TypeMdid="0.23.1.0"/>
-	          <dxl:Column ColId="7" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-	          <dxl:Column ColId="8" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-	          <dxl:Column ColId="9" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-	          <dxl:Column ColId="10" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-	          <dxl:Column ColId="11" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-	          <dxl:Column ColId="12" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-	          <dxl:Column ColId="13" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-	        </dxl:Columns>
-	      </dxl:TableDescriptor>
-	    </dxl:BitmapTableScan>
-	  </dxl:GatherMotion>
-	</dxl:Plan>
+    <dxl:Plan Id="0" SpaceSize="1">
+      <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+        <dxl:Properties>
+          <dxl:Cost StartupCost="0" TotalCost="38.345799" Rows="100.000000" Width="23"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="0" Alias="c1">
+            <dxl:Ident ColId="0" ColName="c1" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="1" Alias="c2">
+            <dxl:Ident ColId="1" ColName="c2" TypeMdid="0.25.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="2" Alias="c3">
+            <dxl:Ident ColId="2" ColName="c3" TypeMdid="0.1082.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="3" Alias="c4">
+            <dxl:Ident ColId="3" ColName="c4" TypeMdid="0.16.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="4" Alias="c5">
+            <dxl:Ident ColId="4" ColName="c5" TypeMdid="0.16.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="5" Alias="c6">
+            <dxl:Ident ColId="5" ColName="c6" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+          <dxl:ProjElem ColId="6" Alias="c7">
+            <dxl:Ident ColId="6" ColName="c7" TypeMdid="0.23.1.0"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:SortingColumnList/>
+        <dxl:BitmapTableScan>
+          <dxl:Properties>
+            <dxl:Cost StartupCost="0" TotalCost="38.333333" Rows="100.000000" Width="23"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="0" Alias="c1">
+              <dxl:Ident ColId="0" ColName="c1" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="1" Alias="c2">
+              <dxl:Ident ColId="1" ColName="c2" TypeMdid="0.25.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="2" Alias="c3">
+              <dxl:Ident ColId="2" ColName="c3" TypeMdid="0.1082.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="3" Alias="c4">
+              <dxl:Ident ColId="3" ColName="c4" TypeMdid="0.16.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="4" Alias="c5">
+              <dxl:Ident ColId="4" ColName="c5" TypeMdid="0.16.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="5" Alias="c6">
+              <dxl:Ident ColId="5" ColName="c6" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+            <dxl:ProjElem ColId="6" Alias="c7">
+              <dxl:Ident ColId="6" ColName="c7" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter/>
+          <dxl:RecheckCond>
+            <dxl:Or>
+              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
+                <dxl:Ident ColId="1" ColName="c2" TypeMdid="0.25.1.0"/>
+                <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACEhFQVA=" LintValue="146146156"/>
+              </dxl:Comparison>
+              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.91.1.0">
+                <dxl:Ident ColId="3" ColName="c4" TypeMdid="0.16.1.0"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              </dxl:Comparison>
+              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.91.1.0">
+                <dxl:Ident ColId="4" ColName="c5" TypeMdid="0.16.1.0"/>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
+              </dxl:Comparison>
+            </dxl:Or>
+          </dxl:RecheckCond>
+          <dxl:BitmapOr TypeMdid="0.2283.1.0">
+            <dxl:BitmapOr TypeMdid="0.2283.1.0">
+              <dxl:BitmapIndexProbe>
+                <dxl:IndexCondList>
+                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
+                    <dxl:Ident ColId="1" ColName="c2" TypeMdid="0.25.1.0"/>
+                    <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACEhFQVA=" LintValue="146146156"/>
+                  </dxl:Comparison>
+                </dxl:IndexCondList>
+                <dxl:IndexDescriptor Mdid="0.21849079.1.0" IndexName="idx_t_3"/>
+              </dxl:BitmapIndexProbe>
+              <dxl:BitmapIndexProbe>
+                <dxl:IndexCondList>
+                  <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.91.1.0">
+                    <dxl:Ident ColId="3" ColName="c4" TypeMdid="0.16.1.0"/>
+                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                  </dxl:Comparison>
+                </dxl:IndexCondList>
+                <dxl:IndexDescriptor Mdid="0.21849037.1.0" IndexName="idx_t_1"/>
+              </dxl:BitmapIndexProbe>
+            </dxl:BitmapOr>
+            <dxl:BitmapIndexProbe>
+              <dxl:IndexCondList>
+                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.91.1.0">
+                  <dxl:Ident ColId="4" ColName="c5" TypeMdid="0.16.1.0"/>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="false"/>
+                </dxl:Comparison>
+              </dxl:IndexCondList>
+              <dxl:IndexDescriptor Mdid="0.21849058.1.0" IndexName="idx_t_2"/>
+            </dxl:BitmapIndexProbe>
+          </dxl:BitmapOr>
+          <dxl:TableDescriptor Mdid="0.21849009.1.1" TableName="t">
+            <dxl:Columns>
+              <dxl:Column ColId="0" Attno="1" ColName="c1" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="1" Attno="2" ColName="c2" TypeMdid="0.25.1.0"/>
+              <dxl:Column ColId="2" Attno="3" ColName="c3" TypeMdid="0.1082.1.0"/>
+              <dxl:Column ColId="3" Attno="4" ColName="c4" TypeMdid="0.16.1.0"/>
+              <dxl:Column ColId="4" Attno="5" ColName="c5" TypeMdid="0.16.1.0"/>
+              <dxl:Column ColId="5" Attno="6" ColName="c6" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="6" Attno="7" ColName="c7" TypeMdid="0.23.1.0"/>
+              <dxl:Column ColId="7" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+              <dxl:Column ColId="8" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+              <dxl:Column ColId="9" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+              <dxl:Column ColId="10" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+              <dxl:Column ColId="11" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+              <dxl:Column ColId="12" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+              <dxl:Column ColId="13" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+            </dxl:Columns>
+          </dxl:TableDescriptor>
+        </dxl:BitmapTableScan>
+      </dxl:GatherMotion>
+    </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>

@@ -68,8 +68,8 @@
         <dxl:SumAgg Mdid="0.2114.1.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ColumnStatistics Mdid="1.109045.1.1.21" Name="tableoid" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.109045.1.1.20" Name="cmax" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.109045.1.1.21" Name="tableoid" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.109045.1.1.20" Name="cmax" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.13" Name="stringu1" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.12" Name="even" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.5" Name="twenty" Width="8.000000"/>
@@ -138,7 +138,7 @@
         <dxl:ResultType Mdid="0.1700.1.0"/>
         <dxl:IntermediateResultType Mdid="0.17.1.0"/>
       </dxl:GPDBAgg>
-      <dxl:ColumnStatistics Mdid="1.109045.1.1.22" Name="gp_segment_id" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.109045.1.1.22" Name="gp_segment_id" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.15" Name="string4" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.14" Name="stringu2" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.7" Name="thousand" Width="8.000000"/>
@@ -220,14 +220,14 @@
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>
-      <dxl:ColumnStatistics Mdid="1.109045.1.1.17" Name="xmin" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.109045.1.1.16" Name="ctid" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.109045.1.1.17" Name="xmin" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.109045.1.1.16" Name="ctid" Width="6.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.9" Name="fivethous" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.8" Name="twothousand" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.1" Name="unique2" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.0" Name="unique1" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.109045.1.1.19" Name="xmax" Width="8.000000"/>
-      <dxl:ColumnStatistics Mdid="1.109045.1.1.18" Name="cmin" Width="8.000000"/>
+      <dxl:ColumnStatistics Mdid="1.109045.1.1.19" Name="xmax" Width="4.000000"/>
+      <dxl:ColumnStatistics Mdid="1.109045.1.1.18" Name="cmin" Width="4.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.11" Name="odd" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.10" Name="tenthous" Width="8.000000"/>
       <dxl:ColumnStatistics Mdid="1.109045.1.1.2" Name="two" Width="8.000000"/>
@@ -278,71 +278,71 @@
         </dxl:LogicalGet>
       </dxl:LogicalGroupBy>
     </dxl:Query>
-	<dxl:Plan Id="0" SpaceSize="1">
-	  <dxl:Aggregate AggregationStrategy="Plain" StreamSafe="false">
-	    <dxl:Properties>
-	      <dxl:Cost StartupCost="0" TotalCost="25.453125" Rows="1.000000" Width="8"/>
-	    </dxl:Properties>
-	    <dxl:GroupingColumns/>
-	    <dxl:ProjList>
-	      <dxl:ProjElem ColId="23" Alias="avg_1">
-	        <dxl:AggFunc AggMdid="0.109010.1.0" AggDistinct="true" AggStage="Normal">
-	          <dxl:Ident ColId="3" ColName="four" TypeMdid="0.23.1.0"/>
-	        </dxl:AggFunc>
-	      </dxl:ProjElem>
-	    </dxl:ProjList>
-	    <dxl:Filter/>
-	    <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
-	      <dxl:Properties>
-	        <dxl:Cost StartupCost="0" TotalCost="8.812500" Rows="1000.000000" Width="8"/>
-	      </dxl:Properties>
-	      <dxl:ProjList>
-	        <dxl:ProjElem ColId="3" Alias="four">
-	          <dxl:Ident ColId="3" ColName="four" TypeMdid="0.23.1.0"/>
-	        </dxl:ProjElem>
-	      </dxl:ProjList>
-	      <dxl:Filter/>
-	      <dxl:SortingColumnList/>
-	      <dxl:TableScan>
-	        <dxl:Properties>
-	          <dxl:Cost StartupCost="0" TotalCost="3.906250" Rows="1000.000000" Width="8"/>
-	        </dxl:Properties>
-	        <dxl:ProjList>
-	          <dxl:ProjElem ColId="3" Alias="four">
-	            <dxl:Ident ColId="3" ColName="four" TypeMdid="0.23.1.0"/>
-	          </dxl:ProjElem>
-	        </dxl:ProjList>
-	        <dxl:Filter/>
-	        <dxl:TableDescriptor Mdid="0.109045.1.1" TableName="onek">
-	          <dxl:Columns>
-	            <dxl:Column ColId="0" Attno="1" ColName="unique1" TypeMdid="0.23.1.0"/>
-	            <dxl:Column ColId="1" Attno="2" ColName="unique2" TypeMdid="0.23.1.0"/>
-	            <dxl:Column ColId="2" Attno="3" ColName="two" TypeMdid="0.23.1.0"/>
-	            <dxl:Column ColId="3" Attno="4" ColName="four" TypeMdid="0.23.1.0"/>
-	            <dxl:Column ColId="4" Attno="5" ColName="ten" TypeMdid="0.23.1.0"/>
-	            <dxl:Column ColId="5" Attno="6" ColName="twenty" TypeMdid="0.23.1.0"/>
-	            <dxl:Column ColId="6" Attno="7" ColName="hundred" TypeMdid="0.23.1.0"/>
-	            <dxl:Column ColId="7" Attno="8" ColName="thousand" TypeMdid="0.23.1.0"/>
-	            <dxl:Column ColId="8" Attno="9" ColName="twothousand" TypeMdid="0.23.1.0"/>
-	            <dxl:Column ColId="9" Attno="10" ColName="fivethous" TypeMdid="0.23.1.0"/>
-	            <dxl:Column ColId="10" Attno="11" ColName="tenthous" TypeMdid="0.23.1.0"/>
-	            <dxl:Column ColId="11" Attno="12" ColName="odd" TypeMdid="0.23.1.0"/>
-	            <dxl:Column ColId="12" Attno="13" ColName="even" TypeMdid="0.23.1.0"/>
-	            <dxl:Column ColId="13" Attno="14" ColName="stringu1" TypeMdid="0.19.1.0"/>
-	            <dxl:Column ColId="14" Attno="15" ColName="stringu2" TypeMdid="0.19.1.0"/>
-	            <dxl:Column ColId="15" Attno="16" ColName="string4" TypeMdid="0.19.1.0"/>
-	            <dxl:Column ColId="16" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-	            <dxl:Column ColId="17" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
-	            <dxl:Column ColId="18" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
-	            <dxl:Column ColId="19" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
-	            <dxl:Column ColId="20" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
-	            <dxl:Column ColId="21" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-	            <dxl:Column ColId="22" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-	          </dxl:Columns>
-	        </dxl:TableDescriptor>
-	      </dxl:TableScan>
-	    </dxl:GatherMotion>
-	  </dxl:Aggregate>
-	</dxl:Plan>
+    <dxl:Plan Id="0" SpaceSize="1">
+      <dxl:Aggregate AggregationStrategy="Plain" StreamSafe="false">
+        <dxl:Properties>
+          <dxl:Cost StartupCost="0" TotalCost="25.453125" Rows="1.000000" Width="8"/>
+        </dxl:Properties>
+        <dxl:GroupingColumns/>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="23" Alias="avg_1">
+            <dxl:AggFunc AggMdid="0.109010.1.0" AggDistinct="true" AggStage="Normal">
+              <dxl:Ident ColId="3" ColName="four" TypeMdid="0.23.1.0"/>
+            </dxl:AggFunc>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+          <dxl:Properties>
+            <dxl:Cost StartupCost="0" TotalCost="8.812500" Rows="1000.000000" Width="8"/>
+          </dxl:Properties>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="3" Alias="four">
+              <dxl:Ident ColId="3" ColName="four" TypeMdid="0.23.1.0"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter/>
+          <dxl:SortingColumnList/>
+          <dxl:TableScan>
+            <dxl:Properties>
+              <dxl:Cost StartupCost="0" TotalCost="3.906250" Rows="1000.000000" Width="8"/>
+            </dxl:Properties>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="3" Alias="four">
+                <dxl:Ident ColId="3" ColName="four" TypeMdid="0.23.1.0"/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:Filter/>
+            <dxl:TableDescriptor Mdid="0.109045.1.1" TableName="onek">
+              <dxl:Columns>
+                <dxl:Column ColId="0" Attno="1" ColName="unique1" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="1" Attno="2" ColName="unique2" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="2" Attno="3" ColName="two" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="3" Attno="4" ColName="four" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="4" Attno="5" ColName="ten" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="5" Attno="6" ColName="twenty" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="6" Attno="7" ColName="hundred" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="7" Attno="8" ColName="thousand" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="8" Attno="9" ColName="twothousand" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="9" Attno="10" ColName="fivethous" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="10" Attno="11" ColName="tenthous" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="11" Attno="12" ColName="odd" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="12" Attno="13" ColName="even" TypeMdid="0.23.1.0"/>
+                <dxl:Column ColId="13" Attno="14" ColName="stringu1" TypeMdid="0.19.1.0"/>
+                <dxl:Column ColId="14" Attno="15" ColName="stringu2" TypeMdid="0.19.1.0"/>
+                <dxl:Column ColId="15" Attno="16" ColName="string4" TypeMdid="0.19.1.0"/>
+                <dxl:Column ColId="16" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                <dxl:Column ColId="17" Attno="-3" ColName="xmin" TypeMdid="0.28.1.0"/>
+                <dxl:Column ColId="18" Attno="-4" ColName="cmin" TypeMdid="0.29.1.0"/>
+                <dxl:Column ColId="19" Attno="-5" ColName="xmax" TypeMdid="0.28.1.0"/>
+                <dxl:Column ColId="20" Attno="-6" ColName="cmax" TypeMdid="0.29.1.0"/>
+                <dxl:Column ColId="21" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                <dxl:Column ColId="22" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+              </dxl:Columns>
+            </dxl:TableDescriptor>
+          </dxl:TableScan>
+        </dxl:GatherMotion>
+      </dxl:Aggregate>
+    </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>
