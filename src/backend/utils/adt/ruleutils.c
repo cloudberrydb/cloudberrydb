@@ -5476,27 +5476,6 @@ get_windowspec_expr(WindowSpec *spec, deparse_context *context)
 				get_windowedge_expr(f->trail, context);
 			}
 		}
-
-		/* exclusion statement */
-		switch(f->exclude)
-		{
-			case WINDOW_EXCLUSION_NULL:
-				break;
-			case WINDOW_EXCLUSION_CUR_ROW:
-				appendStringInfo(buf, " EXCLUDE CURRENT ROW");
-		   		break;
-			case WINDOW_EXCLUSION_GROUP:
-				appendStringInfo(buf, " EXCLUDE GROUP");
-				break;
-			case WINDOW_EXCLUSION_TIES:
-				appendStringInfo(buf, " EXCLUDE TIES");
-				break;
-			case WINDOW_EXCLUSION_NO_OTHERS:
-				appendStringInfo(buf, " EXCLUDE NO OTHERS");
-				break;
-			default:
-				elog(ERROR, "invalid exclusion type: %i", f->exclude);
-		}
 	}
 	appendStringInfoChar(buf, ')');
 }

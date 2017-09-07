@@ -2358,7 +2358,11 @@ CTranslatorDXLToPlStmt::Pwindowframe
 	}
 	pwindowframe->is_between = true;
 
-	pwindowframe->exclude = CTranslatorUtils::Windowexclusion(pdxlwf->Edxlfes());
+	if (pdxlwf->Edxlfes() != EdxlfesNulls)
+	{
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
+			   GPOS_WSZ_LIT("EXCLUDE clause in window frame"));
+	}
 
 	// translate the CDXLNodes representing the leading and trailing edge
 	DrgPdxltrctx *pdrgpdxltrctx = GPOS_NEW(m_pmp) DrgPdxltrctx(m_pmp);

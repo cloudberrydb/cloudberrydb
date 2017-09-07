@@ -1188,11 +1188,6 @@ static int compare_frame(WindowFrame *a, WindowFrame *b)
 	if ( n != 0 )
 		return n;
 	
-	if ( a->exclude < b->exclude )
-		return -1;
-	else if ( a->exclude > b->exclude )
-		return 1;
-	
 	return 0;
 }
 

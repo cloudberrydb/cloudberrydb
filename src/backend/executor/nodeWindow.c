@@ -5455,15 +5455,13 @@ init_frames(WindowState * wstate)
 			 */
 			if (funcstate->isAgg && frame && frame->is_rows &&
 				frame->trail->kind == WINDOW_UNBOUND_PRECEDING &&
-				frame->lead->kind == WINDOW_CURRENT_ROW &&
-				frame->exclude == WINDOW_EXCLUSION_NULL)
+				frame->lead->kind == WINDOW_CURRENT_ROW)
 			{
 				funcstate->trivial_frame = true;
 			}
 			else if (funcstate->isAgg && frame && !frame->is_rows &&
 					 frame->trail->kind == WINDOW_UNBOUND_PRECEDING &&
-					 frame->lead->kind == WINDOW_CURRENT_ROW &&
-					 frame->exclude == WINDOW_EXCLUSION_NULL)
+					 frame->lead->kind == WINDOW_CURRENT_ROW)
 			{
 				funcstate->cumul_frame = true;
 			}

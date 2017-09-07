@@ -2319,7 +2319,6 @@ _equalWindowFrame(WindowFrame *a, WindowFrame *b)
 	COMPARE_SCALAR_FIELD(is_between);
 	COMPARE_NODE_FIELD(trail);
 	COMPARE_NODE_FIELD(lead);
-	COMPARE_SCALAR_FIELD(exclude);
 
 	return true;
 }

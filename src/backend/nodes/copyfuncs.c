@@ -2365,7 +2365,6 @@ _copyWindowFrame(WindowFrame *from)
 	COPY_SCALAR_FIELD(is_between);
 	COPY_NODE_FIELD(trail);
 	COPY_NODE_FIELD(lead);
-	COPY_SCALAR_FIELD(exclude);
 
 	return newnode;
 }

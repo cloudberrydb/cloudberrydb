@@ -508,7 +508,6 @@ _readWindowFrame(void)
 	READ_BOOL_FIELD(is_between);
 	READ_NODE_FIELD(trail);
 	READ_NODE_FIELD(lead);
-	READ_ENUM_FIELD(exclude, WindowExclusion);
 
 	READ_DONE();
 }

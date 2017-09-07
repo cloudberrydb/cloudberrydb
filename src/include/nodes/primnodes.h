@@ -1379,16 +1379,6 @@ typedef enum GroupingType
 	GROUPINGTYPE_GROUPING_SETS   /* GROUPING SETS grouping extension */
 } GroupingType;
 
-typedef enum WindowExclusion
-{
-	WINDOW_EXCLUSION_NULL = 0,
-	WINDOW_EXCLUSION_CUR_ROW, /* exclude current row */
-	WINDOW_EXCLUSION_GROUP, /* exclude rows matching us */
-	WINDOW_EXCLUSION_TIES, /* exclude rows matching us, and current row */
-	WINDOW_EXCLUSION_NO_OTHERS /* don't exclude -- distinct from EMPTY so
-								* that we may dump */
-} WindowExclusion;
-
 typedef enum WindowBoundingKind
 {
 	WINDOW_UNBOUND_PRECEDING,
@@ -1419,7 +1409,6 @@ typedef struct WindowFrame
 	 */
 	WindowFrameEdge *trail; /* trailing edge of the frame */
 	WindowFrameEdge *lead; /* leading edge of the frame */
-	WindowExclusion exclude; /* exclusion clause */
 } WindowFrame;
 
 

@@ -3583,7 +3583,6 @@ _outWindowFrame(StringInfo str, WindowFrame *node)
 	WRITE_BOOL_FIELD(is_between);
 	WRITE_NODE_FIELD(trail);
 	WRITE_NODE_FIELD(lead);
-	WRITE_ENUM_FIELD(exclude, WindowExclusion);
 }
 
 static void

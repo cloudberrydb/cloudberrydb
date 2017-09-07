@@ -1018,46 +1018,6 @@ CTranslatorUtils::Edxlsetop
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorUtils::Windowexclusion
-//
-//	@doc:
-//		Return the GPDB frame exclusion strategy from its corresponding
-//		DXL representation
-//
-//---------------------------------------------------------------------------
-WindowExclusion
-CTranslatorUtils::Windowexclusion
-	(
-	EdxlFrameExclusionStrategy edxlfes
-	)
-{
-	GPOS_ASSERT(EdxlfesSentinel > edxlfes);
-	ULONG rgrgulMapping[][2] =
-		{
-		{EdxlfesNulls, WINDOW_EXCLUSION_NULL},
-		{EdxlfesCurrentRow, WINDOW_EXCLUSION_CUR_ROW},
-		{EdxlfesGroup, WINDOW_EXCLUSION_GROUP},
-		{EdxlfesTies, WINDOW_EXCLUSION_TIES}
-		};
-
-	const ULONG ulArity = GPOS_ARRAY_SIZE(rgrgulMapping);
-	WindowExclusion we = WINDOW_EXCLUSION_NO_OTHERS;
-
-	for (ULONG ul = 0; ul < ulArity; ul++)
-	{
-		ULONG *pulElem = rgrgulMapping[ul];
-		if ((ULONG) edxlfes == pulElem[0])
-		{
-			we = (WindowExclusion) pulElem[1];
-			break;
-		}
-	}
-	return we;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CTranslatorUtils::Windowboundkind
 //
 //	@doc:
