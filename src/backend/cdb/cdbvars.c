@@ -1284,11 +1284,11 @@ gpvars_show_gp_resource_manager_policy(void)
 bool
 gpvars_assign_max_resource_groups(int newval, bool doit, GucSource source __attribute__((unused)))
 {
-	if (newval > MaxConnections)
-		elog(ERROR, "Invalid input for max_resource_groups. Must be no larger than max_connections(%d).", MaxConnections);
-
 	if (doit)
 	{
+		if (newval > MaxConnections)
+			elog(ERROR, "Invalid input for max_resource_groups. Must be no larger than max_connections(%d).", MaxConnections);
+
 		MaxResourceGroups = newval;
 	}
 
@@ -1385,13 +1385,13 @@ gpvars_show_gp_resgroup_memory_policy(void)
 bool
 gpvars_assign_statement_mem(int newval, bool doit, GucSource source __attribute__((unused)))
 {
-	if (newval >= max_statement_mem)
-	{
-		elog(ERROR, "Invalid input for statement_mem. Must be less than max_statement_mem (%d kB).", max_statement_mem);
-	}
-
 	if (doit)
 	{
+		if (newval >= max_statement_mem)
+		{
+			elog(ERROR, "Invalid input for statement_mem. Must be less than max_statement_mem (%d kB).", max_statement_mem);
+		}
+
 		statement_mem = newval;
 	}
 
