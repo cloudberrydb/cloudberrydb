@@ -19,7 +19,6 @@
 #include "gpopt/base/CCTEReq.h"
 
 #include "gpopt/operators/ops.h"
-#include "gpopt/operators/CCNFConverter.h"
 
 using namespace gpopt;
 

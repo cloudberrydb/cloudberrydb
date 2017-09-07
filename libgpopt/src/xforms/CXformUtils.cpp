@@ -27,7 +27,6 @@
 #include "gpopt/base/CConstraintNegation.h"
 #include "gpopt/base/CKeyCollection.h"
 #include "gpopt/base/CUtils.h"
-#include "gpopt/operators/CCNFConverter.h"
 #include "gpopt/search/CGroupExpression.h"
 #include "gpopt/search/CGroupProxy.h"
 #include "gpopt/xforms/CXformExploration.h"
@@ -374,36 +373,6 @@ CXformUtils::PexprRedundantSelectForDynamicIndex
 				pexprChild,
 				pexprRedundantScalar
 				);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CXformUtils::Pexpr2CNFWhenBeneficial
-//
-//	@doc:
-// 		If there is a predicate that can be used for hash join then convert the
-// 		expression to CNF, else return the original expression
-//---------------------------------------------------------------------------
-CExpression *
-CXformUtils::Pexpr2CNFWhenBeneficial
-	(
-	IMemoryPool *pmp,
-	CExpression *pexprOuter,
-	CExpression *pexprInner,
-	CExpression *pexprScalar
-	)
-{
-	GPOS_ASSERT(NULL != pexprScalar);
-
-	if (CPredicateUtils::FConvertToCNF(pexprOuter, pexprInner, pexprScalar))
-	{
-		return CCNFConverter::Pexpr2CNF(pmp, pexprScalar);
-	}
-
-	pexprScalar->AddRef();
-
-	return pexprScalar;
 }
 
 

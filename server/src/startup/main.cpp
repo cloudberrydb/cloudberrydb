@@ -96,7 +96,6 @@
 #include "unittest/gpopt/minidump/CEscapeMechanismTest.h"
 #include "unittest/gpopt/minidump/CDirectDispatchTest.h"
 
-#include "unittest/gpopt/operators/CCNFConverterTest.h"
 #include "unittest/gpopt/operators/CContradictionTest.h"
 #include "unittest/gpopt/operators/CExpressionPreprocessorTest.h"
 #include "unittest/gpopt/operators/CExpressionTest.h"
@@ -175,7 +174,6 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CArrayExpansionTest),
 	GPOS_UNITTEST_STD(CJoinOrderDPTest),
 	GPOS_UNITTEST_STD(CPullUpProjectElementTest),
-	GPOS_UNITTEST_STD(CCNFConverterTest),
 	GPOS_UNITTEST_STD(CColumnDescriptorTest),
 	GPOS_UNITTEST_STD(CColumnFactoryTest),
 	GPOS_UNITTEST_STD(CColRefSetIterTest),

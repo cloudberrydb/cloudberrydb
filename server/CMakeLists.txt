@@ -139,8 +139,6 @@ add_executable(gporca_test
                src/unittest/gpopt/operators/CExpressionPreprocessorTest.cpp
                include/unittest/gpopt/operators/CPredicateUtilsTest.h
                src/unittest/gpopt/operators/CPredicateUtilsTest.cpp
-               include/unittest/gpopt/operators/CCNFConverterTest.h
-               src/unittest/gpopt/operators/CCNFConverterTest.cpp
                include/unittest/gpopt/mdcache/CMDAccessorTest.h
                src/unittest/gpopt/mdcache/CMDAccessorTest.cpp
                include/unittest/gpopt/eval/CConstExprEvaluatorDXLTest.h
@@ -252,7 +250,6 @@ add_orca_test(CTranslatorExprToDXLTest)
 add_orca_test(CXMLSerializerTest)
 
 # Opt tests.
-add_orca_test(CCNFConverterTest)
 add_orca_test(CColumnDescriptorTest)
 add_orca_test(CColumnFactoryTest)
 add_orca_test(CColRefSetIterTest)

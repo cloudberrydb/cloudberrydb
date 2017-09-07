@@ -1100,11 +1100,6 @@ namespace gpopt
 			static
 			CExpression *PexprRedundantSelectForDynamicIndex(IMemoryPool *pmp, CExpression *pexpr);
 
-			// if there is predicate that can be used for hash join then convert the
-			// expression to CNF, else return the original expression
-			static
-			CExpression *Pexpr2CNFWhenBeneficial(IMemoryPool *pmp, CExpression *pexprOuter, CExpression *pexprInner, CExpression *pexprScalar);
-
 			// convert an Agg window function into regular Agg
 			static
 			CExpression *PexprWinFuncAgg2ScalarAgg(IMemoryPool *pmp, CExpression *pexprWinFunc);

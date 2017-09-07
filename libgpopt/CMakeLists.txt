@@ -263,8 +263,6 @@ add_library(gpopt
             src/minidump/CSerializableQuery.cpp
             include/gpopt/minidump/CSerializableStackTrace.h
             src/minidump/CSerializableStackTrace.cpp
-            include/gpopt/operators/CCNFConverter.h
-            src/operators/CCNFConverter.cpp
             include/gpopt/operators/CExpression.h
             src/operators/CExpression.cpp
             include/gpopt/operators/CExpressionFactorizer.h
