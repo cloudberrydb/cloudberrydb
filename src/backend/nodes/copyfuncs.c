@@ -2042,7 +2042,6 @@ _copyJoinExpr(JoinExpr *from)
 	COPY_NODE_FIELD(quals);
 	COPY_NODE_FIELD(alias);
 	COPY_SCALAR_FIELD(rtindex);
-	COPY_NODE_FIELD(subqfromlist);          /*CDB*/
 
 	return newnode;
 }
