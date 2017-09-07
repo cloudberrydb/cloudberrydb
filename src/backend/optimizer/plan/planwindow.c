@@ -250,7 +250,6 @@ static int compare_order(List *a, List* b);
 static int compare_edge(WindowFrameEdge *a, WindowFrameEdge *b);
 static int compare_frame(WindowFrame *a, WindowFrame *b);
 static int compare_spec_info_ptr(const void *arg1, const void *arg2);
-static WindowFrameEdge *adjustFrameBound(WindowFrameEdge *edge, bool is_rows);
 static void make_lower_targetlist(Query *parse, WindowContext *context);
 static void set_window_keys(WindowContext *context, int wind_index);
 static void assign_window_info(WindowContext *context);
@@ -856,17 +855,6 @@ static void inventory_window_specs(List *window_specs, WindowContext *context)
 			if (sinfo->frame && sinfo->frame->trail)
 				Assert(exprType(sinfo->frame->trail->val) == INT8OID);
 		}
-		else if ( sinfo->frame != NULL )
-		{
-			if (sinfo->frame->lead &&
-				sinfo->frame->lead->kind != WINDOW_DELAYED_BOUND_PRECEDING &&
-				sinfo->frame->lead->kind != WINDOW_DELAYED_BOUND_FOLLOWING)
-				sinfo->frame->lead = adjustFrameBound(sinfo->frame->lead, sinfo->frame->is_rows);
-			if (sinfo->frame->trail &&
-				sinfo->frame->trail->kind != WINDOW_DELAYED_BOUND_PRECEDING &&
-				sinfo->frame->trail->kind != WINDOW_DELAYED_BOUND_FOLLOWING)
-				sinfo->frame->trail = adjustFrameBound(sinfo->frame->trail, sinfo->frame->is_rows);
-		}
 		
 		sinfo->refset = bms_add_member(sinfo->refset, i);
 		
@@ -1209,50 +1197,6 @@ static int compare_edge(WindowFrameEdge *a, WindowFrameEdge *b)
 	return 1;
 }
 
-/* Make any necessary adjustments to an ordinary window frame edge to
- * prepare it for later planning stages and for execution.
- *
- * Currently this is just resetting the window frame bound to delayed
- * if the value parameter can't be validated at planning time.  The
- * function issues an error if the value parameter is a negative 
- * constant.
- *
- * The function assumes the frame comes from the parser/rewriter so 
- * it will reject a delayed frame bound.  So don't use this to adjust 
- * edges of special frames such as those created for LAG/LEAD functions.
- */
-static WindowFrameEdge *adjustFrameBound(WindowFrameEdge *edge, bool is_rows)
-{
-	WindowBoundingKind kind;
-	
-	if ( edge == NULL )
-		return NULL;
-		
-	kind = edge->kind;
-	
-	if ( kind == WINDOW_BOUND_PRECEDING || kind == WINDOW_BOUND_FOLLOWING )
-	{
-		if ( edge->val && IsA(edge->val, Const))
-			;
-		else
-		{
-			edge = copyObject(edge);
-			if ( kind == WINDOW_BOUND_PRECEDING )
-				edge->kind = WINDOW_DELAYED_BOUND_PRECEDING;
-			else
-				edge->kind = WINDOW_DELAYED_BOUND_FOLLOWING;
-		}
-	}
-	else if ( edge->kind == WINDOW_BOUND_PRECEDING 
-			|| edge->kind == WINDOW_BOUND_FOLLOWING
-			|| edge->val != NULL )
-	{
-		elog(ERROR,"invalid window frame edge");
-	}
-	
-	return edge;
-}
-
 
 /*---------------
  * make_lower_targetlist
@@ -1315,16 +1259,10 @@ make_lower_targetlist(Query *parse,
 		if ( f == NULL )
 			continue;
 			
-		if ( window_edge_is_delayed(f->trail) )
-		{
-			extravars = list_concat(extravars, 
-							pull_var_clause(f->trail->val, false));
-		}
-		if ( window_edge_is_delayed(f->lead) )
-		{
-			extravars = list_concat(extravars, 
-							pull_var_clause(f->lead->val, false));
-		}
+		extravars = list_concat(extravars,
+								pull_var_clause(f->trail->val, false));
+		extravars = list_concat(extravars,
+								pull_var_clause(f->lead->val, false));
 	}
 	lower_tlist = add_to_flat_tlist(lower_tlist, extravars, false /* resjunk */);
 	list_free(extravars);
@@ -4092,24 +4030,4 @@ Query *copy_common_subquery(Query *original, List *targetList)
 	common->rowMarks = NIL;
 	
 	return common;
-}
-
-/*
- * Does the given window frame edge contains an expression that must be
- * evaluated at run time (i.e., may contain a Var)?
- */
-bool
-window_edge_is_delayed(WindowFrameEdge *edge)
-{
-	if (edge == NULL)
-		return false;
-	if ((edge->kind == WINDOW_DELAYED_BOUND_PRECEDING ||
-		 edge->kind == WINDOW_DELAYED_BOUND_FOLLOWING) &&
-			edge->val != NULL)
-		return true;
-
-	/* Non-delayed frame edge must not have Var */
-	Assert(pull_var_clause((Node *) edge->val, false) == NIL);
-
-	return false;
 }

@@ -1040,8 +1040,11 @@ CTranslatorUtils::Windowboundkind
 			{EdxlfbCurrentRow, WINDOW_CURRENT_ROW},
 			{EdxlfbBoundedFollowing, WINDOW_BOUND_FOLLOWING},
 			{EdxlfbUnboundedFollowing, WINDOW_UNBOUND_FOLLOWING},
-			{EdxlfbDelayedBoundedPreceding, WINDOW_DELAYED_BOUND_PRECEDING},
-		    {EdxlfbDelayedBoundedFollowing, WINDOW_DELAYED_BOUND_FOLLOWING}
+	// We don't distinguish between the delayed and undelayed versions
+	// beoynd this point. Executor will make that decision without our
+	// help.
+			{EdxlfbDelayedBoundedPreceding, WINDOW_BOUND_PRECEDING},
+			{EdxlfbDelayedBoundedFollowing, WINDOW_BOUND_FOLLOWING}
 			};
 
 	const ULONG ulArity = GPOS_ARRAY_SIZE(rgrgulMapping);
@@ -1055,7 +1058,7 @@ CTranslatorUtils::Windowboundkind
 			break;
 		}
 	}
-	GPOS_ASSERT(WINDOW_DELAYED_BOUND_FOLLOWING >= wbk && "Invalid window frame boundary");
+	GPOS_ASSERT(WINDOW_BOUND_FOLLOWING >= wbk && "Invalid window frame boundary");
 
 	return wbk;
 }

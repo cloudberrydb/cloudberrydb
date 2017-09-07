@@ -1379,9 +1379,7 @@ CTranslatorScalarToDXL::Edxlfb
 			{WINDOW_BOUND_PRECEDING, EdxlfbBoundedPreceding},
 			{WINDOW_CURRENT_ROW, EdxlfbCurrentRow},
 			{WINDOW_BOUND_FOLLOWING, EdxlfbBoundedFollowing},
-			{WINDOW_UNBOUND_FOLLOWING, EdxlfbUnboundedFollowing},
-			{WINDOW_DELAYED_BOUND_PRECEDING, EdxlfbDelayedBoundedPreceding},
-		    {WINDOW_DELAYED_BOUND_FOLLOWING, EdxlfbDelayedBoundedFollowing}
+			{WINDOW_UNBOUND_FOLLOWING, EdxlfbUnboundedFollowing}
 			};
 
 	const ULONG ulArity = GPOS_ARRAY_SIZE(rgrgulMapping);

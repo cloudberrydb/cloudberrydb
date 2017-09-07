@@ -135,7 +135,9 @@ typedef struct WindowStatePerLevelData
 	 * Indicate if the frame clause for this level has an edge of DELAY_BOUND
 	 * type.
 	 */
-	bool		has_delay_bound;
+	bool		has_delay_trail;
+	bool		has_delay_lead;
+	bool		has_delay_bound; // OR of the above
 
 	/*
 	 * Indicate if all functions in this level are aggregate functions that
@@ -325,23 +327,13 @@ typedef struct WindowStatePerFunctionData
 
 #define EDGE_IS_BOUND(e) \
 	(e->kind == WINDOW_BOUND_PRECEDING || \
-	 e->kind == WINDOW_BOUND_FOLLOWING || \
-	 e->kind == WINDOW_DELAYED_BOUND_FOLLOWING || \
-	 e->kind == WINDOW_DELAYED_BOUND_PRECEDING)
+	 e->kind == WINDOW_BOUND_FOLLOWING)
 #define EDGE_IS_CURRENT_ROW(e) \
 	 (e->kind == WINDOW_CURRENT_ROW)
-#define EDGE_IS_DELAYED(e) \
-	 (e->kind == WINDOW_DELAYED_BOUND_FOLLOWING || \
-	  e->kind == WINDOW_DELAYED_BOUND_PRECEDING)
 #define EDGE_IS_BOUND_FOLLOWING(e) \
-	 (e->kind == WINDOW_BOUND_FOLLOWING || \
-	  e->kind == WINDOW_DELAYED_BOUND_FOLLOWING)
+	 (e->kind == WINDOW_BOUND_FOLLOWING)
 #define EDGE_IS_BOUND_PRECEDING(e) \
-	 (e->kind == WINDOW_BOUND_PRECEDING || \
-	  e->kind == WINDOW_DELAYED_BOUND_PRECEDING)
-#define EDGE_IS_DELAYED_BOUND(e) \
-	 (e->kind == WINDOW_DELAYED_BOUND_PRECEDING || \
-	  e->kind == WINDOW_DELAYED_BOUND_FOLLOWING)
+	 (e->kind == WINDOW_BOUND_PRECEDING)
 #define EDGE_EQ_CURRENT_ROW(level_state, wstate, e, is_lead) \
 		 (EDGE_IS_CURRENT_ROW(e) || \
 		  ((EDGE_IS_BOUND_FOLLOWING(e) || \
@@ -1220,8 +1212,7 @@ adjustEdgesAfterAppend(WindowStatePerLevel level_state,
 	 * Adjust the trailing edge if it is "ROWS x FOLLOWING" or it is a delayed
 	 * edge.
 	 */
-	if (!(level_state->empty_frame &&
-		  EDGE_IS_DELAYED(level_state->frame->trail)))
+	if (!(level_state->empty_frame && level_state->has_delay_trail))
 	{
 		if (level_state->is_rows &&
 			EDGE_IS_BOUND(level_state->frame->trail) &&
@@ -1240,7 +1231,7 @@ adjustEdgesAfterAppend(WindowStatePerLevel level_state,
 		}
 		else if (!level_state->is_rows &&
 				 (EDGE_IS_BOUND_FOLLOWING(level_state->frame->trail) ||
-				  EDGE_IS_DELAYED(level_state->frame->trail)))
+				  level_state->has_delay_trail))
 		{
 			econtext->ecxt_outertuple = wstate->curslot;
 			forwardEdgeForRange(level_state, wstate,
@@ -1255,8 +1246,7 @@ adjustEdgesAfterAppend(WindowStatePerLevel level_state,
 	}
 
 
-	if (!(level_state->empty_frame &&
-		  EDGE_IS_DELAYED(level_state->frame->lead)))
+	if (!(level_state->empty_frame && level_state->has_delay_lead))
 	{
 		/* If the leading edge is "x PRECEDING" and x > 0, simply return. */
 		if (EDGE_IS_BOUND_PRECEDING(level_state->frame->lead) &&
@@ -2749,6 +2739,8 @@ initWindowStatePerLevel(WindowState * wstate, Window * node)
 		int			i;
 
 		lvl->has_delay_bound = false;
+		lvl->has_delay_trail = false;
+		lvl->has_delay_lead = false;
 		lvl->has_only_trans_funcs = false;
 
 		/*
@@ -3476,8 +3468,7 @@ adjustEdgesForRows(WindowFrameBuffer buffer,
 {
 	WindowStatePerLevel level_state = buffer->level_state;
 
-	if (!(level_state->empty_frame &&
-		  EDGE_IS_DELAYED(level_state->frame->trail)))
+	if (!(level_state->empty_frame && level_state->has_delay_trail))
 	{
 		if (EDGE_IS_BOUND(level_state->frame->trail) ||
 			EDGE_EQ_CURRENT_ROW(level_state, wstate, level_state->frame->trail, false))
@@ -3507,8 +3498,7 @@ adjustEdgesForRows(WindowFrameBuffer buffer,
 		}
 	}
 
-	if (!(level_state->empty_frame &&
-		  EDGE_IS_DELAYED(level_state->frame->lead)))
+	if (!(level_state->empty_frame && level_state->has_delay_lead))
 	{
 		if (EDGE_IS_BOUND_PRECEDING(level_state->frame->lead) &&
 			level_state->num_lead_rows == level_state->lead_rows)
@@ -3643,8 +3633,7 @@ adjustEdgesForRange(WindowFrameBuffer buffer,
 {
 	WindowStatePerLevel level_state = buffer->level_state;
 
-	if (!(level_state->empty_frame &&
-		  EDGE_IS_DELAYED(level_state->frame->trail)))
+	if (!(level_state->empty_frame && level_state->has_delay_trail))
 	{
 		if (EDGE_EQ_CURRENT_ROW(level_state, wstate, level_state->frame->trail, false))
 		{
@@ -3672,8 +3661,7 @@ adjustEdgesForRange(WindowFrameBuffer buffer,
 		}
 	}
 
-	if (!(level_state->empty_frame &&
-		  EDGE_IS_DELAYED(level_state->frame->lead)))
+	if (!(level_state->empty_frame && level_state->has_delay_lead))
 	{
 		if (EDGE_EQ_CURRENT_ROW(level_state, wstate, level_state->frame->lead, true))
 		{
@@ -3880,8 +3868,6 @@ get_delay_edge(WindowFrameEdge * edge,
 	bool		isnull = true;
 	ExprContext *econtext = wstate->ps.ps_ExprContext;
 	MemoryContext oldctx;
-
-	Assert(EDGE_IS_DELAYED(edge));
 
 	econtext->ecxt_outertuple = wstate->curslot;
 	if (TupIsNull(wstate->curslot))
@@ -4237,7 +4223,6 @@ adjustDelayBoundEdgeForRange(WindowStatePerLevel level_state,
 	bool		found;
 
 	Assert(level_state->has_delay_bound && !level_state->is_rows);
-	Assert(EDGE_IS_DELAYED(edge));
 	Assert(level_state->numSortCols == 1);
 
 	/* Compute the new edge value */
@@ -4280,7 +4265,6 @@ adjustDelayBoundEdgeForRows(WindowStatePerLevel level_state,
 	bool		found;
 
 	Assert(level_state->has_delay_bound && level_state->is_rows);
-	Assert(EDGE_IS_DELAYED(edge));
 	Assert(list_length(level_state->level_funcs) >= 1);
 
 	*p_request_num_rows =
@@ -4544,7 +4528,7 @@ fetchCurrentRow(WindowState * wstate)
 		if (!level_state->has_delay_bound)
 			continue;
 
-		if (EDGE_IS_DELAYED(level_state->frame->lead))
+		if (level_state->has_delay_lead)
 		{
 			if (level_state->is_rows)
 				adjustDelayBoundEdgeForRows(level_state, wstate,
@@ -4564,7 +4548,7 @@ fetchCurrentRow(WindowState * wstate)
 											 true);
 		}
 
-		if (EDGE_IS_DELAYED(level_state->frame->trail))
+		if (level_state->has_delay_trail)
 		{
 			if (level_state->is_rows)
 			{
@@ -5148,7 +5132,7 @@ init_bound_frame_edge_expr(WindowFrameEdge * edge, TupleDesc desc,
 		n = ExecInitExpr(expr, (PlanState *) wstate);
 
 		level_state->trail_expr = n;
-		if (!EDGE_IS_DELAYED(edge))
+		if (!level_state->has_delay_trail)
 			level_state->trail_range = ExecEvalExpr(n, econtext, &isNull, NULL);
 	}
 
@@ -5167,7 +5151,7 @@ init_bound_frame_edge_expr(WindowFrameEdge * edge, TupleDesc desc,
 		n = ExecInitExpr((Expr *)expr, (PlanState *) wstate);
 
 		level_state->lead_expr = n;
-		if (!EDGE_IS_DELAYED(edge))
+		if (!level_state->has_delay_lead)
 			level_state->lead_range = ExecEvalExpr(n, econtext, &isNull, NULL);
 	}
 
@@ -5357,8 +5341,8 @@ setEmptyFrame(WindowStatePerLevel level_state,
 			 (EDGE_IS_BOUND_FOLLOWING(frame->trail) &&
 			  EDGE_IS_BOUND_PRECEDING(frame->lead))));
 
-	if (!EDGE_IS_DELAYED_BOUND(frame->trail) &&
-		!EDGE_IS_DELAYED_BOUND(frame->lead) &&
+	if (!level_state->has_delay_trail &&
+		!level_state->has_delay_lead &&
 		((EDGE_IS_BOUND_PRECEDING(frame->trail) &&
 		  EDGE_IS_BOUND_PRECEDING(frame->lead)) ||
 		 (EDGE_IS_BOUND_FOLLOWING(frame->trail) &&
@@ -5425,6 +5409,37 @@ init_frames(WindowState * wstate)
 	int			level = -1;
 	ListCell   *lc;
 	int			col_no;
+
+	/*
+	 * Set has_delay_* flag in each level state.
+	 */
+	for (level = 0; level < wstate->numlevels; level++)
+	{
+		WindowStatePerLevel level_state = &wstate->level_state[level];
+
+		/*
+		 * If a bound expression is a constant, we can evaluate it just
+		 * once, and reuse the value thereafter. Otherwise, set the
+		 * has_delay_[trail|lead] flag, so that it's re-evaluated for
+		 * every row.
+		 *
+		 * We could try harder, and also evaluate e.g. stable expressions
+		 * immediately, but this will do for now.
+		 */
+		if (level_state->frame)
+		{
+			if (EDGE_IS_BOUND(level_state->frame->trail) &&
+				!IsA(level_state->frame->trail->val, Const))
+				level_state->has_delay_trail = true;
+
+			if (EDGE_IS_BOUND(level_state->frame->lead) &&
+				!IsA(level_state->frame->lead->val, Const))
+				level_state->has_delay_lead = true;
+		}
+
+		level_state->has_delay_bound =
+			level_state->has_delay_lead || level_state->has_delay_trail;
+	}
 
 	for (level = 0; level < wstate->numlevels; level++)
 	{
@@ -5506,7 +5521,7 @@ init_frames(WindowState * wstate)
 						ExecInitExpr((Expr *)expr,
 									 (PlanState *) wstate);
 
-					if (!EDGE_IS_DELAYED_BOUND(frame->trail))
+					if (!level_state->has_delay_trail)
 					{
 						rows_param = ExecEvalExpr(level_state->trail_expr,
 												  econtext,
@@ -5543,7 +5558,7 @@ init_frames(WindowState * wstate)
 						ExecInitExpr((Expr *)expr,
 									 (PlanState *) wstate);
 
-					if (!EDGE_IS_DELAYED_BOUND(frame->lead))
+					if (!level_state->has_delay_lead)
 					{
 						rows_param = ExecEvalExpr(level_state->lead_expr,
 												  econtext,
@@ -5617,19 +5632,6 @@ init_frames(WindowState * wstate)
 		level_state->trivial_frames_only = trivial_frames_only;
 
 		resetTransValues(level_state, wstate);
-	}
-
-	/*
-	 * Set has_delay_bound flag in each level state if the frame clause has a
-	 * edge of DELAY_BOUND type.
-	 */
-	for (level = 0; level < wstate->numlevels; level++)
-	{
-		WindowStatePerLevel level_state = &wstate->level_state[level];
-
-		level_state->has_delay_bound =
-			(EDGE_IS_DELAYED(level_state->frame->lead) ||
-			 EDGE_IS_DELAYED(level_state->frame->trail));
 	}
 
 	/*
@@ -6868,20 +6870,12 @@ lead_lag_frame_maker(PG_FUNCTION_ARGS)
 	switch (winkind)
 	{
 		case WINKIND_LAG:
-			if (IsA(offset, Const))
-				frame->trail->kind = frame->lead->kind =
-					WINDOW_BOUND_PRECEDING;
-			else
-				frame->trail->kind = frame->lead->kind =
-					WINDOW_DELAYED_BOUND_PRECEDING;
+			frame->trail->kind = frame->lead->kind =
+				WINDOW_BOUND_PRECEDING;
 			break;
 		case WINKIND_LEAD:
-			if (IsA(offset, Const))
-				frame->trail->kind = frame->lead->kind =
-					WINDOW_BOUND_FOLLOWING;
-			else
-				frame->trail->kind = frame->lead->kind =
-					WINDOW_DELAYED_BOUND_FOLLOWING;
+			frame->trail->kind = frame->lead->kind =
+				WINDOW_BOUND_FOLLOWING;
 			break;
 		default:
 			elog(ERROR, "internal window framing error");

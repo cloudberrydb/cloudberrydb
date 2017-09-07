@@ -816,23 +816,12 @@ set_plan_refs(PlannerGlobal *glob, Plan *plan, int rtoffset)
 
 					if (frame != NULL)
 					{
-						/*
-						 * Fix reference of frame edge expression *only*
-						 * when the edge is DELAYED type. Otherwise it will have
-						 * potential risk that the edge expression is converted
-						 * to Var (see fix_upper_expr_mutator for reason), which
-						 * cannot be evaluated in the executor's init stage.
-						 * It is ok that DELAYED frame edges have Var, since
-						 * they are evaluated at the executor's run time stage.
-						 */
-						if (window_edge_is_delayed(frame->trail))
-							frame->trail->val =
-								fix_upper_expr(glob, frame->trail->val,
-											   subplan_itlist, rtoffset);
-						if (window_edge_is_delayed(frame->lead))
-							frame->lead->val =
-								fix_upper_expr(glob, frame->lead->val,
-											   subplan_itlist, rtoffset);
+						frame->trail->val =
+							fix_upper_expr(glob, frame->trail->val,
+										   subplan_itlist, rtoffset);
+						frame->lead->val =
+							fix_upper_expr(glob, frame->lead->val,
+										   subplan_itlist, rtoffset);
 					}
 				}
 				pfree(subplan_itlist);
