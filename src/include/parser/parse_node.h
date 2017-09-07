@@ -96,9 +96,6 @@ typedef struct ParseState
 	struct HTAB *p_namecache;  /* parse state object name cache */
 	bool        p_hasTblValueExpr;
 	bool        p_hasDynamicFunction; /* function w/unstable return type */
-	List	   *p_setopTypes;		/* predicated types on Setop */
-	List	   *p_setopTypmods;		/* predicated typmods on Setop */
-	bool        p_propagateSetopTypes;      /* if possible to propagate types on Setop */
 } ParseState;
 
 /* Support for parser_errposition_callback function */
