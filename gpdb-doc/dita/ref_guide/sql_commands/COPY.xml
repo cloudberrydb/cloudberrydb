@@ -54,7 +54,7 @@ COPY {table [(<varname>column</varname> [, ...])] | (<varname>query</varname>)} 
       <p>When <codeph>COPY</codeph> is used with the <codeph>ON SEGMENT</codeph> clause, the
           <codeph>COPY TO</codeph> causes segments to create individual segment-oriented files,
         which remain on the segment hosts. The <varname>file</varname> argument for <codeph>ON
-          SEGMENT</codeph> takes the string literal <codeph>&lt;SEGID></codeph> (required) and uses
+          SEGMENT</codeph> takes the string literal <codeph>&lt;SEG_ID></codeph> (required) and uses
         either the absolute path or the <codeph>&lt;SEG_DATA_DIR></codeph> string literal. When the
           <codeph>COPY</codeph> operation is run, the segment IDs and the paths of the segment data
         directories are substituted for the string literal values. </p>
@@ -144,8 +144,8 @@ COPY {table [(<varname>column</varname> [, ...])] | (<varname>query</varname>)} 
             instances and segment data files.</pd>
           <pd>The keywords <codeph>STDIN</codeph> and <codeph>STDOUT</codeph> are not supported with
               <codeph>ON SEGMENT</codeph>. </pd>
-          <pd>The <codeph>&lt;SEG_DATA_DIR></codeph> and <codeph>&lt;SEGID></codeph> string literals
-            are used to specify an absolute path and file name with the following syntax:<codeblock>COPY <varname>table</varname> [TO|FROM] '&lt;SEG_DATA_DIR>/<varname>gpdumpname</varname>&lt;SEGID>_<varname>suffix</varname>' ON SEGMENT;</codeblock><parml>
+          <pd>The <codeph>&lt;SEG_DATA_DIR></codeph> and <codeph>&lt;SEG_ID></codeph> string literals
+            are used to specify an absolute path and file name with the following syntax:<codeblock>COPY <varname>table</varname> [TO|FROM] '&lt;SEG_DATA_DIR>/<varname>gpdumpname</varname>&lt;SEG_ID>_<varname>suffix</varname>' ON SEGMENT;</codeblock><parml>
               <plentry>
                 <pt>&lt;SEG_DATA_DIR></pt>
                 <pd>The string literal representing the absolute path of the segment instance data
@@ -156,9 +156,9 @@ COPY {table [(<varname>column</varname> [, ...])] | (<varname>query</varname>)} 
                   used in place of the <codeph>&lt;SEG_DATA_DIR></codeph> string literal. </pd>
               </plentry>
               <plentry>
-                <pt>&lt;SEGID></pt>
+                <pt>&lt;SEG_ID></pt>
                 <pd>The string literal representing the content ID number of the segment instance to
-                  be copied when copying <codeph>ON SEGMENT</codeph>. <codeph>&lt;SEGID></codeph> is
+                  be copied when copying <codeph>ON SEGMENT</codeph>. <codeph>&lt;SEG_ID></codeph> is
                   a required part of the file name when <codeph>ON SEGMENT</codeph> is specified.
                   The angle brackets are part of the string literal used to specify the file name. </pd>
                 <pd>With <codeph>COPY TO</codeph>, the string literal is replaced by the content ID
@@ -587,12 +587,12 @@ COPY {table [(<varname>column</varname> [, ...])] | (<varname>query</varname>)} 
         the <codeph>COPY TO ON SEGMENT</codeph> argument takes the form:</p>
       <p><codeph>COPY</codeph>
         <varname>table</varname> TO
-          '&lt;SEG_DATA_DIR>/<varname>gpdumpname</varname>&lt;SEGID>_<varname>suffix</varname>' ON
+          '&lt;SEG_DATA_DIR>/<varname>gpdumpname</varname>&lt;SEG_ID>_<varname>suffix</varname>' ON
         SEGMENT; </p>
-      <p>The <codeph>&lt;SEGID></codeph> is required. However, you can substitute an absolute path
+      <p>The <codeph>&lt;SEG_ID></codeph> is required. However, you can substitute an absolute path
         for the <codeph>&lt;SEG_DATA_DIR></codeph> string literal in the path. </p>
       <p>When you pass in the string literal <codeph>&lt;SEG_DATA_DIR></codeph> and
-          <codeph>&lt;SEGID></codeph> to <codeph>COPY</codeph>, <codeph>COPY</codeph> will fill in
+          <codeph>&lt;SEG_ID></codeph> to <codeph>COPY</codeph>, <codeph>COPY</codeph> will fill in
         the appropriate values when the operation is run.</p>
       <p>For example, if you have <codeph>mytable</codeph> with the segments and mirror segments
         like
@@ -606,7 +606,7 @@ COPY {table [(<varname>column</varname> [, ...])] | (<varname>query</varname>)} 
     1     |  2   | /home/usr1/data_mirror2/gpsegdir1 
 </codeblock>running
         the
-        command:<codeblock>COPY mytable TO '&lt;SEG_DATA_DIR>/gpbackup&lt;SEGID>.txt' ON SEGMENT;</codeblock>
+        command:<codeblock>COPY mytable TO '&lt;SEG_DATA_DIR>/gpbackup&lt;SEG_ID>.txt' ON SEGMENT;</codeblock>
         would result in the following
         files:<codeblock>/home/usr1/data1/gpsegdir0/gpbackup0.txt
 /home/usr1/data2/gpsegdir1/gpbackup1.txt</codeblock></p>
@@ -617,7 +617,7 @@ COPY {table [(<varname>column</varname> [, ...])] | (<varname>query</varname>)} 
           SEGMENT</codeph> copying.</p>
       <p>If an absolute path is specified, instead of <codeph>&lt;SEG_DATA_DIR></codeph>, such as in
         the statement
-        <codeblock>COPY mytable TO '/tmp/gpdir/gpbackup_&lt;SEGID>.txt' ON SEGMENT;</codeblock></p>
+        <codeblock>COPY mytable TO '/tmp/gpdir/gpbackup_&lt;SEG_ID>.txt' ON SEGMENT;</codeblock></p>
       <p>files would be placed in <codeph>/tmp/gpdir</codeph> on every segment. The
           <codeph>gpfdist</codeph> tool can also be used to restore data files generated with
           <codeph>COPY TO</codeph> with the <codeph>ON SEGMENT</codeph> option if redistribution is

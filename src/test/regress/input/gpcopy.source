@@ -662,16 +662,16 @@ INSERT INTO segment_reject_limit values(1,'2');
 INSERT INTO segment_reject_limit values(1,'a');
 INSERT INTO segment_reject_limit values(1,'b');
 
-COPY segment_reject_limit TO '/tmp/segment_reject_limit<SEGID>.csv' on segment;
+COPY segment_reject_limit TO '/tmp/segment_reject_limit<SEG_ID>.csv' on segment;
 
 DROP TABLE IF EXISTS segment_reject_limit_from;
 CREATE TABLE segment_reject_limit_from (a int,b int);
-COPY segment_reject_limit_from from '/tmp/segment_reject_limit<SEGID>.csv' on segment log errors segment reject limit 2 rows;
+COPY segment_reject_limit_from from '/tmp/segment_reject_limit<SEG_ID>.csv' on segment log errors segment reject limit 2 rows;
 
 SELECT * FROM segment_reject_limit_from;
 SELECT relname, filename, bytenum, errmsg FROM gp_read_error_log('segment_reject_limit_from');
 -- not exceed reject limit on segment
-COPY segment_reject_limit_from from '/tmp/segment_reject_limit<SEGID>.csv' on segment log errors segment reject limit 3 rows;
+COPY segment_reject_limit_from from '/tmp/segment_reject_limit<SEG_ID>.csv' on segment log errors segment reject limit 3 rows;
 SELECT * FROM segment_reject_limit_from;
 
 -- STDIN is not support by copy from on segment
@@ -683,23 +683,23 @@ COPY segment_reject_limit_from to STDOUT on segment log errors segment reject li
 
 -- \copy from doesn't support on segment
 --on segment lower case
-\COPY segment_reject_limit_from from '/tmp/segment_reject_limit<SEGID>.csv' on segment;
+\COPY segment_reject_limit_from from '/tmp/segment_reject_limit<SEG_ID>.csv' on segment;
 --on segment with spaces
-\COPY segment_reject_limit_from from '/tmp/segment_reject_limit<SEGID>.csv' on   segment;
+\COPY segment_reject_limit_from from '/tmp/segment_reject_limit<SEG_ID>.csv' on   segment;
 --on segment are capital
-\COPY segment_reject_limit_from from '/tmp/segment_reject_limit<SEGID>.csv' ON SEGMENT;
+\COPY segment_reject_limit_from from '/tmp/segment_reject_limit<SEG_ID>.csv' ON SEGMENT;
 --on segment with \t
-\copy segment_reject_limit_from from '/tmp/segment_reject_limit<SEGID>.csv' on	segment;  
+\copy segment_reject_limit_from from '/tmp/segment_reject_limit<SEG_ID>.csv' on	segment;  
 
 -- \copy to doesn't support on segment
 --on segment lower case
-\COPY segment_reject_limit_from to '/tmp/copy_on_segment<SEGID>.csv' on segment;
+\COPY segment_reject_limit_from to '/tmp/copy_on_segment<SEG_ID>.csv' on segment;
 --on segment with spaces
-\COPY segment_reject_limit_from to '/tmp/copy_on_segment<SEGID>.csv' on  segment;
+\COPY segment_reject_limit_from to '/tmp/copy_on_segment<SEG_ID>.csv' on  segment;
 --on segment are capital
-\COPY segment_reject_limit_from to '/tmp/copy_on_segment<SEGID>.csv' ON SEGMENT;
+\COPY segment_reject_limit_from to '/tmp/copy_on_segment<SEG_ID>.csv' ON SEGMENT;
 --on segment with \t
-\copy segment_reject_limit_from from '/tmp/copy_on_segment<SEGID>.csv' on	segment;  
+\copy segment_reject_limit_from from '/tmp/copy_on_segment<SEG_ID>.csv' on	segment;  
 
 -- gp_initial_bad_row_limit guc test. This guc allows user to set the initial
 -- number of rows which can contain errors before the database stops loading
@@ -758,8 +758,8 @@ DROP EXTERNAL TABLE IF EXISTS rm_copy_onsegment_files;
 -- end_ignore
 
 CREATE TABLE test_copy_on_segment_nocol ();
-COPY test_copy_on_segment_nocol TO '/tmp/valid_filename_nocol<SEGID>.txt' ON SEGMENT;
-COPY test_copy_on_segment_nocol FROM '/tmp/valid_filename_nocol<SEGID>.txt' ON SEGMENT;
+COPY test_copy_on_segment_nocol TO '/tmp/valid_filename_nocol<SEG_ID>.txt' ON SEGMENT;
+COPY test_copy_on_segment_nocol FROM '/tmp/valid_filename_nocol<SEG_ID>.txt' ON SEGMENT;
 SELECT * FROM test_copy_on_segment_nocol;
 
 CREATE TABLE test_copy_on_segment_array (a int[], b text) DISTRIBUTED BY (a);
@@ -769,10 +769,10 @@ INSERT INTO test_copy_on_segment_array VALUES ('{3,2,1}', 'hj');
 INSERT INTO test_copy_on_segment_array VALUES ('{233,2,1}', 'hj');
 INSERT INTO test_copy_on_segment_array VALUES ('{666,2,1}', 'hj');
 INSERT INTO test_copy_on_segment_array VALUES ('{3,555,1}', 'hj');
-COPY test_copy_on_segment_array TO '/tmp/valid_filename_array<SEGID>.txt' ON SEGMENT;
+COPY test_copy_on_segment_array TO '/tmp/valid_filename_array<SEG_ID>.txt' ON SEGMENT;
 
 CREATE TABLE test_copy_on_segment_array_1 (a int[], b text) DISTRIBUTED BY (a);
-COPY test_copy_on_segment_array_1 FROM '/tmp/valid_filename_array<SEGID>.txt' ON SEGMENT;
+COPY test_copy_on_segment_array_1 FROM '/tmp/valid_filename_array<SEG_ID>.txt' ON SEGMENT;
 SELECT * FROM test_copy_on_segment_array EXCEPT SELECT * FROM test_copy_on_segment_array_1;
 
 CREATE TABLE test_copy_on_segment_2dim_array (a int[][]) DISTRIBUTED BY (a);
@@ -782,10 +782,10 @@ INSERT INTO test_copy_on_segment_2dim_array VALUES ('{{1,9,3},{2,9,9}}');
 INSERT INTO test_copy_on_segment_2dim_array VALUES ('{{1,3,3},{2,6,9}}');
 INSERT INTO test_copy_on_segment_2dim_array VALUES ('{{1,233,3},{2,5,9}}');
 INSERT INTO test_copy_on_segment_2dim_array VALUES ('{{1,666,3},{2,555,9}}');
-COPY test_copy_on_segment_2dim_array TO '/tmp/valid_filename_2dim_array<SEGID>.txt' ON SEGMENT;
+COPY test_copy_on_segment_2dim_array TO '/tmp/valid_filename_2dim_array<SEG_ID>.txt' ON SEGMENT;
 
 CREATE TABLE test_copy_on_segment_2dim_array_1 (a int[][]) DISTRIBUTED BY (a);
-COPY test_copy_on_segment_2dim_array_1 FROM '/tmp/valid_filename_2dim_array<SEGID>.txt' ON SEGMENT;
+COPY test_copy_on_segment_2dim_array_1 FROM '/tmp/valid_filename_2dim_array<SEG_ID>.txt' ON SEGMENT;
 SELECT * FROM test_copy_on_segment_2dim_array EXCEPT SELECT * FROM test_copy_on_segment_2dim_array_1;
 
 CREATE TABLE test_copy_on_segment (a int, b text, c text) DISTRIBUTED BY (b);
@@ -801,26 +801,26 @@ INSERT INTO test_copy_on_segment_withoids VALUES (2, 'f', 'g');
 INSERT INTO test_copy_on_segment_withoids VALUES (3, 'h', 'j');
 
 COPY test_copy_on_segment TO '/tmp/invalid_filename.txt' ON SEGMENT;
-COPY test_copy_on_segment TO '/tmp/valid_filename<SEGID>.txt' ON SEGMENT;
-COPY test_copy_on_segment TO '/tmp/valid_filename<SEGID>.bin' ON SEGMENT BINARY;
-COPY test_copy_on_segment TO '/tmp/valid_filename<SEGID>.csv' WITH ON SEGMENT CSV QUOTE '"' FORCE QUOTE a,b,c ESCAPE E'\\' NULL '\N' DELIMITER ',' HEADER IGNORE EXTERNAL PARTITIONS;
-COPY test_copy_on_segment_withoids TO '/tmp/withoids_valid_filename<SEGID>.csv' WITH ON SEGMENT OIDS CSV QUOTE '"' FORCE QUOTE a,b,c ESCAPE E'\\' NULL '\N' DELIMITER ',' IGNORE EXTERNAL PARTITIONS;
+COPY test_copy_on_segment TO '/tmp/valid_filename<SEG_ID>.txt' ON SEGMENT;
+COPY test_copy_on_segment TO '/tmp/valid_filename<SEG_ID>.bin' ON SEGMENT BINARY;
+COPY test_copy_on_segment TO '/tmp/valid_filename<SEG_ID>.csv' WITH ON SEGMENT CSV QUOTE '"' FORCE QUOTE a,b,c ESCAPE E'\\' NULL '\N' DELIMITER ',' HEADER IGNORE EXTERNAL PARTITIONS;
+COPY test_copy_on_segment_withoids TO '/tmp/withoids_valid_filename<SEG_ID>.csv' WITH ON SEGMENT OIDS CSV QUOTE '"' FORCE QUOTE a,b,c ESCAPE E'\\' NULL '\N' DELIMITER ',' IGNORE EXTERNAL PARTITIONS;
 
 CREATE TABLE test_copy_from_on_segment_txt (LIKE test_copy_on_segment) DISTRIBUTED BY (b);
 COPY test_copy_from_on_segment_txt FROM '/tmp/invalid_filename.txt' ON SEGMENT;
-COPY test_copy_from_on_segment_txt FROM '/tmp/valid_filename<SEGID>.txt' ON SEGMENT;
+COPY test_copy_from_on_segment_txt FROM '/tmp/valid_filename<SEG_ID>.txt' ON SEGMENT;
 SELECT * FROM test_copy_from_on_segment_txt ORDER BY a;
 
 CREATE TABLE test_copy_from_on_segment_binary (LIKE test_copy_on_segment) DISTRIBUTED BY (b);
-COPY test_copy_from_on_segment_binary FROM '/tmp/valid_filename<SEGID>.bin' ON SEGMENT BINARY;
+COPY test_copy_from_on_segment_binary FROM '/tmp/valid_filename<SEG_ID>.bin' ON SEGMENT BINARY;
 SELECT * FROM test_copy_from_on_segment_binary ORDER BY a;
 
 CREATE TABLE test_copy_from_on_segment_csv (LIKE test_copy_on_segment) DISTRIBUTED BY (b);
-COPY test_copy_from_on_segment_csv FROM '/tmp/valid_filename<SEGID>.csv' WITH ON SEGMENT CSV QUOTE '"' ESCAPE E'\\' NULL '\N' DELIMITER ',' HEADER IGNORE EXTERNAL PARTITIONS;
+COPY test_copy_from_on_segment_csv FROM '/tmp/valid_filename<SEG_ID>.csv' WITH ON SEGMENT CSV QUOTE '"' ESCAPE E'\\' NULL '\N' DELIMITER ',' HEADER IGNORE EXTERNAL PARTITIONS;
 SELECT * FROM test_copy_from_on_segment_csv ORDER BY a;
 
 CREATE TABLE test_copy_from_on_segment_withoids (LIKE test_copy_on_segment_withoids) WITH OIDS DISTRIBUTED BY (a,c);
-COPY test_copy_from_on_segment_withoids FROM '/tmp/withoids_valid_filename<SEGID>.csv' WITH ON SEGMENT OIDS CSV QUOTE '"' ESCAPE E'\\' NULL '\N' DELIMITER ',' IGNORE EXTERNAL PARTITIONS;
+COPY test_copy_from_on_segment_withoids FROM '/tmp/withoids_valid_filename<SEG_ID>.csv' WITH ON SEGMENT OIDS CSV QUOTE '"' ESCAPE E'\\' NULL '\N' DELIMITER ',' IGNORE EXTERNAL PARTITIONS;
 SELECT * FROM test_copy_from_on_segment_withoids ORDER BY a;
 
 CREATE TABLE onek_copy_onsegment (
@@ -843,10 +843,10 @@ CREATE TABLE onek_copy_onsegment (
 ) DISTRIBUTED BY (two,four,odd);
 \COPY onek_copy_onsegment FROM 'data/onek.data';
 SELECT count(*) FROM onek_copy_onsegment;
-COPY onek_copy_onsegment TO '/tmp/valid_filename_onek_copy_onsegment<SEGID>.txt' ON SEGMENT;
+COPY onek_copy_onsegment TO '/tmp/valid_filename_onek_copy_onsegment<SEG_ID>.txt' ON SEGMENT;
 
 CREATE TABLE onek_copy_from_onsegment (LIKE onek_copy_onsegment);
-COPY onek_copy_from_onsegment FROM '/tmp/valid_filename_onek_copy_onsegment<SEGID>.txt' ON SEGMENT;
+COPY onek_copy_from_onsegment FROM '/tmp/valid_filename_onek_copy_onsegment<SEG_ID>.txt' ON SEGMENT;
 SELECT * FROM onek_copy_onsegment EXCEPT SELECT * FROM onek_copy_from_onsegment;
 SELECT count(*) FROM onek_copy_from_onsegment;
 
@@ -899,13 +899,13 @@ CREATE TABLE LINEITEM_2 (LIKE LINEITEM);
 COPY LINEITEM FROM '@abs_srcdir@/data/lineitem.csv' WITH DELIMITER '|' CSV;
 SELECT COUNT(*) FROM LINEITEM;
 COPY LINEITEM TO '/tmp/lineitem.csv' CSV;
-COPY LINEITEM TO '/tmp/lineitem_s<SEGID>.csv' ON SEGMENT CSV;
+COPY LINEITEM TO '/tmp/lineitem_s<SEG_ID>.csv' ON SEGMENT CSV;
 
 COPY LINEITEM_1 FROM '/tmp/lineitem.csv' CSV;
 SELECT COUNT(*) FROM LINEITEM_1;
 SELECT * FROM LINEITEM EXCEPT SELECT * FROM LINEITEM_1;
 
-COPY LINEITEM_2 FROM '/tmp/lineitem_s<SEGID>.csv' ON SEGMENT CSV;
+COPY LINEITEM_2 FROM '/tmp/lineitem_s<SEG_ID>.csv' ON SEGMENT CSV;
 SELECT COUNT(*) FROM LINEITEM_2;
 SELECT * FROM LINEITEM EXCEPT SELECT * FROM LINEITEM_2;
 
@@ -923,36 +923,36 @@ DROP TABLE IF EXISTS COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION;
 -- end_ignore
 CREATE TABLE COPY_ON_SEGMENT_CHECK_DISTKEY(a int)DISTRIBUTED BY(a);
 INSERT INTO COPY_ON_SEGMENT_CHECK_DISTKEY SELECT generate_series(0,10);
-COPY COPY_ON_SEGMENT_CHECK_DISTKEY to '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY<SEGID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_DISTKEY to '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY<SEG_ID>.csv' ON SEGMENT CSV;
 COPY COPY_ON_SEGMENT_CHECK_DISTKEY to '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY0.csv' CSV;
-COPY COPY_ON_SEGMENT_CHECK_DISTKEY FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY<SEGID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_DISTKEY FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY<SEG_ID>.csv' ON SEGMENT CSV;
 SET gp_enable_segment_copy_checking=off;
-COPY COPY_ON_SEGMENT_CHECK_DISTKEY FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY<SEGID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_DISTKEY FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY<SEG_ID>.csv' ON SEGMENT CSV;
 SET gp_enable_segment_copy_checking=on;
 
 CREATE TABLE COPY_ON_SEGMENT_CHECK_TOW_DSITKEY(a int,b int)DISTRIBUTED BY(a,b);
 INSERT INTO COPY_ON_SEGMENT_CHECK_TOW_DSITKEY SELECT generate_series(0,10),generate_series(0,10);
-COPY COPY_ON_SEGMENT_CHECK_TOW_DSITKEY to '/tmp/COPY_ON_SEGMENT_CHECK_TOW_DSITKEY<SEGID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_TOW_DSITKEY to '/tmp/COPY_ON_SEGMENT_CHECK_TOW_DSITKEY<SEG_ID>.csv' ON SEGMENT CSV;
 COPY COPY_ON_SEGMENT_CHECK_TOW_DSITKEY to '/tmp/COPY_ON_SEGMENT_CHECK_TOW_DSITKEY0.csv' CSV;
-COPY COPY_ON_SEGMENT_CHECK_TOW_DSITKEY FROM '/tmp/COPY_ON_SEGMENT_CHECK_TOW_DSITKEY<SEGID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_TOW_DSITKEY FROM '/tmp/COPY_ON_SEGMENT_CHECK_TOW_DSITKEY<SEG_ID>.csv' ON SEGMENT CSV;
 
 -- COPY FROM ON SEGMENT partitoned table
 CREATE TABLE COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED(a int) DISTRIBUTED BY (a) PARTITION BY range(a) ( START (0) END (10) EVERY (5));
 INSERT INTO COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED SELECT generate_series(0,9);
-COPY COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED to '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED<SEGID>.csv' ON SEGMENT CSV;
-COPY COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED<SEGID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED to '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED<SEG_ID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED<SEG_ID>.csv' ON SEGMENT CSV;
 SELECT COUNT(*) FROM COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED;
 
 COPY COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED to '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED0.csv' CSV;
-COPY COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED<SEGID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED<SEG_ID>.csv' ON SEGMENT CSV;
 SELECT COUNT(*) FROM COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED;
 
 ALTER table copy_on_segment_check_distkey_partioned_1_prt_1 set DISTRIBUTED RANDOMLY ;
-COPY COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED<SEGID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED<SEG_ID>.csv' ON SEGMENT CSV;
 set gp_vmem_idle_resource_timeout=1;
 SET gp_enable_segment_copy_checking=off;
-COPY COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED<SEGID>.csv' ON SEGMENT CSV;
-COPY COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED<SEGID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED<SEG_ID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_PARTIONED<SEG_ID>.csv' ON SEGMENT CSV;
 SET gp_enable_segment_copy_checking=on;
 set gp_vmem_idle_resource_timeout=18000;
 
@@ -982,15 +982,15 @@ CREATE TABLE COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION(a int,b int) DISTRIBUTED
     )
 ( START (0) END (10) EVERY (5));
 INSERT INTO COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION SELECT generate_series(0,9),generate_series(0,9);
-COPY COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION to '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION<SEGID>.csv' ON SEGMENT CSV;
-COPY COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION<SEGID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION to '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION<SEG_ID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION<SEG_ID>.csv' ON SEGMENT CSV;
 SELECT COUNT(*) FROM COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION;
 
 COPY COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION to '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION0.csv'  CSV;
-COPY COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION<SEGID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION<SEG_ID>.csv' ON SEGMENT CSV;
 
 ALTER table copy_on_segment_check_distkey_subpartition_1_prt_1_2_prt_1 set DISTRIBUTED RANDOMLY ;
-COPY COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION<SEGID>.csv' ON SEGMENT CSV;
+COPY COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION FROM '/tmp/COPY_ON_SEGMENT_CHECK_DISTKEY_SUBPARTITION<SEG_ID>.csv' ON SEGMENT CSV;
 -- start_ignore
 DROP TABLE IF EXISTS LINEITEM;
 DROP TABLE IF EXISTS LINEITEM_1;

@@ -1299,14 +1299,14 @@ DoCopyInternal(const CopyStmt *stmt, const char *queryString, CopyState cstate)
 
 			replaceStringInfoString(&filepath, "<SEG_DATA_DIR>", DataDir);
 
-			if (strstr(stmt->filename, "<SEGID>") == NULL)
+			if (strstr(stmt->filename, "<SEG_ID>") == NULL)
 				ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("<SEGID> is required for file name")));
+					 errmsg("<SEG_ID> is required for file name")));
 
 			char segid_buf[8];
 			snprintf(segid_buf, 8, "%d", GpIdentity.segindex);
-			replaceStringInfoString(&filepath, "<SEGID>", segid_buf);
+			replaceStringInfoString(&filepath, "<SEG_ID>", segid_buf);
 
 			cstate->filename = filepath.data;
 			/* Rename filename if error log needed */
