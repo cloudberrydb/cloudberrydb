@@ -1056,9 +1056,6 @@ trivial_subqueryscan(SubqueryScan *plan)
 		list_length(plan->subplan->targetlist))
 		return false;			/* tlists not same length */
 
-	if ( IsA(plan->subplan, Window) )
-		return false;
-
 	attrno = 1;
 	forboth(lp, plan->scan.plan.targetlist, lc, plan->subplan->targetlist)
 	{

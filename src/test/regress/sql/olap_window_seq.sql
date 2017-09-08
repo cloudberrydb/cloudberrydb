@@ -1394,8 +1394,11 @@ from product
 window w as (partition by pcolor order by pname)
 order by 1,2,3;
 
--- MPP-4840
+-- Once upon a time, there was a bug in deparsing a Window node with EXPLAIN
+-- that this query triggered (MPP-4840)
 explain select n from ( select row_number() over () from (values (0)) as t(x) ) as r(n) group by n;
+
+
 -- Test for MPP-11645
 
 create table olap_window_r (a int, b int, x int,  y int,  z int ) distributed by (b);

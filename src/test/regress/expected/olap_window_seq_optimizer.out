@@ -7808,7 +7808,8 @@ order by 1,2,3;
  Plain     | Donuts    | 500 | 1 |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |     |    
 (8 rows)
 
--- MPP-4840
+-- Once upon a time, there was a bug in deparsing a Window node with EXPLAIN
+-- that this query triggered (MPP-4840)
 explain select n from ( select row_number() over () from (values (0)) as t(x) ) as r(n) group by n;
                                      QUERY PLAN                                      
 -------------------------------------------------------------------------------------
