@@ -395,6 +395,9 @@ transformDeleteStmt(ParseState *pstate, DeleteStmt *stmt)
 		parseCheckAggregates(pstate, qry);
 	if (pstate->p_hasTblValueExpr)
 		parseCheckTableFunctions(pstate, qry);
+	qry->hasWindowFuncs = pstate->p_hasWindowFuncs;
+	if (pstate->p_hasWindowFuncs)
+		parseCheckWindowFuncs(pstate, qry);
 
 	return qry;
 }
@@ -1607,8 +1610,7 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 
 	qry->hasWindowFuncs = pstate->p_hasWindowFuncs;
 	if (pstate->p_hasWindowFuncs)
-		parseProcessWindFuncs(pstate, qry);
-
+		parseCheckWindowFuncs(pstate, qry);
 
 	foreach(l, stmt->lockingClause)
 	{
@@ -2080,6 +2082,10 @@ transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
 
 	if (pstate->p_hasTblValueExpr)
 		parseCheckTableFunctions(pstate, qry);
+
+	qry->hasWindowFuncs = pstate->p_hasWindowFuncs;
+	if (pstate->p_hasWindowFuncs)
+		parseCheckWindowFuncs(pstate, qry);
 
 	foreach(l, lockingClause)
 	{
