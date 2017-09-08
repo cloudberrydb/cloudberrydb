@@ -1303,9 +1303,6 @@ convert_ANY_sublink_to_join(PlannerInfo *root, SubLink *sublink,
 static bool
 simplify_EXISTS_query(PlannerInfo *root, Query *query)
 {
-	if (!is_simple_subquery(root, query))
-		return false;
-
 	/*
 	 * Otherwise, we can throw away the targetlist, as well as any GROUP,
 	 * DISTINCT, and ORDER BY clauses; none of those clauses will change
@@ -1390,14 +1387,6 @@ convert_EXISTS_sublink_to_join(PlannerInfo *root, SubLink *sublink,
 	 */
 	if (IsSubqueryMultiLevelCorrelated(subselect))
 		return NULL;
-
-	/*
-	* Don't remove the sublink if we cannot pull-up the subquery
-	* later during pull_up_simple_subquery()
-	*/
-	if (!simplify_EXISTS_query(root, subselect))
-		return NULL;
-
 	/*
 	 * 'LIMIT n' makes EXISTS false when n <= 0, and doesn't affect the
 	 * outcome when n > 0.  Delete subquery's LIMIT and build (0 < n) expr to
@@ -1448,7 +1437,7 @@ convert_EXISTS_sublink_to_join(PlannerInfo *root, SubLink *sublink,
 
 		/* Replace trivial EXISTS(...) with TRUE if no LIMIT/OFFSET. */
 		if (limitqual == NULL)
-			limitqual = makeBoolConst(true, false);
+			return makeBoolConst(!under_not, false);
 
 		if (under_not)
 			return (Node *) make_notclause((Expr *)limitqual);
@@ -1470,6 +1459,13 @@ convert_EXISTS_sublink_to_join(PlannerInfo *root, SubLink *sublink,
 			return (Node *) make_notclause((Expr *)node);
 		return node;
 	}
+
+        /*
+        * Don't remove the sublink if we cannot pull-up the subquery
+        * later during pull_up_simple_subquery()
+        */
+        if (!simplify_EXISTS_query(root, subselect))
+                return NULL;
 
 	/*
 	 * The subquery must have a nonempty jointree, else we won't have a join.
