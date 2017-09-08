@@ -103,7 +103,9 @@ const CHAR *rgszIndexFileNames[] =
 	"../data/dxl/minidump/OverlappingHomogenousIndexesOnRoot-ANDPredicate-HEAP.mdp",
 	"../data/dxl/minidump/OverlappingHomogenousIndexesOnRoot-HEAP.mdp",
 	"../data/dxl/minidump/SingleColumnHomogenousIndexOnRoot-AO.mdp",
-	"../data/dxl/minidump/SingleColumnHomogenousIndexOnRoot-HEAP.mdp"
+	"../data/dxl/minidump/SingleColumnHomogenousIndexOnRoot-HEAP.mdp",
+	"../data/dxl/minidump/LogicalIndexGetDroppedCols.mdp",
+	"../data/dxl/minidump/DynamicIndexGetDroppedCols.mdp"
 	};
 
 //---------------------------------------------------------------------------

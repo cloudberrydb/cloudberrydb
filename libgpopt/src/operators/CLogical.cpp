@@ -12,6 +12,7 @@
 #include "gpos/base.h"
 
 #include "naucrates/md/IMDIndex.h"
+#include "naucrates/md/IMDColumn.h"
 #include "naucrates/md/IMDCheckConstraint.h"
 
 #include "gpopt/base/CColRefSet.h"
@@ -149,30 +150,47 @@ CLogical::PdrgpdrgpcrCreatePartCols
 	return pdrgpdrgpcrPart;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CLogical::PosFromIndex
-//
-//	@doc:
+
 //		Compute an order spec based on an index
-//
-//---------------------------------------------------------------------------
+
 COrderSpec *
 CLogical::PosFromIndex
 	(
 	IMemoryPool *pmp,
 	const IMDIndex *pmdindex,
-	DrgPcr *pdrgpcr
+	DrgPcr *pdrgpcr,
+	const CTableDescriptor *ptabdesc
 	)
 {
-	// compute the order spec
+	//
+	// compute the order spec after getting the current position of the index key
+	// from the table descriptor. Index keys are relative to the
+	// relation. So consider a case where we had 20 columns in a table. We
+	// create an index that covers col # 20 as one of its keys. Then we drop
+	// columns 10 through 15. Now the index key still points to col #20 but the
+	// column ref list in pdrgpcr will only have 15 elements in it.
+	//
+
 	COrderSpec *pos = GPOS_NEW(pmp) COrderSpec(pmp);
-	const ULONG ulLenIncludeCols = pmdindex->UlKeys();
-	for (ULONG  ul = 0; ul < ulLenIncludeCols; ul++)
+	const ULONG ulLenKeys = pmdindex->UlKeys();
+
+	// get relation from the metadata accessor using metadata id
+	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+	const IMDRelation *pmdrel = pmda->Pmdrel(ptabdesc->Pmdid());
+
+	for (ULONG  ul = 0; ul < ulLenKeys; ul++)
 	{
-		ULONG ulPos = pmdindex->UlKey(ul);
-		CColRef *pcr = (*pdrgpcr)[ulPos];
-	
+		// This is the postion of the index key column relative to the relation
+		const ULONG ulPosRel = pmdindex->UlKey(ul);
+
+		// get the column and it's attno from the relation
+		const IMDColumn *pmdcol = pmdrel->Pmdcol(ulPosRel);
+		INT iAttno = pmdcol->IAttno();
+
+		// get the position of the index key column relative to the table descriptor
+		const ULONG ulPosTabDesc = ptabdesc->UlPosition(iAttno);
+		CColRef *pcr = (*pdrgpcr)[ulPosTabDesc];
+
 		IMDId *pmdid = pcr->Pmdtype()->PmdidCmp(IMDType::EcmptL);
 		pmdid->AddRef();
 	

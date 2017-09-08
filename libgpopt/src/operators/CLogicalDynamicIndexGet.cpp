@@ -82,7 +82,7 @@ CLogicalDynamicIndexGet::CLogicalDynamicIndexGet
 	m_pindexdesc  = CIndexDescriptor::Pindexdesc(pmp, ptabdesc, pmdindex);
 
 	// compute the order spec
-	m_pos = PosFromIndex(m_pmp, pmdindex, m_pdrgpcrOutput);
+	m_pos = PosFromIndex(m_pmp, pmdindex, m_pdrgpcrOutput, ptabdesc);
 }
 
 //---------------------------------------------------------------------------

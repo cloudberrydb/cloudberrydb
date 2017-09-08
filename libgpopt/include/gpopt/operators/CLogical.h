@@ -176,7 +176,8 @@ namespace gpopt
 				(
 				IMemoryPool *pmp,
 				const IMDIndex *pmdindex,
-				DrgPcr *pdrgpcr
+				DrgPcr *pdrgpcr,
+				const CTableDescriptor *ptabdesc
 				);
 
 			// derive function properties using data access property of scalar child
