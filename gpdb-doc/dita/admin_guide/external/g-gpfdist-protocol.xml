@@ -2,11 +2,11 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="topic_sny_yph_kr">
   <title>gpfdist:// Protocol</title>
+  <shortdesc>The <codeph>gpfdist://</codeph> protocol is used in a URI to reference a running
+      <codeph>gpfdist</codeph> instance. </shortdesc>
   <body>
-    <p>The <codeph>gpfdist://</codeph> protocol is used in a URI to reference a running
-        <codeph>gpfdist</codeph> instance. The <codeph>gpfdist</codeph> utility serves external data
-      files from a directory on a file host to all Greenplum Database segments in
-      parallel. </p>
+    <p>The <codeph>gpfdist</codeph> utility serves external data files from a directory on a file
+      host to all Greenplum Database segments in parallel. </p>
     <p><codeph>gpfdist</codeph> is located in the <codeph>$GPHOME/bin</codeph> directory on your
         Greenplum Database master host and on each segment host. </p>
     <p>Run <codeph>gpfdist</codeph> on the host where the external data files reside.

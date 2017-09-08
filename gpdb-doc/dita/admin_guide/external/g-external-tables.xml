@@ -8,7 +8,7 @@
    <body>
       <p>To create an external table definition, you specify the format of your input files and the
          location of your external data sources. For information input file formats, see <xref
-            href="g-formatting-data-files.xml#topic95"/>.</p>
+            href="../load/topics/g-formatting-data-files.xml#topic95"/>.</p>
       <p>Use one of the following protocols to access external table data sources. You cannot mix
          protocols in <codeph>CREATE EXTERNAL TABLE</codeph> statements:<ul id="ul_zj5_prj_kr">
             <li><codeph>file://</codeph> accesses external data files on segment host that the

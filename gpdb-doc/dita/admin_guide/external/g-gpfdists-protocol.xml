@@ -2,13 +2,13 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="topic_sny_yph_kr">
   <title>gpfdists:// Protocol</title>
+  <shortdesc>The <codeph>gpfdists://</codeph> protocol is a secure version of the <codeph>gpfdist://
+      protocol</codeph>. </shortdesc>
   <body>
-    <p>The <codeph>gpfdists://</codeph> protocol is a secure version of the <codeph>gpfdist://
-        protocol</codeph>. To use it, you run the <codeph>gpfdist</codeph> utility with the
-        <codeph>--ssl</codeph> option. When specified in a URI, the <codeph>gpfdists://</codeph>
-      protocol enables encrypted communication and secure identification of the file server and the
-        Greenplum Database to protect against attacks such as eavesdropping and
-      man-in-the-middle attacks. </p>
+    <p>To use it, you run the <codeph>gpfdist</codeph> utility with the <codeph>--ssl</codeph>
+      option. When specified in a URI, the <codeph>gpfdists://</codeph> protocol enables encrypted
+      communication and secure identification of the file server and the Greenplum Database to
+      protect against attacks such as eavesdropping and man-in-the-middle attacks. </p>
     <p><codeph>gpfdists</codeph> implements SSL security in a client/server scheme with the
       following attributes and limitations:<ul id="ul_z3p_mrh_kr">
         <li>Client certificates are required.</li>

@@ -2,11 +2,12 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="topic_qbh_pwh_kr">
   <title>file:// Protocol</title>
+  <shortdesc>The <codeph>file://</codeph> protocol is used in a URI that specifies the location of
+    an operating system file. </shortdesc>
   <body>
-    <p>The <codeph>file://</codeph> protocol is used in a URI that specifies the location of an
-      operating system file. The URI includes the host name, port, and path to the file. Each file
-      must reside on a segment host in a location accessible by the Greenplum superuser (<codeph>gpadmin</codeph>). The host name used in
-      the URI must match a segment host name registered in the
+    <p>The URI includes the host name, port, and path to the file. Each file must reside on a
+      segment host in a location accessible by the Greenplum superuser (<codeph>gpadmin</codeph>).
+      The host name used in the URI must match a segment host name registered in the
         <codeph>gp_segment_configuration</codeph> system catalog table. </p>
     <p>The <codeph>LOCATION</codeph> clause can have multiple URIs, as shown in this example:
       <codeblock>CREATE EXTERNAL TABLE ext_expenses (

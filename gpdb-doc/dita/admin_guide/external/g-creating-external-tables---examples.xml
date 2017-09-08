@@ -2,10 +2,10 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic44">
-    <title>Creating External Tables - Examples</title>
+    <title>Examples for Creating External Tables</title>
+    <shortdesc>These examples show how to define external data with different protocols. Each
+            <codeph>CREATE EXTERNAL TABLE</codeph> command can contain only one protocol. </shortdesc>
     <body>
-        <p>The following examples show how to define external data with different protocols. Each
-                <codeph>CREATE EXTERNAL TABLE</codeph> command can contain only one protocol. </p>
         <note type="note">When using IPv6, always enclose the numeric IP addresses in square
             brackets.</note>
         <p>Start <cmdname>gpfdist</cmdname> before you create external tables with the

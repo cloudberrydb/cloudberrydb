@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="topic_f5l_qnh_kr">
-  <title>Working with File-Based External Tables</title>
+  <title>Working with External Tables</title>
+  <shortdesc>External tables provide access to data stored in data sources outside of Greenplum
+    Database as if the data were stored in regular database tables. Data can be read from or written
+    to external tables.</shortdesc>
   <body>
-    <p>External tables provide access to data stored in data sources outside of Greenplum Database as if the data were stored in regular database tables. Data can be
-      read from or written to external tables.</p>
     <p>An external table is a Greenplum database table backed with data
       that resides outside of the database. An external table is either readable or writable. It can
       be used like a regular database table in SQL commands such as <codeph>SELECT</codeph> and

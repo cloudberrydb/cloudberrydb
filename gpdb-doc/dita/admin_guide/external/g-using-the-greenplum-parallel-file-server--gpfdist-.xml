@@ -3,9 +3,10 @@
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic13">
    <title>Using the Greenplum Parallel File Server (gpfdist)</title>
+   <shortdesc>The <cmdname>gpfdist</cmdname> protocol provides the best performance and is the
+      easiest to set up. <cmdname>gpfdist</cmdname> ensures optimum use of all segments in your
+      Greenplum Database system for external table reads.</shortdesc>
    <body>
-      <p>The <cmdname>gpfdist</cmdname> protocol provides the best performance and is the easiest to
-         set up. <cmdname>gpfdist</cmdname> ensures optimum use of all segments in your Greenplum Database system for external table reads.</p>
       <p>This topic describes the setup and management tasks for using <cmdname>gpfdist</cmdname>
          with external tables.</p>
       <ul id="ul_krw_tmg_bbb">
@@ -29,7 +30,7 @@
          </ul>
          <fig id="du165872">
             <title>External Table Using Single gpfdist Instance with Multiple NICs</title>
-            <image href="../../graphics/ext_tables_multinic.jpg" placement="break" width="472px"
+            <image href="../graphics/ext_tables_multinic.jpg" placement="break" width="472px"
                height="271px" id="image_skb_plg_bbb"/>
          </fig>
          <ul id="ul_tkb_plg_bbb">
@@ -41,8 +42,8 @@
          </ul>
          <fig id="du165882">
             <title>External Tables Using Multiple gpfdist Instances with Multiple NICs</title>
-            <image href="../../graphics/ext_tables.jpg" placement="break" width="467px"
-               height="282px" id="image_ukb_plg_bbb"/>
+            <image href="../graphics/ext_tables.jpg" placement="break" width="467px" height="282px"
+               id="image_ukb_plg_bbb"/>
          </fig>
          <note type="note">Use pipes (|) to separate formatted text when you submit files to
                <cmdname>gpfdist</cmdname>. Greenplum Database encloses comma-separated text strings
