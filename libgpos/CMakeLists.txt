@@ -122,8 +122,6 @@ add_library(gpos
             src/error/CFSimulator.cpp
             include/gpos/error/CLogger.h
             src/error/CLogger.cpp
-            include/gpos/error/CLoggerFile.h
-            src/error/CLoggerFile.cpp
             include/gpos/error/CLoggerStream.h
             src/error/CLoggerStream.cpp
             include/gpos/error/CLoggerSyslog.h
