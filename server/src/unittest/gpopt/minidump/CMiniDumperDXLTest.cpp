@@ -9,7 +9,8 @@
 //		Test for DXL-based minidumps
 //---------------------------------------------------------------------------
 #include "gpos/io/COstreamString.h"
-#include "gpos/io/COstreamFile.h"
+#include "gpos/io/CFileDescriptor.h"
+#include "gpos/io/ioutils.h"
 #include "gpos/task/CAutoTraceFlag.h"
 
 #include "naucrates/base/CQueryToDXLResult.h"

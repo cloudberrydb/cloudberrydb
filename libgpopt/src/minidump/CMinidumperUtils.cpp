@@ -9,6 +9,8 @@
 //		Implementation of minidump utility functions
 //---------------------------------------------------------------------------
 
+#include <fcntl.h>
+
 #include "gpos/base.h"
 #include "gpos/common/CAutoTimer.h"
 #include "gpos/common/CAutoRef.h"
@@ -17,7 +19,8 @@
 #include "gpos/error/CAutoTrace.h"
 #include "gpos/error/CErrorContext.h"
 #include "gpos/error/CErrorHandlerStandard.h"
-#include "gpos/io/COstreamFile.h"
+#include "gpos/io/CFileWriter.h"
+#include "gpos/io/ioutils.h"
 #include "gpos/memory/CAutoMemoryPool.h"
 #include "gpos/task/CAutoSuspendAbort.h"
 #include "gpos/task/CAutoTraceFlag.h"

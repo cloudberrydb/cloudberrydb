@@ -9,10 +9,12 @@
 //		Implementation of optimizer I/O utilities
 //---------------------------------------------------------------------------
 
+#include <fcntl.h>
+
 #include "gpos/base.h"
 #include "gpos/task/CAutoSuspendAbort.h"
 #include "gpos/task/CWorker.h"
-#include "gpos/io/COstreamFile.h"
+#include "gpos/io/CFileWriter.h"
 
 #include "gpopt/base/CIOUtils.h"
 
