@@ -55,7 +55,6 @@ add_library(gpos
             include/gpos/error/CAutoLogger.h
             include/gpos/error/CErrorHandler.h
             include/gpos/error/IErrorContext.h
-            include/gpos/io/CAutoFileDescriptor.h
             include/gpos/io/IOstream.h
             include/gpos/io/iotypes.h
             include/gpos/memory/CCache.h
