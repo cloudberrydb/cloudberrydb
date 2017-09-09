@@ -294,28 +294,28 @@
       <dxl:RelationStatistics Mdid="2.559056.1.1" Name="lineitem" Rows="1536080000.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.559056.1.1" Name="lineitem" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="21,22,16" PartitionColumns="10" PartitionTypes="r">
         <dxl:Columns>
-          <dxl:Column Name="l_orderkey" Attno="1" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="l_orderkey" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_partkey" Attno="2" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="l_partkey" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_suppkey" Attno="3" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="l_suppkey" Attno="3" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_linenumber" Attno="4" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="l_linenumber" Attno="4" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_quantity" Attno="5" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="l_quantity" Attno="5" Mdid="0.1700.1.0" Nullable="true" ColWidth="7">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_extendedprice" Attno="6" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="l_extendedprice" Attno="6" Mdid="0.1700.1.0" Nullable="true" ColWidth="10">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_discount" Attno="7" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="l_discount" Attno="7" Mdid="0.1700.1.0" Nullable="true" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_tax" Attno="8" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="l_tax" Attno="8" Mdid="0.1700.1.0" Nullable="true" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="l_returnflag" Attno="9" Mdid="0.1042.1.0" Nullable="true" ColWidth="1">
@@ -324,13 +324,13 @@
           <dxl:Column Name="l_linestatus" Attno="10" Mdid="0.1042.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_shipdate" Attno="11" Mdid="0.1082.1.0" Nullable="true">
+          <dxl:Column Name="l_shipdate" Attno="11" Mdid="0.1082.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_commitdate" Attno="12" Mdid="0.1082.1.0" Nullable="true">
+          <dxl:Column Name="l_commitdate" Attno="12" Mdid="0.1082.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_receiptdate" Attno="13" Mdid="0.1082.1.0" Nullable="true">
+          <dxl:Column Name="l_receiptdate" Attno="13" Mdid="0.1082.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="l_shipinstruct" Attno="14" Mdid="0.1042.1.0" Nullable="true" ColWidth="25">
@@ -342,25 +342,25 @@
           <dxl:Column Name="l_comment" Attno="16" Mdid="0.1043.1.0" Nullable="true" ColWidth="44">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -2611,7 +2611,7 @@
     <dxl:Plan Id="0" SpaceSize="1">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="316074567.941022" Rows="190108557.331236" Width="125"/>
+          <dxl:Cost StartupCost="0" TotalCost="348946322.694889" Rows="190108557.331236" Width="138"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="l_orderkey">
@@ -2667,7 +2667,7 @@
         <dxl:SortingColumnList/>
         <dxl:Sequence>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="304471261.439848" Rows="190108557.331236" Width="125"/>
+            <dxl:Cost StartupCost="0" TotalCost="336136272.421592" Rows="190108557.331236" Width="138"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="l_orderkey">
@@ -2742,7 +2742,7 @@
           </dxl:PartitionSelector>
           <dxl:DynamicTableScan PartIndexId="1">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="304471261.439848" Rows="190108557.331236" Width="125"/>
+              <dxl:Cost StartupCost="0" TotalCost="336136272.421592" Rows="190108557.331236" Width="138"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="l_orderkey">

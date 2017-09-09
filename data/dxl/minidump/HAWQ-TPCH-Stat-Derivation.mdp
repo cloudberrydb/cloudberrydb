@@ -795,25 +795,25 @@ ORDER BY s_name;
       </dxl:Type>
       <dxl:Relation Mdid="0.11778196.1.1" Name="nation_ao_column_none_level0" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="6,4">
         <dxl:Columns>
-          <dxl:Column Name="n_nationkey" Attno="1" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="n_nationkey" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="n_name" Attno="2" Mdid="0.1042.1.0" Nullable="false" ColWidth="25">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="n_regionkey" Attno="3" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="n_regionkey" Attno="3" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="n_comment" Attno="4" Mdid="0.1043.1.0" Nullable="true" ColWidth="152">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -1913,7 +1913,7 @@ ORDER BY s_name;
       <dxl:RelationStatistics Mdid="2.11778349.1.1" Name="supplier_ao_column_none_level0" Rows="128000000.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.11778349.1.1" Name="supplier_ao_column_none_level0" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="9,7">
         <dxl:Columns>
-          <dxl:Column Name="s_suppkey" Attno="1" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="s_suppkey" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="s_name" Attno="2" Mdid="0.1042.1.0" Nullable="false" ColWidth="25">
@@ -1922,25 +1922,25 @@ ORDER BY s_name;
           <dxl:Column Name="s_address" Attno="3" Mdid="0.1043.1.0" Nullable="false" ColWidth="40">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="s_nationkey" Attno="4" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="s_nationkey" Attno="4" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="s_phone" Attno="5" Mdid="0.1042.1.0" Nullable="false" ColWidth="15">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="s_acctbal" Attno="6" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="s_acctbal" Attno="6" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="s_comment" Attno="7" Mdid="0.1043.1.0" Nullable="false" ColWidth="101">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -3249,7 +3249,7 @@ ORDER BY s_name;
       <dxl:RelationStatistics Mdid="2.11778256.1.1" Name="part_ao_column_none_level0" Rows="2559980032.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.11778256.1.1" Name="part_ao_column_none_level0" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="11,9">
         <dxl:Columns>
-          <dxl:Column Name="p_partkey" Attno="1" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="p_partkey" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="p_name" Attno="2" Mdid="0.1043.1.0" Nullable="false" ColWidth="55">
@@ -3264,25 +3264,25 @@ ORDER BY s_name;
           <dxl:Column Name="p_type" Attno="5" Mdid="0.1043.1.0" Nullable="false" ColWidth="25">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="p_size" Attno="6" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="p_size" Attno="6" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="p_container" Attno="7" Mdid="0.1042.1.0" Nullable="false" ColWidth="10">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="p_retailprice" Attno="8" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="p_retailprice" Attno="8" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="p_comment" Attno="9" Mdid="0.1043.1.0" Nullable="false" ColWidth="23">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -4799,28 +4799,28 @@ ORDER BY s_name;
       <dxl:RelationStatistics Mdid="2.11778286.1.1" Name="partsupp_ao_column_none_level0" Rows="10239899648.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.11778286.1.1" Name="partsupp_ao_column_none_level0" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="7,5">
         <dxl:Columns>
-          <dxl:Column Name="ps_partkey" Attno="1" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="ps_partkey" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ps_suppkey" Attno="2" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="ps_suppkey" Attno="2" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ps_availqty" Attno="3" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="ps_availqty" Attno="3" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ps_supplycost" Attno="4" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="ps_supplycost" Attno="4" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="ps_comment" Attno="5" Mdid="0.1043.1.0" Nullable="false" ColWidth="199">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -4835,28 +4835,28 @@ ORDER BY s_name;
       </dxl:GPDBAgg>
       <dxl:Relation Mdid="0.11778166.1.1" Name="lineitem_ao_column_none_level0" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="0" Keys="18,16">
         <dxl:Columns>
-          <dxl:Column Name="l_orderkey" Attno="1" Mdid="0.20.1.0" Nullable="false">
+          <dxl:Column Name="l_orderkey" Attno="1" Mdid="0.20.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_partkey" Attno="2" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="l_partkey" Attno="2" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_suppkey" Attno="3" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="l_suppkey" Attno="3" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_linenumber" Attno="4" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="l_linenumber" Attno="4" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_quantity" Attno="5" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="l_quantity" Attno="5" Mdid="0.1700.1.0" Nullable="false" ColWidth="7">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_extendedprice" Attno="6" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="l_extendedprice" Attno="6" Mdid="0.1700.1.0" Nullable="false" ColWidth="10">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_discount" Attno="7" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="l_discount" Attno="7" Mdid="0.1700.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_tax" Attno="8" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="l_tax" Attno="8" Mdid="0.1700.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="l_returnflag" Attno="9" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
@@ -4865,13 +4865,13 @@ ORDER BY s_name;
           <dxl:Column Name="l_linestatus" Attno="10" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_shipdate" Attno="11" Mdid="0.1082.1.0" Nullable="false">
+          <dxl:Column Name="l_shipdate" Attno="11" Mdid="0.1082.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_commitdate" Attno="12" Mdid="0.1082.1.0" Nullable="false">
+          <dxl:Column Name="l_commitdate" Attno="12" Mdid="0.1082.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="l_receiptdate" Attno="13" Mdid="0.1082.1.0" Nullable="false">
+          <dxl:Column Name="l_receiptdate" Attno="13" Mdid="0.1082.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="l_shipinstruct" Attno="14" Mdid="0.1042.1.0" Nullable="false" ColWidth="25">
@@ -4883,13 +4883,13 @@ ORDER BY s_name;
           <dxl:Column Name="l_comment" Attno="16" Mdid="0.1043.1.0" Nullable="false" ColWidth="44">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -6360,7 +6360,7 @@ ORDER BY s_name;
     <dxl:Plan Id="0" SpaceSize="3879264">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="24077771.955737" Rows="49.989277" Width="52"/>
+          <dxl:Cost StartupCost="0" TotalCost="24583535.993774" Rows="49.989277" Width="65"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="1" Alias="s_name">
@@ -6376,7 +6376,7 @@ ORDER BY s_name;
         </dxl:SortingColumnList>
         <dxl:Sort SortDiscardDuplicates="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="24077771.944065" Rows="49.989277" Width="52"/>
+            <dxl:Cost StartupCost="0" TotalCost="24583535.979185" Rows="49.989277" Width="65"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="1" Alias="s_name">
@@ -6394,7 +6394,7 @@ ORDER BY s_name;
           <dxl:LimitOffset/>
           <dxl:HashJoin JoinType="Inner">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="24077771.909845" Rows="49.989277" Width="52"/>
+              <dxl:Cost StartupCost="0" TotalCost="24583535.936410" Rows="49.989277" Width="65"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="1" Alias="s_name">
@@ -6414,7 +6414,7 @@ ORDER BY s_name;
             </dxl:HashCondList>
             <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="24077340.896051" Rows="24.994638" Width="56"/>
+                <dxl:Cost StartupCost="0" TotalCost="24583104.920334" Rows="24.994638" Width="69"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="1" Alias="s_name">
@@ -6436,7 +6436,7 @@ ORDER BY s_name;
               </dxl:HashExprList>
               <dxl:HashJoin JoinType="In">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="24077340.893860" Rows="24.994638" Width="56"/>
+                  <dxl:Cost StartupCost="0" TotalCost="24583104.917635" Rows="24.994638" Width="69"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="1" Alias="s_name">
@@ -6459,7 +6459,7 @@ ORDER BY s_name;
                 </dxl:HashCondList>
                 <dxl:TableScan>
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="6098.200000" Rows="128000000.000000" Width="60"/>
+                    <dxl:Cost StartupCost="0" TotalCost="7858.200000" Rows="128000000.000000" Width="73"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="0" Alias="s_suppkey">
@@ -6493,7 +6493,7 @@ ORDER BY s_name;
                 </dxl:TableScan>
                 <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="24050638.529026" Rows="24.994638" Width="4"/>
+                    <dxl:Cost StartupCost="0" TotalCost="24552588.344232" Rows="24.994638" Width="4"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="18" Alias="ps_suppkey">
@@ -6509,7 +6509,7 @@ ORDER BY s_name;
                   </dxl:HashExprList>
                   <dxl:HashJoin JoinType="Inner">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="24050638.528870" Rows="24.994638" Width="4"/>
+                      <dxl:Cost StartupCost="0" TotalCost="24552588.344076" Rows="24.994638" Width="4"/>
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="18" Alias="ps_suppkey">
@@ -6537,7 +6537,7 @@ ORDER BY s_name;
                     </dxl:HashCondList>
                     <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
                       <dxl:Properties>
-                        <dxl:Cost StartupCost="0" TotalCost="3243737.576353" Rows="2559980032.000001" Width="12"/>
+                        <dxl:Cost StartupCost="0" TotalCost="3471127.391560" Rows="2559980032.000001" Width="12"/>
                       </dxl:Properties>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="17" Alias="ps_partkey">
@@ -6562,7 +6562,7 @@ ORDER BY s_name;
                       </dxl:HashExprList>
                       <dxl:HashJoin JoinType="Inner">
                         <dxl:Properties>
-                          <dxl:Cost StartupCost="0" TotalCost="3195661.151352" Rows="2559980032.000001" Width="12"/>
+                          <dxl:Cost StartupCost="0" TotalCost="3423050.966559" Rows="2559980032.000001" Width="12"/>
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="17" Alias="ps_partkey">
@@ -6585,7 +6585,7 @@ ORDER BY s_name;
                         </dxl:HashCondList>
                         <dxl:TableScan>
                           <dxl:Properties>
-                            <dxl:Cost StartupCost="0" TotalCost="450986.584512" Rows="10239899648.000000" Width="12"/>
+                            <dxl:Cost StartupCost="0" TotalCost="656552.569946" Rows="10239899648.000000" Width="12"/>
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="17" Alias="ps_partkey">
@@ -6614,7 +6614,7 @@ ORDER BY s_name;
                         </dxl:TableScan>
                         <dxl:TableScan>
                           <dxl:Properties>
-                            <dxl:Cost StartupCost="0" TotalCost="103918.192794" Rows="2559980032.000000" Width="4"/>
+                            <dxl:Cost StartupCost="0" TotalCost="125742.022566" Rows="2559980032.000000" Width="4"/>
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="25" Alias="p_partkey">
@@ -6643,7 +6643,7 @@ ORDER BY s_name;
                     </dxl:RedistributeMotion>
                     <dxl:Result>
                       <dxl:Properties>
-                        <dxl:Cost StartupCost="0" TotalCost="11146438.371520" Rows="22628309333.333336" Width="16"/>
+                        <dxl:Cost StartupCost="0" TotalCost="11420998.371520" Rows="22628309333.333336" Width="16"/>
                       </dxl:Properties>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="57" Alias="?column?">
@@ -6663,7 +6663,7 @@ ORDER BY s_name;
                       <dxl:OneTimeFilter/>
                       <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="false">
                         <dxl:Properties>
-                          <dxl:Cost StartupCost="0" TotalCost="10965411.896853" Rows="22628309333.333336" Width="16"/>
+                          <dxl:Cost StartupCost="0" TotalCost="11239971.896853" Rows="22628309333.333336" Width="16"/>
                         </dxl:Properties>
                         <dxl:GroupingColumns>
                           <dxl:GroupingColumn ColId="38"/>
@@ -6685,7 +6685,7 @@ ORDER BY s_name;
                         <dxl:Filter/>
                         <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
                           <dxl:Properties>
-                            <dxl:Cost StartupCost="0" TotalCost="8107908.994240" Rows="22628309333.333336" Width="16"/>
+                            <dxl:Cost StartupCost="0" TotalCost="8382468.994240" Rows="22628309333.333336" Width="16"/>
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="38" Alias="l_partkey">
@@ -6710,7 +6710,7 @@ ORDER BY s_name;
                           </dxl:HashExprList>
                           <dxl:Result>
                             <dxl:Properties>
-                              <dxl:Cost StartupCost="0" TotalCost="7541296.128533" Rows="22628309333.333336" Width="16"/>
+                              <dxl:Cost StartupCost="0" TotalCost="7815856.128533" Rows="22628309333.333336" Width="16"/>
                             </dxl:Properties>
                             <dxl:ProjList>
                               <dxl:ProjElem ColId="38" Alias="l_partkey">
@@ -6727,7 +6727,7 @@ ORDER BY s_name;
                             <dxl:OneTimeFilter/>
                             <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="true">
                               <dxl:Properties>
-                                <dxl:Cost StartupCost="0" TotalCost="7541296.128533" Rows="22628309333.333336" Width="16"/>
+                                <dxl:Cost StartupCost="0" TotalCost="7815856.128533" Rows="22628309333.333336" Width="16"/>
                               </dxl:Properties>
                               <dxl:GroupingColumns>
                                 <dxl:GroupingColumn ColId="38"/>
@@ -6749,7 +6749,7 @@ ORDER BY s_name;
                               <dxl:Filter/>
                               <dxl:TableScan>
                                 <dxl:Properties>
-                                  <dxl:Cost StartupCost="0" TotalCost="4683793.225920" Rows="22628309333.333336" Width="15"/>
+                                  <dxl:Cost StartupCost="0" TotalCost="4958353.225920" Rows="22628309333.333336" Width="15"/>
                                 </dxl:Properties>
                                 <dxl:ProjList>
                                   <dxl:ProjElem ColId="38" Alias="l_partkey">
@@ -6803,7 +6803,7 @@ ORDER BY s_name;
             </dxl:RedistributeMotion>
             <dxl:TableScan>
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.001691" Rows="50.000000" Width="4"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.002736" Rows="50.000000" Width="4"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="10" Alias="n_nationkey">

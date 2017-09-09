@@ -178,13 +178,13 @@
       <dxl:RelationStatistics Mdid="2.17306732.1.1" Name="mr_star1_deltas_dh" Rows="0.000000" EmptyRelation="true"/>
       <dxl:Relation Mdid="0.17306732.1.1" Name="mr_star1_deltas_dh" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
-          <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
+          <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="riskrunsubid" Attno="2" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="riskrunsubid" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="businessdate" Attno="3" Mdid="0.1082.1.0" Nullable="true">
+          <dxl:Column Name="businessdate" Attno="3" Mdid="0.1082.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="ticket" Attno="4" Mdid="0.1042.1.0" Nullable="true" ColWidth="12">
@@ -217,7 +217,7 @@
           <dxl:Column Name="measurename" Attno="13" Mdid="0.1043.1.0" Nullable="true" ColWidth="64">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="value" Attno="14" Mdid="0.701.1.0" Nullable="true">
+          <dxl:Column Name="value" Attno="14" Mdid="0.701.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="uomname" Attno="15" Mdid="0.1042.1.0" Nullable="true" ColWidth="6">
@@ -238,40 +238,40 @@
           <dxl:Column Name="axis2" Attno="20" Mdid="0.1043.1.0" Nullable="true" ColWidth="128">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="errormessage" Attno="21" Mdid="0.25.1.0" Nullable="true">
+          <dxl:Column Name="errormessage" Attno="21" Mdid="0.25.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="partyid" Attno="22" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="partyid" Attno="22" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="entityid" Attno="23" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="entityid" Attno="23" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="bookid" Attno="24" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="bookid" Attno="24" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ccyid" Attno="25" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ccyid" Attno="25" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="productid" Attno="26" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="productid" Attno="26" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tradetypeid" Attno="27" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="tradetypeid" Attno="27" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="valuationmodelid" Attno="28" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="valuationmodelid" Attno="28" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="bookname" Attno="29" Mdid="0.1043.1.0" Nullable="true" ColWidth="64">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -334,13 +334,13 @@
       <dxl:RelationStatistics Mdid="2.17327104.1.1" Name="mr_star1_gammas_dh" Rows="0.000000" EmptyRelation="true"/>
       <dxl:Relation Mdid="0.17327104.1.1" Name="mr_star1_gammas_dh" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
-          <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
+          <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="riskrunsubid" Attno="2" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="riskrunsubid" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="businessdate" Attno="3" Mdid="0.1082.1.0" Nullable="true">
+          <dxl:Column Name="businessdate" Attno="3" Mdid="0.1082.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="ticket" Attno="4" Mdid="0.1042.1.0" Nullable="true" ColWidth="12">
@@ -373,7 +373,7 @@
           <dxl:Column Name="measurename" Attno="13" Mdid="0.1043.1.0" Nullable="true" ColWidth="64">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="value" Attno="14" Mdid="0.701.1.0" Nullable="true">
+          <dxl:Column Name="value" Attno="14" Mdid="0.701.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="uomname" Attno="15" Mdid="0.1042.1.0" Nullable="true" ColWidth="6">
@@ -394,40 +394,40 @@
           <dxl:Column Name="axis2" Attno="20" Mdid="0.1043.1.0" Nullable="true" ColWidth="128">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="errormessage" Attno="21" Mdid="0.25.1.0" Nullable="true">
+          <dxl:Column Name="errormessage" Attno="21" Mdid="0.25.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="partyid" Attno="22" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="partyid" Attno="22" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="entityid" Attno="23" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="entityid" Attno="23" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="bookid" Attno="24" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="bookid" Attno="24" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ccyid" Attno="25" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ccyid" Attno="25" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="productid" Attno="26" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="productid" Attno="26" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tradetypeid" Attno="27" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="tradetypeid" Attno="27" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="valuationmodelid" Attno="28" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="valuationmodelid" Attno="28" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="bookname" Attno="29" Mdid="0.1043.1.0" Nullable="true" ColWidth="64">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -485,13 +485,13 @@
       <dxl:RelationStatistics Mdid="2.17298420.1.1" Name="mr_star1_cashflows_dh" Rows="0.000000" EmptyRelation="true"/>
       <dxl:Relation Mdid="0.17298420.1.1" Name="mr_star1_cashflows_dh" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
-          <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
+          <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="riskrunsubid" Attno="2" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="riskrunsubid" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="businessdate" Attno="3" Mdid="0.1082.1.0" Nullable="true">
+          <dxl:Column Name="businessdate" Attno="3" Mdid="0.1082.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="ticket" Attno="4" Mdid="0.1042.1.0" Nullable="true" ColWidth="12">
@@ -524,7 +524,7 @@
           <dxl:Column Name="measurename" Attno="13" Mdid="0.1043.1.0" Nullable="true" ColWidth="64">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="value" Attno="14" Mdid="0.701.1.0" Nullable="true">
+          <dxl:Column Name="value" Attno="14" Mdid="0.701.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="uomname" Attno="15" Mdid="0.1042.1.0" Nullable="true" ColWidth="6">
@@ -545,40 +545,40 @@
           <dxl:Column Name="axis2" Attno="20" Mdid="0.1043.1.0" Nullable="true" ColWidth="128">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="errormessage" Attno="21" Mdid="0.25.1.0" Nullable="true">
+          <dxl:Column Name="errormessage" Attno="21" Mdid="0.25.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="partyid" Attno="22" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="partyid" Attno="22" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="entityid" Attno="23" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="entityid" Attno="23" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="bookid" Attno="24" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="bookid" Attno="24" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ccyid" Attno="25" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ccyid" Attno="25" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="productid" Attno="26" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="productid" Attno="26" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tradetypeid" Attno="27" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="tradetypeid" Attno="27" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="valuationmodelid" Attno="28" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="valuationmodelid" Attno="28" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="bookname" Attno="29" Mdid="0.1043.1.0" Nullable="true" ColWidth="64">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -825,7 +825,7 @@
     <dxl:Plan Id="0" SpaceSize="512">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="1293.000667" Rows="1.000000" Width="24"/>
+          <dxl:Cost StartupCost="0" TotalCost="1293.001184" Rows="1.000000" Width="24"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="28" Alias="bookname">
@@ -842,7 +842,7 @@
         <dxl:SortingColumnList/>
         <dxl:Append IsTarget="false" IsZapped="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="1293.000577" Rows="1.000000" Width="24"/>
+            <dxl:Cost StartupCost="0" TotalCost="1293.001094" Rows="1.000000" Width="24"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="28" Alias="bookname">
@@ -858,7 +858,7 @@
           <dxl:Filter/>
           <dxl:Aggregate AggregationStrategy="Sorted" StreamSafe="false">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000190" Rows="1.000000" Width="24"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000362" Rows="1.000000" Width="24"/>
             </dxl:Properties>
             <dxl:GroupingColumns>
               <dxl:GroupingColumn ColId="28"/>
@@ -880,7 +880,7 @@
             <dxl:Filter/>
             <dxl:Sort SortDiscardDuplicates="false">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.000152" Rows="1.000000" Width="24"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.000325" Rows="1.000000" Width="24"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="12" Alias="measurename">
@@ -902,7 +902,7 @@
               <dxl:LimitOffset/>
               <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="431.000152" Rows="1.000000" Width="24"/>
+                  <dxl:Cost StartupCost="0" TotalCost="431.000325" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="12" Alias="measurename">
@@ -927,7 +927,7 @@
                 </dxl:HashExprList>
                 <dxl:Result>
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="431.000114" Rows="1.000000" Width="24"/>
+                    <dxl:Cost StartupCost="0" TotalCost="431.000287" Rows="1.000000" Width="24"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="12" Alias="measurename">
@@ -944,7 +944,7 @@
                   <dxl:OneTimeFilter/>
                   <dxl:Aggregate AggregationStrategy="Sorted" StreamSafe="false">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="431.000114" Rows="1.000000" Width="24"/>
+                      <dxl:Cost StartupCost="0" TotalCost="431.000287" Rows="1.000000" Width="24"/>
                     </dxl:Properties>
                     <dxl:GroupingColumns>
                       <dxl:GroupingColumn ColId="28"/>
@@ -966,7 +966,7 @@
                     <dxl:Filter/>
                     <dxl:Sort SortDiscardDuplicates="false">
                       <dxl:Properties>
-                        <dxl:Cost StartupCost="0" TotalCost="431.000102" Rows="1.000000" Width="24"/>
+                        <dxl:Cost StartupCost="0" TotalCost="431.000274" Rows="1.000000" Width="24"/>
                       </dxl:Properties>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="2" Alias="businessdate">
@@ -994,7 +994,7 @@
                       <dxl:LimitOffset/>
                       <dxl:Sequence>
                         <dxl:Properties>
-                          <dxl:Cost StartupCost="0" TotalCost="431.000102" Rows="1.000000" Width="32"/>
+                          <dxl:Cost StartupCost="0" TotalCost="431.000274" Rows="1.000000" Width="32"/>
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="2" Alias="businessdate">
@@ -1039,7 +1039,7 @@
                         </dxl:PartitionSelector>
                         <dxl:DynamicTableScan PartIndexId="1">
                           <dxl:Properties>
-                            <dxl:Cost StartupCost="0" TotalCost="431.000102" Rows="1.000000" Width="32"/>
+                            <dxl:Cost StartupCost="0" TotalCost="431.000274" Rows="1.000000" Width="32"/>
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="2" Alias="businessdate">
@@ -1122,7 +1122,7 @@
           </dxl:Aggregate>
           <dxl:Aggregate AggregationStrategy="Sorted" StreamSafe="false">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000190" Rows="1.000000" Width="24"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000362" Rows="1.000000" Width="24"/>
             </dxl:Properties>
             <dxl:GroupingColumns>
               <dxl:GroupingColumn ColId="61"/>
@@ -1144,7 +1144,7 @@
             <dxl:Filter/>
             <dxl:Sort SortDiscardDuplicates="false">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.000152" Rows="1.000000" Width="24"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.000325" Rows="1.000000" Width="24"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="45" Alias="measurename">
@@ -1166,7 +1166,7 @@
               <dxl:LimitOffset/>
               <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="431.000152" Rows="1.000000" Width="24"/>
+                  <dxl:Cost StartupCost="0" TotalCost="431.000325" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="45" Alias="measurename">
@@ -1191,7 +1191,7 @@
                 </dxl:HashExprList>
                 <dxl:Result>
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="431.000114" Rows="1.000000" Width="24"/>
+                    <dxl:Cost StartupCost="0" TotalCost="431.000287" Rows="1.000000" Width="24"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="45" Alias="measurename">
@@ -1208,7 +1208,7 @@
                   <dxl:OneTimeFilter/>
                   <dxl:Aggregate AggregationStrategy="Sorted" StreamSafe="false">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="431.000114" Rows="1.000000" Width="24"/>
+                      <dxl:Cost StartupCost="0" TotalCost="431.000287" Rows="1.000000" Width="24"/>
                     </dxl:Properties>
                     <dxl:GroupingColumns>
                       <dxl:GroupingColumn ColId="61"/>
@@ -1230,7 +1230,7 @@
                     <dxl:Filter/>
                     <dxl:Sort SortDiscardDuplicates="false">
                       <dxl:Properties>
-                        <dxl:Cost StartupCost="0" TotalCost="431.000102" Rows="1.000000" Width="24"/>
+                        <dxl:Cost StartupCost="0" TotalCost="431.000274" Rows="1.000000" Width="24"/>
                       </dxl:Properties>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="35" Alias="businessdate">
@@ -1258,7 +1258,7 @@
                       <dxl:LimitOffset/>
                       <dxl:Sequence>
                         <dxl:Properties>
-                          <dxl:Cost StartupCost="0" TotalCost="431.000102" Rows="1.000000" Width="32"/>
+                          <dxl:Cost StartupCost="0" TotalCost="431.000274" Rows="1.000000" Width="32"/>
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="35" Alias="businessdate">
@@ -1281,8 +1281,7 @@
                           <dxl:Properties>
                             <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
                           </dxl:Properties>
-                          <dxl:ProjList>
-                          </dxl:ProjList>
+                          <dxl:ProjList/>
                           <dxl:PartEqFilters>
                             <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZxQAAA==" DoubleValue="451267200000000.000000"/>
                           </dxl:PartEqFilters>
@@ -1304,7 +1303,7 @@
                         </dxl:PartitionSelector>
                         <dxl:DynamicTableScan PartIndexId="2">
                           <dxl:Properties>
-                            <dxl:Cost StartupCost="0" TotalCost="431.000102" Rows="1.000000" Width="32"/>
+                            <dxl:Cost StartupCost="0" TotalCost="431.000274" Rows="1.000000" Width="32"/>
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="35" Alias="businessdate">
@@ -1387,7 +1386,7 @@
           </dxl:Aggregate>
           <dxl:Aggregate AggregationStrategy="Sorted" StreamSafe="false">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.000190" Rows="1.000000" Width="24"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000362" Rows="1.000000" Width="24"/>
             </dxl:Properties>
             <dxl:GroupingColumns>
               <dxl:GroupingColumn ColId="94"/>
@@ -1409,7 +1408,7 @@
             <dxl:Filter/>
             <dxl:Sort SortDiscardDuplicates="false">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.000152" Rows="1.000000" Width="24"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.000325" Rows="1.000000" Width="24"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="78" Alias="measurename">
@@ -1431,7 +1430,7 @@
               <dxl:LimitOffset/>
               <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="431.000152" Rows="1.000000" Width="24"/>
+                  <dxl:Cost StartupCost="0" TotalCost="431.000325" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="78" Alias="measurename">
@@ -1456,7 +1455,7 @@
                 </dxl:HashExprList>
                 <dxl:Result>
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="431.000114" Rows="1.000000" Width="24"/>
+                    <dxl:Cost StartupCost="0" TotalCost="431.000287" Rows="1.000000" Width="24"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="78" Alias="measurename">
@@ -1473,7 +1472,7 @@
                   <dxl:OneTimeFilter/>
                   <dxl:Aggregate AggregationStrategy="Sorted" StreamSafe="false">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="431.000114" Rows="1.000000" Width="24"/>
+                      <dxl:Cost StartupCost="0" TotalCost="431.000287" Rows="1.000000" Width="24"/>
                     </dxl:Properties>
                     <dxl:GroupingColumns>
                       <dxl:GroupingColumn ColId="94"/>
@@ -1495,7 +1494,7 @@
                     <dxl:Filter/>
                     <dxl:Sort SortDiscardDuplicates="false">
                       <dxl:Properties>
-                        <dxl:Cost StartupCost="0" TotalCost="431.000102" Rows="1.000000" Width="24"/>
+                        <dxl:Cost StartupCost="0" TotalCost="431.000274" Rows="1.000000" Width="24"/>
                       </dxl:Properties>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="68" Alias="businessdate">
@@ -1523,7 +1522,7 @@
                       <dxl:LimitOffset/>
                       <dxl:Sequence>
                         <dxl:Properties>
-                          <dxl:Cost StartupCost="0" TotalCost="431.000102" Rows="1.000000" Width="32"/>
+                          <dxl:Cost StartupCost="0" TotalCost="431.000274" Rows="1.000000" Width="32"/>
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="68" Alias="businessdate">
@@ -1546,8 +1545,7 @@
                           <dxl:Properties>
                             <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
                           </dxl:Properties>
-                          <dxl:ProjList>
-                          </dxl:ProjList>
+                          <dxl:ProjList/>
                           <dxl:PartEqFilters>
                             <dxl:ConstValue TypeMdid="0.1082.1.0" IsNull="false" IsByValue="true" Value="ZxQAAA==" DoubleValue="451267200000000.000000"/>
                           </dxl:PartEqFilters>
@@ -1569,7 +1567,7 @@
                         </dxl:PartitionSelector>
                         <dxl:DynamicTableScan PartIndexId="3">
                           <dxl:Properties>
-                            <dxl:Cost StartupCost="0" TotalCost="431.000102" Rows="1.000000" Width="32"/>
+                            <dxl:Cost StartupCost="0" TotalCost="431.000274" Rows="1.000000" Width="32"/>
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="68" Alias="businessdate">

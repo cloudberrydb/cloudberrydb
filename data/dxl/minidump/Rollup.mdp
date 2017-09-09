@@ -1592,64 +1592,64 @@
       <dxl:RelationStatistics Mdid="2.66674.1.1" Name="customer_address" Rows="50301.000000"/>
       <dxl:Relation Mdid="0.66674.1.1" Name="customer_address" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="0;19,13">
         <dxl:Columns>
-          <dxl:Column Name="ca_address_sk" Attno="1" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="ca_address_sk" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ca_address_id" Attno="2" Mdid="0.1042.1.0" Nullable="false">
+          <dxl:Column Name="ca_address_id" Attno="2" Mdid="0.1042.1.0" Nullable="false" ColWidth="17">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ca_street_number" Attno="3" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="ca_street_number" Attno="3" Mdid="0.1042.1.0" Nullable="true" ColWidth="11">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ca_street_name" Attno="4" Mdid="0.1043.1.0" Nullable="true">
+          <dxl:Column Name="ca_street_name" Attno="4" Mdid="0.1043.1.0" Nullable="true" ColWidth="9">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ca_street_type" Attno="5" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="ca_street_type" Attno="5" Mdid="0.1042.1.0" Nullable="true" ColWidth="16">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ca_suite_number" Attno="6" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="ca_suite_number" Attno="6" Mdid="0.1042.1.0" Nullable="true" ColWidth="11">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ca_city" Attno="7" Mdid="0.1043.1.0" Nullable="true">
+          <dxl:Column Name="ca_city" Attno="7" Mdid="0.1043.1.0" Nullable="true" ColWidth="9">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ca_county" Attno="8" Mdid="0.1043.1.0" Nullable="true">
+          <dxl:Column Name="ca_county" Attno="8" Mdid="0.1043.1.0" Nullable="true" ColWidth="14">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ca_state" Attno="9" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="ca_state" Attno="9" Mdid="0.1042.1.0" Nullable="true" ColWidth="3">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ca_zip" Attno="10" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="ca_zip" Attno="10" Mdid="0.1042.1.0" Nullable="true" ColWidth="11">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ca_country" Attno="11" Mdid="0.1043.1.0" Nullable="true">
+          <dxl:Column Name="ca_country" Attno="11" Mdid="0.1043.1.0" Nullable="true" ColWidth="14">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ca_gmt_offset" Attno="12" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ca_gmt_offset" Attno="12" Mdid="0.1700.1.0" Nullable="true" ColWidth="7">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ca_location_type" Attno="13" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="ca_location_type" Attno="13" Mdid="0.1042.1.0" Nullable="true" ColWidth="21">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -1662,91 +1662,91 @@
       <dxl:RelationStatistics Mdid="2.67018.1.1" Name="item" Rows="18042.000000"/>
       <dxl:Relation Mdid="0.67018.1.1" Name="item" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="0;28,22">
         <dxl:Columns>
-          <dxl:Column Name="i_item_sk" Attno="1" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="i_item_sk" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_item_id" Attno="2" Mdid="0.1042.1.0" Nullable="false">
+          <dxl:Column Name="i_item_id" Attno="2" Mdid="0.1042.1.0" Nullable="false" ColWidth="17">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_rec_start_date" Attno="3" Mdid="0.1082.1.0" Nullable="true">
+          <dxl:Column Name="i_rec_start_date" Attno="3" Mdid="0.1082.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_rec_end_date" Attno="4" Mdid="0.1082.1.0" Nullable="true">
+          <dxl:Column Name="i_rec_end_date" Attno="4" Mdid="0.1082.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_item_desc" Attno="5" Mdid="0.1043.1.0" Nullable="true">
+          <dxl:Column Name="i_item_desc" Attno="5" Mdid="0.1043.1.0" Nullable="true" ColWidth="102">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_current_price" Attno="6" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="i_current_price" Attno="6" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_wholesale_cost" Attno="7" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="i_wholesale_cost" Attno="7" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_brand_id" Attno="8" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="i_brand_id" Attno="8" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_brand" Attno="9" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="i_brand" Attno="9" Mdid="0.1042.1.0" Nullable="true" ColWidth="51">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_class_id" Attno="10" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="i_class_id" Attno="10" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_class" Attno="11" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="i_class" Attno="11" Mdid="0.1042.1.0" Nullable="true" ColWidth="51">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_category_id" Attno="12" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="i_category_id" Attno="12" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_category" Attno="13" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="i_category" Attno="13" Mdid="0.1042.1.0" Nullable="true" ColWidth="51">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_manufact_id" Attno="14" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="i_manufact_id" Attno="14" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_manufact" Attno="15" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="i_manufact" Attno="15" Mdid="0.1042.1.0" Nullable="true" ColWidth="51">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_size" Attno="16" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="i_size" Attno="16" Mdid="0.1042.1.0" Nullable="true" ColWidth="21">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_formulation" Attno="17" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="i_formulation" Attno="17" Mdid="0.1042.1.0" Nullable="true" ColWidth="21">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_color" Attno="18" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="i_color" Attno="18" Mdid="0.1042.1.0" Nullable="true" ColWidth="21">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_units" Attno="19" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="i_units" Attno="19" Mdid="0.1042.1.0" Nullable="true" ColWidth="11">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_container" Attno="20" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="i_container" Attno="20" Mdid="0.1042.1.0" Nullable="true" ColWidth="11">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_manager_id" Attno="21" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="i_manager_id" Attno="21" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="i_product_name" Attno="22" Mdid="0.1042.1.0" Nullable="true">
+          <dxl:Column Name="i_product_name" Attno="22" Mdid="0.1042.1.0" Nullable="true" ColWidth="51">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>

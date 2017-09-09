@@ -326,31 +326,31 @@ WHERE buyer_name = 'ABC'
       <dxl:RelationStatistics Mdid="2.32885.1.1" Name="networks" Rows="2342.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.32885.1.1" Name="networks" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Random" Keys="8,2" NumberLeafPartitions="0">
         <dxl:Columns>
-          <dxl:Column Name="network_id" Attno="1" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="network_id" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="network_name" Attno="2" Mdid="0.1043.1.0" Nullable="true" ColWidth="255">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -431,7 +431,7 @@ WHERE buyer_name = 'ABC'
     <dxl:Plan Id="0" SpaceSize="34">
       <dxl:Result>
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="431.034764" Rows="1.000000" Width="25"/>
+          <dxl:Cost StartupCost="0" TotalCost="431.040441" Rows="1.000000" Width="25"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="4" Alias="buyer_name">
@@ -462,7 +462,7 @@ WHERE buyer_name = 'ABC'
         <dxl:OneTimeFilter/>
         <dxl:Window PartitionColumns="">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="431.034665" Rows="1.000000" Width="33"/>
+            <dxl:Cost StartupCost="0" TotalCost="431.040342" Rows="1.000000" Width="33"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="12" Alias="curr_bidrate">
@@ -483,7 +483,7 @@ WHERE buyer_name = 'ABC'
           <dxl:Filter/>
           <dxl:GatherMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53" OutputSegments="-1">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.034665" Rows="1.000000" Width="29"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.040342" Rows="1.000000" Width="29"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="1" Alias="network_id">
@@ -503,7 +503,7 @@ WHERE buyer_name = 'ABC'
             <dxl:SortingColumnList/>
             <dxl:HashJoin JoinType="Inner">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.031087" Rows="1.000000" Width="29"/>
+                <dxl:Cost StartupCost="0" TotalCost="431.036764" Rows="1.000000" Width="29"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="1" Alias="network_id">
@@ -576,7 +576,7 @@ WHERE buyer_name = 'ABC'
               </dxl:RedistributeMotion>
               <dxl:RedistributeMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53" OutputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="431.005761" Rows="2342.000000" Width="21"/>
+                  <dxl:Cost StartupCost="0" TotalCost="431.011439" Rows="2342.000000" Width="21"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="3" Alias="network_id">
@@ -595,7 +595,7 @@ WHERE buyer_name = 'ABC'
                 </dxl:HashExprList>
                 <dxl:TableScan>
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="431.001217" Rows="2342.000000" Width="21"/>
+                    <dxl:Cost StartupCost="0" TotalCost="431.006894" Rows="2342.000000" Width="21"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="3" Alias="network_id">

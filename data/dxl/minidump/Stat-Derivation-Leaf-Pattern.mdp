@@ -238,43 +238,43 @@ AND
       </dxl:Type>
       <dxl:Relation Mdid="0.2898.1.0" Name="pg_foreign_data_wrapper" IsTemporary="false" HasOids="true" StorageType="Heap" DistributionPolicy="MasterOnly" Keys="12,5">
         <dxl:Columns>
-          <dxl:Column Name="fdwname" Attno="1" Mdid="0.19.1.0" Nullable="false">
+          <dxl:Column Name="fdwname" Attno="1" Mdid="0.19.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="fdwowner" Attno="2" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="fdwowner" Attno="2" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="fdwvalidator" Attno="3" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="fdwvalidator" Attno="3" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="fdwacl" Attno="4" Mdid="0.1034.1.0" Nullable="true">
+          <dxl:Column Name="fdwacl" Attno="4" Mdid="0.1034.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="fdwoptions" Attno="5" Mdid="0.1009.1.0" Nullable="true">
+          <dxl:Column Name="fdwoptions" Attno="5" Mdid="0.1009.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="oid" Attno="-2" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="oid" Attno="-2" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -287,43 +287,43 @@ AND
       </dxl:Relation>
       <dxl:Relation Mdid="0.2898.1.1" Name="pg_foreign_data_wrapper" IsTemporary="false" HasOids="true" StorageType="Heap" DistributionPolicy="MasterOnly" Keys="12,5">
         <dxl:Columns>
-          <dxl:Column Name="fdwname" Attno="1" Mdid="0.19.1.0" Nullable="false">
+          <dxl:Column Name="fdwname" Attno="1" Mdid="0.19.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="fdwowner" Attno="2" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="fdwowner" Attno="2" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="fdwvalidator" Attno="3" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="fdwvalidator" Attno="3" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="fdwacl" Attno="4" Mdid="0.1034.1.0" Nullable="true">
+          <dxl:Column Name="fdwacl" Attno="4" Mdid="0.1034.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="fdwoptions" Attno="5" Mdid="0.1009.1.0" Nullable="true">
+          <dxl:Column Name="fdwoptions" Attno="5" Mdid="0.1009.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="oid" Attno="-2" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="oid" Attno="-2" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -432,79 +432,79 @@ AND
       </dxl:Index>
       <dxl:Relation Mdid="0.1260.1.0" Name="pg_authid" IsTemporary="false" HasOids="true" StorageType="Heap" DistributionPolicy="MasterOnly" Keys="24,17">
         <dxl:Columns>
-          <dxl:Column Name="rolname" Attno="1" Mdid="0.19.1.0" Nullable="false">
+          <dxl:Column Name="rolname" Attno="1" Mdid="0.19.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolsuper" Attno="2" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="rolsuper" Attno="2" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolinherit" Attno="3" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="rolinherit" Attno="3" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcreaterole" Attno="4" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="rolcreaterole" Attno="4" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcreatedb" Attno="5" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="rolcreatedb" Attno="5" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcatupdate" Attno="6" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="rolcatupdate" Attno="6" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcanlogin" Attno="7" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="rolcanlogin" Attno="7" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolconnlimit" Attno="8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="rolconnlimit" Attno="8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolpassword" Attno="9" Mdid="0.25.1.0" Nullable="true">
+          <dxl:Column Name="rolpassword" Attno="9" Mdid="0.25.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolvaliduntil" Attno="10" Mdid="0.1184.1.0" Nullable="true">
+          <dxl:Column Name="rolvaliduntil" Attno="10" Mdid="0.1184.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolconfig" Attno="11" Mdid="0.1009.1.0" Nullable="true">
+          <dxl:Column Name="rolconfig" Attno="11" Mdid="0.1009.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolresqueue" Attno="12" Mdid="0.26.1.0" Nullable="true">
+          <dxl:Column Name="rolresqueue" Attno="12" Mdid="0.26.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcreaterextgpfd" Attno="13" Mdid="0.16.1.0" Nullable="true">
+          <dxl:Column Name="rolcreaterextgpfd" Attno="13" Mdid="0.16.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcreaterexthttp" Attno="14" Mdid="0.16.1.0" Nullable="true">
+          <dxl:Column Name="rolcreaterexthttp" Attno="14" Mdid="0.16.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcreatewextgpfd" Attno="15" Mdid="0.16.1.0" Nullable="true">
+          <dxl:Column Name="rolcreatewextgpfd" Attno="15" Mdid="0.16.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcreaterexthdfs" Attno="16" Mdid="0.16.1.0" Nullable="true">
+          <dxl:Column Name="rolcreaterexthdfs" Attno="16" Mdid="0.16.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcreatewexthdfs" Attno="17" Mdid="0.16.1.0" Nullable="true">
+          <dxl:Column Name="rolcreatewexthdfs" Attno="17" Mdid="0.16.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="oid" Attno="-2" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="oid" Attno="-2" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -520,79 +520,79 @@ AND
       </dxl:Relation>
       <dxl:Relation Mdid="0.1260.1.1" Name="pg_authid" IsTemporary="false" HasOids="true" StorageType="Heap" DistributionPolicy="MasterOnly" Keys="24,17">
         <dxl:Columns>
-          <dxl:Column Name="rolname" Attno="1" Mdid="0.19.1.0" Nullable="false">
+          <dxl:Column Name="rolname" Attno="1" Mdid="0.19.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolsuper" Attno="2" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="rolsuper" Attno="2" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolinherit" Attno="3" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="rolinherit" Attno="3" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcreaterole" Attno="4" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="rolcreaterole" Attno="4" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcreatedb" Attno="5" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="rolcreatedb" Attno="5" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcatupdate" Attno="6" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="rolcatupdate" Attno="6" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcanlogin" Attno="7" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="rolcanlogin" Attno="7" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolconnlimit" Attno="8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="rolconnlimit" Attno="8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolpassword" Attno="9" Mdid="0.25.1.0" Nullable="true">
+          <dxl:Column Name="rolpassword" Attno="9" Mdid="0.25.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolvaliduntil" Attno="10" Mdid="0.1184.1.0" Nullable="true">
+          <dxl:Column Name="rolvaliduntil" Attno="10" Mdid="0.1184.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolconfig" Attno="11" Mdid="0.1009.1.0" Nullable="true">
+          <dxl:Column Name="rolconfig" Attno="11" Mdid="0.1009.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolresqueue" Attno="12" Mdid="0.26.1.0" Nullable="true">
+          <dxl:Column Name="rolresqueue" Attno="12" Mdid="0.26.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcreaterextgpfd" Attno="13" Mdid="0.16.1.0" Nullable="true">
+          <dxl:Column Name="rolcreaterextgpfd" Attno="13" Mdid="0.16.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcreaterexthttp" Attno="14" Mdid="0.16.1.0" Nullable="true">
+          <dxl:Column Name="rolcreaterexthttp" Attno="14" Mdid="0.16.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcreatewextgpfd" Attno="15" Mdid="0.16.1.0" Nullable="true">
+          <dxl:Column Name="rolcreatewextgpfd" Attno="15" Mdid="0.16.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcreaterexthdfs" Attno="16" Mdid="0.16.1.0" Nullable="true">
+          <dxl:Column Name="rolcreaterexthdfs" Attno="16" Mdid="0.16.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="rolcreatewexthdfs" Attno="17" Mdid="0.16.1.0" Nullable="true">
+          <dxl:Column Name="rolcreatewexthdfs" Attno="17" Mdid="0.16.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="oid" Attno="-2" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="oid" Attno="-2" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -822,7 +822,7 @@ AND
     <dxl:Plan Id="0" SpaceSize="424">
       <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="1416.620311" Rows="512.000000" Width="312"/>
+          <dxl:Cost StartupCost="0" TotalCost="1416.146987" Rows="512.000000" Width="106"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="rolname">
@@ -949,7 +949,7 @@ AND
         </dxl:JoinFilter>
         <dxl:Aggregate AggregationStrategy="Sorted" StreamSafe="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="554.000196" Rows="64.000000" Width="272"/>
+            <dxl:Cost StartupCost="0" TotalCost="553.923613" Rows="64.000000" Width="82"/>
           </dxl:Properties>
           <dxl:GroupingColumns>
             <dxl:GroupingColumn ColId="0"/>
@@ -1110,7 +1110,7 @@ AND
           <dxl:Filter/>
           <dxl:Aggregate AggregationStrategy="Sorted" StreamSafe="false">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="553.987317" Rows="10.240000" Width="304"/>
+              <dxl:Cost StartupCost="0" TotalCost="553.919624" Rows="10.240000" Width="102"/>
             </dxl:Properties>
             <dxl:GroupingColumns>
               <dxl:GroupingColumn ColId="0"/>
@@ -1271,7 +1271,7 @@ AND
             <dxl:Filter/>
             <dxl:Sort SortDiscardDuplicates="false">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="553.982458" Rows="10.240000" Width="304"/>
+                <dxl:Cost StartupCost="0" TotalCost="553.917994" Rows="10.240000" Width="102"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="0" Alias="rolname">
@@ -1400,7 +1400,7 @@ AND
               <dxl:LimitOffset/>
               <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="553.923220" Rows="10.240000" Width="304"/>
+                  <dxl:Cost StartupCost="0" TotalCost="553.898118" Rows="10.240000" Width="102"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="0" Alias="rolname">
@@ -1524,7 +1524,7 @@ AND
                 </dxl:JoinFilter>
                 <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="492.459247" Rows="10.240000" Width="160"/>
+                    <dxl:Cost StartupCost="0" TotalCost="492.448609" Rows="10.240000" Width="61"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="0" Alias="rolname">
@@ -1594,7 +1594,7 @@ AND
                   </dxl:JoinFilter>
                   <dxl:Result>
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="431.001264" Rows="3.200000" Width="8"/>
+                      <dxl:Cost StartupCost="0" TotalCost="431.000705" Rows="3.200000" Width="8"/>
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="88" Alias="role_name">
@@ -1609,7 +1609,7 @@ AND
                     <dxl:OneTimeFilter/>
                     <dxl:TableScan>
                       <dxl:Properties>
-                        <dxl:Cost StartupCost="0" TotalCost="431.001238" Rows="3.200000" Width="8"/>
+                        <dxl:Cost StartupCost="0" TotalCost="431.000680" Rows="3.200000" Width="8"/>
                       </dxl:Properties>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="63" Alias="rolname">
@@ -1655,7 +1655,7 @@ AND
                   </dxl:Result>
                   <dxl:IndexScan IndexScanDirection="Forward">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="61.449185" Rows="3.200000" Width="160"/>
+                      <dxl:Cost StartupCost="0" TotalCost="61.444426" Rows="3.200000" Width="67"/>
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="0" Alias="rolname">
@@ -1762,7 +1762,7 @@ AND
                 </dxl:NestedLoopJoin>
                 <dxl:IndexScan IndexScanDirection="Forward">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="61.449185" Rows="1.000000" Width="152"/>
+                    <dxl:Cost StartupCost="0" TotalCost="61.444426" Rows="1.000000" Width="55"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="25" Alias="rolname">
@@ -1867,7 +1867,7 @@ AND
         </dxl:Aggregate>
         <dxl:TableScan>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="431.000458" Rows="8.000000" Width="40"/>
+            <dxl:Cost StartupCost="0" TotalCost="431.000255" Rows="8.000000" Width="24"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="50" Alias="fdwname">

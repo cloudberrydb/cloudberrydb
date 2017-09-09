@@ -1494,7 +1494,7 @@
       <dxl:RelationStatistics Mdid="2.2284492.1.1" Name="coverage" Rows="3780020.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.2284492.1.1" Name="coverage" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Hash" DistributionColumns="2" Keys="15,13">
         <dxl:Columns>
-          <dxl:Column Name="date" Attno="1" Mdid="0.1114.1.0" Nullable="true">
+          <dxl:Column Name="date" Attno="1" Mdid="0.1114.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="vendor" Attno="2" Mdid="0.1043.1.0" Nullable="true" ColWidth="32">
@@ -1506,31 +1506,31 @@
           <dxl:Column Name="ip" Attno="4" Mdid="0.1043.1.0" Nullable="true" ColWidth="16">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="vendor_sla" Attno="5" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="vendor_sla" Attno="5" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="log_any" Attno="6" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="log_any" Attno="6" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="log_sec" Attno="7" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="log_sec" Attno="7" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="log_sys" Attno="8" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="log_sys" Attno="8" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="log_app" Attno="9" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="log_app" Attno="9" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="first_log" Attno="10" Mdid="0.1114.1.0" Nullable="true">
+          <dxl:Column Name="first_log" Attno="10" Mdid="0.1114.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="last_log" Attno="11" Mdid="0.1114.1.0" Nullable="true">
+          <dxl:Column Name="last_log" Attno="11" Mdid="0.1114.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="reason" Attno="12" Mdid="0.1043.1.0" Nullable="true" ColWidth="256">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="create_ts" Attno="13" Mdid="0.1114.1.0" Nullable="true">
+          <dxl:Column Name="create_ts" Attno="13" Mdid="0.1114.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.2024.1.0" FuncRetSet="false" TypeMdid="0.1114.1.0">
                 <dxl:FuncExpr FuncId="0.748.1.0" FuncRetSet="false" TypeMdid="0.1082.1.0">
@@ -1539,13 +1539,13 @@
               </dxl:FuncExpr>
             </dxl:DefaultValue>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -3304,16 +3304,16 @@
       <dxl:RelationStatistics Mdid="2.2372852.1.1" Name="asset_records" Rows="43026700.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.2372852.1.1" Name="asset_records" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Hash" DistributionColumns="5" Keys="25,26,24" PartitionColumns="23">
         <dxl:Columns>
-          <dxl:Column Name="parent" Attno="1" Mdid="0.16.1.0" Nullable="true">
+          <dxl:Column Name="parent" Attno="1" Mdid="0.16.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="uid" Attno="2" Mdid="0.1043.1.0" Nullable="true" ColWidth="255">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="checkin_timestamp" Attno="3" Mdid="0.1114.1.0" Nullable="true">
+          <dxl:Column Name="checkin_timestamp" Attno="3" Mdid="0.1114.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="active" Attno="4" Mdid="0.16.1.0" Nullable="true">
+          <dxl:Column Name="active" Attno="4" Mdid="0.16.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="dns" Attno="5" Mdid="0.1043.1.0" Nullable="true" ColWidth="255">
@@ -3349,7 +3349,7 @@
           <dxl:Column Name="asset_type" Attno="15" Mdid="0.1043.1.0" Nullable="true" ColWidth="255">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="is_portable" Attno="16" Mdid="0.16.1.0" Nullable="true">
+          <dxl:Column Name="is_portable" Attno="16" Mdid="0.16.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="release_environment" Attno="17" Mdid="0.1043.1.0" Nullable="true" ColWidth="255">
@@ -3358,7 +3358,7 @@
           <dxl:Column Name="managed_by" Attno="18" Mdid="0.1043.1.0" Nullable="true" ColWidth="2048">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="explicitly_managed_by" Attno="19" Mdid="0.16.1.0" Nullable="true">
+          <dxl:Column Name="explicitly_managed_by" Attno="19" Mdid="0.16.1.0" Nullable="true" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="managed_by_source" Attno="20" Mdid="0.1043.1.0" Nullable="true" ColWidth="255">
@@ -3373,7 +3373,7 @@
           <dxl:Column Name="state" Attno="23" Mdid="0.1043.1.0" Nullable="true" ColWidth="255">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="create_ts" Attno="24" Mdid="0.1114.1.0" Nullable="true">
+          <dxl:Column Name="create_ts" Attno="24" Mdid="0.1114.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.2024.1.0" FuncRetSet="false" TypeMdid="0.1114.1.0">
                 <dxl:FuncExpr FuncId="0.748.1.0" FuncRetSet="false" TypeMdid="0.1082.1.0">
@@ -3382,13 +3382,13 @@
               </dxl:FuncExpr>
             </dxl:DefaultValue>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -4112,7 +4112,7 @@
     <dxl:Plan Id="0" SpaceSize="32">
       <dxl:Result>
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="35526954.754047" Rows="17210680.000000" Width="4"/>
+          <dxl:Cost StartupCost="0" TotalCost="35621640.727753" Rows="17210680.000000" Width="4"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="43" Alias="?column?">
@@ -4123,21 +4123,21 @@
         <dxl:OneTimeFilter/>
         <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="35526885.911327" Rows="17210680.000000" Width="1"/>
+            <dxl:Cost StartupCost="0" TotalCost="35621571.885033" Rows="17210680.000000" Width="1"/>
           </dxl:Properties>
           <dxl:ProjList/>
           <dxl:Filter/>
           <dxl:SortingColumnList/>
           <dxl:Result>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="35526808.635374" Rows="17210680.000000" Width="1"/>
+              <dxl:Cost StartupCost="0" TotalCost="35621494.609080" Rows="17210680.000000" Width="1"/>
             </dxl:Properties>
             <dxl:ProjList/>
             <dxl:Filter/>
             <dxl:OneTimeFilter/>
             <dxl:Aggregate AggregationStrategy="Hashed" StreamSafe="false">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="35526808.635374" Rows="17210680.000000" Width="1"/>
+                <dxl:Cost StartupCost="0" TotalCost="35621494.609080" Rows="17210680.000000" Width="1"/>
               </dxl:Properties>
               <dxl:GroupingColumns>
                 <dxl:GroupingColumn ColId="1"/>
@@ -4170,7 +4170,7 @@
               <dxl:Filter/>
               <dxl:HashJoin JoinType="Inner">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="8932327.291667" Rows="73804661527.327255" Width="69"/>
+                  <dxl:Cost StartupCost="0" TotalCost="9027013.265374" Rows="73804661527.327255" Width="69"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="1" Alias="uid">
@@ -4214,7 +4214,7 @@
                 </dxl:HashCondList>
                 <dxl:DynamicTableScan PartIndexId="1">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="6575.772107" Rows="17210680.000000" Width="79"/>
+                    <dxl:Cost StartupCost="0" TotalCost="100962.368230" Rows="17210680.000000" Width="79"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="1" Alias="uid">
@@ -4336,7 +4336,7 @@
                   </dxl:PrintableFilter>
                   <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="2353.037303" Rows="7354444.712200" Width="17"/>
+                      <dxl:Cost StartupCost="0" TotalCost="2652.414887" Rows="7354444.712200" Width="17"/>
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="27" Alias="date">
@@ -4350,7 +4350,7 @@
                     <dxl:SortingColumnList/>
                     <dxl:TableScan>
                       <dxl:Properties>
-                        <dxl:Cost StartupCost="0" TotalCost="716.765285" Rows="3677222.356100" Width="17"/>
+                        <dxl:Cost StartupCost="0" TotalCost="1016.142869" Rows="3677222.356100" Width="17"/>
                       </dxl:Properties>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="27" Alias="date">

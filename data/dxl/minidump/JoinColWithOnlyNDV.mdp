@@ -2756,127 +2756,127 @@
       </dxl:Type>
       <dxl:Relation Mdid="0.641613.1.0" Name="web_sales" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="3,17" Keys="3,17;40,34">
         <dxl:Columns>
-          <dxl:Column Name="ws_sold_date_sk" Attno="1" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_sold_date_sk" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_sold_time_sk" Attno="2" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_sold_time_sk" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ship_date_sk" Attno="3" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_ship_date_sk" Attno="3" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_item_sk" Attno="4" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="ws_item_sk" Attno="4" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_bill_customer_sk" Attno="5" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_bill_customer_sk" Attno="5" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_bill_cdemo_sk" Attno="6" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_bill_cdemo_sk" Attno="6" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_bill_hdemo_sk" Attno="7" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_bill_hdemo_sk" Attno="7" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_bill_addr_sk" Attno="8" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_bill_addr_sk" Attno="8" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ship_customer_sk" Attno="9" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_ship_customer_sk" Attno="9" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ship_cdemo_sk" Attno="10" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_ship_cdemo_sk" Attno="10" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ship_hdemo_sk" Attno="11" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_ship_hdemo_sk" Attno="11" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ship_addr_sk" Attno="12" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_ship_addr_sk" Attno="12" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_web_page_sk" Attno="13" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_web_page_sk" Attno="13" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_web_site_sk" Attno="14" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_web_site_sk" Attno="14" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ship_mode_sk" Attno="15" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_ship_mode_sk" Attno="15" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_warehouse_sk" Attno="16" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_warehouse_sk" Attno="16" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_promo_sk" Attno="17" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_promo_sk" Attno="17" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_order_number" Attno="18" Mdid="0.20.1.0" Nullable="false">
+          <dxl:Column Name="ws_order_number" Attno="18" Mdid="0.20.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_quantity" Attno="19" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_quantity" Attno="19" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_wholesale_cost" Attno="20" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_wholesale_cost" Attno="20" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_list_price" Attno="21" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_list_price" Attno="21" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_sales_price" Attno="22" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_sales_price" Attno="22" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ext_discount_amt" Attno="23" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_ext_discount_amt" Attno="23" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ext_sales_price" Attno="24" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_ext_sales_price" Attno="24" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ext_wholesale_cost" Attno="25" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_ext_wholesale_cost" Attno="25" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ext_list_price" Attno="26" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_ext_list_price" Attno="26" Mdid="0.1700.1.0" Nullable="true" ColWidth="9">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ext_tax" Attno="27" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_ext_tax" Attno="27" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_coupon_amt" Attno="28" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_coupon_amt" Attno="28" Mdid="0.1700.1.0" Nullable="true" ColWidth="5">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ext_ship_cost" Attno="29" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_ext_ship_cost" Attno="29" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_net_paid" Attno="30" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_net_paid" Attno="30" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_net_paid_inc_tax" Attno="31" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_net_paid_inc_tax" Attno="31" Mdid="0.1700.1.0" Nullable="true" ColWidth="9">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_net_paid_inc_ship" Attno="32" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_net_paid_inc_ship" Attno="32" Mdid="0.1700.1.0" Nullable="true" ColWidth="9">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_net_paid_inc_ship_tax" Attno="33" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_net_paid_inc_ship_tax" Attno="33" Mdid="0.1700.1.0" Nullable="true" ColWidth="9">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_net_profit" Attno="34" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_net_profit" Attno="34" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -2888,25 +2888,25 @@
       </dxl:Relation>
       <dxl:Relation Mdid="0.641665.1.0" Name="web_site" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="0;32,26">
         <dxl:Columns>
-          <dxl:Column Name="web_site_sk" Attno="1" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="web_site_sk" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="web_site_id" Attno="2" Mdid="0.1042.1.0" Nullable="false" ColWidth="16">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_rec_start_date" Attno="3" Mdid="0.1082.1.0" Nullable="true">
+          <dxl:Column Name="web_rec_start_date" Attno="3" Mdid="0.1082.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_rec_end_date" Attno="4" Mdid="0.1082.1.0" Nullable="true">
+          <dxl:Column Name="web_rec_end_date" Attno="4" Mdid="0.1082.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="web_name" Attno="5" Mdid="0.1043.1.0" Nullable="true" ColWidth="50">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_open_date_sk" Attno="6" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="web_open_date_sk" Attno="6" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_close_date_sk" Attno="7" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="web_close_date_sk" Attno="7" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="web_class" Attno="8" Mdid="0.1043.1.0" Nullable="true" ColWidth="50">
@@ -2915,7 +2915,7 @@
           <dxl:Column Name="web_manager" Attno="9" Mdid="0.1043.1.0" Nullable="true" ColWidth="40">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_mkt_id" Attno="10" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="web_mkt_id" Attno="10" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="web_mkt_class" Attno="11" Mdid="0.1043.1.0" Nullable="true" ColWidth="50">
@@ -2927,7 +2927,7 @@
           <dxl:Column Name="web_market_manager" Attno="13" Mdid="0.1043.1.0" Nullable="true" ColWidth="40">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_company_id" Attno="14" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="web_company_id" Attno="14" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="web_company_name" Attno="15" Mdid="0.1042.1.0" Nullable="true" ColWidth="50">
@@ -2960,31 +2960,31 @@
           <dxl:Column Name="web_country" Attno="24" Mdid="0.1043.1.0" Nullable="true" ColWidth="20">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_gmt_offset" Attno="25" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="web_gmt_offset" Attno="25" Mdid="0.1700.1.0" Nullable="true" ColWidth="7">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_tax_percentage" Attno="26" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="web_tax_percentage" Attno="26" Mdid="0.1700.1.0" Nullable="true" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -8648,25 +8648,25 @@
       <dxl:RelationStatistics Mdid="2.641613.1.1" Name="web_sales" Rows="184296000.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.641665.1.1" Name="web_site" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="0;32,26">
         <dxl:Columns>
-          <dxl:Column Name="web_site_sk" Attno="1" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="web_site_sk" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="web_site_id" Attno="2" Mdid="0.1042.1.0" Nullable="false" ColWidth="16">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_rec_start_date" Attno="3" Mdid="0.1082.1.0" Nullable="true">
+          <dxl:Column Name="web_rec_start_date" Attno="3" Mdid="0.1082.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_rec_end_date" Attno="4" Mdid="0.1082.1.0" Nullable="true">
+          <dxl:Column Name="web_rec_end_date" Attno="4" Mdid="0.1082.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="web_name" Attno="5" Mdid="0.1043.1.0" Nullable="true" ColWidth="50">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_open_date_sk" Attno="6" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="web_open_date_sk" Attno="6" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_close_date_sk" Attno="7" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="web_close_date_sk" Attno="7" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="web_class" Attno="8" Mdid="0.1043.1.0" Nullable="true" ColWidth="50">
@@ -8675,7 +8675,7 @@
           <dxl:Column Name="web_manager" Attno="9" Mdid="0.1043.1.0" Nullable="true" ColWidth="40">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_mkt_id" Attno="10" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="web_mkt_id" Attno="10" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="web_mkt_class" Attno="11" Mdid="0.1043.1.0" Nullable="true" ColWidth="50">
@@ -8687,7 +8687,7 @@
           <dxl:Column Name="web_market_manager" Attno="13" Mdid="0.1043.1.0" Nullable="true" ColWidth="40">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_company_id" Attno="14" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="web_company_id" Attno="14" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="web_company_name" Attno="15" Mdid="0.1042.1.0" Nullable="true" ColWidth="50">
@@ -8720,31 +8720,31 @@
           <dxl:Column Name="web_country" Attno="24" Mdid="0.1043.1.0" Nullable="true" ColWidth="20">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_gmt_offset" Attno="25" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="web_gmt_offset" Attno="25" Mdid="0.1700.1.0" Nullable="true" ColWidth="7">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="web_tax_percentage" Attno="26" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="web_tax_percentage" Attno="26" Mdid="0.1700.1.0" Nullable="true" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -8756,127 +8756,127 @@
       </dxl:Relation>
       <dxl:Relation Mdid="0.641613.1.1" Name="web_sales" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="3,17" Keys="3,17;40,34">
         <dxl:Columns>
-          <dxl:Column Name="ws_sold_date_sk" Attno="1" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_sold_date_sk" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_sold_time_sk" Attno="2" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_sold_time_sk" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ship_date_sk" Attno="3" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_ship_date_sk" Attno="3" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_item_sk" Attno="4" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="ws_item_sk" Attno="4" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_bill_customer_sk" Attno="5" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_bill_customer_sk" Attno="5" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_bill_cdemo_sk" Attno="6" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_bill_cdemo_sk" Attno="6" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_bill_hdemo_sk" Attno="7" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_bill_hdemo_sk" Attno="7" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_bill_addr_sk" Attno="8" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_bill_addr_sk" Attno="8" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ship_customer_sk" Attno="9" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_ship_customer_sk" Attno="9" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ship_cdemo_sk" Attno="10" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_ship_cdemo_sk" Attno="10" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ship_hdemo_sk" Attno="11" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_ship_hdemo_sk" Attno="11" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ship_addr_sk" Attno="12" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_ship_addr_sk" Attno="12" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_web_page_sk" Attno="13" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_web_page_sk" Attno="13" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_web_site_sk" Attno="14" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_web_site_sk" Attno="14" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ship_mode_sk" Attno="15" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_ship_mode_sk" Attno="15" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_warehouse_sk" Attno="16" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_warehouse_sk" Attno="16" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_promo_sk" Attno="17" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_promo_sk" Attno="17" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_order_number" Attno="18" Mdid="0.20.1.0" Nullable="false">
+          <dxl:Column Name="ws_order_number" Attno="18" Mdid="0.20.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_quantity" Attno="19" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ws_quantity" Attno="19" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_wholesale_cost" Attno="20" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_wholesale_cost" Attno="20" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_list_price" Attno="21" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_list_price" Attno="21" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_sales_price" Attno="22" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_sales_price" Attno="22" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ext_discount_amt" Attno="23" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_ext_discount_amt" Attno="23" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ext_sales_price" Attno="24" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_ext_sales_price" Attno="24" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ext_wholesale_cost" Attno="25" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_ext_wholesale_cost" Attno="25" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ext_list_price" Attno="26" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_ext_list_price" Attno="26" Mdid="0.1700.1.0" Nullable="true" ColWidth="9">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ext_tax" Attno="27" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_ext_tax" Attno="27" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_coupon_amt" Attno="28" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_coupon_amt" Attno="28" Mdid="0.1700.1.0" Nullable="true" ColWidth="5">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_ext_ship_cost" Attno="29" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_ext_ship_cost" Attno="29" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_net_paid" Attno="30" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_net_paid" Attno="30" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_net_paid_inc_tax" Attno="31" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_net_paid_inc_tax" Attno="31" Mdid="0.1700.1.0" Nullable="true" ColWidth="9">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_net_paid_inc_ship" Attno="32" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_net_paid_inc_ship" Attno="32" Mdid="0.1700.1.0" Nullable="true" ColWidth="9">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_net_paid_inc_ship_tax" Attno="33" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_net_paid_inc_ship_tax" Attno="33" Mdid="0.1700.1.0" Nullable="true" ColWidth="9">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ws_net_profit" Attno="34" Mdid="0.1700.1.0" Nullable="true">
+          <dxl:Column Name="ws_net_profit" Attno="34" Mdid="0.1700.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -11701,7 +11701,7 @@
     <dxl:Plan Id="0" SpaceSize="16">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="63811321.769643" Rows="35361677.735893" Width="553"/>
+          <dxl:Cost StartupCost="0" TotalCost="69043089.251911" Rows="35361677.735893" Width="856"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="ws_sold_date_sk">
@@ -11889,7 +11889,7 @@
         <dxl:SortingColumnList/>
         <dxl:HashJoin JoinType="Inner">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="54262977.123184" Rows="35361677.735893" Width="553"/>
+            <dxl:Cost StartupCost="0" TotalCost="54263012.010737" Rows="35361677.735893" Width="856"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="ws_sold_date_sk">
@@ -12238,7 +12238,7 @@
           </dxl:TableScan>
           <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="15.056989" Rows="15.983968" Width="352"/>
+              <dxl:Cost StartupCost="0" TotalCost="26.296386" Rows="15.983968" Width="655"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="41" Alias="web_site_sk">
@@ -12324,7 +12324,7 @@
             <dxl:SortingColumnList/>
             <dxl:TableScan>
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="11.309745" Rows="7.991984" Width="352"/>
+                <dxl:Cost StartupCost="0" TotalCost="20.184326" Rows="7.991984" Width="655"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="41" Alias="web_site_sk">

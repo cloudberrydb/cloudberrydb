@@ -757,118 +757,118 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
       <dxl:RelationStatistics Mdid="2.1259.1.1" Name="pg_class" Rows="337.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.1259.1.0" Name="pg_class" IsTemporary="false" HasOids="true" StorageType="Heap" DistributionPolicy="MasterOnly" Keys="37,30">
         <dxl:Columns>
-          <dxl:Column Name="relname" Attno="1" Mdid="0.19.1.0" Nullable="false">
+          <dxl:Column Name="relname" Attno="1" Mdid="0.19.1.0" Nullable="false" ColWidth="64">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relnamespace" Attno="2" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="relnamespace" Attno="2" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="reltype" Attno="3" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="reltype" Attno="3" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relowner" Attno="4" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="relowner" Attno="4" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relam" Attno="5" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="relam" Attno="5" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relfilenode" Attno="6" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="relfilenode" Attno="6" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="reltablespace" Attno="7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="reltablespace" Attno="7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relpages" Attno="8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="relpages" Attno="8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="reltuples" Attno="9" Mdid="0.700.1.0" Nullable="false">
+          <dxl:Column Name="reltuples" Attno="9" Mdid="0.700.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="reltoastrelid" Attno="10" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="reltoastrelid" Attno="10" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="reltoastidxid" Attno="11" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="reltoastidxid" Attno="11" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relaosegrelid" Attno="12" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="relaosegrelid" Attno="12" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relaosegidxid" Attno="13" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="relaosegidxid" Attno="13" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relhasindex" Attno="14" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="relhasindex" Attno="14" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relisshared" Attno="15" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="relisshared" Attno="15" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relkind" Attno="16" Mdid="0.18.1.0" Nullable="false">
+          <dxl:Column Name="relkind" Attno="16" Mdid="0.18.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relstorage" Attno="17" Mdid="0.18.1.0" Nullable="false">
+          <dxl:Column Name="relstorage" Attno="17" Mdid="0.18.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relnatts" Attno="18" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="relnatts" Attno="18" Mdid="0.21.1.0" Nullable="false" ColWidth="2">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relchecks" Attno="19" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="relchecks" Attno="19" Mdid="0.21.1.0" Nullable="false" ColWidth="2">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="reltriggers" Attno="20" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="reltriggers" Attno="20" Mdid="0.21.1.0" Nullable="false" ColWidth="2">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relukeys" Attno="21" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="relukeys" Attno="21" Mdid="0.21.1.0" Nullable="false" ColWidth="2">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relfkeys" Attno="22" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="relfkeys" Attno="22" Mdid="0.21.1.0" Nullable="false" ColWidth="2">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relrefs" Attno="23" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="relrefs" Attno="23" Mdid="0.21.1.0" Nullable="false" ColWidth="2">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relhasoids" Attno="24" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="relhasoids" Attno="24" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relhaspkey" Attno="25" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="relhaspkey" Attno="25" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relhasrules" Attno="26" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="relhasrules" Attno="26" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relhassubclass" Attno="27" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="relhassubclass" Attno="27" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relfrozenxid" Attno="28" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="relfrozenxid" Attno="28" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relacl" Attno="29" Mdid="0.1034.1.0" Nullable="true">
+          <dxl:Column Name="relacl" Attno="29" Mdid="0.1034.1.0" Nullable="true" ColWidth="36">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="reloptions" Attno="30" Mdid="0.1009.1.0" Nullable="true">
+          <dxl:Column Name="reloptions" Attno="30" Mdid="0.1009.1.0" Nullable="true" ColWidth="0">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="oid" Attno="-2" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="oid" Attno="-2" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -881,118 +881,118 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
       </dxl:Relation>
       <dxl:Relation Mdid="0.1259.1.1" Name="pg_class" IsTemporary="false" HasOids="true" StorageType="Heap" DistributionPolicy="MasterOnly" Keys="37,30">
         <dxl:Columns>
-          <dxl:Column Name="relname" Attno="1" Mdid="0.19.1.0" Nullable="false">
+          <dxl:Column Name="relname" Attno="1" Mdid="0.19.1.0" Nullable="false" ColWidth="64">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relnamespace" Attno="2" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="relnamespace" Attno="2" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="reltype" Attno="3" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="reltype" Attno="3" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relowner" Attno="4" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="relowner" Attno="4" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relam" Attno="5" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="relam" Attno="5" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relfilenode" Attno="6" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="relfilenode" Attno="6" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="reltablespace" Attno="7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="reltablespace" Attno="7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relpages" Attno="8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="relpages" Attno="8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="reltuples" Attno="9" Mdid="0.700.1.0" Nullable="false">
+          <dxl:Column Name="reltuples" Attno="9" Mdid="0.700.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="reltoastrelid" Attno="10" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="reltoastrelid" Attno="10" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="reltoastidxid" Attno="11" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="reltoastidxid" Attno="11" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relaosegrelid" Attno="12" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="relaosegrelid" Attno="12" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relaosegidxid" Attno="13" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="relaosegidxid" Attno="13" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relhasindex" Attno="14" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="relhasindex" Attno="14" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relisshared" Attno="15" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="relisshared" Attno="15" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relkind" Attno="16" Mdid="0.18.1.0" Nullable="false">
+          <dxl:Column Name="relkind" Attno="16" Mdid="0.18.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relstorage" Attno="17" Mdid="0.18.1.0" Nullable="false">
+          <dxl:Column Name="relstorage" Attno="17" Mdid="0.18.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relnatts" Attno="18" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="relnatts" Attno="18" Mdid="0.21.1.0" Nullable="false" ColWidth="2">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relchecks" Attno="19" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="relchecks" Attno="19" Mdid="0.21.1.0" Nullable="false" ColWidth="2">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="reltriggers" Attno="20" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="reltriggers" Attno="20" Mdid="0.21.1.0" Nullable="false" ColWidth="2">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relukeys" Attno="21" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="relukeys" Attno="21" Mdid="0.21.1.0" Nullable="false" ColWidth="2">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relfkeys" Attno="22" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="relfkeys" Attno="22" Mdid="0.21.1.0" Nullable="false" ColWidth="2">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relrefs" Attno="23" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="relrefs" Attno="23" Mdid="0.21.1.0" Nullable="false" ColWidth="2">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relhasoids" Attno="24" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="relhasoids" Attno="24" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relhaspkey" Attno="25" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="relhaspkey" Attno="25" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relhasrules" Attno="26" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="relhasrules" Attno="26" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relhassubclass" Attno="27" Mdid="0.16.1.0" Nullable="false">
+          <dxl:Column Name="relhassubclass" Attno="27" Mdid="0.16.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relfrozenxid" Attno="28" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="relfrozenxid" Attno="28" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="relacl" Attno="29" Mdid="0.1034.1.0" Nullable="true">
+          <dxl:Column Name="relacl" Attno="29" Mdid="0.1034.1.0" Nullable="true" ColWidth="36">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="reloptions" Attno="30" Mdid="0.1009.1.0" Nullable="true">
+          <dxl:Column Name="reloptions" Attno="30" Mdid="0.1009.1.0" Nullable="true" ColWidth="0">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="oid" Attno="-2" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="oid" Attno="-2" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -1561,7 +1561,7 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
     <dxl:Plan Id="0" SpaceSize="16">
       <dxl:HashJoin JoinType="Inner">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="1293.291843" Rows="337.000000" Width="4"/>
+          <dxl:Cost StartupCost="0" TotalCost="1293.289619" Rows="337.000000" Width="4"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="5" Alias="pg_toast_relidx">
@@ -1578,7 +1578,7 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
         </dxl:HashCondList>
         <dxl:TableScan>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="431.038924" Rows="337.000000" Width="12"/>
+            <dxl:Cost StartupCost="0" TotalCost="431.038182" Rows="337.000000" Width="12"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="5" Alias="relfilenode">
@@ -1634,7 +1634,7 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
         </dxl:TableScan>
         <dxl:Assert ErrorCode="P0003">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="862.179456" Rows="1.000000" Width="4"/>
+            <dxl:Cost StartupCost="0" TotalCost="862.177973" Rows="1.000000" Width="4"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="48" Alias="reltoastidxid">
@@ -1651,7 +1651,7 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
           </dxl:AssertConstraintList>
           <dxl:Window PartitionColumns="">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="862.179452" Rows="337.000000" Width="12"/>
+              <dxl:Cost StartupCost="0" TotalCost="862.177969" Rows="337.000000" Width="12"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="115" Alias="row_number">
@@ -1664,7 +1664,7 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
             <dxl:Filter/>
             <dxl:HashJoin JoinType="Inner">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="862.179452" Rows="337.000000" Width="4"/>
+                <dxl:Cost StartupCost="0" TotalCost="862.177969" Rows="337.000000" Width="4"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="48" Alias="reltoastidxid">
@@ -1681,7 +1681,7 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
               </dxl:HashCondList>
               <dxl:TableScan>
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="431.038924" Rows="337.000000" Width="12"/>
+                  <dxl:Cost StartupCost="0" TotalCost="431.038182" Rows="337.000000" Width="12"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="48" Alias="reltoastidxid">
@@ -1737,7 +1737,7 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
               </dxl:TableScan>
               <dxl:Assert ErrorCode="P0003">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="431.067064" Rows="1.000000" Width="4"/>
+                  <dxl:Cost StartupCost="0" TotalCost="431.066323" Rows="1.000000" Width="4"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="85" Alias="reltoastrelid">
@@ -1754,7 +1754,7 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
                 </dxl:AssertConstraintList>
                 <dxl:Window PartitionColumns="">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="431.067060" Rows="134.800000" Width="12"/>
+                    <dxl:Cost StartupCost="0" TotalCost="431.066319" Rows="134.800000" Width="12"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="114" Alias="row_number">
@@ -1767,7 +1767,7 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
                   <dxl:Filter/>
                   <dxl:TableScan>
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="431.067060" Rows="134.800000" Width="4"/>
+                      <dxl:Cost StartupCost="0" TotalCost="431.066319" Rows="134.800000" Width="4"/>
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="85" Alias="reltoastrelid">

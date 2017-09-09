@@ -238,7 +238,7 @@
       <dxl:RelationStatistics Mdid="2.520054.1.1" Name="adj_hcs" Rows="0.000000"/>
       <dxl:Relation Mdid="0.520054.1.1" Name="adj_hcs" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="71,65">
         <dxl:Columns>
-          <dxl:Column Name="hcs_key" Attno="1" Mdid="0.20.1.0" Nullable="false">
+          <dxl:Column Name="hcs_key" Attno="1" Mdid="0.20.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="adj_nbr" Attno="2" Mdid="0.1042.1.0" Nullable="false" ColWidth="4">
@@ -247,13 +247,13 @@
           <dxl:Column Name="pgbk_ind" Attno="3" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="adjud_dt" Attno="4" Mdid="0.1082.1.0" Nullable="false">
+          <dxl:Column Name="adjud_dt" Attno="4" Mdid="0.1082.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="appr_day_cnt" Attno="5" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="appr_day_cnt" Attno="5" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="appr_unit_cnt" Attno="6" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="appr_unit_cnt" Attno="6" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="unwrt_typ_cd" Attno="7" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
@@ -262,40 +262,40 @@
           <dxl:Column Name="ntwk_bnft_excp_cd" Attno="8" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ntwk_bnft_lvl_cd" Attno="9" Mdid="0.21.1.0" Nullable="true">
+          <dxl:Column Name="ntwk_bnft_lvl_cd" Attno="9" Mdid="0.21.1.0" Nullable="true" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="trans_typ_cd" Attno="10" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="trans_typ_cd" Attno="10" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gl_post_dt" Attno="11" Mdid="0.1082.1.0" Nullable="false">
+          <dxl:Column Name="gl_post_dt" Attno="11" Mdid="0.1082.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="surg_proc_cd" Attno="12" Mdid="0.1042.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="adm_dt" Attno="13" Mdid="0.1082.1.0" Nullable="false">
+          <dxl:Column Name="adm_dt" Attno="13" Mdid="0.1082.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="adm_typ_cd" Attno="14" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="dischrg_dt" Attno="15" Mdid="0.1082.1.0" Nullable="false">
+          <dxl:Column Name="dischrg_dt" Attno="15" Mdid="0.1082.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="clm_id" Attno="16" Mdid="0.1042.1.0" Nullable="false" ColWidth="15">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="serv_line_nbr" Attno="17" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="serv_line_nbr" Attno="17" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ocl_cd" Attno="18" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="ocl_cd" Attno="18" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="pat_brth_dt" Attno="19" Mdid="0.1082.1.0" Nullable="false">
+          <dxl:Column Name="pat_brth_dt" Attno="19" Mdid="0.1082.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="pat_age" Attno="20" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="pat_age" Attno="20" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="reimb_prov_in_ntwk_cd" Attno="21" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
@@ -310,28 +310,28 @@
           <dxl:Column Name="emer_ind" Attno="24" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="auth_cd" Attno="25" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="auth_cd" Attno="25" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="bill_day_cnt" Attno="26" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="bill_day_cnt" Attno="26" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="bill_unit_cnt" Attno="27" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="bill_unit_cnt" Attno="27" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="serv_end_dt" Attno="28" Mdid="0.1082.1.0" Nullable="false">
+          <dxl:Column Name="serv_end_dt" Attno="28" Mdid="0.1082.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="adm_diag_cd" Attno="29" Mdid="0.1042.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="drg_cd" Attno="30" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="drg_cd" Attno="30" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="prim_diag_cd" Attno="31" Mdid="0.1042.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="mjr_diag_ctgy_cd" Attno="32" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="mjr_diag_ctgy_cd" Attno="32" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="serv_diag_cd" Attno="33" Mdid="0.1042.1.0" Nullable="false" ColWidth="6">
@@ -349,49 +349,49 @@
           <dxl:Column Name="facil_prim_proc_cd" Attno="37" Mdid="0.1042.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="bill_chrg_amt" Attno="38" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="bill_chrg_amt" Attno="38" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="mkt_val_amt" Attno="39" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="mkt_val_amt" Attno="39" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="prov_val_amt" Attno="40" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="prov_val_amt" Attno="40" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="disc_cov_amt" Attno="41" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="disc_cov_amt" Attno="41" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="undisc_cov_amt" Attno="42" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="undisc_cov_amt" Attno="42" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="non_cov_bnft_reduc_amt" Attno="43" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="non_cov_bnft_reduc_amt" Attno="43" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="coins_reduc_amt" Attno="44" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="coins_reduc_amt" Attno="44" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="copay_reduc_amt" Attno="45" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="copay_reduc_amt" Attno="45" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="deduc_reduc_amt" Attno="46" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="deduc_reduc_amt" Attno="46" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="max_lmt_reduc_amt" Attno="47" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="max_lmt_reduc_amt" Attno="47" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ocl_reduc_amt" Attno="48" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="ocl_reduc_amt" Attno="48" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="oth_cov_reduc_amt" Attno="49" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="oth_cov_reduc_amt" Attno="49" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="serv_appr_pay_amt" Attno="50" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="serv_appr_pay_amt" Attno="50" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="serv_pd_amt" Attno="51" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="serv_pd_amt" Attno="51" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="misc_pay_amt" Attno="52" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="misc_pay_amt" Attno="52" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="rate_pool_id" Attno="53" Mdid="0.1042.1.0" Nullable="false" ColWidth="3">
@@ -400,7 +400,7 @@
           <dxl:Column Name="sub_liab_basis_cd" Attno="54" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="bnft_ctgy_cd" Attno="55" Mdid="0.21.1.0" Nullable="false">
+          <dxl:Column Name="bnft_ctgy_cd" Attno="55" Mdid="0.21.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="prov_fin_agrmt_typ_cd" Attno="56" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
@@ -423,7 +423,7 @@
           <dxl:Column Name="facil_typ_cd" Attno="61" Mdid="0.1042.1.0" Nullable="false" ColWidth="2">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="hra_pd_amt" Attno="62" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="hra_pd_amt" Attno="62" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.1703.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
                 <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
@@ -431,7 +431,7 @@
               </dxl:FuncExpr>
             </dxl:DefaultValue>
           </dxl:Column>
-          <dxl:Column Name="aso_pd_amt" Attno="63" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="aso_pd_amt" Attno="63" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.1703.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
                 <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
@@ -439,7 +439,7 @@
               </dxl:FuncExpr>
             </dxl:DefaultValue>
           </dxl:Column>
-          <dxl:Column Name="fully_ins_pd_amt" Attno="64" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="fully_ins_pd_amt" Attno="64" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.1703.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
                 <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
@@ -447,7 +447,7 @@
               </dxl:FuncExpr>
             </dxl:DefaultValue>
           </dxl:Column>
-          <dxl:Column Name="alt_fnd_pd_amt" Attno="65" Mdid="0.1700.1.0" Nullable="false">
+          <dxl:Column Name="alt_fnd_pd_amt" Attno="65" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
             <dxl:DefaultValue>
               <dxl:FuncExpr FuncId="0.1703.1.0" FuncRetSet="false" TypeMdid="0.1700.1.0">
                 <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACAAAAgA=" DoubleValue="0.000000"/>
@@ -455,25 +455,25 @@
               </dxl:FuncExpr>
             </dxl:DefaultValue>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -675,7 +675,7 @@
     <dxl:Plan Id="0" SpaceSize="1">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="3.015625" Rows="1.000000" Width="520"/>
+          <dxl:Cost StartupCost="0" TotalCost="2.800781" Rows="1.000000" Width="410"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="hcs_key">
@@ -878,7 +878,7 @@
         <dxl:SortingColumnList/>
         <dxl:TableScan>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="1.761719" Rows="1.000000" Width="520"/>
+            <dxl:Cost StartupCost="0" TotalCost="1.600586" Rows="1.000000" Width="410"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="hcs_key">

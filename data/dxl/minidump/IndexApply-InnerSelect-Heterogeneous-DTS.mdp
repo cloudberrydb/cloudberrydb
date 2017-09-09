@@ -134,40 +134,40 @@ WHERE tt.event_ts >= tq.ets AND
       <dxl:RelationStatistics Mdid="2.32989847.1.1" Name="my_tq_agg_small_part" Rows="0.000000" EmptyRelation="true"/>
       <dxl:Relation Mdid="0.32989847.1.0" Name="my_tq_agg_small_part" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="10,11,5" PartitionColumns="2" PartitionTypes="r">
         <dxl:Columns>
-          <dxl:Column Name="ets" Attno="1" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ets" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="sym" Attno="2" Mdid="0.1043.1.0" Nullable="true" ColWidth="16">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="bid_price" Attno="3" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="bid_price" Attno="3" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ask_price" Attno="4" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ask_price" Attno="4" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="end_ts" Attno="5" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="end_ts" Attno="5" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -192,40 +192,40 @@ WHERE tt.event_ts >= tq.ets AND
       </dxl:Relation>
       <dxl:Relation Mdid="0.32989847.1.1" Name="my_tq_agg_small_part" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="10,11,5" PartitionColumns="2" PartitionTypes="r">
         <dxl:Columns>
-          <dxl:Column Name="ets" Attno="1" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ets" Attno="1" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="sym" Attno="2" Mdid="0.1043.1.0" Nullable="true" ColWidth="16">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="bid_price" Attno="3" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="bid_price" Attno="3" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ask_price" Attno="4" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="ask_price" Attno="4" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="end_ts" Attno="5" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="end_ts" Attno="5" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -468,34 +468,34 @@ WHERE tt.event_ts >= tq.ets AND
           <dxl:Column Name="symbol" Attno="1" Mdid="0.1042.1.0" Nullable="true" ColWidth="16">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="event_ts" Attno="2" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="event_ts" Attno="2" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="trade_price" Attno="3" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="trade_price" Attno="3" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="trade_volume" Attno="4" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="trade_volume" Attno="4" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+          <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+          <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -567,7 +567,7 @@ WHERE tt.event_ts >= tq.ets AND
     <dxl:Plan Id="3" SpaceSize="12">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="2598.013769" Rows="1.000000" Width="12"/>
+          <dxl:Cost StartupCost="0" TotalCost="2598.013706" Rows="1.000000" Width="12"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="1" Alias="event_ts">
@@ -581,7 +581,7 @@ WHERE tt.event_ts >= tq.ets AND
         <dxl:SortingColumnList/>
         <dxl:Sequence>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="2598.013725" Rows="1.000000" Width="12"/>
+            <dxl:Cost StartupCost="0" TotalCost="2598.013662" Rows="1.000000" Width="12"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="1" Alias="event_ts">
@@ -689,7 +689,7 @@ WHERE tt.event_ts >= tq.ets AND
           </dxl:CTEProducer>
           <dxl:Sequence>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="2167.013661" Rows="3.000000" Width="12"/>
+              <dxl:Cost StartupCost="0" TotalCost="2167.013598" Rows="3.000000" Width="12"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="1" Alias="event_ts">
@@ -836,7 +836,7 @@ WHERE tt.event_ts >= tq.ets AND
             </dxl:PartitionSelector>
             <dxl:Result>
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="2167.013661" Rows="3.000000" Width="12"/>
+                <dxl:Cost StartupCost="0" TotalCost="2167.013598" Rows="3.000000" Width="12"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="1" Alias="event_ts">
@@ -850,7 +850,7 @@ WHERE tt.event_ts >= tq.ets AND
               <dxl:OneTimeFilter/>
               <dxl:Append IsTarget="false" IsZapped="false">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="2167.013661" Rows="3.000000" Width="12"/>
+                  <dxl:Cost StartupCost="0" TotalCost="2167.013598" Rows="3.000000" Width="12"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="0" Alias="symbol">
@@ -926,7 +926,7 @@ WHERE tt.event_ts >= tq.ets AND
                 <dxl:Filter/>
                 <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="437.004547" Rows="1.000000" Width="129"/>
+                    <dxl:Cost StartupCost="0" TotalCost="437.004518" Rows="1.000000" Width="129"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="0" Alias="symbol">
@@ -1087,7 +1087,7 @@ WHERE tt.event_ts >= tq.ets AND
                   </dxl:BroadcastMotion>
                   <dxl:DynamicIndexScan IndexScanDirection="Forward" PartIndexId="2" PrintablePartIndexId="1">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="6.000749" Rows="1.000000" Width="70"/>
+                      <dxl:Cost StartupCost="0" TotalCost="6.000720" Rows="1.000000" Width="70"/>
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="11" Alias="ets">
@@ -1166,7 +1166,7 @@ WHERE tt.event_ts >= tq.ets AND
                 </dxl:NestedLoopJoin>
                 <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="437.004448" Rows="1.000000" Width="129"/>
+                    <dxl:Cost StartupCost="0" TotalCost="437.004419" Rows="1.000000" Width="129"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="34" Alias="symbol">
@@ -1327,7 +1327,7 @@ WHERE tt.event_ts >= tq.ets AND
                   </dxl:BroadcastMotion>
                   <dxl:DynamicIndexScan IndexScanDirection="Forward" PartIndexId="3" PrintablePartIndexId="1">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="6.000650" Rows="1.000000" Width="70"/>
+                      <dxl:Cost StartupCost="0" TotalCost="6.000621" Rows="1.000000" Width="70"/>
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="45" Alias="ets">
@@ -1408,7 +1408,7 @@ WHERE tt.event_ts >= tq.ets AND
                 </dxl:NestedLoopJoin>
                 <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="1293.004654" Rows="1.000000" Width="129"/>
+                    <dxl:Cost StartupCost="0" TotalCost="1293.004649" Rows="1.000000" Width="129"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="57" Alias="symbol">
@@ -1502,7 +1502,7 @@ WHERE tt.event_ts >= tq.ets AND
                   </dxl:JoinFilter>
                   <dxl:DynamicTableScan PartIndexId="4" PrintablePartIndexId="1">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="431.000039" Rows="1.000000" Width="70"/>
+                      <dxl:Cost StartupCost="0" TotalCost="431.000034" Rows="1.000000" Width="70"/>
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="68" Alias="ets">

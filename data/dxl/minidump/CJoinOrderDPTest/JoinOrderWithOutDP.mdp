@@ -71,16 +71,16 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
       <dxl:RelationStatistics Mdid="2.73740.1.1" Name="foo6" Rows="1000.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.73740.1.1" Name="foo6" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Random" Keys="3,1" NumberLeafPartitions="0">
         <dxl:Columns>
-          <dxl:Column Name="f1" Attno="1" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="f1" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -387,19 +387,19 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
       <dxl:RelationStatistics Mdid="2.73895.1.1" Name="foo10" Rows="100.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.73895.1.1" Name="foo10" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Random" Keys="4,2" NumberLeafPartitions="0">
         <dxl:Columns>
-          <dxl:Column Name="i1" Attno="1" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="i1" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
           <dxl:Column Name="i2" Attno="2" Mdid="0.1043.1.0" Nullable="false" ColWidth="60">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -410,40 +410,40 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
       <dxl:RelationStatistics Mdid="2.73771.1.1" Name="foo7" Rows="1000.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.73771.1.1" Name="foo7" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Random" Keys="11,9" NumberLeafPartitions="0">
         <dxl:Columns>
-          <dxl:Column Name="m1" Attno="1" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="m1" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="m2" Attno="2" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="m2" Attno="2" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="m3" Attno="3" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="m3" Attno="3" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="m4" Attno="4" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="m4" Attno="4" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="m5" Attno="5" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="m5" Attno="5" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="m6" Attno="6" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="m6" Attno="6" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="m7" Attno="7" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="m7" Attno="7" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="m8" Attno="8" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="m8" Attno="8" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="m9" Attno="9" Mdid="0.23.1.0" Nullable="true">
+          <dxl:Column Name="m9" Attno="9" Mdid="0.23.1.0" Nullable="true" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -767,16 +767,16 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
       <dxl:RelationStatistics Mdid="2.73802.1.1" Name="foo8" Rows="1000.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.73802.1.1" Name="foo8" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Random" Keys="3,1" NumberLeafPartitions="0">
         <dxl:Columns>
-          <dxl:Column Name="h1" Attno="1" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="h1" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -1329,16 +1329,16 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
       <dxl:RelationStatistics Mdid="2.73833.1.1" Name="foo9" Rows="1000.000000" EmptyRelation="false"/>
       <dxl:Relation Mdid="0.73833.1.1" Name="foo9" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Row-oriented" DistributionPolicy="Random" Keys="3,1" NumberLeafPartitions="0">
         <dxl:Columns>
-          <dxl:Column Name="g1" Attno="1" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="g1" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+          <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+          <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
-          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+          <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
@@ -1762,7 +1762,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
     <dxl:Plan Id="0" SpaceSize="112640">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="2155.368545" Rows="100.000000" Width="8"/>
+          <dxl:Cost StartupCost="0" TotalCost="2155.369590" Rows="100.000000" Width="8"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="11" Alias="m8">
@@ -1776,7 +1776,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
         <dxl:SortingColumnList/>
         <dxl:HashJoin JoinType="Inner">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="2155.365563" Rows="100.000000" Width="8"/>
+            <dxl:Cost StartupCost="0" TotalCost="2155.366608" Rows="100.000000" Width="8"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="11" Alias="m8">
@@ -1796,7 +1796,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
           </dxl:HashCondList>
           <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="1724.285040" Rows="100.000000" Width="12"/>
+              <dxl:Cost StartupCost="0" TotalCost="1724.286085" Rows="100.000000" Width="12"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="4" Alias="m1">
@@ -1818,7 +1818,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
             </dxl:HashExprList>
             <dxl:HashJoin JoinType="Inner">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="1724.283788" Rows="100.000000" Width="12"/>
+                <dxl:Cost StartupCost="0" TotalCost="1724.284833" Rows="100.000000" Width="12"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="4" Alias="m1">
@@ -1841,7 +1841,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
               </dxl:HashCondList>
               <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="1293.202716" Rows="100.000000" Width="16"/>
+                  <dxl:Cost StartupCost="0" TotalCost="1293.203761" Rows="100.000000" Width="16"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="4" Alias="m1">
@@ -1866,7 +1866,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
                 </dxl:HashExprList>
                 <dxl:HashJoin JoinType="Inner">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="1293.201047" Rows="100.000000" Width="16"/>
+                    <dxl:Cost StartupCost="0" TotalCost="1293.202092" Rows="100.000000" Width="16"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="4" Alias="m1">
@@ -1892,7 +1892,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
                   </dxl:HashCondList>
                   <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="862.119428" Rows="100.000000" Width="20"/>
+                      <dxl:Cost StartupCost="0" TotalCost="862.120473" Rows="100.000000" Width="20"/>
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="4" Alias="m1">
@@ -1920,7 +1920,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
                     </dxl:HashExprList>
                     <dxl:HashJoin JoinType="Inner">
                       <dxl:Properties>
-                        <dxl:Cost StartupCost="0" TotalCost="862.117341" Rows="100.000000" Width="20"/>
+                        <dxl:Cost StartupCost="0" TotalCost="862.118386" Rows="100.000000" Width="20"/>
                       </dxl:Properties>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="4" Alias="m1">
@@ -1991,7 +1991,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
                       </dxl:TableScan>
                       <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                         <dxl:Properties>
-                          <dxl:Cost StartupCost="0" TotalCost="431.009076" Rows="300.000000" Width="4"/>
+                          <dxl:Cost StartupCost="0" TotalCost="431.010121" Rows="300.000000" Width="4"/>
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="24" Alias="i1">
@@ -2002,7 +2002,7 @@ INNER JOIN  (SELECT FOO10.i1 AS i1
                         <dxl:SortingColumnList/>
                         <dxl:TableScan>
                           <dxl:Properties>
-                            <dxl:Cost StartupCost="0" TotalCost="431.001916" Rows="100.000000" Width="4"/>
+                            <dxl:Cost StartupCost="0" TotalCost="431.002961" Rows="100.000000" Width="4"/>
                           </dxl:Properties>
                           <dxl:ProjList>
                             <dxl:ProjElem ColId="24" Alias="i1">

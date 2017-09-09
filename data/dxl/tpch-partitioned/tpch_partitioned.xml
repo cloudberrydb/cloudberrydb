@@ -5306,28 +5306,28 @@
     <dxl:RelationStatistics Mdid="2.3320889.1.1" Name="lineitem" Rows="5996855.000000"/>
     <dxl:Relation Mdid="0.3320889.1.1" Name="lineitem" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="22,16" PartitionColumns="10">
       <dxl:Columns>
-        <dxl:Column Name="l_orderkey" Attno="1" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="l_orderkey" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="l_partkey" Attno="2" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="l_partkey" Attno="2" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="l_suppkey" Attno="3" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="l_suppkey" Attno="3" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="l_linenumber" Attno="4" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="l_linenumber" Attno="4" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="l_quantity" Attno="5" Mdid="0.1700.1.0" Nullable="false">
+        <dxl:Column Name="l_quantity" Attno="5" Mdid="0.1700.1.0" Nullable="false" ColWidth="7">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="l_extendedprice" Attno="6" Mdid="0.1700.1.0" Nullable="false">
+        <dxl:Column Name="l_extendedprice" Attno="6" Mdid="0.1700.1.0" Nullable="false" ColWidth="10">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="l_discount" Attno="7" Mdid="0.1700.1.0" Nullable="false">
+        <dxl:Column Name="l_discount" Attno="7" Mdid="0.1700.1.0" Nullable="false" ColWidth="6">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="l_tax" Attno="8" Mdid="0.1700.1.0" Nullable="false">
+        <dxl:Column Name="l_tax" Attno="8" Mdid="0.1700.1.0" Nullable="false" ColWidth="6">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="l_returnflag" Attno="9" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
@@ -5336,13 +5336,13 @@
         <dxl:Column Name="l_linestatus" Attno="10" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="l_shipdate" Attno="11" Mdid="0.1082.1.0" Nullable="false">
+        <dxl:Column Name="l_shipdate" Attno="11" Mdid="0.1082.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="l_commitdate" Attno="12" Mdid="0.1082.1.0" Nullable="false">
+        <dxl:Column Name="l_commitdate" Attno="12" Mdid="0.1082.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="l_receiptdate" Attno="13" Mdid="0.1082.1.0" Nullable="false">
+        <dxl:Column Name="l_receiptdate" Attno="13" Mdid="0.1082.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="l_shipinstruct" Attno="14" Mdid="0.1042.1.0" Nullable="false" ColWidth="25">
@@ -5354,25 +5354,25 @@
         <dxl:Column Name="l_comment" Attno="16" Mdid="0.1043.1.0" Nullable="false" ColWidth="44">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
@@ -6907,19 +6907,19 @@
     <dxl:RelationStatistics Mdid="2.3317716.1.1" Name="customer" Rows="150358.000000"/>
     <dxl:Relation Mdid="0.3317742.1.1" Name="orders" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="15,9" PartitionColumns="4">
       <dxl:Columns>
-        <dxl:Column Name="o_orderkey" Attno="1" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="o_orderkey" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="o_custkey" Attno="2" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="o_custkey" Attno="2" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="o_orderstatus" Attno="3" Mdid="0.1042.1.0" Nullable="false" ColWidth="1">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="o_totalprice" Attno="4" Mdid="0.1700.1.0" Nullable="false">
+        <dxl:Column Name="o_totalprice" Attno="4" Mdid="0.1700.1.0" Nullable="false" ColWidth="10">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="o_orderdate" Attno="5" Mdid="0.1082.1.0" Nullable="false">
+        <dxl:Column Name="o_orderdate" Attno="5" Mdid="0.1082.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="o_orderpriority" Attno="6" Mdid="0.1042.1.0" Nullable="false" ColWidth="15">
@@ -6928,31 +6928,31 @@
         <dxl:Column Name="o_clerk" Attno="7" Mdid="0.1042.1.0" Nullable="false" ColWidth="15">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="o_shippriority" Attno="8" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="o_shippriority" Attno="8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="o_comment" Attno="9" Mdid="0.1043.1.0" Nullable="false" ColWidth="79">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
@@ -6962,7 +6962,7 @@
     </dxl:Relation>
     <dxl:Relation Mdid="0.3317716.1.1" Name="customer" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="14,8">
       <dxl:Columns>
-        <dxl:Column Name="c_custkey" Attno="1" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="c_custkey" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="c_name" Attno="2" Mdid="0.1043.1.0" Nullable="false" ColWidth="25">
@@ -6971,13 +6971,13 @@
         <dxl:Column Name="c_address" Attno="3" Mdid="0.1043.1.0" Nullable="false" ColWidth="40">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="c_nationkey" Attno="4" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="c_nationkey" Attno="4" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="c_phone" Attno="5" Mdid="0.1042.1.0" Nullable="false" ColWidth="15">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="c_acctbal" Attno="6" Mdid="0.1700.1.0" Nullable="false">
+        <dxl:Column Name="c_acctbal" Attno="6" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="c_mktsegment" Attno="7" Mdid="0.1042.1.0" Nullable="false" ColWidth="10">
@@ -6986,25 +6986,25 @@
         <dxl:Column Name="c_comment" Attno="8" Mdid="0.1043.1.0" Nullable="false" ColWidth="117">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
@@ -7019,7 +7019,7 @@
     <dxl:RelationStatistics Mdid="2.3317690.1.1" Name="partsupp" Rows="801195.000000"/>
     <dxl:Relation Mdid="0.3317612.1.1" Name="region" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="9,3">
       <dxl:Columns>
-        <dxl:Column Name="r_regionkey" Attno="1" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="r_regionkey" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="r_name" Attno="2" Mdid="0.1042.1.0" Nullable="false" ColWidth="25">
@@ -7028,25 +7028,25 @@
         <dxl:Column Name="r_comment" Attno="3" Mdid="0.1043.1.0" Nullable="true" ColWidth="152">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
@@ -7056,37 +7056,37 @@
     </dxl:Relation>
     <dxl:Relation Mdid="0.3317586.1.1" Name="nation" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="10,4">
       <dxl:Columns>
-        <dxl:Column Name="n_nationkey" Attno="1" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="n_nationkey" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="n_name" Attno="2" Mdid="0.1042.1.0" Nullable="false" ColWidth="25">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="n_regionkey" Attno="3" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="n_regionkey" Attno="3" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="n_comment" Attno="4" Mdid="0.1043.1.0" Nullable="true" ColWidth="152">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
@@ -7096,40 +7096,40 @@
     </dxl:Relation>
     <dxl:Relation Mdid="0.3317690.1.1" Name="partsupp" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="11,5">
       <dxl:Columns>
-        <dxl:Column Name="ps_partkey" Attno="1" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="ps_partkey" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="ps_suppkey" Attno="2" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="ps_suppkey" Attno="2" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="ps_availqty" Attno="3" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="ps_availqty" Attno="3" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="ps_supplycost" Attno="4" Mdid="0.1700.1.0" Nullable="false">
+        <dxl:Column Name="ps_supplycost" Attno="4" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="ps_comment" Attno="5" Mdid="0.1043.1.0" Nullable="false" ColWidth="199">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
@@ -7139,7 +7139,7 @@
     </dxl:Relation>
     <dxl:Relation Mdid="0.3317664.1.1" Name="supplier" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="13,7">
       <dxl:Columns>
-        <dxl:Column Name="s_suppkey" Attno="1" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="s_suppkey" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="s_name" Attno="2" Mdid="0.1042.1.0" Nullable="false" ColWidth="25">
@@ -7148,37 +7148,37 @@
         <dxl:Column Name="s_address" Attno="3" Mdid="0.1043.1.0" Nullable="false" ColWidth="40">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="s_nationkey" Attno="4" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="s_nationkey" Attno="4" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="s_phone" Attno="5" Mdid="0.1042.1.0" Nullable="false" ColWidth="15">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="s_acctbal" Attno="6" Mdid="0.1700.1.0" Nullable="false">
+        <dxl:Column Name="s_acctbal" Attno="6" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="s_comment" Attno="7" Mdid="0.1043.1.0" Nullable="false" ColWidth="101">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
@@ -7188,7 +7188,7 @@
     </dxl:Relation>
     <dxl:Relation Mdid="0.3317638.1.1" Name="part" IsTemporary="false" HasOids="false" StorageType="Heap" DistributionPolicy="Hash" DistributionColumns="0" Keys="15,9">
       <dxl:Columns>
-        <dxl:Column Name="p_partkey" Attno="1" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="p_partkey" Attno="1" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="p_name" Attno="2" Mdid="0.1043.1.0" Nullable="false" ColWidth="55">
@@ -7203,37 +7203,37 @@
         <dxl:Column Name="p_type" Attno="5" Mdid="0.1043.1.0" Nullable="false" ColWidth="25">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="p_size" Attno="6" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="p_size" Attno="6" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="p_container" Attno="7" Mdid="0.1042.1.0" Nullable="false" ColWidth="10">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="p_retailprice" Attno="8" Mdid="0.1700.1.0" Nullable="false">
+        <dxl:Column Name="p_retailprice" Attno="8" Mdid="0.1700.1.0" Nullable="false" ColWidth="8">
           <dxl:DefaultValue/>
         </dxl:Column>
         <dxl:Column Name="p_comment" Attno="9" Mdid="0.1043.1.0" Nullable="false" ColWidth="23">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false">
+        <dxl:Column Name="ctid" Attno="-1" Mdid="0.27.1.0" Nullable="false" ColWidth="6">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmin" Attno="-3" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmin" Attno="-4" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false">
+        <dxl:Column Name="xmax" Attno="-5" Mdid="0.28.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false">
+        <dxl:Column Name="cmax" Attno="-6" Mdid="0.29.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false">
+        <dxl:Column Name="tableoid" Attno="-7" Mdid="0.26.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
-        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false">
+        <dxl:Column Name="gp_segment_id" Attno="-8" Mdid="0.23.1.0" Nullable="false" ColWidth="4">
           <dxl:DefaultValue/>
         </dxl:Column>
       </dxl:Columns>
