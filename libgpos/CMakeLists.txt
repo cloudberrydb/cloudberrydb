@@ -147,6 +147,8 @@ add_library(gpos
             src/io/COstream.cpp
             include/gpos/io/COstreamBasic.h
             src/io/COstreamBasic.cpp
+            include/gpos/io/COstreamFile.h
+            src/io/COstreamFile.cpp
             include/gpos/io/COstreamString.h
             src/io/COstreamString.cpp
             include/gpos/io/ioutils.h

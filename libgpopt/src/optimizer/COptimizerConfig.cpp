@@ -16,6 +16,7 @@
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"
+#include "gpos/io/COstreamFile.h"
 
 #include "gpopt/cost/ICostModel.h"
 #include "gpopt/optimizer/COptimizerConfig.h"

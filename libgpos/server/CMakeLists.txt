@@ -57,6 +57,7 @@ add_executable(gpos_test
                src/unittest/gpos/error/CMiniDumperTest.cpp
                src/unittest/gpos/io/CFileTest.cpp
                src/unittest/gpos/io/COstreamBasicTest.cpp
+               src/unittest/gpos/io/COstreamFileTest.cpp
                src/unittest/gpos/io/COstreamStringTest.cpp
                src/unittest/gpos/memory/CCacheTest.cpp
                src/unittest/gpos/memory/CMemoryPoolBasicTest.cpp
@@ -128,6 +129,7 @@ add_gpos_test(CMiniDumperTest)
 # io
 add_gpos_test(COstreamBasicTest)
 add_gpos_test(COstreamStringTest)
+add_gpos_test(COstreamFileTest)
 add_gpos_test(CFileTest)
 
 # memory
