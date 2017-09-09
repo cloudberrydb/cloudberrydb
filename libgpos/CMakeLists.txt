@@ -65,7 +65,6 @@ add_library(gpos
             include/gpos/memory/ICache.h
             include/gpos/memory/IMemoryVisitor.h
             include/gpos/memory/README.md
-            include/gpos/net/nettypes.h
             include/gpos/sync/CAtomicCounter.h
             include/gpos/sync/CMutex.h
             include/gpos/sync/CSpinlock.h
@@ -170,8 +169,6 @@ add_library(gpos
             src/memory/CMemoryVisitorPrint.cpp
             include/gpos/memory/IMemoryPool.h
             src/memory/IMemoryPool.cpp
-            include/gpos/net/netutils.h
-            src/net/netutils.cpp
             include/gpos/string/CStringStatic.h
             src/string/CStringStatic.cpp
             include/gpos/string/CWString.h
