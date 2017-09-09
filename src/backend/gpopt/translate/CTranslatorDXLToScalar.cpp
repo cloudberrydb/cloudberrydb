@@ -519,6 +519,23 @@ CTranslatorDXLToScalar::PwindowrefFromDXLNodeScWindowRef
 	pwindowref->winspec = pdxlop->UlWinSpecPos();
 	pwindowref->restype = CMDIdGPDB::PmdidConvert(pdxlop->PmdidRetType())->OidObjectId();
 
+	/*
+	 * ORCA doesn't have a field correpsonding to 'windstar', that
+	 * information was already lost in the translation from the parse
+	 * tree's WindowRef to DXL WindowRef node. Fortunately, it's only
+	 * used for deparsing, and a plan tree is only deparsed for EXPLAIN
+	 * purposes, so it's not critical.
+	 */
+	pwindowref->winstar = false;
+
+	/*
+	 * XXX: ORCA's WindowRef object doesn't have a 'winagg' field either.
+	 * Currently, that's also not used in the executor, the executor
+	 * node it will look up that information from the syscache by
+	 * itself. But this we ought to fix someday.
+	 */
+	pwindowref->winagg = false;
+
 	EdxlWinStage edxlwinstage = pdxlop->Edxlwinstage();
 	GPOS_ASSERT(edxlwinstage != EdxlwinstageSentinel);
 

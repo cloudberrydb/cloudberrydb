@@ -1559,6 +1559,12 @@ CTranslatorScalarToDXL::PdxlnScWindowref
 
 	GPOS_ASSERT(EdxlwinstageSentinel != edxlwinstage && "Invalid window stage");
 
+	/*
+	 * ORCA's ScalarWindowRef object doesn't have fields for the 'winstar'
+	 * and 'winagg', so we lose that information in the translation.
+	 * Fortunately, the executor currently doesn't need those fields to
+	 * be set correctly.
+	 */
 	CDXLScalarWindowRef *pdxlopWinref = GPOS_NEW(m_pmp) CDXLScalarWindowRef
 													(
 													m_pmp,
