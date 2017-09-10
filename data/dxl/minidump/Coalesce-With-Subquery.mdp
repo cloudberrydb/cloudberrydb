@@ -1152,7 +1152,7 @@
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="107" Alias="row_number">
-                  <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                  <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                 </dxl:ProjElem>
                 <dxl:ProjElem ColId="44" Alias="rolname">
                   <dxl:Ident ColId="44" ColName="rolname" TypeMdid="0.19.1.0"/>
@@ -1244,7 +1244,7 @@
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="106" Alias="row_number">
-                        <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                        <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                       </dxl:ProjElem>
                       <dxl:ProjElem ColId="70" Alias="datdba">
                         <dxl:Ident ColId="70" ColName="datdba" TypeMdid="0.26.1.0"/>

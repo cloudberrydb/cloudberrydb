@@ -492,7 +492,7 @@
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="14" Alias="row_number">
-                      <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                      <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                     </dxl:ProjElem>
                     <dxl:ProjElem ColId="5" Alias="cost">
                       <dxl:Ident ColId="5" ColName="cost" TypeMdid="0.701.1.0"/>

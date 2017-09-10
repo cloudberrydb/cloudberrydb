@@ -30,10 +30,10 @@
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="11" Alias="row_number">
-            <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+            <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="12" Alias="rank">
-            <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="1"/>
+            <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="1"/>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="3" Alias="c">
             <dxl:Ident ColId="3" ColName="c" TypeMdid="0.23.1.0"/>

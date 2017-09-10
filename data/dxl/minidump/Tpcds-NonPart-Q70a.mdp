@@ -14543,7 +14543,7 @@ with results as
                             <dxl:Ident ColId="156" ColName="s_state" TypeMdid="0.1042.1.0"/>
                           </dxl:ProjElem>
                           <dxl:ProjElem ColId="204" Alias="ranking">
-                            <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                            <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:LogicalGroupBy>
@@ -14842,7 +14842,7 @@ with results as
                     <dxl:Ident ColId="242" ColName="lochierarchy" TypeMdid="0.23.1.0"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="243" Alias="rank">
-                    <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                    <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:LogicalProject>
@@ -15420,7 +15420,7 @@ with results as
                                         </dxl:Properties>
                                         <dxl:ProjList>
                                           <dxl:ProjElem ColId="203" Alias="ranking">
-                                            <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                                            <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                                           </dxl:ProjElem>
                                           <dxl:ProjElem ColId="155" Alias="s_state">
                                             <dxl:Ident ColId="155" ColName="s_state" TypeMdid="0.1042.1.0"/>
@@ -15830,7 +15830,7 @@ with results as
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="1478" Alias="rank">
-                      <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                      <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                     </dxl:ProjElem>
                     <dxl:ProjElem ColId="842" Alias="sum">
                       <dxl:Ident ColId="842" ColName="sum" TypeMdid="0.1700.1.0"/>

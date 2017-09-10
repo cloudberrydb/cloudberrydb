@@ -381,7 +381,7 @@ WHERE buyer_name = 'ABC'
               <dxl:Ident ColId="5" ColName="buyer_name" TypeMdid="0.1043.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="13" Alias="curr_bidrate">
-              <dxl:WindowFunc Mdid="0.2108.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0">
+              <dxl:WindowFunc Mdid="0.2108.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0">
                 <dxl:Ident ColId="3" ColName="curr_bidcnt" TypeMdid="0.23.1.0"/>
               </dxl:WindowFunc>
             </dxl:ProjElem>
@@ -466,7 +466,7 @@ WHERE buyer_name = 'ABC'
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="12" Alias="curr_bidrate">
-              <dxl:WindowFunc Mdid="0.2108.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0">
+              <dxl:WindowFunc Mdid="0.2108.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0">
                 <dxl:Ident ColId="2" ColName="curr_bidcnt" TypeMdid="0.23.1.0"/>
               </dxl:WindowFunc>
             </dxl:ProjElem>

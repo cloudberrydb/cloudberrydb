@@ -470,7 +470,7 @@
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="37" Alias="row_number">
-                <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="11" Alias="a">
                 <dxl:Ident ColId="11" ColName="a" TypeMdid="0.20.1.0"/>
@@ -580,7 +580,7 @@
                       </dxl:Properties>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="35" Alias="row_number">
-                          <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                          <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                         </dxl:ProjElem>
                         <dxl:ProjElem ColId="11" Alias="a">
                           <dxl:Ident ColId="11" ColName="a" TypeMdid="0.20.1.0"/>
@@ -695,7 +695,7 @@
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="36" Alias="row_number">
-                      <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                      <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                     </dxl:ProjElem>
                     <dxl:ProjElem ColId="13" Alias="a">
                       <dxl:Ident ColId="13" ColName="a" TypeMdid="0.20.1.0"/>
@@ -815,7 +815,7 @@
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="38" Alias="row_number">
-                    <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                    <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="24" Alias="a">
                     <dxl:Ident ColId="24" ColName="a" TypeMdid="0.23.1.0"/>

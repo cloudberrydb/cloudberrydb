@@ -245,7 +245,7 @@
         </dxl:WindowSpecList>
         <dxl:ProjList>
           <dxl:ProjElem ColId="19" Alias="sum">
-            <dxl:WindowFunc Mdid="0.2108.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0">
+            <dxl:WindowFunc Mdid="0.2108.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0">
               <dxl:ScalarSubquery ColId="10">
                 <dxl:LogicalSelect>
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
@@ -296,7 +296,7 @@
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="18" Alias="sum">
-            <dxl:WindowFunc Mdid="0.2108.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0">
+            <dxl:WindowFunc Mdid="0.2108.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0">
               <dxl:Ident ColId="9" ColName="a1" TypeMdid="0.23.1.0"/>
             </dxl:WindowFunc>
           </dxl:ProjElem>

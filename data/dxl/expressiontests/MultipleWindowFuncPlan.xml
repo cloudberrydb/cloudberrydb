@@ -33,7 +33,7 @@
             <dxl:Ident ColId="10" ColName="row_number" TypeMdid="0.1700.1.0"/>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="11" Alias="rank">
-            <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+            <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="0" Alias="s.c">
             <dxl:Ident ColId="0" ColName="s.c" TypeMdid="0.23.1.0"/>
@@ -78,7 +78,7 @@
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="10" Alias="row_number">
-                <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="0" Alias="s.c">
                 <dxl:Ident ColId="0" ColName="s.c" TypeMdid="0.23.1.0"/>

@@ -394,7 +394,7 @@
             <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="10" Alias="rank">
-            <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+            <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:LogicalSelect>
@@ -433,7 +433,7 @@
             <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="9" Alias="rank">
-            <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+            <dxl:WindowFunc Mdid="0.7001.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
           </dxl:ProjElem>
         </dxl:ProjList>
         <dxl:Filter/>

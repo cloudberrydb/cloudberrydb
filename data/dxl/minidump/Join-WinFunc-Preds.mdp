@@ -475,7 +475,7 @@ where e < 10;
               <dxl:Ident ColId="12" ColName="d" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="20" Alias="e">
-              <dxl:WindowFunc Mdid="0.2101.1.0" TypeMdid="0.1700.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0">
+              <dxl:WindowFunc Mdid="0.2101.1.0" TypeMdid="0.1700.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0">
                 <dxl:Ident ColId="2" ColName="b" TypeMdid="0.23.1.0"/>
               </dxl:WindowFunc>
             </dxl:ProjElem>
@@ -669,7 +669,7 @@ where e < 10;
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="19" Alias="e">
-                  <dxl:WindowFunc Mdid="0.2101.1.0" TypeMdid="0.1700.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0">
+                  <dxl:WindowFunc Mdid="0.2101.1.0" TypeMdid="0.1700.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0">
                     <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
                   </dxl:WindowFunc>
                 </dxl:ProjElem>

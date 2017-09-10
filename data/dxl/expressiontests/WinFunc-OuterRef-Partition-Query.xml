@@ -711,7 +711,7 @@ select * from x where x.i in (select row_number() over(partition by x.i) from y)
             </dxl:WindowSpecList>
             <dxl:ProjList>
               <dxl:ProjElem ColId="21" Alias="row_number">
-                <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:LogicalGet>

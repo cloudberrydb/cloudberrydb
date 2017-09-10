@@ -305,7 +305,7 @@ WHERE  sach_vsnr = 465132477;
                 <dxl:Ident ColId="2" ColName="sach_vsnr" TypeMdid="0.23.1.0"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="10" Alias="idx_lfd_053">
-                <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
               </dxl:ProjElem>
             </dxl:ProjList>
             <dxl:LogicalSelect>
@@ -421,7 +421,7 @@ WHERE  sach_vsnr = 465132477;
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="9" Alias="idx_lfd_053">
-                  <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                  <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                 </dxl:ProjElem>
                 <dxl:ProjElem ColId="0" Alias="ag">
                   <dxl:Ident ColId="0" ColName="ag" TypeMdid="0.21.1.0"/>

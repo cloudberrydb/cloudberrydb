@@ -1655,7 +1655,7 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="115" Alias="row_number">
-                <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
               </dxl:ProjElem>
               <dxl:ProjElem ColId="48" Alias="reltoastidxid">
                 <dxl:Ident ColId="48" ColName="reltoastidxid" TypeMdid="0.26.1.0"/>
@@ -1758,7 +1758,7 @@ where oid= (select reltoastrelid from pg_class where relname='fsts_alter_set_sto
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="114" Alias="row_number">
-                      <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                      <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                     </dxl:ProjElem>
                     <dxl:ProjElem ColId="85" Alias="reltoastrelid">
                       <dxl:Ident ColId="85" ColName="reltoastrelid" TypeMdid="0.26.1.0"/>

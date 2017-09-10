@@ -38,7 +38,7 @@
               <dxl:Ident ColId="0" ColName="c" TypeMdid="0.23.1.0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="10" Alias="row_number">
-              <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+              <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
             </dxl:ProjElem>
             <dxl:ProjElem ColId="1" Alias="d">
               <dxl:Ident ColId="1" ColName="d" TypeMdid="0.23.1.0"/>

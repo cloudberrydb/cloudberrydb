@@ -1004,7 +1004,7 @@
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="90" Alias="row_number">
-                    <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                    <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="35" Alias="oid">
                     <dxl:Ident ColId="35" ColName="oid" TypeMdid="0.26.1.0"/>
@@ -1143,7 +1143,7 @@
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="89" Alias="row_number">
-                    <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStrategy="Immediate" WinSpecPos="0"/>
+                    <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="77" Alias="oid">
                     <dxl:Ident ColId="77" ColName="oid" TypeMdid="0.26.1.0"/>
