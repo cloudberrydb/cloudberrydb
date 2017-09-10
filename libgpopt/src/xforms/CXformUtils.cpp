@@ -2368,7 +2368,9 @@ CXformUtils::PexprRowNumber
 													GPOS_NEW(pmp) CMDIdGPDB(20),
 													GPOS_NEW(pmp) CWStringConst(pmp, GPOS_WSZ_LIT("row_number")),
 													CScalarWindowFunc::EwsImmediate,
-													false /* fDistinct */
+													false /* fDistinct */,
+													false /* fStarArg */,
+													false /* fSimpleAgg */
 													);
 
 	CExpression *pexprScRowNumber = GPOS_NEW(pmp) CExpression(pmp, popRowNumber);

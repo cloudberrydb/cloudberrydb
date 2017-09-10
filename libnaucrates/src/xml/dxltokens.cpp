@@ -316,6 +316,8 @@ CDXLTokens::Init
 
 			{EdxltokenWindowrefOid, GPOS_WSZ_LIT("Mdid")},
 			{EdxltokenWindowrefDistinct, GPOS_WSZ_LIT("Distinct")},
+			{EdxltokenWindowrefStarArg, GPOS_WSZ_LIT("WindowStarArg")},
+			{EdxltokenWindowrefSimpleAgg, GPOS_WSZ_LIT("WindowSimpleAgg")},
 			{EdxltokenWindowrefStrategy, GPOS_WSZ_LIT("WindowStrategy")},
 			{EdxltokenWindowrefStageImmediate,GPOS_WSZ_LIT("Immediate")},
 			{EdxltokenWindowrefStagePreliminary, GPOS_WSZ_LIT("Preliminary")},

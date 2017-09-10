@@ -250,6 +250,8 @@ namespace gpdxl
 
 		EdxltokenWindowrefOid,
 		EdxltokenWindowrefDistinct,
+		EdxltokenWindowrefStarArg,
+		EdxltokenWindowrefSimpleAgg,
 		EdxltokenWindowrefStrategy,
 		EdxltokenWindowrefStageImmediate,
 		EdxltokenWindowrefStagePreliminary,

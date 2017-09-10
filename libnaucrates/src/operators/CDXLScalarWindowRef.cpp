@@ -35,6 +35,8 @@ CDXLScalarWindowRef::CDXLScalarWindowRef
 	IMDId *pmdidFunc,
 	IMDId *pmdidRetType,
 	BOOL fDistinct,
+	BOOL fStarArg,
+	BOOL fSimpleAgg,
 	EdxlWinStage edxlwinstage,
 	ULONG ulWinspecPosition
 	)
@@ -43,6 +45,8 @@ CDXLScalarWindowRef::CDXLScalarWindowRef
 	m_pmdidFunc(pmdidFunc),
 	m_pmdidRetType(pmdidRetType),
 	m_fDistinct(fDistinct),
+	m_fStarArg(fStarArg),
+	m_fSimpleAgg(fSimpleAgg),
 	m_edxlwinstage(edxlwinstage),
 	m_ulWinspecPos(ulWinspecPosition)
 {
@@ -150,6 +154,8 @@ CDXLScalarWindowRef::SerializeToDXL
 	m_pmdidFunc->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenWindowrefOid));
 	m_pmdidRetType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenWindowrefDistinct),m_fDistinct);
+	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenWindowrefStarArg),m_fStarArg);
+	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenWindowrefSimpleAgg),m_fSimpleAgg);
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenWindowrefStrategy), PstrWinStage());
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenWindowrefWinSpecPos), m_ulWinspecPos);
 

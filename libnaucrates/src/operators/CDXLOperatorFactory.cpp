@@ -3826,6 +3826,8 @@ CDXLOperatorFactory::PdxlopWindowRef
 	IMDId *pmdidFunc = PmdidFromAttrs(pmm, attrs, EdxltokenWindowrefOid, EdxltokenScalarWindowref);
 	IMDId *pmdidRetType = PmdidFromAttrs(pmm, attrs, EdxltokenTypeId, EdxltokenScalarWindowref);
 	BOOL fDistinct = FValueFromAttrs(pmm, attrs, EdxltokenWindowrefDistinct, EdxltokenScalarWindowref);
+	BOOL fStarArg = FValueFromAttrs(pmm, attrs, EdxltokenWindowrefStarArg, EdxltokenScalarWindowref);
+	BOOL fSimpleAgg = FValueFromAttrs(pmm, attrs, EdxltokenWindowrefSimpleAgg, EdxltokenScalarWindowref);
 	ULONG ulWinspecPos = UlValueFromAttrs(pmm, attrs, EdxltokenWindowrefWinSpecPos, EdxltokenScalarWindowref);
 
 	const XMLCh *xmlszStage  = XmlstrFromAttrs(attrs, EdxltokenWindowrefStrategy, EdxltokenScalarWindowref);
@@ -3851,7 +3853,7 @@ CDXLOperatorFactory::PdxlopWindowRef
 	}
 	GPOS_ASSERT(EdxlwinstageSentinel != edxlwinstage);
 
-	return GPOS_NEW(pmp) CDXLScalarWindowRef(pmp, pmdidFunc, pmdidRetType, fDistinct, edxlwinstage, ulWinspecPos);
+	return GPOS_NEW(pmp) CDXLScalarWindowRef(pmp, pmdidFunc, pmdidRetType, fDistinct, fStarArg, fSimpleAgg, edxlwinstage, ulWinspecPos);
 }
 
 //---------------------------------------------------------------------------

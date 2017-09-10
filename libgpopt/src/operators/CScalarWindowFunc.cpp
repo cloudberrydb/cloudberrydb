@@ -41,12 +41,16 @@ CScalarWindowFunc::CScalarWindowFunc
 	IMDId *pmdidRetType,
 	const CWStringConst *pstrFunc,
 	EWinStage ewinstage,
-	BOOL fDistinct
+	BOOL fDistinct,
+	BOOL fStarArg,
+	BOOL fSimpleAgg
 	)
 	:
 	CScalarFunc(pmp),
 	m_ewinstage(ewinstage),
 	m_fDistinct(fDistinct),
+	m_fStarArg(fStarArg),
+	m_fSimpleAgg(fSimpleAgg),
 	m_fAgg(false)
 {
 	GPOS_ASSERT(pmdidFunc->FValid());
@@ -86,18 +90,26 @@ CScalarWindowFunc::UlHash() const
 					(
 					UlCombineHashes
 						(
-						gpos::UlCombineHashes
+						UlCombineHashes
 							(
-							COperator::UlHash(),
-							gpos::UlCombineHashes
+							UlCombineHashes
 								(
-									m_pmdidFunc->UlHash(),
-									m_pmdidRetType->UlHash()
-								)
+								gpos::UlCombineHashes
+									(
+									COperator::UlHash(),
+									gpos::UlCombineHashes
+										(
+											m_pmdidFunc->UlHash(),
+											m_pmdidRetType->UlHash()
+										)
+									),
+								m_ewinstage
+								),
+							gpos::UlHash<BOOL>(&m_fDistinct)
 							),
-						m_ewinstage
+						gpos::UlHash<BOOL>(&m_fStarArg)
 						),
-					gpos::UlHash<BOOL>(&m_fDistinct)
+					gpos::UlHash<BOOL>(&m_fSimpleAgg)
 					);
 }
 
@@ -123,6 +135,8 @@ CScalarWindowFunc::FMatch
 
 		// match if the func id, and properties are identical
 		return ((popFunc->FDistinct() ==  m_fDistinct)
+				&& (popFunc->FStarArg() ==  m_fStarArg)
+				&& (popFunc->FSimpleAgg() ==  m_fSimpleAgg)
 				&& (popFunc->FAgg() == m_fAgg)
 				&& m_pmdidFunc->FEquals(popFunc->PmdidFunc())
 				&& m_pmdidRetType->FEquals(popFunc->PmdidType())
@@ -151,6 +165,8 @@ CScalarWindowFunc::OsPrint
 	os << PstrFunc()->Wsz();
 	os << " , Agg: " << (m_fAgg ? "true" : "false");
 	os << " , Distinct: " << (m_fDistinct ? "true" : "false");
+	os << " , StarArgument: " << (m_fStarArg ? "true" : "false");
+	os << " , SimpleAgg: " << (m_fSimpleAgg ? "true" : "false");
 	os << ")";
 
 	return os;

@@ -51,6 +51,12 @@ namespace gpdxl
 			// denotes whether it's agg(DISTINCT ...)
 			BOOL m_fDistinct;
 
+			// is argument list really '*' //
+			BOOL m_fStarArg;
+
+			// is function a simple aggregate? //
+			BOOL m_fSimpleAgg;
+
 			// denotes the win stage
 			EdxlWinStage m_edxlwinstage;
 
@@ -68,6 +74,8 @@ namespace gpdxl
 				IMDId *pmdidWinfunc,
 				IMDId *pmdidRetType,
 				BOOL fDistinct,
+				BOOL fStarArg,
+				BOOL fSimpleAgg,
 				EdxlWinStage edxlwinstage,
 				ULONG ulWinspecPosition
 				);
@@ -104,6 +112,16 @@ namespace gpdxl
 			BOOL FDistinct() const
 			{
 				return m_fDistinct;
+			}
+		
+			BOOL FStarArg() const
+			{
+				return m_fStarArg;
+			}
+
+			BOOL FSimpleAgg() const
+			{
+				return m_fSimpleAgg;
 			}
 
 			// position the window specification in a parent window operator

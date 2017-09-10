@@ -2997,7 +2997,7 @@ CTranslatorDXLToExpr::PexprWindowFunc
 	pmdidRetType->AddRef();
 	
 	GPOS_ASSERT(NULL != pstrName);
-	CScalarWindowFunc *popWindowFunc = GPOS_NEW(m_pmp) CScalarWindowFunc(m_pmp, pmdidFunc, pmdidRetType, pstrName, ews, pdxlopWinref->FDistinct());
+	CScalarWindowFunc *popWindowFunc = GPOS_NEW(m_pmp) CScalarWindowFunc(m_pmp, pmdidFunc, pmdidRetType, pstrName, ews, pdxlopWinref->FDistinct(), pdxlopWinref->FStarArg(), pdxlopWinref->FSimpleAgg());
 
 	CExpression *pexprWindowFunc = NULL;
 	if (0 < pdxlnWindowRef->UlArity())

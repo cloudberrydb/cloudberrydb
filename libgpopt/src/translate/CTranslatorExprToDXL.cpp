@@ -6082,6 +6082,8 @@ CTranslatorExprToDXL::PdxlnScWindowFuncExpr
 															pmdidFunc,
 															pmdidRetType,
 															popScWindowFunc->FDistinct(),
+															popScWindowFunc->FStarArg(),
+															popScWindowFunc->FSimpleAgg(),
 															edxlwinstage,
 															0 /* ulWinspecPosition */
 															);

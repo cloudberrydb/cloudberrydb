@@ -2525,7 +2525,9 @@ CTestUtils::PexprLogicalSequenceProject
 							pmdidRetType,
 							GPOS_NEW(pmp) CWStringConst(pmp, pmdfunc->Mdname().Pstr()->Wsz()),
 							CScalarWindowFunc::EwsImmediate,
-							false /*fDistinct*/
+							false /*fDistinct*/,
+							false /*fStarArg*/,
+							false /*fSimpleAgg*/
 							)
 				);
 	CColRef *pcrComputed = pcf->PcrCreate(pmda->Pmdtype(pmdfunc->PmdidTypeResult()));

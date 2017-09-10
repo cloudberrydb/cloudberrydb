@@ -59,6 +59,12 @@ namespace gpopt
 			// distinct window computation
 			BOOL m_fDistinct;
 
+			/* TRUE if argument list was really '*' */
+			BOOL m_fStarArg;
+
+			/* is function a simple aggregate? */
+			BOOL m_fSimpleAgg;
+
 			// aggregate window function, e.g. count(*) over()
 			BOOL m_fAgg;
 
@@ -75,7 +81,9 @@ namespace gpopt
 				IMDId *pmdidRetType,
 				const CWStringConst *pstrFunc,
 				EWinStage ewinstage,
-				BOOL fDistinct
+				BOOL fDistinct,
+				BOOL fStarArg,
+				BOOL fSimpleAgg
 				);
 
 			// dtor
@@ -124,6 +132,16 @@ namespace gpopt
 			BOOL FDistinct() const
 			{
 				return m_fDistinct;
+			}
+		
+			BOOL FStarArg() const
+			{
+				return m_fStarArg;
+			}
+
+			BOOL FSimpleAgg() const
+			{
+				return m_fSimpleAgg;
 			}
 
 			// is window function defined as Aggregate?
