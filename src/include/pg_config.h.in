@@ -68,6 +68,9 @@
 /* Greenplum version as a number */
 #undef GP_VERSION_NUM
 
+/* Define to 1 if you have the <apr_getopt.h> header file. */
+#undef HAVE_APR_GETOPT_H
+
 /* Define to 1 if you have the `atexit' function. */
 #undef HAVE_ATEXIT
 
@@ -88,6 +91,9 @@
 
 /* Define to 1 if you have the <crypt.h> header file. */
 #undef HAVE_CRYPT_H
+
+/* define if the compiler supports basic C++11 syntax */
+#undef HAVE_CXX11
 
 /* Define to 1 if you have the declaration of `CURLOPT_MAIL_FROM', and to 0 if
    you don't. */
@@ -142,6 +148,9 @@
 
 /* Define to 1 if you have the `ERR_set_mark' function. */
 #undef HAVE_ERR_SET_MARK
+
+/* Define to 1 if you have the <event.h> header file. */
+#undef HAVE_EVENT_H
 
 /* Define to 1 if you have the `fcvt' function. */
 #undef HAVE_FCVT
@@ -228,11 +237,14 @@
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
 
+/* Define to 1 if you have the <gpdbcost/CCostModelGPDB.h> header file. */
+#undef HAVE_GPDBCOST_CCOSTMODELGPDB_H
+
 /* Define to 1 if you have the <gpopt/init.h> header file. */
 #undef HAVE_GPOPT_INIT_H
 
-/* Define to 1 if you have the <gpos/assert.h> header file. */
-#undef HAVE_GPOS_ASSERT_H
+/* Define to 1 if you have the <gpos/_api.h> header file. */
+#undef HAVE_GPOS__API_H
 
 /* Define to 1 if you have the <gssapi/gssapi.h> header file. */
 #undef HAVE_GSSAPI_GSSAPI_H
@@ -279,25 +291,28 @@
 /* Define to 1 if you have isinf(). */
 #undef HAVE_ISINF
 
+/* Define to 1 if you have the <json-c/json.h> header file. */
+#undef HAVE_JSON_C_JSON_H
+
 /* Define to 1 if you have the <kernel/image.h> header file. */
 #undef HAVE_KERNEL_IMAGE_H
 
 /* Define to 1 if you have the <kernel/OS.h> header file. */
 #undef HAVE_KERNEL_OS_H
 
-/* Define to 1 if `e_data' is member of `krb5_error'. */
+/* Define to 1 if `e_data' is a member of `krb5_error'. */
 #undef HAVE_KRB5_ERROR_E_DATA
 
-/* Define to 1 if `text.data' is member of `krb5_error'. */
+/* Define to 1 if `text.data' is a member of `krb5_error'. */
 #undef HAVE_KRB5_ERROR_TEXT_DATA
 
 /* Define to 1 if you have krb5_free_unparsed_name */
 #undef HAVE_KRB5_FREE_UNPARSED_NAME
 
-/* Define to 1 if `client' is member of `krb5_ticket'. */
+/* Define to 1 if `client' is a member of `krb5_ticket'. */
 #undef HAVE_KRB5_TICKET_CLIENT
 
-/* Define to 1 if `enc_part2' is member of `krb5_ticket'. */
+/* Define to 1 if `enc_part2' is a member of `krb5_ticket'. */
 #undef HAVE_KRB5_TICKET_ENC_PART2
 
 /* Define to 1 if you have the <langinfo.h> header file. */
@@ -315,6 +330,15 @@
 /* Define to 1 if you have the `eay32' library (-leay32). */
 #undef HAVE_LIBEAY32
 
+/* Define to 1 if you have the `gpdbcost' library (-lgpdbcost). */
+#undef HAVE_LIBGPDBCOST
+
+/* Define to 1 if you have the `gpopt' library (-lgpopt). */
+#undef HAVE_LIBGPOPT
+
+/* Define to 1 if you have the `gpos' library (-lgpos). */
+#undef HAVE_LIBGPOS
+
 /* Define to 1 if you have the `ldap' library (-lldap). */
 #undef HAVE_LIBLDAP
 
@@ -323,6 +347,9 @@
 
 /* Define to 1 if you have the `m' library (-lm). */
 #undef HAVE_LIBM
+
+/* Define to 1 if you have the `naucrates' library (-lnaucrates). */
+#undef HAVE_LIBNAUCRATES
 
 /* Define to 1 if you have the `netsnmp' library (-lnetsnmp). */
 #undef HAVE_LIBNETSNMP
@@ -347,6 +374,9 @@
 
 /* Define to 1 if you have the `wldap32' library (-lwldap32). */
 #undef HAVE_LIBWLDAP32
+
+/* Define to 1 if you have the `xerces-c' library (-lxerces-c). */
+#undef HAVE_LIBXERCES_C
 
 /* Define to 1 if you have the `xml2' library (-lxml2). */
 #undef HAVE_LIBXML2
@@ -378,6 +408,9 @@
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the <naucrates/init.h> header file. */
+#undef HAVE_NAUCRATES_INIT_H
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
@@ -542,22 +575,22 @@
 /* Define to 1 if the system has the type `struct option'. */
 #undef HAVE_STRUCT_OPTION
 
-/* Define to 1 if `sa_len' is member of `struct sockaddr'. */
+/* Define to 1 if `sa_len' is a member of `struct sockaddr'. */
 #undef HAVE_STRUCT_SOCKADDR_SA_LEN
 
 /* Define to 1 if the system has the type `struct sockaddr_storage'. */
 #undef HAVE_STRUCT_SOCKADDR_STORAGE
 
-/* Define to 1 if `ss_family' is member of `struct sockaddr_storage'. */
+/* Define to 1 if `ss_family' is a member of `struct sockaddr_storage'. */
 #undef HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY
 
-/* Define to 1 if `ss_len' is member of `struct sockaddr_storage'. */
+/* Define to 1 if `ss_len' is a member of `struct sockaddr_storage'. */
 #undef HAVE_STRUCT_SOCKADDR_STORAGE_SS_LEN
 
-/* Define to 1 if `__ss_family' is member of `struct sockaddr_storage'. */
+/* Define to 1 if `__ss_family' is a member of `struct sockaddr_storage'. */
 #undef HAVE_STRUCT_SOCKADDR_STORAGE___SS_FAMILY
 
-/* Define to 1 if `__ss_len' is member of `struct sockaddr_storage'. */
+/* Define to 1 if `__ss_len' is a member of `struct sockaddr_storage'. */
 #undef HAVE_STRUCT_SOCKADDR_STORAGE___SS_LEN
 
 /* Define to 1 if the system has the type `struct sockaddr_un'. */
@@ -566,7 +599,7 @@
 /* Define to 1 if the system has the type `struct sockcred'. */
 #undef HAVE_STRUCT_SOCKCRED
 
-/* Define to 1 if `tm_zone' is member of `struct tm'. */
+/* Define to 1 if `tm_zone' is a member of `struct tm'. */
 #undef HAVE_STRUCT_TM_TM_ZONE
 
 /* Define to 1 if you have the <SupportDefs.h> header file. */
@@ -666,6 +699,9 @@
 /* Define to 1 if you have the `unsetenv' function. */
 #undef HAVE_UNSETENV
 
+/* Define to 1 if the system has the type `unsigned long long int'. */
+#undef HAVE_UNSIGNED_LONG_LONG_INT
+
 /* Define to 1 if you have the `utime' function. */
 #undef HAVE_UTIME
 
@@ -696,11 +732,8 @@
 /* Define to 1 if you have the <winsock2.h> header file. */
 #undef HAVE_WINSOCK2_H
 
-/* Define to 1 if you have __cpuid. */
-#undef HAVE__CPUID
-
-/* Define to 1 if you have __get_cpuid. */
-#undef HAVE__GET_CPUID
+/* Define to 1 if you have the <yaml.h> header file. */
+#undef HAVE_YAML_H
 
 /* Define to 1 if your compiler understands __builtin_constant_p. */
 #undef HAVE__BUILTIN_CONSTANT_P
@@ -711,13 +744,19 @@
 /* Define to 1 if your compiler understands __builtin_unreachable. */
 #undef HAVE__BUILTIN_UNREACHABLE
 
+/* Define to 1 if you have __cpuid. */
+#undef HAVE__CPUID
+
+/* Define to 1 if you have __get_cpuid. */
+#undef HAVE__GET_CPUID
+
 /* Define to 1 if your compiler understands _Static_assert. */
 #undef HAVE__STATIC_ASSERT
 
 /* Define to 1 if your compiler understands __VA_ARGS__ in macros. */
 #undef HAVE__VA_ARGS
 
-/* Define to the appropriate snprintf format for 64-bit ints. */
+/* Define to the appropriate snprintf format for 64-bit ints, if any. */
 #undef INT64_FORMAT
 
 /* Define to build with Kerberos 5 support. (--with-krb5) */
@@ -740,6 +779,9 @@
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
@@ -806,6 +848,9 @@
 /* Define to 1 to build with Bonjour support. (--with-bonjour) */
 #undef USE_BONJOUR
 
+/* Define to 1 to enable code generation. (--enable-codegen) */
+#undef USE_CODEGEN
+
 /* Define to 1 to build with libcurl support. (--with-libcurl) */
 #undef USE_CURL
 
@@ -818,6 +863,9 @@
 
 /* Define to 1 to build with debug_ntuplestore. (--enable-ntuplestore) */
 #undef USE_DEBUG_NTUPLESTORE
+
+/* Define to 1 to build with gpcloud (--enable-gpcloud) */
+#undef USE_GPCLOUD
 
 /* Define to 1 if you want 64-bit integer timestamp and interval support.
    (--enable-integer-datetimes) */
@@ -833,6 +881,9 @@
    (--with-libxslt) */
 #undef USE_LIBXSLT
 
+/* Define to 1 to build with Mapreduce capabilities (--enable-mapreduce) */
+#undef USE_MAPREDUCE
+
 /* Define to select named POSIX semaphores. */
 #undef USE_NAMED_POSIX_SEMAPHORES
 
@@ -842,14 +893,14 @@
 /* Define to 1 to build with Greenplum ORCA optimizer. (--enable-orca) */
 #undef USE_ORCA
 
-/* Define to 1 to build with Codegen. (--enable-codegen) */
-#undef USE_CODEGEN 
-
 /* Define to 1 to build with PAM support. (--with-pam) */
 #undef USE_PAM
 
 /* Use replacement snprintf() functions. */
 #undef USE_REPL_SNPRINTF
+
+/* Define to 1 to enable segment WAL replication. (--enable-segwalrep) */
+#undef USE_SEGWALREP
 
 /* Define to 1 to use Intel SSE 4.2 CRC instructions with a runtime check. */
 #undef USE_SLICING_BY_8_CRC32C
@@ -884,9 +935,6 @@
 /* Define to select Win32-style shared memory. */
 #undef USE_WIN32_SHARED_MEMORY
 
-/* Define to build Segment WAL replication*/
-#undef USE_SEGWALREP
-
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
 #if defined AC_APPLE_UNIVERSAL_BUILD
@@ -897,6 +945,11 @@
 # ifndef WORDS_BIGENDIAN
 #  undef WORDS_BIGENDIAN
 # endif
+#endif
+
+/* Enable large inode numbers on Mac OS X 10.5.  */
+#ifndef _DARWIN_USE_64_BIT_INODE
+# define _DARWIN_USE_64_BIT_INODE 1
 #endif
 
 /* Number of bits in a file offset, on hosts where this is settable. */
