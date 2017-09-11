@@ -169,9 +169,6 @@ PQmakeEmptyPGresult(PGconn *conn, ExecStatusType status)
 	result->curOffset = 0;
 	result->spaceLeft = 0;
     result->cdbstats = NULL;            /*CDB*/
-    result->Standby_HaveInfo = false;
-    result->Standby_xlogid = 0;
-    result->Standby_xrecoff = 0;
 	
     result->extras = NULL;
     result->extraslen = 0;
@@ -186,13 +183,6 @@ PQmakeEmptyPGresult(PGconn *conn, ExecStatusType status)
 		/* copy connection data we might need for operations on PGresult */
 		result->noticeHooks = conn->noticeHooks;
 		result->client_encoding = conn->client_encoding;
-
-		if (conn->Standby_HaveInfo)
-		{
-			result->Standby_HaveInfo = true;
-			result->Standby_xlogid = conn->Standby_xlogid;
-			result->Standby_xrecoff = conn->Standby_xrecoff;
-		}
 
 		/* consider copying conn's errorMessage */
 		switch (status)
@@ -615,10 +605,6 @@ PQclear(PGresult *res)
 	res->errFields = NULL;
 	/* res->curBlock was zeroed out earlier */
 
-	res->Standby_HaveInfo = false;
-	res->Standby_xlogid = 0;
-	res->Standby_xrecoff = 0;
-	
 	if (res->extras)
 		free(res->extras);
 	res->extraslen = 0;

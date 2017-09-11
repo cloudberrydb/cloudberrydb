@@ -162,11 +162,6 @@ struct pg_result
 	PGNoticeHooks noticeHooks;
 	int			client_encoding;	/* encoding id */
 
-	/* XLOG passed from Standby Master to Primary */
-	bool						Standby_HaveInfo;
-	uint32						Standby_xlogid;		/* log file #, 0 based */
-	uint32						Standby_xrecoff;	/* byte offset of location in log file */
-	
 	/*
 	 * Error information (all NULL if not an error result).  errMsg is the
 	 * "overall" error message returned by PQresultErrorMessage.  If we have
@@ -329,12 +324,7 @@ struct pg_conn
 	PGTransactionStatusType xactStatus; /* never changes to ACTIVE */
 
 	bool						utility_mode;
-	
-	/* XLOG passed from Standby Master to Primary */
-	bool						Standby_HaveInfo;
-	uint32						Standby_xlogid;		/* log file #, 0 based */
-	uint32						Standby_xrecoff;	/* byte offset of location in log file */
-		
+
 	PGQueryClass queryclass;
 	char	   *last_query;		/* last SQL command, or NULL if unknown */
 	char		last_sqlstate[6];		/* last reported SQLSTATE */

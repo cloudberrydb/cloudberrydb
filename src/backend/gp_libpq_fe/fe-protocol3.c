@@ -58,7 +58,6 @@ static int	getAnotherTuple(PGconn *conn, int msgLength);
 static int	getParameterStatus(PGconn *conn);
 static int	getNotify(PGconn *conn);
 static int	getCopyStart(PGconn *conn, ExecStatusType copytype);
-static int	getStandbyMasterEndLocation(PGconn *conn);
 static int	getReadyForQuery(PGconn *conn);
 static void saveCdbStatMsg(PGresult *result, char *data, int len);
 static void reportErrorPosition(PQExpBuffer msg, const char *query,
@@ -267,18 +266,6 @@ pqParseInput3(PGconn *conn)
 					if (getReadyForQuery(conn))
 						return;
 					conn->asyncStatus = PGASYNC_IDLE;
-					break;
-				case 's':		/* standby master command complete with XLOG end location */
-					if (getStandbyMasterEndLocation(conn))
-						return;
-					if (conn->result == NULL)
-					{
-						conn->result = PQmakeEmptyPGresult(conn,
-														   PGRES_COMMAND_OK);
-						if (!conn->result)
-							return;
-					}
-					conn->asyncStatus = PGASYNC_READY;
 					break;
 				case 'I':		/* empty query */
 					if (conn->result == NULL)
@@ -1487,24 +1474,6 @@ getCopyStart(PGconn *conn, ExecStatusType copytype)
 failure:
 	PQclear(result);
 	return EOF;
-}
-
-/*
- * getStandbyEndLocation - process standby master XLOG end location in remainer of message
- */
-static int
-getStandbyMasterEndLocation(PGconn *conn)
-{
-	/*
-	 * Between the Standby Master and Primary, send back a XLOG end location.
-	 */
-	if (pqGetInt((int*)&conn->Standby_xlogid, 4, conn))
-		return EOF;
-	if (pqGetInt((int*)&conn->Standby_xrecoff, 4, conn))
-		return EOF;
-	conn->Standby_HaveInfo = true;
-
-	return 0;
 }
 
 /*
