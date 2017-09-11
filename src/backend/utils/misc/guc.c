@@ -7449,8 +7449,6 @@ assign_wal_consistency_checking(const char *newval, bool doit, GucSource source)
 		return NULL;
 	}
 
-	free(rawstring);
-
 	foreach(l, elemlist)
 	{
 		char	   *tok = (char *) lfirst(l);
@@ -7485,6 +7483,7 @@ assign_wal_consistency_checking(const char *newval, bool doit, GucSource source)
 		/* If a valid resource manager is found, check for the next one. */
 		if (!found)
 		{
+			free(rawstring);
 			list_free(elemlist);
 
 			ereport(GUC_complaint_elevel(source),
@@ -7494,6 +7493,7 @@ assign_wal_consistency_checking(const char *newval, bool doit, GucSource source)
 		}
 	}
 
+	free(rawstring);
 	list_free(elemlist);
 
 	if (doit)
