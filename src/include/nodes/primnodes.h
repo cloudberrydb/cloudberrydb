@@ -337,7 +337,7 @@ typedef struct WindowRef
 	Oid			winfnoid;		/* pg_proc Oid of the window function */
 	Oid			restype;		/* type Oid of result of the window function */
 	List	   *args;			/* arguments */	
-	Index		winspec;		/* index into Query window clause */
+	Index		winref;			/* index of associated WindowClause */
 	bool		winstar;		/* TRUE if argument list was really '*' */
 	bool		winagg;			/* is function a simple aggregate? */
 	bool		windistinct;	/* TRUE if it's agg(DISTINCT ...) */

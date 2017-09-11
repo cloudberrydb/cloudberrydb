@@ -3298,9 +3298,6 @@ readNodeBinary(void)
 			case T_GroupId:
 				return_value = _readGroupId();
 				break;
-			case T_WindowSpec:
-				return_value = _readWindowSpec();
-				break;
 			case T_WindowFrame:
 				return_value = _readWindowFrame();
 				break;
@@ -3333,6 +3330,9 @@ readNodeBinary(void)
 				break;
 			case T_PartListNullTestExpr:
 				return_value = _readPartListNullTestExpr();
+				break;
+			case T_WindowClause:
+				return_value = _readWindowClause();
 				break;
 			case T_RowMarkClause:
 				return_value = _readRowMarkClause();

@@ -1554,7 +1554,7 @@ CTranslatorScalarToDXL::PdxlnScWindowref
 	ULONG ulWinSpecPos = (ULONG) pwindowref->winlevel;
 	if (m_fQuery)
 	{
-		ulWinSpecPos = (ULONG) pwindowref->winspec;
+		ulWinSpecPos = (ULONG) pwindowref->winref - 1;
 	}
 
 	GPOS_ASSERT(EdxlwinstageSentinel != edxlwinstage && "Invalid window stage");

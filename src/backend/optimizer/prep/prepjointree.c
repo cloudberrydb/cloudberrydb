@@ -559,10 +559,11 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
 	{
 		foreach(cell, parse->windowClause)
 		{
-			WindowSpec *win_spec = (WindowSpec *)lfirst(cell);
-			if (win_spec->frame)
+			WindowClause *wc = (WindowClause *) lfirst(cell);
+
+			if (wc->frame)
 			{
-				WindowFrame *frame = win_spec->frame;
+				WindowFrame *frame = wc->frame;
 				
 				if (frame->trail)
 					frame->trail->val = 

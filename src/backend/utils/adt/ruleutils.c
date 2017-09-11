@@ -86,10 +86,12 @@ typedef struct
 {
 	StringInfo	buf;			/* output buffer to append to */
 	List	   *namespaces;		/* List of deparse_namespace nodes */
+	List	   *windowClause;	/* Current query level's WINDOW clause */
+	List	   *windowTList;	/* targetlist for resolving WINDOW clause */
+	List	   *groupClause;	/* Current query level's GROUP BY clause */
 	int			prettyFlags;	/* enabling of pretty-print functions */
 	int			indentLevel;	/* current indent level for prettyprint */
 	bool		varprefix;		/* TRUE to print prefixes on Vars */
-	Query	   *query;
 } deparse_context;
 
 /*
@@ -177,6 +179,8 @@ static void get_rule_groupingclause(GroupingClause *grp, List *tlist,
 static Node *get_rule_sortgroupclause(SortClause *srt, List *tlist,
 						 bool force_colno,
 						 deparse_context *context);
+static void get_rule_windowspec(WindowClause *wc, List *targetList,
+					deparse_context *context);
 static void push_plan(deparse_namespace *dpns, Plan *subplan);
 static char *get_variable(Var *var, int levelsup, bool showstar,
 			 deparse_context *context);
@@ -199,7 +203,6 @@ static void get_windowedge_expr(WindowFrameEdge *edge,
 								deparse_context *context);
 static void get_sortlist_expr(List *l, List *targetList, bool force_colno,
                               deparse_context *context, char *keyword_clause);
-static void get_windowspec_expr(WindowSpec *spec, deparse_context *context);
 static void get_windowref_expr(WindowRef *wref, deparse_context *context);
 static void get_coercion_expr(Node *arg, deparse_context *context,
 				  Oid resulttype, int32 resulttypmod,
@@ -1726,10 +1729,12 @@ deparse_expression_pretty(Node *expr, List *dpcontext,
 	initStringInfo(&buf);
 	context.buf = &buf;
 	context.namespaces = dpcontext;
+	context.groupClause = NIL;
+	context.windowClause = NIL;
+	context.windowTList = NIL;
 	context.varprefix = forceprefix;
 	context.prettyFlags = prettyFlags;
 	context.indentLevel = startIndent;
-	context.query = NULL;
 
 	get_rule_expr(expr, &context, showimplicit);
 
@@ -1974,6 +1979,9 @@ make_ruledef(StringInfo buf, HeapTuple ruletup, TupleDesc rulettc,
 
 		context.buf = buf;
 		context.namespaces = list_make1(&dpns);
+		context.groupClause = NIL;
+		context.windowClause = NIL;
+		context.windowTList = NIL;
 		context.varprefix = (list_length(query->rtable) != 1);
 		context.prettyFlags = prettyFlags;
 		context.indentLevel = PRETTYINDENT_STD;
@@ -2125,11 +2133,13 @@ get_query_def(Query *query, StringInfo buf, List *parentnamespace,
 
 	context.buf = buf;
 	context.namespaces = lcons(&dpns, list_copy(parentnamespace));
+	context.groupClause = NIL;
+	context.windowClause = NIL;
+	context.windowTList = NIL;
 	context.varprefix = (parentnamespace != NIL ||
 						 list_length(query->rtable) != 1);
 	context.prettyFlags = prettyFlags;
 	context.indentLevel = startIndent;
-	context.query = query;
 
 	dpns.rtable = query->rtable;
 	dpns.ctes = query->cteList;
@@ -2290,11 +2300,22 @@ get_select_query_def(Query *query, deparse_context *context,
 					 TupleDesc resultDesc)
 {
 	StringInfo	buf = context->buf;
+	List	   *save_windowclause;
+	List	   *save_windowtlist;
+	List	   *save_groupclause;
 	bool		force_colno;
 	ListCell   *l;
 
 	/* Insert the WITH clause if given */
 	get_with_clause(query, context);
+
+	/* Set up context for possible window functions */
+	save_windowclause = context->windowClause;
+	context->windowClause = query->windowClause;
+	save_windowtlist = context->windowTList;
+	context->windowTList = query->targetList;
+	save_groupclause = context->groupClause;
+	context->groupClause = query->groupClause;
 
 	/*
 	 * If the Query node has a setOperations tree, then it's the top level of
@@ -2386,6 +2407,10 @@ get_select_query_def(Query *query, deparse_context *context,
 		if (rc->noWait)
 			appendStringInfo(buf, " NOWAIT");
 	}
+
+	context->windowClause = save_windowclause;
+	context->windowTList = save_windowtlist;
+	context->groupClause = save_groupclause;
 }
 
 static void
@@ -2487,10 +2512,10 @@ get_basic_select_query(Query *query, deparse_context *context,
 		bool first = true;
 		foreach(l, query->windowClause)
 		{
-			WindowSpec *spec = (WindowSpec *) lfirst(l);
+			WindowClause *wc = (WindowClause *) lfirst(l);
 
 			/* unnamed windows will be displayed in the target list */
-			if (!spec->name)
+			if (!wc->name)
 				continue;
 
 			if (first)
@@ -2502,8 +2527,8 @@ get_basic_select_query(Query *query, deparse_context *context,
 			else
 				appendStringInfoString(buf, ",");
 
-			appendStringInfo(buf, " %s AS ", quote_identifier(spec->name));
-			get_windowspec_expr(spec, context);
+			appendStringInfo(buf, " %s AS ", quote_identifier(wc->name));
+			get_rule_windowspec(wc, context->windowTList, context);
 		}
 	}
 }
@@ -2801,6 +2826,97 @@ get_rule_sortgroupclause(SortClause *srt, List *tlist, bool force_colno,
 		get_rule_expr(expr, context, true);
 
 	return expr;
+}
+
+
+/*
+ * Display a window definition
+ */
+static void
+get_rule_windowspec(WindowClause *wc, List *targetList,
+					deparse_context *context)
+{
+	StringInfo	buf = context->buf;
+	bool		needspace = false;
+
+	appendStringInfoChar(buf, '(');
+
+	if (wc->refname)
+	{
+		appendStringInfoString(buf, quote_identifier(wc->refname));
+		needspace = true;
+	}
+	/* partition clauses are always inherited, so only print if no refname */
+	if (wc->partitionClause && !wc->refname)
+	{
+		if (needspace)
+			appendStringInfoChar(buf, ' ');
+		get_sortlist_expr(wc->partitionClause,
+						  targetList,
+						  false,  /* force_colno */
+						  context,
+						  "PARTITION BY ");
+		needspace = true;
+	}
+	/* print ordering clause only if not inherited */
+	if (wc->orderClause && !wc->copiedOrder)
+	{
+		if (needspace)
+			appendStringInfoChar(buf, ' ');
+		get_sortlist_expr(wc->orderClause,
+						  targetList,
+						  false,  /* force_colno */
+						  context,
+						  "ORDER BY ");
+		needspace = true;
+	}
+
+	if (wc->frame)
+	{
+		WindowFrame *f = wc->frame;
+
+		/*
+		 * Like the ORDER-BY clause, if spec has a parent and that
+		 * parent defines framing, don't display the frame clause
+		 * here.
+		 */
+		bool display_frame = true;
+
+		if (wc->refname)
+		{
+			ListCell *l;
+			foreach(l, context->windowClause)
+			{
+				WindowClause *tmp = (WindowClause *) lfirst(l);
+
+				if (tmp->name && strcmp(wc->refname, tmp->name) == 0 &&
+					tmp->frame)
+				{
+					display_frame = false;
+					break;
+				}
+			}
+		}
+
+		if (display_frame)
+		{
+			if (needspace)
+				appendStringInfoChar(buf, ' ');
+			appendStringInfo(buf, "%s ", f->is_rows ? "ROWS" : "RANGE");
+			if (f->is_between)
+			{
+				appendStringInfo(buf, "BETWEEN ");
+				get_windowedge_expr(f->trail, context);
+				appendStringInfo(buf, " AND ");
+				get_windowedge_expr(f->lead, context);
+			}
+			else
+			{
+				get_windowedge_expr(f->trail, context);
+			}
+		}
+	}
+	appendStringInfoChar(buf, ')');
 }
 
 /* ----------
@@ -5200,21 +5316,22 @@ get_groupingfunc_expr(GroupingFunc *grpfunc, deparse_context *context)
 	ListCell *lc;
 	char *sep = "";
 	List *group_exprs;
-	if (context->query == NULL)
+
+	if (!context->groupClause)
 	{
 		appendStringInfoString(buf, "grouping");
 		return;
 	}
 
-	group_exprs = get_grouplist_exprs(context->query->groupClause,
-									  context->query->targetList);
+	group_exprs = get_grouplist_exprs(context->groupClause,
+									  context->windowTList);
 
 	appendStringInfoString(buf, "grouping(");
 	foreach (lc, grpfunc->args)
 	{
 		int entry_no = (int)intVal(lfirst(lc));
 		Node *expr;
-		Assert (entry_no < list_length(context->query->targetList));
+		Assert (entry_no < list_length(context->windowTList));
 
 		expr = (Node *)list_nth(group_exprs, entry_no);
 		appendStringInfoString(buf, sep);
@@ -5379,107 +5496,6 @@ get_sortlist_expr(List *l, List *targetList, bool force_colno,
 	}
 }
 
-static void
-get_windowspec_expr(WindowSpec *spec, deparse_context *context)
-{
-	StringInfo buf = context->buf;
-
-	appendStringInfoChar(buf, '(');
-
-	if (spec->parent)
-	{
-		appendStringInfo(buf, "%s", quote_identifier(spec->parent));
-	}
-	else
-	{
-		/* parent and partition are mutually exclusive */
-		if (spec->partition)
-			get_sortlist_expr(spec->partition, 
-                              context->query->targetList,
-                              false,  /* force_colno */
-                              context, 
-                              "PARTITION BY ");
-	}	
-	
-	if (spec->order)
-	{
-		/* 
-		 * If spec has a parent and that parent defines ordering, don't
-		 * display the order here.
-		 */
-		bool display_order = true;
-		
-		if (spec->parent)
-		{
-			ListCell *l;
-			foreach(l, context->query->windowClause)
-			{
-				WindowSpec *tmp = (WindowSpec *)lfirst(l);
-
-				if (tmp->name && strcmp(spec->parent, tmp->name) == 0 &&
-					tmp->order)
-				{
-					display_order = false;
-					break;
-				}
-			}
-		}
-		if (display_order)
-		{
-			get_sortlist_expr(spec->order, 
-                              context->query->targetList,
-                              false,  /* force_colno */
-                              context, 
-                              " ORDER BY ");
-		}
-	}
-	
-	if (spec->frame)
-	{
-		WindowFrame *f = spec->frame;
-
-		/*
-		 * Like the ORDER-BY clause, if spec has a parent and that
-		 * parent defines framing, don't display the frame clause
-		 * here.
-		 */
-		bool display_frame = true;
-		
-		if (spec->parent)
-		{
-			ListCell *l;
-			foreach(l, context->query->windowClause)
-			{
-				WindowSpec *tmp = (WindowSpec *)lfirst(l);
-
-				if (tmp->name && strcmp(spec->parent, tmp->name) == 0 &&
-					tmp->frame)
-				{
-					display_frame = false;
-					break;
-				}
-			}
-		}
-
-		if (display_frame)
-		{
-			appendStringInfo(buf, " %s ", f->is_rows ? "ROWS" : "RANGE");
-			if (f->is_between)
-			{
-				appendStringInfo(buf, "BETWEEN ");
-				get_windowedge_expr(f->trail, context);
-				appendStringInfo(buf, " AND ");
-				get_windowedge_expr(f->lead, context);
-			}
-			else
-			{
-				get_windowedge_expr(f->trail, context);
-			}
-		}
-	}
-	appendStringInfoChar(buf, ')');
-}
-
 /*
  * get_windowref_expr			- Parse back a WindowRef node
  */
@@ -5490,7 +5506,6 @@ get_windowref_expr(WindowRef *wref, deparse_context *context)
 	Oid			argtypes[FUNC_MAX_ARGS];
 	int			nargs;
 	ListCell   *l;
-	WindowSpec *spec;
 
 	if (list_length(wref->args) >= FUNC_MAX_ARGS)
 		ereport(ERROR,
@@ -5503,44 +5518,40 @@ get_windowref_expr(WindowRef *wref, deparse_context *context)
 		nargs++;
 	}
 
-	appendStringInfo(buf, "%s(",
+	appendStringInfo(buf, "%s(%s",
 					 generate_function_name(wref->winfnoid,
-											nargs, argtypes, NULL));
+											nargs, argtypes, NULL), "");
 	/* winstar can be set only in zero-argument aggregates */
 	if (wref->winstar)
 		appendStringInfoChar(buf, '*');
 	else
 		get_rule_expr((Node *) wref->args, context, true);
-	appendStringInfoChar(buf, ')');
+	appendStringInfoString(buf, ") OVER ");
 
-	/*
-	 * context->query can be NULL when called from explain.
-	 * In such cases, we do not attempt to extract OVER clause
-	 * details: MPP-20672.
-	 */
-	if (context->query == NULL)
+	foreach(l, context->windowClause)
 	{
-		return;
+		WindowClause *wc = (WindowClause *) lfirst(l);
+
+		if (wc->winref == wref->winref)
+		{
+			if (wc->name)
+				appendStringInfo(buf, "(%s)", quote_identifier(wc->name));
+			else
+				get_rule_windowspec(wc, context->windowTList, context);
+			break;
+		}
 	}
-
-	/* now for the OVER clause */
-	appendStringInfo(buf, " OVER");
-
-	spec = (WindowSpec *)list_nth(context->query->windowClause, wref->winspec);
-
-	/*
-	 * If the spec has a name, it must be in the WINDOW clause, which is
-	 * displayed later. We shouldn't actually encounter such a window
-	 * ref.
-	 */
-	if (spec->name)
+	if (l == NULL)
 	{
-		/* XXX: change this to an assertion later */
-		elog(ERROR, "internal error");
-	}
-	else
-	{
-		get_windowspec_expr(spec, context);
+		if (context->windowClause)
+			elog(ERROR, "could not find window clause for winref %u",
+				 wref->winref);
+
+		/*
+		 * In EXPLAIN, we don't have window context information available, so
+		 * we have to settle for this:
+		 */
+		appendStringInfoString(buf, "(?)");
 	}
 }
 

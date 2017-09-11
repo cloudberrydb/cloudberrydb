@@ -17,12 +17,13 @@
 
 extern void transformAggregateCall(ParseState *pstate, Aggref *agg, 
                                    List *agg_order);
-extern void transformWindowFuncCall(ParseState *pstate, WindowRef *wind, WindowSpec *over);
+extern void transformWindowFuncCall(ParseState *pstate, WindowRef *wind,
+									WindowDef *over);
 
 extern void parseCheckAggregates(ParseState *pstate, Query *qry);
 extern void parseCheckWindowFuncs(ParseState *pstate, Query *qry);
-extern void transformWindowSpec(ParseState *pstate, WindowSpec *spec);
-extern void transformWindowSpecExprs(ParseState *pstate);
+extern void transformWindowDef(ParseState *pstate, WindowDef *spec);
+extern void transformWindowDefExprs(ParseState *pstate);
 
 extern void build_aggregate_fnexprs(Oid *agg_input_types,
 						int agg_num_inputs,

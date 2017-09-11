@@ -1833,11 +1833,12 @@ CTranslatorUtils::FWindowSpec
 	List *plWindowClause
 	)
 {
-	ListCell *plcWindowCl = NULL;
+	ListCell *plcWindowCl;
 	ForEach (plcWindowCl, plWindowClause)
 	{
-		WindowSpec *pwindowspec = (WindowSpec*) lfirst(plcWindowCl);
-		if (FSortingColumn(pte, pwindowspec->order) || FSortingColumn(pte, pwindowspec->partition))
+		WindowClause *pwc = (WindowClause *) lfirst(plcWindowCl);
+		if (FSortingColumn(pte, pwc->orderClause) ||
+		    FSortingColumn(pte, pwc->partitionClause))
 		{
 			return true;
 		}

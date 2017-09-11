@@ -152,12 +152,11 @@ transformAggregateCall(ParseState *pstate, Aggref *agg, List *agg_order)
 
 void
 transformWindowFuncCall(ParseState *pstate, WindowRef *wind,
-						WindowSpec *over)
+						WindowDef *windef)
 {
-	int			winspec = 0;
-	ListCell   *over_lc;
+	char	   *name;
 
-	transformWindowSpec(pstate, over);
+	transformWindowDef(pstate, windef);
 
 	/*
 	 * A window function call can't contain another one (but aggs are OK). XXX
@@ -172,26 +171,90 @@ transformWindowFuncCall(ParseState *pstate, WindowRef *wind,
 								  locate_windowfunc((Node *) wind->args))));
 
 	/*
-	 * Find if this "over" clause has already existed. If so,
-	 * We let the "winspec" for this WindowRef point to
-	 * the existing "over" clause. In this way, we will be able
-	 * to determine if two WindowRef nodes are actually equal,
-	 * see MPP-4268.
+	 * If the OVER clause just specifies a window name, find that WINDOW
+	 * clause (which had better be present).  Otherwise, try to match all the
+	 * properties of the OVER clause, and make a new entry in the p_windowdefs
+	 * list if no luck.
+	 *
+	 * In PostgreSQL, the syntax for this is "agg() OVER w". In GPDB, we also
+	 * accept "agg() OVER (w)", with the extra parens.
 	 */
-	foreach (over_lc, pstate->p_win_clauses)
+	if (windef->name)
 	{
-		Node	   *over1 = lfirst(over_lc);
+		name = windef->name;
 
-		if (equal(over1, over))
-		{
-			break;
-		}
-		winspec++;
+		Assert(windef->refname == NULL &&
+			   windef->partitionClause == NIL &&
+			   windef->orderClause == NIL &&
+			   windef->frameOptions == FRAMEOPTION_DEFAULTS);
 	}
+	else if (windef->refname &&
+			 !windef->partitionClause &&
+			 !windef->orderClause &&
+			 (windef->frameOptions & FRAMEOPTION_NONDEFAULT) == 0)
+	{
+		/* This is "agg() OVER (w)" */
+		name = windef->refname;
+	}
+	else
+		name = NULL;
 
-	if (over_lc == NULL)
-		pstate->p_win_clauses = lappend(pstate->p_win_clauses, over);
-	wind->winspec = winspec;
+	if (name)
+	{
+		Index		winref = 0;
+		ListCell   *lc;
+
+		foreach(lc, pstate->p_windowdefs)
+		{
+			WindowDef  *refwin = (WindowDef *) lfirst(lc);
+
+			winref++;
+			if (refwin->name && strcmp(refwin->name, name) == 0)
+			{
+				wind->winref = winref;
+				break;
+			}
+		}
+		if (lc == NULL)			/* didn't find it? */
+			ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_OBJECT),
+					 errmsg("window \"%s\" does not exist", windef->name),
+					 parser_errposition(pstate, windef->location)));
+	}
+	else
+	{
+		Index		winref = 0;
+		ListCell   *lc;
+
+		foreach(lc, pstate->p_windowdefs)
+		{
+			WindowDef  *refwin = (WindowDef *) lfirst(lc);
+
+			winref++;
+			if (refwin->refname && windef->refname &&
+				strcmp(refwin->refname, windef->refname) == 0)
+				 /* matched on refname */ ;
+			else if (!refwin->refname && !windef->refname)
+				 /* matched, no refname */ ;
+			else
+				continue;
+			if (equal(refwin->partitionClause, windef->partitionClause) &&
+				equal(refwin->orderClause, windef->orderClause) &&
+				refwin->frameOptions == windef->frameOptions &&
+				equal(refwin->startOffset, windef->startOffset) &&
+				equal(refwin->endOffset, windef->endOffset))
+			{
+				/* found a duplicate window specification */
+				wind->winref = winref;
+				break;
+			}
+		}
+		if (lc == NULL)			/* didn't find it? */
+		{
+			pstate->p_windowdefs = lappend(pstate->p_windowdefs, windef);
+			wind->winref = list_length(pstate->p_windowdefs);
+		}
+	}
 
 	pstate->p_hasWindowFuncs = true;
 }
@@ -834,71 +897,65 @@ checkExprHasGroupExtFuncs(Node *node)
 }
 
 /*
- * transformWindowSpec
+ * transformWindowDef
  *
- * Transform the expression inside a "WindowSpec" structure.
+ * Transform the expression inside a "WindowDef" structure.
  */
 void
-transformWindowSpec(ParseState *pstate, WindowSpec *spec)
+transformWindowDef(ParseState *pstate, WindowDef *spec)
 {
 	ListCell *lc2;
 	List *new = NIL;
 
-	foreach(lc2, spec->partition)
-		{
-			Node *n = (Node *)lfirst(lc2);
-			SortBy *sb;
+	foreach(lc2, spec->partitionClause)
+	{
+		Node *n = (Node *)lfirst(lc2);
+		SortBy *sb;
 
-			Assert(IsA(n, SortBy));
+		Assert(IsA(n, SortBy));
 
-			sb = (SortBy *)n;
+		sb = (SortBy *)n;
 
-			sb->node = (Node *)transformExpr(pstate, sb->node);
-			new = lappend(new, (void *)sb);
-		}
-	spec->partition = new;
+		sb->node = (Node *)transformExpr(pstate, sb->node);
+		new = lappend(new, (void *)sb);
+	}
+	spec->partitionClause = new;
 		
 	new = NIL;
-	foreach(lc2, spec->order)
-		{
-			Node *n = (Node *)lfirst(lc2);
-			SortBy *sb;
-
-			Assert(IsA(n, SortBy));
-
-			sb = (SortBy *)n;
-
-			sb->node = (Node *)transformExpr(pstate, sb->node);
-			new = lappend(new, (void *)sb);
-		}
-	spec->order = new;
-
-	if (spec->frame)
+	foreach(lc2, spec->orderClause)
 	{
-		WindowFrame *frame = spec->frame;
+		Node *n = (Node *) lfirst(lc2);
+		SortBy *sb;
 
-		if (frame->trail)
-			frame->trail->val = transformExpr(pstate, frame->trail->val);
-		if (frame->lead)
-			frame->lead->val = transformExpr(pstate, frame->lead->val);
+		Assert(IsA(n, SortBy));
 
+		sb = (SortBy *) n;
+
+		sb->node = (Node *) transformExpr(pstate, sb->node);
+		new = lappend(new, (void *) sb);
 	}
+	spec->orderClause = new;
+
+	if (spec->startOffset)
+		spec->startOffset = transformExpr(pstate, spec->startOffset);
+	if (spec->endOffset)
+		spec->endOffset = transformExpr(pstate, spec->endOffset);
 }
 
 /*
- * transformWindowSpecExprs
+ * transformWindowDefExprs
  *
- * Do a quick pre-process of WindowSpecs to transform expressions into
+ * Do a quick pre-process of WindowDefs to transform expressions into
  * something the rest of the parser is going to recognise.
  */
 void
-transformWindowSpecExprs(ParseState *pstate)
+transformWindowDefExprs(ParseState *pstate)
 {
 	ListCell *lc;
 
-	foreach(lc, pstate->p_win_clauses)
+	foreach(lc, pstate->p_windowdefs)
 	{
-		WindowSpec *s = (WindowSpec *)lfirst(lc);
-		transformWindowSpec(pstate, s);
+		WindowDef *wdef = (WindowDef *)lfirst(lc);
+		transformWindowDef(pstate, wdef);
 	}
 }

@@ -17,7 +17,6 @@
 #include "parser/parse_node.h"
 
 extern void transformFromClause(ParseState *pstate, List *frmList);
-extern void transformWindowClause(ParseState *pstate, Query *qry);
 extern int setTargetTable(ParseState *pstate, RangeVar *relation,
 			   bool inh, bool alsoSource, AclMode requiredPerms);
 extern bool interpretInhOption(InhOption inhOpt);
@@ -33,6 +32,11 @@ extern List *transformGroupClause(ParseState *pstate, List *grouplist,
 extern List *transformSortClause(ParseState *pstate, List *orderlist,
                                  List **targetlist, bool resolveUnknown,
                                  bool useSQL99);
+
+extern List *transformWindowDefinitions(ParseState *pstate,
+						   List *windowdefs,
+						   List **targetlist);
+
 extern List *transformDistinctClause(ParseState *pstate, List *distinctlist,
 						List **targetlist, List **sortClause, List **groupClause);
 extern List *transformScatterClause(ParseState *pstate, List *scatterlist,

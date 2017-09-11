@@ -483,21 +483,6 @@ _readGroupId(void)
 	READ_DONE();
 }
 
-static WindowSpec *
-_readWindowSpec(void)
-{
-	READ_LOCALS(WindowSpec);
-
-	READ_STRING_FIELD(name);
-	READ_STRING_FIELD(parent);
-	READ_NODE_FIELD(partition);
-	READ_NODE_FIELD(order);
-	READ_NODE_FIELD(frame);
-	READ_LOCATION_FIELD(location);
-
-	READ_DONE();
-}
-
 static WindowFrame *
 _readWindowFrame(void)
 {
@@ -538,6 +523,24 @@ _readPercentileExpr(void)
 
 	READ_DONE();
 }
+
+static WindowClause *
+_readWindowClause(void)
+{
+	READ_LOCALS(WindowClause);
+
+	READ_STRING_FIELD(name);
+	READ_STRING_FIELD(refname);
+	READ_NODE_FIELD(partitionClause);
+	READ_NODE_FIELD(orderClause);
+	READ_INT_FIELD(frameOptions);
+	READ_UINT_FIELD(winref);
+	READ_NODE_FIELD(frame);
+	READ_BOOL_FIELD(copiedOrder);
+
+	READ_DONE();
+}
+
 /*
  * _readRowMarkClause
  */
@@ -1345,7 +1348,7 @@ _readWindowRef(void)
 	READ_OID_FIELD(winfnoid);
 	READ_OID_FIELD(restype);
 	READ_NODE_FIELD(args);
-	READ_UINT_FIELD(winspec);
+	READ_UINT_FIELD(winref);
 	READ_BOOL_FIELD(winstar);
 	READ_BOOL_FIELD(winagg);
 	READ_BOOL_FIELD(windistinct);
@@ -2880,6 +2883,8 @@ parseNodeString(void)
 		return_value = _readSortClause();
 	else if (MATCH("GROUPCLAUSE", 11))
 		return_value = _readGroupClause();
+	else if (MATCH("WINDOWCLAUSE", 12))
+		return_value = _readWindowClause();
 	else if (MATCH("ROWMARKCLAUSE", 13))
 		return_value = _readRowMarkClause();
 	else if (MATCH("SETOPERATIONSTMT", 16))
@@ -3164,8 +3169,6 @@ parseNodeString(void)
 		return_value = _readWindowKey();
 	else if (MATCHX("WINDOWREF"))
 		return_value = _readWindowRef();
-	else if (MATCHX("WINDOWSPEC"))
-		return_value = _readWindowSpec();
 	else if (MATCHX("WITHCLAUSE"))
 		return_value = _readWithClause();
 	else

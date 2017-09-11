@@ -1464,29 +1464,29 @@ CTranslatorQueryToDXL::Pdrgpdxlws
 	DrgPdxlws *pdrgpdxlws = GPOS_NEW(m_pmp) DrgPdxlws(m_pmp);
 
 	// translate window specification
-	ListCell *plcWindowSpec = NULL;
-	ForEach (plcWindowSpec, plWindowClause)
+	ListCell *plcWindowCl;
+	ForEach (plcWindowCl, plWindowClause)
 	{
-		WindowSpec *pwindowspec = (WindowSpec *) lfirst(plcWindowSpec);
-		DrgPul *pdrgppulPartCol = PdrgpulPartCol(pwindowspec->partition, phmiulSortColsColId);
+		WindowClause *pwc = (WindowClause *) lfirst(plcWindowCl);
+		DrgPul *pdrgppulPartCol = PdrgpulPartCol(pwc->partitionClause, phmiulSortColsColId);
 
 		CDXLNode *pdxlnSortColList = NULL;
 		CMDName *pmdname = NULL;
 		CDXLWindowFrame *pdxlwf = NULL;
 
-		if (NULL != pwindowspec->name)
+		if (NULL != pwc->name)
 		{
-			CWStringDynamic *pstrAlias = CDXLUtils::PstrFromSz(m_pmp, pwindowspec->name);
+			CWStringDynamic *pstrAlias = CDXLUtils::PstrFromSz(m_pmp, pwc->name);
 			pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, pstrAlias);
 			GPOS_DELETE(pstrAlias);
 		}
 
-		if (0 < gpdb::UlListLength(pwindowspec->order))
+		if (0 < gpdb::UlListLength(pwc->orderClause))
 		{
 			// create a sorting col list
 			pdxlnSortColList = GPOS_NEW(m_pmp) CDXLNode(m_pmp, GPOS_NEW(m_pmp) CDXLScalarSortColList(m_pmp));
 
-			DrgPdxln *pdrgpdxlnSortCol = PdrgpdxlnSortCol(pwindowspec->order, phmiulSortColsColId);
+			DrgPdxln *pdrgpdxlnSortCol = PdrgpdxlnSortCol(pwc->orderClause, phmiulSortColsColId);
 			const ULONG ulSize = pdrgpdxlnSortCol->UlLength();
 			for (ULONG ul = 0; ul < ulSize; ul++)
 			{
@@ -1497,9 +1497,9 @@ CTranslatorQueryToDXL::Pdrgpdxlws
 			pdrgpdxlnSortCol->Release();
 		}
 
-		if (NULL != pwindowspec->frame)
+		if (NULL != pwc->frame)
 		{
-			pdxlwf = m_psctranslator->Pdxlwf((Expr *) pwindowspec->frame, m_pmapvarcolid, pdxlnScPrL, &m_fHasDistributedTables);
+			pdxlwf = m_psctranslator->Pdxlwf((Expr *) pwc->frame, m_pmapvarcolid, pdxlnScPrL, &m_fHasDistributedTables);
 		}
 
 		CDXLWindowSpec *pdxlws = GPOS_NEW(m_pmp) CDXLWindowSpec(m_pmp, pdrgppulPartCol, pmdname, pdxlnSortColList, pdxlwf);

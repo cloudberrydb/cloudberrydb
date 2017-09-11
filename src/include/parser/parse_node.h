@@ -57,6 +57,12 @@ struct HTAB;  /* utils/hsearch.h */
  * at the moment.  This is different from p_relnamespace because you have
  * to make an RTE before you can access a CTE.
  *
+ * p_windowdefs: list of WindowDefs representing WINDOW and OVER clauses.
+ * We collect these while transforming expressions and then transform them
+ * afterwards (so that any resjunk tlist items needed for the sort/group
+ * clauses end up at the end of the query tlist).  A WindowDef's location in
+ * this list, counting from 1, is the winref number to use to reference it.
+ *
  * p_paramtypes: an array of p_numparams type OIDs for $n parameter symbols
  * (zeroth entry in array corresponds to $1).  If p_variableparams is true, the
  * set of param types is not predetermined; in that case, a zero array entry
@@ -77,6 +83,7 @@ typedef struct ParseState
 	List	   *p_varnamespace; /* current namespace for columns */
 	List       *p_ctenamespace; /* current namespace for common-table-expressions */
 	List	   *p_future_ctes;	/* common table exprs not yet in namespace */
+	List	   *p_windowdefs;	/* raw representations of window clauses */
 	Oid		   *p_paramtypes;	/* OIDs of types for $n parameter symbols */
 	int			p_numparams;	/* allocated size of p_paramtypes[] */
 	int			p_next_resno;	/* next targetlist resno to assign */
@@ -90,7 +97,6 @@ typedef struct ParseState
 	bool		p_is_update;
 	Relation	p_target_relation;
 	RangeTblEntry *p_target_rangetblentry;
-	List	   *p_win_clauses;	/* list of window specifications */
 	Node       *having_qual; /* Having clause */
 	struct HTAB *p_namecache;  /* parse state object name cache */
 	bool        p_hasTblValueExpr;

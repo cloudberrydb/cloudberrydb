@@ -654,7 +654,7 @@ subquery_planner(PlannerGlobal *glob, Query *parse,
 	 */
 	foreach(l, parse->windowClause)
 	{
-		WindowSpec *w = (WindowSpec *) lfirst(l);
+		WindowClause *w = (WindowClause *) lfirst(l);
 
 		if (w != NULL && w->frame != NULL)
 		{

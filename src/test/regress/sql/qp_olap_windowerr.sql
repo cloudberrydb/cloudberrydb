@@ -3704,6 +3704,14 @@ SELECT sum(g) OVER (ORDER BY g  ROWS BETWEEN UNBOUNDED PRECEDING AND retneg() FO
 
 drop function retneg();
 
+
+-- Overriding a window frame (i.e. ROWS BETWEEN ...) in the OVER clause,
+-- when a frame already given in the WINDOW definition, is not allowed.
+select avg(a) over (w rows between 1 preceding and 1 following)
+from generate_series(1,5) a
+window w as (order by a rows between unbounded preceding and unbounded following);
+
+
 -- start_ignore
 CREATE TABLE filter_test (i int, j int) DISTRIBUTED BY (i);
 INSERT INTO filter_test VALUES (1, 1);

@@ -321,7 +321,7 @@ typedef struct FuncCall
 	bool		agg_star;		/* argument was really '*' */
 	bool		agg_distinct;	/* arguments were labeled DISTINCT */
 	bool		func_variadic;	/* last argument was labeled VARIADIC */
-	struct WindowSpec *over;	/* OVER clause, if any */
+	struct WindowDef *over;		/* OVER clause, if any */
 	int			location;		/* token location, or -1 if unknown */
 } FuncCall;
 
@@ -406,6 +406,59 @@ typedef struct SortBy
 	Node	   *node;			/* expression to sort on */
 	int			location;		/* operator location, or -1 if none/unknown */
 } SortBy;
+
+/*
+ * WindowDef - raw representation of WINDOW and OVER clauses
+ *
+ * For entries in a WINDOW list, "name" is the window name being defined.
+ * For OVER clauses, we use "name" for the "OVER window" syntax, or "refname"
+ * for the "OVER (window)" syntax, which is subtly different --- the latter
+ * implies overriding the window frame clause.
+ */
+typedef struct WindowDef
+{
+	NodeTag		type;
+	char	   *name;			/* window's own name */
+	char	   *refname;		/* referenced window name, if any */
+	List	   *partitionClause;	/* PARTITION BY expression list */
+	List	   *orderClause;	/* ORDER BY (list of SortBy) */
+	int			frameOptions;	/* frame_clause options, see below */
+	Node	   *startOffset;	/* expression for starting bound, if any */
+	Node	   *endOffset;		/* expression for ending bound, if any */
+	int			location;		/* parse location, or -1 if none/unknown */
+} WindowDef;
+
+/*
+ * frameOptions is an OR of these bits.  The NONDEFAULT and BETWEEN bits are
+ * used so that ruleutils.c can tell which properties were specified and
+ * which were defaulted; the correct behavioral bits must be set either way.
+ * The START_foo and END_foo options must come in pairs of adjacent bits for
+ * the convenience of gram.y, even though some of them are useless/invalid.
+ * We will need more bits (and fields) to cover the full SQL:2008 option set.
+ */
+#define FRAMEOPTION_NONDEFAULT					0x00001 /* any specified? */
+#define FRAMEOPTION_RANGE						0x00002 /* RANGE behavior */
+#define FRAMEOPTION_ROWS						0x00004 /* ROWS behavior */
+#define FRAMEOPTION_BETWEEN						0x00008 /* BETWEEN given? */
+#define FRAMEOPTION_START_UNBOUNDED_PRECEDING	0x00010 /* start is U. P. */
+#define FRAMEOPTION_END_UNBOUNDED_PRECEDING		0x00020 /* (disallowed) */
+#define FRAMEOPTION_START_UNBOUNDED_FOLLOWING	0x00040 /* (disallowed) */
+#define FRAMEOPTION_END_UNBOUNDED_FOLLOWING		0x00080 /* end is U. F. */
+#define FRAMEOPTION_START_CURRENT_ROW			0x00100 /* start is C. R. */
+#define FRAMEOPTION_END_CURRENT_ROW				0x00200 /* end is C. R. */
+#define FRAMEOPTION_START_VALUE_PRECEDING		0x00400 /* start is V. P. */
+#define FRAMEOPTION_END_VALUE_PRECEDING			0x00800 /* end is V. P. */
+#define FRAMEOPTION_START_VALUE_FOLLOWING		0x01000 /* start is V. F. */
+#define FRAMEOPTION_END_VALUE_FOLLOWING			0x02000 /* end is V. F. */
+
+#define FRAMEOPTION_START_VALUE \
+	(FRAMEOPTION_START_VALUE_PRECEDING | FRAMEOPTION_START_VALUE_FOLLOWING)
+#define FRAMEOPTION_END_VALUE \
+	(FRAMEOPTION_END_VALUE_PRECEDING | FRAMEOPTION_END_VALUE_FOLLOWING)
+
+#define FRAMEOPTION_DEFAULTS \
+	(FRAMEOPTION_RANGE | FRAMEOPTION_START_UNBOUNDED_PRECEDING | \
+	 FRAMEOPTION_END_CURRENT_ROW)
 
 /*
  * RangeSubselect - subquery appearing in a FROM clause
@@ -812,6 +865,34 @@ typedef struct GroupingFunc
 	int       ngrpcols; /* the number of grouping attributes */
 } GroupingFunc;
 
+
+/*
+ * WindowClause -
+ *		transformed representation of WINDOW and OVER clauses
+ *
+ * A parsed Query's windowClause list contains these structs.  "name" is set
+ * if the clause originally came from WINDOW, and is NULL if it originally
+ * was an OVER clause (but note that we collapse out duplicate OVERs).
+ * partitionClause and orderClause are lists of SortGroupClause structs.
+ * winref is an ID number referenced by WindowFunc nodes; it must be unique
+ * among the members of a Query's windowClause list.
+ * When refname isn't null, the partitionClause is always copied from there;
+ * the orderClause might or might not be copied (see copiedOrder); the framing
+ * options are never copied, per spec.
+ */
+typedef struct WindowClause
+{
+	NodeTag		type;
+	char	   *name;			/* window name (NULL in an OVER clause) */
+	char	   *refname;		/* referenced window name, if any */
+	List	   *partitionClause;	/* PARTITION BY list */
+	List	   *orderClause;	/* ORDER BY list */
+	int			frameOptions;	/* frame_clause options, copied from WindowDef */
+	WindowFrame *frame;
+	Index		winref;			/* ID referenced by window functions */
+	bool		copiedOrder;	/* did we copy orderClause from refname? */
+} WindowClause;
+
 /*
  * RowMarkClause -
  *	   representation of FOR UPDATE/SHARE clauses
@@ -989,17 +1070,6 @@ typedef struct SelectStmt
 	List       *distributedBy;  /* GPDB: columns to distribute the data on. */
 
 } SelectStmt;
-
-typedef struct WindowSpec
-{
-	NodeTag type;
-	char *name;	/* name of window specification */
-	char *parent; /* parent window, e.g. OVER(PB, myspec); */
-	List *partition; /* PARTITION BY clause */
-	List *order; /* ORDER BY clause */
-	WindowFrame *frame;
-	int			location;		/* token location, or -1 if unknown */
-} WindowSpec;
 
 
 /* ----------------------

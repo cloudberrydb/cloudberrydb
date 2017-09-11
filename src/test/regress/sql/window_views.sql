@@ -60,14 +60,6 @@ create view v10 as
   from testtab window w as (order by a);
 select pg_get_viewdef('v10');
 
--- Overriding a window frame (i.e. ROWS BETWEEN ...) in the OVER clause,
--- when a frame already given in the WINDOW definition. This is not allowed
--- in PostgreSQL. Does it actually work on GPDB?
-create view v11 as
-  select avg(a) over (w rows between 1 preceding and 1 following)
-  from testtab window w as (order by a rows between unbounded preceding and unbounded following);
-select pg_get_viewdef('v11');
-
 -- Check that COUNT(*) is dumped with the star intact.
 create view v_star as
   select count(*) over (partition by a)

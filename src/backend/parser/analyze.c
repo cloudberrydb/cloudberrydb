@@ -1491,7 +1491,7 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 	 * Put WINDOW clause data into pstate so that window references know
 	 * about them.
 	 */
-	pstate->p_win_clauses = stmt->windowClause;
+	pstate->p_windowdefs = stmt->windowClause;
 
 	/* process the WITH clause */
 	if (stmt->withClause)
@@ -1504,7 +1504,7 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 	transformFromClause(pstate, stmt->fromClause);
 
 	/* tidy up expressions in window clauses */
-	transformWindowSpecExprs(pstate);
+	transformWindowDefExprs(pstate);
 
 	/* transform targetlist */
 	qry->targetList = transformTargetList(pstate, stmt->targetList);
@@ -1563,11 +1563,6 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 	qry->havingQual = pstate->having_qual;
 	pstate->having_qual = NULL;
 
-	/*
-	 * Process WINDOW clause.
-	 */
-	transformWindowClause(pstate, qry);
-
 	qry->distinctClause = transformDistinctClause(pstate,
 												  stmt->distinctClause,
 												  &qry->targetList,
@@ -1578,6 +1573,11 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 											"OFFSET");
 	qry->limitCount = transformLimitClause(pstate, stmt->limitCount,
 										   "LIMIT");
+
+	/* transform window clauses after we have seen all window functions */
+	qry->windowClause = transformWindowDefinitions(pstate,
+												   pstate->p_windowdefs,
+												   &qry->targetList);
 
 	/* handle any SELECT INTO/CREATE TABLE AS spec */
 	qry->intoClause = NULL;

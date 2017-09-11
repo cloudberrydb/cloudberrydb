@@ -1734,13 +1734,13 @@ qual_is_pushdown_safe(Query *subquery, Index rti, Node *qual,
 		 * */
 		if (subquery->windowClause != NIL)
 		{
-			ListCell   *lc = NULL;
+			ListCell   *lc;
 
 			foreach(lc, subquery->windowClause)
 			{
-				WindowSpec *ws = (WindowSpec *) lfirst(lc);
+				WindowClause *wc = (WindowClause *) lfirst(lc);
 
-				if (!targetIsInSortGroupList(tle, InvalidOid, ws->partition))
+				if (!targetIsInSortGroupList(tle, InvalidOid, wc->partitionClause))
 				{
 					/*
 					 * qual's columns are not included in Partition-By clause,

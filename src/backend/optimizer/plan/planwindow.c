@@ -550,19 +550,19 @@ ntile_argument_walker(Node *node, List *part_tlist)
  * should be either a constant or expressions in PARTITION BY clauses.
  */
 static void
-check_ntile_argument(List *args, WindowSpec *win_spec, List *tlist)
+check_ntile_argument(List *args, WindowClause *wc, List *tlist)
 {
 	ListCell *lc;
 	List *part_tlist = NIL;
 	
-	if (list_length(win_spec->partition) > 0)
+	if (list_length(wc->partitionClause) > 0)
 	{
 		/*
 		 * Obtain the list of target entries for each expression in the
 		 * PARTITION BY clause. The PARTITION BY expressions should appear
 		 * in tlist.
 		 */
-		foreach (lc, win_spec->partition)
+		foreach (lc, wc->partitionClause)
 		{
 			ListCell *tlist_lc = NULL;
 			
@@ -710,9 +710,9 @@ static Node * window_tlist_mutator(Node *node, WindowContext *context)
 			 */
 			if (IS_NTILE(context->cur_refinfo->winkind))
 			{
-				WindowSpec *winspec = list_nth(context->win_specs, new_ref->winspec);
+				WindowClause *wc = list_nth(context->win_specs, new_ref->winref - 1);
 				
-				check_ntile_argument(new_ref->args, winspec, context->orig_tlist);
+				check_ntile_argument(new_ref->args, wc, context->orig_tlist);
 			}
 
 			/* Record the WindowRef and its Vars referenced set. */
@@ -777,24 +777,24 @@ static void inventory_window_specs(List *window_specs, WindowContext *context)
 	i = 0;
 	foreach ( lcs, window_specs )
 	{
-		WindowSpec *spec = (WindowSpec *) lfirst(lcs);
+		WindowClause *spec = (WindowClause *) lfirst(lcs);
 		Bitmapset *map = NULL;
 		ListCell *lc;
 		Bitmapset *orderset = NULL;
 		
-		foreach ( lcp, spec->partition )
+		foreach ( lcp, spec->partitionClause )
 		{
 			SortClause *sc = (SortClause *) lfirst(lcp);
 			map = bms_add_member(map, sc->tleSortGroupRef);
 		}
 		specinfos[i].specindex = i;
 		specinfos[i].partset = map;
-		specinfos[i].order = spec->order;
+		specinfos[i].order = spec->orderClause;
 		specinfos[i].frame = spec->frame;
 		specinfos[i].refset = NULL;
 		specinfos[i].windowindex = 0;
 		specinfos[i].keylevel = 0;
-		specinfos[i].partkey = spec->partition;
+		specinfos[i].partkey = spec->partitionClause;
 
 		/* Construct unique_order for each SpecInfo by removing
 		 * keys that are duplicates of partitioning keys and other
@@ -833,7 +833,7 @@ static void inventory_window_specs(List *window_specs, WindowContext *context)
 	{
 		RefInfo *rinfo = (RefInfo *)lfirst(lcr);
 		WindowRef *ref = rinfo->ref;
-		int sindex = ref->winspec;
+		int			sindex = ref->winref - 1;
 		SpecInfo *sinfo = &specinfos[sindex];
 
 		/* If Special Framing ... */
@@ -2950,7 +2950,8 @@ static List *make_rowkey_targets()
 	row->winfnoid = ROW_NUMBER_OID;
 	row->restype = ROW_NUMBER_TYPE;
 	row->args = NIL;
-	row->winspec = row->winindex = 0;
+	row->winref = 1;
+	row->winindex = 0;
 	row->winstage = WINSTAGE_ROWKEY; /* so setrefs doesn't get confused  */
 	row->winlevel = 0;
 	row->location = -1;

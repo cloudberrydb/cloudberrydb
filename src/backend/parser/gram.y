@@ -93,6 +93,10 @@
 #define YYMALLOC palloc
 #define YYFREE   pfree
 
+
+#define parser_yyerror(msg)  scanner_yyerror(msg)
+#define parser_errposition(pos)  scanner_errposition(pos)
+
 extern List *parsetree;			/* final parse result is delivered here */
 
 static bool QueryIsRule = FALSE;
@@ -159,7 +163,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 	FuncWithArgs		*funwithargs;
 	DefElem				*defelt;
 	SortBy				*sortby;
-	WindowSpec			*winspec;
+	WindowDef			*windef;
 	JoinExpr			*jexpr;
 	IndexElem			*ielem;
 	Alias				*alias;
@@ -474,15 +478,11 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <list>	cte_list
 
 %type <list>	window_clause window_definition_list opt_partition_clause
-%type <winspec>	window_definition window_specification
+%type <windef>	window_definition window_specification
 %type <list>	opt_window_order_clause
 %type <str>		opt_existing_window_name
-%type <boolean>	window_frame_units
+%type <windef>	opt_frame_clause frame_extent frame_bound
 %type <ival>	window_frame_exclusion
-%type <node>	window_frame_extent
-				window_frame_start window_frame_preceding window_frame_between
-				window_frame_bound window_frame_following
-				window_frame_clause opt_window_frame_clause
 
 
 /*
@@ -12098,21 +12098,24 @@ window_definition_list:
 window_definition:
 			ColId AS window_specification
 				{
-					WindowSpec *n = $3;
+					WindowDef *n = $3;
 					n->name = $1;
 					$$ = n;
 				}
 		;
 
 window_specification: '(' opt_existing_window_name opt_partition_clause
-				opt_window_order_clause opt_window_frame_clause ')'
+				opt_window_order_clause opt_frame_clause ')'
 				{
-					WindowSpec *n = makeNode(WindowSpec);
+					WindowDef *n = makeNode(WindowDef);
 					n->name = NULL;
-					n->parent = $2;
-					n->partition = $3;
-					n->order = $4;
-					n->frame = (WindowFrame *) $5;
+					n->refname = $2;
+					n->partitionClause = $3;
+					n->orderClause = $4;
+					/* copy relevant fields of opt_frame_clause */
+					n->frameOptions = $5->frameOptions;
+					n->startOffset = $5->startOffset;
+					n->endOffset = $5->endOffset;
 					n->location = @1;
 					$$ = n;
 				}
@@ -12130,108 +12133,153 @@ opt_window_order_clause: sort_clause { $$ = $1; }
 			| /*EMPTY*/ { $$ = NIL; }
         ;
 
-opt_window_frame_clause: window_frame_clause { $$ = $1; }
-		| /*EMPTY*/ { $$ = NULL; }
-		;
-
-window_frame_clause: window_frame_units window_frame_extent
-			window_frame_exclusion
+/*
+ * For frame clauses, we return a WindowDef, but only some fields are used:
+ * frameOptions, startOffset, and endOffset.
+ *
+ * This is only a subset of the full SQL:2008 frame_clause grammar.
+ * We don't support <window frame exclusion> yet.
+ */
+opt_frame_clause:
+			RANGE frame_extent
+				window_frame_exclusion
 				{
-					WindowFrame *n = makeNode(WindowFrame);
-					n->is_rows = $1;
-
-					if (IsA($2, List))
-					{
-						List *ex = (List *)$2;
-
-						n->trail = (WindowFrameEdge *)linitial(ex);
-						n->lead = (WindowFrameEdge *)lsecond(ex);
-						n->is_between = true;
-					}
-					else
-					{
-						Assert(IsA($2, WindowFrameEdge));
-						n->trail = (WindowFrameEdge *)$2;
-						n->lead = NULL;
-						n->is_between = false;
-					}
-					$$ = (Node *)n;
+					WindowDef *n = $2;
+					n->frameOptions |= FRAMEOPTION_NONDEFAULT | FRAMEOPTION_RANGE;
+#if 0
+					if (n->frameOptions & (FRAMEOPTION_START_VALUE_PRECEDING |
+										   FRAMEOPTION_END_VALUE_PRECEDING))
+						ereport(ERROR,
+								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+								 errmsg("RANGE PRECEDING is only supported with UNBOUNDED"),
+								 parser_errposition(@1)));
+					if (n->frameOptions & (FRAMEOPTION_START_VALUE_FOLLOWING |
+										   FRAMEOPTION_END_VALUE_FOLLOWING))
+						ereport(ERROR,
+								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+								 errmsg("RANGE FOLLOWING is only supported with UNBOUNDED"),
+								 parser_errposition(@1)));
+#endif
+					$$ = n;
+				}
+			| ROWS frame_extent
+				window_frame_exclusion
+				{
+					WindowDef *n = $2;
+					n->frameOptions |= FRAMEOPTION_NONDEFAULT | FRAMEOPTION_ROWS;
+					$$ = n;
+				}
+			| /*EMPTY*/
+				{
+					WindowDef *n = makeNode(WindowDef);
+					n->frameOptions = FRAMEOPTION_DEFAULTS;
+					n->startOffset = NULL;
+					n->endOffset = NULL;
+					$$ = n;
 				}
 		;
 
-/* units are either rows (true) otherwise false */
-window_frame_units: ROWS { $$ = true; }
-			| RANGE { $$ = false; }
-		;
-
-window_frame_extent:
-			window_frame_start { $$ = $1; }
-			| window_frame_between { $$ = $1; }
-		;
-
-window_frame_start:
-			UNBOUNDED PRECEDING
+frame_extent: frame_bound
 				{
-					WindowFrameEdge *n = makeNode(WindowFrameEdge);
-					n->kind = WINDOW_UNBOUND_PRECEDING;
-					n->val = NULL;
-					$$ = (Node *)n;
+					WindowDef *n = $1;
+					/* reject invalid cases */
+					if (n->frameOptions & FRAMEOPTION_START_UNBOUNDED_FOLLOWING)
+						ereport(ERROR,
+								(errcode(ERRCODE_WINDOWING_ERROR),
+								 errmsg("frame start cannot be UNBOUNDED FOLLOWING"),
+								 parser_errposition(@1)));
+					if (n->frameOptions & FRAMEOPTION_START_VALUE_FOLLOWING)
+						ereport(ERROR,
+								(errcode(ERRCODE_WINDOWING_ERROR),
+								 errmsg("frame starting from following row cannot end with current row"),
+								 parser_errposition(@1)));
+					n->frameOptions |= FRAMEOPTION_END_CURRENT_ROW;
+					$$ = n;
 				}
-			| window_frame_preceding
+			| BETWEEN frame_bound AND frame_bound
 				{
-					WindowFrameEdge *n = makeNode(WindowFrameEdge);
-					n->kind = WINDOW_BOUND_PRECEDING;
-					n->val = $1;
-					$$ = (Node *)n;
-				}
-			| CURRENT_P ROW
-				{
-					WindowFrameEdge *n = makeNode(WindowFrameEdge);
-					n->kind = WINDOW_CURRENT_ROW;
-					$$ = (Node *)n;
-				}
-		;
-
-window_frame_preceding: a_expr PRECEDING
-				{
-					$$ = (Node *)$1;
-				}
-		;
-
-window_frame_between:
-			BETWEEN window_frame_bound AND window_frame_bound
-				{
-					/* slightly dodgy hack */
-					$$ = (Node *)list_make2($2, $4);
+					WindowDef *n1 = $2;
+					WindowDef *n2 = $4;
+					/* form merged options */
+					int		frameOptions = n1->frameOptions;
+					/* shift converts START_ options to END_ options */
+					frameOptions |= n2->frameOptions << 1;
+					frameOptions |= FRAMEOPTION_BETWEEN;
+					/* reject invalid cases */
+					if (frameOptions & FRAMEOPTION_START_UNBOUNDED_FOLLOWING)
+						ereport(ERROR,
+								(errcode(ERRCODE_WINDOWING_ERROR),
+								 errmsg("frame start cannot be UNBOUNDED FOLLOWING"),
+								 parser_errposition(@2)));
+					if (frameOptions & FRAMEOPTION_END_UNBOUNDED_PRECEDING)
+						ereport(ERROR,
+								(errcode(ERRCODE_WINDOWING_ERROR),
+								 errmsg("frame end cannot be UNBOUNDED PRECEDING"),
+								 parser_errposition(@4)));
+					if ((frameOptions & FRAMEOPTION_START_CURRENT_ROW) &&
+						(frameOptions & FRAMEOPTION_END_VALUE_PRECEDING))
+						ereport(ERROR,
+								(errcode(ERRCODE_WINDOWING_ERROR),
+								 errmsg("frame starting from current row cannot have preceding rows"),
+								 parser_errposition(@4)));
+					if ((frameOptions & FRAMEOPTION_START_VALUE_FOLLOWING) &&
+						(frameOptions & (FRAMEOPTION_END_VALUE_PRECEDING |
+										 FRAMEOPTION_END_CURRENT_ROW)))
+						ereport(ERROR,
+								(errcode(ERRCODE_WINDOWING_ERROR),
+								 errmsg("frame starting from following row cannot have preceding rows"),
+								 parser_errposition(@4)));
+					n1->frameOptions = frameOptions;
+					n1->endOffset = n2->startOffset;
+					$$ = n1;
 				}
 		;
 
 /*
- * Be careful that we don't allow BETWEEN UNBOUND PRECEDING AND
- * UNBOUND PRECEDING
+ * This is used for both frame start and frame end, with output set up on
+ * the assumption it's frame start; the frame_extent productions must reject
+ * invalid cases.
  */
-
-window_frame_bound:
-			window_frame_start { $$ = $1; }
+frame_bound:
+			UNBOUNDED PRECEDING
+				{
+					WindowDef *n = makeNode(WindowDef);
+					n->frameOptions = FRAMEOPTION_START_UNBOUNDED_PRECEDING;
+					n->startOffset = NULL;
+					n->endOffset = NULL;
+					$$ = n;
+				}
 			| UNBOUNDED FOLLOWING
 				{
-					WindowFrameEdge *n = makeNode(WindowFrameEdge);
-					n->kind = WINDOW_UNBOUND_FOLLOWING;
-					n->val = NULL;
-					$$ = (Node *)n;
+					WindowDef *n = makeNode(WindowDef);
+					n->frameOptions = FRAMEOPTION_START_UNBOUNDED_FOLLOWING;
+					n->startOffset = NULL;
+					n->endOffset = NULL;
+					$$ = n;
 				}
-			| window_frame_following
+			| CURRENT_P ROW
 				{
-					WindowFrameEdge *n = makeNode(WindowFrameEdge);
-					n->kind = WINDOW_BOUND_FOLLOWING;
-					n->val = $1;
-					$$ = (Node *)n;
+					WindowDef *n = makeNode(WindowDef);
+					n->frameOptions = FRAMEOPTION_START_CURRENT_ROW;
+					n->startOffset = NULL;
+					n->endOffset = NULL;
+					$$ = n;
 				}
-		;
-
-window_frame_following: a_expr FOLLOWING
+			| a_expr PRECEDING
 				{
-					$$ = (Node *)$1;
+					WindowDef *n = makeNode(WindowDef);
+					n->frameOptions = FRAMEOPTION_START_VALUE_PRECEDING;
+					n->startOffset = $1;
+					n->endOffset = NULL;
+					$$ = n;
+				}
+			| a_expr FOLLOWING
+				{
+					WindowDef *n = makeNode(WindowDef);
+					n->frameOptions = FRAMEOPTION_START_VALUE_FOLLOWING;
+					n->startOffset = $1;
+					n->endOffset = NULL;
+					$$ = n;
 				}
 		;
 

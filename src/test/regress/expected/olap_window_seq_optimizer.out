@@ -139,24 +139,23 @@ select  count(*) over (w2) from customer
 window
     w1 as (),
     w2 as (w1 partition by cn); --error - can't partition if referencing ordering window
-ERROR:  PARTITION BY not allowed when an existing window name is specified
+ERROR:  cannot override PARTITION BY clause of window "w1"
 LINE 4:     w2 as (w1 partition by cn);
                   ^
 select count(*) over (w2) from customer
 window
     w1 as (partition by cloc order by cname),
     w2 as (w1 order by cn); --error - can't reorder the ordering window
-ERROR:  conflicting ORDER BY clauses in window specification
+ERROR:  cannot override ORDER BY clause of window "w1"
 LINE 4:     w2 as (w1 order by cn);
                   ^
 select  count(*) over (w2) from customer
 window 
     w1 as (order by cn rows unbounded preceding),
     w2 as (w1); --error - ordering window can't specify framing
-ERROR:  window specification "w1" cannot have a framing clause
-LINE 3:     w1 as (order by cn rows unbounded preceding),
+ERROR:  cannot copy window "w1" because it has a frame clause
+LINE 4:     w2 as (w1);
                   ^
-HINT:  Window specifications which are referenced by other window specifications cannot have framing clauses
 select * from sale
 window 
     w as (partition by pn),
@@ -185,12 +184,12 @@ select * from customer
 window 
     w as (partition by cn), 
     w as (w order by cname); --error - can't refer to window in its definition
-ERROR:  window "w" cannot reference itself
+ERROR:  window "w" is already defined
 LINE 4:     w as (w order by cname);
                  ^
 select * from customer
 window w as (w order by cname); --error - can't refer to window in its definition
-ERROR:  window "w" cannot reference itself
+ERROR:  window "w" does not exist
 LINE 2: window w as (w order by cname);
                     ^
 -- test the frame parser
@@ -7511,8 +7510,8 @@ from sale group by rollup(cn,dt);
  dt     | date   | 
  sum    | bigint | 
 View definition:
- SELECT "Window".dt, sum("Window".cn) OVER(
-  ORDER BY "Window".att_3 RANGE "Window".att_3 PRECEDING) AS sum
+ SELECT "Window".dt, sum("Window".cn) OVER (
+ ORDER BY "Window".att_3 RANGE "Window".att_3 PRECEDING) AS sum
    FROM ( SELECT sale.cn, sale.dt, grouping(sale.cn) AS att_3
            FROM sale
           GROUP BY ROLLUP (sale.cn, sale.dt)) "Window"(cn, dt, att_3);

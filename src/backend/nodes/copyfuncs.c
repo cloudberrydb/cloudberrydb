@@ -1470,7 +1470,7 @@ _copyWindowRef(WindowRef *from)
 	COPY_SCALAR_FIELD(winfnoid);
 	COPY_SCALAR_FIELD(restype);
 	COPY_NODE_FIELD(args);
-	COPY_SCALAR_FIELD(winspec);
+	COPY_SCALAR_FIELD(winref);
 	COPY_SCALAR_FIELD(winstar);
 	COPY_SCALAR_FIELD(winagg);
 	COPY_SCALAR_FIELD(windistinct);
@@ -2343,21 +2343,6 @@ _copyGroupId(GroupId *from)
 	return newnode;
 }
 
-static WindowSpec *
-_copyWindowSpec(WindowSpec *from)
-{
-	WindowSpec *newnode = makeNode(WindowSpec);
-
-	COPY_STRING_FIELD(name);
-	COPY_STRING_FIELD(parent);
-	COPY_NODE_FIELD(partition);
-	COPY_NODE_FIELD(order);
-	COPY_NODE_FIELD(frame);
-	COPY_LOCATION_FIELD(location);
-
-	return newnode;
-}
-
 static WindowFrame *
 _copyWindowFrame(WindowFrame *from)
 {
@@ -2395,6 +2380,23 @@ _copyPercentileExpr(PercentileExpr *from)
 	COPY_NODE_FIELD(pcExpr);
 	COPY_NODE_FIELD(tcExpr);
 	COPY_LOCATION_FIELD(location);
+
+	return newnode;
+}
+
+static WindowClause *
+_copyWindowClause(WindowClause *from)
+{
+	WindowClause *newnode = makeNode(WindowClause);
+
+	COPY_STRING_FIELD(name);
+	COPY_STRING_FIELD(refname);
+	COPY_NODE_FIELD(partitionClause);
+	COPY_NODE_FIELD(orderClause);
+	COPY_SCALAR_FIELD(frameOptions);
+	COPY_SCALAR_FIELD(winref);
+	COPY_NODE_FIELD(frame);
+	COPY_SCALAR_FIELD(copiedOrder);
 
 	return newnode;
 }
@@ -2599,6 +2601,23 @@ _copySortBy(SortBy *from)
 	COPY_SCALAR_FIELD(sortby_nulls);
 	COPY_NODE_FIELD(useOp);
 	COPY_NODE_FIELD(node);
+	COPY_LOCATION_FIELD(location);
+
+	return newnode;
+}
+
+static WindowDef *
+_copyWindowDef(WindowDef *from)
+{
+	WindowDef  *newnode = makeNode(WindowDef);
+
+	COPY_STRING_FIELD(name);
+	COPY_STRING_FIELD(refname);
+	COPY_NODE_FIELD(partitionClause);
+	COPY_NODE_FIELD(orderClause);
+	COPY_SCALAR_FIELD(frameOptions);
+	COPY_NODE_FIELD(startOffset);
+	COPY_NODE_FIELD(endOffset);
 	COPY_LOCATION_FIELD(location);
 
 	return newnode;
@@ -5258,6 +5277,9 @@ copyObject(void *from)
 		case T_SortBy:
 			retval = _copySortBy(from);
 			break;
+		case T_WindowDef:
+			retval = _copyWindowDef(from);
+			break;
 		case T_RangeSubselect:
 			retval = _copyRangeSubselect(from);
 			break;
@@ -5330,9 +5352,6 @@ copyObject(void *from)
 		case T_GroupId:
 			retval = _copyGroupId(from);
 			break;
-		case T_WindowSpec:
-			retval = _copyWindowSpec(from);
-			break;
 		case T_WindowFrame:
 			retval = _copyWindowFrame(from);
 			break;
@@ -5341,6 +5360,9 @@ copyObject(void *from)
 			break;
 		case T_PercentileExpr:
 			retval = _copyPercentileExpr(from);
+			break;
+		case T_WindowClause:
+			retval = _copyWindowClause(from);
 			break;
 		case T_RowMarkClause:
 			retval = _copyRowMarkClause(from);
