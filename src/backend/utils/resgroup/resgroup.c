@@ -200,7 +200,7 @@ static void groupAcquireMemQuota(ResGroupData *group, const ResGroupCaps *caps);
 static ResGroupData *ResGroupHashNew(Oid groupId);
 static ResGroupData *ResGroupHashFind(Oid groupId);
 static bool ResGroupHashRemove(Oid groupId);
-static void ResGroupWait(ResGroupData *group, bool isLocked);
+static void ResGroupWait(ResGroupData *group);
 static ResGroupData *ResGroupCreate(Oid groupId, const ResGroupCaps *caps);
 static void AtProcExit_ResGroup(int code, Datum arg);
 static void ResGroupWaitCancel(void);
@@ -1243,100 +1243,92 @@ putSlot(ResGroupData *group, int slotId)
  * Acquire a resource group slot
  *
  * Call this function at the start of the transaction.
+ * This function set current resource group in MyResGroupSharedInfo,
+ * and current slot id in MyProc->resSlotId.
  */
 static int
 ResGroupSlotAcquire(void)
 {
 	ResGroupData	*group;
-	Oid			groupId;
-	bool		retried = false;
+	Oid				 groupId;
+	PROC_QUEUE		*waitQueue;
+	PGPROC			*headProc;
+	int				slotId;
 
 	Assert(self->groupId == InvalidOid);
+	Assert(self->group == NULL);
 
 retry:
+	self->group = NULL;
 	/* always find out the up-to-date resgroup id */
-	PG_TRY();
-	{
-		groupId = GetResGroupIdForRole(GetUserId());
-		if (groupId == InvalidOid)
-			groupId = superuser() ? ADMINRESGROUP_OID : DEFAULTRESGROUP_OID;
-	}
-	PG_CATCH();
-	{
-		MyResGroupSharedInfo = NULL;
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
+	groupId = GetResGroupIdForRole(GetUserId());
+	if (groupId == InvalidOid)
+		groupId = superuser() ? ADMINRESGROUP_OID : DEFAULTRESGROUP_OID;
 
 	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
-
 	group = ResGroupHashFind(groupId);
 	if (group == NULL)
 	{
 		LWLockRelease(ResGroupLock);
-
 		self->groupId = InvalidOid;
 		self->group = NULL;
 
-		if (retried)
-			ereport(ERROR,
-					(errcode(ERRCODE_UNDEFINED_OBJECT),
-					 errmsg("Resource group %d was concurrently dropped", groupId)));
-		else
-			ereport(ERROR,
-					(errcode(ERRCODE_DATA_CORRUPTED),
-					 errmsg("Cannot find resource group %d in shared memory", groupId)));
+		ereport(ERROR,
+				(errcode(ERRCODE_DATA_CORRUPTED),
+				 errmsg("Cannot find resource group %d in shared memory", groupId)));
 	}
-
+	/*
+	 * it's neccessary to set MyResGroupSharedInfo before we
+	 * got signal and goes to ResGroupWaitCancel
+	 */
 	self->group = group;
 
-	/* wait on the queue if the group is locked for drop */
-	if (group->lockedForDrop)
-	{
-		Assert(group->nRunning == 0);
-		ResGroupWait(group, true);
-		Assert(MyProc->resSlotId == InvalidSlotId);
-
-		/* retry if the drop resource group transaction is finished */
-		retried = true;
-		goto retry;
-	}
-
 	/* acquire a slot */
-	if (group->nRunning < group->caps.concurrency.proposed)
+	if (!group->lockedForDrop)
 	{
-		/* should not been granted a slot yet */
-		Assert(MyProc->resSlotId == InvalidSlotId);
-
-		/* so try to get one directly */
-		MyProc->resSlotId = getSlot(group);
+		slotId = getSlot(group);
+		if (slotId != InvalidSlotId)
+		{
+			group->totalExecuted++;
+			pgstat_report_resgroup(0, group->groupId);
+			MyProc->resSlotId = slotId;
+			LWLockRelease(ResGroupLock);
+			return slotId;
+		}
 	}
 
-	/* if can't get one */
-	if (MyProc->resSlotId == InvalidSlotId)
-	{
-		/* then wait one from some others */
-		ResGroupWait(group, false);
-		LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
-		addTotalQueueDuration(group);
-	}
+	/* add into group wait queue */
+	waitQueue = &(group->waitProcs);
+	headProc = (PGPROC *) &(waitQueue->links);
+	SHMQueueInsertBefore(&(headProc->links), &(MyProc->links));
+	waitQueue->size++;
 
-	if (MyProc->resSlotId == InvalidSlotId)
-	{
-		/* the resource group might be dropped, retry */
-		LWLockRelease(ResGroupLock);
-		retried = true;
-		goto retry;
-	}
+	MyProc->resWaiting = true;
+	if (!group->lockedForDrop)
+		group->totalQueued++;
+	LWLockRelease(ResGroupLock);
 
 	/*
-	 * The waking process has granted us the slot.
+	 * wait on the queue
+	 * slot will be assigned by the proc wakes me up
+	 * if i am waken up by DROP RESOURCE GROUP statement, the
+	 * resSlotId will be InvalidSlotId.
+	 */
+	ResGroupWait(group);
+
+	if (MyProc->resSlotId == InvalidSlotId)
+		goto retry;
+
+	/*
+	 * The waking process has granted us a valid slot.
 	 * Update the statistic information of the resource group.
 	 */
+	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
+	addTotalQueueDuration(group);
 	group->totalExecuted++;
 	LWLockRelease(ResGroupLock);
+
 	pgstat_report_resgroup(0, group->groupId);
-	Assert(MyProc->resSlotId != InvalidSlotId);
 	return MyProc->resSlotId;
 }
 
@@ -2119,25 +2111,10 @@ SwitchResGroupOnSegment(const char *buf, int len)
  * Wait on the queue of resource group
  */
 static void
-ResGroupWait(ResGroupData *group, bool isLocked)
+ResGroupWait(ResGroupData *group)
 {
-	PGPROC *proc = MyProc, *headProc;
-	PROC_QUEUE *waitQueue;
+	PGPROC *proc = MyProc;
 
-	Assert(LWLockHeldExclusiveByMe(ResGroupLock));
-
-	proc->resWaiting = true;
-
-	waitQueue = &(group->waitProcs);
-
-	headProc = (PGPROC *) &(waitQueue->links);
-	SHMQueueInsertBefore(&(headProc->links), &(proc->links));
-	waitQueue->size++;
-
-	if (!isLocked)
-		group->totalQueued++;
-
-	LWLockRelease(ResGroupLock);
 	pgstat_report_resgroup(GetCurrentTimestamp(), group->groupId);
 
 	/* similar to lockAwaited in ProcSleep for interrupt cleanup */
@@ -2287,7 +2264,7 @@ static void
 ResGroupWaitCancel(void)
 {
 	ResGroupData	*group;
-	PROC_QUEUE	*waitQueue;
+	PROC_QUEUE		*waitQueue;
 
 	/* Process exit without waiting for slot */
 	group = self->group;
