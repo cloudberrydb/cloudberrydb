@@ -158,6 +158,10 @@ cdbsubselect_flatten_sublinks(struct PlannerInfo *root, struct Node *jtnode)
 
 /*
  * cdbsubselect_drop_distinct
+ *
+ * In an IN, EXISTS, NOT IN or NOT EXISTS subquery, any duplicates in the
+ * subselect will not affect the overall result, so we can throw away any
+ * DISTINCT clause. Unless there's a LIMIT.
  */
 void
 cdbsubselect_drop_distinct(Query *subselect)
@@ -178,6 +182,10 @@ cdbsubselect_drop_distinct(Query *subselect)
 
 /*
  * cdbsubselect_drop_orderby
+ *
+ * In a subquery, the order of the rows subselect's results won't make a
+ * difference to the overall result, so we can throw away any ORDER BY.
+ * Unless there's a LIMIT.
  */
 void
 cdbsubselect_drop_orderby(Query *subselect)
@@ -1244,19 +1252,6 @@ add_notin_subquery_rte(Query *parse, Query *subselect)
 	RangeTblEntry *subq_rte;
 	int			subq_indx;
 
-	/*
-	 * In a "NOT IN (...)", any duplicates in the subselect will not
-	 * affect the overall result. Hence, we can throw away any DISTINCT
-	 * clause. Likewise, we can throw away any ORDER BY, because the
-	 * ordering of the subselect's results won't make a difference.
-	 * Unless there's a LIMIT.
-	 */
-	if (!subselect->limitCount && !subselect->limitOffset)
-	{
-		subselect->distinctClause = NIL;
-		subselect->sortClause = NIL;
-	}
-
 	subselect->targetList = mutate_targetlist(subselect->targetList);
 	subq_rte = addRangeTableEntryForSubquery(NULL,		/* pstate */
 											 subselect,
@@ -1795,6 +1790,10 @@ convert_IN_to_antijoin(PlannerInfo *root, List **rtrlist_inout __attribute__((un
 
 	if (safe_to_convert_NOTIN(sublink))
 	{
+		/* Delete ORDER BY and DISTINCT. */
+		cdbsubselect_drop_orderby(subselect);
+		cdbsubselect_drop_distinct(subselect);
+
 		Assert(list_length(parse->jointree->fromlist) == 1);
 
 		Node	   *larg = lfirst(list_head(parse->jointree->fromlist));		/* represents the
