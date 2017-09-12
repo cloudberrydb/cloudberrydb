@@ -1,7 +1,7 @@
 #
 # Makefile for utils
 #
-# $PostgreSQL: pgsql/src/backend/utils/Makefile,v 1.25 2007/02/09 15:55:58 petere Exp $
+# $PostgreSQL: pgsql/src/backend/utils/Makefile,v 1.26 2008/02/19 10:30:08 petere Exp $
 #
 
 subdir = src/backend/utils
@@ -41,5 +41,4 @@ endif
 
 
 clean:
-	for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@ || exit; done
-	rm -f SUBSYS.o fmgrtab.o fmgroids.h fmgrtab.c probes.h
+	rm -f fmgroids.h fmgrtab.c probes.h

@@ -1,14 +1,12 @@
 #
 # Common make rules for backend
 #
-# $PostgreSQL: pgsql/src/backend/common.mk,v 1.8 2008/09/05 12:11:18 petere Exp $
+# $PostgreSQL: pgsql/src/backend/common.mk,v 1.6 2008/02/29 10:34:51 petere Exp $
 #
 
 # When including this file, set OBJS to the object files created in
 # this directory and SUBDIRS to subdirectories containing more things
 # to build.
-
-PARTIAL_LINKING=yes
 
 ifdef PARTIAL_LINKING
 # old style: linking using SUBSYS.o
@@ -47,7 +45,7 @@ clean-local:
 ifdef SUBDIRS
 	for dir in $(SUBDIRS); do $(MAKE) -C $$dir clean || exit; done
 endif
-	rm -f objfiles.txt SUBSYS.o $(OBJS)
+	rm -f $(subsysfilename) $(OBJS)
 	@if [ -d $(CURDIR)/test ]; then $(MAKE) -C $(CURDIR)/test clean; fi
 
 

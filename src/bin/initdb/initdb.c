@@ -42,7 +42,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  * Portions taken from FreeBSD.
  *
- * $PostgreSQL: pgsql/src/bin/initdb/initdb.c,v 1.152.2.6 2009/11/14 15:39:41 mha Exp $
+ * $PostgreSQL: pgsql/src/bin/initdb/initdb.c,v 1.155 2008/02/29 23:31:20 adunstan Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -3178,7 +3178,7 @@ main(int argc, char *argv[])
 	sprintf(pgdenv, "PGDATA=%s", pg_data);
 	putenv(pgdenv);
 
-	if ((ret = find_other_exec(argv[0], "postgres", PG_VERSIONSTR,
+	if ((ret = find_other_exec(argv[0], "postgres", PG_BACKEND_VERSIONSTR,
 							   backend_exec)) < 0)
 	{
 		char		full_path[MAXPGPATH];

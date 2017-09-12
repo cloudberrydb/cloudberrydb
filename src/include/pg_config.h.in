@@ -15,19 +15,19 @@
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
 
-/* The alignment requirement of a `double'. */
+/* The normal alignment of `double', in bytes. */
 #undef ALIGNOF_DOUBLE
 
-/* The alignment requirement of a `int'. */
+/* The normal alignment of `int', in bytes. */
 #undef ALIGNOF_INT
 
-/* The alignment requirement of a `long'. */
+/* The normal alignment of `long', in bytes. */
 #undef ALIGNOF_LONG
 
-/* The alignment requirement of a `long long int'. */
+/* The normal alignment of `long long int', in bytes. */
 #undef ALIGNOF_LONG_LONG_INT
 
-/* The alignment requirement of a `short'. */
+/* The normal alignment of `short', in bytes. */
 #undef ALIGNOF_SHORT
 
 /* Define to the default TCP port number on which the server listens and to

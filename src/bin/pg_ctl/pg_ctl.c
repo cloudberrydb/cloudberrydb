@@ -4,7 +4,7 @@
  *
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/bin/pg_ctl/pg_ctl.c,v 1.92.2.8 2009/11/14 15:39:41 mha Exp $
+ * $PostgreSQL: pgsql/src/bin/pg_ctl/pg_ctl.c,v 1.96 2008/02/29 23:31:20 adunstan Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -34,6 +34,7 @@
 
 #include "libpq/pqsignal.h"
 #include "getopt_long.h"
+#include "miscadmin.h"
 
 #if defined(__CYGWIN__)
 #include <sys/cygwin.h>
@@ -506,10 +507,10 @@ test_postmaster_connection(bool do_checkpoint __attribute__((unused)))
 	/*
 	 * Look in post_opts for a -p switch.
 	 *
-	 * This parsing code is not amazingly bright; it could for instance get
-	 * fooled if ' -p' occurs within a quoted argument value.  Given that few
-	 * people pass complicated settings in post_opts, it's probably good
-	 * enough.
+	 * This parsing code is not amazingly bright; it could for instance
+	 * get fooled if ' -p' occurs within a quoted argument value.  Given
+	 * that few people pass complicated settings in post_opts, it's
+	 * probably good enough.
 	 */
 	for (p = post_opts; *p;)
 	{
@@ -541,8 +542,8 @@ test_postmaster_connection(bool do_checkpoint __attribute__((unused)))
 	/*
 	 * Search config file for a 'port' option.
 	 *
-	 * This parsing code isn't amazingly bright either, but it should be okay
-	 * for valid port settings.
+	 * This parsing code isn't amazingly bright either, but it should be
+	 * okay for valid port settings.
 	 */
 	if (!*portstr)
 	{
@@ -749,7 +750,7 @@ do_start(void)
 
 		postmaster_path = pg_malloc(MAXPGPATH);
 
-		if ((ret = find_other_exec(argv0, "postgres", PM_VERSIONSTR,
+		if ((ret = find_other_exec(argv0, "postgres", PG_BACKEND_VERSIONSTR,
 								   postmaster_path)) < 0)
 		{
 			char		full_path[MAXPGPATH];
@@ -1198,7 +1199,8 @@ pgwin32_CommandLine(bool registration)
 	}
 	else
 	{
-		ret = find_other_exec(argv0, "postgres", PM_VERSIONSTR, cmdLine);
+		ret = find_other_exec(argv0, "postgres", PG_BACKEND_VERSIONSTR,
+							  cmdLine);
 		if (ret != 0)
 		{
 			write_stderr(_("%s: could not find postgres program executable\n"), progname);
@@ -1672,7 +1674,7 @@ CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION * processInfo, bool as_se
 	}
 
 #ifndef __CYGWIN__
-	AddUserToDacl(processInfo->hProcess);
+    AddUserToTokenDacl(processInfo->hProcess);
 #endif
 
 	CloseHandle(restrictedToken);

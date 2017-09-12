@@ -831,7 +831,6 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 with_template
-with_docdir
 with_includes
 with_libraries
 with_libs
@@ -1555,8 +1554,6 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
 
-  --with-docdir=DIR       install the documentation in DIR [PREFIX/doc]
-  --without-docdir        do not install the documentation
   --with-includes=DIRS    look for additional header files in DIRS
   --with-libraries=DIRS   look for additional libraries in DIRS
   --with-libs=DIRS        alternative spelling of --with-libraries
@@ -2982,7 +2979,7 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-PG_PACKAGE_VERSION=8.3.23
+PG_PACKAGE_VERSION=8.4devel
 
 
 
@@ -3206,36 +3203,6 @@ tas_file=dummy.s
 ##
 ## Command line options
 ##
-
-#
-# Installation directory for documentation
-#
-
-pgac_args="$pgac_args with_docdir"
-
-
-# Check whether --with-docdir was given.
-if test "${with_docdir+set}" = set; then :
-  withval=$with_docdir;
-  case $withval in
-    yes)
-      as_fn_error $? "option --with-docdir requires an argument" "$LINENO" 5
-      ;;
-    no)
-      docdir=
-      ;;
-    *)
-      docdir=$withval
-      ;;
-  esac
-
-else
-  docdir='${prefix}/doc'
-fi
-
-
-
-
 
 #
 # Add non-standard directories to the include path
@@ -15302,17 +15269,6 @@ esac
 
 fi
 
-# Solaris' getopt() doesn't do what we want for long options, so always use
-# our version on that platform.
-if test "$PORTNAME" = "solaris"; then
-  case " $LIBOBJS " in
-  *" getopt.$ac_objext "* ) ;;
-  *) LIBOBJS="$LIBOBJS getopt.$ac_objext"
- ;;
-esac
-
-fi
-
 # mingw has adopted a GNU-centric interpretation of optind/optreset,
 # so always use our version on Windows.
 if test "$PORTNAME" = "win32"; then
@@ -15647,7 +15603,6 @@ $as_echo "#define HAVE_FSEEKO 1" >>confdefs.h
 fi
 ;;
 esac
-
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for builtin locking functions" >&5
 $as_echo_n "checking for builtin locking functions... " >&6; }
@@ -16933,155 +16888,180 @@ _ACEOF
 
 # Determine memory alignment requirements for the basic C data types.
 
-ac_fn_c_check_type "$LINENO" "short" "ac_cv_type_short" "$ac_includes_default"
-if test "x$ac_cv_type_short" = xyes; then :
-
-fi
-
+# The cast to long int works around a bug in the HP C Compiler,
+# see AC_CHECK_SIZEOF for more information.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking alignment of short" >&5
 $as_echo_n "checking alignment of short... " >&6; }
-if ${pgac_cv_alignof_short+:} false; then :
+if ${ac_cv_alignof_short+:} false; then :
   $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) offsetof (ac__type_alignof_, y)" "ac_cv_alignof_short"        "$ac_includes_default
+#ifndef offsetof
+# define offsetof(type, member) ((char *) &((type *) 0)->member - (char *) 0)
+#endif
+typedef struct { char x; short y; } ac__type_alignof_;"; then :
+
 else
   if test "$ac_cv_type_short" = yes; then
-  if ac_fn_c_compute_int "$LINENO" "((char*) & pgac_struct.field) - ((char*) & pgac_struct)" "pgac_cv_alignof_short"        "$ac_includes_default
-struct { char filler; short field; } pgac_struct;"; then :
-
-else
-  as_fn_error $? "cannot compute alignment of short, 77" "$LINENO" 5
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute alignment of short
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_alignof_short=0
+   fi
 fi
 
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_alignof_short" >&5
+$as_echo "$ac_cv_alignof_short" >&6; }
 
-else
-  pgac_cv_alignof_short=0
-fi
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $pgac_cv_alignof_short" >&5
-$as_echo "$pgac_cv_alignof_short" >&6; }
+
+
 cat >>confdefs.h <<_ACEOF
-#define ALIGNOF_SHORT $pgac_cv_alignof_short
+#define ALIGNOF_SHORT $ac_cv_alignof_short
 _ACEOF
 
 
-ac_fn_c_check_type "$LINENO" "int" "ac_cv_type_int" "$ac_includes_default"
-if test "x$ac_cv_type_int" = xyes; then :
-
-fi
-
+# The cast to long int works around a bug in the HP C Compiler,
+# see AC_CHECK_SIZEOF for more information.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking alignment of int" >&5
 $as_echo_n "checking alignment of int... " >&6; }
-if ${pgac_cv_alignof_int+:} false; then :
+if ${ac_cv_alignof_int+:} false; then :
   $as_echo_n "(cached) " >&6
 else
+  if ac_fn_c_compute_int "$LINENO" "(long int) offsetof (ac__type_alignof_, y)" "ac_cv_alignof_int"        "$ac_includes_default
+#ifndef offsetof
+# define offsetof(type, member) ((char *) &((type *) 0)->member - (char *) 0)
+#endif
+typedef struct { char x; int y; } ac__type_alignof_;"; then :
+
+else
   if test "$ac_cv_type_int" = yes; then
-  if ac_fn_c_compute_int "$LINENO" "((char*) & pgac_struct.field) - ((char*) & pgac_struct)" "pgac_cv_alignof_int"        "$ac_includes_default
-struct { char filler; int field; } pgac_struct;"; then :
-
-else
-  as_fn_error $? "cannot compute alignment of int, 77" "$LINENO" 5
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute alignment of int
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_alignof_int=0
+   fi
 fi
 
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_alignof_int" >&5
+$as_echo "$ac_cv_alignof_int" >&6; }
 
-else
-  pgac_cv_alignof_int=0
-fi
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $pgac_cv_alignof_int" >&5
-$as_echo "$pgac_cv_alignof_int" >&6; }
+
+
 cat >>confdefs.h <<_ACEOF
-#define ALIGNOF_INT $pgac_cv_alignof_int
+#define ALIGNOF_INT $ac_cv_alignof_int
 _ACEOF
 
 
-ac_fn_c_check_type "$LINENO" "long" "ac_cv_type_long" "$ac_includes_default"
-if test "x$ac_cv_type_long" = xyes; then :
-
-fi
-
+# The cast to long int works around a bug in the HP C Compiler,
+# see AC_CHECK_SIZEOF for more information.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking alignment of long" >&5
 $as_echo_n "checking alignment of long... " >&6; }
-if ${pgac_cv_alignof_long+:} false; then :
+if ${ac_cv_alignof_long+:} false; then :
   $as_echo_n "(cached) " >&6
 else
+  if ac_fn_c_compute_int "$LINENO" "(long int) offsetof (ac__type_alignof_, y)" "ac_cv_alignof_long"        "$ac_includes_default
+#ifndef offsetof
+# define offsetof(type, member) ((char *) &((type *) 0)->member - (char *) 0)
+#endif
+typedef struct { char x; long y; } ac__type_alignof_;"; then :
+
+else
   if test "$ac_cv_type_long" = yes; then
-  if ac_fn_c_compute_int "$LINENO" "((char*) & pgac_struct.field) - ((char*) & pgac_struct)" "pgac_cv_alignof_long"        "$ac_includes_default
-struct { char filler; long field; } pgac_struct;"; then :
-
-else
-  as_fn_error $? "cannot compute alignment of long, 77" "$LINENO" 5
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute alignment of long
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_alignof_long=0
+   fi
 fi
 
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_alignof_long" >&5
+$as_echo "$ac_cv_alignof_long" >&6; }
 
-else
-  pgac_cv_alignof_long=0
-fi
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $pgac_cv_alignof_long" >&5
-$as_echo "$pgac_cv_alignof_long" >&6; }
+
+
 cat >>confdefs.h <<_ACEOF
-#define ALIGNOF_LONG $pgac_cv_alignof_long
+#define ALIGNOF_LONG $ac_cv_alignof_long
 _ACEOF
 
 
 if test x"$HAVE_LONG_LONG_INT_64" = x"yes" ; then
-  ac_fn_c_check_type "$LINENO" "long long int" "ac_cv_type_long_long_int" "$ac_includes_default"
-if test "x$ac_cv_type_long_long_int" = xyes; then :
-
-fi
-
+  # The cast to long int works around a bug in the HP C Compiler,
+# see AC_CHECK_SIZEOF for more information.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking alignment of long long int" >&5
 $as_echo_n "checking alignment of long long int... " >&6; }
-if ${pgac_cv_alignof_long_long_int+:} false; then :
+if ${ac_cv_alignof_long_long_int+:} false; then :
   $as_echo_n "(cached) " >&6
 else
+  if ac_fn_c_compute_int "$LINENO" "(long int) offsetof (ac__type_alignof_, y)" "ac_cv_alignof_long_long_int"        "$ac_includes_default
+#ifndef offsetof
+# define offsetof(type, member) ((char *) &((type *) 0)->member - (char *) 0)
+#endif
+typedef struct { char x; long long int y; } ac__type_alignof_;"; then :
+
+else
   if test "$ac_cv_type_long_long_int" = yes; then
-  if ac_fn_c_compute_int "$LINENO" "((char*) & pgac_struct.field) - ((char*) & pgac_struct)" "pgac_cv_alignof_long_long_int"        "$ac_includes_default
-struct { char filler; long long int field; } pgac_struct;"; then :
-
-else
-  as_fn_error $? "cannot compute alignment of long long int, 77" "$LINENO" 5
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute alignment of long long int
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_alignof_long_long_int=0
+   fi
 fi
 
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_alignof_long_long_int" >&5
+$as_echo "$ac_cv_alignof_long_long_int" >&6; }
 
-else
-  pgac_cv_alignof_long_long_int=0
-fi
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $pgac_cv_alignof_long_long_int" >&5
-$as_echo "$pgac_cv_alignof_long_long_int" >&6; }
+
+
 cat >>confdefs.h <<_ACEOF
-#define ALIGNOF_LONG_LONG_INT $pgac_cv_alignof_long_long_int
+#define ALIGNOF_LONG_LONG_INT $ac_cv_alignof_long_long_int
 _ACEOF
 
 
 fi
-ac_fn_c_check_type "$LINENO" "double" "ac_cv_type_double" "$ac_includes_default"
-if test "x$ac_cv_type_double" = xyes; then :
-
-fi
-
+# The cast to long int works around a bug in the HP C Compiler,
+# see AC_CHECK_SIZEOF for more information.
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking alignment of double" >&5
 $as_echo_n "checking alignment of double... " >&6; }
-if ${pgac_cv_alignof_double+:} false; then :
+if ${ac_cv_alignof_double+:} false; then :
   $as_echo_n "(cached) " >&6
 else
+  if ac_fn_c_compute_int "$LINENO" "(long int) offsetof (ac__type_alignof_, y)" "ac_cv_alignof_double"        "$ac_includes_default
+#ifndef offsetof
+# define offsetof(type, member) ((char *) &((type *) 0)->member - (char *) 0)
+#endif
+typedef struct { char x; double y; } ac__type_alignof_;"; then :
+
+else
   if test "$ac_cv_type_double" = yes; then
-  if ac_fn_c_compute_int "$LINENO" "((char*) & pgac_struct.field) - ((char*) & pgac_struct)" "pgac_cv_alignof_double"        "$ac_includes_default
-struct { char filler; double field; } pgac_struct;"; then :
-
-else
-  as_fn_error $? "cannot compute alignment of double, 77" "$LINENO" 5
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute alignment of double
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_alignof_double=0
+   fi
 fi
 
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_alignof_double" >&5
+$as_echo "$ac_cv_alignof_double" >&6; }
 
-else
-  pgac_cv_alignof_double=0
-fi
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $pgac_cv_alignof_double" >&5
-$as_echo "$pgac_cv_alignof_double" >&6; }
+
+
 cat >>confdefs.h <<_ACEOF
-#define ALIGNOF_DOUBLE $pgac_cv_alignof_double
+#define ALIGNOF_DOUBLE $ac_cv_alignof_double
 _ACEOF
 
 
@@ -17090,12 +17070,12 @@ _ACEOF
 # We assume long's alignment is at least as strong as char, short, or int;
 # but we must check long long (if it exists) and double.
 
-MAX_ALIGNOF=$pgac_cv_alignof_long
-if test $MAX_ALIGNOF -lt $pgac_cv_alignof_double ; then
-  MAX_ALIGNOF=$pgac_cv_alignof_double
+MAX_ALIGNOF=$ac_cv_alignof_long
+if test $MAX_ALIGNOF -lt $ac_cv_alignof_double ; then
+  MAX_ALIGNOF=$ac_cv_alignof_double
 fi
-if test x"$HAVE_LONG_LONG_INT_64" = xyes && test $MAX_ALIGNOF -lt $pgac_cv_alignof_long_long_int ; then
-  MAX_ALIGNOF="$pgac_cv_alignof_long_long_int"
+if test x"$HAVE_LONG_LONG_INT_64" = xyes && test $MAX_ALIGNOF -lt $ac_cv_alignof_long_long_int ; then
+  MAX_ALIGNOF="$ac_cv_alignof_long_long_int"
 fi
 
 cat >>confdefs.h <<_ACEOF

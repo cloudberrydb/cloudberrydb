@@ -6,7 +6,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/timestamp.h,v 1.74 2008/01/23 21:26:13 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/utils/timestamp.h,v 1.75 2008/02/17 02:09:31 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

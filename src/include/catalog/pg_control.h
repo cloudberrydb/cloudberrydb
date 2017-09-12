@@ -8,16 +8,15 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/pg_control.h,v 1.39 2008/01/01 19:45:56 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/pg_control.h,v 1.40 2008/02/17 02:09:30 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
 #ifndef PG_CONTROL_H
 #define PG_CONTROL_H
 
-#include <time.h>
-
 #include "access/xlogdefs.h"
+#include "pgtime.h"				/* for pg_time_t */
 #include "port/pg_crc32c.h"
 
 
@@ -27,7 +26,7 @@
  * The first three digits is the PostgreSQL version number. The last
  * four digits indicates the GPDB version.
  */
-#define PG_CONTROL_VERSION	8330500
+#define PG_CONTROL_VERSION	8410600
 
 /*
  * Body of CheckPoint XLOG records.  This is declared here because we keep
@@ -44,7 +43,7 @@ typedef struct CheckPoint
 	Oid			nextRelfilenode;	/* next free Relfilenode */
 	MultiXactId nextMulti;		/* next free MultiXactId */
 	MultiXactOffset nextMultiOffset;	/* next free MultiXact offset */
-	time_t		time;			/* time stamp of checkpoint */
+	pg_time_t	time;			/* time stamp of checkpoint */
 
 	/* IN XLOG RECORD, MORE DATA FOLLOWS AT END OF STRUCT FOR DTM CHECKPOINT */
 
@@ -113,7 +112,7 @@ typedef struct ControlFileData
 	 * System status data
 	 */
 	DBState		state;			/* see enum above */
-	time_t		time;			/* time stamp of last pg_control update */
+	pg_time_t	time;			/* time stamp of last pg_control update */
 	XLogRecPtr	checkPoint;		/* last check point record ptr */
 	XLogRecPtr	prevCheckPoint; /* previous check point record ptr */
 

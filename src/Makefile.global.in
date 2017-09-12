@@ -1,5 +1,5 @@
 # -*-makefile-*-
-# $PostgreSQL: pgsql/src/Makefile.global.in,v 1.240 2007/11/13 00:13:19 tgl Exp $
+# $PostgreSQL: pgsql/src/Makefile.global.in,v 1.241 2008/02/17 16:36:43 petere Exp $
 
 #------------------------------------------------------------------------------
 # All PostgreSQL makefiles include this file and use the variables it sets,

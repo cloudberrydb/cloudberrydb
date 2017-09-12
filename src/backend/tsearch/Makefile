@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2006-2008, PostgreSQL Global Development Group
 #
-# $PostgreSQL: pgsql/src/backend/tsearch/Makefile,v 1.4.2.1 2008/02/18 16:04:20 petere Exp $
+# $PostgreSQL: pgsql/src/backend/tsearch/Makefile,v 1.6 2008/02/19 10:30:08 petere Exp $
 #
 #-------------------------------------------------------------------------
 subdir = src/backend/tsearch
@@ -20,11 +20,6 @@ OBJS = ts_locale.o ts_parse.o wparser.o wparser_def.o dict.o \
 	dict_simple.o dict_synonym.o dict_thesaurus.o \
 	dict_ispell.o regis.o spell.o \
 	to_tsany.o ts_utils.o
-
-all: SUBSYS.o 
-
-depend dep:
-	$(CC) -MM $(CFLAGS) *.c >depend
 
 include $(top_srcdir)/src/backend/common.mk
 
@@ -42,10 +37,3 @@ uninstall-data:
 	for i in $(DICTFILES); \
 		do rm -rf '$(DESTDIR)$(datadir)/$(DICTDIR)/'$$i || exit; \
 	done
-
-clean distclean maintainer-clean: 
-	rm -f SUBSYS.o $(OBJS)
-
-ifeq (depend,$(wildcard depend))
-include depend
-endif

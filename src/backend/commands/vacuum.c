@@ -15,7 +15,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/vacuum.c,v 1.364.2.4 2009/12/09 21:58:16 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/vacuum.c,v 1.365 2008/02/20 14:31:35 alvherre Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -5471,9 +5471,20 @@ open_relation_and_check_permission(VacuumStmt *vacstmt,
 		  (pg_database_ownercheck(MyDatabaseId, GetUserId()) && !onerel->rd_rel->relisshared)))
 	{
 		if (Gp_role != GP_ROLE_EXECUTE)
-			ereport(WARNING,
-					(errmsg("skipping \"%s\" --- only table or database owner can vacuum it",
-							RelationGetRelationName(onerel))));
+		{
+			if (onerel->rd_rel->relisshared)
+				ereport(WARNING,
+						(errmsg("skipping \"%s\" --- only superuser can vacuum it",
+								RelationGetRelationName(onerel))));
+			else if (onerel->rd_rel->relnamespace == PG_CATALOG_NAMESPACE)
+				ereport(WARNING,
+						(errmsg("skipping \"%s\" --- only superuser or database owner can vacuum it",
+								RelationGetRelationName(onerel))));
+			else
+				ereport(WARNING,
+						(errmsg("skipping \"%s\" --- only table or database owner can vacuum it",
+								RelationGetRelationName(onerel))));
+		}
 		relation_close(onerel, lmode);
 		return NULL;
 	}

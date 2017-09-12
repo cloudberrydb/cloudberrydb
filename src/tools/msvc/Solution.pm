@@ -3,7 +3,7 @@ package Solution;
 #
 # Package that encapsulates a Visual C++ solution file generation
 #
-# src/tools/msvc/Solution.pm
+# $PostgreSQL: pgsql/src/tools/msvc/Solution.pm,v 1.36 2008/02/28 12:17:59 mha Exp $
 #
 use Carp;
 use strict;

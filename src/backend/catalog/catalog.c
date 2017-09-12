@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/catalog.c,v 1.72.2.1 2008/02/20 17:44:14 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/catalog.c,v 1.73 2008/02/20 17:44:09 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

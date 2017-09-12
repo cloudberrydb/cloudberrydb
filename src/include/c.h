@@ -14,7 +14,7 @@
  * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * src/include/c.h
+ * $PostgreSQL: pgsql/src/include/c.h,v 1.223 2008/02/23 19:11:45 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

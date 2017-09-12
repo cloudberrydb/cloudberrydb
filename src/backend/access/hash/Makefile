@@ -4,7 +4,7 @@
 #    Makefile for access/hash
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/backend/access/hash/Makefile,v 1.13 2007/01/20 17:16:10 petere Exp $
+#    $PostgreSQL: pgsql/src/backend/access/hash/Makefile,v 1.14 2008/02/19 10:30:06 petere Exp $
 #
 #-------------------------------------------------------------------------
 

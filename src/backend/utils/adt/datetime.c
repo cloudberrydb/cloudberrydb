@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/datetime.c,v 1.213 2010/08/02 01:24:53 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/datetime.c,v 1.187 2008/02/25 23:36:28 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -847,7 +847,7 @@ ParseDateTime(const char *timestr, char *workbuf, size_t buflen,
  *				"20011225T040506.789-07"
  *
  * Use the system-provided functions to get the current time zone
- *	if not specified in the input string.
+ * if not specified in the input string.
  *
  * If the date is outside the range of pg_time_t (in practice that could only
  * happen if pg_time_t is just 32 bits), then assume UTC time zone - thomas
@@ -2228,6 +2228,8 @@ DecodeDate(char *str, int fmask, int *tmask, bool *is2digits,
 				dmask = 0;
 	char	   *field[MAXDATEFIELDS];
 	int			fieldlens[MAXDATEFIELDS];
+
+	*tmask = 0;
 
 	*tmask = 0;
 

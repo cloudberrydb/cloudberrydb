@@ -7,7 +7,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/encode.c,v 1.23.2.1 2009/08/30 16:53:37 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/encode.c,v 1.21 2008/02/26 02:54:08 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

@@ -4,7 +4,7 @@
 #    Makefile for utils/misc
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/backend/utils/misc/Makefile,v 1.27 2007/01/20 17:16:14 petere Exp $
+#    $PostgreSQL: pgsql/src/backend/utils/misc/Makefile,v 1.28 2008/02/19 10:30:09 petere Exp $
 #
 #-------------------------------------------------------------------------
 
@@ -42,6 +42,4 @@ endif
 # Note: guc-file.c is not deleted by 'make clean',
 # since we want to ship it in distribution tarballs.
 clean: 
-	for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@ || exit; done
-	rm -f SUBSYS.o $(OBJS)
 	@rm -f lex.yy.c

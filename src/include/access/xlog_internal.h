@@ -11,15 +11,14 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/access/xlog_internal.h,v 1.22 2008/01/01 19:45:56 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/access/xlog_internal.h,v 1.23 2008/02/17 02:09:30 tgl Exp $
  */
 #ifndef XLOG_INTERNAL_H
 #define XLOG_INTERNAL_H
 
-#include <time.h>
-
 #include "access/xlog.h"
 #include "fmgr.h"
+#include "pgtime.h"
 #include "storage/block.h"
 #include "storage/relfilenode.h"
 #include "postmaster/primary_mirror_mode.h"
@@ -286,7 +285,7 @@ extern const RmgrData RmgrTable[];
 /*
  * Exported to support xlog switching from checkpointer
  */
-extern time_t GetLastSegSwitchTime(void);
+extern pg_time_t GetLastSegSwitchTime(void);
 extern XLogRecPtr RequestXLogSwitch(void);
 
 /*

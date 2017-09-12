@@ -1,7 +1,7 @@
 #
 # Makefile for storage/ipc
 #
-# $PostgreSQL: pgsql/src/backend/storage/ipc/Makefile,v 1.20 2007/01/20 17:16:12 petere Exp $
+# $PostgreSQL: pgsql/src/backend/storage/ipc/Makefile,v 1.21 2008/02/19 10:30:08 petere Exp $
 #
 
 subdir = src/backend/storage/ipc

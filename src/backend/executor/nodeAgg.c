@@ -2588,7 +2588,8 @@ AggCheckCallContext(FunctionCallInfo fcinfo, MemoryContext *aggcontext)
  * TODO: remove the macro after we upgrade GPDB to PG8.4 due to WindowAggState
  *		 is not supported yet.
  */
-#if PG_VERSION_NUM >= 80400
+/* GPDB_84_MERGE_FIXME */
+#if 0
 	if (fcinfo->context && IsA(fcinfo->context, WindowAggState))
 	{
 		if (aggcontext)

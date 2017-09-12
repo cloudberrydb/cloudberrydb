@@ -2,7 +2,7 @@
 #
 # Makefile for parser
 #
-# $PostgreSQL: pgsql/src/backend/parser/Makefile,v 1.48 2008/10/04 21:56:54 tgl Exp $
+# $PostgreSQL: pgsql/src/backend/parser/Makefile,v 1.46 2008/02/19 10:30:07 petere Exp $
 #
 #-------------------------------------------------------------------------
 
@@ -59,6 +59,5 @@ gram.o keywords.o parser.o: $(srcdir)/gram.h
 # gram.c, gram.h, and scan.c are in the distribution tarball, so they
 # are not cleaned here.
 clean: 
-	rm -f SUBSYS.o $(OBJS) gram.h parse.h gram.c
 # And the garbage that might have been left behind by partial build:
 	@rm -f y.tab.h y.tab.c y.output lex.yy.c gram.tab.c gram.tab.h

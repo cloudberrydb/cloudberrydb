@@ -10,7 +10,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/misc/help_config.c,v 1.19.2.1 2008/02/23 19:23:37 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/misc/help_config.c,v 1.20 2008/02/23 19:23:33 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

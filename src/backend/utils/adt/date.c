@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/date.c,v 1.138.2.1 2008/07/07 18:09:53 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/date.c,v 1.139 2008/02/17 02:09:28 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -2544,6 +2544,10 @@ timetz_part(PG_FUNCTION_ARGS)
 /* timetz_zone()
  * Encode time with time zone type with specified time zone.
  * Applies DST rules as of the current date.
+ *
+ * We've pulled this function from 8_4_STABLE, but kept PG_GETARG_TEXT_P
+ * instead of PG_GETARG_TEXT_PP which was used in 8_4_STABLE.
+ * GPDB_84_MERGE_FIXME
  */
 Datum
 timetz_zone(PG_FUNCTION_ARGS)
@@ -2553,7 +2557,6 @@ timetz_zone(PG_FUNCTION_ARGS)
 	TimeTzADT  *result;
 	int			tz;
 	char		tzname[TZ_STRLEN_MAX + 1];
-	int			len;
 	char	   *lowzone;
 	int			type,
 				val;
@@ -2567,26 +2570,24 @@ timetz_zone(PG_FUNCTION_ARGS)
 	 * important because the timezone database unwisely uses a few zone names
 	 * that are identical to offset abbreviations.)
 	 */
-	lowzone = downcase_truncate_identifier(VARDATA(zone),
-										   VARSIZE(zone) - VARHDRSZ,
+	text_to_cstring_buffer(zone, tzname, sizeof(tzname));
+	lowzone = downcase_truncate_identifier(tzname,
+										   strlen(tzname),
 										   false);
+
 	type = DecodeSpecial(0, lowzone, &val);
 
 	if (type == TZ || type == DTZ)
 		tz = val * 60;
 	else
 	{
-		len = Min(VARSIZE(zone) - VARHDRSZ, TZ_STRLEN_MAX);
-		memcpy(tzname, VARDATA(zone), len);
-		tzname[len] = '\0';
 		tzp = pg_tzset(tzname);
 		if (tzp)
 		{
 			/* Get the offset-from-GMT that is valid today for the zone */
-			pg_time_t	now;
+			pg_time_t	now = (pg_time_t) time(NULL);
 			struct pg_tm *tm;
 
-			now = time(NULL);
 			tm = pg_localtime(&now, tzp);
 			tz = -tm->tm_gmtoff;
 		}

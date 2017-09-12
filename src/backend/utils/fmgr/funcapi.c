@@ -7,7 +7,7 @@
  * Copyright (c) 2002-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/fmgr/funcapi.c,v 1.37.2.2 2008/11/30 18:49:42 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/fmgr/funcapi.c,v 1.38 2008/02/29 02:49:39 neilc Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -193,7 +193,7 @@ shutdown_MultiFuncCall(Datum arg)
  *		it is supposed to return.  If resultTypeId isn't NULL, *resultTypeId
  *		receives the actual datatype OID (this is mainly useful for scalar
  *		result types).	If resultTupleDesc isn't NULL, *resultTupleDesc
- *		receives a pointer to a TupleDesc when the result is of a composite
+ *		receives a pointer to a TupleDesc when the result is of a composit//
  *		type, or NULL when it's a scalar result.
  *
  * One hard case that this handles is resolution of actual rowtypes for

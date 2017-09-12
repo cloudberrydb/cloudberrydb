@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/backend/access/transam/xlog.c,v 1.292.2.11 2010/06/09 10:54:50 mha Exp $
+ * $PostgreSQL: pgsql/src/backend/access/transam/xlog.c,v 1.293 2008/02/17 02:09:27 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -362,7 +362,7 @@ typedef struct XLogCtlWrite
 {
 	XLogwrtResult LogwrtResult; /* current value of LogwrtResult */
 	int			curridx;		/* cache index of next block to write */
-	time_t		lastSegSwitchTime;		/* time of last xlog segment switch */
+	pg_time_t	lastSegSwitchTime;		/* time of last xlog segment switch */
 } XLogCtlWrite;
 
 /*
@@ -2151,7 +2151,7 @@ XLogWrite(XLogwrtRqst WriteRqst, bool flexible, bool xlog_switch)
 				if (XLogArchivingActive())
 					XLogArchiveNotifySeg(openLogId, openLogSeg);
 
-				Write->lastSegSwitchTime = time(NULL);
+				Write->lastSegSwitchTime = (pg_time_t) time(NULL);
 
 				/*
 				 * Signal bgwriter to start a checkpoint if we've consumed too
@@ -5723,7 +5723,7 @@ BootStrapXLOG(void)
 	checkPoint.nextRelfilenode = FirstNormalObjectId;
 	checkPoint.nextMulti = FirstMultiXactId;
 	checkPoint.nextMultiOffset = 0;
-	checkPoint.time = time(NULL);
+	checkPoint.time = (pg_time_t) time(NULL);
 
 	ShmemVariableCache->nextXid = checkPoint.nextXid;
 	ShmemVariableCache->nextOid = checkPoint.nextOid;
@@ -6315,14 +6315,14 @@ StartupXLOG_InProduction(void)
 		|| ControlFile->state == DB_IN_STANDBY_NEW_TLI_SET)
 	{
 		ControlFile->state = DB_IN_STANDBY_NEW_TLI_SET;
-		ControlFile->time = time(NULL);
+		ControlFile->time = (pg_time_t) time(NULL);
 		UpdateControlFile();
 		ereport(LOG, (errmsg("database system is almost ready")));
 	}
 	else
 	{
 		ControlFile->state = DB_IN_PRODUCTION;
-		ControlFile->time = time(NULL);
+		ControlFile->time = (pg_time_t) time(NULL);
 		UpdateControlFile();
 		ereport(LOG, (errmsg("database system is ready")));
 	}
@@ -6932,7 +6932,7 @@ StartupXLOG(void)
 			ControlFile->backupEndRequired = backupEndRequired;
 		}
 
-		ControlFile->time = time(NULL);
+		ControlFile->time = (pg_time_t) time(NULL);
 		UpdateControlFile();
 
 		pgstat_reset_all();
@@ -7166,7 +7166,7 @@ StartupXLOG(void)
 
 		/* Transition to promoted mode */
 		ControlFile->state = DB_IN_STANDBY_PROMOTED;
-		ControlFile->time = time(NULL);
+		ControlFile->time = (pg_time_t) time(NULL);
 		UpdateControlFile();
 	}
 
@@ -7913,7 +7913,7 @@ StartupXLOG_Pass4(void)
 			ereport(LOG, (errmsg("Updated catalog to support standby promotion")));
 
 			ControlFile->state = DB_IN_PRODUCTION;
-			ControlFile->time = time(NULL);
+			ControlFile->time = (pg_time_t) time(NULL);
 			UpdateControlFile();
 			ereport(LOG, (errmsg("database system is ready")));
 		}
@@ -8629,10 +8629,10 @@ GetFlushRecPtr(void)
 /*
  * Get the time of the last xlog segment switch
  */
-time_t
+pg_time_t
 GetLastSegSwitchTime(void)
 {
-	time_t		result;
+	pg_time_t	result;
 
 	/* Need WALWriteLock, but shared lock is sufficient */
 	LWLockAcquire(WALWriteLock, LW_SHARED);
@@ -8916,7 +8916,7 @@ CreateCheckPoint(int flags)
 			&& ControlFile->state != DB_IN_STANDBY_NEW_TLI_SET)
 		{
 			ControlFile->state = DB_SHUTDOWNING;
-			ControlFile->time = time(NULL);
+			ControlFile->time = (pg_time_t) time(NULL);
 			UpdateControlFile();
 		}
 	}
@@ -8931,7 +8931,7 @@ CreateCheckPoint(int flags)
 	/* Begin filling in the checkpoint WAL record */
 	MemSet(&checkPoint, 0, sizeof(checkPoint));
 	checkPoint.ThisTimeLineID = ThisTimeLineID;
-	checkPoint.time = time(NULL);
+	checkPoint.time = (pg_time_t) time(NULL);
 
 	/*
 	 * The WRITE_PERSISTENT_STATE_ORDERED_LOCK gets these locks:
@@ -9316,7 +9316,7 @@ CreateCheckPoint(int flags)
 	ControlFile->checkPointCopy = checkPoint;
 	/* crash recovery should always recover to the end of WAL */
 	MemSet(&ControlFile->minRecoveryPoint, 0, sizeof(XLogRecPtr));
-	ControlFile->time = time(NULL);
+	ControlFile->time = (pg_time_t) time(NULL);
 
 	/*
 	 * Save the last checkpoint position.
@@ -9471,7 +9471,7 @@ RecoveryRestartPoint(const CheckPoint *checkPoint)
 	 */
 
 	// UNDONE: For now, turn this off!
-//	elapsed_secs = time(NULL) - ControlFile->time;
+//	elapsed_secs = (pg_time_t) time(NULL) - ControlFile->time;
 //	if (elapsed_secs < CheckPointTimeout / 2)
 //		return;
 
@@ -9521,7 +9521,7 @@ RecoveryRestartPoint(const CheckPoint *checkPoint)
 	ControlFile->prevCheckPoint = ControlFile->checkPoint;
 	ControlFile->checkPoint = ReadRecPtr;
 	ControlFile->checkPointCopy = *checkPoint;
-	ControlFile->time = time(NULL);
+	ControlFile->time = (pg_time_t) time(NULL);
 
 	/*
 	 * Save the last checkpoint position.

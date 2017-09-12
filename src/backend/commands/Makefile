@@ -4,7 +4,7 @@
 #    Makefile for backend/commands
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/backend/commands/Makefile,v 1.39 2008/12/19 16:25:17 petere Exp $
+#    $PostgreSQL: pgsql/src/backend/commands/Makefile,v 1.38 2008/02/19 10:30:07 petere Exp $
 #
 #-------------------------------------------------------------------------
 

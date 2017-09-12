@@ -1,5 +1,5 @@
 # Macros to detect C compiler features
-# config/c-compiler.m4
+# $PostgreSQL: pgsql/config/c-compiler.m4,v 1.15 2008/02/17 16:36:42 petere Exp $
 
 
 # PGAC_C_SIGNED
@@ -103,32 +103,6 @@ undefine([Ac_define])dnl
 undefine([Ac_cachevar])dnl
 ])# PGAC_TYPE_64BIT_INT
 
-
-
-# PGAC_CHECK_ALIGNOF(TYPE, [INCLUDES = DEFAULT-INCLUDES])
-# -----------------------------------------------------
-# Find the alignment requirement of the given type. Define the result
-# as ALIGNOF_TYPE.  This macro works even when cross compiling.
-# (Modelled after AC_CHECK_SIZEOF.)
-
-AC_DEFUN([PGAC_CHECK_ALIGNOF],
-[AS_LITERAL_IF([$1], [],
-               [AC_FATAL([$0: requires literal arguments])])dnl
-AC_CHECK_TYPE([$1], [], [], [$2])
-AC_CACHE_CHECK([alignment of $1], [AS_TR_SH([pgac_cv_alignof_$1])],
-[if test "$AS_TR_SH([ac_cv_type_$1])" = yes; then
-  _AC_COMPUTE_INT([((char*) & pgac_struct.field) - ((char*) & pgac_struct)],
-                  [AS_TR_SH([pgac_cv_alignof_$1])],
-                  [AC_INCLUDES_DEFAULT([$2])
-struct { char filler; $1 field; } pgac_struct;],
-                  [AC_MSG_ERROR([cannot compute alignment of $1, 77])])
-else
-  AS_TR_SH([pgac_cv_alignof_$1])=0
-fi])dnl
-AC_DEFINE_UNQUOTED(AS_TR_CPP(alignof_$1),
-                   [$AS_TR_SH([pgac_cv_alignof_$1])],
-                   [The alignment requirement of a `$1'.])
-])# PGAC_CHECK_ALIGNOF
 
 
 # PGAC_C_FUNCNAME_SUPPORT

@@ -46,7 +46,7 @@ static bool isGPDB5000OrLater(void);
 
 /* GPDB 3.2 used PG version 8.2.10, and we've moved the minor number up since then for each release,  4.1 = 8.2.15 */
 /* Allow for a couple of future releases.  If the version isn't in this range, we are talking to PostgreSQL, not GPDB */
-#define mightBeGPDB() (pset.sversion >= 80210 && pset.sversion < 80400)
+#define mightBeGPDB() (pset.sversion >= 80210 && pset.sversion < 90400)
 
 static bool isGPDB(void)
 {
@@ -858,6 +858,8 @@ permissionsList(const char *pattern)
 	appendPQExpBuffer(&buf, "c.relacl as \"Access privileges\"");  /* Old style, pre-8.3 */
 
 
+	// GPDB_84_MERGE_FIXME: We haven't merged the patch that added attacl yet.
+#if 0
 	if (pset.sversion >= 80400)
 		appendPQExpBuffer(&buf,
 						  ",\n  pg_catalog.array_to_string(ARRAY(\n"
@@ -866,7 +868,7 @@ permissionsList(const char *pattern)
 						  "    WHERE attrelid = c.oid AND NOT attisdropped AND attacl IS NOT NULL\n"
 						  "  ), E'\\n') AS \"%s\"",
 						  gettext_noop("Column access privileges"));
-
+#endif
 	appendPQExpBuffer(&buf, "\nFROM pg_catalog.pg_class c\n"
 	   "     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace\n"
 					  "WHERE c.relkind IN ('r', 'v', 'S')\n");
@@ -1331,6 +1333,8 @@ describeOneTableDetails(const char *schemaname,
 						   : "''"),
 						  oid);
 	}
+	// GPDB_84_MERGE_FIXME: We haven't merged the patch that added relhastriggers yet.
+#if 0
 	else if (pset.sversion >= 80400)
 	{
 		printfPQExpBuffer(&buf,
@@ -1346,6 +1350,7 @@ describeOneTableDetails(const char *schemaname,
 						   : "''"),
 						  oid);
 	}
+#endif
 	else if (pset.sversion >= 80200)
 	{
 		printfPQExpBuffer(&buf,
