@@ -206,7 +206,8 @@ static bool downloadS3(const char *urlWithOptions) {
         return false;
     }
 
-    strcpy(eolString, reader->getParams().getGpcheckcloud_newline().c_str());
+    strncpy(eolString, reader->getParams().getGpcheckcloud_newline().c_str(), EOL_CHARS_MAX_LEN);
+    eolString[EOL_CHARS_MAX_LEN] = '\0';
 
     do {
         data_len = BUF_SIZE;
