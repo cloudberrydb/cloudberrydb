@@ -14162,9 +14162,11 @@ select rnum, c1, c2, sum(c3) over w1, sum (c3) over w2 from tolap  window w1 as 
 group by
 f1,f2,f3,f4,f5
 ) Q ) P;
-ERROR:  syntax error at or near "w1"
-LINE 12: select rnum, c1, c2, sum(c3) over w1, sum (c3) over w2 from ...
-                                           ^
+             test_name_part             | pass_ind 
+----------------------------------------+----------
+ OlapCoreWindowFrameWindowDefinition_p1 |        1
+(1 row)
+
 -- OperatorAnd_p1
 select 'OperatorAnd_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (

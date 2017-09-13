@@ -478,7 +478,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <list>	cte_list
 
 %type <list>	window_clause window_definition_list opt_partition_clause
-%type <windef>	window_definition window_specification
+%type <windef>	window_definition over_clause window_specification
 %type <list>	opt_window_order_clause
 %type <str>		opt_existing_window_name
 %type <windef>	opt_frame_clause frame_extent frame_bound
@@ -11167,19 +11167,22 @@ b_expr:		c_expr
  * ambiguity to the b_expr syntax.
  */
 c_expr:		columnref								{ $$ = $1; }
-			| func_expr OVER window_specification
+			| func_expr over_clause
 				{
 					/*
 					 * We break out the window function from func_expr
 					 * to avoid shift/reduce errors.
 					 */
-					if (IsA($1, FuncCall))
-						((FuncCall *) $1)->over = $3;
-					else
-						ereport(ERROR,
-								(errcode(ERRCODE_SYNTAX_ERROR),
-								 errmsg("window OVER clause can only be used "
-										"with an aggregate")));
+					if ($2)
+					{
+						if (IsA($1, FuncCall))
+							((FuncCall *) $1)->over = $2;
+						else
+							ereport(ERROR,
+									(errcode(ERRCODE_SYNTAX_ERROR),
+									 errmsg("window OVER clause can only be used "
+											"with an aggregate")));
+					}
 
 					$$ = (Node *)$1;
 				}
@@ -11214,8 +11217,6 @@ c_expr:		columnref								{ $$ = $1; }
 			| case_expr
 				{ $$ = $1; }
 			| decode_expr
-				{ $$ = $1; }
-			| func_expr
 				{ $$ = $1; }
 			| select_with_parens			%prec UMINUS
 				{
@@ -12115,6 +12116,25 @@ window_definition:
 					n->name = $1;
 					$$ = n;
 				}
+		;
+
+over_clause: OVER window_specification
+				{ $$ = $2; }
+			| OVER ColId
+				{
+					WindowDef *n = makeNode(WindowDef);
+					n->name = $2;
+					n->refname = NULL;
+					n->partitionClause = NIL;
+					n->orderClause = NIL;
+					n->frameOptions = FRAMEOPTION_DEFAULTS;
+					n->startOffset = NULL;
+					n->endOffset = NULL;
+					n->location = @2;
+					$$ = n;
+				}
+			| /*EMPTY*/
+				{ $$ = NULL; }
 		;
 
 window_specification: '(' opt_existing_window_name opt_partition_clause

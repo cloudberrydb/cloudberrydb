@@ -5535,7 +5535,7 @@ get_windowref_expr(WindowRef *wref, deparse_context *context)
 		if (wc->winref == wref->winref)
 		{
 			if (wc->name)
-				appendStringInfo(buf, "(%s)", quote_identifier(wc->name));
+				appendStringInfoString(buf, quote_identifier(wc->name));
 			else
 				get_rule_windowspec(wc, context->windowTList, context);
 			break;
