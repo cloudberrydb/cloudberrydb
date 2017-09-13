@@ -137,6 +137,7 @@ ProcessConfigFile(GucContext context)
 	int			i;
 
 	Assert(context == PGC_POSTMASTER || context == PGC_SIGHUP);
+	Assert(gp_replication_config_filename);
 
 	if (context == PGC_SIGHUP)
 	{
@@ -153,6 +154,11 @@ ProcessConfigFile(GucContext context)
 	head = tail = NULL;
 
 	if (!ParseConfigFile(ConfigFileName, NULL,
+						 0, context, elevel,
+						 &head, &tail))
+		goto cleanup_list;
+
+	if (!ParseConfigFile(gp_replication_config_filename, NULL,
 						 0, context, elevel,
 						 &head, &tail))
 		goto cleanup_list;
@@ -360,9 +366,9 @@ GUC_flex_fatal(const char *msg)
  * Output parameters:
  *	head_p, tail_p: head and tail of linked list of name/value pairs
  *
- * *head_p and *tail_p must be initialized to NULL before calling the outer
- * recursion level.  On exit, they contain a list of name-value pairs read
- * from the input file(s).
+ * *head_p and *tail_p must be initialized to NULL for the first call to the top
+ * recursion level.  On exit, they contain a list of name-value pairs read from
+ * the input file(s).
  *
  * Returns TRUE if successful, FALSE if an error occurred.  The error has
  * already been ereport'd, it is only necessary for the caller to clean up

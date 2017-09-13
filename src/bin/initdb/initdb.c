@@ -188,7 +188,7 @@ static bool mkdatadir(const char *subdir);
 static void set_input(char **dest, char *filename);
 static void check_input(char *path);
 static void set_short_version(char *short_version, char *extrapath);
-static void set_null_conf(void);
+static void set_null_conf(const char *conf_name);
 static void test_config_settings(void);
 static void setup_config(void);
 static void bootstrap_template1(char *short_version);
@@ -1162,13 +1162,13 @@ set_short_version(char *short_version, char *extrapath)
  * a test backend
  */
 static void
-set_null_conf(void)
+set_null_conf(const char *conf_name)
 {
 	FILE	   *conf_file;
 	char	   *path;
 
-	path = pg_malloc(strlen(pg_data) + 17);
-	sprintf(path, "%s/postgresql.conf", pg_data);
+	path = pg_malloc(strlen(pg_data) + strlen(conf_name) + 2);
+	sprintf(path, "%s/%s", pg_data, conf_name);
 	conf_file = fopen(path, PG_BINARY_W);
 	if (conf_file == NULL)
 	{
@@ -1477,6 +1477,20 @@ setup_config(void)
 	conflines = readfile(ident_file);
 
 	snprintf(path, sizeof(path), "%s/pg_ident.conf", pg_data);
+
+	writefile(path, conflines);
+	chmod(path, 0600);
+
+	free(conflines);
+
+	/* gp_replication.conf */
+
+	conflines = malloc(sizeof(char*));
+	conflines[0] = NULL;
+
+	conflines = add_assignment(conflines, "synchronous_standby_names", "''");
+
+	snprintf(path, sizeof(path), "%s/gp_replication.conf", pg_data);
 
 	writefile(path, conflines);
 	chmod(path, 0600);
@@ -3604,7 +3618,8 @@ main(int argc, char *argv[])
 	set_short_version(short_version, NULL);
 
 	/* Select suitable configuration settings */
-	set_null_conf();
+	set_null_conf("postgresql.conf");
+	set_null_conf("gp_replication.conf");
 	test_config_settings();
 
 	/* Now create all the text config files */

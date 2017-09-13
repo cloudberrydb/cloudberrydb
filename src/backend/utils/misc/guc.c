@@ -3612,6 +3612,10 @@ SelectConfigFiles(const char *userDoption, const char *progname)
 	SetConfigOption("config_file", fname, PGC_POSTMASTER, PGC_S_OVERRIDE);
 	free(fname);
 
+	/* Perform similar processes for Greenplum-specific configuration files. */
+	if (!select_gp_replication_config_files(configdir, progname))
+		return false;
+
 	/*
 	 * Now read the config file for the first time.
 	 */

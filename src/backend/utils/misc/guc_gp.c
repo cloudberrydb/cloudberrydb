@@ -310,6 +310,8 @@ int			gp_filerep_ct_batch_size;
 
 int			WalSendClientTimeout = 30000;		/* 30 seconds. */
 
+char	   *gp_replication_config_filename = NULL;
+
 char	   *data_directory;
 
 char	   *gp_email_smtp_server;
@@ -6166,4 +6168,36 @@ assign_gp_default_storage_options(const char *newval,
 		PG_END_TRY();
 	}
 	return doit ? storageOptToString() : newval;
+}
+
+bool
+select_gp_replication_config_files(const char *configdir, const char *progname)
+{
+	char *fname;
+
+	if (gp_replication_config_filename)
+		fname = make_absolute_path(gp_replication_config_filename);
+	else if (configdir)
+	{
+		fname = malloc(strlen(configdir)
+					   + strlen(GP_REPLICATION_CONFIG_FILENAME) + 2);
+		if (!fname)
+		{
+			ereport(FATAL, (errcode(ERRCODE_OUT_OF_MEMORY),
+						    errmsg("out of memory")));
+		}
+
+		sprintf(fname, "%s/%s", configdir, GP_REPLICATION_CONFIG_FILENAME);
+	}
+	else
+	{
+		write_stderr("%s does not know where to find the \"gp_replication\" configuration file.\n"
+					 "This can be specified by the -D invocation option, or by the "
+					 "PGDATA environment variable.\n",
+					 progname);
+		return false;
+	}
+
+	gp_replication_config_filename = fname;
+	return true;
 }
