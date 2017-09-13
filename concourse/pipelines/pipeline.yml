@@ -553,8 +553,8 @@ jobs:
       trigger: {{gpdb_src-trigger-flag}}
     - get: centos-gpdb-dev-6
   - task: compile_gpdb
-    file: gpdb_src/concourse/tasks/compile_gpdb_open_source.yml
     image: centos-gpdb-dev-6
+    file: gpdb_src/concourse/tasks/compile_gpdb_open_source.yml
     params:
         CONFIGURE_FLAGS: {{configure_flags}}
 
@@ -570,8 +570,8 @@ jobs:
       trigger: true
     - get: centos-gpdb-dev-7
   - task: compile_gpdb
-    file: gpdb_src/concourse/tasks/compile_gpdb.yml
     image: centos-gpdb-dev-7
+    file: gpdb_src/concourse/tasks/compile_gpdb.yml
     params:
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
@@ -601,10 +601,8 @@ jobs:
       trigger: {{gpdb_src-trigger-flag}}
     - get: gpaddon_src
     - get: pxf_src
-    - get: sles-gpdb-dev-11-beta
   - task: compile_gpdb
-    file: gpdb_src/concourse/tasks/compile_gpdb.yml
-    image: sles-gpdb-dev-11-beta
+    file: gpdb_src/concourse/tasks/compile_gpdb_sles11.yml
     params:
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
