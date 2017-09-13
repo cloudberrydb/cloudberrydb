@@ -385,6 +385,12 @@ add_assignment(char **lines, const char *varname, const char *fmt, ...)
             iinsert = isrc;
     }
 
+    if (iinsert < 0)
+    {
+        /* No assignment found? Insert at the end. */
+        iinsert = isrc;
+    }
+
     /* Build assignment. */
     va_start(args, fmt);
     if (superseded)
