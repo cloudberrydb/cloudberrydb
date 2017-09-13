@@ -774,12 +774,15 @@ listAllDbs(bool verbose)
 					  gettext_noop("Name"),
 					  gettext_noop("Owner"),
 					  gettext_noop("Encoding"));
+/* GPDB_84_MERGE_FIXME: datcollate and datctype have not been added yet */
+#if 0
 	if (pset.sversion >= 80400)
 		appendPQExpBuffer(&buf,
 						  "       d.datcollate as \"%s\",\n"
 						  "       d.datctype as \"%s\",\n",
 						  gettext_noop("Collation"),
 						  gettext_noop("Ctype"));
+#endif
 	appendPQExpBuffer(&buf, "       ");
 	printACLColumn(&buf, "d.datacl");
 	if (verbose && pset.sversion >= 80200)
