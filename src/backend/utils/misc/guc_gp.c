@@ -16,6 +16,8 @@
  */
 #include "postgres.h"
 
+#include <sys/stat.h>
+
 #include "access/reloptions.h"
 #include "access/transam.h"
 #include "access/url.h"
@@ -32,10 +34,12 @@
 #include "optimizer/cost.h"
 #include "optimizer/planmain.h"
 #include "pgstat.h"
+#include "parser/scansup.h"
 #include "postmaster/syslogger.h"
 #include "replication/walsender.h"
 #include "storage/bfz.h"
 #include "storage/proc.h"
+#include "utils/builtins.h"
 #include "utils/guc_tables.h"
 #include "utils/inval.h"
 #include "utils/resscheduler.h"
@@ -123,6 +127,13 @@ static const char *assign_gp_default_storage_options(
 static bool assign_pljava_classpath_insecure(bool newval, bool doit, GucSource source);
 
 extern struct config_generic *find_option(const char *name, bool create_placeholders, int elevel);
+
+static void write_gp_replication_conf_file(int fd, const char *filename, struct name_value_pair *head);
+static void replace_gp_replication_config_value(struct name_value_pair **head_p, struct name_value_pair **tail_p,
+                                    const char *name, const char *value);
+
+static bool validate_gp_replication_conf_option(struct config_generic *record,
+                                    const char *value, int elevel);
 
 extern bool enable_partition_rules;
 
@@ -6201,3 +6212,390 @@ select_gp_replication_config_files(const char *configdir, const char *progname)
 	gp_replication_config_filename = fname;
 	return true;
 }
+
+/*
+ * Set GUC value in GP_REPLICATION_CONFIG_FILENAME.
+ *
+ * If value is NULL, then this GUC is removed from the configuration.
+ *
+ * If name exists, its value will be updated.
+ * otherwise, the new named GUC will be added.
+ */
+void
+set_gp_replication_config(const char *name, const char *value)
+{
+	struct name_value_pair *head = NULL;
+	struct name_value_pair *tail = NULL;
+	volatile int Tmpfd;
+	char GpReplicationConfigTempFilename[MAXPGPATH];
+	char GpReplicationConfigFilename[MAXPGPATH];
+
+	if (!superuser())
+		ereport(ERROR,
+		        (errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				        (errmsg("must be superuser to update %s", gp_replication_config_filename))));
+
+	/*
+	 * GP_REPLICATION_CONFIG_FILENAME and its corresponding temporary file are always in
+	 * the data directory, so we can reference them by simple relative paths.
+	 */
+	snprintf(GpReplicationConfigFilename, sizeof(GpReplicationConfigFilename), "%s",
+	         gp_replication_config_filename);
+	snprintf(GpReplicationConfigTempFilename, sizeof(GpReplicationConfigTempFilename), "%s.%s",
+	         gp_replication_config_filename, "tmp");
+
+	/*
+	 * Only one backend is allowed to operate on GP_REPLICATION_CONFIG_FILENAME at a
+	 * time.  Use GpReplicationConfigFileLock to ensure that.  We must hold the lock while
+	 * reading the old file contents.
+	 */
+	LWLockAcquire(GpReplicationConfigFileLock, LW_EXCLUSIVE);
+
+	struct stat st;
+
+	if (stat(GpReplicationConfigFilename, &st) == 0)
+	{
+		/* open old file PG_AUTOCONF_FILENAME */
+		FILE	   *infile;
+
+		infile = AllocateFile(GpReplicationConfigFilename, "r");
+		if (infile == NULL)
+			ereport(ERROR,
+			        (errcode_for_file_access(),
+					        errmsg("could not open file \"%s\": %m",
+					               GpReplicationConfigFilename)));
+
+		/* parse it */
+		if (!ParseConfigFile(GpReplicationConfigFilename, NULL, 0, PGC_SUSET, LOG, &head, &tail))
+			ereport(ERROR,
+			        (errcode(ERRCODE_CONFIG_FILE_ERROR),
+					        errmsg("could not parse contents of file \"%s\"",
+					               GpReplicationConfigFilename)));
+
+		FreeFile(infile);
+	}
+
+	/*
+	 * If a value is specified, verify that it's sane.
+	 */
+	if (value)
+	{
+		struct config_generic *record;
+
+		record = find_option(name, false, LOG);
+		if (record == NULL)
+			ereport(ERROR,
+			        (errcode(ERRCODE_UNDEFINED_OBJECT),
+					        errmsg("unrecognized configuration parameter \"%s\"", name)));
+
+		/*
+		 * Don't allow the parameters which can't be set in configuration
+		 * files to be set in GP_REPLICATION_CONFIG_FILENAME file.
+		 */
+		if ((record->context == PGC_INTERNAL) ||
+		    (record->flags & GUC_DISALLOW_IN_FILE))
+			ereport(ERROR,
+			        (errcode(ERRCODE_CANT_CHANGE_RUNTIME_PARAM),
+					        errmsg("parameter \"%s\" cannot be changed",
+					               name)));
+
+		if (!validate_gp_replication_conf_option(record, value, ERROR))
+			ereport(ERROR,
+			        (errmsg("invalid value for parameter \"%s\": \"%s\"", name, value)));
+	}
+
+	replace_gp_replication_config_value(&head, &tail, name, value);
+
+	/*
+	 * To ensure crash safety, first write the new file data to a temp file,
+	 * then atomically rename it into place.
+	 *
+	 * If there is a temp file left over due to a previous crash, it's okay to
+	 * truncate and reuse it.
+	 */
+	Tmpfd = BasicOpenFile(GpReplicationConfigTempFilename,
+	                      O_CREAT | O_RDWR | O_TRUNC,
+	                      S_IRUSR | S_IWUSR);
+	if (Tmpfd < 0)
+		ereport(ERROR,
+		        (errcode_for_file_access(),
+				        errmsg("could not open file \"%s\": %m",
+				               GpReplicationConfigTempFilename)));
+
+	/*
+	 * Use a TRY block to clean up the file if we fail.  Since we need a TRY
+	 * block anyway, OK to use BasicOpenFile rather than OpenTransientFile.
+	 */
+	PG_TRY();
+	{
+		/* Write and sync the new contents to the temporary file */
+		write_gp_replication_conf_file(Tmpfd, GpReplicationConfigTempFilename, head);
+
+		/* Close before renaming; may be required on some platforms */
+		close(Tmpfd);
+		Tmpfd = -1;
+
+		/*
+		 * As the rename is atomic operation, if any problem occurs after this
+		 * at worst it can lose the parameters set by last ALTER SYSTEM
+		 * command.
+		 */
+		if (rename(GpReplicationConfigTempFilename, GpReplicationConfigFilename) < 0)
+			ereport(ERROR,
+			        (errcode_for_file_access(),
+					        errmsg("could not rename file \"%s\" to \"%s\": %m",
+					               GpReplicationConfigTempFilename, GpReplicationConfigFilename)));
+	}
+	PG_CATCH();
+	{
+		/* Close file first, else unlink might fail on some platforms */
+		if (Tmpfd >= 0)
+			close(Tmpfd);
+
+		/* Unlink, but ignore any error */
+		(void) unlink(GpReplicationConfigTempFilename);
+
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
+
+	LWLockRelease(GpReplicationConfigFileLock);
+}
+
+/*
+ * Write updated configuration parameter values into a temporary file.
+ * This function traverses the list of parameters and quotes the string
+ * values before writing them.
+ */
+static void
+write_gp_replication_conf_file(int fd, const char *filename, struct name_value_pair *head)
+{
+	StringInfoData buf;
+	struct name_value_pair *item;
+
+	initStringInfo(&buf);
+
+	/* Emit file header containing warning comment */
+	appendStringInfoString(&buf, "# Do not edit this file manually!\n");
+	appendStringInfoString(&buf, "# It will be overwritten by gp_set_synchronous_standby_name().\n");
+
+	errno = 0;
+	if (write(fd, buf.data, buf.len) != buf.len)
+	{
+		/* if write didn't set errno, assume problem is no disk space */
+		if (errno == 0)
+			errno = ENOSPC;
+		ereport(ERROR,
+		        (errcode_for_file_access(),
+				        errmsg("could not write to file \"%s\": %m", filename)));
+	}
+
+	/* Emit each parameter, properly quoting the value */
+	for (item = head; item != NULL; item = item->next)
+	{
+		char	   *escaped;
+
+		resetStringInfo(&buf);
+
+		appendStringInfoString(&buf, item->name);
+		appendStringInfoString(&buf, " = '");
+
+		escaped = escape_single_quotes_ascii(item->value);
+		if (!escaped)
+			ereport(ERROR,
+			        (errcode(ERRCODE_OUT_OF_MEMORY),
+					        errmsg("out of memory")));
+		appendStringInfoString(&buf, escaped);
+		free(escaped);
+
+		appendStringInfoString(&buf, "'\n");
+
+		errno = 0;
+		if (write(fd, buf.data, buf.len) != buf.len)
+		{
+			/* if write didn't set errno, assume problem is no disk space */
+			if (errno == 0)
+				errno = ENOSPC;
+			ereport(ERROR,
+			        (errcode_for_file_access(),
+					        errmsg("could not write to file \"%s\": %m", filename)));
+		}
+	}
+
+	/* fsync before considering the write to be successful */
+	if (pg_fsync(fd) != 0)
+		ereport(ERROR,
+		        (errcode_for_file_access(),
+				        errmsg("could not fsync file \"%s\": %m", filename)));
+
+	pfree(buf.data);
+}
+
+/*
+ * Update the given list of configuration parameters, adding, replacing
+ * or deleting the entry for item "name" (delete if "value" == NULL).
+ */
+static void
+replace_gp_replication_config_value(struct name_value_pair  **head_p, struct name_value_pair **tail_p,
+                                    const char *name, const char *value)
+{
+	struct name_value_pair  *item,
+			*prev = NULL;
+
+	/* Search the list for an existing match (we assume there's only one) */
+	for (item = *head_p; item != NULL; item = item->next)
+	{
+		if (strcmp(item->name, name) == 0)
+		{
+			/* found a match, replace it */
+			pfree(item->value);
+			if (value != NULL)
+			{
+				/* update the parameter value */
+				item->value = pstrdup(value);
+			}
+			else
+			{
+				/* delete the configuration parameter from list */
+				if (*head_p == item)
+					*head_p = item->next;
+				else
+					prev->next = item->next;
+				if (*tail_p == item)
+					*tail_p = prev;
+
+				pfree(item->name);
+				pfree(item);
+			}
+			return;
+		}
+		prev = item;
+	}
+
+	/* Not there; no work if we're trying to delete it */
+	if (value == NULL)
+		return;
+
+	/* OK, append a new entry */
+	item = palloc(sizeof *item);
+	item->name = pstrdup(name);
+	item->value = pstrdup(value);
+	item->next = NULL;
+
+	if (*head_p == NULL)
+		*head_p = item;
+	else
+		(*tail_p)->next = item;
+	*tail_p = item;
+}
+
+/*
+ * Validates configuration parameter and value
+ */
+static bool
+validate_gp_replication_conf_option(struct config_generic *record,
+                     const char *value, int elevel)
+{
+	/*
+	 * Validate the value for the passed record, to ensure it is in expected
+	 * range.
+	 */
+	switch (record->vartype)
+	{
+		case PGC_BOOL:
+			{
+				bool		newval;
+
+				if (!parse_bool(value, &newval))
+				{
+					ereport(elevel,
+					        (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+							        errmsg("parameter \"%s\" requires a Boolean value",
+							               record->name)));
+					return false;
+				}
+				break;
+			}
+		case PGC_INT:
+			{
+				struct config_int *conf = (struct config_int *) record;
+				int			newval;
+				const char *hintmsg;
+
+				if (!parse_int(value, &newval, conf->gen.flags, &hintmsg))
+				{
+					ereport(elevel,
+					        (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+							        errmsg("invalid value for parameter \"%s\": \"%s\"",
+							               record->name, value),
+							        hintmsg ? errhint("%s", hintmsg) : 0));
+					return false;
+				}
+				if (newval < conf->min || newval > conf->max)
+				{
+					ereport(elevel,
+					        (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+							        errmsg("%d is outside the valid range for parameter \"%s\" (%d .. %d)",
+							               newval, record->name, conf->min, conf->max)));
+					return false;
+				}
+				break;
+			}
+		case PGC_REAL:
+			{
+				struct config_real *conf = (struct config_real *) record;
+				double		newval;
+
+				if (!parse_real(value, &newval))
+				{
+					ereport(elevel,
+					        (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+							        errmsg("parameter \"%s\" requires a numeric value",
+							               record->name)));
+					return false;
+				}
+				if (newval < conf->min || newval > conf->max)
+				{
+					ereport(elevel,
+					        (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+							        errmsg("%g is outside the valid range for parameter \"%s\" (%g .. %g)",
+							               newval, record->name, conf->min, conf->max)));
+					return false;
+				}
+				break;
+			}
+		case PGC_STRING:
+			{
+				struct config_string *conf = (struct config_string *) record;
+
+				/*
+				 * The only sort of "parsing" check we need to ensure value is NOT truncated if GUC_IS_NAME.
+				 */
+				if (conf->gen.flags & GUC_IS_NAME)
+				{
+					char *tempPtr;
+					bool is_truncated;
+
+					tempPtr = strdup(value);
+					if (tempPtr == NULL)
+						return false;
+
+					truncate_identifier(tempPtr, strlen(tempPtr), true);
+					is_truncated = (strlen(value) != strlen(tempPtr));
+
+					free(tempPtr);
+
+					if (is_truncated)
+						return false;
+				}
+				break;
+			}
+		default:
+			/*
+			 * make sure all the types are checked, and we should never reach here
+			 */
+			Assert(false);
+	}
+	return true;
+}
+

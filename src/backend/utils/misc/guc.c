@@ -4461,7 +4461,7 @@ parse_int(const char *value, int *result, int flags, const char **hintmsg)
  * If the string parses okay, return true, else false.
  * If okay and result is not NULL, return the value in *result.
  */
-static bool
+bool
 parse_real(const char *value, double *result)
 {
 	double		val;
