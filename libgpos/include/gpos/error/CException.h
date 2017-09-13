@@ -22,6 +22,12 @@
 #define GPOS_RAISE(...) \
 	gpos::CException::Raise(__FILE__, __LINE__, __VA_ARGS__)
 
+// raises GPOS exception,
+// these exceptions can later be translated to GPDB log severity levels
+// so that they can be written in GPDB with appropriate severity level.
+#define GPOS_THROW_EXCEPTION(...) \
+	gpos::CException::Raise(__FILE__, __LINE__, __VA_ARGS__)
+
 // helper to match a caught exception
 #define GPOS_MATCH_EX(ex, ulMajor, ulMinor) \
 									(ulMajor == ex.UlMajor() && ulMinor == ex.UlMinor())
@@ -157,7 +163,10 @@ namespace gpos
 			
 			// line in file
 			ULONG m_ulLine;
-			
+
+			// severity level mapped to GPDB log severity level
+			ULONG m_ulSeverityLevel;
+
 			// sql state error codes
 			static
 			const SErrCodeElem m_rgerrcode[ExmiSQLTest - ExmiSQLDefault + 1];
@@ -183,6 +192,7 @@ namespace gpos
 				ExsevWarning,
 				ExsevNotice,
 				ExsevTrace,
+				ExsevDebug1,
 
 				ExsevSentinel
 			};
@@ -194,6 +204,7 @@ namespace gpos
 			// ctor
 			CException(ULONG ulMajor, ULONG ulMinor);
 			CException(ULONG ulMajor, ULONG ulMinor, const CHAR *szFilename, ULONG ulLine);
+			CException(ULONG ulMajor, ULONG ulMinor, const CHAR *szFilename, ULONG ulLine, ULONG ulSeverityLevel);
 
 			// accessors
 			ULONG UlMajor() const
@@ -214,6 +225,11 @@ namespace gpos
 			ULONG UlLine() const
 			{
 				return m_ulLine;
+			}
+
+			ULONG UlSeverityLevel() const
+			{
+				return m_ulSeverityLevel;
 			}
 
 			const CHAR *SzSQLState() const
@@ -266,7 +282,11 @@ namespace gpos
 			// wrapper around throw
 			static 
 			void Raise(const CHAR *szFilename, ULONG ulLine, ULONG ulMajor, ULONG ulMinor,...);
-			
+
+			// wrapper around throw with severity level
+			static
+			void Raise(const CHAR *szFilename, ULONG ulLine, ULONG ulMajor, ULONG ulMinor, ULONG ulSeverityLevel, ...);
+
 			// rethrow wrapper
 			static
 			void Reraise(CException exc, BOOL fPropagate = false);

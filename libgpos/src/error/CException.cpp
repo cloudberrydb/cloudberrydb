@@ -71,9 +71,28 @@ CException::CException
 	m_szFilename(const_cast<CHAR*>(szFilename)),
 	m_ulLine(ulLine)
 {
+	m_ulSeverityLevel = CException::ExsevSentinel;
 	m_szSQLState = SzSQLState(ulMajor, ulMinor);
 }
 
+// ctor
+CException::CException
+(
+	ULONG ulMajor,
+	ULONG ulMinor,
+	const CHAR *szFilename,
+	ULONG ulLine,
+	ULONG ulSeverityLevel
+	)
+	:
+	m_ulMajor(ulMajor),
+	m_ulMinor(ulMinor),
+	m_szFilename(const_cast<CHAR*>(szFilename)),
+	m_ulLine(ulLine),
+	m_ulSeverityLevel(ulSeverityLevel)
+{
+	m_szSQLState = SzSQLState(ulMajor, ulMinor);
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -95,6 +114,7 @@ CException::CException
 	m_szFilename(NULL),
 	m_ulLine(0)
 {
+	m_ulSeverityLevel = CException::ExsevSentinel;
 	m_szSQLState = SzSQLState(ulMajor, ulMinor);
 }
 
@@ -142,6 +162,39 @@ CException::Raise
 	Raise(exc);
 }
 
+
+void
+CException::Raise
+(
+	const CHAR *szFilename,
+	ULONG ulLine,
+	ULONG ulMajor,
+	ULONG ulMinor,
+	ULONG ulSeverityLevel
+	...
+	)
+{
+	// manufacture actual exception object
+	CException exc(ulMajor, ulMinor, szFilename, ulLine, ulSeverityLevel);
+
+	// during bootstrap there's no context object otherwise, record
+	// all details in the context object
+	if (NULL != ITask::PtskSelf())
+	{
+		CErrorContext *perrctxt = CTask::PtskSelf()->PerrctxtConvert();
+
+		VA_LIST valist;
+		VA_START(valist, ulSeverityLevel);
+
+		perrctxt->Record(exc, valist);
+
+		VA_END(valist);
+
+		perrctxt->Serialize();
+	}
+
+	Raise(exc);
+}
 
 
 //---------------------------------------------------------------------------
