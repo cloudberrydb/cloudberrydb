@@ -6592,6 +6592,10 @@ validate_gp_replication_conf_option(struct config_generic *record,
 			}
 		default:
 			/*
+			 * FIXME: Need to add validation for the PGC_ENUM once merged
+			 * commit 52a8d4f8f7e286482886861175312c1434b1d4fd from upstream 8.4
+			 */
+			/*
 			 * make sure all the types are checked, and we should never reach here
 			 */
 			Assert(false);

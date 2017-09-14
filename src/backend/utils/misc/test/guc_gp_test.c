@@ -1,6 +1,6 @@
-//
-// Created by xzhang on 9/11/17.
-//
+/*
+ * Unit tests for the functions in guc_gp.c.
+ */
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
