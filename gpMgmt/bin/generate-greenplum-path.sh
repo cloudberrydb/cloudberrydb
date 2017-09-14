@@ -89,6 +89,18 @@ EOF
     fi
 fi
 
+# AIX uses yet another library path variable
+# Also, Python on AIX requires special copies of some libraries.  Hence, lib/pware.
+if [ "${PLAT}" = "AIX" ]; then
+cat <<EOF
+PYTHONPATH=\${GPHOME}/ext/python/lib/python2.7:\${PYTHONPATH}
+LIBPATH=\${GPHOME}/lib/pware:\${GPHOME}/lib:\${GPHOME}/ext/python/lib:/usr/lib/threads:\${LIBPATH}
+export LIBPATH
+GP_LIBPATH_FOR_PYTHON=\${GPHOME}/lib/pware
+export GP_LIBPATH_FOR_PYTHON
+EOF
+fi
+
 # openssl configuration file path
 cat <<EOF
 OPENSSL_CONF=\$GPHOME/etc/openssl.cnf
