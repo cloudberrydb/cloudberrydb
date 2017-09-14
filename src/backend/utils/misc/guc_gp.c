@@ -4226,18 +4226,6 @@ struct config_int ConfigureNamesInt_gp[] =
 		0, 0, INT_MAX, NULL, NULL
 	},
 
-#ifdef ENABLE_LTRACE
-	{
-		{"gp_ltrace_flag", PGC_USERSET, GP_ARRAY_TUNING,
-			gettext_noop("Linux Tracing flag"),
-			gettext_noop("Linux Tracing flag"),
-			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL | GUC_GPDB_ADDOPT
-		},
-		&gp_ltrace_flag,
-		0, 0, INT_MAX, NULL, NULL
-	},
-#endif
-
 	{
 		{"gp_reject_percent_threshold", PGC_USERSET, GP_ERROR_HANDLING,
 			gettext_noop("Reject limit in percent starts calculating after this number of rows processed"),
