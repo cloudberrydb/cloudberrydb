@@ -316,3 +316,10 @@
 #ifdef _AIX
 #define _ALL_SOURCE
 #endif
+
+/*
+ * Greenplum replication configuration file name.
+ * This file will be used to store values of replication GUCs
+ * set by set_gp_replication_config()
+ */
+#define GP_REPLICATION_CONFIG_FILENAME "gp_replication.conf"

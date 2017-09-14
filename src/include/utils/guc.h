@@ -369,7 +369,6 @@ extern int	gp_filerep_ct_batch_size;
 
 extern int  WalSendClientTimeout;
 
-#define GP_REPLICATION_CONFIG_FILENAME "gp_replication.conf"
 extern char  *gp_replication_config_filename;
 
 extern char  *data_directory;
