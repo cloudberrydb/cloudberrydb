@@ -20,10 +20,10 @@ MEMORY_SHARED_QUOTA <varname>integer</varname></codeblock>
       <p><codeph>ALTER RESOURCE GROUP</codeph> changes the limits of a resource group. 
         Only a superuser can alter a resource group.</p>
         <p>You can set or reset the concurrency limit of a resource group to control the maximum
-        number of active concurrent statements in that group. You can also reset the CPU rate limit of a
-        resource group to control the amount of CPU resources that all queries submitted through
-        the group can consume on each segment host.</p>
-        <p>The new resource limit is immediately applied if current resource usage is less than or equal to the new value. If current resource usage exceeds the new limit value, Greenplum Database will defer the new limit assignment until resource usage is within the range of the new value.</p>
+        number of active concurrent statements in that group. You can also reset the memory or CPU
+        rate limit of a resource group to control the amount of memory or CPU resources that all
+        queries submitted through the group can consume on each segment host.</p>
+        <p>The new resource limit is immediately applied if current resource usage is less than or equal to the new value and there are no running transactions in the resource group. If current resource usage exceeds the new limit value, or there are running transactions in other resource groups holding some of the resource, Greenplum Database will defer the new limit assignment until resource usage is within the range of the new value.</p>
         <p>You can alter one limit type in a single <codeph>ALTER RESOURCE GROUP</codeph> call.</p>
     </section>
     <section id="section4">
