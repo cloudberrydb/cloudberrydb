@@ -1478,18 +1478,13 @@ initTM(void)
 			}
 			PG_CATCH();
 			{
-				ErrorData *edata;
-
 				MemoryContextSwitchTo(oldcontext);
-				edata = CopyErrorData();
 
 				elog(LOG, "DTM initialization, caught exception: "
 						  "looking for failed segments.");
-				ereport(LOG,
-						(edata->message ? errmsg("%s", edata->message) : 0,
-						 edata->detail ? errdetail("%s", edata->detail) : 0,
-						 edata->hint ? errhint("%s", edata->hint) : 0));
-				FreeErrorData(edata);
+
+				/* Log the error. */
+				EmitErrorReport();
 				FlushErrorState();
 
 				/*
