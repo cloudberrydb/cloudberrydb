@@ -13,7 +13,6 @@ groups:
   - icw_gporca_sles11
   - icw_planner_ictcp_centos6
   - mpp_resource_group_centos6
-  - mpp_resource_group_centos7
   - MU_check_centos
   - MM_gpperfmon
   - MM_gpcheck
@@ -73,7 +72,6 @@ groups:
   - cs_walrep_1
   - cs_walrep_2
   - mpp_resource_group_centos6
-  - mpp_resource_group_centos7
   - DPM_backup-restore
   - MM_gpcheckcat
   - MM_gppkg
@@ -812,38 +810,6 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       TEST_OS: centos6
-    on_failure:
-      <<: *debug_sleep
-  - *ccp_destroy
-
-- name: mpp_resource_group_centos7
-  plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [compile_gpdb_centos7]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos7
-      passed: [compile_gpdb_centos7]
-      trigger: true
-    - get: ccp_src
-    - get: centos-gpdb-dev-7
-  - put: terraform
-    params:
-      <<: *ccp_default_params
-      vars:
-        <<: *ccp_default_vars
-        platform: centos7
-  - task: gen_cluster
-    file: ccp_src/ci/tasks/gen_cluster.yml
-    input_mapping:
-      gpdb_binary: bin_gpdb
-    on_failure:
-      <<: *ccp_destroy
-  - task: run_tests
-    file: gpdb_src/concourse/tasks/ic_gpdb_resgroup.yml
-    image: centos-gpdb-dev-7
-    params:
-      TEST_OS: centos7
     on_failure:
       <<: *debug_sleep
   - *ccp_destroy
@@ -1880,7 +1846,6 @@ jobs:
     - icw_gporca_sles11
     - icw_planner_ictcp_centos6
     - mpp_resource_group_centos6
-    - mpp_resource_group_centos7
     - MU_check_centos
     - MM_analyzedb
     - MM_gpinitsystem
