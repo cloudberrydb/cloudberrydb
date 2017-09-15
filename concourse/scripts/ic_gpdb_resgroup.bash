@@ -6,20 +6,39 @@ set -eox pipefail
 
 CLUSTER_NAME=$(cat ./cluster_env_files/terraform/name)
 
-prepare_cgroups() {
+prepare_env() {
+    local gpdb_host_alias=$1
+    if [ "$TEST_OS" = "centos7" ]; then
+        ssh -t $gpdb_host_alias "sudo bash -c 'yum install -d1 -y perl-Env perl-Data-Dumper bzip2-devel'"
+    else
+        ssh -t $gpdb_host_alias "sudo bash -c 'yum install -d1 -y bzip2-devel'"
+    fi
+}
+
+mount_cgroups() {
     local gpdb_host_alias=$1
     local basedir=/cgroup
     local options=rw,nosuid,nodev,noexec,relatime
     local groups="hugetlb freezer pids devices cpuset blkio net_prio net_cls cpuacct cpu memory perf_event"
 
+    if [ "$TEST_OS" = "centos7" ]; then return; fi
+
     ssh -t $gpdb_host_alias "sudo bash -c '(\
-        yum install -d1 -y bzip2-devel; \
         mkdir -p $basedir; \
         mount -t tmpfs tmpfs $basedir; \
         for group in $groups; do \
                 mkdir -p $basedir/\$group; \
                 mount -t cgroup -o $options,\$group cgroup $basedir/\$group; \
         done; \
+    )'"
+}
+
+make_cgroups_dir() {
+    local gpdb_host_alias=$1
+    local basedir=/cgroup
+    if [ "$TEST_OS" = "centos7" ]; then basedir=/sys/fs/cgroup; fi
+
+    ssh -t $gpdb_host_alias "sudo bash -c '(\
         chmod -R 777 $basedir/cpu; \
         chmod -R 777 $basedir/cpuacct; \
         mkdir -p $basedir/cpu/gpdb; \
@@ -47,8 +66,13 @@ run_resgroup_test() {
         scp /home/gpadmin/gpdb_src/src/test/regress/regress.so gpadmin@sdw1:/home/gpadmin/gpdb_src/src/test/regress/ ; \
         cd /home/gpadmin/gpdb_src; \
         make installcheck-resgroup; \
-		)'"
+    )'"
 }
-prepare_cgroups ccp-${CLUSTER_NAME}-0
-prepare_cgroups ccp-${CLUSTER_NAME}-1
+
+prepare_env ccp-${CLUSTER_NAME}-0
+prepare_env ccp-${CLUSTER_NAME}-1
+mount_cgroups ccp-${CLUSTER_NAME}-0
+mount_cgroups ccp-${CLUSTER_NAME}-1
+make_cgroups_dir ccp-${CLUSTER_NAME}-0
+make_cgroups_dir ccp-${CLUSTER_NAME}-1
 run_resgroup_test mdw
