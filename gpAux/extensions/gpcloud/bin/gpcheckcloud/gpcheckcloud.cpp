@@ -138,8 +138,6 @@ static void validateCommandLineArgs(map<char, string> &optionPairs) {
 static void printTemplate() {
     printf(
         "[default]\n"
-        "version = \"\"\n"
-        "proxy = \"\"\n"
         "secret = \"aws secret\"\n"
         "accessid = \"aws access id\"\n"
         "threadnum = 4\n"
@@ -147,6 +145,8 @@ static void printTemplate() {
         "low_speed_limit = 10240\n"
         "low_speed_time = 60\n"
         "encryption = true\n"
+        "version = 1\n"
+        "proxy = \"\"\n"
         "autocompress = true\n"
         "verifycert = true\n"
         "server_side_encryption = \"\"\n"
