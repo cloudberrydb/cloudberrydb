@@ -2423,7 +2423,7 @@ typedef struct AlterOwnerStmt
 typedef struct AlterTypeStmt
 {
 	NodeTag		type;
-	TypeName   *typeName;
+	List	   *typeName;
 	List	   *encoding;
 } AlterTypeStmt;
 

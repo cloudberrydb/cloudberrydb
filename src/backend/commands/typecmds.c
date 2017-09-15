@@ -2835,24 +2835,18 @@ AlterTypeNamespaceInternal(Oid typeOid, Oid nspOid,
 void
 AlterType(AlterTypeStmt *stmt)
 {
-	TypeName	   *typname = stmt->typeName;
-	Oid				typid;
-	int32			typmod;
-	HeapTuple		tup;
-	Datum			typoptions;
-	bool			typmod_set = false;
-	List		   *encoding = NIL;
-	Relation 		pgtypeenc;
+	TypeName   *typname;
+	Oid			typid;
+	HeapTuple	tup;
+	Datum		typoptions;
+	List	   *encoding;
+	Relation 	pgtypeenc;
 	ScanKeyData	scankey;
 	SysScanDesc scan;
 
 	/* Make a TypeName so we can use standard type lookup machinery */
-	typid = typenameTypeId(NULL, typname, &typmod);
-	if (!OidIsValid(typid))
-		ereport(ERROR,
-				(errcode(ERRCODE_UNDEFINED_OBJECT),
-				 errmsg("type \"%s\" does not exist",
-						TypeNameToString(typname))));
+	typname = makeTypeNameFromNameList(stmt->typeName);
+	typid = typenameTypeId(NULL, typname, NULL);
 
 	if (type_is_rowtype(typid))
 		ereport(ERROR,
@@ -2861,40 +2855,6 @@ AlterType(AlterTypeStmt *stmt)
 						TypeNameToString(typname)),
 				 errhint("The ENCODING clause cannot be used with row or "
 						 "composite types.")));
-
-	if (typid == BPCHAROID)
-	{
-		/* 
-		 * for character, the user specified character (N) if typmod is not
-		 * VARHDRSZ + 1.
-		 */
-		if (typmod != VARHDRSZ + 1)
-			typmod_set = true;
-	}
-	else if (typid == BITOID)
-	{
-		/*
-		 * For bit, we assume bit(1) in the parser. So only reject cases where
-		 * the typmod is not 1.
-		 */
-		if (typmod != 1)
-			typmod_set = true;
-	}
-	else if (typname->typmods || typname->typemod != -1)
-		typmod_set = true;
-
-	if (typmod_set)
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
-				 errmsg("type precision cannot be specified when setting "
-						"DEFAULT ENCODING")));
-
-	if (typname->arrayBounds)
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
-				 errmsg("type array bounds cannot be specified when setting "
-						"DEFAULT ENCODING")));
-
 
 	/* check permissions on type */
 	if (!pg_type_ownercheck(typid, GetUserId()))
