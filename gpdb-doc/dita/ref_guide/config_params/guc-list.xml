@@ -7311,14 +7311,18 @@
     <title>max_statement_mem</title>
     <body>
       <p>Sets the maximum memory limit for a query. Helps avoid out-of-memory errors on a segment
-        host during query processing as a result of setting <xref href="#statement_mem"
-          format="dita"/> too high. When <xref href="#gp_resqueue_memory_policy" format="dita"
-        />=auto, statement_mem and resource queue memory limits control query memory usage. Taking
-        into account the configuration of a single segment host, calculate this setting as
-        follows:</p>
+        host during query processing as a result of setting <codeph><xref href="#statement_mem"
+            format="dita"/>
+        </codeph>too high. When <codeph><xref href="#gp_resqueue_memory_policy" format="dita"
+          />=auto</codeph>, <codeph>statement_mem</codeph> and resource queue memory limits control
+        query memory usage. Taking into account the configuration of a single segment host,
+        calculate this setting as follows:</p>
       <p>
         <codeph>(seghost_physical_memory) / (average_number_concurrent_queries)</codeph>
       </p>
+      <p>When changing both <codeph>max_statement_mem</codeph> and <codeph>statement_mem</codeph>,
+          <codeph>max_statement_mem</codeph> must be changed first, or listed first in the
+          <systemoutput>postgresql.conf</systemoutput> file.</p>
       <table id="max_statement_mem_table">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
@@ -8810,10 +8814,11 @@
     <title>statement_mem</title>
     <body>
       <p>Allocates segment host memory per query. The amount of memory allocated with this parameter
-        cannot exceed <xref href="#max_statement_mem" format="dita"/> or the memory limit on the
-        resource queue through which the query was submitted. When <xref
-          href="#gp_resqueue_memory_policy" format="dita"/> =auto, <codeph>statement_mem</codeph>
-        and resource queue memory limits control query memory usage. </p>
+        cannot exceed <codeph><xref href="#max_statement_mem" format="dita"/></codeph> or the memory
+        limit on the resource queue through which the query was submitted. When <codeph><xref
+            href="#gp_resqueue_memory_policy" format="dita"/> =auto</codeph>,
+          <codeph>statement_mem</codeph> and resource queue memory limits control query memory
+        usage. </p>
       <p>If additional memory is required for a query, temporary spill files on disk are used.</p>
       <p>This calculation can be used to estimate a reasonable value for a wide variety of
         situations.</p>
@@ -8823,6 +8828,9 @@
       <p>
         <codeblock>(8GB * .9) / 40 = .18GB = 184MB</codeblock>
       </p>
+      <p>When changing both <codeph>max_statement_mem</codeph> and <codeph>statement_mem</codeph>,
+          <codeph>max_statement_mem</codeph> must be changed first, or listed first in the
+          <systemoutput>postgresql.conf</systemoutput> file.</p>
       <table id="statement_mem_table">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
