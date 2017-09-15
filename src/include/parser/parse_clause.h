@@ -41,6 +41,8 @@ extern List *transformDistinctClause(ParseState *pstate, List *distinctlist,
 						List **targetlist, List **sortClause, List **groupClause);
 extern List *transformScatterClause(ParseState *pstate, List *scatterlist,
 									List **targetlist);
+extern void processExtendedGrouping(ParseState *pstate, Node *havingQual,
+									List *windowClause, List *targetlist);
 
 extern List *addAllTargetsToSortList(ParseState *pstate,
 						List *sortlist, List *targetlist,

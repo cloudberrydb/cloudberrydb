@@ -97,10 +97,11 @@ typedef struct ParseState
 	bool		p_is_update;
 	Relation	p_target_relation;
 	RangeTblEntry *p_target_rangetblentry;
-	Node       *having_qual; /* Having clause */
 	struct HTAB *p_namecache;  /* parse state object name cache */
 	bool        p_hasTblValueExpr;
 	bool        p_hasDynamicFunction; /* function w/unstable return type */
+
+	List	   *p_grp_tles;
 } ParseState;
 
 /* Support for parser_errposition_callback function */

@@ -156,8 +156,6 @@ transformWindowFuncCall(ParseState *pstate, WindowRef *wind,
 {
 	char	   *name;
 
-	transformWindowDef(pstate, windef);
-
 	/*
 	 * A window function call can't contain another one (but aggs are OK). XXX
 	 * is this required by spec, or just an unimplemented feature?
@@ -894,68 +892,4 @@ checkExprHasGroupExtFuncs(Node *node)
 	return query_or_expression_tree_walker(node,
 										   checkExprHasGroupExtFuncs_walker,
 										   (void *) &context, 0);	
-}
-
-/*
- * transformWindowDef
- *
- * Transform the expression inside a "WindowDef" structure.
- */
-void
-transformWindowDef(ParseState *pstate, WindowDef *spec)
-{
-	ListCell *lc2;
-	List *new = NIL;
-
-	foreach(lc2, spec->partitionClause)
-	{
-		Node *n = (Node *)lfirst(lc2);
-		SortBy *sb;
-
-		Assert(IsA(n, SortBy));
-
-		sb = (SortBy *)n;
-
-		sb->node = (Node *)transformExpr(pstate, sb->node);
-		new = lappend(new, (void *)sb);
-	}
-	spec->partitionClause = new;
-		
-	new = NIL;
-	foreach(lc2, spec->orderClause)
-	{
-		Node *n = (Node *) lfirst(lc2);
-		SortBy *sb;
-
-		Assert(IsA(n, SortBy));
-
-		sb = (SortBy *) n;
-
-		sb->node = (Node *) transformExpr(pstate, sb->node);
-		new = lappend(new, (void *) sb);
-	}
-	spec->orderClause = new;
-
-	if (spec->startOffset)
-		spec->startOffset = transformExpr(pstate, spec->startOffset);
-	if (spec->endOffset)
-		spec->endOffset = transformExpr(pstate, spec->endOffset);
-}
-
-/*
- * transformWindowDefExprs
- *
- * Do a quick pre-process of WindowDefs to transform expressions into
- * something the rest of the parser is going to recognise.
- */
-void
-transformWindowDefExprs(ParseState *pstate)
-{
-	ListCell *lc;
-
-	foreach(lc, pstate->p_windowdefs)
-	{
-		WindowDef *wdef = (WindowDef *)lfirst(lc);
-		transformWindowDef(pstate, wdef);
-	}
 }

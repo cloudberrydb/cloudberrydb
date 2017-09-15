@@ -1503,9 +1503,6 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 	/* process the FROM clause */
 	transformFromClause(pstate, stmt->fromClause);
 
-	/* tidy up expressions in window clauses */
-	transformWindowDefExprs(pstate);
-
 	/* transform targetlist */
 	qry->targetList = transformTargetList(pstate, stmt->targetList);
 
@@ -1518,7 +1515,7 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 	/*
 	 * Initial processing of HAVING clause is just like WHERE clause.
 	 */
-	pstate->having_qual = transformWhereClause(pstate, stmt->havingClause,
+	qry->havingQual = transformWhereClause(pstate, stmt->havingClause,
 										   "HAVING");
 
     /*
@@ -1559,10 +1556,6 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 												stmt->scatterClause,
 												&qry->targetList);
 
-    /* Having clause */
-	qry->havingQual = pstate->having_qual;
-	pstate->having_qual = NULL;
-
 	qry->distinctClause = transformDistinctClause(pstate,
 												  stmt->distinctClause,
 												  &qry->targetList,
@@ -1578,6 +1571,8 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 	qry->windowClause = transformWindowDefinitions(pstate,
 												   pstate->p_windowdefs,
 												   &qry->targetList);
+
+	processExtendedGrouping(pstate, qry->havingQual, qry->windowClause, qry->targetList);
 
 	/* handle any SELECT INTO/CREATE TABLE AS spec */
 	qry->intoClause = NULL;

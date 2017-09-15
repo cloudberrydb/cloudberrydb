@@ -2204,44 +2204,20 @@ transformGroupClause(ParseState *pstate, List *grouplist,
 	 * extensions.
 	 */
 	{
-		List *grp_tles = NIL;
 		ListCell *lc;
-		grouping_rewrite_ctx ctx;
 
-		/* Find all unique target entries appeared in reorder_grouplist. */
+		/*
+		 * Find all unique target entries appeared in reorder_grouplist.
+		 * We stash them in the ParseState, to be processed later by
+		 * processExtendedGrouping().
+		 */
 		foreach (lc, reorder_grouplist)
 		{
-			grp_tles = list_concat_unique(
-				grp_tles,
+			pstate->p_grp_tles = list_concat_unique(
+				pstate->p_grp_tles,
 				findListTargetlistEntries(pstate, lfirst(lc),
 										  targetlist, false, true, useSQL99));
 		}
-
-		/*
-		 * For each GROUPING function, check if its argument(s) appear in the
-		 * GROUP BY clause. We also set ngrpcols, nargs and grpargs values for
-		 * each GROUPING function here. These values are used together with
-		 * GROUPING_ID to calculate the final value for each GROUPING function
-		 * in the executor.
-		 */
-
-		ctx.grp_tles = grp_tles;
-		ctx.pstate = pstate;
-		expression_tree_walker((Node *)*targetlist, grouping_rewrite_walker,
-							   (void *)&ctx);
-
-		/*
-		 * The expression might be present in a window clause as well
-		 * so process those.
-		 */
-		expression_tree_walker((Node *)pstate->p_windowdefs,
-							   grouping_rewrite_walker, (void *)&ctx);
-
-		/*
-		 * The expression might be present in the having clause as well.
-		 */
-		expression_tree_walker(pstate->having_qual,
-							   grouping_rewrite_walker, (void *)&ctx);
 	}
 
 	list_free(tle_list);
@@ -2249,6 +2225,42 @@ transformGroupClause(ParseState *pstate, List *grouplist,
 	freeGroupList(reorder_grouplist);
 
 	return result;
+}
+
+void
+processExtendedGrouping(ParseState *pstate,
+						Node *havingQual,
+						List *windowClause,
+						List *targetlist)
+{
+	grouping_rewrite_ctx ctx;
+
+	/*
+	 * For each GROUPING function, check if its argument(s) appear in the
+	 * GROUP BY clause. We also set ngrpcols, nargs and grpargs values for
+	 * each GROUPING function here. These values are used together with
+	 * GROUPING_ID to calculate the final value for each GROUPING function
+	 * in the executor.
+	 */
+	ctx.pstate = pstate;
+	ctx.grp_tles = pstate->p_grp_tles;
+	pstate->p_grp_tles = NIL;
+
+	expression_tree_walker((Node *) targetlist, grouping_rewrite_walker,
+						   (void *)&ctx);
+
+	/*
+	 * The expression might be present in a window clause as well
+	 * so process those.
+	 */
+	expression_tree_walker((Node *) windowClause,
+						   grouping_rewrite_walker, (void *)&ctx);
+
+	/*
+	 * The expression might be present in the having clause as well.
+	 */
+	expression_tree_walker(havingQual,
+						   grouping_rewrite_walker, (void *)&ctx);
 }
 
 /*
@@ -2365,13 +2377,13 @@ transformWindowDefinitions(ParseState *pstate,
 								windef->orderClause,
 								targetlist,
 								true /* fix unknowns */ ,
-								false /* use SQL92 rules */ );
+								true /* force SQL99 rules */ );
 		partitionClause =
 			transformSortClause(pstate,
 								windef->partitionClause,
 								targetlist,
 								true /* fix unknowns */ ,
-								false /* use SQL92 rules */ );
+								true /* force SQL99 rules */ );
 
 		/*
 		 * And prepare the new WindowClause.
