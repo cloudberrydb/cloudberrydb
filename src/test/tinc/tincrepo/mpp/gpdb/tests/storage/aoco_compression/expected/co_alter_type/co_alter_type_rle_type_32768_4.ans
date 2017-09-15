@@ -6,9 +6,9 @@ select typoptions from pg_type_encoding where typid='int4 '::regtype;
  {compresstype=rle_type,compresslevel=4,blocksize=32768}
 (1 row)
 
-ALTER TYPE char SET DEFAULT ENCODING (compresstype=rle_type,compresslevel=4,blocksize=32768);
+ALTER TYPE bpchar SET DEFAULT ENCODING (compresstype=rle_type,compresslevel=4,blocksize=32768);
 ALTER TYPE
-select typoptions from pg_type_encoding where typid='char '::regtype;
+select typoptions from pg_type_encoding where typid='bpchar '::regtype;
                        typoptions                        
 ---------------------------------------------------------
  {compresstype=rle_type,compresslevel=4,blocksize=32768}
@@ -174,9 +174,9 @@ select typoptions from pg_type_encoding where typid='circle '::regtype;
  {compresstype=rle_type,compresslevel=4,blocksize=32768}
 (1 row)
 
-ALTER TYPE char SET DEFAULT ENCODING (compresstype=rle_type,compresslevel=4,blocksize=32768);
+ALTER TYPE bpchar SET DEFAULT ENCODING (compresstype=rle_type,compresslevel=4,blocksize=32768);
 ALTER TYPE
-select typoptions from pg_type_encoding where typid='char '::regtype;
+select typoptions from pg_type_encoding where typid='bpchar '::regtype;
                        typoptions                        
 ---------------------------------------------------------
  {compresstype=rle_type,compresslevel=4,blocksize=32768}
@@ -284,9 +284,9 @@ select typoptions from pg_type_encoding where typid='int4
  {compresstype=none,compresslevel=0,blocksize=32768}
 (1 row)
 
-ALTER TYPE char SET DEFAULT ENCODING (compresstype=none,compresslevel=0);
+ALTER TYPE bpchar SET DEFAULT ENCODING (compresstype=none,compresslevel=0);
 ALTER TYPE
-select typoptions from pg_type_encoding where typid='char
+select typoptions from pg_type_encoding where typid='bpchar
  '::regtype;
                      typoptions                      
 -----------------------------------------------------
@@ -473,9 +473,9 @@ select typoptions from pg_type_encoding where typid='circle
  {compresstype=none,compresslevel=0,blocksize=32768}
 (1 row)
 
-ALTER TYPE char SET DEFAULT ENCODING (compresstype=none,compresslevel=0);
+ALTER TYPE bpchar SET DEFAULT ENCODING (compresstype=none,compresslevel=0);
 ALTER TYPE
-select typoptions from pg_type_encoding where typid='char
+select typoptions from pg_type_encoding where typid='bpchar
  '::regtype;
                      typoptions                      
 -----------------------------------------------------

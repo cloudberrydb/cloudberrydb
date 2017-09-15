@@ -1,5 +1,5 @@
 int4
-char
+bpchar
 numeric
 bool
 text
@@ -20,7 +20,7 @@ lseg
 point
 float8
 circle
-char
+bpchar
 polygon
 date
 varbit

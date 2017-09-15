@@ -8,7 +8,7 @@ select typoptions from pg_type_encoding where typid='int4 '::regtype;
 
 ALTER TYPE bpchar SET DEFAULT ENCODING (compresstype=quicklz,compresslevel=1,blocksize=8192);
 ALTER TYPE
-select typoptions from pg_type_encoding where typid='char '::regtype;
+select typoptions from pg_type_encoding where typid='bpchar '::regtype;
                       typoptions                       
 -------------------------------------------------------
  {compresstype=quicklz,compresslevel=1,blocksize=8192}
@@ -176,7 +176,7 @@ select typoptions from pg_type_encoding where typid='circle '::regtype;
 
 ALTER TYPE bpchar SET DEFAULT ENCODING (compresstype=quicklz,compresslevel=1,blocksize=8192);
 ALTER TYPE
-select typoptions from pg_type_encoding where typid='char '::regtype;
+select typoptions from pg_type_encoding where typid='bpchar '::regtype;
                       typoptions                       
 -------------------------------------------------------
  {compresstype=quicklz,compresslevel=1,blocksize=8192}
@@ -286,7 +286,7 @@ select typoptions from pg_type_encoding where typid='int4
 
 ALTER TYPE bpchar SET DEFAULT ENCODING (compresstype=none,compresslevel=0);
 ALTER TYPE
-select typoptions from pg_type_encoding where typid='char
+select typoptions from pg_type_encoding where typid='bpchar
  '::regtype;
                      typoptions                      
 -----------------------------------------------------
@@ -475,7 +475,7 @@ select typoptions from pg_type_encoding where typid='circle
 
 ALTER TYPE bpchar SET DEFAULT ENCODING (compresstype=none,compresslevel=0);
 ALTER TYPE
-select typoptions from pg_type_encoding where typid='char
+select typoptions from pg_type_encoding where typid='bpchar
  '::regtype;
                      typoptions                      
 -----------------------------------------------------

@@ -53,14 +53,14 @@ Alter table neg_tb6 add column a6 int ENCODING (compresstype=zlib,compresslevel=
 
 --Alter type
 
-Alter type int set default ENCODING (compresstype=qwer,compresslevel=1,blocksize=32768);
+Alter type int4 set default ENCODING (compresstype=qwer,compresslevel=1,blocksize=32768);
 
 --invalid compresslevel
-Alter type int set default  ENCODING (compresstype=zlib,compresslevel=12,blocksize=32768);
-Alter type int set default  ENCODING (compresstype=quicklz,compresslevel=2,blocksize=32768);
+Alter type int4 set default  ENCODING (compresstype=zlib,compresslevel=12,blocksize=32768);
+Alter type int4 set default  ENCODING (compresstype=quicklz,compresslevel=2,blocksize=32768);
 
 --invalid blocksize
-Alter type int set default  ENCODING (compresstype=zlib,compresslevel=1,blocksize=11111);
+Alter type int4 set default  ENCODING (compresstype=zlib,compresslevel=1,blocksize=11111);
 
 
 --Create tables at column reference storage level

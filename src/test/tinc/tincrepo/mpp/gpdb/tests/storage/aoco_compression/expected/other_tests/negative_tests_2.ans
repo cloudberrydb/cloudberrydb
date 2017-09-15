@@ -72,15 +72,15 @@ psql:/path/sql_file:1: ERROR:  compresslevel=2 is out of range for quicklz (shou
 Alter table neg_tb6 add column a6 int ENCODING (compresstype=zlib,compresslevel=1,blocksize=11111);
 psql:/path/sql_file:1: ERROR:  block size must be between 8KB and 2MB and be an 8KB multiple. Got 11111
 --Alter type
-Alter type int set default ENCODING (compresstype=qwer,compresslevel=1,blocksize=32768);
+Alter type int4 set default ENCODING (compresstype=qwer,compresslevel=1,blocksize=32768);
 psql:/path/sql_file:1: ERROR:  unknown compresstype "qwer"
 --invalid compresslevel
-Alter type int set default  ENCODING (compresstype=zlib,compresslevel=12,blocksize=32768);
+Alter type int4 set default  ENCODING (compresstype=zlib,compresslevel=12,blocksize=32768);
 psql:/path/sql_file:1: ERROR:  compresslevel=12 is out of range (should be between 0 and 9)
-Alter type int set default  ENCODING (compresstype=quicklz,compresslevel=2,blocksize=32768);
+Alter type int4 set default  ENCODING (compresstype=quicklz,compresslevel=2,blocksize=32768);
 psql:/path/sql_file:1: ERROR:  compresslevel=2 is out of range for quicklz (should be 1)
 --invalid blocksize
-Alter type int set default  ENCODING (compresstype=zlib,compresslevel=1,blocksize=11111);
+Alter type int4 set default  ENCODING (compresstype=zlib,compresslevel=1,blocksize=11111);
 psql:/path/sql_file:1: ERROR:  block size must be between 8KB and 2MB and be an 8KB multiple. Got 11111
 --Create tables at column reference storage level
 Drop table if exists neg_tb11 ;
