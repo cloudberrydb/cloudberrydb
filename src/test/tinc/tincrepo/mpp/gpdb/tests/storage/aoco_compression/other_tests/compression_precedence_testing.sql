@@ -74,7 +74,7 @@ CREATE TABLE CO_04_compr_precedence
 
 -- storage_directive = Not defined,Column a1 uses altered type int with compresstype=zlib => expectred=zlib
 
-ALTER TYPE int SET DEFAULT ENCODING (compresstype=ZLIB,compresslevel=1,blocksize=1048576);
+ALTER TYPE int4 SET DEFAULT ENCODING (compresstype=ZLIB,compresslevel=1,blocksize=1048576);
 
 CREATE TABLE CO_05_compr_precedence 
         (a1 int,a2 char(5),a3 text,a4 timestamp ,a5 date ) WITH (appendonly=true, orientation=column);
@@ -86,7 +86,7 @@ CREATE TABLE CO_05_compr_precedence
 
 -- storage_directive = defined for a1 as quicklz,Column a1 uses altered type int with compresstype=zlib => expected=quicklz
 
-ALTER TYPE int SET DEFAULT ENCODING (compresstype=ZLIB,compresslevel=1,blocksize=1048576);
+ALTER TYPE int4 SET DEFAULT ENCODING (compresstype=ZLIB,compresslevel=1,blocksize=1048576);
 
 CREATE TABLE CO_06_compr_precedence 
         (a1 int ENCODING (compresstype=quicklz,compresslevel=1,blocksize=1048576),a2 char(5),a3 text,a4 timestamp ,a5 date ) WITH (appendonly=true, orientation=column);
@@ -97,7 +97,7 @@ CREATE TABLE CO_06_compr_precedence
 
 -- column reference = defined for a1 as zlib,Column a1 uses altered type int with compresstype=quicklz => expected=zlib
 
-ALTER TYPE int SET DEFAULT ENCODING (compresstype=quicklz,compresslevel=1,blocksize=1048576);
+ALTER TYPE int4 SET DEFAULT ENCODING (compresstype=quicklz,compresslevel=1,blocksize=1048576);
 
 CREATE TABLE CO_062_compr_precedence 
         (a1 int ,a2 char(5),a3 text,a4 timestamp ,a5 date, COLUMN a1 ENCODING (compresstype=ZLIB,compresslevel=1,blocksize=1048576) ) WITH (appendonly=true, orientation=column);
@@ -108,7 +108,7 @@ CREATE TABLE CO_062_compr_precedence
 
 -- with clause = defined for a1 as zlib,Column a1 uses altered type int with compresstype=quicklz => expected=zlib
 
-ALTER TYPE int SET DEFAULT ENCODING (compresstype=quicklz,compresslevel=1,blocksize=1048576);
+ALTER TYPE int4 SET DEFAULT ENCODING (compresstype=quicklz,compresslevel=1,blocksize=1048576);
 
 CREATE TABLE CO_063_compr_precedence 
         (a1 int ,a2 char(5),a3 text,a4 timestamp ,a5 date ) WITH (appendonly=true, orientation=column,compresstype=ZLIB,compresslevel=1,blocksize=1048576);
@@ -119,7 +119,7 @@ CREATE TABLE CO_063_compr_precedence
 
 --Alter the type back to none to not affect any other tests
 
-ALTER TYPE int SET DEFAULT ENCODING (compresstype=none,compresslevel=0,blocksize=32768);
+ALTER TYPE int4 SET DEFAULT ENCODING (compresstype=none,compresslevel=0,blocksize=32768);
 
 
 -- storage_directive=rle; partition level column reference=quicklz => expected =quicklz
