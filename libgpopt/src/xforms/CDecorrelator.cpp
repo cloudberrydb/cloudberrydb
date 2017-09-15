@@ -680,9 +680,12 @@ CDecorrelator::FProcessProject
 		CExpressionHandle exprhdl(pmp);
 		exprhdl.Attach(pexpr);
 		exprhdl.DeriveProps(NULL /*pdpctxt*/);
-		if (CLogicalSequenceProject::PopConvert(pexpr->Pop())->FHasLocalOuterRefs(exprhdl))
+		// fail if a relational child of LogicalSequenceProject has outer references or
+		// if a SequenceProject has local outer references
+		// Ex: select C.j from C where C.i in (select rank() over (order by B.i) from B where B.i=C.i) order by C.j;
+		// The above subquery has outer references and result of window function is projected from subquery
+		if (CLogicalSequenceProject::PopConvert(pexpr->Pop())->FHasLocalOuterRefs(exprhdl) || CUtils::FHasOuterRefs((*pexpr)[0]))
 		{
-			// fail if a SequenceProject has local outer references
 			return false;
 		}
 	}

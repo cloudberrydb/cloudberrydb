@@ -441,10 +441,13 @@ CLogicalSequenceProject::OsPrint
 	const
 {
 	os	<< SzId() << " (";
+	os << "Partition By Keys:";
 	(void) m_pds->OsPrint(os);
 	os	<< ", ";
+	os << "Order Spec:";
 	(void) COrderSpec::OsPrint(os, m_pdrgpos);
 	os	<< ", ";
+	os << "WindowFrame Spec:";
 	(void) CWindowFrame::OsPrint(os, m_pdrgpwf);
 
 	return os << ")";
