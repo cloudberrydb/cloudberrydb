@@ -1,11 +1,10 @@
 CREATE TABLE test_zero_workmem(c int);
-INSERT INTO test_zero_workmem SELECT generate_series(1, 100);
 
 --This test intends to build a situation that query_mem = 0
 --and verify under such condition work_mem will be used.
 --It is designed to pass the test on concourse(3G RAM) and dev docker.
 CREATE RESOURCE GROUP rg_zero_workmem WITH
-(concurrency=25, cpu_rate_limit=10, memory_limit=1, memory_shared_quota=0, memory_spill_ratio=1);
+(concurrency=2, cpu_rate_limit=10, memory_limit=2, memory_shared_quota=50, memory_spill_ratio=1);
 
 CREATE ROLE role_zero_workmem SUPERUSER RESOURCE GROUP rg_zero_workmem;
 SET ROLE TO role_zero_workmem;
