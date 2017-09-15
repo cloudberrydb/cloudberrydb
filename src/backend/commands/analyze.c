@@ -493,7 +493,7 @@ analyze_rel_internal(Oid relid, VacuumStmt *vacstmt,
 			 * from the sample being sent for stats collection
 			 */
 			if (rowIndexes->toowide_cnt > 0)
-				{
+			{
 				int validRowsIdx = 0;
 				for (int rownum=0; rownum < numrows; rownum++)
 				{
@@ -512,10 +512,24 @@ analyze_rel_internal(Oid relid, VacuumStmt *vacstmt,
 			}
 
 			stats->tupDesc = onerel->rd_att;
-			(*stats->compute_stats) (stats,
-									 std_fetch_func,
-									 validRowsLength, // numbers of rows in sample excluding toowide if any.
-									 totalrows);
+
+			if (validRowsLength > 0)
+			{
+				(*stats->compute_stats) (stats,
+										 std_fetch_func,
+										 validRowsLength, // numbers of rows in sample excluding toowide if any.
+										 totalrows);
+			}
+			else
+			{
+				// All the rows were too wide to be included in the sample. We cannot
+				// do much in that case, but at least we know there were no NULLs, and
+				// that every item was >= WIDTH_THRESHOLD in width.
+				stats->stats_valid = true;
+				stats->stanullfrac = 0.0;
+				stats->stawidth = WIDTH_THRESHOLD;
+				stats->stadistinct = 0.0;		/* "unknown" */
+			}
 			stats->rows = rows; // Reset to original rows
 			MemoryContextResetAndDeleteChildren(col_context);
 		}
