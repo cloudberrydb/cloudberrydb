@@ -160,7 +160,7 @@ endif
 APU_CONFIG=--with-apu-config=$(BLD_THIRDPARTY_BIN_DIR)/apu-1-config
 
 aix7_ppc_64_CONFIGFLAGS=--disable-gpcloud --without-readline --without-libcurl --disable-orca $(APR_CONFIG)
-win32_CONFIGFLAGS=--with-gssapi --without-libcurl --disable-orca --disable-gpcloud $(APR_CONFIG)
+win32_CONFIGFLAGS=--with-gssapi --without-libcurl --disable-orca --disable-gpcloud --without-libbz2 $(APR_CONFIG)
 sol10_x86_64_CONFIGFLAGS=--enable-snmp --with-libxml $(APR_CONFIG)
 rhel5_x86_32_CONFIGFLAGS=--host=i686-pc-linux-gnu --enable-snmp --enable-ddboost --with-gssapi --enable-netbackup --enable-pxf --with-libxml $(APR_CONFIG)
 rhel5_x86_64_CONFIGFLAGS=--enable-snmp --enable-gpperfmon --enable-ddboost --with-gssapi --enable-netbackup ${ORCA_CONFIG} --enable-pxf --with-libxml $(APR_CONFIG) $(APU_CONFIG)
@@ -237,8 +237,8 @@ win32_GPFDIST_LIBS=-lgdi32 -lws2_32
 
 win32_LIBS=LIBS="$(win32_GPFDIST_LIBS)"
 win32_LDFLAGS=LDFLAGS="-L/usr/i686-pc-mingw32/sys-root/mingw/lib -L$(BLD_TOP)/ext/win32/kfw-3-2-2/lib $(win32_GPFDIST_LDFLAGS)"
-win32_CONFIG_ADDITIONS=--build=x86_x64-unknown-linux-gnu --host=i686-pc-mingw32 --without-zlib --enable-debug CC=/usr/bin/i686-pc-mingw32-gcc $(win32_LIBS) $(win32_LDFLAGS) CPP= CPPFLAGS="-I/usr/i686-pc-mingw32/sys-root/mingw/include -I$(BLD_TOP)/ext/win32/kfw-3-2-2/inc/krb5 -I$(BLD_THIRDPARTY_INCLUDE_DIR) -I$(GPPGDIR)/src/bin/gpfdist/ext/include $(BLD_THIRDPARTY_OPENSSL_INCLUDES)"
-win64_CONFIG_ADDITIONS=--build=x86_x64-unknown-linux-gnu --host=x86_64-pc-mingw64 --without-zlib --enable-debug CC=/usr/local/mingw64/bin/x86_64-w64-mingw32-gcc LDFLAGS=-L/usr/local/mingw64/x86_64-w64-mingw32/lib CPP= CPPFLAGS=-I/usr/local/mingw64/x86_64-w64-mingw32/include
+win32_CONFIG_ADDITIONS=--build=x86_x64-unknown-linux-gnu --host=i686-pc-mingw32 --without-zlib --without-libbz2 --enable-debug CC=/usr/bin/i686-pc-mingw32-gcc $(win32_LIBS) $(win32_LDFLAGS) CPP= CPPFLAGS="-I/usr/i686-pc-mingw32/sys-root/mingw/include -I$(BLD_TOP)/ext/win32/kfw-3-2-2/inc/krb5 -I$(BLD_THIRDPARTY_INCLUDE_DIR) -I$(GPPGDIR)/src/bin/gpfdist/ext/include $(BLD_THIRDPARTY_OPENSSL_INCLUDES)"
+win64_CONFIG_ADDITIONS=--build=x86_x64-unknown-linux-gnu --host=x86_64-pc-mingw64 --without-zlib --without-libbz2 --enable-debug CC=/usr/local/mingw64/bin/x86_64-w64-mingw32-gcc LDFLAGS=-L/usr/local/mingw64/x86_64-w64-mingw32/lib CPP= CPPFLAGS=-I/usr/local/mingw64/x86_64-w64-mingw32/include
 CONFIG_ADDITIONS=$($(BLD_ARCH)_CONFIG_ADDITIONS)
 
 osx105_x86_GPFDIST_LDFLAGS=-Wl,-search_paths_first

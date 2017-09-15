@@ -172,6 +172,7 @@ with_libxml	= @with_libxml@
 with_libxslt	= @with_libxslt@
 with_system_tzdata = @with_system_tzdata@
 with_zlib	= @with_zlib@
+with_libbz2	= @with_libbz2@
 with_apr_config	= @with_apr_config@
 with_apu_config	= @with_apu_config@
 with_libsigar	= @with_libsigar@

@@ -1012,6 +1012,13 @@ PGAC_ARG_BOOL(with, zlib, yes,
 AC_SUBST(with_zlib)
 
 #
+# bzip2
+#
+PGAC_ARG_BOOL(with, libbz2, yes,
+              [  --without-libbz2        do not use bzip2])
+AC_SUBST(with_libbz2)
+
+#
 # Realtime library
 #
 PGAC_ARG_BOOL(with, rt, yes,
@@ -1306,7 +1313,9 @@ if test "$with_libcurl" = yes ; then
 fi
 
 # Check for bzip2
-AC_SEARCH_LIBS(BZ2_bzDecompress, bz2)
+if test "$with_libbz2" = yes ; then
+  AC_CHECK_LIB(bz2, BZ2_bzDecompress, [], [AC_MSG_ERROR([library 'bz2' is required for bzip2 support])])
+fi
 
 # Check for net-snmp
 if test "$enable_snmp" = yes ; then
@@ -1350,13 +1359,6 @@ fi
 
 dnl sys/socket.h is required by AC_FUNC_ACCEPT_ARGTYPES
 AC_CHECK_HEADERS([atomic.h crypt.h dld.h endian.h fp_class.h getopt.h ieeefp.h ifaddrs.h langinfo.h mbarrier.h poll.h pwd.h sys/ioctl.h sys/ipc.h sys/poll.h sys/pstat.h sys/resource.h sys/select.h sys/sem.h sys/shm.h sys/socket.h sys/sockio.h sys/tas.h sys/time.h sys/un.h termios.h ucred.h utime.h wchar.h wctype.h kernel/OS.h kernel/image.h SupportDefs.h])
-
-# Check for bzlib.h
-if test "$PORTNAME" = "win32"; then
-  AC_MSG_WARN([*** bzip2 not required for windows partial build --- disabling.])
-else
-  AC_CHECK_HEADER(bzlib.h, [], [AC_MSG_ERROR([header file <bzlib.h> is required for bzip2 support])], [])
-fi
 
 # On BSD, cpp test for net/if.h will fail unless sys/socket.h
 # is included first.
@@ -1435,6 +1437,11 @@ if test "$with_zlib" = yes; then
 If you have zlib already installed, see config.log for details on the
 failure.  It is possible the compiler isn't looking in the proper directory.
 Use --without-zlib to disable zlib support.])])
+fi
+
+# Check for bzlib.h
+if test "$with_libbz2" = yes ; then
+  AC_CHECK_HEADER(bzlib.h, [], [AC_MSG_ERROR([header file <bzlib.h> is required for bzip2 support])], [])
 fi
 
 if test "$with_gssapi" = yes ; then

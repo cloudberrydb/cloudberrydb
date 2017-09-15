@@ -713,6 +713,7 @@ with_apu_config
 with_apr_config
 with_libcurl
 with_rt
+with_libbz2
 with_zlib
 with_system_tzdata
 with_libxslt
@@ -883,6 +884,7 @@ with_libxml
 with_libxslt
 with_system_tzdata
 with_zlib
+with_libbz2
 with_rt
 with_libcurl
 with_apr_config
@@ -1577,6 +1579,7 @@ Optional Packages:
   --with-libxslt          use XSLT support when building contrib/xml2
   --with-system-tzdata=DIR  use system time zone data in DIR
   --without-zlib          do not use Zlib
+  --without-libbz2        do not use bzip2
   --without-rt            do not use Realtime Library
   --without-libcurl       do not use libcurl
   --with-apr-config=PATH  path to apr-1-config utility
@@ -7860,6 +7863,36 @@ fi
 
 
 #
+# bzip2
+#
+
+pgac_args="$pgac_args with_libbz2"
+
+
+# Check whether --with-libbz2 was given.
+if test "${with_libbz2+set}" = set; then :
+  withval=$with_libbz2;
+  case $withval in
+    yes)
+      :
+      ;;
+    no)
+      :
+      ;;
+    *)
+      as_fn_error $? "no argument expected for --with-libbz2 option" "$LINENO" 5
+      ;;
+  esac
+
+else
+  with_libbz2=yes
+
+fi
+
+
+
+
+#
 # Realtime library
 #
 
@@ -11598,12 +11631,14 @@ _ACEOF
 fi
 
 # Check for bzip2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing BZ2_bzDecompress" >&5
-$as_echo_n "checking for library containing BZ2_bzDecompress... " >&6; }
-if ${ac_cv_search_BZ2_bzDecompress+:} false; then :
+if test "$with_libbz2" = yes ; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for BZ2_bzDecompress in -lbz2" >&5
+$as_echo_n "checking for BZ2_bzDecompress in -lbz2... " >&6; }
+if ${ac_cv_lib_bz2_BZ2_bzDecompress+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_func_search_save_LIBS=$LIBS
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lbz2  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -11622,38 +11657,29 @@ return BZ2_bzDecompress ();
   return 0;
 }
 _ACEOF
-for ac_lib in '' bz2; do
-  if test -z "$ac_lib"; then
-    ac_res="none required"
-  else
-    ac_res=-l$ac_lib
-    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
-  fi
-  if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_search_BZ2_bzDecompress=$ac_res
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_bz2_BZ2_bzDecompress=yes
+else
+  ac_cv_lib_bz2_BZ2_bzDecompress=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext
-  if ${ac_cv_search_BZ2_bzDecompress+:} false; then :
-  break
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
 fi
-done
-if ${ac_cv_search_BZ2_bzDecompress+:} false; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_bz2_BZ2_bzDecompress" >&5
+$as_echo "$ac_cv_lib_bz2_BZ2_bzDecompress" >&6; }
+if test "x$ac_cv_lib_bz2_BZ2_bzDecompress" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBBZ2 1
+_ACEOF
+
+  LIBS="-lbz2 $LIBS"
 
 else
-  ac_cv_search_BZ2_bzDecompress=no
-fi
-rm conftest.$ac_ext
-LIBS=$ac_func_search_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_BZ2_bzDecompress" >&5
-$as_echo "$ac_cv_search_BZ2_bzDecompress" >&6; }
-ac_res=$ac_cv_search_BZ2_bzDecompress
-if test "$ac_res" != no; then :
-  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
-
+  as_fn_error $? "library 'bz2' is required for bzip2 support" "$LINENO" 5
 fi
 
+fi
 
 # Check for net-snmp
 if test "$enable_snmp" = yes ; then
@@ -12547,21 +12573,6 @@ fi
 done
 
 
-# Check for bzlib.h
-if test "$PORTNAME" = "win32"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: *** bzip2 not required for windows partial build --- disabling." >&5
-$as_echo "$as_me: WARNING: *** bzip2 not required for windows partial build --- disabling." >&2;}
-else
-  ac_fn_c_check_header_mongrel "$LINENO" "bzlib.h" "ac_cv_header_bzlib_h" "$ac_includes_default"
-if test "x$ac_cv_header_bzlib_h" = xyes; then :
-
-else
-  as_fn_error $? "header file <bzlib.h> is required for bzip2 support" "$LINENO" 5
-fi
-
-
-fi
-
 # On BSD, cpp test for net/if.h will fail unless sys/socket.h
 # is included first.
 for ac_header in net/if.h
@@ -12859,6 +12870,18 @@ else
 If you have zlib already installed, see config.log for details on the
 failure.  It is possible the compiler isn't looking in the proper directory.
 Use --without-zlib to disable zlib support." "$LINENO" 5
+fi
+
+
+fi
+
+# Check for bzlib.h
+if test "$with_libbz2" = yes ; then
+  ac_fn_c_check_header_mongrel "$LINENO" "bzlib.h" "ac_cv_header_bzlib_h" "$ac_includes_default"
+if test "x$ac_cv_header_bzlib_h" = xyes; then :
+
+else
+  as_fn_error $? "header file <bzlib.h> is required for bzip2 support" "$LINENO" 5
 fi
 
 

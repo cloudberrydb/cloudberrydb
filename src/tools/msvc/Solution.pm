@@ -17,7 +17,7 @@ sub new
     my $options = shift;
     die "Pthreads is required by Greenplum DB.\n" unless $options->{pthread};
     die "zlib is required by Greenplum DB.\n" unless $options->{zlib};
-    die "b2zlib is required by Greenplum DB.\n" unless $options->{bzlib};
+    die "libbz2 is required by Greenplum DB.\n" unless $options->{bz2};
     my $self = {
         projects => {},
         options  => $options,
@@ -190,6 +190,7 @@ s{PG_VERSION_STR "[^"]+"}{__STRINGIFY(x) #x\n#define __STRINGIFY2(z) __STRINGIFY
         print O "#define USE_INTEGER_DATETIMES 1\n" if ($self->{options}->{integer_datetimes});
         print O "#define USE_LDAP 1\n" if ($self->{options}->{ldap});
         print O "#define HAVE_LIBZ 1\n" if ($self->{options}->{zlib});
+        print O "#define HAVE_LIBBZ2 1\n" if ($self->{options}->{bz2});
         print O "#define USE_SSL 1\n" if ($self->{options}->{openssl});
         print O "#define ENABLE_NLS 1\n" if ($self->{options}->{nls});
 
@@ -441,10 +442,10 @@ sub AddProject
         #$proj->AddLibrary($self->{options}->{zlib} . '\lib\zdll.lib');
         $proj->AddLibrary($self->{options}->{curl} . '\lib\libcurl.lib');
     }
-	if ($self->{options}->{bzlib})
+	if ($self->{options}->{bz2})
     {
-        $proj->AddIncludeDir($self->{options}->{bzlib} . '\include');
-        $proj->AddLibrary($self->{options}->{bzlib} . '\lib\libbz2.lib');
+        $proj->AddIncludeDir($self->{options}->{bz2} . '\include');
+        $proj->AddLibrary($self->{options}->{bz2} . '\lib\libbz2.lib');
     }
     if ($self->{options}->{openssl})
     {
