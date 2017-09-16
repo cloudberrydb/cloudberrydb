@@ -641,14 +641,34 @@ CDecorrelator::FProcessMaxOneRow
 	return true;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CDecorrelator::FProcessProject
-//
-//	@doc:
-//		Decorrelate project/sequence project
-//
-//---------------------------------------------------------------------------
+// decorrelate project/sequence project
+// if the expression can be decorrelated, the scalar cmp is pulled up and is replaced by
+// the project list.
+// input ex with CLogicalSequenceProject:
+//      +--CLogicalSequenceProject (Partition By Keys:HASHED: [ +--CScalarIdent "i" (9)
+//         |--CLogicalSelect   origin: [Grp:5, GrpExpr:0]
+//         |  |--CLogicalGet "b" ("b"), Columns: [..]
+//         |  +--CScalarCmp (=)   origin: [Grp:4, GrpExpr:0]
+//         |     |--CScalarIdent "i" (0)   origin: [Grp:2, GrpExpr:0]
+//         |     +--CScalarIdent "i" (9)   origin: [Grp:3, GrpExpr:0]
+//         +--CScalarProjectList   origin: [Grp:8, GrpExpr:0]
+//            +--CScalarProjectElement "avg" (18)   origin: [Grp:7, GrpExpr:0]
+//               +--CScalarWindowFunc (avg , Agg: true , Distinct: false , StarArgument: false , SimpleAgg: true)   origin: [Grp:6, GrpExpr:0]
+//                  +--CScalarIdent "i" (9)
+
+// results:
+// decorrelated expression, ppexprDecorrelated
+//     +--CLogicalSequenceProject
+//        |--CLogicalGet "b" ("b"), Columns: [...]
+//        +--CScalarProjectList   origin: [Grp:8, GrpExpr:0]
+//           +--CScalarProjectElement "avg" (18)   origin: [Grp:7, GrpExpr:0]
+//              +--CScalarWindowFunc (avg , Agg: true , Distinct: false , StarArgument: false , SimpleAgg: true)   origin: [Grp:6, GrpExpr:0]
+//              +--CScalarIdent "i" (9)   origin: [Grp:3, GrpExpr:0]
+// array of quals
+// pdrgpexprCorrelations
+//         +--CScalarCmp (=)   origin: [Grp:4, GrpExpr:0]
+//            |--CScalarIdent "i" (0)   origin: [Grp:2, GrpExpr:0]
+//            +--CScalarIdent "i" (9)   origin: [Grp:3, GrpExpr:0]
 BOOL
 CDecorrelator::FProcessProject
 	(
@@ -680,11 +700,20 @@ CDecorrelator::FProcessProject
 		CExpressionHandle exprhdl(pmp);
 		exprhdl.Attach(pexpr);
 		exprhdl.DeriveProps(NULL /*pdpctxt*/);
-		// fail if a relational child of LogicalSequenceProject has outer references or
-		// if a SequenceProject has local outer references
-		// Ex: select C.j from C where C.i in (select rank() over (order by B.i) from B where B.i=C.i) order by C.j;
-		// The above subquery has outer references and result of window function is projected from subquery
-		if (CLogicalSequenceProject::PopConvert(pexpr->Pop())->FHasLocalOuterRefs(exprhdl) || CUtils::FHasOuterRefs((*pexpr)[0]))
+		
+		// fail decorrelation in the following two cases;
+		// 1. if the LogicalSequenceProject node has local outer references in order by or partition by or window frame
+		// of a window function
+		// ex: select C.j from C where C.i in (select rank() over (order by C.i) from B where B.i=C.i);
+		// 2. if the relational child of LogicalSequenceProject node does not have any aggregate window function
+
+		// if the project list contains aggregrate on window function, then
+		// we can decorrelate it as the aggregate is performed over a column or count(*).
+		// The IN condition will be translated to a join instead of a correlated plan.
+		// ex: select C.j from C where C.i in (select avg(i) over (partition by B.i) from B where B.i=C.i);
+		// ===> (resulting join condition) b.i = c.i and c.i = avg(i)
+		if (CLogicalSequenceProject::PopConvert(pexpr->Pop())->FHasLocalOuterRefs(exprhdl)
+			|| !CUtils::FHasAggWindowFunc(pexprPrjList))
 		{
 			return false;
 		}

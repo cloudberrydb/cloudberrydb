@@ -5099,4 +5099,29 @@ CUtils::FExprHasAnyCrFromCrs
 	return false;
 }
 
+// returns true if expression contains aggregate window function
+BOOL
+CUtils::FHasAggWindowFunc
+	(
+	CExpression *pexpr
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
+
+	if (COperator::EopScalarWindowFunc == pexpr->Pop()->Eopid())
+	{
+		CScalarWindowFunc *popScWindowFunc = CScalarWindowFunc::PopConvert(pexpr->Pop());
+		return popScWindowFunc->FAgg();
+	}
+
+	// process children
+	BOOL fHasAggWindowFunc = false;
+	for (ULONG ul = 0; !fHasAggWindowFunc && ul < pexpr->UlArity() ; ul++)
+	{
+		fHasAggWindowFunc = FHasAggWindowFunc((*pexpr)[ul]);
+	}
+
+	return fHasAggWindowFunc;
+}
+
 // EOF

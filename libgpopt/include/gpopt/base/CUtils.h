@@ -1071,6 +1071,10 @@ namespace gpopt
 			// generate part oid
 			static
 			BOOL FGeneratePartOid(IMDId *pmdid);
+
+			// return true if given expression contains window aggregate function
+			static
+			BOOL FHasAggWindowFunc(CExpression *pexpr);
 	}; // class CUtils
 
 	// hash set from expressions

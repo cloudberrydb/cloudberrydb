@@ -33,7 +33,6 @@ CWindowTest::EresUnittest()
 			"../data/dxl/minidump/Preds-Over-WinFunc3.mdp",
 			"../data/dxl/minidump/Preds-Over-WinFunc4.mdp",
 			"../data/dxl/minidump/Preds-Over-WinFunc5.mdp",
-			"../data/dxl/minidump/SemiJoinWithWindowsFuncInSubquery.mdp",
 	};
 
 	return CTestUtils::EresUnittest_RunTestsWithoutAdditionalTraceFlags

@@ -35,6 +35,12 @@ namespace gpopt
 	class CSubqueryHandlerTest
 	{
 
+		private:
+
+			// counter used to mark last successful test
+			static
+			gpos::ULONG m_ulSubqueryHandlerMinidumpTestCounter;
+
 		public:
 
 			// unittests
@@ -44,6 +50,7 @@ namespace gpopt
 			static GPOS_RESULT EresUnittest_Subquery2AndTree();
 			static GPOS_RESULT EresUnittest_SubqueryWithConstSubqueries();
 			static GPOS_RESULT EresUnittest_SubqueryWithDisjunction();
+			static GPOS_RESULT EresUnittest_RunMinidumpTests();
 
 	}; // class CSubqueryHandlerTest
 }

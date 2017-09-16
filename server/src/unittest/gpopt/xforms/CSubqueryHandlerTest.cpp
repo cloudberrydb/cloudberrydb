@@ -25,6 +25,16 @@
 #include "unittest/gpopt/CSubqueryTestUtils.h"
 
 #include "naucrates/md/CMDIdGPDB.h"
+#include "unittest/gpopt/CTestUtils.h"
+
+ULONG CSubqueryHandlerTest::m_ulSubqueryHandlerMinidumpTestCounter = 0;  // start from first test
+
+// minidump files
+const CHAR *rgszSubqueryHandlerMinidumpFileNames[] =
+	{
+		"../data/dxl/minidump/SemiJoinWithWindowsFuncInSubquery.mdp",
+		"../data/dxl/minidump/CorrelatedSubqueryWithAggWindowFunc.mdp",
+	};
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -42,6 +52,7 @@ CSubqueryHandlerTest::EresUnittest()
 		{
 		GPOS_UNITTEST_FUNC(CSubqueryHandlerTest::EresUnittest_Subquery2Apply),
 		GPOS_UNITTEST_FUNC(CSubqueryHandlerTest::EresUnittest_SubqueryWithDisjunction),
+		GPOS_UNITTEST_FUNC(CSubqueryHandlerTest::EresUnittest_RunMinidumpTests),
 #ifdef GPOS_DEBUG
 		GPOS_UNITTEST_FUNC_ASSERT(CSubqueryHandlerTest::EresUnittest_SubqueryWithConstSubqueries),
 #endif // GPOS_DEBUG
@@ -50,6 +61,19 @@ CSubqueryHandlerTest::EresUnittest()
 	return CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
 }
 
+// run minidump tests
+GPOS_RESULT
+CSubqueryHandlerTest::EresUnittest_RunMinidumpTests()
+{
+	return CTestUtils::EresUnittest_RunTestsWithoutAdditionalTraceFlags
+						(
+						rgszSubqueryHandlerMinidumpFileNames,
+						&m_ulSubqueryHandlerMinidumpTestCounter,
+						GPOS_ARRAY_SIZE(rgszSubqueryHandlerMinidumpFileNames),
+						true, /* fMatchPlans */
+						true /* fTestSpacePruning */
+						);
+}
 
 //---------------------------------------------------------------------------
 //	@function:
