@@ -58,3 +58,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 create table ctas_output as select ctas_inputArray()::int[] as x;
+
+
+-- Test CTAS with VALUES.
+
+CREATE TEMP TABLE yolo(i, j, k) AS (VALUES (0,0,0), (1, NULL, 0), (2, NULL, 0), (3, NULL, 0)) DISTRIBUTED BY (i);
