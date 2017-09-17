@@ -130,8 +130,6 @@ typedef struct RefInfo
 	
 	Expr	   *resultexpr; /* Result expression for upper target list in parallel target list */
 	AttrNumber	resno; /* Attribute number of result in sequential target list */
-
-	Oid			framemakerfunc; /* frame maker function */
 } RefInfo;
 
 /* Macros to determine what kind of window function a RefInfo represents
@@ -285,6 +283,7 @@ static Plan *add_join_to_wrapper(PlannerInfo *root, Plan *plan, Query *query, Li
 static Query *copy_common_subquery(Query *original, List *targetList);
 static char *get_function_name(Oid proid, const char *dflt);
 
+static WindowFrame *lead_lag_frame_maker(WindowRef *wref, char winkind);
 
 Plan *
 window_planner(PlannerInfo *root, double tuple_fraction, List **pathkeys_ptr)
@@ -762,7 +761,7 @@ static void inventory_window_specs(List *window_specs, WindowContext *context)
 	foreach ( lcr, context->refinfos )
 	{
 		RefInfo *rinfo = (RefInfo *)lfirst(lcr);
-		if (OidIsValid(rinfo->framemakerfunc))
+		if (IS_LEAD_LAG(rinfo->winkind))
 			nextra++;
 	}
 	
@@ -837,7 +836,7 @@ static void inventory_window_specs(List *window_specs, WindowContext *context)
 		SpecInfo *sinfo = &specinfos[sindex];
 
 		/* If Special Framing ... */
-		if (OidIsValid(rinfo->framemakerfunc))
+		if (IS_LEAD_LAG(rinfo->winkind))
 		{
 			SpecInfo	   *xinfo = sinfo;
 
@@ -848,14 +847,14 @@ static void inventory_window_specs(List *window_specs, WindowContext *context)
 			sinfo->refset = NULL;
 
 			Assert(sinfo->frame == NULL);
-			sinfo->frame = (WindowFrame *) DatumGetPointer(
-				OidFunctionCall1(rinfo->framemakerfunc, PointerGetDatum(ref)));
+			if (IS_LEAD_LAG(rinfo->winkind))
+				sinfo->frame = lead_lag_frame_maker(ref, rinfo->winkind);
 			if (sinfo->frame && sinfo->frame->lead)
 				Assert(exprType(sinfo->frame->lead->val) == INT8OID);
 			if (sinfo->frame && sinfo->frame->trail)
 				Assert(exprType(sinfo->frame->trail->val) == INT8OID);
 		}
-		
+
 		sinfo->refset = bms_add_member(sinfo->refset, i);
 		
 		rinfo->specindex = sinfo->specindex; /* in case this is an extra */
@@ -873,9 +872,8 @@ static void inventory_window_specs(List *window_specs, WindowContext *context)
 	for ( i = 0; i < nspec; i++ )
 		index[i] = &specinfos[i];
 	qsort(index, nspec, sizeof(SpecInfo*), compare_spec_info_ptr);
-	
-	
-	
+
+
 	/* Identify distinct, referenced window specs and bubble up their
 	 * refsets. Begin by finding the first referenced window spec and
 	 * mark it to be the first  distinct representative window spec.  
@@ -1547,7 +1545,6 @@ lookup_window_function(RefInfo *rinfo)
 		rinfo->needcount = winform->wincount;
 		rinfo->winpretype = winform->winpretype;
 		rinfo->winfinfunc = winform->winfinfunc;		
-		rinfo->framemakerfunc = winform->winframemakerfunc;
 
 		ReleaseSysCache(tuple);
 	}
@@ -4031,4 +4028,88 @@ Query *copy_common_subquery(Query *original, List *targetList)
 	common->rowMarks = NIL;
 	
 	return common;
+}
+
+/*
+ * a helper function for lead and lag to make frame.
+ */
+static WindowFrame *
+lead_lag_frame_maker(WindowRef *wref, char winkind)
+{
+	WindowFrame *frame = makeNode(WindowFrame);
+	Node	   *offset;
+
+	if (list_length(wref->args) > 1)
+	{
+		offset = list_nth(wref->args, 1);
+		offset = coerce_to_specific_type(NULL, offset, INT8OID, "ROWS");
+		offset = eval_const_expressions(NULL, offset);
+	}
+	else
+	{
+		offset = (Node *) makeConst(INT8OID,
+									-1,
+									8,
+									Int64GetDatum(1),
+									false,
+									true);
+	}
+
+	frame->is_between = true;
+	frame->is_rows = true;
+	frame->trail = makeNode(WindowFrameEdge);
+	frame->lead = makeNode(WindowFrameEdge);
+
+	switch (winkind)
+	{
+		case WINKIND_LAG:
+			frame->trail->kind = frame->lead->kind =
+				WINDOW_BOUND_PRECEDING;
+			break;
+		case WINKIND_LEAD:
+			frame->trail->kind = frame->lead->kind =
+				WINDOW_BOUND_FOLLOWING;
+			break;
+		default:
+			elog(ERROR, "internal window framing error");
+	}
+
+	/*
+	 * If the offset is a constant, we can check immediately that it's
+	 * valid.
+	 */
+	if (IsA(offset, Const))
+	{
+		Const *con = (Const *) offset;
+
+		Assert(con->consttype == INT8OID);
+
+		if (con->constisnull)
+		{
+			if (IS_LEAD(winkind))
+				ereport(ERROR,
+						(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
+						 errmsg("LEAD offset cannot be NULL")));
+			else
+				ereport(ERROR,
+						(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
+						 errmsg("LAG offset cannot be NULL")));
+		}
+
+		if (DatumGetInt64(con->constvalue) < 0)
+		{
+			if (IS_LEAD(winkind))
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("LEAD offset cannot be negative")));
+			else
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("LAG offset cannot be negative")));
+		}
+	}
+
+	frame->trail->val = frame->lead->val = offset;
+
+	return frame;
 }
