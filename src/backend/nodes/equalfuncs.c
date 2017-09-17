@@ -2317,26 +2317,6 @@ _equalGroupId(GroupId *a __attribute__((unused)), GroupId *b __attribute__((unus
 }
 
 static bool
-_equalWindowFrame(WindowFrame *a, WindowFrame *b)
-{
-	COMPARE_SCALAR_FIELD(is_rows);
-	COMPARE_SCALAR_FIELD(is_between);
-	COMPARE_NODE_FIELD(trail);
-	COMPARE_NODE_FIELD(lead);
-
-	return true;
-}
-
-static bool
-_equalWindowFrameEdge(WindowFrameEdge *a, WindowFrameEdge *b)
-{
-	COMPARE_SCALAR_FIELD(kind);
-	COMPARE_NODE_FIELD(val);
-
-	return true;
-}
-
-static bool
 _equalPercentileExpr(PercentileExpr *a, PercentileExpr *b)
 {
 	COMPARE_SCALAR_FIELD(perctype);
@@ -2359,8 +2339,9 @@ _equalWindowClause(WindowClause *a, WindowClause *b)
 	COMPARE_NODE_FIELD(partitionClause);
 	COMPARE_NODE_FIELD(orderClause);
 	COMPARE_SCALAR_FIELD(frameOptions);
+	COMPARE_NODE_FIELD(startOffset);
+	COMPARE_NODE_FIELD(endOffset);
 	COMPARE_SCALAR_FIELD(winref);
-	COMPARE_NODE_FIELD(frame);
 	COMPARE_SCALAR_FIELD(copiedOrder);
 
 	return true;
@@ -3127,12 +3108,6 @@ equal(void *a, void *b)
 			break;
 		case T_GroupId:
 			retval = _equalGroupId(a, b);
-			break;
-		case T_WindowFrame:
-			retval = _equalWindowFrame(a, b);
-			break;
-		case T_WindowFrameEdge:
-			retval = _equalWindowFrameEdge(a, b);
 			break;
 		case T_PercentileExpr:
 			retval = _equalPercentileExpr(a, b);

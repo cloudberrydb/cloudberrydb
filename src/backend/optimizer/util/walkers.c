@@ -494,37 +494,20 @@ expression_tree_walker(Node *node,
 				if (expression_tree_walker((Node *) wc->orderClause, walker,
 										   context))
 					return true;
-				if (expression_tree_walker((Node *) wc->frame,
-										   walker, context))
+				if (walker((Node *) wc->startOffset, context))
+					return true;
+				if (walker((Node *) wc->endOffset, context))
 					return true;
 				return false;
-			}
-			break;
-		case T_WindowFrame:
-			{
-				WindowFrame *frame = (WindowFrame *)node;
-
-				if (expression_tree_walker((Node *) frame->trail,
-										   walker, context))
-					return true;
-				if (expression_tree_walker((Node *) frame->lead,
-										   walker, context))
-					return true;
 			}
 			break;
 		case T_WindowKey:
 			{
 				WindowKey *wk = (WindowKey *) node;
 
-				if (walker((Node *) wk->frame, context))
+				if (walker((Node *) wk->startOffset, context))
 					return true;
-			}
-			break;
-		case T_WindowFrameEdge:
-			{
-				WindowFrameEdge *edge = (WindowFrameEdge *)node;
-
-				if (walker((Node *) edge->val, context))
+				if (walker((Node *) wk->endOffset, context))
 					return true;
 			}
 			break;
@@ -1212,8 +1195,6 @@ plan_tree_walker(Node *node,
 		case T_PartBoundOpenExpr:
 		case T_PartListRuleExpr:
 		case T_PartListNullTestExpr:
-		case T_WindowFrame:
-		case T_WindowFrameEdge:
 		case T_WindowKey:
 
 		default:

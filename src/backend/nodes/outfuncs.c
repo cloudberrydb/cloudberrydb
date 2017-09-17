@@ -831,7 +831,9 @@ _outWindowKey(StringInfo str, WindowKey *node)
 	for (i = 0; i < node->numSortCols; i++)
 		appendStringInfo(str, " %u", node->sortOperators[i]);
 
-	WRITE_NODE_FIELD(frame);
+	WRITE_INT_FIELD(frameOptions);
+	WRITE_NODE_FIELD(startOffset);
+	WRITE_NODE_FIELD(endOffset);
 }
 #endif /* COMPILING_BINARY_FUNCS */
 
@@ -3564,26 +3566,6 @@ _outGroupId(StringInfo str, GroupId *node __attribute__((unused)))
 }
 
 static void
-_outWindowFrame(StringInfo str, WindowFrame *node)
-{
-	WRITE_NODE_TYPE("WINDOWFRAME");
-
-	WRITE_BOOL_FIELD(is_rows);
-	WRITE_BOOL_FIELD(is_between);
-	WRITE_NODE_FIELD(trail);
-	WRITE_NODE_FIELD(lead);
-}
-
-static void
-_outWindowFrameEdge(StringInfo str, WindowFrameEdge *node)
-{
-	WRITE_NODE_TYPE("WINDOWFRAMEEDGE");
-
-	WRITE_ENUM_FIELD(kind, WindowBoundingKind);
-	WRITE_NODE_FIELD(val);
-}
-
-static void
 _outPercentileExpr(StringInfo str, PercentileExpr *node)
 {
 	WRITE_NODE_TYPE("PERCENTILEEXPR");
@@ -3608,8 +3590,9 @@ _outWindowClause(StringInfo str, WindowClause *node)
 	WRITE_NODE_FIELD(partitionClause);
 	WRITE_NODE_FIELD(orderClause);
 	WRITE_INT_FIELD(frameOptions);
+	WRITE_NODE_FIELD(startOffset);
+	WRITE_NODE_FIELD(endOffset);
 	WRITE_UINT_FIELD(winref);
-	WRITE_NODE_FIELD(frame);
 	WRITE_BOOL_FIELD(copiedOrder);
 }
 
@@ -5036,12 +5019,6 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_GroupId:
 				_outGroupId(str, obj);
-				break;
-			case T_WindowFrame:
-				_outWindowFrame(str, obj);
-				break;
-			case T_WindowFrameEdge:
-				_outWindowFrameEdge(str, obj);
 				break;
 			case T_PercentileExpr:
 				_outPercentileExpr(str, obj);

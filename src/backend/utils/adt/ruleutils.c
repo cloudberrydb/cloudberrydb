@@ -199,8 +199,6 @@ static void get_func_expr(FuncExpr *expr, deparse_context *context,
 static void get_groupingfunc_expr(GroupingFunc *grpfunc,
 								  deparse_context *context);
 static void get_agg_expr(Aggref *aggref, deparse_context *context);
-static void get_windowedge_expr(WindowFrameEdge *edge, 
-								deparse_context *context);
 static void get_sortlist_expr(List *l, List *targetList, bool force_colno,
                               deparse_context *context, char *keyword_clause);
 static void get_windowref_expr(WindowRef *wref, deparse_context *context);
@@ -2870,51 +2868,57 @@ get_rule_windowspec(WindowClause *wc, List *targetList,
 						  "ORDER BY ");
 		needspace = true;
 	}
-
-	if (wc->frame)
+	/* framing clause is never inherited, so print unless it's default */
+	if (wc->frameOptions & FRAMEOPTION_NONDEFAULT)
 	{
-		WindowFrame *f = wc->frame;
-
-		/*
-		 * Like the ORDER-BY clause, if spec has a parent and that
-		 * parent defines framing, don't display the frame clause
-		 * here.
-		 */
-		bool display_frame = true;
-
-		if (wc->refname)
+		if (needspace)
+			appendStringInfoChar(buf, ' ');
+		if (wc->frameOptions & FRAMEOPTION_RANGE)
+			appendStringInfoString(buf, "RANGE ");
+		else if (wc->frameOptions & FRAMEOPTION_ROWS)
+			appendStringInfoString(buf, "ROWS ");
+		else
+			Assert(false);
+		if (wc->frameOptions & FRAMEOPTION_BETWEEN)
+			appendStringInfoString(buf, "BETWEEN ");
+		if (wc->frameOptions & FRAMEOPTION_START_UNBOUNDED_PRECEDING)
+			appendStringInfoString(buf, "UNBOUNDED PRECEDING ");
+		else if (wc->frameOptions & FRAMEOPTION_START_CURRENT_ROW)
+			appendStringInfoString(buf, "CURRENT ROW ");
+		else if (wc->frameOptions & FRAMEOPTION_START_VALUE)
 		{
-			ListCell *l;
-			foreach(l, context->windowClause)
-			{
-				WindowClause *tmp = (WindowClause *) lfirst(l);
-
-				if (tmp->name && strcmp(wc->refname, tmp->name) == 0 &&
-					tmp->frame)
-				{
-					display_frame = false;
-					break;
-				}
-			}
+			get_rule_expr(wc->startOffset, context, false);
+			if (wc->frameOptions & FRAMEOPTION_START_VALUE_PRECEDING)
+				appendStringInfoString(buf, " PRECEDING ");
+			else if (wc->frameOptions & FRAMEOPTION_START_VALUE_FOLLOWING)
+				appendStringInfoString(buf, " FOLLOWING ");
+			else
+				Assert(false);
 		}
-
-		if (display_frame)
+		else
+			Assert(false);
+		if (wc->frameOptions & FRAMEOPTION_BETWEEN)
 		{
-			if (needspace)
-				appendStringInfoChar(buf, ' ');
-			appendStringInfo(buf, "%s ", f->is_rows ? "ROWS" : "RANGE");
-			if (f->is_between)
+			appendStringInfoString(buf, "AND ");
+			if (wc->frameOptions & FRAMEOPTION_END_UNBOUNDED_FOLLOWING)
+				appendStringInfoString(buf, "UNBOUNDED FOLLOWING ");
+			else if (wc->frameOptions & FRAMEOPTION_END_CURRENT_ROW)
+				appendStringInfoString(buf, "CURRENT ROW ");
+			else if (wc->frameOptions & FRAMEOPTION_END_VALUE)
 			{
-				appendStringInfo(buf, "BETWEEN ");
-				get_windowedge_expr(f->trail, context);
-				appendStringInfo(buf, " AND ");
-				get_windowedge_expr(f->lead, context);
+				get_rule_expr(wc->endOffset, context, false);
+				if (wc->frameOptions & FRAMEOPTION_END_VALUE_PRECEDING)
+					appendStringInfoString(buf, " PRECEDING ");
+				else if (wc->frameOptions & FRAMEOPTION_END_VALUE_FOLLOWING)
+					appendStringInfoString(buf, " FOLLOWING ");
+				else
+					Assert(false);
 			}
 			else
-			{
-				get_windowedge_expr(f->trail, context);
-			}
+				Assert(false);
 		}
+		/* we will now have a trailing space; remove it */
+		buf->len--;
 	}
 	appendStringInfoChar(buf, ')');
 }
@@ -5410,36 +5414,6 @@ get_agg_expr(Aggref *aggref, deparse_context *context)
                           " ORDER BY ");
     }
 	appendStringInfoChar(buf, ')');
-}
-
-static void
-get_windowedge_expr(WindowFrameEdge *edge, deparse_context *context)
-{
-	StringInfo buf = context->buf;
-
-	switch(edge->kind)
-	{
-		case WINDOW_UNBOUND_PRECEDING:
-			appendStringInfo(buf, " UNBOUNDED PRECEDING");
-			break;
-		case WINDOW_BOUND_PRECEDING:
-			get_rule_expr(edge->val, context, true);
-			appendStringInfo(buf, " PRECEDING");
-			break;
-		case WINDOW_CURRENT_ROW:
-			appendStringInfo(buf, " CURRENT ROW");
-			break;
-		case WINDOW_BOUND_FOLLOWING:
-			get_rule_expr(edge->val, context, true);
-			appendStringInfo(buf, " FOLLOWING");
-			break;
-		case WINDOW_UNBOUND_FOLLOWING:
-			appendStringInfo(buf, " UNBOUNDED FOLLOWING");
-			break;
-		default:
-			elog(ERROR, "unknown frame type");
-			break;
-	}
 }
 
 static void

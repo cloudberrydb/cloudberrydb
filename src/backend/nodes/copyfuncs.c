@@ -995,7 +995,9 @@ _copyWindowKey(WindowKey *from)
 		COPY_POINTER_FIELD(sortColIdx, from->numSortCols * sizeof(AttrNumber));
 		COPY_POINTER_FIELD(sortOperators, from->numSortCols * sizeof(Oid));
 	}
-	COPY_NODE_FIELD(frame);
+	COPY_SCALAR_FIELD(frameOptions);
+	COPY_NODE_FIELD(startOffset);
+	COPY_NODE_FIELD(endOffset);
 
 	return newnode;
 }
@@ -2343,30 +2345,6 @@ _copyGroupId(GroupId *from)
 	return newnode;
 }
 
-static WindowFrame *
-_copyWindowFrame(WindowFrame *from)
-{
-	WindowFrame *newnode = makeNode(WindowFrame);
-
-	COPY_SCALAR_FIELD(is_rows);
-	COPY_SCALAR_FIELD(is_between);
-	COPY_NODE_FIELD(trail);
-	COPY_NODE_FIELD(lead);
-
-	return newnode;
-}
-
-static WindowFrameEdge *
-_copyWindowFrameEdge(WindowFrameEdge *from)
-{
-	WindowFrameEdge *newnode = makeNode(WindowFrameEdge);
-
-	COPY_SCALAR_FIELD(kind);
-	COPY_NODE_FIELD(val);
-
-	return newnode;
-}
-
 static PercentileExpr *
 _copyPercentileExpr(PercentileExpr *from)
 {
@@ -2394,8 +2372,9 @@ _copyWindowClause(WindowClause *from)
 	COPY_NODE_FIELD(partitionClause);
 	COPY_NODE_FIELD(orderClause);
 	COPY_SCALAR_FIELD(frameOptions);
+	COPY_NODE_FIELD(startOffset);
+	COPY_NODE_FIELD(endOffset);
 	COPY_SCALAR_FIELD(winref);
-	COPY_NODE_FIELD(frame);
 	COPY_SCALAR_FIELD(copiedOrder);
 
 	return newnode;
@@ -5352,12 +5331,6 @@ copyObject(void *from)
 			break;
 		case T_GroupId:
 			retval = _copyGroupId(from);
-			break;
-		case T_WindowFrame:
-			retval = _copyWindowFrame(from);
-			break;
-		case T_WindowFrameEdge:
-			retval = _copyWindowFrameEdge(from);
 			break;
 		case T_PercentileExpr:
 			retval = _copyPercentileExpr(from);

@@ -72,27 +72,27 @@ create view v8 as
   select avg(a) over (w)
   from testtab window w as (order by a rows between unbounded preceding and unbounded following);
 select pg_get_viewdef('v8');
-                                                                pg_get_viewdef                                                                 
------------------------------------------------------------------------------------------------------------------------------------------------
- SELECT avg(testtab.a) OVER w AS avg FROM testtab WINDOW w AS (ORDER BY testtab.a ROWS BETWEEN  UNBOUNDED PRECEDING AND  UNBOUNDED FOLLOWING);
+                                                               pg_get_viewdef                                                                
+---------------------------------------------------------------------------------------------------------------------------------------------
+ SELECT avg(testtab.a) OVER w AS avg FROM testtab WINDOW w AS (ORDER BY testtab.a ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING);
 (1 row)
 
 create view v9 as
   select avg(a) over (w)
   from testtab window w as (order by a rows between 1 preceding and 1 following);
 select pg_get_viewdef('v9');
-                                                                 pg_get_viewdef                                                                  
--------------------------------------------------------------------------------------------------------------------------------------------------
- SELECT avg(testtab.a) OVER w AS avg FROM testtab WINDOW w AS (ORDER BY testtab.a ROWS BETWEEN (1)::bigint PRECEDING AND (1)::bigint FOLLOWING);
+                                                       pg_get_viewdef                                                        
+-----------------------------------------------------------------------------------------------------------------------------
+ SELECT avg(testtab.a) OVER w AS avg FROM testtab WINDOW w AS (ORDER BY testtab.a ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING);
 (1 row)
 
 create view v10 as
   select avg(a) over (w rows between 1 preceding and 1 following)
   from testtab window w as (order by a);
 select pg_get_viewdef('v10');
-                                                                  pg_get_viewdef                                                                   
----------------------------------------------------------------------------------------------------------------------------------------------------
- SELECT avg(testtab.a) OVER (w ROWS BETWEEN (1)::bigint PRECEDING AND (1)::bigint FOLLOWING) AS avg FROM testtab WINDOW w AS (ORDER BY testtab.a);
+                                                        pg_get_viewdef                                                         
+-------------------------------------------------------------------------------------------------------------------------------
+ SELECT avg(testtab.a) OVER (w ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) AS avg FROM testtab WINDOW w AS (ORDER BY testtab.a);
 (1 row)
 
 -- Check that COUNT(*) is dumped with the star intact.

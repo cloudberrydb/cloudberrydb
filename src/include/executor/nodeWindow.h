@@ -47,7 +47,6 @@ extern Datum lead_generic(PG_FUNCTION_ARGS);
 extern Datum last_value_generic(PG_FUNCTION_ARGS);
 extern Datum first_value_generic(PG_FUNCTION_ARGS);
 extern Datum lag_generic(PG_FUNCTION_ARGS);
-extern Datum lead_lag_frame_maker(PG_FUNCTION_ARGS);
 
 static inline gpmon_packet_t * GpmonPktFromWindowState(WindowState *node)
 {

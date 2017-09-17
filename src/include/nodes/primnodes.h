@@ -1381,36 +1381,6 @@ typedef enum GroupingType
 	GROUPINGTYPE_GROUPING_SETS   /* GROUPING SETS grouping extension */
 } GroupingType;
 
-typedef enum WindowBoundingKind
-{
-	WINDOW_UNBOUND_PRECEDING,
-	WINDOW_BOUND_PRECEDING,
-	WINDOW_CURRENT_ROW,
-	WINDOW_BOUND_FOLLOWING,
-	WINDOW_UNBOUND_FOLLOWING
-} WindowBoundingKind;
-
-typedef struct WindowFrameEdge
-{
-	NodeTag type;
-	WindowBoundingKind kind;
-	/* XXX: need to restrict to certain datatypes in order by */
-	Node *val; /* an actual value, if provided */
-} WindowFrameEdge;
-
-typedef struct WindowFrame
-{
-	NodeTag type;
-	bool is_rows;	/* true if ROWS was specificied, false if RANGE */
-	bool is_between; /* user specified BETWEEN */
-	
-	/*
-	 * XXX: determine if trail and lead must be mentioned in that order
-	 */
-	WindowFrameEdge *trail; /* trailing edge of the frame */
-	WindowFrameEdge *lead; /* leading edge of the frame */
-} WindowFrame;
-
 
 /* ---------------
  * WindowKey is an auxiliary node of the Window node (a Plan node).  It 
@@ -1431,7 +1401,9 @@ typedef struct WindowKey
 	AttrNumber	   *sortColIdx;
 	Oid			   *sortOperators;
 	bool		   *nullsFirst;
-	WindowFrame	   *frame;		/* NULL or framing for WindowKey */
+	int			frameOptions;
+	Node	   *startOffset;
+	Node	   *endOffset;
 } WindowKey;
 
 /*

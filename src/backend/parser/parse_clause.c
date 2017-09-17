@@ -99,9 +99,6 @@ static Node *transformFrameOffset(ParseState *pstate, int frameOptions,
 								  Node *clause,
 								  List *orderClause, List *targetlist, bool isFollowing,
 								  int location);
-static WindowFrame *constructWindowFrame(int frameOptions,
-										 Node *startOffset,
-										 Node *endOffset);
 
 typedef struct grouping_rewrite_ctx
 {
@@ -2492,9 +2489,6 @@ transformWindowDefinitions(ParseState *pstate,
 		/* Process frame offset expressions */
 		if ((windef->frameOptions & FRAMEOPTION_NONDEFAULT) != 0)
 		{
-			Node	   *startOffset;
-			Node	   *endOffset;
-
 			/*
 			 * Framing is only supported on specifications with an ordering
 			 * clause.
@@ -2505,25 +2499,22 @@ transformWindowDefinitions(ParseState *pstate,
 						 errmsg("window specifications with a framing clause must have an ORDER BY clause"),
 						 parser_errposition(pstate, windef->location)));
 
-			startOffset = transformFrameOffset(pstate, wc->frameOptions,
-											   windef->startOffset, wc->orderClause,
-											   *targetlist,
-											   (windef->frameOptions & FRAMEOPTION_START_VALUE_FOLLOWING) != 0,
-				windef->location);
-			endOffset = transformFrameOffset(pstate, wc->frameOptions,
-											 windef->endOffset, wc->orderClause,
-											 *targetlist,
-											 (windef->frameOptions & FRAMEOPTION_END_VALUE_FOLLOWING) != 0,
-				windef->location);
-			wc->frame = constructWindowFrame(wc->frameOptions,
-												  startOffset,
-												  endOffset);
+			wc->startOffset = transformFrameOffset(pstate, wc->frameOptions,
+												   windef->startOffset, wc->orderClause,
+												   *targetlist,
+												   (windef->frameOptions & FRAMEOPTION_START_VALUE_FOLLOWING) != 0,
+												   windef->location);
+			wc->endOffset = transformFrameOffset(pstate, wc->frameOptions,
+												 windef->endOffset, wc->orderClause,
+												 *targetlist,
+												 (windef->frameOptions & FRAMEOPTION_END_VALUE_FOLLOWING) != 0,
+												 windef->location);
 		}
 
 		/* finally, check function restriction with this spec. */
 		winref_checkspec(pstate, *targetlist, winref,
 						 PointerIsValid(wc->orderClause),
-						 PointerIsValid(wc->frame));
+						 wc->frameOptions != FRAMEOPTION_DEFAULTS);
 
 		result = lappend(result, wc);
 	}
@@ -3470,52 +3461,4 @@ transformFrameOffset(ParseState *pstate, int frameOptions, Node *clause,
 #endif
 
 	return node;
-}
-
-/*
- * Convert the PostgreSQL-style frameOptions+startOffset+endOffset
- * representation of the frame specification, i.e "ROWS/RANGE BETWEEN a
- * AND b", into the legacy GPDB WindowFrame node. This will go away, once
- * we convert the rest of the codebase to deal with the PostgreSQL
- * representation and get rid of the WindowFrame struct.
- */
-static WindowFrame *
-constructWindowFrame(int frameOptions, Node *startOffset, Node *endOffset)
-{
-	WindowFrame *wf;
-
-	if ((frameOptions & FRAMEOPTION_NONDEFAULT) == 0)
-		return NULL;
-
-	wf = makeNode(WindowFrame);
-	wf->is_rows = (frameOptions & FRAMEOPTION_ROWS) != 0;
-	wf->is_between =  (frameOptions & FRAMEOPTION_BETWEEN) != 0;
-
-	wf->trail = makeNode(WindowFrameEdge);
-	if ((frameOptions & FRAMEOPTION_START_UNBOUNDED_PRECEDING) != 0)
-		wf->trail->kind = WINDOW_UNBOUND_PRECEDING;
-	else if ((frameOptions & FRAMEOPTION_START_CURRENT_ROW) != 0)
-		wf->trail->kind = WINDOW_CURRENT_ROW;
-	else if ((frameOptions & FRAMEOPTION_START_VALUE_PRECEDING) != 0)
-		wf->trail->kind = WINDOW_BOUND_PRECEDING;
-	else if ((frameOptions & FRAMEOPTION_START_VALUE_FOLLOWING) != 0)
-		wf->trail->kind = WINDOW_BOUND_FOLLOWING;
-	else
-		elog(ERROR, "unexpected window frame start");
-	wf->trail->val = startOffset; /* already transformed */
-
-	wf->lead = makeNode(WindowFrameEdge);
-	if ((frameOptions & FRAMEOPTION_END_UNBOUNDED_FOLLOWING) != 0)
-		wf->lead->kind = WINDOW_UNBOUND_FOLLOWING;
-	else if ((frameOptions & FRAMEOPTION_END_CURRENT_ROW) != 0)
-		wf->lead->kind = WINDOW_CURRENT_ROW;
-	else if ((frameOptions & FRAMEOPTION_END_VALUE_PRECEDING) != 0)
-		wf->lead->kind = WINDOW_BOUND_PRECEDING;
-	else if ((frameOptions & FRAMEOPTION_END_VALUE_FOLLOWING) != 0)
-		wf->lead->kind = WINDOW_BOUND_FOLLOWING;
-	else
-		elog(ERROR, "unexpected window frame end");
-	wf->lead->val = endOffset; /* already transformed */
-
-	return wf;
 }

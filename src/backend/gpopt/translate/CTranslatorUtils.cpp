@@ -1063,54 +1063,6 @@ CTranslatorUtils::Edxlsetop
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorUtils::Windowboundkind
-//
-//	@doc:
-//		Return the GPDB frame boundary kind from its corresponding
-//		DXL representation
-//
-//---------------------------------------------------------------------------
-WindowBoundingKind
-CTranslatorUtils::Windowboundkind
-	(
-	EdxlFrameBoundary edxlfb
-	)
-{
-	GPOS_ASSERT(EdxlfbSentinel > edxlfb);
-
-	ULONG rgrgulMapping[][2] =
-			{
-			{EdxlfbUnboundedPreceding, WINDOW_UNBOUND_PRECEDING},
-			{EdxlfbBoundedPreceding, WINDOW_BOUND_PRECEDING},
-			{EdxlfbCurrentRow, WINDOW_CURRENT_ROW},
-			{EdxlfbBoundedFollowing, WINDOW_BOUND_FOLLOWING},
-			{EdxlfbUnboundedFollowing, WINDOW_UNBOUND_FOLLOWING},
-	// We don't distinguish between the delayed and undelayed versions
-	// beoynd this point. Executor will make that decision without our
-	// help.
-			{EdxlfbDelayedBoundedPreceding, WINDOW_BOUND_PRECEDING},
-			{EdxlfbDelayedBoundedFollowing, WINDOW_BOUND_FOLLOWING}
-			};
-
-	const ULONG ulArity = GPOS_ARRAY_SIZE(rgrgulMapping);
-	WindowBoundingKind wbk = WINDOW_UNBOUND_PRECEDING;
-	for (ULONG ul = 0; ul < ulArity; ul++)
-	{
-		ULONG *pulElem = rgrgulMapping[ul];
-		if ((ULONG) edxlfb == pulElem[0])
-		{
-			wbk = (WindowBoundingKind) pulElem[1];
-			break;
-		}
-	}
-	GPOS_ASSERT(WINDOW_BOUND_FOLLOWING >= wbk && "Invalid window frame boundary");
-
-	return wbk;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CTranslatorUtils::PdrgpulGroupingCols
 //
 //	@doc:

@@ -888,7 +888,8 @@ typedef struct WindowClause
 	List	   *partitionClause;	/* PARTITION BY list */
 	List	   *orderClause;	/* ORDER BY list */
 	int			frameOptions;	/* frame_clause options, copied from WindowDef */
-	WindowFrame *frame;
+	Node	   *startOffset;	/* expression for starting bound, if any */
+	Node	   *endOffset;		/* expression for ending bound, if any */
 	Index		winref;			/* ID referenced by window functions */
 	bool		copiedOrder;	/* did we copy orderClause from refname? */
 } WindowClause;

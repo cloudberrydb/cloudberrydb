@@ -1360,57 +1360,6 @@ CTranslatorScalarToDXL::PdxlnScAggrefFromAggref
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CTranslatorScalarToDXL::Edxlfb
-//
-//	@doc:
-//		Return the DXL representation of window frame boundary
-//---------------------------------------------------------------------------
-EdxlFrameBoundary
-CTranslatorScalarToDXL::Edxlfb
-	(
-	WindowBoundingKind kind,
-	Node *pnode
-	)
-	const
-{
-	static ULONG rgrgulMapping[][2] =
-			{
-			{WINDOW_UNBOUND_PRECEDING, EdxlfbUnboundedPreceding},
-			{WINDOW_BOUND_PRECEDING, EdxlfbBoundedPreceding},
-			{WINDOW_CURRENT_ROW, EdxlfbCurrentRow},
-			{WINDOW_BOUND_FOLLOWING, EdxlfbBoundedFollowing},
-			{WINDOW_UNBOUND_FOLLOWING, EdxlfbUnboundedFollowing}
-			};
-
-	const ULONG ulArity = GPOS_ARRAY_SIZE(rgrgulMapping);
-	EdxlFrameBoundary edxlfb = EdxlfbSentinel;
-	for (ULONG ul = 0; ul < ulArity; ul++)
-	{
-		ULONG *pulElem = rgrgulMapping[ul];
-		if ((ULONG) kind == pulElem[0])
-		{
-			edxlfb = (EdxlFrameBoundary) pulElem[1];
-
-			if ((WINDOW_BOUND_FOLLOWING == kind) && ((NULL == pnode) || !IsA(pnode, Const)))
-			{
-				edxlfb = EdxlfbDelayedBoundedFollowing;
-			}
-
-			if ((WINDOW_BOUND_PRECEDING == kind) && ((NULL == pnode) || !IsA(pnode, Const)))
-			{
-				edxlfb = EdxlfbDelayedBoundedPreceding;
-			}
-
-			break;
-		}
-	}
-	GPOS_ASSERT(EdxlfbSentinel != edxlfb && "Invalid window frame boundary");
-
-	return edxlfb;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CTranslatorScalarToDXL::Pdxlwf
 //
 //	@doc:
@@ -1419,23 +1368,44 @@ CTranslatorScalarToDXL::Edxlfb
 CDXLWindowFrame *
 CTranslatorScalarToDXL::Pdxlwf
 	(
-	const Expr *pexpr,
+	int frameOptions,
+	const Node *startOffset,
+	const Node *endOffset,
 	const CMappingVarColId* pmapvarcolid,
 	CDXLNode *pdxlnNewChildScPrL,
 	BOOL *pfHasDistributedTables // output
 	)
 {
-	GPOS_ASSERT(IsA(pexpr, WindowFrame));
-	const WindowFrame *pwindowframe = (WindowFrame *) pexpr;
+	EdxlFrameSpec edxlfs;
 
-	EdxlFrameSpec edxlfs = EdxlfsRow;
-	if (!pwindowframe->is_rows)
-	{
+	if ((frameOptions & FRAMEOPTION_ROWS) != 0)
+		edxlfs = EdxlfsRow;
+	else
 		edxlfs = EdxlfsRange;
-	}
 
-	EdxlFrameBoundary edxlfbLead = Edxlfb(pwindowframe->lead->kind, pwindowframe->lead->val);
-	EdxlFrameBoundary edxlfbTrail = Edxlfb(pwindowframe->trail->kind, pwindowframe->trail->val);
+	EdxlFrameBoundary edxlfbLead;
+	if ((frameOptions & FRAMEOPTION_END_UNBOUNDED_PRECEDING) != 0)
+		edxlfbLead = EdxlfbUnboundedPreceding;
+	else if ((frameOptions & FRAMEOPTION_END_VALUE_PRECEDING) != 0)
+		edxlfbLead = EdxlfbBoundedPreceding;
+	else if ((frameOptions & FRAMEOPTION_END_CURRENT_ROW) != 0)
+		edxlfbLead = EdxlfbCurrentRow;
+	else if ((frameOptions & FRAMEOPTION_END_VALUE_FOLLOWING) != 0)
+		edxlfbLead = EdxlfbBoundedFollowing;
+	else if ((frameOptions & FRAMEOPTION_END_UNBOUNDED_FOLLOWING) != 0)
+		edxlfbLead = EdxlfbUnboundedFollowing;
+
+	EdxlFrameBoundary edxlfbTrail;
+	if ((frameOptions & FRAMEOPTION_START_UNBOUNDED_PRECEDING) != 0)
+		edxlfbTrail = EdxlfbUnboundedPreceding;
+	else if ((frameOptions & FRAMEOPTION_START_VALUE_PRECEDING) != 0)
+		edxlfbTrail = EdxlfbBoundedPreceding;
+	else if ((frameOptions & FRAMEOPTION_START_CURRENT_ROW) != 0)
+		edxlfbTrail = EdxlfbCurrentRow;
+	else if ((frameOptions & FRAMEOPTION_START_VALUE_FOLLOWING) != 0)
+		edxlfbTrail = EdxlfbBoundedFollowing;
+	else if ((frameOptions & FRAMEOPTION_START_UNBOUNDED_FOLLOWING) != 0)
+		edxlfbTrail = EdxlfbUnboundedFollowing;
 
 	// We don't support non-default EXCLUDE [CURRENT ROW | GROUP | TIES |
 	// NO OTHERS] options.
@@ -1445,14 +1415,14 @@ CTranslatorScalarToDXL::Pdxlwf
 	CDXLNode *pdxlnTrailEdge = GPOS_NEW(m_pmp) CDXLNode(m_pmp, GPOS_NEW(m_pmp) CDXLScalarWindowFrameEdge(m_pmp, false /* fLeading */, edxlfbTrail));
 
 	// translate the lead and trail value
-	if (NULL != pwindowframe->lead->val)
+	if (NULL != endOffset)
 	{
-		pdxlnLeadEdge->AddChild(PdxlnWindowFrameEdgeVal(pwindowframe->lead->val, pmapvarcolid, pdxlnNewChildScPrL, pfHasDistributedTables));
+		pdxlnLeadEdge->AddChild(PdxlnWindowFrameEdgeVal(endOffset, pmapvarcolid, pdxlnNewChildScPrL, pfHasDistributedTables));
 	}
 
-	if (NULL != pwindowframe->trail->val)
+	if (NULL != startOffset)
 	{
-		pdxlnTrailEdge->AddChild(PdxlnWindowFrameEdgeVal(pwindowframe->trail->val, pmapvarcolid, pdxlnNewChildScPrL, pfHasDistributedTables));
+		pdxlnTrailEdge->AddChild(PdxlnWindowFrameEdgeVal(startOffset, pmapvarcolid, pdxlnNewChildScPrL, pfHasDistributedTables));
 	}
 
 	CDXLWindowFrame *pdxlWf = GPOS_NEW(m_pmp) CDXLWindowFrame(m_pmp, edxlfs, edxlfes, pdxlnLeadEdge, pdxlnTrailEdge);

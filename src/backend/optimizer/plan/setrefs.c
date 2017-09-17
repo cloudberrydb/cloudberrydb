@@ -812,17 +812,13 @@ set_plan_refs(PlannerGlobal *glob, Plan *plan, int rtoffset)
 				foreach(l, ((Window *) plan)->windowKeys)
 				{
 					WindowKey *win_key = (WindowKey *)lfirst(l);
-					WindowFrame *frame = win_key->frame;
 
-					if (frame != NULL)
-					{
-						frame->trail->val =
-							fix_upper_expr(glob, frame->trail->val,
-										   subplan_itlist, rtoffset);
-						frame->lead->val =
-							fix_upper_expr(glob, frame->lead->val,
-										   subplan_itlist, rtoffset);
-					}
+					win_key->startOffset =
+						fix_upper_expr(glob, win_key->startOffset,
+									   subplan_itlist, rtoffset);
+					win_key->endOffset =
+						fix_upper_expr(glob, win_key->endOffset,
+									   subplan_itlist, rtoffset);
 				}
 				pfree(subplan_itlist);
 			}

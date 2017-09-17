@@ -654,17 +654,13 @@ subquery_planner(PlannerGlobal *glob, Query *parse,
 	 */
 	foreach(l, parse->windowClause)
 	{
-		WindowClause *w = (WindowClause *) lfirst(l);
+		WindowClause *wc = (WindowClause *) lfirst(l);
 
-		if (w != NULL && w->frame != NULL)
-		{
-			WindowFrame *f = w->frame;
-
-			if (f->trail != NULL)
-				f->trail->val = preprocess_expression(root, f->trail->val, EXPRKIND_WINDOW_BOUND);
-			if (f->lead != NULL)
-				f->lead->val = preprocess_expression(root, f->lead->val, EXPRKIND_WINDOW_BOUND);
-		}
+		/* partitionClause/orderClause are sort/group expressions */
+		wc->startOffset = preprocess_expression(root, wc->startOffset,
+												EXPRKIND_WINDOW_BOUND);
+		wc->endOffset = preprocess_expression(root, wc->endOffset,
+											  EXPRKIND_WINDOW_BOUND);
 	}
 
 	parse->limitOffset = preprocess_expression(root, parse->limitOffset,

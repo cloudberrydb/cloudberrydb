@@ -626,7 +626,8 @@ plan_tree_mutator(Node *node,
 				FLATCOPY(newkey, key, WindowKey);
 				COPYARRAY(newkey, key, numSortCols, sortColIdx);
 				COPYARRAY(newkey, key, numSortCols, sortOperators);
-				MUTATE(newkey->frame, key->frame, WindowFrame *);
+				MUTATE(newkey->startOffset, key->startOffset, Node *);
+				MUTATE(newkey->endOffset, key->endOffset, Node *);
 				
 				return (Node *) newkey;
 			}
@@ -839,8 +840,6 @@ plan_tree_mutator(Node *node,
 		case T_Aggref:
 		case T_AggOrder:
 		case T_WindowRef:
-		case T_WindowFrame:
-		case T_WindowFrameEdge:
 		case T_ArrayRef:
 		case T_FuncExpr:
 		case T_OpExpr:

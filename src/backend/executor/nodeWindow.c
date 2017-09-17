@@ -120,16 +120,15 @@ typedef struct WindowStatePerLevelData
 	List	   *level_funcs;
 
 	/* The framing clause */
-	WindowFrame *frame;
+	int			frameOptions;
+	Node	   *startOffset;
+	Node	   *endOffset;
 
 	/* Indicate if all functions have trivial frames. */
 	bool		trivial_frames_only;
 
 	/* if the user didn't specify a frame, we use the default */
 	bool		default_frame;
-
-	/* Indicate if the frame is a ROW frame or a RANGE frame. */
-	bool		is_rows;
 
 	/*
 	 * Indicate if the frame clause for this level has an edge of DELAY_BOUND
@@ -327,20 +326,20 @@ typedef enum
 } WindowEdge;
 
 #define EDGE_TRAIL_IS_BOUND(level_state) \
-	((level_state)->frame->trail->kind == WINDOW_BOUND_PRECEDING || \
-	 (level_state)->frame->trail->kind == WINDOW_BOUND_FOLLOWING)
+	(((level_state)->frameOptions & FRAMEOPTION_START_VALUE) != 0)
 #define EDGE_LEAD_IS_BOUND(level_state) \
-	((level_state)->frame->lead->kind == WINDOW_BOUND_PRECEDING || \
-	 (level_state)->frame->lead->kind == WINDOW_BOUND_FOLLOWING)
+	(((level_state)->frameOptions & FRAMEOPTION_END_VALUE) != 0)
+#define EDGE_IS_BOUND(level_state, edge) \
+	(((edge) == EDGE_LEAD) ? EDGE_LEAD_IS_BOUND(level_state) : EDGE_TRAIL_IS_BOUND(level_state))
 
 #define EDGE_TRAIL_IS_BOUND_FOLLOWING(level_state) \
-	((level_state)->frame->trail->kind == WINDOW_BOUND_FOLLOWING)
+	(((level_state)->frameOptions & FRAMEOPTION_START_VALUE_FOLLOWING) != 0)
 #define EDGE_LEAD_IS_BOUND_FOLLOWING(level_state) \
-	((level_state)->frame->lead->kind == WINDOW_BOUND_FOLLOWING)
+	(((level_state)->frameOptions & FRAMEOPTION_END_VALUE_FOLLOWING) != 0)
 #define EDGE_TRAIL_IS_BOUND_PRECEDING(level_state) \
-	((level_state)->frame->trail->kind == WINDOW_BOUND_PRECEDING)
+	(((level_state)->frameOptions & FRAMEOPTION_START_VALUE_PRECEDING) != 0)
 #define EDGE_LEAD_IS_BOUND_PRECEDING(level_state) \
-	((level_state)->frame->lead->kind == WINDOW_BOUND_PRECEDING)
+	(((level_state)->frameOptions & FRAMEOPTION_END_VALUE_PRECEDING) != 0)
 
 #define EDGE_IS_BOUND_FOLLOWING(level_state, edge) \
 	((edge == EDGE_LEAD) ? EDGE_LEAD_IS_BOUND_FOLLOWING(level_state) : \
@@ -357,7 +356,7 @@ typedef enum
 	 EDGE_TRAIL_EQ_CURRENT_ROW(level_state, wstate))
 
 #define EDGE_IS_ROWS(level_state) \
-	((level_state)->is_rows)
+	(((level_state)->frameOptions & FRAMEOPTION_ROWS) != 0)
 
 static bool exec_eq_exprstate(WindowState * wstate, ExprState *eq_exprstate);
 
@@ -366,7 +365,7 @@ static bool
 EDGE_TRAIL_EQ_CURRENT_ROW(WindowStatePerLevel level_state,
 						  WindowState *wstate)
 {
-	if (level_state->frame->trail->kind == WINDOW_CURRENT_ROW)
+	if ((level_state->frameOptions & FRAMEOPTION_START_CURRENT_ROW) != 0)
 		return true;
 
 	if (EDGE_TRAIL_IS_BOUND(level_state))
@@ -384,7 +383,7 @@ static bool
 EDGE_LEAD_EQ_CURRENT_ROW(WindowStatePerLevel level_state,
 						 WindowState *wstate)
 {
-	if (level_state->frame->lead->kind == WINDOW_CURRENT_ROW)
+	if ((level_state->frameOptions & FRAMEOPTION_END_CURRENT_ROW) != 0)
 		return true;
 
 	if (EDGE_LEAD_IS_BOUND(level_state))
@@ -2157,8 +2156,7 @@ computeFrameValue(WindowStatePerLevel level_state,
 					 * in the leading edge is funcstate->aggTransValue. We
 					 * don't need to read from the buffer.
 					 */
-					if (level_state->frame->lead->kind !=
-						WINDOW_UNBOUND_FOLLOWING)
+					if ((level_state->frameOptions & FRAMEOPTION_END_UNBOUNDED_FOLLOWING) == 0)
 					{
 						has_lead_entry =
 							getCurrentValue(level_state->lead_reader,
@@ -2776,7 +2774,6 @@ initWindowStatePerLevel(WindowState * wstate, Window * node)
 	foreach(lc, node->windowKeys)
 	{
 		WindowKey  *key = (WindowKey *) lfirst(lc);
-		WindowFrame *frame;
 		WindowStatePerLevel lvl = &wstate->level_state[level_no++];
 		Oid		   *eqOperators;
 		int			i;
@@ -2828,57 +2825,9 @@ initWindowStatePerLevel(WindowState * wstate, Window * node)
 									   lvl->sortOperators);
 		pfree(eqOperators);
 
-		/* Set the frame for this level */
-		lvl->is_rows = false;
-
-		if (!key->frame)
-		{
-			/*
-			 * User didn't specify a frame, so we add the default. We do not
-			 * do this in the parser because otherwise we cannot handle
-			 * situation such as the following query being turned into a view:
-			 *
-			 * SELECT sum(...) OVER (w1), RANK() OVER (w1) ... WINDOW w1 AS
-			 * (ORDER BY foo);
-			 *
-			 * When transformed to a view, we'd add the default framing clause
-			 * and then the parser would barf when it encountered a window
-			 * clause for a RANK function. So, we do it here.
-			 */
-
-			lvl->default_frame = true;
-
-			frame = (WindowFrame *) makeNode(WindowFrame);
-			frame->trail = (WindowFrameEdge *) makeNode(WindowFrameEdge);
-			frame->lead = (WindowFrameEdge *) makeNode(WindowFrameEdge);
-
-			/*
-			 * The default frame is:
-			 *
-			 * RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-			 */
-			frame->is_rows = false;
-			frame->trail->kind = WINDOW_UNBOUND_PRECEDING;
-			frame->lead->kind = WINDOW_CURRENT_ROW;
-
-			lvl->is_rows = false;
-
-			/*
-			 * Note: we haven't set is_rows or exclude but the use of
-			 * palloc0() inside of makeNode() ensures all fields of the struct
-			 * are zeros so we're golden.
-			 */
-		}
-		else
-		{
-			frame = key->frame;
-			lvl->is_rows = key->frame->is_rows;
-		}
-
-		lvl->frame = frame;
-
-		Assert(PointerIsValid(frame->trail));
-		Assert(PointerIsValid(frame->lead));
+		lvl->frameOptions = key->frameOptions;
+		lvl->startOffset = key->startOffset;
+		lvl->endOffset = key->endOffset;
 
 		lvl->col_types = palloc(sizeof(Oid) * lvl->numSortCols);
 		lvl->col_typlens = palloc(sizeof(int2) * lvl->numSortCols);
@@ -3938,17 +3887,16 @@ get_delay_edge(WindowStatePerLevel level_state,
 
 	/* Check if the range expression is negative. */
 	if (!EDGE_IS_ROWS(level_state))
+	{
 		if (range_is_negative(edge_expr, edge_param))
 			ereport(ERROR,
 					(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
 					 errmsg("%s parameter cannot be negative",
 							(EDGE_IS_ROWS(level_state) ? "ROWS" : "RANGE"))));
-
-	if (EDGE_IS_ROWS(level_state))
-	{
-		if (EDGE_IS_BOUND_PRECEDING(level_state, edge))
-			edge_param = 0 - edge_param;
 	}
+
+	if (EDGE_IS_ROWS(level_state) && EDGE_IS_BOUND_PRECEDING(level_state, edge))
+		edge_param = Int64GetDatum(0 - DatumGetInt64(edge_param));
 
 	return edge_param;
 }
@@ -4566,9 +4514,6 @@ fetchCurrentRow(WindowState * wstate)
 	{
 		WindowStatePerLevel level_state = &wstate->level_state[level];
 
-		if (!level_state->has_delay_bound)
-			continue;
-
 		if (level_state->has_delay_lead)
 		{
 			if (EDGE_IS_ROWS(level_state))
@@ -5145,13 +5090,13 @@ init_bound_frame_edge_expr(WindowStatePerLevel level_state,
 	Insist(EDGE_IS_BOUND(level_state, edge));
 
 	if (edge == EDGE_LEAD)
-		orig_expr = (Expr *) level_state->frame->lead->val;
+		orig_expr = (Expr *) level_state->endOffset;
 	else
-		orig_expr = (Expr *) level_state->frame->trail->val;
+		orig_expr = (Expr *) level_state->startOffset;
 	expr = orig_expr;
 
 	ltype = desc->attrs[attnum - 1]->atttypid;
-	rtype = exprType((Node *) expr);
+	rtype = exprType((Node *) orig_expr);
 
 	varexpr = (Expr *) makeVar(OUTER, attnum, ltype, vartypmod, 0);
 
@@ -5373,12 +5318,10 @@ static void
 setEmptyFrame(WindowStatePerLevel level_state,
 			  WindowState * wstate)
 {
-	WindowFrame *frame = level_state->frame;
-
 	level_state->empty_frame = false;
 
-	Assert(frame->trail->kind != WINDOW_UNBOUND_FOLLOWING);
-	Assert(frame->lead->kind != WINDOW_UNBOUND_PRECEDING);
+	Assert((level_state->frameOptions & FRAMEOPTION_END_UNBOUNDED_PRECEDING) == 0);
+	Assert((level_state->frameOptions & FRAMEOPTION_START_UNBOUNDED_FOLLOWING) == 0);
 	Assert(!(EDGE_TRAIL_IS_BOUND_FOLLOWING(level_state) &&
 			 EDGE_LEAD_IS_BOUND_PRECEDING(level_state)));
 
@@ -5447,83 +5390,46 @@ setEmptyFrame(WindowStatePerLevel level_state,
 static void
 init_frames(WindowState * wstate)
 {
-	int			level = -1;
+	int			level;
 	ListCell   *lc;
 	int			col_no;
 
-	/*
-	 * Set has_delay_* flag in each level state.
-	 */
 	for (level = 0; level < wstate->numlevels; level++)
 	{
 		WindowStatePerLevel level_state = &wstate->level_state[level];
-
-		/*
-		 * If a bound expression is a constant, we can evaluate it just
-		 * once, and reuse the value thereafter. Otherwise, set the
-		 * has_delay_[trail|lead] flag, so that it's re-evaluated for
-		 * every row.
-		 *
-		 * We could try harder, and also evaluate e.g. stable expressions
-		 * immediately, but this will do for now.
-		 */
-		if (level_state->frame)
-		{
-			if (EDGE_TRAIL_IS_BOUND(level_state) &&
-				!IsA(level_state->frame->trail->val, Const))
-				level_state->has_delay_trail = true;
-
-			if (EDGE_LEAD_IS_BOUND(level_state) &&
-				!IsA(level_state->frame->lead->val, Const))
-				level_state->has_delay_lead = true;
-		}
-
-		level_state->has_delay_bound =
-			level_state->has_delay_lead || level_state->has_delay_trail;
-	}
-
-	for (level = 0; level < wstate->numlevels; level++)
-	{
-		WindowStatePerLevel level_state = &wstate->level_state[level];
-		int			ncols = level_state->numSortCols;
-		WindowFrame *frame = level_state->frame;
-
-		level_state->col_sort_asc = palloc(sizeof(bool) * ncols);
+		int			ncols;
 
 		foreach(lc, level_state->level_funcs)
 		{
 			WindowStatePerFunction funcstate =
-			(WindowStatePerFunction) lfirst(lc);
+				(WindowStatePerFunction) lfirst(lc);
 
-			if (!frame || (!funcstate->isAgg && !funcstate->allowframe &&
-						   !IS_LEAD_LAG(funcstate->wrxstate->winkind) &&
-						   !funcstate->winpeercount))
+			if (!funcstate->isAgg && !funcstate->allowframe &&
+				!IS_LEAD_LAG(funcstate->wrxstate->winkind) &&
+				!funcstate->winpeercount)
 			{
 				funcstate->trivial_frame = true;
 			}
-
-
 			/*
 			 * We say the function is trivial to invoke if its frame is
 			 * defined as ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
 			 * with no exclusion clause OR it is a window function without a
 			 * frame.
 			 */
-			if (funcstate->isAgg && frame && frame->is_rows &&
-				frame->trail->kind == WINDOW_UNBOUND_PRECEDING &&
-				frame->lead->kind == WINDOW_CURRENT_ROW)
+			if (funcstate->isAgg &&
+				(level_state->frameOptions & FRAMEOPTION_START_UNBOUNDED_PRECEDING) != 0 &&
+				(level_state->frameOptions & FRAMEOPTION_END_CURRENT_ROW) != 0)
 			{
-				funcstate->trivial_frame = true;
-			}
-			else if (funcstate->isAgg && frame && !frame->is_rows &&
-					 frame->trail->kind == WINDOW_UNBOUND_PRECEDING &&
-					 frame->lead->kind == WINDOW_CURRENT_ROW)
-			{
-				funcstate->cumul_frame = true;
+				if (EDGE_IS_ROWS(level_state))
+					funcstate->trivial_frame = true;
+				else
+					funcstate->cumul_frame = true;
 			}
 		}
 
 		/* what sort order did the user specify for each key? */
+		ncols = level_state->numSortCols;
+		level_state->col_sort_asc = palloc(sizeof(bool) * ncols);
 		for (col_no = 0; col_no < ncols; col_no++)
 		{
 			Oid			sortop = level_state->sortOperators[col_no];
@@ -5542,105 +5448,128 @@ init_frames(WindowState * wstate)
 			ReleaseSysCache(opertup);
 		}
 
+		/*
+		 * If a bound expression is a constant, we can evaluate it just
+		 * once, and reuse the value thereafter. Otherwise, set the
+		 * has_delay_[trail|lead] flag, so that it's re-evaluated for
+		 * every row.
+		 *
+		 * We could try harder, and also evaluate e.g. stable expressions
+		 * immediately, but this will do for now.
+		 */
+		if (EDGE_TRAIL_IS_BOUND(level_state) &&
+			!IsA(level_state->startOffset, Const))
+			level_state->has_delay_trail = true;
+
+		if (EDGE_LEAD_IS_BOUND(level_state) &&
+			!IsA(level_state->endOffset, Const))
+			level_state->has_delay_lead = true;
+
+		level_state->has_delay_bound =
+			level_state->has_delay_lead || level_state->has_delay_trail;
+
 		/* now, initialize the actual frame */
-		if (frame)
+		if (EDGE_IS_ROWS(level_state))
 		{
-			if (frame->is_rows)
+			ExprContext *econtext = wstate->ps.ps_ExprContext;
+
+			if (EDGE_TRAIL_IS_BOUND(level_state) &&
+				level_state->startOffset != NULL)
 			{
-				ExprContext *econtext = wstate->ps.ps_ExprContext;
+				int64		rows_param = 0;
+				bool		isnull = true;
+				Expr	   *expr = (Expr *) level_state->startOffset;
 
-				if (EDGE_TRAIL_IS_BOUND(level_state) &&
-					level_state->frame->trail->val != NULL)
+				Assert(exprType((Node *) expr) == INT8OID);
+
+				level_state->trail_expr =
+					ExecInitExpr((Expr *)expr,
+								 (PlanState *) wstate);
+
+				if (!level_state->has_delay_trail)
 				{
-					int64		rows_param = 0;
-					bool		isnull = true;
-					Expr	   *expr = (Expr *)level_state->frame->trail->val;
+					Datum		d;
 
-					Assert(exprType((Node *) expr) == INT8OID);
-
-					level_state->trail_expr =
-						ExecInitExpr((Expr *)expr,
-									 (PlanState *) wstate);
-
-					if (!level_state->has_delay_trail)
-					{
-						rows_param = ExecEvalExpr(level_state->trail_expr,
-												  econtext,
-												  &isnull,
-												  NULL);
-						if (isnull)
-							ereport(ERROR,
-									(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
-									 errmsg("frame starting offset must not be null")));
-						if (DatumGetInt64(rows_param) < 0)
-							ereport(ERROR,
-									(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
-									 errmsg("ROWS parameter cannot be negative")));
-					}
-
-					if (frame->trail->kind == WINDOW_BOUND_PRECEDING)
-						rows_param = -rows_param;
-
-					level_state->trail_rows = rows_param;
+					d = ExecEvalExpr(level_state->trail_expr,
+									 econtext,
+									 &isnull,
+									 NULL);
+					if (isnull)
+						ereport(ERROR,
+								(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
+								 errmsg("frame starting offset must not be null")));
+					rows_param = DatumGetInt64(d);
+					if (rows_param < 0)
+						ereport(ERROR,
+								(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
+								 errmsg("ROWS parameter cannot be negative")));
 				}
-				else
-					level_state->trail_rows = 0L;
 
-				if (EDGE_LEAD_IS_BOUND(level_state) &&
-					level_state->frame->lead->val != NULL)
-				{
-					int64		rows_param = 0;
-					bool		isnull = true;
-					Expr	   *expr = (Expr *)level_state->frame->lead->val;
+				if (EDGE_TRAIL_IS_BOUND_PRECEDING(level_state))
+					rows_param = -rows_param;
 
-					Assert(exprType((Node *) expr) == INT8OID);
-
-					level_state->lead_expr =
-						ExecInitExpr((Expr *)expr,
-									 (PlanState *) wstate);
-
-					if (!level_state->has_delay_lead)
-					{
-						rows_param = ExecEvalExpr(level_state->lead_expr,
-												  econtext,
-												  &isnull,
-												  NULL);
-						if (isnull)
-							ereport(ERROR,
-									(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
-									 errmsg("frame ending offset must not be null")));
-						if (DatumGetInt64(rows_param) < 0)
-							ereport(ERROR,
-									(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
-									 errmsg("ROWS parameter cannot be negative")));
-					}
-
-					if (frame->lead->kind == WINDOW_BOUND_PRECEDING)
-						rows_param = -rows_param;
-
-					level_state->lead_rows = rows_param;
-				}
-				else
-					level_state->lead_rows = 0L;
+				level_state->trail_rows = rows_param;
 			}
 			else
+				level_state->trail_rows = 0L;
+
+			if (EDGE_LEAD_IS_BOUND(level_state) &&
+				level_state->endOffset != NULL)
 			{
-				TupleDesc	desc = ExecGetResultType(wstate->ps.lefttree);
+				int64		rows_param = 0;
+				bool		isnull = true;
+				Expr	   *expr = (Expr *) level_state->endOffset;
 
-				/* we only need the subtraction function for bound frames */
-				if (EDGE_TRAIL_IS_BOUND(level_state))
+				Assert(exprType((Node *) expr) == INT8OID);
+
+				level_state->lead_expr =
+					ExecInitExpr((Expr *)expr,
+								 (PlanState *) wstate);
+
+				if (!level_state->has_delay_lead)
 				{
-					init_bound_frame_edge_expr(level_state, desc,
-											   level_state->sortColIdx[0],
-											   EDGE_TRAIL, wstate);
+					Datum		d;
+
+					d = ExecEvalExpr(level_state->lead_expr,
+									 econtext,
+									 &isnull,
+									 NULL);
+					if (isnull)
+						ereport(ERROR,
+								(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
+								 errmsg("frame ending offset must not be null")));
+					rows_param = DatumGetInt64(d);
+					if (rows_param < 0)
+						ereport(ERROR,
+								(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
+								 errmsg("ROWS parameter cannot be negative")));
 				}
 
-				if (EDGE_LEAD_IS_BOUND(level_state))
-				{
-					init_bound_frame_edge_expr(level_state, desc,
-											   level_state->sortColIdx[0],
-											   EDGE_LEAD, wstate);
-				}
+				if (EDGE_LEAD_IS_BOUND_PRECEDING(level_state))
+					rows_param = -rows_param;
+
+				level_state->lead_rows = rows_param;
+			}
+			else
+				level_state->lead_rows = 0L;
+		}
+		else
+		{
+			TupleDesc	desc = ExecGetResultType(wstate->ps.lefttree);
+
+			/* we only need the subtraction function for bound frames */
+			if (EDGE_TRAIL_IS_BOUND(level_state))
+			{
+				init_bound_frame_edge_expr(level_state, desc,
+										   level_state->sortColIdx[0],
+										   EDGE_TRAIL, wstate);
+			}
+
+			if (EDGE_LEAD_IS_BOUND(level_state))
+			{
+				init_bound_frame_edge_expr(level_state, desc,
+										   level_state->sortColIdx[0],
+										   EDGE_LEAD, wstate);
 			}
 		}
 

@@ -4051,27 +4051,6 @@ expression_tree_mutator(Node *node,
 				return (Node *) newnode;
 			}
 			break;
-		case T_WindowFrame:
-			{
-				WindowFrame	*frame = (WindowFrame *) node;
-				WindowFrame *newnode;
-				
-				FLATCOPY(newnode, frame, WindowFrame);
-				MUTATE(newnode->trail, frame->trail, WindowFrameEdge *);
-				MUTATE(newnode->lead, frame->lead, WindowFrameEdge *);
-				return (Node *) newnode;
-			}
-			break;
-		case T_WindowFrameEdge:
-			{
-				WindowFrameEdge	*edge = (WindowFrameEdge *) node;
-				WindowFrameEdge *newnode;
-				
-				FLATCOPY(newnode, edge, WindowFrameEdge);
-				MUTATE(newnode->val, edge->val, Node *);
-				return (Node *) newnode;
-			}
-			break;
 		case T_WindowDef:
 			{
 				WindowDef *windef = (WindowDef *) node;
@@ -4096,7 +4075,8 @@ expression_tree_mutator(Node *node,
 
 				MUTATE(newnode->partitionClause, wc->partitionClause, List *);
 				MUTATE(newnode->orderClause, wc->orderClause, List *);
-				MUTATE(newnode->frame, wc->frame, WindowFrame *);
+				MUTATE(newnode->startOffset, wc->startOffset, Node *);
+				MUTATE(newnode->endOffset, wc->endOffset, Node *);
 
 				return (Node *) newnode;
 
@@ -4794,21 +4774,16 @@ flatten_join_alias_var_optimizer(Query *query, int queryLevel)
 
 		foreach (l, windowClause)
 		{
-			WindowClause *w = (WindowClause *) lfirst(l);
+			WindowClause *wc = (WindowClause *) lfirst(l);
 
-			if ( w != NULL && w->frame != NULL )
-			{
-				WindowFrame *f = w->frame;
+			if (wc == NULL)
+				continue;
 
-				if (f->trail != NULL )
-				{
-					f->trail->val = flatten_join_alias_vars(root, f->trail->val);
-				}
-				if ( f->lead != NULL )
-				{
-					f->lead->val = flatten_join_alias_vars(root, f->lead->val);
-				}
-			}
+			if (wc->startOffset)
+				wc->startOffset = flatten_join_alias_vars(root, wc->startOffset);
+
+			if (wc->endOffset)
+				wc->endOffset = flatten_join_alias_vars(root, wc->endOffset);
 		}
 	}
 

@@ -62,7 +62,6 @@ struct SubPlan;
 struct Result;
 struct Material;
 struct ShareInputScan;
-struct WindowFrame;
 //struct Const;
 //struct List;
 
@@ -291,9 +290,9 @@ namespace gpdxl
 				);
 
 			// translate the DXL window frame into GPDB window frame node
-			WindowFrame *Pwindowframe
+			WindowKey *PwindowKey
 				(
-				const CDXLWindowFrame *pdxlwf,
+				const CDXLWindowKey *pdxlwindowkey,
 				const CDXLTranslateContext *pdxltrctxChild,
 				CDXLTranslateContext *pdxltrctxOut,
 				Plan *pplan

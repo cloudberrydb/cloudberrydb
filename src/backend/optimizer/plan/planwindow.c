@@ -159,7 +159,12 @@ typedef struct SpecInfo
 	Index			specindex;		/* index of SpecInfo in context */
 	Bitmapset	   *partset;		/* sortgrouprefs of partitioning keys */
 	List		   *order;			/* ORDER BY clause */
-	WindowFrame	   *frame;			/* framing clause */
+
+	/* framing clause */
+	int			frameOptions;
+	Node	   *startOffset;
+	Node	   *endOffset;
+
 	Bitmapset	   *refset;			/* indices of referencing RefInfo */
 	Index			windowindex;	/* index of assigned Window node */
 	int				keylevel;		/* key level of spec in Window node */
@@ -245,8 +250,6 @@ static Node * window_tlist_mutator(Node *node, WindowContext *context);
 static bool window_tlist_vars_walker(Node *node, WindowContext *context);
 static void inventory_window_specs(List *window_specs, WindowContext *context);
 static int compare_order(List *a, List* b);
-static int compare_edge(WindowFrameEdge *a, WindowFrameEdge *b);
-static int compare_frame(WindowFrame *a, WindowFrame *b);
 static int compare_spec_info_ptr(const void *arg1, const void *arg2);
 static void make_lower_targetlist(Query *parse, WindowContext *context);
 static void set_window_keys(WindowContext *context, int wind_index);
@@ -283,7 +286,7 @@ static Plan *add_join_to_wrapper(PlannerInfo *root, Plan *plan, Query *query, Li
 static Query *copy_common_subquery(Query *original, List *targetList);
 static char *get_function_name(Oid proid, const char *dflt);
 
-static WindowFrame *lead_lag_frame_maker(WindowRef *wref, char winkind);
+static void lead_lag_frame_maker(WindowRef *wref, char winkind, SpecInfo *sinfo);
 
 Plan *
 window_planner(PlannerInfo *root, double tuple_fraction, List **pathkeys_ptr)
@@ -789,7 +792,9 @@ static void inventory_window_specs(List *window_specs, WindowContext *context)
 		specinfos[i].specindex = i;
 		specinfos[i].partset = map;
 		specinfos[i].order = spec->orderClause;
-		specinfos[i].frame = spec->frame;
+		specinfos[i].frameOptions = spec->frameOptions;
+		specinfos[i].startOffset = spec->startOffset;
+		specinfos[i].endOffset = spec->endOffset;
 		specinfos[i].refset = NULL;
 		specinfos[i].windowindex = 0;
 		specinfos[i].keylevel = 0;
@@ -846,13 +851,15 @@ static void inventory_window_specs(List *window_specs, WindowContext *context)
 			sinfo->specindex = sindex;
 			sinfo->refset = NULL;
 
-			Assert(sinfo->frame == NULL);
+			Assert(sinfo->frameOptions == FRAMEOPTION_DEFAULTS);
+
 			if (IS_LEAD_LAG(rinfo->winkind))
-				sinfo->frame = lead_lag_frame_maker(ref, rinfo->winkind);
-			if (sinfo->frame && sinfo->frame->lead)
-				Assert(exprType(sinfo->frame->lead->val) == INT8OID);
-			if (sinfo->frame && sinfo->frame->trail)
-				Assert(exprType(sinfo->frame->trail->val) == INT8OID);
+				lead_lag_frame_maker(ref, rinfo->winkind, sinfo);
+
+			if (sinfo->startOffset)
+				Assert(exprType(sinfo->startOffset) == INT8OID);
+			if (sinfo->endOffset)
+				Assert(exprType(sinfo->endOffset) == INT8OID);
 		}
 
 		sinfo->refset = bms_add_member(sinfo->refset, i);
@@ -1092,8 +1099,12 @@ static bool is_order_prefix_of(List *sca, List *scb)
 
 
 
-/* Comparision functions for local use */
-
+/*
+ * Comparison functions for local use
+ *
+ * This is used only for deduplication, so the actual order doesn't matter,
+ * as long as it's consistent.
+ */
 static int compare_spec_info_ptr(const void *arg1, const void *arg2)
 {
 	int n;
@@ -1115,7 +1126,32 @@ static int compare_spec_info_ptr(const void *arg1, const void *arg2)
 		return n;
 
 	/* frame */
-	return compare_frame(a->frame, b->frame);
+	if ( a->frameOptions < b->frameOptions)
+		return -1;
+	if ( a->frameOptions > b->frameOptions)
+		return 1;
+
+	/*
+	 * When the bounds aren't equal (since they may be expressions) we
+	 * just compare pointer values a->val and b->val.  The resulting order,
+	 * though arbitrary, is consistent.
+	 */
+	if ( !equal(a->startOffset, b->startOffset) )
+	{
+		if ( ((void *)a->startOffset) < ((void *)b->startOffset) )
+			return -1;
+		else
+			return 1;
+	}
+	if ( !equal(a->endOffset, b->endOffset) )
+	{
+		if ( ((void *)a->endOffset) < ((void *)b->endOffset) )
+			return -1;
+		else
+			return 1;
+	}
+
+	return 0;
 }
 
 static int compare_order(List *a, List* b)
@@ -1149,52 +1185,6 @@ static int compare_order(List *a, List* b)
 		return 1;
 	return 0;
 }
-
-static int compare_frame(WindowFrame *a, WindowFrame *b)
-{
-	int n;
-	
-	if ( a == b )
-		return 0;
-	else if ( a == NULL )
-		return -1;
-	else if ( b == NULL )
-		return 1;
-	
-	if ( a->is_rows && ! b->is_rows )
-		return -1;
-	else if ( b->is_rows && ! a->is_rows )
-		return 1;
-	
-	n = compare_edge(a->trail, b->trail);
-	if ( n != 0 )
-		return n;
-		
-	n = compare_edge(a->lead, b->lead);
-	if ( n != 0 )
-		return n;
-	
-	return 0;
-}
-
-static int compare_edge(WindowFrameEdge *a, WindowFrameEdge *b)
-{
-	if ( a->kind < b->kind )
-		return -1;
-	else if ( a->kind > b->kind )
-		return 1;
-	else if ( equal(a->val, b->val) )
-		return 0;
-	/* When the bounds aren't equal (since they may be expressions) we
-	 * just compare pointer values a->val and b->val.  The resulting order,
-	 * though arbitrary, is consistent.
-	 */
-	else if ( ((void*)a->val) < ((void*)b->val) )
-		return -1;
-
-	return 1;
-}
-
 
 /*---------------
  * make_lower_targetlist
@@ -1253,14 +1243,11 @@ make_lower_targetlist(Query *parse,
 	 */
 	for ( i = 0; i < context->nspecinfos; i++ )
 	{
-		WindowFrame *f = context->specinfos[i].frame;
-		if ( f == NULL )
-			continue;
-			
 		extravars = list_concat(extravars,
-								pull_var_clause(f->trail->val, false));
+								pull_var_clause(context->specinfos[i].startOffset, false));
+
 		extravars = list_concat(extravars,
-								pull_var_clause(f->lead->val, false));
+								pull_var_clause(context->specinfos[i].endOffset, false));
 	}
 	lower_tlist = add_to_flat_tlist(lower_tlist, extravars, false /* resjunk */);
 	list_free(extravars);
@@ -1409,7 +1396,7 @@ set_window_keys(WindowContext *context, int wind_index)
 		
 		if ( keylen == 0 )
 		{
-			if ( sinfo->frame != NULL )
+			if ( sinfo->frameOptions != FRAMEOPTION_DEFAULTS )
 			{
 				ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
@@ -1457,8 +1444,10 @@ set_window_keys(WindowContext *context, int wind_index)
 			wkey->sortOperators[0] = sc->sortop;
 			wkey->nullsFirst[0] = sc->nulls_first;
 		}
-		
-		wkey->frame = copyObject(sinfo->frame);
+
+		wkey->frameOptions = sinfo->frameOptions;
+		wkey->startOffset = copyObject(sinfo->startOffset);
+		wkey->endOffset = copyObject(sinfo->endOffset);
 		sinfo->keylevel = list_length(window_keys); /* WindowKey position. */
 		window_keys = lappend(window_keys,  wkey);
 	}
@@ -3700,9 +3689,13 @@ static Node * translate_upper_vars_sequential_mutator(Node *node, xuv_context *c
 			memcpy(newkey->nullsFirst, key->nullsFirst, sz);
 		}
 		
-		newkey->frame = (WindowFrame*)expression_tree_mutator(
-										(Node*)key->frame, 
-										translate_upper_vars_sequential_mutator, 
+		newkey->startOffset = expression_tree_mutator(
+										(Node*) key->startOffset,
+										translate_upper_vars_sequential_mutator,
+										(void*) ctxt);
+		newkey->endOffset = expression_tree_mutator(
+										(Node*) key->endOffset,
+										translate_upper_vars_sequential_mutator,
 										(void*) ctxt);
 		
 		ctxt->is_top_level = true;
@@ -4033,10 +4026,9 @@ Query *copy_common_subquery(Query *original, List *targetList)
 /*
  * a helper function for lead and lag to make frame.
  */
-static WindowFrame *
-lead_lag_frame_maker(WindowRef *wref, char winkind)
+static void
+lead_lag_frame_maker(WindowRef *wref, char winkind, SpecInfo *sinfo)
 {
-	WindowFrame *frame = makeNode(WindowFrame);
 	Node	   *offset;
 
 	if (list_length(wref->args) > 1)
@@ -4055,20 +4047,16 @@ lead_lag_frame_maker(WindowRef *wref, char winkind)
 									true);
 	}
 
-	frame->is_between = true;
-	frame->is_rows = true;
-	frame->trail = makeNode(WindowFrameEdge);
-	frame->lead = makeNode(WindowFrameEdge);
-
+	sinfo->frameOptions = FRAMEOPTION_NONDEFAULT | FRAMEOPTION_BETWEEN | FRAMEOPTION_ROWS;
 	switch (winkind)
 	{
 		case WINKIND_LAG:
-			frame->trail->kind = frame->lead->kind =
-				WINDOW_BOUND_PRECEDING;
+			sinfo->frameOptions |= FRAMEOPTION_START_VALUE_PRECEDING;
+			sinfo->frameOptions |= FRAMEOPTION_END_VALUE_PRECEDING;
 			break;
 		case WINKIND_LEAD:
-			frame->trail->kind = frame->lead->kind =
-				WINDOW_BOUND_FOLLOWING;
+			sinfo->frameOptions |= FRAMEOPTION_START_VALUE_FOLLOWING;
+			sinfo->frameOptions |= FRAMEOPTION_END_VALUE_FOLLOWING;
 			break;
 		default:
 			elog(ERROR, "internal window framing error");
@@ -4109,7 +4097,5 @@ lead_lag_frame_maker(WindowRef *wref, char winkind)
 		}
 	}
 
-	frame->trail->val = frame->lead->val = offset;
-
-	return frame;
+	sinfo->startOffset = sinfo->endOffset = offset;
 }

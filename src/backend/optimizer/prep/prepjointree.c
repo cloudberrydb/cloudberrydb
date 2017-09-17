@@ -561,21 +561,16 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
 		{
 			WindowClause *wc = (WindowClause *) lfirst(cell);
 
-			if (wc->frame)
-			{
-				WindowFrame *frame = wc->frame;
-				
-				if (frame->trail)
-					frame->trail->val = 
-						ResolveNew((Node *)frame->trail->val,
-								   varno, 0, rte,
-								   subtlist, CMD_SELECT, 0);
-				if (frame->lead)
-					frame->lead->val =
-						ResolveNew((Node *)frame->lead->val,
-								   varno, 0, rte,
-								   subtlist, CMD_SELECT, 0);
-			}
+			if (wc->startOffset)
+				wc->startOffset =
+					ResolveNew((Node *) wc->startOffset,
+							   varno, 0, rte,
+							   subtlist, CMD_SELECT, 0);
+			if (wc->endOffset)
+				wc->endOffset =
+					ResolveNew((Node *) wc->endOffset,
+							   varno, 0, rte,
+							   subtlist, CMD_SELECT, 0);
 		}
 	}
 

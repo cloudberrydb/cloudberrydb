@@ -1497,10 +1497,12 @@ CTranslatorQueryToDXL::Pdrgpdxlws
 			pdrgpdxlnSortCol->Release();
 		}
 
-		if (NULL != pwc->frame)
-		{
-			pdxlwf = m_psctranslator->Pdxlwf((Expr *) pwc->frame, m_pmapvarcolid, pdxlnScPrL, &m_fHasDistributedTables);
-		}
+		pdxlwf = m_psctranslator->Pdxlwf(pwc->frameOptions,
+						 pwc->startOffset,
+						 pwc->endOffset,
+						 m_pmapvarcolid,
+						 pdxlnScPrL,
+						 &m_fHasDistributedTables);
 
 		CDXLWindowSpec *pdxlws = GPOS_NEW(m_pmp) CDXLWindowSpec(m_pmp, pdrgppulPartCol, pmdname, pdxlnSortColList, pdxlwf);
 		pdrgpdxlws->Append(pdxlws);

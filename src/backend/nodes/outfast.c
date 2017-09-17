@@ -445,7 +445,9 @@ _outWindowKey(StringInfo str, WindowKey *node)
 
 	WRITE_INT_ARRAY(sortColIdx, node->numSortCols, AttrNumber);
 	WRITE_OID_ARRAY(sortOperators, node->numSortCols);
-	WRITE_NODE_FIELD(frame);
+	WRITE_INT_FIELD(frameOptions);
+	WRITE_NODE_FIELD(startOffset);
+	WRITE_NODE_FIELD(endOffset);
 }
 
 
@@ -1855,12 +1857,6 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_GroupId:
 				_outGroupId(str, obj);
-				break;
-			case T_WindowFrame:
-				_outWindowFrame(str, obj);
-				break;
-			case T_WindowFrameEdge:
-				_outWindowFrameEdge(str, obj);
 				break;
 			case T_PercentileExpr:
 				_outPercentileExpr(str, obj);

@@ -271,9 +271,6 @@ namespace gpdxl
 				const CMappingVarColId* pmapvarcolid
 				);
 
-			// return the window frame boundary
-			EdxlFrameBoundary Edxlfb(WindowBoundingKind kind, Node *pnode) const;
-
 			// create a DXL scalar Windowref node from a GPDB expression
 			CDXLNode *PdxlnScWindowref
 				(
@@ -414,7 +411,9 @@ namespace gpdxl
 			// create a DXL WindowFrame node from a GPDB expression
 			CDXLWindowFrame *Pdxlwf
 				(
-				const Expr *pexpr,
+				int frameOptions,
+				const Node *startOffset,
+				const Node *endOffset,
 				const CMappingVarColId* pmapvarcolid,
 				CDXLNode *pdxlnNewChildScPrL,
 				BOOL *pfHasDistributedTables = NULL

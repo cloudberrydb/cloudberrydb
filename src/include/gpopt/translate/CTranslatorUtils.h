@@ -216,10 +216,6 @@ namespace gpdxl
 			static
 			EdxlSetOpType Edxlsetop(SetOperation setop, BOOL fAll);
 
-			// return the GPDB frame boundary kind from its corresponding DXL representation
-			static
-			WindowBoundingKind Windowboundkind(EdxlFrameBoundary edxlfb);
-
 			// construct a dynamic array of sets of column attnos corresponding
 			// to the group by clause
 			static

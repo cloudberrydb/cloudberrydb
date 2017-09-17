@@ -1970,7 +1970,9 @@ _readWindowKey(void)
 	READ_INT_FIELD(numSortCols);
 	READ_INT_ARRAY(sortColIdx, local_node->numSortCols, AttrNumber);
 	READ_OID_ARRAY(sortOperators, local_node->numSortCols);
-	READ_NODE_FIELD(frame);
+	READ_INT_FIELD(frameOptions);
+	READ_NODE_FIELD(startOffset);
+	READ_NODE_FIELD(endOffset);
 
 	READ_DONE();
 }
@@ -3298,12 +3300,6 @@ readNodeBinary(void)
 				break;
 			case T_GroupId:
 				return_value = _readGroupId();
-				break;
-			case T_WindowFrame:
-				return_value = _readWindowFrame();
-				break;
-			case T_WindowFrameEdge:
-				return_value = _readWindowFrameEdge();
 				break;
 			case T_PercentileExpr:
 				return_value = _readPercentileExpr();
