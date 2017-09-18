@@ -1394,6 +1394,9 @@ CTranslatorScalarToDXL::Pdxlwf
 		edxlfbLead = EdxlfbBoundedFollowing;
 	else if ((frameOptions & FRAMEOPTION_END_UNBOUNDED_FOLLOWING) != 0)
 		edxlfbLead = EdxlfbUnboundedFollowing;
+	else
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiPlStmt2DXLConversion,
+			   GPOS_WSZ_LIT("Unrecognized window frame option"));
 
 	EdxlFrameBoundary edxlfbTrail;
 	if ((frameOptions & FRAMEOPTION_START_UNBOUNDED_PRECEDING) != 0)
@@ -1406,6 +1409,9 @@ CTranslatorScalarToDXL::Pdxlwf
 		edxlfbTrail = EdxlfbBoundedFollowing;
 	else if ((frameOptions & FRAMEOPTION_START_UNBOUNDED_FOLLOWING) != 0)
 		edxlfbTrail = EdxlfbUnboundedFollowing;
+	else
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiPlStmt2DXLConversion,
+			   GPOS_WSZ_LIT("Unrecognized window frame option"));
 
 	// We don't support non-default EXCLUDE [CURRENT ROW | GROUP | TIES |
 	// NO OTHERS] options.
