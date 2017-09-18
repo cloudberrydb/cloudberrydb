@@ -216,6 +216,7 @@ static int ResGroupSlotAcquire(void);
 static void addTotalQueueDuration(ResGroupData *group);
 static void ResGroupSlotRelease(void);
 static void ResGroupSetMemorySpillRatio(const ResGroupCaps *caps);
+static char* DumpResGroupMemUsage(ResGroupData *group);
 
 /*
  * Estimate size the resource group structures will need in
@@ -640,7 +641,7 @@ ResGroupGetStat(Oid groupId, ResGroupStatType type)
 			result = IntervalPGetDatum(&group->totalQueuedTime);
 			break;
 		case RES_GROUP_STAT_MEM_USAGE:
-			result = Int32GetDatum(VmemTracker_ConvertVmemChunksToMB(group->memUsage));
+			result = CStringGetDatum(DumpResGroupMemUsage(group));
 			break;
 		default:
 			ereport(ERROR,
@@ -651,6 +652,46 @@ ResGroupGetStat(Oid groupId, ResGroupStatType type)
 	LWLockRelease(ResGroupLock);
 
 	return result;
+}
+
+static char*
+DumpResGroupMemUsage(ResGroupData *group)
+{
+	int32 slotUsage;
+	StringInfoData memUsage;
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+		slotUsage = group->memQuotaUsed;
+	else
+		/* slotUsage has no meaning in QE */
+		slotUsage = -1;	
+
+	initStringInfo(&memUsage);
+
+	appendStringInfo(&memUsage, "{");
+	appendStringInfo(&memUsage, "\"used\":%d, ",
+					 group->memUsage);
+	appendStringInfo(&memUsage, "\"available\":%d, ",
+					 group->memQuotaGranted + group->memSharedGranted - group->memUsage);
+	appendStringInfo(&memUsage, "\"quota_used\":%d, ",
+					 slotUsage);
+	appendStringInfo(&memUsage, "\"quota_available\":%d, ",
+					 group->memQuotaGranted - group->memQuotaUsed);
+	appendStringInfo(&memUsage, "\"quota_granted\":%d, ",
+					 group->memQuotaGranted);
+	appendStringInfo(&memUsage, "\"quota_proposed\":%d, ",
+					 groupGetMemQuotaExpected(&group->caps));
+	appendStringInfo(&memUsage, "\"shared_used\":%d, ",
+					 group->memSharedUsage);
+	appendStringInfo(&memUsage, "\"shared_available\":%d, ",
+					 group->memSharedGranted - group->memSharedUsage);
+	appendStringInfo(&memUsage, "\"shared_granted\":%d, ",
+					 group->memSharedGranted);
+	appendStringInfo(&memUsage, "\"shared_proposed\":%d",
+					 groupGetMemSharedExpected(&group->caps));
+	appendStringInfo(&memUsage, "}");
+
+	return memUsage.data;
 }
 
 /*

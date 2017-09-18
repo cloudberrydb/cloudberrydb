@@ -244,7 +244,7 @@ with t_1 as
 (
 	select rsgname, row_to_json(json_each(memory_usage::json)) as j from gp_toolkit.gp_resgroup_status where rsgname like 'rg_test_g%' order by rsgname
 )
-select rsgname, sum((j->'value')::text::int) from t_1 group by rsgname ;
+select rsgname, sum(((j->'value')->>'used')::int) from t_1 group by rsgname ;
 
 -- start_ignore
 drop table rg_test_foo;

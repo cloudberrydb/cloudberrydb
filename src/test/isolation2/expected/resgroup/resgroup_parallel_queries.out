@@ -518,7 +518,7 @@ t
 (6 rows)
 
 -- After all queries finished in each resource group, the memory_usage should be zero, no memory leak
-with t_1 as ( select rsgname, row_to_json(json_each(memory_usage::json)) as j from gp_toolkit.gp_resgroup_status where rsgname like 'rg_test_g%' order by rsgname ) select rsgname, sum((j->'value')::text::int) from t_1 group by rsgname ;
+with t_1 as ( select rsgname, row_to_json(json_each(memory_usage::json)) as j from gp_toolkit.gp_resgroup_status where rsgname like 'rg_test_g%' order by rsgname ) select rsgname, sum(((j->'value')->>'used')::int) from t_1 group by rsgname ;
 rsgname   |sum
 ----------+---
 rg_test_g1|0  
