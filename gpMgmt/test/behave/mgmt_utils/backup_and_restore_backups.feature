@@ -22,6 +22,16 @@ Feature: Validate command line arguments
         Then gpcrondump should return a return code of 0
         And "public.ao_table" is marked as dirty in dirty_list file
 
+    @nbuonly
+    @nbupartI
+    @nbupartII
+    @nbupartIII
+    Scenario: NetBackup dummy to absorb flakiness
+        Given the backup test is initialized with database "bkdb_nbu"
+        And there is a "ao" table "public.ao_table" in "bkdb_nbu" with data
+        When the user runs "gpcrondump -a -x bkdb_nbu"
+        #We don't care what happens because we expect it to fail
+
     @nbupartI
     @ddpartI
     Scenario: 2 Simple Incremental Backup
