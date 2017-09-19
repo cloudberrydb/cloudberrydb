@@ -707,10 +707,41 @@ remove_segment_config(int16 dbid)
 	heap_close(rel, NoLock);
 }
 
+static void
+add_segment(seginfo new_segment_information, ArrayType *file_space_map)
+{
+	int16		primary_dbid = new_segment_information.db.dbid;
+
+	if (new_segment_information.db.role == GP_SEGMENT_CONFIGURATION_ROLE_MIRROR)
+	{
+		primary_dbid = contentid_get_dbid(new_segment_information.db.segindex, SEGMENT_ROLE_PRIMARY, false /* false == current, not preferred, role */);
+		if (!primary_dbid)
+			elog(ERROR, "contentid %i does not point to an existing segment",
+				 new_segment_information.db.segindex);
+
+		/* no mirrors should be defined */
+		if (segment_has_mirror(new_segment_information.db.segindex))
+			elog(ERROR, "segment already has a mirror defined");
+
+		/* figure out if the preferred role of this mirror needs to be primary or mirror (no preferred primary -- make this
+		 *   one the preferred primary) */
+		int preferredPrimaryDbId = contentid_get_dbid(new_segment_information.db.segindex, SEGMENT_ROLE_PRIMARY, true /* preferred role */);
+
+		if (preferredPrimaryDbId == 0 && new_segment_information.db.preferred_role == GP_SEGMENT_CONFIGURATION_ROLE_MIRROR)
+		{
+			elog(NOTICE, "override preferred_role of this mirror as primary to support rebalance operation.");
+			new_segment_information.db.preferred_role = GP_SEGMENT_CONFIGURATION_ROLE_PRIMARY;
+		}
+	}
+
+	add_segment_config_entry(primary_dbid,
+							 &new_segment_information, file_space_map);
+}
+
 /*
- * Tell the master about a new segment.
+ * Tell the master about a new primary segment.
  *
- * gp_add_segment(hostname, address, port,
+ * gp_add_segment_primary(hostname, address, port,
  *				  filespace_map)
  *
  * Args:
@@ -722,56 +753,109 @@ remove_segment_config(int16 dbid)
  * Returns the dbid of the new segment.
  */
 Datum
-gp_add_segment(PG_FUNCTION_ARGS)
+gp_add_segment_primary(PG_FUNCTION_ARGS)
 {
-	Relation rel;
 	seginfo new;
-	char *hostname;
-	char *address;
-	int32 port;
 	ArrayType *fsmap;
 
-	if (PG_ARGISNULL(0))
+	MemSet(&new, 0, sizeof(seginfo));
+
+    if (PG_ARGISNULL(0))
 		elog(ERROR, "hostname cannot be NULL");
-	hostname = TextDatumGetCString(PG_GETARG_DATUM(0));
+	new.db.hostname = TextDatumGetCString(PG_GETARG_DATUM(0));
 
 	if (PG_ARGISNULL(1))
 		elog(ERROR, "address cannot be NULL");
-	address = TextDatumGetCString(PG_GETARG_DATUM(1));
+	new.db.address = TextDatumGetCString(PG_GETARG_DATUM(1));
 
 	if (PG_ARGISNULL(2))
 		elog(ERROR, "port cannot be NULL");
-	port = PG_GETARG_INT32(2);
+	new.db.port = PG_GETARG_INT32(2);
 
 	if (PG_ARGISNULL(3))
 		elog(ERROR, "filespace_map cannot be NULL");
 	fsmap = PG_GETARG_ARRAYTYPE_P(3);
 
-	mirroring_sanity_check(MASTER_ONLY | SUPERUSER, "gp_add_segment");
-
-	/* avoid races */
-	rel = heap_open(GpSegmentConfigRelationId, AccessExclusiveLock);
-
-	MemSet(&new, 0, sizeof(seginfo));
+	mirroring_sanity_check(MASTER_ONLY | SUPERUSER, "gp_add_segment_primary");
 
 	new.db.segindex = get_maxcontentid() + 1;
 	new.db.dbid = get_availableDbId();
-	new.db.hostname = hostname;
-	new.db.address = address;
-	new.db.port = port;
-	new.db.filerep_port = -1;
-	new.db.mode = GP_SEGMENT_CONFIGURATION_MODE_INSYNC;
-	new.db.status = GP_SEGMENT_CONFIGURATION_STATUS_UP;
 	new.db.role = SEGMENT_ROLE_PRIMARY;
 	new.db.preferred_role = SEGMENT_ROLE_PRIMARY;
+	new.db.mode = GP_SEGMENT_CONFIGURATION_MODE_INSYNC;
+	new.db.status = GP_SEGMENT_CONFIGURATION_STATUS_UP;
+	new.db.filerep_port = -1;
 
-	add_segment_config_entry(new.db.dbid, &new, fsmap);
-
-	heap_close(rel, NoLock);
+	add_segment(new, fsmap);
 
 	PG_RETURN_INT16(new.db.dbid);
+}
 
-	PG_RETURN_INT16(0);
+/*
+ * Currently this is called by `gpinitsystem`.
+ *
+ * This method shouldn't be called at all. `gp_add_segment_primary()` and
+ * `gp_add_segment_mirror()` should be used instead. This is to avoid setting
+ * character values of role, preferred_role, mode, status, etc. outside database.
+ */
+Datum
+gp_add_segment(PG_FUNCTION_ARGS)
+{
+	seginfo new;
+	ArrayType *fsmap;
+
+	MemSet(&new, 0, sizeof(seginfo));
+
+	if (PG_ARGISNULL(0))
+		elog(ERROR, "dbid cannot be NULL");
+	new.db.dbid = PG_GETARG_INT16(0);
+
+	if (PG_ARGISNULL(1))
+		elog(ERROR, "content cannot be NULL");
+	new.db.segindex = PG_GETARG_INT16(1);
+
+	if (PG_ARGISNULL(2))
+		elog(ERROR, "role cannot be NULL");
+	new.db.role = PG_GETARG_CHAR(2);
+
+	if (PG_ARGISNULL(3))
+		elog(ERROR, "preferred_role cannot be NULL");
+	new.db.preferred_role = PG_GETARG_CHAR(3);
+
+	if (PG_ARGISNULL(4))
+		elog(ERROR, "mode cannot be NULL");
+	new.db.mode = PG_GETARG_CHAR(4);
+
+	if (PG_ARGISNULL(5))
+		elog(ERROR, "status cannot be NULL");
+	new.db.status = PG_GETARG_CHAR(5);
+
+	if (PG_ARGISNULL(6))
+		elog(ERROR, "port cannot be NULL");
+	new.db.port = PG_GETARG_INT32(6);
+
+	if (PG_ARGISNULL(7))
+		elog(ERROR, "hostname cannot be NULL");
+	new.db.hostname = TextDatumGetCString(PG_GETARG_DATUM(7));
+
+	if (PG_ARGISNULL(8))
+		elog(ERROR, "address cannot be NULL");
+	new.db.address = TextDatumGetCString(PG_GETARG_DATUM(8));
+
+	if (PG_ARGISNULL(9))
+		new.db.filerep_port = -1;
+	else
+		new.db.filerep_port = PG_GETARG_INT32(9);
+
+	if (PG_ARGISNULL(10))
+		elog(ERROR, "filespace_map cannot be NULL");
+	fsmap = PG_GETARG_ARRAYTYPE_P(10);
+
+	mirroring_sanity_check(MASTER_ONLY | SUPERUSER, "gp_add_segment");
+
+	add_segment(new, fsmap);
+
+	PG_RETURN_INT16(new.db.dbid);
 }
 
 /*
@@ -827,35 +911,28 @@ gp_remove_segment(PG_FUNCTION_ARGS)
 Datum
 gp_add_segment_mirror(PG_FUNCTION_ARGS)
 {
-	Relation rel;
-	int16 contentid;
 	seginfo new;
-	char *hostname;
-	char *address;
-	int32 port;
-	int32 rep_port;
 	ArrayType *fsmap;
-	int16 pridbid;
 
 	if (PG_ARGISNULL(0))
 		elog(ERROR, "contentid cannot be NULL");
-	contentid = PG_GETARG_INT16(0);
+	new.db.segindex = PG_GETARG_INT16(0);
 
 	if (PG_ARGISNULL(1))
 		elog(ERROR, "hostname cannot be NULL");
-	hostname = TextDatumGetCString(PG_GETARG_DATUM(1));
+	new.db.hostname = TextDatumGetCString(PG_GETARG_DATUM(1));
 
 	if (PG_ARGISNULL(2))
 		elog(ERROR, "address cannot be NULL");
-	address = TextDatumGetCString(PG_GETARG_DATUM(2));
+	new.db.address = TextDatumGetCString(PG_GETARG_DATUM(2));
 
 	if (PG_ARGISNULL(3))
 		elog(ERROR, "port cannot be NULL");
-	port = PG_GETARG_INT32(3);
+	new.db.port = PG_GETARG_INT32(3);
 
 	if (PG_ARGISNULL(4))
 		elog(ERROR, "replication_port cannot be NULL");
-	rep_port = PG_GETARG_INT32(4);
+	new.db.filerep_port = PG_GETARG_INT32(4);
 
 	if (PG_ARGISNULL(5))
 		elog(ERROR, "filespace_map cannot be NULL");
@@ -863,36 +940,13 @@ gp_add_segment_mirror(PG_FUNCTION_ARGS)
 
 	mirroring_sanity_check(MASTER_ONLY | SUPERUSER, "gp_add_segment_mirror");
 
-	/* avoid races */
-	rel = heap_open(GpSegmentConfigRelationId, AccessExclusiveLock);
-
-	pridbid = contentid_get_dbid(contentid, SEGMENT_ROLE_PRIMARY, false /* false == current, not preferred, role */);
-	if (!pridbid)
-		elog(ERROR, "contentid %i does not point to an existing segment",
-			 contentid);
-
-	/* no mirrors should be defined */
-	if (segment_has_mirror(contentid))
-		elog(ERROR, "segment already has a mirror defined");
-
-    /* figure out if the preferred role of this mirror needs to be primary or mirror (no preferred primary -- make this
-     *   one the preferred primary) */
-    int preferredPrimaryDbId = contentid_get_dbid(contentid, SEGMENT_ROLE_PRIMARY, true /* preferred role */);
-
-	new.db.segindex = contentid;
 	new.db.dbid = get_availableDbId();
-	new.db.hostname = hostname;
-	new.db.address = address;
-	new.db.port = port;
-	new.db.filerep_port = rep_port;
 	new.db.mode = GP_SEGMENT_CONFIGURATION_MODE_INSYNC;
 	new.db.status = GP_SEGMENT_CONFIGURATION_STATUS_UP;
 	new.db.role = SEGMENT_ROLE_MIRROR;
-	new.db.preferred_role = preferredPrimaryDbId == 0 ? SEGMENT_ROLE_PRIMARY : SEGMENT_ROLE_MIRROR;
+	new.db.preferred_role = SEGMENT_ROLE_MIRROR;
 
-	add_segment_config_entry(pridbid, &new, fsmap);
-
-	heap_close(rel, NoLock);
+	add_segment(new, fsmap);
 
 	PG_RETURN_INT16(new.db.dbid);
 }
