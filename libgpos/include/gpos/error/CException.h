@@ -174,7 +174,7 @@ namespace gpos
 
 			// internal raise API
 			static
-			void Raise(CException exc);
+			void Raise(CException exc) __attribute__((__noreturn__));
 
 			// get sql error code for given exception
 			static
@@ -281,15 +281,15 @@ namespace gpos
 
 			// wrapper around throw
 			static 
-			void Raise(const CHAR *szFilename, ULONG ulLine, ULONG ulMajor, ULONG ulMinor,...);
+			void Raise(const CHAR *szFilename, ULONG ulLine, ULONG ulMajor, ULONG ulMinor,...) __attribute__((__noreturn__));
 
 			// wrapper around throw with severity level
 			static
-			void Raise(const CHAR *szFilename, ULONG ulLine, ULONG ulMajor, ULONG ulMinor, ULONG ulSeverityLevel, ...);
+			void Raise(const CHAR *szFilename, ULONG ulLine, ULONG ulMajor, ULONG ulMinor, ULONG ulSeverityLevel, ...) __attribute__((__noreturn__));
 
 			// rethrow wrapper
 			static
-			void Reraise(CException exc, BOOL fPropagate = false);
+			void Reraise(CException exc, BOOL fPropagate = false) __attribute__((__noreturn__));
 
 			// invalid exception
 			static
