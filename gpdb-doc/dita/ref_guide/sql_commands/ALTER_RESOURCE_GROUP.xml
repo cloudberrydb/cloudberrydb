@@ -13,7 +13,8 @@
       <codeblock>CONCURRENCY <varname>integer</varname>
 CPU_RATE_LIMIT <varname>integer</varname>
 MEMORY_LIMIT <varname>integer</varname>
-MEMORY_SHARED_QUOTA <varname>integer</varname></codeblock>
+MEMORY_SHARED_QUOTA <varname>integer</varname>
+MEMORY_SPILL_RATIO <varname>integer</varname></codeblock>
     </section>
     <section id="section3">
       <title>Description</title>
@@ -63,7 +64,15 @@ MEMORY_SHARED_QUOTA <varname>integer</varname></codeblock>
           <pt>MEMORY_SHARED_QUOTA <varname>integer</varname></pt>
           <pd>The percentage of memory resources to share among transactions in
             the resource group. The minimum memory shared quota percentage for a
-            resource group is 0.  The maximum is 100.</pd>
+            resource group is 0. The maximum is 100. The default
+            <codeph>MEMORY_SHARED_QUOTA</codeph> value is 20.</pd>
+        </plentry>
+        <plentry>
+          <pt>MEMORY_SPILL_RATIO <varname>integer</varname></pt>
+          <pd>The memory usage threshold for memory-intensive operators in a transaction
+            issued in the resource group. The minimum memory spill ratio percentage for a
+            resource group is 1. The maximum is 100. The default
+            <codeph>MEMORY_SPILL_RATIO</codeph> value is 20.</pd>
         </plentry>
       </parml>
     </section>
@@ -80,6 +89,10 @@ MEMORY_SHARED_QUOTA <varname>integer</varname></codeblock>
       <codeblock>ALTER RESOURCE GROUP rgroup1 SET CONCURRENCY 13;</codeblock>
       <p>Update the CPU limit for a resource group: </p>
       <codeblock>ALTER RESOURCE GROUP rgroup2 SET CPU_RATE_LIMIT 45;</codeblock>
+      <p>Update the memory limit for a resource group: </p>
+      <codeblock>ALTER RESOURCE GROUP rgroup3 SET MEMORY_LIMIT 30;</codeblock>
+      <p>Increase the memory spill ratio for a resource group from the default: </p>
+      <codeblock>ALTER RESOURCE GROUP rgroup4 SET MEMORY_SPILL_RATIO 25;</codeblock>
     </section>
     <section id="section7">
       <title>Compatibility</title>
