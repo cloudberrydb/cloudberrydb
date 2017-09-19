@@ -760,8 +760,8 @@ gp_add_segment(PG_FUNCTION_ARGS)
 	new.db.address = address;
 	new.db.port = port;
 	new.db.filerep_port = -1;
-	new.db.mode = 's';
-	new.db.status = 'u';
+	new.db.mode = GP_SEGMENT_CONFIGURATION_MODE_INSYNC;
+	new.db.status = GP_SEGMENT_CONFIGURATION_STATUS_UP;
 	new.db.role = SEGMENT_ROLE_PRIMARY;
 	new.db.preferred_role = SEGMENT_ROLE_PRIMARY;
 
@@ -885,8 +885,8 @@ gp_add_segment_mirror(PG_FUNCTION_ARGS)
 	new.db.address = address;
 	new.db.port = port;
 	new.db.filerep_port = rep_port;
-	new.db.mode = 's';
-	new.db.status = 'u';
+	new.db.mode = GP_SEGMENT_CONFIGURATION_MODE_INSYNC;
+	new.db.status = GP_SEGMENT_CONFIGURATION_STATUS_UP;
 	new.db.role = SEGMENT_ROLE_MIRROR;
 	new.db.preferred_role = preferredPrimaryDbId == 0 ? SEGMENT_ROLE_PRIMARY : SEGMENT_ROLE_MIRROR;
 
@@ -999,7 +999,7 @@ gp_add_master_standby(PG_FUNCTION_ARGS)
 
 	/*
 	 * Don't reference GpIdentity.dbid, as it is legitimate to set -1
-	 * for -b option in utility mode.  Content ID = -1 AND role = 'p' is
+	 * for -b option in utility mode.  Content ID = -1 AND role = GP_SEGMENT_CONFIGURATION_ROLE_PRIMARY is
 	 * the definition of primary master.
 	 */
 	master_dbid = contentid_get_dbid(MASTER_CONTENT_ID,
@@ -1010,8 +1010,8 @@ gp_add_master_standby(PG_FUNCTION_ARGS)
 	new.db.dbid = maxdbid + 1;
 	new.db.role = SEGMENT_ROLE_MIRROR;
 	new.db.preferred_role = SEGMENT_ROLE_MIRROR;
-	new.db.mode = 's';
-	new.db.status = 'u';
+	new.db.mode = GP_SEGMENT_CONFIGURATION_MODE_INSYNC;
+	new.db.status = GP_SEGMENT_CONFIGURATION_STATUS_UP;
 
 	new.db.hostname = DatumGetCString(DirectFunctionCall1(textout,
 									  PointerGetDatum(PG_GETARG_TEXT_P(0))));
