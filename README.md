@@ -39,23 +39,26 @@ GPORCA uses the following library:
 [GP-XERCES is available here](https://github.com/greenplum-db/gp-xerces). The GP-XERCES README
 gives instructions for building and installing.
 
-## Build GPORCA
+## Build and install GPORCA
+
+ORCA is built with [CMake](https://cmake.org), so any build system supported by
+CMake can be used. The team uses [Ninja](https://ninja-build.org) because it's
+really really fast and convenient.
 
 Go into `gporca` directory:
 
 ```
 mkdir build
 cd build
-cmake ../
-make
-sudo make install
+cmake -GNinja ../
+ninja install
 ```
 
 <a name="test"></a>
 ## Test GPORCA
 
 To run all GPORCA tests, simply use the `ctest` command from the build directory
-after `make` finishes.
+after build finishes.
 
 ```
 ctest
@@ -169,17 +172,17 @@ Here are few build flavors:
 
 ```
 # debug build
-cmake -D CMAKE_BUILD_TYPE=DEBUG ../
+cmake -GNinja -D CMAKE_BUILD_TYPE=DEBUG ../
 ```
 
 ```
 # release build with debug info
-cmake -D CMAKE_BUILD_TYPE=RelWithDebInfo ../
+cmake -GNinja -D CMAKE_BUILD_TYPE=RelWithDebInfo ../
 ```
 
 ```
 # release build
-cmake -D CMAKE_BUILD_TYPE=RELEASE ../
+cmake -GNinja -D CMAKE_BUILD_TYPE=RELEASE ../
 ```
 
 ## Explicitly Specifying GP-Xerces For Build
@@ -200,7 +203,7 @@ However, to use the current build scripts in GPDB, Xerces with the gp_xerces
 patch will need to be placed on the /usr path.
 
 ```
-cmake -D XERCES_INCLUDE_DIR=/opt/gp_xerces/include -D XERCES_LIBRARY=/opt/gp_xerces/lib/libxerces-c.so ..
+cmake -GNinja -D XERCES_INCLUDE_DIR=/opt/gp_xerces/include -D XERCES_LIBRARY=/opt/gp_xerces/lib/libxerces-c.so ..
 ```
 
 Again, on Mac OS X, the library name will end with `.dylib` instead of `.so`.
@@ -233,13 +236,13 @@ Toolchain files for building 32 or 64-bit x86 libraries are located in the cmake
 directory. Here is an example of building for 32-bit x86:
 
 ```
-cmake -D CMAKE_TOOLCHAIN_FILE=../cmake/i386.toolchain.cmake ../
+cmake -GNinja -D CMAKE_TOOLCHAIN_FILE=../cmake/i386.toolchain.cmake ../
 ```
 
 And for 64-bit x86:
 
 ```
-cmake -D CMAKE_TOOLCHAIN_FILE=../cmake/x86_64.toolchain.cmake ../
+cmake -GNinja -D CMAKE_TOOLCHAIN_FILE=../cmake/x86_64.toolchain.cmake ../
 ```
 
 ## How to speed-up the build (or debug it)
@@ -277,7 +280,7 @@ GPORCA has four libraries:
 By default, GPORCA will be installed under /usr/local. You can change this by
 setting CMAKE_INSTALL_PREFIX when running cmake, for example:
 ```
-cmake -D CMAKE_INSTALL_PREFIX=/home/user/gporca ../
+cmake -GNinja -D CMAKE_INSTALL_PREFIX=/home/user/gporca ../
 ```
 
 By default, the header files are located in:
