@@ -114,6 +114,12 @@ jobs:
     file: orca_src/concourse/publish_tag.yml
   - task: check_existing_tag
     file: orca_src/concourse/check_existing_tag.yml
+  - task: upload_orca_source_bintray
+    file: orca_src/concourse/upload_orca_source_bintray.yml
+    params:
+      BINTRAY_USER: {{bintray_user}}
+      BINTRAY_REMOTE: {{bintray_remote}}
+      BINTRAY_USER_KEY: {{bintray_user_key}}
   - put: orca_github_release
     params:
       name: orca_github_release_stage/tag.txt
