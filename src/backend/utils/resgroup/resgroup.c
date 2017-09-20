@@ -216,7 +216,6 @@ static int ResGroupSlotAcquire(void);
 static void addTotalQueueDuration(ResGroupData *group);
 static void ResGroupSlotRelease(void);
 static void ResGroupSetMemorySpillRatio(const ResGroupCaps *caps);
-static void ResGroupCheckMemorySpillRatio(const ResGroupCaps *caps);
 
 /*
  * Estimate size the resource group structures will need in
@@ -972,7 +971,6 @@ ResourceGroupGetQueryMemoryLimit(void)
 	Assert(self->slotId != InvalidSlotId);
 
 	slot = &self->group->slots[self->slotId];
-	ResGroupCheckMemorySpillRatio(&slot->caps);
 
 	if (IsResManagerMemoryPolicyNone())
 		return 0;
@@ -2350,17 +2348,6 @@ ResGroupSetMemorySpillRatio(const ResGroupCaps *caps)
 
 	snprintf(value, sizeof(value), "%d", caps->memSpillRatio.proposed);
 	set_config_option("memory_spill_ratio", value, PGC_USERSET, PGC_S_RESGROUP, GUC_ACTION_SET, true);
-}
-
-static void
-ResGroupCheckMemorySpillRatio(const ResGroupCaps *caps)
-{
-	if (caps->memSharedQuota.proposed + memory_spill_ratio > RESGROUP_MAX_MEMORY_LIMIT)
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-				 errmsg("The sum of memory_shared_quota (%d) and memory_spill_ratio (%d) exceeds %d",
-						caps->memSharedQuota.proposed, memory_spill_ratio,
-						RESGROUP_MAX_MEMORY_LIMIT)));
 }
 
 void

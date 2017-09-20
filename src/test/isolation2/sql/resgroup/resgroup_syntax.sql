@@ -92,12 +92,15 @@ CREATE RESOURCE GROUP rg_test_group WITH (concurrency=-1, cpu_rate_limit=10, mem
 CREATE RESOURCE GROUP rg_test_group WITH (concurrency=0, cpu_rate_limit=10, memory_limit=10);
 CREATE RESOURCE GROUP rg_test_group WITH (concurrency=26, cpu_rate_limit=10, memory_limit=10);
 CREATE RESOURCE GROUP rg_test_group WITH (concurrency=26, cpu_rate_limit=10, memory_limit=10);
--- negative: (memory_shared_quota + memory_spill_ratio) should be in [1, 100]
---           memory_spill_ratio > 0
+
+-- memory_spill_ratio range is [0, 100]
+-- no limit on the sum of memory_shared_quota and memory_spill_ratio
 CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=10, memory_shared_quota=10, memory_spill_ratio=0);
+DROP RESOURCE GROUP rg_test_group;
+CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=10, memory_shared_quota=50, memory_spill_ratio=51);
+DROP RESOURCE GROUP rg_test_group;
 CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=10, memory_shared_quota=10, memory_spill_ratio=-1);
 CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=10, memory_shared_quota=-1, memory_spill_ratio=10);
-CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=10, memory_shared_quota=50, memory_spill_ratio=51);
 
 -- positive: cpu_rate_limit & memory_limit should be in [1, 100]
 CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=60, memory_limit=10);
@@ -125,8 +128,9 @@ CREATE RESOURCE GROUP rg1_test_group WITH (concurrency=1, cpu_rate_limit=30, mem
 CREATE RESOURCE GROUP rg2_test_group WITH (concurrency=1, cpu_rate_limit=30, memory_limit=30);
 DROP RESOURCE GROUP rg1_test_group;
 DROP RESOURCE GROUP rg2_test_group;
--- positive: (memory_shared_quota + memory_spill_ratio) should be in [1, 100]
---           memory_spill_ratio > 0
+
+-- memory_spill_ratio range is [0, 100]
+-- no limit on the sum of memory_shared_quota and memory_spill_ratio
 CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=10, memory_shared_quota=0, memory_spill_ratio=1);
 DROP RESOURCE GROUP rg_test_group;
 CREATE RESOURCE GROUP rg_test_group WITH (cpu_rate_limit=10, memory_limit=10, memory_shared_quota=50, memory_spill_ratio=50);
