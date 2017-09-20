@@ -124,16 +124,10 @@ static const char *assign_password_hash_algorithm(const char *newval,
 static const char *assign_gp_default_storage_options(
 							const char *newval, bool doit, GucSource source);
 
+
 static bool assign_pljava_classpath_insecure(bool newval, bool doit, GucSource source);
 
 extern struct config_generic *find_option(const char *name, bool create_placeholders, int elevel);
-
-static void write_gp_replication_conf_file(int fd, const char *filename, struct name_value_pair *head);
-static void replace_gp_replication_config_value(struct name_value_pair **head_p, struct name_value_pair **tail_p,
-                                    const char *name, const char *value);
-
-static bool validate_gp_replication_conf_option(struct config_generic *record,
-                                    const char *value, int elevel);
 
 extern bool enable_partition_rules;
 
@@ -321,7 +315,9 @@ int			gp_filerep_ct_batch_size;
 
 int			WalSendClientTimeout = 30000;		/* 30 seconds. */
 
+#ifdef USE_SEGWALREP
 char	   *gp_replication_config_filename = NULL;
+#endif
 
 char	   *data_directory;
 
@@ -6181,6 +6177,7 @@ assign_gp_default_storage_options(const char *newval,
 	return doit ? storageOptToString() : newval;
 }
 
+#ifdef USE_SEGWALREP
 bool
 select_gp_replication_config_files(const char *configdir, const char *progname)
 {
@@ -6211,155 +6208,6 @@ select_gp_replication_config_files(const char *configdir, const char *progname)
 
 	gp_replication_config_filename = fname;
 	return true;
-}
-
-/*
- * Set GUC value in GP_REPLICATION_CONFIG_FILENAME.
- *
- * If value is NULL, then this GUC is removed from the configuration.
- *
- * If name exists, its value will be updated.
- * otherwise, the new named GUC will be added.
- */
-void
-set_gp_replication_config(const char *name, const char *value)
-{
-	struct name_value_pair *head = NULL;
-	struct name_value_pair *tail = NULL;
-	volatile int Tmpfd;
-	char GpReplicationConfigTempFilename[MAXPGPATH];
-	char GpReplicationConfigFilename[MAXPGPATH];
-
-	if (!superuser())
-		ereport(ERROR,
-		        (errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				        (errmsg("must be superuser to update %s", gp_replication_config_filename))));
-
-	/*
-	 * GP_REPLICATION_CONFIG_FILENAME and its corresponding temporary file are always in
-	 * the data directory, so we can reference them by simple relative paths.
-	 */
-	snprintf(GpReplicationConfigFilename, sizeof(GpReplicationConfigFilename), "%s",
-	         gp_replication_config_filename);
-	snprintf(GpReplicationConfigTempFilename, sizeof(GpReplicationConfigTempFilename), "%s.%s",
-	         gp_replication_config_filename, "tmp");
-
-	/*
-	 * Only one backend is allowed to operate on GP_REPLICATION_CONFIG_FILENAME at a
-	 * time.  Use GpReplicationConfigFileLock to ensure that.  We must hold the lock while
-	 * reading the old file contents.
-	 */
-	LWLockAcquire(GpReplicationConfigFileLock, LW_EXCLUSIVE);
-
-	struct stat st;
-
-	if (stat(GpReplicationConfigFilename, &st) == 0)
-	{
-		/* open old file PG_AUTOCONF_FILENAME */
-		FILE	   *infile;
-
-		infile = AllocateFile(GpReplicationConfigFilename, "r");
-		if (infile == NULL)
-			ereport(ERROR,
-			        (errcode_for_file_access(),
-					        errmsg("could not open file \"%s\": %m",
-					               GpReplicationConfigFilename)));
-
-		/* parse it */
-		if (!ParseConfigFile(GpReplicationConfigFilename, NULL, 0, PGC_SUSET, LOG, &head, &tail))
-			ereport(ERROR,
-			        (errcode(ERRCODE_CONFIG_FILE_ERROR),
-					        errmsg("could not parse contents of file \"%s\"",
-					               GpReplicationConfigFilename)));
-
-		FreeFile(infile);
-	}
-
-	/*
-	 * If a value is specified, verify that it's sane.
-	 */
-	if (value)
-	{
-		struct config_generic *record;
-
-		record = find_option(name, false, LOG);
-		if (record == NULL)
-			ereport(ERROR,
-			        (errcode(ERRCODE_UNDEFINED_OBJECT),
-					        errmsg("unrecognized configuration parameter \"%s\"", name)));
-
-		/*
-		 * Don't allow the parameters which can't be set in configuration
-		 * files to be set in GP_REPLICATION_CONFIG_FILENAME file.
-		 */
-		if ((record->context == PGC_INTERNAL) ||
-		    (record->flags & GUC_DISALLOW_IN_FILE))
-			ereport(ERROR,
-			        (errcode(ERRCODE_CANT_CHANGE_RUNTIME_PARAM),
-					        errmsg("parameter \"%s\" cannot be changed",
-					               name)));
-
-		if (!validate_gp_replication_conf_option(record, value, ERROR))
-			ereport(ERROR,
-			        (errmsg("invalid value for parameter \"%s\": \"%s\"", name, value)));
-	}
-
-	replace_gp_replication_config_value(&head, &tail, name, value);
-
-	/*
-	 * To ensure crash safety, first write the new file data to a temp file,
-	 * then atomically rename it into place.
-	 *
-	 * If there is a temp file left over due to a previous crash, it's okay to
-	 * truncate and reuse it.
-	 */
-	Tmpfd = BasicOpenFile(GpReplicationConfigTempFilename,
-	                      O_CREAT | O_RDWR | O_TRUNC,
-	                      S_IRUSR | S_IWUSR);
-	if (Tmpfd < 0)
-		ereport(ERROR,
-		        (errcode_for_file_access(),
-				        errmsg("could not open file \"%s\": %m",
-				               GpReplicationConfigTempFilename)));
-
-	/*
-	 * Use a TRY block to clean up the file if we fail.  Since we need a TRY
-	 * block anyway, OK to use BasicOpenFile rather than OpenTransientFile.
-	 */
-	PG_TRY();
-	{
-		/* Write and sync the new contents to the temporary file */
-		write_gp_replication_conf_file(Tmpfd, GpReplicationConfigTempFilename, head);
-
-		/* Close before renaming; may be required on some platforms */
-		close(Tmpfd);
-		Tmpfd = -1;
-
-		/*
-		 * As the rename is atomic operation, if any problem occurs after this
-		 * at worst it can lose the parameters set by last ALTER SYSTEM
-		 * command.
-		 */
-		if (rename(GpReplicationConfigTempFilename, GpReplicationConfigFilename) < 0)
-			ereport(ERROR,
-			        (errcode_for_file_access(),
-					        errmsg("could not rename file \"%s\" to \"%s\": %m",
-					               GpReplicationConfigTempFilename, GpReplicationConfigFilename)));
-	}
-	PG_CATCH();
-	{
-		/* Close file first, else unlink might fail on some platforms */
-		if (Tmpfd >= 0)
-			close(Tmpfd);
-
-		/* Unlink, but ignore any error */
-		(void) unlink(GpReplicationConfigTempFilename);
-
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
-
-	LWLockRelease(GpReplicationConfigFileLock);
 }
 
 /*
@@ -6603,3 +6451,152 @@ validate_gp_replication_conf_option(struct config_generic *record,
 	return true;
 }
 
+/*
+ * Set GUC value in GP_REPLICATION_CONFIG_FILENAME.
+ *
+ * If value is NULL, then this GUC is removed from the configuration.
+ *
+ * If name exists, its value will be updated.
+ * otherwise, the new named GUC will be added.
+ */
+void
+set_gp_replication_config(const char *name, const char *value)
+{
+	struct name_value_pair *head = NULL;
+	struct name_value_pair *tail = NULL;
+	volatile int Tmpfd;
+	char GpReplicationConfigTempFilename[MAXPGPATH];
+	char GpReplicationConfigFilename[MAXPGPATH];
+
+	if (!superuser())
+		ereport(ERROR,
+		        (errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				        (errmsg("must be superuser to update %s", gp_replication_config_filename))));
+
+	/*
+	 * GP_REPLICATION_CONFIG_FILENAME and its corresponding temporary file are always in
+	 * the data directory, so we can reference them by simple relative paths.
+	 */
+	snprintf(GpReplicationConfigFilename, sizeof(GpReplicationConfigFilename), "%s",
+	         gp_replication_config_filename);
+	snprintf(GpReplicationConfigTempFilename, sizeof(GpReplicationConfigTempFilename), "%s.%s",
+	         gp_replication_config_filename, "tmp");
+
+	/*
+	 * Only one backend is allowed to operate on GP_REPLICATION_CONFIG_FILENAME at a
+	 * time.  Use GpReplicationConfigFileLock to ensure that.  We must hold the lock while
+	 * reading the old file contents.
+	 */
+	LWLockAcquire(GpReplicationConfigFileLock, LW_EXCLUSIVE);
+
+	struct stat st;
+
+	if (stat(GpReplicationConfigFilename, &st) == 0)
+	{
+		/* open old file PG_AUTOCONF_FILENAME */
+		FILE	   *infile;
+
+		infile = AllocateFile(GpReplicationConfigFilename, "r");
+		if (infile == NULL)
+			ereport(ERROR,
+			        (errcode_for_file_access(),
+					        errmsg("could not open file \"%s\": %m",
+					               GpReplicationConfigFilename)));
+
+		/* parse it */
+		if (!ParseConfigFile(GpReplicationConfigFilename, NULL, 0, PGC_SUSET, LOG, &head, &tail))
+			ereport(ERROR,
+			        (errcode(ERRCODE_CONFIG_FILE_ERROR),
+					        errmsg("could not parse contents of file \"%s\"",
+					               GpReplicationConfigFilename)));
+
+		FreeFile(infile);
+	}
+
+	/*
+	 * If a value is specified, verify that it's sane.
+	 */
+	if (value)
+	{
+		struct config_generic *record;
+
+		record = find_option(name, false, LOG);
+		if (record == NULL)
+			ereport(ERROR,
+			        (errcode(ERRCODE_UNDEFINED_OBJECT),
+					        errmsg("unrecognized configuration parameter \"%s\"", name)));
+
+		/*
+		 * Don't allow the parameters which can't be set in configuration
+		 * files to be set in GP_REPLICATION_CONFIG_FILENAME file.
+		 */
+		if ((record->context == PGC_INTERNAL) ||
+		    (record->flags & GUC_DISALLOW_IN_FILE))
+			ereport(ERROR,
+			        (errcode(ERRCODE_CANT_CHANGE_RUNTIME_PARAM),
+					        errmsg("parameter \"%s\" cannot be changed",
+					               name)));
+
+		if (!validate_gp_replication_conf_option(record, value, ERROR))
+			ereport(ERROR,
+			        (errmsg("invalid value for parameter \"%s\": \"%s\"", name, value)));
+	}
+
+	replace_gp_replication_config_value(&head, &tail, name, value);
+
+	/*
+	 * To ensure crash safety, first write the new file data to a temp file,
+	 * then atomically rename it into place.
+	 *
+	 * If there is a temp file left over due to a previous crash, it's okay to
+	 * truncate and reuse it.
+	 */
+	Tmpfd = BasicOpenFile(GpReplicationConfigTempFilename,
+	                      O_CREAT | O_RDWR | O_TRUNC,
+	                      S_IRUSR | S_IWUSR);
+	if (Tmpfd < 0)
+		ereport(ERROR,
+		        (errcode_for_file_access(),
+				        errmsg("could not open file \"%s\": %m",
+				               GpReplicationConfigTempFilename)));
+
+	/*
+	 * Use a TRY block to clean up the file if we fail.  Since we need a TRY
+	 * block anyway, OK to use BasicOpenFile rather than OpenTransientFile.
+	 */
+	PG_TRY();
+	{
+		/* Write and sync the new contents to the temporary file */
+		write_gp_replication_conf_file(Tmpfd, GpReplicationConfigTempFilename, head);
+
+		/* Close before renaming; may be required on some platforms */
+		close(Tmpfd);
+		Tmpfd = -1;
+
+		/*
+		 * As the rename is atomic operation, if any problem occurs after this
+		 * at worst it can lose the parameters set by last ALTER SYSTEM
+		 * command.
+		 */
+		if (rename(GpReplicationConfigTempFilename, GpReplicationConfigFilename) < 0)
+			ereport(ERROR,
+			        (errcode_for_file_access(),
+					        errmsg("could not rename file \"%s\" to \"%s\": %m",
+					               GpReplicationConfigTempFilename, GpReplicationConfigFilename)));
+	}
+	PG_CATCH();
+	{
+		/* Close file first, else unlink might fail on some platforms */
+		if (Tmpfd >= 0)
+			close(Tmpfd);
+
+		/* Unlink, but ignore any error */
+		(void) unlink(GpReplicationConfigTempFilename);
+
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
+
+	LWLockRelease(GpReplicationConfigFileLock);
+}
+#endif

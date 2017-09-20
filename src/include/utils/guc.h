@@ -369,8 +369,6 @@ extern int	gp_filerep_ct_batch_size;
 
 extern int  WalSendClientTimeout;
 
-extern char  *gp_replication_config_filename;
-
 extern char  *data_directory;
 
 /* ORCA related definitions */
@@ -664,9 +662,14 @@ extern char *gp_guc_list_show(GucSource excluding, List *guclist);
 extern struct config_generic *find_option(const char *name,
 				bool create_placeholders, int elevel);
 
+#ifdef USE_SEGWALREP
+extern char  *gp_replication_config_filename;
+
 extern bool select_gp_replication_config_files(const char *configdir, const char *progname);
 
 extern void set_gp_replication_config(const char *name, const char *value);
+#endif
+
 extern bool parse_real(const char *value, double *result);
 
 #ifdef EXEC_BACKEND
