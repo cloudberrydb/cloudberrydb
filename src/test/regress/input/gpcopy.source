@@ -683,6 +683,9 @@ SELECT * FROM segment_reject_limit_from;
 COPY segment_reject_limit_from to STDOUT on segment log errors segment reject limit 3 rows;
 COPY segment_reject_limit_from to PROGRAM STDOUT log errors segment reject limit 3 rows;
 
+-- 'COPY (SELECT ...) TO' doesn't support 'ON SEGMENT'
+COPY (SELECT * FROM segment_reject_limit_from) TO '/tmp/segment_reject_limit<SEGID>.csv' ON SEGMENT;
+
 -- \copy from doesn't support on segment
 --on segment lower case
 \COPY segment_reject_limit_from from '/tmp/segment_reject_limit<SEGID>.csv' on segment;

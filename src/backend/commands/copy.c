@@ -2017,6 +2017,15 @@ DoCopyTo(CopyState cstate)
 					 errmsg("COPY ignores external partition(s)")));
 			}
 		}
+	}else
+	{
+		/* Report error because COPY ON SEGMENT don't know the data location of the result of SELECT query.*/
+		if(cstate->on_segment)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+						errmsg("'COPY (SELECT ...) TO' doesn't support 'ON SEGMENT'.")));
+		}
 	}
 
 	PG_TRY();
