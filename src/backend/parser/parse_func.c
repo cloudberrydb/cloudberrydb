@@ -138,7 +138,8 @@ agg_is_ordered(Oid funcid)
 Node *
 ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 				  List *agg_order, bool agg_star, bool agg_distinct,
-				  bool func_variadic, bool is_column, WindowDef *over,
+				  bool func_variadic, bool is_column,
+				  WindowDef *over,
 				  int location, Node *agg_filter)
 {
 	Oid			rettype;
@@ -665,6 +666,14 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 				state->p_hasDynamicFunction = true;
 		}
 	}
+
+	/*
+	 * If this function has restrictions on where it can be executed
+	 * (EXECUTE ON MASTER or EXECUTE ON ALL SEGMENTS), make note of that,
+	 * so that the planner knows to be prepared for it.
+	 */
+	if (func_exec_location(funcid) != PROEXECLOCATION_ANY)
+		pstate->p_hasFuncsWithExecRestrictions = true;
 
 	/* Hack to protect pg_get_expr() against misuse */
 	check_pg_get_expr_args(pstate, funcid, fargs);

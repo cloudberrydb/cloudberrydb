@@ -615,7 +615,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 	RANDOMLY RANGE READABLE READS REF REJECT_P RESOURCE
 	ROLLUP ROOTPARTITION
 
-	SCATTER SEGMENT SETS SPLIT SQL SUBPARTITION SUBPARTITIONS
+	SCATTER SEGMENT SEGMENTS SETS SPLIT SQL SUBPARTITION SUBPARTITIONS
 
 	THRESHOLD TIES
 
@@ -877,6 +877,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 			%nonassoc SECOND_P
 			%nonassoc SECURITY
 			%nonassoc SEGMENT
+			%nonassoc SEGMENTS
 			%nonassoc SEQUENCE
 			%nonassoc SERIALIZABLE
 			%nonassoc SESSION
@@ -7316,6 +7317,18 @@ common_func_opt_item:
 				{
 					$$ = makeDefElem("data_access", (Node *)makeString("modifies"));
 				}
+			| EXECUTE ON ANY
+				{
+					$$ = makeDefElem("exec_location", (Node *)makeString("any"));
+				}
+			| EXECUTE ON MASTER
+				{
+					$$ = makeDefElem("exec_location", (Node *)makeString("master"));
+				}
+			| EXECUTE ON ALL SEGMENTS
+				{
+					$$ = makeDefElem("exec_location", (Node *)makeString("all_segments"));
+				}
 		;
 
 createfunc_opt_item:
@@ -13313,6 +13326,7 @@ unreserved_keyword:
 			| SECOND_P
 			| SECURITY
 			| SEGMENT
+			| SEGMENTS
 			| SEQUENCE
 			| SERIALIZABLE
 			| SESSION
@@ -13594,6 +13608,7 @@ PartitionIdentKeyword: ABORT_P
 			| SEARCH
 			| SECURITY
 			| SEGMENT
+			| SEGMENTS
 			| SEQUENCE
 			| SERIALIZABLE
 			| SESSION

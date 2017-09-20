@@ -237,10 +237,10 @@ $$ language plpgsql EXECUTE ON ALL SEGMENTS;
 select srf_on_all_segments();
  srf_on_all_segments 
 ---------------------
- foo 0
- bar 0
  foo 1
  bar 1
+ foo 0
+ bar 0
 (4 rows)
 
 select srf_on_all_segments() FROM srf_testtab;
@@ -257,18 +257,18 @@ select * from srf_on_all_segments();
 select * from srf_testtab, srf_on_all_segments();
    t    | srf_on_all_segments 
 --------+---------------------
+ foo -1 | foo 0
+ foo 1  | foo 0
+ foo 0  | foo 0
+ foo -1 | bar 0
+ foo 1  | bar 0
+ foo 0  | bar 0
  foo 1  | foo 1
  foo 0  | foo 1
  foo -1 | foo 1
  foo 1  | bar 1
  foo 0  | bar 1
  foo -1 | bar 1
- foo 1  | foo 0
- foo 0  | foo 0
- foo -1 | foo 0
- foo 1  | bar 0
- foo 0  | bar 0
- foo -1 | bar 0
 (12 rows)
 
 select * from srf_testtab, srf_on_all_segments() where srf_on_all_segments = srf_testtab.t;
@@ -312,29 +312,30 @@ select * from test_srf();
 -- Since the function is marked as EXECUTE ON ANY, and IMMUTABLE, the planner
 -- can choose to run it anywhere.
 explain select * from srf_testtab, test_srf();
-                                    QUERY PLAN                                    
-----------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=1.01..281.01 rows=1000 width=38)
-   ->  Nested Loop  (cost=1.01..281.01 rows=334 width=38)
-         ->  Function Scan on test_srf  (cost=0.00..260.00 rows=334 width=32)
-         ->  Materialize  (cost=1.01..1.02 rows=1 width=6)
-               ->  Seq Scan on srf_testtab  (cost=0.00..1.01 rows=1 width=6)
- Settings:  optimizer=off
- Optimizer status: legacy query optimizer
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..882719.56 rows=1000 width=14)
+   ->  Nested Loop  (cost=0.00..882719.51 rows=334 width=14)
+         Join Filter: true
+         ->  Table Scan on srf_testtab  (cost=0.00..431.00 rows=1 width=6)
+         ->  Function Scan on test_srf  (cost=0.00..0.01 rows=334 width=8)
+ Settings:  optimizer=on
+ Optimizer status: PQO version 2.45.0
 (7 rows)
 
 explain select * from srf_testtab, test_srf() where test_srf = srf_testtab.t;
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=1.02..263.62 rows=10 width=38)
-   ->  Hash Join  (cost=1.02..263.62 rows=4 width=38)
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.16 rows=1000 width=14)
+   ->  Hash Join  (cost=0.00..431.10 rows=334 width=14)
          Hash Cond: test_srf.test_srf = srf_testtab.t
-         ->  Function Scan on test_srf  (cost=0.00..260.00 rows=334 width=32)
-         ->  Hash  (cost=1.01..1.01 rows=1 width=6)
-               ->  Seq Scan on srf_testtab  (cost=0.00..1.01 rows=1 width=6)
- Settings:  optimizer=off
- Optimizer status: legacy query optimizer
-(8 rows)
+         ->  Result  (cost=0.00..0.03 rows=334 width=8)
+               ->  Function Scan on test_srf  (cost=0.00..0.01 rows=334 width=8)
+         ->  Hash  (cost=431.00..431.00 rows=1 width=6)
+               ->  Table Scan on srf_testtab  (cost=0.00..431.00 rows=1 width=6)
+ Settings:  optimizer=on
+ Optimizer status: PQO version 2.45.0
+(9 rows)
 
 -- Test ALTER FUNCTION, and that \df displays the EXECUTE ON correctly
 \df+ test_srf

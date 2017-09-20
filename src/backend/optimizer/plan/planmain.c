@@ -29,6 +29,7 @@
 #include "optimizer/tlist.h"
 #include "utils/selfuncs.h"
 
+#include "catalog/pg_proc.h"
 #include "cdb/cdbpath.h"        /* cdbpath_rows() */
 #include "cdb/cdbvars.h"
 
@@ -128,6 +129,17 @@ query_planner(PlannerInfo *root, List *tlist,
 													 root->group_pathkeys);
 		root->sort_pathkeys = canonicalize_pathkeys(root,
 													root->sort_pathkeys);
+
+		{
+			char		exec_location;
+
+			exec_location = check_execute_on_functions((Node *) parse->targetList);
+
+			if (exec_location == PROEXECLOCATION_MASTER)
+				CdbPathLocus_MakeEntry(&(*cheapest_path)->locus);
+			else if (exec_location == PROEXECLOCATION_ALL_SEGMENTS)
+				CdbPathLocus_MakeStrewn(&(*cheapest_path)->locus);
+		}
 		return;
 	}
 

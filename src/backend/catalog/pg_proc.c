@@ -87,7 +87,8 @@ ProcedureCreate(const char *procedureName,
 				Datum proconfig,
 				float4 procost,
 				float4 prorows,
-				char prodataaccess)
+				char prodataaccess,
+				char proexeclocation)
 {
 	Oid			retval;
 	int			parameterCount;
@@ -339,6 +340,7 @@ ProcedureCreate(const char *procedureName,
 	/* start out with empty permissions */
 	nulls[Anum_pg_proc_proacl - 1] = true;
 	values[Anum_pg_proc_prodataaccess - 1] = CharGetDatum(prodataaccess);
+	values[Anum_pg_proc_proexeclocation - 1] = CharGetDatum(proexeclocation);
 	values[Anum_pg_proc_provariadic - 1] = ObjectIdGetDatum(variadicType);
 	values[Anum_pg_proc_pronargdefaults - 1] = UInt16GetDatum(list_length(parameterDefaults));
 	if (parameterDefaults != NIL)

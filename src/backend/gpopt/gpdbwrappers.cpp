@@ -635,6 +635,21 @@ gpdb::CFuncDataAccess
 	return '\0';
 }
 
+char
+gpdb::CFuncExecLocation
+	(
+	Oid funcid
+	)
+{
+	GP_WRAP_START;
+	{
+		/* catalog tables: pg_proc */
+		return func_exec_location(funcid);
+	}
+	GP_WRAP_END;
+	return '\0';
+}
+
 bool
 gpdb::FFunctionExists
 	(

@@ -66,6 +66,7 @@ CATALOG(pg_proc,1255) BKI_BOOTSTRAP
 	text		proconfig[1];	/* procedure-local GUC settings */
 	aclitem		proacl[1];		/* access permissions */
 	char		prodataaccess;	/* data access indicator */
+	char		proexeclocation; /* EXECUTE ON ANY or SEGMENTS */
 } FormData_pg_proc;
 
 /* GPDB added foreign key definitions for gpcheckcat. */
@@ -87,7 +88,7 @@ typedef FormData_pg_proc *Form_pg_proc;
  *		compiler constants for pg_proc
  * ----------------
  */
-#define Natts_pg_proc					26
+#define Natts_pg_proc					27
 #define Anum_pg_proc_proname			1
 #define Anum_pg_proc_pronamespace		2
 #define Anum_pg_proc_proowner			3
@@ -119,6 +120,8 @@ GPDB_COLUMN_DEFAULT(pg_proc_proargdefaults, _null_);
 #define Anum_pg_proc_proacl				25
 #define Anum_pg_proc_prodataaccess		26
 GPDB_COLUMN_DEFAULT(pg_proc_prodataaccess, n);
+#define Anum_pg_proc_proexeclocation	27
+GPDB_COLUMN_DEFAULT(pg_proc_proexeclocation, a);
 /*
  * TODO: It would be nice if we could default prodataaccess to 'c' for all
  * SQL-language functions. But the process_col_defaults.pl script isn't
@@ -4219,11 +4222,11 @@ DATA(insert OID = 3949 (  json_array_element        PGNSP PGUID 12 1 0  f f t f 
 DESCR("get json array element");
 DATA(insert OID = 3950 (  json_array_element_text   PGNSP PGUID 12 1 0  f f t f i  2 25  "114 23" _null_ _null_ "{from_json,element_index}" json_array_element_text - _null_ _null_ ));
 DESCR("get json array element as text");
-DATA(insert OID = 3951 (  json_extract_path	        PGNSP PGUID 12 1 0 25 f f f t f i  2 0 114 "114 1009" "{114,1009}" "{i,v}" "{from_json,path_elems}" _null_ json_extract_path - _null_ _null_ n ));
+DATA(insert OID = 3951 (  json_extract_path	        PGNSP PGUID 12 1 0 25 f f f t f i  2 0 114 "114 1009" "{114,1009}" "{i,v}" "{from_json,path_elems}" _null_ json_extract_path - _null_ _null_ n a ));
 DESCR("get value from json with path elements");
 DATA(insert OID = 3952 (  json_extract_path_op      PGNSP PGUID 12 1 0 f f t f i  2 114 "114 1009" _null_ _null_  "{from_json,path_elems}" json_extract_path - _null_ _null_ ));
 DESCR("get value from json with path elements");
-DATA(insert OID = 3953 (  json_extract_path_text	PGNSP PGUID 12 1 0 25 f f f t f i  2 0 25 "114 1009" "{114,1009}" "{i,v}" "{from_json,path_elems}" _null_ json_extract_path_text - _null_ _null_ n ));
+DATA(insert OID = 3953 (  json_extract_path_text	PGNSP PGUID 12 1 0 25 f f f t f i  2 0 25 "114 1009" "{114,1009}" "{i,v}" "{from_json,path_elems}" _null_ json_extract_path_text - _null_ _null_ n a ));
 DESCR("get value from json as text with path elements");
 DATA(insert OID = 3954 (  json_extract_path_text_op PGNSP PGUID 12 1 0  f f t f i  2 25 "114 1009" _null_ _null_  "{from_json,path_elems}" json_extract_path_text - _null_ _null_ ));
 DESCR("get value from json as text with path elements");
@@ -4579,13 +4582,13 @@ DATA(insert OID = 2948 (  txid_visible_in_snapshot	PGNSP PGUID 12 1  0 f f t f i
 DESCR("is txid visible in snapshot?");
 
 /* Extensions */
-DATA(insert OID = 3082 (  pg_available_extensions		PGNSP PGUID 12 10 100 0 f f f t t s 0 0 2249 "" "{19,25,25}" "{o,o,o}" "{name,default_version,comment}" _null_ pg_available_extensions _null_ _null_ _null_ n ));
+DATA(insert OID = 3082 (  pg_available_extensions		PGNSP PGUID 12 10 100 0 f f f t t s 0 0 2249 "" "{19,25,25}" "{o,o,o}" "{name,default_version,comment}" _null_ pg_available_extensions _null_ _null_ _null_ n a ));
 DESCR("list available extensions");
-DATA(insert OID = 3083 (  pg_available_extension_versions	PGNSP PGUID 12 10 100 0 f f f t t s 0 0 2249 "" "{19,25,16,16,19,1003,25}" "{o,o,o,o,o,o,o}" "{name,version,superuser,relocatable,schema,requires,comment}" _null_ pg_available_extension_versions _null_ _null_ _null_ n ));
+DATA(insert OID = 3083 (  pg_available_extension_versions	PGNSP PGUID 12 10 100 0 f f f t t s 0 0 2249 "" "{19,25,16,16,19,1003,25}" "{o,o,o,o,o,o,o}" "{name,version,superuser,relocatable,schema,requires,comment}" _null_ pg_available_extension_versions _null_ _null_ _null_ n a ));
 DESCR("list available extension versions");
-DATA(insert OID = 3084 (  pg_extension_update_paths		PGNSP PGUID 12 10 100 0 f f f t t s 1 0 2249 "19" "{19,25,25,25}" "{i,o,o,o}" "{name,source,target,path}" _null_ pg_extension_update_paths _null_ _null_ _null_ n ));
+DATA(insert OID = 3084 (  pg_extension_update_paths		PGNSP PGUID 12 10 100 0 f f f t t s 1 0 2249 "19" "{19,25,25,25}" "{i,o,o,o}" "{name,source,target,path}" _null_ pg_extension_update_paths _null_ _null_ _null_ n a ));
 DESCR("list an extension's version update paths");
-DATA(insert OID = 3086 (  pg_extension_config_dump		PGNSP PGUID 12 1 0 0 f f f t f v 2 0 2278 "2205 25" _null_ _null_ _null_ _null_ pg_extension_config_dump _null_ _null_ _null_ n));
+DATA(insert OID = 3086 (  pg_extension_config_dump		PGNSP PGUID 12 1 0 0 f f f t f v 2 0 2278 "2205 25" _null_ _null_ _null_ _null_ pg_extension_config_dump _null_ _null_ _null_ n a));
 DESCR("flag an extension's table contents to be emitted by pg_dump");
 
 /*
@@ -4594,20 +4597,6 @@ DESCR("flag an extension's table contents to be emitted by pg_dump");
  * easier.
  */
 #include "catalog/pg_proc_gp.h"
-
-/*
- * Ideally this function definition should be in pg_proc.sql and should be
- * generated by running catullus.pl script. But since we cannot specify the
- * PRODATAACCESS column of pg_proc as SEGMENT ('s') using the CREATE FUNCTION
- * syntax, we need to create the DATA statement manually and place it here.
- */
-/* gp_read_error_log(IN exttable text, OUT cmdtime timestamptz, OUT relname text, OUT filename text, OUT linenum int4, OUT bytenum int4, OUT errmsg text, OUT rawdata text, OUT rawbytes bytea) => SETOF record */ 
-DATA(insert OID = 3000 ( gp_read_error_log  PGNSP PGUID 12 1 1000 0 f f f t t v 1 0 2249 "25" "{25,1184,25,25,23,23,25,25,17}" "{i,o,o,o,o,o,o,o,o}" "{exttable,cmdtime,relname,filename,linenum,bytenum,errmsg,rawdata,rawbytes}" _null_ gp_read_error_log _null_ _null_ _null_ s ));
-DESCR("read the error log for the specified external table");
-
-/* gp_truncate_error_log(text) => bool */ 
-DATA(insert OID = 3069 ( gp_truncate_error_log  PGNSP PGUID 12 1 0 0 f f f t f v 1 0 16 "25" _null_ _null_ _null_ _null_ gp_truncate_error_log _null_ _null_ _null_ m ));
-DESCR("truncate the error log for the specified external table");
 
 /*
  * Symbolic values for provolatile column: these indicate whether the result
@@ -4640,8 +4629,10 @@ DESCR("truncate the error log for the specified external table");
 #define PRODATAACCESS_CONTAINS	'c'
 #define PRODATAACCESS_READS		'r'
 #define PRODATAACCESS_MODIFIES	'm'
-/* This is an internal-only data access property. */
-#define PRODATAACCESS_SEGMENT	's'
+
+#define PROEXECLOCATION_ANY		'a'
+#define PROEXECLOCATION_MASTER	'm'
+#define PROEXECLOCATION_ALL_SEGMENTS 's'
 
 /*
  * prototypes for functions in pg_proc.c
@@ -4669,7 +4660,8 @@ extern Oid ProcedureCreate(const char *procedureName,
 				Datum proconfig,
 				float4 procost,
 				float4 prorows,
-				char prodataaccess);
+				char prodataaccess,
+				char proexeclocation);
 
 extern bool function_parse_error_transpose(const char *prosrc);
 

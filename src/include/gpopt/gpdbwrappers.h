@@ -206,6 +206,9 @@ namespace gpdb {
 	// data access property of given function
 	char CFuncDataAccess(Oid funcid);
 
+	// exec location property of given function
+	char CFuncExecLocation(Oid funcid);
+
 	// trigger name
 	char *SzTriggerName(Oid triggerid);
 

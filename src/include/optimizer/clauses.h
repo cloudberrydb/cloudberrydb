@@ -84,6 +84,8 @@ extern bool contain_volatile_functions(Node *clause);
 extern bool contain_nonstrict_functions(Node *clause);
 extern Relids find_nonnullable_rels(Node *clause);
 
+extern char check_execute_on_functions(Node *clause);
+
 extern bool is_pseudo_constant_clause(Node *clause);
 extern bool is_pseudo_constant_clause_relids(Node *clause, Relids relids);
 

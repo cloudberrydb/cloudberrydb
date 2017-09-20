@@ -254,6 +254,7 @@ static void addDistributedBy(PQExpBuffer q, TableInfo *tbinfo, int actual_atts);
 static bool isGPDB4300OrLater(void);
 static bool isGPDB(void);
 static bool isGPDB5000OrLater(void);
+static bool isGPDB6000OrLater(void);
 
 /* END MPP ADDITION */
 
@@ -364,6 +365,17 @@ isGPDB5000OrLater(void)
 	}
 
 	return retValue;
+}
+
+
+static bool
+isGPDB6000OrLater(void)
+{
+	if (!isGPDB())
+		return false;		/* Not Greenplum at all. */
+
+	/* GPDB 6 is based on PostgreSQL 8.4 */
+	return g_fout->remoteVersion >= 80400;
 }
 
 int
@@ -7242,6 +7254,7 @@ dumpFunc(Archive *fout, FuncInfo *finfo)
 	char	   *prorows;
 	char	   *lanname;
 	char	   *prodataaccess;
+	char	   *proexeclocation;
 	char	   *rettypename;
 	int			nallargs;
 	char	  **allargtypes = NULL;
@@ -7249,6 +7262,7 @@ dumpFunc(Archive *fout, FuncInfo *finfo)
 	char	  **argnames = NULL;
 	bool		isGE43 = isGPDB4300OrLater();
 	bool		isGE50 = isGPDB5000OrLater();
+	bool		isGE60 = isGPDB6000OrLater();
 	char	  **configitems = NULL;
 	int			nconfigitems = 0;
 	int			i;
@@ -7268,7 +7282,22 @@ dumpFunc(Archive *fout, FuncInfo *finfo)
 
 	/* Fetch function-specific details */
 
-	if (isGE50)
+	if (isGE60)
+	{
+		appendPQExpBuffer(query,
+						  "SELECT proretset, prosrc, probin, "
+						  "pg_catalog.pg_get_function_arguments(oid) as funcargs, "
+						  "pg_catalog.pg_get_function_identity_arguments(oid) as funciargs, "
+						  "pg_catalog.pg_get_function_result(oid) as funcresult, "
+						  "provolatile, proisstrict, prosecdef, "
+						  "proconfig, procost, prorows, prodataaccess, "
+						  "proexeclocation, "
+						  "(SELECT lanname FROM pg_catalog.pg_language WHERE oid = prolang) as lanname "
+						  "FROM pg_catalog.pg_proc "
+						  "WHERE oid = '%u'::pg_catalog.oid",
+						  finfo->dobj.catId.oid);
+	}
+	else if (isGE50)
 	{
 		/*
 		 * In GPDB 5.0 and up we rely on pg_get_function_arguments and
@@ -7281,6 +7310,7 @@ dumpFunc(Archive *fout, FuncInfo *finfo)
 						  "pg_catalog.pg_get_function_result(oid) as funcresult, "
 						  "provolatile, proisstrict, prosecdef, "
 						  "proconfig, procost, prorows, prodataaccess, "
+						  "'a' as proexeclocation, "
 						  "(SELECT lanname FROM pg_catalog.pg_language WHERE oid = prolang) as lanname "
 						  "FROM pg_catalog.pg_proc "
 						  "WHERE oid = '%u'::pg_catalog.oid",
@@ -7293,6 +7323,7 @@ dumpFunc(Archive *fout, FuncInfo *finfo)
 						  "proallargtypes, proargmodes, proargnames, "
 						  "provolatile, proisstrict, prosecdef, "
 						  "null as proconfig, 0 as procost, 0 as prorows, %s"
+						  "'a' as proexeclocation, "
 						  "(SELECT lanname FROM pg_catalog.pg_language WHERE oid = prolang) as lanname "
 						  "FROM pg_catalog.pg_proc "
 						  "WHERE oid = '%u'::pg_catalog.oid",
@@ -7337,6 +7368,7 @@ dumpFunc(Archive *fout, FuncInfo *finfo)
 	prorows = PQgetvalue(res, 0, PQfnumber(res, "prorows"));
 	lanname = PQgetvalue(res, 0, PQfnumber(res, "lanname"));
 	prodataaccess = PQgetvalue(res, 0, PQfnumber(res, "prodataaccess"));
+	proexeclocation = PQgetvalue(res, 0, PQfnumber(res, "proexeclocation"));
 
 	/*
 	 * See backend/commands/define.c for details of how the 'AS' clause is
@@ -7537,6 +7569,20 @@ dumpFunc(Archive *fout, FuncInfo *finfo)
 		appendPQExpBuffer(q, " READS SQL DATA");
 	else if (prodataaccess[0] == PRODATAACCESS_MODIFIES)
 		appendPQExpBuffer(q, " MODIFIES SQL DATA");
+
+	if (proexeclocation[0] == PROEXECLOCATION_ANY)
+	{
+		/* the default, omit */
+	}
+	else if (proexeclocation[0] == PROEXECLOCATION_MASTER)
+		appendPQExpBuffer(q, " EXECUTE ON MASTER");
+	else if (proexeclocation[0] == PROEXECLOCATION_ALL_SEGMENTS)
+		appendPQExpBuffer(q, " EXECUTE ON ALL SEGMENTS");
+	else
+	{
+		write_msg(NULL, "unrecognized proexeclocation value: %c\n", proexeclocation[0]);
+		exit_nicely();
+	}
 
 	for (i = 0; i < nconfigitems; i++)
 	{

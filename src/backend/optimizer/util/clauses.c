@@ -1352,6 +1352,51 @@ is_strict_saop(ScalarArrayOpExpr *expr, bool falseOK)
 }
 
 
+
+typedef struct
+{
+	char		exec_location;
+} check_execute_on_functions_context;
+
+static bool
+check_execute_on_functions_walker(Node *node,
+								  check_execute_on_functions_context *context)
+{
+	if (node == NULL)
+		return false;
+
+	if (IsA(node, FuncExpr))
+	{
+		FuncExpr   *expr = (FuncExpr *) node;
+		char		exec_location;
+
+		exec_location = func_exec_location(expr->funcid);
+		if (exec_location != PROEXECLOCATION_ANY && exec_location != context->exec_location)
+		{
+			if (context->exec_location != PROEXECLOCATION_ANY)
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("cannot mix EXECUTE ON MASTER and EXECUTE ON ALL SEGMENTS functions in same query level")));
+			context->exec_location = exec_location;
+		}
+		/* fall through to check args */
+	}
+	return expression_tree_walker(node, check_execute_on_functions_walker, context);
+}
+
+
+char
+check_execute_on_functions(Node *clause)
+{
+	check_execute_on_functions_context context;
+
+	context.exec_location = PROEXECLOCATION_ANY;
+
+	check_execute_on_functions_walker(clause, &context);
+
+	return context.exec_location;
+}
+
 /*****************************************************************************
  *		Check for "pseudo-constant" clauses
  *****************************************************************************/
