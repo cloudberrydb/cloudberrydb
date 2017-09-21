@@ -2200,13 +2200,18 @@ typedef struct CommentStmt
 #define CURSOR_OPT_HOLD			0x0010	/* WITH HOLD */
 #define CURSOR_OPT_FAST_PLAN	0x0020	/* prefer fast-start plan */
 
+/*
+ * This is used to request the planner to create a plan that's updatable with
+ * CURRENT OF. It can be passed to SPI_prepare_cursor.
+ */
+#define CURSOR_OPT_UPDATABLE	0x0040	/* updateable with CURRENT OF, if possible */
+
 typedef struct DeclareCursorStmt
 {
 	NodeTag		type;
 	char	   *portalname;		/* name of the portal (cursor) */
 	int			options;		/* bitmask of options (see above) */
 	Node	   *query;			/* the raw SELECT query */
-	bool		is_simply_updatable;
 } DeclareCursorStmt;
 
 /* ----------------------

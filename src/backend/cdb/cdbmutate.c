@@ -73,9 +73,12 @@ typedef struct ApplyMotionState
 typedef struct
 {
 	plan_tree_base_prefix base; /* Required prefix for plan_tree_walker/mutator */
-	bool single_row_insert;
+	EState	   *estate;
+	bool		single_row_insert;
 	List	   *cursorPositions;
 } pre_dispatch_function_evaluation_context;
+
+static Node *planner_make_plan_constant(struct PlannerInfo *root, Node *n, bool is_SRI);
 
 static Node *
 pre_dispatch_function_evaluation_mutator(Node *node,
@@ -3064,13 +3067,15 @@ remove_unused_subplans(PlannerInfo *root, SubPlanWalkerContext *context)
 	}
 }
 
-Node *
+static Node *
 planner_make_plan_constant(struct PlannerInfo *root, Node *n, bool is_SRI)
 {
 	pre_dispatch_function_evaluation_context pcontext;
 
 	planner_init_plan_tree_base(&pcontext.base, root);
 	pcontext.single_row_insert = is_SRI;
+	pcontext.cursorPositions = NIL;
+	pcontext.estate = NULL;
 
 	return plan_tree_mutator(n, pre_dispatch_function_evaluation_mutator, &pcontext);
 }
@@ -3079,7 +3084,8 @@ planner_make_plan_constant(struct PlannerInfo *root, Node *n, bool is_SRI)
  * Evaluate functions to constants.
  */
 Node *
-exec_make_plan_constant(struct PlannedStmt *stmt, bool is_SRI, List **cursorPositions)
+exec_make_plan_constant(struct PlannedStmt *stmt, EState *estate, bool is_SRI,
+						List **cursorPositions)
 {
 	pre_dispatch_function_evaluation_context pcontext;
 	Node	   *result;
@@ -3088,6 +3094,7 @@ exec_make_plan_constant(struct PlannedStmt *stmt, bool is_SRI, List **cursorPosi
 	exec_init_plan_tree_base(&pcontext.base, stmt);
 	pcontext.single_row_insert = is_SRI;
 	pcontext.cursorPositions = NIL;
+	pcontext.estate = estate;
 
 	result = pre_dispatch_function_evaluation_mutator((Node *) stmt->planTree, &pcontext);
 
@@ -3368,25 +3375,28 @@ pre_dispatch_function_evaluation_mutator(Node *node,
 		 * During constant folding, we collect the current position of
 		 * each cursor mentioned in the plan into a list, and dispatch
 		 * them to the QEs.
+		 *
+		 * We should not get here if called from planner_make_plan_constant().
+		 * That is only used for simple Result plans, which should not contain
+		 * CURRENT OF expressions.
 		 */
-		CurrentOfExpr *expr = (CurrentOfExpr *) node;
-		CursorPosInfo *cpos;
+		if (context->estate)
+		{
+			CurrentOfExpr *expr = (CurrentOfExpr *) node;
+			CursorPosInfo *cpos;
 
-		cpos = makeNode(CursorPosInfo);
-		cpos->cursor_name = expr->cursor_name;
+			cpos = makeNode(CursorPosInfo);
 
-		/*
-		 * Passing a NULL econtext is Ok in this instance since getCurrentOf()
-		 * will pull out the cursor name from the CurrentOfExpr node.
-		 */
-		getCurrentOf(expr,
-					 NULL /* econtext */,
-					 expr->target_relid,
-					 &cpos->ctid,
-					 &cpos->gp_segment_id,
-					 &cpos->table_oid);
+			getCurrentOf(expr,
+						 GetPerTupleExprContext(context->estate),
+						 expr->target_relid,
+						 &cpos->ctid,
+						 &cpos->gp_segment_id,
+						 &cpos->table_oid,
+						 &cpos->cursor_name);
 
-		context->cursorPositions = lappend(context->cursorPositions, cpos);
+			context->cursorPositions = lappend(context->cursorPositions, cpos);
+		}
 	}
 
 	/*

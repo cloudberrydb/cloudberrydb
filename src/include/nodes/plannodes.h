@@ -73,6 +73,8 @@ typedef struct PlannedStmt
 	bool		transientPlan;	/* redo plan when TransactionXmin changes? */
 	bool		oneoffPlan;		/* redo plan on every execution? */
 
+	bool		simplyUpdatable; /* can be used with CURRENT OF? */
+
 	struct Plan *planTree;		/* tree of Plan nodes */
 
 	List	   *rtable;			/* list of RangeTblEntry nodes */

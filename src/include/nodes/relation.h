@@ -110,6 +110,7 @@ typedef struct PlannerGlobal
 
 	bool		transientPlan;	/* redo plan when TransactionXmin changes? */
 	bool		oneoffPlan;		/* redo plan on every execution? */
+	bool		simplyUpdatable; /* can be used with CURRENT OF? */
 
 	ApplyShareInputContext share;	/* workspace for GPDB plan sharing */
 

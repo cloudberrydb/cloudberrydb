@@ -42,6 +42,7 @@
 #endif
 #include "parser/parse_expr.h"
 #include "parser/parse_oper.h"
+#include "parser/parse_relation.h"
 #include "parser/parsetree.h"
 #include "utils/lsyscache.h"
 #include "utils/selfuncs.h"
@@ -121,6 +122,8 @@ static void sort_canonical_gs_list(List *gs, int *p_nsets, Bitmapset ***p_sets);
 
 static Plan *pushdown_preliminary_limit(Plan *plan, Node *limitCount, int64 count_est, Node *limitOffset, int64 offset_est);
 static bool is_dummy_plan(Plan *plan);
+
+static bool isSimplyUpdatableQuery(Query *query);
 
 
 /*****************************************************************************
@@ -224,7 +227,12 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	/* Cursor options may come from caller or from DECLARE CURSOR stmt */
 	if (parse->utilityStmt &&
 		IsA(parse->utilityStmt, DeclareCursorStmt))
+	{
 		cursorOptions |= ((DeclareCursorStmt *) parse->utilityStmt)->options;
+
+		/* Also try to make any cursor declared with DECLARE CURSOR updatable. */
+		cursorOptions |= CURSOR_OPT_UPDATABLE;
+	}
 
 	/*
 	 * Set up global state for this planner invocation.  This data is needed
@@ -252,6 +260,11 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	glob->share.qdShares = NIL;
 	glob->share.qdSlices = NIL;
 	glob->share.nextPlanId = 0;
+
+	if ((cursorOptions & CURSOR_OPT_UPDATABLE) != 0)
+		glob->simplyUpdatable = isSimplyUpdatableQuery(parse);
+	else
+		glob->simplyUpdatable = false;
 
 	/* Determine what fraction of the plan is likely to be scanned */
 	if (cursorOptions & CURSOR_OPT_FAST_PLAN)
@@ -415,6 +428,8 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	result->queryPartOids = NIL;
 	result->queryPartsMetadata = NIL;
 	result->numSelectorsPerScanId = NIL;
+
+	result->simplyUpdatable = glob->simplyUpdatable;
 
 	{
 		ListCell *lc;
@@ -3693,4 +3708,40 @@ pushdown_preliminary_limit(Plan *plan, Node *limitCount, int64 count_est, Node *
 	}
 
 	return result_plan;
+}
+
+
+/*
+ * isSimplyUpdatableQuery -
+ *  determine whether a query is a simply updatable scan of a relation
+ *
+ * A query is simply updatable if, and only if, it...
+ * - has no window clauses
+ * - has no sort clauses
+ * - has no grouping, having, distinct clauses, or simple aggregates
+ * - has no subqueries
+ * - has no LIMIT/OFFSET
+ * - references only one range table (i.e. no joins, self-joins)
+ *   - this range table must itself be updatable
+ */
+static bool
+isSimplyUpdatableQuery(Query *query)
+{
+	if (query->commandType == CMD_SELECT &&
+		query->windowClause == NIL &&
+		query->sortClause == NIL &&
+		query->groupClause == NIL &&
+		query->havingQual == NULL &&
+		query->distinctClause == NIL &&
+		!query->hasAggs &&
+		!query->hasSubLinks &&
+		query->limitCount == NULL &&
+		query->limitOffset == NULL &&
+		list_length(query->rtable) == 1)
+	{
+		RangeTblEntry *rte = (RangeTblEntry *) linitial(query->rtable);
+		if (isSimplyUpdatableRelation(rte->relid, true))
+			return true;
+	}
+	return false;
 }

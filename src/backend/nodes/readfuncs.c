@@ -373,7 +373,6 @@ _readDeclareCursorStmt(void)
 	READ_STRING_FIELD(portalname);
 	READ_INT_FIELD(options);
 	READ_NODE_FIELD(query);
-	READ_BOOL_FIELD(is_simply_updatable);
 
 	READ_DONE();
 }
@@ -387,9 +386,9 @@ _readCurrentOfExpr(void)
 {
 	READ_LOCALS(CurrentOfExpr);
 
+	READ_INT_FIELD(cvarno);
 	READ_STRING_FIELD(cursor_name);
 	READ_INT_FIELD(cursor_param);
-	READ_INT_FIELD(cvarno);
 	READ_OID_FIELD(target_relid);
 
 	/* some attributes omitted as they're bound only just before executor dispatch */

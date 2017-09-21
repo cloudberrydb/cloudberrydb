@@ -3124,7 +3124,7 @@ exec_stmt_open(PLpgSQL_execstate *estate, PLpgSQL_stmt_open *stmt)
 		 */
 		query = stmt->query;
 		if (query->plan == NULL)
-			exec_prepare_plan(estate, query, stmt->cursor_options);
+			exec_prepare_plan(estate, query, stmt->cursor_options | CURSOR_OPT_UPDATABLE);
 	}
 	else if (stmt->dynquery != NULL)
 	{
@@ -3161,7 +3161,7 @@ exec_stmt_open(PLpgSQL_execstate *estate, PLpgSQL_stmt_open *stmt)
 		 * Now we prepare a query plan for it and open a cursor
 		 * ----------
 		 */
-		curplan = SPI_prepare_cursor(querystr, 0, NULL, stmt->cursor_options);
+		curplan = SPI_prepare_cursor(querystr, 0, NULL, stmt->cursor_options | CURSOR_OPT_UPDATABLE);
 		if (curplan == NULL)
 			elog(ERROR, "SPI_prepare_cursor failed for \"%s\": %s",
 				 querystr, SPI_result_code_string(SPI_result));
@@ -3230,7 +3230,7 @@ exec_stmt_open(PLpgSQL_execstate *estate, PLpgSQL_stmt_open *stmt)
 
 		query = curvar->cursor_explicit_expr;
 		if (query->plan == NULL)
-			exec_prepare_plan(estate, query, curvar->cursor_options);
+			exec_prepare_plan(estate, query, curvar->cursor_options | CURSOR_OPT_UPDATABLE);
 	}
 
 	/* ----------

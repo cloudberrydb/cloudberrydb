@@ -94,7 +94,8 @@ extern void getCurrentOf(CurrentOfExpr *cexpr,
 			  Oid table_oid,
 			  ItemPointer current_tid,
 			  int *current_gp_segment_id,
-			  Oid *current_table_oid);
+			  Oid *current_table_oid,
+			  char **cursor_name_p);
 extern bool execCurrentOf(CurrentOfExpr *cexpr,
 			  ExprContext *econtext,
 			  Oid table_oid,

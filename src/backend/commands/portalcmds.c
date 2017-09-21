@@ -117,14 +117,6 @@ PerformCursorOpen(PlannedStmt *stmt, ParamListInfo params,
 
 	portal->is_extended_query = true; /* cursors run in extended query mode */
 
-	/* 
-	 * DeclareCursorStmt is a hybrid utility/select statement. Above, we've nullified
-	 * the utilityStmt within PlannedStmt so this appears like plain SELECT. As a consequence,
-	 * we lose access to the DeclareCursorStmt. To cope, we simply cover over the 
-	 * is_simply_updatable calculation for consumption by CURRENT OF constant folding.
-	 */
-	portal->is_simply_updatable = cstmt->is_simply_updatable;
-
 	/*----------
 	 * Also copy the outer portal's parameter list into the inner portal's
 	 * memory context.	We want to pass down the parameter values in case we
