@@ -929,8 +929,12 @@ ExecHashTableReallocBatchData(HashJoinTable hashtable, int new_nbatch)
  * tuples from batch files.  We could save some cycles in the regular-tuple
  * case by not forcing the slot contents into minimal form; not clear if it's
  * worth the messiness required.
+ *
+ * Returns true if the tuple belonged to this batch and was inserted to
+ * the in-memory hash table, or false if it belonged to a later batch and
+ * was pushed to a temp file.
  */
-void
+bool
 ExecHashTableInsert(HashState *hashState, HashJoinTable hashtable,
 					TupleTableSlot *slot,
 					uint32 hashvalue)
@@ -994,7 +998,7 @@ ExecHashTableInsert(HashState *hashState, HashJoinTable hashtable,
 			}
 		}
 	}
-	else if (hashtable->first_pass)
+	else
 	{
 		/*
 		 * Put the tuple into a temp file for later batches.
@@ -1013,6 +1017,8 @@ ExecHashTableInsert(HashState *hashState, HashJoinTable hashtable,
 	}
 	}
 	END_MEMORY_ACCOUNT();
+
+	return (batchno == hashtable->curbatch);
 }
 
 /*
