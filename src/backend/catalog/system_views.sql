@@ -407,6 +407,35 @@ CREATE VIEW pg_stat_replication AS
     WHERE S.usesysid = U.oid AND
             S.procpid = W.pid;
 
+CREATE FUNCTION pg_stat_get_master_replication() RETURNS SETOF RECORD AS
+$$
+    SELECT pg_catalog.gp_execution_segment() AS gp_segment_id, *
+    FROM pg_catalog.pg_stat_replication
+$$
+LANGUAGE SQL EXECUTE ON MASTER;
+
+CREATE FUNCTION pg_stat_get_segment_replication() RETURNS SETOF RECORD AS
+$$
+    SELECT pg_catalog.gp_execution_segment() AS gp_segment_id, *
+    FROM pg_catalog.pg_stat_replication
+$$
+LANGUAGE SQL EXECUTE ON ALL SEGMENTS;
+
+CREATE VIEW gp_stat_replication AS
+    SELECT * FROM pg_stat_get_master_replication() AS R
+    (gp_segment_id integer, procpid integer, usesysid oid,
+     usename name, application_name text, client_addr inet,
+     client_port integer, backend_start timestamptz, state text,
+     sent_location text, write_location text, flush_location text,
+     replay_location text, sync_priority integer, sync_state text)
+    UNION ALL
+    SELECT * FROM pg_stat_get_segment_replication() AS R
+    (gp_segment_id integer, procpid integer, usesysid oid,
+     usename name, application_name text, client_addr inet,
+     client_port integer, backend_start timestamptz, state text,
+     sent_location text, write_location text, flush_location text,
+     replay_location text, sync_priority integer, sync_state text);
+
 CREATE VIEW pg_stat_database AS 
     SELECT 
             D.oid AS datid, 
