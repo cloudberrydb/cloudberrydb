@@ -1001,14 +1001,7 @@ ExecHashTableInsert(HashState *hashState, HashJoinTable hashtable,
 	else
 	{
 		/*
-		 * Put the tuple into a temp file for later batches.
-		 *
-		 * For rescannable hash join, we may see the same tuples many times
-		 * during rescans. However, only the first pass (before rescanning) requires
-		 * us to save the tuples to their corresponding batch files. The later passes
-		 * just read those tuples from batch files. As the tuples are already spilled
-		 * during first pass we no longer need to worry about saving those tuples in
-		 * batch files.
+		 * put the tuple into a temp file for later batches
 		 */
 		Assert(batchno > hashtable->curbatch);
 		ExecHashJoinSaveTuple(ps, tuple,
