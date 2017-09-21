@@ -108,6 +108,8 @@
       <p>For detailed information about cgroups, refer to the Control Groups documentation for your Linux distribution.</p>
         <p>Complete the following tasks on each node in your Greenplum Database cluster to set up cgroups for use with resource group-based workload management:</p>
         <ol>
+          <li>If you are running the Suse 11+ operating system on your Greenplum Database cluster nodes, you must enable swap accounting on each node and restart your Greenplum Database cluster. The <codeph>swapaccount</codeph> kernel boot parameter governs the swap accounting setting on Suse 11+ systems. After setting this boot parameter, you must reboot your systems. For details, refer to the <xref href="https://www.suse.com/releasenotes/x86_64/SUSE-SLES/11-SP2/#fate-310471" format="html" scope="external">Cgroup Swap Control</xref> discussion in the Suse 11 release notes. You must be the superuser or have <codeph>sudo</codeph> access to configure kernel boot parameters and reboot systems.
+          </li>
           <li>Create the Greenplum Database cgroups configuration file <codeph>/etc/cgconfig.d/gpdb.conf</codeph>. You must be the superuser or have <codeph>sudo</codeph> access to create this file:
            <codeblock>sudo vi /etc/cgconfig.d/gpdb.conf</codeblock>
           </li>
