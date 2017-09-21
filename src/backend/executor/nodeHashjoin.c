@@ -1380,7 +1380,6 @@ ExecHashJoinReloadHashTable(HashJoinState *hjstate)
 			 * possible for hashtable->nbatch to be increased here!
 			 */
 			ExecHashTableInsert(hashState, hashtable, slot, hashvalue);
-			hashtable->totalTuples += 1;
 		}
 
 		/*
