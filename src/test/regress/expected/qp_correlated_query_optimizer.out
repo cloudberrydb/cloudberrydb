@@ -1303,17 +1303,24 @@ select C.j from C where not exists (select rank() over (order by B.i) from B  wh
 explain select * from A where not exists (select sum(C.i) from C where C.i = A.i group by a.i);
                    QUERY PLAN                   
 ------------------------------------------------
- Result  (cost=0.00..0.00 rows=0 width=8)
-   ->  Result  (cost=0.00..0.00 rows=0 width=8)
-         One-Time Filter: false
- Settings:  optimizer=on
- Optimizer status: PQO version 2.42.3
-(5 rows)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=2 width=8)
+   ->  Hash Left Anti Semi Join  (cost=0.00..862.00 rows=1 width=8)
+         Hash Cond: a.i = c.i
+         ->  Table Scan on a  (cost=0.00..431.00 rows=2 width=8)
+         ->  Hash  (cost=431.00..431.00 rows=3 width=4)
+               ->  GroupAggregate  (cost=0.00..431.00 rows=3 width=4)
+                     Group By: c.i
+                     ->  Sort  (cost=0.00..431.00 rows=3 width=4)
+                           Sort Key: c.i
+                           ->  Table Scan on c  (cost=0.00..431.00 rows=3 width=4)
+ Optimizer status: PQO version 2.46.1
+(11 rows)
 
 select * from A where not exists (select sum(C.i) from C where C.i = A.i group by a.i);
- i | j 
----+---
-(0 rows)
+ i  | j 
+----+---
+ 19 | 5
+(1 row)
 
 explain select A.i from A where not exists (select B.i from B where B.i in (select C.i from C) and B.i = A.i);
                                     QUERY PLAN                                     
