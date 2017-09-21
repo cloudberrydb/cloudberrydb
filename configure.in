@@ -1026,11 +1026,15 @@ PGAC_ARG_BOOL(with, rt, yes,
 AC_SUBST(with_rt)
 
 #
-# libcurl. Used for external table support
+# libcurl. Used for external table support and the PXF extension
 #
 PGAC_ARG_BOOL(with, libcurl, yes,
               [  --without-libcurl       do not use libcurl])
 AC_SUBST(with_libcurl)
+
+if test "$with_libcurl" = "no" && test "$enable_pxf" = "yes"; then
+  AC_MSG_ERROR([libcurl is required by PXF])
+fi
 
 #
 # libapr. Used for gpfdist and gpperfmon
