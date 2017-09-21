@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/file/fd.c,v 1.143.2.1 2009/12/03 11:03:44 heikki Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/file/fd.c,v 1.144 2008/03/10 20:06:27 tgl Exp $
  *
  * NOTES:
  *
@@ -151,7 +151,7 @@ static int	max_safe_fds = 32;	/* default if not changed */
 
 typedef struct vfd
 {
-	int fd;			/* current FD, or VFD_CLOSED if none */
+	int			fd;				/* current FD, or VFD_CLOSED if none */
 	unsigned short fdstate;		/* bitflags for VFD's state */
 	ResourceOwner resowner;		/* owner, for automatic cleanup */
 	File		nextFree;		/* link to next free VFD, if in freelist */
@@ -1186,7 +1186,8 @@ FileRead(File file, char *buffer, int amount)
 
 	DO_DB(elog(LOG, "FileRead: %d (%s) " INT64_FORMAT " %d %p",
 			   file, VfdCache[file].fileName,
-			   VfdCache[file].seekPos, amount, buffer));
+			   (int64) VfdCache[file].seekPos,
+			   amount, buffer));
 
 	if (Debug_filerep_print)
 		elog(LOG, "FileRead: %d (%s) " INT64_FORMAT " %d %p",
@@ -1245,7 +1246,8 @@ FileWrite(File file, char *buffer, int amount)
 
 	DO_DB(elog(LOG, "FileWrite: %d (%s) " INT64_FORMAT " %d %p",
 			   file, VfdCache[file].fileName,
-			   VfdCache[file].seekPos, amount, buffer));
+			   (int64) VfdCache[file].seekPos,
+			   amount, buffer));
 
 	returnCode = FileAccess(file);
 	if (returnCode < 0)
@@ -1346,7 +1348,8 @@ FileSeek(File file, int64 offset, int whence)
 
 	DO_DB(elog(LOG, "FileSeek: %d (%s) " INT64_FORMAT " " INT64_FORMAT " %d",
 			   file, VfdCache[file].fileName,
-			   VfdCache[file].seekPos, offset, whence));
+			   (int64) VfdCache[file].seekPos,
+			   (int64) offset, whence));
 
 	if (FileIsNotOpen(file))
 	{
@@ -1354,7 +1357,8 @@ FileSeek(File file, int64 offset, int whence)
 		{
 			case SEEK_SET:
 				if (offset < 0)
-					elog(ERROR, "invalid seek offset: %ld", offset);
+					elog(ERROR, "invalid seek offset: " INT64_FORMAT,
+						 (int64) offset);
 				VfdCache[file].seekPos = offset;
 				break;
 			case SEEK_CUR:

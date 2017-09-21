@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/optimizer/clauses.h,v 1.88.2.1 2008/04/01 00:48:44 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/optimizer/clauses.h,v 1.90 2008/04/01 00:48:33 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -108,6 +108,8 @@ extern Query *fold_constants(PlannerGlobal *glob, Query *q, ParamListInfo boundP
 extern Expr *transform_array_Const_to_ArrayExpr(Const *c);
 
 extern Node *estimate_expression_value(PlannerInfo *root, Node *node);
+
+extern Query *inline_set_returning_function(PlannerInfo *root, Node *node);
 
 extern Expr *evaluate_expr(Expr *expr, Oid result_type, int32 result_typmod);
 

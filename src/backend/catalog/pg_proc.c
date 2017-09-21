@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/pg_proc.c,v 1.148.2.2 2010/05/11 04:57:51 itagaki Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/pg_proc.c,v 1.151 2008/03/27 03:57:33 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -25,6 +25,7 @@
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_proc_callback.h"
+#include "catalog/pg_proc_fn.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_rewrite.h"
 #include "executor/functions.h"
@@ -701,7 +702,7 @@ fmgr_internal_validator(PG_FUNCTION_ARGS)
 	tmp = SysCacheGetAttr(PROCOID, tuple, Anum_pg_proc_prosrc, &isnull);
 	if (isnull)
 		elog(ERROR, "null prosrc");
-	prosrc = DatumGetCString(DirectFunctionCall1(textout, tmp));
+	prosrc = TextDatumGetCString(tmp);
 
 	if (fmgr_internal_function(prosrc) == InvalidOid)
 		ereport(ERROR,
@@ -754,12 +755,12 @@ fmgr_c_validator(PG_FUNCTION_ARGS)
 	tmp = SysCacheGetAttr(PROCOID, tuple, Anum_pg_proc_prosrc, &isnull);
 	if (isnull)
 		elog(ERROR, "null prosrc");
-	prosrc = DatumGetCString(DirectFunctionCall1(textout, tmp));
+	prosrc = TextDatumGetCString(tmp);
 
 	tmp = SysCacheGetAttr(PROCOID, tuple, Anum_pg_proc_probin, &isnull);
 	if (isnull)
 		elog(ERROR, "null probin");
-	probin = DatumGetCString(DirectFunctionCall1(textout, tmp));
+	probin = TextDatumGetCString(tmp);
 
 	(void) load_external_function(probin, prosrc, true, &libraryhandle);
 	(void) fetch_finfo_record(libraryhandle, prosrc);
@@ -859,7 +860,8 @@ fmgr_sql_validator(PG_FUNCTION_ARGS)
 												  proc->proargtypes.values,
 												  proc->pronargs);
 			(void) check_sql_fn_retval(funcoid, proc->prorettype,
-									   querytree_list, NULL);
+									   querytree_list,
+									   false, NULL);
 		}
 		else
 			querytree_list = pg_parse_query(prosrc);
@@ -888,7 +890,7 @@ sql_function_parse_error_callback(void *arg)
 	tmp = SysCacheGetAttr(PROCOID, tuple, Anum_pg_proc_prosrc, &isnull);
 	if (isnull)
 		elog(ERROR, "null prosrc");
-	prosrc = DatumGetCString(DirectFunctionCall1(textout, tmp));
+	prosrc = TextDatumGetCString(tmp);
 
 	if (!function_parse_error_transpose(prosrc))
 	{

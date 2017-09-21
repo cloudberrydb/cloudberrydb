@@ -1647,7 +1647,7 @@ _readA_ArrayExpr(void)
 	READ_LOCALS(A_ArrayExpr);
 
 	READ_NODE_FIELD(elements);
-/*	READ_LOCATION_FIELD(location); */
+	READ_LOCATION_FIELD(location);
 
 	READ_DONE();
 }
@@ -1947,7 +1947,6 @@ _readTypeName(void)
 
 	READ_NODE_FIELD(names);
 	READ_OID_FIELD(typid);
-	READ_BOOL_FIELD(timezone);
 	READ_BOOL_FIELD(setof);
 	READ_BOOL_FIELD(pct_type);
 	READ_NODE_FIELD(typmods);

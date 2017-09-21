@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/pg_proc.h,v 1.482 2008/01/01 19:45:57 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/pg_proc.h,v 1.487 2008/04/04 18:45:36 tgl Exp $
  *
  * NOTES
  *	  The script catalog/genbki.sh reads this file and generates .bki
@@ -26,7 +26,6 @@
 #define PG_PROC_H
 
 #include "catalog/genbki.h"
-#include "nodes/pg_list.h"
 
 /* ----------------
  *		pg_proc definition.  cpp turns this into
@@ -1075,6 +1074,8 @@ DESCR("storage manager");
 
 DATA(insert OID = 764 (  lo_import		   PGNSP PGUID 12 1 0 f f t f v 1 26 "25" _null_ _null_ _null_	lo_import - _null_ _null_ ));
 DESCR("large object import");
+DATA(insert OID = 767 (  lo_import		   PGNSP PGUID 12 1 0 f f t f v 2 26 "25 26" _null_ _null_ _null_	lo_import_with_oid - _null_ _null_ ));
+DESCR("large object import");
 DATA(insert OID = 765 (  lo_export		   PGNSP PGUID 12 1 0 f f t f v 2 23 "26 25" _null_ _null_ _null_ lo_export - _null_ _null_ ));
 DESCR("large object export");
 
@@ -1166,8 +1167,10 @@ DESCR("does not match LIKE expression");
 DATA(insert OID =  860 (  bpchar		   PGNSP PGUID 12 1 0 f f t f i 1 1042 "18" _null_ _null_ _null_	char_bpchar - _null_ _null_ ));
 DESCR("convert char to char()");
 
-DATA(insert OID = 861 ( current_database	   PGNSP PGUID 12 1 0 f f t f i 0 19 "" _null_ _null_ _null_ current_database - _null_ _null_ ));
+DATA(insert OID = 861 ( current_database	   PGNSP PGUID 12 1 0 f f t f s 0 19 "" _null_ _null_ _null_ current_database - _null_ _null_ ));
 DESCR("returns the current database");
+DATA(insert OID = 817 (  current_query        PGNSP PGUID 12 1 0 f f f f v 0 25  "" _null_ _null_ _null_  current_query - _null_ _null_ ));
+DESCR("returns the currently executing query");
 
 DATA(insert OID =  862 (  int4_mul_cash		   PGNSP PGUID 12 1 0 f f t f i 2 790 "23 790" _null_ _null_ _null_ int4_mul_cash - _null_ _null_ ));
 DESCR("multiply");
@@ -2661,6 +2664,10 @@ DATA(insert OID = 1745 ( float4					PGNSP PGUID 12 1 0 f f t f i 1 700 "1700" _n
 DESCR("(internal)");
 DATA(insert OID = 1746 ( float8					PGNSP PGUID 12 1 0 f f t f i 1 701 "1700" _null_ _null_ _null_	numeric_float8 - _null_ _null_ ));
 DESCR("(internal)");
+DATA(insert OID = 1973 ( div					PGNSP PGUID 12 1 0 f f t f i 2 1700 "1700 1700" _null_ _null_ _null_	numeric_div_trunc - _null_ _null_ ));
+DESCR("trunc(x/y)");
+DATA(insert OID = 1980 ( numeric_div_trunc		PGNSP PGUID 12 1 0 f f t f i 2 1700 "1700 1700" _null_ _null_ _null_	numeric_div_trunc - _null_ _null_ ));
+DESCR("trunc(x/y)");
 DATA(insert OID = 2170 ( width_bucket			PGNSP PGUID 12 1 0 f f t f i 4 23 "1700 1700 1700 23" _null_ _null_ _null_	width_bucket_numeric - _null_ _null_ ));
 DESCR("bucket number of operand in equidepth histogram");
 
@@ -2724,6 +2731,10 @@ DATA(insert OID =  1283 ( quote_literal    PGNSP PGUID 12 1 0 f f t f i 1 25 "25
 DESCR("quote a literal for usage in a querystring");
 DATA(insert OID =  1285 ( quote_literal    PGNSP PGUID 14 1 0 f f t f v 1 25 "2283" _null_ _null_ _null_ "select pg_catalog.quote_literal($1::pg_catalog.text)" - _null_ _null_ ));
 DESCR("quote a data value for usage in a querystring");
+DATA(insert OID =  1289 ( quote_nullable   PGNSP PGUID 12 1 0 f f f f i 1 25 "25" _null_ _null_ _null_ quote_nullable - _null_ _null_ ));
+DESCR("quote a possibly-null literal for usage in a querystring");
+DATA(insert OID =  1290 ( quote_nullable   PGNSP PGUID 14 1 0 f f f f v 1 25 "2283" _null_ _null_ _null_ "select pg_catalog.quote_nullable($1::pg_catalog.text)" - _null_ _null_ ));
+DESCR("quote a possibly-null data value for usage in a querystring");
 
 DATA(insert OID = 1798 (  oidin			   PGNSP PGUID 12 1 0 f f t f i 1 26 "2275" _null_ _null_ _null_ oidin - _null_ _null_ ));
 DESCR("I/O");
@@ -4633,36 +4644,5 @@ DESCR("flag an extension's table contents to be emitted by pg_dump");
 #define PROEXECLOCATION_ANY		'a'
 #define PROEXECLOCATION_MASTER	'm'
 #define PROEXECLOCATION_ALL_SEGMENTS 's'
-
-/*
- * prototypes for functions in pg_proc.c
- */
-extern Oid ProcedureCreate(const char *procedureName,
-				Oid procNamespace,
-				bool replace,
-				bool returnsSet,
-				Oid returnType,
-				Oid languageObjectId,
-				Oid languageValidator,
-				Oid describeFuncOid,
-				const char *prosrc,
-				const char *probin,
-				bool isAgg,
-				bool isWin,
-				bool security_definer,
-				bool isStrict,
-				char volatility,
-				const oidvector *parameterTypes,
-				Datum allParameterTypes,
-				Datum parameterModes,
-				Datum parameterNames,
-				List *parameterDefaults,
-				Datum proconfig,
-				float4 procost,
-				float4 prorows,
-				char prodataaccess,
-				char proexeclocation);
-
-extern bool function_parse_error_transpose(const char *prosrc);
 
 #endif   /* PG_PROC_H */

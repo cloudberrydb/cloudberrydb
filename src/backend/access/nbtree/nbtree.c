@@ -274,8 +274,27 @@ _bt_validate_vacuum(Relation irel, Relation hrel, TransactionId oldest_xmin)
 				 * also allow validating if a heap tid appears twice
 				 * in a unique index.
 				 */
-				if (!heap_release_fetch(hrel, SnapshotAny, &htup,
-										&hbuf, true, NULL))
+				/* GPDB_84_MERGE_FIXME:
+				 * This used to use the heap_release_fetch() function, but it
+				 * was removed in the upstream, as there were no remaining
+				 * calls to it in the upstream. I replaced it with
+				 * ReleaseBuffer() + heap_fetch(). That's functionally the
+				 * same, but it loses the performance advantage of the
+				 * combined heap_release_fetch() call. If you're running with
+				 * gp_indexcheck_vacuum, I hope you're not in a hurry!
+				 *
+				 * But it might be prudent to check how significant the
+				 * performance hit is in practice, and refactor if needed.
+				 * I wonder if we really need to use heap_fetch() here.
+				 * I think a simple ReadBuffer() + PageGetItem() would be
+				 * appropriate here.
+				 *
+				 * Or we could do the TID bitmap thing mentioned in above TODO
+				 * comment.
+				 */
+				if (hbuf != InvalidBuffer)
+					ReleaseBuffer(hbuf);
+				if (!heap_fetch(hrel, SnapshotAny, &htup, &hbuf, true, NULL))
 				{
 					elog(ERROR, "btvalidatevacuum: tid (%d,%d) from index %s "
 						 "not found in heap %s",

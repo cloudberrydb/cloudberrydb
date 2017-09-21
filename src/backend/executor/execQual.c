@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execQual.c,v 1.226.2.4 2010/08/26 18:54:59 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execQual.c,v 1.228 2008/03/25 22:42:43 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -2284,13 +2284,14 @@ ExecMakeTableFunctionResult(ExprState *funcexpr,
 
 				heap_deform_tuple(&tmptup, tupdesc, pd, pn);
 				tuple = memtuple_form_to(mt_bind, pd, pn, NULL, NULL, false);
+
+				tuplestore_puttuple(tupstore, (HeapTuple) tuple);
 			}
 			else
 			{
-				tuple = memtuple_form_to(mt_bind, &result, &fcinfo.isnull, NULL, NULL, false);
+				tuplestore_putvalues(tupstore, tupdesc, &result, &fcinfo.isnull);
 			}
-
-			tuplestore_puttuple(tupstore, (HeapTuple) tuple);
+			MemoryContextSwitchTo(oldcontext);
 
 			/*
 			 * Are we done?
@@ -2334,16 +2335,13 @@ no_function_result:
 			int			natts = expectedDesc->natts;
 			Datum	   *nulldatums;
 			bool	   *nullflags;
-			HeapTuple	tuple;
 
 			MemoryContextSwitchTo(econtext->ecxt_per_tuple_memory);
 			nulldatums = (Datum *) palloc0(natts * sizeof(Datum));
 			nullflags = (bool *) palloc(natts * sizeof(bool));
 			MemSetAligned(nullflags, true, natts * sizeof(bool));
-			tuple = heap_form_tuple(expectedDesc, nulldatums, nullflags);
 			MemoryContextSwitchTo(econtext->ecxt_per_query_memory);
-
-			tuplestore_puttuple(tupstore, tuple);
+			tuplestore_putvalues(tupstore, expectedDesc, nulldatums, nullflags);
 		}
 	}
 

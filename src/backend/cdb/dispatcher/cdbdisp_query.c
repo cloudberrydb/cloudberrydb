@@ -15,6 +15,8 @@
  */
 
 #include "postgres.h"
+
+#include "access/xact.h"
 #include "gp-libpq-fe.h"
 #include "gp-libpq-int.h"
 #include "cdb/cdbconn.h"

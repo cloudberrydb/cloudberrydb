@@ -71,14 +71,6 @@
  */
 static const char *assign_gp_workfile_compress_algorithm(const char *newval, bool doit, GucSource source);
 static const char *assign_gp_workfile_type_hashjoin(const char *newval, bool doit, GucSource source);
-static const char *assign_debug_persistent_print_level(const char *newval,
-									bool doit, GucSource source);
-static const char *assign_debug_persistent_recovery_print_level(const char *newval,
-											 bool doit, GucSource source);
-static const char *assign_debug_persistent_store_print_level(const char *newval,
-										  bool doit, GucSource source);
-static const char *assign_debug_database_command_print_level(const char *newval,
-										  bool doit, GucSource source);
 static const char *assign_optimizer_log_failure(const char *newval,
 							 bool doit, GucSource source);
 static const char *assign_optimizer_minidump(const char *newval,
@@ -89,14 +81,6 @@ static const char *assign_codegen_optimization_level(const char *newval,
                                                      bool doit, GucSource source);
 static const char *assign_optimizer_cost_model(const char *newval,
 							bool doit, GucSource source);
-static const char *assign_gp_workfile_caching_loglevel(const char *newval,
-									bool doit, GucSource source);
-static const char *assign_gp_sessionstate_loglevel(const char *newval,
-								bool doit, GucSource source);
-static const char *assign_time_slice_report_level(const char *newval, bool doit,
-							   GucSource source);
-static const char *assign_deadlock_hazard_report_level(const char *newval, bool doit,
-									GucSource source);
 static const char *assign_system_cache_flush_force(const char *newval, bool doit,
 								GucSource source);
 static const char *assign_gp_idf_deduplicate(const char *newval, bool doit,
@@ -354,13 +338,7 @@ static char *gp_workfile_type_hashjoin_str;
 static char *optimizer_log_failure_str;
 static char *optimizer_minidump_str;
 static char *optimizer_cost_model_str;
-static char *Debug_persistent_print_level_str;
-static char *Debug_persistent_recovery_print_level_str;
-static char *Debug_persistent_store_print_level_str;
-static char *Debug_database_command_print_level_str;
 static char *gp_log_format_string;
-static char *gp_workfile_caching_loglevel_str;
-static char *gp_sessionstate_loglevel_str;
 static char *explain_memory_verbosity_str;
 
 /* Backoff-related GUCs */
@@ -394,12 +372,10 @@ double		gp_simex_rand;
 bool		gp_test_time_slice;
 int			gp_test_time_slice_interval;
 int			gp_test_time_slice_report_level = ERROR;
-static char *gp_test_time_slice_report_level_str;
 
 /* database-lightweight lock hazard detection */
 bool		gp_test_deadlock_hazard;
 int			gp_test_deadlock_hazard_report_level = ERROR;
-static char *gp_test_deadlock_hazard_report_level_str;
 
 /* query cancellation GUC */
 bool		gp_cancel_query_print_log;
@@ -5037,80 +5013,6 @@ struct config_string ConfigureNamesString_gp[] =
 		"calibrated", assign_optimizer_cost_model, NULL
 	},
 	{
-		{"gp_workfile_caching_loglevel", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets the logging level for workfile caching debugging messages"),
-			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, "
-						 "DEBUG1, LOG, NOTICE, WARNING, and ERROR. Each level includes all the "
-						 "levels that follow it. The later the level, the fewer messages are "
-						 "sent."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_workfile_caching_loglevel_str,
-		"debug1", assign_gp_workfile_caching_loglevel, NULL
-	},
-
-	{
-		{"gp_sessionstate_loglevel", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets the logging level for session state debugging messages"),
-			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, "
-						 "DEBUG1, LOG, NOTICE, WARNING, and ERROR. Each level includes all the "
-						 "levels that follow it. The later the level, the fewer messages are "
-						 "sent."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_sessionstate_loglevel_str,
-		"debug1", assign_gp_sessionstate_loglevel, NULL
-	},
-
-	{
-		{"debug_persistent_print_level", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets the persistent relation debug message levels that are logged."),
-			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, DEBUG1, "
-			"INFO, NOTICE, WARNING, ERROR, LOG, FATAL, and PANIC. Each level "
-						 "includes all the levels that follow it."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL
-		},
-		&Debug_persistent_print_level_str,
-		"debug1", assign_debug_persistent_print_level, NULL
-	},
-
-	{
-		{"debug_persistent_recovery_print_level", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets the persistent recovery debug message levels that are logged."),
-			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, DEBUG1, "
-			"INFO, NOTICE, WARNING, ERROR, LOG, FATAL, and PANIC. Each level "
-						 "includes all the levels that follow it."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL
-		},
-		&Debug_persistent_recovery_print_level_str,
-		"debug1", assign_debug_persistent_recovery_print_level, NULL
-	},
-
-	{
-		{"debug_persistent_store_print_level", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets the persistent relation store debug message levels that are logged."),
-			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, DEBUG1, "
-			"INFO, NOTICE, WARNING, ERROR, LOG, FATAL, and PANIC. Each level "
-						 "includes all the levels that follow it."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL
-		},
-		&Debug_persistent_store_print_level_str,
-		"debug1", assign_debug_persistent_store_print_level, NULL
-	},
-
-	{
-		{"debug_database_command_error_level", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets the database command debug message levels that are logged."),
-			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, DEBUG1, "
-			"INFO, NOTICE, WARNING, ERROR, LOG, FATAL, and PANIC. Each level "
-						 "includes all the levels that follow it."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL
-		},
-		&Debug_database_command_print_level_str,
-		"log", assign_debug_database_command_print_level, NULL
-	},
-
-	{
 		{"gp_session_role", PGC_BACKEND, GP_WORKER_IDENTITY,
 			gettext_noop("Reports the default role for the session."),
 			gettext_noop("Valid values are DISPATCH, EXECUTE, and UTILITY."),
@@ -5398,26 +5300,6 @@ struct config_string ConfigureNamesString_gp[] =
 	},
 
 	{
-		{"gp_test_time_slice_report_level", PGC_USERSET, LOGGING_WHEN,
-			gettext_noop("Sets the message level for time slice violation reports."),
-			gettext_noop("Valid values are NOTICE, WARNING, ERROR, FATAL and PANIC."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_test_time_slice_report_level_str,
-		"error", assign_time_slice_report_level, NULL
-	},
-
-	{
-		{"gp_test_deadlock_hazard_report_level", PGC_USERSET, LOGGING_WHEN,
-			gettext_noop("Sets the message level for deadlock hazard reports."),
-			gettext_noop("Valid values are NOTICE, WARNING, ERROR, FATAL and PANIC."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_test_deadlock_hazard_report_level_str,
-		"error", assign_deadlock_hazard_report_level, NULL
-	},
-
-	{
 		{"gp_test_system_cache_flush_force", PGC_USERSET, GP_ERROR_HANDLING,
 			gettext_noop("Force invalidation of system caches on each access"),
 			gettext_noop("Valid values are OFF, PLAIN and RECURSIVE."),
@@ -5546,6 +5428,108 @@ struct config_string ConfigureNamesString_gp[] =
 	}
 };
 
+struct config_enum ConfigureNamesEnum_gp[] =
+{
+	{
+		{"debug_persistent_print_level", PGC_SUSET, DEVELOPER_OPTIONS,
+			gettext_noop("Sets the persistent relation debug message levels that are logged."),
+			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, DEBUG1, "
+			"INFO, NOTICE, WARNING, ERROR, LOG, FATAL, and PANIC. Each level "
+						 "includes all the levels that follow it."),
+			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL
+		},
+		&Debug_persistent_print_level,
+		DEBUG1, message_level_options, NULL, NULL
+	},
+
+	{
+		{"debug_persistent_recovery_print_level", PGC_SUSET, DEVELOPER_OPTIONS,
+			gettext_noop("Sets the persistent recovery debug message levels that are logged."),
+			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, DEBUG1, "
+			"INFO, NOTICE, WARNING, ERROR, LOG, FATAL, and PANIC. Each level "
+						 "includes all the levels that follow it."),
+			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL
+		},
+		&Debug_persistent_recovery_print_level,
+		DEBUG1, message_level_options, NULL, NULL
+	},
+
+	{
+		{"debug_persistent_store_print_level", PGC_SUSET, DEVELOPER_OPTIONS,
+			gettext_noop("Sets the persistent relation store debug message levels that are logged."),
+			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, DEBUG1, "
+			"INFO, NOTICE, WARNING, ERROR, LOG, FATAL, and PANIC. Each level "
+						 "includes all the levels that follow it."),
+			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL
+		},
+		&Debug_persistent_store_print_level,
+		DEBUG1, message_level_options, NULL, NULL
+	},
+
+	{
+		{"debug_database_command_error_level", PGC_SUSET, DEVELOPER_OPTIONS,
+			gettext_noop("Sets the database command debug message levels that are logged."),
+			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, DEBUG1, "
+			"INFO, NOTICE, WARNING, ERROR, LOG, FATAL, and PANIC. Each level "
+						 "includes all the levels that follow it."),
+			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL
+		},
+		&Debug_database_command_print_level,
+		LOG, message_level_options, NULL, NULL
+	},
+
+		{
+		{"gp_workfile_caching_loglevel", PGC_SUSET, DEVELOPER_OPTIONS,
+			gettext_noop("Sets the logging level for workfile caching debugging messages"),
+			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, "
+						 "DEBUG1, LOG, NOTICE, WARNING, and ERROR. Each level includes all the "
+						 "levels that follow it. The later the level, the fewer messages are "
+						 "sent."),
+			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_workfile_caching_loglevel,
+		DEBUG1, message_level_options, NULL, NULL
+	},
+
+	{
+		{"gp_sessionstate_loglevel", PGC_SUSET, DEVELOPER_OPTIONS,
+			gettext_noop("Sets the logging level for session state debugging messages"),
+			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, "
+						 "DEBUG1, LOG, NOTICE, WARNING, and ERROR. Each level includes all the "
+						 "levels that follow it. The later the level, the fewer messages are "
+						 "sent."),
+			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_sessionstate_loglevel,
+		DEBUG1, message_level_options, NULL, NULL
+	},
+
+	{
+		{"gp_test_time_slice_report_level", PGC_USERSET, LOGGING_WHEN,
+			gettext_noop("Sets the message level for time slice violation reports."),
+			gettext_noop("Valid values are NOTICE, WARNING, ERROR, FATAL and PANIC."),
+			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_test_time_slice_report_level,
+		ERROR, message_level_options, NULL, NULL
+	},
+
+	{
+		{"gp_test_deadlock_hazard_report_level", PGC_USERSET, LOGGING_WHEN,
+			gettext_noop("Sets the message level for deadlock hazard reports."),
+			gettext_noop("Valid values are NOTICE, WARNING, ERROR, FATAL and PANIC."),
+			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_test_deadlock_hazard_report_level,
+		ERROR, message_level_options, NULL, NULL
+	},
+
+	/* End-of-list marker */
+	{
+		{NULL, 0, 0, NULL, NULL}, NULL, 0, NULL, NULL, NULL
+	}
+};
+
 static const char *
 assign_gp_log_format(const char *value, bool doit, GucSource source)
 {
@@ -5639,48 +5623,6 @@ assign_debug_dtm_action_protocol(const char *newval,
 	else
 		return NULL;			/* fail */
 	return newval;				/* OK */
-}
-
-static const char *
-assign_debug_persistent_print_level(const char *newval,
-									bool doit, GucSource source)
-{
-	return (assign_msglvl(&Debug_persistent_print_level, newval, doit, source));
-}
-
-static const char *
-assign_debug_persistent_recovery_print_level(const char *newval,
-											 bool doit, GucSource source)
-{
-	return (assign_msglvl(&Debug_persistent_recovery_print_level, newval, doit, source));
-}
-
-static const char *
-assign_debug_persistent_store_print_level(const char *newval,
-										  bool doit, GucSource source)
-{
-	return (assign_msglvl(&Debug_persistent_store_print_level, newval, doit, source));
-}
-
-static const char *
-assign_debug_database_command_print_level(const char *newval,
-										  bool doit, GucSource source)
-{
-	return (assign_msglvl(&Debug_database_command_print_level, newval, doit, source));
-}
-
-static const char *
-assign_gp_workfile_caching_loglevel(const char *newval,
-									bool doit, GucSource source)
-{
-	return (assign_msglvl(&gp_workfile_caching_loglevel, newval, doit, source));
-}
-
-static const char *
-assign_gp_sessionstate_loglevel(const char *newval,
-								bool doit, GucSource source)
-{
-	return (assign_msglvl(&gp_sessionstate_loglevel, newval, doit, source));
 }
 
 static const char *
@@ -5787,18 +5729,6 @@ assign_optimizer_cost_model(const char *val, bool assign, GucSource source)
 		return NULL;			/* fail */
 	}
 	return val;
-}
-
-static const char *
-assign_time_slice_report_level(const char *newval, bool doit, GucSource source)
-{
-	return (assign_msglvl(&gp_test_time_slice_report_level, newval, doit, source));
-}
-
-static const char *
-assign_deadlock_hazard_report_level(const char *newval, bool doit, GucSource source)
-{
-	return (assign_msglvl(&gp_test_deadlock_hazard_report_level, newval, doit, source));
 }
 
 static const char *

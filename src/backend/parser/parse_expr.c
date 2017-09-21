@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_expr.c,v 1.226.2.5 2010/07/30 17:57:07 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_expr.c,v 1.227 2008/03/20 21:42:48 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -167,7 +167,7 @@ transformExpr(ParseState *pstate, Node *expr)
 		case T_TypeCast:
 			{
 				TypeCast   *tc = (TypeCast *) expr;
-				Node	   *arg = NULL;
+				Node	   *arg;
 
 				/*
 				 * If the subject of the typecast is an ARRAY[] construct and
@@ -1504,7 +1504,7 @@ transformArrayExpr(ParseState *pstate, A_ArrayExpr *a,
 		Oid			newe_type;
 
 		/*
-		 * If an element is itself an A_ArrayExpr, resurse directly so that
+		 * If an element is itself an A_ArrayExpr, recurse directly so that
 		 * we can pass down any target type we were given.
 		 */
 		if (IsA(e, A_ArrayExpr))
@@ -1556,7 +1556,7 @@ transformArrayExpr(ParseState *pstate, A_ArrayExpr *a,
 					(errcode(ERRCODE_INDETERMINATE_DATATYPE),
 					 errmsg("cannot determine type of empty array"),
 					 errhint("Explicitly cast to the desired type, "
-							"for example ARRAY[]::integer[].")));
+							 "for example ARRAY[]::integer[].")));
 
 		/* Select a common type for the elements */
 		coerce_type = select_common_type(typeids, "ARRAY");

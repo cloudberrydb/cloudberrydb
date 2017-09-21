@@ -27,18 +27,11 @@
  *	http://archives.postgresql.org/pgsql-bugs/2010-02/msg00187.php
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump.c,v 1.546 2009/08/04 19:46:51 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump.c,v 1.486 2008/03/28 00:21:56 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
 
-/*
- * Although this is not a backend module, we must include postgres.h anyway
- * so that we can include a bunch of backend include files.  pg_dump has
- * never pretended to be very independent of the backend anyhow ...
- * Is this still true?  PG 9 doesn't include this.
- */
-#include "postgres.h"
 #include "postgres_fe.h"
 
 #include <unistd.h>
@@ -56,12 +49,12 @@
 int			optreset;
 #endif
 
+#include "access/attnum.h"
 #include "access/htup.h"
 #include "catalog/pg_class.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_trigger.h"
 #include "catalog/pg_type.h"
-#include "commands/sequence.h"
 #include "libpq/libpq-fs.h"
 
 #include "pg_backup_archiver.h"
@@ -404,6 +397,9 @@ main(int argc, char **argv)
 	bool		outputBlobs = false;
 	int			outputNoOwner = 0;
 	char	   *outputSuperuser = NULL;
+	static int	disable_triggers = 0;
+	static int  outputNoTablespaces = 0;
+	static int	use_setsessauth = 0;
 
 	/*
 	 * The default value for gp_syntax_option depends upon whether or not the
@@ -415,10 +411,6 @@ main(int argc, char **argv)
 	}			gp_syntax_option = GPS_NOT_SPECIFIED;
 
 	RestoreOptions *ropt;
-
-	static int	disable_triggers = 0;
-	/* static int	outputNoTablespaces = 0; */
-	static int	use_setsessauth = 0;
 
 	struct option long_options[] = {
 		{"binary-upgrade", no_argument, &binary_upgrade, 1},	/* not documented */
@@ -459,6 +451,7 @@ main(int argc, char **argv)
 		{"disable-dollar-quoting", no_argument, &disable_dollar_quoting, 1},
 		{"disable-triggers", no_argument, &disable_triggers, 1},
 		{"inserts", no_argument, &dump_inserts, 1},
+		{"no-tablespaces", no_argument, &outputNoTablespaces, 1},
 		{"use-set-session-authorization", no_argument, &use_setsessauth, 1},
 
 		/* START MPP ADDITION */
@@ -635,6 +628,8 @@ main(int argc, char **argv)
 					disable_dollar_quoting = 1;
 				else if (strcmp(optarg, "disable-triggers") == 0)
 					disable_triggers = 1;
+				else if (strcmp(optarg, "no-tablespaces") == 0)
+					outputNoTablespaces = 1;
 				else if (strcmp(optarg, "use-set-session-authorization") == 0)
 					use_setsessauth = 1;
 				else
@@ -997,6 +992,7 @@ main(int argc, char **argv)
 		ropt->superuser = outputSuperuser;
 		ropt->createDB = outputCreateDB;
 		ropt->noOwner = outputNoOwner;
+		ropt->noTablespace = outputNoTablespaces;
 		ropt->disable_triggers = disable_triggers;
 		ropt->use_setsessauth = use_setsessauth;
 		ropt->dataOnly = dataOnly;
@@ -1029,8 +1025,7 @@ help(const char *progname)
 	printf(_("\nGeneral options:\n"));
 	printf(_("  -f, --file=FILENAME      output file name\n"));
 	printf(_("  -F, --format=c|t|p       output file format (custom, tar, plain text)\n"));
-	printf(_("  -i, --ignore-version     proceed even when server version mismatches\n"
-			 "                           pg_dump version\n"));
+	printf(_("  -i, --ignore-version     ignore server version mismatch\n"));
 	printf(_("  -v, --verbose            verbose mode\n"));
 	printf(_("  -Z, --compress=0-9       compression level for compressed formats\n"));
 	printf(_("  --help                   show this help, then exit\n"));
@@ -1057,6 +1052,7 @@ help(const char *progname)
 	printf(_("  -x, --no-privileges         do not dump privileges (grant/revoke)\n"));
 	printf(_("  --disable-dollar-quoting    disable dollar quoting, use SQL standard quoting\n"));
 	printf(_("  --disable-triggers          disable triggers during data-only restore\n"));
+	printf(_("  --no-tablespaces            do not dump tablespace assignments\n"));
 	printf(_("  --use-set-session-authorization\n"
 			 "                              use SESSION AUTHORIZATION commands instead of\n"
 	"                              ALTER OWNER commands to set ownership\n"));
@@ -11316,6 +11312,13 @@ dumpTrigger(Archive *fout, TriggerInfo *tginfo)
 			appendPQExpBuffer(query, " OR UPDATE");
 		else
 			appendPQExpBuffer(query, " UPDATE");
+	}
+	if (TRIGGER_FOR_TRUNCATE(tginfo->tgtype))
+	{
+		if (findx > 0)
+			appendPQExpBuffer(query, " OR TRUNCATE");
+		else
+			appendPQExpBuffer(query, " TRUNCATE");
 	}
 	appendPQExpBuffer(query, " ON %s\n",
 					  fmtId(tbinfo->dobj.name));

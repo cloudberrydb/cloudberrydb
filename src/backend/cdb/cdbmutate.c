@@ -15,6 +15,7 @@
 
 #include "postgres.h"
 
+#include "access/xact.h"
 #include "parser/analyze.h"		/* for createRandomDistribution() */
 #include "parser/parsetree.h"	/* for rt_fetch() */
 #include "parser/parse_expr.h"	/* for expr_type() */

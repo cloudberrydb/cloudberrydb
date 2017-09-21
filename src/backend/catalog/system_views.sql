@@ -5,7 +5,7 @@
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
  * Copyright (c) 1996-2010, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/backend/catalog/system_views.sql,v 1.48 2008/01/01 19:45:48 momjian Exp $
+ * $PostgreSQL: pgsql/src/backend/catalog/system_views.sql,v 1.49 2008/03/10 12:55:13 mha Exp $
  */
 
 CREATE VIEW pg_roles AS 
@@ -196,7 +196,7 @@ CREATE VIEW pg_settings AS
     SELECT * 
     FROM pg_show_all_settings() AS A 
     (name text, setting text, unit text, category text, short_desc text, extra_desc text,
-     context text, vartype text, source text, min_val text, max_val text);
+     context text, vartype text, source text, min_val text, max_val text, enumvals text);
 
 CREATE RULE pg_settings_u AS 
     ON UPDATE TO pg_settings 

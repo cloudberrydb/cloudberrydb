@@ -9,7 +9,7 @@
  * Copyright (c) 2000-2008, PostgreSQL Global Development Group
  * Written by Peter Eisentraut <peter_e@gmx.net>.
  *
- * $PostgreSQL: pgsql/src/include/utils/guc.h,v 1.90.2.1 2010/03/25 14:45:06 alvherre Exp $
+ * $PostgreSQL: pgsql/src/include/utils/guc.h,v 1.93 2008/04/02 14:42:56 mha Exp $
  *--------------------------------------------------------------------
  */
 #ifndef GUC_H
@@ -105,6 +105,15 @@ typedef enum
 	PGC_S_SESSION				/* SET command */
 } GucSource;
 
+/*
+ * Enum values are made up of an array of name-value pairs
+ */
+struct config_enum_entry
+{
+	const char *name;
+	int         val;
+};
+
 typedef struct name_value_pair
 {
 	char       *name;
@@ -122,6 +131,7 @@ typedef const char *(*GucStringAssignHook) (const char *newval, bool doit, GucSo
 typedef bool (*GucBoolAssignHook) (bool newval, bool doit, GucSource source);
 typedef bool (*GucIntAssignHook) (int newval, bool doit, GucSource source);
 typedef bool (*GucRealAssignHook) (double newval, bool doit, GucSource source);
+typedef bool (*GucEnumAssignHook) (int newval, bool doit, GucSource source);
 
 typedef const char *(*GucShowHook) (void);
 
@@ -618,6 +628,16 @@ extern void DefineCustomStringVariable(
 						   GucStringAssignHook assign_hook,
 						   GucShowHook show_hook);
 
+extern void DefineCustomEnumVariable(
+						   const char *name,
+						   const char *short_desc,
+						   const char *long_desc,
+						   int *valueAddr,
+						   const struct config_enum_entry *options,
+						   GucContext context,
+						   GucEnumAssignHook assign_hook,
+						   GucShowHook show_hook);
+
 extern void EmitWarningsOnPlaceholders(const char *className);
 
 extern const char *GetConfigOption(const char *name);
@@ -688,10 +708,6 @@ extern const char *assign_default_tablespace(const char *newval,
 						  bool doit, GucSource source);
 extern const char *assign_temp_tablespaces(const char *newval,
 						bool doit, GucSource source);
-
-/* in utils/adt/regexp.c */
-extern const char *assign_regex_flavor(const char *value,
-					bool doit, GucSource source);
 
 /* in catalog/namespace.c */
 extern const char *assign_search_path(const char *newval,
