@@ -1245,7 +1245,8 @@ test__MemoryAccounting_SaveToFile__GeneratesCorrectString(void **state)
 
 	int memoryOwnerTypes[] = {MEMORY_STAT_TYPE_VMEM_RESERVED, MEMORY_STAT_TYPE_MEMORY_ACCOUNTING_PEAK,
 			MEMORY_OWNER_TYPE_LogicalRoot, MEMORY_OWNER_TYPE_Top, MEMORY_OWNER_TYPE_Exec_Hash ,
-			MEMORY_OWNER_TYPE_Exec_AlienShared, MEMORY_OWNER_TYPE_MemAccount, MEMORY_OWNER_TYPE_Rollover,
+			MEMORY_OWNER_TYPE_Exec_AlienShared, MEMORY_OWNER_TYPE_MemAccount,
+			MEMORY_OWNER_TYPE_Rollover,
 			MEMORY_OWNER_TYPE_SharedChunkHeader};
 
 	char runId[80];

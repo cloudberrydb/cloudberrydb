@@ -233,5 +233,4 @@ MemoryAccounting_SaveToLog(void);
 extern void
 MemoryAccounting_PrettyPrint(void);
 
-
 #endif   /* MEMACCOUNTING_H */

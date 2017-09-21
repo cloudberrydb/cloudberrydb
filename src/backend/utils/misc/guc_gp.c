@@ -460,6 +460,7 @@ bool		optimizer_minidump;
 int			optimizer_cost_model;
 bool		optimizer_metadata_caching;
 int			optimizer_mdcache_size;
+bool		optimizer_use_gpdb_allocators;
 
 /* Optimizer debugging GUCs */
 bool		optimizer_print_query;
@@ -3170,6 +3171,16 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_array_constraints,
+		false, NULL, NULL
+	},
+
+	{
+		{"optimizer_use_gpdb_allocators", PGC_POSTMASTER, RESOURCES_MEM,
+			gettext_noop("Enable ORCA to use GPDB Memory Accounting"),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_use_gpdb_allocators,
 		false, NULL, NULL
 	},
 

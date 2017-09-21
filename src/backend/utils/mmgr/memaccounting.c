@@ -25,6 +25,8 @@
 #include "miscadmin.h"
 #include "utils/vmem_tracker.h"
 #include "utils/memaccounting_private.h"
+#include "utils/gp_alloc.h"
+#include "utils/ext_alloc.h"
 
 #define MEMORY_REPORT_FILE_NAME_LENGTH 255
 #define SHORT_LIVING_MEMORY_ACCOUNT_ARRAY_INIT_LEN 64
@@ -627,6 +629,23 @@ InitializeMemoryAccount(MemoryAccount *newAccount, long maxLimit, MemoryOwnerTyp
 	newAccount->maxLimit = maxLimit;
 
 	newAccount->allocated = 0;
+
+	/*
+	 * Every call to ORCA to optimize a query maps to a new short living memory
+	 * account. However, the nature of Orca's memory usage is that it holds data
+	 * in a cache. Thus, GetOptimizerOutstandingMemoryBalance() returns the
+	 * current amount of memory that Orca has not yet freed according to the
+	 * Memory Accounting framework. Each new Orca memory account will start off
+	 * its 'allocated' amount from the outstanding amount. This approach ensures
+	 * that when Orca does release memory it allocated during an earlier
+	 * generation that the accounting math does not lead to an underflow but
+	 * properly accounts for the outstanding amount.
+	 */
+	if (ownerType == MEMORY_OWNER_TYPE_Optimizer)
+	{
+		elog(DEBUG2, "Rolling over previous outstanding Optimizer allocated memory %lu", GetOptimizerOutstandingMemoryBalance());
+		newAccount->allocated = GetOptimizerOutstandingMemoryBalance();
+	}
 	newAccount->freed = 0;
 	newAccount->peak = 0;
 	newAccount->parentId = parentAccountId;
@@ -669,7 +688,8 @@ CreateMemoryAccountImpl(long maxLimit, MemoryOwnerType ownerType, MemoryAccountI
 	 * TopMemoryContext, and not under MemoryAccountMemoryContext
 	 */
 	Assert(ownerType == MEMORY_OWNER_TYPE_LogicalRoot || ownerType == MEMORY_OWNER_TYPE_SharedChunkHeader ||
-			ownerType == MEMORY_OWNER_TYPE_Rollover || ownerType == MEMORY_OWNER_TYPE_MemAccount ||
+			ownerType == MEMORY_OWNER_TYPE_Rollover ||
+			ownerType == MEMORY_OWNER_TYPE_MemAccount ||
 			ownerType == MEMORY_OWNER_TYPE_Exec_AlienShared ||
 			(MemoryAccountMemoryContext != NULL && MemoryAccountMemoryAccount != NULL));
 
@@ -1289,6 +1309,7 @@ AdvanceMemoryAccountingGeneration()
 	 * reset.
 	 */
 	MemoryAccounting_SwitchAccount((MemoryAccountIdType)MEMORY_OWNER_TYPE_Rollover);
+
 	MemoryContextReset(MemoryAccountMemoryContext);
 	Assert(MemoryAccountMemoryAccount->allocated == MemoryAccountMemoryAccount->freed);
 	shortLivingMemoryAccountArray = NULL;

@@ -503,6 +503,8 @@ extern bool optimizer_enable_space_pruning;
 extern bool optimizer_analyze_root_partition;
 extern bool optimizer_analyze_midlevel_partition;
 
+extern bool optimizer_use_gpdb_allocators;
+
 
 /**
  * GUCs related to code generation.

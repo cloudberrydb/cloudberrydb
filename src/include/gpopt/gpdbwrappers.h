@@ -635,6 +635,11 @@ namespace gpdb {
 	// table has been changed?)
 	bool FMDCacheNeedsReset(void);
 
+	// functions for tracking ORCA memory consumption
+	void *OptimizerAlloc(size_t size);
+
+	void OptimizerFree(void *ptr);
+
 } //namespace gpdb
 
 #define ForEach(cell, l)	\
