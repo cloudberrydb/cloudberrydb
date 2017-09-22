@@ -71,7 +71,6 @@ typedef struct IndexScanDescData
 	Snapshot	xs_snapshot;	/* snapshot to see */
 	int			numberOfKeys;	/* number of scan keys */
 	ScanKey		keyData;		/* array of scan key descriptors */
-	bool		is_multiscan;	/* TRUE = using amgetmulti */
 
 	/* signaling to index AM about killing index tuples */
 	bool		kill_prior_tuple;		/* last-returned tuple is dead */

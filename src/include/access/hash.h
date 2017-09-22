@@ -233,7 +233,7 @@ extern Datum hashbuild(PG_FUNCTION_ARGS);
 extern Datum hashinsert(PG_FUNCTION_ARGS);
 extern Datum hashbeginscan(PG_FUNCTION_ARGS);
 extern Datum hashgettuple(PG_FUNCTION_ARGS);
-extern Datum hashgetmulti(PG_FUNCTION_ARGS);
+extern Datum hashgetbitmap(PG_FUNCTION_ARGS);
 extern Datum hashrescan(PG_FUNCTION_ARGS);
 extern Datum hashendscan(PG_FUNCTION_ARGS);
 extern Datum hashmarkpos(PG_FUNCTION_ARGS);

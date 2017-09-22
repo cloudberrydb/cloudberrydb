@@ -1490,7 +1490,7 @@
 -- the bitmap index access method routines
  CREATE FUNCTION bmgettuple(internal, internal) RETURNS bool LANGUAGE internal VOLATILE STRICT AS 'bmgettuple' WITH (OID=3050, DESCRIPTION="bitmap(internal)");
 
- CREATE FUNCTION bmgetmulti(internal, internal) RETURNS internal LANGUAGE internal VOLATILE STRICT AS 'bmgetmulti' WITH (OID=3051, DESCRIPTION="bitmap(internal)");
+ CREATE FUNCTION bmgetbitmap(internal, internal) RETURNS internal LANGUAGE internal VOLATILE STRICT AS 'bmgetbitmap' WITH (OID=3051, DESCRIPTION="bitmap(internal)");
 
  CREATE FUNCTION bminsert(internal, internal, internal, internal, internal, internal) RETURNS bool LANGUAGE internal VOLATILE STRICT AS 'bminsert' WITH (OID=3001, DESCRIPTION="bitmap(internal)");
 

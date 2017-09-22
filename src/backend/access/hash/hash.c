@@ -281,80 +281,67 @@ hashgettuple(PG_FUNCTION_ARGS)
 }
 
 /*
- * hashgetmulti() -- get the next bitmap for the scan.
+ * hashgetbitmap() -- get all tuples at once
  */
 Datum
-hashgetmulti(PG_FUNCTION_ARGS)
+hashgetbitmap(PG_FUNCTION_ARGS)
 {
 	MIRROREDLOCK_BUFMGR_DECLARE;
 
 	IndexScanDesc 	scan = (IndexScanDesc) PG_GETARG_POINTER(0);
 	Node		   *n = (Node *) PG_GETARG_POINTER(1);
-	HashBitmap	   *hashBitmap;
+	HashBitmap	   *tbm;
 	HashScanOpaque	so = (HashScanOpaque) scan->opaque;
-	Relation		rel = scan->indexRelation;
+	bool			res;
+	int64			ntids = 0;
 
 	if (n == NULL)
-		hashBitmap = tbm_create(work_mem * 1024L);
+		tbm = tbm_create(work_mem * 1024L);
 	else if (!IsA(n, HashBitmap))
 		elog(ERROR, "non hash bitmap");
 	else
-		hashBitmap = (HashBitmap *)n;
+		tbm = (HashBitmap *) n;
 
-	/*
-	 * We hold pin but not lock on current buffer while outside the hash AM.
-	 * Reacquire the read lock here.
-	 */
-	
 	// -------- MirroredLock ----------
 	MIRROREDLOCK_BUFMGR_LOCK;
 	
-	if (BufferIsValid(so->hashso_curbuf))
-		_hash_chgbufaccess(rel, so->hashso_curbuf, HASH_NOLOCK, HASH_READ);
+	res = _hash_first(scan, ForwardScanDirection);
 
-	while (true)
+	while (res)
 	{
-		bool res;
-		/*
-		 * Start scan, or advance to next tuple.
-		 */
-		if (ItemPointerIsValid(&(so->hashso_curpos)))
-			res = _hash_next(scan, ForwardScanDirection);
-		else
-			res = _hash_first(scan, ForwardScanDirection);
+		bool		add_tuple;
+
+		CHECK_FOR_INTERRUPTS();
 
 		/*
 		 * Skip killed tuples if asked to.
 		 */
 		if (scan->ignore_killed_tuples)
 		{
-			while (res)
-			{
-				Page		page;
-				OffsetNumber offnum;
+			Page		page;
+			OffsetNumber offnum;
 
-				offnum = ItemPointerGetOffsetNumber(&(so->hashso_curpos));
-				page = BufferGetPage(so->hashso_curbuf);
-				if (!ItemIdIsDead(PageGetItemId(page, offnum)))
-					break;
-				res = _hash_next(scan, ForwardScanDirection);
-			}
+			offnum = ItemPointerGetOffsetNumber(&(so->hashso_curpos));
+			page = BufferGetPage(so->hashso_curbuf);
+			add_tuple = !ItemIdIsDead(PageGetItemId(page, offnum));
+		}
+		else
+			add_tuple = true;
+
+		/* Save tuple ID, and continue scanning */
+		if (add_tuple)
+		{
+			tbm_add_tuples(tbm, &scan->xs_ctup.t_self, 1, false);
+			ntids++;
 		}
 
-		if (!res)
-			break;
-		/* Save tuple ID, and continue scanning */
-		tbm_add_tuples(hashBitmap, &(scan->xs_ctup.t_self), 1);
+		res = _hash_next(scan, ForwardScanDirection);
 	}
 
-	/* Release read lock on current buffer, but keep it pinned */
-	if (BufferIsValid(so->hashso_curbuf))
-		_hash_chgbufaccess(rel, so->hashso_curbuf, HASH_READ, HASH_NOLOCK);
-	
 	MIRROREDLOCK_BUFMGR_UNLOCK;
 	// -------- MirroredLock ----------
 
-	PG_RETURN_POINTER(hashBitmap);
+	PG_RETURN_POINTER(tbm);
 }
 
 /*
