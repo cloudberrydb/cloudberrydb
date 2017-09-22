@@ -268,6 +268,9 @@ namespace gpopt
 			// subset of the given constraints, which reference the given column
 			static
 			DrgPcnstr *PdrgpcnstrOnColumn(IMemoryPool *pmp, DrgPcnstr *pdrgpcnstr, CColRef *pcr, BOOL fExclusive);
+#ifdef GPOS_DEBUG
+			void DbgPrint() const;
+#endif  // GPOS_DEBUG
 
 	}; // class CConstraint
 

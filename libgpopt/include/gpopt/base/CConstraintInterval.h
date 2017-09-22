@@ -14,6 +14,9 @@
 #define GPOPT_CConstraintInterval_H
 
 #include "gpos/base.h"
+#include "gpos/task/CAutoTraceFlag.h"
+#include "gpos/error/CAutoTrace.h"
+#include "naucrates/traceflags/traceflags.h"
 
 #include "gpopt/base/CConstraint.h"
 #include "gpopt/base/CRange.h"
@@ -296,6 +299,10 @@ namespace gpopt
 				CColRef *pcr
 				);
 
+
+#ifdef GPOS_DEBUG
+			void DbgPrint() const;
+#endif  // GPOS_DEBUG
 	}; // class CConstraintInterval
 
 	// shorthand for printing, reference
