@@ -79,7 +79,7 @@ uninstall:
 	rm -f '$(DESTDIR)$(bindir)/gpmapreduce$(X)'
 
 clean distclean maintainer-clean: clean-lib
-	rm -f gpmapreduce$(X) $(MAPREDOBJS) $(GENOBJS)
+	rm -f gpmapreduce$(X) $(MAPREDOBJS) $(GENOBJS) $(OBJS)
 
 # Other dependencies
 $(SRCDIR)/yaml_parse.c  : $(INCDIR)/parser.h $(INCDIR)/mapred.h
