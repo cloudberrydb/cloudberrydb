@@ -23,7 +23,7 @@ OBJS = acl.o array_userfuncs.o arrayfuncs.o arrayutils.o ascii.o \
 	gp_partition_functions.o inet_cidr_ntop.o inet_net_pton.o int.o \
 	int8.o interpolate.o like.o lockfuncs.o mac.o matrix.o misc.o nabstime.o name.o \
 	network.o numeric.o numutils.o oid.o oracle_compat.o \
-	percentile.o pg_locale.o pg_lzcompress.o pgstatfuncs.o pivot.o \
+	pg_locale.o pg_lzcompress.o pgstatfuncs.o pivot.o \
 	pseudotypes.o quote.o regexp.o regproc.o ri_triggers.o rowtypes.o \
 	ruleutils.o selfuncs.o tid.o timestamp.o trigfuncs.o varbit.o varchar.o varlena.o version.o \
 	tsginidx.o tsgistidx.o tsquery.o tsquery_cleanup.o tsquery_gist.o \

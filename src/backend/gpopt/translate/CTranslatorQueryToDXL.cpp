@@ -302,7 +302,6 @@ CTranslatorQueryToDXL::CheckUnsupportedNodeTypes
 		{T_FieldStore, GPOS_WSZ_LIT("FIELDSTORE")},
 		{T_CoerceToDomainValue, GPOS_WSZ_LIT("COERCETODOMAINVALUE")},
 		{T_GroupId, GPOS_WSZ_LIT("GROUPID")},
-		{T_PercentileExpr, GPOS_WSZ_LIT("PERCENTILE")},
 		{T_CurrentOfExpr, GPOS_WSZ_LIT("CURRENT OF")},
 	};
 
@@ -1974,7 +1973,7 @@ CTranslatorQueryToDXL::PdxlnSimpleGroupBy
 			// find colid for grouping column
 			ulColId = CTranslatorUtils::UlColId(ulResNo, phmiulChild);
 		}
-		else if (IsA(pte->expr, Aggref) || IsA(pte->expr, PercentileExpr))
+		else if (IsA(pte->expr, Aggref))
 		{
 			if (IsA(pte->expr, Aggref) && ((Aggref *) pte->expr)->aggdistinct && !FDuplicateDqaArg(plDQA, (Aggref *) pte->expr))
 			{
@@ -1989,7 +1988,7 @@ CTranslatorQueryToDXL::PdxlnSimpleGroupBy
 			AddSortingGroupingColumn(pte, phmiulSortgrouprefColId, ulColId);
 		}
 
-		if (fGroupingCol || IsA(pte->expr, Aggref) || IsA(pte->expr, PercentileExpr))
+		if (fGroupingCol || IsA(pte->expr, Aggref))
 		{
 			// add to the list of output columns
 			StoreAttnoColIdMapping(phmiulOutputCols, ulResNo, ulColId);

@@ -480,23 +480,6 @@ _readGroupId(void)
 	READ_DONE();
 }
 
-static PercentileExpr *
-_readPercentileExpr(void)
-{
-	READ_LOCALS(PercentileExpr);
-
-	READ_OID_FIELD(perctype);
-	READ_NODE_FIELD(args);
-	READ_ENUM_FIELD(perckind, PercKind);
-	READ_NODE_FIELD(sortClause);
-	READ_NODE_FIELD(sortTargets);
-	READ_NODE_FIELD(pcExpr);
-	READ_NODE_FIELD(tcExpr);
-	READ_LOCATION_FIELD(location);
-
-	READ_DONE();
-}
-
 static WindowClause *
 _readWindowClause(void)
 {
@@ -3097,8 +3080,6 @@ parseNodeString(void)
 		return_value = _readPgPartRule();
 	else if (MATCHX("PARTITIONRULE"))
 		return_value = _readPartitionRule();
-	else if (MATCHX("PERCENTILEEXPR"))
-		return_value = _readPercentileExpr();
 	else if (MATCHX("PRIVGRANTEE"))
 		return_value = _readPrivGrantee();
 	else if (MATCHX("REINDEXSTMT"))

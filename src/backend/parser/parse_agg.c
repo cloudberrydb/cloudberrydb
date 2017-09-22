@@ -418,22 +418,6 @@ parseCheckAggregates(ParseState *pstate, Query *qry)
 							groupClauses, have_non_var_grouping);
 
 	/*
-	 * Unfortunately, percentile functions in CSQ return wrong result
-	 * and looks like a big effort to fix.  The issue is that cdbllize tries
-	 * to push down Param node to subquery, but it fails to do it in
-	 * some circomstances.  The future planner may be able to
-	 * handle this case correctly.
-	 */
-	if (contain_vars_of_level_or_above((Node *) qry, 1))
-	{
-		if (extract_nodes(NULL, (Node *) qry->targetList, T_PercentileExpr) ||
-			extract_nodes(NULL, qry->havingQual, T_PercentileExpr))
-			ereport(ERROR,
-					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("correlated subquery cannot contain percentile functions")));
-	}
-
-	/*
 	 * Per spec, aggregates can't appear in a recursive term.
 	 */
 	if (pstate->p_hasAggs && hasSelfRefRTEs)
@@ -586,13 +570,6 @@ check_ungrouped_columns_walker(Node *node,
 	 */
 	if (IsA(node, Aggref) &&
 		(int) ((Aggref *) node)->agglevelsup >= context->sublevels_up)
-		return false;
-
-	/*
-	 * PercentileExpr's levelsup is zero.
-	 */
-	if (IsA(node, PercentileExpr) &&
-		0 >= context->sublevels_up)
 		return false;
 
 	/*

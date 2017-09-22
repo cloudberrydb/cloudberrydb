@@ -69,7 +69,7 @@ CQueryMutators::FNeedsPrLNormalization
 
 		// Normalize when there is an expression that is neither used for grouping
 		// nor is an aggregate function
-		if (!IsA(pte->expr, PercentileExpr) && !IsA(pte->expr, Aggref) && !IsA(pte->expr, GroupingFunc) && !CTranslatorUtils::FGroupingColumn( (Node*) pte->expr, pquery->groupClause, pquery->targetList))
+		if (!IsA(pte->expr, Aggref) && !IsA(pte->expr, GroupingFunc) && !CTranslatorUtils::FGroupingColumn( (Node*) pte->expr, pquery->groupClause, pquery->targetList))
 		{
 			return true;
 		}
@@ -99,7 +99,7 @@ CQueryMutators::FNeedsToFallback
 		return false;
 	}
 
-	if (IsA(pnode, Const) || IsA(pnode, Aggref) || IsA(pnode, PercentileExpr) || IsA(pnode, GroupingFunc) || IsA(pnode, SubLink))
+	if (IsA(pnode, Const) || IsA(pnode, Aggref) || IsA(pnode, GroupingFunc) || IsA(pnode, SubLink))
 	{
 		return false;
 	}
@@ -203,8 +203,8 @@ CQueryMutators::PqueryNormalizeGrpByPrL
 			pte->expr = (Expr*) PnodeGrpbyPrLMutator( (Node*) pte->expr, &ctxGbPrLMutator);
 			GPOS_ASSERT
 				(
-				(!IsA(pte->expr, Aggref) && !IsA(pte->expr, PercentileExpr)) && !IsA(pte->expr, GroupingFunc) &&
-				"New target list entry should not contain any Aggrefs or PercentileExpr"
+				!IsA(pte->expr, Aggref) && !IsA(pte->expr, GroupingFunc) &&
+				"New target list entry should not contain any Aggrefs"
 				);
 		}
 	}
@@ -519,7 +519,7 @@ CQueryMutators::PnodeGrpbyPrLMutator
 		paggref->args = plArgsNew;
 
 		const ULONG ulAttno = gpdb::UlListLength(pctxGrpByMutator->m_plTENewGroupByQuery) + 1;
-		TargetEntry *pte = PteAggregateOrPercentileExpr(pctxGrpByMutator->m_pmp, pctxGrpByMutator->m_pmda, (Node *) paggref, ulAttno);
+		TargetEntry *pte = PteAggregateExpr(pctxGrpByMutator->m_pmp, pctxGrpByMutator->m_pmda, (Node *) paggref, ulAttno);
 
 		// Add a new target entry to the query
 		pctxGrpByMutator->m_plTENewGroupByQuery = gpdb::PlAppendElement(pctxGrpByMutator->m_plTENewGroupByQuery, pte);
@@ -536,12 +536,12 @@ CQueryMutators::PnodeGrpbyPrLMutator
 		return (Node*) pvarNew;
 	}
 
-	if (IsA(pnode, PercentileExpr) || IsA(pnode, GroupingFunc))
+	if (IsA(pnode, GroupingFunc))
 	{
 		Node *pnodeCopy = (Node *) gpdb::PvCopyObject(pnode);
 
 		const ULONG ulAttno = gpdb::UlListLength(pctxGrpByMutator->m_plTENewGroupByQuery) + 1;
-		TargetEntry *pte = PteAggregateOrPercentileExpr(pctxGrpByMutator->m_pmp, pctxGrpByMutator->m_pmda, pnodeCopy, ulAttno);
+		TargetEntry *pte = PteAggregateExpr(pctxGrpByMutator->m_pmp, pctxGrpByMutator->m_pmda, pnodeCopy, ulAttno);
 
 		// Add a new target entry to the query
 		pctxGrpByMutator->m_plTENewGroupByQuery = gpdb::PlAppendElement(pctxGrpByMutator->m_plTENewGroupByQuery, pte);
@@ -681,7 +681,7 @@ CQueryMutators::PnodeGrpColMutator
 		return (Node*) paggref;
 	}
 
-	if (IsA(pnode, PercentileExpr) || IsA(pnode, GroupingFunc))
+	if (IsA(pnode, GroupingFunc))
 	{
 		return (Node *) gpdb::PvCopyObject(pnode);
 	}
@@ -819,13 +819,13 @@ CQueryMutators::PnodeFixGrpCol
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CQueryMutators::PteAggregateOrPercentileExpr
+//		CQueryMutators::PteAggregateExpr
 //
 //	@doc:
-// 		Return a target entry for an aggregate or percentile expression
+// 		Return a target entry for an aggregate expression
 //---------------------------------------------------------------------------
 TargetEntry *
-CQueryMutators::PteAggregateOrPercentileExpr
+CQueryMutators::PteAggregateExpr
 	(
 	IMemoryPool *pmp,
 	CMDAccessor *pmda,
@@ -833,29 +833,11 @@ CQueryMutators::PteAggregateOrPercentileExpr
 	ULONG ulAttno
 	)
 {
-	GPOS_ASSERT(IsA(pnode, PercentileExpr) || IsA(pnode, Aggref) || IsA(pnode, GroupingFunc));
+	GPOS_ASSERT(IsA(pnode, Aggref) || IsA(pnode, GroupingFunc));
 
 	// get the function/aggregate name
 	CHAR *szName = NULL;
-	if (IsA(pnode, PercentileExpr))
-	{
-		PercentileExpr *ppercentile = (PercentileExpr*) pnode;
-
-		if (PERC_MEDIAN == ppercentile->perckind)
-		{
-			szName = CTranslatorUtils::SzFromWsz(GPOS_WSZ_LIT("Median"));
-		}
-		else if (PERC_CONT == ppercentile->perckind)
-		{
-			szName = CTranslatorUtils::SzFromWsz(GPOS_WSZ_LIT("Cont"));
-		}
-		else
-		{
-			GPOS_ASSERT(PERC_DISC == ppercentile->perckind);
-			szName = CTranslatorUtils::SzFromWsz(GPOS_WSZ_LIT("Disc"));
-		}
-	}
-	else if (IsA(pnode, GroupingFunc))
+	if (IsA(pnode, GroupingFunc))
 	{
 		szName = CTranslatorUtils::SzFromWsz(GPOS_WSZ_LIT("grouping"));
 	}
@@ -923,7 +905,7 @@ CQueryMutators::PnodeHavingQualMutator
 			return pnodeFound;
 		}
 
-		if (IsA(pnode, PercentileExpr) || IsA(pnode, GroupingFunc))
+		if (IsA(pnode, GroupingFunc))
 		{
 			// create a new entry in the derived table and return its corresponding var
 			Node *pnodeCopy = (Node*) gpdb::PvCopyObject(pnode);
@@ -1091,10 +1073,10 @@ CQueryMutators::PvarInsertIntoDerivedTable
 {
 	GPOS_ASSERT(NULL != pnode);
 	GPOS_ASSERT(NULL != context);
-	GPOS_ASSERT(IsA(pnode, PercentileExpr) || IsA(pnode, Aggref) || IsA(pnode, GroupingFunc));
+	GPOS_ASSERT(IsA(pnode, Aggref) || IsA(pnode, GroupingFunc));
 
 	const ULONG ulAttno = gpdb::UlListLength(context->m_plTENewGroupByQuery) + 1;
-	TargetEntry *pte = PteAggregateOrPercentileExpr(context->m_pmp, context->m_pmda, (Node *) pnode, ulAttno);
+	TargetEntry *pte = PteAggregateExpr(context->m_pmp, context->m_pmda, (Node *) pnode, ulAttno);
 	context->m_plTENewGroupByQuery = gpdb::PlAppendElement(context->m_plTENewGroupByQuery, pte);
 
 	Var *pvarNew = gpdb::PvarMakeVar

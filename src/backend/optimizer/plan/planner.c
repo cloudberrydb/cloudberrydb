@@ -1387,7 +1387,6 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		WindowFuncLists *wflists = NULL;
 		List	   *activeWindows = NIL;
 		bool		grpext = false;
-		bool		has_within = false;
 		CanonicalGroupingSets *canonical_grpsets;
 
 		MemSet(&agg_counts, 0, sizeof(AggClauseCounts));
@@ -1434,13 +1433,6 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		}
 
 		grpext = is_grouping_extension(canonical_grpsets);
-		has_within = extract_nodes(NULL, (Node *) tlist, T_PercentileExpr) != NIL;
-		has_within |= extract_nodes(NULL, parse->havingQual, T_PercentileExpr) != NIL;
-
-		if (grpext && has_within)
-			ereport(ERROR,
-					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("WITHIN GROUP aggregate cannot be used in GROUPING SETS query")));
 
 		/*
 		 * Calculate pathkeys that represent grouping/ordering requirements.
@@ -1626,7 +1618,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			bool		pass_subtlist = false;
 			GroupContext group_context;
 
-			pass_subtlist = (agg_counts.aggOrder != NIL || has_within);
+			pass_subtlist = (agg_counts.aggOrder != NIL);
 			group_context.best_path = best_path;
 			group_context.cheapest_path = cheapest_path;
 			group_context.subplan = NULL;
@@ -1645,15 +1637,9 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			group_context.pcurrent_pathkeys = &current_pathkeys;
 			group_context.querynode_changed = &querynode_changed;
 
-			/* within_agg_planner calls cdb_grouping_planner */
-			if (has_within)
-				result_plan = within_agg_planner(root,
-												 &agg_counts,
-												 &group_context);
-			else
-				result_plan = cdb_grouping_planner(root,
-												   &agg_counts,
-												   &group_context);
+			result_plan = cdb_grouping_planner(root,
+											   &agg_counts,
+											   &group_context);
 
 			/* Add the Repeat node if needed. */
 			if (result_plan != NULL &&

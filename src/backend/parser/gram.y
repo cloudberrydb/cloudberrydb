@@ -615,13 +615,13 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 
 	LIST LOG_P
 
-	MASTER MEDIAN MISSING MODIFIES
+	MASTER MISSING MODIFIES
 
 	NEWLINE NOCREATEEXTTABLE NOOVERCOMMIT
 
 	ORDERED OTHERS OVER OVERCOMMIT
 
-	PARTITION PARTITIONS PASSING PERCENT PERCENTILE_CONT PERCENTILE_DISC
+	PARTITION PARTITIONS PASSING PERCENT
 	PRECEDING PROTOCOL
 
 	QUEUE
@@ -963,7 +963,6 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 			%nonassoc INTEGER
 			%nonassoc INTERVAL
 			%nonassoc LEAST
-			%nonassoc MEDIAN
 			%nonassoc NATIONAL
 			%nonassoc NCHAR
 			%nonassoc NONE
@@ -971,8 +970,6 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 			%nonassoc NUMERIC
 			%nonassoc OUT_P
 			%nonassoc OVERLAY
-			%nonassoc PERCENTILE_CONT
-			%nonassoc PERCENTILE_DISC
 			%nonassoc POSITION
 			%nonassoc PRECISION
 			%nonassoc REAL
@@ -12138,54 +12135,6 @@ func_expr:	simple_func FILTER '(' WHERE a_expr ')'
 					GroupId *gid = makeNode(GroupId);
 					$$ = (Node *)gid;
 				}
-			| MEDIAN '(' a_expr ')'
-				{
-					/*
-					 * MEDIAN is parsed as an alias to percentile_cont(0.5).
-					 * We keep track of original expression to deparse
-					 * it later in views, etc.
-					 */
-					PercentileExpr *n = makeNode(PercentileExpr);
-					SortBy		   *sortby;
-
-					n->perctype = UNKNOWNOID;
-					n->args = list_make1(makeAConst(makeFloat(pstrdup("0.5")), @1));
-					n->perckind = PERC_MEDIAN;
-					sortby = makeNode(SortBy);
-					sortby->node = $3;
-					sortby->sortby_dir = SORTBY_DEFAULT;
-					sortby->sortby_nulls = SORTBY_NULLS_DEFAULT;
-					sortby->useOp = NIL;
-					sortby->location = -1;		/* no operator */
-					n->sortClause = list_make1(sortby);
-					n->location = @1;
-					$$ = (Node *) n;
-				}
-			| PERCENTILE_CONT '(' a_expr ')' WITHIN GROUP_P '(' ORDER BY sortby_list ')'
-				{
-					/*
-					 * PERCENTILE_CONT and PERCENTILE_DISC are supported as
-					 * grammer for now.  When it comes to catalog support,
-					 * we'll be able to remove this grammer.
-					 */
-					PercentileExpr *n = makeNode(PercentileExpr);
-					n->perctype = UNKNOWNOID;
-					n->args = list_make1($3);
-					n->perckind = PERC_CONT;
-					n->sortClause = $10;
-					n->location = @1;
-					$$ = (Node *) n;
-				}
-			| PERCENTILE_DISC '(' a_expr ')' WITHIN GROUP_P '(' ORDER BY sortby_list ')'
-				{
-					PercentileExpr *n = makeNode(PercentileExpr);
-					n->perctype = UNKNOWNOID;
-					n->args = list_make1($3);
-					n->perckind = PERC_DISC;
-					n->sortClause = $10;
-					n->location = @1;
-					$$ = (Node *) n;
-				}
 			| DECODE '(' a_expr ',' a_expr ')'
 				{
 					FuncCall *n = makeNode(FuncCall);
@@ -13955,7 +13904,6 @@ col_name_keyword:
 			| INTEGER
 			| INTERVAL
 			| LEAST
-			| MEDIAN
 			| NATIONAL
 			| NCHAR
 			| NONE
@@ -13963,8 +13911,6 @@ col_name_keyword:
 			| NUMERIC
 			| OUT_P
 			| OVERLAY
-			| PERCENTILE_CONT
-			| PERCENTILE_DISC
 			| POSITION
 			| PRECISION
 			| REAL

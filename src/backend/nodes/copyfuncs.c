@@ -2378,23 +2378,6 @@ _copyGroupId(GroupId *from)
 	return newnode;
 }
 
-static PercentileExpr *
-_copyPercentileExpr(PercentileExpr *from)
-{
-	PercentileExpr *newnode = makeNode(PercentileExpr);
-
-	COPY_SCALAR_FIELD(perctype);
-	COPY_NODE_FIELD(args);
-	COPY_SCALAR_FIELD(perckind);
-	COPY_NODE_FIELD(sortClause);
-	COPY_NODE_FIELD(sortTargets);
-	COPY_NODE_FIELD(pcExpr);
-	COPY_NODE_FIELD(tcExpr);
-	COPY_LOCATION_FIELD(location);
-
-	return newnode;
-}
-
 static WindowClause *
 _copyWindowClause(WindowClause *from)
 {
@@ -5582,9 +5565,6 @@ copyObject(void *from)
 			break;
 		case T_GroupId:
 			retval = _copyGroupId(from);
-			break;
-		case T_PercentileExpr:
-			retval = _copyPercentileExpr(from);
 			break;
 		case T_WindowClause:
 			retval = _copyWindowClause(from);

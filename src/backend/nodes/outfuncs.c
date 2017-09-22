@@ -3594,21 +3594,6 @@ _outGroupId(StringInfo str, GroupId *node __attribute__((unused)))
 }
 
 static void
-_outPercentileExpr(StringInfo str, PercentileExpr *node)
-{
-	WRITE_NODE_TYPE("PERCENTILEEXPR");
-
-	WRITE_OID_FIELD(perctype);
-	WRITE_NODE_FIELD(args);
-	WRITE_ENUM_FIELD(perckind, PercKind);
-	WRITE_NODE_FIELD(sortClause);
-	WRITE_NODE_FIELD(sortTargets);
-	WRITE_NODE_FIELD(pcExpr);
-	WRITE_NODE_FIELD(tcExpr);
-	WRITE_LOCATION_FIELD(location);
-}
-
-static void
 _outWindowClause(StringInfo str, WindowClause *node)
 {
 	WRITE_NODE_TYPE("WINDOWCLAUSE");
@@ -5074,9 +5059,6 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_GroupId:
 				_outGroupId(str, obj);
-				break;
-			case T_PercentileExpr:
-				_outPercentileExpr(str, obj);
 				break;
 			case T_WindowClause:
 				_outWindowClause(str, obj);

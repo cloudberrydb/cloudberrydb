@@ -1440,23 +1440,6 @@ FigureColnameInternal(Node *node, char **name)
 		case T_GroupingFunc:
 			*name = "grouping";
 			return 2;
-		case T_PercentileExpr:
-			switch(((PercentileExpr *) node)->perckind)
-			{
-				case PERC_MEDIAN:
-					*name = "median";
-					break;
-				case PERC_CONT:
-					*name = "percentile_cont";
-					break;
-				case PERC_DISC:
-					*name = "percentile_disc";
-					break;
-				default:
-					elog(ERROR, "unexpected percentile type");
-					break;
-			}
-			return 2;
 		default:
 			break;
 	}

@@ -1302,19 +1302,6 @@ typedef struct CoerceToDomainState
 	List	   *constraints;	/* list of DomainConstraintState nodes */
 } CoerceToDomainState;
 
-
-/* ----------------
- *		PercentileExprState node
- * ----------------
- */
-typedef struct PercentileExprState
-{
-	ExprState	xprstate;
-	List	   *args;			/* states of argument expressions */
-	List	   *tlist;			/* combined TargetList */
-	int			aggno;			/* ID number within its plan node */
-} PercentileExprState;
-
 /*
  * DomainConstraintState - one item to check during CoerceToDomain
  *
@@ -2466,7 +2453,6 @@ typedef struct AggState
 	Datum	   *replValues;
 	bool	   *replIsnull;
 	bool	   *doReplace;
-	List	   *percs;			/* all PercentileExpr nodes in targetlist & quals */
 
 	/* set if the operator created workfiles */
 	bool		workfiles_created;

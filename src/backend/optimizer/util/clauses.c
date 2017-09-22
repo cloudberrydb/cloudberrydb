@@ -402,9 +402,6 @@ contain_agg_clause_walker(Node *node, void *context)
 	if (IsA(node, GroupId) || IsA(node, GroupingFunc))
 		return true;
 
-	if (IsA(node, PercentileExpr))
-		return true;
-
 	Assert(!IsA(node, SubLink));
 	return expression_tree_walker(node, contain_agg_clause_walker, context);
 }

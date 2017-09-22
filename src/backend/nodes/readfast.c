@@ -3502,9 +3502,6 @@ readNodeBinary(void)
 			case T_GroupId:
 				return_value = _readGroupId();
 				break;
-			case T_PercentileExpr:
-				return_value = _readPercentileExpr();
-				break;
 			case T_DMLActionExpr:
 				return_value = _readDMLActionExpr();
 				break;

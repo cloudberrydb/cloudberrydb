@@ -45,15 +45,7 @@ typedef struct AggStatePerAggData
 	AggrefExprState *aggrefstate;
 	Aggref	   *aggref;
 
-	/* Links to PercentileExpr expr and state nodes this working state is for */
-	PercentileExprState *percstate;
-	PercentileExpr	   *perc;
-
-	/*
-	 * number of input arguments for aggregate.  It's usually length of
-	 * the argument list supplied in SQL, but in case of PercentileExpr,
-	 * it includes sort list, pcExpr and tcExpr.
-	 */
+	/* number of input arguments for aggregate */
 	int			numArguments;
 	
 	/* number of inputs including ORDER BY expressions */
@@ -196,6 +188,5 @@ extern Datum datumCopyWithMemManager(Datum oldvalue, Datum value, bool typByVal,
 extern void ExecEagerFreeAgg(AggState *aggstate);
 
 extern List *combineAggrefArgs(Aggref *aggref, List **sort_clauses);
-extern List *combinePercentileArgs(PercentileExpr *p);
 
 #endif   /* NODEAGG_H */

@@ -170,9 +170,6 @@ static Datum ExecEvalCoerceToDomain(CoerceToDomainState *cstate,
 static Datum ExecEvalCoerceToDomainValue(ExprState *exprstate,
 							ExprContext *econtext,
 							bool *isNull, ExprDoneCond *isDone);
-static Datum ExecEvalPercentileExpr(PercentileExprState *exprstate,
-					ExprContext *econtext,
-					bool *isNull, ExprDoneCond *isDone);
 static Datum ExecEvalFieldSelect(FieldSelectState *fstate,
 					ExprContext *econtext,
 					bool *isNull, ExprDoneCond *isDone);
@@ -4473,30 +4470,6 @@ ExecEvalCoerceToDomainValue(ExprState *exprstate,
 	return econtext->domainValue_datum;
 }
 
-/*
- * ExecEvalPercentileExpr
- *
- * Returns a Datum whose value is the value of the precomputed
- * the value at the percentile found in the given expression context.
- * Actually,  this is almost same as ExecEvalAggref.  The main reason
- * to add this is because we don't change the catalog at the moment.
- * This will be cleaned when we can change the catalog.
- */
-static Datum
-ExecEvalPercentileExpr(PercentileExprState *exprstate,
-					   ExprContext *econtext,
-					   bool *isNull, ExprDoneCond *isDone)
-{
-	if (isDone)
-		*isDone = ExprSingleResult;
-
-	if (econtext->ecxt_aggvalues == NULL)		/* safety check */
-		elog(ERROR, "no aggregates in this expression context");
-
-	*isNull = econtext->ecxt_aggnulls[exprstate->aggno];
-	return econtext->ecxt_aggvalues[exprstate->aggno];
-}
-
 /* ----------------------------------------------------------------
  *		ExecEvalFieldSelect
  *
@@ -5921,43 +5894,6 @@ ExecInitExpr(Expr *node, PlanState *parent)
 		case T_CurrentOfExpr:
 			state = (ExprState *) makeNode(ExprState);
 			state->evalfunc = ExecEvalCurrentOfExpr;
-			break;
-		case T_PercentileExpr:
-			{
-				PercentileExpr	   *p = (PercentileExpr *) node;
-				PercentileExprState *pstate = makeNode(PercentileExprState);
-				AggState		   *aggstate = (AggState *) parent;
-				int					naggs;
-
-				if (!IsA(aggstate, AggState))
-					elog(ERROR, "PercentileExpr found in non-Agg plan node: %d",
-							(int) nodeTag(parent));
-
-				aggstate->percs = lcons(pstate, aggstate->percs);
-				naggs = ++aggstate->numaggs;
-
-				pstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalPercentileExpr;
-
-
-				/* This is to build TupleDesc. */
-				pstate->tlist = combinePercentileArgs(p);
-
-				/* This is to build ProjectionInfo. */
-				pstate->args = (List *) ExecInitExpr((Expr *) pstate->tlist, parent);
-
-				/*
-				 * Complain if the aggregate's arguments contain any
-				 * aggregates; nested agg functions are semantically
-				 * nonsensical.  (This should have been caught earlier,
-				 * but we defend against it here anyway.)
-				 */
-				if (naggs != aggstate->numaggs)
-					ereport(ERROR,
-							(errcode(ERRCODE_GROUPING_ERROR),
-							 errmsg("aggregate function calls may not be nested")));
-
-				state = (ExprState *) pstate;
-			}
 			break;
 		case T_TargetEntry:
 			{

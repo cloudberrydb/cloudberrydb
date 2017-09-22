@@ -60,15 +60,6 @@
  *	  example.	Notice that advance_transition_function() is coded to avoid a
  *	  data copy step when the previous transition value pointer is returned.
  *
- *	  In Greenplum 4.2.2, we add PercentileExpr support along with Aggref.
- *	  It is used to implement inverse distribution function support, namely
- *	  percentile_cont, percentile_disc and median.  The semantics for them
- *	  is almost same as Aggref, where the aggregate process is handled by
- *	  an individual function and the expression node only returns a pre-computed
- *	  result.  PercentileExpr is used in Agg node because we cannot change
- *	  the catalog in this release, and it may be removed and integrated to
- *	  standard Aggref itself.
- *
  * Portions Copyright (c) 2007-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
@@ -474,7 +465,6 @@ advance_aggregates(AggState *aggstate, AggStatePerGroup pergroup,
 		ExprState  *filter = peraggstate->aggrefstate ? peraggstate->aggrefstate->aggfilter : NULL;
 		int			nargs;
 		Aggref	   *aggref = peraggstate->aggref;
-		PercentileExpr *perc = peraggstate->perc;
 		int			i;
 		TupleTableSlot *slot;
 
@@ -490,13 +480,7 @@ advance_aggregates(AggState *aggstate, AggStatePerGroup pergroup,
 				continue;
 		}
 
-		if (aggref)
-			nargs = list_length(aggref->args);
-		else
-		{
-			Assert (perc);
-			nargs = list_length(perc->args);
-		}
+		nargs = list_length(aggref->args);
 
 		/* Evaluate the current input expressions for this aggregate */
 		slot = ExecProject(peraggstate->evalproj, NULL);
@@ -506,7 +490,6 @@ advance_aggregates(AggState *aggstate, AggStatePerGroup pergroup,
 		{
 			/* DISTINCT and/or ORDER BY case */
 			Assert(slot->PRIVATE_tts_nvalid == peraggstate->numInputs);
-			Assert(!perc);
 
 			/*
 			 * If the transfn is strict, we want to check for nullity before
@@ -549,31 +532,11 @@ advance_aggregates(AggState *aggstate, AggStatePerGroup pergroup,
 			/* Load values into fcinfo */
 			/* Start from 1, since the 0th arg will be the transition value */
 			Assert(slot->PRIVATE_tts_nvalid >= nargs);
-			if (aggref)
-			{
-				for (i = 0; i < nargs; i++)
-				{
-					fcinfo.arg[i + 1] = slot_getattr(slot, i+1, &isnull);
-					fcinfo.argnull[i + 1] = isnull;
-				}
 
-			}
-			else
+			for (i = 0; i < nargs; i++)
 			{
-				/*
-				 * In case of percentile functions, put everything into
-				 * fcinfo's argument since there should be the required
-				 * attributes as arguments in the tuple.
-				 */
-				int		natts;
-
-				Assert(perc);
-				natts = slot->tts_tupleDescriptor->natts;
-				for (i = 0; i < natts; i++)
-				{
-					fcinfo.arg[i + 1] = slot_getattr(slot, i + 1, &isnull);
-					fcinfo.argnull[i + 1] = isnull;
-				}
+				fcinfo.arg[i + 1] = slot_getattr(slot, i+1, &isnull);
+				fcinfo.argnull[i + 1] = isnull;
 			}
 			advance_transition_function(aggstate, peraggstate, pergroupstate,
 										&fcinfo, mem_manager);
@@ -1742,7 +1705,7 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 	 * get the count of aggregates in targetlist and quals
 	 */
 	numaggs = aggstate->numaggs;
-	Assert(numaggs == list_length(aggstate->aggs) + list_length(aggstate->percs));
+	Assert(numaggs == list_length(aggstate->aggs));
 	if (numaggs <= 0)
 	{
 		/*
@@ -2189,165 +2152,6 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 		ReleaseSysCache(aggTuple);
 	}
 
-	/*
-	 * Process percentile expressions.  These are treated separately from
-	 * Aggref expressions at the moment as we cannot change the catalog, but
-	 * this will be incorporated into the existing Aggref architecture when we
-	 * can change the catalog.  The operation for percentile functions is very
-	 * similar to the Aggref operation except that there is no function oid
-	 * for transition function.  We manually manipulate FmgrInfo without the
-	 * oid. In case the Agg handles PercentileExpr, there shouldn't be Aggref
-	 * in conjunction with PercentileExpr in the target list (and havingQual),
-	 * or vice versa, from the current design of percentile functions.
-	 * However, we don't assert anything to keep that assumption, for the
-	 * later extensibility.
-	 */
-	foreach(l, aggstate->percs)
-	{
-		PercentileExprState *percstate = (PercentileExprState *) lfirst(l);
-		PercentileExpr *perc = (PercentileExpr *) percstate->xprstate.expr;
-		AggStatePerAgg peraggstate;
-		FmgrInfo   *transfn;
-		int			numArguments;
-		int			i;
-		Oid			trans_argtypes[FUNC_MAX_ARGS];
-		ListCell   *lc;
-		Expr	   *dummy_expr;
-
-		/* Look for a previous duplicate aggregate */
-		for (i = 0; i <= aggno; i++)
-		{
-			/*
-			 * In practice, percentile expression doesn't contain volatile
-			 * functions since everything is evaluated and becomes Var during
-			 * the preprocess such as ordering operations. However, adding a
-			 * check for volatile may be robust and consistent with Aggref
-			 * initialization.
-			 */
-			if (equal(perc, peragg[i].perc) &&
-				!contain_volatile_functions((Node *) perc))
-				break;
-		}
-		if (i <= aggno)
-		{
-			/* Found a match to an existing entry, so just mark it */
-			percstate->aggno = i;
-			continue;
-		}
-
-		/* Nope, so assign a new PerAgg record */
-		peraggstate = &peragg[++aggno];
-
-		/* Mark Aggref state node with assigned index in the result array */
-		percstate->aggno = aggno;
-
-		/* Fill in the peraggstate data */
-		peraggstate->percstate = percstate;
-		peraggstate->perc = perc;
-		/*
-		 * numArguments = arg + ORDER BY + pc + tc
-		 * See notes on percentile_cont_trans() and ExecInitExpr() for
-		 * PercentileExpr.
-		 */
-		numArguments = list_length(perc->args) + list_length(perc->sortClause) + 2;
-		peraggstate->numArguments = numArguments;
-
-		/*
-		 * Set up transfn.  In general, we should use fmgr_info, but we don't
-		 * have the catalog function (thus no oid for functions) due to the
-		 * difficulity of changing the catalog at the moment.  This should
-		 * be cleaned when we can change the catalog.
-		 */
-		transfn = &peraggstate->transfn;
-		transfn->fn_nargs = list_length(perc->args) + 1;
-		transfn->fn_strict = false;
-		transfn->fn_retset = false;
-		transfn->fn_mcxt = CurrentMemoryContext;
-		transfn->fn_addr = perc->perckind == PERC_DISC ?
-			percentile_disc_trans : percentile_cont_trans;
-		transfn->fn_oid = InvalidOid;
-
-		/*
-		 * trans type is the same as result type, as they don't have final
-		 * func.
-		 */
-		trans_argtypes[0] = perc->perctype;
-		i = 1;
-
-		/*
-		 * Literal arguments.
-		 */
-		foreach(lc, perc->args)
-		{
-			Node	   *arg = lfirst(lc);
-
-			trans_argtypes[i++] = exprType(arg);
-		}
-
-		/*
-		 * ORDER BY arguments.
-		 */
-		foreach(lc, perc->sortTargets)
-		{
-			TargetEntry *tle = lfirst(lc);
-
-			trans_argtypes[i++] = exprType((Node *) tle->expr);
-		}
-
-		/*
-		 * Peer count and total count.
-		 */
-		trans_argtypes[i++] = INT8OID;
-		trans_argtypes[i++] = INT8OID;
-
-		/*
-		 * Build FuncExpr for the transition function.
-		 */
-		build_aggregate_fnexprs(trans_argtypes,
-								i,
-								perc->perctype,
-								perc->perctype,
-								InvalidOid,
-								InvalidOid,
-								InvalidOid,
-								InvalidOid,
-								InvalidOid,
-								(Expr **) &transfn->fn_expr,
-								&dummy_expr, NULL, NULL, NULL);
-
-		get_typlenbyval(perc->perctype,
-						&peraggstate->resulttypeLen,
-						&peraggstate->resulttypeByVal);
-		get_typlenbyval(perc->perctype,
-						&peraggstate->transtypeLen,
-						&peraggstate->transtypeByVal);
-
-		/*
-		 * Hard code for the known information.
-		 */
-		peraggstate->initValueIsNull = true;
-		peraggstate->initValue = (Datum) 0;
-
-		peraggstate->finalfn_oid = InvalidOid;
-		peraggstate->prelimfn_oid = InvalidOid;
-
-		/*
-		 * Get a tupledesc corresponding to the inputs (including sort
-		 * expressions) of the agg.
-		 */
-		peraggstate->evaldesc = ExecTypeFromTL(percstate->tlist, false);
-
-		/* Create slot we're going to do argument evaluation in */
-		peraggstate->evalslot = ExecInitExtraTupleSlot(estate);
-		ExecSetSlotDescriptor(peraggstate->evalslot, peraggstate->evaldesc);
-
-		/* Set up projection info for evaluation */
-		peraggstate->evalproj = ExecBuildProjectionInfo(percstate->args,
-														aggstate->tmpcontext,
-														peraggstate->evalslot,
-														NULL);
-	}
-
 	/* Update numaggs to match number of unique aggregates found */
 	aggstate->numaggs = aggno + 1;
 
@@ -2730,72 +2534,6 @@ combineAggrefArgs(Aggref *aggref, List **sort_clauses)
 }
 
 /*
- * Combine the argument and ordering expression with the peer count
- * and the total count, to create the TupleTableSlot for this
- * expression.  This is similar to ordered aggregate Aggref,
- * but the difference is that PercentileExpr will accept those
- * additional values as the arguments to the transition function.
- */
-List *
-combinePercentileArgs(PercentileExpr *p)
-{
-	List	   *tlist;
-	ListCell   *l;
-	AttrNumber	resno;
-	TargetEntry *tle;
-
-	tlist = NIL;
-	resno = 1;
-	foreach(l, p->args)
-	{
-		Expr	   *arg = lfirst(l);
-
-		tle = makeTargetEntry((Expr *) arg,
-							  resno++,
-							  NULL,
-							  false);
-		tlist = lappend(tlist, tle);
-	}
-
-	/*
-	 * Extract ordering expressions from sortTargets.
-	 */
-	foreach(l, p->sortClause)
-	{
-		SortGroupClause *sc = lfirst(l);
-		TargetEntry *sc_tle;
-
-		sc_tle = get_sortgroupclause_tle(sc, p->sortTargets);
-		tle = flatCopyTargetEntry(sc_tle);
-		tle->resno = resno++;
-
-		tlist = lappend(tlist, tle);
-	}
-
-	/*
-	 * peer count expresssion.
-	 */
-	Assert(p->pcExpr);
-	tle = makeTargetEntry((Expr *) p->pcExpr,
-						  resno++,
-						  "peer_count",
-						  false);
-	tlist = lappend(tlist, tle);
-
-	/*
-	 * total count expresssion.
-	 */
-	Assert(p->tcExpr);
-	tle = makeTargetEntry((Expr *) p->tcExpr,
-						  resno++,
-						  "total_count",
-						  false);
-	tlist = lappend(tlist, tle);
-
-	return tlist;
-}
-
-/*
  * Subroutines for ExecCountSlotsAgg.
  */
 int
@@ -2814,10 +2552,6 @@ count_extra_agg_slots_walker(Node *node, int *count)
 		return false;
 
 	if (IsA(node, Aggref))
-	{
-		(*count)++;
-	}
-	else if (IsA(node, PercentileExpr))
 	{
 		(*count)++;
 	}

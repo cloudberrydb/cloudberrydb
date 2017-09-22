@@ -2516,21 +2516,6 @@ _equalGroupId(GroupId *a __attribute__((unused)), GroupId *b __attribute__((unus
 }
 
 static bool
-_equalPercentileExpr(PercentileExpr *a, PercentileExpr *b)
-{
-	COMPARE_SCALAR_FIELD(perctype);
-	COMPARE_NODE_FIELD(args);
-	COMPARE_SCALAR_FIELD(perckind);
-	COMPARE_NODE_FIELD(sortClause);
-	COMPARE_NODE_FIELD(sortTargets);
-	COMPARE_NODE_FIELD(pcExpr);
-	COMPARE_NODE_FIELD(tcExpr);
-	/* do not compare 'location' field */
-
-	return true;
-}
-
-static bool
 _equalWindowClause(WindowClause *a, WindowClause *b)
 {
 	COMPARE_STRING_FIELD(name);
@@ -3351,9 +3336,6 @@ equal(void *a, void *b)
 			break;
 		case T_GroupId:
 			retval = _equalGroupId(a, b);
-			break;
-		case T_PercentileExpr:
-			retval = _equalPercentileExpr(a, b);
 			break;
 		case T_WindowClause:
 			retval = _equalWindowClause(a, b);

@@ -1258,7 +1258,6 @@ static Node* grouped_window_mutator(Node *node, void *context)
 		result = (Node*)new_tle;
 	}
 	else if (IsA(node, Aggref) ||
-			 IsA(node, PercentileExpr) ||
 			 IsA(node, GroupingFunc) ||
 			 IsA(node, GroupId) )
 	{

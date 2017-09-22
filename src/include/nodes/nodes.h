@@ -219,7 +219,6 @@ typedef enum NodeTag
 	T_Grouping,
 	T_GroupId,
     T_AggOrder,
-	T_PercentileExpr,
 	T_DMLActionExpr,
 	T_PartSelectedExpr,
 	T_PartDefaultExpr,
@@ -264,7 +263,6 @@ typedef enum NodeTag
 	T_DomainConstraintState,
 	T_WholeRowVarExprState,		/* will be in a more natural position in 9.3 */
 	T_GroupingFuncExprState,
-	T_PercentileExprState,
 	T_PartSelectedExprState,
 	T_PartDefaultExprState,
 	T_PartBoundExprState,

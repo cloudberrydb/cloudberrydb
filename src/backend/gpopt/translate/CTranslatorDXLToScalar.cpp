@@ -441,7 +441,10 @@ CTranslatorDXLToScalar::PaggrefFromDXLNodeScAggref
 
 	Aggref *paggref = MakeNode(Aggref);
 	paggref->aggfnoid = CMDIdGPDB::PmdidConvert(pdxlop->PmdidAgg())->OidObjectId();
-	paggref->aggdistinct = pdxlop->FDistinct();
+	// FIXME: How to translate the new kind of aggdistinct? It used to be a bool,
+	// but now it's a List of SortClauses.
+	//paggref->aggdistinct = pdxlop->FDistinct();
+	paggref->aggdistinct = NIL;
 	paggref->agglevelsup = 0;
 	paggref->location = -1;
 
