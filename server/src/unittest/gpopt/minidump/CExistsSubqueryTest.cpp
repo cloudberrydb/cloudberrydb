@@ -33,6 +33,7 @@ const CHAR *rgszExistsFileNames[] =
 		"../data/dxl/minidump/Exists-SuperfluousEquality.mdp",
 		"../data/dxl/minidump/NotExists-SuperfluousEquality.mdp",
 		"../data/dxl/minidump/SimplifyExistsSubquery2Limit.mdp",
+		"../data/dxl/minidump/NotExists-SuperflousOuterRefWithGbAgg.mdp",
 	};
 
 

@@ -2131,21 +2131,23 @@ CExpressionPreprocessor::PexprPreprocess
 	GPOS_CHECK_ABORT;
 	pexprNoUnusedCTEs->Release();
 
-	// (3) remove superfluous outer references from the order spec in limits, grouping columns in GbAgg, and
-	// Partition/Order columns in window operators
-	CExpression *pexprOuterRefsEleminated = PexprRemoveSuperfluousOuterRefs(pmp, pexprSimplified);
+	// (3) trim unnecessary existential subqueries
+	CExpression * pexprTrimmed = PexprTrimExistentialSubqueries(pmp, pexprSimplified);
+
 	GPOS_CHECK_ABORT;
 	pexprSimplified->Release();
 
-	// (4) trim unnecessary existential subqueries
-	CExpression *pexprTrimmed = PexprTrimExistentialSubqueries(pmp, pexprOuterRefsEleminated);
-	GPOS_CHECK_ABORT;
-	pexprOuterRefsEleminated->Release();
+	// (4) remove superfluous outer references from the order spec in limits, grouping columns in GbAgg, and
+	// Partition/Order columns in window operators
+	CExpression *pexprOuterRefsEleminated = PexprRemoveSuperfluousOuterRefs(pmp, pexprTrimmed);
 
-	// (5) remove superfluous equality
-	CExpression *pexprTrimmed2 = PexprPruneSuperfluousEquality(pmp, pexprTrimmed);
 	GPOS_CHECK_ABORT;
 	pexprTrimmed->Release();
+
+	// (5) remove superfluous equality
+	CExpression *pexprTrimmed2 = PexprPruneSuperfluousEquality(pmp, pexprOuterRefsEleminated);
+	GPOS_CHECK_ABORT;
+	pexprOuterRefsEleminated->Release();
 
 	// (6) simplify quantified subqueries
 	CExpression *pexprSubqSimplified = PexprSimplifyQuantifiedSubqueries(pmp, pexprTrimmed2);
