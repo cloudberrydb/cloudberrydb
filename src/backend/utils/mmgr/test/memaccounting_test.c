@@ -897,15 +897,15 @@ test__MemoryAccounting_CombinedAccountArrayToString__Validate(void **state)
 
 	uint32 totalSerialized = MemoryAccounting_Serialize(&serializedBytes);
 
-	char *templateString = "Root: Peak/Cur 0/0bytes. Quota: 0bytes.\n\
-  Top: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT "bytes. Quota: 0bytes.\n\
-    X_Hash: Peak/Cur 0/0bytes. Quota: 0bytes.\n\
-      X_Sort: Peak/Cur 0/0bytes. Quota: 0bytes.\n\
-      X_SeqScan: Peak/Cur 0/0bytes. Quota: 0bytes.\n\
-  X_Alien: Peak/Cur 0/0bytes. Quota: 0bytes.\n\
-  MemAcc: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT "bytes. Quota: 0bytes.\n\
-  Rollover: Peak/Cur 0/0bytes. Quota: 0bytes.\n\
-  SharedHeader: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT "bytes. Quota: 0bytes.\n";
+	char *templateString = "Root: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
+  Top: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT " bytes. Quota: 0 bytes.\n\
+    X_Hash: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
+      X_Sort: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
+      X_SeqScan: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
+  X_Alien: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
+  MemAcc: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT " bytes. Quota: 0 bytes.\n\
+  Rollover: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
+  SharedHeader: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT " bytes. Quota: 0 bytes.\n";
 
 	char		buf[MAX_OUTPUT_BUFFER_SIZE];
 
@@ -930,7 +930,7 @@ test__MemoryAccounting_CombinedAccountArrayToString__Validate(void **state)
 void
 test__MemoryAccounting_GetAccountName__Validate(void **state)
 {
-	char* longLivingNames[] = {"Root", "SharedHeader", "Rollover", "MemAcc", "X_Alien"};
+	char* longLivingNames[] = {"Root", "SharedHeader", "Rollover", "MemAcc", "X_Alien", "RelinquishedPool"};
 
 	char* shortLivingNames[] = {"Top", "Main", "Parser", "Planner", "PlannerHook", "Optimizer", "Dispatcher", "Serializer", "Deserializer",
 			"Executor", "X_Result", "X_Append", "X_Sequence", "X_BitmapAnd", "X_BitmapOr", "X_SeqScan", "X_ExternalScan",
@@ -1028,14 +1028,14 @@ void
 test__MemoryAccounting_ToString__Validate(void **state)
 {
 	char *templateString =
-"Root: Peak/Cur 0/0bytes. Quota: 0bytes.\n\
-  Top: Peak/Cur %" PRIu64 "/%" PRIu64 "bytes. Quota: 0bytes.\n\
-    X_Agg: Peak/Cur %" PRIu64 "/%" PRIu64 "bytes. Quota: 0bytes.\n\
-  X_Alien: Peak/Cur 0/0bytes. Quota: 0bytes.\n\
-  MemAcc: Peak/Cur %" PRIu64 "/%" PRIu64 "bytes. Quota: 0bytes.\n\
-  Rollover: Peak/Cur %" PRIu64 "/%" PRIu64 "bytes. Quota: 0bytes.\n\
-    X_Hash: Peak/Cur 0/0bytes. Quota: 0bytes.\n\
-  SharedHeader: Peak/Cur %" PRIu64 "/%" PRIu64 "bytes. Quota: 0bytes.\n";
+"Root: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
+  Top: Peak/Cur %" PRIu64 "/%" PRIu64 " bytes. Quota: 0 bytes.\n\
+    X_Agg: Peak/Cur %" PRIu64 "/%" PRIu64 " bytes. Quota: 0 bytes.\n\
+  X_Alien: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
+  MemAcc: Peak/Cur %" PRIu64 "/%" PRIu64 " bytes. Quota: 0 bytes.\n\
+  Rollover: Peak/Cur %" PRIu64 "/%" PRIu64 " bytes. Quota: 0 bytes.\n\
+    X_Hash: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
+  SharedHeader: Peak/Cur %" PRIu64 "/%" PRIu64 " bytes. Quota: 0 bytes.\n";
 
 	MemoryAccountIdType oldAccountId = CreateMemoryAccountImpl(0, MEMORY_OWNER_TYPE_Exec_Hash, ActiveMemoryAccountId);
 	/* Make oldAccountId obsolete */
@@ -1105,8 +1105,9 @@ memory: SharedHeader, 2, 1, 0, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 
 memory: Rollover, 3, 1, 0, 0, 0, 0, 0\n\
 memory: MemAcc, 4, 1, 0, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n\
 memory: X_Alien, 5, 1, 0, 0, 0, 0, 0\n\
-memory: Top, 6, 1, 0, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n\
-memory: X_Hash, 7, 6, 0, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n";
+memory: RelinquishedPool, 6, 1, 0, 0, 0, 0, 0\n\
+memory: Top, 7, 1, 0, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n\
+memory: X_Hash, 8, 7, 0, %" PRIu64 ", %" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n";
 
 	/* ActiveMemoryAccount should be Top at this point */
 	MemoryAccount *newAccount = MemoryAccounting_ConvertIdToAccount(
@@ -1156,13 +1157,13 @@ void
 test__MemoryAccounting_PrettyPrint__GeneratesCorrectString(void **state)
 {
 
-	char *templateString = "Root: Peak/Cur 0/0bytes. Quota: 0bytes.\n\
-  Top: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT "bytes. Quota: 0bytes.\n\
-    X_Hash: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT "bytes. Quota: 0bytes.\n\
-  X_Alien: Peak/Cur 0/0bytes. Quota: 0bytes.\n\
-  MemAcc: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT "bytes. Quota: 0bytes.\n\
-  Rollover: Peak/Cur 0/0bytes. Quota: 0bytes.\n\
-  SharedHeader: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT "bytes. Quota: 0bytes.\n\n";
+	char *templateString = "Root: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
+  Top: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT " bytes. Quota: 0 bytes.\n\
+    X_Hash: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT " bytes. Quota: 0 bytes.\n\
+  X_Alien: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
+  MemAcc: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT " bytes. Quota: 0 bytes.\n\
+  Rollover: Peak/Cur 0/0 bytes. Quota: 0 bytes.\n\
+  SharedHeader: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT " bytes. Quota: 0 bytes.\n\n";
 
 	/* ActiveMemoryAccount should be Top at this point */
 	MemoryAccount *newAccount = MemoryAccounting_ConvertIdToAccount(
@@ -1244,9 +1245,10 @@ test__MemoryAccounting_SaveToFile__GeneratesCorrectString(void **state)
 	int lineNo = 0;
 
 	int memoryOwnerTypes[] = {MEMORY_STAT_TYPE_VMEM_RESERVED, MEMORY_STAT_TYPE_MEMORY_ACCOUNTING_PEAK,
-			MEMORY_OWNER_TYPE_LogicalRoot, MEMORY_OWNER_TYPE_Top, MEMORY_OWNER_TYPE_Exec_Hash ,
-			MEMORY_OWNER_TYPE_Exec_AlienShared, MEMORY_OWNER_TYPE_MemAccount,
-			MEMORY_OWNER_TYPE_Rollover,
+			MEMORY_OWNER_TYPE_LogicalRoot, MEMORY_OWNER_TYPE_Top, MEMORY_OWNER_TYPE_Exec_Hash,
+			MEMORY_OWNER_TYPE_Exec_RelinquishedPool,
+			MEMORY_OWNER_TYPE_Exec_AlienShared,
+			MEMORY_OWNER_TYPE_MemAccount, MEMORY_OWNER_TYPE_Rollover,
 			MEMORY_OWNER_TYPE_SharedChunkHeader};
 
 	char runId[80];
@@ -1304,6 +1306,11 @@ test__MemoryAccounting_SaveToFile__GeneratesCorrectString(void **state)
 		{
 			/* Verify allocated and peak, but don't verify freed, as freed will be after MemoryAccounting_SaveToFile is finished */
 			assert_true(peak == newAccount->peak && allocated == newAccount->allocated);
+		}
+		else if (ownerType == MEMORY_OWNER_TYPE_Exec_RelinquishedPool)
+		{
+			assert_true(peak == RelinquishedPoolMemoryAccount->peak &&
+					allocated == RelinquishedPoolMemoryAccount->allocated && freed == RelinquishedPoolMemoryAccount->freed);
 		}
 		else if (ownerType == MEMORY_OWNER_TYPE_Exec_AlienShared)
 		{

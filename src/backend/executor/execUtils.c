@@ -74,6 +74,8 @@
 #include "cdb/cdbllize.h"
 #include "utils/workfile_mgr.h"
 
+#include "cdb/memquota.h"
+
 static void ShutdownExprContext(ExprContext *econtext);
 
 
@@ -2170,7 +2172,12 @@ uint64 PlanStateOperatorMemKB(const PlanState *ps)
 	}
 	else
 	{
-		result = ps->plan->operatorMemKB;
+		if (IsA(ps, AggState))
+		{
+			result = ps->plan->operatorMemKB + MemoryAccounting_RequestQuotaIncrease();
+		}
+		else
+			result = ps->plan->operatorMemKB;
 	}
 	
 	return result;

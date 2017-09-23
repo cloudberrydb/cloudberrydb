@@ -76,7 +76,8 @@ typedef enum MemoryOwnerType
 	MEMORY_OWNER_TYPE_Rollover,
 	MEMORY_OWNER_TYPE_MemAccount,
 	MEMORY_OWNER_TYPE_Exec_AlienShared,
-	MEMORY_OWNER_TYPE_END_LONG_LIVING = MEMORY_OWNER_TYPE_Exec_AlienShared,
+	MEMORY_OWNER_TYPE_Exec_RelinquishedPool,
+	MEMORY_OWNER_TYPE_END_LONG_LIVING = MEMORY_OWNER_TYPE_Exec_RelinquishedPool,
 	/* End of long-living accounts */
 
 	/* Short-living accounts */
@@ -232,5 +233,11 @@ MemoryAccounting_SaveToLog(void);
 
 extern void
 MemoryAccounting_PrettyPrint(void);
+
+extern uint64
+MemoryAccounting_DeclareDone();
+
+extern uint64
+MemoryAccounting_RequestQuotaIncrease();
 
 #endif   /* MEMACCOUNTING_H */

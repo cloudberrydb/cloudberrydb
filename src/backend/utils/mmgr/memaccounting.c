@@ -179,6 +179,12 @@ MemoryAccount *RolloverMemoryAccount = NULL;
 MemoryAccount *AlienExecutorMemoryAccount = NULL;
 
 /*
+ * RelinqishedPoolMemoryAccount is a shared executor account that tracks amount
+ * of additional free memory available for execution
+ */
+MemoryAccount *RelinquishedPoolMemoryAccount = NULL;
+
+/*
  * Total outstanding (i.e., allocated - freed) memory across all
  * memory accounts, including RolloverMemoryAccount
  */
@@ -228,6 +234,40 @@ MemoryAccounting_Reset()
 	}
 
 	InitMemoryAccounting();
+}
+
+/*
+ * MemoryAccounting_DeclareDone
+ * 		Increments the RelinquishedPoolMemoryAccount by the difference between the current
+ * 		Memory Account's quota and allocated amount.
+ * 		This should only be called when a MemoryAccount is certain that it will not
+ * 		allocate any more memory
+ */
+uint64
+MemoryAccounting_DeclareDone()
+{
+	MemoryAccount *currentAccount = MemoryAccounting_ConvertIdToAccount(ActiveMemoryAccountId);
+	uint64 relinquished = 0;
+	if (currentAccount->maxLimit > 0 && currentAccount->maxLimit > currentAccount->allocated)
+	{
+		relinquished = currentAccount->maxLimit - currentAccount->allocated;
+		RelinquishedPoolMemoryAccount->allocated += relinquished;
+		currentAccount->relinquishedMemory = relinquished;
+	}
+
+	elog(DEBUG2, "Memory Account %d relinquished %u bytes of memory", currentAccount->ownerType, relinquished);
+	return relinquished;
+}
+
+uint64
+MemoryAccounting_RequestQuotaIncrease()
+{
+	MemoryAccount *currentAccount = MemoryAccounting_ConvertIdToAccount(ActiveMemoryAccountId);
+
+	uint64 result = RelinquishedPoolMemoryAccount->allocated;
+	currentAccount->acquiredMemory = result;
+	RelinquishedPoolMemoryAccount->allocated = 0;
+	return result;
 }
 
 /*
@@ -547,6 +587,9 @@ InitLongLivingAccounts() {
 			longLivingMemoryAccountArray[MEMORY_OWNER_TYPE_MemAccount];
 	AlienExecutorMemoryAccount =
 			longLivingMemoryAccountArray[MEMORY_OWNER_TYPE_Exec_AlienShared];
+	RelinquishedPoolMemoryAccount =
+			longLivingMemoryAccountArray[MEMORY_OWNER_TYPE_Exec_RelinquishedPool];
+
 }
 
 /* Initializes all the short living accounts */
@@ -648,6 +691,8 @@ InitializeMemoryAccount(MemoryAccount *newAccount, long maxLimit, MemoryOwnerTyp
 	}
 	newAccount->freed = 0;
 	newAccount->peak = 0;
+	newAccount->relinquishedMemory = 0;
+	newAccount->acquiredMemory = 0;
 	newAccount->parentId = parentAccountId;
 
 	if (ownerType <= MEMORY_OWNER_TYPE_END_LONG_LIVING)
@@ -691,6 +736,7 @@ CreateMemoryAccountImpl(long maxLimit, MemoryOwnerType ownerType, MemoryAccountI
 			ownerType == MEMORY_OWNER_TYPE_Rollover ||
 			ownerType == MEMORY_OWNER_TYPE_MemAccount ||
 			ownerType == MEMORY_OWNER_TYPE_Exec_AlienShared ||
+			ownerType == MEMORY_OWNER_TYPE_Exec_RelinquishedPool ||
 			(MemoryAccountMemoryContext != NULL && MemoryAccountMemoryAccount != NULL));
 
 	if (ownerType <= MEMORY_OWNER_TYPE_END_LONG_LIVING || ownerType == MEMORY_OWNER_TYPE_Top)
@@ -954,15 +1000,22 @@ MemoryAccountToString(MemoryAccountTree *memoryAccountTreeNode, void *context, u
 
 	MemoryAccount *memoryAccount = memoryAccountTreeNode->account;
 
+	if (memoryAccount->ownerType == MEMORY_OWNER_TYPE_Exec_RelinquishedPool) return CdbVisit_Walk;
+
 	MemoryAccountSerializerCxt *memAccountCxt = (MemoryAccountSerializerCxt*) context;
 
 	appendStringInfoFill(memAccountCxt->buffer, 2 * depth, ' ');
 
 	Assert(memoryAccount->peak >= MemoryAccounting_GetBalance(memoryAccount));
 	/* We print only integer valued memory consumption, in standard GPDB KB unit */
-	appendStringInfo(memAccountCxt->buffer, "%s: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT "bytes. Quota: " UINT64_FORMAT "bytes.\n",
+	appendStringInfo(memAccountCxt->buffer, "%s: Peak/Cur " UINT64_FORMAT "/" UINT64_FORMAT " bytes. Quota: " UINT64_FORMAT " bytes.",
 			MemoryAccounting_GetOwnerName(memoryAccount->ownerType),
 			memoryAccount->peak, MemoryAccounting_GetBalance(memoryAccount), memoryAccount->maxLimit);
+	if (memoryAccount->relinquishedMemory > 0)
+		appendStringInfo(memAccountCxt->buffer, " Relinquished Memory: " UINT64_FORMAT " bytes. ", memoryAccount->relinquishedMemory);
+	if (memoryAccount->acquiredMemory > 0)
+		appendStringInfo(memAccountCxt->buffer, " Acquired Additional Memory: " UINT64_FORMAT " bytes.", memoryAccount->acquiredMemory);
+	appendStringInfo(memAccountCxt->buffer, "\n");
 
 	memAccountCxt->memoryAccountCount++;
 
@@ -989,6 +1042,8 @@ MemoryAccounting_GetOwnerName(MemoryOwnerType ownerType)
 		return "MemAcc";
 	case MEMORY_OWNER_TYPE_Exec_AlienShared:
 		return "X_Alien";
+	case MEMORY_OWNER_TYPE_Exec_RelinquishedPool:
+		return "RelinquishedPool";
 
 		/* Short living accounts */
 	case MEMORY_OWNER_TYPE_Top:
@@ -1333,6 +1388,13 @@ AdvanceMemoryAccountingGeneration()
 	 * includes SharedChunkHeadersMemoryAccount balance.
 	 */
 	RolloverMemoryAccount->peak = Max(RolloverMemoryAccount->peak, MemoryAccountingPeakBalance);
+
+	/*
+	 * Reset the RelinquishedPool Long living account, the amount should not be carried between memory account generations
+	 */
+	RelinquishedPoolMemoryAccount->allocated = 0;
+	RelinquishedPoolMemoryAccount->peak = 0;
+	RelinquishedPoolMemoryAccount->freed = 0;
 
 	liveAccountStartId = nextAccountId;
 

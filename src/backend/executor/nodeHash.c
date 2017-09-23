@@ -147,6 +147,7 @@ MultiExecHash(HashState *node)
 			}
 		}
 	}
+	MemoryAccounting_DeclareDone();
 
 	/* Now we have set up all the initial batches & primary overflow batches. */
 	hashtable->nbatch_outstart = hashtable->nbatch;
