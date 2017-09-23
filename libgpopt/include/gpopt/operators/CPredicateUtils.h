@@ -359,6 +359,10 @@ namespace gpopt
 			static
 			BOOL FNullCheckOnColumn(CExpression *pexpr, CColRef *pcr);
 
+			// check if the given expression of the form "col is not null"
+			static
+			BOOL FNotNullCheckOnColumn(CExpression *pexpr, CColRef *pcr);
+
 			// check if the given expression is a disjunction of scalar cmp 
 			// expressions on the given column
 			static

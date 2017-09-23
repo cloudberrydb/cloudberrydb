@@ -19,6 +19,7 @@
 #include "gpopt/operators/CPredicateUtils.h"
 #include "gpopt/operators/CScalarArray.h"
 #include "gpopt/operators/CScalarIdent.h"
+#include "gpopt/operators/CScalarIsDistinctFrom.h"
 #include "naucrates/md/IMDScalarOp.h"
 #include "gpopt/base/CDatumSortedSet.h"
 #include "gpos/common/CAutoRef.h"
@@ -152,6 +153,9 @@ CConstraintInterval::PciIntervalFromScalarExpr
 			break;
 		case COperator::EopScalarCmp:
 			pci =  PciIntervalFromScalarCmp(pmp, pexpr, pcr);
+			break;
+		case COperator::EopScalarIsDistinctFrom:
+			pci = PciIntervalFromScalarIDF(pmp, pexpr, pcr);
 			break;
 		case COperator::EopScalarConst:
 			{
@@ -429,6 +433,60 @@ CConstraintInterval::PciIntervalFromScalarCmp
 	return NULL;
 }
 
+
+CConstraintInterval *
+CConstraintInterval::PciIntervalFromScalarIDF
+(
+	IMemoryPool *pmp,
+	CExpression *pexpr,
+	CColRef *pcr
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
+	GPOS_ASSERT(CPredicateUtils::FIDF(pexpr));
+
+	if (CPredicateUtils::FIdentIDFConstIgnoreCast(pexpr))
+	{
+		// column
+#ifdef GPOS_DEBUG
+		CScalarIdent *popScId = CScalarIdent::PopConvert((*pexpr)[0]->Pop());
+		GPOS_ASSERT (pcr == (CColRef *) popScId->Pcr());
+#endif // GPOS_DEBUG
+
+		// constant
+		CScalarConst *popScConst = CScalarConst::PopConvert((*pexpr)[1]->Pop());
+		// operator
+		CScalarIsDistinctFrom *popScCmp = CScalarIsDistinctFrom::PopConvert(pexpr->Pop());
+
+		GPOS_ASSERT (CScalar::EopScalarConst == popScConst->Eopid());
+		GPOS_ASSERT (IMDType::EcmptIDF == popScCmp->Ecmpt());
+
+		IDatum *pdatum = popScConst->Pdatum();
+		CConstraintInterval *pcri = NULL;
+
+		if (pdatum->FNull())
+		{
+			// col IS DISTINCT FROM NULL
+			CConstraintInterval *pcriChild = GPOS_NEW(pmp)
+							CConstraintInterval(pmp, pcr, GPOS_NEW(pmp) DrgPrng(pmp), true /*fIncludesNull*/);
+			pcri = pcriChild->PciComplement(pmp);
+			pcriChild->Release();
+		}
+		else
+		{
+			// col IS DISTINCT FROM const
+			DrgPrng *pdrgprng = PciRangeFromColConstCmp(pmp, popScCmp->Ecmpt(), popScConst);
+			if (NULL != pdrgprng)
+			{
+				pcri = GPOS_NEW(pmp) CConstraintInterval(pmp, pcr, pdrgprng, true /*fIncludesNull*/);
+			}
+		}
+
+		return pcri;
+
+	}
+	return NULL;
+}
 
 //---------------------------------------------------------------------------
 //	@function:

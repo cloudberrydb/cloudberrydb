@@ -1225,6 +1225,20 @@ CPredicateUtils::PexprPartPruningPredicate
 		
 	}
 
+	// Remove an "IS NOT NULL" partition filter if it is redundant e.g. "a = b AND a is NOT NULL"
+	// For that pcrPartKey must be referenced in pdrgpexprResult because then an "IS NOT NULL" filter
+	// is implicit.
+
+	if (pexprCol != NULL && CPredicateUtils::FNotNullCheckOnColumn(pexprCol, pcrPartKey))
+	{
+		CColRefSet *pcrsUsed = CUtils::PcrsExtractColumns(pmp, pdrgpexprResult);
+		if (pcrsUsed->FMember(pcrPartKey))
+		{
+			pexprCol = NULL;
+		}
+		pcrsUsed->Release();
+	}
+
 	DrgPexpr *pdrgpexprResultNew = PdrgpexprAppendConjunctsDedup(pmp, pdrgpexprResult, pexprCol);
 	pdrgpexprResult->Release();
 	pdrgpexprResult = pdrgpexprResultNew;
@@ -1311,6 +1325,25 @@ CPredicateUtils::FNullCheckOnColumn
 
 	return false;
 }
+
+// check if the given expression of the form "col is not null"
+BOOL
+CPredicateUtils::FNotNullCheckOnColumn
+(
+	CExpression *pexpr,
+	CColRef *pcr
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
+	GPOS_ASSERT(NULL != pcr);
+
+	if(0 == pexpr->UlArity())
+		return false;
+
+	return (FNullCheckOnColumn(pexpr, pcr) && FNot(pexpr));
+
+}
+
 
 // check if the given expression is a scalar array cmp expression on the
 // given column
@@ -1509,16 +1542,7 @@ CPredicateUtils::PexprPredicateCol
 	if (NULL != pcnstrCol && !pcnstrCol->FUnbounded())
 	{
 		pexprCol = pcnstrCol->PexprScalar(pmp);
-		if (!CUtils::FScalarNotNull(pexprCol))
-		{
-			// TODO:  - Oct 15, 2014; we should also support NOT NULL predicates
-			// and revisit the condition above
-			pexprCol->AddRef();
-		}
-		else
-		{
-			pexprCol = NULL;
-		}
+		pexprCol->AddRef();
 	}
 
 	CRefCount::SafeRelease(pcnstrCol);

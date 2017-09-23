@@ -107,6 +107,14 @@ namespace gpopt
 									CColRef *pcr
 									);
 
+			static
+			CConstraintInterval *PciIntervalFromScalarIDF
+									(
+									IMemoryPool *pmp,
+									CExpression *pexpr,
+									CColRef *pcr
+									);
+
 			// create interval from scalar bool operator
 			static
 			CConstraintInterval *PciIntervalFromScalarBoolOp
