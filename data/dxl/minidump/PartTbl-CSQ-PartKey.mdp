@@ -414,7 +414,31 @@
                               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
                             </dxl:PartEqFilters>
                             <dxl:PartFilters>
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                              <dxl:Or>
+                                <dxl:And>
+                                  <dxl:Not>
+                                    <dxl:Or>
+                                      <dxl:DefaultPart Level="0"/>
+                                      <dxl:Or>
+                                        <dxl:PartBoundOpen Level="0" LowerBound="true"/>
+                                        <dxl:PartBoundOpen Level="0" LowerBound="false"/>
+                                      </dxl:Or>
+                                    </dxl:Or>
+                                  </dxl:Not>
+                                  <dxl:And>
+                                    <dxl:IsNotNull>
+                                      <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="true"/>
+                                    </dxl:IsNotNull>
+                                    <dxl:IsNotNull>
+                                      <dxl:PartBound Level="0" Type="0.23.1.0" LowerBound="false"/>
+                                    </dxl:IsNotNull>
+                                  </dxl:And>
+                                </dxl:And>
+                                <dxl:Or>
+                                  <dxl:PartBoundOpen Level="0" LowerBound="true"/>
+                                  <dxl:PartBoundOpen Level="0" LowerBound="false"/>
+                                </dxl:Or>
+                              </dxl:Or>
                             </dxl:PartFilters>
                             <dxl:ResidualFilter>
                               <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
@@ -423,7 +447,11 @@
                               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
                             </dxl:PropagationExpression>
                             <dxl:PrintableFilter>
-                              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                              <dxl:Not>
+                                <dxl:IsNull>
+                                  <dxl:Ident ColId="13" ColName="ptcol" TypeMdid="0.23.1.0"/>
+                                </dxl:IsNull>
+                              </dxl:Not>
                             </dxl:PrintableFilter>
                           </dxl:PartitionSelector>
                           <dxl:DynamicTableScan PartIndexId="2">
@@ -510,8 +538,7 @@
               <dxl:Properties>
                 <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
               </dxl:Properties>
-              <dxl:ProjList>
-          </dxl:ProjList>
+              <dxl:ProjList/>
               <dxl:PartEqFilters>
                 <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
               </dxl:PartEqFilters>

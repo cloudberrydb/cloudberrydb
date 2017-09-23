@@ -1194,7 +1194,7 @@ Select * from X where X.a < ANY (select a from P);
     <dxl:Plan Id="0" SpaceSize="30">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="3660.740521" Rows="11000.000000" Width="4"/>
+          <dxl:Cost StartupCost="0" TotalCost="3660.735788" Rows="11000.000000" Width="4"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="a">
@@ -1205,7 +1205,7 @@ Select * from X where X.a < ANY (select a from P);
         <dxl:SortingColumnList/>
         <dxl:TableScan>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="3660.542961" Rows="11000.000000" Width="4"/>
+            <dxl:Cost StartupCost="0" TotalCost="3660.538228" Rows="11000.000000" Width="4"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="a">
@@ -1223,7 +1223,7 @@ Select * from X where X.a < ANY (select a from P);
               <dxl:ParamList/>
               <dxl:Materialize Eager="true">
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="431.761973" Rows="12650.000000" Width="4"/>
+                  <dxl:Cost StartupCost="0" TotalCost="431.761971" Rows="12649.974700" Width="4"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="8" Alias="a">
@@ -1233,7 +1233,7 @@ Select * from X where X.a < ANY (select a from P);
                 <dxl:Filter/>
                 <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
                   <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="431.736673" Rows="12650.000000" Width="4"/>
+                    <dxl:Cost StartupCost="0" TotalCost="431.736671" Rows="12649.974700" Width="4"/>
                   </dxl:Properties>
                   <dxl:ProjList>
                     <dxl:ProjElem ColId="8" Alias="a">
@@ -1244,7 +1244,7 @@ Select * from X where X.a < ANY (select a from P);
                   <dxl:SortingColumnList/>
                   <dxl:Sequence>
                     <dxl:Properties>
-                      <dxl:Cost StartupCost="0" TotalCost="431.038266" Rows="6325.000000" Width="4"/>
+                      <dxl:Cost StartupCost="0" TotalCost="431.038266" Rows="6324.987350" Width="4"/>
                     </dxl:Properties>
                     <dxl:ProjList>
                       <dxl:ProjElem ColId="8" Alias="a">
@@ -1274,7 +1274,7 @@ Select * from X where X.a < ANY (select a from P);
                     </dxl:PartitionSelector>
                     <dxl:DynamicTableScan PartIndexId="1">
                       <dxl:Properties>
-                        <dxl:Cost StartupCost="0" TotalCost="431.038266" Rows="6325.000000" Width="4"/>
+                        <dxl:Cost StartupCost="0" TotalCost="431.038266" Rows="6324.987350" Width="4"/>
                       </dxl:Properties>
                       <dxl:ProjList>
                         <dxl:ProjElem ColId="8" Alias="a">

@@ -307,6 +307,11 @@
           </dxl:TableDescriptor>
         </dxl:TableScan>
       </dxl:GatherMotion>
+      <dxl:DirectDispatchInfo>
+        <dxl:KeyValue>
+          <dxl:Datum TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
+        </dxl:KeyValue>
+      </dxl:DirectDispatchInfo>
     </dxl:Plan>
   </dxl:Thread>
 </dxl:DXLMessage>
