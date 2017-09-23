@@ -436,6 +436,30 @@ cdbpullup_findPathKeyExprInTargetList(PathKey *item, List *targetlist)
 	return NULL;
 }
 
+/*
+ * cdbpullup_truncatePathKeysForTargetList
+ *
+ * Truncate a list of pathkeys to only those that can be evaluated
+ * using the given target list.
+ */
+List *
+cdbpullup_truncatePathKeysForTargetList(List *pathkeys, List *targetlist)
+{
+	List	   *new_pathkeys = NIL;
+	ListCell   *lc;
+
+	foreach(lc, pathkeys)
+	{
+		PathKey	   *pk = (PathKey *) lfirst(lc);
+
+		if (!cdbpullup_findPathKeyExprInTargetList(pk, targetlist))
+			break;
+
+		new_pathkeys = lappend(new_pathkeys, pk);
+	}
+
+	return new_pathkeys;
+}
 
 /*
  * cdbpullup_findSubplanRefInTargetList

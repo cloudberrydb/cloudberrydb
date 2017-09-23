@@ -57,34 +57,6 @@ typedef struct
 static bool 
 checkTableFunctions_walker(Node *node, check_table_func_context *context);
 
-static bool
-agg_is_ordered(Oid funcid)
-{
-	HeapTuple	ftup;
-	Datum		value;
-	bool		isnull;
-	bool		isordered;
-
-	ftup = SearchSysCache1(AGGFNOID,
-						   ObjectIdGetDatum(funcid));
-	if (!HeapTupleIsValid(ftup))	/* should not happen */
-		elog(ERROR, "cache lookup failed for aggregate %u", funcid);
-
-	/*
-	 * Check if this is an ordered aggregate - while aggordered
-	 * should never be null it comes after a variable length field
-	 * so we must access it via SysCacheGetAttr.
-	 */
-	value = SysCacheGetAttr(AGGFNOID, ftup,
-							Anum_pg_aggregate_aggordered,
-							&isnull);
-	isordered = (!isnull) && DatumGetBool(value);
-
-	ReleaseSysCache(ftup);
-
-	return isordered;
-}
-
 /*
  *	Parse a function call
  *
@@ -103,6 +75,7 @@ agg_is_ordered(Oid funcid)
  *	equal to the column name, and no aggregate or variadic decoration.
  *
  *	The argument expressions (in fargs) must have been transformed already.
+ *	But the agg_order expressions, if any, have not been.
  */
 Node *
 ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
@@ -186,7 +159,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	 * wasn't any aggregate or variadic decoration.
 	 */
 	if (nargs == 1 && agg_order == NIL && agg_filter == NULL && !agg_star &&
-		!agg_distinct && !func_variadic && !agg_filter && list_length(funcname) == 1)
+		!agg_distinct && over == NULL && !func_variadic &&
+		list_length(funcname) == 1)
 	{
 		Oid			argtype = actual_arg_types[0];
 
@@ -253,7 +227,7 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		if (agg_order)
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-					 errmsg("ORDER BY specified, but %s is not an ordered aggregate function",
+					 errmsg("ORDER BY specified, but %s is not an aggregate function",
 							NameListToString(funcname)),
 					 parser_errposition(pstate, location)));
 		if (agg_filter)
@@ -394,45 +368,24 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	else if (fdresult == FUNCDETAIL_AGGREGATE && !over)
 	{
 		/* aggregate function */
-		Aggref	   *aggref;
+		Aggref	   *aggref = makeNode(Aggref);
 
-		/* 
-		 * If this is not an ordered aggregate, but it was called with an
-		 * aggregate order by specification then we must raise an error.
-		 */
-		if (agg_order != NIL && !agg_is_ordered(funcid))
-			ereport(ERROR,
-					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-					 errmsg("ORDER BY specified, but %s is not an ordered aggregate function",
-							NameListToString(funcname)),
-					 parser_errposition(pstate, location)));
-
-		/* 
-		 * ordered aggregates are not compatible with distinct
-		 */
-		if (agg_distinct && agg_order != NIL)
-		{
-			ereport(ERROR,
-					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
-					 errmsg("ORDER BY and DISTINCT are mutually exclusive"),
-					 parser_errposition(pstate, location)));
-		}
-
-		/*
-		 * Build the aggregate node and transform it
-		 *
-		 * Note: aggorder is handled inside transformAggregateCall()
-		 */
-		aggref = makeNode(Aggref);
 		aggref->aggfnoid = funcid;
 		aggref->aggtype = rettype;
+		/* args will be set by transformAggregateCall */
+		/* aggorder and aggdistinct will be set by transformAggregateCall */
 		aggref->aggfilter = agg_filter;
 		aggref->aggstar = agg_star;
-		aggref->args = fargs;
-		aggref->aggdistinct = agg_distinct;
+		/* agglevelsup will be set by transformAggregateCall */
 		aggref->location = location;
 
-		transformAggregateCall(pstate, aggref, agg_order);
+		if (retset)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
+					 errmsg("aggregates cannot return sets"),
+					 parser_errposition(pstate, location)));
+
+		transformAggregateCall(pstate, aggref, fargs, agg_order, agg_distinct);
 
 		retval = (Node *) aggref;
 	}
@@ -450,16 +403,45 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 					 errmsg("window function call requires an OVER clause"),
 					 parser_errposition(pstate, location)));
 
-		if (agg_order)
+		wfunc->winfnoid = funcid;
+		wfunc->wintype = rettype;
+		wfunc->args = fargs;
+		/* winref will be set by transformWindowFuncCall */
+		wfunc->winstar = agg_star;
+		wfunc->winagg = (fdresult == FUNCDETAIL_AGGREGATE);
+		wfunc->aggfilter = agg_filter;
+		wfunc->location = location;
+
+		wfunc->windistinct = agg_distinct;
+
+		/*
+		 * Reject attempt to call a parameterless aggregate without (*)
+		 * syntax.	This is mere pedantry but some folks insisted ...
+		 *
+		 * GPDB: We allow this in GPDB.
+		 */
+#if 0
+		if (wfunc->winagg && fargs == NIL && !agg_star)
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+					 errmsg("%s(*) must be used to call a parameterless aggregate function",
+							NameListToString(funcname)),
+					 parser_errposition(pstate, location)));
+#endif
+
+		/*
+		 * ordered aggs not allowed in windows yet
+		 */
+		if (agg_order)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("aggregate ORDER BY is not implemented for window functions"),
 					 parser_errposition(pstate, location)));
 
 		/*
 		 * FILTER is not yet supported with true window functions
 		 */
-		if (fdresult != FUNCDETAIL_AGGREGATE && agg_filter)
+		if (!wfunc->winagg && agg_filter)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("FILTER is not implemented for non-aggregate window functions"),
@@ -471,38 +453,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 					 errmsg("window functions may not return sets"),
 					 parser_errposition(pstate, location)));
 
-		/*
-		 * We perform more checks – such as whether the window
-		 * function requires ordering or permits a frame specification –
-		 * later in transformWindowClause(). It's too early at this stage.
-		 */
-
-		wfunc->winfnoid = funcid;
-		wfunc->wintype = rettype;
-		wfunc->args = fargs;
-		/* winref will be set by transformWindowFuncCall */
-		wfunc->winstar = agg_star;
-		wfunc->winagg = (fdresult == FUNCDETAIL_AGGREGATE);
-		wfunc->aggfilter = agg_filter;
-		wfunc->windistinct = agg_distinct;
-		wfunc->location = location;
-
-		/*
-		 * Reject attempt to call a parameterless aggregate without (*)
-		 * syntax.	This is mere pedantry but some folks insisted ...
-		 *
-		 * GPDB: We allow this in GPDB.
-		 */
-#if 0
-		if (fdresult == FUNCDETAIL_AGGREGATE && fargs == NIL && !agg_star)
-			ereport(ERROR,
-					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-					 errmsg("%s(*) must be used to call a parameterless aggregate function",
-							NameListToString(funcname)),
-					 parser_errposition(pstate, location)));
-#endif
-
 		transformWindowFuncCall(pstate, wfunc, over);
+
 		retval = (Node *) wfunc;
 	}
 

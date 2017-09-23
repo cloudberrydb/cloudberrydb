@@ -381,6 +381,8 @@ makeAggrefByOid(Oid aggfnoid, List *args)
 	Aggref	   *aggref;
 	Oid			rettype;
 
+	Assert(args == NIL || IsA(linitial(args), TargetEntry));
+
 	get_func_result_type(aggfnoid, &rettype, NULL);
 	aggref = makeNode(Aggref);
 	aggref->aggfnoid = aggfnoid;

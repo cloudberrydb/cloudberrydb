@@ -499,7 +499,7 @@ make_aggs_for_rollup(PlannerInfo *root,
 	 * aggregates. Otherwise, we fall back to use
 	 * Append-Aggs.
 	 */
-	if (context->agg_counts->numDistinctAggs == 0 &&
+	if (context->agg_counts->numOrderedAggs == 0 &&
 		!context->agg_counts->missing_prelimfunc)
 		result_plan = make_list_aggs_for_rollup(root, context, lefttree);
 	else
@@ -1012,7 +1012,7 @@ make_append_aggs_for_rollup(PlannerInfo *root,
 	GroupExtContext context_copy = { };
 	double numGroups = *(context->p_dNumGroups);
 	double numGroups_for_gather = 0;
-	bool has_ordered_aggs = list_length(context->agg_counts->aggOrder) > 0;
+	bool has_ordered_aggs = context->agg_counts->hasOrderedAggs;
 
 	root->group_pathkeys = canonicalize_pathkeys(root, root->group_pathkeys);
 
@@ -2227,7 +2227,7 @@ plan_list_rollup_plans(PlannerInfo *root,
 		root->parse = copyObject(orig_query);
 
 		if (gp_enable_groupext_distinct_pruning &&
-			context->agg_counts->numDistinctAggs > 0 &&
+			context->agg_counts->numOrderedAggs > 0 &&
 			gp_distinct_grouping_sets_threshold > 0)
 		{
 			/*
@@ -2239,7 +2239,7 @@ plan_list_rollup_plans(PlannerInfo *root,
 			 * distinct-qualified aggregates.
 			 */
 			if (context->curr_grpset_no >=
-				gp_distinct_grouping_sets_threshold / context->agg_counts->numDistinctAggs)
+				gp_distinct_grouping_sets_threshold / context->agg_counts->numOrderedAggs)
 				gp_enable_groupext_distinct_pruning = false;
 		}
 

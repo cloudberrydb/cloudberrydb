@@ -5577,18 +5577,27 @@ get_agg_expr(Aggref *aggref, deparse_context *context)
 {
 	StringInfo	buf = context->buf;
 	Oid			argtypes[FUNC_MAX_ARGS];
+	List	   *arglist;
 	int			nargs;
 	ListCell   *l;
 	Oid fnoid;
 
+	/* Extract the regular arguments, ignoring resjunk stuff for the moment */
+	arglist = NIL;
 	nargs = 0;
 	foreach(l, aggref->args)
 	{
-		if (nargs >= FUNC_MAX_ARGS)
+		TargetEntry *tle = (TargetEntry *) lfirst(l);
+		Node	   *arg = (Node *) tle->expr;
+
+		if (tle->resjunk)
+			continue;
+		if (nargs >= FUNC_MAX_ARGS)		/* paranoia */
 			ereport(ERROR,
 					(errcode(ERRCODE_TOO_MANY_ARGUMENTS),
 					 errmsg("too many arguments")));
-		argtypes[nargs] = exprType((Node *) lfirst(l));
+		argtypes[nargs] = exprType(arg);
+		arglist = lappend(arglist, arg);
 		nargs++;
 	}
 
@@ -5619,22 +5628,18 @@ get_agg_expr(Aggref *aggref, deparse_context *context)
 	}
 
 	appendStringInfo(buf, "%s(%s",
-					 generate_function_name(fnoid, nargs, argtypes, NULL),
+					 generate_function_name(fnoid, nargs,
+											argtypes, NULL),
 					 aggref->aggdistinct ? "DISTINCT " : "");
 	/* aggstar can be set only in zero-argument aggregates */
 	if (aggref->aggstar)
 		appendStringInfoChar(buf, '*');
 	else
-		get_rule_expr((Node *) aggref->args, context, true);
+		get_rule_expr((Node *) arglist, context, true);
 
-    /* Handle ORDER BY clause for ordered aggregates */
-    if (aggref->aggorder != NULL && !aggref->aggorder->sortImplicit)
+    if (aggref->aggorder != NIL)
     {
-        get_sortlist_expr(aggref->aggorder->sortClause,
-                          aggref->aggorder->sortTargets,
-                          false,  /* force_colno */
-                          context,
-                          " ORDER BY ");
+		get_sortlist_expr(aggref->aggorder, aggref->args, false, context, " ORDER BY ");
     }
 
 	if (aggref->aggfilter != NULL)

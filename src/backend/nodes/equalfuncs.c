@@ -207,23 +207,13 @@ _equalAggref(Aggref *a, Aggref *b)
 	COMPARE_SCALAR_FIELD(aggfnoid);
 	COMPARE_SCALAR_FIELD(aggtype);
 	COMPARE_NODE_FIELD(args);
-	COMPARE_NODE_FIELD(aggorder);
-	COMPARE_SCALAR_FIELD(aggdistinct);
+    COMPARE_NODE_FIELD(aggorder);
+	COMPARE_NODE_FIELD(aggdistinct);
 	COMPARE_NODE_FIELD(aggfilter);
 	COMPARE_SCALAR_FIELD(aggstar);
 	COMPARE_SCALAR_FIELD(aggstage);
 	COMPARE_SCALAR_FIELD(agglevelsup);
 	COMPARE_LOCATION_FIELD(location);
-
-	return true;
-}
-
-static bool
-_equalAggOrder(AggOrder *a, AggOrder *b)
-{
-    COMPARE_SCALAR_FIELD(sortImplicit);
-	COMPARE_NODE_FIELD(sortTargets);
-    COMPARE_NODE_FIELD(sortClause);
 
 	return true;
 }
@@ -2756,9 +2746,6 @@ equal(void *a, void *b)
 			break;
 		case T_Aggref:
 			retval = _equalAggref(a, b);
-			break;
-		case T_AggOrder:
-			retval = _equalAggOrder(a, b);
 			break;
 		case T_WindowFunc:
 			retval = _equalWindowFunc(a, b);

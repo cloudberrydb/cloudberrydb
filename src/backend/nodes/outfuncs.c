@@ -1247,7 +1247,6 @@ _outParam(StringInfo str, Param *node)
 	WRITE_LOCATION_FIELD(location);
 }
 
-#ifndef COMPILING_BINARY_FUNCS
 static void
 _outAggref(StringInfo str, Aggref *node)
 {
@@ -1256,23 +1255,13 @@ _outAggref(StringInfo str, Aggref *node)
 	WRITE_OID_FIELD(aggfnoid);
 	WRITE_OID_FIELD(aggtype);
 	WRITE_NODE_FIELD(args);
-	WRITE_UINT_FIELD(agglevelsup);
-	WRITE_BOOL_FIELD(aggstar);
-	WRITE_BOOL_FIELD(aggdistinct);
-	WRITE_NODE_FIELD(aggfilter);
-	WRITE_ENUM_FIELD(aggstage, AggStage);
 	WRITE_NODE_FIELD(aggorder);
-}
-#endif /* COMPILING_BINARY_FUNCS */
-
-static void
-_outAggOrder(StringInfo str, AggOrder *node)
-{
-	WRITE_NODE_TYPE("AGGORDER");
-
-    WRITE_BOOL_FIELD(sortImplicit);
-    WRITE_NODE_FIELD(sortTargets);
-    WRITE_NODE_FIELD(sortClause);
+	WRITE_NODE_FIELD(aggdistinct);
+	WRITE_NODE_FIELD(aggfilter);
+	WRITE_BOOL_FIELD(aggstar);
+	WRITE_ENUM_FIELD(aggstage, AggStage);
+	WRITE_UINT_FIELD(agglevelsup);
+	WRITE_LOCATION_FIELD(location);
 }
 
 static void
@@ -4562,9 +4551,6 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_Aggref:
 				_outAggref(str, obj);
-				break;
-			case T_AggOrder:
-				_outAggOrder(str, obj);
 				break;
 			case T_WindowFunc:
 				_outWindowFunc(str, obj);

@@ -1529,13 +1529,13 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 										  stmt->sortClause,
 										  &qry->targetList,
 										  true, /* fix unknowns */
-                                          false /* use SQL92 rules */);
+                                          false /* allow SQL92 rules */);
 
 	qry->groupClause = transformGroupClause(pstate,
 											stmt->groupClause,
 											&qry->targetList,
 											qry->sortClause,
-                                            false /* useSQL92 rules */);
+                                            false /* allow SQL92 rules */);
 
 	/*
 	 * SCATTER BY clause on a table function TableValueExpr subquery.
@@ -1574,7 +1574,8 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 		{
 			qry->distinctClause = transformDistinctClause(pstate,
 														  &qry->targetList,
-														  qry->sortClause);
+														  qry->sortClause,
+														  false);
 		}
 		qry->hasDistinctOn = false;
 	}
@@ -1797,7 +1798,7 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 										  stmt->sortClause,
 										  &qry->targetList,
 										  true, /* fix unknowns */
-                                          false /* use SQL92 rules */);
+                                          false /* allow SQL92 rules */);
 
 	qry->limitOffset = transformLimitClause(pstate, stmt->limitOffset,
 											"OFFSET");
@@ -2069,7 +2070,7 @@ transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
 										  sortClause,
 										  &qry->targetList,
 										  false /* no unknowns expected */,
-                                          false /* use SQL92 rules */ );
+                                          false /* allow SQL92 rules */ );
 
 	pstate->p_rtable = sv_rtable;
 	pstate->p_relnamespace = sv_relnamespace;

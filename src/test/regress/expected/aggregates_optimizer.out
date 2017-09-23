@@ -572,15 +572,27 @@ select array_agg(distinct a)
  {1,2,3,NULL}
 (1 row)
 
--- TODO: support distinct + order by
-/*
 select array_agg(distinct a order by a)
   from (values (1),(2),(1),(3),(null),(2)) v(a);
+  array_agg   
+--------------
+ {1,2,3,NULL}
+(1 row)
+
 select array_agg(distinct a order by a desc)
   from (values (1),(2),(1),(3),(null),(2)) v(a);
+  array_agg   
+--------------
+ {NULL,3,2,1}
+(1 row)
+
 select array_agg(distinct a order by a desc nulls last)
   from (values (1),(2),(1),(3),(null),(2)) v(a);
-*/
+  array_agg   
+--------------
+ {3,2,1,NULL}
+(1 row)
+
 -- multi-arg aggs, strict/nonstrict, distinct/order by
 select aggfstr(a,b,c)
   from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c);
@@ -721,30 +733,26 @@ select pg_get_viewdef('agg_view1'::regclass);
 */
 drop view agg_view1;
 -- incorrect DISTINCT usage errors
-select array_agg(distinct a,b,c order by i)
+select aggfns(distinct a,b,c order by i)
   from (values (1,1,'foo')) v(a,b,c), generate_series(1,2) i;
-ERROR:  function array_agg(integer, integer, text) does not exist
-LINE 1: select array_agg(distinct a,b,c order by i)
-               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-select array_agg(distinct a,b,c order by a,b+1)
+ERROR:  in an aggregate with DISTINCT, ORDER BY expressions must appear in argument list
+LINE 1: select aggfns(distinct a,b,c order by i)
+                                              ^
+select aggfns(distinct a,b,c order by a,b+1)
   from (values (1,1,'foo')) v(a,b,c), generate_series(1,2) i;
-ERROR:  function array_agg(integer, integer, text) does not exist
-LINE 1: select array_agg(distinct a,b,c order by a,b+1)
-               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-select array_agg(distinct a,b,c order by a,b,i,c)
+ERROR:  in an aggregate with DISTINCT, ORDER BY expressions must appear in argument list
+LINE 1: select aggfns(distinct a,b,c order by a,b+1)
+                                                ^
+select aggfns(distinct a,b,c order by a,b,i,c)
   from (values (1,1,'foo')) v(a,b,c), generate_series(1,2) i;
-ERROR:  function array_agg(integer, integer, text) does not exist
-LINE 1: select array_agg(distinct a,b,c order by a,b,i,c)
-               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-select array_agg(distinct a,a,c order by a,b)
+ERROR:  in an aggregate with DISTINCT, ORDER BY expressions must appear in argument list
+LINE 1: select aggfns(distinct a,b,c order by a,b,i,c)
+                                                  ^
+select aggfns(distinct a,a,c order by a,b)
   from (values (1,1,'foo')) v(a,b,c), generate_series(1,2) i;
-ERROR:  function array_agg(integer, integer, text) does not exist
-LINE 1: select array_agg(distinct a,a,c order by a,b)
-               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  in an aggregate with DISTINCT, ORDER BY expressions must appear in argument list
+LINE 1: select aggfns(distinct a,a,c order by a,b)
+                                                ^
 -- string_agg tests
 select string_agg(a) from (values('aaaa'),('bbbb'),('cccc')) g(a);
   string_agg  
@@ -864,6 +872,8 @@ select sum(unique1) FILTER (WHERE
 select aggfns(distinct a,b,c order by a,c using ~<~,b) filter (where a > 1)
     from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
     generate_series(1,2) i;
-ERROR:  ORDER BY and DISTINCT are mutually exclusive
-LINE 1: select aggfns(distinct a,b,c order by a,c using ~<~,b) filte...
-               ^
+          aggfns           
+---------------------------
+ {"(2,2,bar)","(3,1,baz)"}
+(1 row)
+

@@ -228,34 +228,33 @@ typedef enum AggStage
 } AggStage;
 
 
-
-/*
- * AggOrder describes ordering information for ordered aggregates
- */
-typedef struct AggOrder
-{
-    Expr        xpr;
-    bool        sortImplicit;   /* Implict or explicit ordering? */
-    List       *sortTargets;    /* Targetlist for order by clause */
-    List       *sortClause;     /* Sort clause for the aggregate */
-} AggOrder;
-
-
 /*
  * Aggref
+ *
+ * The aggregate's args list is a targetlist, ie, a list of TargetEntry nodes
+ * (before Postgres 9.0 it was just bare expressions).  The non-resjunk TLEs
+ * represent the aggregate's regular arguments (if any) and resjunk TLEs can
+ * be added at the end to represent ORDER BY expressions that are not also
+ * arguments.  As in a top-level Query, the TLEs can be marked with
+ * ressortgroupref indexes to let them be referenced by SortGroupClause
+ * entries in the aggorder and/or aggdistinct lists.  This represents ORDER BY
+ * and DISTINCT operations to be applied to the aggregate input rows before
+ * they are passed to the transition function.  The grammar only allows a
+ * simple "DISTINCT" specifier for the arguments, but we use the full
+ * query-level representation to allow more code sharing.
  */
 typedef struct Aggref
 {
 	Expr		xpr;
 	Oid			aggfnoid;		/* pg_proc Oid of the aggregate */
 	Oid			aggtype;		/* type Oid of result of the aggregate */
-	List	   *args;			/* arguments to the aggregate */
-	Index		agglevelsup;	/* > 0 if agg belongs to outer query */
-	bool		aggstar;		/* TRUE if argument list was really '*' */
-	bool		aggdistinct;	/* TRUE if it's agg(DISTINCT ...) */
+	List	   *args;			/* arguments and sort expressions */
+	List	   *aggorder;		/* ORDER BY (list of SortGroupClause) */
+	List	   *aggdistinct;	/* DISTINCT (list of SortGroupClause) */
 	Expr	   *aggfilter;		/* FILTER expression, if any */
+	bool		aggstar;		/* TRUE if argument list was really '*' */
+	Index		agglevelsup;	/* > 0 if agg belongs to outer query */
 	AggStage	aggstage;		/* MPP: 2-stage? If so, which stage */
-    AggOrder   *aggorder;       /* Ordered aggregate definition */
 	int			location;		/* token location, or -1 if unknown */
 } Aggref;
 

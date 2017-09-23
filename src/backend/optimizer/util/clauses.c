@@ -480,44 +480,36 @@ count_agg_clauses_walker(Node *node, AggClauseCounts *counts)
 		Form_pg_aggregate aggform;
 		Oid			aggtranstype;
 		Oid			aggprelimfn;
-		int			i;
 		ListCell   *l;
 
 		Assert(aggref->agglevelsup == 0);
 		counts->numAggs++;
-		if (aggref->aggdistinct)
+		if (aggref->aggorder != NIL || aggref->aggdistinct != NIL)
+			counts->numOrderedAggs++;
+
+		if (aggref->aggorder != NIL)
+			counts->hasOrderedAggs = true;
+
+		if (aggref->aggdistinct != NIL)
 		{
-			Node *arg;
-			
-			counts->numDistinctAggs++;
-			
-			/* This check anticipates the one in ExecInitAgg(). */
-			if ( list_length(aggref->args) != 1 )
-				ereport(ERROR,
-						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						 errmsg("DISTINCT is supported only for single-argument aggregates")));
-				
-			arg = (Node*)linitial(aggref->args);
-			if ( !list_member(counts->dqaArgs, arg) )
-				counts->dqaArgs = lappend(counts->dqaArgs, arg);
+			foreach(l, aggref->args)
+			{
+				TargetEntry *tle = (TargetEntry *) lfirst(l);
+
+				if ( !list_member(counts->dqaArgs, tle->expr) )
+					counts->dqaArgs = lappend(counts->dqaArgs, tle->expr);
+			}
 		}
 
-		/*
-		 * Build up a list of all ordering clauses from any ordered aggregates
-		 */
-		if (aggref->aggorder)
-		{
-			if ( !list_member(counts->aggOrder, aggref->aggorder) )
-				counts->aggOrder = lappend(counts->aggOrder, aggref->aggorder);
-		}
-
-		/* extract argument types */
-		numArguments = list_length(aggref->args);
-		inputTypes = (Oid *) palloc(sizeof(Oid) * numArguments);
-		i = 0;
+		/* extract argument types (ignoring any ORDER BY expressions) */
+		inputTypes = (Oid *) palloc(sizeof(Oid) * list_length(aggref->args));
+		numArguments = 0;
 		foreach(l, aggref->args)
 		{
-			inputTypes[i++] = exprType((Node *) lfirst(l));
+			TargetEntry *tle = (TargetEntry *) lfirst(l);
+
+			if (!tle->resjunk)
+				inputTypes[numArguments++] = exprType((Node *) tle->expr);
 		}
 
 		/* fetch aggregate transition datatype from pg_aggregate */

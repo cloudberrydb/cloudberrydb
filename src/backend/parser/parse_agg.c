@@ -24,7 +24,10 @@
 #include "parser/parse_expr.h"
 #include "parser/parsetree.h"
 #include "rewrite/rewriteManip.h"
+#include "utils/builtins.h"
 #include "utils/lsyscache.h"
+
+#include "optimizer/walkers.h"
 
 
 typedef struct
@@ -51,19 +54,100 @@ static List* get_groupclause_exprs(Node *grpcl, List *targetList);
  * transformAggregateCall -
  *		Finish initial transformation of an aggregate call
  *
- * parse_func.c has recognized the function as an aggregate, and has set
- * up all the fields of the Aggref except agglevelsup.  Here we must
- * determine which query level the aggregate actually belongs to, set
- * agglevelsup accordingly, and mark p_hasAggs true in the corresponding
- * pstate level.
+ * parse_func.c has recognized the function as an aggregate, and has set up
+ * all the fields of the Aggref except args, aggorder, aggdistinct and
+ * agglevelsup.  The passed-in args list has been through standard expression
+ * transformation, while the passed-in aggorder list hasn't been transformed
+ * at all.
  *
- * GPDB: the passed-in aggorder list hasn't been transformed yet. We
- * do it here.
+ * Here we convert the args list into a targetlist by inserting TargetEntry
+ * nodes, and then transform the aggorder and agg_distinct specifications to
+ * produce lists of SortGroupClause nodes.  (That might also result in adding
+ * resjunk expressions to the targetlist.)
+ *
+ * We must also determine which query level the aggregate actually belongs to,
+ * set agglevelsup accordingly, and mark p_hasAggs true in the corresponding
+ * pstate level.
  */
 void
-transformAggregateCall(ParseState *pstate, Aggref *agg, List *agg_order)
+transformAggregateCall(ParseState *pstate, Aggref *agg,
+					   List *args, List *aggorder, bool agg_distinct)
 {
+	List	   *tlist;
+	List	   *torder;
+	List	   *tdistinct = NIL;
+	AttrNumber	attno;
+	int			save_next_resno;
 	int			min_varlevel;
+	ListCell   *lc;
+
+	/*
+	 * Transform the plain list of Exprs into a targetlist.  We don't bother
+	 * to assign column names to the entries.
+	 */
+	tlist = NIL;
+	attno = 1;
+	foreach(lc, args)
+	{
+		Expr	   *arg = (Expr *) lfirst(lc);
+		TargetEntry *tle = makeTargetEntry(arg, attno++, NULL, false);
+
+		tlist = lappend(tlist, tle);
+	}
+
+	/*
+	 * If we have an ORDER BY, transform it.  This will add columns to the
+	 * tlist if they appear in ORDER BY but weren't already in the arg list.
+	 * They will be marked resjunk = true so we can tell them apart from
+	 * regular aggregate arguments later.
+	 *
+	 * We need to mess with p_next_resno since it will be used to number any
+	 * new targetlist entries.
+	 */
+	save_next_resno = pstate->p_next_resno;
+	pstate->p_next_resno = attno;
+
+	torder = transformSortClause(pstate,
+								 aggorder,
+								 &tlist,
+								 true /* fix unknowns */ ,
+								 true /* force SQL99 rules */ );
+
+	/*
+	 * If we have DISTINCT, transform that to produce a distinctList.
+	 */
+	if (agg_distinct)
+	{
+		tdistinct = transformDistinctClause(pstate, &tlist, torder, true);
+
+		/*
+		 * Remove this check if executor support for hashed distinct for
+		 * aggregates is ever added.
+		 */
+		foreach(lc, tdistinct)
+		{
+			SortGroupClause *sortcl = (SortGroupClause *) lfirst(lc);
+
+			if (!OidIsValid(sortcl->sortop))
+			{
+				Node	   *expr = get_sortgroupclause_expr(sortcl, tlist);
+
+				ereport(ERROR,
+						(errcode(ERRCODE_UNDEFINED_FUNCTION),
+				errmsg("could not identify an ordering operator for type %s",
+					   format_type_be(exprType(expr))),
+						 errdetail("Aggregates with DISTINCT must be able to sort their inputs."),
+						 parser_errposition(pstate, exprLocation(expr))));
+			}
+		}
+	}
+
+	/* Update the Aggref with the transformation results */
+	agg->args = tlist;
+	agg->aggorder = torder;
+	agg->aggdistinct = tdistinct;
+
+	pstate->p_next_resno = save_next_resno;
 
 	/*
 	 * The aggregate's level is the same as the level of the lowest-level
@@ -108,50 +192,6 @@ transformAggregateCall(ParseState *pstate, Aggref *agg, List *agg_order)
 	if (min_varlevel < 0)
 		min_varlevel = 0;
 	agg->agglevelsup = min_varlevel;
-
-    /*
-     * Transform the aggregate order by, if any.
-     *
-     * This involves transforming a sortlist, which in turn requires
-     * maintenace of a targetlist maintained for the purposes of the
-     * sort.  This targetlist cannot be the main query targetlist
-     * because the rules of which columns are referencable are different
-     * for the two targetlists.  This one can reference any column in
-     * in the from list, the main targetlist is limitted to expressions
-     * that show up in the group by clause.
-     *
-     * CDB: This is a little different from the postgres implementation.
-     * In the postgres implementation the "args" of the aggregate is
-     * the targetlist.  In the GP implementation the args are a regular
-     * parameter list and we build a separate targetlist for use in
-     * the order by.
-     */
-    if (agg_order)
-    {
-        AggOrder *aggorder = makeNode(AggOrder);
-        List     *tlist    = NIL;
-        int       save_next_resno;
-
-        /* transformSortClause will move the parse state resno which can
-         * cause problems since this isn't actually modifying the main
-         * target list.  To handle this we simply save the current resno and
-         * restore it when the transform is complete. */
-        save_next_resno = pstate->p_next_resno;
-        pstate->p_next_resno = 1;
-
-        aggorder->sortImplicit = false;   /* TODO: implicit ordered aggregates */
-        aggorder->sortClause =
-            transformSortClause(pstate,
-                                agg_order,
-                                &tlist,
-                                true /* fix unknowns */ ,
-                                true /* use SQL99 rules */ );
-        aggorder->sortTargets = tlist;
-
-        pstate->p_next_resno = save_next_resno;
-
-        agg->aggorder = aggorder;
-    }
 
 	/* Mark the correct pstate as having aggregates */
 	while (min_varlevel-- > 0)

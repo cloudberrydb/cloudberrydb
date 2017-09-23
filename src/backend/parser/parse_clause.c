@@ -104,6 +104,9 @@ static List *transformRowExprToList(ParseState *pstate, RowExpr *rowexpr,
 static List *transformRowExprToGroupClauses(ParseState *pstate, RowExpr *rowexpr,
 											List *groupsets, List *targetList);
 static void freeGroupList(List *grouplist);
+static List *addTargetToGroupList(ParseState *pstate, TargetEntry *tle,
+					 List *grouplist, List *targetlist, int location,
+					 bool resolveUnknown);
 static WindowClause *findWindowClause(List *wclist, const char *name);
 static Node *transformFrameOffset(ParseState *pstate, int frameOptions,
 								  Node *clause,
@@ -2612,10 +2615,14 @@ transformDistinctToGroupBy(ParseState *pstate, List **targetlist,
  * and allows the user to choose the equality semantics used by DISTINCT,
  * should she be working with a datatype that has more than one equality
  * operator.
+ *
+ * is_agg is true if we are transforming an aggregate(DISTINCT ...)
+ * function call.  This does not affect any behavior, only the phrasing
+ * of error messages.
  */
 List *
 transformDistinctClause(ParseState *pstate,
-						List **targetlist, List *sortClause)
+						List **targetlist, List *sortClause, bool is_agg)
 {
 	List	   *result = NIL;
 	ListCell   *slitem;
@@ -2644,6 +2651,8 @@ transformDistinctClause(ParseState *pstate,
 		if (tle->resjunk)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
+					 is_agg ?
+					 errmsg("in an aggregate with DISTINCT, ORDER BY expressions must appear in argument list") :
 					 errmsg("for SELECT DISTINCT, ORDER BY expressions must appear in select list"),
 					 parser_errposition(pstate,
 										exprLocation((Node *) tle->expr))));

@@ -45,7 +45,7 @@ typedef struct AggStatePerAggData
 	AggrefExprState *aggrefstate;
 	Aggref	   *aggref;
 
-	/* number of input arguments for aggregate */
+	/* number of input arguments for aggregate function proper */
 	int			numArguments;
 	
 	/* number of inputs including ORDER BY expressions */
@@ -64,24 +64,25 @@ typedef struct AggStatePerAggData
 	FmgrInfo	transfn;
 	FmgrInfo    prelimfn;
 	FmgrInfo	finalfn;
-	
-	/* --- Ordered Aggregate Additions ( --- */
-	
+
 	/* number of sorting columns */
 	int			numSortCols;
-	
+
+	/* number of sorting columns to consider in DISTINCT comparisons */
+	/* (this is either zero or the same as numSortCols) */
+	int			numDistinctCols;
+
 	/* deconstructed sorting information (arrays of length numSortCols) */
 	AttrNumber *sortColIdx;
 	Oid		   *sortOperators;
 	bool	   *sortNullsFirst;
 
-	/* --- Ordered Aggregate Additions ) --- */
-
 	/*
-	 * fmgr lookup data for input type's equality operator --- only set/used
-	 * when aggregate has DISTINCT flag. (In PG 9, equalfns is a vector.)
+	 * fmgr lookup data for input columns' equality operators --- only
+	 * set/used when aggregate has DISTINCT flag.  Note that these are in
+	 * order of sort column index, not parameter index.
 	 */
-	FmgrInfo	equalfn;
+	FmgrInfo   *equalfns;		/* array of length numDistinctCols */
 
 	/*
 	 * initial value from pg_aggregate entry
@@ -92,6 +93,9 @@ typedef struct AggStatePerAggData
 	/*
 	 * We need the len and byval info for the agg's input, result, and
 	 * transition data types in order to know how to copy/delete values.
+	 *
+	 * Note that the info for the input type is used only when handling
+	 * DISTINCT aggs with just one argument, so there is only one input type.
 	 */
 	int16		inputtypeLen,
 				resulttypeLen,
@@ -114,16 +118,18 @@ typedef struct AggStatePerAggData
 	 * during ExecInitAgg() and then used for each input row.
 	 */
 	TupleTableSlot *evalslot;	/* current input tuple */
-	
+	TupleTableSlot *uniqslot;	/* used for multi-column DISTINCT */
+
 	/*
 	 * These values are working state that is initialized at the start of an
 	 * input tuple group and updated for each input tuple.
 	 *
-	 * For a simple (non DISTINCT) aggregate, we just feed the input values
-	 * straight to the transition function.  If it's DISTINCT, we pass the
-	 * input values into a Tuplesort object; then at completion of the input
-	 * tuple group, we scan the sorted values, eliminate duplicates, and run
-	 * the transition function on the rest.
+	 * For a simple (non DISTINCT/ORDER BY) aggregate, we just feed the input
+	 * values straight to the transition function.  If it's DISTINCT or
+	 * requires ORDER BY, we pass the input values into a Tuplesort object;
+	 * then at completion of the input tuple group, we scan the sorted values,
+	 * eliminate duplicates if needed, and run the transition function on the
+	 * rest.
 	 */
 
 	void *sortstate;	/* sort object, if DISTINCT or ORDER BY */

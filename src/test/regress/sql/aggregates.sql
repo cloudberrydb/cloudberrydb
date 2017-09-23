@@ -248,24 +248,20 @@ select array_agg(b order by a desc)
 
 select array_agg(distinct a)
   from (values (1),(2),(1),(3),(null),(2)) v(a);
-
--- TODO: support distinct + order by
-/*
 select array_agg(distinct a order by a)
   from (values (1),(2),(1),(3),(null),(2)) v(a);
 select array_agg(distinct a order by a desc)
   from (values (1),(2),(1),(3),(null),(2)) v(a);
 select array_agg(distinct a order by a desc nulls last)
   from (values (1),(2),(1),(3),(null),(2)) v(a);
-*/
 
 -- multi-arg aggs, strict/nonstrict, distinct/order by
+
 select aggfstr(a,b,c)
   from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c);
 select aggfns(a,b,c)
   from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c);
 
-/*
 select aggfstr(distinct a,b,c)
   from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
        generate_series(1,3) i;
@@ -294,10 +290,9 @@ select aggfns(distinct a,a,c order by a)
 select aggfns(distinct a,b,c order by a,c using ~<~,b)
   from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
        generate_series(1,2) i;
-*/
-
 
 -- check node I/O via view creation and usage, also deparsing logic
+
 create view agg_view1 as
   select aggfns(a,b,c)
     from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c);
@@ -313,9 +308,6 @@ create or replace view agg_view1 as
 select * from agg_view1;
 select pg_get_viewdef('agg_view1'::regclass);
 
-
--- TODO: support distinct + order by
-/*
 create or replace view agg_view1 as
   select aggfns(distinct a,b,c order by b)
     from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
@@ -323,7 +315,6 @@ create or replace view agg_view1 as
 
 select * from agg_view1;
 select pg_get_viewdef('agg_view1'::regclass);
-*/
 
 create or replace view agg_view1 as
   select aggfns(a,b,c order by b+1)
@@ -346,8 +337,6 @@ create or replace view agg_view1 as
 select * from agg_view1;
 select pg_get_viewdef('agg_view1'::regclass);
 
--- TODO: support distinct + order by
-/*
 create or replace view agg_view1 as
   select aggfns(distinct a,b,c order by a,c using ~<~,b)
     from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
@@ -355,18 +344,18 @@ create or replace view agg_view1 as
 
 select * from agg_view1;
 select pg_get_viewdef('agg_view1'::regclass);
-*/
 
 drop view agg_view1;
 
 -- incorrect DISTINCT usage errors
-select array_agg(distinct a,b,c order by i)
+
+select aggfns(distinct a,b,c order by i)
   from (values (1,1,'foo')) v(a,b,c), generate_series(1,2) i;
-select array_agg(distinct a,b,c order by a,b+1)
+select aggfns(distinct a,b,c order by a,b+1)
   from (values (1,1,'foo')) v(a,b,c), generate_series(1,2) i;
-select array_agg(distinct a,b,c order by a,b,i,c)
+select aggfns(distinct a,b,c order by a,b,i,c)
   from (values (1,1,'foo')) v(a,b,c), generate_series(1,2) i;
-select array_agg(distinct a,a,c order by a,b)
+select aggfns(distinct a,a,c order by a,b)
   from (values (1,1,'foo')) v(a,b,c), generate_series(1,2) i;
 
 -- string_agg tests

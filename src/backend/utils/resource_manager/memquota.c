@@ -133,14 +133,8 @@ static bool IsAggMemoryIntensive(Agg *agg)
 	count_agg_clauses((Node *) plan->targetlist, &aggInfo);
 	count_agg_clauses((Node *) plan->qual, &aggInfo);
 
-	/* Case 2 */
-	if (aggInfo.numDistinctAggs >0)
-	{
-		return true;
-	}
-
-	/* Case 3 */
-	if (aggInfo.aggOrder != NIL )
+	/* Cases 2 & 2 */
+	if (aggInfo.numOrderedAggs >0)
 	{
 		return true;
 	}

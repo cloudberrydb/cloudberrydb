@@ -38,6 +38,10 @@ CREATE AGGREGATE newcnt ("any") (
    initcond = '0'
 );
 
+COMMENT ON AGGREGATE nosuchagg (*) IS 'should fail';
+COMMENT ON AGGREGATE newcnt (*) IS 'an agg(*) comment';
+COMMENT ON AGGREGATE newcnt ("any") IS 'an agg(any) comment';
+
 -- multi-argument aggregate
 create function sum3(int8,int8,int8) returns int8 as
 'select $1 + $2 + $3' language sql CONTAINS SQL strict immutable;
@@ -47,11 +51,7 @@ create aggregate sum2(int8,int8) (
    initcond = '0'
 );
 
-
 -- multi-argument aggregates sensitive to distinct/order, strict/nonstrict
-
-/*
--- MPP: In Postgres this creates an array type with it, in GP it does not.
 create type aggtype as (a integer, b integer, c text);
 
 create function aggf_trans(aggtype[],integer,integer,text) returns aggtype[]
@@ -71,26 +71,6 @@ create aggregate aggfns(integer,integer,text) (
    sfunc = aggfns_trans, stype = aggtype[],
    initcond = '{}'
 );
-*/
-create function aggf_trans(text[],integer,integer,text) returns text[]
-as 'select array_append($1, textin(record_out(ROW($2,$3,$4))))'
-language sql CONTAINS SQL strict immutable;
-
-create function aggfns_trans(text[],integer,integer,text) returns text[]
-as 'select array_append($1, textin(record_out(ROW($2,$3,$4))))'
-language sql CONTAINS SQL immutable;
-
-create ordered aggregate aggfstr(integer,integer,text) (
-   stype = text[],
-   sfunc = aggf_trans, 
-   initcond = '{}'
-);
-
-create ordered aggregate aggfns(integer,integer,text) (
-   stype = text[],
-   sfunc = aggfns_trans, 
-   initcond = '{}'
-);
 
 -- Negative test: "ordered aggregate prefunc is not supported"
 create ordered aggregate should_error(integer,integer,text) (
@@ -101,11 +81,6 @@ create ordered aggregate should_error(integer,integer,text) (
 );
 
 
-
--- Comments on aggregates
-COMMENT ON AGGREGATE nosuchagg (*) IS 'should fail';
-COMMENT ON AGGREGATE newcnt (*) IS 'an agg(*) comment';
-COMMENT ON AGGREGATE newcnt ("any") IS 'an agg(any) comment';
 
 -- MPP-2863: ensure that aggregate declarations with an initial value == ''
 -- do not get converted to an initial value == NULL

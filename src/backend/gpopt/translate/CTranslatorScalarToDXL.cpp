@@ -1359,7 +1359,15 @@ CTranslatorScalarToDXL::PdxlnScAggrefFromAggref
 	// create the DXL node holding the scalar aggref
 	CDXLNode *pdxln = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlopAggref);
 
-	TranslateScalarChildren(pdxln, paggref->args, pmapvarcolid);
+	// translate args
+	ListCell *plc;
+	ForEach (plc, paggref->args)
+	{
+		TargetEntry *tle = (TargetEntry *) lfirst(plc);
+		CDXLNode *pdxlnChild = PdxlnScOpFromExpr(tle->expr, pmapvarcolid, NULL);
+		GPOS_ASSERT(NULL != pdxlnChild);
+		pdxln->AddChild(pdxlnChild);
+	}
 
 	return pdxln;
 }

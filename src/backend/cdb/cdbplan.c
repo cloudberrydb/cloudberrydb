@@ -857,7 +857,6 @@ plan_tree_mutator(Node *node,
 		case T_SetToDefault:
 		case T_RangeTblRef:
 		case T_Aggref:
-		case T_AggOrder:
 		case T_WindowFunc:
 		case T_ArrayRef:
 		case T_FuncExpr:

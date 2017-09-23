@@ -578,24 +578,6 @@ _outConst(StringInfo str, Const *node)
 }
 
 static void
-_outAggref(StringInfo str, Aggref *node)
-{
-	WRITE_NODE_TYPE("AGGREF");
-
-	WRITE_OID_FIELD(aggfnoid);
-	WRITE_OID_FIELD(aggtype);
-	WRITE_NODE_FIELD(args);
-	WRITE_UINT_FIELD(agglevelsup);
-	WRITE_BOOL_FIELD(aggstar);
-	WRITE_BOOL_FIELD(aggdistinct);
-	WRITE_NODE_FIELD(aggfilter);
-
-	WRITE_ENUM_FIELD(aggstage, AggStage);
-    WRITE_NODE_FIELD(aggorder);
-
-}
-
-static void
 _outBoolExpr(StringInfo str, BoolExpr *node)
 {
 	WRITE_NODE_TYPE("BOOLEXPR");
@@ -1438,9 +1420,6 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_Aggref:
 				_outAggref(str, obj);
-				break;
-			case T_AggOrder:
-				_outAggOrder(str, obj);
 				break;
 			case T_WindowFunc:
 				_outWindowFunc(str, obj);

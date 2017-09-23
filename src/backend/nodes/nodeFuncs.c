@@ -1107,19 +1107,6 @@ expression_tree_walker(Node *node,
 					return true;
 			}
 			break;
-		case T_AggOrder:
-			{
-				AggOrder	   *expr = (AggOrder *) node;
-
-				/* recurse directly on List */
-				if (expression_tree_walker((Node *) expr->sortTargets,
-										   walker, context))
-					return true;
-				if (expression_tree_walker((Node *) expr->sortClause,
-										   walker, context))
-					return true;
-			}
-			break;
 		case T_WindowFunc:
 			{
 				WindowFunc   *expr = (WindowFunc *) node;
@@ -1745,7 +1732,8 @@ expression_tree_mutator(Node *node,
 
 				FLATCOPY(newnode, aggref, Aggref);
 				MUTATE(newnode->args, aggref->args, List *);
-				MUTATE(newnode->aggorder, aggref->aggorder, AggOrder *);
+				MUTATE(newnode->aggorder, aggref->aggorder, List *);
+				MUTATE(newnode->aggdistinct, aggref->aggdistinct, List *);
 				MUTATE(newnode->aggfilter, aggref->aggfilter, Expr *);
 				return (Node *) newnode;
 			}
@@ -2198,17 +2186,6 @@ expression_tree_mutator(Node *node,
 				FLATCOPY(newnode, wfunc, WindowFunc);
 				MUTATE(newnode->args, wfunc->args, List *);
 				MUTATE(newnode->aggfilter, wfunc->aggfilter, Expr *);
-				return (Node *) newnode;
-			}
-			break;
-		case T_AggOrder:
-			{
-				AggOrder	*aggorder = (AggOrder *)node;
-				AggOrder	*newnode;
-
-				FLATCOPY(newnode, aggorder, AggOrder);
-				MUTATE(newnode->sortTargets, aggorder->sortTargets, List *);
-				MUTATE(newnode->sortClause, aggorder->sortClause, List *);
 				return (Node *) newnode;
 			}
 			break;

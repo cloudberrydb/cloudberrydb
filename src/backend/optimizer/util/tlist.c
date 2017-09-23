@@ -707,12 +707,12 @@ bool maxSortGroupRef_walker(Node *node, maxSortGroupRef_context *cxt)
 	if ( IsA(node, Aggref) )
 	{
 		Aggref *ref = (Aggref*)node;
-		if ( ref->aggorder && cxt->include_orderedagg )
+
+		if ( cxt->include_orderedagg )
 		{
 			ListCell *lc;
-			AggOrder *aggorder = ref->aggorder;
 
-			foreach (lc, aggorder->sortClause)
+			foreach (lc, ref->aggorder)
 			{
 				SortGroupClause *sort = (SortGroupClause *)lfirst(lc);
 				Assert(IsA(sort, SortGroupClause));

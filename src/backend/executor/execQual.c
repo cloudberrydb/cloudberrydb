@@ -5258,17 +5258,7 @@ ExecInitExpr(Expr *node, PlanState *parent)
 					aggstate->aggs = lcons(astate, aggstate->aggs);
 					naggs = ++aggstate->numaggs;
 
-					/*
-					 * Combine the argument and sortkey expressions into a single list
-					 * along with the corresponding sortkey clauses, if any.
-					 * The code here is a bit different from postgres, because
-					 * GPDB does different things in parser for the ordered aggregate;
-					 * We don't construct target list in parser but do it here.
-					 * These lists are referenced in ExecInitAgg()
-					 */
-					astate->inputTargets =
-							combineAggrefArgs(aggref, &astate->inputSortClauses);
-					astate->args = (List *) ExecInitExpr((Expr *) astate->inputTargets,
+					astate->args = (List *) ExecInitExpr((Expr *) aggref->args,
 														 parent);
 					astate->aggfilter = ExecInitExpr(aggref->aggfilter,
 													 parent);

@@ -218,7 +218,6 @@ typedef enum NodeTag
 	T_Flow,
 	T_Grouping,
 	T_GroupId,
-    T_AggOrder,
 	T_DMLActionExpr,
 	T_PartSelectedExpr,
 	T_PartDefaultExpr,
