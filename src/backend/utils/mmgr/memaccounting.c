@@ -255,7 +255,7 @@ MemoryAccounting_DeclareDone()
 		currentAccount->relinquishedMemory = relinquished;
 	}
 
-	elog(DEBUG2, "Memory Account %d relinquished %u bytes of memory", currentAccount->ownerType, relinquished);
+	elog(DEBUG2, "Memory Account %d relinquished %lu bytes of memory", currentAccount->ownerType, relinquished);
 	return relinquished;
 }
 
