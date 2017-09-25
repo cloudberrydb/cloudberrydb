@@ -249,20 +249,19 @@ initialize_aggregates(AggState *aggstate,
 					peraggstate->sortstate =
 						tuplesort_begin_datum_mk(&aggstate->ss,
 												 peraggstate->evaldesc->attrs[0]->atttypid,
-												 peraggstate->sortOperators[0], false,
+												 peraggstate->sortOperators[0],
+												 peraggstate->sortNullsFirst[0],
 												 PlanStateOperatorMemKB((PlanState *) aggstate), false);
 				}
 				else
 				{
-					bool	   *nullsFirstFlags = palloc0(peraggstate->numSortCols * sizeof(bool));
-
 					peraggstate->sortstate =
 						tuplesort_begin_heap_mk(&aggstate->ss,
 												peraggstate->evaldesc,
 												peraggstate->numSortCols, peraggstate->sortColIdx,
-												peraggstate->sortOperators, nullsFirstFlags,
+												peraggstate->sortOperators,
+												peraggstate->sortNullsFirst,
 												PlanStateOperatorMemKB((PlanState *) aggstate), false);
-					pfree(nullsFirstFlags);
 				}
 
 				/* 
@@ -288,17 +287,17 @@ initialize_aggregates(AggState *aggstate,
 				{
 					peraggstate->sortstate =
 						tuplesort_begin_datum(peraggstate->evaldesc->attrs[0]->atttypid,
-											  peraggstate->sortOperators[0], false,
+											  peraggstate->sortOperators[0],
+											  peraggstate->sortNullsFirst[0],
 											  PlanStateOperatorMemKB((PlanState *) aggstate), false);
 				}
 				else
 				{
-					bool	   *nullsFirstFlags = palloc0(peraggstate->numSortCols * sizeof(bool));
-
 					peraggstate->sortstate =
 						tuplesort_begin_heap(peraggstate->evaldesc,
 											 peraggstate->numSortCols, peraggstate->sortColIdx,
-											 peraggstate->sortOperators, nullsFirstFlags,
+											 peraggstate->sortOperators,
+											 peraggstate->sortNullsFirst,
 											 PlanStateOperatorMemKB((PlanState *) aggstate), false);
 				}
 
@@ -2193,6 +2192,8 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 				(AttrNumber *) palloc(numSortCols * sizeof(AttrNumber));
 			peraggstate->sortOperators =
 				(Oid *) palloc(numSortCols * sizeof(Oid));
+			peraggstate->sortNullsFirst =
+				(bool *) palloc(numSortCols * sizeof(bool));
 
 			i = 0;
 			foreach(lc, sortlist)
@@ -2206,6 +2207,7 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 
 				peraggstate->sortColIdx[i] = tle->resno;
 				peraggstate->sortOperators[i] = sortcl->sortop;
+				peraggstate->sortNullsFirst[i] = sortcl->nulls_first;
 				i++;
 			}
 			Assert(i == numSortCols);

@@ -950,6 +950,7 @@ tuplesort_begin_datum_mk(ScanState *ss,
 
 	state->sortOperator = sortOperator;
 	state->cmpScanKey = NULL;
+	state->nullfirst = nullsFirstFlag;
 	create_mksort_context(
 						  &state->mkctxt,
 						  1, NULL,
