@@ -234,7 +234,6 @@ _equalWindowFunc(WindowFunc *a, WindowFunc *b)
 	COMPARE_SCALAR_FIELD(windistinct);
 	COMPARE_SCALAR_FIELD(winindex);
 	COMPARE_SCALAR_FIELD(winstage);
-	COMPARE_SCALAR_FIELD(winlevel);
 	COMPARE_LOCATION_FIELD(location);
 
 	return true;

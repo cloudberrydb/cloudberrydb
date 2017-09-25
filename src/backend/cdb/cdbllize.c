@@ -405,7 +405,7 @@ ParallelizeCorrelatedSubPlanUpdateFlowMutator(Node *node)
 	switch (nodeTag(node))
 	{
 		case T_Agg:
-		case T_Window:
+		case T_WindowAgg:
 		case T_Sort:
 		case T_Material:
 		case T_Limit:
@@ -1349,7 +1349,7 @@ motion_sanity_walker(Node *node, sanity_result_t *result)
 	switch (nodeTag(node))
 	{
 		case T_Result:
-		case T_Window:
+		case T_WindowAgg:
 		case T_TableFunctionScan:
 		case T_ShareInputScan:
 		case T_Append:

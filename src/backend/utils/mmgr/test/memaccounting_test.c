@@ -937,7 +937,7 @@ test__MemoryAccounting_GetAccountName__Validate(void **state)
 			"X_AppendOnlyScan", "X_AOCSCAN", "X_TableScan", "X_DynamicTableScan", "X_IndexScan", "X_DynamicIndexScan", "X_BitmapIndexScan",
 			"X_BitmapHeapScan", "X_BitmapAppendOnlyScan", "X_TidScan", "X_SubqueryScan", "X_FunctionScan", "X_TableFunctionScan",
 			"X_ValuesScan", "X_NestLoop", "X_MergeJoin", "X_HashJoin", "X_Material", "X_Sort", "X_Agg", "X_Unique", "X_Hash", "X_SetOp",
-			"X_Limit", "X_Motion", "X_ShareInputScan", "X_Window", "X_Repeat", "X_DML", "X_SplitUpdate", "X_RowTrigger", "X_AssertOp",
+			"X_Limit", "X_Motion", "X_ShareInputScan", "X_WindowAgg", "X_Repeat", "X_DML", "X_SplitUpdate", "X_RowTrigger", "X_AssertOp",
 			"X_BitmapTableScan", "X_PartitionSelector", "X_RecursiveUnion", "X_CteScan", "X_WorkTableScan"};
 
 	/* Ensure we have all the long living accounts in the longLivingNames array */

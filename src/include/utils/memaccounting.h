@@ -127,7 +127,7 @@ typedef enum MemoryOwnerType
 	MEMORY_OWNER_TYPE_Exec_Limit,
 	MEMORY_OWNER_TYPE_Exec_Motion,
 	MEMORY_OWNER_TYPE_Exec_ShareInputScan,
-	MEMORY_OWNER_TYPE_Exec_Window,
+	MEMORY_OWNER_TYPE_Exec_WindowAgg,
 	MEMORY_OWNER_TYPE_Exec_Repeat,
 	MEMORY_OWNER_TYPE_Exec_DML,
 	MEMORY_OWNER_TYPE_Exec_SplitUpdate,

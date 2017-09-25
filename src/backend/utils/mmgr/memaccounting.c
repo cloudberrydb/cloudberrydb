@@ -1133,8 +1133,8 @@ MemoryAccounting_GetOwnerName(MemoryOwnerType ownerType)
 		return "X_Motion";
 	case MEMORY_OWNER_TYPE_Exec_ShareInputScan:
 		return "X_ShareInputScan";
-	case MEMORY_OWNER_TYPE_Exec_Window:
-		return "X_Window";
+	case MEMORY_OWNER_TYPE_Exec_WindowAgg:
+		return "X_WindowAgg";
 	case MEMORY_OWNER_TYPE_Exec_Repeat:
 		return "X_Repeat";
 	case MEMORY_OWNER_TYPE_Exec_DML:

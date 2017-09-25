@@ -817,48 +817,37 @@ _outAgg(StringInfo str, Agg *node)
 
 #ifndef COMPILING_BINARY_FUNCS
 static void
-_outWindowKey(StringInfo str, WindowKey *node)
+_outWindowAgg(StringInfo str, WindowAgg *node)
 {
 	int			i;
 
-	WRITE_NODE_TYPE("WINDOWKEY");
-	WRITE_INT_FIELD(numSortCols);
+	WRITE_NODE_TYPE("WINDOWAGG");
 
-	appendStringInfoLiteral(str, " :sortColIdx");
-	for (i = 0; i < node->numSortCols; i++)
-		appendStringInfo(str, " %d", node->sortColIdx[i]);
+	_outPlanInfo(str, (Plan *) node);
 
-	appendStringInfoLiteral(str, " :sortOperators");
-	for (i = 0; i < node->numSortCols; i++)
-		appendStringInfo(str, " %u", node->sortOperators[i]);
+	WRITE_INT_FIELD(partNumCols);
+
+	appendStringInfoLiteral(str, " :partColIdx");
+	for (i = 0; i < node->partNumCols; i++)
+		appendStringInfo(str, " %d", node->partColIdx[i]);
+
+	appendStringInfoLiteral(str, " :partOperators");
+	for (i = 0; i < node->partNumCols; i++)
+		appendStringInfo(str, " %u", node->partOperators[i]);
+
+	WRITE_INT_FIELD(ordNumCols);
+
+	appendStringInfoString(str, " :ordColIdx");
+	for (i = 0; i < node->ordNumCols; i++)
+		appendStringInfo(str, " %d", node->ordColIdx[i]);
+
+	appendStringInfoString(str, " :ordOperations");
+	for (i = 0; i < node->ordNumCols; i++)
+		appendStringInfo(str, " %u", node->ordOperators[i]);
 
 	WRITE_INT_FIELD(frameOptions);
 	WRITE_NODE_FIELD(startOffset);
 	WRITE_NODE_FIELD(endOffset);
-}
-#endif /* COMPILING_BINARY_FUNCS */
-
-#ifndef COMPILING_BINARY_FUNCS
-static void
-_outWindow(StringInfo str, Window *node)
-{
-	int			i;
-
-	WRITE_NODE_TYPE("WINDOW");
-
-	_outPlanInfo(str, (Plan *) node);
-
-	WRITE_INT_FIELD(numPartCols);
-
-	appendStringInfoLiteral(str, " :partColIdx");
-	for (i = 0; i < node->numPartCols; i++)
-		appendStringInfo(str, " %d", node->partColIdx[i]);
-
-	appendStringInfoLiteral(str, " :partOperators");
-	for (i = 0; i < node->numPartCols; i++)
-		appendStringInfo(str, " %u", node->partOperators[i]);
-
-	WRITE_NODE_FIELD(windowKeys);
 }
 #endif /* COMPILING_BINARY_FUNCS */
 
@@ -1267,7 +1256,6 @@ _outWindowFunc(StringInfo str, WindowFunc *node)
 	WRITE_BOOL_FIELD(windistinct);
 	WRITE_UINT_FIELD(winindex);
 	WRITE_ENUM_FIELD(winstage, WinStage);
-	WRITE_UINT_FIELD(winlevel);
 	WRITE_LOCATION_FIELD(location);
 }
 
@@ -4430,11 +4418,8 @@ _outNode(StringInfo str, void *obj)
 			case T_Agg:
 				_outAgg(str, obj);
 				break;
-			case T_WindowKey:
-				_outWindowKey(str, obj);
-				break;
-			case T_Window:
-				_outWindow(str, obj);
+			case T_WindowAgg:
+				_outWindowAgg(str, obj);
 				break;
 			case T_TableFunctionScan:
 				_outTableFunctionScan(str, obj);

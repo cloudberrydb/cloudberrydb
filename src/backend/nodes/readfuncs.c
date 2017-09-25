@@ -1331,7 +1331,6 @@ _readWindowFunc(void)
 	READ_BOOL_FIELD(windistinct);
 	READ_UINT_FIELD(winindex);
 	READ_ENUM_FIELD(winstage, WinStage);
-	READ_UINT_FIELD(winlevel);
 	READ_LOCATION_FIELD(location);
 
 	READ_DONE();
@@ -2652,26 +2651,6 @@ _readConstraintsSetStmt(void)
 	READ_DONE();
 }
 
-#ifndef COMPILING_BINARY_FUNCS
-/*
- * _readWindowKey
- */
-static WindowKey *
-_readWindowKey(void)
-{
-	READ_LOCALS(WindowKey);
-
-	READ_INT_FIELD(numSortCols);
-	READ_INT_ARRAY_OR_NULL(sortColIdx, numSortCols, AttrNumber);
-	READ_OID_ARRAY(sortOperators, numSortCols);
-	READ_INT_FIELD(frameOptions);
-	READ_NODE_FIELD(startOffset);
-	READ_NODE_FIELD(endOffset);
-
-	READ_DONE();
-}
-#endif /* COMPILING_BINARY_FUNCS */
-
 /*
  * _readVacuumStmt
  */
@@ -3141,8 +3120,6 @@ parseNodeString(void)
 		return_value = _readVariableSetStmt();
 	else if (MATCHX("VIEWSTMT"))
 		return_value = _readViewStmt();
-	else if (MATCHX("WINDOWKEY"))
-		return_value = _readWindowKey();
 	else if (MATCHX("WITHCLAUSE"))
 		return_value = _readWithClause();
 	else

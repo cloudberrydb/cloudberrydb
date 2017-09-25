@@ -344,8 +344,6 @@ typedef struct WindowFunc
 	/* Following fields are significant only in a Plan tree. */
 	Index		winindex;		/* RefInfo index during planning. */
 	WinStage	winstage;		/* Stage of execution. */
-	Index		winlevel;		/* Position of corresponding WindowKey in
-								 * the Window node. */
 	int			location;		/* token location, or -1 if unknown */
 } WindowFunc;
 
@@ -1371,31 +1369,6 @@ typedef enum GroupingType
 	GROUPINGTYPE_CUBE,           /* CUBE grouping extension */
 	GROUPINGTYPE_GROUPING_SETS   /* GROUPING SETS grouping extension */
 } GroupingType;
-
-
-/* ---------------
- * WindowKey is an auxiliary node of the Window node (a Plan node).  It 
- * represents one level of the potentially multi-level ordering key of 
- * the Window node.  The ORDER BY key of the Nth WindowKey of a Window
- * is the concatenation of the sort keys from WindowKeys 0 thru N.
- *
- * Note that, since a window key represents partial sort key, it may be 
- * empty.  For example (ORDER BY a,b ROWS x) and (ORDER BY a,b ROWS y) 
- * would be represented by partial key (a,b) with framing ROWS x followed
- * by partial key () with framing ROWS y.
- * ---------------
- */
-typedef struct WindowKey
-{
-	NodeTag			type;
-	int				numSortCols; /* may be zero, see note */
-	AttrNumber	   *sortColIdx;
-	Oid			   *sortOperators;
-	bool		   *nullsFirst;
-	int			frameOptions;
-	Node	   *startOffset;
-	Node	   *endOffset;
-} WindowKey;
 
 /*
  * PercKind

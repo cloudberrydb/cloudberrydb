@@ -1964,37 +1964,25 @@ _readAgg(void)
 }
 
 /*
- * _readWindowKey
+ * _readWindowAgg
  */
-static WindowKey *
-_readWindowKey(void)
+static WindowAgg *
+_readWindowAgg(void)
 {
-	READ_LOCALS(WindowKey);
-
-	READ_INT_FIELD(numSortCols);
-	READ_INT_ARRAY(sortColIdx, local_node->numSortCols, AttrNumber);
-	READ_OID_ARRAY(sortOperators, local_node->numSortCols);
-	READ_INT_FIELD(frameOptions);
-	READ_NODE_FIELD(startOffset);
-	READ_NODE_FIELD(endOffset);
-
-	READ_DONE();
-}
-
-/*
- * _readWindow
- */
-static Window *
-_readWindow(void)
-{
-	READ_LOCALS(Window);
+	READ_LOCALS(WindowAgg);
 
 	readPlanInfo((Plan *)local_node);
 
-	READ_INT_FIELD(numPartCols);
-	READ_INT_ARRAY(partColIdx, local_node->numPartCols, AttrNumber);
-	READ_OID_ARRAY(partOperators, local_node->numPartCols);
-	READ_NODE_FIELD(windowKeys);
+	READ_INT_FIELD(partNumCols);
+	READ_INT_ARRAY(partColIdx, local_node->partNumCols, AttrNumber);
+	READ_OID_ARRAY(partOperators, local_node->partNumCols);
+
+	READ_INT_FIELD(ordNumCols);
+	READ_INT_ARRAY(ordColIdx, local_node->ordNumCols, AttrNumber);
+	READ_OID_ARRAY(ordOperators, local_node->ordNumCols);
+	READ_INT_FIELD(frameOptions);
+	READ_NODE_FIELD(startOffset);
+	READ_NODE_FIELD(endOffset);
 
 	READ_DONE();
 }
@@ -2837,11 +2825,8 @@ readNodeBinary(void)
 			case T_Agg:
 				return_value = _readAgg();
 				break;
-			case T_WindowKey:
-				return_value = _readWindowKey();
-				break;
-			case T_Window:
-				return_value = _readWindow();
+			case T_WindowAgg:
+				return_value = _readWindowAgg();
 				break;
 			case T_TableFunctionScan:
 				return_value = _readTableFunctionScan();

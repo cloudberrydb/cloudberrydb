@@ -501,16 +501,6 @@ expression_tree_walker(Node *node,
 				return false;
 			}
 			break;
-		case T_WindowKey:
-			{
-				WindowKey *wk = (WindowKey *) node;
-
-				if (walker((Node *) wk->startOffset, context))
-					return true;
-				if (walker((Node *) wk->endOffset, context))
-					return true;
-			}
-			break;
 		case T_PercentileExpr:
 			{
 				PercentileExpr *perc = (PercentileExpr *) node;
@@ -1016,10 +1006,12 @@ plan_tree_walker(Node *node,
 			/* Other fields are simple items and lists of simple items. */
 			break;
 
-		case T_Window:
+		case T_WindowAgg:
 			if (walk_plan_node_fields((Plan *) node, walker, context))
 				return true;
-			if (walker(((Window *) node)->windowKeys, context))
+			if (walker(((WindowAgg *) node)->startOffset, context))
+				return true;
+			if (walker(((WindowAgg *) node)->endOffset, context))
 				return true;
 			break;
 

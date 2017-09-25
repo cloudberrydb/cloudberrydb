@@ -1816,7 +1816,7 @@ finalize_plan(PlannerInfo *root, Plan *plan, Bitmapset *valid_params)
 		case T_RecursiveUnion:
 		case T_Hash:
 		case T_Agg:
-		case T_Window:
+		case T_WindowAgg:
 		case T_SeqScan:
 		case T_AppendOnlyScan:
 		case T_AOCSScan: 

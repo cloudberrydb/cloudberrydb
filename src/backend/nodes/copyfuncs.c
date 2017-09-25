@@ -983,43 +983,30 @@ _copyAgg(Agg *from)
 }
 
 /*
- * _copyWindowKey
+ * _copyWindowAgg
  */
-static WindowKey *
-_copyWindowKey(WindowKey *from)
+static WindowAgg *
+_copyWindowAgg(WindowAgg *from)
 {
-	WindowKey   *newnode = makeNode(WindowKey);
+	WindowAgg  *newnode = makeNode(WindowAgg);
 
-	COPY_SCALAR_FIELD(numSortCols);
-	if (from->numSortCols > 0)
+	CopyPlanFields((Plan *) from, (Plan *) newnode);
+
+	COPY_SCALAR_FIELD(partNumCols);
+	if (from->partNumCols > 0)
 	{
-		COPY_POINTER_FIELD(sortColIdx, from->numSortCols * sizeof(AttrNumber));
-		COPY_POINTER_FIELD(sortOperators, from->numSortCols * sizeof(Oid));
+		COPY_POINTER_FIELD(partColIdx, from->partNumCols * sizeof(AttrNumber));
+		COPY_POINTER_FIELD(partOperators, from->partNumCols * sizeof(Oid));
+	}
+	COPY_SCALAR_FIELD(ordNumCols);
+	if (from->ordNumCols > 0)
+	{
+		COPY_POINTER_FIELD(ordColIdx, from->ordNumCols * sizeof(AttrNumber));
+		COPY_POINTER_FIELD(ordOperators, from->ordNumCols * sizeof(Oid));
 	}
 	COPY_SCALAR_FIELD(frameOptions);
 	COPY_NODE_FIELD(startOffset);
 	COPY_NODE_FIELD(endOffset);
-
-	return newnode;
-}
-
-/*
- * _copyWindow
- */
-static Window *
-_copyWindow(Window *from)
-{
-	Window	*newnode = makeNode(Window);
-
-	CopyPlanFields((Plan *) from, (Plan *) newnode);
-
-	COPY_SCALAR_FIELD(numPartCols);
-	if (from->numPartCols > 0)
-	{
-		COPY_POINTER_FIELD(partColIdx, from->numPartCols * sizeof(AttrNumber));
-		COPY_POINTER_FIELD(partOperators, from->numPartCols * sizeof(Oid));
-	}
-	COPY_NODE_FIELD(windowKeys);
 
 	return newnode;
 }
@@ -1479,7 +1466,6 @@ _copyWindowFunc(WindowFunc *from)
 	COPY_SCALAR_FIELD(windistinct);
 	COPY_SCALAR_FIELD(winindex);
 	COPY_SCALAR_FIELD(winstage);
-	COPY_SCALAR_FIELD(winlevel);
 	COPY_LOCATION_FIELD(location);
 
 	return newnode;
@@ -4658,11 +4644,8 @@ copyObject(void *from)
 		case T_Agg:
 			retval = _copyAgg(from);
 			break;
-		case T_WindowKey:
-			retval = _copyWindowKey(from);
-			break;
-		case T_Window:
-			retval = _copyWindow(from);
+		case T_WindowAgg:
+			retval = _copyWindowAgg(from);
 			break;
 		case T_TableFunctionScan:
 			retval = _copyTableFunctionScan(from);

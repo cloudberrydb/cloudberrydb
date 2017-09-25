@@ -2458,7 +2458,8 @@ typedef struct WindowState
 	/* Per row state */
 	int64		row_index;
 
-	int			numlevels;
+	/* frame does not require buffering and complexity of invokeWindowFuncs() */
+	bool		trivial_frame;
 
 	WindowStatePerLevel level_state;
 

@@ -670,12 +670,12 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			END_MEMORY_ACCOUNT();
 			break;
 
-		case T_Window:
-			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, Window);
+		case T_WindowAgg:
+			curMemoryAccountId = CREATE_EXECUTOR_MEMORY_ACCOUNT(isAlienPlanNode, node, WindowAgg);
 
 			START_MEMORY_ACCOUNT(curMemoryAccountId);
 			{
-			result = (PlanState *) ExecInitWindow((Window *) node,
+			result = (PlanState *) ExecInitWindow((WindowAgg *) node,
 											   estate, eflags);
 			}
 			END_MEMORY_ACCOUNT();
@@ -1439,8 +1439,8 @@ ExecCountSlotsNode(Plan *node)
 		case T_Agg:
 			return ExecCountSlotsAgg((Agg *) node);
 
-		case T_Window:
-			return ExecCountSlotsWindow((Window *) node);
+		case T_WindowAgg:
+			return ExecCountSlotsWindow((WindowAgg *) node);
 
 		case T_Unique:
 			return ExecCountSlotsUnique((Unique *) node);

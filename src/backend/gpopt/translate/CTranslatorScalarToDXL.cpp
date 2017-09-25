@@ -1527,7 +1527,7 @@ CTranslatorScalarToDXL::PdxlnScWindowFunc
 		}
 	}
 
-	ULONG ulWinSpecPos = (ULONG) pwindowfunc->winlevel;
+	ULONG ulWinSpecPos = (ULONG) 0;
 	if (m_fQuery)
 	{
 		ulWinSpecPos = (ULONG) pwindowfunc->winref - 1;

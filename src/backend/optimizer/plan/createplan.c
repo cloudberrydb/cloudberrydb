@@ -5240,35 +5240,31 @@ add_agg_cost(PlannerInfo *root, Plan *plan,
 	return plan;
 }
 
-Window *
-make_window(PlannerInfo *root, List *tlist,
-			int numPartCols, AttrNumber *partColIdx, Oid *partOperators, List *windowKeys,
-			Plan *lefttree)
+WindowAgg *
+make_windowagg(PlannerInfo *root, List *tlist,
+			   int partNumCols, AttrNumber *partColIdx, Oid *partOperators,
+			   int ordNumCols, AttrNumber *ordColIdx, Oid *ordOperators,
+			   int frameOptions, Node *startOffset, Node *endOffset,
+			   Plan *lefttree)
 {
-	Window	   *node = makeNode(Window);
+	WindowAgg  *node = makeNode(WindowAgg);
 	Plan	   *plan = &node->plan;
 	Path		window_path;	/* dummy for result of cost_window */
 	QualCost	qual_cost;
-	int			numOrderCols;
-	ListCell   *cell;
 
-	node->numPartCols = numPartCols;
+	node->partNumCols = partNumCols;
 	node->partColIdx = partColIdx;
 	node->partOperators = partOperators;
-	node->windowKeys = windowKeys;
-
-	numOrderCols = numPartCols;
-	foreach(cell, windowKeys)
-	{
-		/* TODO Shouldn't we copy? */
-		WindowKey  *key = (WindowKey *) lfirst(cell);
-
-		numOrderCols += key->numSortCols;
-	}
+	node->ordNumCols = ordNumCols;
+	node->ordColIdx = ordColIdx;
+	node->ordOperators = ordOperators;
+	node->frameOptions = frameOptions;
+	node->startOffset = startOffset;
+	node->endOffset = endOffset;
 
 	copy_plan_costsize(plan, lefttree); /* only care about copying size */
 	cost_window(&window_path, root,
-			   numOrderCols,
+			   ordNumCols,
 			   lefttree->startup_cost,
 			   lefttree->total_cost,
 			   lefttree->plan_rows);
