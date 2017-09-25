@@ -202,7 +202,7 @@ static void get_groupingfunc_expr(GroupingFunc *grpfunc,
 static void get_agg_expr(Aggref *aggref, deparse_context *context);
 static void get_sortlist_expr(List *l, List *targetList, bool force_colno,
                               deparse_context *context, char *keyword_clause);
-static void get_windowref_expr(WindowRef *wref, deparse_context *context);
+static void get_windowfunc_expr(WindowFunc *wfunc, deparse_context *context);
 static void get_coercion_expr(Node *arg, deparse_context *context,
 				  Oid resulttype, int32 resulttypmod,
 				  Node *parentNode);
@@ -4313,8 +4313,8 @@ get_rule_expr(Node *node, deparse_context *context,
 			get_agg_expr((Aggref *) node, context);
 			break;
 
-		case T_WindowRef:
-			get_windowref_expr((WindowRef *)node, context);
+		case T_WindowFunc:
+			get_windowfunc_expr((WindowFunc *) node, context);
 			break;
 
 		case T_ArrayRef:
@@ -5479,42 +5479,42 @@ get_sortlist_expr(List *l, List *targetList, bool force_colno,
 }
 
 /*
- * get_windowref_expr			- Parse back a WindowRef node
+ * get_windowfunc_expr	- Parse back a WindowFunc node
  */
 static void
-get_windowref_expr(WindowRef *wref, deparse_context *context)
+get_windowfunc_expr(WindowFunc *wfunc, deparse_context *context)
 {
 	StringInfo	buf = context->buf;
 	Oid			argtypes[FUNC_MAX_ARGS];
 	int			nargs;
 	ListCell   *l;
 
-	if (list_length(wref->args) >= FUNC_MAX_ARGS)
+	if (list_length(wfunc->args) >= FUNC_MAX_ARGS)
 		ereport(ERROR,
 				(errcode(ERRCODE_TOO_MANY_ARGUMENTS),
 				 errmsg("too many arguments")));
 	nargs = 0;
-	foreach(l, wref->args)
+	foreach(l, wfunc->args)
 	{
 		argtypes[nargs] = exprType((Node *) lfirst(l));
 		nargs++;
 	}
 
 	appendStringInfo(buf, "%s(%s",
-					 generate_function_name(wref->winfnoid,
+					 generate_function_name(wfunc->winfnoid,
 											nargs, argtypes, NULL), "");
 	/* winstar can be set only in zero-argument aggregates */
-	if (wref->winstar)
+	if (wfunc->winstar)
 		appendStringInfoChar(buf, '*');
 	else
-		get_rule_expr((Node *) wref->args, context, true);
+		get_rule_expr((Node *) wfunc->args, context, true);
 	appendStringInfoString(buf, ") OVER ");
 
 	foreach(l, context->windowClause)
 	{
 		WindowClause *wc = (WindowClause *) lfirst(l);
 
-		if (wc->winref == wref->winref)
+		if (wc->winref == wfunc->winref)
 		{
 			if (wc->name)
 				appendStringInfoString(buf, quote_identifier(wc->name));
@@ -5527,7 +5527,7 @@ get_windowref_expr(WindowRef *wref, deparse_context *context)
 	{
 		if (context->windowClause)
 			elog(ERROR, "could not find window clause for winref %u",
-				 wref->winref);
+				 wfunc->winref);
 
 		/*
 		 * In EXPLAIN, we don't have window context information available, so

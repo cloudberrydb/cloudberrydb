@@ -1359,8 +1359,8 @@ _outNode(StringInfo str, void *obj)
 			case T_AggOrder:
 				_outAggOrder(str, obj);
 				break;
-			case T_WindowRef:
-				_outWindowRef(str, obj);
+			case T_WindowFunc:
+				_outWindowFunc(str, obj);
 				break;
 			case T_ArrayRef:
 				_outArrayRef(str, obj);

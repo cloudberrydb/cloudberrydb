@@ -1463,15 +1463,15 @@ _copyAggOrder(AggOrder *from)
 }
 
 /*
- * _copyWindowRef
+ * _copyWindowFunc
  */
-static WindowRef *
-_copyWindowRef(WindowRef *from)
+static WindowFunc *
+_copyWindowFunc(WindowFunc *from)
 {
-	WindowRef	   *newnode = makeNode(WindowRef);
+	WindowFunc *newnode = makeNode(WindowFunc);
 
 	COPY_SCALAR_FIELD(winfnoid);
-	COPY_SCALAR_FIELD(restype);
+	COPY_SCALAR_FIELD(wintype);
 	COPY_NODE_FIELD(args);
 	COPY_SCALAR_FIELD(winref);
 	COPY_SCALAR_FIELD(winstar);
@@ -4728,8 +4728,8 @@ copyObject(void *from)
 		case T_AggOrder:
 			retval = _copyAggOrder(from);
 			break;
-		case T_WindowRef:
-			retval = _copyWindowRef(from);
+		case T_WindowFunc:
+			retval = _copyWindowFunc(from);
 			break;
 		case T_ArrayRef:
 			retval = _copyArrayRef(from);

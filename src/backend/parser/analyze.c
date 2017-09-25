@@ -851,7 +851,7 @@ transformInsertRow(ParseState *pstate, List *exprlist,
  *
  * As a result, the depth of outer references in Q'' and below
  * will increase, so we need to adjust non-zero xxxlevelsup fields
- * (Var, Aggref, and WindowRef nodes) in Q'' and below.  At the end,
+ * (Var, Aggref, and WindowFunc nodes) in Q'' and below.  At the end,
  * there will be no levelsup items referring to Q'.  Prior references
  * to Q will now refer to Q''; prior references to blocks above Q will
  * refer to the same blocks above Q'.)

@@ -584,8 +584,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	}
 	else
 	{
-		/* must be a window function call */
-		WindowRef  *winref = makeNode(WindowRef);
+		/* window function */
+		WindowFunc *wfunc = makeNode(WindowFunc);
 
 		/*
 		 * True window functions must be called with a window definition.
@@ -622,14 +622,14 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		 * later in transformWindowClause(). It's too early at this stage.
 		 */
 
-		winref->winfnoid = funcid;
-		winref->restype = rettype;
-		winref->args = fargs;
+		wfunc->winfnoid = funcid;
+		wfunc->wintype = rettype;
+		wfunc->args = fargs;
 		/* winref will be set by transformWindowFuncCall */
-		winref->winstar = agg_star;
-		winref->winagg = (fdresult == FUNCDETAIL_AGGREGATE);
-		winref->windistinct = agg_distinct;
-		winref->location = location;
+		wfunc->winstar = agg_star;
+		wfunc->winagg = (fdresult == FUNCDETAIL_AGGREGATE);
+		wfunc->windistinct = agg_distinct;
+		wfunc->location = location;
 
 		/*
 		 * Reject attempt to call a parameterless aggregate without (*)
@@ -646,8 +646,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 					 parser_errposition(pstate, location)));
 #endif
 
-		transformWindowFuncCall(pstate, winref, over);
-		retval = (Node *) winref;
+		transformWindowFuncCall(pstate, wfunc, over);
+		retval = (Node *) wfunc;
 	}
 
 	/*

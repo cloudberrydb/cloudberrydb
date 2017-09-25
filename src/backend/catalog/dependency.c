@@ -1441,11 +1441,11 @@ find_expr_references_walker(Node *node,
 						   context->addrs);
 		/* fall through to examine arguments */
 	}
-	if (IsA(node, WindowRef))
+	if (IsA(node, WindowFunc))
 	{
-		WindowRef	*windowref = (WindowRef *) node;
+		WindowFunc *wfunc = (WindowFunc *) node;
 
-		add_object_address(OCLASS_PROC, windowref->winfnoid, 0,
+		add_object_address(OCLASS_PROC, wfunc->winfnoid, 0,
 						   context->addrs);
 		/* fall through to examine arguments */
 	}

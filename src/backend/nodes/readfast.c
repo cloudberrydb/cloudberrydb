@@ -2909,8 +2909,8 @@ readNodeBinary(void)
 			case T_AggOrder:
 				return_value = _readAggOrder();
 				break;
-			case T_WindowRef:
-				return_value = _readWindowRef();
+			case T_WindowFunc:
+				return_value = _readWindowFunc();
 				break;
 			case T_ArrayRef:
 				return_value = _readArrayRef();

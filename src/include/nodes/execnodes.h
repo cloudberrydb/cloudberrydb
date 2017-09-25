@@ -853,10 +853,10 @@ typedef struct GroupingFuncExprState
 } GroupingFuncExprState;
 
 /* ----------------
- *        WindowRefExprState node
+ *		WindowFuncExprState node
  * ----------------
  */
-typedef struct WindowRefExprState
+typedef struct WindowFuncExprState
 {
 	ExprState	xprstate;
 	struct WindowState *windowstate; /* reflect parent window state */
@@ -865,7 +865,7 @@ typedef struct WindowRefExprState
 	int16	   *argtyplen;		/* pg_type.typlen of each argument */
 	int			funcno;			/* index in window state's func_state array */
 	char		winkind;		/* pg_window.winkind */
-} WindowRefExprState;
+} WindowFuncExprState;
 
 /* ----------------
  *		ArrayRefExprState node
@@ -2440,7 +2440,7 @@ typedef struct WindowInputBufferData *WindowInputBuffer;
 typedef struct WindowState
 {
 	PlanState	ps;			/* its first field is NodeTag */
-	List	   *wrxstates;	/* all WindowRefExprState nodes in targetlist */
+	List	   *wfxstates;	/* all WindowFuncExprState nodes in targetlist */
 	FmgrInfo   *eqfunctions; /* equality fns for partition key */
 	TupleTableSlot *priorslot;	/* place for prior tuple */
 	TupleTableSlot *curslot;		/* current tuple */

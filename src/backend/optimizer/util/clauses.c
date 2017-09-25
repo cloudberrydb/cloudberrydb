@@ -1026,7 +1026,7 @@ contain_nonstrict_functions_walker(Node *node, void *context)
 		/* an aggregate could return non-null with null input */
 		return true;
 	}
-	if (IsA(node, WindowRef))
+	if (IsA(node, WindowFunc))
 	{
 		/* a window function could return non-null with null input */
 		return true;
@@ -4324,6 +4324,16 @@ expression_tree_mutator(Node *node,
 				return (Node *) newnode;
 			}
 			break;
+		case T_WindowFunc:
+			{
+				WindowFunc *wfunc = (WindowFunc *) node;
+				WindowFunc *newnode;
+
+				FLATCOPY(newnode, wfunc, WindowFunc);
+				MUTATE(newnode->args, wfunc->args, List *);
+				return (Node *) newnode;
+			}
+			break;
 		case T_AggOrder:
 			{
 				AggOrder	*aggorder = (AggOrder *)node;
@@ -4367,16 +4377,6 @@ expression_tree_mutator(Node *node,
 				TableFunctionScan *newnode;
 
 				FLATCOPY(newnode, tablefunc, TableFunctionScan);
-				return (Node *) newnode;
-			}
-			break;
-		case T_WindowRef:
-			{
-				WindowRef   *windowref = (WindowRef *) node;
-				WindowRef   *newnode;
-
-				FLATCOPY(newnode, windowref, WindowRef);
-				MUTATE(newnode->args, windowref->args, List *);
 				return (Node *) newnode;
 			}
 			break;

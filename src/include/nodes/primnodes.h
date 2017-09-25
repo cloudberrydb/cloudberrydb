@@ -322,21 +322,20 @@ typedef enum WinStage
 	WINSTAGE_PRELIMINARY, /* Evaluate preliminary function. */
 	WINSTAGE_ROWKEY /* WINSTAGE_IMMEDIATE for row key generation. */
 } WinStage;
- 
+
 /*
- * WindowRef: describes a window function call
+ * WindowFunc: describes a window function call
  *
- * In a query tree, a WindowRef corresponds to a SQL window function
+ * In a query tree, a WindowFunc corresponds to a SQL window function
  * call.  In a plan tree, a WindowRef is an expression the corresponds
  * to some or all of the calculation of the window function result.
- * 
  */
-typedef struct WindowRef
+typedef struct WindowFunc
 {
 	Expr		xpr;
-	Oid			winfnoid;		/* pg_proc Oid of the window function */
-	Oid			restype;		/* type Oid of result of the window function */
-	List	   *args;			/* arguments */	
+	Oid			winfnoid;		/* pg_proc Oid of the function */
+	Oid			wintype;		/* type Oid of result of the window function */
+	List	   *args;			/* arguments to the window function */
 	Index		winref;			/* index of associated WindowClause */
 	bool		winstar;		/* TRUE if argument list was really '*' */
 	bool		winagg;			/* is function a simple aggregate? */
@@ -348,7 +347,7 @@ typedef struct WindowRef
 	Index		winlevel;		/* Position of corresponding WindowKey in
 								 * the Window node. */
 	int			location;		/* token location, or -1 if unknown */
-} WindowRef;
+} WindowFunc;
 
 
 /* ----------------

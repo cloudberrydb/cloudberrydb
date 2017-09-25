@@ -223,10 +223,10 @@ _equalAggOrder(AggOrder *a, AggOrder *b)
 }
 
 static bool
-_equalWindowRef(WindowRef *a, WindowRef *b)
+_equalWindowFunc(WindowFunc *a, WindowFunc *b)
 {
 	COMPARE_SCALAR_FIELD(winfnoid);
-	COMPARE_SCALAR_FIELD(restype);
+	COMPARE_SCALAR_FIELD(wintype);
 	COMPARE_NODE_FIELD(args);
 	COMPARE_SCALAR_FIELD(winref);
 	COMPARE_SCALAR_FIELD(winstar);
@@ -2571,8 +2571,8 @@ equal(void *a, void *b)
 		case T_AggOrder:
 			retval = _equalAggOrder(a, b);
 			break;
-		case T_WindowRef:
-			retval = _equalWindowRef(a, b);
+		case T_WindowFunc:
+			retval = _equalWindowFunc(a, b);
 			break;
 		case T_ArrayRef:
 			retval = _equalArrayRef(a, b);

@@ -151,7 +151,7 @@ transformAggregateCall(ParseState *pstate, Aggref *agg, List *agg_order)
 }
 
 void
-transformWindowFuncCall(ParseState *pstate, WindowRef *wind,
+transformWindowFuncCall(ParseState *pstate, WindowFunc *wfunc,
 						WindowDef *windef)
 {
 	char	   *name;
@@ -161,12 +161,12 @@ transformWindowFuncCall(ParseState *pstate, WindowRef *wind,
 	 * is this required by spec, or just an unimplemented feature?
 	 */
 	if (pstate->p_hasWindowFuncs &&
-		checkExprHasWindowFuncs((Node *) wind->args))
+		checkExprHasWindowFuncs((Node *) wfunc->args))
 		ereport(ERROR,
 				(errcode(ERRCODE_WINDOWING_ERROR),
 				 errmsg("window function calls cannot be nested"),
 				 parser_errposition(pstate,
-								  locate_windowfunc((Node *) wind->args))));
+								  locate_windowfunc((Node *) wfunc->args))));
 
 	/*
 	 * If the OVER clause just specifies a window name, find that WINDOW
@@ -209,7 +209,7 @@ transformWindowFuncCall(ParseState *pstate, WindowRef *wind,
 			winref++;
 			if (refwin->name && strcmp(refwin->name, name) == 0)
 			{
-				wind->winref = winref;
+				wfunc->winref = winref;
 				break;
 			}
 		}
@@ -243,14 +243,14 @@ transformWindowFuncCall(ParseState *pstate, WindowRef *wind,
 				equal(refwin->endOffset, windef->endOffset))
 			{
 				/* found a duplicate window specification */
-				wind->winref = winref;
+				wfunc->winref = winref;
 				break;
 			}
 		}
 		if (lc == NULL)			/* didn't find it? */
 		{
 			pstate->p_windowdefs = lappend(pstate->p_windowdefs, windef);
-			wind->winref = list_length(pstate->p_windowdefs);
+			wfunc->winref = list_length(pstate->p_windowdefs);
 		}
 	}
 

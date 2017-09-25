@@ -1254,12 +1254,12 @@ _outAggOrder(StringInfo str, AggOrder *node)
 }
 
 static void
-_outWindowRef(StringInfo str, WindowRef *node)
+_outWindowFunc(StringInfo str, WindowFunc *node)
 {
-	WRITE_NODE_TYPE("WINDOWREF");
+	WRITE_NODE_TYPE("WINDOWFUNC");
 
 	WRITE_OID_FIELD(winfnoid);
-	WRITE_OID_FIELD(restype);
+	WRITE_OID_FIELD(wintype);
 	WRITE_NODE_FIELD(args);
 	WRITE_UINT_FIELD(winref);
 	WRITE_BOOL_FIELD(winstar);
@@ -4505,8 +4505,8 @@ _outNode(StringInfo str, void *obj)
 			case T_AggOrder:
 				_outAggOrder(str, obj);
 				break;
-			case T_WindowRef:
-				_outWindowRef(str, obj);
+			case T_WindowFunc:
+				_outWindowFunc(str, obj);
 				break;
 			case T_ArrayRef:
 				_outArrayRef(str, obj);

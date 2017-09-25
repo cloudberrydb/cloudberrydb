@@ -1125,10 +1125,10 @@ fix_expr_common(PlannerGlobal *glob, Node *node)
 		record_plan_function_dependency(glob,
 										((Aggref *) node)->aggfnoid);
 	}
-	else if (IsA(node, WindowRef))
+	else if (IsA(node, WindowFunc))
 	{
 		record_plan_function_dependency(glob,
-										((WindowRef *) node)->winfnoid);
+										((WindowFunc *) node)->winfnoid);
 	}
 	else if (IsA(node, FuncExpr))
 	{

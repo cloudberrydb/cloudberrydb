@@ -103,14 +103,14 @@ typedef struct WindowInfo
 } WindowInfo;
 
 
-/* RefInfo holds a WindowRef and describes it in the context of the overall
- * query.  During planning, the contained WindowRef refers back to the
+/* RefInfo holds a WindowFunc reference and describes it in the context of the overall
+ * query.  During planning, the contained WindowFunc refers back to the
  * RefInfo via winindex - the position (counting from 0) of the RefInfo in
  * the WindowContext's list, refinfos.
  */
 typedef struct RefInfo
 {
-	WindowRef  *ref;
+	WindowFunc *ref;
 	Bitmapset  *varset;
 	Index		specindex; /* index of parent SpecInfo */
 	bool		isagg;
@@ -272,7 +272,7 @@ static Plan *assure_collocation_and_order(PlannerInfo *root, Plan *input_plan, L
 		int partkey_len, AttrNumber *partkey_attrs, List *sortclause, 
 		CdbPathLocus input_locus, CdbPathLocus *output_locus, List **pathkeys_ptr);
 static AttrNumber addTargetToCoplan(Node *target, Coplan *coplan, WindowContext *context);
-static Aggref* makeWindowAggref(WindowRef *winref);
+static Aggref* makeWindowAggref(WindowFunc *winref);
 static Aggref* makeAuxCountAggref(void);
 static List *translate_upper_tlist_parallel(List *orig_tlist, WindowContext *context);
 static Node *translate_upper_vars_sequential(Node *node, WindowContext *context);
@@ -286,7 +286,7 @@ static Plan *add_join_to_wrapper(PlannerInfo *root, Plan *plan, Query *query, Li
 static Query *copy_common_subquery(Query *original, List *targetList);
 static char *get_function_name(Oid proid, const char *dflt);
 
-static void lead_lag_frame_maker(WindowRef *wref, char winkind, SpecInfo *sinfo);
+static void lead_lag_frame_maker(WindowFunc *wref, char winkind, SpecInfo *sinfo);
 
 Plan *
 window_planner(PlannerInfo *root, double tuple_fraction, List **pathkeys_ptr)
@@ -323,7 +323,7 @@ window_planner(PlannerInfo *root, double tuple_fraction, List **pathkeys_ptr)
 	context->orig_tlist = parse->targetList;
 	
 	/* Create a copy of the input target list for our use.  Save pointers
-	 * to the contained WindowRef nodes on the side in a array of RefInfo
+	 * to the contained WindowFunc nodes on the side in a array of RefInfo
 	 * structures.
 	 */
 	preprocess_window_tlist(parse->targetList, context);
@@ -613,11 +613,11 @@ check_ntile_argument(List *args, WindowClause *wc, List *tlist)
  *
  *	upper_tlist		the deep copy
  *
- *	upper_var_set	Vars used outside of WindowRef nodes
+ *	upper_var_set	Vars used outside of WindowFunc nodes
  *
- *	ref_infos		per WindowRef list of RefInfo containing
- *		ref		the WindowRef in upper_tlist
- *		varset	Vars used in the WindowRefs explicit arguments
+ *	ref_infos		per WindowFunc list of RefInfo containing
+ *		ref		the WindowFunc in upper_tlist
+ *		varset	Vars used in the WindowFuncs explicit arguments
  */
 static void preprocess_window_tlist(List *orig_tlist, WindowContext *context)
 {
@@ -634,7 +634,7 @@ static void preprocess_window_tlist(List *orig_tlist, WindowContext *context)
  *
  * Deep copy the given expression (presumed to be a part of the parse tree
  * target list for a window query) while checking validity of and recording
- * information about contained WindowRef nodes.
+ * information about contained WindowFunc nodes.
  */
 static Node * window_tlist_mutator(Node *node, WindowContext *context)
 {
@@ -646,7 +646,7 @@ static Node * window_tlist_mutator(Node *node, WindowContext *context)
 		Var *var = (Var *)node;
 		int idx = index_of_var(var, context);
 		
-		if ( context->cur_refinfo == NULL ) /* above all WindowRef */
+		if ( context->cur_refinfo == NULL ) /* above all WindowFunc */
 		{
 			if ( var->varlevelsup == 0 )
 			{
@@ -654,7 +654,7 @@ static Node * window_tlist_mutator(Node *node, WindowContext *context)
 					bms_add_member(context->upper_var_set, idx);
 			}
 		}
-		else /* below a WindowRef */
+		else /* below a WindowFunc */
 		{
 			if ( var->varlevelsup == 0 )
 			{
@@ -688,12 +688,12 @@ static Node * window_tlist_mutator(Node *node, WindowContext *context)
 		}
 	}
 	
-	else if ( IsA(node, WindowRef) )
+	else if ( IsA(node, WindowFunc) )
 	{
-		WindowRef *window_ref = (WindowRef *)node;
-		WindowRef *new_ref = NULL;
+		WindowFunc *window_ref = (WindowFunc *)node;
+		WindowFunc *new_ref = NULL;
 		
-		if ( context->cur_refinfo == NULL ) /* top-level WindowRef */
+		if ( context->cur_refinfo == NULL ) /* top-level WindowFunc */
 		{
 			new_ref = copyObject(window_ref);
 
@@ -717,7 +717,7 @@ static Node * window_tlist_mutator(Node *node, WindowContext *context)
 				check_ntile_argument(new_ref->args, wc, context->orig_tlist);
 			}
 
-			/* Record the WindowRef and its Vars referenced set. */
+			/* Record the WindowFunc and its Vars referenced set. */
 			new_ref->winindex = list_length(context->refinfos);
 			context->refinfos = lappend(context->refinfos, context->cur_refinfo);
 			
@@ -742,8 +742,8 @@ static Node * window_tlist_mutator(Node *node, WindowContext *context)
  * 
  * Take inventory of the supplied list of WindowSpecs in the given context. 
  * Add an array of distinct SpecInfo to the context.  Exclude SpecInfos that
- * are not referenced by any WindowRefs.  Afterward, the specindex field of
- * a RefInfo identifies the parent SpecInfo of its WindowRef.
+ * are not referenced by any WindowFuncs.  Afterward, the specindex field of
+ * a RefInfo identifies the parent SpecInfo of its WindowFunc.
  *
  * Note that preprocess_window_tlist() must already have run in order to
  * fill in the list refinfos list in context.
@@ -826,8 +826,8 @@ static void inventory_window_specs(List *window_specs, WindowContext *context)
 		i++;
 	}
 	
-	/* Note which WindowRefs each WindowSpec covers by saving the indexes
-	 * of their RefInfos.  Redirect WindowRefs with special framing needs
+	/* Note which WindowFuncs each WindowDef covers by saving the indexes
+	 * of their RefInfos.  Redirect WindowFuncs with special framing needs
 	 * to one of the extra SpecInfos allocated above.  In addition, note 
 	 * in the context any occurence of a window function that requires an 
 	 * auxiliary aggregate coplan. 
@@ -836,7 +836,7 @@ static void inventory_window_specs(List *window_specs, WindowContext *context)
 	foreach ( lcr, context->refinfos )
 	{
 		RefInfo *rinfo = (RefInfo *)lfirst(lcr);
-		WindowRef *ref = rinfo->ref;
+		WindowFunc *ref = rinfo->ref;
 		int			sindex = ref->winref - 1;
 		SpecInfo *sinfo = &specinfos[sindex];
 
@@ -1458,7 +1458,7 @@ set_window_keys(WindowContext *context, int wind_index)
 }
 
 /* Fill in the fields of the given RefInfo that characterize the window 
- * function represented by its WindowRef. 
+ * function represented by its WindowFunc.
  */
 static void
 lookup_window_function(RefInfo *rinfo)
@@ -2207,7 +2207,7 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 			}			
 		}
 		
-		/* If any WindowRefs need a partition count (auxiliary aggregate)
+		/* If any WindowFunc need a partition count (auxiliary aggregate)
 		 * add a target for it and remember where it is.
 		 */
 		if ( hasaux )
@@ -2325,7 +2325,7 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 			/* Per RefInfo */
 			foreach ( lc, context->refinfos )
 			{
-				WindowRef *ref;
+				WindowFunc *ref;
 				Aggref *aggref;
 				AttrNumber win_resno;
 				Var *var;
@@ -2335,7 +2335,7 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 				if ( rinfo->specindex != sinfo->specindex )
 					continue;
 					
-				ref = (WindowRef*)translate_upper_vars_sequential((Node*)rinfo->ref, context); /* XXX mutate ref's args to translate any Vars */
+				ref = (WindowFunc*) translate_upper_vars_sequential((Node*)rinfo->ref, context); /* XXX mutate ref's args to translate any Vars */
 				win_resno = 1 + list_length(window_plan->targetlist);
 				rinfo->resno = win_resno;
 
@@ -2348,7 +2348,7 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 					AttrNumber agg_resno = agg_attrno++;
 					
 					/* Add target to window plan. */
-					tle = makeTargetEntry((Expr*)makeNullConst(ref->restype, -1),
+					tle = makeTargetEntry((Expr*)makeNullConst(ref->wintype, -1),
 										  win_resno, 
 										  pstrdup("dummy"), 
 										  false);
@@ -2368,7 +2368,7 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 					Assert( agg_resno == list_length(agg_plan->targetlist) );
 					
 					/* Result is reference to joined aggregate value. */
-					var = makeVar(agg_varno, agg_resno, ref->restype, -1, false);
+					var = makeVar(agg_varno, agg_resno, ref->wintype, -1, false);
 					tle = makeTargetEntry((Expr *)var, win_resno, 
 										   get_function_name(ref->winfnoid, "window_function"), 
 										   false);
@@ -2381,11 +2381,11 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 					Var *win_var;
 					Var *aux_var;
 					Oid counttype = 20; /* TODO count(*) type in pg_proc */
-					Oid restype = ref->restype;
+					Oid restype = ref->wintype;
 					
-					/* Adjust WindowRef */
+					/* Adjust WindowFunc */
 					ref->winstage = WINSTAGE_PRELIMINARY;
-					ref->restype = rinfo->winpretype;
+					ref->wintype = rinfo->winpretype;
 					
 					/* Add target to window plan. */
 					tle = makeTargetEntry((Expr*)ref, 
@@ -2396,7 +2396,7 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 					win_names = lappend(win_names, get_tle_name(tle, context->subquery->rtable, NULL));
 					
 					/* Result is finalization of partial window with joined auxiliary count. */
-					win_var = makeVar(win_varno, win_resno, ref->restype, -1, false);					
+					win_var = makeVar(win_varno, win_resno, ref->wintype, -1, false);
 					aux_var = makeVar(agg_varno, aux_attrno, counttype , -1, false);
 					func = makeFuncExpr(rinfo->winfinfunc, restype, list_make2(win_var, aux_var), COERCE_DONTCARE);
 					tle = makeTargetEntry((Expr*)func, win_resno,
@@ -2410,7 +2410,7 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 					/* Plan immediate window function or ordered window agg) */
 					Var *win_var;
 					
-					/* Adjust WindowRef */
+					/* Adjust WindowFunc */
 					ref->winstage = WINSTAGE_IMMEDIATE;
 
 					/* Add target to window plan. */
@@ -2424,7 +2424,7 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 					/* If the stage has a join, add a join target. */
 					if ( hasagg )
 					{
-						win_var = makeVar(win_varno, win_resno, ref->restype, -1, false);
+						win_var = makeVar(win_varno, win_resno, ref->wintype, -1, false);
 						tle = makeTargetEntry((Expr*)win_var, win_resno,
 											  get_function_name(ref->winfnoid, "window_function"),
 											  false);
@@ -2797,7 +2797,7 @@ static void plan_windowinfo_coplans(PlannerInfo *root, WindowContext *context, i
 	else
 	{
 		/* Later window coplans are all similar and need contain only 
-		 * targets specifically used by this WindowInfo's WindowRefs. */			
+		 * targets specifically used by this WindowInfo's WindowFunc. */
 		
 		/* Include input key, if any. */
 		if ( context->rowkey_len > 0 )
@@ -2849,7 +2849,7 @@ static void plan_windowinfo_coplans(PlannerInfo *root, WindowContext *context, i
 	 */
 	foreach ( lc, context->refinfos )
 	{
-		WindowRef *ref;
+		WindowFunc *ref;
 		AttrNumber resno;
 		RefInfo *rinfo = (RefInfo *)lfirst(lc);
 		SpecInfo *sinfo = &context->specinfos[rinfo->specindex];
@@ -2869,7 +2869,7 @@ static void plan_windowinfo_coplans(PlannerInfo *root, WindowContext *context, i
 			resno = addTargetToCoplan((Node*)aggref, agg_coplan, context);
 			
 			/* Add result expr to ref */
-			var = makeVar(agg_coplan->varno, resno, ref->restype, -1, false);
+			var = makeVar(agg_coplan->varno, resno, ref->wintype, -1, false);
 			rinfo->resultexpr = (Expr*)var;
 		}
 		else if ( RefInfo_WindowDeferred(rinfo, context) ) // ( !rinfo->isagg && rinfo->needcount )
@@ -2878,13 +2878,13 @@ static void plan_windowinfo_coplans(PlannerInfo *root, WindowContext *context, i
 			FuncExpr *func;
 			Var *arg1, *arg2;
 			Oid counttype = 20; /* TODO count(*) type in pg_proc */
-			Oid restype = ref->restype;
+			Oid restype = ref->wintype;
 			
 			ref->winstage = WINSTAGE_PRELIMINARY;
-			ref->restype = rinfo->winpretype;
+			ref->wintype = rinfo->winpretype;
 
 			resno = addTargetToCoplan((Node*)ref, window_coplan, context);			
-			arg1 = makeVar(window_coplan->varno, resno, ref->restype, -1, false);
+			arg1 = makeVar(window_coplan->varno, resno, ref->wintype, -1, false);
 			
 			resno = addTargetToCoplan((Node*)makeAuxCountAggref(), agg_coplan, context);
 			arg2 = makeVar(agg_coplan->varno, resno, counttype , -1, false);
@@ -2901,7 +2901,7 @@ static void plan_windowinfo_coplans(PlannerInfo *root, WindowContext *context, i
 			resno = addTargetToCoplan((Node*)ref, window_coplan, context);
 			
 			/* Add result expr to ref */
-			rinfo->resultexpr = (Expr*)makeVar(window_coplan->varno, resno, ref->restype, -1, false);
+			rinfo->resultexpr = (Expr*)makeVar(window_coplan->varno, resno, ref->wintype, -1, false);
 		}
 		else
 		{
@@ -2929,16 +2929,16 @@ static void plan_windowinfo_coplans(PlannerInfo *root, WindowContext *context, i
 static List *make_rowkey_targets()
 {
 	FuncExpr *seg;
-	WindowRef *row;
+	WindowFunc *row;
 
 	seg = makeFuncExpr(MPP_EXECUTION_SEGMENT_OID, 
 					   MPP_EXECUTION_SEGMENT_TYPE, 
 					   NIL, 
 					   COERCE_DONTCARE);
 
-	row = makeNode(WindowRef);
+	row = makeNode(WindowFunc);
 	row->winfnoid = ROW_NUMBER_OID;
-	row->restype = ROW_NUMBER_TYPE;
+	row->wintype = ROW_NUMBER_TYPE;
 	row->args = NIL;
 	row->winref = 1;
 	row->winindex = 0;
@@ -3012,12 +3012,12 @@ static AttrNumber addTargetToCoplan(Node *target, Coplan *coplan, WindowContext 
 }
 
 
-static Aggref* makeWindowAggref(WindowRef *winref)
+static Aggref* makeWindowAggref(WindowFunc *winref)
 {
 	Aggref *aggref = makeNode(Aggref);
 
 	aggref->aggfnoid = winref->winfnoid;
-	aggref->aggtype = winref->restype;
+	aggref->aggtype = winref->wintype;
 	aggref->args = copyObject(winref->args);
 	aggref->agglevelsup = 0;
 	aggref->aggstar = false; /* at this point in processing, doesn't matter */
@@ -3500,7 +3500,7 @@ static Node * translate_upper_tlist_parallel_mutator(Node *node, WindowContext *
 		Var *new_var;
 		Var *var = (Var *)node;
 		
-		/* We don't descend into WindowRefs, so Var isn't in one. */
+		/* We don't descend into WindowFuncs, so Var isn't in one. */
 		if ( var->varlevelsup == 0 )
 		{
 			int idx = index_of_var(var, context);
@@ -3517,9 +3517,9 @@ static Node * translate_upper_tlist_parallel_mutator(Node *node, WindowContext *
 
 		return (Node *) new_var;
 	}
-	else if ( IsA(node, WindowRef) )
+	else if ( IsA(node, WindowFunc) )
 	{
-		WindowRef *ref = (WindowRef *)node;
+		WindowFunc *ref = (WindowFunc *) node;
 		RefInfo *rinfo = (RefInfo *)list_nth(context->refinfos, ref->winindex);
 		return copyObject(rinfo->resultexpr); /* XXX why copy? */
 	}
@@ -3560,7 +3560,7 @@ static Node * translate_upper_tlist_sequential_mutator(Node *node, xut_context *
 		Var *new_var;
 		Var *var = (Var *)node;
 		
-		/* We don't descend into WindowRefs, so Var isn't in one. */
+		/* We don't descend into WindowFuncs, so Var isn't in one. */
 		if ( var->varlevelsup == 0 )
 		{
 			int idx = index_of_var(var, context);
@@ -3577,9 +3577,9 @@ static Node * translate_upper_tlist_sequential_mutator(Node *node, xut_context *
 
 		return (Node *) new_var;
 	}
-	else if ( IsA(node, WindowRef) )
+	else if ( IsA(node, WindowFunc) )
 	{
-		WindowRef *ref = (WindowRef *)node;
+		WindowFunc *ref = (WindowFunc *) node;
 		RefInfo *rinfo = (RefInfo *)list_nth(context->refinfos, ref->winindex);
 		TargetEntry *tle = get_tle_by_resno(ctxt->window_tlist, rinfo->resno);
 		return copyObject(tle->expr);
@@ -3607,7 +3607,7 @@ static List *translate_upper_tlist_sequential(List *orig_tlist, List *window_tli
 
 
 /* This translator is specific to sequential window plans. It converts Vars
- * the given tree (including top-level WindowRef node args, and WindowFrameEdge 
+ * the given tree (including top-level WindowFunc node args, and WindowFrameEdge
  * vals from the input range to the intermediate range used in sequential
  * planning.
  */
@@ -3629,7 +3629,7 @@ static Node * translate_upper_vars_sequential_mutator(Node *node, xuv_context *c
 		Var *new_var;
 		Var *var = (Var *)node;
 		
-		/* We don't descend into WindowRefs, so Var isn't in one. */
+		/* We don't descend into WindowFuncs, so Var isn't in one. */
 		if ( var->varlevelsup == 0 )
 		{
 			int idx = index_of_var(var, context);
@@ -3646,13 +3646,13 @@ static Node * translate_upper_vars_sequential_mutator(Node *node, xuv_context *c
 
 		return (Node *) new_var;
 	}
-	else if ( IsA(node, WindowRef) )
+	else if ( IsA(node, WindowFunc) )
 	{
 		/* XXX We violate the spirit of the thing here by actually modifying
-		 *     and returning the WindowRef itself.  We can't copy it because
+		 *     and returning the WindowFunc itself.  We can't copy it because
 		 *     its RefInfo's link must still find it.
 		 */
-		WindowRef *ref = (WindowRef *)node;
+		WindowFunc *ref = (WindowFunc *)node;
 		
 		if ( ! ctxt->is_top_level )
 			elog(ERROR, "nested window reference invalid");		
@@ -3769,10 +3769,10 @@ Value *get_tle_name(TargetEntry *tle, List *rtable, const char *default_name)
 		RangeTblEntry *rte = rt_fetch(var->varno, rtable);
 		name = pstrdup(get_rte_attribute_name(rte, var->varattno));
 	}
-	else if ( IsA(tle->expr, WindowRef) )
+	else if ( IsA(tle->expr, WindowFunc) )
 	{
 		if ( default_name == NULL ) default_name = "window_func";
-		name = get_function_name(((WindowRef*)expr)->winfnoid, default_name);
+		name = get_function_name(((WindowFunc *)expr)->winfnoid, default_name);
 	}
 	else if ( IsA(tle->expr, Aggref) )
 	{
@@ -4029,7 +4029,7 @@ Query *copy_common_subquery(Query *original, List *targetList)
  * a helper function for lead and lag to make frame.
  */
 static void
-lead_lag_frame_maker(WindowRef *wref, char winkind, SpecInfo *sinfo)
+lead_lag_frame_maker(WindowFunc *wref, char winkind, SpecInfo *sinfo)
 {
 	Node	   *offset;
 

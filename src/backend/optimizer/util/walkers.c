@@ -174,9 +174,9 @@ expression_tree_walker(Node *node,
 					return true;
 			}
 			break;
-		case T_WindowRef:
+		case T_WindowFunc:
 			{
-				WindowRef	   *expr = (WindowRef *) node;
+				WindowFunc   *expr = (WindowFunc *) node;
 
 				/* recurse directly on explicit arg List */
 				if (expression_tree_walker((Node *) expr->args,

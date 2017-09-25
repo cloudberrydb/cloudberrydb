@@ -1314,17 +1314,16 @@ _readAggOrder(void)
     READ_DONE();
 }
 
-
 /*
- * _readWindowRef
+ * _readWindowFunc
  */
-static WindowRef *
-_readWindowRef(void)
+static WindowFunc *
+_readWindowFunc(void)
 {
-	READ_LOCALS(WindowRef);
+	READ_LOCALS(WindowFunc);
 
 	READ_OID_FIELD(winfnoid);
-	READ_OID_FIELD(restype);
+	READ_OID_FIELD(wintype);
 	READ_NODE_FIELD(args);
 	READ_UINT_FIELD(winref);
 	READ_BOOL_FIELD(winstar);
@@ -2882,6 +2881,8 @@ parseNodeString(void)
 		return_value = _readParam();
 	else if (MATCH("AGGREF", 6))
 		return_value = _readAggref();
+	else if (MATCH("WINDOWFUNC", 10))
+		return_value = _readWindowFunc();
 	else if (MATCH("ARRAYREF", 8))
 		return_value = _readArrayRef();
 	else if (MATCH("FUNCEXPR", 8))
@@ -3142,8 +3143,6 @@ parseNodeString(void)
 		return_value = _readViewStmt();
 	else if (MATCHX("WINDOWKEY"))
 		return_value = _readWindowKey();
-	else if (MATCHX("WINDOWREF"))
-		return_value = _readWindowRef();
 	else if (MATCHX("WITHCLAUSE"))
 		return_value = _readWithClause();
 	else
