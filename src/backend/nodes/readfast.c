@@ -242,6 +242,7 @@ _readQuery(void)
 	READ_NODE_FIELD(distinctClause);
 	READ_NODE_FIELD(sortClause);
 	READ_NODE_FIELD(scatterClause);
+	READ_BOOL_FIELD(isTableValueSelect);
 	READ_NODE_FIELD(cteList);
 	READ_BOOL_FIELD(hasRecursive);
 	READ_NODE_FIELD(limitOffset);
@@ -2157,13 +2158,6 @@ _readFlow(void)
 	READ_ENUM_FIELD(req_move, Movement);
 	READ_ENUM_FIELD(locustype, CdbLocusType);
 	READ_INT_FIELD(segindex);
-
-	READ_INT_FIELD(numSortCols);
-	READ_INT_ARRAY(sortColIdx, local_node->numSortCols, AttrNumber);
-	READ_OID_ARRAY(sortOperators, local_node->numSortCols);
-	READ_BOOL_ARRAY(nullsFirst, local_node->numSortCols);
-
-	READ_INT_FIELD(numOrderbyCols);
 
 	READ_NODE_FIELD(hashExpr);
 	READ_NODE_FIELD(flow_before_req_move);

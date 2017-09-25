@@ -25,9 +25,8 @@ extern Plan *apply_motion(struct PlannerInfo *root, Plan *plan, Query *query);
 
 extern Motion *make_union_motion(Plan *lefttree,
 		                                int destSegIndex, bool useExecutorVarFormat);
-extern Motion *make_sorted_union_motion(Plan *lefttree, int destSegIndex,
-						 int numSortCols, AttrNumber *sortColIdx,
-						 Oid *sortOperators, bool *nullsFirst,
+extern Motion *make_sorted_union_motion(PlannerInfo *root, Plan *lefttree, int destSegIndex,
+										List *sortPathKeys,
 						 bool useExecutorVarFormat);
 extern Motion *make_hashed_motion(Plan *lefttree,
 				    List *hashExpr, bool useExecutorVarFormat);
@@ -38,11 +37,6 @@ extern Motion *make_explicit_motion(Plan *lefttree, AttrNumber segidColIdx, bool
 
 void 
 cdbmutate_warn_ctid_without_segid(struct PlannerInfo *root, struct RelOptInfo *rel);
-
-extern void add_slice_to_motion(Motion *m,
-		MotionType motionType, List *hashExpr, 
-		int numOutputSegs, int *outputSegIdx 
-		);
 
 extern Plan *zap_trivial_result(PlannerInfo *root, Plan *plan); 
 extern Plan *apply_shareinput_dag_to_tree(PlannerGlobal *glob, Plan *plan, List *rtable);

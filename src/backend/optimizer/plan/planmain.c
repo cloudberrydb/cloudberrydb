@@ -548,6 +548,8 @@ PlannerConfig *DefaultPlannerConfig(void)
 
 	c1->gp_cte_sharing = gp_cte_sharing;
 
+	c1->honor_order_by = true;
+
 	return c1;
 }
 

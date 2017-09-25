@@ -492,6 +492,7 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
     AssertImply(subquery->jointree->fromlist, list_length(subquery->jointree->fromlist) == 1);
     
     subroot->config = CopyPlannerConfig(root->config);
+	subroot->config->honor_order_by = false;
 	/* CDB: Clear fallback */
 	subroot->config->mpp_trying_fallback_plan = false;
 

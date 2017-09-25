@@ -336,6 +336,7 @@ _readQuery(void)
 	READ_NODE_FIELD(distinctClause);
 	READ_NODE_FIELD(sortClause);
 	READ_NODE_FIELD(scatterClause);
+	READ_BOOL_FIELD(isTableValueSelect);
 	READ_NODE_FIELD(cteList);
 	READ_BOOL_FIELD(hasRecursive);
 	READ_NODE_FIELD(limitOffset);

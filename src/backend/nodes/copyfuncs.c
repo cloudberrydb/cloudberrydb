@@ -2070,11 +2070,6 @@ _copyFlow(Flow *from)
 	COPY_SCALAR_FIELD(req_move);
 	COPY_SCALAR_FIELD(locustype);
 	COPY_SCALAR_FIELD(segindex);
-	COPY_SCALAR_FIELD(numSortCols);
-	COPY_POINTER_FIELD(sortColIdx, from->numSortCols*sizeof(AttrNumber));
-	COPY_POINTER_FIELD(sortOperators, from->numSortCols*sizeof(Oid));
-	COPY_POINTER_FIELD(nullsFirst, from->numSortCols*sizeof(bool));
-	COPY_SCALAR_FIELD(numOrderbyCols);
 	COPY_NODE_FIELD(hashExpr);
 	COPY_NODE_FIELD(flow_before_req_move);
 
@@ -2842,6 +2837,7 @@ _copyQuery(Query *from)
 	COPY_NODE_FIELD(distinctClause);
 	COPY_NODE_FIELD(sortClause);
 	COPY_NODE_FIELD(scatterClause);
+	COPY_SCALAR_FIELD(isTableValueSelect);
 	COPY_NODE_FIELD(cteList);
 	COPY_SCALAR_FIELD(hasRecursive);
 	COPY_NODE_FIELD(limitOffset);

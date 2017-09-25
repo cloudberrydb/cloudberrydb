@@ -734,9 +734,6 @@ _equalFlow(Flow *a, Flow *b)
 	COMPARE_SCALAR_FIELD(req_move);
 	COMPARE_SCALAR_FIELD(locustype);
 	COMPARE_SCALAR_FIELD(segindex);
-	COMPARE_SCALAR_FIELD(numSortCols);
-	COMPARE_POINTER_FIELD(sortColIdx, a->numSortCols*sizeof(AttrNumber));
-	COMPARE_POINTER_FIELD(sortOperators, a->numSortCols*sizeof(Oid));
 	COMPARE_NODE_FIELD(hashExpr);
 
 	return true;
@@ -857,6 +854,7 @@ _equalQuery(Query *a, Query *b)
 	COMPARE_NODE_FIELD(distinctClause);
 	COMPARE_NODE_FIELD(sortClause);
 	COMPARE_NODE_FIELD(scatterClause);
+	COMPARE_SCALAR_FIELD(isTableValueSelect);
 	COMPARE_NODE_FIELD(cteList);
 	COMPARE_SCALAR_FIELD(hasRecursive);
 	COMPARE_NODE_FIELD(limitOffset);

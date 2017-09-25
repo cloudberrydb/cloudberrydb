@@ -157,6 +157,7 @@ typedef struct Query
 	List	   *sortClause;		/* a list of SortGroupClause's */
 
 	List	   *scatterClause;	/* a list of tle's */
+	bool		isTableValueSelect; /* GPDB: Is this a TABLE (...) subquery argument? */
 
 	List	   *cteList;		/* a list of CommonTableExprs in WITH clause */
 	bool		hasRecursive;	/* Whether this query has a recursive WITH

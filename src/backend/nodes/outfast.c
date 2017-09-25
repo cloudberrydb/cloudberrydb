@@ -643,31 +643,6 @@ _outJoinExpr(StringInfo str, JoinExpr *node)
 	WRITE_INT_FIELD(rtindex);
 }
 
-static void
-_outFlow(StringInfo str, Flow *node)
-{
-
-	WRITE_NODE_TYPE("FLOW");
-
-	WRITE_ENUM_FIELD(flotype, FlowType);
-	WRITE_ENUM_FIELD(req_move, Movement);
-	WRITE_ENUM_FIELD(locustype, CdbLocusType);
-	WRITE_INT_FIELD(segindex);
-
-	/* This array format as in Group and Sort nodes. */
-	WRITE_INT_FIELD(numSortCols);
-
-	WRITE_INT_ARRAY(sortColIdx, node->numSortCols, AttrNumber);
-	WRITE_OID_ARRAY(sortOperators, node->numSortCols);
-	WRITE_BOOL_ARRAY(nullsFirst, node->numSortCols);
-
-	WRITE_INT_FIELD(numOrderbyCols);
-
-	WRITE_NODE_FIELD(hashExpr);
-
-	WRITE_NODE_FIELD(flow_before_req_move);
-}
-
 /*****************************************************************************
  *
  *	Stuff from relation.h.
@@ -913,6 +888,7 @@ _outQuery(StringInfo str, Query *node)
 	WRITE_NODE_FIELD(distinctClause);
 	WRITE_NODE_FIELD(sortClause);
 	WRITE_NODE_FIELD(scatterClause);
+	WRITE_BOOL_FIELD(isTableValueSelect);
 	WRITE_NODE_FIELD(cteList);
 	WRITE_BOOL_FIELD(hasRecursive);
 	WRITE_NODE_FIELD(limitOffset);

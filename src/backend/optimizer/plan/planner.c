@@ -786,37 +786,6 @@ subquery_planner(PlannerGlobal *glob, Query *parse,
 		plan = grouping_planner(root, tuple_fraction);
 
 	/*
-	 * Deal with explicit redistribution requirements for TableValueExpr
-	 * subplans with explicit distribitution
-	 */
-	if (parse->scatterClause)
-	{
-		bool		r;
-		List	   *exprList;
-
-
-		/* Deal with the special case of SCATTER RANDOMLY */
-		if (list_length(parse->scatterClause) == 1 && linitial(parse->scatterClause) == NULL)
-			exprList = NIL;
-		else
-			exprList = parse->scatterClause;
-
-		/*
-		 * Repartition the subquery plan based on our distribution
-		 * requirements
-		 */
-		r = repartitionPlan(plan, false, false, exprList);
-		if (!r)
-		{
-			/*
-			 * This should not be possible, repartitionPlan should never fail
-			 * when both stable and rescannable are false.
-			 */
-			elog(ERROR, "failure repartitioning plan");
-		}
-	}
-
-	/*
 	 * If any subplans were generated, or if we're inside a subplan, build
 	 * initPlan list and extParam/allParam sets for plan nodes, and attach the
 	 * initPlans to the top plan node.
@@ -1655,15 +1624,6 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 				}
 			}
 
-			if (result_plan != NULL && result_plan->flow->numSortCols == 0)
-			{
-				/*
-				 * cdb_grouping_planner generated the full plan, with the the
-				 * right tlist.  And it has no sort order
-				 */
-				current_pathkeys = NIL;
-			}
-
 			if (result_plan != NULL && querynode_changed)
 			{
 				/*
@@ -1807,9 +1767,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 					canonical_grpsets->grpset_counts != NULL &&
 					canonical_grpsets->grpset_counts[0] > 1)
 				{
-					result_plan->flow = pull_up_Flow(result_plan,
-													 result_plan->lefttree,
-												  (current_pathkeys != NIL));
+					result_plan->flow = pull_up_Flow(result_plan, result_plan->lefttree);
 					result_plan = add_repeat_node(result_plan,
 										 canonical_grpsets->grpset_counts[0],
 												  0);
@@ -1876,9 +1834,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 					canonical_grpsets->grpset_counts != NULL &&
 					canonical_grpsets->grpset_counts[0] > 1)
 				{
-					result_plan->flow = pull_up_Flow(result_plan,
-													 result_plan->lefttree,
-												  (current_pathkeys != NIL));
+					result_plan->flow = pull_up_Flow(result_plan, result_plan->lefttree);
 					result_plan = add_repeat_node(result_plan,
 										 canonical_grpsets->grpset_counts[0],
 												  0);
@@ -1974,9 +1930,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 	 * which we can obtain the distribution info.)
 	 */
 	if (!result_plan->flow)
-		result_plan->flow = pull_up_Flow(result_plan,
-										 getAnySubplan(result_plan),
-										 (current_pathkeys != NIL));
+		result_plan->flow = pull_up_Flow(result_plan, getAnySubplan(result_plan));
 
 	/*
 	 * MPP: If there's a DISTINCT clause and we're not collocated on the
@@ -2043,9 +1997,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 
 					result_plan = (Plan *) make_unique(result_plan, parse->distinctClause);
 
-					result_plan->flow = pull_up_Flow(result_plan,
-													 result_plan->lefttree,
-													 true);
+					result_plan->flow = pull_up_Flow(result_plan, result_plan->lefttree);
 
 					result_plan->plan_rows = numDistinct;
 
@@ -2105,10 +2057,32 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		}
 
 		/*
-		 * Update numOrderbyCols to length of sort_pathkeys. For cdb: decide
-		 * which sort attribute should be preserved by merge gather motion
+		 * An ORDER BY doesn't make much sense, unless we bring all the data
+		 * to a single node. Otherwise it's just a partial order. (If there's
+		 * a LIMIT or OFFSET clause, we'll take care of this below, after
+		 * inserting the Limit node).
+		 *
+		 * In a subquery, though, a partial order is OK. In fact, we could
+		 * probably not bother with the sort at all, unless there's a LIMIT
+		 * or OFFSET, because it's not going to make any difference to the
+		 * overall query's result. For example, in "WHERE x IN (SELECT ...
+		 * ORDER BY foo)", the ORDER BY in the subquery will make no
+		 * difference. PostgreSQL honors the sort, though, and historically,
+		 * GPDB has also done a partial sort, separately on each node. So
+		 * keep that behavior for now.
+		 *
+		 * In a TABLE function's input subquery, a partial order is the
+		 * documented behavior, so in that case that's definitely what we
+		 * want.
 		 */
-		result_plan->flow->numOrderbyCols = list_length(sort_pathkeys);
+		if (result_plan->flow->flotype != FLOW_SINGLETON &&
+			(root->config->honor_order_by || !root->parent_root) &&
+			!parse->isTableValueSelect &&
+			!parse->limitCount && !parse->limitOffset)
+		{
+			result_plan = (Plan *) make_motion_gather(root, result_plan, -1,
+													  sort_pathkeys);
+		}
 	}
 
 	/*
@@ -2119,9 +2093,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		if (IsA(result_plan, Sort) &&gp_enable_sort_distinct)
 			((Sort *) result_plan)->noduplicates = true;
 		result_plan = (Plan *) make_unique(result_plan, parse->distinctClause);
-		result_plan->flow = pull_up_Flow(result_plan,
-										 result_plan->lefttree,
-										 true);
+		result_plan->flow = pull_up_Flow(result_plan, result_plan->lefttree);
 
 		/*
 		 * If there was grouping or aggregation, leave plan_rows as-is (ie,
@@ -2143,7 +2115,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			result_plan = pushdown_preliminary_limit(result_plan, parse->limitCount, count_est, parse->limitOffset, offset_est);
 			
 			/* Focus on QE [merge to preserve order], prior to final LIMIT. */
-			result_plan = (Plan *) make_motion_gather_to_QE(result_plan, current_pathkeys != NIL);
+			result_plan = (Plan *) make_motion_gather_to_QE(root, result_plan, current_pathkeys);
 			result_plan->total_cost += motion_cost_per_row * result_plan->plan_rows;
 		}
 			
@@ -2162,9 +2134,37 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 										  parse->limitCount,
 										  offset_est,
 										  count_est);
-		result_plan->flow = pull_up_Flow(result_plan,
-										 result_plan->lefttree,
-										 true);
+		result_plan->flow = pull_up_Flow(result_plan, result_plan->lefttree);
+	}
+
+	/*
+	 * Deal with explicit redistribution requirements for TableValueExpr
+	 * subplans with explicit distribitution
+	 */
+	if (parse->scatterClause)
+	{
+		bool		r;
+		List	   *exprList;
+
+		/* Deal with the special case of SCATTER RANDOMLY */
+		if (list_length(parse->scatterClause) == 1 && linitial(parse->scatterClause) == NULL)
+			exprList = NIL;
+		else
+			exprList = parse->scatterClause;
+
+		/*
+		 * Repartition the subquery plan based on our distribution
+		 * requirements
+		 */
+		r = repartitionPlan(result_plan, false, false, exprList);
+		if (!r)
+		{
+			/*
+			 * This should not be possible, repartitionPlan should never fail
+			 * when both stable and rescannable are false.
+			 */
+			elog(ERROR, "failure repartitioning plan");
+		}
 	}
 
 	Insist(result_plan->flow);
@@ -3709,9 +3709,7 @@ pushdown_preliminary_limit(Plan *plan, Node *limitCount, int64 count_est, Node *
 										  0,
 										  precount_est);
 
-		result_plan->flow = pull_up_Flow(result_plan,
-										 result_plan->lefttree,
-										 true);
+		result_plan->flow = pull_up_Flow(result_plan, result_plan->lefttree);
 	}
 
 	return result_plan;

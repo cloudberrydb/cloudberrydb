@@ -1673,6 +1673,8 @@ transformTableValueExpr(ParseState *pstate, TableValueExpr *t)
 	/* Analyze and transform the subquery */
 	query = parse_sub_analyze(t->subquery, pstate);
 
+	query->isTableValueSelect = true;
+
 	/* 
 	 * Check that we got something reasonable.  Most of these conditions
 	 * are probably impossible given restrictions in the grammar.
