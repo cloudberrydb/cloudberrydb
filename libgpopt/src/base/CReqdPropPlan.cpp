@@ -10,6 +10,7 @@
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"
+#include "gpos/common/CPrintablePointer.h"
 
 #include "gpopt/base/CUtils.h"
 #include "gpopt/base/CColRefSet.h"
@@ -684,7 +685,7 @@ CReqdPropPlan::OsPrint
 	os << "], req order: [" << (*m_peo);
 	os << "], req dist: [" << (*m_ped);
 	os << "], req rewind: [" << (*m_per);	
-	os	<<	"], req partition propagation: [" << (*m_pepp);
+	os	<<	"], req partition propagation: [" << pp(m_pepp);
 	os <<  "]";
 	
 	return os;

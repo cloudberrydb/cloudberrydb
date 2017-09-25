@@ -1,8 +1,9 @@
 # Copyright (c) 2015, Pivotal Software, Inc.
 
-cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
 project(gpopt LANGUAGES CXX C)
 
+set(CMAKE_CXX_STANDARD 98)
 set(GPORCA_VERSION_MAJOR 2)
 set(GPORCA_VERSION_MINOR 48)
 set(GPORCA_VERSION_PATCH 0)
@@ -65,16 +66,6 @@ endif()
 check_cxx_compiler_flag("-Wno-variadic-macros" COMPILER_HAS_WNO_VARIADIC_MACROS)
 if (COMPILER_HAS_WNO_VARIADIC_MACROS)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-variadic-macros")
-endif()
-
-# Turn off warning about tautological comparisons with NULL in some ill-formed
-# Orca code.
-# TODO(chasseur): This warning should be reinstated once the code in question
-# has been modified to no longer depend on undefined behavior.
-check_cxx_compiler_flag("-Wno-tautological-undefined-compare"
-                        COMPILER_HAS_WNO_TAUTOLOGICAL_UNDEFINED_COMPARE)
-if (COMPILER_HAS_WNO_TAUTOLOGICAL_UNDEFINED_COMPARE)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-tautological-undefined-compare")
 endif()
 
 # Generate maximum detail for DEBUG information with -g3 if available.

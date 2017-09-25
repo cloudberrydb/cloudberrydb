@@ -223,7 +223,8 @@ add_library(gpos
             src/test/CTimeSliceTest.cpp
             include/gpos/test/CUnittest.h
             src/test/CUnittest.cpp
-            )
+            include/gpos/common/CPrintablePointer.h
+        )
 target_link_libraries(gpos ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 
 # Extra system libs needed on Solaris.
