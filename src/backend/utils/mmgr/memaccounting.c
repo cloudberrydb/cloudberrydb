@@ -552,6 +552,29 @@ MemoryAccounting_SaveToLog()
 	}
 }
 
+/*
+ * Get string output of the current Optimizer Memory account. This is used only in
+ */
+void
+MemoryAccounting_ExplainAppendCurrentOptimizerAccountInfo(StringInfoData *str)
+{
+
+	MemoryAccountIdType shortLivingCount = shortLivingMemoryAccountArray->accountCount;
+
+	for (MemoryAccountIdType shortLivingArrayIdx = 0; shortLivingArrayIdx < shortLivingCount; ++shortLivingArrayIdx)
+	{
+		MemoryAccount *shortLivingAccount = shortLivingMemoryAccountArray->allAccounts[shortLivingArrayIdx];
+		if (shortLivingAccount->ownerType == MEMORY_OWNER_TYPE_Optimizer)
+		{
+			appendStringInfo(str, "\n  ORCA Memory used: peak %.0fK bytes  allocated %.0fK bytes  freed %.0fK bytes ",
+							 ceil((double) shortLivingAccount->peak / 1024L),
+							 ceil((double) shortLivingAccount->allocated / 1024L),
+							 ceil((double) shortLivingAccount->freed / 1024L));
+			break;
+		}
+	}
+}
+
 /*****************************************************************************
  *	  PRIVATE ROUTINES FOR MEMORY ACCOUNTING								 *
  *****************************************************************************/

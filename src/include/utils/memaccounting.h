@@ -240,4 +240,7 @@ MemoryAccounting_DeclareDone();
 extern uint64
 MemoryAccounting_RequestQuotaIncrease();
 
+extern void
+MemoryAccounting_ExplainAppendCurrentOptimizerAccountInfo(StringInfoData *str);
+
 #endif   /* MEMACCOUNTING_H */
