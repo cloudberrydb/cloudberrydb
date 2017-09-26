@@ -565,7 +565,8 @@ count_agg_clauses_walker(Node *node, AggClauseCounts *counts)
 
 		/*
 		 * Complain if the aggregate's arguments contain any aggregates;
-		 * nested agg functions are semantically nonsensical.
+		 * nested agg functions are semantically nonsensical.  Aggregates in
+		 * the FILTER clause are detected in transformAggregateCall().
 		 */
 		if (contain_agg_clause((Node *) aggref->args) ||
 			contain_agg_clause((Node *) aggref->aggorder))
@@ -4321,6 +4322,7 @@ expression_tree_mutator(Node *node,
 				FLATCOPY(newnode, aggref, Aggref);
 				MUTATE(newnode->args, aggref->args, List *);
 				MUTATE(newnode->aggorder, aggref->aggorder, AggOrder*);
+				MUTATE(newnode->aggfilter, aggref->aggfilter, Expr *);
 				return (Node *) newnode;
 			}
 			break;
@@ -4331,6 +4333,7 @@ expression_tree_mutator(Node *node,
 
 				FLATCOPY(newnode, wfunc, WindowFunc);
 				MUTATE(newnode->args, wfunc->args, List *);
+				MUTATE(newnode->aggfilter, wfunc->aggfilter, Expr *);
 				return (Node *) newnode;
 			}
 			break;

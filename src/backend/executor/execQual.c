@@ -5224,6 +5224,7 @@ ExecInitExpr(Expr *node, PlanState *parent)
 			state->evalfunc = ExecEvalCaseTestExpr;
 			break;
 		case T_Aggref:
+
 			{
 				Aggref	   *aggref = (Aggref *) node;
 				AggrefExprState *astate = makeNode(AggrefExprState);
@@ -5249,6 +5250,8 @@ ExecInitExpr(Expr *node, PlanState *parent)
 							combineAggrefArgs(aggref, &astate->inputSortClauses);
 					astate->args = (List *) ExecInitExpr((Expr *) astate->inputTargets,
 														 parent);
+					astate->aggfilter = ExecInitExpr(aggref->aggfilter,
+													 parent);
 
 					/*
 					 * Complain if the aggregate's arguments contain any
@@ -5309,6 +5312,9 @@ ExecInitExpr(Expr *node, PlanState *parent)
 
 					wfstate->args = (List *) ExecInitExpr((Expr *) wfunc->args,
 														  parent);
+					wfstate->aggfilter = ExecInitExpr(wfunc->aggfilter,
+													  parent);
+
 					/*
 					 * Complain if the windowfunc's arguments contain any
 					 * windowfuncs; nested window functions are semantically

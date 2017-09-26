@@ -71,6 +71,14 @@ transformAggregateCall(ParseState *pstate, Aggref *agg, List *agg_order)
 	 */
 	min_varlevel = find_minimum_var_level((Node *) agg->args);
 
+	{
+		int			vl;
+
+		vl = find_minimum_var_level((Node *) agg->aggfilter);
+		if (vl >= 0 && (min_varlevel < 0 || vl < min_varlevel))
+			min_varlevel = vl;
+	}
+
 	/*
 	 * An aggregate can't directly contain another aggregate call of the same
 	 * level (though outer aggs are okay).  We can skip this check if we
@@ -537,11 +545,10 @@ check_ungrouped_columns_walker(Node *node,
 
 	/*
 	 * If we find an aggregate call of the original level, do not recurse into
-	 * its arguments; ungrouped vars in the arguments are not an error. We can
-	 * also skip looking at the arguments of aggregates of higher levels,
-	 * since they could not possibly contain Vars that are of concern to us
-	 * (see transformAggregateCall).  We do need to look into the arguments of
-	 * aggregates of lower levels, however.
+	 * its arguments or filter; ungrouped vars there are not an error. We can
+	 * also skip looking at aggregates of higher levels, since they could not
+	 * possibly contain Vars of concern to us (see transformAggregateCall).
+	 * We do need to look at aggregates of lower levels, however.
 	 */
 	if (IsA(node, Aggref) &&
 		(int) ((Aggref *) node)->agglevelsup >= context->sublevels_up)

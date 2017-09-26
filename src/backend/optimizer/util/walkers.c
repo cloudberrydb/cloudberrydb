@@ -159,6 +159,8 @@ expression_tree_walker(Node *node,
 				if (expression_tree_walker((Node *) expr->aggorder,
 										   walker, context))
 					return true;
+				if (walker((Node *) expr->aggfilter, context))
+					return true;
 			}
 			break;
 		case T_AggOrder:
@@ -181,6 +183,8 @@ expression_tree_walker(Node *node,
 				/* recurse directly on explicit arg List */
 				if (expression_tree_walker((Node *) expr->args,
 										   walker, context))
+					return true;
+				if (walker((Node *) expr->aggfilter, context))
 					return true;
 				/* don't recurse on implicit args under winspec */
 			}
@@ -1629,6 +1633,8 @@ raw_expression_tree_walker(Node *node, bool (*walker) (), void *context)
 				FuncCall *fcall = (FuncCall *) node;
 
 				if (walker(fcall->args, context))
+					return true;
+				if (walker(fcall->agg_filter, context))
 					return true;
 				/* function name is deemed uninteresting */
 			}

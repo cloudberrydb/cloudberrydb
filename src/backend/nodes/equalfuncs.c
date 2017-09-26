@@ -203,11 +203,13 @@ _equalAggref(Aggref *a, Aggref *b)
 	COMPARE_SCALAR_FIELD(aggfnoid);
 	COMPARE_SCALAR_FIELD(aggtype);
 	COMPARE_NODE_FIELD(args);
-	COMPARE_SCALAR_FIELD(agglevelsup);
-	COMPARE_SCALAR_FIELD(aggstar);
+	COMPARE_NODE_FIELD(aggorder);
 	COMPARE_SCALAR_FIELD(aggdistinct);
+	COMPARE_NODE_FIELD(aggfilter);
+	COMPARE_SCALAR_FIELD(aggstar);
 	COMPARE_SCALAR_FIELD(aggstage);
-    COMPARE_NODE_FIELD(aggorder);
+	COMPARE_SCALAR_FIELD(agglevelsup);
+	COMPARE_LOCATION_FIELD(location);
 
 	return true;
 }
@@ -228,6 +230,7 @@ _equalWindowFunc(WindowFunc *a, WindowFunc *b)
 	COMPARE_SCALAR_FIELD(winfnoid);
 	COMPARE_SCALAR_FIELD(wintype);
 	COMPARE_NODE_FIELD(args);
+	COMPARE_NODE_FIELD(aggfilter);
 	COMPARE_SCALAR_FIELD(winref);
 	COMPARE_SCALAR_FIELD(winstar);
 	COMPARE_SCALAR_FIELD(winagg);

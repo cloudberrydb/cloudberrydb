@@ -518,11 +518,24 @@ advance_aggregates(AggState *aggstate, AggStatePerGroup pergroup,
 		bool isnull;
 		AggStatePerAgg peraggstate = &aggstate->peragg[aggno];
 		AggStatePerGroup pergroupstate = &pergroup[aggno];
+		ExprState  *filter = peraggstate->aggrefstate ? peraggstate->aggrefstate->aggfilter : NULL;
 		int			nargs;
 		Aggref	   *aggref = peraggstate->aggref;
 		PercentileExpr *perc = peraggstate->perc;
 		int			i;
 		TupleTableSlot *slot;
+
+		/* Skip anything FILTERed out */
+		if (filter)
+		{
+			bool		isnull;
+			Datum		res;
+
+			res = ExecEvalExprSwitchContext(filter, aggstate->tmpcontext,
+											&isnull, NULL);
+			if (isnull || !DatumGetBool(res))
+				continue;
+		}
 
 		if (aggref)
 			nargs = list_length(aggref->args);

@@ -385,6 +385,8 @@ static Cost incremental_agg_cost(double rows, int width, AggStrategy strategy,
 						  int numAggs, int transSpace);
 static Cost incremental_motion_cost(double sendrows, double recvrows);
 
+static bool contain_aggfilters(Node *node);
+
 /*---------------------------------------------
  * WITHIN/Percentile stuff
  *---------------------------------------------*/
@@ -711,7 +713,16 @@ cdb_grouping_planner(PlannerInfo* root,
 		
 		if ( ! root->config->gp_enable_dqa_pruning )
 			allowed_agg &= ~ AGG_3PHASE;
-		
+
+		/*
+		 * GPDB_84_MERGE_FIXME: Don't do three-phase aggregation if any of
+		 * the aggregates use FILTERs. We used to do it, with the old,
+		 * hacky, FILTER implementation, but it doesn't work with the new
+		 * one without some extra work.
+		 */
+		if (contain_aggfilters((Node *) group_context->tlist))
+			allowed_agg &= ~ AGG_3PHASE;
+
 		possible_agg = AGG_SINGLEPHASE;
 		
 		if(gp_hash_safe_grouping(root))
@@ -2999,6 +3010,7 @@ void generate_three_tlists(List *tlist,
 			new_aggref->aggtype = aggref->aggtype;
 			new_aggref->args =
 				list_make1((Expr*)makeVar(middle_varno, tle->resno, aggref->aggtype, -1, 0));
+			/* FILTER is evaluated at the PARTIAL stage. */
 			new_aggref->agglevelsup = 0;
 			new_aggref->aggstar = false;
 			new_aggref->aggdistinct = false; /* handled in preliminary aggregation */
@@ -3640,7 +3652,8 @@ Node *split_aggref(Aggref *aggref, MppGroupContext *ctx)
 			if ( aggref->aggfnoid == ref->aggfnoid
 				&& aggref->aggstar == ref->aggstar
 				&& aggref->aggdistinct == ref->aggdistinct
-				&& equal(aggref->args, ref->args) )
+				&& equal(aggref->args, ref->args)
+				&& equal(aggref->aggfilter, ref->aggfilter) )
 			{
 				prelim_tle = tle;
 				transtype = ref->aggtype;
@@ -3686,6 +3699,7 @@ Node *split_aggref(Aggref *aggref, MppGroupContext *ctx)
 				iref->aggfnoid = pref->aggfnoid;
 				iref->aggtype = transtype;
 				iref->args = list_make1((Expr*)copyObject(args));
+				/* FILTER is evaluated at the PARTIAL stage. */
 				iref->agglevelsup = 0;
 				iref->aggstar = false;
 				iref->aggdistinct = false;
@@ -3703,6 +3717,7 @@ Node *split_aggref(Aggref *aggref, MppGroupContext *ctx)
 			fref->aggfnoid = aggref->aggfnoid;
 			fref->aggtype = aggref->aggtype;
 			fref->args = list_make1((Expr*)args);
+			/* FILTER is evaluated at the PARTIAL stage. */
 			fref->agglevelsup = 0;
 			fref->aggstar = false;
 			fref->aggdistinct = false; /* handled in preliminary aggregation */
@@ -7005,3 +7020,25 @@ Plan *add_motion_to_dqa_child(Plan *plan, PlannerInfo *root, bool *motion_added)
 	return result;
 }
 
+
+static bool
+contain_aggfilters_walker(Node *node, void *context)
+{
+	if (node == NULL)
+		return false;
+
+	if (IsA(node, Aggref))
+	{
+		Aggref	   *aggref = (Aggref *) node;
+
+		if (aggref->aggfilter)
+			return true;
+	}
+	return expression_tree_walker(node, contain_aggfilters_walker, NULL);
+}
+
+static bool
+contain_aggfilters(Node *node)
+{
+	return contain_aggfilters_walker(node, NULL);
+}

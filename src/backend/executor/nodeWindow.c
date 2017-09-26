@@ -2952,6 +2952,19 @@ add_tuple_to_trans(WindowStatePerFunction funcstate, WindowState * wstate,
 {
 	int			argno;
 	FunctionCallInfoData fcinfo;
+	ExprState  *filter = funcstate->wfuncstate->aggfilter;
+
+	/* Skip anything FILTERed out */
+	if (filter)
+	{
+		bool		isnull;
+		Datum		res;
+
+		res = ExecEvalExprSwitchContext(filter, econtext,
+										&isnull, NULL);
+		if (isnull || !DatumGetBool(res))
+			return;
+	}
 
 	/* Evaluate function arguments, save in fcinfo. */
 	argno = initFcinfo(funcstate->wfuncstate, &fcinfo, funcstate, econtext, check_nulls);

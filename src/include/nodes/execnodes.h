@@ -835,6 +835,7 @@ typedef struct AggrefExprState
 {
 	ExprState	xprstate;
 	List	   *args;			/* states of argument expressions */
+	ExprState  *aggfilter;		/* FILTER expression */
 	List	   *inputTargets;	/* combined TargetList */
 	List	   *inputSortClauses; /* list of SortClause */
 	int			aggno;			/* ID number for agg within its plan node */
@@ -861,6 +862,7 @@ typedef struct WindowFuncExprState
 	ExprState	xprstate;
 	struct WindowState *windowstate; /* reflect parent window state */
 	List	   *args;			/* states of argument expressions */
+	ExprState  *aggfilter;		/* FILTER expression */
 	bool	   *argtypbyval;	/* pg_type.typbyval for each argument */
 	int16	   *argtyplen;		/* pg_type.typlen of each argument */
 	int			funcno;			/* index in window state's func_state array */

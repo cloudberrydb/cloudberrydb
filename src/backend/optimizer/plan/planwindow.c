@@ -3075,6 +3075,7 @@ static Aggref* makeWindowAggref(WindowFunc *winref)
 	aggref->aggstar = false; /* at this point in processing, doesn't matter */
 	aggref->aggdistinct = winref->windistinct;
 	aggref->aggstage = AGGSTAGE_NORMAL;
+	aggref->aggfilter = winref->aggfilter;
 	aggref->location = -1;
 
 	return aggref;
@@ -3710,9 +3711,14 @@ static Node * translate_upper_vars_sequential_mutator(Node *node, xuv_context *c
 		if ( ! ctxt->is_top_level )
 			elog(ERROR, "nested window reference invalid");		
 		ctxt->is_top_level = false;
-		
-		ref->args = (List*)expression_tree_mutator((Node*)ref->args, translate_upper_vars_sequential_mutator, (void*) ctxt);
-		
+
+		ref->args = (List *)expression_tree_mutator((Node *) ref->args,
+													translate_upper_vars_sequential_mutator,
+													ctxt);
+		ref->aggfilter = (Expr *) expression_tree_mutator((Node *) ref->aggfilter,
+														  translate_upper_vars_sequential_mutator,
+														  ctxt);
+
 		ctxt->is_top_level = true;
 		return (Node*)ref;
 	}

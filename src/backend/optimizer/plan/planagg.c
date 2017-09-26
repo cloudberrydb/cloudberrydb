@@ -251,6 +251,14 @@ find_minmax_aggs_walker(Node *node, List **context)
 			return true;		/* it couldn't be MIN/MAX */
 		/* note: we do not care if DISTINCT is mentioned ... */
 
+		/*
+		 * We might implement the optimization when a FILTER clause is present
+		 * by adding the filter to the quals of the generated subquery.  For
+		 * now, just punt.
+		 */
+		if (aggref->aggfilter != NULL)
+			return true;
+
 		aggsortop = fetch_agg_sort_op(aggref->aggfnoid);
 		if (!OidIsValid(aggsortop))
 			return true;		/* not a MIN/MAX aggregate */

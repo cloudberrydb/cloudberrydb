@@ -1292,6 +1292,7 @@ _readAggref(void)
 	READ_UINT_FIELD(agglevelsup);
 	READ_BOOL_FIELD(aggstar);
 	READ_BOOL_FIELD(aggdistinct);
+	READ_NODE_FIELD(aggfilter);
 	READ_ENUM_FIELD(aggstage, AggStage);
 	READ_NODE_FIELD(aggorder);
 
@@ -1325,6 +1326,7 @@ _readWindowFunc(void)
 	READ_OID_FIELD(winfnoid);
 	READ_OID_FIELD(wintype);
 	READ_NODE_FIELD(args);
+	READ_NODE_FIELD(aggfilter);
 	READ_UINT_FIELD(winref);
 	READ_BOOL_FIELD(winstar);
 	READ_BOOL_FIELD(winagg);

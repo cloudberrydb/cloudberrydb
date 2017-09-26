@@ -253,6 +253,7 @@ typedef struct Aggref
 	Index		agglevelsup;	/* > 0 if agg belongs to outer query */
 	bool		aggstar;		/* TRUE if argument list was really '*' */
 	bool		aggdistinct;	/* TRUE if it's agg(DISTINCT ...) */
+	Expr	   *aggfilter;		/* FILTER expression, if any */
 	AggStage	aggstage;		/* MPP: 2-stage? If so, which stage */
     AggOrder   *aggorder;       /* Ordered aggregate definition */
 	int			location;		/* token location, or -1 if unknown */
@@ -336,6 +337,7 @@ typedef struct WindowFunc
 	Oid			winfnoid;		/* pg_proc Oid of the function */
 	Oid			wintype;		/* type Oid of result of the window function */
 	List	   *args;			/* arguments to the window function */
+	Expr	   *aggfilter;		/* FILTER expression, if any */
 	Index		winref;			/* index of associated WindowClause */
 	bool		winstar;		/* TRUE if argument list was really '*' */
 	bool		winagg;			/* is function a simple aggregate? */

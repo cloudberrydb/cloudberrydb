@@ -569,6 +569,7 @@ _outAggref(StringInfo str, Aggref *node)
 	WRITE_UINT_FIELD(agglevelsup);
 	WRITE_BOOL_FIELD(aggstar);
 	WRITE_BOOL_FIELD(aggdistinct);
+	WRITE_NODE_FIELD(aggfilter);
 
 	WRITE_ENUM_FIELD(aggstage, AggStage);
     WRITE_NODE_FIELD(aggorder);

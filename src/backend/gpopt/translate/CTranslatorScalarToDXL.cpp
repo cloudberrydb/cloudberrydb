@@ -1340,6 +1340,12 @@ CTranslatorScalarToDXL::PdxlnScAggrefFromAggref
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLError, GPOS_WSZ_LIT("Aggregate functions with outer references"));
 	}
 
+	// ORCA doesn't support the FILTER clause yet.
+	if (paggref->aggfilter)
+	{
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("Aggregate functions with FILTER"));
+	}
+
 	IMDId *pmdidRetType = CScalarAggFunc::PmdidLookupReturnType(pmdidAgg, (EdxlaggstageNormal == edxlaggstage), m_pmda);
 	IMDId *pmdidResolvedRetType = NULL;
 	if (m_pmda->Pmdtype(pmdidRetType)->FAmbiguous())
@@ -1513,6 +1519,12 @@ CTranslatorScalarToDXL::PdxlnScWindowFunc
 		{WINSTAGE_PRELIMINARY, EdxlwinstagePreliminary},
 		{WINSTAGE_ROWKEY, EdxlwinstageRowKey},
 		};
+
+	// ORCA doesn't support the FILTER clause yet.
+	if (pwindowfunc->aggfilter)
+	{
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("Aggregate functions with FILTER"));
+	}
 
 	const ULONG ulArity = GPOS_ARRAY_SIZE(rgrgulMapping);
 	EdxlWinStage edxlwinstage = EdxlwinstageSentinel;

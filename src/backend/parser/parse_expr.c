@@ -462,8 +462,8 @@ transformIndirection(ParseState *pstate, Node *basenode, List *indirection)
 			result = ParseFuncOrColumn(pstate,
 									   list_make1(n),
 									   list_make1(result),
-                                       NIL, false, false, false, true,
-                                       NULL, -1, NULL);
+                                       NIL, NULL, false, false, false, true,
+                                       NULL, -1);
 		}
 	}
 	/* process trailing subscripts, if any */
@@ -585,8 +585,8 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 					node = ParseFuncOrColumn(pstate,
 											 list_make1(makeString(name2)),
 											 list_make1(node),
-											 NIL, false, false, false, true, NULL,
-											 cref->location, NULL);
+											 NIL, NULL, false, false, false, true, NULL,
+											 cref->location);
 				}
 				break;
 			}
@@ -615,8 +615,8 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 					node = ParseFuncOrColumn(pstate,
 											 list_make1(makeString(name3)),
 											 list_make1(node),
-											 NIL, false, false, false, true, NULL,
-											 cref->location, NULL);
+											 NIL, NULL, false, false, false, true, NULL,
+											 cref->location);
 				}
 				break;
 			}
@@ -656,8 +656,8 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 					node = ParseFuncOrColumn(pstate,
 											 list_make1(makeString(name4)),
 											 list_make1(node),
-											 NIL, false, false, false, true, NULL,
-											 cref->location, NULL);
+											 NIL, NULL, false, false, false, true, NULL,
+											 cref->location);
 				}
 				break;
 			}
@@ -1160,13 +1160,13 @@ transformFuncCall(ParseState *pstate, FuncCall *fn)
 							 fn->funcname,
 							 targs,
                              fn->agg_order,
+							 (Expr *) fn->agg_filter,
 							 fn->agg_star,
 							 fn->agg_distinct,
 							 fn->func_variadic,
 							 false,
 							 fn->over,
-							 fn->location, 
-							 fn->agg_filter);
+							 fn->location);
 }
 
 /*

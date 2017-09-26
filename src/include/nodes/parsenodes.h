@@ -310,8 +310,8 @@ typedef struct TypeCast
  * agg_star indicates we saw a 'foo(*)' construct, while agg_distinct
  * indicates we saw 'foo(DISTINCT ...)'.  In either case, the construct
  * *must* be an aggregate call.  Otherwise, it might be either an
- * aggregate or some other kind of function.  However, if OVER is present
- * it had better be an aggregate or window function.
+ * aggregate or some other kind of function.  However, if FILTER or OVER is
+ * present it had better be an aggregate or window function.
  */
 typedef struct FuncCall
 {

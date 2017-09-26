@@ -5421,6 +5421,13 @@ get_agg_expr(Aggref *aggref, deparse_context *context)
                           context, 
                           " ORDER BY ");
     }
+
+	if (aggref->aggfilter != NULL)
+	{
+		appendStringInfoString(buf, ") FILTER (WHERE ");
+		get_rule_expr((Node *) aggref->aggfilter, context, false);
+	}
+
 	appendStringInfoChar(buf, ')');
 }
 
@@ -5508,6 +5515,13 @@ get_windowfunc_expr(WindowFunc *wfunc, deparse_context *context)
 		appendStringInfoChar(buf, '*');
 	else
 		get_rule_expr((Node *) wfunc->args, context, true);
+
+	if (wfunc->aggfilter != NULL)
+	{
+		appendStringInfoString(buf, ") FILTER (WHERE ");
+		get_rule_expr((Node *) wfunc->aggfilter, context, false);
+	}
+
 	appendStringInfoString(buf, ") OVER ");
 
 	foreach(l, context->windowClause)

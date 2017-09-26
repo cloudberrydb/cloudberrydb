@@ -1424,11 +1424,12 @@ _copyAggref(Aggref *from)
 	COPY_SCALAR_FIELD(aggfnoid);
 	COPY_SCALAR_FIELD(aggtype);
 	COPY_NODE_FIELD(args);
-	COPY_SCALAR_FIELD(agglevelsup);
-	COPY_SCALAR_FIELD(aggstar);
+	COPY_NODE_FIELD(aggorder);
 	COPY_SCALAR_FIELD(aggdistinct);
+	COPY_NODE_FIELD(aggfilter);
+	COPY_SCALAR_FIELD(aggstar);
 	COPY_SCALAR_FIELD(aggstage);
-    COPY_NODE_FIELD(aggorder);
+	COPY_SCALAR_FIELD(agglevelsup);
 	COPY_LOCATION_FIELD(location);
 
 	return newnode;
@@ -1460,6 +1461,7 @@ _copyWindowFunc(WindowFunc *from)
 	COPY_SCALAR_FIELD(winfnoid);
 	COPY_SCALAR_FIELD(wintype);
 	COPY_NODE_FIELD(args);
+	COPY_NODE_FIELD(aggfilter);
 	COPY_SCALAR_FIELD(winref);
 	COPY_SCALAR_FIELD(winstar);
 	COPY_SCALAR_FIELD(winagg);
