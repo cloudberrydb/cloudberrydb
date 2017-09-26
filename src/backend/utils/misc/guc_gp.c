@@ -70,41 +70,20 @@
  * Assign/Show hook functions defined in this module
  */
 static const char *assign_gp_workfile_compress_algorithm(const char *newval, bool doit, GucSource source);
-static const char *assign_gp_workfile_type_hashjoin(const char *newval, bool doit, GucSource source);
-static const char *assign_optimizer_log_failure(const char *newval,
-							 bool doit, GucSource source);
 static const char *assign_optimizer_minidump(const char *newval,
 						  bool doit, GucSource source);
 static bool assign_optimizer(bool newval, bool doit, GucSource source);
 static bool assign_codegen(bool newval, bool doit, GucSource source);
-static const char *assign_codegen_optimization_level(const char *newval,
-                                                     bool doit, GucSource source);
-static const char *assign_optimizer_cost_model(const char *newval,
-							bool doit, GucSource source);
-static const char *assign_system_cache_flush_force(const char *newval, bool doit,
-								GucSource source);
-static const char *assign_gp_idf_deduplicate(const char *newval, bool doit,
-						  GucSource source);
-static const char *assign_explain_memory_verbosity(const char *newval, bool doit, GucSource source);
+static bool assign_codegen_optimization_level(int newval, bool doit,
+							GucSource source);
 static bool assign_dispatch_log_stats(bool newval, bool doit, GucSource source);
 static bool assign_gp_hashagg_default_nbatches(int newval, bool doit, GucSource source);
-
-static const char *assign_debug_dtm_action(const char *newval,
-						bool doit, GucSource source);
-static const char *assign_debug_dtm_action_target(const char *newval,
-							   bool doit, GucSource source);
-static const char *assign_debug_dtm_action_protocol(const char *newval,
-								 bool doit, GucSource source);
-static const char *assign_gp_log_format(const char *value, bool doit,
-					 GucSource source);
 
 /* Helper function for guc setter */
 extern const char *gpvars_assign_gp_resqueue_priority_default_value(const char *newval,
 												 bool doit,
 								   GucSource source __attribute__((unused)));
 
-static const char *assign_password_hash_algorithm(const char *newval,
-							   bool doit, GucSource source);
 static const char *assign_gp_default_storage_options(
 							const char *newval, bool doit, GucSource source);
 
@@ -122,9 +101,6 @@ List	   *gp_guc_list_for_explain;
 List	   *gp_guc_list_for_no_plan;
 
 char	   *Debug_dtm_action_sql_command_tag;
-char	   *Debug_dtm_action_str;
-char	   *Debug_dtm_action_target_str;
-char	   *Debug_dtm_action_protocol_str;
 
 bool		Debug_print_full_dtm = false;
 bool		Debug_print_snapshot_dtm = false;
@@ -334,12 +310,7 @@ static char *gp_resource_manager_str;
  * and is kept in sync by assign_hooks.
  */
 static char *gp_workfile_compress_algorithm_str;
-static char *gp_workfile_type_hashjoin_str;
-static char *optimizer_log_failure_str;
 static char *optimizer_minidump_str;
-static char *optimizer_cost_model_str;
-static char *gp_log_format_string;
-static char *explain_memory_verbosity_str;
 
 /* Backoff-related GUCs */
 bool		gp_enable_resqueue_priority;
@@ -407,12 +378,10 @@ char	   *gp_hadoop_home;
 char	   *gp_auth_time_override_str = NULL;
 
 /* Password hashing */
-char	   *password_hash_algorithm_str = "MD5";
-PasswdHashAlg password_hash_algorithm = PASSWORD_HASH_MD5;
+int			password_hash_algorithm = PASSWORD_HASH_MD5;
 
 /* system cache invalidation mode*/
 int			gp_test_system_cache_flush_force = SysCacheFlushForce_Off;
-static char *gp_test_system_cache_flush_force_str;
 
 /* include file/line information to stack traces */
 bool		gp_log_stack_trace_lines;
@@ -424,7 +393,7 @@ bool		gp_log_stack_trace_lines;
  */
 bool		dml_ignore_target_partition_check = false;
 
-char	   *gp_idf_deduplicate_str;
+int			gp_idf_deduplicate;
 
 bool		fts_diskio_check = false;
 
@@ -569,7 +538,6 @@ bool		codegen_exec_eval_expr;
 bool		codegen_advance_aggregate;
 int		codegen_varlen_tolerance;
 int		codegen_optimization_level;
-static char 	*codegen_optimization_level_str = NULL;
 
 /* System Information */
 static int	gp_server_version_num;
@@ -587,6 +555,100 @@ bool		gp_enable_segment_copy_checking = true;
 char	   *gp_default_storage_options = NULL;
 
 int			writable_external_table_bufsize = 64;
+
+static const struct config_enum_entry gp_log_format_options[] = {
+	{"text", 0},
+	{"csv", 1},
+	{NULL, 0}
+};
+
+static const struct config_enum_entry debug_dtm_action_protocol_options[] = {
+	{"none", DTX_PROTOCOL_COMMAND_NONE},
+	{"abort_no_prepared", DTX_PROTOCOL_COMMAND_ABORT_NO_PREPARED},
+	{"prepare", DTX_PROTOCOL_COMMAND_PREPARE},
+	{"abort_some_prepared", DTX_PROTOCOL_COMMAND_ABORT_SOME_PREPARED},
+	{"commit_prepared", DTX_PROTOCOL_COMMAND_COMMIT_PREPARED},
+	{"abort_prepared", DTX_PROTOCOL_COMMAND_ABORT_PREPARED},
+	{"retry_commit_prepared", DTX_PROTOCOL_COMMAND_RETRY_COMMIT_PREPARED},
+	{"retry_abort_prepared", DTX_PROTOCOL_COMMAND_RETRY_ABORT_PREPARED},
+	{"recovery_commit_prepared", DTX_PROTOCOL_COMMAND_RECOVERY_COMMIT_PREPARED},
+	{"recovery_abort_prepared", DTX_PROTOCOL_COMMAND_RECOVERY_ABORT_PREPARED},
+	{"subtransaction_begin", DTX_PROTOCOL_COMMAND_SUBTRANSACTION_BEGIN_INTERNAL},
+	{"subtransaction_release", DTX_PROTOCOL_COMMAND_SUBTRANSACTION_RELEASE_INTERNAL},
+	{"subtransaction_rollback", DTX_PROTOCOL_COMMAND_SUBTRANSACTION_ROLLBACK_INTERNAL},
+	{NULL, 0}
+};
+
+static const struct config_enum_entry optimizer_log_failure_options[] = {
+	{"all", OPTIMIZER_ALL_FAIL},
+	{"unexpected", OPTIMIZER_UNEXPECTED_FAIL},
+	{"expected", OPTIMIZER_EXPECTED_FAIL},
+	{NULL, 0}
+};
+
+static const struct config_enum_entry codegen_optimization_level_options[] = {
+	{"none", CODEGEN_OPTIMIZATION_LEVEL_NONE},
+	{"less", CODEGEN_OPTIMIZATION_LEVEL_LESS},
+	{"default", CODEGEN_OPTIMIZATION_LEVEL_DEFAULT},
+	{"aggressive", CODEGEN_OPTIMIZATION_LEVEL_AGGRESSIVE},
+	{NULL, 0}
+};
+
+static const struct config_enum_entry optimizer_cost_model_options[] = {
+	{"legacy", OPTIMIZER_GPDB_LEGACY},
+	{"calibrated", OPTIMIZER_GPDB_CALIBRATED},
+	{NULL, 0}
+};
+
+static const struct config_enum_entry explain_memory_verbosity_options[] = {
+	{"suppress", EXPLAIN_MEMORY_VERBOSITY_SUPPRESS},
+	{"summary", EXPLAIN_MEMORY_VERBOSITY_SUMMARY},
+	{"detail", EXPLAIN_MEMORY_VERBOSITY_DETAIL},
+	{NULL, 0}
+};
+
+static const struct config_enum_entry system_cache_flush_force_options[] = {
+	{"off", SysCacheFlushForce_Off},
+	{"recursive", SysCacheFlushForce_Recursive},
+	{"plain", SysCacheFlushForce_NonRecursive},
+	{NULL, 0}
+};
+
+static const struct config_enum_entry gp_idf_deduplicate_options[] = {
+	{"auto", IDF_DEDUPLICATE_AUTO},
+	{"none", IDF_DEDUPLICATE_NONE},
+	{"force", IDF_DEDUPLICATE_FORCE},
+	{NULL, 0}
+};
+
+static const struct config_enum_entry debug_dtm_action_options[] = {
+	{"none", DEBUG_DTM_ACTION_NONE},
+	{"delay", DEBUG_DTM_ACTION_DELAY},
+	{"fail_begin_command", DEBUG_DTM_ACTION_FAIL_BEGIN_COMMAND},
+	{"fail_end_command", DEBUG_DTM_ACTION_FAIL_END_COMMAND},
+	{"panic_begin_command", DEBUG_DTM_ACTION_PANIC_BEGIN_COMMAND},
+	{NULL, 0}
+};
+
+static const struct config_enum_entry debug_dtm_action_target_options[] = {
+	{"none", DEBUG_DTM_ACTION_TARGET_NONE},
+	{"protocol", DEBUG_DTM_ACTION_TARGET_PROTOCOL},
+	{"sql", DEBUG_DTM_ACTION_TARGET_SQL},
+	{NULL, 0}
+};
+
+static const struct config_enum_entry gp_workfile_type_hashjoin_options[] = {
+	{"bfz", BFZ},
+	{"buffile", BUFFILE},
+	{NULL, 0}
+};
+
+static const struct config_enum_entry password_hash_algorithm_options[] = {
+	/* {"none", PASSWORD_HASH_NONE}, * this option is not exposed */
+	{"MD5", PASSWORD_HASH_MD5},
+	{"SHA-256", PASSWORD_HASH_SHA_256},
+	{NULL, 0}
+};
 
 IndexCheckType gp_indexcheck_insert = INDEX_CHECK_NONE;
 IndexCheckType gp_indexcheck_vacuum = INDEX_CHECK_NONE;
@@ -4937,32 +4999,12 @@ struct config_string ConfigureNamesString_gp[] =
 	},
 
 	{
-		{"gp_workfile_type_hashjoin", PGC_USERSET, QUERY_TUNING_OTHER,
-			gettext_noop("Specify the type of work files to use for executing hash join plans."),
-			gettext_noop("Valid values are \"BFZ\", \"BUFFILE\"."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_workfile_type_hashjoin_str,
-		"bfz", assign_gp_workfile_type_hashjoin, NULL
-	},
-
-	{
 		{"gpperfmon_log_alert_level", PGC_USERSET, LOGGING,
 			gettext_noop("Specify the log alert level used by gpperfmon."),
 			gettext_noop("Valid values are 'none', 'warning', 'error', 'fatal', 'panic'.")
 		},
 		&gpperfmon_log_alert_level_str,
 		"none", gpvars_assign_gp_gpperfmon_log_alert_level, gpvars_show_gp_gpperfmon_log_alert_level
-	},
-
-	{
-		{"explain_memory_verbosity", PGC_USERSET, RESOURCES_MEM,
-			gettext_noop("Experimental feature: show memory account usage in EXPLAIN ANALYZE."),
-			gettext_noop("Valid values are SUPPRESS, SUMMARY, and DETAIL."),
-			GUC_GPDB_ADDOPT
-		},
-		&explain_memory_verbosity_str,
-		"suppress", assign_explain_memory_verbosity, NULL
 	},
 
 	{
@@ -4996,16 +5038,6 @@ struct config_string ConfigureNamesString_gp[] =
 	},
 
 	{
-		{"optimizer_log_failure", PGC_USERSET, LOGGING_WHEN,
-			gettext_noop("Sets which optimizer failures are logged."),
-			gettext_noop("Valid values are unexpected, expected, all"),
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&optimizer_log_failure_str,
-		"all", assign_optimizer_log_failure, NULL
-	},
-
-	{
 		{"optimizer_minidump", PGC_USERSET, LOGGING_WHEN,
 			gettext_noop("Generate optimizer minidump."),
 			gettext_noop("Valid values are onerror, always"),
@@ -5014,15 +5046,6 @@ struct config_string ConfigureNamesString_gp[] =
 		"onerror", assign_optimizer_minidump, NULL
 	},
 
-	{
-		{"optimizer_cost_model", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Set optimizer cost model."),
-			gettext_noop("Valid values are legacy, calibrated"),
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&optimizer_cost_model_str,
-		"calibrated", assign_optimizer_cost_model, NULL
-	},
 	{
 		{"gp_session_role", PGC_BACKEND, GP_WORKER_IDENTITY,
 			gettext_noop("Reports the default role for the session."),
@@ -5111,36 +5134,6 @@ struct config_string ConfigureNamesString_gp[] =
 		},
 		&qdHostname,
 		"", NULL, NULL
-	},
-
-	{
-		{"debug_dtm_action", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets the debug DTM action."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_dtm_action_str,
-		"none", assign_debug_dtm_action, NULL
-	},
-
-	{
-		{"debug_dtm_action_target", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets the debug DTM action target."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_dtm_action_target_str,
-		"none", assign_debug_dtm_action_target, NULL
-	},
-
-	{
-		{"debug_dtm_action_protocol", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets the debug DTM action protocol."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_dtm_action_protocol_str,
-		"none", assign_debug_dtm_action_protocol, NULL
 	},
 
 	{
@@ -5311,16 +5304,6 @@ struct config_string ConfigureNamesString_gp[] =
 	},
 
 	{
-		{"gp_test_system_cache_flush_force", PGC_USERSET, GP_ERROR_HANDLING,
-			gettext_noop("Force invalidation of system caches on each access"),
-			gettext_noop("Valid values are OFF, PLAIN and RECURSIVE."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_test_system_cache_flush_force_str,
-		"off", assign_system_cache_flush_force, NULL
-	},
-
-	{
 		{"gp_hadoop_connector_jardir", PGC_USERSET, CUSTOM_OPTIONS,
 			gettext_noop("The directory of the Hadoop connector JAR, relative to $GPHOME."),
 			NULL,
@@ -5361,25 +5344,6 @@ struct config_string ConfigureNamesString_gp[] =
 	},
 
 	{
-		{"password_hash_algorithm", PGC_SUSET, CONN_AUTH_SECURITY,
-			gettext_noop("The cryptograph hash algorithm to apply to passwords before storing them."),
-			gettext_noop("Valid values are MD5 or SHA-256."),
-			GUC_SUPERUSER_ONLY
-		},
-		&password_hash_algorithm_str,
-		"MD5", assign_password_hash_algorithm, NULL
-	},
-
-	{
-		{"gp_idf_deduplicate", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Sets the mode to control inverse distribution function's de-duplicate strategy."),
-			gettext_noop("Valid values are AUTO, NONE, and FORCE.")
-		},
-		&gp_idf_deduplicate_str,
-		"auto", assign_gp_idf_deduplicate, NULL
-	},
-
-	{
 		{"optimizer_search_strategy_path", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("Sets the search strategy used by gp optimizer."),
 			NULL,
@@ -5396,30 +5360,6 @@ struct config_string ConfigureNamesString_gp[] =
 			GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
 		},
 		&gp_default_storage_options, "", assign_gp_default_storage_options, NULL
-	},
-
-	{
-		{"gp_log_format", PGC_POSTMASTER, LOGGING_WHERE,
-			gettext_noop("Sets the format for log files."),
-			gettext_noop("Valid values are TEXT, CSV.")
-		},
-		&gp_log_format_string,
-		"csv", assign_gp_log_format, NULL
-	},
-
-	{
-		{"codegen_optimization_level", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets optimizer level to use when compiling generated code."),
-			gettext_noop("Valid values are none, less, default, aggressive."),
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&codegen_optimization_level_str,
-#ifdef USE_CODEGEN
-		"default",
-#else
-		"",
-#endif
-		assign_codegen_optimization_level, NULL
 	},
 
 	{
@@ -5535,129 +5475,134 @@ struct config_enum ConfigureNamesEnum_gp[] =
 		ERROR, message_level_options, NULL, NULL
 	},
 
+	{
+		{"gp_log_format", PGC_POSTMASTER, LOGGING_WHERE,
+			gettext_noop("Sets the format for log files."),
+			gettext_noop("Valid values are TEXT, CSV.")
+		},
+		&gp_log_format,
+		1, gp_log_format_options, NULL, NULL
+	},
+
+	{
+		{"debug_dtm_action_protocol", PGC_SUSET, DEVELOPER_OPTIONS,
+			gettext_noop("Sets the debug DTM action protocol."),
+			NULL,
+			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&Debug_dtm_action_protocol,
+		DTX_PROTOCOL_COMMAND_NONE, debug_dtm_action_protocol_options, NULL, NULL
+	},
+
+	{
+		{"optimizer_log_failure", PGC_USERSET, LOGGING_WHEN,
+			gettext_noop("Sets which optimizer failures are logged."),
+			gettext_noop("Valid values are unexpected, expected, all"),
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_log_failure,
+		OPTIMIZER_ALL_FAIL, optimizer_log_failure_options, NULL, NULL
+	},
+
+	{
+		{"password_hash_algorithm", PGC_SUSET, CONN_AUTH_SECURITY,
+			gettext_noop("The cryptograph hash algorithm to apply to passwords before storing them."),
+			gettext_noop("Valid values are MD5 or SHA-256."),
+			GUC_SUPERUSER_ONLY
+		},
+		&password_hash_algorithm,
+		PASSWORD_HASH_MD5, password_hash_algorithm_options, NULL, NULL
+	},
+
+	{
+		{"codegen_optimization_level", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Sets optimizer level to use when compiling generated code."),
+			gettext_noop("Valid values are none, less, default, aggressive."),
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
+		},
+		&codegen_optimization_level,
+#ifdef USE_CODEGEN
+		CODEGEN_OPTIMIZATION_LEVEL_DEFAULT,
+#else
+		CODEGEN_OPTIMIZATION_LEVEL_NONE,
+#endif
+		codegen_optimization_level_options, assign_codegen_optimization_level, NULL
+	},
+
+	{
+		{"optimizer_cost_model", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Set optimizer cost model."),
+			gettext_noop("Valid values are legacy, calibrated"),
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_cost_model,
+		OPTIMIZER_GPDB_CALIBRATED, optimizer_cost_model_options, NULL, NULL
+	},
+
+	{
+		{"explain_memory_verbosity", PGC_USERSET, RESOURCES_MEM,
+			gettext_noop("Experimental feature: show memory account usage in EXPLAIN ANALYZE."),
+			gettext_noop("Valid values are SUPPRESS, SUMMARY, and DETAIL."),
+			GUC_GPDB_ADDOPT
+		},
+		&explain_memory_verbosity,
+		EXPLAIN_MEMORY_VERBOSITY_SUPPRESS, explain_memory_verbosity_options, NULL, NULL
+	},
+
+	{
+		{"gp_test_system_cache_flush_force", PGC_USERSET, GP_ERROR_HANDLING,
+			gettext_noop("Force invalidation of system caches on each access"),
+			gettext_noop("Valid values are OFF, PLAIN and RECURSIVE."),
+			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_test_system_cache_flush_force,
+		SysCacheFlushForce_Off, system_cache_flush_force_options, NULL, NULL
+	},
+
+	{
+		{"gp_idf_deduplicate", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Sets the mode to control inverse distribution function's de-duplicate strategy."),
+			gettext_noop("Valid values are AUTO, NONE, and FORCE.")
+		},
+		&gp_idf_deduplicate,
+		IDF_DEDUPLICATE_AUTO, gp_idf_deduplicate_options, NULL, NULL
+	},
+
+	{
+		{"debug_dtm_action", PGC_SUSET, DEVELOPER_OPTIONS,
+			gettext_noop("Sets the debug DTM action."),
+			NULL,
+			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&Debug_dtm_action,
+		DEBUG_DTM_ACTION_NONE, debug_dtm_action_options, NULL, NULL
+	},
+
+	{
+		{"debug_dtm_action_target", PGC_SUSET, DEVELOPER_OPTIONS,
+			gettext_noop("Sets the debug DTM action target."),
+			NULL,
+			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&Debug_dtm_action_target,
+		DEBUG_DTM_ACTION_TARGET_NONE, debug_dtm_action_target_options, NULL, NULL
+	},
+
+	{
+		{"gp_workfile_type_hashjoin", PGC_USERSET, QUERY_TUNING_OTHER,
+			gettext_noop("Specify the type of work files to use for executing hash join plans."),
+			gettext_noop("Valid values are \"BFZ\", \"BUFFILE\"."),
+			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_workfile_type_hashjoin,
+		BFZ, gp_workfile_type_hashjoin_options, NULL, NULL
+	},
+
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, 0, NULL, NULL, NULL
 	}
 };
-
-static const char *
-assign_gp_log_format(const char *value, bool doit, GucSource source)
-{
-	int			log_format = 0;
-
-	if (pg_strcasecmp(value, "text") == 0)
-		log_format = 0;
-	else if (pg_strcasecmp(value, "csv") == 0)
-		log_format = 1;
-	else
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-				 errmsg("unrecognized \"gp_log_format\" key word: \"%s\"",
-						value)));
-	if (doit)
-		gp_log_format = log_format;
-
-	return value;
-}
-
-
-static const char *
-assign_debug_dtm_action_protocol(const char *newval,
-								 bool doit, GucSource source)
-{
-	if (pg_strcasecmp(newval, "none") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_protocol = DTX_PROTOCOL_COMMAND_NONE;
-	}
-	else if (pg_strcasecmp(newval, "abort_no_prepared") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_protocol = DTX_PROTOCOL_COMMAND_ABORT_NO_PREPARED;
-	}
-	else if (pg_strcasecmp(newval, "prepare") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_protocol = DTX_PROTOCOL_COMMAND_PREPARE;
-	}
-	else if (pg_strcasecmp(newval, "abort_some_prepared") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_protocol = DTX_PROTOCOL_COMMAND_ABORT_SOME_PREPARED;
-	}
-	else if (pg_strcasecmp(newval, "commit_prepared") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_protocol = DTX_PROTOCOL_COMMAND_COMMIT_PREPARED;
-	}
-	else if (pg_strcasecmp(newval, "abort_prepared") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_protocol = DTX_PROTOCOL_COMMAND_ABORT_PREPARED;
-	}
-	else if (pg_strcasecmp(newval, "retry_commit_prepared") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_protocol = DTX_PROTOCOL_COMMAND_RETRY_COMMIT_PREPARED;
-	}
-	else if (pg_strcasecmp(newval, "retry_abort_prepared") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_protocol = DTX_PROTOCOL_COMMAND_RETRY_ABORT_PREPARED;
-	}
-	else if (pg_strcasecmp(newval, "recovery_commit_prepared") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_protocol = DTX_PROTOCOL_COMMAND_RECOVERY_COMMIT_PREPARED;
-	}
-	else if (pg_strcasecmp(newval, "recovery_abort_prepared") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_protocol = DTX_PROTOCOL_COMMAND_RECOVERY_ABORT_PREPARED;
-	}
-	else if (pg_strcasecmp(newval, "subtransaction_begin") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_protocol = DTX_PROTOCOL_COMMAND_SUBTRANSACTION_BEGIN_INTERNAL;
-	}
-	else if (pg_strcasecmp(newval, "subtransaction_release") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_protocol = DTX_PROTOCOL_COMMAND_SUBTRANSACTION_RELEASE_INTERNAL;
-	}
-	else if (pg_strcasecmp(newval, "subtransaction_rollback") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_protocol = DTX_PROTOCOL_COMMAND_SUBTRANSACTION_ROLLBACK_INTERNAL;
-	}
-	else
-		return NULL;			/* fail */
-	return newval;				/* OK */
-}
-
-static const char *
-assign_optimizer_log_failure(const char *val, bool assign, GucSource source)
-{
-	if (pg_strcasecmp(val, "all") == 0 && assign)
-	{
-		optimizer_log_failure = OPTIMIZER_ALL_FAIL;
-	}
-	else if (pg_strcasecmp(val, "unexpected") == 0 && assign)
-	{
-		optimizer_log_failure = OPTIMIZER_UNEXPECTED_FAIL;
-	}
-	else if (pg_strcasecmp(val, "expected") == 0 && assign)
-	{
-		optimizer_log_failure = OPTIMIZER_EXPECTED_FAIL;
-	}
-	else
-	{
-		return NULL;			/* fail */
-	}
-
-	return val;
-}
 
 static bool
 assign_pljava_classpath_insecure(bool newval, bool doit, GucSource source)
@@ -5670,40 +5615,20 @@ assign_pljava_classpath_insecure(bool newval, bool doit, GucSource source)
 	return true;
 }
 
-static const char*
-assign_codegen_optimization_level(const char *val, bool assign, GucSource source) {
+static bool
+assign_codegen_optimization_level(int val, bool assign, GucSource source) {
 #ifndef USE_CODEGEN
-	if (val && pg_strcasecmp(val, "") != 0)
+	if (val != CODEGEN_OPTIMIZATION_LEVEL_NONE)
+	{
 		ereport(ERROR,
 			(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 				errmsg("Code generation is not supported by this build")));
-#else
-
-	if (pg_strcasecmp(val, "none") == 0 && assign)
-	{
-		codegen_optimization_level = CODEGEN_OPTIMIZATION_LEVEL_NONE;
-	}
-	else if (pg_strcasecmp(val, "less") == 0 && assign)
-	{
-		codegen_optimization_level = CODEGEN_OPTIMIZATION_LEVEL_LESS;
-	}
-	else if (pg_strcasecmp(val, "default") == 0 && assign)
-	{
-		codegen_optimization_level = CODEGEN_OPTIMIZATION_LEVEL_DEFAULT;
-	}
-	else if (pg_strcasecmp(val, "aggressive") == 0 && assign)
-	{
-		codegen_optimization_level = CODEGEN_OPTIMIZATION_LEVEL_AGGRESSIVE;
-	}
-	else
-	{
-		return NULL;      /* fail */
+		return false;
 	}
 #endif
 
-	return val;
+	return true;
 }
-
 
 static const char *
 assign_optimizer_minidump(const char *val, bool assign, GucSource source)
@@ -5725,108 +5650,6 @@ assign_optimizer_minidump(const char *val, bool assign, GucSource source)
 }
 
 static const char *
-assign_optimizer_cost_model(const char *val, bool assign, GucSource source)
-{
-	if (pg_strcasecmp(val, "legacy") == 0 && assign)
-	{
-		optimizer_cost_model = OPTIMIZER_GPDB_LEGACY;
-	}
-	else if (pg_strcasecmp(val, "calibrated") == 0 && assign)
-	{
-		optimizer_cost_model = OPTIMIZER_GPDB_CALIBRATED;
-	}
-	else
-	{
-		return NULL;			/* fail */
-	}
-	return val;
-}
-
-static const char *
-assign_explain_memory_verbosity(const char *newval, bool doit, GucSource source)
-{
-	if (pg_strcasecmp(newval, "suppress") == 0)
-	{
-		if (doit)
-			explain_memory_verbosity = EXPLAIN_MEMORY_VERBOSITY_SUPPRESS;
-	}
-	else if (pg_strcasecmp(newval, "summary") == 0)
-	{
-		if (doit)
-			explain_memory_verbosity = EXPLAIN_MEMORY_VERBOSITY_SUMMARY;
-	}
-	else if (pg_strcasecmp(newval, "detail") == 0)
-	{
-		if (doit)
-			explain_memory_verbosity = EXPLAIN_MEMORY_VERBOSITY_DETAIL;
-	}
-	else
-	{
-		printf("Unknown memory verbosity.");
-		return NULL;
-	}
-
-	return newval;
-}
-
-static const char *
-assign_system_cache_flush_force(const char *newval, bool doit, GucSource source)
-{
-	if (pg_strcasecmp(newval, "off") == 0)
-	{
-		if (doit)
-			gp_test_system_cache_flush_force = SysCacheFlushForce_Off;
-	}
-	else if (pg_strcasecmp(newval, "recursive") == 0)
-	{
-		if (doit)
-			gp_test_system_cache_flush_force = SysCacheFlushForce_Recursive;
-	}
-	else if (pg_strcasecmp(newval, "plain") == 0)
-	{
-		if (doit)
-			gp_test_system_cache_flush_force = SysCacheFlushForce_NonRecursive;
-	}
-	else
-	{
-		return NULL;
-	}
-
-	return newval;
-}
-
-static const char *
-assign_password_hash_algorithm(const char *newval, bool doit, GucSource source)
-{
-	if (pg_strcasecmp(newval, "MD5") == 0)
-	{
-		if (doit)
-			password_hash_algorithm = PASSWORD_HASH_MD5;
-	}
-	else if (pg_strcasecmp(newval, "SHA-256") == 0)
-	{
-		if (doit)
-			password_hash_algorithm = PASSWORD_HASH_SHA_256;
-	}
-	else
-		return NULL;
-
-	return newval;
-}
-
-static const char *
-assign_gp_idf_deduplicate(const char *newval, bool doit, GucSource source)
-{
-	if (pg_strcasecmp(newval, "auto") == 0 ||
-		pg_strcasecmp(newval, "none") == 0 ||
-		pg_strcasecmp(newval, "force") == 0)
-	{
-		return newval;
-	}
-	return NULL;
-}
-
-static const char *
 assign_gp_workfile_compress_algorithm(const char *newval, bool doit, GucSource source)
 {
 	int			i = bfz_string_to_compression(newval);
@@ -5836,27 +5659,6 @@ assign_gp_workfile_compress_algorithm(const char *newval, bool doit, GucSource s
 	if (doit)
 		gp_workfile_compress_algorithm = i;
 	return newval;				/* OK */
-}
-
-static const char *
-assign_gp_workfile_type_hashjoin(const char *newval, bool doit, GucSource source)
-{
-	ExecWorkFileType newtype = BFZ;
-
-	if (!pg_strcasecmp(newval, "bfz"))
-	{
-		newtype = BFZ;
-	}
-	else if (!pg_strcasecmp(newval, "buffile"))
-	{
-		newtype = BUFFILE;
-	}
-	else
-		return NULL;
-	if (doit)
-		gp_workfile_type_hashjoin = newtype;
-
-	return newval;
 }
 
 static bool
@@ -5940,64 +5742,6 @@ assign_gp_hashagg_default_nbatches(int newval, bool doit, GucSource source)
 					(int) newval)));
 	}
 	return true; /* OK */
-}
-
-static const char *
-assign_debug_dtm_action(const char *newval,
-						bool doit, GucSource source)
-{
-	if (pg_strcasecmp(newval, "none") == 0)
-	{
-		if (doit)
-			Debug_dtm_action = DEBUG_DTM_ACTION_NONE;
-	}
-	else if (pg_strcasecmp(newval, "delay") == 0)
-	{
-		if (doit)
-			Debug_dtm_action = DEBUG_DTM_ACTION_DELAY;
-	}
-	else if (pg_strcasecmp(newval, "fail_begin_command") == 0)
-	{
-		if (doit)
-			Debug_dtm_action = DEBUG_DTM_ACTION_FAIL_BEGIN_COMMAND;
-	}
-	else if (pg_strcasecmp(newval, "fail_end_command") == 0)
-	{
-		if (doit)
-			Debug_dtm_action = DEBUG_DTM_ACTION_FAIL_END_COMMAND;
-	}
-	else if (pg_strcasecmp(newval, "panic_begin_command") == 0)
-	{
-		if (doit)
-			Debug_dtm_action = DEBUG_DTM_ACTION_PANIC_BEGIN_COMMAND;
-	}
-	else
-		return NULL;			/* fail */
-	return newval;				/* OK */
-}
-
-static const char *
-assign_debug_dtm_action_target(const char *newval,
-							   bool doit, GucSource source)
-{
-	if (pg_strcasecmp(newval, "none") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_target = DEBUG_DTM_ACTION_TARGET_NONE;
-	}
-	else if (pg_strcasecmp(newval, "protocol") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_target = DEBUG_DTM_ACTION_TARGET_PROTOCOL;
-	}
-	else if (pg_strcasecmp(newval, "sql") == 0)
-	{
-		if (doit)
-			Debug_dtm_action_target = DEBUG_DTM_ACTION_TARGET_SQL;
-	}
-	else
-		return NULL;			/* fail */
-	return newval;				/* OK */
 }
 
 /*

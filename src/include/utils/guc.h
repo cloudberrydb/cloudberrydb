@@ -361,7 +361,6 @@ extern char *application_name;
 extern char *Debug_dtm_action_sql_command_tag;
 extern char *Debug_dtm_action_str;
 extern char *Debug_dtm_action_target_str;
-extern char *Debug_dtm_action_protocol_str;
 
 /* Enable check for compatibility of encoding and locale in createdb */
 extern bool gp_encoding_check_locale_compatibility;

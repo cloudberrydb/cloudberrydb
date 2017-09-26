@@ -5144,9 +5144,9 @@ choose_deduplicate(PlannerInfo *root, List *sortExprs,
 		*numGroups = num_distinct;
 
 	/* we need some calculates above even if the flag is off */
-	if (pg_strcasecmp(gp_idf_deduplicate_str, "force") == 0)
+	if (gp_idf_deduplicate == IDF_DEDUPLICATE_FORCE)
 		return true;
-	if (pg_strcasecmp(gp_idf_deduplicate_str, "none") == 0)
+	if (gp_idf_deduplicate == IDF_DEDUPLICATE_NONE)
 		return false;
 
 	return dedup_cost < naive_cost;
