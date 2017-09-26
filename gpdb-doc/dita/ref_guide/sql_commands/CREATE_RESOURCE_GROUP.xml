@@ -43,8 +43,9 @@ MEMORY_LIMIT=<varname>integer</varname>
         </plentry>
         <plentry>
           <pt>CONCURRENCY <varname>integer</varname></pt>
-          <pd>The maximum number of concurrent transactions, including active and idle transactions, that are permitted for this resource group. The <codeph>CONCURRENCY</codeph> value must be an integer in the range [1 .. <codeph>max_connections</codeph>]. The default <codeph>CONCURRENCY</codeph> value is 20.
+          <pd>The maximum number of concurrent transactions, including active and idle transactions, that are permitted for this resource group. The <codeph>CONCURRENCY</codeph> value must be an integer in the range [0 .. <codeph>max_connections</codeph>]. The default <codeph>CONCURRENCY</codeph> value is 20.
             </pd>
+          <pd><note>You cannot set the <codeph>CONCURRENCY</codeph> value for the <codeph>admin_group</codeph> to zero (0).</note></pd>
         </plentry>
         <plentry>
           <pt>CPU_RATE_LIMIT <varname>integer</varname></pt>

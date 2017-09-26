@@ -41,8 +41,9 @@ MEMORY_SPILL_RATIO <varname>integer</varname></codeblock>
             reached are queued. When a running transaction completes, the earliest queued
             transaction is executed.</pd>
           <pd> The <codeph>CONCURRENCY</codeph> value
-            must be an integer in the range [1 .. <codeph>max_connections</codeph>]. The default 
+            must be an integer in the range [0 .. <codeph>max_connections</codeph>]. The default 
             <codeph>CONCURRENCY</codeph> value is 20.</pd>
+            <pd><note>You cannot set the <codeph>CONCURRENCY</codeph> value for the <codeph>admin_group</codeph> to zero (0).</note></pd>
         </plentry>
         <plentry>
           <pt>CPU_RATE_LIMIT <varname>integer</varname></pt>

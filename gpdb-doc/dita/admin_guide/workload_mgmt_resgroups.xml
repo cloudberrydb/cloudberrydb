@@ -255,6 +255,7 @@ gpstart
 =# ALTER RESOURCE GROUP <i>exec</i> SET MEMORY_LIMIT 25;
 </codeblock>
         </p>
+        <note>You cannot set or alter the <codeph>CONCURRENCY</codeph> value for the <codeph>admin_group</codeph> to zero (0).</note>
         <p>The <codeph><xref href="../ref_guide/sql_commands/DROP_RESOURCE_GROUP.xml#topic1" type="topic" format="dita"/></codeph> command drops a resource group. To drop a resource group, the group cannot be assigned to any role, nor can there be any transactions active or waiting in the resource group.
           To drop a resource group:</p>
         <p>
