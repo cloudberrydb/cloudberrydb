@@ -460,11 +460,11 @@ resources:
     secret_access_key: {{bucket-secret-access-key}}
     regexp: deliverables/greenplum-db-(.*)-behave.tar.gz
 
-- name: singlecluster
+- name: singlecluster-CDH
   type: s3
   source:
-    access_key_id: {{pxf-aws-access-key-id}}
-    secret_access_key: {{pxf-aws-secret-access-key}}
+    access_key_id: {{bucket-access-key-id}}
+    secret_access_key: {{bucket-secret-access-key}}
     bucket: {{pxf-aws-bucket-name}}
     region_name: {{aws-region}}
     versioned_file: singlecluster-without-pxf/singlecluster-CDH.tar.gz
@@ -943,6 +943,7 @@ jobs:
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: singlecluster
+      resource: singlecluster-CDH
       trigger: true
     - get: pxf_automation_src
       trigger: true
@@ -951,7 +952,7 @@ jobs:
     file: gpdb_src/concourse/tasks/regression_tests_pxf.yml
     image: centos-gpdb-dev-6
     params:
-      overwrite_pxf: false
+      GROUP: gpdb
       TARGET_OS: centos
       TARGET_OS_VERSION: 6
 
