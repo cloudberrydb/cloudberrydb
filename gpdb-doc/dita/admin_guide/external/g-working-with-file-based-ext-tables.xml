@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="topic_f5l_qnh_kr">
-  <title>Working with External Tables</title>
+  <title>Working with External Data</title>
   <shortdesc>External tables provide access to data stored in data sources outside of Greenplum
     Database as if the data were stored in regular database tables. Data can be read from or written
     to external tables.</shortdesc>

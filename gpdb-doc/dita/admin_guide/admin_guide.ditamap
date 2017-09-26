@@ -39,23 +39,21 @@
             <topicref href="roles_privs.xml" navtitle="Managing Roles and Privileges"
                 id="roles_privs"/>
         </topicref>
-        <topicref href="partIV.xml" navtitle="Working with Databases" id="partIV">
-            <topicref href="ddl/ddl.ditamap" format="ditamap"/>
-            <topicref href="dml.xml" navtitle="Managing Data" id="dml"/>
-            <topicref href="external/external-tables.ditamap" format="ditamap"/>
-            <topicref href="load/load.ditamap" format="ditamap"/>
-            <topicref href="query/query.ditamap" format="ditamap"/>
-        </topicref>
+        <topicref href="ddl/ddl.ditamap" format="ditamap"/>
+        <topicref href="dml.xml" navtitle="Managing Data" id="dml"/>
+        <topicref href="query/query.ditamap" navtitle="Querying Data" format="ditamap"/>
+        <topicref href="external/external-tables.ditamap" navtitle="Working with External Data" format="ditamap"/>
+        <topicref href="load/load.ditamap" navtitle="Loading and Unloading Data" format="ditamap"/>
         <topicref href="partV.xml">
             <topicref href="perf_intro.xml" navtitle="Defining Database Performance" id="perf_intro"/>
             <topicref href="perf_issues.xml" navtitle="Common Causes of Performance Issues"
                 id="perf_issues"/>
-            <topicref href="wlmgmt_intro.xml" navtitle="Resource Management Overview"
+            <topicref href="wlmgmt_intro.xml" navtitle="Workload Management Resource Overview"
                 id="wlmgmt_intro"/>
-            <topicref href="wlmgmt.xml" navtitle="Managing Resources" id="wlmgmt">
-                <topicref href="workload_mgmt.xml" navtitle="Managing Resources with Resource Queues"
+            <topicref href="wlmgmt.xml" navtitle="Managing Workload and Resources" id="wlmgmt">
+                <topicref href="workload_mgmt.xml" navtitle="Managing Workloads with Resource Queues"
                 id="workload_mgmt"/>
-                <topicref href="workload_mgmt_resgroups.xml" navtitle="Managing Resources with Resource Groups"
+                <topicref href="workload_mgmt_resgroups.xml" navtitle="Managing Workloads with Resource Groups"
                 id="workload_mgmt_resgroups"/>
             </topicref>
             <topicref href="perf_troubleshoot.xml" navtitle="Investigating a Performance Problem"

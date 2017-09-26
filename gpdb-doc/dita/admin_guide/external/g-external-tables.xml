@@ -2,7 +2,7 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic3">
-   <title>Accessing File-Based External Tables</title>
+   <title>Defining External Tables</title>
    <shortdesc>External tables enable accessing external files as if they are regular database
       tables. They are often used to move data into and out of a Greenplum database.</shortdesc>
    <body>
