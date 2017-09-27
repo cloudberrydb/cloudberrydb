@@ -10,7 +10,6 @@ groups:
   - compile_gpdb_aix7_remote
   - icw_planner_centos6
   - icw_gporca_centos6
-  - icw_gporca_centos6_gpos_memory
   - icw_gporca_centos7
   - icw_gporca_sles11
   - icw_planner_ictcp_centos6
@@ -76,6 +75,10 @@ groups:
   - MM_gppkg
   - MM_gprecoverseg
   - DPM_backup_43_restore_5
+
+- name: Experimental Tests
+  jobs:
+  - icw_gporca_centos6_gpos_memory
 
 ## ======================================================================
 ## resource types
