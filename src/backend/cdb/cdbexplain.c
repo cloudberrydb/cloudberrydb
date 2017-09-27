@@ -1962,6 +1962,7 @@ cdbexplain_showExecStatsEnd(struct PlannedStmt *stmt,
 	Slice	   *slice;
 	int			sliceIndex;
 	int			flag;
+	double		total_memory_across_slices = 0;
 
 	char		avgbuf[50];
 	char		maxbuf[50];
@@ -2075,7 +2076,9 @@ cdbexplain_showExecStatsEnd(struct PlannedStmt *stmt,
 		if (EXPLAIN_MEMORY_VERBOSITY_SUPPRESS < explain_memory_verbosity)
 		{
 			/* Memory accounting global peak memory usage */
-			cdbexplain_formatMemory(maxbuf, sizeof(maxbuf), ss->memory_accounting_global_peak.vmax);
+			double kilobytes = ss->memory_accounting_global_peak.vmax;
+			int workers = 1;
+			cdbexplain_formatMemory(maxbuf, sizeof(maxbuf), kilobytes);
 			if (ss->memory_accounting_global_peak.vcnt == 1)
 			{
 				const char *seg = segbuf;
@@ -2100,7 +2103,10 @@ cdbexplain_showExecStatsEnd(struct PlannedStmt *stmt,
 			}
 			else if (ss->memory_accounting_global_peak.vcnt > 1)
 			{
-				cdbexplain_formatMemory(avgbuf, sizeof(avgbuf), cdbexplain_agg_avg(&ss->memory_accounting_global_peak));
+				kilobytes = cdbexplain_agg_avg(&ss->memory_accounting_global_peak);
+				workers = ss->memory_accounting_global_peak.vcnt;
+				kilobytes = floor((kilobytes + 1023.0) / 1024.0);
+				cdbexplain_formatMemory(avgbuf, sizeof(avgbuf), kilobytes);
 				cdbexplain_formatSeg(segbuf, sizeof(segbuf), ss->memory_accounting_global_peak.imax, ss->nworker);
 				appendStringInfo(str,
 							 "  Peak memory: %s avg x %d workers, %s max%s.",
@@ -2109,6 +2115,9 @@ cdbexplain_showExecStatsEnd(struct PlannedStmt *stmt,
 								 maxbuf,
 								 segbuf);
 			}
+
+			kilobytes = floor((kilobytes + 1023.0) / 1024.0);
+			total_memory_across_slices += (kilobytes * workers);
 
 			/* Vmem reserved by QEs */
 			cdbexplain_formatMemory(maxbuf, sizeof(maxbuf), ss->vmem_reserved.vmax);
@@ -2162,6 +2171,11 @@ cdbexplain_showExecStatsEnd(struct PlannedStmt *stmt,
 		}
 
 		appendStringInfoChar(str, '\n');
+	}
+
+	if (total_memory_across_slices > 0)
+	{
+		appendStringInfo(str, "Total memory used across slices: %.0fK bytes \n", total_memory_across_slices);
 	}
 
 	if (!IsResManagerMemoryPolicyNone())
