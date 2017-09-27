@@ -221,8 +221,9 @@ select median(a) from perct group by grouping sets((), (b));
 select median('text') from perct;
 select percentile_cont(now()) within group (order by a) from percts;
 select percentile_cont(0.5) within group (order by point(0,0)) from perct;
--- outer reference
+-- outer references
 select (select a from perct where median(t.a) = 5) from perct t;
+select array((select a from perct where median(t.a) = 50.5)) from (select * from perct t order by a offset 0) as t;
 
 -- MPP-22219
 select count(*) from

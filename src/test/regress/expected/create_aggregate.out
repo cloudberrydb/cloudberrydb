@@ -94,7 +94,7 @@ alter aggregate my_rank(VARIADIC "any" ORDER BY VARIADIC "any")
 
 -- Negative test: "ordered aggregate prefunc is not supported"
 create ordered aggregate should_error(integer,integer,text) (
-   stype = text[],
+   stype = aggtype[],
    sfunc = aggfns_trans, 
    prefunc = array_cat,
    initcond = '{}'

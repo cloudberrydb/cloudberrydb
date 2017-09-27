@@ -451,7 +451,7 @@ from tenk1;
 select percentile_cont(array[0,1,0.25,0.75,0.5,1]) within group (order by x)
 from generate_series(1,6) x;
 
-select ten, mode() within group (order by string4) from tenk1 group by ten;
+select ten, mode() within group (order by string4) from tenk1 group by ten order by ten;
 
 select percentile_disc(array[0.25,0.5,0.75]) within group (order by x)
 from unnest('{fred,jim,fred,jack,jill,fred,jill,jim,jim,sheila,jim,sheila}'::text[]) u(x);

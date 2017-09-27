@@ -1043,7 +1043,7 @@ from generate_series(1,6) x;
  {1,6,2.25,4.75,3.5,6}
 (1 row)
 
-select ten, mode() within group (order by string4) from tenk1 group by ten;
+select ten, mode() within group (order by string4) from tenk1 group by ten order by ten;
  ten |  mode  
 -----+--------
    0 | HHHHxx
