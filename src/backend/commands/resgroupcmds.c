@@ -348,6 +348,10 @@ DropResourceGroup(DropResourceGroupStmt *stmt)
 				 errmsg("cannot drop default resource group \"%s\"",
 						stmt->name)));
 
+	/* check before dispatch to segment */
+	if (IsResGroupActivated())
+		ResGroupCheckForDrop(groupid, stmt->name);
+
 	/*
 	 * Check to see if any roles are in this resource group.
 	 */
@@ -399,8 +403,6 @@ DropResourceGroup(DropResourceGroupStmt *stmt)
 
 	if (IsResGroupActivated())
 	{
-		ResGroupCheckForDrop(groupid, stmt->name);
-
 		/* Argument of callback function should be allocated in heap region */
 		callbackArg = (Oid *)MemoryContextAlloc(TopMemoryContext, sizeof(Oid));
 		*callbackArg = groupid;

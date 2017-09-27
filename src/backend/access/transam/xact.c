@@ -2841,8 +2841,8 @@ CommitTransaction(void)
 	freeGangsForPortal(NULL);
 
 	/* Release resource group slot at the end of a transaction */
-	if (ShouldAssignResGroupOnMaster())
-		UnassignResGroupOnMaster();
+	if (ShouldUnassignResGroup())
+		UnassignResGroup();
 }
 
 
@@ -3394,8 +3394,8 @@ CleanupTransaction(void)
 	finishDistributedTransactionContext("CleanupTransaction", true);
 
 	/* Release resource group slot at the end of a transaction */
-	if (ShouldAssignResGroupOnMaster())
-		UnassignResGroupOnMaster();
+	if (ShouldUnassignResGroup())
+		UnassignResGroup();
 }
 
 /*
