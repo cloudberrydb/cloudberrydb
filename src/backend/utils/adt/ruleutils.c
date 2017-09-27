@@ -5618,6 +5618,48 @@ get_rule_orderby(List *orderList, List *targetList,
 }
 
 /*
+ * Deparse an Aggref as a special MEDIAN() construct, if it looks like
+ * one.
+ *
+ * Returns true if the reference was handled as MEDIAN, false otherwise.
+ */
+static bool
+get_median_expr(Aggref *aggref, deparse_context *context)
+{
+	StringInfo	buf = context->buf;
+	TargetEntry *tle;
+
+	if (!IS_MEDIAN_OID(aggref->aggfnoid))
+		return false;
+	if (list_length(aggref->aggdirectargs) != 1)
+		return false;
+	if (list_length(aggref->args) != 1)
+		return false;
+
+	tle = (TargetEntry *) linitial(aggref->args);
+	if (tle->resjunk)
+		return false;
+
+	/* Ok, it looks like a MEDIAN */
+	appendStringInfoString(buf, "MEDIAN(");
+
+	get_rule_expr((Node *) tle->expr, context, false);
+
+	/*
+	 * MEDIAN (...) FILTER (...) isn't currently allowed by the grammar,
+	 * but it's easy enough to handle here, so let's be prepared.
+	 */
+	if (aggref->aggfilter != NULL)
+	{
+		appendStringInfoString(buf, ") FILTER (WHERE ");
+		get_rule_expr((Node *) aggref->aggfilter, context, false);
+	}
+	appendStringInfoChar(buf, ')');
+
+	return true;
+}
+
+/*
  * get_agg_expr			- Parse back an Aggref node
  */
 static void
@@ -5628,6 +5670,10 @@ get_agg_expr(Aggref *aggref, deparse_context *context)
 	int			nargs;
 	bool		use_variadic;
 	Oid fnoid;
+
+	/* Special handling of MEDIAN */
+	if (get_median_expr(aggref, context))
+		return;
 
 	/*
 	 * Depending on the stage of aggregation, this Aggref

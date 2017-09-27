@@ -310,6 +310,12 @@ DATA(insert ( 6121	o 1 ordered_set_transition	- - -		percentile_cont_timestamp_m
 DATA(insert ( 6123	o 1 ordered_set_transition	- - -		percentile_cont_timestamptz_final		f 0	2281	_null_ ));
 DATA(insert ( 6125	o 1 ordered_set_transition	- - -		percentile_cont_timestamptz_multi_final	f 0	2281	_null_ ));
 
+/* median */
+DATA(insert ( 6127	o 1 ordered_set_transition	- - -		percentile_cont_float8_final			f 0	2281	_null_ ));
+DATA(insert ( 6128	o 1 ordered_set_transition	- - -		percentile_cont_interval_final			f 0	2281	_null_ ));
+DATA(insert ( 6129	o 1 ordered_set_transition	- - -		percentile_cont_timestamp_final			f 0	2281	_null_ ));
+DATA(insert ( 6130	o 1 ordered_set_transition	- - -		percentile_cont_timestamptz_final		f 0	2281	_null_ ));
+
 /*
  * prototypes for functions in pg_aggregate.c
  */

@@ -207,7 +207,7 @@ select percentile_cont(floor(random()*0.1)+0.5) within group (order by a) from p
 -- out of range
 select percentile_cont(-0.1) within group (order by a) from perct;
 select percentile_cont(1.00000001) within group (order by a) from perct;
--- CSQ is not supported currently.  Shame.
+-- correlated subquery
 select sum((select median(a) from perct where b = t.b)) from perct t;
 -- used in LIMIT
 select * from perct limit median(a);
@@ -221,7 +221,7 @@ select median(a) from perct group by grouping sets((), (b));
 select median('text') from perct;
 select percentile_cont(now()) within group (order by a) from percts;
 select percentile_cont(0.5) within group (order by point(0,0)) from perct;
--- outer reference is not allowed for now
+-- outer reference
 select (select a from perct where median(t.a) = 5) from perct t;
 
 -- MPP-22219

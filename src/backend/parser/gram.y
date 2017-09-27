@@ -622,7 +622,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 
 	LIST LOG_P
 
-	MASTER MISSING MODIFIES
+	MASTER MEDIAN MISSING MODIFIES
 
 	NEWLINE NOCREATEEXTTABLE NOOVERCOMMIT
 
@@ -970,6 +970,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 			%nonassoc INTEGER
 			%nonassoc INTERVAL
 			%nonassoc LEAST
+			%nonassoc MEDIAN
 			%nonassoc NATIONAL
 			%nonassoc NCHAR
 			%nonassoc NONE
@@ -12229,6 +12230,34 @@ func_expr_common_subexpr:
 					GroupId *gid = makeNode(GroupId);
 					$$ = (Node *)gid;
 				}
+			| MEDIAN '(' a_expr ')'
+				{
+					/*
+					 * MEDIAN is parsed as an alias to percentile_cont(0.5).
+					 * We keep track of original expression to deparse
+					 * it later in views, etc.
+					 */
+					FuncCall   *n;
+					SortBy	   *sortby;
+
+					n = makeNode(FuncCall);
+					n->funcname = SystemFuncName("median");
+					n->args = list_make1(makeAConst(makeFloat(pstrdup("0.5")), @1));
+
+					sortby = makeNode(SortBy);
+					sortby->node = $3;
+					sortby->sortby_dir = SORTBY_DEFAULT;
+					sortby->sortby_nulls = SORTBY_NULLS_DEFAULT;
+					sortby->useOp = NIL;
+					sortby->location = -1;		/* no operator */
+					n->agg_order = list_make1(sortby);
+
+					n->agg_within_group = TRUE;
+					n->agg_filter = NULL;
+					n->over = NULL;
+					n->location = @1;
+					$$ = (Node *) n;
+				}
 			| DECODE '(' a_expr ',' a_expr ')'
 				{
 					FuncCall *n = makeNode(FuncCall);
@@ -14012,6 +14041,7 @@ col_name_keyword:
 			| INTEGER
 			| INTERVAL
 			| LEAST
+			| MEDIAN
 			| NATIONAL
 			| NCHAR
 			| NONE

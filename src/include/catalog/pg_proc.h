@@ -4877,6 +4877,16 @@ DESCR("multiple continuous percentiles");
 DATA(insert OID = 6126 ( percentile_cont_timestamptz_multi_final	PGNSP PGUID 12 1 0 0 f f f f f i 2 0 1185 "2281 1022" _null_ _null_ _null_ _null_ percentile_cont_timestamptz_multi_final _null_ _null_ _null_ n a ));
 DESCR("aggregate final function");
 
+DATA(insert OID = 6127 ( median					PGNSP PGUID 12 1 0 0 t f f f f i 2 0 701 "701 701" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("median");
+DATA(insert OID = 6128 ( median					PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1186 "701 1186" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("median");
+DATA(insert OID = 6129 ( median					PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1114 "701 1114" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("median");
+DATA(insert OID = 6130 ( median					PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1184 "701 1184" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("median");
+#define IS_MEDIAN_OID(x) ((x) == 6127 || (x) == 6128 || (x) == 6129 || (x) == 6130)
+
 /* hypothetical-set aggregates (and their support functions) */
 DATA(insert OID = 3986 ( rank				PGNSP PGUID 12 1 0 2276 t f f f f i 1 0 20 "2276" "{2276}" "{v}" _null_ _null_	aggregate_dummy _null_ _null_ _null_ n a ));
 DESCR("rank of hypothetical row");

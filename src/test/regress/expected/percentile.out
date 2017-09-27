@@ -980,14 +980,14 @@ select * from percv;
 reset gp_idf_deduplicate;
 select pg_get_viewdef('percv');
                                                                                                                                         pg_get_viewdef                                                                                                                                         
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- SELECT percentile_cont(float8(0.4)) WITHIN GROUP (ORDER BY float8((perct.a / 10)))  AS "percentile_cont", median(float8(perct.a)) AS "median", percentile_disc(float8(0.51)) WITHIN GROUP (ORDER BY float8(perct.a) DESC)  AS "percentile_disc" FROM perct GROUP BY perct.b ORDER BY perct.b;
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ SELECT percentile_cont((0.4)::double precision) WITHIN GROUP (ORDER BY ((perct.a / 10))::double precision) AS percentile_cont, MEDIAN(perct.a) AS "median", percentile_disc((0.51)::double precision) WITHIN GROUP (ORDER BY perct.a DESC) AS percentile_disc FROM perct GROUP BY perct.b ORDER BY perct.b;
 (1 row)
 
 select pg_get_viewdef('percv2');
                                        pg_get_viewdef                                        
----------------------------------------------------------------------------------------------
- SELECT median(float8(perct.a)) AS m1, median((perct.a)::double precision) AS m2 FROM perct;
+-------------------------------------------------------------------------------------
+ SELECT MEDIAN(perct.a) AS m1, MEDIAN((perct.a)::double precision) AS m2 FROM perct;
 (1 row)
 
 -- errors
@@ -1020,7 +1020,9 @@ LINE 1: select sum(percentile_cont(0.22) within group (order by a)) ...
 select percentile_cont(0.3333) within group (order by a) over (partition by a%2) from perct;
 ERROR:  window OVER clause can only be used with an aggregate
 select median(a) over (partition by b) from perct group by b;
-ERROR:  window OVER clause can only be used with an aggregate
+ERROR:  syntax error at or near "over"
+LINE 1: select median(a) over (partition by b) from perct group by b...
+                         ^
 -- function scan
 select * from median(10);
 ERROR:  cannot use aggregate function in function expression in FROM
@@ -1067,11 +1069,14 @@ select percentile_cont(-0.1) within group (order by a) from perct;
 ERROR:  input is out of range
 HINT:  Argument to percentile function must be between 0.0 and 1.0.
 select percentile_cont(1.00000001) within group (order by a) from perct;
-ERROR:  input is out of range
-HINT:  Argument to percentile function must be between 0.0 and 1.0.
--- CSQ is not supported currently.  Shame.
+ERROR:  percentile value 1 is not between 0 and 1
+-- correlated subquery
 select sum((select median(a) from perct where b = t.b)) from perct t;
-ERROR:  correlated subquery cannot contain percentile functions
+ sum  
+------
+ 5050
+(1 row)
+
 -- used in LIMIT
 select * from perct limit median(a);
 ERROR:  argument of LIMIT must not contain variables
@@ -1088,10 +1093,25 @@ select generate_series(1, 2), median(a) from perct;
 ERROR:  set-valued function called in context that cannot accept a set
 -- GROUPING SETS
 select median(a) from perct group by grouping sets((), (b));
-ERROR:  WITHIN GROUP aggregate cannot be used in GROUPING SETS query
+ median 
+--------
+      5
+    100
+   14.5
+   24.5
+   34.5
+   44.5
+   50.5
+   54.5
+   64.5
+   74.5
+   84.5
+   94.5
+(12 rows)
+
 -- wrong type in ORDER BY
 select median('text') from perct;
-ERROR:  function "median(unknown)" is not unique
+ERROR:  function pg_catalog.median(double precision, unknown) is not unique
 LINE 1: select median('text') from perct;
                ^
 HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
@@ -1105,11 +1125,13 @@ ERROR:  function "percentile_cont(double precision) ORDER BY (point)" does not e
 LINE 1: select percentile_cont(0.5) within group (order by point(0,0...
                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- outer reference is not allowed for now
+-- outer reference
 select (select a from perct where median(t.a) = 5) from perct t;
-ERROR:  percentile functions cannot reference columns from outer queries
-LINE 1: select (select a from perct where median(t.a) = 5) from perc...
-                                                 ^
+ ?column? 
+----------
+         
+(1 row)
+
 -- MPP-22219
 select count(*) from
 (SELECT b.dkey_a, MEDIAN(B.VALUE)

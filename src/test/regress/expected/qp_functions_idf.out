@@ -869,8 +869,8 @@ create view idf_v1 as select median (( select median((select median(a) from perc
 -- end_ignore
 select pg_get_viewdef('idf_v1');  
                                                        pg_get_viewdef                                                        
------------------------------------------------------------------------------------------------------------------------------
- SELECT median((SELECT median((SELECT median(float8(perct.a)) AS "median" FROM perct)) AS "median" FROM perct)) AS "median";
+---------------------------------------------------------------------------------------------------------------------
+ SELECT MEDIAN((SELECT MEDIAN((SELECT MEDIAN(perct.a) AS "median" FROM perct)) AS "median" FROM perct)) AS "median";
 (1 row)
 
  
