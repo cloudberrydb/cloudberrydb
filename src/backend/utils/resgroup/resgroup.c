@@ -16,6 +16,7 @@
 
 #include "postgres.h"
 
+#include "tcop/tcopprot.h"
 #include "access/genam.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_resgroup.h"
@@ -261,6 +262,8 @@ static void groupWaitQueuePush(ResGroupData *group, PGPROC *proc);
 static PGPROC * groupWaitQueuePop(ResGroupData *group);
 static void groupWaitQueueErase(ResGroupData *group, PGPROC *proc);
 static bool groupWaitQueueIsEmpty(const ResGroupData *group);
+static bool shouldBypassQuery(const char* query_string);
+
 
 /*
  * Estimate size the resource group structures will need in
@@ -2050,6 +2053,13 @@ AssignResGroupOnMaster(void)
 
 	Assert(Gp_role == GP_ROLE_DISPATCH);
 
+	/*
+	 * if query should be bypassed, do not assign a
+	 * resource group, leave self unassigned
+	 */
+	if (shouldBypassQuery(debug_query_string))
+		return;
+
 	PG_TRY();
 	{
 		/* Acquire slot */
@@ -3067,4 +3077,43 @@ groupWaitQueueIsEmpty(const ResGroupData *group)
 	waitQueue = &group->waitProcs;
 
 	return waitQueue->size == 0;
+}
+
+/*
+ * Currently, only SET/SHOW command can be bypassed
+ */
+static bool
+shouldBypassQuery(const char* query_string)
+{
+	MemoryContext oldcontext;
+	List *parsetree_list; 
+	ListCell *parsetree_item;
+	Node *parsetree;
+
+	if (!query_string)
+		return false;
+
+	/*
+	 * Switch to appropriate context for constructing parsetrees.
+	 */
+	oldcontext = MemoryContextSwitchTo(MessageContext);
+
+	parsetree_list = pg_parse_query(query_string);
+
+	MemoryContextSwitchTo(oldcontext);
+
+	if (parsetree_list == NULL)
+		return false;
+
+	/* Only bypass SET/SHOW command for now */
+	foreach(parsetree_item, parsetree_list)
+	{
+		parsetree = (Node *) lfirst(parsetree_item);
+
+		if (nodeTag(parsetree) != T_VariableSetStmt &&
+			nodeTag(parsetree) != T_VariableShowStmt)
+			return false;
+	}
+
+	return true;
 }
