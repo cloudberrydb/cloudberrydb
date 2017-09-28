@@ -1304,7 +1304,7 @@ explain select * from A where not exists (select sum(C.i) from C where C.i = A.i
                    QUERY PLAN                   
 ------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=2 width=8)
-   ->  Hash Left Anti Semi Join  (cost=0.00..862.00 rows=1 width=8)
+   ->  Hash Anti Join  (cost=0.00..862.00 rows=1 width=8)
          Hash Cond: a.i = c.i
          ->  Table Scan on a  (cost=0.00..431.00 rows=2 width=8)
          ->  Hash  (cost=431.00..431.00 rows=3 width=4)
