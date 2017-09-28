@@ -400,13 +400,13 @@ COPY {table [(<varname>column</varname> [, ...])] | (<varname>query</varname>)} 
         with the <codeph>COPY TO</codeph> command. The <codeph>COPY</codeph> command might return
         table distribution policy errors, if you attempt to restore table data and the table
         distribution policy was changed after the <codeph>COPY FROM...ON SEGMENT</codeph> was
-        run.</p><note>If you run <codeph>COPY FROM...ON SEGMENT</codeph>and the server configuration
-        parameter <codeph>gp_enable_segment_copy_checking</codeph> is <codeph>false</codeph>, manual
-        redistribution of table data might be required. See the <codeph>ALTER TABLE</codeph> clause
-          <codeph>WITH REORGANIZE</codeph>.</note><p>When you specify the <codeph>LOG
-          ERRORS</codeph> clause, Greenplum Database captures errors that occur while reading the
-        external table data. You can view and manage the captured error log data. </p><ul
-        id="ul_wk3_jdj_bp">
+        run.</p><note>If you run <codeph>COPY FROM...ON SEGMENT</codeph> and the server
+        configuration parameter <codeph>gp_enable_segment_copy_checking</codeph> is
+          <codeph>false</codeph>, manual redistribution of table data might be required. See the
+          <codeph>ALTER TABLE</codeph> clause <codeph>WITH REORGANIZE</codeph>.</note><p>When you
+        specify the <codeph>LOG ERRORS</codeph> clause, Greenplum Database captures errors that
+        occur while reading the external table data. You can view and manage the captured error log
+        data. </p><ul id="ul_wk3_jdj_bp">
         <li>Use the built-in SQL function
             <codeph>gp_read_error_log('<varname>table_name</varname>')</codeph>. It requires
             <codeph>SELECT</codeph> privilege on <varname>table_name</varname>. This example
