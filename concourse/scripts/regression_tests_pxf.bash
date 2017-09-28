@@ -98,7 +98,7 @@ function setup_singlecluster() {
 function start_pxf() {
 	local hdfsrepo=$1
 	pushd ${PXF_HOME} > /dev/null
-	./bin/pxf init --hadoop-home ${hdfsrepo}/hadoop
+	./bin/pxf init --hadoop-home ${hdfsrepo}/hadoop --hive-home ${hdfsrepo}/hive
 	./bin/pxf start
 	popd > /dev/null
 }
