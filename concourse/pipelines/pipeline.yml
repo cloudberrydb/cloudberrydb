@@ -464,14 +464,14 @@ resources:
     secret_access_key: {{bucket-secret-access-key}}
     regexp: deliverables/greenplum-db-(.*)-behave.tar.gz
 
-- name: singlecluster-CDH
+- name: singlecluster-HDP
   type: s3
   source:
     access_key_id: {{bucket-access-key-id}}
     secret_access_key: {{bucket-secret-access-key}}
     bucket: {{pxf-aws-bucket-name}}
     region_name: {{aws-region}}
-    versioned_file: singlecluster-without-pxf/singlecluster-CDH.tar.gz
+    versioned_file: singlecluster-without-pxf/singlecluster-HDP.tar.gz
 
 - name: nightly-trigger
   type: time
@@ -966,7 +966,7 @@ jobs:
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: singlecluster
-      resource: singlecluster-CDH
+      resource: singlecluster-HDP
       trigger: true
     - get: pxf_automation_src
       trigger: true

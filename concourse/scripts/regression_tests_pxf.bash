@@ -91,6 +91,7 @@ function setup_singlecluster() {
 	export SLAVES=1
 	./init-gphd.sh
 	./start-hdfs.sh
+	./start-hive.sh
 	popd
 }
 
