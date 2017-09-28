@@ -638,7 +638,12 @@ get_dest_address(CURL *curl_handle)
 	/* add dest url, if any, and curl was nice to tell us */
 	if (CURLE_OK == curl_easy_getinfo(curl_handle, CURLINFO_EFFECTIVE_URL, &dest_url) && dest_url)
 	{
-		return psprintf("'%s'", dest_url);
+		char *uri_start = dest_url + strlen(PxfProtocolStr);
+		char *uri_end = strchr(uri_start, '/');
+		elog(INFO, "get dest address: %s", uri_start);
+		elog(INFO, "get dest address: %s", uri_end);
+		elog(INFO, "get dest address: %s", pnstrdup(uri_start, uri_end - uri_start));
+		return pnstrdup(uri_start, uri_end - uri_start);
 	}
 	return dest_url;
 }
