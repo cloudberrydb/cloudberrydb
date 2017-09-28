@@ -56,7 +56,7 @@ install:
 
 clean:
 	if [ "$(enable_mapreduce)" = "yes" ]; then $(MAKE) -C gpmapreduce clean; fi
-	if [ "$(enable_gpcloud)" = "yes" ]; then $(MAKE) -C gpcloud clean; fi
+	if [ "$(enable_gpcloud)" = "yes" ]; then $(MAKE) -C gpcloud cleanall; fi
 	if [ "$(enable_pxf)" = "yes" ]; then $(MAKE) -C pxf clean; fi
 
 distclean:
