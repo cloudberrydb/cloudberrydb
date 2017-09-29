@@ -1344,11 +1344,11 @@ select cn,vn, sum, 1+rank() over (partition by cn order by vn) as rank
 from (select cn,vn,sum(qty) as sum from sale group by cn, vn) sale order by rank; --mvd 1->3
 -- end equivalent
 
-select cn, first_value(NULL) over (partition by cn order by case when 1=1 then pn || ' ' else 'test' end)
-	from sale order by first_value(NULL) over (
+select cn, first_value(NULL::text) over (partition by cn order by case when 1=1 then pn || ' ' else 'test' end)
+	from sale order by first_value(NULL::text) over (
 	partition by cn order by case when 1=1 then (pn || ' ') else 'test'::character varying(15) end); --mvd 1->2
-select cn, first_value(NULL) over (partition by cn order by case when 1=1 then pn || ' ' else 'test' end)
-	from sale order by first_value(NULL) over (
+select cn, first_value(NULL::text) over (partition by cn order by case when 1=1 then pn || ' ' else 'test' end)
+	from sale order by first_value(NULL::text) over (
 	partition by cn order by case when 1=1 then (pn || ' ') else 'test' end); --mvd 1->2
 
 -- MPP-4836
