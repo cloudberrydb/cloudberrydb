@@ -355,7 +355,7 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	}
 
 	/*
-	 * When function is called an explicit VARIADIC labeled parameter,
+	 * When function is called with an explicit VARIADIC labeled parameter,
 	 * and the declared_arg_type is "any", then sanity check the actual
 	 * parameter type now - it must be an array.
 	 */
@@ -396,6 +396,7 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		/* aggorder and aggdistinct will be set by transformAggregateCall */
 		aggref->aggfilter = agg_filter;
 		aggref->aggstar = agg_star;
+		aggref->aggvariadic = func_variadic;
 		/* agglevelsup will be set by transformAggregateCall */
 		aggref->location = location;
 

@@ -972,6 +972,7 @@ check_ungrouped_columns_walker(Node *node,
 void
 build_aggregate_fnexprs(Oid *agg_input_types,
 						int agg_num_inputs,
+						bool agg_variadic,
 						Oid agg_state_type,
 						Oid agg_result_type,
 						Oid transfn_oid,
@@ -987,6 +988,7 @@ build_aggregate_fnexprs(Oid *agg_input_types,
 {
 	Param	   *argp;
 	List	   *args;
+	FuncExpr   *fexpr;
 	int			i;
 
 	/*
@@ -1015,10 +1017,12 @@ build_aggregate_fnexprs(Oid *agg_input_types,
 		args = lappend(args, argp);
 	}
 
-	*transfnexpr = (Expr *) makeFuncExpr(transfn_oid,
-										 agg_state_type,
-										 args,
-										 COERCE_DONTCARE);
+	fexpr = makeFuncExpr(transfn_oid,
+						 agg_state_type,
+						 args,
+						 COERCE_DONTCARE);
+	fexpr->funcvariadic = agg_variadic;
+	*transfnexpr = (Expr *) fexpr;
 
 	/* see if we have a final function */
 	if (!OidIsValid(finalfn_oid))

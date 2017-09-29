@@ -24,6 +24,7 @@ extern void parseCheckAggregates(ParseState *pstate, Query *qry);
 
 extern void build_aggregate_fnexprs(Oid *agg_input_types,
 						int agg_num_inputs,
+						bool agg_variadic,
 						Oid agg_state_type,
 						Oid agg_result_type,
 						Oid transfn_oid,

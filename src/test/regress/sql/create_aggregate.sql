@@ -72,6 +72,15 @@ create aggregate aggfns(integer,integer,text) (
    initcond = '{}'
 );
 
+-- variadic aggregate
+create function least_accum(anyelement, variadic anyarray)
+returns anyelement language sql as
+  'select least($1, min($2[i])) from generate_subscripts($2,1) g(i)';
+
+create aggregate least_agg(variadic items anyarray) (
+  stype = anyelement, sfunc = least_accum
+);
+
 -- Negative test: "ordered aggregate prefunc is not supported"
 create ordered aggregate should_error(integer,integer,text) (
    stype = text[],

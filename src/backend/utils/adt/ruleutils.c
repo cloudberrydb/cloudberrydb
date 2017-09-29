@@ -5584,6 +5584,7 @@ get_agg_expr(Aggref *aggref, deparse_context *context)
 	Oid			argtypes[FUNC_MAX_ARGS];
 	List	   *arglist;
 	int			nargs;
+	bool		use_variadic;
 	ListCell   *l;
 	Oid fnoid;
 
@@ -5635,13 +5636,24 @@ get_agg_expr(Aggref *aggref, deparse_context *context)
 	appendStringInfo(buf, "%s(%s",
 					 generate_function_name(fnoid, nargs,
 											argtypes,
-											false, NULL),
+											aggref->aggvariadic,
+											&use_variadic),
 					 aggref->aggdistinct ? "DISTINCT " : "");
 	/* aggstar can be set only in zero-argument aggregates */
 	if (aggref->aggstar)
 		appendStringInfoChar(buf, '*');
 	else
-		get_rule_expr((Node *) arglist, context, true);
+	{
+		nargs = 0;
+		foreach(l, arglist)
+		{
+			if (nargs++ > 0)
+				appendStringInfoString(buf, ", ");
+			if (use_variadic && lnext(l) == NULL)
+				appendStringInfoString(buf, "VARIADIC ");
+			get_rule_expr((Node *) lfirst(l), context, true);
+		}
+	}
 
     if (aggref->aggorder != NIL)
     {

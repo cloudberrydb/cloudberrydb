@@ -1829,6 +1829,7 @@ initialize_peragg(WindowAggState *winstate, WindowFunc *wfunc,
 	/* build expression trees using actual argument & result types */
 	build_aggregate_fnexprs(inputTypes,
 							numArguments,
+							false,		/* no variadic window functions yet */
 							aggtranstype,
 							wfunc->wintype,
 							transfn_oid,

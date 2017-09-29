@@ -253,6 +253,7 @@ typedef struct Aggref
 	List	   *aggdistinct;	/* DISTINCT (list of SortGroupClause) */
 	Expr	   *aggfilter;		/* FILTER expression, if any */
 	bool		aggstar;		/* TRUE if argument list was really '*' */
+	bool		aggvariadic;	/* TRUE if VARIADIC was used in call */
 	Index		agglevelsup;	/* > 0 if agg belongs to outer query */
 	AggStage	aggstage;		/* MPP: 2-stage? If so, which stage */
 	int			location;		/* token location, or -1 if unknown */

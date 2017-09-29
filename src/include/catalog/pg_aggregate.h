@@ -274,8 +274,12 @@ DATA(insert ( 3538	string_agg_delim_transfn - - - string_agg_finalfn 0 2281 _nul
  */
 extern void AggregateCreate(const char *aggName,
 				Oid aggNamespace,
-				Oid *aggArgTypes,
 				int numArgs,
+				oidvector *parameterTypes,
+				Datum allParameterTypes,
+				Datum parameterModes,
+				Datum parameterNames,
+				List *parameterDefaults,
 				List *aggtransfnName,
 				List *aggprelimfnName,
 				List *aggfinalfnName,
