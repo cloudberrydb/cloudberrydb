@@ -112,7 +112,7 @@ function build_pxf() {
   export PXF_HOME="${GREENPLUM_INSTALL_DIR}/pxf"
   export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
   pushd pxf_src/pxf
-  make install
+  make install DATABASE=gpdb
   popd
 }
 
