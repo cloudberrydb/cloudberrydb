@@ -993,9 +993,10 @@ select pg_get_viewdef('percv2');
 -- errors
 -- no WITHIN GROUP clause
 select percentile_cont(a) from perct;
-ERROR:  syntax error at or near "from"
+ERROR:  function percentile_cont(integer) does not exist
 LINE 1: select percentile_cont(a) from perct;
-                                  ^
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- the argument must not contain variable
 select percentile_cont(a) within group (order by a) from perct;
 ERROR:  argument of percentile function must not contain variables
@@ -1047,16 +1048,20 @@ select percentile_disc(0.1) within group (order by group_id()) from perct;
 ERROR:  argument of percentile function must not contain grouping(), or group_id()
 LINE 1: select percentile_disc(0.1) within group (order by group_id(...
                ^
--- subquery is not allowed to the argument
+-- subquery in argument
 select percentile_cont((select 0.1 from gp_id)) within group (order by a) from perct;
-ERROR:  argument of percentile function must not contain subqueries
-LINE 1: select percentile_cont((select 0.1 from gp_id)) within group...
-               ^
--- the argument must not be volatile expression
-select percentile_cont(random()) within group (order by a) from perct;
-ERROR:  argument of percentile function must not contain volatile functions
-LINE 1: select percentile_cont(random()) within group (order by a) f...
-                               ^
+ percentile_cont 
+-----------------
+            10.9
+(1 row)
+
+-- volatile argument
+select percentile_cont(floor(random()*0.1)+0.5) within group (order by a) from perct;
+ percentile_cont 
+-----------------
+            50.5
+(1 row)
+
 -- out of range
 select percentile_cont(-0.1) within group (order by a) from perct;
 ERROR:  input is out of range
@@ -1074,9 +1079,10 @@ LINE 1: select * from perct limit median(a);
                                          ^
 -- multiple sort key
 select percentile_cont(0.8) within group (order by a, a + 1, a + 2) from perct;
-ERROR:  function "percentile_cont(double precision)" cannot accept more than one expression in ORDER BY
-LINE 1: ...ct percentile_cont(0.8) within group (order by a, a + 1, a +...
+ERROR:  function percentile_cont(numeric, integer, integer, integer) does not exist
+LINE 1: select percentile_cont(0.8) within group (order by a, a + 1,...
                                                              ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- set-returning
 select generate_series(1, 2), median(a) from perct;
 ERROR:  set-valued function called in context that cannot accept a set

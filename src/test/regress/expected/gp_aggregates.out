@@ -47,7 +47,7 @@ LINE 1: SELECT nosuchagg(a order by a) FROM aggtest;
                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT lag(a order by a) from aggtest;       -- window function (no window clause)
-ERROR:  window function call requires an OVER clause
+ERROR:  window function lag requires an OVER clause
 LINE 1: SELECT lag(a order by a) from aggtest;
                ^
 SELECT lag(a order by a) over (order by a) FROM aggtest;  -- window function

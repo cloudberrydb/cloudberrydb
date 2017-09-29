@@ -30,7 +30,7 @@
 typedef struct
 {
 	int			numAggs;		/* total number of aggregate calls */
-	int			numOrderedAggs; /* number that use DISTINCT or ORDER BY */
+	int			numOrderedAggs; /* number w/ DISTINCT/ORDER BY/WITHIN GROUP */
 	Size		transitionSpace;	/* for pass-by-ref transition data */
 	List   *dqaArgs;	/* CDB: List of distinct DQA argument exprs. */
 	bool		hasOrderedAggs;	/* any ordered aggs? */

@@ -3963,7 +3963,7 @@ ri_HashCompareOp(Oid eq_opr, Oid typeid)
 				 * polymorphic type such as ANYARRAY or ANYENUM.  If so,
 				 * assume the coercion is valid; otherwise complain.
 				 */
-				if (!IsPolymorphicType(lefttype))
+				if (!IsBinaryCoercible(typeid, lefttype))
 					elog(ERROR, "no conversion function from %s to %s",
 						 format_type_be(typeid),
 						 format_type_be(lefttype));

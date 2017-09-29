@@ -1721,6 +1721,56 @@ tuplesort_getdatum_mk(Tuplesortstate_mk *state, bool forward,
 }
 
 /*
+ * Advance over N tuples in either forward or back direction,
+ * without returning any data.  N==0 is a no-op.
+ * Returns TRUE if successful, FALSE if ran out of tuples.
+ */
+bool
+tuplesort_skiptuples_mk(Tuplesortstate_mk *state, int64 ntuples, bool forward)
+{
+	MemoryContext oldcontext = MemoryContextSwitchTo(state->sortcontext);
+	bool		fOK;
+
+	/*
+	 * We don't actually support backwards skip yet, because no callers need
+	 * it.	The API is designed to allow for that later, though.
+	 */
+	Assert(forward);
+	Assert(ntuples >= 0);
+
+	/*
+	 * GPDB_84_MERGE_FIXME: This simplistic implementation just calls
+	 * gettuple, even if the sort happened in memory.
+	 */
+
+	/*
+	 * We could probably optimize these cases better, but for now it's
+	 * not worth the trouble.
+	 */
+	fOK = true;
+	while (ntuples-- > 0)
+	{
+		MKEntry		e;
+		bool		should_free;
+
+		if (!tuplesort_gettuple_common_pos(state, &state->pos, forward,
+										   &e, &should_free))
+		{
+			fOK = false;
+			break;
+		}
+		if (should_free)
+			pfree(e.ptr);
+		CHECK_FOR_INTERRUPTS();
+	}
+
+	MemoryContextSwitchTo(oldcontext);
+
+	return true;
+}
+
+
+/*
  * inittapes - initialize for tape sorting.
  *
  * This is called only if we have found we don't have room to sort in memory.

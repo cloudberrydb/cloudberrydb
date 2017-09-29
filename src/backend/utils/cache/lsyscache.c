@@ -1601,7 +1601,7 @@ bool
 is_agg_ordered(Oid aggid)
 {
 	HeapTuple	aggTuple;
-	bool		is_ordered;
+	char		aggkind;
 	bool		isnull = false;
 
 	aggTuple = SearchSysCache1(AGGFNOID,
@@ -1609,13 +1609,13 @@ is_agg_ordered(Oid aggid)
 	if (!HeapTupleIsValid(aggTuple))
 		elog(ERROR, "cache lookup failed for aggregate %u", aggid);
 
-	is_ordered = DatumGetBool(SysCacheGetAttr(AGGFNOID, aggTuple,
-											  Anum_pg_aggregate_aggordered, &isnull));
+	aggkind = DatumGetChar(SysCacheGetAttr(AGGFNOID, aggTuple,
+										   Anum_pg_aggregate_aggkind, &isnull));
 	Assert(!isnull);
 
 	ReleaseSysCache(aggTuple);
 
-	return is_ordered;
+	return AGGKIND_IS_ORDERED_SET(aggkind);
 }
 
 /*
@@ -1845,6 +1845,25 @@ get_func_arg_types(Oid funcid)
 		result = lappend_oid(result, args.values[i]);
 	}
 
+	ReleaseSysCache(tp);
+	return result;
+}
+
+/*
+ * get_func_variadictype
+ *		Given procedure id, return the function's provariadic field.
+ */
+Oid
+get_func_variadictype(Oid funcid)
+{
+	HeapTuple	tp;
+	Oid			result;
+
+	tp = SearchSysCache1(PROCOID, ObjectIdGetDatum(funcid));
+	if (!HeapTupleIsValid(tp))
+		elog(ERROR, "cache lookup failed for function %u", funcid);
+
+	result = ((Form_pg_proc) GETSTRUCT(tp))->provariadic;
 	ReleaseSysCache(tp);
 	return result;
 }

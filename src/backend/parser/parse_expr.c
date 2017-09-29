@@ -438,6 +438,7 @@ transformIndirection(ParseState *pstate, Node *basenode, List *indirection)
 {
 	Node	   *result = basenode;
 	List	   *subscripts = NIL;
+	int			location = exprLocation(basenode);
 	ListCell   *i;
 
 	/*
@@ -476,8 +477,7 @@ transformIndirection(ParseState *pstate, Node *basenode, List *indirection)
 			result = ParseFuncOrColumn(pstate,
 									   list_make1(n),
 									   list_make1(result),
-                                       NIL, NULL, false, false, false, true,
-                                       NULL, -1);
+									   NULL, location);
 		}
 	}
 	/* process trailing subscripts, if any */
@@ -620,7 +620,7 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 					node = ParseFuncOrColumn(pstate,
 											 list_make1(makeString(name2)),
 											 list_make1(node),
-											 NIL, NULL, false, false, false, true, NULL,
+											 NULL,
 											 cref->location);
 				}
 				break;
@@ -661,7 +661,7 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 					node = ParseFuncOrColumn(pstate,
 											 list_make1(makeString(name3)),
 											 list_make1(node),
-											 NIL, NULL, false, false, false, true, NULL,
+											 NULL,
 											 cref->location);
 				}
 				break;
@@ -716,7 +716,7 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 					node = ParseFuncOrColumn(pstate,
 											 list_make1(makeString(name4)),
 											 list_make1(node),
-											 NIL, NULL, false, false, false, true, NULL,
+											 NULL,
 											 cref->location);
 				}
 				break;
@@ -1220,17 +1220,31 @@ transformFuncCall(ParseState *pstate, FuncCall *fn)
 													(Node *) lfirst(args)));
 	}
 
+	/*
+	 * When WITHIN GROUP is used, we treat its ORDER BY expressions as
+	 * additional arguments to the function, for purposes of function lookup
+	 * and argument type coercion.	So, transform each such expression and add
+	 * them to the targs list.	We don't explicitly mark where each argument
+	 * came from, but ParseFuncOrColumn can tell what's what by reference to
+	 * list_length(fn->agg_order).
+	 */
+	if (fn->agg_within_group)
+	{
+		Assert(fn->agg_order != NIL);
+		foreach(args, fn->agg_order)
+		{
+			SortBy	   *arg = (SortBy *) lfirst(args);
+
+			targs = lappend(targs, transformExpr(pstate, arg->node,
+												 EXPR_KIND_ORDER_BY));
+		}
+	}
+
 	/* ... and hand off to ParseFuncOrColumn */
 	return ParseFuncOrColumn(pstate,
 							 fn->funcname,
 							 targs,
-                             fn->agg_order,
-							 (Expr *) fn->agg_filter,
-							 fn->agg_star,
-							 fn->agg_distinct,
-							 fn->func_variadic,
-							 false,
-							 fn->over,
+							 fn,
 							 fn->location);
 }
 

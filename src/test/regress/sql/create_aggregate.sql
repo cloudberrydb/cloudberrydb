@@ -81,6 +81,28 @@ create aggregate least_agg(variadic items anyarray) (
   stype = anyelement, sfunc = least_accum
 );
 
+-- test ordered-set aggs using built-in support functions
+create aggregate my_percentile_disc(float8 ORDER BY anyelement) (
+  stype = internal,
+  sfunc = ordered_set_transition,
+  finalfunc = percentile_disc_final
+);
+
+create aggregate my_rank(VARIADIC "any" ORDER BY VARIADIC "any") (
+  stype = internal,
+  sfunc = ordered_set_transition_multi,
+  finalfunc = rank_final,
+  hypothetical
+);
+
+alter aggregate my_percentile_disc(float8 ORDER BY anyelement)
+  rename to test_percentile_disc;
+alter aggregate my_rank(VARIADIC "any" ORDER BY VARIADIC "any")
+  rename to test_rank;
+
+\da test_*
+
+
 -- Negative test: "ordered aggregate prefunc is not supported"
 create ordered aggregate should_error(integer,integer,text) (
    stype = text[],
@@ -88,8 +110,6 @@ create ordered aggregate should_error(integer,integer,text) (
    prefunc = array_cat,
    initcond = '{}'
 );
-
-
 
 -- MPP-2863: ensure that aggregate declarations with an initial value == ''
 -- do not get converted to an initial value == NULL

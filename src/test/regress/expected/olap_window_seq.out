@@ -2075,7 +2075,7 @@ SELECT sale.pn,sale.cn,sale.prc,
 -- Check LEAD()
 -- sanity tests
 select lead(cn) from sale;
-ERROR:  window function call requires an OVER clause
+ERROR:  window function lead requires an OVER clause
 LINE 1: select lead(cn) from sale;
                ^
 select cn, cname, lead(cname, -1) over (order by cn) from customer;

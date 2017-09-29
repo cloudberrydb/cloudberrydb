@@ -604,7 +604,6 @@ DefineTSDictionary(List *names, List *parameters)
 		stmt->defnames = names;
 		stmt->args = NIL;
 		stmt->definition = parameters;
-		stmt->ordered = false;
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR |
 									DF_NEED_TWO_PHASE |

@@ -66,7 +66,6 @@ extern FuncExpr *makeFuncExpr(Oid funcid, Oid rettype,
 			 List *args, CoercionForm fformat);
 
 extern DefElem *makeDefElem(char *name, Node *arg);
-extern Aggref *makeAggrefByOid(Oid aggfnoid, List *args);
 
 extern OptionDefElem *makeOptionDefElem(int op, DefElem *def);
 

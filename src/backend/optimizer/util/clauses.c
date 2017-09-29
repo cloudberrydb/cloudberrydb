@@ -37,6 +37,7 @@
 #include "optimizer/prep.h"
 #include "optimizer/var.h"
 #include "parser/analyze.h"
+#include "parser/parse_agg.h"
 #include "parser/parse_coerce.h"
 #include "parser/parse_func.h"
 #include "rewrite/rewriteManip.h"
@@ -477,43 +478,14 @@ count_agg_clauses_walker(Node *node, AggClauseCounts *counts)
 	if (IsA(node, Aggref))
 	{
 		Aggref	   *aggref = (Aggref *) node;
-		Oid		   *inputTypes;
+		Oid			inputTypes[FUNC_MAX_ARGS];
 		int			numArguments;
 		HeapTuple	aggTuple;
 		Form_pg_aggregate aggform;
 		Oid			aggtranstype;
 		Oid			aggprelimfn;
-		ListCell   *l;
 
 		Assert(aggref->agglevelsup == 0);
-		counts->numAggs++;
-		if (aggref->aggorder != NIL || aggref->aggdistinct != NIL)
-			counts->numOrderedAggs++;
-
-		if (aggref->aggorder != NIL)
-			counts->hasOrderedAggs = true;
-
-		if (aggref->aggdistinct != NIL)
-		{
-			foreach(l, aggref->args)
-			{
-				TargetEntry *tle = (TargetEntry *) lfirst(l);
-
-				if ( !list_member(counts->dqaArgs, tle->expr) )
-					counts->dqaArgs = lappend(counts->dqaArgs, tle->expr);
-			}
-		}
-
-		/* extract argument types (ignoring any ORDER BY expressions) */
-		inputTypes = (Oid *) palloc(sizeof(Oid) * list_length(aggref->args));
-		numArguments = 0;
-		foreach(l, aggref->args)
-		{
-			TargetEntry *tle = (TargetEntry *) lfirst(l);
-
-			if (!tle->resjunk)
-				inputTypes[numArguments++] = exprType((Node *) tle->expr);
-		}
 
 		/* fetch aggregate transition datatype from pg_aggregate */
 		aggTuple = SearchSysCache(AGGFNOID,
@@ -527,31 +499,38 @@ count_agg_clauses_walker(Node *node, AggClauseCounts *counts)
 		aggprelimfn = aggform->aggprelimfn;
 		ReleaseSysCache(aggTuple);
 
+		/* count it; note ordered-set aggs always have nonempty aggorder */
+		counts->numAggs++;
+		if (aggref->aggorder != NIL || aggref->aggdistinct != NIL)
+			counts->numOrderedAggs++;
+
+		if (aggref->aggdistinct != NIL)
+		{
+			ListCell *lc;
+
+			foreach(lc, aggref->args)
+			{
+				TargetEntry *tle = (TargetEntry *) lfirst(lc);
+
+				if ( !list_member(counts->dqaArgs, tle->expr) )
+					counts->dqaArgs = lappend(counts->dqaArgs, tle->expr);
+			}
+		}
+
 		/* CDB wants to know whether the function can do 2-stage aggregation */
 		if ( aggprelimfn == InvalidOid )
 		{
 			counts->missing_prelimfunc = true; /* Nope! */
 		}
 
-		/* resolve actual type of transition state, if polymorphic */
-		if (IsPolymorphicType(aggtranstype))
-		{
-			/* have to fetch the agg's declared input types... */
-			Oid		   *declaredArgTypes;
-			int			agg_nargs;
+		/* extract argument types (ignoring any ORDER BY expressions) */
+		numArguments = get_aggregate_argtypes(aggref, inputTypes);
 
-			(void) get_func_signature(aggref->aggfnoid,
-									  &declaredArgTypes, &agg_nargs);
-			Assert(agg_nargs == numArguments);
-			aggtranstype = enforce_generic_type_consistency(inputTypes,
-															declaredArgTypes,
-															agg_nargs,
-															aggtranstype,
-															false);
-			pfree(declaredArgTypes);
-			
-			counts->missing_prelimfunc = true; /* CDB: Disable 2P aggregation */
-		}
+		/* resolve actual type of transition state, if polymorphic */
+		aggtranstype = resolve_aggregate_transtype(aggref->aggfnoid,
+												   aggtranstype,
+												   inputTypes,
+												   numArguments);
 
 		/*
 		 * If the transition type is pass-by-value then it doesn't add
@@ -591,9 +570,6 @@ count_agg_clauses_walker(Node *node, AggClauseCounts *counts)
 			 */
 			counts->transitionSpace += ALLOCSET_DEFAULT_INITSIZE;
 		}
-
-		if ( inputTypes != NULL )
-			pfree(inputTypes);
 
 		/*
 		 * Complain if the aggregate's arguments contain any aggregates;
@@ -672,17 +648,10 @@ find_window_functions_walker(Node *node, WindowFuncLists *lists)
 		lists->numWindowFuncs++;
 
 		/*
-		 * Complain if the window function's arguments contain window
-		 * functions.  Window functions in the FILTER clause are detected in
-		 * transformAggregateCall().
-		 */
-		if (contain_window_function((Node *) wfunc->args))
-			ereport(ERROR,
-					(errcode(ERRCODE_WINDOWING_ERROR),
-					 errmsg("window function calls cannot be nested")));
-
-		/*
-		 * Having checked that, we need not recurse into the argument.
+		 * We assume that the parser checked that there are no window
+		 * functions in the arguments or filter clause.  Hence, we need not
+		 * recurse into them.  (If either the parser or the planner screws up
+		 * on this point, the executor will still catch it; see ExecInitExpr.)
 		 */
 		return false;
 	}

@@ -880,8 +880,7 @@ create view idf_v4 as select percentile_disc(1.5) within group (order by a) as p
 -- end_ignore
 -- Expected Error : input is out of range
 select * from idf_v4;
-ERROR:  input is out of range
-HINT:  Argument to percentile function must be between 0.0 and 1.0.
+ERROR:  percentile value 1.5 is not between 0 and 1
 -- SQL with IDF and distinct
 select distinct(median(b)) from perct group by a;
  median 

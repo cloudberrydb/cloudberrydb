@@ -371,36 +371,6 @@ makeDefElem(char *name, Node *arg)
 }
 
 /*
- * makeAggrefByOid -
- * 	make a trivial aggregate expression.
- *
- * If you need more info, add it to the returned pointer.
- */
-Aggref *
-makeAggrefByOid(Oid aggfnoid, List *args)
-{
-	Aggref	   *aggref;
-	Oid			rettype;
-
-	Assert(args == NIL || IsA(linitial(args), TargetEntry));
-
-	get_func_result_type(aggfnoid, &rettype, NULL);
-	aggref = makeNode(Aggref);
-	aggref->aggfnoid = aggfnoid;
-	aggref->aggtype = rettype;
-	aggref->args = args;
-	aggref->agglevelsup = 0;
-	aggref->aggstar = false;
-	aggref->aggdistinct = false;
-	aggref->aggstage = AGGSTAGE_NORMAL;
-	aggref->aggorder = NULL;
-	aggref->aggfilter = NULL;
-	aggref->location = -1;
-
-	return aggref;
-}
-
-/*
  * makeOptionDefElem -
  *	build an OptionDefElem node
  */

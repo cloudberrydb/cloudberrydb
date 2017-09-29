@@ -97,7 +97,6 @@ DefineExtProtocol(List *name, List *parameters, bool trusted)
 		stmt->defnames = name;
 		stmt->args = NIL;
 		stmt->definition = parameters;
-		stmt->ordered = false;
 		stmt->trusted = trusted;
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|

@@ -21,9 +21,13 @@ PostgreSQL documentation
 
  <refsynopsisdiv>
 <synopsis>
-DROP AGGREGATE [ IF EXISTS ]
-  <replaceable class="parameter">name</replaceable> ( [ <replaceable class="parameter">argmode</replaceable> ] <replaceable class="parameter">arg_data_type</replaceable> [ , ... ] )
-  [ CASCADE | RESTRICT ]
+DROP AGGREGATE [ IF EXISTS ] <replaceable>name</replaceable> ( <replaceable>aggregate_signature</replaceable> ) [ CASCADE | RESTRICT ]
+
+<phrase>where <replaceable>aggregate_signature</replaceable> is:</phrase>
+
+* |
+[ <replaceable>argmode</replaceable> ] <replaceable>argtype</replaceable> [ , ... ] |
+[ [ <replaceable>argmode</replaceable> ] <replaceable>argtype</replaceable> [ , ... ] ] ORDER BY [ <replaceable>argmode</replaceable> ] <replaceable>argtype</replaceable> [ , ... ]
 </synopsis>
  </refsynopsisdiv>
 
@@ -73,12 +77,15 @@ DROP AGGREGATE [ IF EXISTS ]
    </varlistentry>
 
    <varlistentry>
-    <term><replaceable class="parameter">arg_data_type</replaceable></term>
+    <term><replaceable class="parameter">argtype</replaceable></term>
     <listitem>
      <para>
       An input data type on which the aggregate function operates.
       To reference a zero-argument aggregate function, write <literal>*</>
       in place of the list of argument specifications.
+      To reference an ordered-set aggregate function, write
+      <literal>ORDER BY</> between the direct and aggregated argument
+      specifications.
      </para>
     </listitem>
    </varlistentry>
@@ -102,6 +109,15 @@ DROP AGGREGATE [ IF EXISTS ]
     </listitem>
    </varlistentry>
   </variablelist>
+ </refsect1>
+
+ <refsect1>
+  <title>Notes</title>
+
+   <para>
+    Alternative syntaxes for referencing ordered-set aggregates
+    are described under <xref linkend="sql-alteraggregate">.
+   </para>
  </refsect1>
 
  <refsect1>

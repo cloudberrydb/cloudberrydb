@@ -45,12 +45,27 @@ typedef struct AggStatePerAggData
 	AggrefExprState *aggrefstate;
 	Aggref	   *aggref;
 
-	/* number of input arguments for aggregate function proper */
+	/*
+	 * Nominal number of arguments for aggregate function.  For plain aggs,
+	 * this excludes any ORDER BY expressions.  For ordered-set aggs, this
+	 * counts both the direct and aggregated (ORDER BY) arguments.
+	 */
 	int			numArguments;
-	
-	/* number of inputs including ORDER BY expressions */
+
+	/*
+	 * Number of aggregated input columns.  This includes ORDER BY expressions
+	 * in both the plain-agg and ordered-set cases.  Ordered-set direct args
+	 * are not counted, though.
+	 */
 	int			numInputs;
-	
+
+	/*
+	 * Number of aggregated input columns to pass to the transfn.  This
+	 * includes the ORDER BY columns for ordered-set aggs, but not for plain
+	 * aggs.  (This doesn't count the transition state value!)
+	 */
+	int			numTransInputs;
+
 	/* Oids of transfer functions */
 	Oid			transfn_oid;
 	Oid         prelimfn_oid;
@@ -181,7 +196,9 @@ extern Oid resolve_polymorphic_transtype(Oid aggtranstype, Oid aggfnoid,
 
 extern Datum GetAggInitVal(Datum textInitVal, Oid transtype);
 
-extern Datum invoke_agg_trans_func(FmgrInfo *transfn, int numargs, 
+extern Datum invoke_agg_trans_func(AggState *aggstate,
+								   AggStatePerAgg peraggstate,
+								   FmgrInfo *transfn, int numargs, 
 								   Datum transValue, bool *noTransvalue, 
 								   bool *transValueIsNull, bool transtypeByVal,
 								   int16 transtypeLen,

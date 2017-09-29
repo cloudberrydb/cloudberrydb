@@ -18,8 +18,12 @@
 #ifndef FMGR_H
 #define FMGR_H
 
-/* We don't want to include primnodes.h here, so make a stub reference */
+/* We don't want to include primnodes.h here, so make some stub references */
 typedef struct Node *fmNodePtr;
+typedef struct Aggref *fmAggrefPtr;
+
+/* Likewise, avoid including execnodes.h here */
+typedef struct ExprContext *fmExprContextPtr;
 
 /* Likewise, avoid including stringinfo.h here */
 typedef struct StringInfoData *fmStringInfo;
@@ -566,8 +570,8 @@ extern void **find_rendezvous_variable(const char *varName);
 /*
  * Support for aggregate functions
  *
- * This is actually in executor/nodeAgg.c, but we declare it here since the
- * whole point is for callers of it to not be overly friendly with nodeAgg.
+ * These are actually in executor/nodeAgg.c, but we declare them here since
+ * the whole point is for callers to not be overly friendly with nodeAgg.
  */
 
 /* AggCheckCallContext can return one of the following codes, or 0: */
@@ -575,6 +579,9 @@ extern void **find_rendezvous_variable(const char *varName);
 #define AGG_CONTEXT_WINDOW      2       /* window function */
 
 extern int AggCheckCallContext(FunctionCallInfo fcinfo,
-                    MemoryContext *aggcontext);
+					MemoryContext *aggcontext);
+extern fmAggrefPtr AggGetAggref(FunctionCallInfo fcinfo);
+extern fmExprContextPtr AggGetPerTupleEContext(FunctionCallInfo fcinfo);
+extern fmExprContextPtr AggGetPerAggEContext(FunctionCallInfo fcinfo);
 
 #endif   /* FMGR_H */

@@ -3084,8 +3084,8 @@ generate_three_tlists(List *tlist,
 			/* FILTER is evaluated at the PARTIAL stage. */
 			new_aggref->agglevelsup = 0;
 			new_aggref->aggstar = false;
-			new_aggref->aggdistinct = false;	/* handled in preliminary
-												 * aggregation */
+			new_aggref->aggkind = aggref->aggkind;
+			new_aggref->aggdistinct = NIL; /* handled in preliminary aggregation */
 			new_aggref->aggstage = AGGSTAGE_INTERMEDIATE;
 			new_aggref->location = -1;
 
@@ -3830,6 +3830,7 @@ split_aggref(Aggref *aggref, MppGroupContext *ctx)
 				/* FILTER is evaluated at the PARTIAL stage. */
 				iref->agglevelsup = 0;
 				iref->aggstar = false;
+				iref->aggkind = aggref->aggkind;
 				iref->aggdistinct = NIL;
 				iref->aggstage = AGGSTAGE_INTERMEDIATE;
 				iref->location = -1;
@@ -3848,6 +3849,7 @@ split_aggref(Aggref *aggref, MppGroupContext *ctx)
 			/* FILTER is evaluated at the PARTIAL stage. */
 			fref->agglevelsup = 0;
 			fref->aggstar = false;
+			fref->aggkind = aggref->aggkind;
 			fref->aggdistinct = aggref->aggdistinct;
 			fref->aggstage = AGGSTAGE_FINAL;
 			fref->location = -1;

@@ -258,7 +258,6 @@ find_minmax_aggs_walker(Node *node, List **context)
 		 */
 		if (aggref->aggfilter != NULL)
 			return true;
-		/* note: we do not care if DISTINCT is mentioned ... */
 
 		aggsortop = fetch_agg_sort_op(aggref->aggfnoid);
 		if (!OidIsValid(aggsortop))

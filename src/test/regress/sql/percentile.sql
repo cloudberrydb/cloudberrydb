@@ -200,10 +200,10 @@ select count(median(a)) from perct;
 select median(count(*)) from perct;
 select percentile_cont(0.2) within group (order by count(*) over()) from perct;
 select percentile_disc(0.1) within group (order by group_id()) from perct;
--- subquery is not allowed to the argument
+-- subquery in argument
 select percentile_cont((select 0.1 from gp_id)) within group (order by a) from perct;
--- the argument must not be volatile expression
-select percentile_cont(random()) within group (order by a) from perct;
+-- volatile argument
+select percentile_cont(floor(random()*0.1)+0.5) within group (order by a) from perct;
 -- out of range
 select percentile_cont(-0.1) within group (order by a) from perct;
 select percentile_cont(1.00000001) within group (order by a) from perct;

@@ -73,6 +73,7 @@ extern void interpret_function_parameter_list(List *parameters,
 								  ArrayType **parameterModes,
 								  ArrayType **parameterNames,
 								  List **parameterDefaults,
+								  Oid *variadicArgType,
 								  Oid *requiredResultType);
 extern void AlterFunctionNamespace(List *name, List *argtypes, bool isagg,
 					   const char *newschema);
