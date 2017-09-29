@@ -2499,14 +2499,24 @@ typedef struct WindowAggState
 	ExprState  *startOffset;	/* expression for starting bound offset */
 	ExprState  *endOffset;		/* expression for ending bound offset */
 	Datum		startOffsetValue;		/* result of startOffset evaluation */
-	bool		startOffsetIsNull;
 	Datum		endOffsetValue; /* result of endOffset evaluation */
-	bool		endOffsetIsNull;
 
 	FmgrInfo	ordCmpFunction;	/* btree cmp function for first ORDER BY col */
 	bool		ordReverse;		/* is the first ORDER BY col reversed? */
 	bool		start_offset_valid;	/* is startOffsetValue valid for current row? */
 	bool		end_offset_valid;	/* is endOffsetValue valid for current row? */
+
+	ExprState  *startBound;		/* expression for RANGE starting boundary */
+	ExprState  *endBound;		/* expression for RANGE ending boundary */
+	Datum		startBoundValue;
+	bool		startBoundIsNull;
+	Datum		endBoundValue;
+	bool		endBoundIsNull;
+	int16		boundTypeLen;
+	bool		boundTypeByVal;
+
+	ExprState  *startOffsetIsNegative; /* expression to test if startOffset is negative */
+	ExprState  *endOffsetIsNegative; /* expression to test if startOffset is negative */
 
 	/*
 	 * In GPDB, we support RANGE/ROWS start/end expressions to contain

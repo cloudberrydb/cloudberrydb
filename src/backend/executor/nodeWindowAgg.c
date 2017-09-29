@@ -188,7 +188,11 @@ static void compute_start_end_offsets(WindowAggState *winstate);
 static void initialize_range_bound_exprs(WindowAggState *winstate);
 static bool is_within_range_start(WindowAggState *winstate, TupleTableSlot *slot);
 static bool is_within_range_end(WindowAggState *winstate, TupleTableSlot *slot);
-static Datum eval_bound_value(WindowAggState *winstate, ExprState *boundExpr, bool *isnull);
+static Datum eval_bound_value(WindowAggState *winstate,
+							  ExprState *boundExpr,
+							  ExprState *offsetIsNegativeExpr,
+							  Datum offset,
+							  bool *isnull);
 
 
 /*
@@ -1268,8 +1272,7 @@ compute_start_end_offsets(WindowAggState *winstate)
 	if (!winstate->start_offset_valid)
 	{
 		econtext->ecxt_outertuple = winstate->ss.ss_ScanTupleSlot;
-		if ((frameOptions & FRAMEOPTION_START_VALUE) &&
-			(frameOptions & FRAMEOPTION_ROWS))
+		if (frameOptions & FRAMEOPTION_START_VALUE)
 		{
 			Assert(winstate->startOffset != NULL);
 			value = ExecEvalExprSwitchContext(winstate->startOffset,
@@ -1284,7 +1287,6 @@ compute_start_end_offsets(WindowAggState *winstate)
 			get_typlenbyval(exprType((Node *) winstate->startOffset->expr),
 							&len, &byval);
 			winstate->startOffsetValue = datumCopy(value, byval, len);
-			winstate->startOffsetIsNull = false;
 			if (frameOptions & FRAMEOPTION_ROWS)
 			{
 				/* value is known to be int8 */
@@ -1295,21 +1297,27 @@ compute_start_end_offsets(WindowAggState *winstate)
 							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 					  errmsg("frame starting offset must not be negative")));
 			}
-		}
-		if ((frameOptions & FRAMEOPTION_START_VALUE) &&
-			(frameOptions & FRAMEOPTION_RANGE))
-		{
-			winstate->startOffsetValue =
-				eval_bound_value(winstate, winstate->startOffset,
-								 &winstate->startOffsetIsNull);
+			else
+			{
+				/*
+				 * For RANGE, compute the boundary, by adding the offset to the
+				 * current row's value. eval_bound_value will also check for
+				 * a negative RANGE.
+				 */
+				winstate->startBoundValue =
+					eval_bound_value(winstate,
+									 winstate->startBound,
+									 winstate->startOffsetIsNegative,
+									 winstate->startOffsetValue,
+									 &winstate->startBoundIsNull);
+			}
 		}
 		winstate->start_offset_valid = true;
 	}
 	if (!winstate->end_offset_valid)
 	{
 		econtext->ecxt_outertuple = winstate->ss.ss_ScanTupleSlot;
-		if ((frameOptions & FRAMEOPTION_END_VALUE) &&
-			(frameOptions & FRAMEOPTION_ROWS))
+		if (frameOptions & FRAMEOPTION_END_VALUE)
 		{
 			Assert(winstate->endOffset != NULL);
 			value = ExecEvalExprSwitchContext(winstate->endOffset,
@@ -1324,7 +1332,6 @@ compute_start_end_offsets(WindowAggState *winstate)
 			get_typlenbyval(exprType((Node *) winstate->endOffset->expr),
 							&len, &byval);
 			winstate->endOffsetValue = datumCopy(value, byval, len);
-			winstate->endOffsetIsNull = false;
 			if (frameOptions & FRAMEOPTION_ROWS)
 			{
 				/* value is known to be int8 */
@@ -1335,13 +1342,20 @@ compute_start_end_offsets(WindowAggState *winstate)
 							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 						errmsg("frame ending offset must not be negative")));
 			}
-		}
-		if ((frameOptions & FRAMEOPTION_END_VALUE) &&
-			(frameOptions & FRAMEOPTION_RANGE))
-		{
-			winstate->endOffsetValue =
-				eval_bound_value(winstate, winstate->endOffset,
-								 &winstate->endOffsetIsNull);
+			else
+			{
+				/*
+				 * For RANGE, compute the boundary, by adding the offset to the
+				 * current row's value. eval_bound_value will also check for
+				 * a negative RANGE.
+				 */
+				winstate->endBoundValue =
+					eval_bound_value(winstate,
+									 winstate->endBound,
+									 winstate->endOffsetIsNegative,
+									 winstate->endOffsetValue,
+									 &winstate->endBoundIsNull);
+			}
 		}
 		winstate->end_offset_valid = true;
 	}
@@ -1744,24 +1758,14 @@ ExecInitWindowAgg(WindowAgg *node, EState *estate, int eflags)
 	winstate->frameOptions = node->frameOptions;
 
 	/* initialize frame bound offset expressions */
-	if (node->frameOptions & FRAMEOPTION_ROWS)
-	{
-		/* For ROWS, start/endOffset is the offset expression directly */
-		winstate->startOffset = ExecInitExpr((Expr *) node->startOffset,
-											 (PlanState *) winstate);
-		winstate->endOffset = ExecInitExpr((Expr *) node->endOffset,
-										   (PlanState *) winstate);
-	}
-	else
-	{
-		/*
-		 * For RANGE, start/endOffset is a +/- expression to compute
-		 * the bondary value from the current row and offset.
-		 */
-		Assert(node->frameOptions & FRAMEOPTION_RANGE);
+	winstate->startOffset = ExecInitExpr((Expr *) node->startOffset,
+										 (PlanState *) winstate);
+	winstate->endOffset = ExecInitExpr((Expr *) node->endOffset,
+									   (PlanState *) winstate);
 
+	if (node->frameOptions & FRAMEOPTION_RANGE)
 		initialize_range_bound_exprs(winstate);
-	}
+
 	winstate->start_offset_var_free =
 		!contain_var_clause(node->startOffset) &&
 		!contain_volatile_functions(node->startOffset);
@@ -1790,7 +1794,14 @@ initialize_range_bound_exprs(WindowAggState *winstate)
 	int16		strategy;
 	Oid			typeId;
 	Expr	   *valExpr;
+	Expr	   *expr;
 	int			dir;
+	CaseTestExpr *offset;
+	Oid			inputFunctionOid;
+	uint32		typIOParam;
+	Datum		zero;
+	int16		len;
+	bool		byval;
 
 	if (!(node->frameOptions & (FRAMEOPTION_START_VALUE | FRAMEOPTION_END_VALUE)))
 		return;
@@ -1821,22 +1832,40 @@ initialize_range_bound_exprs(WindowAggState *winstate)
 			 node->firstOrderCmpOperator);
 
 	/*------
-	 * Build expressions for to compute the boundary values from the current row
-	 * and the offset. The expression is of the form:
+	 * Build expressions for to compute the boundary values from the current
+	 * row and the offset. The expression is of the form:
 	 *
 	 * "<current row value> + <offset>", for "<value> FOLLOWING", and
 	 * "<current row value> - <offset>", for "<value> PRECEDING".
 	 *
 	 * (For DESC, they are reversed.)
 	 *
-	 * In the expression, we use a Var with OUTER to represent the current row's
-	 * value. The parser has stored the expression representing the offset in
-	 * node->start/endOffset, and we will store the expression for the +/- in
-	 * winstate->start/endOffset.
+	 * In the expression, we use a Var with OUTER to represent the current
+	 * row's value. The parser has stored the expression representing the
+	 * offset in node->start/endOffset, and we will store the expression for
+	 * the +/- in winstate->start/endOffset.
 	 *
-	 * At runtime, this expression is executed whenever the current row changes,
-	 * and the result is compared against other rows to determine whether they
-	 * are in the frame.
+	 * In these expressions, we use CaseTestExpr to represent the <offset>. We
+	 * could use the start/endOffset expression directly, but we also want to
+	 * check that the offset is not negative. So at runtime, we first execute
+	 * the startOffset expression, to produce the offset value. Then we check
+	 * that it's not negative, stick it in the case-value, and execute the
+	 * start/endBound expression to produce the boundary value.
+	 *
+	 * At runtime, the boundary value is executed whenever the current row
+	 * changes, and the result is compared against other rows to determine
+	 * whether they are in the frame.
+	 *
+	 * The RANGE offset is not allowed to be negative. The code itself
+	 * could handle it, but it's forbidden by the spec, and GPDB has
+	 * historically rejected it, too. So we have to prepare an expression
+	 * to check that too. It is a bit hacky, because there is no datatype
+	 * agnostic way to determine what "negative" means. What we do is convert
+	 * the string "0" to the column's datatype, by calling the input function,
+	 * and then compare against that.
+	 *
+	 * There's a similar check in parse_clause.c, for the simple case
+	 * that the parameter is a Const. Make sure this matches!
 	 *------
 	 */
 	cur_row_val = makeVar(OUTER, node->firstOrderCol, typeId, -1, 0);
@@ -1847,20 +1876,42 @@ initialize_range_bound_exprs(WindowAggState *winstate)
 		if (strategy == BTGreaterStrategyNumber)
 			dir = -dir;
 
+		offset = makeNode(CaseTestExpr);
+		offset->typeId = exprType(node->startOffset);
+		offset->typeMod = exprTypmod(node->startOffset);
+
 		valExpr = make_op(NULL,
 						  list_make1(makeString(dir == 1 ? "+" : "-")),
 						  (Node *) cur_row_val,
-						  node->startOffset,
+						  (Node *) offset,
 						  -1);
 
 		/* Coerce the expression to the same datatype as the column. */
 		valExpr = (Expr *) coerce_to_specific_type(NULL,
 												   (Node *) valExpr,
 												   typeId,
-												   "RANGE PRECEDING");
+												   "RANGE");
 
-		winstate->startOffset = ExecInitExpr(valExpr,
-											 (PlanState *) winstate);
+		winstate->startBound = ExecInitExpr(valExpr,
+											(PlanState *) winstate);
+
+		/* Create a datum to represent 0 */
+		getTypeInputInfo(offset->typeId, &inputFunctionOid, &typIOParam);
+		zero = OidInputFunctionCall(inputFunctionOid, "0", typIOParam, -1);
+
+		get_typlenbyval(offset->typeId, &len, &byval);
+		expr = make_op(NULL,
+					   list_make1(makeString("<")),
+					   (Node *) offset,
+					   (Node *) makeConst(offset->typeId,
+										  offset->typeMod,
+										  len,
+										  zero,
+										  false,
+										  byval),
+					   -1);
+		winstate->startOffsetIsNegative = ExecInitExpr(expr,
+													   (PlanState *) winstate);
 	}
 	if (node->frameOptions & FRAMEOPTION_END_VALUE)
 	{
@@ -1868,17 +1919,39 @@ initialize_range_bound_exprs(WindowAggState *winstate)
 		if (strategy == BTGreaterStrategyNumber)
 			dir = -dir;
 
+		offset = makeNode(CaseTestExpr);
+		offset->typeId = exprType(node->endOffset);
+		offset->typeMod = exprTypmod(node->endOffset);
+
 		valExpr = make_op(NULL,
 						  list_make1(makeString(dir == 1 ? "+" : "-")),
 						  (Node *) cur_row_val,
-						  node->endOffset,
+						  (Node *) offset,
 						  -1);
 		valExpr = (Expr *) coerce_to_specific_type(NULL,
 												   (Node *) valExpr,
 												   typeId,
-												   "RANGE FOLLOWING");
-		winstate->endOffset = ExecInitExpr(valExpr,
-										   (PlanState *) winstate);
+												   "RANGE");
+		winstate->endBound = ExecInitExpr(valExpr,
+										  (PlanState *) winstate);
+
+		/* Create a datum to represent 0 */
+		getTypeInputInfo(offset->typeId, &inputFunctionOid, &typIOParam);
+		zero = OidInputFunctionCall(inputFunctionOid, "0", typIOParam, -1);
+
+		get_typlenbyval(offset->typeId, &len, &byval);
+		expr = make_op(NULL,
+					   list_make1(makeString("<")),
+					   (Node *) offset,
+					   (Node *) makeConst(offset->typeId,
+										  offset->typeMod,
+										  len,
+										  zero,
+										  false,
+										  byval),
+					   -1);
+		winstate->endOffsetIsNegative = ExecInitExpr(expr,
+													 (PlanState *) winstate);
 	}
 }
 
@@ -2157,20 +2230,51 @@ are_peers(WindowAggState *winstate, TupleTableSlot *slot1,
 						   winstate->tmpcontext->ecxt_per_tuple_memory);
 }
 
+/*
+ * Compute new boundary value.
+ *
+ * The current row is assumed to be in ss_ScanTupleSlot.
+ */
 static Datum
-eval_bound_value(WindowAggState *winstate, ExprState *boundExpr, bool *isnull)
+eval_bound_value(WindowAggState *winstate,
+				 ExprState *boundExpr,
+				 ExprState *offsetIsNegativeExpr,
+				 Datum offset,
+				 bool *isnull_p)
 {
 	ExprContext *econtext = winstate->ss.ps.ps_ExprContext;
+	Datum		result;
+	Datum		save_datum;
+	bool		save_isNull;
+	Datum		neg_datum;
+	bool		neg_isnull;
 
-	/*
-	 * Compute the new boundary value.
-	 */
-	econtext->ecxt_outertuple = winstate->ss.ss_ScanTupleSlot;
+	save_datum = econtext->caseValue_datum;
+	save_isNull = econtext->caseValue_isNull;
 
-	return ExecEvalExprSwitchContext(boundExpr,
-									 econtext,
-									 isnull,
-									 NULL);
+	econtext->caseValue_datum = offset;
+	econtext->caseValue_isNull = false;
+
+	/* First check that the offset was not negative. */
+	neg_datum = ExecEvalExpr(offsetIsNegativeExpr,
+							 econtext, &neg_isnull, NULL);
+	if (neg_isnull)
+		elog(ERROR, "comparison of RANGE offset against 0 returned NULL");
+	if (DatumGetBool(neg_datum))
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("RANGE parameter cannot be negative")));
+
+	/* Evaluate the bound expression. */
+	result = ExecEvalExprSwitchContext(boundExpr,
+									   econtext,
+									   isnull_p,
+									   NULL);
+
+	econtext->caseValue_datum = save_datum;
+	econtext->caseValue_isNull = save_isNull;
+
+	return result;
 }
 
 static bool
@@ -2188,7 +2292,7 @@ is_within_range_start(WindowAggState *winstate, TupleTableSlot *slot)
 						 node->firstOrderCol,
 						 &isnull);
 
-	if (winstate->startOffsetIsNull)
+	if (winstate->startBoundIsNull)
 	{
 		/*
 		 * The SQL spec says:
@@ -2213,7 +2317,7 @@ is_within_range_start(WindowAggState *winstate, TupleTableSlot *slot)
 		}
 
 		compare = DatumGetInt32(FunctionCall2(&winstate->ordCmpFunction,
-											  winstate->startOffsetValue,
+											  winstate->startBoundValue,
 											  value));
 
 		if (winstate->ordReverse)
@@ -2237,7 +2341,7 @@ is_within_range_end(WindowAggState *winstate, TupleTableSlot *slot)
 	value = slot_getattr(slot,
 						 node->firstOrderCol,
 						 &isnull);
-	if (winstate->endOffsetIsNull)
+	if (winstate->endBoundIsNull)
 	{
 		/*
 		 * The SQL spec says:
@@ -2262,7 +2366,7 @@ is_within_range_end(WindowAggState *winstate, TupleTableSlot *slot)
 		}
 
 		compare = DatumGetInt32(FunctionCall2(&winstate->ordCmpFunction,
-											  winstate->endOffsetValue,
+											  winstate->endBoundValue,
 											  value));
 		if (winstate->ordReverse)
 			compare = -compare;

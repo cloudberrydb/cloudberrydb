@@ -3561,7 +3561,13 @@ transformFrameOffset(ParseState *pstate, int frameOptions, Node *clause,
 
 		if (IsA(node, Const))
 		{
-			/* see if RANGE parameter is negative */
+			/*
+			 * see if RANGE parameter is negative
+			 *
+			 * Note: There's a similar check in nodeWindowAgg.c, for the
+			 * case that the parameter is not a Const. Make sure it uses
+			 * the same logic!
+			 */
 			Const *con = (Const *) node;
 			Oid			sortop;
 
