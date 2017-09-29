@@ -338,7 +338,8 @@ examine_parameter_list(List *parameters, Oid languageOid,
 						(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
 						 errmsg("anytable parameter cannot have default value")));
 
-			def = transformExpr(pstate, fp->defexpr);
+			def = transformExpr(pstate, fp->defexpr,
+								EXPR_KIND_FUNCTION_DEFAULT);
 			def = coerce_to_specific_type(pstate, def, toid, "DEFAULT");
 
 			/*
@@ -349,24 +350,6 @@ examine_parameter_list(List *parameters, Oid languageOid,
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
 						 errmsg("cannot use table references in parameter default value")));
-
-			/*
-			 * No subplans or aggregates, either...
-			 */
-			if (pstate->p_hasSubLinks)
-				ereport(ERROR,
-						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						 errmsg("cannot use subquery in parameter default value")));
-
-			if (pstate->p_hasAggs)
-				ereport(ERROR,
-						(errcode(ERRCODE_GROUPING_ERROR),
-						 errmsg("cannot use aggregate function in parameter default value")));
-
-			if (pstate->p_hasWindowFuncs)
-				ereport(ERROR,
-						(errcode(ERRCODE_WINDOWING_ERROR),
-						 errmsg("cannot use window function in parameter default value")));
 
 			*parameterDefaults = lappend(*parameterDefaults, def);
 			have_defaults = true;

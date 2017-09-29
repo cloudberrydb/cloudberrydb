@@ -105,6 +105,7 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	 */
 	if (agg_filter != NULL)
 		agg_filter = (Expr *) transformWhereClause(pstate, (Node *) agg_filter,
+												   EXPR_KIND_FILTER,
 												   "FILTER");
 
 	/*

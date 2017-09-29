@@ -2674,6 +2674,7 @@ transformIndexStmt_recurse(IndexStmt *stmt, const char *queryString,
 	if (stmt->whereClause)
 		stmt->whereClause = transformWhereClause(pstate,
 												 stmt->whereClause,
+												 EXPR_KIND_INDEX_PREDICATE,
 												 "WHERE");
 
 	/* take care of any index expressions */
@@ -2683,12 +2684,17 @@ transformIndexStmt_recurse(IndexStmt *stmt, const char *queryString,
 
 		if (ielem->expr)
 		{
-			ielem->expr = transformExpr(pstate, ielem->expr);
+			ielem->expr = transformExpr(pstate, ielem->expr,
+										EXPR_KIND_INDEX_EXPRESSION);
 
 			/*
-			 * We check only that the result type is legitimate; this is for
-			 * consistency with what transformWhereClause() checks for the
-			 * predicate.  DefineIndex() will make more checks.
+			 * transformExpr() should have already rejected subqueries,
+			 * aggregates, and window functions, based on the EXPR_KIND_ for
+			 * an index expression.
+			 *
+			 * Also reject expressions returning sets; this is for consistency
+			 * with what transformWhereClause() checks for the predicate.
+			 * DefineIndex() will make more checks.
 			 */
 			if (expression_returns_set(ielem->expr))
 				ereport(ERROR,
@@ -2805,22 +2811,13 @@ transformRuleStmt(RuleStmt *stmt, const char *queryString,
 	/* take care of the where clause */
 	*whereClause = transformWhereClause(pstate,
 									  (Node *) copyObject(stmt->whereClause),
+										EXPR_KIND_WHERE,
 										"WHERE");
 
 	if (list_length(pstate->p_rtable) != 2)		/* naughty, naughty... */
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
 				 errmsg("rule WHERE condition cannot contain references to other relations")));
-
-	/* aggregates not allowed (but subselects are okay) */
-	if (pstate->p_hasAggs)
-		ereport(ERROR,
-				(errcode(ERRCODE_GROUPING_ERROR),
-		   errmsg("cannot use aggregate function in rule WHERE condition")));
-	if (pstate->p_hasWindowFuncs)
-		ereport(ERROR,
-				(errcode(ERRCODE_SYNTAX_ERROR),
-				 errmsg("cannot use window function in rule WHERE condition")));
 
 	/*
 	 * 'instead nothing' rules with a qualification need a query rangetable so
@@ -4177,7 +4174,8 @@ transformAlterTable_all_PartitionStmt(
 				List *vallist = (List *)pid2->partiddef;
 				pid2->partiddef =
 						(Node *)transformExpressionList(
-								pstate, vallist);
+							pstate, vallist,
+							EXPR_KIND_PARTITION_EXPRESSION);
 			}
 
 			partDepth++;
@@ -4243,7 +4241,8 @@ transformAlterTable_all_PartitionStmt(
 				List *vallist = (List *)pid->partiddef;
 				pid->partiddef =
 						(Node *)transformExpressionList(
-								pstate, vallist);
+							pstate, vallist,
+							EXPR_KIND_PARTITION_EXPRESSION);
 			}
 	break;
 		default:

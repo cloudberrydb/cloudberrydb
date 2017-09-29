@@ -629,7 +629,7 @@ count_agg_clauses_walker(Node *node, AggClauseCounts *counts)
 bool
 contain_window_function(Node *clause)
 {
-	return checkExprHasWindowFuncs(clause);
+	return contain_windowfuncs(clause);
 }
 
 /*

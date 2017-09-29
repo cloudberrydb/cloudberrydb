@@ -233,6 +233,10 @@ select max(unique2) from tenk1 order by max(unique2)+1;
 -- MPP: This works in Postgres
 select max(unique2), generate_series(1,3) as g from tenk1 order by g desc;
 
+-- check for correct detection of nested-aggregate errors
+select max(min(unique1)) from tenk1;
+select (select max(min(unique1)) from int8_tbl) from tenk1;
+
 --
 -- Test combinations of DISTINCT and/or ORDER BY
 --

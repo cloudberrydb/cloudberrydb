@@ -7484,9 +7484,9 @@ select ord, cn,vn,sum(vn) over (order by ord rows between 3 following and floor(
 
 -- domain suport
 create domain wintestd as int default count(*) over ();
-ERROR:  cannot use window function in default expression
+ERROR:  window functions are not allowed in DEFAULT expressions
 create domain wintestd as int check (value < count(*) over ());
-ERROR:  cannot use window function in check constraint
+ERROR:  window functions are not allowed in check constraints
 -- MPP-3295
 -- begin equivalent
 select cn,vn,rank() over (partition by cn order by vn) as rank
