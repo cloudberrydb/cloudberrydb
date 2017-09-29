@@ -35,10 +35,19 @@ typedef struct ResGroupCap
  * for a resource group.
  *
  * The properties must be in the same order as ResGroupLimitType.
+ *
+ * This struct can also be converted to an array of ResGroupCap so the fields
+ * can be accessed via index and iterated with loop.
+ *
+ *     ResGroupCaps caps;
+ *     ResGroupCap *array = (ResGroupCap *) &caps;
+ *     caps.concurrency.value = 1;
+ *     array[RESGROUP_LIMIT_TYPE_CONCURRENCY] = 2;
+ *     Assert(caps.concurrency.value == 2);
  */
 typedef struct ResGroupCaps
 {
-	ResGroupCap		__unknown;
+	ResGroupCap		__unknown;			/* placeholder, do not use it */
 	ResGroupCap		concurrency;
 	ResGroupCap		cpuRateLimit;
 	ResGroupCap		memLimit;
@@ -53,10 +62,19 @@ typedef struct ResGroupCaps
  * or the new settings from ALTER RESOURCE GROUP syntax.
  *
  * The properties must be in the same order as ResGroupLimitType.
+ *
+ * This struct can also be converted to an array of int32 so the fields
+ * can be accessed via index and iterated with loop.
+ *
+ *     ResGroupOpts opts;
+ *     int32 *array = (int32 *) &opts;
+ *     opts.concurrency = 1;
+ *     array[RESGROUP_LIMIT_TYPE_CONCURRENCY] = 2;
+ *     Assert(opts.concurrency == 2);
  */
 typedef struct ResGroupOpts
 {
-	int32			__unknown;
+	int32			__unknown;			/* placeholder, do not use it */
 	int32			concurrency;
 	int32			cpuRateLimit;
 	int32			memLimit;
@@ -76,8 +94,6 @@ extern int						memory_spill_ratio;
 extern int MaxResourceGroups;
 extern double gp_resource_group_cpu_limit;
 extern double gp_resource_group_memory_limit;
-
-struct ResGroupConfigSnapshot;
 
 /* Type of statistic infomation */
 typedef enum
@@ -123,11 +139,6 @@ extern void SwitchResGroupOnSegment(const char *buf, int len);
 /* Retrieve statistic information of type from resource group */
 extern Datum ResGroupGetStat(Oid groupId, ResGroupStatType type);
 
-extern int32 ResGroupCalcMemStocksExpected(const ResGroupCaps *caps);
-extern int32 ResGroupCalcMemQuotaStocks(const ResGroupCaps *caps);
-extern int32 ResGroupCalcMemSharedStocks(const ResGroupCaps *caps);
-extern int32 ResGroupCalcMemSpillStocks(const ResGroupCaps *caps);
-
 extern void ResGroupOptsToCaps(const ResGroupOpts *optsIn, ResGroupCaps *capsOut);
 extern void ResGroupCapsToOpts(const ResGroupCaps *capsIn, ResGroupOpts *optsOut);
 extern void ResGroupDumpMemoryInfo(void);
@@ -142,8 +153,6 @@ extern void ResGroupAlterOnCommit(Oid groupId,
 								  const ResGroupCaps *caps);
 extern void ResGroupDropCheckForWakeup(Oid groupId, bool isCommit);
 extern void ResGroupCheckForDrop(Oid groupId, char *name);
-extern int32 ResGroupAllocStocks(Oid groupId, int32 stocks);
-extern void ResGroupFreeStocks(Oid groupId, int32 stocks);
 extern void ResGroupDecideMemoryCaps(int groupId,
 									 ResGroupCaps *caps,
 									 const ResGroupOpts *opts);
@@ -155,7 +164,6 @@ extern void ResGroupDecideConcurrencyCaps(Oid groupId,
 extern void ResGroupGetMemInfo(int *memLimit, int *slotQuota, int *sharedQuota);
 
 extern int64 ResourceGroupGetQueryMemoryLimit(void);
-extern int32 ResGroupGetMemStocks(Oid groupId);
 
 #define LOG_RESGROUP_DEBUG(...) \
 	do {if (Debug_resource_group) elog(__VA_ARGS__); } while(false);
