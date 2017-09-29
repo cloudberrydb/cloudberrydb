@@ -256,6 +256,7 @@ _equalFuncExpr(FuncExpr *a, FuncExpr *b)
 	COMPARE_SCALAR_FIELD(funcid);
 	COMPARE_SCALAR_FIELD(funcresulttype);
 	COMPARE_SCALAR_FIELD(funcretset);
+	COMPARE_SCALAR_FIELD(funcvariadic);
 
 	/*
 	 * Special-case COERCE_DONTCARE, so that planner can build coercion nodes

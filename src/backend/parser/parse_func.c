@@ -360,6 +360,7 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		funcexpr->funcid = funcid;
 		funcexpr->funcresulttype = rettype;
 		funcexpr->funcretset = retset;
+		funcexpr->funcvariadic = func_variadic;
 		funcexpr->funcformat = COERCE_EXPLICIT_CALL;
 		funcexpr->args = fargs;
 		funcexpr->location = location;

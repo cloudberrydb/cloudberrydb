@@ -1509,6 +1509,7 @@ _copyFuncExpr(FuncExpr *from)
 	COPY_SCALAR_FIELD(funcid);
 	COPY_SCALAR_FIELD(funcresulttype);
 	COPY_SCALAR_FIELD(funcretset);
+	COPY_SCALAR_FIELD(funcvariadic);
 	COPY_SCALAR_FIELD(funcformat);
 	COPY_NODE_FIELD(args);
 	COPY_SCALAR_FIELD(is_tablefunc);

@@ -100,6 +100,7 @@ static List *simplify_and_arguments(List *args,
 static Expr *simplify_boolean_equality(List *args);
 static Expr *simplify_function(Oid funcid,
 				  Oid result_type, int32 result_typmod, List **args,
+				  bool funcvariadic, 
 				  bool allow_inline,
 				  eval_const_expressions_context *context);
 static bool large_const(Expr *expr, Size max_size);
@@ -107,9 +108,11 @@ static List *add_function_defaults(List *args, Oid result_type,
 								   HeapTuple func_tuple);
 static Expr *evaluate_function(Oid funcid,
 				  Oid result_type, int32 result_typmod, List *args,
+				  bool funcvariadic,
 				  HeapTuple func_tuple,
 				  eval_const_expressions_context *context);
 static Expr *inline_function(Oid funcid, Oid result_type, List *args,
+				bool funcvariadic,
 				HeapTuple func_tuple,
 				eval_const_expressions_context *context);
 static Node *substitute_actual_parameters(Node *expr, int nargs, List *args,
@@ -2368,6 +2371,7 @@ eval_const_expressions_mutator(Node *node,
 		simple = simplify_function(expr->funcid,
 								   expr->funcresulttype, exprTypmod(node),
 								   &args,
+								   expr->funcvariadic,
 								   true, context);
 		if (simple)				/* successfully simplified it */
 			return (Node *) simple;
@@ -2381,6 +2385,7 @@ eval_const_expressions_mutator(Node *node,
 		newexpr->funcid = expr->funcid;
 		newexpr->funcresulttype = expr->funcresulttype;
 		newexpr->funcretset = expr->funcretset;
+		newexpr->funcvariadic = expr->funcvariadic;
 		newexpr->funcformat = expr->funcformat;
 		newexpr->args = args;
 		newexpr->location = expr->location;
@@ -2426,6 +2431,7 @@ eval_const_expressions_mutator(Node *node,
 		simple = simplify_function(expr->opfuncid,
 								   expr->opresulttype, -1,
 								   &args,
+								   false,
 								   true, context);
 		if (simple)				/* successfully simplified it */
 			return (Node *) simple;
@@ -2517,6 +2523,7 @@ eval_const_expressions_mutator(Node *node,
 			simple = simplify_function(expr->opfuncid,
 									   expr->opresulttype, -1,
 									   &args,
+									   false,
 									   false, context);
 			if (simple)			/* successfully simplified it */
 			{
@@ -2709,7 +2716,9 @@ eval_const_expressions_mutator(Node *node,
 		simple = simplify_function(outfunc,
 								   CSTRINGOID, -1,
 								   &args,
-								   true, context);
+								   false,
+								   true,
+								   context);
 		if (simple)				/* successfully simplified output fn */
 		{
 			/*
@@ -2727,7 +2736,9 @@ eval_const_expressions_mutator(Node *node,
 			simple = simplify_function(infunc,
 									   expr->resulttype, -1,
 									   &args,
-									   true, context);
+									   false,
+									   true,
+									   context);
 			if (simple)			/* successfully simplified input fn */
 				return (Node *) simple;
 		}
@@ -3600,6 +3611,7 @@ simplify_boolean_equality(List *args)
 static Expr *
 simplify_function(Oid funcid, Oid result_type, int32 result_typmod,
 				  List **args,
+				  bool funcvariadic,
 				  bool allow_inline,
 				  eval_const_expressions_context *context)
 {
@@ -3625,6 +3637,7 @@ simplify_function(Oid funcid, Oid result_type, int32 result_typmod,
 		*args = add_function_defaults(*args, result_type, func_tuple);
 
 	newexpr = evaluate_function(funcid, result_type, result_typmod, *args,
+								funcvariadic,
 								func_tuple, context);
 
 	if (large_const(newexpr, context->max_size))
@@ -3635,6 +3648,7 @@ simplify_function(Oid funcid, Oid result_type, int32 result_typmod,
 
 	if (!newexpr && allow_inline)
 		newexpr = inline_function(funcid, result_type, *args,
+								  funcvariadic,
 								  func_tuple, context);
 
 	ReleaseSysCache(func_tuple);
@@ -3755,6 +3769,7 @@ large_const(Expr *expr, Size max_size)
  */
 static Expr *
 evaluate_function(Oid funcid, Oid result_type, int32 result_typmod, List *args,
+				  bool funcvariadic,
 				  HeapTuple func_tuple,
 				  eval_const_expressions_context *context)
 {
@@ -3840,6 +3855,7 @@ evaluate_function(Oid funcid, Oid result_type, int32 result_typmod, List *args,
 	newexpr->funcid = funcid;
 	newexpr->funcresulttype = result_type;
 	newexpr->funcretset = false;
+	newexpr->funcvariadic = funcvariadic;
 	newexpr->funcformat = COERCE_DONTCARE;		/* doesn't matter */
 	newexpr->args = args;
 	newexpr->location = -1;
@@ -3878,6 +3894,7 @@ evaluate_function(Oid funcid, Oid result_type, int32 result_typmod, List *args,
  */
 static Expr *
 inline_function(Oid funcid, Oid result_type, List *args,
+				bool funcvariadic,
 				HeapTuple func_tuple,
 				eval_const_expressions_context *context)
 {

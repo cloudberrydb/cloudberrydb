@@ -1304,6 +1304,7 @@ _readFuncExpr(void)
 	READ_OID_FIELD(funcid);
 	READ_OID_FIELD(funcresulttype);
 	READ_BOOL_FIELD(funcretset);
+	READ_BOOL_FIELD(funcvariadic);
 	READ_ENUM_FIELD(funcformat, CoercionForm);
 	READ_NODE_FIELD(args);
 	READ_BOOL_FIELD(is_tablefunc);  /* GPDB */

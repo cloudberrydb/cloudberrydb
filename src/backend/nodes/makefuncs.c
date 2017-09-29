@@ -344,6 +344,7 @@ makeFuncExpr(Oid funcid, Oid rettype, List *args, CoercionForm fformat)
 	funcexpr->funcid = funcid;
 	funcexpr->funcresulttype = rettype;
 	funcexpr->funcretset = false;		/* only allowed case here */
+	funcexpr->funcvariadic = false;		/* only allowed case here */
 	funcexpr->funcformat = fformat;
 	funcexpr->args = args;
 	funcexpr->location = -1;

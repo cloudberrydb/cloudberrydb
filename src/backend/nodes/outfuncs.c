@@ -1304,6 +1304,7 @@ _outFuncExpr(StringInfo str, FuncExpr *node)
 	WRITE_OID_FIELD(funcid);
 	WRITE_OID_FIELD(funcresulttype);
 	WRITE_BOOL_FIELD(funcretset);
+	WRITE_BOOL_FIELD(funcvariadic);
 	WRITE_ENUM_FIELD(funcformat, CoercionForm);
 	WRITE_NODE_FIELD(args);
 	WRITE_BOOL_FIELD(is_tablefunc);  /* GPDB */
