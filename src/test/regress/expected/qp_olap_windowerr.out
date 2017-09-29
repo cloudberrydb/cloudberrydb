@@ -821,7 +821,7 @@ FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_ola
 WINDOW win1 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.pn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn asc,cf_olap_windowerr_sale.pn asc,cf_olap_windowerr_sale.cn asc rows between unbounded preceding and floor(cf_olap_windowerr_sale.qty-cf_olap_windowerr_sale.pn) preceding ),
 win2 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.cn order by cf_olap_windowerr_sale.vn asc),
 win3 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.pn order by cf_olap_windowerr_sale.cn asc);
-ERROR:  ROWS parameter cannot be negative  (seg0 slice3 rahmaf2-mbp:25432 pid=48149)
+ERROR:  frame ending offset must not be negative  (seg0 slice3 rahmaf2-mbp:25432 pid=48149)
 -- STDDEV() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.dt, TO_CHAR(COALESCE(STDDEV(floor(cf_olap_windowerr_sale.cn/cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.pn,
 TO_CHAR(COALESCE(LEAD(cast(floor(cf_olap_windowerr_sale.cn) as int),cast (floor(cf_olap_windowerr_sale.qty) as int),NULL) OVER(win2),0),'99999999.9999999')
@@ -942,7 +942,7 @@ ERROR:  RANGE parameter cannot be negative  (seg0 slice3 rahmaf2-mbp:25432 pid=4
 SELECT cf_olap_windowerr_sale.prc, TO_CHAR(COALESCE(STDDEV_POP(floor(cf_olap_windowerr_sale.pn/cf_olap_windowerr_sale.cn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.vn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_customer,cf_olap_windowerr_product WHERE cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn AND cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.prc order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn desc rows between unbounded preceding and floor(cf_olap_windowerr_sale.cn-cf_olap_windowerr_sale.qty) preceding );
-ERROR:  ROWS parameter cannot be negative  (seg0 slice4 rahmaf2-mbp:25432 pid=48130)
+ERROR:  frame ending offset must not be negative  (seg0 slice4 rahmaf2-mbp:25432 pid=48130)
 -- STDDEV_POP() function with partition by and order by having rows based framing clause --
 SELECT cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn, TO_CHAR(COALESCE(STDDEV_POP(floor(cf_olap_windowerr_sale.vn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.dt
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord) cf_olap_windowerr_sale
@@ -1036,7 +1036,22 @@ WINDOW win1 as (order by cf_olap_windowerr_sale.cn asc range between 2 following
 win2 as (order by cf_olap_windowerr_sale.cn desc),
 win3 as (partition by cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn desc),
 win4 as (partition by cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.pn asc);
-ERROR:  ROWS parameter cannot be negative
+ pn  | qty  | pn  | qty  | prc  |      to_char      | cn |      to_char      |      to_char      |      to_char      |     dt     |      to_char      | vn |      to_char      
+-----+------+-----+------+------+-------------------+----+-------------------+-------------------+-------------------+------------+-------------------+----+-------------------
+ 100 |    1 | 100 |    1 |    0 |         2.7386128 |  1 |         4.0000000 |    240000.0000000 |          .0000000 | 05-01-1401 |         1.0000000 | 20 |       796.0000000
+ 100 | 1100 | 100 | 1100 | 2400 |          .0000000 |  2 |         3.0000000 |    240000.0000000 |          .0000000 | 01-01-1401 |         1.0000000 | 40 |       796.0000000
+ 200 |    1 | 200 |    1 |    0 |          .0000000 |  3 |         2.0000000 |      3000.0000000 |          .0000000 | 04-01-1401 |         1.0000000 | 40 |          .0000000
+ 200 |    1 | 200 |    1 |    0 |         2.7386128 |  1 |         4.0000000 |    240000.0000000 |          .0000000 | 03-01-1401 |         1.0000000 | 10 |       796.0000000
+ 300 |    1 | 300 |    1 |    0 |         2.7386128 |  1 |         4.0000000 |    240000.0000000 |          .0000000 | 05-02-1401 |         1.0000000 | 30 |       796.0000000
+ 400 |    1 | 400 |    1 |    0 |          .0000000 |  2 |         3.0000000 |    240000.0000000 |          .0000000 | 06-01-1401 |         1.0000000 | 50 |       796.0000000
+ 400 |    1 | 400 |    1 |    0 |         2.7386128 |  1 |         4.0000000 |    240000.0000000 |          .0000000 | 06-01-1401 |         1.0000000 | 50 |       796.0000000
+ 500 |   12 | 500 |   12 |    5 |          .0000000 |  3 |         2.0000000 |      3000.0000000 |          .0000000 | 06-01-1401 |         1.0000000 | 30 |          .0000000
+ 500 |   12 | 500 |   12 |    5 |         2.7386128 |  1 |         4.0000000 |    240000.0000000 |          .0000000 | 06-01-1401 |         1.0000000 | 30 |       796.0000000
+ 600 |   12 | 600 |   12 |    5 |          .0000000 |  3 |         2.0000000 |      3000.0000000 |          .0000000 | 06-01-1401 |         1.0000000 | 30 |          .0000000
+ 700 |    1 | 700 |    1 |    1 |          .0000000 |  4 |         1.0000000 |       800.0000000 |          .0000000 | 06-01-1401 |         1.0000000 | 40 |          .0000000
+ 800 |    1 | 800 |    1 |    1 |          .0000000 |  4 |         1.0000000 |       800.0000000 |          .0000000 | 06-01-1401 |         1.0000000 | 40 |          .0000000
+(12 rows)
+
 -- STDDEV_SAMP() function with ONLY order by having rows based framing clause --
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.cn, TO_CHAR(COALESCE(STDDEV_SAMP(floor(cf_olap_windowerr_sale.vn/cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.pn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_vendor WHERE cf_olap_windowerr_sale_ord.vn=cf_olap_windowerr_vendor.vn) cf_olap_windowerr_sale
@@ -1051,12 +1066,27 @@ TO_CHAR(COALESCE(PERCENT_RANK() OVER(win2),0),'99999999.9999999')
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_vendor WHERE cf_olap_windowerr_sale_ord.vn=cf_olap_windowerr_vendor.vn) cf_olap_windowerr_sale
 WINDOW win1 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn desc,cf_olap_windowerr_sale.cn asc,cf_olap_windowerr_sale.vn desc rows between unbounded preceding and floor(cf_olap_windowerr_sale.vn) preceding ),
 win2 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn asc);
-ERROR:  ROWS parameter cannot be negative
+ qty  | cn | vn | qty  |     dt     |      to_char      |      to_char      |      to_char      |      to_char      |      to_char      
+------+----+----+------+------------+-------------------+-------------------+-------------------+-------------------+-------------------
+    1 |  1 | 10 |    1 | 03-01-1401 |          .0000000 |          .0000000 |          .0000000 |          .0909091 |          .0909091
+    1 |  1 | 20 |    1 | 05-01-1401 |          .0000000 |          .0000000 |          .0000000 |          .2727273 |          .2727273
+    1 |  1 | 30 |    1 | 05-02-1401 |          .0000000 |          .0000000 |          .0000000 |          .3636364 |          .3636364
+    1 |  1 | 50 |    1 | 06-01-1401 |          .0000000 |          .0000000 |          .0000000 |          .4545455 |          .4545455
+    1 |  2 | 50 |    1 | 06-01-1401 |          .0000000 |          .0000000 |          .0000000 |          .5454545 |          .5454545
+    1 |  3 | 40 |    1 | 04-01-1401 |          .0000000 |          .0000000 |          .0000000 |          .1818182 |          .1818182
+    1 |  4 | 40 |    1 | 06-01-1401 |          .0000000 |          .0000000 |          .0000000 |          .9090909 |          .9090909
+    1 |  4 | 40 |    1 | 06-01-1401 |          .0000000 |          .0000000 |          .0000000 |         1.0000000 |         1.0000000
+   12 |  1 | 30 |   12 | 06-01-1401 |          .0000000 |          .0000000 |          .0000000 |          .6363636 |          .6363636
+   12 |  3 | 30 |   12 | 06-01-1401 |          .0000000 |          .0000000 |          .0000000 |          .7272727 |          .7272727
+   12 |  3 | 30 |   12 | 06-01-1401 |          .0000000 |          .0000000 |          .0000000 |          .8181818 |          .8181818
+ 1100 |  2 | 40 | 1100 | 01-01-1401 |          .0000000 |          .0000000 |    240000.0000000 |          .0000000 |          .0000000
+(12 rows)
+
 -- STDDEV_SAMP() function with ONLY order by having rows based framing clause --
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.dt, TO_CHAR(COALESCE(STDDEV_SAMP(floor(cf_olap_windowerr_sale.prc*cf_olap_windowerr_sale.qty)) OVER(win1),0),'99999999.9999999')
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord) cf_olap_windowerr_sale
 WINDOW win1 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn desc rows between floor(cf_olap_windowerr_sale.cn-cf_olap_windowerr_sale.prc) preceding and current row );
-ERROR:  ROWS parameter cannot be negative
+ERROR:  frame starting offset must not be negative
 -- STDDEV_SAMP() function with ONLY order by having rows based framing clause --
 SELECT cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.qty, TO_CHAR(COALESCE(STDDEV_SAMP(floor(cf_olap_windowerr_sale.prc/cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999')
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord) cf_olap_windowerr_sale
@@ -1161,7 +1191,7 @@ win2 as (partition by cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.vn order
 SELECT cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.cn, TO_CHAR(COALESCE(STDDEV_SAMP(floor(cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.vn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_product,cf_olap_windowerr_vendor WHERE cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn AND cf_olap_windowerr_sale_ord.vn=cf_olap_windowerr_vendor.vn) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.cn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn desc,cf_olap_windowerr_sale.cn desc,cf_olap_windowerr_sale.cn desc rows floor(cf_olap_windowerr_sale.cn-cf_olap_windowerr_sale.pn) preceding );
-ERROR:  ROWS parameter cannot be negative  (seg0 slice4 rahmaf2-mbp:25432 pid=48130)
+ERROR:  frame starting offset must not be negative  (seg0 slice4 127.0.0.1:40000 pid=16456)
 -- STDDEV_SAMP() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.vn, TO_CHAR(COALESCE(STDDEV_SAMP(floor(cf_olap_windowerr_sale.cn/cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.pn,
 TO_CHAR(COALESCE(LAG(cast(floor(cf_olap_windowerr_sale.cn*cf_olap_windowerr_sale.pn) as int),cast (floor(cf_olap_windowerr_sale.qty/cf_olap_windowerr_sale.prc) as int),NULL) OVER(win2),0),'99999999.9999999'),
@@ -1393,7 +1423,7 @@ FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord) cf_ol
 WINDOW win1 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.dt order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn asc,cf_olap_windowerr_sale.pn asc rows floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.cn) preceding ),
 win2 as (order by cf_olap_windowerr_sale.cn desc),
 win3 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn asc);
-ERROR:  ROWS parameter cannot be negative  (seg1 slice2 rahmaf2-mbp:25433 pid=48131)
+ERROR:  frame starting offset must not be negative  (seg0 slice2 127.0.0.1:40000 pid=16456)
 -- SUM() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.prc, TO_CHAR(COALESCE(SUM(floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.vn,
 TO_CHAR(COALESCE(LAG(cast(floor(cf_olap_windowerr_sale.cn/cf_olap_windowerr_sale.qty) as int),cast (floor(cf_olap_windowerr_sale.vn) as int),NULL) OVER(win2),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,
@@ -1659,7 +1689,7 @@ ERROR:  RANGE parameter cannot be negative
 SELECT cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.qty, TO_CHAR(COALESCE(VAR_SAMP(floor(cf_olap_windowerr_sale.pn+cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.vn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord) cf_olap_windowerr_sale
 WINDOW win1 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn desc,cf_olap_windowerr_sale.vn asc,cf_olap_windowerr_sale.pn desc rows between floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.qty) preceding and floor(cf_olap_windowerr_sale.qty/cf_olap_windowerr_sale.pn) preceding );
-ERROR:  ROWS parameter cannot be negative
+ERROR:  frame starting offset must not be negative
 -- VAR_SAMP() function with ONLY order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.vn, TO_CHAR(COALESCE(VAR_SAMP(floor(cf_olap_windowerr_sale.cn/cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,
 TO_CHAR(COALESCE(DENSE_RANK() OVER(win2),0),'99999999.9999999'),cf_olap_windowerr_sale.dt,
@@ -1747,7 +1777,7 @@ ERROR:  division by zero
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.qty, TO_CHAR(COALESCE(VAR_SAMP(floor(cf_olap_windowerr_sale.qty-cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_customer WHERE cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn ) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn asc,cf_olap_windowerr_sale.pn desc rows floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.vn) preceding );
-ERROR:  ROWS parameter cannot be negative  (seg0 slice2 rahmaf2-mbp:25432 pid=48130)
+ERROR:  frame starting offset must not be negative  (seg0 slice3 127.0.0.1:40000 pid=16456)
 -- VAR_SAMP() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn, TO_CHAR(COALESCE(VAR_SAMP(floor(cf_olap_windowerr_sale.prc/cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.pn,
 TO_CHAR(COALESCE(LEAD(cast(floor(cf_olap_windowerr_sale.pn) as int),cast (floor(cf_olap_windowerr_sale.qty) as int),NULL) OVER(win2),0),'99999999.9999999'),
@@ -2015,7 +2045,7 @@ FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_ola
 WINDOW win1 as (partition by cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn desc rows between current row and floor(cf_olap_windowerr_sale.qty-cf_olap_windowerr_sale.pn) following ),
 win2 as (partition by cf_olap_windowerr_sale.cn order by cf_olap_windowerr_sale.vn asc),
 win3 as (order by cf_olap_windowerr_sale.pn desc);
-ERROR:  ROWS parameter cannot be negative  (seg0 slice4 rahmaf2-mbp:25432 pid=48130)
+ERROR:  frame ending offset must not be negative  (seg0 slice3 127.0.0.1:40000 pid=16554)
 -- VARIANCE() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.prc, TO_CHAR(COALESCE(VARIANCE(floor(cf_olap_windowerr_sale.cn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.qty,
 TO_CHAR(COALESCE(LEAD(cast(floor(cf_olap_windowerr_sale.qty) as int),cast (floor(cf_olap_windowerr_sale.qty-cf_olap_windowerr_sale.prc) as int),NULL) OVER(win2),0),'99999999.9999999'),cf_olap_windowerr_sale.pn,
@@ -2254,7 +2284,7 @@ win3 as (partition by cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.cn,cf_ola
 SELECT cf_olap_windowerr_sale.cn, TO_CHAR(COALESCE(CORR(floor(cf_olap_windowerr_sale.qty),floor(cf_olap_windowerr_sale.qty)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_product WHERE cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.pn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn desc,cf_olap_windowerr_sale.cn asc,cf_olap_windowerr_sale.vn asc rows between unbounded preceding and floor(cf_olap_windowerr_sale.pn-cf_olap_windowerr_sale.qty) preceding );
-ERROR:  ROWS parameter cannot be negative  (seg2 slice2 rahmaf2-mbp:25434 pid=48132)
+ERROR:  frame ending offset must not be negative  (seg2 slice2 127.0.0.1:40002 pid=16458)
 -- CORR() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.qty, TO_CHAR(COALESCE(CORR(floor(cf_olap_windowerr_sale.qty+cf_olap_windowerr_sale.vn),floor(cf_olap_windowerr_sale.cn+cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.pn,
 TO_CHAR(COALESCE(DENSE_RANK() OVER(win2),0),'99999999.9999999'),
@@ -2412,7 +2442,7 @@ win3 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn desc);
 SELECT cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.qty, TO_CHAR(COALESCE(COVAR_POP(floor(cf_olap_windowerr_sale.cn-cf_olap_windowerr_sale.qty),floor(cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn asc,cf_olap_windowerr_sale.cn desc,cf_olap_windowerr_sale.cn asc rows between unbounded preceding and floor(cf_olap_windowerr_sale.vn-cf_olap_windowerr_sale.prc) following );
-ERROR:  ROWS parameter cannot be negative  (seg2 slice2 rahmaf2-mbp:25434 pid=48132)
+ERROR:  frame ending offset must not be negative  (seg2 slice2 127.0.0.1:40002 pid=16458)
 -- COVAR_POP() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.qty, TO_CHAR(COALESCE(COVAR_POP(floor(cf_olap_windowerr_sale.cn/cf_olap_windowerr_sale.vn),floor(cf_olap_windowerr_sale.qty)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.pn,
 TO_CHAR(COALESCE(CUME_DIST() OVER(win2),0),'99999999.9999999'),
@@ -2522,7 +2552,7 @@ TO_CHAR(COALESCE(RANK() OVER(win2),0),'99999999.9999999')
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_product,cf_olap_windowerr_vendor,cf_olap_windowerr_customer WHERE cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn AND cf_olap_windowerr_sale_ord.vn=cf_olap_windowerr_vendor.vn AND cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn) cf_olap_windowerr_sale
 WINDOW win1 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn asc,cf_olap_windowerr_sale.vn asc rows between current row and floor(cf_olap_windowerr_sale.cn-cf_olap_windowerr_sale.pn) following ),
 win2 as (order by cf_olap_windowerr_sale.cn asc);
-ERROR:  ROWS parameter cannot be negative
+ERROR:  frame ending offset must not be negative
 -- COVAR_SAMP() function with partition by and order by having range based framing clause in combination with other functions--
 SELECT cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.prc, TO_CHAR(COALESCE(COVAR_SAMP(floor(cf_olap_windowerr_sale.prc),floor(cf_olap_windowerr_sale.cn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.pn,
 TO_CHAR(COALESCE(RANK() OVER(win2),0),'99999999.9999999')
@@ -2577,7 +2607,7 @@ TO_CHAR(COALESCE(MAX(floor(cf_olap_windowerr_sale.qty-cf_olap_windowerr_sale.vn)
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_vendor WHERE cf_olap_windowerr_sale_ord.vn=cf_olap_windowerr_vendor.vn) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.prc order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn desc rows between unbounded preceding and floor(cf_olap_windowerr_sale.pn-cf_olap_windowerr_sale.qty) preceding ),
 win2 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.cn order by cf_olap_windowerr_sale.vn desc);
-ERROR:  ROWS parameter cannot be negative  (seg1 slice3 rahmaf2-mbp:25433 pid=48137)
+ERROR:  frame ending offset must not be negative  (seg1 slice3 127.0.0.1:40001 pid=16525)
 -- COVAR_SAMP() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.dt, TO_CHAR(COALESCE(COVAR_SAMP(floor(cf_olap_windowerr_sale.prc+cf_olap_windowerr_sale.cn),floor(cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.vn,
 TO_CHAR(COALESCE(CUME_DIST() OVER(win2),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn,
@@ -2609,7 +2639,7 @@ win3 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn asc);
 SELECT cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.cn, TO_CHAR(COALESCE(COVAR_SAMP(floor(cf_olap_windowerr_sale.vn/cf_olap_windowerr_sale.cn),floor(cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.vn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn asc,cf_olap_windowerr_sale.pn asc rows between floor(cf_olap_windowerr_sale.vn-cf_olap_windowerr_sale.pn) preceding and 2 preceding );
-ERROR:  ROWS parameter cannot be negative  (seg0 slice1 rahmaf2-mbp:25432 pid=48130)
+ERROR:  frame starting offset must not be negative  (seg0 slice1 127.0.0.1:40000 pid=16456)
 -- COVAR_SAMP() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.prc, TO_CHAR(COALESCE(COVAR_SAMP(floor(cf_olap_windowerr_sale.vn),floor(cf_olap_windowerr_sale.prc*cf_olap_windowerr_sale.cn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.qty,
 TO_CHAR(COALESCE(MAX(floor(cf_olap_windowerr_sale.prc)) OVER(partition by cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.qty order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn desc rows between floor(cf_olap_windowerr_sale.vn-cf_olap_windowerr_sale.pn) preceding and current row ),0),'99999999.9999999'),
@@ -2620,7 +2650,7 @@ FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_ola
 WINDOW win1 as (partition by cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.qty order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn desc rows between floor(cf_olap_windowerr_sale.vn-cf_olap_windowerr_sale.pn) preceding and current row ),
 win2 as (partition by cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.qty order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn asc),
 win3 as (order by cf_olap_windowerr_sale.cn asc);
-ERROR:  ROWS parameter cannot be negative  (seg1 slice3 rahmaf2-mbp:25433 pid=48137)
+ERROR:  frame starting offset must not be negative  (seg0 slice3 127.0.0.1:40000 pid=16524)
 -- REGR_AVGX() function with ONLY order by having range based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn, TO_CHAR(COALESCE(REGR_AVGX(floor(cf_olap_windowerr_sale.pn/cf_olap_windowerr_sale.prc),floor(cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999'),
 TO_CHAR(COALESCE(RANK() OVER(win2),0),'99999999.9999999'),
@@ -2634,7 +2664,7 @@ ERROR:  division by zero
 SELECT cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn, TO_CHAR(COALESCE(REGR_AVGX(floor(cf_olap_windowerr_sale.cn),floor(cf_olap_windowerr_sale.qty-cf_olap_windowerr_sale.vn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.vn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord) cf_olap_windowerr_sale
 WINDOW win1 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn asc,cf_olap_windowerr_sale.cn desc,cf_olap_windowerr_sale.vn desc rows between unbounded preceding and floor(cf_olap_windowerr_sale.cn-cf_olap_windowerr_sale.vn) preceding );
-ERROR:  ROWS parameter cannot be negative
+ERROR:  frame ending offset must not be negative
 -- REGR_AVGX() function with ONLY order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.cn, TO_CHAR(COALESCE(REGR_AVGX(floor(cf_olap_windowerr_sale.cn),floor(cf_olap_windowerr_sale.vn-cf_olap_windowerr_sale.cn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn,
 TO_CHAR(COALESCE(LEAD(cast(floor(cf_olap_windowerr_sale.cn+cf_olap_windowerr_sale.qty) as int),cast (floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.cn) as int),NULL) OVER(win2),0),'99999999.9999999')
@@ -2757,7 +2787,7 @@ TO_CHAR(COALESCE(RANK() OVER(partition by cf_olap_windowerr_sale.vn order by cf_
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_customer,cf_olap_windowerr_vendor WHERE cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn AND cf_olap_windowerr_sale_ord.vn=cf_olap_windowerr_vendor.vn) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.prc order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn asc rows between floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.vn) preceding and floor(cf_olap_windowerr_sale.pn+cf_olap_windowerr_sale.prc) preceding ),
 win2 as (partition by cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn asc);
-ERROR:  ROWS parameter cannot be negative  (seg2 slice3 rahmaf2-mbp:25434 pid=48151)
+ERROR:  frame starting offset must not be negative  (seg0 slice3 127.0.0.1:40000 pid=16767)
 -- REGR_AVGX() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.qty, TO_CHAR(COALESCE(REGR_AVGX(floor(cf_olap_windowerr_sale.pn-cf_olap_windowerr_sale.prc),floor(cf_olap_windowerr_sale.pn-cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,
 TO_CHAR(COALESCE(COUNT(floor(cf_olap_windowerr_sale.pn/cf_olap_windowerr_sale.pn)) OVER(partition by cf_olap_windowerr_sale.cn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn asc,cf_olap_windowerr_sale.cn asc rows between floor(cf_olap_windowerr_sale.vn/cf_olap_windowerr_sale.cn) following and 1 following ),0),'99999999.9999999'),
@@ -3030,12 +3060,12 @@ FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_ola
 WINDOW win1 as (partition by cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn desc rows between floor(cf_olap_windowerr_sale.vn-cf_olap_windowerr_sale.qty) preceding and unbounded following ),
 win2 as (order by cf_olap_windowerr_sale.pn desc),
 win3 as (partition by cf_olap_windowerr_sale.pn order by cf_olap_windowerr_sale.cn desc);
-ERROR:  ROWS parameter cannot be negative  (seg2 slice2 rahmaf2-mbp:25434 pid=48132)
+ERROR:  frame starting offset must not be negative  (seg2 slice2 127.0.0.1:40002 pid=16562)
 -- REGR_AVGY() function with partition by and order by having rows based framing clause --
 SELECT cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.dt, TO_CHAR(COALESCE(REGR_AVGY(floor(cf_olap_windowerr_sale.pn*cf_olap_windowerr_sale.prc),floor(cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999')
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.pn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn asc rows between current row and floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.cn) following );
-ERROR:  ROWS parameter cannot be negative  (seg2 slice2 rahmaf2-mbp:25434 pid=48132)
+ERROR:  frame ending offset must not be negative  (seg0 slice2 127.0.0.1:40000 pid=16456)
 -- REGR_COUNT() function with OVER() clause having ONLY PARTITION BY in combination with other window functions --
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.pn, TO_CHAR(COALESCE(REGR_COUNT(floor(cf_olap_windowerr_sale.qty),floor(cf_olap_windowerr_sale.pn+cf_olap_windowerr_sale.qty)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.cn
 ,
@@ -3216,7 +3246,7 @@ ERROR:  division by zero
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn, TO_CHAR(COALESCE(REGR_COUNT(floor(cf_olap_windowerr_sale.pn/cf_olap_windowerr_sale.cn),floor(cf_olap_windowerr_sale.vn/cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999')
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_product,cf_olap_windowerr_vendor,cf_olap_windowerr_customer WHERE cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn AND cf_olap_windowerr_sale_ord.vn=cf_olap_windowerr_vendor.vn AND cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.pn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn desc rows between floor(cf_olap_windowerr_sale.qty-cf_olap_windowerr_sale.cn) preceding and floor(cf_olap_windowerr_sale.vn) preceding );
-ERROR:  ROWS parameter cannot be negative  (seg1 slice4 rahmaf2-mbp:25433 pid=48131)
+ERROR:  frame starting offset must not be negative  (seg0 slice5 127.0.0.1:40000 pid=16456)
 -- REGR_COUNT() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.cn, TO_CHAR(COALESCE(REGR_COUNT(floor(cf_olap_windowerr_sale.qty),floor(cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn,
 TO_CHAR(COALESCE(LEAD(cast(floor(cf_olap_windowerr_sale.pn+cf_olap_windowerr_sale.prc) as int),cast (floor(cf_olap_windowerr_sale.cn-cf_olap_windowerr_sale.qty) as int),NULL) OVER(win2),0),'99999999.9999999'),
@@ -3355,7 +3385,7 @@ FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord) cf_ol
 WINDOW win1 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn desc rows between floor(cf_olap_windowerr_sale.prc) preceding and floor(cf_olap_windowerr_sale.vn-cf_olap_windowerr_sale.qty) preceding ),
 win2 as (partition by cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.dt order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn asc),
 win3 as (order by cf_olap_windowerr_sale.vn desc);
-ERROR:  ROWS parameter cannot be negative
+ERROR:  frame ending offset must not be negative  (seg1 slice2 127.0.0.1:40001 pid=16674)
 -- REGR_INTERCEPT() function with ONLY order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.cn, TO_CHAR(COALESCE(REGR_INTERCEPT(floor(cf_olap_windowerr_sale.vn+cf_olap_windowerr_sale.cn),floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.vn)) OVER(win1),0),'99999999.9999999'),
 TO_CHAR(COALESCE(MAX(floor(cf_olap_windowerr_sale.pn+cf_olap_windowerr_sale.cn)) OVER(win1),0),'99999999.9999999'),
@@ -3468,7 +3498,22 @@ WINDOW win1 as (partition by cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.p
 win2 as (order by cf_olap_windowerr_sale.pn desc),
 win3 as (partition by cf_olap_windowerr_sale.cn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn asc),
 win4 as (partition by cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.dt order by cf_olap_windowerr_sale.pn desc);
-ERROR:  ROWS parameter cannot be negative  (seg0 slice5 rahmaf2-mbp:25432 pid=48277)
+ pn  | pn  | qty  |     dt     | qty  | qty  |      to_char      |      to_char      |      to_char      |      to_char      | cn |      to_char      |      to_char      
+-----+-----+------+------------+------+------+-------------------+-------------------+-------------------+-------------------+----+-------------------+-------------------
+ 100 | 100 |    1 | 05-01-1401 |    1 |    1 |          .0000000 |        11.0000000 |          .0000000 |          .0000000 |  1 |          .0000000 |          .2500000
+ 100 | 100 | 1100 | 01-01-1401 | 1100 | 1100 |          .0000000 |        11.0000000 |          .0000000 |          .0000000 |  2 |          .0000000 |          .0000000
+ 200 | 200 |    1 | 03-01-1401 |    1 |    1 |          .0000000 |         9.0000000 |          .0000000 |          .0000000 |  1 |          .0000000 |          .0000000
+ 200 | 200 |    1 | 04-01-1401 |    1 |    1 |          .0000000 |         9.0000000 |          .0000000 |          .0000000 |  3 |          .0000000 |          .0000000
+ 300 | 300 |    1 | 05-02-1401 |    1 |    1 |          .0000000 |         8.0000000 |          .0000000 |          .0000000 |  1 |          .0000000 |          .5000000
+ 400 | 400 |    1 | 06-01-1401 |    1 |    1 |          .0000000 |         6.0000000 |          .0000000 |          .0000000 |  1 |         1.0000000 |          .7500000
+ 400 | 400 |    1 | 06-01-1401 |    1 |    1 |         1.0000000 |         6.0000000 |          .0000000 |          .0000000 |  2 |          .0000000 |         1.0000000
+ 500 | 500 |   12 | 06-01-1401 |   12 |   12 |          .0000000 |         4.0000000 |          .0000000 |          .0000000 |  1 |          .0000000 |         1.0000000
+ 500 | 500 |   12 | 06-01-1401 |   12 |   12 |          .0000000 |         4.0000000 |          .0000000 |          .0000000 |  3 |         1.0000000 |          .5000000
+ 600 | 600 |   12 | 06-01-1401 |   12 |   12 |          .0000000 |         3.0000000 |          .0000000 |          .0000000 |  3 |          .0000000 |         1.0000000
+ 700 | 700 |    1 | 06-01-1401 |    1 |    1 |          .0000000 |         2.0000000 |          .0000000 |          .0000000 |  4 |         1.0000000 |          .0000000
+ 800 | 800 |    1 | 06-01-1401 |    1 |    1 |          .0000000 |         1.0000000 |          .0000000 |          .0000000 |  4 |          .0000000 |         1.0000000
+(12 rows)
+
 -- REGR_INTERCEPT() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.pn, TO_CHAR(COALESCE(REGR_INTERCEPT(floor(cf_olap_windowerr_sale.qty),floor(cf_olap_windowerr_sale.cn+cf_olap_windowerr_sale.cn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,
 TO_CHAR(COALESCE(LAG(cast(floor(cf_olap_windowerr_sale.qty/cf_olap_windowerr_sale.qty) as int),cast (floor(cf_olap_windowerr_sale.cn-cf_olap_windowerr_sale.vn) as int),NULL) OVER(win2),0),'99999999.9999999'),cf_olap_windowerr_sale.prc,
@@ -3504,12 +3549,12 @@ TO_CHAR(COALESCE(RANK() OVER(win2),0),'99999999.9999999')
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_customer,cf_olap_windowerr_vendor WHERE cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn AND cf_olap_windowerr_sale_ord.vn=cf_olap_windowerr_vendor.vn) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.qty order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn desc rows between floor(cf_olap_windowerr_sale.cn-cf_olap_windowerr_sale.vn) preceding and current row ),
 win2 as (order by cf_olap_windowerr_sale.pn asc);
-ERROR:  ROWS parameter cannot be negative  (seg0 slice4 rahmaf2-mbp:25432 pid=48130)
+ERROR:  frame starting offset must not be negative  (seg0 slice4 127.0.0.1:40000 pid=16456)
 -- REGR_INTERCEPT() function with partition by and order by having rows based framing clause --
 SELECT cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.vn, TO_CHAR(COALESCE(REGR_INTERCEPT(floor(cf_olap_windowerr_sale.qty),floor(cf_olap_windowerr_sale.cn+cf_olap_windowerr_sale.vn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_customer,cf_olap_windowerr_vendor WHERE cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn AND cf_olap_windowerr_sale_ord.vn=cf_olap_windowerr_vendor.vn) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.cn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn desc,cf_olap_windowerr_sale.pn asc,cf_olap_windowerr_sale.cn asc rows between floor(cf_olap_windowerr_sale.qty+cf_olap_windowerr_sale.qty) following and floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.cn) following );
-ERROR:  ROWS parameter cannot be negative  (seg0 slice3 rahmaf2-mbp:25432 pid=48130)
+ERROR:  frame ending offset must not be negative  (seg0 slice4 127.0.0.1:40000 pid=16456)
 -- REGR_R2() function with ONLY order by having range based framing clause --
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn, TO_CHAR(COALESCE(REGR_R2(floor(cf_olap_windowerr_sale.qty),floor(cf_olap_windowerr_sale.vn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_customer,cf_olap_windowerr_vendor WHERE cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn AND cf_olap_windowerr_sale_ord.vn=cf_olap_windowerr_vendor.vn) cf_olap_windowerr_sale
@@ -3575,7 +3620,7 @@ ERROR:  division by zero
 SELECT cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.qty, TO_CHAR(COALESCE(REGR_R2(floor(cf_olap_windowerr_sale.pn/cf_olap_windowerr_sale.qty),floor(cf_olap_windowerr_sale.cn*cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_product,cf_olap_windowerr_vendor,cf_olap_windowerr_customer WHERE cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn AND cf_olap_windowerr_sale_ord.vn=cf_olap_windowerr_vendor.vn AND cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn) cf_olap_windowerr_sale
 WINDOW win1 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn asc rows between unbounded preceding and floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.vn) preceding );
-ERROR:  ROWS parameter cannot be negative
+ERROR:  frame ending offset must not be negative
 -- REGR_R2() function with ONLY order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.cn, TO_CHAR(COALESCE(REGR_R2(floor(cf_olap_windowerr_sale.prc+cf_olap_windowerr_sale.qty),floor(cf_olap_windowerr_sale.qty*cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn,
 TO_CHAR(COALESCE(MAX(floor(cf_olap_windowerr_sale.qty)) OVER(order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn desc,cf_olap_windowerr_sale.vn desc,cf_olap_windowerr_sale.pn desc rows between floor(cf_olap_windowerr_sale.qty-cf_olap_windowerr_sale.prc) preceding and current row ),0),'99999999.9999999'),
@@ -3610,7 +3655,22 @@ FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_ola
 WINDOW win1 as (partition by cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.prc order by cf_olap_windowerr_sale.cn desc range between unbounded preceding and 0 preceding ),
 win2 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.dt order by cf_olap_windowerr_sale.cn desc),
 win3 as (partition by cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn desc);
-ERROR:  ROWS parameter cannot be negative  (seg2 slice5 rahmaf2-mbp:25434 pid=48132)
+ cn | cn |      to_char      | prc  |     dt     | vn |      to_char      |      to_char      |      to_char      |      to_char      | pn  
+----+----+-------------------+------+------------+----+-------------------+-------------------+-------------------+-------------------+-----
+  1 |  1 |          .0000000 |    0 | 03-01-1401 | 10 |         1.0000000 |         1.0000000 |         1.0000000 |          .0000000 | 200
+  1 |  1 |          .0000000 |    0 | 05-01-1401 | 20 |         1.0000000 |         1.0000000 |         1.0000000 |          .0000000 | 100
+  1 |  1 |          .0000000 |    0 | 05-02-1401 | 30 |         1.0000000 |         1.0000000 |         1.0000000 |          .0000000 | 300
+  1 |  1 |          .0000000 |    0 | 06-01-1401 | 50 |         1.0000000 |         1.0000000 |         1.0000000 |          .0000000 | 400
+  1 |  1 |          .0000000 |    5 | 06-01-1401 | 30 |         1.0000000 |         1.0000000 |         1.0000000 |          .0000000 | 500
+  2 |  2 |          .0000000 |    0 | 06-01-1401 | 50 |         1.0000000 |         1.0000000 |         1.0000000 |          .0000000 | 400
+  2 |  2 |          .0000000 | 2400 | 01-01-1401 | 40 |         1.0000000 |         1.0000000 |         1.0000000 |          .0000000 | 100
+  3 |  3 |          .0000000 |    0 | 04-01-1401 | 40 |         1.0000000 |         1.0000000 |         1.0000000 |          .0000000 | 200
+  3 |  3 |         1.0000000 |    5 | 06-01-1401 | 30 |         2.0000000 |         2.0000000 |         1.0000000 |          .0000000 | 500
+  3 |  3 |         1.0000000 |    5 | 06-01-1401 | 30 |         2.0000000 |         2.0000000 |         1.0000000 |          .0000000 | 600
+  4 |  4 |         1.0000000 |    1 | 06-01-1401 | 40 |         2.0000000 |         2.0000000 |         1.0000000 |          .0000000 | 700
+  4 |  4 |         1.0000000 |    1 | 06-01-1401 | 40 |         2.0000000 |         2.0000000 |         1.0000000 |          .0000000 | 800
+(12 rows)
+
 -- REGR_R2() function with partition by and order by having range based framing clause --
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.prc, TO_CHAR(COALESCE(REGR_R2(floor(cf_olap_windowerr_sale.vn+cf_olap_windowerr_sale.vn),floor(cf_olap_windowerr_sale.qty/cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.qty
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_customer,cf_olap_windowerr_product WHERE cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn AND cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn) cf_olap_windowerr_sale
@@ -3622,7 +3682,7 @@ TO_CHAR(COALESCE(LAG(cast(floor(cf_olap_windowerr_sale.vn) as int),cast (floor(c
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_product WHERE cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.cn order by cf_olap_windowerr_sale.cn desc range between floor(cf_olap_windowerr_sale.pn) preceding and floor(cf_olap_windowerr_sale.pn-cf_olap_windowerr_sale.prc) preceding ),
 win2 as (partition by cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn desc);
-ERROR:  RANGE parameter cannot be negative  (seg2 slice3 rahmaf2-mbp:25434 pid=48279)
+ERROR:  RANGE parameter cannot be negative  (seg2 slice3 127.0.0.1:40002 pid=16769)
 -- REGR_R2() function with partition by and order by having range based framing clause in combination with other functions--
 SELECT cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.dt, TO_CHAR(COALESCE(REGR_R2(floor(cf_olap_windowerr_sale.cn),floor(cf_olap_windowerr_sale.qty*cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999'),
 TO_CHAR(COALESCE(LAG(cast(floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.vn) as int),cast (floor(cf_olap_windowerr_sale.vn/cf_olap_windowerr_sale.vn) as int),NULL) OVER(win2),0),'99999999.9999999'),cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.vn
@@ -3658,7 +3718,7 @@ ERROR:  division by zero  (seg0 slice2 rahmaf2-mbp:25432 pid=48130)
 SELECT cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.cn, TO_CHAR(COALESCE(REGR_R2(floor(cf_olap_windowerr_sale.pn+cf_olap_windowerr_sale.qty),floor(cf_olap_windowerr_sale.vn/cf_olap_windowerr_sale.vn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.pn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_vendor WHERE cf_olap_windowerr_sale_ord.vn=cf_olap_windowerr_vendor.vn) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.qty order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn asc,cf_olap_windowerr_sale.vn desc,cf_olap_windowerr_sale.pn asc rows between unbounded preceding and floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.pn) preceding );
-ERROR:  ROWS parameter cannot be negative  (seg0 slice3 rahmaf2-mbp:25432 pid=48130)
+ERROR:  frame ending offset must not be negative  (seg0 slice3 127.0.0.1:40000 pid=16456)
 -- REGR_R2() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.prc, TO_CHAR(COALESCE(REGR_R2(floor(cf_olap_windowerr_sale.pn),floor(cf_olap_windowerr_sale.vn/cf_olap_windowerr_sale.cn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn,
 TO_CHAR(COALESCE(LEAD(cast(floor(cf_olap_windowerr_sale.prc) as int),cast (floor(cf_olap_windowerr_sale.qty) as int),NULL) OVER(win2),0),'99999999.9999999'),
@@ -3667,7 +3727,7 @@ TO_CHAR(COALESCE(DENSE_RANK() OVER(order by cf_olap_windowerr_sale.ord, cf_olap_
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.cn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn desc,cf_olap_windowerr_sale.pn desc,cf_olap_windowerr_sale.cn desc rows between floor(cf_olap_windowerr_sale.prc) preceding and floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.vn) preceding ),
 win2 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn asc);
-ERROR:  ROWS parameter cannot be negative  (seg1 slice2 rahmaf2-mbp:25433 pid=48131)
+ERROR:  frame ending offset must not be negative  (seg0 slice2 127.0.0.1:40000 pid=16456)
 -- REGR_R2() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.cn, TO_CHAR(COALESCE(REGR_R2(floor(cf_olap_windowerr_sale.qty-cf_olap_windowerr_sale.prc),floor(cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),
 TO_CHAR(COALESCE(MIN(floor(cf_olap_windowerr_sale.qty/cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999')
@@ -3757,7 +3817,7 @@ ERROR:  RANGE parameter cannot be negative
 SELECT cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.qty, TO_CHAR(COALESCE(REGR_SLOPE(floor(cf_olap_windowerr_sale.vn),floor(cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.vn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_customer WHERE cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn ) cf_olap_windowerr_sale
 WINDOW win1 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn asc,cf_olap_windowerr_sale.cn desc rows floor(cf_olap_windowerr_sale.vn-cf_olap_windowerr_sale.pn) preceding );
-ERROR:  ROWS parameter cannot be negative
+ERROR:  frame starting offset must not be negative
 -- REGR_SLOPE() function with ONLY order by having rows based framing clause --
 SELECT cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.prc, TO_CHAR(COALESCE(REGR_SLOPE(floor(cf_olap_windowerr_sale.vn),floor(cf_olap_windowerr_sale.vn/cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999')
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord) cf_olap_windowerr_sale
@@ -3854,7 +3914,22 @@ win2 as (partition by cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.qty,cf_ol
 win3 as (order by cf_olap_windowerr_sale.cn asc),
 win4 as (order by cf_olap_windowerr_sale.pn asc),
 win5 as (partition by cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.cn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn asc);
-ERROR:  ROWS parameter cannot be negative  (seg2 slice4 rahmaf2-mbp:25434 pid=48276)
+ vn | prc  | cn | pn  |      to_char      |      to_char      |     dt     | qty  |      to_char      |      to_char      |      to_char      
+----+------+----+-----+-------------------+-------------------+------------+------+-------------------+-------------------+-------------------
+ 10 |    0 |  1 | 200 |          .0000000 |          .0000000 | 03-01-1401 |    1 |          .0000000 |         3.0000000 |         1.0000000
+ 20 |    0 |  1 | 100 |          .0000000 |          .0000000 | 05-01-1401 |    1 |          .0000000 |         1.0000000 |         1.0000000
+ 30 |    0 |  1 | 300 |          .0000000 |          .0000000 | 05-02-1401 |    1 |          .0000000 |         5.0000000 |         1.0000000
+ 30 |    5 |  1 | 500 |          .2000000 |          .0000000 | 06-01-1401 |   12 |          .0000000 |         8.0000000 |          .0000000
+ 30 |    5 |  3 | 500 |          .2000000 |          .0000000 | 06-01-1401 |   12 |          .6363636 |         8.0000000 |          .0000000
+ 30 |    5 |  3 | 600 |          .2666667 |          .0000000 | 06-01-1401 |   12 |          .6363636 |        10.0000000 |          .0000000
+ 40 |    0 |  3 | 200 |         -.0004167 |          .0000000 | 04-01-1401 |    1 |          .6363636 |         3.0000000 |          .0000000
+ 40 |    1 |  4 | 700 |         -.0006250 |          .0000000 | 06-01-1401 |    1 |          .9090909 |        11.0000000 |          .0000000
+ 40 |    1 |  4 | 800 |         -.0006945 |          .0000000 | 06-01-1401 |    1 |          .9090909 |        12.0000000 |          .0000000
+ 40 | 2400 |  2 | 100 |          .0000000 |          .0000000 | 01-01-1401 | 1100 |          .4545455 |         1.0000000 |          .0000000
+ 50 |    0 |  1 | 400 |          .0000000 |          .0000000 | 06-01-1401 |    1 |          .0000000 |         6.0000000 |         1.0000000
+ 50 |    0 |  2 | 400 |          .0000000 |          .0000000 | 06-01-1401 |    1 |          .4545455 |         6.0000000 |          .0000000
+(12 rows)
+
 -- REGR_SLOPE() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.qty, TO_CHAR(COALESCE(REGR_SLOPE(floor(cf_olap_windowerr_sale.vn),floor(cf_olap_windowerr_sale.vn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn,
 TO_CHAR(COALESCE(LEAD(cast(floor(cf_olap_windowerr_sale.qty) as int),cast (floor(cf_olap_windowerr_sale.qty/cf_olap_windowerr_sale.prc) as int),NULL) OVER(win2),0),'99999999.9999999'),
@@ -3874,7 +3949,22 @@ FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_ola
 WINDOW win1 as (partition by cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn desc rows between floor(cf_olap_windowerr_sale.qty+cf_olap_windowerr_sale.cn) preceding and floor(cf_olap_windowerr_sale.cn+cf_olap_windowerr_sale.prc) preceding ),
 win2 as (partition by cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn asc),
 win3 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn asc);
-ERROR:  ROWS parameter cannot be negative  (seg0 slice2 rahmaf2-mbp:25432 pid=48130)
+ pn  | vn |      to_char      |      to_char      |     dt     |      to_char      |      to_char      | cn 
+-----+----+-------------------+-------------------+------------+-------------------+-------------------+----
+ 100 | 20 |          .0000000 |         1.0000000 | 05-01-1401 |          .0000000 |       100.0000000 |  1
+ 100 | 40 |          .0000000 |          .0000000 | 01-01-1401 |      2400.0000000 |          .0000000 |  2
+ 200 | 10 |          .0000000 |         1.0000000 | 03-01-1401 |          .0000000 |       200.0000000 |  1
+ 200 | 40 |          .0000000 |          .0000000 | 04-01-1401 |          .0000000 |       200.0000000 |  3
+ 300 | 30 |          .0000000 |         1.0000000 | 05-02-1401 |          .0000000 |       300.0000000 |  1
+ 400 | 50 |          .0000000 |          .0000000 | 06-01-1401 |          .0000000 |       400.0000000 |  2
+ 400 | 50 |          .0000000 |         1.0000000 | 06-01-1401 |          .0000000 |       400.0000000 |  1
+ 500 | 30 |          .0000000 |          .0000000 | 06-01-1401 |         5.0000000 |          .0000000 |  1
+ 500 | 30 |          .0000000 |          .0000000 | 06-01-1401 |         5.0000000 |          .0000000 |  3
+ 600 | 30 |          .0000000 |          .0000000 | 06-01-1401 |         5.0000000 |          .0000000 |  3
+ 700 | 40 |          .0000000 |          .0000000 | 06-01-1401 |         1.0000000 |       800.0000000 |  4
+ 800 | 40 |          .0000000 |          .0000000 | 06-01-1401 |         1.0000000 |          .0000000 |  4
+(12 rows)
+
 -- REGR_SLOPE() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.pn, TO_CHAR(COALESCE(REGR_SLOPE(floor(cf_olap_windowerr_sale.vn-cf_olap_windowerr_sale.cn),floor(cf_olap_windowerr_sale.cn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.vn,
 TO_CHAR(COALESCE(MAX(floor(cf_olap_windowerr_sale.pn/cf_olap_windowerr_sale.vn)) OVER(win1),0),'99999999.9999999'),
@@ -3882,7 +3972,7 @@ TO_CHAR(COALESCE(ROW_NUMBER() OVER(win2),0),'99999999.9999999')
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_product WHERE cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn asc,cf_olap_windowerr_sale.cn asc,cf_olap_windowerr_sale.cn desc rows between current row and floor(cf_olap_windowerr_sale.qty-cf_olap_windowerr_sale.pn) following ),
 win2 as (order by cf_olap_windowerr_sale.cn desc);
-ERROR:  ROWS parameter cannot be negative  (seg0 slice2 rahmaf2-mbp:25432 pid=48130)
+ERROR:  frame ending offset must not be negative  (seg0 slice3 127.0.0.1:40000 pid=16456)
 -- REGR_SLOPE() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.vn, TO_CHAR(COALESCE(REGR_SLOPE(floor(cf_olap_windowerr_sale.pn),floor(cf_olap_windowerr_sale.cn/cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.pn,
 TO_CHAR(COALESCE(LAG(cast(floor(cf_olap_windowerr_sale.pn+cf_olap_windowerr_sale.qty) as int),cast (floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.cn) as int),NULL) OVER(win2),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,
@@ -3994,7 +4084,7 @@ TO_CHAR(COALESCE(COUNT(floor(cf_olap_windowerr_sale.prc+cf_olap_windowerr_sale.c
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_customer,cf_olap_windowerr_product WHERE cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn AND cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn) cf_olap_windowerr_sale
 WINDOW win1 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn asc,cf_olap_windowerr_sale.vn desc rows between current row and floor(cf_olap_windowerr_sale.cn-cf_olap_windowerr_sale.qty) following ),
 win2 as (partition by cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.dt order by cf_olap_windowerr_sale.vn asc);
-ERROR:  ROWS parameter cannot be negative
+ERROR:  frame ending offset must not be negative  (seg1 slice4 127.0.0.1:40001 pid=16955)
 -- REGR_SXX() function with ONLY order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.pn, TO_CHAR(COALESCE(REGR_SXX(floor(cf_olap_windowerr_sale.prc),floor(cf_olap_windowerr_sale.qty)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,
 TO_CHAR(COALESCE(CUME_DIST() OVER(win2),0),'99999999.9999999'),
@@ -4007,7 +4097,22 @@ WINDOW win1 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn d
 win2 as (order by cf_olap_windowerr_sale.vn desc),
 win3 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn desc),
 win4 as (partition by cf_olap_windowerr_sale.dt order by cf_olap_windowerr_sale.vn desc);
-ERROR:  ROWS parameter cannot be negative
+ qty  | pn  |      to_char      | cn | vn |      to_char      |      to_char      |      to_char      |      to_char      |      to_char      |     dt     
+------+-----+-------------------+----+----+-------------------+-------------------+-------------------+-------------------+-------------------+------------
+    1 | 100 |          .0000000 |  1 | 20 |          .9166667 |     96000.0000000 |        11.0000000 |          .0000000 |         1.0000000 | 05-01-1401
+    1 | 200 |          .0000000 |  1 | 10 |         1.0000000 |     96000.0000000 |        12.0000000 |          .0000000 |         1.0000000 | 03-01-1401
+    1 | 200 |          .0000000 |  3 | 40 |          .5000000 |     96000.0000000 |         6.0000000 |          .0000000 |         1.0000000 | 04-01-1401
+    1 | 300 |          .0000000 |  1 | 30 |          .8333333 |     96000.0000000 |        10.0000000 |          .0000000 |         1.0000000 | 05-02-1401
+    1 | 400 |          .0000000 |  1 | 50 |          .1666667 |          .0000000 |         2.0000000 |          .0000000 |         2.0000000 | 06-01-1401
+    1 | 400 |          .0000000 |  2 | 50 |          .1666667 |          .0000000 |         2.0000000 |          .0000000 |         1.0000000 | 06-01-1401
+    1 | 700 |          .0000000 |  4 | 40 |          .5000000 |     96000.0000000 |         6.0000000 |          .0000000 |         3.0000000 | 06-01-1401
+    1 | 800 |          .0000000 |  4 | 40 |          .5000000 |     96000.0000000 |         6.0000000 |          .0000000 |         4.0000000 | 06-01-1401
+   12 | 500 |          .0000000 |  1 | 30 |          .8333333 |     96000.0000000 |        10.0000000 |          .0000000 |         7.0000000 | 06-01-1401
+   12 | 500 |          .0000000 |  3 | 30 |          .8333333 |     96000.0000000 |        10.0000000 |          .0000000 |         6.0000000 | 06-01-1401
+   12 | 600 |          .0000000 |  3 | 30 |          .8333333 |     96000.0000000 |        10.0000000 |          .0000000 |         5.0000000 | 06-01-1401
+ 1100 | 100 |          .0000000 |  2 | 40 |          .5000000 |     96000.0000000 |         6.0000000 |          .0000000 |         1.0000000 | 01-01-1401
+(12 rows)
+
 -- REGR_SXX() function with partition by and order by having range based framing clause --
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.cn, TO_CHAR(COALESCE(REGR_SXX(floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.pn),floor(cf_olap_windowerr_sale.vn+cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999')
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_product,cf_olap_windowerr_vendor,cf_olap_windowerr_customer WHERE cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn AND cf_olap_windowerr_sale_ord.vn=cf_olap_windowerr_vendor.vn AND cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn) cf_olap_windowerr_sale
@@ -4045,7 +4150,22 @@ WINDOW win1 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.cn
 win2 as (partition by cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn desc),
 win3 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn desc),
 win4 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn asc);
-ERROR:  ROWS parameter cannot be negative
+ qty  | pn  | pn  |      to_char      | cn |      to_char      |     dt     | vn |      to_char      |      to_char      |      to_char      |      to_char      
+------+-----+-----+-------------------+----+-------------------+------------+----+-------------------+-------------------+-------------------+-------------------
+    1 | 100 | 100 |          .0000000 |  1 |          .0000000 | 05-01-1401 | 20 |         1.0000000 |          .0000000 |         1.0000000 |          .0000000
+    1 | 200 | 200 |          .0000000 |  1 |          .0000000 | 03-01-1401 | 10 |         1.0000000 |          .0000000 |         1.0000000 |          .0000000
+    1 | 200 | 200 |          .0000000 |  3 |          .0000000 | 04-01-1401 | 40 |         1.0000000 |          .0000000 |         1.0000000 |          .0000000
+    1 | 300 | 300 |          .0000000 |  1 |          .0000000 | 05-02-1401 | 30 |         1.0000000 |          .0000000 |         1.0000000 |          .0000000
+    1 | 400 | 400 |          .0000000 |  1 |         1.0000000 | 06-01-1401 | 50 |         1.0000000 |          .0000000 |         1.0000000 |          .0000000
+    1 | 400 | 400 |          .0000000 |  2 |          .0000000 | 06-01-1401 | 50 |         2.0000000 |          .0000000 |         2.0000000 |          .0000000
+    1 | 700 | 700 |          .0000000 |  4 |          .0000000 | 06-01-1401 | 40 |         1.0000000 |          .0000000 |         1.0000000 |          .0000000
+    1 | 800 | 800 |          .0000000 |  4 |          .0000000 | 06-01-1401 | 40 |         2.0000000 |          .0000000 |         2.0000000 |          .0000000
+   12 | 500 | 500 |          .0000000 |  1 |          .0000000 | 06-01-1401 | 30 |         1.0000000 |          .0000000 |         1.0000000 |          .0000000
+   12 | 500 | 500 |          .0000000 |  3 |          .0000000 | 06-01-1401 | 30 |         2.0000000 |          .0000000 |         2.0000000 |          .0000000
+   12 | 600 | 600 |          .0000000 |  3 |          .0000000 | 06-01-1401 | 30 |         3.0000000 |          .0000000 |         3.0000000 |          .0000000
+ 1100 | 100 | 100 |          .0000000 |  2 |          .0000000 | 01-01-1401 | 40 |         1.0000000 |          .0000000 |         1.0000000 |          .0000000
+(12 rows)
+
 -- REGR_SXX() function with partition by and order by having rows based framing clause --
 SELECT cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.prc, TO_CHAR(COALESCE(REGR_SXX(floor(cf_olap_windowerr_sale.qty/cf_olap_windowerr_sale.prc),floor(cf_olap_windowerr_sale.cn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_customer WHERE cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn ) cf_olap_windowerr_sale
@@ -4061,7 +4181,7 @@ ERROR:  division by zero  (seg0 slice1 rahmaf2-mbp:25432 pid=48130)
 SELECT cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.pn, TO_CHAR(COALESCE(REGR_SXX(floor(cf_olap_windowerr_sale.vn),floor(cf_olap_windowerr_sale.prc/cf_olap_windowerr_sale.cn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_product WHERE cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn desc rows between unbounded preceding and floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.cn) following );
-ERROR:  ROWS parameter cannot be negative  (seg1 slice3 rahmaf2-mbp:25433 pid=48131)
+ERROR:  frame ending offset must not be negative  (seg0 slice3 127.0.0.1:40000 pid=16456)
 -- REGR_SXX() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.cn, TO_CHAR(COALESCE(REGR_SXX(floor(cf_olap_windowerr_sale.pn/cf_olap_windowerr_sale.pn),floor(cf_olap_windowerr_sale.cn+cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.pn,
 TO_CHAR(COALESCE(LEAD(cast(floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.prc) as int),cast (floor(cf_olap_windowerr_sale.cn) as int),NULL) OVER(win2),0),'99999999.9999999'),cf_olap_windowerr_sale.qty,
@@ -4099,7 +4219,7 @@ ERROR:  division by zero  (seg2 slice3 rahmaf2-mbp:25434 pid=48132)
 SELECT cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.pn, TO_CHAR(COALESCE(REGR_SXX(floor(cf_olap_windowerr_sale.qty*cf_olap_windowerr_sale.prc),floor(cf_olap_windowerr_sale.pn/cf_olap_windowerr_sale.vn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_customer,cf_olap_windowerr_product WHERE cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn AND cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn) cf_olap_windowerr_sale
 WINDOW win1 as (partition by cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn desc rows between floor(cf_olap_windowerr_sale.prc) following and floor(cf_olap_windowerr_sale.vn-cf_olap_windowerr_sale.pn) following );
-ERROR:  ROWS parameter cannot be negative  (seg0 slice3 rahmaf2-mbp:25432 pid=48130)
+ERROR:  frame ending offset must not be negative  (seg1 slice4 127.0.0.1:40001 pid=16457)
 -- REGR_SXY() function with OVER() clause having ONLY PARTITION BY in combination with other window functions --
 SELECT cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.cn, TO_CHAR(COALESCE(REGR_SXY(floor(cf_olap_windowerr_sale.pn),floor(cf_olap_windowerr_sale.qty)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn
 ,
@@ -4165,7 +4285,22 @@ win2 as (partition by cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.vn order 
 win3 as (order by cf_olap_windowerr_sale.cn asc),
 win4 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn asc),
 win5 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn desc);
-ERROR:  ROWS parameter cannot be negative
+ pn  | prc  | pn  | pn  |      to_char      | cn |      to_char      |     dt     | vn |      to_char      |      to_char      |      to_char      |      to_char      
+-----+------+-----+-----+-------------------+----+-------------------+------------+----+-------------------+-------------------+-------------------+-------------------
+ 100 |    0 | 100 | 100 |          .0000000 |  1 |         1.0000000 | 05-01-1401 | 20 |         1.0000000 |         1.0000000 |         1.0000000 |          .0000000
+ 100 | 2400 | 100 | 100 |      3741.4285714 |  2 |         1.0000000 | 01-01-1401 | 40 |         1.0000000 |         2.0000000 |          .0000000 |          .0000000
+ 200 |    0 | 200 | 200 |          .0000000 |  1 |         1.0000000 | 03-01-1401 | 10 |         1.0000000 |         1.0000000 |         1.0000000 |          .0000000
+ 200 |    0 | 200 | 200 |          .0000000 |  3 |         1.0000000 | 04-01-1401 | 40 |         1.0000000 |         3.0000000 |         1.0000000 |          .0000000
+ 300 |    0 | 300 | 300 |          .0000000 |  1 |         1.0000000 | 05-02-1401 | 30 |         1.0000000 |         1.0000000 |         1.0000000 |          .0000000
+ 400 |    0 | 400 | 400 |          .0000000 |  1 |          .5000000 | 06-01-1401 | 50 |         1.0000000 |         1.0000000 |         1.0000000 |          .0000000
+ 400 |    0 | 400 | 400 |      2100.0000000 |  2 |         1.0000000 | 06-01-1401 | 50 |         2.0000000 |         2.0000000 |         1.0000000 |          .0000000
+ 500 |    5 | 500 | 500 |          .0000000 |  1 |          .3333333 | 06-01-1401 | 30 |         1.0000000 |         1.0000000 |         1.0000000 |          .0000000
+ 500 |    5 | 500 | 500 |      3857.0000000 |  3 |         1.0000000 | 06-01-1401 | 30 |         3.0000000 |         3.0000000 |         1.0000000 |          .0000000
+ 600 |    5 | 600 | 600 |      3857.0000000 |  3 |         1.0000000 | 06-01-1401 | 30 |         3.0000000 |         3.0000000 |         1.0000000 |          .0000000
+ 700 |    1 | 700 | 700 |      4096.3333333 |  4 |         1.0000000 | 06-01-1401 | 40 |         2.0000000 |         4.0000000 |         1.0000000 |          .0000000
+ 800 |    1 | 800 | 800 |      4096.3333333 |  4 |         1.0000000 | 06-01-1401 | 40 |         2.0000000 |         4.0000000 |         1.0000000 |          .0000000
+(12 rows)
+
 -- REGR_SXY() function with ONLY order by having rows based framing clause --
 SELECT cf_olap_windowerr_sale.vn, TO_CHAR(COALESCE(REGR_SXY(floor(cf_olap_windowerr_sale.pn),floor(cf_olap_windowerr_sale.qty/cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord) cf_olap_windowerr_sale
@@ -4222,7 +4357,7 @@ ERROR:  division by zero
 SELECT cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn, TO_CHAR(COALESCE(REGR_SXY(floor(cf_olap_windowerr_sale.cn-cf_olap_windowerr_sale.pn),floor(cf_olap_windowerr_sale.cn-cf_olap_windowerr_sale.qty)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.pn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_product WHERE cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn) cf_olap_windowerr_sale
 WINDOW win1 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn asc,cf_olap_windowerr_sale.vn desc,cf_olap_windowerr_sale.pn desc rows between current row and floor(cf_olap_windowerr_sale.vn-cf_olap_windowerr_sale.qty) following );
-ERROR:  ROWS parameter cannot be negative
+ERROR:  frame ending offset must not be negative
 -- REGR_SXY() function with partition by and order by having range based framing clause --
 SELECT cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.qty, TO_CHAR(COALESCE(REGR_SXY(floor(cf_olap_windowerr_sale.qty+cf_olap_windowerr_sale.prc),floor(cf_olap_windowerr_sale.pn/cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.cn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_customer,cf_olap_windowerr_product WHERE cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn AND cf_olap_windowerr_sale_ord.pn=cf_olap_windowerr_product.pn) cf_olap_windowerr_sale
@@ -4240,7 +4375,22 @@ WINDOW win1 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.dt
 win2 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.vn asc),
 win3 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn desc),
 win4 as (partition by cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn asc);
-ERROR:  ROWS parameter cannot be negative
+     dt     | vn |     dt     |      to_char      | cn | pn  |      to_char      |      to_char      |      to_char      |      to_char      |      to_char      
+------------+----+------------+-------------------+----+-----+-------------------+-------------------+-------------------+-------------------+-------------------
+ 01-01-1401 | 40 | 01-01-1401 |          .0000000 |  2 | 100 |         1.0000000 |         1.0000000 |          .0000000 |         1.0000000 |          .0000000
+ 03-01-1401 | 10 | 03-01-1401 |          .0000000 |  1 | 200 |         1.0000000 |         1.0000000 |        40.0000000 |         2.0000000 |          .0000000
+ 04-01-1401 | 40 | 04-01-1401 |          .0000000 |  3 | 200 |         1.0000000 |         1.0000000 |          .0000000 |         3.0000000 |          .0000000
+ 05-01-1401 | 20 | 05-01-1401 |          .0000000 |  1 | 100 |         1.0000000 |         1.0000000 |          .0000000 |         4.0000000 |          .0000000
+ 05-02-1401 | 30 | 05-02-1401 |          .0000000 |  1 | 300 |         1.0000000 |         1.0000000 |          .0000000 |         5.0000000 |          .0000000
+ 06-01-1401 | 30 | 06-01-1401 |          .0000000 |  1 | 500 |         1.0000000 |         1.0000000 |          .0000000 |         8.0000000 |          .0000000
+ 06-01-1401 | 30 | 06-01-1401 |          .0000000 |  3 | 500 |         1.0000000 |         1.0000000 |          .0000000 |         9.0000000 |          .0000000
+ 06-01-1401 | 30 | 06-01-1401 |          .0000000 |  3 | 600 |         1.0000000 |         1.0000000 |          .0000000 |        10.0000000 |          .0000000
+ 06-01-1401 | 40 | 06-01-1401 |          .0000000 |  4 | 700 |         1.0000000 |         1.0000000 |          .0000000 |        11.0000000 |          .0000000
+ 06-01-1401 | 40 | 06-01-1401 |          .0000000 |  4 | 800 |         1.0000000 |         1.0000000 |          .0000000 |        12.0000000 |          .0000000
+ 06-01-1401 | 50 | 06-01-1401 |          .0000000 |  1 | 400 |         1.0000000 |         1.0000000 |          .0000000 |         6.0000000 |          .0000000
+ 06-01-1401 | 50 | 06-01-1401 |          .0000000 |  2 | 400 |         1.0000000 |         1.0000000 |          .0000000 |         7.0000000 |          .0000000
+(12 rows)
+
 -- REGR_SXY() function with partition by and order by having range based framing clause in combination with other functions--
 SELECT cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn, TO_CHAR(COALESCE(REGR_SXY(floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.prc),floor(cf_olap_windowerr_sale.vn)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.prc,
 TO_CHAR(COALESCE(LEAD(cast(floor(cf_olap_windowerr_sale.qty+cf_olap_windowerr_sale.vn) as int),cast (floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.qty) as int),NULL) OVER(win2),0),'99999999.9999999'),cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.pn,
@@ -4319,7 +4469,7 @@ WINDOW win1 as (partition by cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.qt
 win2 as (partition by cf_olap_windowerr_sale.prc order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn desc),
 win3 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.prc order by cf_olap_windowerr_sale.cn desc),
 win4 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn asc);
-ERROR:  ROWS parameter cannot be negative  (seg1 slice3 rahmaf2-mbp:25433 pid=48278)
+ERROR:  frame ending offset must not be negative  (seg0 slice4 127.0.0.1:40000 pid=16767)
 -- REGR_SXY() function with partition by and order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn, TO_CHAR(COALESCE(REGR_SXY(floor(cf_olap_windowerr_sale.prc),floor(cf_olap_windowerr_sale.prc/cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.prc,
 TO_CHAR(COALESCE(MIN(floor(cf_olap_windowerr_sale.qty/cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999'),
@@ -4338,7 +4488,22 @@ FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_ola
 WINDOW win1 as (order by cf_olap_windowerr_sale.pn asc range between unbounded preceding and 0 preceding ),
 win2 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn asc),
 win3 as (order by cf_olap_windowerr_sale.vn asc);
-ERROR:  ROWS parameter cannot be negative
+ cn | prc  |     dt     | vn | qty  |      to_char      | pn  |      to_char      |      to_char      |      to_char      |      to_char      
+----+------+------------+----+------+-------------------+-----+-------------------+-------------------+-------------------+-------------------
+  1 |    0 | 03-01-1401 | 10 |    1 |      8075.0000000 | 200 |         5.0000000 |         2.0000000 |          .0909091 |          .0000000
+  1 |    0 | 05-01-1401 | 20 |    1 |      1800.0000000 | 100 |          .0000000 |         4.0000000 |          .2727273 |          .0909091
+  1 |    0 | 05-02-1401 | 30 |    1 |      8680.0000000 | 300 |          .0000000 |         5.0000000 |          .3636364 |          .1818182
+  1 |    0 | 06-01-1401 | 50 |    1 |     10685.7142857 | 400 |          .0000000 |         6.0000000 |          .4545455 |          .9090909
+  1 |    5 | 06-01-1401 | 30 |   12 |     12488.8888889 | 500 |          .0000000 |         8.0000000 |          .6363636 |          .1818182
+  2 |    0 | 06-01-1401 | 50 |    1 |     10685.7142857 | 400 |          .0000000 |         7.0000000 |          .5454545 |          .9090909
+  2 | 2400 | 01-01-1401 | 40 | 1100 |      1800.0000000 | 100 |          .0000000 |         1.0000000 |          .0000000 |          .5454545
+  3 |    0 | 04-01-1401 | 40 |    1 |      8075.0000000 | 200 |          .0000000 |         3.0000000 |          .1818182 |          .5454545
+  3 |    5 | 06-01-1401 | 30 |   12 |     12488.8888889 | 500 |          .0000000 |         9.0000000 |          .7272727 |          .1818182
+  3 |    5 | 06-01-1401 | 30 |   12 |     13360.0000000 | 600 |          .0000000 |        10.0000000 |          .8181818 |          .1818182
+  4 |    1 | 06-01-1401 | 40 |    1 |     22090.9090909 | 700 |          .0000000 |        11.0000000 |          .9090909 |          .5454545
+  4 |    1 | 06-01-1401 | 40 |    1 |     29366.6666667 | 800 |          .0000000 |        12.0000000 |         1.0000000 |          .5454545
+(12 rows)
+
 -- REGR_SYY() function with ONLY order by having range based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.cn, TO_CHAR(COALESCE(REGR_SYY(floor(cf_olap_windowerr_sale.pn),floor(cf_olap_windowerr_sale.cn+cf_olap_windowerr_sale.pn)) OVER(win1),0),'99999999.9999999'),
 TO_CHAR(COALESCE(LEAD(cast(floor(cf_olap_windowerr_sale.prc/cf_olap_windowerr_sale.qty) as int),cast (floor(cf_olap_windowerr_sale.cn-cf_olap_windowerr_sale.qty) as int),NULL) OVER(win2),0),'99999999.9999999'),cf_olap_windowerr_sale.vn,
@@ -4349,7 +4514,22 @@ FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_ola
 WINDOW win1 as (order by cf_olap_windowerr_sale.pn desc range between floor(cf_olap_windowerr_sale.prc) preceding and current row ),
 win2 as (partition by cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn desc),
 win3 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.cn desc);
-ERROR:  ROWS parameter cannot be negative  (seg2 slice4 rahmaf2-mbp:25434 pid=48132)
+ pn  | qty  | cn |      to_char      |      to_char      | vn |      to_char      |      to_char      |      to_char      
+-----+------+----+-------------------+-------------------+----+-------------------+-------------------+-------------------
+ 100 |    1 |  1 |          .0000000 |          .0000000 | 20 |         1.0000000 |         1.0000000 |          .0000000
+ 100 | 1100 |  2 |    580000.0000000 |          .0000000 | 40 |         1.0000000 |      1100.0000000 |          .0000000
+ 200 |    1 |  1 |          .0000000 |          .0000000 | 10 |         1.0000000 |         1.0000000 |   2640000.0000000
+ 200 |    1 |  3 |          .0000000 |          .0000000 | 40 |         1.0000000 |         1.0000000 |          .0000000
+ 300 |    1 |  1 |          .0000000 |          .0000000 | 30 |         1.0000000 |         1.0000000 |          .0000000
+ 400 |    1 |  1 |          .0000000 |          .0000000 | 50 |          .5000000 |         1.0000000 |          .0000000
+ 400 |    1 |  2 |          .0000000 |          .0000000 | 50 |         1.0000000 |         1.0000000 |          .0000000
+ 500 |   12 |  1 |          .0000000 |          .0000000 | 30 |          .5000000 |        12.0000000 |          .0000000
+ 500 |   12 |  3 |          .0000000 |          .0000000 | 30 |         1.0000000 |        12.0000000 |        60.0000000
+ 600 |   12 |  3 |          .0000000 |          .0000000 | 30 |         1.0000000 |        12.0000000 |        60.0000000
+ 700 |    1 |  4 |          .0000000 |          .0000000 | 40 |         1.0000000 |         1.0000000 |        60.0000000
+ 800 |    1 |  4 |          .0000000 |          .0000000 | 40 |         1.0000000 |         1.0000000 |         1.0000000
+(12 rows)
+
 -- REGR_SYY() function with ONLY order by having range based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.pn, TO_CHAR(COALESCE(REGR_SYY(floor(cf_olap_windowerr_sale.cn),floor(cf_olap_windowerr_sale.qty/cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),
 TO_CHAR(COALESCE(LAG(cast(floor(cf_olap_windowerr_sale.prc) as int),cast (floor(cf_olap_windowerr_sale.pn) as int),NULL) OVER(win2),0),'99999999.9999999'),
@@ -4397,7 +4577,7 @@ ERROR:  division by zero  (seg0 slice2 rahmaf2-mbp:25432 pid=48130)
 SELECT cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.vn, TO_CHAR(COALESCE(REGR_SYY(floor(cf_olap_windowerr_sale.qty*cf_olap_windowerr_sale.prc),floor(cf_olap_windowerr_sale.vn+cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),cf_olap_windowerr_sale.pn
 FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord,cf_olap_windowerr_customer,cf_olap_windowerr_vendor WHERE cf_olap_windowerr_sale_ord.cn=cf_olap_windowerr_customer.cn AND cf_olap_windowerr_sale_ord.vn=cf_olap_windowerr_vendor.vn) cf_olap_windowerr_sale
 WINDOW win1 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.pn asc rows between floor(cf_olap_windowerr_sale.prc-cf_olap_windowerr_sale.qty) preceding and unbounded following );
-ERROR:  ROWS parameter cannot be negative
+ERROR:  frame starting offset must not be negative
 -- REGR_SYY() function with ONLY order by having rows based framing clause in combination with other functions --
 SELECT cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.dt, TO_CHAR(COALESCE(REGR_SYY(floor(cf_olap_windowerr_sale.cn*cf_olap_windowerr_sale.prc),floor(cf_olap_windowerr_sale.pn/cf_olap_windowerr_sale.prc)) OVER(win1),0),'99999999.9999999'),
 TO_CHAR(COALESCE(DENSE_RANK() OVER(win2),0),'99999999.9999999'),cf_olap_windowerr_sale.pn,

@@ -3601,8 +3601,11 @@ transformFrameOffset(ParseState *pstate, int frameOptions, Node *clause,
 		node = NULL;
 	}
 
+	/* In GPDB, we allow this. */
+#if 0
 	/* Disallow variables in frame offsets */
 	checkExprIsVarFree(pstate, node, constructName);
+#endif
 
 	return node;
 }

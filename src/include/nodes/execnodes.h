@@ -2508,6 +2508,15 @@ typedef struct WindowAggState
 	bool		start_offset_valid;	/* is startOffsetValue valid for current row? */
 	bool		end_offset_valid;	/* is endOffsetValue valid for current row? */
 
+	/*
+	 * In GPDB, we support RANGE/ROWS start/end expressions to contain
+	 * variables. You lose on some optimizations in that case, so we use
+	 * these flags to indicate if they don't contain any variables, to allow
+	 * those optimizations in the usual case that they don't.
+	 */
+	bool		start_offset_var_free;
+	bool		end_offset_var_free;
+
 	MemoryContext partcontext;	/* context for partition-lifespan data */
 	MemoryContext aggcontext;	/* context for each aggregate data */
 	ExprContext *tmpcontext;	/* short-term evaluation context */
