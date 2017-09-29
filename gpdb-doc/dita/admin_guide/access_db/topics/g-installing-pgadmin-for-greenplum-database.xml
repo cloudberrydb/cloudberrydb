@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic
+  PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
+<topic id="topic7">
+  <title>Installing pgAdmin 4</title>
+  <body>
+    <p>The installation package for pgAdmin 4 is available for download from the official pgAdmin 4
+      download site (<xref href="https://www.pgadmin.org" scope="external" format="html"/>).
+      Installation instructions are included in the installation package.</p>
+    <p>When configuring the server connection for Greenplum Database, retain the default Maintenance
+      database of postgres, but specify gpadmin for the Username.</p>
+  </body>
+</topic>

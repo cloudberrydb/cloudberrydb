@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic
+  PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
+<topic id="topic9">
+  <title>Viewing DDL Data with pgAdmin 4</title>
+  <body>
+    <p>You can use pgAdmin 4 to view Greenplum Database table DDL. </p>
+    <p>To view the table DDL, simply drill down through the database information in the left
+      navigation and select the desired table. Click on the <uicontrol>SQL</uicontrol> tab. The DDL
+      will be displayed. You can also display individual columns.</p>
+    <fig id="io149084">
+      <title>Graphical Query Plan in pgAdmin 4</title>
+      <image href="../../graphics/pgAdmin4_showddl.png" placement="break" width="679px" id="image_wj1_4bm_3bb"/>
+    </fig>
+  </body>
+</topic>

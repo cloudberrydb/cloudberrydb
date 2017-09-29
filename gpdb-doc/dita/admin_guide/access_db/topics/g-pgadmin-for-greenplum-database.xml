@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic
+  PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
+<topic id="topic6">
+   <title>pgAdmin 4 with Greenplum Database</title>
+   <body>
+      <p>If you prefer a graphic interface, use pgAdmin 4. This GUI client supports PostgreSQL
+         databases with all standard pgAdmin 4 features, while adding support for some
+         Greenplum-specific features. pgAdmin 4 is available for download at <xref
+            href="https://www.pgadmin.org/docs/pgadmin4/1.x/" format="html" scope="external"/>.</p>
+      <p>pgAdmin 4 supports the following Greenplum-specific features:</p>
+      <ul>
+         <li>Viewing Greenplum table DDL.</li>
+         <li id="io147522">Append-optimized tables, including compressed append-optimized tables.
+               <note>Only limited functionality for Greenplum partitioned tables is available with
+               pgAdmin 4.</note>
+         </li>
+      </ul>
+      <note>Graphical <codeph>EXPLAIN</codeph> features are currently not available with Greenplum
+         Database.</note>
+      <note>For limitations on using pgAdmin4 with Greenplum Database, refer to the <i>Greenplum
+            Database Release Notes</i>.</note>
+      <fig id="io149932">
+         <title>pgAdmin 4 Dashboard View</title>
+         <image href="../../graphics/pgAdmin4Dashbd.png" placement="break" width="679px"
+            id="image_phx_vqr_hbb"/>
+      </fig>
+   </body>
+</topic>
