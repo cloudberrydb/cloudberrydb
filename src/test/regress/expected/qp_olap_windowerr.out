@@ -1399,7 +1399,7 @@ FROM (SELECT cf_olap_windowerr_sale_ord.* FROM cf_olap_windowerr_sale_ord) cf_ol
 WINDOW win1 as (order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn asc,cf_olap_windowerr_sale.cn asc,cf_olap_windowerr_sale.vn desc rows between floor(cf_olap_windowerr_sale.prc) preceding and floor(cf_olap_windowerr_sale.pn-cf_olap_windowerr_sale.pn) following ),
 win2 as (partition by cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.qty,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.prc,cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.cn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn desc),
 win3 as (partition by cf_olap_windowerr_sale.cn,cf_olap_windowerr_sale.pn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.vn order by cf_olap_windowerr_sale.ord, cf_olap_windowerr_sale.vn asc),
-win4 as (partition by cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.prc order by cf_olap_windowerr_sale.cn desc),
+win4 as (partition by cf_olap_windowerr_sale.vn,cf_olap_windowerr_sale.dt,cf_olap_windowerr_sale.prc order by cf_olap_windowerr_sale.cn desc, cf_olap_windowerr_sale.pn),
 win5 as (order by cf_olap_windowerr_sale.pn asc);
  pn  | vn | cn |      to_char      |      to_char      | prc  |     dt     | qty  |      to_char      |      to_char      |      to_char      |      to_char      
 -----+----+----+-------------------+-------------------+------+------------+------+-------------------+-------------------+-------------------+-------------------
@@ -1411,8 +1411,8 @@ win5 as (order by cf_olap_windowerr_sale.pn asc);
  400 | 50 |  1 |         1.0000000 |          .0000000 |    0 | 06-01-1401 |    1 |          .0000000 |         2.0000000 |          .4545455 |         1.0000000
  400 | 50 |  2 |         1.0000000 |          .0000000 |    0 | 06-01-1401 |    1 |          .0000000 |         1.0000000 |          .4545455 |         1.0000000
  500 | 30 |  1 |         6.0000000 |          .0000000 |    5 | 06-01-1401 |   12 |          .0000000 |         3.0000000 |          .6363636 |         1.0000000
- 500 | 30 |  3 |         6.0000000 |          .0000000 |    5 | 06-01-1401 |   12 |          .0000000 |         2.0000000 |          .6363636 |         1.0000000
- 600 | 30 |  3 |         6.0000000 |          .0000000 |    5 | 06-01-1401 |   12 |          .0000000 |         1.0000000 |          .8181818 |         1.0000000
+ 500 | 30 |  3 |         6.0000000 |          .0000000 |    5 | 06-01-1401 |   12 |          .0000000 |         1.0000000 |          .6363636 |         1.0000000
+ 600 | 30 |  3 |         6.0000000 |          .0000000 |    5 | 06-01-1401 |   12 |          .0000000 |         2.0000000 |          .8181818 |         1.0000000
  700 | 40 |  4 |         2.0000000 |        40.0000000 |    1 | 06-01-1401 |    1 |          .0000000 |         1.0000000 |          .9090909 |         1.0000000
  800 | 40 |  4 |         2.0000000 |        40.0000000 |    1 | 06-01-1401 |    1 |          .0000000 |         2.0000000 |         1.0000000 |         1.0000000
 (12 rows)
