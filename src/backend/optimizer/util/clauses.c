@@ -2119,8 +2119,9 @@ fold_constants(PlannerGlobal *glob, Query *q, ParamListInfo boundParams, Size ma
  * elements from an Array const, however, so to enable those optimizations
  * in ORCA, we convert small Array Consts into corresponding ArrayExprs.
  *
- * If the argument is not an array constant, returns the original Const
- * unmodified.
+ * If the argument is not an array constant or the number of elements in the
+ * array is greater than optimizer_array_expansion_threshold, returns the
+ * original Const unmodified.
  */
 Expr *
 transform_array_Const_to_ArrayExpr(Const *c)
@@ -2153,6 +2154,9 @@ transform_array_Const_to_ArrayExpr(Const *c)
 	get_typlenbyvalalign(elemtype, &elemlen, &elembyval, &elemalign);
 	deconstruct_array(ac, elemtype, elemlen, elembyval, elemalign,
 					  &elems, &nulls, &nelems);
+
+	if (nelems > optimizer_array_expansion_threshold)
+		return (Expr *) c;	/* too many elements */
 
 	aexpr = makeNode(ArrayExpr);
 	aexpr->array_typeid = c->consttype;
