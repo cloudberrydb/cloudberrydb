@@ -98,6 +98,7 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	Node	   *retval;
 	bool		retset;
 	int			nvargs;
+	Oid			vatype;
 	FuncDetailCode fdresult;
 
 	/*
@@ -194,7 +195,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	 */
 	fdresult = func_get_detail(funcname, fargs, nargs, actual_arg_types,
 							   !func_variadic, true,
-							   &funcid, &rettype, &retset, &nvargs,
+							   &funcid, &rettype, &retset,
+							   &nvargs, &vatype,
 							   &declared_arg_types, &argdefaults);
 	if (fdresult == FUNCDETAIL_COERCION)
 	{
@@ -350,6 +352,22 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		newa->location = exprLocation((Node *) vargs);
 
 		fargs = lappend(fargs, newa);
+	}
+
+	/*
+	 * When function is called an explicit VARIADIC labeled parameter,
+	 * and the declared_arg_type is "any", then sanity check the actual
+	 * parameter type now - it must be an array.
+	 */
+	if (nargs > 0 && vatype == ANYOID && func_variadic)
+	{
+		Oid		va_arr_typid = actual_arg_types[nargs - 1];
+
+		if (!OidIsValid(get_element_type(va_arr_typid)))
+			ereport(ERROR,
+					(errcode(ERRCODE_DATATYPE_MISMATCH),
+					 errmsg("VARIADIC argument must be an array"),
+			  parser_errposition(pstate, exprLocation((Node *) llast(fargs)))));
 	}
 
 	/* build the appropriate output structure */
@@ -973,6 +991,7 @@ func_get_detail(List *funcname,
 				Oid *rettype,	/* return value */
 				bool *retset,	/* return value */
 				int *nvargs,	/* return value */
+				Oid *vatype,	/* return value */
 				Oid **true_typeids,		/* return value */
 				List **argdefaults)		/* optional return value */
 {
@@ -1143,6 +1162,7 @@ func_get_detail(List *funcname,
 		pform = (Form_pg_proc) GETSTRUCT(ftup);
 		*rettype = pform->prorettype;
 		*retset = pform->proretset;
+		*vatype = pform->provariadic;
 		/* fetch default args if caller wants 'em */
 		if (argdefaults)
 		{
