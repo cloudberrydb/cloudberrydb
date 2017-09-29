@@ -468,6 +468,9 @@ _outWindowAgg(StringInfo str, WindowAgg *node)
 
 	WRITE_INT_ARRAY(ordColIdx, node->ordNumCols, AttrNumber);
 	WRITE_OID_ARRAY(ordOperators, node->ordNumCols);
+	WRITE_INT_FIELD(firstOrderCol);
+	WRITE_OID_FIELD(firstOrderCmpOperator);
+	WRITE_BOOL_FIELD(firstOrderNullsFirst);
 	WRITE_INT_FIELD(frameOptions);
 	WRITE_NODE_FIELD(startOffset);
 	WRITE_NODE_FIELD(endOffset);

@@ -1981,6 +1981,9 @@ _readWindowAgg(void)
 	READ_INT_FIELD(ordNumCols);
 	READ_INT_ARRAY(ordColIdx, local_node->ordNumCols, AttrNumber);
 	READ_OID_ARRAY(ordOperators, local_node->ordNumCols);
+	READ_INT_FIELD(firstOrderCol);
+	READ_OID_FIELD(firstOrderCmpOperator);
+	READ_BOOL_FIELD(firstOrderNullsFirst);
 	READ_INT_FIELD(frameOptions);
 	READ_NODE_FIELD(startOffset);
 	READ_NODE_FIELD(endOffset);

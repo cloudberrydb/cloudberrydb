@@ -2332,6 +2332,17 @@ CTranslatorDXLToPlStmt::PwindowFromDXLWindow
 		pwindow->ordOperators = (Oid *) gpdb::GPDBAlloc(ulNumCols * sizeof(Oid));
 		bool *pNullsFirst = (bool *) gpdb::GPDBAlloc(ulNumCols * sizeof(bool));
 		TranslateSortCols(pdxlnSortColList, &dxltrctxChild, pwindow->ordColIdx, pwindow->ordOperators, pNullsFirst);
+
+		// The firstOrder* fields are separate from just picking the first of ordCol*,
+		// because the Postgres planner might omit columns that are redundant with the
+		// PARTITION BY from ordCol*. But ORCA doesn't do that, so we can just copy
+		// the first entry of ordColIdx/ordOperators into firstOrder* fields.
+		if (ulNumCols > 0)
+		{
+			pwindow->firstOrderCol = pwindow->ordColIdx[0];
+			pwindow->firstOrderCmpOperator = pwindow->ordOperators[0];
+			pwindow->firstOrderNullsFirst = pNullsFirst[0];
+		}
 		gpdb::GPDBFree(pNullsFirst);
 
 		// The ordOperators array is actually supposed to contain equality operators,

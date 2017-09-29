@@ -1022,6 +1022,9 @@ _copyWindowAgg(WindowAgg *from)
 		COPY_POINTER_FIELD(ordColIdx, from->ordNumCols * sizeof(AttrNumber));
 		COPY_POINTER_FIELD(ordOperators, from->ordNumCols * sizeof(Oid));
 	}
+	COPY_SCALAR_FIELD(firstOrderCol);
+	COPY_SCALAR_FIELD(firstOrderCmpOperator);
+	COPY_SCALAR_FIELD(firstOrderNullsFirst);
 	COPY_SCALAR_FIELD(frameOptions);
 	COPY_NODE_FIELD(startOffset);
 	COPY_NODE_FIELD(endOffset);

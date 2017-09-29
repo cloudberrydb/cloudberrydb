@@ -2499,7 +2499,14 @@ typedef struct WindowAggState
 	ExprState  *startOffset;	/* expression for starting bound offset */
 	ExprState  *endOffset;		/* expression for ending bound offset */
 	Datum		startOffsetValue;		/* result of startOffset evaluation */
+	bool		startOffsetIsNull;
 	Datum		endOffsetValue; /* result of endOffset evaluation */
+	bool		endOffsetIsNull;
+
+	FmgrInfo	ordCmpFunction;	/* btree cmp function for first ORDER BY col */
+	bool		ordReverse;		/* is the first ORDER BY col reversed? */
+	bool		start_offset_valid;	/* is startOffsetValue valid for current row? */
+	bool		end_offset_valid;	/* is endOffsetValue valid for current row? */
 
 	MemoryContext partcontext;	/* context for partition-lifespan data */
 	MemoryContext aggcontext;	/* context for each aggregate data */

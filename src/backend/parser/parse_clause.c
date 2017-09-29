@@ -3458,13 +3458,16 @@ transformFrameOffset(ParseState *pstate, int frameOptions, Node *clause,
 		constructName = "RANGE";
 
 		/* caller should've checked this already, but better safe than sorry */
-		if (list_length(orderClause) != 1)
-		{
+		if (list_length(orderClause) == 0)
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("window specifications with a framing clause must have an ORDER BY clause"),
+					 parser_errposition(pstate, location)));
+		if (list_length(orderClause) > 1)
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
 					 errmsg("only one ORDER BY column may be specified when RANGE is used in a window specification"),
 					 parser_errposition(pstate, location)));
-		}
 
 		typmod = exprTypmod(node);
 
