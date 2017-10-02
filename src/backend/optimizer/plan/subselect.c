@@ -1457,7 +1457,7 @@ simplify_EXISTS_query(PlannerInfo *root, Query *query)
 	if (query->havingQual)
 	{
 		/* If HAVING has no aggregates, demote it to WHERE. */
-		if (!contain_agg_clause(query->havingQual))
+		if (!query->hasAggs)
 		{
 			query->jointree->quals = make_and_qual(query->jointree->quals,
 												   query->havingQual);
