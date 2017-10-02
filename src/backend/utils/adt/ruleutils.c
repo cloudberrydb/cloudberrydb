@@ -230,7 +230,7 @@ static char *get_relation_name(Oid relid);
 static char *generate_relation_name(Oid relid, List *namespaces);
 static char *generate_function_name(Oid funcid, int nargs,
 					   Oid *argtypes,
-					   bool was_variadic, bool *use_variadic_p);
+					   bool has_variadic, bool *use_variadic_p);
 static char *generate_operator_name(Oid operid, Oid arg1, Oid arg2);
 static text *string_to_text(char *str);
 static char *flatten_reloptions(Oid relid);

@@ -261,7 +261,8 @@ typedef struct Aggref
 	List	   *aggdistinct;	/* DISTINCT (list of SortGroupClause) */
 	Expr	   *aggfilter;		/* FILTER expression, if any */
 	bool		aggstar;		/* TRUE if argument list was really '*' */
-	bool		aggvariadic;	/* TRUE if VARIADIC was used in call */
+	bool		aggvariadic;	/* true if variadic arguments have been
+								 * combined into an array last argument */
 	char		aggkind;		/* aggregate kind (see pg_aggregate.h) */
 	Index		agglevelsup;	/* > 0 if agg belongs to outer query */
 	AggStage	aggstage;		/* MPP: 2-stage? If so, which stage */
@@ -430,7 +431,8 @@ typedef struct FuncExpr
 	Oid			funcid;			/* PG_PROC OID of the function */
 	Oid			funcresulttype; /* PG_TYPE OID of result value */
 	bool		funcretset;		/* true if function returns set */
-	bool		funcvariadic;	/* true if VARIADIC was used in call */
+	bool		funcvariadic;	/* true if variadic arguments have been
+								 * combined into an array last argument */
 	CoercionForm funcformat;	/* how to display this function call */
 	List	   *args;			/* arguments to the function */
 	int			location;		/* token location, or -1 if unknown */
