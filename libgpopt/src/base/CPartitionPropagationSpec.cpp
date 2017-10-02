@@ -340,16 +340,36 @@ CPartitionPropagationSpec::SplitPartPredicates
 		// find conjuncts for this key and mark their positions
 		DrgPexpr *pdrgpexprKey = PdrgpexprPredicatesOnKey(pmp, pdrgpexprConjuncts, pcr, pcrsKeys, &pbsUsed);
 		const ULONG ulLen = pdrgpexprKey->UlLength();
-		if (0 == ulLen)
+		if (ulLen == 0)
 		{
 			// no predicates on this key
 			pdrgpexprKey->Release();
 			continue;
 		}
 
-		if (1 < ulLen || (!CPredicateUtils::FEquality((*pdrgpexprKey)[0])))
+		if (ulLen == 1 && CPredicateUtils::FIdentCompare((*pdrgpexprKey)[0], IMDType::EcmptEq, pcr))
 		{
-			// more than one predicate on this key or one non-equality predicate
+			// EqFilters
+			// one equality predicate (key = expr); take out the expression
+			// and add it to the equality filters map
+			CExpression *pexprPartKey = NULL;
+			CExpression *pexprOther = NULL;
+			IMDType::ECmpType ecmpt = IMDType::EcmptOther;
+
+			CPredicateUtils::ExtractComponents((*pdrgpexprKey)[0], pcr, &pexprPartKey, &pexprOther, &ecmpt);
+			GPOS_ASSERT(NULL != pexprOther);
+			pexprOther->AddRef();
+#ifdef GPOS_DEBUG
+			BOOL fResult =
+#endif // GPOS_DEBUG
+			phmulexprEqFilter->FInsert(GPOS_NEW(pmp) ULONG(ul), pexprOther);
+			GPOS_ASSERT(fResult);
+			pdrgpexprKey->Release();
+		}
+		else
+		{
+			// Filters
+			// more than one predicate on this key or one non-simple-equality predicate
 #ifdef GPOS_DEBUG
 			BOOL fResult =
 #endif // GPOS_DEBUG
@@ -358,21 +378,6 @@ CPartitionPropagationSpec::SplitPartPredicates
 			continue;
 		}
 
-		// one equality predicate (key = expr); take out the expression
-		// and add it to the equality filters map
-		CExpression *pexprPartKey = NULL;
-		CExpression *pexprOther = NULL;
-		IMDType::ECmpType ecmpt = IMDType::EcmptOther;
-
-		CPredicateUtils::ExtractComponents((*pdrgpexprKey)[0], pcr, &pexprPartKey, &pexprOther, &ecmpt);
-		GPOS_ASSERT(NULL != pexprOther);
-		pexprOther->AddRef();
-#ifdef GPOS_DEBUG
-		BOOL fResult =
-#endif // GPOS_DEBUG
-		phmulexprEqFilter->FInsert(GPOS_NEW(pmp) ULONG(ul), pexprOther);
-		GPOS_ASSERT(fResult);
-		pdrgpexprKey->Release();
 	}
 
 	(*ppexprResidual) = PexprResidualFilter(pmp, pdrgpexprConjuncts, pbsUsed);

@@ -144,12 +144,14 @@ CPredicateUtils::FComparison
 	CExpression *pexprLeft = (*pexpr)[0];
 	CExpression *pexprRight = (*pexpr)[1];
 
-	if (CUtils::FScalarIdent(pexprLeft, pcr) || CCastUtils::FBinaryCoercibleCastedScId(pexprLeft, pcr))
+	if (CUtils::FScalarIdent(pexprLeft, pcr) ||
+		CScalarIdent::FCastedScId(pexprLeft, pcr))
 	{
 		return FValidRefsOnly(pexprRight, pcrsAllowedRefs);
 	}
 
-	if (CUtils::FScalarIdent(pexprRight, pcr) || CCastUtils::FBinaryCoercibleCastedScId(pexprRight, pcr))
+	if (CUtils::FScalarIdent(pexprRight, pcr) ||
+		CScalarIdent::FCastedScId(pexprRight, pcr))
 	{
 		return FValidRefsOnly(pexprLeft, pcrsAllowedRefs);
 	}
@@ -627,20 +629,55 @@ CPredicateUtils::ExtractComponents
 	IMDType::ECmpType ecmpt =
 			CScalarCmp::PopConvert(pexprScCmp->Pop())->Ecmpt();
 
-	if (CUtils::FScalarIdent(pexprLeft, pcrKey) || CCastUtils::FBinaryCoercibleCastedScId(pexprLeft, pcrKey))
+	if (CUtils::FScalarIdent(pexprLeft, pcrKey) ||
+		CScalarIdent::FCastedScId(pexprLeft, pcrKey))
 	{
 		*ppexprKey = pexprLeft;
 		*ppexprOther = pexprRight;
 		*pecmpt = ecmpt;
 	}
-	else if (CUtils::FScalarIdent(pexprRight, pcrKey) || CCastUtils::FBinaryCoercibleCastedScId(pexprRight, pcrKey))
+	else if (CUtils::FScalarIdent(pexprRight, pcrKey) ||
+			 CScalarIdent::FCastedScId(pexprRight, pcrKey))
 	{
 		*ppexprKey = pexprRight;
 		*ppexprOther = pexprLeft;
 		*pecmpt = EcmptReverse(ecmpt);
 	}
-
 	GPOS_ASSERT(NULL != *ppexprKey && NULL != *ppexprOther);
+}
+
+// Expression is a comparison with a simple identifer on at least one side
+BOOL
+CPredicateUtils::FIdentCompare
+	(
+	CExpression *pexpr,
+	IMDType::ECmpType pecmpt,
+	CColRef *pcr
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
+	GPOS_ASSERT(NULL != pcr);
+
+	if (!FComparison(pexpr, pecmpt))
+	{
+		return false;
+	}
+
+	CExpression *pexprLeft = (*pexpr)[0];
+	CExpression *pexprRight = (*pexpr)[1];
+
+	if (CUtils::FScalarIdent(pexprLeft, pcr) ||
+		CCastUtils::FBinaryCoercibleCastedScId(pexprLeft, pcr))
+	{
+		return true;
+	}
+	else if (CUtils::FScalarIdent(pexprRight, pcr) ||
+			CCastUtils::FBinaryCoercibleCastedScId(pexprRight, pcr))
+	{
+		return true;
+	}
+
+	return false;
 }
 
 // create conjunction/disjunction from array of components; Takes ownership over the given array of expressions

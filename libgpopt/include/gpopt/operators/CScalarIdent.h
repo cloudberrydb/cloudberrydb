@@ -131,6 +131,11 @@ namespace gpopt
 			static
 			BOOL FCastedScId(CExpression *pexpr);
 
+			// is the given expression a scalar cast of given scalar identifier
+			static
+			BOOL FCastedScId(CExpression *pexpr, CColRef *pcr);
+
+
 	}; // class CScalarIdent
 
 }

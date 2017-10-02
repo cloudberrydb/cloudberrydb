@@ -435,6 +435,15 @@ namespace gpopt
 					IMDType::ECmpType *pecmpt
 					);
 
+			// Expression is a comparison with a simple identifer on at least one side
+			static
+			BOOL FIdentCompare
+				(
+				CExpression *pexpr,
+				IMDType::ECmpType pecmpt,
+				CColRef *pcr
+				);
+
 			// check if given column is a constant
 			static
 			BOOL FConstColumn(CConstraint *pcnstr, const CColRef *pcr);

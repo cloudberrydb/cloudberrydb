@@ -340,19 +340,19 @@
               <dxl:And>
                 <dxl:Or>
                   <dxl:ArrayComp OperatorName="&gt;" OperatorMdid="0.666.1.0" OperatorType="Any">
-                    <dxl:Cast TypeMdid="0.1043.1.0" FuncId="0.0.0.0">
-                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMg==" LintValue="249971508"/>
-                    </dxl:Cast>
-                    <dxl:PartListValues Level="0" ResultType="0.1015.1.0" ElementType="0.1043.1.0"/>
+                    <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMg==" LintValue="249971508"/>
+                    <dxl:ArrayCoerceExpr ElementFunc="0.0.0.0" TypeMdid="0.1009.1.0" TypeModification="-1" IsExplicit="true" CoercionForm="3" Location="-1">
+                      <dxl:PartListValues Level="0" ResultType="0.1015.1.0" ElementType="0.1043.1.0"/>
+                    </dxl:ArrayCoerceExpr>
                   </dxl:ArrayComp>
                   <dxl:DefaultPart Level="0"/>
                 </dxl:Or>
                 <dxl:Or>
                   <dxl:ArrayComp OperatorName="&lt;=" OperatorMdid="0.665.1.0" OperatorType="Any">
-                    <dxl:Cast TypeMdid="0.1043.1.0" FuncId="0.0.0.0">
-                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
-                    </dxl:Cast>
-                    <dxl:PartListValues Level="0" ResultType="0.1015.1.0" ElementType="0.1043.1.0"/>
+                    <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAACjIwMDgwMA==" LintValue="249955124"/>
+                    <dxl:ArrayCoerceExpr ElementFunc="0.0.0.0" TypeMdid="0.1009.1.0" TypeModification="-1" IsExplicit="true" CoercionForm="3" Location="-1">
+                      <dxl:PartListValues Level="0" ResultType="0.1015.1.0" ElementType="0.1043.1.0"/>
+                    </dxl:ArrayCoerceExpr>
                   </dxl:ArrayComp>
                   <dxl:DefaultPart Level="0"/>
                 </dxl:Or>

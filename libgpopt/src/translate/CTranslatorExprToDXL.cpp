@@ -4806,21 +4806,24 @@ CTranslatorExprToDXL::ConstructLevelFilters4PartitionSelector
 			}
 			else // list partition
 			{
-				if (!CMDAccessorUtils::FCmpExists(m_pmda, pmdidTypePartKey, pmdidTypeOther, IMDType::EcmptEq)
-					&& CMDAccessorUtils::FCastExists(m_pmda, pmdidTypePartKey, pmdidTypeOther))
-				{
-					pmdidTypePartKey = pmdidTypeOther;
-				}
+				// Create a ScalarIdent expression from the partition key
+				CDXLNode *pdxlnPartKey = CTranslatorExprToDXLUtils::PdxlnListFilterPartKey
+															(
+															m_pmp,
+															m_pmda,
+															CUtils::PexprScalarIdent(m_pmp, pcrPartKey),
+															pmdidTypePartKey,
+															ulLevel
+															);
 
 				pdxlnFilter = CTranslatorExprToDXLUtils::PdxlnListFilterScCmp
 								(
 								m_pmp,
 								m_pmda,
+								pdxlnPartKey,
 								pdxlnEq,
 								pmdidTypePartKey,
 								pmdidTypeOther,
-								NULL /*pmdidTypeCastExpr*/,
-								NULL /*pmdidCastFunc*/,
 								IMDType::EcmptEq,
 								ulLevel,
 								fDefaultPartition
@@ -5124,35 +5127,25 @@ CTranslatorExprToDXL::PdxlnScCmpPartKey
 	else // list partition
 	{
 		ecmpt = CPredicateUtils::EcmptReverse(ecmpt);
+		IMDId *pmdidTypePartKeyExpr = CScalar::PopConvert(pexprPartKey->Pop())->PmdidType();
 
-		// If the pexprOther is not comparable with pexprPartKey, but can be casted to pexprPartKey,
-		// then we add a cast on top of pexprOther.
-		if (!CMDAccessorUtils::FCmpExists(m_pmda, pmdidTypeOther, pmdidTypePartKey, ecmpt))
-		{
-			if (CMDAccessorUtils::FCastExists(m_pmda, pmdidTypeOther, pmdidTypePartKey)
-				&& CMDAccessorUtils::FCmpExists(m_pmda, pmdidTypePartKey, pmdidTypePartKey, ecmpt))
-			{
-				const IMDCast *pmdcast = m_pmda->Pmdcast(pmdidTypeOther, pmdidTypePartKey);
-				pmdidTypeCastExpr = pmdcast->PmdidDest();
-				pmdidCastFunc = pmdcast->PmdidCastFunc();
-			}
-			else
-			{
-				CWStringDynamic *pstr = GPOS_NEW(m_pmp) CWStringDynamic(m_pmp);
-				pstr->AppendFormat(GPOS_WSZ_LIT("Cannot generate metadata id for scaler comparison operator between %ls and %ls"), pmdidTypeOther->Wsz(), pmdidTypePartKey->Wsz());
-				GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnexpectedOp, pstr->Wsz());
-			}
-		}
+		CDXLNode *pdxlnPartKeyExpr = CTranslatorExprToDXLUtils::PdxlnListFilterPartKey
+																(
+																m_pmp,
+																m_pmda,
+																pexprPartKey,
+																pmdidTypePartKeyExpr,
+																ulPartLevel
+																);
 
 		return CTranslatorExprToDXLUtils::PdxlnListFilterScCmp
 								(
 								m_pmp,
 								m_pmda,
+								pdxlnPartKeyExpr,
 								pdxlnOther,
-								pmdidTypePartKey,
+								pmdidTypePartKeyExpr,
 								pmdidTypeOther,
-								pmdidTypeCastExpr,
-								pmdidCastFunc,
 								ecmpt,
 								ulPartLevel,
 								true

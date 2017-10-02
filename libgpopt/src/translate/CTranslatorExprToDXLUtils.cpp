@@ -12,6 +12,11 @@
 
 #include "gpopt/translate/CTranslatorExprToDXLUtils.h"
 
+#include "gpopt/mdcache/CMDAccessorUtils.h"
+#include "naucrates/md/IMDCast.h"
+
+#include "gpopt/exception.h"
+
 #include "naucrates/dxl/operators/dxlops.h"
 #include "naucrates/dxl/operators/CDXLDatumInt4.h"
 #include "naucrates/dxl/operators/CDXLDatumBool.h"
@@ -780,17 +785,122 @@ CTranslatorExprToDXLUtils::PdxlnRangePointPredicate
 	return GPOS_NEW(pmp) CDXLNode(pmp, GPOS_NEW(pmp) CDXLScalarBoolExpr(pmp, Edxlor), pdxlnPredicateInclusive, pdxlnPredicateExclusive);
 }
 
+
+// construct a DXL node for the part key portion of the list partition filter
+CDXLNode *
+CTranslatorExprToDXLUtils::PdxlnListFilterPartKey
+	(
+	IMemoryPool *pmp,
+	CMDAccessor *pmda,
+	CExpression *pexprPartKey,
+	IMDId *pmdidTypePartKey,
+	ULONG ulPartLevel
+	)
+{
+	GPOS_ASSERT(NULL != pexprPartKey);
+	GPOS_ASSERT(NULL != pmdidTypePartKey);
+	GPOS_ASSERT(CScalar::PopConvert(pexprPartKey->Pop())->PmdidType()->FEquals(pmdidTypePartKey));
+
+	CDXLNode *pdxlnPartKey = NULL;
+
+	if (CUtils::FScalarIdent(pexprPartKey))
+	{
+		// Simple Scalar Ident - create a ScalarPartListValues from the partition key
+		IMDId *pmdidResultArray = pmda->Pmdtype(pmdidTypePartKey)->PmdidTypeArray();
+		pmdidResultArray->AddRef();
+		pmdidTypePartKey->AddRef();
+
+		pdxlnPartKey = GPOS_NEW(pmp) CDXLNode
+						(
+						pmp,
+						GPOS_NEW(pmp) CDXLScalarPartListValues
+								(
+								pmp,
+								ulPartLevel,
+								pmdidResultArray,
+								pmdidTypePartKey
+								)
+						);
+	}
+	else if (CScalarIdent::FCastedScId(pexprPartKey))
+	{
+		// ScalarCast(ScalarIdent) - create an ArrayCoerceExpr over a ScalarPartListValues
+		CScalarCast *pexprScalarCast = CScalarCast::PopConvert(pexprPartKey->Pop());
+		IMDId *pmdidDestElem = pexprScalarCast->PmdidType();
+		IMDId *pmdidDestArray = pmda->Pmdtype(pmdidDestElem)->PmdidTypeArray();
+
+		CScalarIdent *pexprScalarIdent = CScalarIdent::PopConvert((*pexprPartKey)[0]->Pop());
+		IMDId *pmdidSrcElem = pexprScalarIdent->PmdidType();
+		IMDId *pmdidSrcArray = pmda->Pmdtype(pmdidSrcElem)->PmdidTypeArray();
+
+		IMDId *pmdidArrayCastFunc = NULL;
+
+		if (CMDAccessorUtils::FCastExists(pmda, pmdidSrcElem, pmdidDestElem))
+		{
+			const IMDCast *pmdcast = pmda->Pmdcast(pmdidSrcElem, pmdidDestElem);
+			pmdidArrayCastFunc = pmdcast->PmdidCastFunc();
+		}
+
+		pmdidSrcArray->AddRef();
+		pmdidSrcElem->AddRef();
+		CDXLNode *pdxlnPartKeyIdent = GPOS_NEW(pmp) CDXLNode
+							(
+							pmp,
+							GPOS_NEW(pmp) CDXLScalarPartListValues
+									(
+									pmp,
+									ulPartLevel,
+									pmdidSrcArray,
+									pmdidSrcElem
+									)
+							);
+
+		pmdidDestArray->AddRef();
+		pmdidArrayCastFunc->AddRef();
+		pdxlnPartKey = GPOS_NEW(pmp) CDXLNode
+					(
+					pmp,
+					GPOS_NEW(pmp) CDXLScalarArrayCoerceExpr
+									(
+									pmp,
+									pmdidArrayCastFunc,
+									pmdidDestArray,
+									-1, /* iMod */
+									true, /* fIsExplicit */
+									EdxlcfDontCare,
+									-1 /* iLoc */
+									),
+					pdxlnPartKeyIdent
+					);
+	}
+	else
+	{
+		// Not supported - should be unreachable.
+		CWStringDynamic *pstr = GPOS_NEW(pmp) CWStringDynamic(pmp);
+		pstr->AppendFormat(GPOS_WSZ_LIT("Unsupported part filter operator for list partitions : %ls"),
+						   pexprPartKey->Pop()->SzId());
+		GPOS_THROW_EXCEPTION(gpopt::ExmaGPOPT,
+							 gpopt::ExmiUnsupportedOp,
+							 CException::ExsevDebug1,
+							 pstr->Wsz());
+	}
+
+	GPOS_ASSERT(NULL != pdxlnPartKey);
+
+	return pdxlnPartKey;
+}
+
+
 // Construct a predicate node for a list partition filter
 CDXLNode *
 CTranslatorExprToDXLUtils::PdxlnListFilterScCmp
 	(
 	IMemoryPool *pmp,
 	CMDAccessor *pmda,
-	CDXLNode *pdxlnScalar,
+	CDXLNode *pdxlnPartKey,
+	CDXLNode *pdxlnOther,
 	IMDId *pmdidTypePartKey,
 	IMDId *pmdidTypeOther,
-	IMDId *pmdidTypeCastExpr,
-	IMDId *pmdidCastFunc,
 	IMDType::ECmpType ecmpt,
 	ULONG ulPartLevel,
 	BOOL fHasDefaultPart
@@ -798,30 +908,10 @@ CTranslatorExprToDXLUtils::PdxlnListFilterScCmp
 {
 	IMDId *pmdidScCmp = NULL;
 
-	if (IMDId::FValid(pmdidTypeCastExpr))
-	{
-		pmdidScCmp = CUtils::PmdidScCmp(pmp, pmda, pmdidTypeCastExpr, pmdidTypePartKey, ecmpt);
-	}
-	else
-	{
-		pmdidScCmp = CUtils::PmdidScCmp(pmp, pmda, pmdidTypeOther, pmdidTypePartKey, ecmpt);
-	}
+	pmdidScCmp = CUtils::PmdidScCmp(pmp, pmda, pmdidTypeOther, pmdidTypePartKey, ecmpt);
 
 	const IMDScalarOp *pmdscop = pmda->Pmdscop(pmdidScCmp);
 	const CWStringConst *pstrScCmp = pmdscop->Mdname().Pstr();
-	const IMDType *pmdtype = pmda->Pmdtype(pmdidTypePartKey);
-	IMDId *pmdidResult = pmdtype->PmdidTypeArray();
-	pmdidResult->AddRef();
-	pmdidTypePartKey->AddRef();
-	CDXLNode *pdxlnPartList = GPOS_NEW(pmp) CDXLNode(pmp, GPOS_NEW(pmp) CDXLScalarPartListValues(pmp, ulPartLevel, pmdidResult, pmdidTypePartKey));
-
-	if (IMDId::FValid(pmdidTypeCastExpr))
-	{
-		GPOS_ASSERT(NULL != pmdidCastFunc);
-		pmdidTypeCastExpr->AddRef();
-		pmdidCastFunc->AddRef();
-		pdxlnScalar = GPOS_NEW(pmp) CDXLNode(pmp, GPOS_NEW(pmp) CDXLScalarCast(pmp, pmdidTypeCastExpr, pmdidCastFunc), pdxlnScalar);
-	}
 
 	pmdidScCmp->AddRef();
 	CDXLNode *pdxlnScCmp = GPOS_NEW(pmp) CDXLNode
@@ -834,8 +924,8 @@ CTranslatorExprToDXLUtils::PdxlnListFilterScCmp
 															GPOS_NEW(pmp) CWStringConst(pmp, pstrScCmp->Wsz()),
 															Edxlarraycomptypeany
 															),
-												pdxlnScalar,
-												pdxlnPartList
+												pdxlnOther,
+												pdxlnPartKey
 												);
 
 	if (fHasDefaultPart)

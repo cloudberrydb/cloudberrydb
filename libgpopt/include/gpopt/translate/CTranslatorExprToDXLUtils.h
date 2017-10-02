@@ -284,14 +284,24 @@ namespace gpopt
 				(
 				IMemoryPool *pmp,
 				CMDAccessor *pmda,
+				CDXLNode *pdxlnPartKey,
 				CDXLNode *pdxlnScalar,
 				IMDId *pmdidTypePartKey,
 				IMDId *pmdidTypeOther,
-				IMDId *pmdidTypeCastExpr,
-				IMDId *pmdidCastFunc,
 				IMDType::ECmpType ecmpt,
 				ULONG ulPartLevel,
 				BOOL fHasDefaultPart
+				);
+
+			// construct a DXL node for the part key portion of the list partition filter
+			static
+			CDXLNode *PdxlnListFilterPartKey
+				(
+				IMemoryPool *pmp,
+				CMDAccessor *pmda,
+				CExpression *pexprPartKey,
+				IMDId *pmdidTypePartKey,
+				ULONG ulPartLevel
 				);
 
 			// construct a filter node for a range predicate

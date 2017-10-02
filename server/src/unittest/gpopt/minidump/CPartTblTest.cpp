@@ -98,8 +98,14 @@ const CHAR *rgszPartTblFileNames[] =
 	"../data/dxl/minidump/PartTbl-LeftOuterNLJoin-DPE-IsNull.mdp",
 	"../data/dxl/minidump/PartTbl-List-DPE-Varchar-Predicates.mdp",
 	"../data/dxl/minidump/PartTbl-List-DPE-Int-Predicates.mdp",
+	"../data/dxl/minidump/PartTbl-PredicateWithCast.mdp",
 	"../data/dxl/minidump/PartTbl-IDFList.mdp",
-	"../data/dxl/minidump/PartTbl-IDFNull.mdp"
+	"../data/dxl/minidump/PartTbl-IDFNull.mdp",
+	"../data/dxl/minidump/PartTbl-PredicateWithCast.mdp",
+	"../data/dxl/minidump/PartTbl-EqPredicateWithCastRange.mdp",
+	"../data/dxl/minidump/PartTbl-PredicateWithCastList.mdp",
+	"../data/dxl/minidump/PartTbl-IDFWithCast.mdp",
+	"../data/dxl/minidump/PartTbl-PredicateWithCastMultiLevelList.mdp"
 	};
 
 //---------------------------------------------------------------------------
