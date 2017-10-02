@@ -304,6 +304,12 @@ DATA(insert ( 3988	h 1 ordered_set_transition_multi - - -	percent_rank_final				
 DATA(insert ( 3990	h 1 ordered_set_transition_multi - - -	cume_dist_final							t 0	2281	_null_ ));
 DATA(insert ( 3992	h 1 ordered_set_transition_multi - - -	dense_rank_final						t 0	2281	_null_ ));
 
+/* GPDB: additional variants of percentile_cont, for timestamps */
+DATA(insert ( 6119	o 1 ordered_set_transition	- - -		percentile_cont_timestamp_final			f 0	2281	_null_ ));
+DATA(insert ( 6121	o 1 ordered_set_transition	- - -		percentile_cont_timestamp_multi_final	f 0	2281	_null_ ));
+DATA(insert ( 6123	o 1 ordered_set_transition	- - -		percentile_cont_timestamptz_final		f 0	2281	_null_ ));
+DATA(insert ( 6125	o 1 ordered_set_transition	- - -		percentile_cont_timestamptz_multi_final	f 0	2281	_null_ ));
+
 /*
  * prototypes for functions in pg_aggregate.c
  */

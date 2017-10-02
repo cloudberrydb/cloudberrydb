@@ -4859,6 +4859,24 @@ DESCR("most common value");
 DATA(insert OID = 3985 ( mode_final				PGNSP PGUID 12 1 0 0 f f f f f i 2 0 2283 "2281 2283" _null_ _null_ _null_ _null_	mode_final _null_ _null_ _null_ n a ));
 DESCR("aggregate final function");
 
+/* GPDB: additional variants of percentile_cont, for timestamps */
+DATA(insert OID = 6119 ( percentile_cont		PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1114 "701 1114" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("continuous distribution percentile");
+DATA(insert OID = 6120 ( percentile_cont_timestamp_final PGNSP PGUID 12 1 0 0 f f f f f i 2 0 1114 "2281 701" _null_ _null_ _null_ _null_ percentile_cont_timestamp_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 6121 ( percentile_cont		PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1115 "1022 1114" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("multiple continuous percentiles");
+DATA(insert OID = 6122 ( percentile_cont_timestamp_multi_final	PGNSP PGUID 12 1 0 0 f f f f f i 2 0 1115 "2281 1022" _null_ _null_ _null_ _null_ percentile_cont_timestamp_multi_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 6123 ( percentile_cont		PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1184 "701 1184" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("continuous distribution percentile");
+DATA(insert OID = 6124 ( percentile_cont_timestamptz_final PGNSP PGUID 12 1 0 0 f f f f f i 2 0 1184 "2281 701" _null_ _null_ _null_ _null_ percentile_cont_timestamptz_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 6125 ( percentile_cont		PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1185 "1022 1184" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("multiple continuous percentiles");
+DATA(insert OID = 6126 ( percentile_cont_timestamptz_multi_final	PGNSP PGUID 12 1 0 0 f f f f f i 2 0 1185 "2281 1022" _null_ _null_ _null_ _null_ percentile_cont_timestamptz_multi_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+
 /* hypothetical-set aggregates (and their support functions) */
 DATA(insert OID = 3986 ( rank				PGNSP PGUID 12 1 0 2276 t f f f f i 1 0 20 "2276" "{2276}" "{v}" _null_ _null_	aggregate_dummy _null_ _null_ _null_ n a ));
 DESCR("rank of hypothetical row");

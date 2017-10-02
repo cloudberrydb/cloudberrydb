@@ -454,6 +454,42 @@ interval_lerp(Datum lo, Datum hi, double pct)
 	return DirectFunctionCall2(interval_pl, mul_result, lo);
 }
 
+static Datum
+timestamp_lerp(Datum lo, Datum hi, double pct)
+{
+	Timestamp	lots = DatumGetTimestamp(lo);
+	Timestamp	hits = DatumGetTimestamp(hi);
+	Timestamp	diff_result;
+	Timestamp	mul_result;
+
+	diff_result = hits - lots;
+#ifdef HAVE_INT64_TIMESTAMP
+	mul_result = (Timestamp) round(diff_result * pct);
+#else
+	mul_result = (Timestamp) diff_result * pct;
+#endif
+
+	return TimestampGetDatum(lo + mul_result);
+}
+
+static Datum
+timestamptz_lerp(Datum lo, Datum hi, double pct)
+{
+	TimestampTz lots = DatumGetTimestampTz(lo);
+	TimestampTz hits = DatumGetTimestampTz(hi);
+	TimestampTz diff_result;
+	TimestampTz mul_result;
+
+	diff_result = hits - lots;
+#ifdef HAVE_INT64_TIMESTAMP
+	mul_result = (TimestampTz) round(diff_result * pct);
+#else
+	mul_result = (TimestampTz) diff_result * pct;
+#endif
+
+	return TimestampTzGetDatum(lo + mul_result);
+}
+
 /*
  * Continuous percentile
  */
@@ -561,6 +597,24 @@ Datum
 percentile_cont_interval_final(PG_FUNCTION_ARGS)
 {
 	return percentile_cont_final_common(fcinfo, INTERVALOID, interval_lerp);
+}
+
+/*
+ * percentile_cont(float8) within group (timestamp)	- continuous percentile
+ */
+Datum
+percentile_cont_timestamp_final(PG_FUNCTION_ARGS)
+{
+	return percentile_cont_final_common(fcinfo, TIMESTAMPOID, timestamp_lerp);
+}
+
+/*
+ * percentile_cont(float8) within group (timestamptz)	- continuous percentile
+ */
+Datum
+percentile_cont_timestamptz_final(PG_FUNCTION_ARGS)
+{
+	return percentile_cont_final_common(fcinfo, TIMESTAMPTZOID, timestamptz_lerp);
 }
 
 
@@ -955,6 +1009,32 @@ percentile_cont_interval_multi_final(PG_FUNCTION_ARGS)
 	/* hard-wired info on type interval */
 											  16, false, 'd',
 											  interval_lerp);
+}
+
+/*
+ * percentile_cont(float8[]) within group (timestamp)  - continuous percentiles
+ */
+Datum
+percentile_cont_timestamp_multi_final(PG_FUNCTION_ARGS)
+{
+	return percentile_cont_multi_final_common(fcinfo,
+											  TIMESTAMPOID,
+	/* hard-wired info on type interval */
+											  8, FLOAT8PASSBYVAL, 'd',
+											  timestamp_lerp);
+}
+
+/*
+ * percentile_cont(float8[]) within group (timestamptz)  - continuous percentiles
+ */
+Datum
+percentile_cont_timestamptz_multi_final(PG_FUNCTION_ARGS)
+{
+	return percentile_cont_multi_final_common(fcinfo,
+											  TIMESTAMPTZOID,
+	/* hard-wired info on type interval */
+											  8, FLOAT8PASSBYVAL, 'd',
+											  timestamptz_lerp);
 }
 
 
