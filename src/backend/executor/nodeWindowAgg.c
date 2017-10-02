@@ -112,6 +112,8 @@ typedef struct WindowStatePerAggData
 	FmgrInfo	transfn;
 	FmgrInfo	finalfn;
 
+	int			numFinalArgs;	/* number of arguments to pass to finalfn */
+
 	/*
 	 * initial value from pg_aggregate entry
 	 */
@@ -352,13 +354,27 @@ finalize_windowaggregate(WindowAggState *winstate,
 	 */
 	if (OidIsValid(peraggstate->finalfn_oid))
 	{
+		int			numFinalArgs = peraggstate->numFinalArgs;
 		FunctionCallInfoData fcinfo;
+		bool		anynull;
+		int			i;
 
-		InitFunctionCallInfoData(fcinfo, &(peraggstate->finalfn), 1,
+		InitFunctionCallInfoData(fcinfo, &(peraggstate->finalfn),
+								 numFinalArgs,
 								 (void *) winstate, NULL);
 		fcinfo.arg[0] = peraggstate->transValue;
 		fcinfo.argnull[0] = peraggstate->transValueIsNull;
-		if (fcinfo.flinfo->fn_strict && peraggstate->transValueIsNull)
+		anynull = peraggstate->transValueIsNull;
+
+		/* Fill any remaining argument positions with nulls */
+		for (i = 1; i < numFinalArgs; i++)
+		{
+			fcinfo.arg[i] = (Datum) 0;
+			fcinfo.argnull[i] = true;
+			anynull = true;
+		}
+
+		if (fcinfo.flinfo->fn_strict && anynull)
 		{
 			/* don't call a strict function with NULL inputs */
 			*result = (Datum) 0;
@@ -1750,6 +1766,7 @@ initialize_peragg(WindowAggState *winstate, WindowFunc *wfunc,
 	AclResult	aclresult;
 	Oid			transfn_oid,
 				finalfn_oid;
+	bool		finalextra;
 	Expr	   *transfnexpr,
 			   *finalfnexpr;
 	Datum		textInitVal;
@@ -1777,6 +1794,7 @@ initialize_peragg(WindowAggState *winstate, WindowFunc *wfunc,
 
 	peraggstate->transfn_oid = transfn_oid = aggform->aggtransfn;
 	peraggstate->finalfn_oid = finalfn_oid = aggform->aggfinalfn;
+	finalextra = aggform->aggfinalextra;
 
 	/* Check that aggregate owner has permission to call component fns */
 	{
@@ -1806,6 +1824,12 @@ initialize_peragg(WindowAggState *winstate, WindowFunc *wfunc,
 		}
 	}
 
+	/* Detect how many arguments to pass to the finalfn */
+	if (finalextra)
+		peraggstate->numFinalArgs = numArguments + 1;
+	else
+		peraggstate->numFinalArgs = 1;
+
 	/* resolve actual type of transition state, if polymorphic */
 	aggtranstype = resolve_aggregate_transtype(wfunc->winfnoid,
 											   aggform->aggtranstype,
@@ -1816,7 +1840,7 @@ initialize_peragg(WindowAggState *winstate, WindowFunc *wfunc,
 	build_aggregate_fnexprs(inputTypes,
 							numArguments,
 							0,	/* no ordered-set window functions yet */
-							false,
+							peraggstate->numFinalArgs,
 							false,		/* no variadic window functions yet */
 							aggtranstype,
 							wfunc->wintype,
@@ -1831,6 +1855,7 @@ initialize_peragg(WindowAggState *winstate, WindowFunc *wfunc,
 							NULL,
 							NULL);
 
+	/* set up infrastructure for calling the transfn(s) and finalfn */
 	fmgr_info(transfn_oid, &peraggstate->transfn);
 	peraggstate->transfn.fn_expr = (Node *) transfnexpr;
 
@@ -1840,6 +1865,7 @@ initialize_peragg(WindowAggState *winstate, WindowFunc *wfunc,
 		peraggstate->finalfn.fn_expr = (Node *) finalfnexpr;
 	}
 
+	/* get info about relevant datatypes */
 	get_typlenbyval(wfunc->wintype,
 					&peraggstate->resulttypeLen,
 					&peraggstate->resulttypeByVal);

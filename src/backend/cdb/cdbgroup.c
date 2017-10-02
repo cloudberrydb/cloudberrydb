@@ -43,6 +43,7 @@
 #include "optimizer/tlist.h"
 #include "optimizer/var.h"
 #include "parser/parsetree.h"
+#include "parser/parse_agg.h"
 #include "parser/parse_clause.h"
 #include "parser/parse_coerce.h"
 #include "parser/parse_expr.h"
@@ -3795,9 +3796,16 @@ split_aggref(Aggref *aggref, MppGroupContext *ctx)
 		{
 			TargetEntry *final_tle;
 			Var		   *args;
+			Oid			inputTypes[FUNC_MAX_ARGS];
+			int			nargs;
 
 			/* Get type information for the Aggref */
 			transtype = lookup_agg_transtype(aggref);
+			nargs = get_aggregate_argtypes(aggref, inputTypes);
+			transtype = resolve_aggregate_transtype(aggref->aggfnoid,
+													transtype,
+													inputTypes,
+													nargs);
 
 			/*
 			 * Make a new preliminary Aggref wrapped as a new target entry.

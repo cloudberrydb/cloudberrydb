@@ -108,36 +108,43 @@ typedef struct PolicyEagerFreeContext
 	PlannedStmt *plannedStmt; /* pointer to the planned statement */
 } PolicyEagerFreeContext;
 
+/*
+ * Does the expression contain any ordered or DISTINCT aggregates?
+ */
+static bool
+contain_ordered_aggs_walker(Node *node, void *context)
+{
+	if (node == NULL)
+		return false;
+
+	if (IsA(node, Aggref))
+	{
+		Aggref	   *aggref = (Aggref *) node;
+
+		if (aggref->aggorder || aggref->aggdistinct)
+			return true;
+	}
+	return expression_tree_walker(node, contain_ordered_aggs_walker, context);
+}
+
 /**
  * Is an agg operator memory intensive? The following cases mean it is:
  * 1. If agg strategy is hashed
  * 2. If targetlist or qual contains a DQA
  * 3. If there is an ordered aggregated.
  */
-static bool IsAggMemoryIntensive(Agg *agg)
+static bool
+IsAggMemoryIntensive(Agg *agg)
 {
-	Assert(agg);
-
 	/* Case 1 */
 	if (agg->aggstrategy == AGG_HASHED)
-	{
 		return true;
-	}
 
-	AggClauseCounts aggInfo;
-
-	/* Zero it out */
-	MemSet(&aggInfo, 0, sizeof(aggInfo));
-
-	Plan *plan = (Plan *) &(agg->plan);
-	count_agg_clauses((Node *) plan->targetlist, &aggInfo);
-	count_agg_clauses((Node *) plan->qual, &aggInfo);
-
-	/* Cases 2 & 2 */
-	if (aggInfo.numOrderedAggs >0)
-	{
+	/* Cases 2 & 3 */
+	if (contain_ordered_aggs_walker((Node *) agg->plan.targetlist, NULL))
 		return true;
-	}
+	if (contain_ordered_aggs_walker((Node *) agg->plan.qual, NULL))
+		return true;
 
 	return false;
 }

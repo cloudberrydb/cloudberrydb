@@ -26,6 +26,7 @@ CREATE AGGREGATE <replaceable class="parameter">name</replaceable> ( [ <replacea
     STYPE = <replaceable class="PARAMETER">state_data_type</replaceable>
     [ , PREFUNC = <replaceable class="PARAMETER">prefunc</replaceable> ]
     [ , FINALFUNC = <replaceable class="PARAMETER">ffunc</replaceable> ]
+    [ , FINALFUNC_EXTRA ]
     [ , INITCOND = <replaceable class="PARAMETER">initial_condition</replaceable> ]
     [ , SORTOP = <replaceable class="PARAMETER">sort_operator</replaceable> ]
 )
@@ -36,6 +37,7 @@ CREATE AGGREGATE <replaceable class="parameter">name</replaceable> ( [ [ <replac
     STYPE = <replaceable class="PARAMETER">state_data_type</replaceable>
     [ , SSPACE = <replaceable class="PARAMETER">state_data_size</replaceable> ]
     [ , FINALFUNC = <replaceable class="PARAMETER">ffunc</replaceable> ]
+    [ , FINALFUNC_EXTRA ]
     [ , INITCOND = <replaceable class="PARAMETER">initial_condition</replaceable> ]
     [ , HYPOTHETICAL ]
 )
@@ -47,6 +49,7 @@ CREATE AGGREGATE <replaceable class="PARAMETER">name</replaceable> (
     SFUNC = <replaceable class="PARAMETER">sfunc</replaceable>,
     STYPE = <replaceable class="PARAMETER">state_data_type</replaceable>
     [ , FINALFUNC = <replaceable class="PARAMETER">ffunc</replaceable> ]
+    [ , FINALFUNC_EXTRA ]
     [ , INITCOND = <replaceable class="PARAMETER">initial_condition</replaceable> ]
     [ , SORTOP = <replaceable class="PARAMETER">sort_operator</replaceable> ]
 )
@@ -152,7 +155,20 @@ CREATE AGGREGATE <replaceable class="PARAMETER">name</replaceable> (
    <function>avg</function> returns null when it sees there were zero
    input rows.
   </para>
-  
+
+  <para>
+   Sometimes it is useful to declare the final function as taking not just
+   the state value, but extra parameters corresponding to the aggregate's
+   input values.  The main reason for doing this is if the final function
+   is polymorphic and the state value's data type would be inadequate to
+   pin down the result type.  These extra parameters are always passed as
+   NULL (and so the final function must not be strict when
+   the <literal>FINALFUNC_EXTRA</> option is used), but nonetheless they
+   are valid parameters.  The final function could for example make use
+   of <function>get_fn_expr_argtype</> to identify the actual argument type
+   in the current call.
+  </para>
+
   <para>
    The syntax with <literal>ORDER BY</literal> in the parameter list creates
    a special type of aggregate called an <firstterm>ordered-set
@@ -303,12 +319,16 @@ SELECT col FROM tab ORDER BY col USING sortop LIMIT 1;
      <para>
       For ordered-set (including hypothetical-set) aggregates, the
       final function receives not only the final state value,
-      but also the values of all the direct arguments, followed by
-      null values corresponding to each aggregated argument.
-      (The reason for including the aggregated arguments in the function
-      signature is that this may be necessary to allow correct resolution
-      of the aggregate result type, when a polymorphic aggregate is
-      being defined.)
+      but also the values of all the direct arguments.
+     </para>
+
+     <para>
+      If <literal>FINALFUNC_EXTRA</> is specified, then in addition to the
+      final state value and any direct arguments, the final function
+      receives extra NULL values corresponding to the aggregate's regular
+      (aggregated) arguments.  This is mainly useful to allow correct
+      resolution of the aggregate result type when a polymorphic aggregate
+      is being defined.
      </para>
     </listitem>
    </varlistentry>
@@ -362,6 +382,13 @@ SELECT col FROM tab ORDER BY col USING sortop LIMIT 1;
   
  <refsect1>
   <title>Notes</title>
+
+   <para>
+    In parameters that specify support function names, you can write
+    a schema name if needed, for example <literal>SFUNC = public.sum</>.
+    Do not write argument types there, however &mdash; the argument types
+    of the support functions are determined from other parameters.
+   </para>
 
    <para>
     The syntax for ordered-set aggregates allows <literal>VARIADIC</>

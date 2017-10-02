@@ -66,6 +66,14 @@ typedef struct AggStatePerAggData
 	 */
 	int			numTransInputs;
 
+	/*
+	 * Number of arguments to pass to the finalfn.  This is always at least 1
+	 * (the transition state value) plus any ordered-set direct args. If the
+	 * finalfn wants extra args then we pass nulls corresponding to the
+	 * aggregated input columns.
+	 */
+	int			numFinalArgs;
+
 	/* Oids of transfer functions */
 	Oid			transfn_oid;
 	Oid         prelimfn_oid;

@@ -269,6 +269,55 @@ FROM pg_proc as p1
 WHERE p1.prorettype = 'internal'::regtype AND NOT
     'internal'::regtype = ANY (p1.proargtypes);
 
+-- Look for functions that return a polymorphic type and do not have any
+-- polymorphic argument.  Calls of such functions would be unresolvable
+-- at parse time.  As of 9.4 this query should find only some input functions
+-- associated with these pseudotypes.
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE p1.prorettype IN
+    ('anyelement'::regtype, 'anyarray'::regtype, 'anynonarray'::regtype,
+     'anyenum'::regtype)
+  AND NOT
+    ('anyelement'::regtype = ANY (p1.proargtypes) OR
+     'anyarray'::regtype = ANY (p1.proargtypes) OR
+     'anynonarray'::regtype = ANY (p1.proargtypes) OR
+     'anyenum'::regtype = ANY (p1.proargtypes))
+ORDER BY 2;
+
+-- Check for length inconsistencies between the various argument-info arrays.
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE proallargtypes IS NOT NULL AND
+    array_length(proallargtypes,1) < array_length(proargtypes,1);
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE proargmodes IS NOT NULL AND
+    array_length(proargmodes,1) < array_length(proargtypes,1);
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE proargnames IS NOT NULL AND
+    array_length(proargnames,1) < array_length(proargtypes,1);
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE proallargtypes IS NOT NULL AND proargmodes IS NOT NULL AND
+    array_length(proallargtypes,1) <> array_length(proargmodes,1);
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE proallargtypes IS NOT NULL AND proargnames IS NOT NULL AND
+    array_length(proallargtypes,1) <> array_length(proargnames,1);
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE proargmodes IS NOT NULL AND proargnames IS NOT NULL AND
+    array_length(proargmodes,1) <> array_length(proargnames,1);
+
 
 -- **************** pg_cast ****************
 
@@ -542,7 +591,7 @@ WHERE aggfnoid = 0 OR aggtransfn = 0 OR
     aggkind NOT IN ('n', 'o', 'h') OR
     aggnumdirectargs < 0 OR
     (aggkind = 'n' AND aggnumdirectargs > 0) OR
-    aggtranstype = 0 OR aggtransspace < 0;
+    aggtranstype = 0;
 
 -- Make sure the matching pg_proc entry is sensible, too.
 
@@ -596,16 +645,16 @@ WHERE a.aggfnoid = p.oid AND
     (pfn.proretset OR
      NOT binary_coercible(pfn.prorettype, p.prorettype) OR
      NOT binary_coercible(a.aggtranstype, pfn.proargtypes[0]) OR
-     CASE WHEN a.aggkind = 'n' THEN pfn.pronargs != 1
-     ELSE pfn.pronargs != p.pronargs + 1
-       OR (p.pronargs > 0 AND
+     CASE WHEN a.aggfinalextra THEN pfn.pronargs != p.pronargs + 1
+          ELSE pfn.pronargs != a.aggnumdirectargs + 1 END
+     OR (pfn.pronargs > 1 AND
          NOT binary_coercible(p.proargtypes[0], pfn.proargtypes[1]))
-       OR (p.pronargs > 1 AND
+     OR (pfn.pronargs > 2 AND
          NOT binary_coercible(p.proargtypes[1], pfn.proargtypes[2]))
-       OR (p.pronargs > 2 AND
+     OR (pfn.pronargs > 3 AND
          NOT binary_coercible(p.proargtypes[2], pfn.proargtypes[3]))
-       -- we could carry the check further, but 3 args is enough for now
-     END);
+     -- we could carry the check further, but 3 args is enough for now
+    );
 
 -- If transfn is strict then either initval should be non-NULL, or
 -- input type should match transtype so that the first non-null input

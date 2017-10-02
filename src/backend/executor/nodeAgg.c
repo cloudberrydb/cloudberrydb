@@ -37,11 +37,12 @@
  *
  *	  Ordered-set aggregates are treated specially in one other way: we
  *	  evaluate any "direct" arguments and pass them to the finalfunc along
- *	  with the transition value.  In addition, NULL placeholders are
- *	  provided to match the remaining finalfunc arguments, which correspond
- *	  to the aggregated expressions.  (These arguments have no use at
- *	  runtime, but may be needed to allow resolution of a polymorphic
- *	  aggregate's result type.)
+ *	  with the transition value.
+ *
+ *	  A finalfunc can have additional arguments beyond the transvalue and
+ *	  any "direct" arguments, corresponding to the input arguments of the
+ *	  aggregate.  These are always just passed as NULL.  Such arguments may be
+ *	  needed to allow resolution of a polymorphic aggregate's result type.
  *
  *	  We compute aggregate input expressions and run the transition functions
  *	  in a temporary econtext (aggstate->tmpcontext).  This is reset at
@@ -772,6 +773,8 @@ finalize_aggregate(AggState *aggstate,
 	/*
 	 * Evaluate any direct arguments.  We do this even if there's no finalfn
 	 * (which is unlikely anyway), so that side-effects happen as expected.
+	 * The direct arguments go into arg positions 1 and up, leaving position 0
+	 * for the transition state value.
 	 */
 	i = 1;
 	foreach(lc, peraggstate->aggrefstate->aggdirectargs)
@@ -791,19 +794,7 @@ finalize_aggregate(AggState *aggstate,
 	 */
 	if (OidIsValid(peraggstate->finalfn_oid))
 	{
-		int			numFinalArgs;
-
-		/*
-		 * Identify number of arguments being passed to the finalfn.  For a
-		 * plain agg it's just one (the transition state value).  For
-		 * ordered-set aggs we also pass the direct argument(s), plus nulls
-		 * corresponding to the aggregate-input columns.
-		 */
-		if (AGGKIND_IS_ORDERED_SET(peraggstate->aggref->aggkind))
-			numFinalArgs = peraggstate->numArguments + 1;
-		else
-			numFinalArgs = 1;
-		Assert(i <= numFinalArgs);
+		int			numFinalArgs = peraggstate->numFinalArgs;
 
 		/* set up aggstate->curperagg for AggGetAggref() */
 		aggstate->curperagg = peraggstate;
@@ -818,12 +809,11 @@ finalize_aggregate(AggState *aggstate,
 		anynull |= pergroupstate->transValueIsNull;
 
 		/* Fill any remaining argument positions with nulls */
-		while (i < numFinalArgs)
+		for (; i < numFinalArgs; i++)
 		{
 			fcinfo.arg[i] = (Datum) 0;
 			fcinfo.argnull[i] = true;
 			anynull = true;
-			i++;
 		}
 
 		if (fcinfo.flinfo->fn_strict && anynull)
@@ -2035,11 +2025,17 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 		numInputs = list_length(aggref->args);
 		peraggstate->numInputs = numInputs;
 
-		/* Detect how many columns to pass to the transfn */
+		/* Detect how many arguments to pass to the transfn */
 		if (AGGKIND_IS_ORDERED_SET(aggref->aggkind))
 			peraggstate->numTransInputs = numInputs;
 		else
 			peraggstate->numTransInputs = numArguments;
+
+		/* Detect how many arguments to pass to the finalfn */
+		if (aggform->aggfinalextra)
+			peraggstate->numFinalArgs = numArguments + 1;
+		else
+			peraggstate->numFinalArgs = numDirectArgs + 1;
 
 		/* resolve actual type of transition state, if polymorphic */
 		aggtranstype = resolve_aggregate_transtype(aggref->aggfnoid,
@@ -2051,7 +2047,7 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 		build_aggregate_fnexprs(inputTypes,
 								numArguments,
 								numDirectArgs,
-								AGGKIND_IS_ORDERED_SET(aggref->aggkind),
+								peraggstate->numFinalArgs,
 								aggref->aggvariadic,
 								aggtranstype,
 								aggref->aggtype,
