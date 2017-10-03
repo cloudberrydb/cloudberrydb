@@ -997,9 +997,9 @@ select count(*) from
 (1 row)
 
        
----
---- Query was deadlocking because of not squelching subplans (MPP-18936)
----
+--
+-- Query was deadlocking because of not squelching subplans (MPP-18936)
+--
 drop table if exists t1; 
 drop table if exists t2; 
 drop table if exists t3; 
@@ -1110,9 +1110,9 @@ where t1.a = foo.a;
 ---+---
 (0 rows)
 
----
---- Correlated subqueries with limit/offset clause must not be pulled up as join
----
+--
+-- Correlated subqueries with limit/offset clause must not be pulled up as join
+--
 insert into t1 values (1);
 insert into t2 values (1);
 explain select 1 from t1 where a in (select b from t2 where a = 1 limit 1);

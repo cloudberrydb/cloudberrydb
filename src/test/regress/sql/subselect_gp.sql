@@ -396,9 +396,9 @@ select count(*) from
        ( select 1 as FIELD_1 union all select 2 as FIELD_1 ) TABLE_1 
        where FIELD_1 in ( select 1 as FIELD_1 union all select 1 as FIELD_1 union all select 1 as FIELD_1 );
        
----
---- Query was deadlocking because of not squelching subplans (MPP-18936)
----
+--
+-- Query was deadlocking because of not squelching subplans (MPP-18936)
+--
 drop table if exists t1; 
 drop table if exists t2; 
 drop table if exists t3; 
@@ -460,9 +460,9 @@ select * from t1,
 (select * from t1 where a=1 and a=2 and a > (select t2.b from t2)) foo
 where t1.a = foo.a;
 
----
---- Correlated subqueries with limit/offset clause must not be pulled up as join
----
+--
+-- Correlated subqueries with limit/offset clause must not be pulled up as join
+--
 insert into t1 values (1);
 insert into t2 values (1);
 explain select 1 from t1 where a in (select b from t2 where a = 1 limit 1);
