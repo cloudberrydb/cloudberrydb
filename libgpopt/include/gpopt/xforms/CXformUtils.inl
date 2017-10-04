@@ -70,10 +70,11 @@ namespace gpopt
 #endif // GPOS_DEBUG
 		GPOS_ASSERT
 			(
-			COperator::EopPhysicalInnerNLJoin ==  eopid ||
-			COperator::EopPhysicalLeftOuterNLJoin ==  eopid ||
-			COperator::EopPhysicalLeftSemiNLJoin ==  eopid ||
-			COperator::EopPhysicalLeftAntiSemiNLJoin
+			COperator::EopPhysicalInnerNLJoin == eopid ||
+			COperator::EopPhysicalLeftOuterNLJoin == eopid ||
+			COperator::EopPhysicalLeftSemiNLJoin == eopid ||
+			COperator::EopPhysicalLeftAntiSemiNLJoin == eopid ||
+			COperator::EopPhysicalLeftAntiSemiNLJoinNotIn == eopid
 			);
 
 		// add alternative to results
