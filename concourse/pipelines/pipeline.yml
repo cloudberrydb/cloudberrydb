@@ -33,6 +33,14 @@ groups:
   - cs_filerep_e2e_incr_primary
   - cs_filerep_e2e_full_mirror
   - cs_filerep_e2e_incr_mirror
+  - cs_pg_twophase_01_10
+  - cs_pg_twophase_11_20
+  - cs_pg_twophase_21_30
+  - cs_pg_twophase_31_40
+  - cs_pg_twophase_41_49
+  - cs_pg_twophase_switch_01_12
+  - cs_pg_twophase_switch_13_24
+  - cs_pg_twophase_switch_25_33
   - QP_memory-accounting
   - regression_tests_gpcloud_centos
   - regression_tests_gphdfs_centos
@@ -45,7 +53,6 @@ groups:
   - MM_gpexpand
   - DPM_gptransfer-43x-to-5x
   - DPM_gptransfer-5x-to-5x
-  - cs-pg-two-phase
   - cs-filerep-schema-topology-crashrecov
   - cs-aoco-compression
   - mpp_interconnect
@@ -63,7 +70,6 @@ groups:
   - MM_gpexpand
   - DPM_gptransfer-43x-to-5x
   - DPM_gptransfer-5x-to-5x
-  - cs-pg-two-phase
   - cs-filerep-schema-topology-crashrecov
   - cs-aoco-compression
   - mpp_interconnect
@@ -1576,6 +1582,278 @@ jobs:
       <<: *debug_sleep
   - *ccp_destroy
 
+- name: cs_pg_twophase_01_10
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [compile_gpdb_centos6]
+    - get: gpdb_binary
+      resource: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: ccp_src
+    - get: centos-gpdb-dev-6
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      vars:
+        <<: *ccp_default_vars
+        aws_instance-node-instance_type: m4.large
+        aws_ebs_volume_type: gp2
+        number_of_nodes: 1
+  - task: gen_cluster
+    file: ccp_src/ci/tasks/gen_cluster.yml
+    params:
+      <<: *ccp_gen_cluster_default_params
+    on_failure:
+      <<: *ccp_destroy
+  - task: run_tests
+    file: gpdb_src/concourse/tasks/run_tinc.yml
+    image: centos-gpdb-dev-6
+    params:
+      TINC_TARGET: test_pg_twophase_01_10
+    on_failure:
+      <<: *debug_sleep
+  - *ccp_destroy
+
+- name: cs_pg_twophase_11_20
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [compile_gpdb_centos6]
+    - get: gpdb_binary
+      resource: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: ccp_src
+    - get: centos-gpdb-dev-6
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      vars:
+        <<: *ccp_default_vars
+        aws_instance-node-instance_type: m4.large
+        aws_ebs_volume_type: gp2
+        number_of_nodes: 1
+  - task: gen_cluster
+    file: ccp_src/ci/tasks/gen_cluster.yml
+    params:
+      <<: *ccp_gen_cluster_default_params
+    on_failure:
+      <<: *ccp_destroy
+  - task: run_tests
+    file: gpdb_src/concourse/tasks/run_tinc.yml
+    image: centos-gpdb-dev-6
+    params:
+      TINC_TARGET: test_pg_twophase_11_20
+    on_failure:
+      <<: *debug_sleep
+  - *ccp_destroy
+
+- name: cs_pg_twophase_21_30
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [compile_gpdb_centos6]
+    - get: gpdb_binary
+      resource: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: ccp_src
+    - get: centos-gpdb-dev-6
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      vars:
+        <<: *ccp_default_vars
+        aws_instance-node-instance_type: m4.large
+        aws_ebs_volume_type: gp2
+        number_of_nodes: 1
+  - task: gen_cluster
+    file: ccp_src/ci/tasks/gen_cluster.yml
+    params:
+      <<: *ccp_gen_cluster_default_params
+    on_failure:
+      <<: *ccp_destroy
+  - task: run_tests
+    file: gpdb_src/concourse/tasks/run_tinc.yml
+    image: centos-gpdb-dev-6
+    params:
+      TINC_TARGET: test_pg_twophase_21_30
+    on_failure:
+      <<: *debug_sleep
+  - *ccp_destroy
+
+- name: cs_pg_twophase_31_40
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [compile_gpdb_centos6]
+    - get: gpdb_binary
+      resource: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: ccp_src
+    - get: centos-gpdb-dev-6
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      vars:
+        <<: *ccp_default_vars
+        aws_instance-node-instance_type: m4.large
+        aws_ebs_volume_type: gp2
+        number_of_nodes: 1
+  - task: gen_cluster
+    file: ccp_src/ci/tasks/gen_cluster.yml
+    params:
+      <<: *ccp_gen_cluster_default_params
+    on_failure:
+      <<: *ccp_destroy
+  - task: run_tests
+    file: gpdb_src/concourse/tasks/run_tinc.yml
+    image: centos-gpdb-dev-6
+    params:
+      TINC_TARGET: test_pg_twophase_31_40
+    on_failure:
+      <<: *debug_sleep
+  - *ccp_destroy
+
+- name: cs_pg_twophase_41_49
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [compile_gpdb_centos6]
+    - get: gpdb_binary
+      resource: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: ccp_src
+    - get: centos-gpdb-dev-6
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      vars:
+        <<: *ccp_default_vars
+        aws_instance-node-instance_type: m4.large
+        aws_ebs_volume_type: gp2
+        number_of_nodes: 1
+  - task: gen_cluster
+    file: ccp_src/ci/tasks/gen_cluster.yml
+    params:
+      <<: *ccp_gen_cluster_default_params
+    on_failure:
+      <<: *ccp_destroy
+  - task: run_tests
+    file: gpdb_src/concourse/tasks/run_tinc.yml
+    image: centos-gpdb-dev-6
+    params:
+      TINC_TARGET: test_pg_twophase_41_49
+    on_failure:
+      <<: *debug_sleep
+  - *ccp_destroy
+
+- name: cs_pg_twophase_switch_01_12
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [compile_gpdb_centos6]
+    - get: gpdb_binary
+      resource: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: ccp_src
+    - get: centos-gpdb-dev-6
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      vars:
+        <<: *ccp_default_vars
+        aws_instance-node-instance_type: m4.large
+        aws_ebs_volume_type: gp2
+        number_of_nodes: 1
+  - task: gen_cluster
+    file: ccp_src/ci/tasks/gen_cluster.yml
+    params:
+      <<: *ccp_gen_cluster_default_params
+    on_failure:
+      <<: *ccp_destroy
+  - task: run_tests
+    file: gpdb_src/concourse/tasks/run_tinc.yml
+    image: centos-gpdb-dev-6
+    params:
+      TINC_TARGET: test_switch_01_12
+    on_failure:
+      <<: *debug_sleep
+  - *ccp_destroy
+
+- name: cs_pg_twophase_switch_13_24
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [compile_gpdb_centos6]
+    - get: gpdb_binary
+      resource: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: ccp_src
+    - get: centos-gpdb-dev-6
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      vars:
+        <<: *ccp_default_vars
+        aws_instance-node-instance_type: m4.large
+        aws_ebs_volume_type: gp2
+        number_of_nodes: 1
+  - task: gen_cluster
+    file: ccp_src/ci/tasks/gen_cluster.yml
+    params:
+      <<: *ccp_gen_cluster_default_params
+    on_failure:
+      <<: *ccp_destroy
+  - task: run_tests
+    file: gpdb_src/concourse/tasks/run_tinc.yml
+    image: centos-gpdb-dev-6
+    params:
+      TINC_TARGET: test_switch_13_24
+    on_failure:
+      <<: *debug_sleep
+  - *ccp_destroy
+
+- name: cs_pg_twophase_switch_25_33
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [compile_gpdb_centos6]
+    - get: gpdb_binary
+      resource: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: ccp_src
+    - get: centos-gpdb-dev-6
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      vars:
+        <<: *ccp_default_vars
+        aws_instance-node-instance_type: m4.large
+        aws_ebs_volume_type: gp2
+        number_of_nodes: 1
+  - task: gen_cluster
+    file: ccp_src/ci/tasks/gen_cluster.yml
+    params:
+      <<: *ccp_gen_cluster_default_params
+    on_failure:
+      <<: *ccp_destroy
+  - task: run_tests
+    file: gpdb_src/concourse/tasks/run_tinc.yml
+    image: centos-gpdb-dev-6
+    params:
+      TINC_TARGET: test_switch_25_33
+    on_failure:
+      <<: *debug_sleep
+  - *ccp_destroy
+
 - name: QP_memory-accounting
   plan:
   - aggregate:
@@ -1959,25 +2237,6 @@ jobs:
       <<: *pulse_properties
       PULSE_PROJECT_NAME: "GPDB-behave_gptransfer_5x_to_5x"
 
-
-- name: cs-pg-two-phase
-  plan:
-  - aggregate: *post_packaging_gets_trigger_true
-  - task: trigger_pulse
-    tags: ["gpdb5-pulse-worker"]
-    file: gpdb_src/ci/pulse/api/trigger_pulse.yml
-    input_mapping: *input_mappings
-    params:
-      <<: *pulse_properties
-      PULSE_PROJECT_NAME: "cs-pg-two-phase"
-  - task: monitor_pulse
-    attempts: 2
-    tags: ["gpdb5-pulse-worker"]
-    file: gpdb_src/ci/pulse/api/monitor_pulse.yml
-    params:
-      <<: *pulse_properties
-      PULSE_PROJECT_NAME: "cs-pg-two-phase"
-
 - name: cs-filerep-schema-topology-crashrecov
   plan:
   - aggregate: *post_packaging_gets_trigger_true
@@ -1995,26 +2254,6 @@ jobs:
     params:
       <<: *pulse_properties
       PULSE_PROJECT_NAME: "cs-filerep-schema-topology-crashrecov"
-
-- name: cs-filerep-end-to-end
-  plan:
-  - get: nightly-trigger
-    trigger: {{nightly-trigger-flag}}
-  - aggregate: *post_packaging_gets_trigger_based_on_flag
-  - task: trigger_pulse
-    tags: ["gpdb5-pulse-worker"]
-    file: gpdb_src/ci/pulse/api/trigger_pulse.yml
-    input_mapping: *input_mappings
-    params:
-      <<: *pulse_properties
-      PULSE_PROJECT_NAME: "cs-filerep-end-to-end"
-  - task: monitor_pulse
-    attempts: 2
-    tags: ["gpdb5-pulse-worker"]
-    file: gpdb_src/ci/pulse/api/monitor_pulse.yml
-    params:
-      <<: *pulse_properties
-      PULSE_PROJECT_NAME: "cs-filerep-end-to-end"
 
 - name: cs-aoco-compression
   plan:
@@ -2145,6 +2384,18 @@ jobs:
     - storage
     - cs_walrep_1
     - cs_walrep_2
+    - cs_filerep_e2e_full_primary
+    - cs_filerep_e2e_incr_primary
+    - cs_filerep_e2e_full_mirror
+    - cs_filerep_e2e_incr_mirror
+    - cs_pg_twophase_01_10
+    - cs_pg_twophase_11_20
+    - cs_pg_twophase_21_30
+    - cs_pg_twophase_31_40
+    - cs_pg_twophase_41_49
+    - cs_pg_twophase_switch_01_12
+    - cs_pg_twophase_switch_13_24
+    - cs_pg_twophase_switch_25_33
     - QP_memory-accounting
     - regression_tests_gpcloud_centos
     - regression_tests_gphdfs_centos
@@ -2158,9 +2409,7 @@ jobs:
     - MM_gpinitstandby
     - DPM_gptransfer-43x-to-5x
     - DPM_gptransfer-5x-to-5x
-    - cs-pg-two-phase
     - cs-filerep-schema-topology-crashrecov
-    - cs-filerep-end-to-end
     - cs-aoco-compression
     - mpp_interconnect
     - QP_runaway-query
