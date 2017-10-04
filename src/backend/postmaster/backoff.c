@@ -58,6 +58,7 @@
 #include "catalog/pg_tablespace.h"
 #include "catalog/catalog.h"
 #include "storage/sinval.h"
+#include "utils/builtins.h"
 #include "utils/syscache.h"
 #include "funcapi.h"
 #include "catalog/pg_type.h"
@@ -220,11 +221,6 @@ extern List *GetResqueueCapabilityEntry(Oid queueid);
 const char *gpvars_assign_gp_resqueue_priority_default_value(const char *newval,
 												 bool doit,
 								   GucSource source __attribute__((unused)));
-
-
-/* Extern declarations */
-extern Datum textin(PG_FUNCTION_ARGS);
-extern Datum textout(PG_FUNCTION_ARGS);
 
 /**
  * Primitives on statement id.
@@ -1018,15 +1014,13 @@ gp_adjust_priority_value(PG_FUNCTION_ARGS)
 	int32		session_id = PG_GETARG_INT32(0);
 	int32		command_count = PG_GETARG_INT32(1);
 	Datum		dVal = PG_GETARG_DATUM(2);
-	char	   *priorityVal = NULL;
-	int			wt = 0;
+	char	   *priorityVal;
+	int			wt;
 
-	priorityVal = DatumGetCString(DirectFunctionCall1(textout, dVal));
+	priorityVal = TextDatumGetCString(dVal);
 
 	if (!priorityVal)
-	{
 		elog(ERROR, "Invalid priority value specified.");
-	}
 
 	wt = BackoffPriorityValueToInt(priorityVal);
 
@@ -1431,8 +1425,7 @@ gp_list_backend_priorities(PG_FUNCTION_ARGS)
 
 		Assert(priorityVal);
 
-		values[2] = DirectFunctionCall1(textin,
-										CStringGetDatum(priorityVal));
+		values[2] = CStringGetTextDatum(priorityVal);
 		Assert(se->weight > 0);
 		values[3] = Int32GetDatum((int32) se->weight);
 		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);

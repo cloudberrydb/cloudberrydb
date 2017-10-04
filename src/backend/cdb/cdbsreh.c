@@ -241,7 +241,7 @@ FormErrorTuple(CdbSreh *cdbsreh)
 	if(cdbsreh->is_server_enc)
 	{
 		/* raw data */
-		values[errtable_rawdata - 1] = DirectFunctionCall1(textin, CStringGetDatum(cdbsreh->rawdata));
+		values[errtable_rawdata - 1] = CStringGetTextDatum(cdbsreh->rawdata);
 		nulls[errtable_rawdata - 1] = false;
 	}
 	else
@@ -253,15 +253,15 @@ FormErrorTuple(CdbSreh *cdbsreh)
 	}
 
 	/* file name */
-	values[errtable_filename - 1] = DirectFunctionCall1(textin, CStringGetDatum(cdbsreh->filename));
+	values[errtable_filename - 1] = CStringGetTextDatum(cdbsreh->filename);
 	nulls[errtable_filename - 1] = false;
 
 	/* relation name */
-	values[errtable_relname - 1] = DirectFunctionCall1(textin, CStringGetDatum(cdbsreh->relname));
+	values[errtable_relname - 1] = CStringGetTextDatum(cdbsreh->relname);
 	nulls[errtable_relname - 1] = false;
 	
 	/* error message */
-	values[errtable_errmsg - 1] = DirectFunctionCall1(textin, CStringGetDatum(cdbsreh->errmsg));
+	values[errtable_errmsg - 1] = CStringGetTextDatum(cdbsreh->errmsg);
 	nulls[errtable_errmsg - 1] = false;
 	
 	

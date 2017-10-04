@@ -7543,7 +7543,7 @@ GUCArrayReset(ArrayType *array)
 
 		if (isnull)
 			continue;
-		val = DatumGetCString(DirectFunctionCall1(textout, d));
+		val = TextDatumGetCString(d);
 
 		eqsgn = strchr(val, '=');
 		*eqsgn = '\0';

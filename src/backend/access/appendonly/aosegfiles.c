@@ -1157,8 +1157,6 @@ gp_aoseg_history(PG_FUNCTION_ARGS)
 	SRF_RETURN_DONE(funcctx);
 }
 
-#define GET_STR(textp) DatumGetCString(DirectFunctionCall1(textout, PointerGetDatum(textp)))
-
 static Datum
 gp_update_aorow_master_stats_internal(Relation parentrel, Snapshot appendOnlyMetaDataSnapshot)
 {

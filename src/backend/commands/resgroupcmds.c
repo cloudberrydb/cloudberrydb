@@ -713,11 +713,11 @@ GetResGroupCapabilities(Oid groupId, ResGroupCaps *resgroupCaps)
 		mask |= 1 << type;
 
 		valueDatum = heap_getattr(tuple, Anum_pg_resgroupcapability_value, relResGroupCapability->rd_att, &isNull);
-		value = DatumGetCString(DirectFunctionCall1(textout, valueDatum));
+		value = TextDatumGetCString(valueDatum);
 		caps[type].value = str2Int(value, getResgroupOptionName(type));
 
 		proposedDatum = heap_getattr(tuple, Anum_pg_resgroupcapability_proposed, relResGroupCapability->rd_att, &isNull);
-		proposed = DatumGetCString(DirectFunctionCall1(textout, proposedDatum));
+		proposed = TextDatumGetCString(proposedDatum);
 		caps[type].proposed = str2Int(proposed, getResgroupOptionName(type));
 	}
 
@@ -1251,7 +1251,7 @@ validateCapabilities(Relation rel,
 
 		proposedDatum = heap_getattr(tuple, Anum_pg_resgroupcapability_proposed,
 									 rel->rd_att, &isNull);
-		proposedStr = DatumGetCString(DirectFunctionCall1(textout, proposedDatum));
+		proposedStr = TextDatumGetCString(proposedDatum);
 		proposed = str2Int(proposedStr, getResgroupOptionName(reslimittype));
 
 		if (reslimittype == RESGROUP_LIMIT_TYPE_CPU)

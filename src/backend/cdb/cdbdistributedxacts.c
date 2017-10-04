@@ -91,10 +91,8 @@ gp_distributed_xacts__(PG_FUNCTION_ARGS)
 		MemSet(nulls, false, sizeof(nulls));
 
 		values[0] = TransactionIdGetDatum(distributedXactStatus->gxid);
-		values[1] = DirectFunctionCall1(textin,
-					  CStringGetDatum(distributedXactStatus->gid));
-		values[2] = DirectFunctionCall1(textin,
-					  CStringGetDatum(DtxStateToString(distributedXactStatus->state)));
+		values[1] = CStringGetTextDatum(distributedXactStatus->gid);
+		values[2] = CStringGetTextDatum(DtxStateToString(distributedXactStatus->state));
 
 		values[3] = UInt32GetDatum(distributedXactStatus->sessionId);
 		values[4] = TransactionIdGetDatum(distributedXactStatus->xminDistributedSnapshot);

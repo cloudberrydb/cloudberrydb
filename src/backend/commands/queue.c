@@ -355,10 +355,9 @@ AlterResqueueCapabilityEntry(Oid queueid,
 
 			while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
 			{
-				text	*shutoff_text	  = NULL;
-				char	*shutoff_str	  = NULL;
-				Datum	 shutoff_datum;
-				bool	 isnull			  = false;
+				char	   *shutoff_str;
+				Datum		shutoff_datum;
+				bool		isnull = false;
 				Form_pg_resourcetype rtyp = 
 						(Form_pg_resourcetype)GETSTRUCT(tuple);
 
@@ -399,15 +398,10 @@ AlterResqueueCapabilityEntry(Oid queueid,
 									 tupdesc,
 									 &isnull);
 				Assert(!isnull);
-				shutoff_text = DatumGetTextP(shutoff_datum);
-				shutoff_str = 
-						DatumGetCString(
-								DirectFunctionCall1(
-										textout,
-										PointerGetDatum(shutoff_text)));
+				shutoff_str = TextDatumGetCString(shutoff_datum);
 
 				pStrVal = makeString(shutoff_str);
-					
+
 				break;
 			} /* end while heaptuple is valid */
 			systable_endscan(sscan);
@@ -465,12 +459,11 @@ AlterResqueueCapabilityEntry(Oid queueid,
 		sscan = systable_beginscan(rel, InvalidOid, false, SnapshotNow, 0, NULL);
 		while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
 		{
-			List	*pentry			  = NIL;
-			Value	*pResnameVal	  = NULL;
-			text	*default_text	  = NULL;
-			char	*default_str	  = NULL;
-			Datum	 default_datum;
-			bool	 isnull			  = false;
+			List	   *pentry;
+			Value	   *pResnameVal;
+			char	   *default_str;
+			Datum		default_datum;
+			bool		isnull = false;
 			Form_pg_resourcetype rtyp = 
 					(Form_pg_resourcetype)GETSTRUCT(tuple);
 
@@ -503,12 +496,7 @@ AlterResqueueCapabilityEntry(Oid queueid,
 								 tupdesc,
 								 &isnull);
 			Assert(!isnull);
-			default_text = DatumGetTextP(default_datum);
-			default_str = 
-					DatumGetCString(
-							DirectFunctionCall1(
-									textout,
-									PointerGetDatum(default_text)));
+			default_str = TextDatumGetCString(default_datum);
 
 			/* add the new entry to dupcheck and WITH elems */
 			dupcheck = lappend(dupcheck, pResnameVal);
@@ -675,12 +663,11 @@ GetResqueueCapabilityEntry(Oid  queueid)
 	{
 		if (HeapTupleIsValid(tuple))
 		{
-			List		*pentry		 = NIL;
-			int			 resTypeInt	 = 0;
-			text		*resSet_text = NULL;
-			Datum		 resSet_datum;
-			char		*resSetting	 = NULL;
-			bool		 isnull		 = false;
+			List	   *pentry;
+			int			resTypeInt;
+			Datum		resSet_datum;
+			char	   *resSetting;
+			bool		isnull = false;
 
 			resTypeInt =
 					((Form_pg_resqueuecapability) GETSTRUCT(tuple))->restypid;
@@ -690,9 +677,7 @@ GetResqueueCapabilityEntry(Oid  queueid)
 										tupdesc,
 										&isnull);
 			Assert(!isnull);
-			resSet_text = DatumGetTextP(resSet_datum);
-			resSetting = DatumGetCString(DirectFunctionCall1(textout,
-					PointerGetDatum(resSet_text)));
+			resSetting = TextDatumGetCString(resSet_datum);
 
 			pentry = list_make2(
 					makeInteger(resTypeInt),

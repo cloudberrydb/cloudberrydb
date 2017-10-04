@@ -330,7 +330,7 @@ catalog_filespaces(Relation fsentryrel, int16 dbid, ArrayType *map)
 	/* need to check that this is an array of name, value pairs */
 	for (i = 0; i < n; i += 2)
 	{
-		char	   *fsname = DatumGetCString(DirectFunctionCall1(textout, d[i]));
+		char	   *fsname = TextDatumGetCString(d[i]);
 		char	   *path;
 		Oid			fsoid;
 
@@ -340,7 +340,7 @@ catalog_filespaces(Relation fsentryrel, int16 dbid, ArrayType *map)
 			elog(ERROR, "filespace \"%s\" does not exist", fsname);
 
 		Insist(i + 1 < n);
-		path = DatumGetCString(DirectFunctionCall1(textout, d[i + 1]));
+		path = TextDatumGetCString(d[i + 1]);
 
 		add_catalog_filespace_entry(fsentryrel, fsoid, dbid, path);
 	}
@@ -364,7 +364,7 @@ persist_all_filespaces(int16 pridbid, int16 mirdbid, ArrayType *fsmap)
 	/* need to check that this is an array of name, value pairs */
 	for (i = 0; i < n; i += 2)
 	{
-		char	   *fsname = DatumGetCString(DirectFunctionCall1(textout, d[i]));
+		char	   *fsname = TextDatumGetCString(d[i]);
 		char	   *path;
 		Oid			fsoid;
 		bool		set_mirror_existence;
@@ -378,7 +378,7 @@ persist_all_filespaces(int16 pridbid, int16 mirdbid, ArrayType *fsmap)
 			elog(ERROR, "filespace \"%s\" does not exist", fsname);
 
 		Insist(i + 1 < n);
-		path = DatumGetCString(DirectFunctionCall1(textout, d[i + 1]));
+		path = TextDatumGetCString(d[i + 1]);
 
 		/* only set the mirror existence on segments */
 		set_mirror_existence = (pridbid != MASTER_DBID);
@@ -1095,11 +1095,9 @@ gp_add_master_standby(PG_FUNCTION_ARGS)
 	new.db.mode = GP_SEGMENT_CONFIGURATION_MODE_INSYNC;
 	new.db.status = GP_SEGMENT_CONFIGURATION_STATUS_UP;
 
-	new.db.hostname = DatumGetCString(DirectFunctionCall1(textout,
-														  PointerGetDatum(PG_GETARG_TEXT_P(0))));
+	new.db.hostname = TextDatumGetCString(PG_GETARG_TEXT_P(0));
 
-	new.db.address = DatumGetCString(DirectFunctionCall1(textout,
-														 PointerGetDatum(PG_GETARG_TEXT_P(1))));
+	new.db.address = TextDatumGetCString(PG_GETARG_TEXT_P(1));
 
 	/* Use the new port number if specified */
 	if (PG_NARGS() > 3 && !PG_ARGISNULL(3))

@@ -33,9 +33,6 @@
 
 #define EXIT_CODE_BACKUP_RESTORE_ERROR 127
 
-/* general utility copied from cdblink.c */
-#define GET_STR(textp) DatumGetCString(DirectFunctionCall1(textout, PointerGetDatum(textp)))
-
 /* static helper functions */
 static bool createBackupDirectory(char *pszPathName);
 static char *findAcceptableBackupFilePathName(char *pszBackupDirectory, char *pszBackupKey, int instid, int segid);
@@ -198,22 +195,22 @@ gp_backup_launch__(PG_FUNCTION_ARGS)
 
 	if (!PG_ARGISNULL(0))
 	{
-		pszBackupDirectory = GET_STR(PG_GETARG_TEXT_P(0));
+		pszBackupDirectory = TextDatumGetCString(PG_GETARG_TEXT_P(0));
 		if (*pszBackupDirectory == '\0')
 			pszBackupDirectory = "./";
 	}
 
 	if (!PG_ARGISNULL(1))
-		pszBackupKey = GET_STR(PG_GETARG_TEXT_P(1));
+		pszBackupKey = TextDatumGetCString(PG_GETARG_TEXT_P(1));
 
 	if (!PG_ARGISNULL(2))
-		pszCompressionProgram = GET_STR(PG_GETARG_TEXT_P(2));
+		pszCompressionProgram = TextDatumGetCString(PG_GETARG_TEXT_P(2));
 
 	if (!PG_ARGISNULL(3))
-		pszPassThroughParameters = GET_STR(PG_GETARG_TEXT_P(3));
+		pszPassThroughParameters = TextDatumGetCString(PG_GETARG_TEXT_P(3));
 
 	if (!PG_ARGISNULL(4))
-		pszPassThroughCredentials = GET_STR(PG_GETARG_TEXT_P(4));
+		pszPassThroughCredentials = TextDatumGetCString(PG_GETARG_TEXT_P(4));
 
 	/*
 	 * dump_prefix must be allocated in TopMemoryContext, because it is
@@ -708,7 +705,7 @@ gp_backup_launch__(PG_FUNCTION_ARGS)
 
 	Assert(pszSaveBackupfileName != NULL && pszSaveBackupfileName[0] != '\0');
 
-	return DirectFunctionCall1(textin, CStringGetDatum(pszSaveBackupfileName));
+	return CStringGetTextDatum(pszSaveBackupfileName);
 }
 
 
@@ -762,25 +759,25 @@ gp_restore_launch__(PG_FUNCTION_ARGS)
 
 	if (!PG_ARGISNULL(0))
 	{
-		pszBackupDirectory = GET_STR(PG_GETARG_TEXT_P(0));
+		pszBackupDirectory = TextDatumGetCString(PG_GETARG_TEXT_P(0));
 		if (*pszBackupDirectory == '\0')
 			pszBackupDirectory = "./";
 	}
 
 	if (!PG_ARGISNULL(1))
-		pszBackupKey = GET_STR(PG_GETARG_TEXT_P(1));
+		pszBackupKey = TextDatumGetCString(PG_GETARG_TEXT_P(1));
 
 	if (!PG_ARGISNULL(2))
-		pszCompressionProgram = GET_STR(PG_GETARG_TEXT_P(2));
+		pszCompressionProgram = TextDatumGetCString(PG_GETARG_TEXT_P(2));
 
 	if (!PG_ARGISNULL(3))
-		pszPassThroughParameters = GET_STR(PG_GETARG_TEXT_P(3));
+		pszPassThroughParameters = TextDatumGetCString(PG_GETARG_TEXT_P(3));
 
 	if (!PG_ARGISNULL(4))
-		pszPassThroughCredentials = GET_STR(PG_GETARG_TEXT_P(4));
+		pszPassThroughCredentials = TextDatumGetCString(PG_GETARG_TEXT_P(4));
 
 	if (!PG_ARGISNULL(5))
-		pszPassThroughTargetInfo = GET_STR(PG_GETARG_TEXT_P(5));
+		pszPassThroughTargetInfo = TextDatumGetCString(PG_GETARG_TEXT_P(5));
 
 	if (!PG_ARGISNULL(6))
 		target_dbid = PG_GETARG_INT32(6);
@@ -1071,7 +1068,7 @@ gp_restore_launch__(PG_FUNCTION_ARGS)
 
 	Assert(pszBackupFileName != NULL && pszBackupFileName[0] != '\0');
 
-	return DirectFunctionCall1(textin, CStringGetDatum(pszBackupFileName));
+	return CStringGetTextDatum(pszBackupFileName);
 }
 
 /*
@@ -1093,13 +1090,13 @@ gp_read_backup_file__(PG_FUNCTION_ARGS)
 
 	if (!PG_ARGISNULL(0))
 	{
-		pszBackupDirectory = GET_STR(PG_GETARG_TEXT_P(0));
+		pszBackupDirectory = TextDatumGetCString(PG_GETARG_TEXT_P(0));
 		if (*pszBackupDirectory == '\0')
 			pszBackupDirectory = "./";
 	}
 
 	if (!PG_ARGISNULL(1))
-		pszBackupKey = GET_STR(PG_GETARG_TEXT_P(1));
+		pszBackupKey = TextDatumGetCString(PG_GETARG_TEXT_P(1));
 
 	if (!PG_ARGISNULL(2))
 		fileType = PG_GETARG_INT32(2);
@@ -1175,7 +1172,7 @@ gp_read_backup_file__(PG_FUNCTION_ARGS)
 	f = NULL;
 	pszFullStatus[info.st_size] = '\0';
 
-	return DirectFunctionCall1(textin, CStringGetDatum(positionToError(pszFullStatus)));
+	return CStringGetTextDatum(positionToError(pszFullStatus));
 }
 
 /*
@@ -1210,16 +1207,16 @@ gp_write_backup_file__(PG_FUNCTION_ARGS)
 
 	if (!PG_ARGISNULL(0))
 	{
-		pszBackupDirectory = GET_STR(PG_GETARG_TEXT_P(0));
+		pszBackupDirectory = TextDatumGetCString(PG_GETARG_TEXT_P(0));
 		if (*pszBackupDirectory == '\0')
 			pszBackupDirectory = "./";
 	}
 
 	if (!PG_ARGISNULL(1))
-		pszBackupKey = GET_STR(PG_GETARG_TEXT_P(1));
+		pszBackupKey = TextDatumGetCString(PG_GETARG_TEXT_P(1));
 
 	if (!PG_ARGISNULL(2))
-		pszBackup = GET_STR(PG_GETARG_TEXT_P(2));
+		pszBackup = TextDatumGetCString(PG_GETARG_TEXT_P(2));
 
 	/*
 	 * if BackupDirectory is relative, make it absolute based on the directory
@@ -1260,7 +1257,7 @@ gp_write_backup_file__(PG_FUNCTION_ARGS)
 
 	Assert(pszFileName != NULL && pszFileName[0] != '\0');
 
-	return DirectFunctionCall1(textin, CStringGetDatum(pszFileName));
+	return CStringGetTextDatum(pszFileName);
 }
 
 /*

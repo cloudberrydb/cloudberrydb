@@ -6805,9 +6805,9 @@ reloptions_to_string(Datum reloptions)
 	 * array_to_text() relies on flinfo to be valid.  So use
 	 * OidFunctionCall2.
 	 */
-	sep = DirectFunctionCall1(textin, CStringGetDatum(", "));
+	sep = CStringGetTextDatum(", ");
 	txt = OidFunctionCall2(F_ARRAY_TO_TEXT, reloptions, sep);
-	result = DatumGetCString(DirectFunctionCall1(textout, txt));
+	result = TextDatumGetCString(txt);
 
 	return result;
 }

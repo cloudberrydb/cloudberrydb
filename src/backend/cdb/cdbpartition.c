@@ -1429,17 +1429,13 @@ add_partition_rule(PartitionRule *rule)
 							BoolGetDatum(rule->parrangeendincl);
 
 	values[Anum_pg_partition_rule_parrangestart - 1] =
-			DirectFunctionCall1(textin,
-						CStringGetDatum(nodeToString(rule->parrangestart)));
+		CStringGetTextDatum(nodeToString(rule->parrangestart));
 	values[Anum_pg_partition_rule_parrangeend - 1] =
-			DirectFunctionCall1(textin,
-						CStringGetDatum(nodeToString(rule->parrangeend)));
+			CStringGetTextDatum(nodeToString(rule->parrangeend));
 	values[Anum_pg_partition_rule_parrangeevery - 1] =
-			DirectFunctionCall1(textin,
-						CStringGetDatum(nodeToString(rule->parrangeevery)));
+			CStringGetTextDatum(nodeToString(rule->parrangeevery));
 	values[Anum_pg_partition_rule_parlistvalues - 1] =
-			DirectFunctionCall1(textin,
-						CStringGetDatum(nodeToString(rule->parlistvalues)));
+			CStringGetTextDatum(nodeToString(rule->parlistvalues));
 	if (rule->parreloptions)
 		values[Anum_pg_partition_rule_parreloptions - 1] =
 				transformRelOptions((Datum) 0, rule->parreloptions, true, false);
@@ -2007,7 +2003,6 @@ ruleMakePartitionRule(HeapTuple tuple)
 {
 	Form_pg_partition_rule rule_desc =
 	(Form_pg_partition_rule)GETSTRUCT(tuple);
-	text *rule_text;
 	char *rule_str;
 	Datum rule_datum;
 	bool isnull;
@@ -2032,9 +2027,7 @@ ruleMakePartitionRule(HeapTuple tuple)
 								 Anum_pg_partition_rule_parrangestart,
 								 &isnull);
 	Assert(!isnull);
-	rule_text = DatumGetTextP(rule_datum);
-	rule_str = DatumGetCString(DirectFunctionCall1(textout,
-												   PointerGetDatum(rule_text)));
+	rule_str = TextDatumGetCString(rule_datum);
 
 	rule->parrangestart = stringToNode(rule_str);
 
@@ -2045,9 +2038,7 @@ ruleMakePartitionRule(HeapTuple tuple)
 								 Anum_pg_partition_rule_parrangeend,
 								 &isnull);
 	Assert(!isnull);
-	rule_text = DatumGetTextP(rule_datum);
-	rule_str = DatumGetCString(DirectFunctionCall1(textout,
-												   PointerGetDatum(rule_text)));
+	rule_str = TextDatumGetCString(rule_datum);
 
 	rule->parrangeend = stringToNode(rule_str);
 
@@ -2058,9 +2049,7 @@ ruleMakePartitionRule(HeapTuple tuple)
 								 Anum_pg_partition_rule_parrangeevery,
 								 &isnull);
 	Assert(!isnull);
-	rule_text = DatumGetTextP(rule_datum);
-	rule_str = DatumGetCString(DirectFunctionCall1(textout,
-												   PointerGetDatum(rule_text)));
+	rule_str = TextDatumGetCString(rule_datum);
 
 	rule->parrangeevery = stringToNode(rule_str);
 
@@ -2069,9 +2058,7 @@ ruleMakePartitionRule(HeapTuple tuple)
 								 Anum_pg_partition_rule_parlistvalues,
 								 &isnull);
 	Assert(!isnull);
-	rule_text = DatumGetTextP(rule_datum);
-	rule_str = DatumGetCString(DirectFunctionCall1(textout,
-												   PointerGetDatum(rule_text)));
+	rule_str = TextDatumGetCString(rule_datum);
 
 	rule->parlistvalues = stringToNode(rule_str);
 
@@ -2104,9 +2091,9 @@ ruleMakePartitionRule(HeapTuple tuple)
 		/* key/value pairs for storage clause */
 		for (i = 0; i < noptions; i++)
 		{
-			char *n = DatumGetCString(DirectFunctionCall1(textout, options[i]));
-			Value *v = NULL;
-			char *s;
+			char	   *n = TextDatumGetCString(options[i]);
+			Value	   *v = NULL;
+			char	   *s;
 
 			s = strchr(n, '=');
 
@@ -8377,7 +8364,7 @@ constraint_apply_mapped(HeapTuple tuple, AttrMap *map, Relation cand,
 					   RelationGetDescr(pgcon), &isnull);
 	if ( !isnull )
 	{
-		conbin = DatumGetCString(DirectFunctionCall1(textout, val));
+		conbin = TextDatumGetCString(val);
 		conexpr = stringToNode(conbin);
 		conexpr = attrMapExpr(map, conexpr);
 		conbin = nodeToString(conexpr);
@@ -8394,7 +8381,7 @@ constraint_apply_mapped(HeapTuple tuple, AttrMap *map, Relation cand,
 					   RelationGetDescr(pgcon), &isnull);
 	if (!isnull)
 	{
-		consrc = DatumGetCString(DirectFunctionCall1(textout, val));
+		consrc = TextDatumGetCString(val);
 	}
 	else
 	{

@@ -86,7 +86,7 @@ InsertExtTableEntry(Oid 	tbloid,
 		/* EXECUTE type table - store command and command location */
 
 		values[Anum_pg_exttable_command - 1] =
-		DirectFunctionCall1(textin, CStringGetDatum(commandString));
+			CStringGetTextDatum(commandString);
 		values[Anum_pg_exttable_execlocation - 1] = locationExec;
 		nulls[Anum_pg_exttable_urilocation - 1] = true;
 	}
@@ -158,7 +158,7 @@ InsertExtTableEntry(Oid 	tbloid,
 			char	   *protocol;
 			Size		position;
 
-			location = DatumGetCString(DirectFunctionCall1(textout, elems[i]));
+			location = TextDatumGetCString(elems[i]);
 			position = strchr(location, ':') - location;
 			protocol = pnstrdup(location, position);
 
@@ -355,7 +355,7 @@ GetExtTableEntryIfExists(Oid relid)
 
 		for (i = 0; i < nelems; i++)
 		{
-			loc_str = DatumGetCString(DirectFunctionCall1(textout, elems[i]));
+			loc_str = TextDatumGetCString(elems[i]);
 
 			/* append to a list of Value nodes, size nelems */
 			extentry->urilocations = lappend(extentry->urilocations, makeString(pstrdup(loc_str)));
@@ -372,7 +372,7 @@ GetExtTableEntryIfExists(Oid relid)
 
 		for (i = 0; i < nelems; i++)
 		{
-			loc_str = DatumGetCString(DirectFunctionCall1(textout, elems[i]));
+			loc_str = TextDatumGetCString(elems[i]);
 
 			/* append to a list of Value nodes, size nelems */
 			extentry->execlocations = lappend(extentry->execlocations, makeString(pstrdup(loc_str)));
@@ -397,9 +397,8 @@ GetExtTableEntryIfExists(Oid relid)
 	}
 	else
 	{
-		extentry->command = DatumGetCString(DirectFunctionCall1(textout, command));
+		extentry->command = TextDatumGetCString(command);
 	}
-	
 
 	/* get the format code */
 	fmtcode = heap_getattr(tuple, 
@@ -420,7 +419,7 @@ GetExtTableEntryIfExists(Oid relid)
 						   &isNull);
 	
 	Insist(!isNull);
-	extentry->fmtopts = DatumGetCString(DirectFunctionCall1(textout, fmtopts));
+	extentry->fmtopts = TextDatumGetCString(fmtopts);
 	
     /* get the external table options string */
     options = heap_getattr(tuple,
@@ -438,7 +437,7 @@ GetExtTableEntryIfExists(Oid relid)
 		Datum	   *elems;
 		int			nelems;
 		int			i;
-		char*		option_str = NULL;
+		char	   *option_str;
 
 		deconstruct_array(DatumGetArrayTypeP(options),
 						  TEXTOID, -1, false, 'i',
@@ -446,10 +445,10 @@ GetExtTableEntryIfExists(Oid relid)
 
 		for (i = 0; i < nelems; i++)
 		{
-			option_str = DatumGetCString(DirectFunctionCall1(textout, elems[i]));
+			option_str = TextDatumGetCString(elems[i]);
 
 			/* append to a list of Value nodes, size nelems */
-			extentry->options = lappend(extentry->options, makeString(pstrdup(option_str)));
+			extentry->options = lappend(extentry->options, makeString(option_str));
 		}
 	}
 
