@@ -200,7 +200,7 @@ CloseAOSegmentFile(MirroredAppendOnlyOpen *mirroredOpen)
  * Truncate all bytes from offset to end of file.
  */
 void
-TruncateAOSegmentFile(MirroredAppendOnlyOpen *mirroredOpen, Relation rel, int64 offset, int elevel)
+TruncateAOSegmentFile(MirroredAppendOnlyOpen *mirroredOpen, Relation rel, int64 offset)
 {
 	int primaryError;
 	bool mirrorDataLossOccurred;	// We'll look at this at close time.
@@ -220,7 +220,7 @@ TruncateAOSegmentFile(MirroredAppendOnlyOpen *mirroredOpen, Relation rel, int64 
 							&primaryError,
 							&mirrorDataLossOccurred);
 	if (primaryError != 0)
-		ereport(elevel,
+		ereport(ERROR,
 				(errmsg("\"%s\": failed to truncate data after eof: %s", 
 					    relname,
 					    strerror(primaryError))));

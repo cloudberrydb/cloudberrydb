@@ -132,7 +132,7 @@ AOCSSegmentFileTruncateToEOF(Relation aorel,
 
 		if (OpenAOSegmentFile(aorel, filenamepath, fileSegNo, segeof, &mirroredOpened))
 		{
-			TruncateAOSegmentFile(&mirroredOpened, aorel, segeof, ERROR);
+			TruncateAOSegmentFile(&mirroredOpened, aorel, segeof);
 			CloseAOSegmentFile(&mirroredOpened);
 
 			elogif(Debug_appendonly_print_compaction, LOG,

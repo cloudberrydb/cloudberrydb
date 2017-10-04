@@ -47,10 +47,10 @@ extern bool OpenAOSegmentFile(
 extern void CloseAOSegmentFile(
 				   struct MirroredAppendOnlyOpen *mirroredOpen);
 
-extern void TruncateAOSegmentFile(
-					  struct MirroredAppendOnlyOpen *mirroredOpen,
-					  Relation rel,
-					  int64 offset,
-					  int elevel);
+extern void
+TruncateAOSegmentFile(
+					  struct MirroredAppendOnlyOpen *mirroredOpen, 
+					  Relation rel, 
+					  int64 offset);
 
 #endif							/* AOMD_H */
