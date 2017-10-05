@@ -91,8 +91,7 @@
     <section id="topic833sp" xml:lang="en">
      <title>Spill to Disk</title>
       <p><codeph>MEMORY_SPILL_RATIO</codeph> identifies the memory usage threshold for memory-intensive operators in a transaction. When the transaction reaches this memory threshold, it spills to disk. Greenplum Database uses the <codeph>MEMORY_SPILL_RATIO</codeph> to determine the initial memory to allocate to a transaction.</p>
-      <p> The minimum <codeph>MEMORY_SPILL_RATIO</codeph> percentage you can specify for a resource group is 1. The maximum is 100. The upper limit of this ratio is (100 - <codeph>MEMORY_SHARED_QUOTA</codeph>). The default <codeph>MEMORY_SPILL_RATIO</codeph> is 20.</p>
-      <p>The sum of <codeph>MEMORY_SHARED_QUOTA</codeph> and <codeph>MEMORY_SPILL_RATIO</codeph> must not exceed 100.</p>
+      <p> The minimum <codeph>MEMORY_SPILL_RATIO</codeph> percentage you can specify for a resource group is 0. The maximum is 100. The default <codeph>MEMORY_SPILL_RATIO</codeph> is 20.</p>
       <p>You define the <codeph>MEMORY_SPILL_RATIO</codeph> when you create a resource group. You can selectively set this limit on a per-query basis at the session level with the <codeph><xref href="../ref_guide/config_params/guc-list.xml#memory_spill_ratio" type="section"/></codeph> server configuration parameter.</p>
     </section>
  

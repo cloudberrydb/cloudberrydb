@@ -58,11 +58,11 @@ MEMORY_LIMIT=<varname>integer</varname>
         </plentry>
         <plentry>
           <pt>MEMORY_SHARED_QUOTA <varname>integer</varname></pt>
-          <pd>The quota of shared memory in the resource group. Resource groups with a <codeph>MEMORY_SHARED_QUOTA</codeph> threshold set aside a percentage of memory allotted to the resource group to share across transactions. This shared memory is allocated on a first-come, first-served basis as available. A transaction may use none, some, or all of this memory. The minimum memory shared quota percentage you can specify for a resource group is 0. The maximum is 100. The default <codeph>MEMORY_SHARED_QUOTA</codeph> value is 20. The sum of the <codeph>MEMORY_SHARED_QUOTA</codeph> and <codeph>MEMORY_SPILL_RATIO</codeph> values specified for a resource group cannot exceed 100.</pd>
+          <pd>The quota of shared memory in the resource group. Resource groups with a <codeph>MEMORY_SHARED_QUOTA</codeph> threshold set aside a percentage of memory allotted to the resource group to share across transactions. This shared memory is allocated on a first-come, first-served basis as available. A transaction may use none, some, or all of this memory. The minimum memory shared quota percentage you can specify for a resource group is 0. The maximum is 100. The default <codeph>MEMORY_SHARED_QUOTA</codeph> value is 20.</pd>
         </plentry>
         <plentry>
           <pt>MEMORY_SPILL_RATIO <varname>integer</varname></pt>
-          <pd>The memory usage threshold for memory-intensive operators in a transaction. When the transaction reaches this threshold, it spills to disk. The minimum memory spill ratio percentage you can specify for a resource group is 1. The maximum is 100. The upper limit is (100 - <codeph>MEMORY_SHARED_QUOTA</codeph>). The default <codeph>MEMORY_SPILL_RATIO</codeph> value is 20. The sum of the <codeph>MEMORY_SHARED_QUOTA</codeph> and <codeph>MEMORY_SPILL_RATIO</codeph> values specified for a resource group cannot exceed 100.</pd>
+          <pd>The memory usage threshold for memory-intensive operators in a transaction. When the transaction reaches this threshold, it spills to disk. The minimum memory spill ratio percentage you can specify for a resource group is 0. The maximum is 100. The default <codeph>MEMORY_SPILL_RATIO</codeph> value is 20.</pd>
         </plentry>
       </parml>
     </section>
