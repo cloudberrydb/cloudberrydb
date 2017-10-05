@@ -374,6 +374,7 @@ extern HTSU_Result appendonly_update(
 
 #ifdef USE_SEGWALREP
 #define XLOG_APPENDONLY_INSERT    0x00
+#define XLOG_APPENDONLY_TRUNCATE  0x10
 
 typedef struct xl_ao_insert
 {
@@ -385,6 +386,14 @@ typedef struct xl_ao_insert
 } xl_ao_insert;
 
 #define SizeOfAOInsert (offsetof(xl_ao_insert, offset) + sizeof(int64))
+
+typedef struct xl_ao_truncate
+{
+	/* meta data about the truncated AO/CO file*/
+	RelFileNode node;
+	uint		segment_filenum;
+	int64		offset;
+} xl_ao_truncate;
 
 extern void appendonly_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record);
 extern void appendonly_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record);

@@ -1487,20 +1487,47 @@ print_rmgr_ao(XLogRecPtr cur, XLogRecord *record, uint8 info)
 	char relName[NAMEDATALEN];
 	char buf[1024];
 
-	xl_ao_insert xlrec;
-	uint64       len;
+	switch (info)
+	{
+		case XLOG_APPENDONLY_INSERT:
+			{
+				xl_ao_insert xlrec;
+				uint64       len;
 
-	memcpy(&xlrec, XLogRecGetData(record), sizeof(xlrec));
-	len = record->xl_len - SizeOfAOInsert;
+				memcpy(&xlrec, XLogRecGetData(record), sizeof(xlrec));
+				len = record->xl_len - SizeOfAOInsert;
 
-	getSpaceName(xlrec.node.spcNode, spaceName, sizeof(spaceName));
-	getDbName(xlrec.node.dbNode, dbName, sizeof(dbName));
-	getRelName(xlrec.node.relNode, relName, sizeof(relName));
+				getSpaceName(xlrec.node.spcNode, spaceName, sizeof(spaceName));
+				getDbName(xlrec.node.dbNode, dbName, sizeof(dbName));
+				getRelName(xlrec.node.relNode, relName, sizeof(relName));
 
-	snprintf(buf, sizeof(buf), "insert: s/d/r:%s/%s/%s segfile/off:%u/%lu, len: %lu",
-			 spaceName, dbName, relName,
-			 xlrec.segment_filenum,
-			 xlrec.offset, len);
+				snprintf(
+					buf, sizeof(buf),
+					"insert: s/d/r:%s/%s/%s segfile/off:%u/" INT64_FORMAT ", len:%lu",
+					spaceName, dbName, relName,
+					xlrec.segment_filenum, xlrec.offset, len);
+			}
+			break;
+		case XLOG_APPENDONLY_TRUNCATE:
+			{
+				xl_ao_truncate xlrec;
+				memcpy(&xlrec, XLogRecGetData(record), sizeof(xlrec));
+
+				getSpaceName(xlrec.node.spcNode, spaceName, sizeof(spaceName));
+				getDbName(xlrec.node.dbNode, dbName, sizeof(dbName));
+				getRelName(xlrec.node.relNode, relName, sizeof(relName));
+
+				snprintf(
+					buf, sizeof(buf),
+					"truncate: s/d/r:%s/%s/%s segfile/off:%u/" INT64_FORMAT,
+					spaceName, dbName, relName,
+					xlrec.segment_filenum, xlrec.offset);
+			}
+			break;
+		default:
+			snprintf(buf, sizeof(buf), "unknown");
+	}
+
 	print_rmgr_record(cur, record, buf);
 }
 #endif		/* USE_SEGWALREP */

@@ -44,30 +44,64 @@ AppendOnlyStorage_GetUsableBlockSize(int32 configBlockSize)
 void
 appendonly_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 {
+	uint8         xl_info = record->xl_info;
+	uint8         info = xl_info & ~XLR_INFO_MASK;
+
 	/*
-	 * Perform redo of AO XLOG records only for standby mode.  We do not need
-	 * to replay AO XLOG records in normal mode because fsync is performed on
-	 * file close.
+	 * Perform redo of AO XLOG records only for standby mode. We do
+	 * not need to replay AO XLOG records in normal mode because fsync
+	 * is performed on file close.
 	 */
-	if (IsStandbyMode())
-		ao_xlog_insert(record);
+	if (!IsStandbyMode())
+		return;
+
+	switch (info)
+	{
+		case XLOG_APPENDONLY_INSERT:
+			ao_insert_replay(record);
+			break;
+		case XLOG_APPENDONLY_TRUNCATE:
+			ao_truncate_replay(record);
+			break;
+		default:
+			elog(PANIC, "appendonly_redo: unknown code %u", info);
+	}
 }
 
 void
 appendonly_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record)
 {
-	xl_ao_insert *xlrec = (xl_ao_insert *) XLogRecGetData(record);
-	uint8		xl_info = record->xl_info;
-	uint8		info = xl_info & ~XLR_INFO_MASK;
+	uint8		  xl_info = record->xl_info;
+	uint8		  info = xl_info & ~XLR_INFO_MASK;
 
-	if (info == XLOG_APPENDONLY_INSERT)
+	switch (info)
 	{
-		appendStringInfo(buf, "insert: rel %u/%u/%u seg/offset:%u/" INT64_FORMAT " len:%lu",
-						 xlrec->node.spcNode, xlrec->node.dbNode,
-						 xlrec->node.relNode, xlrec->segment_filenum,
-						 xlrec->offset, record->xl_len - SizeOfAOInsert);
+		case XLOG_APPENDONLY_INSERT:
+			{
+				xl_ao_insert *xlrec = (xl_ao_insert *)XLogRecGetData(record);
+
+				appendStringInfo(
+					buf,
+					"insert: rel %u/%u/%u seg/offset:%u/" INT64_FORMAT " len:%lu",
+					xlrec->node.spcNode, xlrec->node.dbNode,
+					xlrec->node.relNode, xlrec->segment_filenum,
+					xlrec->offset, record->xl_len - SizeOfAOInsert);
+			}
+			break;
+		case XLOG_APPENDONLY_TRUNCATE:
+			{
+				xl_ao_truncate *xlrec = (xl_ao_truncate *)XLogRecGetData(record);
+
+				appendStringInfo(
+					buf,
+					"truncate: rel %u/%u/%u seg/offset:%u/" INT64_FORMAT,
+					xlrec->node.spcNode, xlrec->node.dbNode,
+					xlrec->node.relNode, xlrec->segment_filenum,
+					xlrec->offset);
+			}
+			break;
+		default:
+			appendStringInfo(buf, "UNKNOWN");
 	}
-	else
-		appendStringInfo(buf, "UNKNOWN");
 }
-#endif							/* USE_SEGWALREP */
+#endif

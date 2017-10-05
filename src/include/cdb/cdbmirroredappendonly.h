@@ -314,7 +314,13 @@ extern int MirroredAppendOnly_Read(
 
 #ifdef USE_SEGWALREP
 extern void
-ao_xlog_insert(XLogRecord *record);
+ao_insert_replay(XLogRecord *record);
+
+extern void
+xlog_ao_truncate(MirroredAppendOnlyOpen *open, int64 offset);
+
+extern void
+ao_truncate_replay(XLogRecord *record);
 #endif
 
 #endif   /* CDBMIRROREDAPPENDONLY_H */

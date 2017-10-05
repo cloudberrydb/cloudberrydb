@@ -13,6 +13,8 @@ create or replace function test_send() RETURNS bool AS
 create or replace function test_receive_and_verify(text, text) RETURNS bool AS
  '@abs_builddir@/gplibpq@DLSUFFIX@' LANGUAGE C VOLATILE STRICT NO SQL;
 
-create or replace function test_xlog_ao(text, text, oid, oid, oid, bigint[], bool)
- RETURNS int AS
+create or replace function test_xlog_ao(IN text, IN text, IN oid, IN oid,
+       	  	  	   		IN oid, IN bigint[], IN bool,
+					OUT insert_count INT, OUT truncate_count INT)
+ RETURNS SETOF record AS
  '@abs_builddir@/gplibpq@DLSUFFIX@' LANGUAGE C VOLATILE STRICT NO SQL;

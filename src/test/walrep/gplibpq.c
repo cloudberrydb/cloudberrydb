@@ -11,6 +11,7 @@
 #include "replication/walprotocol.h"
 #include "replication/walreceiver.h"
 #include "cdb/cdbappendonlyam.h"
+#include "funcapi.h"
 
 PG_MODULE_MAGIC;
 
@@ -315,6 +316,20 @@ test_PrintLog(char *type, XLogRecPtr walPtr,
 Datum
 test_xlog_ao(PG_FUNCTION_ARGS)
 {
+	TupleDesc	tupdesc;
+	int			nattr = 2;
+	Datum    values[2];
+	bool   nulls[2];
+	HeapTuple tuple;
+
+    MemSet(nulls, false, sizeof(nulls));
+   
+	tupdesc = CreateTemplateTupleDesc(nattr, false);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 1, "insert_count", INT4OID, -1, 0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 2, "truncate_count", INT4OID, -1, 0);
+
+	tupdesc = BlessTupleDesc(tupdesc);
+
 	int		  num_found = 0;
 
 #ifdef USE_SEGWALREP
@@ -353,7 +368,11 @@ test_xlog_ao(PG_FUNCTION_ARGS)
 	walrcv_disconnect();
 #endif		/* USE_SEGWALREP */
 
-	PG_RETURN_INT32(num_found);
+	values[0] = Int32GetDatum(num_found);
+	values[1] = Int32GetDatum(0);
+
+	tuple = heap_form_tuple(tupdesc, values, nulls);
+	PG_RETURN_DATUM(HeapTupleGetDatum(tuple));
 }
 
 #ifdef USE_SEGWALREP

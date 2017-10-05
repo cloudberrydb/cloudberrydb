@@ -224,6 +224,8 @@ TruncateAOSegmentFile(MirroredAppendOnlyOpen *mirroredOpen, Relation rel, int64 
 				(errmsg("\"%s\": failed to truncate data after eof: %s", 
 					    relname,
 					    strerror(primaryError))));
-	
+#ifdef USE_SEGWALREP
+	if (!rel->rd_istemp)
+		xlog_ao_truncate(mirroredOpen, offset);
+#endif
 }
-
