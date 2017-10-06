@@ -846,7 +846,7 @@ select get_selected_parts('explain analyze select * from bar where j>0.02;');
 select get_selected_parts('explain analyze select * from bar where j>2.8;');
 
 -- Distinct From
--- TODO: #141722947 6 parts: Everything except 1 part that contains 5.6.
+-- 6 parts: Everything except 1 part that contains 5.6.
 select get_selected_parts('explain analyze select * from bar where j is distinct from 5.6;');
 -- 8 parts: NULL is shared with others on p1. So, all 8 parts.
 select get_selected_parts('explain analyze select * from bar where j is distinct from NULL;');

@@ -3004,7 +3004,7 @@ select get_selected_parts('explain analyze select * from bar where j>2.8;');
 (1 row)
 
 -- Distinct From
--- TODO: #141722947 6 parts: Everything except 1 part that contains 5.6.
+-- 6 parts: Everything except 1 part that contains 5.6.
 select get_selected_parts('explain analyze select * from bar where j is distinct from 5.6;');
  get_selected_parts 
 --------------------
