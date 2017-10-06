@@ -32,15 +32,6 @@ function run_regression_test() {
 }
 
 function run_pxf_automation() {
-	export GPHD_ROOT=$1
-	pushd ${GPHD_ROOT} > /dev/null
-		mkdir -p pxf && cd pxf
-		ln -s ${PXF_HOME}/conf conf
-		for X in ${PXF_HOME}/lib/pxf-*-[0-9]*.jar; do \
-			ln -s ${X} $(echo $(basename ${X}) | sed -e 's/-[a-zA-Z0-9.]*.jar/.jar/'); \
-		done
-	popd > /dev/null
-
 	cat > /home/gpadmin/run_pxf_automation_test.sh <<-EOF
 	set -exo pipefail
 
@@ -49,7 +40,7 @@ function run_pxf_automation() {
 
 	# set variables needed by PXF Automation and Parot to run in GPDB mode with SingleCluster and standalone PXF
 	export PG_MODE=GPDB
-	export GPHD_ROOT=\${1}/singlecluster
+	export GPHD_ROOT=$1
 	export PXF_HOME=${PXF_HOME}
 
 	# Copy PSI package from system python to GPDB as automation test requires it
