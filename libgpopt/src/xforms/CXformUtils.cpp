@@ -840,12 +840,13 @@ CXformUtils::SubqueryAnyToAgg
 	CExpression *pexprInner = (*pexprSubquery)[0];
 
 	// build subquery quantified comparison
-	CExpressionHandle exprhdlSubquery(pmp);
-	exprhdlSubquery.Attach(pexprSubquery);
-	CExpression *pexprSubqPred = CScalarSubqueryQuantified::PopConvert(pexprSubquery->Pop())->PexprSubqueryPred(pmp, exprhdlSubquery);
+	CScalarSubqueryQuantified *popSubquery = CScalarSubqueryQuantified::PopConvert(pexprSubquery->Pop());
+	CExpression *pexprResult = NULL;
+	CSubqueryHandler sh(pmp, false /* fEnforceCorrelatedApply */);
+	CExpression *pexprSubqPred = popSubquery->PexprSubqueryPred(sh, pexprInner, pexprSubquery, &pexprResult);
 
 	const CColRef *pcrSubq = CScalarSubqueryQuantified::PopConvert(pexprSubquery->Pop())->Pcr();
-	BOOL fUsesNullableCol = CUtils::FUsesNullableCol(pmp, pexprSubqPred, pexprInner);
+	BOOL fUsesNullableCol = CUtils::FUsesNullableCol(pmp, pexprSubqPred, pexprResult);
 
 	CExpression *pexprInnerNew = NULL;
 	pexprInner->AddRef();
@@ -853,8 +854,8 @@ CXformUtils::SubqueryAnyToAgg
 	{
 		// add a null indicator
 		CExpression *pexprNullIndicator = PexprNullIndicator(pmp, CUtils::PexprScalarIdent(pmp, pcrSubq));
-		CExpression *pexprPrj = CUtils::PexprAddProjection(pmp, pexprInner, pexprNullIndicator);
-		pexprInner = pexprPrj;
+		CExpression *pexprPrj = CUtils::PexprAddProjection(pmp, pexprResult, pexprNullIndicator);
+		pexprResult = pexprPrj;
 
 		// add disjunction with is not null check
 		DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
@@ -864,7 +865,7 @@ CXformUtils::SubqueryAnyToAgg
 		pexprSubqPred = CPredicateUtils::PexprDisjunction(pmp, pdrgpexpr);
 	}
 
-	CExpression *pexprSelect = CUtils::PexprLogicalSelect(pmp, pexprInner, pexprSubqPred);
+	CExpression *pexprSelect = CUtils::PexprLogicalSelect(pmp, pexprResult, pexprSubqPred);
 	if (fUsesNullableCol)
 	{
 		const CColRef *pcrNullIndicator = CScalarProjectElement::PopConvert((*(*(*pexprSelect)[0])[1])[0]->Pop())->Pcr();

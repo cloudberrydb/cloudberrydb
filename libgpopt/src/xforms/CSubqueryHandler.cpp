@@ -973,9 +973,9 @@ CSubqueryHandler::FCreateCorrelatedApplyForQuantifiedSubquery
 	CColRef *pcr = const_cast<CColRef *>(popSubquery->Pcr());
 
 	// build subquery quantified comparison
-	CExpressionHandle exprhdlSubquery(pmp);
-	exprhdlSubquery.Attach(pexprSubquery);
-	CExpression *pexprPredicate = popSubquery->PexprSubqueryPred(pmp, exprhdlSubquery);
+	CExpression *pexprResult = NULL;
+	CSubqueryHandler sh(pmp, true /* fEnforceCorrelatedApply */);
+	CExpression *pexprPredicate = popSubquery->PexprSubqueryPred(sh, pexprInner, pexprSubquery, &pexprResult);
 
 	pexprInner->AddRef();
 	if (EsqctxtFilter == esqctxt && !fDisjunction)
@@ -983,11 +983,11 @@ CSubqueryHandler::FCreateCorrelatedApplyForQuantifiedSubquery
 		// we can use correlated semi-IN/anti-semi-NOT-IN apply here since the subquery is used in filtering context
 		if (COperator::EopScalarSubqueryAny == eopidSubq)
 		{
-			*ppexprNewOuter = CUtils::PexprLogicalApply<CLogicalLeftSemiCorrelatedApplyIn>(pmp, pexprOuter, pexprInner, pcr, eopidSubq, pexprPredicate);
+			*ppexprNewOuter = CUtils::PexprLogicalApply<CLogicalLeftSemiCorrelatedApplyIn>(pmp, pexprOuter, pexprResult, pcr, eopidSubq, pexprPredicate);
 		}
 		else
 		{
-			*ppexprNewOuter = CUtils::PexprLogicalApply<CLogicalLeftAntiSemiCorrelatedApplyNotIn>(pmp, pexprOuter, pexprInner, pcr, eopidSubq, pexprPredicate);
+			*ppexprNewOuter = CUtils::PexprLogicalApply<CLogicalLeftAntiSemiCorrelatedApplyNotIn>(pmp, pexprOuter, pexprResult, pcr, eopidSubq, pexprPredicate);
 		}
 		*ppexprResidualScalar = CUtils::PexprScalarConstBool(pmp, true /*fVal*/);
 
@@ -997,7 +997,7 @@ CSubqueryHandler::FCreateCorrelatedApplyForQuantifiedSubquery
 	// subquery occurs in a value context or disjunction, we need to create an outer apply expression
 	// add a project node with constant true to be used as subplan place holder
 	CExpression *pexprProjectConstTrue =
-		CUtils::PexprAddProjection(pmp, pexprInner, CUtils::PexprScalarConstBool(pmp, true /*fVal*/));
+		CUtils::PexprAddProjection(pmp, pexprResult, CUtils::PexprScalarConstBool(pmp, true /*fVal*/));
 	CColRef *pcrBool = CScalarProjectElement::PopConvert((*(*pexprProjectConstTrue)[1])[0]->Pop())->Pcr();
 
 	// add the created column and subquery column to required inner columns
@@ -1193,21 +1193,21 @@ CSubqueryHandler::FRemoveAnySubquery
 	COperator::EOperatorId eopidSubq = pexprSubquery->Pop()->Eopid();
 
 	// build subquery quantified comparison
-	CExpressionHandle exprhdlSubquery(pmp);
-	exprhdlSubquery.Attach(pexprSubquery);
-	CExpression *pexprPredicate = CScalarSubqueryQuantified::PopConvert(pexprSubquery->Pop())->PexprSubqueryPred(pmp, exprhdlSubquery);
+	CScalarSubqueryQuantified *popSubquery = CScalarSubqueryQuantified::PopConvert(pexprSubquery->Pop());
+	CExpression *pexprResult = NULL;
+	CExpression *pexprPredicate = popSubquery->PexprSubqueryPred(sh, pexprInner, pexprSubquery, &pexprResult);
 
 	// generate a select for the quantified predicate
 	pexprInner->AddRef();
-	CExpression *pexprSelect = CUtils::PexprLogicalSelect(pmp, pexprInner, pexprPredicate);
+	CExpression *pexprSelect = CUtils::PexprLogicalSelect(pmp, pexprResult, pexprPredicate);
 
 	BOOL fSuccess = true;
 	if (fDisjunctionOrNegation || EsqctxtValue == esqctxt || EsqctxtNullTest == esqctxt)
 	{
-		if (!CDrvdPropRelational::Pdprel(pexprInner->PdpDerive())->PcrsNotNull()->FMember(pcr))
+		if (!CDrvdPropRelational::Pdprel(pexprResult->PdpDerive())->PcrsNotNull()->FMember(pcr))
 		{
 			// if inner column is nullable, we create a disjunction to handle null values
-			CExpression *pexprNewSelect = PexprInnerSelect(pmp, pcr, pexprInner, pexprPredicate);
+			CExpression *pexprNewSelect = PexprInnerSelect(pmp, pcr, pexprResult, pexprPredicate);
 			pexprSelect->Release();
 			pexprSelect = pexprNewSelect;
 		}
@@ -1336,12 +1336,12 @@ CSubqueryHandler::FRemoveAllSubquery
 		// outer references in SubqueryAll necessitate correlated execution for correctness
 
 		// build subquery quantified comparison
-		CExpressionHandle exprhdlSubquery(pmp);
-		exprhdlSubquery.Attach(pexprSubquery);
-		pexprPredicate = CScalarSubqueryQuantified::PopConvert(pexprSubquery->Pop())->PexprSubqueryPred(pmp, exprhdlSubquery);
+		CScalarSubqueryQuantified *popSubquery = CScalarSubqueryQuantified::PopConvert(pexprSubquery->Pop());
+		CExpression *pexprResult = NULL;
+		CExpression *pexprPredicate = popSubquery->PexprSubqueryPred(sh, pexprInner, pexprSubquery, &pexprResult);
 
 		*ppexprResidualScalar = CUtils::PexprScalarConstBool(pmp, true /*fVal*/);
-		*ppexprNewOuter = CUtils::PexprLogicalApply<CLogicalLeftAntiSemiCorrelatedApplyNotIn>(pmp, pexprOuter, pexprInner, pcr, eopidSubq, pexprPredicate);
+		*ppexprNewOuter = CUtils::PexprLogicalApply<CLogicalLeftAntiSemiCorrelatedApplyNotIn>(pmp, pexprOuter, pexprResult, pcr, eopidSubq, pexprPredicate);
 
 		return fSuccess;
 	}

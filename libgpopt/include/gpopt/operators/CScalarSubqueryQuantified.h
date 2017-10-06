@@ -14,6 +14,7 @@
 #include "gpos/base.h"
 
 #include "gpopt/operators/CScalar.h"
+#include "gpopt/xforms/CSubqueryHandler.h"
 
 namespace gpopt
 {
@@ -117,8 +118,10 @@ namespace gpopt
 			virtual
 			CExpression *PexprSubqueryPred
 				(
-				IMemoryPool *pmp,
-				CExpressionHandle &exprhdl
+				CSubqueryHandler &sh,
+				CExpression *pexprOuter,
+				CExpression *pexprSubquery,
+				CExpression **ppexprResult
 				)
 				const;
 
