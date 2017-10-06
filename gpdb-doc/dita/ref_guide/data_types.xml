@@ -331,7 +331,7 @@
       <p>The pseudo-type <i>void</i> indicates that a function returns no value.</p>
       <note>Greenplum Database does not support triggers and the pseudo-type <i>trigger</i>.</note>
       <p>The types <i>anyelement</i>, <i>anyarray</i>, <i>anynonarray</i>, and <i>anyenum</i> are
-        psuedo-types called polymorphic types. Some procedural languages also support polymorphic
+        pseudo-types called polymorphic types. Some procedural languages also support polymorphic
         functions using the types <i>anyarray</i>, <i>anyelement</i>, <i>anyenum</i>, and
           <i>anynonarray</i>.</p>
       <p>For more information about pseudo-types, see the Postgres documentation about <xref
