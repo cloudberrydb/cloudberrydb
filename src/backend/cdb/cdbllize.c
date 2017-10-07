@@ -560,9 +560,13 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
 		 */
 		/* GPDB_84_MERGE_FIXME: Should we pass includePlaceHolderVars as true */
 		/* in pull_var_clause ? */
-		List	   *scanVars = pull_var_clause((Node *) scanPlan->targetlist, false);
+		List	   *scanVars;
 
-		scanVars = list_concat(scanVars, pull_var_clause((Node *) resQual, false));
+		scanVars = list_concat(
+			pull_var_clause((Node *) scanPlan->targetlist,
+							PVC_REJECT_PLACEHOLDERS),
+			pull_var_clause((Node *) resQual,
+							PVC_REJECT_PLACEHOLDERS));
 
 		/*
 		 * Step 4: Construct the new targetlist for the scan node

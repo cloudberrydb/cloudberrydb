@@ -203,7 +203,7 @@ find_placeholders_in_qual(PlannerInfo *root, Node *qual, Relids relids)
 	 * pull_var_clause does more than we need here, but it'll do and it's
 	 * convenient to use.
 	 */
-	vars = pull_var_clause(qual, true);
+	vars = pull_var_clause(qual, PVC_INCLUDE_PLACEHOLDERS);
 	foreach(vl, vars)
 	{
 		PlaceHolderVar *phv = (PlaceHolderVar *) lfirst(vl);
@@ -351,7 +351,7 @@ fix_placeholder_input_needed_levels(PlannerInfo *root)
 		if (bms_membership(eval_at) == BMS_MULTIPLE)
 		{
 			List	   *vars = pull_var_clause((Node *) phinfo->ph_var->phexpr,
-											   true);
+											   PVC_INCLUDE_PLACEHOLDERS);
 
 			add_vars_to_targetlist(root, vars, eval_at);
 			list_free(vars);

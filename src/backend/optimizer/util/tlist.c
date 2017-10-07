@@ -133,7 +133,8 @@ tlist_member_ignore_relabel(Node *node, List *targetlist)
 List *
 flatten_tlist(List *tlist)
 {
-	List	   *vlist = pull_var_clause((Node *) tlist, true);
+	List	   *vlist = pull_var_clause((Node *) tlist,
+										PVC_INCLUDE_PLACEHOLDERS);
 	List	   *new_tlist;
 
 	new_tlist = add_to_flat_tlist(NIL, vlist);

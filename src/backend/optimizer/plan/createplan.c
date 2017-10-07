@@ -4600,7 +4600,8 @@ make_sort_from_pathkeys(PlannerInfo *root, Plan *lefttree, List *pathkeys,
 					if (em->em_is_const || em->em_is_child)
 						continue;
 					sortexpr = em->em_expr;
-					exprvars = pull_var_clause((Node *) sortexpr, true);
+					exprvars = pull_var_clause((Node *) sortexpr,
+											   PVC_INCLUDE_PLACEHOLDERS);
 					foreach(k, exprvars)
 					{
 						if (!tlist_member_ignore_relabel(lfirst(k), tlist))

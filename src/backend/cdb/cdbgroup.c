@@ -2607,7 +2607,7 @@ make_subplan_tlist(List *tlist, Node *havingQual,
 	sub_tlist = flatten_tlist(tlist);
 	/* GPDB_84_MERGE_FIXME: Should we pass includePlaceHolderVars as true */
 	/* in pull_var_clause ? */
-	extravars = pull_var_clause(havingQual, false);
+	extravars = pull_var_clause(havingQual, PVC_REJECT_PLACEHOLDERS);
 	sub_tlist = add_to_flat_tlist(sub_tlist, extravars);
 	list_free(extravars);
 

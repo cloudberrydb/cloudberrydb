@@ -2049,11 +2049,15 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			foreach(l, activeWindows)
 			{
 				WindowClause *wc = (WindowClause *) lfirst(l);
+				List	   *extravars;
 
-				window_tlist = add_to_flat_tlist(window_tlist,
-												 pull_var_clause(wc->startOffset, true));
-				window_tlist = add_to_flat_tlist(window_tlist,
-												 pull_var_clause(wc->endOffset, true));
+				extravars = pull_var_clause(wc->startOffset,
+											PVC_INCLUDE_PLACEHOLDERS);
+				window_tlist = add_to_flat_tlist(window_tlist, extravars);
+
+				extravars = pull_var_clause(wc->endOffset,
+											PVC_INCLUDE_PLACEHOLDERS);
+				window_tlist = add_to_flat_tlist(window_tlist, extravars);
 			}
 
 			window_tlist = add_to_flat_tlist_junk(window_tlist,
@@ -3504,7 +3508,7 @@ make_subplanTargetList(PlannerInfo *root,
 	 * and window specifications.
 	 */
 	sub_tlist = flatten_tlist(tlist);
-	extravars = pull_var_clause(parse->havingQual, true);
+	extravars = pull_var_clause(parse->havingQual, PVC_INCLUDE_PLACEHOLDERS);
 	sub_tlist = add_to_flat_tlist(sub_tlist, extravars);
 	list_free(extravars);
 
