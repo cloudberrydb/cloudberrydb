@@ -16,7 +16,7 @@
 #ifndef TLIST_H
 #define TLIST_H
 
-#include "nodes/relation.h"
+#include "optimizer/var.h"
 
 
 // return the first target entries that match the node expression
@@ -28,7 +28,8 @@ extern List *tlist_members(Node *node, List *targetlist);
 
 extern TargetEntry *tlist_member_ignoring_RelabelType(Expr *expr, List *targetlist);
 
-extern List *flatten_tlist(List *tlist);
+extern List *flatten_tlist(List *tlist, PVCAggregateBehavior aggbehavior,
+			  PVCPlaceHolderBehavior phbehavior);
 extern List *add_to_flat_tlist_junk(List *tlist, List *exprs, bool resjunk);
 extern List *add_to_flat_tlist(List *tlist, List *exprs);
 

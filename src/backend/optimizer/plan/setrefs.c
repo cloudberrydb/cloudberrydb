@@ -2565,7 +2565,9 @@ cdb_insert_result_node(PlannerGlobal *glob, Plan *plan, int rtoffset)
     resultplan = (Plan *) make_result(NULL, plan->targetlist, NULL, plan);
 
     /* Build a new targetlist for the given Plan, with Var nodes only. */
-    plan->targetlist = flatten_tlist(plan->targetlist);
+    plan->targetlist = flatten_tlist(plan->targetlist,
+									 PVC_RECURSE_AGGREGATES,
+									 PVC_INCLUDE_PLACEHOLDERS);
 
     /* Fix up the Result node and the Plan tree below it. */
     resultplan = set_plan_refs(glob, resultplan, rtoffset);

@@ -197,7 +197,9 @@ gen_implied_qual(PlannerInfo *root,
 	 */
 	if (bms_membership(new_qualscope) == BMS_MULTIPLE)
 	{
-		List	   *vars = pull_var_clause(new_clause, PVC_INCLUDE_PLACEHOLDERS);
+		List	   *vars = pull_var_clause(new_clause,
+										   PVC_RECURSE_AGGREGATES,
+										   PVC_INCLUDE_PLACEHOLDERS);
 
 		add_vars_to_targetlist(root, vars, required_relids);
 		list_free(vars);

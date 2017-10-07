@@ -77,7 +77,6 @@ extern Expr *make_ands_explicit(List *andclauses);
 extern List *make_ands_implicit(Expr *clause);
 
 extern bool contain_agg_clause(Node *clause);
-extern List *pull_agg_clause(Node *clause);
 extern void count_agg_clauses(Node *clause, AggClauseCounts *counts);
 
 extern bool contain_window_function(Node *clause);

@@ -558,14 +558,15 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
 		 * Step 3: Find all the vars that are needed from the scan node
 		 * for upstream processing.
 		 */
-		/* GPDB_84_MERGE_FIXME: Should we pass includePlaceHolderVars as true */
-		/* in pull_var_clause ? */
+		/* GPDB_84_MERGE_FIXME: What are the correct PVC_* modes here? */
 		List	   *scanVars;
 
 		scanVars = list_concat(
 			pull_var_clause((Node *) scanPlan->targetlist,
+							PVC_RECURSE_AGGREGATES,
 							PVC_REJECT_PLACEHOLDERS),
 			pull_var_clause((Node *) resQual,
+							PVC_RECURSE_AGGREGATES,
 							PVC_REJECT_PLACEHOLDERS));
 
 		/*

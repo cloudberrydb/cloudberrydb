@@ -146,6 +146,7 @@ void
 build_base_rel_tlists(PlannerInfo *root, List *final_tlist)
 {
 	List	   *tlist_vars = pull_var_clause((Node *) final_tlist,
+											 PVC_RECURSE_AGGREGATES,
 											 PVC_INCLUDE_PLACEHOLDERS);
 
 	if (tlist_vars != NIL)
@@ -970,7 +971,9 @@ compute_semijoin_info(SpecialJoinInfo* sjinfo, PlannerInfo* root)
 	 */
 	// GPDB_84_MERGE_FIXME: Should we include placeholder vars as well in pull_var_clause?
 	in_vars = pull_var_clause((Node *) sjinfo->semi_rhs_exprs,
+							  PVC_RECURSE_AGGREGATES,
 							  PVC_REJECT_PLACEHOLDERS);
+
 	if (in_vars != NIL)
 	{
 		add_vars_to_targetlist(root, in_vars,
@@ -1285,7 +1288,9 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 	 */
 	if (bms_membership(relids) == BMS_MULTIPLE)
 	{
-		List	   *vars = pull_var_clause(clause, PVC_INCLUDE_PLACEHOLDERS);
+		List	   *vars = pull_var_clause(clause,
+										   PVC_RECURSE_AGGREGATES,
+										   PVC_INCLUDE_PLACEHOLDERS);
 
 		add_vars_to_targetlist(root, vars, relids);
 		list_free(vars);
