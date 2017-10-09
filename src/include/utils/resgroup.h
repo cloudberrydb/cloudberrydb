@@ -20,6 +20,11 @@
 #include "catalog/pg_resgroup.h"
 
 /*
+ * The max number of resource groups.
+ */
+#define MaxResourceGroups 100
+
+/*
  * Resource group capability.
  */
 typedef struct ResGroupCap
@@ -91,7 +96,6 @@ extern int						gp_resgroup_memory_policy_auto_fixed_mem;
 extern bool						gp_resgroup_print_operator_memory_limits;
 extern int						memory_spill_ratio;
 
-extern int MaxResourceGroups;
 extern double gp_resource_group_cpu_limit;
 extern double gp_resource_group_memory_limit;
 

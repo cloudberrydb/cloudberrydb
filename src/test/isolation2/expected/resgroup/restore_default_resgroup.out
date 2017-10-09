@@ -10,9 +10,6 @@
 20170830:00:35:09:440522 gpconfig:sdw6:gpadmin-[WARNING]:-Managing queries with resource groups is an experimental feature. A work-in-progress version is enabled.
 20170830:00:35:10:440522 gpconfig:sdw6:gpadmin-[INFO]:-completed successfully with parameters '-c gp_resource_manager -v group'
 
-! gpconfig -c max_resource_groups -v 40;
-20170830:00:35:11:440642 gpconfig:sdw6:gpadmin-[INFO]:-completed successfully with parameters '-c max_resource_groups -v 40'
-
 ! gpconfig -c max_connections -v 100 -m 40;
 20170830:00:35:11:440726 gpconfig:sdw6:gpadmin-[INFO]:-completed successfully with parameters '-c max_connections -v 100 -m 40'
 

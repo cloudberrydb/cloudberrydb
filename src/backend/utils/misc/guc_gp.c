@@ -3755,15 +3755,6 @@ struct config_int ConfigureNamesInt_gp[] =
 	},
 
 	{
-		{"max_resource_groups", PGC_POSTMASTER, RESOURCES_MGM,
-			gettext_noop("Maximum number of resource groups."),
-			NULL
-		},
-		&MaxResourceGroups,
-		9, 0, INT_MAX, gpvars_assign_max_resource_groups, NULL
-	},
-
-	{
 		{"max_resource_portals_per_transaction", PGC_POSTMASTER, RESOURCES_MGM,
 			gettext_noop("Maximum number of resource queues."),
 			NULL

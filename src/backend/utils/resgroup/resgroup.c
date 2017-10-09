@@ -168,9 +168,6 @@ struct ResGroupControl
 	ResGroupData	groups[1];
 };
 
-/* GUC */
-int		MaxResourceGroups;
-
 /* static variables */
 
 static ResGroupControl *pResGroupControl = NULL;

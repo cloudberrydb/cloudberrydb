@@ -1276,24 +1276,6 @@ gpvars_show_gp_resource_manager_policy(void)
 }
 
 /*
- * gpvars_assign_max_resource_groups
- */
-bool
-gpvars_assign_max_resource_groups(int newval, bool doit, GucSource source __attribute__((unused)))
-{
-	if (doit)
-	{
-		if (newval > MaxConnections)
-			elog(ERROR, "Invalid input for max_resource_groups. Must be no larger than max_connections(%d).", MaxConnections);
-
-		MaxResourceGroups = newval;
-	}
-
-	return true;
-}
-
-
-/*
  * gpvars_assign_gp_resqueue_memory_policy
  * gpvars_show_gp_resqueue_memory_policy
  */

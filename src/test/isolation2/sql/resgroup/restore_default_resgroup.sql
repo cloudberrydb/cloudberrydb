@@ -6,7 +6,6 @@
 
 -- 40 should be enough for the following cases and some
 -- weak test agents may not adopt a higher max_connections
-! gpconfig -c max_resource_groups -v 40;
 ! gpconfig -c max_connections -v 100 -m 40;
 ! gpstop -rai;
 -- end_ignore

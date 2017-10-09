@@ -206,8 +206,7 @@ CreateResourceGroup(CreateResourceGroupStmt *stmt)
 	if (nResGroups >= MaxResourceGroups)
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-				 errmsg("insufficient resource groups available"),
-				 errhint("Increase max_resource_groups")));
+				 errmsg("insufficient resource groups available")));
 
 	/*
 	 * Check the pg_resgroup relation to be certain the group doesn't already
