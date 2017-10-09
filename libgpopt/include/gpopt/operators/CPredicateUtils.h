@@ -209,6 +209,10 @@ namespace gpopt
 			static
 			BOOL FCompareIdentToConst(CExpression *pexpr);
 
+			// is the given expression of the form (col IS DISTINCT FROM const)
+			static
+			BOOL FIdentIDFConst(CExpression *pexpr);
+
 			// checks if comparison is between two columns, or a column and a const
 			static
 			BOOL FCompareColToConstOrCol(CExpression *pexprScalar);

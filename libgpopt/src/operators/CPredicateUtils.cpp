@@ -1086,6 +1086,39 @@ CPredicateUtils::FCompareIdentToConst
 	return true;
 }
 
+// is the given expression of the form (col IS DISTINCT FROM const)
+BOOL
+CPredicateUtils::FIdentIDFConst
+	(
+	CExpression *pexpr
+	)
+{
+	COperator *pop = pexpr->Pop();
+
+	if (COperator::EopScalarIsDistinctFrom != pop->Eopid())
+	{
+		return false;
+	}
+
+	CExpression *pexprLeft = (*pexpr)[0];
+	CExpression *pexprRight = (*pexpr)[1];
+
+	// left side must be scalar ident
+	if (COperator::EopScalarIdent != pexprLeft->Pop()->Eopid())
+	{
+		return false;
+	}
+
+	// right side must be a constant
+	if (COperator::EopScalarConst != pexprRight->Pop()->Eopid())
+	{
+		return false;
+	}
+
+	return true;
+}
+
+
 // is the given expression is of the form (col IS DISTINCT FROM const)
 // ignoring cast on either sides
 BOOL
