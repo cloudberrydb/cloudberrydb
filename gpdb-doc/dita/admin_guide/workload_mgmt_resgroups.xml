@@ -237,6 +237,7 @@ gpstart
     <title id="iz139857">Creating Resource Groups</title>
     <body>
       <p>When you create a resource group, you provide a name, CPU limit, and memory limit. You can optionally provide a concurrent transaction limit and memory shared quota and spill ratio.  Use the <codeph><xref href="../ref_guide/sql_commands/CREATE_RESOURCE_GROUP.xml#topic1" type="topic" format="dita"/></codeph> command to create a new resource group. </p>
+      <p> You must have <codeph>SUPERUSER</codeph> privileges to create a resource group. The maximum number of resource groups allowed in your Greenplum Database cluster is 100.</p>
       <p id="iz152723">When you create a resource group, you must provide <codeph>CPU_RATE_LIMIT</codeph> and <codeph>MEMORY_LIMIT</codeph> limit values.
           These limits identify the percentage of Greenplum Database resources
           to allocate to this resource group. For example, to create a resource group named
