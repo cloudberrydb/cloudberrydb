@@ -379,7 +379,7 @@ extern HTSU_Result appendonly_update(
 typedef struct
 {
 	RelFileNode node;
-	uint		segment_filenum;
+	uint32		segment_filenum;
 	int64		offset;
 } xl_ao_target;
 
