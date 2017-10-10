@@ -23,6 +23,17 @@ static struct
 	XLogRecPtr	Flush;
 } LogstreamResult;
 
+
+#ifdef USE_SEGWALREP
+typedef struct CheckAoRecordResult
+{
+	char ao_xlog_record_type;
+	uint32 xrecoff;
+	Size len;
+	xl_ao_target target;
+} CheckAoRecordResult;
+#endif
+
 static void test_XLogWalRcvProcessMsg(unsigned char type, char *buf,
 									  Size len, XLogRecPtr *logStreamStart);
 static void test_XLogWalRcvWrite(char *buf, Size nbytes, XLogRecPtr recptr);
@@ -31,9 +42,8 @@ static void test_PrintLog(char *type, XLogRecPtr walPtr,
 						  TimestampTz sendTime);
 
 #ifdef USE_SEGWALREP
-static int check_ao_record_present(unsigned char type, char *buf, Oid spc_node,
-								   Oid db_node, Oid rel_node, Size len,
-								   uint64 eof[], uint32 xrecoff, bool aoco);
+static uint32 check_ao_record_present(unsigned char type, char *buf, Size len,
+									  uint32 xrecoff, CheckAoRecordResult *aorecordresults);
 #endif		/* USE_SEGWALREP */
 
 Datum test_connect(PG_FUNCTION_ARGS);
@@ -316,63 +326,105 @@ test_PrintLog(char *type, XLogRecPtr walPtr,
 Datum
 test_xlog_ao(PG_FUNCTION_ARGS)
 {
-	TupleDesc	tupdesc;
-	int			nattr = 2;
-	Datum    values[2];
-	bool   nulls[2];
-	HeapTuple tuple;
-
-    MemSet(nulls, false, sizeof(nulls));
-   
-	tupdesc = CreateTemplateTupleDesc(nattr, false);
-	TupleDescInitEntry(tupdesc, (AttrNumber) 1, "insert_count", INT4OID, -1, 0);
-	TupleDescInitEntry(tupdesc, (AttrNumber) 2, "truncate_count", INT4OID, -1, 0);
-
-	tupdesc = BlessTupleDesc(tupdesc);
-
-	int		  num_found = 0;
 
 #ifdef USE_SEGWALREP
-	char         *conninfo = TextDatumGetCString(PG_GETARG_DATUM(0));
-	text         *start_location = PG_GETARG_TEXT_P(1);
-	Oid           spc_node = PG_GETARG_OID(2);
-	Oid           db_node = PG_GETARG_OID(3);
-	Oid           rel_node = PG_GETARG_OID(4);
-	uint64       *eof = (uint64 *)ARR_DATA_PTR(PG_GETARG_ARRAYTYPE_P(5));
-	bool		  aoco = PG_GETARG_BOOL(6);
-	XLogRecPtr    startpoint;
-	unsigned char type;
-	char         *buf;
-	int           len;
-	uint32         xrecoff;
+	FuncCallContext *funcctx;
 
-	string_to_xlogrecptr(start_location, &startpoint);
-	xrecoff = startpoint.xrecoff;
+	int			nattr = 8;
+	Datum    values[8];
+	bool   nulls[8];
+	HeapTuple tuple;
+	CheckAoRecordResult *aorecordresults;
 
-
-	if (!walrcv_connect(conninfo, startpoint))
-		elog(ERROR, "could not connect");
-
-	for (int i = 0; i < NUM_RETRIES; i++)
+	if (SRF_IS_FIRSTCALL())
 	{
-		if (walrcv_receive(NAPTIME_PER_CYCLE, &type, &buf, &len))
+		TupleDesc	tupdesc;
+		MemoryContext oldcontext;
+
+		/* create a function context for cross-call persistence */
+		funcctx = SRF_FIRSTCALL_INIT();
+
+		/*
+		 * switch to memory context appropriate for multiple function calls
+		*/
+		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
+
+		tupdesc = CreateTemplateTupleDesc(nattr, false);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "recordlen", INT4OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "record_type", TEXTOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "recordlen", INT4OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 4, "spcNode", OIDOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 5, "dbNode", OIDOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 6, "relNode", OIDOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 7, "segment_filenum", INT4OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 8, "file_offset", INT8OID, -1, 0);
+
+		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
+
+		aorecordresults = (CheckAoRecordResult *) palloc0(sizeof(CheckAoRecordResult) * 100);
+		funcctx->user_fctx = (void *) aorecordresults;
+
+		char         *conninfo = TextDatumGetCString(PG_GETARG_DATUM(0));
+		text         *start_location = PG_GETARG_TEXT_P(1);
+
+		XLogRecPtr    startpoint;
+		unsigned char type;
+		char         *buf;
+		int           len;
+		uint32        xrecoff;
+
+		string_to_xlogrecptr(start_location, &startpoint);
+		xrecoff = startpoint.xrecoff;
+
+		if (!walrcv_connect(conninfo, startpoint))
+			elog(ERROR, "could not connect");
+
+		for (int i = 0; i < NUM_RETRIES; i++)
 		{
-			num_found = check_ao_record_present(type, buf, spc_node, db_node,
-												rel_node, len, eof, xrecoff, aoco);
-			break;
+			if (walrcv_receive(NAPTIME_PER_CYCLE, &type, &buf, &len))
+			{
+				funcctx->max_calls = check_ao_record_present(type, buf, len, xrecoff, aorecordresults);
+				break;
+			}
+			else
+				elog(LOG, "walrcv_receive didn't return anything, retry...%d", i);
 		}
-		else
-			elog(LOG, "walrcv_receive didn't return anything, retry...%d", i);
+
+		walrcv_disconnect();
+
+		MemoryContextSwitchTo(oldcontext);
 	}
 
-	walrcv_disconnect();
-#endif		/* USE_SEGWALREP */
+	funcctx = SRF_PERCALL_SETUP();
+	aorecordresults = (CheckAoRecordResult *) funcctx->user_fctx;
 
-	values[0] = Int32GetDatum(num_found);
-	values[1] = Int32GetDatum(0);
+	while(funcctx->call_cntr < funcctx->max_calls)
+	{
+		CheckAoRecordResult *result = &aorecordresults[funcctx->call_cntr];
 
-	tuple = heap_form_tuple(tupdesc, values, nulls);
-	PG_RETURN_DATUM(HeapTupleGetDatum(tuple));
+		values[0] = Int32GetDatum(result->xrecoff);
+		if(result->ao_xlog_record_type == XLOG_APPENDONLY_INSERT)
+			values[1] = CStringGetTextDatum("XLOG_APPENDONLY_INSERT");
+		if(result->ao_xlog_record_type == XLOG_APPENDONLY_TRUNCATE)
+			values[1] = CStringGetTextDatum("XLOG_AYPENDONLY_TRUNCATE");
+
+		values[2] = Int32GetDatum(result->len);
+		values[3] = ObjectIdGetDatum(result->target.node.spcNode);
+		values[4] = ObjectIdGetDatum(result->target.node.dbNode);
+		values[5] = ObjectIdGetDatum(result->target.node.relNode);
+		values[6] = Int32GetDatum(result->target.segment_filenum);
+		values[7] = Int64GetDatum(result->target.offset);
+
+		MemSet(nulls, false, sizeof(nulls));
+
+		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
+		SRF_RETURN_NEXT(funcctx, HeapTupleGetDatum(tuple));
+	}
+
+	SRF_RETURN_DONE(funcctx);
+#else
+	SRF_RETURN_DONE(NULL);
+#endif
 }
 
 #ifdef USE_SEGWALREP
@@ -380,18 +432,17 @@ test_xlog_ao(PG_FUNCTION_ARGS)
  * Verify that AO/AOCO XLOG record is present in buf.
  * Returns the number of AO/AOCO XLOG records found in buf.
  */
-static int
-check_ao_record_present(unsigned char type, char *buf, Oid spc_node,
-						Oid db_node, Oid rel_node, Size len, uint64 eof[100],
-						uint32 xrecoff, bool aoco)
+static uint32
+check_ao_record_present(unsigned char type, char *buf, Size len,
+						uint32 xrecoff,	CheckAoRecordResult *aorecordresults)
 {
 	WalDataMessageHeader msghdr;
 	uint32               i = 0;
 	int                  num_found = 0;
-	int 				 segfilenum = 0;
+	MemSet(aorecordresults, 0, sizeof(CheckAoRecordResult));
 
 	if (type != 'w')
-		return false;
+		return num_found;
 
 	if (len < sizeof(WalDataMessageHeader))
 		ereport(ERROR,
@@ -415,6 +466,7 @@ check_ao_record_present(unsigned char type, char *buf, Oid spc_node,
 		XLogRecord 		   *xlrec = (XLogRecord *)(buf + i);
 		XLogPageHeaderData *hdr = (XLogPageHeaderData *)xlrec;
 		XLogContRecord     *contrecord;
+		uint8	            info = xlrec->xl_info & ~XLR_INFO_MASK;
 		uint32 			    avail_in_block = XLOG_BLCKSZ - ((xrecoff + i) % XLOG_BLCKSZ);
 
 		elog(DEBUG1, "len/offset:%u/%u, avail_in_block = %u",
@@ -437,10 +489,14 @@ check_ao_record_present(unsigned char type, char *buf, Oid spc_node,
 			}
 			else
 				i += XLogPageHeaderSize(hdr);
+
 		}
 		else if (xlrec->xl_rmid == RM_APPEND_ONLY_ID)
 		{
-			xl_ao_insert *xlaoinsert = palloc0(xlrec->xl_tot_len);
+			CheckAoRecordResult *aorecordresult = &aorecordresults[num_found];
+			aorecordresult->xrecoff = xrecoff + i;
+
+			xl_ao_target *xlaorecord = palloc0(xlrec->xl_tot_len);
 
 			if (xlrec->xl_tot_len > avail_in_block)
 			{
@@ -455,37 +511,27 @@ check_ao_record_present(unsigned char type, char *buf, Oid spc_node,
 							  XLogPageHeaderSize(hdr));
 				memcpy(aobuf + avail_in_block, ((char *)contrecord + SizeOfXLogContRecord),
 					   contrecord->xl_rem_len);
-				memcpy(xlaoinsert, XLogRecGetData(aobuf), xlrec->xl_tot_len);
+				memcpy(xlaorecord, XLogRecGetData(aobuf), xlrec->xl_tot_len);
 				i += avail_in_block +
 					 MAXALIGN(XLogPageHeaderSize(hdr) + SizeOfXLogContRecord + contrecord->xl_rem_len);
 			}
 			else
 			{
-				memcpy(xlaoinsert, XLogRecGetData(xlrec), sizeof(xl_ao_insert));
+				memcpy(xlaorecord, XLogRecGetData(xlrec), sizeof(xl_ao_insert));
 				i += MAXALIGN(xlrec->xl_tot_len);
 			}
 
-			if (aoco)
-				segfilenum = AOTupleId_MultiplierSegmentFileNum * num_found + 1;
-			else
-				segfilenum = 1;
+			aorecordresult->target.node.spcNode = xlaorecord->node.spcNode;
+			aorecordresult->target.node.dbNode = xlaorecord->node.dbNode;
+			aorecordresult->target.node.relNode = xlaorecord->node.relNode;
+			aorecordresult->target.segment_filenum = xlaorecord->segment_filenum;
+			aorecordresult->target.offset = xlaorecord->offset;
+			aorecordresult->len = xlrec->xl_len;
+			aorecordresult->ao_xlog_record_type = info;
 
-			if (xlaoinsert->target.node.spcNode == spc_node &&
-				xlaoinsert->target.node.dbNode == db_node &&
-				xlaoinsert->target.node.relNode == rel_node &&
-				xlaoinsert->target.segment_filenum == segfilenum &&
-				xlaoinsert->target.offset == 0 &&
-				xlrec->xl_len - SizeOfAOInsert == eof[num_found])
-				num_found++;
-			else
-			{
-				elog(INFO, "Expected values: relfile %u/%u/%u segfile/offset %u/%u eof %lu",
-					 spc_node, db_node, rel_node, segfilenum, 0, eof[num_found]);
-				elog(INFO, "Actual values: relfile %u/%u/%u segfile/offset %u/%lu eof %lu",
-					 xlaoinsert->target.node.spcNode, xlaoinsert->target.node.dbNode,
-					 xlaoinsert->target.node.relNode, xlaoinsert->target.segment_filenum,
-					 xlaoinsert->target.offset, xlrec->xl_len - SizeOfAOInsert);
-			}
+
+			num_found++;
+
 		}
 		else
 		{
