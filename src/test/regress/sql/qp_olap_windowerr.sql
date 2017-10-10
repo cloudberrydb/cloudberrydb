@@ -3712,32 +3712,27 @@ from generate_series(1,5) a
 window w as (order by a rows between unbounded preceding and unbounded following);
 
 
--- start_ignore
-CREATE TABLE filter_test (i int, j int) DISTRIBUTED BY (i);
-INSERT INTO filter_test VALUES (1, 1);
-INSERT INTO filter_test VALUES (2, 1);
-INSERT INTO filter_test VALUES (3, 1);
-INSERT INTO filter_test VALUES (4, 2);
-INSERT INTO filter_test VALUES (NULL, 2);
-INSERT INTO filter_test VALUES (6, 2);
-INSERT INTO filter_test VALUES (7, 3);
-INSERT INTO filter_test VALUES (8, NULL);
-INSERT INTO filter_test VALUES (9, 3);
-INSERT INTO filter_test VALUES (10, NULL);
--- end_ignore
+CREATE TABLE qp_filter_test (i int, j int) DISTRIBUTED BY (i);
+INSERT INTO qp_filter_test VALUES (1, 1);
+INSERT INTO qp_filter_test VALUES (2, 1);
+INSERT INTO qp_filter_test VALUES (3, 1);
+INSERT INTO qp_filter_test VALUES (4, 2);
+INSERT INTO qp_filter_test VALUES (NULL, 2);
+INSERT INTO qp_filter_test VALUES (6, 2);
+INSERT INTO qp_filter_test VALUES (7, 3);
+INSERT INTO qp_filter_test VALUES (8, NULL);
+INSERT INTO qp_filter_test VALUES (9, 3);
+INSERT INTO qp_filter_test VALUES (10, NULL);
 
-select j, i, ntile(j) over (partition by j order by i) FROM filter_test;
+select j, i, ntile(j) over (partition by j order by i) FROM qp_filter_test;
 
-SELECT ntile(-1) over (order by i) FROM filter_test;
+SELECT ntile(-1) over (order by i) FROM qp_filter_test;
 
-SELECT ntile(0) over (order by i) FROM filter_test;
+SELECT ntile(0) over (order by i) FROM qp_filter_test;
 
-SELECT ntile(0) over (order by i) FROM filter_test;
+SELECT ntile(0) over (order by i) FROM qp_filter_test;
 
-
--- start_ignore
-DROP TABLE filter_test;
--- end_ignore
+DROP TABLE qp_filter_test;
 
 
 -- Test use of window functions in places they shouldn't be allowed: MPP-2382
