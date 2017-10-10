@@ -400,6 +400,11 @@ ExecutorStart(QueryDesc *queryDesc, int eflags)
 		ddesc = makeNode(QueryDispatchDesc);
 		queryDesc->ddesc = ddesc;
 
+		if (queryDesc->dest->mydest == DestIntoRel)
+			queryDesc->ddesc->validate_reloptions = false;
+		else
+			queryDesc->ddesc->validate_reloptions = true;
+
 		/*
 		 * If this is an extended query (normally cursor or bind/exec) - before
 		 * starting the portal, we need to make sure that the shared snapshot is
@@ -4802,12 +4807,12 @@ OpenIntoRel(QueryDesc *queryDesc)
 									 false);
 
 	/* get the relstorage (heap or AO tables) */
-	stdRdOptions = (StdRdOptions*) heap_reloptions(relkind, reloptions, true);
+	stdRdOptions = (StdRdOptions*) heap_reloptions(relkind, reloptions, queryDesc->ddesc->validate_reloptions);
 	if(stdRdOptions->appendonly)
 		relstorage = stdRdOptions->columnstore ? RELSTORAGE_AOCOLS : RELSTORAGE_AOROWS;
 	else
 		relstorage = RELSTORAGE_HEAP;
-	
+
 	/* have to copy the actual tupdesc to get rid of any constraints */
 	tupdesc = CreateTupleDescCopy(queryDesc->tupDesc);
 
@@ -4839,7 +4844,7 @@ OpenIntoRel(QueryDesc *queryDesc)
 											  targetPolicy,  	/* MPP */
 											  reloptions,
 											  allowSystemTableModsDDL,
-											  /* valid_opts */false,
+											  /* valid_opts */ !queryDesc->ddesc->validate_reloptions,
 						 					  &persistentTid,
 						 					  &persistentSerialNum);
 
