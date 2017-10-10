@@ -470,11 +470,11 @@ check_ao_record_present(unsigned char type, char *buf, Oid spc_node,
 			else
 				segfilenum = 1;
 
-			if (xlaoinsert->node.spcNode == spc_node &&
-				xlaoinsert->node.dbNode == db_node &&
-				xlaoinsert->node.relNode == rel_node &&
-				xlaoinsert->segment_filenum == segfilenum &&
-				xlaoinsert->offset == 0 &&
+			if (xlaoinsert->target.node.spcNode == spc_node &&
+				xlaoinsert->target.node.dbNode == db_node &&
+				xlaoinsert->target.node.relNode == rel_node &&
+				xlaoinsert->target.segment_filenum == segfilenum &&
+				xlaoinsert->target.offset == 0 &&
 				xlrec->xl_len - SizeOfAOInsert == eof[num_found])
 				num_found++;
 			else
@@ -482,9 +482,9 @@ check_ao_record_present(unsigned char type, char *buf, Oid spc_node,
 				elog(INFO, "Expected values: relfile %u/%u/%u segfile/offset %u/%u eof %lu",
 					 spc_node, db_node, rel_node, segfilenum, 0, eof[num_found]);
 				elog(INFO, "Actual values: relfile %u/%u/%u segfile/offset %u/%lu eof %lu",
-					 xlaoinsert->node.spcNode, xlaoinsert->node.dbNode,
-					 xlaoinsert->node.relNode, xlaoinsert->segment_filenum,
-					 xlaoinsert->offset, xlrec->xl_len - SizeOfAOInsert);
+					 xlaoinsert->target.node.spcNode, xlaoinsert->target.node.dbNode,
+					 xlaoinsert->target.node.relNode, xlaoinsert->target.segment_filenum,
+					 xlaoinsert->target.offset, xlrec->xl_len - SizeOfAOInsert);
 			}
 		}
 		else

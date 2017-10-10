@@ -83,9 +83,9 @@ appendonly_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record)
 				appendStringInfo(
 					buf,
 					"insert: rel %u/%u/%u seg/offset:%u/" INT64_FORMAT " len:%lu",
-					xlrec->node.spcNode, xlrec->node.dbNode,
-					xlrec->node.relNode, xlrec->segment_filenum,
-					xlrec->offset, record->xl_len - SizeOfAOInsert);
+					xlrec->target.node.spcNode, xlrec->target.node.dbNode,
+					xlrec->target.node.relNode, xlrec->target.segment_filenum,
+					xlrec->target.offset, record->xl_len - SizeOfAOInsert);
 			}
 			break;
 		case XLOG_APPENDONLY_TRUNCATE:
@@ -95,9 +95,9 @@ appendonly_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record)
 				appendStringInfo(
 					buf,
 					"truncate: rel %u/%u/%u seg/offset:%u/" INT64_FORMAT,
-					xlrec->node.spcNode, xlrec->node.dbNode,
-					xlrec->node.relNode, xlrec->segment_filenum,
-					xlrec->offset);
+					xlrec->target.node.spcNode, xlrec->target.node.dbNode,
+					xlrec->target.node.relNode, xlrec->target.segment_filenum,
+					xlrec->target.offset);
 			}
 			break;
 		default:

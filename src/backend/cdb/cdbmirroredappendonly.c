@@ -2403,8 +2403,8 @@ static void xlog_ao_insert(MirroredAppendOnlyOpen *open, void *buffer,
 	xl_ao_insert	xlaoinsert;
 	XLogRecData		rdata[2];
 
-	xlaoinsert.node = open->relFileNode;
-	xlaoinsert.segment_filenum = open->segmentFileNum;
+	xlaoinsert.target.node = open->relFileNode;
+	xlaoinsert.target.segment_filenum = open->segmentFileNum;
 
 	/*
 	 * Using FileSeek to fetch the current write offset.
@@ -2413,7 +2413,7 @@ static void xlog_ao_insert(MirroredAppendOnlyOpen *open, void *buffer,
 	 * Make sure to populate this before the FileWrite call else the file
 	 * pointer has moved forward.
 	 */
-	xlaoinsert.offset = FileSeek(open->primaryFile, 0, SEEK_CUR);
+	xlaoinsert.target.offset = FileSeek(open->primaryFile, 0, SEEK_CUR);
 
 	rdata[0].data = (char*) &xlaoinsert;
 	rdata[0].len = SizeOfAOInsert;
@@ -2444,36 +2444,36 @@ ao_insert_replay(XLogRecord *record)
 	uint32		len = record->xl_len - SizeOfAOInsert;
 
 	PersistentTablespace_GetPrimaryAndMirrorFilespaces(
-													   xlrec->node.spcNode,
-													   &primaryFilespaceLocation,
-													   &mirrorFilespaceLocation);
+							   xlrec->target.node.spcNode,
+							   &primaryFilespaceLocation,
+							   &mirrorFilespaceLocation);
 
 	FormDatabasePath(
-					 dbPath,
-					 primaryFilespaceLocation,
-					 xlrec->node.spcNode,
-					 xlrec->node.dbNode);
+			 dbPath,
+			 primaryFilespaceLocation,
+			 xlrec->target.node.spcNode,
+			 xlrec->target.node.dbNode);
 
-	if (xlrec->segment_filenum == 0)
-		snprintf(path, MAXPGPATH, "%s/%u", dbPath, xlrec->node.relNode);
+	if (xlrec->target.segment_filenum == 0)
+		snprintf(path, MAXPGPATH, "%s/%u", dbPath, xlrec->target.node.relNode);
 	else
-		snprintf(path, MAXPGPATH, "%s/%u.%u", dbPath, xlrec->node.relNode, xlrec->segment_filenum);
+		snprintf(path, MAXPGPATH, "%s/%u.%u", dbPath, xlrec->target.node.relNode, xlrec->target.segment_filenum);
 
 	file = PathNameOpenFile(path, O_RDWR | PG_BINARY, 0600);
 	if (file < 0)
 	{
-		XLogAOSegmentFile(xlrec->node, xlrec->segment_filenum);
+		XLogAOSegmentFile(xlrec->target.node, xlrec->target.segment_filenum);
 		return;
 	}
 
-	seek_offset = FileSeek(file, xlrec->offset, SEEK_SET);
-	if (seek_offset != xlrec->offset)
+	seek_offset = FileSeek(file, xlrec->target.offset, SEEK_SET);
+	if (seek_offset != xlrec->target.offset)
 	{
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("seeked to position " INT64_FORMAT " but expected to seek to position " INT64_FORMAT " in file \"%s\": %m",
 						seek_offset,
-						xlrec->offset,
+						xlrec->target.offset,
 						path)));
 	}
 
@@ -2506,9 +2506,9 @@ void xlog_ao_truncate(MirroredAppendOnlyOpen *open, int64 offset)
 	xl_ao_truncate	xlaotruncate;
 	XLogRecData		rdata[1];
 
-	xlaotruncate.node = open->relFileNode;
-	xlaotruncate.segment_filenum = open->segmentFileNum;
-	xlaotruncate.offset = offset;
+	xlaotruncate.target.node = open->relFileNode;
+	xlaotruncate.target.segment_filenum = open->segmentFileNum;
+	xlaotruncate.target.offset = offset;
 
 	rdata[0].data = (char*) &xlaotruncate;
 	rdata[0].len = sizeof(xl_ao_truncate);
@@ -2530,34 +2530,34 @@ ao_truncate_replay(XLogRecord *record)
 	xl_ao_truncate *xlrec = (xl_ao_truncate*) XLogRecGetData(record);
 
 	PersistentTablespace_GetPrimaryAndMirrorFilespaces(
-		xlrec->node.spcNode,
+		xlrec->target.node.spcNode,
 		&primaryFilespaceLocation,
 		&mirrorFilespaceLocation);
 
 	FormDatabasePath(
 				dbPath,
 				primaryFilespaceLocation,
-				xlrec->node.spcNode,
-				xlrec->node.dbNode);
+				xlrec->target.node.spcNode,
+				xlrec->target.node.dbNode);
 
-	if (xlrec->segment_filenum == 0)
-		snprintf(path, MAXPGPATH, "%s/%u", dbPath, xlrec->node.relNode);
+	if (xlrec->target.segment_filenum == 0)
+		snprintf(path, MAXPGPATH, "%s/%u", dbPath, xlrec->target.node.relNode);
 	else
-		snprintf(path, MAXPGPATH, "%s/%u.%u", dbPath, xlrec->node.relNode, xlrec->segment_filenum);
+		snprintf(path, MAXPGPATH, "%s/%u.%u", dbPath, xlrec->target.node.relNode, xlrec->target.segment_filenum);
 
 	file = PathNameOpenFile(path, O_RDWR | PG_BINARY, 0600);
 	if (file < 0)
 	{
-		XLogAOSegmentFile(xlrec->node, xlrec->segment_filenum);
+		XLogAOSegmentFile(xlrec->target.node, xlrec->target.segment_filenum);
 		return;
 	}
 
-	if (FileTruncate(file, xlrec->offset) != 0)
+	if (FileTruncate(file, xlrec->target.offset) != 0)
 	{
 		ereport(WARNING,
 				(errcode_for_file_access(),
 				 errmsg("failed to truncate file \"%s\" to offset:" INT64_FORMAT " : %m",
-						path, xlrec->offset)));
+						path, xlrec->target.offset)));
 	}
 
 	FileClose(file);
