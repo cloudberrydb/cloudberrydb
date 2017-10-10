@@ -44,8 +44,6 @@ typedef struct PlannerConfig
 	bool        gp_enable_groupext_distinct_gather;
 	bool		gp_enable_sort_limit;
 	bool		gp_enable_sort_distinct;
-	bool		gp_enable_mk_sort;
-	bool		gp_enable_motion_mk_sort;
 
 	bool		gp_enable_direct_dispatch;
 	bool		gp_dynamic_partition_pruning;

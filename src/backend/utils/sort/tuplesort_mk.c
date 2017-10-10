@@ -204,6 +204,9 @@ typedef struct TupsortMergeReadCtxt
  */
 struct Tuplesortstate_mk
 {
+	/* MUST BE FIRST, to match switcheroo_Tuplesortstate */
+	bool		is_mk_tuplesortstate;
+
 	TupSortStatus status;		/* enumerated value as shown above */
 	int			nKeys;			/* number of columns in sort key */
 	bool		randomAccess;	/* did caller request random access? */

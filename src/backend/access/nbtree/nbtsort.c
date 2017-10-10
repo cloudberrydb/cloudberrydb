@@ -69,7 +69,6 @@
 #include "miscadmin.h"
 #include "storage/smgr.h"
 #include "utils/tuplesort.h"
-#include "utils/tuplesort_mk.h"
 
 #include "cdb/cdbvars.h"
 
@@ -161,10 +160,7 @@ _bt_spoolinit(Relation index, bool isunique, bool isdead)
 	 * work_mem.
 	 */
 	btKbytes = isdead ? work_mem : maintenance_work_mem;
-	if(gp_enable_mk_sort)
-		btspool->sortstate = tuplesort_begin_index_mk(index, isunique, btKbytes, false);
-	else
-		btspool->sortstate = tuplesort_begin_index_btree(index, isunique,
+	btspool->sortstate = tuplesort_begin_index_btree(index, isunique,
 													 btKbytes, false);
 
 	return btspool;
@@ -176,10 +172,7 @@ _bt_spoolinit(Relation index, bool isunique, bool isdead)
 void
 _bt_spooldestroy(BTSpool *btspool)
 {
-	if(gp_enable_mk_sort)
-		tuplesort_end_mk((Tuplesortstate_mk *) btspool->sortstate);
-	else
-		tuplesort_end((Tuplesortstate *) btspool->sortstate);
+	tuplesort_end(btspool->sortstate);
 	pfree(btspool);
 }
 
@@ -189,10 +182,7 @@ _bt_spooldestroy(BTSpool *btspool)
 void
 _bt_spool(IndexTuple itup, BTSpool *btspool)
 {
-	if(gp_enable_mk_sort)
-		tuplesort_putindextuple_mk((Tuplesortstate_mk *) btspool->sortstate, itup);
-	else
-		tuplesort_putindextuple((Tuplesortstate *) btspool->sortstate, itup);
+	tuplesort_putindextuple(btspool->sortstate, itup);
 }
 
 /*
@@ -212,19 +202,9 @@ _bt_leafbuild(BTSpool *btspool, BTSpool *btspool2)
 	}
 #endif   /* BTREE_BUILD_STATS */
 
-	if(gp_enable_mk_sort)
-	{
-		tuplesort_performsort_mk((Tuplesortstate_mk *) btspool->sortstate);
-		if (btspool2)
-			tuplesort_performsort_mk((Tuplesortstate_mk *) btspool2->sortstate);
-	}
-	else
-	{
-		tuplesort_performsort((Tuplesortstate *) btspool->sortstate);
-		if (btspool2)
-			tuplesort_performsort((Tuplesortstate *) btspool2->sortstate);
-	}
-
+	tuplesort_performsort(btspool->sortstate);
+	if (btspool2)
+		tuplesort_performsort(btspool2->sortstate);
 
 	wstate.index = btspool->index;
 
@@ -721,16 +701,8 @@ _bt_load(BTWriteState *wstate, BTSpool *btspool, BTSpool *btspool2)
 		 */
 
 		/* the preparation of merge */
-		if(gp_enable_mk_sort)
-		{
-			itup = tuplesort_getindextuple_mk((Tuplesortstate_mk *) btspool->sortstate, true, &should_free); 
-			itup2 = tuplesort_getindextuple_mk((Tuplesortstate_mk *) btspool2->sortstate, true, &should_free2);
-		}
-		else
-		{
-			itup = tuplesort_getindextuple((Tuplesortstate *) btspool->sortstate, true, &should_free); 
-			itup2 = tuplesort_getindextuple((Tuplesortstate *) btspool2->sortstate, true, &should_free2);
-		}
+		itup = tuplesort_getindextuple(btspool->sortstate, true, &should_free);
+		itup2 = tuplesort_getindextuple(btspool2->sortstate, true, &should_free2);
 
 		indexScanKey = _bt_mkscankey_nodata(wstate->index);
 
@@ -802,22 +774,15 @@ _bt_load(BTWriteState *wstate, BTSpool *btspool, BTSpool *btspool2)
 				_bt_buildadd(wstate, state, itup);
 				if (should_free)
 					pfree(itup);
-				if(gp_enable_mk_sort)
-					itup = tuplesort_getindextuple_mk((Tuplesortstate_mk *)btspool->sortstate, true, &should_free);
-				else
-					itup = tuplesort_getindextuple((Tuplesortstate *) btspool->sortstate, true, &should_free);
+				itup = tuplesort_getindextuple(btspool->sortstate, true, &should_free);
 			}
 			else
 			{
 				_bt_buildadd(wstate, state, itup2);
 				if (should_free2)
 					pfree(itup2);
-				if(gp_enable_mk_sort)
-					itup2 = tuplesort_getindextuple_mk((Tuplesortstate_mk *) btspool2->sortstate,
-							true, &should_free2);
-				else
-					itup2 = tuplesort_getindextuple((Tuplesortstate *) btspool2->sortstate,
-							true, &should_free2);
+				itup2 = tuplesort_getindextuple(btspool2->sortstate,
+												true, &should_free2);
 			}
 		}
 		_bt_freeskey(indexScanKey);
@@ -825,15 +790,8 @@ _bt_load(BTWriteState *wstate, BTSpool *btspool, BTSpool *btspool2)
 	else
 	{
 		/* merge is unnecessary */
-		while ((itup = (
-				gp_enable_mk_sort ? 
-				tuplesort_getindextuple_mk((Tuplesortstate_mk *) btspool->sortstate, 
-						true, &should_free)
-				:
-				tuplesort_getindextuple((Tuplesortstate *) btspool->sortstate, 
-						true, &should_free)
-				))
-			!= NULL)
+		while ((itup = tuplesort_getindextuple(btspool->sortstate,
+											   true, &should_free)) != NULL)
 		{
 			/* When we see first tuple, create first index page */
 			if (state == NULL)

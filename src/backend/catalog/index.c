@@ -62,7 +62,6 @@
 #include "utils/relcache.h"
 #include "utils/syscache.h"
 #include "utils/tuplesort.h"
-#include "utils/tuplesort_mk.h"
 #include "utils/snapmgr.h"
 #include "utils/tqual.h"
 
@@ -2541,33 +2540,19 @@ validate_index(Oid heapId, Oid indexId, Snapshot snapshot)
 	ivinfo.message_level = DEBUG2;
 	ivinfo.num_heap_tuples = -1;
 	ivinfo.strategy = NULL;
-	state.tuplesort = NULL;
 
-	if(gp_enable_mk_sort)
-		state.tuplesort = tuplesort_begin_datum_mk(NULL,
-												   TIDOID,
-												   TIDLessOperator, false,
-												   maintenance_work_mem,
-												   false);
-	else
-		state.tuplesort = tuplesort_begin_datum(TIDOID,
-												TIDLessOperator, false,
-												maintenance_work_mem,
-												false);
+	state.tuplesort = tuplesort_begin_datum(NULL,
+											TIDOID,
+											TIDLessOperator, false,
+											maintenance_work_mem,
+											false);
 	state.htups = state.itups = state.tups_inserted = 0;
 
 	(void) index_bulk_delete(&ivinfo, NULL,
 							 validate_index_callback, (void *) &state);
 
 	/* Execute the sort */
-	if(gp_enable_mk_sort)
-	{
-		tuplesort_performsort_mk((Tuplesortstate_mk *)state.tuplesort);
-	}
-	else
-	{
-		tuplesort_performsort((Tuplesortstate *) state.tuplesort);
-	}
+	tuplesort_performsort(state.tuplesort);
 
 	/*
 	 * Now scan the heap and "merge" it with the index
@@ -2579,14 +2564,7 @@ validate_index(Oid heapId, Oid indexId, Snapshot snapshot)
 							&state);
 
 	/* Done with tuplesort object */
-	if(gp_enable_mk_sort)
-	{
-		tuplesort_end_mk((Tuplesortstate_mk *)state.tuplesort);
-	}
-	else
-	{
-		tuplesort_end((Tuplesortstate *) state.tuplesort);
-	}
+	tuplesort_end(state.tuplesort);
 
 	elog(DEBUG2,
 		 "validate_index found %.0f heap tuples, %.0f index tuples; inserted %.0f missing tuples",
@@ -2611,10 +2589,7 @@ validate_index_callback(ItemPointer itemptr, void *opaque)
 {
 	v_i_state  *state = (v_i_state *) opaque;
 
-	if(gp_enable_mk_sort)
-		tuplesort_putdatum_mk((Tuplesortstate_mk *) state->tuplesort, PointerGetDatum(itemptr), false);
-	else
-		tuplesort_putdatum((Tuplesortstate *) state->tuplesort, PointerGetDatum(itemptr), false);
+	tuplesort_putdatum(state->tuplesort, PointerGetDatum(itemptr), false);
 
 	state->itups += 1;
 	return false;				/* never actually delete anything */
@@ -2763,12 +2738,8 @@ validate_index_heapscan(Relation heapRelation,
 				pfree(indexcursor);
 			}
 
-			if (gp_enable_mk_sort)
-				tuplesort_empty = !tuplesort_getdatum_mk((Tuplesortstate_mk *) state->tuplesort,
-						true, &ts_val, &ts_isnull);
-			else
-				tuplesort_empty = !tuplesort_getdatum((Tuplesortstate *) state->tuplesort,
-						true, &ts_val, &ts_isnull);
+			tuplesort_empty = !tuplesort_getdatum(state->tuplesort,
+												  true, &ts_val, &ts_isnull);
 			Assert(tuplesort_empty || !ts_isnull);
 			indexcursor = (ItemPointer) DatumGetPointer(ts_val);
 		}

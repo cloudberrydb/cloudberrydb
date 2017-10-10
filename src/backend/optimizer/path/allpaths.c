@@ -39,11 +39,9 @@
 #include "cdb/cdbmutate.h"		/* cdbmutate_warn_ctid_without_segid */
 #include "cdb/cdbpath.h"		/* cdbpath_rows() */
 
-// TODO: these planner/executor gucs need to be refactored into PlannerConfig.
+// TODO: these planner gucs need to be refactored into PlannerConfig.
 bool		gp_enable_sort_limit = FALSE;
 bool		gp_enable_sort_distinct = FALSE;
-bool		gp_enable_mk_sort = true;
-bool		gp_enable_motion_mk_sort = true;
 
 /* Hook for plugins to replace standard_join_search() */
 join_search_hook_type join_search_hook = NULL;

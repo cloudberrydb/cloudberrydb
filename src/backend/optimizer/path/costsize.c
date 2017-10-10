@@ -78,7 +78,6 @@
 #include "utils/lsyscache.h"
 #include "utils/selfuncs.h"
 #include "utils/tuplesort.h"
-#include "utils/tuplesort_mk.h"
 
 #include "cdb/cdbpath.h"        /* cdbpath_rows() */
 #include "cdb/cdbvars.h"

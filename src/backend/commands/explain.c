@@ -37,9 +37,8 @@
 #include "utils/json.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"             /* AllocSetContextCreate() */
-#include "utils/snapmgr.h"
 #include "utils/tuplesort.h"
-#include "utils/tuplesort_mk.h"
+#include "utils/snapmgr.h"
 
 #include "cdb/cdbdisp.h"                /* CheckDispatchResult() */
 #include "cdb/cdbexplain.h"             /* cdbexplain_recvExecStats */

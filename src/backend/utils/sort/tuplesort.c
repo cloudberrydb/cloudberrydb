@@ -98,6 +98,9 @@
  *-------------------------------------------------------------------------
  */
 
+#define COMPILING_TUPLESORT_C
+
+
 #include "postgres.h"
 
 #include <limits.h>
@@ -125,7 +128,6 @@
 #include "executor/nodeSort.h"          /* Gpmon */
 #include "lib/stringinfo.h"             /* StringInfo */
 #include "utils/dynahash.h"             /* my_log2 */
-#include "utils/tuplesort_gp.h"
 
 /* GUC variables */
 #ifdef TRACE_SORT
@@ -229,6 +231,9 @@ struct TuplesortPos
  */
 struct Tuplesortstate
 {
+	/* MUST BE FIRST, to match switcheroo_Tuplesortstate */
+	bool		is_mk_tuplesortstate;
+
 	TupSortStatus status;		/* enumerated value as shown above */
 	int			nKeys;			/* number of columns in sort key */
 	bool		randomAccess;	/* did caller request random access? */
@@ -633,7 +638,7 @@ tuplesort_begin_common(int workMem, bool randomAccess, bool allocmemtuple)
 }
 
 Tuplesortstate *
-tuplesort_begin_heap(TupleDesc tupDesc,
+tuplesort_begin_heap(ScanState *ss, TupleDesc tupDesc,
 					 int nkeys, AttrNumber *attNums,
 					 Oid *sortOperators, bool *nullsFirstFlags,
 					 int workMem, bool randomAccess)
@@ -775,7 +780,7 @@ tuplesort_begin_index_hash(Relation indexRel,
 }
 
 Tuplesortstate *
-tuplesort_begin_datum(Oid datumType,
+tuplesort_begin_datum(ScanState *ss, Oid datumType,
 					  Oid sortOperator, bool nullsFirstFlag,
 					  int workMem, bool randomAccess)
 {
@@ -3407,7 +3412,7 @@ tuplesort_begin_pos(Tuplesortstate *st, TuplesortPos **pos)
 
 
 Tuplesortstate *
-tuplesort_begin_heap_file_readerwriter(
+tuplesort_begin_heap_file_readerwriter(ScanState *ss,
 		const char *rwfile_prefix, bool isWriter,
 		TupleDesc tupDesc,
 		int nkeys, AttrNumber *attNums,
@@ -3434,7 +3439,7 @@ tuplesort_begin_heap_file_readerwriter(
 		 * Writer is a oridinary tuplesort, except the underlying buf file are named by
 		 * rwfile_prefix.
 		 */
-		state = tuplesort_begin_heap(tupDesc, nkeys, attNums,
+		state = tuplesort_begin_heap(NULL, tupDesc, nkeys, attNums,
 									 sortOperators, nullsFirstFlags,
 									 workMem, randomAccess);
 

@@ -541,8 +541,6 @@ PlannerConfig *DefaultPlannerConfig(void)
 	c1->gp_enable_groupext_distinct_gather = gp_enable_groupext_distinct_gather;
 	c1->gp_enable_sort_limit = gp_enable_sort_limit;
 	c1->gp_enable_sort_distinct = gp_enable_sort_distinct;
-	c1->gp_enable_mk_sort = gp_enable_mk_sort;
-	c1->gp_enable_motion_mk_sort = gp_enable_motion_mk_sort;
 
 	c1->gp_enable_direct_dispatch = gp_enable_direct_dispatch;
 	c1->gp_dynamic_partition_pruning = gp_dynamic_partition_pruning;

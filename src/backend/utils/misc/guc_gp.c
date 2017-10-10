@@ -556,6 +556,10 @@ char	   *gp_default_storage_options = NULL;
 
 int			writable_external_table_bufsize = 64;
 
+/* Executor */
+bool		gp_enable_mk_sort = true;
+bool		gp_enable_motion_mk_sort = true;
+
 static const struct config_enum_entry gp_log_format_options[] = {
 	{"text", 0},
 	{"csv", 1},
