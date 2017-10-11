@@ -1,9 +1,74 @@
+-- Tests for old bugs related to OLAP queries.
+
+-- First create a schema to contain the test tables, and few common test
+-- tables that are shared by several test queries.
+create schema bfv_olap;
+set search_path=bfv_olap;
+
+create table customer
+(
+  cn int not null,
+  cname text not null,
+  cloc text,
+
+  primary key (cn)
+
+) distributed by (cn);
+
+insert into customer values
+  ( 1, 'Macbeth', 'Inverness'),
+  ( 2, 'Duncan', 'Forres'),
+  ( 3, 'Lady Macbeth', 'Inverness'),
+  ( 4, 'Witches, Inc', 'Lonely Heath');
+
+create table vendor
+(
+  vn int not null,
+  vname text not null,
+  vloc text,
+
+  primary key (vn)
+
+) distributed by (vn);
+
+insert into vendor values
+  ( 10, 'Witches, Inc', 'Lonely Heath'),
+  ( 20, 'Lady Macbeth', 'Inverness'),
+  ( 30, 'Duncan', 'Forres'),
+  ( 40, 'Macbeth', 'Inverness'),
+  ( 50, 'Macduff', 'Fife');
+
+create table sale
+(
+  cn int not null,
+  vn int not null,
+  pn int not null,
+  dt date not null,
+  qty int not null,
+  prc float not null,
+
+  primary key (cn, vn, pn)
+
+) distributed by (cn,vn,pn);
+
+insert into sale values
+  ( 2, 40, 100, '1401-1-1', 1100, 2400),
+  ( 1, 10, 200, '1401-3-1', 1, 0),
+  ( 3, 40, 200, '1401-4-1', 1, 0),
+  ( 1, 20, 100, '1401-5-1', 1, 0),
+  ( 1, 30, 300, '1401-5-2', 1, 0),
+  ( 1, 50, 400, '1401-6-1', 1, 0),
+  ( 2, 50, 400, '1401-6-1', 1, 0),
+  ( 1, 30, 500, '1401-6-1', 12, 5),
+  ( 3, 30, 500, '1401-6-1', 12, 5),
+  ( 3, 30, 600, '1401-6-1', 12, 5),
+  ( 4, 40, 700, '1401-6-1', 1, 1),
+  ( 4, 40, 800, '1401-6-1', 1, 1);
+
+
 --
 -- Test case errors out when we define aggregates without preliminary functions and use it as an aggregate derived window function.
 --
-
-create schema bfv_olap;
-set search_path=bfv_olap;
 
 -- SETUP
 -- start_ignore
@@ -325,57 +390,6 @@ drop table if exists t;
 --
 -- Passing through distribution matching type in default implementation
 --
-
--- SETUP
--- start_ignore
-drop table if exists customer;
-drop table if exists sale;
--- end_ignore
-create table customer
-(
-	cn int not null,
-	cname text not null,
-	cloc text,
-
-	primary key (cn)
-
-) distributed by (cn);
-
-
-insert into customer values
-  ( 1, 'Macbeth', 'Inverness'),
-  ( 2, 'Duncan', 'Forres'),
-  ( 3, 'Lady Macbeth', 'Inverness'),
-  ( 4, 'Witches, Inc', 'Lonely Heath');
-
-
-create table sale
-(
-	cn int not null,
-	vn int not null,
-	pn int not null,
-	dt date not null,
-	qty int not null,
-	prc float not null,
-
-	primary key (cn, vn, pn)
-
-) distributed by (cn,vn,pn);
-
-
-insert into sale values
-  ( 2, 40, 100, '1401-1-1', 1100, 2400),
-  ( 1, 10, 200, '1401-3-1', 1, 0),
-  ( 3, 40, 200, '1401-4-1', 1, 0),
-  ( 1, 20, 100, '1401-5-1', 1, 0),
-  ( 1, 30, 300, '1401-5-2', 1, 0),
-  ( 1, 50, 400, '1401-6-1', 1, 0),
-  ( 2, 50, 400, '1401-6-1', 1, 0),
-  ( 1, 30, 500, '1401-6-1', 12, 5),
-  ( 3, 30, 500, '1401-6-1', 12, 5),
-  ( 3, 30, 600, '1401-6-1', 12, 5),
-  ( 4, 40, 700, '1401-6-1', 1, 1),
-  ( 4, 40, 800, '1401-6-1', 1, 1);
   
 -- TEST
 select cname,
@@ -384,15 +398,9 @@ from sale, customer
 where sale.cn = customer.cn
 order by 1, 2;
 
--- CLEANUP
--- start_ignore
-drop table if exists customer;
-drop table if exists sale;
--- end_ignore
-
 
 --
--- Optimzier query crashing for logical window with no window functions
+-- Optimizer query crashing for logical window with no window functions
 --
 
 -- SETUP
@@ -415,7 +423,10 @@ from (select * from mpp23240 where f > 10) x;
 drop table mpp23240;
 -- end_ignore
 
+
+--
 -- Test for the bug reported at https://github.com/greenplum-db/gpdb/issues/2236
+--
 create table test1 (x int, y int, z double precision);
 insert into test1 select a, b, a*10 + b from generate_series(1, 5) a, generate_series(1, 5) b;
 
@@ -423,12 +434,29 @@ select sum(z) over (partition by x) as sumx, sum(z) over (partition by y) as sum
 
 drop table test1;
 
+
+--
 -- This failed at one point because of an over-zealous syntax check, with
 -- "window functions not allowed in WHERE clause" error.
+--
 select sum(g) from generate_series(1, 5) g
 where g in (
   select rank() over (order by x) from generate_series(1,5) x
 );
+
+
+--
+-- This caused a crash in ROLLUP planning at one point.
+--
+SELECT sale.vn
+FROM sale,vendor
+WHERE sale.vn=vendor.vn
+GROUP BY ROLLUP( (sale.dt,sale.cn),(sale.pn),(sale.vn));
+
+SELECT DISTINCT sale.vn
+FROM sale,vendor
+WHERE sale.vn=vendor.vn
+GROUP BY ROLLUP( (sale.dt,sale.cn),(sale.pn),(sale.vn));
 
 
 -- CLEANUP
