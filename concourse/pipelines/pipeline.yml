@@ -334,12 +334,6 @@ resources:
     repository: pivotaldata/centos-gpdb-dev
     tag: 7-gcc6.2-llvm3.7
 
-- name: sles-gpdb-dev-11-beta
-  type: docker-image
-  source:
-    repository: pivotaldata/sles-gpdb-dev
-    tag: 11-beta
-
 - name: ubuntu-gpdb-dev-16
   type: docker-image
   source:
@@ -1215,10 +1209,8 @@ jobs:
       resource: bin_gpdb_sles11
       passed: [gate_icw_start]
       trigger: true
-    - get: sles-gpdb-dev-11-beta
   - task: ic_gpdb
-    file: gpdb_src/concourse/tasks/ic_gpdb.yml
-    image: sles-gpdb-dev-11-beta
+    file: gpdb_src/concourse/tasks/ic_gpdb_sles11.yml
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on' installcheck-world
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
