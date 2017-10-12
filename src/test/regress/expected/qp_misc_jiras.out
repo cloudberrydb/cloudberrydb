@@ -1205,8 +1205,19 @@ insert into qp_misc_jiras.tbl5246_sale values
   ( 4, 40, 800, '1401-6-1', 1, 1);
 --The following query shouldn't crash and error out
 explain select cn, count(*) over (order by dt range between '2 day'::interval preceding and 2 preceding) from qp_misc_jiras.tbl5246_sale;
-ERROR:  can't coerce leading frame bound to type of trailing frame bound
-HINT:  specify the leading and trailing frame bounds as the same type
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ WindowAgg  (cost=3.34..3.55 rows=12 width=8)
+   Order By: dt
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=3.34..3.37 rows=12 width=8)
+         Merge Key: dt
+         ->  Sort  (cost=3.34..3.37 rows=4 width=8)
+               Sort Key: dt
+               ->  Seq Scan on tbl5246_sale  (cost=0.00..3.12 rows=4 width=8)
+ Settings:  enable_nestloop=on; optimizer=off
+ Optimizer status: legacy query optimizer
+(9 rows)
+
 drop table qp_misc_jiras.tbl5246_sale;
 create table qp_misc_jiras.tbl4896_customer
 (
