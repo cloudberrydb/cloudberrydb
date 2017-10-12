@@ -81,6 +81,7 @@ groups:
   - regression_tests_gphdfs_centos
   - regression_tests_gpcloud_centos
   - mpp_resource_group_centos6
+  - mpp_resource_group_centos7
   - gate_general_misc_end
 ################################
   - gate_filerep_start
@@ -110,6 +111,7 @@ groups:
   - cs_walrep_1
   - cs_walrep_2
   - mpp_resource_group_centos6
+  - mpp_resource_group_centos7
   - cs_filerep_e2e_full_primary
   - cs_filerep_e2e_incr_primary
   - cs_filerep_e2e_full_mirror
@@ -212,6 +214,7 @@ groups:
   - regression_tests_gphdfs_centos
   - regression_tests_gpcloud_centos
   - mpp_resource_group_centos6
+  - mpp_resource_group_centos7
   - gate_general_misc_end
 
 - name: G:FileRep
@@ -2648,6 +2651,37 @@ jobs:
     on_failure:
       <<: *debug_sleep
   - *ccp_destroy
+- name: mpp_resource_group_centos7
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [gate_general_misc_start]
+    - get: bin_gpdb
+      resource: bin_gpdb_centos7
+    - get: ccp_src
+    - get: centos-gpdb-dev-7
+  - put: terraform
+    params:
+      <<: *ccp_default_params
+      vars:
+        <<: *ccp_default_vars
+        platform: centos7
+  - task: gen_cluster
+    file: ccp_src/ci/tasks/gen_cluster.yml
+    params:
+      <<: *ccp_gen_cluster_default_params
+    input_mapping:
+      gpdb_binary: bin_gpdb
+    on_failure:
+      <<: *ccp_destroy
+  - task: run_tests
+    file: gpdb_src/concourse/tasks/ic_gpdb_resgroup.yml
+    image: centos-gpdb-dev-7
+    params:
+      TEST_OS: centos7
+    on_failure:
+      <<: *debug_sleep
+  - *ccp_destroy
 - name: gate_general_misc_end
   plan:
   - get: gpdb_src
@@ -2880,6 +2914,7 @@ jobs:
     - icw_planner_ictcp_centos6
     - client_loader_remote_test_aix
     - mpp_resource_group_centos6
+    - mpp_resource_group_centos7
     - MU_check_centos
     - MM_analyzedb
     - MM_gpinitsystem
