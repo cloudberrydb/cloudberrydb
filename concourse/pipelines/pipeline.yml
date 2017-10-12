@@ -274,6 +274,21 @@ resources:
       ###########################################################
       bucket_path: {{tf-bucket-path}}
 
+- name: terraform_for_dpm
+  type: terraform
+  source:
+    env:
+      AWS_ACCESS_KEY_ID: {{gpdb4-tf-machine-access-key-id}}
+      AWS_SECRET_ACCESS_KEY: {{gpdb4-tf-machine-secret-access-key}}
+    storage:
+      access_key_id: {{gpdb4-tf-machine-access-key-id}}
+      secret_access_key: {{gpdb4-tf-machine-secret-access-key}}
+      region_name: {{aws-region}}
+      # This is not parameterized, on purpose. All tfstates will go to this spot,
+      # and different teams will place there clusters' tfstate files under different paths
+      bucket: pivotal-pa-toolsmiths-pipeline-dynamic-terraform
+      bucket_path: {{tf-bucket-path}}
+
 - name: aix_environments
   type: pool
   source:
@@ -587,6 +602,17 @@ ccp_destroy_anchor: &ccp_destroy
   get_params:
     action: destroy
 
+dpm_ccp_destroy_anchor: &dpm_ccp_destroy
+  put: terraform_for_dpm
+  params:
+    action: destroy
+    env_name_file: terraform_for_dpm/name
+    terraform_source: ccp_src/aws-pivotal-pa-toolsmiths/
+    vars:
+      aws_instance-node-instance_type: t2.micro #t2.micro is ignored in destroy, but aws_instance-node-instance_type is required.
+  get_params:
+    action: destroy
+
 ccp_gen_cluster_default_params_anchor: &ccp_gen_cluster_default_params
   AWS_ACCESS_KEY_ID: {{tf-machine-access-key-id}}
   AWS_SECRET_ACCESS_KEY: {{tf-machine-secret-access-key}}
@@ -610,6 +636,22 @@ debug_sleep_anchor: &debug_sleep
         args: ['-c', 'sleep 6h']
     ensure:
       <<: *ccp_destroy
+
+dpm_debug_sleep_anchor: &dpm_debug_sleep
+  do:
+  - task: debug_sleep
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+          tag: latest
+      run:
+        path: 'sh'
+        args: ['-c', 'sleep 6h']
+    ensure:
+      <<: *dpm_ccp_destroy
 
 pulse_properties_anchor: &pulse_properties
       PULSE_URL: {{pulse_url}}
