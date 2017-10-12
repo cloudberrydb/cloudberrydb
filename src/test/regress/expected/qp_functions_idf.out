@@ -962,11 +962,10 @@ select percentile_disc(0.05::int)  within group (order by a) from perct;
 (1 row)
 
 select percentile_disc(0.05::text) within group (order by a) from perct;
- percentile_disc 
------------------
-               5
-(1 row)
-
+ERROR:  function percentile_disc(text, integer) does not exist
+LINE 1: select percentile_disc(0.05::text) within group (order by a)...
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- start_ignore
 CREATE SEQUENCE serial START 101;
 -- end_ignore
