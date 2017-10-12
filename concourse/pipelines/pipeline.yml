@@ -1399,6 +1399,10 @@ jobs:
   - task: sleep_before_starting
     config:
       platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
       run:
         path: 'sh'
         args: ['-c', 'sleep 300']
@@ -1838,6 +1842,10 @@ jobs:
   - task: sleep_before_starting
     config:
       platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
       run:
         path: 'sh'
         args: ['-c', 'sleep 300']
@@ -2230,6 +2238,10 @@ jobs:
   - task: sleep_before_starting
     config:
       platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
       run:
         path: 'sh'
         args: ['-c', 'sleep 300']
