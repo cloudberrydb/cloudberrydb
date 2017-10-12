@@ -75,12 +75,15 @@ SELECT first_value(ten) OVER (PARTITION BY four ORDER BY ten), ten, four FROM te
 -- last_value returns the last row of the frame, which is CURRENT ROW in ORDER BY window.
 SELECT last_value(four) OVER (ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10; 
 
+set search_path=singleseg, public;
 SELECT last_value(ten) OVER (PARTITION BY four), ten, four FROM
 	(SELECT * FROM tenk1 WHERE unique2 < 10 ORDER BY four, ten)s
 	ORDER BY four, ten;
 
 SELECT nth_value(ten, four + 1) OVER (PARTITION BY four), ten, four
-	FROM (SELECT * FROM tenk1 WHERE unique2 < 10 ORDER BY four, ten)s;
+	FROM (SELECT * FROM tenk1 WHERE unique2 < 10 ORDER BY four, ten)s order by four,ten;
+
+reset search_path;
 
 SELECT ten, two, sum(hundred) AS gsum, sum(sum(hundred)) OVER (PARTITION BY two ORDER BY ten) AS wsum 
 FROM tenk1 GROUP BY ten, two;
@@ -168,6 +171,7 @@ SELECT sum(unique1) over (order by four range between current row and unbounded 
 	unique1, four
 FROM tenk1 WHERE unique1 < 10;
 
+set search_path=singleseg, public;
 SELECT sum(unique1) over (rows between current row and unbounded following),
 	unique1, four
 FROM tenk1 WHERE unique1 < 10;
@@ -192,7 +196,8 @@ SELECT sum(unique1) over (w range between current row and unbounded following),
 	unique1, four
 FROM tenk1 WHERE unique1 < 10 WINDOW w AS (order by four);
 
--- fail: not implemented yet
+-- fails on PostgreSQL: not implemented yet
+-- Has been implemented in GPDB.
 SELECT sum(unique1) over (order by four range between 2::int8 preceding and 1::int2 preceding),
 	unique1, four
 FROM tenk1 WHERE unique1 < 10;
@@ -204,7 +209,8 @@ FROM tenk1 WHERE unique1 < 10
 WINDOW w AS (order by four range between current row and unbounded following);
 
 SELECT sum(unique1) over
-	(rows (SELECT unique1 FROM tenk1 ORDER BY unique1 LIMIT 1) + 1 PRECEDING),
+	(order by unique1
+	 rows (SELECT unique1 FROM tenk1 ORDER BY unique1 LIMIT 1) + 1 PRECEDING),
 	unique1
 FROM tenk1 WHERE unique1 < 10;
 
@@ -215,6 +221,8 @@ CREATE TEMP VIEW v_window AS
 SELECT * FROM v_window;
 
 SELECT pg_get_viewdef('v_window');
+
+reset search_path;
 
 -- with UNION
 SELECT count(*) OVER (PARTITION BY four) FROM (SELECT * FROM tenk1 UNION ALL SELECT * FROM tenk2)s LIMIT 0;
