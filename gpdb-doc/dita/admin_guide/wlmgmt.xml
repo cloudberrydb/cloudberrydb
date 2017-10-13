@@ -23,7 +23,6 @@
     <p>Resource queues are enabled by default when you install your Greenplum Database cluster.
       While you can create and assign resource groups when resource queues are active, you must
       explicitly enable resource groups to start using that management scheme.</p>
-
     <p>The following table summarizes some of the differences between Resource Queues and Resource
       Groups.</p>
     <table id="queue_group_compare">
@@ -84,7 +83,7 @@
             <entry colname="col1">Limit Bypass</entry>
             <entry colname="col2">Limits are not enforced for <codeph>SUPERUSER</codeph> roles and
               certain operators and functions</entry>
-            <entry colname="col3">No limit bypass cases</entry>
+            <entry colname="col3">Limits are not enforced on <codeph>SET</codeph> and <codeph>SHOW</codeph> commands</entry>
           </row>
         </tbody>
       </tgroup>

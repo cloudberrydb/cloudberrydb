@@ -10,7 +10,6 @@
     <p>You can use resource groups to manage the number of active queries that may execute
       concurrently in your Greenplum Database cluster. With resource groups, you can also manage the
       amount of CPU and memory resources Greenplum allocates to each query.</p>
-
     <p>When the user executes a query, Greenplum Database evaluates the query against a set of
       limits defined for the resource group. Greenplum Database executes the query immediately if
       the group's resource limits have not yet been reached and the query does not cause the group
@@ -65,7 +64,7 @@
         </tbody>
       </tgroup>
     </table>
-
+    <note>Resource limits are not enforced on <codeph>SET</codeph> and <codeph>SHOW</codeph> commands.</note>
   </body>
 
   <topic id="topic8339717179" xml:lang="en">
@@ -159,7 +158,21 @@
         of the transaction's fixed memory and the full resource group shared memory allotment.</p>
 
       <section id="topic833sp" xml:lang="en">
-        <title>Spill to Disk</title>
+        <title>Query Operator Memory</title>
+        <p>Most query operators are non-memory-intensive; that is, during processing, Greenplum
+          Database can hold their data in allocated memory. When memory-intensive query operators
+          such as join and sort process more data than can be held in memory, data is spilled to
+          disk.</p>
+        <p>The <codeph><xref href="../ref_guide/config_params/guc-list.xml#gp_resgroup_memory_policy" type="section"/></codeph>
+          server configuration parameter governs the memory allocation and distribution algorithm
+          for all query operators. Greenplum Database supports <codeph>eager-free</codeph> (the 
+          default) and <codeph>auto</codeph> memory policies for resource groups. When you specify
+          the <codeph>auto</codeph> policy, Greenplum Database uses resource group memory limits to
+          distribute memory across query operators, allocating a fixed size of memory to 
+          non-memory-intensive operators and the rest to memory-intensive operators. When the 
+          <codeph>eager_free</codeph> policy is in place, Greenplum Database distributes memory 
+          among operators more optimally by re-allocating memory released by operators that have 
+          completed their processing to operators in a later query stage.</p>
         <p><codeph>MEMORY_SPILL_RATIO</codeph> identifies the memory usage threshold for
           memory-intensive operators in a transaction. When the transaction reaches this memory
           threshold, it spills to disk. Greenplum Database uses the
@@ -173,7 +186,6 @@
               <codeph><xref href="../ref_guide/config_params/guc-list.xml#memory_spill_ratio"
               type="section"/></codeph> server configuration parameter.</p>
       </section>
-
     </body>
   </topic>
 
