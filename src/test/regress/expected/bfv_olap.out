@@ -128,65 +128,9 @@ create aggregate ema(float, float) (
 create table ema_test (k int, v float ) distributed by (k);
 insert into ema_test select i, 4*random() + 10.0*(1+cos(radians(i*5))) from generate_series(0,19) i(i);
 -- TEST
-select k, v, ema(v, 0.9) over (order by k rows between unbounded preceding and current row) from ema_test order by k;
-ERROR:  aggregate functions with no prelimfn or invprelimfn are not yet supported as window functions
--- CLEANUP
--- start_ignore
-drop table if exists ema_test cascade;
-drop aggregate if exists ema(float, float);
-drop function if exists ema_fin(t ema_type) cascade;
-drop function if exists ema_adv(t ema_type, v float, x float) cascade;
-drop type if exists ema_type cascade;
--- end_ignore
---
--- Test case errors out when we define aggregates without preliminary functions and use it as an aggregate derived window function.
---
--- SETUP
--- start_ignore
-drop type if exists ema_type cascade;
-NOTICE:  type "ema_type" does not exist, skipping
-drop function if exists ema_adv(t ema_type, v float, x float) cascade;
-ERROR:  type "ema_type" does not exist
-drop function if exists ema_fin(t ema_type) cascade;
-ERROR:  type "ema_type" does not exist
-drop aggregate if exists ema(float, float);
-NOTICE:  aggregate ema(pg_catalog.float8,pg_catalog.float8) does not exist, skipping
-drop table if exists ema_test cascade;
-NOTICE:  table "ema_test" does not exist, skipping
--- end_ignore
-create type ema_type as (x float, e float);
-create function ema_adv(t ema_type, v float, x float)
-    returns ema_type
-    as $$
-        begin
-            if t.e is null then
-                t.e = v;
-                t.x = x;
-            else
-                if t.x != x then
-                    raise exception 'ema smoothing x may not vary';
-                end if;
-                t.e = t.e + (v - t.e) * t.x;
-            end if;
-            return t;
-        end;
-    $$ language plpgsql;
-create function ema_fin(t ema_type)
-    returns float
-    as $$
-       begin
-           return t.e;
-       end;
-    $$ language plpgsql;
-create aggregate ema(float, float) (
-    sfunc = ema_adv,
-    stype = ema_type,
-    finalfunc = ema_fin,
-    initcond = '(,)');
-create table ema_test (k int, v float ) distributed by (k);
-insert into ema_test select i, 4*random() + 10.0*(1+cos(radians(i*5))) from generate_series(0,19) i(i);
--- TEST
 select k, v, ema(v, 0.9) over (order by k) from ema_test order by k;
+ERROR:  aggregate functions with no prelimfn or invprelimfn are not yet supported as window functions
+select k, v, ema(v, 0.9) over (order by k rows between unbounded preceding and current row) from ema_test order by k;
 ERROR:  aggregate functions with no prelimfn or invprelimfn are not yet supported as window functions
 -- CLEANUP
 -- start_ignore
@@ -231,31 +175,7 @@ SELECT MAX(a) AS m FROM r GROUP BY b;
 ---
 (0 rows)
 
- 
--- CLEANUP
--- start_ignore
-DROP TABLE IF EXISTS r;
--- end_ignore
---
 -- ORDER BY clause includes some grouping column or not
---
--- SETUP
--- start_ignore
-DROP TABLE IF EXISTS r;
-NOTICE:  table "r" does not exist, skipping
--- end_ignore
-CREATE TABLE r
-(
-    a INT NOT NULL, 
-    b INT, 
-    c CHARACTER VARYING(200),  
-    d NUMERIC(10,0), 
-    e DATE
-) DISTRIBUTED BY (a,b);
-ALTER TABLE r ADD CONSTRAINT PKEY PRIMARY KEY (b);
-NOTICE:  updating distribution policy to match new primary key
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "r_pkey" for table "r"
---TEST
 SELECT MAX(a) AS m FROM R GROUP BY b ORDER BY m,b;
  m 
 ---
@@ -271,30 +191,7 @@ SELECT MAX(a) AS m FROM R GROUP BY b,e ORDER BY m;
 ---
 (0 rows)
 
--- CLEANUP
--- start_ignore
-DROP TABLE IF EXISTS r;
--- end_ignore
---
 -- ORDER BY 1 or more columns
---
--- SETUP
--- start_ignore
-DROP TABLE IF EXISTS r;
-NOTICE:  table "r" does not exist, skipping
--- end_ignore
-CREATE TABLE r
-(
-    a INT NOT NULL, 
-    b INT, 
-    c CHARACTER VARYING(200),  
-    d NUMERIC(10,0), 
-    e DATE
-) DISTRIBUTED BY (a,b);
-ALTER TABLE r ADD CONSTRAINT PKEY PRIMARY KEY (b);
-NOTICE:  updating distribution policy to match new primary key
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "r_pkey" for table "r"
---TEST
 SELECT MAX(a),d,e AS m FROM r GROUP BY b,d,e ORDER BY m,e,d;
  max | d | m 
 -----+---+---
