@@ -1640,11 +1640,15 @@ Plan *assure_collocation_and_order(
 		List **pathkeys_ptr /*OUT*/
 		)
 {
-	Plan *result_plan;
-	List *sort_pathkeys = NIL;
 	double motion_cost_per_row = (gp_motion_cost_per_row > 0.0) ?
 					gp_motion_cost_per_row :
 					2.0 * cpu_tuple_cost;
+	Plan	   *result_plan;
+	List	   *sort_pathkeys;
+	List	   *dist_sortclauses;
+	List	   *dist_pathkeys;
+	ListCell   *lc;
+	int			n;
 
 	Assert( input_plan && (input_plan->flow || IsA(input_plan, Motion)) );
 	Assert( !CdbPathLocus_IsNull(input_locus));
@@ -1653,23 +1657,34 @@ Plan *assure_collocation_and_order(
 	result_plan = input_plan;
 	if (output_locus != NULL)
 		*output_locus = input_locus;
-	
-	if ( sortclause != NIL )
+
+	/* Construct pathkeys to represent the sort order and distribution */
+	sort_pathkeys = make_pathkeys_for_sortclauses(root, sortclause, lower_tlist, true);
+
+	n = partkey_len;
+	dist_sortclauses = NIL;
+	foreach (lc, sortclause)
 	{
-		sort_pathkeys = make_pathkeys_for_sortclauses(root, sortclause, lower_tlist, true);
+		if ( 0 >= n-- ) break;
+		dist_sortclauses = lappend(dist_sortclauses, lfirst(lc));
 	}
-	
-	if ( partkey_len == 0 ) /* Plan for single process locus. */
+	dist_pathkeys = make_pathkeys_for_sortclauses(root, dist_sortclauses, lower_tlist, true);
+
+	if (!dist_pathkeys) /* Plan for single process locus. */
 	{
 		/* Assure sort order first */
 		if(sort_pathkeys != NIL)
 		{
 			if(!pathkeys_contained_in(sort_pathkeys, *pathkeys_ptr))
 			{
-				result_plan = (Plan *) make_sort_from_sortclauses(root, sortclause, result_plan);
-
 				/* re-phrase the pathkeys in terms of the sort node's target list. */
 				sort_pathkeys = make_pathkeys_for_sortclauses(root, sortclause, result_plan->targetlist, true);
+
+				result_plan = (Plan *) make_sort_from_pathkeys(root,
+															   result_plan,
+															   sort_pathkeys,
+															   -1,
+															   false);
 
 				*pathkeys_ptr = sort_pathkeys;
 				mark_sort_locus(result_plan);
@@ -1687,25 +1702,11 @@ Plan *assure_collocation_and_order(
 	}
 	else  /* Plan for hash distributed locus. */
 	{
-		List *dist_keys = NIL;
-		List *dist_pathkeys;
-		ListCell *lc;
-		int n;
-		
-		/* Get the required distribution path keys. */
-		n = partkey_len;
-		foreach (lc, sortclause)
-		{
-			if ( 0 >= n-- ) break;
-			dist_keys = lappend(dist_keys, lfirst(lc));
-		}
-		dist_pathkeys = make_pathkeys_for_sortclauses(root, dist_keys, lower_tlist, true);
-
 		/* Assure the required distribution. */
 		if ( ! cdbpathlocus_collocates(root, input_locus, dist_pathkeys, false /*exact_match*/) )
 		{
 			List *dist_exprs = NIL;
-			foreach (lc, dist_keys)
+			foreach (lc, dist_sortclauses)
 			{
 				SortClause *sc = (SortClause*)lfirst(lc);
 				TargetEntry *tle =  get_sortgroupclause_tle(sc,input_plan->targetlist);
@@ -1730,10 +1731,14 @@ Plan *assure_collocation_and_order(
 		{
 			if(!pathkeys_contained_in(sort_pathkeys, *pathkeys_ptr))
 			{
-				result_plan = (Plan *) make_sort_from_sortclauses(root, sortclause, result_plan);
-
 				/* re-phrase the pathkeys in terms of the sort node's target list. */
 				sort_pathkeys = make_pathkeys_for_sortclauses(root, sortclause, result_plan->targetlist, true);
+
+				result_plan = (Plan *) make_sort_from_pathkeys(root,
+															   result_plan,
+															   sort_pathkeys,
+															   -1,
+															   false);
 
 				*pathkeys_ptr = sort_pathkeys;
 				mark_sort_locus(result_plan);
