@@ -2655,18 +2655,24 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
+      tags: ["gpdb5_ccp_external_worker"]
       passed: [gate_general_misc_start]
     - get: bin_gpdb
+      tags: ["gpdb5_ccp_external_worker"]
       resource: bin_gpdb_centos7
     - get: ccp_src
+      tags: ["gpdb5_ccp_external_worker"]
     - get: centos-gpdb-dev-7
+      tags: ["gpdb5_ccp_external_worker"]
   - put: terraform
+    tags: ["gpdb5_ccp_external_worker"]
     params:
       <<: *ccp_default_params
       vars:
         <<: *ccp_default_vars
         platform: centos7
   - task: gen_cluster
+    tags: ["gpdb5_ccp_external_worker"]
     file: ccp_src/ci/tasks/gen_cluster.yml
     params:
       <<: *ccp_gen_cluster_default_params
@@ -2675,6 +2681,7 @@ jobs:
     on_failure:
       <<: *ccp_destroy
   - task: run_tests
+    tags: ["gpdb5_ccp_external_worker"]
     file: gpdb_src/concourse/tasks/ic_gpdb_resgroup.yml
     image: centos-gpdb-dev-7
     params:
