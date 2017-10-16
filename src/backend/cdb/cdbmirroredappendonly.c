@@ -38,8 +38,8 @@
 #include "access/xlogutils.h"
 #include "cdb/cdbappendonlyam.h"
 
-static void xlog_ao_insert(MirroredAppendOnlyOpen *open, void *buffer,
-						   int32 bufferLen);
+static void xlog_ao_insert(MirroredAppendOnlyOpen *open, int64 offset,
+						   void *buffer, int32 bufferLen);
 #endif		/* USE_SEGWALREP */
 
 static void
@@ -2258,11 +2258,16 @@ MirroredAppendOnly_Append(
 	if (StorageManagerMirrorMode_DoPrimaryWork(open->mirrorMode) &&
 		!open->copyToMirror)
 	{
-
 #ifdef USE_SEGWALREP
-		/* Log each varblock to the XLog. */
-		xlog_ao_insert(open, buffer, bufferLen);
-#endif		/* USE_SEGWALREP */
+		/*
+		 * Using FileSeek to fetch the current write offset. Passing 0 offset
+		 * with SEEK_CUR avoids actual disk-io, as it just returns from
+		 * VFDCache the current file position value. Make sure to populate
+		 * this before the FileWrite call else the file pointer has moved
+		 * forward.
+		 */
+		int64 offset = FileSeek(open->primaryFile, 0, SEEK_CUR);
+#endif
 
 		errno = 0;
 
@@ -2273,6 +2278,22 @@ MirroredAppendOnly_Append(
 				errno = ENOSPC;
 			*primaryError = errno;
 		}
+#ifdef USE_SEGWALREP
+		else
+		{
+			/*
+			 * Log each varblock to the XLog. Write to the file first, before
+			 * writing the WAL record, to avoid trouble if you run out of disk
+			 * space. If WAL record is written first, and then the FileWrite()
+			 * fails, there's no way to "undo" the WAL record. If crash
+			 * happens, crash recovery will also try to replay the WAL record,
+			 * and will also run out of disk space, and will fail. As EOF
+			 * controls the visibility of data in AO / CO files, writing xlog
+			 * record after writing to file works fine.
+			 */
+			xlog_ao_insert(open, offset, buffer, bufferLen);
+		}
+#endif
 	}
 
 	if (open->guardOtherCallsWithMirroredLock)
@@ -2397,23 +2418,15 @@ MirroredAppendOnly_Read(
 /*
  * Insert an AO XLOG/AOCO record
  */
-static void xlog_ao_insert(MirroredAppendOnlyOpen *open, void *buffer,
-						   int32 bufferLen)
+static void xlog_ao_insert(MirroredAppendOnlyOpen *open, int64 offset,
+						   void *buffer, int32 bufferLen)
 {
 	xl_ao_insert	xlaoinsert;
 	XLogRecData		rdata[2];
 
 	xlaoinsert.target.node = open->relFileNode;
 	xlaoinsert.target.segment_filenum = open->segmentFileNum;
-
-	/*
-	 * Using FileSeek to fetch the current write offset.
-	 * Passing 0 offset with SEEK_CUR avoids actual disk-io,
-	 * as it just returns from VFDCache the current file position value.
-	 * Make sure to populate this before the FileWrite call else the file
-	 * pointer has moved forward.
-	 */
-	xlaoinsert.target.offset = FileSeek(open->primaryFile, 0, SEEK_CUR);
+	xlaoinsert.target.offset = offset;
 
 	rdata[0].data = (char*) &xlaoinsert;
 	rdata[0].len = SizeOfAOInsert;
