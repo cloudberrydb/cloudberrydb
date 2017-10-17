@@ -2230,7 +2230,7 @@ select distinct 1, sum(x1) from orca.foo;
         1 |  55
 (1 row)
 
-select distinct x1, rank() over(order by x1) from (select x1 from orca.foo order by x1) x;
+select distinct x1, rank() over(order by x1) from (select x1 from orca.foo order by x1) x; --order none
  x1 | rank 
 ----+------
   1 |    1

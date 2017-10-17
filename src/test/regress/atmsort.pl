@@ -217,7 +217,7 @@ or
 
 The supported commands are:
 
-=over 12
+=over 13
 
 =item -- order column number[, column number...]
 
@@ -226,6 +226,14 @@ The supported commands are:
   output.  The specified columns are assumed 
   to be ordered, and the  remaining columns are 
   sorted to allow for deterministic comparison.
+
+=item -- order none
+
+  The order none directive can be used to specify that the SELECT's
+  output is not ordered. This can be necessary if the default
+  heuristic that checks if there is an ORDER BY in the query gets
+  fooled, e.g by an ORDER BY in a subquery that doesn't force the
+  overall result to be ordered.
 
 =item -- ignore
 

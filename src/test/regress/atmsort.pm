@@ -1289,7 +1289,7 @@ sub atmsort_bigloop
 			# each command has a unique first character. This allows us to
 			# use fewer regular expression matches in this hot section.
 			if ($has_comment &&
-				$ini =~ m/\-\-\s*((force_explain)\s*(operator)?\s*$|(ignore)\s*$|(order)\s+\d+.*$|(mvd)\s+\d+.*$)/)
+				$ini =~ m/\-\-\s*((force_explain)\s*(operator)?\s*$|(ignore)\s*$|(order)\s+(\d+|none).*$|(mvd)\s+\d+.*$)/)
 			{
 				my $cmd = substr($1, 0, 1);
 				if ($cmd eq 'i')
@@ -1300,7 +1300,14 @@ sub atmsort_bigloop
 				{
 					my $olist = $ini;
 					$olist =~ s/^.*\-\-\s*order//;
-					$directive->{order} = $olist;
+					if ($olist =~ /none/)
+					{
+						$directive->{order_none} = 1;
+					}
+					else
+					{
+						$directive->{order} = $olist;
+					}
 				}
 				elsif ($cmd eq 'f')
 				{
@@ -1424,6 +1431,7 @@ sub atmsort_bigloop
 
                 if (defined($sql_statement)
                     && length($sql_statement)
+                    && !defined($directive->{order_none})
                     # multiline match
                     && ($sql_statement =~ m/select.*order.*by/is))
                 {

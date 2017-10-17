@@ -100,7 +100,7 @@ SELECT x1 AS one FROM orca.foo having 1 < 2;
 select distinct 1, null;
 select distinct 1, null from orca.foo;
 select distinct 1, sum(x1) from orca.foo;
-select distinct x1, rank() over(order by x1) from (select x1 from orca.foo order by x1) x;
+select distinct x1, rank() over(order by x1) from (select x1 from orca.foo order by x1) x; --order none
 select distinct x1, sum(x3) from orca.foo group by x1,x2;
 select distinct s from (select sum(x2) s from orca.foo group by x1) x;
 select * from orca.foo a where a.x1 = (select distinct sum(b.x1)+avg(b.x1) sa from orca.bar1 b group by b.x3 order by sa limit 1);
