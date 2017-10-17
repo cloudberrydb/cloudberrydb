@@ -797,7 +797,7 @@ ResGroupOps_GetCpuCores(void)
 }
 
 /*
- * Get the total memory on the system.
+ * Get the total memory on the system in MB.
  * Read from sysinfo and cgroup to get correct ram and swap.
  * (total RAM * overcommit_ratio + total Swap)
  */
@@ -829,5 +829,5 @@ ResGroupOps_GetTotalMemory(void)
 	 * memoery outside and the memsw of the container.
 	 */
 	total = Min(outTotal, swap + ram); 
-	return total >> VmemTracker_GetChunkSizeInBits();
+	return total >> BITS_IN_MB;
 }

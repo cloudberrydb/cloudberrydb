@@ -183,6 +183,8 @@ struct ResGroupControl
 	int32			totalChunks;	/* total memory chunks on this segment */
 	int32			freeChunks;		/* memory chunks not allocated to any group */
 
+	int32			chunkSizeInBits;
+
 	ResGroupSlotData	*slots;		/* slot pool shared by all resource groups */
 	ResGroupSlotData	freeSlot;	/* root of the free list */
 
@@ -210,7 +212,7 @@ static void mempoolRelease(Oid groupId, int32 chunks);
 static void groupRebalanceQuota(ResGroupData *group,
 								int32 chunks,
 								const ResGroupCaps *caps);
-static int32 getSegmentChunks(void);
+static void decideTotalChunks(int32 *totalChunks, int32 *chunkSizeInBits);
 static int32 groupGetMemExpected(const ResGroupCaps *caps);
 static int32 groupGetMemQuotaExpected(const ResGroupCaps *caps);
 static int32 groupGetMemSharedExpected(const ResGroupCaps *caps);
@@ -374,6 +376,7 @@ ResGroupControlInit(void)
     pResGroupControl->nGroups = MaxResourceGroups;
 	pResGroupControl->totalChunks = 0;
 	pResGroupControl->freeChunks = 0;
+	pResGroupControl->chunkSizeInBits = BITS_IN_MB;
 
 	for (i = 0; i < MaxResourceGroups; i++)
 		pResGroupControl->groups[i].groupId = InvalidOid;
@@ -464,7 +467,7 @@ InitResGroups(void)
 		goto exit;
 
 	/* These initialization must be done before ResGroupCreate() */
-	pResGroupControl->totalChunks = getSegmentChunks();
+	decideTotalChunks(&pResGroupControl->totalChunks, &pResGroupControl->chunkSizeInBits);
 	pResGroupControl->freeChunks = pResGroupControl->totalChunks;
 	if (pResGroupControl->totalChunks == 0)
 		ereport(PANIC,
@@ -662,6 +665,29 @@ ResGroupAlterOnCommit(Oid groupId,
 	PG_END_TRY();
 
 	LWLockRelease(ResGroupLock);
+}
+
+int32
+ResGroupGetVmemLimitChunks(void)
+{
+	Assert(IsResGroupEnabled());
+
+	return pResGroupControl->totalChunks;
+}
+
+int32
+ResGroupGetVmemChunkSizeInBits(void)
+{
+	Assert(IsResGroupEnabled());
+
+	return pResGroupControl->chunkSizeInBits;
+}
+
+int32
+ResGroupGetMaxChunksPerQuery(void)
+{
+	return ceil(gp_vmem_limit_per_query /
+				(1024.0 * (1 << (pResGroupControl->chunkSizeInBits - BITS_IN_MB))));
 }
 
 /*
@@ -1778,14 +1804,31 @@ groupRebalanceQuota(ResGroupData *group, int32 chunks, const ResGroupCaps *caps)
 /*
  * Calculate the total memory chunks of the segment
  */
-static int32
-getSegmentChunks(void)
+static void
+decideTotalChunks(int32 *totalChunks, int32 *chunkSizeInBits)
 {
-	int nsegments = Gp_role == GP_ROLE_EXECUTE ? host_segments : pResGroupControl->segmentsOnMaster;
+	int32 nsegments;
+	int32 tmptotalChunks;
+	int32 tmpchunkSizeInBits;
 
+	nsegments = Gp_role == GP_ROLE_EXECUTE ? host_segments : pResGroupControl->segmentsOnMaster;
 	Assert(nsegments > 0);
 
-	return ResGroupOps_GetTotalMemory() * gp_resource_group_memory_limit / nsegments;
+	tmptotalChunks = ResGroupOps_GetTotalMemory() * gp_resource_group_memory_limit / nsegments;
+
+	/*
+	 * If vmem is larger than 16GB (i.e., 16K MB), we make the chunks bigger
+	 * so that the vmem limit in chunks unit is not larger than 16K.
+	 */
+	tmpchunkSizeInBits = BITS_IN_MB;
+	while(tmptotalChunks > (16 * 1024))
+	{
+		tmpchunkSizeInBits++;
+		tmptotalChunks >>= 1;
+	}
+
+	*totalChunks = tmptotalChunks;
+	*chunkSizeInBits = tmpchunkSizeInBits;
 }
 
 /*
