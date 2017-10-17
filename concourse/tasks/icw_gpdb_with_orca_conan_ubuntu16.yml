@@ -2,20 +2,18 @@ platform: linux
 image_resource:
   type: docker-image
   source:
-    repository: gpdb/centos-gpdb-dev-conan
-    tag: 7-gcc6.2-llvm3.7
+    repository: pivotaldata/ubuntu-gpdb-dev
+    tag: '16.04_gcc_6_3'
 inputs:
   - name: gpdb_src
-  - name: bin_orca
-  - name: bin_gpdb
+  - name: compiled_bits_gpdb_with_orca_conan_ubuntu16
 outputs:
   - name: icg_output
 run:
   path: gpdb_src/concourse/scripts/test_gpdb.py
   args:
     - --mode=orca
-    - --gpdb_name=bin_gpdb
-    - bin_orca
+    - --gpdb_name=compiled_bits_gpdb_with_orca_conan_ubuntu16
 params:
   BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
-  TEST_SUITE: "icg"
+  TEST_SUITE: "icw"
