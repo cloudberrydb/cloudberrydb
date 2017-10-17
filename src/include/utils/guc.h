@@ -260,9 +260,6 @@ extern bool gp_appendonly_compaction;
  */
 extern int  gp_appendonly_compaction_threshold;
 extern bool gp_heap_require_relhasoids_match;
-extern bool	Debug_appendonly_rezero_quicklz_compress_scratch;
-extern bool	Debug_appendonly_rezero_quicklz_decompress_scratch;
-extern bool	Debug_appendonly_guard_end_quicklz_scratch;
 extern bool	debug_xlog_record_read;
 extern bool Debug_cancel_print;
 extern bool Debug_datumstream_write_print_small_varlena_info;

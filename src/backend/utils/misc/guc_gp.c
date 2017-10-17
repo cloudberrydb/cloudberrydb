@@ -144,9 +144,6 @@ bool		gp_appendonly_verify_write_block = false;
 bool		gp_appendonly_compaction = true;
 int			gp_appendonly_compaction_threshold = 0;
 bool		gp_heap_require_relhasoids_match = true;
-bool		Debug_appendonly_rezero_quicklz_compress_scratch = false;
-bool		Debug_appendonly_rezero_quicklz_decompress_scratch = false;
-bool		Debug_appendonly_guard_end_quicklz_scratch = false;
 bool		gp_local_distributed_cache_stats = false;
 bool		debug_xlog_record_read = false;
 bool		Debug_cancel_print = false;
@@ -1117,39 +1114,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&gp_heap_require_relhasoids_match,
 		true,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"debug_appendonly_rezero_quicklz_compress_scratch", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Zero the QuickLZ scratch buffer before each append-only block that is being compressed."),
-			NULL,
-			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
-		},
-		&Debug_appendonly_rezero_quicklz_compress_scratch,
-		false,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"debug_appendonly_guard_end_quicklz_scratch", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Put a guard area of all zeroes after the QuickLZ scratch buffers and verify it is still zero before and after compress and decompress operations."),
-			NULL,
-			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
-		},
-		&Debug_appendonly_guard_end_quicklz_scratch,
-		false,
-		NULL, NULL, NULL
-	},
-
-	{
-		{"debug_appendonly_rezero_quicklz_decompress_scratch", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Zero the QuickLZ scratch buffer before each append-only block that is being decompressed."),
-			NULL,
-			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
-		},
-		&Debug_appendonly_rezero_quicklz_decompress_scratch,
-		false,
 		NULL, NULL, NULL
 	},
 

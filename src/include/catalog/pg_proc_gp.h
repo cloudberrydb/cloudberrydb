@@ -571,26 +571,6 @@ DESCR("anytable type serialization input function");
 DATA(insert OID = 7055 ( anytable_out  PGNSP PGUID 12 1 0 0 0 f f f f t f i 1 0 2275 "7053" _null_ _null_ _null_ _null_ anytable_out _null_ _null_ _null_ n a ));
 DESCR("anytable type serialization output function");
 
-/* gp_quicklz_constructor(internal, internal, bool) => internal */
-DATA(insert OID = 5076 ( gp_quicklz_constructor  PGNSP PGUID 12 1 0 0 0 f f f f f f v 3 0 2281 "2281 2281 16" _null_ _null_ _null_ _null_ quicklz_constructor _null_ _null_ _null_ n a ));
-DESCR("quicklz constructor");
-
-/* gp_quicklz_destructor(internal) => void */
-DATA(insert OID = 5077 ( gp_quicklz_destructor  PGNSP PGUID 12 1 0 0 0 f f f f f f v 1 0 2278 "2281" _null_ _null_ _null_ _null_ quicklz_destructor _null_ _null_ _null_ n a ));
-DESCR("quicklz destructor");
-
-/* gp_quicklz_compress(internal, int4, internal, int4, internal, internal) => void */
-DATA(insert OID = 5078 ( gp_quicklz_compress  PGNSP PGUID 12 1 0 0 0 f f f f f f i 6 0 2278 "2281 23 2281 23 2281 2281" _null_ _null_ _null_ _null_ quicklz_compress _null_ _null_ _null_ n a ));
-DESCR("quicklz compressor");
-
-/* gp_quicklz_decompress(internal, int4, internal, int4, internal, internal) => void */
-DATA(insert OID = 5079 ( gp_quicklz_decompress  PGNSP PGUID 12 1 0 0 0 f f f f f f i 6 0 2278 "2281 23 2281 23 2281 2281" _null_ _null_ _null_ _null_ quicklz_decompress _null_ _null_ _null_ n a ));
-DESCR("quicklz decompressor");
-
-/* gp_quicklz_validator(internal) => void */
-DATA(insert OID = 9925 ( gp_quicklz_validator  PGNSP PGUID 12 1 0 0 0 f f f f f f i 1 0 2278 "2281" _null_ _null_ _null_ _null_ quicklz_validator _null_ _null_ _null_ n a ));
-DESCR("quicklz compression validator");
-
 /* gp_zlib_constructor(internal, internal, bool) => internal */
 DATA(insert OID = 9910 ( gp_zlib_constructor  PGNSP PGUID 12 1 0 0 0 f f f f f f v 3 0 2281 "2281 2281 16" _null_ _null_ _null_ _null_ zlib_constructor _null_ _null_ _null_ n a ));
 DESCR("zlib constructor");
