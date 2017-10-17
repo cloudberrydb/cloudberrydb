@@ -1709,13 +1709,6 @@ exec_simple_query(const char *query_string, const char *seqServerHost, int seqSe
 					 errmsg("current transaction is aborted, "
 						"commands ignored until end of transaction block")));
 
-		/*
-		 * If the last statement in the parsetree is 'COMMIT', the dtx context
-		 * is already destroyed, and the transaction context is set to 'DTX_CONTEXT_LOCAL_ONLY'
-		 */
-		if (Gp_role == GP_ROLE_DISPATCH)
-			setupRegularDtxContext();
-
 		/* Make sure we are in a transaction command */
 		start_xact_command();
 
@@ -5043,8 +5036,6 @@ PostgresMain(int argc, char *argv[],
 
 					elog((Debug_print_full_dtm ? LOG : DEBUG5), "Simple query stmt: %s.",query_string);
 
-					setupRegularDtxContext();
-
 					if (am_walsender)
 						exec_replication_command(query_string);
 #ifdef USE_SEGWALREP
@@ -5339,8 +5330,6 @@ PostgresMain(int argc, char *argv[],
 
 					elog((Debug_print_full_dtm ? LOG : DEBUG5), "Parse: %s.",query_string);
 
-					setupRegularDtxContext();
-
 					exec_parse_message(query_string, stmt_name,
 									   paramTypes, numParams);
 				}
@@ -5351,8 +5340,6 @@ PostgresMain(int argc, char *argv[],
 
 				/* Set statement_timestamp() */
 				SetCurrentStatementStartTimestamp();
-
-                setupRegularDtxContext();
 
 				/*
 				 * this message is complex enough that it seems best to put
@@ -5379,8 +5366,6 @@ PostgresMain(int argc, char *argv[],
 
 					elog((Debug_print_full_dtm ? LOG : DEBUG5), "Execute: %s.",portal_name);
 
-					setupRegularDtxContext();
-
 					exec_execute_message(portal_name, max_rows);
 				}
 				break;
@@ -5396,8 +5381,6 @@ PostgresMain(int argc, char *argv[],
 				pgstat_report_activity("<FASTPATH> function call");
 
 				elog((Debug_print_full_dtm ? LOG : DEBUG5), "Fast path function call.");
-
-				setupRegularDtxContext();
 
 				/* start an xact for this function invocation */
 				start_xact_command();
@@ -5493,8 +5476,6 @@ PostgresMain(int argc, char *argv[],
 					pq_getmsgend(&input_message);
 
 					elog((Debug_print_full_dtm ? LOG : DEBUG5), "Describe: %s.", describe_target);
-
-					setupRegularDtxContext();
 
 					switch (describe_type)
 					{

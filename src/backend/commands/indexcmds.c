@@ -1615,7 +1615,6 @@ ReindexRelationList(List *relids)
 		Oid			relid = lfirst_oid(lc);
 		Relation	rel = NULL;
 
-		setupRegularDtxContext();
 		StartTransactionCommand();
 		/* functions in indexes may want a snapshot set */
 		PushActiveSnapshot(GetTransactionSnapshot());
@@ -1663,7 +1662,6 @@ ReindexRelationList(List *relids)
 	 * We committed the transaction above, so start a new one before
 	 * returning.
 	 */
-	setupRegularDtxContext();
 	StartTransactionCommand();
 }
 

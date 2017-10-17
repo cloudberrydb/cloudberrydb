@@ -614,19 +614,6 @@ vacuum(VacuumStmt *vacstmt, Oid relid,
 	{
 		/* here, we are not in a transaction */
 
-		/*
-		 * This matches the CommitTransaction waiting for us in
-		 * PostgresMain().
-		 *
-		 * MPP-7632 and MPP-7984: if we're in a vacuum analyze we need to
-		 * make sure that this transaction we're in has the right
-		 * properties
-		 */
-		if (Gp_role == GP_ROLE_DISPATCH)
-		{
-			/* Set up the distributed transaction context. */
-			setupRegularDtxContext();
-		}
 		StartTransactionCommand();
 	}
 
@@ -1033,10 +1020,6 @@ vacuumStatement_Relation(VacuumStmt *vacstmt, Oid relid,
 			if (!truncatePhase)
 				vacstmt->appendonly_compaction_vacuum_cleanup = false;
 		}
-
-		/* Set up the distributed transaction context. */
-		if (Gp_role == GP_ROLE_DISPATCH)
-			setupRegularDtxContext();
 
 		/*
 		 * For each iteration we start/commit our own transactions,
