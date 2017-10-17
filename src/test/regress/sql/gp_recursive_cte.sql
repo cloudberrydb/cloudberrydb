@@ -236,3 +236,26 @@ with recursive r(i, j) as (
 )
 select avg(i) over(partition by j) from r limit 100;
 
+-- WITH RECURSIVE ref used within a UDF
+create function sum_to_zero(integer) returns bigint as $$
+with recursive r(i) as (
+	select $1
+	union all
+	select i - 1 from r where i > 0
+)
+select sum(i) from r;
+$$ language sql;
+select sum_to_zero(10);
+
+-- WITH RECURSIVE ref used within a UDF against a distributed table
+create table people(name text, parent_of text);
+insert into people values ('a', 'b'), ('b', 'c'), ('c', 'd'), ('d', 'e');
+create function get_lineage(text) returns setof text as $$
+with recursive r(person) as (
+	select name from people where name = $1
+	union all
+	select name from r, people where people.parent_of = r.person
+)
+select * from r;
+$$ language sql;
+select get_lineage('d');
