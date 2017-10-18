@@ -190,6 +190,14 @@ alter table atsdb set with(reorganize = true, reorganize = false) distributed
 randomly;
 drop table atsdb;
 
+-- check distribution after dropping distribution key column.
+create table atsdb (i int, j int, t text, n numeric) distributed by (i, j);
+insert into atsdb select i, i+1, i+2, i+3 from generate_series(1, 20) i;
+alter table atsdb drop column i;
+select * from atsdb;
+select * from distcheck where rel = 'atsdb';
+drop table atsdb;
+
 -- Check that we correctly cascade for partitioned tables
 create table atsdb (i int, j int, k int) distributed by (i) partition by range(k)
 (start(1) end(10) every(1));
