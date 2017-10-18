@@ -255,7 +255,6 @@ optimizer_functional_part1:
 optimizer_functional_part2:
 	$(TESTER) $(DISCOVER) \
 	-s dml \
-	-s functions \
 	-q tags=ORCA \
 	-q tags!=FEATURE_BRANCH_ONLY \
 	-q tags!=dpe
