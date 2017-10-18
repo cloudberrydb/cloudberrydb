@@ -259,3 +259,62 @@ with recursive r(person) as (
 select * from r;
 $$ language sql;
 select get_lineage('d');
+
+-- non-recursive CTE nested in non-recursive enclosing CTE
+INSERT INTO recursive_table_1 SELECT i FROM generate_series(0, 100) i;
+
+SELECT MAX(j)
+FROM
+(
+  WITH nr1(i) AS (SELECT id FROM recursive_table_1 WHERE id >= 10)
+  SELECT * FROM
+  (
+	  WITH nr2(j) AS (SELECT i FROM nr1 WHERE i >= 50)
+	  SELECT nr2.j FROM nr2, nr1
+  ) sub2
+) sub1;
+
+-- non-recursive CTE nested in recursive enclosing CTE
+WITH RECURSIVE r1(i) AS
+(
+  SELECT 1
+  UNION ALL
+  (
+    WITH r2(j) AS
+    (
+      SELECT id FROM recursive_table_1 WHERE id < 5
+    )
+    SELECT SUM(j) FROM r2
+  )
+)
+SELECT * FROM r1;
+
+-- recursive CTE nested in recursive enclosing CTE
+WITH RECURSIVE r1(i) AS
+(
+  SELECT 1
+  UNION ALL
+  (
+    WITH RECURSIVE r2(j) AS
+    (
+      SELECT 1
+      UNION ALL
+      SELECT j + 1 FROM r2 WHERE j < 5
+    ) 
+    SELECT i + 1 FROM r1, r2 WHERE i < 5
+  )
+)
+SELECT SUM(i) FROM r1;
+
+-- recursive CTE nested in non-recursive enclosing CTE
+WITH nr(i) AS
+(
+    WITH RECURSIVE r(j) AS
+    (
+      SELECT 1
+      UNION ALL
+      SELECT j + 1 FROM r WHERE j < 5
+    ) 
+    SELECT SUM(j) FROM r
+)
+SELECT SUM(i) FROM nr;
