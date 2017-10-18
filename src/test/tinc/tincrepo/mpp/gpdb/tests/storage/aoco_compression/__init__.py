@@ -26,8 +26,8 @@ class GenerateSqls(MPPTestCase):
     
     def __init__(self):
         self.compress_type_list = ["quicklz","rle_type", "zlib"]
-        self.block_size_list = ["8192", "32768", "65536", "1048576", "2097152"]
-        self.compress_level_list = [1, 2, 3, 4, 5, 6, 7, 8, 9]   
+        self.block_size_list = ["8192", "32768", "2097152"]
+        self.compress_level_list = [1, 3, 9]
         self.all_columns = "a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26,a27,a28,a29,a30,a31,a32,a33,a34,a35,a36,a37,a38,a39,a40,a41,a42"
         self.alter_comprtype = {"quicklz":"zlib","rle_type":"quicklz","zlib":"rle_type"}
         
