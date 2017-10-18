@@ -52,7 +52,7 @@ static int32 maxVmemChunksTracked = 0;
 static int64 trackedBytes = 0;
 
 /* Vmem quota in chunk unit */
-static int32 vmemChunksQuota;
+static int32 vmemChunksQuota = 0;
 /*
  * Chunk size in bits. By default a chunk is 1MB, but it can be larger
  * depending on the vmem quota.
@@ -316,7 +316,7 @@ static int32
 VmemTracker_GetNonNegativeAvailableVmemChunks()
 {
 	int32 usedChunks = *segmentVmemChunks;
-	if (vmemTrackerInited && vmemChunksQuota > usedChunks)
+	if (vmemChunksQuota > usedChunks)
 	{
 		return vmemChunksQuota - usedChunks;
 	}
@@ -334,7 +334,7 @@ static int32
 VmemTracker_GetNonNegativeAvailableQueryChunks()
 {
 	int32 curSessionVmem = MySessionState->sessionVmem;
-	if (vmemTrackerInited && maxChunksPerQuery > curSessionVmem)
+	if (maxChunksPerQuery > curSessionVmem)
 	{
 		return maxChunksPerQuery - curSessionVmem;
 	}
@@ -446,14 +446,7 @@ VmemTracker_GetReservedVmemBytes(void)
 int64
 VmemTracker_GetAvailableVmemBytes()
 {
-	if (vmemTrackerInited)
-	{
-		return CHUNKS_TO_BYTES(VmemTracker_GetNonNegativeAvailableVmemChunks());
-	}
-	else
-	{
-		return 0;
-	}
+	return CHUNKS_TO_BYTES(VmemTracker_GetNonNegativeAvailableVmemChunks());
 }
 
 /*
@@ -462,14 +455,7 @@ VmemTracker_GetAvailableVmemBytes()
 int32
 VmemTracker_GetAvailableVmemMB()
 {
-	if (vmemTrackerInited)
-	{
-		return CHUNKS_TO_MB(VmemTracker_GetNonNegativeAvailableVmemChunks());
-	}
-	else
-	{
-		return 0;
-	}
+	return CHUNKS_TO_MB(VmemTracker_GetNonNegativeAvailableVmemChunks());
 }
 
 /*
@@ -478,14 +464,7 @@ VmemTracker_GetAvailableVmemMB()
 int32
 VmemTracker_GetAvailableQueryVmemMB()
 {
-	if (vmemTrackerInited)
-	{
-		return CHUNKS_TO_MB(VmemTracker_GetNonNegativeAvailableQueryChunks());
-	}
-	else
-	{
-		return 0;
-	}
+	return CHUNKS_TO_MB(VmemTracker_GetNonNegativeAvailableQueryChunks());
 }
 
 /*
