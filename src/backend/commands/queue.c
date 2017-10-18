@@ -959,8 +959,8 @@ CreateQueue(CreateQueueStmt *stmt)
 		else
 		{
 				ereport(WARNING,
-						(errmsg("resource scheduling is disabled"),
-						 errhint("To enable set resource_scheduler=on and gp_resource_manager=queue")));
+						(errmsg("resource queue is disabled"),
+						 errhint("To enable set gp_resource_manager=queue")));
 		}
 	}
 
@@ -1377,8 +1377,8 @@ AlterQueue(AlterQueueStmt *stmt)
 		else
 		{
 			ereport(WARNING,
-					(errmsg("resource scheduling is disabled"),
-					 errhint("To enable set resource_scheduler=on and gp_resource_manager=queue")));
+					(errmsg("resource queue is disabled"),
+					 errhint("To enable set gp_resource_manager=queue")));
 		}
 	}
 
@@ -1515,8 +1515,8 @@ DropQueue(DropQueueStmt *stmt)
 		else
 		{
 			ereport(WARNING,
-					(errmsg("resource scheduling is disabled"),
-					 errhint("To enable set resource_scheduler=on and gp_resource_manager=queue")));
+					(errmsg("resource queue is disabled"),
+					 errhint("To enable set gp_resource_manager=queue")));
 		}
 	}
 

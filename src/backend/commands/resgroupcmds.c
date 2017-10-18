@@ -288,7 +288,7 @@ CreateResourceGroup(CreateResourceGroupStmt *stmt)
 	else if (Gp_role == GP_ROLE_DISPATCH)
 		ereport(WARNING,
 				(errmsg("resource group is disabled"),
-				 errhint("To enable set resource_scheduler=on and gp_resource_manager=group")));
+				 errhint("To enable set gp_resource_manager=group")));
 }
 
 /*
