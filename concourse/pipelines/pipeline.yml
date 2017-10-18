@@ -50,7 +50,11 @@ groups:
   - gate_cluster_start
   - mpp_interconnect
   - DPM_gptransfer-5x-to-5x
-  - cs-filerep-schema-topology-crashrecov
+  - cs_crash_recovery_schema_topology
+  - cs_crash_recovery_04_10
+  - cs_crash_recovery_11_20
+  - cs_crash_recovery_21_30
+  - cs_crash_recovery_31_42
   - DPM_backup-restore
   - gate_cluster_end
 ################################
@@ -101,7 +105,6 @@ groups:
   jobs:
   - MM_gpcheckcat
   - MM_gpexpand
-  - cs-filerep-schema-topology-crashrecov
   - cs-aoco-compression
   - mpp_interconnect
 
@@ -115,6 +118,19 @@ groups:
   - cs_filerep_e2e_incr_primary
   - cs_filerep_e2e_full_mirror
   - cs_filerep_e2e_incr_mirror
+  - cs_pg_twophase_01_10
+  - cs_pg_twophase_11_20
+  - cs_pg_twophase_21_30
+  - cs_pg_twophase_31_40
+  - cs_pg_twophase_41_49
+  - cs_pg_twophase_switch_01_12
+  - cs_pg_twophase_switch_13_24
+  - cs_pg_twophase_switch_25_33
+  - cs_crash_recovery_schema_topology
+  - cs_crash_recovery_04_10
+  - cs_crash_recovery_11_20
+  - cs_crash_recovery_21_30
+  - cs_crash_recovery_31_42
   - DPM_backup-restore
   - DPM_gptransfer-43x-to-5x
   - DPM_gptransfer-5x-to-5x
@@ -178,8 +194,12 @@ groups:
   - gate_cluster_start
   - mpp_interconnect
   - DPM_gptransfer-5x-to-5x
-  - cs-filerep-schema-topology-crashrecov
   - DPM_backup-restore
+  - cs_crash_recovery_schema_topology
+  - cs_crash_recovery_04_10
+  - cs_crash_recovery_11_20
+  - cs_crash_recovery_21_30
+  - cs_crash_recovery_31_42
   - gate_cluster_end
 
 - name: G:MM_Misc
@@ -667,6 +687,47 @@ pulse_properties_anchor: &pulse_properties
   PULSE_USERNAME: {{pulse_username}}
   PULSE_PASSWORD: {{pulse_password}}
 
+cs_ccp_aggregate_cluster_start_anchor: &cs_ccp_aggregate_cluster_start
+  - get: gpdb_src
+    tags: ["gpdb5_ccp_external_worker"]
+    passed: [gate_cluster_start]
+  - get: gpdb_binary
+    tags: ["gpdb5_ccp_external_worker"]
+    resource: bin_gpdb_centos6
+    passed: [gate_cluster_start]
+    trigger: true
+  - get: ccp_src
+    tags: ["gpdb5_ccp_external_worker"]
+  - get: centos-gpdb-dev-6
+    tags: ["gpdb5_ccp_external_worker"]
+
+cs_ccp_terraform_vars_anchor: &cs_ccp_terraform_vars
+  aws_instance-node-instance_type: m4.large
+  aws_ebs_volume_type: gp2
+  number_of_nodes: 1
+
+cs_ccp_terraform_params_anchor: &cs_ccp_terraform_params
+  tags: ["gpdb5_ccp_external_worker"]
+  params:
+    <<: *ccp_default_params
+    vars:
+      <<: *ccp_default_vars
+      <<: *cs_ccp_terraform_vars
+
+cs_ccp_gen_cluster_params_anchor: &cs_ccp_gen_cluster_params
+  tags: ["gpdb5_ccp_external_worker"]
+  file: ccp_src/ci/tasks/gen_cluster.yml
+  params:
+    <<: *ccp_gen_cluster_default_params
+  on_failure:
+    <<: *ccp_destroy
+
+cs_ccp_run_tests_params_anchor: &cs_ccp_run_tests_params
+  tags: ["gpdb5_ccp_external_worker"]
+  file: gpdb_src/concourse/tasks/run_tinc.yml
+  image: centos-gpdb-dev-6
+  on_failure:
+    <<: *debug_sleep
 ## ======================================================================
 ## jobs
 ## ======================================================================
@@ -2106,23 +2167,6 @@ jobs:
           <<: *ccp_destroy_2_cluster
   # Similar to the on_failure blocks, the final cleanup needs to be both clusters as well
   - *ccp_destroy_2_cluster
-- name: cs-filerep-schema-topology-crashrecov
-  plan:
-  - aggregate: *post_packaging_gets_trigger_true
-  - task: trigger_pulse
-    tags: ["gpdb5-pulse-worker"]
-    file: gpdb_src/ci/pulse/api/trigger_pulse.yml
-    input_mapping: *input_mappings
-    params:
-      <<: *pulse_properties
-      PULSE_PROJECT_NAME: "cs-filerep-schema-topology-crashrecov"
-  - task: monitor_pulse
-    attempts: 2
-    tags: ["gpdb5-pulse-worker"]
-    file: gpdb_src/ci/pulse/api/monitor_pulse.yml
-    params:
-      <<: *pulse_properties
-      PULSE_PROJECT_NAME: "cs-filerep-schema-topology-crashrecov"
 - name: DPM_backup-restore
   plan:
   - aggregate:
@@ -2163,6 +2207,66 @@ jobs:
     on_failure:
       <<: *debug_sleep
   - *ccp_destroy
+- name: cs_crash_recovery_schema_topology
+  plan:
+  - aggregate: *cs_ccp_aggregate_cluster_start
+  - put: terraform
+    <<: *cs_ccp_terraform_params
+  - task: gen_cluster
+    <<: *cs_ccp_gen_cluster_params
+  - task: run_tests
+    <<: *cs_ccp_run_tests_params
+    params:
+      TINC_TARGET: crash_recovery_schema_topology
+  - *ccp_destroy
+- name: cs_crash_recovery_04_10
+  plan:
+  - aggregate: *cs_ccp_aggregate_cluster_start
+  - put: terraform
+    <<: *cs_ccp_terraform_params
+  - task: gen_cluster
+    <<: *cs_ccp_gen_cluster_params
+  - task: run_tests
+    <<: *cs_ccp_run_tests_params
+    params:
+      TINC_TARGET: crash_recovery_04_10
+  - *ccp_destroy
+- name: cs_crash_recovery_11_20
+  plan:
+  - aggregate: *cs_ccp_aggregate_cluster_start
+  - put: terraform
+    <<: *cs_ccp_terraform_params
+  - task: gen_cluster
+    <<: *cs_ccp_gen_cluster_params
+  - task: run_tests
+    <<: *cs_ccp_run_tests_params
+    params:
+      TINC_TARGET: crash_recovery_11_20
+  - *ccp_destroy
+- name: cs_crash_recovery_21_30
+  plan:
+  - aggregate: *cs_ccp_aggregate_cluster_start
+  - put: terraform
+    <<: *cs_ccp_terraform_params
+  - task: gen_cluster
+    <<: *cs_ccp_gen_cluster_params
+  - task: run_tests
+    <<: *cs_ccp_run_tests_params
+    params:
+      TINC_TARGET: crash_recovery_21_30
+  - *ccp_destroy
+- name: cs_crash_recovery_31_42
+  plan:
+  - aggregate: *cs_ccp_aggregate_cluster_start
+  - put: terraform
+    <<: *cs_ccp_terraform_params
+  - task: gen_cluster
+    <<: *cs_ccp_gen_cluster_params
+  - task: run_tests
+    <<: *cs_ccp_run_tests_params
+    params:
+      TINC_TARGET: crash_recovery_31_42
+  - *ccp_destroy
 - name: gate_cluster_end
   plan:
   - get: gpdb_src
@@ -2170,7 +2274,11 @@ jobs:
     - DPM_gptransfer-5x-to-5x
     - DPM_backup-restore
     - mpp_interconnect
-    - cs-filerep-schema-topology-crashrecov
+    - cs_crash_recovery_schema_topology
+    - cs_crash_recovery_04_10
+    - cs_crash_recovery_11_20
+    - cs_crash_recovery_21_30
+    - cs_crash_recovery_31_42
     trigger: true
   - get: bin_gpdb_centos6
     passed:
@@ -3187,6 +3295,11 @@ jobs:
     - cs_pg_twophase_switch_01_12
     - cs_pg_twophase_switch_13_24
     - cs_pg_twophase_switch_25_33
+    - cs_crash_recovery_schema_topology
+    - cs_crash_recovery_04_10
+    - cs_crash_recovery_11_20
+    - cs_crash_recovery_21_30
+    - cs_crash_recovery_31_42
     - QP_memory-accounting
     - regression_tests_gpcloud_centos
     - regression_tests_gphdfs_centos
@@ -3200,7 +3313,6 @@ jobs:
     - MM_gpinitstandby
     - DPM_gptransfer-43x-to-5x
     - DPM_gptransfer-5x-to-5x
-    - cs-filerep-schema-topology-crashrecov
     - cs-aoco-compression
     - mpp_interconnect
     - QP_optimizer-functional
