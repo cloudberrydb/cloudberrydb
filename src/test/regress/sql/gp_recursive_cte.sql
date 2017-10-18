@@ -318,3 +318,17 @@ WITH nr(i) AS
     SELECT SUM(j) FROM r
 )
 SELECT SUM(i) FROM nr;
+
+-- WITH RECURSIVE ref within a correlated subquery
+create table recursive_table_4(a int, b int);
+create table recursive_table_5(c int, d int);
+insert into recursive_table_4 select i, i* 2 from generate_series(1, 10) i;
+insert into recursive_table_5 select i/2, i from generate_series(1, 10) i;
+select * from recursive_table_4 where a > ALL (
+	with recursive r(i) as (
+		select sum(c) from recursive_table_5 where d < recursive_table_4.b
+		union all
+		select i / 2 from r where i > 0
+	)
+	select * from r
+);
