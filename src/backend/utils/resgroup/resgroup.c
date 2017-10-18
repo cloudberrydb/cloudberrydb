@@ -752,25 +752,30 @@ DumpResGroupMemUsage(ResGroupData *group)
 
 	appendStringInfo(&memUsage, "{");
 	appendStringInfo(&memUsage, "\"used\":%d, ",
-					 group->memUsage);
+					 VmemTracker_ConvertVmemChunksToMB(group->memUsage));
 	appendStringInfo(&memUsage, "\"available\":%d, ",
-					 group->memQuotaGranted + group->memSharedGranted - group->memUsage);
+					 VmemTracker_ConvertVmemChunksToMB(
+						group->memQuotaGranted + group->memSharedGranted - group->memUsage));
 	appendStringInfo(&memUsage, "\"quota_used\":%d, ",
-					 slotUsage);
+					 VmemTracker_ConvertVmemChunksToMB(slotUsage));
 	appendStringInfo(&memUsage, "\"quota_available\":%d, ",
-					 group->memQuotaGranted - group->memQuotaUsed);
+					 VmemTracker_ConvertVmemChunksToMB(
+						group->memQuotaGranted - group->memQuotaUsed));
 	appendStringInfo(&memUsage, "\"quota_granted\":%d, ",
-					 group->memQuotaGranted);
+					 VmemTracker_ConvertVmemChunksToMB(group->memQuotaGranted));
 	appendStringInfo(&memUsage, "\"quota_proposed\":%d, ",
-					 groupGetMemQuotaExpected(&group->caps));
+					 VmemTracker_ConvertVmemChunksToMB(
+						groupGetMemQuotaExpected(&group->caps)));
 	appendStringInfo(&memUsage, "\"shared_used\":%d, ",
-					 group->memSharedUsage);
+					 VmemTracker_ConvertVmemChunksToMB(group->memSharedUsage));
 	appendStringInfo(&memUsage, "\"shared_available\":%d, ",
-					 group->memSharedGranted - group->memSharedUsage);
+					 VmemTracker_ConvertVmemChunksToMB(
+						group->memSharedGranted - group->memSharedUsage));
 	appendStringInfo(&memUsage, "\"shared_granted\":%d, ",
-					 group->memSharedGranted);
+					 VmemTracker_ConvertVmemChunksToMB(group->memSharedGranted));
 	appendStringInfo(&memUsage, "\"shared_proposed\":%d",
-					 groupGetMemSharedExpected(&group->caps));
+					 VmemTracker_ConvertVmemChunksToMB(
+						groupGetMemSharedExpected(&group->caps)));
 	appendStringInfo(&memUsage, "}");
 
 	return memUsage.data;
