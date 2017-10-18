@@ -1,5 +1,7 @@
 -- start_ignore
 -- end_ignore
+analyze;
+ANALYZE
 select count (*) from commit_subt_tab_distby_ao1 ;
  count 
 -------
