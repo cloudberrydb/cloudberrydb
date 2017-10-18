@@ -10,16 +10,14 @@ select attrnums from gp_distribution_policy where localoid = 'distpol'::regclass
 
 
 -- Test RANDOM default distribution with AS clause containing a SELECT block
-DROP TABLE IF EXISTS hobbies_r;
-CREATE TABLE hobbies_r (
+CREATE TABLE distpol_hobbies_r (
   name text,
   person text
 );
 
-DROP TABLE IF EXISTS bar;
-CREATE TABLE bar AS SELECT * FROM hobbies_r;
+CREATE TABLE distpol_bar AS SELECT * FROM distpol_hobbies_r;
 
-select attrnums from gp_distribution_policy where localoid='bar'::regclass;
+select attrnums from gp_distribution_policy where localoid='distpol_bar'::regclass;
 
 -- Test RANDOM distribution with ON COMMIT option
 begin;
@@ -39,45 +37,43 @@ RESET gp_create_table_random_default_distribution;
 
 -- Test that distribution policy is not inherited and it is RANDOM in CREATE TABLE with default distribution set to random
 SET gp_create_table_random_default_distribution=on;
-DROP TABLE IF EXISTS person CASCADE;
-CREATE TABLE person (
+CREATE TABLE distpol_person (
   name      text,
   age       int4,
   location  point
 ) DISTRIBUTED BY (name);
 
-CREATE TABLE staff_member (
+CREATE TABLE distpol_staff_member (
   salary    int4,
   manager   name
-) INHERITS (person) WITH OIDS;
-select attrnums from gp_distribution_policy where localoid = 'staff_member'::regclass;
+) INHERITS (distpol_person) WITH OIDS;
+select attrnums from gp_distribution_policy where localoid = 'distpol_staff_member'::regclass;
 
-CREATE TABLE student (
+CREATE TABLE distpol_student (
   gpa      float8
-) INHERITS (person);
-select attrnums from gp_distribution_policy where localoid = 'student'::regclass;
+) INHERITS (distpol_person);
+select attrnums from gp_distribution_policy where localoid = 'distpol_student'::regclass;
 
-CREATE TABLE stud_emp (
+CREATE TABLE distpol_stud_emp (
   percent  int4
-) INHERITS (staff_member, student);
-select attrnums from gp_distribution_policy where localoid = 'stud_emp'::regclass;
+) INHERITS (distpol_staff_member, distpol_student);
+select attrnums from gp_distribution_policy where localoid = 'distpol_stud_emp'::regclass;
 
 RESET gp_create_table_random_default_distribution;
 
 -- Test that LIKE clause does not affect default distribution
 SET gp_create_table_random_default_distribution=on;
 set client_min_messages='warning';
-DROP TABLE IF EXISTS person CASCADE;
+DROP TABLE IF EXISTS distpol_person CASCADE;
 reset client_min_messages;
-CREATE TABLE person (
+CREATE TABLE distpol_person (
   name      text,
   age       int4,
   location  point
 ) DISTRIBUTED BY (name);
-select attrnums from gp_distribution_policy where localoid = 'person'::regclass;
+select attrnums from gp_distribution_policy where localoid = 'distpol_person'::regclass;
 
-DROP TABLE IF EXISTS person_copy;
-CREATE TABLE person_copy (LIKE person);
-select attrnums from gp_distribution_policy where localoid = 'person_copy'::regclass;
+CREATE TABLE distpol_person_copy (LIKE distpol_person);
+select attrnums from gp_distribution_policy where localoid = 'distpol_person_copy'::regclass;
 
 RESET gp_create_table_random_default_distribution;
