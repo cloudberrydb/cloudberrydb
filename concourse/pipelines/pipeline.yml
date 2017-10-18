@@ -1395,6 +1395,7 @@ jobs:
       file: gpdb_src/concourse/tasks/tinc_gpdb.yml
       params:
         MAKE_TEST_COMMAND: aocoalter_catalog_loaders
+        BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
         TEST_OS: centos
         CONFIGURE_FLAGS: {{configure_flags}}
       image: centos-gpdb-dev-6
@@ -1402,6 +1403,7 @@ jobs:
       file: gpdb_src/concourse/tasks/tinc_gpdb.yml
       params:
         MAKE_TEST_COMMAND: storage_persistent_accessmethods_and_vacuum
+        BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
         TEST_OS: centos
         CONFIGURE_FLAGS: {{configure_flags}}
       image: centos-gpdb-dev-6
@@ -1410,6 +1412,7 @@ jobs:
       file: gpdb_src/concourse/tasks/tinc_gpdb.yml
       params:
         MAKE_TEST_COMMAND: storage_filerep
+        BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
         TEST_OS: centos
         CONFIGURE_FLAGS: {{configure_flags}}
       image: centos-gpdb-dev-6
@@ -1418,6 +1421,7 @@ jobs:
       file: gpdb_src/concourse/tasks/tinc_gpdb.yml
       params:
         MAKE_TEST_COMMAND: storage_uao_and_transactionmanagement
+        BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
         TEST_OS: centos
         CONFIGURE_FLAGS: {{configure_flags}}
       image: centos-gpdb-dev-6
@@ -1426,6 +1430,7 @@ jobs:
       file: gpdb_src/concourse/tasks/tinc_gpdb.yml
       params:
         MAKE_TEST_COMMAND: storage_vacuum_xidlimits
+        BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
         TEST_OS: centos
         CONFIGURE_FLAGS: {{configure_flags}}
       image: centos-gpdb-dev-6
