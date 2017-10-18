@@ -2017,24 +2017,30 @@ jobs:
 - name: DPM_gptransfer-5x-to-5x
   plan:
   - aggregate:
-    - get: ccp_src
-    - get: gpdb_binary
-      resource: bin_gpdb_centos6
-      passed: [compile_gpdb_centos6]
-      trigger: true
     - get: gpdb_src
-      passed: [compile_gpdb_centos6]
+      tags: ["gpdb5_ccp_external_worker"]
+      passed: [gate_cluster_start]
+    - get: gpdb_binary
+      tags: ["gpdb5_ccp_external_worker"]
+      resource: bin_gpdb_centos6
+      passed: [gate_cluster_start]
+      trigger: true
+    - get: ccp_src
+      tags: ["gpdb5_ccp_external_worker"]
     - get: centos-gpdb-dev-6
+      tags: ["gpdb5_ccp_external_worker"]
   # The separate clusters can be created in parallel with the aggregate and do blocks
   #  The terraform put and gen cluster that correspond must still happen serially
   - aggregate:
     - do:
       - put: terraform
+        tags: ["gpdb5_ccp_external_worker"]
         params:
           <<: *ccp_default_params
           vars:
             <<: *ccp_default_vars
       - task: gen_cluster1
+        tags: ["gpdb5_ccp_external_worker"]
         file: ccp_src/ci/tasks/gen_cluster.yml
         params:
           <<: *ccp_gen_cluster_default_params
@@ -2042,12 +2048,14 @@ jobs:
           <<: *ccp_destroy
     - do:
       - put: terraform2
+        tags: ["gpdb5_ccp_external_worker"]
         params:
           <<: *ccp_default_params
           vars:
             <<: *ccp_default_vars
             cluster_suffix: "-2"
       - task: gen_cluster2
+        tags: ["gpdb5_ccp_external_worker"]
         file: ccp_src/ci/tasks/gen_cluster.yml
         params:
           <<: *ccp_gen_cluster_default_params
@@ -2067,11 +2075,13 @@ jobs:
           get_params:
             action: destroy
   - task: exchange_keys
+    tags: ["gpdb5_ccp_external_worker"]
     file: gpdb_src/concourse/tasks/exchange_keys.yml
     image: centos-gpdb-dev-6
     on_failure:
       <<: *ccp_destroy_2_cluster
   - task: run_gptransfer_tests
+    tags: ["gpdb5_ccp_external_worker"]
     file: gpdb_src/concourse/tasks/run_behave.yml
     image: centos-gpdb-dev-6
     params:
@@ -2081,6 +2091,7 @@ jobs:
     on_failure:
       do:
       - task: debug_sleep_2_cluster
+        tags: ["gpdb5_ccp_external_worker"]
         config:
           platform: linux
           image_resource:
@@ -2557,22 +2568,31 @@ jobs:
       PULSE_PROJECT_NAME: "cs-aoco-compression"
 - name: DPM_gptransfer-43x-to-5x
   plan:
+  - get: nightly-trigger
+    tags: ["gpdb5_ccp_external_worker"]
+    trigger: ((nightly-trigger-flag))
   - aggregate:
-    - get: ccp_src
+    - get: gpdb_src
+      tags: ["gpdb5_ccp_external_worker"]
+      passed: [gate_nightly_start]
     - get: gpdb_binary
+      tags: ["gpdb5_ccp_external_worker"]
       resource: bin_gpdb_centos6
-      passed: [compile_gpdb_centos6]
+      passed: [gate_nightly_start]
       trigger: ((reduced-frequency-trigger-flag))
     - get: gpdb4_binary
+      tags: ["gpdb5_ccp_external_worker"]
       resource: bin_gpdb4_centos6
-    - get: gpdb_src
-      passed: [compile_gpdb_centos6]
+    - get: ccp_src
+      tags: ["gpdb5_ccp_external_worker"]
     - get: centos-gpdb-dev-6
+      tags: ["gpdb5_ccp_external_worker"]
   # The separate clusters can be created in parallel with the aggregate and do blocks
   #  The terraform put and gen cluster that correspond must still happen serially
   - aggregate:
     - do:
       - put: terraform
+        tags: ["gpdb5_ccp_external_worker"]
         params:
           <<: *ccp_default_params
           vars:
@@ -2585,12 +2605,14 @@ jobs:
           <<: *ccp_destroy
     - do:
       - put: terraform2
+        tags: ["gpdb5_ccp_external_worker"]
         params:
           <<: *ccp_default_params
           vars:
             <<: *ccp_default_vars
             cluster_suffix: "-2"
       - task: gen_cluster2
+        tags: ["gpdb5_ccp_external_worker"]
         file: ccp_src/ci/tasks/gen_cluster.yml
         params:
           <<: *ccp_gen_cluster_default_params
@@ -2611,11 +2633,13 @@ jobs:
           get_params:
             action: destroy
   - task: exchange_keys
+    tags: ["gpdb5_ccp_external_worker"]
     file: gpdb_src/concourse/tasks/exchange_keys.yml
     image: centos-gpdb-dev-6
     on_failure:
       <<: *ccp_destroy_2_cluster
   - task: run_gptransfer_tests
+    tags: ["gpdb5_ccp_external_worker"]
     file: gpdb_src/concourse/tasks/run_behave.yml
     image: centos-gpdb-dev-6
     params:
@@ -2625,6 +2649,7 @@ jobs:
     on_failure:
       do:
       - task: debug_sleep_2_cluster
+        tags: ["gpdb5_ccp_external_worker"]
         config:
           platform: linux
           image_resource:
