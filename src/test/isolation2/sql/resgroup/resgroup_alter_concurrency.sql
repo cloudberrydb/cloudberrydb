@@ -7,10 +7,15 @@ CREATE RESOURCE GROUP rg_concurrency_test WITH
 (concurrency=1, cpu_rate_limit=20, memory_limit=60, memory_shared_quota=0, memory_spill_ratio=10);
 CREATE ROLE role_concurrency_test RESOURCE GROUP rg_concurrency_test;
 
+-- After a 'q' command the client connection is disconnected but the
+-- QD may still be alive, if we then query pg_stat_activity quick enough
+-- we might still see this session with current_query '<IDLE>'.
+-- A filter is put to filter out this kind of quitted sessions.
 CREATE OR REPLACE VIEW rg_activity_status AS
 	SELECT rsgname, waiting_reason, current_query
 	FROM pg_stat_activity
-	WHERE rsgname='rg_concurrency_test';
+	WHERE rsgname='rg_concurrency_test'
+	  AND current_query <> '<IDLE>';
 
 --
 -- 1. increase concurrency after pending queries

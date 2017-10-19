@@ -10,7 +10,11 @@ CREATE
 CREATE ROLE role_concurrency_test RESOURCE GROUP rg_concurrency_test;
 CREATE
 
-CREATE OR REPLACE VIEW rg_activity_status AS SELECT rsgname, waiting_reason, current_query FROM pg_stat_activity WHERE rsgname='rg_concurrency_test';
+-- After a 'q' command the client connection is disconnected but the
+-- QD may still be alive, if we then query pg_stat_activity quick enough
+-- we might still see this session with current_query '<IDLE>'.
+-- A filter is put to filter out this kind of quitted sessions.
+CREATE OR REPLACE VIEW rg_activity_status AS SELECT rsgname, waiting_reason, current_query FROM pg_stat_activity WHERE rsgname='rg_concurrency_test' AND current_query <> '<IDLE>';
 CREATE
 
 --
