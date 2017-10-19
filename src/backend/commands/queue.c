@@ -1570,6 +1570,9 @@ GetResqueueName(Oid resqueueOid)
 	HeapTuple	tuple;
 	char	   *result;
 
+	if (resqueueOid == InvalidOid)
+		return pstrdup("Unknown");
+
 	/* SELECT rsqname FROM pg_resqueue WHERE oid = :1 */
 	rel = heap_open(ResQueueRelationId, AccessShareLock);
 
@@ -1602,7 +1605,10 @@ GetResqueueName(Oid resqueueOid)
  */
 char *GetResqueuePriority(Oid queueId)
 {
-	return GetResqueueCapability(queueId, PG_RESRCTYPE_PRIORITY);
+	if (queueId == InvalidOid)
+		return pstrdup("Unknown");
+	else
+		return GetResqueueCapability(queueId, PG_RESRCTYPE_PRIORITY);
 }
 
 /**

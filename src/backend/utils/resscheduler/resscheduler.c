@@ -65,7 +65,7 @@ bool	ResourceCleanupIdleGangs;				/* Cleanup idle gangs? */
  * Global variables
  */
 ResSchedulerData	*ResScheduler;	/* Resource Scheduler (shared) data .*/
-Oid				MyQueueId;			/* resource queue for current role. */
+Oid				MyQueueId = InvalidOid;	/* resource queue for current role. */
 static uint32	portalId = 0;		/* id of portal, for tracking cursors. */
 static int32	numHoldPortals = 0;	/* # of holdable cursors tracked. */
 
