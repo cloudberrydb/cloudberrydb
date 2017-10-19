@@ -641,6 +641,7 @@ external_insert(ExternalInsertDesc extInsertDesc, HeapTuple instup)
 									 NULL);
 
 		/* Mark the correct record type in the passed tuple */
+		HeapTupleHeaderSetDatumLength(instup->t_data, instup->t_len);
 		HeapTupleHeaderSetTypeId(instup->t_data, tupDesc->tdtypeid);
 		HeapTupleHeaderSetTypMod(instup->t_data, tupDesc->tdtypmod);
 
@@ -1118,6 +1119,17 @@ externalgettup_custom(FileScanDesc scan)
 							 */
 							pstate->raw_buf_done = true;
 							justifyDatabuf(&formatter->fmt_databuf);
+
+							if (pstate->fe_eof && formatter->fmt_databuf.len > 0)
+							{
+								/*
+								 * The formatter needs more data, but we have reached
+								 * EOF. This is an error.
+								 */
+								ereport(ERROR,
+										(ERRCODE_DATA_EXCEPTION,
+										 errmsg("unexpected end of file")));
+							}
 
 							continue;
 
