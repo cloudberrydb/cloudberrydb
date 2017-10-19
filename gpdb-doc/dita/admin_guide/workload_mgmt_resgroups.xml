@@ -529,14 +529,16 @@ gpstart
     </topic>
 
     <topic id="topic27" xml:lang="en">
-      <title id="iz153732">Canceling a Queued Transaction in a Resource Group</title>
+      <title id="iz153732">Cancelling a Running or Queued Transaction in a Resource Group</title>
       <body>
-        <p>There may be cases when you want to cancel a queued transaction in a resource group. For
+        <p>There may be cases when you want to cancel a running or queued transaction in a
+          resource group. For
           example, you may want to remove a query that is waiting in the resource group queue but
           has not yet been executed. Or, you may want to stop a running query that is taking too
           long to execute, or one that is sitting idle in a transaction and taking up resource group
           transaction slots that are needed by other users.</p>
-        <p>To cancel a queued transaction, you must first determine the process id (pid) associated
+        <p>To cancel a running or queued transaction, you must first determine the process
+          id (pid) associated
           with the transaction. Once you have obtained the process id, you can invoke
             <codeph>pg_cancel_backend()</codeph> to end that process, as shown below.</p>
         <p>For example, to view the process information associated with all statements currently
