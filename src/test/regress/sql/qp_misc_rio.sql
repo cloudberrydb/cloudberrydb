@@ -524,3 +524,16 @@ from
 ) sub1
 group by a
 order by a;
+
+
+-- ----------------------------------------------------------------------
+-- Test: to_date() boundaries.
+--
+-- to_date() used to not check the input like the date input function
+-- does. The fix was submitted to upstream PostgreSQL and fixed there in
+-- version 8.4.16 (commit 5c4eb9166e.)
+-- ----------------------------------------------------------------------
+select to_date('-4713-11-23', 'yyyy-mm-dd');
+select to_date('-4713-11-24', 'yyyy-mm-dd');
+select to_date('5874897-12-31', 'yyyy-mm-dd');
+select to_date('5874898-01-01', 'yyyy-mm-dd');
