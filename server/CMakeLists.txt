@@ -1,9 +1,9 @@
 # Copyright (c) 2015, Pivotal Software, Inc. All Rights Reserved.
 
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include"
-                    "${CMAKE_SOURCE_DIR}/libgpdbcost/include"
-                    "${CMAKE_SOURCE_DIR}/libgpopt/include"
-                    "${CMAKE_SOURCE_DIR}/libnaucrates/include")
+                    "${PROJECT_SOURCE_DIR}/libgpdbcost/include"
+                    "${PROJECT_SOURCE_DIR}/libgpopt/include"
+                    "${PROJECT_SOURCE_DIR}/libnaucrates/include")
 # for the generated config.h file.
 include_directories(${PROJECT_BINARY_DIR}/libgpos/include/)
 
