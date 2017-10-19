@@ -4,6 +4,7 @@ test: resgroup/enable_resgroup
 # basic syntax
 test: resgroup/resgroup_syntax
 test: resgroup/resgroup_transaction
+test: resgroup/resgroup_name_convention
 
 # functions
 test: resgroup/resgroup_concurrency
