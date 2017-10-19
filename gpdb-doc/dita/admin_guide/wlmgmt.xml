@@ -13,12 +13,12 @@
       Resource Groups.</p>
     <note type="warning">Resource groups are an experimental feature and are not intended for use in
       a production environment. Experimental features are subject to change without notice in future
-        releases.<p>Significant <ph otherprops="pivotal">Pivotal </ph>Greenplum Database performance
-        degradation has been observed when enabling resource group-based workload management on <ph
-          otherprops="pivotal">supported versions of </ph>RedHat 6.x, CentOS 6.x, and SuSE 11
-        systems. The issue is due to a Linux cgroup kernel bug. The bug has been fixed in supported
-        versions of CentOS 7.x and Red Hat 7.x systems, and in Red Hat 6 with kernel version
-        2.6.32-696 or higher. </p></note>
+        releases.<p>Significant Greenplum Database performance degradation has been observed when
+        enabling resource group-based workload management on RedHat 6.x, CentOS 6.x, and SuSE 11
+        systems. This issue is caused by a Linux cgroup kernel bug. This kernel bug has been fixed
+        in CentOS 7.x and Red Hat 7.x systems, and in Red Hat 6 systems that use kernel version
+        2.6.32-696 or higher. SuSE 11 does not have a kernel version that resolves this
+      issue.</p></note>
     <p>Either the resource queue or the resource group management scheme can be active in Greenplum
       Database; both schemes cannot be active at the same time.</p>
     <p>Resource queues are enabled by default when you install your Greenplum Database cluster.
