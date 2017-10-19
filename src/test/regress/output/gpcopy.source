@@ -1256,8 +1256,8 @@ SELECT COUNT(*) FROM COPY_FROM_PROGRAM_ERROR;
 (1 row)
 
 SET gp_enable_segment_copy_checking=off;
-COPY COPY_FROM_PROGRAM_ERROR FROM PROGRAM $quote$bash -c "printf '$GP_SEGMENT_ID\n<SEGID>'"$quote$ on segment;
-COPY COPY_FROM_PROGRAM_ERROR FROM PROGRAM $quote$bash -c "printf '$GP_SEGMENT_I\n<SEGID>'"$quote$ on segment;
+COPY COPY_FROM_PROGRAM_ERROR FROM PROGRAM 'printf "$GP_SEGMENT_ID\n<SEGID>"' on segment;
+COPY COPY_FROM_PROGRAM_ERROR FROM PROGRAM 'printf "$GP_SEGMENT_I\n<SEGID>"' on segment;
 ERROR:  invalid input syntax for integer: ""  (seg0 172.17.0.2:40000 pid=27935)
 CONTEXT:  COPY copy_from_program_error, line 1, column 
 SET gp_enable_segment_copy_checking=on;
