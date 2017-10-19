@@ -33,10 +33,11 @@ class OrcaConan(ConanFile):
         try:
             vers = subprocess.check_output(["cmake", "--version"]).split()[2]
             if int(vers.split(".")[0]) < 3:
-                raise Exception("CMake version 3.0 or higher is required")
+                if int(vers.split(".")[1]) < 1:
+                    raise Exception("CMake version 3.1 or higher is required")
         except OSError as e:
             if e.errno == os.errno.ENOENT:
-                raise Exception("CMake is not found.  Please ensure the CMake 3.0 or later is installed")
+                raise Exception("CMake is not found.  Please ensure the CMake 3.1 or later is installed")
             else:
                 raise
 
