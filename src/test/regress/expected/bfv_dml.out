@@ -1,0 +1,180 @@
+--  MPP-21536: Duplicated rows inserted when ORCA is turned on
+-- create test table
+create table m();
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
+alter table m add column a int;
+alter table m add column b int;
+-- generate data for m
+insert into m select i, i%5 from generate_series(1,10)i;
+-- INSERT and UPDATE
+create table yyy(a int, b int) distributed randomly;
+insert into yyy select a,b from m;
+select * from yyy order by 1, 2;
+ a  | b 
+----+---
+  1 | 1
+  2 | 2
+  3 | 3
+  4 | 4
+  5 | 0
+  6 | 1
+  7 | 2
+  8 | 3
+  9 | 4
+ 10 | 0
+(10 rows)
+
+update yyy set a=m.b from m where m.a=yyy.b;
+select * from yyy order by 1, 2;
+ a  | b 
+----+---
+  1 | 1
+  1 | 1
+  2 | 2
+  2 | 2
+  3 | 3
+  3 | 3
+  4 | 4
+  4 | 4
+  5 | 0
+ 10 | 0
+(10 rows)
+
+drop table yyy;
+-- UPDATE with different values
+create table yyy(a int, b int) distributed randomly;
+insert into yyy select a,b from m;
+update yyy set b=m.b from m where m.a=yyy.a;
+select * from yyy order by 1, 2;
+ a  | b 
+----+---
+  1 | 1
+  2 | 2
+  3 | 3
+  4 | 4
+  5 | 0
+  6 | 1
+  7 | 2
+  8 | 3
+  9 | 4
+ 10 | 0
+(10 rows)
+
+drop table yyy;
+-- DELETE
+create table yyy(a int, b int) distributed randomly;
+insert into yyy select a,b from m;
+delete from yyy where a in (select a from m);
+select * from yyy order by 1, 2;
+ a | b 
+---+---
+(0 rows)
+
+drop table yyy;
+create table yyy(a int, b int) distributed randomly;
+insert into yyy select a,b from m;
+delete from yyy where b in (select a from m);
+select * from yyy order by 1, 2;
+ a  | b 
+----+---
+  5 | 0
+ 10 | 0
+(2 rows)
+
+drop table yyy;
+-- Now repeat all the above tests, but using a hacked master-only 'm' table
+drop table m;
+set optimizer_enable_master_only_queries=on;
+-- create master-only table
+create table m();
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
+set allow_system_table_mods='DML';
+delete from gp_distribution_policy where localoid='m'::regclass;
+reset allow_system_table_mods;
+alter table m add column a int;
+alter table m add column b int;
+-- generate data for m
+insert into m select i, i%5 from generate_series(1,10)i;
+create table zzz(a int primary key, b int) distributed by (a);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "zzz_pkey" for table "zzz"
+insert into zzz select a,b from m;
+select * from zzz order by 1, 2;
+ a  | b 
+----+---
+  1 | 1
+  2 | 2
+  3 | 3
+  4 | 4
+  5 | 0
+  6 | 1
+  7 | 2
+  8 | 3
+  9 | 4
+ 10 | 0
+(10 rows)
+
+delete from zzz where a in (select a from m);
+select * from zzz order by 1, 2;
+ a | b 
+---+---
+(0 rows)
+
+drop table zzz;
+create table zzz(a int primary key, b int) distributed by (a);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "zzz_pkey" for table "zzz"
+insert into zzz select a,b from m;
+delete from zzz where b in (select a from m);
+select * from zzz order by 1, 2;
+ a  | b 
+----+---
+  5 | 0
+ 10 | 0
+(2 rows)
+
+drop table zzz;
+create table zzz(a int primary key, b int) distributed by (a);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "zzz_pkey" for table "zzz"
+insert into zzz select a,b from m;
+-- This update fails with duplicate key error, but it varies which segment
+-- reports it first, i.e. it varies which row it complaints first. Silence
+-- that difference in the error DETAIL line
+\set VERBOSITY terse
+update zzz set a=m.b from m where m.a=zzz.b;
+ERROR:  Cannot parallelize an UPDATE statement that updates the distribution columns
+select * from zzz order by 1, 2;
+ a  | b 
+----+---
+  1 | 1
+  2 | 2
+  3 | 3
+  4 | 4
+  5 | 0
+  6 | 1
+  7 | 2
+  8 | 3
+  9 | 4
+ 10 | 0
+(10 rows)
+
+drop table zzz;
+create table zzz(a int primary key, b int) distributed by (a);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "zzz_pkey" for table "zzz"
+insert into zzz select a,b from m;
+update zzz set b=m.b from m where m.a=zzz.a;
+select * from zzz order by 1, 2;
+ a  | b 
+----+---
+  1 | 1
+  2 | 2
+  3 | 3
+  4 | 4
+  5 | 0
+  6 | 1
+  7 | 2
+  8 | 3
+  9 | 4
+ 10 | 0
+(10 rows)
+
+drop table zzz;
+drop table m;

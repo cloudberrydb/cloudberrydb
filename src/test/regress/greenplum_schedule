@@ -110,7 +110,7 @@ test: tuple_serialization
 # NOTE: The bfv_temp test assumes that there are no temporary tables in
 # other sessions. Therefore the other tests in this group mustn't create
 # temp tables
-test: bfv_cte bfv_joins bfv_subquery bfv_planner bfv_legacy bfv_temp
+test: bfv_cte bfv_joins bfv_subquery bfv_planner bfv_legacy bfv_temp bfv_dml
 
 test: qp_olap_mdqa qp_misc gp_recursive_cte
 
