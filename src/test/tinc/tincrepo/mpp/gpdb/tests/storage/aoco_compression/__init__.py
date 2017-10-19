@@ -636,18 +636,18 @@ class GenerateSqls(MPPTestCase):
                 if(i % 4 == 1):
                     compress_type = self.compress_type_list[0]
                     compress_level = 1
-                    block_size = self.block_size_list[0]
+                    block_size = self.block_size_list[1]
                 elif(i % 4 == 2):
                     compress_type = self.compress_type_list[1]
                     if (compress_lvl < 5):
                         compress_level = compress_lvl
                     else:    
                         compress_level = 1
-                    block_size = self.block_size_list[1]
+                    block_size = self.block_size_list[2]
                 else:
                     compress_type = self.compress_type_list[2]
                     compress_level = compress_lvl
-                    block_size = self.block_size_list[2]
+                    block_size = self.block_size_list[3]
     
                 if column_reference == "yes" and (i % 3 <> 3):
                         column_ref_str = column_ref_str + ", COLUMN " + column_list[i] + " ENCODING (" + "compresstype=" + compress_type + ",compresslevel=" + str(compress_level) + ",blocksize=" + block_size + ")" + "\n"
