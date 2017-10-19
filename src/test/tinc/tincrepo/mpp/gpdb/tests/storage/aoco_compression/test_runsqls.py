@@ -777,7 +777,7 @@ class create_col_with_storage_directive_and_col_ref(SQLTestCase):
 class co_alter_table_add(SQLTestCase):
     """
     @description: Alter table add new column with compression
-    @gucs gp_create_table_random_default_distribution=off
+    @gucs gp_create_table_random_default_distribution=off;timezone='US/Pacific'
     @product_version gpdb: [4.3-]
     """
 
