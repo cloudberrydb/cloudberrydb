@@ -2706,6 +2706,7 @@ jobs:
           vars:
             <<: *ccp_default_vars
       - task: gen_cluster1
+        tags: ["gpdb5_ccp_external_worker"]
         file: ccp_src/ci/tasks/gen_cluster.yml
         params:
           <<: *ccp_gen_cluster_default_params
