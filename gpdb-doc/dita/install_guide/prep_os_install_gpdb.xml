@@ -14,13 +14,15 @@
       <li id="ji162039">
         <xref href="#topic3" type="topic" format="dita"/>
       </li>
-      <li id="ji162043">(master only) <xref href="#topic7" type="topic" format="dita"/></li>
+      <li id="ji162043" otherprops="pivotal">(master only) <xref href="#topic7" type="topic"
+          format="dita"/></li>
       <li id="ji162047">
         <xref href="#topic8" type="topic" format="dita"/>
       </li>
       <li id="ji162051">(Optional) <xref href="#topic11" type="topic" format="dita"/></li>
-      <li>(Optional) <xref href="#topic_sqb_bsw_2z" format="dita"/></li>
-      <li id="ji162055">(Optional) <xref href="#topic12" type="topic" format="dita"/></li>
+      <li otherprops="pivotal">(Optional) <xref href="#topic_sqb_bsw_2z" format="dita"/></li>
+      <li id="ji162055" otherprops="pivotal">(Optional) <xref href="#topic12" type="topic"
+          format="dita"/></li>
       <li id="ji162059">
         <xref href="#topic13" type="topic" format="dita"/>
       </li>

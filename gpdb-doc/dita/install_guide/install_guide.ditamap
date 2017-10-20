@@ -29,8 +29,10 @@
             <topicref href="prep_os_install_gpdb.xml#topic11" navtitle="Installing Oracle
                 Compatibility Functions"/>
             <topicref href="prep_os_install_gpdb.xml#topic_sqb_bsw_2z"/>
-            <topicref href="prep_os_install_gpdb.xml#topic12" navtitle="Installing Greenplum
-                Database Extensions"/>
+            <topicref href="prep_os_install_gpdb.xml#topic12"
+                navtitle="Installing Greenplum
+                Database Extensions"
+                otherprops="pivotal"/>
             <topicref href="prep_os_install_gpdb.xml#topic13" navtitle="Creating the Data Storage
                 Areas">
                 <topicref href="prep_os_install_gpdb.xml#topic_wqb_1lc_wp"

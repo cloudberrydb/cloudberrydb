@@ -216,8 +216,9 @@ CREATE WRITABLE EXTERNAL WEB TABLE <varname>table_name</varname>
           documentation for detailed information about
           the <codeph>pxf</codeph> protocol <codeph>LOCATION</codeph> clause syntax.</pd>
           <pd>If you use the <codeph>s3</codeph> protocol to read or write to S3, refer to <xref
-          href="../../admin_guide/external/g-s3-protocol.xml#amazon-emr__section_stk_c2r_kx">About the S3 Protocol URL</xref> for additional information about
-          the <codeph>s3</codeph> protocol <codeph>LOCATION</codeph> clause syntax.</pd>
+              href="../../admin_guide/external/g-s3-protocol.xml#amazon-emr/section_stk_c2r_kx"/>
+            for additional information about the <codeph>s3</codeph> protocol
+              <codeph>LOCATION</codeph> clause syntax.</pd>
           <pd>For readable external tables, specifies the URI of the external data source(s) to be
             used to populate the external table or web table. Regular readable external tables allow
             the <codeph>gpfdist</codeph> or <codeph>file</codeph> protocols. External web tables
