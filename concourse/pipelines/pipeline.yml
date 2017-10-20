@@ -73,8 +73,13 @@ groups:
   - gate_nightly_start
   - DPM_backup_43_restore_5
   - MM_gpexpand
-  - cs-aoco-compression
   - DPM_gptransfer-43x-to-5x
+  - cs_aoco_compression_large_01
+  - cs_aoco_compression_large_02
+  - cs_aoco_compression_large_03
+  - cs_aoco_compression_large_04
+  - cs_aoco_compression_small
+  - cs_aoco_compression_small_serial
   - gate_nightly_end
 ################################
   - gate_general_misc_start
@@ -105,7 +110,6 @@ groups:
   jobs:
   - MM_gpcheckcat
   - MM_gpexpand
-  - cs-aoco-compression
   - mpp_interconnect
 
 - name: Adopted CCP
@@ -221,8 +225,13 @@ groups:
   - gate_nightly_start
   - DPM_backup_43_restore_5
   - MM_gpexpand
-  - cs-aoco-compression
   - DPM_gptransfer-43x-to-5x
+  - cs_aoco_compression_large_01
+  - cs_aoco_compression_large_02
+  - cs_aoco_compression_large_03
+  - cs_aoco_compression_large_04
+  - cs_aoco_compression_small
+  - cs_aoco_compression_small_serial
   - gate_nightly_end
 
 - name: G:General
@@ -686,6 +695,20 @@ pulse_properties_anchor: &pulse_properties
   PULSE_URL: {{pulse_url}}
   PULSE_USERNAME: {{pulse_username}}
   PULSE_PASSWORD: {{pulse_password}}
+
+cs_ccp_aggregate_nightly_start_anchor: &cs_ccp_aggregate_nightly_start
+  - get: gpdb_src
+    tags: ["gpdb5_ccp_external_worker"]
+    passed: [gate_nightly_start]
+  - get: gpdb_binary
+    tags: ["gpdb5_ccp_external_worker"]
+    resource: bin_gpdb_centos6
+    passed: [gate_nightly_start]
+    trigger: ((reduced-frequency-trigger-flag))
+  - get: ccp_src
+    tags: ["gpdb5_ccp_external_worker"]
+  - get: centos-gpdb-dev-6
+    tags: ["gpdb5_ccp_external_worker"]
 
 cs_ccp_aggregate_cluster_start_anchor: &cs_ccp_aggregate_cluster_start
   - get: gpdb_src
@@ -2662,25 +2685,6 @@ jobs:
     params:
       <<: *pulse_properties
       PULSE_PROJECT_NAME: "GPDB-gpexpand-parallel"
-- name: cs-aoco-compression
-  plan:
-  - get: nightly-trigger
-    trigger: ((nightly-trigger-flag))
-  - aggregate: *post_packaging_gets_trigger_based_on_flag
-  - task: trigger_pulse
-    tags: ["gpdb5-pulse-worker"]
-    file: gpdb_src/ci/pulse/api/trigger_pulse.yml
-    input_mapping: *input_mappings
-    params:
-      <<: *pulse_properties
-      PULSE_PROJECT_NAME: "cs-aoco-compression"
-  - task: monitor_pulse
-    attempts: 2
-    tags: ["gpdb5-pulse-worker"]
-    file: gpdb_src/ci/pulse/api/monitor_pulse.yml
-    params:
-      <<: *pulse_properties
-      PULSE_PROJECT_NAME: "cs-aoco-compression"
 - name: DPM_gptransfer-43x-to-5x
   plan:
   - get: nightly-trigger
@@ -2782,6 +2786,138 @@ jobs:
           <<: *ccp_destroy_2_cluster
   # Similar to the on_failure blocks, the final cleanup needs to be both clusters as well
   - *ccp_destroy_2_cluster
+- name: cs_aoco_compression_large_01
+  plan:
+  - get: nightly-trigger
+    tags: ["gpdb5_ccp_external_worker"]
+    trigger: ((nightly-trigger-flag))
+  - aggregate: *cs_ccp_aggregate_nightly_start
+  - put: terraform
+    <<: *cs_ccp_terraform_params
+    params:
+      <<: *ccp_default_params
+      terraform_source: ccp_src/aws-nvme-block-device/
+      vars:
+        <<: *ccp_default_vars
+        aws_instance-node-instance_type: i3.large
+        number_of_nodes: 1
+  - task: gen_cluster
+    <<: *cs_ccp_gen_cluster_params
+  - task: run_tests
+    <<: *cs_ccp_run_tests_params
+    params:
+      TINC_TARGET: aoco_compression_large_01
+  - *ccp_destroy
+- name: cs_aoco_compression_large_02
+  plan:
+  - get: nightly-trigger
+    tags: ["gpdb5_ccp_external_worker"]
+    trigger: ((nightly-trigger-flag))
+  - aggregate: *cs_ccp_aggregate_nightly_start
+  - put: terraform
+    <<: *cs_ccp_terraform_params
+    params:
+      <<: *ccp_default_params
+      terraform_source: ccp_src/aws-nvme-block-device/
+      vars:
+        <<: *ccp_default_vars
+        aws_instance-node-instance_type: i3.large
+        number_of_nodes: 1
+  - task: gen_cluster
+    <<: *cs_ccp_gen_cluster_params
+  - task: run_tests
+    <<: *cs_ccp_run_tests_params
+    params:
+      TINC_TARGET: aoco_compression_large_02
+  - *ccp_destroy
+- name: cs_aoco_compression_large_03
+  plan:
+  - get: nightly-trigger
+    tags: ["gpdb5_ccp_external_worker"]
+    trigger: ((nightly-trigger-flag))
+  - aggregate: *cs_ccp_aggregate_nightly_start
+  - put: terraform
+    <<: *cs_ccp_terraform_params
+    params:
+      <<: *ccp_default_params
+      terraform_source: ccp_src/aws-nvme-block-device/
+      vars:
+        <<: *ccp_default_vars
+        aws_instance-node-instance_type: i3.large
+        number_of_nodes: 1
+  - task: gen_cluster
+    <<: *cs_ccp_gen_cluster_params
+  - task: run_tests
+    <<: *cs_ccp_run_tests_params
+    params:
+      TINC_TARGET: aoco_compression_large_03
+  - *ccp_destroy
+- name: cs_aoco_compression_large_04
+  plan:
+  - get: nightly-trigger
+    tags: ["gpdb5_ccp_external_worker"]
+    trigger: ((nightly-trigger-flag))
+  - aggregate: *cs_ccp_aggregate_nightly_start
+  - put: terraform
+    <<: *cs_ccp_terraform_params
+    params:
+      <<: *ccp_default_params
+      terraform_source: ccp_src/aws-nvme-block-device/
+      vars:
+        <<: *ccp_default_vars
+        aws_instance-node-instance_type: i3.large
+        number_of_nodes: 1
+  - task: gen_cluster
+    <<: *cs_ccp_gen_cluster_params
+  - task: run_tests
+    <<: *cs_ccp_run_tests_params
+    params:
+      TINC_TARGET: aoco_compression_large_04
+  - *ccp_destroy
+- name: cs_aoco_compression_small
+  plan:
+  - get: nightly-trigger
+    tags: ["gpdb5_ccp_external_worker"]
+    trigger: ((nightly-trigger-flag))
+  - aggregate: *cs_ccp_aggregate_nightly_start
+  - put: terraform
+    <<: *cs_ccp_terraform_params
+    params:
+      <<: *ccp_default_params
+      terraform_source: ccp_src/aws-nvme-block-device/
+      vars:
+        <<: *ccp_default_vars
+        aws_instance-node-instance_type: i3.large
+        number_of_nodes: 1
+  - task: gen_cluster
+    <<: *cs_ccp_gen_cluster_params
+  - task: run_tests
+    <<: *cs_ccp_run_tests_params
+    params:
+      TINC_TARGET: aoco_compression_small
+  - *ccp_destroy
+- name: cs_aoco_compression_small_serial
+  plan:
+  - get: nightly-trigger
+    tags: ["gpdb5_ccp_external_worker"]
+    trigger: ((nightly-trigger-flag))
+  - aggregate: *cs_ccp_aggregate_nightly_start
+  - put: terraform
+    <<: *cs_ccp_terraform_params
+    params:
+      <<: *ccp_default_params
+      terraform_source: ccp_src/aws-nvme-block-device/
+      vars:
+        <<: *ccp_default_vars
+        aws_instance-node-instance_type: i3.large
+        number_of_nodes: 1
+  - task: gen_cluster
+    <<: *cs_ccp_gen_cluster_params
+  - task: run_tests
+    <<: *cs_ccp_run_tests_params
+    params:
+      TINC_TARGET: aoco_compression_small_serial
+  - *ccp_destroy
 - name: gate_nightly_end
   plan:
   - aggregate:
@@ -2790,7 +2926,12 @@ jobs:
       passed:
       - DPM_backup_43_restore_5
       - MM_gpexpand
-      - cs-aoco-compression
+      - cs_aoco_compression_large_01
+      - cs_aoco_compression_large_02
+      - cs_aoco_compression_large_03
+      - cs_aoco_compression_large_04
+      - cs_aoco_compression_small
+      - cs_aoco_compression_small_serial
       - DPM_gptransfer-43x-to-5x
 ############### Nightly End
 
@@ -3316,6 +3457,12 @@ jobs:
     - cs_crash_recovery_11_20
     - cs_crash_recovery_21_30
     - cs_crash_recovery_31_42
+    - cs_aoco_compression_large_01
+    - cs_aoco_compression_large_02
+    - cs_aoco_compression_large_03
+    - cs_aoco_compression_large_04
+    - cs_aoco_compression_small
+    - cs_aoco_compression_small_serial
     - QP_memory-accounting
     - regression_tests_gpcloud_centos
     - regression_tests_gphdfs_centos
@@ -3329,7 +3476,6 @@ jobs:
     - MM_gpinitstandby
     - DPM_gptransfer-43x-to-5x
     - DPM_gptransfer-5x-to-5x
-    - cs-aoco-compression
     - mpp_interconnect
     - QP_optimizer-functional
     - validate_pipeline
