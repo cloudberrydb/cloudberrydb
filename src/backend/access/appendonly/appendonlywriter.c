@@ -2049,10 +2049,3 @@ AtEOXact_AppendOnly(void)
 
 	appendOnlyInsertXact = false;
 }
-
-void
-ValidateAppendOnlyMetaDataSnapshot(
-								   Snapshot *appendOnlyMetaDataSnapshot)
-{
-	/* Placeholder. */
-}

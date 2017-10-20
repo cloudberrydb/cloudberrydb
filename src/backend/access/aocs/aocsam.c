@@ -393,7 +393,6 @@ aocs_beginrangescan(Relation relation,
 	AOCSFileSegInfo **seginfo;
 	int			i;
 
-	ValidateAppendOnlyMetaDataSnapshot(&appendOnlyMetaDataSnapshot);
 	RelationIncrementReferenceCount(relation);
 
 	seginfo = palloc0(sizeof(AOCSFileSegInfo *) * segfile_count);
@@ -421,7 +420,6 @@ aocs_beginscan(Relation relation,
 	AOCSFileSegInfo **seginfo;
 	int			total_seg;
 
-	ValidateAppendOnlyMetaDataSnapshot(&appendOnlyMetaDataSnapshot);
 	RelationIncrementReferenceCount(relation);
 
 	seginfo = GetAllAOCSFileSegInfo(relation, appendOnlyMetaDataSnapshot, &total_seg);
@@ -1155,9 +1153,6 @@ aocs_fetch_init(Relation relation,
 	char	   *basePath = relpath(relation->rd_node);
 	TupleDesc	tupleDesc = RelationGetDescr(relation);
 	StdRdOptions **opts = RelationGetAttributeOptions(relation);
-
-	ValidateAppendOnlyMetaDataSnapshot(&appendOnlyMetaDataSnapshot);
-
 
 	/*
 	 * increment relation ref count while scanning relation

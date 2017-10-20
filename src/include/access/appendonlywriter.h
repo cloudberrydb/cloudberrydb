@@ -231,7 +231,4 @@ extern void AtCommit_AppendOnly(void);
 extern void AtAbort_AppendOnly(void);
 extern void AtEOXact_AppendOnly(void);
 
-extern void ValidateAppendOnlyMetaDataSnapshot(
-								   Snapshot *appendOnlyMetaDataSnapshot);
-
 #endif							/* APPENDONLYWRITER_H */

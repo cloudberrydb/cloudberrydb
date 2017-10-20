@@ -1648,8 +1648,6 @@ appendonly_beginrangescan_internal(Relation relation,
 
 	StringInfoData titleBuf;
 
-	ValidateAppendOnlyMetaDataSnapshot(&appendOnlyMetaDataSnapshot);
-
 	/*
 	 * increment relation ref count while scanning relation
 	 *
@@ -2173,8 +2171,7 @@ appendonly_fetch_init(Relation relation,
 
 	AppendOnlyStorageAttributes *attr;
 
-	ValidateAppendOnlyMetaDataSnapshot(&appendOnlyMetaDataSnapshot);
-	PGFunction *fns = NULL;
+	PGFunction *fns;
 
 	StringInfoData titleBuf;
 
