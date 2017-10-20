@@ -2052,12 +2052,17 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		 * GPDB has also done a partial sort, separately on each node. So
 		 * keep that behavior for now.
 		 *
+		 * A SELECT INTO or CREATE TABLE AS is similar to a subquery: the
+		 * order doesn't really matter, but let's keep the partial order
+		 * anyway.
+		 *
 		 * In a TABLE function's input subquery, a partial order is the
 		 * documented behavior, so in that case that's definitely what we
 		 * want.
 		 */
 		if (result_plan->flow->flotype != FLOW_SINGLETON &&
 			(root->config->honor_order_by || !root->parent_root) &&
+			!parse->intoClause &&
 			!parse->isTableValueSelect &&
 			!parse->limitCount && !parse->limitOffset)
 		{
