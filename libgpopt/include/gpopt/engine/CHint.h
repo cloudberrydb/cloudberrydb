@@ -45,6 +45,8 @@ namespace gpopt
 
 			ULONG m_ulBroadcastThreshold;
 
+			BOOL m_fEnforceConstraintsOnDML;
+
 			// private copy ctor
 			CHint(const CHint &);
 
@@ -57,14 +59,16 @@ namespace gpopt
 				ULONG ulJoinArityForAssociativityCommutativity,
 				ULONG ulArrayExpansionThreshold,
 				ULONG ulJoinOrderDPLimit,
-				ULONG ulBroadcastThreshold
+				ULONG ulBroadcastThreshold,
+				BOOL fEnforceConstraintsOnDML
 				)
 				:
 				m_ulMinNumOfPartsToRequireSortOnInsert(ulMinNumOfPartsToRequireSortOnInsert),
 				m_ulJoinArityForAssociativityCommutativity(ulJoinArityForAssociativityCommutativity),
 				m_ulArrayExpansionThreshold(ulArrayExpansionThreshold),
 				m_ulJoinOrderDPLimit(ulJoinOrderDPLimit),
-				m_ulBroadcastThreshold(ulBroadcastThreshold)
+				m_ulBroadcastThreshold(ulBroadcastThreshold),
+				m_fEnforceConstraintsOnDML(fEnforceConstraintsOnDML)
 			{
 			}
 
@@ -107,6 +111,14 @@ namespace gpopt
 				return m_ulBroadcastThreshold;
 			}
 
+			// If true, ORCA will add Assertion nodes to the plan to enforce CHECK
+			// and NOT NULL constraints on inserted/updated values. (Otherwise it
+			// is up to the executor to enforce them.)
+			BOOL FEnforceConstraintsOnDML() const
+			{
+				return m_fEnforceConstraintsOnDML;
+			}
+
 			// generate default hint configurations, which disables sort during insert on
 			// append only row-oriented partitioned tables by default
 			static
@@ -118,7 +130,8 @@ namespace gpopt
 										INT_MAX, /* ulJoinArityForAssociativityCommutativity */
 										INT_MAX, /* ulArrayExpansionThreshold */
 										JOIN_ORDER_DP_THRESHOLD, /*ulJoinOrderDPLimit*/
-										BROADCAST_THRESHOLD /*ulBroadcastThreshold*/
+										BROADCAST_THRESHOLD, /*ulBroadcastThreshold*/
+										true /* fEnforceConstraintsOnDML */
 										);
 			}
 

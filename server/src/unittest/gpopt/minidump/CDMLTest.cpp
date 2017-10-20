@@ -72,6 +72,8 @@ const CHAR *rgszDMLFileNames[] =
 	"../data/dxl/minidump/UpdateCardinalityAssert.mdp",
 	"../data/dxl/minidump/UpdateNotNullCols.mdp",
 	"../data/dxl/minidump/UpdateZeroRows.mdp",
+	"../data/dxl/minidump/InsertNoEnforceConstraints.mdp",
+	"../data/dxl/minidump/UpdateNoEnforceConstraints.mdp",
 	};
 
 //---------------------------------------------------------------------------

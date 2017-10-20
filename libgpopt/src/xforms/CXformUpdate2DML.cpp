@@ -15,6 +15,7 @@
 
 #include "gpopt/operators/ops.h"
 #include "gpopt/metadata/CTableDescriptor.h"
+#include "gpopt/optimizer/COptimizerConfig.h"
 
 using namespace gpopt;
 
@@ -155,14 +156,23 @@ CXformUpdate2DML::Transform
 			);
 
 	// add assert checking that no NULL values are inserted for nullable columns or no check constraints are violated
-	CExpression *pexprAssertConstraints = CXformUtils::PexprAssertConstraints
-														(
-														pmp,
-														pexprSplit,
-														ptabdesc,
-														pdrgpcrInsert
-														);
-	
+	COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
+	CExpression *pexprAssertConstraints;
+	if (poconf->Phint()->FEnforceConstraintsOnDML())
+	{
+		pexprAssertConstraints = CXformUtils::PexprAssertConstraints
+			(
+			pmp,
+			pexprSplit,
+			ptabdesc,
+			pdrgpcrInsert
+			);
+	}
+	else
+	{
+		pexprAssertConstraints = pexprSplit;
+	}
+
 	// generate oid column and project operator
 	CExpression *pexprProject = NULL;
 	CColRef *pcrTableOid = NULL;

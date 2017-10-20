@@ -84,6 +84,7 @@ CDXLTokens::Init
 			{EdxltokenArrayExpansionThreshold, GPOS_WSZ_LIT("ArrayExpansionThreshold")},
 			{EdxltokenJoinOrderDPThreshold, GPOS_WSZ_LIT("JoinOrderDynamicProgThreshold")},
 			{EdxltokenBroadcastThreshold, GPOS_WSZ_LIT("BroadcastThreshold")},
+			{EdxltokenEnforceConstraintsOnDML, GPOS_WSZ_LIT("EnforceConstraintsOnDML")},
 
 			{EdxltokenPlanSamples, GPOS_WSZ_LIT("PlanSamples")},
 			

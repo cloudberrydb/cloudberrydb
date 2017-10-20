@@ -1314,7 +1314,11 @@ CXformUtils::PexprLogicalDMLOverProject
 	if (CLogicalDML::EdmlInsert == edmlop)
 	{
 		// add assert for check constraints and nullness checks if needed
-		pexprProject = PexprAssertConstraints(pmp, pexprProject, ptabdesc, pdrgpcr);
+		COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
+		if (poconf->Phint()->FEnforceConstraintsOnDML())
+		{
+			pexprProject = PexprAssertConstraints(pmp, pexprProject, ptabdesc, pdrgpcr);
+		}
 	}
 
 	CExpression *pexprDML = GPOS_NEW(pmp) CExpression
