@@ -165,7 +165,7 @@ typedef struct HashJoinTableData
 
 	bool		growEnabled;	/* flag to shut off nbatch increases */
 
-	double		totalTuples;	/* # tuples obtained from inner plan */
+	uint64		totalTuples;	/* # tuples obtained from inner plan */
 
 	/*
 	 * These arrays are allocated for the life of the hash join, but only if

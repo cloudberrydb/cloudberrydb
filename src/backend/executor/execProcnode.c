@@ -777,7 +777,7 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 
 	/* Set up instrumentation for this node if requested */
 	if (estate->es_instrument && result != NULL)
-		result->instrument = InstrAlloc(1);
+		result->instrument = GpInstrAlloc(node, estate->es_instrument);
 
 	/* Also set up gpmon counters */
 	InitPlanNodeGpmonPkt(node, &result->gpmon_pkt, estate);
@@ -864,7 +864,7 @@ ExecProcNode(PlanState *node)
 		ExecReScan(node, NULL); /* let ReScan handle this */
 
 	if (node->instrument)
-		InstrStartNode(node->instrument);
+		INSTR_START_NODE(node->instrument);
 
 	if(!node->fHadSentGpmon)
 		CheckSendPlanStateGpmonPkt(node);
@@ -1054,7 +1054,7 @@ ExecProcNode(PlanState *node)
 	}
 
 	if (node->instrument)
-		InstrStopNode(node->instrument, TupIsNull(result) ? 0.0 : 1.0);
+		INSTR_STOP_NODE(node->instrument, TupIsNull(result) ? 0 : 1);
 
 	if (node->plan)
 		TRACE_POSTGRESQL_EXECPROCNODE_EXIT(Gp_segment, currentSliceId, nodeTag(node), node->plan->plan_node_id);

@@ -1261,7 +1261,8 @@ ExecHashTableExplainEnd(PlanState *planstate, struct StringInfoData *buf)
     if (!hashtable ||
         !hashtable->stats ||
         hashtable->nbatch < 1 ||
-        !jinstrument)
+        !jinstrument ||
+        !jinstrument->need_cdb)
         return;
 
     stats = hashtable->stats;

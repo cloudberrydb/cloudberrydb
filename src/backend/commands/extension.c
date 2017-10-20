@@ -43,6 +43,7 @@
 #include "commands/comment.h"
 #include "commands/extension.h"
 #include "commands/schemacmds.h"
+#include "executor/instrument.h"
 #include "funcapi.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
@@ -735,7 +736,8 @@ execute_sql_string(const char *sql, const char *filename)
 				qdesc = CreateQueryDesc((PlannedStmt *) stmt,
 										sql,
 										GetActiveSnapshot(), NULL,
-										dest, NULL, false);
+										dest, NULL,
+										GP_INSTRUMENT_OPTS);
 
 				ExecutorStart(qdesc, 0);
 				ExecutorRun(qdesc, ForwardScanDirection, 0);

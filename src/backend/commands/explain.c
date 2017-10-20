@@ -339,6 +339,10 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ExplainStmt *stmt,
 	double		totaltime = 0;
 	StringInfoData buf;
 	int			eflags;
+	int			instrument_option = INSTRUMENT_NONE;
+
+	if (stmt->analyze)
+		instrument_option = INSTRUMENT_ALL;
 
 	/*
 	 * Use a snapshot with an updated command ID to ensure this query sees
@@ -350,7 +354,7 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ExplainStmt *stmt,
 	queryDesc = CreateQueryDesc(plannedstmt, queryString,
 								GetActiveSnapshot(), InvalidSnapshot,
 								None_Receiver, params,
-								stmt->analyze);
+								instrument_option);
 
 	if (gp_enable_gpperfmon && Gp_role == GP_ROLE_DISPATCH)
 	{
@@ -644,7 +648,7 @@ report_triggers(ResultRelInfo *rInfo, bool show_relname, StringInfo buf)
 			appendStringInfo(buf, " on %s",
 							 RelationGetRelationName(rInfo->ri_RelationDesc));
 
-		appendStringInfo(buf, ": time=%.3f calls=%.0f\n",
+		appendStringInfo(buf, ": time=%.3f calls=%ld\n",
 						 1000.0 * instr->total, instr->ntuples);
 	}
 }
@@ -1575,7 +1579,7 @@ explain_outNode(StringInfo str,
 	}
 
     /* CDB: Show actual row count, etc. */
-	if (planstate->instrument)
+	if (planstate->instrument && planstate->instrument->need_cdb)
 	{
         cdbexplain_showExecStats(planstate,
                                  str,

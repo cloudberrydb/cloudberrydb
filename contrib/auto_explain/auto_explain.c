@@ -127,7 +127,7 @@ explain_ExecutorStart(QueryDesc *queryDesc, int eflags)
 	{
 		/* Enable per-node instrumentation iff log_analyze is required. */
 		if (auto_explain_log_analyze && (eflags & EXEC_FLAG_EXPLAIN_ONLY) == 0)
-			queryDesc->doInstrument = true;
+			queryDesc->instrument_options = INSTRUMENT_ALL;
 	}
 
 	if (prev_ExecutorStart)
@@ -147,7 +147,7 @@ explain_ExecutorStart(QueryDesc *queryDesc, int eflags)
 			MemoryContext oldcxt;
 
 			oldcxt = MemoryContextSwitchTo(queryDesc->estate->es_query_cxt);
-			queryDesc->totaltime = InstrAlloc(1);
+			queryDesc->totaltime = InstrAlloc(1, queryDesc->instrument_options);
 			MemoryContextSwitchTo(oldcxt);
 		}
 	}
@@ -200,7 +200,7 @@ explain_ExecutorEnd(QueryDesc *queryDesc)
 
 			initStringInfo(&buf);
 			ExplainPrintPlan(&buf, queryDesc,
-						 queryDesc->doInstrument && auto_explain_log_analyze,
+						 queryDesc->instrument_options && auto_explain_log_analyze,
 							 auto_explain_log_verbose);
 
 			/* Remove last line break */
