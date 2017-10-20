@@ -135,6 +135,12 @@ groups:
   - cs_crash_recovery_11_20
   - cs_crash_recovery_21_30
   - cs_crash_recovery_31_42
+  - cs_aoco_compression_large_01
+  - cs_aoco_compression_large_02
+  - cs_aoco_compression_large_03
+  - cs_aoco_compression_large_04
+  - cs_aoco_compression_small
+  - cs_aoco_compression_small_serial
   - DPM_backup-restore
   - DPM_gptransfer-43x-to-5x
   - DPM_gptransfer-5x-to-5x
