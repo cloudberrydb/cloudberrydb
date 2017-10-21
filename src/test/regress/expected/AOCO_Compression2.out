@@ -3957,9 +3957,10 @@ Options: appendonly=true, orientation=column
 Distributed by: (col1)
 
 insert into mpp17012_compress_test2 values('a',generate_series(1,250),'ksjdhfksdhfksdhfksjhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh','bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
-select get_ao_compression_ratio('mpp17012_compress_test2');
- get_ao_compression_ratio 
---------------------------
-                    36.75
+select pg_size_pretty(pg_relation_size('mpp17012_compress_test2')),
+get_ao_compression_ratio('mpp17012_compress_test2');
+ pg_size_pretty | get_ao_compression_ratio 
+----------------+--------------------------
+ 712 bytes      |                    36.75
 (1 row)
 
