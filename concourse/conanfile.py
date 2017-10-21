@@ -44,14 +44,9 @@ class OrcaConan(ConanFile):
     def build(self):
         cmake = CMake(self)
         cmake_defines = {
-                        "CMAKE_INSTALL_PREFIX": '/usr/local',
                         }
         cmake.configure(defs=cmake_defines)
         cmake.build(target="install")
 
     def package(self):
-        self.copy("*.h", dst="include", src="install/include")
-        self.copy("*.inl", dst="include", src="install/include")
-        self.copy("*.dylib*", dst="lib", src="install/lib", keep_path=False, symlinks=True)
-        self.copy("*.so*", dst="lib", src="install/lib", keep_path=False, symlinks=True)
-        self.copy("*.a*", dst="lib", src="install/lib", keep_path=False, symlinks=True)
+        return

@@ -91,15 +91,6 @@ resources:
     secret_access_key: {{s3_secret_access_key}}
     versioned_file: bin_gpdb_with_orca_centos6.tar.gz
 
-- name: bin_gpdb_centos7
-  type: s3
-  source:
-    access_key_id: {{s3_access_key_id}}
-    bucket: {{bucket-name}}
-    region_name: {{aws-region}}
-    secret_access_key: {{s3_secret_access_key}}
-    versioned_file: bin_gpdb_with_orca_centos7.tar.gz
-
 - name: bin_orca_tar_conan
   type: s3
   source:
@@ -320,40 +311,3 @@ jobs:
     file: gpdb_src/concourse/tasks/build_gpdb_with_orca_gen_by_conan.yml
   - task: package_tarball
     file: gpdb_src/concourse/tasks/package_tarball.yml
-  - put: bin_gpdb_centos7
-    params:
-      file: package_tarball/bin_gpdb.tar.gz
-- name: gpdb_icg_with_orca_conan_artifact
-  plan:
-  - aggregate:
-    - get: bin_orca
-      passed:
-      - build_gpdb_using_conan_orca
-      resource: bin_orca_tar_conan
-      params:
-        globs:
-        - bin_orca_conan.tar.gz
-    - get: bin_gpdb
-      passed:
-      - build_gpdb_using_conan_orca
-      resource: bin_gpdb_centos7
-      params:
-        globs:
-        - bin_gpdb.tar.gz
-      trigger: true
-    - get: gpdb_src
-      params:
-        submodules: none
-      passed:
-      - build_gpdb_using_conan_orca
-  - task: icg_with_orca
-    file: gpdb_src/concourse/tasks/test_with_orca_conan.yml
-    on_failure:
-      aggregate:
-      - put: regression_diffs
-        params:
-          file: icg_output/regression.diffs
-      - put: regression_out
-        params:
-          file: icg_output/regression.out
-    timeout: 64m
