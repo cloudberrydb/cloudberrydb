@@ -473,7 +473,7 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    regexp: windows-cl/greenplum-clients-5.(.*)-WinXP-x86_32.msi
+    regexp: windows-cl/greenplum-clients-(.*)-WinXP-x86_32.msi
 
 - name: bin_gpdb_windows_loaders
   type: s3
@@ -482,7 +482,7 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    regexp: windows-cl/greenplum-loaders-5.(.*)-WinXP-x86_32.msi
+    regexp: windows-cl/greenplum-loaders-(.*)-WinXP-x86_32.msi
 
 - name: bin_gpdb4_centos6
   type: s3
@@ -509,7 +509,7 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    regexp: deliverables/greenplum-clients-5.(.*)-rhel6-x86_64.zip
+    regexp: deliverables/greenplum-clients-(.*)-rhel6-x86_64.zip
 
 - name: installer_rhel6_gpdb_loaders
   type: s3
@@ -518,7 +518,7 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    regexp: deliverables/greenplum-loaders-5.(.*)-rhel6-x86_64.zip
+    regexp: deliverables/greenplum-loaders-(.*)-rhel6-x86_64.zip
 
 - name: installer_rhel7_gpdb_clients
   type: s3
@@ -527,7 +527,7 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    regexp: deliverables/greenplum-clients-5.(.*)-rhel7-x86_64.zip
+    regexp: deliverables/greenplum-clients-(.*)-rhel7-x86_64.zip
 
 - name: installer_rhel7_gpdb_loaders
   type: s3
@@ -536,7 +536,7 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    regexp: deliverables/greenplum-loaders-5.(.*)-rhel7-x86_64.zip
+    regexp: deliverables/greenplum-loaders-(.*)-rhel7-x86_64.zip
 
 - name: installer_aix7_gpdb_clients
   type: s3
@@ -545,7 +545,7 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    regexp: deliverables/greenplum-clients-5.(.*)-aix7_ppc_64.zip
+    regexp: deliverables/greenplum-clients-(.*)-aix7_ppc_64.zip
 
 - name: installer_aix7_gpdb_loaders
   type: s3
@@ -554,7 +554,7 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    regexp: deliverables/greenplum-loaders-5.(.*)-aix7_ppc_64.zip
+    regexp: deliverables/greenplum-loaders-(.*)-aix7_ppc_64.zip
 
 - name: qautils_rhel6_tarball
   type: s3
@@ -572,7 +572,7 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    regexp: deliverables/greenplum-clients-5.(.*)-sles11-x86_64.zip
+    regexp: deliverables/greenplum-clients-(.*)-sles11-x86_64.zip
 
 - name: installer_sles11_gpdb_loaders
   type: s3
@@ -581,7 +581,7 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    regexp: deliverables/greenplum-loaders-5.(.*)-sles11-x86_64.zip
+    regexp: deliverables/greenplum-loaders-(.*)-sles11-x86_64.zip
 
 - name: gpdb_src_tinc_tarball
   type: s3
