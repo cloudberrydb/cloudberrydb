@@ -4705,6 +4705,7 @@ OpenIntoRel(QueryDesc *queryDesc)
 	char	   *intoTableSpaceName;
     GpPolicy   *targetPolicy;
 	bool		bufferPoolBulkLoad;
+	bool		validate_reloptions;
 
 	RelFileNode relFileNode;
 	
@@ -4807,7 +4808,12 @@ OpenIntoRel(QueryDesc *queryDesc)
 									 false);
 
 	/* get the relstorage (heap or AO tables) */
-	stdRdOptions = (StdRdOptions*) heap_reloptions(relkind, reloptions, queryDesc->ddesc->validate_reloptions);
+	if (queryDesc->ddesc)
+		validate_reloptions = queryDesc->ddesc->validate_reloptions;
+	else
+		validate_reloptions = true;
+
+	stdRdOptions = (StdRdOptions*) heap_reloptions(relkind, reloptions, validate_reloptions);
 	if(stdRdOptions->appendonly)
 		relstorage = stdRdOptions->columnstore ? RELSTORAGE_AOCOLS : RELSTORAGE_AOROWS;
 	else
@@ -4844,7 +4850,7 @@ OpenIntoRel(QueryDesc *queryDesc)
 											  targetPolicy,  	/* MPP */
 											  reloptions,
 											  allowSystemTableModsDDL,
-											  /* valid_opts */ !queryDesc->ddesc->validate_reloptions,
+											  /* valid_opts */ !validate_reloptions,
 						 					  &persistentTid,
 						 					  &persistentSerialNum);
 
