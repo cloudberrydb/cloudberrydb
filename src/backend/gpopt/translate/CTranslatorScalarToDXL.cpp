@@ -1307,6 +1307,24 @@ CTranslatorScalarToDXL::PdxlnScAggrefFromAggref
 		{AGGSTAGE_FINAL, EdxlaggstageFinal},
 		};
 
+	if (paggref->aggorder != NIL)
+	{
+		GPOS_RAISE
+		(
+				gpdxl::ExmaDXL,
+				gpdxl::ExmiPlStmt2DXLConversion,
+				GPOS_WSZ_LIT("Ordered aggregates")
+		);
+	}
+
+	// FIXME: ORCA should keep the list of SortGroupClause objects for an Aggref
+	if (paggref->aggdistinct)
+	{
+		GPOS_RAISE(gpdxl::ExmaDXL,
+				   gpdxl::ExmiPlStmt2DXLConversion,
+				   GPOS_WSZ_LIT("Distinct aggregates"));
+	}
+
 	EdxlAggrefStage edxlaggstage = EdxlaggstageSentinel;
 	const ULONG ulArity = GPOS_ARRAY_SIZE(rgrgulMapping);
 	for (ULONG ul = 0; ul < ulArity; ul++)
@@ -1323,16 +1341,7 @@ CTranslatorScalarToDXL::PdxlnScAggrefFromAggref
 	CMDIdGPDB *pmdidAgg = GPOS_NEW(m_pmp) CMDIdGPDB(paggref->aggfnoid);
 	const IMDAggregate *pmdagg = m_pmda->Pmdagg(pmdidAgg);
 
-	if (pmdagg->FOrdered())
-	{
-		GPOS_ASSERT_IMP(NULL == paggref->aggorder, pmdagg->FOrdered());
-		GPOS_RAISE
-			(
-			gpdxl::ExmaDXL,
-			gpdxl::ExmiPlStmt2DXLConversion,
-			GPOS_WSZ_LIT("Ordered aggregates")
-			);
-	}
+	GPOS_ASSERT(!pmdagg->FOrdered());
 
 	if (0 != paggref->agglevelsup)
 	{

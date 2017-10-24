@@ -2,6 +2,10 @@
 -- AGGREGATES
 --
 
+-- start_ignore
+SET optimizer_trace_fallback to on;
+-- end_ignore
+
 SELECT avg(four) AS avg_1 FROM onek;
 
 SELECT avg(a) AS avg_32 FROM aggtest WHERE a < 100;
