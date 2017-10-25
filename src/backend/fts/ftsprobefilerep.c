@@ -49,7 +49,7 @@ static char probeSegment(CdbComponentDatabaseInfo *dbInfo)
 
 	probeInfo.segmentStatus = PROBE_DEAD;
 
-	return probeSegmentHelper(dbInfo, probeInfo);
+	return probeSegmentHelper(dbInfo, &probeInfo);
 }
 
 /*
