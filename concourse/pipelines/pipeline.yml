@@ -2546,6 +2546,9 @@ jobs:
       - MM_gppkg
       - MM_gprecoverseg
     # Not used by icw group, but is passed through
+    - get: bin_gpdb_centos7
+      passed:
+      - gate_mm_misc_start
     - get: gpdb_src_tinc_tarball
       passed:
       - gate_mm_misc_start
@@ -2940,6 +2943,9 @@ jobs:
     - get: bin_gpdb_centos6
       passed:
       - gate_mm_misc_end
+    - get: bin_gpdb_centos7
+      passed:
+      - gate_mm_misc_end
 - name: MM_gpcheckcat
   plan:
   - aggregate:
@@ -3156,6 +3162,7 @@ jobs:
     - get: bin_gpdb
       tags: ["gpdb5_ccp_external_worker"]
       resource: bin_gpdb_centos7
+      passed: [gate_general_misc_start]
       trigger: true
     - get: ccp_src
       tags: ["gpdb5_ccp_external_worker"]
