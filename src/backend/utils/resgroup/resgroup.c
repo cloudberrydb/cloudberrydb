@@ -262,7 +262,9 @@ static bool selfIsAssigned(void);
 #endif//USE_ASSERT_CHECKING
 static bool selfIsUnassigned(void);
 static void selfUnassignDroppedGroup(void);
+#ifdef USE_ASSERT_CHECKING
 static bool selfHasSlot(void);
+#endif//USE_ASSERT_CHECKING
 static bool selfHasGroup(void);
 static void selfSetGroup(ResGroupData *group);
 static void selfUnsetGroup(void);
@@ -273,7 +275,9 @@ static bool procIsWaiting(const PGPROC *proc);
 static void procWakeup(PGPROC *proc);
 static void slotValidate(const ResGroupSlotData *slot);
 static void slotValidateOwnership(const ResGroupSlotData *slot);
+#ifdef USE_ASSERT_CHECKING
 static bool slotIsInUse(const ResGroupSlotData *slot);
+#endif//USE_ASSERT_CHECKING
 static ResGroupSlotData * slotById(int slotId);
 static int slotGetId(const ResGroupSlotData *slot);
 static bool slotIdIsValid(int slotId);
@@ -2759,6 +2763,7 @@ selfUnassignDroppedGroup(void)
 	Assert(selfIsUnassigned());
 }
 
+#ifdef USE_ASSERT_CHECKING
 /*
  * Check whether self has been set a slot.
  *
@@ -2774,6 +2779,7 @@ selfHasSlot(void)
 
 	return self->slotId != InvalidSlotId;
 }
+#endif//USE_ASSERT_CHECKING
 
 /*
  * Check whether self has been set a resgroup.
@@ -2958,6 +2964,7 @@ slotValidateOwnership(const ResGroupSlotData *slot)
 	Assert(Gp_role == GP_ROLE_DISPATCH || slot->sessionId == gp_session_id);
 }
 
+#ifdef USE_ASSERT_CHECKING
 /*
  * A slot is in use if it has a valid groupId.
  */
@@ -2968,6 +2975,7 @@ slotIsInUse(const ResGroupSlotData *slot)
 
 	return slot->groupId != InvalidOid;
 }
+#endif//USE_ASSERT_CHECKING
 
 /*
  * Get a slot by slotId.
