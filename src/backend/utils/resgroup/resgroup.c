@@ -2844,6 +2844,7 @@ selfSetSlot(ResGroupSlotData *slot)
 	Assert(selfHasGroup());
 	Assert(!selfHasSlot());
 	Assert(slot != NULL);
+	Assert(slot != &pResGroupControl->freeSlot);
 
 	self->slot = slot;
 	self->slotId = slotGetId(slot);
@@ -2988,11 +2989,16 @@ slotById(int slotId)
 
 /*
  * Get the slot id of the given slot.
+ *
+ * Return InvalidSlotId if slot is NULL or root.
  */
 static int
 slotGetId(const ResGroupSlotData *slot)
 {
 	int			slotId;
+
+	if (slot == NULL || slot == &pResGroupControl->freeSlot)
+		return InvalidSlotId;
 
 	slotId = slot - pResGroupControl->slots;
 
@@ -3286,7 +3292,7 @@ resgroupDumpWaitQueue(StringInfo str, PROC_QUEUE *queue)
 		appendStringInfo(str, "{");
 		appendStringInfo(str, "\"pid\":%d,", proc->pid);
 		appendStringInfo(str, "\"resWaiting\":%d,", proc->resWaiting);
-		appendStringInfo(str, "\"resSlotId\":%d", proc->resSlotId);
+		appendStringInfo(str, "\"resSlot\":%d", slotGetId(proc->resSlot));
 		appendStringInfo(str, "}");
 		proc = (PGPROC *)SHMQueueNext(&queue->links,
 							&proc->links, 
@@ -3315,8 +3321,6 @@ static void
 resgroupDumpSlots(StringInfo str)
 {
 	int               i;
-	int               next_id;
-	int               prev_id;
 	ResGroupSlotData* slot;
 	ResGroupSlotData* root;
 
@@ -3327,8 +3331,6 @@ resgroupDumpSlots(StringInfo str)
 	for (i = 0; i < RESGROUP_MAX_SLOTS; i++)
 	{
 		slot = &(pResGroupControl->slots[i]);
-		prev_id = (slot->prev == NULL || slot->prev == root) ? -1 : slotGetId(slot->prev);
-		next_id = (slot->next == NULL || slot->next == root) ? -1 : slotGetId(slot->next);
 
 		appendStringInfo(str, "{");
 		appendStringInfo(str, "\"slotId\":%d,", i);
@@ -3337,8 +3339,8 @@ resgroupDumpSlots(StringInfo str)
 		appendStringInfo(str, "\"memQuota\":%d,", slot->memQuota);
 		appendStringInfo(str, "\"memUsage\":%d,", slot->memUsage);
 		appendStringInfo(str, "\"nProcs\":%d,", slot->nProcs);
-		appendStringInfo(str, "\"prev\":%d,", prev_id);
-		appendStringInfo(str, "\"next\":%d,", next_id);
+		appendStringInfo(str, "\"prev\":%d,", slotGetId(slot->prev));
+		appendStringInfo(str, "\"next\":%d,", slotGetId(slot->next));
 		resgroupDumpCaps(str, (ResGroupCap*)(&slot->caps));
 		appendStringInfo(str, "}");
 		if (i < RESGROUP_MAX_SLOTS - 1)
@@ -3352,15 +3354,11 @@ static void
 resgroupDumpFreeSlots(StringInfo str)
 {
 	ResGroupSlotData* root;
-	int               prev_id;
-	int               next_id;
 	
 	root = &pResGroupControl->freeSlot;
-	prev_id = root->prev == root ? -1 : slotGetId(root->prev);
-	next_id = root->next == root ? -1 : slotGetId(root->next);
 	
 	appendStringInfo(str, "\"free_slot_root\":{");
-	appendStringInfo(str, "\"prev\":%d,", prev_id);
-	appendStringInfo(str, "\"next\":%d", next_id);
+	appendStringInfo(str, "\"prev\":%d,", slotGetId(root->prev));
+	appendStringInfo(str, "\"next\":%d", slotGetId(root->next));
 	appendStringInfo(str, "}");
 }
