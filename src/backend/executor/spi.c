@@ -22,6 +22,7 @@
 #include "utils/memutils.h"
 #include "utils/snapmgr.h"
 #include "utils/typcache.h"
+#include "utils/resource_manager.h"
 #include "utils/resscheduler.h"
 
 #include "cdb/cdbvars.h"
@@ -2550,7 +2551,15 @@ static uint64 SPIMemReserved = 0;
 void SPI_InitMemoryReservation(void)
 {
 	Assert(!IsResManagerMemoryPolicyNone());
-	SPIMemReserved = (uint64) statement_mem * 1024L;;
+
+	if (IsResGroupEnabled())
+	{
+		SPIMemReserved = 0;
+	}
+	else
+	{
+		SPIMemReserved = (uint64) statement_mem * 1024L;;
+	}
 }
 
 /**
@@ -2585,12 +2594,12 @@ uint64 SPI_GetMemoryReservation(void)
 }
 
 /**
- * Is memory reserved stack empty?
+ * Is there memory reserved for SPI calls
  */
 bool SPI_IsMemoryReserved(void)
 {
 	Assert(!IsResManagerMemoryPolicyNone());
-	return (SPIMemReserved == 0);
+	return (SPIMemReserved != 0);
 }
 
 /**
