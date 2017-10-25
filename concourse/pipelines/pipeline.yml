@@ -286,7 +286,7 @@ resources:
     branch: {{ccp-git-branch}}
     private_key: {{ccp-git-key}}
     uri: {{ccp-git-remote}}
-    tag_filter: 1.0.2
+    tag_filter: 1.0.3
 
 - name: terraform
   type: terraform
