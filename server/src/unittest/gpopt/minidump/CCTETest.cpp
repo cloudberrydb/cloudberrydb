@@ -56,6 +56,7 @@ const CHAR *rgszCTEFileNames[] =
 	"../data/dxl/minidump/CTEWithVolatileFunction.mdp",
 	"../data/dxl/minidump/WinFunc-Redistribute-Sort-CTE-Producer.mdp",
 	"../data/dxl/minidump/Select-Over-CTEAnchor.mdp",
+	"../data/dxl/minidump/CTEinlining.mdp",
 	};
 
 
