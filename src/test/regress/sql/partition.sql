@@ -1672,6 +1672,14 @@ alter table rank_settemp set subpartition template (default subpartition def2);
 -- Should still be there
 select * from pg_partition_templates where tablename like 'rank_settemp%';
 
+
+alter table rank_settemp set subpartition template (start (date '2006-01-01') with (appendonly=true));
+alter table rank_settemp add partition f1 values ('N');
+alter table rank_settemp set subpartition template (start (date '2007-01-01') with (appendonly=true, compresslevel=5));
+alter table rank_settemp add partition f2 values ('C');
+
+select * from pg_partition_templates where tablename like 'rank_settemp%';
+
 drop table rank_settemp;
 
 -- MPP-5397
@@ -1734,6 +1742,9 @@ ALTER TABLE SG_CAL_EVENT_SILVERTAIL_HOUR SPLIT DEFAULT PARTITION
 START ('2009-04-29 07:00:00'::timestamp) INCLUSIVE END ('2009-04-29
 08:00:00'::timestamp) EXCLUSIVE INTO ( PARTITION P2009042907 ,
 PARTITION st_default );
+
+select pg_get_partition_def('sg_cal_event_silvertail_hour'::regclass, true);
+
 drop table sg_cal_event_silvertail_hour;
 
 -- Make sure we inherit master's storage settings
@@ -1768,11 +1779,17 @@ values (('a','b'),('c','d')),
 values (('e','f'),('g','h'))
 );
 
-select partitionlistvalues from pg_partitions where tablename like 'mpp5878%';
+create table mpp5878a (a int, b character(1), d character(1))
+partition by list (b,d)
+(
+values (('a','b'),('c','d')),
+values (('e','f'),('g','h'))
+);
 
-select partitionboundary from pg_partitions where tablename like 'mpp5878%';
+select tablename, partitionlistvalues from pg_partitions where tablename like 'mpp5878%';
+select tablename, partitionboundary from pg_partitions where tablename like 'mpp5878%';
 
-drop table mpp5878;
+drop table mpp5878, mpp5878a;
 
 -- MPP-5941: work with many levels of templates
 
