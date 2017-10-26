@@ -1515,6 +1515,7 @@ initTM(void)
 					 "looking for failed segments.");
 
 				/* Log the error. */
+				elog_demote(LOG);
 				EmitErrorReport();
 				FlushErrorState();
 
