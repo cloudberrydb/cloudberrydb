@@ -103,7 +103,7 @@ static int
 
 static void parruleord_open_gap(Oid partid, int2 level, Oid parent,
 					int2 ruleord, int stopkey, bool closegap);
-static bool has_external_partition(PartitionRule *rules);
+static bool has_external_partition(List *rules);
 
 /*
  * Hash keys are null-terminated C strings assumed to be stably
@@ -9568,8 +9568,8 @@ findPartitionNodeEntry(PartitionNode *partitionNode, Oid partOid)
  * check parition rule if contains
  * external partition table
  */
-static bool 
-has_external_partition(PartitionRule *rules) {
+static bool
+has_external_partition(List *rules) {
 	if (rules == NULL)
 	{
 		return false;
