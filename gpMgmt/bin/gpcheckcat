@@ -4008,7 +4008,7 @@ def processMissingDuplicateEntryResult(catname, colname, allValues, type):
     '''
     gpObjName = catname
     gpColName = None
-    pknames = [i for i in colname[:-2]]  # Everything except the last two columns
+    pknames = [i for i in colname[:-1]]  # Everything except the last column
 
     # This catname may not be a GPObject (e.g. pg_attribute)
     # If these catnames have oids, they are known to be inconsistent
@@ -4047,7 +4047,7 @@ def processMissingDuplicateEntryResult(catname, colname, allValues, type):
             # entry present?
             #
             # If it was present in half or more, then report the ones that
-            # it was *not* present as 'missing'. If it was presenet in half
+            # it was *not* present as 'missing'. If it was present in half
             # or less, then report the ones that it was present as 'extra'
             # Note that if it was present in exactly half of the segments,
             # we will report it as both missing and extra.
