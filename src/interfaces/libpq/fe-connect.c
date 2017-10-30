@@ -15,8 +15,11 @@
  */
 
 #ifndef FRONTEND
+#ifndef WIN32
 #include "postgres.h"
-#include "cdb/cdbvars.h"
+#endif
+#else
+#include "postgres_fe.h"
 #endif
 
 #ifndef WIN32
