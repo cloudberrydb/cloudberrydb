@@ -29,16 +29,17 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef FRONTEND
 #include "postgres.h"
+#else
 #include "postgres_fe.h"
+#endif
 
 #include <signal.h>
 #include <time.h>
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
-#include "cdb/cdbselect.h"
 
 #ifdef WIN32
 #include "win32.h"
@@ -62,10 +63,6 @@
 #include "pqsignal.h"
 #include "mb/pg_wchar.h"
 #include "pg_config_paths.h"
-
-#include "utils/hsearch.h"
-#include "nodes/pg_list.h"
-#include "cdb/cdbpartition.h"
 
 static int	pqPutMsgBytes(const void *buf, size_t len, PGconn *conn);
 static int	pqSendSome(PGconn *conn, int len);
