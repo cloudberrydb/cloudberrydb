@@ -4055,13 +4055,17 @@ def processMissingDuplicateEntryResult(catname, colname, allValues, type):
             ids = [int(i) for i in segids[1:-1].split(',')]
 
             if len(ids) <= (GV.max_content + 2) / 2:
-                issue = CatMissingIssue(catname, pkeys, ids, 'extra')
+                issue = CatMissingIssue(catname, pkeys, segids, 'extra')
                 gpObj.addMissingIssue(issue)
 
             if len(ids) >= (GV.max_content + 2) / 2:
                 allids = [int(i) for i in range(-1, GV.max_content+1)]
                 diffids = set(allids) - set(ids)
-                issue = CatMissingIssue(catname, pkeys, diffids, 'missing')
+                # convert the difference set back into a string that looks
+                # like a PostgreSQL array.
+                segids = ",".join(str(x) for x in diffids)
+                segids = "{%s}" % (segids)
+                issue = CatMissingIssue(catname, pkeys, segids, 'missing')
                 gpObj.addMissingIssue(issue)
 
         else:
@@ -4300,11 +4304,12 @@ class CatMissingIssue:
 
     def report(self):
 
+        ids = [int(i) for i in self.segids[1:-1].split(',')]
         idstr = ''
-        if len(self.segids) == len(GV.report_cfg):
+        if len(ids) == len(GV.report_cfg):
             idstr = 'all segments'
         else:
-            for i in self.segids:
+            for i in ids:
                 idstr += '%s (%s:%d) ' % \
                          (GV.report_cfg[i]['segname'], GV.report_cfg[i]['hostname'],
                           GV.report_cfg[i]['port'])
