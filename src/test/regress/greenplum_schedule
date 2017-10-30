@@ -73,6 +73,7 @@ ignore: icudp_full
 
 test: resource_queue
 test: resource_queue_function
+test: resource_group
 test: wrkloadadmin
 
 # gp_toolkit performs a vacuum and checks that it truncated the relation. That
