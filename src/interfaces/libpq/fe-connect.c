@@ -17,7 +17,9 @@
 #ifndef FRONTEND
 #include "postgres.h"
 #include "cdb/cdbvars.h"
+#endif
 
+#ifndef WIN32
 #include <poll.h>
 #endif
 
@@ -3277,7 +3279,7 @@ internal_cancel(SockAddr *raddr, int be_pid, int be_key,
 		CancelRequestPacket cp;
 	}			crp;
 
-#ifndef FRONTEND
+#ifndef WIN32
 	struct pollfd	pollFds[1];
 	int				pollRet;
 
@@ -3334,7 +3336,7 @@ retry4:
 	 * one we thought we were canceling.  Note we don't actually expect this
 	 * read to obtain any data, we are just waiting for EOF to be signaled.
 	 */
-#ifndef FRONTEND
+#ifndef WIN32
 retry5:
 	pollFds[0].fd = tmpsock;
 	pollFds[0].events = POLLIN;
