@@ -1,3 +1,4 @@
+#include "postgres.h"
 #include "libpq-fe.h"
 #include "libpq-int.h"
 #include "cdb/cdbpq.h"

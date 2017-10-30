@@ -17,6 +17,8 @@
 #ifndef FRONTEND
 #include "postgres.h"
 #include "cdb/cdbvars.h"
+
+#include <poll.h>
 #endif
 
 #include <sys/types.h>
@@ -25,7 +27,6 @@
 #include <ctype.h>
 #include <time.h>
 #include <unistd.h>
-#include <poll.h>
 
 #include "libpq-fe.h"
 #include "libpq-int.h"
@@ -3270,15 +3271,18 @@ internal_cancel(SockAddr *raddr, int be_pid, int be_key,
 	int			tmpsock = -1;
 	char		sebuf[256];
 	int			maxlen;
-	struct pollfd	pollFds[1];
-	int				pollRet;
 	struct
 	{
 		uint32		packetlen;
 		CancelRequestPacket cp;
 	}			crp;
 
+#ifndef FRONTEND
+	struct pollfd	pollFds[1];
+	int				pollRet;
+
 retry2:
+#endif
 	/*
 	 * We need to open a temporary connection to the postmaster. Do this with
 	 * only kernel calls.
@@ -3330,6 +3334,7 @@ retry4:
 	 * one we thought we were canceling.  Note we don't actually expect this
 	 * read to obtain any data, we are just waiting for EOF to be signaled.
 	 */
+#ifndef FRONTEND
 retry5:
 	pollFds[0].fd = tmpsock;
 	pollFds[0].events = POLLIN;
@@ -3359,6 +3364,7 @@ retry5:
 		tmpsock = -1;
 		goto retry2;
 	}
+#endif
 
 retry6:
 	if (recv(tmpsock, (char *) &crp, 1, 0) < 0)

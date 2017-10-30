@@ -74,8 +74,10 @@ pqParseInput3(PGconn *conn)
 	char		id;
 	int			msgLength;
 	int			avail;
+#ifndef FRONTEND
 	int			numRejected  = 0;
 	int			numCompleted = 0;
+#endif
 
 
 	/*
