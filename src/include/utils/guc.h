@@ -22,7 +22,11 @@
 #define MAX_MAX_BACKENDS (INT_MAX / BLCKSZ)
 #define MAX_AUTHENTICATION_TIMEOUT (600)
 #define MAX_PRE_AUTH_DELAY (60)
-
+/*
+ * One connection must be reserved for FTS to always able to probe
+ * primary. So, this acts as lower limit on reserved superuser connections.
+*/
+#define RESERVED_FTS_CONNECTIONS (1)
 
 struct StringInfoData;                  /* #include "lib/stringinfo.h" */
 
