@@ -3165,7 +3165,7 @@ explain analyze select reltablespace  from pg_class where oid = (select reltoast
  Index Scan using pg_class_oid_index on pg_class  (cost=200.27..400.54 rows=1 width=4)
    Index Cond: oid = $0
    Rows out:  1 rows with 0.037 ms to first row, 0.038 ms to end, start offset by 0.047 ms.
-   InitPlan
+   InitPlan 1 (returns $0)
      ->  Index Scan using pg_class_relname_nsp_index on pg_class  (cost=0.00..200.27 rows=1 width=4)
            Index Cond: relname = 'tbl_8205'::name
            Rows out:  1 rows with 0.021 ms to first row, 0.023 ms to end of 2 scans, start offset by 0.049 ms.
