@@ -203,19 +203,19 @@ jobs:
   plan:
   - aggregate:
     - get: ccp_src
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
     - get: gpdb_src
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
       passed: [compile_gpdb_centos6]
     - get: gpdb_binary
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
       resource: bin_gpdb_centos6
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: centos-gpdb-dev-6
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
     - get: netbackup_installer
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
       resource: netbackup-client-installer
   - put: terraform
     params:
@@ -223,22 +223,22 @@ jobs:
       terraform_source: ccp_src/aws-pivotal-pa-toolsmiths/
       vars:
         <<: *ccp_default_vars
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["netbackup"]
   - task: gen_cluster
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["netbackup"]
     file: ccp_src/ci/tasks/gen_cluster.yml
     params:
       <<: *ccp_gen_cluster_default_params
     on_failure:
       <<: *ccp_destroy
   - task: setup_netbackup
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["netbackup"]
     file: gpdb_src/concourse/tasks/setup_netbackup.yml
     image: centos-gpdb-dev-6
     params:
       CUSTOM_ENV: export NETBACKUP_SERVER={{netbackup_host}}; export NETBACKUP_KEY={{netbackup_key}};
   - task: run_tests
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["netbackup"]
     file: gpdb_src/concourse/tasks/run_behave.yml
     image: centos-gpdb-dev-6
     params:
@@ -252,19 +252,19 @@ jobs:
   plan:
   - aggregate:
     - get: ccp_src
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
     - get: gpdb_src
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
       passed: [compile_gpdb_centos6]
     - get: gpdb_binary
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
       resource: bin_gpdb_centos6
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: centos-gpdb-dev-6
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
     - get: netbackup_installer
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
       resource: netbackup-client-installer
   - put: terraform
     params:
@@ -272,22 +272,22 @@ jobs:
       terraform_source: ccp_src/aws-pivotal-pa-toolsmiths/
       vars:
         <<: *ccp_default_vars
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["netbackup"]
   - task: gen_cluster
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["netbackup"]
     file: ccp_src/ci/tasks/gen_cluster.yml
     params:
       <<: *ccp_gen_cluster_default_params
     on_failure:
       <<: *ccp_destroy
   - task: setup_netbackup
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["netbackup"]
     file: gpdb_src/concourse/tasks/setup_netbackup.yml
     image: centos-gpdb-dev-6
     params:
       CUSTOM_ENV: export NETBACKUP_SERVER={{netbackup_host}}; export NETBACKUP_KEY={{netbackup_key}};
   - task: run_tests
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["netbackup"]
     file: gpdb_src/concourse/tasks/run_behave.yml
     image: centos-gpdb-dev-6
     params:
@@ -301,19 +301,19 @@ jobs:
   plan:
   - aggregate:
     - get: ccp_src
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
     - get: gpdb_src
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
       passed: [compile_gpdb_centos6]
     - get: gpdb_binary
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
       resource: bin_gpdb_centos6
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: centos-gpdb-dev-6
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
     - get: netbackup_installer
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["netbackup"]
       resource: netbackup-client-installer
   - put: terraform
     params:
@@ -321,22 +321,22 @@ jobs:
       terraform_source: ccp_src/aws-pivotal-pa-toolsmiths/
       vars:
         <<: *ccp_default_vars
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["netbackup"]
   - task: gen_cluster
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["netbackup"]
     file: ccp_src/ci/tasks/gen_cluster.yml
     params:
       <<: *ccp_gen_cluster_default_params
     on_failure:
       <<: *ccp_destroy
   - task: setup_netbackup
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["netbackup"]
     file: gpdb_src/concourse/tasks/setup_netbackup.yml
     image: centos-gpdb-dev-6
     params:
       CUSTOM_ENV: export NETBACKUP_SERVER={{netbackup_host}}; export NETBACKUP_KEY={{netbackup_key}};
   - task: run_tests
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["netbackup"]
     file: gpdb_src/concourse/tasks/run_behave.yml
     image: centos-gpdb-dev-6
     params:
@@ -350,32 +350,32 @@ jobs:
   plan:
   - aggregate:
     - get: ccp_src
-      tags: ["gpdb4_ccp_external_worker"] # We use a specific worker that has access to our Data Domain
+      tags: ["ddboost"] # We use a specific worker that has access to our Data Domain
     - get: gpdb_src
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["ddboost"]
       passed: [compile_gpdb_centos6]
     - get: gpdb_binary
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["ddboost"]
       resource: bin_gpdb_centos6
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: centos-gpdb-dev-6
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["ddboost"]
   - put: terraform
     params:
       <<: *ccp_default_params
       vars:
         <<: *ccp_default_vars
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["ddboost"]
   - task: gen_cluster
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["ddboost"]
     file: ccp_src/ci/tasks/gen_cluster.yml
     params:
       <<: *ccp_gen_cluster_default_params
     on_failure:
       <<: *ccp_destroy
   - task: run_tests
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["ddboost"]
     file: gpdb_src/concourse/tasks/run_behave.yml
     image: centos-gpdb-dev-6
     params:
@@ -390,32 +390,32 @@ jobs:
   plan:
   - aggregate:
     - get: ccp_src
-      tags: ["gpdb4_ccp_external_worker"] # We use a specific worker that has access to our Data Domain
+      tags: ["ddboost"] # We use a specific worker that has access to our Data Domain
     - get: gpdb_src
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["ddboost"]
       passed: [compile_gpdb_centos6]
     - get: gpdb_binary
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["ddboost"]
       resource: bin_gpdb_centos6
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: centos-gpdb-dev-6
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["ddboost"]
   - put: terraform
     params:
       <<: *ccp_default_params
       vars:
         <<: *ccp_default_vars
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["ddboost"]
   - task: gen_cluster
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["ddboost"]
     file: ccp_src/ci/tasks/gen_cluster.yml
     params:
       <<: *ccp_gen_cluster_default_params
     on_failure:
       <<: *ccp_destroy
   - task: run_tests
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["ddboost"]
     file: gpdb_src/concourse/tasks/run_behave.yml
     image: centos-gpdb-dev-6
     params:
@@ -430,32 +430,32 @@ jobs:
   plan:
   - aggregate:
     - get: ccp_src
-      tags: ["gpdb4_ccp_external_worker"] # We use a specific worker that has access to our Data Domain
+      tags: ["ddboost"] # We use a specific worker that has access to our Data Domain
     - get: gpdb_src
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["ddboost"]
       passed: [compile_gpdb_centos6]
     - get: gpdb_binary
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["ddboost"]
       resource: bin_gpdb_centos6
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: centos-gpdb-dev-6
-      tags: ["gpdb4_ccp_external_worker"]
+      tags: ["ddboost"]
   - put: terraform
     params:
       <<: *ccp_default_params
       vars:
         <<: *ccp_default_vars
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["ddboost"]
   - task: gen_cluster
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["ddboost"]
     file: ccp_src/ci/tasks/gen_cluster.yml
     params:
       <<: *ccp_gen_cluster_default_params
     on_failure:
       <<: *ccp_destroy
   - task: run_tests
-    tags: ["gpdb4_ccp_external_worker"]
+    tags: ["ddboost"]
     file: gpdb_src/concourse/tasks/run_behave.yml
     image: centos-gpdb-dev-6
     params:
