@@ -2315,7 +2315,7 @@ heap_insert(Relation relation, HeapTuple tup, CommandId cid,
 		heaptup = tup;
 	}
 	else if (HeapTupleHasExternal(tup) || tup->t_len > TOAST_TUPLE_THRESHOLD)
-		heaptup = toast_insert_or_update(relation, tup, NULL, NULL,
+		heaptup = toast_insert_or_update(relation, tup, NULL,
 										 TOAST_TUPLE_TARGET, isFrozen,
 										 use_wal, use_fsm);
 	else
@@ -2825,7 +2825,7 @@ l1:
 		Assert(!HeapTupleHasExternal(&tp));
 	}
 	else if (HeapTupleHasExternal(&tp))
-		toast_delete(relation, &tp, NULL);
+		toast_delete(relation, (GenericTuple) &tp, NULL);
 
 	/*
 	 * Mark tuple for invalidation from system caches at next command
@@ -3275,7 +3275,7 @@ l2:
 		if (need_toast)
 		{
 			/* Note we always use WAL and FSM during updates */
-			heaptup = toast_insert_or_update(relation, newtup, &oldtup, NULL,
+			heaptup = toast_insert_or_update(relation, newtup, &oldtup,
 											 TOAST_TUPLE_TARGET, false, true, true);
 			newtupsize = MAXALIGN(heaptup->t_len);
 		}

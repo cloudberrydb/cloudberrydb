@@ -796,7 +796,7 @@ tuplestore_puttuple_common(Tuplestorestate *state, void *tuple)
  * Backward scan is only allowed if randomAccess was set true or
  * EXEC_FLAG_BACKWARD was specified to tuplestore_set_eflags().
  */
-static void *
+static GenericTuple *
 tuplestore_gettuple(Tuplestorestate *state, bool forward,
 					bool *should_free)
 {
@@ -984,19 +984,22 @@ bool
 tuplestore_gettupleslot(Tuplestorestate *state, bool forward,
 						bool copy, TupleTableSlot *slot)
 {
-	MemTuple tuple;
+	GenericTuple tuple;
 	bool		should_free;
 
-	tuple = (MemTuple) tuplestore_gettuple(state, forward, &should_free);
+	tuple = (GenericTuple) tuplestore_gettuple(state, forward, &should_free);
 
 	if (tuple)
 	{
 		if (copy && !should_free)
 		{
-			tuple = memtuple_copy_to(tuple, NULL, NULL);
+			if (is_memtuple(tuple))
+				tuple = (GenericTuple) memtuple_copy_to((MemTuple) tuple, NULL, NULL);
+			else
+				tuple = (GenericTuple) heap_copytuple((HeapTuple) tuple);
 			should_free = true;
 		}
-		ExecStoreMinimalTuple(tuple, slot, should_free);
+		ExecStoreGenericTuple(tuple, slot, should_free);
 		return true;
 	}
 	else
@@ -1324,10 +1327,10 @@ getlen(Tuplestorestate *state, bool eofOK)
 static void *
 copytup_heap(Tuplestorestate *state, void *tup)
 {
-	if(!is_heaptuple_memtuple((HeapTuple) tup))
+	if (!is_memtuple((GenericTuple) tup))
 		return heaptuple_copy_to((HeapTuple) tup, NULL, NULL);
-
-	return memtuple_copy_to((MemTuple) tup, NULL, NULL);
+	else
+		return memtuple_copy_to((MemTuple) tup, NULL, NULL);
 }
 
 static void
@@ -1336,7 +1339,7 @@ writetup_heap(Tuplestorestate *state, void *tup)
 	uint32 tuplen = 0;
 	Size         memsize = 0;
 
-	if(is_heaptuple_memtuple((HeapTuple) tup))
+	if (is_memtuple((GenericTuple) tup))
 		tuplen = memtuple_get_size((MemTuple) tup);
 	else
 	{

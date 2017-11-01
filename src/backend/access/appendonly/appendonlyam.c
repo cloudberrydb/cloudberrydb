@@ -2953,11 +2953,11 @@ appendonly_insert(AppendOnlyInsertDesc aoInsertDesc,
 	 * into the relation; instup is the caller's original untoasted data.
 	 */
 	if (need_toast)
-		tup = (MemTuple) toast_insert_or_update(relation, (HeapTuple) instup,
-												NULL, aoInsertDesc->mt_bind,
-												aoInsertDesc->toast_tuple_target,
-												false,	/* errtbl is never AO */
-												true, true);
+		tup = toast_insert_or_update_memtup(relation, instup,
+											NULL, aoInsertDesc->mt_bind,
+											aoInsertDesc->toast_tuple_target,
+											false,	/* errtbl is never AO */
+											true, true);
 	else
 		tup = instup;
 

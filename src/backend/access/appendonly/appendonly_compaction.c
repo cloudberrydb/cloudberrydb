@@ -298,8 +298,7 @@ AppendOnlyMoveTuple(MemTuple tuple,
 }
 
 void
-AppendOnlyThrowAwayTuple(
-						 Relation rel,
+AppendOnlyThrowAwayTuple(Relation rel,
 						 MemTuple tuple,
 						 TupleTableSlot *slot,
 						 MemTupleBinding *mt_bind)
@@ -315,7 +314,7 @@ AppendOnlyThrowAwayTuple(
 
 	if (MemTupleHasExternal(tuple, mt_bind))
 	{
-		toast_delete(rel, (HeapTuple) tuple, mt_bind);
+		toast_delete(rel, (GenericTuple) tuple, mt_bind);
 	}
 
 	elogif(Debug_appendonly_print_compaction, DEBUG5,

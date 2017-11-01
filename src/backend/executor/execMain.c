@@ -3215,7 +3215,7 @@ ExecInsert(TupleTableSlot *slot,
 
 				if (newslot->tts_tupleDescriptor != partslot->tts_tupleDescriptor)
 					ExecSetSlotDescriptor(newslot, partslot->tts_tupleDescriptor);
-				ExecStoreGenericTuple(newtuple, newslot, false);
+				ExecStoreHeapTuple(newtuple, newslot, InvalidBuffer, false);
 				newslot->tts_tableOid = partslot->tts_tableOid; /* for constraints */
 				tuple = newtuple;
 				partslot = newslot;

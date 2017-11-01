@@ -141,7 +141,7 @@ ExternalNext(ExternalScanState *node)
 		 */
 		if (tuple)
 		{
-			ExecStoreGenericTuple(tuple, slot, true);
+			ExecStoreHeapTuple(tuple, slot, InvalidBuffer, true);
 			if (node->ess_ScanDesc->fs_hasConstraints && !ExternalConstraintCheck(slot, node))
 			{
 				ExecClearTuple(slot);

@@ -573,7 +573,7 @@ raw_heap_insert(RewriteState state, HeapTuple tup)
 		heaptup = tup;
 	}
 	else if (HeapTupleHasExternal(tup) || tup->t_len > TOAST_TUPLE_THRESHOLD)
-		heaptup = toast_insert_or_update(state->rs_new_rel, tup, NULL, NULL,
+		heaptup = toast_insert_or_update(state->rs_new_rel, tup, NULL,
 										 TOAST_TUPLE_TARGET, false,
 										 state->rs_use_wal, false);
 	else

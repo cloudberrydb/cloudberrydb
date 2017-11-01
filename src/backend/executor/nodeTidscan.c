@@ -293,7 +293,7 @@ TidNext(TidScanState *node)
 		 * CURRENT OF case it might not match anyway ...
 		 */
 
-		ExecStoreGenericTuple(estate->es_evTuple[scanrelid - 1], slot, false);
+		ExecStoreHeapTuple(estate->es_evTuple[scanrelid - 1], slot, InvalidBuffer, false);
 
 		/* Flag for the next call that no more tuples */
 		estate->es_evTupleNull[scanrelid - 1] = true;

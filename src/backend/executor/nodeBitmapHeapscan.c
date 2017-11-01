@@ -167,8 +167,8 @@ BitmapHeapNext(BitmapHeapScanState *node)
 		}
 		
 
-		ExecStoreGenericTuple(estate->es_evTuple[scanrelid - 1],
-					   slot, false);
+		ExecStoreHeapTuple(estate->es_evTuple[scanrelid - 1],
+						   slot, InvalidBuffer, false);
 
 		/* Does the tuple meet the original qual conditions? */
 		econtext->ecxt_scantuple = slot;

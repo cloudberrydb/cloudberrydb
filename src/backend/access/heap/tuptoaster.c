@@ -454,7 +454,7 @@ toast_datum_size(Datum value)
  * ----------
  */
 void
-toast_delete(Relation rel, HeapTuple oldtup, MemTupleBinding *pbind)
+toast_delete(Relation rel, GenericTuple oldtup, MemTupleBinding *pbind)
 {
 	TupleDesc	tupleDesc;
 	Form_pg_attribute *att;
@@ -462,7 +462,7 @@ toast_delete(Relation rel, HeapTuple oldtup, MemTupleBinding *pbind)
 	int			i;
 	Datum		toast_values[MaxHeapAttributeNumber];
 	bool		toast_isnull[MaxHeapAttributeNumber];
-	bool 		ismemtuple = is_heaptuple_memtuple(oldtup);
+	bool 		ismemtuple = is_memtuple(oldtup);
 	
 	AssertImply(ismemtuple, pbind);
 	AssertImply(!ismemtuple, !pbind);
@@ -496,10 +496,10 @@ toast_delete(Relation rel, HeapTuple oldtup, MemTupleBinding *pbind)
 
 	Assert(numAttrs <= MaxHeapAttributeNumber);
 
-	if(ismemtuple)
+	if (ismemtuple)
 		memtuple_deform((MemTuple) oldtup, pbind, toast_values, toast_isnull);
 	else
-		heap_deform_tuple(oldtup, tupleDesc, toast_values, toast_isnull);
+		heap_deform_tuple((HeapTuple) oldtup, tupleDesc, toast_values, toast_isnull);
 
 	/*
 	 * Check for external stored attributes and delete them from the secondary
@@ -549,12 +549,12 @@ static int compute_dest_tuplen(TupleDesc tupdesc, MemTupleBinding *pbind, bool h
 }
 
 
-HeapTuple
-toast_insert_or_update(Relation rel, HeapTuple newtup, HeapTuple oldtup, 
+static GenericTuple
+toast_insert_or_update_generic(Relation rel, GenericTuple newtup, GenericTuple oldtup,
 					   MemTupleBinding *pbind, int toast_tuple_target,
 					   bool isFrozen, bool use_wal, bool use_fsm)
 {
-	HeapTuple	result_tuple;
+	GenericTuple result_gtuple;
 	TupleDesc	tupleDesc;
 	Form_pg_attribute *att;
 	int			numAttrs;
@@ -577,11 +577,11 @@ toast_insert_or_update(Relation rel, HeapTuple newtup, HeapTuple oldtup,
 	bool		toast_free[MaxHeapAttributeNumber];
 	bool		toast_delold[MaxHeapAttributeNumber];
 
-	bool 		ismemtuple = is_heaptuple_memtuple(newtup);
+	bool 		ismemtuple = is_memtuple(newtup);
 
 	AssertImply(ismemtuple, pbind);
 	AssertImply(!ismemtuple, !pbind);
-	AssertImply(ismemtuple && oldtup, is_heaptuple_memtuple(oldtup));
+	AssertImply(ismemtuple && oldtup, is_memtuple(oldtup));
 	Assert(toast_tuple_target > 0);
 
 	/*
@@ -602,14 +602,14 @@ toast_insert_or_update(Relation rel, HeapTuple newtup, HeapTuple oldtup,
 	if(ismemtuple)
 		memtuple_deform((MemTuple) newtup, pbind, toast_values, toast_isnull);
 	else
-		heap_deform_tuple(newtup, tupleDesc, toast_values, toast_isnull);
+		heap_deform_tuple((HeapTuple) newtup, tupleDesc, toast_values, toast_isnull);
 
 	if (oldtup != NULL)
 	{
 		if(ismemtuple)
 			memtuple_deform((MemTuple) oldtup, pbind, toast_oldvalues, toast_oldisnull);
 		else
-			heap_deform_tuple(oldtup, tupleDesc, toast_oldvalues, toast_oldisnull);
+			heap_deform_tuple((HeapTuple) oldtup, tupleDesc, toast_oldvalues, toast_oldisnull);
 	}
 	/* ----------
 	 * Then collect information about the values given
@@ -749,7 +749,7 @@ toast_insert_or_update(Relation rel, HeapTuple newtup, HeapTuple oldtup,
 		hoff = offsetof(HeapTupleHeaderData, t_bits);
 		if (has_nulls)
 			hoff += BITMAPLEN(numAttrs);
-		if (newtup->t_data->t_infomask & HEAP_HASOID)
+		if (((HeapTuple) newtup)->t_data->t_infomask & HEAP_HASOID)
 			hoff += sizeof(Oid);
 		hoff = MAXALIGN(hoff);
 		/* now convert to a limit on the tuple data size */
@@ -1022,14 +1022,15 @@ toast_insert_or_update(Relation rel, HeapTuple newtup, HeapTuple oldtup,
 	if (need_change)
 	{
 		if(ismemtuple)
-			result_tuple = (HeapTuple) memtuple_form_to(pbind, toast_values, toast_isnull, NULL, NULL, false);
+			result_gtuple = (GenericTuple) memtuple_form_to(pbind, toast_values, toast_isnull, NULL, NULL, false);
 		else
 		{
-			HeapTupleHeader olddata = newtup->t_data;
+			HeapTupleHeader olddata = ((HeapTuple) newtup)->t_data;
 			HeapTupleHeader new_data;
 			int32		new_header_len;
 			int32		new_data_len;
 			int32		new_tuple_len;
+			HeapTuple	result_tuple;
 
 			/*
 			 * Calculate the new size of the tuple.
@@ -1056,7 +1057,7 @@ toast_insert_or_update(Relation rel, HeapTuple newtup, HeapTuple oldtup,
 			 */
 			result_tuple = (HeapTuple) palloc0(HEAPTUPLESIZE + new_tuple_len);
 			result_tuple->t_len = new_tuple_len;
-			result_tuple->t_self = newtup->t_self;
+			result_tuple->t_self = ((HeapTuple) newtup)->t_self;
 			new_data = (HeapTupleHeader) ((char *) result_tuple + HEAPTUPLESIZE);
 			result_tuple->t_data = new_data;
 
@@ -1077,10 +1078,11 @@ toast_insert_or_update(Relation rel, HeapTuple newtup, HeapTuple oldtup,
 							new_data_len,
 							&(new_data->t_infomask),
 							has_nulls ? new_data->t_bits : NULL);
+			result_gtuple = (GenericTuple) result_tuple;
 		}
 	}
 	else
-		result_tuple = newtup;
+		result_gtuple = newtup;
 
 	/*
 	 * Free allocated temp values
@@ -1098,9 +1100,38 @@ toast_insert_or_update(Relation rel, HeapTuple newtup, HeapTuple oldtup,
 			if (toast_delold[i])
 				toast_delete_datum(rel, toast_oldvalues[i]);
 
-	return result_tuple;
+	return result_gtuple;
 }
 
+HeapTuple
+toast_insert_or_update(Relation rel, HeapTuple newtup, HeapTuple oldtup,
+					   int toast_tuple_target,
+					   bool isFrozen, bool use_wal, bool use_fsm)
+{
+	return (HeapTuple) toast_insert_or_update_generic(rel,
+													  (GenericTuple) newtup,
+													  (GenericTuple) oldtup,
+													  NULL,
+													  toast_tuple_target,
+													  isFrozen,
+													  use_wal,
+													  use_fsm);
+}
+
+MemTuple
+toast_insert_or_update_memtup(Relation rel, MemTuple newtup, MemTuple oldtup,
+					   MemTupleBinding *pbind, int toast_tuple_target,
+					   bool isFrozen, bool use_wal, bool use_fsm)
+{
+	return (MemTuple) toast_insert_or_update_generic(rel,
+													 (GenericTuple) newtup,
+													 (GenericTuple) oldtup,
+													 pbind,
+													 toast_tuple_target,
+													 isFrozen,
+													 use_wal,
+													 use_fsm);
+}
 
 /* ----------
  * toast_flatten_tuple -

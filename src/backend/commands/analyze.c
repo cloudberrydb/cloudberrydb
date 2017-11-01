@@ -754,7 +754,7 @@ compute_index_stats(Relation onerel, double totalrows,
 			ResetExprContext(econtext);
 
 			/* Set up for predicate or expression evaluation */
-			ExecStoreGenericTuple(heapTuple, slot, false);
+			ExecStoreHeapTuple(heapTuple, slot, InvalidBuffer, false);
 
 			/* If index is partial, check predicate */
 			if (predicate != NIL)

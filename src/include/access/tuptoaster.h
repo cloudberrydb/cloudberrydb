@@ -106,8 +106,13 @@
  */
 extern HeapTuple toast_insert_or_update(Relation rel,
 					   HeapTuple newtup, HeapTuple oldtup, 
-					   MemTupleBinding *pbind, int toast_tuple_target,
+					   int toast_tuple_target,
 					   bool isFrozen, bool use_wal, bool use_fsm);
+
+extern MemTuple toast_insert_or_update_memtup(Relation rel,
+							  MemTuple newtup, MemTuple oldtup, 
+							  MemTupleBinding *pbind, int toast_tuple_target,
+							  bool isFrozen, bool use_wal, bool use_fsm);
 
 /* ----------
  * toast_delete -
@@ -115,7 +120,7 @@ extern HeapTuple toast_insert_or_update(Relation rel,
  *	Called by heap_delete().
  * ----------
  */
-extern void toast_delete(Relation rel, HeapTuple oldtup, MemTupleBinding *pbind);
+extern void toast_delete(Relation rel, GenericTuple oldtup, MemTupleBinding *pbind);
 
 /* ----------
  * heap_tuple_fetch_attr() -
