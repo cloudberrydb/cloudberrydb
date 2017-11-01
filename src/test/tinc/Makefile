@@ -225,13 +225,6 @@ optimizer_functional_part1:
 	-q tags!=FEATURE_BRANCH_ONLY \
 	-q tags!=dpe
 
-optimizer_functional_part2:
-	$(TESTER) $(DISCOVER) \
-	-s dml \
-	-q tags=ORCA \
-	-q tags!=FEATURE_BRANCH_ONLY \
-	-q tags!=dpe
-
 runaway_query:
 	$(TESTER) \
 		resource_management.runaway_query.runaway_query_scenario.test_runaway_query_scenario.RQTScenarioTestCase \
