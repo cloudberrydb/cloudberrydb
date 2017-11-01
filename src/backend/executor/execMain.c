@@ -3853,8 +3853,7 @@ lreplace:;
 					appendonly_update_init(resultRelationDesc, ActiveSnapshot, resultRelInfo->ri_aosegno);
 			}
 
-			/* appendonly_update() requires that there are no toasted values */
-			mtuple = ExecFetchSlotMemTuple(slot, true);
+			mtuple = ExecFetchSlotMemTuple(slot, false);
 
 			result = appendonly_update(resultRelInfo->ri_updateDesc,
 									   mtuple, (AOTupleId *) tupleid, (AOTupleId *) &lastTid);

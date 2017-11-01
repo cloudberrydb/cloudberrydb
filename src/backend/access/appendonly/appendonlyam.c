@@ -2648,12 +2648,6 @@ appendonly_update(AppendOnlyUpdateDesc aoUpdateDesc,
 	/* tableName */
 #endif
 
-	/*
-	 * We cannot deal with an update tuples with external tuples that may be
-	 * the same as the updated tuple. Compaction would go wild.
-	 */
-	Assert(!MemTupleHasExternal(memTuple, aoUpdateDesc->aoInsertDesc->mt_bind));
-
 	result = AppendOnlyVisimapDelete_Hide(&aoUpdateDesc->visiMapDelete, aoTupleId);
 	if (result != HeapTupleMayBeUpdated)
 		return result;
