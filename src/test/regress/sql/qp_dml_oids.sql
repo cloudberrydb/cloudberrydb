@@ -154,3 +154,11 @@ SELECT * FROM ( (SELECT COUNT(*) FROM dml_heap_r) UNION (SELECT COUNT(*) FROM te
 SELECT SUM(a) FROM dml_heap_r;
 
 
+--
+-- Check that a tuple gets an OID, even if it's toasted (there used to
+-- be a bug, where toasting a tuple cleared its just-assigned OID)
+--
+INSERT INTO dml_ao (a, b, c) VALUES (10, 1, repeat('x', 50000));
+INSERT INTO dml_ao (a, b, c) VALUES (10, 2, repeat('x', 50000));
+
+SELECT COUNT(distinct oid) FROM dml_ao where a = 10;

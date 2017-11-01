@@ -796,7 +796,7 @@ tuplestore_puttuple_common(Tuplestorestate *state, void *tuple)
  * Backward scan is only allowed if randomAccess was set true or
  * EXEC_FLAG_BACKWARD was specified to tuplestore_set_eflags().
  */
-static GenericTuple *
+static GenericTuple
 tuplestore_gettuple(Tuplestorestate *state, bool forward,
 					bool *should_free)
 {
@@ -968,7 +968,7 @@ tuplestore_gettuple(Tuplestorestate *state, bool forward,
 }
 
 /*
- * tuplestore_gettupleslot - exported function to fetch a MemTuple
+ * tuplestore_gettupleslot - exported function to fetch a tuple into a slot
  *
  * If successful, put tuple in slot and return TRUE; else, clear the slot
  * and return FALSE.
@@ -987,7 +987,7 @@ tuplestore_gettupleslot(Tuplestorestate *state, bool forward,
 	GenericTuple tuple;
 	bool		should_free;
 
-	tuple = (GenericTuple) tuplestore_gettuple(state, forward, &should_free);
+	tuple = tuplestore_gettuple(state, forward, &should_free);
 
 	if (tuple)
 	{

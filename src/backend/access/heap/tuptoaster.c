@@ -1022,7 +1022,16 @@ toast_insert_or_update_generic(Relation rel, GenericTuple newtup, GenericTuple o
 	if (need_change)
 	{
 		if(ismemtuple)
+		{
 			result_gtuple = (GenericTuple) memtuple_form_to(pbind, toast_values, toast_isnull, NULL, NULL, false);
+			if (mtbind_has_oid(pbind))
+			{
+				Oid			oid;
+
+				oid = MemTupleGetOid((MemTuple) newtup, pbind);
+				MemTupleSetOid((MemTuple) result_gtuple, pbind, oid);
+			}
+		}
 		else
 		{
 			HeapTupleHeader olddata = ((HeapTuple) newtup)->t_data;
