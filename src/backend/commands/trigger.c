@@ -230,6 +230,21 @@ CreateTrigger(CreateTrigStmt *stmt, Oid constraintOid)
 							NameListToString(stmt->funcname))));
 	}
 
+	/* Check GPDB limitations */
+	if ((RelationIsAoRows(rel) || RelationIsAoCols(rel)) &&
+		TRIGGER_FOR_ROW(tgtype) &&
+		!stmt->isconstraint)
+	{
+		if (TRIGGER_FOR_UPDATE(tgtype))
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("ON UPDATE triggers are not supported on append-only tables")));
+		if (TRIGGER_FOR_DELETE(tgtype))
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("ON DELETE triggers are not supported on append-only tables")));
+	}
+
 	/*
 	 * If the command is a user-entered CREATE CONSTRAINT TRIGGER command that
 	 * references one of the built-in RI_FKey trigger functions, assume it is
@@ -2276,6 +2291,14 @@ GetTupleForTrigger(EState *estate, ResultRelInfo *relinfo,
 	HeapTupleData tuple;
 	HeapTuple	result;
 	Buffer		buffer;
+
+	/* these should be rejected when you try to create such triggers, but let's check */
+	if (RelationIsAoRows(relation) || RelationIsAoCols(relation))
+		elog(ERROR, "UPDATE and DELETE triggers are not supported on append-only tables");
+	if (RelationIsExternal(relation))
+		elog(ERROR, "UPDATE and DELETE triggers are not supported on external tables");
+
+	Assert(RelationIsHeap(relation));
 
 	if (newSlot != NULL)
 	{
