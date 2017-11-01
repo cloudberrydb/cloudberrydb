@@ -48,10 +48,8 @@ really really fast and convenient.
 Go into `gporca` directory:
 
 ```
-mkdir build
-cd build
-cmake -GNinja ../
-ninja install
+cmake -GNinja -H. -Bbuild
+ninja install -C build
 ```
 
 <a name="test"></a>
@@ -166,23 +164,18 @@ ready for use in production-level CI environments.
 
 # Advanced Setup
 
-## How to generate make files with different options
+## How to generate build files with different options
 
-Here are few build flavors:
+Here are a few build flavors (commands run from the ORCA checkout directory):
 
 ```
 # debug build
-cmake -GNinja -D CMAKE_BUILD_TYPE=DEBUG ../
+cmake -GNinja -D CMAKE_BUILD_TYPE=DEBUG -H. -Bbuild.debug
 ```
 
 ```
 # release build with debug info
-cmake -GNinja -D CMAKE_BUILD_TYPE=RelWithDebInfo ../
-```
-
-```
-# release build
-cmake -GNinja -D CMAKE_BUILD_TYPE=RELEASE ../
+cmake -GNinja -D CMAKE_BUILD_TYPE=RelWithDebInfo -H. -Bbuild.release
 ```
 
 ## Explicitly Specifying GP-Xerces For Build
@@ -245,18 +238,12 @@ And for 64-bit x86:
 cmake -GNinja -D CMAKE_TOOLCHAIN_FILE=../cmake/x86_64.toolchain.cmake ../
 ```
 
-## How to speed-up the build (or debug it)
+## How to debug the build
 
-For faster build use the -j option of make. For instance, the following command runs make on 7 job slots
-
-```
-make -j7
-```
-
-Show all commands being run as part of make (for debugging purpose)
+Show all command lines while building (for debugging purpose)
 
 ```
-make VERBOSE=1
+ninja -v -C build
 ```
 
 ### Extended Tests
@@ -280,7 +267,7 @@ GPORCA has four libraries:
 By default, GPORCA will be installed under /usr/local. You can change this by
 setting CMAKE_INSTALL_PREFIX when running cmake, for example:
 ```
-cmake -GNinja -D CMAKE_INSTALL_PREFIX=/home/user/gporca ../
+cmake -GNinja -D CMAKE_INSTALL_PREFIX=/home/user/gporca -H. -Bbuild
 ```
 
 By default, the header files are located in:
@@ -301,13 +288,9 @@ the library is located at:
 
 Build and install:
 ```
-make install
+ninja install -C build
 ```
 
-Build and install with verbose output
-```
-make VERBOSE=1 install
-```
 
 ## Cleanup
 
