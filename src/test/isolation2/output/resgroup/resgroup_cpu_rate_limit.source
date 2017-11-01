@@ -32,6 +32,9 @@ CREATE 50000
 CREATE OR REPLACE FUNCTION round_percentage(float) RETURNS text AS $$ SELECT (round($1/15)*15)::text||'%' $$ LANGUAGE sql;
 CREATE
 
+CREATE OR REPLACE VIEW cpu_raw_status AS SELECT rsgname, cpu_usage FROM gp_toolkit.gp_resgroup_status ORDER BY rsgname;
+CREATE
+
 CREATE OR REPLACE VIEW cpu_status AS SELECT b.rsgname, round_percentage(avg(b.cpu)) AS cpu FROM gp_segment_configuration gsc, ( SELECT btrim((cpu->'key')::text, '"')::int AS content, (cpu->'value') ::text::float AS cpu, rsgname FROM ( SELECT rsgname, row_to_json(json_each(cpu_usage::json)) AS cpu FROM gp_toolkit.gp_resgroup_status ) a ) b WHERE gsc.content = b.content AND gsc.role = 'p' AND gsc.content <> -1 GROUP BY b.rsgname ORDER BY b.rsgname;
 CREATE
 
@@ -150,11 +153,69 @@ rg2_cpu_test |0%
 13&: SELECT * FROM busy;  <waiting ...>
 14&: SELECT * FROM busy;  <waiting ...>
 
-SELECT pg_sleep(20);
+-- start_ignore
+SELECT * FROM cpu_raw_status;
+rsgname      |cpu_usage                                    
+-------------+---------------------------------------------
+admin_group  |{"-1":0.29, "0":0.13, "1":0.08, "2":0.16}    
+default_group|{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+rg1_cpu_test |{"-1":88.36, "0":88.37, "1":88.49, "2":88.57}
+rg2_cpu_test |{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+(4 rows)
+SELECT pg_sleep(5);
 pg_sleep
 --------
         
 (1 row)
+SELECT * FROM cpu_raw_status;
+rsgname      |cpu_usage                                    
+-------------+---------------------------------------------
+admin_group  |{"-1":0.29, "0":0.15, "1":0.09, "2":0.12}    
+default_group|{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+rg1_cpu_test |{"-1":89.33, "0":89.52, "1":89.97, "2":89.58}
+rg2_cpu_test |{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+(4 rows)
+SELECT pg_sleep(5);
+pg_sleep
+--------
+        
+(1 row)
+SELECT * FROM cpu_raw_status;
+rsgname      |cpu_usage                                    
+-------------+---------------------------------------------
+admin_group  |{"-1":0.30, "0":0.15, "1":0.11, "2":0.15}    
+default_group|{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+rg1_cpu_test |{"-1":90.51, "0":90.49, "1":90.73, "2":90.60}
+rg2_cpu_test |{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+(4 rows)
+SELECT pg_sleep(5);
+pg_sleep
+--------
+        
+(1 row)
+SELECT * FROM cpu_raw_status;
+rsgname      |cpu_usage                                    
+-------------+---------------------------------------------
+admin_group  |{"-1":0.31, "0":0.09, "1":0.12, "2":0.16}    
+default_group|{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+rg1_cpu_test |{"-1":86.22, "0":90.15, "1":88.95, "2":89.79}
+rg2_cpu_test |{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+(4 rows)
+SELECT pg_sleep(5);
+pg_sleep
+--------
+        
+(1 row)
+SELECT * FROM cpu_raw_status;
+rsgname      |cpu_usage                                    
+-------------+---------------------------------------------
+admin_group  |{"-1":0.25, "0":0.15, "1":0.10, "2":0.10}    
+default_group|{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+rg1_cpu_test |{"-1":88.82, "0":88.78, "1":89.04, "2":89.02}
+rg2_cpu_test |{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+(4 rows)
+-- end_ignore
+
 SELECT * FROM cpu_status;
 rsgname      |cpu
 -------------+---
@@ -209,11 +270,69 @@ ERROR:  canceling statement due to user request
 23&: SELECT * FROM busy;  <waiting ...>
 24&: SELECT * FROM busy;  <waiting ...>
 
-SELECT pg_sleep(20);
+-- start_ignore
+SELECT * FROM cpu_raw_status;
+rsgname      |cpu_usage                                    
+-------------+---------------------------------------------
+admin_group  |{"-1":0.43, "0":0.10, "1":0.13, "2":0.13}    
+default_group|{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+rg1_cpu_test |{"-1":29.38, "0":30.26, "1":30.23, "2":29.47}
+rg2_cpu_test |{"-1":58.34, "0":60.25, "1":60.27, "2":58.75}
+(4 rows)
+SELECT pg_sleep(5);
 pg_sleep
 --------
         
 (1 row)
+SELECT * FROM cpu_raw_status;
+rsgname      |cpu_usage                                    
+-------------+---------------------------------------------
+admin_group  |{"-1":0.30, "0":0.15, "1":0.07, "2":0.12}    
+default_group|{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+rg1_cpu_test |{"-1":29.94, "0":29.92, "1":30.01, "2":30.11}
+rg2_cpu_test |{"-1":59.55, "0":59.77, "1":59.87, "2":59.48}
+(4 rows)
+SELECT pg_sleep(5);
+pg_sleep
+--------
+        
+(1 row)
+SELECT * FROM cpu_raw_status;
+rsgname      |cpu_usage                                    
+-------------+---------------------------------------------
+admin_group  |{"-1":0.28, "0":0.16, "1":0.06, "2":0.13}    
+default_group|{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+rg1_cpu_test |{"-1":29.51, "0":29.57, "1":29.68, "2":29.58}
+rg2_cpu_test |{"-1":59.70, "0":59.85, "1":59.88, "2":59.63}
+(4 rows)
+SELECT pg_sleep(5);
+pg_sleep
+--------
+        
+(1 row)
+SELECT * FROM cpu_raw_status;
+rsgname      |cpu_usage                                    
+-------------+---------------------------------------------
+admin_group  |{"-1":0.32, "0":0.21, "1":0.12, "2":0.05}    
+default_group|{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+rg1_cpu_test |{"-1":30.24, "0":30.35, "1":30.22, "2":30.27}
+rg2_cpu_test |{"-1":60.18, "0":60.13, "1":60.19, "2":60.28}
+(4 rows)
+SELECT pg_sleep(5);
+pg_sleep
+--------
+        
+(1 row)
+SELECT * FROM cpu_raw_status;
+rsgname      |cpu_usage                                    
+-------------+---------------------------------------------
+admin_group  |{"-1":0.72, "0":0.34, "1":0.29, "2":0.17}    
+default_group|{"-1":0.00, "0":0.00, "1":0.00, "2":0.00}    
+rg1_cpu_test |{"-1":29.68, "0":29.59, "1":29.71, "2":29.82}
+rg2_cpu_test |{"-1":59.32, "0":59.50, "1":59.57, "2":59.71}
+(4 rows)
+-- end_ignore
+
 SELECT * FROM cpu_status;
 rsgname      |cpu
 -------------+---

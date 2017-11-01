@@ -25,6 +25,11 @@ CREATE OR REPLACE FUNCTION round_percentage(float) RETURNS text AS $$
     SELECT (round($1/15)*15)::text||'%'
 $$ LANGUAGE sql;
 
+CREATE OR REPLACE VIEW cpu_raw_status AS
+	SELECT rsgname, cpu_usage
+	FROM gp_toolkit.gp_resgroup_status
+	ORDER BY rsgname;
+
 CREATE OR REPLACE VIEW cpu_status AS
     SELECT b.rsgname, round_percentage(avg(b.cpu)) AS cpu
     FROM
@@ -136,7 +141,18 @@ SELECT * FROM cpu_status;
 13&: SELECT * FROM busy;
 14&: SELECT * FROM busy;
 
-SELECT pg_sleep(20);
+-- start_ignore
+SELECT * FROM cpu_raw_status;
+SELECT pg_sleep(5);
+SELECT * FROM cpu_raw_status;
+SELECT pg_sleep(5);
+SELECT * FROM cpu_raw_status;
+SELECT pg_sleep(5);
+SELECT * FROM cpu_raw_status;
+SELECT pg_sleep(5);
+SELECT * FROM cpu_raw_status;
+-- end_ignore
+
 SELECT * FROM cpu_status;
 
 -- start_ignore
@@ -171,7 +187,18 @@ SELECT * FROM cancel_all;
 23&: SELECT * FROM busy;
 24&: SELECT * FROM busy;
 
-SELECT pg_sleep(20);
+-- start_ignore
+SELECT * FROM cpu_raw_status;
+SELECT pg_sleep(5);
+SELECT * FROM cpu_raw_status;
+SELECT pg_sleep(5);
+SELECT * FROM cpu_raw_status;
+SELECT pg_sleep(5);
+SELECT * FROM cpu_raw_status;
+SELECT pg_sleep(5);
+SELECT * FROM cpu_raw_status;
+-- end_ignore
+
 SELECT * FROM cpu_status;
 
 -- start_ignore
