@@ -79,7 +79,6 @@ groups:
   - gate_general_misc_start
   - MM_gpcheckcat
   - QP_memory-accounting
-  - QP_optimizer-functional
   - regression_tests_pxf_hdp_rpm
   - regression_tests_pxf_hdp_tar
   - regression_tests_pxf_cdh_rpm
@@ -230,7 +229,6 @@ groups:
   - gate_general_misc_start
   - MM_gpcheckcat
   - QP_memory-accounting
-  - QP_optimizer-functional
   - regression_tests_pxf_hdp_rpm
   - regression_tests_pxf_hdp_tar
   - regression_tests_pxf_cdh_rpm
@@ -2825,27 +2823,6 @@ jobs:
       MAKE_TEST_COMMAND: memory_accounting
       TEST_OS: "centos"
       CONFIGURE_FLAGS: {{configure_flags}}
-- name: QP_optimizer-functional
-  plan:
-  - aggregate:
-    - get: gpdb_src
-      params: {submodules: none}
-      passed: [gate_general_misc_start]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos6
-      passed: [gate_general_misc_start]
-      trigger: true
-    - get: centos-gpdb-dev-6
-  - aggregate:
-    - task: optimizer_functional_part1
-      timeout: 3h
-      file: gpdb_src/concourse/tasks/tinc_gpdb.yml
-      image: centos-gpdb-dev-6
-      params:
-        MAKE_TEST_COMMAND: optimizer_functional_part1
-        BLDWRAP_POSTGRES_CONF_ADDONS: fsync=off optimizer_print_missing_stats=off
-        TEST_OS: centos
-        CONFIGURE_FLAGS: {{configure_flags}}
 - name: regression_tests_pxf_hdp_rpm
   plan:
   - aggregate:
@@ -3066,7 +3043,6 @@ jobs:
       - regression_tests_pxf_hdp_tar
       - regression_tests_pxf_cdh_rpm
       - regression_tests_pxf_cdh_tar
-      - QP_optimizer-functional
       - MM_gpcheckcat
       trigger: true
     - get: bin_gpdb_centos6
@@ -3078,7 +3054,6 @@ jobs:
       - regression_tests_pxf_hdp_tar
       - regression_tests_pxf_cdh_rpm
       - regression_tests_pxf_cdh_tar
-      - QP_optimizer-functional
       - MM_gpcheckcat
       trigger: true
 ################ General Misc End
@@ -3339,6 +3314,5 @@ jobs:
     - DPM_gptransfer_43x_to_master
     - DPM_gptransfer
     - mpp_interconnect
-    - QP_optimizer-functional
     - validate_pipeline
 

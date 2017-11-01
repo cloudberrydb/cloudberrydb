@@ -1984,6 +1984,160 @@ DROP INDEX idx1;
 DROP INDEX idx5;
 DROP INDEX idx6;
 --
+-- Finally, after running all the other tests on pg_lt_tab, test that
+-- partition pruning still works after dropping a column
+--
+CREATE INDEX idx1 on pt_lt_tab(col4);
+NOTICE:  building index for child partition "pt_lt_tab_1_prt_part1"
+NOTICE:  building index for child partition "pt_lt_tab_1_prt_part2"
+NOTICE:  building index for child partition "pt_lt_tab_1_prt_part3"
+NOTICE:  building index for child partition "pt_lt_tab_1_prt_part4"
+NOTICE:  building index for child partition "pt_lt_tab_1_prt_part5"
+ALTER TABLE pt_lt_tab DROP column col1;
+NOTICE:  Dropping a column that is part of the distribution policy forces a NULL distribution policy
+NOTICE:  Dropping a column that is part of the distribution policy forces a NULL distribution policy
+NOTICE:  Dropping a column that is part of the distribution policy forces a NULL distribution policy
+NOTICE:  Dropping a column that is part of the distribution policy forces a NULL distribution policy
+NOTICE:  Dropping a column that is part of the distribution policy forces a NULL distribution policy
+NOTICE:  Dropping a column that is part of the distribution policy forces a NULL distribution policy
+SELECT * FROM pt_lt_tab WHERE col4 is False ORDER BY col2,col3 LIMIT 5;
+ col2 | col3 | col4 
+------+------+------
+   21 | i    | f
+   22 | i    | f
+   23 | i    | f
+   24 | k    | f
+   25 | k    | f
+(5 rows)
+
+EXPLAIN SELECT * FROM pt_lt_tab WHERE col4 is False ORDER BY col2,col3 LIMIT 5;
+                                                                QUERY PLAN                                                                
+------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=32211.85..32211.96 rows=5 width=10)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=32211.85..32211.96 rows=5 width=10)
+         Merge Key: partition_pruning.pt_lt_tab.col2, partition_pruning.pt_lt_tab.col3
+         ->  Limit  (cost=32211.85..32211.86 rows=2 width=10)
+               ->  Sort  (cost=32211.85..32211.93 rows=11 width=10)
+                     Sort Key: partition_pruning.pt_lt_tab.col2, partition_pruning.pt_lt_tab.col3
+                     ->  Append  (cost=0.00..32211.32 rows=11 width=10)
+                           ->  Index Scan using idx1_1_prt_part1 on pt_lt_tab_1_prt_part1 pt_lt_tab  (cost=0.00..1100.37 rows=1 width=10)
+                                 Index Cond: col4 = false
+                                 Filter: col4 IS FALSE
+                           ->  Index Scan using idx1_1_prt_part2 on pt_lt_tab_1_prt_part2 pt_lt_tab  (cost=0.00..1100.37 rows=1 width=10)
+                                 Index Cond: col4 = false
+                                 Filter: col4 IS FALSE
+                           ->  Bitmap Heap Scan on pt_lt_tab_1_prt_part3 pt_lt_tab  (cost=10000.43..10003.53 rows=4 width=10)
+                                 Filter: col4 IS FALSE
+                                 ->  Bitmap Index Scan on idx1_1_prt_part3  (cost=0.00..10000.43 rows=4 width=0)
+                                       Index Cond: col4 = false
+                           ->  Bitmap Heap Scan on pt_lt_tab_1_prt_part4 pt_lt_tab  (cost=10000.43..10003.53 rows=4 width=10)
+                                 Filter: col4 IS FALSE
+                                 ->  Bitmap Index Scan on idx1_1_prt_part4  (cost=0.00..10000.43 rows=4 width=0)
+                                       Index Cond: col4 = false
+                           ->  Bitmap Heap Scan on pt_lt_tab_1_prt_part5 pt_lt_tab  (cost=10000.43..10003.53 rows=4 width=10)
+                                 Filter: col4 IS FALSE
+                                 ->  Bitmap Index Scan on idx1_1_prt_part5  (cost=0.00..10000.43 rows=4 width=0)
+                                       Index Cond: col4 = false
+ Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=off
+ Optimizer status: legacy query optimizer
+(27 rows)
+
+SELECT * FROM pt_lt_tab WHERE col4 = False ORDER BY col2,col3 LIMIT 5;
+ col2 | col3 | col4 
+------+------+------
+   21 | i    | f
+   22 | i    | f
+   23 | i    | f
+   24 | k    | f
+   25 | k    | f
+(5 rows)
+
+EXPLAIN SELECT * FROM pt_lt_tab WHERE col4 = False ORDER BY col2,col3 LIMIT 5;
+                                                                QUERY PLAN                                                                
+------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=32211.85..32211.96 rows=5 width=10)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=32211.85..32211.96 rows=5 width=10)
+         Merge Key: partition_pruning.pt_lt_tab.col2, partition_pruning.pt_lt_tab.col3
+         ->  Limit  (cost=32211.85..32211.86 rows=2 width=10)
+               ->  Sort  (cost=32211.85..32211.93 rows=11 width=10)
+                     Sort Key: partition_pruning.pt_lt_tab.col2, partition_pruning.pt_lt_tab.col3
+                     ->  Append  (cost=0.00..32211.32 rows=11 width=10)
+                           ->  Index Scan using idx1_1_prt_part1 on pt_lt_tab_1_prt_part1 pt_lt_tab  (cost=0.00..1100.37 rows=1 width=10)
+                                 Index Cond: col4 = false
+                                 Filter: NOT col4
+                           ->  Index Scan using idx1_1_prt_part2 on pt_lt_tab_1_prt_part2 pt_lt_tab  (cost=0.00..1100.37 rows=1 width=10)
+                                 Index Cond: col4 = false
+                                 Filter: NOT col4
+                           ->  Bitmap Heap Scan on pt_lt_tab_1_prt_part3 pt_lt_tab  (cost=10000.43..10003.53 rows=4 width=10)
+                                 Filter: NOT col4
+                                 ->  Bitmap Index Scan on idx1_1_prt_part3  (cost=0.00..10000.43 rows=4 width=0)
+                                       Index Cond: col4 = false
+                           ->  Bitmap Heap Scan on pt_lt_tab_1_prt_part4 pt_lt_tab  (cost=10000.43..10003.53 rows=4 width=10)
+                                 Filter: NOT col4
+                                 ->  Bitmap Index Scan on idx1_1_prt_part4  (cost=0.00..10000.43 rows=4 width=0)
+                                       Index Cond: col4 = false
+                           ->  Bitmap Heap Scan on pt_lt_tab_1_prt_part5 pt_lt_tab  (cost=10000.43..10003.53 rows=4 width=10)
+                                 Filter: NOT col4
+                                 ->  Bitmap Index Scan on idx1_1_prt_part5  (cost=0.00..10000.43 rows=4 width=0)
+                                       Index Cond: col4 = false
+ Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=off
+ Optimizer status: legacy query optimizer
+(27 rows)
+
+SELECT * FROM pt_lt_tab WHERE col2 > 41 ORDER BY col2,col3 LIMIT 5;
+ col2 | col3 | col4 
+------+------+------
+   42 | p    | f
+   43 | p    | f
+   44 | s    | f
+   45 | s    | f
+   46 | s    | f
+(5 rows)
+
+EXPLAIN SELECT * FROM pt_lt_tab WHERE col2 > 41 ORDER BY col2,col3 LIMIT 5;
+                                                  QUERY PLAN                                                  
+--------------------------------------------------------------------------------------------------------------
+ Limit  (cost=3.29..3.40 rows=5 width=10)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=3.29..3.40 rows=5 width=10)
+         Merge Key: partition_pruning.pt_lt_tab.col2, partition_pruning.pt_lt_tab.col3
+         ->  Limit  (cost=3.29..3.30 rows=2 width=10)
+               ->  Sort  (cost=3.29..3.32 rows=4 width=10)
+                     Sort Key: partition_pruning.pt_lt_tab.col2, partition_pruning.pt_lt_tab.col3
+                     ->  Append  (cost=0.00..3.12 rows=4 width=10)
+                           ->  Seq Scan on pt_lt_tab_1_prt_part5 pt_lt_tab  (cost=0.00..3.12 rows=4 width=10)
+                                 Filter: col2 > 41::numeric
+ Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=off
+ Optimizer status: legacy query optimizer
+(11 rows)
+
+ALTER TABLE pt_lt_tab DROP column col4;
+SELECT * FROM pt_lt_tab WHERE col2 > 41 ORDER BY col2,col3 LIMIT 5;
+ col2 | col3 
+------+------
+   42 | p
+   43 | p
+   44 | s
+   45 | s
+   46 | s
+(5 rows)
+
+EXPLAIN SELECT * FROM pt_lt_tab WHERE col2 > 41 ORDER BY col2,col3 LIMIT 5;
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
+ Limit  (cost=3.29..3.40 rows=5 width=9)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=3.29..3.40 rows=5 width=9)
+         Merge Key: partition_pruning.pt_lt_tab.col2, partition_pruning.pt_lt_tab.col3
+         ->  Limit  (cost=3.29..3.30 rows=2 width=9)
+               ->  Sort  (cost=3.29..3.32 rows=4 width=9)
+                     Sort Key: partition_pruning.pt_lt_tab.col2, partition_pruning.pt_lt_tab.col3
+                     ->  Append  (cost=0.00..3.12 rows=4 width=9)
+                           ->  Seq Scan on pt_lt_tab_1_prt_part5 pt_lt_tab  (cost=0.00..3.12 rows=4 width=9)
+                                 Filter: col2 > 41::numeric
+ Settings:  enable_bitmapscan=on; enable_indexscan=on; enable_seqscan=off; optimizer=off
+ Optimizer status: legacy query optimizer
+(11 rows)
+
+--
 -- Test a more complicated partitioning scheme, with subpartitions.
 --
 CREATE TABLE pt_complex (i int, j int, k int, l int, m int) DISTRIBUTED BY (i)

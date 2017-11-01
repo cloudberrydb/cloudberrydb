@@ -216,15 +216,6 @@ persistent_table_rebuild:
 	-s tincrepo/mpp/gpdb/tests/storage/persistent_tables \
 	-p test_PT_RebuildPT.py
 
-# Optimizer functional tests
-optimizer_functional_part1:
-	$(TESTER) $(DISCOVER) \
-	-s partitioning \
-	-s query \
-	-q tags=ORCA \
-	-q tags!=FEATURE_BRANCH_ONLY \
-	-q tags!=dpe
-
 runaway_query:
 	$(TESTER) \
 		resource_management.runaway_query.runaway_query_scenario.test_runaway_query_scenario.RQTScenarioTestCase \
