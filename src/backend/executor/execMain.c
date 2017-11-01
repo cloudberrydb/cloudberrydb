@@ -3183,43 +3183,43 @@ ExecInsert(TupleTableSlot *slot,
 
 	Assert(partslot != NULL && tuple != NULL);
 
-	/* Execute triggers in Planner-generated plans */
-	if (planGen == PLANGEN_PLANNER)
+	/* BEFORE ROW INSERT Triggers */
+	if (resultRelInfo->ri_TrigDesc &&
+		resultRelInfo->ri_TrigDesc->n_before_row[TRIGGER_EVENT_INSERT] > 0)
 	{
-		/* BEFORE ROW INSERT Triggers */
-		if (resultRelInfo->ri_TrigDesc &&
-			resultRelInfo->ri_TrigDesc->n_before_row[TRIGGER_EVENT_INSERT] > 0)
+		HeapTuple	newtuple;
+
+		/*
+		 * Not implemented for ORCA yet. It should fall back to the Postgres planner
+		 * if there are any before-row triggers.
+		 */
+		Assert(planGen == PLANGEN_PLANNER);
+
+		/* NYI */
+		if (rel_is_aocols)
+			elog(ERROR, "triggers are not supported on tables that use column-oriented storage");
+
+		newtuple = ExecBRInsertTriggers(estate, resultRelInfo, tuple);
+
+		if (newtuple == NULL)	/* "do nothing" */
+			return;
+
+		if (newtuple != tuple)	/* modified by Trigger(s) */
 		{
-			HeapTuple	newtuple;
+			/*
+			 * Put the modified tuple into a slot for convenience of routines
+			 * below.  We assume the tuple was allocated in per-tuple memory
+			 * context, and therefore will go away by itself. The tuple table
+			 * slot should not try to clear it.
+			 */
+			TupleTableSlot *newslot = estate->es_trig_tuple_slot;
 
-			/* NYI */
-			if(rel_is_aocols)
-				elog(ERROR, "triggers are not supported on tables that use column-oriented storage");
-
-			newtuple = ExecBRInsertTriggers(estate, resultRelInfo, tuple);
-
-			if (newtuple == NULL)	/* "do nothing" */
-			{
-				return;
-			}
-
-			if (newtuple != tuple)	/* modified by Trigger(s) */
-			{
-				/*
-				 * Put the modified tuple into a slot for convenience of routines
-				 * below.  We assume the tuple was allocated in per-tuple memory
-				 * context, and therefore will go away by itself. The tuple table
-				 * slot should not try to clear it.
-				 */
-				TupleTableSlot *newslot = estate->es_trig_tuple_slot;
-
-				if (newslot->tts_tupleDescriptor != partslot->tts_tupleDescriptor)
-					ExecSetSlotDescriptor(newslot, partslot->tts_tupleDescriptor);
-				ExecStoreHeapTuple(newtuple, newslot, InvalidBuffer, false);
-				newslot->tts_tableOid = partslot->tts_tableOid; /* for constraints */
-				tuple = newtuple;
-				partslot = newslot;
-			}
+			if (newslot->tts_tupleDescriptor != partslot->tts_tupleDescriptor)
+				ExecSetSlotDescriptor(newslot, partslot->tts_tupleDescriptor);
+			ExecStoreHeapTuple(newtuple, newslot, InvalidBuffer, false);
+			newslot->tts_tableOid = partslot->tts_tableOid; /* for constraints */
+			tuple = newtuple;
+			partslot = newslot;
 		}
 	}
 
