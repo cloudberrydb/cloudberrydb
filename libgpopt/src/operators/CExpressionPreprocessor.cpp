@@ -2108,76 +2108,6 @@ CExpressionPreprocessor::PexprExistWithPredFromINSubq
 	return pexprNew;
 }
 
-// In an IN, EXISTS, NOT IN or NOT EXISTS subquery, any duplicates in the
-// subquery will not affect the overall result, so we can throw away any
-// DISTINCT clause. Unless there's a LIMIT.
-CExpression *
-CExpressionPreprocessor::PexprRemoveDistinctFromSubquery
-	(
-		IMemoryPool *pmp,
-		CExpression *pexpr
-	)
-{
-	// protect against stack overflow during recursion
-	GPOS_CHECK_STACK_SIZE;
-	GPOS_ASSERT(NULL != pmp);
-	GPOS_ASSERT(NULL != pexpr);
-
-	COperator *pop = pexpr->Pop();
-
-	// recursively process children
-	const ULONG ulArity = pexpr->UlArity();
-	pop->AddRef();
-
-	DrgPexpr *pdrgpexprChildren = GPOS_NEW(pmp) DrgPexpr(pmp);
-	for (ULONG ul = 0; ul < ulArity; ul++)
-	{
-		CExpression *pexprChild = PexprRemoveDistinctFromSubquery(pmp, (*pexpr)[ul]);
-		pdrgpexprChildren->Append(pexprChild);
-	}
-
-	CExpression *pexprNew = GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprChildren);
-
-	bool fQuantified = CUtils::FQuantifiedSubquery(pop);
-	bool fExistential = CUtils::FExistentialSubquery(pop);
-
-	if (fQuantified || fExistential)
-	{
-		CExpression *pexprGbAgg = (*pexprNew)[0];
-		if (COperator::EopLogicalGbAgg == pexprGbAgg->Pop()->Eopid())
-		{
-			CExpression *pexprGbAggProjectList = (*pexprGbAgg)[1];
-			GPOS_ASSERT(COperator::EopScalarProjectList == pexprGbAggProjectList->Pop()->Eopid());
-			if (0 == pexprGbAggProjectList->UlArity())
-			{
-				pop->AddRef();
-
-				CExpression *pexprGbChild = (*pexprGbAgg)[0];
-				pexprGbChild->AddRef();
-
-				if (fExistential)
-				{
-					pexprNew->Release();
-					return GPOS_NEW(pmp) CExpression(pmp, pop, pexprGbChild);
-				}
-
-				CExpression *pexprScalarIdent = (*pexprNew)[1];
-				pexprScalarIdent->AddRef();
-
-				DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
-				pdrgpexpr->Append(pexprGbChild);
-				pdrgpexpr->Append(pexprScalarIdent);
-
-				pexprNew->Release();
-				return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexpr);
-			}
-		}
-	}
-
-	return pexprNew;
-}
-
-
 // main driver, pre-processing of input logical expression
 CExpression *
 CExpressionPreprocessor::PexprPreprocess
@@ -2329,12 +2259,7 @@ CExpressionPreprocessor::PexprPreprocess
 	GPOS_CHECK_ABORT;
 	pexrReorderedScalarCmpChildren->Release();
 
-	// (26) eliminate unnecessary DISTINCT inside IN/NOT IN/EXISTS/NOT EXISTS subquery
-	CExpression *pexprWithoutDistinct = PexprRemoveDistinctFromSubquery(pmp, pexprExistWithPredFromINSubq);
-	GPOS_CHECK_ABORT;
-	pexprExistWithPredFromINSubq->Release();
-
-	return pexprWithoutDistinct;
+	return pexprExistWithPredFromINSubq;
 }
 
 // EOF
