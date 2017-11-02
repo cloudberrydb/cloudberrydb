@@ -117,7 +117,8 @@ _bitmap_create_lov_heapandindex(Relation rel,
 		_bt_initmetapage(btree_metapage, P_NONE, 0);
 
 		/* XLOG the metapage */
-		if (!XLog_UnconvertedCanBypassWal() && !lovIndex->rd_istemp)
+
+		if (!lovIndex->rd_istemp)
 		{
 			// Fetch gp_persistent_relation_node information that will be added to XLOG record.
 			RelationFetchGpRelationNodeForXLog(lovIndex);

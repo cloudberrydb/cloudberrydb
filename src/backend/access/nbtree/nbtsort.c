@@ -209,10 +209,10 @@ _bt_leafbuild(BTSpool *btspool, BTSpool *btspool2)
 	wstate.index = btspool->index;
 
 	/*
-	 * We need to log index creation in WAL iff WAL archiving is enabled AND
-	 * it's not a temp index.
+	 * We need to log index creation in WAL iff WAL archiving/streaming is
+	 * enabled AND it's not a temp index.
 	 */
-	wstate.btws_use_wal = !XLog_UnconvertedCanBypassWal() && !wstate.index->rd_istemp;
+	wstate.btws_use_wal = XLogIsNeeded() && !wstate.index->rd_istemp;
 
 	/* reserve the metapage */
 	wstate.btws_pages_alloced = BTREE_METAPAGE + 1;

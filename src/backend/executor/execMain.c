@@ -4789,7 +4789,7 @@ OpenIntoRel(QueryDesc *queryDesc)
 	 */
 	bufferPoolBulkLoad = 
 		(relstorage_is_buffer_pool(relstorage) ?
-									XLog_CanBypassWal() : false);
+									!XLogIsNeeded() : false);
 
 	/* Now we can actually create the new relation */
 	intoRelationId = heap_create_with_catalog(intoName,

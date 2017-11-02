@@ -849,10 +849,10 @@ copy_heap_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex)
 		LockRelationOid(OldHeap->rd_rel->reltoastrelid, AccessExclusiveLock);
 
 	/*
-	 * We need to log the copied data in WAL iff WAL archiving is enabled AND
-	 * it's not a temp rel.
+	 * We need to log the copied data in WAL iff WAL archiving/streaming is
+	 * enabled AND it's not a temp rel.
 	 */
-	use_wal = XLogArchivingActive() && !NewHeap->rd_istemp;
+	use_wal = XLogIsNeeded() && !NewHeap->rd_istemp;
 
 	/* use_wal off requires rd_targblock be initially invalid */
 	Assert(NewHeap->rd_targblock == InvalidBlockNumber);

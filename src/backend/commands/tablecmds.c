@@ -10059,7 +10059,7 @@ ATExecSetTableSpace_BufferPool(
 	 * We need to log the copied data in WAL enabled AND
 	 * it's not a temp rel.
 	 */
-	useWal = !XLog_CanBypassWal() && !rel->rd_istemp;
+	useWal = XLogIsNeeded() && !rel->rd_istemp;
 
 	if (Debug_persistent_print)
 		elog(Persistent_DebugPrintLevel(), 

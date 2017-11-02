@@ -720,40 +720,6 @@ static bool CheckForStandbyTrigger(void);
 static void GetXLogCleanUpTo(XLogRecPtr recptr, uint32 *_logId, uint32 *_logSeg);
 static void checkXLogConsistency(XLogRecord *record, XLogRecPtr EndRecPtr);
 
-/*
- * Whether we need to always generate transaction log (XLOG), or if we can
- * bypass it and get better performance.
- *
- * For GPDB, we currently do not support XLogArchivingActive(), so we don't
- * use it as a condition.
- */
-bool XLog_CanBypassWal(void)
-{
-#ifdef USE_SEGWALREP
-	/*
-	 * Wal replication enabled for segments, shouldn't skip anything from
-	 * wal.
-	 */
-	return false;
-#else
-	/*
-	 * We need the XLOG to be transmitted to the standby master since it is
-	 * not using FileRep technology yet. Master also could skip some of the
-	 * WAL operations for optimization when standby is not configured, but for
-	 * now we lean towards safety.
-	 */
-	return GpIdentity.segindex != MASTER_CONTENT_ID;
-#endif
-}
-
-/*
- * For FileRep code that doesn't have the Bypass WAL logic yet.
- */
-bool XLog_UnconvertedCanBypassWal(void)
-{
-	return false;
-}
-
 static char *XLogContiguousCopy(
 	XLogRecord 		*record,
 
@@ -3071,15 +3037,16 @@ XLogFileClose(void)
 
 	/*
 	 * WAL segment files will not be re-read in normal operation, so we advise
-	 * OS to release any cached pages.	But do not do so if WAL archiving is
-	 * active, because archiver process could use the cache to read the WAL
-	 * segment.
+	 * OS to release any cached pages.	But do not do so if WAL archiving or
+	 * streaming is active, because archiver process could use the cache to
+	 * read the WAL segment. Also, don't bother with it if we are using
+	 * O_DIRECT, since the kernel is presumably not caching in that case.
 	 *
 	 * While O_DIRECT works for O_SYNC, posix_fadvise() works for fsync() and
 	 * O_SYNC, and some platforms only have posix_fadvise().
 	 */
 #if defined(HAVE_DECL_POSIX_FADVISE) && defined(POSIX_FADV_DONTNEED)
-	if (!XLogArchivingActive())
+	if (!XLogIsNeeded())
 		posix_fadvise(openLogFile, 0, 0, POSIX_FADV_DONTNEED);
 #endif
 #endif   /* NOT_USED */

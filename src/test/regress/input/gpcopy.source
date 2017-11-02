@@ -1099,3 +1099,15 @@ SET gp_enable_segment_copy_checking=off;
 COPY COPY_FROM_PROGRAM_ERROR FROM PROGRAM $quote$bash -c "echo -e '$GP_SEGMENT_ID\n<SEGID>'"$quote$ on segment;
 COPY COPY_FROM_PROGRAM_ERROR FROM PROGRAM $quote$bash -c "echo -e '$GP_SEGMENT_I\n<SEGID>'"$quote$ on segment;
 SET gp_enable_segment_copy_checking=on;
+
+-- Test that xlog records are generated for COPY in the same transaction as
+-- created table. The actual validation for this test will be performed once the
+-- gp_replica_check tool is enabled.
+BEGIN;
+CREATE TABLE copy_from_same_txn(a int, b int);
+COPY copy_from_same_txn FROM stdin;
+1	1
+2	2
+3	3
+\.
+COMMIT;

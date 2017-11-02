@@ -21,6 +21,7 @@
 #include "utils/relcache.h"
 #include "utils/timestamp.h"
 #include "cdb/cdbpublic.h"
+#include "replication/walsender.h"
 
 /*
  * REDO Tracking DEFINEs.
@@ -187,18 +188,12 @@ extern bool log_checkpoints;
 #define XLogArchivingActive()	(XLogArchiveMode)
 #define XLogArchiveCommandSet() (XLogArchiveCommand[0] != '\0')
 
-/* 
- * Whether we need to always generate transaction log (XLOG), or if we can
- * bypass it and get better performance.
- *
- * For GPDB, we do not support XLogArchivingActive(), so we don't use it as a condition.
- */
-extern bool XLog_CanBypassWal(void);
-
 /*
- * For FileRep code that doesn't have the Bypass WAL logic yet.
+ * Is WAL-logging necessary? We need to log an XLOG record iff either
+ * WAL archiving is enabled or XLOG streaming is allowed.
  */
-extern bool XLog_UnconvertedCanBypassWal(void);
+
+#define XLogIsNeeded() (XLogArchivingActive() || (max_wal_senders > 0))
 
 extern bool am_startup;
 
