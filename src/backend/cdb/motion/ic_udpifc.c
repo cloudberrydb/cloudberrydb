@@ -3703,16 +3703,36 @@ receiveChunksUDPIFC(ChunkTransportState *pTransportStates, ChunkTransportStateEn
 		ResetLatch(&ic_control_info.latch);
 		pthread_mutex_unlock(&ic_control_info.lock);
 
-		/* 2. Wait for data to become ready */
+		/*
+		 * Wait for data to become ready.
+		 *
+		 * In the QD, also wake up immediately if one of the QEs report an
+		 * error through the main QD-QE libpq connection. For that, ask
+		 * the dispatcher for a file descriptor to wait on for that.
+		 *
+		 * XXX: We currently only get a single FD to wait on. That catches
+		 * the common case that *all* the QEs report the same error more or
+		 * less at the same time. WaitLatchOrSocket doesn't allow waiting for
+		 * more than one socket at a time. PostgreSQL 9.6 introduces a more
+		 * flexible "wait event" API for the latches, so once we merge with
+		 * that, we could improve this.
+		 */
+		int			wakeEvents = WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH;
+		int			waitFd = PGINVALID_SOCKET;
+
+		if (Gp_role == GP_ROLE_DISPATCH)
+			waitFd = cdbdisp_getWaitSocketFd(pTransportStates->estate->dispatcherState);
+		if (waitFd != PGINVALID_SOCKET)
+			wakeEvents |= WL_SOCKET_READABLE;
+
 		if (gp_log_interconnect >= GPVARS_VERBOSITY_DEBUG)
 		{
 			elog(DEBUG5, "waiting (timed) on route %d %s", rx_control_info.mainWaitingState.waitingRoute,
 				 (rx_control_info.mainWaitingState.waitingRoute == ANY_ROUTE ? "(any route)" : ""));
 		}
-
-		(void) WaitLatch(&ic_control_info.latch,
-						 WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH
-						 MAIN_THREAD_COND_TIMEOUT_MS);
+		(void) WaitLatchOrSocket(&ic_control_info.latch,
+								 wakeEvents, waitFd,
+								 MAIN_THREAD_COND_TIMEOUT_MS);
 
 		/* check the potential errors in rx thread. */
 		checkRxThreadError();
