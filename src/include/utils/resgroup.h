@@ -130,7 +130,6 @@ extern void AllocResGroupEntry(Oid groupId, const ResGroupOpts *opts);
 extern void SerializeResGroupInfo(StringInfo str);
 extern void DeserializeResGroupInfo(struct ResGroupCaps *capsOut,
 									Oid *groupId,
-									int *slotId,
 									const char *buf,
 									int len);
 
