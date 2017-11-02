@@ -36,12 +36,8 @@ typedef struct ProbeConnectionInfo
 	struct pg_conn *conn;                        /* libpq connection object */
 } ProbeConnectionInfo;
 
-extern
-#ifdef USE_SEGWALREP
-void
-#else
-char
-#endif
-probeSegmentHelper(CdbComponentDatabaseInfo *dbInfo, ProbeConnectionInfo *probeInfo);
+extern char *errmessage(ProbeConnectionInfo *probeInfo);
+extern bool probePollIn(ProbeConnectionInfo *probeInfo);
+extern bool probeTimeout(ProbeConnectionInfo *probeInfo, const char* calledFrom);
 
 #endif
