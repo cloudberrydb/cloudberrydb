@@ -136,6 +136,8 @@ optimize_query(Query *parse, ParamListInfo boundParams)
 
 	log_optimizer(result, fUnexpectedFailure);
 
+	CHECK_FOR_INTERRUPTS();
+
 	/*
 	 * If ORCA didn't produce a plan, bail out and fall back to the Postgres
 	 * planner.

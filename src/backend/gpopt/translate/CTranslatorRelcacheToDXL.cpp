@@ -105,6 +105,10 @@ CTranslatorRelcacheToDXL::Pimdobj
 	IMDCacheObject *pmdcacheobj = NULL;
 	GPOS_ASSERT(NULL != pmda);
 
+#ifdef FAULT_INJECTOR
+	gpdb::OptTasksFaultInjector(OptRelcacheTranslatorCatalogAccess);
+#endif // FAULT_INJECTOR
+
 	switch(pmdid->Emdidt())
 	{
 		case IMDId::EmdidGPDB:
@@ -1101,9 +1105,6 @@ CTranslatorRelcacheToDXL::Pmdindex
 		{
 			oidRel = gpdb::OidRootPartition(oidRel);
 		}
-#ifdef FAULT_INJECTOR
-		gpdb::OptTasksFaultInjector(OptRelcacheTranslatorCatalogAccess);
-#endif // FAULT_INJECTOR
 
 		CMDIdGPDB *pmdidRel = GPOS_NEW(pmp) CMDIdGPDB(oidRel);
 
