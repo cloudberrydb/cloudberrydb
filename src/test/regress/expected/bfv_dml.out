@@ -225,3 +225,28 @@ set optimizer_trace_fallback = on;
 -- in ORCA currently, so we can use that to trigger fallback.
 update update_pk_test set a=1 where row(1,2) = (SELECT 1, 2);
 ERROR:  Cannot parallelize an UPDATE statement that updates the distribution columns
+reset optimizer_trace_fallback;
+--
+-- Check that INSERT and DELETE triggers don't fire on UPDATE.
+--
+-- It may seem weird how that could happen, but with ORCA, UPDATEs are
+-- implemented as a "split update", which is really a DELETE and an INSERT.
+--
+CREATE TABLE bfv_dml_trigger_test (id int4, t text);
+INSERT INTO bfv_dml_trigger_test VALUES (1, 'foo');
+CREATE OR REPLACE FUNCTION bfv_dml_error_func() RETURNS trigger AS
+$$
+BEGIN
+   RAISE EXCEPTION 'trigger was called!';
+   RETURN NEW;
+END
+$$ LANGUAGE 'plpgsql';
+CREATE TRIGGER before_trigger BEFORE INSERT or DELETE ON bfv_dml_trigger_test
+FOR EACH ROW
+EXECUTE PROCEDURE bfv_dml_error_func();
+CREATE TRIGGER after_trigger AFTER INSERT or DELETE ON bfv_dml_trigger_test
+FOR EACH ROW
+EXECUTE PROCEDURE bfv_dml_error_func();
+UPDATE bfv_dml_trigger_test SET t = 'bar';
+UPDATE bfv_dml_trigger_test SET id = id + 1;
+ERROR:  Cannot parallelize an UPDATE statement that updates the distribution columns
