@@ -43,6 +43,7 @@
 #include "commands/async.h"
 #include "miscadmin.h"
 #include "postmaster/autovacuum.h"
+#include "postmaster/fts.h"
 #include "replication/syncrep.h"
 #include "replication/walsender.h"
 #include "storage/ipc.h"
@@ -262,11 +263,11 @@ InitProcess(void)
 	int			i;
 
 	/*
-	 * Autovacuum and WAL sender processes are marked as GP_ROLE_UTILITY to
-	 * prevent unwanted GP_ROLE_DISPATCH MyProc settings such as mppSessionId
-	 * being valid and mppIsWriter set to true.
+	 * Autovacuum, WAL sender and FTS handler processes are marked as
+	 * GP_ROLE_UTILITY to prevent unwanted GP_ROLE_DISPATCH MyProc settings
+	 * such as mppSessionId being valid and mppIsWriter set to true.
 	 */
-	if (IsAutoVacuumWorkerProcess() || am_walsender)
+	if (IsAutoVacuumWorkerProcess() || am_walsender || am_ftshandler)
 		Gp_role = GP_ROLE_UTILITY;
 
 	/*

@@ -2637,13 +2637,7 @@ ProcessStartupPacket(Port *port, bool SSLdone)
 		/*
 		 * EOF after SSLdone probably means the client didn't like our
 		 * response to NEGOTIATE_SSL_CODE.	That's not an error condition, so
-		 * don't clutter the log with a complaint.else if (strcmp(nameptr, "replication") == 0)
-			{
-				if (!parse_bool(valptr, &am_walsender))
-					ereport(FATAL,
-							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-							 errmsg("invalid value for boolean option \"replication\"")));
-			}
+		 * don't clutter the log with a complaint.
 		 */
 		if (!SSLdone)
 			ereport(COMMERROR,
@@ -2703,18 +2697,17 @@ ProcessStartupPacket(Port *port, bool SSLdone)
 		processPrimaryMirrorTransitionRequest(port, buf);
 		return 127;
 	}
+
+#ifndef USE_SEGWALREP
 	else if (proto == PRIMARY_MIRROR_TRANSITION_QUERY_CODE)
 	{
 	    /* disable the authentication timeout in case it takes a long time */
         if (!disable_sig_alarm(false))
             elog(FATAL, "could not disable timer for authorization timeout");
-#ifdef USE_SEGWALREP
-		HandleFtsWalRepProbe();
-#else
 		processPrimaryMirrorTransitionQuery(port, buf);
-#endif
 		return 127;
 	}
+#endif
 
 	/* Otherwise this is probably a normal postgres-message */
 
@@ -2823,6 +2816,18 @@ retry1:
 							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 							 errmsg("option not supported: \"replication\"")));
 			}
+			else if (strcmp(nameptr, GPCONN_TYPE) == 0)
+			{
+				if (strcmp(valptr, GPCONN_TYPE_FTS) == 0)
+				{
+					elog(LOG, "handling FTS connection");
+					am_ftshandler = true;
+				}
+				else
+					ereport(FATAL,
+							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+							 errmsg("invalid value for option: \"%s\"", GPCONN_TYPE)));
+			}
 			else
 			{
 				/* Assume it's a generic GUC option */
@@ -2839,9 +2844,11 @@ retry1:
 		 * given packet length, complain.
 		 */
 		if (offset != len - 1)
+		{
 			ereport(FATAL,
 					(errcode(ERRCODE_PROTOCOL_VIOLATION),
 					 errmsg("invalid startup packet layout: expected terminator as last byte")));
+		}
 	}
 	else
 	{
@@ -2908,7 +2915,7 @@ retry1:
 		port->user_name[NAMEDATALEN - 1] = '\0';
 
 	/* Walsender is not related to a particular database */
-	if (am_walsender)
+	if (am_walsender || am_ftshandler)
 		port->database_name[0] = '\0';
 
 	/*
@@ -6610,6 +6617,9 @@ BackendInitialize(Port *port)
 	 */
 	if (am_walsender)
 		init_ps_display("wal sender process", port->user_name, remote_ps_data,
+						update_process_title ? "authentication" : "");
+	else if (am_ftshandler)
+		init_ps_display("fts handler process", port->user_name, remote_ps_data,
 						update_process_title ? "authentication" : "");
     else
 	    init_ps_display(port->user_name, port->database_name, remote_ps_data,

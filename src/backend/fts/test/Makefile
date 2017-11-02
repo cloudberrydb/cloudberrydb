@@ -14,5 +14,6 @@ ftsprobehandler.t: \
     $(MOCK_DIR)/backend/replication/gp_replication_mock.o \
     $(MOCK_DIR)/backend/lib/stringinfo_mock.o \
     $(MOCK_DIR)/backend/libpq/pqformat_mock.o \
-    $(MOCK_DIR)/backend/libpq/pqcomm_mock.o
+    $(MOCK_DIR)/backend/libpq/pqcomm_mock.o \
+    $(MOCK_DIR)/backend/tcop/dest_mock.o
 endif

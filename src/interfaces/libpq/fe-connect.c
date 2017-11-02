@@ -333,6 +333,10 @@ static const internalPQconninfoOption PQconninfoOptions[] = {
 		"Replication", "D", 5,
 	offsetof(struct pg_conn, replication)},
 
+	{GPCONN_TYPE, NULL, NULL, NULL,
+		"connection type", "D", 10,
+	offsetof(struct pg_conn, gpconntype)},
+
 	/* Terminating entry --- MUST BE LAST */
 	{NULL, NULL, NULL, NULL,
 	NULL, NULL, 0}

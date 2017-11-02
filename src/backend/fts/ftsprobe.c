@@ -73,6 +73,7 @@ typedef struct ProbeMsg
  * STATIC VARIABLES
  */
 
+
 #ifdef USE_SEGWALREP
 /* mutex used for pthread synchronization in parallel probing */
 static pthread_mutex_t worker_thread_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -87,7 +88,9 @@ static bool probePollOut(ProbeConnectionInfo *probeInfo);
 static bool probeSend(ProbeConnectionInfo *probeInfo);
 static bool probePollIn(ProbeConnectionInfo *probeInfo);
 static bool probeReceive(ProbeConnectionInfo *probeInfo);
+#ifndef USE_SEGWALREP
 static bool probeProcessResponse(ProbeConnectionInfo *probeInfo);
+#endif
 static bool probeTimeout(ProbeConnectionInfo *probeInfo, const char* calledFrom);
 
 /*
@@ -141,8 +144,12 @@ probeSegmentHelper(CdbComponentDatabaseInfo *dbInfo, ProbeConnectionInfo *probeI
 			   !probePollOut(probeInfo) ||
 			   !probeSend(probeInfo) ||
 			   !probePollIn(probeInfo) ||
-			   !probeReceive(probeInfo) ||
-			   !probeProcessResponse(probeInfo)))
+			   !probeReceive(probeInfo)
+#ifdef USE_SEGWALREP
+#else
+			   || !probeProcessResponse(probeInfo)
+#endif
+		))
 	{
 		PQfinish(probeInfo->conn);
 		probeInfo->conn = NULL;
@@ -158,13 +165,14 @@ probeSegmentHelper(CdbComponentDatabaseInfo *dbInfo, ProbeConnectionInfo *probeI
 		gp_set_monotonic_begin_time(&probeInfo->startTime);
 	}
 
+#ifdef USE_SEGWALREP
+#else
 	if (!FtsIsActive())
 	{
 		/* the returned value will be ignored */
-#ifndef USE_SEGWALREP
 		probeInfo->segmentStatus = PROBE_ALIVE;
-#endif
 	}
+#endif
 
 	if (retryCnt == gp_fts_probe_retries)
 	{
@@ -173,12 +181,19 @@ probeSegmentHelper(CdbComponentDatabaseInfo *dbInfo, ProbeConnectionInfo *probeI
 				  probeInfo->segmentId,
 				  probeInfo->dbId,
 				  retryCnt);
+#ifdef USE_SEGWALREP
+		probeInfo->result->isPrimaryAlive = false;
+#endif
 	}
 
 	if (probeInfo->conn)
+	{
 		PQfinish(probeInfo->conn);
+		probeInfo->conn = NULL;
+	}
 
-#ifndef USE_SEGWALREP
+#ifdef USE_SEGWALREP
+#else
 	return probeInfo->segmentStatus;
 #endif
 }
@@ -299,8 +314,14 @@ static bool
 probeConnect(CdbComponentDatabaseInfo *dbInfo, ProbeConnectionInfo *probeInfo)
 {
 	char conninfo[1024];
+#ifdef USE_SEGWALREP
+	snprintf(conninfo, 1024, "host=%s port=%d gpconntype=%s",
+			 dbInfo->hostip, dbInfo->port, GPCONN_TYPE_FTS);
+	probeInfo->conn = PQconnectdb(conninfo);
+#else
 	snprintf(conninfo, 1024, "postgresql://%s:%d", dbInfo->hostip, dbInfo->port);
 	probeInfo->conn = PQconnectStart(conninfo);
+#endif
 	if (probeInfo->conn == NULL)
 	{
 		write_log("FTS: cannot create libpq connection object, possibly out of memory"
@@ -370,15 +391,34 @@ probePollOut(ProbeConnectionInfo *probeInfo)
 	return false;
 }
 
+#ifdef USE_SEGWALREP
+/*
+ * Send FTS query
+ */
+static bool
+probeSend(ProbeConnectionInfo *probeInfo)
+{
+	if (!PQsendQuery(probeInfo->conn, FTS_MSG_TYPE_PROBE))
+	{
+		write_log("FTS: failed to send query '%s' to (content=%d, dbid=%d): "
+				  "connection status %d, %s",
+				  FTS_MSG_TYPE_PROBE, probeInfo->segmentId, probeInfo->dbId,
+				  probeInfo->conn->status, probeInfo->conn->errorMessage.data);
+		return false;
+	}
+	return true;
+}
+#else
 /*
  * Send the status request-startup-packet
  */
 static bool
 probeSend(ProbeConnectionInfo *probeInfo)
 {
-	ProtocolVersion pv;
-	pv = htonl(PRIMARY_MIRROR_TRANSITION_QUERY_CODE);
-	if (pqPacketSend(probeInfo->conn, 0, &pv, sizeof(pv)) != STATUS_OK)
+	char firstchar = 0;
+	ProtocolVersion req;
+	req = htonl(PRIMARY_MIRROR_TRANSITION_QUERY_CODE);
+	if (pqPacketSend(probeInfo->conn, firstchar, &req, sizeof(req)) != STATUS_OK)
 	{
 		write_log("FTS: failed to send probe packet to (content=%d, dbid=%d): "
 				  "connection status %d, %s",
@@ -388,6 +428,7 @@ probeSend(ProbeConnectionInfo *probeInfo)
 	}
 	return true;
 }
+#endif
 
 /*
  * Wait for a socket to become available for reading.
@@ -399,24 +440,141 @@ probePollIn(ProbeConnectionInfo *probeInfo)
 	nfd.fd = PQsocket(probeInfo->conn);
 	nfd.events = POLLIN;
 	int ret;
-	while ((ret = poll(&nfd, 1, 1000)) < 0 &&
-		   (errno == EAGAIN || errno == EINTR) &&
-		   !probeTimeout(probeInfo, "probePollIn"));
-	if (ret == 0)
+
+	do
 	{
-		write_log("FTS: pollin timeout waiting for libpq socket to become "
-				  "available (content=%d, dbid=%d)", probeInfo->segmentId,
-				  probeInfo->dbId);
-	}
-	else if (ret == -1)
-	{
-		probeInfo->probe_errno = errno;
-		write_log("FTS: pollin error on libpq socket (content=%d, dbid=%d): %s",
-				  probeInfo->segmentId, probeInfo->dbId, errmessage(probeInfo));
-	}
-	return (ret > 0);
+		ret = poll(&nfd, 1, 1000);
+
+		if (ret > 0)
+		{
+			return true;
+		}
+
+		if (ret == -1 && errno != EAGAIN && errno != EINTR)
+		{
+			probeInfo->probe_errno = errno;
+			write_log("FTS: pollin error on libpq socket (content=%d, dbid=%d): %s",
+					  probeInfo->segmentId, probeInfo->dbId, errmessage(probeInfo));
+
+			return false;
+		}
+	} while (!probeTimeout(probeInfo, "probePollIn"));
+
+	write_log("FTS: pollin timeout waiting for libpq socket to become "
+					  "available (content=%d, dbid=%d)", probeInfo->segmentId,
+			  probeInfo->dbId);
+
+	return false;
 }
 
+#ifdef USE_SEGWALREP
+/*
+ * Record FTS handler's response from libpq result into probe_result
+ */
+static void
+probeRecordResponse(ProbeConnectionInfo *probeInfo, PGresult *result)
+{
+	probeInfo->result->isPrimaryAlive = true;
+	int *isMirrorAlive = (int *) PQgetvalue(result, 0,
+											Anum_fts_probe_response_is_mirror_up);
+	Assert (isMirrorAlive);
+	probeInfo->result->isMirrorAlive = *isMirrorAlive;
+
+	write_log("FTS: segment (content=%d, dbid=%d, role=%c) reported IsMirrorUp %d to the prober.",
+			  probeInfo->segmentId, probeInfo->dbId, probeInfo->role, probeInfo->result->isMirrorAlive);
+}
+
+/*
+ * Receive segment response
+ */
+static bool
+probeReceive(ProbeConnectionInfo *probeInfo)
+{
+	/* last non-null result that will be returned */
+	PGresult   *lastResult = NULL;
+
+	/*
+	 * Could directly use PQexec() here instead of loop and have very simple
+	 * version, only hurdle is PQexec() (and PQgetResult()) has infinite wait
+	 * coded in pqWait() and hence doesn't allow for checking the timeout
+	 * (SLA) for FTS probe.
+	 *
+	 * It would have been really easy if pqWait() could have been taken
+	 * timeout as connection object property instead of having -1 hard-coded,
+	 * that way could have easily used the PQexec() interface.
+	 */
+	for (;;)
+	{
+		PGresult   *tmpResult = NULL;
+		/*
+		 * Receive data until PQgetResult is ready to get the result without
+		 * blocking.
+		 */
+		while (PQisBusy(probeInfo->conn))
+		{
+			if (!probePollIn(probeInfo))
+			{
+				return false;	/* either timeout or error happened */
+			}
+
+			if (PQconsumeInput(probeInfo->conn) == 0)
+			{
+				write_log("FTS: error reading probe response from "
+						  "libpq socket (content=%d, dbid=%d): %s",
+						  probeInfo->segmentId, probeInfo->dbId,
+						  PQerrorMessage(probeInfo->conn));
+				return false;	/* trouble */
+			}
+		}
+
+		/*
+		 * Emulate the PQexec()'s behavior of returning the last result when
+		 * there are many. Since walsender will never generate multiple
+		 * results, we skip the concatenation of error messages.
+		 */
+		tmpResult = PQgetResult(probeInfo->conn);
+		if (tmpResult == NULL)
+			break;				/* response received */
+
+		PQclear(lastResult);
+		lastResult = tmpResult;
+
+		if (PQstatus(probeInfo->conn) == CONNECTION_BAD)
+		{
+			write_log("FTS: error reading probe response from "
+					  "libpq socket (content=%d, dbid=%d): %s",
+					  probeInfo->segmentId, probeInfo->dbId,
+					  PQerrorMessage(probeInfo->conn));
+			return false;	/* trouble */
+		}
+	}
+	if (PQresultStatus(lastResult) != PGRES_TUPLES_OK)
+	{
+		PQclear(lastResult);
+		write_log("FTS: error reading probe response from "
+				  "libpq socket (content=%d, dbid=%d): %s",
+				  probeInfo->segmentId, probeInfo->dbId,
+				  PQerrorMessage(probeInfo->conn));
+		return false;
+	}
+	if (PQnfields(lastResult) != Natts_fts_probe_response ||
+		PQntuples(lastResult) != FTS_PROBE_RESPONSE_NTUPLES)
+	{
+		int			ntuples = PQntuples(lastResult);
+		int			nfields = PQnfields(lastResult);
+
+		PQclear(lastResult);
+		write_log("FTS: invalid probe response from (content=%d, dbid=%d):"
+				  "Expected %d tuple with %d field, got %d tuples with %d fields",
+				  probeInfo->segmentId, probeInfo->dbId, FTS_PROBE_RESPONSE_NTUPLES,
+				  Natts_fts_probe_response, ntuples, nfields);
+		return false;
+	}
+
+	probeRecordResponse(probeInfo, lastResult);
+	return true;
+}
+#else
 /*
  * Receive segment response
  */
@@ -439,6 +597,7 @@ probeReceive(ProbeConnectionInfo *probeInfo)
 	}
 	return (ret > 0);
 }
+#endif
 
 /*
  * Check if probe timeout has expired
@@ -470,6 +629,8 @@ probeTimeout(ProbeConnectionInfo *probeInfo, const char* calledFrom)
 	return false;
 }
 
+#ifdef USE_SEGWALREP
+#else
 /*
  * Process segment response
  */
@@ -492,14 +653,6 @@ probeProcessResponse(ProbeConnectionInfo *probeInfo)
 				  probeInfo->dbId, probeInfo->conn->errorMessage.data);
 		return false;
 	}
-#ifdef USE_SEGWALREP
-	ProbeResponse response;
-	pqGetnchar((char *)&response, sizeof(ProbeResponse), probeInfo->conn);
-	probeInfo->result->isPrimaryAlive = true;
-	probeInfo->result->isMirrorAlive = response.IsMirrorUp;
-	write_log("FTS: segment (content=%d, dbid=%d, role=%c) reported IsMirrorUp %d to the prober.",
-			  probeInfo->segmentId, probeInfo->dbId, probeInfo->role, response.IsMirrorUp);
-#else
 	/* segment responded to probe, mark it as alive */
 	probeInfo->segmentStatus = PROBE_ALIVE;
 	write_log("FTS: segment (content=%d, dbid=%d) reported segmentstatus %x to the prober.",
@@ -580,8 +733,8 @@ probeProcessResponse(ProbeConnectionInfo *probeInfo)
 		write_log("FTS: segment (content=%d, dbid=%d) reported fault %s segment status %x to the prober.",
 				  probeInfo->segmentId, probeInfo->dbId, getFaultTypeLabel(fault), probeInfo->segmentStatus);
 	}
-#endif
 	return true;
 }
+#endif
 
 /* EOF */

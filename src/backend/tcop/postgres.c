@@ -62,6 +62,7 @@
 #include "parser/analyze.h"
 #include "parser/parser.h"
 #include "postmaster/autovacuum.h"
+#include "postmaster/fts.h"
 #include "postmaster/postmaster.h"
 #include "replication/walsender.h"
 #include "rewrite/rewriteHandler.h"
@@ -4392,6 +4393,32 @@ process_postgres_switches(int argc, char *argv[], GucContext ctx,
 #endif
 }
 
+/*
+ * Throw an error if we're a FTS handler process.
+ *
+ * This is used to forbid anything else than simple query protocol messages
+ * in a FTS handler process.  'firstchar' specifies what kind of a forbidden
+ * message was received, and is used to construct the error message.
+ */
+static void
+check_forbidden_in_fts_handler(char firstchar)
+{
+	if (am_ftshandler)
+	{
+		switch (firstchar)
+		{
+			case 'Q':
+			case 'X':
+			case EOF:
+				return;
+			default:
+				ereport(ERROR,
+						(errcode(ERRCODE_PROTOCOL_VIOLATION),
+						 errmsg("protocol '%c' is not supported in a FTS connection",
+								firstchar)));
+		}
+	}
+}
 
 /* ----------------------------------------------------------------
  * PostgresMain
@@ -4711,7 +4738,7 @@ PostgresMain(int argc, char *argv[],
 	}
 
 	/* Also send GPDB QE-backend startup info (motion listener, version). */
-	if (Gp_role == GP_ROLE_EXECUTE)
+	if (!am_ftshandler && Gp_role == GP_ROLE_EXECUTE)
 	{
 #ifdef FAULT_INJECTOR
 		if (SIMPLE_FAULT_INJECTOR(SendQEDetailsInitBackend) != FaultInjectorTypeSkip)
@@ -4999,6 +5026,8 @@ PostgresMain(int argc, char *argv[],
 		ereport((Debug_print_full_dtm ? LOG : DEBUG5),
 				(errmsg_internal("First char: '%c'; gp_role = '%s'.", firstchar, role_to_string(Gp_role))));
 
+		check_forbidden_in_fts_handler(firstchar);
+
 		switch (firstchar)
 		{
 			case 'Q':			/* simple query */
@@ -5018,6 +5047,14 @@ PostgresMain(int argc, char *argv[],
 
 					if (am_walsender)
 						exec_replication_command(query_string);
+#ifdef USE_SEGWALREP
+					else if (am_ftshandler)
+					{
+						Assert(strncmp(query_string, FTS_MSG_TYPE_PROBE,
+									   strlen(FTS_MSG_TYPE_PROBE)) == 0);
+						HandleFtsWalRepProbe();
+					}
+#endif
 					else
 						exec_simple_query(query_string, NULL, -1);
 
@@ -5211,6 +5248,7 @@ PostgresMain(int argc, char *argv[],
 					send_ready_for_query = true;
 				}
 				break;
+
             case 'T': /* MPP dispatched dtx protocol command from QD */
 				{
 					DtxProtocolCommand dtxProtocolCommand;

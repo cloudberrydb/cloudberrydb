@@ -35,6 +35,7 @@
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "postmaster/autovacuum.h"
+#include "postmaster/fts.h"
 #include "postmaster/postmaster.h"
 #include "replication/walsender.h"
 #include "storage/backendid.h"
@@ -749,11 +750,11 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 				 errSendAlert(true)));
 
 	/*
-	 * If walsender, we don't want to connect to any particular database. Just
-	 * finish the backend startup by processing any options from the startup
-	 * packet, and we're done.
+	 * If walsender or fts handler, we don't want to connect to any particular
+	 * database. Just finish the backend startup by processing any options from
+	 * the startup packet, and we're done.
 	 */
-	if (am_walsender)
+	if (am_walsender || am_ftshandler)
 	{
 		Assert(!bootstrap);
 

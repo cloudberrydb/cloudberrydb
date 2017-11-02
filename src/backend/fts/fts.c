@@ -68,6 +68,7 @@
 /* maximum number of segments */
 #define MAX_NUM_OF_SEGMENTS  32768
 
+bool am_ftshandler = false;
 #ifndef USE_SEGWALREP
 /* one byte of status for each segment */
 static uint8 scan_status[MAX_NUM_OF_SEGMENTS];
