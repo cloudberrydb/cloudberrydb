@@ -234,8 +234,6 @@ probeSegmentHelper(CdbComponentDatabaseInfo *dbInfo,
 				  probeInfo->segmentId,
 				  probeInfo->dbId,
 				  retryCnt);
-
-		probeInfo->result->isPrimaryAlive = false;
 	}
 
 	if (probeInfo->conn)
@@ -251,14 +249,6 @@ probeWalRepSegment(probe_response_per_segment *response)
 	Assert(response);
 	CdbComponentDatabaseInfo *segment_db_info = response->segment_db_info;
 	Assert(segment_db_info);
-
-	if(!FtsIsSegmentAlive(response->segment_db_info))
-	{
-		response->result.isPrimaryAlive = false;
-		response->result.isMirrorAlive = false;
-
-		return;
-	}
 
 	/* setup probe descriptor */
 	ProbeConnectionInfo probeInfo;

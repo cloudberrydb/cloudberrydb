@@ -562,7 +562,15 @@ FtsWalRepInitProbeContext(CdbComponentDatabases *cdbs, probe_context *context)
 		CdbComponentDatabaseInfo *mirror = FtsGetPeerSegment(primary->segindex,
 															 primary->dbid);
 
-		response->result.isPrimaryAlive = SEGMENT_IS_ALIVE(primary);
+		/* primary in catalog will NEVER be marked down. */
+		Assert(FtsIsSegmentAlive(primary));
+
+		/*
+		 * Before we probe, we always DEFAULT the response for primary is down.
+		 * This will only be changed to true if primary is alive, otherwise some
+		 * error happened during the probe.
+		 */
+		response->result.isPrimaryAlive = false;
 		response->result.isMirrorAlive = SEGMENT_IS_ALIVE(mirror);
 
 		response->segment_db_info = primary;
