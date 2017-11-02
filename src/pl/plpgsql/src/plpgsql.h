@@ -763,7 +763,7 @@ extern PLpgSQL_plugin **plugin_ptr;
  */
 extern PLpgSQL_function *plpgsql_compile(FunctionCallInfo fcinfo,
 				bool forValidator);
-extern PLpgSQL_function *plpgsql_compile_inline(FunctionCallInfo fcinfo, 
+extern PLpgSQL_function *plpgsql_compile_inline(FunctionCallInfo fcinfo,
 				char *proc_source);
 extern int	plpgsql_parse_word(const char *word);
 extern int	plpgsql_parse_dblword(const char *word);

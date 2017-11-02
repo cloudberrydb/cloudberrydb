@@ -456,7 +456,7 @@ InitQueryHashTable(void)
  * Exception: commandTag is presumed to be a pointer to a constant string,
  * or possibly NULL, so it need not be copied.	Note that commandTag should
  * be NULL only if the original query (before rewriting) was empty.
- * The original query nodetag is saved as well, only used if resource 
+ * The original query nodetag is saved as well, only used if resource
  * scheduling is enabled.
  */
 void
