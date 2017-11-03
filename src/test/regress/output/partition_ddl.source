@@ -1,21 +1,11 @@
--- @product_version gpdb: [4.3.99-]
--- start_ignore
--- end_ignore
 set client_min_messages = WARNING;
-SET
 set gp_enable_hash_partitioned_tables = true;
-SET
 set timezone to '+07:00';
-SET
 DROP SCHEMA IF EXISTS partition_ddl2 CASCADE;
-DROP SCHEMA
 CREATE SCHEMA partition_ddl2;
-CREATE SCHEMA
 set search_path to partition_ddl2;
-SET
 -- MPP-2977
 create table catcheck(a int, b date, d int, e numeric, f float, g numeric, h char, i text) distributed by (a) partition by hash(b) partitions 2 subpartition by hash(d) subpartitions 2, subpartition by hash(e) subpartitions 2, subpartition by hash(f) subpartitions 2, subpartition by hash(h) subpartitions 2;
-CREATE TABLE
 \d catcheck*
     Table "partition_ddl2.catcheck"
  Column |       Type       | Modifiers 
@@ -30,6 +20,7 @@ CREATE TABLE
  i      | text             | 
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (b)
 
 Table "partition_ddl2.catcheck_1_prt_1"
  Column |       Type       | Modifiers 
@@ -45,6 +36,7 @@ Table "partition_ddl2.catcheck_1_prt_1"
 Inherits: catcheck
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (d)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_1"
  Column |       Type       | Modifiers 
@@ -60,6 +52,7 @@ Table "partition_ddl2.catcheck_1_prt_1_2_prt_1"
 Inherits: catcheck_1_prt_1
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (e)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_1_3_prt_1"
  Column |       Type       | Modifiers 
@@ -75,6 +68,7 @@ Table "partition_ddl2.catcheck_1_prt_1_2_prt_1_3_prt_1"
 Inherits: catcheck_1_prt_1_2_prt_1
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (f)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_1_3_prt_1_4_prt_1"
  Column |       Type       | Modifiers 
@@ -90,6 +84,7 @@ Table "partition_ddl2.catcheck_1_prt_1_2_prt_1_3_prt_1_4_prt_1"
 Inherits: catcheck_1_prt_1_2_prt_1_3_prt_1
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1"
  Column |       Type       | Modifiers 
@@ -133,6 +128,7 @@ Table "partition_ddl2.catcheck_1_prt_1_2_prt_1_3_prt_1_4_prt_2"
 Inherits: catcheck_1_prt_1_2_prt_1_3_prt_1
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_1_3_prt_1_4_prt_2_5_prt_1"
  Column |       Type       | Modifiers 
@@ -176,6 +172,7 @@ Table "partition_ddl2.catcheck_1_prt_1_2_prt_1_3_prt_2"
 Inherits: catcheck_1_prt_1_2_prt_1
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (f)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_1_3_prt_2_4_prt_1"
  Column |       Type       | Modifiers 
@@ -191,6 +188,7 @@ Table "partition_ddl2.catcheck_1_prt_1_2_prt_1_3_prt_2_4_prt_1"
 Inherits: catcheck_1_prt_1_2_prt_1_3_prt_2
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_1_3_prt_2_4_prt_1_5_prt_1"
  Column |       Type       | Modifiers 
@@ -234,6 +232,7 @@ Table "partition_ddl2.catcheck_1_prt_1_2_prt_1_3_prt_2_4_prt_2"
 Inherits: catcheck_1_prt_1_2_prt_1_3_prt_2
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_1_3_prt_2_4_prt_2_5_prt_1"
  Column |       Type       | Modifiers 
@@ -277,6 +276,7 @@ Table "partition_ddl2.catcheck_1_prt_1_2_prt_2"
 Inherits: catcheck_1_prt_1
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (e)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_2_3_prt_1"
  Column |       Type       | Modifiers 
@@ -292,6 +292,7 @@ Table "partition_ddl2.catcheck_1_prt_1_2_prt_2_3_prt_1"
 Inherits: catcheck_1_prt_1_2_prt_2
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (f)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_2_3_prt_1_4_prt_1"
  Column |       Type       | Modifiers 
@@ -307,6 +308,7 @@ Table "partition_ddl2.catcheck_1_prt_1_2_prt_2_3_prt_1_4_prt_1"
 Inherits: catcheck_1_prt_1_2_prt_2_3_prt_1
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_2_3_prt_1_4_prt_1_5_prt_1"
  Column |       Type       | Modifiers 
@@ -350,6 +352,7 @@ Table "partition_ddl2.catcheck_1_prt_1_2_prt_2_3_prt_1_4_prt_2"
 Inherits: catcheck_1_prt_1_2_prt_2_3_prt_1
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_2_3_prt_1_4_prt_2_5_prt_1"
  Column |       Type       | Modifiers 
@@ -393,6 +396,7 @@ Table "partition_ddl2.catcheck_1_prt_1_2_prt_2_3_prt_2"
 Inherits: catcheck_1_prt_1_2_prt_2
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (f)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_2_3_prt_2_4_prt_1"
  Column |       Type       | Modifiers 
@@ -408,6 +412,7 @@ Table "partition_ddl2.catcheck_1_prt_1_2_prt_2_3_prt_2_4_prt_1"
 Inherits: catcheck_1_prt_1_2_prt_2_3_prt_2
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_2_3_prt_2_4_prt_1_5_prt_1"
  Column |       Type       | Modifiers 
@@ -451,6 +456,7 @@ Table "partition_ddl2.catcheck_1_prt_1_2_prt_2_3_prt_2_4_prt_2"
 Inherits: catcheck_1_prt_1_2_prt_2_3_prt_2
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_1_2_prt_2_3_prt_2_4_prt_2_5_prt_1"
  Column |       Type       | Modifiers 
@@ -494,6 +500,7 @@ Table "partition_ddl2.catcheck_1_prt_2"
 Inherits: catcheck
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (d)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_1"
  Column |       Type       | Modifiers 
@@ -509,6 +516,7 @@ Table "partition_ddl2.catcheck_1_prt_2_2_prt_1"
 Inherits: catcheck_1_prt_2
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (e)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_1_3_prt_1"
  Column |       Type       | Modifiers 
@@ -524,6 +532,7 @@ Table "partition_ddl2.catcheck_1_prt_2_2_prt_1_3_prt_1"
 Inherits: catcheck_1_prt_2_2_prt_1
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (f)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_1_3_prt_1_4_prt_1"
  Column |       Type       | Modifiers 
@@ -539,6 +548,7 @@ Table "partition_ddl2.catcheck_1_prt_2_2_prt_1_3_prt_1_4_prt_1"
 Inherits: catcheck_1_prt_2_2_prt_1_3_prt_1
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_1_3_prt_1_4_prt_1_5_prt_1"
  Column |       Type       | Modifiers 
@@ -582,6 +592,7 @@ Table "partition_ddl2.catcheck_1_prt_2_2_prt_1_3_prt_1_4_prt_2"
 Inherits: catcheck_1_prt_2_2_prt_1_3_prt_1
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_1_3_prt_1_4_prt_2_5_prt_1"
  Column |       Type       | Modifiers 
@@ -625,6 +636,7 @@ Table "partition_ddl2.catcheck_1_prt_2_2_prt_1_3_prt_2"
 Inherits: catcheck_1_prt_2_2_prt_1
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (f)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_1_3_prt_2_4_prt_1"
  Column |       Type       | Modifiers 
@@ -640,6 +652,7 @@ Table "partition_ddl2.catcheck_1_prt_2_2_prt_1_3_prt_2_4_prt_1"
 Inherits: catcheck_1_prt_2_2_prt_1_3_prt_2
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_1_3_prt_2_4_prt_1_5_prt_1"
  Column |       Type       | Modifiers 
@@ -683,6 +696,7 @@ Table "partition_ddl2.catcheck_1_prt_2_2_prt_1_3_prt_2_4_prt_2"
 Inherits: catcheck_1_prt_2_2_prt_1_3_prt_2
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_1_3_prt_2_4_prt_2_5_prt_1"
  Column |       Type       | Modifiers 
@@ -726,6 +740,7 @@ Table "partition_ddl2.catcheck_1_prt_2_2_prt_2"
 Inherits: catcheck_1_prt_2
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (e)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_2_3_prt_1"
  Column |       Type       | Modifiers 
@@ -741,6 +756,7 @@ Table "partition_ddl2.catcheck_1_prt_2_2_prt_2_3_prt_1"
 Inherits: catcheck_1_prt_2_2_prt_2
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (f)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_2_3_prt_1_4_prt_1"
  Column |       Type       | Modifiers 
@@ -756,6 +772,7 @@ Table "partition_ddl2.catcheck_1_prt_2_2_prt_2_3_prt_1_4_prt_1"
 Inherits: catcheck_1_prt_2_2_prt_2_3_prt_1
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_2_3_prt_1_4_prt_1_5_prt_1"
  Column |       Type       | Modifiers 
@@ -799,6 +816,7 @@ Table "partition_ddl2.catcheck_1_prt_2_2_prt_2_3_prt_1_4_prt_2"
 Inherits: catcheck_1_prt_2_2_prt_2_3_prt_1
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_2_3_prt_1_4_prt_2_5_prt_1"
  Column |       Type       | Modifiers 
@@ -842,6 +860,7 @@ Table "partition_ddl2.catcheck_1_prt_2_2_prt_2_3_prt_2"
 Inherits: catcheck_1_prt_2_2_prt_2
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (f)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_2_3_prt_2_4_prt_1"
  Column |       Type       | Modifiers 
@@ -857,6 +876,7 @@ Table "partition_ddl2.catcheck_1_prt_2_2_prt_2_3_prt_2_4_prt_1"
 Inherits: catcheck_1_prt_2_2_prt_2_3_prt_2
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_2_3_prt_2_4_prt_1_5_prt_1"
  Column |       Type       | Modifiers 
@@ -900,6 +920,7 @@ Table "partition_ddl2.catcheck_1_prt_2_2_prt_2_3_prt_2_4_prt_2"
 Inherits: catcheck_1_prt_2_2_prt_2_3_prt_2
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (a)
+Partition by: (h)
 
 Table "partition_ddl2.catcheck_1_prt_2_2_prt_2_3_prt_2_4_prt_2_5_prt_1"
  Column |       Type       | Modifiers 
@@ -930,9 +951,7 @@ Inherits: catcheck_1_prt_2_2_prt_2_3_prt_2_4_prt_2
 Distributed by: (a)
 
 drop table catcheck cascade;
-DROP TABLE
 set enable_partition_rules=off;
-SET
 create table T1_PART(C4 int, C5 int, C6 int, C7 int, C8 int, C9 int, C10 int, C11 int, C12 int, C13 int, C14 int) 
 partition by range(c4)
 subpartition by hash(c11) subpartitions 8
@@ -940,27 +959,16 @@ subpartition by hash(c11) subpartitions 8
 	partition p1 start(1) end(4),
 	partition p2 end(10)
 );
-CREATE TABLE
 INSERT INTO T1_PART VALUES ( 2, 5, 1, 4, 5, 4, 5, 1, 5, 4, 1 );
-INSERT 0 1
 INSERT INTO T1_PART VALUES ( 1, 3, 1, 1, 5, 2, 4, 4, 3, 3, 1 );
-INSERT 0 1
 INSERT INTO T1_PART VALUES ( 1, 3, 1, 4, 1, 3, 2, 3, 1, 3, 5 );
-INSERT 0 1
 INSERT INTO T1_PART VALUES ( 2, 5, 2, 5, 2, 2, 4, 1, 2, 5, 1 );
-INSERT 0 1
 INSERT INTO T1_PART VALUES ( 3, 5, 3, 4, 1, 2, 3, 5, 3, 1, 1 );
-INSERT 0 1
 INSERT INTO T1_PART VALUES ( 2, 4, 4, 4, 2, 5, 2, 2, 3, 2, 5 );
-INSERT 0 1
 INSERT INTO T1_PART VALUES ( 4, 5, 5, 3, 1, 3, 1, 1, 3, 5, 1 );
-INSERT 0 1
 INSERT INTO T1_PART VALUES ( 3, 4, 1, 3, 5, 3, 1, 4, 2, 1, 3 );
-INSERT 0 1
 INSERT INTO T1_PART VALUES ( 4, 2, 3, 5, 4, 5, 5, 5, 1, 4, 4 );
-INSERT 0 1
 INSERT INTO T1_PART VALUES ( 1, 2, 4, 4, 3, 2, 3, 1, 5, 1, 3 );
-INSERT 0 1
 SELECT * FROM T1_PART;
  c4 | c5 | c6 | c7 | c8 | c9 | c10 | c11 | c12 | c13 | c14 
 ----+----+----+----+----+----+-----+-----+-----+-----+-----
@@ -977,15 +985,10 @@ SELECT * FROM T1_PART;
 (10 rows)
 
 DROP TABLE T1_PART CASCADE;
-DROP TABLE
 set enable_partition_rules = off;
-SET
 create table hashtest (i int) distributed by (i) partition by hash(i) partitions 2;
-CREATE TABLE
 insert into hashtest values(NULL);
-INSERT 0 1
 insert into hashtest values(NULL);
-INSERT 0 1
 select * from hashtest;
  i 
 ---
@@ -994,17 +997,11 @@ select * from hashtest;
 (2 rows)
 
 drop table hashtest;
-DROP TABLE
 create table hashtest (i int, j int) distributed by (i) partition by hash(i, j) partitions 2;
-CREATE TABLE
 insert into hashtest values(NULL, NULL);
-INSERT 0 1
 insert into hashtest values(NULL, 1);
-INSERT 0 1
 insert into hashtest values(1, 1);
-INSERT 0 1
 insert into hashtest values(1, NULL);
-INSERT 0 1
 select * from hashtest order by 1,2;
  i | j 
 ---+---
@@ -1029,7 +1026,6 @@ select * from hashtest_1_prt_2 order by 1,2;
 (2 rows)
 
 drop table hashtest;
-DROP TABLE
 CREATE TABLE rank (
                 id int,
                 rank int,
@@ -1037,9 +1033,7 @@ CREATE TABLE rank (
                 gender char(1),
                 count int )
         DISTRIBUTED BY (id, gender, year);
-CREATE TABLE
 set enable_partition_rules = off;
-SET
 create table rank2 (LIKE rank) 
 PARTITION BY LIST (gender) 
 SUBPARTITION BY RANGE (year) 
@@ -1050,23 +1044,15 @@ LINE 4: SUBPARTITION TEMPLATE (start ('2000') end ('2006') every (in...
                                       ^
 HINT:  No operator matches the given name and argument type(s). You might need to add explicit type casts.
 drop table rank;
-DROP TABLE
--- start_ignore
--- end_ignore
 set enable_partition_rules = off;
-SET
 drop table if exists ggg cascade;
-DROP TABLE
 create table ggg (a char(1), b char(2), d char(3))
 distributed by (a)
 partition by LIST (b)
 ( partition aa values ('a', 'b', 'c', 'd'),
 partition bb values ('e', 'f', NULL) );
-CREATE TABLE
 insert into ggg values ('a','e','111');
-INSERT 0 1
 insert into ggg values ('b',NULL,'111');
-INSERT 0 1
 -- order 1,2
 select * from ggg order by 1,2;
  a | b  |  d  
@@ -1084,11 +1070,8 @@ select * from ggg_1_prt_bb order by 1,2;
 (2 rows)
 
 drop table ggg;
-DROP TABLE
 create table mpp3053_test(a int, b int) partition by range(a) subpartition by hash (b) subpartitions 2(partition p1 end(5), partition p2 end(10));
-CREATE TABLE
 insert into mpp3053_test values(5,5);
-INSERT 0 1
 select * from mpp3053_test;
  a | b 
 ---+---
@@ -1096,7 +1079,6 @@ select * from mpp3053_test;
 (1 row)
 
 drop table mpp3053_test;
-DROP TABLE
 CREATE TABLE MPP3083_REGION (
                     R_REGIONKEY INTEGER,
                     R_NAME CHAR(25),
@@ -1109,7 +1091,6 @@ subpartition by hash (r_regionkey)
 (
 partition p1(subpartition sp1,subpartition sp2,subpartition sp3)
 );
-CREATE TABLE
 select tablename, parentpartitionname, count(*)
 from pg_partitions
 where tablename = 'mpp3083_region'
@@ -1125,15 +1106,10 @@ order by 1,2 asc;
 (5 rows)
 
 INSERT INTO mpp3083_region VALUES (0, 'AFRICA', 'lar deposits. blithely final packages cajole. regular waters are final requests. regular accounts are according to ');
-INSERT 0 1
 INSERT INTO mpp3083_region VALUES (4, 'MIDDLE EAST', 'uickly special accounts cajole carefully blithely close requests. carefully final asymptotes haggle furiousl');
-INSERT 0 1
 INSERT INTO mpp3083_region VALUES (3, 'EUROPE', 'ly final courts cajole furiously final excuse');
-INSERT 0 1
 INSERT INTO mpp3083_region VALUES (1, 'AMERICA', 'hs use ironic, even requests. s');
-INSERT 0 1
 INSERT INTO mpp3083_region VALUES (2, 'ASIA', 'ges. thinly even pinto beans ca');
-INSERT 0 1
 select * from mpp3083_region order by r_regionkey;
  r_regionkey |          r_name           |                                                      r_comment                                                      
 -------------+---------------------------+---------------------------------------------------------------------------------------------------------------------
@@ -1145,14 +1121,14 @@ select * from mpp3083_region order by r_regionkey;
 (5 rows)
 
 drop table mpp3083_region;
-DROP TABLE
+-- QA-877
+-- Johnny Soedomo
+-- Updated test case to use default tablespace. We now support partition and tablespace
 create table ggg (a char(1), b char(2), d char(3))
 distributed by (a)
 partition by LIST (b)
 ( partition aa values ('a', 'b', 'c', 'd') tablespace pg_default);
-CREATE TABLE
 drop table ggg;
-DROP TABLE
 create table mpp3137_region
 (
 		R_REGIONKEY INTEGER,
@@ -1171,7 +1147,6 @@ subpartition by list (r_name)
 (
 partition p1 values('4','1','3','0','2')(subpartition sp1 values('MIDDLE EAST','AMERICA'),subpartition sp2 values('AFRICA','EUROPE','ASIA'))
 );
-CREATE TABLE
 select tablename, parentpartitionname, count(*)
 from pg_partitions
 where tablename = 'mpp3137_region'
@@ -1203,7 +1178,6 @@ select * from mpp3137_region order by r_regionkey;
 (5 rows)
 
 drop table mpp3137_region;
-DROP TABLE
 create table mpp3084_region
 (
                     R_REGIONKEY INTEGER,
@@ -1217,7 +1191,6 @@ subpartition by hash (r_name)
 (
 partition p1(subpartition sp1,subpartition sp2,subpartition sp3)
 );
-CREATE TABLE
 select tablename, parentpartitionname, count(*)
 from pg_partitions
 where tablename = 'mpp3084_region'
@@ -1250,9 +1223,7 @@ select * from mpp3084_region order by r_regionkey;
 (5 rows)
 
 drop table mpp3084_region;
-DROP TABLE
 drop table if exists mpp3285_lineitem;
-DROP TABLE
 CREATE TABLE mpp3285_LINEITEM (
                 L_ORDERKEY INT8,
                 L_PARTKEY INTEGER,
@@ -1275,16 +1246,14 @@ partition by range (l_commitdate)
 (
 partition p1 start('1992-01-31') end('1998-11-01') every(interval '20 months')
 );
-CREATE TABLE
-copy mpp3285_lineitem from stdin delimiter '|';
+insert into mpp3285_lineitem values (18182,5794,3295,4,9,15298.11,0.04,0.01,'N','O','1995-07-04'::date,'1995-05-30'::date,'1995-08-03'::date,'DELIVER IN PERSON','RAIL','y special platelets.');
 select * from mpp3285_lineitem;
  l_orderkey | l_partkey | l_suppkey | l_linenumber | l_quantity | l_extendedprice | l_discount | l_tax | l_returnflag | l_linestatus | l_shipdate | l_commitdate | l_receiptdate |      l_shipinstruct       | l_shipmode |      l_comment       
 ------------+-----------+-----------+--------------+------------+-----------------+------------+-------+--------------+--------------+------------+--------------+---------------+---------------------------+------------+----------------------
-      18182 |      5794 |      3295 |            4 |          9 |        15298.11 |       0.04 |  0.01 | N            | O            | 1995-07-04 | 1995-05-30   | 1995-08-03    | DELIVER IN PERSON         | RAIL       | y special platelets.
+      18182 |      5794 |      3295 |            4 |          9 |        15298.11 |       0.04 |  0.01 | N            | O            | 07-04-1995 | 05-30-1995   | 08-03-1995    | DELIVER IN PERSON         | RAIL       | y special platelets.
 (1 row)
 
 drop table mpp3285_lineitem;
-DROP TABLE
 drop table mpp3282_partsupp;
 ERROR:  table "mpp3282_partsupp" does not exist
 CREATE TABLE mpp3282_PARTSUPP (
@@ -1302,7 +1271,6 @@ partition p1 start('1') end('10001') every(5000)
 (subpartition sp1 start('1') end('200001') every(66666)
 )
 );
-CREATE TABLE
 copy mpp3282_partsupp from stdin delimiter '|';
 select * from mpp3282_partsupp;
  ps_partkey | ps_suppkey | ps_availqty | ps_supplycost |                                                                                            ps_comment                                                                                            
@@ -1311,7 +1279,6 @@ select * from mpp3282_partsupp;
 (1 row)
 
 drop table mpp3282_partsupp;
-DROP TABLE
 drop table mpp3238_supplier;
 ERROR:  table "mpp3238_supplier" does not exist
 CREATE TABLE mpp3238_supplier(
@@ -1331,9 +1298,7 @@ partition p3 end(20) inclusive,
 partition p4 start(20) exclusive , 
 partition p5 start(22) end(25)
 );
-CREATE TABLE
 insert into mpp3238_supplier values(1,'Supplier#000000001',' N kD4on9OM Ipw3,gf0JBoQDd7tgrzrddZ',17,'27-918-335-1736',5755.94,'each slyly above the careful');
-INSERT 0 1
 select * from mpp3238_supplier;
  s_suppkey |          s_name           |              s_address              | s_nationkey |     s_phone     | s_acctbal |          s_comment           
 -----------+---------------------------+-------------------------------------+-------------+-----------------+-----------+------------------------------
@@ -1341,9 +1306,7 @@ select * from mpp3238_supplier;
 (1 row)
 
 drop table mpp3238_supplier;
-DROP TABLE
 drop table if exists mpp3219_customer;
-DROP TABLE
 CREATE TABLE mpp3219_CUSTOMER (
 C_CUSTKEY INTEGER,
 C_NAME VARCHAR(25),
@@ -1359,11 +1322,10 @@ partition by range (c_acctbal)
 partition sp1 start('-999.99') end('9833.01'),
 partition sp2                  end('9905.01'),
 partition sp3                  end('9978.01'));
-CREATE TABLE
 drop table mpp3219_customer;
-DROP TABLE
 drop table mpp3190_partsupp;
 ERROR:  table "mpp3190_partsupp" does not exist
+-- This should fail
 CREATE TABLE mpp3190_PARTSUPP (
 PS_PARTKEY INTEGER, 
 PS_SUPPKEY INTEGER,
@@ -1377,7 +1339,6 @@ ERROR:  missing boundary specification
 LINE 9: (partition p1, partition p2, partition p3 );
          ^
 drop table if exists mpp3304_customer;
-DROP TABLE
 create table mpp3304_CUSTOMER (
                 C_CUSTKEY INTEGER,
                 C_NAME VARCHAR(25),
@@ -1397,25 +1358,18 @@ subpartition template (start('0') end('25') every(5))
 (
 partition p1 start('1') end('150001') every(50000)
 );
-CREATE TABLE
 Alter table mpp3304_customer alter partition for (rank(2)) rename partition for (rank(1)) to newname;
-ALTER TABLE
 drop table mpp3304_customer;
-DROP TABLE
 drop table if exists mpp3045_hhh;
-DROP TABLE
 create table mpp3045_hhh (a char(1), b date, d char(3)) with (appendonly=true)
 distributed by (a) 
 partition by range (b) 
  (partition aa start (date '2007-01-01') end (date '2008-01-01'),
  partition bb start (date '2008-01-01') end (date '2009-01-01'));
-CREATE TABLE
 alter table mpp3045_hhh add partition aa;
 ERROR:  partition "aa" of relation "mpp3045_hhh" already exists
 drop table mpp3045_hhh;
-DROP TABLE
 drop table if exists mpp3287_nation;
-DROP TABLE
 CREATE TABLE mpp3287_NATION (
             N_NATIONKEY INTEGER,
             N_NAME CHAR(25),
@@ -1429,65 +1383,35 @@ partition p2 start('11') end('15') inclusive WITH (checksum=false,appendonly=tru
 partition p3 start('15') exclusive end('19'), partition p4 start('19')  WITH (compresslevel=8,appendonly=true,checksum=false,blocksize=884736), 
 partition p5 start('20')
 );
-CREATE TABLE
 delete from mpp3287_nation;
-DELETE 0
 INSERT INTO mpp3287_nation VALUES (1, 'ARGENTINA                ', 1, 'al foxes promise slyly according to the regular accounts. bold requests alon');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (3, 'CANADA                   ', 1, 'eas hang ironic, silent packages. slyly regular packages are furiously over the tithes. fluffily bold');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (5, 'ETHIOPIA                 ', 0, 'ven packages wake quickly. regu');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (7, 'GERMANY                  ', 3, 'l platelets. regular accounts x-ray: unusual, regular acco');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (9, 'INDONESIA                ', 2, ' slyly express asymptotes. regular deposits haggle slyly. carefully ironic hockey players sleep blithely. carefull');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (11, 'IRAQ                     ', 4, 'nic deposits boost atop the quickly final requests? quickly regula');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (13, 'JORDAN                   ', 4, 'ic deposits are blithely about the carefully regular pa');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (15, 'MOROCCO                  ', 0, 'rns. blithely bold courts among the closely regular packages use furiously bold platelets?');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (17, 'PERU                     ', 1, 'platelets. blithely pending dependencies use fluffily across the even pinto beans. carefully silent accoun');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (19, 'ROMANIA                  ', 3, 'ular asymptotes are about the furious multipliers. express dependencies nag above the ironically ironic account');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (21, 'VIETNAM                  ', 2, 'hely enticingly express accounts. even, final ');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (23, 'UNITED KINGDOM           ', 3, 'eans boost carefully special requests. accounts are. carefull');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (0, 'ALGERIA                  ', 0, ' haggle. carefully final deposits detect slyly agai');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (2, 'BRAZIL                   ', 1, 'y alongside of the pending deposits. carefully special packages are about the ironic forges. slyly special ');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (4, 'EGYPT                    ', 4, 'y above the carefully unusual theodolites. final dugouts are quickly across the furiously regular d');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (6, 'FRANCE                   ', 3, 'refully final requests. regular, ironi');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (8, 'INDIA                    ', 2, 'ss excuses cajole slyly across the packages. deposits print aroun');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (10, 'IRAN                     ', 4, 'efully alongside of the slyly final dependencies. ');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (12, 'JAPAN                    ', 2, 'ously. final, express gifts cajole a');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (14, 'KENYA                    ', 0, ' pending excuses haggle furiously deposits. pending, express pinto beans wake fluffily past t');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (16, 'MOZAMBIQUE               ', 0, 's. ironic, unusual asymptotes wake blithely r');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (18, 'CHINA                    ', 2, 'c dependencies. furiously express notornis sleep slyly regular accounts. ideas sleep. depos');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (20, 'SAUDI ARABIA             ', 4, 'ts. silent requests haggle. closely express packages sleep across the blithely');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (22, 'RUSSIA                   ', 3, ' requests against the platelets use never according to the quickly regular pint');
-INSERT 0 1
 INSERT INTO mpp3287_nation VALUES (24, 'UNITED STATES            ', 1, 'y final packages. slow foxes cajole quickly. quickly silent platelets breach ironic accounts. unusual pinto be');
-INSERT 0 1
 delete from mpp3287_nation;
-DELETE 25
 drop table mpp3287_nation;
-DROP TABLE
 drop table if exists mpp3283_nation;
-DROP TABLE
 CREATE TABLE mpp3283_NATION (
             N_NATIONKEY INTEGER,
             N_NAME CHAR(25),
@@ -1498,57 +1422,32 @@ partition by range (n_regionkey)
 (
 partition p1 start('0') end('5') exclusive
 );
-CREATE TABLE
+-- Data for Name: nation; Type: TABLE DATA; Schema: public; Owner: bmaryada
 INSERT INTO mpp3283_nation VALUES (1, 'ARGENTINA                ', 1, 'al foxes promise slyly according to the regular accounts. bold requests alon');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (3, 'CANADA                   ', 1, 'eas hang ironic, silent packages. slyly regular packages are furiously over the tithes. fluffily bold');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (5, 'ETHIOPIA                 ', 0, 'ven packages wake quickly. regu');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (7, 'GERMANY                  ', 3, 'l platelets. regular accounts x-ray: unusual, regular acco');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (9, 'INDONESIA                ', 2, ' slyly express asymptotes. regular deposits haggle slyly. carefully ironic hockey players sleep blithely. carefull');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (11, 'IRAQ                     ', 4, 'nic deposits boost atop the quickly final requests? quickly regula');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (13, 'JORDAN                   ', 4, 'ic deposits are blithely about the carefully regular pa');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (15, 'MOROCCO                  ', 0, 'rns. blithely bold courts among the closely regular packages use furiously bold platelets?');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (17, 'PERU                     ', 1, 'platelets. blithely pending dependencies use fluffily across the even pinto beans. carefully silent accoun');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (19, 'ROMANIA                  ', 3, 'ular asymptotes are about the furious multipliers. express dependencies nag above the ironically ironic account');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (21, 'VIETNAM                  ', 2, 'hely enticingly express accounts. even, final ');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (23, 'UNITED KINGDOM           ', 3, 'eans boost carefully special requests. accounts are. carefull');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (0, 'ALGERIA                  ', 0, ' haggle. carefully final deposits detect slyly agai');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (2, 'BRAZIL                   ', 1, 'y alongside of the pending deposits. carefully special packages are about the ironic forges. slyly special ');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (4, 'EGYPT                    ', 4, 'y above the carefully unusual theodolites. final dugouts are quickly across the furiously regular d');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (6, 'FRANCE                   ', 3, 'refully final requests. regular, ironi');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (8, 'INDIA                    ', 2, 'ss excuses cajole slyly across the packages. deposits print aroun');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (10, 'IRAN                     ', 4, 'efully alongside of the slyly final dependencies. ');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (12, 'JAPAN                    ', 2, 'ously. final, express gifts cajole a');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (14, 'KENYA                    ', 0, ' pending excuses haggle furiously deposits. pending, express pinto beans wake fluffily past t');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (16, 'MOZAMBIQUE               ', 0, 's. ironic, unusual asymptotes wake blithely r');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (18, 'CHINA                    ', 2, 'c dependencies. furiously express notornis sleep slyly regular accounts. ideas sleep. depos');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (20, 'SAUDI ARABIA             ', 4, 'ts. silent requests haggle. closely express packages sleep across the blithely');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (22, 'RUSSIA                   ', 3, ' requests against the platelets use never according to the quickly regular pint');
-INSERT 0 1
 INSERT INTO mpp3283_nation VALUES (24, 'UNITED STATES            ', 1, 'y final packages. slow foxes cajole quickly. quickly silent platelets breach ironic accounts. unusual pinto be');
-INSERT 0 1
 select count(*) from mpp3283_nation;
  count 
 -------
@@ -1556,17 +1455,12 @@ select count(*) from mpp3283_nation;
 (1 row)
 
 copy mpp3283_nation to '/dev/null' delimiter '|';
-COPY 25
 drop table mpp3283_nation;
-DROP TABLE
 CREATE TABLE mpp3240(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
 partition by range (a)
 ( partition aa start (1) end (10) every (1) );
-CREATE TABLE
 alter table mpp3240 add default partition default_part;
-ALTER TABLE
 drop table mpp3240;
-DROP TABLE
 CREATE TABLE mpp3259 (
         unique1         int4,
         unique2         int4,
@@ -1586,13 +1480,9 @@ CREATE TABLE mpp3259 (
         string4         name
 ) partition by range (unique1)
 ( partition aa start (0) end (1000) every (100), default partition default_part );
-CREATE TABLE
 alter table mpp3259 drop partition default_part;
-ALTER TABLE
 alter table mpp3259 add default partition default_part;
-ALTER TABLE
 insert into mpp3259 (unique1) values (100001);
-INSERT 0 1
 select * from mpp3259;
  unique1 | unique2 | two | four | ten | twenty | hundred | thousand | twothousand | fivethous | tenthous | odd | even | stringu1 | stringu2 | string4 
 ---------+---------+-----+------+-----+--------+---------+----------+-------------+-----------+----------+-----+------+----------+----------+---------
@@ -1606,7 +1496,6 @@ select * from mpp3259_1_prt_default_part;
 (1 row)
 
 drop table mpp3259;
-DROP TABLE
 CREATE TABLE mpp3265 (
         unique1         int4,
         unique2         int4,
@@ -1630,9 +1519,7 @@ CREATE TABLE mpp3265 (
   partition cc start (1000) end (1500),
   partition dd start (1500) end (2000),
   default partition default_part );
-CREATE TABLE
 alter table mpp3265 drop partition for (100);
-ALTER TABLE
 alter table mpp3265 drop partition for (-5);
 ERROR:  FOR expression matches DEFAULT partition "default_part" of relation "mpp3265"
 HINT:  FOR expression may only specify a non-default partition in this context.
@@ -1640,7 +1527,6 @@ alter table mpp3265 drop partition for (0);
 ERROR:  FOR expression matches DEFAULT partition "default_part" of relation "mpp3265"
 HINT:  FOR expression may only specify a non-default partition in this context.
 drop table mpp3265;
-DROP TABLE
 CREATE TABLE mpp3237(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
 distributed by (a)
 partition by range (a)
@@ -1670,11 +1556,8 @@ subpartition by range (x) subpartition template ( start (1) end (2) every (1)),
 subpartition by range (y) subpartition template ( start (1) end (2) every (1)),
 subpartition by range (z) subpartition template ( start (1) end (2) every (1))
 ( start (1) end (2) every (1));
-CREATE TABLE
 DROP TABLE mpp3237;
-DROP TABLE
 drop  TABLE IF EXISTS INT_P1A CASCADE;
-DROP TABLE
 CREATE TABLE INT_P1A ( num1    INTEGER NOT NULL,
                       num2     INTEGER NOT NULL,
                       average    DECIMAL(15,2) NOT NULL,
@@ -1691,9 +1574,7 @@ PARTITION BY RANGE(date1)
      PARTITION y1996  START('1996-01-01'),
      PARTITION y1997 START('1997-01-01') END('1997-12-31') 
  );
-CREATE TABLE
 drop  TABLE IF EXISTS INT_P1B CASCADE;
-DROP TABLE
 CREATE TABLE INT_P1B ( num1    INTEGER NOT NULL,
                       num2     INTEGER NOT NULL,
                       average    DECIMAL(15,2) NOT NULL,
@@ -1714,11 +1595,8 @@ ERROR:  missing boundary specification
 LINE 13:      PARTITION y1995,
               ^
 DROP TABLE INT_P1A;
-DROP TABLE
 DROP TABLE INT_P1B;
 ERROR:  table "int_p1b" does not exist
--- start_ignore
--- end_ignore
 CREATE TABLE mpp2564_transactions (obligation_trans_date date, cust_no integer, company_no character(3), obligation_trans_no character varying(25), item_no integer, orig_oblig_trans_no character varying(25), split_ind character(1), qty_sold integer, net_wgt_lbs numeric(10,5), unit_price numeric(10,2), ext_price numeric(10,2), catch_wgt_ind character(1), qty_sold_case_equivalent numeric(10,5), marketing_assoc_id character varying(10), cost_of_goods_sold numeric(10,2), adj_cost_good_sold numeric(10,2), trade_sales_ind character(1), create_date timestamp without time zone) DISTRIBUTED RANDOMLY 
 PARTITION BY RANGE (obligation_trans_date)
 SUBPARTITION BY LIST (company_no) subpartition template
@@ -1728,7 +1606,6 @@ SUBPARTITION BY LIST (company_no) subpartition template
   subpartition p4 values ('022')
 )
 ( start ('2005-06-01') end ('2006-05-01') every (INTERVAL '1 month') );
-CREATE TABLE
 \d mpp2564_transactions*
             Table "partition_ddl2.mpp2564_transactions"
           Column          |            Type             | Modifiers 
@@ -1753,6 +1630,7 @@ CREATE TABLE
  create_date              | timestamp without time zone | 
 Number of child tables: 11 (Use \d+ to list them.)
 Distributed randomly
+Partition by: (obligation_trans_date)
 
         Table "partition_ddl2.mpp2564_transactions_1_prt_1"
           Column          |            Type             | Modifiers 
@@ -1776,10 +1654,11 @@ Distributed randomly
  trade_sales_ind          | character(1)                | 
  create_date              | timestamp without time zone | 
 Check constraints:
-    "mpp2564_transactions_1_prt_1_check" CHECK (obligation_trans_date >= '2005-06-01'::date AND obligation_trans_date < '2005-07-01'::date)
+    "mpp2564_transactions_1_prt_1_check" CHECK (obligation_trans_date >= '06-01-2005'::date AND obligation_trans_date < '07-01-2005'::date)
 Inherits: mpp2564_transactions
 Number of child tables: 4 (Use \d+ to list them.)
 Distributed randomly
+Partition by: (company_no)
 
         Table "partition_ddl2.mpp2564_transactions_1_prt_10"
           Column          |            Type             | Modifiers 
@@ -1803,10 +1682,11 @@ Distributed randomly
  trade_sales_ind          | character(1)                | 
  create_date              | timestamp without time zone | 
 Check constraints:
-    "mpp2564_transactions_1_prt_10_check" CHECK (obligation_trans_date >= '2006-03-01'::date AND obligation_trans_date < '2006-04-01'::date)
+    "mpp2564_transactions_1_prt_10_check" CHECK (obligation_trans_date >= '03-01-2006'::date AND obligation_trans_date < '04-01-2006'::date)
 Inherits: mpp2564_transactions
 Number of child tables: 4 (Use \d+ to list them.)
 Distributed randomly
+Partition by: (company_no)
 
    Table "partition_ddl2.mpp2564_transactions_1_prt_10_2_prt_p1"
           Column          |            Type             | Modifiers 
@@ -1831,7 +1711,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_10_2_prt_p1_check" CHECK (company_no = '047'::bpchar)
-    "mpp2564_transactions_1_prt_10_check" CHECK (obligation_trans_date >= '2006-03-01'::date AND obligation_trans_date < '2006-04-01'::date)
+    "mpp2564_transactions_1_prt_10_check" CHECK (obligation_trans_date >= '03-01-2006'::date AND obligation_trans_date < '04-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_10
 Distributed randomly
 
@@ -1858,7 +1738,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_10_2_prt_p2_check" CHECK (company_no = '002'::bpchar)
-    "mpp2564_transactions_1_prt_10_check" CHECK (obligation_trans_date >= '2006-03-01'::date AND obligation_trans_date < '2006-04-01'::date)
+    "mpp2564_transactions_1_prt_10_check" CHECK (obligation_trans_date >= '03-01-2006'::date AND obligation_trans_date < '04-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_10
 Distributed randomly
 
@@ -1885,7 +1765,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_10_2_prt_p3_check" CHECK (company_no = '056'::bpchar)
-    "mpp2564_transactions_1_prt_10_check" CHECK (obligation_trans_date >= '2006-03-01'::date AND obligation_trans_date < '2006-04-01'::date)
+    "mpp2564_transactions_1_prt_10_check" CHECK (obligation_trans_date >= '03-01-2006'::date AND obligation_trans_date < '04-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_10
 Distributed randomly
 
@@ -1912,7 +1792,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_10_2_prt_p4_check" CHECK (company_no = '022'::bpchar)
-    "mpp2564_transactions_1_prt_10_check" CHECK (obligation_trans_date >= '2006-03-01'::date AND obligation_trans_date < '2006-04-01'::date)
+    "mpp2564_transactions_1_prt_10_check" CHECK (obligation_trans_date >= '03-01-2006'::date AND obligation_trans_date < '04-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_10
 Distributed randomly
 
@@ -1938,10 +1818,11 @@ Distributed randomly
  trade_sales_ind          | character(1)                | 
  create_date              | timestamp without time zone | 
 Check constraints:
-    "mpp2564_transactions_1_prt_11_check" CHECK (obligation_trans_date >= '2006-04-01'::date AND obligation_trans_date < '2006-05-01'::date)
+    "mpp2564_transactions_1_prt_11_check" CHECK (obligation_trans_date >= '04-01-2006'::date AND obligation_trans_date < '05-01-2006'::date)
 Inherits: mpp2564_transactions
 Number of child tables: 4 (Use \d+ to list them.)
 Distributed randomly
+Partition by: (company_no)
 
    Table "partition_ddl2.mpp2564_transactions_1_prt_11_2_prt_p1"
           Column          |            Type             | Modifiers 
@@ -1966,7 +1847,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_11_2_prt_p1_check" CHECK (company_no = '047'::bpchar)
-    "mpp2564_transactions_1_prt_11_check" CHECK (obligation_trans_date >= '2006-04-01'::date AND obligation_trans_date < '2006-05-01'::date)
+    "mpp2564_transactions_1_prt_11_check" CHECK (obligation_trans_date >= '04-01-2006'::date AND obligation_trans_date < '05-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_11
 Distributed randomly
 
@@ -1993,7 +1874,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_11_2_prt_p2_check" CHECK (company_no = '002'::bpchar)
-    "mpp2564_transactions_1_prt_11_check" CHECK (obligation_trans_date >= '2006-04-01'::date AND obligation_trans_date < '2006-05-01'::date)
+    "mpp2564_transactions_1_prt_11_check" CHECK (obligation_trans_date >= '04-01-2006'::date AND obligation_trans_date < '05-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_11
 Distributed randomly
 
@@ -2020,7 +1901,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_11_2_prt_p3_check" CHECK (company_no = '056'::bpchar)
-    "mpp2564_transactions_1_prt_11_check" CHECK (obligation_trans_date >= '2006-04-01'::date AND obligation_trans_date < '2006-05-01'::date)
+    "mpp2564_transactions_1_prt_11_check" CHECK (obligation_trans_date >= '04-01-2006'::date AND obligation_trans_date < '05-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_11
 Distributed randomly
 
@@ -2047,7 +1928,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_11_2_prt_p4_check" CHECK (company_no = '022'::bpchar)
-    "mpp2564_transactions_1_prt_11_check" CHECK (obligation_trans_date >= '2006-04-01'::date AND obligation_trans_date < '2006-05-01'::date)
+    "mpp2564_transactions_1_prt_11_check" CHECK (obligation_trans_date >= '04-01-2006'::date AND obligation_trans_date < '05-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_11
 Distributed randomly
 
@@ -2074,7 +1955,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_1_2_prt_p1_check" CHECK (company_no = '047'::bpchar)
-    "mpp2564_transactions_1_prt_1_check" CHECK (obligation_trans_date >= '2005-06-01'::date AND obligation_trans_date < '2005-07-01'::date)
+    "mpp2564_transactions_1_prt_1_check" CHECK (obligation_trans_date >= '06-01-2005'::date AND obligation_trans_date < '07-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_1
 Distributed randomly
 
@@ -2101,7 +1982,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_1_2_prt_p2_check" CHECK (company_no = '002'::bpchar)
-    "mpp2564_transactions_1_prt_1_check" CHECK (obligation_trans_date >= '2005-06-01'::date AND obligation_trans_date < '2005-07-01'::date)
+    "mpp2564_transactions_1_prt_1_check" CHECK (obligation_trans_date >= '06-01-2005'::date AND obligation_trans_date < '07-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_1
 Distributed randomly
 
@@ -2128,7 +2009,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_1_2_prt_p3_check" CHECK (company_no = '056'::bpchar)
-    "mpp2564_transactions_1_prt_1_check" CHECK (obligation_trans_date >= '2005-06-01'::date AND obligation_trans_date < '2005-07-01'::date)
+    "mpp2564_transactions_1_prt_1_check" CHECK (obligation_trans_date >= '06-01-2005'::date AND obligation_trans_date < '07-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_1
 Distributed randomly
 
@@ -2155,7 +2036,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_1_2_prt_p4_check" CHECK (company_no = '022'::bpchar)
-    "mpp2564_transactions_1_prt_1_check" CHECK (obligation_trans_date >= '2005-06-01'::date AND obligation_trans_date < '2005-07-01'::date)
+    "mpp2564_transactions_1_prt_1_check" CHECK (obligation_trans_date >= '06-01-2005'::date AND obligation_trans_date < '07-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_1
 Distributed randomly
 
@@ -2181,10 +2062,11 @@ Distributed randomly
  trade_sales_ind          | character(1)                | 
  create_date              | timestamp without time zone | 
 Check constraints:
-    "mpp2564_transactions_1_prt_2_check" CHECK (obligation_trans_date >= '2005-07-01'::date AND obligation_trans_date < '2005-08-01'::date)
+    "mpp2564_transactions_1_prt_2_check" CHECK (obligation_trans_date >= '07-01-2005'::date AND obligation_trans_date < '08-01-2005'::date)
 Inherits: mpp2564_transactions
 Number of child tables: 4 (Use \d+ to list them.)
 Distributed randomly
+Partition by: (company_no)
 
     Table "partition_ddl2.mpp2564_transactions_1_prt_2_2_prt_p1"
           Column          |            Type             | Modifiers 
@@ -2209,7 +2091,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_2_2_prt_p1_check" CHECK (company_no = '047'::bpchar)
-    "mpp2564_transactions_1_prt_2_check" CHECK (obligation_trans_date >= '2005-07-01'::date AND obligation_trans_date < '2005-08-01'::date)
+    "mpp2564_transactions_1_prt_2_check" CHECK (obligation_trans_date >= '07-01-2005'::date AND obligation_trans_date < '08-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_2
 Distributed randomly
 
@@ -2236,7 +2118,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_2_2_prt_p2_check" CHECK (company_no = '002'::bpchar)
-    "mpp2564_transactions_1_prt_2_check" CHECK (obligation_trans_date >= '2005-07-01'::date AND obligation_trans_date < '2005-08-01'::date)
+    "mpp2564_transactions_1_prt_2_check" CHECK (obligation_trans_date >= '07-01-2005'::date AND obligation_trans_date < '08-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_2
 Distributed randomly
 
@@ -2263,7 +2145,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_2_2_prt_p3_check" CHECK (company_no = '056'::bpchar)
-    "mpp2564_transactions_1_prt_2_check" CHECK (obligation_trans_date >= '2005-07-01'::date AND obligation_trans_date < '2005-08-01'::date)
+    "mpp2564_transactions_1_prt_2_check" CHECK (obligation_trans_date >= '07-01-2005'::date AND obligation_trans_date < '08-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_2
 Distributed randomly
 
@@ -2290,7 +2172,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_2_2_prt_p4_check" CHECK (company_no = '022'::bpchar)
-    "mpp2564_transactions_1_prt_2_check" CHECK (obligation_trans_date >= '2005-07-01'::date AND obligation_trans_date < '2005-08-01'::date)
+    "mpp2564_transactions_1_prt_2_check" CHECK (obligation_trans_date >= '07-01-2005'::date AND obligation_trans_date < '08-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_2
 Distributed randomly
 
@@ -2316,10 +2198,11 @@ Distributed randomly
  trade_sales_ind          | character(1)                | 
  create_date              | timestamp without time zone | 
 Check constraints:
-    "mpp2564_transactions_1_prt_3_check" CHECK (obligation_trans_date >= '2005-08-01'::date AND obligation_trans_date < '2005-09-01'::date)
+    "mpp2564_transactions_1_prt_3_check" CHECK (obligation_trans_date >= '08-01-2005'::date AND obligation_trans_date < '09-01-2005'::date)
 Inherits: mpp2564_transactions
 Number of child tables: 4 (Use \d+ to list them.)
 Distributed randomly
+Partition by: (company_no)
 
     Table "partition_ddl2.mpp2564_transactions_1_prt_3_2_prt_p1"
           Column          |            Type             | Modifiers 
@@ -2344,7 +2227,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_3_2_prt_p1_check" CHECK (company_no = '047'::bpchar)
-    "mpp2564_transactions_1_prt_3_check" CHECK (obligation_trans_date >= '2005-08-01'::date AND obligation_trans_date < '2005-09-01'::date)
+    "mpp2564_transactions_1_prt_3_check" CHECK (obligation_trans_date >= '08-01-2005'::date AND obligation_trans_date < '09-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_3
 Distributed randomly
 
@@ -2371,7 +2254,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_3_2_prt_p2_check" CHECK (company_no = '002'::bpchar)
-    "mpp2564_transactions_1_prt_3_check" CHECK (obligation_trans_date >= '2005-08-01'::date AND obligation_trans_date < '2005-09-01'::date)
+    "mpp2564_transactions_1_prt_3_check" CHECK (obligation_trans_date >= '08-01-2005'::date AND obligation_trans_date < '09-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_3
 Distributed randomly
 
@@ -2398,7 +2281,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_3_2_prt_p3_check" CHECK (company_no = '056'::bpchar)
-    "mpp2564_transactions_1_prt_3_check" CHECK (obligation_trans_date >= '2005-08-01'::date AND obligation_trans_date < '2005-09-01'::date)
+    "mpp2564_transactions_1_prt_3_check" CHECK (obligation_trans_date >= '08-01-2005'::date AND obligation_trans_date < '09-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_3
 Distributed randomly
 
@@ -2425,7 +2308,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_3_2_prt_p4_check" CHECK (company_no = '022'::bpchar)
-    "mpp2564_transactions_1_prt_3_check" CHECK (obligation_trans_date >= '2005-08-01'::date AND obligation_trans_date < '2005-09-01'::date)
+    "mpp2564_transactions_1_prt_3_check" CHECK (obligation_trans_date >= '08-01-2005'::date AND obligation_trans_date < '09-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_3
 Distributed randomly
 
@@ -2451,10 +2334,11 @@ Distributed randomly
  trade_sales_ind          | character(1)                | 
  create_date              | timestamp without time zone | 
 Check constraints:
-    "mpp2564_transactions_1_prt_4_check" CHECK (obligation_trans_date >= '2005-09-01'::date AND obligation_trans_date < '2005-10-01'::date)
+    "mpp2564_transactions_1_prt_4_check" CHECK (obligation_trans_date >= '09-01-2005'::date AND obligation_trans_date < '10-01-2005'::date)
 Inherits: mpp2564_transactions
 Number of child tables: 4 (Use \d+ to list them.)
 Distributed randomly
+Partition by: (company_no)
 
     Table "partition_ddl2.mpp2564_transactions_1_prt_4_2_prt_p1"
           Column          |            Type             | Modifiers 
@@ -2479,7 +2363,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_4_2_prt_p1_check" CHECK (company_no = '047'::bpchar)
-    "mpp2564_transactions_1_prt_4_check" CHECK (obligation_trans_date >= '2005-09-01'::date AND obligation_trans_date < '2005-10-01'::date)
+    "mpp2564_transactions_1_prt_4_check" CHECK (obligation_trans_date >= '09-01-2005'::date AND obligation_trans_date < '10-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_4
 Distributed randomly
 
@@ -2506,7 +2390,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_4_2_prt_p2_check" CHECK (company_no = '002'::bpchar)
-    "mpp2564_transactions_1_prt_4_check" CHECK (obligation_trans_date >= '2005-09-01'::date AND obligation_trans_date < '2005-10-01'::date)
+    "mpp2564_transactions_1_prt_4_check" CHECK (obligation_trans_date >= '09-01-2005'::date AND obligation_trans_date < '10-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_4
 Distributed randomly
 
@@ -2533,7 +2417,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_4_2_prt_p3_check" CHECK (company_no = '056'::bpchar)
-    "mpp2564_transactions_1_prt_4_check" CHECK (obligation_trans_date >= '2005-09-01'::date AND obligation_trans_date < '2005-10-01'::date)
+    "mpp2564_transactions_1_prt_4_check" CHECK (obligation_trans_date >= '09-01-2005'::date AND obligation_trans_date < '10-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_4
 Distributed randomly
 
@@ -2560,7 +2444,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_4_2_prt_p4_check" CHECK (company_no = '022'::bpchar)
-    "mpp2564_transactions_1_prt_4_check" CHECK (obligation_trans_date >= '2005-09-01'::date AND obligation_trans_date < '2005-10-01'::date)
+    "mpp2564_transactions_1_prt_4_check" CHECK (obligation_trans_date >= '09-01-2005'::date AND obligation_trans_date < '10-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_4
 Distributed randomly
 
@@ -2586,10 +2470,11 @@ Distributed randomly
  trade_sales_ind          | character(1)                | 
  create_date              | timestamp without time zone | 
 Check constraints:
-    "mpp2564_transactions_1_prt_5_check" CHECK (obligation_trans_date >= '2005-10-01'::date AND obligation_trans_date < '2005-11-01'::date)
+    "mpp2564_transactions_1_prt_5_check" CHECK (obligation_trans_date >= '10-01-2005'::date AND obligation_trans_date < '11-01-2005'::date)
 Inherits: mpp2564_transactions
 Number of child tables: 4 (Use \d+ to list them.)
 Distributed randomly
+Partition by: (company_no)
 
     Table "partition_ddl2.mpp2564_transactions_1_prt_5_2_prt_p1"
           Column          |            Type             | Modifiers 
@@ -2614,7 +2499,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_5_2_prt_p1_check" CHECK (company_no = '047'::bpchar)
-    "mpp2564_transactions_1_prt_5_check" CHECK (obligation_trans_date >= '2005-10-01'::date AND obligation_trans_date < '2005-11-01'::date)
+    "mpp2564_transactions_1_prt_5_check" CHECK (obligation_trans_date >= '10-01-2005'::date AND obligation_trans_date < '11-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_5
 Distributed randomly
 
@@ -2641,7 +2526,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_5_2_prt_p2_check" CHECK (company_no = '002'::bpchar)
-    "mpp2564_transactions_1_prt_5_check" CHECK (obligation_trans_date >= '2005-10-01'::date AND obligation_trans_date < '2005-11-01'::date)
+    "mpp2564_transactions_1_prt_5_check" CHECK (obligation_trans_date >= '10-01-2005'::date AND obligation_trans_date < '11-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_5
 Distributed randomly
 
@@ -2668,7 +2553,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_5_2_prt_p3_check" CHECK (company_no = '056'::bpchar)
-    "mpp2564_transactions_1_prt_5_check" CHECK (obligation_trans_date >= '2005-10-01'::date AND obligation_trans_date < '2005-11-01'::date)
+    "mpp2564_transactions_1_prt_5_check" CHECK (obligation_trans_date >= '10-01-2005'::date AND obligation_trans_date < '11-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_5
 Distributed randomly
 
@@ -2695,7 +2580,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_5_2_prt_p4_check" CHECK (company_no = '022'::bpchar)
-    "mpp2564_transactions_1_prt_5_check" CHECK (obligation_trans_date >= '2005-10-01'::date AND obligation_trans_date < '2005-11-01'::date)
+    "mpp2564_transactions_1_prt_5_check" CHECK (obligation_trans_date >= '10-01-2005'::date AND obligation_trans_date < '11-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_5
 Distributed randomly
 
@@ -2721,10 +2606,11 @@ Distributed randomly
  trade_sales_ind          | character(1)                | 
  create_date              | timestamp without time zone | 
 Check constraints:
-    "mpp2564_transactions_1_prt_6_check" CHECK (obligation_trans_date >= '2005-11-01'::date AND obligation_trans_date < '2005-12-01'::date)
+    "mpp2564_transactions_1_prt_6_check" CHECK (obligation_trans_date >= '11-01-2005'::date AND obligation_trans_date < '12-01-2005'::date)
 Inherits: mpp2564_transactions
 Number of child tables: 4 (Use \d+ to list them.)
 Distributed randomly
+Partition by: (company_no)
 
     Table "partition_ddl2.mpp2564_transactions_1_prt_6_2_prt_p1"
           Column          |            Type             | Modifiers 
@@ -2749,7 +2635,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_6_2_prt_p1_check" CHECK (company_no = '047'::bpchar)
-    "mpp2564_transactions_1_prt_6_check" CHECK (obligation_trans_date >= '2005-11-01'::date AND obligation_trans_date < '2005-12-01'::date)
+    "mpp2564_transactions_1_prt_6_check" CHECK (obligation_trans_date >= '11-01-2005'::date AND obligation_trans_date < '12-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_6
 Distributed randomly
 
@@ -2776,7 +2662,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_6_2_prt_p2_check" CHECK (company_no = '002'::bpchar)
-    "mpp2564_transactions_1_prt_6_check" CHECK (obligation_trans_date >= '2005-11-01'::date AND obligation_trans_date < '2005-12-01'::date)
+    "mpp2564_transactions_1_prt_6_check" CHECK (obligation_trans_date >= '11-01-2005'::date AND obligation_trans_date < '12-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_6
 Distributed randomly
 
@@ -2803,7 +2689,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_6_2_prt_p3_check" CHECK (company_no = '056'::bpchar)
-    "mpp2564_transactions_1_prt_6_check" CHECK (obligation_trans_date >= '2005-11-01'::date AND obligation_trans_date < '2005-12-01'::date)
+    "mpp2564_transactions_1_prt_6_check" CHECK (obligation_trans_date >= '11-01-2005'::date AND obligation_trans_date < '12-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_6
 Distributed randomly
 
@@ -2830,7 +2716,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_6_2_prt_p4_check" CHECK (company_no = '022'::bpchar)
-    "mpp2564_transactions_1_prt_6_check" CHECK (obligation_trans_date >= '2005-11-01'::date AND obligation_trans_date < '2005-12-01'::date)
+    "mpp2564_transactions_1_prt_6_check" CHECK (obligation_trans_date >= '11-01-2005'::date AND obligation_trans_date < '12-01-2005'::date)
 Inherits: mpp2564_transactions_1_prt_6
 Distributed randomly
 
@@ -2856,10 +2742,11 @@ Distributed randomly
  trade_sales_ind          | character(1)                | 
  create_date              | timestamp without time zone | 
 Check constraints:
-    "mpp2564_transactions_1_prt_7_check" CHECK (obligation_trans_date >= '2005-12-01'::date AND obligation_trans_date < '2006-01-01'::date)
+    "mpp2564_transactions_1_prt_7_check" CHECK (obligation_trans_date >= '12-01-2005'::date AND obligation_trans_date < '01-01-2006'::date)
 Inherits: mpp2564_transactions
 Number of child tables: 4 (Use \d+ to list them.)
 Distributed randomly
+Partition by: (company_no)
 
     Table "partition_ddl2.mpp2564_transactions_1_prt_7_2_prt_p1"
           Column          |            Type             | Modifiers 
@@ -2884,7 +2771,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_7_2_prt_p1_check" CHECK (company_no = '047'::bpchar)
-    "mpp2564_transactions_1_prt_7_check" CHECK (obligation_trans_date >= '2005-12-01'::date AND obligation_trans_date < '2006-01-01'::date)
+    "mpp2564_transactions_1_prt_7_check" CHECK (obligation_trans_date >= '12-01-2005'::date AND obligation_trans_date < '01-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_7
 Distributed randomly
 
@@ -2911,7 +2798,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_7_2_prt_p2_check" CHECK (company_no = '002'::bpchar)
-    "mpp2564_transactions_1_prt_7_check" CHECK (obligation_trans_date >= '2005-12-01'::date AND obligation_trans_date < '2006-01-01'::date)
+    "mpp2564_transactions_1_prt_7_check" CHECK (obligation_trans_date >= '12-01-2005'::date AND obligation_trans_date < '01-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_7
 Distributed randomly
 
@@ -2938,7 +2825,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_7_2_prt_p3_check" CHECK (company_no = '056'::bpchar)
-    "mpp2564_transactions_1_prt_7_check" CHECK (obligation_trans_date >= '2005-12-01'::date AND obligation_trans_date < '2006-01-01'::date)
+    "mpp2564_transactions_1_prt_7_check" CHECK (obligation_trans_date >= '12-01-2005'::date AND obligation_trans_date < '01-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_7
 Distributed randomly
 
@@ -2965,7 +2852,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_7_2_prt_p4_check" CHECK (company_no = '022'::bpchar)
-    "mpp2564_transactions_1_prt_7_check" CHECK (obligation_trans_date >= '2005-12-01'::date AND obligation_trans_date < '2006-01-01'::date)
+    "mpp2564_transactions_1_prt_7_check" CHECK (obligation_trans_date >= '12-01-2005'::date AND obligation_trans_date < '01-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_7
 Distributed randomly
 
@@ -2991,10 +2878,11 @@ Distributed randomly
  trade_sales_ind          | character(1)                | 
  create_date              | timestamp without time zone | 
 Check constraints:
-    "mpp2564_transactions_1_prt_8_check" CHECK (obligation_trans_date >= '2006-01-01'::date AND obligation_trans_date < '2006-02-01'::date)
+    "mpp2564_transactions_1_prt_8_check" CHECK (obligation_trans_date >= '01-01-2006'::date AND obligation_trans_date < '02-01-2006'::date)
 Inherits: mpp2564_transactions
 Number of child tables: 4 (Use \d+ to list them.)
 Distributed randomly
+Partition by: (company_no)
 
     Table "partition_ddl2.mpp2564_transactions_1_prt_8_2_prt_p1"
           Column          |            Type             | Modifiers 
@@ -3019,7 +2907,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_8_2_prt_p1_check" CHECK (company_no = '047'::bpchar)
-    "mpp2564_transactions_1_prt_8_check" CHECK (obligation_trans_date >= '2006-01-01'::date AND obligation_trans_date < '2006-02-01'::date)
+    "mpp2564_transactions_1_prt_8_check" CHECK (obligation_trans_date >= '01-01-2006'::date AND obligation_trans_date < '02-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_8
 Distributed randomly
 
@@ -3046,7 +2934,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_8_2_prt_p2_check" CHECK (company_no = '002'::bpchar)
-    "mpp2564_transactions_1_prt_8_check" CHECK (obligation_trans_date >= '2006-01-01'::date AND obligation_trans_date < '2006-02-01'::date)
+    "mpp2564_transactions_1_prt_8_check" CHECK (obligation_trans_date >= '01-01-2006'::date AND obligation_trans_date < '02-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_8
 Distributed randomly
 
@@ -3073,7 +2961,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_8_2_prt_p3_check" CHECK (company_no = '056'::bpchar)
-    "mpp2564_transactions_1_prt_8_check" CHECK (obligation_trans_date >= '2006-01-01'::date AND obligation_trans_date < '2006-02-01'::date)
+    "mpp2564_transactions_1_prt_8_check" CHECK (obligation_trans_date >= '01-01-2006'::date AND obligation_trans_date < '02-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_8
 Distributed randomly
 
@@ -3100,7 +2988,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_8_2_prt_p4_check" CHECK (company_no = '022'::bpchar)
-    "mpp2564_transactions_1_prt_8_check" CHECK (obligation_trans_date >= '2006-01-01'::date AND obligation_trans_date < '2006-02-01'::date)
+    "mpp2564_transactions_1_prt_8_check" CHECK (obligation_trans_date >= '01-01-2006'::date AND obligation_trans_date < '02-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_8
 Distributed randomly
 
@@ -3126,10 +3014,11 @@ Distributed randomly
  trade_sales_ind          | character(1)                | 
  create_date              | timestamp without time zone | 
 Check constraints:
-    "mpp2564_transactions_1_prt_9_check" CHECK (obligation_trans_date >= '2006-02-01'::date AND obligation_trans_date < '2006-03-01'::date)
+    "mpp2564_transactions_1_prt_9_check" CHECK (obligation_trans_date >= '02-01-2006'::date AND obligation_trans_date < '03-01-2006'::date)
 Inherits: mpp2564_transactions
 Number of child tables: 4 (Use \d+ to list them.)
 Distributed randomly
+Partition by: (company_no)
 
     Table "partition_ddl2.mpp2564_transactions_1_prt_9_2_prt_p1"
           Column          |            Type             | Modifiers 
@@ -3154,7 +3043,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_9_2_prt_p1_check" CHECK (company_no = '047'::bpchar)
-    "mpp2564_transactions_1_prt_9_check" CHECK (obligation_trans_date >= '2006-02-01'::date AND obligation_trans_date < '2006-03-01'::date)
+    "mpp2564_transactions_1_prt_9_check" CHECK (obligation_trans_date >= '02-01-2006'::date AND obligation_trans_date < '03-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_9
 Distributed randomly
 
@@ -3181,7 +3070,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_9_2_prt_p2_check" CHECK (company_no = '002'::bpchar)
-    "mpp2564_transactions_1_prt_9_check" CHECK (obligation_trans_date >= '2006-02-01'::date AND obligation_trans_date < '2006-03-01'::date)
+    "mpp2564_transactions_1_prt_9_check" CHECK (obligation_trans_date >= '02-01-2006'::date AND obligation_trans_date < '03-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_9
 Distributed randomly
 
@@ -3208,7 +3097,7 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_9_2_prt_p3_check" CHECK (company_no = '056'::bpchar)
-    "mpp2564_transactions_1_prt_9_check" CHECK (obligation_trans_date >= '2006-02-01'::date AND obligation_trans_date < '2006-03-01'::date)
+    "mpp2564_transactions_1_prt_9_check" CHECK (obligation_trans_date >= '02-01-2006'::date AND obligation_trans_date < '03-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_9
 Distributed randomly
 
@@ -3235,22 +3124,20 @@ Distributed randomly
  create_date              | timestamp without time zone | 
 Check constraints:
     "mpp2564_transactions_1_prt_9_2_prt_p4_check" CHECK (company_no = '022'::bpchar)
-    "mpp2564_transactions_1_prt_9_check" CHECK (obligation_trans_date >= '2006-02-01'::date AND obligation_trans_date < '2006-03-01'::date)
+    "mpp2564_transactions_1_prt_9_check" CHECK (obligation_trans_date >= '02-01-2006'::date AND obligation_trans_date < '03-01-2006'::date)
 Inherits: mpp2564_transactions_1_prt_9
 Distributed randomly
 
 DROP TABLE mpp2564_transactions;
-DROP TABLE
 CREATE TABLE mpp3363(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
 partition by range (a)
 ( partition aa start (1) end (10) every (1) );
-CREATE TABLE
+-- MPP-3363
 alter table mpp3363 add default partition default;
 ERROR:  syntax error at or near "default"
 LINE 1: alter table mpp3363 add default partition default;
                                                   ^
 drop table mpp3363;
-DROP TABLE
 -- start_matchsubs
 -- #Daylight savings for Pacific Time
 -- m/00:00-0\d/
@@ -3260,7 +3147,6 @@ DROP TABLE
 CREATE TABLE mpp3059(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
 partition by range (a)
 ( partition aa start (1) end (10) every (1) );
-CREATE TABLE
 select tablename, partitionlevel, partitiontablename, partitionname, partitionrank, partitionboundary from pg_partitions where tablename = 'mpp3059';
  tablename | partitionlevel | partitiontablename | partitionname | partitionrank |              partitionboundary              
 -----------+----------------+--------------------+---------------+---------------+---------------------------------------------
@@ -3276,7 +3162,6 @@ select tablename, partitionlevel, partitiontablename, partitionname, partitionra
 (9 rows)
 
 alter table mpp3059 rename to mpp3059_rename; 
-ALTER TABLE
 select tablename, partitionlevel, partitiontablename, partitionname, partitionrank, partitionboundary from pg_partitions where tablename = 'mpp3059_rename';
    tablename    | partitionlevel |    partitiontablename     | partitionname | partitionrank |              partitionboundary              
 ----------------+----------------+---------------------------+---------------+---------------+---------------------------------------------
@@ -3292,7 +3177,6 @@ select tablename, partitionlevel, partitiontablename, partitionname, partitionra
 (9 rows)
 
 alter table mpp3059_rename rename to mpp3059; 
-ALTER TABLE
 select tablename, partitionlevel, partitiontablename, partitionname, partitionrank, partitionboundary from pg_partitions where tablename = 'mpp3059';
  tablename | partitionlevel | partitiontablename | partitionname | partitionrank |              partitionboundary              
 -----------+----------------+--------------------+---------------+---------------+---------------------------------------------
@@ -3328,9 +3212,7 @@ CREATE TABLE mpp3059a (
 ) partition by range (unique1)
 subpartition by range (unique2) subpartition template ( start (0) end (1000) every (100) )
 ( start (0) end (1000) every (100));
-CREATE TABLE
 alter table mpp3059a rename to mpp3059a_rename; 
-ALTER TABLE
 select tablename, partitionlevel, partitiontablename, partitionname, partitionrank, partitionboundary from pg_partitions where tablename = 'mpp3059a_rename';
     tablename    | partitionlevel |        partitiontablename         | partitionname | partitionrank |         partitionboundary          
 -----------------+----------------+-----------------------------------+---------------+---------------+------------------------------------
@@ -3447,11 +3329,8 @@ select tablename, partitionlevel, partitiontablename, partitionname, partitionra
 (110 rows)
 
 create table mpp3216a (id int, rank int, year int, gender char(1), count int) distributed by (id); 
-CREATE TABLE
 create table mpp3216 (like mpp3216a) partition by range (year) ( start (2001) end (2006) every (1));
-CREATE TABLE
 alter table mpp3216 rename to mpp3216_rename;
-ALTER TABLE
 select tablename, partitionlevel, partitiontablename, partitionname, partitionrank, partitionboundary from pg_partitions where tablename = 'mpp3216_rename';
    tablename    | partitionlevel |   partitiontablename   | partitionname | partitionrank |         partitionboundary         
 ----------------+----------------+------------------------+---------------+---------------+-----------------------------------
@@ -3467,9 +3346,7 @@ partition by list (f2)
 ( partition pst values ('PST'),
   partition est values ('EST')
 );
-CREATE TABLE
 alter table mpp3059b rename partition pst to "pacific time"; 
-ALTER TABLE
 select tablename, partitionlevel, partitiontablename, partitionname, partitionrank, partitionboundary from pg_partitions where tablename = 'mpp3059b';
  tablename | partitionlevel |     partitiontablename      | partitionname | partitionrank |            partitionboundary            
 -----------+----------------+-----------------------------+---------------+---------------+-----------------------------------------
@@ -3487,11 +3364,8 @@ start (time '01:00')
 ( partition pst values ('PST'),
   partition est values ('EST')
 );
-CREATE TABLE
 alter table mpp3059c rename partition pst to pacific;
-ALTER TABLE
 alter table mpp3059c rename partition est to "Eastern Time";
-ALTER TABLE
 select tablename, partitionlevel, partitiontablename, partitionname, partitionrank, partitionboundary from pg_partitions where tablename = 'mpp3059c';
  tablename | partitionlevel |         partitiontablename          | partitionname | partitionrank |                                     partitionboundary                                     
 -----------+----------------+-------------------------------------+---------------+---------------+-------------------------------------------------------------------------------------------
@@ -3513,9 +3387,7 @@ subpartition template (
 ( partition pst values ('PST'),
   partition est values ('EST')
 );
-CREATE TABLE
 alter table mpp3059d rename partition pst to pacific;
-ALTER TABLE
 select tablename, partitionlevel, partitiontablename, partitionname, partitionrank, partitionboundary from pg_partitions where tablename = 'mpp3059d';
  tablename | partitionlevel |         partitiontablename          | partitionname | partitionrank |             partitionboundary             
 -----------+----------------+-------------------------------------+---------------+---------------+-------------------------------------------
@@ -3528,51 +3400,32 @@ select tablename, partitionlevel, partitiontablename, partitionname, partitionra
 (6 rows)
 
 drop table mpp3059;
-DROP TABLE
 drop table mpp3059a_rename;
-DROP TABLE
 drop table mpp3059b;
-DROP TABLE
 drop table mpp3059c;
-DROP TABLE
 drop table mpp3059d;
-DROP TABLE
 drop table mpp3216a;
-DROP TABLE
 drop table mpp3216_rename;
-DROP TABLE
 create table test_khush (a integer, b date, c varchar(30))
 partition by range(b)
 ( start ('2008-01-01') end ('2008-04-01') );
-CREATE TABLE
 Insert into test_khush values (1, '01-Jan-2008', 'abc');
-INSERT 0 1
 Insert into test_khush values (2, '01-Feb-2008', 'jhg');
-INSERT 0 1
 Insert into test_khush values (3, '01-Mar-2008', 'xyz');
-INSERT 0 1
 alter table test_khush add column d varchar(20);
-ALTER TABLE
 insert into test_khush values (5,'05-Feb-2008','hgjhg','Test');
-INSERT 0 1
 drop table test_khush;
-DROP TABLE
 CREATE TABLE mpp3244(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
 partition by range (a)
 subpartition by range (b) subpartition template ( start (1) end (10) every (1))( partition aa start (1) end (10) every (1) );
-CREATE TABLE
 CREATE TABLE mpp3244a(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
 partition by range (a)
 subpartition by range (b) subpartition template ( start (1) end (10) every (1))( partition aa start (1) end (11) every (1) );
-CREATE TABLE
 insert into mpp3244 (a,b) values (10,1);
 ERROR:  no partition for partitioning key  (seg2 localhost:18509 pid=12168)
 insert into mpp3244a (a,b) values (10,1);
-INSERT 0 1
 alter table mpp3244 add partition bb end (11);
-ALTER TABLE
 insert into mpp3244 (a,b) values (10,1);
-INSERT 0 1
 select count(*) from mpp3244;
  count 
 -------
@@ -3586,9 +3439,7 @@ select count(*) from mpp3244a;
 (1 row)
 
 drop table mpp3244;
-DROP TABLE
 drop table mpp3244a;
-DROP TABLE
 CREATE TABLE mpp3256 (
         unique1         int4,
         unique2         int4,
@@ -3609,29 +3460,18 @@ CREATE TABLE mpp3256 (
 ) partition by range (unique1)
 subpartition by range (unique2) subpartition template ( start (0) end (1000) every (100) )
 ( start (0) end (1000) every (100));
-CREATE TABLE
 alter table mpp3256 add default partition default_part;
-ALTER TABLE
 alter table mpp3256 drop partition default_part;
-ALTER TABLE
 alter table mpp3256 add default partition default_part;
-ALTER TABLE
 alter table mpp3256 drop partition default_part;
-ALTER TABLE
 alter table mpp3256 add default partition default_part;
-ALTER TABLE
 alter table mpp3256 drop partition default_part;
-ALTER TABLE
 alter table mpp3256 add default partition default_part;
-ALTER TABLE
 alter table mpp3256 drop partition default_part;
-ALTER TABLE
 alter table mpp3256 add default partition default_part;
-ALTER TABLE
 alter table mpp3256 drop partition default_part;
-ALTER TABLE
 drop table mpp3256;
-DROP TABLE
+-- Examples from Documentation
 CREATE TABLE mpp3377_sales (trans_id int, date date, amount decimal(9,2), region text)
 DISTRIBUTED BY (trans_id)
 PARTITION BY RANGE (date)
@@ -3643,7 +3483,8 @@ SUBPARTITION europe VALUES ('europe') )
 ( START (date '2008-01-01') INCLUSIVE
 END (date '2009-01-01') EXCLUSIVE
 EVERY (INTERVAL '1 month') );
-CREATE TABLE
+-- Note from Jeff: MPP-3377
+-- since you already defined a template for your subpartition, you cannot specify it again in ADD (this now matches the behavior of CREATE TABLE).
 ALTER TABLE mpp3377_sales ADD PARTITION
 START (date '2009-02-01') INCLUSIVE
 END (date '2009-03-01') EXCLUSIVE
@@ -3658,14 +3499,11 @@ END (date '2009-03-01') EXCLUSIVE
 SUBPARTITION asia VALUES ('asia'),
 SUBPARTITION europe VALUES ('europe') );
 ERROR:  subpartition configuration conflicts with subpartition template
+-- This is the new way
 ALTER TABLE mpp3377_sales ADD PARTITION START (date '2009-02-01') INCLUSIVE END (date '2009-03-01') EXCLUSIVE;
-ALTER TABLE
 ALTER TABLE mpp3377_sales ADD PARTITION START (date '2009-02-01') INCLUSIVE END (date '2009-03-01') EXCLUSIVE;
 ERROR:  new partition overlaps existing partition
 DROP TABLE mpp3377_sales;
-DROP TABLE
--- start_ignore
--- end_ignore
 CREATE TABLE mpp3250 (
         unique1         int4,
         unique2         int4,
@@ -3686,15 +3524,9 @@ CREATE TABLE mpp3250 (
 ) partition by range (unique1)
 subpartition by range (unique2) subpartition template ( start (0) end (1000) every (100) )
 ( start (0) end (1000) every (100));
-CREATE TABLE
 alter table mpp3250 add default partition default_part;
-ALTER TABLE
-copy mpp3250 from '@abs_srcdir@/_data/onek.data';
-COPY 1000
+copy mpp3250 from '@abs_srcdir@/data/onek.data';
 drop table mpp3250;
-DROP TABLE
--- start_ignore
--- end_ignore
 CREATE TABLE mpp3375 (
         unique1         int4,
         unique2         int4,
@@ -3713,9 +3545,7 @@ CREATE TABLE mpp3375 (
         stringu2        name,
         string4         name
 );
-CREATE TABLE
-copy mpp3375 from '@abs_srcdir@/_data/onek.data';
-COPY 1000
+copy mpp3375 from '@abs_srcdir@/data/onek.data';
 CREATE TABLE mpp3375a (
         unique1         int4,
         unique2         int4,
@@ -3736,94 +3566,18 @@ CREATE TABLE mpp3375a (
 ) partition by range (unique1)
 subpartition by range (unique2) subpartition template ( start (0) end (1000) every (100) )
 ( start (0) end (1000) every (100));
-CREATE TABLE
 insert into mpp3375a select * from mpp3375;
-INSERT 0 1000
 alter table mpp3375a add default partition default_part;
-ALTER TABLE
 alter table mpp3375a drop partition;
-ALTER TABLE
 alter table mpp3375a drop partition default_part;
-ALTER TABLE
 drop table mpp3375a;
-DROP TABLE
 drop table mpp3375;
-DROP TABLE
 CREATE TABLE mpp3241(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
 partition by range (a)
 ( partition aa start (1) end (10) every (1) );
-CREATE TABLE
 alter table mpp3241 add partition zz start (-1) end (0);
-ALTER TABLE
 DROP TABLE mpp3241;
-DROP TABLE
 set enable_partition_rules = off;
-SET
-CREATE TABLE mpp3373 (a int, b date, c char, d char(4), e varchar(20), f timestamp)
-partition by range (b)
-subpartition by list (a) subpartition template ( subpartition l1 values (1,2,3,4,5), subpartition l2 values (6,7,8,9,10) ),
-subpartition by list (e) subpartition template ( subpartition ll1 values ('Engineering'), subpartition ll2 values ('QA') ),
-subpartition by list (c) subpartition template ( subpartition lll1 values ('M'), subpartition lll2 values ('F') )
-(
-  start (date '2007-01-01')
-  end (date '2010-01-01') every (interval '1 year')
-);
-CREATE TABLE
--- start_ignore
-\! gp_dump gptest
-20080908:14:10:4|gp_dump-[INFO]:-Preparing to dump the following segments:
-20080908:14:10:4|gp_dump-[INFO]:-Master (dbid 1)
-20080908:14:10:4|gp_dump-[INFO]:-Primary segment 0 (dbid 2)
-20080908:14:10:4|gp_dump-[INFO]:-Primary segment 1 (dbid 3)
-20080908:14:10:4|gp_dump-[INFO]:-Primary segment 2 (dbid 4)
-20080908:14:10:4|gp_dump-[INFO]:-Command line options analyzed.
-20080908:14:10:4|gp_dump-[INFO]:-Connecting to master database on host localhost port 18501 database gptest.
-20080908:14:10:4|gp_dump-[INFO]:-Reading Greenplum Database configuration info from master database.
-20080908:14:10:4|gp_dump-[INFO]:-Starting a transaction on master database gptest.
-20080908:14:10:4|gp_dump-[INFO]:-Getting a list of Greenplum Database managed tables for database gptest.
-20080908:14:10:4|gp_dump-[INFO]:-Issuing "LOCK IN EXCLUSIVE MODE" for managed tables on database gptest.
-20080908:14:10:4|gp_dump-[INFO]:-About to spin off 4 threads with timestamp key 20080908141048
-20080908:14:10:4|gp_dump-[INFO]:-Creating thread to backup dbid 1: host minithump10 port 18501 database gptest
-20080908:14:10:4|gp_dump-[INFO]:-Creating thread to backup dbid 2: host localhost port 18507 database gptest
-20080908:14:10:4|gp_dump-[INFO]:-Creating thread to backup dbid 3: host localhost port 18508 database gptest
-20080908:14:10:4|gp_dump-[INFO]:-Creating thread to backup dbid 4: host localhost port 18509 database gptest
-20080908:14:10:4|gp_dump-[INFO]:-Waiting for remote gp_dump_agent processes to start transactions in serializable isolation level
-20080908:14:10:4|gp_dump-[INFO]:-Listening for messages from server on dbid 1 connection
-20080908:14:10:4|gp_dump-[INFO]:-Successfully launched Greenplum Database backup on dbid 1 server
-20080908:14:10:4|gp_dump-[INFO]:-Listening for messages from server on dbid 3 connection
-20080908:14:10:4|gp_dump-[INFO]:-Listening for messages from server on dbid 2 connection
-20080908:14:10:4|gp_dump-[INFO]:-Successfully launched Greenplum Database backup on dbid 3 server
-20080908:14:10:4|gp_dump-[INFO]:-Successfully launched Greenplum Database backup on dbid 2 server
-20080908:14:10:4|gp_dump-[INFO]:-Listening for messages from server on dbid 4 connection
-20080908:14:10:4|gp_dump-[INFO]:-Successfully launched Greenplum Database backup on dbid 4 server
-20080908:14:10:5|gp_dump-[INFO]:-backup succeeded for dbid 1 on host minithump10
-20080908:14:10:5|gp_dump-[INFO]:-backup succeeded for dbid 3 on host localhost
-20080908:14:10:5|gp_dump-[INFO]:-backup succeeded for dbid 2 on host localhost
-20080908:14:10:5|gp_dump-[INFO]:-20080908:14:10:5|gp_dump-[INFO]:-backup succeeded for dbid 4 on host localhost
-All remote gp_dump_agent processes have set transacactions in serializable isolation level
-20080908:14:10:5|gp_dump-[INFO]:-Committing transaction on the master database, thereby releasing locks.
-20080908:14:10:5|gp_dump-[INFO]:-Waiting for all remote gp_dump_agent programs to finish.
-20080908:14:10:5|gp_dump-[INFO]:-All remote gp_dump_agent programs are finished.
-20080908:14:10:5|gp_dump-[INFO]:-Report results also written to ./gp_dump_20080908141048.rpt.
-
-Greenplum Database Backup Report
-Timestamp Key: 20080908141048
-gp_dump Command Line: gptest
-Pass through Command Line Options: None
-Compression Program: None
-
-Individual Results
-	Master (dbid 1) Host minithump10 Port 18501 Database gptest BackupFile /export/home/jsoedomo/gpdemo/datadirs/qddir/demoDataDir-1/./gp_dump_1_1_20080908141048: Succeeded 
-	Primary segment 0 (dbid 2) Host localhost Port 18507 Database gptest BackupFile /export/home/jsoedomo/gpdemo/datadirs/dbfast1/demoDataDir0/./gp_dump_0_2_20080908141048: Succeeded 
-	Primary segment 1 (dbid 3) Host localhost Port 18508 Database gptest BackupFile /export/home/jsoedomo/gpdemo/datadirs/dbfast2/demoDataDir1/./gp_dump_0_3_20080908141048: Succeeded 
-	Primary segment 2 (dbid 4) Host localhost Port 18509 Database gptest BackupFile /export/home/jsoedomo/gpdemo/datadirs/dbfast3/demoDataDir2/./gp_dump_0_4_20080908141048: Succeeded 
-
-gp_dump utility finished successfully.
--- end_ignore
-drop table mpp3373;
-DROP TABLE
--- start_ignore
--- end_ignore
 CREATE TABLE mpp3438 (
         unique1         int4,
         unique2         int4,
@@ -3847,15 +3601,12 @@ subpartition by list (unique2)
 partition aa values (1,2,3,4,5,6,7,8,9,10) (subpartition cc values (1,2,3), subpartition dd values (4,5,6) ),
 partition bb values (11,12,13,14,15,16,17,18,19,20) (subpartition cc values (1,2,3), subpartition dd values (4,5,6) )
 );
-CREATE TABLE
 -- This should fail
 alter table mpp3438 add default partition default_part;
-psql:/path/sql_file:1: ERROR:  no partitions specified at depth 2
+ERROR:  no partitions specified at depth 2
 -- This should be the correct way
 alter table mpp3438 add default partition default_part (default subpartition def2);
-ALTER TABLE
 alter table mpp3438 alter partition aa add default partition def3;
-ALTER TABLE
 \d mpp3438*
   Table "partition_ddl2.mpp3438"
    Column    |  Type   | Modifiers 
@@ -3878,6 +3629,7 @@ ALTER TABLE
  string4     | name    | 
 Number of child tables: 3 (Use \d+ to list them.)
 Distributed by: (unique1)
+Partition by: (unique1)
 
 Table "partition_ddl2.mpp3438_1_prt_aa"
    Column    |  Type   | Modifiers 
@@ -3903,6 +3655,7 @@ Check constraints:
 Inherits: mpp3438
 Number of child tables: 3 (Use \d+ to list them.)
 Distributed by: (unique1)
+Partition by: (unique2)
 
 Table "partition_ddl2.mpp3438_1_prt_aa_2_prt_cc"
    Column    |  Type   | Modifiers 
@@ -4002,6 +3755,7 @@ Check constraints:
 Inherits: mpp3438
 Number of child tables: 2 (Use \d+ to list them.)
 Distributed by: (unique1)
+Partition by: (unique2)
 
 Table "partition_ddl2.mpp3438_1_prt_bb_2_prt_cc"
    Column    |  Type   | Modifiers 
@@ -4075,6 +3829,7 @@ Table "partition_ddl2.mpp3438_1_prt_default_part"
 Inherits: mpp3438
 Number of child tables: 1 (Use \d+ to list them.)
 Distributed by: (unique1)
+Partition by: (unique2)
 
 Table "partition_ddl2.mpp3438_1_prt_default_part_2_prt_def2"
    Column    |  Type   | Modifiers 
@@ -4099,11 +3854,7 @@ Inherits: mpp3438_1_prt_default_part
 Distributed by: (unique1)
 
 drop table mpp3438;
-DROP TABLE
--- start_ignore
--- end_ignore
 set enable_partition_rules = false;
-SET
 CREATE TABLE mpp3261 (
         unique1         int4,
         unique2         int4,
@@ -4122,9 +3873,7 @@ CREATE TABLE mpp3261 (
         stringu2        name,
         string4         name
 );
-CREATE TABLE
-copy mpp3261 from '@abs_srcdir@/_data/onek.data';
-COPY 1000
+copy mpp3261 from '@abs_srcdir@/data/onek.data';
 CREATE TABLE mpp3261_part (
         unique1         int4,
         unique2         int4,
@@ -4144,45 +3893,29 @@ CREATE TABLE mpp3261_part (
         string4         name
 ) partition by range (unique1)
 ( partition aa start (0) end (1000) every (100), default partition default_part );
-CREATE TABLE
 alter table mpp3261_part drop partition;
-ALTER TABLE
 alter table mpp3261_part drop partition;
-ALTER TABLE
 alter table mpp3261_part drop partition;
-ALTER TABLE
 alter table mpp3261_part drop partition;
-ALTER TABLE
 alter table mpp3261_part drop partition;
-ALTER TABLE
 alter table mpp3261_part drop partition;
-ALTER TABLE
 alter table mpp3261_part drop partition;
-ALTER TABLE
 alter table mpp3261_part drop partition;
-ALTER TABLE
 alter table mpp3261_part drop partition;
-ALTER TABLE
 alter table mpp3261_part drop partition;
-ALTER TABLE
 -- Last partition, cannot be dropped, only default partition is left
 alter table mpp3261_part drop partition;
-psql:/path/sql_file:1: ERROR:  partition for rank 1 of relation "mpp3261_part" does not exist
+ERROR:  partition for rank 1 of relation "mpp3261_part" does not exist
 -- Shouldn't take a long time to insert
 insert into mpp3261_part select * from mpp3261;
-INSERT 0 1000
 drop table mpp3261;
-DROP TABLE
 drop table mpp3261_part;
-DROP TABLE
 CREATE TABLE mpp3079(q1 int8, q2 int8)
 partition by range (q1)
 (start (1) end (10) every (1));
-CREATE TABLE
 CREATE TABLE mpp3079a(q1 int2, q2 int2)
 partition by range (q1)
 (start (1) end (10) every (1));
-CREATE TABLE
 select tablename, partitionlevel, partitiontablename, partitionname, partitionrank, partitionboundary from pg_partitions where tablename = 'mpp3079';
  tablename | partitionlevel | partitiontablename | partitionname | partitionrank |              partitionboundary               
 -----------+----------------+--------------------+---------------+---------------+----------------------------------------------
@@ -4212,15 +3945,12 @@ select tablename, partitionlevel, partitiontablename, partitionname, partitionra
 (9 rows)
 
 drop table mpp3079;
-DROP TABLE
 drop table mpp3079a;
-DROP TABLE
 CREATE TABLE mpp3242(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
 partition by range (a)
 ( partition aa start (1) end (10) every (1) );
-CREATE TABLE
 alter table mpp3242 add default partition default_part;
-ALTER TABLE
+-- Needs to use ALTER SPLIT instead of ADD. It's not automatic. MPP-3242
 alter table mpp3242 add partition zz start ('-1') end (0);
 ERROR:  cannot add RANGE partition "zz" to relation "mpp3242" with DEFAULT partition "default_part"
 HINT:  need to SPLIT partition "default_part"
@@ -4240,7 +3970,6 @@ select tablename, partitionlevel, partitiontablename, partitionname, partitionra
 (10 rows)
 
 drop table mpp3242;
-DROP TABLE
 CREATE TABLE mpp3523 (f1 time(2) with time zone)
 partition by range (f1)
 (
@@ -4250,8 +3979,10 @@ partition by range (f1)
 ERROR:  starting value of partition "Los Angeles_1" overlaps previous range
 LINE 4:   partition "Los Angeles" start (time with time zone '00:00 ...
                                   ^
+-- Tries to truncate first, but the partition name is still too long, so ERROR
 alter table mpp3523 rename partition "Los Angeles_1" to "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
 ERROR:  relation "mpp3523" does not exist
+-- Truncates the table name to mpp3523_0000000000111111111122222222223333333333444444444455555
 CREATE TABLE mpp3523_000000000011111111112222222222333333333344444444445555555555556666666666777777777788888888889999999999 (f1 time(2) with time zone)
 partition by range (f1)
 (
@@ -4261,14 +3992,18 @@ partition by range (f1)
 ERROR:  starting value of partition "Los Angeles_1" overlaps previous range
 LINE 4:   partition "Los Angeles" start (time with time zone '00:00 ...
                                   ^
+-- Truncates the table name to mpp3523_0000000000111111111122222222223333333333444444444455555, but partition name is too long, so ERROR
 alter table mpp3523_000000000011111111112222222222333333333344444444445555555555556666666666777777777788888888889999999999 rename partition "Los Angeles_1" to "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
 ERROR:  relation "mpp3523_0000000000111111111122222222223333333333444444444455555" does not exist
+-- Truncates the table name to mpp3523_0000000000111111111122222222223333333333444444444455555, and partition name is safe, so renamed
 alter table mpp3523_000000000011111111112222222222333333333344444444445555555555556666666666777777777788888888889999999999 rename partition "Los Angeles_1" to "LA1";
 ERROR:  relation "mpp3523_0000000000111111111122222222223333333333444444444455555" does not exist
+-- Use the actual table name
 alter table mpp3523_0000000000111111111122222222223333333333444444444455555 rename partition "Los Angeles_2" to "LA2";
 ERROR:  relation "mpp3523_0000000000111111111122222222223333333333444444444455555" does not exist
 drop table mpp3523;
 ERROR:  table "mpp3523" does not exist
+-- Truncates the table name to mpp3523_0000000000111111111122222222223333333333444444444455555
 drop table mpp3523_000000000011111111112222222222333333333344444444445555555555556666666666777777777788888888889999999999;
 ERROR:  table "mpp3523_0000000000111111111122222222223333333333444444444455555" does not exist
 CREATE TABLE mpp3260 (
@@ -4290,35 +4025,24 @@ CREATE TABLE mpp3260 (
         string4         name
 ) partition by range (unique1)
 ( partition aa start (0) end (1000) every (100), default partition default_part );
-CREATE TABLE
+-- Not Allowed to drop partition table directly
 drop table mpp3260_1_prt_aa_6;
 ERROR:  cannot drop partition "mpp3260_1_prt_aa_6" directly
 HINT:  Table "mpp3260_1_prt_aa_6" is a child partition of table "mpp3260".  To drop it, use ALTER TABLE "mpp3260" DROP PARTITION "aa_6"...
 alter table mpp3260 drop partition;
-ALTER TABLE
 alter table mpp3260 drop partition;
-ALTER TABLE
 alter table mpp3260 drop partition;
-ALTER TABLE
 alter table mpp3260 drop partition;
-ALTER TABLE
 alter table mpp3260 drop partition;
-ALTER TABLE
 alter table mpp3260 drop partition;
-ALTER TABLE
 alter table mpp3260 drop partition;
-ALTER TABLE
 alter table mpp3260 drop partition;
-ALTER TABLE
 alter table mpp3260 drop partition;
-ALTER TABLE
 alter table mpp3260 drop partition;
-ALTER TABLE
 drop table mpp3260_1_prt_default_part ;
 ERROR:  cannot drop partition "mpp3260_1_prt_default_part" directly
 HINT:  Table "mpp3260_1_prt_default_part" is a child partition of table "mpp3260".  To drop it, use ALTER TABLE "mpp3260" DROP PARTITION "default_part"...
 insert into mpp3260 (unique1) values (1);
-INSERT 0 1
 CREATE TABLE mpp3260a (
         unique1         int4,
         unique2         int4,
@@ -4339,28 +4063,20 @@ CREATE TABLE mpp3260a (
 ) partition by range (unique1)
 subpartition by range (unique2) subpartition template ( start (0) end (1000) every (100) )
 ( start (0) end (1000) every (100));
-CREATE TABLE
+-- Not Allowed to drop partition table directly
 drop table mpp3260a_1_prt_10;
 ERROR:  cannot drop partition "mpp3260a_1_prt_10" directly
 HINT:  Table "mpp3260a_1_prt_10" is a child partition of table "mpp3260a".  To drop it, use ALTER TABLE "mpp3260a" DROP PARTITION FOR(RANK(10))...
 alter table mpp3260a drop partition;
-ALTER TABLE
 alter table mpp3260a drop partition;
-ALTER TABLE
 alter table mpp3260a drop partition;
-ALTER TABLE
 alter table mpp3260a drop partition;
-ALTER TABLE
 alter table mpp3260a drop partition;
-ALTER TABLE
 alter table mpp3260a drop partition;
-ALTER TABLE
 alter table mpp3260a drop partition;
-ALTER TABLE
 alter table mpp3260a drop partition;
-ALTER TABLE
 alter table mpp3260a drop partition;
-ALTER TABLE
+-- Last subpartition, cannot be dropped
 alter table mpp3260a drop partition;
 ERROR:  cannot drop partition for rank 1 of relation "mpp3260a" -- only one remains
 HINT:  Use DROP TABLE "mpp3260a" to remove the table and the final partition
@@ -4368,37 +4084,28 @@ drop table mpp3260a_1_prt_10;
 ERROR:  cannot drop partition "mpp3260a_1_prt_10" directly
 HINT:  Table "mpp3260a_1_prt_10" is a child partition of table "mpp3260a".  To drop it, use ALTER TABLE "mpp3260a" DROP PARTITION FOR(RANK(1))...
 drop table mpp3260;
-DROP TABLE
 drop table mpp3260a;
-DROP TABLE
 CREATE TABLE mpp3080_int8(q1 int8, q2 int8)
 partition by range (q1)
 (start (1) end (10) every (1));
-CREATE TABLE
 CREATE TABLE mpp3080_float4 (f1  float4)
 partition by range (f1)
 (start (1) end (10) every (1));
-CREATE TABLE
 CREATE TABLE mpp3080_float8(i INT DEFAULT 1, f1 float8)
 partition by range (f1)
 (start (1) end (10) every (1));
-CREATE TABLE
 CREATE TABLE mpp3080_floatreal(i INT DEFAULT 1, f1 float(24))
 partition by range (f1)
 (start (1) end (10) every (1));
-CREATE TABLE
 CREATE TABLE mpp3080_floatdouble(i INT DEFAULT 1, f1 float(53))
 partition by range (f1)
 (start (1) end (10) every (1));
-CREATE TABLE
 CREATE TABLE mpp3080_numeric (id int4, val numeric(210,10))
 partition by range (val)
 (start (1) end (10) every (1));
-CREATE TABLE
 CREATE TABLE mpp3080_numericbig (id int4, val numeric(1000,800))
 partition by range (val)
 (start (1) end (10) every (1));
-CREATE TABLE
 -- order 1,5
 select tablename, partitionlevel, partitiontablename, partitionname, partitionrank, partitionboundary 
   from pg_partitions where tablename like 'mpp3080%' order by tablename;
@@ -4470,19 +4177,12 @@ select tablename, partitionlevel, partitiontablename, partitionname, partitionra
 (63 rows)
 
 drop table mpp3080_int8;
-DROP TABLE
 drop table mpp3080_float4;
-DROP TABLE
 drop table mpp3080_float8;
-DROP TABLE
 drop table mpp3080_floatreal;
-DROP TABLE
 drop table mpp3080_floatdouble;
-DROP TABLE
 drop table mpp3080_numeric;
-DROP TABLE
 drop table mpp3080_numericbig;
-DROP TABLE
 create temp TABLE temp_hour_range (f1 time(2))
 partition by range (f1)
 (

@@ -1,25 +1,5 @@
--- start_ignore
--- end_ignore
---start_ignore
-drop schema mpp7164 cascade;
-psql:/path/sql_file:1: NOTICE:  drop cascades to view mpp7164.partagain
-psql:/path/sql_file:1: NOTICE:  drop cascades to rule _RETURN on view mpp7164.partagain
-psql:/path/sql_file:1: NOTICE:  drop cascades to view mpp7164.partrank
-psql:/path/sql_file:1: NOTICE:  drop cascades to rule _RETURN on view mpp7164.partrank
-psql:/path/sql_file:1: NOTICE:  drop cascades to view mpp7164.partlist
-psql:/path/sql_file:1: NOTICE:  drop cascades to rule _RETURN on view mpp7164.partlist
-DROP SCHEMA
 create schema mpp7164;
-CREATE SCHEMA
-set search_path=mpp7164;
-SET
-\i @abs_srcdir@/pviews.sql
-drop view partlist cascade;
-psql:/path/sql_file:1: ERROR:  view "partlist" does not exist
-drop view partrank cascade;
-psql:/path/sql_file:1: ERROR:  view "partrank" does not exist
-drop view partagain cascade;
-psql:/path/sql_file:1: ERROR:  view "partagain" does not exist
+set search_path = mpp7164;
 create view partlist as
   select
     pt.parrelid::regclass as ptable, 
@@ -37,7 +17,6 @@ create view partlist as
       pg_partition_rule ppr
       on (pr.parparentrule = ppr.oid)
   where pt.oid = pr.paroid;
-CREATE VIEW
 create view partrank as
   select 
       p1.schemaname, 
@@ -125,7 +104,6 @@ create view partrank as
           cl2.oid = pr1.parchildrelid and 
           cl.relnamespace = n.oid and 
           cl2.relnamespace = n2.oid) p1;
-CREATE VIEW
 create view partagain as
   select 
       p1.schemaname, 
@@ -213,8 +191,6 @@ create view partagain as
           cl2.oid = pr1.parchildrelid and 
           cl.relnamespace = n.oid and 
           cl2.relnamespace = n2.oid) p1;
-CREATE VIEW
---end_ignore
 create table mpp7164r (a int, b text, c int)
     distributed by (a,b,c)
     partition by range (a)
@@ -223,13 +199,15 @@ create table mpp7164r (a int, b text, c int)
         end (2) exclusive
         every (1)
     );
-psql:/path/sql_file:1: NOTICE:  CREATE TABLE will create partition "mpp7164r_1_prt_1" for table "mpp7164r"
-psql:/path/sql_file:1: NOTICE:  CREATE TABLE will create partition "mpp7164r_1_prt_2" for table "mpp7164r"
-CREATE TABLE
-select * from partlist where ptable='mpp7164r' order by ptemplate, plevel, rrank;
-psql:/path/sql_file:1: ERROR:  invalid input syntax for type oid: "mpp7164r"
-LINE 1: select * from partlist where ptable='mpp7164r' order by ptem...
-                                           ^
+NOTICE:  CREATE TABLE will create partition "mpp7164r_1_prt_1" for table "mpp7164r"
+NOTICE:  CREATE TABLE will create partition "mpp7164r_1_prt_2" for table "mpp7164r"
+select * from partlist where ptable='mpp7164r'::regclass order by ptemplate, plevel, rrank;
+  ptable  | plevel | ptemplate | pkind |      rchild      | rname | rrank | rparent 
+----------+--------+-----------+-------+------------------+-------+-------+---------
+ mpp7164r |      0 | f         | r     | mpp7164r_1_prt_1 |       |     1 | 
+ mpp7164r |      0 | f         | r     | mpp7164r_1_prt_2 |       |     2 | 
+(2 rows)
+
 select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partrank where tablename='mpp7164r';
  tablename | partitionlevel | partitiontablename | partitionname | partitionrank 
 -----------+----------------+--------------------+---------------+---------------
@@ -244,16 +222,15 @@ select tablename, partitionlevel,  partitiontablename, partitionname, partitionr
  mpp7164r  |              0 | mpp7164r_1_prt_2   |               |             2
 (2 rows)
 
-alter table mpp7164r
-rename partition for (rank(1)) to r1;
-ALTER TABLE
-alter table mpp7164r
-rename partition for (rank(2)) to r2;
-ALTER TABLE
-select * from partlist where ptable='mpp7164r' order by ptemplate, plevel, rrank;
-psql:/path/sql_file:1: ERROR:  invalid input syntax for type oid: "mpp7164r"
-LINE 1: select * from partlist where ptable='mpp7164r' order by ptem...
-                                           ^
+alter table mpp7164r rename partition for (rank(1)) to r1;
+alter table mpp7164r rename partition for (rank(2)) to r2;
+select * from partlist where ptable='mpp7164r'::regclass order by ptemplate, plevel, rrank;
+  ptable  | plevel | ptemplate | pkind |      rchild       | rname | rrank | rparent 
+----------+--------+-----------+-------+-------------------+-------+-------+---------
+ mpp7164r |      0 | f         | r     | mpp7164r_1_prt_r1 | r1    |     1 | 
+ mpp7164r |      0 | f         | r     | mpp7164r_1_prt_r2 | r2    |     2 | 
+(2 rows)
+
 select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partrank where tablename='mpp7164r';
  tablename | partitionlevel | partitiontablename | partitionname | partitionrank 
 -----------+----------------+--------------------+---------------+---------------
@@ -268,14 +245,15 @@ select tablename, partitionlevel,  partitiontablename, partitionname, partitionr
  mpp7164r  |              0 | mpp7164r_1_prt_r2  | r2            |             2
 (2 rows)
 
-alter table mpp7164r
-add default partition d;
-psql:/path/sql_file:1: NOTICE:  CREATE TABLE will create partition "mpp7164r_1_prt_d" for table "mpp7164r"
-ALTER TABLE
-select * from partlist where ptable='mpp7164r' order by ptemplate, plevel, rrank;
-psql:/path/sql_file:1: ERROR:  invalid input syntax for type oid: "mpp7164r"
-LINE 1: select * from partlist where ptable='mpp7164r' order by ptem...
-                                           ^
+alter table mpp7164r add default partition d;
+select * from partlist where ptable='mpp7164r'::regclass order by ptemplate, plevel, rrank;
+  ptable  | plevel | ptemplate | pkind |      rchild       | rname | rrank | rparent 
+----------+--------+-----------+-------+-------------------+-------+-------+---------
+ mpp7164r |      0 | f         | r     | mpp7164r_1_prt_d  | d     |     0 | 
+ mpp7164r |      0 | f         | r     | mpp7164r_1_prt_r1 | r1    |     1 | 
+ mpp7164r |      0 | f         | r     | mpp7164r_1_prt_r2 | r2    |     2 | 
+(3 rows)
+
 select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partrank where tablename='mpp7164r';
  tablename | partitionlevel | partitiontablename | partitionname | partitionrank 
 -----------+----------------+--------------------+---------------+---------------
@@ -292,18 +270,18 @@ select tablename, partitionlevel,  partitiontablename, partitionname, partitionr
  mpp7164r  |              0 | mpp7164r_1_prt_r2  | r2            |             2
 (3 rows)
 
-alter table mpp7164r
-rename partition for (rank(1)) to new_1;
-psql:/path/sql_file:1: NOTICE:  renamed partition "r1" to "new_1" for relation "mpp7164r"
-ALTER TABLE
-alter table mpp7164r
-rename partition for (rank(2)) to new_2;
-psql:/path/sql_file:1: NOTICE:  renamed partition "r2" to "new_2" for relation "mpp7164r"
-ALTER TABLE
-select * from partlist where ptable='mpp7164r' order by ptemplate, plevel, rrank;
-psql:/path/sql_file:1: ERROR:  invalid input syntax for type oid: "mpp7164r"
-LINE 1: select * from partlist where ptable='mpp7164r' order by ptem...
-                                           ^
+alter table mpp7164r rename partition for (rank(1)) to new_1;
+NOTICE:  renamed partition "r1" to "new_1" for relation "mpp7164r"
+alter table mpp7164r rename partition for (rank(2)) to new_2;
+NOTICE:  renamed partition "r2" to "new_2" for relation "mpp7164r"
+select * from partlist where ptable='mpp7164r'::regclass order by ptemplate, plevel, rrank;
+  ptable  | plevel | ptemplate | pkind |        rchild        | rname | rrank | rparent 
+----------+--------+-----------+-------+----------------------+-------+-------+---------
+ mpp7164r |      0 | f         | r     | mpp7164r_1_prt_d     | d     |     0 | 
+ mpp7164r |      0 | f         | r     | mpp7164r_1_prt_new_1 | new_1 |     1 | 
+ mpp7164r |      0 | f         | r     | mpp7164r_1_prt_new_2 | new_2 |     2 | 
+(3 rows)
+
 select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partrank where tablename='mpp7164r';
  tablename | partitionlevel |  partitiontablename  | partitionname | partitionrank 
 -----------+----------------+----------------------+---------------+---------------
@@ -320,17 +298,18 @@ select tablename, partitionlevel,  partitiontablename, partitionname, partitionr
  mpp7164r  |              0 | mpp7164r_1_prt_new_2 | new_2         |             2
 (3 rows)
 
-alter table mpp7164r
-rename partition for (rank(0)) to new_d;
-psql:/path/sql_file:1: ERROR:  partition for rank 0 of relation "mpp7164r" does not exist
-alter table mpp7164r
-rename default partition to new_d;
-psql:/path/sql_file:1: NOTICE:  renamed partition "d" to "new_d" for relation "mpp7164r"
-ALTER TABLE
-select * from partlist where ptable='mpp7164r' order by ptemplate, plevel, rrank;
-psql:/path/sql_file:1: ERROR:  invalid input syntax for type oid: "mpp7164r"
-LINE 1: select * from partlist where ptable='mpp7164r' order by ptem...
-                                           ^
+alter table mpp7164r rename partition for (rank(0)) to new_d;
+ERROR:  partition for rank 0 of relation "mpp7164r" does not exist
+alter table mpp7164r rename default partition to new_d;
+NOTICE:  renamed partition "d" to "new_d" for relation "mpp7164r"
+select * from partlist where ptable='mpp7164r'::regclass order by ptemplate, plevel, rrank;
+  ptable  | plevel | ptemplate | pkind |        rchild        | rname | rrank | rparent 
+----------+--------+-----------+-------+----------------------+-------+-------+---------
+ mpp7164r |      0 | f         | r     | mpp7164r_1_prt_new_d | new_d |     0 | 
+ mpp7164r |      0 | f         | r     | mpp7164r_1_prt_new_1 | new_1 |     1 | 
+ mpp7164r |      0 | f         | r     | mpp7164r_1_prt_new_2 | new_2 |     2 | 
+(3 rows)
+
 select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partrank where tablename='mpp7164r';
  tablename | partitionlevel |  partitiontablename  | partitionname | partitionrank 
 -----------+----------------+----------------------+---------------+---------------

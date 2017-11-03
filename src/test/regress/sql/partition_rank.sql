@@ -1,10 +1,5 @@
-drop schema mpp7164 cascade;
 create schema mpp7164;
-set search_path=mpp7164;
-
-drop view partlist cascade;
-drop view partrank cascade;
-drop view partagain cascade;
+set search_path = mpp7164;
 
 create view partlist as
   select
@@ -23,7 +18,6 @@ create view partlist as
       pg_partition_rule ppr
       on (pr.parparentrule = ppr.oid)
   where pt.oid = pr.paroid;
-
 
 create view partrank as
   select 
@@ -113,7 +107,6 @@ create view partrank as
           cl.relnamespace = n.oid and 
           cl2.relnamespace = n2.oid) p1;
 
-
 create view partagain as
   select 
       p1.schemaname, 
@@ -201,3 +194,43 @@ create view partagain as
           cl2.oid = pr1.parchildrelid and 
           cl.relnamespace = n.oid and 
           cl2.relnamespace = n2.oid) p1;
+
+create table mpp7164r (a int, b text, c int)
+    distributed by (a,b,c)
+    partition by range (a)
+    (
+        start (0) inclusive
+        end (2) exclusive
+        every (1)
+    );
+
+select * from partlist where ptable='mpp7164r'::regclass order by ptemplate, plevel, rrank;
+select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partrank where tablename='mpp7164r';
+select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partagain where tablename='mpp7164r';
+
+alter table mpp7164r rename partition for (rank(1)) to r1;
+alter table mpp7164r rename partition for (rank(2)) to r2;
+
+select * from partlist where ptable='mpp7164r'::regclass order by ptemplate, plevel, rrank;
+select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partrank where tablename='mpp7164r';
+select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partagain where tablename='mpp7164r';
+
+alter table mpp7164r add default partition d;
+
+select * from partlist where ptable='mpp7164r'::regclass order by ptemplate, plevel, rrank;
+select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partrank where tablename='mpp7164r';
+select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partagain where tablename='mpp7164r';
+
+alter table mpp7164r rename partition for (rank(1)) to new_1;
+alter table mpp7164r rename partition for (rank(2)) to new_2;
+
+select * from partlist where ptable='mpp7164r'::regclass order by ptemplate, plevel, rrank;
+select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partrank where tablename='mpp7164r';
+select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partagain where tablename='mpp7164r';
+
+alter table mpp7164r rename partition for (rank(0)) to new_d;
+alter table mpp7164r rename default partition to new_d;
+
+select * from partlist where ptable='mpp7164r'::regclass order by ptemplate, plevel, rrank;
+select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partrank where tablename='mpp7164r';
+select tablename, partitionlevel,  partitiontablename, partitionname, partitionrank from partagain where tablename='mpp7164r';
