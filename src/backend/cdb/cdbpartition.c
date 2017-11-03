@@ -4628,6 +4628,10 @@ get_next_level_matched_partition(PartitionNode *partnode, Datum *values, bool *i
 			selectListPartition(partnode, values, isnull, tupdesc,
 								accessMethods, &relid, &prule, exprTypid);
 			break;
+		case 'h':				/* hash */
+			selectHashPartition(partnode, values, isnull, tupdesc,
+								 accessMethods, &relid, &prule);
+			break;
 		default:
 			elog(ERROR, "unrecognized partitioning kind '%c'",
 				 part->parkind);
