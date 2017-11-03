@@ -5750,6 +5750,16 @@ NOTICE:  exchanged partition "sp2" of partition "p1" of relation "mpp10223b" wit
 NOTICE:  dropped partition "sp2" for partition "p1" of relation "mpp10223b"
 NOTICE:  CREATE TABLE will create partition "mpp10223b_1_prt_p1_2_prt_sp2" for table "mpp10223b_1_prt_p1"
 NOTICE:  CREATE TABLE will create partition "mpp10223b_1_prt_p1_2_prt_sp3" for table "mpp10223b_1_prt_p1"
+ select partitiontablename,partitionposition,partitionrangestart,
+        partitionrangeend from pg_partitions where tablename = 'mpp10223b'
+            order by partitionposition;
+       partitiontablename      | partitionposition | partitionrangestart | partitionrangeend 
+ ------------------------------+-------------------+---------------------+-------------------
+  mpp10223b_1_prt_p1           |                 1 | 1                   | 10
+  mpp10223b_1_prt_p1_2_prt_sp2 |                 1 | 20                  | 25
+  mpp10223b_1_prt_p1_2_prt_sp3 |                 2 | 25                  | 30
+ (3 rows)
+ 
 select pg_get_partition_def('mpp10223b'::regclass,true);
                    pg_get_partition_def                   
 ----------------------------------------------------------
@@ -5758,8 +5768,8 @@ select pg_get_partition_def('mpp10223b'::regclass,true);
            (                                              
            PARTITION p1 START (1) END (10)                
                    (                                      
-                   SUBPARTITION sp3 START (25) END (30),  
-                   SUBPARTITION sp2 START (20) END (25)   
+                   SUBPARTITION sp2 START (20) END (25),   
+                   SUBPARTITION sp3 START (25) END (30)  
                    )                                      
            )
 (1 row)

@@ -2612,6 +2612,10 @@ alter table mpp10223b alter partition p1
 split partition for (rank(1) ) at (25)
 into (partition sp2, partition sp3);
 
+select partitiontablename,partitionposition,partitionrangestart,
+       partitionrangeend from pg_partitions where tablename = 'mpp10223b'
+           order by partitionposition;
+
 select pg_get_partition_def('mpp10223b'::regclass,true);
 
 drop table mpp10223b;
