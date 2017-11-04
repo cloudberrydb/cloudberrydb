@@ -1423,10 +1423,6 @@ extern void InitPlanNodeGpmonPkt(Plan* plan, gpmon_packet_t *gpmon_pkt, EState *
 
 extern uint64 PlanStateOperatorMemKB(const PlanState *ps);
 
-static inline void Gpmon_Incr_Rows_In(gpmon_packet_t *pkt)
-{
-    ++pkt->u.qexec.rowsin;
-}
 static inline void Gpmon_Incr_Rows_Out(gpmon_packet_t *pkt)
 {
     ++pkt->u.qexec.rowsout;

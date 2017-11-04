@@ -145,7 +145,6 @@ ExecMaterial(MaterialState *node)
 
 				break;
 			}
-			Gpmon_Incr_Rows_In(GpmonPktFromMaterialState(node));
 
 			ntuplestore_acc_put_tupleslot(tsa, outerslot);
 		}
@@ -233,8 +232,6 @@ ExecMaterial(MaterialState *node)
 
 			return NULL;
 		}
-
-		Gpmon_Incr_Rows_In(GpmonPktFromMaterialState(node));
 
 		if (tsa)
 			ntuplestore_acc_put_tupleslot(tsa, outerslot);

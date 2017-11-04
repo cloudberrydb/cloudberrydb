@@ -75,8 +75,6 @@ ExecUnique(UniqueState *node)
 			return NULL;
 		}
 
-		Gpmon_Incr_Rows_In(GpmonPktFromUniqueState(node));
-
 		/*
 		 * Always return the first tuple from the subplan.
 		 */

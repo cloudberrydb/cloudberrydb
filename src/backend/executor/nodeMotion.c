@@ -226,7 +226,6 @@ ExecMotion(MotionState * node)
 			node->ps.state->active_recv_id = -1;
 		else
 		{
-			Gpmon_Incr_Rows_In(GpmonPktFromMotionState(node));
 			Gpmon_Incr_Rows_Out(GpmonPktFromMotionState(node));
 		}
 #ifdef MEASURE_MOTION_TIME
@@ -247,7 +246,6 @@ ExecMotion(MotionState * node)
 			node->motionTime.tv_sec++;
 		}
 #endif
-		CheckSendPlanStateGpmonPkt(&node->ps);
 		return tuple;
 	}
 	else if(node->mstype == MOTIONSTATE_SEND)

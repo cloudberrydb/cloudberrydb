@@ -658,10 +658,6 @@ ExecMergeJoin(MergeJoinState *node)
 	if (node->prefetch_inner)
 	{
 		innerTupleSlot = ExecProcNode(innerPlan);
-          	if (!TupIsNull(innerTupleSlot))
-          	{
-          		Gpmon_Incr_Rows_In(GpmonPktFromMergeJoinState(node));
-          	}
 		node->mj_InnerTupleSlot = innerTupleSlot;
 
 		ExecReScan(innerPlan, econtext);
@@ -1461,10 +1457,6 @@ ExecMergeJoin(MergeJoinState *node)
 						ExecEagerFreeMergeJoin(node);
 
 					return NULL;
-				}
-				else
-				{
-					Gpmon_Incr_Rows_In(GpmonPktFromMergeJoinState(node));
 				}
 
 				/* Else remain in ENDOUTER state and process next tuple. */

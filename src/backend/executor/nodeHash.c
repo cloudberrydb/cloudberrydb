@@ -125,8 +125,6 @@ MultiExecHash(HashState *node)
 		if (TupIsNull(slot))
 			break;
 
-		Gpmon_Incr_Rows_In(GpmonPktFromHashState(node));
-		CheckSendPlanStateGpmonPkt(&node->ps);
 		/* We have to compute the hash value */
 		econtext->ecxt_innertuple = slot;
 		bool hashkeys_null = false;

@@ -1138,8 +1138,6 @@ agg_retrieve_direct(AggState *aggstate)
 				 * comparison (in group mode) and for projection.
 				 */
 
-				Gpmon_Incr_Rows_In(GpmonPktFromAggState(aggstate));
-				CheckSendPlanStateGpmonPkt(&aggstate->ss.ps);
 				slot_getallattrs(outerslot);
 				aggstate->grp_firstTuple = memtuple_form_to(firstSlot->tts_mt_bind,
 						slot_get_values(outerslot),
@@ -1258,8 +1256,6 @@ agg_retrieve_direct(AggState *aggstate)
 						break;
 					}
 
-					Gpmon_Incr_Rows_In(GpmonPktFromAggState(aggstate));
-					CheckSendPlanStateGpmonPkt(&aggstate->ss.ps);
 					/* set up for next advance aggregates call */
 					tmpcontext->ecxt_outertuple = outerslot;
 

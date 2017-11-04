@@ -110,8 +110,6 @@ ExecNestLoop(NestLoopState *node)
 	if (node->prefetch_inner)
 	{
 		innerTupleSlot = ExecProcNode(innerPlan);
-		Gpmon_Incr_Rows_In(GpmonPktFromNLJState(node));
-
 		node->reset_inner = true;
 		econtext->ecxt_innertuple = innerTupleSlot;
 
@@ -166,7 +164,6 @@ ExecNestLoop(NestLoopState *node)
 		{
 			ENL1_printf("getting new outer tuple");
 			outerTupleSlot = ExecProcNode(outerPlan);
-			Gpmon_Incr_Rows_In(GpmonPktFromNLJState(node));
 
 			/*
 			 * if there are no more outer tuples, then the join is complete..
