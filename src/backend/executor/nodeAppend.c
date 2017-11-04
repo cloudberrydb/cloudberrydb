@@ -368,8 +368,6 @@ ExecAppend(AppendState *node)
 		else
 			node->as_whichplan--;
 
-		CheckSendPlanStateGpmonPkt(&node->ps);
-
 		if (!exec_append_initialize_next(node))
 			return ExecClearTuple(node->ps.ps_ResultTupleSlot);
 
