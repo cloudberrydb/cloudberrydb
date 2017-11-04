@@ -1416,19 +1416,6 @@ typedef struct PlanState
 	gpmon_packet_t gpmon_pkt;
 } PlanState;
 
-typedef struct Gpmon_NameUnit_MaxVal
-{
-	char	   *name;
-	char	   *unit;
-	int64		maxval;
-} Gpmon_NameUnit_MaxVal;
-
-typedef struct Gpmon_NameVal_Text
-{
-	char	   *name;
-	char	   *value;
-} Gpmon_NameVal_Text;
-
 /* Gpperfmon helper functions defined in execGpmon.c */
 extern void CheckSendPlanStateGpmonPkt(PlanState *ps);
 extern void EndPlanStateGpmonPkt(PlanState *ps);

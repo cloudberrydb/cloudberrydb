@@ -164,23 +164,6 @@ bool isMotionGather(const Motion *m)
 			&& m->numOutputSegs == 1);
 }
 
-/*
- * Set the statistic info in gpmon packet.
- */
-static void
-setMotionStatsForGpmon(MotionState *node)
-{
-	ChunkTransportState *transportStates = node->ps.state->interconnect_context;
-	int motionId = ((Motion *) node->ps.plan)->motionID;
-
-	ChunkTransportStateEntry *transportEntry = NULL;
-	getChunkTransportState(transportStates, motionId, &transportEntry);
-	uint64 avgAckTime = 0;
-	if (transportEntry->stat_count_acks > 0)
-		avgAckTime = transportEntry->stat_total_ack_time / transportEntry->stat_count_acks;
-}
-
-
 /* ----------------------------------------------------------------
  *		ExecMotion
  * ----------------------------------------------------------------
@@ -245,7 +228,6 @@ ExecMotion(MotionState * node)
 		{
 			Gpmon_Incr_Rows_In(GpmonPktFromMotionState(node));
 			Gpmon_Incr_Rows_Out(GpmonPktFromMotionState(node));
-			setMotionStatsForGpmon(node);
 		}
 #ifdef MEASURE_MOTION_TIME
 		gettimeofday(&stopTime, NULL);
@@ -335,7 +317,6 @@ execMotionSender(MotionState * node)
 			/* doSendTuple() may have set node->stopRequested as a side-effect */
 
 			Gpmon_Incr_Rows_Out(GpmonPktFromMotionState(node));
-			setMotionStatsForGpmon(node);
 			CheckSendPlanStateGpmonPkt(&node->ps);
 
 			if (node->stopRequested)
