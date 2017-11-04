@@ -151,8 +151,6 @@ IndexNext(IndexScanState *node)
 		/* Flag for the next call that no more tuples */
 		estate->es_evTupleNull[scanrelid - 1] = true;
 
-		Gpmon_Incr_Rows_Out(GpmonPktFromIndexScanState(node));
-                CheckSendPlanStateGpmonPkt(&node->ss.ps);
 		return slot;
 	}
 
@@ -171,8 +169,6 @@ IndexNext(IndexScanState *node)
 					   scandesc->xs_cbuf,		/* buffer containing tuple */
 					   false);	/* don't pfree */
 
-		Gpmon_Incr_Rows_Out(GpmonPktFromIndexScanState(node));
-                CheckSendPlanStateGpmonPkt(&node->ss.ps);
 		return slot;
 	}
 
@@ -276,8 +272,6 @@ ExecIndexReScan(IndexScanState *node, ExprContext *exprCtxt)
 
 	/* reset index scan */
 	index_rescan(node->iss_ScanDesc, node->iss_ScanKeys);
-
-	CheckSendPlanStateGpmonPkt(&node->ss.ps);
 }
 
 
@@ -518,7 +512,6 @@ void
 ExecIndexRestrPos(IndexScanState *node)
 {
 	index_restrpos(node->iss_ScanDesc);
-	CheckSendPlanStateGpmonPkt(&node->ss.ps);
 }
 
 /* ----------------------------------------------------------------
@@ -641,8 +634,6 @@ ExecInitIndexScan(IndexScan *node, EState *estate, int eflags)
 	 * Initialize index-specific scan state
 	 */
 	indexstate->iss_RuntimeKeysReady = false;
-
-	initGpmonPktForIndexScan((Plan *)node, &indexstate->ss.ps.gpmon_pkt, estate);
 
 	/*
 	 * If eflag contains EXEC_FLAG_REWIND or EXEC_FLAG_BACKWARD or EXEC_FLAG_MARK,
@@ -1094,14 +1085,6 @@ ExecCountSlotsIndexScan(IndexScan *node)
 {
 	return ExecCountSlotsNode(outerPlan((Plan *) node)) +
 		ExecCountSlotsNode(innerPlan((Plan *) node)) + INDEXSCAN_NSLOTS;
-}
-
-void
-initGpmonPktForIndexScan(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
-{
-	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, IndexScan));
-
-	InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate);
 }
 
 void

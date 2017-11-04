@@ -1478,9 +1478,6 @@ agg_retrieve_direct(AggState *aggstate)
 			 * and the representative input tuple.	Note we do not support
 			 * aggregates returning sets ...
 			 */
-			Gpmon_Incr_Rows_Out(GpmonPktFromAggState(aggstate));
-			CheckSendPlanStateGpmonPkt(&aggstate->ss.ps);
-
 			return ExecProject(projInfo, NULL);
 		}
 	}
@@ -1594,8 +1591,6 @@ agg_retrieve_hash_table(AggState *aggstate)
 			 * and the representative input tuple.	Note we do not support
 			 * aggregates returning sets ...
 			 */
-			Gpmon_Incr_Rows_Out(GpmonPktFromAggState(aggstate));
-			CheckSendPlanStateGpmonPkt(&aggstate->ss.ps);
 			return ExecProject(projInfo, NULL);
 		}
 	}
@@ -2351,8 +2346,6 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 	aggstate->mem_manager.manager = aggstate->aggcontext;
 	aggstate->mem_manager.realloc_ratio = 1;
 
-	initGpmonPktForAgg((Plan *) node, &aggstate->ss.ps.gpmon_pkt, estate);
-
 	return aggstate;
 }
 
@@ -2626,14 +2619,6 @@ get_grouping_groupid(TupleTableSlot *slot, int grping_attno)
 	grouping = DatumGetInt64(grping_datum);
 
 	return grouping;
-}
-
-void
-initGpmonPktForAgg(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
-{
-	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, Agg));
-
-	InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate);
 }
 
 /*

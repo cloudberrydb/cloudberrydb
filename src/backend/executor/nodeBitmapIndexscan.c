@@ -153,8 +153,6 @@ ExecBitmapIndexReScan(BitmapIndexScanState *node, ExprContext *exprCtxt)
 		tbm_bitmap_free(node->bitmap);
 		node->bitmap = NULL;
 	}
-
-	CheckSendPlanStateGpmonPkt(&scanState->ss.ps);
 }
 
 /* ----------------------------------------------------------------
@@ -224,8 +222,6 @@ ExecInitBitmapIndexScan(BitmapIndexScan *node, EState *estate, int eflags)
 	 */
 	Assert(NULL == scanState->ss.ss_currentRelation);
 
-	initGpmonPktForBitmapIndexScan((Plan *)node, &scanState->ss.ps.gpmon_pkt, estate);
-
 	return indexstate;
 }
 
@@ -234,13 +230,4 @@ ExecCountSlotsBitmapIndexScan(BitmapIndexScan *node)
 {
 	return ExecCountSlotsNode(outerPlan((Plan *) node)) +
 		ExecCountSlotsNode(innerPlan((Plan *) node)) + BITMAPINDEXSCAN_NSLOTS;
-}
-
-
-void
-initGpmonPktForBitmapIndexScan(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
-{
-	Assert(NULL != planNode && NULL != gpmon_pkt && IsA(planNode, BitmapIndexScan));
-
-	InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate);
 }

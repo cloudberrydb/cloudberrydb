@@ -673,7 +673,6 @@ ExecMergeJoin(MergeJoinState *node)
 	for (;;)
 	{
 		MJ_dump(node);
-		CheckSendPlanStateGpmonPkt(&node->js.ps);
 
 		/*
 		 * get the current state of the join and do things accordingly.
@@ -1484,11 +1483,7 @@ ExecMergeJoin(MergeJoinState *node)
 
 					result = MJFillOuter(node);
 					if (result)
-					{
-						Gpmon_Incr_Rows_Out(GpmonPktFromMergeJoinState(node));
-                               	CheckSendPlanStateGpmonPkt(&node->js.ps);
 						return result;
-					}
 				}
 
 				/*
@@ -1708,8 +1703,6 @@ ExecInitMergeJoin(MergeJoin *node, EState *estate, int eflags)
 	 */
 	MJ1_printf("ExecInitMergeJoin: %s\n",
 			   "node initialized");
-
-	initGpmonPktForMergeJoin((Plan *)node, &mergestate->js.ps.gpmon_pkt, estate);
 	
 	return mergestate;
 }
@@ -1778,13 +1771,6 @@ ExecReScanMergeJoin(MergeJoinState *node, ExprContext *exprCtxt)
 	if (((PlanState *) node)->righttree->chgParam == NULL)
 		ExecReScan(((PlanState *) node)->righttree, exprCtxt);
 
-}
-void
-initGpmonPktForMergeJoin(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
-{
-	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, MergeJoin));
-	
-	InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate);
 }
 
 void

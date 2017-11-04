@@ -223,8 +223,6 @@ ExecInitHash(Hash *node, EState *estate, int eflags)
 	ExecAssignResultTypeFromTL(&hashstate->ps);
 	hashstate->ps.ps_ProjInfo = NULL;
 
-	initGpmonPktForHash((Plan *) node, &hashstate->ps.gpmon_pkt, estate);
-
 	return hashstate;
 }
 
@@ -1661,10 +1659,3 @@ ExecHashTableExplainBatchEnd(HashState *hashState, HashJoinTable hashtable)
     }
     END_MEMORY_ACCOUNT();
 }                               /* ExecHashTableExplainBatchEnd */
-
-void
-initGpmonPktForHash(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
-{
-	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, Hash));
-	InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate);
-}

@@ -39,8 +39,4 @@ extern bool ExecIndexAdvanceArrayKeys(IndexArrayKeyInfo *arrayKeys, int numArray
 
 extern TupleTableSlot *IndexNext(IndexScanState *node);
 
-static inline gpmon_packet_t * GpmonPktFromIndexScanState(IndexScanState *node)
-{
-	return &node->ss.ps.gpmon_pkt;
-}
 #endif   /* NODEINDEXSCAN_H */

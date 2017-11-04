@@ -431,8 +431,6 @@ ExecInitResult(Result *node, EState *estate, int eflags)
 		SPI_ReserveMemory(((Plan *)node)->operatorMemKB * 1024L);
 	}
 
-	initGpmonPktForResult((Plan *)node, &resstate->ps.gpmon_pkt, estate);
-
 	return resstate;
 }
 
@@ -486,12 +484,4 @@ ExecReScanResult(ResultState *node, ExprContext *exprCtxt)
 	if (node->ps.lefttree &&
 		(node->ps.lefttree->chgParam == NULL || exprCtxt != NULL))
 		ExecReScan(node->ps.lefttree, exprCtxt);
-}
-
-void
-initGpmonPktForResult(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
-{
-	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, Result));
-
-	InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate);
 }
