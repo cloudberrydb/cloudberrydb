@@ -4907,13 +4907,12 @@ PROCESS_SEGMENT_DATA:
 					 */
 					if (relstorage == RELSTORAGE_AOROWS)
 					{
-						Oid			tupleOid;
 						MemTuple	mtuple;
 
 						mtuple = ExecFetchSlotMemTuple(slot, false);
 
 						/* inserting into an append only relation */
-						appendonly_insert(resultRelInfo->ri_aoInsertDesc, mtuple, &tupleOid, (AOTupleId *) &insertedTid);
+						appendonly_insert(resultRelInfo->ri_aoInsertDesc, mtuple, InvalidOid, (AOTupleId *) &insertedTid);
 					}
 					else if (relstorage == RELSTORAGE_AOCOLS)
 					{

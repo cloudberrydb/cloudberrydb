@@ -5337,10 +5337,9 @@ ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap)
 				/* Write the tuple out to the new relation */
 				if (newrel)
 				{
-					Oid 		tupleOid;
 					AOTupleId	aoTupleId;
 					
-					appendonly_insert(aoInsertDesc, mtuple, &tupleOid, &aoTupleId);
+					appendonly_insert(aoInsertDesc, mtuple, InvalidOid, &aoTupleId);
 				}
 
 				ResetExprContext(econtext);
@@ -14322,7 +14321,6 @@ split_rows(Relation intoa, Relation intob, Relation temprel)
 		else if (RelationIsAoRows(targetRelation))
 		{
 			MemTuple	mtuple;
-			Oid			tupleOid;
 
 			if (!(*targetAODescPtr))
 			{
@@ -14333,7 +14331,7 @@ split_rows(Relation intoa, Relation intob, Relation temprel)
 			}
 
 			mtuple = ExecFetchSlotMemTuple(targetSlot, false);
-			appendonly_insert(*targetAODescPtr, mtuple, &tupleOid, &aoTupleId);
+			appendonly_insert(*targetAODescPtr, mtuple, InvalidOid, &aoTupleId);
 
 			/* cache TID for later updating of indexes */
 			tid = (ItemPointer) &aoTupleId;

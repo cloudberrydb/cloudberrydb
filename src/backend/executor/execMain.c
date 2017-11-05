@@ -3080,6 +3080,7 @@ ExecInsert(TupleTableSlot *slot,
 	bool		rel_is_aocols = false;
 	bool		rel_is_external = false;
 	ItemPointerData lastTid;
+	Oid			tuple_oid = InvalidOid;
 
 	/*
 	 * get information on the (current) result relation
@@ -3144,6 +3145,81 @@ ExecInsert(TupleTableSlot *slot,
 	rel_is_aorows = RelationIsAoRows(resultRelationDesc);
 	rel_is_external = RelationIsExternal(resultRelationDesc);
 
+	/*
+	 * Prepare the right kind of "insert desc".
+	 */
+	if (rel_is_aorows)
+	{
+		if (resultRelInfo->ri_aoInsertDesc == NULL)
+		{
+			/* Set the pre-assigned fileseg number to insert into */
+			ResultRelInfoSetSegno(resultRelInfo, estate->es_result_aosegnos);
+
+			resultRelInfo->ri_aoInsertDesc =
+				appendonly_insert_init(resultRelationDesc,
+									   resultRelInfo->ri_aosegno,
+									   false);
+		}
+	}
+	else if (rel_is_aocols)
+	{
+		if (resultRelInfo->ri_aocsInsertDesc == NULL)
+		{
+			ResultRelInfoSetSegno(resultRelInfo, estate->es_result_aosegnos);
+			resultRelInfo->ri_aocsInsertDesc = aocs_insert_init(resultRelationDesc,
+																resultRelInfo->ri_aosegno, false);
+		}
+	}
+	else if (rel_is_external)
+	{
+		if (resultRelInfo->ri_extInsertDesc == NULL)
+			resultRelInfo->ri_extInsertDesc = external_insert_init(resultRelationDesc);
+	}
+
+	/*
+	 * If the result relation has OIDs, force the tuple's OID to zero so that
+	 * heap_insert will assign a fresh OID.  Usually the OID already will be
+	 * zero at this point, but there are corner cases where the plan tree can
+	 * return a tuple extracted literally from some table with the same
+	 * rowtype.
+	 *
+	 * XXX if we ever wanted to allow users to assign their own OIDs to new
+	 * rows, this'd be the place to do it.  For the moment, we make a point
+	 * of doing this before calling triggers, so that a user-supplied trigger
+	 * could hack the OID if desired.
+	 *
+	 * GPDB: In PostgreSQL, here we set the Oid in the HeapTuple, which is a
+	 * local copy at this point. But in GPDB, we don't materialize the tuple
+	 * yet, because we might need a MemTuple or a HeapTuple depending on
+	 * what kind of a table this is (or neither for an AOCS table, since
+	 * aocs_insert() works directly off the slot). So we keep the Oid in a
+	 * local variable for now, and only set it in the tuple just before the
+	 * call to heap/appendonly/external_insert().
+	 */
+	if (resultRelationDesc->rd_rel->relhasoids)
+	{
+		tuple_oid = InvalidOid;
+
+		/*
+		 * But if this is really an UPDATE, try to preserve the old OID.
+		 */
+		if (isUpdate)
+		{
+			GenericTuple gtuple;
+
+			gtuple = ExecFetchSlotGenericTuple(slot, false);
+
+			if (!is_memtuple(gtuple))
+				tuple_oid = HeapTupleGetOid((HeapTuple) gtuple);
+			else
+			{
+				if (resultRelInfo->ri_aoInsertDesc)
+					tuple_oid = MemTupleGetOid((MemTuple) gtuple,
+											   resultRelInfo->ri_aoInsertDesc->mt_bind);
+			}
+		}
+	}
+
 	slot = reconstructMatchingTupleSlot(slot, resultRelInfo);
 
 	if (rel_is_external &&
@@ -3165,7 +3241,9 @@ ExecInsert(TupleTableSlot *slot,
 		HeapTuple	newtuple;
 		HeapTuple	tuple;
 
-		tuple = ExecFetchSlotHeapTuple(slot);
+		tuple = ExecMaterializeSlot(slot);
+		if (resultRelationDesc->rd_rel->relhasoids)
+			HeapTupleSetOid(tuple, tuple_oid);
 
 		newtuple = ExecBRInsertTriggers(estate, resultRelInfo, tuple);
 
@@ -3188,6 +3266,13 @@ ExecInsert(TupleTableSlot *slot,
 			newslot->tts_tableOid = slot->tts_tableOid; /* for constraints */
 			slot = newslot;
 			tuple = newtuple;
+
+			/*
+			 * since we keep the OID in a separate variable, also update that,
+			 * in case the trigger set it.
+			 */
+			if (resultRelationDesc->rd_rel->relhasoids)
+				tuple_oid = HeapTupleGetOid(newtuple);
 		}
 	}
 
@@ -3218,11 +3303,10 @@ ExecInsert(TupleTableSlot *slot,
 				appendonly_insert_init(resultRelationDesc,
 									   resultRelInfo->ri_aosegno,
 									   false);
-
 		}
 
 		mtuple = ExecFetchSlotMemTuple(slot, false);
-		appendonly_insert(resultRelInfo->ri_aoInsertDesc, mtuple, &newId, (AOTupleId *) &lastTid);
+		newId = appendonly_insert(resultRelInfo->ri_aoInsertDesc, mtuple, tuple_oid, (AOTupleId *) &lastTid);
 	}
 	else if (rel_is_aocols)
 	{
@@ -3244,7 +3328,13 @@ ExecInsert(TupleTableSlot *slot,
 		if (resultRelInfo->ri_extInsertDesc == NULL)
 			resultRelInfo->ri_extInsertDesc = external_insert_init(resultRelationDesc);
 
-		tuple = ExecFetchSlotHeapTuple(slot);
+		/*
+		 * get the heap tuple out of the tuple table slot, making sure we have a
+		 * writable copy. (external_insert() can scribble on the tuple)
+		 */
+		tuple = ExecMaterializeSlot(slot);
+		if (resultRelationDesc->rd_rel->relhasoids)
+			HeapTupleSetOid(tuple, tuple_oid);
 
 		newId = external_insert(resultRelInfo->ri_extInsertDesc, tuple);
 		ItemPointerSetInvalid(&lastTid);
@@ -3255,7 +3345,13 @@ ExecInsert(TupleTableSlot *slot,
 
 		Insist(rel_is_heap);
 
-		tuple = ExecFetchSlotHeapTuple(slot);
+		/*
+		 * get the heap tuple out of the tuple table slot, making sure we have a
+		 * writable copy. (heap_insert() will scribble on the tuple)
+		 */
+		tuple = ExecMaterializeSlot(slot);
+		if (resultRelationDesc->rd_rel->relhasoids)
+			HeapTupleSetOid(tuple, tuple_oid);
 
 		newId = heap_insert(resultRelationDesc,
 							tuple,
@@ -3282,7 +3378,7 @@ ExecInsert(TupleTableSlot *slot,
 		resultRelInfo->ri_TrigDesc->n_after_row[TRIGGER_EVENT_INSERT] > 0 &&
 		!isUpdate)
 	{
-		HeapTuple tuple = ExecFetchSlotHeapTuple(slot);
+		HeapTuple tuple = ExecMaterializeSlot(slot);
 
 		Assert(planGen == PLANGEN_PLANNER);
 
@@ -3821,7 +3917,7 @@ lreplace:;
 		{
 			HeapTuple tuple;
 
-			tuple = ExecFetchSlotHeapTuple(slot);
+			tuple = ExecMaterializeSlot(slot);
 
 			result = heap_update(resultRelationDesc, tupleid, tuple,
 							 &update_ctid, &update_xmax,
@@ -3925,13 +4021,11 @@ lreplace:;
 		/*
 		 * Persistent metadata path.
 		 */
-		persistentTuple = ExecCopySlotHeapTuple(slot);
+		persistentTuple = ExecMaterializeSlot(slot);
 		persistentTuple->t_self = *tupleid;
 
 		frozen_heap_inplace_update(resultRelationDesc, persistentTuple);
 		wasHotUpdate = false;
-
-		heap_freetuple(persistentTuple);
 	}
 
 	(estate->es_processed)++;
@@ -3961,7 +4055,7 @@ lreplace:;
 		resultRelInfo->ri_TrigDesc->n_after_row[TRIGGER_EVENT_UPDATE] > 0 &&
 		rel_is_heap)
 	{
-		HeapTuple tuple = ExecFetchSlotHeapTuple(slot);
+		HeapTuple tuple = ExecMaterializeSlot(slot);
 
 		ExecARUpdateTriggers(estate, resultRelInfo, tupleid, tuple);
 	}
@@ -5043,13 +5137,12 @@ intorel_receive(TupleTableSlot *slot, DestReceiver *self)
 	if (RelationIsAoRows(into_rel))
 	{
 		MemTuple	tuple = ExecCopySlotMemTuple(slot);
-		Oid			tupleOid;
 		AOTupleId	aoTupleId;
 
 		if (myState->ao_insertDesc == NULL)
 			myState->ao_insertDesc = appendonly_insert_init(into_rel, RESERVED_SEGNO, false);
 
-		appendonly_insert(myState->ao_insertDesc, tuple, &tupleOid, &aoTupleId);
+		appendonly_insert(myState->ao_insertDesc, tuple, InvalidOid, &aoTupleId);
 		pfree(tuple);
 	}
 	else if (RelationIsAoCols(into_rel))
@@ -5061,7 +5154,19 @@ intorel_receive(TupleTableSlot *slot, DestReceiver *self)
 	}
 	else
 	{
-		HeapTuple	tuple = ExecCopySlotHeapTuple(slot);
+		HeapTuple	tuple;
+
+		/*
+		 * get the heap tuple out of the tuple table slot, making sure we have a
+		 * writable copy
+		 */
+		tuple = ExecMaterializeSlot(slot);
+
+		/*
+		 * force assignment of new OID (see comments in ExecInsert)
+		 */
+		if (into_rel->rd_rel->relhasoids)
+			HeapTupleSetOid(tuple, InvalidOid);
 
 		heap_insert(into_rel,
 					tuple,
@@ -5071,8 +5176,6 @@ intorel_receive(TupleTableSlot *slot, DestReceiver *self)
 					GetCurrentTransactionId());
 
 		estate->es_into_relation_last_heap_tid = tuple->t_self;
-
-		heap_freetuple(tuple);
 	}
 
 	/* We know this is a newly created relation, so there are no indexes */

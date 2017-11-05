@@ -162,3 +162,12 @@ INSERT INTO dml_ao (a, b, c) VALUES (10, 1, repeat('x', 50000));
 INSERT INTO dml_ao (a, b, c) VALUES (10, 2, repeat('x', 50000));
 
 SELECT COUNT(distinct oid) FROM dml_ao where a = 10;
+
+--
+-- Check that new OIDs are generated even if the tuple being inserted came from
+-- the same relation and segment.
+--
+INSERT INTO dml_ao VALUES (11, 1, 'foo');
+INSERT INTO dml_ao VALUES (11, 2, 'bar');
+INSERT INTO dml_ao SELECT * FROM dml_ao WHERE a = 11 LIMIT 1;
+SELECT COUNT(DISTINCT oid) FROM dml_ao WHERE a = 11; -- all three rows should have different OID
