@@ -1189,7 +1189,7 @@ careful');
 copy partsupp from stdin with delimiter '|';
 drop table partsupp;
 --MPP-3285
-CREATE TABLE LINEITEM (
+CREATE TABLE PARTLINEITEM (
                 L_ORDERKEY INT8,
                 L_PARTKEY INTEGER,
                 L_SUPPKEY INTEGER,
@@ -1213,12 +1213,12 @@ partition p1 start('1992-01-31') end('1998-11-01') every(interval '20 months')
 );
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'l_orderkey' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
-NOTICE:  CREATE TABLE will create partition "lineitem_1_prt_p1_1" for table "lineitem"
-NOTICE:  CREATE TABLE will create partition "lineitem_1_prt_p1_2" for table "lineitem"
-NOTICE:  CREATE TABLE will create partition "lineitem_1_prt_p1_3" for table "lineitem"
-NOTICE:  CREATE TABLE will create partition "lineitem_1_prt_p1_4" for table "lineitem"
-NOTICE:  CREATE TABLE will create partition "lineitem_1_prt_p1_5" for table "lineitem"
-copy lineitem from stdin with delimiter '|';
+NOTICE:  CREATE TABLE will create partition "partlineitem_1_prt_p1_1" for table "partlineitem"
+NOTICE:  CREATE TABLE will create partition "partlineitem_1_prt_p1_2" for table "partlineitem"
+NOTICE:  CREATE TABLE will create partition "partlineitem_1_prt_p1_3" for table "partlineitem"
+NOTICE:  CREATE TABLE will create partition "partlineitem_1_prt_p1_4" for table "partlineitem"
+NOTICE:  CREATE TABLE will create partition "partlineitem_1_prt_p1_5" for table "partlineitem"
+copy partlineitem from stdin with delimiter '|';
 select parname, parruleord, pg_get_expr(parrangestart, parchildrelid, false) as
  start, parrangestartincl,
  pg_get_expr(parrangeend, parchildrelid, false) as end,
@@ -1226,7 +1226,7 @@ select parname, parruleord, pg_get_expr(parrangestart, parchildrelid, false) as
   pg_get_expr(parlistvalues, parchildrelid, false) as list from
    pg_partition_rule
     r, pg_partition p where r.paroid = p.oid and p.parlevel = 0 and
-	 p.parrelid = 'lineitem'::regclass order by 1;
+	 p.parrelid = 'partlineitem'::regclass order by 1;
  parname | parruleord |       start        | parrangestartincl |        end         | parrangeendincl | list 
 ---------+------------+--------------------+-------------------+--------------------+-----------------+------
  p1_1    |          1 | '01-31-1992'::date | t                 | '09-30-1993'::date | f               | 
@@ -1236,7 +1236,7 @@ select parname, parruleord, pg_get_expr(parrangestart, parchildrelid, false) as
  p1_5    |          5 | '09-30-1998'::date | t                 | '11-01-1998'::date | f               | 
 (5 rows)
 
-drop table lineitem;
+drop table partlineitem;
 -- Make sure ADD creates dependencies
 create table i (i int) partition by range(i) (start (1) end(3) every(1));
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
