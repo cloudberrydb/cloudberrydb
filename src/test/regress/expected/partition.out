@@ -258,7 +258,8 @@ NOTICE:  CREATE TABLE will create partition "foo_p_1_prt_6" for table "foo_p"
 NOTICE:  CREATE TABLE will create partition "foo_p_1_prt_7" for table "foo_p"
 NOTICE:  CREATE TABLE will create partition "foo_p_1_prt_8" for table "foo_p"
 NOTICE:  CREATE TABLE will create partition "foo_p_1_prt_9" for table "foo_p"
-ERROR:  OIDS=TRUE is not allowed on partitioned tables. Use OIDS=FALSE
+ERROR:  OIDS=TRUE is not allowed on partitioned tables
+HINT:  Use OIDS=FALSE.
 -- but disallow exchange if different oid settings
 create table foo_p (i int, j int) with (oids = false) distributed by (i)
 partition by range(j)
@@ -853,29 +854,29 @@ create table foo_p (i int, j date) distributed by (i)
 partition by range(j)
 (start ('2007-01-01') end ('2008-01-01') every (interval '0.5 days'));
 ERROR:  EVERY parameter produces ambiguous partition rule
-LINE 3: ...('2007-01-01') end ('2008-01-01') every (interval '0.5 days'...
-                                                             ^
+LINE 3: (start ('2007-01-01') end ('2008-01-01') every (interval '0....
+                                                        ^
 -- should fail
 create table foo_p (i int, j date) distributed by (i)
 partition by range(j)
 (start ('2007-01-01') end ('2008-01-01') every (interval '0.5 days'));
 ERROR:  EVERY parameter produces ambiguous partition rule
-LINE 3: ...('2007-01-01') end ('2008-01-01') every (interval '0.5 days'...
-                                                             ^
+LINE 3: (start ('2007-01-01') end ('2008-01-01') every (interval '0....
+                                                        ^
 -- should fail
 create table foo_p (i int, j date) distributed by (i)
 partition by range(j)
 (start ('2007-01-01') end ('2008-01-01') every (interval '12 hours'));
 ERROR:  EVERY parameter produces ambiguous partition rule
-LINE 3: ...('2007-01-01') end ('2008-01-01') every (interval '12 hours'...
-                                                             ^
+LINE 3: (start ('2007-01-01') end ('2008-01-01') every (interval '12...
+                                                        ^
 -- should fail
 create table foo_p (i int, j date) distributed by (i)
 partition by range(j)
 (start ('2007-01-01') end ('2008-01-01') every (interval '1.2 days'));
 ERROR:  EVERY parameter produces ambiguous partition rule
-LINE 3: ...('2007-01-01') end ('2008-01-01') every (interval '1.2 days'...
-                                                             ^
+LINE 3: (start ('2007-01-01') end ('2008-01-01') every (interval '1....
+                                                        ^
 -- should work
 create table foo_p (i int, j timestamp) distributed by (i)
 partition by range(j)
@@ -3406,7 +3407,8 @@ NOTICE:  CREATE TABLE will create partition "rank_damage_1_prt_6" for table "ran
 NOTICE:  CREATE TABLE will create partition "rank_damage_1_prt_7" for table "rank_damage"
 NOTICE:  CREATE TABLE will create partition "rank_damage_1_prt_8" for table "rank_damage"
 NOTICE:  CREATE TABLE will create partition "rank_damage_1_prt_9" for table "rank_damage"
-ERROR:  OIDS=TRUE is not allowed on partitioned tables. Use OIDS=FALSE
+ERROR:  OIDS=TRUE is not allowed on partitioned tables
+HINT:  Use OIDS=FALSE.
 -- this works
 create table rank_damage (i int, j int)  partition by range(j) (start(1) end(10)
 every(1));
@@ -3439,7 +3441,8 @@ ERROR:  can't drop a constraint from "rank_damage_1_prt_1"; it is part of a part
 HINT:  You may be able to perform the operation on the partitioned table as a whole.
 alter table rank_damage add partition ppo end (22) with (oids = true);
 NOTICE:  CREATE TABLE will create partition "rank_damage_1_prt_ppo" for table "rank_damage"
-ERROR:  OIDS=TRUE is not allowed on partitioned tables. Use OIDS=FALSE
+ERROR:  OIDS=TRUE is not allowed on partitioned tables
+HINT:  Use OIDS=FALSE.
 drop table rank_damage, rank2_damage;
 -- MPP-5831, type cast in SPLIT
 CREATE TABLE sg_cal_event_silvertail_hour (
@@ -4105,7 +4108,65 @@ select schemaname, tablename from pg_tables where schemaname = 'public' and tabl
 (10 rows)
 
 drop table anotherit;
--- test table constraint inheritance
+--
+-- Test table constraint inheritance
+--
+-- with a named UNIQUE constraint
+create table it (i int) distributed by (i) partition by range(i) (start(1) end(3) every(1));
+NOTICE:  CREATE TABLE will create partition "it_1_prt_1" for table "it"
+NOTICE:  CREATE TABLE will create partition "it_1_prt_2" for table "it"
+select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
+ schemaname | tablename | indexname 
+------------+-----------+-----------
+(0 rows)
+
+alter table it add constraint it_unique_i unique (i);
+NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "it_i_key" for table "it"
+NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "it_1_prt_1_i_key" for table "it_1_prt_1"
+NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "it_1_prt_2_i_key" for table "it_1_prt_2"
+select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
+ schemaname | tablename  |    indexname     
+------------+------------+------------------
+ public     | it         | it_i_key
+ public     | it_1_prt_1 | it_1_prt_1_i_key
+ public     | it_1_prt_2 | it_1_prt_2_i_key
+(3 rows)
+
+alter table it drop constraint it_unique_i;
+select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
+ schemaname | tablename | indexname 
+------------+-----------+-----------
+(0 rows)
+
+drop table it;
+-- with a PRIMARY KEY constraint, without giving it a name explicitly.
+create table it (i int) distributed by (i) partition by range(i) (start(1) end(3) every(1));
+NOTICE:  CREATE TABLE will create partition "it_1_prt_1" for table "it"
+NOTICE:  CREATE TABLE will create partition "it_1_prt_2" for table "it"
+select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
+ schemaname | tablename | indexname 
+------------+-----------+-----------
+(0 rows)
+
+alter table it add primary key(i);
+NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "it_pkey" for table "it"
+NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "it_1_prt_1_pkey" for table "it_1_prt_1"
+NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "it_1_prt_2_pkey" for table "it_1_prt_2"
+select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
+ schemaname | tablename  |    indexname    
+------------+------------+-----------------
+ public     | it         | it_pkey
+ public     | it_1_prt_1 | it_1_prt_1_pkey
+ public     | it_1_prt_2 | it_1_prt_2_pkey
+(3 rows)
+
+-- FIXME: dropping a primary key doesn't currently work correctly. It doesn't
+-- drop the key on the partitions, only the parent. See
+-- https://github.com/greenplum-db/gpdb/issues/3750
+--
+-- alter table it add primary key(i);
+-- select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
+drop table it;
 create table it (i int) distributed by (i) partition by range(i) (start(1) end(3) every(1));
 NOTICE:  CREATE TABLE will create partition "it_1_prt_1" for table "it"
 NOTICE:  CREATE TABLE will create partition "it_1_prt_2" for table "it"

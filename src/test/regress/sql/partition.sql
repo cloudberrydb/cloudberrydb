@@ -2072,7 +2072,32 @@ select schemaname, tablename from pg_tables where schemaname = 'public' and tabl
 'anotherit%';
 drop table anotherit;
 
--- test table constraint inheritance
+--
+-- Test table constraint inheritance
+--
+-- with a named UNIQUE constraint
+create table it (i int) distributed by (i) partition by range(i) (start(1) end(3) every(1));
+select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
+alter table it add constraint it_unique_i unique (i);
+select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
+alter table it drop constraint it_unique_i;
+select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
+drop table it;
+
+-- with a PRIMARY KEY constraint, without giving it a name explicitly.
+create table it (i int) distributed by (i) partition by range(i) (start(1) end(3) every(1));
+select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
+alter table it add primary key(i);
+select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
+-- FIXME: dropping a primary key doesn't currently work correctly. It doesn't
+-- drop the key on the partitions, only the parent. See
+-- https://github.com/greenplum-db/gpdb/issues/3750
+--
+-- alter table it add primary key(i);
+-- select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
+drop table it;
+
+
 create table it (i int) distributed by (i) partition by range(i) (start(1) end(3) every(1));
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
 alter table it add primary key(i);

@@ -1095,8 +1095,8 @@ SELECT COUNT(*) FROM COPY_FROM_PROGRAM_ERROR;
 COPY COPY_FROM_PROGRAM_ERROR FROM PROGRAM 'echo $GP_SEGMENT_I';
 SELECT COUNT(*) FROM COPY_FROM_PROGRAM_ERROR;
 SET gp_enable_segment_copy_checking=off;
-COPY COPY_FROM_PROGRAM_ERROR FROM PROGRAM $quote$bash -c "echo -e '$GP_SEGMENT_ID\n<SEGID>'"$quote$ on segment;
-COPY COPY_FROM_PROGRAM_ERROR FROM PROGRAM $quote$bash -c "echo -e '$GP_SEGMENT_I\n<SEGID>'"$quote$ on segment;
+COPY COPY_FROM_PROGRAM_ERROR FROM PROGRAM $quote$bash -c "printf '$GP_SEGMENT_ID\n<SEGID>'"$quote$ on segment;
+COPY COPY_FROM_PROGRAM_ERROR FROM PROGRAM $quote$bash -c "printf '$GP_SEGMENT_I\n<SEGID>'"$quote$ on segment;
 SET gp_enable_segment_copy_checking=on;
 
 -- Test that xlog records are generated for COPY in the same transaction as
