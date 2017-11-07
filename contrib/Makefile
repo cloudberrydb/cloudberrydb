@@ -31,6 +31,7 @@ WANTED_DIRS += \
 		gp_inject_fault \
 		gp_cancel_query \
 		indexscan \
+    passwordcheck
 
 ifeq ($(with_openssl),yes)
 WANTED_DIRS += sslinfo
