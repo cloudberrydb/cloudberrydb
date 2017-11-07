@@ -69,16 +69,16 @@
       <ul id="ul_epg_t2v_qbb">
         <li><codeph>plc_python_shared</codeph> - Docker image with Python 2.7.12 installed.<p>The
             Python Data Science Module is also installed. The module contains a set python libraries
-            related to data science. For information about the module, see <xref
-              href="../../install_guide/install_python_dsmod.xml" format="dita" scope="peer">Python
-              Data Science Module Package</xref>.</p></li>
+            related to data science. <ph otherprops="pivotal">For information about the module, see
+                <xref href="../../install_guide/install_python_dsmod.xml" format="dita" scope="peer"
+                >Python Data Science Module Package</xref>.</ph></p></li>
       </ul>
       <ul id="ul_fpg_t2v_qbb">
         <li><codeph>plc_r_shared</codeph> - A Docker image with container with R-3.3.3 installed.
             <p>The R Data Science package is also installed. The package contains a set of R
-            libraries related to data science. For information about the module, see <xref
-              href="../../install_guide/install_r_dslib.xml" format="dita" scope="peer">R Data
-              Science Library Package</xref>.</p></li>
+            libraries related to data science. <ph otherprops="pivotal">For information about the
+              module, see <xref href="../../install_guide/install_r_dslib.xml" format="dita"
+                scope="peer">R Data Science Library Package</xref>.</ph></p></li>
       </ul>
       <p>The Docker container tag represents the PL/Container extension release version (for
         example, 1.0.0). For example, the full container name for <codeph>plc_python_shared</codeph>
