@@ -619,10 +619,10 @@ ALTER TABLE <varname>name</varname>
                                 </plentry>
                                 <plentry>
                                         <pt>SPLIT DEFAULT PARTITION</pt>
-                                        <pd>Splits a default partition. Only a range partition can
-                                                be split, not a list partition. In a multi-level
-                                                partition design, you can only split the lowest
-                                                level default partitions (those that contain data).
+                                        <pd>Splits a default partition. In a multi-level partition,
+                                                only a range partition can be split, not a list
+                                                partition, and you can only split the lowest level
+                                                default partitions (those that contain data).
                                                 Splitting a default partition creates a new
                                                 partition containing the values specified and leaves
                                                 the default partition containing any values that do
@@ -645,11 +645,11 @@ ALTER TABLE <varname>name</varname>
                                 </plentry>
                                 <plentry>
                                         <pt>SPLIT PARTITION</pt>
-                                        <pd>Splits an existing partition into two partitions. Only a
-                                                range partition can be split, not a list partition.
-                                                In a multi-level partition design, you can only
-                                                split the lowest level partitions (those that
-                                                contain data). </pd>
+                                        <pd>Splits an existing partition into two partitions. In a
+                                                multi-level partition, only a range partition can be
+                                                split, not a list partition, and you can only split
+                                                the lowest level partitions (those that contain
+                                                data). </pd>
                                         <pd><b>AT</b> - Specifies a single value that should be used
                                                 as the criteria for the split. The partition will be
                                                 divided into two new partitions with the split value
