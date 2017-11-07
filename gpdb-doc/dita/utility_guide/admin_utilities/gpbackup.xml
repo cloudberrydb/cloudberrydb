@@ -106,9 +106,13 @@
             backup. Each line in the text file must define a single table using the format
               <codeph>&lt;schema-name>.&lt;table-name></codeph>. The file must not include trailing
             lines. If a table or schema name uses any character other than a lowercase letter,
-            number, or an underscore character, then you must include that name in double quotes.
-            See <xref href="../../admin_guide/managing/backup-gpbackup.xml#topic_et4_b5d_tbb"/> for
-            more information.</pd>
+            number, or an underscore character, then you must include that name in double quotes. </pd>
+          <pd>You cannot use this option in combination with <codeph>-leaf-partition-data</codeph>.
+            Although you can specify leaf partition names in a file specified with
+              <codeph>-exclude-table-file</codeph>, <codeph>gpbackup</codeph> ignores the partition
+            names.</pd>
+          <pd>See <xref href="../../admin_guide/managing/backup-gpbackup.xml#topic_et4_b5d_tbb"/>
+            for more information.</pd>
         </plentry>
       </parml>
       <parml>
@@ -133,16 +137,22 @@
               <codeph>&lt;schema-name>.&lt;table-name></codeph>. The file must not include trailing
             lines. If a table or schema name uses any character other than a lowercase letter,
             number, or an underscore character, then you must include that name in double quotes.
-            Any tables not listed in this file are omitted from the backup set. See <xref
-              href="../../admin_guide/managing/backup-gpbackup.xml#topic_et4_b5d_tbb"/> for more
-            information.</pd>
+            Any tables not listed in this file are omitted from the backup set. </pd>
+          <pd>You can optionally specify a table leaf partition name in place of the table name, to
+            include only specific leaf partitions in a backup with the
+              <codeph>-leaf-partition-data</codeph> option. </pd>
+          <pd>See <xref href="../../admin_guide/managing/backup-gpbackup.xml#topic_et4_b5d_tbb"/>
+            for more information.</pd>
         </plentry>
       </parml>
       <parml>
         <plentry>
           <pt><b>-leaf-partition-data</b></pt>
           <pd>Optional. For partitioned tables, creates one data file per leaf partition instead of
-            one data file for the entire table (the default).</pd>
+            one data file for the entire table (the default). Using this option also enables you to
+            specify individual leaf partitions to include in a backup, with the
+              <codeph>-include-table-file</codeph> option. You cannot use this option in combination
+            with <codeph>-exclude-table-file</codeph>.</pd>
         </plentry>
       </parml>
       <parml>

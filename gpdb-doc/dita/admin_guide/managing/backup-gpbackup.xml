@@ -20,9 +20,10 @@
         format="dita"/> for more information.) Storing the table data in CSV files also provides
       opportunities for using other restore utilities, such as <codeph>gpload</codeph>, to load the
       data either in the same cluster or another cluster. By default, one file is created for each
-      table on the segment. You can specify the <codeph> -leaf-partition-data</codeph> option with
+      table on the segment. You can specify the <codeph>-leaf-partition-data</codeph> option with
         <codeph>gpbackup</codeph> to create one data file per leaf partition of a partitioned table,
-      instead of a single file.</p>
+      instead of a single file. This option also enables you to filter backup sets by leaf
+      partitions.</p>
     <p>Each <codeph>gpbackup</codeph> task uses a single transaction in Greenplum Database. During
       this transaction, metadata is backed up on the master host, and data for each table on each
       segment host is written to CSV backup files using <codeph>COPY .. ON SEGMENT</codeph> commands
@@ -41,6 +42,10 @@
             requires a distinct timestamp.</li>
           <li>Database object filtering is currently limited to schemas and tables.</li>
           <li>Filtering objects with <codeph>gprestore</codeph> is not yet supported.</li>
+          <li>You cannot use the <codeph>-exclude-table-file</codeph> with
+              <codeph>-leaf-partition-data</codeph>. Although you can specify leaf partition names
+            in a file specified with <codeph>-exclude-table-file</codeph>, <codeph>gpbackup</codeph>
+            ignores the partition names.</li>
           <li>Incremental backups are not supported.</li>
         </ul></p>
     </body>
@@ -231,6 +236,56 @@ water.tonic</codeblock></p>
           <codeph>gpbackup</codeph> options <codeph>-include-table-file</codeph> and
           <codeph>-exclude-table-file</codeph>. For
         example:<codeblock>$ <b>gpbackup -dbname demo -include-table-file /home/gpadmin/table-list.txt</b></codeblock></p>
+      <section id="section_ddf_gyn_5bb">
+        <title>Filtering by Leaf Partition</title>
+        <p>By default, <codeph>gpbackup</codeph> creates one file for each table on a segment. You
+          can specify the <codeph>-leaf-partition-data</codeph> option with to create one data file
+          per leaf partition of a partitioned table, instead of a single file. This option also
+          enables you to filter backups to specific leaf partitions by listing the partition names
+          in a text file to include. For example, consider a table that was created using the
+          statement:<codeblock>demo=# <b>CREATE TABLE sales (id int, date date, amt decimal(10,2))
+DISTRIBUTED BY (id)
+PARTITION BY RANGE (date)
+( PARTITION Jan17 START (date '2017-01-01') INCLUSIVE ,
+PARTITION Feb17 START (date '2017-02-01') INCLUSIVE ,
+PARTITION Mar17 START (date '2017-03-01') INCLUSIVE ,
+PARTITION Apr17 START (date '2017-04-01') INCLUSIVE ,
+PARTITION May17 START (date '2017-05-01') INCLUSIVE ,
+PARTITION Jun17 START (date '2017-06-01') INCLUSIVE ,
+PARTITION Jul17 START (date '2017-07-01') INCLUSIVE ,
+PARTITION Aug17 START (date '2017-08-01') INCLUSIVE ,
+PARTITION Sep17 START (date '2017-09-01') INCLUSIVE ,
+PARTITION Oct17 START (date '2017-10-01') INCLUSIVE ,
+PARTITION Nov17 START (date '2017-11-01') INCLUSIVE ,
+PARTITION Dec17 START (date '2017-12-01') INCLUSIVE
+END (date '2018-01-01') EXCLUSIVE );</b>
+NOTICE:  CREATE TABLE will create partition "sales_1_prt_jan17" for table "sales"
+NOTICE:  CREATE TABLE will create partition "sales_1_prt_feb17" for table "sales"
+NOTICE:  CREATE TABLE will create partition "sales_1_prt_mar17" for table "sales"
+NOTICE:  CREATE TABLE will create partition "sales_1_prt_apr17" for table "sales"
+NOTICE:  CREATE TABLE will create partition "sales_1_prt_may17" for table "sales"
+NOTICE:  CREATE TABLE will create partition "sales_1_prt_jun17" for table "sales"
+NOTICE:  CREATE TABLE will create partition "sales_1_prt_jul17" for table "sales"
+NOTICE:  CREATE TABLE will create partition "sales_1_prt_aug17" for table "sales"
+NOTICE:  CREATE TABLE will create partition "sales_1_prt_sep17" for table "sales"
+NOTICE:  CREATE TABLE will create partition "sales_1_prt_oct17" for table "sales"
+NOTICE:  CREATE TABLE will create partition "sales_1_prt_nov17" for table "sales"
+NOTICE:  CREATE TABLE will create partition "sales_1_prt_dec17" for table "sales"
+CREATE TABLE</codeblock></p>
+        <p>To back up only data for the last quarter of the year, first create a text file that
+          lists those leaf partition names instead of the full table
+          name:<codeblock>public.sales_1_prt_oct17
+public.sales_1_prt_nov17
+public.sales_1_prt_dec17</codeblock>
+        </p>
+        <p>Then specify the file with the <codeph>-include-table-file</codeph> option, and also
+          specify <codeph>-leaf-partition-data</codeph> to generate one data file per leaf
+          partition:<codeblock>$ <b>gpbackup -dbname demo -include-table-file last-quarter.txt -leaf-partition-data</b></codeblock></p>
+        <note>You cannot use the <codeph>-exclude-table-file</codeph> with
+            <codeph>-leaf-partition-data</codeph>. Although you can specify leaf partition names in
+          a file specified with <codeph>-exclude-table-file</codeph>, <codeph>gpbackup</codeph>
+          ignores the partition names.</note>
+      </section>
     </body>
   </topic>
   <topic id="topic_qwd_d5d_tbb">
