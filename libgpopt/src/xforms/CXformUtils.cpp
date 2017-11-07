@@ -4420,7 +4420,7 @@ CXformUtils::FMergeWithPreviousBitmapIndexProbe
 		pdrgpexprBitmap->Replace(ul, pexprBitmapNew);
 
 		CExpression *pexprRecheckNew =
-				CPredicateUtils::PexprConjunction(pmp, (*pdrgpexprRecheck)[0], pexprRecheck);
+				CPredicateUtils::PexprConjunction(pmp, (*pdrgpexprRecheck)[ul], pexprRecheck);
 		pdrgpexprRecheck->Replace(ul, pexprRecheckNew);
 
 		return true;
