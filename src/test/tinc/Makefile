@@ -151,12 +151,6 @@ test_switch_13_24:
 	-s tincrepo/mpp/gpdb/tests/storage/pg_twophase \
 	-p test_switch_13_24.py
 
-test_switch_25_33:
-	$(TESTER) $(DISCOVER) \
-	-s tincrepo/mpp/gpdb/tests/storage/pg_twophase \
-	-p test_switch_25_33.py
-
-
 # cs-fts
 # The following targets are pulled from:
 # http://pulse-cloud.gopivotal.com/admin/projects/cs-fts
