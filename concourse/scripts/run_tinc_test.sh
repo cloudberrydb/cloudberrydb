@@ -14,12 +14,14 @@ cat > ~/gpdb-env.sh << EOF
 EOF
 source ~/gpdb-env.sh
 
+createdb gptest
+createdb gpadmin
+
 # make fsync by default off to improve test stability
 gpconfig --skipvalidation -c fsync -v off
 gpstop -u
+gpconfig -s fsync
 
-createdb gptest
-createdb gpadmin
 cd ${TINC_DIR}
 source tinc_env.sh
 make ${TINC_TARGET}
