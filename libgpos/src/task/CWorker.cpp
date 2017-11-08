@@ -18,6 +18,9 @@
 
 using namespace gpos;
 
+volatile bool
+CWorker::abort_requested = false;
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CWorker::CWorker
@@ -169,7 +172,7 @@ CWorker::CheckForAbort
 		SimulateAbort(szFile, ulLine);
 #endif // GPOS_FPSIMULATOR
 
-		if (m_ptsk->FCanceled())
+		if (CWorker::abort_requested || m_ptsk->FCanceled())
 		{
 			// raise exception
 			GPOS_ABORT;

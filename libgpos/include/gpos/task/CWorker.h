@@ -155,6 +155,8 @@ namespace gpos
 				return dynamic_cast<CWorker*>(IWorker::PwrkrSelf());
 			}
 
+			static volatile bool abort_requested;
+
 	}; // class CWorker
 }
 
