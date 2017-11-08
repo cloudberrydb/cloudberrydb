@@ -2442,13 +2442,16 @@ groupWaitCancel(void)
 	/* We are sure to be interrupted in the for loop of waitOnGroup now */
 	LWLockAcquire(ResGroupLock, LW_EXCLUSIVE);
 
+	group = self->group;
 	Assert(!selfHasSlot());
 
 	if (procIsInWaitQueue(MyProc))
 	{
-		/* Still waiting on the queue when get interrupted, remove myself from the queue */
+		/*
+		 * Still waiting on the queue when get interrupted, remove
+		 * myself from the queue
+		 */
 
-		group = self->group;
 		Assert(!groupWaitQueueIsEmpty(group));
 		Assert(procIsWaiting(MyProc));
 		Assert(selfHasGroup());
@@ -2470,7 +2473,6 @@ groupWaitCancel(void)
 		 * Similar as groupReleaseSlot(), how many pending queries to
 		 * wake up depends on how many slots we can get.
 		 */
-		group = self->group;
 		groupReleaseSlot(group, slot);
 		Assert(sessionGetSlot() == NULL);
 
@@ -2481,11 +2483,17 @@ groupWaitCancel(void)
 		/*
 		 * The transaction of DROP RESOURCE GROUP is finished,
 		 * groupAcquireSlot will do the retry.
+		 *
+		 * The resource group pointed by self->group may have
+		 * already been removed by here.
 		 */
+
 		Assert(!procIsInWaitQueue(MyProc));
 	}
 
-	addTotalQueueDuration(group);
+	if (selfIsAssignedValidGroup())
+		addTotalQueueDuration(group);
+
 	LWLockRelease(ResGroupLock);
 
 	localResWaiting = false;
