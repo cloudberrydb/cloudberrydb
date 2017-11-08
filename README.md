@@ -13,6 +13,11 @@
 
 Welcome to GPORCA, the Greenplum Next Generation Query Optimizer!
 
+To understand the objectives and architecture of GPORCA please refer to the following articles:
+* [Orca: A Modular Query Optimizer Architecture for Big Data](https://content.pivotal.io/white-papers/orca-a-modular-query-optimizer-architecture-for-big-data).
+* [Profiling Query Compilation Time with GPORCA](http://engineering.pivotal.io/post/orca-profiling/)
+* [Improving Constraints In ORCA](http://engineering.pivotal.io/post/making-orca-smarter/)
+
 Want to [Contribute](#contribute)?
 
 GPORCA supports various build types: debug, release with debug info, release.
