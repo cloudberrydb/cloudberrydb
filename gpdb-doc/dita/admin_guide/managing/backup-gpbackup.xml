@@ -38,6 +38,13 @@
         5.1.0 and later<ph otherprops="pivotal">, or 4.3.17.0 and later</ph>).</p>
       <p><codeph>gpbackup</codeph> and <codeph>gprestore</codeph> are experimental features in this
         release, and have the following limitations:<ul id="ul_uqh_hhd_tbb">
+          <li>If you create an index on a parent partitioned table, <codeph>gpbackup</codeph> does
+            not back up that same index on child partitioned tables of the parent, as creating the
+            same index on a child would cause an error. However, if you exchange a partition,
+              <codeph>gpbackup</codeph> does not detect that the index on the exchanged partition is
+            inherited from the new parent table. In this case, <codeph>gpbackup</codeph> backs up
+            conflicting <codeph>CREATE INDEX</codeph> statements, which causes an error when you
+            restore the backup set.</li>
           <li>You can execute multiple instances of <codeph>gpbackup</codeph>, but each execution
             requires a distinct timestamp.</li>
           <li>Database object filtering is currently limited to schemas and tables.</li>
