@@ -418,7 +418,6 @@ checkDispatchResult(CdbDispatcherState *ds,
 		int			sock;
 		int			n;
 		int			nfds = 0;
-		PGconn		*conn;
 
 		/*
 		 * bail-out if we are dying. Once QD dies, QE will recognize it
@@ -442,7 +441,6 @@ checkDispatchResult(CdbDispatcherState *ds,
 		{
 			dispatchResult = pParms->dispatchResultPtrArray[i];
 			segdbDesc = dispatchResult->segdbDesc;
-			conn = segdbDesc->conn;
 
 			/*
 			 * Already finished with this QE?
@@ -453,17 +451,9 @@ checkDispatchResult(CdbDispatcherState *ds,
 			Assert(!cdbconn_isBadConnection(segdbDesc));
 
 			/*
-			 * Flush out buffer in case some commands are not fully
-			 * dispatched to QEs, this can prevent QD from polling
-			 * on such QEs forever.
-			 */
-			if (conn->outCount > 0)
-				pqFlush(conn);
-
-			/*
 			 * Add socket to fd_set if still connected.
 			 */
-			sock = PQsocket(conn);
+			sock = PQsocket(segdbDesc->conn);
 			Assert(sock >= 0);
 			fds[nfds].fd = sock;
 			fds[nfds].events = POLLIN;
