@@ -1328,7 +1328,6 @@ createdb(CreatedbStmt *stmt)
 	UnregisterSnapshot(snapshot);
 }
 
-
 /* Error cleanup callback for createdb */
 static void
 createdb_failure_callback(int code, Datum arg)
@@ -1347,6 +1346,7 @@ createdb_failure_callback(int code, Datum arg)
 	remove_dbtablespaces(fparms->dest_dboid);
 #endif
 }
+
 
 /*
  * DROP DATABASE
@@ -1898,10 +1898,10 @@ AlterDatabaseSet(AlterDatabaseSetStmt *stmt)
 {
 	char	   *valuestr;
 	HeapTuple	tuple,
-		newtuple;
+				newtuple;
+	Relation	rel;
 	ScanKeyData scankey;
 	SysScanDesc scan;
-	Relation	rel;
 	Datum		repl_val[Natts_pg_database];
 	bool		repl_null[Natts_pg_database];
 	bool		repl_repl[Natts_pg_database];
@@ -2312,7 +2312,6 @@ get_db_info(const char *name, LOCKMODE lockmode,
 				/* default tablespace for this database */
 				if (dbTablespace)
 					*dbTablespace = dbform->dattablespace;
-				
 				ReleaseSysCache(tuple);
 				result = true;
 				break;
