@@ -679,13 +679,7 @@ ResGroupOps_AdjustGUCs(void)
 	 *
 	 * this function should be called before GUCs are dispatched to segments.
 	 */
-	/* TODO: when cgroup is enabled we should move postmaster and maybe
-	 *       also other processes to a separate group or gpdb toplevel */
-	if (gp_segworker_relative_priority != 0)
-	{
-		/* TODO: produce a warning */
-		gp_segworker_relative_priority = 0;
-	}
+	gp_segworker_relative_priority = 0;
 }
 
 /*

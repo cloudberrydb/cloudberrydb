@@ -13,6 +13,10 @@ CREATE OR REPLACE FUNCTION hold_memory_by_percent(int, float) RETURNS int AS $$
     SELECT * FROM resGroupPalloc($2)
 $$ LANGUAGE sql;
 
+CREATE OR REPLACE FUNCTION hold_memory_by_percent_on_qe(int, float) RETURNS int AS $$
+    SELECT resGroupPalloc($2) FROM gp_dist_random('gp_id')
+$$ LANGUAGE sql;
+
 -- After a 'q' command the client connection is disconnected but the
 -- QD may still be alive, if we then query pg_stat_activity quick enough
 -- we might still see this session with current_query '<IDLE>'.
@@ -488,6 +492,73 @@ SELECT * FROM rg_activity_status;
 22q:
 23q:
 24q:
+
+--
+-- 4.1) different caps on QD and QE.
+--
+
+ALTER RESOURCE GROUP rg2_memory_test SET MEMORY_LIMIT 10;
+
+ALTER RESOURCE GROUP rg1_memory_test SET CONCURRENCY 2;
+ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_LIMIT 40;
+ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_SHARED_QUOTA 50;
+-- the group gets a quota of 40%
+-- shared quota is 40%*50%=20%
+-- per slot quota is 40%*50%/2=10%
+
+11: SET ROLE TO role1_memory_test;
+11: BEGIN;
+11: SELECT hold_memory_by_percent_on_qe(1,0.75);
+-- proc 11 gets a quota of 10%
+-- on QD:
+--   -- no shared quota is in use
+-- on QE:
+--   -- 40%*75%-10%=20% group shared quota is in use
+
+ALTER RESOURCE GROUP rg1_memory_test SET MEMORY_SHARED_QUOTA 0;
+-- on QD:
+--   -- group shared quota is 0%
+--   -- group non-shared quota is 40%, free non-shared quota is 40%-10%=30%
+--   -- per slot quota is 40%/2=20%
+-- on QE:
+--   -- group shared quota is still 20% as they are all in use by proc 11
+--   -- group non-shared quota is still 20%, free non-shared quota is 10%
+--   -- per slot quota is still 20%/2=10%
+
+12: SET ROLE TO role1_memory_test;
+12: BEGIN;
+12: SELECT hold_memory_by_percent_on_qe(1,0.25);
+-- on QD:
+--   -- proc 12 gets a quota of 20%
+--   -- group has 40%-10%-20%=10% free non-shared quota
+-- on QE:
+--   -- proc 12 gets a quota of 10%, all of them is consumed
+--   -- group has 20%-10%-10%=0% free non-shared quota
+
+ALTER RESOURCE GROUP rg1_memory_test SET CONCURRENCY 4;
+-- on QD:
+--   -- group shared quota is 0%
+--   -- group non-shared quota is 40%, free non-shared quota is 10%
+--   -- per slot quota is 40%/4=10%
+-- on QE:
+--   -- group shared quota is still 20% as they are all in use by proc 11
+--   -- group non-shared quota is still 20%, free non-shared quota is 0%
+--   -- per slot quota is still 20%/4=5%
+
+13: SET ROLE TO role1_memory_test;
+13: BEGIN;
+13: SELECT hold_memory_by_percent_on_qe(1,0.25);
+-- on QD:
+--   -- proc 13 gets a quota of 10%
+--   -- group has 40%-10%-20%-10%=0% free non-shared quota
+-- on QE:
+--   -- proc 13 wants to get a quota of 5%, but only gets 0%
+--   -- group has 0% free shared quota
+--   -- so the memory allocation should fail
+
+11q:
+12q:
+13q:
 
 -- cleanup
 DROP VIEW rg_mem_status;
