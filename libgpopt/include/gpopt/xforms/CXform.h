@@ -330,6 +330,16 @@ namespace gpopt
 			static
 			CBitSet *PbsHashJoinXforms(IMemoryPool *pmp);
 
+			// returns a set containing xforms to use only the join order as available
+			// in the query
+			static
+			CBitSet *PbsJoinOrderInQueryXforms(IMemoryPool *pmp);
+
+			// returns a set containing xforms to use combination of greedy xforms
+			// for join order
+			static
+			CBitSet *PbsJoinOrderOnGreedyXforms(IMemoryPool *pmp);
+
 	}; // class CXform
 	
 	// shorthand for printing

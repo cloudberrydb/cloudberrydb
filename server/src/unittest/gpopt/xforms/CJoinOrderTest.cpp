@@ -24,6 +24,15 @@
 #include "unittest/gpopt/xforms/CJoinOrderTest.h"
 #include "unittest/gpopt/CTestUtils.h"
 
+ULONG CJoinOrderTest::m_ulTestCounter = 0;  // start from first test
+
+	// minidump files
+const CHAR *rgszJoinOrderFileNames[] =
+{
+	"../data/dxl/minidump/JoinOptimizationLevelGreedyNonPartTblInnerJoin.mdp",
+	"../data/dxl/minidump/JoinOptimizationLevelQueryNonPartTblInnerJoin.mdp"
+};
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CJoinOrderTest::EresUnittest
@@ -39,7 +48,8 @@ CJoinOrderTest::EresUnittest()
 	CUnittest rgut[] =
 		{
 		GPOS_UNITTEST_FUNC(CJoinOrderTest::EresUnittest_Expand),
-		GPOS_UNITTEST_FUNC(EresUnittest_ExpandMinCard)
+		GPOS_UNITTEST_FUNC(EresUnittest_ExpandMinCard),
+		GPOS_UNITTEST_FUNC(EresUnittest_RunTests)
 		};
 
 	return CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
@@ -227,4 +237,15 @@ CJoinOrderTest::EresUnittest_ExpandMinCard()
 	return GPOS_OK;
 }
 
+//	run all Minidump-based tests with plan matching
+GPOS_RESULT
+CJoinOrderTest::EresUnittest_RunTests()
+{
+	return CTestUtils::EresUnittest_RunTests
+	(
+	 rgszJoinOrderFileNames,
+	 &m_ulTestCounter,
+	 GPOS_ARRAY_SIZE(rgszJoinOrderFileNames)
+	 );
+}
 // EOF
