@@ -829,15 +829,29 @@ ResGroupDumpMemoryInfo(void)
 		Assert(selfIsAssignedValidGroup());
 
 		write_log("Resource group memory information: "
-				  "group memory limit is %d MB, "
-				  "shared quota in current resource group is %d MB, "
-				  "memory usage in current resource group is %d MB, "
+				  "current group id is %u, "
+				  "memLimit cap is %d, "
+				  "memSharedQuota cap is %d, "
+				  "memSpillRatio cap is %d, "
+				  "group expected memory limit is %d MB, "
+				  "memory quota granted in currenct group is %d MB, "
+				  "shared quota granted in current group is %d MB, "
+				  "memory assigned to all running slots is %d MB, "
+				  "memory usage in current group is %d MB, "
+				  "memory shared usage in current group is %d MB, "
 				  "memory quota in current slot is %d MB, "
 				  "memory usage in current slot is %d MB, "
 				  "memory usage in current proc is %d MB",
+				  group->groupId,
+				  group->caps.memLimit,
+				  group->caps.memSharedQuota,
+				  group->caps.memSpillRatio,
 				  VmemTracker_ConvertVmemChunksToMB(group->memExpected),
+				  VmemTracker_ConvertVmemChunksToMB(group->memQuotaGranted),
 				  VmemTracker_ConvertVmemChunksToMB(group->memSharedGranted),
+				  VmemTracker_ConvertVmemChunksToMB(group->memQuotaUsed),
 				  VmemTracker_ConvertVmemChunksToMB(group->memUsage),
+				  VmemTracker_ConvertVmemChunksToMB(group->memSharedUsage),
 				  VmemTracker_ConvertVmemChunksToMB(slot->memQuota),
 				  VmemTracker_ConvertVmemChunksToMB(slot->memUsage),
 				  VmemTracker_ConvertVmemChunksToMB(self->memUsage));
@@ -886,10 +900,7 @@ ResGroupReserveMemory(int32 memoryChunks, int32 overuseChunks, bool *waiverUsed)
 	 */
 	self->memUsage += memoryChunks;
 	if (!self->doMemCheck)
-	{
-		Assert(selfIsUnassigned());
 		return true;
-	}
 
 	/* When doMemCheck is on, self must has been assigned to a resgroup. */
 	Assert(selfIsAssigned());
@@ -961,7 +972,7 @@ ResGroupReleaseMemory(int32 memoryChunks)
 	ResGroupSlotData	*slot = self->slot;
 	ResGroupData		*group = self->group;
 
-	if (!IsResGroupActivated())
+	if (!IsResGroupEnabled())
 		return;
 
 	Assert(memoryChunks >= 0);
@@ -1135,9 +1146,11 @@ static void
 selfAttachToSlot(ResGroupData *group, ResGroupSlotData *slot)
 {
 	selfSetSlot(slot);
-	AssertImply(slot->nProcs == 0, slot->memUsage == 0);
 	groupIncMemUsage(group, slot, self->memUsage);
 	pg_atomic_add_fetch_u32((pg_atomic_uint32*) &slot->nProcs, 1);
+
+	/* Start memory limit checking */
+	self->doMemCheck = true;
 }
 
 /*
@@ -1146,9 +1159,11 @@ selfAttachToSlot(ResGroupData *group, ResGroupSlotData *slot)
 static void
 selfDetachSlot(ResGroupData *group, ResGroupSlotData *slot)
 {
+	/* Stop memory limit checking */
+	self->doMemCheck = false;
+
 	groupDecMemUsage(group, slot, self->memUsage);
 	pg_atomic_sub_fetch_u32((pg_atomic_uint32*) &slot->nProcs, 1);
-	AssertImply(slot->nProcs == 0, slot->memUsage == 0);
 	selfUnsetSlot();
 }
 
@@ -2110,9 +2125,6 @@ retry:
 		/* Init self */
 		self->caps = slot->caps;
 
-		/* Start memory limit checking */
-		self->doMemCheck = true;
-
 		/* Don't error out before this line in this function */
 		SIMPLE_FAULT_INJECTOR(ResGroupAssignedOnMaster);
 
@@ -2147,9 +2159,6 @@ UnassignResGroup(void)
 
 	Assert(selfIsAssignedValidGroup());
 	Assert(selfHasSlot());
-
-	/* Stop memory limit checking */
-	self->doMemCheck = false;
 
 	/* Cleanup self */
 	if (self->memUsage > 10)
@@ -2265,9 +2274,6 @@ SwitchResGroupOnSegment(const char *buf, int len)
 
 	/* finally we can say we are in a valid resgroup */
 	Assert(selfIsAssignedValidGroup());
-
-	/* Start memory limit checking */
-	self->doMemCheck = true;
 
 	/* Add into cgroup */
 	ResGroupOps_AssignGroup(self->groupId, MyProcPid);
