@@ -2229,7 +2229,6 @@ SwitchResGroupOnSegment(const char *buf, int len)
 	{
 		Assert(slotIsInUse(slot));
 		Assert(slot->groupId == newGroupId);
-		Assert(slot->memQuota == slotGetMemQuotaExpected(&caps));
 	}
 	else
 	{
