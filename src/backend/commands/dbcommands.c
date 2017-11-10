@@ -1452,8 +1452,7 @@ dropdb(const char *dbname, bool missing_ok)
 
 		initStringInfo(&buffer);
 
-		appendStringInfo(&buffer, "DROP DATABASE IF EXISTS \"%s\"", dbname);
-
+		appendStringInfo(&buffer, "DROP DATABASE IF EXISTS %s", quote_identifier(dbname));
 
 		/*
 		 * Do the DROP DATABASE as part of a distributed transaction.
@@ -2008,41 +2007,40 @@ AlterDatabaseSet(AlterDatabaseSetStmt *stmt)
 		MetaTrackUpdObject(DatabaseRelationId,
 						   dboid,
 						   GetUserId(),
-						   "ALTER", alter_subtype
-				);
+						   "ALTER", alter_subtype);
 
 	/* Close pg_database, but keep lock till commit */
 	heap_close(rel, NoLock);
 	
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-
 		StringInfoData buffer;
 
 		initStringInfo(&buffer);
 
-		appendStringInfo(&buffer, "ALTER DATABASE \"%s\" ", stmt->dbname);
-		
+		appendStringInfo(&buffer, "ALTER DATABASE %s ", quote_identifier(stmt->dbname));
+
 		if (stmt->setstmt->kind ==  VAR_RESET_ALL)
 		{
 			appendStringInfo(&buffer, "RESET ALL");
 		}
 		else if (valuestr == NULL)
 		{
-			appendStringInfo(&buffer, "RESET \"%s\"", stmt->setstmt->name);
+			appendStringInfo(&buffer, "RESET %s", quote_identifier(stmt->setstmt->name));
 		}
 		else
 		{
 			ListCell   *l;
 			bool		first;
 
-			appendStringInfo(&buffer, "SET \"%s\" TO ",stmt->setstmt->name);
-		
+			appendStringInfo(&buffer, "SET %s TO ", quote_identifier(stmt->setstmt->name));
+
 			/* Parse string into list of identifiers */
 			first = true;
 			foreach(l, stmt->setstmt->args)
 			{
 				A_Const    *arg = (A_Const *) lfirst(l);
+
 				if (!first)
 					appendStringInfo(&buffer, ",");
 				first = false;
@@ -2057,13 +2055,12 @@ AlterDatabaseSet(AlterDatabaseSetStmt *stmt)
 						appendStringInfoString(&buffer, strVal(&arg->val));
 						break;
 					case T_String:
-						appendStringInfo(&buffer,"'%s'", strVal(&arg->val));
+						appendStringInfoString(&buffer, quote_literal_internal(strVal(&arg->val)));
 						break;
 					default:
-						appendStringInfo(&buffer, "%s", quote_identifier(strVal(&arg->val)));
+						elog(ERROR, "unexpected constant type: %d", nodeTag(&arg->val));
 				}
 			}
-
 		}
 
 		CdbDispatchCommand(buffer.data,
