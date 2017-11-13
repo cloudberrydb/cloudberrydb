@@ -1280,7 +1280,7 @@ groupGetSlot(ResGroupData *group)
 		return NULL;
 
 	slotMemQuota = groupReserveMemQuota(group);
-	if (slotMemQuota == 0)
+	if (slotMemQuota < 0)
 		return NULL;
 
 	/* Now actually get a free slot */
@@ -1331,7 +1331,7 @@ groupPutSlot(ResGroupData *group, ResGroupSlotData *slot)
 /*
  * Reserve memory quota for a slot in group.
  *
- * If there is not enough free memory quota then return 0 and nothing
+ * If there is not enough free memory quota then return -1 and nothing
  * is changed; otherwise return the reserved quota size.
  */
 static int32
@@ -1357,7 +1357,7 @@ groupReserveMemQuota(ResGroupData *group)
 	if (group->memQuotaUsed + slotMemQuota > group->memQuotaGranted)
 	{
 		/* No enough memory quota available, give up */
-		return 0;
+		return -1;
 	}
 
 	group->memQuotaUsed += slotMemQuota;
