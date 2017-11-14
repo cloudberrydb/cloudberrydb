@@ -26,6 +26,7 @@ groups:
   - icw_gporca_sles11
   - icw_planner_ubuntu16
   - icw_gporca_conan_ubuntu16
+  - icw_extensions_gpcloud
   - icw_planner_ictcp_centos6
   - icw_gporca_centos6_gpos_memory
   - QP_memory-accounting
@@ -82,7 +83,6 @@ groups:
   - regression_tests_pxf_cdh_rpm
   - regression_tests_pxf_cdh_tar
   - regression_tests_gphdfs_centos
-  - regression_tests_gpcloud_centos
   - gate_ud_end
 ################################
   - gate_filerep_start
@@ -121,6 +121,7 @@ groups:
   - icw_gporca_centos7
   - icw_gporca_sles11
   - icw_planner_ictcp_centos6
+  - icw_extensions_gpcloud
   - icw_gporca_centos6_gpos_memory
   - QP_memory-accounting
   - gate_icw_end
@@ -188,7 +189,6 @@ groups:
   - regression_tests_pxf_cdh_rpm
   - regression_tests_pxf_cdh_tar
   - regression_tests_gphdfs_centos
-  - regression_tests_gpcloud_centos
   - gate_ud_end
 
 - name: G:FileRep
@@ -1124,6 +1124,38 @@ jobs:
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
       TEST_OS: centos
 
+- name: icw_extensions_gpcloud
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [gate_icw_start]
+      trigger: true
+    - get: bin_gpdb_centos6
+      passed: [gate_icw_start]
+    - get: compiled_bits_ubuntu16
+      passed: [gate_icw_start]
+    - get: centos-gpdb-dev-6
+    - get: ubuntu-gpdb-dev-16
+  - aggregate:
+    - task: test_gpcloud_centos
+      input_mapping:
+        bin_gpdb: bin_gpdb_centos6
+      file: gpdb_src/concourse/tasks/test_gpcloud.yml
+      image: centos-gpdb-dev-6
+      params:
+        gpcloud_access_key_id: {{gpcloud-access-key-id}}
+        gpcloud_secret_access_key: {{gpcloud-secret-access-key}}
+        TARGET_OS: centos
+    - task: test_gpcloud_ubuntu
+      input_mapping:
+        bin_gpdb: compiled_bits_ubuntu16
+      file: gpdb_src/concourse/tasks/test_gpcloud.yml
+      image: ubuntu-gpdb-dev-16
+      params:
+        gpcloud_access_key_id: {{gpcloud-access-key-id}}
+        gpcloud_secret_access_key: {{gpcloud-secret-access-key}}
+        TARGET_OS: ubuntu
+
 - name: QP_memory-accounting
   plan:
   - aggregate:
@@ -1155,6 +1187,7 @@ jobs:
       - icw_gporca_centos7
       - icw_gporca_sles11
       - icw_planner_ictcp_centos6
+      - icw_extensions_gpcloud
       - icw_gporca_centos6_gpos_memory
       - QP_memory-accounting
       trigger: true
@@ -2677,25 +2710,6 @@ jobs:
       TARGET_OS: centos
       TARGET_OS_VERSION: 6
 
-- name: regression_tests_gpcloud_centos
-  plan:
-  - aggregate:
-    - get: gpdb_src
-      passed: [gate_ud_start]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos6
-      passed: [gate_ud_start]
-      trigger: true
-    - get: centos-gpdb-dev-6
-  - task: regression_tests_gpcloud
-    file: gpdb_src/concourse/tasks/regression_tests_gpcloud.yml
-    image: centos-gpdb-dev-6
-    params:
-      gpcloud_access_key_id: {{gpcloud-access-key-id}}
-      gpcloud_secret_access_key: {{gpcloud-secret-access-key}}
-      overwrite_gpcloud: false
-      TARGET_OS: centos
-      TARGET_OS_VERSION: 6
 
 - name: gate_ud_end
   plan:
@@ -2707,7 +2721,6 @@ jobs:
       - regression_tests_pxf_cdh_rpm
       - regression_tests_pxf_cdh_tar
       - regression_tests_gphdfs_centos
-      - regression_tests_gpcloud_centos
       trigger: true
 ################ General Misc End
 
@@ -2931,6 +2944,7 @@ jobs:
     - icw_planner_ubuntu16
     - icw_gporca_conan_ubuntu16
     - icw_planner_ictcp_centos6
+    - icw_extensions_gpcloud
     - client_loader_remote_test_aix
     - mpp_resource_group_centos6
     - mpp_resource_group_centos7
@@ -2962,7 +2976,6 @@ jobs:
     - cs_crash_recovery_21_30
     - cs_crash_recovery_31_42
     - QP_memory-accounting
-    - regression_tests_gpcloud_centos
     - regression_tests_gphdfs_centos
     - regression_tests_pxf_hdp_rpm
     - regression_tests_pxf_hdp_tar

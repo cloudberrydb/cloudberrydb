@@ -1,6 +1,7 @@
 #!/usr/bin/python2
 
 import optparse
+import os
 import subprocess
 import sys
 
@@ -10,6 +11,7 @@ CODEGEN_MODE = 'codegen'
 ORCA_CODEGEN_DEFAULT_MODE = "orca_codegen"
 ORCA_MODE = 'orca'
 PLANNER_MODE = 'planner'
+INSTALL_DIR = "/usr/local/gpdb"
 
 
 def make(num_cpus):
@@ -20,10 +22,17 @@ def make(num_cpus):
                            cwd="gpdb_src")
 
 
-def install(output_dir):
-    subprocess.call("make install", cwd="gpdb_src", shell=True)
-    subprocess.call("mkdir -p " + output_dir, shell=True)
-    return subprocess.call("cp -r /usr/local/gpdb/* " + output_dir, shell=True)
+def install():
+    return subprocess.call("make install", cwd="gpdb_src", shell=True)
+
+
+def copy_installed(output_dir):
+    if os.path.normpath(INSTALL_DIR) != os.path.normpath(output_dir):
+        status = subprocess.call("mkdir -p " + output_dir, shell=True)
+        if status:
+            return status
+        return subprocess.call("cp -r %s/*  %s" % (INSTALL_DIR, output_dir), shell=True)
+    return
 
 
 def unittest():
@@ -31,8 +40,10 @@ def unittest():
 
 
 def print_compiler_version():
-    subprocess.call(["g++", "--version"])
-    subprocess.call(["gcc", "--version"])
+    status = subprocess.call(["g++", "--version"])
+    if status:
+        return status
+    return subprocess.call(["gcc", "--version"])
 
 
 def main():
@@ -41,7 +52,7 @@ def main():
     parser.add_option("--mode", choices=[ORCA_MODE, CODEGEN_MODE, ORCA_CODEGEN_DEFAULT_MODE, PLANNER_MODE], default=ORCA_CODEGEN_DEFAULT_MODE)
     parser.add_option("--compiler", dest="compiler")
     parser.add_option("--cxxflags", dest="cxxflags")
-    parser.add_option("--output_dir", dest="output_dir", default="install")
+    parser.add_option("--output_dir", dest="output_dir", default=INSTALL_DIR)
     (options, args) = parser.parse_args()
     ci_common = GpBuild(ORCA_CODEGEN_DEFAULT_MODE)
     if options.mode == ORCA_MODE:
@@ -53,7 +64,9 @@ def main():
         status = ci_common.install_dependency(dependency)
         if status:
             return status
-    print_compiler_version()
+    status = print_compiler_version()
+    if status:
+        return status
     status = ci_common.configure()
     if status:
         return status
@@ -63,7 +76,10 @@ def main():
     status = unittest()
     if status:
         return status
-    status = install(options.output_dir)
+    status = install()
+    if status:
+        return status
+    status = copy_installed(options.output_dir)
     if status:
         return status
     return 0

@@ -10,7 +10,7 @@ outputs:
   - name: compiled_bits_gpdb_with_orca_conan_ubuntu16
   - name: compiled_bits_orca_with_conan_ubuntu16
 run:
-  path: gpdb_src/concourse/scripts/compile_gpdb_and_orca_with_conan_ubuntu16.bash
+  path: gpdb_src/concourse/scripts/compile_gpdb_and_orca_with_conan_ubuntu.bash
 params:
   BINARY_USER: required
   BINARY_REMOTE_URL: required
