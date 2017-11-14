@@ -2146,7 +2146,7 @@ ORDER BY tablename, c2.oid desc;
 
     def _update_distribution_policy(self, dbname):
         """ NULL out the distribution policy for both
-            regular and paritioned table before expansion
+            regular and partitioned table before expansion
         """
 
         table_conn = self.connect_database(dbname)

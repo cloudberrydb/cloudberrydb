@@ -1689,7 +1689,7 @@ alter table mpp6612 alter column unique2 type char(10);
 -- Show the dsecription
 \d mpp6612*
 
--- Modify the partion definition. MPP-3724
+-- Modify the partition definition. MPP-3724
 -- alter table mpp6612 alter column unique1 type char(10); -- This should fail
 -- alter table mpp6612 alter column unique1 type int8;
 -- Show the dsecription

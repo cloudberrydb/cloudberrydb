@@ -104,7 +104,7 @@ typedef struct CacheCtl
 
 	/*
 	 * Each partition requires a lightweight lock.
-	 * baseLWLockId is the first LW lock of a preallocated numPartions size
+	 * baseLWLockId is the first LW lock of a preallocated numPartitions size
 	 * lock array.
 	 */
 	LWLockId baseLWLockId;

@@ -47,7 +47,7 @@ static HTAB *PartitionIndexHash;
 static HTAB *LogicalIndexInfoHash;
 
 /*
- * Hash entry for PartionIndexHash
+ * Hash entry for PartitionIndexHash
  * hashkey is (indexkey + indexpred + indexexprs)
  */
 typedef struct

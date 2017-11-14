@@ -1351,7 +1351,7 @@ Feature: Incrementally analyze the database
         And columns "a,c" of table "public.t3_ao" should appear in the latest column state file
         And column "b" of table "public.t3_ao" should not appear in the latest column state file
 
-    # no entry in state files for parition tables
+    # no entry in state files for partition tables
 
     @analyzedb_core @analyzedb_partition_tables
     Scenario: Partition tables, (no entry, no change, root)
@@ -1431,7 +1431,7 @@ Feature: Incrementally analyze the database
         And "public.sales_1_prt_2" should appear in the latest state files
         And "public.sales_1_prt_4" should appear in the latest state files
 
-    # entries exist for all parts in state files for parition tables
+    # entries exist for all parts in state files for partition tables
 
     @analyzedb_core @analyzedb_partition_tables
     Scenario: Partition tables, (entries for all parts, no change, root)
@@ -1516,7 +1516,7 @@ Feature: Incrementally analyze the database
         And "public.sales_1_prt_2" should appear in the latest state files
         And "public.sales_1_prt_4" should appear in the latest state files
 
-    # entries exist for some parts in state files for parition tables
+    # entries exist for some parts in state files for partition tables
 
     @analyzedb_core @analyzedb_partition_tables
     Scenario: Partition tables, (entries for some parts, no change, root)
