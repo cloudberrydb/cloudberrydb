@@ -860,5 +860,14 @@ CMemo::UlGrpExprs()
 	return ulGExprs;
 }
 
+#ifdef GPOS_DEBUG
+void
+CMemo::DbgPrint()
+{
+	CAutoTrace at(m_pmp);
+	(void) this->OsPrint(at.Os());
+}
+#endif // GPOS_DEBUG
+
 // EOF
 

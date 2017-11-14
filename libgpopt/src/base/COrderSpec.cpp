@@ -14,6 +14,10 @@
 #include "gpopt/base/COptCtxt.h"
 #include "gpopt/operators/CPhysicalSort.h"
 
+#ifdef GPOS_DEBUG
+#include "gpos/error/CAutoTrace.h"
+#endif // GPOS_DEBUG
+
 using namespace gpopt;
 using namespace gpmd;
 
@@ -106,6 +110,15 @@ COrderSpec::COrderExpression::OsPrint
 	return os;
 }
 
+#ifdef GPOS_DEBUG
+void
+COrderSpec::COrderExpression::DbgPrint() const
+{
+	IMemoryPool *pmp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CAutoTrace at(pmp);
+	(void) this->OsPrint(at.Os());
+}
+#endif // GPOS_DEBUG
 
 //---------------------------------------------------------------------------
 //	@function:

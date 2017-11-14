@@ -13,6 +13,11 @@
 #include "gpopt/base/CPartFilterMap.h"
 #include "gpopt/operators/CExpression.h"
 
+#ifdef GPOS_DEBUG
+#include "gpopt/base/COptCtxt.h"
+#include "gpos/error/CAutoTrace.h"
+#endif // GPOS_DEBUG
+
 using namespace gpos;
 using namespace gpopt;
 using namespace gpnaucrates;
@@ -390,6 +395,17 @@ CPartFilterMap::OsPrint
 
 	return os;
 }
+
+
+#ifdef GPOS_DEBUG
+void
+CPartFilterMap::DbgPrint() const
+{
+	IMemoryPool *pmp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CAutoTrace at(pmp);
+	(void) this->OsPrint(at.Os());
+}
+#endif // GPOS_DEBUG
 
 // EOF
 

@@ -269,6 +269,12 @@ CQueryContext::OsPrint
 	return os << *m_pexpr << std::endl << *m_prpp;
 }
 
+void
+CQueryContext::DbgPrint() const
+{
+	CAutoTrace at(m_pmp);
+	(void) this->OsPrint(at.Os());
+}
 #endif // GPOS_DEBUG
 
 

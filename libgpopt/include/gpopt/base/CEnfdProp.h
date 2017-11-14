@@ -128,6 +128,11 @@ namespace gpopt
 				return CEnfdProp::EpetOptional == epet || CEnfdProp::EpetUnnecessary == epet;
 			}
 
+#ifdef GPOS_DEBUG
+			// debug print for interactive debugging sessions only
+			void DbgPrint() const;
+#endif //GPOS_DEBUG
+
 	}; // class CEnfdProp
 
 

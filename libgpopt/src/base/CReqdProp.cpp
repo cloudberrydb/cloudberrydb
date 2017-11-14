@@ -14,6 +14,11 @@
 #include "gpopt/base/CReqdProp.h"
 #include "gpopt/operators/COperator.h"
 
+#ifdef GPOS_DEBUG
+#include "gpos/error/CAutoTrace.h"
+#include "gpopt/base/COptCtxt.h"
+#endif // GPOS_DEBUG
+
 using namespace gpopt;
 
 //---------------------------------------------------------------------------
@@ -40,5 +45,14 @@ CReqdProp::~CReqdProp()
 {}
 
 
+#ifdef GPOS_DEBUG
+void
+CReqdProp::DbgPrint() const
+{
+	IMemoryPool *pmp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CAutoTrace at(pmp);
+	at.Os() << *this;
+}
+#endif // GPOS_DEBUG
 
 // EOF

@@ -177,6 +177,9 @@ namespace gpopt
 #ifdef GPOS_DEBUG
 			// get group by id
 			CGroup *Pgroup(ULONG ulId);
+
+			// debug print for interactive debugging sessions only
+			void DbgPrint();
 #endif // GPOS_DEBUG
 
 	}; // class CMemo

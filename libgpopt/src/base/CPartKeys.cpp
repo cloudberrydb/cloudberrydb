@@ -217,4 +217,14 @@ CPartKeys::OsPrint
 	return os;
 }
 
+#ifdef GPOS_DEBUG
+void
+CPartKeys::DbgPrint() const
+{
+
+	IMemoryPool *pmp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CAutoTrace at(pmp);
+	(void) this->OsPrint(at.Os());
+}
+#endif // GPOS_DEBUG
 // EOF

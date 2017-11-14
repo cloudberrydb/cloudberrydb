@@ -112,11 +112,22 @@ CPartInfo::CPartInfoEntry::OsPrint
 	(
 	IOstream &os
 	)
+	const
 {
 	os << m_ulScanId;
 
 	return os;
 }
+
+#ifdef GPOS_DEBUG
+void
+CPartInfo::CPartInfoEntry::DbgPrint() const
+{
+	IMemoryPool *pmp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CAutoTrace at(pmp);
+	(void) this->OsPrint(at.Os());
+}
+#endif // GPOS_DEBUG
 
 
 //---------------------------------------------------------------------------
@@ -483,6 +494,16 @@ CPartInfo::OsPrint
 
 	return os;
 }
+
+#ifdef GPOS_DEBUG
+void
+CPartInfo::DbgPrint() const
+{
+	IMemoryPool *pmp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CAutoTrace at(pmp);
+	(void) this->OsPrint(at.Os());
+}
+#endif // GPOS_DEBUG
 
 
 // EOF

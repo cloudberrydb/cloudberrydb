@@ -674,7 +674,7 @@ CCostContext::OsPrint
 
 #ifdef GPOS_DEBUG
 void
-CCostContext::DbgPrint()
+CCostContext::DbgPrint() const
 {
 	CAutoTrace at(m_pmp);
 	(void) this->OsPrint(at.Os());

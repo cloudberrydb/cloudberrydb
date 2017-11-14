@@ -200,7 +200,12 @@ namespace gpopt
 					// add part constraints
 					void AddPartConstraints(IMemoryPool *pmp, PartCnstrMap *ppartcnstrmap);
 
-					IOstream &OsPrint(IOstream &os);
+					IOstream &OsPrint(IOstream &os) const;
+
+#ifdef GPOS_DEBUG
+					// debug print for interactive debugging sessions only
+					void DbgPrint() const;
+#endif // GPOS_DEBUG
 
 			}; // CPartTableInfo
 
@@ -357,6 +362,11 @@ namespace gpopt
 			// combine the two given maps and return the resulting map
 			static
 			CPartIndexMap *PpimCombine(IMemoryPool *pmp, const CPartIndexMap &pimFst, const CPartIndexMap &pimSnd);
+
+#ifdef GPOS_DEBUG
+			// debug print for interactive debugging sessions only
+			void DbgPrint() const;
+#endif // GPOS_DEBUG
 
 	}; // class CPartIndexMap
 

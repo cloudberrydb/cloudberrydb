@@ -809,5 +809,13 @@ CReqdPropPlan::PrppRemap
 	return GPOS_NEW(pmp) CReqdPropPlan(pcrsRequired, peo, ped, per, pepp, pcter);
 }
 
-
+#ifdef GPOS_DEBUG
+void
+CReqdPropPlan::DbgPrint() const
+{
+	IMemoryPool *pmp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CAutoTrace at(pmp);
+	(void) this->OsPrint(at.Os());
+}
+#endif // GPOS_DEBUG
 // EOF

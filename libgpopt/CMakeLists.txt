@@ -17,7 +17,6 @@ add_library(gpopt
             include/gpopt/base/CDrvdPropCtxtRelational.h
             include/gpopt/base/CDrvdPropCtxtScalar.h
             include/gpopt/base/CMaxCard.h
-            include/gpopt/base/CPropSpec.h
             include/gpopt/base/CStateMachine.h
             include/gpopt/base/CUtils.inl
             include/gpopt/base/IComparator.h
@@ -123,6 +122,8 @@ add_library(gpopt
             src/base/CCTEReq.cpp
             include/gpopt/base/CDefaultComparator.h
             src/base/CDefaultComparator.cpp
+            include/gpopt/base/CPropSpec.h
+            src/base/CPropSpec.cpp
             include/gpopt/base/CDistributionSpecExternal.h
             src/base/CDistributionSpecExternal.cpp
             include/gpopt/base/CDistributionSpecHashed.h

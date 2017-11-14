@@ -87,6 +87,10 @@ namespace gpopt
 			static
 			DrgPpartkeys *PdrgppartkeysCopy(IMemoryPool *pmp, const DrgPpartkeys *pdrgppartkeys);
 
+#ifdef GPOS_DEBUG
+			// debug print for interactive debugging sessions only
+			void DbgPrint() const;
+#endif // GPOS_DEBUG
 	}; // CPartKeys
 
 	// shorthand for printing

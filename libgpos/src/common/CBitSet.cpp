@@ -17,6 +17,10 @@
 #include "gpos/common/CBitSet.h"
 #include "gpos/common/CBitSetIter.h"
 
+#ifdef GPOS_DEBUG
+#include "gpos/error/CAutoTrace.h"
+#endif // GPOS_DEBUG
+
 using namespace gpos;
 
 
@@ -715,5 +719,12 @@ CBitSet::OsPrint
 	return os;
 }
 
-
+#ifdef GPOS_DEBUG
+void
+CBitSet::DbgPrint() const
+{
+	CAutoTrace at(m_pmp);
+	(void) this->OsPrint(at.Os());
+}
+#endif // GPOS_DEBUG
 // EOF

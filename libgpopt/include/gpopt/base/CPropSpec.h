@@ -82,13 +82,18 @@ namespace gpopt
 			// print
 			virtual
 			IOstream &OsPrint(IOstream &os) const = 0;
+		
+#ifdef GPOS_DEBUG
+			// debug print for interactive debugging sessions only
+			void DbgPrint() const;
+#endif // GPOS_DEBUG
 
 	}; // class CPropSpec
 
 
 	// shorthand for printing
 	inline
-	IOstream &operator << (IOstream &os, CPropSpec &ospec)
+	IOstream &operator << (IOstream &os, const CPropSpec &ospec)
 	{
 		return ospec.OsPrint(os);
 	}
