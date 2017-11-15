@@ -1859,11 +1859,17 @@ reset gp_enable_agg_distinct_pruning;
 
 set enable_groupagg=off;
 -- both queries should use hashagg
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: Need to fix to generate hashagg instead of groupagg
+-- end_ignore
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.j = t2.j) tmp group by j;
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.i = t2.i) tmp group by j;
 
 set enable_groupagg=on;
 -- first query should use groupagg, and second one - hashagg
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: Need to fix to generate hashagg instead of groupagg
+-- end_ignore
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.j = t2.j) tmp group by j;
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.i = t2.i) tmp group by j;
 
