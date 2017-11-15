@@ -36,7 +36,6 @@ MAPREDOBJS= $(addprefix $(BUILDDIR)/, $(FILES))
 GENOBJS   = $(addprefix $(SRCDIR)/, $(GENFILES))
 
 FLEXFLAGS = -i
-BISONFLAGS = -d
 
 all: submake-libpq gpmapreduce all-lib
 
@@ -59,7 +58,7 @@ $(SRCDIR)/yaml_parse.h: $(SRCDIR)/yaml_parse.c
 $(SRCDIR)/yaml_parse.c: $(SRCDIR)/yaml_parse.y
 ifdef BISON
 	@cd $(SRCDIR) ; \
-	$(BISON) $(BISONFLAGS) yaml_parse.y
+	$(BISON) -d $(BISONFLAGS) yaml_parse.y
 else
 	@$(missing) bison $< $@
 endif
