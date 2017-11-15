@@ -18,7 +18,8 @@
 - If you want to install and use gcc-6 by default, run:
 
   ```bash
-  sudo yum install -y centos-release-scl devtoolset-6-toolchain
+  sudo yum install -y centos-release-scl
+  sudo yum install -y devtoolset-6-toolchain
   echo 'source scl_source enable devtoolset-6' >> ~/.bashrc
   ```
 
