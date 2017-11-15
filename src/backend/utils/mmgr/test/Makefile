@@ -43,6 +43,7 @@ memaccounting.t: \
 
 runaway_cleaner.t: \
 	$(MOCK_DIR)/backend/utils/error/elog_mock.o \
+	$(MOCK_DIR)/backend/access/transam/xact_mock.o \
 	$(MOCK_DIR)/backend/utils/mmgr/mcxt_mock.o \
 	$(MOCK_DIR)/backend/utils/mmgr/memaccounting_mock.o \
 	$(MOCK_DIR)/backend/utils/misc/faultinjector_mock.o \
