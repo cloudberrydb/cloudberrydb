@@ -119,6 +119,10 @@ determine_os() {
   exit 1
 }
 
+# This might no longer be necessary, as the centos7 base image has been updated
+# with ping's setcap set properly, although it would need to be verified to work
+# for other OSs used by Concourse.
+# https://github.com/Pivotal-DataFabric/toolsmiths-images/pull/27
 workaround_before_concourse_stops_stripping_suid_bits() {
   chmod u+s /bin/ping
 }
