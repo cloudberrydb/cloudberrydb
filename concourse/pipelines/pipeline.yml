@@ -1786,12 +1786,30 @@ jobs:
     <<: *cs_ccp_terraform_params
   - task: gen_cluster
     <<: *cs_ccp_gen_cluster_params
+  - task: pre_run_test_setup
+    tags: ["ccp"]
+    image: centos-gpdb-dev-6
+    config:
+      platform: linux
+      inputs:
+       - name: ccp_src
+       - name: cluster_env_files
+      run:
+        path: bash
+        args:
+        - -c
+        - |
+          set -ex
+          ccp_src/aws/setup_ssh_to_cluster.sh
+          ssh -t centos@mdw << 'SSH_CMD'
+            sudo yum -y install kernel-devel-$(uname -r)
+          SSH_CMD
+    on_failure:
+      <<: *debug_sleep
   - task: run_tests
     <<: *cs_ccp_run_tests_params
     params:
       TINC_TARGET: mpp_interconnect
-      PRE_TEST_SCRIPT_USER: centos
-      PRE_TEST_SCRIPT: sudo bash -c 'yum -y install "kernel-devel-uname-r == $(uname -r)"'
   - *ccp_destroy
 
 - name: mpp_resource_group_centos6
@@ -2192,6 +2210,25 @@ jobs:
       <<: *ccp_gen_cluster_default_params
     on_failure:
       <<: *ccp_destroy
+  - task: pre_run_test_setup
+    tags: ["ccp"]
+    image: centos-gpdb-dev-6
+    config:
+      platform: linux
+      inputs:
+       - name: ccp_src
+       - name: cluster_env_files
+      run:
+        path: bash
+        args:
+        - -c
+        - |
+          set -ex
+          ccp_src/aws/setup_ssh_to_cluster.sh
+          ssh -t mdw "HOST1=mdw HOST2=sdw1 HOST3=sdw2 HOST4=sdw3 HOST5=sdw4 \
+                      bash -c 'ssh-keygen -f ~/.ssh/id_rsa -y > ~/.ssh/id_rsa.pub; for i in mdw sdw{1..4}; do ssh centos@\$i \"sudo chmod 777 /usr/local\"; done'"
+    on_failure:
+      <<: *debug_sleep
   - task: run_tests
     tags: ["ccp"]
     file: gpdb_src/concourse/tasks/run_tinc.yml
@@ -2199,7 +2236,6 @@ jobs:
     params:
       TINC_TARGET: gpexpand_2
       CUSTOM_ENV: HOST1=mdw HOST2=sdw1 HOST3=sdw2 HOST4=sdw3 HOST5=sdw4
-      PRE_TEST_SCRIPT: bash -c 'ssh-keygen -f ~/.ssh/id_rsa -y > ~/.ssh/id_rsa.pub; for i in mdw sdw{1..4}; do ssh centos@$i "sudo chmod 777 /usr/local"; done'
     on_failure:
       <<: *debug_sleep
   - *ccp_destroy
