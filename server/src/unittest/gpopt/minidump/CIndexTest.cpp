@@ -105,7 +105,7 @@ const CHAR *rgszIndexFileNames[] =
 	"../data/dxl/minidump/SingleColumnHomogenousIndexOnRoot-AO.mdp",
 	"../data/dxl/minidump/SingleColumnHomogenousIndexOnRoot-HEAP.mdp",
 	"../data/dxl/minidump/LogicalIndexGetDroppedCols.mdp",
-	"../data/dxl/minidump/DynamicIndexGetDroppedCols.mdp"
+	"../data/dxl/minidump/DynamicIndexGetDroppedCols.mdp",
 	};
 
 //---------------------------------------------------------------------------

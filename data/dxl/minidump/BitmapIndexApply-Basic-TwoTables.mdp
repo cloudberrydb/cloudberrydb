@@ -440,7 +440,7 @@ explain SELECT * FROM s i1, t t2 where t2.c2 = i1.c2;
     <dxl:Plan Id="0" SpaceSize="1">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="431.167358" Rows="1.000000" Width="40"/>
+          <dxl:Cost StartupCost="0" TotalCost="862.001517" Rows="1.000000" Width="40"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="c1">
@@ -490,7 +490,7 @@ explain SELECT * FROM s i1, t t2 where t2.c2 = i1.c2;
         <dxl:SortingColumnList/>
         <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="431.167209" Rows="1.000000" Width="40"/>
+            <dxl:Cost StartupCost="0" TotalCost="862.001367" Rows="1.000000" Width="40"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="c1">
@@ -619,7 +619,7 @@ explain SELECT * FROM s i1, t t2 where t2.c2 = i1.c2;
           </dxl:BroadcastMotion>
           <dxl:BitmapTableScan>
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="0.166667" Rows="1.000000" Width="15"/>
+              <dxl:Cost StartupCost="0" TotalCost="431.000825" Rows="1.000000" Width="15"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="14" Alias="c1">
