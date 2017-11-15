@@ -64,7 +64,7 @@
   <topic id="topic_tcm_htd_gw">
     <title>PL/Container Language Docker Images</title>
     <body>
-      <p>Pivotal provides 2 Docker images for customers, a Python image and an R image. The Docker
+      <p>Pivotal provides two Docker images for customers, a Python image and an R image. The Docker
         images are available under <codeph>pivotaldata</codeph> organization in Docker Hub (<xref
           href="https://hub.docker.com/r/pivotaldata/" format="html" scope="external"
           >https://hub.docker.com/r/pivotaldata/</xref>):</p>
@@ -752,15 +752,29 @@ $$ LANGUAGE plcontainer;</codeblock></p>
     <topic id="topic_oyl_zv3_kw">
       <title>Notes</title>
       <body>
-        <p>PL/Container configuration file <codeph>plcontainer_configuration.xml</codeph> is stored
-          in all the Greenplum Database data directories for all the Greenplum Database segment
-          instances: master, standby master, primary and mirror. This query lists the Greenplum
-          Database system data
-          directories:<codeblock>select g.hostname, fe.fselocation as directory 
+        <ul id="ul_j4g_vgs_wbb">
+          <li>PL/Container configuration file <codeph>plcontainer_configuration.xml</codeph> is
+            stored in all the Greenplum Database data directories for all the Greenplum Database
+            segment instances: master, standby master, primary and mirror. This query lists the
+            Greenplum Database system data
+            directories:<codeblock>select g.hostname, fe.fselocation as directory 
    from pg_filespace as f, pg_filespace_entry as fe, 
        gp_segment_configuration as g
    where f.oid = fe.fsefsoid and g.dbid = fe.fsedbid 
-       and f.fsname = 'pg_system';</codeblock></p>
+       and f.fsname = 'pg_system';</codeblock></li>
+          <li>In some cases, when PL/Container is running in a high concurrency scenario, the Docker
+            daemon hangs with log entries that indicate a memory shortage. This can happen even when
+            the system seems to have adequate free memory.<p>The issue seems to be triggered by a
+              combination of two factors, the aggressive virtual memory requirement of the Go
+              language (<codeph>golang</codeph>) runtime that is used by PL/Container, and the
+              Greenplum Database Linux server kernel parameter setting for
+                <codeph>overcommit_memory</codeph>. The parameter is set to 2 which does not allow
+              memory overcommit. </p><p>A workaround that might help is to increase the amount of
+              swap space and increase the Linux server kernel parameter
+                <codeph>overcommit_ratio</codeph>. If this issue still occurs after the changes,
+              there might be memory shortage. You should check free memory on the system and add
+              more RAM if needed. You can also decrease the cluster load.</p></li>
+        </ul>
       </body>
     </topic>
   </topic>
