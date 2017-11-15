@@ -2,7 +2,7 @@
 set -exo pipefail
 
 GREENPLUM_INSTALL_DIR=/usr/local/gpdb
-TRANSFER_DIR_ABSOLUTE_PATH="$(pwd)/${TRANSFER_DIR}"
+TRANSFER_DIR_ABSOLUTE_PATH=$(pwd)/${TRANSFER_DIR}
 COMPILED_BITS_FILENAME=${COMPILED_BITS_FILENAME:="compiled_bits_ubuntu16.tar.gz"}
 
 function build_external_depends() {
@@ -22,13 +22,13 @@ function build_gpdb() {
     build_external_depends
     pushd gpdb_src
     CWD=$(pwd)
-    LD_LIRBARAY_PATH="${CWD}"/depends/build/lib CC=$(which gcc) CXX=$(which g++) ./configure --enable-mapreduce --with-gssapi --with-perl --with-libxml \
+    LD_LIBRARY_PATH=${CWD}/depends/build/lib CC=$(which gcc) CXX=$(which g++) ./configure --enable-mapreduce --with-gssapi --with-perl --with-libxml \
       --with-python \
-      --with-libraries=$"${CWD}"/depends/build/lib \
-      --with-includes="${CWD}"/depends/build/include \
+      --with-libraries=${CWD}/depends/build/lib \
+      --with-includes=${CWD}/depends/build/include \
       --prefix=${GREENPLUM_INSTALL_DIR}
     make -j4
-    LD_LIRBARAY_PATH="${CWD}"/depends/build/lib make install
+    LD_LIBRARY_PATH=${CWD}/depends/build/lib make install
     popd
     install_external_depends
 }
@@ -43,7 +43,7 @@ function export_gpdb() {
     source greenplum_path.sh
     python -m compileall -x test .
     chmod -R 755 .
-    tar -czf "${TARBALL}" ./*
+    tar -czf ${TARBALL} ./*
   popd
 }
 
