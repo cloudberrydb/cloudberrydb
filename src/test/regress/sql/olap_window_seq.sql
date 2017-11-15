@@ -1493,6 +1493,8 @@ group by
 select count(*) over (partition by 1 order by cn rows between 1 preceding and 1 preceding) from sale;
 -- End MPP-12913
 -- MPP-13710
+-- GPDB_84_MERGE_FIXME: Postgres does not generate a plan which removes redundant SORT operators
+-- while GPDB did generate such plans
 create table redundant_sort_check (i int, j int, k int) distributed by (i);
 explain select count(*) over (order by i), count(*) over (partition by i order by j) from redundant_sort_check;
 -- End of MPP-13710
@@ -1652,6 +1654,8 @@ insert into foo select i,i,i,i from generate_series(1, 10) i;
 -- Check that the planner can spot ORDER BYs that are supersets of each
 -- other, and sort directly to the longest sort order. This query can
 -- be satisfied with just two Sorts.
+-- GPDB_84_MERGE_FIXME: Postgres does not generate a plan which removes
+-- redundant SORT operators, while GPDB did generate such plans
 EXPLAIN SELECT count(*) over (PARTITION BY a ORDER BY b, c, d) as count1,
        count(*) over (PARTITION BY a ORDER BY b, c) as count2,
        count(*) over (PARTITION BY a ORDER BY b) as count3,

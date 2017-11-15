@@ -7885,24 +7885,27 @@ select count(*) over (partition by 1 order by cn rows between 1 preceding and 1 
 
 -- End MPP-12913
 -- MPP-13710
+-- GPDB_84_MERGE_FIXME: Postgres does not generate a plan which removes redundant SORT operators
+-- while GPDB did generate such plans
 create table redundant_sort_check (i int, j int, k int) distributed by (i);
 explain select count(*) over (order by i), count(*) over (partition by i order by j) from redundant_sort_check;
                                                QUERY PLAN                                               
 --------------------------------------------------------------------------------------------------------
- Subquery Scan coplan  (cost=7208.12..11103.12 rows=77900 width=8)
-   ->  WindowAgg  (cost=7208.12..10324.12 rows=77900 width=8)
-         Order By: redundant_sort_check.i
-         ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=7208.12..10129.37 rows=77900 width=8)
-               Merge Key: redundant_sort_check.i, redundant_sort_check.j
-               ->  WindowAgg  (cost=7208.12..7792.37 rows=25967 width=8)
-                     Partition By: redundant_sort_check.i
-                     Order By: redundant_sort_check.j
+ WindowAgg  (cost=14900.48..16458.48 rows=77900 width=8)
+   Partition By: i
+   Order By: j
+   ->  Sort  (cost=14900.48..15095.23 rows=77900 width=8)
+         Sort Key: i, j
+         ->  WindowAgg  (cost=7208.12..8571.37 rows=77900 width=8)
+               Order By: i
+               ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=7208.12..7402.87 rows=77900 width=8)
+                     Merge Key: i
                      ->  Sort  (cost=7208.12..7402.87 rows=25967 width=8)
-                           Sort Key: redundant_sort_check.i, redundant_sort_check.j
+                           Sort Key: i
                            ->  Seq Scan on redundant_sort_check  (cost=0.00..879.00 rows=25967 width=8)
  Settings:  gp_enable_sequential_window_plans=on; optimizer=off
  Optimizer status: legacy query optimizer
-(13 rows)
+(14 rows)
 
 -- End of MPP-13710
 -- MPP-13879
@@ -8170,6 +8173,8 @@ insert into foo select i,i,i,i from generate_series(1, 10) i;
 -- Check that the planner can spot ORDER BYs that are supersets of each
 -- other, and sort directly to the longest sort order. This query can
 -- be satisfied with just two Sorts.
+-- GPDB_84_MERGE_FIXME: Postgres does not generate a plan which removes
+-- redundant SORT operators, while GPDB did generate such plans
 EXPLAIN SELECT count(*) over (PARTITION BY a ORDER BY b, c, d) as count1,
        count(*) over (PARTITION BY a ORDER BY b, c) as count2,
        count(*) over (PARTITION BY a ORDER BY b) as count3,
@@ -8177,35 +8182,38 @@ EXPLAIN SELECT count(*) over (PARTITION BY a ORDER BY b, c, d) as count1,
        count(*) over (PARTITION BY a ORDER BY c, b) as count2,
        count(*) over (PARTITION BY a ORDER BY c, b, d) as count3
 FROM foo;
-                                                   QUERY PLAN                                                   
-----------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=3.91..4.38 rows=10 width=16)
-   ->  Subquery Scan coplan  (cost=3.91..4.38 rows=4 width=16)
-         ->  WindowAgg  (cost=3.91..4.28 rows=4 width=16)
-               Partition By: foo.a
-               Order By: foo.c, foo.b, foo.d
-               ->  WindowAgg  (cost=3.91..4.11 rows=4 width=16)
-                     Partition By: foo.a
-                     Order By: foo.c, foo.b
-                     ->  WindowAgg  (cost=3.91..3.96 rows=4 width=16)
-                           Partition By: foo.a
-                           Order By: foo.c
-                           ->  Sort  (cost=3.91..3.93 rows=4 width=16)
-                                 Sort Key: foo.a, foo.c, foo.b, foo.d
-                                 ->  WindowAgg  (cost=3.27..3.64 rows=4 width=16)
-                                       Partition By: foo.a
-                                       Order By: foo.b, foo.c, foo.d
-                                       ->  WindowAgg  (cost=3.27..3.47 rows=4 width=16)
-                                             Partition By: foo.a
-                                             Order By: foo.b, foo.c
-                                             ->  WindowAgg  (cost=3.27..3.32 rows=4 width=16)
-                                                   Partition By: foo.a
-                                                   Order By: foo.b
-                                                   ->  Sort  (cost=3.27..3.29 rows=4 width=16)
-                                                         Sort Key: foo.a, foo.b, foo.c, foo.d
-                                                         ->  Seq Scan on foo  (cost=0.00..3.10 rows=4 width=16)
+                                                      QUERY PLAN                                                      
+----------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=4.81..5.06 rows=10 width=16)
+   ->  WindowAgg  (cost=4.81..5.06 rows=4 width=16)
+         Partition By: a
+         Order By: c, b, d
+         ->  Sort  (cost=4.81..4.84 rows=4 width=16)
+               Sort Key: a, c, b, d
+               ->  WindowAgg  (cost=4.42..4.65 rows=4 width=16)
+                     Partition By: a
+                     Order By: c, b
+                     ->  Sort  (cost=4.42..4.45 rows=4 width=16)
+                           Sort Key: a, c, b
+                           ->  WindowAgg  (cost=4.06..4.26 rows=4 width=16)
+                                 Partition By: a
+                                 Order By: c
+                                 ->  Sort  (cost=4.06..4.08 rows=4 width=16)
+                                       Sort Key: a, c
+                                       ->  WindowAgg  (cost=3.27..3.89 rows=4 width=16)
+                                             Partition By: a
+                                             Order By: b
+                                             ->  WindowAgg  (cost=3.27..3.72 rows=4 width=16)
+                                                   Partition By: a
+                                                   Order By: b, c
+                                                   ->  WindowAgg  (cost=3.27..3.52 rows=4 width=16)
+                                                         Partition By: a
+                                                         Order By: b, c, d
+                                                         ->  Sort  (cost=3.27..3.29 rows=4 width=16)
+                                                               Sort Key: a, b, c, d
+                                                               ->  Seq Scan on foo  (cost=0.00..3.10 rows=4 width=16)
  Settings:  gp_enable_sequential_window_plans=on; optimizer=off
  Optimizer status: legacy query optimizer
-(27 rows)
+(30 rows)
 
 drop table foo;
