@@ -390,7 +390,8 @@ probeSegmentFromThread(void *arg)
 				/* prevent re-checking this pair */
 				worker_info->scan_status[primary->dbid] &= ~PROBE_SEGMENT;
 
-				mirror = FtsGetPeerSegment(primary->segindex, primary->dbid);
+				mirror = FtsGetPeerSegment(cdb_component_dbs,
+										   primary->segindex, primary->dbid);
 
 				/* check if mirror is marked for probing */
 				if (mirror != NULL &&

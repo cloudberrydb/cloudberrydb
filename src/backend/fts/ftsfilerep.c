@@ -439,7 +439,7 @@ FtsPreprocessProbeResultsFilerep(CdbComponentDatabases *dbs, uint8 *probe_result
 		}
 
 		primary = segInfo;
-		mirror = FtsGetPeerSegment(primary->segindex, primary->dbid);
+		mirror = FtsGetPeerSegment(dbs, primary->segindex, primary->dbid);
 		Assert(mirror != NULL && "mirrors should always be there in filerep mode");
 
 		/* peer segments have completed re-sync if primary reports completion */
@@ -822,7 +822,9 @@ bool probePublishUpdate(CdbComponentDatabases *dbs, uint8 *probe_results)
 		}
 
 		CdbComponentDatabaseInfo *primary = segInfo;
-		CdbComponentDatabaseInfo *mirror = FtsGetPeerSegment(segInfo->segindex, segInfo->dbid);
+		CdbComponentDatabaseInfo *mirror = FtsGetPeerSegment(dbs,
+															 segInfo->segindex,
+															 segInfo->dbid);
 
 		Assert(mirror != NULL);
 

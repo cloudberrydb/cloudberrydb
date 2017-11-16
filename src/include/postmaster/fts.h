@@ -145,7 +145,8 @@ extern void FtsProbeSegments(CdbComponentDatabases *dbs, uint8 *scan_status);
  * Interface for segment state checking
  */
 extern bool FtsIsSegmentAlive(CdbComponentDatabaseInfo *segInfo);
-extern CdbComponentDatabaseInfo *FtsGetPeerSegment(int content, int dbid);
+extern CdbComponentDatabaseInfo *FtsGetPeerSegment(CdbComponentDatabases *cdbs,
+												   int content, int dbid);
 extern void FtsDumpChanges(FtsSegmentStatusChange *changes, int changeEntries);
 
 /*
