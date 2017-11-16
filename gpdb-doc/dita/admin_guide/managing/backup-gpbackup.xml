@@ -45,8 +45,10 @@
             inherited from the new parent table. In this case, <codeph>gpbackup</codeph> backs up
             conflicting <codeph>CREATE INDEX</codeph> statements, which causes an error when you
             restore the backup set.</li>
-          <li>You cannot back up and restore partitioned tables that have been altered by exchanging
-            a leaf child partition with a readable external table. </li>
+          <li>You can back up and restore single level partitioned tables that have been altered by
+            exchanging a leaf child partition with a readable external table. You cannot back up and
+            restore multi-level partitioned tables when a leaf child partition is a readable
+            external table.</li>
           <li>You can execute multiple instances of <codeph>gpbackup</codeph>, but each execution
             requires a distinct timestamp.</li>
           <li>Database object filtering is currently limited to schemas and tables.</li>
@@ -205,9 +207,9 @@ $ <b>gprestore -backupdir /home/gpadmin/backups/ -timestamp 20171103153156 -crea
 20171103:15:51:17 gprestore:gpadmin:0ee2f5fb02c9:017819-[INFO]:-Post-data metadata restore complete</codeblock></p>
       <p><codeph>gprestore</codeph> does not attempt to restore global metadata for the Greenplum
         System by default. If this is required, include the <codeph>-globals</codeph> argument.</p>
-      <p>By default, <codeph>gprestore</codeph> uses 2 parallel connections to restore table data.
-        If you have a large backup set you can improve performance of the restore option by
-        increasing the number of parallel connections with the <codeph>-jobs</codeph> option. For
+      <p>By default, <codeph>gprestore</codeph> uses 1 connection to restore table data. If you have
+        a large backup set, you can improve performance of the restore by increasing the number of
+        parallel connections with the <codeph>-jobs</codeph> option. For
         example:<codeblock>$ <b>gprestore -backupdir /home/gpadmin/backups/ -timestamp 20171103153156 -createdb -jobs 8</b></codeblock></p>
       <p>Test the number of parallel connections with your backup set to determine the ideal number
         for fast data recovery.</p>
