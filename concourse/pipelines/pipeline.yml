@@ -1161,6 +1161,8 @@ jobs:
         gpcloud_secret_access_key: {{gpcloud-secret-access-key}}
         TARGET_OS: ubuntu
     - task: gpcheckcloud_tests_gpcloud_centos
+      input_mapping:
+        bin_gpdb: bin_gpdb_centos6
       file: gpdb_src/concourse/tasks/gpcheckcloud_tests_gpcloud.yml
       image: centos-gpdb-dev-6
       params:
