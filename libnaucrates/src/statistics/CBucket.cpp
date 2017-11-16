@@ -1049,7 +1049,6 @@ CBucket::DSample
 	const
 {
 	GPOS_ASSERT(FCanSample());
-	CDouble dLow = 0;
 
 	IDatumStatisticsMappable *pdatumstatsmapableLower = dynamic_cast<IDatumStatisticsMappable *>(m_ppointLower->Pdatum());
 	IDatumStatisticsMappable *pdatumstatsmapableUpper = dynamic_cast<IDatumStatisticsMappable *>(m_ppointUpper->Pdatum());

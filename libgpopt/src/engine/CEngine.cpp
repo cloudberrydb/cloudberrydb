@@ -2062,7 +2062,6 @@ CEngine::SamplePlans()
 	ULLONG ullSamples = pec->UllInputSamples();
 	GPOS_ASSERT(0 < ullSamples);
 
-	CDouble dCostThreshold = pec->DCostThreshold();
 	pec->ClearSamples();
 
 	ULLONG ullCount = Pmemotmap()->UllCount();

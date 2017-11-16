@@ -1280,25 +1280,14 @@ CCostModelGPDB::CostIndexScan
 	GPOS_ASSERT(COperator::EopPhysicalIndexScan == eopid ||
 			COperator::EopPhysicalDynamicIndexScan == eopid);
 
-	const CDouble dRandomIOBandwidth = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpRandomIOBandwidth)->DVal();
-	GPOS_ASSERT(0 < dRandomIOBandwidth);
-
-	const CDouble dTupProcBandwidth = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpTupProcBandwidth)->DVal();
-	GPOS_ASSERT(0 < dTupProcBandwidth);
-
-	const CDouble dInitScan = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpInitScanFactor)->DVal();
 	const CDouble dTableWidth = CPhysicalScan::PopConvert(pop)->PstatsBaseTable()->DWidth();
 
 	const CDouble dIndexFilterCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpIndexFilterCostUnit)->DVal();
 	const CDouble dIndexScanTupCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpIndexScanTupCostUnit)->DVal();
 	const CDouble dIndexScanTupRandomFactor = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpIndexScanTupRandomFactor)->DVal();
-	const CDouble dFilterColCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpFilterColCostUnit)->DVal();
-	const CDouble dOutputTupCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpOutputTupCostUnit)->DVal();
 	GPOS_ASSERT(0 < dIndexFilterCostUnit);
 	GPOS_ASSERT(0 < dIndexScanTupCostUnit);
 	GPOS_ASSERT(0 < dIndexScanTupRandomFactor);
-	GPOS_ASSERT(0 < dFilterColCostUnit);
-	GPOS_ASSERT(0 < dOutputTupCostUnit);	
 
 	CDouble dRowsIndex = pci->DRows();
 
@@ -1353,9 +1342,6 @@ CCostModelGPDB::CostBitmapTableScan
 	GPOS_ASSERT(NULL != pci);
 	GPOS_ASSERT(COperator::EopPhysicalBitmapTableScan == exprhdl.Pop()->Eopid() ||
 		 COperator::EopPhysicalDynamicBitmapTableScan == exprhdl.Pop()->Eopid());
-
-	CDouble dSeqIOBandwidth = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpSeqIOBandwidth)->DVal();
-	GPOS_ASSERT(0 < dSeqIOBandwidth);
 
 	// TODO: ; 2014-04-11; compute the real cost here
 //	return CCost(pci->DRebinds() * (pci->DRows() * pci->DWidth()) / dSeqIOBandwidth * 0.5);
@@ -1474,9 +1460,6 @@ CCostModelGPDB::CostScan
 				COperator::EopPhysicalDynamicTableScan == eopid ||
 				COperator::EopPhysicalExternalScan == eopid);
 
-	const CDouble dSeqIOBandwidth = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpSeqIOBandwidth)->DVal();
-	GPOS_ASSERT(0 < dSeqIOBandwidth);
-
 	const CDouble dInitScan = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpInitScanFactor)->DVal();
 	const CDouble dTableWidth = CPhysicalScan::PopConvert(pop)->PstatsBaseTable()->DWidth();
 	
@@ -1522,19 +1505,11 @@ CCostModelGPDB::CostFilter
 	GPOS_ASSERT(NULL != pci);
 	GPOS_ASSERT(COperator::EopPhysicalFilter == exprhdl.Pop()->Eopid());
 
-	const CDouble dTupProcBandwidth = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpTupProcBandwidth)->DVal();
-	GPOS_ASSERT(0 < dTupProcBandwidth);
-
-	const CDouble dOutputBandwidth = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpOutputBandwidth)->DVal();
-	GPOS_ASSERT(0 < dOutputBandwidth);
-
 	const DOUBLE dInput = pci->PdRows()[0];
 	const ULONG ulFilterCols = exprhdl.Pdpscalar(1 /*ulChildIndex*/)->PcrsUsed()->CElements();
 
 	const CDouble dFilterColCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpFilterColCostUnit)->DVal();
 	GPOS_ASSERT(0 < dFilterColCostUnit);
-	const CDouble dOutputTupCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpOutputTupCostUnit)->DVal();
-	GPOS_ASSERT(0 < dOutputTupCostUnit);
 
 	// filter cost is correlated with the input rows and the number of filter columns.
 	CCost costLocal = CCost(dInput * ulFilterCols * dFilterColCostUnit);

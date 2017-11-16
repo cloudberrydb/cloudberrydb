@@ -106,10 +106,6 @@ namespace gpos
                 CheckValidity();
             }
 
-			// dtor
-			inline ~CDouble()
-			{}
-
 			// value accessor
 			inline DOUBLE DVal() const
 			{

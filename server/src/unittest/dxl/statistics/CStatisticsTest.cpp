@@ -1371,7 +1371,6 @@ CStatisticsTest::EresUnittest_CStatisticsCompare
 	COstreamString oss(&str);
 
 	CStatistics *pstatsInput = (* pdrgpstatBefore)[0];
-	CDouble dRowsInput = pstatsInput->DRows();
 
 	GPOS_TRACE(GPOS_WSZ_LIT("Statistics before"));
 	CCardinalityTestUtils::PrintStats(pmp, pstatsInput);
@@ -2977,7 +2976,6 @@ CStatisticsTest::EresUnittest_CStatisticsAccumulateCard()
 									CDouble(1000.0) /* dRows */,
 									false /* fEmpty() */
 									);
-	CDouble dRows = pstats->DRows();
 	GPOS_TRACE(GPOS_WSZ_LIT("\nOriginal Stats:\n"));
 	CCardinalityTestUtils::PrintStats(pmp, pstats);
 
@@ -3011,7 +3009,7 @@ CStatisticsTest::EresUnittest_CStatisticsAccumulateCard()
 
 	pstatspredConj1->Release();
 
-	GPOS_ASSERT(dRows1 - dRows2 < 10 && "Disjunctive filter and point filter have very different row estimates");
+	GPOS_RTL_ASSERT(dRows1 - dRows2 < 10 && "Disjunctive filter and point filter have very different row estimates");
 
 	// (3)
 	// create conjunctive filter
@@ -3029,7 +3027,7 @@ CStatisticsTest::EresUnittest_CStatisticsAccumulateCard()
 	CCardinalityTestUtils::PrintStats(pmp, pstats3);
 
 	pstatspredConj2->Release();
-	GPOS_ASSERT(dRows3 < dRows2  && "Conjunctive filter passes more rows than than point filter");
+	GPOS_RTL_ASSERT(dRows3 < dRows2  && "Conjunctive filter passes more rows than than point filter");
 
 	// (4)
 	// create selective disjunctive filter that pass no rows
@@ -3046,7 +3044,7 @@ CStatisticsTest::EresUnittest_CStatisticsAccumulateCard()
 
 	pstatspredDisj1->Release();
 
-	GPOS_ASSERT(dRows4 < dRows2  && "Selective disjunctive filter passes more rows than than point filter");
+	GPOS_RTL_ASSERT(dRows4 < dRows2  && "Selective disjunctive filter passes more rows than than point filter");
 
 	// (5)
 	// create selective conjunctive filter that pass no rows
@@ -3063,7 +3061,7 @@ CStatisticsTest::EresUnittest_CStatisticsAccumulateCard()
 
 	pstatspredConj3->Release();
 
-	GPOS_ASSERT(dRows5 < dRows2  && "Selective conjunctive filter passes more rows than than point filter");
+	GPOS_RTL_ASSERT(dRows5 < dRows2  && "Selective conjunctive filter passes more rows than than point filter");
 
 	// clean up
 	pstats->Release();

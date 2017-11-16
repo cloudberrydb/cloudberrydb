@@ -70,15 +70,15 @@ CDoubleTest::EresUnittest_Arithmetic()
 	CDouble fpPow(fp1.FpPow(fp2));
 	CDouble fpLog2(fp2.FpLog2());
 
-	GPOS_ASSERT(fp1.DVal() + fp2.DVal() == fpAdd.DVal());
-	GPOS_ASSERT(fpAdd.DVal() - fp2.DVal() == fpSubtract.DVal());
-	GPOS_ASSERT(fp1.DVal() == fpSubtract.DVal());
-	GPOS_ASSERT(fp1.DVal() * fp2.DVal() == fpMultiply.DVal());
-	GPOS_ASSERT(fpMultiply.DVal() / fp2.DVal() == fpDivide.DVal());
-	GPOS_ASSERT(fp1.DVal() == fpDivide.DVal());
-	GPOS_ASSERT(fp1.DVal() == fpAbs);
-	GPOS_ASSERT(1.0 == fpCeil - fpFloor);
-	GPOS_ASSERT(fpLog2 > 1.0 && fpLog2 < 2.0);
+	GPOS_RTL_ASSERT(fp1.DVal() + fp2.DVal() == fpAdd.DVal());
+	GPOS_RTL_ASSERT(fpAdd.DVal() - fp2.DVal() == fpSubtract.DVal());
+	GPOS_RTL_ASSERT(fp1.DVal() == fpSubtract.DVal());
+	GPOS_RTL_ASSERT(fp1.DVal() * fp2.DVal() == fpMultiply.DVal());
+	GPOS_RTL_ASSERT(fpMultiply.DVal() / fp2.DVal() == fpDivide.DVal());
+	GPOS_RTL_ASSERT(fp1.DVal() == fpDivide.DVal());
+	GPOS_RTL_ASSERT(fp1.DVal() == fpAbs);
+	GPOS_RTL_ASSERT(1.0 == fpCeil - fpFloor);
+	GPOS_RTL_ASSERT(fpLog2 > 1.0 && fpLog2 < 2.0);
 
 	CDouble fp3(10.0);
 	fp3 = fp1 + fp2;
