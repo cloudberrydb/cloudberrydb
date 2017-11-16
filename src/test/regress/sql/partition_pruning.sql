@@ -772,7 +772,6 @@ select get_selected_parts('explain analyze select * from DATE_PARTS where month 
 select get_selected_parts('explain analyze select * from DATE_PARTS where month = 3;');  -- Not working (it only produces general)
 
 -- More Equality and General Predicates ---
-drop table if exists foo;
 create table foo(a int, b int)
 partition by list (b)
 (partition p1 values(1,3), partition p2 values(4,2), default partition other);

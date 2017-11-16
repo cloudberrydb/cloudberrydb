@@ -418,14 +418,14 @@ ROLLBACK;
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF a;
 
 -- Negative, cursor-agnostic: cannot update external tables
-CREATE EXTERNAL WEB TABLE foo (x text) EXECUTE 'echo "foo";' FORMAT 'TEXT';
+CREATE EXTERNAL WEB TABLE ucexttest (x text) EXECUTE 'echo "foo";' FORMAT 'TEXT';
 BEGIN;
-DECLARE c CURSOR FOR SELECT * FROM foo;
+DECLARE c CURSOR FOR SELECT * FROM ucexttest;
 FETCH 1 from c;
-UPDATE foo SET x = 'bar' WHERE CURRENT OF c;
+UPDATE ucexttest SET x = 'bar' WHERE CURRENT OF c;
 ROLLBACK;
 
-DROP EXTERNAL TABLE foo;
+DROP EXTERNAL TABLE ucexttest;
 
 -- Negative, cursor-agnostic: cannot update AO
 CREATE TEMP TABLE aotest (a int, b text)
