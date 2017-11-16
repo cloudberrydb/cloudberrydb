@@ -76,7 +76,6 @@ typedef struct ExplainState
     /* CDB */
     struct CdbExplain_ShowStatCtx  *showstatctx;    /* EXPLAIN ANALYZE info */
     Slice          *currentSlice;   /* slice whose nodes we are visiting */
-    ErrorData      *deferredError;  /* caught error to be re-thrown */
 } ExplainState;
 
 extern bool Test_print_direct_dispatch_info;
@@ -96,7 +95,6 @@ static void ExplainDXL(Query *query, ExplainStmt *stmt,
 static void ExplainCodegen(PlanState *planstate, TupOutputState *tstate);
 #endif
 static double elapsed_time(instr_time *starttime);
-static ErrorData *explain_defer_error(ExplainState *es);
 static void explain_outNode(StringInfo str,
 				Plan *plan, PlanState *planstate,
 				Plan *outer_plan, Plan *parentPlan,
@@ -217,7 +215,6 @@ ExplainDXL(Query *query, ExplainStmt *stmt, const char *queryString,
 	/* Initialize ExplainState structure. */
 	memset(es, 0, sizeof(*es));
 	es->showstatctx = NULL;
-	es->deferredError = NULL;
 	es->pstmt = NULL;
 
 	initStringInfo(&buf);
@@ -378,7 +375,6 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
 	EState     *estate = NULL;
 	int			eflags;
 	char	   *settings;
-	MemoryContext explaincxt = CurrentMemoryContext;
 
 	/*
 	 * Use a snapshot with an updated command ID to ensure this query sees
@@ -458,37 +454,14 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
     es->currentSlice = getCurrentSlice(estate, LocallyExecutingSliceIndex(estate));
 
 	/* Execute the plan for statistics if asked for */
-	/* In GPDB, we attempt to proceed with our report even if there is an error.
-     */
 	if (stmt->analyze)
 	{
 		/* run the plan */
-        PG_TRY();
-        {
-		    ExecutorRun(queryDesc, ForwardScanDirection, 0L);
-        }
-        PG_CATCH();
-        {
-			MemoryContextSwitchTo(explaincxt);
-			es->deferredError = explain_defer_error(es);
-        }
-        PG_END_TRY();
+		ExecutorRun(queryDesc, ForwardScanDirection, 0L);
 
-        /* Wait for completion of all qExec processes. */
-        PG_TRY();
-        {
-            if (estate->dispatcherState && estate->dispatcherState->primaryResults)
-			{
-				CdbCheckDispatchResult(estate->dispatcherState,
-									   DISPATCH_WAIT_NONE);
-			}
-        }
-        PG_CATCH();
-        {
-			MemoryContextSwitchTo(explaincxt);
-            es->deferredError = explain_defer_error(es);
-        }
-        PG_END_TRY();
+		/* Wait for completion of all qExec processes. */
+		if (estate->dispatcherState && estate->dispatcherState->primaryResults)
+			CdbCheckDispatchResult(estate->dispatcherState, DISPATCH_WAIT_NONE);
 
         /* Suspend timing. */
 	    totaltime += elapsed_time(&starttime);
@@ -514,10 +487,8 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
 	initStringInfo(&buf);
 
     /*
-     * Produce the EXPLAIN report into buf.  (Sometimes we get internal errors
-     * while doing this; try to proceed with a partial report anyway.)
+     * Produce the EXPLAIN report into buf.
      */
-    PG_TRY();
     {
      	int indent = 0;
     	CmdType cmd = queryDesc->plannedstmt->commandType;
@@ -570,24 +541,21 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
 	    explain_outNode(&buf, childPlan, queryDesc->planstate,
 					    NULL, NULL, indent, es);
     }
-    PG_CATCH();
-    {
-		MemoryContextSwitchTo(explaincxt);
-        es->deferredError = explain_defer_error(es);
-
-        /* Keep a NUL at the end of the output buffer. */
-        buf.data[Min(buf.len, buf.maxlen-1)] = '\0';
-    }
-    PG_END_TRY();
 
 	/*
 	 * If we ran the command, run any AFTER triggers it queued.  (Note this
 	 * will not include DEFERRED triggers; since those don't run until end of
 	 * transaction, we can't measure them.)  Include into total runtime.
-     * Skip triggers if there has been an error.
 	 */
-	if (es->printAnalyze &&
-        !es->deferredError)
+	if (stmt->analyze)
+	{
+		INSTR_TIME_SET_CURRENT(starttime);
+		AfterTriggerEndQuery(queryDesc->estate);
+		totaltime += elapsed_time(&starttime);
+	}
+
+	/* Print info about runtime of triggers */
+	if (es->printAnalyze)
 	{
 		ResultRelInfo *rInfo;
 		bool		show_relname;
@@ -595,11 +563,6 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
 		List	   *targrels = queryDesc->estate->es_trig_target_relations;
 		int			nr;
 		ListCell   *l;
-
-
-		INSTR_TIME_SET_CURRENT(starttime);
-		AfterTriggerEndQuery(queryDesc->estate);
-		totaltime += elapsed_time(&starttime);
 
 		show_relname = (numrels > 1 || targrels != NIL);
 		rInfo = queryDesc->estate->es_result_relations;
@@ -640,72 +603,32 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
 	}
 #endif
 
-	totaltime += elapsed_time(&starttime);
-
-    /*
-     * Display final elapsed time.
-     */
-	if (stmt->analyze)
-		appendStringInfo(&buf, "Total runtime: %.3f ms\n",
-						 1000.0 * totaltime);
-
-    /*
-     * Send EXPLAIN report to client.  Some might have been sent already
-     * by explain_outNode().
-     */
-    if (buf.len > 0)
-        do_text_output_multiline(tstate, buf.data);
-
-	pfree(buf.data);
-
-    /*
-	 * Close down the query and free resources.
-     *
-     * For EXPLAIN ANALYZE, if a qExec failed or gave an error, ExecutorEnd()
-     * will reissue the error locally at this point.  Intercept any such error
-     * and reduce it to a NOTICE so it won't interfere with our output.
+	/*
+	 * Close down the query and free resources.  Include time for this in the
+	 * total runtime (although it should be pretty minimal).
 	 */
-    PG_TRY();
-    {
-	    ExecutorEnd(queryDesc);
-    }
-    PG_CATCH();
-    {
-		MemoryContextSwitchTo(explaincxt);
-        es->deferredError = explain_defer_error(es);
-    }
-    PG_END_TRY();
+	INSTR_TIME_SET_CURRENT(starttime);
 
-    /*
-     * If we intercepted an error, now's the time to re-throw it.
-     * Although we have marked it as a NOTICE instead of an ERROR,
-     * it will still get the same error handling and cleanup treatment.
-     *
-     * We must call EndCommand() to send a successful completion response;
-     * otherwise libpq clients just discard the nice report they have received.
-     * Oddly, the NOTICE will be sent *after* the success response; that
-     * should be good enough for now.
-     */
-    if (es->deferredError)
-    {
-        ErrorData  *edata = es->deferredError;
+	ExecutorEnd(queryDesc);
 
-        /* Tell client the command ended successfully. */
-        EndCommand("EXPLAIN", tstate->dest->mydest);
-
-        /* Resume handling the error.  Clean up and send the NOTICE message. */
-        es->deferredError = NULL;
-        ReThrowError(edata);
-    }
-
-    FreeQueryDesc(queryDesc);
+	FreeQueryDesc(queryDesc);
 
 	PopActiveSnapshot();
 
 	/* We need a CCI just in case query expanded to multiple plans */
 	if (stmt->analyze)
 		CommandCounterIncrement();
-}                               /* ExplainOnePlan_internal */
+
+	totaltime += elapsed_time(&starttime);
+
+	if (stmt->analyze)
+		appendStringInfo(&buf, "Total runtime: %.3f ms\n",
+						 1000.0 * totaltime);
+	do_text_output_multiline(tstate, buf.data);
+
+	pfree(buf.data);
+	pfree(es);
+}
 
 /*
  * report_triggers -
@@ -763,40 +686,6 @@ elapsed_time(instr_time *starttime)
 	return INSTR_TIME_GET_DOUBLE(endtime);
 }
 
-
-/*
- * explain_defer_error
- *    Called within PG_CATCH handler to demote and save the current error.
- *
- * We'll try to postpone the error cleanup until after we have produced
- * the EXPLAIN ANALYZE report, and then reflect the error to the client as
- * merely a NOTICE (because an ERROR causes libpq clients to discard the
- * report).
- *
- * If successful, upon return we fall thru the bottom of the PG_CATCH
- * handler and continue sequentially.  Otherwise we re-throw to the
- * next outer error handler.
- */
-static ErrorData *
-explain_defer_error(ExplainState *es)
-{
-    ErrorData  *edata;
-
-    /* Already saved an earlier error?  Rethrow it now. */
-    if (es->deferredError)
-        ReThrowError(es->deferredError);    /* does not return */
-
-    /* Try to downgrade the error to a NOTICE.  Rethrow if disallowed. */
-    if (!elog_demote(NOTICE))
-        PG_RE_THROW();
-
-    /* Save the error info and expunge it from the error system. */
-    edata = CopyErrorData();
-    FlushErrorState();
-
-    /* Caller must eventually ReThrowError() for proper cleanup. */
-    return edata;
-}                               /* explain_defer_error */
 
 static void
 appendGangAndDirectDispatchInfo(StringInfo str, PlanState *planstate, int sliceId)
