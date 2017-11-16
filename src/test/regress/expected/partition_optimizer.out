@@ -1,6 +1,4 @@
 set enable_partition_rules = false;
-set gp_enable_hash_partitioned_tables = true;
-ERROR:  unrecognized configuration parameter "gp_enable_hash_partitioned_tables"
 -- Check multi level partition COPY
 create table region
 (
@@ -731,28 +729,28 @@ select * from bar_p;
 drop table foo_p;
 drop table bar_p;
 -- exchange default partition is not allowed (single level)
-drop table if exists d;
-NOTICE:  table "d" does not exist, skipping
+drop table if exists dex;
+NOTICE:  table "dex" does not exist, skipping
 drop table if exists exh_abc;
 NOTICE:  table "exh_abc" does not exist, skipping
-create table d (i int,  j int) partition by range(j)
+create table dex (i int,  j int) partition by range(j)
 (partition a start (1) end(10), partition b start(11) end(20),
 default partition abc);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
-NOTICE:  CREATE TABLE will create partition "d_1_prt_abc" for table "d"
-NOTICE:  CREATE TABLE will create partition "d_1_prt_a" for table "d"
-NOTICE:  CREATE TABLE will create partition "d_1_prt_b" for table "d"
-create table exh_abc (like d);
+NOTICE:  CREATE TABLE will create partition "dex_1_prt_abc" for table "dex"
+NOTICE:  CREATE TABLE will create partition "dex_1_prt_a" for table "dex"
+NOTICE:  CREATE TABLE will create partition "dex_1_prt_b" for table "dex"
+create table exh_abc (like dex);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
-alter table d exchange default partition with table exh_abc;
+alter table dex exchange default partition with table exh_abc;
 ERROR:  cannot exchange DEFAULT partition
 set gp_enable_exchange_default_partition = on;
-alter table d exchange default partition with table exh_abc;
+alter table dex exchange default partition with table exh_abc;
 WARNING:  Exchanging default partition may result in unexpected query results if the data being exchanged should have been inserted into a different partition
-NOTICE:  exchanged partition "abc" of relation "d" with relation "exh_abc"
+NOTICE:  exchanged partition "abc" of relation "dex" with relation "exh_abc"
 reset gp_enable_exchange_default_partition;
-drop table d;
+drop table dex;
 drop table exh_abc;
 -- exchange default partition is not allowed (multi level)
 Drop table if exists sto_ao_ao;
