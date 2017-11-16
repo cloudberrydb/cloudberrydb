@@ -258,10 +258,7 @@ DROP
 DROP RESOURCE GROUP rg_concurrency_test;
 DROP
 
--- test5: concurrently alter resource group cpu rate limit
--- NONE
-
--- test6: cancel a query that is waiting for a slot
+-- test5: QD exit before QE
 DROP ROLE IF EXISTS role_concurrency_test;
 DROP
 -- start_ignore
@@ -301,6 +298,35 @@ DROP ROLE role_concurrency_test;
 DROP
 DROP RESOURCE GROUP rg_concurrency_test;
 DROP
+
+-- test6: cancel a query that is waiting for a slot
+DROP ROLE IF EXISTS role_concurrency_test;
+DROP
+-- start_ignore
+DROP RESOURCE GROUP rg_concurrency_test;
+ERROR:  resource group "rg_concurrency_test" does not exist
+-- end_ignore
+
+CREATE RESOURCE GROUP rg_concurrency_test WITH (concurrency=1, cpu_rate_limit=20, memory_limit=20);
+CREATE
+CREATE ROLE role_concurrency_test RESOURCE GROUP rg_concurrency_test;
+CREATE
+51:SET ROLE role_concurrency_test;
+SET
+51:BEGIN;
+BEGIN
+52:SET ROLE role_concurrency_test;
+SET
+52&:BEGIN;  <waiting ...>
+51q: ... <quitting>
+52<:  <... completed>
+BEGIN
+52q: ... <quitting>
+DROP ROLE role_concurrency_test;
+DROP
+DROP RESOURCE GROUP rg_concurrency_test;
+DROP
+
 
 -- test7: terminate a query that is waiting for a slot
 DROP ROLE IF EXISTS role_concurrency_test;

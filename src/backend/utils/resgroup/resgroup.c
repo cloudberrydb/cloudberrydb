@@ -403,24 +403,6 @@ AllocResGroupEntry(Oid groupId, const ResGroupCaps *caps)
 	LWLockRelease(ResGroupLock);
 }
 
-void
-AtEOXact_ResGroup(bool isCommit)
-{
-	HandleResGroupDDLCallbacks(isCommit);
-
-	/* Release resource group slot at the end of a transaction */
-	if (ShouldUnassignResGroup())
-		UnassignResGroup();
-}
-
-void
-AtPrepare_ResGroup(void)
-{
-	/* Release resource group slot */
-	if (ShouldUnassignResGroup())
-		UnassignResGroup();
-}
-
 /*
  * Load the resource groups in shared memory. Note this
  * can only be done after enough setup has been done. This uses
@@ -1698,14 +1680,16 @@ slotGetMemQuotaOnQE(const ResGroupCaps *caps, ResGroupData *group)
 {
 	int nFreeSlots = caps->concurrency - group->nRunning;
 
-	Assert(nFreeSlots > 0);
-
 	/*
 	 * On QE the runtime status must also be considered as it might have
 	 * different caps with QD.
 	 */
-	return Min(slotGetMemQuotaExpected(caps),
-			   (group->memQuotaGranted - group->memQuotaUsed) / nFreeSlots);
+	if (nFreeSlots <= 0)
+		return Min(slotGetMemQuotaExpected(caps),
+			   (group->memQuotaGranted - group->memQuotaUsed) / caps->concurrency);
+	else
+		return Min(slotGetMemQuotaExpected(caps),
+				(group->memQuotaGranted - group->memQuotaUsed) / nFreeSlots);
 }
 
 /*

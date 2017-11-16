@@ -435,14 +435,12 @@ int32
 VmemTracker_GetChunkSizeInBits(void)
 {
 	/*
+	 * TODO:
 	 * For backend who has vmem tracker initialized and resource
 	 * group enabled, the chunk size is not expected to be used
 	 * until resource group is activated, otherwise, there might
 	 * be an inconsistency about the chunk size.
 	 */
-	AssertImply(vmemTrackerInited && IsResGroupEnabled(),
-				IsResGroupActivated());
-
 	return IsResGroupEnabled() ?
 		ResGroupGetVmemChunkSizeInBits() : chunkSizeInBits;
 }

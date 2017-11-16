@@ -66,23 +66,6 @@ typedef struct {
 	ResGroupCaps	caps;
 } ResourceGroupAlterCallbackContext;
 
-/*
- * The form of callbacks for resource group
- */
-typedef void (*ResourceGroupCallback) (bool isCommit, void *arg);
-
-/*
- * List of add-on callbacks for resource group related operations
- * The list is maintained as circular doubly linked.
- */
-typedef struct ResourceGroupCallbackItem
-{
-	ResourceGroupCallback callback;
-	void *arg;
-} ResourceGroupCallbackItem;
-
-static ResourceGroupCallbackItem ResourceGroup_callback = {NULL, NULL};
-
 static int str2Int(const char *str, const char *prop);
 static ResGroupLimitType getResgroupOptionType(const char* defname);
 static ResGroupCap getResgroupOptionValue(DefElem *defel);
@@ -98,26 +81,9 @@ static void updateResgroupCapabilityEntry(Relation rel,
 static void insertResgroupCapabilities(Relation rel, Oid groupId, ResGroupCaps *caps);
 static void deleteResgroupCapabilities(Oid groupid);
 static void checkAuthIdForDrop(Oid groupId);
-static void createResgroupCallback(bool isCommit, void *arg);
-static void dropResgroupCallback(bool isCommit, void *arg);
-static void alterResgroupCallback(bool isCommit, void *arg);
-static void registerResourceGroupCallback(ResourceGroupCallback callback, void *arg);
-
-/*
- * Call resource group related callback functions at transaction end.
- *
- * Note the callback functions would be removed as being processed.
- */
-void
-HandleResGroupDDLCallbacks(bool isCommit)
-{
-	if (ResourceGroup_callback.callback == NULL)
-		return;
-
-	/* make sure callback function will not error out */
-	ResourceGroup_callback.callback(isCommit, ResourceGroup_callback.arg);
-	ResourceGroup_callback.callback = NULL;
-}
+static void createResgroupCallback(XactEvent event, void *arg);
+static void dropResgroupCallback(XactEvent event, void *arg);
+static void alterResgroupCallback(XactEvent event, void *arg);
 
 /*
  * CREATE RESOURCE GROUP
@@ -249,7 +215,7 @@ CreateResourceGroup(CreateResourceGroupStmt *stmt)
 		/* Argument of callback function should be allocated in heap region */
 		callbackArg = (Oid *)MemoryContextAlloc(TopMemoryContext, sizeof(Oid));
 		*callbackArg = groupid;
-		registerResourceGroupCallback(createResgroupCallback, (void *)callbackArg);
+		RegisterXactCallbackOnce(createResgroupCallback, (void *)callbackArg);
 
 		/* Create os dependent part for this resource group */
 		ResGroupOps_CreateGroup(groupid);
@@ -356,7 +322,7 @@ DropResourceGroup(DropResourceGroupStmt *stmt)
 		/* Argument of callback function should be allocated in heap region */
 		callbackArg = (Oid *)MemoryContextAlloc(TopMemoryContext, sizeof(Oid));
 		*callbackArg = groupid;
-		registerResourceGroupCallback(dropResgroupCallback, (void *)callbackArg);
+		RegisterXactCallbackOnce(dropResgroupCallback, (void *)callbackArg);
 	}
 }
 
@@ -465,7 +431,7 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 		callbackCtx->groupid = groupid;
 		callbackCtx->limittype = limitType;
 		callbackCtx->caps = caps;
-		registerResourceGroupCallback(alterResgroupCallback, (void *)callbackCtx);
+		RegisterXactCallbackOnce(alterResgroupCallback, (void *)callbackCtx);
 	}
 }
 
@@ -883,14 +849,14 @@ parseStmtOptions(CreateResourceGroupStmt *stmt, ResGroupCaps *caps)
  * creates resource groups
  */
 static void
-createResgroupCallback(bool isCommit, void *arg)
+createResgroupCallback(XactEvent event, void *arg)
 {
 	Oid groupId;
 
 	groupId = *(Oid *)arg;
 	pfree(arg);
 
-	if (isCommit)
+	if (event == XACT_EVENT_COMMIT)
 		return;
 
 	ResGroupCreateOnAbort(groupId);
@@ -903,14 +869,14 @@ createResgroupCallback(bool isCommit, void *arg)
  * the queued transactions and cleanup shared menory entry.
  */
 static void
-dropResgroupCallback(bool isCommit, void *arg)
+dropResgroupCallback(XactEvent event, void *arg)
 {
 	Oid groupId;
 
 	groupId = *(Oid *)arg;
 	pfree(arg);
 
-	ResGroupDropFinish(groupId, isCommit);
+	ResGroupDropFinish(groupId, event == XACT_EVENT_COMMIT);
 }
 
 /*
@@ -920,12 +886,12 @@ dropResgroupCallback(bool isCommit, void *arg)
  * transaction of this resource group may need to be woke up.
  */
 static void
-alterResgroupCallback(bool isCommit, void *arg)
+alterResgroupCallback(XactEvent event, void *arg)
 {
 	ResourceGroupAlterCallbackContext *ctx =
 		(ResourceGroupAlterCallbackContext *) arg;
 
-	if (isCommit)
+	if (event == XACT_EVENT_COMMIT)
 		ResGroupAlterOnCommit(ctx->groupid, ctx->limittype, &ctx->caps);
 
 	pfree(arg);
@@ -1230,15 +1196,4 @@ str2Int(const char *str, const char *prop)
 				errmsg("%s requires a numeric value", prop)));
 
 	return floor(val);
-}
-
-/*
- * Register callback functions for resource group related operations.
- */
-static void
-registerResourceGroupCallback(ResourceGroupCallback callback, void *arg)
-{
-	Assert(ResourceGroup_callback.callback == NULL);
-	ResourceGroup_callback.callback = callback;
-	ResourceGroup_callback.arg = arg;
 }

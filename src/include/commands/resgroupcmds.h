@@ -29,7 +29,4 @@ extern Oid GetResGroupIdForRole(Oid roleid);
 extern void GetResGroupCapabilities(Relation rel,
 									Oid groupId,
 									ResGroupCaps *resgroupCaps);
-extern void AtEOXact_ResGroup(bool isCommit);
-extern void HandleResGroupDDLCallbacks(bool isCommit);
-
 #endif   /* RESGROUPCMDS_H */
