@@ -300,7 +300,6 @@ typedef struct _tableInfo
 	bool		hasindex;		/* does it have any indexes? */
 	bool		hasrules;		/* does it have any rules? */
 	bool		hasoids;		/* does it have OIDs? */
-	bool		istoasted;		/* does table have toast table? */
 	int			ncheck;			/* # of CHECK expressions */
 	int			ntrig;			/* # of triggers */
 	/* these two are set only if table is a sequence owned by a column: */
