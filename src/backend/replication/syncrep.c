@@ -132,12 +132,8 @@ SyncRepWaitForLSN(XLogRecPtr XactCommitLSN)
 
 	if (GpIdentity.segindex != MASTER_CONTENT_ID)
 	{
-		/*
-		 * Fast exit if user has not requested sync replication, or there are no
-		 * sync replication standby names defined. Note that those standbys don't
-		 * need to be connected.
-		 */
-		if (!SyncRepRequested() || !SyncStandbysDefined())
+		/* Fast exit if user has not requested sync replication. */
+		if (!SyncRepRequested())
 			return;
 	}
 
