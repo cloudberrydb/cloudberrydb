@@ -984,7 +984,8 @@ PersistentRelation_DroppedVerifiedActionCallback(
  /* TID of the gp_persistent_rel_files tuple for the relation. */
 												 int64 persistentSerialNum,
  /* Serial number for the relation.	Distinquishes the uses of the tuple. */
-												 PersistentFileSysObjVerifyExpectedResult verifyExpectedResult)
+												 PersistentFileSysObjVerifyExpectedResult verifyExpectedResult,
+												 PersistentFileSysRelStorageMgr relStorageMgr)
 {
 	RelFileNode *relFileNode = PersistentFileSysObjName_GetRelFileNodePtr(fsObjName);
 	int32		segmentFileNum = PersistentFileSysObjName_GetSegmentFileNum(fsObjName);
@@ -1006,7 +1007,8 @@ PersistentRelation_DroppedVerifiedActionCallback(
 										  relFileNode->spcNode,
 										  relFileNode->dbNode,
 										  relFileNode->relNode,
-										  segmentFileNum);
+										  segmentFileNum,
+										  relStorageMgr);
 #endif
 
 			break;

@@ -1430,8 +1430,12 @@ print_rmgr_mmxlog(XLogRecPtr cur, XLogRecord *record, uint8 info)
 		strlcpy(operation, "remove dir", sizeof(operation));
 		break;
 
-	case MMXLOG_REMOVE_FILE:
-		strlcpy(operation, "remove file", sizeof(operation));
+	case MMXLOG_REMOVE_APPENDONLY_FILE:
+		strlcpy(operation, "remove appendonly file", sizeof(operation));
+		break;
+
+	case MMXLOG_REMOVE_HEAP_FILE:
+		strlcpy(operation, "remove heap file", sizeof(operation));
 		break;
 
 	default:

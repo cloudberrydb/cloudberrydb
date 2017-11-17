@@ -48,7 +48,7 @@ test_mmxlog_redo_mmxlog_remove_file_ao(void **state)
 	sprintf(xlmmfsobj.master_path, "./base/%d/%d", xlmmfsobj.database, xlmmfsobj.relfilenode);
 	sprintf(xlmmfsobj.mirror_path, "./base/%d/%d", xlmmfsobj.database, xlmmfsobj.relfilenode);
 
-	record.xl_info = MMXLOG_REMOVE_FILE;
+	record.xl_info = MMXLOG_REMOVE_APPENDONLY_FILE;
 	record.xl_rmid = RM_MMXLOG_ID;
 	record.xl_len = 0;
 

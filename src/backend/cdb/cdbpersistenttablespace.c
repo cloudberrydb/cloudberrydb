@@ -1244,7 +1244,8 @@ PersistentTablespace_DroppedVerifiedActionCallback(
 												   int64 persistentSerialNum,
  /* Serial number for the relation.	Distinquishes the uses of the tuple. */
 
-												   PersistentFileSysObjVerifyExpectedResult verifyExpectedResult)
+												   PersistentFileSysObjVerifyExpectedResult verifyExpectedResult,
+												   PersistentFileSysRelStorageMgr relStorageMgr)
 {
 	Oid			tablespaceOid = PersistentFileSysObjName_GetTablespaceDir(fsObjName);
 

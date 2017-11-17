@@ -1215,6 +1215,7 @@ PersistentFileSysObjStateChangeResult PersistentFileSysObj_StateChange(
 
 	PersistentFileSysObjData 		*fileSysObjData;
 	PersistentFileSysObjSharedData 	*fileSysObjSharedData;
+	PersistentFileSysRelStorageMgr   relStorageMgr = PersistentFileSysRelStorageMgr_None;
 
 	Datum *values;
 
@@ -1263,6 +1264,11 @@ PersistentFileSysObjStateChangeResult PersistentFileSysObj_StateChange(
 							persistentTid,
 							values,
 							&tupleCopy);
+
+	if (fsObjType == PersistentFsObjType_RelationFile)
+		relStorageMgr =
+		(PersistentFileSysRelStorageMgr)DatumGetInt16(values[Anum_gp_persistent_relation_node_relation_storage_manager
+		- 1]);
 
 	READTUPLE_FOR_UPDATE_ERRCONTEXT_POP;
 
@@ -1330,7 +1336,8 @@ PersistentFileSysObjStateChangeResult PersistentFileSysObj_StateChange(
 								fsObjName,
 								persistentTid,
 								persistentSerialNum,
-								verifyExpectedResult);
+								verifyExpectedResult,
+								relStorageMgr);
 	}
 
 	switch (verifyExpectedResult)

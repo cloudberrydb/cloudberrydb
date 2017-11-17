@@ -99,7 +99,7 @@ unlink_obj(char *path, uint8 info)
 			elog(LOG, "removing directory, as requested %s", path);
 		rmtree(path, true);
 	}
-	else if (info == MMXLOG_REMOVE_FILE)
+	else if (info == MMXLOG_REMOVE_HEAP_FILE || info == MMXLOG_REMOVE_APPENDONLY_FILE)
 	{
 		if (Debug_print_qd_mirroring)
 			elog(LOG, "unlinking file, as requested %s", path);
@@ -336,7 +336,7 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		else
 			gp_retry_close(fd);
 	}
-	else if (info == MMXLOG_REMOVE_FILE)
+	else if (info == MMXLOG_REMOVE_HEAP_FILE || info == MMXLOG_REMOVE_APPENDONLY_FILE)
 	{
 		RelFileNode rnode;
 		bool mirrorDataLossOccurred;
@@ -404,16 +404,7 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 			}
 		}
 
-		/*
-		 * segnum greater than 0 definitely means its for AO or CO table,
-		 * hence perform unlink for that specific file. But segnum == 0 can be
-		 * for AO or Heap table but based on current xlog record structure for
-		 * xl_mm_fs_obj, it provides no hint for the same.
-		 *
-		 * GPDB_SEGWALREP_TODO: Handle correctly the AO or CO table segnum ==
-		 * 0 deletion specific case.
-		 */
-		if (xlrec->segnum > 0)
+		if (info == MMXLOG_REMOVE_APPENDONLY_FILE)
 		{
 #ifdef USE_SEGWALREP
 			XLogAODropSegmentFile(rnode, xlrec->segnum);
@@ -427,7 +418,7 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 				&primaryError,
 				&mirrorDataLossOccurred);
 		}
-		else
+		else if (info == MMXLOG_REMOVE_HEAP_FILE)
 		{
 			/*
 			 * smgrdounlink() currently is specifically coded for dropping files
@@ -520,7 +511,7 @@ mmxlog_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record)
 		appendStringInfo(buf, "create file: path \"%s\", filespace %u",
 						 path,
 						 xlrec->filespace);
-	else if (info == MMXLOG_REMOVE_FILE)
+	else if (info == MMXLOG_REMOVE_HEAP_FILE || info == MMXLOG_REMOVE_APPENDONLY_FILE)
 		appendStringInfo(buf, "remove file: path \"%s\", filespace %u",
 						 path,
 						 xlrec->filespace);
@@ -794,7 +785,7 @@ mmxlog_log_remove_database(Oid tablespace, Oid database)
 /* External interface to relfilenode removal logging */
 void
 mmxlog_log_remove_relfilenode(Oid tablespace, Oid database, Oid relfilenode,
-							  uint32 segnum)
+							  uint32 segnum, PersistentFileSysRelStorageMgr relStorageMgr)
 {
 	bool emitted;
 	XLogRecPtr beginLoc;
@@ -810,7 +801,9 @@ mmxlog_log_remove_relfilenode(Oid tablespace, Oid database, Oid relfilenode,
 						  database,
 						  relfilenode,
 						  segnum,
-						  MMXLOG_REMOVE_FILE,
+						  relStorageMgr == PersistentFileSysRelStorageMgr_AppendOnly ?
+										   MMXLOG_REMOVE_APPENDONLY_FILE :
+										   MMXLOG_REMOVE_HEAP_FILE,
 						  &beginLoc);
 	if (Debug_persistent_recovery_print)
 	{
