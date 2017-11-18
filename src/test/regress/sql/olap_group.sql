@@ -332,11 +332,11 @@ select grouping(cn,vn,pn) from sale group by rollup(cn); --error
 -- Using in View --
 
 create view cube_view as select cn,vn,grouping(vn,cn) from sale group by cube(cn,vn);
-\d cube_view;
+\d+ cube_view;
 create view rollup_view as select cn,vn,pn,grouping(cn,vn,pn) from sale group by rollup(cn),vn,pn;
-\d rollup_view;
+\d+ rollup_view;
 create view gs_view as select cn,vn,grouping(vn,cn) from sale group by grouping sets ((vn), (cn), (), (cn,vn));
-\d gs_view;
+\d+ gs_view;
 
 -- GROUP_ID function --
 
@@ -494,9 +494,9 @@ select count(*) from sale group by grouping sets((), ());
 create view grp_v1 as select count(*) from sale group by ();
 create view grp_v2 as select count(*) from sale group by grouping sets(());
 create view grp_v3 as select count(*) from sale group by grouping sets((), ());
-\d grp_v1;
-\d grp_v2;
-\d grp_v3;
+\d+ grp_v1;
+\d+ grp_v2;
+\d+ grp_v3;
 drop view grp_v1;
 drop view grp_v2;
 drop view grp_v3;

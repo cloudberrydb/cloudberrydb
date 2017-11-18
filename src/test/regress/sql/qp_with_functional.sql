@@ -380,7 +380,7 @@ CREATE VIEW cte_view as
     SELECT a FROM foo limit 10
 )SELECT * FROM CTE);
 
-\d cte_view
+\d+ cte_view
 
 SELECT * FROM cte_view ORDER BY 1;
 
@@ -392,7 +392,7 @@ CREATE VIEW cte_view as
       cte2(e,f) AS (SELECT e,d FROM bar, cte WHERE cte.e = bar.c )
 SELECT cte2.e,cte.f FROM cte,cte2 where cte.e = cte2.e
 );
-\d cte_view
+\d+ cte_view
 
 SELECT * FROM cte_view ORDER BY 1;
 

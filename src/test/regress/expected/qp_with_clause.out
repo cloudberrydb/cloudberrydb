@@ -9191,19 +9191,19 @@ from longlivingregions,denseregions,allcountrystats,country
 where longlivingregions.region = denseregions.region and allcountrystats.code = country.code and country.region = longlivingregions.region
 and country.indepyear > 1900
 );
-\d view_with_shared_scans;
-    View "qp_with_clause.view_with_shared_scans"
-       Column        |       Type       | Modifiers 
----------------------+------------------+-----------
- city_cnt            | bigint           | 
- lang_cnt            | bigint           | 
- name                | text             | 
- REGION_SURFACE_AREA | numeric          | 
- REGION_LIFETIME     | double precision | 
- REGION_POP          | bigint           | 
- lang_count          | bigint           | 
- REGION_GNP          | numeric          | 
- region              | text             | 
+\d+ view_with_shared_scans;
+                View "qp_with_clause.view_with_shared_scans"
+       Column        |       Type       | Modifiers | Storage  | Description 
+---------------------+------------------+-----------+----------+-------------
+ city_cnt            | bigint           |           | plain    | 
+ lang_cnt            | bigint           |           | plain    | 
+ name                | text             |           | extended | 
+ REGION_SURFACE_AREA | numeric          |           | main     | 
+ REGION_LIFETIME     | double precision |           | plain    | 
+ REGION_POP          | bigint           |           | plain    | 
+ lang_count          | bigint           |           | plain    | 
+ REGION_GNP          | numeric          |           | main     | 
+ region              | text             |           | extended | 
 View definition:
  WITH longlivingregions AS (
          SELECT foo."REGION_POP", foo."REGION_GNP", foo."REGION_LIFETIME", foo.region, count(DISTINCT countrylanguage.language) AS lang_count

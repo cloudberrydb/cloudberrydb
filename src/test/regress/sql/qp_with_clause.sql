@@ -9780,7 +9780,7 @@ where longlivingregions.region = denseregions.region and allcountrystats.code = 
 and country.indepyear > 1900
 );
 
-\d view_with_shared_scans;
+\d+ view_with_shared_scans;
 
 select city_cnt,lang_cnt,name,region from view_with_shared_scans order by name LIMIT 50;
 

@@ -871,17 +871,7 @@ permissionsList(const char *pattern)
 	   gettext_noop("table"), gettext_noop("view"), gettext_noop("sequence"),
 					  gettext_noop("Type"));
 
-	if (strcmp(get_line_style(&pset.popt.topt)->name,"old-ascii") != 0)
-	{
-	/*
-	 * This new code, which produces a more correct and more useful answer, is disabled
-	 * for the moment if the print format is old-ascii, because we'd need to upgrade the regression tests (cdbfast and make installcheck-good).
-	 */
 	printACLColumn(&buf, "c.relacl");
-	}
-	else
-	appendPQExpBuffer(&buf, "c.relacl as \"Access privileges\"");  /* Old style, pre-8.3 */
-
 
 	// GPDB_84_MERGE_FIXME: We haven't merged the patch that added attacl yet.
 #if 0
@@ -919,15 +909,7 @@ permissionsList(const char *pattern)
 
 	myopt.nullPrint = NULL;
 
-    if (strcmp(get_line_style(&pset.popt.topt)->name,"old-ascii") == 0)
-	{
-	    printfPQExpBuffer(&buf, _("Access privileges for database \"%s\""), PQdb(pset.db));
-	}
-	else
-	{
-		/* Current pgsql does it this way, but I've disabled this and am doing it the old way above to avoid breaking regression tests */
-	    printfPQExpBuffer(&buf, _("Access privileges"));
-	}
+	printfPQExpBuffer(&buf, _("Access privileges"));
 
 	myopt.title = buf.data;
 	myopt.translate_header = true;
@@ -1609,8 +1591,7 @@ describeOneTableDetails(const char *schemaname,
 		printTableAddHeader(&cont, headers[i], true, 'l');
 
 	/* Check if table is a view */
-	/* GPDB_84_MERGE_FIXME: look into the below comment.. can we take "&& verbose" ? */
-	if (tableinfo.relkind == 'v' /* && verbose  ***  GPDB change:  Do this even if not verbose, for 8.2 compatibility */)
+	if (tableinfo.relkind == 'v' && verbose)
 	{
 		PGresult   *result;
 
@@ -3231,11 +3212,7 @@ listTables(const char *tabtypes, const char *pattern, bool verbose, bool showSys
 						  ",\n c2.relname as \"%s\"",
 						  gettext_noop("Table"));
 
-	/*
-	 * GPDB:  Stupid check to see if we are using old-ascii, and therefore are possibly running regression tests, which haven't
-	 * been updated to expect the Size column in the result
-	 */
-	if (verbose && pset.sversion >= 80100 && strcmp(get_line_style(&pset.popt.topt)->name,"old-ascii") != 0)
+	if (verbose && pset.sversion >= 80100)
 		appendPQExpBuffer(&buf,
 						  ",\n  pg_catalog.pg_size_pretty(pg_catalog.pg_relation_size(c.oid)) as \"%s\"",
 						  gettext_noop("Size"));

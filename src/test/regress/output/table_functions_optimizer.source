@@ -2134,12 +2134,12 @@ SELECT * FROM v1 order by a, b;
  4 |  value4.1/1
 (10 rows)
 
-\d v1
+\d+ v1
    View "table_function.v1"
- Column |  Type   | Modifiers 
---------+---------+-----------
- a      | integer | 
- b      | text    | 
+ Column |  Type   | Modifiers | Storage  | Description 
+--------+---------+-----------+----------+-------------
+ a      | integer |           | plain    | 
+ b      | text    |           | extended | 
 View definition:
  SELECT tf.a, tf.b
    FROM multiset_2(TABLE( SELECT example.a, example.b
@@ -2168,12 +2168,12 @@ SELECT * FROM v2 order by a, b;
  4 |  value4.1/1
 (10 rows)
 
-\d v2
+\d+ v2
    View "table_function.v2"
- Column |  Type   | Modifiers 
---------+---------+-----------
- a      | integer | 
- b      | text    | 
+ Column |  Type   | Modifiers | Storage  | Description 
+--------+---------+-----------+----------+-------------
+ a      | integer |           | plain    | 
+ b      | text    |           | extended | 
 View definition:
  SELECT tf.a, tf.b
    FROM multiset_2(TABLE( SELECT example.a, example.b
@@ -2203,12 +2203,12 @@ SELECT * FROM v3 order by a, b;
  4 |  value4.1/1
 (10 rows)
 
-\d v3
+\d+ v3
    View "table_function.v3"
- Column |  Type   | Modifiers 
---------+---------+-----------
- a      | integer | 
- b      | text    | 
+ Column |  Type   | Modifiers | Storage  | Description 
+--------+---------+-----------+----------+-------------
+ a      | integer |           | plain    | 
+ b      | text    |           | extended | 
 View definition:
  SELECT tf.a, tf.b
    FROM multiset_2(TABLE( SELECT example.a, example.b

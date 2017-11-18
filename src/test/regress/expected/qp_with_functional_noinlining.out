@@ -528,11 +528,11 @@ CREATE VIEW cte_view as
     INTERSECT 
     SELECT a FROM foo limit 10
 )SELECT * FROM CTE);
-\d cte_view
-    View "qp_with_functional.cte_view"
- Column |  Type   | Modifiers 
---------+---------+-----------
- e      | integer | 
+\d+ cte_view
+     View "qp_with_functional_inlining.cte_view"
+ Column |  Type   | Modifiers | Storage | Description 
+--------+---------+-----------+---------+-------------
+ e      | integer |           | plain   | 
 View definition:
  WITH cte(e) AS (
                  SELECT bar.d
@@ -568,12 +568,12 @@ CREATE VIEW cte_view as
       cte2(e,f) AS (SELECT e,d FROM bar, cte WHERE cte.e = bar.c )
 SELECT cte2.e,cte.f FROM cte,cte2 where cte.e = cte2.e
 );
-\d cte_view
-    View "qp_with_functional.cte_view"
- Column |  Type   | Modifiers 
---------+---------+-----------
- e      | integer | 
- f      | integer | 
+\d+ cte_view
+     View "qp_with_functional_inlining.cte_view"
+ Column |  Type   | Modifiers | Storage | Description 
+--------+---------+-----------+---------+-------------
+ e      | integer |           | plain   | 
+ f      | integer |           | plain   | 
 View definition:
  WITH cte(e, f) AS (
          SELECT foo.a, bar.d

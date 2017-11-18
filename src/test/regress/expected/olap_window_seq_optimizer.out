@@ -7503,12 +7503,12 @@ FROM (SELECT * FROM sale) sale; --mvd 3,4,5->6; 3,4->7
 create view v1 as
 select dt, sum(cn) over(order by grouping(cn) range grouping(cn) preceding) 
 from sale group by rollup(cn,dt);
-\d v1
-      View "public.v1"
- Column |  Type  | Modifiers 
---------+--------+-----------
- dt     | date   | 
- sum    | bigint | 
+\d+ v1
+                  View "public.v1"
+ Column |  Type  | Modifiers | Storage | Description 
+--------+--------+-----------+---------+-------------
+ dt     | date   |           | plain   | 
+ sum    | bigint |           | plain   | 
 View definition:
  SELECT "Window".dt, sum("Window".cn) OVER (
  ORDER BY "Window".att_3 RANGE "Window".att_3 PRECEDING) AS sum
