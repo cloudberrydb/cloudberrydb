@@ -73,8 +73,13 @@ then run command `ldconfig`.
 
    OR
 
-   manually create ssh keys so you can do ssh localhost without a password, e.g., using ssh-keygen
-   then cp ~/.ssh/id_rsa.pub authorized_keys
+   manually create ssh keys so you can do ssh localhost without a password, e.g., 
+   
+   ```
+   ssh-keygen
+   cp ~/.ssh/id_rsa.pub authorized_keys
+   chmod 600 authorized_keys
+   ```
 
 1. Verify that you can ssh to your machine name without a password
 
