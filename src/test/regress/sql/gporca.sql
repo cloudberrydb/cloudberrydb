@@ -1346,7 +1346,7 @@ EXPLAIN SELECT * FROM btree_test WHERE a in ('1', '2', 47);
 -- Test Bitmap index scan with in list
 CREATE TABLE bitmap_test as SELECT * FROM generate_series(1,100) as a distributed randomly;
 CREATE INDEX bitmap_index ON bitmap_test USING BITMAP(a);
-EXPLAIN SELECT * FROM bitmap_test WHERE a in (select 1);
+EXPLAIN SELECT * FROM bitmap_test WHERE a in (1);
 EXPLAIN SELECT * FROM bitmap_test WHERE a in (1, 47);
 EXPLAIN SELECT * FROM bitmap_test WHERE a in ('2', 47);
 EXPLAIN SELECT * FROM bitmap_test WHERE a in ('1', '2');

@@ -162,20 +162,18 @@ AND ft.id = dt1.id;
                      ->  Hash  (cost=431.16..431.16 rows=3 width=2)
                            ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.16 rows=3 width=2)
                                  Hash Key: bfv_tab2_facttable1.wk_id
-                                 ->  Nested Loop  (cost=0.00..431.16 rows=3 width=2)
-                                       Join Filter: true
-                                       ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=7 width=4)
+                                 ->  Hash Join  (cost=0.00..862.00 rows=3 width=2)
+                                       Hash Cond: bfv_tab2_facttable1.id = bfv_tab2_dimtabl1.id
+                                       ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=7 width=6)
+                                             Hash Key: bfv_tab2_facttable1.id
+                                             ->  Sequence  (cost=0.00..431.00 rows=7 width=6)
+                                                   ->  Partition Selector for bfv_tab2_facttable1 (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
+                                                         Partitions selected: 20 (out of 20)
+                                                   ->  Dynamic Table Scan on bfv_tab2_facttable1 (dynamic scan id: 1)  (cost=0.00..431.00 rows=7 width=6)
+                                       ->  Hash  (cost=431.00..431.00 rows=3 width=4)
                                              ->  Table Scan on bfv_tab2_dimtabl1  (cost=0.00..431.00 rows=3 width=4)
-                                       ->  Sequence  (cost=0.00..0.16 rows=1 width=2)
-                                             ->  Partition Selector for bfv_tab2_facttable1 (dynamic scan id: 1)  (cost=10.00..100.00 rows=34 width=4)
-                                                   Partitions selected:  20 (out of 20)
-                                             ->  Bitmap Table Scan on bfv_tab2_facttable1 (dynamic scan id: 1)  (cost=0.00..0.16 rows=1 width=2)
-                                                   Recheck Cond: bfv_tab2_facttable1.id = bfv_tab2_dimtabl1.id
-                                                   ->  Dynamic Bitmap Index Scan on idx_bfv_tab2_facttable1_1_prt_dflt  (cost=0.00..0.00 rows=0 width=0)
-                                                         Index Cond: bfv_tab2_facttable1.id = bfv_tab2_dimtabl1.id
- Settings:  optimizer=on
- Optimizer status: PQO version 1.621
-(22 rows)
+ Optimizer status: PQO version 2.48.9
+(20 rows)
 
 -- start_ignore
 create language plpythonu;

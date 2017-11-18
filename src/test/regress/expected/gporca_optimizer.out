@@ -9946,21 +9946,17 @@ INFO:  GPORCA failed to produce a plan, falling back to planner
 -- Test Bitmap index scan with in list
 CREATE TABLE bitmap_test as SELECT * FROM generate_series(1,100) as a distributed randomly;
 CREATE INDEX bitmap_index ON bitmap_test USING BITMAP(a);
-EXPLAIN SELECT * FROM bitmap_test WHERE a in (select 1);
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.05 rows=100 width=4)
-   ->  Nested Loop  (cost=0.00..0.04 rows=34 width=4)
-         Join Filter: true
-         ->  Result  (cost=0.00..0.00 rows=1 width=4)
-               ->  Result  (cost=0.00..0.00 rows=1 width=1)
-         ->  Bitmap Table Scan on bitmap_test  (cost=0.00..0.04 rows=1 width=4)
-               Recheck Cond: bitmap_test.a = (1)
-               ->  Bitmap Index Scan on bitmap_index  (cost=0.00..0.00 rows=0 width=0)
-                     Index Cond: bitmap_test.a = (1)
- Settings:  optimizer=on; optimizer_metadata_caching=on
- Optimizer status: PQO version 1.658
-(11 rows)
+EXPLAIN SELECT * FROM bitmap_test WHERE a in (1);
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..204.38 rows=1 width=4)
+   ->  Bitmap Table Scan on bitmap_test  (cost=0.00..204.38 rows=1 width=4)
+         Recheck Cond: a = 1
+         ->  Bitmap Index Scan on bitmap_index  (cost=0.00..0.00 rows=0 width=0)
+               Index Cond: a = 1
+ Settings:  optimizer_cte_inlining_bound=1000; optimizer_metadata_caching=on
+ Optimizer status: PQO version 2.48.9
+(7 rows)
 
 EXPLAIN SELECT * FROM bitmap_test WHERE a in (1, 47);
                                    QUERY PLAN                                    
