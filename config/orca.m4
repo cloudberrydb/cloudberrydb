@@ -43,7 +43,7 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 return strncmp("2.49.", GPORCA_VERSION_STRING, 5);
 ])],
 [AC_MSG_RESULT([[ok]])],
-[AC_MSG_ERROR([Your ORCA version is expected to be 2.48.XXX])]
+[AC_MSG_ERROR([Your ORCA version is expected to be 2.49.XXX])]
 )
 AC_LANG_POP([C++])
 ])# PGAC_CHECK_ORCA_VERSION
