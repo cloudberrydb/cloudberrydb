@@ -2136,11 +2136,10 @@ RecordTransactionCommitPrepared(TransactionId xid,
 	/*
 	 * Mark the distributed transaction committed.
 	 */
-	DistributedLog_SetCommitted(
-		xid,
-		distribTimeStamp,
-		distribXid,
-		/* isRedo */ false);
+	DistributedLog_SetCommittedTree(xid, nchildren, children,
+									distribTimeStamp,
+									distribXid
+									/* isRedo */ false);
 
 	/* Mark the transaction committed in pg_clog */
 	TransactionIdCommit(xid);

@@ -45,11 +45,10 @@ typedef struct DistributedLogEntry
 /* Number of SLRU buffers to use for the distributed log */
 #define NUM_DISTRIBUTEDLOG_BUFFERS	8
 
-extern void DistributedLog_SetCommitted(
-							TransactionId localXid,
-							DistributedTransactionTimeStamp dtxStartTime,
-							DistributedTransactionId distribXid,
-							bool isRedo);
+extern void DistributedLog_SetCommittedTree(TransactionId xid, int nxids, TransactionId *xids,
+								DistributedTransactionTimeStamp	distribTimeStamp,
+								DistributedTransactionId distribXid,
+								bool isRedo);
 extern bool DistributedLog_CommittedCheck(
 							  TransactionId localXid,
 							  DistributedTransactionTimeStamp *dtxStartTime,

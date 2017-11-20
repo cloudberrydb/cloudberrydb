@@ -1384,11 +1384,10 @@ RecordTransactionCommit(void)
 			 */
 			/* UNDONE: What are the locking issues here? */
 			if (isDtxPrepared)
-				DistributedLog_SetCommitted(
-										xid,
-										getDtxStartTime(),
-										getDistributedTransactionId(),
-										/* isRedo */ false);
+				DistributedLog_SetCommittedTree(xid, nchildren, children,
+												getDtxStartTime(),
+												getDistributedTransactionId(),
+												/* isRedo */ false);
 
 			TransactionIdCommit(xid);
 			/* to avoid race conditions, the parent must commit first */
@@ -1665,41 +1664,6 @@ RecordSubTransactionCommit(void)
 
 		/* Record subtransaction subcommit */
 		TransactionIdSubCommit(xid);
-
-		/*
-		 * Write the distributed commit entry for the subtransaction so when
-		 * we are researching a transaction in the distributed snapshot logic,
-		 * we can see this subtransaction was part of a distributed transaction.
-		 */
-		switch (DistributedTransactionContext)
-		{
-			case DTX_CONTEXT_LOCAL_ONLY:
-				break;		// Ignore.
-
-			case DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE:
-			case DTX_CONTEXT_QE_TWO_PHASE_EXPLICIT_WRITER:
-			case DTX_CONTEXT_QE_TWO_PHASE_IMPLICIT_WRITER:
-			case DTX_CONTEXT_QE_AUTO_COMMIT_IMPLICIT:
-				DistributedLog_SetCommitted(xid,
-											MyProc->localDistribXactData.distribTimeStamp,
-											MyProc->localDistribXactData.distribXid,
-											/* isRedo */ false);
-				break;
-
-			case DTX_CONTEXT_QE_ENTRY_DB_SINGLETON:
-			case DTX_CONTEXT_QE_READER:
-			case DTX_CONTEXT_QD_RETRY_PHASE_2:
-			case DTX_CONTEXT_QE_FINISH_PREPARED:
-			case DTX_CONTEXT_QE_PREPARED:
-				elog(FATAL, "Unexpected segment distribute transaction context: '%s'",
-					 DtxContextToString(DistributedTransactionContext));
-				break;
-
-			default:
-				elog(PANIC, "Unrecognized DTX transaction context: %d",
-					 (int) DistributedTransactionContext);
-				break;
-		}
 
 		END_CRIT_SECTION();
 	}
@@ -5841,17 +5805,6 @@ xact_redo_commit(xl_xact_commit *xlrec, TransactionId xid,
 	TransactionId max_xid;
 	int			i;
 
-	if (distribXid != 0 && distribTimeStamp != 0)
-	{
-		DistributedLog_SetCommitted(
-			xid,
-			distribTimeStamp,
-			distribXid,
-			/* isRedo */ true);
-	}
-
-	TransactionIdCommit(xid);
-
 	data = xlrec->data;
 	PersistentEndXactRec_Deserialize(
 								data,
@@ -5863,6 +5816,16 @@ xact_redo_commit(xl_xact_commit *xlrec, TransactionId xid,
 		PersistentEndXactRec_Print("xact_redo_commit", &persistentCommitObjects);
 
 	sub_xids = (TransactionId *)data; 
+
+	if (distribXid != 0 && distribTimeStamp != 0)
+	{
+		DistributedLog_SetCommittedTree(xid, xlrec->nsubxacts, sub_xids,
+										distribTimeStamp,
+										distribXid,
+										/* isRedo */ true);
+	}
+
+	TransactionIdCommit(xid);
 
 	/* Mark committed subtransactions as committed */
 	TransactionIdCommitTree(xlrec->nsubxacts, sub_xids);
@@ -5930,21 +5893,6 @@ xact_redo_distributed_commit(xl_xact_commit *xlrec, TransactionId xid)
 			TransactionIdAdvance(ShmemVariableCache->nextXid);
 		}
 
-		DistributedLog_SetCommitted(
-			xid,
-			distribTimeStamp,
-			gxact_log->gxid,
-			/* isRedo */ true);
-
-		/*
-		 * Now update the CLOG and do local commit actions.
-		 *
-		 * NOTE: The following logic is a copy of xact_redo_commit, with the
-		 * only addition being redo of DistributeLog updates to subtransaction
-		 * log.
-		 */
-		TransactionIdCommit(xid);
-
 		data = xlrec->data;
 		PersistentEndXactRec_Deserialize(
 			data,
@@ -5955,7 +5903,21 @@ xact_redo_distributed_commit(xl_xact_commit *xlrec, TransactionId xid)
 		if (Debug_persistent_print)
 			PersistentEndXactRec_Print("xact_redo_distributed_commit", &persistentCommitObjects);
 
+		/*
+		 * Now update the CLOG and do local commit actions.
+		 *
+		 * NOTE: The following logic is a copy of xact_redo_commit, with the
+		 * only addition being redo of DistributeLog updates to subtransaction
+		 * log.
+		 */
 		sub_xids = (TransactionId *)data;
+
+		DistributedLog_SetCommittedTree(xid, xlrec->nsubxacts, sub_xids,
+										distribTimeStamp,
+										gxact_log->gxid,
+										/* isRedo */ true);
+
+		TransactionIdCommit(xid);
 
 		/* Mark committed subtransactions as committed */
 		TransactionIdCommitTree(xlrec->nsubxacts, sub_xids);
@@ -5964,15 +5926,6 @@ xact_redo_distributed_commit(xl_xact_commit *xlrec, TransactionId xid)
 		max_xid = xid;
 		for (i = 0; i < xlrec->nsubxacts; i++)
 		{
-			/*
-			 * Add the committed subtransactions to the DistributedLog, too.
-			 */
-			DistributedLog_SetCommitted(
-				sub_xids[i],
-				distribTimeStamp,
-				gxact_log->gxid,
-				/* isRedo */ true);
-		
 			if (TransactionIdPrecedes(max_xid, sub_xids[i]))
 				max_xid = sub_xids[i];
 		}
