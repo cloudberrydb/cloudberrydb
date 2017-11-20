@@ -150,7 +150,7 @@ END;
 --
 
 
-SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
 
 BEGIN;
 
@@ -168,7 +168,7 @@ FETCH FROM foo25;
 
 --FETCH ABSOLUTE -1 FROM foo25;
 
-SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
 
 CLOSE foo25;
 
@@ -247,15 +247,15 @@ drop function count_tt1_s();
 
 -- Create a cursor with the BINARY option and check the pg_cursors view
 BEGIN;
-SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
 DECLARE bc BINARY CURSOR FOR SELECT * FROM tenk1;
-SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
 ROLLBACK;
 
 -- We should not see the portal that is created internally to
 -- implement EXECUTE in pg_cursors
 PREPARE cprep AS
-  SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
+  SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
 EXECUTE cprep;
 
 -- test CLOSE ALL;

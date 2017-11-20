@@ -9,7 +9,7 @@ INSERT INTO serialTest VALUES ('bar');
 INSERT INTO serialTest VALUES ('force', 100);
 INSERT INTO serialTest VALUES ('wrong', NULL);
  
-SELECT * FROM serialTest ORDER BY 2;
+SELECT * FROM serialTest;
 
 -- basic sequence operations using both text and oid references
 CREATE SEQUENCE sequence_test;
@@ -41,7 +41,7 @@ DROP SEQUENCE foo_seq_new;
 -- renaming serial sequences
 ALTER TABLE serialtest_f2_seq RENAME TO serialtest_f2_foo;
 INSERT INTO serialTest VALUES ('more');
-SELECT * FROM serialTest ORDER BY 2;
+SELECT * FROM serialTest;
 
 --
 -- Check dependencies of serial and ordinary sequences

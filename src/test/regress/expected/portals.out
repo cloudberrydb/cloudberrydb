@@ -471,7 +471,7 @@ END;
 --
 -- Cursors outside transaction blocks
 --
-SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
  name | statement | is_holdable | is_binary | is_scrollable 
 ------+-----------+-------------+-----------+---------------
 (0 rows)
@@ -499,7 +499,7 @@ FETCH FROM foo25;
 
 --FETCH BACKWARD FROM foo25;
 --FETCH ABSOLUTE -1 FROM foo25;
-SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
  name  |                                statement                                 | is_holdable | is_binary | is_scrollable 
 -------+--------------------------------------------------------------------------+-------------+-----------+---------------
  foo25 | DECLARE foo25 CURSOR WITH HOLD FOR SELECT * FROM tenk2 ORDER BY 1,2,3,4; | t           | f         | f
@@ -591,14 +591,14 @@ drop function count_tt1_v();
 drop function count_tt1_s();
 -- Create a cursor with the BINARY option and check the pg_cursors view
 BEGIN;
-SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
  name |                              statement                               | is_holdable | is_binary | is_scrollable 
 ------+----------------------------------------------------------------------+-------------+-----------+---------------
  c2   | declare c2 cursor with hold for select count_tt1_v(), count_tt1_s(); | t           | f         | f
 (1 row)
 
 DECLARE bc BINARY CURSOR FOR SELECT * FROM tenk1;
-SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
  name |                              statement                               | is_holdable | is_binary | is_scrollable 
 ------+----------------------------------------------------------------------+-------------+-----------+---------------
  bc   | DECLARE bc BINARY CURSOR FOR SELECT * FROM tenk1;                    | f           | t         | f
@@ -609,7 +609,7 @@ ROLLBACK;
 -- We should not see the portal that is created internally to
 -- implement EXECUTE in pg_cursors
 PREPARE cprep AS
-  SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
+  SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
 EXECUTE cprep;
  name |                              statement                               | is_holdable | is_binary | is_scrollable 
 ------+----------------------------------------------------------------------+-------------+-----------+---------------

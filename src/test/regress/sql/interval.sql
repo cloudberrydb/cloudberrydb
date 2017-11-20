@@ -34,25 +34,25 @@ INSERT INTO INTERVAL_TBL (f1) VALUES ('@ 30 eons ago');
 
 -- test interval operators
 
-SELECT '' AS ten, * FROM INTERVAL_TBL ORDER BY 2;
+SELECT '' AS ten, * FROM INTERVAL_TBL;
 
 SELECT '' AS nine, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 <> interval '@ 10 days' ORDER BY 2;
+   WHERE INTERVAL_TBL.f1 <> interval '@ 10 days';
 
 SELECT '' AS three, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 <= interval '@ 5 hours' ORDER BY 2;
+   WHERE INTERVAL_TBL.f1 <= interval '@ 5 hours';
 
 SELECT '' AS three, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 < interval '@ 1 day' ORDER BY 2;
+   WHERE INTERVAL_TBL.f1 < interval '@ 1 day';
 
 SELECT '' AS one, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 = interval '@ 34 years' ORDER BY 2;
+   WHERE INTERVAL_TBL.f1 = interval '@ 34 years';
 
 SELECT '' AS five, * FROM INTERVAL_TBL 
-   WHERE INTERVAL_TBL.f1 >= interval '@ 1 month' ORDER BY 2;
+   WHERE INTERVAL_TBL.f1 >= interval '@ 1 month';
 
 SELECT '' AS nine, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 > interval '@ 3 seconds ago' ORDER BY 2;
+   WHERE INTERVAL_TBL.f1 > interval '@ 3 seconds ago';
 
 SELECT '' AS fortyfive, r1.*, r2.*
    FROM INTERVAL_TBL r1, INTERVAL_TBL r2
@@ -81,23 +81,23 @@ COPY INTERVAL_MULDIV_TBL FROM STDIN;
 \.
 
 SELECT span * 0.3 AS product
-FROM INTERVAL_MULDIV_TBL ORDER BY 1;
+FROM INTERVAL_MULDIV_TBL;
 
 SELECT span * 8.2 AS product
-FROM INTERVAL_MULDIV_TBL ORDER BY 1;
+FROM INTERVAL_MULDIV_TBL;
 
 SELECT span / 10 AS quotient
-FROM INTERVAL_MULDIV_TBL ORDER BY 1;
+FROM INTERVAL_MULDIV_TBL;
 
 SELECT span / 100 AS quotient
-FROM INTERVAL_MULDIV_TBL ORDER BY 1;
+FROM INTERVAL_MULDIV_TBL;
 
 DROP TABLE INTERVAL_MULDIV_TBL;
 
 SET DATESTYLE = 'postgres';
 SET IntervalStyle to postgres_verbose;
 
-SELECT '' AS ten, * FROM INTERVAL_TBL ORDER BY 2;
+SELECT '' AS ten, * FROM INTERVAL_TBL;
 
 -- test avg(interval), which is somewhat fragile since people have been
 -- known to change the allowed input syntax for type interval without
