@@ -56,14 +56,14 @@ typedef struct SMgrRelationData
 	 */
 	int			smgr_which;		/* storage manager selector */
 
-	struct _MdMirVec *md_mirvec;		/* for md.c; NULL if not open */
+	struct _MdMirVec *md_mirvec;	/* for md.c; NULL if not open */
 } SMgrRelationData;
 
 typedef SMgrRelationData *SMgrRelation;
 
 /*
- * Whether the object is being dropped in the original transaction, crash recovery, or
- * as part of (re)create / (re)drop during resynchronize.
+ * Whether the object is being dropped in the original transaction, crash
+ * recovery, or as part of (re)create / (re)drop during resynchronize.
  */
 typedef enum StorageManagerMirrorMode
 {
@@ -74,20 +74,19 @@ typedef enum StorageManagerMirrorMode
 	MaxStorageManagerMirrorMode /* must always be last */
 } StorageManagerMirrorMode;
 
-inline static bool StorageManagerMirrorMode_DoPrimaryWork(
-	StorageManagerMirrorMode		mirrorMode)
+inline static bool
+StorageManagerMirrorMode_DoPrimaryWork(StorageManagerMirrorMode mirrorMode)
 {
-	return (mirrorMode == StorageManagerMirrorMode_Both|| mirrorMode == StorageManagerMirrorMode_PrimaryOnly);
+	return (mirrorMode == StorageManagerMirrorMode_Both || mirrorMode == StorageManagerMirrorMode_PrimaryOnly);
 }
 
-inline static bool StorageManagerMirrorMode_SendToMirror(
-	StorageManagerMirrorMode		mirrorMode)
+inline static bool
+StorageManagerMirrorMode_SendToMirror(StorageManagerMirrorMode mirrorMode)
 {
-	return (mirrorMode == StorageManagerMirrorMode_Both|| mirrorMode == StorageManagerMirrorMode_MirrorOnly);
+	return (mirrorMode == StorageManagerMirrorMode_Both || mirrorMode == StorageManagerMirrorMode_MirrorOnly);
 }
 
-extern char *StorageManagerMirrorMode_Name(
-	StorageManagerMirrorMode		mirrorMode);
+extern char *StorageManagerMirrorMode_Name(StorageManagerMirrorMode mirrorMode);
 
 extern void smgrinit(void);
 extern SMgrRelation smgropen(RelFileNode rnode);
@@ -95,234 +94,122 @@ extern void smgrsetowner(SMgrRelation *owner, SMgrRelation reln);
 extern void smgrclose(SMgrRelation reln);
 extern void smgrcloseall(void);
 extern void smgrclosenode(RelFileNode rnode);
-extern void smgrcreatefilespacedirpending(
-	Oid 							filespaceOid,
-
-	int16							primaryDbId,
-
-	char							*primaryFilespaceLocation,
-
-	int16							mirrorDbId,
-
-	char							*mirrorFilespaceLocation,
-
-	MirroredObjectExistenceState 	mirrorExistenceState,
-
-	ItemPointer 					persistentTid,
-
-	int64							*persistentSerialNum,
-
-	bool							flushToXLog);
-extern void smgrcreatefilespacedir(
-	Oid 						filespaceOid,
-
-	char						*primaryFilespaceLocation,
-								/* 
-								 * The primary filespace directory path.  NOT Blank padded.
-								 * Just a NULL terminated string.
-								 */
-
-	char						*mirrorFilespaceLocation,
-
-	StorageManagerMirrorMode	mirrorMode,
-
-	bool						ignoreAlreadyExists,
-
-	int 						*primaryError,
-
-	bool						*mirrorDataLossOccurred);
-extern void smgrcreatetablespacedirpending(
-	TablespaceDirNode				*tablespaceDirNode,
-
-	MirroredObjectExistenceState	mirrorExistenceState,
-
-	ItemPointer 					persistentTid,
-
-	int64							*persistentSerialNum,
-
-	bool							flushToXLog);
-extern void smgrcreatetablespacedir(
-	Oid 						tablespaceOid,
-
-	StorageManagerMirrorMode	mirrorMode,
-
-	bool						ignoreAlreadyExists,
-
-	int 						*primaryError,
-
-	bool						*mirrorDataLossOccurred);
-extern void smgrcreatedbdirjustintime(
-	DbDirNode					*justInTimeDbDirNode,
-
-	MirroredObjectExistenceState 	mirrorExistenceState,
-
-	StorageManagerMirrorMode	mirrorMode,
-
-	ItemPointer 				persistentTid,
-
-	int64						*persistentSerialNum,
-
-	int 						*primaryError,
-
-	bool						*mirrorDataLossOccurred);
-extern void smgrcreatedbdirpending(
-	DbDirNode						*dbDirNode,
-
-	MirroredObjectExistenceState	mirrorExistenceState,
-
-	ItemPointer 					persistentTid,
-
-	int64							*persistentSerialNum,
-
-	bool							flushToXLog);
-extern void smgrcreatedbdir(
-	
-	DbDirNode					*dbDirNode,
-
-	StorageManagerMirrorMode	mirrorMode,
-
-	bool						ignoreAlreadyExists,
-
-	int 						*primaryError,
-
-	bool						*mirrorDataLossOccurred);
-extern void smgrcreatepending(
-	RelFileNode 					*relFileNode,
-
-	int32							segmentFileNum,
-
-	PersistentFileSysRelStorageMgr relStorageMgr,
-
-	PersistentFileSysRelBufpoolKind relBufpoolKind,
-
-	MirroredObjectExistenceState 	mirrorExistenceState,
-
-	MirroredRelDataSynchronizationState relDataSynchronizationState,
-
-	char							*relationName,
-
-	ItemPointer 					persistentTid,
-
-	int64							*persistentSerialNum,
-
-	bool							isLocalBuf,
-
-	bool							bufferPoolBulkLoad,
-
-	bool							flushToXLog);
-extern void smgrcreate(
-	SMgrRelation 				reln,
-
-	char						*relationName,
-					/* For tracing only.  Can be NULL in some execution paths. */
-
-	MirrorDataLossTrackingState mirrorDataLossTrackingState,
-
-	int64						mirrorDataLossTrackingSessionNum,
-	
-	bool						ignoreAlreadyExists,
-
-	bool						*mirrorDataLossOccurred);
-extern void smgrrecreate(
-	RelFileNode 				*relFileNode,
-
-	bool						isLocalBuf, 
-
-	char						*relationName,
-					/* For tracing only.  Can be NULL in some execution paths. */
-
-	MirrorDataLossTrackingState mirrorDataLossTrackingState,
-
-	int64						mirrorDataLossTrackingSessionNum,
-	
-	int 						*primaryError,
-
-	bool						*mirrorDataLossOccurred);
-extern void smgrscheduleunlink(
-	RelFileNode 	*relFileNode,
-
-	int32			segmentFileNum,
-
-	PersistentFileSysRelStorageMgr relStorageMgr,
-
-	bool			isLocalBuf,
-
-	char			*relationName,
-
-	ItemPointer 	persistentTid,
-
-	int64			persistentSerialNum);
-extern void smgrdounlink(
-	RelFileNode 				*relFileNode,
-
-	bool 						isLocalBuf, 
-
-	char						*relationName,
-					/* For tracing only.  Can be NULL in some execution paths. */
-	
-	bool  						primaryOnly,
-
-	bool						isRedo,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred);
-extern void smgrschedulermfilespacedir(
-	Oid 				filespaceOid,
-
-	ItemPointer 		persistentTid,
-
-	int64				persistentSerialNum);
-extern void smgrschedulermtablespacedir(
-	Oid 				tablespaceOid,
-
-	ItemPointer 		persistentTid,
-
-	int64				persistentSerialNum);
-extern void smgrschedulermdbdir(
-	DbDirNode			*dbDirNode,
-
-	ItemPointer		 	persistentTid,
-
-	int64				persistentSerialNum);
-extern void smgrdormfilespacedir(
-	Oid 						filespaceOid,
-
-	char						*primaryFilespaceLocation,
-								/* 
-								 * The primary filespace directory path.  NOT Blank padded.
-								 * Just a NULL terminated string.
-								 */
-
-	char						*mirrorFilespaceLocation,
-	
-	bool  						primaryOnly,
-
-	bool						mirrorOnly,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred);
-extern void smgrdormtablespacedir(
-	Oid 						tablespaceOid,
-	
-	bool  						primaryOnly,
-
-	bool						mirrorOnly,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred);
-extern void smgrdormdbdir(
-	DbDirNode 					*dropDbDirNode,
-	
-	bool  						primaryOnly,
-
-	bool						mirrorOnly,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred);
+extern void smgrcreatefilespacedirpending(Oid filespaceOid,
+							  int16 primaryDbId,
+							  char *primaryFilespaceLocation,
+							  int16 mirrorDbId,
+							  char *mirrorFilespaceLocation,
+							  MirroredObjectExistenceState mirrorExistenceState,
+							  ItemPointer persistentTid,
+							  int64 *persistentSerialNum,
+							  bool flushToXLog);
+extern void smgrcreatefilespacedir(Oid filespaceOid,
+					   char *primaryFilespaceLocation,
+ /*
+  * The primary filespace directory path.  NOT Blank padded. Just a NULL
+  * terminated string.
+  */
+					   char *mirrorFilespaceLocation,
+					   StorageManagerMirrorMode mirrorMode,
+					   bool ignoreAlreadyExists,
+					   int *primaryError,
+					   bool *mirrorDataLossOccurred);
+extern void smgrcreatetablespacedirpending(TablespaceDirNode *tablespaceDirNode,
+							   MirroredObjectExistenceState mirrorExistenceState,
+							   ItemPointer persistentTid,
+							   int64 *persistentSerialNum,
+							   bool flushToXLog);
+extern void smgrcreatetablespacedir(Oid tablespaceOid,
+						StorageManagerMirrorMode mirrorMode,
+						bool ignoreAlreadyExists,
+						int *primaryError,
+						bool *mirrorDataLossOccurred);
+extern void smgrcreatedbdirjustintime(DbDirNode *justInTimeDbDirNode,
+						  MirroredObjectExistenceState mirrorExistenceState,
+						  StorageManagerMirrorMode mirrorMode,
+						  ItemPointer persistentTid,
+						  int64 *persistentSerialNum,
+						  int *primaryError,
+						  bool *mirrorDataLossOccurred);
+extern void smgrcreatedbdirpending(DbDirNode *dbDirNode,
+					   MirroredObjectExistenceState mirrorExistenceState,
+					   ItemPointer persistentTid,
+					   int64 *persistentSerialNum,
+					   bool flushToXLog);
+extern void smgrcreatedbdir(DbDirNode *dbDirNode,
+				StorageManagerMirrorMode mirrorMode,
+				bool ignoreAlreadyExists,
+				int *primaryError,
+				bool *mirrorDataLossOccurred);
+extern void smgrcreatepending(RelFileNode *relFileNode,
+				  int32 segmentFileNum,
+				  PersistentFileSysRelStorageMgr relStorageMgr,
+				  PersistentFileSysRelBufpoolKind relBufpoolKind,
+				  MirroredObjectExistenceState mirrorExistenceState,
+				  MirroredRelDataSynchronizationState relDataSynchronizationState,
+				  char *relationName,
+				  ItemPointer persistentTid,
+				  int64 *persistentSerialNum,
+				  bool isLocalBuf,
+				  bool bufferPoolBulkLoad,
+				  bool flushToXLog);
+extern void smgrcreate(SMgrRelation reln,
+		   char *relationName, /* For tracing only.  Can be NULL in some execution paths. */
+		   MirrorDataLossTrackingState mirrorDataLossTrackingState,
+		   int64 mirrorDataLossTrackingSessionNum,
+		   bool ignoreAlreadyExists,
+		   bool *mirrorDataLossOccurred);
+extern void smgrrecreate(RelFileNode *relFileNode,
+			 bool isLocalBuf,
+			 char *relationName, /* For tracing only.  Can be NULL in some execution paths. */
+			 MirrorDataLossTrackingState mirrorDataLossTrackingState,
+			 int64 mirrorDataLossTrackingSessionNum,
+			 int *primaryError,
+			 bool *mirrorDataLossOccurred);
+extern void smgrscheduleunlink(RelFileNode *relFileNode,
+				   int32 segmentFileNum,
+				   PersistentFileSysRelStorageMgr relStorageMgr,
+				   bool isLocalBuf,
+				   char *relationName,
+				   ItemPointer persistentTid,
+				   int64 persistentSerialNum);
+extern void smgrdounlink(RelFileNode *relFileNode,
+			 bool isLocalBuf,
+			 char *relationName, /* For tracing only.  Can be NULL in some execution paths. */
+			 bool primaryOnly,
+			 bool isRedo,
+			 bool ignoreNonExistence,
+			 bool *mirrorDataLossOccurred);
+extern void smgrschedulermfilespacedir(Oid filespaceOid,
+						   ItemPointer persistentTid,
+						   int64 persistentSerialNum);
+extern void smgrschedulermtablespacedir(Oid tablespaceOid,
+							ItemPointer persistentTid,
+							int64 persistentSerialNum);
+extern void smgrschedulermdbdir(DbDirNode *dbDirNode,
+					ItemPointer persistentTid,
+					int64 persistentSerialNum);
+extern void smgrdormfilespacedir(Oid filespaceOid,
+					 char *primaryFilespaceLocation,
+ /*
+  * The primary filespace directory path.  NOT Blank padded. Just a NULL
+  * terminated string.
+  */
+					 char *mirrorFilespaceLocation,
+					 bool primaryOnly,
+					 bool mirrorOnly,
+					 bool ignoreNonExistence,
+					 bool *mirrorDataLossOccurred);
+extern void smgrdormtablespacedir(Oid tablespaceOid,
+					  bool primaryOnly,
+					  bool mirrorOnly,
+					  bool ignoreNonExistence,
+					  bool *mirrorDataLossOccurred);
+extern void smgrdormdbdir(DbDirNode *dropDbDirNode,
+			  bool primaryOnly,
+			  bool mirrorOnly,
+			  bool ignoreNonExistence,
+			  bool *mirrorDataLossOccurred);
 extern void smgrextend(SMgrRelation reln, BlockNumber blocknum, char *buffer,
 		   bool isTemp);
 extern void smgrread(SMgrRelation reln, BlockNumber blocknum, char *buffer);
@@ -331,19 +218,15 @@ extern void smgrwrite(SMgrRelation reln, BlockNumber blocknum, char *buffer,
 extern BlockNumber smgrnblocks(SMgrRelation reln);
 extern void smgrtruncate(SMgrRelation reln, BlockNumber nblocks,
 			 bool isTemp, bool isLocalBuf, ItemPointer persistentTid, int64 persistentSerialNum);
-extern bool smgrgetpersistentinfo(	
-	XLogRecord		*record,
-
-	RelFileNode	*relFileNode,
-
-	ItemPointer	persistentTid,
-
-	int64		*persistentSerialNum);
+extern bool smgrgetpersistentinfo(XLogRecord *record,
+					  RelFileNode *relFileNode,
+					  ItemPointer persistentTid,
+					  int64 *persistentSerialNum);
 extern void smgrimmedsync(SMgrRelation reln);
 extern int smgrGetPendingFileSysWork(EndXactRecKind endXactRecKind,
 						  PersistentEndXactFileSysActionInfo **ptr);
-extern bool	smgrIsPendingFileSysWork(
-	EndXactRecKind						endXactRecKind);
+extern bool smgrIsPendingFileSysWork(
+						 EndXactRecKind endXactRecKind);
 extern void AtSubCommit_smgr(void);
 extern void AtSubAbort_smgr(void);
 extern void AtEOXact_smgr(bool forCommit);
@@ -363,32 +246,18 @@ extern void smgr_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record);
 /* in md.c */
 extern void mdinit(void);
 extern void mdclose(SMgrRelation reln);
-extern void mdcreate(
-	SMgrRelation 				reln,
-
-	char						*relationName,
-					/* For tracing only.  Can be NULL in some execution paths. */
-
-	MirrorDataLossTrackingState mirrorDataLossTrackingState,
-
-	int64						mirrorDataLossTrackingSessionNum,
-	
-	bool						ignoreAlreadyExists,
-
-	bool						*mirrorDataLossOccurred);
-extern void mdunlink(
-	RelFileNode 				rnode, 
-
-	char						*relationName,
-					/* For tracing only.  Can be NULL in some execution paths. */
-	
-	bool  						primaryOnly,
-
-	bool						isRedo,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred);
+extern void mdcreate(SMgrRelation reln,
+		 char *relationName, /* For tracing only.  Can be NULL in some execution paths. */
+		 MirrorDataLossTrackingState mirrorDataLossTrackingState,
+		 int64 mirrorDataLossTrackingSessionNum,
+		 bool ignoreAlreadyExists,
+		 bool *mirrorDataLossOccurred);
+extern void mdunlink(RelFileNode rnode,
+		 char *relationName, /* For tracing only.  Can be NULL in some execution paths. */
+		 bool primaryOnly,
+		 bool isRedo,
+		 bool ignoreNonExistence,
+		 bool *mirrorDataLossOccurred);
 extern void mdextend(SMgrRelation reln, BlockNumber blocknum, char *buffer,
 		 bool isTemp);
 extern void mdread(SMgrRelation reln, BlockNumber blocknum, char *buffer);
@@ -403,83 +272,50 @@ extern void mdsync(void);
 extern void mdpostckpt(void);
 
 /* md_gp.c */
-extern int errdetail_nonexistent_relation(int error, RelFileNode *relFileNode);
-extern void mdcreatefilespacedir(
-	Oid 						filespaceOid,
-
-	char						*primaryFilespaceLocation,
-								/* 
-								 * The primary filespace directory path.  NOT Blank padded.
-								 * Just a NULL terminated string.
-								 */
-
-	char						*mirrorFilespaceLocation,
-
-	StorageManagerMirrorMode	mirrorMode,
-
-	bool						ignoreAlreadyExists,
-
-	int 						*primaryError,
-
-	bool						*mirrorDataLossOccurred);
-extern void mdcreatetablespacedir(
-	Oid 						tablespaceOid,
-
-	StorageManagerMirrorMode	mirrorMode,
-
-	bool						ignoreAlreadyExists,
-
-	int 						*primaryError,
-
-	bool						*mirrorDataLossOccurred);
-extern void mdcreatedbdir(
-	DbDirNode					*dbDirNode,
-
-	StorageManagerMirrorMode	mirrorMode,
-
-	bool						ignoreAlreadyExists,
-
-	int 						*primaryError,
-
-	bool						*mirrorDataLossOccurred);
-extern bool mdrmfilespacedir(
-	Oid 						filespaceOid,
-
-	char						*primaryFilespaceLocation,
-								/* 
-								 * The primary filespace directory path.  NOT Blank padded.
-								 * Just a NULL terminated string.
-								 */
-
-	char						*mirrorFilespaceLocation,
-	
-	bool						primaryOnly,
-
-	bool						mirrorOnly,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred);
-extern bool mdrmtablespacedir(
-	Oid 						tablespaceOid,
-	
-	bool						primaryOnly,
-
-	bool						mirrorOnly,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred);
-extern bool mdrmdbdir(
-	DbDirNode					*dbDirNode,
-	
-	bool						primaryOnly,
-
-	bool						mirrorOnly,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred);
+extern int	errdetail_nonexistent_relation(int error, RelFileNode *relFileNode);
+extern void mdcreatefilespacedir(Oid filespaceOid,
+					 char *primaryFilespaceLocation,
+ /*
+  * The primary filespace directory path.  NOT Blank padded. Just a NULL
+  * terminated string.
+  */
+					 char *mirrorFilespaceLocation,
+					 StorageManagerMirrorMode mirrorMode,
+					 bool ignoreAlreadyExists,
+					 int *primaryError,
+					 bool *mirrorDataLossOccurred);
+extern void mdcreatetablespacedir(Oid tablespaceOid,
+					  StorageManagerMirrorMode mirrorMode,
+					  bool ignoreAlreadyExists,
+					  int *primaryError,
+					  bool *mirrorDataLossOccurred);
+extern void
+mdcreatedbdir(DbDirNode *dbDirNode,
+			  StorageManagerMirrorMode mirrorMode,
+			  bool ignoreAlreadyExists,
+			  int *primaryError,
+			  bool *mirrorDataLossOccurred);
+extern bool mdrmfilespacedir(Oid filespaceOid,
+				 char *primaryFilespaceLocation,
+ /*
+  * The primary filespace directory path.  NOT Blank padded. Just a NULL
+  * terminated string.
+  */
+				 char *mirrorFilespaceLocation,
+				 bool primaryOnly,
+				 bool mirrorOnly,
+				 bool ignoreNonExistence,
+				 bool *mirrorDataLossOccurred);
+extern bool mdrmtablespacedir(Oid tablespaceOid,
+				  bool primaryOnly,
+				  bool mirrorOnly,
+				  bool ignoreNonExistence,
+				  bool *mirrorDataLossOccurred);
+extern bool mdrmdbdir(DbDirNode *dbDirNode,
+		  bool primaryOnly,
+		  bool mirrorOnly,
+		  bool ignoreNonExistence,
+		  bool *mirrorDataLossOccurred);
 
 
 /*
@@ -487,31 +323,23 @@ extern bool mdrmdbdir(
  * a 'Create Pending' entry in persistent tables.
  * Wrapper around the static PendingDelete_AddCreatePendingEntry() for relations
  */
-extern void PendingDelete_AddCreatePendingRelationEntry(
-		PersistentFileSysObjName *fsObjName,
-
-		ItemPointer 			persistentTid,
-
-		int64					*persistentSerialNum,
-
-		PersistentFileSysRelStorageMgr relStorageMgr,
-
-		char				*relationName,
-
-		bool				isLocalBuf,
-
-		bool				bufferPoolBulkLoad);
+extern void
+PendingDelete_AddCreatePendingRelationEntry(PersistentFileSysObjName *fsObjName,
+											ItemPointer persistentTid,
+											int64 *persistentSerialNum,
+											PersistentFileSysRelStorageMgr relStorageMgr,
+											char *relationName,
+											bool isLocalBuf,
+											bool bufferPoolBulkLoad);
 
 /*
  * MPP-18228 - Wrapper around PendingDelete_AddCreatePendingEntry() for
  * database, tablespace and filespace
  */
-extern void PendingDelete_AddCreatePendingEntryWrapper(
-	PersistentFileSysObjName *fsObjName,
-
-	ItemPointer 			persistentTid,
-
-	int64					persistentSerialNum);
+extern void
+PendingDelete_AddCreatePendingEntryWrapper(PersistentFileSysObjName *fsObjName,
+										   ItemPointer persistentTid,
+										   int64 persistentSerialNum);
 
 extern void RememberFsyncRequest(RelFileNode rnode, BlockNumber segno);
 extern void ForgetRelationFsyncRequests(RelFileNode rnode);
@@ -523,4 +351,4 @@ extern Datum smgrin(PG_FUNCTION_ARGS);
 extern Datum smgreq(PG_FUNCTION_ARGS);
 extern Datum smgrne(PG_FUNCTION_ARGS);
 
-#endif   /* SMGR_H */
+#endif							/* SMGR_H */

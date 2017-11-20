@@ -67,36 +67,33 @@ static HTAB *SMgrRelationHash = NULL;
 typedef struct PendingDelete
 {
 	PersistentFileSysObjName fsObjName;
-							/* File-system object that may need to be deleted */
+	/* File-system object that may need to be deleted */
 
 	PersistentFileSysRelStorageMgr relStorageMgr;
 
-	char		*relationName;
+	char	   *relationName;
 
-	bool		isLocalBuf;	    /* CDB: true => uses local buffer mgr */
+	bool		isLocalBuf;		/* CDB: true => uses local buffer mgr */
 	bool		bufferPoolBulkLoad;
-	bool		dropForCommit;		/* T=delete at commit; F=delete at abort */
-	bool		sameTransCreateDrop; /* Collapsed create-delete? */
+	bool		dropForCommit;	/* T=delete at commit; F=delete at abort */
+	bool		sameTransCreateDrop;	/* Collapsed create-delete? */
 	ItemPointerData persistentTid;
 	int64		persistentSerialNum;
 	int			nestLevel;		/* xact nesting level of request */
-	struct PendingDelete *next;		/* linked-list link */
+	struct PendingDelete *next; /* linked-list link */
 } PendingDelete;
 
-static PendingDelete *pendingDeletes = NULL; /* head of linked list */
-static int pendingDeletesCount = 0;
+static PendingDelete *pendingDeletes = NULL;	/* head of linked list */
+static int	pendingDeletesCount = 0;
 static bool pendingDeletesSorted = false;
 
 typedef PendingDelete *PendingDeletePtr;
 
-static PendingDelete *PendingDelete_AddEntry(
-	PersistentFileSysObjName *fsObjName,
-
-	ItemPointer 			persistentTid,
-
-	int64					persistentSerialNum,
-
-	bool					dropForCommit)
+static PendingDelete *
+PendingDelete_AddEntry(PersistentFileSysObjName *fsObjName,
+					   ItemPointer persistentTid,
+					   int64 persistentSerialNum,
+					   bool dropForCommit)
 {
 	PendingDelete *pending;
 
@@ -124,46 +121,35 @@ static PendingDelete *PendingDelete_AddEntry(
 	return pending;
 }
 
-static PendingDelete *PendingDelete_AddCreatePendingEntry(
-	PersistentFileSysObjName *fsObjName,
-
-	ItemPointer 			persistentTid,
-
-	int64					persistentSerialNum)
+static PendingDelete *
+PendingDelete_AddCreatePendingEntry(PersistentFileSysObjName *fsObjName,
+									ItemPointer persistentTid,
+									int64 persistentSerialNum)
 {
-	return PendingDelete_AddEntry(
-							fsObjName,
-							persistentTid,
-							persistentSerialNum,
-							/* dropForCommit */ false);
+	return PendingDelete_AddEntry(fsObjName,
+								  persistentTid,
+								  persistentSerialNum,
+								   /* dropForCommit */ false);
 }
 
-void PendingDelete_AddCreatePendingRelationEntry(
-	PersistentFileSysObjName *fsObjName,
-
-	ItemPointer 			persistentTid,
-
-	int64					*persistentSerialNum,
-
-	PersistentFileSysRelStorageMgr relStorageMgr,
-
-	char				*relationName,
-
-	bool				isLocalBuf,
-
-	bool				bufferPoolBulkLoad)
+void
+PendingDelete_AddCreatePendingRelationEntry(PersistentFileSysObjName *fsObjName,
+											ItemPointer persistentTid,
+											int64 *persistentSerialNum,
+											PersistentFileSysRelStorageMgr relStorageMgr,
+											char *relationName,
+											bool isLocalBuf,
+											bool bufferPoolBulkLoad)
 {
+	PendingDelete *pending;
 
-	PendingDelete *pending = NULL;
-
-	pending = PendingDelete_AddCreatePendingEntry(
-						fsObjName,
-						persistentTid,
-						*persistentSerialNum);
+	pending = PendingDelete_AddCreatePendingEntry(fsObjName,
+												  persistentTid,
+												  *persistentSerialNum);
 
 	pending->relStorageMgr = relStorageMgr;
 	pending->relationName = MemoryContextStrdup(TopMemoryContext, relationName);
-	pending->isLocalBuf = isLocalBuf;	/*CDB*/
+	pending->isLocalBuf = isLocalBuf;	/* CDB */
 	pending->bufferPoolBulkLoad = bufferPoolBulkLoad;
 
 }
@@ -172,41 +158,35 @@ void PendingDelete_AddCreatePendingRelationEntry(
  * MPP-18228
  * Wrapper to call above function from cdb files
  */
-void PendingDelete_AddCreatePendingEntryWrapper(
-	PersistentFileSysObjName *fsObjName,
-
-	ItemPointer 			persistentTid,
-
-	int64					persistentSerialNum)
+void
+PendingDelete_AddCreatePendingEntryWrapper(PersistentFileSysObjName *fsObjName,
+										   ItemPointer persistentTid,
+										   int64 persistentSerialNum)
 {
-	PendingDelete_AddCreatePendingEntry(
-									fsObjName,
-									persistentTid,
-									persistentSerialNum);
+	PendingDelete_AddCreatePendingEntry(fsObjName,
+										persistentTid,
+										persistentSerialNum);
 }
 
-static PendingDelete *PendingDelete_AddDropEntry(
-	PersistentFileSysObjName *fsObjName,
-
-	ItemPointer 			persistentTid,
-
-	int64					persistentSerialNum)
+static PendingDelete *
+PendingDelete_AddDropEntry(PersistentFileSysObjName *fsObjName,
+						   ItemPointer persistentTid,
+						   int64 persistentSerialNum)
 {
-	return PendingDelete_AddEntry(
-							fsObjName,
-							persistentTid,
-							persistentSerialNum,
-							/* dropForCommit */ true);
+	return PendingDelete_AddEntry(fsObjName,
+								  persistentTid,
+								  persistentSerialNum,
+								   /* dropForCommit */ true);
 }
 
-static inline PersistentEndXactFileSysAction PendingDelete_Action(
-	PendingDelete *pendingDelete)
+static inline PersistentEndXactFileSysAction
+PendingDelete_Action(PendingDelete *pendingDelete)
 {
 	if (pendingDelete->dropForCommit)
 	{
 		return (pendingDelete->sameTransCreateDrop ?
-						PersistentEndXactFileSysAction_AbortingCreateNeeded :
-						PersistentEndXactFileSysAction_Drop);
+				PersistentEndXactFileSysAction_AbortingCreateNeeded :
+				PersistentEndXactFileSysAction_Drop);
 	}
 	else
 		return PersistentEndXactFileSysAction_Create;
@@ -237,39 +217,37 @@ typedef struct xl_smgr_truncate
 	BlockNumber blkno;
 	RelFileNode rnode;
 	ItemPointerData persistentTid;
-	int64 persistentSerialNum;
+	int64		persistentSerialNum;
 } xl_smgr_truncate;
 
 /* local function prototypes */
 static void smgrshutdown(int code, Datum arg);
-static void smgr_internal_unlink(
-	RelFileNode 				rnode,
+static void
+smgr_internal_unlink(RelFileNode rnode,
+					 bool isLocalBuf,
+					 char *relationName,	/* For tracing only.  Can be NULL
+											 * in some execution paths. */
+					 bool primaryOnly,
+					 bool isRedo,
+					 bool ignoreNonExistence,
+					 bool *mirrorDataLossOccurred);
 
-	bool 						isLocalBuf,
-
-	char						*relationName,
-					/* For tracing only.  Can be NULL in some execution paths. */
-
-	bool  						primaryOnly,
-
-	bool						isRedo,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred);
-
-char *StorageManagerMirrorMode_Name(
-	StorageManagerMirrorMode		mirrorMode)
+char *
+StorageManagerMirrorMode_Name(StorageManagerMirrorMode mirrorMode)
 {
 	switch (mirrorMode)
 	{
-	case StorageManagerMirrorMode_None: 		return "None";
-	case StorageManagerMirrorMode_PrimaryOnly: 	return "Primary Only";
-	case StorageManagerMirrorMode_MirrorOnly: 	return "Mirror Only";
-	case StorageManagerMirrorMode_Both: 		return "Both";
+		case StorageManagerMirrorMode_None:
+			return "None";
+		case StorageManagerMirrorMode_PrimaryOnly:
+			return "Primary Only";
+		case StorageManagerMirrorMode_MirrorOnly:
+			return "Mirror Only";
+		case StorageManagerMirrorMode_Both:
+			return "Both";
 
-	default:
-		return "Unknown";
+		default:
+			return "Unknown";
 	}
 }
 
@@ -333,7 +311,7 @@ smgropen(RelFileNode rnode)
 		/* hash_search already filled in the lookup key */
 		reln->smgr_owner = NULL;
 		reln->smgr_which = 0;	/* we only have md.c at present */
-		reln->md_mirvec = NULL;		/* mark it not open */
+		reln->md_mirvec = NULL; /* mark it not open */
 	}
 
 	return reln;
@@ -435,35 +413,25 @@ smgrclosenode(RelFileNode rnode)
  *
  */
 void
-smgrcreatefilespacedirpending(
-	Oid 							filespaceOid,
-
-	int16 							primaryDbId,
-
-	char 							*primaryFilespaceLocation,
-
-	int16 							mirrorDbId,
-
-	char 							*mirrorFilespaceLocation,
-
-	MirroredObjectExistenceState 	mirrorExistenceState,
-
-	ItemPointer						persistentTid,
-
-	int64							*persistentSerialNum,
-
-	bool							flushToXLog)
+smgrcreatefilespacedirpending(Oid filespaceOid,
+							  int16 primaryDbId,
+							  char *primaryFilespaceLocation,
+							  int16 mirrorDbId,
+							  char *mirrorFilespaceLocation,
+							  MirroredObjectExistenceState mirrorExistenceState,
+							  ItemPointer persistentTid,
+							  int64 *persistentSerialNum,
+							  bool flushToXLog)
 {
-	PersistentFilespace_MarkCreatePending(
-								filespaceOid,
-								primaryDbId,
-								primaryFilespaceLocation,
-								mirrorDbId,
-								mirrorFilespaceLocation,
-								mirrorExistenceState,
-								persistentTid,
-								persistentSerialNum,
-								flushToXLog);
+	PersistentFilespace_MarkCreatePending(filespaceOid,
+										  primaryDbId,
+										  primaryFilespaceLocation,
+										  mirrorDbId,
+										  mirrorFilespaceLocation,
+										  mirrorExistenceState,
+										  persistentTid,
+										  persistentSerialNum,
+										  flushToXLog);
 }
 
 /*
@@ -471,33 +439,26 @@ smgrcreatefilespacedirpending(
  *
  */
 void
-smgrcreatefilespacedir(
-	Oid 						filespaceOid,
+smgrcreatefilespacedir(Oid filespaceOid,
+					   char *primaryFilespaceLocation,
 
-	char						*primaryFilespaceLocation,
-								/*
-								 * The primary filespace directory path.  NOT Blank padded.
-								 * Just a NULL terminated string.
-								 */
-
-	char						*mirrorFilespaceLocation,
-
-	StorageManagerMirrorMode	mirrorMode,
-
-	bool						ignoreAlreadyExists,
-
-	int 						*primaryError,
-
-	bool						*mirrorDataLossOccurred)
+ /*
+  * The primary filespace directory path.  NOT Blank padded. Just a NULL
+  * terminated string.
+  */
+					   char *mirrorFilespaceLocation,
+					   StorageManagerMirrorMode mirrorMode,
+					   bool ignoreAlreadyExists,
+					   int *primaryError,
+					   bool *mirrorDataLossOccurred)
 {
-	mdcreatefilespacedir(
-					filespaceOid,
-					primaryFilespaceLocation,
-					mirrorFilespaceLocation,
-					mirrorMode,
-					ignoreAlreadyExists,
-					primaryError,
-					mirrorDataLossOccurred);
+	mdcreatefilespacedir(filespaceOid,
+						 primaryFilespaceLocation,
+						 mirrorFilespaceLocation,
+						 mirrorMode,
+						 ignoreAlreadyExists,
+						 primaryError,
+						 mirrorDataLossOccurred);
 }
 
 /*
@@ -505,24 +466,18 @@ smgrcreatefilespacedir(
  *
  */
 void
-smgrcreatetablespacedirpending(
-	TablespaceDirNode 				*tablespaceDirNode,
-
-	MirroredObjectExistenceState 	mirrorExistenceState,
-
-	ItemPointer						persistentTid,
-
-	int64							*persistentSerialNum,
-
-	bool							flushToXLog)
+smgrcreatetablespacedirpending(TablespaceDirNode *tablespaceDirNode,
+							   MirroredObjectExistenceState mirrorExistenceState,
+							   ItemPointer persistentTid,
+							   int64 *persistentSerialNum,
+							   bool flushToXLog)
 {
-	PersistentTablespace_MarkCreatePending(
-								tablespaceDirNode->filespace,
-								tablespaceDirNode->tablespace,
-								mirrorExistenceState,
-								persistentTid,
-								persistentSerialNum,
-								flushToXLog);
+	PersistentTablespace_MarkCreatePending(tablespaceDirNode->filespace,
+										   tablespaceDirNode->tablespace,
+										   mirrorExistenceState,
+										   persistentTid,
+										   persistentSerialNum,
+										   flushToXLog);
 
 }
 
@@ -531,23 +486,17 @@ smgrcreatetablespacedirpending(
  *
  */
 void
-smgrcreatetablespacedir(
-	Oid							tablespaceOid,
-
-	StorageManagerMirrorMode 	mirrorMode,
-
-	bool						ignoreAlreadyExists,
-
-	int							*primaryError,
-
-	bool						*mirrorDataLossOccurred)
+smgrcreatetablespacedir(Oid tablespaceOid,
+						StorageManagerMirrorMode mirrorMode,
+						bool ignoreAlreadyExists,
+						int *primaryError,
+						bool *mirrorDataLossOccurred)
 {
-	mdcreatetablespacedir(
-					tablespaceOid,
-					mirrorMode,
-					ignoreAlreadyExists,
-					primaryError,
-					mirrorDataLossOccurred);
+	mdcreatetablespacedir(tablespaceOid,
+						  mirrorMode,
+						  ignoreAlreadyExists,
+						  primaryError,
+						  mirrorDataLossOccurred);
 }
 
 /*
@@ -555,23 +504,17 @@ smgrcreatetablespacedir(
  *
  */
 void
-smgrcreatedbdirpending(
-	DbDirNode 						*dbDirNode,
-
-	MirroredObjectExistenceState 	mirrorExistenceState,
-
-	ItemPointer						persistentTid,
-
-	int64							*persistentSerialNum,
-
-	bool							flushToXLog)
+smgrcreatedbdirpending(DbDirNode *dbDirNode,
+					   MirroredObjectExistenceState mirrorExistenceState,
+					   ItemPointer persistentTid,
+					   int64 *persistentSerialNum,
+					   bool flushToXLog)
 {
-	PersistentDatabase_MarkCreatePending(
-								dbDirNode,
-								mirrorExistenceState,
-								persistentTid,
-								persistentSerialNum,
-								flushToXLog);
+	PersistentDatabase_MarkCreatePending(dbDirNode,
+										 mirrorExistenceState,
+										 persistentTid,
+										 persistentSerialNum,
+										 flushToXLog);
 }
 
 /*
@@ -579,111 +522,81 @@ smgrcreatedbdirpending(
  *
  */
 void
-smgrcreatedbdir(
-	DbDirNode					*dbDirNode,
-
-	StorageManagerMirrorMode 	mirrorMode,
-
-	bool						ignoreAlreadyExists,
-
-	int							*primaryError,
-
-	bool						*mirrorDataLossOccurred)
+smgrcreatedbdir(DbDirNode *dbDirNode,
+				StorageManagerMirrorMode mirrorMode,
+				bool ignoreAlreadyExists,
+				int *primaryError,
+				bool *mirrorDataLossOccurred)
 {
-	mdcreatedbdir(
-			dbDirNode,
-			mirrorMode,
-			ignoreAlreadyExists,
-			primaryError,
-			mirrorDataLossOccurred);
+	mdcreatedbdir(dbDirNode,
+				  mirrorMode,
+				  ignoreAlreadyExists,
+				  primaryError,
+				  mirrorDataLossOccurred);
 }
 
 void
-smgrcreatedbdirjustintime(
-	DbDirNode 					*justInTimeDbDirNode,
-
-	MirroredObjectExistenceState 	mirrorExistenceState,
-
-	StorageManagerMirrorMode 	mirrorMode,
-
-	ItemPointer 				persistentTid,
-
-	int64 						*persistentSerialNum,
-
-	int 						*primaryError,
-
-	bool 						*mirrorDataLossOccurred)
+smgrcreatedbdirjustintime(DbDirNode *justInTimeDbDirNode,
+						  MirroredObjectExistenceState mirrorExistenceState,
+						  StorageManagerMirrorMode mirrorMode,
+						  ItemPointer persistentTid,
+						  int64 *persistentSerialNum,
+						  int *primaryError,
+						  bool *mirrorDataLossOccurred)
 {
+	PersistentDatabase_MarkJustInTimeCreatePending(justInTimeDbDirNode,
+												   mirrorExistenceState,
+												   persistentTid,
+												   persistentSerialNum);
 
-	PersistentDatabase_MarkJustInTimeCreatePending(
-											justInTimeDbDirNode,
-											mirrorExistenceState,
-											persistentTid,
-											persistentSerialNum);
-
-	mdcreatedbdir(
-				justInTimeDbDirNode,
-				mirrorMode,
-				/* ignoreAlreadyExists */ true,
-				primaryError,
-				mirrorDataLossOccurred);
+	mdcreatedbdir(justInTimeDbDirNode,
+				  mirrorMode,
+				   /* ignoreAlreadyExists */ true,
+				  primaryError,
+				  mirrorDataLossOccurred);
 	if (*primaryError != 0)
 	{
-		PersistentDatabase_AbandonJustInTimeCreatePending(
-													justInTimeDbDirNode,
-													persistentTid,
-													*persistentSerialNum);
+		PersistentDatabase_AbandonJustInTimeCreatePending(justInTimeDbDirNode,
+														  persistentTid,
+														  *persistentSerialNum);
 		return;
 	}
 
-	PersistentDatabase_JustInTimeCreated(
-									justInTimeDbDirNode,
-									persistentTid,
-									*persistentSerialNum);
+	PersistentDatabase_JustInTimeCreated(justInTimeDbDirNode,
+										 persistentTid,
+										 *persistentSerialNum);
 
 	/* be sure to set PG_VERSION file for just in time dirs too */
 	set_short_version(NULL, justInTimeDbDirNode, true);
 }
 
 
-void smgrcreatepending(
-	RelFileNode						*relFileNode,
-
-	int32							segmentFileNum,
-
-	PersistentFileSysRelStorageMgr relStorageMgr,
-
-	PersistentFileSysRelBufpoolKind relBufpoolKind,
-
-	MirroredObjectExistenceState 	mirrorExistenceState,
-
-	MirroredRelDataSynchronizationState relDataSynchronizationState,
-
-	char							*relationName,
-
-	ItemPointer						persistentTid,
-
-	int64							*persistentSerialNum,
-
-	bool							isLocalBuf,
-
-	bool							bufferPoolBulkLoad,
-
-	bool							flushToXLog)
+void
+smgrcreatepending(RelFileNode *relFileNode,
+				  int32 segmentFileNum,
+				  PersistentFileSysRelStorageMgr relStorageMgr,
+				  PersistentFileSysRelBufpoolKind relBufpoolKind,
+				  MirroredObjectExistenceState mirrorExistenceState,
+				  MirroredRelDataSynchronizationState relDataSynchronizationState,
+				  char *relationName,
+				  ItemPointer persistentTid,
+				  int64 *persistentSerialNum,
+				  bool isLocalBuf,
+				  bool bufferPoolBulkLoad,
+				  bool flushToXLog)
 {
-	PersistentRelation_AddCreatePending(
-								relFileNode,
-								segmentFileNum,
-								relStorageMgr,
-								relBufpoolKind,
-								bufferPoolBulkLoad,
-								mirrorExistenceState,
-								relDataSynchronizationState,
-								relationName,
-								persistentTid,
-								persistentSerialNum,
-								flushToXLog,
-								isLocalBuf);
+	PersistentRelation_AddCreatePending(relFileNode,
+										segmentFileNum,
+										relStorageMgr,
+										relBufpoolKind,
+										bufferPoolBulkLoad,
+										mirrorExistenceState,
+										relDataSynchronizationState,
+										relationName,
+										persistentTid,
+										persistentSerialNum,
+										flushToXLog,
+										isLocalBuf);
 }
 
 /*
@@ -698,38 +611,34 @@ void smgrcreatepending(
  *		been created.
  */
 void
-smgrcreate(
-	SMgrRelation 				reln,
-
-	char						*relationName,
-					/* For tracing only.  Can be NULL in some execution paths. */
-
-	MirrorDataLossTrackingState mirrorDataLossTrackingState,
-
-	int64						mirrorDataLossTrackingSessionNum,
-
-	bool						ignoreAlreadyExists,
-
-	bool						*mirrorDataLossOccurred) /* FIXME: is this arg still needed? */
+smgrcreate(SMgrRelation reln,
+		   char *relationName,	/* For tracing only.  Can be NULL in some
+								 * execution paths. */
+		   MirrorDataLossTrackingState mirrorDataLossTrackingState,
+		   int64 mirrorDataLossTrackingSessionNum,
+		   bool ignoreAlreadyExists,
+		   bool *mirrorDataLossOccurred)	/* FIXME: is this arg still
+											 * needed? */
 {
-	/* GPDB_84_MERGE_FIXME: the following performance tweak came in from 8.4; is
-	 * it still applicable to our system here? */
+	/*
+	 * GPDB_84_MERGE_FIXME: the following performance tweak came in from 8.4;
+	 * is it still applicable to our system here?
+	 */
 #if 0
 	/*
-	 * Exit quickly in WAL replay mode if we've already opened the file. 
-	 * If it's open, it surely must exist.
-	 */ 
+	 * Exit quickly in WAL replay mode if we've already opened the file. If
+	 * it's open, it surely must exist.
+	 */
 	if (isRedo && reln->md_fd != NULL)
 		return;
 #endif
 
-	mdcreate(
-			reln,
-			relationName,
-			mirrorDataLossTrackingState,
-			mirrorDataLossTrackingSessionNum,
-			ignoreAlreadyExists,
-			mirrorDataLossOccurred);
+	mdcreate(reln,
+			 relationName,
+			 mirrorDataLossTrackingState,
+			 mirrorDataLossTrackingSessionNum,
+			 ignoreAlreadyExists,
+			 mirrorDataLossOccurred);
 }
 
 /*
@@ -741,20 +650,13 @@ smgrcreate(
  * This also implies smgrclose() on the SMgrRelation object.
  */
 void
-smgrscheduleunlink(
-	RelFileNode 	*relFileNode,
-
-	int32			segmentFileNum,
-
-	PersistentFileSysRelStorageMgr relStorageMgr,
-
-	bool 			isLocalBuf,
-
-	char			*relationName,
-
-	ItemPointer 	persistentTid,
-
-	int64 			persistentSerialNum)
+smgrscheduleunlink(RelFileNode *relFileNode,
+				   int32 segmentFileNum,
+				   PersistentFileSysRelStorageMgr relStorageMgr,
+				   bool isLocalBuf,
+				   char *relationName,
+				   ItemPointer persistentTid,
+				   int64 persistentSerialNum)
 {
 	SUPPRESS_ERRCONTEXT_DECLARE;
 
@@ -763,29 +665,28 @@ smgrscheduleunlink(
 	PendingDelete *pending;
 
 
-	/* IMPORANT:
-	 * ----> Relcache invalidation can close an open smgr <------
+	/*
+	 * IMPORTANT: ----> Relcache invalidation can close an open smgr <------
 	 *
-	 * This routine can be called in the context of a relation and rd_smgr being used,
-	 * so do not issue elog here without suppressing errcontext.  Otherwise, the heap_open
-	 * inside errcontext processing may cause the smgr open to be closed...
+	 * This routine can be called in the context of a relation and rd_smgr
+	 * being used, so do not issue elog here without suppressing errcontext.
+	 * Otherwise, the heap_open inside errcontext processing may cause the
+	 * smgr open to be closed...
 	 */
 
 	SUPPRESS_ERRCONTEXT_PUSH();
 
-	PersistentFileSysObjName_SetRelationFile(
-										&fsObjName,
-										relFileNode,
-										segmentFileNum);
+	PersistentFileSysObjName_SetRelationFile(&fsObjName,
+											 relFileNode,
+											 segmentFileNum);
 
-	pending = PendingDelete_AddDropEntry(
-								&fsObjName,
-								persistentTid,
-								persistentSerialNum);
+	pending = PendingDelete_AddDropEntry(&fsObjName,
+										 persistentTid,
+										 persistentSerialNum);
 
 	pending->relStorageMgr = relStorageMgr;
 	pending->relationName = MemoryContextStrdup(TopMemoryContext, relationName);
-	pending->isLocalBuf = isLocalBuf;	/*CDB*/
+	pending->isLocalBuf = isLocalBuf;	/* CDB */
 
 	if (relStorageMgr == PersistentFileSysRelStorageMgr_AppendOnly)
 	{
@@ -794,16 +695,15 @@ smgrscheduleunlink(
 		 *
 		 * But only at this transaction level !!!
 		 */
-		AppendOnlyMirrorResyncEofs_RemoveForDrop(
-											relFileNode,
-											segmentFileNum,
-											GetCurrentTransactionNestLevel());
+		AppendOnlyMirrorResyncEofs_RemoveForDrop(relFileNode,
+												 segmentFileNum,
+												 GetCurrentTransactionNestLevel());
 	}
 
 	SUPPRESS_ERRCONTEXT_POP();
 
-	/* IMPORANT:
-	 * ----> Relcache invalidation can close an open smgr <------
+	/*
+	 * IMPORTANT: ----> Relcache invalidation can close an open smgr <------
 	 *
 	 * See above.
 	 */
@@ -821,57 +721,42 @@ smgrscheduleunlink(
  * This also implies smgrclose() on the SMgrRelation object.
  */
 void
-smgrdounlink(
-	RelFileNode 				*relFileNode,
-
-	bool 						isLocalBuf,
-
-	char						*relationName,
-					/* For tracing only.  Can be NULL in some execution paths. */
-
-	bool  						primaryOnly,
-
-	bool						isRedo,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred)
+smgrdounlink(RelFileNode *relFileNode,
+			 bool isLocalBuf,
+			 char *relationName,	/* For tracing only.  Can be NULL in some
+									 * execution paths. */
+			 bool primaryOnly,
+			 bool isRedo,
+			 bool ignoreNonExistence,
+			 bool *mirrorDataLossOccurred)
 {
-	smgr_internal_unlink(
-				*relFileNode,
-				isLocalBuf,
-				relationName,
-				primaryOnly,
-				isRedo,
-				ignoreNonExistence,
-				mirrorDataLossOccurred);
+	smgr_internal_unlink(*relFileNode,
+						 isLocalBuf,
+						 relationName,
+						 primaryOnly,
+						 isRedo,
+						 ignoreNonExistence,
+						 mirrorDataLossOccurred);
 }
 
 /*
  * Shared subroutine that actually does the unlink ...
  */
 static void
-smgr_internal_unlink(
-	RelFileNode 				rnode,
-
-	bool 						isLocalBuf,
-
-	char						*relationName,
-					/* For tracing only.  Can be NULL in some execution paths. */
-
-	bool  						primaryOnly,
-
-	bool						isRedo,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred)
+smgr_internal_unlink(RelFileNode rnode,
+					 bool isLocalBuf,
+					 char *relationName,	/* For tracing only.  Can be NULL
+											 * in some execution paths. */
+					 bool primaryOnly,
+					 bool isRedo,
+					 bool ignoreNonExistence,
+					 bool *mirrorDataLossOccurred)
 {
 	/*
 	 * Get rid of any remaining buffers for the relation.  bufmgr will just
 	 * drop them without bothering to write the contents.
 	 */
-	DropRelFileNodeBuffers(rnode, isLocalBuf, 0);   /*CDB*/
+	DropRelFileNodeBuffers(rnode, isLocalBuf, 0);	/* CDB */
 
 	/*
 	 * Tell the free space map to forget this relation.  It won't be accessed
@@ -903,44 +788,33 @@ smgr_internal_unlink(
  *		successfully commit the current transaction.
  */
 void
-smgrschedulermfilespacedir(
-	Oid 				filespaceOid,
-
-	ItemPointer 		persistentTid,
-
-	int64				persistentSerialNum)
+smgrschedulermfilespacedir(Oid filespaceOid,
+						   ItemPointer persistentTid,
+						   int64 persistentSerialNum)
 {
 	PersistentFileSysObjName fsObjName;
 
-	PersistentFileSysObjName_SetFilespaceDir(
-									&fsObjName,
-									filespaceOid);
+	PersistentFileSysObjName_SetFilespaceDir(&fsObjName,
+											 filespaceOid);
 
-	PendingDelete_AddDropEntry(
-						&fsObjName,
-						persistentTid,
-						persistentSerialNum);
+	PendingDelete_AddDropEntry(&fsObjName,
+							   persistentTid,
+							   persistentSerialNum);
 }
 
 void
-smgrdormfilespacedir(
-	Oid							filespaceOid,
+smgrdormfilespacedir(Oid filespaceOid,
+					 char *primaryFilespaceLocation,
 
-	char						*primaryFilespaceLocation,
-								/*
-								 * The primary filespace directory path.  NOT Blank padded.
-								 * Just a NULL terminated string.
-								 */
-
-	char						*mirrorFilespaceLocation,
-
-	bool						primaryOnly,
-
-	bool					 	mirrorOnly,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred)
+ /*
+  * The primary filespace directory path.  NOT Blank padded. Just a NULL
+  * terminated string.
+  */
+					 char *mirrorFilespaceLocation,
+					 bool primaryOnly,
+					 bool mirrorOnly,
+					 bool ignoreNonExistence,
+					 bool *mirrorDataLossOccurred)
 {
 	/*
 	 * And remove the physical filespace directory.
@@ -948,14 +822,13 @@ smgrdormfilespacedir(
 	 * Note: we treat deletion failure as a WARNING, not an error, because
 	 * we've already decided to commit or abort the current xact.
 	 */
-	if (!mdrmfilespacedir(
-						filespaceOid,
-						primaryFilespaceLocation,
-						mirrorFilespaceLocation,
-						primaryOnly,
-						mirrorOnly,
-						ignoreNonExistence,
-						mirrorDataLossOccurred))
+	if (!mdrmfilespacedir(filespaceOid,
+						  primaryFilespaceLocation,
+						  mirrorFilespaceLocation,
+						  primaryOnly,
+						  mirrorOnly,
+						  ignoreNonExistence,
+						  mirrorDataLossOccurred))
 		ereport(WARNING,
 				(errcode_for_file_access(),
 				 errmsg("could not remove filespace directory %u: %m",
@@ -970,23 +843,15 @@ smgrdormfilespacedir(
  *		successfully commit the current transaction.
  */
 void
-smgrschedulermtablespacedir(
-	Oid 				tablespaceOid,
-
-	ItemPointer 		persistentTid,
-
-	int64				persistentSerialNum)
+smgrschedulermtablespacedir(Oid tablespaceOid,
+							ItemPointer persistentTid,
+							int64 persistentSerialNum)
 {
 	PersistentFileSysObjName fsObjName;
 
-	PersistentFileSysObjName_SetTablespaceDir(
-									&fsObjName,
-									tablespaceOid);
+	PersistentFileSysObjName_SetTablespaceDir(&fsObjName, tablespaceOid);
 
-	PendingDelete_AddDropEntry(
-						&fsObjName,
-						persistentTid,
-						persistentSerialNum);
+	PendingDelete_AddDropEntry(&fsObjName, persistentTid, persistentSerialNum);
 }
 
 /*
@@ -996,43 +861,33 @@ smgrschedulermtablespacedir(
  *		successfully commit the current transaction.
  */
 void
-smgrschedulermdbdir(
-	DbDirNode			*dbDirNode,
-
-	ItemPointer			persistentTid,
-
-	int64 				persistentSerialNum)
+smgrschedulermdbdir(DbDirNode *dbDirNode,
+					ItemPointer persistentTid,
+					int64 persistentSerialNum)
 {
 	PersistentFileSysObjName fsObjName;
 
-	Oid tablespace;
-	Oid database;
+	Oid			tablespace;
+	Oid			database;
 
 	tablespace = dbDirNode->tablespace;
 	database = dbDirNode->database;
 
-	PersistentFileSysObjName_SetDatabaseDir(
-									&fsObjName,
-									tablespace,
-									database);
+	PersistentFileSysObjName_SetDatabaseDir(&fsObjName,
+											tablespace,
+											database);
 
-	PendingDelete_AddDropEntry(
-						&fsObjName,
-						persistentTid,
-						persistentSerialNum);
+	PendingDelete_AddDropEntry(&fsObjName,
+							   persistentTid,
+							   persistentSerialNum);
 }
 
 void
-smgrdormtablespacedir(
-	Oid							tablespaceOid,
-
-	bool						primaryOnly,
-
-	bool					 	mirrorOnly,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred)
+smgrdormtablespacedir(Oid tablespaceOid,
+					  bool primaryOnly,
+					  bool mirrorOnly,
+					  bool ignoreNonExistence,
+					  bool *mirrorDataLossOccurred)
 {
 	/*
 	 * And remove the physical tablespace directory.
@@ -1051,16 +906,11 @@ smgrdormtablespacedir(
  * Shared subroutine that actually does the rmdir of a database directory ...
  */
 static void
-smgr_internal_rmdbdir(
-	DbDirNode					*dbDirNode,
-
-	bool						primaryOnly,
-
-	bool					 	mirrorOnly,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred)
+smgr_internal_rmdbdir(DbDirNode *dbDirNode,
+					  bool primaryOnly,
+					  bool mirrorOnly,
+					  bool ignoreNonExistence,
+					  bool *mirrorDataLossOccurred)
 {
 	/*
 	 * And remove the physical database directory.
@@ -1077,23 +927,17 @@ smgr_internal_rmdbdir(
 }
 
 void
-smgrdormdbdir(
-	DbDirNode					*dbDirNode,
-
-	bool						primaryOnly,
-
-	bool					 	mirrorOnly,
-
-	bool 						ignoreNonExistence,
-
-	bool						*mirrorDataLossOccurred)
+smgrdormdbdir(DbDirNode *dbDirNode,
+			  bool primaryOnly,
+			  bool mirrorOnly,
+			  bool ignoreNonExistence,
+			  bool *mirrorDataLossOccurred)
 {
-	smgr_internal_rmdbdir(
-					dbDirNode,
-					primaryOnly,
-					mirrorOnly,
-					ignoreNonExistence,
-					mirrorDataLossOccurred);
+	smgr_internal_rmdbdir(dbDirNode,
+						  primaryOnly,
+						  mirrorOnly,
+						  ignoreNonExistence,
+						  mirrorDataLossOccurred);
 }
 
 /*
@@ -1203,18 +1047,15 @@ smgrtruncate(SMgrRelation reln, BlockNumber nblocks, bool isTemp, bool isLocalBu
 	}
 }
 
-bool smgrgetpersistentinfo(
-	XLogRecord		*record,
-
-	RelFileNode	*relFileNode,
-
-	ItemPointer	persistentTid,
-
-	int64		*persistentSerialNum)
+bool
+smgrgetpersistentinfo(XLogRecord *record,
+					  RelFileNode *relFileNode,
+					  ItemPointer persistentTid,
+					  int64 *persistentSerialNum)
 {
-	uint8 info;
+	uint8		info;
 
-	Assert (record->xl_rmid == RM_SMGR_ID);
+	Assert(record->xl_rmid == RM_SMGR_ID);
 
 	info = record->xl_info & ~XLR_INFO_MASK;
 
@@ -1261,8 +1102,7 @@ smgrimmedsync(SMgrRelation reln)
 }
 
 static void
-PendingDelete_Free(
-	PendingDelete **ele)
+PendingDelete_Free(PendingDelete **ele)
 {
 	if ((*ele)->relationName != NULL)
 		pfree((*ele)->relationName);
@@ -1304,25 +1144,27 @@ PostPrepare_smgr(void)
 	 */
 	AppendOnlyMirrorResyncEofs_HashTableRemove("PostPrepare_smgr");
 
-	// UNDONE: We are passing the responsibility on to PersistentFileSysObj_PreparedEndXactAction...
+	/*
+	 * UNDONE: We are passing the responsibility on to
+	 * PersistentFileSysObj_PreparedEndXactAction...
+	 */
 }
 
 
 static void
-smgrDoDeleteActions(
-	PendingDelete 	**list,
-	int					*listCount,
-	bool				forCommit)
+smgrDoDeleteActions(PendingDelete **list,
+					int *listCount,
+					bool forCommit)
 {
 	MIRRORED_LOCK_DECLARE;
 
 	PendingDelete *current;
-	int entryIndex;
+	int			entryIndex;
 
 	PersistentEndXactFileSysAction action;
 
-	bool dropPending;
-	bool abortingCreate;
+	bool		dropPending;
+	bool		abortingCreate;
 
 	PersistentFileSysObjStateChangeResult *stateChangeResults;
 
@@ -1330,26 +1172,30 @@ smgrDoDeleteActions(
 		stateChangeResults = NULL;
 	else
 		stateChangeResults =
-				(PersistentFileSysObjStateChangeResult*)
-						palloc0((*listCount) * sizeof(PersistentFileSysObjStateChangeResult));
+			(PersistentFileSysObjStateChangeResult *)
+			palloc0((*listCount) * sizeof(PersistentFileSysObjStateChangeResult));
 
 	/*
-	 * There are two situations where we get here. CommitTransaction()/AbortTransaction() or via
-	 * AbortSubTransaction(). In the first case, we have already obtained the MirroredLock and
-	 * CheckPointStartLock. In the second case, we have not obtained the locks, so we attempt
-	 * to get them to make sure proper lock order is maintained.
+	 * There are two situations where we get here.
+	 * CommitTransaction()/AbortTransaction() or via AbortSubTransaction(). In
+	 * the first case, we have already obtained the MirroredLock and
+	 * CheckPointStartLock. In the second case, we have not obtained the
+	 * locks, so we attempt to get them to make sure proper lock order is
+	 * maintained.
 	 *
-	 * Normally, if a relation lock is needed, it is obtained before the MirroredLock and CheckPointStartLock,
-	 * but we have not yet obtained an EXCLUSIVE LockRelationForResynchronize. This lock will be obtained in
-	 * PersistentFileSysObj_EndXactDrop(). This is an exception to the normal lock ordering, which is done
-	 * to reduce the time that the lock is held, thus allowing a larger window of time for filerep
-	 * resynchronization to obtain the lock.
+	 * Normally, if a relation lock is needed, it is obtained before the
+	 * MirroredLock and CheckPointStartLock, but we have not yet obtained an
+	 * EXCLUSIVE LockRelationForResynchronize. This lock will be obtained in
+	 * PersistentFileSysObj_EndXactDrop(). This is an exception to the normal
+	 * lock ordering, which is done to reduce the time that the lock is held,
+	 * thus allowing a larger window of time for filerep resynchronization to
+	 * obtain the lock.
 	 */
 
 	/*
-	 * We need to do the transition to 'Aborting Create' or 'Drop Pending' and perform
-	 * the file-system drop while under one acquistion of the MirroredLock.  Otherwise,
-	 * we could race with resynchronize's ReDrop.
+	 * We need to do the transition to 'Aborting Create' or 'Drop Pending' and
+	 * perform the file-system drop while under one acquistion of the
+	 * MirroredLock.  Otherwise, we could race with resynchronize's ReDrop.
 	 */
 	MIRRORED_LOCK;
 
@@ -1393,53 +1239,50 @@ smgrDoDeleteActions(
 
 		switch (action)
 		{
-		case PersistentEndXactFileSysAction_Create:
-			if (forCommit)
-			{
-				PersistentFileSysObj_Created(
-								&current->fsObjName,
-								&current->persistentTid,
-								current->persistentSerialNum,
-								/* retryPossible */ false);
-			}
-			else
-			{
+			case PersistentEndXactFileSysAction_Create:
+				if (forCommit)
+				{
+					PersistentFileSysObj_Created(&current->fsObjName,
+												 &current->persistentTid,
+												 current->persistentSerialNum,
+												  /* retryPossible */ false);
+				}
+				else
+				{
+					stateChangeResults[entryIndex] =
+						PersistentFileSysObj_MarkAbortingCreate(&current->fsObjName,
+																&current->persistentTid,
+																current->persistentSerialNum,
+																 /* retryPossible */ false);
+				}
+				break;
+
+			case PersistentEndXactFileSysAction_Drop:
+				if (forCommit)
+				{
+					stateChangeResults[entryIndex] =
+						PersistentFileSysObj_MarkDropPending(&current->fsObjName,
+															 &current->persistentTid,
+															 current->persistentSerialNum,
+															  /* retryPossible */ false);
+				}
+				break;
+
+			case PersistentEndXactFileSysAction_AbortingCreateNeeded:
+
+				/*
+				 * Always whether transaction commits or aborts.
+				 */
 				stateChangeResults[entryIndex] =
-					PersistentFileSysObj_MarkAbortingCreate(
-								&current->fsObjName,
-								&current->persistentTid,
-								current->persistentSerialNum,
-								/* retryPossible */ false);
-			}
-			break;
+					PersistentFileSysObj_MarkAbortingCreate(&current->fsObjName,
+															&current->persistentTid,
+															current->persistentSerialNum,
+															 /* retryPossible */ false);
+				break;
 
-		case PersistentEndXactFileSysAction_Drop:
-			if (forCommit)
-			{
-				stateChangeResults[entryIndex] =
-					PersistentFileSysObj_MarkDropPending(
-								&current->fsObjName,
-								&current->persistentTid,
-								current->persistentSerialNum,
-								/* retryPossible */ false);
-			}
-			break;
-
-		case PersistentEndXactFileSysAction_AbortingCreateNeeded:
-			/*
-			 * Always whether transaction commits or aborts.
-			 */
-			stateChangeResults[entryIndex] =
-				PersistentFileSysObj_MarkAbortingCreate(
-							&current->fsObjName,
-							&current->persistentTid,
-							current->persistentSerialNum,
-							/* retryPossible */ false);
-			break;
-
-		default:
-			elog(ERROR, "Unexpected persistent end transaction file-system action: %d",
-				 action);
+			default:
+				elog(ERROR, "Unexpected persistent end transaction file-system action: %d",
+					 action);
 		}
 
 		current = current->next;
@@ -1465,96 +1308,92 @@ smgrDoDeleteActions(
 		if (current == NULL)
 			break;
 
- 		Assert(*listCount > 0);
+		Assert(*listCount > 0);
 		(*listCount)--;
 
 		*list = current->next;
 
 		action = PendingDelete_Action(current);
 
-		dropPending = false;		// Assume.
-		abortingCreate = false;		// Assume.
+		dropPending = false;	/* Assume. */
+		abortingCreate = false; /* Assume. */
 
 		switch (action)
 		{
-		case PersistentEndXactFileSysAction_Create:
-			if (!forCommit)
-			{
-				abortingCreate = true;
-			}
+			case PersistentEndXactFileSysAction_Create:
+				if (!forCommit)
+				{
+					abortingCreate = true;
+				}
 #ifdef FAULT_INJECTOR
-				FaultInjector_InjectFaultIfSet(
-											   forCommit ?
+				FaultInjector_InjectFaultIfSet(forCommit ?
 											   TransactionCommitPass1FromCreatePendingToCreated :
 											   TransactionAbortPass1FromCreatePendingToAbortingCreate,
 											   DDLNotSpecified,
-											   "",	// databaseName
-											   ""); // tableName
+											   "",	/* databaseName */
+											   ""); /* tableName */
 #endif
-			break;
+				break;
 
-		case PersistentEndXactFileSysAction_Drop:
-			if (forCommit)
-			{
-				dropPending = true;
+			case PersistentEndXactFileSysAction_Drop:
+				if (forCommit)
+				{
+					dropPending = true;
 
-				SIMPLE_FAULT_INJECTOR(TransactionCommitPass1FromDropInMemoryToDropPending);
-			}
-			break;
+					SIMPLE_FAULT_INJECTOR(TransactionCommitPass1FromDropInMemoryToDropPending);
+				}
+				break;
 
-		case PersistentEndXactFileSysAction_AbortingCreateNeeded:
-			/*
-			 * Always whether transaction commits or aborts.
-			 */
-			abortingCreate = true;
+			case PersistentEndXactFileSysAction_AbortingCreateNeeded:
+
+				/*
+				 * Always whether transaction commits or aborts.
+				 */
+				abortingCreate = true;
 
 #ifdef FAULT_INJECTOR
-				FaultInjector_InjectFaultIfSet(
-											   forCommit ?
-											   TransactionCommitPass1FromAbortingCreateNeededToAbortingCreate:
+				FaultInjector_InjectFaultIfSet(forCommit ?
+											   TransactionCommitPass1FromAbortingCreateNeededToAbortingCreate :
 											   TransactionAbortPass1FromAbortingCreateNeededToAbortingCreate,
 											   DDLNotSpecified,
-											   "",	// databaseName
-											   ""); // tableName
+											   "",	/* databaseName */
+											   ""); /* tableName */
 #endif
-			break;
+				break;
 
-		default:
-			elog(ERROR, "Unexpected persistent end transaction file-system action: %d",
-				 action);
+			default:
+				elog(ERROR, "Unexpected persistent end transaction file-system action: %d",
+					 action);
 		}
 
 		if (abortingCreate || dropPending)
 		{
 			if (stateChangeResults[entryIndex] == PersistentFileSysObjStateChangeResult_StateChangeOk)
 			{
-				PersistentFileSysObj_EndXactDrop(
-								&current->fsObjName,
-								current->relStorageMgr,
-								current->relationName,
-								&current->persistentTid,
-								current->persistentSerialNum,
-								/* ignoreNonExistence */ abortingCreate);
+				PersistentFileSysObj_EndXactDrop(&current->fsObjName,
+												 current->relStorageMgr,
+												 current->relationName,
+												 &current->persistentTid,
+												 current->persistentSerialNum,
+												  /* ignoreNonExistence */ abortingCreate);
 			}
 		}
 
 #ifdef FAULT_INJECTOR
 		if (abortingCreate && !forCommit)
 		{
-			FaultInjector_InjectFaultIfSet(
-										   TransactionAbortPass2FromCreatePendingToAbortingCreate,
+			FaultInjector_InjectFaultIfSet(TransactionAbortPass2FromCreatePendingToAbortingCreate,
 										   DDLNotSpecified,
-										   "",	// databaseName
-										   ""); // tableName
+										   "",	/* databaseName */
+										   ""); /* tableName */
 		}
 
 		if (dropPending && forCommit)
 		{
-			FaultInjector_InjectFaultIfSet(
-										   TransactionCommitPass2FromDropInMemoryToDropPending,
+			FaultInjector_InjectFaultIfSet(TransactionCommitPass2FromDropInMemoryToDropPending,
 										   DDLNotSpecified,
-										   "",	// databaseName
-										   ""); // tableName
+										   "",	/* databaseName */
+										   ""); /* tableName */
 		}
 
 		switch (action)
@@ -1562,33 +1401,30 @@ smgrDoDeleteActions(
 			case PersistentEndXactFileSysAction_Create:
 				if (!forCommit)
 				{
-					FaultInjector_InjectFaultIfSet(
-												   TransactionAbortPass2FromCreatePendingToAbortingCreate,
+					FaultInjector_InjectFaultIfSet(TransactionAbortPass2FromCreatePendingToAbortingCreate,
 												   DDLNotSpecified,
-												   "",	// databaseName
-												   ""); // tableName
+												   "",	/* databaseName */
+												   ""); /* tableName */
 				}
 				break;
 
 			case PersistentEndXactFileSysAction_Drop:
 				if (forCommit)
 				{
-					FaultInjector_InjectFaultIfSet(
-												   TransactionCommitPass2FromDropInMemoryToDropPending,
+					FaultInjector_InjectFaultIfSet(TransactionCommitPass2FromDropInMemoryToDropPending,
 												   DDLNotSpecified,
-												   "",	// databaseName
-												   ""); // tableName
+												   "",	/* databaseName */
+												   ""); /* tableName */
 				}
 				break;
 
 			case PersistentEndXactFileSysAction_AbortingCreateNeeded:
-				FaultInjector_InjectFaultIfSet(
-											   forCommit ?
+				FaultInjector_InjectFaultIfSet(forCommit ?
 											   TransactionCommitPass2FromAbortingCreateNeededToAbortingCreate :
 											   TransactionAbortPass2FromAbortingCreateNeededToAbortingCreate,
 											   DDLNotSpecified,
-											   "",	// databaseName
-											   ""); // tableName
+											   "",	/* databaseName */
+											   ""); /* tableName */
 				break;
 
 			default:
@@ -1621,15 +1457,15 @@ smgrDoDeleteActions(
 static int
 PendingDelete_Compare(const PendingDelete *entry1, const PendingDelete *entry2)
 {
-	int cmp;
+	int			cmp;
 
-	cmp = PersistentFileSysObjName_Compare(
-								&entry1->fsObjName,
-								&entry2->fsObjName);
+	cmp = PersistentFileSysObjName_Compare(&entry1->fsObjName,
+										   &entry2->fsObjName);
 	if (cmp == 0)
 	{
 		/*
-		 * Sort CREATE before DROP for detecting same transaction create-drops.
+		 * Sort CREATE before DROP for detecting same transaction
+		 * create-drops.
 		 */
 		if (entry1->dropForCommit == entry2->dropForCommit)
 			return 0;
@@ -1657,23 +1493,21 @@ PendingDeletePtr_Compare(const void *p1, const void *p2)
 }
 
 static void
-smgrSortDeletesList(
-	PendingDelete 	**list,
-	int 			*listCount,
-	int				nestLevel)
+smgrSortDeletesList(PendingDelete **list,
+					int *listCount,
+					int nestLevel)
 {
 	PendingDeletePtr *ptrArray;
 	PendingDelete *current;
-	int i;
+	int			i;
 	PendingDelete *prev;
-	int collapseCount;
+	int			collapseCount;
 
 	if (*listCount == 0)
 		return;
 
-	ptrArray =
-			(PendingDeletePtr*)
-						palloc(*listCount * sizeof(PendingDeletePtr));
+	ptrArray = (PendingDeletePtr *)
+		palloc(*listCount * sizeof(PendingDeletePtr));
 
 
 	i = 0;
@@ -1686,14 +1520,13 @@ smgrSortDeletesList(
 	/*
 	 * Sort the list.
 	 *
-	 * Supports the collapsing of same transaction create-deletes and to be able
-	 * to process relations before database directories, etc.
+	 * Supports the collapsing of same transaction create-deletes and to be
+	 * able to process relations before database directories, etc.
 	 */
-	qsort(
-		ptrArray,
-		*listCount,
-		sizeof(PendingDeletePtr),
-		PendingDeletePtr_Compare);
+	qsort(ptrArray,
+		  *listCount,
+		  sizeof(PendingDeletePtr),
+		  PendingDeletePtr_Compare);
 
 	/*
 	 * Collapse same transaction create-drops and re-link list.
@@ -1702,7 +1535,7 @@ smgrSortDeletesList(
 	prev = ptrArray[0];
 	collapseCount = 0;
 
-	// Start processing elements after the first one.
+	/* Start processing elements after the first one. */
 	for (i = 1; i < *listCount; i++)
 	{
 		bool		collapse = false;
@@ -1710,32 +1543,31 @@ smgrSortDeletesList(
 		current = ptrArray[i];
 
 		/*
-		 * Only do CREATE-DROP collapsing when both are at or below the requested
-		 * transaction nest level.
+		 * Only do CREATE-DROP collapsing when both are at or below the
+		 * requested transaction nest level.
 		 */
 		if (current->nestLevel >= nestLevel &&
 			prev->nestLevel >= nestLevel &&
-			(PersistentFileSysObjName_Compare(
-								&prev->fsObjName,
-								&current->fsObjName) == 0))
+			(PersistentFileSysObjName_Compare(&prev->fsObjName,
+											  &current->fsObjName) == 0))
 		{
 			/*
-			 * If there are two sequential entries for the same object, it should
-			 * be a CREATE-DROP pair (XXX: why?). Sanity check that it really is.
-			 * NOTE: We cannot elog(ERROR) here, because that would leave the list in
-			 * an inconsistent state.
+			 * If there are two sequential entries for the same object, it
+			 * should be a CREATE-DROP pair (XXX: why?). Sanity check that it
+			 * really is. NOTE: We cannot elog(ERROR) here, because that would
+			 * leave the list in an inconsistent state.
 			 */
 			if (prev->dropForCommit)
 			{
 				collapse = false;
 				elog(WARNING, "Expected a CREATE for file-system object name '%s'",
-					PersistentFileSysObjName_ObjectName(&prev->fsObjName));
+					 PersistentFileSysObjName_ObjectName(&prev->fsObjName));
 			}
 			else if (!current->dropForCommit)
 			{
 				collapse = false;
 				elog(WARNING, "Expected a DROP for file-system object name '%s'",
-					PersistentFileSysObjName_ObjectName(&current->fsObjName));
+					 PersistentFileSysObjName_ObjectName(&current->fsObjName));
 			}
 			else
 				collapse = true;
@@ -1743,8 +1575,8 @@ smgrSortDeletesList(
 
 		if (collapse)
 		{
-			prev->dropForCommit = true;				// Make the CREATE a DROP.
-			prev->sameTransCreateDrop = true;	// Don't ignore DROP on abort.
+			prev->dropForCommit = true; /* Make the CREATE a DROP. */
+			prev->sameTransCreateDrop = true;	/* Don't ignore DROP on abort. */
 			collapseCount++;
 
 			if (Debug_persistent_print)
@@ -1759,11 +1591,11 @@ smgrSortDeletesList(
 
 			PendingDelete_Free(&current);
 
-			// Don't advance prev pointer.
+			/* Don't advance prev pointer. */
 		}
 		else
 		{
-			// Re-link.
+			/* Re-link. */
 			prev->next = current;
 
 			prev = current;
@@ -1780,9 +1612,9 @@ smgrSortDeletesList(
 
 #ifdef suppress
 	{
-		PendingDelete	*check;
-		PendingDelete	*checkPrev;
-		int checkCount;
+		PendingDelete *check;
+		PendingDelete *checkPrev;
+		int			checkCount;
 
 		checkPrev = NULL;
 		checkCount = 0;
@@ -1791,11 +1623,9 @@ smgrSortDeletesList(
 			checkCount++;
 			if (checkPrev != NULL)
 			{
-				int cmp;
+				int			cmp;
 
-				cmp = PendingDelete_Compare(
-										checkPrev,
-										check);
+				cmp = PendingDelete_Compare(checkPrev, check);
 				if (cmp >= 0)
 					elog(ERROR, "Not sorted correctly ('%s' >= '%s')",
 						 PersistentFileSysObjName_ObjectName(&checkPrev->fsObjName),
@@ -1808,7 +1638,7 @@ smgrSortDeletesList(
 
 		if (checkCount != *listCount)
 			elog(ERROR, "List count does not match (expected %d, found %d)",
-			     *listCount, checkCount);
+				 *listCount, checkCount);
 	}
 #endif
 }
@@ -1830,9 +1660,9 @@ smgrSubTransAbort(void)
 
 	/*
 	 * We need to complete this work, or let Crash Recovery complete it.
-	 * Unlike AtEOXact_smgr, we need to start critical section here
-	 * because after reorganizing the list we end up forgetting the
-	 * subTransList if the code errors out.
+	 * Unlike AtEOXact_smgr, we need to start critical section here because
+	 * after reorganizing the list we end up forgetting the subTransList if
+	 * the code errors out.
 	 */
 	START_CRIT_SECTION();
 
@@ -1856,7 +1686,7 @@ smgrSubTransAbort(void)
 
 			pendingDeletesCount--;
 
-			// Move to sub-transaction list.
+			/* Move to sub-transaction list. */
 			pending->next = subTransList;
 			subTransList = pending;
 
@@ -1870,20 +1700,16 @@ smgrSubTransAbort(void)
 	 * Sort the list in relation, database directory, tablespace, etc order.
 	 * And, collapse same transaction create-deletes.
 	 */
-	smgrSortDeletesList(
-					&subTransList,
-					&subTransCount,
-					nestLevel);
+	smgrSortDeletesList(&subTransList, &subTransCount, nestLevel);
 
 	pendingDeletesSorted = (nestLevel <= 1);
 
 	/*
 	 * Do abort actions for the sub-transaction's creates and deletes.
 	 */
-	smgrDoDeleteActions(
-					&subTransList,
-					&subTransCount,
-					/* forCommit */ false);
+	smgrDoDeleteActions(&subTransList,
+						&subTransCount,
+						 /* forCommit */ false);
 
 	Assert(subTransList == NULL);
 	Assert(subTransCount == 0);
@@ -1928,13 +1754,10 @@ smgrGetPendingFileSysWork(EndXactRecKind endXactRecKind,
 	if (!pendingDeletesSorted)
 	{
 		/*
-		 * Sort the list in relation, database directory, tablespace, etc order.
-		 * And, collapse same transaction create-deletes.
+		 * Sort the list in relation, database directory, tablespace, etc
+		 * order. And, collapse same transaction create-deletes.
 		 */
-		smgrSortDeletesList(
-						&pendingDeletes,
-						&pendingDeletesCount,
-						nestLevel);
+		smgrSortDeletesList(&pendingDeletes, &pendingDeletesCount, nestLevel);
 
 		pendingDeletesSorted = (nestLevel <= 1);
 	}
@@ -1964,12 +1787,12 @@ smgrGetPendingFileSysWork(EndXactRecKind endXactRecKind,
 			 nestLevel);
 
 	rptr = (PersistentEndXactFileSysActionInfo *)
-							palloc(nrels * sizeof(PersistentEndXactFileSysActionInfo));
+		palloc(nrels * sizeof(PersistentEndXactFileSysActionInfo));
 	*ptr = rptr;
 	entryIndex = 0;
 	for (pending = pendingDeletes; pending != NULL; pending = pending->next)
 	{
-		bool returned;
+		bool		returned;
 
 		action = PendingDelete_Action(pending);
 		returned = false;
@@ -2026,8 +1849,7 @@ smgrGetPendingFileSysWork(EndXactRecKind endXactRecKind,
  * by upper-level transactions.
  */
 bool
-smgrIsPendingFileSysWork(
-	EndXactRecKind						endXactRecKind)
+smgrIsPendingFileSysWork(EndXactRecKind endXactRecKind)
 {
 	int			nestLevel = GetCurrentTransactionNestLevel();
 
@@ -2074,19 +1896,19 @@ AtSubCommit_smgr(void)
 				pending->relStorageMgr == PersistentFileSysRelStorageMgr_AppendOnly)
 			{
 				/*
-				 * If we are promoting a DROP of an Append-Only table, be sure to remove any
-				 * pending Append-Only mirror resync EOFs updates for the NEW TRANSACTION
-				 * LEVEL, too.
+				 * If we are promoting a DROP of an Append-Only table, be sure
+				 * to remove any pending Append-Only mirror resync EOFs
+				 * updates for the NEW TRANSACTION LEVEL, too.
 				 */
 				AppendOnlyMirrorResyncEofs_RemoveForDrop(
-													PersistentFileSysObjName_GetRelFileNodePtr(&pending->fsObjName),
-													PersistentFileSysObjName_GetSegmentFileNum(&pending->fsObjName),
-													pending->nestLevel);
+														 PersistentFileSysObjName_GetRelFileNodePtr(&pending->fsObjName),
+														 PersistentFileSysObjName_GetSegmentFileNum(&pending->fsObjName),
+														 pending->nestLevel);
 			}
 		}
 	}
 
-	AtSubCommit_smgr_appendonly();  
+	AtSubCommit_smgr_appendonly();
 }
 
 /*
@@ -2122,10 +1944,9 @@ AtEOXact_smgr(bool forCommit)
 	 */
 	if (!pendingDeletesSorted)
 	{
-		smgrSortDeletesList(
-						&pendingDeletes,
-						&pendingDeletesCount,
-						/* nestLevel */ 0);
+		smgrSortDeletesList(&pendingDeletes,
+							&pendingDeletesCount,
+							 /* nestLevel */ 0);
 
 		pendingDeletesSorted = true;
 	}
@@ -2137,15 +1958,12 @@ AtEOXact_smgr(bool forCommit)
 
 	if (pendingDeletesCount > 0)
 	{
-
 		/*
 		 * Do abort actions for the sub-transaction's creates and deletes.
 		 */
-		smgrDoDeleteActions(
-						&pendingDeletes,
-						&pendingDeletesCount,
-						forCommit);
-
+		smgrDoDeleteActions(&pendingDeletes,
+							&pendingDeletesCount,
+							forCommit);
 
 		Assert(pendingDeletes == NULL);
 		Assert(pendingDeletesCount == 0);
@@ -2216,12 +2034,12 @@ void
 smgr_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 {
 	uint8		info = record->xl_info & ~XLR_INFO_MASK;
-	bool mirrorDataLossOccurred = false;
+	bool		mirrorDataLossOccurred = false;
 
 	if (info == XLOG_SMGR_CREATE)
 	{
 		MirrorDataLossTrackingState mirrorDataLossTrackingState;
-		int64 mirrorDataLossTrackingSessionNum;
+		int64		mirrorDataLossTrackingSessionNum;
 
 		xl_smgr_create *xlrec = (xl_smgr_create *) XLogRecGetData(record);
 		SMgrRelation reln;
@@ -2229,20 +2047,19 @@ smgr_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		reln = smgropen(xlrec->rnode);
 
 		mirrorDataLossTrackingState =
-					FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-													&mirrorDataLossTrackingSessionNum);
-		smgrcreate(
-				reln,
-				/* relationName */ NULL,		// Ok to be NULL -- we don't know the name here.
-				mirrorDataLossTrackingState,
-				mirrorDataLossTrackingSessionNum,
-				/* ignoreAlreadyExists */ true,
-				&mirrorDataLossOccurred);
+			FileRepPrimary_GetMirrorDataLossTrackingSessionNum(&mirrorDataLossTrackingSessionNum);
+		smgrcreate(reln,
+				    /* relationName */ NULL,	/* Ok to be NULL -- we don't
+												 * know the name here. */
+				   mirrorDataLossTrackingState,
+				   mirrorDataLossTrackingSessionNum,
+				    /* ignoreAlreadyExists */ true,
+				   &mirrorDataLossOccurred);
 	}
 	else if (info == XLOG_SMGR_TRUNCATE)
 	{
 		MirrorDataLossTrackingState mirrorDataLossTrackingState;
-		int64 mirrorDataLossTrackingSessionNum;
+		int64		mirrorDataLossTrackingSessionNum;
 
 		xl_smgr_truncate *xlrec = (xl_smgr_truncate *) XLogRecGetData(record);
 		SMgrRelation reln;
@@ -2252,19 +2069,18 @@ smgr_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		/*
 		 * Forcibly create relation if it doesn't exist (which suggests that
 		 * it was dropped somewhere later in the WAL sequence).  As in
-		 * XLogReadBuffer, we prefer to recreate the rel and replay the log
-		 * as best we can until the drop is seen.
+		 * XLogReadBuffer, we prefer to recreate the rel and replay the log as
+		 * best we can until the drop is seen.
 		 */
 		mirrorDataLossTrackingState =
-					FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-													&mirrorDataLossTrackingSessionNum);
-		smgrcreate(
-				reln,
-				/* relationName */ NULL,		// Ok to be NULL -- we don't know the name here.
-				mirrorDataLossTrackingState,
-				mirrorDataLossTrackingSessionNum,
-				/* ignoreAlreadyExists */ true,
-				&mirrorDataLossOccurred);
+			FileRepPrimary_GetMirrorDataLossTrackingSessionNum(&mirrorDataLossTrackingSessionNum);
+		smgrcreate(reln,
+				    /* relationName */ NULL,	/* Ok to be NULL -- we don't
+												 * know the name here. */
+				   mirrorDataLossTrackingState,
+				   mirrorDataLossTrackingSessionNum,
+				    /* ignoreAlreadyExists */ true,
+				   &mirrorDataLossOccurred);
 
 		/* Can't use smgrtruncate because it would try to xlog */
 
@@ -2283,10 +2099,10 @@ smgr_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		FreeSpaceMapTruncateRel(&reln->smgr_rnode, xlrec->blkno);
 
 		/*
-		 * Do the truncation
-		 * Pass true for allowedNotFound below to mdtruncate to cope for the case
-		 * when replay of truncate redo log happen multiple times it acts as NOP, 
-		 * which makes redo truncate behavior is idempotent.
+		 * Do the truncation. Pass true for allowedNotFound below to
+		 * mdtruncate to cope for the case when replay of truncate redo log
+		 * happen multiple times it acts as NOP, which makes redo truncate
+		 * behavior is idempotent.
 		 */
 		mdtruncate(reln,
 				   xlrec->blkno,
@@ -2304,7 +2120,7 @@ void
 smgr_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record)
 {
 	uint8		info = record->xl_info & ~XLR_INFO_MASK;
-	char		*rec = XLogRecGetData(record);
+	char	   *rec = XLogRecGetData(record);
 
 	if (info == XLOG_SMGR_CREATE)
 	{

@@ -24,14 +24,12 @@
 #include "cdb/cdbtm.h"
 #include "storage/smgr_ao.h"
 
-static int pendingAppendOnlyMirrorResyncIntentCount = 0;
+static int	pendingAppendOnlyMirrorResyncIntentCount = 0;
 
 typedef struct AppendOnlyMirrorResyncEofsKey
 {
-	RelFileNode	relFileNode;
-
+	RelFileNode relFileNode;
 	int32		segmentFileNum;
-
 	int			nestLevel;		/* Transaction nesting level. */
 } AppendOnlyMirrorResyncEofsKey;
 
@@ -39,54 +37,33 @@ typedef struct AppendOnlyMirrorResyncEofs
 {
 	AppendOnlyMirrorResyncEofsKey key;
 
-	char		*relationName;
+	char	   *relationName;
 
 	ItemPointerData persistentTid;
-	int64			persistentSerialNum;
+	int64		persistentSerialNum;
 
-	bool			didIncrementCommitCount;
-	bool			isDistributedTransaction;
-	char 			gid[TMGIDSIZE];
+	bool		didIncrementCommitCount;
+	bool		isDistributedTransaction;
+	char		gid[TMGIDSIZE];
 
-	bool						mirrorCatchupRequired;
+	bool		mirrorCatchupRequired;
 
 	MirrorDataLossTrackingState mirrorDataLossTrackingState;
 
-	int64						mirrorDataLossTrackingSessionNum;
+	int64		mirrorDataLossTrackingSessionNum;
 
 	int64		mirrorNewEof;
 
 } AppendOnlyMirrorResyncEofs;
 
-static HTAB* AppendOnlyMirrorResyncEofsTable = NULL;
-
-
-
-char *
-StorageManagerMirrorMode_Name(StorageManagerMirrorMode mirrorMode)
-{
-	switch (mirrorMode)
-	{
-		case StorageManagerMirrorMode_None:
-			return "None";
-		case StorageManagerMirrorMode_PrimaryOnly:
-			return "Primary Only";
-		case StorageManagerMirrorMode_MirrorOnly:
-			return "Mirror Only";
-		case StorageManagerMirrorMode_Both:
-			return "Both";
-
-		default:
-			return "Unknown";
-	}
-}
+static HTAB *AppendOnlyMirrorResyncEofsTable = NULL;
 
 
 void
 AppendOnlyMirrorResyncEofs_HashTableInit(void)
 {
-	HASHCTL			info;
-	int				hash_flags;
+	HASHCTL		info;
+	int			hash_flags;
 
 	/* Set key and entry sizes. */
 	MemSet(&info, 0, sizeof(info));
@@ -124,14 +101,10 @@ AppendOnlyMirrorResyncEofs_HashTableRemove(char *procName)
 }
 
 static void
-AppendOnlyMirrorResyncEofs_InitKey(
-	AppendOnlyMirrorResyncEofsKey *key,
-
-	RelFileNode		*relFileNode,
-
-	int32			segmentFileNum,
-
-	int				nestLevel)		/* Transaction nesting level. */
+AppendOnlyMirrorResyncEofs_InitKey(AppendOnlyMirrorResyncEofsKey *key,
+								   RelFileNode *relFileNode,
+								   int32 segmentFileNum,
+								   int nestLevel)
 {
 	MemSet(key, 0, sizeof(AppendOnlyMirrorResyncEofsKey));
 	key->relFileNode = *relFileNode;
@@ -140,47 +113,38 @@ AppendOnlyMirrorResyncEofs_InitKey(
 }
 
 void
-AppendOnlyMirrorResyncEofs_Merge(
-	RelFileNode		*relFileNode,
-
-	int32			segmentFileNum,
-
-	int				nestLevel,		/* Transaction nesting level. */
-
-	char			*relationName,
-
-	ItemPointer		persistentTid,
-	int64			persistentSerialNum,
-
-	bool						mirrorCatchupRequired,
-
-	MirrorDataLossTrackingState mirrorDataLossTrackingState,
-
-	int64						mirrorDataLossTrackingSessionNum,
-
-	int64			mirrorNewEof)
+AppendOnlyMirrorResyncEofs_Merge(RelFileNode *relFileNode,
+								 int32 segmentFileNum,
+								 int nestLevel, /* Transaction nesting level. */
+								 char *relationName,
+								 ItemPointer persistentTid,
+								 int64 persistentSerialNum,
+								 bool mirrorCatchupRequired,
+								 MirrorDataLossTrackingState mirrorDataLossTrackingState,
+								 int64 mirrorDataLossTrackingSessionNum,
+								 int64 mirrorNewEof)
 {
-	int64			previousMirrorNewEof = 0;
+	int64		previousMirrorNewEof = 0;
 
 	AppendOnlyMirrorResyncEofsKey key;
 	AppendOnlyMirrorResyncEofs *entry;
-	bool found;
+	bool		found;
 
 	if (AppendOnlyMirrorResyncEofsTable == NULL)
 		AppendOnlyMirrorResyncEofs_HashTableInit();
 
 	AppendOnlyMirrorResyncEofs_InitKey(
-									&key,
-									relFileNode,
-									segmentFileNum,
-									nestLevel);
+									   &key,
+									   relFileNode,
+									   segmentFileNum,
+									   nestLevel);
 
 	entry =
-		(AppendOnlyMirrorResyncEofs*)
-						hash_search(AppendOnlyMirrorResyncEofsTable,
-									(void *) &key,
-									HASH_ENTER,
-									&found);
+		(AppendOnlyMirrorResyncEofs *)
+		hash_search(AppendOnlyMirrorResyncEofsTable,
+					(void *) &key,
+					HASH_ENTER,
+					&found);
 
 	if (!found)
 	{
@@ -199,15 +163,19 @@ AppendOnlyMirrorResyncEofs_Merge(
 	{
 		previousMirrorNewEof = entry->mirrorNewEof;
 
-		// UNDONE: What is the purpose of this IF stmt?  Shouldn't we always set the new EOF?
+		/*
+		 * UNDONE: What is the purpose of this IF stmt?  Shouldn't we always
+		 * set the new EOF?
+		 */
 		if (mirrorNewEof > entry->mirrorNewEof)
 			entry->mirrorNewEof = mirrorNewEof;
 
 		/*
-		 * We adopt the newer FileRep state because we accurately track the state of mirror
-		 * data.  For example, the first write session might have had loss because the mirror
-		 * was down.  But then the second write session discovered we were in sync and
-		 * copied both the first and second write session to the mirror and flushed it.
+		 * We adopt the newer FileRep state because we accurately track the
+		 * state of mirror data.  For example, the first write session might
+		 * have had loss because the mirror was down.  But then the second
+		 * write session discovered we were in sync and copied both the first
+		 * and second write session to the mirror and flushed it.
 		 */
 		entry->mirrorCatchupRequired = mirrorCatchupRequired;
 		entry->mirrorDataLossTrackingState = mirrorDataLossTrackingState;
@@ -237,10 +205,8 @@ AppendOnlyMirrorResyncEofs_Merge(
 }
 
 static void
-AppendOnlyMirrorResyncEofs_Remove(
-	char						*procName,
-
-	AppendOnlyMirrorResyncEofs 	*entry)
+AppendOnlyMirrorResyncEofs_Remove(char *procName,
+								  AppendOnlyMirrorResyncEofs *entry)
 {
 	Assert(AppendOnlyMirrorResyncEofsTable != NULL);
 
@@ -264,69 +230,60 @@ AppendOnlyMirrorResyncEofs_Remove(
 	if (entry->relationName != NULL)
 		pfree(entry->relationName);
 
-	hash_search(
-			AppendOnlyMirrorResyncEofsTable,
-			(void *) &entry->key,
-			HASH_REMOVE,
-			NULL);
+	hash_search(AppendOnlyMirrorResyncEofsTable,
+				(void *) &entry->key,
+				HASH_REMOVE,
+				NULL);
 }
 
 static void
-AppendOnlyMirrorResyncEofs_Promote(
-	AppendOnlyMirrorResyncEofs *entry,
-
-	int							newNestLevel)
+AppendOnlyMirrorResyncEofs_Promote(AppendOnlyMirrorResyncEofs *entry,
+								   int newNestLevel)
 {
 	Assert(AppendOnlyMirrorResyncEofsTable != NULL);
 
-	AppendOnlyMirrorResyncEofs_Merge(
-								&entry->key.relFileNode,
-								entry->key.segmentFileNum,
-								newNestLevel,
-								entry->relationName,
-								&entry->persistentTid,
-								entry->persistentSerialNum,
-								entry->mirrorCatchupRequired,
-								entry->mirrorDataLossTrackingState,
-								entry->mirrorDataLossTrackingSessionNum,
-								entry->mirrorNewEof);
+	AppendOnlyMirrorResyncEofs_Merge(&entry->key.relFileNode,
+									 entry->key.segmentFileNum,
+									 newNestLevel,
+									 entry->relationName,
+									 &entry->persistentTid,
+									 entry->persistentSerialNum,
+									 entry->mirrorCatchupRequired,
+									 entry->mirrorDataLossTrackingState,
+									 entry->mirrorDataLossTrackingSessionNum,
+									 entry->mirrorNewEof);
 
-	AppendOnlyMirrorResyncEofs_Remove(
-								"AppendOnlyMirrorResyncEofs_Promote",
-								entry);
+	AppendOnlyMirrorResyncEofs_Remove("AppendOnlyMirrorResyncEofs_Promote",
+									  entry);
 }
 
 void
-AppendOnlyMirrorResyncEofs_RemoveForDrop(
-	RelFileNode		*relFileNode,
-
-	int32			segmentFileNum,
-
-	int				nestLevel)		/* Transaction nesting level. */
+AppendOnlyMirrorResyncEofs_RemoveForDrop(RelFileNode *relFileNode,
+										 int32 segmentFileNum,
+										 int nestLevel) /* Transaction nesting
+														 * level. */
 {
 	AppendOnlyMirrorResyncEofsKey key;
 	AppendOnlyMirrorResyncEofs *entry;
-	bool found;
+	bool		found;
 
 	if (AppendOnlyMirrorResyncEofsTable == NULL)
 		return;
 
-	AppendOnlyMirrorResyncEofs_InitKey(
-									&key,
-									relFileNode,
-									segmentFileNum,
-									nestLevel);
+	AppendOnlyMirrorResyncEofs_InitKey(&key,
+									   relFileNode,
+									   segmentFileNum,
+									   nestLevel);
 
 	entry =
-		(AppendOnlyMirrorResyncEofs*)
-						hash_search(AppendOnlyMirrorResyncEofsTable,
-									(void *) &key,
-									HASH_FIND,
-									&found);
+		(AppendOnlyMirrorResyncEofs *)
+		hash_search(AppendOnlyMirrorResyncEofsTable,
+					(void *) &key,
+					HASH_FIND,
+					&found);
 	if (found)
-		AppendOnlyMirrorResyncEofs_Remove(
-								"AppendOnlyMirrorResyncEofs_RemoveForDrop",
-								entry);
+		AppendOnlyMirrorResyncEofs_Remove("AppendOnlyMirrorResyncEofs_RemoveForDrop",
+										  entry);
 }
 
 void
@@ -337,7 +294,7 @@ smgrDoAppendOnlyResyncEofs(bool forCommit)
 
 	AppendOnlyMirrorResyncEofs *entryExample = NULL;
 
-	int appendOnlyMirrorResyncEofsCount;
+	int			appendOnlyMirrorResyncEofsCount;
 
 	if (AppendOnlyMirrorResyncEofsTable == NULL)
 		return;
@@ -349,8 +306,8 @@ smgrDoAppendOnlyResyncEofs(bool forCommit)
 			 FileRepPrimary_GetAppendOnlyCommitWorkCount());
 
 	hash_seq_init(
-			&iterateStatus,
-			AppendOnlyMirrorResyncEofsTable);
+				  &iterateStatus,
+				  AppendOnlyMirrorResyncEofsTable);
 
 	appendOnlyMirrorResyncEofsCount = 0;
 	while ((entry = hash_seq_search(&iterateStatus)) != NULL)
@@ -362,15 +319,14 @@ smgrDoAppendOnlyResyncEofs(bool forCommit)
 
 		if (forCommit)
 		{
-			PersistentFileSysObj_UpdateAppendOnlyMirrorResyncEofs(
-															&entry->key.relFileNode,
-															entry->key.segmentFileNum,
-															&entry->persistentTid,
-															entry->persistentSerialNum,
-															entry->mirrorCatchupRequired,
-															entry->mirrorNewEof,
-															/* recovery */ false,
-															/* flushToXLog */ false);
+			PersistentFileSysObj_UpdateAppendOnlyMirrorResyncEofs(&entry->key.relFileNode,
+																  entry->key.segmentFileNum,
+																  &entry->persistentTid,
+																  entry->persistentSerialNum,
+																  entry->mirrorCatchupRequired,
+																  entry->mirrorNewEof,
+																   /* recovery */ false,
+																   /* flushToXLog */ false);
 		}
 		else
 		{
@@ -379,12 +335,12 @@ smgrDoAppendOnlyResyncEofs(bool forCommit)
 			 */
 			if (entry->didIncrementCommitCount)
 			{
-				int systemAppendOnlyCommitWorkCount;
+				int			systemAppendOnlyCommitWorkCount;
 
-				LWLockAcquire(FileRepAppendOnlyCommitCountLock , LW_EXCLUSIVE);
+				LWLockAcquire(FileRepAppendOnlyCommitCountLock, LW_EXCLUSIVE);
 
 				systemAppendOnlyCommitWorkCount =
-						FileRepPrimary_FinishedAppendOnlyCommitWork(1);
+					FileRepPrimary_FinishedAppendOnlyCommitWork(1);
 
 				if (entry->isDistributedTransaction)
 				{
@@ -432,16 +388,17 @@ smgrDoAppendOnlyResyncEofs(bool forCommit)
 	}
 
 	/*
-	 * If we collected Append-Only mirror resync EOFs and bumped the intent count, we
-	 * need to decrement the counts as part of our end transaction work here.
+	 * If we collected Append-Only mirror resync EOFs and bumped the intent
+	 * count, we need to decrement the counts as part of our end transaction
+	 * work here.
 	 */
 	if (pendingAppendOnlyMirrorResyncIntentCount > 0)
 	{
 		MIRRORED_LOCK_DECLARE;
 
-		int oldSystemAppendOnlyCommitWorkCount;
-		int newSystemAppendOnlyCommitWorkCount;
-		int resultSystemAppendOnlyCommitWorkCount;
+		int			oldSystemAppendOnlyCommitWorkCount;
+		int			newSystemAppendOnlyCommitWorkCount;
+		int			resultSystemAppendOnlyCommitWorkCount;
 
 		if (appendOnlyMirrorResyncEofsCount != pendingAppendOnlyMirrorResyncIntentCount)
 			elog(ERROR, "Pending Append-Only Mirror Resync EOFs intent count mismatch (pending %d, table count %d)",
@@ -452,15 +409,16 @@ smgrDoAppendOnlyResyncEofs(bool forCommit)
 			elog(ERROR, "Not expecting an empty Append-Only Mirror Resync hash table when the local intent count is non-zero (%d)",
 				 pendingAppendOnlyMirrorResyncIntentCount);
 
-		MIRRORED_LOCK;	// NOTE: When we use the MirroredLock for the whole routine, this can go.
+		MIRRORED_LOCK;
+/*NOTE: When we use the MirroredLock for the whole routine, this can go. */
 
-		LWLockAcquire(FileRepAppendOnlyCommitCountLock , LW_EXCLUSIVE);
+		LWLockAcquire(FileRepAppendOnlyCommitCountLock, LW_EXCLUSIVE);
 
 		oldSystemAppendOnlyCommitWorkCount = FileRepPrimary_GetAppendOnlyCommitWorkCount();
 
 		newSystemAppendOnlyCommitWorkCount =
-						oldSystemAppendOnlyCommitWorkCount -
-						pendingAppendOnlyMirrorResyncIntentCount;
+			oldSystemAppendOnlyCommitWorkCount -
+			pendingAppendOnlyMirrorResyncIntentCount;
 
 		if (newSystemAppendOnlyCommitWorkCount < 0)
 			elog(ERROR,
@@ -477,10 +435,12 @@ smgrDoAppendOnlyResyncEofs(bool forCommit)
 				 ItemPointerToString(&entryExample->persistentTid));
 
 		resultSystemAppendOnlyCommitWorkCount =
-					FileRepPrimary_FinishedAppendOnlyCommitWork(
-									pendingAppendOnlyMirrorResyncIntentCount);
+			FileRepPrimary_FinishedAppendOnlyCommitWork(pendingAppendOnlyMirrorResyncIntentCount);
 
-		// Should match since we are under FileRepAppendOnlyCommitCountLock EXCLUSIVE.
+		/*
+		 * Should match since we are under FileRepAppendOnlyCommitCountLock
+		 * EXCLUSIVE.
+		 */
 		Assert(newSystemAppendOnlyCommitWorkCount == resultSystemAppendOnlyCommitWorkCount);
 
 		pendingAppendOnlyMirrorResyncIntentCount = 0;
@@ -510,10 +470,8 @@ smgrDoAppendOnlyResyncEofs(bool forCommit)
 }
 
 int
-smgrGetAppendOnlyMirrorResyncEofs(
-	EndXactRecKind									endXactRecKind,
-
-	PersistentEndXactAppendOnlyMirrorResyncEofs 	**ptr)
+smgrGetAppendOnlyMirrorResyncEofs(EndXactRecKind endXactRecKind,
+								  PersistentEndXactAppendOnlyMirrorResyncEofs **ptr)
 {
 	int			nestLevel = GetCurrentTransactionNestLevel();
 	int			nentries;
@@ -533,11 +491,10 @@ smgrGetAppendOnlyMirrorResyncEofs(
 
 	nentries = 0;
 
-	if (AppendOnlyMirrorResyncEofsTable !=  NULL)
+	if (AppendOnlyMirrorResyncEofsTable != NULL)
 	{
-		hash_seq_init(
-				&iterateStatus,
-				AppendOnlyMirrorResyncEofsTable);
+		hash_seq_init(&iterateStatus,
+					  AppendOnlyMirrorResyncEofsTable);
 
 		while ((entry = hash_seq_search(&iterateStatus)) != NULL)
 		{
@@ -559,42 +516,39 @@ smgrGetAppendOnlyMirrorResyncEofs(
 			 FileRepPrimary_GetAppendOnlyCommitWorkCount());
 
 	rptr = (PersistentEndXactAppendOnlyMirrorResyncEofs *)
-							palloc(nentries * sizeof(PersistentEndXactAppendOnlyMirrorResyncEofs));
+		palloc(nentries * sizeof(PersistentEndXactAppendOnlyMirrorResyncEofs));
 	*ptr = rptr;
 	entryIndex = 0;
-	hash_seq_init(
-			&iterateStatus,
-			AppendOnlyMirrorResyncEofsTable);
+	hash_seq_init(&iterateStatus, AppendOnlyMirrorResyncEofsTable);
 
 	while ((entry = hash_seq_search(&iterateStatus)) != NULL)
 	{
 		MIRRORED_LOCK_DECLARE;
 
-		bool returned;
-		int resultSystemAppendOnlyCommitCount;
+		bool		returned;
+		int			resultSystemAppendOnlyCommitCount;
 
 		returned = false;
 		if (entry->key.nestLevel >= nestLevel)
 		{
 			MIRRORED_LOCK;
 
-			MirroredAppendOnly_EndXactCatchup(
-				entryIndex,
-				&entry->key.relFileNode,
-				entry->key.segmentFileNum,
-				entry->key.nestLevel,
-				entry->relationName,
-				&entry->persistentTid,
-				entry->persistentSerialNum,
-				&mirroredLockLocalVars,
-				entry->mirrorCatchupRequired,
-				entry->mirrorDataLossTrackingState,
-				entry->mirrorDataLossTrackingSessionNum,
-				entry->mirrorNewEof);
+			MirroredAppendOnly_EndXactCatchup(entryIndex,
+											  &entry->key.relFileNode,
+											  entry->key.segmentFileNum,
+											  entry->key.nestLevel,
+											  entry->relationName,
+											  &entry->persistentTid,
+											  entry->persistentSerialNum,
+											  &mirroredLockLocalVars,
+											  entry->mirrorCatchupRequired,
+											  entry->mirrorDataLossTrackingState,
+											  entry->mirrorDataLossTrackingSessionNum,
+											  entry->mirrorNewEof);
 
 			/*
-			 * See if the mirror situation for this Append-Only segment file has changed
-			 * since we flushed it to disk.
+			 * See if the mirror situation for this Append-Only segment file
+			 * has changed since we flushed it to disk.
 			 */
 			rptr->relFileNode = entry->key.relFileNode;
 			rptr->segmentFileNum = entry->key.segmentFileNum;
@@ -617,17 +571,17 @@ smgrGetAppendOnlyMirrorResyncEofs(
 
 			START_CRIT_SECTION();
 
-			LWLockAcquire(FileRepAppendOnlyCommitCountLock , LW_EXCLUSIVE);
+			LWLockAcquire(FileRepAppendOnlyCommitCountLock, LW_EXCLUSIVE);
 
 			resultSystemAppendOnlyCommitCount =
-							FileRepPrimary_IntentAppendOnlyCommitWork();
+				FileRepPrimary_IntentAppendOnlyCommitWork();
 
-			// Set this inside the Critical Section.
+			/* Set this inside the Critical Section. */
 			entry->didIncrementCommitCount = true;
 
 			if (endXactRecKind == EndXactRecKind_Prepare)
 			{
-				char gid[TMGIDSIZE];
+				char		gid[TMGIDSIZE];
 
 				if (!getDistributedTransactionIdentifier(gid))
 					elog(ERROR, "Unable to obtain gid during prepare");
@@ -647,10 +601,10 @@ smgrGetAppendOnlyMirrorResyncEofs(
 
 			START_CRIT_SECTION();
 
-			LWLockAcquire(FileRepAppendOnlyCommitCountLock , LW_EXCLUSIVE);
+			LWLockAcquire(FileRepAppendOnlyCommitCountLock, LW_EXCLUSIVE);
 
 			resultSystemAppendOnlyCommitCount =
-							FileRepPrimary_GetAppendOnlyCommitWorkCount();
+				FileRepPrimary_GetAppendOnlyCommitWorkCount();
 		}
 
 		if (Debug_persistent_print ||
@@ -710,21 +664,18 @@ smgrGetAppendOnlyMirrorResyncEofs(
  * by upper-level transactions.
  */
 bool
-smgrIsAppendOnlyMirrorResyncEofs(
-	EndXactRecKind						endXactRecKind)
+smgrIsAppendOnlyMirrorResyncEofs(EndXactRecKind endXactRecKind)
 {
 	int			nestLevel = GetCurrentTransactionNestLevel();
 	HASH_SEQ_STATUS iterateStatus;
 	AppendOnlyMirrorResyncEofs *entry;
 
-	if (AppendOnlyMirrorResyncEofsTable ==  NULL)
+	if (AppendOnlyMirrorResyncEofsTable == NULL)
 	{
 		return false;
 	}
 
-	hash_seq_init(
-			&iterateStatus,
-			AppendOnlyMirrorResyncEofsTable);
+	hash_seq_init(&iterateStatus, AppendOnlyMirrorResyncEofsTable);
 
 	while ((entry = hash_seq_search(&iterateStatus)) != NULL)
 	{
@@ -741,52 +692,47 @@ smgrIsAppendOnlyMirrorResyncEofs(
 
 
 bool
-smgrgetappendonlyinfo(
-	RelFileNode						*relFileNode,
-
-	int32							segmentFileNum,
-
-	char							*relationName,
-
-	bool							*mirrorCatchupRequired,
-
-	MirrorDataLossTrackingState 	*mirrorDataLossTrackingState,
-
-	int64							*mirrorDataLossTrackingSessionNum)
+smgrgetappendonlyinfo(RelFileNode *relFileNode,
+					  int32 segmentFileNum,
+					  char *relationName,
+					  bool *mirrorCatchupRequired,
+					  MirrorDataLossTrackingState *mirrorDataLossTrackingState,
+					  int64 *mirrorDataLossTrackingSessionNum)
 {
-	int nestLevel;
+	int			nestLevel;
 
 	*mirrorCatchupRequired = false;
-	*mirrorDataLossTrackingState = (MirrorDataLossTrackingState)-1;
+	*mirrorDataLossTrackingState = (MirrorDataLossTrackingState) -1;
 	*mirrorDataLossTrackingSessionNum = 0;
 
 	if (AppendOnlyMirrorResyncEofsTable == NULL)
 		AppendOnlyMirrorResyncEofs_HashTableInit();
 
 	/*
-	 * The hash table is keyed by RelFileNode, segmentFileNum, AND transaction nesting level...
+	 * The hash table is keyed by RelFileNode, segmentFileNum, AND transaction
+	 * nesting level...
 	 *
-	 * So, we need to search more indirectly by walking down the transaction nesting levels.
+	 * So, we need to search more indirectly by walking down the transaction
+	 * nesting levels.
 	 */
 	nestLevel = GetCurrentTransactionNestLevel();
 	while (true)
 	{
 		AppendOnlyMirrorResyncEofsKey key;
 		AppendOnlyMirrorResyncEofs *entry;
-		bool found;
+		bool		found;
 
-		AppendOnlyMirrorResyncEofs_InitKey(
-										&key,
-										relFileNode,
-										segmentFileNum,
-										nestLevel);
+		AppendOnlyMirrorResyncEofs_InitKey(&key,
+										   relFileNode,
+										   segmentFileNum,
+										   nestLevel);
 
 		entry =
-			(AppendOnlyMirrorResyncEofs*)
-							hash_search(AppendOnlyMirrorResyncEofsTable,
-										(void *) &key,
-										HASH_FIND,
-										&found);
+			(AppendOnlyMirrorResyncEofs *)
+			hash_search(AppendOnlyMirrorResyncEofsTable,
+						(void *) &key,
+						HASH_FIND,
+						&found);
 
 		if (found)
 		{
@@ -816,17 +762,15 @@ smgrAppendOnlySubTransAbort(void)
 	/*
 	 * Throw away sub-transaction Append-Only mirror resync EOFs.
 	 */
-	hash_seq_init(
-			&iterateStatus,
-			AppendOnlyMirrorResyncEofsTable);
+	hash_seq_init(&iterateStatus,
+				  AppendOnlyMirrorResyncEofsTable);
 
 	while ((entry = hash_seq_search(&iterateStatus)) != NULL)
 	{
 		if (entry->key.nestLevel >= nestLevel)
 		{
-			AppendOnlyMirrorResyncEofs_Remove(
-										"smgrSubTransAbort",
-										entry);
+			AppendOnlyMirrorResyncEofs_Remove("smgrSubTransAbort",
+											  entry);
 		}
 	}
 }
@@ -838,51 +782,38 @@ AtSubCommit_smgr_appendonly(void)
 	HASH_SEQ_STATUS iterateStatus;
 	AppendOnlyMirrorResyncEofs *entry;
 
-	hash_seq_init(
-			&iterateStatus,
-			AppendOnlyMirrorResyncEofsTable);
+	hash_seq_init(&iterateStatus, AppendOnlyMirrorResyncEofsTable);
 
 	while ((entry = hash_seq_search(&iterateStatus)) != NULL)
 	{
 		if (entry->key.nestLevel >= nestLevel)
-			AppendOnlyMirrorResyncEofs_Promote(
-											entry,
-											nestLevel - 1);
+			AppendOnlyMirrorResyncEofs_Promote(entry, nestLevel - 1);
 	}
 }
 
 
 
-void smgrappendonlymirrorresynceofs(
-	RelFileNode						*relFileNode,
-
-	int32							segmentFileNum,
-
-	char							*relationName,
-
-	ItemPointer						persistentTid,
-
-	int64							persistentSerialNum,
-
-	bool							mirrorCatchupRequired,
-
-	MirrorDataLossTrackingState 	mirrorDataLossTrackingState,
-
-	int64							mirrorDataLossTrackingSessionNum,
-
-	int64							mirrorNewEof)
+void
+smgrappendonlymirrorresynceofs(RelFileNode *relFileNode,
+							   int32 segmentFileNum,
+							   char *relationName,
+							   ItemPointer persistentTid,
+							   int64 persistentSerialNum,
+							   bool mirrorCatchupRequired,
+							   MirrorDataLossTrackingState mirrorDataLossTrackingState,
+							   int64 mirrorDataLossTrackingSessionNum,
+							   int64 mirrorNewEof)
 {
 	Assert(mirrorNewEof > 0);
 
-	AppendOnlyMirrorResyncEofs_Merge(
-								relFileNode,
-								segmentFileNum,
-								GetCurrentTransactionNestLevel(),
-								relationName,
-								persistentTid,
-								persistentSerialNum,
-								mirrorCatchupRequired,
-								mirrorDataLossTrackingState,
-								mirrorDataLossTrackingSessionNum,
-								mirrorNewEof);
+	AppendOnlyMirrorResyncEofs_Merge(relFileNode,
+									 segmentFileNum,
+									 GetCurrentTransactionNestLevel(),
+									 relationName,
+									 persistentTid,
+									 persistentSerialNum,
+									 mirrorCatchupRequired,
+									 mirrorDataLossTrackingState,
+									 mirrorDataLossTrackingSessionNum,
+									 mirrorNewEof);
 }

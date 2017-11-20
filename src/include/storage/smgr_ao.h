@@ -22,61 +22,66 @@
 #include "access/filerepdefs.h"
 
 /* prototypes for functions in smgr_ao.c */
-extern bool smgrgetappendonlyinfo(
-	RelFileNode 					*relFileNode,
+extern bool
+smgrgetappendonlyinfo(
+					  RelFileNode *relFileNode,
 
-	int32							segmentFileNum,
+					  int32 segmentFileNum,
 
-	char							*relationName,
+					  char *relationName,
 
-	bool							*mirrorCatchupRequired,
+					  bool *mirrorCatchupRequired,
 
-	MirrorDataLossTrackingState 	*mirrorDataLossTrackingState,
+					  MirrorDataLossTrackingState *mirrorDataLossTrackingState,
 
-	int64							*mirrorDataLossTrackingSessionNum);
-extern void smgrappendonlymirrorresynceofs(
-	RelFileNode						*relFileNode,
+					  int64 *mirrorDataLossTrackingSessionNum);
+extern void
+smgrappendonlymirrorresynceofs(
+							   RelFileNode *relFileNode,
 
-	int32							segmentFileNum,
+							   int32 segmentFileNum,
 
-	char							*relationName,
+							   char *relationName,
 
-	ItemPointer						persistentTid,
+							   ItemPointer persistentTid,
 
-	int64							persistentSerialNum,
+							   int64 persistentSerialNum,
 
-	bool							mirrorCatchupRequired,
+							   bool mirrorCatchupRequired,
 
-	MirrorDataLossTrackingState 	mirrorDataLossTrackingState,
+							   MirrorDataLossTrackingState mirrorDataLossTrackingState,
 
-	int64							mirrorDataLossTrackingSessionNum,
+							   int64 mirrorDataLossTrackingSessionNum,
 
-	int64							mirrorNewEof);
-extern int	smgrGetAppendOnlyMirrorResyncEofs(
-	EndXactRecKind									endXactRecKind,
+							   int64 mirrorNewEof);
+extern int
+smgrGetAppendOnlyMirrorResyncEofs(
+								  EndXactRecKind endXactRecKind,
 
-	PersistentEndXactAppendOnlyMirrorResyncEofs 	**ptr);
+								  PersistentEndXactAppendOnlyMirrorResyncEofs **ptr);
 extern bool smgrIsAppendOnlyMirrorResyncEofs(
-	EndXactRecKind						endXactRecKind);
+								 EndXactRecKind endXactRecKind);
 
 extern void AppendOnlyMirrorResyncEofs_HashTableInit(void);
 
 extern void AppendOnlyMirrorResyncEofs_Merge(
-	RelFileNode		*relFileNode,
-	int32			segmentFileNum,
-	int				nestLevel,		/* Transaction nesting level. */
-	char			*relationName,
-	ItemPointer 	persistentTid,
-	int64			persistentSerialNum,
-	bool						mirrorCatchupRequired,
-	MirrorDataLossTrackingState mirrorDataLossTrackingState,
-	int64						mirrorDataLossTrackingSessionNum,
-	int64			mirrorNewEof);
+								 RelFileNode *relFileNode,
+								 int32 segmentFileNum,
+								 int nestLevel, /* Transaction nesting level. */
+								 char *relationName,
+								 ItemPointer persistentTid,
+								 int64 persistentSerialNum,
+								 bool mirrorCatchupRequired,
+								 MirrorDataLossTrackingState mirrorDataLossTrackingState,
+								 int64 mirrorDataLossTrackingSessionNum,
+								 int64 mirrorNewEof);
 
-extern void AppendOnlyMirrorResyncEofs_RemoveForDrop(
-	RelFileNode		*relFileNode,
-	int32			segmentFileNum,
-	int				nestLevel);		/* Transaction nesting level. */
+extern void
+AppendOnlyMirrorResyncEofs_RemoveForDrop(
+										 RelFileNode *relFileNode,
+										 int32 segmentFileNum,
+										 int nestLevel);	/* Transaction nesting
+															 * level. */
 
 extern void AppendOnlyMirrorResyncEofs_HashTableRemove(char *procName);
 
@@ -86,4 +91,4 @@ extern void smgrAppendOnlySubTransAbort(void);
 extern void AtSubCommit_smgr_appendonly(void);
 
 
-#endif   /* SMGR_GP_H */
+#endif							/* SMGR_GP_H */
