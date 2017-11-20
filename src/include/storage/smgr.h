@@ -340,45 +340,9 @@ extern bool smgrgetpersistentinfo(
 
 	int64		*persistentSerialNum);
 extern void smgrimmedsync(SMgrRelation reln);
-extern void smgrappendonlymirrorresynceofs(
-	RelFileNode						*relFileNode,
-
-	int32							segmentFileNum,
-
-	char							*relationName,
-
-	ItemPointer						persistentTid,
-
-	int64							persistentSerialNum,
-	
-	bool							mirrorCatchupRequired,
-
-	MirrorDataLossTrackingState 	mirrorDataLossTrackingState,
-
-	int64							mirrorDataLossTrackingSessionNum,
-
-	int64							mirrorNewEof);
-extern bool smgrgetappendonlyinfo(
-	RelFileNode 					*relFileNode,
-
-	int32							segmentFileNum,
-
-	char							*relationName,
-
-	bool							*mirrorCatchupRequired,
-
-	MirrorDataLossTrackingState 	*mirrorDataLossTrackingState,
-
-	int64							*mirrorDataLossTrackingSessionNum);
 extern int smgrGetPendingFileSysWork(EndXactRecKind endXactRecKind,
 						  PersistentEndXactFileSysActionInfo **ptr);
-extern int	smgrGetAppendOnlyMirrorResyncEofs(
-	EndXactRecKind									endXactRecKind,
-
-	PersistentEndXactAppendOnlyMirrorResyncEofs 	**ptr);
 extern bool	smgrIsPendingFileSysWork(
-	EndXactRecKind						endXactRecKind);
-extern bool smgrIsAppendOnlyMirrorResyncEofs(
 	EndXactRecKind						endXactRecKind);
 extern void AtSubCommit_smgr(void);
 extern void AtSubAbort_smgr(void);
@@ -399,6 +363,47 @@ extern void smgr_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record);
 /* in md.c */
 extern void mdinit(void);
 extern void mdclose(SMgrRelation reln);
+extern void mdcreate(
+	SMgrRelation 				reln,
+
+	char						*relationName,
+					/* For tracing only.  Can be NULL in some execution paths. */
+
+	MirrorDataLossTrackingState mirrorDataLossTrackingState,
+
+	int64						mirrorDataLossTrackingSessionNum,
+	
+	bool						ignoreAlreadyExists,
+
+	bool						*mirrorDataLossOccurred);
+extern void mdunlink(
+	RelFileNode 				rnode, 
+
+	char						*relationName,
+					/* For tracing only.  Can be NULL in some execution paths. */
+	
+	bool  						primaryOnly,
+
+	bool						isRedo,
+
+	bool 						ignoreNonExistence,
+
+	bool						*mirrorDataLossOccurred);
+extern void mdextend(SMgrRelation reln, BlockNumber blocknum, char *buffer,
+		 bool isTemp);
+extern void mdread(SMgrRelation reln, BlockNumber blocknum, char *buffer);
+extern void mdwrite(SMgrRelation reln, BlockNumber blocknum, char *buffer,
+		bool isTemp);
+extern BlockNumber mdnblocks(SMgrRelation reln);
+extern void mdtruncate(SMgrRelation reln, BlockNumber nblocks,
+		   bool isTemp, bool allowedNotFound);
+extern void mdimmedsync(SMgrRelation reln);
+extern void mdpreckpt(void);
+extern void mdsync(void);
+extern void mdpostckpt(void);
+
+/* md_gp.c */
+extern int errdetail_nonexistent_relation(int error, RelFileNode *relFileNode);
 extern void mdcreatefilespacedir(
 	Oid 						filespaceOid,
 
@@ -435,32 +440,6 @@ extern void mdcreatedbdir(
 	bool						ignoreAlreadyExists,
 
 	int 						*primaryError,
-
-	bool						*mirrorDataLossOccurred);
-extern void mdcreate(
-	SMgrRelation 				reln,
-
-	char						*relationName,
-					/* For tracing only.  Can be NULL in some execution paths. */
-
-	MirrorDataLossTrackingState mirrorDataLossTrackingState,
-
-	int64						mirrorDataLossTrackingSessionNum,
-	
-	bool						ignoreAlreadyExists,
-
-	bool						*mirrorDataLossOccurred);
-extern void mdunlink(
-	RelFileNode 				rnode, 
-
-	char						*relationName,
-					/* For tracing only.  Can be NULL in some execution paths. */
-	
-	bool  						primaryOnly,
-
-	bool						isRedo,
-
-	bool 						ignoreNonExistence,
 
 	bool						*mirrorDataLossOccurred);
 extern bool mdrmfilespacedir(
@@ -501,18 +480,7 @@ extern bool mdrmdbdir(
 	bool 						ignoreNonExistence,
 
 	bool						*mirrorDataLossOccurred);
-extern void mdextend(SMgrRelation reln, BlockNumber blocknum, char *buffer,
-		 bool isTemp);
-extern void mdread(SMgrRelation reln, BlockNumber blocknum, char *buffer);
-extern void mdwrite(SMgrRelation reln, BlockNumber blocknum, char *buffer,
-		bool isTemp);
-extern BlockNumber mdnblocks(SMgrRelation reln);
-extern void mdtruncate(SMgrRelation reln, BlockNumber nblocks,
-		   bool isTemp, bool allowedNotFound);
-extern void mdimmedsync(SMgrRelation reln);
-extern void mdpreckpt(void);
-extern void mdsync(void);
-extern void mdpostckpt(void);
+
 
 /*
  * MPP-18228 - to make addition to pending delete list atomic with adding

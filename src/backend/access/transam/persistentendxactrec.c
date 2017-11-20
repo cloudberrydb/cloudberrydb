@@ -17,6 +17,7 @@
 #include "miscadmin.h"
 #include "access/persistentendxactrec.h"
 #include "storage/smgr.h"
+#include "storage/smgr_ao.h"
 #include "utils/guc.h"
 #include "cdb/cdbpersistentstore.h"
 #include "cdb/cdbpersistentfilesysobj.h"
