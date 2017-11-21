@@ -10,6 +10,17 @@
 #include "utils/builtins.h"
 #include "utils/hsearch.h"
 
+
+/*
+ * Not all the FSM and VM changes are WAL-logged and its OK if they are out of
+ * date. So it is OK to skip them for consistency check.
+ */
+
+#define should_skip(filename)	(pg_strncasecmp(filename, "pg", 2) == 0 \
+								|| pg_strncasecmp(filename, ".", 1) == 0 \
+								|| pg_strncasecmp(filename + strlen(filename) - 4, "_fsm", 4) == 0 \
+								|| pg_strncasecmp(filename + strlen(filename) - 3, "_vm", 3) == 0)
+
 PG_MODULE_MAGIC;
 
 extern Datum gp_replica_check(PG_FUNCTION_ARGS);
@@ -382,8 +393,7 @@ gp_replica_check(PG_FUNCTION_ARGS)
 		char *relfilenode;
 		bool match;
 
-		if (pg_strncasecmp(dent->d_name, "pg", 2) == 0
-			|| pg_strncasecmp(dent->d_name, ".", 1) == 0)
+		if (should_skip(dent->d_name))
 			continue;
 
 		d_name_copy = pstrdup(dent->d_name);
@@ -422,8 +432,7 @@ gp_replica_check(PG_FUNCTION_ARGS)
 		char *d_name_copy;
 		char *relfilenode;
 
-		if (pg_strncasecmp(dent->d_name, "pg", 2) == 0
-			|| pg_strncasecmp(dent->d_name, ".", 1) == 0)
+		if (should_skip(dent->d_name))
 			continue;
 
 		d_name_copy = pstrdup(dent->d_name);
