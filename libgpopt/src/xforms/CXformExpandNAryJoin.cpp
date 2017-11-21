@@ -80,49 +80,6 @@ CXformExpandNAryJoin::Exfp
 	return CXform::ExfpHigh;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CXformExpandNAryJoin::AddSpecifiedJoinOrder
-//
-//	@doc:
-//		Expand NAry join in the specified order of inputs
-//
-//---------------------------------------------------------------------------
-void
-CXformExpandNAryJoin::AddSpecifiedJoinOrder
-	(
-	IMemoryPool *pmp,
-	CExpression *pexpr,
-	CXformResult *pxfres
-	)
-{
-	GPOS_ASSERT(COperator::EopLogicalNAryJoin == pexpr->Pop()->Eopid());
-
-	const ULONG ulArity = pexpr->UlArity();
-	if (4 > ulArity)
-	{
-		return;
-	}
-
-	// create a join order with same order of given relations
-	(*pexpr)[0]->AddRef();
-	(*pexpr)[1]->AddRef();
-	CExpression *pexprJoin = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(pmp, (*pexpr)[0], (*pexpr)[1], CPredicateUtils::PexprConjunction(pmp, NULL));
-	for (ULONG ul = 2; ul < ulArity - 1; ul++)
-	{
-		(*pexpr)[ul]->AddRef();
-		pexprJoin = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(pmp, pexprJoin, (*pexpr)[ul], CPredicateUtils::PexprConjunction(pmp, NULL));
-	}
-	CExpression *pexprScalar = (*pexpr)[ulArity - 1];
-	pexprScalar->AddRef();
-	CExpression *pexprSelect = CUtils::PexprLogicalSelect(pmp, pexprJoin, pexprScalar);
-	CExpression *pexprNormalized = CNormalizer::PexprNormalize(pmp, pexprSelect);
-	pexprSelect->Release();
-	pxfres->Add(pexprNormalized);
-}
-
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CXformExpandNAryJoin::Transform
@@ -170,8 +127,6 @@ CXformExpandNAryJoin::Transform
 	CExpression *pexprNormalized = CNormalizer::PexprNormalize(pmp, pexprResult);
 	pexprResult->Release();
 	pxfres->Add(pexprNormalized);
-
-	AddSpecifiedJoinOrder(pmp, pexpr, pxfres);
 }
 
 // EOF

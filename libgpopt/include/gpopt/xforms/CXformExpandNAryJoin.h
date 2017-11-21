@@ -34,10 +34,6 @@ namespace gpopt
 			// private copy ctor
 			CXformExpandNAryJoin(const CXformExpandNAryJoin &);
 
-			//	expand NAry join in the specified order of inputs
-			static
-			void AddSpecifiedJoinOrder(IMemoryPool *pmp, CExpression *pexpr, CXformResult *pxfres);
-
 		public:
 
 			// ctor
