@@ -697,10 +697,10 @@ read_post_opts(void)
 				if ((arg1 = strstr(optline, " \"")) != NULL)
 				{
 					*arg1 = '\0';	/* terminate so we get only program name */
-					post_opts = arg1 + 1; /* point past whitespace */
+					post_opts = strdup(arg1 + 1); /* point past whitespace */
 				}
 				if (postgres_path == NULL)
-					postgres_path = optline;
+					postgres_path = strdup(optline);
 			}
 
 			/* Free the results of readfile. */
