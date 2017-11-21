@@ -13,19 +13,6 @@
 #include "nodes/nodeFuncs.h"
 #include "nodes/relation.h"
 
-
-extern bool expression_tree_walker(Node *node, bool (*walker) (),
-											   void *context);
-
-extern bool query_tree_walker(Query *query, bool (*walker) (),
-										  void *context, int flags);
-
-extern bool range_table_walker(List *rtable, bool (*walker) (),
-										   void *context, int flags);
-
-extern bool query_or_expression_tree_walker(Node *node, bool (*walker) (),
-												   void *context, int flags);
-
 /* The plan associated with a SubPlan is found in a list.  During planning this is in
  * the global structure found through the root PlannerInfo.  After planning this is in
  * the PlannedStmt.

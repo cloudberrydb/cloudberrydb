@@ -52,7 +52,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/common/heaptuple.c,v 1.122 2008/05/12 00:00:43 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/common/heaptuple.c,v 1.124 2008/11/14 01:57:41 alvherre Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -954,22 +954,24 @@ heap_modifytuple(HeapTuple tuple,
 				 char *replNulls,
 				 char *replActions)
 {
-	bool *replIsNull = (bool *) palloc(sizeof(bool) * tupleDesc->natts);
-	bool *doRepl = (bool *) palloc(sizeof(bool) * tupleDesc->natts);
-	HeapTuple ret;
+	HeapTuple	result;
+	int			numberOfAttributes = tupleDesc->natts;
+	bool	   *boolNulls = (bool *) palloc(numberOfAttributes * sizeof(bool));
+	bool	   *boolActions = (bool *) palloc(numberOfAttributes * sizeof(bool));
+	int			attnum;
 
-	int i;
-	for(i=0; i<tupleDesc->natts; ++i)
+	for (attnum = 0; attnum < numberOfAttributes; attnum++)
 	{
-		replIsNull[i] = (replNulls[i] != ' ');
-		doRepl[i] = (replActions[i] == 'r');
+		boolNulls[attnum] = (replNulls[attnum] == 'n');
+		boolActions[attnum] = (replActions[attnum] == 'r');
 	}
 
-	ret = heap_modify_tuple(tuple, tupleDesc, replValues, replIsNull, doRepl);
-	pfree(replIsNull);
-	pfree(doRepl);
+	result = heap_modify_tuple(tuple, tupleDesc, replValues, boolNulls, boolActions);
 
-	return ret;
+	pfree(boolNulls);
+	pfree(boolActions);
+
+	return result;
 }
 
 /*
@@ -1106,90 +1108,16 @@ heap_deformtuple(HeapTuple tuple,
 				 Datum *values,
 				 char *nulls)
 {
-	HeapTupleHeader tup = tuple->t_data;
-	bool		hasnulls = HeapTupleHasNulls(tuple);
-	Form_pg_attribute *att = tupleDesc->attrs;
-	int			tdesc_natts = tupleDesc->natts;
-	int			natts;			/* number of atts to extract */
+	int			natts = tupleDesc->natts;
+	bool	   *boolNulls = (bool *) palloc(natts * sizeof(bool));
 	int			attnum;
-	char	   *tp;				/* ptr to tuple data */
-	long		off;			/* offset in tuple data */
-	bits8	   *bp = tup->t_bits;		/* ptr to null bitmap in tuple */
-	bool		slow = false;	/* can we use/set attcacheoff? */
 
-	natts = HeapTupleHeaderGetNatts(tup);
-
-	/*
-	 * In inheritance situations, it is possible that the given tuple actually
-	 * has more fields than the caller is expecting.  Don't run off the end of
-	 * the caller's arrays.
-	 */
-	natts = Min(natts, tdesc_natts);
-
-	tp = (char *) tup + tup->t_hoff;
-
-	off = 0;
+	heap_deform_tuple(tuple, tupleDesc, values, boolNulls);
 
 	for (attnum = 0; attnum < natts; attnum++)
-	{
-		Form_pg_attribute thisatt = att[attnum];
+		nulls[attnum] = (boolNulls[attnum] ? 'n' : ' ');
 
-		if (hasnulls && att_isnull(attnum, bp))
-		{
-			values[attnum] = (Datum) 0;
-			nulls[attnum] = 'n';
-			slow = true;		/* can't use attcacheoff anymore */
-			continue;
-		}
-
-		nulls[attnum] = ' ';
-
-		if (!slow && thisatt->attcacheoff >= 0)
-			off = thisatt->attcacheoff;
-		else if (thisatt->attlen == -1)
-		{
-			/*
-			 * We can only cache the offset for a varlena attribute if the
-			 * offset is already suitably aligned, so that there would be no
-			 * pad bytes in any case: then the offset will be valid for either
-			 * an aligned or unaligned value.
-			 */
-			if (!slow &&
-				off == att_align_nominal(off, thisatt->attalign))
-				thisatt->attcacheoff = off;
-			else
-			{
-				off = att_align_pointer(off, thisatt->attalign, -1,
-										tp + off);
-				slow = true;
-			}
-		}
-		else
-		{
-			/* not varlena, so safe to use att_align_nominal */
-			off = att_align_nominal(off, thisatt->attalign);
-
-			if (!slow)
-				thisatt->attcacheoff = off;
-		}
-
-		values[attnum] = fetchatt(thisatt, tp + off);
-
-		off = att_addlength_pointer(off, thisatt->attlen, tp + off);
-
-		if (thisatt->attlen <= 0)
-			slow = true;		/* can't use attcacheoff anymore */
-	}
-
-	/*
-	 * If tuple doesn't have all the atts indicated by tupleDesc, read the
-	 * rest as null
-	 */
-	for (; attnum < tdesc_natts; attnum++)
-	{
-		values[attnum] = (Datum) 0;
-		nulls[attnum] = 'n';
-	}
+	pfree(boolNulls);
 }
 
 /*
@@ -1528,56 +1456,4 @@ minimal_tuple_from_heap_tuple(HeapTuple htup)
 	memcpy(result, (char *) htup->t_data + MINIMAL_TUPLE_OFFSET, len);
 	result->t_len = len;
 	return result;
-}
-
-
-/* ----------------
- *		heap_addheader
- *
- * This routine forms a HeapTuple by copying the given structure (tuple
- * data) and adding a generic header.  Note that the tuple data is
- * presumed to contain no null fields and no varlena fields.
- *
- * This routine is really only useful for certain system tables that are
- * known to be fixed-width and null-free.  Currently it is only used for
- * pg_attribute tuples.
- * ----------------
- */
-HeapTuple
-heap_addheader(int natts,		/* max domain index */
-			   bool withoid,	/* reserve space for oid */
-			   Size structlen,	/* its length */
-			   void *structure) /* pointer to the struct */
-{
-	HeapTuple	tuple;
-	HeapTupleHeader td;
-	Size		len;
-	int			hoff;
-
-	AssertArg(natts > 0);
-
-	/* header needs no null bitmap */
-	hoff = offsetof(HeapTupleHeaderData, t_bits);
-	if (withoid)
-		hoff += sizeof(Oid);
-	hoff = MAXALIGN(hoff);
-	len = hoff + structlen;
-
-	tuple = (HeapTuple) palloc0(HEAPTUPLESIZE + len);
-	tuple->t_data = td = (HeapTupleHeader) ((char *) tuple + HEAPTUPLESIZE);
-
-	tuple->t_len = len;
-	ItemPointerSetInvalid(&(tuple->t_self));
-
-	/* we don't bother to fill the Datum fields */
-
-	HeapTupleHeaderSetNatts(td, natts);
-	td->t_hoff = hoff;
-
-	if (withoid)				/* else leave infomask = 0 */
-		td->t_infomask = HEAP_HASOID;
-
-	memcpy((char *) td + hoff, structure, structlen);
-
-	return tuple;
 }

@@ -5,7 +5,7 @@
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
  * Copyright (c) 1996-2010, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/backend/catalog/system_views.sql,v 1.53 2008/07/14 00:51:45 tgl Exp $
+ * $PostgreSQL: pgsql/src/backend/catalog/system_views.sql,v 1.57 2008/12/19 16:25:17 petere Exp $
  */
 
 CREATE VIEW pg_roles AS 
@@ -93,7 +93,7 @@ CREATE VIEW pg_tables AS
         T.spcname AS tablespace,
         C.relhasindex AS hasindexes, 
         C.relhasrules AS hasrules, 
-        (C.reltriggers > 0) AS hastriggers 
+        C.relhastriggers AS hastriggers 
     FROM pg_class C LEFT JOIN pg_namespace N ON (N.oid = C.relnamespace) 
          LEFT JOIN pg_tablespace T ON (T.oid = C.reltablespace)
     WHERE C.relkind = 'r';
@@ -151,19 +151,10 @@ CREATE VIEW pg_stats AS
 REVOKE ALL on pg_statistic FROM public;
 
 CREATE VIEW pg_locks AS 
-    SELECT * 
-    FROM pg_lock_status() AS L
-    (locktype text, database oid, relation oid, page int4, tuple int2,
-     virtualxid text, transactionid xid, classid oid, objid oid, objsubid int2,
-     virtualtransaction text, pid int4, mode text, granted boolean,
-     mppSessionId int4, mppIsWriter boolean, gp_segment_id int4);
+    SELECT * FROM pg_lock_status() AS L;
 
 CREATE VIEW pg_cursors AS
-    SELECT C.name, C.statement, C.is_holdable, C.is_binary,
-           C.is_scrollable, C.creation_time
-    FROM pg_cursor() AS C
-         (name text, statement text, is_holdable boolean, is_binary boolean,
-          is_scrollable boolean, creation_time timestamptz);
+    SELECT * FROM pg_cursor() AS C;
 
 CREATE VIEW pg_available_extensions AS
     SELECT E.name, E.default_version, X.extversion AS installed_version,
@@ -182,21 +173,14 @@ CREATE VIEW pg_prepared_xacts AS
     SELECT P.transaction, P.gid, P.prepared,
            U.rolname AS owner, D.datname AS database
     FROM pg_prepared_xact() AS P
-    (transaction xid, gid text, prepared timestamptz, ownerid oid, dbid oid)
          LEFT JOIN pg_authid U ON P.ownerid = U.oid
          LEFT JOIN pg_database D ON P.dbid = D.oid;
 
 CREATE VIEW pg_prepared_statements AS
-    SELECT P.name, P.statement, P.prepare_time, P.parameter_types, P.from_sql
-    FROM pg_prepared_statement() AS P
-    (name text, statement text, prepare_time timestamptz,
-     parameter_types regtype[], from_sql boolean);
+    SELECT * FROM pg_prepared_statement() AS P;
 
 CREATE VIEW pg_settings AS 
-    SELECT * 
-    FROM pg_show_all_settings() AS A 
-    (name text, setting text, unit text, category text, short_desc text, extra_desc text,
-     context text, vartype text, source text, min_val text, max_val text, enumvals text);
+    SELECT * FROM pg_show_all_settings() AS A; 
 
 CREATE RULE pg_settings_u AS 
     ON UPDATE TO pg_settings 
@@ -926,6 +910,28 @@ CREATE VIEW pg_stat_bgwriter AS
         pg_stat_get_bgwriter_maxwritten_clean() AS maxwritten_clean,
         pg_stat_get_buf_written_backend() AS buffers_backend,
         pg_stat_get_buf_alloc() AS buffers_alloc;
+
+CREATE VIEW pg_user_mappings AS
+    SELECT
+        U.oid       AS umid,
+        S.oid       AS srvid,
+        S.srvname   AS srvname,
+        U.umuser    AS umuser,
+        CASE WHEN U.umuser = 0 THEN
+            'public'
+        ELSE
+            A.rolname
+        END AS usename,
+        CASE WHEN pg_has_role(S.srvowner, 'USAGE') OR has_server_privilege(S.oid, 'USAGE') THEN
+            U.umoptions
+        ELSE
+            NULL
+        END AS umoptions
+    FROM pg_user_mapping U
+         LEFT JOIN pg_authid A ON (A.oid = U.umuser) JOIN
+        pg_foreign_server S ON (U.umserver = S.oid);
+
+REVOKE ALL on pg_user_mapping FROM public;
 
 -- Tsearch debug function.  Defined here because it'd be pretty unwieldy
 -- to put it into pg_proc.h

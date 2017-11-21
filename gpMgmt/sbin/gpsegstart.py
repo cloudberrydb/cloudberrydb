@@ -379,88 +379,6 @@ class GpSegStart:
                 stderrFromFailure = res.stderr.replace("\n", " ").strip()
                 self.logger.info("Stop of segment failed: rc: %s\nstdout:%s\nstderr:%s" % \
                                 (res.rc, stdoutFromFailure, stderrFromFailure))
-            
-
-
-    def __checkLocaleAndConnect(self):
-        """
-        Check locale information of primaries.
-        """
-        self.logger.info("Validating segment locales...")
-
-        # ask each primary for its locale details
-        #
-        dataDirToCmd = {}
-        for datadir, seg in self.overall_status.dirmap.items():
-            if seg.isSegmentPrimary(True):
-
-                # we CANNOT validate using a psql connection because this may hang (see MPP-9974).
-                #    so we validate these items using a postmaster 'transition' message
-                #
-                name      = "Check Status"
-                statusmsg = "getCollationAndDataDirSettings"
-                port      = seg.getSegmentPort()
-
-                self.logger.info("Checking %s, port %s" % (datadir, port))
-                cmd       = gp.SendFilerepTransitionStatusMessage(name, statusmsg, datadir, port)
-
-                dataDirToCmd[datadir] = cmd
-                self.pool.addCommand(cmd)
-
-        self.pool.join()
-
-
-        # examine results from the primaries
-        #
-        for datadir, cmd in dataDirToCmd.items():
-            self.logger.info("Reviewing %s" % datadir)
-
-            cmd.get_results()
-            line = cmd.unpackSuccessLine()
-            if line is None:
-
-                msg        = "Unable to connect to server"
-                reasoncode = gp.SEGSTART_ERROR_CHECKING_CONNECTION_AND_LOCALE_FAILED
-                self.overall_status.mark_failed(datadir, msg, reasoncode)
-                continue
-
-            dict_ = parseKeyColonValueLines(line)
-
-            # verify was parsed, and we got all needed data
-            if dict_ is None or \
-                [s for s in ["datadir", "lc_collate", "lc_monetary", "lc_numeric"] if s not in dict_]:
-
-                msg        = "Invalid response from server"
-                reasoncode = gp.SEGSTART_ERROR_CHECKING_CONNECTION_AND_LOCALE_FAILED
-                self.overall_status.mark_failed(datadir, msg, reasoncode)
-                continue
-
-            msg = ""
-            if dict_["lc_collate"] != self.expected_lc_collate:
-                msg += "".join(["Segment's value of lc_collate does not match the master.\n",
-                                " Master had value: '", str(self.expected_lc_collate), 
-                                "' while this segment has: '", str(dict_["lc_collate"]), "'\n"])
-
-            if dict_["lc_monetary"] != self.expected_lc_monetary:
-                msg += "".join(["Segment's value of lc_monetary does not match the master.\n",
-                                " Master had value: '", str(self.expected_lc_monetary), 
-                                "' while this segment has: '", str(dict_["lc_monetary"]), "'\n"])
-
-            if dict_["lc_numeric"] != self.expected_lc_numeric:
-                msg += "".join(["Segment's value of lc_numeric does not match the master.\n",
-                                " Master had value: '", str(self.expected_lc_numeric), 
-                                "' while this segment has: '", str(dict_["lc_numeric"]), "'\n"])
-
-            if not os.path.samefile(dict_["datadir"], datadir):
-                msg += "".join(["Segment's data directory does not match. ",
-                                " Expected value: '", str(datadir), 
-                                "' Actual value: '", str(dict_["datadir"]), "'\n"])
-
-            if len(msg) > 0:
-                reasoncode = gp.SEGSTART_ERROR_CHECKING_CONNECTION_AND_LOCALE_FAILED
-                self.overall_status.mark_failed(datadir, msg, reasoncode)
-                            
-
 
     def run(self):
         """
@@ -485,9 +403,6 @@ class GpSegStart:
         self.checkPostmasters(must_be_running=True)
 
         self.__convertSegments()
-        self.checkPostmasters(must_be_running=True)
-
-        self.__checkLocaleAndConnect()
         self.checkPostmasters(must_be_running=True)
 
         # At this point any segments remaining in the mapping are assumed to

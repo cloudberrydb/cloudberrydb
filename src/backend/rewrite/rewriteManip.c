@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/rewrite/rewriteManip.c,v 1.116 2008/10/21 20:42:53 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/rewrite/rewriteManip.c,v 1.118 2008/11/15 19:43:46 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -42,9 +42,9 @@ typedef struct
 } locate_windowfunc_context;
 
 static bool contain_aggs_of_level_walker(Node *node,
-										 contain_aggs_of_level_context *context);
+						contain_aggs_of_level_context *context);
 static bool locate_agg_of_level_walker(Node *node,
-						   locate_agg_of_level_context *context);
+						locate_agg_of_level_context *context);
 static bool contain_windowfuncs_walker(Node *node, void *context);
 static bool locate_windowfunc_walker(Node *node,
 						 locate_windowfunc_context *context);
@@ -52,9 +52,11 @@ static bool checkExprHasSubLink_walker(Node *node, void *context);
 static Relids offset_relid_set(Relids relids, int offset);
 static Relids adjust_relid_set(Relids relids, int oldrelid, int newrelid);
 
+
 /*
  * checkExprHasAggs -
- *	Check if an expression contains an aggregate function call.
+ *	Check if an expression contains an aggregate function call of the
+ *	current query level.
  */
 bool
 checkExprHasAggs(Node *node)
@@ -63,8 +65,9 @@ checkExprHasAggs(Node *node)
 }
 
 /*
- * checkExprHasAggs -
- *	Check if an expression contains an aggregate function call.
+ * contain_aggs_of_level -
+ *	Check if an expression contains an aggregate function call of a
+ *	specified query level.
  *
  * The objective of this routine is to detect whether there are aggregates
  * belonging to the given query level.  Aggregates belonging to subqueries
@@ -90,7 +93,8 @@ contain_aggs_of_level(Node *node, int levelsup)
 }
 
 static bool
-contain_aggs_of_level_walker(Node *node, contain_aggs_of_level_context *context)
+contain_aggs_of_level_walker(Node *node,
+							 contain_aggs_of_level_context *context)
 {
 	if (node == NULL)
 		return false;
@@ -142,7 +146,7 @@ locate_agg_of_level(Node *node, int levelsup)
 {
 	locate_agg_of_level_context context;
 
-	context.agg_location = -1;	/* in case we find nothing */
+	context.agg_location = -1;		/* in case we find nothing */
 	context.sublevels_up = levelsup;
 
 	/*
@@ -371,7 +375,7 @@ OffsetVarNodes_walker(Node *node, OffsetVarNodes_context *context)
 	if (IsA(node, PlaceHolderVar))
 	{
 		PlaceHolderVar *phv = (PlaceHolderVar *) node;
-		
+
 		if (phv->phlevelsup == context->sublevels_up)
 		{
 			phv->phrels = offset_relid_set(phv->phrels,
@@ -444,6 +448,7 @@ OffsetVarNodes(Node *node, int offset, int sublevels_up)
 				RowMarkClause *rc = (RowMarkClause *) lfirst(l);
 
 				rc->rti += offset;
+				rc->prti += offset;
 			}
 		}
 		query_tree_walker(qry, OffsetVarNodes_walker,
@@ -613,6 +618,8 @@ ChangeVarNodes(Node *node, int rt_index, int new_index, int sublevels_up)
 
 				if (rc->rti == rt_index)
 					rc->rti = new_index;
+				if (rc->prti == rt_index)
+					rc->prti = new_index;
 			}
 		}
 		query_tree_walker(qry, ChangeVarNodes_walker,
@@ -711,7 +718,7 @@ IncrementVarSublevelsUp_walker(Node *node,
 	if (IsA(node, PlaceHolderVar))
 	{
 		PlaceHolderVar *phv = (PlaceHolderVar *) node;
-		
+
 		if (phv->phlevelsup >= context->min_sublevels_up)
 			phv->phlevelsup += context->delta_sublevels_up;
 		/* fall through to recurse into argument */

@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/tablecmds.c,v 1.261 2008/07/16 19:33:25 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/tablecmds.c,v 1.274 2008/12/15 21:35:31 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -40,13 +40,14 @@
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_opclass.h"
+#include "catalog/pg_partition.h"
+#include "catalog/pg_partition_rule.h"
 #include "catalog/pg_tablespace.h"
 #include "catalog/pg_trigger.h"
 #include "catalog/pg_tablespace.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_type_fn.h"
-#include "catalog/pg_partition.h"
-#include "catalog/pg_partition_rule.h"
+#include "catalog/storage.h"
 #include "catalog/toasting.h"
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbaocsam.h"
@@ -385,17 +386,11 @@ static List *
 atpxTruncateList(Relation rel, PartitionNode *pNode);
 static void ATPExecPartTruncate(Relation rel,
                                 AlterPartitionCmd *pc);		/* Truncate */
-static void
-copy_buffer_pool_data(
-	Relation 	rel,
-
-	SMgrRelation dst,
-
-	ItemPointer persistentTid,
-
-	int64 		persistentSerialNum,
-
-	bool		useWal);
+static void copy_buffer_pool_data(Relation rel, SMgrRelation dst,
+					  ForkNumber forknum, bool isTemp,
+					  ItemPointer persistentTid,
+					  int64 persistentSerialNum,
+					  bool useWal);
 
 static bool TypeTupleExists(Oid typeId);
 
@@ -2887,7 +2882,6 @@ RenameRelationInternal(Oid myrelid, const char *newrelname, Oid namespaceId)
 	Relation	relrelation;	/* for RELATION relation */
 	HeapTuple	reltup;
 	Form_pg_class relform;
-	bool		isSystemRelation;
 
 	/*
 	 * In Postgres:
@@ -2903,12 +2897,6 @@ RenameRelationInternal(Oid myrelid, const char *newrelname, Oid namespaceId)
 		targetrelation = fake_relation_open(myrelid);
 	else
 		targetrelation = relation_open(myrelid, AccessExclusiveLock);
-
-	isSystemRelation = IsSystemNamespace(namespaceId) ||
-					   IsToastNamespace(namespaceId) ||
-					   IsAoSegmentNamespace(namespaceId);
-
-	Assert (allowSystemTableModsDDL || !isSystemRelation);
 
 	/*
 	 * Find relation's pg_class tuple, and make sure newrelname isn't in use.
@@ -3514,6 +3502,12 @@ ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 		case AT_AddColumnRecurse:		/* ADD COLUMN internal */
 			ATSimplePermissions(rel, false);
 			/* No need to do ATPartitionCheck */
+			/* Performs own recursion */
+			ATPrepAddColumn(wqueue, rel, recurse, cmd);
+			pass = AT_PASS_ADD_COL;
+			break;
+		case AT_AddColumnToView:	/* add column via CREATE OR REPLACE VIEW */
+			ATSimplePermissions(rel, true);
 			/* Performs own recursion */
 			ATPrepAddColumn(wqueue, rel, recurse, cmd);
 			pass = AT_PASS_ADD_COL;
@@ -4527,6 +4521,7 @@ ATExecCmd(List **wqueue, AlteredTableInfo *tab, Relation rel,
 	{
 		case AT_AddColumn:		/* ADD COLUMN */
 		case AT_AddColumnRecurse:
+		case AT_AddColumnToView: /* add column via CREATE OR REPLACE VIEW */
 			ATExecAddColumn(tab, rel, (ColumnDef *) cmd->def);
 			break;
 		case AT_ColumnDefault:	/* ALTER COLUMN DEFAULT */
@@ -5153,7 +5148,7 @@ ATAocsNoRewrite(AlteredTableInfo *tab)
 
 	rel = heap_open(tab->relid, NoLock);
 	segInfos = GetAllAOCSFileSegInfo(rel, SnapshotNow, &nseg);
-	basepath = relpath(rel->rd_node);
+	basepath = relpath(rel->rd_node, MAIN_FORKNUM);
 	if (nseg > 0)
 	{
 		aocs_addcol_emptyvpe(rel, segInfos, nseg,
@@ -6283,12 +6278,9 @@ ATExecAddColumn(AlteredTableInfo *tab, Relation rel,
 	Relation	pgclass,
 				attrdesc;
 	HeapTuple	reltup;
-	HeapTuple	attributeTuple;
-	Form_pg_attribute attribute;
-	FormData_pg_attribute attributeD;
-	int			i;
-	int			minattnum,
-				maxatts;
+	FormData_pg_attribute attribute;
+	int			newattnum;
+	char		relkind;
 	HeapTuple	typeTuple;
 	Oid			typeOid;
 	int32		typmod;
@@ -6347,6 +6339,7 @@ ATExecAddColumn(AlteredTableInfo *tab, Relation rel,
 								0, 0, 0);
 	if (!HeapTupleIsValid(reltup))
 		elog(ERROR, "cache lookup failed for relation %u", myrelid);
+	relkind = ((Form_pg_class) GETSTRUCT(reltup))->relkind;
 
 	/*
 	 * this test is deliberately not attisdropped-aware, since if one tries to
@@ -6363,14 +6356,12 @@ ATExecAddColumn(AlteredTableInfo *tab, Relation rel,
 						colDef->colname, RelationGetRelationName(rel))));
 	}
 
-	minattnum = ((Form_pg_class) GETSTRUCT(reltup))->relnatts;
-	maxatts = minattnum + 1;
-	if (maxatts > MaxHeapAttributeNumber)
+	newattnum = ((Form_pg_class) GETSTRUCT(reltup))->relnatts + 1;
+	if (newattnum > MaxHeapAttributeNumber)
 		ereport(ERROR,
 				(errcode(ERRCODE_TOO_MANY_COLUMNS),
 				 errmsg("tables can have at most %d columns",
 						MaxHeapAttributeNumber)));
-	i = minattnum + 1;
 
 	typeTuple = typenameType(NULL, colDef->typeName, &typmod);
 	tform = (Form_pg_type) GETSTRUCT(typeTuple);
@@ -6380,44 +6371,35 @@ ATExecAddColumn(AlteredTableInfo *tab, Relation rel,
 	CheckAttributeType(colDef->colname, typeOid,
 					   list_make1_oid(rel->rd_rel->reltype));
 
-	attributeTuple = heap_addheader(Natts_pg_attribute,
-									false,
-									ATTRIBUTE_TUPLE_SIZE,
-									(void *) &attributeD);
-
-	attribute = (Form_pg_attribute) GETSTRUCT(attributeTuple);
-
-	attribute->attrelid = myrelid;
-	namestrcpy(&(attribute->attname), colDef->colname);
-	attribute->atttypid = typeOid;
-	attribute->attstattarget = -1;
-	attribute->attlen = tform->typlen;
-	attribute->attcacheoff = -1;
-	attribute->atttypmod = typmod;
-	attribute->attnum = i;
-	attribute->attbyval = tform->typbyval;
-	attribute->attndims = list_length(colDef->typeName->arrayBounds);
-	attribute->attstorage = tform->typstorage;
-	attribute->attalign = tform->typalign;
-	attribute->attnotnull = colDef->is_not_null;
-	attribute->atthasdef = false;
-	attribute->attisdropped = false;
-	attribute->attislocal = colDef->is_local;
-	attribute->attinhcount = colDef->inhcount;
+	/* construct new attribute's pg_attribute entry */
+	attribute.attrelid = myrelid;
+	namestrcpy(&(attribute.attname), colDef->colname);
+	attribute.atttypid = typeOid;
+	attribute.attstattarget = -1;
+	attribute.attlen = tform->typlen;
+	attribute.attcacheoff = -1;
+	attribute.atttypmod = typmod;
+	attribute.attnum = newattnum;
+	attribute.attbyval = tform->typbyval;
+	attribute.attndims = list_length(colDef->typeName->arrayBounds);
+	attribute.attstorage = tform->typstorage;
+	attribute.attalign = tform->typalign;
+	attribute.attnotnull = colDef->is_not_null;
+	attribute.atthasdef = false;
+	attribute.attisdropped = false;
+	attribute.attislocal = colDef->is_local;
+	attribute.attinhcount = colDef->inhcount;
 
 	ReleaseSysCache(typeTuple);
 
-	simple_heap_insert(attrdesc, attributeTuple);
-
-	/* Update indexes on pg_attribute */
-	CatalogUpdateIndexes(attrdesc, attributeTuple);
+	InsertPgAttributeTuple(attrdesc, &attribute, NULL);
 
 	heap_close(attrdesc, RowExclusiveLock);
 
 	/*
 	 * Update number of attributes in pg_class tuple
 	 */
-	((Form_pg_class) GETSTRUCT(reltup))->relnatts = maxatts;
+	((Form_pg_class) GETSTRUCT(reltup))->relnatts = newattnum;
 
 	simple_heap_update(pgclass, &reltup->t_self, reltup);
 
@@ -6439,7 +6421,7 @@ ATExecAddColumn(AlteredTableInfo *tab, Relation rel,
 		RawColumnDefault *rawEnt;
 
 		rawEnt = (RawColumnDefault *) palloc(sizeof(RawColumnDefault));
-		rawEnt->attnum = attribute->attnum;
+		rawEnt->attnum = attribute.attnum;
 		rawEnt->raw_default = copyObject(colDef->raw_default);
 
 		/*
@@ -6473,74 +6455,82 @@ ATExecAddColumn(AlteredTableInfo *tab, Relation rel,
 	 * Note: we use build_column_default, and not just the cooked default
 	 * returned by AddRelationNewConstraints, so that the right thing happens
 	 * when a datatype's default applies.
-	 */
-	defval = (Expr *) build_column_default(rel, attribute->attnum);
-
-	if (!defval && GetDomainConstraints(typeOid) != NIL)
-	{
-		Oid			baseTypeId;
-		int32		baseTypeMod;
-
-		baseTypeMod = typmod;
-		baseTypeId = getBaseTypeAndTypmod(typeOid, &baseTypeMod);
-		defval = (Expr *) makeNullConst(baseTypeId, baseTypeMod);
-		defval = (Expr *) coerce_to_target_type(NULL,
-												(Node *) defval,
-												baseTypeId,
-												typeOid,
-												typmod,
-												COERCION_ASSIGNMENT,
-												COERCE_IMPLICIT_CAST,
-												-1);
-		if (defval == NULL)		/* should not happen */
-			elog(ERROR, "failed to coerce base type to domain");
-	}
-
-	/*
-	 * Handling of default NULL for AO/CO tables.
 	 *
-	 * Currently memtuples cannot deal with the scenario where the number of
-	 * attributes in the tuple data don't match the attnum. We will generate an
-	 * explicit NULL default value and force a rewrite of the table below.
-	 *
-	 * At one point there were plans to restructure memtuples so that this
-	 * rewrite did not have to occur. An optimization was added to
-	 * column-oriented tables to avoid the rewrite, but it does not apply to
-	 * row-oriented tables. Eventually it would be nice to remove this
-	 * workaround; see GitHub issue
-	 *     https://github.com/greenplum-db/gpdb/issues/3756
+	 * We skip this step completely for views.  For a view, we can only get
+	 * here from CREATE OR REPLACE VIEW, which historically doesn't set up
+	 * defaults, not even for domain-typed columns.  And in any case we mustn't
+	 * invoke Phase 3 on a view, since it has no storage.
 	 */
-	if (!defval && (RelationIsAoRows(rel) || RelationIsAoCols(rel)))
-		defval = (Expr *) makeNullConst(typeOid, -1);
-
-	if (defval)
+	if (relkind != RELKIND_VIEW)
 	{
-		NewColumnValue *newval;
+		defval = (Expr *) build_column_default(rel, attribute.attnum);
 
-		newval = (NewColumnValue *) palloc0(sizeof(NewColumnValue));
-		newval->attnum = attribute->attnum;
-		newval->expr = defval;
+		if (!defval && GetDomainConstraints(typeOid) != NIL)
+		{
+			Oid			baseTypeId;
+			int32		baseTypeMod;
+
+			baseTypeMod = typmod;
+			baseTypeId = getBaseTypeAndTypmod(typeOid, &baseTypeMod);
+			defval = (Expr *) makeNullConst(baseTypeId, baseTypeMod);
+			defval = (Expr *) coerce_to_target_type(NULL,
+													(Node *) defval,
+													baseTypeId,
+													typeOid,
+													typmod,
+													COERCION_ASSIGNMENT,
+													COERCE_IMPLICIT_CAST,
+													-1);
+			if (defval == NULL) /* should not happen */
+				elog(ERROR, "failed to coerce base type to domain");
+		}
 
 		/*
-		 * tab is null if this is called by "create or replace view" which
-		 * can't have any default value.
+		 * Handling of default NULL for AO/CO tables.
+		 *
+		 * Currently memtuples cannot deal with the scenario where the number of
+		 * attributes in the tuple data don't match the attnum. We will generate an
+		 * explicit NULL default value and force a rewrite of the table below.
+		 *
+		 * At one point there were plans to restructure memtuples so that this
+		 * rewrite did not have to occur. An optimization was added to
+		 * column-oriented tables to avoid the rewrite, but it does not apply to
+		 * row-oriented tables. Eventually it would be nice to remove this
+		 * workaround; see GitHub issue
+		 *     https://github.com/greenplum-db/gpdb/issues/3756
 		 */
-		Assert(tab);
-		tab->newvals = lappend(tab->newvals, newval);
-	}
+		if (!defval && (RelationIsAoRows(rel) || RelationIsAoCols(rel)))
+			defval = (Expr *) makeNullConst(typeOid, -1);
 
-	/*
-	 * If the new column is NOT NULL, tell Phase 3 it needs to test that.
-	 * Also, "create or replace view" won't have constraint on the column.
-	 */
-	Assert(!colDef->is_not_null || tab);
-	if (tab)
-		tab->new_notnull |= colDef->is_not_null;
+		if (defval)
+		{
+			NewColumnValue *newval;
+
+			newval = (NewColumnValue *) palloc0(sizeof(NewColumnValue));
+			newval->attnum = attribute.attnum;
+			newval->expr = defval;
+
+			/*
+			 * tab is null if this is called by "create or replace view" which
+			 * can't have any default value.
+			 */
+			Assert(tab);
+			tab->newvals = lappend(tab->newvals, newval);
+		}
+
+		/*
+		 * If the new column is NOT NULL, tell Phase 3 it needs to test that.
+		 * Also, "create or replace view" won't have constraint on the column.
+		 */
+		Assert(!colDef->is_not_null || tab);
+		if (tab)
+			tab->new_notnull |= colDef->is_not_null;
+	}
 
 	/*
 	 * Add needed dependency entries for the new column.
 	 */
-	add_column_datatype_dependency(myrelid, i, attribute->atttypid);
+	add_column_datatype_dependency(myrelid, newattnum, attribute.atttypid);
 
 	if (!RelationIsAoCols(rel) && colDef->encoding)
 		ereport(ERROR,
@@ -8363,7 +8353,8 @@ createForeignKeyTriggers(Relation rel, FkConstraint *fkconstraint,
 	 * Reconstruct a RangeVar for my relation (not passed in, unfortunately).
 	 */
 	myRel = makeRangeVar(get_namespace_name(RelationGetNamespace(rel)),
-						 pstrdup(RelationGetRelationName(rel)), -1);
+						 pstrdup(RelationGetRelationName(rel)),
+						 -1);
 
 	/* Make changes-so-far visible */
 	CommandCounterIncrement();
@@ -8797,8 +8788,8 @@ ATPrepAlterColumnType(List **wqueue,
 	if (transform == NULL)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATATYPE_MISMATCH),
-				 errmsg("column \"%s\" cannot be cast to type \"%s\"",
-						colName, TypeNameToString(typename))));
+				 errmsg("column \"%s\" cannot be cast to type %s",
+						colName, format_type_be(targettype))));
 
 	free_parsestate(pstate);
 
@@ -8930,8 +8921,8 @@ ATExecAlterColumnType(AlteredTableInfo *tab, Relation rel,
 		if (defaultexpr == NULL)
 			ereport(ERROR,
 					(errcode(ERRCODE_DATATYPE_MISMATCH),
-			errmsg("default for column \"%s\" cannot be cast to type \"%s\"",
-				   colName, TypeNameToString(typename))));
+			errmsg("default for column \"%s\" cannot be cast to type %s",
+				   colName, format_type_be(targettype))));
 	}
 	else
 		defaultexpr = NULL;
@@ -10044,7 +10035,7 @@ ATExecSetRelOptions(Relation rel, List *defList, bool isReset)
 	repl_repl[Anum_pg_class_reloptions - 1] = true;
 
 	newtuple = heap_modify_tuple(tuple, RelationGetDescr(pgclass),
-								 repl_val, repl_null, repl_repl);
+								repl_val, repl_null, repl_repl);
 
 	simple_heap_update(pgclass, &newtuple->t_self, newtuple);
 
@@ -10104,7 +10095,7 @@ copy_append_only_data(
 	/*
 	 * Open the files
 	 */
-	basepath = relpath(*oldRelFileNode);
+	basepath = relpath(*oldRelFileNode, MAIN_FORKNUM);
 	if (segmentFileNum > 0)
 		snprintf(srcFileName, sizeof(srcFileName), "%s.%u", basepath, segmentFileNum);
 	else
@@ -10117,7 +10108,7 @@ copy_append_only_data(
 				(errcode_for_file_access(),
 				 errmsg("could not open file \"%s\": %m", srcFileName)));
 
-	basepath = relpath(*newRelFileNode);
+	basepath = relpath(*newRelFileNode, MAIN_FORKNUM);
 	if (segmentFileNum > 0)
 		snprintf(dstFileName, sizeof(srcFileName), "%s.%u", basepath, segmentFileNum);
 	else
@@ -10517,6 +10508,7 @@ ATExecSetTableSpace_BufferPool(
 	ItemPointerData newPersistentTid;
 	int64 newPersistentSerialNum;
 	SMgrRelation dstrel;
+	ForkNumber forkNum;
 	bool useWal;
 	ItemPointerData oldPersistentTid;
 	int64 oldPersistentSerialNum;
@@ -10527,8 +10519,7 @@ ATExecSetTableSpace_BufferPool(
 	oldTablespace = rel->rd_rel->reltablespace ? rel->rd_rel->reltablespace : MyDatabaseTableSpace;
 
 	/*
-	 * We need to log the copied data in WAL enabled AND
-	 * it's not a temp rel.
+	 * We need to log the copied data in WAL enabled AND it's not a temp rel.
 	 */
 	useWal = XLogIsNeeded() && !rel->rd_istemp;
 
@@ -10539,10 +10530,10 @@ ATExecSetTableSpace_BufferPool(
 			 "new path '%s', new relfilenode %u, new reltablespace %u, "
 			 "bulk load %s",
 			 RelationGetRelid(rel),
-			 relpath(rel->rd_node),
+			 relpath(rel->rd_node, MAIN_FORKNUM),
 			 rel->rd_rel->relfilenode,
 			 oldTablespace,
-			 relpath(*newRelFileNode),
+			 relpath(*newRelFileNode, MAIN_FORKNUM),
 			 newRelFileNode->relNode,
 			 newRelFileNode->spcNode,
 			 (!useWal ? "true" : "false"));
@@ -10555,6 +10546,7 @@ ATExecSetTableSpace_BufferPool(
 					/* segmentFileNum */ 0,
 					&oldPersistentTid,
 					&oldPersistentSerialNum);
+
 	if (!HeapTupleIsValid(nodeTuple))
 		elog(ERROR, "cache lookup failed for relation %u, tablespace %u, relation file node %u", 
 		     tableOid,
@@ -10568,39 +10560,54 @@ ATExecSetTableSpace_BufferPool(
 										&localRelStorageMgr,
 										&relBufpoolKind);
 	Assert(localRelStorageMgr == PersistentFileSysRelStorageMgr_BufferPool);
-	
-	dstrel = smgropen(*newRelFileNode);
+
 	MirroredFileSysObj_TransactionCreateBufferPoolFile(
-											dstrel,
-											relBufpoolKind,
-											rel->rd_isLocalBuf,
-											rel->rd_rel->relname.data,
-											/* doJustInTimeDirCreate */ true,
-											/* bufferPoolBulkLoad */ !useWal,
-											&newPersistentTid,
-											&newPersistentSerialNum);
+		newRelFileNode,
+		relBufpoolKind,
+		rel->rd_isLocalBuf,
+		rel->rd_rel->relname.data,
+		/* doJustInTimeDirCreate */ true,
+		/* bufferPoolBulkLoad */ !useWal,
+		&newPersistentTid,
+		&newPersistentSerialNum);
 
 	if (Debug_persistent_print)
 		elog(Persistent_DebugPrintLevel(), 
 		     "ALTER TABLE SET TABLESPACE: Create for Buffer Pool managed '%s' "
 			 "persistent TID %s and serial number " INT64_FORMAT,
-			 relpath(*newRelFileNode),
+			 relpath(*newRelFileNode, MAIN_FORKNUM),
 			 ItemPointerToString(&newPersistentTid),
 			 newPersistentSerialNum);
 
-	/* copy relation data to the new physical file */
-	copy_buffer_pool_data(
-					rel, 
-					dstrel,
-					&newPersistentTid,
-					newPersistentSerialNum,
-					useWal);
+	/* copy main fork */
+	dstrel = smgropen(*newRelFileNode);
+	copy_buffer_pool_data(rel, dstrel, MAIN_FORKNUM, rel->rd_istemp,
+						  &newPersistentTid,
+						  newPersistentSerialNum,
+						  useWal);
+
+	/* copy those extra forks that exist */
+	for (forkNum = MAIN_FORKNUM + 1; forkNum <= MAX_FORKNUM; forkNum++)
+	{
+		if (smgrexists(rel->rd_smgr, forkNum))
+		{
+			smgrcreate(dstrel, forkNum, false);
+			/* GPDB_84_MERGE_FIXME: What would be the correct persistenttid/serialnum
+			 * values for the extra forks? And what about the WAL-logging?
+			 */
+			copy_buffer_pool_data(rel, dstrel, forkNum, rel->rd_istemp,
+								  &newPersistentTid,
+								  newPersistentSerialNum,
+								  useWal);
+		}
+	}
+	smgrclose(dstrel);
 
 	if (Debug_persistent_print)
 		elog(Persistent_DebugPrintLevel(), 
 			 "ALTER TABLE SET TABLESPACE: Scheduling drop for '%s' "
 			 "persistent TID %s and serial number " INT64_FORMAT,
-			 relpath(*newRelFileNode),
+			 relpath(*newRelFileNode, MAIN_FORKNUM),
 			 ItemPointerToString(&rel->rd_segfile0_relationnodeinfo.persistentTid),
 			 rel->rd_segfile0_relationnodeinfo.persistentSerialNum);
 
@@ -10608,22 +10615,15 @@ ATExecSetTableSpace_BufferPool(
 	/* schedule unlinking old physical file */
 	MirroredFileSysObj_ScheduleDropBufferPoolRel(rel);
 
-	/*
-	 * Now drop smgr references.  The source was already dropped by
-	 * smgrscheduleunlink.
-	 */
-	smgrclose(dstrel);
-
 	/* Update gp_relation_node row. */
 	UpdateGpRelationNodeTuple(
 						gp_relation_node,
 						nodeTuple,
-						(newRelFileNode->spcNode == MyDatabaseTableSpace) ? 0:newRelFileNode->spcNode,
+						(newRelFileNode->spcNode == MyDatabaseTableSpace) ? 0 : newRelFileNode->spcNode,
 						newRelFileNode->relNode,
 						/* segmentFileNum */ 0,
 						&newPersistentTid,
 						newPersistentSerialNum);
-
 }
 
 static bool
@@ -10672,7 +10672,6 @@ ATExecSetTableSpace_Relation(Oid tableOid, Oid newTableSpace)
 	if (newTableSpace == oldTableSpace ||
 		(newTableSpace == MyDatabaseTableSpace && oldTableSpace == 0))
 	{
-		/* XXX - Why do we hold the lock if we aren't changing anything? */
 		relation_close(rel, NoLock);
 		return false;
 	}
@@ -10688,6 +10687,14 @@ ATExecSetTableSpace_Relation(Oid tableOid, Oid newTableSpace)
 	rd_rel = (Form_pg_class) GETSTRUCT(tuple);
 
 	/*
+	 * Since we copy the file directly without looking at the shared buffers,
+	 * we'd better first flush out any pages of the source relation that are
+	 * in shared buffers.  We assume no new changes will be made while we are
+	 * holding exclusive lock on the rel.
+	 */
+	FlushRelationBuffers(rel);
+
+	/*
 	 * Relfilenodes are not unique across tablespaces, so we need to allocate
 	 * a new one in the new tablespace.
 	 */
@@ -10696,8 +10703,7 @@ ATExecSetTableSpace_Relation(Oid tableOid, Oid newTableSpace)
 
 	gp_relation_node = heap_open(GpRelationNodeRelationId, RowExclusiveLock);
 
-	/* create another storage file. Is it a little ugly ? */
-	/* NOTE: any conflict in relfilenode value will be caught here */
+	/* Open old and new relation */
 	newrnode = rel->rd_node;
 	newrnode.relNode = newrelfilenode;
 	newrnode.spcNode = newTableSpace;
@@ -10763,7 +10769,6 @@ ATExecSetTableSpace(Oid tableOid, Oid newTableSpace)
 	Oid			relbmrelid = InvalidOid;
 	Oid			relbmidxid = InvalidOid;
 
-
 	/* Ensure valid input */
 	Assert(OidIsValid(tableOid));
 	Assert(OidIsValid(newTableSpace));
@@ -10799,7 +10804,6 @@ ATExecSetTableSpace(Oid tableOid, Oid newTableSpace)
 	/* Move the main table */
 	if (!ATExecSetTableSpace_Relation(tableOid, newTableSpace))
 	{
-		/* XXX - Why do we hold the lock if we aren't changing anything? */
 		relation_close(rel, NoLock);
 		return;
 	}
@@ -10834,8 +10838,7 @@ ATExecSetTableSpace(Oid tableOid, Oid newTableSpace)
 		MetaTrackUpdObject(RelationRelationId,
 						   RelationGetRelid(rel),
 						   GetUserId(),
-						   "ALTER", "SET TABLESPACE"
-			);
+						   "ALTER", "SET TABLESPACE");
 
 	/* Hold the lock until commit */
 	relation_close(rel, NoLock);
@@ -10846,6 +10849,7 @@ ATExecSetTableSpace(Oid tableOid, Oid newTableSpace)
  */
 static void
 copy_buffer_pool_data(Relation rel, SMgrRelation dst,
+					  ForkNumber forkNum, bool istemp,
 					  ItemPointer persistentTid, int64 persistentSerialNum,
 					  bool useWal)
 {
@@ -10856,14 +10860,6 @@ copy_buffer_pool_data(Relation rel, SMgrRelation dst,
 	BlockNumber blkno;
 
 	MirroredBufferPoolBulkLoadInfo bulkLoadInfo;
-
-	/*
-	 * Since we copy the file directly without looking at the shared buffers,
-	 * we'd better first flush out any pages of the source relation that are
-	 * in shared buffers.  We assume no new changes will be made while we are
-	 * holding exclusive lock on the rel.
-	 */
-	FlushRelationBuffers(rel);
 
 	/*
 	 * palloc the buffer so that it's MAXALIGN'd.  If it were just a local
@@ -10879,7 +10875,7 @@ copy_buffer_pool_data(Relation rel, SMgrRelation dst,
 	/* RelationGetNumberOfBlocks will certainly have opened rd_smgr */
 	src = rel->rd_smgr;
 
-	if (!useWal)
+	if (!useWal && forkNum == MAIN_FORKNUM)
 	{
 		MirroredBufferPool_BeginBulkLoad(
 								&rel->rd_node,
@@ -10907,18 +10903,18 @@ copy_buffer_pool_data(Relation rel, SMgrRelation dst,
 		/* If we got a cancel signal during the copy of the data, quit */
 		CHECK_FOR_INTERRUPTS();
 
-		smgrread(src, blkno, buf);
+		smgrread(src, forkNum, blkno, buf);
 
 		if (!PageIsVerified(page, blkno))
 			ereport(ERROR,
 					(errcode(ERRCODE_DATA_CORRUPTED),
 					 errmsg("invalid page in block %u of relation %s",
-							blkno, relpath(src->smgr_rnode))));
+							blkno, relpath(src->smgr_rnode, forkNum))));
 
 		/* XLOG stuff */
 		if (useWal)
 		{
-			log_newpage_relFileNode(&dst->smgr_rnode, blkno, page, persistentTid,
+			log_newpage_relFileNode(&dst->smgr_rnode, forkNum, blkno, page, persistentTid,
 						persistentSerialNum);
 		}
 
@@ -10932,8 +10928,8 @@ copy_buffer_pool_data(Relation rel, SMgrRelation dst,
 		 * rel, because there's no need for smgr to schedule an fsync for this
 		 * write; we'll do it ourselves below.
 		 */
-		smgrextend(dst, blkno, buf, true);
-		
+		smgrextend(dst, forkNum, blkno, buf, true);
+
 		LWLockRelease(MirroredLock);
 		// -------- MirroredLock ----------
 	}
@@ -10958,13 +10954,13 @@ copy_buffer_pool_data(Relation rel, SMgrRelation dst,
 	// -------- MirroredLock ----------
 	LWLockAcquire(MirroredLock, LW_SHARED);
 	
-	if (!rel->rd_istemp)
-		smgrimmedsync(dst);
+	if (!istemp)
+		smgrimmedsync(dst, forkNum);
 	
 	LWLockRelease(MirroredLock);
 	// -------- MirroredLock ----------
 
-	if (!useWal)
+	if (!useWal && forkNum == MAIN_FORKNUM)
 	{
 		bool mirrorDataLossOccurred;
 	
@@ -11983,7 +11979,7 @@ build_ctas_with_dist(Relation rel, List *dist_clause,
 	PushUpdatedSnapshot(GetActiveSnapshot());
 
 	/* Create dest receiver for COPY OUT */
-	dest = CreateDestReceiver(DestIntoRel, NULL);
+	dest = CreateDestReceiver(DestIntoRel);
 
 	/* Create a QueryDesc requesting no output */
 	queryDesc = CreateQueryDesc(stmt, pstrdup("(internal SELECT INTO query)"),
@@ -16557,10 +16553,11 @@ char *alterTableCmdString(AlterTableType subtype)
 	switch (subtype)
 	{
 		case AT_AddColumn: /* add column */
-		case AT_AddColumnRecurse: /* internal to command/tablecmds.c*/
+		case AT_AddColumnRecurse: /* internal to command/tablecmds.c */
+		case AT_AddColumnToView: /* implicitly via CREATE OR REPLACE VIEW */
 			cmdstring = pstrdup("add a column to");
 			break;
-			
+
 		case AT_ColumnDefault: /* alter column default */
 		case AT_ColumnDefaultRecurse:
 			cmdstring = pstrdup("alter a column default of");

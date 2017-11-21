@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/spi.c,v 1.197 2008/07/18 20:26:06 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/spi.c,v 1.202 2008/12/13 02:29:21 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -722,7 +722,7 @@ SPI_modifytuple(Relation rel, HeapTuple tuple, int natts, int *attnum,
 		if (attnum[i] <= 0 || attnum[i] > numberOfAttributes)
 			break;
 		v[attnum[i] - 1] = Values[i];
-		n[attnum[i] - 1] = (Nulls && Nulls[i] == 'n');
+		n[attnum[i] - 1] = (Nulls && Nulls[i] == 'n') ? true : false;
 	}
 
 	if (i == natts)				/* no errors in *attnum */
@@ -1308,7 +1308,7 @@ SPI_cursor_fetch(Portal portal, bool forward, long count)
 {
 	_SPI_cursor_operation(portal,
 						  forward ? FETCH_FORWARD : FETCH_BACKWARD, count,
-						  CreateDestReceiver(DestSPI, NULL));
+						  CreateDestReceiver(DestSPI));
 	/* we know that the DestSPI receiver doesn't need a destroy call */
 }
 
@@ -1337,7 +1337,7 @@ SPI_scroll_cursor_fetch(Portal portal, FetchDirection direction, long count)
 {
 	_SPI_cursor_operation(portal,
 						  direction, count,
-						  CreateDestReceiver(DestSPI, NULL));
+						  CreateDestReceiver(DestSPI));
 	/* we know that the DestSPI receiver doesn't need a destroy call */
 }
 
@@ -1713,8 +1713,7 @@ _SPI_prepare_plan(const char *src, SPIPlanPtr plan, ParamListInfo boundParams)
 			}
 		}
 
-		stmt_list = pg_plan_queries(stmt_list, cursor_options,
-									boundParams, false);
+		stmt_list = pg_plan_queries(stmt_list, cursor_options, boundParams);
 
 		plansource = (CachedPlanSource *) palloc0(sizeof(CachedPlanSource));
 		cplan = (CachedPlan *) palloc0(sizeof(CachedPlan));
@@ -1851,8 +1850,7 @@ _SPI_execute_plan(SPIPlanPtr plan, ParamListInfo paramLI,
 			if (!read_only)
 				CommandCounterIncrement();
 
-			dest = CreateDestReceiver(canSetTag ? DestSPI : DestNone,
-									  NULL);
+			dest = CreateDestReceiver(canSetTag ? DestSPI : DestNone);
 
 			if (snapshot == InvalidSnapshot)
 			{

@@ -2938,7 +2938,7 @@ appendonly_insert(AppendOnlyInsertDesc aoInsertDesc,
 											NULL, aoInsertDesc->mt_bind,
 											aoInsertDesc->toast_tuple_target,
 											false,	/* errtbl is never AO */
-											true, true);
+											0);
 	else
 		tup = instup;
 

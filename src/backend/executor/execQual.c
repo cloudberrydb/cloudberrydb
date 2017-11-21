@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execQual.c,v 1.231 2008/05/15 00:17:39 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execQual.c,v 1.238 2008/12/18 19:38:22 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -50,7 +50,6 @@
 #include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
 #include "optimizer/planmain.h"
-#include "parser/parse_expr.h"
 #include "pgstat.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
@@ -1391,18 +1390,22 @@ init_fcache(Oid foid, FuncExprState *fcache,
 			fcache->funcResultDesc = tupdesc;
 			fcache->funcReturnsTuple = false;
 		}
+		else if (functypclass == TYPEFUNC_RECORD)
+		{
+			/* This will work if function doesn't need an expectedDesc */
+			fcache->funcResultDesc = NULL;
+			fcache->funcReturnsTuple = true;
+		}
 		else
 		{
-			/* Else, we will complain if function wants materialize mode */
+			/* Else, we will fail if function needs an expectedDesc */
 			fcache->funcResultDesc = NULL;
 		}
 
 		MemoryContextSwitchTo(oldcontext);
 	}
 	else
-	{
 		fcache->funcResultDesc = NULL;
-	}
 
 	/* Initialize additional state */
 	fcache->funcResultStore = NULL;
@@ -1556,18 +1559,32 @@ ExecPrepareTuplestoreResult(FuncExprState *fcache,
 	if (fcache->funcResultSlot == NULL)
 	{
 		/* Create a slot so we can read data out of the tuplestore */
+		TupleDesc	slotDesc;
 		MemoryContext oldcontext;
 
-		/* We must have been able to determine the result rowtype */
-		if (fcache->funcResultDesc == NULL)
+		oldcontext = MemoryContextSwitchTo(fcache->func.fn_mcxt);
+
+		/*
+		 * If we were not able to determine the result rowtype from context,
+		 * and the function didn't return a tupdesc, we have to fail.
+		 */
+		if (fcache->funcResultDesc)
+			slotDesc = fcache->funcResultDesc;
+		else if (resultDesc)
+		{
+			/* don't assume resultDesc is long-lived */
+			slotDesc = CreateTupleDescCopy(resultDesc);
+		}
+		else
+		{
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("function returning setof record called in "
 							"context that cannot accept type record")));
+			slotDesc = NULL;	/* keep compiler quiet */
+		}
 
-		oldcontext = MemoryContextSwitchTo(fcache->func.fn_mcxt);
-		fcache->funcResultSlot =
-			MakeSingleTupleTableSlot(fcache->funcResultDesc);
+		fcache->funcResultSlot = MakeSingleTupleTableSlot(slotDesc);
 		MemoryContextSwitchTo(oldcontext);
 	}
 
@@ -1665,8 +1682,10 @@ ExecMakeFunctionResult(FuncExprState *fcache,
 					   bool *isNull,
 					   ExprDoneCond *isDone)
 {
+	List	   *arguments;
 	Datum		result;
-	FunctionCallInfoData fcinfo;
+	FunctionCallInfoData fcinfo_data;
+	FunctionCallInfo fcinfo;
 	PgStat_FunctionCallUsage fcusage;
 	ReturnSetInfo rsinfo;		/* for functions returning sets */
 	ExprDoneCond argDone;
@@ -1717,17 +1736,31 @@ restart:
 	}
 
 	/*
+	 * For non-set-returning functions, we just use a local-variable
+	 * FunctionCallInfoData.  For set-returning functions we keep the callinfo
+	 * record in fcache->setArgs so that it can survive across multiple
+	 * value-per-call invocations.  (The reason we don't just do the latter
+	 * all the time is that plpgsql expects to be able to use simple expression
+	 * trees re-entrantly.  Which might not be a good idea, but the penalty
+	 * for not doing so is high.)
+	 */
+	if (fcache->func.fn_retset)
+		fcinfo = &fcache->setArgs;
+	else
+		fcinfo = &fcinfo_data;
+
+	/*
 	 * arguments is a list of expressions to evaluate before passing to the
 	 * function manager.  We skip the evaluation if it was already done in the
 	 * previous call (ie, we are continuing the evaluation of a set-valued
 	 * function).  Otherwise, collect the current argument values into fcinfo.
 	 */
-	List	   *arguments = fcache->args;
+	arguments = fcache->args;
 	if (!fcache->setArgsValid)
 	{
 		/* Need to prep callinfo structure */
-		InitFunctionCallInfoData(fcinfo, &(fcache->func), 0, NULL, NULL);
-		argDone = ExecEvalFuncArgs(&fcinfo, arguments, econtext);
+		InitFunctionCallInfoData(*fcinfo, &(fcache->func), 0, NULL, NULL);
+		argDone = ExecEvalFuncArgs(fcinfo, arguments, econtext);
 		if (argDone == ExprEndResult)
 		{
 			/* input is an empty set, so return an empty set. */
@@ -1744,31 +1777,11 @@ restart:
 	}
 	else
 	{
-		/* Copy callinfo from previous evaluation */
-		memcpy(&fcinfo, &fcache->setArgs, sizeof(fcinfo));
+		/* Re-use callinfo from previous evaluation */
 		hasSetArg = fcache->setHasSetArg;
 		/* Reset flag (we may set it again below) */
 		fcache->setArgsValid = false;
 	}
-
-	/*
-	 * Prepare a resultinfo node for communication.  If the function
-	 * doesn't itself return set, we don't pass the resultinfo to the
-	 * function, but we need to fill it in anyway for internal use.
-	 */
-	if (fcache->func.fn_retset)
-	{
-		fcinfo.resultinfo = (Node *) &rsinfo;
-	}
-	rsinfo.type = T_ReturnSetInfo;
-	rsinfo.econtext = econtext;
-	rsinfo.expectedDesc = fcache->funcResultDesc;
-	rsinfo.allowedModes = (int) (SFRM_ValuePerCall | SFRM_Materialize);
-	/* note we do not set SFRM_Materialize_Random or _Preferred */
-	rsinfo.returnMode = SFRM_ValuePerCall;
-	/* isDone is filled below */
-	rsinfo.setResult = NULL;
-	rsinfo.setDesc = NULL;
 
 	/*
 	 * Now call the function, passing the evaluated parameter values.
@@ -1783,6 +1796,23 @@ restart:
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("set-valued function called in context that cannot accept a set")));
+
+		/*
+		 * Prepare a resultinfo node for communication.  If the function
+		 * doesn't itself return set, we don't pass the resultinfo to the
+		 * function, but we need to fill it in anyway for internal use.
+		 */
+		if (fcache->func.fn_retset)
+			fcinfo->resultinfo = (Node *) &rsinfo;
+		rsinfo.type = T_ReturnSetInfo;
+		rsinfo.econtext = econtext;
+		rsinfo.expectedDesc = fcache->funcResultDesc;
+		rsinfo.allowedModes = (int) (SFRM_ValuePerCall | SFRM_Materialize);
+		/* note we do not set SFRM_Materialize_Random or _Preferred */
+		rsinfo.returnMode = SFRM_ValuePerCall;
+		/* isDone is filled below */
+		rsinfo.setResult = NULL;
+		rsinfo.setDesc = NULL;
 
 		/*
 		 * This loop handles the situation where we have both a set argument
@@ -1802,9 +1832,9 @@ restart:
 
 			if (fcache->func.fn_strict)
 			{
-				for (i = 0; i < fcinfo.nargs; i++)
+				for (i = 0; i < fcinfo->nargs; i++)
 				{
-					if (fcinfo.argnull[i])
+					if (fcinfo->argnull[i])
 					{
 						callit = false;
 						break;
@@ -1814,12 +1844,12 @@ restart:
 
 			if (callit)
 			{
-				pgstat_init_function_usage(&fcinfo, &fcusage);
+				pgstat_init_function_usage(fcinfo, &fcusage);
 
-				fcinfo.isnull = false;
+				fcinfo->isnull = false;
 				rsinfo.isDone = ExprSingleResult;
-				result = FunctionCallInvoke(&fcinfo);
-				*isNull = fcinfo.isnull;
+				result = FunctionCallInvoke(fcinfo);
+				*isNull = fcinfo->isnull;
 				*isDone = rsinfo.isDone;
 
 				pgstat_end_function_usage(&fcusage,
@@ -1845,7 +1875,7 @@ restart:
 					if (fcache->func.fn_retset &&
 						*isDone == ExprMultipleResult)
 					{
-						memcpy(&fcache->setArgs, &fcinfo, sizeof(fcinfo));
+						Assert(fcinfo == &fcache->setArgs);
 						fcache->setHasSetArg = hasSetArg;
 						fcache->setArgsValid = true;
 						/* Register cleanup callback if we didn't already */
@@ -1901,7 +1931,7 @@ restart:
 				break;			/* input not a set, so done */
 
 			/* Re-eval args to get the next element of the input set */
-			argDone = ExecEvalFuncArgs(&fcinfo, arguments, econtext);
+			argDone = ExecEvalFuncArgs(fcinfo, arguments, econtext);
 
 			if (argDone != ExprMultipleResult)
 			{
@@ -1939,9 +1969,9 @@ restart:
 		 */
 		if (fcache->func.fn_strict)
 		{
-			for (i = 0; i < fcinfo.nargs; i++)
+			for (i = 0; i < fcinfo->nargs; i++)
 			{
-				if (fcinfo.argnull[i])
+				if (fcinfo->argnull[i])
 				{
 					*isNull = true;
 					return (Datum) 0;
@@ -1949,11 +1979,11 @@ restart:
 			}
 		}
 
-		pgstat_init_function_usage(&fcinfo, &fcusage);
+		pgstat_init_function_usage(fcinfo, &fcusage);
 
-		fcinfo.isnull = false;
-		result = FunctionCallInvoke(&fcinfo);
-		*isNull = fcinfo.isnull;
+		fcinfo->isnull = false;
+		result = FunctionCallInvoke(fcinfo);
+		*isNull = fcinfo->isnull;
 
 		pgstat_end_function_usage(&fcusage, true);
 	}
@@ -2038,6 +2068,7 @@ Tuplestorestate *
 ExecMakeTableFunctionResult(ExprState *funcexpr,
 							ExprContext *econtext,
 							TupleDesc expectedDesc,
+							bool randomAccess,
 							uint64 operatorMemKB)
 {
 	Tuplestorestate *tupstore = NULL;
@@ -2072,7 +2103,9 @@ ExecMakeTableFunctionResult(ExprState *funcexpr,
 	rsinfo.type = T_ReturnSetInfo;
 	rsinfo.econtext = econtext;
 	rsinfo.expectedDesc = expectedDesc;
-	rsinfo.allowedModes = (int) (SFRM_ValuePerCall | SFRM_Materialize);
+	rsinfo.allowedModes = (int) (SFRM_ValuePerCall | SFRM_Materialize | SFRM_Materialize_Preferred);
+	if (randomAccess)
+		rsinfo.allowedModes |= (int) SFRM_Materialize_Random;
 	rsinfo.returnMode = SFRM_ValuePerCall;
 	/* isDone is filled below */
 	rsinfo.setResult = NULL;
@@ -2253,7 +2286,7 @@ ExecMakeTableFunctionResult(ExprState *funcexpr,
 
 				mt_bind = create_memtuple_binding(tupdesc);
 
-				tupstore = tuplestore_begin_heap(true, false, operatorMemKB);
+				tupstore = tuplestore_begin_heap(randomAccess, false, operatorMemKB);
 				MemoryContextSwitchTo(oldcontext);
 				rsinfo.setResult = tupstore;
 				rsinfo.setDesc = tupdesc;
@@ -2351,7 +2384,7 @@ no_function_result:
 	if (rsinfo.setResult == NULL)
 	{
 		MemoryContextSwitchTo(econtext->ecxt_per_query_memory);
-		tupstore = tuplestore_begin_heap(true, false, operatorMemKB);
+		tupstore = tuplestore_begin_heap(randomAccess, false, operatorMemKB);
 		rsinfo.setResult = tupstore;
 		if (!returnsSet)
 		{
@@ -2383,10 +2416,7 @@ no_function_result:
 		 * leaking it across multiple usages.
 		 */
 		if (rsinfo.setDesc->tdrefcount == -1)
-		{
 			FreeTupleDesc(rsinfo.setDesc);
-			rsinfo.setDesc = NULL;
-		}
 	}
 
 	MemoryContextSwitchTo(callerContext);

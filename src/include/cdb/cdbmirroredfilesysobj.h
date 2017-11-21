@@ -157,7 +157,7 @@ extern void MirroredFileSysObj_DropDbDir(
 	bool						*mirrorDataLossOccurred);
 
 extern void MirroredFileSysObj_TransactionCreateBufferPoolFile(
-	SMgrRelation 			smgrOpen,
+	RelFileNode *rnode,
 
 	PersistentFileSysRelBufpoolKind relBufpoolKind,
 

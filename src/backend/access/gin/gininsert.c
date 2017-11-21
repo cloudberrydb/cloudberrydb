@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *			$PostgreSQL: pgsql/src/backend/access/gin/gininsert.c,v 1.14 2008/07/11 21:06:29 tgl Exp $
+ *			$PostgreSQL: pgsql/src/backend/access/gin/gininsert.c,v 1.17 2008/11/19 10:34:50 heikki Exp $
  *-------------------------------------------------------------------------
  */
 
@@ -19,6 +19,7 @@
 #include "catalog/index.h"
 #include "miscadmin.h"
 #include "storage/bufmgr.h"
+#include "storage/indexfsm.h"
 #include "utils/memutils.h"
 
 

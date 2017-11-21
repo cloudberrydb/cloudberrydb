@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/subselect.c,v 1.132 2008/07/10 02:14:03 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/subselect.c,v 1.143 2008/12/08 00:16:09 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -66,7 +66,6 @@ typedef struct finalize_primnode_context
 static Node *build_subplan(PlannerInfo *root, Plan *plan, List *rtable,
 			  SubLinkType subLinkType, Node *testexpr,
 			  bool adjust_testexpr, bool unknownEqFalse);
-
 static List *generate_subquery_params(PlannerInfo *root, List *tlist,
 						 List **paramIds);
 static Node *convert_testexpr_mutator(Node *node,
@@ -76,7 +75,7 @@ static bool testexpr_is_hashable(Node *testexpr);
 static bool hash_ok_operator(OpExpr *expr);
 static bool simplify_EXISTS_query(PlannerInfo *root, Query *query);
 static Query *convert_EXISTS_to_ANY(PlannerInfo *root, Query *subselect,
-									Node **testexpr, List **paramIds);
+					  Node **testexpr, List **paramIds);
 static Node *replace_correlation_vars_mutator(Node *node, PlannerInfo *root);
 static Node *process_sublinks_mutator(Node *node,
 						 process_sublinks_context *context);
@@ -148,7 +147,7 @@ replace_outer_var(PlannerInfo *root, Var *var)
 	retval->paramid = i;
 	retval->paramtype = var->vartype;
 	retval->paramtypmod = var->vartypmod;
-	retval->location = -1;
+	retval->location = var->location;
 
 	return retval;
 }
@@ -433,7 +432,9 @@ make_subplan(PlannerInfo *root, Query *orig_subquery, SubLinkType subLinkType,
 	Query	   *subquery;
 	bool		simple_exists = false;
 	double		tuple_fraction = 1.0;
-	Node		*result;
+	Plan	   *plan;
+	PlannerInfo *subroot;
+	Node	   *result;
 
 	/*
 	 * Copy the source Query node.	This is a quick and dirty kluge to resolve
@@ -444,10 +445,11 @@ make_subplan(PlannerInfo *root, Query *orig_subquery, SubLinkType subLinkType,
 	subquery = (Query *) copyObject(orig_subquery);
 
 	/*
- 	 * If it's an EXISTS subplan, we might be able to simplify it.
- 	 */
+	 * If it's an EXISTS subplan, we might be able to simplify it.
+	 */
 	if (subLinkType == EXISTS_SUBLINK)
 		simple_exists = simplify_EXISTS_query(root, subquery);
+
 	/*
 	 * For an EXISTS subplan, tell lower-level planner to expect that only the
 	 * first tuple will be retrieved.  For ALL and ANY subplans, we will be
@@ -525,14 +527,12 @@ make_subplan(PlannerInfo *root, Query *orig_subquery, SubLinkType subLinkType,
 	else
 		config->honor_order_by = false;
 
-	PlannerInfo *subroot = NULL;
-
-	Plan *plan = subquery_planner(root->glob, subquery,
-			root,
-			false,
-			tuple_fraction,
-			&subroot,
-			config);
+	plan = subquery_planner(root->glob, subquery,
+							root,
+							false,
+							tuple_fraction,
+							&subroot,
+							config);
 
 	/* And convert to SubPlan or InitPlan format. */
 	result = build_subplan(root,
@@ -731,6 +731,7 @@ build_subplan(PlannerInfo *root, Plan *plan, List *rtable,
 		/* Adjust the Params */
 		List	   *params;
 
+		Assert(testexpr != NULL);
 		params = generate_subquery_params(root,
 										  plan->targetlist,
 										  &splan->paramIds);
@@ -773,6 +774,7 @@ build_subplan(PlannerInfo *root, Plan *plan, List *rtable,
 		 * because we need to scan the output of the subplan for each outer
 		 * tuple.  But if it's a not-direct-correlated IN (= ANY) test, we
 		 * might be able to use a hashtable to avoid comparing all the tuples.
+		 *
 		 * TODO siva - I believe we should've pulled these up to be NL joins.
 		 * We may want to assert that this is never exercised.
 		 */
@@ -782,6 +784,41 @@ build_subplan(PlannerInfo *root, Plan *plan, List *rtable,
 			testexpr_is_hashable(splan->testexpr))
 			splan->useHashTable = true;
 
+		/*
+		 * Otherwise, we have the option to tack a MATERIAL node onto the top
+		 * of the subplan, to reduce the cost of reading it repeatedly.  This
+		 * is pointless for a direct-correlated subplan, since we'd have to
+		 * recompute its results each time anyway.	For uncorrelated/undirect
+		 * correlated subplans, we add MATERIAL unless the subplan's top plan
+		 * node would materialize its output anyway.
+		 */
+#if 0
+		/*
+		 * In GPDB, don't add a MATERIAL node here. We'll most likely add one
+		 * later anyway, when the SubPlan reference is "parallelized" in
+		 * ParallelizeCorrelatedSubPlan.
+		 */
+		else if (splan->parParam == NIL)
+		{
+			bool		use_material;
+
+			switch (nodeTag(plan))
+			{
+				case T_Material:
+				case T_FunctionScan:
+				case T_CteScan:
+				case T_WorkTableScan:
+				case T_Sort:
+					use_material = false;
+					break;
+				default:
+					use_material = true;
+					break;
+			}
+			if (use_material)
+				plan = materialize_finished_plan(root, plan);
+		}
+#endif
 		result = (Node *) splan;
 	}
 
@@ -790,10 +827,8 @@ build_subplan(PlannerInfo *root, Plan *plan, List *rtable,
 	/*
 	 * Add the subplan and its rtable to the global lists.
 	 */
-	root->glob->subplans = lappend(root->glob->subplans,
-								   plan);
-	root->glob->subrtables = lappend(root->glob->subrtables,
-									 rtable);
+	root->glob->subplans = lappend(root->glob->subplans, plan);
+	root->glob->subrtables = lappend(root->glob->subrtables, rtable);
 	splan->plan_id = list_length(root->glob->subplans);
 
 	if (splan->is_initplan)
@@ -841,7 +876,7 @@ build_subplan(PlannerInfo *root, Plan *plan, List *rtable,
 		buf = NULL;
 	}
 
-    /* Lastly, fill in the cost estimates for use later */
+	/* Lastly, fill in the cost estimates for use later */
 	cost_subplan(root, splan, plan);
 
 	return result;
@@ -1189,8 +1224,7 @@ SS_process_ctes(PlannerInfo *root)
 		sprintf(splan->plan_name, "CTE %s", cte->ctename);
 
 		/* Lastly, fill in the cost estimates for use later */
-		// FIXME : CTE_MERGE: cost_subplan is part of the commit bd3daddaf232d95b0c9ba6f99b0170a0147dd8af
-		//cost_subplan(root, splan, plan);
+		cost_subplan(root, splan, plan);
 	}
 }
 
@@ -1382,14 +1416,34 @@ static bool
 simplify_EXISTS_query(PlannerInfo *root, Query *query)
 {
 	/*
+	 * PostgreSQL:
+	 *
 	 * We don't try to simplify at all if the query uses set operations,
-	 * OFFSET, or FOR UPDATE/SHARE; none of these seem likely in normal
-	 * usage and their possible effects are complex.
+	 * aggregates, HAVING, LIMIT/OFFSET, or FOR UPDATE/SHARE; none of these
+	 * seem likely in normal usage and their possible effects are complex.
+	 *
+	 * In GPDB, we try a bit harder: Try to demote HAVING to WHERE, in case
+	 * there are no aggregates. If that fails, only then give up. Also, just
+	 * discard any window functions; they shouldn't affect the number of
+	 * rows returned.
+	 *
+	 * GPDB_84_MERGE_FIXME: What about "LIMIT 0"? We can't just ignore it.
+	 * Furthermore, the rule used here, for when it's safe to demote a HAVING
+	 * to WHERE, is different from the one in subquery_planner(). Notably,
+	 * what if there are volatile functions or subplans?
 	 */
 	if (query->commandType != CMD_SELECT ||
 		query->intoClause ||
 		query->setOperations ||
+#if 0
+		query->hasAggs ||
+		query->hasWindowFuncs ||
+		query->havingQual ||
+#endif
 		query->limitOffset ||
+#if 0
+		query->limitCount ||
+#endif
 		query->rowMarks)
 		return false;
 
@@ -1421,13 +1475,23 @@ simplify_EXISTS_query(PlannerInfo *root, Query *query)
 	 * since our parsetree representation of these clauses depends on the
 	 * targetlist, we'd better throw them away if we drop the targetlist.)
 	 */
-	query->targetList = NULL;
-	/* Delete GROUP BY if no aggregates. */
+	query->targetList = NIL;
+	/*
+	 * Delete GROUP BY if no aggregates.
+	 *
+	 * Note: It's important that we don't clear hasAggs, even though we
+	 * removed any possible aggregates from the targetList! If you have a
+	 * subquery like "SELECT SUM(foo) ...", we don't need to compute the sum,
+	 * but we must still aggregate all the rows, and return a single row,
+	 * regardless of how many input rows there are. (In particular, even
+	 * if there are no input rows).
+	 */
 	if (!query->hasAggs)
 		query->groupClause = NIL;
 	query->windowClause = NIL;
 	query->distinctClause = NIL;
 	query->sortClause = NIL;
+	query->hasDistinctOn = false;
 
 	return true;
 }
@@ -1439,7 +1503,7 @@ simplify_EXISTS_query(PlannerInfo *root, Query *query)
  * except that we also support the case where the caller has found NOT EXISTS,
  * so we need an additional input parameter "under_not".
  */
-Node*
+Node *
 convert_EXISTS_sublink_to_join(PlannerInfo *root, SubLink *sublink,
 							   bool under_not, Relids available_rels)
 {
@@ -1682,15 +1746,15 @@ convert_EXISTS_to_ANY(PlannerInfo *root, Query *subselect,
 {
 	Node	   *whereClause;
 	List	   *leftargs,
-	*rightargs,
-	*opids,
-	*newWhere,
-	*tlist,
-	*testlist,
-	*paramids;
+			   *rightargs,
+			   *opids,
+			   *newWhere,
+			   *tlist,
+			   *testlist,
+			   *paramids;
 	ListCell   *lc,
-	*rc,
-	*oc;
+			   *rc,
+			   *oc;
 	AttrNumber	resno;
 
 	/*
@@ -1885,6 +1949,7 @@ convert_EXISTS_to_ANY(PlannerInfo *root, Query *subselect,
 
 	return subselect;
 }
+
 
 /*
  * Replace correlation vars (uplevel vars) with Params.

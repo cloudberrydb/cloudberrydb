@@ -796,15 +796,12 @@ listAllDbs(bool verbose)
 					  gettext_noop("Name"),
 					  gettext_noop("Owner"),
 					  gettext_noop("Encoding"));
-/* GPDB_84_MERGE_FIXME: datcollate and datctype have not been added yet */
-#if 0
 	if (pset.sversion >= 80400)
 		appendPQExpBuffer(&buf,
 						  "       d.datcollate as \"%s\",\n"
 						  "       d.datctype as \"%s\",\n",
 						  gettext_noop("Collation"),
 						  gettext_noop("Ctype"));
-#endif
 	appendPQExpBuffer(&buf, "       ");
 	printACLColumn(&buf, "d.datacl");
 	if (verbose && pset.sversion >= 80200)
@@ -1277,7 +1274,7 @@ describeOneTableDetails(const char *schemaname,
 	PGresult   *res = NULL;
 	printTableOpt myopt = pset.popt.topt;
 	printTableContent cont;
-	bool		printTableInitialized = false;
+	bool printTableInitialized = false;
 	int			i;
 	char	   *view_def = NULL;
 	char	   *headers[9];
@@ -1329,7 +1326,7 @@ describeOneTableDetails(const char *schemaname,
 		printfPQExpBuffer(&buf,
 			  "SELECT c.relchecks, c.relkind, c.relhasindex, c.relhasrules, "
 						  "c.relhastriggers, c.relhasoids, "
-						  "%s, c.reltablespace, "
+						  "%s, c.reltablespace, %s, "
 						  "CASE WHEN c.reloftype = 0 THEN '' ELSE c.reloftype::pg_catalog.regtype::pg_catalog.text END\n"
 						  "FROM pg_catalog.pg_class c\n "
 		   "LEFT JOIN pg_catalog.pg_class tc ON (c.reltoastrelid = tc.oid)\n"
@@ -1338,16 +1335,16 @@ describeOneTableDetails(const char *schemaname,
 						   "pg_catalog.array_to_string(c.reloptions || "
 						   "array(select 'toast.' || x from pg_catalog.unnest(tc.reloptions) x), ', ')\n"
 						   : "''"),
+						  /* GPDB Only:  relstorage  */
+						  (isGPDB() ? "c.relstorage" : "'h'"),
 						  oid);
 	}
-	// GPDB_84_MERGE_FIXME: We haven't merged the patch that added relhastriggers yet.
-#if 0
 	else if (pset.sversion >= 80400)
 	{
 		printfPQExpBuffer(&buf,
 			  "SELECT c.relchecks, c.relkind, c.relhasindex, c.relhasrules, "
 						  "c.relhastriggers, c.relhasoids, "
-						  "%s, c.reltablespace\n"
+						  "%s, c.reltablespace, %s \n"
 						  "FROM pg_catalog.pg_class c\n "
 		   "LEFT JOIN pg_catalog.pg_class tc ON (c.reltoastrelid = tc.oid)\n"
 						  "WHERE c.oid = '%s'\n",
@@ -1355,9 +1352,10 @@ describeOneTableDetails(const char *schemaname,
 						   "pg_catalog.array_to_string(c.reloptions || "
 						   "array(select 'toast.' || x from pg_catalog.unnest(tc.reloptions) x), ', ')\n"
 						   : "''"),
+						  /* GPDB Only:  relstorage  */
+						  (isGPDB() ? "c.relstorage" : "'h'"),
 						  oid);
 	}
-#endif
 	else if (pset.sversion >= 80200)
 	{
 		printfPQExpBuffer(&buf,
@@ -1367,9 +1365,8 @@ describeOneTableDetails(const char *schemaname,
 						  "FROM pg_catalog.pg_class WHERE oid = '%s'",
 						  (verbose ?
 					 "pg_catalog.array_to_string(reloptions, E', ')" : "''"),
-					 /* GPDB Only:  relstorage  */
-					 	  (isGPDB() ?
-					 		"relstorage" : "'h'"),
+						  /* GPDB Only:  relstorage  */
+						  (isGPDB() ? "relstorage" : "'h'"),
 						  oid);
 	}
 	else if (pset.sversion >= 80000)
@@ -1417,8 +1414,7 @@ describeOneTableDetails(const char *schemaname,
 	tableinfo.reloftype = (pset.sversion >= 90000 && strcmp(PQgetvalue(res, 0, 8), "") != 0) ?
 		strdup(PQgetvalue(res, 0, 8)) : 0;
 	/* GPDB Only:  relstorage  */
-	tableinfo.relstorage = (isGPDB()) ?
-		*(PQgetvalue(res, 0, 8)) : 'h';
+	tableinfo.relstorage = (isGPDB()) ? *(PQgetvalue(res, 0, 8)) : 'h';
 	PQclear(res);
 	res = NULL;
 
@@ -4119,6 +4115,159 @@ describeOneTSConfig(const char *oid, const char *nspname, const char *cfgname,
 	printQuery(res, &myopt, pset.queryFout, pset.logfile);
 
 	termPQExpBuffer(&title);
+
+	PQclear(res);
+	return true;
+}
+
+
+/*
+ * \dew
+ *
+ * Describes foreign-data wrappers
+ */
+bool
+listForeignDataWrappers(const char *pattern, bool verbose)
+{
+	PQExpBufferData buf;
+	PGresult   *res;
+	printQueryOpt myopt = pset.popt;
+
+	initPQExpBuffer(&buf);
+	printfPQExpBuffer(&buf,
+					  "SELECT fdwname AS \"%s\",\n"
+					  "  pg_catalog.pg_get_userbyid(fdwowner) AS \"%s\",\n"
+					  "  fdwlibrary AS \"%s\"\n",
+					  gettext_noop("Name"),
+					  gettext_noop("Owner"),
+					  gettext_noop("Library"));
+
+	if (verbose)
+		appendPQExpBuffer(&buf,
+						  ",\n  fdwacl AS \"%s\","
+						  "  fdwoptions AS \"%s\"",
+						  gettext_noop("Access privileges"),
+						  gettext_noop("Options"));
+
+	appendPQExpBuffer(&buf, "\nFROM pg_catalog.pg_foreign_data_wrapper WHERE 1=1\n");
+
+	processSQLNamePattern(pset.db, &buf, pattern, true, false,
+						  NULL, "fdwname", NULL, NULL);
+
+	appendPQExpBuffer(&buf, "ORDER BY 1;");
+
+	res = PSQLexec(buf.data, false);
+	termPQExpBuffer(&buf);
+	if (!res)
+		return false;
+
+	myopt.nullPrint = NULL;
+	myopt.title = _("List of foreign-data wrappers");
+	myopt.translate_header = true;
+
+	printQuery(res, &myopt, pset.queryFout, pset.logfile);
+
+	PQclear(res);
+	return true;
+}
+
+/*
+ * \des
+ *
+ * Describes servers.
+ */
+bool
+listForeignServers(const char *pattern, bool verbose)
+{
+	PQExpBufferData buf;
+	PGresult   *res;
+	printQueryOpt myopt = pset.popt;
+
+	initPQExpBuffer(&buf);
+	printfPQExpBuffer(&buf,
+					  "SELECT s.srvname AS \"%s\",\n"
+					  "  pg_catalog.pg_get_userbyid(s.srvowner) AS \"%s\",\n"
+					  "  f.fdwname AS \"%s\"\n",
+					  gettext_noop("Name"),
+					  gettext_noop("Owner"),
+					  gettext_noop("Foreign-data wrapper"));
+
+	if (verbose)
+		appendPQExpBuffer(&buf,
+						  ",\n  s.srvacl AS \"%s\","
+						  "  s.srvtype AS \"%s\","
+						  "  s.srvversion AS \"%s\","
+						  "  s.srvoptions AS \"%s\"",
+						  gettext_noop("Access privileges"),
+						  gettext_noop("Type"),
+						  gettext_noop("Version"),
+						  gettext_noop("Options"));
+
+	appendPQExpBuffer(&buf,
+			  		  "\nFROM pg_foreign_server s\n"
+					  "JOIN pg_catalog.pg_foreign_data_wrapper f ON f.oid=s.srvfdw\n");
+
+	processSQLNamePattern(pset.db, &buf, pattern, true, false,
+						  NULL, "s.srvname", NULL, NULL);
+
+	appendPQExpBuffer(&buf, "ORDER BY 1;");
+
+	res = PSQLexec(buf.data, false);
+	termPQExpBuffer(&buf);
+	if (!res)
+		return false;
+
+	myopt.nullPrint = NULL;
+	myopt.title = _("List of foreign servers");
+	myopt.translate_header = true;
+
+	printQuery(res, &myopt, pset.queryFout, pset.logfile);
+
+	PQclear(res);
+	return true;
+}
+
+/*
+ * \deu
+ *
+ * Describes user mappings.
+ */
+bool
+listUserMappings(const char *pattern, bool verbose)
+{
+	PQExpBufferData buf;
+	PGresult   *res;
+	printQueryOpt myopt = pset.popt;
+
+	initPQExpBuffer(&buf);
+	printfPQExpBuffer(&buf,
+					  "SELECT um.srvname AS \"%s\",\n"
+					  "  um.usename AS \"%s\"",
+					  gettext_noop("Server"),
+					  gettext_noop("Username"));
+
+	if (verbose)
+		appendPQExpBuffer(&buf,
+						  ",\n  um.umoptions AS \"%s\"",
+						  gettext_noop("Options"));
+
+	appendPQExpBuffer(&buf, "\nFROM pg_catalog.pg_user_mappings um WHERE 1=1\n");
+
+	processSQLNamePattern(pset.db, &buf, pattern, true, false,
+						  NULL, "um.srvname", "um.usename", NULL);
+
+	appendPQExpBuffer(&buf, "ORDER BY 1, 2;");
+
+	res = PSQLexec(buf.data, false);
+	termPQExpBuffer(&buf);
+	if (!res)
+		return false;
+
+	myopt.nullPrint = NULL;
+	myopt.title = _("List of user mappings");
+	myopt.translate_header = true;
+
+	printQuery(res, &myopt, pset.queryFout, pset.logfile);
 
 	PQclear(res);
 	return true;

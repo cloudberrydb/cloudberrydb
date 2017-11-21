@@ -9,12 +9,13 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/buffer/localbuf.c,v 1.80 2008/06/12 09:12:31 heikki Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/buffer/localbuf.c,v 1.84 2008/11/27 07:38:01 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
 
+#include "catalog/catalog.h"
 #include "storage/buf_internals.h"
 #include "storage/bufmgr.h"
 #include "storage/smgr.h"
@@ -61,7 +62,8 @@ static Block GetLocalBufferStorage(void);
  * (hence, usage_count is always advanced).
  */
 BufferDesc *
-LocalBufferAlloc(SMgrRelation smgr, BlockNumber blockNum, bool *foundPtr)
+LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum, BlockNumber blockNum,
+				 bool *foundPtr)
 {
 	BufferTag	newTag;			/* identity of requested block */
 	LocalBufferLookupEnt *hresult;
@@ -70,7 +72,7 @@ LocalBufferAlloc(SMgrRelation smgr, BlockNumber blockNum, bool *foundPtr)
 	int			trycounter;
 	bool		found;
 
-	INIT_BUFFERTAG(newTag, smgr->smgr_rnode, blockNum);
+	INIT_BUFFERTAG(newTag, smgr->smgr_rnode, forkNum, blockNum);
 
 	/* Initialize local buffers if first request in this session */
 	if (LocalBufHash == NULL)
@@ -86,8 +88,8 @@ LocalBufferAlloc(SMgrRelation smgr, BlockNumber blockNum, bool *foundPtr)
 		bufHdr = &LocalBufferDescriptors[b];
 		Assert(BUFFERTAGS_EQUAL(bufHdr->tag, newTag));
 #ifdef LBDEBUG
-		fprintf(stderr, "LB ALLOC (%u,%d) %d\n",
-				smgr->smgr_rnode.relNode, blockNum, -b - 1);
+		fprintf(stderr, "LB ALLOC (%u,%d,%d) %d\n",
+				smgr->smgr_rnode.relNode, forkNum, blockNum, -b - 1);
 #endif
 		/* this part is equivalent to PinBuffer for a shared buffer */
 		if (LocalRefCount[b] == 0)
@@ -109,8 +111,8 @@ LocalBufferAlloc(SMgrRelation smgr, BlockNumber blockNum, bool *foundPtr)
 	}
 
 #ifdef LBDEBUG
-	fprintf(stderr, "LB ALLOC (%u,%d) %d\n",
-			RelationGetRelid(reln), blockNum, -nextFreeLocalBuf - 1);
+	fprintf(stderr, "LB ALLOC (%u,%d,%d) %d\n",
+		smgr->smgr_rnode.relNode, forkNum, blockNum, -nextFreeLocalBuf - 1);
 #endif
 
 	/*
@@ -169,6 +171,7 @@ LocalBufferAlloc(SMgrRelation smgr, BlockNumber blockNum, bool *foundPtr)
 
 		/* And write... */
 		smgrwrite(oreln,
+				  bufHdr->tag.forkNum,
 				  bufHdr->tag.blockNum,
 				  localpage,
 				  true);
@@ -260,7 +263,8 @@ MarkLocalBufferDirty(Buffer buffer)
  *		See DropRelFileNodeBuffers in bufmgr.c for more notes.
  */
 void
-DropRelFileNodeLocalBuffers(RelFileNode rnode, BlockNumber firstDelBlock)
+DropRelFileNodeLocalBuffers(RelFileNode rnode, ForkNumber forkNum,
+							BlockNumber firstDelBlock)
 {
 	int			i;
 
@@ -271,14 +275,13 @@ DropRelFileNodeLocalBuffers(RelFileNode rnode, BlockNumber firstDelBlock)
 
 		if ((bufHdr->flags & BM_TAG_VALID) &&
 			RelFileNodeEquals(bufHdr->tag.rnode, rnode) &&
+			bufHdr->tag.forkNum == forkNum &&
 			bufHdr->tag.blockNum >= firstDelBlock)
 		{
 			if (LocalRefCount[i] != 0)
-				elog(ERROR, "block %u of %u/%u/%u is still referenced (local %u)",
+				elog(ERROR, "block %u of %s is still referenced (local %u)",
 					 bufHdr->tag.blockNum,
-					 bufHdr->tag.rnode.spcNode,
-					 bufHdr->tag.rnode.dbNode,
-					 bufHdr->tag.rnode.relNode,
+					 relpath(bufHdr->tag.rnode, bufHdr->tag.forkNum),
 					 LocalRefCount[i]);
 			/* Remove entry from hashtable */
 			hresult = (LocalBufferLookupEnt *)

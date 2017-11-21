@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump_sort.c,v 1.20.2.1 2009/01/18 20:44:53 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump_sort.c,v 1.22 2008/12/19 16:25:18 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -53,9 +53,13 @@ static const int oldObjectTypePriority[] =
 	4,							/* DO_TSDICT */
 	3,							/* DO_TSTEMPLATE */
 	5,							/* DO_TSCONFIG */
+	3,							/* DO_FDW */
+	4,							/* DO_FOREIGN_SERVER */
 	10,							/* DO_BLOBS */
 	11,							/* DO_BLOB_COMMENTS */
 	3,							/* DO_EXTPROTOCOL */
+	/* GPDB_84_MERGE_FIXME: missing DO_TYPE_STORAGE_OPTIONS? */
+	/* GPDB_84_MERGE_FIXME: missing DO_TYPE_CACHE? */
 };
 
 /*
@@ -83,16 +87,19 @@ static const int newObjectTypePriority[] =
 	24,							/* DO_FK_CONSTRAINT */
 	2,							/* DO_PROCLANG */
 	8,							/* DO_CAST */
-	8,							/* DO_EXTPROTOCOL */
 	17,							/* DO_TABLE_DATA */
 	15,							/* DO_DUMMY_TYPE */
 	10,							/* DO_TSPARSER */
 	12,							/* DO_TSDICT */
 	11,							/* DO_TSTEMPLATE */
 	13,							/* DO_TSCONFIG */
+	3,							/* DO_FDW */
+	4,							/* DO_FOREIGN_SERVER */
 	18,							/* DO_BLOBS */
 	19,							/* DO_BLOB_COMMENTS */
+	8,							/* DO_EXTPROTOCOL */
 	19							/* DO_TYPE_STORAGE_OPTIONS */
+	/* GPDB_84_MERGE_FIXME: missing DO_TYPE_CACHE? */
 };
 
 
@@ -953,6 +960,30 @@ repairDependencyLoop(DumpableObject **loop,
 	}
 
 	/*
+	 * If all the objects are TABLE_DATA items, what we must have is a
+	 * circular set of foreign key constraints (or a single self-referential
+	 * table).  Print an appropriate complaint and break the loop arbitrarily.
+	 */
+	for (i = 0; i < nLoop; i++)
+	{
+		if (loop[i]->objType != DO_TABLE_DATA)
+			break;
+	}
+	if (i >= nLoop)
+	{
+		write_msg(NULL, "NOTICE: there are circular foreign-key constraints among these table(s):\n");
+		for (i = 0; i < nLoop; i++)
+			write_msg(NULL, "  %s\n", loop[i]->name);
+		write_msg(NULL, "You may not be able to restore the dump without using --disable-triggers or temporarily dropping the constraints.\n");
+		write_msg(NULL, "Consider using a full dump instead of a --data-only dump to avoid this problem.\n");
+		if (nLoop > 1)
+			removeObjectDependency(loop[0], loop[1]->dumpId);
+		else						/* must be a self-dependency */
+			removeObjectDependency(loop[0], loop[0]->dumpId);
+		return;
+	}
+
+	/*
 	 * If we can't find a principled way to break the loop, complain and break
 	 * it in an arbitrary fashion.
 	 */
@@ -964,7 +995,11 @@ repairDependencyLoop(DumpableObject **loop,
 		describeDumpableObject(loop[i], buf, sizeof(buf));
 		write_msg(modulename, "  %s\n", buf);
 	}
-	removeObjectDependency(loop[0], loop[1]->dumpId);
+
+	if (nLoop > 1)
+		removeObjectDependency(loop[0], loop[1]->dumpId);
+	else						/* must be a self-dependency */
+		removeObjectDependency(loop[0], loop[0]->dumpId);
 }
 
 /*
@@ -1114,6 +1149,16 @@ describeDumpableObject(DumpableObject *obj, char *buf, int bufsize)
 		case DO_TSCONFIG:
 			snprintf(buf, bufsize,
 					 "TEXT SEARCH CONFIGURATION %s  (ID %d OID %u)",
+					 obj->name, obj->dumpId, obj->catId.oid);
+			return;
+		case DO_FDW:
+			snprintf(buf, bufsize,
+					 "FOREIGN DATA WRAPPER %s  (ID %d OID %u)",
+					 obj->name, obj->dumpId, obj->catId.oid);
+			return;
+		case DO_FOREIGN_SERVER:
+			snprintf(buf, bufsize,
+					 "FOREIGN SERVER %s  (ID %d OID %u)",
 					 obj->name, obj->dumpId, obj->catId.oid);
 			return;
 		case DO_BLOBS:

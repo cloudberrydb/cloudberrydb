@@ -459,6 +459,8 @@ DirectOpen_Open(
 	direct->relationData.rd_node.relNode = relfilenode;
 
 	direct->relationData.rd_targblock = InvalidBlockNumber;
+	direct->relationData.rd_fsm_nblocks = InvalidBlockNumber;
+	direct->relationData.rd_vm_nblocks = InvalidBlockNumber;
 
 	for (i = 0; i < direct->relationData.rd_rel->relnatts; i++)
 	{

@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/fmgr/dfmgr.c,v 1.99.2.1 2009/09/03 22:11:13 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/fmgr/dfmgr.c,v 1.97 2008/09/03 22:34:50 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -73,7 +73,7 @@ char	   *Dynamic_library_path;
 
 static void *internal_load_library(const char *libname);
 static void incompatible_module_error(const char *libname,
-						  const Pg_magic_struct *module_magic_data);
+									const Pg_magic_struct *module_magic_data);
 static void internal_unload_library(const char *libname);
 static bool file_exists(const char *name);
 static char *expand_dynamic_library_name(const char *name);
@@ -382,9 +382,7 @@ incompatible_module_error(const char *libname,
 	if (module_magic_data->funcmaxargs != magic_data.funcmaxargs)
 	{
 		if (details.len)
-		{
 			appendStringInfoChar(&details, '\n');
-		}
 		appendStringInfo(&details,
 						 _("Server has FUNC_MAX_ARGS = %d, library has %d."),
 						 magic_data.funcmaxargs,
@@ -393,9 +391,7 @@ incompatible_module_error(const char *libname,
 	if (module_magic_data->indexmaxkeys != magic_data.indexmaxkeys)
 	{
 		if (details.len)
-		{
 			appendStringInfoChar(&details, '\n');
-		}
 		appendStringInfo(&details,
 						 _("Server has INDEX_MAX_KEYS = %d, library has %d."),
 						 magic_data.indexmaxkeys,
@@ -404,9 +400,7 @@ incompatible_module_error(const char *libname,
 	if (module_magic_data->namedatalen != magic_data.namedatalen)
 	{
 		if (details.len)
-		{
 			appendStringInfoChar(&details, '\n');
-		}
 		appendStringInfo(&details,
 						 _("Server has NAMEDATALEN = %d, library has %d."),
 						 magic_data.namedatalen,
@@ -415,31 +409,25 @@ incompatible_module_error(const char *libname,
 	if (module_magic_data->float4byval != magic_data.float4byval)
 	{
 		if (details.len)
-		{
 			appendStringInfoChar(&details, '\n');
-		}
 		appendStringInfo(&details,
-					   _("Server has FLOAT4PASSBYVAL = %s, library has %s."),
+						 _("Server has FLOAT4PASSBYVAL = %s, library has %s."),
 						 magic_data.float4byval ? "true" : "false",
 						 module_magic_data->float4byval ? "true" : "false");
 	}
 	if (module_magic_data->float8byval != magic_data.float8byval)
 	{
 		if (details.len)
-		{
 			appendStringInfoChar(&details, '\n');
-		}
 		appendStringInfo(&details,
-					   _("Server has FLOAT8PASSBYVAL = %s, library has %s."),
+						 _("Server has FLOAT8PASSBYVAL = %s, library has %s."),
 						 magic_data.float8byval ? "true" : "false",
 						 module_magic_data->float8byval ? "true" : "false");
 	}
 
 	if (details.len == 0)
-	{
 		appendStringInfo(&details,
-			  _("Magic block has unexpected length or padding difference."));
-	}
+						 _("Magic block has unexpected length or padding difference."));
 
 	ereport(ERROR,
 			(errmsg("incompatible library \"%s\": magic block mismatch",

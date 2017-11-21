@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/allpaths.c,v 1.172 2008/08/02 21:31:59 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/allpaths.c,v 1.177 2008/11/15 19:43:46 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -431,17 +431,6 @@ set_append_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
 	/* weighted average of widths */
 	double		width_avg = 0;
 
-	/*
-	 * XXX for now, can't handle inherited expansion of FOR UPDATE/SHARE; can
-	 * we do better?  (This will take some redesign because the executor
-	 * currently supposes that every rowMark relation is involved in every row
-	 * returned by the query.)
-	 */
-	if (get_rowmark(root->parse, parentRTindex))
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("SELECT FOR UPDATE/SHARE is not supported for inheritance queries")));
-
 	/* Mark rel with estimated output rows, width, etc */
 	set_baserel_size_estimates(root, rel);
 
@@ -577,6 +566,10 @@ set_append_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
 				Var		   *parentvar = (Var *) lfirst(parentvars);
 				Var		   *childvar = (Var *) lfirst(childvars);
 
+				/*
+				 * Accumulate per-column estimates too.  Whole-row Vars and
+				 * PlaceHolderVars can be ignored here.
+				 */
 				if (IsA(parentvar, Var) &&
 					IsA(childvar, Var))
 				{

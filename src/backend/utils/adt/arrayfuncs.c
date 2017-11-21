@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/arrayfuncs.c,v 1.147 2008/07/21 04:47:00 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/arrayfuncs.c,v 1.150 2008/11/14 00:51:46 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1534,7 +1534,7 @@ array_send(PG_FUNCTION_ARGS)
 
 /*
  * array_ndims :
- *		  returns the number of dimensions of the array pointed to by "v"
+ *        returns the number of dimensions of the array pointed to by "v"
  */
 Datum
 array_ndims(PG_FUNCTION_ARGS)
@@ -4750,11 +4750,9 @@ array_fill_internal(ArrayType *dims, ArrayType *lbs,
 
 /*
  * UNNEST
- *    function name array_unnest() in Postgres.  Different in GP because we
- * added the function before we merged in the postgres function.
  */
 Datum
-unnest(PG_FUNCTION_ARGS)
+array_unnest(PG_FUNCTION_ARGS)
 {
 	typedef struct
 	{
@@ -4820,8 +4818,8 @@ unnest(PG_FUNCTION_ARGS)
 
 	if (fctx->nextelem < fctx->numelems)
 	{
-		int			offset = fctx->nextelem++;
-		Datum		elem;
+		int		offset = fctx->nextelem++;
+		Datum	elem;
 
 		/*
 		 * Check for NULL array element
@@ -4837,7 +4835,7 @@ unnest(PG_FUNCTION_ARGS)
 			/*
 			 * OK, get the element
 			 */
-			char	   *ptr = fctx->elemdataptr;
+			char   *ptr = fctx->elemdataptr;
 
 			fcinfo->isnull = false;
 			elem = ArrayCast(ptr, fctx->elmbyval, fctx->elmlen);

@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/plpgsql.h,v 1.100 2008/05/15 22:39:49 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/plpgsql.h,v 1.106 2008/12/11 07:34:09 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -27,6 +27,10 @@
 /**********************************************************************
  * Definitions
  **********************************************************************/
+
+/* define our text domain for translations */
+#undef TEXTDOMAIN
+#define TEXTDOMAIN PG_TEXTDOMAIN("plpgsql")
 
 /* ----------
  * Compiler's namestack item types
@@ -187,7 +191,7 @@ typedef struct
 typedef struct PLpgSQL_expr
 {								/* SQL Query to plan and execute	*/
 	int			dtype;
-	int			exprno;
+	int			dno;
 	char	   *query;
 	SPIPlanPtr	plan;
 	bool		cachable;			/* true if plan can be cached */
@@ -216,7 +220,7 @@ typedef struct PLpgSQL_expr
 typedef struct
 {								/* Scalar variable */
 	int			dtype;
-	int			varno;
+	int			dno;
 	char	   *refname;
 	int			lineno;
 
@@ -237,7 +241,7 @@ typedef struct
 typedef struct
 {								/* Row variable */
 	int			dtype;
-	int			rowno;
+	int			dno;
 	char	   *refname;
 	int			lineno;
 
@@ -259,7 +263,7 @@ typedef struct
 typedef struct
 {								/* Record variable (non-fixed structure) */
 	int			dtype;
-	int			recno;
+	int			dno;
 	char	   *refname;
 	int			lineno;
 
@@ -273,7 +277,7 @@ typedef struct
 typedef struct
 {								/* Field in record */
 	int			dtype;
-	int			rfno;
+	int			dno;
 	char	   *fieldname;
 	int			recparentno;	/* dno of parent record */
 } PLpgSQL_recfield;

@@ -4,7 +4,7 @@
  *
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/bin/pg_ctl/pg_ctl.c,v 1.103 2008/06/26 18:25:24 momjian Exp $
+ * $PostgreSQL: pgsql/src/bin/pg_ctl/pg_ctl.c,v 1.105 2008/12/11 07:34:08 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -662,7 +662,7 @@ read_post_opts(void)
 {
 	if (post_opts == NULL)
 	{
-		post_opts = "";		/* defatult */
+		post_opts = "";		/* default */
 		if (ctl_command == RESTART_COMMAND)
 		{
 			char	  **optlines;
@@ -1853,7 +1853,7 @@ main(int argc, char **argv)
 #endif
 
 	progname = get_progname(argv[0]);
-	set_pglocale_pgservice(argv[0], "pg_ctl");
+	set_pglocale_pgservice(argv[0], PG_TEXTDOMAIN("pg_ctl"));
 
 	/*
 	 * save argv[0] so do_start() can look for the postmaster if necessary. we

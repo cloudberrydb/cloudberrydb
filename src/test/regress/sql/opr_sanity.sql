@@ -25,7 +25,7 @@ create function binary_coercible(oid, oid) returns bool as $$
 SELECT ($1 = $2) OR
  EXISTS(select 1 from pg_catalog.pg_cast where
         castsource = $1 and casttarget = $2 and
-        castfunc = 0 and castcontext = 'i') OR
+        castmethod = 'b' and castcontext = 'i') OR
  ($2 = 'pg_catalog.anyarray'::pg_catalog.regtype AND
   EXISTS(select 1 from pg_catalog.pg_type where
          oid = $1 and typelem != 0 and typlen = -1))
@@ -37,7 +37,7 @@ create function physically_coercible(oid, oid) returns bool as $$
 SELECT ($1 = $2) OR
  EXISTS(select 1 from pg_catalog.pg_cast where
         castsource = $1 and casttarget = $2 and
-        castfunc = 0) OR
+        castmethod = 'b') OR
  ($2 = 'pg_catalog.anyarray'::pg_catalog.regtype AND
   EXISTS(select 1 from pg_catalog.pg_type where
          oid = $1 and typelem != 0 and typlen = -1))
@@ -63,6 +63,11 @@ WHERE p1.prolang = 0 OR p1.prorettype = 0 OR
 SELECT p1.oid, p1.proname
 FROM pg_proc as p1
 WHERE prosrc IS NULL OR prosrc = '' OR prosrc = '-';
+
+-- proiswindow shouldn't be set together with proisagg or proretset
+SELECT p1.oid, p1.proname
+FROM pg_proc AS p1
+WHERE proiswindow AND (proisagg OR proretset);
 
 -- pronargdefaults should be 0 iff proargdefaults is null
 SELECT p1.oid, p1.proname
@@ -269,19 +274,28 @@ WHERE p1.prorettype = 'internal'::regtype AND NOT
 -- Catch bogus values in pg_cast columns (other than cases detected by
 -- oidjoins test).
 
-SELECT castsource::regtype, casttarget::regtype, castfunc::regproc, castcontext
+SELECT *
 FROM pg_cast c
-WHERE castsource = 0 OR casttarget = 0 OR castcontext NOT IN ('e', 'a', 'i');
+WHERE castsource = 0 OR casttarget = 0 OR castcontext NOT IN ('e', 'a', 'i')
+    OR castmethod NOT IN ('f', 'b' ,'i');
+
+-- Check that castfunc is nonzero only for cast methods that need a function,
+-- and zero otherwise
+
+SELECT *
+FROM pg_cast c
+WHERE (castmethod = 'f' AND castfunc = 0)
+   OR (castmethod IN ('b', 'i') AND castfunc <> 0);
 
 -- Look for casts to/from the same type that aren't length coercion functions.
 -- (We assume they are length coercions if they take multiple arguments.)
 -- Such entries are not necessarily harmful, but they are useless.
 
-SELECT castsource::regtype, casttarget::regtype, castfunc::regproc, castcontext
+SELECT *
 FROM pg_cast c
 WHERE castsource = casttarget AND castfunc = 0;
 
-SELECT castsource::regtype, casttarget::regtype, castfunc::regproc, castcontext
+SELECT c.*
 FROM pg_cast c, pg_proc p
 WHERE c.castfunc = p.oid AND p.pronargs < 2 AND castsource = casttarget;
 
@@ -293,7 +307,7 @@ WHERE c.castfunc = p.oid AND p.pronargs < 2 AND castsource = casttarget;
 -- because CHAR(n)-to-TEXT normally invokes rtrim().  However, the results
 -- are the same, so long as the function is one that ignores trailing blanks.
 
-SELECT castsource::regtype, casttarget::regtype, castfunc::regproc, castcontext
+SELECT c.*
 FROM pg_cast c, pg_proc p
 WHERE c.castfunc = p.oid AND
     (p.pronargs < 1 OR p.pronargs > 3
@@ -302,7 +316,7 @@ WHERE c.castfunc = p.oid AND
                  p.proargtypes[0] = 'text'::regtype))
      OR NOT binary_coercible(p.prorettype, c.casttarget));
 
-SELECT castsource::regtype, casttarget::regtype, castfunc::regproc, castcontext
+SELECT c.*
 FROM pg_cast c, pg_proc p
 WHERE c.castfunc = p.oid AND
     ((p.pronargs > 1 AND p.proargtypes[1] != 'int4'::regtype) OR
@@ -324,9 +338,9 @@ WHERE c.castfunc = p.oid AND
 
 SELECT *
 FROM pg_cast c
-WHERE c.castfunc = 0 AND
+WHERE c.castmethod = 'b' AND
     NOT EXISTS (SELECT 1 FROM pg_cast k
-                WHERE k.castfunc = 0 AND
+                WHERE k.castmethod = 'b' AND
                     k.castsource = c.casttarget AND
                     k.casttarget = c.castsource);
 
@@ -501,18 +515,21 @@ WHERE p1.oprrest = p2.oid AND
 -- If oprjoin is set, the operator must be a binary boolean op,
 -- and it must link to a proc with the right signature
 -- to be a join selectivity estimator.
--- The proc signature we want is: float8 proc(internal, oid, internal, int2)
+-- The proc signature we want is: float8 proc(internal, oid, internal, int2, internal)
+-- (Note: the old signature with only 4 args is still allowed, but no core
+-- estimator should be using it.)
 
 SELECT p1.oid, p1.oprname, p2.oid, p2.proname
 FROM pg_operator AS p1, pg_proc AS p2
 WHERE p1.oprjoin = p2.oid AND
     (p1.oprkind != 'b' OR p1.oprresult != 'bool'::regtype OR
      p2.prorettype != 'float8'::regtype OR p2.proretset OR
-     p2.pronargs != 4 OR
+     p2.pronargs != 5 OR
      p2.proargtypes[0] != 'internal'::regtype OR
      p2.proargtypes[1] != 'oid'::regtype OR
      p2.proargtypes[2] != 'internal'::regtype OR
-     p2.proargtypes[3] != 'int2'::regtype);
+     p2.proargtypes[3] != 'int2'::regtype OR
+     p2.proargtypes[4] != 'internal'::regtype);
 
 -- **************** pg_aggregate ****************
 

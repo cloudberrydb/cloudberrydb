@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/executor/executor.h,v 1.149 2008/07/26 19:15:35 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/executor/executor.h,v 1.153 2008/11/19 01:10:23 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -74,11 +74,19 @@ struct ChunkTransportState;             /* #include "cdb/cdbinterconnect.h" */
  * If this is called in QD or utility mode, this will return true.
  */
 
+/* Hook for plugins to get control in ExecutorStart() */
+typedef void (*ExecutorStart_hook_type) (QueryDesc *queryDesc, int eflags);
+extern PGDLLIMPORT ExecutorStart_hook_type ExecutorStart_hook;
+
 /* Hook for plugins to get control in ExecutorRun() */
-typedef TupleTableSlot *(*ExecutorRun_hook_type) (QueryDesc *queryDesc,
-												  ScanDirection direction,
-												  long count);
+typedef void (*ExecutorRun_hook_type) (QueryDesc *queryDesc,
+									   ScanDirection direction,
+									   long count);
 extern PGDLLIMPORT ExecutorRun_hook_type ExecutorRun_hook;
+
+/* Hook for plugins to get control in ExecutorEnd() */
+typedef void (*ExecutorEnd_hook_type) (QueryDesc *queryDesc);
+extern PGDLLIMPORT ExecutorEnd_hook_type ExecutorEnd_hook;
 
 
 /*
@@ -228,11 +236,13 @@ typedef struct ScanMethod
 } ScanMethod;
 
 extern void ExecutorStart(QueryDesc *queryDesc, int eflags);
-extern TupleTableSlot *ExecutorRun(QueryDesc *queryDesc,
-			ScanDirection direction, long count);
-extern TupleTableSlot *standard_ExecutorRun(QueryDesc *queryDesc,
-			ScanDirection direction, long count);
+extern void standard_ExecutorStart(QueryDesc *queryDesc, int eflags);
+extern void ExecutorRun(QueryDesc *queryDesc,
+						ScanDirection direction, long count);
+extern void standard_ExecutorRun(QueryDesc *queryDesc,
+								 ScanDirection direction, long count);
 extern void ExecutorEnd(QueryDesc *queryDesc);
+extern void standard_ExecutorEnd(QueryDesc *queryDesc);
 extern void ExecutorRewind(QueryDesc *queryDesc);
 extern void InitResultRelInfo(ResultRelInfo *resultRelInfo,
 				  Relation resultRelationDesc,
@@ -300,7 +310,8 @@ extern ExprDoneCond ExecEvalFuncArgs(FunctionCallInfo fcinfo,
 extern Tuplestorestate *ExecMakeTableFunctionResult(ExprState *funcexpr,
 							ExprContext *econtext,
 							TupleDesc expectedDesc,
-							uint64 memKB); 
+							bool randomAccess,
+							uint64 operatorMemKB);
 extern Datum ExecEvalExprSwitchContext(ExprState *expression, ExprContext *econtext,
 						  bool *isNull, ExprDoneCond *isDone);
 extern ExprState *ExecInitExpr(Expr *node, PlanState *parent);

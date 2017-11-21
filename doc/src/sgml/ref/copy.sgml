@@ -1,5 +1,5 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/copy.sgml,v 1.81.2.1 2008/10/10 21:46:43 tgl Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/copy.sgml,v 1.84 2008/11/14 10:22:45 petere Exp $
 PostgreSQL documentation
 -->
 
@@ -7,6 +7,7 @@ PostgreSQL documentation
 <refentry id="SQL-COPY">
  <refmeta>
   <refentrytitle id="sql-copy-title">COPY</refentrytitle>
+  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -21,33 +22,35 @@ PostgreSQL documentation
 
  <refsynopsisdiv>
 <synopsis>
-COPY table [(column [, ...])] FROM {'file' | PROGRAM 'command' | STDIN}
-     [ [WITH] 
-       [BINARY]
-       [OIDS]
-       [HEADER]
-       [DELIMITER [ AS ] 'delimiter']
-       [NULL [ AS ] 'null string']
-       [ESCAPE [ AS ] 'escape' | 'OFF']
-       [NEWLINE [ AS ] 'LF' | 'CR' | 'CRLF']
-       [CSV [QUOTE [ AS ] 'quote'] 
-            [FORCE NOT NULL column [, ...]]
-       [FILL MISSING FIELDS]
-     [ [LOG ERRORS ]  
-       SEGMENT REJECT LIMIT count [ROWS | PERCENT] ]
+COPY <replaceable class="parameter">tablename</replaceable> [ ( <replaceable class="parameter">column</replaceable> [, ...] ) ]
+     FROM { '<replaceable class="parameter">filename</replaceable>' | PROGRAM '<replaceable class="parameter">command</replaceable>' | STDIN }
+     [ [ WITH ] 
+       [ BINARY ]
+       [ OIDS ]
+       [ HEADER ]
+       [ DELIMITER [ AS ] '<replaceable class="parameter">delimiter</replaceable>' ]
+       [ NULL [ AS ] '<replaceable class="parameter">null string</replaceable>' ]
+       [ ESCAPE [ AS ] '<replaceable class="parameter">escape</replaceable>' | '<replaceable class="parameter">OFF</replaceable>' ]
+       [ NEWLINE [ AS ] { 'LF' | 'CR' | 'CRLF' } ]
+       [ CSV [QUOTE [ AS ] '<replaceable class="parameter">quote</replaceable>' ] 
+            [FORCE NOT NULL <replaceable class="parameter">column</replaceable> [, ...] ]
+       [ FILL MISSING FIELDS ]
+       [ [LOG ERRORS ]  
+           SEGMENT REJECT LIMIT <replaceable class="parameter">count</replaceable> [ROWS | PERCENT] ]
 
-COPY {table [(column [, ...])] | (query)} TO {'file' | PROGRAM 'command' | STDOUT}
-      [ [WITH] 
-        [ON SEGMENT]
-        [BINARY]
-        [OIDS]
-        [HEADER]
-        [DELIMITER [ AS ] 'delimiter']
-        [NULL [ AS ] 'null string']
-        [ESCAPE [ AS ] 'escape' | 'OFF']
-        [CSV [QUOTE [ AS ] 'quote'] 
-             [FORCE QUOTE column [, ...]] ]
-      [IGNORE EXTERNAL PARTITIONS ]
+COPY { <replaceable class="parameter">tablename</replaceable> [ ( <replaceable class="parameter">column</replaceable> [, ...] ) ] | ( <replaceable class="parameter">query</replaceable> ) }
+    TO { '<replaceable class="parameter">filename</replaceable>' | PROGRAM '<replaceable class="parameter">command</replaceable>' | STDOUT }
+    [ [ WITH ]
+          [ ON SEGMENT ]
+          [ BINARY ]
+          [ OIDS ]
+          [ HEADER ] 
+          [ DELIMITER [ AS ] '<replaceable class="parameter">delimiter</replaceable>' ]
+          [ NULL [ AS ] '<replaceable class="parameter">null string</replaceable>' ]
+          [ ESCAPE [ AS ] '<replaceable class="parameter">escape</replaceable>' ]
+          [ CSV [ QUOTE [ AS ] '<replaceable class="parameter">quote</replaceable>' ] 
+                [ FORCE QUOTE <replaceable class="parameter">column</replaceable> [, ...] ]
+          [ IGNORE EXTERNAL PARTITIONS ]
 </synopsis>
  </refsynopsisdiv>
  
@@ -385,7 +388,11 @@ COPY <replaceable class="parameter">count</replaceable>
     <productname>PostgreSQL</productname> installations that might use
     non-default <varname>DateStyle</varname> settings,
     <varname>DateStyle</varname> should be set to <literal>ISO</> before
-    using <command>COPY TO</>.
+    using <command>COPY TO</>.  It is also a good idea to avoid dumping
+    data with <varname>IntervalStyle</varname> set to
+    <literal>sql_standard</>, because negative interval values might be
+    misinterpreted by a server that has a different setting for
+    <varname>IntervalStyle</varname>.
    </para>
 
    <para>

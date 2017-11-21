@@ -11,7 +11,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/setrefs.c,v 1.142 2008/06/17 14:51:32 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/setrefs.c,v 1.146 2008/10/21 20:42:53 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -450,7 +450,6 @@ set_plan_refs(PlannerGlobal *glob, Plan *plan, int rtoffset)
 		case T_AppendOnlyScan: /* Rely on structure equivalence */
 		case T_AOCSScan: /* Rely on structure equivalence */
 		case T_ExternalScan: /* Rely on structure equivalence */
-		case T_WorkTableScan:
 			{
 				Scan    *splan = (Scan *) plan;
 
@@ -668,6 +667,17 @@ set_plan_refs(PlannerGlobal *glob, Plan *plan, int rtoffset)
 		case T_CteScan:
 			{
 				CteScan *splan = (CteScan *) plan;
+
+				splan->scan.scanrelid += rtoffset;
+				splan->scan.plan.targetlist =
+					fix_scan_list(glob, splan->scan.plan.targetlist, rtoffset);
+				splan->scan.plan.qual =
+					fix_scan_list(glob, splan->scan.plan.qual, rtoffset);
+			}
+			break;
+		case T_WorkTableScan:
+			{
+				WorkTableScan *splan = (WorkTableScan *) plan;
 
 				splan->scan.scanrelid += rtoffset;
 				splan->scan.plan.targetlist =
@@ -1283,10 +1293,9 @@ fix_scan_expr_mutator(Node *node, fix_scan_expr_context *context)
 	{
 		/* At scan level, we should always just evaluate the contained expr */
 		PlaceHolderVar *phv = (PlaceHolderVar *) node;
-		
+
 		return fix_scan_expr_mutator((Node *) phv->phexpr, context);
 	}
-	
 	fix_expr_common(context->glob, node);
 	return expression_tree_mutator(node, fix_scan_expr_mutator,
 								   (void *) context);
@@ -2094,7 +2103,7 @@ fix_join_expr_mutator(Node *node, fix_join_expr_context *context)
 	if (IsA(node, PlaceHolderVar))
 	{
 		PlaceHolderVar *phv = (PlaceHolderVar *) node;
-		
+
 		/* See if the PlaceHolderVar has bubbled up from a lower plan node */
 		if (context->outer_itlist->has_ph_vars)
 		{
@@ -2112,11 +2121,12 @@ fix_join_expr_mutator(Node *node, fix_join_expr_context *context)
 			if (newvar)
 				return (Node *) newvar;
 		}
-		
+
 		/* If not supplied by input plans, evaluate the contained expr */
 		return fix_join_expr_mutator((Node *) phv->phexpr, context);
 	}
 
+	/* Try matching more complex expressions too, if tlists have any */
 	if (context->outer_itlist && context->outer_itlist->has_non_vars &&
 	        context->use_outer_tlist_for_matching_nonvars)
 	{
@@ -2206,7 +2216,7 @@ fix_upper_expr_mutator(Node *node, fix_upper_expr_context *context)
 	if (IsA(node, PlaceHolderVar))
 	{
 		PlaceHolderVar *phv = (PlaceHolderVar *) node;
-		
+
 		/* See if the PlaceHolderVar has bubbled up from a lower plan node */
 		if (context->subplan_itlist->has_ph_vars)
 		{

@@ -28,7 +28,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execMain.c,v 1.312 2008/08/08 17:01:11 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execMain.c,v 1.319 2008/11/30 20:51:25 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -63,11 +63,9 @@
 #include "executor/nodeSubplan.h"
 #include "libpq/pqformat.h"
 #include "miscadmin.h"
-#include "nodes/makefuncs.h" /* temporary */
 #include "nodes/nodeFuncs.h"
 #include "optimizer/clauses.h"
 #include "parser/parse_clause.h"
-#include "parser/parse_expr.h"
 #include "parser/parsetree.h"
 #include "storage/bufmgr.h"
 #include "storage/lmgr.h"
@@ -113,8 +111,10 @@
 extern bool cdbpathlocus_querysegmentcatalogs;
 
 
-/* Hook for plugins to get control in ExecutorRun() */
-ExecutorRun_hook_type ExecutorRun_hook = NULL;
+/* Hooks for plugins to get control in ExecutorStart/Run/End() */
+ExecutorStart_hook_type	ExecutorStart_hook = NULL;
+ExecutorRun_hook_type	ExecutorRun_hook = NULL;
+ExecutorEnd_hook_type	ExecutorEnd_hook = NULL;
 
 typedef struct evalPlanQual
 {
@@ -129,7 +129,7 @@ typedef struct evalPlanQual
 static void InitPlan(QueryDesc *queryDesc, int eflags);
 static void ExecCheckPlanOutput(Relation resultRel, List *targetList);
 static void ExecEndPlan(PlanState *planstate, EState *estate);
-static TupleTableSlot *ExecutePlan(EState *estate, PlanState *planstate,
+static void ExecutePlan(EState *estate, PlanState *planstate,
 			CmdType operation,
 			long numberTuples,
 			ScanDirection direction,
@@ -243,14 +243,28 @@ CopyDirectDispatchFromPlanToSliceTable(PlannedStmt *stmt, EState *estate)
  * NB: the CurrentMemoryContext when this is called will become the parent
  * of the per-query context used for this Executor invocation.
  *
+ * We provide a function hook variable that lets loadable plugins
+ * get control when ExecutorStart is called.  Such a plugin would
+ * normally call standard_ExecutorStart().
+ *
  * MPP: In here we take care of setting up all the necessary items that
  * will be needed to service the query, such as setting up interconnect,
  * and dispatching the query. Any other items in the future
  * must be added here.
+ *
  * ----------------------------------------------------------------
  */
 void
 ExecutorStart(QueryDesc *queryDesc, int eflags)
+{
+	if (ExecutorStart_hook)
+		(*ExecutorStart_hook) (queryDesc, eflags);
+	else
+		standard_ExecutorStart(queryDesc, eflags);
+}
+
+void
+standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 {
 	EState	   *estate;
 	MemoryContext oldcontext;
@@ -781,6 +795,11 @@ ExecutorStart(QueryDesc *queryDesc, int eflags)
  *		Note: count = 0 is interpreted as no portal limit, i.e., run to
  *		completion.
  *
+ *		There is no return value, but output tuples (if any) are sent to
+ *		the destination receiver specified in the QueryDesc; and the number
+ *		of tuples processed at the top level can be found in
+ *		estate->es_processed.
+ *
  *		We provide a function hook variable that lets loadable plugins
  *		get control when ExecutorRun is called.  Such a plugin would
  *		normally call standard_ExecutorRun().
@@ -790,20 +809,17 @@ ExecutorStart(QueryDesc *queryDesc, int eflags)
  *
  * ----------------------------------------------------------------
  */
-TupleTableSlot *
+void
 ExecutorRun(QueryDesc *queryDesc,
 			ScanDirection direction, long count)
 {
-	TupleTableSlot *result;
-
 	if (ExecutorRun_hook)
-		result = (*ExecutorRun_hook) (queryDesc, direction, count);
+		(*ExecutorRun_hook) (queryDesc, direction, count);
 	else
-		result = standard_ExecutorRun(queryDesc, direction, count);
-	return result;
+		standard_ExecutorRun(queryDesc, direction, count);
 }
 
-TupleTableSlot *
+void
 standard_ExecutorRun(QueryDesc *queryDesc,
 					 ScanDirection direction, long count)
 {
@@ -811,7 +827,6 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 	CmdType		operation;
 	DestReceiver *dest;
 	bool		sendTuples;
-	TupleTableSlot *result = NULL;
 	MemoryContext oldcontext;
 	/*
 	 * NOTE: Any local vars that are set in the PG_TRY block and examined in the
@@ -835,6 +850,10 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 	 * Switch into per-query memory context
 	 */
 	oldcontext = MemoryContextSwitchTo(estate->es_query_cxt);
+
+	/* Allow instrumentation of ExecutorRun overall runtime */
+	if (queryDesc->totaltime)
+		InstrStartNode(queryDesc->totaltime);
 
 	/*
      * CDB: Update global slice id for log messages.
@@ -890,7 +909,8 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 
 		if (exec_identity == GP_IGNORE)
 		{
-			result = NULL;
+			/* do nothing */
+			estate->es_got_eos = true;
 		}
 		else if (exec_identity == GP_NON_ROOT_ON_QE)
 		{
@@ -912,12 +932,12 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 
 			Assert(motionState);
 
-			result = ExecutePlan(estate,
-								 (PlanState *) motionState,
-								 CMD_SELECT,
-								 0,
-								 ForwardScanDirection,
-								 dest);
+			ExecutePlan(estate,
+						(PlanState *) motionState,
+						CMD_SELECT,
+						0,
+						ForwardScanDirection,
+						dest);
 		}
 		else if (exec_identity == GP_ROOT_SLICE)
 		{
@@ -928,27 +948,18 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 			 * motion nodes at the fringe of the top slice to return
 			 * without ever calling nodes below them.
 			 */
-			result = ExecutePlan(estate,
-								 queryDesc->planstate,
-								 operation,
-								 count,
-								 direction,
-								 dest);
+			ExecutePlan(estate,
+						queryDesc->planstate,
+						operation,
+						count,
+						direction,
+						dest);
 		}
 		else
 		{
 			/* should never happen */
 			Assert(!"undefined parallel execution strategy");
 		}
-
-		/*
-		 * if result is null we got end-of-stream. We need to mark it
-		 * since with a cursor end-of-stream will only be received with
-		 * the fetch that returns the last tuple. ExecutorEnd needs to
-		 * know if EOS was received in order to do the right cleanup.
-		 */
-		if(result == NULL)
-			estate->es_got_eos = true;
     }
 	PG_CATCH();
 	{
@@ -982,10 +993,11 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 	if (sendTuples)
 		(*dest->rShutdown) (dest);
 
+	if (queryDesc->totaltime)
+		InstrStopNode(queryDesc->totaltime, estate->es_processed);
+
 	MemoryContextSwitchTo(oldcontext);
 	END_MEMORY_ACCOUNT();
-
-	return result;
 }
 
 /* ----------------------------------------------------------------
@@ -993,10 +1005,24 @@ standard_ExecutorRun(QueryDesc *queryDesc,
  *
  *		This routine must be called at the end of execution of any
  *		query plan
+ *
+ *		We provide a function hook variable that lets loadable plugins
+ *		get control when ExecutorEnd is called.  Such a plugin would
+ *		normally call standard_ExecutorEnd().
+ *
  * ----------------------------------------------------------------
  */
 void
 ExecutorEnd(QueryDesc *queryDesc)
+{
+	if (ExecutorEnd_hook)
+		(*ExecutorEnd_hook) (queryDesc);
+	else
+		standard_ExecutorEnd(queryDesc);
+}
+
+void
+standard_ExecutorEnd(QueryDesc *queryDesc)
 {
 	EState	   *estate;
 	MemoryContext oldcontext;
@@ -1134,6 +1160,8 @@ ExecutorEnd(QueryDesc *queryDesc)
 	queryDesc->tupDesc = NULL;
 	queryDesc->estate = NULL;
 	queryDesc->planstate = NULL;
+	queryDesc->totaltime = NULL;
+
 	if (DEBUG1 >= log_min_messages)
 	{
 		char		msec_str[32];
@@ -1752,11 +1780,17 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 	foreach(l, plannedstmt->rowMarks)
 	{
 		RowMarkClause *rc = (RowMarkClause *) lfirst(l);
-		Oid			relid = getrelid(rc->rti, rangeTable);
+		Oid			relid;
 		Relation	relation;
 		LOCKMODE    lockmode;
 		bool        lockUpgraded;
 		ExecRowMark *erm;
+
+		/* ignore "parent" rowmarks; they are irrelevant at runtime */
+		if (rc->isParent)
+			continue;
+
+		relid = getrelid(rc->rti, rangeTable);
 
         /* CDB: On QD, lock whole table in S or X mode, if distributed. */
 		lockmode = rc->forUpdate ? RowExclusiveLock : RowShareLock;
@@ -1806,10 +1840,13 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 		erm = (ExecRowMark *) palloc(sizeof(ExecRowMark));
 		erm->relation = relation;
 		erm->rti = rc->rti;
+		erm->prti = rc->prti;
 		erm->forUpdate = rc->forUpdate;
 		erm->noWait = rc->noWait;
-		/* We'll set up ctidAttno below */
+		/* We'll locate the junk attrs below */
 		erm->ctidAttNo = InvalidAttrNumber;
+		erm->toidAttNo = InvalidAttrNumber;
+		ItemPointerSetInvalid(&(erm->curCtid));
 		estate->es_rowMarks = lappend(estate->es_rowMarks, erm);
 	}
 
@@ -2052,7 +2089,7 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 						elog(ERROR, "could not find junk ctid column");
 				}
 
-				/* For SELECT FOR UPDATE/SHARE, find the ctid attrs now */
+				/* For SELECT FOR UPDATE/SHARE, find the junk attrs now */
 				foreach(l, estate->es_rowMarks)
 				{
 					ExecRowMark *erm = (ExecRowMark *) lfirst(l);
@@ -2064,11 +2101,24 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 						relation->rd_cdbpolicy->ptype == POLICYTYPE_PARTITIONED)
 						continue;
 
-					snprintf(resname, sizeof(resname), "ctid%u", erm->rti);
+					/* always need the ctid */
+					snprintf(resname, sizeof(resname), "ctid%u",
+							 erm->prti);
+
 					erm->ctidAttNo = ExecFindJunkAttribute(j, resname);
 					if (!AttributeNumberIsValid(erm->ctidAttNo))
 						elog(ERROR, "could not find junk \"%s\" column",
 							 resname);
+					/* if child relation, need tableoid too */
+					if (erm->rti != erm->prti)
+					{
+						snprintf(resname, sizeof(resname), "tableoid%u",
+								 erm->prti);
+						erm->toidAttNo = ExecFindJunkAttribute(j, resname);
+						if (!AttributeNumberIsValid(erm->toidAttNo))
+							elog(ERROR, "could not find junk \"%s\" column",
+								 resname);
+					}
 				}
 			}
 		}
@@ -2739,19 +2789,16 @@ ExecEndPlan(PlanState *planstate, EState *estate)
 /* ----------------------------------------------------------------
  *		ExecutePlan
  *
- *		processes the query plan to retrieve 'numberTuples' tuples in the
- *		direction specified.
+ *		Processes the query plan until we have processed 'numberTuples' tuples,
+ *		moving in the specified direction.
  *
- *		Retrieves all tuples if numberTuples is 0
- *
- *		result is either a slot containing the last tuple in the case
- *		of a SELECT or NULL otherwise.
+ *		Runs to completion if numberTuples is 0
  *
  * Note: the ctid attribute is a 'junk' attribute that is removed before the
  * user can see it
  * ----------------------------------------------------------------
  */
-static TupleTableSlot *
+static void
 ExecutePlan(EState *estate,
 			PlanState *planstate,
 			CmdType operation,
@@ -2765,13 +2812,11 @@ ExecutePlan(EState *estate,
 	ItemPointer tupleid = NULL;
 	ItemPointerData tuple_ctid;
 	long		current_tuple_count;
-	TupleTableSlot *result;
 
 	/*
 	 * initialize local variables
 	 */
 	current_tuple_count = 0;
-	result = NULL;
 
 	/*
 	 * Set the direction.
@@ -2808,7 +2853,6 @@ if (Gp_role != GP_ROLE_EXECUTE || Gp_is_writer)
 	/*
 	 * Loop until we've processed the proper number of tuples from the plan.
 	 */
-
 	for (;;)
 	{
 		/* Reset the per-output-tuple exprcontext */
@@ -2829,11 +2873,17 @@ lnext:	;
 
 		/*
 		 * if the tuple is null, then we assume there is nothing more to
-		 * process so we just return null...
+		 * process so we just end the loop...
 		 */
 		if (TupIsNull(planSlot))
 		{
-			result = NULL;
+			/*
+			 * We got end-of-stream. We need to mark it since with a cursor
+			 * end-of-stream will only be received with the fetch that
+			 * returns the last tuple. ExecutorEnd needs to know if EOS was
+			 * received in order to do the right cleanup.
+			 */
+			estate->es_got_eos = true;
 			break;
 		}
 
@@ -2882,13 +2932,34 @@ lnext:	;
 						relation->rd_cdbpolicy->ptype == POLICYTYPE_PARTITIONED)
 						continue;
 
+					/* if child rel, must check whether it produced this row */
+					if (erm->rti != erm->prti)
+					{
+						Oid		tableoid;
+
+						datum = ExecGetJunkAttribute(slot,
+													 erm->toidAttNo,
+													 &isNull);
+						/* shouldn't ever get a null result... */
+						if (isNull)
+							elog(ERROR, "tableoid is NULL");
+						tableoid = DatumGetObjectId(datum);
+
+						if (tableoid != RelationGetRelid(erm->relation))
+						{
+							/* this child is inactive right now */
+							ItemPointerSetInvalid(&(erm->curCtid));
+							continue;
+						}
+					}
+
+					/* okay, fetch the tuple by ctid */
 					datum = ExecGetJunkAttribute(slot,
 												 erm->ctidAttNo,
 												 &isNull);
 					/* shouldn't ever get a null result... */
 					if (isNull)
 						elog(ERROR, "ctid is NULL");
-
 					tuple.t_self = *((ItemPointer) DatumGetPointer(datum));
 
 					if (erm->forUpdate)
@@ -2941,8 +3012,10 @@ lnext:	;
 						default:
 							elog(ERROR, "unrecognized heap_lock_tuple status: %u",
 								 test);
-							return NULL;
 					}
+
+					/* Remember tuple TID for WHERE CURRENT OF */
+					erm->curCtid = tuple.t_self;
 				}
 			}
 
@@ -2980,35 +3053,31 @@ lnext:	;
 		}
 
 		/*
-		 * Based on the operation, a tuple is either
-		 * returned it to the user (SELECT) or inserted, deleted, or updated.
+		 * now that we have a tuple, do the appropriate thing with it.. either
+		 * send it to the output destination, add it to a relation someplace,
+		 * delete it from a relation, or modify some of its attributes.
 		 */
 		switch (operation)
 		{
 			case CMD_SELECT:
 				ExecSelect(slot, dest, estate);
-				result = slot;
 				break;
 
 			case CMD_INSERT:
 				ExecInsert(slot, dest, estate, PLANGEN_PLANNER, false /* isUpdate */);
-				result = NULL;
 				break;
 
 			case CMD_DELETE:
 				ExecDelete(tupleid, planSlot, dest, estate, PLANGEN_PLANNER, false /* isUpdate */);
-				result = NULL;
 				break;
 
 			case CMD_UPDATE:
 				ExecUpdate(slot, tupleid, planSlot, dest, estate);
-				result = NULL;
 				break;
 
 			default:
 				elog(ERROR, "unrecognized operation code: %d",
 					 (int) operation);
-				result = NULL;
 				break;
 		}
 
@@ -3044,12 +3113,6 @@ if (Gp_role != GP_ROLE_EXECUTE || Gp_is_writer)
 			break;
 	}
 }
-
-	/*
-	 * here, result is either a slot containing a tuple in the case of a
-	 * SELECT or NULL otherwise.
-	 */
-	return result;
 }
 
 /* ----------------------------------------------------------------
@@ -3370,8 +3433,8 @@ ExecInsert(TupleTableSlot *slot,
 
 		newId = heap_insert(resultRelationDesc,
 							tuple,
-							estate->es_output_cid,
-							true, true, GetCurrentTransactionId());
+							estate->es_output_cid, 0, NULL,
+							GetCurrentTransactionId());
 		lastTid = tuple->t_self;
 	}
 
@@ -4219,9 +4282,11 @@ EvalPlanQual(EState *estate, Index rti,
 		relation = NULL;
 		foreach(l, estate->es_rowMarks)
 		{
-			if (((ExecRowMark *) lfirst(l))->rti == rti)
+			ExecRowMark *erm = lfirst(l);
+
+			if (erm->rti == rti)
 			{
-				relation = ((ExecRowMark *) lfirst(l))->relation;
+				relation = erm->relation;
 				break;
 			}
 		}
@@ -4731,7 +4796,8 @@ typedef struct
 	DestReceiver pub;			/* publicly-known function pointers */
 	EState	   *estate;			/* EState we are working with */
 	Relation	rel;			/* Relation to write to */
-	bool		use_wal;		/* do we need to WAL-log our writes? */
+	int			hi_options;		/* heap_insert performance options */
+	BulkInsertState bistate;	/* bulk insert state */
 
 	struct AppendOnlyInsertDescData *ao_insertDesc; /* descriptor to AO tables */
 	struct AOCSInsertDescData *aocs_ins;           /* descriptor for aocs */
@@ -4957,18 +5023,21 @@ OpenIntoRel(QueryDesc *queryDesc)
 	/*
 	 * Now replace the query's DestReceiver with one for SELECT INTO
 	 */
-	queryDesc->dest = CreateDestReceiver(DestIntoRel, NULL);
+	queryDesc->dest = CreateDestReceiver(DestIntoRel);
 	myState = (DR_intorel *) queryDesc->dest;
 	Assert(myState->pub.mydest == DestIntoRel);
 	myState->estate = estate;
-
-	/*
-	 * We can skip WAL-logging the insertions, unless PITR is in use.
-	 */
-	myState->use_wal = use_wal;
 	myState->rel = intoRelationDesc;
 
-	/* use_wal off requires rd_targblock be initially invalid */
+	/*
+	 * We can skip WAL-logging the insertions, unless PITR is in use.  We
+	 * can skip the FSM in any case.
+	 */
+	myState->hi_options = HEAP_INSERT_SKIP_FSM |
+		(use_wal ? 0 : HEAP_INSERT_SKIP_WAL);
+	myState->bistate = GetBulkInsertState();
+
+	/* Not using WAL requires rd_targblock be initially invalid */
 	Assert(intoRelationDesc->rd_targblock == InvalidBlockNumber);
 
 	myState->bulkloadinfo = (struct MirroredBufferPoolBulkLoadInfo *) palloc0(sizeof(MirroredBufferPoolBulkLoadInfo));
@@ -5022,18 +5091,20 @@ CloseIntoRel(QueryDesc *queryDesc)
 	{
 		Relation	rel = myState->rel;
 
+		FreeBulkInsertState(myState->bistate);
+
 		/*
 		 * APPEND_ONLY is closed in the intorel_shutdown.
 		 * If we skipped using WAL, must heap_sync before commit.
 		 */
-		if (RelationIsHeap(rel) && !myState->use_wal)
+		if (RelationIsHeap(rel) && (myState->hi_options & HEAP_INSERT_SKIP_WAL) != 0)
 		{
 			int32 numOfBlocks;
 			bool mirrorDataLossOccurred;
 
 			FlushRelationBuffers(rel);
 			/* FlushRelationBuffers will have opened rd_smgr */
-			smgrimmedsync(rel->rd_smgr);
+			smgrimmedsync(rel->rd_smgr, MAIN_FORKNUM);
 
 			if (PersistentStore_IsZeroTid(&myState->last_heap_tid))
 				numOfBlocks = 0;
@@ -5104,10 +5175,6 @@ GetIntoRelOid(QueryDesc *queryDesc)
 
 /*
  * CreateIntoRelDestReceiver -- create a suitable DestReceiver object
- *
- * Since CreateDestReceiver doesn't accept the parameters we'd need,
- * we just leave the private fields zeroed here.  OpenIntoRel will
- * fill them in.
  */
 DestReceiver *
 CreateIntoRelDestReceiver(void)
@@ -5123,6 +5190,8 @@ CreateIntoRelDestReceiver(void)
 	self->estate = NULL;
 	self->ao_insertDesc = NULL;
 	self->aocs_ins = NULL;
+
+	/* private fields will be set by OpenIntoRel */
 
 	return (DestReceiver *) self;
 }
@@ -5184,8 +5253,8 @@ intorel_receive(TupleTableSlot *slot, DestReceiver *self)
 		heap_insert(into_rel,
 					tuple,
 					myState->estate->es_output_cid,
-					myState->use_wal,
-					false, /* never any point in using FSM */
+					myState->hi_options,
+					myState->bistate,
 					GetCurrentTransactionId());
 
 		myState->last_heap_tid = tuple->t_self;

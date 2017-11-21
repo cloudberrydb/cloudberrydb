@@ -610,7 +610,7 @@ each(PG_FUNCTION_ARGS)
 		HEntry	   *ptr = &(ARRPTR(st->hs)[st->i]);
 		Datum		res,
 					dvalues[2];
-		bool        nulls[2] = {false, false};
+		bool		nulls[2] = {false, false};
 		text	   *item;
 		HeapTuple	tuple;
 

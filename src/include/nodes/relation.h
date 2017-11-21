@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/relation.h,v 1.157 2008/08/05 02:43:17 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/relation.h,v 1.165 2008/12/01 21:06:13 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -107,7 +107,7 @@ typedef struct PlannerGlobal
 	List	   *relationOids;	/* OIDs of relations the plan depends on */
 
 	List	   *invalItems;		/* other dependencies, as PlanInvalItems */
-	
+
 	Index		lastPHId;		/* highest PlaceHolderVar ID assigned */
 
 	bool		transientPlan;	/* redo plan when TransactionXmin changes? */
@@ -232,7 +232,7 @@ typedef struct PlannerInfo
 	List	   *full_join_clauses;		/* list of RestrictInfos for
 										 * mergejoinable full join clauses */
 
-	List	   *join_info_list;     /* list of SpecialJoinInfos */
+	List	   *join_info_list;		/* list of SpecialJoinInfos */
 
 	List	   *append_rel_list;	/* list of AppendRelInfos */
 	
@@ -475,7 +475,7 @@ typedef struct RelOptInfo
 	bool		onerow;			/* true => rel is inherently 1 row or empty */
 
 	/* materialization information */
-	List	   *reltargetlist;	/* needed Vars */
+	List	   *reltargetlist;	/* Vars to be output by scan of relation */
 	List	   *pathlist;		/* Path structures */
 	struct Path *cheapest_startup_path;
 	struct Path *cheapest_total_path;
@@ -489,7 +489,7 @@ typedef struct RelOptInfo
 	AttrNumber	max_attr;		/* largest attrno of rel */
 	Relids	   *attr_needed;	/* array indexed [min_attr .. max_attr] */
 	int32	   *attr_widths;	/* array indexed [min_attr .. max_attr] */
-	List	   *indexlist;
+	List	   *indexlist;		/* list of IndexOptInfo */
 	BlockNumber pages;
 	double		tuples;
     struct GpPolicy   *cdbpolicy;      /* distribution of stored tuples */
@@ -1108,6 +1108,8 @@ typedef struct UniquePath
 	Path		path;
 	Path	   *subpath;
 	UniquePathMethod umethod;
+	List	   *in_operators;	/* equality operators of the IN clause */
+	List	   *uniq_exprs;		/* expressions to be made unique */
 	double		rows;			/* estimated number of result tuples */
     List       *distinct_on_exprs;
                                 /* CDB: list of exprs to be uniqueified */
@@ -1450,6 +1452,30 @@ typedef struct InnerIndexscanInfo
 } InnerIndexscanInfo;
 
 /*
+ * "Flattened SubLinks"
+ *
+ * When we pull an IN or EXISTS SubLink up into the parent query, the
+ * join conditions extracted from the IN/EXISTS clause need to be specially
+ * treated in distribute_qual_to_rels processing.  We handle this by
+ * wrapping such expressions in a FlattenedSubLink node that identifies
+ * the join they come from.  The FlattenedSubLink node is discarded after
+ * distribute_qual_to_rels, having served its purpose.
+ *
+ * Although the planner treats this as an expression node type, it is not
+ * recognized by the parser or executor, so we declare it here rather than
+ * in primnodes.h.
+ */
+
+typedef struct FlattenedSubLink
+{
+	Expr		xpr;
+	JoinType	jointype;		/* must be JOIN_SEMI or JOIN_ANTI */
+	Relids		lefthand;		/* base relids treated as syntactic LHS */
+	Relids		righthand;		/* base relids syntactically within RHS */
+	Expr	   *quals;			/* join quals (in explicit-AND format) */
+} FlattenedSubLink;
+
+/*
  * Placeholder node for an expression to be evaluated below the top level
  * of a plan tree.  This is used during planning to represent the contained
  * expression.  At the end of the planning process it is replaced by either
@@ -1466,7 +1492,7 @@ typedef struct InnerIndexscanInfo
 typedef struct PlaceHolderVar
 {
 	Expr		xpr;
-	Expr		*phexpr;			/* the represented expression */
+	Expr	   *phexpr;			/* the represented expression */
 	Relids		phrels;			/* base relids syntactically within expr src */
 	Index		phid;			/* ID for PHV (unique within planner run) */
 	Index		phlevelsup;		/* > 0 if PHV belongs to outer query */
@@ -1514,10 +1540,6 @@ typedef struct PlaceHolderVar
  * For JOIN_SEMI joins, this is cleared to NIL in create_unique_path() if
  * the join is found not to be suitable for a uniqueify-the-RHS plan.
  *
- * For a semijoin, we also extract the join operators and their RHS arguments
- * and set semi_operators and semi_rhs_exprs. This is used for applying pre-join
- * deduplication used by cdb_make_rel_dedup_info().
- *
  * jointype is never JOIN_RIGHT; a RIGHT JOIN is handled by switching
  * the inputs to make it a LEFT JOIN.  So the allowed values of jointype
  * in a join_info_list member are only LEFT, FULL, SEMI, or ANTI.
@@ -1543,6 +1565,7 @@ typedef struct SpecialJoinInfo
 	bool		lhs_strict;		/* joinclause is strict for some LHS rel */
 	bool		delay_upper_joins;		/* can't commute with upper RHS */
 	List	   *join_quals;		/* join quals, in implicit-AND list format */
+
 	bool		try_join_unique;
 								/* CDB: true => comparison is equality op and
 								 *  subquery is not correlated.  Ok to consider
@@ -1556,6 +1579,7 @@ typedef struct SpecialJoinInfo
 								 */
 	List		*semi_operators; /* OIDs of equality join operators */
 	List		*semi_rhs_exprs; /* righthand-side expressions of these ops */
+
 } SpecialJoinInfo;
 
 /*
@@ -1615,26 +1639,13 @@ typedef struct AppendRelInfo
 	Oid			child_reltype;	/* OID of child's composite type */
 
 	/*
-	 * The N'th element of this list is the integer column number of the child
-	 * column corresponding to the N'th column of the parent. A list element
-	 * is zero if it corresponds to a dropped column of the parent (this is
-	 * only possible for inheritance cases, not UNION ALL).
-	 */
-	List	   *col_mappings;	/* list of child attribute numbers */
-
-	/*
 	 * The N'th element of this list is a Var or expression representing the
 	 * child column corresponding to the N'th column of the parent. This is
 	 * used to translate Vars referencing the parent rel into references to
 	 * the child.  A list element is NULL if it corresponds to a dropped
 	 * column of the parent (this is only possible for inheritance cases, not
-	 * UNION ALL).
-	 *
-	 * This might seem redundant with the col_mappings data, but it is handy
-	 * because flattening of sub-SELECTs that are members of a UNION ALL will
-	 * cause changes in the expressions that need to be substituted for a
-	 * parent Var.	Adjusting this data structure lets us track what really
-	 * needs to be substituted.
+	 * UNION ALL).  The list elements are always simple Vars for inheritance
+	 * cases, but can be arbitrary expressions in UNION ALL cases.
 	 *
 	 * Notice we only store entries for user columns (attno > 0).  Whole-row
 	 * Vars are special-cased, and system columns (attno < 0) need no special
@@ -1686,7 +1697,7 @@ typedef struct AppendRelInfo
 typedef struct PlaceHolderInfo
 {
 	NodeTag		type;
-	
+
 	Index		phid;			/* ID for PH (unique within planner run) */
 	PlaceHolderVar *ph_var;		/* copy of PlaceHolderVar tree */
 	Relids		ph_eval_at;		/* lowest level we can evaluate value at */

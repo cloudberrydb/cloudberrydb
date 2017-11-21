@@ -30,7 +30,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/postmaster/bgwriter.c,v 1.50 2008/05/12 00:00:50 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/postmaster/bgwriter.c,v 1.54 2008/11/23 01:40:19 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -48,7 +48,6 @@
 #include "postmaster/bgwriter.h"
 #include "storage/bufmgr.h"
 #include "storage/fd.h"
-#include "storage/freespace.h"
 #include "storage/ipc.h"
 #include "storage/lwlock.h"
 #include "storage/pmsignal.h"
@@ -257,7 +256,6 @@ BackgroundWriterMain(void)
 			 * control back to the sigsetjmp block above
 			 */
 			ExitOnAnyError = true;
-			DumpFreeSpaceMap(0, 0);
 
 			/* Normal exit from the bgwriter server is here */
 			proc_exit(0);		/* done */

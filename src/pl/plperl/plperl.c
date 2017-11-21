@@ -43,6 +43,10 @@
 #undef TEXTDOMAIN
 #define TEXTDOMAIN PG_TEXTDOMAIN("plperl")
 
+/* define our text domain for translations */
+#undef TEXTDOMAIN
+#define TEXTDOMAIN PG_TEXTDOMAIN("plperl")
+
 /* perl stuff */
 #include "plperl.h"
 #include "plperl_helpers.h"
@@ -402,7 +406,8 @@ _PG_init(void)
 							 gettext_noop("If true, trusted and untrusted Perl code will be compiled in strict mode."),
 							 NULL,
 							 &plperl_use_strict,
-							 PGC_USERSET,
+							 false,
+							 PGC_USERSET, 0,
 							 NULL, NULL);
 
 	/*
@@ -415,7 +420,8 @@ _PG_init(void)
 							   gettext_noop("Perl initialization code to execute when a Perl interpreter is initialized."),
 							   NULL,
 							   &plperl_on_init,
-							   PGC_SIGHUP,
+							   NULL,
+							   PGC_SIGHUP, 0,
 							   NULL, NULL);
 
 	/*
@@ -436,14 +442,16 @@ _PG_init(void)
 							   gettext_noop("Perl initialization code to execute once when plperl is first used."),
 							   NULL,
 							   &plperl_on_plperl_init,
-							   PGC_SUSET,
+							   NULL,
+							   PGC_SUSET, 0,
 							   NULL, NULL);
 
 	DefineCustomStringVariable("plperl.on_plperlu_init",
 							   gettext_noop("Perl initialization code to execute once when plperlu is first used."),
 							   NULL,
 							   &plperl_on_plperlu_init,
-							   PGC_SUSET,
+							   NULL,
+							   PGC_SUSET, 0,
 							   NULL, NULL);
 
 	EmitWarningsOnPlaceholders("plperl");
@@ -2984,7 +2992,7 @@ plperl_return_next(SV *sv)
 
 		current_call_data->ret_tdesc = CreateTupleDescCopy(tupdesc);
 		current_call_data->tuple_store =
-			tuplestore_begin_heap(rsi->allowedModes,
+			tuplestore_begin_heap(rsi->allowedModes & SFRM_Materialize_Random,
 								  false, work_mem);
 
 		MemoryContextSwitchTo(old_cxt);

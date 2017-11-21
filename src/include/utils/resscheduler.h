@@ -22,6 +22,7 @@
 #include "storage/lock.h"
 #include "tcop/dest.h"
 #include "cdb/memquota.h"
+#include "utils/portal.h"
 
 /*
  * GUC variables.

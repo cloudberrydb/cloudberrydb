@@ -24,9 +24,11 @@
 #include "utils/lsyscache.h"
 #include "parser/parse_expr.h"
 
-
+/* Local functions */
 static Relids find_placeholders_recurse(PlannerInfo *root, Node *jtnode);
-static void find_placeholders_in_qual(PlannerInfo *root, Node *qual, Relids relids);
+static void find_placeholders_in_qual(PlannerInfo *root, Node *expr,
+									  Relids relids);
+
 
 /*
  * make_placeholder_expr
@@ -127,13 +129,13 @@ static Relids
 find_placeholders_recurse(PlannerInfo *root, Node *jtnode)
 {
 	Relids		jtrelids;
-	
+
 	if (jtnode == NULL)
 		return NULL;
 	if (IsA(jtnode, RangeTblRef))
 	{
 		int			varno = ((RangeTblRef *) jtnode)->rtindex;
-		
+
 		/* No quals to deal with, just return correct result */
 		jtrelids = bms_make_singleton(varno);
 	}
@@ -141,7 +143,7 @@ find_placeholders_recurse(PlannerInfo *root, Node *jtnode)
 	{
 		FromExpr   *f = (FromExpr *) jtnode;
 		ListCell   *l;
-		
+
 		/*
 		 * First, recurse to handle child joins, and form their relid set.
 		 */
@@ -149,11 +151,11 @@ find_placeholders_recurse(PlannerInfo *root, Node *jtnode)
 		foreach(l, f->fromlist)
 		{
 			Relids		sub_relids;
-			
+
 			sub_relids = find_placeholders_recurse(root, lfirst(l));
 			jtrelids = bms_join(jtrelids, sub_relids);
 		}
-		
+
 		/*
 		 * Now process the top-level quals.
 		 */
@@ -164,14 +166,14 @@ find_placeholders_recurse(PlannerInfo *root, Node *jtnode)
 		JoinExpr   *j = (JoinExpr *) jtnode;
 		Relids		leftids,
 		rightids;
-		
+
 		/*
 		 * First, recurse to handle child joins, and form their relid set.
 		 */
 		leftids = find_placeholders_recurse(root, j->larg);
 		rightids = find_placeholders_recurse(root, j->rarg);
 		jtrelids = bms_join(leftids, rightids);
-		
+
 		/* Process the qual clauses */
 		find_placeholders_in_qual(root, j->quals, jtrelids);
 	}
@@ -196,7 +198,7 @@ find_placeholders_in_qual(PlannerInfo *root, Node *qual, Relids relids)
 {
 	List	   *vars;
 	ListCell   *vl;
-	
+
 	/*
 	 * pull_var_clause does more than we need here, but it'll do and it's
 	 * convenient to use.
@@ -206,17 +208,17 @@ find_placeholders_in_qual(PlannerInfo *root, Node *qual, Relids relids)
 	{
 		PlaceHolderVar *phv = (PlaceHolderVar *) lfirst(vl);
 		PlaceHolderInfo *phinfo;
-		
+
 		/* Ignore any plain Vars */
 		if (!IsA(phv, PlaceHolderVar))
 			continue;
-		
+
 		/* Create a PlaceHolderInfo entry if there's not one already */
 		phinfo = find_placeholder_info(root, phv);
-		
+
 		/* Mark the PHV as possibly needed at the qual's syntactic level */
 		phinfo->ph_may_need = bms_add_members(phinfo->ph_may_need, relids);
-		
+
 		/*
 		 * This is a bit tricky: the PHV's contained expression may contain
 		 * other, lower-level PHVs.  We need to get those into the
@@ -334,7 +336,7 @@ void
 fix_placeholder_input_needed_levels(PlannerInfo *root)
 {
 	ListCell   *lc;
-	
+
 	/*
 	 * Note that this loop can have side-effects on the ph_needed sets of
 	 * other PlaceHolderInfos; that's okay because we don't examine ph_needed
@@ -344,13 +346,13 @@ fix_placeholder_input_needed_levels(PlannerInfo *root)
 	{
 		PlaceHolderInfo *phinfo = (PlaceHolderInfo *) lfirst(lc);
 		Relids		eval_at = phinfo->ph_eval_at;
-		
+
 		/* No work unless it'll be evaluated above baserel level */
 		if (bms_membership(eval_at) == BMS_MULTIPLE)
 		{
 			List	   *vars = pull_var_clause((Node *) phinfo->ph_var->phexpr,
 											   true);
-			
+
 			add_vars_to_targetlist(root, vars, eval_at);
 			list_free(vars);
 		}
@@ -368,12 +370,12 @@ fix_placeholder_input_needed_levels(PlannerInfo *root)
 	{
 		PlaceHolderInfo *phinfo = (PlaceHolderInfo *) lfirst(lc);
 		Relids		eval_at = phinfo->ph_eval_at;
-		
+
 		if (bms_membership(eval_at) == BMS_SINGLETON)
 		{
 			int			varno = bms_singleton_member(eval_at);
 			RelOptInfo *rel = find_base_rel(root, varno);
-			
+
 			if (bms_nonempty_difference(phinfo->ph_needed, rel->relids))
 				rel->reltargetlist = lappend(rel->reltargetlist,
 											 copyObject(phinfo->ph_var));

@@ -4611,7 +4611,7 @@ range_partition_walker(Node *node, void *context)
 					 parser_errposition(ctx->pstate, ctx->location)));
 		return false;
 	}
-	return expression_tree_walker(node, range_partition_walker, ctx);
+	return raw_expression_tree_walker(node, range_partition_walker, ctx);
 }
 
 Node *

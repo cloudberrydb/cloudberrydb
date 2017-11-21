@@ -4,6 +4,9 @@ PARTITION_METADATA_PATTERN = re.compile('.*CONST (:.*) \[')
 KEY_WITH_METADATA_43_TO_5 = ["parrangestart", "parrangeend", "parrangeevery", "parlistvalues"]
 KEY_WITH_METADATA = ["version", "parrangestartincl"] + KEY_WITH_METADATA_43_TO_5
 
+# These columns contain CONST or other nodes that may contain :location fields.
+# The :location fields will be stripped out before the comparison.
+KEYS_WITH_LOCATIONS = ["parrangestart", "parrangeend", "parrangeevery", "parlistvalues"]
 
 class PartitionComparator(object):
     def _parse_value(self, partition_info_dict, column_list):
@@ -16,6 +19,12 @@ class PartitionComparator(object):
         :returns a list of all text chunks split by a space
         """
         result = dict(partition_info_dict)
+
+        # Strip out any :location fields, they are not relevant for the comparison.
+        for column_key in KEYS_WITH_LOCATIONS:
+            if isinstance(result[column_key], str):
+                result[column_key] = re.sub(' :location -?[0-9]+', '', result[column_key])
+
         for column_key in column_list:
             value = result[column_key]
             # removing enclosing parenthesis and curly braces '(({' and '}))'

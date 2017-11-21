@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/builtins.h,v 1.319 2008/07/18 03:32:53 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/utils/builtins.h,v 1.328 2008/12/19 16:25:19 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -419,10 +419,8 @@ extern Datum pg_tablespace_size_oid(PG_FUNCTION_ARGS);
 extern Datum pg_tablespace_size_name(PG_FUNCTION_ARGS);
 extern Datum pg_database_size_oid(PG_FUNCTION_ARGS);
 extern Datum pg_database_size_name(PG_FUNCTION_ARGS);
-extern Datum pg_relation_size_oid(PG_FUNCTION_ARGS);
-extern Datum pg_relation_size_name(PG_FUNCTION_ARGS);
-extern Datum pg_total_relation_size_oid(PG_FUNCTION_ARGS);
-extern Datum pg_total_relation_size_name(PG_FUNCTION_ARGS);
+extern Datum pg_relation_size(PG_FUNCTION_ARGS);
+extern Datum pg_total_relation_size(PG_FUNCTION_ARGS);
 extern Datum pg_size_pretty(PG_FUNCTION_ARGS);
 extern Datum gp_statistics_estimate_reltuples_relpages_oid(PG_FUNCTION_ARGS);
 
@@ -576,6 +574,13 @@ extern Datum record_in(PG_FUNCTION_ARGS);
 extern Datum record_out(PG_FUNCTION_ARGS);
 extern Datum record_recv(PG_FUNCTION_ARGS);
 extern Datum record_send(PG_FUNCTION_ARGS);
+extern Datum record_eq(PG_FUNCTION_ARGS);
+extern Datum record_ne(PG_FUNCTION_ARGS);
+extern Datum record_lt(PG_FUNCTION_ARGS);
+extern Datum record_gt(PG_FUNCTION_ARGS);
+extern Datum record_le(PG_FUNCTION_ARGS);
+extern Datum record_ge(PG_FUNCTION_ARGS);
+extern Datum btrecordcmp(PG_FUNCTION_ARGS);
 
 /* ruleutils.c */
 extern Datum pg_get_ruledef(PG_FUNCTION_ARGS);
@@ -597,6 +602,7 @@ extern Datum pg_get_expr(PG_FUNCTION_ARGS);
 extern Datum pg_get_expr_ext(PG_FUNCTION_ARGS);
 extern Datum pg_get_userbyid(PG_FUNCTION_ARGS);
 extern Datum pg_get_serial_sequence(PG_FUNCTION_ARGS);
+extern Datum pg_get_functiondef(PG_FUNCTION_ARGS);
 extern Datum pg_get_function_arguments(PG_FUNCTION_ARGS);
 extern Datum pg_get_function_identity_arguments(PG_FUNCTION_ARGS);
 extern Datum pg_get_function_result(PG_FUNCTION_ARGS);
@@ -998,6 +1004,9 @@ extern Datum RI_FKey_setnull_del(PG_FUNCTION_ARGS);
 extern Datum RI_FKey_setnull_upd(PG_FUNCTION_ARGS);
 extern Datum RI_FKey_setdefault_del(PG_FUNCTION_ARGS);
 extern Datum RI_FKey_setdefault_upd(PG_FUNCTION_ARGS);
+
+/* trigfuncs.c */
+extern Datum suppress_redundant_updates_trigger(PG_FUNCTION_ARGS);
 
 /* encoding support functions */
 extern Datum getdatabaseencoding(PG_FUNCTION_ARGS);

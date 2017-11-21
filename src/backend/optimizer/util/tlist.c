@@ -21,7 +21,6 @@
 #include "optimizer/planmain.h"
 #include "optimizer/tlist.h"
 #include "optimizer/var.h"
-#include "parser/parse_expr.h"
 #include "utils/lsyscache.h"
 
 typedef struct maxSortGroupRef_context

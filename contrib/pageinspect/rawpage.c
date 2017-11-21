@@ -8,7 +8,7 @@
  * Copyright (c) 2007-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/contrib/pageinspect/rawpage.c,v 1.6 2008/05/12 00:00:43 alvherre Exp $
+ *	  $PostgreSQL: pgsql/contrib/pageinspect/rawpage.c,v 1.9 2008/10/31 15:04:59 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -17,6 +17,7 @@
 
 #include "access/heapam.h"
 #include "access/transam.h"
+#include "catalog/catalog.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_type.h"
 #include "fmgr.h"
@@ -43,7 +44,9 @@ Datum
 get_raw_page(PG_FUNCTION_ARGS)
 {
 	text	   *relname = PG_GETARG_TEXT_P(0);
-	uint32		blkno = PG_GETARG_UINT32(1);
+	text	   *forkname = PG_GETARG_TEXT_P(1);
+	uint32		blkno = PG_GETARG_UINT32(2);
+	ForkNumber	forknum;
 
 	Relation	rel;
 	RangeVar   *relrv;
@@ -56,6 +59,8 @@ get_raw_page(PG_FUNCTION_ARGS)
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				 (errmsg("must be superuser to use raw functions"))));
+
+	forknum = forkname_to_number(text_to_cstring(forkname));
 
 	relrv = makeRangeVarFromNameList(textToQualifiedNameList(relname));
 	rel = relation_openrv(relrv, AccessShareLock);
@@ -96,7 +101,7 @@ get_raw_page(PG_FUNCTION_ARGS)
 
 	/* Take a verbatim copy of the page */
 
-	buf = ReadBuffer(rel, blkno);
+	buf = ReadBufferExtended(rel, forknum, blkno, RBM_NORMAL, NULL);
 	LockBuffer(buf, BUFFER_LOCK_SHARE);
 
 	memcpy(raw_page_data, BufferGetPage(buf), BLCKSZ);
@@ -161,7 +166,7 @@ page_header(PG_FUNCTION_ARGS)
 
 	/* Extract information from the page header */
 
-	lsn = PageGetLSN(page);
+	lsn = PageGetLSN((Page) page);
 	snprintf(lsnchar, sizeof(lsnchar), "%X/%X", lsn.xlogid, lsn.xrecoff);
 
 	values[0] = CStringGetTextDatum(lsnchar);

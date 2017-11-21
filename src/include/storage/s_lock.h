@@ -66,7 +66,7 @@
  * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- *	  $PostgreSQL: pgsql/src/include/storage/s_lock.h,v 1.171 2010/01/05 11:06:28 mha Exp $
+ *	  $PostgreSQL: pgsql/src/include/storage/s_lock.h,v 1.165 2008/10/29 16:06:47 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -579,7 +579,7 @@ typedef unsigned char slock_t;
 #endif
 
 
-#endif	/* __GNUC__ */
+#endif	/* defined(__GNUC__) || defined(__INTEL_COMPILER) */
 
 
 
@@ -783,7 +783,7 @@ typedef unsigned char slock_t;
 #endif
 
 
-#if defined(__sun) && (defined(__i386) || defined(__x86_64__) || defined(__sparc__) || defined(__sparc))
+#if defined(__SUNPRO_C) && (defined(__i386) || defined(__x86_64__) || defined(__sparc__) || defined(__sparc))
 #define HAS_TEST_AND_SET
 
 #if defined(__i386) || defined(__x86_64__) || defined(__sparcv9) || defined(__sparcv8plus)

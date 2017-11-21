@@ -7,15 +7,13 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/storage/relfilenode.h,v 1.23 2009/06/11 14:49:12 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/storage/relfilenode.h,v 1.21 2008/12/03 13:05:22 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
 #ifndef RELFILENODE_H
 #define RELFILENODE_H
 
-#if 0
-// Not (yet) used in GPDB, but we might want to use it in the future.
 /*
  * The physical storage of a relation consists of one or more forks. The
  * main fork is always created, but in addition to that there can be
@@ -28,7 +26,6 @@ typedef enum ForkNumber
 	MAIN_FORKNUM = 0,
 	FSM_FORKNUM,
 	VISIBILITYMAP_FORKNUM
-
 	/*
 	 * NOTE: if you add a new fork, change MAX_FORKNUM below and update the
 	 * forkNames array in catalog.c
@@ -36,7 +33,6 @@ typedef enum ForkNumber
 } ForkNumber;
 
 #define MAX_FORKNUM		VISIBILITYMAP_FORKNUM
-#endif 
 
 /*
  * RelFileNode must provide all that we need to know to physically access

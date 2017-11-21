@@ -27,6 +27,7 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 
+#include "access/xact.h"
 #include "miscadmin.h"
 #include "libpq/pqsignal.h"
 #include "cdb/cdbvars.h"
@@ -47,6 +48,7 @@
 #include "utils/ps_status.h"
 #include "storage/backendid.h"
 #include "utils/resowner.h"
+#include "utils/snapmgr.h"
 #include "utils/syscache.h"
 
 #include "tcop/tcopprot.h"
@@ -528,6 +530,14 @@ SeqServerMain(int argc, char *argv[])
 	RelationCacheInitializePhase2();
 
 	/*
+	 * Start a new transaction here before first access to db, and get a
+	 * snapshot.  We don't have a use for the snapshot itself, but we're
+	 * interested in the secondary effect that it sets RecentGlobalXmin.
+	 */
+	StartTransactionCommand();
+	(void) GetTransactionSnapshot();
+
+	/*
 	 * In order to access the catalog, we need a database, and a
 	 * tablespace; our access to the heap is going to be slightly
 	 * limited, so we'll just use some defaults.
@@ -546,6 +556,9 @@ SeqServerMain(int argc, char *argv[])
 	SetDatabasePath(fullpath);
 
 	RelationCacheInitializePhase3();
+
+	/* close the transaction we started above */
+	CommitTransactionCommand();
 
 	SeqServerLoop();
 
@@ -818,6 +831,13 @@ processSequenceRequest(int sockfd )
 	 */
 	PG_TRY();
 	{
+		/*
+		 * Processing the request might need to do catalog lookups, which requires
+		 * a transaction. Updating the sequence itself is not transactional, so this
+		 * transaction should be read-only.
+		 */
+		StartTransactionCommand();
+
 		cdb_sequence_nextval_server(nextValRequest.tablespaceid,
 									nextValRequest.dbid,
 									nextValRequest.seq_oid,
@@ -826,6 +846,8 @@ processSequenceRequest(int sockfd )
 									&pcached,
 									&pincrement,
 									&poverflow);
+
+		CommitTransactionCommand();
 	}
 	PG_CATCH();
 	{

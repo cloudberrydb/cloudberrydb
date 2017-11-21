@@ -66,7 +66,7 @@ endif
 abs_srcdir := $(shell cd "$(srcdir)" && pwd)
 
 installcheck: all
-	$(top_builddir)/src/test/regress/pg_regress --init-file=init_file --dbname=mapred_regression --inputdir=$(srcdir) --top-builddir=$(top_builddir) --srcdir=$(abs_srcdir) --temp-port=$(TEMP_PORT) mapred
+	$(top_builddir)/src/test/regress/pg_regress --init-file=init_file --dbname=mapred_regression --inputdir=$(srcdir) --top-builddir=$(top_builddir) mapred
 
 install: all installdirs
 	$(INSTALL_PROGRAM) gpmapreduce$(X) '$(DESTDIR)$(bindir)/gpmapreduce$(X)'

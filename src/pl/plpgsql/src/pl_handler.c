@@ -8,13 +8,12 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_handler.c,v 1.39 2008/05/12 00:00:54 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_handler.c,v 1.42 2008/12/11 07:34:09 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
 
 #include "plpgsql.h"
-#include "pl_gram.h"
 
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
@@ -42,6 +41,8 @@ _PG_init(void)
 
 	if (inited)
 		return;
+
+	pg_bindtextdomain(TEXTDOMAIN);
 
 	plpgsql_HashTableInit();
 	RegisterXactCallback(plpgsql_xact_cb, NULL);

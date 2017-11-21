@@ -6,7 +6,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/mb/pg_wchar.h,v 1.79 2008/06/18 18:42:54 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/mb/pg_wchar.h,v 1.80 2008/10/29 08:04:53 petere Exp $
  *
  *	NOTES
  *		This is used both by the backend and by libpq, but should not be

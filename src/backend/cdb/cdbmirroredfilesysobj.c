@@ -29,6 +29,7 @@
 #include "catalog/pg_tablespace.h"
 #include "catalog/pg_database.h"
 #include "catalog/gp_persistent.h"
+#include "catalog/storage.h"
 #include "cdb/cdbpersistentdatabase.h"
 #include "cdb/cdbpersistenttablespace.h"
 #include "cdb/cdbpersistentfilespace.h"
@@ -929,21 +930,13 @@ MirroredFileSysObj_JustInTimeDbDirCreate(
 }
 
 void
-MirroredFileSysObj_TransactionCreateBufferPoolFile(
-												   SMgrRelation smgrOpen,
-
+MirroredFileSysObj_TransactionCreateBufferPoolFile(RelFileNode *rnode,
 												   PersistentFileSysRelBufpoolKind relBufpoolKind,
-
 												   bool isLocalBuf,
-
 												   char *relationName,
-
 												   bool doJustInTimeDirCreate,
-
 												   bool bufferPoolBulkLoad,
-
 												   ItemPointer persistentTid,
-
 												   int64 *persistentSerialNum)
 {
 	PersistentFileSysObjName fsObjName;
@@ -969,14 +962,13 @@ MirroredFileSysObj_TransactionCreateBufferPoolFile(
 		 * "Fault-in" the database directory in a tablespace if it doesn't
 		 * exist yet.
 		 */
-		justInTimeDbDirNode.tablespace = smgrOpen->smgr_rnode.spcNode;
-		justInTimeDbDirNode.database = smgrOpen->smgr_rnode.dbNode;
+		justInTimeDbDirNode.tablespace = rnode->spcNode;
+		justInTimeDbDirNode.database = rnode->dbNode;
 		MirroredFileSysObj_JustInTimeDbDirCreate(&justInTimeDbDirNode);
 	}
 
-	PersistentFileSysObjName_SetRelationFile(
-											 &fsObjName,
-											 &smgrOpen->smgr_rnode,
+	PersistentFileSysObjName_SetRelationFile(&fsObjName,
+											 rnode,
 											  /* segmentFileNum */ 0);
 
 	LWLockAcquire(MirroredLock, LW_SHARED);
@@ -996,8 +988,7 @@ MirroredFileSysObj_TransactionCreateBufferPoolFile(
 	 * We write our intention or 'Create Pending' persistent information
 	 * before we do any create relation work on either the primary or mirror.
 	 */
-	smgrcreatepending(
-					  &smgrOpen->smgr_rnode,
+	smgrcreatepending(rnode,
 					   /* segmentFileNum */ 0,
 					  PersistentFileSysRelStorageMgr_BufferPool,
 					  relBufpoolKind,
@@ -1013,12 +1004,13 @@ MirroredFileSysObj_TransactionCreateBufferPoolFile(
 	/*
 	 * Synchronous primary and mirror create relation.
 	 */
-	smgrcreate(smgrOpen,
-			   relationName,
-			   mirrorDataLossTrackingState,
-			   mirrorDataLossTrackingSessionNum,
-			   /* ignoreAlreadyExists */ false,
-			   &mirrorDataLossOccurred);
+	RelationCreateStorage(*rnode,
+						  isLocalBuf, /* GPDB_84_MERGE_FIXME: is isLocalBuf the same as isTemp? */
+						  relationName,
+						  mirrorDataLossTrackingState,
+						  mirrorDataLossTrackingSessionNum,
+						  &mirrorDataLossOccurred);
+	smgrclosenode(*rnode);
 
 	MirroredFileSysObj_FinishMirroredCreate(
 											&fsObjName,
@@ -1038,9 +1030,9 @@ MirroredFileSysObj_TransactionCreateBufferPoolFile(
 		elog(Persistent_DebugPrintLevel(),
 			 "MirroredFileSysObj_TransactionCreateBufferPoolFile: %u/%u/%u, relation name '%s', bulk load %s, mirror existence state '%s', mirror data loss occurred %s"
 			 ", persistent serial number " INT64_FORMAT " at TID %s",
-			 smgrOpen->smgr_rnode.spcNode,
-			 smgrOpen->smgr_rnode.dbNode,
-			 smgrOpen->smgr_rnode.relNode,
+			 rnode->spcNode,
+			 rnode->dbNode,
+			 rnode->relNode,
 			 (relationName == NULL ? "<null>" : relationName),
 			 (bufferPoolBulkLoad ? "true" : "false"),
 			 MirroredObjectExistenceState_Name(mirrorExistenceState),
@@ -1150,7 +1142,7 @@ MirroredFileSysObj_TransactionCreateAppendOnlyFile(
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not create relation file '%s', relation name '%s': %s",
-						relpath(*relFileNode),
+						relpath(*relFileNode, MAIN_FORKNUM),
 						relationName,
 						strerror(primaryError))));
 	}
@@ -1206,8 +1198,7 @@ MirroredFileSysObj_ScheduleDropBufferPoolRel(
 	 */
 	RelationOpenSmgr(relation);
 	Assert(relation->rd_smgr != NULL);
-	smgrscheduleunlink(
-					   &relation->rd_node,
+	RelationDropStorage(&relation->rd_node,
 					    /* segmentFileNum */ 0,
 					   PersistentFileSysRelStorageMgr_BufferPool,
 					   relation->rd_isLocalBuf,
@@ -1262,14 +1253,13 @@ MirroredFileSysObj_ScheduleDropBufferPoolFile(
 {
 	Assert(persistentTid != NULL);
 
-	smgrscheduleunlink(
-					   relFileNode,
+	RelationDropStorage(relFileNode,
 					    /* segmentFileNum */ 0,
-					   PersistentFileSysRelStorageMgr_BufferPool,
-					   isLocalBuf,
-					   relationName,
-					   persistentTid,
-					   persistentSerialNum);
+						PersistentFileSysRelStorageMgr_BufferPool,
+						isLocalBuf,
+						relationName,
+						persistentTid,
+						persistentSerialNum);
 
 	if (Debug_persistent_print)
 	{
@@ -1319,14 +1309,13 @@ MirroredFileSysObj_ScheduleDropAppendOnlyFile(
 		SUPPRESS_ERRCONTEXT_POP();
 	}
 
-	smgrscheduleunlink(
-					   relFileNode,
-					   segmentFileNum,
-					   PersistentFileSysRelStorageMgr_AppendOnly,
+	RelationDropStorage(relFileNode,
+						segmentFileNum,
+						PersistentFileSysRelStorageMgr_AppendOnly,
 					    /* isLocalBuf */ false,
-					   relationName,
-					   persistentTid,
-					   persistentSerialNum);
+						relationName,
+						persistentTid,
+						persistentSerialNum);
 }
 
 void
@@ -1353,14 +1342,13 @@ MirroredFileSysObj_DropRelFile(
 	switch (relStorageMgr)
 	{
 		case PersistentFileSysRelStorageMgr_BufferPool:
-			smgrdounlink(
-						 relFileNode,
-						 isLocalBuf,
-						 relationName,
-						 primaryOnly,
-						  /* isRedo */ false,
-						 ignoreNonExistence,
-						 mirrorDataLossOccurred);
+			smgrdomirroredunlink(relFileNode,
+								 isLocalBuf,
+								 relationName,
+								 primaryOnly,
+								 /* isRedo */ false,
+								 ignoreNonExistence,
+								 mirrorDataLossOccurred);
 			break;
 
 		case PersistentFileSysRelStorageMgr_AppendOnly:

@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/aggregatecmds.c,v 1.46 2008/06/08 21:09:48 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/aggregatecmds.c,v 1.47 2008/11/14 19:47:50 tgl Exp $
  *
  * DESCRIPTION
  *	  The "DefineFoo" routines take the parse tree and pick out the
@@ -199,7 +199,7 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 		!IsPolymorphicType(transTypeId))
 	{
 		if (transTypeId == INTERNALOID && superuser())
-			 /* okay */ ;
+			/* okay */ ;
 		else
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),

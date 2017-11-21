@@ -279,7 +279,7 @@ PersistentRelation_AddCreatePending(
 		if (Debug_persistent_print)
 			elog(Persistent_DebugPrintLevel(),
 				 "Skipping persistent relation '%s' because we are before persistence work",
-				 relpath(*relFileNode));
+				 relpath(*relFileNode, MAIN_FORKNUM));
 
 		MemSet(persistentTid, 0, sizeof(ItemPointerData));
 		*serialNum = 0;
@@ -516,7 +516,7 @@ PersistentRelation_FinishBufferPoolBulkLoad(
 		if (Debug_persistent_print)
 			elog(Persistent_DebugPrintLevel(),
 				 "Skipping persistent relation '%s' because we are before persistence work",
-				 relpath(*relFileNode));
+				 relpath(*relFileNode, MAIN_FORKNUM));
 
 		return;
 
@@ -594,7 +594,7 @@ PersistentRelation_Created(
 		if (Debug_persistent_print)
 			elog(Persistent_DebugPrintLevel(),
 				 "Skipping persistent relation '%s' because we are before persistence work",
-				 relpath(*relFileNode));
+				 relpath(*relFileNode, MAIN_FORKNUM));
 
 		return;
 
@@ -842,7 +842,7 @@ PersistentRelation_MarkDropPending(
 		if (Debug_persistent_print)
 			elog(Persistent_DebugPrintLevel(),
 				 "Skipping persistent relation '%s' because we are before persistence work",
-				 relpath(*relFileNode));
+				 relpath(*relFileNode, MAIN_FORKNUM));
 
 		return false;
 
@@ -925,7 +925,7 @@ PersistentRelation_MarkAbortingCreate(
 		if (Debug_persistent_print)
 			elog(Persistent_DebugPrintLevel(),
 				 "Skipping persistent relation '%s' because we are before persistence work",
-				 relpath(*relFileNode));
+				 relpath(*relFileNode, MAIN_FORKNUM));
 
 		return false;
 
@@ -1046,7 +1046,7 @@ PersistentRelation_Dropped(
 		if (Debug_persistent_print)
 			elog(Persistent_DebugPrintLevel(),
 				 "Skipping persistent relation '%s' because we are before persistence work",
-				 relpath(*relFileNode));
+				 relpath(*relFileNode, MAIN_FORKNUM));
 
 		return;
 
@@ -1116,7 +1116,7 @@ PersistentRelation_MarkBufPoolRelationForScanIncrementalResync(
 		if (Debug_persistent_print)
 			elog(Persistent_DebugPrintLevel(),
 				 "Skipping persistent relation '%s' because it is special",
-				 relpath(*relFileNode));
+				 relpath(*relFileNode, MAIN_FORKNUM));
 
 		return;
 
@@ -1131,7 +1131,7 @@ PersistentRelation_MarkBufPoolRelationForScanIncrementalResync(
 		if (Debug_persistent_print)
 			elog(Persistent_DebugPrintLevel(),
 				 "Skipping persistent relation '%s' because we are in bootstrap mode",
-				 relpath(*relFileNode));
+				 relpath(*relFileNode, MAIN_FORKNUM));
 
 		return;
 
@@ -1146,7 +1146,7 @@ PersistentRelation_MarkBufPoolRelationForScanIncrementalResync(
 		if (Debug_persistent_print)
 			elog(Persistent_DebugPrintLevel(),
 				 "Skipping persistent relation '%s' because we are before persistence work",
-				 relpath(*relFileNode));
+				 relpath(*relFileNode, MAIN_FORKNUM));
 
 		return;
 

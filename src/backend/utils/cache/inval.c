@@ -80,7 +80,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/cache/inval.c,v 1.86 2008/06/19 21:32:56 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/cache/inval.c,v 1.87 2008/09/09 18:58:08 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -169,6 +169,7 @@ static TransInvalidationInfo *transInvalInfo = NULL;
  */
 #define MAX_SYSCACHE_CALLBACKS 40
 #define MAX_RELCACHE_CALLBACKS 5
+
 
 static struct SYSCACHECALLBACK
 {

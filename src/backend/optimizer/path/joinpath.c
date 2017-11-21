@@ -68,6 +68,14 @@ static List *hashclauses_for_join(List *restrictlist,
  * jointype is not necessarily the same as sjinfo->jointype; it might be
  * "flipped around" if we are considering joining the rels in the opposite
  * direction from what's indicated in sjinfo.
+ *
+ * Also, this routine and others in this module accept the special JoinTypes
+ * JOIN_UNIQUE_OUTER and JOIN_UNIQUE_INNER to indicate that we should
+ * unique-ify the outer or inner relation and then apply a regular inner
+ * join.  These values are not allowed to propagate outside this module,
+ * however.  Path cost estimation code may need to recognize that it's
+ * dealing with such a case --- the combination of nominal jointype INNER
+ * with sjinfo->jointype == JOIN_SEMI indicates that.
  */
 void
 add_paths_to_joinrel(PlannerInfo *root,
@@ -402,6 +410,7 @@ match_unsorted_outer(PlannerInfo *root,
 	{
 		case JOIN_INNER:
 		case JOIN_LEFT:
+		case JOIN_SEMI:
 		case JOIN_ANTI:
 		case JOIN_LASJ_NOTIN:
 			nestjoinOK = true;
@@ -411,6 +420,12 @@ match_unsorted_outer(PlannerInfo *root,
 		case JOIN_FULL:
 			nestjoinOK = false;
 			useallclauses = true;
+			break;
+		case JOIN_UNIQUE_OUTER:
+		case JOIN_UNIQUE_INNER:
+			jointype = JOIN_INNER;
+			nestjoinOK = true;
+			useallclauses = false;
 			break;
 		default:
 			elog(ERROR, "unrecognized join type: %d",
@@ -765,6 +780,9 @@ hashclauses_for_join(List *restrictlist,
 	switch (jointype)
 	{
 		case JOIN_INNER:
+		case JOIN_SEMI:
+		case JOIN_UNIQUE_OUTER:
+		case JOIN_UNIQUE_INNER:
 			isouterjoin = false;
 			break;
 		case JOIN_LEFT:

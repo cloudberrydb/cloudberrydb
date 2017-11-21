@@ -24,7 +24,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/tuplestore.h,v 1.23 2008/03/25 19:26:53 neilc Exp $
+ * $PostgreSQL: pgsql/src/include/utils/tuplestore.h,v 1.26 2008/12/27 17:39:00 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

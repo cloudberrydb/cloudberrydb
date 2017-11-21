@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/pg_class.h,v 1.107 2008/07/30 17:05:05 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/pg_class.h,v 1.110 2008/12/19 18:25:19 tgl Exp $
  *
  * NOTES
  *	  the genbki.sh script reads this file and generates .bki
@@ -54,14 +54,11 @@ CATALOG(pg_class,1259) BKI_BOOTSTRAP
 	 * contain entries with negative attnums for system attributes.
 	 */
 	int2		relchecks;		/* # of CHECK constraints for class */
-	int2		reltriggers;	/* # of TRIGGERs */
-	int2		relukeys;		/* # of Unique keys (not used) */
-	int2		relfkeys;		/* # of FOREIGN KEYs (not used) */
-	int2		relrefs;		/* # of references to this rel (not used) */
 	bool		relhasoids;		/* T if we generate OIDs for rows of rel */
-	bool		relhaspkey;		/* has PRIMARY KEY index */
-	bool		relhasrules;	/* has associated rules */
-	bool		relhassubclass; /* has derived classes */
+	bool		relhaspkey;		/* has (or has had) PRIMARY KEY index */
+	bool		relhasrules;	/* has (or has had) any rules */
+	bool		relhastriggers;	/* has (or has had) any TRIGGERs */
+	bool		relhassubclass; /* has (or has had) derived classes */
 	TransactionId relfrozenxid; /* all Xids < this are frozen in this rel */
 
 	/*
@@ -99,7 +96,7 @@ typedef FormData_pg_class *Form_pg_class;
  * ----------------
  */
 
-#define Natts_pg_class					28
+#define Natts_pg_class					25
 #define Anum_pg_class_relname			1
 #define Anum_pg_class_relnamespace		2
 #define Anum_pg_class_reltype			3
@@ -117,17 +114,14 @@ typedef FormData_pg_class *Form_pg_class;
 #define Anum_pg_class_relstorage		15
 #define Anum_pg_class_relnatts			16
 #define Anum_pg_class_relchecks			17
-#define Anum_pg_class_reltriggers		18
-#define Anum_pg_class_relukeys			19
-#define Anum_pg_class_relfkeys			20
-#define Anum_pg_class_relrefs			21
-#define Anum_pg_class_relhasoids		22
-#define Anum_pg_class_relhaspkey		23
-#define Anum_pg_class_relhasrules		24
-#define Anum_pg_class_relhassubclass	25
-#define Anum_pg_class_relfrozenxid		26
-#define Anum_pg_class_relacl			27
-#define Anum_pg_class_reloptions		28
+#define Anum_pg_class_relhasoids		18
+#define Anum_pg_class_relhaspkey		19
+#define Anum_pg_class_relhasrules		20
+#define Anum_pg_class_relhastriggers	21
+#define Anum_pg_class_relhassubclass	22
+#define Anum_pg_class_relfrozenxid		23
+#define Anum_pg_class_relacl			24
+#define Anum_pg_class_reloptions		25
 
 /* ----------------
  *		initial contents of pg_class
@@ -139,17 +133,17 @@ typedef FormData_pg_class *Form_pg_class;
  */
 
 /* Note: "3" in the relfrozenxid column stands for FirstNormalTransactionId */
-DATA(insert OID = 1247 (  pg_type		PGNSP 71 PGUID 0 1247 0 0 0 0 0 f f r h 28 0 0 0 0 0 t f f f 3 _null_ _null_ ));
+DATA(insert OID = 1247 (  pg_type		PGNSP 71 PGUID 0 1247 0 0 0 0 0 f f r h 28 0 t f f f f 3 _null_ _null_ ));
 DESCR("");
-DATA(insert OID = 1249 (  pg_attribute	PGNSP 75 PGUID 0 1249 0 0 0 0 0 f f r h 17 0 0 0 0 0 f f f f 3 _null_ _null_ ));
+DATA(insert OID = 1249 (  pg_attribute	PGNSP 75 PGUID 0 1249 0 0 0 0 0 f f r h 17 0 f f f f f 3 _null_ _null_ ));
 DESCR("");
-DATA(insert OID = 1255 (  pg_proc		PGNSP 81 PGUID 0 1255 0 0 0 0 0 f f r h 27 0 0 0 0 0 t f f f 3 _null_ _null_ ));
+DATA(insert OID = 1255 (  pg_proc		PGNSP 81 PGUID 0 1255 0 0 0 0 0 f f r h 27 0 t f f f f 3 _null_ _null_ ));
 DESCR("");
-DATA(insert OID = 1259 (  pg_class		PGNSP 83 PGUID 0 1259 0 0 0 0 0 f f r h 28 0 0 0 0 0 t f f f 3 _null_ _null_ ));
+DATA(insert OID = 1259 (  pg_class		PGNSP 83 PGUID 0 1259 0 0 0 0 0 f f r h 25 0 t f f f f 3 _null_ _null_ ));
 DESCR("");
 
 /* abstract tuple types */
-DATA(insert OID = 3250    ( nb_classification PGNSP 3251 PGUID 0 3250 0 0 0 0 0 f f c v 3 0 0 0 0 0 f f f f 0 _null_ _null_ ));
+DATA(insert OID = 3250    ( nb_classification PGNSP 3251 PGUID 0 3250 0 0 0 0 0 f f c v 3 0 f f f f f 0 _null_ _null_ ));
 
 
 /*
@@ -159,7 +153,7 @@ DATA(insert OID = 3250    ( nb_classification PGNSP 3251 PGUID 0 3250 0 0 0 0 0 
   {"pg_class"}, PG_CATALOG_NAMESPACE, PG_CLASS_RELTYPE_OID, BOOTSTRAP_SUPERUSERID, 0, \
                RelationRelationId, GLOBALTABLESPACE_OID, \
                0, 0, 0, 0, false, false, RELKIND_RELATION, RELSTORAGE_HEAP, Natts_pg_class, \
-               0, 0, 0, 0, 0, true, false, false, false, FirstNormalTransactionId, {0}, {{{'\0','\0','\0','\0'},{'\0'}}}
+               0, true, false, false, false, false, FirstNormalTransactionId, {0}, {{{'\0','\0','\0','\0'},{'\0'}}}
 
 
 

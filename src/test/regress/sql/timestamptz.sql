@@ -55,6 +55,8 @@ INSERT INTO TIMESTAMPTZ_TBL VALUES ('current');
 
 -- Postgres v6.0 standard output format
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('Mon Feb 10 17:32:01 1997 PST');
+INSERT INTO TIMESTAMPTZ_TBL VALUES ('Invalid Abstime');
+INSERT INTO TIMESTAMPTZ_TBL VALUES ('Undefined Abstime');
 
 -- Variations on Postgres v6.1 standard output format
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('Mon Feb 10 17:32:01.000001 1997 PST');

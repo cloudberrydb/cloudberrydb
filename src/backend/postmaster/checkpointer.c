@@ -43,7 +43,6 @@
 #include "postmaster/bgwriter.h"
 #include "replication/syncrep.h"
 #include "storage/fd.h"
-#include "storage/freespace.h"
 #include "storage/ipc.h"
 #include "storage/lwlock.h"
 #include "storage/pmsignal.h"
@@ -106,6 +105,7 @@
 typedef struct
 {
 	RelFileNode	rnode;
+	ForkNumber forknum;
 	BlockNumber segno;			/* see md.c for special values */
 	/* might add a real request-type field later; not needed yet */
 } CheckpointerRequest;
@@ -970,7 +970,7 @@ RequestCheckpoint(int flags)
  * let the backend know by returning false.
  */
 bool
-ForwardFsyncRequest(RelFileNode rnode, BlockNumber segno)
+ForwardFsyncRequest(RelFileNode rnode, ForkNumber forknum, BlockNumber segno)
 {
 	CheckpointerRequest *request;
 
@@ -1002,6 +1002,7 @@ ForwardFsyncRequest(RelFileNode rnode, BlockNumber segno)
 	/* OK, insert request */
 	request = &CheckpointerShmem->requests[CheckpointerShmem->num_requests++];
 	request->rnode = rnode;
+	request->forknum = forknum;
 	request->segno = segno;
 	LWLockRelease(CheckpointerCommLock);
 	return true;
@@ -1174,7 +1175,7 @@ AbsorbFsyncRequests(void)
 	LWLockRelease(CheckpointerCommLock);
 
 	for (request = requests; n > 0; request++, n--)
-		RememberFsyncRequest(request->rnode, request->segno);
+		RememberFsyncRequest(request->rnode, request->forknum, request->segno);
 
 	if (requests)
 		pfree(requests);

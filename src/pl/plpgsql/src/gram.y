@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/gram.y,v 1.113 2008/05/15 22:39:49 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/gram.y,v 1.117 2008/11/26 08:45:12 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -432,7 +432,7 @@ decl_statement	: decl_varname decl_const decl_datatype decl_notnull decl_defval
 						if ($5 == NULL)
 							new->cursor_explicit_argrow = -1;
 						else
-							new->cursor_explicit_argrow = $5->rowno;
+							new->cursor_explicit_argrow = $5->dno;
 						new->cursor_options = CURSOR_OPT_FAST_PLAN | $2;
 					}
 				;
@@ -741,6 +741,18 @@ getdiag_target	: T_SCALAR
 						check_assignable(yylval.scalar);
 						$$ = yylval.scalar->dno;
 					}
+				| T_ROW
+					{
+						yyerror("expected an integer variable");
+					}
+				| T_RECORD
+					{
+						yyerror("expected an integer variable");
+					}
+				| T_WORD
+					{
+						yyerror("expected an integer variable");
+					}
 				;
 
 
@@ -752,12 +764,12 @@ assign_var		: T_SCALAR
 				| T_ROW
 					{
 						check_assignable((PLpgSQL_datum *) yylval.row);
-						$$ = yylval.row->rowno;
+						$$ = yylval.row->dno;
 					}
 				| T_RECORD
 					{
 						check_assignable((PLpgSQL_datum *) yylval.rec);
-						$$ = yylval.rec->recno;
+						$$ = yylval.rec->dno;
 					}
 				| assign_var '[' expr_until_rightbracket
 					{
@@ -1024,7 +1036,7 @@ for_control		:
 							new->cmd_type = PLPGSQL_STMT_FORC;
 							new->lineno = $1;
 
-							new->curvar = cursor->varno;
+							new->curvar = cursor->dno;
 
 							/* Should have had a single variable name */
 							plpgsql_error_lineno = $2.lineno;
@@ -1533,7 +1545,7 @@ stmt_open		: K_OPEN lno cursor_variable
 						new = palloc0(sizeof(PLpgSQL_stmt_open));
 						new->cmd_type = PLPGSQL_STMT_OPEN;
 						new->lineno = $2;
-						new->curvar = $3->varno;
+						new->curvar = $3->dno;
 						new->cursor_options = CURSOR_OPT_FAST_PLAN;
 
 						if ($3->cursor_explicit_expr == NULL)
@@ -1597,7 +1609,7 @@ stmt_fetch		: K_FETCH lno opt_fetch_direction cursor_variable K_INTO
 						fetch->lineno = $2;
 						fetch->rec		= rec;
 						fetch->row		= row;
-						fetch->curvar	= $4->varno;
+						fetch->curvar	= $4->dno;
 						fetch->is_move	= false;
 
 						$$ = (PLpgSQL_stmt *)fetch;
@@ -1609,7 +1621,7 @@ stmt_move		: K_MOVE lno opt_fetch_direction cursor_variable ';'
 						PLpgSQL_stmt_fetch *fetch = $3;
 
 						fetch->lineno = $2;
-						fetch->curvar	= $4->varno;
+						fetch->curvar	= $4->dno;
 						fetch->is_move	= true;
 
 						$$ = (PLpgSQL_stmt *)fetch;
@@ -1629,7 +1641,7 @@ stmt_close		: K_CLOSE lno cursor_variable ';'
 						new = palloc(sizeof(PLpgSQL_stmt_close));
 						new->cmd_type = PLPGSQL_STMT_CLOSE;
 						new->lineno = $2;
-						new->curvar = $3->varno;
+						new->curvar = $3->dno;
 
 						$$ = (PLpgSQL_stmt *)new;
 					}
@@ -1656,6 +1668,18 @@ cursor_variable	: T_SCALAR
 											((PLpgSQL_var *) yylval.scalar)->refname)));
 						}
 						$$ = (PLpgSQL_var *) yylval.scalar;
+					}
+				| T_ROW
+					{
+						yyerror("expected a cursor or refcursor variable");
+					}
+				| T_RECORD
+					{
+						yyerror("expected a cursor or refcursor variable");
+					}
+				| T_WORD
+					{
+						yyerror("expected a cursor or refcursor variable");
 					}
 				;
 
@@ -2003,14 +2027,14 @@ read_sql_construct(int until,
 
 			case T_ROW:
 				snprintf(buf, sizeof(buf), " $%d ",
-						 assign_expr_param(yylval.row->rowno,
+						 assign_expr_param(yylval.row->dno,
 										   params, &nparams));
 				plpgsql_dstring_append(&ds, buf);
 				break;
 
 			case T_RECORD:
 				snprintf(buf, sizeof(buf), " $%d ",
-						 assign_expr_param(yylval.rec->recno,
+						 assign_expr_param(yylval.rec->dno,
 										   params, &nparams));
 				plpgsql_dstring_append(&ds, buf);
 				break;
@@ -2175,14 +2199,14 @@ make_execsql_stmt(const char *sqlstart, int lineno)
 
 			case T_ROW:
 				snprintf(buf, sizeof(buf), " $%d ",
-						 assign_expr_param(yylval.row->rowno,
+						 assign_expr_param(yylval.row->dno,
 										   params, &nparams));
 				plpgsql_dstring_append(&ds, buf);
 				break;
 
 			case T_RECORD:
 				snprintf(buf, sizeof(buf), " $%d ",
-						 assign_expr_param(yylval.rec->recno,
+						 assign_expr_param(yylval.rec->dno,
 										   params, &nparams));
 				plpgsql_dstring_append(&ds, buf);
 				break;
@@ -2348,11 +2372,11 @@ make_return_stmt(int lineno)
 				break;
 
 			case T_ROW:
-				new->retvarno = yylval.row->rowno;
+				new->retvarno = yylval.row->dno;
 				break;
 
 			case T_RECORD:
-				new->retvarno = yylval.rec->recno;
+				new->retvarno = yylval.rec->dno;
 				break;
 
 			default:
@@ -2401,11 +2425,11 @@ make_return_next_stmt(int lineno)
 		switch (yylex())
 		{
 			case T_ROW:
-				new->retvarno = yylval.row->rowno;
+				new->retvarno = yylval.row->dno;
 				break;
 
 			case T_RECORD:
-				new->retvarno = yylval.rec->recno;
+				new->retvarno = yylval.rec->dno;
 				break;
 
 			default:
@@ -2938,7 +2962,7 @@ make_case(int lineno, PLpgSQL_expr *t_expr,
 			plpgsql_build_variable("*case*", lineno,
 								   plpgsql_build_datatype(INT4OID, -1),
 								   false);
-		t_varno = t_var->varno;
+		t_varno = t_var->dno;
 		new->t_varno = t_varno;
 
 		foreach(l, case_when_list)

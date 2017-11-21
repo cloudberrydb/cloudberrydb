@@ -13,7 +13,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/regproc.c,v 1.108 2008/07/16 01:30:22 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/regproc.c,v 1.109 2008/12/18 18:20:34 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -189,7 +189,8 @@ regprocout(PG_FUNCTION_ARGS)
 			 * Would this proc be found (uniquely!) by regprocin? If not,
 			 * qualify it.
 			 */
-			clist = FuncnameGetCandidates(list_make1(makeString(proname)), -1, false, false);
+			clist = FuncnameGetCandidates(list_make1(makeString(proname)),
+										  -1, false, false);
 			if (clist != NULL && clist->next == NULL &&
 				clist->oid == proid)
 				nspname = NULL;

@@ -147,7 +147,8 @@ extern void set_function_size_estimates(PlannerInfo *root, RelOptInfo *rel);
 extern void set_table_function_size_estimates(PlannerInfo *root, RelOptInfo *rel);
 extern void set_rel_width(PlannerInfo *root, RelOptInfo *rel);
 extern void set_values_size_estimates(PlannerInfo *root, RelOptInfo *rel);
-extern void set_cte_size_estimates(PlannerInfo *root, RelOptInfo *rel, Plan *cteplan);
+extern void set_cte_size_estimates(PlannerInfo *root, RelOptInfo *rel,
+								   Plan *cteplan);
 
 /* Additional costsize.c prototypes for CDB incremental cost functions. */
 extern Cost incremental_hashjoin_cost(double rows, 
@@ -174,4 +175,5 @@ extern Selectivity clause_selectivity(PlannerInfo *root,
 				   bool use_damping);
 extern int planner_segment_count(void);
 extern double global_work_mem(PlannerInfo *root);
+
 #endif   /* COST_H */

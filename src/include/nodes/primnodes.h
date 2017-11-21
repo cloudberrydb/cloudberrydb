@@ -12,7 +12,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/primnodes.h,v 1.148 2009/04/05 19:59:40 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/primnodes.h,v 1.143 2008/10/06 17:39:26 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -484,7 +484,7 @@ typedef struct ScalarArrayOpExpr
  *
  * Notice the arguments are given as a List.  For NOT, of course the list
  * must always have exactly one element.  For AND and OR, the executor can
- * handle any number of arguments.	The parser generally treats AND and OR
+ * handle any number of arguments.  The parser generally treats AND and OR
  * as binary and so it typically only produces two-element lists, but the
  * optimizer will flatten trees of AND and OR nodes to produce longer lists
  * when possible.  There are also a few special cases where more arguments
@@ -568,7 +568,7 @@ typedef enum SubLinkType
 	ROWCOMPARE_SUBLINK,
 	EXPR_SUBLINK,
 	ARRAY_SUBLINK,
-	CTE_SUBLINK,
+	CTE_SUBLINK,				/* for SubPlans only */
 	NOT_EXISTS_SUBLINK   /* GPDB_84_MERGE_FIXME: Does ORCA really need this? */
 } SubLinkType;
 
@@ -604,7 +604,7 @@ typedef struct SubLink
  * If the sub-select becomes an initplan rather than a subplan, the executable
  * expression is part of the outer plan's expression tree (and the SubPlan
  * node itself is not, but rather is found in the outer plan's initPlan
- * list). In this case testexpr is NULL to avoid duplication.
+ * list).  In this case testexpr is NULL to avoid duplication.
  *
  * The planner also derives lists of the values that need to be passed into
  * and out of the subplan.	Input values are represented as a list "args" of

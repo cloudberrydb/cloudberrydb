@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeHashjoin.c,v 1.94 2008/08/14 18:47:58 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeHashjoin.c,v 1.96 2008/10/23 14:34:34 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -30,6 +30,9 @@
 
 #include "cdb/cdbvars.h"
 #include "miscadmin.h"			/* work_mem */
+
+/* Returns true for JOIN_LEFT and JOIN_ANTI jointypes */
+#define HASHJOIN_IS_OUTER(hjstate)  ((hjstate)->hj_NullInnerTupleSlot != NULL)
 
 static TupleTableSlot *ExecHashJoinOuterGetTuple(PlanState *outerNode,
 						  HashJoinState *hjstate,
@@ -292,7 +295,6 @@ ExecHashJoin(HashJoinState *node)
 				return NULL;
 			}
 
-			node->js.ps.ps_OuterTupleSlot = outerTupleSlot;
 			econtext->ecxt_outertuple = outerTupleSlot;
 			node->hj_NeedNewOuter = false;
 			node->hj_MatchedOuter = false;
@@ -380,25 +382,29 @@ ExecHashJoin(HashJoinState *node)
 					node->hj_NeedNewOuter = true;
 					break;		/* out of loop over hash bucket */
 				}
-				else
+
+				/*
+				 * In a semijoin, we'll consider returning the first match,
+				 * but after that we're done with this outer tuple.
+				 */
+				if (node->js.jointype == JOIN_SEMI)
+					node->hj_NeedNewOuter = true;
+
+				if (otherqual == NIL || ExecQual(otherqual, econtext, false))
 				{
-					/*
-					 * In a semijoin, we'll consider returning the first match,
-					 * but after that we're done with this outer tuple.
-					 */
-					if (node->js.jointype == JOIN_SEMI)
-						node->hj_NeedNewOuter = true;
+					TupleTableSlot *result;
 
-					if (otherqual == NIL || ExecQual(otherqual, econtext, false))
-						return ExecProject(node->js.ps.ps_ProjInfo, NULL);
+					result = ExecProject(node->js.ps.ps_ProjInfo, NULL);
 
-					/*
-					 * If semijoin and we didn't return the tuple, we're still
-					 * done with this outer tuple.
-					 */
-					if (node->js.jointype == JOIN_SEMI)
-						break;		/* out of loop over hash bucket */
+					return result;
 				}
+
+				/*
+				 * If semijoin and we didn't return the tuple, we're still
+				 * done with this outer tuple.
+				 */
+				if (node->js.jointype == JOIN_SEMI)
+					break;		/* out of loop over hash bucket */
 			}
 		}
 
@@ -410,7 +416,7 @@ ExecHashJoin(HashJoinState *node)
 		node->hj_NeedNewOuter = true;
 
 		if (!node->hj_MatchedOuter &&
-			(HASHJOIN_IS_OUTER(node)))
+			HASHJOIN_IS_OUTER(node))
 		{
 			/*
 			 * We are doing an outer join and there were no join matches for
@@ -420,7 +426,17 @@ ExecHashJoin(HashJoinState *node)
 			econtext->ecxt_innertuple = node->hj_NullInnerTupleSlot;
 
 			if (otherqual == NIL || ExecQual(otherqual, econtext, false))
-				return ExecProject(node->js.ps.ps_ProjInfo, NULL);
+			{
+				/*
+				 * qualification was satisfied so we project and return the
+				 * slot containing the result tuple using ExecProject().
+				 */
+				TupleTableSlot *result;
+
+				result = ExecProject(node->js.ps.ps_ProjInfo, NULL);
+
+				return result;
+			}
 		}
 	}
 }
@@ -534,6 +550,7 @@ ExecInitHashJoin(HashJoin *node, EState *estate, int eflags)
 	ExecInitResultTupleSlot(estate, &hjstate->js.ps);
 	hjstate->hj_OuterTupleSlot = ExecInitExtraTupleSlot(estate);
 
+	/* note: HASHJOIN_IS_OUTER macro depends on this initialization */
 	switch (node->join.jointype)
 	{
 		case JOIN_INNER:
@@ -611,7 +628,6 @@ ExecInitHashJoin(HashJoin *node, EState *estate, int eflags)
 	/* child Hash node needs to evaluate inner hash keys, too */
 	((HashState *) innerPlanState(hjstate))->hashkeys = rclauses;
 
-	hjstate->js.ps.ps_OuterTupleSlot = NULL;
 	hjstate->hj_NeedNewOuter = true;
 	hjstate->hj_MatchedOuter = false;
 	hjstate->hj_OuterNotEmpty = false;
@@ -721,7 +737,7 @@ ExecHashJoinOuterGetTuple(PlanState *outerNode,
 			econtext->ecxt_outertuple = slot;
 
 			bool hashkeys_null = false;
-			bool keep_nulls = (HASHJOIN_IS_OUTER(hjstate))||
+			bool keep_nulls = HASHJOIN_IS_OUTER(hjstate) ||
 					hjstate->hj_nonequijoin;
 			if (ExecHashGetHashValue(hashState, hashtable, econtext,
 									 hjstate->hj_OuterHashKeys,
@@ -1159,7 +1175,6 @@ ExecReScanHashJoin(HashJoinState *node, ExprContext *exprCtxt)
 	node->hj_CurBucketNo = 0;
 	node->hj_CurTuple = NULL;
 
-	node->js.ps.ps_OuterTupleSlot = NULL;
 	node->hj_NeedNewOuter = true;
 	node->hj_MatchedOuter = false;
 	node->hj_FirstOuterTupleSlot = NULL;
@@ -1201,7 +1216,6 @@ ReleaseHashTable(HashJoinState *node)
 	node->hj_CurBucketNo = 0;
 	node->hj_CurTuple = NULL;
 
-	node->js.ps.ps_OuterTupleSlot = NULL;
 	node->hj_NeedNewOuter = true;
 	node->hj_MatchedOuter = false;
 	node->hj_FirstOuterTupleSlot = NULL;

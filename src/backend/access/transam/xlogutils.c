@@ -13,7 +13,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/backend/access/transam/xlogutils.c,v 1.57 2008/07/13 20:45:47 tgl Exp $
+ * $PostgreSQL: pgsql/src/backend/access/transam/xlogutils.c,v 1.65 2008/12/03 13:05:22 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -24,8 +24,10 @@
 #include <unistd.h>
 
 #include "access/xlogutils.h"
+#include "catalog/catalog.h"
 #include "storage/bufmgr.h"
 #include "storage/smgr.h"
+#include "utils/guc.h"
 #include "utils/hsearch.h"
 #include "utils/rel.h"
 
@@ -46,6 +48,7 @@
 typedef struct xl_invalid_page_key
 {
 	RelFileNode node;			/* the relation */
+	ForkNumber	forkno;			/* the fork number */
 	BlockNumber blkno;			/* the page */
 } xl_invalid_page_key;
 
@@ -60,7 +63,8 @@ static HTAB *invalid_page_tab = NULL;
 
 /* Log a reference to an invalid page */
 static void
-log_invalid_page(RelFileNode node, BlockNumber blkno, bool present)
+log_invalid_page(RelFileNode node, ForkNumber forkno, BlockNumber blkno,
+				 bool present)
 {
 	xl_invalid_page_key key;
 	xl_invalid_page *hentry;
@@ -71,31 +75,29 @@ log_invalid_page(RelFileNode node, BlockNumber blkno, bool present)
 	 * tracing of the cause (note the elog context mechanism will tell us
 	 * something about the XLOG record that generated the reference).
 	 */
-	if (present)
+	if (log_min_messages <= DEBUG1 || client_min_messages <= DEBUG1)
 	{
-		elog(DEBUG1, "page %u of relation %u/%u/%u is uninitialized",
-			 blkno, node.spcNode, node.dbNode, node.relNode);
-		if (Debug_persistent_recovery_print)
-			elog(PersistentRecovery_DebugPrintLevel(), 
-				 "log_invalid_page: page %u of relation %u/%u/%u is uninitialized",
-				 blkno,
-				 node.spcNode,
-				 node.dbNode,
-				 node.relNode);
+		char *path = relpath(node, forkno);
+		if (present)
+		{
+			elog(DEBUG1, "page %u of relation %s is uninitialized",
+				 blkno, path);
+			if (Debug_persistent_recovery_print)
+				elog(PersistentRecovery_DebugPrintLevel(),
+					 "log_invalid_page: page %u of relation %s is uninitialized",
+					 blkno, path);
+		}
+		else
+		{
+			elog(DEBUG1, "page %u of relation %s does not exist",
+				 blkno, path);
+			if (Debug_persistent_recovery_print)
+				elog(PersistentRecovery_DebugPrintLevel(),
+					 "log_invalid_page: page %u of relation %s does not exist",
+					 blkno, path);
+		}
+		pfree(path);
 	}
-	else
-	{
-		elog(DEBUG1, "page %u of relation %u/%u/%u does not exist",
-			 blkno, node.spcNode, node.dbNode, node.relNode);
-		if (Debug_persistent_recovery_print)
-			elog(PersistentRecovery_DebugPrintLevel(), 
-				 "log_invalid_page: page %u of relation %u/%u/%u does not exist",
-				 blkno,
-				 node.spcNode,
-				 node.dbNode,
-				 node.relNode);
-	}
-
 
 	if (invalid_page_tab == NULL)
 	{
@@ -115,6 +117,7 @@ log_invalid_page(RelFileNode node, BlockNumber blkno, bool present)
 
 	/* we currently assume xl_invalid_page_key contains no padding */
 	key.node = node;
+	key.forkno = forkno;
 	key.blkno = blkno;
 	hentry = (xl_invalid_page *)
 		hash_search(invalid_page_tab, (void *) &key, HASH_ENTER, &found);
@@ -132,7 +135,7 @@ log_invalid_page(RelFileNode node, BlockNumber blkno, bool present)
 
 /* Forget any invalid pages >= minblkno, because they've been dropped */
 static void
-forget_invalid_pages(RelFileNode node, BlockNumber minblkno)
+forget_invalid_pages(RelFileNode node, ForkNumber forkno, BlockNumber minblkno)
 {
 	HASH_SEQ_STATUS status;
 	xl_invalid_page *hentry;
@@ -145,18 +148,20 @@ forget_invalid_pages(RelFileNode node, BlockNumber minblkno)
 	while ((hentry = (xl_invalid_page *) hash_seq_search(&status)) != NULL)
 	{
 		if (RelFileNodeEquals(hentry->key.node, node) &&
+			hentry->key.forkno == forkno &&
 			hentry->key.blkno >= minblkno)
 		{
-			elog(DEBUG2, "page %u of relation %u/%u/%u has been dropped",
-				 hentry->key.blkno, hentry->key.node.spcNode,
-				 hentry->key.node.dbNode, hentry->key.node.relNode);
-			if (Debug_persistent_recovery_print)
-				elog(PersistentRecovery_DebugPrintLevel(), 
-					 "forget_invalid_pages: page %u of relation %u/%u/%u has been dropped",
-					 hentry->key.blkno,
-					 hentry->key.node.spcNode,
-					 hentry->key.node.dbNode, 
-					 hentry->key.node.relNode);
+			if (log_min_messages <= DEBUG2 || client_min_messages <= DEBUG2)
+			{
+				char *path = relpath(hentry->key.node, forkno);
+				elog(DEBUG2, "page %u of relation %s has been dropped",
+					 hentry->key.blkno, path);
+				if (Debug_persistent_recovery_print)
+					elog(PersistentRecovery_DebugPrintLevel(),
+						 "forget_invalid_pages: page %u of relation %s has been dropped",
+						 hentry->key.blkno, path);
+				pfree(path);
+			}
 
 			if (hash_search(invalid_page_tab,
 							(void *) &hentry->key,
@@ -184,16 +189,17 @@ forget_invalid_pages_db(Oid tblspc, Oid dbid)
 		if ((!OidIsValid(tblspc) || hentry->key.node.spcNode == tblspc) &&
 			hentry->key.node.dbNode == dbid)
 		{
-			elog(DEBUG2, "page %u of relation %u/%u/%u has been dropped",
-				 hentry->key.blkno, hentry->key.node.spcNode,
-				 hentry->key.node.dbNode, hentry->key.node.relNode);
-			if (Debug_persistent_recovery_print)
-				elog(PersistentRecovery_DebugPrintLevel(), 
-					 "forget_invalid_pages_db: %u of relation %u/%u/%u has been dropped",
-					 hentry->key.blkno,
-					 hentry->key.node.spcNode,
-					 hentry->key.node.dbNode, 
-					 hentry->key.node.relNode);
+			if (log_min_messages <= DEBUG2 || client_min_messages <= DEBUG2)
+			{
+				char *path = relpath(hentry->key.node, hentry->key.forkno);
+				elog(DEBUG2, "page %u of relation %s has been dropped",
+					 hentry->key.blkno, path);
+				if (Debug_persistent_recovery_print)
+					elog(PersistentRecovery_DebugPrintLevel(),
+						 "forget_invalid_pages_db: %u of relation %s has been dropped",
+						 hentry->key.blkno, path);
+				pfree(path);
+			}
 
 			if (hash_search(invalid_page_tab,
 							(void *) &hentry->key,
@@ -254,14 +260,14 @@ XLogCheckInvalidPages(void)
 	 */
 	while ((hentry = (xl_invalid_page *) hash_seq_search(&status)) != NULL)
 	{
+		char *path = relpath(hentry->key.node, hentry->key.forkno);
 		if (hentry->present)
-			elog(WARNING, "page %u of relation %u/%u/%u was uninitialized",
-				 hentry->key.blkno, hentry->key.node.spcNode,
-				 hentry->key.node.dbNode, hentry->key.node.relNode);
+			elog(WARNING, "page %u of relation %s was uninitialized",
+				 hentry->key.blkno, path);
 		else
-			elog(WARNING, "page %u of relation %u/%u/%u did not exist",
-				 hentry->key.blkno, hentry->key.node.spcNode,
-				 hentry->key.node.dbNode, hentry->key.node.relNode);
+			elog(WARNING, "page %u of relation %s did not exist",
+				 hentry->key.blkno, path);
+		pfree(path);
 		foundone = true;
 	}
 
@@ -272,9 +278,23 @@ XLogCheckInvalidPages(void)
 	invalid_page_tab = NULL;
 }
 
-
 /*
  * XLogReadBuffer
+ *		A shorthand of XLogReadBufferExtended(), for reading from the main
+ *		fork.
+ *
+ * For historical reasons, instead of a ReadBufferMode argument, this only
+ * supports RBM_ZERO (init == true) and RBM_NORMAL (init == false) modes.
+ */
+Buffer
+XLogReadBuffer(RelFileNode rnode, BlockNumber blkno, bool init)
+{
+	return XLogReadBufferExtended(rnode, MAIN_FORKNUM, blkno,
+								  init ? RBM_ZERO : RBM_NORMAL);
+}
+
+/*
+ * XLogReadBufferExtended
  *		Read a page during XLOG replay
  *
  * This is functionally comparable to ReadBuffer followed by
@@ -283,28 +303,28 @@ XLogCheckInvalidPages(void)
  * expect that this is only used during single-process XLOG replay, but
  * some subroutines such as MarkBufferDirty will complain if we don't.)
  *
- * If "init" is true then the caller intends to rewrite the page fully
- * using the info in the XLOG record.  In this case we will extend the
- * relation if needed to make the page exist, and we will not complain about
- * the page being "new" (all zeroes); in fact, we usually will supply a
- * zeroed buffer without reading the page at all, so as to avoid unnecessary
- * failure if the page is present on disk but has corrupt headers.
+ * There's some differences in the behavior wrt. the "mode" argument,
+ * compared to ReadBufferExtended:
  *
- * If "init" is false then the caller needs the page to be valid already.
- * If the page doesn't exist or contains zeroes, we return InvalidBuffer.
- * In this case the caller should silently skip the update on this page.
- * (In this situation, we expect that the page was later dropped or truncated.
- * If we don't see evidence of that later in the WAL sequence, we'll complain
- * at the end of WAL replay.)
+ * In RBM_NORMAL mode, if the page doesn't exist, or contains all-zeroes, we
+ * return InvalidBuffer. In this case the caller should silently skip the
+ * update on this page. (In this situation, we expect that the page was later
+ * dropped or truncated. If we don't see evidence of that later in the WAL
+ * sequence, we'll complain at the end of WAL replay.)
+ *
+ * In RBM_ZERO and RBM_ZERO_ON_ERROR modes, if the page doesn't exist, the
+ * relation is extended with all-zeroes pages up to the given block number.
  */
 Buffer
-XLogReadBuffer(RelFileNode rnode, BlockNumber blkno, bool init)
+XLogReadBufferExtended(RelFileNode rnode, ForkNumber forknum,
+					   BlockNumber blkno, ReadBufferMode mode)
 {
 	BlockNumber lastblock;
 	Buffer		buffer;
 	SMgrRelation smgr;
 
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+	if (forknum == MAIN_FORKNUM)
+		MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	Assert(blkno != P_NEW);
 
@@ -330,34 +350,40 @@ XLogReadBuffer(RelFileNode rnode, BlockNumber blkno, bool init)
 	MirrorDataLossTrackingState mirrorDataLossTrackingState;
 	int64 mirrorDataLossTrackingSessionNum;
 	bool mirrorDataLossOccurred;
-		
+
 	// UNDONE: What about the persistent rel files table???
 	// UNDONE: This condition should not occur anymore.
 	// UNDONE: segmentFileNum and AO?
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-			&mirrorDataLossTrackingSessionNum);
-	smgrcreate(
-		smgr,
-		/* relationName */ NULL,		// Ok to be NULL -- we don't know the name here.
-		mirrorDataLossTrackingState,
-		mirrorDataLossTrackingSessionNum,
-		/* ignoreAlreadyExists */ true,
-		&mirrorDataLossOccurred);
+	if (forknum ==  MAIN_FORKNUM)
+	{
+		mirrorDataLossTrackingState =
+			FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
+				&mirrorDataLossTrackingSessionNum);
 
-	lastblock = smgrnblocks(smgr);
+		smgrmirroredcreate(smgr,
+						   /* relationName */ NULL,    // Ok to be NULL -- we don't know the name here.
+						   mirrorDataLossTrackingState,
+						   mirrorDataLossTrackingSessionNum,
+						   /* ignoreAlreadyExists */ true,
+						   &mirrorDataLossOccurred);
+	}
+	else
+		smgrcreate(smgr, forknum, true);
+
+	lastblock = smgrnblocks(smgr, forknum);
 
 	if (blkno < lastblock)
 	{
 		/* page exists in file */
-		buffer = ReadBufferWithoutRelcache(rnode, false, false, blkno, init);
+		buffer = ReadBufferWithoutRelcache(rnode, false, forknum, blkno,
+										   mode, NULL);
 	}
 	else
 	{
 		/* hm, page doesn't exist in file */
-		if (!init)
+		if (mode == RBM_NORMAL)
 		{
-			log_invalid_page(rnode, blkno, false);
+			log_invalid_page(rnode, forknum, blkno, false);
 			return InvalidBuffer;
 		}
 		/* OK to extend the file */
@@ -368,7 +394,8 @@ XLogReadBuffer(RelFileNode rnode, BlockNumber blkno, bool init)
 		{
 			if (buffer != InvalidBuffer)
 				ReleaseBuffer(buffer);
-			buffer = ReadBufferWithoutRelcache(rnode, false, false, P_NEW, false);
+			buffer = ReadBufferWithoutRelcache(rnode, false, forknum,
+											   P_NEW, mode, NULL);
 			lastblock++;
 		}
 		Assert(BufferGetBlockNumber(buffer) == blkno);
@@ -376,7 +403,7 @@ XLogReadBuffer(RelFileNode rnode, BlockNumber blkno, bool init)
 
 	LockBuffer(buffer, BUFFER_LOCK_EXCLUSIVE);
 
-	if (!init)
+	if (mode == RBM_NORMAL)
 	{
 		/* check that page has been initialized */
 		Page		page = (Page) BufferGetPage(buffer);
@@ -384,7 +411,7 @@ XLogReadBuffer(RelFileNode rnode, BlockNumber blkno, bool init)
 		if (PageIsNew(page))
 		{
 			UnlockReleaseBuffer(buffer);
-			log_invalid_page(rnode, blkno, true);
+			log_invalid_page(rnode, forknum, blkno, true);
 			return InvalidBuffer;
 		}
 	}
@@ -458,6 +485,8 @@ CreateFakeRelcacheEntry(RelFileNode rnode)
 	rel->rd_lockInfo.lockRelId.relId = rnode.relNode;
 
 	rel->rd_targblock = InvalidBlockNumber;
+	rel->rd_fsm_nblocks = InvalidBlockNumber;
+	rel->rd_vm_nblocks = InvalidBlockNumber;
 	rel->rd_smgr = NULL;
 
 	return rel;
@@ -479,12 +508,9 @@ FreeFakeRelcacheEntry(Relation fakerel)
  * any open "invalid-page" records for the relation.
  */
 void
-XLogDropRelation(RelFileNode rnode)
+XLogDropRelation(RelFileNode rnode, ForkNumber forknum)
 {
-	/* Tell smgr to forget about this relation as well */
-	smgrclosenode(rnode);
-
-	forget_invalid_pages(rnode, 0);
+	forget_invalid_pages(rnode, forknum, 0);
 }
 
 #ifdef USE_SEGWALREP
@@ -524,7 +550,8 @@ XLogDropDatabase(Oid tblspc, Oid dbid)
  * We need to clean up any open "invalid-page" records for the dropped pages.
  */
 void
-XLogTruncateRelation(RelFileNode rnode, BlockNumber nblocks)
+XLogTruncateRelation(RelFileNode rnode, ForkNumber forkNum,
+					 BlockNumber nblocks)
 {
-	forget_invalid_pages(rnode, nblocks);
+	forget_invalid_pages(rnode, forkNum, nblocks);
 }

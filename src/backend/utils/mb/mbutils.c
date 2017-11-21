@@ -4,7 +4,7 @@
  *
  * Tatsuo Ishii
  *
- * $PostgreSQL: pgsql/src/backend/utils/mb/mbutils.c,v 1.73 2008/06/18 23:08:47 tgl Exp $
+ * $PostgreSQL: pgsql/src/backend/utils/mb/mbutils.c,v 1.75 2008/11/11 03:01:20 tgl Exp $
  */
 #include "postgres.h"
 
@@ -229,7 +229,7 @@ pg_get_client_encoding_name(void)
  *
  * CAUTION: although the presence of a length argument means that callers
  * can pass non-null-terminated strings, care is required because the same
- * string will be passed back if no conversion occurs.	Such callers *must*
+ * string will be passed back if no conversion occurs.  Such callers *must*
  * check whether result == src and handle that case differently.
  *
  * Note: we try to avoid raising error, since that could get us into

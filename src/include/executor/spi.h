@@ -6,7 +6,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/executor/spi.h,v 1.66 2008/04/01 03:09:30 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/executor/spi.h,v 1.67 2008/09/15 23:37:40 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

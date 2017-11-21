@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/heap/heapam.c,v 1.261 2008/07/13 20:45:47 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/heap/heapam.c,v 1.272 2008/12/16 16:26:08 tgl Exp $
  *
  *
  * INTERFACE ROUTINES
@@ -48,6 +48,7 @@
 #include "access/transam.h"
 #include "access/tuptoaster.h"
 #include "access/valid.h"
+#include "access/visibilitymap.h"
 #include "access/xact.h"
 #include "access/xlogutils.h"
 #include "catalog/catalog.h"
@@ -55,6 +56,7 @@
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "storage/bufmgr.h"
+#include "storage/freespace.h"
 #include "storage/lmgr.h"
 #include "storage/procarray.h"
 #include "storage/smgr.h"
@@ -212,6 +214,7 @@ heapgetpage(HeapScanDesc scan, BlockNumber page)
 	int			ntup;
 	OffsetNumber lineoff;
 	ItemId		lpp;
+	bool		all_visible;
 	TransactionId t_xmin, t_xmax;
 	CommandId     t_cid;
 
@@ -234,9 +237,8 @@ heapgetpage(HeapScanDesc scan, BlockNumber page)
 	CHECK_FOR_INTERRUPTS();
 
 	/* read page using selected strategy */
-	scan->rs_cbuf = ReadBufferWithStrategy(scan->rs_rd,
-										   page,
-										   scan->rs_strategy);
+	scan->rs_cbuf = ReadBufferExtended(scan->rs_rd, MAIN_FORKNUM, page,
+									   RBM_NORMAL, scan->rs_strategy);
 	scan->rs_cblock = page;
 
 	if (!scan->rs_pageatatime)
@@ -265,22 +267,33 @@ heapgetpage(HeapScanDesc scan, BlockNumber page)
 	t_xmin = t_xmax = 0;
 	t_cid = 0;
 
+	/*
+	 * If the all-visible flag indicates that all tuples on the page are
+	 * visible to everyone, we can skip the per-tuple visibility tests.
+	 */
+	all_visible = PageIsAllVisible(dp);
+
 	for (lineoff = FirstOffsetNumber, lpp = PageGetItemId(dp, lineoff);
 		 lineoff <= lines;
 		 lineoff++, lpp++)
 	{
 		if (ItemIdIsNormal(lpp))
 		{
-
 			bool		valid;
 			HeapTupleHeader theader = (HeapTupleHeader) PageGetItem((Page) dp, lpp);
 
-			valid = (t_xmax == HeapTupleHeaderGetXmax(theader) &&
+			if (all_visible)
+			{
+				valid = true;
+			}
+			/* GPDB: We have a one-item cache for the common case that a lot of
+			 * tuples have the same visibility info. */
+			else if (t_xmax == HeapTupleHeaderGetXmax(theader) &&
 					 t_xmin == HeapTupleHeaderGetXmin(theader) &&
-					 t_cid == HeapTupleHeaderGetRawCommandId(theader));
-
-			if (valid)
-				scan->rs_vistuples[ntup++] = lineoff;
+					 t_cid == HeapTupleHeaderGetRawCommandId(theader))
+			{
+				valid = true;
+			}
 			else
 			{
 				HeapTupleData loctup;
@@ -295,9 +308,10 @@ heapgetpage(HeapScanDesc scan, BlockNumber page)
 					t_xmax = HeapTupleHeaderGetXmax(loctup.t_data);
 					t_xmin = HeapTupleHeaderGetXmin(loctup.t_data);
 					t_cid = HeapTupleHeaderGetRawCommandId(loctup.t_data);
-					scan->rs_vistuples[ntup++] = lineoff;
 				}
 			}
+			if (valid)
+				scan->rs_vistuples[ntup++] = lineoff;
 		}
 	}
 
@@ -1434,6 +1448,37 @@ heap_openrv(const RangeVar *relation, LOCKMODE lockmode)
 	return r;
 }
 
+/* ----------------
+ *		try_heap_openrv - open a heap relation specified
+ *		by a RangeVar node
+ *
+ *		As above, but return NULL instead of failing for relation-not-found.
+ * ----------------
+ */
+Relation
+try_heap_openrv(const RangeVar *relation, LOCKMODE lockmode)
+{
+	Relation	r;
+
+	r = try_relation_openrv(relation, lockmode, false);
+
+	if (r)
+	{
+		if (r->rd_rel->relkind == RELKIND_INDEX)
+			ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+					 errmsg("\"%s\" is an index",
+							RelationGetRelationName(r))));
+		else if (r->rd_rel->relkind == RELKIND_COMPOSITE_TYPE)
+			ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+					 errmsg("\"%s\" is a composite type",
+							RelationGetRelationName(r))));
+	}
+
+	return r;
+}
+
 
 /* ----------------
  *		heap_beginscan	- begin relation scan
@@ -2218,22 +2263,52 @@ UpdateXmaxHintBits(HeapTupleHeader tuple, Buffer buffer, TransactionId xid, Rela
 }
 
 /*
+ * GetBulkInsertState - prepare status object for a bulk insert
+ */
+BulkInsertState
+GetBulkInsertState(void)
+{
+	BulkInsertState bistate;
+
+	bistate = (BulkInsertState) palloc(sizeof(BulkInsertStateData));
+	bistate->strategy = GetAccessStrategy(BAS_BULKWRITE);
+	bistate->current_buf = InvalidBuffer;
+	return bistate;
+}
+
+/*
+ * FreeBulkInsertState - clean up after finishing a bulk insert
+ */
+void
+FreeBulkInsertState(BulkInsertState bistate)
+{
+	if (bistate->current_buf != InvalidBuffer)
+		ReleaseBuffer(bistate->current_buf);		
+	FreeAccessStrategy(bistate->strategy);
+	pfree(bistate);
+}
+
+
+/*
  *	heap_insert		- insert tuple into a heap
  *
  * The new tuple is stamped with current transaction ID and the specified
  * command ID.
  *
- * If use_wal is false, the new tuple is not logged in WAL, even for a
- * non-temp relation.  Safe usage of this behavior requires that we arrange
- * that all new tuples go into new pages not containing any tuples from other
- * transactions, and that the relation gets fsync'd before commit.
- * (See also heap_sync() comments)
+ * If the HEAP_INSERT_SKIP_WAL option is specified, the new tuple is not
+ * logged in WAL, even for a non-temp relation.  Safe usage of this behavior
+ * requires that we arrange that all new tuples go into new pages not
+ * containing any tuples from other transactions, and that the relation gets
+ * fsync'd before commit.  (See also heap_sync() comments)
  *
- * use_fsm is passed directly to RelationGetBufferForTuple, which see for
- * more info.
+ * The HEAP_INSERT_SKIP_FSM option is passed directly to
+ * RelationGetBufferForTuple, which see for more info.
  *
- * Note that use_wal and use_fsm will be applied when inserting into the
- * heap's TOAST table, too, if the tuple requires any out-of-line data.
+ * Note that these options will be applied when inserting into the heap's
+ * TOAST table, too, if the tuple requires any out-of-line data.
+ *
+ * The BulkInsertState object (if any; bistate can be NULL for default
+ * behavior) is also just passed through to RelationGetBufferForTuple.
  *
  * The return value is the OID assigned to the tuple (either here or by the
  * caller), or InvalidOid if no OID.  The header fields of *tup are updated
@@ -2243,13 +2318,14 @@ UpdateXmaxHintBits(HeapTupleHeader tuple, Buffer buffer, TransactionId xid, Rela
  */
 Oid
 heap_insert(Relation relation, HeapTuple tup, CommandId cid,
-			bool use_wal, bool use_fsm, TransactionId xid)
+			int options, BulkInsertState bistate, TransactionId xid)
 {
 	MIRROREDLOCK_BUFMGR_DECLARE;
 
 	bool		isFrozen = (xid == FrozenTransactionId);
 	HeapTuple	heaptup;
 	Buffer		buffer;
+	bool		all_visible_cleared = false;
 
 	Insist(RelationIsHeap(relation));
 
@@ -2322,7 +2398,7 @@ heap_insert(Relation relation, HeapTuple tup, CommandId cid,
 	else if (HeapTupleHasExternal(tup) || tup->t_len > TOAST_TUPLE_THRESHOLD)
 		heaptup = toast_insert_or_update(relation, tup, NULL,
 										 TOAST_TUPLE_TARGET, isFrozen,
-										 use_wal, use_fsm);
+										 options);
 	else
 		heaptup = tup;
 	
@@ -2331,12 +2407,18 @@ heap_insert(Relation relation, HeapTuple tup, CommandId cid,
 
 	/* Find buffer to insert this tuple into */
 	buffer = RelationGetBufferForTuple(relation, heaptup->t_len,
-									   InvalidBuffer, use_fsm);
+									   InvalidBuffer, options, bistate);
 
 	/* NO EREPORT(ERROR) from here till changes are logged */
 	START_CRIT_SECTION();
 
 	RelationPutHeapTuple(relation, buffer, heaptup);
+
+	if (PageIsAllVisible(BufferGetPage(buffer)))
+	{
+		all_visible_cleared = true;
+		PageClearAllVisible(BufferGetPage(buffer));
+	}
 
 	/*
 	 * XXX Should we set PageSetPrunable on this page ?
@@ -2352,7 +2434,7 @@ heap_insert(Relation relation, HeapTuple tup, CommandId cid,
 	MarkBufferDirty(buffer);
 
 	/* XLOG stuff */
-	if (use_wal && !relation->rd_istemp)
+	if (!(options & HEAP_INSERT_SKIP_WAL) && !relation->rd_istemp)
 	{
 		xl_heap_insert xlrec;
 		xl_heap_header xlhdr;
@@ -2362,6 +2444,7 @@ heap_insert(Relation relation, HeapTuple tup, CommandId cid,
 		uint8		info = XLOG_HEAP_INSERT;
 
 		xl_heaptid_set(&xlrec.target, relation, &heaptup->t_self);
+		xlrec.all_visible_cleared = all_visible_cleared;
 		rdata[0].data = (char *) &xlrec;
 		rdata[0].len = SizeOfHeapInsert;
 		rdata[0].buffer = InvalidBuffer;
@@ -2415,7 +2498,12 @@ heap_insert(Relation relation, HeapTuple tup, CommandId cid,
 
 	MIRROREDLOCK_BUFMGR_UNLOCK;
 	// -------- MirroredLock ----------
-	
+
+	/* Clear the bit in the visibility map if necessary */
+	if (all_visible_cleared)
+		visibilitymap_clear(relation, 
+							ItemPointerGetBlockNumber(&(heaptup->t_self)));
+
 	/*
 	 * If tuple is cachable, mark it for invalidation from the caches in case
 	 * we abort.  Note it is OK to do this after releasing the buffer, because
@@ -2468,7 +2556,7 @@ simple_heap_insert(Relation relation, HeapTuple tup)
 	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_ENTER;
 
 	result = heap_insert(relation, tup, GetCurrentCommandId(true),
-						 true, true, GetCurrentTransactionId());
+						 0, NULL, GetCurrentTransactionId());
 
 	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_EXIT;
 
@@ -2494,7 +2582,7 @@ frozen_heap_insert(Relation relation, HeapTuple tup)
 	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_ENTER;
 
 	result = heap_insert(relation, tup, GetCurrentCommandId(true),
-					   true, true, FrozenTransactionId);
+						 0, NULL, FrozenTransactionId);
 
 	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_EXIT;
 
@@ -2515,8 +2603,8 @@ frozen_heap_insert_directed(
 
 	relation->rd_targblock = blockNum;
 	result = heap_insert(relation, tup, GetCurrentCommandId(true),
-					   /* use_wal */ true, /* use_fsm */ false, 
-					   FrozenTransactionId);
+						 0, NULL,
+						 FrozenTransactionId);
 
 	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_EXIT;
 
@@ -2529,22 +2617,17 @@ frozen_heap_insert_directed(
  * Log a line showing the current tuple MVCC information.
  */
 static void
-heap_trace_current_tuple(
-	char		*caller,
-
-	HeapTuple	tuple)
+heap_trace_current_tuple(char *caller, HeapTuple tuple)
 {
 	TupleVisibilitySummary tupleVisibilitySummary;
-	char *summary;
+	char	   *summary;
 
-	GetTupleVisibilitySummary(
-							tuple,
-							&tupleVisibilitySummary);
+	GetTupleVisibilitySummary(tuple,
+							  &tupleVisibilitySummary);
 	summary = GetTupleVisibilitySummaryString(&tupleVisibilitySummary);
 
 	elog(LOG, "Current tuple for %s: %s",
-		 caller,
-		 summary);
+		 caller, summary);
 
 	pfree(summary);
 }
@@ -2599,6 +2682,7 @@ heap_delete_xid(Relation relation, ItemPointer tid,
 	Buffer		buffer;
 	bool		have_tuple_lock = false;
 	bool		iscombo;
+	bool		all_visible_cleared = false;
 
 	Assert(ItemPointerIsValid(tid));
 	Assert(RelationIsHeap(relation));
@@ -2773,6 +2857,12 @@ l1:
 	 */
 	PageSetPrunable(page, xid);
 
+	if (PageIsAllVisible(page))
+	{
+		all_visible_cleared = true;
+		PageClearAllVisible(page);
+	}
+
 	/* store transaction information of xact deleting the tuple */
 	tp.t_data->t_infomask &= ~(HEAP_XMAX_COMMITTED |
 							   HEAP_XMAX_INVALID |
@@ -2795,6 +2885,7 @@ l1:
 		XLogRecData rdata[2];
 
 		xl_heaptid_set(&xlrec.target, relation, &tp.t_self);
+		xlrec.all_visible_cleared = all_visible_cleared;
 		rdata[0].data = (char *) &xlrec;
 		rdata[0].len = SizeOfHeapDelete;
 		rdata[0].buffer = InvalidBuffer;
@@ -2838,6 +2929,10 @@ l1:
 	 * need to look at the contents of the tuple.
 	 */
 	CacheInvalidateHeapTuple(relation, &tp);
+
+	/* Clear the bit in the visibility map if necessary */
+	if (all_visible_cleared)
+		visibilitymap_clear(relation, BufferGetBlockNumber(buffer));
 
 	/* Now we can release the buffer */
 	ReleaseBuffer(buffer);
@@ -2961,6 +3056,8 @@ heap_update_internal(Relation relation, ItemPointer otid, HeapTuple newtup,
 	bool		have_tuple_lock = false;
 	bool		iscombo;
 	bool		use_hot_update = false;
+	bool		all_visible_cleared = false;
+	bool		all_visible_cleared_new = false;
 
 	// Fetch gp_persistent_relation_node information that will be added to XLOG record.
 	RelationFetchGpRelationNodeForXLog(relation);
@@ -3281,7 +3378,7 @@ l2:
 		{
 			/* Note we always use WAL and FSM during updates */
 			heaptup = toast_insert_or_update(relation, newtup, &oldtup,
-											 TOAST_TUPLE_TARGET, false, true, true);
+											 TOAST_TUPLE_TARGET, false, 0);
 			newtupsize = MAXALIGN(heaptup->t_len);
 		}
 		else
@@ -3312,7 +3409,7 @@ l2:
 		{
 			/* Assume there's no chance to put heaptup on same page. */
 			newbuf = RelationGetBufferForTuple(relation, heaptup->t_len,
-											   buffer, true);
+											   buffer, 0, NULL);
 		}
 		else
 		{
@@ -3329,7 +3426,7 @@ l2:
 				 */
 				LockBuffer(buffer, BUFFER_LOCK_UNLOCK);
 				newbuf = RelationGetBufferForTuple(relation, heaptup->t_len,
-												   buffer, true);
+												   buffer, 0, NULL);
 			}
 			else
 			{
@@ -3420,6 +3517,12 @@ l2:
 		MarkBufferDirty(newbuf);
 	MarkBufferDirty(buffer);
 
+	/*
+	 * Note: we mustn't clear PD_ALL_VISIBLE flags before writing the WAL
+	 * record, because log_heap_update looks at those flags to set the
+	 * corresponding flags in the WAL record.
+	 */
+
 	/* XLOG stuff */
 	if (!relation->rd_istemp)
 	{
@@ -3431,6 +3534,18 @@ l2:
 			PageSetLSN(BufferGetPage(newbuf), recptr);
 		}
 		PageSetLSN(BufferGetPage(buffer), recptr);
+	}
+
+	/* Clear PD_ALL_VISIBLE flags */
+	if (PageIsAllVisible(BufferGetPage(buffer)))
+	{
+		all_visible_cleared = true;
+		PageClearAllVisible(BufferGetPage(buffer));
+	}
+	if (newbuf != buffer && PageIsAllVisible(BufferGetPage(newbuf)))
+	{
+		all_visible_cleared_new = true;
+		PageClearAllVisible(BufferGetPage(newbuf));
 	}
 
 	END_CRIT_SECTION();
@@ -3448,6 +3563,12 @@ l2:
 	 * need to look at the contents of the tuple.
 	 */
 	CacheInvalidateHeapTuple(relation, &oldtup);
+
+	/* Clear bits in visibility map */
+	if (all_visible_cleared)
+		visibilitymap_clear(relation, BufferGetBlockNumber(buffer));
+	if (all_visible_cleared_new)
+		visibilitymap_clear(relation, BufferGetBlockNumber(newbuf));
 
 	/* Now we can release the buffer(s) */
 	if (newbuf != buffer)
@@ -4150,6 +4271,11 @@ l3:
 	// -------- MirroredLock ----------
 	
 	/*
+	 * Don't update the visibility map here. Locking a tuple doesn't
+	 * change visibility info.
+	 */
+
+	/*
 	 * Now that we have successfully marked the tuple as locked, we can
 	 * release the lmgr tuple lock, if we had it.
 	 */
@@ -4734,6 +4860,8 @@ log_heap_freeze(Relation reln, Buffer buffer,
 
 	/* Caller should not call me on a temp relation */
 	Assert(!reln->rd_istemp);
+	/* nor when there are no tuples to freeze */
+	Assert(offcnt > 0);
 
 	xl_heapnode_set(&xlrec.heapnode, reln);
 	xlrec.block = BufferGetBlockNumber(buffer);
@@ -4749,16 +4877,8 @@ log_heap_freeze(Relation reln, Buffer buffer,
 	 * it is.  When XLogInsert stores the whole buffer, the offsets array need
 	 * not be stored too.
 	 */
-	if (offcnt > 0)
-	{
-		rdata[1].data = (char *) offsets;
-		rdata[1].len = offcnt * sizeof(OffsetNumber);
-	}
-	else
-	{
-		rdata[1].data = NULL;
-		rdata[1].len = 0;
-	}
+	rdata[1].data = (char *) offsets;
+	rdata[1].len = offcnt * sizeof(OffsetNumber);
 	rdata[1].buffer = buffer;
 	rdata[1].buffer_std = true;
 	rdata[1].next = NULL;
@@ -4812,7 +4932,9 @@ log_heap_update(Relation reln, Buffer oldbuf, ItemPointerData from,
 
 	xlrec.target.node = reln->rd_node;
 	xlrec.target.tid = from;
+	xlrec.all_visible_cleared = PageIsAllVisible(BufferGetPage(oldbuf));
 	xlrec.newtid = newtup->t_self;
+	xlrec.new_all_visible_cleared = PageIsAllVisible(BufferGetPage(newbuf));
 
 	rdata[0].data = (char *) &xlrec;
 	rdata[0].len = SizeOfHeapUpdate;
@@ -4900,7 +5022,6 @@ log_heap_move(Relation reln, Buffer oldbuf, ItemPointerData from,
  */
 static XLogRecPtr
 log_newpage_internal(xl_heap_newpage *xlrec, Page page)
-
 {
 	XLogRecPtr	recptr;
 	XLogRecData rdata[2];
@@ -4948,10 +5069,12 @@ log_newpage_internal(xl_heap_newpage *xlrec, Page page)
  * object contains the persistentTid and persistentSerialNum.
  */
 XLogRecPtr
-log_newpage_rel(Relation rel, BlockNumber blkno, Page page)
+log_newpage_rel(Relation rel, ForkNumber forkNum, BlockNumber blkno, Page page)
 {
 	xl_heap_newpage xlrec;
+
 	xl_heapnode_set(&xlrec.heapnode, rel);
+	xlrec.forknum = forkNum;
 	xlrec.blkno = blkno;
 	return log_newpage_internal(&xlrec, page);
 }
@@ -4964,13 +5087,16 @@ log_newpage_rel(Relation rel, BlockNumber blkno, Page page)
  * along with the relFileNode for the relation.
  */
 XLogRecPtr
-log_newpage_relFileNode(RelFileNode *relFileNode, BlockNumber blkno, Page page,
+log_newpage_relFileNode(RelFileNode *relFileNode, ForkNumber forkNum, BlockNumber blkno,
+						Page page,
 						ItemPointer persistentTid, int64 persistentSerialNum)
 {
 	xl_heap_newpage xlrec;
+
 	xlrec.heapnode.node = *relFileNode;
 	xlrec.heapnode.persistentTid = *persistentTid;
 	xlrec.heapnode.persistentSerialNum = persistentSerialNum;
+	xlrec.forknum = forkNum;
 	xlrec.blkno = blkno;
 	return log_newpage_internal(&xlrec, page);
 }
@@ -4994,6 +5120,7 @@ heap_xlog_clean(XLogRecPtr lsn, XLogRecord *record, bool clean_move)
 	int			nredirected;
 	int			ndead;
 	int			nunused;
+	Size		freespace;
 
 	if (IsBkpBlockApplied(record, 0))
 		return;
@@ -5039,6 +5166,8 @@ heap_xlog_clean(XLogRecPtr lsn, XLogRecord *record, bool clean_move)
 							nowunused, nunused,
 							clean_move);
 
+	freespace = PageGetHeapFreeSpace(page); /* needed to update FSM below */
+
 	/*
 	 * Note: we don't worry about updating the page's prunability hints.
 	 * At worst this will cause an extra prune cycle to occur soon.
@@ -5047,10 +5176,18 @@ heap_xlog_clean(XLogRecPtr lsn, XLogRecord *record, bool clean_move)
 	PageSetLSN(page, lsn);
 	MarkBufferDirty(buffer);
 	UnlockReleaseBuffer(buffer);
-	
+
 	MIRROREDLOCK_BUFMGR_UNLOCK;
 	// -------- MirroredLock ----------
-	
+
+	/*
+	 * Update the FSM as well.
+	 *
+	 * XXX: We don't get here if the page was restored from full page image.
+	 * We don't bother to update the FSM in that case, it doesn't need to be
+	 * totally accurate anyway.
+	 */
+	XLogRecordPageWithFreeSpace(xlrec->heapnode.node, xlrec->block, freespace);
 }
 
 static void
@@ -5172,6 +5309,20 @@ heap_xlog_delete(XLogRecPtr lsn, XLogRecord *record)
 	OffsetNumber offnum;
 	ItemId		lp = NULL;
 	HeapTupleHeader htup;
+	BlockNumber	blkno;
+
+	blkno = ItemPointerGetBlockNumber(&(xlrec->target.tid));
+
+	/*
+	 * The visibility map always needs to be updated, even if the heap page
+	 * is already up-to-date.
+	 */
+	if (xlrec->all_visible_cleared)
+	{
+		Relation reln = CreateFakeRelcacheEntry(xlrec->target.node);
+		visibilitymap_clear(reln, blkno);
+		FreeFakeRelcacheEntry(reln);
+	}
 
 	if (IsBkpBlockApplied(record, 0))
 		return;
@@ -5179,10 +5330,8 @@ heap_xlog_delete(XLogRecPtr lsn, XLogRecord *record)
 	// -------- MirroredLock ----------
 	MIRROREDLOCK_BUFMGR_LOCK;
 	
-	buffer = XLogReadBuffer(xlrec->target.node,
-							ItemPointerGetBlockNumber(&(xlrec->target.tid)),
-							false);
-	REDO_PRINT_READ_BUFFER_NOT_FOUND(&xlrec->target.node, ItemPointerGetBlockNumber(&(xlrec->target.tid)), buffer, lsn);
+	buffer = XLogReadBuffer(xlrec->target.node, blkno, false);
+	REDO_PRINT_READ_BUFFER_NOT_FOUND(&xlrec->target.node, blkno, buffer, lsn);
 	if (!BufferIsValid(buffer))
 	{
 		
@@ -5239,6 +5388,9 @@ heap_xlog_delete(XLogRecPtr lsn, XLogRecord *record)
 	/* Mark the page as a candidate for pruning */
 	PageSetPrunable(page, record->xl_xid);
 
+	if (xlrec->all_visible_cleared)
+		PageClearAllVisible(page);
+
 	/* Make sure there is no forward chain link in t_ctid */
 	htup->t_ctid = xlrec->target.tid;
 	PageSetLSN(page, lsn);
@@ -5267,6 +5419,21 @@ heap_xlog_insert(XLogRecPtr lsn, XLogRecord *record)
 	HeapTupleHeader htup;
 	xl_heap_header xlhdr;
 	uint32		newlen;
+	Size		freespace;
+	BlockNumber	blkno;
+
+	blkno = ItemPointerGetBlockNumber(&(xlrec->target.tid));
+
+	/*
+	 * The visibility map always needs to be updated, even if the heap page
+	 * is already up-to-date.
+	 */
+	if (xlrec->all_visible_cleared)
+	{
+		Relation reln = CreateFakeRelcacheEntry(xlrec->target.node);
+		visibilitymap_clear(reln, blkno);
+		FreeFakeRelcacheEntry(reln);
+	}
 
 	if (IsBkpBlockApplied(record, 0))
 		return;
@@ -5276,9 +5443,7 @@ heap_xlog_insert(XLogRecPtr lsn, XLogRecord *record)
 	
 	if (record->xl_info & XLOG_HEAP_INIT_PAGE)
 	{
-		buffer = XLogReadBuffer(xlrec->target.node,
-							 ItemPointerGetBlockNumber(&(xlrec->target.tid)),
-								true);
+		buffer = XLogReadBuffer(xlrec->target.node, blkno, true);
 		Assert(BufferIsValid(buffer));
 		page = (Page) BufferGetPage(buffer);
 
@@ -5286,10 +5451,8 @@ heap_xlog_insert(XLogRecPtr lsn, XLogRecord *record)
 	}
 	else
 	{
-		buffer = XLogReadBuffer(xlrec->target.node,
-							 ItemPointerGetBlockNumber(&(xlrec->target.tid)),
-								false);
-		REDO_PRINT_READ_BUFFER_NOT_FOUND(&xlrec->target.node, ItemPointerGetBlockNumber(&(xlrec->target.tid)), buffer, lsn);
+		buffer = XLogReadBuffer(xlrec->target.node, blkno, false);
+		REDO_PRINT_READ_BUFFER_NOT_FOUND(&xlrec->target.node, blkno, buffer, lsn);
 		if (!BufferIsValid(buffer))
 		{
 			MIRROREDLOCK_BUFMGR_UNLOCK;
@@ -5348,12 +5511,31 @@ heap_xlog_insert(XLogRecPtr lsn, XLogRecord *record)
 	offnum = PageAddItem(page, (Item) htup, newlen, offnum, true, true);
 	if (offnum == InvalidOffsetNumber)
 		elog(PANIC, "heap_insert_redo: failed to add tuple");
+
+	freespace = PageGetHeapFreeSpace(page); /* needed to update FSM below */
+
 	PageSetLSN(page, lsn);
+
+	if (xlrec->all_visible_cleared)
+		PageClearAllVisible(page);
+
 	MarkBufferDirty(buffer);
 	UnlockReleaseBuffer(buffer);
-	
+
 	MIRROREDLOCK_BUFMGR_UNLOCK;
 	// -------- MirroredLock ----------
+
+	/*
+	 * If the page is running low on free space, update the FSM as well.
+	 * Arbitrarily, our definition of "low" is less than 20%. We can't do
+	 * much better than that without knowing the fill-factor for the table.
+	 *
+	 * XXX: We don't get here if the page was restored from full page image.
+	 * We don't bother to update the FSM in that case, it doesn't need to be
+	 * totally accurate anyway.
+	 */
+	if (freespace < BLCKSZ / 5)
+		XLogRecordPageWithFreeSpace(xlrec->target.node, blkno, freespace);
 }
 
 /*
@@ -5380,6 +5562,19 @@ heap_xlog_update(XLogRecPtr lsn, XLogRecord *record, bool move, bool hot_update)
 	xl_heap_header xlhdr;
 	int			hsize;
 	uint32		newlen;
+	Size		freespace;
+
+	/*
+	 * The visibility map always needs to be updated, even if the heap page
+	 * is already up-to-date.
+	 */
+	if (xlrec->all_visible_cleared)
+	{
+		Relation reln = CreateFakeRelcacheEntry(xlrec->target.node);
+		visibilitymap_clear(reln,
+							ItemPointerGetBlockNumber(&xlrec->target.tid));
+		FreeFakeRelcacheEntry(reln);
+	}
 
 	if (IsBkpBlockApplied(record, 0))
 	{
@@ -5459,6 +5654,9 @@ heap_xlog_update(XLogRecPtr lsn, XLogRecord *record, bool move, bool hot_update)
 	/* Mark the page as a candidate for pruning */
 	PageSetPrunable(page, record->xl_xid);
 
+	if (xlrec->all_visible_cleared)
+		PageClearAllVisible(page);
+
 	/*
 	 * this test is ugly, but necessary to avoid thinking that insert change
 	 * is already applied
@@ -5472,12 +5670,22 @@ heap_xlog_update(XLogRecPtr lsn, XLogRecord *record, bool move, bool hot_update)
 	/* Deal with new tuple */
 
 newt:;
+	/*
+	 * The visibility map always needs to be updated, even if the heap page
+	 * is already up-to-date.
+	 */
+	if (xlrec->new_all_visible_cleared)
+	{
+		Relation reln = CreateFakeRelcacheEntry(xlrec->target.node);
+		visibilitymap_clear(reln, ItemPointerGetBlockNumber(&xlrec->newtid));
+		FreeFakeRelcacheEntry(reln);
+	}
 
 	if (IsBkpBlockApplied(record, 1))
-	{		
+	{
 		MIRROREDLOCK_BUFMGR_UNLOCK;
 		// -------- MirroredLock ----------
-		
+
 		return;
 	}
 
@@ -5566,13 +5774,37 @@ newsame:;
 	offnum = PageAddItem(page, (Item) htup, newlen, offnum, true, true);
 	if (offnum == InvalidOffsetNumber)
 		elog(PANIC, "heap_update_redo: failed to add tuple");
+
+	if (xlrec->new_all_visible_cleared)
+		PageClearAllVisible(page);
+
+	freespace = PageGetHeapFreeSpace(page); /* needed to update FSM below */
+
 	PageSetLSN(page, lsn);
 	MarkBufferDirty(buffer);
 	UnlockReleaseBuffer(buffer);
-	
+
 	MIRROREDLOCK_BUFMGR_UNLOCK;
 	// -------- MirroredLock ----------
-	
+
+	/*
+	 * If the page is running low on free space, update the FSM as well.
+	 * Arbitrarily, our definition of "low" is less than 20%. We can't do
+	 * much better than that without knowing the fill-factor for the table.
+	 *
+	 * However, don't update the FSM on HOT updates, because after crash
+	 * recovery, either the old or the new tuple will certainly be dead and
+	 * prunable. After pruning, the page will have roughly as much free space
+	 * as it did before the update, assuming the new tuple is about the same
+	 * size as the old one.
+	 *
+	 * XXX: We don't get here if the page was restored from full page image.
+	 * We don't bother to update the FSM in that case, it doesn't need to be
+	 * totally accurate anyway.
+	 */
+	if (!hot_update && freespace < BLCKSZ / 5)
+		XLogRecordPageWithFreeSpace(xlrec->target.node,
+					ItemPointerGetBlockNumber(&(xlrec->newtid)), freespace);
 }
 
 static void
@@ -6006,7 +6238,9 @@ heap_sync(Relation rel)
 	/* main heap */
 	FlushRelationBuffers(rel);
 	/* FlushRelationBuffers will have opened rd_smgr */
-	smgrimmedsync(rel->rd_smgr);
+	smgrimmedsync(rel->rd_smgr, MAIN_FORKNUM);
+
+	/* FSM is not critical, don't bother syncing it */
 
 	/* toast heap, if any */
 	if (OidIsValid(rel->rd_rel->reltoastrelid))
@@ -6015,7 +6249,7 @@ heap_sync(Relation rel)
 
 		toastrel = heap_open(rel->rd_rel->reltoastrelid, AccessShareLock);
 		FlushRelationBuffers(toastrel);
-		smgrimmedsync(toastrel->rd_smgr);
+		smgrimmedsync(toastrel->rd_smgr, MAIN_FORKNUM);
 		heap_close(toastrel, AccessShareLock);
 	}
 }

@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/catalog.h,v 1.40 2008/06/19 00:46:06 alvherre Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/catalog.h,v 1.42 2008/10/06 14:13:17 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -21,7 +21,10 @@
 #include "catalog/oid_dispatch.h"
 
 
-extern char *relpath(RelFileNode rnode);
+extern const char *forkNames[];
+extern ForkNumber forkname_to_number(char *forkName);
+
+extern char *relpath(RelFileNode rnode, ForkNumber forknum);
 extern char *GetDatabasePath(Oid dbNode, Oid spcNode);
 extern void FormDatabasePath(char *databasePath, char *filespaceLocation, Oid tablespaceOid, Oid databaseOid);
 extern void FormTablespacePath(char *tablespacePath, char *filespaceLocation, Oid tablespaceOid);

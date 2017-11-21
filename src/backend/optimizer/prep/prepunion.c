@@ -24,7 +24,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/prep/prepunion.c,v 1.152 2008/08/07 19:35:02 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/prep/prepunion.c,v 1.162 2008/11/15 19:43:46 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -57,6 +57,20 @@
 #include "cdb/cdbllize.h"                   /* pull_up_Flow() */
 #include "cdb/cdbvars.h"
 #include "cdb/cdbsetop.h"
+
+/*
+ * In PostgreSQL, adjust_appendrel_attrs_mutator() uses AppendRelInfo as the
+ * 'context'. But in GPDB, we need the PlannerInfo as well, so we pass this
+ * struct instead.
+ * Struct to enable adjusting for partitioned tables.
+ */
+typedef struct AppendRelInfoContext
+{
+	PlannerInfo *root;
+	AppendRelInfo *appinfo;
+} AppendRelInfoContext;
+
+static Node *adjust_appendrel_attrs_mutator(Node *node, AppendRelInfoContext *ctx);
 
 static Plan *recurse_set_operations(Node *setOp, PlannerInfo *root,
 					   double tuple_fraction,
@@ -98,11 +112,10 @@ static List *generate_append_tlist(List *colTypes, bool flag,
 static List *generate_setop_grouplist(SetOperationStmt *op, List *targetlist);
 static void expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte,
 						 Index rti);
-static void make_inh_translation_lists(Relation oldrelation,
-						   Relation newrelation,
-						   Index newvarno,
-						   List **col_mappings,
-						   List **translated_vars);
+static void make_inh_translation_list(Relation oldrelation,
+						  Relation newrelation,
+						  Index newvarno,
+						  List **translated_vars);
 static Relids adjust_relid_set(Relids relids, Index oldrelid, Index newrelid);
 static List *adjust_inherited_tlist(List *tlist,
 					   AppendRelInfo *apprelinfo);
@@ -330,10 +343,12 @@ generate_recursion_plan(SetOperationStmt *setOp, PlannerInfo *root,
 	Plan	   *lplan;
 	Plan	   *rplan;
 	List	   *tlist;
+	List	   *groupList;
+	long		numGroups;
 
 	/* Parser should have rejected other cases */
-	if (setOp->op != SETOP_UNION || !setOp->all)
-		elog(ERROR, "only UNION ALL queries can be recursive");
+	if (setOp->op != SETOP_UNION)
+		elog(ERROR, "only UNION queries can be recursive");
 	/* Worktable ID should be assigned */
 	Assert(root->wt_param_id >= 0);
 
@@ -344,7 +359,6 @@ generate_recursion_plan(SetOperationStmt *setOp, PlannerInfo *root,
 	lplan = recurse_set_operations(setOp->larg, root, tuple_fraction,
 								   setOp->colTypes, false, -1,
 								   refnames_tlist, sortClauses, NULL);
-
 	/* The right plan will want to look at the left one ... */
 	root->non_recursive_plan = lplan;
 	rplan = recurse_set_operations(setOp->rarg, root, tuple_fraction,
@@ -360,12 +374,45 @@ generate_recursion_plan(SetOperationStmt *setOp, PlannerInfo *root,
 								  refnames_tlist);
 
 	/*
+	 * If UNION, identify the grouping operators
+	 */
+	if (setOp->all)
+	{
+		groupList = NIL;
+		numGroups = 0;
+	}
+	else
+	{
+		double	dNumGroups;
+
+		/* Identify the grouping semantics */
+		groupList = generate_setop_grouplist(setOp, tlist);
+
+		/* We only support hashing here */
+		if (!grouping_is_hashable(groupList))
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("could not implement recursive UNION"),
+					 errdetail("All column datatypes must be hashable.")));
+
+		/*
+		 * For the moment, take the number of distinct groups as equal to
+		 * the total input size, ie, the worst case.
+		 */
+		dNumGroups = lplan->plan_rows + rplan->plan_rows * 10;
+
+		/* Also convert to long int --- but 'ware overflow! */
+		numGroups = (long) Min(dNumGroups, (double) LONG_MAX);
+	}
+
+	/*
 	 * And make the plan node.
 	 */
 	plan = (Plan *) make_recursive_union(tlist, lplan, rplan,
-										 root->wt_param_id);
+										 root->wt_param_id,
+										 groupList, numGroups);
 
-	*sortClauses = NIL;			/* result of UNION ALL is always unsorted */
+	*sortClauses = NIL;			/* RecursiveUnion result is always unsorted */
 
 	return plan;
 }
@@ -1234,6 +1281,7 @@ expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte, Index rti)
 {
 	Query	   *parse = root->parse;
 	Oid			parentOID;
+	RowMarkClause *oldrc;
 	Relation	oldrelation;
 	LOCKMODE	lockmode;
 	List	   *inhOIDs;
@@ -1276,6 +1324,15 @@ expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte, Index rti)
 	}
 
 	/*
+	 * Find out if parent relation is selected FOR UPDATE/SHARE.  If so,
+	 * we need to mark its RowMarkClause as isParent = true, and generate
+	 * a new RowMarkClause for each child.
+	 */
+	oldrc = get_rowmark(parse, rti);
+	if (oldrc)
+		oldrc->isParent = true;
+
+	/*
 	 * Must open the parent relation to examine its tupdesc.  We need not lock
 	 * it since the rewriter already obtained at least AccessShareLock on each
 	 * relation used in the query.
@@ -1288,14 +1345,15 @@ expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte, Index rti)
 	 * in the parse/rewrite/plan pipeline.
 	 *
 	 * If the parent relation is the query's result relation, then we need
-	 * RowExclusiveLock.  Otherwise, check to see if the relation is accessed
-	 * FOR UPDATE/SHARE or not.  We can't just grab AccessShareLock because
-	 * then the executor would be trying to upgrade the lock, leading to
-	 * possible deadlocks.	(This code should match the parser and rewriter.)
+	 * RowExclusiveLock.  Otherwise, if it's accessed FOR UPDATE/SHARE, we
+	 * need RowShareLock; otherwise AccessShareLock.  We can't just grab
+	 * AccessShareLock because then the executor would be trying to upgrade
+	 * the lock, leading to possible deadlocks.  (This code should match the
+	 * parser and rewriter.)
 	 */
 	if (rti == parse->resultRelation)
 		lockmode = RowExclusiveLock;
-	else if (get_rowmark(parse, rti))
+	else if (oldrc)
 		lockmode = RowShareLock;
 	else
 		lockmode = AccessShareLock;
@@ -1357,11 +1415,26 @@ expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte, Index rti)
 		appinfo->child_relid = childRTindex;
 		appinfo->parent_reltype = oldrelation->rd_rel->reltype;
 		appinfo->child_reltype = newrelation->rd_rel->reltype;
-		make_inh_translation_lists(oldrelation, newrelation, childRTindex,
-								   &appinfo->col_mappings,
-								   &appinfo->translated_vars);
+		make_inh_translation_list(oldrelation, newrelation, childRTindex,
+								  &appinfo->translated_vars);
 		appinfo->parent_reloid = parentOID;
 		appinfos = lappend(appinfos, appinfo);
+
+		/*
+		 * Build a RowMarkClause if parent is marked FOR UPDATE/SHARE.
+		 */
+		if (oldrc)
+		{
+			RowMarkClause *newrc = makeNode(RowMarkClause);
+
+			newrc->rti = childRTindex;
+			newrc->prti = rti;
+			newrc->forUpdate = oldrc->forUpdate;
+			newrc->noWait = oldrc->noWait;
+			newrc->isParent = false;
+
+			parse->rowMarks = lappend(parse->rowMarks, newrc);
+		}
 
 		/* Close child relations, but keep locks */
 		if (childOID != parentOID)
@@ -1411,19 +1484,17 @@ expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte, Index rti)
 }
 
 /*
- * make_inh_translation_lists
- *	  Build the lists of translations from parent Vars to child Vars for
- *	  an inheritance child.  We need both a column number mapping list
- *	  and a list of Vars representing the child columns.
+ * make_inh_translation_list
+ *	  Build the list of translations from parent Vars to child Vars for
+ *	  an inheritance child.
  *
  * For paranoia's sake, we match type as well as attribute name.
  */
 static void
-make_inh_translation_lists(Relation oldrelation, Relation newrelation,
-						   Index newvarno,
-						   List **col_mappings, List **translated_vars)
+make_inh_translation_list(Relation oldrelation, Relation newrelation,
+						  Index newvarno,
+						  List **translated_vars)
 {
-	List	   *numbers = NIL;
 	List	   *vars = NIL;
 	TupleDesc	old_tupdesc = RelationGetDescr(oldrelation);
 	TupleDesc	new_tupdesc = RelationGetDescr(newrelation);
@@ -1442,8 +1513,7 @@ make_inh_translation_lists(Relation oldrelation, Relation newrelation,
 		att = old_tupdesc->attrs[old_attno];
 		if (att->attisdropped)
 		{
-			/* Just put 0/NULL into this list entry */
-			numbers = lappend_int(numbers, 0);
+			/* Just put NULL into this list entry */
 			vars = lappend(vars, NULL);
 			continue;
 		}
@@ -1457,7 +1527,6 @@ make_inh_translation_lists(Relation oldrelation, Relation newrelation,
 		 */
 		if (oldrelation == newrelation)
 		{
-			numbers = lappend_int(numbers, old_attno + 1);
 			vars = lappend(vars, makeVar(newvarno,
 										 (AttrNumber) (old_attno + 1),
 										 atttypid,
@@ -1500,7 +1569,6 @@ make_inh_translation_lists(Relation oldrelation, Relation newrelation,
 			elog(ERROR, "attribute \"%s\" of relation \"%s\" does not match parent's type",
 				 attname, RelationGetRelationName(newrelation));
 
-		numbers = lappend_int(numbers, new_attno + 1);
 		vars = lappend(vars, makeVar(newvarno,
 									 (AttrNumber) (new_attno + 1),
 									 atttypid,
@@ -1508,20 +1576,8 @@ make_inh_translation_lists(Relation oldrelation, Relation newrelation,
 									 0));
 	}
 
-	*col_mappings = numbers;
 	*translated_vars = vars;
 }
-
-/**
- * Struct to enable adjusting for partitioned tables.
- */
-typedef struct AppendRelInfoContext
-{
-	plan_tree_base_prefix base;
-	AppendRelInfo *appinfo;
-} AppendRelInfoContext;
-
-static Node *adjust_appendrel_attrs_mutator(Node *node, AppendRelInfoContext *ctx);
 
 /*
  * adjust_appendrel_attrs
@@ -1541,7 +1597,7 @@ adjust_appendrel_attrs(PlannerInfo *root, Node *node, AppendRelInfo *appinfo)
 {
 	Node	   *result;
 	AppendRelInfoContext ctx;
-	ctx.base.node = (Node *) root;
+	ctx.root = root;
 	ctx.appinfo = appinfo;
 
 	/*
@@ -1554,7 +1610,7 @@ adjust_appendrel_attrs(PlannerInfo *root, Node *node, AppendRelInfo *appinfo)
 		newnode = query_tree_mutator((Query *) node,
 									 adjust_appendrel_attrs_mutator,
 									 (void *) &ctx,
-									 QTW_IGNORE_RT_SUBQUERIES);
+									 QTW_IGNORE_RC_SUBQUERIES);
 		if (newnode->resultRelation == appinfo->parent_relid)
 		{
 			newnode->resultRelation = appinfo->child_relid;
@@ -1647,7 +1703,7 @@ adjust_appendrel_attrs_mutator(Node *node, AppendRelInfoContext *ctx)
 					rowexpr->row_format = COERCE_IMPLICIT_CAST;
 					rowexpr->colnames = NIL;
 					rowexpr->location = -1;
-					
+
 					return (Node *) rowexpr;
 				}
 			}
@@ -1688,9 +1744,9 @@ adjust_appendrel_attrs_mutator(Node *node, AppendRelInfoContext *ctx)
 	{
 		/* Copy the PlaceHolderVar node with correct mutation of subnodes */
 		PlaceHolderVar *phv;
-		
+
 		phv = (PlaceHolderVar *) expression_tree_mutator(node,
-														 adjust_appendrel_attrs_mutator,
+											  adjust_appendrel_attrs_mutator,
 														 (void *) ctx);
 		/* now fix PlaceHolderVar's relid sets */
 		if (phv->phlevelsup == 0)
@@ -1699,7 +1755,6 @@ adjust_appendrel_attrs_mutator(Node *node, AppendRelInfoContext *ctx)
 										   appinfo->child_relid);
 		return (Node *) phv;
 	}
-
 	/* Shouldn't need to handle planner auxiliary nodes here */
 	Assert(!IsA(node, SpecialJoinInfo));
 	Assert(!IsA(node, AppendRelInfo));
@@ -1782,7 +1837,7 @@ adjust_appendrel_attrs_mutator(Node *node, AppendRelInfoContext *ctx)
 
 		if (!sp->is_initplan)
 		{
-			PlannerInfo *root = (PlannerInfo *) ctx->base.node;
+			PlannerInfo *root = ctx->root;
 			Plan *newsubplan = (Plan *) copyObject(planner_subplan_get_plan(root, sp));
 			List *newrtable = (List *) copyObject(planner_subplan_get_rtable(root, sp));
 
@@ -1852,24 +1907,24 @@ adjust_inherited_tlist(List *tlist, AppendRelInfo *context)
 	foreach(tl, tlist)
 	{
 		TargetEntry *tle = (TargetEntry *) lfirst(tl);
-		int			newattno;
+		Var		   *childvar;
 
 		if (tle->resjunk)
 			continue;			/* ignore junk items */
 
-		/* Look up the translation of this column */
+		/* Look up the translation of this column: it must be a Var */
 		if (tle->resno <= 0 ||
-			tle->resno > list_length(context->col_mappings))
+			tle->resno > list_length(context->translated_vars))
 			elog(ERROR, "attribute %d of relation \"%s\" does not exist",
 				 tle->resno, get_rel_name(context->parent_reloid));
-		newattno = list_nth_int(context->col_mappings, tle->resno - 1);
-		if (newattno <= 0)
+		childvar = (Var *) list_nth(context->translated_vars, tle->resno - 1);
+		if (childvar == NULL || !IsA(childvar, Var))
 			elog(ERROR, "attribute %d of relation \"%s\" does not exist",
 				 tle->resno, get_rel_name(context->parent_reloid));
 
-		if (tle->resno != newattno)
+		if (tle->resno != childvar->varattno)
 		{
-			tle->resno = newattno;
+			tle->resno = childvar->varattno;
 			changed_it = true;
 		}
 	}

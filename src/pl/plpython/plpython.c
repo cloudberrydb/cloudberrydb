@@ -3154,7 +3154,7 @@ PLyMapping_ToTuple(PLyTypeInfo *info, TupleDesc desc, PyObject *mapping)
 			value = PyMapping_GetItemString(mapping, key);
 			if (value == Py_None)
 			{
-				values[i] = (Datum) 0; 
+				values[i] = (Datum) NULL;
 				nulls[i] = true;
 			}
 			else if (value)
@@ -3239,7 +3239,7 @@ PLySequence_ToTuple(PLyTypeInfo *info, TupleDesc desc, PyObject *sequence, bool 
 			Assert(value);
 			if (value == Py_None)
 			{
-				values[i] = (Datum) 0; 
+				values[i] = (Datum) NULL;
 				nulls[i] = true;
 			}
 			else if (value)
@@ -3302,7 +3302,7 @@ PLyGenericObject_ToTuple(PLyTypeInfo *info, TupleDesc desc, PyObject *object, bo
 			value = PyObject_GetAttrString(object, key);
 			if (value == Py_None)
 			{
-				values[i] = (Datum) 0; 
+				values[i] = (Datum) NULL;
 				nulls[i] = true;
 			}
 			else if (value)

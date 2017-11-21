@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/optimizer/planmain.h,v 1.110 2008/08/07 19:35:02 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/optimizer/planmain.h,v 1.114 2008/10/07 19:27:04 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -136,7 +136,8 @@ extern SubqueryScan *make_subqueryscan(PlannerInfo *root, List *qptlist, List *q
 				  Index scanrelid, Plan *subplan, List *subrtable);
 extern Append *make_append(List *appendplans, bool isTarget, List *tlist);
 extern RecursiveUnion *make_recursive_union(List *tlist,
-			   Plan *lefttree, Plan *righttree, int wtParam);
+			   Plan *lefttree, Plan *righttree, int wtParam,
+			   List *distinctList, long numGroups);
 extern Sort *make_sort_from_pathkeys(PlannerInfo *root, Plan *lefttree,
 						List *pathkeys, double limit_tuples, bool add_keys_to_targetlist);
 extern Sort *make_sort_from_sortclauses(PlannerInfo *root, List *sortcls,
@@ -240,6 +241,9 @@ extern RestrictInfo *build_implied_join_equality(Oid opno,
 							Expr *item2,
 							Relids qualscope,
 							Relids nullable_relids);
+
+extern void check_mergejoinable(RestrictInfo *restrictinfo);
+extern void check_hashjoinable(RestrictInfo *restrictinfo);
 
 /*
  * prototypes for plan/setrefs.c

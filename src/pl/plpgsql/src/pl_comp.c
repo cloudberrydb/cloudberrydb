@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_comp.c,v 1.128 2008/07/18 03:32:53 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_comp.c,v 1.132 2008/11/05 00:07:53 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -488,7 +488,7 @@ do_compile(FunctionCallInfo fcinfo,
 													   num_out_args);
 
 				plpgsql_adddatum((PLpgSQL_datum *) row);
-				function->out_param_varno = row->rowno;
+				function->out_param_varno = row->dno;
 			}
 
 			/*
@@ -600,11 +600,11 @@ do_compile(FunctionCallInfo fcinfo,
 
 			/* Add the record for referencing NEW */
 			rec = plpgsql_build_record("new", 0, true);
-			function->new_varno = rec->recno;
+			function->new_varno = rec->dno;
 
 			/* Add the record for referencing OLD */
 			rec = plpgsql_build_record("old", 0, true);
-			function->old_varno = rec->recno;
+			function->old_varno = rec->dno;
 
 			/* Add the variable tg_name */
 			var = plpgsql_build_variable("tg_name", 0,
@@ -1614,7 +1614,7 @@ plpgsql_build_variable(const char *refname, int lineno, PLpgSQL_type *dtype,
 				plpgsql_adddatum((PLpgSQL_datum *) var);
 				if (add2namespace)
 					plpgsql_ns_additem(PLPGSQL_NSTYPE_VAR,
-									   var->varno,
+									   var->dno,
 									   refname);
 				result = (PLpgSQL_variable *) var;
 				break;
@@ -1633,7 +1633,7 @@ plpgsql_build_variable(const char *refname, int lineno, PLpgSQL_type *dtype,
 				plpgsql_adddatum((PLpgSQL_datum *) row);
 				if (add2namespace)
 					plpgsql_ns_additem(PLPGSQL_NSTYPE_ROW,
-									   row->rowno,
+									   row->dno,
 									   refname);
 				result = (PLpgSQL_variable *) row;
 				break;
@@ -1680,7 +1680,7 @@ plpgsql_build_record(const char *refname, int lineno, bool add2namespace)
 	rec->freetup = false;
 	plpgsql_adddatum((PLpgSQL_datum *) rec);
 	if (add2namespace)
-		plpgsql_ns_additem(PLPGSQL_NSTYPE_REC, rec->recno, rec->refname);
+		plpgsql_ns_additem(PLPGSQL_NSTYPE_REC, rec->dno, rec->refname);
 
 	return rec;
 }

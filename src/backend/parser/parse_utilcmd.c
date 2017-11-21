@@ -19,7 +19,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- *	$PostgreSQL: pgsql/src/backend/parser/parse_utilcmd.c,v 2.14 2008/07/16 01:30:22 tgl Exp $
+ *	$PostgreSQL: pgsql/src/backend/parser/parse_utilcmd.c,v 2.18 2008/12/06 23:22:46 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -686,7 +686,8 @@ transformInhRelation(ParseState *pstate, CreateStmtContext *cxt,
 	bool		including_indexes = false;
 	ListCell   *elem;
 
-	relation = heap_openrv(inhRelation->relation, AccessShareLock);
+	relation = parserOpenTable(pstate, inhRelation->relation, AccessShareLock,
+							   false, NULL);
 
 	if (relation->rd_rel->relkind != RELKIND_RELATION)
 		ereport(ERROR,
@@ -3077,6 +3078,7 @@ transformAlterTableStmt(AlterTableStmt *stmt, const char *queryString)
 		switch (cmd->subtype)
 		{
 			case AT_AddColumn:
+			case AT_AddColumnToView:
 				{
 					ColumnDef  *def = (ColumnDef *) cmd->def;
 

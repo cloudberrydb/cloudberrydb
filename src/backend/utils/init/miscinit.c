@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/init/miscinit.c,v 1.167 2008/03/27 17:24:16 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/init/miscinit.c,v 1.169 2008/12/11 07:34:07 petere Exp $
  *
  *-------------------------------------------------------------------------
  */

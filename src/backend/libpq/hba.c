@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/libpq/hba.c,v 1.166 2008/08/01 09:09:49 mha Exp $
+ *	  $PostgreSQL: pgsql/src/backend/libpq/hba.c,v 1.176 2008/11/28 14:26:58 mha Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1466,10 +1466,10 @@ check_hba(hbaPort *port)
 
 	/* Get the target role's OID.  Note we do not error out for bad role. */
 
-	// GPDB:  Can't get roleid yet, because the RelCache isn't ready, and we don't have
-	// the code to deal with shared tables during startup like Postgres 9 does.
-	// So, do things the old way, just by name.  This relies on the existence of the
-	// flat-file version of pg_auth
+	// GPDB_90_MERGE_FIXME:  Can't get roleid yet, because the RelCache isn't
+	// ready, and we don't have the code to deal with shared tables during
+	// startup like Postgres 9 does.  So, do things the old way, just by name.
+	// This relies on the existence of the flat-file version of pg_auth
 
 	//roleid = get_roleid(port->user_name);
 

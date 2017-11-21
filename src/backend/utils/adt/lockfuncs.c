@@ -6,7 +6,7 @@
  * Copyright (c) 2002-2009, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *		$PostgreSQL: pgsql/src/backend/utils/adt/lockfuncs.c,v 1.34 2008/05/12 00:00:51 alvherre Exp $
+ *		$PostgreSQL: pgsql/src/backend/utils/adt/lockfuncs.c,v 1.35 2008/11/02 01:45:28 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -169,17 +169,6 @@ pg_lock_status(PG_FUNCTION_ARGS)
 			initStringInfo(&buffer);
 
 			/*
-			 * This query has to match the tupledesc we just made above.
-			 */
-
-			appendStringInfo(&buffer,
-					"SELECT * FROM  pg_lock_status() L "
-					 " (locktype text, database oid, relation oid, page int4, tuple int2,"
-					 " virtualxid text, transactionid xid, classid oid, objid oid, objsubid int2,"
-					 " virtualtransaction text, pid int4, mode text, granted boolean, "
-					 " mppSessionId int4, mppIsWriter boolean, gp_segment_id int4) ");
-
-			/*
 			 * Why dispatch something here, rather than do a UNION ALL in pg_locks view, and
 			 * a join to gp_dist_random('gp_id')?  There are several important reasons.
 			 *
@@ -216,9 +205,10 @@ pg_lock_status(PG_FUNCTION_ARGS)
 			 * of setting up a new gang is high, and I've never seen anyone need to join this to a
 			 * distributed table.
 			 *
+			 * GPDB_84_MERGE_FIXME: Should we rewrite this in a different way now that we have
+			 * ON SEGMENT/ ON MASTER attributes on functions?
 			 */
-
-			CdbDispatchCommand(buffer.data, DF_WITH_SNAPSHOT, &cdb_pgresults);
+			CdbDispatchCommand("SELECT * FROM pg_catalog.pg_lock_status()", DF_WITH_SNAPSHOT, &cdb_pgresults);
 
 			if (cdb_pgresults.numResults == 0)
 				elog(ERROR, "pg_locks didn't get back any data from the segDBs");
@@ -235,15 +225,20 @@ pg_lock_status(PG_FUNCTION_ARGS)
 					cdbdisp_clearCdbPgResults(&cdb_pgresults);
 					elog(ERROR,"pg_locks: resultStatus not tuples_Ok");
 				}
-				else
-				{
-					/*
-					 * numSegLocks needs to be the total size we are returning to
-					 * the application. At the start of this loop, it has the count
-					 * for the masterDB locks.  Add each of the segDB lock counts.
-					 */
-					mystatus->numSegLocks += PQntuples(cdb_pgresults.pg_results[i]);
-				}
+
+				/*
+				 * numSegLocks needs to be the total size we are returning to
+				 * the application. At the start of this loop, it has the count
+				 * for the masterDB locks.  Add each of the segDB lock counts.
+				 */
+				mystatus->numSegLocks += PQntuples(cdb_pgresults.pg_results[i]);
+
+				/*
+				 * This query better match the tupledesc we just made above.
+				 */
+				if (PQnfields(cdb_pgresults.pg_results[i]) != tupdesc->natts)
+					elog(ERROR, "unexpected number of columns returned from pg_lock_status() on segment (%d, expected %d)",
+						 PQnfields(cdb_pgresults.pg_results[i]), tupdesc->natts);
 			}
 
 			mystatus->numsegresults = cdb_pgresults.numResults;

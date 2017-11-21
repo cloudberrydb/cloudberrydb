@@ -55,7 +55,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/postmaster/autovacuum.c,v 1.83 2008/07/23 20:20:10 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/postmaster/autovacuum.c,v 1.90 2008/12/09 15:59:39 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -95,6 +95,7 @@
 #include "storage/sinval.h"
 #include "storage/sinvaladt.h"
 #include "tcop/tcopprot.h"
+#include "utils/dynahash.h"
 #include "utils/flatfiles.h"
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
@@ -167,8 +168,8 @@ typedef struct avw_dbase
 /* struct to keep track of tables to vacuum and/or analyze, in 1st pass */
 typedef struct av_relation
 {
+	Oid			ar_toastrelid;	/* hash key - must be first */
 	Oid			ar_relid;
-	Oid			ar_toastrelid;
 } av_relation;
 
 /* struct to keep track of tables to vacuum and/or analyze, after rechecking */
@@ -249,9 +250,9 @@ typedef struct
 {
 	sig_atomic_t av_signal[AutoVacNumSignals];
 	pid_t		av_launcherpid;
-	SHMEM_OFFSET av_freeWorkers;
+	WorkerInfo	av_freeWorkers;
 	SHM_QUEUE	av_runningWorkers;
-	SHMEM_OFFSET av_startingWorker;
+	WorkerInfo	av_startingWorker;
 } AutoVacuumShmemStruct;
 
 static AutoVacuumShmemStruct *AutoVacuumShmem;
@@ -285,7 +286,7 @@ static void autovac_balance_cost(void);
 static void do_autovacuum(void);
 static void FreeWorkerInfo(int code, Datum arg);
 
-static autovac_table *table_recheck_autovac(Oid relid);
+static autovac_table *table_recheck_autovac(Oid relid, HTAB *table_toast_map);
 static void relation_needs_vacanalyze(Oid relid, Form_pg_autovacuum avForm,
 						  Form_pg_class classForm,
 						  PgStat_StatTabEntry *tabentry, bool *dovacuum,
@@ -293,7 +294,8 @@ static void relation_needs_vacanalyze(Oid relid, Form_pg_autovacuum avForm,
 
 static void autovacuum_do_vac_analyze(autovac_table *tab,
 						  BufferAccessStrategy bstrategy);
-static HeapTuple get_pg_autovacuum_tuple_relid(Relation avRel, Oid relid);
+static HeapTuple get_pg_autovacuum_tuple_relid(Relation avRel, Oid relid,
+											   HTAB *table_toast_map);
 static PgStat_StatTabEntry *get_pgstat_tabentry_relid(Oid relid, bool isshared,
 						  PgStat_StatDBEntry *shared,
 						  PgStat_StatDBEntry *dbentry);
@@ -560,8 +562,8 @@ AutoVacLauncherMain(int argc, char *argv[])
 		if (!PostmasterIsAlive(true))
 			exit(1);
 
-		launcher_determine_sleep(AutoVacuumShmem->av_freeWorkers !=
-								 INVALID_OFFSET, false, &nap);
+		launcher_determine_sleep((AutoVacuumShmem->av_freeWorkers != NULL),
+								 false, &nap);
 
 		/*
 		 * Sleep for a while according to schedule.
@@ -666,13 +668,12 @@ AutoVacLauncherMain(int argc, char *argv[])
 		current_time = GetCurrentTimestamp();
 		LWLockAcquire(AutovacuumLock, LW_SHARED);
 
-		can_launch = (AutoVacuumShmem->av_freeWorkers != INVALID_OFFSET);
+		can_launch = (AutoVacuumShmem->av_freeWorkers != NULL);
 
-		if (AutoVacuumShmem->av_startingWorker != INVALID_OFFSET)
+		if (AutoVacuumShmem->av_startingWorker != NULL)
 		{
 			int			waittime;
-
-			WorkerInfo	worker = (WorkerInfo) MAKE_PTR(AutoVacuumShmem->av_startingWorker);
+			WorkerInfo	worker = AutoVacuumShmem->av_startingWorker;
 
 			/*
 			 * We can't launch another worker when another one is still
@@ -702,16 +703,16 @@ AutoVacLauncherMain(int argc, char *argv[])
 				 * we assume it's the same one we saw above (so we don't
 				 * recheck the launch time).
 				 */
-				if (AutoVacuumShmem->av_startingWorker != INVALID_OFFSET)
+				if (AutoVacuumShmem->av_startingWorker != NULL)
 				{
-					worker = (WorkerInfo) MAKE_PTR(AutoVacuumShmem->av_startingWorker);
+					worker = AutoVacuumShmem->av_startingWorker;
 					worker->wi_dboid = InvalidOid;
 					worker->wi_tableoid = InvalidOid;
 					worker->wi_proc = NULL;
 					worker->wi_launchtime = 0;
-					worker->wi_links.next = AutoVacuumShmem->av_freeWorkers;
-					AutoVacuumShmem->av_freeWorkers = MAKE_OFFSET(worker);
-					AutoVacuumShmem->av_startingWorker = INVALID_OFFSET;
+					worker->wi_links.next = (SHM_QUEUE *) AutoVacuumShmem->av_freeWorkers;
+					AutoVacuumShmem->av_freeWorkers = worker;
+					AutoVacuumShmem->av_startingWorker = NULL;
 					elog(WARNING, "worker took too long to start; cancelled");
 				}
 			}
@@ -1074,7 +1075,7 @@ do_start_worker(void)
 
 	/* return quickly when there are no free workers */
 	LWLockAcquire(AutovacuumLock, LW_SHARED);
-	if (AutoVacuumShmem->av_freeWorkers == INVALID_OFFSET)
+	if (AutoVacuumShmem->av_freeWorkers == NULL)
 	{
 		LWLockRelease(AutovacuumLock);
 		return InvalidOid;
@@ -1206,7 +1207,6 @@ do_start_worker(void)
 	if (avdb != NULL)
 	{
 		WorkerInfo	worker;
-		SHMEM_OFFSET sworker;
 
 		LWLockAcquire(AutovacuumLock, LW_EXCLUSIVE);
 
@@ -1215,18 +1215,17 @@ do_start_worker(void)
 		 * really should be a free slot -- complain very loudly if there
 		 * isn't.
 		 */
-		sworker = AutoVacuumShmem->av_freeWorkers;
-		if (sworker == INVALID_OFFSET)
+		worker = AutoVacuumShmem->av_freeWorkers;
+		if (worker == NULL)
 			elog(FATAL, "no free worker found");
 
-		worker = (WorkerInfo) MAKE_PTR(sworker);
-		AutoVacuumShmem->av_freeWorkers = worker->wi_links.next;
+		AutoVacuumShmem->av_freeWorkers = (WorkerInfo) worker->wi_links.next;
 
 		worker->wi_dboid = avdb->adw_datid;
 		worker->wi_proc = NULL;
 		worker->wi_launchtime = GetCurrentTimestamp();
 
-		AutoVacuumShmem->av_startingWorker = sworker;
+		AutoVacuumShmem->av_startingWorker = worker;
 
 		LWLockRelease(AutovacuumLock);
 
@@ -1566,9 +1565,9 @@ AutoVacWorkerMain(int argc, char *argv[])
 	 * launcher might have decided to remove it from the queue and start
 	 * again.
 	 */
-	if (AutoVacuumShmem->av_startingWorker != INVALID_OFFSET)
+	if (AutoVacuumShmem->av_startingWorker != NULL)
 	{
-		MyWorkerInfo = (WorkerInfo) MAKE_PTR(AutoVacuumShmem->av_startingWorker);
+		MyWorkerInfo = AutoVacuumShmem->av_startingWorker;
 		dbid = MyWorkerInfo->wi_dboid;
 		MyWorkerInfo->wi_proc = MyProc;
 
@@ -1579,7 +1578,7 @@ AutoVacWorkerMain(int argc, char *argv[])
 		 * remove from the "starting" pointer, so that the launcher can start
 		 * a new worker if required
 		 */
-		AutoVacuumShmem->av_startingWorker = INVALID_OFFSET;
+		AutoVacuumShmem->av_startingWorker = NULL;
 		LWLockRelease(AutovacuumLock);
 
 		on_shmem_exit(FreeWorkerInfo, 0);
@@ -1664,7 +1663,7 @@ FreeWorkerInfo(int code, Datum arg)
 		AutovacuumLauncherPid = AutoVacuumShmem->av_launcherpid;
 
 		SHMQueueDelete(&MyWorkerInfo->wi_links);
-		MyWorkerInfo->wi_links.next = AutoVacuumShmem->av_freeWorkers;
+		MyWorkerInfo->wi_links.next = (SHM_QUEUE *) AutoVacuumShmem->av_freeWorkers;
 		MyWorkerInfo->wi_dboid = InvalidOid;
 		MyWorkerInfo->wi_tableoid = InvalidOid;
 		MyWorkerInfo->wi_proc = NULL;
@@ -1672,7 +1671,7 @@ FreeWorkerInfo(int code, Datum arg)
 		MyWorkerInfo->wi_cost_delay = 0;
 		MyWorkerInfo->wi_cost_limit = 0;
 		MyWorkerInfo->wi_cost_limit_base = 0;
-		AutoVacuumShmem->av_freeWorkers = MAKE_OFFSET(MyWorkerInfo);
+		AutoVacuumShmem->av_freeWorkers = MyWorkerInfo;
 		/* not mine anymore */
 		MyWorkerInfo = NULL;
 
@@ -1847,12 +1846,13 @@ do_autovacuum(void)
 	HeapScanDesc relScan;
 	Form_pg_database dbForm;
 	List	   *table_oids = NIL;
-	List	   *toast_oids = NIL;
-	List	   *table_toast_list = NIL;
+	HASHCTL		ctl;
+	HTAB	   *table_toast_map;
 	ListCell   *volatile cell;
 	PgStat_StatDBEntry *shared;
 	PgStat_StatDBEntry *dbentry;
 	BufferAccessStrategy bstrategy;
+	ScanKeyData	key;
 
 	/*
 	 * StartTransactionCommand and CommitTransactionCommand will automatically
@@ -1910,25 +1910,42 @@ do_autovacuum(void)
 	classRel = heap_open(RelationRelationId, AccessShareLock);
 	avRel = heap_open(AutovacuumRelationId, AccessShareLock);
 
-	/*
-	 * Scan pg_class and determine which tables to vacuum.
-	 *
-	 * The stats subsystem collects stats for toast tables independently of
-	 * the stats for their parent tables.  We need to check those stats since
-	 * in cases with short, wide tables there might be proportionally much
-	 * more activity in the toast table than in its parent.
-	 *
-	 * Since we can only issue VACUUM against the parent table, we need to
-	 * transpose a decision to vacuum a toast table into a decision to vacuum
-	 * its parent.	There's no point in considering ANALYZE on a toast table,
-	 * either.	To support this, we keep a list of OIDs of toast tables that
-	 * need vacuuming alongside the list of regular tables.  Regular tables
-	 * will be entered into the table list even if they appear not to need
-	 * vacuuming; we go back and re-mark them after finding all the vacuumable
-	 * toast tables.
-	 */
-	relScan = heap_beginscan(classRel, SnapshotNow, 0, NULL);
+	/* create hash table for toast <-> main relid mapping */
+	MemSet(&ctl, 0, sizeof(ctl));
+	ctl.keysize = sizeof(Oid);
+	ctl.entrysize = sizeof(Oid) * 2;
+	ctl.hash = oid_hash;
 
+	table_toast_map = hash_create("TOAST to main relid map",
+								  100,
+								  &ctl,
+								  HASH_ELEM | HASH_FUNCTION);
+
+	/*
+	 * Scan pg_class to determine which tables to vacuum.
+	 *
+	 * We do this in two passes: on the first one we collect the list of
+	 * plain relations, and on the second one we collect TOAST tables.
+	 * The reason for doing the second pass is that during it we want to use
+	 * the main relation's pg_autovacuum entry if the TOAST table does not have
+	 * any, and we cannot obtain it unless we know beforehand what's the main
+	 * table OID.
+	 *
+	 * We need to check TOAST tables separately because in cases with short,
+	 * wide tables there might be proportionally much more activity in the
+	 * TOAST table than in its parent.
+	 */
+	ScanKeyInit(&key,
+				Anum_pg_class_relkind,
+				BTEqualStrategyNumber, F_CHAREQ,
+				CharGetDatum(RELKIND_RELATION));
+
+	relScan = heap_beginscan(classRel, SnapshotNow, 1, &key);
+
+	/*
+	 * On the first pass, we collect main tables to vacuum, and also the
+	 * main table relid to TOAST relid mapping.
+	 */
 	while ((tuple = heap_getnext(relScan, ForwardScanDirection)) != NULL)
 	{
 		Form_pg_class classForm = (Form_pg_class) GETSTRUCT(tuple);
@@ -1941,18 +1958,10 @@ do_autovacuum(void)
 		bool		wraparound;
 		int			backendID;
 
-		/* Consider only regular, toast and aosegment tables. */
-		if (classForm->relkind != RELKIND_RELATION &&
-			classForm->relkind != RELKIND_TOASTVALUE &&
-			classForm->relkind != RELKIND_AOSEGMENTS &&
-			classForm->relkind != RELKIND_AOBLOCKDIR &&
-			classForm->relkind != RELKIND_AOVISIMAP)
-			continue;
-
 		relid = HeapTupleGetOid(tuple);
 
 		/* Fetch the pg_autovacuum tuple for the relation, if any */
-		avTup = get_pg_autovacuum_tuple_relid(avRel, relid);
+		avTup = get_pg_autovacuum_tuple_relid(avRel, relid, NULL);
 		if (HeapTupleIsValid(avTup))
 			avForm = (Form_pg_autovacuum) GETSTRUCT(avTup);
 
@@ -1981,7 +1990,7 @@ do_autovacuum(void)
 				 * vacuum for wraparound, forcibly drop it.  Otherwise just
 				 * log a complaint.
 				 */
-				if (wraparound && classForm->relkind == RELKIND_RELATION)
+				if (wraparound)
 				{
 					ObjectAddress object;
 
@@ -2005,30 +2014,32 @@ do_autovacuum(void)
 				}
 			}
 		}
-		else if (classForm->relkind == RELKIND_RELATION)
+		else
 		{
 			/* Plain relations that need work are added to table_oids */
 			if (dovacuum || doanalyze)
 				table_oids = lappend_oid(table_oids, relid);
-			else if (OidIsValid(classForm->reltoastrelid))
+
+			/*
+			 * Remember the association for the second pass.  Note: we must do
+			 * this even if the table is going to be vacuumed, because we
+			 * don't automatically vacuum toast tables along the parent table.
+			 */
+			if (OidIsValid(classForm->reltoastrelid))
 			{
-				/*
-				 * If it doesn't appear to need vacuuming, but it has a toast
-				 * table, remember the association to revisit below.
-				 */
-				av_relation *rel = palloc(sizeof(av_relation));
+				av_relation *hentry;
+				bool		found;
 
-				rel->ar_relid = relid;
-				rel->ar_toastrelid = classForm->reltoastrelid;
+				hentry = hash_search(table_toast_map,
+									 &classForm->reltoastrelid,
+									 HASH_ENTER, &found);
 
-				table_toast_list = lappend(table_toast_list, rel);
+				if (!found)
+				{
+					/* hash_search already filled in the key */
+					hentry->ar_relid = relid;
+				}
 			}
-		}
-		else
-		{
-			/* TOAST relations that need vacuum are added to toast_oids */
-			if (dovacuum)
-				toast_oids = lappend_oid(toast_oids, relid);
 		}
 
 		if (HeapTupleIsValid(avTup))
@@ -2036,34 +2047,55 @@ do_autovacuum(void)
 	}
 
 	heap_endscan(relScan);
-	heap_close(avRel, AccessShareLock);
-	heap_close(classRel, AccessShareLock);
 
-	/*
-	 * Add to the list of tables to vacuum, the OIDs of the tables that
-	 * correspond to the saved OIDs of toast tables needing vacuum.
-	 */
-	foreach(cell, toast_oids)
+	/* second pass: check TOAST tables */
+	ScanKeyInit(&key,
+				Anum_pg_class_relkind,
+				BTEqualStrategyNumber, F_CHAREQ,
+				CharGetDatum(RELKIND_TOASTVALUE));
+
+	relScan = heap_beginscan(classRel, SnapshotNow, 1, &key);
+	while ((tuple = heap_getnext(relScan, ForwardScanDirection)) != NULL)
 	{
-		Oid			toastoid = lfirst_oid(cell);
-		ListCell   *cell2;
+		Form_pg_class classForm = (Form_pg_class) GETSTRUCT(tuple);
+		Form_pg_autovacuum avForm = NULL;
+		PgStat_StatTabEntry *tabentry;
+		HeapTuple   avTup;
+		Oid         relid;
+		bool		dovacuum;
+		bool		doanalyze;
+		bool		wraparound;
 
-		foreach(cell2, table_toast_list)
-		{
-			av_relation *ar = lfirst(cell2);
+		/*
+		 * Skip temp tables (i.e. those in temp namespaces).  We cannot safely
+		 * process other backends' temp tables.
+		 */
+		if (isAnyTempNamespace(classForm->relnamespace))
+			continue;
 
-			if (ar->ar_toastrelid == toastoid)
-			{
-				table_oids = lappend_oid(table_oids, ar->ar_relid);
-				break;
-			}
-		}
+		relid = HeapTupleGetOid(tuple);
+
+		/* Fetch the pg_autovacuum tuple for this rel */
+		avTup = get_pg_autovacuum_tuple_relid(avRel, relid, table_toast_map);
+
+		if (HeapTupleIsValid(avTup))
+			avForm = (Form_pg_autovacuum) GETSTRUCT(avTup);
+
+		/* Fetch the pgstat entry for this table */
+		tabentry = get_pgstat_tabentry_relid(relid, classForm->relisshared,
+											 shared, dbentry);
+
+		relation_needs_vacanalyze(relid, avForm, classForm, tabentry,
+								  &dovacuum, &doanalyze, &wraparound);
+
+		/* ignore analyze for toast tables */
+		if (dovacuum)
+			table_oids = lappend_oid(table_oids, relid);
 	}
 
-	list_free_deep(table_toast_list);
-	table_toast_list = NIL;
-	list_free(toast_oids);
-	toast_oids = NIL;
+	heap_endscan(relScan);
+	heap_close(avRel, AccessShareLock);
+	heap_close(classRel, AccessShareLock);
 
 	/*
 	 * Create a buffer access strategy object for VACUUM to use.  We want to
@@ -2145,11 +2177,13 @@ do_autovacuum(void)
 		 * It could have changed if something else processed the table while
 		 * we weren't looking.
 		 *
-		 * FIXME we ignore the possibility that the table was finished being
-		 * vacuumed in the last 500ms (PGSTAT_STAT_INTERVAL).  This is a bug.
+		 * Note: we have a special case in pgstat code to ensure that the stats
+		 * we read are as up-to-date as possible, to avoid the problem that
+		 * somebody just finished vacuuming this table.  The window to the race
+		 * condition is not closed but it is very small.
 		 */
 		MemoryContextSwitchTo(AutovacMemCxt);
-		tab = table_recheck_autovac(relid);
+		tab = table_recheck_autovac(relid, table_toast_map);
 		if (tab == NULL)
 		{
 			/* someone else vacuumed the table */
@@ -2280,6 +2314,11 @@ deleted:
 	}
 
 	/*
+	 * We leak table_toast_map here (among other things), but since we're going
+	 * away soon, it's not a problem.
+	 */
+
+	/*
 	 * Update pg_database.datfrozenxid, and truncate pg_clog if possible. We
 	 * only need to do this once, not after each table.
 	 */
@@ -2292,9 +2331,14 @@ deleted:
 /*
  * Returns a copy of the pg_autovacuum tuple for the given relid, or NULL if
  * there isn't any.  avRel is pg_autovacuum, already open and suitably locked.
+ *
+ * If table_toast_map is not null, use it to find an alternative OID with which
+ * to search a pg_autovacuum entry, if the passed relid does not yield one
+ * directly.
  */
 static HeapTuple
-get_pg_autovacuum_tuple_relid(Relation avRel, Oid relid)
+get_pg_autovacuum_tuple_relid(Relation avRel, Oid relid,
+							  HTAB *table_toast_map)
 {
 	ScanKeyData entry[1];
 	SysScanDesc avScan;
@@ -2314,6 +2358,18 @@ get_pg_autovacuum_tuple_relid(Relation avRel, Oid relid)
 		avTup = heap_copytuple(avTup);
 
 	systable_endscan(avScan);
+
+	if (!HeapTupleIsValid(avTup) && table_toast_map != NULL)
+	{
+		av_relation		*hentry;
+		bool		found;
+
+		hentry = hash_search(table_toast_map, &relid, HASH_FIND, &found);
+		if (found)
+			/* avoid second recursion */
+			avTup = get_pg_autovacuum_tuple_relid(avRel, hentry->ar_relid,
+												  NULL);
+	}
 
 	return avTup;
 }
@@ -2345,14 +2401,13 @@ get_pgstat_tabentry_relid(Oid relid, bool isshared, PgStat_StatDBEntry *shared,
 /*
  * table_recheck_autovac
  *
- * Recheck whether a plain table still needs vacuum or analyze; be it because
- * it does directly, or because its TOAST table does.  Return value is a valid
- * autovac_table pointer if it does, NULL otherwise.
+ * Recheck whether a table still needs vacuum or analyze.  Return value is a
+ * valid autovac_table pointer if it does, NULL otherwise.
  *
  * Note that the returned autovac_table does not have the name fields set.
  */
 static autovac_table *
-table_recheck_autovac(Oid relid)
+table_recheck_autovac(Oid relid, HTAB *table_toast_map)
 {
 	Form_pg_autovacuum avForm = NULL;
 	Form_pg_class classForm;
@@ -2363,11 +2418,9 @@ table_recheck_autovac(Oid relid)
 	bool		doanalyze;
 	autovac_table *tab = NULL;
 	PgStat_StatTabEntry *tabentry;
-	bool		doit = false;
 	PgStat_StatDBEntry *shared;
 	PgStat_StatDBEntry *dbentry;
-	bool		wraparound,
-				toast_wraparound = false;
+	bool		wraparound;
 
 	/* use fresh stats */
 	autovac_refresh_stats();
@@ -2383,9 +2436,15 @@ table_recheck_autovac(Oid relid)
 		return NULL;
 	classForm = (Form_pg_class) GETSTRUCT(classTup);
 
-	/* fetch the pg_autovacuum entry, if any */
+	/*
+	 * Fetch the pg_autovacuum entry, if any.  For a toast table, also try the
+	 * main rel's pg_autovacuum entry if there isn't one for the TOAST table
+	 * itself.
+	 */
 	avRel = heap_open(AutovacuumRelationId, AccessShareLock);
-	avTup = get_pg_autovacuum_tuple_relid(avRel, relid);
+	avTup = get_pg_autovacuum_tuple_relid(avRel, relid,
+			classForm->relkind == RELKIND_TOASTVALUE ? table_toast_map : NULL);
+
 	if (HeapTupleIsValid(avTup))
 		avForm = (Form_pg_autovacuum) GETSTRUCT(avTup);
 
@@ -2396,51 +2455,12 @@ table_recheck_autovac(Oid relid)
 	relation_needs_vacanalyze(relid, avForm, classForm, tabentry,
 							  &dovacuum, &doanalyze, &wraparound);
 
-	/* OK, it needs vacuum by itself */
-	if (dovacuum)
-		doit = true;
-	/* it doesn't need vacuum, but what about it's TOAST table? */
-	else if (OidIsValid(classForm->reltoastrelid))
-	{
-		Oid			toastrelid = classForm->reltoastrelid;
-		HeapTuple	toastClassTup;
+	/* ignore ANALYZE for toast tables */
+	if (classForm->relkind == RELKIND_TOASTVALUE)
+		doanalyze = false;
 
-		toastClassTup = SearchSysCacheCopy(RELOID,
-										   ObjectIdGetDatum(toastrelid),
-										   0, 0, 0);
-		if (HeapTupleIsValid(toastClassTup))
-		{
-			bool		toast_dovacuum;
-			bool		toast_doanalyze;
-			bool		toast_wraparound;
-			Form_pg_class toastClassForm;
-			PgStat_StatTabEntry *toasttabentry;
-
-			toastClassForm = (Form_pg_class) GETSTRUCT(toastClassTup);
-			toasttabentry = get_pgstat_tabentry_relid(toastrelid,
-												 toastClassForm->relisshared,
-													  shared, dbentry);
-
-			/* note we use the pg_autovacuum entry for the main table */
-			relation_needs_vacanalyze(toastrelid, avForm,
-									  toastClassForm, toasttabentry,
-									  &toast_dovacuum, &toast_doanalyze,
-									  &toast_wraparound);
-			/* we only consider VACUUM for toast tables */
-			if (toast_dovacuum)
-			{
-				dovacuum = true;
-				doit = true;
-			}
-
-			heap_freetuple(toastClassTup);
-		}
-	}
-
-	if (doanalyze)
-		doit = true;
-
-	if (doit)
+	/* OK, it needs something done */
+	if (doanalyze || dovacuum)
 	{
 		int			freeze_min_age;
 		int			vac_cost_limit;
@@ -2487,7 +2507,7 @@ table_recheck_autovac(Oid relid)
 		tab->at_freeze_min_age = freeze_min_age;
 		tab->at_vacuum_cost_limit = vac_cost_limit;
 		tab->at_vacuum_cost_delay = vac_cost_delay;
-		tab->at_wraparound = wraparound || toast_wraparound;
+		tab->at_wraparound = wraparound;
 		tab->at_relname = NULL;
 		tab->at_nspname = NULL;
 		tab->at_datname = NULL;
@@ -2674,6 +2694,7 @@ autovacuum_do_vac_analyze(autovac_table *tab,
 	vacstmt.full = false;
 	vacstmt.analyze = tab->at_doanalyze;
 	vacstmt.freeze_min_age = tab->at_freeze_min_age;
+	vacstmt.scan_all = tab->at_wraparound;
 	vacstmt.verbose = false;
 	vacstmt.relation = NULL;	/* not used since we pass a relid */
 	vacstmt.va_cols = NIL;
@@ -2681,7 +2702,7 @@ autovacuum_do_vac_analyze(autovac_table *tab,
 	/* Let pgstat know what we're doing */
 	autovac_report_activity(tab);
 
-	vacuum(&vacstmt, tab->at_relid, bstrategy, tab->at_wraparound, true);
+	vacuum(&vacstmt, tab->at_relid, false, bstrategy, tab->at_wraparound, true);
 }
 
 /*
@@ -2817,9 +2838,9 @@ AutoVacuumShmemInit(void)
 		Assert(!found);
 
 		AutoVacuumShmem->av_launcherpid = 0;
-		AutoVacuumShmem->av_freeWorkers = INVALID_OFFSET;
+		AutoVacuumShmem->av_freeWorkers = NULL;
 		SHMQueueInit(&AutoVacuumShmem->av_runningWorkers);
-		AutoVacuumShmem->av_startingWorker = INVALID_OFFSET;
+		AutoVacuumShmem->av_startingWorker = NULL;
 
 		worker = (WorkerInfo) ((char *) AutoVacuumShmem +
 							   MAXALIGN(sizeof(AutoVacuumShmemStruct)));
@@ -2827,8 +2848,8 @@ AutoVacuumShmemInit(void)
 		/* initialize the WorkerInfo free list */
 		for (i = 0; i < autovacuum_max_workers; i++)
 		{
-			worker[i].wi_links.next = AutoVacuumShmem->av_freeWorkers;
-			AutoVacuumShmem->av_freeWorkers = MAKE_OFFSET(&worker[i]);
+			worker[i].wi_links.next = (SHM_QUEUE *) AutoVacuumShmem->av_freeWorkers;
+			AutoVacuumShmem->av_freeWorkers = &worker[i];
 		}
 	}
 	else

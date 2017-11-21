@@ -1,5 +1,5 @@
 /*
- * $PostgreSQL: pgsql/contrib/pg_standby/pg_standby.c,v 1.13 2008/07/08 15:11:58 heikki Exp $ 
+ * $PostgreSQL: pgsql/contrib/pg_standby/pg_standby.c,v 1.16 2008/12/15 22:13:02 momjian Exp $ 
  *
  *
  * pg_standby.c
@@ -119,6 +119,7 @@ CustomizableInitialize(void)
 	{
 		case RESTORE_COMMAND_LINK:
 			SET_RESTORE_COMMAND("mklink", WALFilePath, xlogFilePath);
+			break;
 		case RESTORE_COMMAND_COPY:
 		default:
 			SET_RESTORE_COMMAND("copy", WALFilePath, xlogFilePath);
@@ -180,11 +181,11 @@ CustomizableNextWALFileReady()
 #ifdef WIN32
 
 			/*
-			 * Windows reports that the file has the right number of bytes
-			 * even though the file is still being copied and cannot be opened
-			 * by pg_standby yet. So we wait for sleeptime secs before
-			 * attempting to restore. If that is not enough, we will rely on
-			 * the retry/holdoff mechanism.
+			 * Windows 'cp' sets the final file size before the copy is
+			 * complete, and not yet ready to be opened by pg_standby.
+			 * So we wait for sleeptime secs before attempting to restore.
+			 * If that is not enough, we will rely on the retry/holdoff
+			 * mechanism.  GNUWin32's cp does not have this problem.
 			 */
 			pg_usleep(sleeptime * 1000000L);
 #endif

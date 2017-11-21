@@ -21,17 +21,6 @@
 
 #include "catalog/genbki.h"
 
-/*
- * pg_tablespace
- *
- * Note: spclocation, spcprilocations and spcmirlocations are all
- * deprecated and will always be null.  They are left in place only
- * due to upgrade concerns.
- *
- * If an upgrade strategy is developed that will allow dropping of
- * columns then this table should be restructured.
- */
-
 /* ----------------
  *		pg_tablespace definition.  cpp turns this into
  *		typedef struct FormData_pg_tablespace
@@ -39,22 +28,12 @@
  */
 #define TableSpaceRelationId  1213
 
-/*
- * pg_tablespace
- *
- * Note: spclocation, spcprilocations and spcmirlocations are all deprecated
- * and will always be null.  They are left in place only due to upgrade concerns.
- * If an upgrade strategy is developed that will allow dropping of columns then
- * this table should be restructured.
- */
 CATALOG(pg_tablespace,1213) BKI_SHARED_RELATION
 {
 	NameData	spcname;		/* tablespace name */
 	Oid			spcowner;		/* owner of tablespace */
 	text		spclocation;	/* physical location (VAR LENGTH) */
 	aclitem		spcacl[1];		/* access permissions (VAR LENGTH) */
-	text		spcprilocations[1];	/* primary segment physical location */
-	text		spcmirlocations[1];	/* mirror segment physical location  */
 	Oid			spcfsoid;		/* FilespaceOid */
 } FormData_pg_tablespace;
 
@@ -74,17 +53,15 @@ typedef FormData_pg_tablespace *Form_pg_tablespace;
  * ----------------
  */
 
-#define Natts_pg_tablespace				7
+#define Natts_pg_tablespace				5
 #define Anum_pg_tablespace_spcname		1
 #define Anum_pg_tablespace_spcowner		2
-#define Anum_pg_tablespace_deprecated_1 3
+#define Anum_pg_tablespace_spclocation  3
 #define Anum_pg_tablespace_spcacl       4
-#define Anum_pg_tablespace_deprecated_2	5
-#define Anum_pg_tablespace_deprecated_3	6
-#define Anum_pg_tablespace_spcfsoid	    7
+#define Anum_pg_tablespace_spcfsoid	    5
 
-DATA(insert OID = 1663 ( pg_default PGUID _null_ _null_ _null_ _null_ 3052 ));
-DATA(insert OID = 1664 ( pg_global	PGUID _null_ _null_ _null_ _null_ 3052 ));
+DATA(insert OID = 1663 ( pg_default PGUID _null_ _null_ 3052 ));
+DATA(insert OID = 1664 ( pg_global	PGUID _null_ _null_ 3052 ));
 
 #define DEFAULTTABLESPACE_OID 1663
 #define GLOBALTABLESPACE_OID 1664

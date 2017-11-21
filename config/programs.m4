@@ -1,4 +1,4 @@
-# $PostgreSQL: pgsql/config/programs.m4,v 1.23 2008/05/27 22:18:04 tgl Exp $
+# $PostgreSQL: pgsql/config/programs.m4,v 1.24 2008/08/29 13:02:32 petere Exp $
 
 
 # PGAC_PATH_BISON

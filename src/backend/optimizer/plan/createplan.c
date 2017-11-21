@@ -12,7 +12,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/createplan.c,v 1.244 2008/08/07 19:35:02 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/createplan.c,v 1.252 2008/11/20 19:52:54 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -53,7 +53,6 @@
 
 static Plan *create_subplan(PlannerInfo *root, Path *best_path);		/* CDB */
 static Plan *create_scan_plan(PlannerInfo *root, Path *best_path);
-
 static bool use_physical_tlist(PlannerInfo *root, RelOptInfo *rel);
 static void disuse_physical_tlist(Plan *plan, Path *path);
 static Plan *create_gating_plan(PlannerInfo *root, Plan *plan, List *quals);
@@ -509,7 +508,7 @@ use_physical_tlist(PlannerInfo *root, RelOptInfo *rel)
 	foreach(lc, root->placeholder_list)
 	{
 		PlaceHolderInfo *phinfo = (PlaceHolderInfo *) lfirst(lc);
-		
+
 		if (bms_nonempty_difference(phinfo->ph_needed, rel->relids) &&
 			bms_is_subset(phinfo->ph_eval_at, rel->relids))
 			return false;
@@ -874,8 +873,8 @@ create_unique_plan(PlannerInfo *root, UniquePath *best_path)
 	 * copy of the subplan's tlist; and we don't install it into the subplan
 	 * unless we are sorting or stuff has to be added.
 	 */
-	uniq_exprs = best_path->distinct_on_exprs;	/* CDB */
 	in_operators = best_path->distinct_on_eq_operators; /* CDB */
+	uniq_exprs = best_path->distinct_on_exprs;	/* CDB */
 
 	/* initialize modified subplan tlist as just the "required" vars */
 	newtlist = build_relation_tlist(best_path->path.parent);
@@ -2054,8 +2053,8 @@ create_bitmap_scan_plan(PlannerInfo *root,
 {
 	Index		baserelid = best_path->path.parent->relid;
 	Plan	   *bitmapqualplan;
-	List	   *bitmapqualorig = NULL;
-	List	   *indexquals = NULL;
+	List	   *bitmapqualorig;
+	List	   *indexquals;
 	List	   *qpqual;
 	ListCell   *l;
 	BitmapHeapScan *scan_plan;
@@ -2623,8 +2622,6 @@ create_valuesscan_plan(PlannerInfo *root, Path *best_path,
 	return scan_plan;
 }
 
-
-
 /*
  * create_ctescan_plan
  *	 Returns a ctescan plan for the base relation scanned by 'best_path'
@@ -2685,7 +2682,7 @@ create_worktablescan_plan(PlannerInfo *root, Path *best_path,
 	 */
 	levelsup = rte->ctelevelsup;
 	if (levelsup == 0)			/* shouldn't happen */
-		elog(ERROR, "bad levelsup for CTE \"%s\"", rte->ctename);
+			elog(ERROR, "bad levelsup for CTE \"%s\"", rte->ctename);
 	levelsup--;
 	cteroot = root;
 	while (levelsup-- > 0)
@@ -2694,7 +2691,7 @@ create_worktablescan_plan(PlannerInfo *root, Path *best_path,
 		if (!cteroot)			/* shouldn't happen */
 			elog(ERROR, "bad levelsup for CTE \"%s\"", rte->ctename);
 	}
-	if (cteroot->wt_param_id < 0)		/* shouldn't happen */
+	if (cteroot->wt_param_id < 0)	/* shouldn't happen */
 		elog(ERROR, "could not find param ID for CTE \"%s\"", rte->ctename);
 
 	/* Sort clauses into best execution order */
@@ -3099,7 +3096,8 @@ create_mergejoin_plan(PlannerInfo *root,
 
 		/*
 		 * We assume the materialize will not spill to disk, and therefore
-		 * charge just cpu_tuple_cost per tuple.
+		 * charge just cpu_tuple_cost per tuple.  (Keep this estimate in sync
+		 * with similar ones in cost_mergejoin and create_mergejoin_path.)
 		 */
 		copy_plan_costsize(matplan, inner_plan);
 		matplan->total_cost += cpu_tuple_cost * matplan->plan_rows;
@@ -3626,6 +3624,7 @@ get_switched_clauses(List *clauses, Relids outerrelids)
 			temp->opresulttype = clause->opresulttype;
 			temp->opretset = clause->opretset;
 			temp->args = list_copy(clause->args);
+			temp->location = clause->location;
 			/* Commute it --- note this modifies the temp node in-place. */
 			CommuteOpExpr(temp);
 			t_list = lappend(t_list, temp);
@@ -4167,11 +4166,14 @@ RecursiveUnion *
 make_recursive_union(List *tlist,
 					 Plan *lefttree,
 					 Plan *righttree,
-					 int wtParam)
+					 int wtParam,
+					 List *distinctList,
+					 long numGroups)
 {
 	RecursiveUnion *node = makeNode(RecursiveUnion);
 	Plan	   *plan = &node->plan;
-
+	int			numCols = list_length(distinctList);
+	
 	cost_recursive_union(plan, lefttree, righttree);
 
 	plan->targetlist = tlist;
@@ -4179,6 +4181,37 @@ make_recursive_union(List *tlist,
 	plan->lefttree = lefttree;
 	plan->righttree = righttree;
 	node->wtParam = wtParam;
+
+	/*
+	 * convert SortGroupClause list into arrays of attr indexes and equality
+	 * operators, as wanted by executor
+	 */
+	node->numCols = numCols;
+	if (numCols > 0)
+	{
+		int			keyno = 0;
+		AttrNumber *dupColIdx;
+		Oid		   *dupOperators;
+		ListCell   *slitem;
+
+		dupColIdx = (AttrNumber *) palloc(sizeof(AttrNumber) * numCols);
+		dupOperators = (Oid *) palloc(sizeof(Oid) * numCols);
+
+		foreach(slitem, distinctList)
+		{
+			SortGroupClause *sortcl = (SortGroupClause *) lfirst(slitem);
+			TargetEntry *tle = get_sortgroupclause_tle(sortcl,
+													   plan->targetlist);
+
+			dupColIdx[keyno] = tle->resno;
+			dupOperators[keyno] = sortcl->eqop;
+			Assert(OidIsValid(dupOperators[keyno]));
+			keyno++;
+		}
+		node->dupColIdx = dupColIdx;
+		node->dupOperators = dupOperators;
+	}
+	node->numGroups = numGroups;
 
 	return node;
 }

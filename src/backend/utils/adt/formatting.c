@@ -1,7 +1,7 @@
 /* -----------------------------------------------------------------------
  * formatting.c
  *
- * $PostgreSQL: pgsql/src/backend/utils/adt/formatting.c,v 1.145 2008/07/12 00:44:37 tgl Exp $
+ * $PostgreSQL: pgsql/src/backend/utils/adt/formatting.c,v 1.152 2008/12/15 14:55:50 tgl Exp $
  *
  *
  *	 Portions Copyright (c) 1999-2008, PostgreSQL Global Development Group
@@ -148,9 +148,9 @@ typedef struct
  */
 typedef enum
 {
-	FROM_CHAR_DATE_NONE = 0,	/* Value does not affect date mode. */
-	FROM_CHAR_DATE_GREGORIAN,	/* Gregorian (day, month, year) style date */
-	FROM_CHAR_DATE_ISOWEEK		/* ISO 8601 week date */
+	FROM_CHAR_DATE_NONE = 0,  /* Value does not affect date mode. */
+	FROM_CHAR_DATE_GREGORIAN, /* Gregorian (day, month, year) style date */
+	FROM_CHAR_DATE_ISOWEEK    /* ISO 8601 week date */
 } FromCharDateMode;
 
 typedef struct FormatNode FormatNode;
@@ -414,7 +414,6 @@ typedef struct
 				ddd,
 				mm,
 				ms,
-				iyear,
 				year,
 				bc,
 				ww,
@@ -726,19 +725,19 @@ static const KeyWord DCH_keywords[] = {
 	{"Day", 3, DCH_Day, FALSE, FROM_CHAR_DATE_NONE},
 	{"Dy", 2, DCH_Dy, FALSE, FROM_CHAR_DATE_NONE},
 	{"D", 1, DCH_D, TRUE, FROM_CHAR_DATE_GREGORIAN},
-	{"FX", 2, DCH_FX, FALSE, FROM_CHAR_DATE_NONE},		/* F */
-	{"HH24", 4, DCH_HH24, TRUE, FROM_CHAR_DATE_NONE},	/* H */
+	{"FX", 2, DCH_FX, FALSE, FROM_CHAR_DATE_NONE},			/* F */
+	{"HH24", 4, DCH_HH24, TRUE, FROM_CHAR_DATE_NONE},		/* H */
 	{"HH12", 4, DCH_HH12, TRUE, FROM_CHAR_DATE_NONE},
 	{"HH", 2, DCH_HH, TRUE, FROM_CHAR_DATE_NONE},
-	{"IDDD", 4, DCH_IDDD, TRUE, FROM_CHAR_DATE_ISOWEEK},		/* I */
+	{"IDDD", 4, DCH_IDDD, TRUE, FROM_CHAR_DATE_ISOWEEK},	/* I */
 	{"ID", 2, DCH_ID, TRUE, FROM_CHAR_DATE_ISOWEEK},
 	{"IW", 2, DCH_IW, TRUE, FROM_CHAR_DATE_ISOWEEK},
 	{"IYYY", 4, DCH_IYYY, TRUE, FROM_CHAR_DATE_ISOWEEK},
 	{"IYY", 3, DCH_IYY, TRUE, FROM_CHAR_DATE_ISOWEEK},
 	{"IY", 2, DCH_IY, TRUE, FROM_CHAR_DATE_ISOWEEK},
 	{"I", 1, DCH_I, TRUE, FROM_CHAR_DATE_ISOWEEK},
-	{"J", 1, DCH_J, TRUE, FROM_CHAR_DATE_NONE}, /* J */
-	{"MI", 2, DCH_MI, TRUE, FROM_CHAR_DATE_NONE},		/* M */
+	{"J", 1, DCH_J, TRUE, FROM_CHAR_DATE_NONE},				/* J */
+	{"MI", 2, DCH_MI, TRUE, FROM_CHAR_DATE_NONE},			/* M */
 	{"MM", 2, DCH_MM, TRUE, FROM_CHAR_DATE_GREGORIAN},
 	{"MONTH", 5, DCH_MONTH, FALSE, FROM_CHAR_DATE_GREGORIAN},
 	{"MON", 3, DCH_MON, FALSE, FROM_CHAR_DATE_GREGORIAN},
@@ -772,19 +771,19 @@ static const KeyWord DCH_keywords[] = {
 	{"dd", 2, DCH_DD, TRUE, FROM_CHAR_DATE_GREGORIAN},
 	{"dy", 2, DCH_dy, FALSE, FROM_CHAR_DATE_NONE},
 	{"d", 1, DCH_D, TRUE, FROM_CHAR_DATE_GREGORIAN},
-	{"fx", 2, DCH_FX, FALSE, FROM_CHAR_DATE_NONE},		/* f */
-	{"hh24", 4, DCH_HH24, TRUE, FROM_CHAR_DATE_NONE},	/* h */
+	{"fx", 2, DCH_FX, FALSE, FROM_CHAR_DATE_NONE},			/* f */
+	{"hh24", 4, DCH_HH24, TRUE, FROM_CHAR_DATE_NONE},		/* h */
 	{"hh12", 4, DCH_HH12, TRUE, FROM_CHAR_DATE_NONE},
 	{"hh", 2, DCH_HH, TRUE, FROM_CHAR_DATE_NONE},
-	{"iddd", 4, DCH_IDDD, TRUE, FROM_CHAR_DATE_ISOWEEK},		/* i */
+	{"iddd", 4, DCH_IDDD, TRUE, FROM_CHAR_DATE_ISOWEEK},	/* i */
 	{"id", 2, DCH_ID, TRUE, FROM_CHAR_DATE_ISOWEEK},
 	{"iw", 2, DCH_IW, TRUE, FROM_CHAR_DATE_ISOWEEK},
 	{"iyyy", 4, DCH_IYYY, TRUE, FROM_CHAR_DATE_ISOWEEK},
 	{"iyy", 3, DCH_IYY, TRUE, FROM_CHAR_DATE_ISOWEEK},
 	{"iy", 2, DCH_IY, TRUE, FROM_CHAR_DATE_ISOWEEK},
 	{"i", 1, DCH_I, TRUE, FROM_CHAR_DATE_ISOWEEK},
-	{"j", 1, DCH_J, TRUE, FROM_CHAR_DATE_NONE}, /* j */
-	{"mi", 2, DCH_MI, TRUE, FROM_CHAR_DATE_NONE},		/* m */
+	{"j", 1, DCH_J, TRUE, FROM_CHAR_DATE_NONE},				/* j */
+	{"mi", 2, DCH_MI, TRUE, FROM_CHAR_DATE_NONE},			/* m */
 	{"mm", 2, DCH_MM, TRUE, FROM_CHAR_DATE_GREGORIAN},
 	{"month", 5, DCH_month, FALSE, FROM_CHAR_DATE_GREGORIAN},
 	{"mon", 3, DCH_mon, FALSE, FROM_CHAR_DATE_GREGORIAN},
@@ -1487,7 +1486,7 @@ str_tolower(const char *buff, size_t nbytes)
 #ifdef USE_WIDE_UPPER_LOWER
 	if (pg_database_encoding_max_length() > 1 && !lc_ctype_is_c())
 	{
-		wchar_t    *workspace;
+		wchar_t		*workspace;
 		size_t		curr_char;
 		size_t		result_size;
 
@@ -1543,7 +1542,7 @@ str_toupper(const char *buff, size_t nbytes)
 #ifdef USE_WIDE_UPPER_LOWER
 	if (pg_database_encoding_max_length() > 1 && !lc_ctype_is_c())
 	{
-		wchar_t    *workspace;
+		wchar_t		*workspace;
 		size_t		curr_char;
 		size_t		result_size;
 
@@ -1591,7 +1590,7 @@ str_toupper(const char *buff, size_t nbytes)
 char *
 str_initcap(const char *buff, size_t nbytes)
 {
-	char	   *result;
+	char		*result;
 	int			wasalnum = false;
 
 	if (!buff)
@@ -1600,7 +1599,7 @@ str_initcap(const char *buff, size_t nbytes)
 #ifdef USE_WIDE_UPPER_LOWER
 	if (pg_database_encoding_max_length() > 1 && !lc_ctype_is_c())
 	{
-		wchar_t    *workspace;
+		wchar_t		*workspace;
 		size_t		curr_char;
 		size_t		result_size;
 
@@ -1905,8 +1904,8 @@ from_char_set_int(int *dest, const int value, const FormatNode *node)
 	if (*dest != 0 && *dest != value)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_DATETIME_FORMAT),
-		   errmsg("conflicting values for \"%s\" field in formatting string",
-				  node->key->name),
+				 errmsg("conflicting values for \"%s\" field in formatting string",
+					    node->key->name),
 				 errdetail("This value contradicts a previous setting for "
 						   "the same field type.")));
 	*dest = value;
@@ -2004,7 +2003,7 @@ from_char_parse_int_len(int *dest, char **src, const int len, FormatNode *node)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
 				 errmsg("value for \"%s\" in source string is out of range",
-						node->key->name),
+					    node->key->name),
 				 errdetail("Value must be in the range %d to %d.",
 						   INT_MIN, INT_MAX)));
 
@@ -2761,7 +2760,7 @@ DCH_from_char(FormatNode *node, char *in, TmFromChar *out)
 				from_char_parse_int(&out->ss, &s, n);
 				s += SKIP_THth(n->suffix);
 				break;
-			case DCH_MS:		/* millisecond */
+			case DCH_MS:			/* millisecond */
 				len = from_char_parse_int_len(&out->ms, &s, 3, n);
 
 				/*
@@ -2772,7 +2771,7 @@ DCH_from_char(FormatNode *node, char *in, TmFromChar *out)
 
 				s += SKIP_THth(n->suffix);
 				break;
-			case DCH_US:		/* microsecond */
+			case DCH_US:			/* microsecond */
 				len = from_char_parse_int_len(&out->us, &s, 6, n);
 
 				out->us *= len == 1 ? 100000 :

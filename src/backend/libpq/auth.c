@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/libpq/auth.c,v 1.167 2008/08/01 11:41:12 mha Exp $
+ *	  $PostgreSQL: pgsql/src/backend/libpq/auth.c,v 1.174 2008/11/20 20:45:30 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -22,7 +22,7 @@
 #include <sys/ucred.h>
 #endif
 #ifdef HAVE_UCRED_H
-#include <ucred.h>
+# include <ucred.h>
 #endif
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -155,7 +155,7 @@ bool		pg_krb_caseins_users;
  *----------------------------------------------------------------
  */
 #ifdef KRB5
-static int	pg_krb5_recvauth(Port *port);
+static int pg_krb5_recvauth(Port *port);
 
 #include <krb5.h>
 /* Some old versions of Kerberos do not include <com_err.h> in <krb5.h> */
@@ -2035,9 +2035,9 @@ ident_unix(int sock, char *ident_user)
 	/* Solaris > 10 */
 	uid_t		uid;
 	struct passwd *pass;
-	ucred_t    *ucred;
+	ucred_t	   *ucred;
 
-	ucred = NULL;				/* must be initialized to NULL */
+	ucred = NULL; /* must be initialized to NULL */
 	if (getpeerucred(sock, &ucred) == -1)
 	{
 		ereport(LOG,

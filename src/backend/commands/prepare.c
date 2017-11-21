@@ -10,7 +10,7 @@
  * Copyright (c) 2002-2009, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/prepare.c,v 1.89 2008/07/21 15:26:55 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/prepare.c,v 1.93 2008/12/13 02:29:21 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -153,8 +153,8 @@ PrepareQuery(PrepareStmt *stmt, const char *queryString)
 	/* Rewrite the query. The result could be 0, 1, or many queries. */
 	query_list = QueryRewrite(query);
 
-	/* Generate plans for queries.	Snapshot is already set. */
-	plan_list = pg_plan_queries(query_list, 0, NULL, false);
+	/* Generate plans for queries. */
+	plan_list = pg_plan_queries(query_list, 0, NULL);
 
 	/*
 	 * Save the results.
@@ -379,7 +379,8 @@ EvaluateParams(PreparedStatement *pstmt, List *params,
 		expr = coerce_to_target_type(pstate, expr, given_type_id,
 									 expected_type_id, -1,
 									 COERCION_ASSIGNMENT,
-									 COERCE_IMPLICIT_CAST, -1);
+									 COERCE_IMPLICIT_CAST,
+									 -1);
 
 		if (expr == NULL)
 			ereport(ERROR,
@@ -796,7 +797,9 @@ pg_prepared_statement(PG_FUNCTION_ARGS)
 	 * We put all the tuples into a tuplestore in one scan of the hashtable.
 	 * This avoids any issue of the hashtable possibly changing between calls.
 	 */
-	tupstore = tuplestore_begin_heap(true, false, work_mem);
+	tupstore =
+		tuplestore_begin_heap(rsinfo->allowedModes & SFRM_Materialize_Random,
+							  false, work_mem);
 
 	/* generate junk in short-term context */
 	MemoryContextSwitchTo(oldcontext);

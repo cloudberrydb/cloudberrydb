@@ -52,12 +52,14 @@
  * we log the completed index pages to WAL if and only if WAL archiving is
  * active.
  *
+ * This code isn't concerned about the FSM at all. The caller is responsible
+ * for initializing that.
  *
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtsort.c,v 1.116 2008/06/19 00:46:03 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtsort.c,v 1.118 2008/09/30 10:52:10 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -272,7 +274,7 @@ _bt_blwritepage(BTWriteState *wstate, Page page, BlockNumber blkno)
 	if (wstate->btws_use_wal)
 	{
 		/* We use the heap NEWPAGE record type for this */
-		log_newpage_rel(wstate->index, blkno, page);
+		log_newpage_rel(wstate->index, MAIN_FORKNUM, blkno, page);
 	}
 
 	/*
@@ -292,7 +294,8 @@ _bt_blwritepage(BTWriteState *wstate, Page page, BlockNumber blkno)
 		LWLockAcquire(MirroredLock, LW_SHARED);
 
 		/* don't set checksum for all-zero page */
-		smgrextend(wstate->index->rd_smgr, wstate->btws_pages_written++,
+		smgrextend(wstate->index->rd_smgr, MAIN_FORKNUM,
+				   wstate->btws_pages_written++,
 				   (char *) wstate->btws_zeropage,
 				   true);
 
@@ -314,13 +317,15 @@ _bt_blwritepage(BTWriteState *wstate, Page page, BlockNumber blkno)
 	if (blkno == wstate->btws_pages_written)
 	{
 		/* extending the file... */
-		smgrextend(wstate->index->rd_smgr, blkno, (char *) page, true);
+		smgrextend(wstate->index->rd_smgr, MAIN_FORKNUM, blkno,
+				   (char *) page, true);
 		wstate->btws_pages_written++;
 	}
 	else
 	{
 		/* overwriting a block we zero-filled before */
-		smgrwrite(wstate->index->rd_smgr, blkno, (char *) page, true);
+		smgrwrite(wstate->index->rd_smgr, MAIN_FORKNUM, blkno,
+				  (char *) page, true);
 	}
 
 	LWLockRelease(MirroredLock);
@@ -825,6 +830,6 @@ _bt_load(BTWriteState *wstate, BTSpool *btspool, BTSpool *btspool2)
 	if (!wstate->index->rd_istemp)
 	{
 		RelationOpenSmgr(wstate->index);
-		smgrimmedsync(wstate->index->rd_smgr);
+		smgrimmedsync(wstate->index->rd_smgr, MAIN_FORKNUM);
 	}
 }

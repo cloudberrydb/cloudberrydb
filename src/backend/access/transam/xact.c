@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/transam/xact.c,v 1.264 2008/05/12 20:01:58 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/transam/xact.c,v 1.270 2008/12/04 14:51:02 alvherre Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -27,8 +27,10 @@
 #include "access/twophase.h"
 #include "access/xlogutils.h"
 #include "access/fileam.h"
+#include "catalog/catalog.h"
 #include "catalog/namespace.h"
 #include "catalog/oid_dispatch.h"
+#include "catalog/storage.h"
 #include "commands/async.h"
 #include "commands/resgroupcmds.h"
 #include "commands/tablecmds.h"
@@ -309,7 +311,6 @@ static void CommitTransaction(void);
 static TransactionId RecordTransactionAbort(bool isSubXact);
 static void StartTransaction(void);
 
-static void RecordSubTransactionCommit(void);
 static void StartSubTransaction(void);
 static void CommitSubTransaction(void);
 static void AbortSubTransaction(void);
@@ -1389,9 +1390,7 @@ RecordTransactionCommit(void)
 												getDistributedTransactionId(),
 												/* isRedo */ false);
 
-			TransactionIdCommit(xid);
-			/* to avoid race conditions, the parent must commit first */
-			TransactionIdCommitTree(nchildren, children);
+			TransactionIdCommitTree(xid, nchildren, children);
 		}
 	}
 #ifdef IMPLEMENT_ASYNC_COMMIT
@@ -1411,11 +1410,7 @@ RecordTransactionCommit(void)
 		 * flushed before the CLOG may be updated.
 		 */
 		if (markXidCommitted)
-		{
-			TransactionIdAsyncCommit(xid, XactLastRecEnd);
-			/* to avoid race conditions, the parent must commit first */
-			TransactionIdAsyncCommitTree(nchildren, children, XactLastRecEnd);
-		}
+			TransactionIdAsyncCommitTree(xid, nchildren, children, XactLastRecEnd);
 	}
 #endif
 
@@ -1639,36 +1634,6 @@ AtSubCommit_childXids(void)
 	s->maxChildXids = 0;
 }
 
-/*
- * RecordSubTransactionCommit
- */
-static void
-RecordSubTransactionCommit(void)
-{
-	TransactionId xid = GetCurrentTransactionIdIfAny();
-
-	/*
-	 * We do not log the subcommit in XLOG; it doesn't matter until the
-	 * top-level transaction commits.
-	 *
-	 * We must mark the subtransaction subcommitted in the CLOG if it had a
-	 * valid XID assigned.	If it did not, nobody else will ever know about
-	 * the existence of this subxact.  We don't have to deal with deletions
-	 * scheduled for on-commit here, since they'll be reassigned to our parent
-	 * (who might still abort).
-	 */
-	if (TransactionIdIsValid(xid))
-	{
-		/* XXX does this really need to be a critical section? */
-		START_CRIT_SECTION();
-
-		/* Record subtransaction subcommit */
-		TransactionIdSubCommit(xid);
-
-		END_CRIT_SECTION();
-	}
-}
-
 /* ----------------------------------------------------------------
  *						AbortTransaction stuff
  * ----------------------------------------------------------------
@@ -1811,14 +1776,8 @@ RecordTransactionAbort(bool isSubXact)
 	 * waiting for already-aborted subtransactions.  It is OK to do it without
 	 * having flushed the ABORT record to disk, because in event of a crash
 	 * we'd be assumed to have aborted anyway.
-	 *
-	 * The ordering here isn't critical but it seems best to mark the parent
-	 * first.  This assures an atomic transition of all the subtransactions to
-	 * aborted state from the point of view of concurrent
-	 * TransactionIdDidAbort calls.
 	 */
-	TransactionIdAbort(xid);
-	TransactionIdAbortTree(nchildren, children);
+	TransactionIdAbortTree(xid, nchildren, children);
 
 	END_CRIT_SECTION();
 
@@ -1863,6 +1822,8 @@ bool RecordCrashTransactionAbortRecord(
 	XLogRecPtr	recptr;
 	XidStatus status;
 	bool           validStatus;
+	int			nchildren;
+	TransactionId *children;
 
 	/* Fix for MPP-12614. The call to TransactionIdGetStatus() has been removed since    */
 	/* The clog many not have the the referenced transaction as of crash recovery        */
@@ -1971,7 +1932,11 @@ bool RecordCrashTransactionAbortRecord(
 	/* value for TransactionIdGetStatus() was good.                                    */
 
 	if (validStatus == true)
-	  TransactionIdAbort(xid);
+	{
+		nchildren = xactGetCommittedChildren(&children);
+
+		TransactionIdAbortTree(xid, nchildren, children);
+	}
 
 	END_CRIT_SECTION();
 
@@ -2701,14 +2666,14 @@ CommitTransaction(void)
 						 RESOURCE_RELEASE_BEFORE_LOCKS,
 						 true, true);
 
-	/* All relations that are in the vacuum process are being commited now. */
-	ResetVacuumRels();
-
 	/* Check we've released all buffer pins */
 	AtEOXact_Buffers(true);
 
 	/* Clean up the relation cache */
 	AtEOXact_RelationCache(true);
+
+	/* Clean up the snapshot manager */
+	AtEarlyCommit_Snapshot();
 
 	/*
 	 * Make catalog changes visible to all backends.  This has to happen after
@@ -3013,6 +2978,9 @@ PrepareTransaction(void)
 	/* Clean up the relation cache */
 	AtEOXact_RelationCache(true);
 
+	/* Clean up the snapshot manager */
+	AtEarlyCommit_Snapshot();
+
 	/* notify and flatfiles don't need a postprepare call */
 
 	PostPrepare_PgStat();
@@ -3159,12 +3127,6 @@ AbortTransaction(void)
 	SetUserIdAndSecContext(s->prevUser, s->prevSecContext);
 
 	/*
-	 * Clear the freespace map entries for any relations that
-	 * are in the vacuum process.
-	 */
-	ClearFreeSpaceForVacuumRels();
-
-	/*
 	 * do abort processing
 	 */
 	AfterTriggerEndXact(false);
@@ -3260,7 +3222,6 @@ AbortTransaction(void)
 		AtEOXact_SPI(false);
 		AtEOXact_on_commit_actions(false);
 		AtEOXact_Namespace(false);
-		smgrabort();
 		AtEOXact_Files();
 		AtEOXact_ComboCid();
 		AtEOXact_HashTables(false);
@@ -5258,8 +5219,11 @@ CommitSubTransaction(void)
 	/* Must CCI to ensure commands of subtransaction are seen as done */
 	CommandCounterIncrement();
 
-	/* Mark subtransaction as subcommitted */
-	RecordSubTransactionCommit();
+	/* 
+	 * Prior to 8.4 we marked subcommit in clog at this point.  We now only
+	 * perform that step, if required, as part of the atomic update of the
+	 * whole transaction tree at top level commit or abort.
+	 */
 
 	/* Post-commit cleanup */
 	if (TransactionIdIsValid(s->transactionId))
@@ -5815,20 +5779,16 @@ xact_redo_commit(xl_xact_commit *xlrec, TransactionId xid,
 	if (Debug_persistent_print)
 		PersistentEndXactRec_Print("xact_redo_commit", &persistentCommitObjects);
 
-	sub_xids = (TransactionId *)data; 
+	/* Mark the transaction committed in pg_clog */
+	sub_xids = (TransactionId *) data;
 
 	if (distribXid != 0 && distribTimeStamp != 0)
 	{
 		DistributedLog_SetCommittedTree(xid, xlrec->nsubxacts, sub_xids,
-										distribTimeStamp,
-										distribXid,
+										distribTimeStamp, distribXid,
 										/* isRedo */ true);
 	}
-
-	TransactionIdCommit(xid);
-
-	/* Mark committed subtransactions as committed */
-	TransactionIdCommitTree(xlrec->nsubxacts, sub_xids);
+	TransactionIdCommitTree(xid, xlrec->nsubxacts, sub_xids);
 
 	/* Make sure nextXid is beyond any XID mentioned in the record */
 	max_xid = xid;
@@ -5843,6 +5803,24 @@ xact_redo_commit(xl_xact_commit *xlrec, TransactionId xid,
 		ShmemVariableCache->nextXid = max_xid;
 		TransactionIdAdvance(ShmemVariableCache->nextXid);
 	}
+
+	/* GPDB_84_MERGE_FIXME: This came from upstream, but the old code this replaced
+	 * had been removed from this function GPDB. Where does this belong now? */
+#if 0
+		SMgrRelation srel = smgropen(xlrec->xnodes[i]);
+		ForkNumber fork;
+
+		for (fork = 0; fork <= MAX_FORKNUM; fork++)
+		{
+			if (smgrexists(srel, fork))
+			{
+				XLogDropRelation(xlrec->xnodes[i], fork);
+				smgrdounlink(srel, fork, false, true);
+			}
+		}
+		smgrclose(srel);
+	}
+#endif
 }
 
 static void
@@ -5893,6 +5871,13 @@ xact_redo_distributed_commit(xl_xact_commit *xlrec, TransactionId xid)
 			TransactionIdAdvance(ShmemVariableCache->nextXid);
 		}
 
+		/*
+		 * Now update the CLOG and do local commit actions.
+		 *
+		 * NOTE: The following logic is a copy of xact_redo_commit, with the
+		 * only addition being redo of DistributeLog updates to subtransaction
+		 * log.
+		 */
 		data = xlrec->data;
 		PersistentEndXactRec_Deserialize(
 			data,
@@ -5903,24 +5888,16 @@ xact_redo_distributed_commit(xl_xact_commit *xlrec, TransactionId xid)
 		if (Debug_persistent_print)
 			PersistentEndXactRec_Print("xact_redo_distributed_commit", &persistentCommitObjects);
 
-		/*
-		 * Now update the CLOG and do local commit actions.
-		 *
-		 * NOTE: The following logic is a copy of xact_redo_commit, with the
-		 * only addition being redo of DistributeLog updates to subtransaction
-		 * log.
-		 */
-		sub_xids = (TransactionId *)data;
+		/* Mark the transaction committed in pg_clog */
+		sub_xids = (TransactionId *) data;
 
+		/* Add the committed subtransactions to the DistributedLog, too. */
 		DistributedLog_SetCommittedTree(xid, xlrec->nsubxacts, sub_xids,
 										distribTimeStamp,
 										gxact_log->gxid,
 										/* isRedo */ true);
 
-		TransactionIdCommit(xid);
-
-		/* Mark committed subtransactions as committed */
-		TransactionIdCommitTree(xlrec->nsubxacts, sub_xids);
+		TransactionIdCommitTree(xid, xlrec->nsubxacts, sub_xids);
 
 		/* Make sure nextXid is beyond any XID mentioned in the record */
 		max_xid = xid;
@@ -5935,6 +5912,23 @@ xact_redo_distributed_commit(xl_xact_commit *xlrec, TransactionId xid)
 			ShmemVariableCache->nextXid = max_xid;
 			TransactionIdAdvance(ShmemVariableCache->nextXid);
 		}
+
+		/* GPDB_84_MERGE_FIXME: This came from upstream, but the old code this replaced
+		 * had been removed from this function GPDB. Where does this belong now? */
+#if 0
+		SMgrRelation srel = smgropen(xlrec->xnodes[i]);
+		ForkNumber fork;
+
+		for (fork = 0; fork <= MAX_FORKNUM; fork++)
+		{
+			if (smgrexists(srel, fork))
+			{
+				XLogDropRelation(xlrec->xnodes[i], fork);
+				smgrdounlink(srel, fork, false, true);
+			}
+		}
+		smgrclose(srel);
+#endif
 	}
 
 	/*
@@ -5952,8 +5946,6 @@ xact_redo_abort(xl_xact_abort *xlrec, TransactionId xid)
 	TransactionId max_xid;
 	int			i;
 
-	TransactionIdAbort(xid);
-
 	data = xlrec->data;
 	PersistentEndXactRec_Deserialize(
 								data,
@@ -5964,10 +5956,9 @@ xact_redo_abort(xl_xact_abort *xlrec, TransactionId xid)
 	if (Debug_persistent_print)
 		PersistentEndXactRec_Print("xact_redo_abort", &persistentAbortObjects);
 
-	sub_xids = (TransactionId *) data; 
-
-	/* Mark subtransactions as aborted */
-	TransactionIdAbortTree(xlrec->nsubxacts, sub_xids);
+	/* Mark the transaction aborted in pg_clog */
+	sub_xids = (TransactionId *) data;
+	TransactionIdAbortTree(xid, xlrec->nsubxacts, sub_xids);
 
 	/* Make sure nextXid is beyond any XID mentioned in the record */
 	max_xid = xid;
@@ -5982,6 +5973,27 @@ xact_redo_abort(xl_xact_abort *xlrec, TransactionId xid)
 		ShmemVariableCache->nextXid = max_xid;
 		TransactionIdAdvance(ShmemVariableCache->nextXid);
 	}
+
+	/* GPDB_84_MERGE_FIXME: This came from upstream, but the old code this replaced
+	 * had been removed from this function GPDB. Where does this belong now? */
+#if 0
+	/* Make sure files supposed to be dropped are dropped */
+	for (i = 0; i < xlrec->nrels; i++)
+	{
+		SMgrRelation srel = smgropen(xlrec->xnodes[i]);
+		ForkNumber fork;
+
+		for (fork = 0; fork <= MAX_FORKNUM; fork++)
+		{
+			if (smgrexists(srel, fork))
+			{
+				XLogDropRelation(xlrec->xnodes[i], fork);
+				smgrdounlink(srel, fork, false, true);
+			}
+		}
+		smgrclose(srel);
+	}
+#endif
 }
 
 static void

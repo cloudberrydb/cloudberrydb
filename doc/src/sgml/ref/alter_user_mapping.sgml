@@ -1,12 +1,11 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/alter_user_mapping.sgml,v 1.4 2009/09/19 10:23:26 petere Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/alter_user_mapping.sgml,v 1.1 2008/12/19 16:25:16 petere Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-ALTERUSERMAPPING">
  <refmeta>
   <refentrytitle id="sql-alterusermapping-title">ALTER USER MAPPING</refentrytitle>
-  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -21,8 +20,8 @@ PostgreSQL documentation
 
  <refsynopsisdiv>
 <synopsis>
-ALTER USER MAPPING FOR { <replaceable class="parameter">user_name</replaceable> | USER | CURRENT_USER | PUBLIC }
-    SERVER <replaceable class="parameter">server_name</replaceable>
+ALTER USER MAPPING FOR { <replaceable class="parameter">username</replaceable> | USER | CURRENT_USER | PUBLIC }
+    SERVER <replaceable class="parameter">servername</replaceable>
     OPTIONS ( [ ADD | SET | DROP ] <replaceable class="PARAMETER">option</replaceable> ['<replaceable class="PARAMETER">value</replaceable>'] [, ... ] )
 </synopsis>
  </refsynopsisdiv>
@@ -32,15 +31,10 @@ ALTER USER MAPPING FOR { <replaceable class="parameter">user_name</replaceable> 
 
   <para>
    <command>ALTER USER MAPPING</command> changes the definition of a
-   user mapping.
+   user mapping.  Only the owner of the server can change the user
+   mappings of that server.
   </para>
 
-  <para>
-   The owner of a foreign server can alter user mappings for that
-   server for any user.  Also, a user can alter a user mapping for
-   his own user name if <literal>USAGE</> privilege on the server has
-   been granted to the user.
-  </para>
  </refsect1>
 
  <refsect1>
@@ -48,7 +42,7 @@ ALTER USER MAPPING FOR { <replaceable class="parameter">user_name</replaceable> 
 
   <variablelist>
    <varlistentry>
-    <term><replaceable class="parameter">user_name</replaceable></term>
+    <term><replaceable class="parameter">username</replaceable></term>
     <listitem>
      <para>
       User name of the mapping. <literal>CURRENT_USER</>
@@ -60,7 +54,7 @@ ALTER USER MAPPING FOR { <replaceable class="parameter">user_name</replaceable> 
    </varlistentry>
 
    <varlistentry>
-    <term><replaceable class="parameter">server_name</replaceable></term>
+    <term><replaceable class="parameter">servername</replaceable></term>
     <listitem>
      <para>
       Server name of the user mapping.

@@ -35,10 +35,24 @@ UNION ALL
 )
 SELECT * FROM t;
 
+-- This is an infinite loop with UNION ALL, but not with UNION
+WITH RECURSIVE t(n) AS (
+    SELECT 1
+UNION
+    SELECT 10-n FROM t)
+SELECT * FROM t;
+
 -- This'd be an infinite loop, but outside query reads only as much as needed
 WITH RECURSIVE t(n) AS (
     VALUES (1)
 UNION ALL
+    SELECT n+1 FROM t)
+SELECT * FROM t LIMIT 10;
+
+-- UNION case should have same property
+WITH RECURSIVE t(n) AS (
+    SELECT 1
+UNION
     SELECT n+1 FROM t)
 SELECT * FROM t LIMIT 10;
 
@@ -78,6 +92,10 @@ INSERT INTO department VALUES (5, 0, 'E');
 INSERT INTO department VALUES (6, 4, 'F');
 INSERT INTO department VALUES (7, 5, 'G');
 
+-- GPDB: Some of the queries below will return non-deterministic results
+-- because of moving rows across segments. This table is the same, except that
+-- all the rows reside on a single segment, so that you get consistent results.
+CREATE TEMP TABLE department_oneseg AS SELECT 1 AS distkey, * FROM department DISTRIBUTED BY (distkey);
 
 -- extract all departments under 'A'. Result should be A, B, C, D and F
 WITH RECURSIVE subdepartment AS
@@ -168,6 +186,27 @@ SELECT * FROM vsubdepartment ORDER BY name;
 SELECT pg_get_viewdef('vsubdepartment'::regclass);
 SELECT pg_get_viewdef('vsubdepartment'::regclass, true);
 
+-- corner case in which sub-WITH gets initialized first
+with recursive q as (
+      select * from department_oneseg
+    union all
+      (with x as (select * from q)
+       select * from x)
+    )
+select id, parent_department, name from q limit 24;
+
+with recursive q as (
+      select * from department_oneseg
+    union all
+      (with recursive x as (
+           select * from department_oneseg
+         union all
+           (select * from q union all select * from x)
+        )
+       select * from x)
+    )
+select id, parent_department, name from q limit 32;
+
 -- recursive term has sub-UNION
 WITH RECURSIVE t(i,j) AS (
 	VALUES (1,2)
@@ -220,6 +259,38 @@ SELECT t1.id, count(t2.*) FROM t AS t1 JOIN t AS t2 ON
 	ORDER BY t1.id;
 
 --
+-- test cycle detection
+--
+create temp table graph( f int, t int, label text );
+
+insert into graph values
+	(1, 2, 'arc 1 -> 2'),
+	(1, 3, 'arc 1 -> 3'),
+	(2, 3, 'arc 2 -> 3'),
+	(1, 4, 'arc 1 -> 4'),
+	(4, 5, 'arc 4 -> 5'),
+	(5, 1, 'arc 5 -> 1');
+
+with recursive search_graph(f, t, label, path, cycle) as (
+	select *, array[row(g.f, g.t)], false from graph g
+	union all
+	select g.*, path || row(g.f, g.t), row(g.f, g.t) = any(path)
+	from graph g, search_graph sg
+	where g.f = sg.t and not cycle
+)
+select * from search_graph;
+
+-- ordering by the path column has same effect as SEARCH DEPTH FIRST
+with recursive search_graph(f, t, label, path, cycle) as (
+	select *, array[row(g.f, g.t)], false from graph g
+	union all
+	select g.*, path || row(g.f, g.t), row(g.f, g.t) = any(path)
+	from graph g, search_graph sg
+	where g.f = sg.t and not cycle
+)
+select * from search_graph order by path;
+
+--
 -- test multiple WITH queries
 --
 WITH RECURSIVE
@@ -268,10 +339,6 @@ WITH RECURSIVE
 --
 -- error cases
 --
-
--- UNION (should be supported someday)
-WITH RECURSIVE x(n) AS (SELECT 1 UNION SELECT n+1 FROM x)
-	SELECT * FROM x;
 
 -- INTERSECT
 WITH RECURSIVE x(n) AS (SELECT 1 INTERSECT SELECT n+1 FROM x)

@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeNestloop.c,v 1.47 2008/08/14 18:47:58 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeNestloop.c,v 1.49 2008/10/23 14:34:34 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -81,12 +81,6 @@ ExecNestLoop(NestLoopState *node)
 	outerPlan = outerPlanState(node);
 	innerPlan = innerPlanState(node);
 	econtext = node->js.ps.ps_ExprContext;
-
-	/*
-	 * get the current outer tuple
-	 */
-	outerTupleSlot = node->js.ps.ps_OuterTupleSlot;
-	econtext->ecxt_outertuple = outerTupleSlot;
 
 	/*
 	 * Reset per-tuple memory context to free any expression evaluation
@@ -198,7 +192,6 @@ ExecNestLoop(NestLoopState *node)
 			}
 
 			ENL1_printf("saving new outer tuple information");
-			node->js.ps.ps_OuterTupleSlot = outerTupleSlot;
 			econtext->ecxt_outertuple = outerTupleSlot;
 			node->nl_NeedNewOuter = false;
 			node->nl_MatchedOuter = false;
@@ -314,25 +307,27 @@ ExecNestLoop(NestLoopState *node)
 				node->nl_NeedNewOuter = true;
 				continue;		/* return to top of loop */
 			}
-			else
+
+			/*
+			 * In a semijoin, we'll consider returning the first match,
+			 * but after that we're done with this outer tuple.
+			 */
+			if (node->js.jointype == JOIN_SEMI)
+				node->nl_NeedNewOuter = true;
+
+			if (otherqual == NIL || ExecQual(otherqual, econtext, false))
 			{
 				/*
-				 * In a semijoin, we'll consider returning the first match,
-				 * but after that we're done with this outer tuple.
+				 * qualification was satisfied so we project and return the
+				 * slot containing the result tuple using ExecProject().
 				 */
-				if (node->js.jointype == JOIN_SEMI)
-					node->nl_NeedNewOuter = true;
+				TupleTableSlot *result;
 
-				if (otherqual == NIL || ExecQual(otherqual, econtext, false))
-				{
-					/*
-					 * qualification was satisfied so we project and return the
-					 * slot containing the result tuple using ExecProject().
-					 */
-					ENL1_printf("qualification succeeded, projecting tuple");
+				ENL1_printf("qualification succeeded, projecting tuple");
 
-					return ExecProject(node->js.ps.ps_ProjInfo, NULL);
-				}
+				result = ExecProject(node->js.ps.ps_ProjInfo, NULL);
+
+				return result;
 			}
 		}
 
@@ -473,7 +468,6 @@ ExecInitNestLoop(NestLoop *node, EState *estate, int eflags)
 	/*
 	 * finally, wipe the current outer tuple clean.
 	 */
-	nlstate->js.ps.ps_OuterTupleSlot = NULL;
 	nlstate->nl_NeedNewOuter = true;
 	nlstate->nl_MatchedOuter = false;
 	nlstate->nl_innerSquelchNeeded = true;		/*CDB*/
@@ -561,8 +555,6 @@ ExecReScanNestLoop(NestLoopState *node, ExprContext *exprCtxt)
 	if (outerPlan->chgParam == NULL)
 		ExecReScan(outerPlan, exprCtxt);
 
-	/* let outerPlan to free its result tuple ... */
-	node->js.ps.ps_OuterTupleSlot = NULL;
 	node->nl_NeedNewOuter = true;
 	node->nl_MatchedOuter = false;
 	node->nl_innerSideScanned = false;

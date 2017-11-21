@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/makefuncs.c,v 1.58 2008/01/01 19:45:50 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/makefuncs.c,v 1.61 2008/12/19 16:25:17 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -397,3 +397,15 @@ makeAggrefByOid(Oid aggfnoid, List *args)
 	return aggref;
 }
 
+/*
+ * makeOptionDefElem -
+ *	build an OptionDefElem node
+ */
+OptionDefElem *
+makeOptionDefElem(int op, DefElem *def)
+{
+	OptionDefElem *res = makeNode(OptionDefElem);
+	res->alter_op = op;
+	res->def = def;
+	return res;
+}

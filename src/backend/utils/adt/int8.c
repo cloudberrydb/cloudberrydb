@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/int8.c,v 1.70 2008/06/17 19:10:56 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/int8.c,v 1.71 2008/10/05 23:18:37 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1061,21 +1061,35 @@ int82div(PG_FUNCTION_ARGS)
 	int64		result;
 
 	if (arg2 == 0)
+	{
 		ereport(ERROR,
 				(errcode(ERRCODE_DIVISION_BY_ZERO),
 				 errmsg("division by zero")));
+		/* ensure compiler realizes we mustn't reach the division (gcc bug) */
+		PG_RETURN_NULL();
+	}
+
+	/*
+	 * INT64_MIN / -1 is problematic, since the result can't be represented on
+	 * a two's-complement machine.  Some machines produce INT64_MIN, some
+	 * produce zero, some throw an exception.  We can dodge the problem by
+	 * recognizing that division by -1 is the same as negation.
+	 */
+	if (arg2 == -1)
+	{
+		result = -arg1;
+		/* overflow check (needed for INT64_MIN) */
+		if (arg1 != 0 && SAMESIGN(result, arg1))
+			ereport(ERROR,
+					(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
+					 errmsg("bigint out of range")));
+		PG_RETURN_INT64(result);
+	}
+
+	/* No overflow is possible */
 
 	result = arg1 / arg2;
 
-	/*
-	 * Overflow check.	The only possible overflow case is for arg1 =
-	 * INT64_MIN, arg2 = -1, where the correct result is -INT64_MIN, which
-	 * can't be represented on a two's-complement machine.
-	 */
-	if (arg2 == -1 && arg1 < 0 && result < 0)
-		ereport(ERROR,
-				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-				 errmsg("bigint out of range")));
 	PG_RETURN_INT64(result);
 }
 

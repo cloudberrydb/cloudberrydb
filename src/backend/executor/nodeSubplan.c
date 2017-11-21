@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeSubplan.c,v 1.93 2008/05/12 00:00:49 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeSubplan.c,v 1.95 2008/10/04 21:56:53 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -36,14 +36,15 @@
 #include "cdb/cdbdisp_query.h"
 #include "cdb/ml_ipc.h"
 
+
 static Datum ExecSubPlan(SubPlanState *node,
-						 ExprContext *econtext,
-						 bool *isNull,
-						 ExprDoneCond *isDone);
+			ExprContext *econtext,
+			bool *isNull,
+			ExprDoneCond *isDone);
 static Datum ExecAlternativeSubPlan(AlternativeSubPlanState *node,
-									ExprContext *econtext,
-									bool *isNull,
-									ExprDoneCond *isDone);
+			ExprContext *econtext,
+			bool *isNull,
+			ExprDoneCond *isDone);
 static Datum ExecHashSubPlan(SubPlanState *node,
 				ExprContext *econtext,
 				bool *isNull);
@@ -1298,6 +1299,7 @@ ExecReScanSetParamPlan(SubPlanState *node, PlanState *parent)
 	}
 }
 
+
 /*
  * ExecInitAlternativeSubPlan
  *
@@ -1312,17 +1314,17 @@ ExecInitAlternativeSubPlan(AlternativeSubPlan *asplan, PlanState *parent)
 	SubPlan	   *subplan2;
 	Cost		cost1;
 	Cost		cost2;
-	
+
 	asstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecAlternativeSubPlan;
 	asstate->xprstate.expr = (Expr *) asplan;
-	
+
 	/*
 	 * Initialize subplans.  (Can we get away with only initializing the
 	 * one we're going to use?)
 	 */
 	asstate->subplans = (List *) ExecInitExpr((Expr *) asplan->subplans,
 											  parent);
-	
+
 	/*
 	 * Select the one to be used.  For this, we need an estimate of the
 	 * number of executions of the subplan.  We use the number of output
@@ -1331,7 +1333,7 @@ ExecInitAlternativeSubPlan(AlternativeSubPlan *asplan, PlanState *parent)
 	 * probably not by more than a factor of 2) if we are in the qual.
 	 */
 	num_calls = parent->plan->plan_rows;
-	
+
 	/*
 	 * The planner saved enough info so that we don't have to work very hard
 	 * to estimate the total cost, given the number-of-calls estimate.
@@ -1339,15 +1341,15 @@ ExecInitAlternativeSubPlan(AlternativeSubPlan *asplan, PlanState *parent)
 	Assert(list_length(asplan->subplans) == 2);
 	subplan1 = (SubPlan *) linitial(asplan->subplans);
 	subplan2 = (SubPlan *) lsecond(asplan->subplans);
-	
+
 	cost1 = subplan1->startup_cost + num_calls * subplan1->per_call_cost;
 	cost2 = subplan2->startup_cost + num_calls * subplan2->per_call_cost;
-	
+
 	if (cost1 < cost2)
 		asstate->active = 0;
 	else
 		asstate->active = 1;
-	
+
 	return asstate;
 }
 
@@ -1368,9 +1370,9 @@ ExecAlternativeSubPlan(AlternativeSubPlanState *node,
 	/* Just pass control to the active subplan */
 	SubPlanState   *activesp = (SubPlanState *) list_nth(node->subplans,
 														 node->active);
-	
+
 	Assert(IsA(activesp, SubPlanState));
-	
+
 	return ExecSubPlan(activesp,
 					   econtext,
 					   isNull,

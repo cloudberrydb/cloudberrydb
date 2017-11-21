@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/async.c,v 1.140 2008/03/26 21:10:37 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/async.c,v 1.144 2008/12/09 15:59:39 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -488,7 +488,7 @@ Exec_Listen(Relation lRel, const char *relname)
 	namestrcpy(&condname, relname);
 	values[Anum_pg_listener_relname - 1] = NameGetDatum(&condname);
 	values[Anum_pg_listener_listenerpid - 1] = Int32GetDatum(MyProcPid);
-	values[Anum_pg_listener_notification - 1] = Int32GetDatum(0);		/* no notifies pending */
+	values[Anum_pg_listener_notify - 1] = Int32GetDatum(0);		/* no notifies pending */
 
 	tuple = heap_form_tuple(RelationGetDescr(lRel), values, nulls);
 
@@ -599,9 +599,9 @@ Send_Notify(Relation lRel)
 	/* preset data to update notify column to MyProcPid */
 	memset(nulls, false, sizeof(nulls));
 	memset(repl, false, sizeof(repl));
-	repl[Anum_pg_listener_notification - 1] = true;
+	repl[Anum_pg_listener_notify - 1] = true;
 	memset(value, 0, sizeof(value));
-	value[Anum_pg_listener_notification - 1] = Int32GetDatum(MyProcPid);
+	value[Anum_pg_listener_notify - 1] = Int32GetDatum(MyProcPid);
 
 	scan = heap_beginscan(lRel, SnapshotNow, 0, NULL);
 
@@ -989,9 +989,9 @@ ProcessIncomingNotify(void)
 	/* Prepare data for rewriting 0 into notification field */
 	memset(nulls, false, sizeof(nulls));
 	memset(repl, false, sizeof(repl));
-	repl[Anum_pg_listener_notification - 1] = true;
+	repl[Anum_pg_listener_notify - 1] = true;
 	memset(value, 0, sizeof(value));
-	value[Anum_pg_listener_notification - 1] = Int32GetDatum(0);
+	value[Anum_pg_listener_notify - 1] = Int32GetDatum(0);
 
 	while ((lTuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
 	{

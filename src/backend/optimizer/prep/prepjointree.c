@@ -4,7 +4,7 @@
  *	  Planner preprocessing for subqueries and join tree manipulation.
  *
  * NOTE: the intended sequence for invoking these operations is
- * 		pull_up_sublinks
+ *		pull_up_sublinks
  *		inline_set_returning_functions
  *		pull_up_subqueries
  *		do expression preprocessing (including flattening JOIN alias vars)
@@ -23,7 +23,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/prep/prepjointree.c,v 1.66.2.2 2010/06/21 00:14:54 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/prep/prepjointree.c,v 1.60 2008/11/11 19:05:21 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -38,8 +38,8 @@
 #include "optimizer/subselect.h"
 #include "optimizer/tlist.h"
 #include "optimizer/var.h"
-#include "parser/parse_relation.h"
 #include "parser/parsetree.h"
+#include "parser/parse_relation.h"
 #include "rewrite/rewriteManip.h"
 #include "cdb/cdbsubselect.h"
 
@@ -483,7 +483,7 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
 													  oldclause,
 													  available_rels,
 													  jtlink);
-			if(newclause)
+			if (newclause)
 				newclauses = lappend(newclauses, newclause);
 		}
 		return (Node *) make_ands_explicit(newclauses);
@@ -534,8 +534,8 @@ pull_up_sublinks_qual_recurse(PlannerInfo *root, Node *node,
  *
  * This has to be done before we have started to do any optimization of
  * subqueries, else any such steps wouldn't get applied to subqueries
- * obtained via inlining.  However, we do it after pull_up_IN_clauses
- * so that we can inline any functions used in IN subselects.
+ * obtained via inlining.  However, we do it after pull_up_sublinks
+ * so that we can inline any functions used in SubLink subselects.
  *
  * Like most of the planner, this feels free to scribble on its input data
  * structure.
@@ -554,7 +554,7 @@ inline_set_returning_functions(PlannerInfo *root)
 			Query  *funcquery;
 
 			/* Check safety of expansion, and expand if possible */
-			funcquery = inline_set_returning_function(root, rte->funcexpr);
+			funcquery = inline_set_returning_function(root, rte);
 			if (funcquery)
 			{
 
@@ -641,6 +641,12 @@ pull_up_subqueries(PlannerInfo *root, Node *jtnode,
 		 * A "simple" UNION ALL may involve relations with different loci and would require resolving
 		 * locus issues. It is preferable to avoid pulling up simple UNION ALL in GPDB.
 		 */
+#if 0
+		if (rte->rtekind == RTE_SUBQUERY &&
+			is_simple_union_all(rte->subquery))
+			return pull_up_simple_union_all(root, jtnode, rte);
+#endif
+		/* Otherwise, do nothing at this node. */
 	}
 	else if (IsA(jtnode, FromExpr))
 	{
@@ -774,11 +780,11 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
 	subroot->config->mpp_trying_fallback_plan = false;
 
 	/*
-	 * Pull up any SubLinks within the subquery's WHERE, so that we don't
+	 * Pull up any SubLinks within the subquery's quals, so that we don't
 	 * leave unoptimized SubLinks behind.
 	 */
 	if (subquery->hasSubLinks)
-        pull_up_sublinks(subroot);
+		pull_up_sublinks(subroot);
 
 	/*
 	 * Similarly, inline any set-returning functions in its rangetable.
@@ -995,10 +1001,9 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
 	 * Note in particular that any placeholder nodes just created by
 	 * pullup_replace_vars() will be adjusted.
 	 *
-	 * Likewise, relids appearing in AppendRelInfo nodes have to be fixed (but
-	 * we took care of their translated_vars lists above).	We already checked
-	 * that this won't require introducing multiple subrelids into the
-	 * single-slot AppendRelInfo structs.
+	 * Likewise, relids appearing in AppendRelInfo nodes have to be fixed.
+	 * We already checked that this won't require introducing multiple
+	 * subrelids into the single-slot AppendRelInfo structs.
 	 */
 	if (parse->hasSubLinks || root->glob->lastPHId != 0 ||
 		root->append_rel_list)
@@ -1018,7 +1023,7 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
 
 	/*
 	 * We don't have to do the equivalent bookkeeping for outer-join info,
-	 * because that hasn't been set up yet. placeholder_list likewise.
+	 * because that hasn't been set up yet.  placeholder_list likewise.
 	 */
 	Assert(root->join_info_list == NIL);
 	Assert(subroot->join_info_list == NIL);
@@ -1208,7 +1213,6 @@ is_simple_union_all_recurse(Node *setOp, Query *setOpQuery, List *colTypes)
 		return false;			/* keep compiler quiet */
 	}
 }
-
 
 /*
  * is_safe_append_member
@@ -1637,13 +1641,13 @@ reduce_outer_joins_pass2(Node *jtnode,
 		ListCell   *l;
 		ListCell   *s;
 		Relids		pass_nonnullable_rels;
-		List       *pass_nonnullable_vars;
-		List       *pass_forced_null_vars;
+		List	   *pass_nonnullable_vars;
+		List	   *pass_forced_null_vars;
 
 		/* Scan quals to see if we can add any constraints */
 		pass_nonnullable_rels = find_nonnullable_rels(f->quals);
 		pass_nonnullable_rels = bms_add_members(pass_nonnullable_rels,
-										   nonnullable_rels);
+												nonnullable_rels);
 		/* NB: we rely on list_concat to not damage its second argument */
 		pass_nonnullable_vars = find_nonnullable_vars(f->quals);
 		pass_nonnullable_vars = list_concat(pass_nonnullable_vars,
@@ -1673,9 +1677,8 @@ reduce_outer_joins_pass2(Node *jtnode,
 		JoinType	jointype = j->jointype;
 		reduce_outer_joins_state *left_state = linitial(state->sub_states);
 		reduce_outer_joins_state *right_state = lsecond(state->sub_states);
-		List       *local_nonnullable_vars = NIL;
-		bool        computed_local_nonnullable_vars = false;
-
+		List	   *local_nonnullable_vars = NIL;
+		bool		computed_local_nonnullable_vars = false;
 
 		/* Can we simplify this join? */
 		switch (jointype)
@@ -1782,11 +1785,11 @@ reduce_outer_joins_pass2(Node *jtnode,
 
 		if (left_state->contains_outer || right_state->contains_outer)
 		{
-			Relids          local_nonnullable_rels;
-			List       *local_forced_null_vars;
-			Relids          pass_nonnullable_rels;
-			List       *pass_nonnullable_vars;
-			List       *pass_forced_null_vars;
+			Relids		local_nonnullable_rels;
+			List	   *local_forced_null_vars;
+			Relids		pass_nonnullable_rels;
+			List	   *pass_nonnullable_vars;
+			List	   *pass_forced_null_vars;
 
 			/*
 			 * If this join is (now) inner, we can add any constraints its
@@ -1856,6 +1859,7 @@ reduce_outer_joins_pass2(Node *jtnode,
 										 pass_nonnullable_vars,
 										 pass_forced_null_vars);
 			}
+
 			if (right_state->contains_outer)
 			{
 				if (jointype != JOIN_FULL)		/* ie, INNER/LEFT/SEMI/ANTI */
@@ -1877,7 +1881,6 @@ reduce_outer_joins_pass2(Node *jtnode,
 										 pass_nonnullable_vars,
 										 pass_forced_null_vars);
 			}
-
 			bms_free(local_nonnullable_rels);
 		}
 	}
@@ -1951,11 +1954,11 @@ static void
 substitute_multiple_relids(Node *node, int varno, Relids subrelids)
 {
 	substitute_multiple_relids_context context;
-	
+
 	context.varno = varno;
 	context.sublevels_up = 0;
 	context.subrelids = subrelids;
-	
+
 	/*
 	 * Must be prepared to start with a Query or a bare expression tree.
 	 */
@@ -1971,7 +1974,8 @@ substitute_multiple_relids(Node *node, int varno, Relids subrelids)
  *
  * When we pull up a subquery, any AppendRelInfo references to the subquery's
  * RT index have to be replaced by the substituted relid (and there had better
- * be only one).
+ * be only one).  We also need to apply substitute_multiple_relids to their
+ * translated_vars lists, since those might contain PlaceHolderVars.
  *
  * We assume we may modify the AppendRelInfo nodes in-place.
  */
@@ -2000,6 +2004,10 @@ fix_append_rel_relids(List *append_rel_list, int varno, Relids subrelids)
 				subvarno = bms_singleton_member(subrelids);
 			appinfo->child_relid = subvarno;
 		}
+
+		/* Also finish fixups for its translated vars */
+		substitute_multiple_relids((Node *) appinfo->translated_vars,
+								   varno, subrelids);
 	}
 }
 

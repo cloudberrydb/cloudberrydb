@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/nodes.h,v 1.215 2008/11/22 22:47:06 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/nodes.h,v 1.216 2008/12/19 16:25:19 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -440,6 +440,15 @@ typedef enum NodeTag
 	T_CreateEnumStmt,
 	T_AlterTSDictionaryStmt,
 	T_AlterTSConfigurationStmt,
+	T_CreateFdwStmt,
+	T_AlterFdwStmt,
+	T_DropFdwStmt,
+	T_CreateForeignServerStmt,
+	T_AlterForeignServerStmt,
+	T_DropForeignServerStmt,
+	T_CreateUserMappingStmt,
+	T_AlterUserMappingStmt,
+	T_DropUserMappingStmt,
 	T_PartitionBy,
 	T_PartitionElem,
 	T_PartitionRangeItem,
@@ -484,6 +493,7 @@ typedef enum NodeTag
 	T_IndexElem,
 	T_Constraint,
 	T_DefElem,
+	T_OptionDefElem,
 	T_RangeTblEntry,
 	T_GroupingClause,
 	T_GroupingFunc,
@@ -568,6 +578,7 @@ typedef struct Node
 	_result->type = (tag); \
 	_result; \
 })
+
 #else
 
 /*
@@ -585,6 +596,7 @@ extern PGDLLIMPORT Node *newNodeMacroHolder;
 	newNodeMacroHolder->type = (tag), \
 	newNodeMacroHolder \
 )
+
 #endif   /* __GNUC__ */
 
 
@@ -699,12 +711,14 @@ typedef enum JoinType
 									If any NULL values are produced by inner side,
 									return no join results. Otherwise, same as LASJ */
 	JOIN_REVERSE_IN,			/* at most one result per inner row */
+
 	/*
 	 * These codes are used internally in the planner, but are not supported
 	 * by the executor (nor, indeed, by most of the planner).
 	 */
 	JOIN_UNIQUE_OUTER,			/* LHS path must be made unique */
 	JOIN_UNIQUE_INNER			/* RHS path must be made unique */
+
 	/*
 	 * We might need additional join types someday.
 	 */

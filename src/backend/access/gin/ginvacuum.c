@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *			$PostgreSQL: pgsql/src/backend/access/gin/ginvacuum.c,v 1.21 2008/07/11 21:06:29 tgl Exp $
+ *			$PostgreSQL: pgsql/src/backend/access/gin/ginvacuum.c,v 1.26 2008/11/19 10:34:50 heikki Exp $
  *-------------------------------------------------------------------------
  */
 
@@ -16,10 +16,12 @@
 
 #include "access/genam.h"
 #include "access/gin.h"
+#include "catalog/storage.h"
 #include "commands/vacuum.h"
 #include "miscadmin.h"
 #include "storage/bufmgr.h"
 #include "storage/freespace.h"
+#include "storage/indexfsm.h"
 #include "storage/lmgr.h"
 
 typedef struct
@@ -159,7 +161,8 @@ ginVacuumPostingTreeLeaves(GinVacuumState *gvs, BlockNumber blkno, bool isRoot, 
 
 	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
-	buffer = ReadBufferWithStrategy(gvs->index, blkno, gvs->strategy);
+	buffer = ReadBufferExtended(gvs->index, MAIN_FORKNUM, blkno,
+								RBM_NORMAL, gvs->strategy);
 	page = BufferGetPage(buffer);
 
 	/*
@@ -252,10 +255,17 @@ ginDeletePage(GinVacuumState *gvs, BlockNumber deleteBlkno, BlockNumber leftBlkn
 
 	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
-	dBuffer = ReadBufferWithStrategy(gvs->index, deleteBlkno, gvs->strategy);
-	lBuffer = (leftBlkno == InvalidBlockNumber) ?
-		InvalidBuffer : ReadBufferWithStrategy(gvs->index, leftBlkno, gvs->strategy);
-	pBuffer = ReadBufferWithStrategy(gvs->index, parentBlkno, gvs->strategy);
+	dBuffer = ReadBufferExtended(gvs->index, MAIN_FORKNUM, deleteBlkno,
+								 RBM_NORMAL, gvs->strategy);
+
+	if (leftBlkno != InvalidBlockNumber)
+		lBuffer = ReadBufferExtended(gvs->index, MAIN_FORKNUM, leftBlkno,
+									 RBM_NORMAL, gvs->strategy);
+	else
+		lBuffer = InvalidBuffer;
+
+	pBuffer = ReadBufferExtended(gvs->index, MAIN_FORKNUM, parentBlkno,
+								 RBM_NORMAL, gvs->strategy);
 
 	LockBuffer(dBuffer, GIN_EXCLUSIVE);
 	if (!isParentRoot)			/* parent is already locked by
@@ -408,11 +418,12 @@ ginScanToDelete(GinVacuumState *gvs, BlockNumber blkno, bool isRoot, DataPageDel
 		else
 			me = parent->child;
 	}
-	
+
 	// -------- MirroredLock ----------
 	MIRROREDLOCK_BUFMGR_LOCK;
-	
-	buffer = ReadBufferWithStrategy(gvs->index, blkno, gvs->strategy);
+
+	buffer = ReadBufferExtended(gvs->index, MAIN_FORKNUM, blkno,
+								RBM_NORMAL, gvs->strategy);
 	page = BufferGetPage(buffer);
 
 	Assert(GinPageIsData(page));
@@ -544,7 +555,7 @@ ginVacuumEntryPage(GinVacuumState *gvs, Buffer buffer, BlockNumber *roots, uint3
 					 * On first difference we create temporary page in memory
 					 * and copies content in to it.
 					 */
-					tmppage = GinPageGetCopyPage(origpage);
+					tmppage = PageGetTempPageCopy(origpage);
 
 					if (newN > 0)
 					{
@@ -604,11 +615,12 @@ ginbulkdelete(PG_FUNCTION_ARGS)
 	gvs.callback_state = callback_state;
 	gvs.strategy = info->strategy;
 	initGinState(&gvs.ginstate, index);
-	
+
 	// -------- MirroredLock ----------
 	MIRROREDLOCK_BUFMGR_LOCK;
-	
-	buffer = ReadBufferWithStrategy(index, blkno, info->strategy);
+
+	buffer = ReadBufferExtended(index, MAIN_FORKNUM, blkno,
+								RBM_NORMAL, info->strategy);
 
 	/* find leaf page */
 	for (;;)
@@ -640,7 +652,8 @@ ginbulkdelete(PG_FUNCTION_ARGS)
 		Assert(blkno != InvalidBlockNumber);
 
 		UnlockReleaseBuffer(buffer);
-		buffer = ReadBufferWithStrategy(index, blkno, info->strategy);
+		buffer = ReadBufferExtended(index, MAIN_FORKNUM, blkno,
+									RBM_NORMAL, info->strategy);
 	}
 
 	/* right now we found leftmost page in entry's BTree */
@@ -682,7 +695,8 @@ ginbulkdelete(PG_FUNCTION_ARGS)
 		if (blkno == InvalidBlockNumber)		/* rightmost page */
 			break;
 
-		buffer = ReadBufferWithStrategy(index, blkno, info->strategy);
+		buffer = ReadBufferExtended(index, MAIN_FORKNUM, blkno,
+									RBM_NORMAL, info->strategy);
 		LockBuffer(buffer, GIN_EXCLUSIVE);
 	}
 	
@@ -703,10 +717,7 @@ ginvacuumcleanup(PG_FUNCTION_ARGS)
 	bool		needLock;
 	BlockNumber npages,
 				blkno;
-	BlockNumber totFreePages,
-				nFreePages,
-			   *freePages,
-				maxFreePages;
+	BlockNumber totFreePages;
 	BlockNumber lastBlock = GIN_ROOT_BLKNO,
 				lastFilledBlock = GIN_ROOT_BLKNO;
 
@@ -736,12 +747,7 @@ ginvacuumcleanup(PG_FUNCTION_ARGS)
 	if (needLock)
 		UnlockRelationForExtension(index, ExclusiveLock);
 
-	maxFreePages = npages;
-	if (maxFreePages > MaxFSMPages)
-		maxFreePages = MaxFSMPages;
-
-	totFreePages = nFreePages = 0;
-	freePages = (BlockNumber *) palloc(sizeof(BlockNumber) * maxFreePages);
+	totFreePages =  0;
 
 	for (blkno = GIN_ROOT_BLKNO + 1; blkno < npages; blkno++)
 	{
@@ -749,18 +755,18 @@ ginvacuumcleanup(PG_FUNCTION_ARGS)
 		Page		page;
 
 		vacuum_delay_point();
-		
+
 		// -------- MirroredLock ----------
 		MIRROREDLOCK_BUFMGR_LOCK;
-		
-		buffer = ReadBufferWithStrategy(index, blkno, info->strategy);
+
+		buffer = ReadBufferExtended(index, MAIN_FORKNUM, blkno,
+									RBM_NORMAL, info->strategy);
 		LockBuffer(buffer, GIN_SHARE);
 		page = (Page) BufferGetPage(buffer);
 
 		if (GinPageIsDeleted(page))
 		{
-			if (nFreePages < maxFreePages)
-				freePages[nFreePages++] = blkno;
+			RecordFreeIndexPage(index, blkno);
 			totFreePages++;
 		}
 		else
@@ -774,28 +780,19 @@ ginvacuumcleanup(PG_FUNCTION_ARGS)
 	}
 	lastBlock = npages - 1;
 
-	if (info->vacuum_full && nFreePages > 0)
+	if (info->vacuum_full && lastBlock > lastFilledBlock)
 	{
 		/* try to truncate index */
-		int			i;
-
-		for (i = 0; i < nFreePages; i++)
-			if (freePages[i] >= lastFilledBlock)
-			{
-				totFreePages = nFreePages = i;
-				break;
-			}
-
-		if (lastBlock > lastFilledBlock)
-			RelationTruncate(
-					index, 
-					lastFilledBlock + 1,
-					/* markPersistentAsPhysicallyTruncated */ true);
+		RelationTruncate(index, lastFilledBlock + 1,
+						 /* markPersistentAsPhysicallyTruncated */ true);
 
 		stats->pages_removed = lastBlock - lastFilledBlock;
+		totFreePages = totFreePages - stats->pages_removed;
 	}
 
-	RecordIndexFreeSpace(&index->rd_node, totFreePages, nFreePages, freePages);
+	/* Finally, vacuum the FSM */
+	IndexFreeSpaceMapVacuum(info->index);
+
 	stats->pages_free = totFreePages;
 
 	if (needLock)

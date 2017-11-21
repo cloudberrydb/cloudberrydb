@@ -186,6 +186,8 @@ gen_implied_qual(PlannerInfo *root,
 								  required_relids,
 								  old_rinfo->nullable_relids,
 								  old_rinfo->ojscope_relids);
+	check_mergejoinable(new_rinfo);
+	check_hashjoinable(new_rinfo);
 
 	/*
 	 * If it's a join clause (either naturally, or because delayed by

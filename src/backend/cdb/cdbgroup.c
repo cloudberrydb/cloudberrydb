@@ -3686,9 +3686,6 @@ split_aggref(Aggref *aggref, MppGroupContext *ctx)
 {
 	ListCell   *cell;
 	Node	   *final_node;
-	Oid			transtype = InvalidOid;
-	AttrNumber	attrno = OUTER;
-	TargetEntry *prelim_tle = NULL;
 
 	Assert(aggref != NULL && aggref->agglevelsup == 0);
 
@@ -3779,6 +3776,9 @@ split_aggref(Aggref *aggref, MppGroupContext *ctx)
 		Aggref	   *pref;
 		Aggref	   *iref;
 		Aggref	   *fref;
+		Oid			transtype = InvalidOid;
+		AttrNumber	attrno;
+		TargetEntry *prelim_tle = NULL;
 
 		/*
 		 * We may have seen an Aggref just like this one already.  Look for

@@ -4,7 +4,7 @@
  *
  *	Copyright (c) 2006-2008, PostgreSQL Global Development Group
  *
- *	$PostgreSQL: pgsql/src/include/access/gin.h,v 1.24 2008/07/13 21:50:04 tgl Exp $
+ *	$PostgreSQL: pgsql/src/include/access/gin.h,v 1.26 2008/11/03 20:47:49 tgl Exp $
  *--------------------------------------------------------------------------
  */
 
@@ -259,7 +259,6 @@ extern int	compareAttEntries(GinState *ginstate, OffsetNumber attnum_a, Datum a,
 extern Datum *extractEntriesS(GinState *ginstate, OffsetNumber attnum, Datum value,
 				int32 *nentries, bool *needUnique);
 extern Datum *extractEntriesSU(GinState *ginstate, OffsetNumber attnum, Datum value, int32 *nentries);
-extern Page GinPageGetCopyPage(Page page);
 
 extern Datum gin_index_getattr(GinState *ginstate, IndexTuple tuple);
 extern OffsetNumber gintuple_get_attrnum(GinState *ginstate, IndexTuple tuple);
@@ -436,8 +435,6 @@ typedef struct GinScanOpaqueData
 	uint32		nkeys;
 	bool		isVoidRes;		/* true if ginstate.extractQueryFn guarantees
 								 * that nothing will be found */
-
-	GinScanKey	markPos;
 } GinScanOpaqueData;
 
 typedef GinScanOpaqueData *GinScanOpaque;
@@ -459,7 +456,6 @@ extern PGDLLIMPORT int GinFuzzySearchLimit;
 
 extern Datum gingetbitmap(PG_FUNCTION_ARGS);
 extern Datum gingettuple(PG_FUNCTION_ARGS);
-extern void ginrestartentry(GinScanEntry entry);
 
 /* ginvacuum.c */
 extern Datum ginbulkdelete(PG_FUNCTION_ARGS);

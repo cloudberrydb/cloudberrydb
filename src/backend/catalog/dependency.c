@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/dependency.c,v 1.78 2008/08/07 01:11:46 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/dependency.c,v 1.83 2008/12/19 16:25:17 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -38,6 +38,8 @@
 #include "catalog/pg_extprotocol.h"
 #include "catalog/pg_extension.h"
 #include "catalog/pg_filespace.h"
+#include "catalog/pg_foreign_data_wrapper.h"
+#include "catalog/pg_foreign_server.h"
 #include "catalog/pg_language.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_opclass.h"
@@ -54,6 +56,7 @@
 #include "catalog/pg_ts_template.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_type_encoding.h"
+#include "catalog/pg_user_mapping.h"
 #include "cdb/cdbpartition.h"
 #include "commands/comment.h"
 #include "commands/dbcommands.h"
@@ -66,6 +69,7 @@
 #include "commands/tablespace.h"
 #include "commands/trigger.h"
 #include "commands/typecmds.h"
+#include "foreign/foreign.h"
 #include "miscadmin.h"
 #include "nodes/nodeFuncs.h"
 #include "parser/parsetree.h"
@@ -1158,6 +1162,18 @@ doDeletion(const ObjectAddress *object)
 			RemoveTSConfigurationById(object->objectId);
 			break;
 
+		case OCLASS_USER_MAPPING:
+			RemoveUserMappingById(object->objectId);
+			break;
+
+		case OCLASS_FOREIGN_SERVER:
+			RemoveForeignServerById(object->objectId);
+			break;
+
+		case OCLASS_FDW:
+			RemoveForeignDataWrapperById(object->objectId);
+			break;
+
 		case OCLASS_EXTENSION:
 			RemoveExtensionById(object->objectId);
 			break;
@@ -1582,7 +1598,7 @@ find_expr_references_walker(Node *node,
 						   context->addrs);
 		/* fall through to examine arguments */
 	}
-	if (IsA(node, SubPlan))
+	else if (IsA(node, SubPlan))
 	{
 		/* Extra work needed here if we ever need this case */
 		elog(ERROR, "already-planned subqueries not supported");
@@ -2125,6 +2141,18 @@ getObjectClass(const ObjectAddress *object)
 			Assert(object->objectSubId == 0);
 			return OCLASS_TBLSPACE;
 
+		case ForeignDataWrapperRelationId:
+			Assert(object->objectSubId == 0);
+			return OCLASS_FDW;
+
+		case ForeignServerRelationId:
+			Assert(object->objectSubId == 0);
+			return OCLASS_FOREIGN_SERVER;
+
+		case UserMappingRelationId:
+			Assert(object->objectSubId == 0);
+			return OCLASS_USER_MAPPING;
+
 		case FileSpaceRelationId:
 			Assert(object->objectSubId == 0);
 			return OCLASS_FILESPACE;
@@ -2229,9 +2257,13 @@ getObjectDescription(const ObjectAddress *object)
 
 				if (OidIsValid(con->conrelid))
 				{
-					appendStringInfo(&buffer, _("constraint %s on "),
-									 NameStr(con->conname));
-					getRelationDescription(&buffer, con->conrelid);
+					StringInfoData	rel;
+
+					initStringInfo(&rel);
+					getRelationDescription(&rel, con->conrelid);
+					appendStringInfo(&buffer, _("constraint %s on %s"),
+									 NameStr(con->conname), rel.data);
+					pfree(rel.data);
 				}
 				else
 				{
@@ -2632,6 +2664,50 @@ getObjectDescription(const ObjectAddress *object)
 				break;
 			}
 
+		case OCLASS_FDW:
+			{
+				ForeignDataWrapper *fdw;
+
+				fdw = GetForeignDataWrapper(object->objectId);
+				appendStringInfo(&buffer, _("foreign-data wrapper %s"), fdw->fdwname);
+				break;
+			}
+
+		case OCLASS_FOREIGN_SERVER:
+			{
+				ForeignServer *srv;
+
+				srv = GetForeignServer(object->objectId);
+				appendStringInfo(&buffer, _("server %s"), srv->servername);
+				break;
+			}
+
+		case OCLASS_USER_MAPPING:
+			{
+				HeapTuple		tup;
+				Oid				useid;
+				char		   *usename;
+
+				tup = SearchSysCache(USERMAPPINGOID,
+									 ObjectIdGetDatum(object->objectId),
+									 0, 0, 0);
+				if (!HeapTupleIsValid(tup))
+					elog(ERROR, "cache lookup failed for user mapping %u",
+						 object->objectId);
+
+				useid = ((Form_pg_user_mapping) GETSTRUCT(tup))->umuser;
+
+				ReleaseSysCache(tup);
+
+				if (OidIsValid(useid))
+					usename = GetUserNameFromId(useid);
+				else
+					usename = "public";
+
+				appendStringInfo(&buffer, _("user mapping for %s"), usename);
+				break;
+			}
+
 		case OCLASS_FILESPACE:
 			{
 				char       *fsname;
@@ -2667,6 +2743,7 @@ getObjectDescription(const ObjectAddress *object)
 				elog(NOTICE, "NOT YET IMPLEMENTED");
 				break;
 			}
+
 		default:
 			appendStringInfo(&buffer, "unrecognized object %u %u %d",
 							 object->classId,

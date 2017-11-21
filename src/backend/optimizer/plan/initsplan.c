@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/initsplan.c,v 1.140 2008/06/27 20:54:37 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/initsplan.c,v 1.145 2008/11/22 22:47:06 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -53,12 +53,13 @@ static List *deconstruct_recurse(PlannerInfo *root, Node *jtnode,
 					Relids *qualscope, Relids *inner_join_rels,
 					List **postponed_qual_list);
 static SpecialJoinInfo *make_outerjoininfo(PlannerInfo *root,
-											Relids left_rels, Relids right_rels,
-											Relids inner_join_rels,
-											JoinType jointype, List *clause);
+				   Relids left_rels, Relids right_rels,
+				   Relids inner_join_rels,
+				   JoinType jointype, List *clause);
 static void distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 						bool is_deduced,
 						bool below_outer_join,
+						JoinType jointype,
 						Relids qualscope,
 						Relids ojscope,
 						Relids outerjoin_nonnullable,
@@ -69,8 +70,6 @@ static bool check_outerjoin_delay(PlannerInfo *root, Relids *relids_p,
 static bool check_equivalence_delay(PlannerInfo *root,
 						RestrictInfo *restrictinfo);
 static bool check_redundant_nullability_qual(PlannerInfo *root, Node *clause);
-static void check_mergejoinable(RestrictInfo *restrictinfo);
-static void check_hashjoinable(RestrictInfo *restrictinfo);
 static void compute_semijoin_info(SpecialJoinInfo* sjinfo, PlannerInfo* root);
 
 
@@ -176,18 +175,18 @@ add_vars_to_targetlist(PlannerInfo *root, List *vars, Relids where_needed)
 	foreach(temp, vars)
 	{
 		Node	   *node = (Node *) lfirst(temp);
-		
+
 		if (IsA(node, Var))
 		{
 			Var		   *var = (Var *) node;
 			RelOptInfo *rel = find_base_rel(root, var->varno);
 			int			attno = var->varattno;
-			
+
 			/* Pseudo column? */
 			if (attno <= FirstLowInvalidHeapAttributeNumber)
 			{
 				CdbRelColumnInfo *rci = cdb_find_pseudo_column(root, var);
-				
+
 				/* Add to targetlist. */
 				if (bms_is_empty(rci->where_needed))
 				{
@@ -195,12 +194,12 @@ add_vars_to_targetlist(PlannerInfo *root, List *vars, Relids where_needed)
 					rci->targetresno = list_length(rel->reltargetlist);
 					rel->reltargetlist = lappend(rel->reltargetlist, copyObject(var));
 				}
-				
+
 				/* Note relids which are consumers of the data from this column. */
 				rci->where_needed = bms_add_members(rci->where_needed, where_needed);
 				continue;
 			}
-			
+
 			/* System-defined attribute, whole row, or user-defined attribute */
 			Assert(attno >= rel->min_attr && attno <= rel->max_attr);
 			attno -= rel->min_attr;
@@ -230,7 +229,6 @@ add_vars_to_targetlist(PlannerInfo *root, List *vars, Relids where_needed)
 		}
 		else
 			elog(ERROR, "unrecognized node type: %d", (int) nodeTag(node));
-		
 	}
 }
 
@@ -389,9 +387,9 @@ deconstruct_recurse(PlannerInfo *root, Node *jtnode, bool below_outer_join,
 			if (bms_is_subset(pq->relids, *qualscope))
 			{
 				distribute_qual_to_rels(root, pq->qual,
-										false, below_outer_join,
-										*qualscope, NULL, NULL,
-										NULL, NULL);
+										false, below_outer_join, JOIN_INNER,
+										*qualscope, NULL, NULL, NULL,
+										NULL);
 				pfree(pq);
 			}
 			else
@@ -410,8 +408,9 @@ deconstruct_recurse(PlannerInfo *root, Node *jtnode, bool below_outer_join,
 		foreach(l, (List *) f->quals)
 		{
 			Node   *qual = (Node *) lfirst(l);
+
 			distribute_qual_to_rels(root, qual,
-									false, below_outer_join,
+									false, below_outer_join, JOIN_INNER,
 									*qualscope, NULL, NULL, NULL,
 									postponed_qual_list);
 		}
@@ -430,6 +429,7 @@ deconstruct_recurse(PlannerInfo *root, Node *jtnode, bool below_outer_join,
 		SpecialJoinInfo *sjinfo;
 		ListCell   *l;
 		List *child_postponed_quals = NIL;
+
 		/*
 		 * Order of operations here is subtle and critical.  First we recurse
 		 * to handle sub-JOINs.  Their join quals will be placed without
@@ -437,7 +437,7 @@ deconstruct_recurse(PlannerInfo *root, Node *jtnode, bool below_outer_join,
 		 * Then we place our own join quals, which are restricted by lower
 		 * outer joins in any case, and are forced to this level if this is an
 		 * outer join and they mention the outer side.	Finally, if this is an
-		 * outer join, we create an join_info_list entry for the join.  This
+		 * outer join, we create a join_info_list entry for the join.  This
 		 * will prevent quals above us in the join tree that use those rels
 		 * from being pushed down below this level.  (It's okay for upper
 		 * quals to be pushed down to the outer side, however.)
@@ -548,9 +548,9 @@ deconstruct_recurse(PlannerInfo *root, Node *jtnode, bool below_outer_join,
 			if (bms_is_subset(pq->relids, *qualscope))
 			{
 				distribute_qual_to_rels(root, pq->qual,
-										false, below_outer_join,
-										*qualscope, ojscope, nonnullable_rels,
-										NULL, NULL);
+										false, below_outer_join, JOIN_INNER,
+										*qualscope, ojscope, nonnullable_rels, NULL,
+										NULL);
 				pfree(pq);
 			}
 			else
@@ -567,12 +567,12 @@ deconstruct_recurse(PlannerInfo *root, Node *jtnode, bool below_outer_join,
 		foreach(l, (List *) j->quals)
 		{
 			Node   *qual = (Node *) lfirst(l);
+
 			distribute_qual_to_rels(root, qual,
-									false, below_outer_join,
+									false, below_outer_join, JOIN_INNER,
 									*qualscope, ojscope, nonnullable_rels, NULL,
 									postponed_qual_list);
 		}
-
 
 		/* Now we can add the SpecialJoinInfo to join_info_list */
 		if (sjinfo)
@@ -998,6 +998,7 @@ compute_semijoin_info(SpecialJoinInfo* sjinfo, PlannerInfo* root)
  * 'is_deduced': TRUE if the qual came from implied-equality deduction
  * 'below_outer_join': TRUE if the qual is from a JOIN/ON that is below the
  *		nullable side of a higher-level outer join
+ * 'jointype': type of join the qual is from (JOIN_INNER for a WHERE clause)
  * 'qualscope': set of baserels the qual's syntactic scope covers
  * 'ojscope': NULL if not an outer-join qual, else the minimum set of baserels
  *		needed to form this join
@@ -1016,6 +1017,7 @@ static void
 distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 						bool is_deduced,
 						bool below_outer_join,
+						JoinType jointype,
 						Relids qualscope,
 						Relids ojscope,
 						Relids outerjoin_nonnullable,
@@ -1106,7 +1108,12 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 				root->hasPseudoConstantQuals = true;
 				/* if not below outer join, push it to top of tree */
 				if (!below_outer_join)
-					relids = get_relids_in_jointree((Node *) root->parse->jointree, false);
+				{
+					relids =
+						get_relids_in_jointree((Node *) root->parse->jointree,
+											   false);
+					qualscope = bms_copy(relids);
+				}
 			}
 		}
 	}
@@ -1346,7 +1353,7 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 												   restrictinfo);
 				return;
 			}
-			if (bms_equal(outerjoin_nonnullable, qualscope))
+			if (jointype == JOIN_FULL)
 			{
 				/* FULL JOIN (above tests cannot match in this case) */
 				root->full_join_clauses = lappend(root->full_join_clauses,
@@ -1367,7 +1374,6 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 	 */
 	root->non_eq_clauses = lappend(root->non_eq_clauses, restrictinfo);
 }
-
 
 /*
  * check_outerjoin_delay
@@ -1726,7 +1732,7 @@ process_implied_equality(PlannerInfo *root,
 	 * Push the new clause into all the appropriate restrictinfo lists.
 	 */
 	distribute_qual_to_rels(root, (Node *) clause,
-							true, below_outer_join,
+							true, below_outer_join, JOIN_INNER,
 							qualscope, NULL, NULL, nullable_relids,
 							NULL);
 }
@@ -1796,7 +1802,7 @@ build_implied_join_equality(Oid opno,
  *	  the operator is a mergejoinable operator.  The arguments can be
  *	  anything --- as long as there are no volatile functions in them.
  */
-static void
+void
 check_mergejoinable(RestrictInfo *restrictinfo)
 {
 	Expr	   *clause = restrictinfo->clause;
@@ -1831,7 +1837,7 @@ check_mergejoinable(RestrictInfo *restrictinfo)
  *	  the operator is a hashjoinable operator.	The arguments can be
  *	  anything --- as long as there are no volatile functions in them.
  */
-static void
+void
 check_hashjoinable(RestrictInfo *restrictinfo)
 {
 	Expr	   *clause = restrictinfo->clause;

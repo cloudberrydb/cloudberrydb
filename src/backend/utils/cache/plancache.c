@@ -35,7 +35,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/cache/plancache.c,v 1.19 2008/07/18 20:26:06 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/cache/plancache.c,v 1.25 2008/12/13 02:29:22 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -494,7 +494,10 @@ RevalidateCachedPlanWithParams(CachedPlanSource *plansource, bool useResOwner,
 	 */
 	if (!plan)
 	{
+		bool		snapshot_set = false;
 		List	   *slist;
+		TupleDesc	resultDesc;
+		Node	   *raw_parse_tree;
 
 		/*
 		 * Restore the search_path that was in use when the plan was made.
@@ -506,18 +509,11 @@ RevalidateCachedPlanWithParams(CachedPlanSource *plansource, bool useResOwner,
 
 		/*
 		 * If a snapshot is already set (the normal case), we can just use
-		 * that for parsing/planning.  But if it isn't, install one.  We must
-		 * arrange to restore ActiveSnapshot afterward, to ensure that
-		 * RevalidateCachedPlan has no caller-visible effects on the
-		 * snapshot.  Having to replan is an unusual case, and it seems a
-		 * really bad idea for RevalidateCachedPlan to affect the snapshot
-		 * only in unusual cases.  (Besides, the snap might have been created
-		 * in a short-lived context.)
+		 * that for parsing/planning.  But if it isn't, install one.  Note:
+		 * no point in checking whether parse analysis requires a snapshot;
+		 * utility commands don't have invalidatable plans, so we'd not get
+		 * here for such a command.
 		 */
-		TupleDesc	resultDesc;
-		Node	   *raw_parse_tree;
-		bool        snapshot_set = false;
-
 		if (!ActiveSnapshotSet())
 		{
 			PushActiveSnapshot(GetTransactionSnapshot());
@@ -573,7 +569,7 @@ RevalidateCachedPlanWithParams(CachedPlanSource *plansource, bool useResOwner,
 			pushed = SPI_push_conditional();
 
 			slist = pg_plan_queries(slist, plansource->cursor_options,
-									boundParams, false);
+									boundParams);
 
 			SPI_pop_conditional(pushed);
 		}

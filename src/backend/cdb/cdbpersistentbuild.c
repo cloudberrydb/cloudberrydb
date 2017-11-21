@@ -30,6 +30,7 @@
 #include "catalog/pg_tablespace.h"
 #include "catalog/pg_database.h"
 #include "catalog/gp_persistent.h"
+#include "catalog/storage.h"
 #include "cdb/cdbdirectopen.h"
 #include "cdb/cdbpersistentstore.h"
 #include "cdb/cdbpersistentfilesysobj.h"
@@ -52,8 +53,8 @@ static void
 PersistentBuild_NonTransactionTruncate(RelFileNode *relFileNode)
 {
 	SMgrRelation smgrRelation;
-
 	PersistentFileSysObjName fsObjName;
+	ForkNumber forknum;
 
 	PersistentFileSysObjName_SetRelationFile(
 											 &fsObjName,
@@ -66,13 +67,22 @@ PersistentBuild_NonTransactionTruncate(RelFileNode *relFileNode)
 
 	smgrRelation = smgropen(*relFileNode);
 
-	smgrtruncate(
-				 smgrRelation,
-				 0,
-				  /* isTemp */ true,
-				  /* isLocalBuf */ false,
-				  /* persistentTid */ NULL,
-				  /* persistentSerialNum */ 0);
+	DropRelFileNodeBuffers(*relFileNode, MAIN_FORKNUM, /* isTemp */ false, 0);
+	smgrtruncate(smgrRelation, MAIN_FORKNUM, 0, /* isTemp */ true);
+	for (forknum = 1; forknum <= MAX_FORKNUM; forknum++)
+	{
+		if (smgrexists(smgrRelation, forknum))
+		{
+			DropRelFileNodeBuffers(*relFileNode, forknum, /* isTemp */ false, 0);
+			smgrtruncate(smgrRelation, forknum, 0, /* isTemp */ true);
+		}
+	}
+
+	/*
+	 * GPDB_84_MERGE_FIXME: We're missing a lot of other things that
+	 * RelationTruncate does, like resetting rd_targblock on the relcache
+	 * entry.
+	 */
 
 	smgrclose(smgrRelation);
 }
@@ -919,12 +929,12 @@ PersistentBuild_TruncateAllGpRelationNode(void)
 		btree_metapage = (Page) palloc(BLCKSZ);
 		_bt_initmetapage(btree_metapage, P_NONE, 0);
 		PageSetChecksumInplace(btree_metapage, 0);
-		smgrwrite(
-				  smgrRelation,
+		smgrwrite(smgrRelation,
+				  MAIN_FORKNUM,
 				   /* blockNum */ 0,
 				  (char *) btree_metapage,
 				   /* isTemp */ false);
-		smgrimmedsync(smgrRelation);
+		smgrimmedsync(smgrRelation, MAIN_FORKNUM);
 		pfree(btree_metapage);
 
 		smgrclose(smgrRelation);
@@ -975,6 +985,14 @@ gp_persistent_reset_all(PG_FUNCTION_ARGS)
 	 * shared-memory hash-tables.
 	 */
 	PersistentFileSysObj_Reset();
+
+	/*
+	 * Make sure the relcache entries for the relations we just truncated are
+	 * also blown away, as the rd_targblock, rd_fsm_nblocks and rd_vm_nblocks
+	 * fields on them are now invalid. (This is not performance critical,
+	 * so we don't bother to be any more fine-grained.)
+	 */
+	RelationCacheInvalidate();
 
 	PG_RETURN_INT32(1);
 }

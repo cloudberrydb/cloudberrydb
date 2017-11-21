@@ -11,7 +11,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/bin/pg_dump/common.c,v 1.104 2008/05/09 23:32:04 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/bin/pg_dump/common.c,v 1.105 2008/12/19 16:25:17 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -118,6 +118,8 @@ getSchemaData(int *numTablesPtr, int g_role)
 	int			numTSTemplates;
 	int			numTSDicts;
 	int			numTSConfigs;
+	int			numForeignDataWrappers;
+	int			numForeignServers;
 	const char *LOGGER_INFO = "INFO";
 
 	/*
@@ -215,6 +217,14 @@ getSchemaData(int *numTablesPtr, int g_role)
 		if (is_gpdump || g_verbose)
 			write_msg(NULL, "reading user-defined text search configurations\n");
 		getTSConfigurations(&numTSConfigs);
+
+		if (is_gpdump || g_verbose)
+			write_msg(NULL, "reading user-defined foreign-data wrappers\n");
+		getForeignDataWrappers(&numForeignDataWrappers);
+
+		if (is_gpdump || g_verbose)
+			write_msg(NULL, "reading user-defined foreign servers\n");
+		getForeignServers(&numForeignServers);
 
 		if (is_gpdump || g_verbose)
 			status_log_msg(LOGGER_INFO, progname, "reading user-defined conversions\n");

@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/nabstime.c,v 1.155 2008/03/25 22:42:44 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/nabstime.c,v 1.158 2008/11/11 02:42:32 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -631,7 +631,7 @@ reltimein(PG_FUNCTION_ARGS)
 
 	/* if those functions think it's a bad format, try ISO8601 style */
 	if (dterr == DTERR_BAD_FORMAT)
-		dterr = DecodeISO8601Interval(str,
+	    dterr = DecodeISO8601Interval(str,
 									  &dtype, tm, &fsec);
 
 	if (dterr != 0)

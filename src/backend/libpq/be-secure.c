@@ -11,7 +11,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/libpq/be-secure.c,v 1.84 2008/03/31 02:43:14 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/libpq/be-secure.c,v 1.88 2008/12/14 19:39:37 mha Exp $
  *
  *	  Since the server static private key ($DataDir/server.key)
  *	  will normally be stored unencrypted so that the database
@@ -445,6 +445,7 @@ wloop:
  * directly so it gets passed through the socket/signals layer on Win32.
  *
  * They are closely modelled on the original socket implementations in OpenSSL.
+ *
  */
 
 static bool my_bio_initialized = false;
@@ -457,7 +458,7 @@ my_sock_read(BIO *h, char *buf, int size)
 
 	prepare_for_client_read();
 
- 	if (buf != NULL)
+	if (buf != NULL)
 	{
 		res = recv(h->num, buf, size, 0);
 		BIO_clear_retry_flags(h);
@@ -845,7 +846,7 @@ initialize_SSL(void)
 	 * Attempt to load CA store, so we can verify client certificates if
 	 * needed.
 	 */
-		ssl_loaded_verify_locations = false;
+	ssl_loaded_verify_locations = false;
 
 	if (access(ROOT_CERT_FILE, R_OK) != 0)
 	{
@@ -854,12 +855,12 @@ initialize_SSL(void)
 		 * because it's quite likely the user isn't planning on using client
 		 * certificates. If we can't access it for other reasons, it is an
 		 * error.
-	 */
+		 */
 		if (errno != ENOENT)
 			ereport(FATAL,
 					(errmsg("could not access root certificate file \"%s\": %m",
 							ROOT_CERT_FILE)));
-		}
+	}
 	else if (SSL_CTX_load_verify_locations(SSL_context, ROOT_CERT_FILE, NULL) != 1 ||
 		  (root_cert_list = SSL_load_client_CA_file(ROOT_CERT_FILE)) == NULL)
 	{
@@ -903,17 +904,17 @@ initialize_SSL(void)
 						(errmsg("SSL certificate revocation list file \"%s\" not found, skipping: %s",
 								ROOT_CRL_FILE, SSLerrmessage()),
 					 errdetail("Certificates will not be checked against revocation list.")));
-		}
+			}
 
 			/*
 			 * Always ask for SSL client cert, but don't fail if it's not
 			 * presented.  We might fail such connections later, depending on
 			 * what we find in pg_hba.conf.
 			 */
-		SSL_CTX_set_verify(SSL_context,
-						   (SSL_VERIFY_PEER |
-							SSL_VERIFY_CLIENT_ONCE),
-						   verify_cb);
+			SSL_CTX_set_verify(SSL_context,
+							   (SSL_VERIFY_PEER |
+								SSL_VERIFY_CLIENT_ONCE),
+							   verify_cb);
 
 			/* Set flag to remember CA store is successfully loaded */
 			ssl_loaded_verify_locations = true;

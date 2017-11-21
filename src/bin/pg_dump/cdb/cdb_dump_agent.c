@@ -228,7 +228,12 @@ static void dumpTSDictionary(Archive *fout, TSDictInfo *dictinfo);
 static void dumpTSTemplate(Archive *fout, TSTemplateInfo *tmplinfo);
 static void dumpTSConfig(Archive *fout, TSConfigInfo *cfginfo);
 static void dumpExtension(Archive *fout, ExtensionInfo *extinfo);
-
+static void dumpForeignServer(Archive *fout, ForeignServerInfo *srvinfo);
+static void dumpForeignDataWrapper(Archive *fout, FdwInfo *fdwinfo);
+static void dumpUserMappings(Archive *fout, const char *target,
+			const char *servername, const char *namespace,
+			const char *owner,
+			CatalogId catalogId, DumpId dumpId);
 static void dumpACL(Archive *fout, CatalogId objCatId, DumpId objDumpId,
 		const char *type, const char *name,
 		const char *tag, const char *nspname, const char *owner,
@@ -1247,6 +1252,9 @@ dumpMain(bool oids, const char *dumpencoding, int outputBlobs, int plainText, Re
 
 	/* Let cdb_dump_include functions know whether to handle lanowner col */
 	g_gp_supportsLanOwner = g_fout->remoteVersion >= 80300;
+
+	/* Let cdb_dump_include functions know whether to handle fdw */
+	g_gp_fdw = g_fout->remoteVersion >= 80400;
 
 	/*
 	 * Process the schema and table include/exclude lists and develop a list
@@ -2663,6 +2671,12 @@ dumpDumpableObject(Archive *fout, DumpableObject *dobj)
 			break;
 		case DO_TSCONFIG:
 			dumpTSConfig(fout, (TSConfigInfo *) dobj);
+			break;
+		case DO_FDW:
+			dumpForeignDataWrapper(fout, (FdwInfo *) dobj);
+			break;
+		case DO_FOREIGN_SERVER:
+			dumpForeignServer(fout, (ForeignServerInfo *) dobj);
 			break;
 		case DO_BLOBS:
 			if (!postDataSchemaOnly)
@@ -5962,6 +5976,227 @@ dumpTSConfig(Archive *fout, TSConfigInfo *cfginfo)
 	destroyPQExpBuffer(delq);
 	destroyPQExpBuffer(query);
 }
+
+/*
+ * dumpForeignDataWrapper
+ *	  write out a single foreign-data wrapper definition
+ */
+static void
+dumpForeignDataWrapper(Archive *fout, FdwInfo *fdwinfo)
+{
+	PQExpBuffer q;
+	PQExpBuffer delq;
+	char	   *namecopy;
+
+	/* Skip if not to be dumped */
+	if (!fdwinfo->dobj.dump || dataOnly)
+		return;
+
+	q = createPQExpBuffer();
+	delq = createPQExpBuffer();
+
+	appendPQExpBuffer(q, "CREATE FOREIGN DATA WRAPPER %s LIBRARY '%s' LANGUAGE C",
+					  fmtId(fdwinfo->dobj.name), fdwinfo->fdwlibrary);
+	if (fdwinfo->fdwoptions && strlen(fdwinfo->fdwoptions) > 0)
+		appendPQExpBuffer(q, " OPTIONS (%s)", fdwinfo->fdwoptions);
+
+	appendPQExpBuffer(q, ";\n");
+
+	appendPQExpBuffer(delq, "DROP FOREIGN DATA WRAPPER %s;\n",
+					  fmtId(fdwinfo->dobj.name));
+
+	ArchiveEntry(fout, fdwinfo->dobj.catId, fdwinfo->dobj.dumpId,
+				 fdwinfo->dobj.name,
+				 NULL,
+				 NULL,
+				 fdwinfo->rolname,
+				 false, "FOREIGN DATA WRAPPER", q->data, delq->data, NULL,
+				 fdwinfo->dobj.dependencies, fdwinfo->dobj.nDeps,
+				 NULL, NULL);
+
+	/* Handle the ACL */
+	namecopy = strdup(fmtId(fdwinfo->dobj.name));
+	dumpACL(fout, fdwinfo->dobj.catId, fdwinfo->dobj.dumpId,
+			"FOREIGN DATA WRAPPER",
+			namecopy, fdwinfo->dobj.name,
+			NULL, fdwinfo->rolname,
+			fdwinfo->fdwacl);
+	free(namecopy);
+
+	destroyPQExpBuffer(q);
+	destroyPQExpBuffer(delq);
+}
+
+/*
+ * dumpForeignServer
+ *	  write out a foreign server definition
+ */
+static void
+dumpForeignServer(Archive *fout, ForeignServerInfo *srvinfo)
+{
+	PQExpBuffer q;
+	PQExpBuffer delq;
+	PQExpBuffer query;
+	PGresult   *res;
+	int			ntups;
+	char	   *namecopy;
+	char	   *fdwname;
+
+	/* Skip if not to be dumped */
+	if (!srvinfo->dobj.dump || dataOnly)
+		return;
+
+	q = createPQExpBuffer();
+	delq = createPQExpBuffer();
+	query = createPQExpBuffer();
+
+	/* look up the foreign-data wrapper */
+	appendPQExpBuffer(query, "SELECT fdwname "
+					  "FROM pg_foreign_data_wrapper w "
+					  "WHERE w.oid = '%u'",
+					  srvinfo->srvfdw);
+	res = PQexec(g_conn, query->data);
+	check_sql_result(res, g_conn, query->data, PGRES_TUPLES_OK);
+	ntups = PQntuples(res);
+	if (ntups != 1)
+	{
+		write_msg(NULL, "query returned %d rows instead of one: %s\n",
+				  ntups, query->data);
+		exit_nicely();
+	}
+	fdwname = PQgetvalue(res, 0, 0);
+
+	appendPQExpBuffer(q, "CREATE SERVER %s", fmtId(srvinfo->dobj.name));
+	if (srvinfo->srvtype && strlen(srvinfo->srvtype) > 0)
+		appendPQExpBuffer(q, " TYPE '%s'", srvinfo->srvtype);
+	if (srvinfo->srvversion && strlen(srvinfo->srvversion) > 0)
+		appendPQExpBuffer(q, " VERSION '%s'", srvinfo->srvversion);
+
+	appendPQExpBuffer(q, " FOREIGN DATA WRAPPER ");
+	appendPQExpBuffer(q, "%s", fmtId(fdwname));
+
+	if (srvinfo->srvoptions && strlen(srvinfo->srvoptions) > 0)
+		appendPQExpBuffer(q, " OPTIONS (%s)", srvinfo->srvoptions);
+
+	appendPQExpBuffer(q, ";\n");
+
+	appendPQExpBuffer(delq, "DROP SERVER %s;\n",
+					  fmtId(srvinfo->dobj.name));
+
+	ArchiveEntry(fout, srvinfo->dobj.catId, srvinfo->dobj.dumpId,
+				 srvinfo->dobj.name,
+				 NULL,
+				 NULL,
+				 srvinfo->rolname,
+				 false, "SERVER", q->data, delq->data, NULL,
+				 srvinfo->dobj.dependencies, srvinfo->dobj.nDeps,
+				 NULL, NULL);
+
+	/* Handle the ACL */
+	namecopy = strdup(fmtId(srvinfo->dobj.name));
+	dumpACL(fout, srvinfo->dobj.catId, srvinfo->dobj.dumpId,
+			"SERVER",
+			namecopy, srvinfo->dobj.name,
+			NULL, srvinfo->rolname,
+			srvinfo->srvacl);
+	free(namecopy);
+
+	/* Dump user mappings */
+	resetPQExpBuffer(q);
+	appendPQExpBuffer(q, "SERVER %s", fmtId(srvinfo->dobj.name));
+	dumpUserMappings(fout, q->data,
+					 srvinfo->dobj.name, NULL,
+					 srvinfo->rolname,
+				     srvinfo->dobj.catId, srvinfo->dobj.dumpId);
+
+	destroyPQExpBuffer(q);
+	destroyPQExpBuffer(delq);
+}
+
+/*
+ * dumpUserMappings
+ *
+ * This routine is used to dump any user mappings associated with the
+ * server handed to this routine. Should be called after ArchiveEntry()
+ * for the server.
+ */
+static void
+dumpUserMappings(Archive *fout, const char *target,
+			const char *servername, const char *namespace,
+			const char *owner,
+			CatalogId catalogId, DumpId dumpId)
+{
+	PQExpBuffer q;
+	PQExpBuffer delq;
+	PQExpBuffer query;
+	PQExpBuffer tag;
+	PGresult   *res;
+	int			ntups;
+	int			i_umuser;
+	int			i_umoptions;
+	int			i;
+
+	q = createPQExpBuffer();
+	tag = createPQExpBuffer();
+	delq = createPQExpBuffer();
+	query = createPQExpBuffer();
+
+	appendPQExpBuffer(query,
+					  "SELECT (%s umuser) AS umuser, "
+					  "array_to_string(ARRAY(SELECT option_name || ' ' || quote_literal(option_value) FROM pg_options_to_table(umoptions)), ', ') AS umoptions\n"
+					  "FROM pg_user_mapping WHERE umserver=%u",
+					  username_subquery,
+					  catalogId.oid);
+
+	res = PQexec(g_conn, query->data);
+	check_sql_result(res, g_conn, query->data, PGRES_TUPLES_OK);
+
+	ntups = PQntuples(res);
+	i_umuser = PQfnumber(res, "umuser");
+	i_umoptions = PQfnumber(res, "umoptions");
+
+	for (i = 0; i < ntups; i++)
+	{
+		char	   *umuser;
+		char       *umoptions;
+
+		umuser = PQgetvalue(res, i, i_umuser);
+		umoptions = PQgetvalue(res, i, i_umoptions);
+
+		resetPQExpBuffer(q);
+		appendPQExpBuffer(q, "CREATE USER MAPPING FOR %s", fmtId(umuser));
+		appendPQExpBuffer(q, " SERVER %s", fmtId(servername));
+
+		if (umoptions && strlen(umoptions) > 0)
+			appendPQExpBuffer(q, " OPTIONS (%s)", umoptions);
+
+		appendPQExpBuffer(q, ";\n");
+
+		resetPQExpBuffer(delq);
+		appendPQExpBuffer(delq, "DROP USER MAPPING FOR %s SERVER %s;\n", fmtId(umuser), fmtId(servername));
+
+		resetPQExpBuffer(tag);
+		appendPQExpBuffer(tag, "USER MAPPING %s %s", fmtId(umuser), target);
+
+		ArchiveEntry(fout, nilCatalogId, createDumpId(),
+					 tag->data,
+					 namespace,
+					 NULL,
+					 owner, false,
+					 "USER MAPPING", q->data,
+					 delq->data, NULL,
+					 &dumpId, 1,
+					 NULL, NULL);
+	}
+
+	PQclear(res);
+
+	destroyPQExpBuffer(query);
+	destroyPQExpBuffer(delq);
+	destroyPQExpBuffer(q);
+}
+
+
 /*----------
  * Write out grant/revoke information
  *

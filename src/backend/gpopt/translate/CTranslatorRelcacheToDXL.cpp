@@ -430,24 +430,27 @@ CTranslatorRelcacheToDXL::PdrgpmdidTriggers
 	)
 {
 	GPOS_ASSERT(NULL != rel);
-	if (0 < rel->rd_rel->reltriggers && NULL == rel->trigdesc)
+	if (rel->rd_rel->relhastriggers && NULL == rel->trigdesc)
 	{
 		gpdb::BuildRelationTriggers(rel);
 		if (NULL == rel->trigdesc)
 		{
-			rel->rd_rel->reltriggers = 0;
+			rel->rd_rel->relhastriggers = false;
 		}
 	}
 
 	DrgPmdid *pdrgpmdidTriggers = GPOS_NEW(pmp) DrgPmdid(pmp);
-	const ULONG ulTriggers = rel->rd_rel->reltriggers;
-
-	for (ULONG ul = 0; ul < ulTriggers; ul++)
+	if (rel->rd_rel->relhastriggers)
 	{
-		Trigger trigger = rel->trigdesc->triggers[ul];
-		OID oidTrigger = trigger.tgoid;
-		CMDIdGPDB *pmdidTrigger = GPOS_NEW(pmp) CMDIdGPDB(oidTrigger);
-		pdrgpmdidTriggers->Append(pmdidTrigger);
+		const ULONG ulTriggers = rel->trigdesc->numtriggers;
+
+		for (ULONG ul = 0; ul < ulTriggers; ul++)
+		{
+			Trigger trigger = rel->trigdesc->triggers[ul];
+			OID oidTrigger = trigger.tgoid;
+			CMDIdGPDB *pmdidTrigger = GPOS_NEW(pmp) CMDIdGPDB(oidTrigger);
+			pdrgpmdidTriggers->Append(pmdidTrigger);
+		}
 	}
 
 	return pdrgpmdidTriggers;

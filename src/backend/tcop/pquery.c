@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/tcop/pquery.c,v 1.124 2008/08/01 13:16:09 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/tcop/pquery.c,v 1.127 2008/12/01 17:06:21 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -20,6 +20,7 @@
 #include "access/xact.h"
 #include "commands/prepare.h"
 #include "commands/trigger.h"
+#include "executor/tstoreReceiver.h"
 #include "miscadmin.h"
 #include "pg_trace.h"
 #include "tcop/pquery.h"
@@ -100,6 +101,7 @@ CreateQueryDesc(PlannedStmt *plannedstmt,
 	qd->tupDesc = NULL;
 	qd->estate = NULL;
 	qd->planstate = NULL;
+	qd->totaltime = NULL;
 
 	qd->extended_query = false; /* default value */
 	qd->portal_name = NULL;
@@ -154,6 +156,7 @@ CreateUtilityQueryDesc(Node *utilitystmt,
 	qd->tupDesc = NULL;
 	qd->estate = NULL;
 	qd->planstate = NULL;
+	qd->totaltime = NULL;
 
 	qd->extended_query = false; /* default value */
 	qd->portal_name = NULL;
@@ -1226,7 +1229,11 @@ FillPortalStore(Portal portal, bool isTopLevel)
 	char		completionTag[COMPLETION_TAG_BUFSIZE];
 
 	PortalCreateHoldStore(portal);
-	treceiver = CreateDestReceiver(DestTuplestore, portal);
+	treceiver = CreateDestReceiver(DestTuplestore);
+	SetTuplestoreDestReceiverParams(treceiver,
+									portal->holdStore,
+									portal->holdContext,
+									false);
 
 	completionTag[0] = '\0';
 

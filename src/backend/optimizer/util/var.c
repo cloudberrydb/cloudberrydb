@@ -3,8 +3,6 @@
  * var.c
  *	  Var node manipulation routines
  *
- * Portions Copyright (c) 2006-2008, Greenplum inc
- * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
  * Note: for most purposes, PlaceHolderVar is considered a Var too,
  * even if its contained expression is variable-free.  Also, CurrentOfExpr
  * is treated as a Var for purposes of determining whether an expression
@@ -13,10 +11,12 @@
  *
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
+ * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/var.c,v 1.74 2008/05/12 00:00:49 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/var.c,v 1.82 2008/10/22 20:17:52 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -25,7 +25,6 @@
 #include "access/htup.h"
 #include "access/sysattr.h"
 #include "nodes/nodeFuncs.h"
-#include "optimizer/clauses.h"
 #include "optimizer/prep.h"
 #include "optimizer/var.h"
 #include "optimizer/walkers.h"
@@ -46,9 +45,10 @@ typedef struct
 
 typedef struct
 {
-	Index		varno;
-	int			varattno;
-} contain_var_reference_context;
+	int			var_location;
+	int			relid;
+	int			sublevels_up;
+} locate_var_of_relation_context;
 
 typedef struct
 {
@@ -70,17 +70,19 @@ typedef struct
 } flatten_join_alias_vars_context;
 
 static bool pull_varattnos_walker(Node *node, Bitmapset **varattnos);
-
 static bool contain_var_clause_walker(Node *node, void *context);
 static bool contain_vars_of_level_walker(Node *node, int *sublevels_up);
 static bool locate_var_of_level_walker(Node *node,
-						   locate_var_of_level_context *context);
-static inline Relids pull_varnos_of_level(Node *node, int levelsup);
+									   locate_var_of_level_context *context);
+static bool locate_var_of_relation_walker(Node *node,
+									locate_var_of_relation_context *context);
 static bool pull_var_clause_walker(Node *node,
 					   pull_var_clause_context *context);
 static Node *flatten_join_alias_vars_mutator(Node *node,
 								flatten_join_alias_vars_context *context);
 static Relids alias_relid_set(PlannerInfo *root, Relids relids);
+
+static inline Relids pull_varnos_of_level(Node *node, int levelsup);
 
 
 /*
@@ -230,6 +232,7 @@ pull_varnos(Node *node)
 	return pull_varnos_of_level(node, 0);
 }
 
+
 /*
  * pull_varattnos
  *		Find all the distinct attribute numbers present in an expression tree,
@@ -271,60 +274,44 @@ pull_varattnos_walker(Node *node, Bitmapset **varattnos)
 								  (void *) varattnos);
 }
 
-
-/*
- *		contain_var_reference
- *
- *		Detect whether a parsetree contains any references to a specified
- *		attribute of a specified rtable entry.
- *
- * NOTE: this is used on not-yet-planned expressions.  It may therefore find
- * bare SubLinks, and if so it needs to recurse into them to look for uplevel
- * references to the desired rtable entry!	But when we find a completed
- * SubPlan, we only need to look at the parameters passed to the subplan.
- */
 static bool
-contain_var_reference_cbVar(Var    *var,
-							void   *context,
-                            int     sublevelsup)
+contain_ctid_var_reference_walker(Node *node, void *context)
 {
-    contain_var_reference_context *ctx = (contain_var_reference_context *)context;
+	if (node == NULL)
+		return false;
+	if (IsA(node, Var))
+	{
+		Var		   *var = (Var *) node;
+		Index		scanrelid = *((Index *) context);
 
-    if (var->varno == ctx->varno &&
-		var->varattno == ctx->varattno &&
-		(int)var->varlevelsup == sublevelsup)
-		return true;
-	return false;
-}
-
-static bool
-contain_var_reference(Node *node, int varno, int varattno, int levelsup)
-{
-	contain_var_reference_context context;
-
-	context.varno = varno;
-	context.varattno = varattno;
-
-	return cdb_walk_vars(node, contain_var_reference_cbVar, NULL, NULL, NULL, &context, levelsup);
+		if (var->varno == scanrelid &&
+			var->varattno == SelfItemPointerAttributeNumber &&
+			(int)var->varlevelsup == 0)
+		{
+			return true;		/* abort the tree traversal and return true */
+		}
+	}
+	return expression_tree_walker(node, contain_ctid_var_reference_walker, context);
 }
 
 bool
 contain_ctid_var_reference(Scan *scan)
 {
-	/* Check if targetlist contains a var node referencing the ctid column */
-	bool want_ctid_in_targetlist =
-			contain_var_reference((Node *) scan->plan.targetlist,
-			scan->scanrelid,
-			SelfItemPointerAttributeNumber,
-			0);
-	/* Check if qual contains a var node referencing the ctid column */
-	bool want_ctid_in_qual =
-			contain_var_reference((Node *) scan->plan.qual,
-			scan->scanrelid,
-			SelfItemPointerAttributeNumber,
-			0);
+	Index	   scanrelid = scan->scanrelid;
 
-	return want_ctid_in_targetlist || want_ctid_in_qual;
+	/* Check if targetlist contains a var node referencing the ctid column */
+	if (expression_tree_walker((Node *) scan->plan.targetlist,
+							   contain_ctid_var_reference_walker,
+							   &scanrelid))
+		return true;
+
+	/* Check if qual contains a var node referencing the ctid column */
+	if (expression_tree_walker((Node *) scan->plan.qual,
+							   contain_ctid_var_reference_walker,
+							   &scanrelid))
+		return true;
+
+	return false;
 }
 
 /*
@@ -364,6 +351,7 @@ contain_var_clause_walker(Node *node, void *context)
 	}
 	return expression_tree_walker(node, contain_var_clause_walker, context);
 }
+
 
 /*
  * contain_vars_of_level
@@ -426,6 +414,7 @@ contain_vars_of_level_walker(Node *node, int *sublevels_up)
 								  (void *) sublevels_up);
 }
 
+
 /*
  * locate_var_of_level
  *	  Find the parse location of any Var of the specified query level.
@@ -434,7 +423,7 @@ contain_vars_of_level_walker(Node *node, int *sublevels_up)
  * unknown parse location.  (The former case is probably caller error,
  * but we don't bother to distinguish it from the latter case.)
  *
- * Will recurse into sublinks.  Also, may be invoked directly on a Query.
+ * Will recurse into sublinks.	Also, may be invoked directly on a Query.
  *
  * Note: it might seem appropriate to merge this functionality into
  * contain_vars_of_level, but that would complicate that function's API.
@@ -446,7 +435,7 @@ locate_var_of_level(Node *node, int levelsup)
 {
 	locate_var_of_level_context context;
 
-	context.var_location = -1;	/* in case we find nothing */
+	context.var_location = -1;		/* in case we find nothing */
 	context.sublevels_up = levelsup;
 
 	(void) query_or_expression_tree_walker(node,
@@ -465,7 +454,7 @@ locate_var_of_level_walker(Node *node,
 		return false;
 	if (IsA(node, Var))
 	{
-		Var		   *var = (Var *) node;
+		Var	   *var = (Var *) node;
 
 		if (var->varlevelsup == context->sublevels_up &&
 			var->location >= 0)
@@ -496,6 +485,76 @@ locate_var_of_level_walker(Node *node,
 	}
 	return expression_tree_walker(node,
 								  locate_var_of_level_walker,
+								  (void *) context);
+}
+
+
+/*
+ * locate_var_of_relation
+ *	  Find the parse location of any Var of the specified relation.
+ *
+ * Returns -1 if no such Var is in the querytree, or if they all have
+ * unknown parse location.
+ *
+ * Will recurse into sublinks.	Also, may be invoked directly on a Query.
+ */
+int
+locate_var_of_relation(Node *node, int relid, int levelsup)
+{
+	locate_var_of_relation_context context;
+
+	context.var_location = -1;		/* in case we find nothing */
+	context.relid = relid;
+	context.sublevels_up = levelsup;
+
+	(void) query_or_expression_tree_walker(node,
+										   locate_var_of_relation_walker,
+										   (void *) &context,
+										   0);
+
+	return context.var_location;
+}
+
+static bool
+locate_var_of_relation_walker(Node *node,
+							  locate_var_of_relation_context *context)
+{
+	if (node == NULL)
+		return false;
+	if (IsA(node, Var))
+	{
+		Var	   *var = (Var *) node;
+
+		if (var->varno == context->relid &&
+			var->varlevelsup == context->sublevels_up &&
+			var->location >= 0)
+		{
+			context->var_location = var->location;
+			return true;		/* abort tree traversal and return true */
+		}
+		return false;
+	}
+	if (IsA(node, CurrentOfExpr))
+	{
+		/* since CurrentOfExpr doesn't carry location, nothing we can do */
+		return false;
+	}
+	/* No extra code needed for PlaceHolderVar; just look in contained expr */
+	if (IsA(node, Query))
+	{
+		/* Recurse into subselects */
+		bool		result;
+
+		context->sublevels_up++;
+		result = query_tree_walker((Query *) node,
+								   locate_var_of_relation_walker,
+								   (void *) context,
+								   0);
+		context->sublevels_up--;
+		return result;
+	}
+	return expression_tree_walker(node,
+								  locate_var_of_relation_walker,
 								  (void *) context);
 }
 
@@ -775,6 +834,9 @@ pull_var_clause_walker(Node *node, pull_var_clause_context *context)
  *	  is necessary since we will not scan the JOIN as a base relation, which
  *	  is the only way that the executor can directly handle whole-row Vars.
  *
+ * This also adjusts relid sets found in some expression node types to
+ * substitute the contained base rels for any join relid.
+ *
  * If a JOIN contains sub-selects that have been flattened, its join alias
  * entries might now be arbitrary expressions, not just Vars.  This affects
  * this function in one important way: we might find ourselves inserting
@@ -782,9 +844,6 @@ pull_var_clause_walker(Node *node, pull_var_clause_context *context)
  * Query.hasSubLinks fields get set to TRUE if so.  If there are any
  * SubLinks in the join alias lists, the outer Query should already have
  * hasSubLinks = TRUE, so this is only relevant to un-flattened subqueries.
- *
- * This also adjusts relid sets found in some expression node types to
- * substitute the contained base rels for any join relid.
  *
  * NOTE: this is used on not-yet-planned expressions.  We do not expect it
  * to be applied directly to a Query node.
@@ -857,6 +916,8 @@ flatten_join_alias_vars_mutator(Node *node,
 			rowexpr->args = fields;
 			rowexpr->row_typeid = var->vartype;
 			rowexpr->row_format = COERCE_IMPLICIT_CAST;
+			rowexpr->colnames = NIL;
+			rowexpr->location = -1;
 
 			return (Node *) rowexpr;
 		}
@@ -888,9 +949,9 @@ flatten_join_alias_vars_mutator(Node *node,
 	{
 		/* Copy the PlaceHolderVar node with correct mutation of subnodes */
 		PlaceHolderVar *phv;
-		
+
 		phv = (PlaceHolderVar *) expression_tree_mutator(node,
-														 flatten_join_alias_vars_mutator,
+											 flatten_join_alias_vars_mutator,
 														 (void *) context);
 		/* now fix PlaceHolderVar's relid sets */
 		if (phv->phlevelsup == context->sublevels_up)

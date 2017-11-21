@@ -352,7 +352,7 @@ INSERT INTO ucchild values(100, 'hundred');
 SELECT f1, f2 FROM uctest;
 
 BEGIN;
-DECLARE c1 CURSOR FOR SELECT f1, f2 FROM uctest;
+DECLARE c1 CURSOR FOR SELECT f1, f2 FROM uctest FOR UPDATE;
 FETCH 1 FROM c1;
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1;
 FETCH 1 FROM c1;
@@ -363,6 +363,24 @@ FETCH 1 FROM c1;
 COMMIT;
 SELECT f1, f2 FROM uctest;
 
+-- Can update from a self-join, but only if FOR UPDATE says which to use
+BEGIN;
+DECLARE c1 CURSOR FOR SELECT * FROM uctest a, uctest b WHERE a.f1 = b.f1 + 5;
+FETCH 1 FROM c1;
+UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1;  -- fail
+ROLLBACK;
+BEGIN;
+DECLARE c1 CURSOR FOR SELECT * FROM uctest a, uctest b WHERE a.f1 = b.f1 + 5 FOR UPDATE;
+FETCH 1 FROM c1;
+UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1;  -- fail
+ROLLBACK;
+BEGIN;
+DECLARE c1 CURSOR FOR SELECT * FROM uctest a, uctest b WHERE a.f1 = b.f1 + 5 FOR SHARE OF a;
+FETCH 1 FROM c1;
+UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1;
+SELECT * FROM uctest;
+ROLLBACK;
+
 -- Check various error cases
 
 DELETE FROM uctest WHERE CURRENT OF c1;  -- fail, no such cursor
@@ -370,6 +388,10 @@ DECLARE cx CURSOR WITH HOLD FOR SELECT * FROM uctest;
 DELETE FROM uctest WHERE CURRENT OF cx;  -- fail, can't use held cursor
 BEGIN;
 DECLARE c CURSOR FOR SELECT * FROM tenk2;
+DELETE FROM uctest WHERE CURRENT OF c;  -- fail, cursor on wrong table
+ROLLBACK;
+BEGIN;
+DECLARE c CURSOR FOR SELECT * FROM tenk2 FOR SHARE;
 DELETE FROM uctest WHERE CURRENT OF c;  -- fail, cursor on wrong table
 ROLLBACK;
 BEGIN;

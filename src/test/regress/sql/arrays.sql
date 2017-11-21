@@ -56,6 +56,9 @@ SELECT a[1:3],
 SELECT array_ndims(a) AS a,array_ndims(b) AS b,array_ndims(c) AS c
     FROM arrtest;
 
+SELECT array_ndims(a) AS a,array_ndims(b) AS b,array_ndims(c) AS c
+   FROM arrtest;
+
 SELECT array_dims(a) AS a,array_dims(b) AS b,array_dims(c) AS c
    FROM arrtest;
 
@@ -403,9 +406,14 @@ select array_length(array[[1,2,3], [4,5,6]], 1);
 select array_length(array[[1,2,3], [4,5,6]], 2);
 select array_length(array[[1,2,3], [4,5,6]], 3);
 
+select cardinality(array[1,2,3]);
+select cardinality(array[[1,2,3], [4,5,6]]);
+select c, cardinality(c), d, cardinality(d) from arrtest;
+
 select array_agg(unique1 order by unique1) from (select unique1 from tenk1 where unique1 < 15 order by unique1) ss;
 select array_agg(ten order by ten) from (select ten from tenk1 where unique1 < 15 order by unique1) ss;
 select array_agg(nullif(ten, 4) order by ten) from (select ten from tenk1 where unique1 < 15 order by unique1) ss;
+select cardinality(array_agg(unique1)) from tenk1 where unique1 < 15;
 select array_agg(unique1 order by unique1) from tenk1 where unique1 < -15;
 
 select unnest(array[1,2,3]);

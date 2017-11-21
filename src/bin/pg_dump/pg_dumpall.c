@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
- * $PostgreSQL: pgsql/src/bin/pg_dump/pg_dumpall.c,v 1.105 2008/06/26 01:35:45 momjian Exp $
+ * $PostgreSQL: pgsql/src/bin/pg_dump/pg_dumpall.c,v 1.109 2008/12/11 07:34:08 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -138,10 +138,11 @@ main(int argc, char *argv[])
 		{"roles-only", no_argument, &roles_only, 1},
 		{"no-tablespaces", no_argument, &no_tablespaces, 1},
 		{"use-set-session-authorization", no_argument, &use_setsessauth, 1},
+		{"lock-wait-timeout", required_argument, NULL, 2},
 
 		/* START MPP ADDITION */
-		{"gp-syntax", no_argument, NULL, 1},
-		{"no-gp-syntax", no_argument, NULL, 2},
+		{"gp-syntax", no_argument, NULL, 1000},
+		{"no-gp-syntax", no_argument, NULL, 1001},
 		/* END MPP ADDITION */
 
 		{NULL, 0, NULL, 0}
@@ -149,7 +150,7 @@ main(int argc, char *argv[])
 
 	int			optindex;
 
-	set_pglocale_pgservice(argv[0], "pg_dump");
+	set_pglocale_pgservice(argv[0], PG_TEXTDOMAIN("pg_dump"));
 
 	progname = get_progname(argv[0]);
 
@@ -343,15 +344,20 @@ main(int argc, char *argv[])
 			case 0:
 				break;
 
+			case 2:
+				appendPQExpBuffer(pgdumpopts, " --lock-wait-timeout=");
+				appendPQExpBuffer(pgdumpopts, "%s", optarg);
+				break;
+
 				/* START MPP ADDITION */
-			case 1:
+			case 1000:
 				/* gp-format */
 				appendPQExpBuffer(pgdumpopts, " --gp-syntax");
 				gp_syntax = true;
 				resource_queues = 1; /* --resource-queues is implied by --gp-syntax */
 				resource_groups = 1; /* --resource-groups is implied by --gp-syntax */
 				break;
-			case 2:
+			case 1001:
 				/* no-gp-format */
 				appendPQExpBuffer(pgdumpopts, " --no-gp-syntax");
 				no_gp_syntax = true;
@@ -565,6 +571,8 @@ help(void)
 	printf(_("  -f, --file=FILENAME      output file name\n"));
 	printf(_("  --help                   show this help, then exit\n"));
 	printf(_("  --version                output version information, then exit\n"));
+	printf(_("  --lock-wait-timeout=TIMEOUT\n"
+			 "                           fail after waiting TIMEOUT for a table lock\n"));
 	printf(_("\nOptions controlling the output content:\n"));
 	printf(_("  -a, --data-only          dump only the data, not the schema\n"));
 	printf(_("  -c, --clean              clean (drop) databases before recreating\n"));
@@ -1432,24 +1440,38 @@ dumpCreateDB(PGconn *conn)
 
 	fprintf(OPF, "--\n-- Database creation\n--\n\n");
 
-	res = executeQuery(conn,
-					   "SELECT datname, "
-					   "coalesce(rolname, (select rolname from pg_authid where oid=(select datdba from pg_database where datname='template0'))), "
-					   "pg_encoding_to_char(d.encoding), "
-					   "datistemplate, datacl, datconnlimit, "
-					   "(SELECT spcname FROM pg_tablespace t WHERE t.oid = d.dattablespace) AS dattablespace "
+	if (server_version >= 80400)
+		res = executeQuery(conn,
+						   "SELECT datname, "
+						   "coalesce(rolname, (select rolname from pg_authid where oid=(select datdba from pg_database where datname='template0'))), "
+						   "pg_encoding_to_char(d.encoding), "
+						   "datcollate, datctype, "
+						   "datistemplate, datacl, datconnlimit, "
+						   "(SELECT spcname FROM pg_tablespace t WHERE t.oid = d.dattablespace) AS dattablespace "
 			  "FROM pg_database d LEFT JOIN pg_authid u ON (datdba = u.oid) "
-					   "WHERE datallowconn ORDER BY 1");
+						   "WHERE datallowconn ORDER BY 1");
+	else if (server_version >= 80100)
+		res = executeQuery(conn,
+						   "SELECT datname, "
+						   "coalesce(rolname, (select rolname from pg_authid where oid=(select datdba from pg_database where datname='template0'))), "
+						   "pg_encoding_to_char(d.encoding), "
+						   "null::text AS datcollate, null::text AS datctype, "
+						   "datistemplate, datacl, datconnlimit, "
+						   "(SELECT spcname FROM pg_tablespace t WHERE t.oid = d.dattablespace) AS dattablespace "
+			  "FROM pg_database d LEFT JOIN pg_authid u ON (datdba = u.oid) "
+						   "WHERE datallowconn ORDER BY 1");
 
 	for (i = 0; i < PQntuples(res); i++)
 	{
 		char	   *dbname = PQgetvalue(res, i, 0);
 		char	   *dbowner = PQgetvalue(res, i, 1);
 		char	   *dbencoding = PQgetvalue(res, i, 2);
-		char	   *dbistemplate = PQgetvalue(res, i, 3);
-		char	   *dbacl = PQgetvalue(res, i, 4);
-		char	   *dbconnlimit = PQgetvalue(res, i, 5);
-		char	   *dbtablespace = PQgetvalue(res, i, 6);
+		char	   *dbcollate = PQgetvalue(res, i, 3);
+		char	   *dbctype = PQgetvalue(res, i, 4);
+		char	   *dbistemplate = PQgetvalue(res, i, 5);
+		char	   *dbacl = PQgetvalue(res, i, 6);
+		char	   *dbconnlimit = PQgetvalue(res, i, 7);
+		char	   *dbtablespace = PQgetvalue(res, i, 8);
 		char	   *fdbname;
 
 		fdbname = strdup(fmtId(dbname));
@@ -1476,6 +1498,18 @@ dumpCreateDB(PGconn *conn)
 
 			appendPQExpBuffer(buf, " ENCODING = ");
 			appendStringLiteralConn(buf, dbencoding, conn);
+
+			if (strlen(dbcollate) != 0)
+			{
+				appendPQExpBuffer(buf, " COLLATE = ");
+				appendStringLiteralConn(buf, dbcollate, conn);
+			}
+
+			if (strlen(dbctype) != 0)
+			{
+				appendPQExpBuffer(buf, " CTYPE = ");
+				appendStringLiteralConn(buf, dbctype, conn);
+			}
 
 			/*
 			 * Output tablespace if it isn't the default.  For default, it

@@ -797,8 +797,12 @@ LINE 1: update atacc1 set b = 2 where "........pg.dropped.1........"...
 -- INSERTs
 insert into atacc1 values (10, 11, 12, 13);
 ERROR:  INSERT has more expressions than target columns
+LINE 1: insert into atacc1 values (10, 11, 12, 13);
+                                               ^
 insert into atacc1 values (default, 11, 12, 13);
 ERROR:  INSERT has more expressions than target columns
+LINE 1: insert into atacc1 values (default, 11, 12, 13);
+                                                    ^
 insert into atacc1 values (11, 12, 13);
 insert into atacc1 (a) values (10);
 ERROR:  column "a" of relation "atacc1" does not exist
@@ -1341,7 +1345,7 @@ select f3,max(f1) from foo group by f3;
 
 -- Simple tests for alter table column type
 alter table foo alter f1 TYPE integer; -- fails
-ERROR:  column "f1" cannot be cast to type "pg_catalog.int4"
+ERROR:  column "f1" cannot be cast to type integer
 alter table foo alter f1 TYPE varchar(10);
 create table anothertab (atcol1 serial8, atcol2 boolean,
 	constraint anothertab_chk check (atcol1 <= 3))
@@ -1357,7 +1361,7 @@ select * from anothertab;
 (2 rows)
 
 alter table anothertab alter column atcol1 type boolean; -- fails
-ERROR:  column "atcol1" cannot be cast to type "pg_catalog.bool"
+ERROR:  column "atcol1" cannot be cast to type boolean
 alter table anothertab alter column atcol1 type integer;
 select * from anothertab;
  atcol1 | atcol2 
@@ -1391,7 +1395,7 @@ select * from anothertab;
 
 alter table anothertab alter column atcol1 type boolean
         using case when atcol1 % 2 = 0 then true else false end; -- fails
-ERROR:  default for column "atcol1" cannot be cast to type "pg_catalog.bool"
+ERROR:  default for column "atcol1" cannot be cast to type boolean
 alter table anothertab alter column atcol1 drop default;
 alter table anothertab alter column atcol1 type boolean
         using case when atcol1 % 2 = 0 then true else false end; -- fails

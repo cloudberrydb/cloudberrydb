@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/access/heapam.h,v 1.137 2008/06/19 00:46:06 alvherre Exp $
+ * $PostgreSQL: pgsql/src/include/access/heapam.h,v 1.140 2008/11/06 20:51:15 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -26,6 +26,11 @@
 #include "utils/snapshot.h"
 #include "utils/tqual.h"
 
+/* "options" flag bits for heap_insert */
+#define HEAP_INSERT_SKIP_WAL	0x0001
+#define HEAP_INSERT_SKIP_FSM	0x0002
+
+typedef struct BulkInsertStateData *BulkInsertState;
 
 // UNDONE: Temporarily.
 extern void RelationFetchGpRelationNodeForXLog_Index(Relation relation);
@@ -122,6 +127,7 @@ extern void relation_close(Relation relation, LOCKMODE lockmode);
 extern Relation heap_open(Oid relationId, LOCKMODE lockmode);
 extern Relation heap_openrv(const RangeVar *relation, LOCKMODE lockmode);
 extern Relation try_heap_open(Oid relationId, LOCKMODE lockmode, bool noWait);
+extern Relation try_heap_openrv(const RangeVar *relation, LOCKMODE lockmode);
 
 #define heap_close(r,l)  relation_close(r,l)
 
@@ -168,8 +174,11 @@ extern void heap_get_latest_tid(Relation relation, Snapshot snapshot,
 					ItemPointer tid);
 extern void setLastTid(const ItemPointer tid);
 
+extern BulkInsertState GetBulkInsertState(void);
+extern void FreeBulkInsertState(BulkInsertState);
+
 extern Oid heap_insert(Relation relation, HeapTuple tup, CommandId cid,
-			bool use_wal, bool use_fsm, TransactionId xid);
+					   int options, BulkInsertState bistate, TransactionId xid);
 extern HTSU_Result heap_delete(Relation relation, ItemPointer tid,
 			ItemPointer ctid, TransactionId *update_xmax,
 			CommandId cid, Snapshot crosscheck, bool wait);
@@ -224,10 +233,11 @@ extern XLogRecPtr log_heap_freeze(Relation reln, Buffer buffer,
 				TransactionId cutoff_xid,
 				OffsetNumber *offsets, int offcnt);
 
-extern XLogRecPtr log_newpage_rel(Relation rel, BlockNumber blkno,
+extern XLogRecPtr log_newpage_rel(Relation rel, ForkNumber forkNum, BlockNumber blkno,
 								  Page page);
 
 extern XLogRecPtr log_newpage_relFileNode(RelFileNode *relFileNode,
+										  ForkNumber forkNum,
 										  BlockNumber blkno, Page page,
 										  ItemPointer persistentTid,
 										  int64 persistentSerialNum);

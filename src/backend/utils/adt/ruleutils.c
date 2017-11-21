@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/ruleutils.c,v 1.279 2008/08/02 21:32:00 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/ruleutils.c,v 1.290 2008/12/19 05:04:35 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -152,6 +152,7 @@ static char *pg_get_expr_worker(text *expr, Oid relid, char *relname,
 				   int prettyFlags);
 static int print_function_arguments(StringInfo buf, HeapTuple proctup,
 						 bool print_table_args, bool print_defaults);
+static void print_function_rettype(StringInfo buf, HeapTuple proctup);
 static void make_ruledef(StringInfo buf, HeapTuple ruletup, TupleDesc rulettc,
 			 int prettyFlags);
 static void make_viewdef(StringInfo buf, HeapTuple ruletup, TupleDesc rulettc,
@@ -208,6 +209,7 @@ static void get_coercion_expr(Node *arg, deparse_context *context,
 				  Node *parentNode);
 static void get_const_expr(Const *constval, deparse_context *context,
 			   int showtype);
+static void simple_quote_literal(StringInfo buf, const char *val);
 static void get_sublink_expr(SubLink *sublink, deparse_context *context);
 static void get_from_clause(Query *query, const char *prefix,
 				deparse_context *context);
@@ -587,23 +589,10 @@ pg_get_triggerdef(PG_FUNCTION_ARGS)
 		{
 			if (i > 0)
 				appendStringInfo(&buf, ", ");
-
-			/*
-			 * We form the string literal according to the prevailing setting
-			 * of standard_conforming_strings; we never use E''. User is
-			 * responsible for making sure result is used correctly.
-			 */
-			appendStringInfoChar(&buf, '\'');
-			while (*p)
-			{
-				char		ch = *p++;
-
-				if (SQL_STR_DOUBLE(ch, !standard_conforming_strings))
-					appendStringInfoChar(&buf, ch);
-				appendStringInfoChar(&buf, ch);
-			}
-			appendStringInfoChar(&buf, '\'');
+			simple_quote_literal(&buf, p);
 			/* advance p to next string embedded in tgargs */
+			while (*p)
+				p++;
 			p++;
 		}
 	}
@@ -1460,6 +1449,188 @@ pg_get_serial_sequence(PG_FUNCTION_ARGS)
 }
 
 /*
+ * pg_get_functiondef
+ * 		Returns the complete "CREATE OR REPLACE FUNCTION ..." statement for
+ * 		the specified function.
+ */
+Datum
+pg_get_functiondef(PG_FUNCTION_ARGS)
+{
+	Oid			funcid = PG_GETARG_OID(0);
+	StringInfoData buf;
+	StringInfoData dq;
+	HeapTuple	proctup;
+	HeapTuple	langtup;
+	Form_pg_proc proc;
+	Form_pg_language lang;
+	Datum		tmp;
+	bool		isnull;
+	const char *prosrc;
+	const char *name;
+	const char *nsp;
+	float4		procost;
+	int			oldlen;
+
+	initStringInfo(&buf);
+
+	/* Look up the function */
+	proctup = SearchSysCache(PROCOID,
+							 ObjectIdGetDatum(funcid),
+							 0, 0, 0);
+	if (!HeapTupleIsValid(proctup))
+		elog(ERROR, "cache lookup failed for function %u", funcid);
+	proc = (Form_pg_proc) GETSTRUCT(proctup);
+	name = NameStr(proc->proname);
+
+	if (proc->proisagg)
+		ereport(ERROR,
+				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+				 errmsg("\"%s\" is an aggregate function", name)));
+
+	/* Need its pg_language tuple for the language name */
+	langtup = SearchSysCache(LANGOID,
+							 ObjectIdGetDatum(proc->prolang),
+							 0, 0, 0);
+	if (!HeapTupleIsValid(langtup))
+		elog(ERROR, "cache lookup failed for language %u", proc->prolang);
+	lang = (Form_pg_language) GETSTRUCT(langtup);
+
+	/*
+	 * We always qualify the function name, to ensure the right function
+	 * gets replaced.
+	 */
+	nsp = get_namespace_name(proc->pronamespace);
+	appendStringInfo(&buf, "CREATE OR REPLACE FUNCTION %s(",
+					 quote_qualified_identifier(nsp, name));
+	(void) print_function_arguments(&buf, proctup, false, true);
+	appendStringInfoString(&buf, ")\n RETURNS ");
+	print_function_rettype(&buf, proctup);
+	appendStringInfo(&buf, "\n LANGUAGE %s\n",
+					 quote_identifier(NameStr(lang->lanname)));
+
+	/* Emit some miscellaneous options on one line */
+	oldlen = buf.len;
+
+	switch (proc->provolatile)
+	{
+		case PROVOLATILE_IMMUTABLE:
+			appendStringInfoString(&buf, " IMMUTABLE");
+			break;
+		case PROVOLATILE_STABLE:
+			appendStringInfoString(&buf, " STABLE");
+			break;
+		case PROVOLATILE_VOLATILE:
+			break;
+	}
+	if (proc->proisstrict)
+		appendStringInfoString(&buf, " STRICT");
+	if (proc->prosecdef)
+		appendStringInfoString(&buf, " SECURITY DEFINER");
+
+	/* This code for the default cost and rows should match functioncmds.c */
+	if (proc->prolang == INTERNALlanguageId ||
+		proc->prolang == ClanguageId)
+		procost = 1;
+	else
+		procost = 100;
+	if (proc->procost != procost)
+		appendStringInfo(&buf, " COST %g", proc->procost);
+
+	if (proc->prorows > 0 && proc->prorows != 1000)
+		appendStringInfo(&buf, " ROWS %g", proc->prorows);
+
+	if (oldlen != buf.len)
+		appendStringInfoChar(&buf, '\n');
+
+	/* Emit any proconfig options, one per line */
+	tmp = SysCacheGetAttr(PROCOID, proctup, Anum_pg_proc_proconfig, &isnull);
+	if (!isnull)
+	{
+		ArrayType	*a = DatumGetArrayTypeP(tmp);
+		int			i;
+
+		Assert(ARR_ELEMTYPE(a) == TEXTOID);
+		Assert(ARR_NDIM(a) == 1);
+		Assert(ARR_LBOUND(a)[0] == 1);
+
+		for (i = 1; i <= ARR_DIMS(a)[0]; i++)
+		{
+			Datum	d;
+
+			d = array_ref(a, 1, &i,
+						  -1 /* varlenarray */ ,
+						  -1 /* TEXT's typlen */ ,
+						  false /* TEXT's typbyval */ ,
+						  'i' /* TEXT's typalign */ ,
+						  &isnull);
+			if (!isnull)
+			{
+				char	   *configitem = TextDatumGetCString(d);
+				char	   *pos;
+
+				pos = strchr(configitem, '=');
+				if (pos == NULL)
+					continue;
+				*pos++ = '\0';
+
+				appendStringInfo(&buf, " SET %s TO ",
+								 quote_identifier(configitem));
+
+				/*
+				 * Some GUC variable names are 'LIST' type and hence must not
+				 * be quoted.
+				 */
+				if (pg_strcasecmp(configitem, "DateStyle") == 0
+					|| pg_strcasecmp(configitem, "search_path") == 0)
+					appendStringInfoString(&buf, pos);
+				else
+					simple_quote_literal(&buf, pos);
+				appendStringInfoChar(&buf, '\n');
+			}
+		}
+	}
+
+	/* And finally the function definition ... */
+	appendStringInfoString(&buf, "AS ");
+
+	tmp = SysCacheGetAttr(PROCOID, proctup, Anum_pg_proc_probin, &isnull);
+	if (!isnull)
+	{
+		simple_quote_literal(&buf, TextDatumGetCString(tmp));
+		appendStringInfoString(&buf, ", ");		/* assume prosrc isn't null */
+	}
+
+	tmp = SysCacheGetAttr(PROCOID, proctup, Anum_pg_proc_prosrc, &isnull);
+	if (isnull)
+		elog(ERROR, "null prosrc");
+	prosrc = TextDatumGetCString(tmp);
+
+	/*
+	 * We always use dollar quoting.  Figure out a suitable delimiter.
+	 *
+	 * Since the user is likely to be editing the function body string,
+	 * we shouldn't use a short delimiter that he might easily create a
+	 * conflict with.  Hence prefer "$function$", but extend if needed.
+	 */
+	initStringInfo(&dq);
+	appendStringInfoString(&dq, "$function");
+	while (strstr(prosrc, dq.data) != NULL)
+		appendStringInfoChar(&dq, 'x');
+	appendStringInfoChar(&dq, '$');
+
+	appendStringInfoString(&buf, dq.data);
+	appendStringInfoString(&buf, prosrc);
+	appendStringInfoString(&buf, dq.data);
+
+	appendStringInfoString(&buf, "\n");
+
+	ReleaseSysCache(langtup);
+	ReleaseSysCache(proctup);
+
+	PG_RETURN_TEXT_P(string_to_text(buf.data));
+}
+
+/*
  * pg_get_function_arguments
  *		Get a nicely-formatted list of arguments for a function.
  *		This is everything that would go between the parentheses in
@@ -1516,6 +1687,41 @@ pg_get_function_identity_arguments(PG_FUNCTION_ARGS)
 }
 
 /*
+ * Guts of pg_get_function_result: append the function's return type
+ * to the specified buffer.
+ */
+static void
+print_function_rettype(StringInfo buf, HeapTuple proctup)
+{
+	Form_pg_proc proc = (Form_pg_proc) GETSTRUCT(proctup);
+	int			ntabargs = 0;
+	StringInfoData rbuf;
+
+	initStringInfo(&rbuf);
+
+	if (proc->proretset)
+	{
+		/* It might be a table function; try to print the arguments */
+		appendStringInfoString(&rbuf, "TABLE(");
+		ntabargs = print_function_arguments(&rbuf, proctup, true, false);
+		if (ntabargs > 0)
+			appendStringInfoString(&rbuf, ")");
+		else
+			resetStringInfo(&rbuf);
+	}
+
+	if (ntabargs == 0)
+	{
+		/* Not a table function, so do the normal thing */
+		if (proc->proretset)
+			appendStringInfoString(&rbuf, "SETOF ");
+		appendStringInfoString(&rbuf, format_type_be(proc->prorettype));
+	}
+
+	appendStringInfoString(buf, rbuf.data);
+}
+
+/*
  * Common code for pg_get_function_arguments and pg_get_function_result:
  * append the desired subset of arguments to buf.  We print only TABLE
  * arguments when print_table_args is true, and all the others when it's false.
@@ -1551,8 +1757,8 @@ print_function_arguments(StringInfo buf, HeapTuple proctup,
 										 &isnull);
 		if (!isnull)
 		{
-			char	   *str;
-			List	   *argdefaults;
+			char   *str;
+			List   *argdefaults;
 
 			str = TextDatumGetCString(proargdefaults);
 			argdefaults = (List *) stringToNode(str);
@@ -1572,7 +1778,7 @@ print_function_arguments(StringInfo buf, HeapTuple proctup,
 		char	   *argname = argnames ? argnames[i] : NULL;
 		char		argmode = argmodes ? argmodes[i] : PROARGMODE_IN;
 		const char *modename;
-		bool		isinput;
+		bool	isinput;
 
 		switch (argmode)
 		{
@@ -1598,7 +1804,7 @@ print_function_arguments(StringInfo buf, HeapTuple proctup,
 				break;
 			default:
 				elog(ERROR, "invalid parameter mode '%c'", argmode);
-				modename = NULL;	/* keep compiler quiet */
+				modename = NULL; /* keep compiler quiet */
 				isinput = false;
 				break;
 		}
@@ -1616,7 +1822,7 @@ print_function_arguments(StringInfo buf, HeapTuple proctup,
 		appendStringInfoString(buf, format_type_be(argtype));
 		if (print_defaults && isinput && inputargno > nlackdefaults)
 		{
-			Node	   *expr;
+			Node	*expr;
 
 			Assert(nextargdefault != NULL);
 			expr = (Node *) lfirst(nextargdefault);
@@ -1816,7 +2022,7 @@ deparse_context_for_plan(Node *plan, Node *outer_plan,
 	dpns->rtable = rtable;
 	dpns->ctes = NIL;
 	dpns->subplans = subplans;
-	dpns->inner_plan = NULL;
+
 	/*
 	 * Set up outer_plan and inner_plan from the Plan node (this includes
 	 * various special cases for particular Plan types).
@@ -2240,8 +2446,8 @@ static void
 get_with_clause(Query *query, deparse_context *context)
 {
 	StringInfo	buf = context->buf;
-	const char *sep;
-	ListCell   *l;
+	const char	*sep;
+	ListCell	*l;
 
 	if (query->cteList == NIL)
 		return;
@@ -3229,8 +3435,7 @@ get_utility_query_def(Query *query, deparse_context *context)
 		appendContextKeyword(context, "",
 							 0, PRETTYINDENT_STD, 1);
 		appendStringInfo(buf, "NOTIFY %s",
-					   quote_qualified_identifier(stmt->relation->schemaname,
-												  stmt->relation->relname));
+						 quote_identifier(stmt->conditionname));
 	}
 	else
 	{
@@ -3565,6 +3770,18 @@ get_name_for_var_field(Var *var, int fieldno,
 	deparse_namespace *dpns;
 	TupleDesc	tupleDesc;
 	Node	   *expr;
+
+	/*
+	 * If it's a RowExpr that was expanded from a whole-row Var, use the
+	 * column names attached to it.
+	 */
+	if (IsA(var, RowExpr))
+	{
+		RowExpr	   *r = (RowExpr *) var;
+
+		if (fieldno > 0 && fieldno <= list_length(r->colnames))
+			return strVal(list_nth(r->colnames, fieldno - 1));
+	}
 
 	/*
 	 * If it's a Var of type RECORD, we have to find what the Var refers to;
@@ -4719,7 +4936,6 @@ get_rule_expr(Node *node, deparse_context *context,
 				appendStringInfo(buf, "ARRAY[");
 				get_rule_expr((Node *) arrayexpr->elements, context, true);
 				appendStringInfoChar(buf, ']');
-
 				/*
 				 * If the array isn't empty, we assume its elements are
 				 * coerced to the desired type.  If it's empty, though, we
@@ -5643,7 +5859,6 @@ get_const_expr(Const *constval, deparse_context *context, int showtype)
 	Oid			typoutput;
 	bool		typIsVarlena;
 	char	   *extval;
-	char	   *valptr;
 	bool		isfloat = false;
 	bool		needlabel;
 
@@ -5718,22 +5933,7 @@ get_const_expr(Const *constval, deparse_context *context, int showtype)
 			break;
 
 		default:
-
-			/*
-			 * We form the string literal according to the prevailing setting
-			 * of standard_conforming_strings; we never use E''. User is
-			 * responsible for making sure result is used correctly.
-			 */
-			appendStringInfoChar(buf, '\'');
-			for (valptr = extval; *valptr; valptr++)
-			{
-				char		ch = *valptr;
-
-				if (SQL_STR_DOUBLE(ch, !standard_conforming_strings))
-					appendStringInfoChar(buf, ch);
-				appendStringInfoChar(buf, ch);
-			}
-			appendStringInfoChar(buf, '\'');
+			simple_quote_literal(buf, extval);
 			break;
 	}
 
@@ -5773,6 +5973,31 @@ get_const_expr(Const *constval, deparse_context *context, int showtype)
 		appendStringInfo(buf, "::%s",
 						 format_type_with_typemod(constval->consttype,
 												  constval->consttypmod));
+}
+
+/*
+ * simple_quote_literal - Format a string as a SQL literal, append to buf
+ */
+static void
+simple_quote_literal(StringInfo buf, const char *val)
+{
+	const char *valptr;
+
+	/*
+	 * We form the string literal according to the prevailing setting
+	 * of standard_conforming_strings; we never use E''. User is
+	 * responsible for making sure result is used correctly.
+	 */
+	appendStringInfoChar(buf, '\'');
+	for (valptr = val; *valptr; valptr++)
+	{
+		char		ch = *valptr;
+
+		if (SQL_STR_DOUBLE(ch, !standard_conforming_strings))
+			appendStringInfoChar(buf, ch);
+		appendStringInfoChar(buf, ch);
+	}
+	appendStringInfoChar(buf, '\'');
 }
 
 
@@ -6675,10 +6900,9 @@ generate_function_name(Oid funcid, int nargs, Oid *argtypes,
 	 * specified argtypes.
 	 */
 	p_result = func_get_detail(list_make1(makeString(proname)),
-							   NIL, nargs, argtypes, false, false,
+							   NIL, nargs, argtypes, false, true,
 							   &p_funcid, &p_rettype,
-							   &p_retset,
-							   &p_nvargs, &p_true_typeids, NULL);
+							   &p_retset, &p_nvargs, &p_true_typeids, NULL);
 	if ((p_result == FUNCDETAIL_NORMAL || p_result == FUNCDETAIL_AGGREGATE) &&
 		p_funcid == funcid)
 		nspname = NULL;

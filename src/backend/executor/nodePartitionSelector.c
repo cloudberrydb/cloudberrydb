@@ -208,7 +208,6 @@ ExecPartitionSelector(PartitionSelectorState *node)
 
 	/* partition elimination with the given input tuple */
 	ResetExprContext(econtext);
-	node->ps.ps_OuterTupleSlot = inputSlot;
 	econtext->ecxt_outertuple = inputSlot;
 	econtext->ecxt_scantuple = inputSlot;
 

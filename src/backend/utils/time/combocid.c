@@ -34,7 +34,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL$
+ *	  $PostgreSQL: pgsql/src/backend/utils/time/combocid.c,v 1.5 2008/09/01 18:52:45 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -190,7 +190,7 @@ HeapTupleHeaderAdjustCmax(HeapTupleHeader tup,
 	if (!(tup->t_infomask & HEAP_XMIN_COMMITTED) &&
 		TransactionIdIsCurrentTransactionId(HeapTupleHeaderGetXmin(tup)))
 	{
-		CommandId	cmin = HeapTupleHeaderGetRawCommandId(tup);
+		CommandId	cmin = HeapTupleHeaderGetCmin(tup);
 
 		*cmax = GetComboCommandId(HeapTupleHeaderGetXmin(tup), cmin, *cmax);
 		*iscombo = true;

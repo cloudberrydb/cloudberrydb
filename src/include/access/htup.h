@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/access/htup.h,v 1.100 2008/07/13 20:45:47 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/access/htup.h,v 1.105 2008/12/03 13:05:22 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -663,9 +663,10 @@ typedef struct xl_heapnode
 typedef struct xl_heap_delete
 {
 	xl_heaptid	target;			/* deleted tuple id */
+	bool all_visible_cleared;	/* PD_ALL_VISIBLE was cleared */
 } xl_heap_delete;
 
-#define SizeOfHeapDelete	(offsetof(xl_heap_delete, target) + SizeOfHeapTid)
+#define SizeOfHeapDelete	(offsetof(xl_heap_delete, all_visible_cleared) + sizeof(bool))
 
 /*
  * We don't store the whole fixed part (HeapTupleHeaderData) of an inserted
@@ -688,21 +689,24 @@ typedef struct xl_heap_header
 typedef struct xl_heap_insert
 {
 	xl_heaptid	target;			/* inserted tuple id */
+	bool all_visible_cleared;	/* PD_ALL_VISIBLE was cleared */
 	/* xl_heap_header & TUPLE DATA FOLLOWS AT END OF STRUCT */
 } xl_heap_insert;
 
-#define SizeOfHeapInsert	(offsetof(xl_heap_insert, target) + SizeOfHeapTid)
+#define SizeOfHeapInsert	(offsetof(xl_heap_insert, all_visible_cleared) + sizeof(bool))
 
 /* This is what we need to know about update|move|hot_update */
 typedef struct xl_heap_update
 {
 	xl_heaptid	target;			/* deleted tuple id */
 	ItemPointerData newtid;		/* new inserted tuple id */
+	bool all_visible_cleared;	/* PD_ALL_VISIBLE was cleared */
+	bool new_all_visible_cleared; /* same for the page of newtid */
 	/* NEW TUPLE xl_heap_header (PLUS xmax & xmin IF MOVE OP) */
 	/* and TUPLE DATA FOLLOWS AT END OF STRUCT */
 } xl_heap_update;
 
-#define SizeOfHeapUpdate	(offsetof(xl_heap_update, newtid) + SizeOfIptrData)
+#define SizeOfHeapUpdate	(offsetof(xl_heap_update, new_all_visible_cleared) + sizeof(bool))
 
 /*
  * This is what we need to know about vacuum page cleanup/redirect
@@ -738,6 +742,7 @@ typedef struct xl_heap_clean
 typedef struct xl_heap_newpage
 {
 	xl_heapnode heapnode;
+	ForkNumber	forknum;
 	BlockNumber blkno;			/* location of new page */
 	/* entire page contents follow at end of record */
 } xl_heap_newpage;
@@ -893,25 +898,29 @@ static inline HeapTuple heap_copytuple(HeapTuple tuple)
 
 extern void heap_copytuple_with_tuple(HeapTuple src, HeapTuple dest);
 
-extern HeapTuple heaptuple_form_to(TupleDesc tupdesc, Datum* values, bool *isnull, HeapTuple tup, uint32 *len);
-static inline HeapTuple heap_form_tuple(TupleDesc tupleDescriptor, Datum *values, bool *isnull)
+extern HeapTuple heaptuple_form_to(TupleDesc tupdesc, Datum* values,
+								   bool *isnull, HeapTuple tup, uint32 *len);
+static inline HeapTuple heap_form_tuple(TupleDesc tupleDescriptor,
+				Datum *values, bool *isnull)
 {
 	return heaptuple_form_to(tupleDescriptor, values, isnull, NULL, NULL);
 }
-extern HeapTuple heap_formtuple(TupleDesc tupleDescriptor, Datum *values, char *nulls) __attribute__ ((deprecated));
 
 extern HeapTuple heap_modify_tuple(HeapTuple tuple,
 				  TupleDesc tupleDesc,
 				  Datum *replValues,
 				  bool *replIsnull,
 				  bool *doReplace);
+extern void heap_deform_tuple(HeapTuple tuple, TupleDesc tupleDesc,
+				  Datum *values, bool *isnull);
+/* these three are deprecated versions of the three above: */
+extern HeapTuple heap_formtuple(TupleDesc tupleDescriptor,
+			   Datum *values, char *nulls) __attribute__ ((deprecated));
 extern HeapTuple heap_modifytuple(HeapTuple tuple,
 				 TupleDesc tupleDesc,
 				 Datum *replValues,
 				 char *replNulls,
 				 char *replActions) __attribute__ ((deprecated));
-extern void heap_deform_tuple(HeapTuple tuple, TupleDesc tupleDesc,
-				  Datum *values, bool *isnull);
 extern void heap_deformtuple(HeapTuple tuple, TupleDesc tupleDesc,
 				 Datum *values, char *nulls) __attribute__ ((deprecated));
 extern void heap_freetuple(HeapTuple htup);
@@ -921,7 +930,5 @@ extern void heap_free_minimal_tuple(MinimalTuple mtup);
 extern MinimalTuple heap_copy_minimal_tuple(MinimalTuple mtup);
 extern HeapTuple heap_tuple_from_minimal_tuple(MinimalTuple mtup);
 extern MinimalTuple minimal_tuple_from_heap_tuple(HeapTuple htup);
-extern HeapTuple heap_addheader(int natts, bool withoid,
-			   Size structlen, void *structure);
 
 #endif   /* HTUP_H */

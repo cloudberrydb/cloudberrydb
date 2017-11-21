@@ -96,7 +96,7 @@ extern
 void ExecutorStart(QueryDesc *pqueryDesc, int iEFlags);
 
 extern
-TupleTableSlot *ExecutorRun(QueryDesc *pqueryDesc, ScanDirection direction, long lCount);
+void ExecutorRun(QueryDesc *pqueryDesc, ScanDirection direction, long lCount);
 
 extern
 void ExecutorEnd(QueryDesc *pqueryDesc);

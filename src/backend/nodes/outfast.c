@@ -307,6 +307,22 @@ _outPlanInfo(StringInfo str, Plan *node)
 }
 
 static void
+_outRecursiveUnion(StringInfo str, RecursiveUnion *node)
+{
+	WRITE_NODE_TYPE("RECURSIVEUNION");
+
+	_outPlanInfo(str, (Plan *) node);
+
+	WRITE_INT_FIELD(wtParam);
+	WRITE_INT_FIELD(numCols);
+
+	WRITE_INT_ARRAY(dupColIdx, node->numCols, AttrNumber);
+	WRITE_OID_ARRAY(dupOperators, node->numCols);
+
+	WRITE_LONG_FIELD(numGroups);
+}
+
+static void
 _outPlannedStmt(StringInfo str, PlannedStmt *node)
 {
 	WRITE_NODE_TYPE("PLANNEDSTMT");
@@ -317,11 +333,8 @@ _outPlannedStmt(StringInfo str, PlannedStmt *node)
 	WRITE_BOOL_FIELD(transientPlan);
 	WRITE_BOOL_FIELD(oneoffPlan);
 	WRITE_BOOL_FIELD(simplyUpdatable);
-
 	WRITE_NODE_FIELD(planTree);
-
 	WRITE_NODE_FIELD(rtable);
-
 	WRITE_NODE_FIELD(resultRelations);
 	WRITE_NODE_FIELD(utilityStmt);
 	WRITE_NODE_FIELD(intoClause);
@@ -557,6 +570,7 @@ _outConst(StringInfo str, Const *node)
 	WRITE_INT_FIELD(constlen);
 	WRITE_BOOL_FIELD(constbyval);
 	WRITE_BOOL_FIELD(constisnull);
+	WRITE_LOCATION_FIELD(location);
 
 	if (!node->constisnull)
 		_outDatum(str, node->constvalue, node->constlen, node->constbyval);
@@ -581,37 +595,13 @@ _outAggref(StringInfo str, Aggref *node)
 }
 
 static void
-_outFuncExpr(StringInfo str, FuncExpr *node)
-{
-	WRITE_NODE_TYPE("FUNCEXPR");
-
-	WRITE_OID_FIELD(funcid);
-	WRITE_OID_FIELD(funcresulttype);
-	WRITE_BOOL_FIELD(funcretset);
-	WRITE_ENUM_FIELD(funcformat, CoercionForm);
-	WRITE_NODE_FIELD(args);
-	WRITE_BOOL_FIELD(is_tablefunc);
-}
-
-static void
 _outBoolExpr(StringInfo str, BoolExpr *node)
 {
 	WRITE_NODE_TYPE("BOOLEXPR");
 	WRITE_ENUM_FIELD(boolop, BoolExprType);
 
 	WRITE_NODE_FIELD(args);
-}
-
-static void
-_outSubLink(StringInfo str, SubLink *node)
-{
-	WRITE_NODE_TYPE("SUBLINK");
-
-	WRITE_ENUM_FIELD(subLinkType, SubLinkType);
-	WRITE_NODE_FIELD(testexpr);
-	WRITE_NODE_FIELD(operName);
-	WRITE_LOCATION_FIELD(location);      /*CDB*/
-	WRITE_NODE_FIELD(subselect);
+	WRITE_LOCATION_FIELD(location);
 }
 
 static void
@@ -839,15 +829,6 @@ _outTypeName(StringInfo str, TypeName *node)
 }
 
 static void
-_outTypeCast(StringInfo str, TypeCast *node)
-{
-	WRITE_NODE_TYPE("TYPECAST");
-
-	WRITE_NODE_FIELD(arg);
-	WRITE_NODE_FIELD(typeName);
-}
-
-static void
 _outQuery(StringInfo str, Query *node)
 {
 	WRITE_NODE_TYPE("QUERY");
@@ -863,8 +844,10 @@ _outQuery(StringInfo str, Query *node)
 	WRITE_BOOL_FIELD(hasWindowFuncs);
 	WRITE_BOOL_FIELD(hasSubLinks);
 	WRITE_BOOL_FIELD(hasDistinctOn);
+	WRITE_BOOL_FIELD(hasRecursive);
 	WRITE_BOOL_FIELD(hasDynamicFunctions);
 	WRITE_BOOL_FIELD(hasFuncsWithExecRestrictions);
+	WRITE_NODE_FIELD(cteList);
 	WRITE_NODE_FIELD(rtable);
 	WRITE_NODE_FIELD(jointree);
 	WRITE_NODE_FIELD(targetList);
@@ -876,8 +859,6 @@ _outQuery(StringInfo str, Query *node)
 	WRITE_NODE_FIELD(sortClause);
 	WRITE_NODE_FIELD(scatterClause);
 	WRITE_BOOL_FIELD(isTableValueSelect);
-	WRITE_NODE_FIELD(cteList);
-	WRITE_BOOL_FIELD(hasRecursive);
 	WRITE_NODE_FIELD(limitOffset);
 	WRITE_NODE_FIELD(limitCount);
 	WRITE_NODE_FIELD(rowMarks);
@@ -1153,6 +1134,108 @@ _outCookedConstraint(StringInfo str, CookedConstraint *node)
 	WRITE_NODE_FIELD(expr);
 	WRITE_BOOL_FIELD(is_local);
 	WRITE_INT_FIELD(inhcount);
+}
+
+static void
+_outCreateFdwStmt(StringInfo str, CreateFdwStmt *node)
+{
+	WRITE_NODE_TYPE("CREATEFDWSTMT");
+
+	WRITE_STRING_FIELD(fdwname);
+	WRITE_STRING_FIELD(library);
+	WRITE_NODE_FIELD(options);
+}
+
+static void
+_outAlterFdwStmt(StringInfo str, AlterFdwStmt *node)
+{
+	WRITE_NODE_TYPE("ALTERFDWSTMT");
+
+	WRITE_STRING_FIELD(fdwname);
+	WRITE_STRING_FIELD(library);
+	WRITE_NODE_FIELD(options);
+}
+
+static void
+_outDropFdwStmt(StringInfo str, DropFdwStmt *node)
+{
+	WRITE_NODE_TYPE("DROPFDWSTMT");
+
+	WRITE_STRING_FIELD(fdwname);
+	WRITE_BOOL_FIELD(missing_ok);
+	WRITE_ENUM_FIELD(behavior, DropBehavior);
+}
+
+static void
+_outCreateForeignServerStmt(StringInfo str, CreateForeignServerStmt *node)
+{
+	WRITE_NODE_TYPE("CREATEFOREIGNSERVERSTMT");
+
+	WRITE_STRING_FIELD(servername);
+	WRITE_STRING_FIELD(servertype);
+	WRITE_STRING_FIELD(version);
+	WRITE_STRING_FIELD(fdwname);
+	WRITE_NODE_FIELD(options);
+}
+
+static void
+_outAlterForeignServerStmt(StringInfo str, AlterForeignServerStmt *node)
+{
+	WRITE_NODE_TYPE("ALTERFOREIGNSERVERSTMT");
+
+	WRITE_STRING_FIELD(servername);
+	WRITE_STRING_FIELD(version);
+	WRITE_NODE_FIELD(options);
+	WRITE_BOOL_FIELD(has_version);
+}
+
+static void
+_outDropForeignServerStmt(StringInfo str, DropForeignServerStmt *node)
+{
+	WRITE_NODE_TYPE("DROPFOREIGNSERVERSTMT");
+
+	WRITE_STRING_FIELD(servername);
+	WRITE_BOOL_FIELD(missing_ok);
+	WRITE_ENUM_FIELD(behavior, DropBehavior);
+}
+
+static void
+_outCreateUserMappingStmt(StringInfo str, CreateUserMappingStmt *node)
+{
+	WRITE_NODE_TYPE("CREATEUSERMAPPINGSTMT");
+
+	WRITE_STRING_FIELD(username);
+	WRITE_STRING_FIELD(servername);
+	WRITE_NODE_FIELD(options);
+}
+
+static void
+_outAlterUserMappingStmt(StringInfo str, AlterUserMappingStmt *node)
+{
+	WRITE_NODE_TYPE("ALTERUSERMAPPINGSTMT");
+
+	WRITE_STRING_FIELD(username);
+	WRITE_STRING_FIELD(servername);
+	WRITE_NODE_FIELD(options);
+}
+
+static void
+_outDropUserMappingStmt(StringInfo str, DropUserMappingStmt *node)
+{
+	WRITE_NODE_TYPE("DROPUSERMAPPINGSTMT");
+
+	WRITE_STRING_FIELD(username);
+	WRITE_STRING_FIELD(servername);
+	WRITE_BOOL_FIELD(missing_ok);
+}
+
+static void
+_outOptionDefElem(StringInfo str, OptionDefElem *node)
+{
+	WRITE_NODE_TYPE("OPTIONDEFELEM");
+
+	WRITE_ENUM_FIELD(alter_op, AlterOptionOp);
+	WRITE_NODE_FIELD(def);
 }
 
 /*
@@ -1865,6 +1948,9 @@ _outNode(StringInfo str, void *obj)
 			case T_A_Const:
 				_outAConst(str, obj);
 				break;
+			case T_A_Star:
+				_outA_Star(str, obj);
+				break;
 			case T_A_Indices:
 				_outA_Indices(str, obj);
 				break;
@@ -2041,6 +2127,38 @@ _outNode(StringInfo str, void *obj)
 
 			case T_CookedConstraint:
 				_outCookedConstraint(str, obj);
+				break;
+
+			case T_DropUserMappingStmt:
+				_outDropUserMappingStmt(str, obj);
+				break;
+			case T_AlterUserMappingStmt:
+				_outAlterUserMappingStmt(str, obj);
+				break;
+			case T_CreateUserMappingStmt:
+				_outCreateUserMappingStmt(str, obj);
+				break;
+			case T_DropForeignServerStmt:
+				_outDropForeignServerStmt(str, obj);
+				break;
+			case T_AlterForeignServerStmt:
+				_outAlterForeignServerStmt(str, obj);
+				break;
+			case T_CreateForeignServerStmt:
+				_outCreateForeignServerStmt(str, obj);
+				break;
+			case T_DropFdwStmt:
+				_outDropFdwStmt(str, obj);
+				break;
+			case T_AlterFdwStmt:
+				_outAlterFdwStmt(str, obj);
+				break;
+			case T_CreateFdwStmt:
+				_outCreateFdwStmt(str, obj);
+				break;
+
+			case T_OptionDefElem:
+				_outOptionDefElem(str, obj);
 				break;
 
 			default:

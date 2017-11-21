@@ -236,7 +236,7 @@ FileRepPrimary_ResyncWrite(FileRepResyncHashEntry_s *entry)
 
 					smgr_relation = smgropen(entry->relFileNode);
 
-					numBlocks = smgrnblocks(smgr_relation);
+					numBlocks = smgrnblocks(smgr_relation, MAIN_FORKNUM);
 
 					snprintf(relidstr, sizeof(relidstr), "%u/%u/%u",
 							 smgr_relation->smgr_rnode.spcNode,
@@ -319,6 +319,7 @@ FileRepPrimary_ResyncWrite(FileRepResyncHashEntry_s *entry)
 							char	   *pageCopy = PageSetChecksumCopy(page, blkno);
 
 							smgrwrite(smgr_relation,
+									  MAIN_FORKNUM,
 									  blkno,
 									  pageCopy,
 									  FALSE);
@@ -351,20 +352,22 @@ FileRepPrimary_ResyncWrite(FileRepResyncHashEntry_s *entry)
 					{
 						LockRelationForResyncExtension(&smgr_relation->smgr_rnode, ExclusiveLock);
 
-						numBlocks = smgrnblocks(smgr_relation);
+						numBlocks = smgrnblocks(smgr_relation, MAIN_FORKNUM);
 
+						/* GPDB_84_MERGE_FIXME: Should this call RelationTruncate() instead?
+						 * I don't understand where or when this gets called. In the primary or
+						 * mirror? Should we also truncate FSM and VM?
+						 */
 						smgrtruncate(smgr_relation,
+									 MAIN_FORKNUM,
 									 numBlocks,
 									 TRUE	/* isTemp, TRUE means to not
-									   * record in XLOG */ ,
-									 FALSE /* isLocalBuf */ ,
-									 &entry->persistentTid,
-									 entry->persistentSerialNum);
+											 * record in XLOG */);
 
 						UnlockRelationForResyncExtension(&smgr_relation->smgr_rnode, ExclusiveLock);
 					}
 
-					smgrimmedsync(smgr_relation);
+					smgrimmedsync(smgr_relation, MAIN_FORKNUM);
 					smgrclose(smgr_relation);
 
 					smgr_relation = NULL;
@@ -587,7 +590,7 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 							 smgr_relation->smgr_rnode.dbNode,
 							 smgr_relation->smgr_rnode.relNode);
 
-					numBlocks = smgrnblocks(smgr_relation);
+					numBlocks = smgrnblocks(smgr_relation, MAIN_FORKNUM);
 
 					if (Debug_filerep_print)
 						elog(LOG, "resynchronize buffer pool relation '%u/%u/%u' "
@@ -698,6 +701,7 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 					 * discard any extra records from CT_TRANSIENT.
 					 */
 					smgrwrite(smgr_relation,
+							  MAIN_FORKNUM,
 							  blkno,
 							  pageCopy,
 							  FALSE);
@@ -717,8 +721,7 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 				{
 					if (result->ask_for_more == false)
 					{
-
-						smgrimmedsync(smgr_relation);
+						smgrimmedsync(smgr_relation, MAIN_FORKNUM);
 
 						smgrclose(smgr_relation);
 

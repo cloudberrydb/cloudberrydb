@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeCtescan.c,v 1.1 2008/10/04 21:56:53 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeCtescan.c,v 1.2 2008/10/23 15:29:23 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -305,9 +305,7 @@ ExecEndCteScan(CteScanState *node)
 void
 ExecCteScanReScan(CteScanState *node, ExprContext *exprCtxt)
 {
-	Tuplestorestate *tuplestorestate;
-
-	tuplestorestate = node->leader->cte_table;
+	Tuplestorestate *tuplestorestate = node->leader->cte_table;
 
 	ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
 

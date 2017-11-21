@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_relation.c,v 1.132 2008/05/12 00:00:50 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_relation.c,v 1.139 2008/10/08 01:14:44 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -198,13 +198,13 @@ CommonTableExpr *
 scanNameSpaceForCTE(ParseState *pstate, const char *refname,
 					Index *ctelevelsup)
 {
-	Index		levelsup;
+	Index	levelsup;
 
 	for (levelsup = 0;
 		 pstate != NULL;
 		 pstate = pstate->parentParseState, levelsup++)
 	{
-		ListCell   *lc;
+		ListCell *lc;
 
 		foreach(lc, pstate->p_ctenamespace)
 		{
@@ -230,7 +230,7 @@ isFutureCTE(ParseState *pstate, const char *refname)
 {
 	for (; pstate != NULL; pstate = pstate->parentParseState)
 	{
-		ListCell   *lc;
+		ListCell *lc;
 
 		foreach(lc, pstate->p_future_ctes)
 		{
@@ -744,7 +744,7 @@ buildScalarFunctionAlias(Node *funcexpr, char *funcname,
  * This is essentially the same as CdbOpenRelationRv, except that it caters
  * to some parser-specific error reporting needs.
  */
-static Relation
+Relation
 parserOpenTable(ParseState *pstate, const RangeVar *relation,
 				int lockmode, bool nowait, bool *lockUpgraded)
 {
@@ -810,9 +810,6 @@ addRangeTableEntry(ParseState *pstate,
 		lockmode = locking->forUpdate ? RowExclusiveLock : RowShareLock;
 		nowait	 = locking->noWait;
 	}
-	setup_parser_errposition_callback(&pcbstate, pstate, relation->location);
-	rel = parserOpenTable(pstate, relation, lockmode, nowait, NULL);
-	cancel_parser_errposition_callback(&pcbstate);
 
 	/*
 	 * Get the rel's OID.  This access also ensures that we have an up-to-date
@@ -820,6 +817,9 @@ addRangeTableEntry(ParseState *pstate,
 	 * to a rel in a statement, be careful to get the right access level
 	 * depending on whether we're doing SELECT FOR UPDATE/SHARE.
 	 */
+	setup_parser_errposition_callback(&pcbstate, pstate, relation->location);
+	rel = parserOpenTable(pstate, relation, lockmode, nowait, NULL);
+	cancel_parser_errposition_callback(&pcbstate);
 	rte->relid = RelationGetRelid(rel);
 	rte->alias = alias;
 	rte->rtekind = RTE_RELATION;
@@ -1496,9 +1496,9 @@ getLockingClause(ParseState *pstate, char *refname)
 				ListCell	*l2;
 				foreach(l2, lc->lockedRels)
 				{
-					char	   *rname = strVal(lfirst(l2));
+					RangeVar   *thisrel = (RangeVar *) lfirst(l2);
 
-					if (strcmp(refname, rname) == 0)
+					if (strcmp(refname, thisrel->relname) == 0)
 						return lc;         /* refname matched */
 				}
 			}
@@ -1652,10 +1652,16 @@ addRTEtoQuery(ParseState *pstate, RangeTblEntry *rte,
 RangeTblEntry *
 addImplicitRTE(ParseState *pstate, RangeVar *relation)
 {
+	CommonTableExpr *cte = NULL;
+	Index		levelsup = 0;
 	RangeTblEntry *rte;
 
 	/* issue warning or error as needed */
 	warnAutoRange(pstate, relation);
+
+	/* if it is an unqualified name, it might be a CTE reference */
+	if (!relation->schemaname)
+		cte = scanNameSpaceForCTE(pstate, relation->relname, &levelsup);
 
 	/*
 	 * Note that we set inFromCl true, so that the RTE will be listed
@@ -1663,7 +1669,10 @@ addImplicitRTE(ParseState *pstate, RangeVar *relation)
 	 * provides a migration path for views/rules that were originally written
 	 * with implicit-RTE syntax.
 	 */
-	rte = addRangeTableEntry(pstate, relation, NULL, false, true);
+	if (cte)
+		rte = addRangeTableEntryForCTE(pstate, cte, levelsup, NULL, true);
+	else
+		rte = addRangeTableEntry(pstate, relation, NULL, false, true);
 	/* Add to joinlist and relnamespace, but not varnamespace */
 	addRTEtoQuery(pstate, rte, true, true, false);
 
@@ -2068,7 +2077,7 @@ expandRelAttrs(ParseState *pstate, RangeTblEntry *rte,
 		te_list = lappend(te_list, te);
 	}
 
-	Assert(name == NULL && var == NULL);		/* lists not the same length? */
+	Assert(name == NULL && var == NULL);	/* lists not the same length? */
 
 	return te_list;
 }
@@ -2586,8 +2595,8 @@ warnAutoRange(ParseState *pstate, RangeVar *relation)
 		if (rte)
 			ereport(ERROR,
 					(errcode(ERRCODE_UNDEFINED_TABLE),
-			errmsg("invalid reference to FROM-clause entry for table \"%s\"",
-				   relation->relname),
+					 errmsg("invalid reference to FROM-clause entry for table \"%s\"",
+							relation->relname),
 					 (badAlias ?
 			errhint("Perhaps you meant to reference the table alias \"%s\".",
 					badAlias) :
@@ -2609,11 +2618,8 @@ warnAutoRange(ParseState *pstate, RangeVar *relation)
 		/* just issue a warning */
 		ereport(NOTICE,
 				(errcode(ERRCODE_UNDEFINED_TABLE),
-				 (pstate->parentParseState ?
-				  errmsg("adding missing FROM-clause entry in subquery for table \"%s\"",
-						 relation->relname) :
-				  errmsg("adding missing FROM-clause entry for table \"%s\"",
-						 relation->relname)),
+				 errmsg("adding missing FROM-clause entry for table \"%s\"",
+						relation->relname),
 				 (badAlias ?
 			errhint("Perhaps you meant to reference the table alias \"%s\".",
 					badAlias) :

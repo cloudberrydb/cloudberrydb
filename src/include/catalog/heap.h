@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/heap.h,v 1.88 2008/05/09 23:32:04 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/heap.h,v 1.89 2008/11/14 01:57:42 alvherre Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -18,6 +18,7 @@
 
 #include "parser/parse_node.h"
 #include "catalog/gp_persistent.h"
+#include "catalog/indexing.h"
 
 /*
  * GPDB_84_MERGE_FIXME: the new constraints work in tablecmds use RawColumnDefault
@@ -93,6 +94,10 @@ extern void heap_truncate(List *relids);
 extern void heap_truncate_check_FKs(List *relations, bool tempTables);
 
 extern List *heap_truncate_find_FKs(List *relationIds);
+
+extern void InsertPgAttributeTuple(Relation pg_attribute_rel,
+						Form_pg_attribute new_attribute,
+						CatalogIndexState indstate);
 
 extern void InsertPgClassTuple(Relation pg_class_desc,
 				   Relation new_rel_desc,

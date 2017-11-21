@@ -536,7 +536,6 @@ SELECT user_relns() AS user_relns
  city
  copy_tbl
  d_star
- date_null
  date_tbl
  default_seq
  default_tbl
@@ -553,7 +552,6 @@ SELECT user_relns() AS user_relns
  fkc_primary_table1
  fkc_primary_table2
  float4_tbl
- float8_null
  float8_tbl
  floats
  func_index_heap
@@ -608,9 +606,7 @@ SELECT user_relns() AS user_relns
  insert_seq
  insert_tbl
  int2_tbl
- int4_null
  int4_tbl
- int8_null
  int8_tbl
  interval_tbl
  iportaltest
@@ -658,7 +654,7 @@ SELECT user_relns() AS user_relns
  toyemp
  usr_define_type
  varchar_tbl
-(154 rows)
+(150 rows)
 
 SELECT name(equipment(hobby_construct(text 'skywalking', text 'mer')));
  name 

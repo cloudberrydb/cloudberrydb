@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/catalog.c,v 1.77 2008/06/19 00:46:04 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/catalog.c,v 1.80 2008/12/03 13:05:22 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -65,7 +65,8 @@
 #include "cdb/cdbpersistenttablespace.h"
 #include "cdb/cdbvars.h"
 
-#define OIDCHARS	10			/* max chars printed by %u */
+#define OIDCHARS		10			/* max chars printed by %u */
+#define FORKNAMECHARS	4			/* max chars for a fork name */
 
 static char *
 GetFilespacePathForTablespace(Oid tablespaceOid)
@@ -125,12 +126,44 @@ GetFilespacePathForTablespace(Oid tablespaceOid)
 }
 
 /*
+ * Lookup table of fork name by fork number.
+ *
+ * If you add a new entry, remember to update the errhint below, and the
+ * documentation for pg_relation_size(). Also keep FORKNAMECHARS above
+ * up-to-date.
+ */
+const char *forkNames[] = {
+	"main", /* MAIN_FORKNUM */
+	"fsm",   /* FSM_FORKNUM */
+	"vm"   /* VISIBILITYMAP_FORKNUM */
+};
+
+/*
+ * forkname_to_number - look up fork number by name
+ */
+ForkNumber
+forkname_to_number(char *forkName)
+{
+	ForkNumber forkNum;
+
+	for (forkNum = 0; forkNum <= MAX_FORKNUM; forkNum++)
+		if (strcmp(forkNames[forkNum], forkName) == 0)
+			return forkNum;
+
+	ereport(ERROR,
+			(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+			 errmsg("invalid fork name"),
+			 errhint("Valid fork names are 'main' and 'fsm'")));
+	return InvalidForkNumber; /* keep compiler quiet */
+}
+
+/*
  * relpath			- construct path to a relation's file
  *
  * Result is a palloc'd string.
  */
 char *
-relpath(RelFileNode rnode)
+relpath(RelFileNode rnode, ForkNumber forknum)
 {
 	int			pathlen;
 	char	   *path;
@@ -140,21 +173,27 @@ relpath(RelFileNode rnode)
 	{
 		/* Shared system relations live in {datadir}/global */
 		Assert(rnode.dbNode == 0);
-		pathlen = 7 + OIDCHARS + 1;
+		pathlen = 7 + OIDCHARS + 1 + FORKNAMECHARS + 1;
 		path = (char *) palloc(pathlen);
-		snprintfResult =
-			snprintf(path, pathlen, "global/%u",
-					 rnode.relNode);
-		
+		if (forknum != MAIN_FORKNUM)
+			snprintfResult = snprintf(path, pathlen, "global/%u_%s",
+									  rnode.relNode, forkNames[forknum]);
+		else
+			snprintfResult = snprintf(path, pathlen, "global/%u",
+									  rnode.relNode);
 	}
 	else if (rnode.spcNode == DEFAULTTABLESPACE_OID)
 	{
 		/* The default tablespace is {datadir}/base */
-		pathlen = 5 + OIDCHARS + 1 + OIDCHARS + 1;
+		pathlen = 5 + OIDCHARS + 1 + OIDCHARS + 1 + FORKNAMECHARS + 1;
 		path = (char *) palloc(pathlen);
-		snprintfResult =
-			snprintf(path, pathlen, "base/%u/%u",
-					 rnode.dbNode, rnode.relNode);
+		if (forknum != MAIN_FORKNUM)
+			snprintfResult = snprintf(path, pathlen, "base/%u/%u_%s",
+									  rnode.dbNode, rnode.relNode,
+									  forkNames[forknum]);
+		else
+			snprintfResult = snprintf(path, pathlen, "base/%u/%u",
+									  rnode.dbNode, rnode.relNode);
 	}
 	else
 	{
@@ -167,11 +206,17 @@ relpath(RelFileNode rnode)
 		 * We should develop an interface for the above that doesn't
 		 * require reallocating to a slightly larger size...
 		 */
-		pathlen = strlen(primary_path)+1+OIDCHARS+1+OIDCHARS+1+OIDCHARS+1;
+		pathlen = strlen(primary_path) + 1 + OIDCHARS + 1 + OIDCHARS + 1
+			+ OIDCHARS + 1 + FORKNAMECHARS + 1;
 		path = (char *) palloc(pathlen);
-		snprintfResult =
-			snprintf(path, pathlen, "%s/%u/%u/%u",
-					 primary_path, rnode.spcNode, rnode.dbNode, rnode.relNode);
+		if (forknum != MAIN_FORKNUM)
+			snprintfResult = snprintf(path, pathlen, "%s/%u/%u/%u_%s",
+									  primary_path, rnode.spcNode, rnode.dbNode,
+									  rnode.relNode, forkNames[forknum]);
+		else
+			snprintfResult = snprintf(path, pathlen, "%s/%u/%u/%u",
+									  primary_path, rnode.spcNode, rnode.dbNode,
+									  rnode.relNode);
 
 		/* Throw away the allocation we got from persistent layer */
 		pfree(primary_path);
@@ -884,7 +929,8 @@ GetNewSequenceRelationOid(Relation relation)
 		if (!collides)
 		{
 			/* Check for existing file of same name */
-			rpath = relpath(rnode);
+			/* GPDB_84_MERGE_FIXME: check my work; is MAIN_FORKNUM right? */
+			rpath = relpath(rnode, MAIN_FORKNUM);
 			fd = BasicOpenFile(rpath, O_RDONLY | PG_BINARY, 0);
 
 			if (fd >= 0)
@@ -961,7 +1007,7 @@ GetNewRelFileNode(Oid reltablespace, bool relisshared)
 			continue;
 
 		/* Check for existing file of same name */
-		rpath = relpath(rnode);
+		rpath = relpath(rnode, MAIN_FORKNUM);
 		fd = BasicOpenFile(rpath, O_RDONLY | PG_BINARY, 0);
 
 		if (fd >= 0)

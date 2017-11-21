@@ -2074,14 +2074,14 @@ ERROR:  table functions must be invoked in FROM clause
 -- Error: multiset_5 expects (int, text) records as input
 SELECT * FROM multiset_5( TABLE(SELECT 1) );
 ERROR:  invalid input tuple for function multiset_example
-HINT:  expected (integer, text)
+HINT:  Expected (integer, text).
 -- ERROR cases for simple TableValue Expressions (anything not a parameter to function)
 SELECT TABLE( SELECT * from example );
 ERROR:  invalid use of TABLE value expression
 SELECT ARRAY( TABLE( SELECT * from example) );
-ERROR:  syntax error at or near "TABLE"
+ERROR:  syntax error at or near "("
 LINE 1: SELECT ARRAY( TABLE( SELECT * from example) );
-                      ^
+                           ^
 SELECT * FROM TABLE( SELECT * from example) );
 ERROR:  syntax error at or near "TABLE"
 LINE 1: SELECT * FROM TABLE( SELECT * from example) );
@@ -2911,10 +2911,12 @@ SELECT * FROM project( TABLE( SELECT * FROM pg_am ), 100);
 ERROR:  invalid column position 100
 SELECT * FROM project( TABLE( SELECT * FROM pg_am ), (ARRAY[2,3])[1]);
 ERROR:  unable to resolve function argument
-LINE 1: ... FROM project( TABLE( SELECT * FROM pg_am ), (ARRAY[2,3])[1]...
+LINE 1: ...ECT * FROM project( TABLE( SELECT * FROM pg_am ), (ARRAY[2,3...
                                                              ^
 SELECT * FROM project( TABLE( SELECT * FROM pg_am ), (ROW(1, '')::example_r).a);
 ERROR:  unable to resolve function argument
+LINE 1: ... project( TABLE( SELECT * FROM pg_am ), (ROW(1, '')::example...
+                                                             ^
 -- ========================
 -- User data exmaple
 -- ========================

@@ -77,6 +77,15 @@ SELECT array_ndims(a) AS a,array_ndims(b) AS b,array_ndims(c) AS c
    | 1 | 1
 (3 rows)
 
+SELECT array_ndims(a) AS a,array_ndims(b) AS b,array_ndims(c) AS c
+   FROM arrtest;
+ a | b | c 
+---+---+---
+ 1 | 3 |  
+ 1 | 2 | 1
+   | 1 | 1
+(3 rows)
+
 SELECT array_dims(a) AS a,array_dims(b) AS b,array_dims(c) AS c
    FROM arrtest;
    a   |        b        |   c   
@@ -826,6 +835,8 @@ LINE 1: select '{ }}'::text[];
                ^
 select array[];
 ERROR:  cannot determine type of empty array
+LINE 1: select array[];
+               ^
 HINT:  Explicitly cast to the desired type, for example ARRAY[]::integer[].
 -- none of the above should be accepted
 -- all of the following should be accepted
@@ -1130,6 +1141,26 @@ select array_length(array[[1,2,3], [4,5,6]], 3);
              
 (1 row)
 
+select cardinality(array[1,2,3]);
+ cardinality 
+-------------
+           3
+(1 row)
+
+select cardinality(array[[1,2,3], [4,5,6]]);
+ cardinality 
+-------------
+           2
+(1 row)
+
+select c, cardinality(c), d, cardinality(d) from arrtest;
+         c         | cardinality |       d       | cardinality 
+-------------------+-------------+---------------+-------------
+ {}                |             | {}            |            
+ {foobar,new_word} |           2 | {{elt1,elt2}} |           1
+ {foo,new_word}    |           2 | {bar,foo}     |           2
+(3 rows)
+
 select array_agg(unique1 order by unique1) from (select unique1 from tenk1 where unique1 < 15 order by unique1) ss;
               array_agg               
 --------------------------------------
@@ -1146,6 +1177,12 @@ select array_agg(nullif(ten, 4) order by ten) from (select ten from tenk1 where 
                array_agg               
 ---------------------------------------
  {0,0,1,1,2,2,3,3,NULL,NULL,5,6,7,8,9}
+(1 row)
+
+select cardinality(array_agg(unique1)) from tenk1 where unique1 < 15;
+ cardinality 
+-------------
+          15
 (1 row)
 
 select array_agg(unique1 order by unique1) from tenk1 where unique1 < -15;

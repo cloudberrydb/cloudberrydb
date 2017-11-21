@@ -5,7 +5,7 @@
  *	Implements the basic DB functions used by the archiver.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_db.c,v 1.79 2008/04/13 03:49:22 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_db.c,v 1.80 2008/08/16 02:25:06 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -348,7 +348,7 @@ ExecuteSqlCommand(ArchiveHandle *AH, const char *qry, const char *desc)
 	char		errStmt[DB_MAX_ERR_STMT];
 
 #ifdef NOT_USED
-	fprintf(stderr, "Executing: '%s'\n\n", qry);
+	 fprintf(stderr, "Executing: '%s'\n\n", qry);
 #endif
 	res = PQexec(conn, qry);
 

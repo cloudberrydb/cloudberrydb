@@ -14,7 +14,6 @@
  */
 
 #include "plpgsql.h"
-#include "pl_gram.h"
 
 #include <ctype.h>
 
@@ -193,7 +192,8 @@ static Datum exec_simple_cast_value(PLpgSQL_execstate *estate,
 					   Oid reqtype, int32 reqtypmod,
 					   bool isnull);
 static void exec_init_tuple_store(PLpgSQL_execstate *estate);
-static bool compatible_tupdesc(TupleDesc td1, TupleDesc td2);
+static void validate_tupdesc_compat(TupleDesc expected, TupleDesc returned,
+						const char *msg);
 static void exec_set_found(PLpgSQL_execstate *estate, bool state);
 static void plpgsql_create_econtext(PLpgSQL_execstate *estate);
 static void free_var(PLpgSQL_var *var);
@@ -390,11 +390,9 @@ plpgsql_exec_function(PLpgSQL_function *func, FunctionCallInfo fcinfo)
 			{
 				case TYPEFUNC_COMPOSITE:
 					/* got the expected result rowtype, now check it */
-					if (estate.rettupdesc == NULL ||
-						!compatible_tupdesc(estate.rettupdesc, tupdesc))
-						ereport(ERROR,
-								(errcode(ERRCODE_DATATYPE_MISMATCH),
-								 errmsg("returned record type does not match expected record type")));
+					validate_tupdesc_compat(tupdesc, estate.rettupdesc,
+											gettext_noop("returned record type does "
+														 "not match expected record type"));
 					break;
 				case TYPEFUNC_RECORD:
 
@@ -713,11 +711,10 @@ plpgsql_exec_trigger(PLpgSQL_function *func,
 		rettup = NULL;
 	else
 	{
-		if (!compatible_tupdesc(estate.rettupdesc,
-								trigdata->tg_relation->rd_att))
-			ereport(ERROR,
-					(errcode(ERRCODE_DATATYPE_MISMATCH),
-					 errmsg("returned tuple structure does not match table of trigger event")));
+		validate_tupdesc_compat(trigdata->tg_relation->rd_att,
+								estate.rettupdesc,
+								gettext_noop("returned tuple structure does "
+											 "not match table of trigger event"));
 		/* Copy tuple to upper executor memory */
 		rettup = SPI_copytuple((HeapTuple) DatumGetPointer(estate.retval));
 	}
@@ -1670,7 +1667,7 @@ exec_stmt_fori(PLpgSQL_execstate *estate, PLpgSQL_stmt_fori *stmt)
 	bool		found = false;
 	int			rc = PLPGSQL_RC_OK;
 
-	var = (PLpgSQL_var *) (estate->datums[stmt->var->varno]);
+	var = (PLpgSQL_var *) (estate->datums[stmt->var->dno]);
 
 	/*
 	 * Get the value of the lower bound
@@ -2205,11 +2202,11 @@ exec_stmt_return_next(PLpgSQL_execstate *estate,
 						  (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 						   errmsg("record \"%s\" is not assigned yet",
 								  rec->refname),
-						   errdetail("The tuple structure of a not-yet-assigned record is indeterminate.")));
-					if (!compatible_tupdesc(tupdesc, rec->tupdesc))
-						ereport(ERROR,
-								(errcode(ERRCODE_DATATYPE_MISMATCH),
-						errmsg("wrong record type supplied in RETURN NEXT")));
+						   errdetail("The tuple structure of a not-yet-assigned"
+									 " record is indeterminate.")));
+					validate_tupdesc_compat(tupdesc, rec->tupdesc,
+						                    gettext_noop("wrong record type supplied "
+														 "in RETURN NEXT"));
 					tuple = rec->tup;
 				}
 				break;
@@ -2312,10 +2309,9 @@ exec_stmt_return_query(PLpgSQL_execstate *estate,
 										   stmt->params);
 	}
 
-	if (!compatible_tupdesc(estate->rettupdesc, portal->tupDesc))
-		ereport(ERROR,
-				(errcode(ERRCODE_DATATYPE_MISMATCH),
-		  errmsg("structure of query does not match function result type")));
+	validate_tupdesc_compat(estate->rettupdesc, portal->tupDesc,
+							gettext_noop("structure of query does not match "
+										 "function result type"));
 
 	while (true)
 	{
@@ -2372,7 +2368,9 @@ exec_init_tuple_store(PLpgSQL_execstate *estate)
 	oldowner = CurrentResourceOwner;
 	CurrentResourceOwner = estate->tuple_store_owner;
 
-	estate->tuple_store = tuplestore_begin_heap(true, false, work_mem);
+	estate->tuple_store =
+		tuplestore_begin_heap(rsi->allowedModes & SFRM_Materialize_Random,
+							  false, work_mem);
 
 	CurrentResourceOwner = oldowner;
 	MemoryContextSwitchTo(oldcxt);
@@ -2889,9 +2887,9 @@ exec_stmt_execsql(PLpgSQL_execstate *estate,
 
 		/* Determine if we assign to a record or a row */
 		if (stmt->rec != NULL)
-			rec = (PLpgSQL_rec *) (estate->datums[stmt->rec->recno]);
+			rec = (PLpgSQL_rec *) (estate->datums[stmt->rec->dno]);
 		else if (stmt->row != NULL)
-			row = (PLpgSQL_row *) (estate->datums[stmt->row->rowno]);
+			row = (PLpgSQL_row *) (estate->datums[stmt->row->dno]);
 		else
 			elog(ERROR, "unsupported target");
 
@@ -3071,9 +3069,9 @@ exec_stmt_dynexecute(PLpgSQL_execstate *estate,
 
 		/* Determine if we assign to a record or a row */
 		if (stmt->rec != NULL)
-			rec = (PLpgSQL_rec *) (estate->datums[stmt->rec->recno]);
+			rec = (PLpgSQL_rec *) (estate->datums[stmt->rec->dno]);
 		else if (stmt->row != NULL)
-			row = (PLpgSQL_row *) (estate->datums[stmt->row->rowno]);
+			row = (PLpgSQL_row *) (estate->datums[stmt->row->dno]);
 		else
 			elog(ERROR, "unsupported target");
 
@@ -3387,9 +3385,9 @@ exec_stmt_fetch(PLpgSQL_execstate *estate, PLpgSQL_stmt_fetch *stmt)
 		 * ----------
 		 */
 		if (stmt->rec != NULL)
-			rec = (PLpgSQL_rec *) (estate->datums[stmt->rec->recno]);
+			rec = (PLpgSQL_rec *) (estate->datums[stmt->rec->dno]);
 		else if (stmt->row != NULL)
-			row = (PLpgSQL_row *) (estate->datums[stmt->row->rowno]);
+			row = (PLpgSQL_row *) (estate->datums[stmt->row->dno]);
 		else
 			elog(ERROR, "unsupported target");
 
@@ -3647,9 +3645,9 @@ exec_assign_value(PLpgSQL_execstate *estate,
 				int			fno;
 				HeapTuple	newtup;
 				int			natts;
-				int			i;
 				Datum	   *values;
 				bool	   *nulls;
+				bool	   *replaces;
 				void	   *mustfree;
 				bool		attisnull;
 				Oid			atttype;
@@ -3671,10 +3669,11 @@ exec_assign_value(PLpgSQL_execstate *estate,
 
 				/*
 				 * Get the number of the records field to change and the
-				 * number of attributes in the tuple.
+				 * number of attributes in the tuple.  Note: disallow
+				 * system column names because the code below won't cope.
 				 */
 				fno = SPI_fnumber(rec->tupdesc, recfield->fieldname);
-				if (fno == SPI_ERROR_NOATTRIBUTE)
+				if (fno <= 0)
 					ereport(ERROR,
 							(errcode(ERRCODE_UNDEFINED_COLUMN),
 							 errmsg("record \"%s\" has no field \"%s\"",
@@ -3683,21 +3682,16 @@ exec_assign_value(PLpgSQL_execstate *estate,
 				natts = rec->tupdesc->natts;
 
 				/*
-				 * Set up values/datums arrays for heap_form_tuple.	For all
+				 * Set up values/control arrays for heap_modify_tuple. For all
 				 * the attributes except the one we want to replace, use the
 				 * value that's in the old tuple.
 				 */
 				values = palloc(sizeof(Datum) * natts);
 				nulls = palloc(sizeof(bool) * natts);
+				replaces = palloc(sizeof(bool) * natts);
 
-				for (i = 0; i < natts; i++)
-				{
-					if (i == fno)
-						continue;
-					values[i] = SPI_getbinval(rec->tup, rec->tupdesc,
-											  i + 1, &attisnull);
-					nulls[i] = attisnull;
-				}
+				memset(replaces, false, sizeof(bool) * natts);
+				replaces[fno] = true;
 
 				/*
 				 * Now insert the new value, being careful to cast it to the
@@ -3724,10 +3718,11 @@ exec_assign_value(PLpgSQL_execstate *estate,
 					mustfree = NULL;
 
 				/*
-				 * Now call heap_form_tuple() to create a new tuple that
+				 * Now call heap_modify_tuple() to create a new tuple that
 				 * replaces the old one in the record.
 				 */
-				newtup = heap_form_tuple(rec->tupdesc, values, nulls);
+				newtup = heap_modify_tuple(rec->tup, rec->tupdesc,
+										   values, nulls, replaces);
 
 				if (rec->freetup)
 					heap_freetuple(rec->tup);
@@ -3737,6 +3732,9 @@ exec_assign_value(PLpgSQL_execstate *estate,
 
 				pfree(values);
 				pfree(nulls);
+				pfree(replaces);
+				if (mustfree)
+					pfree(mustfree);
 
 				break;
 			}
@@ -4273,9 +4271,9 @@ exec_for_query(PLpgSQL_execstate *estate, PLpgSQL_stmt_forq *stmt,
 	 * Determine if we assign to a record or a row
 	 */
 	if (stmt->rec != NULL)
-		rec = (PLpgSQL_rec *) (estate->datums[stmt->rec->recno]);
+		rec = (PLpgSQL_rec *) (estate->datums[stmt->rec->dno]);
 	else if (stmt->row != NULL)
-		row = (PLpgSQL_row *) (estate->datums[stmt->row->rowno]);
+		row = (PLpgSQL_row *) (estate->datums[stmt->row->dno]);
 	else
 		elog(ERROR, "unsupported target");
 
@@ -4701,7 +4699,7 @@ exec_move_row(PLpgSQL_execstate *estate,
 	 * attributes of the tuple to the variables the row points to.
 	 *
 	 * NOTE: this code used to demand row->nfields ==
-	 * HeapTupleHeaderGetNatts(tup->t_data, but that's wrong.  The tuple might
+	 * HeapTupleHeaderGetNatts(tup->t_data), but that's wrong.  The tuple might
 	 * have more fields than we expected if it's from an inheritance-child
 	 * table of the current table, or it might have fewer if the table has had
 	 * columns added by ALTER TABLE. Ignore extra columns and assume NULL for
@@ -5294,23 +5292,42 @@ exec_simple_check_plan(PLpgSQL_expr *expr)
 }
 
 /*
- * Check two tupledescs have matching number and types of attributes
+ * Validates compatibility of supplied TupleDesc pair by checking number and type
+ * of attributes.
  */
-static bool
-compatible_tupdesc(TupleDesc td1, TupleDesc td2)
+static void
+validate_tupdesc_compat(TupleDesc expected, TupleDesc returned, const char *msg)
 {
-	int			i;
+	int		   i;
+	const char *dropped_column_type = gettext_noop("n/a (dropped column)");
 
-	if (td1->natts != td2->natts)
-		return false;
+	if (!expected || !returned)
+		ereport(ERROR,
+				(errcode(ERRCODE_DATATYPE_MISMATCH),
+				 errmsg("%s", _(msg))));
 
-	for (i = 0; i < td1->natts; i++)
-	{
-		if (td1->attrs[i]->atttypid != td2->attrs[i]->atttypid)
-			return false;
-	}
+	if (expected->natts != returned->natts)
+		ereport(ERROR,
+				(errcode(ERRCODE_DATATYPE_MISMATCH),
+				 errmsg("%s", _(msg)),
+				 errdetail("Number of returned columns (%d) does not match "
+						   "expected column count (%d).",
+						   returned->natts, expected->natts)));
 
-	return true;
+	for (i = 0; i < expected->natts; i++)
+		if (expected->attrs[i]->atttypid != returned->attrs[i]->atttypid)
+			ereport(ERROR,
+					(errcode(ERRCODE_DATATYPE_MISMATCH),
+					 errmsg("%s", _(msg)),
+					 errdetail("Returned type %s does not match expected type "
+							   "%s in column %s.",
+							   OidIsValid(returned->attrs[i]->atttypid) ?
+							   format_type_be(returned->attrs[i]->atttypid) :
+							   _(dropped_column_type),
+							   OidIsValid(expected->attrs[i]->atttypid) ?
+							   format_type_be(expected->attrs[i]->atttypid) :
+							   _(dropped_column_type),
+							   NameStr(expected->attrs[i]->attname))));
 }
 
 /* ----------

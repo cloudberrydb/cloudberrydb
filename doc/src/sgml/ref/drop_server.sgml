@@ -1,12 +1,11 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/drop_server.sgml,v 1.3 2009/09/19 10:23:27 petere Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/drop_server.sgml,v 1.1 2008/12/19 16:25:16 petere Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-DROPSERVER">
  <refmeta>
   <refentrytitle id="sql-dropserver-title">DROP SERVER</refentrytitle>
-  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -21,7 +20,7 @@ PostgreSQL documentation
 
  <refsynopsisdiv>
 <synopsis>
-DROP SERVER [ IF EXISTS ] <replaceable class="parameter">server_name</replaceable> [ CASCADE | RESTRICT ]
+DROP SERVER [ IF EXISTS ] <replaceable class="parameter">servername</replaceable> [ CASCADE | RESTRICT ]
 </synopsis>
  </refsynopsisdiv>
 
@@ -50,7 +49,7 @@ DROP SERVER [ IF EXISTS ] <replaceable class="parameter">server_name</replaceabl
    </varlistentry>
 
    <varlistentry>
-    <term><replaceable class="parameter">server_name</replaceable></term>
+    <term><replaceable class="parameter">servername</replaceable></term>
     <listitem>
      <para>
       The name of an existing server.

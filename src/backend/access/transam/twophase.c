@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *		$PostgreSQL: pgsql/src/backend/access/transam/twophase.c,v 1.44 2008/08/01 13:16:08 alvherre Exp $
+ *		$PostgreSQL: pgsql/src/backend/access/transam/twophase.c,v 1.50 2008/12/09 15:59:39 heikki Exp $
  *
  * NOTES
  *		Each global transaction is associated with a global transaction
@@ -51,7 +51,9 @@
 #include "access/twophase_rmgr.h"
 #include "access/xact.h"
 #include "access/xlogmm.h"
+#include "access/xlogutils.h"
 #include "catalog/pg_type.h"
+#include "catalog/storage.h"
 #include "funcapi.h"
 #include "miscadmin.h"
 #include "pg_trace.h"
@@ -143,7 +145,7 @@ typedef struct GlobalTransactionData
 typedef struct TwoPhaseStateData
 {
 	/* Head of linked list of free GlobalTransactionData structs */
-	SHMEM_OFFSET freeGXacts;
+	GlobalTransaction freeGXacts;
 
 	/* Number of valid prepXacts entries. */
 	int			numPrepXacts;
@@ -410,7 +412,7 @@ TwoPhaseShmemInit(void)
 		int			i;
 
 		Assert(!found);
-		TwoPhaseState->freeGXacts = INVALID_OFFSET;
+		TwoPhaseState->freeGXacts = NULL;
 		TwoPhaseState->numPrepXacts = 0;
 
 		/*
@@ -422,8 +424,8 @@ TwoPhaseShmemInit(void)
 					  sizeof(GlobalTransaction) * max_prepared_xacts));
 		for (i = 0; i < max_prepared_xacts; i++)
 		{
-			gxacts[i].proc.links.next = TwoPhaseState->freeGXacts;
-			TwoPhaseState->freeGXacts = MAKE_OFFSET(&gxacts[i]);
+			gxacts[i].proc.links.next = (SHM_QUEUE *) TwoPhaseState->freeGXacts;
+			TwoPhaseState->freeGXacts = &gxacts[i];
 
 			/*
 			 * Assign a unique ID for each dummy proc, so that the range of
@@ -563,14 +565,14 @@ MarkAsPreparing(TransactionId xid,
 	}
 
 	/* Get a free gxact from the freelist */
-	if (TwoPhaseState->freeGXacts == INVALID_OFFSET)
+	if (TwoPhaseState->freeGXacts == NULL)
 		ereport(ERROR,
 				(errcode(ERRCODE_OUT_OF_MEMORY),
 				 errmsg("maximum number of prepared transactions reached"),
 				 errhint("Increase max_prepared_transactions (currently %d).",
-					 max_prepared_xacts)));
-	gxact = (GlobalTransaction) MAKE_PTR(TwoPhaseState->freeGXacts);
-	TwoPhaseState->freeGXacts = gxact->proc.links.next;
+						 max_prepared_xacts)));
+	gxact = TwoPhaseState->freeGXacts;
+	TwoPhaseState->freeGXacts = (GlobalTransaction) gxact->proc.links.next;
 
 	/* Initialize it */
 	MemSet(&gxact->proc, 0, sizeof(PGPROC));
@@ -851,8 +853,8 @@ RemoveGXact(GlobalTransaction gxact)
 			TwoPhaseState->prepXacts[i] = TwoPhaseState->prepXacts[TwoPhaseState->numPrepXacts];
 
 			/* and put it back in the freelist */
-			gxact->proc.links.next = TwoPhaseState->freeGXacts;
-			TwoPhaseState->freeGXacts = MAKE_OFFSET(gxact);
+			gxact->proc.links.next = (SHM_QUEUE *) TwoPhaseState->freeGXacts;
+			TwoPhaseState->freeGXacts = gxact;
 
 			LWLockRelease(TwoPhaseStateLock);
 
@@ -2142,10 +2144,7 @@ RecordTransactionCommitPrepared(TransactionId xid,
 									/* isRedo */ false);
 
 	/* Mark the transaction committed in pg_clog */
-	TransactionIdCommit(xid);
-
-	/* to avoid race conditions, the parent must commit first */
-	TransactionIdCommitTree(nchildren, children);
+	TransactionIdCommitTree(xid, nchildren, children);
 
 	/*
 	 * Wait for synchronous replication, if required.
@@ -2266,8 +2265,7 @@ RecordTransactionAbortPrepared(TransactionId xid,
 	 * Mark the transaction aborted in clog.  This is not absolutely necessary
 	 * but we may as well do it while we are here.
 	 */
-	TransactionIdAbort(xid);
-	TransactionIdAbortTree(nchildren, children);
+	TransactionIdAbortTree(xid, nchildren, children);
 
 	/*
 	 * Wait for synchronous replication, if required.

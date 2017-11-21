@@ -41,7 +41,7 @@ AOSegmentFilePathNameLen(Relation rel)
 	int 		len;
 		
 	/* Get base path for this relation file */
-	basepath = relpath(rel->rd_node);
+	basepath = relpath(rel->rd_node, MAIN_FORKNUM);
 
 	/*
 	 * The basepath will be the RelFileNode number.  Optional part is dot "." plus 
@@ -114,7 +114,7 @@ MakeAOSegmentFileName(
 	int32   fileSegNoLocal;
 	
 	/* Get base path for this relation file */
-	basepath = relpath(rel->rd_node);
+	basepath = relpath(rel->rd_node, MAIN_FORKNUM);
 
 	FormatAOSegmentFileName(basepath, segno, col, &fileSegNoLocal, filepathname);
 	

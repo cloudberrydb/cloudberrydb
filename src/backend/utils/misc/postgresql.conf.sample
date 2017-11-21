@@ -122,13 +122,6 @@ max_prepared_transactions = 250		# can be 0 or more
 #maintenance_work_mem = 64MB		# min 1MB
 #max_stack_depth = 2MB			# min 100kB
 
-# - Free Space Map -
-
-#max_fsm_pages = 204800			# min max_fsm_relations*16, 6 bytes each
-					# (change requires restart)
-#max_fsm_relations = 1000		# min 100, ~70 bytes each
-					# (change requires restart)
-
 # - Kernel Resource Usage -
 
 #max_files_per_process = 1000		# min 25
@@ -277,7 +270,7 @@ optimizer_analyze_root_partition = on # stats collection on root partitions
 #debug_print_prelim_plan = off
 #debug_print_slice_table = off
 #debug_print_plan = off
-#debug_pretty_print = off
+#debug_pretty_print = on
 #log_checkpoints = off
 #log_connections = off
 #log_disconnections = off
@@ -375,6 +368,7 @@ optimizer_analyze_root_partition = on # stats collection on root partitions
 #track_functions = none			# none, pl, all
 #track_activity_query_size = 1024
 #update_process_title = on
+#stats_temp_directory = 'pg_stat_tmp'
 
 #stats_queue_level = off
 
@@ -437,6 +431,7 @@ log_autostats=off	# print additional autostats information
 # - Locale and Formatting -
 
 #datestyle = 'iso, mdy'
+#intervalstyle = 'postgres'
 #timezone = unknown			# actually, defaults to TZ environment
 					# setting
 #timezone_abbreviations = 'Default'     # Select the set of available time zone

@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/tcop/postgres.c,v 1.555 2008/08/01 13:16:09 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/tcop/postgres.c,v 1.562 2008/12/13 02:29:21 tgl Exp $
  *
  * NOTES
  *	  this is the "main" module of the postgres backend and
@@ -67,7 +67,6 @@
 #include "replication/walsender.h"
 #include "rewrite/rewriteHandler.h"
 #include "storage/bufmgr.h"
-#include "storage/freespace.h"
 #include "storage/ipc.h"
 #include "storage/proc.h"
 #include "storage/procsignal.h"
@@ -843,12 +842,12 @@ pg_rewrite_query(Query *query)
 {
 	List	   *querytree_list;
 
+	if (Debug_print_parse)
+		elog_node_display(LOG, "parse tree", query,
+						  Debug_pretty_print);
+
 	if (log_parser_stats)
 		ResetUsage();
-
-	if (Debug_print_parse)
-		elog_node_display(DEBUG1, "parse tree", query,
-						  Debug_pretty_print);
 
 	if (query->commandType == CMD_UTILITY)
 	{
@@ -879,7 +878,7 @@ pg_rewrite_query(Query *query)
 #endif
 
 	if (Debug_print_rewritten)
-		elog_node_display(DEBUG1, "rewritten parse tree", querytree_list,
+		elog_node_display(LOG, "rewritten parse tree", querytree_list,
 						  Debug_pretty_print);
 
 	return querytree_list;
@@ -936,7 +935,7 @@ pg_plan_query(Query *querytree, int cursorOptions, ParamListInfo boundParams)
 	 * Print plan if debugging.
 	 */
 	if (Debug_print_plan)
-		elog_node_display(DEBUG1, "plan", plan, Debug_pretty_print);
+		elog_node_display(LOG, "plan", plan, Debug_pretty_print);
 
 	TRACE_POSTGRESQL_QUERY_PLAN_DONE();
 
@@ -946,24 +945,14 @@ pg_plan_query(Query *querytree, int cursorOptions, ParamListInfo boundParams)
 /*
  * Generate plans for a list of already-rewritten queries.
  *
- * If needSnapshot is TRUE, we haven't yet set a snapshot for the current
- * query.  A snapshot must be set before invoking the planner, since it
- * might try to evaluate user-defined functions.  But we must not set a
- * snapshot if the list contains only utility statements, because some
- * utility statements depend on not having frozen the snapshot yet.
- * (We assume that such statements cannot appear together with plannable
- * statements in the rewriter's output.)
- *
  * Normal optimizable statements generate PlannedStmt entries in the result
  * list.  Utility statements are simply represented by their statement nodes.
  */
 List *
-pg_plan_queries(List *querytrees, int cursorOptions, ParamListInfo boundParams,
-				bool needSnapshot)
+pg_plan_queries(List *querytrees, int cursorOptions, ParamListInfo boundParams)
 {
 	List	   *stmt_list = NIL;
 	ListCell   *query_list;
-	bool		snapshot_set = false;
 
 	foreach(query_list, querytrees)
 	{
@@ -977,21 +966,11 @@ pg_plan_queries(List *querytrees, int cursorOptions, ParamListInfo boundParams,
 		}
 		else
 		{
-			if (needSnapshot && !snapshot_set)
-			{
-				PushActiveSnapshot(GetTransactionSnapshot());
-				snapshot_set = true;
-			}
-
-			stmt = (Node *) pg_plan_query(query, cursorOptions,
-										  boundParams);
+			stmt = (Node *) pg_plan_query(query, cursorOptions, boundParams);
 		}
 
 		stmt_list = lappend(stmt_list, stmt);
 	}
-
-	if (snapshot_set)
-		PopActiveSnapshot();
 
 	return stmt_list;
 }
@@ -1375,7 +1354,7 @@ exec_mpp_query(const char *query_string,
 		/*
 		 * Now we can create the destination receiver object.
 		 */
-		receiver = CreateDestReceiver(dest, portal);
+		receiver = CreateDestReceiver(dest);
 
 		/*
 		 * Switch back to transaction context for execution.
@@ -1735,7 +1714,7 @@ exec_simple_query(const char *query_string, const char *seqServerHost, int seqSe
 		querytree_list = pg_analyze_and_rewrite(parsetree, query_string,
 												NULL, 0);
 
-		plantree_list = pg_plan_queries(querytree_list, 0, NULL, false);
+		plantree_list = pg_plan_queries(querytree_list, 0, NULL);
 
 		/* Done with the snapshot used for parsing/planning */
 		if (snapshot_set)
@@ -1798,7 +1777,9 @@ exec_simple_query(const char *query_string, const char *seqServerHost, int seqSe
 		/*
 		 * Now we can create the destination receiver object.
 		 */
-		receiver = CreateDestReceiver(dest, portal);
+		receiver = CreateDestReceiver(dest);
+		if (dest == DestRemote)
+			SetRemoteDestReceiverParams(receiver, portal);
 
 		/*
 		 * Switch back to transaction context for execution.
@@ -2092,7 +2073,7 @@ exec_parse_message(const char *query_string,	/* string to execute */
 		}
 		else
 		{
-			stmt_list = pg_plan_queries(querytree_list, 0, NULL, false);
+			stmt_list = pg_plan_queries(querytree_list, 0, NULL);
 			fully_planned = true;
 		}
 
@@ -2379,6 +2360,17 @@ exec_bind_message(StringInfo input_message)
 		saved_stmt_name = NULL;
 
 	/*
+	 * Set a snapshot if we have parameters to fetch (since the input
+	 * functions might need it) or the query isn't a utility command (and
+	 * hence could require redoing parse analysis and planning).
+	 */
+	if (numParams > 0 || analyze_requires_snapshot(psrc->raw_parse_tree))
+	{
+		PushActiveSnapshot(GetTransactionSnapshot());
+		snapshot_set = true;
+	}
+
+	/*
 	 * Fetch parameters, if any, and store in the portal's memory context.
 	 */
 	if (numParams > 0)
@@ -2566,7 +2558,7 @@ exec_bind_message(StringInfo input_message)
 		 */
 		oldContext = MemoryContextSwitchTo(PortalGetHeapMemory(portal));
 		query_list = copyObject(cplan->stmt_list);
-		plan_list = pg_plan_queries(query_list, 0, params, false);
+		plan_list = pg_plan_queries(query_list, 0, params);
 		MemoryContextSwitchTo(oldContext);
 
 		/* We no longer need the cached plan refcount ... */
@@ -2574,6 +2566,10 @@ exec_bind_message(StringInfo input_message)
 		/* ... and we don't want the portal to depend on it, either */
 		cplan = NULL;
 	}
+
+	/* Done with the snapshot used for parameter I/O and parsing/planning */
+	if (snapshot_set)
+		PopActiveSnapshot();
 
 	/*
 	 * Now we can define the portal.
@@ -2772,7 +2768,9 @@ exec_execute_message(const char *portal_name, int64 max_rows)
 	 * Create dest receiver in MessageContext (we don't want it in transaction
 	 * context, because that may get deleted if portal contains VACUUM).
 	 */
-	receiver = CreateDestReceiver(dest, portal);
+	receiver = CreateDestReceiver(dest);
+	if (dest == DestRemoteExecute)
+		SetRemoteDestReceiverParams(receiver, portal);
 
 	/*
 	 * Ensure we are in a transaction command (this should normally be the
@@ -4635,13 +4633,6 @@ PostgresMain(int argc, char *argv[],
 		 */
 		StartupXLOG();
 		on_shmem_exit(ShutdownXLOG, 0);
-
-		/*
-		 * Read any existing FSM cache file, and register to write one out at
-		 * exit.
-		 */
-		LoadFreeSpaceMap();
-		on_shmem_exit(DumpFreeSpaceMap, 0);
 
 		/*
 		 * We have to build the flat file for pg_database, but not for the

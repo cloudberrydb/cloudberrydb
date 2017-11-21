@@ -14,7 +14,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parser.c,v 1.78 2009/06/11 14:49:00 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parser.c,v 1.75 2008/10/28 14:09:45 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -129,14 +129,7 @@ filtered_base_yylex(void)
 		case WITH:
 
 			/*
-			 * WITH TIME, CASCADED, LOCAL, or CHECK must be reduced to one token
-			 *
-			 * XXX an alternative way is to recognize just WITH_TIME and put
-			 * the ugliness into the datetime datatype productions instead of
-			 * WITH CHECK OPTION.  However that requires promoting WITH to a
-			 * fully reserved word.  If we ever have to do that anyway
-			 * (perhaps for SQL99 recursive queries), come back and simplify
-			 * this code.
+			 * WITH TIME must be reduced to one token
 			 */
 			cur_yylval = base_yylval;
 			cur_yylloc = base_yylloc;
@@ -145,15 +138,6 @@ filtered_base_yylex(void)
 			{
 				case TIME:
 					cur_token = WITH_TIME;
-					break;
-				case CASCADED:
-					cur_token = WITH_CASCADED;
-					break;
-				case LOCAL:
-					cur_token = WITH_LOCAL;
-					break;
-				case CHECK:
-					cur_token = WITH_CHECK;
 					break;
 				default:
 					/* save the lookahead token for next time */

@@ -13,6 +13,7 @@ test__AOSegmentFilePathNameLen(void **state)
 	char	   *basepath = "base/21381/123";
 
 	expect_any(relpath, &rnode);
+	expect_value(relpath, forknum, MAIN_FORKNUM);
 	will_return(relpath, pstrdup(basepath));
 
 	int			r = AOSegmentFilePathNameLen(&reldata);
@@ -63,6 +64,7 @@ test__MakeAOSegmentFileName(void **state)
 	RelationData reldata;
 
 	expect_any_count(relpath, &rnode, -1);
+	expect_value_count(relpath, forknum, MAIN_FORKNUM, -1);
 
 	/* seg 0, no columns */
 	will_return(relpath, pstrdup(basepath));

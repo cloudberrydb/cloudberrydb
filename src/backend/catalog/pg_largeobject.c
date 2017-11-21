@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/pg_largeobject.c,v 1.30 2008/06/19 00:46:04 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/pg_largeobject.c,v 1.31 2008/11/02 01:45:27 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -47,7 +47,7 @@ LargeObjectCreate(Oid loid)
 	 */
 	for (i = 0; i < Natts_pg_largeobject; i++)
 	{
-		values[i] = (Datum) 0;
+		values[i] = (Datum) NULL;
 		nulls[i] = false;
 	}
 

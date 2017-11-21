@@ -446,17 +446,17 @@ HINT:  No operator matches the given name and argument type(s). You might need t
     SELECT * FROM t1 WHERE EXISTS ( 
         TABLE(select a from t1 where a < 5) 
     );
-ERROR:  syntax error at or near "TABLE"
+ERROR:  syntax error at or near "("
 LINE 2:         TABLE(select a from t1 where a < 5) 
-                ^
+                     ^
     -- ERROR:  syntax error at or near "TABLE"
     -- TVE in NOT EXIST clause
     SELECT * FROM t1 WHERE NOT EXISTS ( 
         TABLE(select a from t1 where a < 5) 
     );
-ERROR:  syntax error at or near "TABLE"
+ERROR:  syntax error at or near "("
 LINE 2:         TABLE(select a from t1 where a < 5) 
-                ^
+                     ^
     -- ERROR:  syntax error at or near "TABLE"
     -- TVE in ANY/SOME clause
     SELECT * FROM t1 WHERE a < ANY ( 
@@ -672,7 +672,7 @@ LINE 1: select array_append(array['value1','value2']::anytable, 'val...
     -- Verify anyelement cannot be casted to anytable
     select array_append(array['value1','value2'], 'value3'::anytable);
 ERROR:  cannot cast type unknown to anytable
-LINE 1: ... array_append(array['value1','value2'], 'value3'::anytable);
+LINE 1: ...ct array_append(array['value1','value2'], 'value3'::anytable...
                                                              ^
     -- Verify pseudo types anytable and anyelement cannot be used for PREPARE
     PREPARE p1(anyelement) AS SELECT $1;
@@ -2228,10 +2228,10 @@ HINT:  No function matches the given name and argument types. You might need to 
     -- using incorrect parentheses for order by 
     SELECT * FROM tabfunc( TABLE(select * from t1 
                            ORDER BY (a,b)) );
-ERROR:  could not identify an ordering operator for type record
-LINE 2:                            ORDER BY (a,b)) );
-                                            ^
-HINT:  Use an explicit ordering operator or modify the query.
+ERROR:  function tabfunc(anytable) does not exist
+LINE 1: SELECT * FROM tabfunc( TABLE(select * from t1 
+                      ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
     -- ERROR:  could not identify an ordering operator for type record
 -- Negative: using SCATTER outside of ETF sub-query
      SELECT * FROM tabfunc( TABLE(select * from t1)
@@ -2422,10 +2422,7 @@ select transform( TABLE(select * from intable));
 ERROR:  table functions must be invoked in FROM clause
 -- ETF in ORDER BY
 select * from t1 order by transform( TABLE(select * from intable));
-ERROR:  could not identify an ordering operator for type record
-LINE 1: select * from t1 order by transform( TABLE(select * from int...
-                                  ^
-HINT:  Use an explicit ordering operator or modify the query.
+ERROR:  table functions must be invoked in FROM clause
 -- ETF in LIMIT
 select * from t1 LIMIT transform (TABLE(select * from intable));
 ERROR:  argument of LIMIT must be type bigint, not type record
@@ -2434,8 +2431,7 @@ LINE 1: select * from t1 LIMIT transform (TABLE(select * from intabl...
 -- ETF in GROUP BY
 select avg(a) from t1 group by 
                   (transform(TABLE(select * from t1 where a<10 )));
-ERROR:  could not identify an ordering operator for type record
-HINT:  Use an explicit ordering operator or modify the query.
+ERROR:  table functions must be invoked in FROM clause
 -- ETF in IN clause
 select * from t1 where a in 
               (transform(TABLE(select a,e from t1 where a<10)));
@@ -3564,8 +3560,8 @@ ERROR:  invalid column position 25
 ERROR:  invalid column position 2 
     SELECT * FROM project( TABLE( SELECT * FROM t1 ), (ARRAY[2,3])[1]);
 ERROR:  unable to resolve function argument
-LINE 1: ...T * FROM project( TABLE( SELECT * FROM t1 ), (ARRAY[2,3])[1]...
-                                                             ^
+LINE 1: SELECT * FROM project( TABLE( SELECT * FROM t1 ), (ARRAY[2,3...
+                                                          ^
 -- The following queries should work
     SELECT * FROM project( TABLE( SELECT * FROM history ), 1+1) order by time;
            time           

@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/tcop/utility.c,v 1.295 2008/07/18 20:26:06 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/tcop/utility.c,v 1.303 2008/12/19 16:25:17 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -266,6 +266,15 @@ check_xact_readonly(Node *parsetree)
 		case T_ReassignOwnedStmt:
 		case T_AlterTSDictionaryStmt:
 		case T_AlterTSConfigurationStmt:
+		case T_CreateFdwStmt:
+		case T_AlterFdwStmt:
+		case T_DropFdwStmt:
+		case T_CreateForeignServerStmt:
+		case T_AlterForeignServerStmt:
+		case T_DropForeignServerStmt:
+		case T_CreateUserMappingStmt:
+		case T_AlterUserMappingStmt:
+		case T_DropUserMappingStmt:
 			ereport(ERROR,
 					(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
 					 errmsg("transaction is read-only")));
@@ -706,6 +715,42 @@ ProcessUtility(Node *parsetree,
 			DropTableSpace((DropTableSpaceStmt *) parsetree);
 			break;
 
+		case T_CreateFdwStmt:
+			CreateForeignDataWrapper((CreateFdwStmt *) parsetree);
+			break;
+
+		case T_AlterFdwStmt:
+			AlterForeignDataWrapper((AlterFdwStmt *) parsetree);
+			break;
+
+		case T_DropFdwStmt:
+			RemoveForeignDataWrapper((DropFdwStmt *) parsetree);
+			break;
+
+		case T_CreateForeignServerStmt:
+			CreateForeignServer((CreateForeignServerStmt *) parsetree);
+			break;
+
+		case T_AlterForeignServerStmt:
+			AlterForeignServer((AlterForeignServerStmt *) parsetree);
+			break;
+
+		case T_DropForeignServerStmt:
+			RemoveForeignServer((DropForeignServerStmt *) parsetree);
+			break;
+
+		case T_CreateUserMappingStmt:
+			CreateUserMapping((CreateUserMappingStmt *) parsetree);
+			break;
+
+		case T_AlterUserMappingStmt:
+			AlterUserMapping((AlterUserMappingStmt *) parsetree);
+			break;
+
+		case T_DropUserMappingStmt:
+			RemoveUserMapping((DropUserMappingStmt *) parsetree);
+			break;
+
 		case T_DropStmt:
 			{
 				DropStmt   *stmt = (DropStmt *) parsetree;
@@ -1138,7 +1183,7 @@ ProcessUtility(Node *parsetree,
 			break;
 
 		case T_AlterDatabaseStmt:
-			AlterDatabase((AlterDatabaseStmt *) parsetree);
+			AlterDatabase((AlterDatabaseStmt *) parsetree, isTopLevel);
 			break;
 
 		case T_AlterDatabaseSetStmt:
@@ -1172,7 +1217,7 @@ ProcessUtility(Node *parsetree,
 						 errmsg("Notify command cannot run in a function running on a segDB.")
 								));
 
-				Async_Notify(stmt->relation->relname);
+				Async_Notify(stmt->conditionname);
 			}
 			break;
 
@@ -1185,7 +1230,7 @@ ProcessUtility(Node *parsetree,
 							errmsg("Listen command cannot run in a function running on a segDB.")));
 
 				CheckRestrictedOperation("LISTEN");
-				Async_Listen(stmt->relation->relname);
+				Async_Listen(stmt->conditionname);
 			}
 			break;
 
@@ -1198,7 +1243,10 @@ ProcessUtility(Node *parsetree,
 							errmsg("Unlisten command cannot run in a function running on a segDB.")));
 
 				CheckRestrictedOperation("UNLISTEN");
-				Async_Unlisten(stmt->relation->relname);
+				if (stmt->conditionname)
+					Async_Unlisten(stmt->conditionname);
+				else
+					Async_UnlistenAll();
 			}
 			break;
 
@@ -1231,7 +1279,7 @@ ProcessUtility(Node *parsetree,
 			break;
 
 		case T_VacuumStmt:
-			vacuum((VacuumStmt *) parsetree, InvalidOid, NULL, false,
+			vacuum((VacuumStmt *) parsetree, InvalidOid, true, NULL, false,
 				   isTopLevel);
 			break;
 
@@ -1401,6 +1449,11 @@ ProcessUtility(Node *parsetree,
 			break;
 
 		case T_LockStmt:
+			/*
+			 * Since the lock would just get dropped immediately, LOCK TABLE
+			 * outside a transaction block is presumed to be user error.
+			 */
+			RequireTransactionChain(isTopLevel, "LOCK TABLE");
 			LockTableCommand((LockStmt *) parsetree);
 			break;
 
@@ -1753,6 +1806,42 @@ CreateCommandTag(Node *parsetree)
 			tag = "DROP TABLESPACE";
 			break;
 
+		case T_CreateFdwStmt:
+			tag = "CREATE FOREIGN DATA WRAPPER";
+			break;
+
+		case T_AlterFdwStmt:
+			tag = "ALTER FOREIGN DATA WRAPPER";
+			break;
+
+		case T_DropFdwStmt:
+			tag = "DROP FOREIGN DATA WRAPPER";
+			break;
+
+		case T_CreateForeignServerStmt:
+			tag = "CREATE SERVER";
+			break;
+
+		case T_AlterForeignServerStmt:
+			tag = "ALTER SERVER";
+			break;
+
+		case T_DropForeignServerStmt:
+			tag = "DROP SERVER";
+			break;
+
+		case T_CreateUserMappingStmt:
+			tag = "CREATE USER MAPPING";
+			break;
+
+		case T_AlterUserMappingStmt:
+			tag = "ALTER USER MAPPING";
+			break;
+
+		case T_DropUserMappingStmt:
+			tag = "DROP USER MAPPING";
+			break;
+
 		case T_DropStmt:
 			switch (((DropStmt *) parsetree)->removeType)
 			{
@@ -1998,6 +2087,12 @@ CreateCommandTag(Node *parsetree)
 					break;
 				case OBJECT_TSDICTIONARY:
 					tag = "ALTER TEXT SEARCH DICTIONARY";
+					break;
+				case OBJECT_FDW:
+					tag = "ALTER FOREIGN DATA WRAPPER";
+					break;
+				case OBJECT_FOREIGN_SERVER:
+					tag = "ALTER SERVER";
 					break;
 				default:
 					tag = "???";
@@ -2552,10 +2647,6 @@ GetCommandLogLevel(Node *parsetree)
 			lev = LOGSTMT_ALL;
 			break;
 
-		case T_CreateDomainStmt:
-			lev = LOGSTMT_DDL;
-			break;
-
 		case T_CreateSchemaStmt:
 			lev = LOGSTMT_DDL;
 			break;
@@ -2584,6 +2675,18 @@ GetCommandLogLevel(Node *parsetree)
 			lev = LOGSTMT_DDL;
 			break;
 
+		case T_CreateFdwStmt:
+		case T_AlterFdwStmt:
+		case T_DropFdwStmt:
+		case T_CreateForeignServerStmt:
+		case T_AlterForeignServerStmt:
+		case T_DropForeignServerStmt:
+		case T_CreateUserMappingStmt:
+		case T_AlterUserMappingStmt:
+		case T_DropUserMappingStmt:
+			lev = LOGSTMT_DDL;
+			break;
+
 		case T_DropStmt:
 			lev = LOGSTMT_DDL;
 			break;
@@ -2603,6 +2706,33 @@ GetCommandLogLevel(Node *parsetree)
 				lev = LOGSTMT_ALL;
 			break;
 
+		case T_PrepareStmt:
+			{
+				PrepareStmt *stmt = (PrepareStmt *) parsetree;
+
+				/* Look through a PREPARE to the contained stmt */
+				lev = GetCommandLogLevel(stmt->query);
+			}
+			break;
+
+		case T_ExecuteStmt:
+			{
+				ExecuteStmt *stmt = (ExecuteStmt *) parsetree;
+				PreparedStatement *ps;
+
+				/* Look through an EXECUTE to the referenced stmt */
+				ps = FetchPreparedStatement(stmt->name, false);
+				if (ps)
+					lev = GetCommandLogLevel(ps->plansource->raw_parse_tree);
+				else
+					lev = LOGSTMT_ALL;
+			}
+			break;
+
+		case T_DeallocateStmt:
+			lev = LOGSTMT_ALL;
+			break;
+
 		case T_RenameStmt:
 			lev = LOGSTMT_DDL;
 			break;
@@ -2620,10 +2750,6 @@ GetCommandLogLevel(Node *parsetree)
 			break;
 
 		case T_AlterDomainStmt:
-			lev = LOGSTMT_DDL;
-			break;
-
-		case T_AlterFunctionStmt:
 			lev = LOGSTMT_DDL;
 			break;
 
@@ -2652,6 +2778,10 @@ GetCommandLogLevel(Node *parsetree)
 			break;
 
 		case T_CreateFunctionStmt:
+			lev = LOGSTMT_DDL;
+			break;
+
+		case T_AlterFunctionStmt:
 			lev = LOGSTMT_DDL;
 			break;
 
@@ -2765,6 +2895,10 @@ GetCommandLogLevel(Node *parsetree)
 			lev = LOGSTMT_DDL;
 			break;
 
+		case T_CreateDomainStmt:
+			lev = LOGSTMT_DDL;
+			break;
+
 		case T_CreateRoleStmt:
 			lev = LOGSTMT_DDL;
 			break;
@@ -2843,33 +2977,6 @@ GetCommandLogLevel(Node *parsetree)
 
 		case T_AlterTSConfigurationStmt:
 			lev = LOGSTMT_DDL;
-			break;
-
-		case T_PrepareStmt:
-			{
-				PrepareStmt *stmt = (PrepareStmt *) parsetree;
-
-				/* Look through a PREPARE to the contained stmt */
-				lev = GetCommandLogLevel(stmt->query);
-			}
-			break;
-
-		case T_ExecuteStmt:
-			{
-				ExecuteStmt *stmt = (ExecuteStmt *) parsetree;
-				PreparedStatement *ps;
-
-				/* Look through an EXECUTE to the referenced stmt */
-				ps = FetchPreparedStatement(stmt->name, false);
-				if (ps)
-					lev = GetCommandLogLevel(ps->plansource->raw_parse_tree);
-				else
-					lev = LOGSTMT_ALL;
-			}
-			break;
-
-		case T_DeallocateStmt:
-			lev = LOGSTMT_ALL;
 			break;
 
 			/* already-planned queries */

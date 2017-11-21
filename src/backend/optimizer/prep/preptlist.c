@@ -18,7 +18,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/prep/preptlist.c,v 1.90 2008/06/19 00:46:04 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/prep/preptlist.c,v 1.94 2008/11/15 19:43:46 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -190,6 +190,11 @@ preprocess_targetlist(PlannerInfo *root, List *tlist)
             if (isdistributed)
                 continue;
 
+			/* ignore child rels */
+			if (rc->rti != rc->prti)
+				continue;
+
+			/* always need the ctid */
 			var = makeVar(rc->rti,
 						  SelfItemPointerAttributeNumber,
 						  TIDOID,
@@ -205,6 +210,26 @@ preprocess_targetlist(PlannerInfo *root, List *tlist)
 								  true);
 
 			tlist = lappend(tlist, tle);
+
+			/* if parent of inheritance tree, need the tableoid too */
+			if (rc->isParent)
+			{
+				var = makeVar(rc->rti,
+							  TableOidAttributeNumber,
+							  OIDOID,
+							  -1,
+							  0);
+
+				resname = (char *) palloc(32);
+				snprintf(resname, 32, "tableoid%u", rc->rti);
+
+				tle = makeTargetEntry((Expr *) var,
+									  list_length(tlist) + 1,
+									  resname,
+									  true);
+
+				tlist = lappend(tlist, tle);
+			}
 		}
 	}
 
@@ -227,7 +252,7 @@ preprocess_targetlist(PlannerInfo *root, List *tlist)
 			TargetEntry *tle;
 
 			if (IsA(var, Var) &&
-					var->varno == result_relation)
+				var->varno == result_relation)
 				continue;		/* don't need it */
 
 			if (tlist_member((Node *) var, tlist))

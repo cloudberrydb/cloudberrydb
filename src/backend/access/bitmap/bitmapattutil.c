@@ -123,7 +123,7 @@ _bitmap_create_lov_heapandindex(Relation rel,
 			// Fetch gp_persistent_relation_node information that will be added to XLOG record.
 			RelationFetchGpRelationNodeForXLog(lovIndex);
 
-			log_newpage_rel(lovIndex, BufferGetBlockNumber(btree_metabuf),
+			log_newpage_rel(lovIndex, BufferGetBlockNumber(btree_metabuf), MAIN_FORKNUM,
 						btree_metapage);
 		}
 

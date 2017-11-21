@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/pathnode.c,v 1.145 2008/08/07 01:11:50 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/pathnode.c,v 1.148 2008/10/04 21:56:53 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -22,8 +22,7 @@
 #include "catalog/pg_proc.h"
 #include "executor/executor.h"
 #include "miscadmin.h"
-#include "optimizer/clauses.h"              /* contain_mutable_functions() */
-#include "nodes/nodeFuncs.h"
+#include "optimizer/clauses.h"
 #include "optimizer/cost.h"
 #include "optimizer/pathnode.h"
 #include "optimizer/paths.h"
@@ -2510,7 +2509,6 @@ create_ctescan_path(PlannerInfo *root, RelOptInfo *rel, List *pathkeys)
 	pathnode->rescannable = false;
 	pathnode->sameslice_relids = NULL;
 
-
 	cost_ctescan(pathnode, root, rel);
 
 	return pathnode;
@@ -2820,14 +2818,21 @@ create_mergejoin_path(PlannerInfo *root,
 
 	/*
 	 * If we are not sorting the inner path, we may need a materialize node to
-	 * ensure it can be marked/restored.  (Sort does support mark/restore, so
-	 * no materialize is needed in that case.)
+	 * ensure it can be marked/restored.
 	 *
 	 * Since the inner side must be ordered, and only Sorts and IndexScans can
-	 * create order to begin with, you might think there's no problem --- but
-	 * you'd be wrong.  Nestloop and merge joins can *preserve* the order of
-	 * their inputs, so they can be selected as the input of a mergejoin, and
-	 * they don't support mark/restore at present.
+	 * create order to begin with, and they both support mark/restore, you
+	 * might think there's no problem --- but you'd be wrong.  Nestloop and
+	 * merge joins can *preserve* the order of their inputs, so they can be
+	 * selected as the input of a mergejoin, and they don't support
+	 * mark/restore at present.
+	 *
+	 * Note: Sort supports mark/restore, so no materialize is really needed
+	 * in that case; but one may be desirable anyway to optimize the sort.
+	 * However, since we aren't representing the sort step separately in
+	 * the Path tree, we can't explicitly represent the materialize either.
+	 * So that case is not handled here.  Instead, cost_mergejoin has to
+	 * factor in the cost and create_mergejoin_plan has to add the plan node.
 	 */
 	if (!ExecSupportsMarkRestore(inner_path->pathtype))
 	{
@@ -2860,7 +2865,7 @@ create_mergejoin_path(PlannerInfo *root,
 			}
 		}
 		// else: innersortkeys == NIL -> no sort node will be added
-		
+
 		if (!need_sort)
 		{
 			/* no sort node will be added - add a materialize node */

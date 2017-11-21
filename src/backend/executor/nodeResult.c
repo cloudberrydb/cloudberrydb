@@ -94,7 +94,6 @@ static TupleTableSlot *NextInputSlot(ResultState *node)
 		 */
 		ResetExprContext(econtext);
 
-		node->ps.ps_OuterTupleSlot = candidateInputSlot;
 		econtext->ecxt_outertuple = candidateInputSlot;
 
 		/**
@@ -192,7 +191,6 @@ ExecResult(ResultState *node)
 			 */
 			ResetExprContext(econtext);
 
-			node->ps.ps_OuterTupleSlot = inputSlot;
 			econtext->ecxt_outertuple = inputSlot;
 
 			ExprDoneCond isDone;

@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/pg_aggregate.c,v 1.95 2008/07/16 16:55:23 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/pg_aggregate.c,v 1.99 2008/12/18 18:20:33 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -291,7 +291,7 @@ AggregateCreate(const char *aggName,
 	for (i = 0; i < Natts_pg_aggregate; i++)
 	{
 		nulls[i] = false;
-		values[i] = (Datum) 0;
+		values[i] = (Datum) NULL;
 	}
 	values[Anum_pg_aggregate_aggfnoid - 1] = ObjectIdGetDatum(procOid);
 	values[Anum_pg_aggregate_aggtransfn - 1] = ObjectIdGetDatum(transfn);
@@ -403,8 +403,8 @@ lookup_agg_function(List *fnName,
 	 * the function.
 	 */
 	fdresult = func_get_detail(fnName, NIL, nargs, input_types, false, false,
-							   &fnOid, rettype, &retset,
-							   &nvargs, &true_oid_array, NULL);
+							   &fnOid, rettype, &retset, &nvargs,
+							   &true_oid_array, NULL);
 
 	/* only valid case is a normal function not returning a set */
 	if (fdresult != FUNCDETAIL_NORMAL || !OidIsValid(fnOid))

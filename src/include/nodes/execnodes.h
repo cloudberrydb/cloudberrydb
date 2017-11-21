@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/execnodes.h,v 1.186 2008/08/07 03:04:03 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/execnodes.h,v 1.196 2008/11/16 17:34:28 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -178,12 +178,15 @@ typedef enum
 /*
  * Return modes for functions returning sets.  Note values must be chosen
  * as separate bits so that a bitmask can be formed to indicate supported
- * modes.
+ * modes.  SFRM_Materialize_Random and SFRM_Materialize_Preferred are
+ * auxiliary flags about SFRM_Materialize mode, rather than separate modes.
  */
 typedef enum
 {
 	SFRM_ValuePerCall = 0x01,	/* one value returned per call */
-	SFRM_Materialize = 0x02		/* result set instantiated in Tuplestore */
+	SFRM_Materialize = 0x02,	/* result set instantiated in Tuplestore */
+	SFRM_Materialize_Random = 0x04,		/* Tuplestore needs randomAccess */
+	SFRM_Materialize_Preferred = 0x08	/* caller prefers Tuplestore */
 } SetFunctionReturnMode;
 
 /*
@@ -656,14 +659,20 @@ extern int RootSliceIndex(EState *estate);
 extern void SliceLeafMotionStateAreValid(struct MotionState *ms);
 #endif
 
-/* es_rowMarks is a list of these structs: */
+/*
+ * es_rowMarks is a list of these structs.  See RowMarkClause for details
+ * about rti and prti.  toidAttno is not used in a "plain" rowmark.
+ */
 typedef struct ExecRowMark
 {
 	Relation	relation;		/* opened and RowShareLock'd relation */
 	Index		rti;			/* its range table index */
+	Index		prti;			/* parent range table index, if child */
 	bool		forUpdate;		/* true = FOR UPDATE, false = FOR SHARE */
 	bool		noWait;			/* NOWAIT option */
 	AttrNumber	ctidAttNo;		/* resno of its ctid junk attribute */
+	AttrNumber	toidAttNo;		/* resno of tableoid junk attribute, if any */
+	ItemPointerData curCtid;	/* ctid of currently locked tuple, if any */
 } ExecRowMark;
 
 
@@ -1353,7 +1362,7 @@ typedef struct PlanState
 
 	Plan	   *plan;			/* associated Plan node */
 
-	EState	   *state;			/* at execution time, state's of individual
+	EState	   *state;			/* at execution time, states of individual
 								 * nodes point to one EState for the whole
 								 * top-level plan */
 
@@ -1388,7 +1397,6 @@ typedef struct PlanState
 	/*
 	 * Other run-time state needed by most if not all node types.
 	 */
-	TupleTableSlot *ps_OuterTupleSlot;	/* slot for current "outer" tuple */
 	TupleTableSlot *ps_ResultTupleSlot; /* slot for my result tuples */
 	ExprContext *ps_ExprContext;	/* node's expression-evaluation context */
 	ProjectionInfo *ps_ProjInfo;	/* info for doing tuple projection */
@@ -1517,6 +1525,13 @@ typedef struct RecursiveUnionState
 	bool		intermediate_empty;
 	Tuplestorestate *working_table;
 	Tuplestorestate *intermediate_table;
+
+	/* Remaining fields are unused in UNION ALL case */
+	FmgrInfo   *eqfunctions;	/* per-grouping-field equality fns */
+	FmgrInfo   *hashfunctions;	/* per-grouping-field hash fns */
+	MemoryContext tempContext;	/* short-term context for comparisons */
+	TupleHashTable hashtable;	/* hash table for tuples already seen */
+	MemoryContext tableContext;	/* memory context containing hash table */
 } RecursiveUnionState;
 
 /* ----------------
@@ -1905,6 +1920,7 @@ typedef struct SubqueryScanState
  *		Function nodes are used to scan the results of a
  *		function appearing in FROM (typically a function returning set).
  *
+ *		eflags				node's capability flags
  *		tupdesc				expected return tuple description
  *		tuplestorestate		private state of tuplestore.c
  *		funcexpr			state for function expression being evaluated
@@ -1916,6 +1932,7 @@ typedef struct SubqueryScanState
 typedef struct FunctionScanState
 {
 	ScanState	ss;				/* its first field is NodeTag */
+	int			eflags;
 	TupleDesc	tupdesc;
 	Tuplestorestate *tuplestorestate;
 	ExprState  *funcexpr;

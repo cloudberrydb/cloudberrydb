@@ -162,7 +162,7 @@ SELECT LOWER(name) as aaa FROM srt WHERE name = 'AAA'::bpchar;
 SELECT LOWER(name) as aaa FROM srt WHERE name = 'AAA';
 SELECT LOWER(name) as aaa FROM srt WHERE name = 'AAA'::citext;
 
--- LIKE shoudl be case-insensitive
+-- LIKE should be case-insensitive
 SELECT name FROM srt WHERE name     LIKE '%a%' ORDER BY name;
 SELECT name FROM srt WHERE name NOT LIKE '%b%' ORDER BY name;
 SELECT name FROM srt WHERE name     LIKE '%A%' ORDER BY name;
@@ -183,6 +183,363 @@ SELECT name FROM srt WHERE name !~ 'A$' ORDER BY name;
 -- SIMILAR TO should be case-insensitive.
 SELECT name FROM srt WHERE name SIMILAR TO '%a.*';
 SELECT name FROM srt WHERE name SIMILAR TO '%A.*';
+
+-- Explicit casts.
+SELECT true::citext = 'true' AS t;
+SELECT 'true'::citext::boolean = true AS t;
+
+SELECT 4::citext = '4' AS t;
+SELECT 4::int4::citext = '4' AS t;
+SELECT '4'::citext::int4 = 4 AS t;
+SELECT 4::integer::citext = '4' AS t;
+SELECT '4'::citext::integer = 4 AS t;
+
+SELECT 4::int8::citext = '4' AS t;
+SELECT '4'::citext::int8 = 4 AS t;
+SELECT 4::bigint::citext = '4' AS t;
+SELECT '4'::citext::bigint = 4 AS t;
+
+SELECT 4::int2::citext = '4' AS t;
+SELECT '4'::citext::int2 = 4 AS t;
+SELECT 4::smallint::citext = '4' AS t;
+SELECT '4'::citext::smallint = 4 AS t;
+
+SELECT 4.0::numeric = '4.0' AS t;
+SELECT '4.0'::citext::numeric = 4.0 AS t;
+SELECT 4.0::decimal = '4.0' AS t;
+SELECT '4.0'::citext::decimal = 4.0 AS t;
+
+SELECT 4.0::real = '4.0' AS t;
+SELECT '4.0'::citext::real = 4.0 AS t;
+SELECT 4.0::float4 = '4.0' AS t;
+SELECT '4.0'::citext::float4 = 4.0 AS t;
+
+SELECT 4.0::double precision = '4.0' AS t;
+SELECT '4.0'::citext::double precision = 4.0 AS t;
+SELECT 4.0::float8 = '4.0' AS t;
+SELECT '4.0'::citext::float8 = 4.0 AS t;
+
+SELECT 'foo'::name::citext = 'foo' AS t;
+SELECT 'foo'::citext::name = 'foo'::name AS t;
+
+SELECT 'f'::char::citext = 'f' AS t;
+SELECT 'f'::citext::char = 'f'::char AS t;
+
+SELECT 'f'::"char"::citext = 'f' AS t;
+SELECT 'f'::citext::"char" = 'f'::"char" AS t;
+
+SELECT 'foo'::bytea::citext = 'foo' AS t;
+SELECT 'foo'::citext::bytea = 'foo'::bytea AS t;
+
+SELECT '100'::money::citext = '$100.00' AS t;
+SELECT '100'::citext::money = '100'::money AS t;
+
+SELECT 'a'::char::citext = 'a' AS t;
+SELECT 'a'::citext::char = 'a'::char AS t;
+
+SELECT 'foo'::varchar::citext = 'foo' AS t;
+SELECT 'foo'::citext::varchar = 'foo'::varchar AS t;
+
+SELECT 'foo'::text::citext = 'foo' AS t;
+SELECT 'foo'::citext::text = 'foo'::text AS t;
+
+SELECT '192.168.100.128/25'::cidr::citext = '192.168.100.128/25' AS t;
+SELECT '192.168.100.128/25'::citext::cidr = '192.168.100.128/25'::cidr AS t;
+
+SELECT '192.168.100.128'::inet::citext = '192.168.100.128/32' AS t;
+SELECT '192.168.100.128'::citext::inet = '192.168.100.128'::inet AS t;
+
+SELECT '08:00:2b:01:02:03'::macaddr::citext = '08:00:2b:01:02:03' AS t;
+SELECT '08:00:2b:01:02:03'::citext::macaddr = '08:00:2b:01:02:03'::macaddr AS t;
+
+SELECT '1999-01-08 04:05:06'::timestamp::citext = '1999-01-08 04:05:06'::timestamp::text AS t;
+SELECT '1999-01-08 04:05:06'::citext::timestamp = '1999-01-08 04:05:06'::timestamp AS t;
+SELECT '1999-01-08 04:05:06'::timestamptz::citext = '1999-01-08 04:05:06'::timestamptz::text AS t;
+SELECT '1999-01-08 04:05:06'::citext::timestamptz = '1999-01-08 04:05:06'::timestamptz AS t;
+
+SELECT '1 hour'::interval::citext = '1 hour'::interval::text AS t;
+SELECT '1 hour'::citext::interval = '1 hour'::interval AS t;
+
+SELECT '1999-01-08'::date::citext = '1999-01-08'::date::text AS t;
+SELECT '1999-01-08'::citext::date = '1999-01-08'::date AS t;
+
+SELECT '04:05:06'::time::citext = '04:05:06' AS t;
+SELECT '04:05:06'::citext::time = '04:05:06'::time AS t;
+SELECT '04:05:06'::timetz::citext = '04:05:06'::timetz::text AS t;
+SELECT '04:05:06'::citext::timetz = '04:05:06'::timetz AS t;
+
+SELECT '( 1 , 1)'::point::citext = '(1,1)' AS t;
+SELECT '( 1 , 1)'::citext::point ~= '(1,1)'::point AS t;
+SELECT '( 1 , 1 ) , ( 2 , 2 )'::lseg::citext = '[(1,1),(2,2)]' AS t;
+SELECT '( 1 , 1 ) , ( 2 , 2 )'::citext::lseg = '[(1,1),(2,2)]'::lseg AS t;
+SELECT '( 0 , 0 ) , ( 1 , 1 )'::box::citext = '(0,0),(1,1)'::box::text AS t;
+SELECT '( 0 , 0 ) , ( 1 , 1 )'::citext::box ~= '(0,0),(1,1)'::text::box AS t;
+
+SELECT '((0,0),(1,1),(2,0))'::path::citext = '((0,0),(1,1),(2,0))' AS t;
+SELECT '((0,0),(1,1),(2,0))'::citext::path = '((0,0),(1,1),(2,0))'::path AS t;
+
+SELECT '((0,0),(1,1))'::polygon::citext = '((0,0),(1,1))' AS t;
+SELECT '((0,0),(1,1))'::citext::polygon ~= '((0,0),(1,1))'::polygon AS t;
+
+SELECT '((0,0),2)'::circle::citext = '((0,0),2)'::circle::text AS t;
+SELECT '((0,0),2)'::citext::circle ~= '((0,0),2)'::text::circle AS t;
+
+SELECT '101'::bit::citext = '101'::bit::text AS t;
+SELECT '101'::citext::bit = '101'::text::bit AS t;
+SELECT '101'::bit varying::citext = '101'::bit varying::text AS t;
+SELECT '101'::citext::bit varying = '101'::text::bit varying AS t;
+SELECT 'a fat cat'::tsvector::citext = '''a'' ''cat'' ''fat''' AS t;
+SELECT 'a fat cat'::citext::tsvector = 'a fat cat'::tsvector AS t;
+SELECT 'fat & rat'::tsquery::citext = '''fat'' & ''rat''' AS t;
+SELECT 'fat & rat'::citext::tsquery = 'fat & rat'::tsquery AS t;
+SELECT 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid::citext = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' AS t;
+SELECT 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::citext::uuid = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid AS t;
+
+CREATE TYPE mood AS ENUM ('sad', 'ok', 'happy');
+SELECT 'sad'::mood::citext = 'sad' AS t;
+SELECT 'sad'::citext::mood = 'sad'::mood AS t;
+
+-- Assignment casts.
+CREATE TABLE caster (
+    citext      citext,
+    text        text,
+    varchar     varchar,
+    bpchar      bpchar,
+    char        char,
+    chr         "char",
+    name        name,    
+    bytea       bytea,
+    boolean     boolean,
+    float4      float4,
+    float8      float8,
+    numeric     numeric,
+    int8        int8,
+    int4        int4,
+    int2        int2,
+    cidr        cidr,   
+    inet        inet,
+    macaddr     macaddr,
+    money       money,
+    timestamp   timestamp,
+    timestamptz timestamptz,
+    interval    interval,
+    date        date,
+    time        time,
+    timetz      timetz,
+    point       point,
+    lseg        lseg,
+    box         box,
+    path        path,
+    polygon     polygon,
+    circle      circle,
+    bit         bit,
+    bitv        bit varying,
+    tsvector    tsvector,
+    tsquery     tsquery,
+    uuid        uuid
+);
+
+INSERT INTO caster (text)          VALUES ('foo'::citext);
+INSERT INTO caster (citext)        VALUES ('foo'::text);
+
+INSERT INTO caster (varchar)       VALUES ('foo'::text);
+INSERT INTO caster (text)          VALUES ('foo'::varchar);
+INSERT INTO caster (varchar)       VALUES ('foo'::citext);
+INSERT INTO caster (citext)        VALUES ('foo'::varchar);
+
+INSERT INTO caster (bpchar)        VALUES ('foo'::text);
+INSERT INTO caster (text)          VALUES ('foo'::bpchar);
+INSERT INTO caster (bpchar)        VALUES ('foo'::citext);
+INSERT INTO caster (citext)        VALUES ('foo'::bpchar);
+
+INSERT INTO caster (char)          VALUES ('f'::text);
+INSERT INTO caster (text)          VALUES ('f'::char);
+INSERT INTO caster (char)          VALUES ('f'::citext);
+INSERT INTO caster (citext)        VALUES ('f'::char);
+
+INSERT INTO caster (chr)           VALUES ('f'::text);
+INSERT INTO caster (text)          VALUES ('f'::"char");
+INSERT INTO caster (chr)           VALUES ('f'::citext);
+INSERT INTO caster (citext)        VALUES ('f'::"char");
+
+INSERT INTO caster (name)          VALUES ('foo'::text);
+INSERT INTO caster (text)          VALUES ('foo'::name);
+INSERT INTO caster (name)          VALUES ('foo'::citext);
+INSERT INTO caster (citext)        VALUES ('foo'::name);
+
+-- Cannot cast to bytea on assignment.
+INSERT INTO caster (bytea)         VALUES ('foo'::text);
+INSERT INTO caster (text)          VALUES ('foo'::bytea);
+INSERT INTO caster (bytea)         VALUES ('foo'::citext);
+INSERT INTO caster (citext)        VALUES ('foo'::bytea);
+
+-- Cannot cast to boolean on assignment.
+INSERT INTO caster (boolean)       VALUES ('t'::text);
+INSERT INTO caster (text)          VALUES ('t'::boolean);
+INSERT INTO caster (boolean)       VALUES ('t'::citext);
+INSERT INTO caster (citext)        VALUES ('t'::boolean);
+
+-- Cannot cast to float8 on assignment.
+INSERT INTO caster (float8)        VALUES ('12.42'::text);
+INSERT INTO caster (text)          VALUES ('12.42'::float8);
+INSERT INTO caster (float8)        VALUES ('12.42'::citext);
+INSERT INTO caster (citext)        VALUES ('12.42'::float8);
+
+-- Cannot cast to float4 on assignment.
+INSERT INTO caster (float4)        VALUES ('12.42'::text);
+INSERT INTO caster (text)          VALUES ('12.42'::float4);
+INSERT INTO caster (float4)        VALUES ('12.42'::citext);
+INSERT INTO caster (citext)        VALUES ('12.42'::float4);
+
+-- Cannot cast to numeric on assignment.
+INSERT INTO caster (numeric)       VALUES ('12.42'::text);
+INSERT INTO caster (text)          VALUES ('12.42'::numeric);
+INSERT INTO caster (numeric)       VALUES ('12.42'::citext);
+INSERT INTO caster (citext)        VALUES ('12.42'::numeric);
+
+-- Cannot cast to int8 on assignment.
+INSERT INTO caster (int8)          VALUES ('12'::text);
+INSERT INTO caster (text)          VALUES ('12'::int8);
+INSERT INTO caster (int8)          VALUES ('12'::citext);
+INSERT INTO caster (citext)        VALUES ('12'::int8);
+
+-- Cannot cast to int4 on assignment.
+INSERT INTO caster (int4)          VALUES ('12'::text);
+INSERT INTO caster (text)          VALUES ('12'::int4);
+INSERT INTO caster (int4)          VALUES ('12'::citext);
+INSERT INTO caster (citext)        VALUES ('12'::int4);
+
+-- Cannot cast to int2 on assignment.
+INSERT INTO caster (int2)          VALUES ('12'::text);
+INSERT INTO caster (text)          VALUES ('12'::int2);
+INSERT INTO caster (int2)          VALUES ('12'::citext);
+INSERT INTO caster (citext)        VALUES ('12'::int2);
+
+-- Cannot cast to cidr on assignment.
+INSERT INTO caster (cidr)          VALUES ('192.168.100.128/25'::text);
+INSERT INTO caster (text)          VALUES ('192.168.100.128/25'::cidr);
+INSERT INTO caster (cidr)          VALUES ('192.168.100.128/25'::citext);
+INSERT INTO caster (citext)        VALUES ('192.168.100.128/25'::cidr);
+
+-- Cannot cast to inet on assignment.
+INSERT INTO caster (inet)          VALUES ('192.168.100.128'::text);
+INSERT INTO caster (text)          VALUES ('192.168.100.128'::inet);
+INSERT INTO caster (inet)          VALUES ('192.168.100.128'::citext);
+INSERT INTO caster (citext)        VALUES ('192.168.100.128'::inet);
+
+-- Cannot cast to macaddr on assignment.
+INSERT INTO caster (macaddr)       VALUES ('08:00:2b:01:02:03'::text);
+INSERT INTO caster (text)          VALUES ('08:00:2b:01:02:03'::macaddr);
+INSERT INTO caster (macaddr)       VALUES ('08:00:2b:01:02:03'::citext);
+INSERT INTO caster (citext)        VALUES ('08:00:2b:01:02:03'::macaddr);
+
+-- Cannot cast to money on assignment.
+INSERT INTO caster (money)         VALUES ('12'::text);
+INSERT INTO caster (text)          VALUES ('12'::money);
+INSERT INTO caster (money)         VALUES ('12'::citext);
+INSERT INTO caster (citext)        VALUES ('12'::money);
+
+-- Cannot cast to timestamp on assignment.
+INSERT INTO caster (timestamp)     VALUES ('1999-01-08 04:05:06'::text);
+INSERT INTO caster (text)          VALUES ('1999-01-08 04:05:06'::timestamp);
+INSERT INTO caster (timestamp)     VALUES ('1999-01-08 04:05:06'::citext);
+INSERT INTO caster (citext)        VALUES ('1999-01-08 04:05:06'::timestamp);
+
+-- Cannot cast to timestamptz on assignment.
+INSERT INTO caster (timestamptz)   VALUES ('1999-01-08 04:05:06'::text);
+INSERT INTO caster (text)          VALUES ('1999-01-08 04:05:06'::timestamptz);
+INSERT INTO caster (timestamptz)   VALUES ('1999-01-08 04:05:06'::citext);
+INSERT INTO caster (citext)        VALUES ('1999-01-08 04:05:06'::timestamptz);
+
+-- Cannot cast to interval on assignment.
+INSERT INTO caster (interval)      VALUES ('1 hour'::text);
+INSERT INTO caster (text)          VALUES ('1 hour'::interval);
+INSERT INTO caster (interval)      VALUES ('1 hour'::citext);
+INSERT INTO caster (citext)        VALUES ('1 hour'::interval);
+
+-- Cannot cast to date on assignment.
+INSERT INTO caster (date)          VALUES ('1999-01-08'::text);
+INSERT INTO caster (text)          VALUES ('1999-01-08'::date);
+INSERT INTO caster (date)          VALUES ('1999-01-08'::citext);
+INSERT INTO caster (citext)        VALUES ('1999-01-08'::date);
+
+-- Cannot cast to time on assignment.
+INSERT INTO caster (time)          VALUES ('04:05:06'::text);
+INSERT INTO caster (text)          VALUES ('04:05:06'::time);
+INSERT INTO caster (time)          VALUES ('04:05:06'::citext);
+INSERT INTO caster (citext)        VALUES ('04:05:06'::time);
+
+-- Cannot cast to timetz on assignment.
+INSERT INTO caster (timetz)        VALUES ('04:05:06'::text);
+INSERT INTO caster (text)          VALUES ('04:05:06'::timetz);
+INSERT INTO caster (timetz)        VALUES ('04:05:06'::citext);
+INSERT INTO caster (citext)        VALUES ('04:05:06'::timetz);
+
+-- Cannot cast to point on assignment.
+INSERT INTO caster (point)         VALUES ('( 1 , 1)'::text);
+INSERT INTO caster (text)          VALUES ('( 1 , 1)'::point);
+INSERT INTO caster (point)         VALUES ('( 1 , 1)'::citext);
+INSERT INTO caster (citext)        VALUES ('( 1 , 1)'::point);
+
+-- Cannot cast to lseg on assignment.
+INSERT INTO caster (lseg)          VALUES ('( 1 , 1 ) , ( 2 , 2 )'::text);
+INSERT INTO caster (text)          VALUES ('( 1 , 1 ) , ( 2 , 2 )'::lseg);
+INSERT INTO caster (lseg)          VALUES ('( 1 , 1 ) , ( 2 , 2 )'::citext);
+INSERT INTO caster (citext)        VALUES ('( 1 , 1 ) , ( 2 , 2 )'::lseg);
+
+-- Cannot cast to box on assignment.
+INSERT INTO caster (box)           VALUES ('(0,0),(1,1)'::text);
+INSERT INTO caster (text)          VALUES ('(0,0),(1,1)'::box);
+INSERT INTO caster (box)           VALUES ('(0,0),(1,1)'::citext);
+INSERT INTO caster (citext)        VALUES ('(0,0),(1,1)'::box);
+
+-- Cannot cast to path on assignment.
+INSERT INTO caster (path)          VALUES ('((0,0),(1,1),(2,0))'::text);
+INSERT INTO caster (text)          VALUES ('((0,0),(1,1),(2,0))'::path);
+INSERT INTO caster (path)          VALUES ('((0,0),(1,1),(2,0))'::citext);
+INSERT INTO caster (citext)        VALUES ('((0,0),(1,1),(2,0))'::path);
+
+-- Cannot cast to polygon on assignment.
+INSERT INTO caster (polygon)       VALUES ('((0,0),(1,1))'::text);
+INSERT INTO caster (text)          VALUES ('((0,0),(1,1))'::polygon);
+INSERT INTO caster (polygon)       VALUES ('((0,0),(1,1))'::citext);
+INSERT INTO caster (citext)        VALUES ('((0,0),(1,1))'::polygon);
+
+-- Cannot cast to circle on assignment.
+INSERT INTO caster (circle)        VALUES ('((0,0),2)'::text);
+INSERT INTO caster (text)          VALUES ('((0,0),2)'::circle);
+INSERT INTO caster (circle)        VALUES ('((0,0),2)'::citext);
+INSERT INTO caster (citext)        VALUES ('((0,0),2)'::circle);
+
+-- Cannot cast to bit on assignment.
+INSERT INTO caster (bit)           VALUES ('101'::text);
+INSERT INTO caster (text)          VALUES ('101'::bit);
+INSERT INTO caster (bit)           VALUES ('101'::citext);
+INSERT INTO caster (citext)        VALUES ('101'::bit);
+
+-- Cannot cast to bit varying on assignment.
+INSERT INTO caster (bitv)          VALUES ('101'::text);
+INSERT INTO caster (text)          VALUES ('101'::bit varying);
+INSERT INTO caster (bitv)          VALUES ('101'::citext);
+INSERT INTO caster (citext)        VALUES ('101'::bit varying);
+
+-- Cannot cast to tsvector on assignment.
+INSERT INTO caster (tsvector)      VALUES ('the fat cat'::text);
+INSERT INTO caster (text)          VALUES ('the fat cat'::tsvector);
+INSERT INTO caster (tsvector)      VALUES ('the fat cat'::citext);
+INSERT INTO caster (citext)        VALUES ('the fat cat'::tsvector);
+
+-- Cannot cast to tsquery on assignment.
+INSERT INTO caster (tsquery)       VALUES ('fat & rat'::text);
+INSERT INTO caster (text)          VALUES ('fat & rat'::tsquery);
+INSERT INTO caster (tsquery)       VALUES ('fat & rat'::citext);
+INSERT INTO caster (citext)        VALUES ('fat & rat'::tsquery);
+
+-- Cannot cast to uuid on assignment.
+INSERT INTO caster (uuid)          VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::text);
+INSERT INTO caster (text)          VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid);
+INSERT INTO caster (uuid)          VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::citext);
+INSERT INTO caster (citext)        VALUES ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid);
 
 -- Table 9-5. SQL String Functions and Operators
 SELECT 'D'::citext || 'avid'::citext = 'David'::citext AS citext_concat;
@@ -248,12 +605,51 @@ SELECT quote_ident( name ) = quote_ident( name::text ) AS t FROM srt;
 SELECT quote_literal( name ) = quote_literal( name::text ) AS t FROM srt;
 
 SELECT regexp_matches('foobarbequebaz'::citext, '(bar)(beque)') = ARRAY[ 'bar', 'beque' ] AS t;
-SELECT regexp_replace('Thomas'::citext, '.[mN]a.', 'M') = 'ThM' AS t;
+SELECT regexp_matches('foobarbequebaz'::citext, '(BAR)(BEQUE)') = ARRAY[ 'bar', 'beque' ] AS t;
+SELECT regexp_matches('foobarbequebaz'::citext, '(BAR)(BEQUE)'::citext) = ARRAY[ 'bar', 'beque' ] AS t;
+SELECT regexp_matches('foobarbequebaz'::citext, '(BAR)(BEQUE)'::citext, '') = ARRAY[ 'bar', 'beque' ] AS t;
+SELECT regexp_matches('foobarbequebaz'::citext, '(BAR)(BEQUE)', '') = ARRAY[ 'bar', 'beque' ] AS t;
+SELECT regexp_matches('foobarbequebaz', '(BAR)(BEQUE)'::citext, '') = ARRAY[ 'bar', 'beque' ] AS t;
+SELECT regexp_matches('foobarbequebaz'::citext, '(BAR)(BEQUE)'::citext, ''::citext) = ARRAY[ 'bar', 'beque' ] AS t;
+-- c forces case-sensitive
+SELECT regexp_matches('foobarbequebaz'::citext, '(BAR)(BEQUE)'::citext, 'c'::citext) = ARRAY[ 'bar', 'beque' ] AS "null";
+
+SELECT regexp_replace('Thomas'::citext, '.[mN]a.',         'M') = 'ThM' AS t;
+SELECT regexp_replace('Thomas'::citext, '.[MN]A.',         'M') = 'ThM' AS t;
+SELECT regexp_replace('Thomas',         '.[MN]A.'::citext, 'M') = 'ThM' AS t;
+SELECT regexp_replace('Thomas'::citext, '.[MN]A.'::citext, 'M') = 'ThM' AS t;
+-- c forces case-sensitive
+SELECT regexp_replace('Thomas'::citext, '.[MN]A.'::citext, 'M', 'c') = 'Thomas' AS t;
+
 SELECT regexp_split_to_array('hello world'::citext, E'\\s+') = ARRAY[ 'hello', 'world' ] AS t;
+SELECT regexp_split_to_array('helloTworld'::citext, 't') = ARRAY[ 'hello', 'world' ] AS t;
+SELECT regexp_split_to_array('helloTworld', 't'::citext) = ARRAY[ 'hello', 'world' ] AS t;
+SELECT regexp_split_to_array('helloTworld'::citext, 't'::citext) = ARRAY[ 'hello', 'world' ] AS t;
+SELECT regexp_split_to_array('helloTworld'::citext, 't', 's') = ARRAY[ 'hello', 'world' ] AS t;
+SELECT regexp_split_to_array('helloTworld', 't'::citext, 's') = ARRAY[ 'hello', 'world' ] AS t;
+SELECT regexp_split_to_array('helloTworld'::citext, 't'::citext, 's') = ARRAY[ 'hello', 'world' ] AS t;
+
+-- c forces case-sensitive
+SELECT regexp_split_to_array('helloTworld'::citext, 't'::citext, 'c') = ARRAY[ 'helloTworld' ] AS t;
+
 SELECT regexp_split_to_table('hello world'::citext, E'\\s+') AS words;
+SELECT regexp_split_to_table('helloTworld'::citext, 't') AS words;
+SELECT regexp_split_to_table('helloTworld',         't'::citext) AS words;
+SELECT regexp_split_to_table('helloTworld'::citext, 't'::citext) AS words;
+-- c forces case-sensitive
+SELECT regexp_split_to_table('helloTworld'::citext, 't'::citext, 'c') AS word;
 
 SELECT repeat('Pg'::citext, 4) = 'PgPgPgPg' AS t;
+
 SELECT replace('abcdefabcdef'::citext, 'cd', 'XX') = 'abXXefabXXef' AS t;
+SELECT replace('abcdefabcdef'::citext, 'CD', 'XX') = 'abXXefabXXef' AS t;
+SELECT replace('ab^is$abcdef'::citext, '^is$', 'XX') = 'abXXabcdef' AS t;
+SELECT replace('abcdefabcdef', 'cd'::citext, 'XX') = 'abXXefabXXef' AS t;
+SELECT replace('abcdefabcdef', 'CD'::citext, 'XX') = 'abXXefabXXef' AS t;
+SELECT replace('ab^is$abcdef', '^is$'::citext, 'XX') = 'abXXabcdef' AS t;
+SELECT replace('abcdefabcdef'::citext, 'cd'::citext, 'XX') = 'abXXefabXXef' AS t;
+SELECT replace('abcdefabcdef'::citext, 'CD'::citext, 'XX') = 'abXXefabXXef' AS t;
+SELECT replace('ab^is$abcdef'::citext, '^is$'::citext, 'XX') = 'abXXabcdef' AS t;
 
 SELECT rpad('hi'::citext, 5              ) = 'hi   ' AS t;
 SELECT rpad('hi'::citext, 5, 'xy'::citext) = 'hixyx' AS t;
@@ -266,22 +662,24 @@ SELECT rtrim('trimxxxx'::text,   'x'::citext) = 'trim' AS t;
 SELECT rtrim('trimxxxx'::text,   'x'::text  ) = 'trim' AS t;
 
 SELECT split_part('abc~@~def~@~ghi'::citext, '~@~', 2) = 'def' AS t;
+SELECT split_part('abcTdefTghi'::citext, 't', 2) = 'def' AS t;
+SELECT split_part('abcTdefTghi'::citext, 't'::citext, 2) = 'def' AS t;
+SELECT split_part('abcTdefTghi', 't'::citext, 2) = 'def' AS t;
+
 SELECT strpos('high'::citext, 'ig'        ) = 2 AS t;
+SELECT strpos('high',         'ig'::citext) = 2 AS t;
 SELECT strpos('high'::citext, 'ig'::citext) = 2 AS t;
+SELECT strpos('high'::citext, 'IG'        ) = 2 AS t;
+SELECT strpos('high',         'IG'::citext) = 2 AS t;
+SELECT strpos('high'::citext, 'IG'::citext) = 2 AS t;
+
 -- to_ascii() does not support UTF-8.
 -- to_hex() takes a numeric argument.
 SELECT substr('alphabet', 3, 2) = 'ph' AS t;
-SELECT translate('abcdefabcdef'::citext, 'cd', 'XX') = 'abXXefabXXef' AS t;
-
--- TODO These functions should work case-insensitively, but don't.
-SELECT regexp_matches('foobarbequebaz'::citext, '(BAR)(BEQUE)') = ARRAY[ 'bar', 'beque' ] AS "t TODO";
-SELECT regexp_replace('Thomas'::citext, '.[MN]A.', 'M') = 'THM' AS "t TODO";
-SELECT regexp_split_to_array('helloTworld'::citext, 't') = ARRAY[ 'hello', 'world' ] AS "t TODO";
-SELECT regexp_split_to_table('helloTworld'::citext, 't') AS "words TODO";
-SELECT replace('abcdefabcdef'::citext, 'CD', 'XX') = 'abXXefabXXef' AS "t TODO";
-SELECT split_part('abcTdefTghi'::citext, 't', 2) = 'def' AS "t TODO";
-SELECT strpos('high'::citext, 'IG'::citext) = 2 AS "t TODO";
-SELECT translate('abcdefabcdef'::citext, 'CD', 'XX') = 'abXXefabXXef' AS "t TODO";
+SELECT translate('abcdefabcdef'::citext, 'cd',         'XX') = 'abXXefabXXef' AS t;
+SELECT translate('abcdefabcdef'::citext, 'CD',         'XX') = 'abXXefabXXef' AS t;
+SELECT translate('abcdefabcdef'::citext, 'CD'::citext, 'XX') = 'abXXefabXXef' AS t;
+SELECT translate('abcdefabcdef',         'CD'::citext, 'XX') = 'abXXefabXXef' AS t;
 
 -- Table 9-20. Formatting Functions
 SELECT to_date('05 Dec 2000'::citext, 'DD Mon YYYY'::citext)
@@ -323,8 +721,4 @@ VALUES ( to_char(  now()::timestamp,          'HH12:MI:SS') ),
 SELECT COUNT(*) = 19::bigint AS t FROM try;
 
 SELECT like_escape( name, '' ) = like_escape( name::text, '' ) AS t FROM srt;
-SELECT like_escape( name::text, ''::citext ) =like_escape( name::text, '' ) AS t FROM srt;
-
---- citext should work as source or destination of I/O conversion casts
-SELECT cidr( '192.168.1.2'::citext ) = cidr( '192.168.1.2'::text ) AS "t";
-SELECT '192.168.1.2'::cidr::citext = '192.168.1.2'::cidr::text AS "t";
+SELECT like_escape( name::text, ''::citext ) = like_escape( name::text, '' ) AS t FROM srt;

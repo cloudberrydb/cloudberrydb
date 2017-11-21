@@ -2747,18 +2747,19 @@ selfUnsetSlot(void)
 static bool
 procIsWaiting(const PGPROC *proc)
 {
-	/*
+	/*------
 	 * The typical asm instructions fow below C operation can be like this:
 	 * ( gcc 4.8.5-11, x86_64-redhat-linux, -O0 )
 	 *
      *     mov    -0x8(%rbp),%rax           ; load proc
      *     mov    0x8(%rax),%rax            ; load proc->links.next
-     *     cmp    $0xffffffffffffffff,%rax  ; compare with INVALID_OFFSET
+     *     cmp    $0,%rax                   ; compare with NULL
      *     setne  %al                       ; store the result
 	 *
 	 * The operation is atomic, so a lock is not required here.
+	 *------
 	 */
-	return proc->links.next != INVALID_OFFSET;
+	return proc->links.next != NULL;
 }
 
 /*
@@ -2897,8 +2898,8 @@ groupWaitQueueValidate(const ResGroupData *group)
 	waitQueue = &group->waitProcs;
 
 	AssertImply(waitQueue->size == 0,
-				waitQueue->links.next == MAKE_OFFSET(&waitQueue->links) &&
-				waitQueue->links.prev == MAKE_OFFSET(&waitQueue->links));
+				waitQueue->links.next == &waitQueue->links &&
+				waitQueue->links.prev == &waitQueue->links);
 }
 
 /*
@@ -2942,7 +2943,7 @@ groupWaitQueuePop(ResGroupData *group)
 
 	waitQueue = &group->waitProcs;
 
-	proc = (PGPROC *) MAKE_PTR(waitQueue->links.next);
+	proc = (PGPROC *) waitQueue->links.next;
 	Assert(groupWaitQueueFind(group, proc));
 	Assert(proc->resSlot == NULL);
 
@@ -3147,7 +3148,7 @@ resgroupDumpWaitQueue(StringInfo str, PROC_QUEUE *queue)
 								  &queue->links, 
 								  offsetof(PGPROC, links));
 
-	if (!SHM_PTR_VALID(&proc->links))
+	if (!ShmemAddrIsValid(&proc->links))
 	{
 		appendStringInfo(str, "]},");
 		return;

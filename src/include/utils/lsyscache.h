@@ -6,7 +6,7 @@
  * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/lsyscache.h,v 1.125 2008/08/02 21:32:01 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/utils/lsyscache.h,v 1.126 2008/09/28 19:51:40 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -40,6 +40,10 @@ typedef enum CmpType
 	CmptGEq, 	// greater or equal to
 	CmptOther	// other operator
 } CmpType;
+
+/* Hook for plugins to get control in get_attavgwidth() */
+typedef int32 (*get_attavgwidth_hook_type) (Oid relid, AttrNumber attnum);
+extern PGDLLIMPORT get_attavgwidth_hook_type get_attavgwidth_hook;
 
 extern bool op_in_opfamily(Oid opno, Oid opfamily);
 extern int	get_op_opfamily_strategy(Oid opno, Oid opfamily);

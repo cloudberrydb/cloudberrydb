@@ -39,7 +39,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/postmaster/postmaster.c,v 1.554 2008/03/31 02:43:14 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/postmaster/postmaster.c,v 1.567 2008/12/11 10:25:17 petere Exp $
  *
  * NOTES
  *
@@ -656,8 +656,8 @@ typedef struct
 	char		my_exec_path[MAXPGPATH];
 	char		pkglib_path[MAXPGPATH];
 	char		ExtraOptions[MAXPGPATH];
-	char		lc_collate[LOCALE_NAME_BUFLEN];
-	char		lc_ctype[LOCALE_NAME_BUFLEN];
+	char		lc_collate[NAMEDATALEN];
+	char		lc_ctype[NAMEDATALEN];
 }	BackendParameters;
 
 static void read_backend_variables(char *id, Port *port);
@@ -3241,22 +3241,8 @@ processTransitionRequest_getStatus(void)
 	sendPrimaryMirrorTransitionResult(statusBuf);
 }
 
-static void
-processTransitionRequest_getCollationAndDataDir(void)
-{
-	char statusBuf[10000 + MAXPGPATH];
 
-	snprintf(statusBuf, sizeof(statusBuf), "Success: lc_collate:%s\n"
-				"lc_monetary:%s\n"
-				"lc_numeric:%s\n"
-				"datadir:%s\n",
-				locale_collate,
-				locale_monetary,
-				locale_numeric,
-				data_directory );
 
-	sendPrimaryMirrorTransitionResult(statusBuf);
-}
 
 static void
 processTransitionRequest_getVersion(void)
@@ -3450,10 +3436,6 @@ processPrimaryMirrorTransitionRequest(Port *port, void *pkt)
 	{
 		processTransitionRequest_getStatus();
 	}
-	else if (strcmp("getCollationAndDataDirSettings", targetModeStr) == 0)
-	{
-		processTransitionRequest_getCollationAndDataDir();
-    }
 	else if (strcmp("getMirrorStatus", targetModeStr) == 0)
 	{
 		processTransitionRequest_getMirrorStatus();
@@ -4036,7 +4018,8 @@ SIGHUP_handler(SIGNAL_ARGS)
 			}
 		}
 		signal_child_if_up(SysLoggerPID, SIGHUP);
-		signal_child_if_up(PgStatPID, SIGHUP);
+		if (PgStatPID != 0)
+			signal_child(PgStatPID, SIGHUP);
 
 		/* Reload authentication config files too */
 		if (!load_hba())
@@ -8052,8 +8035,8 @@ save_backend_variables(BackendParameters *param, Port *port,
 
 	strlcpy(param->ExtraOptions, ExtraOptions, MAXPGPATH);
 
-	strlcpy(param->lc_collate, setlocale(LC_COLLATE, NULL), LOCALE_NAME_BUFLEN);
-	strlcpy(param->lc_ctype, setlocale(LC_CTYPE, NULL), LOCALE_NAME_BUFLEN);
+	strlcpy(param->lc_collate, setlocale(LC_COLLATE, NULL), NAMEDATALEN);
+	strlcpy(param->lc_ctype, setlocale(LC_CTYPE, NULL), NAMEDATALEN);
 
 	return true;
 }

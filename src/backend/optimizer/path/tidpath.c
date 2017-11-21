@@ -32,7 +32,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/tidpath.c,v 1.32 2008/05/12 00:00:49 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/tidpath.c,v 1.33 2008/08/25 22:42:33 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

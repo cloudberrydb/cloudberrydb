@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/tsearchcmds.c,v 1.13 2008/06/19 00:46:04 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/tsearchcmds.c,v 1.14 2008/11/02 01:45:28 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -782,8 +782,8 @@ AlterTSDictionary(AlterTSDictionaryStmt *stmt)
 	Datum		opt;
 	bool		isnull;
 	Datum		repl_val[Natts_pg_ts_dict];
-	char		repl_null[Natts_pg_ts_dict];
-	char		repl_repl[Natts_pg_ts_dict];
+	bool		repl_null[Natts_pg_ts_dict];
+	bool		repl_repl[Natts_pg_ts_dict];
 
 	dictId = TSDictionaryGetDictid(stmt->dictname, false);
 

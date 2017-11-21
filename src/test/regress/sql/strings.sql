@@ -54,6 +54,14 @@ SELECT E'DeAdBeEf'::bytea;
 SELECT E'De\\000dBeEf'::bytea;
 SELECT E'De\\123dBeEf'::bytea;
 
+-- Unicode escapes
+SELECT U&'d\0061t\+000061' AS U&"d\0061t\+000061";
+SELECT U&'d!0061t\+000061' UESCAPE '!' AS U&"d*0061t\+000061" UESCAPE '*';
+
+SELECT U&'wrong: \061';
+SELECT U&'wrong: \+0061';
+SELECT U&'wrong: +0061' UESCAPE '+';
+
 --
 -- test conversions between various string types
 -- E021-10 implicit casting among the character data types

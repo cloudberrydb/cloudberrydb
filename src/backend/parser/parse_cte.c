@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_cte.c,v 2.2 2008/10/05 22:50:55 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_cte.c,v 2.4 2008/10/08 01:14:44 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -18,7 +18,7 @@
 #include "nodes/nodeFuncs.h"
 #include "parser/analyze.h"
 #include "parser/parse_cte.h"
-#include "parser/parse_expr.h"
+//#include "parser/parse_expr.h"
 #include "utils/builtins.h"
 
 
@@ -219,7 +219,7 @@ transformWithClause(ParseState *pstate, WithClause *withClause)
 	{
 		/*
 		 * For non-recursive WITH, just analyze each CTE in sequence and then
-		 * add it to the ctenamespace.	This corresponds to the spec's
+		 * add it to the ctenamespace.  This corresponds to the spec's
 		 * definition of the scope of each WITH name.  However, to allow error
 		 * reports to be aware of the possibility of an erroneous reference,
 		 * we maintain a list in p_future_ctes of the not-yet-visible CTEs.
@@ -228,13 +228,13 @@ transformWithClause(ParseState *pstate, WithClause *withClause)
 
 		foreach (lc, withClause->ctes)
 		{
-			CommonTableExpr *cte = (CommonTableExpr *)lfirst(lc);
+			CommonTableExpr *cte = (CommonTableExpr *) lfirst(lc);
 
 			analyzeCTE(pstate, cte);
 			pstate->p_ctenamespace = lappend(pstate->p_ctenamespace, cte);
 			pstate->p_future_ctes = list_delete_first(pstate->p_future_ctes);
 		}
-	}
+ 	}
 
 	return pstate->p_ctenamespace;
 }
@@ -327,7 +327,6 @@ analyzeCTE(ParseState *pstate, CommonTableExpr *cte)
 			elog(ERROR, "wrong number of output columns in WITH");
 	}
 }
-
 
 /*
  * reportDuplicateNames
@@ -651,11 +650,12 @@ checkWellFormedRecursion(CteState *cstate)
 		if (!cte->cterecursive)
 			continue;
 
-		/* Must have top-level UNION ALL */
-		if (stmt->op != SETOP_UNION || !stmt->all)
+		/* GPDB_84_MERGE_FIXME: Do we support UNION without ALL in GPDB? Can we? */
+		/* Must have top-level UNION */
+		if (stmt->op != SETOP_UNION)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_RECURSION),
-					 errmsg("recursive query \"%s\" does not have the form non-recursive-term UNION ALL recursive-term",
+					 errmsg("recursive query \"%s\" does not have the form non-recursive-term UNION [ALL] recursive-term",
 							cte->ctename),
 					 parser_errposition(cstate->pstate, cte->location)));
 
@@ -690,7 +690,7 @@ checkWellFormedRecursion(CteState *cstate)
 		}
 
 		/*
-		 * Disallow ORDER BY and similar decoration atop the UNION ALL.
+		 * Disallow ORDER BY and similar decoration atop the UNION.
 		 * These don't make sense because it's impossible to figure out what
 		 * they mean when we have only part of the recursive query's results.
 		 * (If we did allow them, we'd have to check for recursive references
@@ -791,7 +791,6 @@ checkWellFormedRecursionWalker(Node *node, CteState *cstate)
 	{
 		SelectStmt *stmt = (SelectStmt *) node;
 		ListCell *lc;
-
 
 		if (stmt->withClause)
 		{
@@ -1062,4 +1061,3 @@ checkWindowFuncInRecursiveTerm(SelectStmt *stmt, CteState *cstate)
 		}
 	}
 }
-

@@ -10,7 +10,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/plannodes.h,v 1.102 2008/08/07 19:35:02 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/plannodes.h,v 1.105 2008/10/07 19:27:04 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -387,6 +387,12 @@ typedef struct RecursiveUnion
 {
 	Plan		plan;
 	int			wtParam;		/* ID of Param representing work table */
+	/* Remaining fields are zero/null in UNION ALL case */
+	int			numCols;		/* number of columns to check for
+								 * duplicate-ness */
+	AttrNumber *dupColIdx;		/* their indexes in the target list */
+	Oid		   *dupOperators;	/* equality operators to compare with */
+	long		numGroups;		/* estimated number of groups in input */
 } RecursiveUnion;
 
 /* ----------------

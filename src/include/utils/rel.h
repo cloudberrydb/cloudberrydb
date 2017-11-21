@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/rel.h,v 1.107 2008/06/19 00:46:06 alvherre Exp $
+ * $PostgreSQL: pgsql/src/include/utils/rel.h,v 1.110 2008/12/03 13:05:22 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -221,6 +221,13 @@ typedef struct RelationData
 	List	   *rd_indexprs;	/* index expression trees, if any */
 	List	   *rd_indpred;		/* index predicate tree, if any */
 	void	   *rd_amcache;		/* available for use by index AM */
+
+	/*
+	 * sizes of the free space and visibility map forks, or InvalidBlockNumber
+	 * if not known yet
+	 */
+	BlockNumber	rd_fsm_nblocks;
+	BlockNumber	rd_vm_nblocks;
 
 	/*
 	 * AO table support info (used only for AO and AOCS relations)

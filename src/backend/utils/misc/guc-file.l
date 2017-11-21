@@ -4,7 +4,7 @@
  *
  * Copyright (c) 2000-2008, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/backend/utils/misc/guc-file.l,v 1.55 2008/05/09 15:36:31 petere Exp $
+ * $PostgreSQL: pgsql/src/backend/utils/misc/guc-file.l,v 1.57 2008/09/10 18:09:19 alvherre Exp $
  */
 
 %{
@@ -281,8 +281,9 @@ ProcessConfigFile(GucContext context)
 		{
 			ereport(elevel,
 					(errcode(ERRCODE_CANT_CHANGE_RUNTIME_PARAM),
-					 errmsg("parameter \"%s\" cannot be changed after server start; configuration file change ignored",
-							gconf->name)));
+					 errmsg("attempted change of parameter \"%s\" ignored",
+							gconf->name),
+					 errdetail("This parameter cannot be changed after server start.")));
 			continue;
 		}
 
@@ -329,8 +330,12 @@ ProcessConfigFile(GucContext context)
 	/* If we got here all the options checked out okay, so apply them. */
 	for (item = head; item; item = item->next)
 	{
-		set_config_option(item->name, item->value, context,
-						  PGC_S_FILE, GUC_ACTION_SET, true);
+		if (set_config_option(item->name, item->value, context,
+			   					 PGC_S_FILE, GUC_ACTION_SET, true))
+		{
+			set_config_sourcefile(item->name, item->filename,
+								  item->sourceline);
+		}
 	}
 
 	/* Remember when we last successfully loaded the config file. */
@@ -541,6 +546,8 @@ ParseConfigFile(const char *config_file, const char *calling_file,
 				pfree(item->value);
 				item->name = opt_name;
 				item->value = opt_value;
+				item->filename = pstrdup(config_file);
+				item->sourceline = ConfigFileLineno-1;
 			}
 			else
 			{
@@ -548,6 +555,8 @@ ParseConfigFile(const char *config_file, const char *calling_file,
 				item = palloc(sizeof *item);
 				item->name = opt_name;
 				item->value = opt_value;
+				item->filename = pstrdup(config_file);
+				item->sourceline = ConfigFileLineno-1;
 				item->next = *head_p;
 				*head_p = item;
 				if (*tail_p == NULL)
@@ -560,6 +569,8 @@ ParseConfigFile(const char *config_file, const char *calling_file,
 			item = palloc(sizeof *item);
 			item->name = opt_name;
 			item->value = opt_value;
+			item->filename = pstrdup(config_file);
+			item->sourceline = ConfigFileLineno-1;
 			item->next = NULL;
 			if (*head_p == NULL)
 				*head_p = item;
@@ -617,6 +628,7 @@ free_name_value_list(struct name_value_pair *list)
 
 		pfree(item->name);
 		pfree(item->value);
+		pfree(item->filename);
 		pfree(item);
 		item = next;
 	}

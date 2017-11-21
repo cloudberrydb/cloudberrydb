@@ -1,11 +1,12 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/update.sgml,v 1.46 2008/02/15 22:17:06 tgl Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/update.sgml,v 1.48 2008/11/16 17:34:28 tgl Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-UPDATE">
  <refmeta>
   <refentrytitle id="SQL-UPDATE-TITLE">UPDATE</refentrytitle>
+  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -164,10 +165,13 @@ UPDATE [ ONLY ] <replaceable class="PARAMETER">table</replaceable> [ * ] [ [ AS 
      <para>
       The name of the cursor to use in a <literal>WHERE CURRENT OF</>
       condition.  The row to be updated is the one most recently fetched
-      from this cursor.  The cursor must be a simple (non-join, non-aggregate)
+      from this cursor.  The cursor must be a non-grouping
       query on the <command>UPDATE</>'s target table.
       Note that <literal>WHERE CURRENT OF</> cannot be
-      specified together with a Boolean condition.
+      specified together with a Boolean condition.  See
+      <xref linkend="sql-declare" endterm="sql-declare-title">
+      for more information about using cursors with
+      <literal>WHERE CURRENT OF</>.
      </para>
     </listitem>
    </varlistentry>
@@ -328,7 +332,7 @@ COMMIT;
    <literal>c_films</> is currently positioned:
 <programlisting>
 UPDATE films SET kind = 'Dramatic' WHERE CURRENT OF c_films;
-</programlisting>      
+</programlisting>
   </para>
  </refsect1>
 

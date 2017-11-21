@@ -44,7 +44,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/error/elog.c,v 1.205 2008/07/09 15:56:49 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/error/elog.c,v 1.209 2008/10/27 19:37:21 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -232,6 +232,10 @@ static void verify_and_replace_mbstr(char **str, int len)
 		*str = pstrdup("Message skipped due to incorrect encoding.");
 	}
 }
+
+static void setup_formatted_log_time(void);
+static void setup_formatted_start_time(void);
+
 
 /*
  * in_error_recursion_trouble --- are we at risk of infinite error recursion?
@@ -2258,6 +2262,60 @@ cdb_tidy_message(ErrorData *edata)
 }							   /* cdb_tidy_message */
 
 /*
+ * setup formatted_log_time, for consistent times between CSV and regular logs
+ */
+static void
+setup_formatted_log_time(void)
+{
+	struct timeval tv;
+	pg_time_t	stamp_time;
+	pg_tz	   *tz;
+	char		msbuf[8];
+
+	gettimeofday(&tv, NULL);
+	stamp_time = (pg_time_t) tv.tv_sec;
+
+	/*
+	 * Normally we print log timestamps in log_timezone, but during startup we
+	 * could get here before that's set. If so, fall back to gmt_timezone
+	 * (which guc.c ensures is set up before Log_line_prefix can become
+	 * nonempty).
+	 */
+	tz = log_timezone ? log_timezone : gmt_timezone;
+
+	pg_strftime(formatted_log_time, FORMATTED_TS_LEN,
+				/* leave room for microseconds... */
+				"%Y-%m-%d %H:%M:%S        %Z",
+				pg_localtime(&stamp_time, tz));
+
+	/* 'paste' microseconds into place... */
+	sprintf(msbuf, ".%06d", (int) (tv.tv_usec));
+	strncpy(formatted_log_time + 19, msbuf, 4);
+}
+
+/*
+ * setup formatted_start_time
+ */
+static void
+setup_formatted_start_time(void)
+{
+	pg_time_t	stamp_time = (pg_time_t) MyStartTime;
+	pg_tz	   *tz;
+
+	/*
+	 * Normally we print log timestamps in log_timezone, but during startup we
+	 * could get here before that's set. If so, fall back to gmt_timezone
+	 * (which guc.c ensures is set up before Log_line_prefix can become
+	 * nonempty).
+	 */
+	tz = log_timezone ? log_timezone : gmt_timezone;
+
+	pg_strftime(formatted_start_time, FORMATTED_TS_LEN,
+				"%Y-%m-%d %H:%M:%S %Z",
+				pg_localtime(&stamp_time, tz));
+}
+
+/*
  * Format tag info for log lines; append to the provided buffer.
  */
 static void
@@ -2338,51 +2396,8 @@ log_line_prefix(StringInfo buf)
 				appendStringInfo(buf, "%ld", log_line_number);
 				break;
 			case 'm':
-				{
-					/*
-					 * Note: for %m, %t, and %s we deliberately use the C
-					 * library's strftime/localtime, and not the equivalent
-					 * functions from src/timezone.  This ensures that all
-					 * backends will report log entries in the same timezone,
-					 * namely whatever C-library setting they inherit from the
-					 * postmaster.	If we used src/timezone then local
-					 * settings of the TimeZone GUC variable would confuse the
-					 * log.
-					 *
-					 * 	CDB:  It is not safe to call strftime since it is not async-safe, and it
-					 * is expensive to call strftime to get timezone everytime, we use
-					 * pg_strftime, but stick on a fixed timezone (log_timezone)
-					 * instead a settable timezone as PostgreSQL does, since we want all
-					 * log messages to have the same time format. See MPP-2591.
-					 *
-					 */
-					struct timeval tv;
-					pg_time_t	stamp_time;
-					pg_tz	   *tz;
-					char		msbuf[8];
-
-					gettimeofday(&tv, NULL);
-					stamp_time = (pg_time_t) tv.tv_sec;
-
-					/*
-					 * Normally we print log timestamps in log_timezone, but
-					 * during startup we could get here before that's set. If
-					 * so, fall back to gmt_timezone (which guc.c ensures is
-					 * set up before Log_line_prefix can become nonempty).
-					 */
-					tz = log_timezone ? log_timezone : gmt_timezone;
-
-					pg_strftime(formatted_log_time, FORMATTED_TS_LEN,
-					/* leave room for microseconds... */
-								"%Y-%m-%d %H:%M:%S        %Z",
-							 pg_localtime(&stamp_time, log_timezone ? log_timezone : gmt_timezone));
-
-					/* 'paste' microseconds into place... */
-					sprintf(msbuf, ".%06d", (int) (tv.tv_usec));
-					strncpy(formatted_log_time + 19, msbuf, 4);
-
-					appendStringInfoString(buf, formatted_log_time);
-				}
+				setup_formatted_log_time();
+				appendStringInfoString(buf, formatted_log_time);
 				break;
 			case 't':
 				{
@@ -2400,16 +2415,7 @@ log_line_prefix(StringInfo buf)
 				break;
 			case 's':
 				if (formatted_start_time[0] == '\0')
-				{
-					pg_time_t	stamp_time = (pg_time_t) MyStartTime;
-					pg_tz	   *tz;
-
-					tz = log_timezone ? log_timezone : gmt_timezone;
-
-					pg_strftime(formatted_start_time, FORMATTED_TS_LEN,
-								"%Y-%m-%d %H:%M:%S %Z",
-								pg_localtime(&stamp_time, tz));
-				}
+					setup_formatted_start_time();
 				appendStringInfoString(buf, formatted_start_time);
 				break;
 			case 'i':
@@ -2615,32 +2621,8 @@ write_csvlog(ErrorData *edata)
 	 * to put same timestamp in both syslog and csvlog messages.
 	 */
 	if (formatted_log_time[0] == '\0')
-	{
-		struct timeval tv;
-		pg_time_t	stamp_time;
-		pg_tz	   *tz;
-		char		msbuf[8];
+		setup_formatted_log_time();
 
-		gettimeofday(&tv, NULL);
-		stamp_time = (pg_time_t) tv.tv_sec;
-
-		/*
-		 * Normally we print log timestamps in log_timezone, but during
-		 * startup we could get here before that's set. If so, fall back to
-		 * gmt_timezone (which guc.c ensures is set up before Log_line_prefix
-		 * can become nonempty).
-		 */
-		tz = log_timezone ? log_timezone : gmt_timezone;
-
-		pg_strftime(formatted_log_time, FORMATTED_TS_LEN,
-		/* leave room for milliseconds... */
-					"%Y-%m-%d %H:%M:%S     %Z",
-					pg_localtime(&stamp_time, tz));
-
-		/* 'paste' milliseconds into place... */
-		sprintf(msbuf, ".%03d", (int) (tv.tv_usec / 1000));
-		strncpy(formatted_log_time + 19, msbuf, 4);
-	}
 	appendStringInfoString(&buf, formatted_log_time);
 	appendStringInfoChar(&buf, ',');
 
@@ -2697,14 +2679,7 @@ write_csvlog(ErrorData *edata)
 
 	/* session start timestamp */
 	if (formatted_start_time[0] == '\0')
-	{
-		pg_time_t	stamp_time = (pg_time_t) MyStartTime;
-		pg_tz	   *tz = log_timezone ? log_timezone : gmt_timezone;
-
-		pg_strftime(formatted_start_time, FORMATTED_TS_LEN,
-					"%Y-%m-%d %H:%M:%S %Z",
-					pg_localtime(&stamp_time, tz));
-	}
+		setup_formatted_start_time();
 	appendStringInfoString(&buf, formatted_start_time);
 	appendStringInfoChar(&buf, ',');
 
@@ -4109,6 +4084,10 @@ useful_strerror(int errnum)
 
 /*
  * error_severity --- get localized string representing elevel
+ *
+ * Note: in an error recursion situation, we stop localizing the tags
+ * for ERROR and above.  This is necessary because the problem might be
+ * failure to convert one of these strings to the client encoding.
  */
 static const char *
 error_severity(int elevel)
@@ -4146,13 +4125,22 @@ error_severity(int elevel)
 			prefix = _("WARNING");
 			break;
 		case ERROR:
-			prefix = _("ERROR");
+			if (in_error_recursion_trouble())
+				prefix = "ERROR";
+			else
+				prefix = _("ERROR");
 			break;
 		case FATAL:
-			prefix = _("FATAL");
+			if (in_error_recursion_trouble())
+				prefix = "FATAL";
+			else
+				prefix = _("FATAL");
 			break;
 		case PANIC:
-			prefix = _("PANIC");
+			if (in_error_recursion_trouble())
+				prefix = "PANIC";
+			else
+				prefix = _("PANIC");
 			break;
 		default:
 			prefix = "???";

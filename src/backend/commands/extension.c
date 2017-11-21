@@ -695,7 +695,7 @@ execute_sql_string(const char *sql, const char *filename)
 	raw_parsetree_list = pg_parse_query(sql);
 
 	/* All output from SELECTs goes to the bit bucket */
-	dest = CreateDestReceiver(DestNone, NULL);
+	dest = CreateDestReceiver(DestNone);
 
 	/*
 	 * Do parse analysis, rule rewrite, planning, and execution for each raw
@@ -712,7 +712,7 @@ execute_sql_string(const char *sql, const char *filename)
 										   sql,
 										   NULL,
 										   0);
-		stmt_list = pg_plan_queries(stmt_list, 0, NULL, false);
+		stmt_list = pg_plan_queries(stmt_list, 0, NULL);
 
 		foreach(lc2, stmt_list)
 		{

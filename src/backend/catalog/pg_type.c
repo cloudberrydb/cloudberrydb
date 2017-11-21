@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/pg_type.c,v 1.121 2008/08/03 15:23:58 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/pg_type.c,v 1.122 2008/11/02 01:45:27 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -108,7 +108,7 @@ TypeShellMake(const char *typeName, Oid typeNamespace, Oid ownerId)
 	for (i = 0; i < Natts_pg_type; ++i)
 	{
 		nulls[i] = false;
-		values[i] = (Datum) 0;		/* redundant, but safe */
+		values[i] = (Datum) NULL;		/* redundant, but safe */
 	}
 
 	/*

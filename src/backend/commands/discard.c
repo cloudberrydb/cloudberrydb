@@ -7,7 +7,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/discard.c,v 1.4.2.1 2008/11/27 00:34:49 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/discard.c,v 1.5 2008/11/26 01:21:08 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

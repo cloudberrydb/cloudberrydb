@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planner.c,v 1.240 2008/08/07 01:11:50 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planner.c,v 1.247 2008/12/18 18:20:33 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -301,7 +301,9 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	config = DefaultPlannerConfig();
 
 	/* primary planning entry point (may recurse for subqueries) */
-	top_plan = subquery_planner(glob, parse, NULL, false, tuple_fraction, &root, config);
+	top_plan = subquery_planner(glob, parse, NULL,
+								false, tuple_fraction, &root,
+								config);
 
 	/*
 	 * If creating a plan for a scrollable cursor, make sure it can run
@@ -500,8 +502,7 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 Plan *
 subquery_planner(PlannerGlobal *glob, Query *parse,
 				 PlannerInfo *parent_root,
-				 bool hasRecursion,
-				 double tuple_fraction,
+				 bool hasRecursion, double tuple_fraction,
 				 PlannerInfo **subroot,
 				 PlannerConfig *config)
 {
@@ -556,11 +557,10 @@ subquery_planner(PlannerGlobal *glob, Query *parse,
 	 * will generate unused initplans. Commenting out the following two
 	 * lines.
 	 */
-
-	/*
+#if 0
 	if (parse->cteList)
 		SS_process_ctes(root);
-	 */
+#endif
 
 	/*
 	 * Ensure that jointree has been normalized. See
@@ -573,7 +573,7 @@ subquery_planner(PlannerGlobal *glob, Query *parse,
 
 	/*
 	 * Look for ANY and EXISTS SubLinks in WHERE and JOIN/ON clauses, and try
-	 * to transform them into joins. Note that this step does not descend
+	 * to transform them into joins.  Note that this step does not descend
 	 * into subqueries; if we pull up any subqueries below, their SubLinks are
 	 * processed just before pulling them up.
 	 */
@@ -583,7 +583,7 @@ subquery_planner(PlannerGlobal *glob, Query *parse,
 	/*
 	 * Scan the rangetable for set-returning functions, and inline them
 	 * if possible (producing subqueries that might get pulled up next).
-	 * Recursion issues here are handled in the same way as for IN clauses.
+	 * Recursion issues here are handled in the same way as for SubLinks.
 	 */
 	inline_set_returning_functions(root);
 

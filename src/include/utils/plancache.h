@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/plancache.h,v 1.12 2008/07/18 20:26:06 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/utils/plancache.h,v 1.14 2008/09/15 23:37:40 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

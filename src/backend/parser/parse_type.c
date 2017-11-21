@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_type.c,v 1.97 2008/04/29 20:44:49 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_type.c,v 1.100 2008/10/04 21:56:54 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -308,7 +308,8 @@ typenameTypeMod(ParseState *pstate, const TypeName *typename, Type typ)
 		{
 			ColumnRef  *cr = (ColumnRef *) tm;
 
-			if (list_length(cr->fields) == 1)
+			if (list_length(cr->fields) == 1 &&
+				IsA(linitial(cr->fields), String))
 				cstr = strVal(linitial(cr->fields));
 		}
 		if (!cstr)

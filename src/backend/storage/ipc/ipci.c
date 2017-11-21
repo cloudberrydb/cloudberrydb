@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/ipc/ipci.c,v 1.96 2008/05/12 00:00:50 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/ipc/ipci.c,v 1.97 2008/09/30 10:52:13 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -47,7 +47,6 @@
 #include "replication/walsender.h"
 #include "replication/walreceiver.h"
 #include "storage/bufmgr.h"
-#include "storage/freespace.h"
 #include "storage/ipc.h"
 #include "storage/pg_shmem.h"
 #include "storage/pmsignal.h"
@@ -168,7 +167,6 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 		size = add_size(size, PMSignalShmemSize());
 		size = add_size(size, ProcSignalShmemSize());
 		size = add_size(size, primaryMirrorModeShmemSize());
-		size = add_size(size, FreeSpaceShmemSize());
 		//size = add_size(size, AutoVacuumShmemSize());
 		size = add_size(size, FtsShmemSize());
 		size = add_size(size, tmShmemSize());
@@ -358,11 +356,6 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 	 * Set up shared-inval messaging
 	 */
 	CreateSharedInvalidationState();
-
-	/*
-	 * Set up free-space map
-	 */
-	InitFreeSpaceMap();
 
 	/*
 	 * Set up interprocess signaling mechanisms

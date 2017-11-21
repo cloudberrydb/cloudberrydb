@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/pg_operator.h,v 1.161 2008/07/14 00:51:45 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/pg_operator.h,v 1.164 2008/10/13 16:25:20 tgl Exp $
  *
  * NOTES
  *	  the genbki.sh script reads this file and generates .bki
@@ -961,10 +961,10 @@ DATA(insert OID = 3630 (  "<>"	   PGNSP PGUID b f f 3614	 3614	 16 3630 3629	 ts
 DATA(insert OID = 3631 (  ">="	   PGNSP PGUID b f f 3614	 3614	 16 3628 3627	 tsvector_ge scalargtsel scalargtjoinsel ));
 DATA(insert OID = 3632 (  ">"	   PGNSP PGUID b f f 3614	 3614	 16 3627 3628	 tsvector_gt scalargtsel scalargtjoinsel ));
 DATA(insert OID = 3633 (  "||"	   PGNSP PGUID b f f 3614	 3614	 3614  0	0	 tsvector_concat   -	-	  ));
-DATA(insert OID = 3636 (  "@@"	   PGNSP PGUID b f f 3614	 3615	 16 3637	0	 ts_match_vq   contsel	   contjoinsel	 ));
-DATA(insert OID = 3637 (  "@@"	   PGNSP PGUID b f f 3615	 3614	 16 3636	0	 ts_match_qv   contsel	   contjoinsel	 ));
-DATA(insert OID = 3660 (  "@@@"    PGNSP PGUID b f f 3614	 3615	 16 3661	0	 ts_match_vq   contsel	   contjoinsel	 ));
-DATA(insert OID = 3661 (  "@@@"    PGNSP PGUID b f f 3615	 3614	 16 3660	0	 ts_match_qv   contsel	   contjoinsel	 ));
+DATA(insert OID = 3636 (  "@@"	   PGNSP PGUID b f f 3614	 3615	 16 3637	0	 ts_match_vq   tsmatchsel tsmatchjoinsel ));
+DATA(insert OID = 3637 (  "@@"	   PGNSP PGUID b f f 3615	 3614	 16 3636	0	 ts_match_qv   tsmatchsel tsmatchjoinsel ));
+DATA(insert OID = 3660 (  "@@@"    PGNSP PGUID b f f 3614	 3615	 16 3661	0	 ts_match_vq   tsmatchsel tsmatchjoinsel ));
+DATA(insert OID = 3661 (  "@@@"    PGNSP PGUID b f f 3615	 3614	 16 3660	0	 ts_match_qv   tsmatchsel tsmatchjoinsel ));
 DATA(insert OID = 3674 (  "<"	   PGNSP PGUID b f f 3615	 3615	 16 3679 3678	 tsquery_lt scalarltsel scalarltjoinsel ));
 DATA(insert OID = 3675 (  "<="	   PGNSP PGUID b f f 3615	 3615	 16 3678 3679	 tsquery_le scalarltsel scalarltjoinsel ));
 DATA(insert OID = 3676 (  "="	   PGNSP PGUID b t f 3615	 3615	 16 3676 3677	 tsquery_eq eqsel eqjoinsel ));
@@ -990,6 +990,14 @@ DATA(insert OID = 3966 (  "#>"     PGNSP PGUID b f f 114 1009 114 0 0 json_extra
 DESCR("get value from json with path elements");
 DATA(insert OID = 3967 (  "#>>"    PGNSP PGUID b f f 114 1009 25 0 0 json_extract_path_text_op - - ));
 DESCR("get value from json as text with path elements");
+
+/* generic record comparison operators */
+DATA(insert OID = 2988 (  "="	   PGNSP PGUID b t f 2249 2249 16 2988 2989 record_eq eqsel eqjoinsel ));
+DATA(insert OID = 2989 (  "<>"	   PGNSP PGUID b f f 2249 2249 16 2989 2988 record_ne neqsel neqjoinsel ));
+DATA(insert OID = 2990 (  "<"	   PGNSP PGUID b f f 2249 2249 16 2991 2993 record_lt scalarltsel scalarltjoinsel ));
+DATA(insert OID = 2991 (  ">"	   PGNSP PGUID b f f 2249 2249 16 2990 2992 record_gt scalargtsel scalargtjoinsel ));
+DATA(insert OID = 2992 (  "<="	   PGNSP PGUID b f f 2249 2249 16 2993 2991 record_le scalarltsel scalarltjoinsel ));
+DATA(insert OID = 2993 (  ">="	   PGNSP PGUID b f f 2249 2249 16 2992 2990 record_ge scalargtsel scalargtjoinsel ));
 
 
 
@@ -1029,11 +1037,11 @@ extern void OperatorCreate(const char *operatorName,
 			   Oid operatorNamespace,
 			   Oid leftTypeId,
 			   Oid rightTypeId,
-			   List *procedureName,
+			   Oid procedureId,
 			   List *commutatorName,
 			   List *negatorName,
-			   List *restrictionName,
-			   List *joinName,
+			   Oid restrictionId,
+			   Oid joinId,
 			   bool canMerge,
 			   bool canHash);
 

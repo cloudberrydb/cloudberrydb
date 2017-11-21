@@ -4468,7 +4468,7 @@ static int32 PersistentFileSysObj_GetBufferPoolRelationTotalBlocks(
 
 	reln = smgropen(*relFileNode);
 
-	numOf32kBlocks = smgrnblocks(reln);
+	numOf32kBlocks = smgrnblocks(reln, MAIN_FORKNUM);
 
 	smgrclose(reln);
 

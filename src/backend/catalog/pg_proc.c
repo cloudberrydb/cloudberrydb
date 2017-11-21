@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/pg_proc.c,v 1.153 2008/07/18 03:32:52 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/pg_proc.c,v 1.157 2008/12/19 18:25:19 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -114,9 +114,6 @@ ProcedureCreate(const char *procedureName,
 	ObjectAddress myself,
 				referenced;
 	int			i;
-	bool		isnull;
-	Datum		ndefDatum;
-	int			ndefCount;
 
 	/*
 	 * sanity checks
@@ -314,6 +311,7 @@ ProcedureCreate(const char *procedureName,
 	values[Anum_pg_proc_proretset - 1] = BoolGetDatum(returnsSet);
 	values[Anum_pg_proc_provolatile - 1] = CharGetDatum(volatility);
 	values[Anum_pg_proc_pronargs - 1] = UInt16GetDatum(parameterCount);
+	values[Anum_pg_proc_pronargdefaults - 1] = UInt16GetDatum(list_length(parameterDefaults));
 	values[Anum_pg_proc_prorettype - 1] = ObjectIdGetDatum(returnType);
 	values[Anum_pg_proc_proargtypes - 1] = PointerGetDatum(parameterTypes);
 	if (allParameterTypes != PointerGetDatum(NULL))
@@ -328,6 +326,10 @@ ProcedureCreate(const char *procedureName,
 		values[Anum_pg_proc_proargnames - 1] = parameterNames;
 	else
 		nulls[Anum_pg_proc_proargnames - 1] = true;
+	if (parameterDefaults != NIL)
+		values[Anum_pg_proc_proargdefaults - 1] = CStringGetTextDatum(nodeToString(parameterDefaults));
+	else
+		nulls[Anum_pg_proc_proargdefaults - 1] = true;
 	values[Anum_pg_proc_prosrc - 1] = CStringGetTextDatum(prosrc);
 	if (probin)
 		values[Anum_pg_proc_probin - 1] = CStringGetTextDatum(probin);
@@ -341,12 +343,6 @@ ProcedureCreate(const char *procedureName,
 	nulls[Anum_pg_proc_proacl - 1] = true;
 	values[Anum_pg_proc_prodataaccess - 1] = CharGetDatum(prodataaccess);
 	values[Anum_pg_proc_proexeclocation - 1] = CharGetDatum(proexeclocation);
-	values[Anum_pg_proc_provariadic - 1] = ObjectIdGetDatum(variadicType);
-	values[Anum_pg_proc_pronargdefaults - 1] = UInt16GetDatum(list_length(parameterDefaults));
-	if (parameterDefaults != NIL)
-		values[Anum_pg_proc_proargdefaults - 1] = CStringGetTextDatum(nodeToString(parameterDefaults));
-	else
-		nulls[Anum_pg_proc_proargdefaults - 1] = true;
 
 	rel = heap_open(ProcedureRelationId, RowExclusiveLock);
 	tupDesc = RelationGetDescr(rel);
@@ -416,17 +412,17 @@ ProcedureCreate(const char *procedureName,
 		 * parameter is polymorphic, and in such cases a change of default
 		 * type might alter the resolved output type of existing calls.)
 		 */
-		ndefDatum = SysCacheGetAttr(PROCNAMEARGSNSP, oldtup,
-									Anum_pg_proc_pronargdefaults, &isnull);
-		ndefCount = DatumGetObjectId(ndefDatum);
-		if (ndefCount != 0)
+		/* GPDB_84_MERGE_FIXME: was it correct to get rid of the
+		 * SysCacheGetAttr() calls to retrieve pronargdefaults? */
+		if (oldproc->pronargdefaults != 0)
 		{
-			Datum       proargdefaults;
-			List       *oldDefaults;
+			Datum		proargdefaults;
+			bool		isnull;
+			List	   *oldDefaults;
 			ListCell   *oldlc;
 			ListCell   *newlc;
 
-			if (list_length(parameterDefaults) < ndefCount)
+			if (list_length(parameterDefaults) < oldproc->pronargdefaults)
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
 						 errmsg("cannot remove parameter defaults from existing function"),
@@ -438,11 +434,13 @@ ProcedureCreate(const char *procedureName,
 			Assert(!isnull);
 			oldDefaults = (List *) stringToNode(TextDatumGetCString(proargdefaults));
 			Assert(IsA(oldDefaults, List));
-			Assert(list_length(oldDefaults) == ndefCount);
+			Assert(list_length(oldDefaults) == oldproc->pronargdefaults);
 
 			/* new list can have more defaults than old, advance over 'em */
 			newlc = list_head(parameterDefaults);
-			for (i = list_length(parameterDefaults) - ndefCount; i > 0; i--)
+			for (i = list_length(parameterDefaults) - oldproc->pronargdefaults;
+				 i > 0;
+				 i--)
 				newlc = lnext(newlc);
 
 			foreach(oldlc, oldDefaults)
@@ -551,12 +549,8 @@ ProcedureCreate(const char *procedureName,
 	else
 	{
 		/* Creating a new procedure */
-		Oid			funcOid;
-
 		tup = heap_form_tuple(tupDesc, values, nulls);
-
-		/* Insert tuple into the relation */
-		funcOid = simple_heap_insert(rel, tup);
+		simple_heap_insert(rel, tup);
 		is_update = false;
 	}
 

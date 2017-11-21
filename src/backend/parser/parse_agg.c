@@ -16,9 +16,9 @@
 
 #include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
-#include "optimizer/walkers.h"
 #include "optimizer/tlist.h"
 #include "optimizer/var.h"
+#include "optimizer/walkers.h"
 #include "parser/parse_agg.h"
 #include "parser/parse_clause.h"
 #include "parser/parse_expr.h"
@@ -93,7 +93,7 @@ transformAggregateCall(ParseState *pstate, Aggref *agg, List *agg_order)
 					(errcode(ERRCODE_GROUPING_ERROR),
 					 errmsg("aggregate function calls cannot be nested"),
 					 parser_errposition(pstate,
-							   locate_agg_of_level((Node *) agg->args, 0))));
+										locate_agg_of_level((Node *) agg->args, 0))));
 	}
 
 	/* It can't contain window functions either */
@@ -319,13 +319,13 @@ parseCheckAggregates(ParseState *pstate, Query *qry)
 				(errcode(ERRCODE_GROUPING_ERROR),
 				 errmsg("aggregates not allowed in WHERE clause"),
 				 parser_errposition(pstate,
-							 locate_agg_of_level(qry->jointree->quals, 0))));
+									locate_agg_of_level(qry->jointree->quals, 0))));
 	if (checkExprHasAggs((Node *) qry->jointree->fromlist))
 		ereport(ERROR,
 				(errcode(ERRCODE_GROUPING_ERROR),
 				 errmsg("aggregates not allowed in JOIN conditions"),
 				 parser_errposition(pstate,
-				 locate_agg_of_level((Node *) qry->jointree->fromlist, 0))));
+									locate_agg_of_level((Node *) qry->jointree->fromlist, 0))));
 
 	/*
 	 * No aggregates allowed in GROUP BY clauses, either.

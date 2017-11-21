@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeFunctionscan.c,v 1.46 2008/02/29 02:49:39 neilc Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeFunctionscan.c,v 1.49 2008/10/29 00:00:38 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -69,12 +69,11 @@ FunctionNext(FunctionScanState *node)
 	 */
 	if (tuplestorestate == NULL)
 	{
-		ExprContext *econtext = node->ss.ps.ps_ExprContext;
-
 		node->tuplestorestate = tuplestorestate =
 			ExecMakeTableFunctionResult(node->funcexpr,
-										econtext,
+										node->ss.ps.ps_ExprContext,
 										node->tupdesc,
+										node->eflags & EXEC_FLAG_BACKWARD,
 										PlanStateOperatorMemKB( (PlanState *) node));
 
 		/* CDB: Offer extra info for EXPLAIN ANALYZE. */
@@ -166,6 +165,7 @@ ExecInitFunctionScan(FunctionScan *node, EState *estate, int eflags)
 	scanstate = makeNode(FunctionScanState);
 	scanstate->ss.ps.plan = (Plan *) node;
 	scanstate->ss.ps.state = estate;
+	scanstate->eflags = eflags;
 
 	/*
 	 * Miscellaneous initialization

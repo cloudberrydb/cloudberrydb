@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/copy.c,v 1.299 2008/05/12 20:01:59 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/copy.c,v 1.302 2008/11/30 20:51:25 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1571,7 +1571,7 @@ DoCopyInternal(const CopyStmt *stmt, const char *queryString, CopyState cstate)
 		PushUpdatedSnapshot(GetActiveSnapshot());
 
 		/* Create dest receiver for COPY OUT */
-		dest = CreateDestReceiver(DestCopyOut, NULL);
+		dest = CreateDestReceiver(DestCopyOut);
 		((DR_copy *) dest)->cstate = cstate;
 
 		/* Create a QueryDesc requesting no output */
@@ -4254,8 +4254,8 @@ CopyFrom(CopyState cstate)
 	MemoryContext oldcontext = CurrentMemoryContext;
 	ErrorContextCallback errcontext;
 	CommandId	mycid = GetCurrentCommandId(true);
-	bool		use_wal = true; /* by default, use WAL logging */
-	bool		use_fsm = true; /* by default, use FSM for free space */
+	int			hi_options = 0; /* start with default heap_insert options */
+	BulkInsertState bistate;
 	int		   *attr_offsets;
 	bool		no_more_data = false;
 	ListCell   *cur;
@@ -4302,8 +4302,9 @@ CopyFrom(CopyState cstate)
 	if (cstate->rel->rd_createSubid != InvalidSubTransactionId ||
 		cstate->rel->rd_newRelfilenodeSubid != InvalidSubTransactionId)
 	{
-		use_fsm = false;
-		use_wal = XLogIsNeeded();
+		hi_options |= HEAP_INSERT_SKIP_FSM;
+		if (!XLogIsNeeded())
+			hi_options |= HEAP_INSERT_SKIP_WAL;
 	}
 
 	oldcontext = MemoryContextSwitchTo(estate->es_query_cxt);
@@ -4396,8 +4397,11 @@ CopyFrom(CopyState cstate)
 	 */
 	ExecBSInsertTriggers(estate, resultRelInfo);
 
-	/* Skip header processing if dummy file get from master for COPY FROM ON SEGMENT */
-	if(!cstate->on_segment || Gp_role != GP_ROLE_EXECUTE)
+	/* 
+	 * Skip header processing if dummy file get from master for COPY FROM ON
+	 * SEGMENT
+	 */
+	if (!cstate->on_segment || Gp_role != GP_ROLE_EXECUTE)
 	{
 		CopyFromProcessDataFileHeader(cstate, cdbCopy, &file_has_oids);
 	}
@@ -4406,6 +4410,8 @@ CopyFrom(CopyState cstate)
 
 	partValues = (Datum *) palloc(attr_count * sizeof(Datum));
 	partNulls = (bool *) palloc(attr_count * sizeof(bool));
+
+	bistate = GetBulkInsertState();
 
 	/* Set up callback to identify error line number */
 	errcontext.callback = copy_in_error_callback;
@@ -4780,6 +4786,8 @@ PROCESS_SEGMENT_DATA:
 						resultRelInfo = values_get_partition(baseValues, baseNulls,
 															 tupDesc, estate);
 						estate->es_result_relation_info = resultRelInfo;
+						FreeBulkInsertState(bistate);
+						bistate = GetBulkInsertState();
 					}
 				}
 				PG_CATCH();
@@ -4932,7 +4940,8 @@ PROCESS_SEGMENT_DATA:
 						HeapTuple tuple;
 
 						tuple = ExecFetchSlotHeapTuple(slot);
-						heap_insert(resultRelInfo->ri_RelationDesc, tuple, mycid, use_wal, use_fsm, GetCurrentTransactionId());
+						heap_insert(resultRelInfo->ri_RelationDesc, tuple, mycid, hi_options, bistate,
+									GetCurrentTransactionId());
 						insertedTid = tuple->t_self;
 					}
 
@@ -5040,6 +5049,8 @@ PROCESS_SEGMENT_DATA:
 
 	error_context_stack = errcontext.previous;
 
+	FreeBulkInsertState(bistate);
+
 	MemoryContextSwitchTo(estate->es_query_cxt);
 
 	/* Execute AFTER STATEMENT insertion triggers */
@@ -5071,7 +5082,7 @@ PROCESS_SEGMENT_DATA:
 	 * If we skipped writing WAL, then we need to sync the heap (but not
 	 * indexes since those use WAL anyway)
 	 */
-	if (!use_wal)
+	if (hi_options & HEAP_INSERT_SKIP_WAL)
 		heap_sync(cstate->rel);
 
 	/*

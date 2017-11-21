@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/elog.h,v 1.93 2008/04/16 23:59:40 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/utils/elog.h,v 1.97 2008/10/27 19:37:22 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -208,7 +208,6 @@ void elog_internalerror(const char *filename, int lineno, const char *funcname)
 	do { \
 		if(p) ereport_domain(elevel, TEXTDOMAIN, __VA_ARGS__); \
 	} while (0)
-
 
 extern bool errstart(int elevel, const char *filename, int lineno,
 		 const char *funcname, const char *domain);

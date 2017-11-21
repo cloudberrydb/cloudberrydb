@@ -967,10 +967,10 @@ ResCleanUpLock(LOCK *lock, PROCLOCK *proclock, uint32 hashcode, bool wakeupNeede
 	{
 		uint32		proclock_hashcode;
 
-		if (proclock->lockLink.next != INVALID_OFFSET)
+		if (proclock->lockLink.next != NULL)
 			SHMQueueDelete(&proclock->lockLink);
 
-		if (proclock->procLink.next != INVALID_OFFSET)
+		if (proclock->procLink.next != NULL)
 			SHMQueueDelete(&proclock->procLink);
 
 		proclock_hashcode = ProcLockHashCode(&proclock->tag, hashcode);
@@ -1094,7 +1094,7 @@ ResProcLockRemoveSelfAndWakeup(LOCK *lock)
 		return;
 	}
 
-	proc = (PGPROC *) MAKE_PTR(waitQueue->links.next);
+	proc = (PGPROC *) waitQueue->links.next;
 
 	while (queue_size-- > 0)
 	{
@@ -1109,7 +1109,7 @@ ResProcLockRemoveSelfAndWakeup(LOCK *lock)
 		{
 			PGPROC	   *nextproc;
 
-			nextproc = (PGPROC *) MAKE_PTR(proc->links.next);
+			nextproc = (PGPROC *) proc->links.next;
 
 			SHMQueueDelete(&(proc->links));
 			(proc->waitLock->waitProcs.size)--;
@@ -1148,7 +1148,7 @@ ResProcLockRemoveSelfAndWakeup(LOCK *lock)
 		else
 		{
 			/* Otherwise move on to the next guy. */
-			proc = (PGPROC *) MAKE_PTR(proc->links.next);
+			proc = (PGPROC *) proc->links.next;
 		}
 	}
 
@@ -1169,12 +1169,12 @@ ResProcWakeup(PGPROC *proc, int waitStatus)
 	PGPROC	   *retProc;
 
 	/* Proc should be sleeping ... */
-	if (proc->links.prev == INVALID_OFFSET ||
-		proc->links.next == INVALID_OFFSET)
+	if (proc->links.prev == NULL ||
+		proc->links.next == NULL)
 		return NULL;
 
 	/* Save next process before we zap the list link */
-	retProc = (PGPROC *) MAKE_PTR(proc->links.next);
+	retProc = (PGPROC *) proc->links.next;
 
 	/* Remove process from wait queue */
 	SHMQueueDelete(&(proc->links));
@@ -1211,7 +1211,7 @@ ResRemoveFromWaitQueue(PGPROC *proc, uint32 hashcode)
 	Assert(lockmethodid == RESOURCE_LOCKMETHOD);
 
 	/* Make sure proc is waiting */
-	Assert(proc->links.next != INVALID_OFFSET);
+	Assert(proc->links.next != NULL);
 	Assert(waitLock);
 	Assert(waitLock->waitProcs.size > 0);
 

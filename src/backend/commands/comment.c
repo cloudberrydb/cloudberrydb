@@ -7,7 +7,7 @@
  * Copyright (c) 1996-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/comment.c,v 1.103 2008/06/19 00:46:04 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/comment.c,v 1.105 2008/11/02 01:45:27 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -278,7 +278,7 @@ CreateComments(Oid oid, Oid classoid, int32 subid, char *comment)
 		else
 		{
 			newtuple = heap_modify_tuple(oldtuple, RelationGetDescr(description), values,
-										 nulls, replaces);
+										nulls, replaces);
 			simple_heap_update(description, &oldtuple->t_self, newtuple);
 		}
 
@@ -292,7 +292,7 @@ CreateComments(Oid oid, Oid classoid, int32 subid, char *comment)
 	if (newtuple == NULL && comment != NULL)
 	{
 		newtuple = heap_form_tuple(RelationGetDescr(description),
-								   values, nulls);
+								  values, nulls);
 		simple_heap_insert(description, newtuple);
 	}
 
@@ -373,7 +373,7 @@ CreateSharedComments(Oid oid, Oid classoid, char *comment)
 		else
 		{
 			newtuple = heap_modify_tuple(oldtuple, RelationGetDescr(shdescription),
-										 values, nulls, replaces);
+										values, nulls, replaces);
 			simple_heap_update(shdescription, &oldtuple->t_self, newtuple);
 		}
 
@@ -387,7 +387,7 @@ CreateSharedComments(Oid oid, Oid classoid, char *comment)
 	if (newtuple == NULL && comment != NULL)
 	{
 		newtuple = heap_form_tuple(RelationGetDescr(shdescription),
-								   values, nulls);
+								  values, nulls);
 		simple_heap_insert(shdescription, newtuple);
 	}
 
@@ -940,7 +940,7 @@ CommentType(List *typename, char *comment)
 
 	if (!pg_type_ownercheck(oid, GetUserId()))
 		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_TYPE,
-					   TypeNameToString(tname));
+					   format_type_be(oid));
 
 	/* Call CreateComments() to create/drop the comments */
 	CreateComments(oid, TypeRelationId, 0, comment);
@@ -1519,8 +1519,8 @@ CommentCast(List *qualname, List *arguments, char *comment)
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("cast from type %s to type %s does not exist",
-						TypeNameToString(sourcetype),
-						TypeNameToString(targettype))));
+						format_type_be(sourcetypeid),
+						format_type_be(targettypeid))));
 
 	/* Get the OID of the cast */
 	castOid = HeapTupleGetOid(tuple);
@@ -1531,8 +1531,8 @@ CommentCast(List *qualname, List *arguments, char *comment)
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				 errmsg("must be owner of type %s or type %s",
-						TypeNameToString(sourcetype),
-						TypeNameToString(targettype))));
+						format_type_be(sourcetypeid),
+						format_type_be(targettypeid))));
 
 	ReleaseSysCache(tuple);
 

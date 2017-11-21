@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/clauses.c,v 1.261 2008/08/07 01:11:50 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/clauses.c,v 1.271 2008/12/18 18:20:34 tgl Exp $
  *
  * HISTORY
  *	  AUTHOR			DATE			MAJOR EVENT
@@ -37,7 +37,6 @@
 #include "optimizer/prep.h"
 #include "optimizer/var.h"
 #include "parser/analyze.h"
-#include "parser/parse_clause.h"
 #include "parser/parse_coerce.h"
 #include "parser/parse_func.h"
 #include "rewrite/rewriteManip.h"
@@ -119,7 +118,8 @@ static void sql_inline_error_callback(void *arg);
 static Query *substitute_actual_srf_parameters(Query *expr,
 								 int nargs, List *args);
 static Node *substitute_actual_srf_parameters_mutator(Node *node,
-						  substitute_actual_srf_parameters_context *context);
+							substitute_actual_srf_parameters_context *context);
+static bool tlist_matches_coltypelist(List *tlist, List *coltypelist);
 static bool contain_grouping_clause_walker(Node *node, void *context);
 
 
@@ -146,6 +146,7 @@ make_opclause(Oid opno, Oid opresulttype, bool opretset,
 		expr->args = list_make2(leftop, rightop);
 	else
 		expr->args = list_make1(leftop);
+	expr->location = -1;
 	return (Expr *) expr;
 }
 
@@ -212,6 +213,7 @@ make_notclause(Expr *notclause)
 
 	expr->boolop = NOT_EXPR;
 	expr->args = list_make1(notclause);
+	expr->location = -1;
 	return (Expr *) expr;
 }
 
@@ -255,6 +257,7 @@ make_orclause(List *orclauses)
 
 	expr->boolop = OR_EXPR;
 	expr->args = orclauses;
+	expr->location = -1;
 	return (Expr *) expr;
 }
 
@@ -288,6 +291,7 @@ make_andclause(List *andclauses)
 
 	expr->boolop = AND_EXPR;
 	expr->args = andclauses;
+	expr->location = -1;
 	return (Expr *) expr;
 }
 
@@ -1285,7 +1289,7 @@ find_nonnullable_rels_walker(Node *node, bool top_level)
 	else if (IsA(node, PlaceHolderVar))
 	{
 		PlaceHolderVar *phv = (PlaceHolderVar *) node;
-		
+
 		result = find_nonnullable_rels_walker((Node *) phv->phexpr, top_level);
 	}
 	return result;
@@ -1487,7 +1491,7 @@ find_nonnullable_vars_walker(Node *node, bool top_level)
 	else if (IsA(node, PlaceHolderVar))
 	{
 		PlaceHolderVar *phv = (PlaceHolderVar *) node;
-		
+
 		result = find_nonnullable_vars_walker((Node *) phv->phexpr, top_level);
 	}
 	return result;
@@ -1520,7 +1524,7 @@ find_forced_null_vars(Node *node)
 	{
 		result = list_make1(var);
 	}
-		/* Otherwise, handle AND-conditions */
+	/* Otherwise, handle AND-conditions */
 	else if (IsA(node, List))
 	{
 		/*
@@ -2294,6 +2298,7 @@ eval_const_expressions_mutator(Node *node,
 		newexpr->funcretset = expr->funcretset;
 		newexpr->funcformat = expr->funcformat;
 		newexpr->args = args;
+		newexpr->location = expr->location;
 		return (Node *) newexpr;
 	}
 	if (IsA(node, OpExpr))
@@ -2362,6 +2367,7 @@ eval_const_expressions_mutator(Node *node,
 		newexpr->opresulttype = expr->opresulttype;
 		newexpr->opretset = expr->opretset;
 		newexpr->args = args;
+		newexpr->location = expr->location;
 		return (Node *) newexpr;
 	}
 	if (IsA(node, DistinctExpr))
@@ -2453,6 +2459,7 @@ eval_const_expressions_mutator(Node *node,
 		newexpr->opresulttype = expr->opresulttype;
 		newexpr->opretset = expr->opretset;
 		newexpr->args = args;
+		newexpr->location = expr->location;
 		return (Node *) newexpr;
 	}
 	if (IsA(node, BoolExpr))
@@ -2535,8 +2542,8 @@ eval_const_expressions_mutator(Node *node,
 				break;
 		}
 	}
-	if (IsA(node, SubPlan)||
-			IsA(node, AlternativeSubPlan))
+	if (IsA(node, SubPlan) ||
+		IsA(node, AlternativeSubPlan))
 	{
 		/*
 		 * Return a SubPlan unchanged --- too late to do anything with it.
@@ -2582,6 +2589,7 @@ eval_const_expressions_mutator(Node *node,
 			newrelabel->resulttype = relabel->resulttype;
 			newrelabel->resulttypmod = relabel->resulttypmod;
 			newrelabel->relabelformat = relabel->relabelformat;
+			newrelabel->location = relabel->location;
 			return (Node *) newrelabel;
 		}
 	}
@@ -2623,8 +2631,6 @@ eval_const_expressions_mutator(Node *node,
 			 * Input functions may want 1 to 3 arguments.  We always supply
 			 * all three, trusting that nothing downstream will complain.
 			 */
-			List	   *args;
-
 			args = list_make3(simple,
 							  makeConst(OIDOID, -1, sizeof(Oid),
 										ObjectIdGetDatum(intypioparam),
@@ -2650,6 +2656,43 @@ eval_const_expressions_mutator(Node *node,
 		newexpr->arg = arg;
 		newexpr->resulttype = expr->resulttype;
 		newexpr->coerceformat = expr->coerceformat;
+		newexpr->location = expr->location;
+		return (Node *) newexpr;
+	}
+	if (IsA(node, ArrayCoerceExpr))
+	{
+		ArrayCoerceExpr *expr = (ArrayCoerceExpr *) node;
+		Expr	   *arg;
+		ArrayCoerceExpr *newexpr;
+
+		/*
+		 * Reduce constants in the ArrayCoerceExpr's argument, then build
+		 * a new ArrayCoerceExpr.
+		 */
+		arg = (Expr *) eval_const_expressions_mutator((Node *) expr->arg,
+													  context);
+
+		newexpr = makeNode(ArrayCoerceExpr);
+		newexpr->arg = arg;
+		newexpr->elemfuncid = expr->elemfuncid;
+		newexpr->resulttype = expr->resulttype;
+		newexpr->resulttypmod = expr->resulttypmod;
+		newexpr->isExplicit = expr->isExplicit;
+		newexpr->coerceformat = expr->coerceformat;
+		newexpr->location = expr->location;
+
+		/*
+		 * If constant argument and it's a binary-coercible or immutable
+		 * conversion, we can simplify it to a constant.
+		 */
+		if (arg && IsA(arg, Const) &&
+			(!OidIsValid(newexpr->elemfuncid) ||
+			 func_volatile(newexpr->elemfuncid) == PROVOLATILE_IMMUTABLE))
+			return (Node *) evaluate_expr((Expr *) newexpr,
+										  newexpr->resulttype,
+										  newexpr->resulttypmod);
+
+		/* Else we must return the partially-simplified node */
 		return (Node *) newexpr;
 	}
 	if (IsA(node, ArrayCoerceExpr))
@@ -2784,6 +2827,7 @@ eval_const_expressions_mutator(Node *node,
 
 				newcasewhen->expr = (Expr *) casecond;
 				newcasewhen->result = (Expr *) caseresult;
+				newcasewhen->location = oldcasewhen->location;
 				newargs = lappend(newargs, newcasewhen);
 				continue;
 			}
@@ -2813,6 +2857,7 @@ eval_const_expressions_mutator(Node *node,
 		newcase->arg = (Expr *) newarg;
 		newcase->args = newargs;
 		newcase->defresult = (Expr *) defresult;
+		newcase->location = caseexpr->location;
 		return (Node *) newcase;
 	}
 	if (IsA(node, CaseTestExpr))
@@ -2887,6 +2932,7 @@ eval_const_expressions_mutator(Node *node,
 		newarray->element_typeid = arrayexpr->element_typeid;
 		newarray->elements = newelems;
 		newarray->multidims = arrayexpr->multidims;
+		newarray->location = arrayexpr->location;
 
 		if (all_const)
 			return (Node *) evaluate_expr((Expr *) newarray,
@@ -2936,6 +2982,7 @@ eval_const_expressions_mutator(Node *node,
 		newcoalesce = makeNode(CoalesceExpr);
 		newcoalesce->coalescetype = coalesceexpr->coalescetype;
 		newcoalesce->args = newargs;
+		newcoalesce->location = coalesceexpr->location;
 		return (Node *) newcoalesce;
 	}
 	if (IsA(node, FieldSelect))
@@ -3126,6 +3173,20 @@ eval_const_expressions_mutator(Node *node,
 		newbtest->arg = (Expr *) arg;
 		newbtest->booltesttype = btest->booltesttype;
 		return (Node *) newbtest;
+	}
+	if (IsA(node, PlaceHolderVar) && context->estimate)
+	{
+		/*
+		 * In estimation mode, just strip the PlaceHolderVar node altogether;
+		 * this amounts to estimating that the contained value won't be forced
+		 * to null by an outer join.  In regular mode we just use the default
+		 * behavior (ie, simplify the expression but leave the PlaceHolderVar
+		 * node intact).
+		 */
+		PlaceHolderVar *phv = (PlaceHolderVar *) node;
+
+		return eval_const_expressions_mutator((Node *) phv->phexpr,
+											  context);
 	}
 
 	/* prevent recursion into sublinks */
@@ -3529,7 +3590,6 @@ add_function_defaults(List *args, Oid result_type, HeapTuple func_tuple)
 	defaults = (List *) stringToNode(str);
 	Assert(IsA(defaults, List));
 	pfree(str);
-
 	/* Delete any unused defaults from the list */
 	ndelete = list_length(args) + list_length(defaults) - funcform->pronargs;
 	if (ndelete < 0)
@@ -3558,7 +3618,6 @@ add_function_defaults(List *args, Oid result_type, HeapTuple func_tuple)
 											   nargs,
 											   funcform->prorettype,
 											   false);
-
 	/* let's just check we got the same answer as the parser did ... */
 	if (rettype != result_type)
 		elog(ERROR, "function's resolved result type changed during planning");
@@ -3698,6 +3757,7 @@ evaluate_function(Oid funcid, Oid result_type, int32 result_typmod, List *args,
 	newexpr->funcretset = false;
 	newexpr->funcformat = COERCE_DONTCARE;		/* doesn't matter */
 	newexpr->args = args;
+	newexpr->location = -1;
 
 	return evaluate_expr((Expr *) newexpr, result_type, result_typmod);
 }
@@ -4132,17 +4192,16 @@ evaluate_expr(Expr *expr, Oid result_type, int32 result_typmod)
  * inline_set_returning_function
  *		Attempt to "inline" a set-returning function in the FROM clause.
  *
- * "node" is the expression from an RTE_FUNCTION rangetable entry.  If it
- * represents a call of a set-returning SQL function that can safely be
- * inlined, expand the function and return the substitute Query structure.
- * Otherwise, return NULL.
+ * "rte" is an RTE_FUNCTION rangetable entry.  If it represents a call of a
+ * set-returning SQL function that can safely be inlined, expand the function
+ * and return the substitute Query structure.  Otherwise, return NULL.
  *
  * This has a good deal of similarity to inline_function(), but that's
  * for the non-set-returning case, and there are enough differences to
  * justify separate functions.
  */
 Query *
-inline_set_returning_function(PlannerInfo *root, Node *node)
+inline_set_returning_function(PlannerInfo *root, RangeTblEntry *rte)
 {
 	FuncExpr   *fexpr;
 	HeapTuple	func_tuple;
@@ -4159,6 +4218,8 @@ inline_set_returning_function(PlannerInfo *root, Node *node)
 	Query	   *querytree;
 	int			i;
 
+	Assert(rte->rtekind == RTE_FUNCTION);
+
 	/*
 	 * It doesn't make a lot of sense for a SQL SRF to refer to itself
 	 * in its own FROM clause, since that must cause infinite recursion
@@ -4168,9 +4229,9 @@ inline_set_returning_function(PlannerInfo *root, Node *node)
 	check_stack_depth();
 
 	/* Fail if FROM item isn't a simple FuncExpr */
-	if (node == NULL || !IsA(node, FuncExpr))
+	fexpr = (FuncExpr *) rte->funcexpr;
+	if (fexpr == NULL || !IsA(fexpr, FuncExpr))
 		return NULL;
-	fexpr = (FuncExpr *) node;
 
 	/*
 	 * The function must be declared to return a set, else inlining would
@@ -4178,10 +4239,6 @@ inline_set_returning_function(PlannerInfo *root, Node *node)
 	 * one row.
 	 */
 	if (!fexpr->funcretset)
-		return NULL;
-
-	/* Fail if function returns RECORD ... we don't have enough context */
-	if (fexpr->funcresulttype == RECORDOID)
 		return NULL;
 
 	/*
@@ -4310,8 +4367,19 @@ inline_set_returning_function(PlannerInfo *root, Node *node)
 	if (!check_sql_fn_retval(fexpr->funcid, fexpr->funcresulttype,
 							 querytree_list,
 							 true, NULL) &&
-		get_typtype(fexpr->funcresulttype) == TYPTYPE_COMPOSITE)
+		(get_typtype(fexpr->funcresulttype) == TYPTYPE_COMPOSITE ||
+		 fexpr->funcresulttype == RECORDOID))
 		goto fail;				/* reject not-whole-tuple-result cases */
+
+	/*
+	 * If it returns RECORD, we have to check against the column type list
+	 * provided in the RTE; check_sql_fn_retval can't do that.  (If no match,
+	 * we just fail to inline, rather than complaining; see notes for
+	 * tlist_matches_coltypelist.)
+	 */
+	if (fexpr->funcresulttype == RECORDOID &&
+		!tlist_matches_coltypelist(querytree->targetList, rte->funccoltypes))
+		goto fail;
 
 	/*
 	 * Looks good --- substitute parameters into the query.
@@ -4331,6 +4399,12 @@ inline_set_returning_function(PlannerInfo *root, Node *node)
 	MemoryContextDelete(mycxt);
 	error_context_stack = sqlerrcontext.previous;
 	ReleaseSysCache(func_tuple);
+
+	/*
+	 * Since there is now no trace of the function in the plan tree, we
+	 * must explicitly record the plan's dependency on the function.
+	 */
+	record_plan_function_dependency(root->glob, fexpr->funcid);
 
 	return querytree;
 
@@ -4744,4 +4818,47 @@ bool subexpression_match(Expr *expr1, Expr *expr2)
 	subexpression_matching_context ctx;
 	ctx.needle = expr1;
 	return subexpression_matching_walker((Node *) expr2, (void *) &ctx);
+}
+
+/*
+ * Check whether a SELECT targetlist emits the specified column types,
+ * to see if it's safe to inline a function returning record.
+ *
+ * We insist on exact match here.  The executor allows binary-coercible
+ * cases too, but we don't have a way to preserve the correct column types
+ * in the correct places if we inline the function in such a case.
+ *
+ * Note that we only check type OIDs not typmods; this agrees with what the
+ * executor would do at runtime, and attributing a specific typmod to a
+ * function result is largely wishful thinking anyway.
+ */
+static bool
+tlist_matches_coltypelist(List *tlist, List *coltypelist)
+{
+	ListCell   *tlistitem;
+	ListCell   *clistitem;
+
+	clistitem = list_head(coltypelist);
+	foreach(tlistitem, tlist)
+	{
+		TargetEntry *tle = (TargetEntry *) lfirst(tlistitem);
+		Oid			coltype;
+
+		if (tle->resjunk)
+			continue;			/* ignore junk columns */
+
+		if (clistitem == NULL)
+			return false;		/* too many tlist items */
+
+		coltype = lfirst_oid(clistitem);
+		clistitem = lnext(clistitem);
+
+		if (exprType((Node *) tle->expr) != coltype)
+			return false;		/* column type mismatch */
+	}
+
+	if (clistitem != NULL)
+		return false;			/* too few tlist items */
+
+	return true;
 }

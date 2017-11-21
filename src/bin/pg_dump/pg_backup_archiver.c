@@ -15,7 +15,7 @@
  *
  *
  * IDENTIFICATION
- *		$PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_archiver.c,v 1.157 2008/05/04 08:32:21 adunstan Exp $
+ *		$PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_archiver.c,v 1.159 2008/12/19 16:25:17 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -2546,7 +2546,10 @@ _getObjectDescription(PQExpBuffer buf, TocEntry *te, ArchiveHandle *AH)
 		strcmp(type, "SERVER") == 0 ||
 		strcmp(type, "USER MAPPING") == 0 ||
 		strcmp(type, "PROCEDURAL LANGUAGE") == 0 ||
-		strcmp(type, "SCHEMA") == 0)
+		strcmp(type, "SCHEMA") == 0 ||
+		strcmp(type, "FOREIGN DATA WRAPPER") == 0 ||
+		strcmp(type, "SERVER") == 0 ||
+		strcmp(type, "USER MAPPING") == 0)
 	{
 		appendPQExpBuffer(buf, "%s %s", type, fmtId(te->tag));
 		return;
@@ -2610,6 +2613,7 @@ _printTocEntry(ArchiveHandle *AH, TocEntry *te, RestoreOptions *ropt, bool isDat
 		if (strcmp(te->desc, "SCHEMA") == 0 &&
 			strcmp(te->tag, "public") == 0)
 			return;
+		/* The comment restore would require super-user privs, so avoid it. */
 		if (strcmp(te->desc, "COMMENT") == 0 &&
 			strcmp(te->tag, "SCHEMA public") == 0)
 			return;
@@ -2781,7 +2785,9 @@ _printTocEntry(ArchiveHandle *AH, TocEntry *te, RestoreOptions *ropt, bool isDat
 			strcmp(te->desc, "SERVER") == 0 ||
 			strcmp(te->desc, "PROTOCOL") == 0 ||
 			strcmp(te->desc, "TEXT SEARCH DICTIONARY") == 0 ||
-			strcmp(te->desc, "TEXT SEARCH CONFIGURATION") == 0)
+			strcmp(te->desc, "TEXT SEARCH CONFIGURATION") == 0 ||
+			strcmp(te->desc, "FOREIGN DATA WRAPPER") == 0 ||
+			strcmp(te->desc, "SERVER") == 0)
 		{
 			PQExpBuffer temp = createPQExpBuffer();
 

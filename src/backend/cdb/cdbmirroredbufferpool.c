@@ -803,7 +803,7 @@ MirroredBufferPool_Write(
 					(errcode_for_file_access(),
 					 errmsg("could not seek in file to position %d in file '%s', segment file %d : %m",
 							position,
-							relpath(open->relFileNode),
+							relpath(open->relFileNode, MAIN_FORKNUM),
 							open->segmentFileNum)));
 		}
 
@@ -857,7 +857,8 @@ MirroredBufferPool_Read(
 				(errcode_for_file_access(),
 				 errmsg("could not seek in file to position %d in file '%s', segment file %d: %m",
 						position,
-						relpath(open->relFileNode), open->segmentFileNum)));
+						relpath(open->relFileNode, MAIN_FORKNUM),
+						open->segmentFileNum)));
 	}
 
 	return FileRead(open->primaryFile, buffer, bufferLen);
@@ -1253,7 +1254,7 @@ MirroredBufferPool_CopyToMirror(
 			ereport(ERROR,
 					(errcode_for_file_access(),
 					 errmsg("could not open relation file '%s', relation name '%s': %s",
-							relpath(*relFileNode),
+							relpath(*relFileNode, MAIN_FORKNUM),
 							relationName,
 							strerror(primaryError))));
 		}
@@ -1286,7 +1287,7 @@ MirroredBufferPool_CopyToMirror(
 			ereport(ERROR,
 					(errcode_for_file_access(),
 					 errmsg("could not flush relation file '%s', relation name '%s': %s",
-							relpath(*relFileNode),
+							relpath(*relFileNode, MAIN_FORKNUM),
 							relationName,
 							strerror(primaryError))));
 		}

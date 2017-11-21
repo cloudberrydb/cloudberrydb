@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/rewrite/rewriteDefine.c,v 1.127 2008/06/19 00:46:05 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/rewrite/rewriteDefine.c,v 1.133 2008/11/19 10:34:52 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -21,13 +21,13 @@
 #include "catalog/indexing.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_rewrite.h"
+#include "catalog/storage.h"
 #include "miscadmin.h"
 #include "nodes/nodeFuncs.h"
 #include "parser/parse_utilcmd.h"
 #include "rewrite/rewriteDefine.h"
 #include "rewrite/rewriteManip.h"
 #include "rewrite/rewriteSupport.h"
-#include "storage/smgr.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/inval.h"
@@ -127,7 +127,7 @@ InsertRule(char *rulname,
 		replaces[Anum_pg_rewrite_ev_action - 1] = true;
 
 		tup = heap_modify_tuple(oldtup, RelationGetDescr(pg_rewrite_desc),
-								values, nulls, replaces);
+							   values, nulls, replaces);
 
 		simple_heap_update(pg_rewrite_desc, &tup->t_self, tup);
 
@@ -379,7 +379,11 @@ DefineQueryRewrite(char *rulename,
 		 *
 		 * If so, check that the relation is empty because the storage for the
 		 * relation is going to be deleted.  Also insist that the rel not have
-		 * any triggers, indexes, or child tables.
+		 * any triggers, indexes, or child tables.  (Note: these tests are
+		 * too strict, because they will reject relations that once had such
+		 * but don't anymore.  But we don't really care, because this whole
+		 * business of converting relations to views is just a kluge to allow
+		 * loading ancient pg_dump files.)
 		 */
 		if (event_relation->rd_rel->relkind != RELKIND_VIEW)
 		{
@@ -400,7 +404,7 @@ DefineQueryRewrite(char *rulename,
 								RelationGetRelationName(event_relation))));
 			heap_endscan(scanDesc);
 
-			if (event_relation->rd_rel->reltriggers != 0)
+			if (event_relation->rd_rel->relhastriggers)
 				ereport(ERROR,
 						(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 						 errmsg("could not convert table \"%s\" to a view because it has triggers",

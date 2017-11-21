@@ -57,7 +57,7 @@ static backslashResult exec_command(const char *cmd,
 			 PsqlScanState scan_state,
 			 PQExpBuffer query_buf);
 static bool do_edit(const char *filename_arg, PQExpBuffer query_buf,
-		bool *edited);
+					bool *edited);
 static bool do_connect(char *dbname, char *user, char *host, char *port);
 static bool do_shell(const char *command);
 static bool lookup_function_oid(PGconn *conn, const char *desc, Oid *foid);
@@ -65,15 +65,6 @@ static bool get_create_function_cmd(PGconn *conn, Oid oid, PQExpBuffer buf);
 static void minimal_error_message(PGresult *res);
 
 static void printSSLInfo(void);
-
-#ifdef WIN32
-static void checkWin32Codepage(void);
-#endif
-
-
-#ifdef USE_SSL
-static void printSSLInfo(void);
-#endif
 
 #ifdef WIN32
 static void checkWin32Codepage(void);
@@ -484,6 +475,23 @@ exec_command(const char *cmd,
 						break;
 				}
 				break;
+			case 'e':			/* SQL/MED subsystem */
+				switch(cmd[2])
+				{
+					case 's':
+						success = listForeignServers(pattern, show_verbose);
+						break;
+					case 'u':
+						success = listUserMappings(pattern, show_verbose);
+						break;
+					case 'w':
+						success = listForeignDataWrappers(pattern, show_verbose);
+						break;
+					default:
+						status = PSQL_CMD_UNKNOWN;
+						break;
+				}
+				break;
 			case 'x':			/* Extensions */
 				if (show_verbose)
 					success = listExtensionContents(pattern);
@@ -578,7 +586,7 @@ exec_command(const char *cmd,
 
 		if (status != PSQL_CMD_ERROR)
 		{
-			bool		edited = false;
+			bool edited = false;
 
 			if (!do_edit(0, query_buf, &edited))
 				status = PSQL_CMD_ERROR;
@@ -2181,7 +2189,7 @@ lookup_function_oid(PGconn *conn, const char *desc, Oid *foid)
 {
 	bool		result = true;
 	PQExpBuffer query;
-	PGresult   *res;
+	PGresult *res;
 
 	query = createPQExpBuffer();
 	printfPQExpBuffer(query, "SELECT ");
@@ -2213,7 +2221,7 @@ get_create_function_cmd(PGconn *conn, Oid oid, PQExpBuffer buf)
 {
 	bool		result = true;
 	PQExpBuffer query;
-	PGresult   *res;
+	PGresult *res;
 
 	query = createPQExpBuffer();
 	printfPQExpBuffer(query, "SELECT pg_catalog.pg_get_functiondef(%u)", oid);

@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/file/fd.c,v 1.144 2008/03/10 20:06:27 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/file/fd.c,v 1.145 2008/09/19 04:57:10 alvherre Exp $
  *
  * NOTES:
  *
@@ -148,6 +148,12 @@ static int	max_safe_fds = 32;	/* default if not changed */
 /* these are the assigned bits in fdstate below: */
 #define FD_TEMPORARY		(1 << 0)	/* T = delete when closed */
 #define FD_CLOSE_AT_EOXACT	(1 << 1)	/* T = close at eoXact */
+
+/*
+ * Flag to tell whether it's worth scanning VfdCache looking for temp files to
+ * close
+ */
+static bool		have_xact_temporary_files = false;
 
 typedef struct vfd
 {
@@ -1082,6 +1088,9 @@ OpenNamedFile(const char   *fileName,
 
 		ResourceOwnerRememberFile(CurrentResourceOwner, file);
 		VfdCache[file].resowner = CurrentResourceOwner;
+
+		/* ensure cleanup happens at eoxact */
+		have_xact_temporary_files = true;
 	}
 
 	return file;
@@ -1994,7 +2003,11 @@ CleanupTempFiles(bool isProcExit)
 {
 	Index		i;
 
-	if (SizeVfdCache > 0)
+	/*
+	 * Careful here: at proc_exit we need extra cleanup, not just
+	 * xact_temporary files.
+	 */
+	if (isProcExit || have_xact_temporary_files)
 	{
 		Assert(FileIsNotOpen(0));		/* Make sure ring not corrupted */
 		for (i = 1; i < SizeVfdCache; i++)
@@ -2021,6 +2034,8 @@ CleanupTempFiles(bool isProcExit)
 				}
 			}
 		}
+
+		have_xact_temporary_files = false;
 	}
 
 	workfile_mgr_cleanup();

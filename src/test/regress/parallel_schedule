@@ -1,5 +1,5 @@
 # ----------
-# $PostgreSQL: pgsql/src/test/regress/parallel_schedule,v 1.47 2008/04/10 22:25:26 tgl Exp $
+# $PostgreSQL: pgsql/src/test/regress/parallel_schedule,v 1.51 2008/12/19 16:25:19 petere Exp $
 #
 # By convention, we put no more than twenty tests in any one parallel group;
 # this limits the number of connections needed to run the tests.
@@ -8,7 +8,7 @@
 # ----------
 # The first group of parallel tests
 # ----------
-test: boolean char name varchar text int2 int4 int8 oid float4 float8 bit numeric txid uuid enum money null
+test: boolean char name varchar text int2 int4 int8 oid float4 float8 bit numeric txid uuid enum money
 
 # Depends on things setup during char, varchar and text
 test: strings
@@ -18,7 +18,7 @@ test: numerology
 # ----------
 # The second group of parallel tests
 # ----------
-test: point lseg box path polygon circle date time timetz timestamp timestamptz interval abstime reltime tinterval inet tstypes comments
+test: point lseg box path polygon circle date time timetz timestamp timestamptz interval abstime reltime tinterval inet macaddr tstypes comments
 
 # ----------
 # Another group of parallel tests
@@ -101,7 +101,7 @@ test: misc
 # ----------
 # Another group of parallel tests
 # ----------
-test: select_views portals_p2 cluster dependency guc bitmapops tsearch tsdicts json
+test: select_views portals_p2 cluster dependency guc bitmapops tsearch tsdicts foreign_data json
 
 # GPDB_84_MERGE_FIXME: While disabling this was not really an effect of the 8.4
 # merge, it was done a long time ago, it's time to revisit this so we can re-

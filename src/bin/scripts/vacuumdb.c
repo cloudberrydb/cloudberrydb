@@ -5,7 +5,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/bin/scripts/vacuumdb.c,v 1.26 2009/04/28 02:37:09 momjian Exp $
+ * $PostgreSQL: pgsql/src/bin/scripts/vacuumdb.c,v 1.21 2008/12/11 07:34:08 petere Exp $
  *
  *-------------------------------------------------------------------------
  */

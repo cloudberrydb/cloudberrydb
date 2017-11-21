@@ -332,8 +332,6 @@ ExecAppend(AppendState *node)
 
 				ResetExprContext(econtext);
 
-				node->ps.ps_OuterTupleSlot = result;
-
 				/*
 				 * XXX gross hack. use outer tuple as scan tuple for projection
 				 */

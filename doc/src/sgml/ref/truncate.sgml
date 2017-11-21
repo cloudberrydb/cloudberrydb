@@ -1,11 +1,12 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/truncate.sgml,v 1.27 2008/05/17 23:36:27 tgl Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/truncate.sgml,v 1.31 2008/12/18 10:45:00 petere Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-TRUNCATE">
  <refmeta>
   <refentrytitle id="SQL-TRUNCATE-TITLE">TRUNCATE</refentrytitle>
+  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -97,7 +98,15 @@ TRUNCATE [ TABLE ] <replaceable class="PARAMETER">name</replaceable> [, ... ]
   <title>Notes</title>
 
   <para>
-   Only the owner of a table can <command>TRUNCATE</> it.
+   You must have the <literal>TRUNCATE</literal> privilege on a table
+   to truncate it.
+  </para>
+
+  <para>
+   <command>TRUNCATE</> acquires an access exclusive lock on the
+   tables in operates on, which blocks all other concurrent operations
+   on the table.  If concurrent access to a table is required, then
+   the <command>DELETE</> command should be used instead.
   </para>
 
   <para>
@@ -210,10 +219,13 @@ TRUNCATE othertable CASCADE;
   <title>Compatibility</title>
 
   <para>
-   The draft SQL:2008 standard includes a <command>TRUNCATE</command> command,
-   but at this writing it is uncertain whether that will reach standardization
-   or be fully compatible with <productname>PostgreSQL</productname>'s
-   implementation.
+   The SQL:2008 standard includes a <command>TRUNCATE</command> command with the syntax
+   <literal>TRUNCATE TABLE <replaceable>tablename</replaceable></literal>.
+   The clauses <literal>CONTINUE IDENTITY</literal>/<literal>RESTART IDENTITY</literal>
+   also appear in that standard but have slightly different but related meanings.
+   Some of the concurrency behavior of this command is left implementation-defined
+   by the standard, so the above notes should be considered and compared with
+   other implementations if necessary.
   </para>
  </refsect1>
 </refentry>

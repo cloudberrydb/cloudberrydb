@@ -11,7 +11,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/indxpath.c,v 1.231 2008/05/27 00:13:09 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/indxpath.c,v 1.234 2008/11/22 22:47:05 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1744,6 +1744,7 @@ best_inner_indexscan(PlannerInfo *root, RelOptInfo *rel,
 	switch (jointype)
 	{
 		case JOIN_INNER:
+		case JOIN_SEMI:
 			isouterjoin = false;
 			break;
 		case JOIN_LEFT:

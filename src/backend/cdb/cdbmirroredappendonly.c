@@ -1482,7 +1482,7 @@ MirroredAppendOnly_AddMirrorResyncEofs(
 			ereport(ERROR,
 					(errcode_for_file_access(),
 					 errmsg("could not open relation file '%s', relation name '%s': %s",
-							relpath(*relFileNode),
+							relpath(*relFileNode, MAIN_FORKNUM),
 							relationName,
 							strerror(primaryError))));
 		}
@@ -1886,7 +1886,7 @@ MirroredAppendOnly_EndXactCatchup(
 			ereport(ERROR,
 					(errcode_for_file_access(),
 					 errmsg("could not open relation file '%s', relation name '%s': %s",
-							relpath(*relFileNode),
+							relpath(*relFileNode, MAIN_FORKNUM),
 							relationName,
 							strerror(primaryError))));
 		}

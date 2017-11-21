@@ -628,6 +628,7 @@ ac_includes_default="\
 ac_subst_vars='LTLIBOBJS
 vpath_build
 PROVE
+DOCBOOK2MAN
 SGMLSPL
 COLLATEINDEX
 DOCBOOKSTYLE
@@ -752,6 +753,7 @@ CPP
 CFLAGS_VECTOR
 PG_CRC32C_OBJS
 CFLAGS_SSE42
+SUN_STUDIO_CC
 ac_ct_CXX
 CXXFLAGS
 CXX
@@ -1526,9 +1528,11 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
-  --disable-integer-datetimes disable 64-bit integer date/time support
+  --disable-integer-datetimes
+                          disable 64-bit integer date/time support
   --disable-shared        do not build shared libraries
-  --disable-rpath         do not embed shared library search path in executables
+  --disable-rpath         do not embed shared library search path in
+                          executables
   --disable-spinlocks     do not use spinlocks
   --disable-atomics       do not use atomic operations
   --disable-gpfdist       do not use gpfdist
@@ -1542,7 +1546,8 @@ Optional Features:
   --enable-depend         turn on automatic dependency tracking
   --enable-cassert        enable assertion checks (for debugging)
   --enable-debugbreak     enable debug_break and debug_break_n (for debugging)
-  --enable-ntuplestore    enable debug_ntuplestore (for debugging)
+  --enable-debugntuplestore
+                          enable debug_ntuplestore (for debugging)
   --enable-testutils      enable testing utilities
   --disable-orca          disable ORCA optimizer
   --enable-codegen        enable code generation
@@ -1552,40 +1557,51 @@ Optional Features:
   --enable-mapreduce      enable Greenplum Mapreduce support
   --disable-gpcloud       disable gpcloud support
   --enable-segwalrep      enable segment WAL replication
-  --disable-thread-safety  Do not make client libraries thread-safe
-  --enable-thread-safety-force  force thread-safety despite thread test failure
+  --disable-thread-safety do not make client libraries thread-safe
+  --enable-thread-safety-force
+                          force thread-safety despite thread test failure
   --disable-largefile     omit support for large files
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-
+  --with-template=NAME    override operating system template
   --with-includes=DIRS    look for additional header files in DIRS
   --with-libraries=DIRS   look for additional libraries in DIRS
   --with-libs=DIRS        alternative spelling of --with-libraries
   --with-pgport=PORTNUM   set default port number [5432]
-  --with-blocksize=BLOCKSIZE  set table block size in kB [8]
+  --with-blocksize=BLOCKSIZE
+                          set table block size in kB [8]
   --with-segsize=SEGSIZE  set table segment size in GB [1]
-  --with-wal-blocksize=BLOCKSIZE  set WAL block size in kB [8]
-  --with-wal-segsize=SEGSIZE  set WAL segment size in MB [16]
-  --with-codegen-prefix="PATH;PATH"  semicolon separated prefix search path for LLVM and Clang
+  --with-wal-blocksize=BLOCKSIZE
+                          set WAL block size in kB [8]
+  --with-wal-segsize=SEGSIZE
+                          set WAL segment size in MB [16]
+  --with-CC=CMD           set compiler (deprecated)
+  --with-codegen-prefix="PATH;PATH"
+                          semicolon separated prefix search path for LLVM and
+                          Clang
   --with-tcl              build Tcl modules (PL/Tcl)
   --with-tclconfig=DIR    tclConfig.sh is in DIR
   --with-perl             build Perl modules (PL/Perl)
   --with-python           build Python modules (PL/Python)
   --with-gssapi           build with GSSAPI support
   --with-krb5             build with Kerberos 5 support
-  --with-krb-srvnam=NAME  default service principal name in Kerberos [postgres]
+  --with-krb-srvnam=NAME  default service principal name in Kerberos
+                          [postgres]
   --with-pam              build with PAM support
   --with-ldap             build with LDAP support
   --with-bonjour          build with Bonjour support
   --with-openssl          build with OpenSSL support
   --without-readline      do not use GNU Readline nor BSD Libedit for editing
-  --without-libedit-preferred  Don't prefer BSD Libedit over GNU Readline
-  --with-ossp-uuid        use OSSP UUID library when building contrib/uuid-ossp
+  --without-libedit-preferred
+                          do not prefer BSD Libedit over GNU Readline
+  --with-ossp-uuid        use OSSP UUID library when building
+                          contrib/uuid-ossp
   --with-libxml           build with XML support
   --with-libxslt          use XSLT support when building contrib/xml2
-  --with-system-tzdata=DIR  use system time zone data in DIR
+  --with-system-tzdata=DIR
+                          use system time zone data in DIR
   --without-zlib          do not use Zlib
   --without-libbz2        do not use bzip2
   --without-rt            do not use Realtime Library
@@ -3342,7 +3358,7 @@ $as_echo "$enable_integer_datetimes" >&6; }
 # to the users to let them build with very incomplete translations.
 #AC_MSG_CHECKING([whether NLS is wanted])
 #PGAC_ARG_OPTARG(enable, nls,
-#                [[  --enable-nls[=LANGUAGES]  enable Native Language Support]],
+#                [LANGUAGES], [enable Native Language Support],
 #                [],
 #                [WANTED_LANGUAGES=$enableval],
 #                [AC_DEFINE(ENABLE_NLS, 1,
@@ -5035,6 +5051,30 @@ else
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
+# Check if it's Sun Studio compiler. We assume that
+# __SUNPRO_C will be defined for Sun Studio compilers
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+#ifndef __SUNPRO_C
+choke me
+#endif
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  SUN_STUDIO_CC=yes
+else
+  SUN_STUDIO_CC=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+
+
 unset CFLAGS
 
 #
@@ -5733,6 +5773,15 @@ if test "$enable_debug" = yes && test "$ac_cv_prog_cc_g" = yes; then
   	CFLAGS="$CFLAGS -g -ggdb"
   else
     CFLAGS="$CFLAGS -g"
+  fi
+fi
+
+# enable code coverage if --enable-coverage
+if test "$enable_coverage" = yes; then
+  if test "$GCC" = yes; then
+    CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
+  else
+    as_fn_error $? "--enable-coverage is supported only when using GCC" "$LINENO" 5
   fi
 fi
 
@@ -18392,7 +18441,7 @@ else
   if test -n "$DOCBOOKSTYLE"; then
   pgac_cv_path_stylesheets=$DOCBOOKSTYLE
 else
-  for pgac_prefix in /usr /usr/local /opt; do
+  for pgac_prefix in /usr /usr/local /opt /sw; do
     for pgac_infix in share lib; do
       for pgac_postfix in \
         sgml/stylesheets/nwalsh-modular \
@@ -18401,7 +18450,8 @@ else
         sgml/docbook-dsssl \
         sgml/docbook/dsssl/modular \
         sgml/docbook/stylesheet/dsssl/modular \
-        sgml/docbook/dsssl-stylesheets
+        sgml/docbook/dsssl-stylesheets \
+        sgml/dsssl/docbook-dsssl-nwalsh
       do
         pgac_candidate=$pgac_prefix/$pgac_infix/$pgac_postfix
         if test -r "$pgac_candidate/html/docbook.dsl" \
@@ -18559,6 +18609,37 @@ fi
 
   test -n "$SGMLSPL" && break
 done
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for docbook2man" >&5
+$as_echo_n "checking for docbook2man... " >&6; }
+if ${ac_cv_path_DOCBOOK2MAN+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -z "$DOCBOOK2MAN"; then
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_prog in docbook2x-man db2x_docbook2man docbook2man; do
+    ac_path="$as_dir/$ac_prog"
+    as_fn_executable_p "$ac_path" || continue
+    if "$ac_path" --version 2>/dev/null | $GREP docbook2x >/dev/null 2>&1; then
+      ac_cv_path_DOCBOOK2MAN=$ac_path
+      break
+    fi
+  done
+  done
+IFS=$as_save_IFS
+
+else
+  ac_cv_path_DOCBOOK2MAN=$DOCBOOK2MAN
+fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_path_DOCBOOK2MAN" >&5
+$as_echo "$ac_cv_path_DOCBOOK2MAN" >&6; }
+DOCBOOK2MAN=$ac_cv_path_DOCBOOK2MAN
+
 
 
 #

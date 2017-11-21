@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/joinrels.c,v 1.95 2008/11/22 22:47:06 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/joinrels.c,v 1.96 2008/11/28 19:29:07 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -39,7 +39,8 @@ cdb_add_subquery_join_paths(PlannerInfo    *root,
 static bool has_join_restriction(PlannerInfo *root, RelOptInfo *rel);
 static bool has_legal_joinclause(PlannerInfo *root, RelOptInfo *rel);
 static bool is_dummy_rel(RelOptInfo *rel);
-static void mark_dummy_join(PlannerInfo *root, RelOptInfo *rel);
+static void mark_dummy_rel(PlannerInfo *root, RelOptInfo *rel);
+static bool restriction_is_constant_false(List *restrictlist);
 
 
 /*
@@ -422,7 +423,7 @@ join_is_legal(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2,
 			reversed = false;
 		}
 		else if (bms_is_subset(sjinfo->min_lefthand, rel2->relids) &&
-			bms_is_subset(sjinfo->min_righthand, rel1->relids))
+				 bms_is_subset(sjinfo->min_righthand, rel1->relids))
 		{
 			if (match_sjinfo)
 				return false;	/* invalid join path */
@@ -687,59 +688,112 @@ make_join_rel(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2)
 	 * this way since it's conceivable that dummy-ness of a multi-element
 	 * join might only be noticeable for certain construction paths.)
 	 *
+	 * Also, a provably constant-false join restriction typically means that
+	 * we can skip evaluating one or both sides of the join.  We do this
+	 * by marking the appropriate rel as dummy.
+	 *
 	 * We need only consider the jointypes that appear in join_info_list,
 	 * plus JOIN_INNER.
 	 */
 	switch (sjinfo->jointype)
 	{
-		case JOIN_ANTI:
-		case JOIN_LASJ_NOTIN:
-			/*
-			 * For antijoins, the outer and inner rel are fixed.
-			 * If left rel is empty, the result set will be empty
-			 */
-			if (is_dummy_rel(rel1))
-			{
-				mark_dummy_join(root, joinrel);
-				break;
-			}
-			add_paths_to_joinrel(root, joinrel, rel1, rel2, sjinfo->jointype, sjinfo, restrictlist);
-			break;
 		case JOIN_INNER:
-
-			if (is_dummy_rel(rel1) || is_dummy_rel(rel2))
+			if (is_dummy_rel(rel1) || is_dummy_rel(rel2) ||
+				restriction_is_constant_false(restrictlist))
 			{
-				mark_dummy_join(root, joinrel);
+				mark_dummy_rel(root, joinrel);
 				break;
 			}
-			add_paths_to_joinrel(root, joinrel, rel1, rel2, JOIN_INNER, sjinfo,
+			add_paths_to_joinrel(root, joinrel, rel1, rel2,
+								 JOIN_INNER, sjinfo,
 								 restrictlist);
-			add_paths_to_joinrel(root, joinrel, rel2, rel1, JOIN_INNER, sjinfo,
+			add_paths_to_joinrel(root, joinrel, rel2, rel1,
+								 JOIN_INNER, sjinfo,
 								 restrictlist);
 			break;
 		case JOIN_LEFT:
 			if (is_dummy_rel(rel1))
 			{
-				mark_dummy_join(root, joinrel);
+				mark_dummy_rel(root, joinrel);
 				break;
 			}
-			add_paths_to_joinrel(root, joinrel, rel1, rel2, JOIN_LEFT, sjinfo,
+			if (restriction_is_constant_false(restrictlist) &&
+				bms_is_subset(rel2->relids, sjinfo->syn_righthand))
+				mark_dummy_rel(root, rel2);
+			add_paths_to_joinrel(root, joinrel, rel1, rel2,
+								 JOIN_LEFT, sjinfo,
 								 restrictlist);
-			add_paths_to_joinrel(root, joinrel, rel2, rel1, JOIN_RIGHT, sjinfo,
+			add_paths_to_joinrel(root, joinrel, rel2, rel1,
+								 JOIN_RIGHT, sjinfo,
 								 restrictlist);
 			break;
 		case JOIN_FULL:
 			if (is_dummy_rel(rel1) && is_dummy_rel(rel2))
 			{
-				mark_dummy_join(root, joinrel);
+				mark_dummy_rel(root, joinrel);
 				break;
 			}
-			add_paths_to_joinrel(root, joinrel, rel1, rel2, JOIN_FULL, sjinfo,
+			add_paths_to_joinrel(root, joinrel, rel1, rel2,
+								 JOIN_FULL, sjinfo,
 								 restrictlist);
-			add_paths_to_joinrel(root, joinrel, rel2, rel1, JOIN_FULL, sjinfo,
+			add_paths_to_joinrel(root, joinrel, rel2, rel1,
+								 JOIN_FULL, sjinfo,
+								 restrictlist);
+			break;
+		case JOIN_SEMI:
+			/*
+			 * Do these steps only if we actually have a regular semijoin,
+			 * as opposed to a case where we should unique-ify the RHS.
+			 */
+			if (bms_is_subset(sjinfo->min_lefthand, rel1->relids) &&
+				bms_is_subset(sjinfo->min_righthand, rel2->relids))
+			{
+				if (is_dummy_rel(rel1) || is_dummy_rel(rel2) ||
+					restriction_is_constant_false(restrictlist))
+				{
+					mark_dummy_rel(root, joinrel);
+					break;
+				}
+				add_paths_to_joinrel(root, joinrel, rel1, rel2,
+									 JOIN_SEMI, sjinfo,
+									 restrictlist);
+			}
+
+			/*
+			 * If we know how to unique-ify the RHS and one input rel is
+			 * exactly the RHS (not a superset) we can consider unique-ifying
+			 * it and then doing a regular join.  (The create_unique_path
+			 * check here is probably redundant with what join_is_legal did,
+			 * but if so the check is cheap because it's cached.  So test
+			 * anyway to be sure.)
+			 */
+			if (bms_equal(sjinfo->syn_righthand, rel2->relids) &&
+				sjinfo->consider_dedup)
+			{
+				add_paths_to_joinrel(root, joinrel, rel1, rel2,
+									 JOIN_UNIQUE_INNER, sjinfo,
+									 restrictlist);
+				add_paths_to_joinrel(root, joinrel, rel2, rel1,
+									 JOIN_UNIQUE_OUTER, sjinfo,
+									 restrictlist);
+			}
+			break;
+		case JOIN_ANTI:
+		case JOIN_LASJ_NOTIN:
+			if (is_dummy_rel(rel1))
+			{
+				mark_dummy_rel(root, joinrel);
+				break;
+			}
+			if (restriction_is_constant_false(restrictlist) &&
+				bms_is_subset(rel2->relids, sjinfo->syn_righthand))
+				mark_dummy_rel(root, rel2);
+			add_paths_to_joinrel(root, joinrel, rel1, rel2,
+								 sjinfo->jointype, sjinfo,
 								 restrictlist);
 			break;
 		default:
+			/* other values not expected here */
 			elog(ERROR, "unrecognized join type: %d", (int) sjinfo->jointype);
 			break;
 	}
@@ -924,7 +978,7 @@ have_join_order_restriction(PlannerInfo *root,
 
 		/*
 		 * Might we need to join these rels to complete the RHS?  We have to
-		 * use "overlap" tests since either rel might include a lower OJ that
+		 * use "overlap" tests since either rel might include a lower SJ that
 		 * has been proven to commute with this one.
 		 */
 		if (bms_overlap(sjinfo->min_righthand, rel1->relids) &&
@@ -1087,10 +1141,10 @@ is_dummy_rel(RelOptInfo *rel)
 }
 
 /*
- * Mark a joinrel as proven empty.
+ * Mark a rel as proven empty.
  */
 static void
-mark_dummy_join(PlannerInfo *root, RelOptInfo *rel)
+mark_dummy_rel(PlannerInfo *root, RelOptInfo *rel)
 {
 	/* Set dummy size estimate */
 	rel->rows = 0;
@@ -1104,10 +1158,46 @@ mark_dummy_join(PlannerInfo *root, RelOptInfo *rel)
 	/* The dummy path doesn't need deduplication */
 	rel->dedup_info = NULL;
 
-	/*
-	 * Although set_cheapest will be done again later, we do it immediately
-	 * in order to keep is_dummy_rel as cheap as possible (ie, not have
-	 * to examine the pathlist).
-	 */
+	/* Set or update cheapest_total_path */
 	set_cheapest(root, rel);
+}
+
+
+/*
+ * restriction_is_constant_false --- is a restrictlist just FALSE?
+ *
+ * In cases where a qual is provably constant FALSE, eval_const_expressions
+ * will generally have thrown away anything that's ANDed with it.  In outer
+ * join situations this will leave us computing cartesian products only to
+ * decide there's no match for an outer row, which is pretty stupid.  So,
+ * we need to detect the case.
+ */
+static bool
+restriction_is_constant_false(List *restrictlist)
+{
+	ListCell   *lc;
+
+	/*
+	 * Despite the above comment, the restriction list we see here might
+	 * possibly have other members besides the FALSE constant, since other
+	 * quals could get "pushed down" to the outer join level.  So we check
+	 * each member of the list.
+	 */
+	foreach(lc, restrictlist)
+	{
+		RestrictInfo   *rinfo = (RestrictInfo *) lfirst(lc);
+
+		Assert(IsA(rinfo, RestrictInfo));
+		if (rinfo->clause && IsA(rinfo->clause, Const))
+		{
+			Const  *con = (Const *) rinfo->clause;
+
+			/* constant NULL is as good as constant FALSE for our purposes */
+			if (con->constisnull)
+				return true;
+			if (!DatumGetBool(con->constvalue))
+				return true;
+		}
+	}
+	return false;
 }

@@ -11,7 +11,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/test/regress/pg_regress.c,v 1.47 2008/08/05 05:16:08 tgl Exp $
+ * $PostgreSQL: pgsql/src/test/regress/pg_regress.c,v 1.55 2008/12/11 07:34:09 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -94,12 +94,12 @@ static _stringlist *extra_tests = NULL;
 static char *temp_install = NULL;
 static char *temp_config = NULL;
 static char *top_builddir = NULL;
-static int	temp_port = 65432;
 static bool nolocale = false;
 static char *hostname = NULL;
 static int	port = -1;
+static bool port_specified_by_user = false;
+static char *dlpath = PKGLIBDIR;
 static char *user = NULL;
-static char *srcdir = NULL;
 static _stringlist *extraroles = NULL;
 static char *initfile = NULL;
 static char *aodir = NULL;
@@ -309,7 +309,7 @@ stop_postmaster(void)
 		{
 			fprintf(stderr, _("\n%s: could not stop postmaster: exit code was %d\n"),
 					progname, r);
-			exit(2);			/* not exit_nicely(), that would be recursive */
+			exit(2);   /* not exit_nicely(), that would be recursive */
 		}
 
 		postmaster_running = false;
@@ -425,6 +425,7 @@ typedef struct replacements
 	char *abs_srcdir;
 	char *abs_builddir;
 	char *testtablespace;
+	char *dlpath;
 	char *dlsuffix;
 	char *bindir;
 	char *orientation;
@@ -476,6 +477,7 @@ convert_line(char *line, replacements *repls)
 	replace_string(line, "@abs_srcdir@", repls->abs_srcdir);
 	replace_string(line, "@abs_builddir@", repls->abs_builddir);
 	replace_string(line, "@testtablespace@", repls->testtablespace);
+	replace_string(line, "@libdir@", repls->dlpath);
 	replace_string(line, "@DLSUFFIX@", repls->dlsuffix);
 	replace_string(line, "@bindir@", repls->bindir);
 	if (repls->orientation)
@@ -636,10 +638,8 @@ generate_uao_sourcefiles(char *src_dir, char *dest_dir, char *suffix, replacemen
  * the given suffix.
  */
 static int
-convert_sourcefiles_in(char *source, char * dest_dir, char *dest, char *suffix)
+convert_sourcefiles_in(char *source_subdir, char *dest_dir, char *dest_subdir, char *suffix)
 {
-	char		abs_srcdir[MAXPGPATH];
-	char		abs_builddir[MAXPGPATH];
 	char		testtablespace[MAXPGPATH];
 	char		indir[MAXPGPATH];
 	char		cgroup_mnt_point[MAXPGPATH];
@@ -650,27 +650,7 @@ convert_sourcefiles_in(char *source, char * dest_dir, char *dest, char *suffix)
 	char	  **names;
 	int			count = 0;
 
-#ifdef WIN32
-	char	   *c;
-#endif
-
-	if (!getcwd(abs_builddir, sizeof(abs_builddir)))
-	{
-		fprintf(stderr, _("%s: could not get current directory: %s\n"),
-				progname, strerror(errno));
-		exit_nicely(2);
-	}
-
-	/*
-	 * in a VPATH build, use the provided source directory; otherwise, use the
-	 * current directory.
-	 */
-	if (srcdir)
-		strlcpy(abs_srcdir, srcdir, MAXPGPATH);
-	else
-		strlcpy(abs_srcdir, abs_builddir, MAXPGPATH);
-
-	snprintf(indir, MAXPGPATH, "%s/%s", abs_srcdir, source);
+	snprintf(indir, MAXPGPATH, "%s/%s", inputdir, source_subdir);
 
 	/* Check that indir actually exists and is a directory */
 	ret = stat(indir, &st);
@@ -689,26 +669,10 @@ convert_sourcefiles_in(char *source, char * dest_dir, char *dest, char *suffix)
 		exit_nicely(2);
 
 	/* also create the output directory if not present */
-	{
-		char		outdir[MAXPGPATH];
+	if (!directory_exists(dest_subdir))
+		make_directory(dest_subdir);
 
-		snprintf(outdir, MAXPGPATH, "%s/%s", dest_dir, dest);
-
-		if (!directory_exists(outdir))
-			make_directory(outdir);
-	}
-
-#ifdef WIN32
-	/* in Win32, replace backslashes with forward slashes */
-	for (c = abs_builddir; *c; c++)
-		if (*c == '\\')
-			*c = '/';
-	for (c = abs_srcdir; *c; c++)
-		if (*c == '\\')
-			*c = '/';
-#endif
-
-	snprintf(testtablespace, MAXPGPATH, "%s/testtablespace", abs_builddir);
+	snprintf(testtablespace, MAXPGPATH, "%s/testtablespace", outputdir);
 
 #ifdef WIN32
 	/*
@@ -732,9 +696,10 @@ convert_sourcefiles_in(char *source, char * dest_dir, char *dest, char *suffix)
 		strcpy(cgroup_mnt_point, "/sys/fs/cgroup");
 
 	memset(&repls, 0, sizeof(repls));
-	repls.abs_srcdir = abs_srcdir;
-	repls.abs_builddir = abs_builddir;
+	repls.abs_srcdir = inputdir;
+	repls.abs_builddir = outputdir;
 	repls.testtablespace = testtablespace;
+	repls.dlpath = dlpath;
 	repls.dlsuffix = DLSUFFIX;
 	repls.bindir = bindir;
 	repls.cgroup_mnt_point = cgroup_mnt_point;
@@ -750,12 +715,11 @@ convert_sourcefiles_in(char *source, char * dest_dir, char *dest, char *suffix)
 		char		line[1024];
 		bool		has_tokens = false;
 
-
 		if (aodir && strncmp(*name, aodir, strlen(aodir)) == 0 &&
 			(strlen(*name) < 8 || strcmp(*name + strlen(*name) - 7, ".source") != 0))
 		{
 			snprintf(srcfile, MAXPGPATH, "%s/%s",  indir, *name);
-			snprintf(destfile, MAXPGPATH, "%s/%s/%s", dest_dir, dest, *name);
+			snprintf(destfile, MAXPGPATH, "%s/%s", dest_subdir, *name);
 			count += generate_uao_sourcefiles(srcfile, destfile, suffix, &repls);
 			continue;
 		}
@@ -763,8 +727,8 @@ convert_sourcefiles_in(char *source, char * dest_dir, char *dest, char *suffix)
 		if (resgroupdir && strncmp(*name, resgroupdir, strlen(resgroupdir)) == 0 &&
 			(strlen(*name) < 8 || strcmp(*name + strlen(*name) - 7, ".source") != 0))
 		{
-			snprintf(srcfile, MAXPGPATH, "%s/%s", source, *name);
-			snprintf(destfile, MAXPGPATH, "%s/%s/%s", dest_dir, dest, *name);
+			snprintf(srcfile, MAXPGPATH, "%s/%s", source_subdir, *name);
+			snprintf(destfile, MAXPGPATH, "%s/%s", dest_subdir, *name);
 			count += convert_sourcefiles_in(srcfile, dest_dir, destfile, suffix);
 			continue;
 		}
@@ -780,8 +744,7 @@ convert_sourcefiles_in(char *source, char * dest_dir, char *dest, char *suffix)
 		/* build the full actual paths to open */
 		snprintf(prefix, strlen(*name) - 6, "%s", *name);
 		snprintf(srcfile, MAXPGPATH, "%s/%s", indir, *name);
-		snprintf(destfile, MAXPGPATH, "%s/%s/%s.%s", dest_dir, dest, 
-				 prefix, suffix);
+		snprintf(destfile, MAXPGPATH, "%s/%s.%s", dest_subdir, prefix, suffix);
 
 		infile = fopen(srcfile, "r");
 		if (!infile)
@@ -1066,7 +1029,7 @@ initialize_environment(void)
 	{
 		const char *my_pgoptions = "-c intervalstyle=postgres_verbose";
 		const char *old_pgoptions = getenv("PGOPTIONS");
-		char	   *new_pgoptions;
+		char   *new_pgoptions;
 
 		if (!old_pgoptions)
 			old_pgoptions = "";
@@ -2252,13 +2215,13 @@ create_role(const char *rolename, const _stringlist * granted_dbs)
 static char *
 make_absolute_path(const char *in)
 {
-	char	   *result;
+	char *result;
 
 	if (is_absolute_path(in))
 		result = strdup(in);
 	else
 	{
-		static char cwdbuf[MAXPGPATH];
+		static char		cwdbuf[MAXPGPATH];
 
 		if (!cwdbuf[0])
 		{
@@ -2403,7 +2366,7 @@ help(void)
 	printf(_("  --schedule=FILE           use test ordering schedule from FILE\n"));
 	printf(_("                            (can be used multiple times to concatenate)\n"));
 	printf(_("  --exclude-tests=TEST      command or space delimited tests to exclude from running\n"));
-	printf(_("  --srcdir=DIR              absolute path to source directory (for VPATH builds)\n"));
+	printf(_("  --dlpath=DIR              look for dynamic libraries in DIR\n"));
 	printf(_("  --temp-install=DIR        create a temporary installation in DIR\n"));
     printf(_(" --init-file=GPD_INIT_FILE  init file to be used for gpdiff\n"));
 	printf(_("  --ao-dir=DIR              directory name prefix containing generic\n"));
@@ -2413,7 +2376,7 @@ help(void)
 	printf(_("Options for \"temp-install\" mode:\n"));
 	printf(_("  --no-locale               use C locale\n"));
 	printf(_("  --top-builddir=DIR        (relative) path to top level build directory\n"));
-	printf(_("  --temp-port=PORT          port number to start temp postmaster on\n"));
+	printf(_("  --port=PORT               start postmaster on PORT\n"));
 	printf(_("  --temp-config=PATH        append contents of PATH to temporary config\n"));
 	printf(_("\n"));
 	printf(_("Options for using an existing installation:\n"));
@@ -2436,6 +2399,7 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 	int			i;
 	int			option_index;
 	char		buf[MAXPGPATH * 4];
+	char		buf2[MAXPGPATH * 4];
 
 	static struct option long_options[] = {
 		{"help", no_argument, NULL, 'h'},
@@ -2451,12 +2415,11 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 		{"temp-install", required_argument, NULL, 9},
 		{"no-locale", no_argument, NULL, 10},
 		{"top-builddir", required_argument, NULL, 11},
-		{"temp-port", required_argument, NULL, 12},
 		{"host", required_argument, NULL, 13},
 		{"port", required_argument, NULL, 14},
 		{"user", required_argument, NULL, 15},
 		{"psqldir", required_argument, NULL, 16},
-		{"srcdir", required_argument, NULL, 17},
+		{"dlpath", required_argument, NULL, 17},
 		{"create-role", required_argument, NULL, 18},
 		{"temp-config", required_argument, NULL, 19},
         {"init-file", required_argument, NULL, 20},
@@ -2529,20 +2492,12 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 			case 11:
 				top_builddir = strdup(optarg);
 				break;
-			case 12:
-				{
-					int			p = atoi(optarg);
-
-					/* Since Makefile isn't very bright, check port range */
-					if (p >= 1024 && p <= 65535)
-						temp_port = p;
-				}
-				break;
 			case 13:
 				hostname = strdup(optarg);
 				break;
 			case 14:
 				port = atoi(optarg);
+				port_specified_by_user = true;
 				break;
 			case 15:
 				user = strdup(optarg);
@@ -2553,7 +2508,7 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 					psqldir = strdup(optarg);
 				break;
 			case 17:
-				srcdir = strdup(optarg);
+				dlpath = strdup(optarg);
 				break;
 			case 18:
 				split_to_stringlist(strdup(optarg), ", ", &extraroles);
@@ -2590,8 +2545,17 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 		optind++;
 	}
 
-	if (temp_install)
-		port = temp_port;
+	if (temp_install && !port_specified_by_user)
+		/*
+		 * To reduce chances of interference with parallel
+		 * installations, use a port number starting in the private
+		 * range (49152-65535) calculated from the version number.
+		 */
+		port = 0xC000 | (PG_VERSION_NUM & 0x3FFF);
+
+	inputdir = make_absolute_path(inputdir);
+	outputdir = make_absolute_path(outputdir);
+	dlpath = make_absolute_path(dlpath);
 
 	/*
 	 * Initialization
@@ -2689,6 +2653,37 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 		}
 
 		/*
+		 * Check if there is a postmaster running already.
+		 */
+		snprintf(buf2, sizeof(buf2),
+				 SYSTEMQUOTE "\"%s/psql\" -X postgres <%s 2>%s" SYSTEMQUOTE,
+				 bindir, DEVNULL, DEVNULL);
+
+		for (i = 0; i < 16; i++)
+		{
+			if (system(buf2) == 0)
+			{
+				char		s[16];
+
+				if (port_specified_by_user || i == 15)
+				{
+					fprintf(stderr, _("port %d apparently in use\n"), port);
+					if (!port_specified_by_user)
+						fprintf(stderr, _("%s: could not determine an available port\n"), progname);
+					fprintf(stderr, _("Specify an unused port using the --port option or shut down any conflicting PostgreSQL servers.\n"));
+					exit_nicely(2);
+				}
+
+				fprintf(stderr, _("port %d apparently in use, trying %d\n"), port, port+1);
+				port++;
+				sprintf(s, "%d", port);
+				doputenv("PGPORT", s);
+			}
+			else
+				break;
+		}
+
+		/*
 		 * Start the temp postmaster
 		 */
 		header(_("starting postmaster"));
@@ -2711,13 +2706,10 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 		 * second or so, but Cygwin is reportedly *much* slower).  Don't wait
 		 * forever, however.
 		 */
-		snprintf(buf, sizeof(buf),
-				 SYSTEMQUOTE "\"%s/psql\" -X postgres <%s 2>%s" SYSTEMQUOTE,
-				 bindir, DEVNULL, DEVNULL);
 		for (i = 0; i < 60; i++)
 		{
 			/* Done if psql succeeds */
-			if (system(buf) == 0)
+			if (system(buf2) == 0)
 				break;
 
 			/*
@@ -2762,7 +2754,7 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 		postmaster_running = true;
 
 		printf(_("running on port %d with pid %lu\n"),
-			   temp_port, (unsigned long) postmaster_pid);
+			   port, (unsigned long) postmaster_pid);
 	}
 	else
 	{

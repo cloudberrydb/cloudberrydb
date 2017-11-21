@@ -126,7 +126,7 @@ typedef FormData_gp_persistent_relation_node *Form_gp_persistent_relation_node;
   {"gp_persistent_relation_node"}, PG_CATALOG_NAMESPACE, GP_PERSISTENT_RELATION_NODE_OID, BOOTSTRAP_SUPERUSERID, 0, \
                GpPersistentRelationNodeRelationId, GLOBALTABLESPACE_OID, \
                25, 10000, 0, 0, false, true, RELKIND_RELATION, RELSTORAGE_HEAP, Natts_gp_persistent_relation_node, \
-               0, 0, 0, 0, 0, false, false, false, false, FirstNormalTransactionId, {0}, {{{'\0','\0','\0','\0'},{'\0'}}}
+               0, false, false, false, false, false, FirstNormalTransactionId, {0}, {{{'\0','\0','\0','\0'},{'\0'}}}
 
 
 
@@ -178,7 +178,7 @@ typedef FormData_gp_relation_node *Form_gp_relation_node;
   {"gp_relation_node"}, PG_CATALOG_NAMESPACE, GP_RELATION_NODE_OID, BOOTSTRAP_SUPERUSERID, 0, \
                GpRelationNodeRelationId, DEFAULTTABLESPACE_OID, \
                25, 10000, 0, 0, true, false, RELKIND_RELATION, RELSTORAGE_HEAP, Natts_gp_relation_node, \
-               0, 0, 0, 0, 0, false, false, false, false, FirstNormalTransactionId, {0}, {{{'\0','\0','\0','\0'},{'\0'}}}
+               0, false, false, false, false, false, FirstNormalTransactionId, {0}, {{{'\0','\0','\0','\0'},{'\0'}}}
 
 /*
  * gp_relation_node's index.
@@ -203,7 +203,7 @@ typedef FormData_gp_relation_node *Form_gp_relation_node;
   {"gp_relation_node_index"}, PG_CATALOG_NAMESPACE, 0, BOOTSTRAP_SUPERUSERID, BTREE_AM_OID, \
                GpRelationNodeOidIndexId, DEFAULTTABLESPACE_OID, \
                25, 10000, 0, 0, false, false, RELKIND_INDEX, RELSTORAGE_HEAP, Natts_gp_relation_node_index, \
-               0, 0, 0, 0, 0, false, false, false, false, FirstNormalTransactionId, {0}, {{{'\0','\0','\0','\0'},{'\0'}}}
+               0, false, false, false, false, false, FirstNormalTransactionId, {0}, {{{'\0','\0','\0','\0'},{'\0'}}}
 
 /*
  * gp_relation_node_index AM values for FormData_pg_am.
@@ -289,7 +289,7 @@ typedef FormData_gp_persistent_database_node *Form_gp_persistent_database_node;
   {"gp_persistent_database_node"}, PG_CATALOG_NAMESPACE, GP_PERSISTENT_DATABASE_NODE_OID, BOOTSTRAP_SUPERUSERID, 0, \
                GpPersistentDatabaseNodeRelationId, GLOBALTABLESPACE_OID, \
                2, 100, 0, 0, false, true, RELKIND_RELATION, RELSTORAGE_HEAP, Natts_gp_persistent_database_node, \
-               0, 0, 0, 0, 0, false, false, false, false, FirstNormalTransactionId, {0}, {{{'\0','\0','\0','\0'},{'\0'}}}
+               0, false, false, false, false, false, FirstNormalTransactionId, {0}, {{{'\0','\0','\0','\0'},{'\0'}}}
 
 
 /*
@@ -349,7 +349,7 @@ typedef FormData_gp_persistent_tablespace_node *Form_gp_persistent_tablespace_no
   {"gp_persistent_tablespace_node"}, PG_CATALOG_NAMESPACE, GP_PERSISTENT_TABLESPACE_NODE_OID, BOOTSTRAP_SUPERUSERID, 0, \
                GpPersistentTablespaceNodeRelationId, GLOBALTABLESPACE_OID, \
                2, 100, 0, 0, false, true, RELKIND_RELATION, RELSTORAGE_HEAP, Natts_gp_persistent_tablespace_node, \
-               0, 0, 0, 0, 0, false, false, false, false, FirstNormalTransactionId, {0}, {{{'\0','\0','\0','\0'},{'\0'}}}
+               0, false, false, false, false, false, FirstNormalTransactionId, {0}, {{{'\0','\0','\0','\0'},{'\0'}}}
 
 
 /*
@@ -420,7 +420,7 @@ typedef FormData_gp_persistent_filespace_node *Form_gp_persistent_filespace_node
   {"gp_persistent_filespace_node"}, PG_CATALOG_NAMESPACE, GP_PERSISTENT_FILESPACE_NODE_OID, BOOTSTRAP_SUPERUSERID, 0, \
                GpPersistentFilespaceNodeRelationId, GLOBALTABLESPACE_OID, \
                2, 100, 0, 0, false, true, RELKIND_RELATION, RELSTORAGE_HEAP, Natts_gp_persistent_filespace_node, \
-               0, 0, 0, 0, 0, false, false, false, false, FirstNormalTransactionId, {0}, {{{'\0','\0','\0','\0'},{'\0'}}}
+               0, false, false, false, false, false, FirstNormalTransactionId, {0}, {{{'\0','\0','\0','\0'},{'\0'}}}
 
 
 

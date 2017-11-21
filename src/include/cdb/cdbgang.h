@@ -18,6 +18,7 @@
 #include "executor/execdesc.h"
 #include <pthread.h>
 #include "utils/faultinjector.h"
+#include "utils/portal.h"
 
 struct Port;
 struct QueryDesc;

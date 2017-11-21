@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1994-5, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/explain.c,v 1.176 2008/08/07 03:04:03 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/explain.c,v 1.181 2008/11/19 01:10:23 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -289,7 +289,7 @@ ExplainOneQuery(Query *query, ExplainStmt *stmt, const char *queryString,
 		PlannedStmt *plan;
 
 		/* plan the query */
-		plan = planner(query, 0, params);
+		plan = pg_plan_query(query, 0, params);
 
 		/* run it (if needed) and produce output */
 		ExplainOnePlan(plan, params, stmt, queryString, tstate);
@@ -370,7 +370,6 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
 	QueryDesc  *queryDesc;
 	instr_time	starttime;
 	double		totaltime = 0;
-	ExplainState *es;
 	StringInfoData buf;
 	EState     *estate = NULL;
 	int			eflags;
@@ -400,10 +399,6 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
 				GetResqueuePriority(GetResQueueId()));
 	}
 
-	/* Initialize ExplainState structure. */
-	es = (ExplainState *) palloc0(sizeof(ExplainState));
-	es->pstmt = queryDesc->plannedstmt;
-
     /*
      * Start timing.
      */
@@ -416,12 +411,12 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
     /* Allocate workarea for summary stats. */
     if (stmt->analyze)
     {
-        es->showstatctx = cdbexplain_showExecStatsBegin(queryDesc,
-                                                        starttime);
-
         /* Attach workarea to QueryDesc so ExecSetParamPlan() can find it. */
-        queryDesc->showstatctx = es->showstatctx;
+        queryDesc->showstatctx = cdbexplain_showExecStatsBegin(queryDesc,
+															   starttime);
     }
+	else
+		queryDesc->showstatctx = NULL;
 
 	/* Select execution options */
 	if (stmt->analyze)
@@ -450,9 +445,6 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
 
     estate = queryDesc->estate;
 
-    /* CDB: Find slice table entry for the root slice. */
-    es->currentSlice = getCurrentSlice(estate, LocallyExecutingSliceIndex(estate));
-
 	/* Execute the plan for statistics if asked for */
 	if (stmt->analyze)
 	{
@@ -463,84 +455,14 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
 		if (estate->dispatcherState && estate->dispatcherState->primaryResults)
 			CdbCheckDispatchResult(estate->dispatcherState, DISPATCH_WAIT_NONE);
 
+		/* We can't clean up 'till we're done printing the stats... */
         /* Suspend timing. */
 	    totaltime += elapsed_time(&starttime);
-
-        /* Get local stats if root slice was executed here in the qDisp. */
-        if (!es->currentSlice ||
-            sliceRunsOnQD(es->currentSlice))
-            cdbexplain_localExecStats(queryDesc->planstate, es->showstatctx);
-
-        /* Fill in the plan's Instrumentation with stats from qExecs. */
-        if (estate->dispatcherState && estate->dispatcherState->primaryResults)
-            cdbexplain_recvExecStats(queryDesc->planstate,
-                                     estate->dispatcherState->primaryResults,
-                                     LocallyExecutingSliceIndex(estate),
-                                     es->showstatctx);
 	}
 
-	es->printTList = stmt->verbose;
-	es->printAnalyze = stmt->analyze;
-	es->pstmt = queryDesc->plannedstmt;
-	es->rtable = queryDesc->plannedstmt->rtable;
-
+	/* Create textual dump of plan tree */
 	initStringInfo(&buf);
-
-    /*
-     * Produce the EXPLAIN report into buf.
-     */
-    {
-     	int indent = 0;
-    	CmdType cmd = queryDesc->plannedstmt->commandType;
-    	Plan *childPlan = queryDesc->plannedstmt->planTree;
-
-    	if ( (cmd == CMD_DELETE || cmd == CMD_INSERT || cmd == CMD_UPDATE) &&
-    		  queryDesc->plannedstmt->planGen == PLANGEN_PLANNER )
-    	{
-    	   	/* Set sliceNum to the slice number of the outer-most query plan node */
-    	   	int sliceNum = 0;
-    	   	int numSegments = getgpsegmentCount();
-	    	char *cmdName = NULL;
-
-   			switch (cmd)
-			{
-				case CMD_DELETE:
-					cmdName = "Delete";
-					break;
-				case CMD_INSERT:
-					cmdName = "Insert";
-					break;
-				case CMD_UPDATE:
-					cmdName = "Update";
-					break;
-				default:
-					/* This should never be reached */
-					Assert(!"Unexpected statement type");
-					break;
-			}
-			appendStringInfo(&buf, "%s", cmdName);
-
-			if (IsA(childPlan, Motion))
-			{
-				Motion	   *pMotion = (Motion *) childPlan;
-				if (pMotion->motionType == MOTIONTYPE_FIXED && pMotion->numOutputSegs != 0)
-				{
-					numSegments = 1;
-				}
-				/* else: other motion nodes execute on all segments */
-			}
-			else if ((childPlan->directDispatch).isDirectDispatch)
-			{
-				numSegments = 1;
-			}
-			appendStringInfo(&buf, " (slice%d; segments: %d)", sliceNum, numSegments);
-			appendStringInfo(&buf, "  (rows=%.0f width=%d)\n", ceil(childPlan->plan_rows / numSegments), childPlan->plan_width);
-			appendStringInfo(&buf, "  ->  ");
-			indent = 3;
-		}
-	    explain_outNode(&buf, childPlan, queryDesc->planstate,
-					    NULL, NULL, indent, es);
-    }
+	ExplainPrintPlan(&buf, queryDesc, stmt->analyze, stmt->verbose);
 
 	/*
 	 * If we ran the command, run any AFTER triggers it queued.  (Note this
@@ -555,7 +477,7 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
 	}
 
 	/* Print info about runtime of triggers */
-	if (es->printAnalyze)
+	if (stmt->analyze)
 	{
 		ResultRelInfo *rInfo;
 		bool		show_relname;
@@ -580,7 +502,7 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
      * Display per-slice and whole-query statistics.
      */
     if (stmt->analyze)
-        cdbexplain_showExecStatsEnd(queryDesc->plannedstmt, es->showstatctx, &buf, estate);
+        cdbexplain_showExecStatsEnd(queryDesc->plannedstmt, queryDesc->showstatctx, &buf, estate);
 
     /*
      * Show non-default GUC settings that might have affected the plan.
@@ -627,7 +549,103 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
 	do_text_output_multiline(tstate, buf.data);
 
 	pfree(buf.data);
-	pfree(es);
+}
+
+/*
+ * ExplainPrintPlan -
+ *	  convert a QueryDesc's plan tree to text and append it to 'str'
+ *
+ * 'analyze' means to include runtime instrumentation results
+ * 'verbose' means a verbose printout (currently, it shows targetlists)
+ *
+ * NB: will not work on utility statements
+ */
+void
+ExplainPrintPlan(StringInfo str, QueryDesc *queryDesc,
+				 bool analyze, bool verbose)
+{
+	EState     *estate = queryDesc->estate;
+	ExplainState es;
+	int			indent = 0;
+	CmdType		cmd = queryDesc->plannedstmt->commandType;
+	Plan	   *childPlan = queryDesc->plannedstmt->planTree;
+
+	Assert(queryDesc->plannedstmt != NULL);
+
+	memset(&es, 0, sizeof(es));
+	es.printTList = verbose;
+	es.printAnalyze = analyze;
+	es.pstmt = queryDesc->plannedstmt;
+	es.rtable = queryDesc->plannedstmt->rtable;
+	es.showstatctx = queryDesc->showstatctx;
+
+	/* CDB: Find slice table entry for the root slice. */
+	es.currentSlice = getCurrentSlice(estate, LocallyExecutingSliceIndex(estate));
+
+	/* Get local stats if root slice was executed here in the qDisp. */
+	if (analyze)
+	{
+		if (!es.currentSlice || sliceRunsOnQD(es.currentSlice))
+			cdbexplain_localExecStats(queryDesc->planstate, es.showstatctx);
+
+        /* Fill in the plan's Instrumentation with stats from qExecs. */
+        if (estate->dispatcherState && estate->dispatcherState->primaryResults)
+            cdbexplain_recvExecStats(queryDesc->planstate,
+                                     estate->dispatcherState->primaryResults,
+                                     LocallyExecutingSliceIndex(estate),
+                                     es.showstatctx);
+	}
+
+	/*
+	 * Produce the EXPLAIN report into buf.
+	 */
+	if ( (cmd == CMD_DELETE || cmd == CMD_INSERT || cmd == CMD_UPDATE) &&
+		 queryDesc->plannedstmt->planGen == PLANGEN_PLANNER )
+	{
+		/* Set sliceNum to the slice number of the outer-most query plan node */
+		int sliceNum = 0;
+		int numSegments = getgpsegmentCount();
+		char *cmdName = NULL;
+
+		switch (cmd)
+		{
+			case CMD_DELETE:
+				cmdName = "Delete";
+				break;
+			case CMD_INSERT:
+				cmdName = "Insert";
+				break;
+			case CMD_UPDATE:
+				cmdName = "Update";
+				break;
+			default:
+				/* This should never be reached */
+				Assert(!"Unexpected statement type");
+				break;
+		}
+		appendStringInfo(str, "%s", cmdName);
+
+		if (IsA(childPlan, Motion))
+		{
+			Motion	   *pMotion = (Motion *) childPlan;
+			if (pMotion->motionType == MOTIONTYPE_FIXED && pMotion->numOutputSegs != 0)
+			{
+				numSegments = 1;
+			}
+			/* else: other motion nodes execute on all segments */
+		}
+		else if ((childPlan->directDispatch).isDirectDispatch)
+		{
+			numSegments = 1;
+		}
+		appendStringInfo(str, " (slice%d; segments: %d)", sliceNum, numSegments);
+		appendStringInfo(str, "  (rows=%.0f width=%d)\n", ceil(childPlan->plan_rows / numSegments), childPlan->plan_width);
+		appendStringInfo(str, "  ->  ");
+		indent = 3;
+	}
+	explain_outNode(str,
+					childPlan, queryDesc->planstate,
+					NULL, NULL, indent, &es);
 }
 
 /*
@@ -1865,6 +1883,9 @@ show_plan_tlist(Plan *plan,
 		return;
 	/* The tlist of an Append isn't real helpful, so suppress it */
 	if (IsA(plan, Append))
+		return;
+	/* Likewise for RecursiveUnion */
+	if (IsA(plan, RecursiveUnion))
 		return;
 
 	/* Set up deparsing context */

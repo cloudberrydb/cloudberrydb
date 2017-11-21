@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/index.c,v 1.301 2008/08/10 19:02:33 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/index.c,v 1.310 2008/11/19 10:34:51 heikki Exp $
  *
  *
  * INTERFACE ROUTINES
@@ -46,6 +46,7 @@
 #include "catalog/pg_opclass.h"
 #include "catalog/pg_tablespace.h"
 #include "catalog/pg_type.h"
+#include "catalog/storage.h"
 #include "cdb/cdbpersistentfilesysobj.h"
 #include "commands/tablecmds.h"
 #include "executor/executor.h"
@@ -53,7 +54,6 @@
 #include "nodes/nodeFuncs.h"
 #include "optimizer/clauses.h"
 #include "optimizer/var.h"
-#include "parser/parse_expr.h"
 #include "storage/bufmgr.h"
 #include "storage/lmgr.h"
 #include "storage/procarray.h"
@@ -91,6 +91,7 @@ typedef struct
 /* non-export function prototypes */
 static TupleDesc ConstructTupleDescriptor(Relation heapRelation,
 						 IndexInfo *indexInfo,
+						 Oid accessMethodObjectId,
 						 Oid *classObjectId);
 static void InitializeAttributeOids(Relation indexRelation,
 						int numatts, Oid indexoid);
@@ -144,15 +145,28 @@ static double IndexBuildAppendOnlyColScan(Relation parentRelation,
 static TupleDesc
 ConstructTupleDescriptor(Relation heapRelation,
 						 IndexInfo *indexInfo,
+						 Oid accessMethodObjectId,
 						 Oid *classObjectId)
 {
 	int			numatts = indexInfo->ii_NumIndexAttrs;
 	ListCell   *indexpr_item = list_head(indexInfo->ii_Expressions);
+	HeapTuple	amtuple;
+	Form_pg_am	amform;
 	TupleDesc	heapTupDesc;
 	TupleDesc	indexTupDesc;
 	int			natts;			/* #atts in heap rel --- for error checks */
 	int			i;
 
+	/* We need access to the index AM's pg_am tuple */
+	amtuple = SearchSysCache(AMOID,
+							 ObjectIdGetDatum(accessMethodObjectId),
+							 0, 0, 0);
+	if (!HeapTupleIsValid(amtuple))
+		elog(ERROR, "cache lookup failed for access method %u",
+			 accessMethodObjectId);
+	amform = (Form_pg_am) GETSTRUCT(amtuple);
+
+	/* ... and to the table's tuple descriptor */
 	heapTupDesc = RelationGetDescr(heapRelation);
 	natts = RelationGetForm(heapRelation)->relnatts;
 
@@ -172,6 +186,7 @@ ConstructTupleDescriptor(Relation heapRelation,
 		Form_pg_attribute to = indexTupDesc->attrs[i];
 		HeapTuple	tuple;
 		Form_pg_type typeTup;
+		Form_pg_opclass opclassTup;
 		Oid			keyType;
 
 		if (atnum != 0)
@@ -261,6 +276,17 @@ ConstructTupleDescriptor(Relation heapRelation,
 			to->attislocal = true;
 
 			ReleaseSysCache(tuple);
+
+			/*
+			 * Make sure the expression yields a type that's safe to store in
+			 * an index.  We need this defense because we have index opclasses
+			 * for pseudo-types such as "record", and the actually stored type
+			 * had better be safe; eg, a named composite type is okay, an
+			 * anonymous record type is not.  The test is the same as for
+			 * whether a table column is of a safe type (which is why we
+			 * needn't check for the non-expression case).
+			 */
+			CheckAttributeType(NameStr(to->attname), to->atttypid, NIL);
 		}
 
 		/*
@@ -271,8 +297,8 @@ ConstructTupleDescriptor(Relation heapRelation,
 		to->attrelid = InvalidOid;
 
 		/*
-		 * Check the opclass to see if it provides a keytype (overriding the
-		 * attribute type).
+		 * Check the opclass and index AM to see if either provides a keytype
+		 * (overriding the attribute type).  Opclass takes precedence.
 		 */
 		tuple = SearchSysCache(CLAOID,
 							   ObjectIdGetDatum(classObjectId[i]),
@@ -280,7 +306,11 @@ ConstructTupleDescriptor(Relation heapRelation,
 		if (!HeapTupleIsValid(tuple))
 			elog(ERROR, "cache lookup failed for opclass %u",
 				 classObjectId[i]);
-		keyType = ((Form_pg_opclass) GETSTRUCT(tuple))->opckeytype;
+		opclassTup = (Form_pg_opclass) GETSTRUCT(tuple);
+		if (OidIsValid(opclassTup->opckeytype))
+			keyType = opclassTup->opckeytype;
+		else
+			keyType = amform->amkeytype;
 		ReleaseSysCache(tuple);
 
 		if (OidIsValid(keyType) && keyType != to->atttypid)
@@ -303,6 +333,8 @@ ConstructTupleDescriptor(Relation heapRelation,
 			ReleaseSysCache(tuple);
 		}
 	}
+
+	ReleaseSysCache(amtuple);
 
 	return indexTupDesc;
 }
@@ -335,7 +367,6 @@ AppendAttributeTuples(Relation indexRelation, int numatts)
 	Relation	pg_attribute;
 	CatalogIndexState indstate;
 	TupleDesc	indexTupDesc;
-	HeapTuple	new_tuple;
 	int			i;
 
 	/*
@@ -359,16 +390,7 @@ AppendAttributeTuples(Relation indexRelation, int numatts)
 		Assert(indexTupDesc->attrs[i]->attnum == i + 1);
 		Assert(indexTupDesc->attrs[i]->attcacheoff == -1);
 
-		new_tuple = heap_addheader(Natts_pg_attribute,
-								   false,
-								   ATTRIBUTE_TUPLE_SIZE,
-								   (void *) indexTupDesc->attrs[i]);
-
-		simple_heap_insert(pg_attribute, new_tuple);
-
-		CatalogIndexInsert(indstate, new_tuple);
-
-		heap_freetuple(new_tuple);
+		InsertPgAttributeTuple(pg_attribute, indexTupDesc->attrs[i], indstate);
 	}
 
 	CatalogCloseIndexes(indstate);
@@ -626,6 +648,7 @@ index_create(Oid heapRelationId,
 	 */
 	indexTupDesc = ConstructTupleDescriptor(heapRelation,
 											indexInfo,
+											accessMethodObjectId,
 											classObjectId);
 
 	/*
@@ -1039,8 +1062,9 @@ index_drop(Oid indexId)
 	CheckTableNotInUse(userIndexRelation, "DROP INDEX");
 
 	/*
-	 * Schedule physical removal of the file
+	 * Schedule physical removal of the files
 	 */
+	/* GPDB_84_MERGE_FIXME: make sure this calls RelationDropStorage. */
 	MirroredFileSysObj_ScheduleDropBufferPoolRel(userIndexRelation);
 
 	DeleteGpRelationNodeTuple(
@@ -1426,7 +1450,6 @@ setNewRelfilenode(Relation relation, TransactionId freezeXid)
 {
 	Oid			newrelfilenode;
 	RelFileNode newrnode;
-	SMgrRelation srel;
 	Relation	pg_class;
 	Relation	gp_relation_node;
 	HeapTuple	tuple;
@@ -1434,6 +1457,7 @@ setNewRelfilenode(Relation relation, TransactionId freezeXid)
 	bool		isAppendOnly;
 	bool		is_gp_relation_node_index;
 
+	PersistentFileSysRelStorageMgr localRelStorageMgr;
 	ItemPointerData		persistentTid;
 	int64				persistentSerialNum;
 
@@ -1466,20 +1490,26 @@ setNewRelfilenode(Relation relation, TransactionId freezeXid)
 			 RelationGetRelid(relation));
 	rd_rel = (Form_pg_class) GETSTRUCT(tuple);
 
-	/* create another storage file. Is it a little ugly ? */
-	/* NOTE: any conflict in relfilenode value will be caught here */
+	/*
+	 * ... and create storage for corresponding forks in the new relfilenode.
+	 *
+	 * NOTE: any conflict in relfilenode value will be caught here
+	 */
 	newrnode = relation->rd_node;
 	newrnode.relNode = newrelfilenode;
 
 	/* schedule unlinking old relfilenode */
 	remove_gp_relation_node_and_schedule_drop(relation);
 
+	/*
+	 * Create the main fork, like heap_create() does, and drop the old
+	 * storage.
+	 */
 	isAppendOnly = (relation->rd_rel->relstorage == RELSTORAGE_AOROWS || 
 					relation->rd_rel->relstorage == RELSTORAGE_AOCOLS);
 
 	if (!isAppendOnly)
 	{
-		PersistentFileSysRelStorageMgr localRelStorageMgr;
 		PersistentFileSysRelBufpoolKind relBufpoolKind;
 
 		GpPersistentRelationNode_GetRelationInfo(
@@ -1490,10 +1520,7 @@ setNewRelfilenode(Relation relation, TransactionId freezeXid)
 											&relBufpoolKind);
 		Assert(localRelStorageMgr == PersistentFileSysRelStorageMgr_BufferPool);
 
-		srel = smgropen(newrnode);
-
-		MirroredFileSysObj_TransactionCreateBufferPoolFile(
-											srel,
+		MirroredFileSysObj_TransactionCreateBufferPoolFile(&newrnode,
 											relBufpoolKind,
 											relation->rd_isLocalBuf,
 											NameStr(relation->rd_rel->relname),
@@ -1501,10 +1528,10 @@ setNewRelfilenode(Relation relation, TransactionId freezeXid)
 											/* bufferPoolBulkLoad */ false,
 											&persistentTid,
 											&persistentSerialNum);
-		smgrclose(srel);
 	}
 	else
 	{
+		localRelStorageMgr = PersistentFileSysRelStorageMgr_AppendOnly;
 		MirroredFileSysObj_TransactionCreateAppendOnlyFile(
 											&newrnode,
 											/* segmentFileNum */ 0,
@@ -1529,10 +1556,16 @@ setNewRelfilenode(Relation relation, TransactionId freezeXid)
 	if (Debug_persistent_print)
 		elog(Persistent_DebugPrintLevel(),
 			 "setNewRelfilenodeCommon: NEW '%s', Append-Only '%s', persistent TID %s and serial number " INT64_FORMAT,
-			 relpath(newrnode),
+			 relpath(newrnode, MAIN_FORKNUM),
 			 (isAppendOnly ? "true" : "false"),
 			 ItemPointerToString(&persistentTid),
 			 persistentSerialNum);
+
+	/*
+	 * In upstream, we call RelationDropStorage() here. In GPDB, that's done by
+	 * the remove_gp_relation_node_and_schedule_drop() call above.
+	 */
+	smgrclosenode(newrnode);
 
 	/* update the pg_class row */
 	rd_rel->relfilenode = newrelfilenode;
@@ -1753,7 +1786,7 @@ index_build(Relation heapRelation,
 double
 IndexBuildScan(Relation parentRelation,
 			   Relation indexRelation,
-			   struct IndexInfo *indexInfo,
+			   IndexInfo *indexInfo,
 			   bool allow_sync,
 			   IndexBuildCallback callback,
 			   void *callback_state)
@@ -2999,8 +3032,9 @@ reindex_index(Oid indexId)
 
 		if (inplace)
 		{
-			/* Truncate the actual file (and discard buffers) */
-
+			/*
+			 * Truncate the actual file (and discard buffers).
+			 */
 			RelationTruncate(
 						iRel, 
 						0,

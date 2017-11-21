@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeMaterial.c,v 1.62 2008/03/23 00:54:04 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeMaterial.c,v 1.64 2008/12/27 17:39:00 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -278,6 +278,16 @@ ExecInitMaterial(Material *node, EState *estate, int eflags)
 	matstate->eflags = (eflags & (EXEC_FLAG_REWIND |
 								  EXEC_FLAG_BACKWARD |
 								  EXEC_FLAG_MARK));
+
+	/*
+	 * Tuplestore's interpretation of the flag bits is subtly different from
+	 * the general executor meaning: it doesn't think BACKWARD necessarily
+	 * means "backwards all the way to start".  If told to support BACKWARD we
+	 * must include REWIND in the tuplestore eflags, else tuplestore_trim
+	 * might throw away too much.
+	 */
+	if (eflags & EXEC_FLAG_BACKWARD)
+		matstate->eflags |= EXEC_FLAG_REWIND;
 
 	matstate->eof_underlying = false;
 	matstate->ts_state = palloc0(sizeof(GenericTupStore));

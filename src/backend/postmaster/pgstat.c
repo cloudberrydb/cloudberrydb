@@ -13,7 +13,7 @@
  *
  *	Copyright (c) 2001-2009, PostgreSQL Global Development Group
  *
- *	$PostgreSQL: pgsql/src/backend/postmaster/pgstat.c,v 1.178 2008/08/05 12:09:30 mha Exp $
+ *	$PostgreSQL: pgsql/src/backend/postmaster/pgstat.c,v 1.186 2008/12/17 09:15:03 heikki Exp $
  * ----------
  */
 #include "postgres.h"
@@ -228,7 +228,6 @@ static PgStat_GlobalStats globalStats;
 
 /* Last time the collector successfully wrote the stats file */
 static TimestampTz last_statwrite;
-
 /* Latest statistics request time from backends */
 static TimestampTz last_statrequest;
 
@@ -705,8 +704,8 @@ pgstat_report_stat(bool force)
 	int			i;
 
 	/* Don't expend a clock check if nothing to do */
-	if ((pgStatTabList == NULL || pgStatTabList->tsa_used == 0) &&
-		!have_function_stats)
+	if ((pgStatTabList == NULL || pgStatTabList->tsa_used == 0)
+		&& !have_function_stats)
 		return;
 
 	/*
@@ -1210,7 +1209,7 @@ pgstat_report_autovac(Oid dboid)
  * ---------
  */
 void
-pgstat_report_vacuum(Oid tableoid, bool shared, bool scanned_all,
+pgstat_report_vacuum(Oid tableoid, bool shared,
 					 bool analyze, PgStat_Counter tuples)
 {
 	PgStat_MsgVacuum msg;
@@ -1221,7 +1220,6 @@ pgstat_report_vacuum(Oid tableoid, bool shared, bool scanned_all,
 	pgstat_setheader(&msg.m_hdr, PGSTAT_MTYPE_VACUUM);
 	msg.m_databaseid = shared ? InvalidOid : MyDatabaseId;
 	msg.m_tableoid = tableoid;
-	msg.m_scanned_all = scanned_all;
 	msg.m_analyze = analyze;
 	msg.m_autovacuum = IsAutoVacuumWorkerProcess();		/* is this autovacuum? */
 	msg.m_vacuumtime = GetCurrentTimestamp();
@@ -2803,7 +2801,7 @@ PgstatCollectorMain(int argc, char *argv[])
 	/*
 	 * Arrange to write the initial status file right away
 	 */
-    last_statrequest = GetCurrentTimestamp();
+	last_statrequest = GetCurrentTimestamp();
 	last_statwrite = last_statrequest - 1;
 
 	/*
@@ -2827,7 +2825,7 @@ PgstatCollectorMain(int argc, char *argv[])
 	 *
 	 * For performance reasons, we don't want to do a PostmasterIsAlive() test
 	 * after every message; instead, do it only when select()/poll() is
-	 * interrupted by timeout.	In essence, we'll stay alive as long as
+	 * interrupted by timeout.  In essence, we'll stay alive as long as
 	 * backends keep sending us stuff often, even if the postmaster is gone.
 	 */
 	for (;;)
@@ -3619,14 +3617,14 @@ backend_read_statsfile(void)
 
 	/*
 	 * We set the minimum acceptable timestamp to PGSTAT_STAT_INTERVAL msec
-	 * before now.	This indirectly ensures that the collector needn't write
+	 * before now.  This indirectly ensures that the collector needn't write
 	 * the file more often than PGSTAT_STAT_INTERVAL.  In an autovacuum
 	 * worker, however, we want a lower delay to avoid using stale data, so we
 	 * use PGSTAT_RETRY_DELAY (since the number of worker is low, this
 	 * shouldn't be a problem).
 	 *
 	 * Note that we don't recompute min_ts after sleeping; so we might end up
-	 * accepting a file a bit older than PGSTAT_STAT_INTERVAL.	In practice
+	 * accepting a file a bit older than PGSTAT_STAT_INTERVAL.  In practice
 	 * that shouldn't happen, though, as long as the sleep time is less than
 	 * PGSTAT_STAT_INTERVAL; and we don't want to lie to the collector about
 	 * what our cutoff time really is.
@@ -3635,13 +3633,12 @@ backend_read_statsfile(void)
 		min_ts = TimestampTzPlusMilliseconds(GetCurrentTimestamp(),
 											 -PGSTAT_RETRY_DELAY);
 	else
-	 	min_ts = TimestampTzPlusMilliseconds(GetCurrentTimestamp(),
-	 										 -PGSTAT_STAT_INTERVAL);
+		min_ts = TimestampTzPlusMilliseconds(GetCurrentTimestamp(),
+											 -PGSTAT_STAT_INTERVAL);
 
 	/*
 	 * Loop until fresh enough stats file is available or we ran out of time.
-	 * The stats inquiry message is sent repeatedly in case collector drops
-	 * it.
+	 * The stats inquiry message is sent repeatedly in case collector drops it.
 	 */
 	for (count = 0; count < PGSTAT_POLL_LOOP_COUNT; count++)
 	{
@@ -4002,21 +3999,12 @@ pgstat_recv_vacuum(PgStat_MsgVacuum *msg, int len)
 		tabentry->autovac_vacuum_timestamp = msg->m_vacuumtime;
 	else
 		tabentry->vacuum_timestamp = msg->m_vacuumtime;
-	if (msg->m_scanned_all)
 	tabentry->n_live_tuples = msg->m_tuples;
 	/* Resetting dead_tuples to 0 is an approximation ... */
 	tabentry->n_dead_tuples = 0;
 	if (msg->m_analyze)
 	{
-		if (msg->m_scanned_all)
 		tabentry->last_anl_tuples = msg->m_tuples;
-		else
-		{
-			/* last_anl_tuples must never exceed n_live_tuples+n_dead_tuples */
-			tabentry->last_anl_tuples = Min(tabentry->last_anl_tuples,
-											tabentry->n_live_tuples);
-		}
-
 		if (msg->m_autovacuum)
 			tabentry->autovac_analyze_timestamp = msg->m_vacuumtime;
 		else

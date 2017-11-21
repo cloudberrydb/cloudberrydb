@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/pg_constraint.c,v 1.42 2008/06/19 00:46:04 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/pg_constraint.c,v 1.43 2008/11/02 01:45:27 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -137,7 +137,7 @@ CreateConstraintEntry(const char *constraintName,
 	for (i = 0; i < Natts_pg_constraint; i++)
 	{
 		nulls[i] = false;
-		values[i] = (Datum) 0;
+		values[i] = (Datum) NULL;
 	}
 
 	values[Anum_pg_constraint_conname - 1] = NameGetDatum(&cname);
@@ -167,17 +167,17 @@ CreateConstraintEntry(const char *constraintName,
 	if (conpfeqopArray)
 		values[Anum_pg_constraint_conpfeqop - 1] = PointerGetDatum(conpfeqopArray);
 	else
-		nulls[Anum_pg_constraint_conpfeqop - 1] = 'n';
+		nulls[Anum_pg_constraint_conpfeqop - 1] = true;
 
 	if (conppeqopArray)
 		values[Anum_pg_constraint_conppeqop - 1] = PointerGetDatum(conppeqopArray);
 	else
-		nulls[Anum_pg_constraint_conppeqop - 1] = 'n';
+		nulls[Anum_pg_constraint_conppeqop - 1] = true;
 
 	if (conffeqopArray)
 		values[Anum_pg_constraint_conffeqop - 1] = PointerGetDatum(conffeqopArray);
 	else
-		nulls[Anum_pg_constraint_conffeqop - 1] = 'n';
+		nulls[Anum_pg_constraint_conffeqop - 1] = true;
 
 	/*
 	 * initialize the binary form of the check constraint.

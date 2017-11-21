@@ -429,20 +429,34 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		}
 		else
 		{
-			XLogDropRelation(rnode);
 			/*
 			 * smgrdounlink() currently is specifically coded for dropping files
 			 * which are not for AO or CO tables because it finds and then drops
 			 * files in sequence like .1, .2, ...
 			 */
-			smgrdounlink(
-				&rnode,
-				/* isLocalBuf */ false,
-				/* relationName */ NULL,
-				/* primaryOnly */ true,
-				/* isRedo */ true,		// Don't generate Master Mirroring records...
-				/* ignoreNonExistence */ true,
-				&mirrorDataLossOccurred);
+			SMgrRelation srel = smgropen(rnode);
+			ForkNumber fork;
+
+			for (fork = 0; fork <= MAX_FORKNUM; fork++)
+			{
+				if (smgrexists(srel, fork))
+				{
+					XLogDropRelation(rnode, fork);
+
+					if (fork == MAIN_FORKNUM)
+						smgrdomirroredunlink(
+							&rnode,
+							/* isLocalBuf */ false,
+							/* relationName */ NULL,
+							/* primaryOnly */ true,
+							/* isRedo */ true,        // Don't generate Master Mirroring records...
+							/* ignoreNonExistence */ true,
+							&mirrorDataLossOccurred);
+					else
+						smgrdounlink(srel, fork, false, true);
+				}
+			}
+			smgrclose(srel);
 		}
 	}
 	else

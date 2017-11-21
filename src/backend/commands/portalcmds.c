@@ -16,7 +16,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/portalcmds.c,v 1.75 2008/07/18 20:26:06 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/portalcmds.c,v 1.77 2008/12/01 17:06:21 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -437,15 +437,18 @@ PersistHoldablePortal(Portal portal)
 		 * We don't allow scanning backwards in MPP! skip this call and 
 		 * skip the reset position call few lines down.
 		 */
-		if(Gp_role == GP_ROLE_UTILITY)
+		if (Gp_role == GP_ROLE_UTILITY)
 			ExecutorRewind(queryDesc);
 
 		/*
 		 * Change the destination to output to the tuplestore.  Note we
 		 * tell the tuplestore receiver to detoast all data passed through it.
 		 */
-		queryDesc->dest = CreateDestReceiver(DestTuplestore, portal);
-		SetTuplestoreDestReceiverDeToast(queryDesc->dest, true);
+		queryDesc->dest = CreateDestReceiver(DestTuplestore);
+		SetTuplestoreDestReceiverParams(queryDesc->dest,
+										portal->holdStore,
+										portal->holdContext,
+										true);
 
 		/* Fetch the result set into the tuplestore */
 		ExecutorRun(queryDesc, ForwardScanDirection, 0L);

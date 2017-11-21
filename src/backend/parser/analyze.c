@@ -19,7 +19,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- *	$PostgreSQL: pgsql/src/backend/parser/analyze.c,v 1.376 2008/08/07 01:11:51 tgl Exp $
+ *	$PostgreSQL: pgsql/src/backend/parser/analyze.c,v 1.384 2008/12/13 02:00:19 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -30,7 +30,6 @@
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
-#include "optimizer/clauses.h"
 #include "optimizer/plancat.h"
 #include "optimizer/tlist.h"
 #include "optimizer/var.h"
@@ -38,9 +37,8 @@
 #include "parser/parse_agg.h"
 #include "parser/parse_clause.h"
 #include "parser/parse_coerce.h"
-#include "parser/parse_expr.h"
-#include "parser/parse_func.h"
 #include "parser/parse_cte.h"
+#include "parser/parse_func.h"
 #include "parser/parse_oper.h"
 #include "parser/parse_relation.h"
 #include "parser/parse_target.h"
@@ -82,8 +80,7 @@ typedef struct
 typedef struct
 {
 	int			ncols;
-	List	  **leaftypes;
-	List	  **leaftypmods;
+	List	  **leafinfos;
 } setop_types_ctx;
 
 static Query *transformDeleteStmt(ParseState *pstate, DeleteStmt *stmt);
@@ -104,19 +101,20 @@ static List *transformReturningList(ParseState *pstate, List *returningList);
 static Query *transformSelectStmt(ParseState *pstate, SelectStmt *stmt);
 static Query *transformValuesClause(ParseState *pstate, SelectStmt *stmt);
 static Query *transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt);
-static Node *transformSetOperationTree(ParseState *pstate, SelectStmt *stmt);
+static Node *transformSetOperationTree(ParseState *pstate, SelectStmt *stmt,
+									   List **colInfo);
 static Node *transformSetOperationTree_internal(ParseState *pstate, SelectStmt *stmt,
 												setop_types_ctx *setop_types);
-static void coerceSetOpTypes(ParseState *pstate, Node *sop, List *coltypes, List *coltypmods);
-static void getSetColTypes(ParseState *pstate, Node *node,
-			   List **colTypes, List **colTypmods);
+static void coerceSetOpTypes(ParseState *pstate, Node *sop, List *coltypes, List *coltypmods,
+							 List **colInfo);
 static void applyColumnNames(List *dst, List *src);
 static Query *transformUpdateStmt(ParseState *pstate, UpdateStmt *stmt);
 static Query *transformDeclareCursorStmt(ParseState *pstate,
 						   DeclareCursorStmt *stmt);
 static Query *transformExplainStmt(ParseState *pstate,
 					 ExplainStmt *stmt);
-static void transformLockingClause(ParseState *pstate, Query *qry, LockingClause *lc);
+static void transformLockingClause(ParseState *pstate,
+								   Query *qry, LockingClause *lc);
 static bool check_parameter_resolution_walker(Node *node, ParseState *pstate);
 
 static void setQryDistributionPolicy(SelectStmt *stmt, Query *qry);
@@ -294,16 +292,12 @@ transformStmt(ParseState *pstate, Node *parseTree)
  *		Returns true if a snapshot must be set before doing parse analysis
  *		on the given raw parse tree.
  *
- * Classification here should match transformStmt(); but we also have to
- * allow a NULL input (for Parse/Bind of an empty query string).
+ * Classification here should match transformStmt().
  */
 bool
 analyze_requires_snapshot(Node *parseTree)
 {
 	bool		result;
-
-	if (parseTree == NULL)
-		return false;
 
 	switch (nodeTag(parseTree))
 	{
@@ -634,7 +628,7 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("VALUES must not contain table references"),
 					 parser_errposition(pstate,
-							  locate_var_of_level((Node *) exprsLists, 0))));
+										locate_var_of_level((Node *) exprsLists, 0))));
 
 		/*
 		 * Another thing we can't currently support is NEW/OLD references in
@@ -649,7 +643,7 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 					 errmsg("VALUES must not contain OLD or NEW references"),
 					 errhint("Use SELECT ... UNION ALL ... instead."),
 					 parser_errposition(pstate,
-							  locate_var_of_level((Node *) exprsLists, 0))));
+										locate_var_of_level((Node *) exprsLists, 0))));
 
 		/*
 		 * Generate the VALUES RTE
@@ -805,12 +799,18 @@ transformInsertRow(ParseState *pstate, List *exprlist,
 	if (list_length(exprlist) > list_length(icolumns))
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
-				 errmsg("INSERT has more expressions than target columns")));
+				 errmsg("INSERT has more expressions than target columns"),
+				 parser_errposition(pstate,
+									exprLocation(list_nth(exprlist,
+														  list_length(icolumns))))));
 	if (stmtcols != NIL &&
 		list_length(exprlist) < list_length(icolumns))
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
-				 errmsg("INSERT has more target columns than expressions")));
+				 errmsg("INSERT has more target columns than expressions"),
+				 parser_errposition(pstate,
+									exprLocation(list_nth(icolumns,
+														  list_length(exprlist))))));
 
 	/*
 	 * Prepare columns for assignment to target table.
@@ -1663,7 +1663,7 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 {
 	Query	   *qry = makeNode(Query);
 	List	   *exprsLists = NIL;
-	List	  **coltype_lists = NULL;
+	List	  **colexprs = NULL;
 	Oid		   *coltypes = NULL;
 	int			sublist_length = -1;
 	List	   *newExprsLists;
@@ -1713,8 +1713,8 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 		{
 			/* Remember post-transformation length of first sublist */
 			sublist_length = list_length(sublist);
-			/* and allocate arrays for column-type info */
-			coltype_lists = (List **) palloc0(sublist_length * sizeof(List *));
+			/* and allocate arrays for per-column info */
+			colexprs = (List **) palloc0(sublist_length * sizeof(List *));
 			coltypes = (Oid *) palloc0(sublist_length * sizeof(Oid));
 		}
 		else if (sublist_length != list_length(sublist))
@@ -1737,8 +1737,9 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 			if (IsA(col, SetToDefault))
 				ereport(ERROR,
 						(errcode(ERRCODE_SYNTAX_ERROR),
-						 errmsg("DEFAULT can only appear in a VALUES list within INSERT")));
-			coltype_lists[i] = lappend_oid(coltype_lists[i], exprType(col));
+						 errmsg("DEFAULT can only appear in a VALUES list within INSERT"),
+						 parser_errposition(pstate, exprLocation(col))));
+			colexprs[i] = lappend(colexprs[i], col);
 			i++;
 		}
 	}
@@ -1749,7 +1750,7 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 	 */
 	for (i = 0; i < sublist_length; i++)
 	{
-		coltypes[i] = select_common_type(coltype_lists[i], "VALUES");
+		coltypes[i] = select_common_type(pstate, colexprs[i], "VALUES", NULL);
 	}
 
 	newExprsLists = NIL;
@@ -1832,7 +1833,7 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("VALUES must not contain table references"),
 				 parser_errposition(pstate,
-						   locate_var_of_level((Node *) newExprsLists, 0))));
+									locate_var_of_level((Node *) newExprsLists, 0))));
 
 	/*
 	 * Another thing we can't currently support is NEW/OLD references in rules
@@ -1847,7 +1848,7 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 				 errmsg("VALUES must not contain OLD or NEW references"),
 				 errhint("Use SELECT ... UNION ALL ... instead."),
 				 parser_errposition(pstate,
-						   locate_var_of_level((Node *) newExprsLists, 0))));
+									locate_var_of_level((Node *) newExprsLists, 0))));
 
 	qry->rtable = pstate->p_rtable;
 	qry->jointree = makeFromExpr(pstate->p_joinlist, NULL);
@@ -1890,6 +1891,7 @@ transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
 	Query	   *leftmostQuery;
 	WithClause *withClause;
 	SetOperationStmt *sostmt;
+	List	   *socolinfo;
 	List	   *intoColNames = NIL;
 	List	   *sortClause;
 	Node	   *limitOffset;
@@ -1962,7 +1964,8 @@ transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
 	/*
 	 * Recursively transform the components of the tree.
 	 */
-	sostmt = (SetOperationStmt *) transformSetOperationTree(pstate, stmt);
+	sostmt = (SetOperationStmt *) transformSetOperationTree(pstate, stmt,
+															&socolinfo);
 	Assert(sostmt && IsA(sostmt, SetOperationStmt));
 	qry->setOperations = (Node *) sostmt;
 
@@ -2080,7 +2083,7 @@ transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
 				 errdetail("Only result column names can be used, not expressions or functions."),
 				 errhint("Add the expression/function to every SELECT, or move the UNION into a FROM clause."),
 				 parser_errposition(pstate,
-						   exprLocation(list_nth(qry->targetList, tllen)))));
+									exprLocation(list_nth(qry->targetList, tllen)))));
 
 	qry->limitOffset = transformLimitClause(pstate, limitOffset,
 											"OFFSET");
@@ -2136,7 +2139,8 @@ transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
  * needed, but any other expression node type would do as well.
  */
 static Node *
-transformSetOperationTree(ParseState *pstate, SelectStmt *stmt)
+transformSetOperationTree(ParseState *pstate, SelectStmt *stmt,
+						  List **colInfo)
 {
 	setop_types_ctx ctx;
 	Node	   *top;
@@ -2148,8 +2152,7 @@ transformSetOperationTree(ParseState *pstate, SelectStmt *stmt)
 	 * Transform all the subtrees.
 	 */
 	ctx.ncols = -1;
-	ctx.leaftypes = NULL;
-	ctx.leaftypmods = NULL;
+	ctx.leafinfos = NULL;
 	top = transformSetOperationTree_internal(pstate, stmt, &ctx);
 	Assert(ctx.ncols >= 0);
 
@@ -2169,9 +2172,8 @@ transformSetOperationTree(ParseState *pstate, SelectStmt *stmt)
 	selected_typmods = NIL;
 	for (i = 0; i < ctx.ncols; i++)
 	{
-		List	   *types = ctx.leaftypes[i];
-		List	   *typmods = ctx.leaftypmods[i];
-		ListCell   *lct2, *lcm2;
+		List	   *typinfos = ctx.leafinfos[i];
+		ListCell   *lci2;
 		Oid			ptype;
 		int32		ptypmod;
 		Oid			restype;
@@ -2179,19 +2181,17 @@ transformSetOperationTree(ParseState *pstate, SelectStmt *stmt)
 		bool		allsame, hasnontext;
 		char	   *context;
 
-		Insist(list_length(types) == list_length(typmods));
-
 		context = (stmt->op == SETOP_UNION ? "UNION" :
 				   stmt->op == SETOP_INTERSECT ? "INTERSECT" :
 				   "EXCEPT");
 		allsame = true;
 		hasnontext = false;
-		ptype = linitial_oid(types);
-		ptypmod = linitial_int(typmods);
-		forboth (lct2, types, lcm2, typmods)
+		ptype = exprType(linitial(typinfos));
+		ptypmod = exprTypmod(linitial(typinfos));
+		foreach (lci2, typinfos)
 		{
-			Oid			ntype = lfirst_oid(lct2);
-			int32		ntypmod = lfirst_int(lcm2);
+			Oid			ntype = exprType(lfirst(lci2));
+			int32		ntypmod = exprTypmod(lfirst(lci2));
 
 			/*
 			 * In the first iteration, ntype and ptype is the same element,
@@ -2246,7 +2246,7 @@ transformSetOperationTree(ParseState *pstate, SelectStmt *stmt)
 			 * This restriction will be solved once upgrade/view issues get clean.
 			 * See MPP-7509 for the issue.
 			 */
-			restype = select_common_type(types, context);
+			restype = select_common_type(pstate, typinfos, context, NULL);
 			/*
 			 * If there's no common type, the last resort is TEXT.
 			 * See also select_common_type().
@@ -2273,7 +2273,7 @@ transformSetOperationTree(ParseState *pstate, SelectStmt *stmt)
 		selected_typmods = lappend_int(selected_typmods, restypmod);
 	}
 
-	coerceSetOpTypes(pstate, top, selected_types, selected_typmods);
+	coerceSetOpTypes(pstate, top, selected_types, selected_typmods, colInfo);
 
 	return top;
 }
@@ -2298,6 +2298,7 @@ transformSetOperationTree_internal(ParseState *pstate, SelectStmt *stmt,
 				 errmsg("INTO is only allowed on first SELECT of UNION/INTERSECT/EXCEPT"),
 				 parser_errposition(pstate,
 								  exprLocation((Node *) stmt->intoClause))));
+
 	/* We don't support FOR UPDATE/SHARE with set ops at the moment. */
 	if (stmt->lockingClause)
 		ereport(ERROR,
@@ -2332,6 +2333,8 @@ transformSetOperationTree_internal(ParseState *pstate, SelectStmt *stmt,
 		char		selectName[32];
 		RangeTblEntry *rte;
 		RangeTblRef *rtr;
+		ListCell   *tl;
+		int			numCols;
 
 		/*
 		 * Transform SelectStmt into a Query.
@@ -2353,7 +2356,60 @@ transformSetOperationTree_internal(ParseState *pstate, SelectStmt *stmt,
 			if (contain_vars_of_level((Node *) selectQuery, 1))
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
-						 errmsg("UNION/INTERSECT/EXCEPT member statement cannot refer to other relations of same query level")));
+						 errmsg("UNION/INTERSECT/EXCEPT member statement cannot refer to other relations of same query level"),
+						 parser_errposition(pstate,
+											locate_var_of_level((Node *) selectQuery, 1))));
+		}
+
+		/*
+		 * Extract a list of the result expressions for upper-level checking.
+		 */
+		numCols = 0;
+		foreach(tl, selectQuery->targetList)
+		{
+			TargetEntry *tle = (TargetEntry *) lfirst(tl);
+
+			if (!tle->resjunk)
+				numCols++;
+		}
+
+		/*
+		 * Also remember the datatype of each column to the lists in
+		 * 'setop_types'.
+		 */
+		{
+			int			i;
+
+			if (setop_types->ncols == -1)
+			{
+				setop_types->ncols = numCols;
+				setop_types->leafinfos = (List **) palloc0(setop_types->ncols * sizeof(List *));
+			}
+			i = 0;
+			foreach(tl, selectQuery->targetList)
+			{
+				TargetEntry *tle = (TargetEntry *) lfirst(tl);
+
+				if (tle->resjunk)
+					continue;
+
+				setop_types->leafinfos[i] = lappend(setop_types->leafinfos[i],
+													(Node *) tle->expr);
+				i++;
+
+				/*
+				 * It's possible that this leaf query has a differnet number
+				 * of columns than the previous ones. That's an error, but
+				 * we don't throw it here because we don't have the context
+				 * needed for a good error message. We don't know which
+				 * operation of the setop tree is the one where the number
+				 * of columns between the left and right branches differ.
+				 * Therefore, just return here as if nothing happened, and
+				 * we'll catch that error in the parent instead.
+				 */
+				if (i == setop_types->ncols)
+					break;
+			}
 		}
 
 		/*
@@ -2373,61 +2429,13 @@ transformSetOperationTree_internal(ParseState *pstate, SelectStmt *stmt,
 		/* assume new rte is at end */
 		rtr->rtindex = list_length(pstate->p_rtable);
 		Assert(rte == rt_fetch(rtr->rtindex, pstate->p_rtable));
-
-		/*
-		 * Remember the datatype of each column to the lists in
-		 * 'setop_types'.
-		 */
-		{
-			List	   *coltypes;
-			List	   *coltypmods;
-			ListCell   *lc_types;
-			ListCell   *lc_typmods;
-			int			i;
-
-			getSetColTypes(pstate, (Node *) rtr, &coltypes, &coltypmods);
-			if (setop_types->ncols == -1)
-			{
-				setop_types->ncols = list_length(coltypes);
-				setop_types->leaftypes = (List **) palloc0(setop_types->ncols * sizeof(List *));
-				setop_types->leaftypmods = (List **) palloc0(setop_types->ncols * sizeof(List *));
-			}
-			i = 0;
-			forboth(lc_types, coltypes, lc_typmods, coltypmods)
-			{
-				Oid			coltype = lfirst_oid(lc_types);
-				int			coltypmod = lfirst_int(lc_typmods);
-
-				setop_types->leaftypes[i] = lappend_oid(setop_types->leaftypes[i], coltype);
-				setop_types->leaftypmods[i] = lappend_int(setop_types->leaftypmods[i], coltypmod);
-				i++;
-
-				/*
-				 * It's possible that this leaf query has a differnet number
-				 * of columns than the previous ones. That's an error, but
-				 * we don't throw it here because we don't have the context
-				 * needed for a good error message. We don't know which
-				 * operation of the setop tree is the one where the number
-				 * of columns between the left and right branches differ.
-				 * Therefore, just return here as if nothing happened, and
-				 * we'll catch that error in the parent instead.
-				 */
-				if (i == setop_types->ncols)
-					break;
-			}
-		}
 		return (Node *) rtr;
 	}
 	else
 	{
 		/* Process an internal node (set operation node) */
 		SetOperationStmt *op = makeNode(SetOperationStmt);
-		List	   *lcoltypes;
-		List	   *rcoltypes;
-		List	   *lcoltypmods;
-		List	   *rcoltypmods;
 		const char *context;
-		int			i;
 
 		context = (stmt->op == SETOP_UNION ? "UNION" :
 				   (stmt->op == SETOP_INTERSECT ? "INTERSECT" :
@@ -2445,35 +2453,10 @@ transformSetOperationTree_internal(ParseState *pstate, SelectStmt *stmt,
 													  setop_types);
 
 		/*
-		 * Verify that the two children have the same number of non-junk
-		 * columns, and determine the types of the merged output columns.
-		 */
-		getSetColTypes(pstate, op->larg, &lcoltypes, &lcoltypmods);
-		getSetColTypes(pstate, op->rarg, &rcoltypes, &rcoltypmods);
-		if (list_length(lcoltypes) != list_length(rcoltypes))
-			ereport(ERROR,
-					(errcode(ERRCODE_SYNTAX_ERROR),
-				 errmsg("each %s query must have the same number of columns",
-						context)));
-
-		/*
 		 * In PostgreSQL, we select the common type for each column here.
 		 * In GPDB, we do that as a separate pass, after we have collected
 		 * information on the types of each leaf node first.
-		 *
-		 * But fill the lists with invalid types for now. These will be
-		 * replaced with the real values in the second pass, but in the
-		 * meanwhile, we we need something with the right length, for the
-		 * check above, that checks that each subtree has the same number of
-		 * columns.
 		 */
-		op->colTypes = NIL;
-		op->colTypmods = NIL;
-		for (i = 0; i < list_length(lcoltypes); i++)
-		{
-			op->colTypes = lappend_oid(op->colTypes, InvalidOid);
-			op->colTypmods = lappend_oid(op->colTypmods, -1);
-		}
 
 		return (Node *) op;
 	}
@@ -2484,23 +2467,38 @@ transformSetOperationTree_internal(ParseState *pstate, SelectStmt *stmt,
  */
 static void
 coerceSetOpTypes(ParseState *pstate, Node *sop,
-				 List *preselected_coltypes, List *preselected_coltypmods)
+				 List *preselected_coltypes, List *preselected_coltypmods,
+				 List **colInfo)
 {
 	if (IsA(sop, RangeTblRef))
+	{
+		RangeTblEntry *rte = rt_fetch((((RangeTblRef *) sop)->rtindex), pstate->p_rtable);
+		Query	   *selectQuery = rte->subquery;
+		ListCell   *tl;
+
+		/*
+		 * Extract a list of the result expressions. This is the same we did in
+		 * the first pass, in transformSetOperationTree_internal().
+		 */
+		*colInfo = NIL;
+		foreach(tl, selectQuery->targetList)
+		{
+			TargetEntry *tle = (TargetEntry *) lfirst(tl);
+
+			if (!tle->resjunk)
+				*colInfo = lappend(*colInfo, tle->expr);
+		}
 		return;
+	}
 	else
 	{
 		SetOperationStmt *op = (SetOperationStmt *) sop;
-		List	   *lcoltypes;
-		List	   *rcoltypes;
-		List	   *lcoltypmods;
-		List	   *rcoltypmods;
-		ListCell   *lct;
-		ListCell   *rct;
-		ListCell   *mct;
-		ListCell   *lcm;
-		ListCell   *rcm;
-		ListCell   *mcm;
+		List	   *lcolinfo;
+		List	   *rcolinfo;
+		ListCell   *lci;
+		ListCell   *rci;
+		ListCell   *pct;
+		ListCell   *pcm;
 		const char *context;
 
 		Assert(IsA(op, SetOperationStmt));
@@ -2510,32 +2508,43 @@ coerceSetOpTypes(ParseState *pstate, Node *sop,
 				   "EXCEPT");
 
 		/* Recurse to determine the children's types first */
-		coerceSetOpTypes(pstate, op->larg, preselected_coltypes, preselected_coltypmods);
-		coerceSetOpTypes(pstate, op->rarg, preselected_coltypes, preselected_coltypmods);
+		coerceSetOpTypes(pstate, op->larg, preselected_coltypes, preselected_coltypmods,
+						 &lcolinfo);
+		coerceSetOpTypes(pstate, op->rarg, preselected_coltypes, preselected_coltypmods,
+						 &rcolinfo);
 
-		getSetColTypes(pstate, op->larg, &lcoltypes, &lcoltypmods);
-		getSetColTypes(pstate, op->rarg, &rcoltypes, &rcoltypmods);
-		Assert(list_length(lcoltypes) == list_length(rcoltypes));
-		Assert(list_length(lcoltypes) == list_length(lcoltypmods));
-		Assert(list_length(rcoltypes) == list_length(rcoltypmods));
-		Assert(list_length(lcoltypes) == list_length(preselected_coltypes));
-		Assert(list_length(lcoltypes) == list_length(preselected_coltypmods));
+		/*
+		 * Verify that the two children have the same number of non-junk
+		 * columns, and determine the types of the merged output columns.
+		 */
+		if (list_length(lcolinfo) != list_length(rcolinfo))
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+				 errmsg("each %s query must have the same number of columns",
+						context),
+					 parser_errposition(pstate,
+										exprLocation((Node *) rcolinfo))));
 
+		Assert(list_length(preselected_coltypes) == list_length(preselected_coltypmods));
+
+		*colInfo = NIL;
 		op->colTypes = NIL;
 		op->colTypmods = NIL;
-		/* don't have a "foreach6", so chase four of the lists by hand */
-		lcm = list_head(lcoltypmods);
-		rcm = list_head(rcoltypmods);
-		mct = list_head(preselected_coltypes);
-		mcm = list_head(preselected_coltypmods);
-		forboth(lct, lcoltypes, rct, rcoltypes)
+		/* don't have a "foreach4", so chase two of the lists by hand */
+		pct = list_head(preselected_coltypes);
+		pcm = list_head(preselected_coltypmods);
+		forboth(lci, lcolinfo, rci, rcolinfo)
 		{
-			Oid			lcoltype = lfirst_oid(lct);
-			Oid			rcoltype = lfirst_oid(rct);
-			int32		lcoltypmod = lfirst_int(lcm);
-			int32		rcoltypmod = lfirst_int(rcm);
-			Oid			rescoltype = lfirst_oid(mct);
-			int32		rescoltypmod = lfirst_int(mcm);
+			Node	   *lcolnode = lfirst(lci);
+			Node	   *rcolnode = lfirst(rci);
+			Oid			lcoltype = exprType(lcolnode);
+			Oid			rcoltype = exprType(rcolnode);
+			int32		lcoltypmod = exprTypmod(lcolnode);
+			int32		rcoltypmod = exprTypmod(rcolnode);
+			Node       *bestexpr = NULL;
+			SetToDefault *rescolnode;
+			Oid			rescoltype = pct ? lfirst_oid(pct) : InvalidOid;
+			int32		rescoltypmod = pcm ? lfirst_int(pcm) : -1;
 
 			/*
 			 * If the preprocessed coltype is InvalidOid, we fall back
@@ -2545,12 +2554,36 @@ coerceSetOpTypes(ParseState *pstate, Node *sop,
 			if (!OidIsValid(rescoltype))
 			{
 				/* select common type, same as CASE et al */
-				rescoltype = select_common_type(
-						list_make2_oid(lcoltype, rcoltype), context);
+				rescoltype = select_common_type(pstate,
+												list_make2(lcolnode, rcolnode),
+												context,
+												&bestexpr);
 				/* if same type and same typmod, use typmod; else default */
 				if (lcoltype == rcoltype && lcoltypmod == rcoltypmod)
 					rescoltypmod = lcoltypmod;
 			}
+			else
+			{
+				/*
+				 * If we used the preselected type, arbitrarily use the left
+				 * query's expression for error reporting purposes.
+				 */
+				bestexpr = lcolnode;
+			}
+
+			/* verify the coercions are actually possible */
+			(void) coerce_to_common_type(pstate, lcolnode,
+										 rescoltype, context);
+			(void) coerce_to_common_type(pstate, rcolnode,
+										 rescoltype, context);
+
+			/* emit results */
+			rescolnode = makeNode(SetToDefault);
+			rescolnode->typeId = rescoltype;
+			rescolnode->typeMod = rescoltypmod;
+			rescolnode->location = exprLocation(bestexpr);
+			*colInfo = lappend(*colInfo, rescolnode);
+
 			/* Set final decision */
 			op->colTypes = lappend_oid(op->colTypes, rescoltype);
 			op->colTypmods = lappend_int(op->colTypmods, rescoltypmod);
@@ -2559,17 +2592,26 @@ coerceSetOpTypes(ParseState *pstate, Node *sop,
 			 * For all cases except UNION ALL, identify the grouping operators
 			 * (and, if available, sorting operators) that will be used to
 			 * eliminate duplicates.
+			 *
+			 * A more logical place for this would be in the first pass, but we
+			 * can't do this until we've decided the datatypes.
 			 */
 			if (op->op != SETOP_UNION || !op->all)
 			{
 				SortGroupClause *grpcl = makeNode(SortGroupClause);
 				Oid			sortop;
 				Oid			eqop;
+				ParseCallbackState pcbstate;
+
+				setup_parser_errposition_callback(&pcbstate, pstate,
+												  rescolnode->location);
 
 				/* determine the eqop and optional sortop */
 				get_sort_group_operators(rescoltype,
 										 false, true, false,
 										 &sortop, &eqop, NULL);
+
+				cancel_parser_errposition_callback(&pcbstate);
 
 				/* we don't have a tlist yet, so can't assign sortgrouprefs */
 				grpcl->tleSortGroupRef = 0;
@@ -2580,56 +2622,10 @@ coerceSetOpTypes(ParseState *pstate, Node *sop,
 				op->groupClauses = lappend(op->groupClauses, grpcl);
 			}
 
-			lcm = lnext(lcm);
-			rcm = lnext(rcm);
-			mct = lnext(mct);
-			mcm = lnext(mcm);
+			pct = pct ? lnext(pct) : NULL;
+			pcm = pcm ? lnext(pcm) : NULL;
 		}
 	}
-}
-
-/*
- * getSetColTypes
- *	  Get output column types/typmods of an (already transformed) set-op node
- */
-static void
-getSetColTypes(ParseState *pstate, Node *node,
-			   List **colTypes, List **colTypmods)
-{
-	*colTypes = NIL;
-	*colTypmods = NIL;
-	if (IsA(node, RangeTblRef))
-	{
-		RangeTblRef *rtr = (RangeTblRef *) node;
-		RangeTblEntry *rte = rt_fetch(rtr->rtindex, pstate->p_rtable);
-		Query	   *selectQuery = rte->subquery;
-		ListCell   *tl;
-
-		Assert(selectQuery != NULL);
-		/* Get types of non-junk columns */
-		foreach(tl, selectQuery->targetList)
-		{
-			TargetEntry *tle = (TargetEntry *) lfirst(tl);
-
-			if (tle->resjunk)
-				continue;
-			*colTypes = lappend_oid(*colTypes,
-									exprType((Node *) tle->expr));
-			*colTypmods = lappend_int(*colTypmods,
-									  exprTypmod((Node *) tle->expr));
-		}
-	}
-	else if (IsA(node, SetOperationStmt))
-	{
-		SetOperationStmt *op = (SetOperationStmt *) node;
-
-		/* Result already computed during transformation of node */
-		Assert(op->colTypes != NIL);
-		*colTypes = op->colTypes;
-		*colTypmods = op->colTypmods;
-	}
-	else
-		elog(ERROR, "unrecognized node type: %d", (int) nodeTag(node));
 }
 
 /*
@@ -2855,7 +2851,9 @@ transformReturningList(ParseState *pstate, List *returningList)
 	if (pstate->p_hasAggs)
 		ereport(ERROR,
 				(errcode(ERRCODE_GROUPING_ERROR),
-				 errmsg("cannot use aggregate function in RETURNING")));
+				 errmsg("cannot use aggregate function in RETURNING"),
+				 parser_errposition(pstate,
+									locate_agg_of_level((Node *) rlist, 0))));
 
 	if (pstate->p_hasWindowFuncs)
 		ereport(ERROR,
@@ -2866,9 +2864,22 @@ transformReturningList(ParseState *pstate, List *returningList)
 
 	/* no new relation references please */
 	if (list_length(pstate->p_rtable) != length_rtable)
+	{
+		int		vlocation = -1;
+		int		relid;
+
+		/* try to locate such a reference to point to */
+		for (relid = length_rtable + 1; relid <= list_length(pstate->p_rtable); relid++)
+		{
+			vlocation = locate_var_of_relation((Node *) rlist, relid, 0);
+			if (vlocation >= 0)
+				break;
+		}
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-		  errmsg("RETURNING cannot contain references to other relations")));
+		  errmsg("RETURNING cannot contain references to other relations"),
+				 parser_errposition(pstate, vlocation)));
+	}
 
 	/* mark column origins */
 	markTargetListOrigins(pstate, rlist);
@@ -2913,7 +2924,7 @@ transformDeclareCursorStmt(ParseState *pstate, DeclareCursorStmt *stmt)
 	if (!IsA(result, Query) ||
 		result->commandType != CMD_SELECT ||
 		result->utilityStmt != NULL)
-		elog(ERROR, "unexpected non-SELECT command in cursor statement");
+		elog(ERROR, "unexpected non-SELECT command in DECLARE CURSOR");
 
 	/* But we must explicitly disallow DECLARE CURSOR ... SELECT INTO */
 	if (result->intoClause)
@@ -3105,8 +3116,14 @@ transformLockingClause(ParseState *pstate, Query *qry, LockingClause *lc)
 		/* just the named tables */
 		foreach(l, lockedRels)
 		{
-			char	   *relname = strVal(lfirst(l));
 			RangeVar   *thisrel = (RangeVar *) lfirst(l);
+
+			/* For simplicity we insist on unqualified alias names here */
+			if (thisrel->catalogname || thisrel->schemaname)
+				ereport(ERROR,
+						(errcode(ERRCODE_SYNTAX_ERROR),
+						 errmsg("SELECT FOR UPDATE/SHARE must specify unqualified relation names"),
+						 parser_errposition(pstate, thisrel->location)));
 
 			i = 0;
 			foreach(rt, qry->rtable)
@@ -3114,7 +3131,7 @@ transformLockingClause(ParseState *pstate, Query *qry, LockingClause *lc)
 				RangeTblEntry *rte = (RangeTblEntry *) lfirst(rt);
 
 				++i;
-				if (strcmp(rte->eref->aliasname, relname) == 0)
+				if (strcmp(rte->eref->aliasname, thisrel->relname) == 0)
 				{
 					switch (rte->rtekind)
 					{
@@ -3139,17 +3156,20 @@ transformLockingClause(ParseState *pstate, Query *qry, LockingClause *lc)
 						case RTE_JOIN:
 							ereport(ERROR,
 									(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-									 errmsg("SELECT FOR UPDATE/SHARE cannot be applied to a join")));
+									 errmsg("SELECT FOR UPDATE/SHARE cannot be applied to a join"),
+									 parser_errposition(pstate, thisrel->location)));
 							break;
 						case RTE_SPECIAL:
 							ereport(ERROR,
 									(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-									 errmsg("SELECT FOR UPDATE/SHARE cannot be applied to NEW or OLD")));
+									 errmsg("SELECT FOR UPDATE/SHARE cannot be applied to NEW or OLD"),
+									 parser_errposition(pstate, thisrel->location)));
 							break;
 						case RTE_FUNCTION:
 							ereport(ERROR,
 									(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-									 errmsg("SELECT FOR UPDATE/SHARE cannot be applied to a function")));
+									 errmsg("SELECT FOR UPDATE/SHARE cannot be applied to a function"),
+									 parser_errposition(pstate, thisrel->location)));
 							break;
 						case RTE_TABLEFUNCTION:
 							ereport(ERROR,
@@ -3159,7 +3179,8 @@ transformLockingClause(ParseState *pstate, Query *qry, LockingClause *lc)
 						case RTE_VALUES:
 							ereport(ERROR,
 									(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-									 errmsg("SELECT FOR UPDATE/SHARE cannot be applied to VALUES")));
+									 errmsg("SELECT FOR UPDATE/SHARE cannot be applied to VALUES"),
+									 parser_errposition(pstate, thisrel->location)));
 							break;
 						case RTE_CTE:
 							{
@@ -3199,7 +3220,8 @@ transformLockingClause(ParseState *pstate, Query *qry, LockingClause *lc)
 				ereport(ERROR,
 						(errcode(ERRCODE_UNDEFINED_TABLE),
 						 errmsg("relation \"%s\" in FOR UPDATE/SHARE clause not found in FROM clause",
-								relname)));
+								thisrel->relname),
+						 parser_errposition(pstate, thisrel->location)));
 		}
 	}
 }
@@ -3234,8 +3256,10 @@ applyLockingClause(Query *qry, Index rtindex, bool forUpdate, bool noWait)
 	/* Make a new RowMarkClause */
 	rc = makeNode(RowMarkClause);
 	rc->rti = rtindex;
+	rc->prti = rtindex;
 	rc->forUpdate = forUpdate;
 	rc->noWait = noWait;
+	rc->isParent = false;
 	qry->rowMarks = lappend(qry->rowMarks, rc);
 }
 

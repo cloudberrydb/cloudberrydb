@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtpage.c,v 1.110 2008/07/13 20:45:47 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtpage.c,v 1.111 2008/09/30 10:52:10 heikki Exp $
  *
  *	NOTES
  *	   Postgres btree pages look like ordinary relation pages.	The opaque
@@ -28,6 +28,7 @@
 #include "miscadmin.h"
 #include "storage/bufmgr.h"
 #include "storage/freespace.h"
+#include "storage/indexfsm.h"
 #include "storage/lmgr.h"
 #include "utils/inval.h"
 #include "utils/snapmgr.h"
@@ -510,7 +511,7 @@ _bt_getbuf(Relation rel, BlockNumber blkno, int access)
 		 */
 		for (;;)
 		{
-			blkno = GetFreeIndexPage(&rel->rd_node);
+			blkno = GetFreeIndexPage(rel);
 			if (blkno == InvalidBlockNumber)
 				break;
 			buf = ReadBuffer(rel, blkno);

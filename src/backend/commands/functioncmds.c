@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/functioncmds.c,v 1.98 2008/07/18 03:32:52 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/functioncmds.c,v 1.103 2008/12/18 18:20:33 tgl Exp $
  *
  * DESCRIPTION
  *	  These routines take the parse tree and pick out the
@@ -183,7 +183,7 @@ examine_parameter_list(List *parameters, Oid languageOid,
 					   ArrayType **allParameterTypes,
 					   ArrayType **parameterModes,
 					   ArrayType **parameterNames,
-					   List	**parameterDefaults,
+					   List **parameterDefaults,
 					   Oid *requiredResultType)
 {
 	int			parameterCount = list_length(parameters);
@@ -346,9 +346,10 @@ examine_parameter_list(List *parameters, Oid languageOid,
 			 */
 			if (list_length(pstate->p_rtable) != 0 ||
 				contain_var_clause(def))
-					ereport(ERROR,
-							(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
-							 errmsg("cannot use table references in parameter default value")));
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
+						 errmsg("cannot use table references in parameter default value")));
+
 			/*
 			 * No subplans or aggregates, either...
 			 */
@@ -1151,8 +1152,7 @@ CreateFunction(CreateFunctionStmt *stmt, const char *queryString)
 	 * Convert remaining parameters of CREATE to form wanted by
 	 * ProcedureCreate.
 	 */
-	examine_parameter_list(stmt->parameters, languageOid,
-						   queryString,
+	examine_parameter_list(stmt->parameters, languageOid, queryString,
 						   &parameterTypes,
 						   &allParameterTypes,
 						   &parameterModes,
@@ -1605,7 +1605,7 @@ AlterFunctionOwner_internal(Relation rel, HeapTuple tup, Oid newOwnerId)
 		}
 
 		newtuple = heap_modify_tuple(tup, RelationGetDescr(rel), repl_val,
-									 repl_null, repl_repl);
+									repl_null, repl_repl);
 
 		simple_heap_update(rel, &newtuple->t_self, newtuple);
 		CatalogUpdateIndexes(rel, newtuple);
@@ -1747,7 +1747,7 @@ AlterFunction(AlterFunctionStmt *stmt)
 		}
 
 		tup = heap_modify_tuple(tup, RelationGetDescr(rel),
-								repl_val, repl_null, repl_repl);
+							   repl_val, repl_null, repl_repl);
 	}
 	if (data_access_item)
 	{
@@ -1900,6 +1900,7 @@ CreateCast(CreateCastStmt *stmt)
 	Oid			funcid;
 	int			nargs;
 	char		castcontext;
+	char		castmethod;
 	Relation	relation;
 	HeapTuple	tuple;
 	Datum		values[Natts_pg_cast];
@@ -1929,10 +1930,18 @@ CreateCast(CreateCastStmt *stmt)
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				 errmsg("must be owner of type %s or type %s",
-						TypeNameToString(stmt->sourcetype),
-						TypeNameToString(stmt->targettype))));
+						format_type_be(sourcetypeid),
+						format_type_be(targettypeid))));
 
+	/* Detemine the cast method */
 	if (stmt->func != NULL)
+		castmethod = COERCION_METHOD_FUNCTION;
+	else if(stmt->inout)
+		castmethod = COERCION_METHOD_INOUT;
+	else
+		castmethod = COERCION_METHOD_BINARY;
+
+	if (castmethod == COERCION_METHOD_FUNCTION)
 	{
 		Form_pg_proc procstruct;
 
@@ -1993,16 +2002,18 @@ CreateCast(CreateCastStmt *stmt)
 	}
 	else
 	{
+		funcid = InvalidOid;
+		nargs = 0;
+	}
+
+	if (castmethod == COERCION_METHOD_BINARY)
+	{
 		int16		typ1len;
 		int16		typ2len;
 		bool		typ1byval;
 		bool		typ2byval;
 		char		typ1align;
 		char		typ2align;
-
-		/* indicates binary coercibility */
-		funcid = InvalidOid;
-		nargs = 0;
 
 		/*
 		 * Must be superuser to create binary-compatible casts, since
@@ -2071,14 +2082,15 @@ CreateCast(CreateCastStmt *stmt)
 		ereport(ERROR,
 				(errcode(ERRCODE_DUPLICATE_OBJECT),
 				 errmsg("cast from type %s to type %s already exists",
-						TypeNameToString(stmt->sourcetype),
-						TypeNameToString(stmt->targettype))));
+						format_type_be(sourcetypeid),
+						format_type_be(targettypeid))));
 
 	/* ready to go */
 	values[Anum_pg_cast_castsource - 1] = ObjectIdGetDatum(sourcetypeid);
 	values[Anum_pg_cast_casttarget - 1] = ObjectIdGetDatum(targettypeid);
 	values[Anum_pg_cast_castfunc - 1] = ObjectIdGetDatum(funcid);
 	values[Anum_pg_cast_castcontext - 1] = CharGetDatum(castcontext);
+	values[Anum_pg_cast_castmethod - 1] = CharGetDatum(castmethod);
 
 	MemSet(nulls, false, sizeof(nulls));
 
@@ -2160,13 +2172,13 @@ DropCast(DropCastStmt *stmt)
 			ereport(ERROR,
 					(errcode(ERRCODE_UNDEFINED_OBJECT),
 					 errmsg("cast from type %s to type %s does not exist",
-							TypeNameToString(stmt->sourcetype),
-							TypeNameToString(stmt->targettype))));
+							format_type_be(sourcetypeid),
+							format_type_be(targettypeid))));
 		else
 			ereport(NOTICE,
 			 (errmsg("cast from type %s to type %s does not exist, skipping",
-					 TypeNameToString(stmt->sourcetype),
-					 TypeNameToString(stmt->targettype))));
+					 format_type_be(sourcetypeid),
+					 format_type_be(targettypeid))));
 
 		return;
 	}
@@ -2177,8 +2189,8 @@ DropCast(DropCastStmt *stmt)
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				 errmsg("must be owner of type %s or type %s",
-						TypeNameToString(stmt->sourcetype),
-						TypeNameToString(stmt->targettype))));
+						format_type_be(sourcetypeid),
+						format_type_be(targettypeid))));
 
 	/*
 	 * Do the deletion

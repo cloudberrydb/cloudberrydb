@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/schemacmds.c,v 1.50 2008/06/14 18:04:33 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/schemacmds.c,v 1.51 2008/11/02 01:45:27 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

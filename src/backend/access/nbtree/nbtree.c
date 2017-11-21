@@ -12,7 +12,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtree.c,v 1.161 2008/06/19 00:46:03 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtree.c,v 1.166 2008/11/19 10:34:50 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -23,10 +23,12 @@
 #include "access/relscan.h"
 #include "catalog/index.h"
 #include "catalog/pg_namespace.h"
+#include "catalog/storage.h"
 #include "commands/vacuum.h"
 #include "miscadmin.h"
 #include "storage/bufmgr.h"
 #include "storage/freespace.h"
+#include "storage/indexfsm.h"
 #include "storage/ipc.h"
 #include "storage/lmgr.h"
 #include "utils/memutils.h"
@@ -58,9 +60,7 @@ typedef struct
 	IndexBulkDeleteCallback callback;
 	void	   *callback_state;
 	BTCycleId	cycleid;
-	BlockNumber *freePages;
-	int			nFreePages;		/* number of entries in freePages[] */
-	int			maxFreePages;	/* allocated size of freePages[] */
+	BlockNumber lastUsedPage;
 	BlockNumber totFreePages;	/* true total # of free pages */
 	MemoryContext pagedelcontext;
 } BTVacState;
@@ -126,7 +126,7 @@ btbuild(PG_FUNCTION_ARGS)
 		buildstate.spool2 = _bt_spoolinit(index, false, true);
 
 	/* do the heap scan */
-	reltuples = IndexBuildScan(heap, index, indexInfo, false,
+	reltuples = IndexBuildScan(heap, index, indexInfo, true,
 								   btbuildCallback, (void *) &buildstate);
 
 	/* okay, all heap tuples are indexed */
@@ -926,6 +926,9 @@ btvacuumcleanup(PG_FUNCTION_ARGS)
 		btvacuumscan(info, stats, NULL, NULL, 0);
 	}
 
+	/* Finally, vacuum the FSM */
+	IndexFreeSpaceMapVacuum(info->index);
+
 	/*
 	 * During a non-FULL vacuum it's quite possible for us to be fooled by
 	 * concurrent page splits into double-counting some index tuples, so
@@ -983,9 +986,7 @@ btvacuumscan(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
 	vstate.callback = callback;
 	vstate.callback_state = callback_state;
 	vstate.cycleid = cycleid;
-	vstate.freePages = NULL;	/* temporarily */
-	vstate.nFreePages = 0;
-	vstate.maxFreePages = 0;
+	vstate.lastUsedPage = BTREE_METAPAGE;
 	vstate.totFreePages = 0;
 
 	/* Create a temporary memory context to run _bt_pagedel in */
@@ -1030,17 +1031,6 @@ btvacuumscan(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
 		if (needLock)
 			UnlockRelationForExtension(rel, ExclusiveLock);
 
-		/* Allocate freePages after we read num_pages the first time */
-		if (vstate.freePages == NULL)
-		{
-			/* No point in remembering more than MaxFSMPages pages */
-			vstate.maxFreePages = MaxFSMPages;
-			if ((BlockNumber) vstate.maxFreePages > num_pages)
-				vstate.maxFreePages = (int) num_pages;
-			vstate.freePages = (BlockNumber *)
-				palloc(vstate.maxFreePages * sizeof(BlockNumber));
-		}
-
 		/* Quit if we've scanned the whole relation */
 		if (blkno >= num_pages)
 			break;
@@ -1057,42 +1047,21 @@ btvacuumscan(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
 	 * acquiring exclusive lock on the index and then rechecking all the
 	 * pages; doesn't seem worth it.
 	 */
-	if (info->vacuum_full && vstate.nFreePages > 0)
+	if (info->vacuum_full && vstate.lastUsedPage < num_pages - 1)
 	{
-		BlockNumber new_pages = num_pages;
+		BlockNumber new_pages = vstate.lastUsedPage + 1;
 
-		while (vstate.nFreePages > 0 &&
-			   vstate.freePages[vstate.nFreePages - 1] == new_pages - 1)
-		{
-			new_pages--;
-			stats->pages_deleted--;
-			vstate.nFreePages--;
-			vstate.totFreePages = vstate.nFreePages;	/* can't be more */
-		}
-		if (new_pages != num_pages)
-		{
-			/*
-			 * Okay to truncate.
-			 */
-			RelationTruncate(rel, new_pages,
-							 /* markPersistentAsPhysicallyTruncated */ true);
+		/*
+		 * Okay to truncate.
+		 */
+		RelationTruncate(rel, new_pages,
+						 /* markPersistentAsPhysicallyTruncated */ true);
 
-			/* update statistics */
-			stats->pages_removed += num_pages - new_pages;
-
-			num_pages = new_pages;
-		}
+		/* update statistics */
+		stats->pages_removed += num_pages - new_pages;
+		vstate.totFreePages -= (num_pages - new_pages);
+		num_pages = new_pages;
 	}
-
-	/*
-	 * Update the shared Free Space Map with the info we now have about free
-	 * pages in the index, discarding any old info the map may have. We do not
-	 * need to sort the page numbers; they're in order already.
-	 */
-	RecordIndexFreeSpace(&rel->rd_node, vstate.totFreePages,
-						 vstate.nFreePages, vstate.freePages);
-
-	pfree(vstate.freePages);
 
 	MemoryContextDelete(vstate.pagedelcontext);
 
@@ -1147,7 +1116,8 @@ restart:
 	// -------- MirroredLock ----------
 	MIRROREDLOCK_BUFMGR_LOCK;
 	
-	buf = ReadBufferWithStrategy(rel, blkno, info->strategy);
+	buf = ReadBufferExtended(rel, MAIN_FORKNUM, blkno, RBM_NORMAL,
+							 info->strategy);
 	LockBuffer(buf, BT_READ);
 	page = BufferGetPage(buf);
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
@@ -1157,8 +1127,7 @@ restart:
 	/*
 	 * If we are recursing, the only case we want to do anything with is a
 	 * live leaf page having the current vacuum cycle ID.  Any other state
-	 * implies we already saw the page (eg, deleted it as being empty). In
-	 * particular, we don't want to risk adding it to freePages twice.
+	 * implies we already saw the page (eg, deleted it as being empty).
 	 */
 	if (blkno != orig_blkno)
 	{
@@ -1176,12 +1145,15 @@ restart:
 		}
 	}
 
+	/* If the page is in use, update lastUsedPage */
+	if (!_bt_page_recyclable(page) && vstate->lastUsedPage < blkno)
+		vstate->lastUsedPage = blkno;
+
 	/* Page is valid, see what to do with it */
 	if (_bt_page_recyclable(page))
 	{
 		/* Okay to recycle this page */
-		if (vstate->nFreePages < vstate->maxFreePages)
-			vstate->freePages[vstate->nFreePages++] = blkno;
+		RecordFreeIndexPage(rel, blkno);
 		vstate->totFreePages++;
 		stats->pages_deleted++;
 	}
@@ -1317,8 +1289,7 @@ restart:
 		 */
 		if (ndel && info->vacuum_full)
 		{
-			if (vstate->nFreePages < vstate->maxFreePages)
-				vstate->freePages[vstate->nFreePages++] = blkno;
+			RecordFreeIndexPage(rel, blkno);
 			vstate->totFreePages++;
 		}
 

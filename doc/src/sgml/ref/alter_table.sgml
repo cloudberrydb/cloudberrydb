@@ -1,11 +1,12 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/alter_table.sgml,v 1.99 2008/05/09 23:32:03 tgl Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/alter_table.sgml,v 1.102 2008/12/13 19:13:44 tgl Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-ALTERTABLE">
  <refmeta>
   <refentrytitle id="sql-altertable-title">ALTER TABLE</refentrytitle>
+  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -43,7 +44,7 @@ where action is one of:
       [ ENCODING ( storage_directive [,...] ) ] 
       [column_constraint [ ... ]]
   DROP [COLUMN] column [RESTRICT | CASCADE]
-  ALTER [COLUMN] column TYPE type [USING expression]
+  ALTER [COLUMN] column [ SET DATA ] TYPE type [USING expression]
   ALTER [COLUMN] column SET DEFAULT expression
   ALTER [COLUMN] column DROP DEFAULT
   ALTER [COLUMN] column { SET | DROP } NOT NULL
@@ -155,7 +156,7 @@ Where column_reference_storage_directive is:
    </varlistentry>
 
    <varlistentry>
-    <term><literal>ALTER COLUMN TYPE</literal></term>
+    <term><literal>SET DATA TYPE</literal></term>
     <listitem>
      <para>
       This form changes the type of a column of a table. Indexes and
@@ -827,7 +828,7 @@ ALTER TABLE distributors
    with time zone</type> via a <literal>USING</literal> clause:
 <programlisting>
 ALTER TABLE foo
-    ALTER COLUMN foo_timestamp TYPE timestamp with time zone
+    ALTER COLUMN foo_timestamp SET DATA TYPE timestamp with time zone
     USING
         timestamp with time zone 'epoch' + foo_timestamp * interval '1 second';
 </programlisting>
@@ -935,8 +936,9 @@ ALTER TABLE myschema.distributors SET SCHEMA yourschema;
   <title>Compatibility</title>
 
   <para>
-   The <literal>ADD</literal>, <literal>DROP</>, and <literal>SET DEFAULT</>
-   forms conform with the SQL standard.  The other forms are
+   The forms <literal>ADD</literal>, <literal>DROP</>, <literal>SET DEFAULT</>,
+   and <literal>SET DATA TYPE</literal> (without <literal>USING</literal>)
+   conform with the SQL standard.  The other forms are
    <productname>PostgreSQL</productname> extensions of the SQL standard.
    Also, the ability to specify more than one manipulation in a single
    <command>ALTER TABLE</> command is an extension.

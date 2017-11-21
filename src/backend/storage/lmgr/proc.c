@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/lmgr/proc.c,v 1.201 2008/06/09 18:23:05 neilc Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/lmgr/proc.c,v 1.204 2008/12/09 15:59:39 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -197,8 +197,8 @@ InitProcGlobal(int mppLocalProcessCounter)
 	/*
 	 * Initialize the data structures.
 	 */
-	ProcGlobal->freeProcs = INVALID_OFFSET;
-	ProcGlobal->autovacFreeProcs = INVALID_OFFSET;
+	ProcGlobal->freeProcs = NULL;
+	ProcGlobal->autovacFreeProcs = NULL;
 
 	ProcGlobal->spins_per_delay = DEFAULT_SPINS_PER_DELAY;
 
@@ -218,8 +218,8 @@ InitProcGlobal(int mppLocalProcessCounter)
 		PGSemaphoreCreate(&(procs[i].sem));
 		InitSharedLatch(&(procs[i].procLatch));
 
-		procs[i].links.next = ProcGlobal->freeProcs;
-		ProcGlobal->freeProcs = MAKE_OFFSET(&procs[i]);
+		procs[i].links.next = (SHM_QUEUE *) ProcGlobal->freeProcs;
+		ProcGlobal->freeProcs = &procs[i];
 	}
 	ProcGlobal->procs = procs;
 	ProcGlobal->numFreeProcs = MaxConnections;
@@ -234,8 +234,8 @@ InitProcGlobal(int mppLocalProcessCounter)
 	{
 		PGSemaphoreCreate(&(procs[i].sem));
 		InitSharedLatch(&(procs[i].procLatch));
-		procs[i].links.next = ProcGlobal->autovacFreeProcs;
-		ProcGlobal->autovacFreeProcs = MAKE_OFFSET(&procs[i]);
+		procs[i].links.next = (SHM_QUEUE *) ProcGlobal->autovacFreeProcs;
+		ProcGlobal->autovacFreeProcs = &procs[i];
 	}
 
 	MemSet(AuxiliaryProcs, 0, NUM_AUXILIARY_PROCS * sizeof(PGPROC));
@@ -259,7 +259,6 @@ InitProcess(void)
 {
 	/* use volatile pointer to prevent code rearrangement */
 	volatile PROC_HDR *procglobal = ProcGlobal;
-	SHMEM_OFFSET myOffset;
 	int			i;
 
 	/*
@@ -299,17 +298,16 @@ InitProcess(void)
 	set_spins_per_delay(procglobal->spins_per_delay);
 
 	if (IsAutoVacuumWorkerProcess())
-		myOffset = procglobal->autovacFreeProcs;
+		MyProc = procglobal->autovacFreeProcs;
 	else
-		myOffset = procglobal->freeProcs;
+		MyProc = procglobal->freeProcs;
 
-	if (myOffset != INVALID_OFFSET)
+	if (MyProc != NULL)
 	{
-		MyProc = (PGPROC *) MAKE_PTR(myOffset);
 		if (IsAutoVacuumWorkerProcess())
-			procglobal->autovacFreeProcs = MyProc->links.next;
+			procglobal->autovacFreeProcs = (PGPROC *) MyProc->links.next;
 		else
-			procglobal->freeProcs = MyProc->links.next;
+			procglobal->freeProcs = (PGPROC *) MyProc->links.next;
 
 		procglobal->numFreeProcs--;		/* we removed an entry from the list. */
 		Assert(procglobal->numFreeProcs >= 0);
@@ -332,16 +330,16 @@ InitProcess(void)
 
 	if (gp_debug_pgproc)
 	{
-		elog(LOG, "allocating PGPROC entry for pid %d, freeProcs (prev offset, new offset): (%ld, %ld)",
-			 MyProcPid, MAKE_OFFSET(MyProc), MyProc->links.next);
+		elog(LOG, "allocating PGPROC entry for pid %d, freeProcs (prev ptr, new ptr): (%p, %p)",
+			 MyProcPid, MyProc, MyProc->links.next);
 	}
 
 	int mppLocalProcessSerial = pg_atomic_add_fetch_u32((pg_atomic_uint32 *)&procglobal->mppLocalProcessCounter, 1);
 
 	lockHolderProcPtr = MyProc;
 
-	/* Set the next pointer to INVALID_OFFSET */
-	MyProc->links.next = INVALID_OFFSET;
+	/* Set the next pointer to NULL */
+	MyProc->links.next = NULL;
 
 	/*
 	 * Now that we have a PGPROC, mark ourselves as an active postmaster
@@ -641,7 +639,7 @@ LockWaitCancel(void)
 	partitionLock = LockHashPartitionLock(lockAwaited->hashcode);
 	LWLockAcquire(partitionLock, LW_EXCLUSIVE);
 
-	if (MyProc->links.next != INVALID_OFFSET)
+	if (MyProc->links.next != NULL)
 	{
 		/* We could not have been granted the lock yet */
 		RemoveFromWaitQueue(MyProc, lockAwaited->hashcode);
@@ -804,13 +802,13 @@ ProcKill(int code, Datum arg)
 	/* Return PGPROC structure (and semaphore) to freelist */
 	if (IsAutoVacuumWorkerProcess())
 	{
-		proc->links.next = procglobal->autovacFreeProcs;
-		procglobal->autovacFreeProcs = MAKE_OFFSET(proc);
+		proc->links.next = (SHM_QUEUE *) procglobal->autovacFreeProcs;
+		procglobal->autovacFreeProcs = proc;
 	}
 	else
 	{
-		proc->links.next = procglobal->freeProcs;
-		procglobal->freeProcs = MAKE_OFFSET(proc);
+		proc->links.next = (SHM_QUEUE *) procglobal->freeProcs;
+		procglobal->freeProcs = proc;
 	}
 
 	procglobal->numFreeProcs++;	/* we added an entry */
@@ -978,7 +976,7 @@ ProcSleep(LOCALLOCK *locallock, LockMethod lockMethodTable)
 	{
 		LOCKMASK	aheadRequests = 0;
 
-		proc = (PGPROC *) MAKE_PTR(waitQueue->links.next);
+		proc = (PGPROC *) waitQueue->links.next;
 		for (i = 0; i < waitQueue->size; i++)
 		{
 			/* Must he wait for me? */
@@ -1016,7 +1014,7 @@ ProcSleep(LOCALLOCK *locallock, LockMethod lockMethodTable)
 			}
 			/* Nope, so advance to next waiter */
 			aheadRequests |= LOCKBIT_ON(proc->waitLockMode);
-			proc = (PGPROC *) MAKE_PTR(proc->links.next);
+			proc = (PGPROC *) proc->links.next;
 		}
 
 		/*
@@ -1297,13 +1295,13 @@ ProcWakeup(PGPROC *proc, int waitStatus)
 	PGPROC	   *retProc;
 
 	/* Proc should be sleeping ... */
-	if (proc->links.prev == INVALID_OFFSET ||
-		proc->links.next == INVALID_OFFSET)
+	if (proc->links.prev == NULL ||
+		proc->links.next == NULL)
 		return NULL;
 	Assert(proc->waitStatus == STATUS_WAITING);
 
 	/* Save next process before we zap the list link */
-	retProc = (PGPROC *) MAKE_PTR(proc->links.next);
+	retProc = (PGPROC *) proc->links.next;
 
 	/* Remove process from wait queue */
 	SHMQueueDelete(&(proc->links));
@@ -1340,7 +1338,7 @@ ProcLockWakeup(LockMethod lockMethodTable, LOCK *lock)
 	if (queue_size == 0)
 		return;
 
-	proc = (PGPROC *) MAKE_PTR(waitQueue->links.next);
+	proc = (PGPROC *) waitQueue->links.next;
 
 	while (queue_size-- > 0)
 	{
@@ -1373,7 +1371,7 @@ ProcLockWakeup(LockMethod lockMethodTable, LOCK *lock)
 			 * Cannot wake this guy. Remember his request for later checks.
 			 */
 			aheadRequests |= LOCKBIT_ON(lockmode);
-			proc = (PGPROC *) MAKE_PTR(proc->links.next);
+			proc = (PGPROC *) proc->links.next;
 		}
 	}
 
@@ -1422,8 +1420,8 @@ CheckDeadLock(void)
 	 * This is quicker than checking our semaphore's state, since no kernel
 	 * call is needed, and it is safe because we hold the lock partition lock.
 	 */
-	if (MyProc->links.prev == INVALID_OFFSET ||
-		MyProc->links.next == INVALID_OFFSET)
+	if (MyProc->links.prev == NULL ||
+		MyProc->links.next == NULL)
 		goto check_done;
 
 #ifdef LOCK_DEBUG
@@ -2048,7 +2046,7 @@ ResLockWaitCancel(void)
 		partitionLock = LockHashPartitionLock(lockAwaited->hashcode);
 		LWLockAcquire(partitionLock, LW_EXCLUSIVE);
 
-		if (MyProc->links.next != INVALID_OFFSET)
+		if (MyProc->links.next != NULL)
 		{
 			/* We could not have been granted the lock yet */
 			Assert(MyProc->waitStatus == STATUS_ERROR);

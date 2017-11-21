@@ -1,21 +1,33 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/select.sgml,v 1.103 2008/02/15 22:17:06 tgl Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/select.sgml,v 1.112 2008/12/01 09:38:08 petere Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-SELECT">
  <refmeta>
   <refentrytitle id="sql-select-title">SELECT</refentrytitle>
+  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
  <refnamediv>
   <refname>SELECT</refname>
+  <refname>TABLE</refname>
+  <refname>WITH</refname>
   <refpurpose>retrieve rows from a table or view</refpurpose>
  </refnamediv>
 
  <indexterm zone="sql-select">
   <primary>SELECT</primary>
+ </indexterm>
+
+ <indexterm zone="sql-select">
+  <primary>TABLE command</primary>
+ </indexterm>
+
+ <indexterm zone="sql-select">
+  <primary>WITH</primary>
+  <secondary>in SELECT</secondary>
  </indexterm>
 
  <refsynopsisdiv>
@@ -31,7 +43,8 @@ SELECT [ ALL | DISTINCT [ ON ( <replaceable class="parameter">expression</replac
     [ { UNION | INTERSECT | EXCEPT } [ ALL ] <replaceable class="parameter">select</replaceable> ]
     [ ORDER BY <replaceable class="parameter">expression</replaceable> [ ASC | DESC | USING <replaceable class="parameter">operator</replaceable> ] [ NULLS { FIRST | LAST } ] [, ...] ]
     [ LIMIT { <replaceable class="parameter">count</replaceable> | ALL } ]
-    [ OFFSET <replaceable class="parameter">start</replaceable> ]
+    [ OFFSET <replaceable class="parameter">start</replaceable> [ ROW | ROWS ] ]
+    [ FETCH { FIRST | NEXT } [ <replaceable class="parameter">count</replaceable> ] { ROW | ROWS } ONLY ]
     [ FOR { UPDATE | SHARE } [ OF <replaceable class="parameter">table_name</replaceable> [, ...] ] [ NOWAIT ] [...] ]
 	
 where <replaceable class="parameter">grouping_element</replaceable> can be one of:
@@ -182,7 +195,7 @@ and <replaceable class="parameter">with_query</replaceable> is:
 
     <listitem>
      <para>
-      If the <literal>LIMIT</literal> or <literal>OFFSET</literal>
+      If the <literal>LIMIT</literal> (or <literal>FETCH FIRST</literal>) or <literal>OFFSET</literal>
       clause is specified, the <command>SELECT</command> statement
       only returns a subset of the result rows. (See <xref
       linkend="sql-limit" endterm="sql-limit-title"> below.)
@@ -292,7 +305,7 @@ and <replaceable class="parameter">with_query</replaceable> is:
        </para>
       </listitem>
      </varlistentry>
-     
+
      <varlistentry>
       <term><replaceable class="parameter">alias</replaceable></term>
       <listitem>
@@ -310,7 +323,7 @@ and <replaceable class="parameter">with_query</replaceable> is:
        </para>
       </listitem>
      </varlistentry>
-     
+
      <varlistentry>
       <term><replaceable class="parameter">select</replaceable></term>
       <listitem>
@@ -366,7 +379,7 @@ and <replaceable class="parameter">with_query</replaceable> is:
        </para>
       </listitem>
      </varlistentry>
-     
+
      <varlistentry>
       <term><replaceable class="parameter">join_type</replaceable></term>
       <listitem>
@@ -449,7 +462,7 @@ and <replaceable class="parameter">with_query</replaceable> is:
        </para>
       </listitem>
      </varlistentry>
-     
+
      <varlistentry>
       <term><literal>ON <replaceable class="parameter">join_condition</replaceable></literal></term>
       <listitem>
@@ -462,7 +475,7 @@ and <replaceable class="parameter">with_query</replaceable> is:
        </para>
       </listitem>
      </varlistentry>
-     
+
      <varlistentry>
       <term><literal>USING ( <replaceable class="parameter">join_column</replaceable> [, ...] )</literal></term>
       <listitem>
@@ -490,7 +503,7 @@ and <replaceable class="parameter">with_query</replaceable> is:
     </variablelist>
    </para>
   </refsect2>
-   
+
   <refsect2 id="SQL-WHERE">
    <title id="sql-where-title"><literal>WHERE</literal> Clause</title>
 
@@ -507,7 +520,7 @@ WHERE <replaceable class="parameter">condition</replaceable>
     substituted for any variable references.
    </para>
   </refsect2>
-  
+
   <refsect2 id="SQL-GROUPBY">
    <title id="sql-groupby-title"><literal>GROUP BY</literal> Clause</title>
 
@@ -559,7 +572,7 @@ HAVING <replaceable class="parameter">condition</replaceable>
     where <replaceable class="parameter">condition</replaceable> is
     the same as specified for the <literal>WHERE</literal> clause.
    </para>
-    
+
    <para>
     <literal>HAVING</literal> eliminates group rows that do not
     satisfy the condition.  <literal>HAVING</literal> is different
@@ -571,7 +584,7 @@ HAVING <replaceable class="parameter">condition</replaceable>
     unambiguously reference a grouping column, unless the reference
     appears within an aggregate function.
    </para>
-    
+
    <para>
     The presence of <literal>HAVING</literal> turns a query into a grouped
     query even if there is no <literal>GROUP BY</> clause.  This is the
@@ -633,7 +646,7 @@ HAVING <replaceable class="parameter">condition</replaceable>
     the output column names will be the same as the table columns' names.
    </para>
   </refsect2>
-  
+
   <refsect2 id="SQL-UNION">
    <title id="sql-union-title"><literal>UNION</literal> Clause</title>
 
@@ -652,7 +665,7 @@ HAVING <replaceable class="parameter">condition</replaceable>
     the <literal>UNION</literal>, not to its right-hand input
     expression.)
    </para>
-    
+
    <para>
     The <literal>UNION</literal> operator computes the set union of
     the rows returned by the involved <command>SELECT</command>
@@ -663,7 +676,7 @@ HAVING <replaceable class="parameter">condition</replaceable>
     number of columns, and corresponding columns must be of compatible
     data types.
    </para>
-    
+
    <para>
     The result of <literal>UNION</> does not contain any duplicate
     rows unless the <literal>ALL</> option is specified.
@@ -671,13 +684,13 @@ HAVING <replaceable class="parameter">condition</replaceable>
     <literal>UNION ALL</> is usually significantly quicker than
     <literal>UNION</>; use <literal>ALL</> when you can.)
    </para>
-    
+
    <para>
     Multiple <literal>UNION</> operators in the same
     <command>SELECT</command> statement are evaluated left to right,
     unless otherwise indicated by parentheses.
    </para>
-    
+
    <para>
     Currently, <literal>FOR UPDATE</> and <literal>FOR SHARE</> cannot be
     specified either for a <literal>UNION</> result or for any input of a
@@ -705,7 +718,7 @@ HAVING <replaceable class="parameter">condition</replaceable>
     <command>SELECT</command> statements.  A row is in the
     intersection of two result sets if it appears in both result sets.
    </para>
-    
+
    <para>
     The result of <literal>INTERSECT</literal> does not contain any
     duplicate rows unless the <literal>ALL</> option is specified.
@@ -713,7 +726,7 @@ HAVING <replaceable class="parameter">condition</replaceable>
     left table and <replaceable>n</> duplicates in the right table will appear
     min(<replaceable>m</>,<replaceable>n</>) times in the result set.
    </para>
-    
+
    <para>
     Multiple <literal>INTERSECT</literal> operators in the same
     <command>SELECT</command> statement are evaluated left to right,
@@ -723,7 +736,7 @@ HAVING <replaceable class="parameter">condition</replaceable>
     C</literal> will be read as <literal>A UNION (B INTERSECT
     C)</literal>.
    </para>
-    
+
    <para>
     Currently, <literal>FOR UPDATE</> and <literal>FOR SHARE</> cannot be
     specified either for an <literal>INTERSECT</> result or for any input of
@@ -750,7 +763,7 @@ HAVING <replaceable class="parameter">condition</replaceable>
     that are in the result of the left <command>SELECT</command>
     statement but not in the result of the right one.
    </para>
-    
+
    <para>
     The result of <literal>EXCEPT</literal> does not contain any
     duplicate rows unless the <literal>ALL</> option is specified.
@@ -758,14 +771,14 @@ HAVING <replaceable class="parameter">condition</replaceable>
     left table and <replaceable>n</> duplicates in the right table will appear
     max(<replaceable>m</>-<replaceable>n</>,0) times in the result set.
    </para>
-    
+
    <para>
     Multiple <literal>EXCEPT</literal> operators in the same
     <command>SELECT</command> statement are evaluated left to right,
     unless parentheses dictate otherwise.  <literal>EXCEPT</> binds at
     the same level as <literal>UNION</>.
    </para>
-    
+
    <para>
     Currently, <literal>FOR UPDATE</> and <literal>FOR SHARE</> cannot be
     specified either for an <literal>EXCEPT</> result or for any input of
@@ -804,7 +817,7 @@ ORDER BY <replaceable class="parameter">expression</replaceable> [ ASC | DESC | 
     possible to assign a name to an output column using the
     <literal>AS</> clause.
    </para>
-    
+
    <para>
     It is also possible to use arbitrary expressions in the
     <literal>ORDER BY</literal> clause, including columns that do not
@@ -827,7 +840,7 @@ SELECT name FROM distributors ORDER BY code;
     make in the same situation.  This inconsistency is made to be
     compatible with the SQL standard.
    </para>
-    
+
    <para>
     Optionally one can add the key word <literal>ASC</> (ascending) or
     <literal>DESC</> (descending) after any expression in the
@@ -862,8 +875,7 @@ SELECT name FROM distributors ORDER BY code;
 
    <para>
     Character-string data is sorted according to the locale-specific
-    collation order that was established when the database cluster
-    was initialized.
+    collation order that was established when the database was created.
    </para>
   </refsect2>
 
@@ -905,7 +917,7 @@ SELECT DISTINCT ON (location) location, time, report
     desired precedence of rows within each <literal>DISTINCT ON</> group.
    </para>
   </refsect2>
-  
+
   <refsect2 id="SQL-LIMIT">
    <title id="sql-limit-title"><literal>LIMIT</literal> Clause</title>
 
@@ -924,6 +936,24 @@ OFFSET <replaceable class="parameter">start</replaceable>
     before starting to count the <replaceable
     class="parameter">count</replaceable> rows to be returned.
    </para>
+
+   <para>
+    SQL:2008 introduced a different syntax to achieve the same thing,
+    which PostgreSQL also supports.  It is:
+<synopsis>
+OFFSET <replaceable class="parameter">start</replaceable> { ROW | ROWS }
+FETCH { FIRST | NEXT } [ <replaceable class="parameter">count</replaceable> ] { ROW | ROWS } ONLY
+</synopsis>
+    Both clauses are optional, but if present
+    the <literal>OFFSET</literal> clause must come before
+    the <literal>FETCH</literal> clause.  <literal>ROW</literal>
+    and <literal>ROWS</literal> as well as <literal>FIRST</literal>
+    and <literal>NEXT</literal> are noise words that don't influence
+    the effects of these clauses.  When using expressions other than
+    constants for the offset or fetch count, parentheses will be
+    necessary in most cases.  If the fetch count is omitted, it
+    defaults to 1.
+   </para>    
 
    <para>
     When using <literal>LIMIT</>, it is a good idea to use an
@@ -1094,6 +1124,23 @@ ROLLBACK TO s;
    </para>
   </caution>
 
+  </refsect2>
+
+  <refsect2 id="SQL-TABLE">
+   <title><literal>TABLE</literal> Command</title>
+
+   <para>
+    The command
+<programlisting>
+TABLE <replaceable class="parameter">name</replaceable>
+</programlisting>
+    is completely equivalent to
+<programlisting>
+SELECT * FROM <replaceable class="parameter">name</replaceable>
+</programlisting>
+    It can be used as a top-level command or as a space-saving syntax
+    variant in parts of complex queries.
+   </para>
   </refsect2>
  </refsect1>
 
@@ -1291,7 +1338,7 @@ SELECT distance, employee_name FROM employee_recursive;
    for more examples.)
   </para>
  </refsect1>
- 
+
  <refsect1>
   <title>Compatibility</title>
 
@@ -1300,7 +1347,7 @@ SELECT distance, employee_name FROM employee_recursive;
    with the SQL standard.  But there are some extensions and some
    missing features.
   </para>
-  
+
   <refsect2>
    <title>Omitted <literal>FROM</literal> Clauses</title>
 
@@ -1388,12 +1435,29 @@ SELECT distributors.* WHERE distributors.name = 'Westward';
   </refsect2>
 
   <refsect2>
+   <title><literal>LIMIT</literal> and <literal>OFFSET</literal></title>
+
+   <para>
+    The clauses <literal>LIMIT</literal> and <literal>OFFSET</literal>
+    are <productname>PostgreSQL</productname>-specific syntax, also
+    used by <productname>MySQL</productname>.  The SQL:2008 standard
+    has introduced the clauses <literal>OFFSET ... FETCH {FIRST|NEXT}
+    ...</literal> for the same functionality, as shown above
+    in <xref linkend="sql-limit" endterm="sql-limit-title">, and this
+    syntax is also used by <productname>IBM DB2</productname>.
+    (Applications written for <productname>Oracle</productname>
+    frequently use a workaround involving the automatically
+    generated <literal>rownum</literal> column, not available in
+    PostgreSQL, to implement the effects of these clauses.)
+   </para>
+  </refsect2>
+
+  <refsect2>
    <title>Nonstandard Clauses</title>
 
    <para>
-    The clauses <literal>DISTINCT ON</literal>,
-    <literal>LIMIT</literal>, and <literal>OFFSET</literal> are not
-    defined in the SQL standard.
+    The clause <literal>DISTINCT ON</literal> is not defined in the
+    SQL standard.
    </para>
   </refsect2>
  </refsect1>

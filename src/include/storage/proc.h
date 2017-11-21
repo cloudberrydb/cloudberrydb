@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/storage/proc.h,v 1.106 2008/04/15 20:28:47 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/storage/proc.h,v 1.109 2008/12/09 15:59:39 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -190,9 +190,9 @@ typedef struct PROC_HDR
 	/* The PGPROC structures */
 	PGPROC *procs;
 	/* Head of list of free PGPROC structures */
-	SHMEM_OFFSET freeProcs;
+	PGPROC	   *freeProcs;
 	/* Head of list of autovacuum's free PGPROC structures */
-	SHMEM_OFFSET autovacFreeProcs;
+	PGPROC	   *autovacFreeProcs;
 	/* Current shared estimate of appropriate spins_per_delay value */
 	int			spins_per_delay;
 

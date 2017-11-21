@@ -3,7 +3,7 @@ package Solution;
 #
 # Package that encapsulates a Visual C++ solution file generation
 #
-# $PostgreSQL: pgsql/src/tools/msvc/Solution.pm,v 1.43 2008/06/24 01:15:36 tgl Exp $
+# $PostgreSQL: pgsql/src/tools/msvc/Solution.pm,v 1.46 2008/12/16 15:42:21 adunstan Exp $
 #
 use Carp;
 use strict;
@@ -313,7 +313,7 @@ s{PG_VERSION_STR "[^"]+"}{__STRINGIFY(x) #x\n#define __STRINGIFY2(z) __STRINGIFY
         }
 
     if (IsNewer('src\include\utils\probes.h','src\backend\utils\probes.d'))
-        {
+    {
 		print "Generating probes.h...\n";
         system(
 'psed -f src\backend\utils\Gen_dummy_probes.sed src\backend\utils\probes.d > src\include\utils\probes.h'
@@ -361,6 +361,19 @@ s{PG_VERSION_STR "[^"]+"}{__STRINGIFY(x) #x\n#define __STRINGIFY2(z) __STRINGIFY
         print "Generating preproc.y...\n";
         chdir('src\interfaces\ecpg\preproc');
         system('attrib -r preproc.y');
+        system('perl parse.pl < ..\..\..\backend\parser\gram.y > preproc.y');
+        chdir('..\..\..\..');
+    }
+
+    if (
+        IsNewer(
+            'src\interfaces\ecpg\preproc\preproc.y',
+            'src\backend\parser\gram.y'
+        )
+      )
+    {
+        print "Generating preproc.y...\n";
+        chdir('src\interfaces\ecpg\preproc');
         system('perl parse.pl < ..\..\..\backend\parser\gram.y > preproc.y');
         chdir('..\..\..\..');
     }

@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/commands/defrem.h,v 1.89 2008/06/14 18:04:34 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/commands/defrem.h,v 1.91 2008/12/19 16:25:19 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -134,6 +134,22 @@ extern void AlterTSConfigurationOwner(List *name, Oid newOwnerId);
 
 extern text *serialize_deflist(List *deflist);
 extern List *deserialize_deflist(Datum txt);
+
+/* commands/foreigncmds.c */
+extern void AlterForeignServerOwner(const char *name, Oid newOwnerId);
+extern void AlterForeignDataWrapperOwner(const char *name, Oid newOwnerId);
+extern void CreateForeignDataWrapper(CreateFdwStmt *stmt);
+extern void AlterForeignDataWrapper(AlterFdwStmt *stmt);
+extern void RemoveForeignDataWrapper(DropFdwStmt *stmt);
+extern void RemoveForeignDataWrapperById(Oid fdwId);
+extern void CreateForeignServer(CreateForeignServerStmt *stmt);
+extern void AlterForeignServer(AlterForeignServerStmt *stmt);
+extern void RemoveForeignServer(DropForeignServerStmt *stmt);
+extern void RemoveForeignServerById(Oid srvId);
+extern void CreateUserMapping(CreateUserMappingStmt *stmt);
+extern void AlterUserMapping(AlterUserMappingStmt *stmt);
+extern void RemoveUserMapping(DropUserMappingStmt *stmt);
+extern void RemoveUserMappingById(Oid umId);
 
 /* support routines in commands/define.c */
 

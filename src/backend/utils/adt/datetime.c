@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/datetime.c,v 1.190 2008/06/09 19:34:02 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/datetime.c,v 1.199 2008/11/12 01:36:19 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -485,24 +485,17 @@ TrimTrailingZeros(char *str)
 static void
 AppendSeconds(char *cp, int sec, fsec_t fsec, int precision, bool fillzeros)
 {
-	int j = 0;
-	/*
-	 * Print fractional seconds if any.  The field widths here should
-	 * be at least equal to MAX_TIMESTAMP_PRECISION.
-	 *
-	 * In float mode, don't print fractional seconds before 1 AD,
-	 * since it's unlikely there's any precision left ...
-	 */
-	if (fsec ==  0)
+	if (fsec == 0)
 	{
-		if (fillzeros || abs(sec)  > 9)
-					cp[j++] = abs(sec)  / 10 + '0';
-		cp[j++] =abs(sec)  % 10 + '0';
-		cp[j] = '\0';
+		if (fillzeros)
+			sprintf(cp, "%02d", abs(sec));
+		else
+			sprintf(cp, "%d", abs(sec));
 	}
 	else
 	{
 #ifdef HAVE_INT64_TIMESTAMP
+		int			j = 0;
 
 		if (fillzeros || abs(sec)  > 9)
 			cp[j++] = abs(sec)  / 10 + '0';
@@ -521,7 +514,7 @@ AppendSeconds(char *cp, int sec, fsec_t fsec, int precision, bool fillzeros)
 			sprintf(cp, "%0*.*f", precision + 3, precision, fabs(sec + fsec));
 		else
 			sprintf(cp, "%.*f", precision, fabs(sec + fsec));
-#endif 
+#endif
 		TrimTrailingZeros(cp);
 	}
 }
@@ -2965,16 +2958,16 @@ DecodeInterval(char **field, int *ftype, int nf, int range,
 			case DTK_TZ:
 
 				/*
-				 * Timezone is a token with a leading sign character and at
-				 * least one digit; there could be ':', '.', '-' embedded in
-				 * it as well.
+				 * Timezone is a token with a leading sign character and
+				 * at least one digit; there could be ':', '.', '-'
+				 * embedded in it as well.
 				 */
 				Assert(*field[i] == '-' || *field[i] == '+');
 
 				/*
 				 * Try for hh:mm or hh:mm:ss.  If not, fall through to
-				 * DTK_NUMBER case, which can handle signed float numbers and
-				 * signed year-month values.
+				 * DTK_NUMBER case, which can handle signed float numbers
+				 * and signed year-month values.
 				 */
 				if (strchr(field[i] + 1, ':') != NULL &&
 					DecodeTime(field[i] + 1, fmask, INTERVAL_FULL_RANGE,
@@ -3033,7 +3026,7 @@ DecodeInterval(char **field, int *ftype, int nf, int range,
 							type = DTK_SECOND;
 							break;
 						default:
-						type = DTK_SECOND;
+							type = DTK_SECOND;
 							break;
 					}
 				}
@@ -3220,7 +3213,7 @@ DecodeInterval(char **field, int *ftype, int nf, int range,
 
 	/* ensure that at least one time field has been found */
 	if (fmask == 0)
-				return DTERR_BAD_FORMAT;
+		return DTERR_BAD_FORMAT;
 
 	/* ensure fractional seconds are fractional */
 	if (*fsec != 0)
@@ -3905,12 +3898,6 @@ EncodeDateTime(struct pg_tm * tm, fsec_t fsec, int *tzp, char **tzn, int style, 
 
 			AppendTimestampSeconds(str + strlen(str), tm, fsec);
 
-			/*
-			 * Note: the uses of %.*s in this function would be risky if the
-			 * timezone names ever contain non-ASCII characters.  However, all
-			 * TZ abbreviations in the Olson database are plain ASCII.
-			 */
-
 			if (tzp != NULL && tm->tm_isdst >= 0)
 			{
 				if (*tzn != NULL)
@@ -4049,7 +4036,6 @@ AddVerboseIntPart(char *cp, int value, const char *units,
 	return cp + strlen(cp);
 }
 
-
 /* EncodeInterval()
  * Interpret time structure as a delta time and convert to string.
  *
@@ -4074,11 +4060,11 @@ EncodeInterval(struct pg_tm * tm, fsec_t fsec, int style, char *str)
 {
 	char	   *cp = str;
 	int			year = tm->tm_year;
-	int			mon = tm->tm_mon;
+	int			mon  = tm->tm_mon;
 	int			mday = tm->tm_mday;
 	int			hour = tm->tm_hour;
-	int			min = tm->tm_min;
-	int			sec = tm->tm_sec;
+	int			min  = tm->tm_min;
+	int			sec  = tm->tm_sec;
 	bool		is_before = FALSE;
 	bool		is_zero = TRUE;
 

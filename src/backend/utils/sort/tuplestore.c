@@ -49,7 +49,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/sort/tuplestore.c,v 1.39 2008/05/12 00:00:53 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/sort/tuplestore.c,v 1.44 2008/12/27 17:39:00 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -175,7 +175,7 @@ struct Tuplestorestate
 	int			readptrsize;	/* allocated length of readptrs array */
 
 	int			writepos_file;	/* file# (valid if READFILE state) */
-	off_t		writepos_offset; /* offset (valid if READFILE) */
+	off_t		writepos_offset; /* offset (valid if READFILE state) */
 
     /*
      * CDB: EXPLAIN ANALYZE reporting interface and statistics.
@@ -189,7 +189,6 @@ struct Tuplestorestate
 	 * MemTupleBinding used for putvalues of tuplestore.
 	 */
 	 MemTupleBinding	*mt_bind;
-
 };
 
 #define COPYTUP(state,tup)	((*(state)->copytup) (state, tup))
@@ -217,7 +216,7 @@ struct Tuplestorestate
  * If state->backward is true, then the stored representation of
  * the tuple must be followed by another "unsigned int" that is a copy of the
  * length --- so the total tape space used is actually sizeof(unsigned int)
- * more than the stored length value.  This allows read-backwards.  When
+ * more than the stored length value.  This allows read-backwards.	When
  * state->backward is not set, the write/read routines may omit the extra
  * length word.
  *
@@ -408,7 +407,7 @@ tuplestore_alloc_read_pointer(Tuplestorestate *state, int eflags)
 	/* Make room for another read pointer if needed */
 	if (state->readptrcount >= state->readptrsize)
 	{
-		int			newcnt = state->readptrsize * 2;
+		int		newcnt = state->readptrsize * 2;
 
 		state->readptrs = (TSReadPointer *)
 			repalloc(state->readptrs, newcnt * sizeof(TSReadPointer));
@@ -1120,7 +1119,7 @@ tuplestore_rescan(Tuplestorestate *state)
 }
 
 /*
- * tuplestore_copy_read_pointer - copy a read pointer's state to another
+ * tuplestore_copy_read_pointer	- copy a read pointer's state to another
  */
 void
 tuplestore_copy_read_pointer(Tuplestorestate *state,
@@ -1139,8 +1138,8 @@ tuplestore_copy_read_pointer(Tuplestorestate *state,
 	if (dptr->eflags != sptr->eflags)
 	{
 		/* Possible change of overall eflags, so copy and then recompute */
-		int			eflags;
-		int			i;
+		int		eflags;
+		int		i;
 
 		*dptr = *sptr;
 		eflags = state->readptrs[0].eflags;

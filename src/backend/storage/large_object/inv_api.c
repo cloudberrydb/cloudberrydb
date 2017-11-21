@@ -24,7 +24,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/large_object/inv_api.c,v 1.134 2008/06/19 00:46:05 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/large_object/inv_api.c,v 1.136 2008/12/04 14:51:02 alvherre Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -247,7 +247,13 @@ inv_open(Oid lobjId, int flags, MemoryContext mcxt)
 	}
 	else if (flags & INV_READ)
 	{
-		retval->snapshot = RegisterSnapshot(GetActiveSnapshot());
+		/*
+		 * We must register the snapshot in TopTransaction's resowner,
+		 * because it must stay alive until the LO is closed rather than until
+		 * the current portal shuts down.
+		 */
+		retval->snapshot = RegisterSnapshotOnOwner(GetActiveSnapshot(),
+												   TopTransactionResourceOwner);
 		retval->flags = IFS_RDLOCK;
 	}
 	else
@@ -270,8 +276,11 @@ void
 inv_close(LargeObjectDesc *obj_desc)
 {
 	Assert(PointerIsValid(obj_desc));
+
 	if (obj_desc->snapshot != SnapshotNow)
-		UnregisterSnapshot(obj_desc->snapshot);
+		UnregisterSnapshotFromOwner(obj_desc->snapshot,
+									TopTransactionResourceOwner);
+
 	pfree(obj_desc);
 }
 
@@ -632,7 +641,7 @@ inv_write(LargeObjectDesc *obj_desc, const char *buf, int nbytes)
 			values[Anum_pg_largeobject_data - 1] = PointerGetDatum(&workbuf);
 			replace[Anum_pg_largeobject_data - 1] = true;
 			newtup = heap_modify_tuple(oldtuple, RelationGetDescr(lo_heap_r),
-									   values, nulls, replace);
+									  values, nulls, replace);
 			simple_heap_update(lo_heap_r, &newtup->t_self, newtup);
 			CatalogIndexInsert(indstate, newtup);
 			heap_freetuple(newtup);
@@ -801,7 +810,7 @@ inv_truncate(LargeObjectDesc *obj_desc, int len)
 		values[Anum_pg_largeobject_data - 1] = PointerGetDatum(&workbuf);
 		replace[Anum_pg_largeobject_data - 1] = true;
 		newtup = heap_modify_tuple(oldtuple, RelationGetDescr(lo_heap_r),
-								   values, nulls, replace);
+								  values, nulls, replace);
 		simple_heap_update(lo_heap_r, &newtup->t_self, newtup);
 		CatalogIndexInsert(indstate, newtup);
 		heap_freetuple(newtup);

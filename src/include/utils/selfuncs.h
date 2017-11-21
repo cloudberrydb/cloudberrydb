@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/selfuncs.h,v 1.45 2008/08/14 18:48:00 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/utils/selfuncs.h,v 1.47 2008/09/28 19:51:40 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -71,6 +71,7 @@ typedef struct VariableStatData
 	HeapTuple	statsTuple;		/* pg_statistic tuple, or NULL if none */
 	/* NB: if statsTuple!=NULL, it must be freed when caller is done */
 	double		numdistinctFromPrimaryKey; /* this is the numdistinct as estimated from the primary key relation. If this is < 0, then it is ignored. */
+	void		(*freefunc) (HeapTuple tuple);	/* how to free statsTuple */
 	Oid			vartype;		/* exposed type of expression */
 	Oid			atttype;		/* type to pass to get_attstatsslot */
 	int32		atttypmod;		/* typmod to pass to get_attstatsslot */
@@ -83,7 +84,7 @@ typedef struct VariableStatData
 #define ReleaseVariableStats(vardata)  \
 	do { \
 		if (HeapTupleIsValid((vardata).statsTuple)) \
-			ReleaseSysCache((vardata).statsTuple); \
+			(* (vardata).freefunc) ((vardata).statsTuple); \
 	} while(0)
 
 typedef enum
@@ -100,6 +101,18 @@ typedef enum
 
 /* selfuncs.c */
 
+/* Hooks for plugins to get control when we ask for stats */
+typedef bool (*get_relation_stats_hook_type) (PlannerInfo *root,
+											  RangeTblEntry *rte,
+											  AttrNumber attnum,
+											  VariableStatData *vardata);
+extern PGDLLIMPORT get_relation_stats_hook_type get_relation_stats_hook;
+typedef bool (*get_index_stats_hook_type) (PlannerInfo *root,
+										   Oid indexOid,
+										   AttrNumber indexattnum,
+										   VariableStatData *vardata);
+extern PGDLLIMPORT get_index_stats_hook_type get_index_stats_hook;
+
 extern void examine_variable(PlannerInfo *root, Node *node, int varRelid,
 				 VariableStatData *vardata);
 extern bool get_restriction_variable(PlannerInfo *root, List *args,
@@ -107,8 +120,10 @@ extern bool get_restriction_variable(PlannerInfo *root, List *args,
 						 VariableStatData *vardata, Node **other,
 						 bool *varonleft);
 extern void get_join_variables(PlannerInfo *root, List *args,
+				   SpecialJoinInfo *sjinfo,
 				   VariableStatData *vardata1,
-				   VariableStatData *vardata2);
+				   VariableStatData *vardata2,
+				   bool *join_is_reversed);
 extern double get_variable_numdistinct(VariableStatData *vardata);
 extern double mcv_selectivity(VariableStatData *vardata, FmgrInfo *opproc,
 				Datum constval, bool varonleft,

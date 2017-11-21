@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeIndexscan.c,v 1.129 2008/06/19 00:46:04 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeIndexscan.c,v 1.130 2008/08/25 20:20:30 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -30,7 +30,6 @@
 #include "access/relscan.h"
 #include "executor/execdebug.h"
 #include "executor/nodeIndexscan.h"
-#include "nodes/nodeFuncs.h"
 #include "optimizer/clauses.h"
 #include "utils/array.h"
 #include "utils/lsyscache.h"
@@ -603,6 +602,7 @@ ExecInitIndexScanForPartition(IndexScan *node, EState *estate, int eflags,
 	 */
 	ExecIndexBuildScanKeys((PlanState *) indexstate,
 						   indexstate->iss_RelationDesc,
+						   node->scan.scanrelid,
 						   node->indexqual,
 						   &indexstate->iss_ScanKeys,
 						   &indexstate->iss_NumScanKeys,
@@ -692,6 +692,7 @@ ExecInitIndexScanForPartition(IndexScan *node, EState *estate, int eflags,
  *
  * planstate: executor state node we are working for
  * index: the index we are building scan keys for
+ * scanrelid: varno of the index's relation within current query
  * quals: indexquals expressions
  *
  * Output params are:
@@ -707,8 +708,8 @@ ExecInitIndexScanForPartition(IndexScan *node, EState *estate, int eflags,
  * ScalarArrayOpExpr quals are not supported.
  */
 void
-ExecIndexBuildScanKeys(PlanState *planstate, Relation index, List *quals,
-					   ScanKey *scanKeys, int *numScanKeys,
+ExecIndexBuildScanKeys(PlanState *planstate, Relation index, Index scanrelid,
+					   List *quals, ScanKey *scanKeys, int *numScanKeys,
 					   IndexRuntimeKeyInfo **runtimeKeys, int *numRuntimeKeys,
 					   IndexArrayKeyInfo **arrayKeys, int *numArrayKeys)
 {
@@ -792,7 +793,7 @@ ExecIndexBuildScanKeys(PlanState *planstate, Relation index, List *quals,
 			Assert(leftop != NULL);
 
 			if (!(IsA(leftop, Var) &&
-				  var_is_rel((Var *) leftop)))
+				  ((Var *) leftop)->varno == scanrelid))
 				elog(ERROR, "indexqual doesn't have key on left side");
 
 			varattno = ((Var *) leftop)->varattno;
@@ -876,7 +877,7 @@ ExecIndexBuildScanKeys(PlanState *planstate, Relation index, List *quals,
 				Assert(leftop != NULL);
 
 				if (!(IsA(leftop, Var) &&
-					  var_is_rel((Var *) leftop)))
+					  ((Var *) leftop)->varno == scanrelid))
 					elog(ERROR, "indexqual doesn't have key on left side");
 
 				varattno = ((Var *) leftop)->varattno;
@@ -981,7 +982,7 @@ ExecIndexBuildScanKeys(PlanState *planstate, Relation index, List *quals,
 			Assert(leftop != NULL);
 
 			if (!(IsA(leftop, Var) &&
-				  var_is_rel((Var *) leftop)))
+				  ((Var *) leftop)->varno == scanrelid))
 				elog(ERROR, "indexqual doesn't have key on left side");
 
 			varattno = ((Var *) leftop)->varattno;
@@ -1042,7 +1043,7 @@ ExecIndexBuildScanKeys(PlanState *planstate, Relation index, List *quals,
 			Assert(leftop != NULL);
 
 			if (!(IsA(leftop, Var) &&
-				  var_is_rel((Var *) leftop)))
+				  ((Var *) leftop)->varno == scanrelid))
 				elog(ERROR, "NullTest indexqual has wrong key");
 
 			varattno = ((Var *) leftop)->varattno;
