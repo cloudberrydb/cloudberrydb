@@ -222,6 +222,7 @@ forget_invalid_segment_file(RelFileNode rnode, uint32 segmentFileNum)
 		return;					/* nothing to do */
 
 	key.node = rnode;
+	key.forkno = MAIN_FORKNUM;
 	key.blkno = segmentFileNum;
 	hash_search(invalid_page_tab,
 				(void *) &key,
@@ -430,7 +431,7 @@ XLogReadBufferExtended(RelFileNode rnode, ForkNumber forknum,
 void
 XLogAOSegmentFile(RelFileNode rnode, uint32 segmentFileNum)
 {
-	log_invalid_page(rnode, segmentFileNum, false);
+	log_invalid_page(rnode, MAIN_FORKNUM, segmentFileNum, false);
 }
 #endif
 
