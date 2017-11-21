@@ -630,11 +630,9 @@ SELECT user_relns() AS user_relns
  onek
  onek2
  path_tbl
- path_tbl_s_seq
  person
  point_tbl
  polygon_tbl
- polygon_tbl_s_seq
  ramp
  random_tbl
  real_city
@@ -660,7 +658,7 @@ SELECT user_relns() AS user_relns
  toyemp
  usr_define_type
  varchar_tbl
-(156 rows)
+(154 rows)
 
 SELECT name(equipment(hobby_construct(text 'skywalking', text 'mer')));
  name 

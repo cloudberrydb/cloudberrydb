@@ -14,7 +14,7 @@
 --	0 1 2 3 4
 --
 
-CREATE TABLE POLYGON_TBL(s serial, f1 polygon);
+CREATE TABLE POLYGON_TBL(f1 polygon);
 
 
 INSERT INTO POLYGON_TBL(f1) VALUES ('(2.0,0.0),(2.0,4.0),(0.0,0.0)');

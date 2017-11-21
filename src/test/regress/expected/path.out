@@ -2,25 +2,24 @@
 -- PATH
 --
 --DROP TABLE PATH_TBL;
-CREATE TABLE PATH_TBL (s serial, f1 path);
-NOTICE:  CREATE TABLE will create implicit sequence "path_tbl_s_seq" for serial column "path_tbl.s"
-INSERT INTO PATH_TBL(f1) VALUES ('[(1,2),(3,4)]');
-INSERT INTO PATH_TBL(f1) VALUES ('((1,2),(3,4))');
-INSERT INTO PATH_TBL(f1) VALUES ('[(0,0),(3,0),(4,5),(1,6)]');
-INSERT INTO PATH_TBL(f1) VALUES ('((1,2),(3,4))');
-INSERT INTO PATH_TBL(f1) VALUES ('1,2 ,3,4');
-INSERT INTO PATH_TBL(f1) VALUES ('[1,2,3, 4]');
-INSERT INTO PATH_TBL(f1) VALUES ('[11,12,13,14]');
-INSERT INTO PATH_TBL(f1) VALUES ('(11,12,13,14)');
+CREATE TABLE PATH_TBL (f1 path);
+INSERT INTO PATH_TBL VALUES ('[(1,2),(3,4)]');
+INSERT INTO PATH_TBL VALUES ('((1,2),(3,4))');
+INSERT INTO PATH_TBL VALUES ('[(0,0),(3,0),(4,5),(1,6)]');
+INSERT INTO PATH_TBL VALUES ('((1,2),(3,4))');
+INSERT INTO PATH_TBL VALUES ('1,2 ,3,4');
+INSERT INTO PATH_TBL VALUES ('[1,2,3, 4]');
+INSERT INTO PATH_TBL VALUES ('[11,12,13,14]');
+INSERT INTO PATH_TBL VALUES ('(11,12,13,14)');
 -- bad values for parser testing
-INSERT INTO PATH_TBL(f1) VALUES ('[(,2),(3,4)]');
+INSERT INTO PATH_TBL VALUES ('[(,2),(3,4)]');
 ERROR:  invalid input syntax for type path: "[(,2),(3,4)]"
-LINE 1: INSERT INTO PATH_TBL(f1) VALUES ('[(,2),(3,4)]');
-                                         ^
-INSERT INTO PATH_TBL(f1) VALUES ('[(1,2),(3,4)');
+LINE 1: INSERT INTO PATH_TBL VALUES ('[(,2),(3,4)]');
+                                     ^
+INSERT INTO PATH_TBL VALUES ('[(1,2),(3,4)');
 ERROR:  invalid input syntax for type path: "[(1,2),(3,4)"
-LINE 1: INSERT INTO PATH_TBL(f1) VALUES ('[(1,2),(3,4)');
-                                         ^
+LINE 1: INSERT INTO PATH_TBL VALUES ('[(1,2),(3,4)');
+                                     ^
 SELECT f1 FROM PATH_TBL;
             f1             
 ---------------------------
