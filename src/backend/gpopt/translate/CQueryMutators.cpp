@@ -1144,13 +1144,14 @@ CQueryMutators::PaggrefFlatCopy
 {
 	Aggref *paggrefNew = MakeNode(Aggref);
 
-	paggrefNew->aggfnoid = paggrefOld->aggfnoid;
-	paggrefNew->aggdistinct = paggrefOld->aggdistinct;
+	*paggrefNew = *paggrefOld;
+
 	paggrefNew->agglevelsup = 0;
-	paggrefNew->location = paggrefOld->location;
-	paggrefNew->aggtype = paggrefOld->aggtype;
-	paggrefNew->aggstage = paggrefOld->aggstage;
-	paggrefNew->aggstar = paggrefOld->aggstar;
+	// This is not strictly necessary: we seem to ALWAYS assgin to args from
+	// the callers
+	// Explicitly setting this both to be safe and to be clear that we are
+	// intentionally NOT copying the args
+	paggrefNew->args = NIL;
 
 	return paggrefNew;
 }
