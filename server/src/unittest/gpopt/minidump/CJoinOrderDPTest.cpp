@@ -30,6 +30,7 @@ CJoinOrderDPTest::EresUnittest()
 	{
 			"../data/dxl/minidump/CJoinOrderDPTest/JoinOrderWithDP.mdp",
 			"../data/dxl/minidump/CJoinOrderDPTest/JoinOrderWithOutDP.mdp",
+			"../data/dxl/minidump/JoinOptimizationLevelQuery3WayHashJoinPartTbl.mdp"
 	};
 
 	return CTestUtils::EresUnittest_RunTestsWithoutAdditionalTraceFlags

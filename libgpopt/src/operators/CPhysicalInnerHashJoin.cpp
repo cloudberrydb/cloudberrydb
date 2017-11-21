@@ -275,9 +275,22 @@ CPhysicalInnerHashJoin::PppsRequired
 	CPartitionPropagationSpec *pppsRequired,
 	ULONG ulChildIndex,
 	DrgPdp *pdrgpdpCtxt,
-	ULONG // ulOptReq
+	ULONG ulOptReq
 	)
 {
+
+	if (1 == ulOptReq)
+	{
+		// request (1): push partition propagation requests to join's children,
+		// do not consider possible dynamic partition elimination using join predicate here,
+		// this is handled by optimization request (0) below
+		return CPhysical::PppsRequiredPushThruNAry(pmp, exprhdl, pppsRequired, ulChildIndex);
+	}
+
+	// request (0): push partition progagation requests to join child considering
+	// DPE possibility. For HJ, PS request is pushed to the inner child if there
+	// is a consumer (DTS) on the outer side of the join.
+	GPOS_ASSERT(0 == ulOptReq);
 	return PppsRequiredJoinChild(pmp, exprhdl, pppsRequired, ulChildIndex, pdrgpdpCtxt, false);
 }
 

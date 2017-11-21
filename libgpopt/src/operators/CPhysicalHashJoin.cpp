@@ -75,6 +75,24 @@ CPhysicalHashJoin::CPhysicalHashJoin
 
 	ULONG ulDistrReqs = GPOPT_NON_HASH_DIST_REQUESTS + m_pdrgpdsRedistributeRequests->UlLength();
 	SetDistrRequests(ulDistrReqs);
+
+	// With DP enabled, there are several (max 10 controlled by macro)
+	// alternatives generated for a join tree and during optimization of those
+	// alternatives expressions PS is inserted in almost all the groups possibly.
+	// However, if DP is turned off, i.e in query or greedy join order,
+	// PS must be inserted in the group with DTS else in some cases HJ plan
+	// cannot be created. So, to ensure pushing PS without DPE 2 partition
+	// propagation request are required if DP is disabled.
+	//    Req 0 => Push PS with considering DPE possibility
+	//    Req 1 => Push PS without considering DPE possibility
+	// Ex case: select * from non_part_tbl1 t1, part_tbl t2, non_part_tbl2 t3
+	// where t1.b = t2.b and t2.b = t3.b;
+	// Note: b is the partitioned column for part_tbl. If DP is turned off, HJ
+	// will not be created for the above query if we send only 1 request.
+	// Also, increasing the number of request increases the optimization time, so
+	// set 2 only when needed.
+	if (GPOPT_FDISABLED_XFORM(CXform::ExfExpandNAryJoinDP))
+		SetPartPropagateRequests(2);
 }
 
 //---------------------------------------------------------------------------
