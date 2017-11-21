@@ -9,6 +9,7 @@ import sys
 
 from builds.GpBuild import GpBuild
 
+
 def install_gpdb(dependency_name):
     status = subprocess.call("mkdir -p /usr/local/gpdb", shell=True)
     if status:
@@ -17,6 +18,7 @@ def install_gpdb(dependency_name):
         "tar -xzf " + dependency_name + "/*.tar.gz -C /usr/local/gpdb",
         shell=True)
     return status
+
 
 def create_gpadmin_user():
     status = subprocess.call("gpdb_src/concourse/scripts/setup_gpadmin_user.bash")
@@ -50,29 +52,22 @@ def configure():
                             "--with-perl",
                             "--with-libxml",
                             "--with-python",
-                            "--disable-gpcloud",
-                            "--with-libs=/usr/local/gpdb/lib",
-                            "--with-includes=/usr/local/gpdb/include",
+                            "--with-libs=/usr/local/gpdb/lib"
+                            "--with-includes=/usr/local/gpdb/include"
                             "--prefix=/usr/local/gpdb"], env=p_env, shell=True, cwd="gpdb_src")
+
 
 def main():
     parser = optparse.OptionParser()
     parser.add_option("--build_type", dest="build_type", default="RELEASE")
-    parser.add_option("--mode",  choices=['orca', 'codegen', 'orca_codegen', 'planner'])
+    parser.add_option("--mode",  choices=['orca', 'planner'])
     parser.add_option("--compiler", dest="compiler")
     parser.add_option("--cxxflags", dest="cxxflags")
     parser.add_option("--output_dir", dest="output_dir", default="install")
     parser.add_option("--gpdb_name", dest="gpdb_name")
     (options, args) = parser.parse_args()
-    if options.mode == 'orca':
-        ciCommon = GpBuild(options.mode)
-    elif options.mode == 'planner':
-        ciCommon = GpBuild(options.mode)
+    gp_build = GpBuild(options.mode)
 
-    # for dependency in args:
-    #     status = ciCommon.install_dependency(dependency)
-    #     if status:
-    #         return status
     status = install_gpdb(options.gpdb_name)
     if status:
         return status
@@ -83,12 +78,13 @@ def main():
     if status:
         return status
     if os.getenv("TEST_SUITE", "icg") == 'icw':
-      status = ciCommon.install_check('world')
+      status = gp_build.install_check('world')
     else:
-      status = ciCommon.install_check()
+      status = gp_build.install_check()
     if status:
         copy_output()
     return status
+
 
 if __name__ == "__main__":
     sys.exit(main())
