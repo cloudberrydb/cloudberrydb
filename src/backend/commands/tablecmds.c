@@ -1096,8 +1096,18 @@ RemoveRelations(DropStmt *drop)
 		 */
 		AcceptInvalidationMessages();
 
-		/* Look up the appropriate relation using namespace search */
-		relOid = RangeVarGetRelid(rel, true);
+		/*
+		 * Look up the appropriate relation using namespace search.
+		 *
+		 * We always pass missing_ok=true, so that we can give a better error
+		 * message than RangeVarGetRelidExtended() would.
+		 */
+		relOid = RangeVarGetRelidExtended(rel,
+										  AccessExclusiveLock,
+										  true /* missing_ok */,
+										  false /* nowait */,
+										  NULL /* callback */,
+										  NULL /* callback_arg */);
 
 		/* Not there? */
 		if (!OidIsValid(relOid))
@@ -1130,10 +1140,6 @@ RemoveRelations(DropStmt *drop)
 				ReleaseSysCache(tuple);
 			}
 		}
-
-		/* Get the lock before trying to fetch the syscache entry */
-		if (Gp_role == GP_ROLE_DISPATCH)
-			LockRelationOid(relOid, AccessExclusiveLock);
 
 		tuple = SearchSysCache(RELOID,
 							   ObjectIdGetDatum(relOid),
