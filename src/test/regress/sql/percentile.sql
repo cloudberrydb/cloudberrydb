@@ -1,4 +1,4 @@
-create table perct as select a, a / 10 as b from generate_series(1, 100)a;
+create table perct as select a, a / 10 as b from generate_series(1, 100)a distributed by (a);
 create table perct2 as select a, a / 10 as b from generate_series(1, 100)a, generate_series(1, 2);
 create table perct3 as select a, b from perct, generate_series(1, 10)i where a % 7 < i;
 create table perct4 as select case when a % 10 = 5 then null else a end as a,
