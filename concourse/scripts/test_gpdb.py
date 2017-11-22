@@ -52,8 +52,8 @@ def configure():
                             "--with-perl",
                             "--with-libxml",
                             "--with-python",
-                            "--with-libs=/usr/local/gpdb/lib"
-                            "--with-includes=/usr/local/gpdb/include"
+                            "--with-libs=/usr/local/gpdb/lib",
+                            "--with-includes=/usr/local/gpdb/include",
                             "--prefix=/usr/local/gpdb"], env=p_env, shell=True, cwd="gpdb_src")
 
 
