@@ -16,6 +16,7 @@
 #ifndef FTS_H
 #define FTS_H
 
+#include "utils/guc.h"
 #include "cdb/cdbutil.h"
 
 #ifdef USE_SEGWALREP
@@ -184,6 +185,9 @@ extern void FtsFailoverFilerep(FtsSegmentStatusChange *changes, int changeCount)
 extern void FtsRequestPostmasterShutdown(CdbComponentDatabaseInfo *primary, CdbComponentDatabaseInfo *mirror);
 extern bool FtsMasterShutdownRequested(void);
 extern void FtsRequestMasterShutdown(void);
+
+/* Interface for setting FTS GUCs */
+extern bool gpvars_assign_gp_fts_probe_pause(bool newval, bool doit, GucSource source);
 
 /*
  * If master has requested FTS to shutdown.

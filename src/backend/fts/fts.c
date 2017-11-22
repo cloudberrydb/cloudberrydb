@@ -795,6 +795,8 @@ void FtsLoop()
 			if (elapsed < gp_fts_probe_interval && !shutdown_requested)
 			{
 				pg_usleep((gp_fts_probe_interval - elapsed) * USECS_PER_SEC);
+
+				CHECK_FOR_INTERRUPTS();
 			}
 		}
 	} /* end server loop */
@@ -898,4 +900,33 @@ void FtsRequestPostmasterShutdown(CdbComponentDatabaseInfo *primary, CdbComponen
 			    );
 }
 
-/* EOF */
+/*
+ * Request the fault-prober to suspend probes -- no fault actions will
+ * be taken based on in-flight probes until the prober is unpaused.
+ */
+bool
+gpvars_assign_gp_fts_probe_pause(bool newval, bool doit, GucSource source)
+{
+	if (doit)
+	{
+		/*
+		 * We only want to do fancy stuff on the master (where we have a
+		 * prober).
+		 */
+		if (am_ftsprobe && ftsProbeInfo && Gp_segment == -1)
+		{
+			/*
+			 * fts_pauseProbes is externally set/cleared; fts_cancelProbes is
+			 * externally set and cleared by FTS
+			 */
+			ftsLock();
+
+			ftsProbeInfo->fts_pauseProbes = newval;
+			ftsProbeInfo->fts_discardResults = ftsProbeInfo->fts_discardResults || newval;
+			ftsUnlock();
+		}
+		gp_fts_probe_pause = newval;
+	}
+
+	return true;
+}

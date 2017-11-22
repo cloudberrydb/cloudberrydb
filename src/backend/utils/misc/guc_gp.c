@@ -36,6 +36,7 @@
 #include "pgstat.h"
 #include "parser/scansup.h"
 #include "postmaster/syslogger.h"
+#include "postmaster/fts.h"
 #include "replication/walsender.h"
 #include "storage/bfz.h"
 #include "storage/proc.h"

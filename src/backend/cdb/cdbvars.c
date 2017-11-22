@@ -1180,45 +1180,6 @@ gpvars_show_gp_gpperfmon_log_alert_level(void)
 }
 
 /*
- * Request the fault-prober to suspend probes -- no fault actions will
- * be taken based on in-flight probes until the prober is unpaused.
- */
-bool
-gpvars_assign_gp_fts_probe_pause(bool newval, bool doit, GucSource source)
-{
-	if (doit)
-	{
-		/*
-		 * We only want to do fancy stuff on the master (where we have a
-		 * prober).
-		 */
-		if (ftsProbeInfo && Gp_segment == -1)
-		{
-			/*
-			 * fts_pauseProbes is externally set/cleared; fts_cancelProbes is
-			 * externally set and cleared by FTS
-			 */
-			ftsLock();
-			ftsProbeInfo->fts_pauseProbes = newval;
-			ftsProbeInfo->fts_discardResults = ftsProbeInfo->fts_discardResults || newval;
-			ftsUnlock();
-
-			/*
-			 * If we're unpausing, we want to force the prober to re-read
-			 * everything. (we want FtsNotifyProber()).
-			 */
-			if (!newval)
-			{
-				FtsNotifyProber();
-			}
-		}
-		gp_fts_probe_pause = newval;
-	}
-
-	return true;
-}
-
-/*
  * gpvars_assign_gp_resource_manager_policy
  * gpvars_show_gp_resource_manager_policy
  */
