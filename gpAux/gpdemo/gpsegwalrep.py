@@ -102,16 +102,6 @@ class InitMirrors():
         # Assume db user is current user
         user = subprocess.check_output(["whoami"]).rstrip('\n')
 
-        ''' Notify Primary of mirror addition, to start blocking. Currently do not have
-        way to set GUC for specific segment. Hence at end of initializing all
-        mirrors adding the GUC. Can't have it in InitMirrors as query to master
-        at StartMirror gets blocked, so need to perform the same after starting
-        mirrors. '''
-        commands = []
-        commands.append("gpconfig -c synchronous_standby_names -v \"*\"");
-        commands.append("gpstop -u");
-        runcommands(commands, "Main Mirror Init", "Notified primaries of mirror addition")
-
         initThreads = []
         for segconfig in self.segconfigs:
             if segconfig.preferred_role == GpSegmentConfiguration.ROLE_PRIMARY and segconfig.content != GpSegmentConfiguration.MASTER_CONTENT_ID:
@@ -265,6 +255,12 @@ class DestroyMirrors():
         catalog_update_query = "select pg_catalog.gp_remove_segment_mirror(%d::int2)" % (mirror_contentid)
         commands.append("PGOPTIONS=\"-c gp_session_role=utility\" psql postgres -c \"%s\"" % catalog_update_query)
 
+        for sc in self.segconfigs:
+            if sc.content == mirror_contentid and sc.preferred_role == GpSegmentConfiguration.ROLE_PRIMARY:
+                commands.append("echo > %s/gp_replication.conf" % sc.fselocation)
+                commands.append("pg_ctl -D %s reload" % sc.fselocation)
+                break
+
         thread_name = 'Mirror content %d' % mirror_contentid
         command_finish = 'Destroyed mirror at %s' % mirror_dir
         runcommands(commands, thread_name, command_finish, False)
@@ -279,17 +275,6 @@ class DestroyMirrors():
 
         for thread in destroyThreads:
             thread.join()
-
-        commands = []
-
-        '''
-        Notify Primary of mirror deletion, to stop blocking. Currently do not
-        have way to set GUC for specific segment. Hence at end of removing
-        all mirrors removing the GUC.
-        '''
-        commands.append("gpconfig -r synchronous_standby_names");
-        commands.append("gpstop -u");
-        runcommands(commands, "Main Mirror Destroy", "Notified primaries of mirror removal")
 
 class GpSegmentConfiguration():
     ROLE_PRIMARY = 'p'

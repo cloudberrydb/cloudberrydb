@@ -346,7 +346,9 @@ CheckpointerMain(void)
 	PG_SETMASK(&UnBlockSig);
 
 	/* update global shmem state for sync rep */
+	LWLockAcquire(SyncRepLock, LW_EXCLUSIVE);
 	SyncRepUpdateSyncStandbysDefined();
+	LWLockRelease(SyncRepLock);
 
 	/*
 	 * Loop forever
@@ -376,7 +378,9 @@ CheckpointerMain(void)
 			ProcessConfigFile(PGC_SIGHUP);
 
 			/* update global shmem state for sync rep */
+			LWLockAcquire(SyncRepLock, LW_EXCLUSIVE);
 			SyncRepUpdateSyncStandbysDefined();
+			LWLockRelease(SyncRepLock);
 		}
 		if (checkpoint_requested)
 		{

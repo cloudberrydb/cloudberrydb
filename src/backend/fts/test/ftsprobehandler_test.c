@@ -22,6 +22,7 @@ test_HandleFtsWalRepProbe(void **state)
 {
 	expect_any(GetMirrorStatus, IsMirrorUp);
 	expect_any(GetMirrorStatus, IsInSync);
+	will_assign_value(GetMirrorStatus, IsMirrorUp, true);
 	will_be_called(GetMirrorStatus);
 
 	expect_value(BeginCommand, commandTag, FTS_MSG_TYPE_PROBE);
@@ -61,6 +62,8 @@ test_HandleFtsWalRepProbe(void **state)
 	expect_value(EndCommand, commandTag, FTS_MSG_TYPE_PROBE);
 	expect_value(EndCommand, dest, DestRemote);
 	will_be_called(EndCommand);
+
+	will_be_called(SetSyncStandbysDefined);
 
 	HandleFtsWalRepProbe();
 }

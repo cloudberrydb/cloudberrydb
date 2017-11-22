@@ -20,6 +20,10 @@ endif
 override CPPFLAGS := -I$(srcdir) -I$(libpq_srcdir) -I$(srcdir)/../regress $(CPPFLAGS)
 override LDLIBS := $(libpq_pgport) $(LDLIBS)
 
+ifeq ($(enable_segwalrep), yes)
+EXTRA_TESTS=segwalrep/commit_blocking
+endif
+
 all: pg_isolation2_regress$(X) all-lib
 
 pg_regress.o:
@@ -51,7 +55,7 @@ clean distclean:
 	rm -rf $(pg_regress_clean_files)
 
 installcheck: all gpdiff.pl gpstringsubs.pl
-	./pg_isolation2_regress --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_isolation2 --psqldir='$(PSQLDIR)' --inputdir=$(srcdir) --ao-dir=uao --schedule=$(srcdir)/isolation2_schedule
+	./pg_isolation2_regress --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_isolation2 --psqldir='$(PSQLDIR)' --inputdir=$(srcdir) --ao-dir=uao --schedule=$(srcdir)/isolation2_schedule $(EXTRA_TESTS)
 
 installcheck-resgroup: all gpdiff.pl gpstringsubs.pl prepare_dblink_sql
 	./pg_isolation2_regress --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_resgroup --psqldir='$(PSQLDIR)' --inputdir=$(srcdir) --resgroup-dir=resgroup --dbname=isolation2resgrouptest --schedule=$(srcdir)/isolation2_resgroup_schedule

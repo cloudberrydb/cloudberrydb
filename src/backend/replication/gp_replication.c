@@ -12,6 +12,7 @@
  */
 
 #include "replication/gp_replication.h"
+#include "utils/guc.h"
 
 #include "replication/walsender.h"
 #include "replication/walsender_private.h"
@@ -53,6 +54,26 @@ void GetMirrorStatus(bool *IsMirrorUp, bool *IsInSync)
 				break;
 			}
 		}
+	}
+
+	LWLockRelease(SyncRepLock);
+}
+
+/*
+ * Set WalSndCtl->sync_standbys_defined to true to enable synchronous segment
+ * WAL replication and insert synchronous_standby_names="*" into the
+ * gp_replication.conf to persist this state in case of segment crash.
+ */
+void
+SetSyncStandbysDefined(void)
+{
+	LWLockAcquire(SyncRepLock, LW_EXCLUSIVE);
+
+	if (!WalSndCtl->sync_standbys_defined)
+	{
+		SyncRepStandbyNames = "*";
+		set_gp_replication_config("synchronous_standby_names", SyncRepStandbyNames);
+		SyncRepUpdateSyncStandbysDefined();
 	}
 
 	LWLockRelease(SyncRepLock);

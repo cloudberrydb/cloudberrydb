@@ -17,5 +17,6 @@
 #include "postgres.h"
 
 extern void GetMirrorStatus(bool *IsMirrorUp, bool *IsInSync);
+extern void SetSyncStandbysDefined(void);
 
 #endif

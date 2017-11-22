@@ -69,5 +69,9 @@ HandleFtsWalRepProbe()
 	ProbeResponse response;
 
 	GetMirrorStatus(&response.IsMirrorUp, &response.IsInSync);
+
+	if (response.IsMirrorUp)
+		SetSyncStandbysDefined();
+
 	SendProbeResponse(&response);
 }
