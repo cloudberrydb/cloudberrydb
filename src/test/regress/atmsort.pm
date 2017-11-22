@@ -1429,20 +1429,44 @@ sub atmsort_bigloop
 
                 print $atmsort_outfh $apref, $ini;
 
+                # If there is an ORDER BY in the query, then the results must
+                # be in the order that we have memorized in the expected
+                # output. Otherwise, the order of the rows is not
+                # well-defined, so we sort them before comparing, to mask out
+                # any differences in the order.
+                #
+                # This isn't foolproof, and will get fooled by ORDER BYs in
+                # subqueries, for example. But it catches the commmon cases.
                 if (defined($sql_statement)
                     && length($sql_statement)
                     && !defined($directive->{order_none})
                     # multiline match
                     && ($sql_statement =~ m/select.*order.*by/is))
                 {
-                    $has_order = 1; # so do *not* sort output
-                    $directive->{sql_statement} = $sql_statement;
+                    # There was an ORDER BY. But if it was part of an
+                    # "agg() OVER (ORDER BY ...)" or "WITHIN GROUP (ORDER BY
+                    # ...)" construct, ignore it, because those constructs
+                    # don't mean that the final result has to be in order.
+                    my $t = $sql_statement;
+                    $t =~ s/over\s*\(order\s+by.*\)/xx/isg;
+                    $t =~ s/over\s*\((partition\s+by.*)?order\s+by.*\)/xx/isg;
+                    $t =~ s/window\s+\w+\s+as\s+\((partition\s+by.*)?order\s+by.*\)/xx/isg;
+                    $t =~ s/within\s+group\s*\((order\s+by.*)\)/xx/isg;
+
+                    if ($t =~ m/order\s+by/is)
+                    {
+                        $has_order = 1; # so do *not* sort output
+                    }
+                    else
+                    {
+                        $has_order = 0; # need to sort query output
+                    }
                 }
                 else
                 {
                     $has_order = 0; # need to sort query output
-                    $directive->{sql_statement} = $sql_statement;
                 }
+                $directive->{sql_statement} = $sql_statement;
                 $sql_statement = '';
 
                 $getrows = 1;
