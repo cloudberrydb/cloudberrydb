@@ -136,7 +136,7 @@ create aggregate ema(float, float) (
     initcond = '(,)');
 
 create table ema_test (k int, v float ) distributed by (k);
-insert into ema_test select i, 4*random() + 10.0*(1+cos(radians(i*5))) from generate_series(0,19) i(i);
+insert into ema_test select i, 4*(i::float/20) + 10.0*(1+cos(radians(i*5))) from generate_series(0,19) i(i);
 
 -- TEST
 select k, v, ema(v, 0.9) over (order by k) from ema_test order by k;
