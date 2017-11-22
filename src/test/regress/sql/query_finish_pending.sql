@@ -29,15 +29,17 @@ insert into testsisc select i, i % 1000, i % 100000, i % 75 from
 set gp_resqueue_print_operator_memory_limits=on;
 set statement_mem='2MB';
 set gp_enable_mk_sort=off;
-
+-- ORCA does not generate SharedInputScan with a Sort node underneath it. For
+-- the following query, ORCA disregards the order by inside the cte definition;
+-- planner on the other hand does not.
+set optimizer=off;
 select gp_inject_fault('execshare_input_next', 'reset', 2);
 -- Set QueryFinishPending to true after SharedInputScan has retrieved the first tuple. 
 -- This will eagerly free the memory context of shared input scan's child node.  
 select gp_inject_fault('execshare_input_next', 'finish_pending', 2);
 
-select COUNT(i2) over(partition by i1)
-from testsisc
-LIMIT 2;
+with cte as (select i2 from testsisc order by i2)
+select * from cte c1, cte c2 limit 2;
 
 select gp_inject_fault('execshare_input_next', 'status', 2);
 
@@ -51,9 +53,8 @@ select gp_inject_fault('execshare_input_next', 'reset', 2);
 -- This will eagerly free the memory context of shared input scan's child node.  
 select gp_inject_fault('execshare_input_next', 'finish_pending', 2);
 
-select COUNT(i2) over(partition by i1)
-from testsisc
-LIMIT 2;
+with cte as (select i2 from testsisc order by i2)
+select * from cte c1, cte c2 limit 2;
 
 select gp_inject_fault('execshare_input_next', 'status', 2);
 
