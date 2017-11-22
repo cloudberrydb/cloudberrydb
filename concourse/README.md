@@ -60,12 +60,6 @@ Please do not create any more exceptions, and remove these as the occasion arise
 * `cpplint.py` is being used by codegen
 * `package_tarball.bash` is being used by
   [a gporca pipeline](https://github.com/greenplum-db/gporca/blob/master/concourse/pipeline.yml)
-* `builds/` is being used by
-  [a gporca pipeline](https://github.com/greenplum-db/gporca/blob/master/concourse/pipeline.yml)
-* `test_gpdb.py` is being used by
-  [a gporca pipeline](https://github.com/greenplum-db/gporca/blob/master/concourse/pipeline.yml)
-* `build_gpdb.py` is being used by
-  [a gporca pipeline](https://github.com/greenplum-db/gporca/blob/master/concourse/pipeline.yml)
 
 ### The Concourse Deployment
 There is a `gpdb` team in the
