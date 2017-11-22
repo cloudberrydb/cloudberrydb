@@ -62,6 +62,11 @@ def runcommands(commands, thread_name, command_finish, exit_on_error=True):
             print '%s:  %s' % (thread_name, line)
         print ''
 
+def displaySegmentConfiguration():
+    commands = []
+    commands.append("psql postgres -c \"select * from gp_segment_configuration order by content, dbid\"")
+    runcommands(commands, "", "")
+
 class InitMirrors():
     ''' Initialize the WAL replication mirror segment '''
 
@@ -291,15 +296,18 @@ class GpSegmentConfiguration():
     ROLE_MIRROR = 'm'
     MIRROR_DOWN = 'd'
     MIRROR_UP = 'u'
+    NOT_IN_SYNC = 'n'
+    IN_SYNC = 's'
     MASTER_CONTENT_ID = -1
 
-    def __init__(self, dbid, content, port, fselocation, preferred_role, status):
+    def __init__(self, dbid, content, port, fselocation, preferred_role, status, mode):
         self.dbid = dbid
         self.content = content
         self.port = port
         self.fselocation = fselocation
         self.preferred_role = preferred_role
         self.status = status
+        self.mode = mode
 
 class ClusterConfiguration():
     ''' Cluster configuration '''
@@ -317,7 +325,7 @@ class ClusterConfiguration():
         return self.seg_configs;
 
     def refresh(self):
-        query = "SELECT dbid, content, port, fselocation, preferred_role, status FROM gp_segment_configuration s, pg_filespace_entry f WHERE s.dbid = fsedbid"
+        query = "SELECT dbid, content, port, fselocation, preferred_role, status, mode FROM gp_segment_configuration s, pg_filespace_entry f WHERE s.dbid = fsedbid"
         print '%s: fetching cluster configuration' % (datetime.datetime.now())
         dburl = dbconn.DbURL(self.hostname, self.port, self.dbname)
         print '%s: fetched cluster configuration' % (datetime.datetime.now())
@@ -332,18 +340,20 @@ class ClusterConfiguration():
         self.seg_configs = []
         self.num_contents = 0
         for result in resultsets:
-            seg_config = GpSegmentConfiguration(result[0], result[1], result[2], result[3], result[4], result[5])
+            seg_config = GpSegmentConfiguration(result[0], result[1], result[2], result[3], result[4], result[5], result[6])
             self.seg_configs.append(seg_config)
 
             # Count primary segments
             if seg_config.preferred_role == GpSegmentConfiguration.ROLE_PRIMARY and seg_config.content  != GpSegmentConfiguration.MASTER_CONTENT_ID:
                 self.num_contents += 1
 
-    def check_mirror_status(self, expected_mirror_status):
-        ''' Check if all the mirror reached the expected_mirror_state '''
+    def check_mirror_status(self, expected_mirror_status, expected_mirror_mode):
+        ''' Check if all the mirror reached the expected_mirror_state and expected_mirror_mode '''
 
         for seg_config in self.seg_configs:
-            if seg_config.preferred_role == GpSegmentConfiguration.ROLE_MIRROR and seg_config.status != expected_mirror_status:
+            if seg_config.preferred_role == GpSegmentConfiguration.ROLE_MIRROR \
+                    and (seg_config.status != expected_mirror_status \
+                    or seg_config.mode != expected_mirror_mode) :
                 return False
 
         return True
@@ -357,7 +367,8 @@ class ColdMasterClusterConfiguration(ClusterConfiguration):
         master_seg_config = GpSegmentConfiguration(1, GpSegmentConfiguration.MASTER_CONTENT_ID,
                                                    port, master_directory,
                                                    GpSegmentConfiguration.ROLE_PRIMARY,
-                                                   GpSegmentConfiguration.MIRROR_UP)
+                                                   GpSegmentConfiguration.MIRROR_DOWN,
+                                                   GpSegmentConfiguration.NOT_IN_SYNC)
         self.seg_configs.append(master_seg_config)
 
         self.num_contents = 0
@@ -376,7 +387,7 @@ def defargs():
 
     return parser.parse_args()
 
-def ForceFTSProbeScan(cluster_configuration, expected_mirror_status = None, max_probes=2000):
+def ForceFTSProbeScan(cluster_configuration, expected_mirror_status = None, expected_mirror_mode = None, max_probes=2000):
     '''Force FTS probe scan to reflect primary and mirror status in catalog.'''
 
     commands = []
@@ -387,12 +398,12 @@ def ForceFTSProbeScan(cluster_configuration, expected_mirror_status = None, max_
     while(True):
         runcommands(commands, "Force FTS probe scan", "FTS probe refreshed catalog")
 
-        if (expected_mirror_status == None):
+        if (expected_mirror_status == None or expected_mirror_mode == None):
             return
 
         cluster_configuration.refresh()
 
-        if (cluster_configuration.check_mirror_status(expected_mirror_status)):
+        if (cluster_configuration.check_mirror_status(expected_mirror_status, expected_mirror_mode)):
             return
 
         if probe_count >= max_probes:
@@ -422,15 +433,17 @@ if __name__ == "__main__":
     # Execute the chosen operation
     if args.operation == 'init':
         InitMirrors(cluster_config, args.host).run()
-        ForceFTSProbeScan(cluster_config, GpSegmentConfiguration.MIRROR_DOWN)
+        ForceFTSProbeScan(cluster_config, GpSegmentConfiguration.MIRROR_DOWN, GpSegmentConfiguration.NOT_IN_SYNC)
     elif args.operation == 'clusterstart':
         StartInstances(cluster_config, args.host).run()
         ForceFTSProbeScan(cluster_config)
     elif args.operation == 'start':
         StartInstances(cluster_config, args.host, segment_type=GpSegmentConfiguration.ROLE_MIRROR).run()
-        ForceFTSProbeScan(cluster_config, GpSegmentConfiguration.MIRROR_UP)
+        ForceFTSProbeScan(cluster_config, GpSegmentConfiguration.MIRROR_UP, GpSegmentConfiguration.IN_SYNC)
     elif args.operation == 'stop':
         StopInstances(cluster_config, segment_type=GpSegmentConfiguration.ROLE_MIRROR).run()
-        ForceFTSProbeScan(cluster_config, GpSegmentConfiguration.MIRROR_DOWN)
+        ForceFTSProbeScan(cluster_config, GpSegmentConfiguration.MIRROR_DOWN, GpSegmentConfiguration.NOT_IN_SYNC)
     elif args.operation == 'destroy':
         DestroyMirrors(cluster_config).run()
+
+    displaySegmentConfiguration()
