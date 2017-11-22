@@ -80,7 +80,8 @@ class SQLIsolationExecutor(object):
             if blocking:
                 time.sleep(0.5)
                 if self.pipe.poll(0):
-                    raise Exception("Forked command is not blocking")
+                    p = self.pipe.recv()
+                    raise Exception("Forked command is not blocking; got output: %s" % p.strip())
             self.has_open = True
 
         def join(self):
@@ -216,7 +217,7 @@ class SQLIsolationExecutor(object):
             raise Exception("Sessions not started cannot be quit")
 
         self.processes[(name, utility_mode)].quit()
-        del self.processes[(name, False)]
+        del self.processes[(name, utility_mode)]
 
     def process_command(self, command, output_file):
         """
@@ -263,6 +264,10 @@ class SQLIsolationExecutor(object):
             if len(sql) > 0:
                 raise Exception("No query should be given on join")
             self.get_process(output_file, process_name, dbname=dbname).join()
+        elif flag == "q":
+            if len(sql) > 0:
+                raise Exception("No query should be given on quit")
+            self.quit_process(output_file, process_name, dbname=dbname)
         elif flag == "U":
             self.get_process(output_file, process_name, utility_mode=True, dbname=dbname).query(sql.strip())
         elif flag == "U&":
@@ -271,10 +276,10 @@ class SQLIsolationExecutor(object):
             if len(sql) > 0:
                 raise Exception("No query should be given on join")
             self.get_process(output_file, process_name, utility_mode=True, dbname=dbname).join()
-        elif flag == "q":
+        elif flag == "Uq":
             if len(sql) > 0:
                 raise Exception("No query should be given on quit")
-            self.quit_process(output_file, process_name, dbname=dbname)
+            self.quit_process(output_file, process_name, utility_mode=True, dbname=dbname)
         else:
             raise Exception("Invalid isolation flag")
 
@@ -288,10 +293,13 @@ class SQLIsolationExecutor(object):
             for line in sql_file:
                 #tinctest.logger.info("re.match: %s" %re.match(r"^\d+[q\\<]:$", line))
                 print >>output_file, line.strip(),
-                (command_part, dummy, comment) = line.partition("--")
+                if line[0] == "!":
+                    command_part = line # shell commands can use -- for multichar options like --include
+                else:
+                    command_part = line.partition("--")[0] # remove comment from line
                 if command_part == "" or command_part == "\n":
                     print >>output_file 
-                elif command_part.endswith(";\n") or re.match(r"^\d+[q\\<]:$", line) or re.match(r"^\d+U[\\<]:$", line):
+                elif command_part.endswith(";\n") or re.match(r"^\d+[q\\<]:$", line) or re.match(r"^\d+U[q\\<]:$", line):
                     command += command_part
                     try:
                         self.process_command(command, output_file)
