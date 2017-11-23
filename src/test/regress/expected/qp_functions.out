@@ -1,4 +1,14 @@
 SET datestyle = "ISO, DMY";
+-- Test heuristic to resolve unknown-type literals when there are ambiguous
+-- functions, added in PostgreSQL commit 1a8b9fb549.
+create function ambigargfunc(a int4, b int4) returns text as $$ select 'int variant chosen'::text $$ language sql;
+create function ambigargfunc(a int4, b timestamp) returns text as $$ select 'timestamp variant chosen'::text $$ language sql;
+select ambigargfunc(1,'2');
+    ambigargfunc    
+--------------------
+ int variant chosen
+(1 row)
+
 -- start_ignore
 drop table if exists test;
 NOTICE:  table "test" does not exist, skipping
