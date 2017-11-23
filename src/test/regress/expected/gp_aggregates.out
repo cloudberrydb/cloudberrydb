@@ -159,6 +159,26 @@ select distinct t1.two, t2.two, t1.four, t2.four from tenk1 t1, tenk1 t2 where t
    1 |   1 |    3 |    3
 (4 rows)
 
+-- A variant with more result rows. We had a bug at one point where the
+-- Motion Gather node on top of this was missing the Merge Key, and hence
+-- the output came out unsorted. But it was not visible if all the rows
+-- were processed on the same segment, as is the case with the above variant
+-- with only two distinct 'two' values.
+select distinct ten, sum(ten) over() from tenk1 order by ten;
+ ten |  sum  
+-----+-------
+   0 | 45000
+   1 | 45000
+   2 | 45000
+   3 | 45000
+   4 | 45000
+   5 | 45000
+   6 | 45000
+   7 | 45000
+   8 | 45000
+   9 | 45000
+(10 rows)
+
 -- Test for a planner bug we used to have, when this query gets planned
 -- as a merge join. This should perform a merge join between 'l' and 'ps',
 -- using both pk and sk as the merge keys. Due to the bug, the planner

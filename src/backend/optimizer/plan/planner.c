@@ -2034,7 +2034,6 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 	 * behavior, so in that case that's definitely what we want.
 	 */
 	if ((parse->distinctClause || parse->sortClause) &&
-		result_plan->flow->flotype != FLOW_SINGLETON &&
 		(root->config->honor_order_by || !root->parent_root) &&
 		!parse->intoClause &&
 		/*
@@ -2284,7 +2283,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 				mark_sort_locus(result_plan);
 			}
 
-			if (must_gather)
+			if (must_gather && result_plan->flow->flotype != FLOW_SINGLETON)
 			{
 				/*
 				 * As an optimization, eliminate any duplicates within the segment,
@@ -2297,7 +2296,6 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 
 				result_plan = (Plan *) make_motion_gather(root, result_plan, -1,
 														  current_pathkeys);
-				must_gather = false;
 			}
 
 			result_plan = (Plan *) make_unique(result_plan,
@@ -2326,7 +2324,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			result_plan->flow = pull_up_Flow(result_plan, result_plan->lefttree);
 		}
 
-		if (must_gather)
+		if (must_gather && result_plan->flow->flotype != FLOW_SINGLETON)
 		{
 			/*
 			 * current_pathkeys might contain unneeded columns that have been
@@ -2338,7 +2336,6 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			current_pathkeys = root->sort_pathkeys;
 			result_plan = (Plan *) make_motion_gather(root, result_plan, -1,
 													  current_pathkeys);
-			must_gather = false;
 		}
 	}
 
