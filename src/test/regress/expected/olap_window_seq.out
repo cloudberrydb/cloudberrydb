@@ -24,14 +24,40 @@ from sale; -- mvd 1->1
 
 select rank() over (), * 
 from sale; --error - order by req'd
-ERROR:  window function "rank" requires a window specification with an ordering clause
-LINE 1: select rank() over (), * 
-               ^
+ rank | cn | vn | pn  |     dt     | qty  | prc  
+------+----+----+-----+------------+------+------
+    1 |  1 | 10 | 200 | 03-01-1401 |    1 |    0
+    1 |  1 | 20 | 100 | 05-01-1401 |    1 |    0
+    1 |  1 | 30 | 300 | 05-02-1401 |    1 |    0
+    1 |  1 | 30 | 500 | 06-01-1401 |   12 |    5
+    1 |  1 | 50 | 400 | 06-01-1401 |    1 |    0
+    1 |  2 | 40 | 100 | 01-01-1401 | 1100 | 2400
+    1 |  2 | 50 | 400 | 06-01-1401 |    1 |    0
+    1 |  3 | 30 | 500 | 06-01-1401 |   12 |    5
+    1 |  3 | 30 | 600 | 06-01-1401 |   12 |    5
+    1 |  3 | 40 | 200 | 04-01-1401 |    1 |    0
+    1 |  4 | 40 | 700 | 06-01-1401 |    1 |    1
+    1 |  4 | 40 | 800 | 06-01-1401 |    1 |    1
+(12 rows)
+
 select dense_rank() over (), * 
 from sale; --error - order by order by req'd
-ERROR:  window function "dense_rank" requires a window specification with an ordering clause
-LINE 1: select dense_rank() over (), * 
-               ^
+ dense_rank | cn | vn | pn  |     dt     | qty  | prc  
+------------+----+----+-----+------------+------+------
+          1 |  1 | 10 | 200 | 03-01-1401 |    1 |    0
+          1 |  1 | 20 | 100 | 05-01-1401 |    1 |    0
+          1 |  1 | 30 | 300 | 05-02-1401 |    1 |    0
+          1 |  1 | 30 | 500 | 06-01-1401 |   12 |    5
+          1 |  1 | 50 | 400 | 06-01-1401 |    1 |    0
+          1 |  2 | 40 | 100 | 01-01-1401 | 1100 | 2400
+          1 |  2 | 50 | 400 | 06-01-1401 |    1 |    0
+          1 |  3 | 30 | 500 | 06-01-1401 |   12 |    5
+          1 |  3 | 30 | 600 | 06-01-1401 |   12 |    5
+          1 |  3 | 40 | 200 | 04-01-1401 |    1 |    0
+          1 |  4 | 40 | 700 | 06-01-1401 |    1 |    1
+          1 |  4 | 40 | 800 | 06-01-1401 |    1 |    1
+(12 rows)
+
 -- 2 -- Plan trivial windows over various input plan types ----
 select row_number() over (), pn, cn, vn, dt, qty, prc
 from sale; -- mvd 1->1
@@ -260,14 +286,40 @@ from sale; -- mvd 2,3->1
 
 select rank() over (partition by cn), cn, pn 
 from sale; --error - rank requires ordering
-ERROR:  window function "rank" requires a window specification with an ordering clause
-LINE 1: select rank() over (partition by cn), cn, pn 
-               ^
+ rank | cn | pn  
+------+----+-----
+    1 |  1 | 100
+    1 |  1 | 200
+    1 |  1 | 300
+    1 |  1 | 400
+    1 |  1 | 500
+    1 |  2 | 100
+    1 |  2 | 400
+    1 |  3 | 200
+    1 |  3 | 500
+    1 |  3 | 600
+    1 |  4 | 700
+    1 |  4 | 800
+(12 rows)
+
 select dense_rank() over (partition by cn), cn, pn 
 from sale; --error - dense_rank requires ordering
-ERROR:  window function "dense_rank" requires a window specification with an ordering clause
-LINE 1: select dense_rank() over (partition by cn), cn, pn 
-               ^
+ dense_rank | cn | pn  
+------------+----+-----
+          1 |  1 | 100
+          1 |  1 | 200
+          1 |  1 | 300
+          1 |  1 | 400
+          1 |  1 | 500
+          1 |  2 | 100
+          1 |  2 | 400
+          1 |  3 | 200
+          1 |  3 | 500
+          1 |  3 | 600
+          1 |  4 | 700
+          1 |  4 | 800
+(12 rows)
+
 select row_number() over (partition by pname, cname), pname, cname
 from sale s, customer c, product p 
 where s.cn = c.cn and s.pn = p.pn; -- mvd 2,3->1
@@ -2022,122 +2074,19 @@ SELECT sale.pn,sale.cn,sale.prc,
 
 -- Check LEAD()
 -- sanity tests
-select p.proname, p.proargtypes from pg_window w, pg_proc p, pg_proc p2 where w.winfunc = p.oid and w.winfnoid = p2.oid and p2.proname = 'lead' order by 1,2;
-     proname      |    proargtypes    
-------------------+-------------------
- lead_any         | 2281 2277
- lead_any         | 2281 2277 20
- lead_any         | 2281 2277 20 2277
- lead_bit         | 2281 1560
- lead_bit         | 2281 1560 20
- lead_bit         | 2281 1560 20 1560
- lead_bool        | 2281 16
- lead_bool        | 2281 16 20
- lead_bool        | 2281 16 20 16
- lead_box         | 2281 603
- lead_box         | 2281 603 20
- lead_box         | 2281 603 20 603
- lead_bytea       | 2281 17
- lead_bytea       | 2281 17 20
- lead_bytea       | 2281 17 20 17
- lead_char        | 2281 18
- lead_char        | 2281 18 20
- lead_char        | 2281 18 20 18
- lead_cidr        | 2281 650
- lead_cidr        | 2281 650 20
- lead_cidr        | 2281 650 20 650
- lead_circle      | 2281 718
- lead_circle      | 2281 718 20
- lead_circle      | 2281 718 20 718
- lead_float4      | 2281 700
- lead_float4      | 2281 700 20
- lead_float4      | 2281 700 20 700
- lead_float8      | 2281 701
- lead_float8      | 2281 701 20
- lead_float8      | 2281 701 20 701
- lead_inet        | 2281 869
- lead_inet        | 2281 869 20
- lead_inet        | 2281 869 20 869
- lead_int         | 2281 23
- lead_int         | 2281 23 20
- lead_int         | 2281 23 20 23
- lead_int8        | 2281 20
- lead_int8        | 2281 20 20
- lead_int8        | 2281 20 20 20
- lead_interval    | 2281 1186
- lead_interval    | 2281 1186 20
- lead_interval    | 2281 1186 20 1186
- lead_line        | 2281 628
- lead_line        | 2281 628 20
- lead_line        | 2281 628 20 628
- lead_lseg        | 2281 601
- lead_lseg        | 2281 601 20
- lead_lseg        | 2281 601 20 601
- lead_macaddr     | 2281 829
- lead_macaddr     | 2281 829 20
- lead_macaddr     | 2281 829 20 829
- lead_money       | 2281 790
- lead_money       | 2281 790 20
- lead_money       | 2281 790 20 790
- lead_name        | 2281 19
- lead_name        | 2281 19 20
- lead_name        | 2281 19 20 19
- lead_numeric     | 2281 1700
- lead_numeric     | 2281 1700 20
- lead_numeric     | 2281 1700 20 1700
- lead_oid         | 2281 26
- lead_oid         | 2281 26 20
- lead_oid         | 2281 26 20 26
- lead_path        | 2281 602
- lead_path        | 2281 602 20
- lead_path        | 2281 602 20 602
- lead_point       | 2281 600
- lead_point       | 2281 600 20
- lead_point       | 2281 600 20 600
- lead_polygon     | 2281 604
- lead_polygon     | 2281 604 20
- lead_polygon     | 2281 604 20 604
- lead_reltime     | 2281 703
- lead_reltime     | 2281 703 20
- lead_reltime     | 2281 703 20 703
- lead_smallint    | 2281 21
- lead_smallint    | 2281 21 20
- lead_smallint    | 2281 21 20 21
- lead_text        | 2281 25
- lead_text        | 2281 25 20
- lead_text        | 2281 25 20 25
- lead_tid         | 2281 27
- lead_tid         | 2281 27 20
- lead_tid         | 2281 27 20 27
- lead_time        | 2281 1083
- lead_time        | 2281 1083 20
- lead_time        | 2281 1083 20 1083
- lead_timestamp   | 2281 1114
- lead_timestamp   | 2281 1114 20
- lead_timestamp   | 2281 1114 20 1114
- lead_timestamptz | 2281 1184
- lead_timestamptz | 2281 1184 20
- lead_timestamptz | 2281 1184 20 1184
- lead_timetz      | 2281 1266
- lead_timetz      | 2281 1266 20
- lead_timetz      | 2281 1266 20 1266
- lead_varbit      | 2281 1562
- lead_varbit      | 2281 1562 20
- lead_varbit      | 2281 1562 20 1562
- lead_varchar     | 2281 1043
- lead_varchar     | 2281 1043 20
- lead_varchar     | 2281 1043 20 1043
- lead_xid         | 2281 28
- lead_xid         | 2281 28 20
- lead_xid         | 2281 28 20 28
-(105 rows)
-
 select lead(cn) from sale;
 ERROR:  window function call requires an OVER clause
 LINE 1: select lead(cn) from sale;
                ^
 select cn, cname, lead(cname, -1) over (order by cn) from customer;
-ERROR:  LEAD offset cannot be negative
+ cn |    cname     |     lead     
+----+--------------+--------------
+  1 | Macbeth      | 
+  2 | Duncan       | Macbeth
+  3 | Lady Macbeth | Duncan
+  4 | Witches, Inc | Lady Macbeth
+(4 rows)
+
 -- actual LEAD tests
 select cn, cname, lead(cname, 2, 'undefined') over (order by cn) from customer;
  cn |    cname     |     lead     
@@ -2204,117 +2153,6 @@ order by 1, 2, 3;
 (12 rows)
 
 -- Check LAG()
--- sanity tests
-select p.proname, p.proargtypes from pg_window w, pg_proc p, pg_proc p2 where w.winfunc = p.oid and w.winfnoid = p2.oid and p2.proname = 'lag' order by 1,2;
-     proname     |    proargtypes    
------------------+-------------------
- lag_any         | 2281 2277
- lag_any         | 2281 2277 20
- lag_any         | 2281 2277 20 2277
- lag_bit         | 2281 1560
- lag_bit         | 2281 1560 20
- lag_bit         | 2281 1560 20 1560
- lag_bool        | 2281 16
- lag_bool        | 2281 16 20
- lag_bool        | 2281 16 20 16
- lag_box         | 2281 603
- lag_box         | 2281 603 20
- lag_box         | 2281 603 20 603
- lag_bytea       | 2281 17
- lag_bytea       | 2281 17 20
- lag_bytea       | 2281 17 20 17
- lag_char        | 2281 18
- lag_char        | 2281 18 20
- lag_char        | 2281 18 20 18
- lag_cidr        | 2281 650
- lag_cidr        | 2281 650 20
- lag_cidr        | 2281 650 20 650
- lag_circle      | 2281 718
- lag_circle      | 2281 718 20
- lag_circle      | 2281 718 20 718
- lag_float4      | 2281 700
- lag_float4      | 2281 700 20
- lag_float4      | 2281 700 20 700
- lag_float8      | 2281 701
- lag_float8      | 2281 701 20
- lag_float8      | 2281 701 20 701
- lag_inet        | 2281 869
- lag_inet        | 2281 869 20
- lag_inet        | 2281 869 20 869
- lag_int4        | 2281 23
- lag_int4        | 2281 23 20
- lag_int4        | 2281 23 20 23
- lag_int8        | 2281 20
- lag_int8        | 2281 20 20
- lag_int8        | 2281 20 20 20
- lag_interval    | 2281 1186
- lag_interval    | 2281 1186 20
- lag_interval    | 2281 1186 20 1186
- lag_line        | 2281 628
- lag_line        | 2281 628 20
- lag_line        | 2281 628 20 628
- lag_lseg        | 2281 601
- lag_lseg        | 2281 601 20
- lag_lseg        | 2281 601 20 601
- lag_macaddr     | 2281 829
- lag_macaddr     | 2281 829 20
- lag_macaddr     | 2281 829 20 829
- lag_money       | 2281 790
- lag_money       | 2281 790 20
- lag_money       | 2281 790 20 790
- lag_name        | 2281 19
- lag_name        | 2281 19 20
- lag_name        | 2281 19 20 19
- lag_numeric     | 2281 1700
- lag_numeric     | 2281 1700 20
- lag_numeric     | 2281 1700 20 1700
- lag_oid         | 2281 26
- lag_oid         | 2281 26 20
- lag_oid         | 2281 26 20 26
- lag_path        | 2281 602
- lag_path        | 2281 602 20
- lag_path        | 2281 602 20 602
- lag_point       | 2281 600
- lag_point       | 2281 600 20
- lag_point       | 2281 600 20 600
- lag_polygon     | 2281 604
- lag_polygon     | 2281 604 20
- lag_polygon     | 2281 604 20 604
- lag_reltime     | 2281 703
- lag_reltime     | 2281 703 20
- lag_reltime     | 2281 703 20 703
- lag_smallint    | 2281 21
- lag_smallint    | 2281 21 20
- lag_smallint    | 2281 21 20 21
- lag_text        | 2281 25
- lag_text        | 2281 25 20
- lag_text        | 2281 25 20 25
- lag_tid         | 2281 27
- lag_tid         | 2281 27 20
- lag_tid         | 2281 27 20 27
- lag_time        | 2281 1083
- lag_time        | 2281 1083 20
- lag_time        | 2281 1083 20 1083
- lag_timestamp   | 2281 1114
- lag_timestamp   | 2281 1114 20
- lag_timestamp   | 2281 1114 20 1114
- lag_timestamptz | 2281 1184
- lag_timestamptz | 2281 1184 20
- lag_timestamptz | 2281 1184 20 1184
- lag_timetz      | 2281 1266
- lag_timetz      | 2281 1266 20
- lag_timetz      | 2281 1266 20 1266
- lag_varbit      | 2281 1562
- lag_varbit      | 2281 1562 20
- lag_varbit      | 2281 1562 20 1562
- lag_varchar     | 2281 1043
- lag_varchar     | 2281 1043 20
- lag_varchar     | 2281 1043 20 1043
- lag_xid         | 2281 28
- lag_xid         | 2281 28 20
- lag_xid         | 2281 28 20 28
-(105 rows)
-
 -- actual LAG tests
 select cn, cname, lag(cname, 2, 'undefined') over (order by cn) from customer;
  cn |    cname     |    lag    
@@ -7210,9 +7048,39 @@ select cn,vn,ntile(cn) over(partition by cn order by vn) from sale; --mvd 1->3
 (12 rows)
 
 select cn,vn,ntile(qty) over(partition by cn order by vn) from sale;
-ERROR:  NTILE function argument expression should be in PARTITION BY.
+ cn | vn | ntile 
+----+----+-------
+  1 | 10 |     1
+  1 | 20 |     1
+  1 | 30 |     1
+  1 | 30 |     1
+  1 | 50 |     1
+  2 | 40 |     1
+  2 | 50 |     2
+  3 | 30 |     1
+  3 | 30 |     2
+  3 | 40 |     3
+  4 | 40 |     1
+  4 | 40 |     1
+(12 rows)
+
 select cn,vn,ntile(cn) over(partition by cn+vn order by vn) from sale;
-ERROR:  NTILE function argument expression should be in PARTITION BY.
+ cn | vn | ntile 
+----+----+-------
+  1 | 10 |     1
+  1 | 20 |     1
+  1 | 30 |     1
+  1 | 30 |     1
+  1 | 50 |     1
+  2 | 40 |     1
+  2 | 50 |     1
+  3 | 30 |     1
+  3 | 30 |     2
+  3 | 40 |     1
+  4 | 40 |     1
+  4 | 40 |     2
+(12 rows)
+
 select cn,vn,ntile(cn+vn) over(partition by cn+vn order by vn) from sale; --mvd 1,2->3
  cn | vn | ntile 
 ----+----+-------

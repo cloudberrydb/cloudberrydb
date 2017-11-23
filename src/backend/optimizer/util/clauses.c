@@ -77,7 +77,9 @@ typedef struct
 } substitute_actual_srf_parameters_context;
 
 static bool contain_agg_clause_walker(Node *node, void *context);
+static bool pull_agg_clause_walker(Node *node, List **context);
 static bool count_agg_clauses_walker(Node *node, AggClauseCounts *counts);
+static bool find_window_functions_walker(Node *node, WindowFuncLists *lists);
 static bool expression_returns_set_rows_walker(Node *node, double *count);
 static bool contain_subplans_walker(Node *node, void *context);
 static bool contain_mutable_functions_walker(Node *node, void *context);
@@ -408,6 +410,41 @@ contain_agg_clause_walker(Node *node, void *context)
 }
 
 /*
+ * pull_agg_clause
+ *	  Recursively search for Aggref nodes within a clause.
+ *
+ *	  Returns a List of all Aggrefs found.
+ *
+ * This does not descend into subqueries, and so should be used only after
+ * reduction of sublinks to subplans, or in contexts where it's known there
+ * are no subqueries.  There mustn't be outer-aggregate references either.
+ */
+List *
+pull_agg_clause(Node *clause)
+{
+	List	   *result = NIL;
+
+	(void) pull_agg_clause_walker(clause, &result);
+	return result;
+}
+
+static bool
+pull_agg_clause_walker(Node *node, List **context)
+{
+	if (node == NULL)
+		return false;
+	if (IsA(node, Aggref))
+	{
+		Assert(((Aggref *) node)->agglevelsup == 0);
+		*context = lappend(*context, node);
+		return false;			/* no need to descend into arguments */
+	}
+	Assert(!IsA(node, SubLink));
+	return expression_tree_walker(node, pull_agg_clause_walker,
+								  (void *) context);
+}
+
+/*
  * count_agg_clauses
  *	  Recursively count the Aggref nodes in an expression tree.
  *
@@ -606,6 +643,62 @@ contain_window_function(Node *clause)
 	return checkExprHasWindowFuncs(clause);
 }
 
+/*
+ * find_window_functions
+ *	  Locate all the WindowFunc nodes in an expression tree, and organize
+ *	  them by winref ID number.
+ *
+ * Caller must provide an upper bound on the winref IDs expected in the tree.
+ */
+WindowFuncLists *
+find_window_functions(Node *clause, Index maxWinRef)
+{
+	WindowFuncLists *lists = palloc(sizeof(WindowFuncLists));
+
+	lists->numWindowFuncs = 0;
+	lists->maxWinRef = maxWinRef;
+	lists->windowFuncs = (List **) palloc0((maxWinRef + 1) * sizeof(List *));
+	(void) find_window_functions_walker(clause, lists);
+	return lists;
+}
+
+static bool
+find_window_functions_walker(Node *node, WindowFuncLists *lists)
+{
+	if (node == NULL)
+		return false;
+	if (IsA(node, WindowFunc))
+	{
+		WindowFunc *wfunc = (WindowFunc *) node;
+
+		/* winref is unsigned, so one-sided test is OK */
+		if (wfunc->winref > lists->maxWinRef)
+			elog(ERROR, "WindowFunc contains out-of-range winref %u",
+				 wfunc->winref);
+		lists->windowFuncs[wfunc->winref] =
+			lappend(lists->windowFuncs[wfunc->winref], wfunc);
+		lists->numWindowFuncs++;
+
+		/*
+		 * Complain if the window function's arguments contain window
+		 * functions.  Window functions in the FILTER clause are detected in
+		 * transformAggregateCall().
+		 */
+		if (contain_window_function((Node *) wfunc->args))
+			ereport(ERROR,
+					(errcode(ERRCODE_WINDOWING_ERROR),
+					 errmsg("window function calls cannot be nested")));
+
+		/*
+		 * Having checked that, we need not recurse into the argument.
+		 */
+		return false;
+	}
+	Assert(!IsA(node, SubLink));
+	return expression_tree_walker(node, find_window_functions_walker,
+								  (void *) lists);
+}
+
 
 /*****************************************************************************
  *		Support for expressions returning sets
@@ -654,6 +747,8 @@ expression_returns_set_rows_walker(Node *node, double *count)
 
 	/* Avoid recursion for some cases that can't return a set */
 	if (IsA(node, Aggref))
+		return false;
+	if (IsA(node, WindowFunc))
 		return false;
 	if (IsA(node, DistinctExpr))
 		return false;
@@ -1720,7 +1815,8 @@ check_execute_on_functions(Node *clause)
  * not-constant expressions, namely aggregates (Aggrefs).  In current usage
  * this is only applied to WHERE clauses and so a check for Aggrefs would be
  * a waste of cycles; but be sure to also check contain_agg_clause() if you
- * want to know about pseudo-constness in other contexts.
+ * want to know about pseudo-constness in other contexts.  The same goes
+ * for window functions (WindowFuncs).
  */
 bool
 is_pseudo_constant_clause(Node *clause)
@@ -3893,6 +3989,7 @@ inline_function(Oid funcid, Oid result_type, List *args,
 		querytree->utilityStmt ||
 		querytree->intoClause ||
 		querytree->hasAggs ||
+		querytree->hasWindowFuncs ||
 		querytree->hasSubLinks ||
 		querytree->cteList ||
 		querytree->rtable ||
@@ -3900,6 +3997,7 @@ inline_function(Oid funcid, Oid result_type, List *args,
 		querytree->jointree->quals ||
 		querytree->groupClause ||
 		querytree->havingQual ||
+		querytree->windowClause ||
 		querytree->distinctClause ||
 		querytree->sortClause ||
 		querytree->limitOffset ||

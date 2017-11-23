@@ -1395,6 +1395,7 @@ map_variable_attnos(Node *node,
  * Messy, isn't it?  We do not need to do similar pushups for hasAggs,
  * because it isn't possible for this transformation to insert a level-zero
  * aggregate reference into a subquery --- it could only insert outer aggs.
+ * Likewise for hasWindowFuncs.
  */
 
 typedef struct

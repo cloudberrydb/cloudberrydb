@@ -73,7 +73,15 @@ create aggregate mysum1(int4) (sfunc = int4_sum, prefunc=int8pl, stype=bigint);
 create aggregate mysum2(int4) (sfunc = int4_sum, stype=bigint);
 -- TEST
 select id, val, sum(val) over (w), mysum1(val) over (w), mysum2(val) over (w) from toy window w as (order by id rows 2 preceding);
-ERROR:  aggregate functions with no prelimfn or invprelimfn are not yet supported as window functions
+ id | val | sum | mysum1 | mysum2 
+----+-----+-----+--------+--------
+  1 |   1 |   1 |      1 |      1
+  2 |   2 |   3 |      3 |      3
+  3 |   3 |   6 |      6 |      6
+  4 |   4 |   9 |      9 |      9
+  5 |   5 |  12 |     12 |     12
+(5 rows)
+
 -- CLEANUP
 -- start_ignore
 drop aggregate if exists mysum1(int4);

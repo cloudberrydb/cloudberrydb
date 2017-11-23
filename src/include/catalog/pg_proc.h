@@ -4791,6 +4791,38 @@ DESCR("list an extension's version update paths");
 DATA(insert OID = 3086 (  pg_extension_config_dump		PGNSP PGUID 12 1 0 0 f f f t f v 2 0 2278 "2205 25" _null_ _null_ _null_ _null_ pg_extension_config_dump _null_ _null_ _null_ n a));
 DESCR("flag an extension's table contents to be emitted by pg_dump");
 
+/* SQL-spec window functions */
+DATA(insert OID = 3100 (  row_number	PGNSP PGUID 12 1 0 0 f t f f f i 0 0 20 "" _null_ _null_ _null_ _null_ window_row_number _null_ _null_ _null_ n a));
+DESCR("row number within partition");
+DATA(insert OID = 3101 (  rank			PGNSP PGUID 12 1 0 0 f t f f f i 0 0 20 "" _null_ _null_ _null_ _null_ window_rank _null_ _null_ _null_ n a ));
+DESCR("integer rank with gaps");
+DATA(insert OID = 3102 (  dense_rank	PGNSP PGUID 12 1 0 0 f t f f f i 0 0 20 "" _null_ _null_ _null_ _null_ window_dense_rank _null_ _null_ _null_ n a ));
+DESCR("integer rank without gaps");
+DATA(insert OID = 3103 (  percent_rank	PGNSP PGUID 12 1 0 0 f t f f f i 0 0 701 "" _null_ _null_ _null_ _null_ window_percent_rank _null_ _null_ _null_ n a ));
+DESCR("fractional rank within partition");
+DATA(insert OID = 3104 (  cume_dist		PGNSP PGUID 12 1 0 0 f t f f f i 0 0 701 "" _null_ _null_ _null_ _null_ window_cume_dist _null_ _null_ _null_ n a ));
+DESCR("fractional row number within partition");
+DATA(insert OID = 3105 (  ntile			PGNSP PGUID 12 1 0 0 f t f t f i 1 0 23 "23" _null_ _null_ _null_ _null_ window_ntile _null_ _null_ _null_ n a ));
+DESCR("split rows into N groups");
+DATA(insert OID = 3106 (  lag			PGNSP PGUID 12 1 0 0 f t f t f i 1 0 2283 "2283" _null_ _null_ _null_ _null_ window_lag _null_ _null_ _null_ n a ));
+DESCR("fetch the preceding row value");
+DATA(insert OID = 3107 (  lag			PGNSP PGUID 12 1 0 0 f t f t f i 2 0 2283 "2283 23" _null_ _null_ _null_ _null_ window_lag_with_offset _null_ _null_ _null_ n a ));
+DESCR("fetch the Nth preceding row value");
+DATA(insert OID = 3108 (  lag			PGNSP PGUID 12 1 0 0 f t f t f i 3 0 2283 "2283 23 2283" _null_ _null_ _null_ _null_ window_lag_with_offset_and_default _null_ _null_ _null_ n a ));
+DESCR("fetch the Nth preceding row value with default");
+DATA(insert OID = 3109 (  lead			PGNSP PGUID 12 1 0 0 f t f t f i 1 0 2283 "2283" _null_ _null_ _null_ _null_ window_lead _null_ _null_ _null_ n a ));
+DESCR("fetch the following row value");
+DATA(insert OID = 3110 (  lead			PGNSP PGUID 12 1 0 0 f t f t f i 2 0 2283 "2283 23" _null_ _null_ _null_ _null_ window_lead_with_offset _null_ _null_ _null_ n a ));
+DESCR("fetch the Nth following row value");
+DATA(insert OID = 3111 (  lead			PGNSP PGUID 12 1 0 0 f t f t f i 3 0 2283 "2283 23 2283" _null_ _null_ _null_ _null_ window_lead_with_offset_and_default _null_ _null_ _null_ n a ));
+DESCR("fetch the Nth following row value with default");
+DATA(insert OID = 3112 (  first_value	PGNSP PGUID 12 1 0 0 f t f t f i 1 0 2283 "2283" _null_ _null_ _null_ _null_ window_first_value _null_ _null_ _null_ n a ));
+DESCR("fetch the first row value");
+DATA(insert OID = 3113 (  last_value	PGNSP PGUID 12 1 0 0 f t f t f i 1 0 2283 "2283" _null_ _null_ _null_ _null_ window_last_value _null_ _null_ _null_ n a ));
+DESCR("fetch the last row value");
+DATA(insert OID = 3114 (  nth_value		PGNSP PGUID 12 1 0 0 f t f t f i 2 0 2283 "2283 23" _null_ _null_ _null_ _null_ window_nth_value _null_ _null_ _null_ n a ));
+DESCR("fetch the Nth row value");
+
 /*
  * Include more definitions from pg_proc_gp.h, for GPDB-added functions. They
  * are kept in a separate file to make diffing and merging with upstream

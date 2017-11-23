@@ -1009,6 +1009,7 @@ _copyWindowAgg(WindowAgg *from)
 
 	CopyPlanFields((Plan *) from, (Plan *) newnode);
 
+	COPY_SCALAR_FIELD(winref);
 	COPY_SCALAR_FIELD(partNumCols);
 	if (from->partNumCols > 0)
 	{

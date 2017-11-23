@@ -2541,20 +2541,12 @@ AggCheckCallContext(FunctionCallInfo fcinfo, MemoryContext *aggcontext)
 			*aggcontext = ((AggState *) fcinfo->context)->aggcontext;
 		return AGG_CONTEXT_AGGREGATE;
 	}
-
-/*
- * TODO: remove the macro after we upgrade GPDB to PG8.4 due to WindowAggState
- *		 is not supported yet.
- */
-/* GPDB_84_MERGE_FIXME */
-#if 0
 	if (fcinfo->context && IsA(fcinfo->context, WindowAggState))
 	{
 		if (aggcontext)
-			*aggcontext = ((WindowAggState *) fcinfo->context)->wincontext;
+			*aggcontext = ((WindowAggState *) fcinfo->context)->aggcontext;
 		return AGG_CONTEXT_WINDOW;
 	}
-#endif
 
 	/* this is just to prevent "uninitialized variable" warnings */
 	if (aggcontext)

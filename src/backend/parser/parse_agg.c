@@ -439,7 +439,7 @@ parseCheckAggregates(ParseState *pstate, Query *qry)
 	if (pstate->p_hasAggs && hasSelfRefRTEs)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_RECURSION),
-				 errmsg("aggregates not allowed in a recursive query's recursive term"),
+				 errmsg("aggregate functions not allowed in a recursive query's recursive term"),
 				 parser_errposition(pstate,
 									locate_agg_of_level((Node *) qry, 0))));
 }
@@ -495,6 +495,39 @@ parseCheckWindowFuncs(ParseState *pstate, Query *qry)
 				   errmsg("window functions not allowed in GROUP BY clause"),
 					 parser_errposition(pstate,
 										locate_windowfunc(expr))));
+	}
+
+	foreach(l, qry->windowClause)
+	{
+		WindowClause *wc = (WindowClause *) lfirst(l);
+		ListCell   *l2;
+
+		foreach(l2, wc->partitionClause)
+		{
+			SortGroupClause *grpcl = (SortGroupClause *) lfirst(l2);
+			Node	   *expr;
+
+			expr = get_sortgroupclause_expr(grpcl, qry->targetList);
+			if (checkExprHasWindowFuncs(expr))
+				ereport(ERROR,
+						(errcode(ERRCODE_WINDOWING_ERROR),
+				 errmsg("window functions not allowed in window definition"),
+						 parser_errposition(pstate,
+											locate_windowfunc(expr))));
+		}
+		foreach(l2, wc->orderClause)
+		{
+			SortGroupClause *grpcl = (SortGroupClause *) lfirst(l2);
+			Node	   *expr;
+
+			expr = get_sortgroupclause_expr(grpcl, qry->targetList);
+			if (checkExprHasWindowFuncs(expr))
+				ereport(ERROR,
+						(errcode(ERRCODE_WINDOWING_ERROR),
+				 errmsg("window functions not allowed in window definition"),
+						 parser_errposition(pstate,
+											locate_windowfunc(expr))));
+		}
 	}
 }
 

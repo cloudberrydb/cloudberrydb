@@ -56,6 +56,7 @@
 #include "cdb/cdbllize.h"
 #include "cdb/cdbpathtoplan.h"	/* cdbpathtoplan_create_flow() */
 #include "cdb/cdbpath.h"
+#include "cdb/cdbplan.h"
 #include "cdb/cdbpullup.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbhash.h"		/* isGreenplumDbHashable() */
@@ -2628,7 +2629,7 @@ make_subplan_tlist(List *tlist, Node *havingQual,
 	/* GPDB_84_MERGE_FIXME: Should we pass includePlaceHolderVars as true */
 	/* in pull_var_clause ? */
 	extravars = pull_var_clause(havingQual, false);
-	sub_tlist = add_to_flat_tlist(sub_tlist, extravars, false /* resjunk */ );
+	sub_tlist = add_to_flat_tlist(sub_tlist, extravars);
 	list_free(extravars);
 
 	num_gkeys = num_distcols_in_grouplist(grp_clauses);
@@ -6372,7 +6373,7 @@ within_agg_join_plans(PlannerInfo *root,
 	/* GPDB_84_MERGE_FIXME: Should we pass includePlaceHolderVars as true */
 	/* in pull_var_clause ? */
 	extravars = pull_var_clause(root->parse->havingQual, false);
-	join_tlist = add_to_flat_tlist(join_tlist, extravars, false);
+	join_tlist = add_to_flat_tlist(join_tlist, extravars);
 
 	foreach(l, root->parse->groupClause)
 	{
@@ -6409,14 +6410,13 @@ within_agg_join_plans(PlannerInfo *root,
 	pc_var = makeVar(Outer, wag_context->pc_pos, INT8OID, -1, 0);
 	tc_var = makeVar(Inner, wag_context->tc_pos, INT8OID, -1, 0);
 	join_tlist = add_to_flat_tlist(join_tlist,
-								   list_make2((void *) pc_var, (void *) tc_var),
-								   false);
+								   list_make2((void *) pc_var, (void *) tc_var));
 
 	/* add vars from flow expression: MPP-20076 */
 	/* GPDB_84_MERGE_FIXME: Should we pass includePlaceHolderVars as true */
 	/* in pull_var_clause ? */
 	extravars = pull_var_clause((Node *) outer_plan->flow->hashExpr, false);
-	join_tlist = add_to_flat_tlist(join_tlist, extravars, false /* resjunk */ );
+	join_tlist = add_to_flat_tlist(join_tlist, extravars);
 
 	/*
 	 * It is ideal to tell if the inner plan is fine to merge-join by
@@ -6596,7 +6596,7 @@ within_agg_final_agg(PlannerInfo *root,
 	/* in pull_var_clause ? */
 	List	   *extravars = pull_var_clause((Node *) result_plan->flow->hashExpr, false);
 
-	targetList = add_to_flat_tlist(targetList, extravars, true /* resjunk */ );
+	targetList = add_to_flat_tlist(targetList, extravars);
 	list_free(extravars);
 
 	result_plan = (Plan *) make_agg(root,

@@ -153,13 +153,13 @@ typedef enum NodeTag
 	T_MaterialState,
 	T_SortState,
 	T_AggState,
+	T_WindowAggState,
 	T_UniqueState,
 	T_HashState,
 	T_SetOpState,
 	T_LimitState,
 	T_MotionState,
 	T_ShareInputScanState,
-	T_WindowState,
 	T_RepeatState,
 	T_DMLState,
 	T_SplitUpdateState,
@@ -216,9 +216,6 @@ typedef enum NodeTag
 	T_FromExpr,
 	T_IntoClause,
 	T_Flow,
-	T_WindowFrame,
-	T_WindowFrameEdge,
-	T_WindowKey,
 	T_Grouping,
 	T_GroupId,
     T_AggOrder,
@@ -530,6 +527,7 @@ typedef enum NodeTag
 	 */
 	T_TriggerData = 950,		/* in commands/trigger.h */
 	T_ReturnSetInfo,			/* in nodes/execnodes.h */
+	T_WindowObjectData,			/* private in nodeWindowAgg.c */
 	T_InlineCodeBlock,			/* in nodes/parsenodes.h */
     T_HashBitmap,               /* in nodes/tidbitmap.h */
     T_StreamBitmap,             /* in nodes/tidbitmap.h */
@@ -780,7 +778,7 @@ typedef enum DispatchMethod
  * isn't legal if the function is being used outside this context.
  */
 #define IS_AGG_EXECUTION_NODE(node) \
-	((IsA((Node *)(node), AggState) || IsA((Node *)(node), WindowState)) ? \
+	((IsA((Node *)(node), AggState) || IsA((Node *)(node), WindowAggState)) ? \
 	 true : false)
 
 /*

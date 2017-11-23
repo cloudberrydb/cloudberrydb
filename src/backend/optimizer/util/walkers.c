@@ -507,7 +507,6 @@ plan_tree_walker(Node *node,
 		case T_PartBoundOpenExpr:
 		case T_PartListRuleExpr:
 		case T_PartListNullTestExpr:
-		case T_WindowKey:
 
 		default:
 			return expression_tree_walker(node, walker, context);

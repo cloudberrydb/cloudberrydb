@@ -110,6 +110,20 @@ static void locate_grouping_columns(PlannerInfo *root,
 						List *sub_tlist,
 						AttrNumber *groupColIdx);
 static List *postprocess_setop_tlist(List *new_tlist, List *orig_tlist);
+static List *select_active_windows(PlannerInfo *root, WindowFuncLists *wflists);
+static List *add_volatile_sort_exprs(List *window_tlist, List *tlist,
+						List *activeWindows);
+static List *make_pathkeys_for_window(PlannerInfo *root, WindowClause *wc,
+						 List *tlist, bool canonicalize);
+static void get_column_info_for_window(PlannerInfo *root, WindowClause *wc,
+						   List *tlist,
+						   int numSortCols, AttrNumber *sortColIdx,
+						   int *partNumCols,
+						   AttrNumber **partColIdx,
+						   Oid **partOperators,
+						   int *ordNumCols,
+						   AttrNumber **ordColIdx,
+						   Oid **ordOperators);
 
 static Bitmapset *canonicalize_colref_list(Node *node);
 static List *canonicalize_gs_list(List *gsl, bool ordinary);
@@ -1356,55 +1370,6 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 															tlist,
 															true);
 	}
-	else if ( parse->windowClause && parse->targetList &&
-			  contain_window_function((Node *) parse->targetList) )
-	{
-		if (extract_nodes(NULL, (Node *) tlist, T_PercentileExpr) != NIL)
-		{
-			ereport(ERROR,
-					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("window function with WITHIN GROUP aggregate is not supported")));
-		}
-		/*
-		 * Calculate pathkeys that represent ordering requirements. Stash
-		 * them in PlannerInfo so that query_planner can canonicalize them.
-		 */
-		root->group_pathkeys = NIL;
-		root->sort_pathkeys =
-			make_pathkeys_for_sortclauses(root, parse->sortClause, tlist, true);
-
-		
-		result_plan = window_planner(root, tuple_fraction, &current_pathkeys);
-
-		/*
-		 * Recover sort pathkeys for use later.  These may or may not match
-		 * the current_pathkeys resulting from the window plan.
-		 */
-		if (parse->groupClause &&
-			grouping_is_sortable(parse->groupClause))
-			root->group_pathkeys =
-			make_pathkeys_for_groupclause(root,
-										  parse->groupClause,
-										  result_plan->targetlist);
-		else
-			root->group_pathkeys = NIL;
-
-		if (parse->distinctClause &&
-			grouping_is_sortable(parse->distinctClause))
-			root->distinct_pathkeys =
-				make_pathkeys_for_sortclauses(root,
-											  parse->distinctClause,
-											  result_plan->targetlist,
-											  false);
-		else
-			root->distinct_pathkeys = NIL;
-
-		root->sort_pathkeys =
-			make_pathkeys_for_sortclauses(root,
-										  parse->sortClause,
-										  result_plan->targetlist,
-										  false);
-	}
 	else
 	{
 		/* No set operations, do regular planning */
@@ -1419,6 +1384,8 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		AggClauseCounts agg_counts;
 		int			numGroupCols;
 		bool		use_hashed_grouping = false;
+		WindowFuncLists *wflists = NULL;
+		List	   *activeWindows = NIL;
 		bool		grpext = false;
 		bool		has_within = false;
 		CanonicalGroupingSets *canonical_grpsets;
@@ -1435,6 +1402,22 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 
 		/* Preprocess targetlist */
 		tlist = preprocess_targetlist(root, tlist);
+
+		/*
+		 * Locate any window functions in the tlist.  (We don't need to look
+		 * anywhere else, since expressions used in ORDER BY will be in there
+		 * too.)  Note that they could all have been eliminated by constant
+		 * folding, in which case we don't need to do any more work.
+		 */
+		if (parse->hasWindowFuncs)
+		{
+			wflists = find_window_functions((Node *) tlist,
+											list_length(parse->windowClause));
+			if (wflists->numWindowFuncs > 0)
+				activeWindows = select_active_windows(root, wflists);
+			else
+				parse->hasWindowFuncs = false;
+		}
 
 		/* Obtain canonical grouping sets */
 		canonical_grpsets = make_canonical_groupingsets(parse->groupClause);
@@ -1517,6 +1500,19 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		sub_tlist = make_subplanTargetList(root, tlist,
 										   &groupColIdx, &groupOperators, &need_tlist_eval);
 
+		/* We consider only the first (bottom) window in pathkeys logic */
+		if (activeWindows != NIL)
+		{
+			WindowClause *wc = (WindowClause *) linitial(activeWindows);
+
+			root->window_pathkeys = make_pathkeys_for_window(root,
+															 wc,
+															 tlist,
+															 false);
+		}
+		else
+			root->window_pathkeys = NIL;
+
 		/*
 		 * Augment the subplan target list to include targets for ordered
 		 * aggregates.  As a side effect, this may scribble updated sort group
@@ -1531,11 +1527,12 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		 * Figure out whether we want a sorted result from query_planner.
 		 *
 		 * If we have a sortable GROUP BY clause, then we want a result sorted
-		 * properly for grouping.  Otherwise, if there's a sortable DISTINCT
-		 * clause that's more rigorous than the ORDER BY clause, we try to
-		 * produce output that's sufficiently well sorted for the DISTINCT.
-		 * Otherwise, if there is an ORDER BY clause, we want to sort by the
-		 * ORDER BY clause.
+		 * properly for grouping.  Otherwise, if we have window functions to
+		 * evaluate, we try to sort for the first window.  Otherwise, if
+		 * there's a sortable DISTINCT clause that's more rigorous than the
+		 * ORDER BY clause, we try to produce output that's sufficiently well
+		 * sorted for the DISTINCT.  Otherwise, if there is an ORDER BY
+		 * clause, we want to sort by the ORDER BY clause.
 		 *
 		 * Note: if we have both ORDER BY and GROUP BY, and ORDER BY is a
 		 * superset of GROUP BY, it would be tempting to request sort by ORDER
@@ -1546,6 +1543,8 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		 */
 		if (root->group_pathkeys)
 			root->query_pathkeys = root->group_pathkeys;
+		else if (root->window_pathkeys)
+			root->query_pathkeys = root->window_pathkeys;
 		else if (list_length(root->distinct_pathkeys) >
 				 list_length(root->sort_pathkeys))
 			root->query_pathkeys = root->distinct_pathkeys;
@@ -1783,10 +1782,10 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 				 *
 				 * Below this point, any tlist eval cost for added-on nodes
 				 * should be accounted for as we create those nodes.
-				 * Presently, of the node types we can add on, only Agg and
-				 * Group project new tlists (the rest just copy their input
-				 * tuples) --- so make_agg() and make_group() are responsible
-				 * for computing the added cost.
+				 * Presently, of the node types we can add on, only Agg,
+				 * WindowAgg, and Group project new tlists (the rest just copy
+				 * their input tuples) --- so make_agg(), make_windowagg() and
+				 * make_group() are responsible for computing the added cost.
 				 */
 				cost_qual_eval(&tlist_cost, sub_tlist, root);
 				result_plan->startup_cost += tlist_cost.startup;
@@ -2000,6 +1999,217 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 				CdbPathLocus_MakeNull(&current_locus);
 			}
 		}						/* end of non-minmax-aggregate case */
+
+		/*
+		 * Since each window function could require a different sort order, we
+		 * stack up a WindowAgg node for each window, with sort steps between
+		 * them as needed.
+		 */
+		if (activeWindows)
+		{
+			List	   *window_tlist;
+			ListCell   *l;
+
+			/*
+			 * If the top-level plan node is one that cannot do expression
+			 * evaluation, we must insert a Result node to project the desired
+			 * tlist.  (In some cases this might not really be required, but
+			 * it's not worth trying to avoid it.)  Note that on second and
+			 * subsequent passes through the following loop, the top-level
+			 * node will be a WindowAgg which we know can project; so we only
+			 * need to check once.
+			 */
+			if (!is_projection_capable_plan(result_plan))
+			{
+				result_plan = (Plan *) make_result(root,
+												   NIL,
+												   NULL,
+												   result_plan);
+
+				result_plan->flow = pull_up_Flow(result_plan,
+												 getAnySubplan(result_plan));
+			}
+
+			/*
+			 * The "base" targetlist for all steps of the windowing process is
+			 * a flat tlist of all Vars and Aggs needed in the result. (In
+			 * some cases we wouldn't need to propagate all of these all the
+			 * way to the top, since they might only be needed as inputs to
+			 * WindowFuncs.  It's probably not worth trying to optimize that
+			 * though.)  We also need any volatile sort expressions, because
+			 * make_sort_from_pathkeys won't add those on its own, and anyway
+			 * we want them evaluated only once at the bottom of the stack.
+			 * As we climb up the stack, we add outputs for the WindowFuncs
+			 * computed at each level.  Also, each input tlist has to present
+			 * all the columns needed to sort the data for the next WindowAgg
+			 * step.  That's handled internally by make_sort_from_pathkeys,
+			 * but we need the copyObject steps here to ensure that each plan
+			 * node has a separately modifiable tlist.
+			 */
+			window_tlist = flatten_tlist(tlist);
+			if (parse->hasAggs)
+				window_tlist = add_to_flat_tlist(window_tlist,
+											pull_agg_clause((Node *) tlist));
+			window_tlist = add_volatile_sort_exprs(window_tlist, tlist,
+												   activeWindows);
+			window_tlist = add_to_flat_tlist_junk(window_tlist,
+												  result_plan->flow->hashExpr,
+												  true /* resjunk */);
+			result_plan->targetlist = (List *) copyObject(window_tlist);
+
+			foreach(l, activeWindows)
+			{
+				WindowClause *wc = (WindowClause *) lfirst(l);
+				List	   *window_pathkeys;
+				int			partNumCols;
+				AttrNumber *partColIdx;
+				Oid		   *partOperators;
+				int			ordNumCols;
+				AttrNumber *ordColIdx;
+				Oid		   *ordOperators;
+
+				/*
+				 * Unless the PARTITION BY in the window happens to match the
+				 * current distribution, we need a motion. Each partition
+				 * needs to be handled in the same segment.
+				 *
+				 * If there is no PARTITION BY, then all rows form a single
+				 * partition, so we need to gather all the tuples to a single
+				 * node. But we'll do that after the Sort, so that the Sort
+				 * is parallelized.
+				 */
+				if (wc->partitionClause && !CdbPathLocus_IsGeneral(current_locus))
+				{
+					List	   *dist_pathkeys;
+
+					dist_pathkeys =
+						make_pathkeys_for_sortclauses(root, wc->partitionClause,
+													  tlist, false);
+
+					if (!cdbpathlocus_collocates(root, current_locus, dist_pathkeys, false))
+					{
+						List	   *dist_exprs = NIL;
+						ListCell   *lc;
+
+						foreach (lc, wc->partitionClause)
+						{
+							SortGroupClause *sc = (SortGroupClause *) lfirst(lc);
+							TargetEntry *tle = get_sortgroupclause_tle(sc, tlist);
+
+							dist_exprs = lappend(dist_exprs, tle->expr);
+						}
+
+						result_plan = (Plan *) make_motion_hash(root, result_plan, dist_exprs);
+						result_plan->total_cost += motion_cost_per_row * result_plan->plan_rows;
+						current_pathkeys = NIL; /* no longer sorted */
+						Assert(result_plan->flow);
+
+						/*
+						 * Change current_locus based on the new distribution
+						 * pathkeys.
+						 */
+						CdbPathLocus_MakeHashed(&current_locus, dist_pathkeys);
+					}
+				}
+
+				window_pathkeys = make_pathkeys_for_window(root,
+														   wc,
+														   tlist,
+														   true);
+
+				/*
+				 * This is a bit tricky: we build a sort node even if we don't
+				 * really have to sort.  Even when no explicit sort is needed,
+				 * we need to have suitable resjunk items added to the input
+				 * plan's tlist for any partitioning or ordering columns that
+				 * aren't plain Vars.  Furthermore, this way we can use
+				 * existing infrastructure to identify which input columns are
+				 * the interesting ones.
+				 */
+				if (window_pathkeys)
+				{
+					Sort	   *sort_plan;
+
+					sort_plan = make_sort_from_pathkeys(root,
+														result_plan,
+														window_pathkeys,
+														-1.0,
+														true);
+					if (!pathkeys_contained_in(window_pathkeys,
+											   current_pathkeys))
+					{
+						/* we do indeed need to sort */
+						result_plan = (Plan *) sort_plan;
+						current_pathkeys = window_pathkeys;
+						mark_sort_locus(result_plan);
+
+						if (!result_plan->flow)
+							result_plan->flow = pull_up_Flow(result_plan,
+															 getAnySubplan(result_plan));
+					}
+					/* In either case, extract the per-column information */
+					get_column_info_for_window(root, wc, tlist,
+											   sort_plan->numCols,
+											   sort_plan->sortColIdx,
+											   &partNumCols,
+											   &partColIdx,
+											   &partOperators,
+											   &ordNumCols,
+											   &ordColIdx,
+											   &ordOperators);
+				}
+				else
+				{
+					/* empty window specification, nothing to sort */
+					partNumCols = 0;
+					partColIdx = NULL;
+					partOperators = NULL;
+					ordNumCols = 0;
+					ordColIdx = NULL;
+					ordOperators = NULL;
+				}
+
+				/*
+				 * If there was no PARTITION BY, gather the result.
+				 */
+				if (!wc->partitionClause &&
+					!CdbPathLocus_IsGeneral(current_locus) &&
+					result_plan->flow->flotype != FLOW_SINGLETON)
+				{
+					result_plan =
+						(Plan *) make_motion_gather_to_QE(root, result_plan, current_pathkeys);
+				}
+
+				if (lnext(l))
+				{
+					/* Add the current WindowFuncs to the running tlist */
+					window_tlist = add_to_flat_tlist(window_tlist,
+										   wflists->windowFuncs[wc->winref]);
+				}
+				else
+				{
+					/* Install the original tlist in the topmost WindowAgg */
+					window_tlist = tlist;
+				}
+
+				/* ... and make the WindowAgg plan node */
+				result_plan = (Plan *)
+					make_windowagg(root,
+								   (List *) copyObject(window_tlist),
+								   wflists->windowFuncs[wc->winref],
+								   wc->winref,
+								   partNumCols,
+								   partColIdx,
+								   partOperators,
+								   ordNumCols,
+								   ordColIdx,
+								   ordOperators,
+								   wc->frameOptions,
+								   wc->startOffset,
+								   wc->endOffset,
+								   result_plan);
+			}
+		}
 
 		/* free canonical_grpsets */
 		free_canonical_groupingsets(canonical_grpsets);
@@ -3252,7 +3462,8 @@ make_subplanTargetList(PlannerInfo *root,
 	 * If we're not grouping or aggregating, there's nothing to do here;
 	 * query_planner should receive the unmodified target list.
 	 */
-	if (!parse->hasAggs && !parse->groupClause && !root->hasHavingQual)
+	if (!parse->hasAggs && !parse->groupClause && !root->hasHavingQual &&
+		!parse->hasWindowFuncs)
 	{
 		*need_tlist_eval = true;
 		return tlist;
@@ -3261,11 +3472,13 @@ make_subplanTargetList(PlannerInfo *root,
 	/*
 	 * Otherwise, start with a "flattened" tlist (having just the vars
 	 * mentioned in the targetlist and HAVING qual --- but not upper-level
-	 * Vars; they will be replaced by Params later on).
+	 * Vars; they will be replaced by Params later on).  Note this includes
+	 * vars used in resjunk items, so we are covering the needs of ORDER BY
+	 * and window specifications.
 	 */
 	sub_tlist = flatten_tlist(tlist);
 	extravars = pull_var_clause(parse->havingQual, true);
-	sub_tlist = add_to_flat_tlist(sub_tlist, extravars, false /* resjunk */);
+	sub_tlist = add_to_flat_tlist(sub_tlist, extravars);
 	list_free(extravars);
 
 	/*
@@ -3630,6 +3843,286 @@ postprocess_setop_tlist(List *new_tlist, List *orig_tlist)
 		elog(ERROR, "resjunk output columns are not implemented");
 	return new_tlist;
 }
+
+/*
+ * select_active_windows
+ *		Create a list of the "active" window clauses (ie, those referenced
+ *		by non-deleted WindowFuncs) in the order they are to be executed.
+ */
+static List *
+select_active_windows(PlannerInfo *root, WindowFuncLists *wflists)
+{
+	List	   *result;
+	List	   *actives;
+	ListCell   *lc;
+
+	/* First, make a list of the active windows */
+	actives = NIL;
+	foreach(lc, root->parse->windowClause)
+	{
+		WindowClause *wc = (WindowClause *) lfirst(lc);
+
+		/* It's only active if wflists shows some related WindowFuncs */
+		Assert(wc->winref <= wflists->maxWinRef);
+		if (wflists->windowFuncs[wc->winref] != NIL)
+			actives = lappend(actives, wc);
+	}
+
+	/*
+	 * Now, ensure that windows with identical partitioning/ordering clauses
+	 * are adjacent in the list.  This is required by the SQL standard, which
+	 * says that only one sort is to be used for such windows, even if they
+	 * are otherwise distinct (eg, different names or framing clauses).
+	 *
+	 * There is room to be much smarter here, for example detecting whether
+	 * one window's sort keys are a prefix of another's (so that sorting for
+	 * the latter would do for the former), or putting windows first that
+	 * match a sort order available for the underlying query.  For the moment
+	 * we are content with meeting the spec.
+	 */
+	result = NIL;
+	while (actives != NIL)
+	{
+		WindowClause *wc = (WindowClause *) linitial(actives);
+		ListCell   *prev;
+		ListCell   *next;
+
+		/* Move wc from actives to result */
+		actives = list_delete_first(actives);
+		result = lappend(result, wc);
+
+		/* Now move any matching windows from actives to result */
+		prev = NULL;
+		for (lc = list_head(actives); lc; lc = next)
+		{
+			WindowClause *wc2 = (WindowClause *) lfirst(lc);
+
+			next = lnext(lc);
+			/* framing options are NOT to be compared here! */
+			if (equal(wc->partitionClause, wc2->partitionClause) &&
+				equal(wc->orderClause, wc2->orderClause))
+			{
+				actives = list_delete_cell(actives, lc, prev);
+				result = lappend(result, wc2);
+			}
+			else
+				prev = lc;
+		}
+	}
+
+	return result;
+}
+
+/*
+ * add_volatile_sort_exprs
+ *		Identify any volatile sort/group expressions used by the active
+ *		windows, and add them to window_tlist if not already present.
+ *		Return the modified window_tlist.
+ */
+static List *
+add_volatile_sort_exprs(List *window_tlist, List *tlist, List *activeWindows)
+{
+	Bitmapset  *sgrefs = NULL;
+	ListCell   *lc;
+
+	/* First, collect the sortgrouprefs of the windows into a bitmapset */
+	foreach(lc, activeWindows)
+	{
+		WindowClause *wc = (WindowClause *) lfirst(lc);
+		ListCell   *lc2;
+
+		foreach(lc2, wc->partitionClause)
+		{
+			SortGroupClause *sortcl = (SortGroupClause *) lfirst(lc2);
+
+			sgrefs = bms_add_member(sgrefs, sortcl->tleSortGroupRef);
+		}
+		foreach(lc2, wc->orderClause)
+		{
+			SortGroupClause *sortcl = (SortGroupClause *) lfirst(lc2);
+
+			sgrefs = bms_add_member(sgrefs, sortcl->tleSortGroupRef);
+		}
+	}
+
+	/*
+	 * Now scan the original tlist to find the referenced expressions. Any
+	 * that are volatile must be added to window_tlist.
+	 *
+	 * Note: we know that the input window_tlist contains no items marked with
+	 * ressortgrouprefs, so we don't have to worry about collisions of the
+	 * reference numbers.
+	 */
+	foreach(lc, tlist)
+	{
+		TargetEntry *tle = (TargetEntry *) lfirst(lc);
+
+		if (tle->ressortgroupref != 0 &&
+			bms_is_member(tle->ressortgroupref, sgrefs) &&
+			contain_volatile_functions((Node *) tle->expr))
+		{
+			TargetEntry *newtle;
+
+			newtle = makeTargetEntry(tle->expr,
+									 list_length(window_tlist) + 1,
+									 NULL,
+									 false);
+			newtle->ressortgroupref = tle->ressortgroupref;
+			window_tlist = lappend(window_tlist, newtle);
+		}
+	}
+
+	return window_tlist;
+}
+
+/*
+ * make_pathkeys_for_window
+ *		Create a pathkeys list describing the required input ordering
+ *		for the given WindowClause.
+ *
+ * The required ordering is first the PARTITION keys, then the ORDER keys.
+ * In the future we might try to implement windowing using hashing, in which
+ * case the ordering could be relaxed, but for now we always sort.
+ */
+static List *
+make_pathkeys_for_window(PlannerInfo *root, WindowClause *wc,
+						 List *tlist, bool canonicalize)
+{
+	List	   *window_pathkeys;
+	List	   *window_sortclauses;
+
+	/* Throw error if can't sort */
+	if (!grouping_is_sortable(wc->partitionClause))
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("could not implement window PARTITION BY"),
+				 errdetail("Window partitioning columns must be of sortable datatypes.")));
+	if (!grouping_is_sortable(wc->orderClause))
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("could not implement window ORDER BY"),
+		errdetail("Window ordering columns must be of sortable datatypes.")));
+
+	/* Okay, make the combined pathkeys */
+	window_sortclauses = list_concat(list_copy(wc->partitionClause),
+									 list_copy(wc->orderClause));
+	window_pathkeys = make_pathkeys_for_sortclauses(root,
+													window_sortclauses,
+													tlist,
+													canonicalize);
+	list_free(window_sortclauses);
+	return window_pathkeys;
+}
+
+/*----------
+ * get_column_info_for_window
+ *		Get the partitioning/ordering column numbers and equality operators
+ *		for a WindowAgg node.
+ *
+ * This depends on the behavior of make_pathkeys_for_window()!
+ *
+ * We are given the target WindowClause and an array of the input column
+ * numbers associated with the resulting pathkeys.  In the easy case, there
+ * are the same number of pathkey columns as partitioning + ordering columns
+ * and we just have to copy some data around.  However, it's possible that
+ * some of the original partitioning + ordering columns were eliminated as
+ * redundant during the transformation to pathkeys.  (This can happen even
+ * though the parser gets rid of obvious duplicates.  A typical scenario is a
+ * window specification "PARTITION BY x ORDER BY y" coupled with a clause
+ * "WHERE x = y" that causes the two sort columns to be recognized as
+ * redundant.)	In that unusual case, we have to work a lot harder to
+ * determine which keys are significant.
+ *
+ * The method used here is a bit brute-force: add the sort columns to a list
+ * one at a time and note when the resulting pathkey list gets longer.  But
+ * it's a sufficiently uncommon case that a faster way doesn't seem worth
+ * the amount of code refactoring that'd be needed.
+ *----------
+ */
+static void
+get_column_info_for_window(PlannerInfo *root, WindowClause *wc, List *tlist,
+						   int numSortCols, AttrNumber *sortColIdx,
+						   int *partNumCols,
+						   AttrNumber **partColIdx,
+						   Oid **partOperators,
+						   int *ordNumCols,
+						   AttrNumber **ordColIdx,
+						   Oid **ordOperators)
+{
+	int			numPart = list_length(wc->partitionClause);
+	int			numOrder = list_length(wc->orderClause);
+
+	if (numSortCols == numPart + numOrder)
+	{
+		/* easy case */
+		*partNumCols = numPart;
+		*partColIdx = sortColIdx;
+		*partOperators = extract_grouping_ops(wc->partitionClause);
+		*ordNumCols = numOrder;
+		*ordColIdx = sortColIdx + numPart;
+		*ordOperators = extract_grouping_ops(wc->orderClause);
+	}
+	else
+	{
+		List	   *sortclauses;
+		List	   *pathkeys;
+		int			scidx;
+		ListCell   *lc;
+
+		/* first, allocate what's certainly enough space for the arrays */
+		*partNumCols = 0;
+		*partColIdx = (AttrNumber *) palloc(numPart * sizeof(AttrNumber));
+		*partOperators = (Oid *) palloc(numPart * sizeof(Oid));
+		*ordNumCols = 0;
+		*ordColIdx = (AttrNumber *) palloc(numOrder * sizeof(AttrNumber));
+		*ordOperators = (Oid *) palloc(numOrder * sizeof(Oid));
+		sortclauses = NIL;
+		pathkeys = NIL;
+		scidx = 0;
+		foreach(lc, wc->partitionClause)
+		{
+			SortGroupClause *sgc = (SortGroupClause *) lfirst(lc);
+			List	   *new_pathkeys;
+
+			sortclauses = lappend(sortclauses, sgc);
+			new_pathkeys = make_pathkeys_for_sortclauses(root,
+														 sortclauses,
+														 tlist,
+														 true);
+			if (list_length(new_pathkeys) > list_length(pathkeys))
+			{
+				/* this sort clause is actually significant */
+				(*partColIdx)[*partNumCols] = sortColIdx[scidx++];
+				(*partOperators)[*partNumCols] = sgc->eqop;
+				(*partNumCols)++;
+				pathkeys = new_pathkeys;
+			}
+		}
+		foreach(lc, wc->orderClause)
+		{
+			SortGroupClause *sgc = (SortGroupClause *) lfirst(lc);
+			List	   *new_pathkeys;
+
+			sortclauses = lappend(sortclauses, sgc);
+			new_pathkeys = make_pathkeys_for_sortclauses(root,
+														 sortclauses,
+														 tlist,
+														 true);
+			if (list_length(new_pathkeys) > list_length(pathkeys))
+			{
+				/* this sort clause is actually significant */
+				(*ordColIdx)[*ordNumCols] = sortColIdx[scidx++];
+				(*ordOperators)[*ordNumCols] = sgc->eqop;
+				(*ordNumCols)++;
+				pathkeys = new_pathkeys;
+			}
+		}
+		/* complain if we didn't eat exactly the right number of sort cols */
+		if (scidx != numSortCols)
+			elog(ERROR, "failed to deconstruct sort operators into partitioning/ordering operators");
+	}
+}
+
 
 /*
  * Produce the canonical form of a GROUP BY clause given the parse

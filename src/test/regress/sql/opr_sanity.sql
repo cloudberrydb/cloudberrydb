@@ -122,8 +122,7 @@ WHERE p1.oid < p2.oid AND
      p1.proisstrict != p2.proisstrict OR
      p1.proretset != p2.proretset OR
      p1.provolatile != p2.provolatile OR
-     (p1.pronargs != p2.pronargs AND p1.oid 
-	  NOT IN (select winfunc from pg_window)));
+     p1.pronargs != p2.pronargs);
 
 -- Look for uses of different type OIDs in the argument/result type fields
 -- for different aliases of the same built-in function.

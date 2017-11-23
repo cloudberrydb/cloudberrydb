@@ -547,6 +547,8 @@ extern Oid	fmgr_internal_function(const char *proname);
 extern Oid	get_fn_expr_rettype(FmgrInfo *flinfo);
 extern Oid	get_fn_expr_argtype(FmgrInfo *flinfo, int argnum);
 extern Oid	get_call_expr_argtype(fmNodePtr expr, int argnum);
+extern bool get_fn_expr_arg_stable(FmgrInfo *flinfo, int argnum);
+extern bool get_call_expr_arg_stable(fmNodePtr expr, int argnum);
 extern bool CheckFunctionValidatorAccess(Oid validatorOid, Oid functionOid);
 
 /*

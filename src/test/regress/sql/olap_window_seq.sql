@@ -638,7 +638,6 @@ SELECT sale.pn,sale.cn,sale.prc,
 
 -- Check LEAD()
 -- sanity tests
-select p.proname, p.proargtypes from pg_window w, pg_proc p, pg_proc p2 where w.winfunc = p.oid and w.winfnoid = p2.oid and p2.proname = 'lead' order by 1,2;
 
 select lead(cn) from sale;
 
@@ -659,8 +658,6 @@ select cn, vn, pn, qty * prc,
 order by 1, 2, 3;
 
 -- Check LAG()
--- sanity tests
-select p.proname, p.proargtypes from pg_window w, pg_proc p, pg_proc p2 where w.winfunc = p.oid and w.winfnoid = p2.oid and p2.proname = 'lag' order by 1,2;
 
 -- actual LAG tests
 select cn, cname, lag(cname, 2, 'undefined') over (order by cn) from customer;

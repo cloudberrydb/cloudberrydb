@@ -1995,6 +1995,7 @@ _readWindowAgg(void)
 
 	readPlanInfo((Plan *)local_node);
 
+	READ_UINT_FIELD(winref);
 	READ_INT_FIELD(partNumCols);
 	READ_INT_ARRAY(partColIdx, local_node->partNumCols, AttrNumber);
 	READ_OID_ARRAY(partOperators, local_node->partNumCols);

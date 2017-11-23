@@ -114,7 +114,15 @@ select
    mysum2(val) over (w)
 from toy
 window w as (order by id rows 2 preceding);
-ERROR:  aggregate functions with no prelimfn or invprelimfn are not yet supported as window functions
+ id | val | sum | mysum1 | mysum2 
+----+-----+-----+--------+--------
+  1 |   1 |   1 |      1 |      1
+  2 |   2 |   3 |      3 |      3
+  3 |   3 |   6 |      6 |      6
+  4 |   4 |   9 |      9 |      9
+  5 |   5 |  12 |     12 |     12
+(5 rows)
+
 --
 -- Error executing for aggregate with anyarray as return type
 --
@@ -294,11 +302,29 @@ select string_agg(b || 'txt') over (partition by a+1) from foo order by 1;
 
 -- fall back and planner's plan produces unsupported execution
 select string_agg(b) over (partition by a order by a) from foo order by 1;
-ERROR:  aggregate functions with no prelimfn or invprelimfn are not yet supported as window functions
+ string_agg 
+------------
+ aaa
+ bbb
+ ccc
+(3 rows)
+
 select string_agg(b || 'txt') over (partition by a,b order by a,b) from foo order by 1;
-ERROR:  aggregate functions with no prelimfn or invprelimfn are not yet supported as window functions
+ string_agg 
+------------
+ aaatxt
+ bbbtxt
+ ccctxt
+(3 rows)
+
 select '1' || string_agg(b) over (partition by a+1 order by a+1) from foo;
-ERROR:  aggregate functions with no prelimfn or invprelimfn are not yet supported as window functions
+ ?column? 
+----------
+ 1aaa
+ 1bbb
+ 1ccc
+(3 rows)
+
 -- Test for a bug in memtuple compute_null_save() function, where the result value
 -- was a 16-bit integer, which overflowed with a tuple with enough NULL attributes.
 -- That bug wasn't related to aggregates per se, but this is one way to construct

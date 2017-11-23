@@ -22,7 +22,6 @@
 #include "catalog/pg_exttable.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_type.h"
-#include "catalog/pg_window.h"
 #include "commands/defrem.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
@@ -54,7 +53,11 @@
 #define GROUP_CLAUSE 1
 #define DISTINCT_ON_CLAUSE 2
 
-static char *clauseText[] = {"ORDER BY", "GROUP BY", "DISTINCT ON"};
+static const char *const clauseText[] = {
+	"ORDER BY",
+	"GROUP BY",
+	"DISTINCT ON"
+};
 
 static void extractRemainingColumns(List *common_colnames,
 						List *src_colnames, List *src_colvars,
@@ -79,6 +82,8 @@ static Node *transformFromClauseItem(ParseState *pstate, Node *n,
 						Relids *containedRels);
 static Node *buildMergedJoinVar(ParseState *pstate, JoinType jointype,
 				   Var *l_colvar, Var *r_colvar);
+static void checkExprIsVarFree(ParseState *pstate, Node *n,
+				   const char *constructName);
 static TargetEntry *findTargetlistEntrySQL92(ParseState *pstate, Node *node,
 						 List **tlist, int clause);
 static TargetEntry *findTargetlistEntrySQL99(ParseState *pstate, Node *node,
@@ -203,7 +208,7 @@ winref_checkspec_walker(Node *node, void *ctx)
 						 errmsg("DISTINCT cannot be used with window specification containing a framing clause"),
 						 parser_errposition(ref->pstate, winref->location)));
 		}
-
+#if 0 // FIXME
 		/*
 		 * Check compatibilities between function's requirement and
 		 * window specification by looking up pg_window catalog.
@@ -239,6 +244,7 @@ winref_checkspec_walker(Node *node, void *ctx)
 				ReleaseSysCache(tuple);
 			}
 		}
+#endif
 	}
 
 	return expression_tree_walker(node, winref_checkspec_walker, ctx);
@@ -1426,10 +1432,28 @@ transformLimitClause(ParseState *pstate, Node *clause,
 
 	qual = coerce_to_specific_type(pstate, qual, INT8OID, constructName);
 
-	/*
-	 * LIMIT can't refer to any vars or aggregates of the current query
-	 */
-	if (contain_vars_of_level(qual, 0))
+	/* LIMIT can't refer to any vars or aggregates of the current query */
+	checkExprIsVarFree(pstate, qual, constructName);
+
+	return qual;
+}
+
+/*
+ * checkExprIsVarFree
+ *		Check that given expr has no Vars of the current query level
+ *		(and no aggregates or window functions, either).
+ *
+ * This is used to check expressions that have to have a consistent value
+ * across all rows of the query, such as a LIMIT.  Arguably it should reject
+ * volatile functions, too, but we don't do that --- whatever value the
+ * function gives on first execution is what you get.
+ *
+ * constructName does not affect the semantics, but is used in error messages
+ */
+static void
+checkExprIsVarFree(ParseState *pstate, Node *n, const char *constructName)
+{
+	if (contain_vars_of_level(n, 0))
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
@@ -1437,20 +1461,30 @@ transformLimitClause(ParseState *pstate, Node *clause,
 				 errmsg("argument of %s must not contain variables",
 						constructName),
 				 parser_errposition(pstate,
-									locate_var_of_level(qual, 0))));
+									locate_var_of_level(n, 0))));
 	}
-	if (checkExprHasAggs(qual))
+	if (pstate->p_hasAggs &&
+		checkExprHasAggs(n))
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_GROUPING_ERROR),
 		/* translator: %s is name of a SQL construct, eg LIMIT */
-				 errmsg("argument of %s must not contain aggregates",
+				 errmsg("argument of %s must not contain aggregate functions",
 						constructName),
 				 parser_errposition(pstate,
-									locate_agg_of_level(qual, 0))));
+									locate_agg_of_level(n, 0))));
 	}
-
-	return qual;
+	if (pstate->p_hasWindowFuncs &&
+		checkExprHasWindowFuncs(n))
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_WINDOWING_ERROR),
+		/* translator: %s is name of a SQL construct, eg LIMIT */
+				 errmsg("argument of %s must not contain window functions",
+						constructName),
+				 parser_errposition(pstate,
+									locate_windowfunc(n))));
+	}
 }
 
 /*
@@ -2479,29 +2513,16 @@ transformWindowDefinitions(ParseState *pstate,
 		wc->frameOptions = windef->frameOptions;
 		wc->winref = winref;
 		/* Process frame offset expressions */
-		if ((windef->frameOptions & FRAMEOPTION_NONDEFAULT) != 0)
-		{
-			/*
-			 * Framing is only supported on specifications with an ordering
-			 * clause.
-			 */
-			if (!wc->orderClause)
-				ereport(ERROR,
-						(errcode(ERRCODE_SYNTAX_ERROR),
-						 errmsg("window specifications with a framing clause must have an ORDER BY clause"),
-						 parser_errposition(pstate, windef->location)));
-
-			wc->startOffset = transformFrameOffset(pstate, wc->frameOptions,
-												   windef->startOffset, wc->orderClause,
-												   *targetlist,
-												   (windef->frameOptions & FRAMEOPTION_START_VALUE_FOLLOWING) != 0,
-												   windef->location);
-			wc->endOffset = transformFrameOffset(pstate, wc->frameOptions,
-												 windef->endOffset, wc->orderClause,
-												 *targetlist,
-												 (windef->frameOptions & FRAMEOPTION_END_VALUE_FOLLOWING) != 0,
-												 windef->location);
-		}
+		wc->startOffset = transformFrameOffset(pstate, wc->frameOptions,
+											   windef->startOffset, wc->orderClause,
+											   *targetlist,
+											   (windef->frameOptions & FRAMEOPTION_START_VALUE_FOLLOWING) != 0,
+											   windef->location);
+		wc->endOffset = transformFrameOffset(pstate, wc->frameOptions,
+											 windef->endOffset, wc->orderClause,
+											 *targetlist,
+											 (windef->frameOptions & FRAMEOPTION_END_VALUE_FOLLOWING) != 0,
+											 windef->location);
 
 		/* finally, check function restriction with this spec. */
 		winref_checkspec(pstate, *targetlist, winref,
@@ -3529,11 +3550,8 @@ transformFrameOffset(ParseState *pstate, int frameOptions, Node *clause,
 		node = NULL;
 	}
 
-	/* In GPDB, we allow this. */
-#if 0
 	/* Disallow variables in frame offsets */
 	checkExprIsVarFree(pstate, node, constructName);
-#endif
 
 	return node;
 }

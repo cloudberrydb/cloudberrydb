@@ -1575,6 +1575,40 @@ cost_agg(Path *path, PlannerInfo *root,
 }
 
 /*
+ * cost_windowagg
+ *		Determines and returns the cost of performing a WindowAgg plan node,
+ *		including the cost of its input.
+ *
+ * Input is assumed already properly sorted.
+ */
+void
+cost_windowagg(Path *path, PlannerInfo *root,
+			   int numWindowFuncs, int numPartCols, int numOrderCols,
+			   Cost input_startup_cost, Cost input_total_cost,
+			   double input_tuples)
+{
+	Cost		startup_cost;
+	Cost		total_cost;
+
+	startup_cost = input_startup_cost;
+	total_cost = input_total_cost;
+
+	/*
+	 * We charge one cpu_operator_cost per window function per tuple (often a
+	 * drastic underestimate, but without a way to gauge how many tuples the
+	 * window function will fetch, it's hard to do better).  We also charge
+	 * cpu_operator_cost per grouping column per tuple for grouping
+	 * comparisons, plus cpu_tuple_cost per tuple for general overhead.
+	 */
+	total_cost += cpu_operator_cost * input_tuples * numWindowFuncs;
+	total_cost += cpu_operator_cost * input_tuples * (numPartCols + numOrderCols);
+	total_cost += cpu_tuple_cost * input_tuples;
+
+	path->startup_cost = startup_cost;
+	path->total_cost = total_cost;
+}
+
+/*
  * cost_group
  *		Determines and returns the cost of performing a Group plan node,
  *		including the cost of its input.
@@ -1599,38 +1633,6 @@ cost_group(Path *path, PlannerInfo *root,
 	 * all columns get compared at most of the tuples.
 	 */
 	total_cost += cpu_operator_cost * input_tuples * numGroupCols;
-
-	path->startup_cost = startup_cost;
-	path->total_cost = total_cost;
-}
-
-/*
- * cost_window
- *		Determines and returns the cost of performing a Window plan node,
- *		including the cost of its input.
- *
- * Note: caller must ensure that input costs are for appropriately-sorted
- * input.
- */
-void
-cost_window(Path *path, PlannerInfo *root,
-		   int numOrderCols,
-		   Cost input_startup_cost, Cost input_total_cost,
-		   double input_tuples)
-{
-	Cost		startup_cost;
-	Cost		total_cost;
-
-	startup_cost = input_startup_cost;
-	total_cost = input_total_cost;
-
-	/*
-	 * Charge one cpu_operator_cost per comparison per input tuple. We assume
-	 * all columns get compared at most of the tuples.  
-	 *
-	 * XXX Should we also charge for function calls in the targetlist?
-	 */
-	total_cost += cpu_operator_cost * input_tuples * numOrderCols;
 
 	path->startup_cost = startup_cost;
 	path->total_cost = total_cost;
@@ -2527,6 +2529,11 @@ cost_qual_eval_walker(Node *node, cost_qual_eval_context *context)
 	 *
 	 * Vars and Consts are charged zero, and so are boolean operators (AND,
 	 * OR, NOT). Simplistic, but a lot better than no model at all.
+	 *
+	 * Note that Aggref and WindowFunc nodes are (and should be) treated like
+	 * Vars --- whatever execution cost they have is absorbed into
+	 * plan-node-specific costing.  As far as expression evaluation is
+	 * concerned they're just like Vars.
 	 *
 	 * Should we try to account for the possibility of short-circuit
 	 * evaluation of AND/OR?  Probably *not*, because that would make the

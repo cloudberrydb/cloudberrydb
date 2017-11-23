@@ -21,6 +21,14 @@
 #define is_opclause(clause)		((clause) != NULL && IsA(clause, OpExpr))
 #define is_funcclause(clause)	((clause) != NULL && IsA(clause, FuncExpr))
 
+typedef struct
+{
+	int			numWindowFuncs; /* total number of WindowFuncs found */
+	Index		maxWinRef;		/* windowFuncs[] is indexed 0 .. maxWinRef */
+	List	  **windowFuncs;	/* lists of WindowFuncs for each winref */
+} WindowFuncLists;
+
+
 // max size of a folded constant when optimizing queries in Orca
 // Note: this is to prevent OOM issues when trying to serialize very large constants
 // Current limit: 100KB
@@ -68,9 +76,11 @@ extern Expr *make_ands_explicit(List *andclauses);
 extern List *make_ands_implicit(Expr *clause);
 
 extern bool contain_agg_clause(Node *clause);
+extern List *pull_agg_clause(Node *clause);
 extern void count_agg_clauses(Node *clause, AggClauseCounts *counts);
 
 extern bool contain_window_function(Node *clause);
+extern WindowFuncLists *find_window_functions(Node *clause, Index maxWinRef);
 
 extern double expression_returns_set_rows(Node *clause);
 

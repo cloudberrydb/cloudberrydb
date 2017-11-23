@@ -649,11 +649,6 @@ ExecEvalGroupId(ExprState *gstate, ExprContext *econtext,
  *
  *		Returns a Datum whose value is the value of the precomputed
  *		window function found in the given expression context.
- *
- * XXX	Note that this routine is essentially the same as
- *		ExecEvalAggref since we use the same buffers. However,
- *		since the state structures for WindowFunc and Aggref
- *		are different, we separate the execution routines, too.
  * ----------------------------------------------------------------
  */
 static Datum
@@ -666,9 +661,8 @@ ExecEvalWindowFunc(WindowFuncExprState *wfunc, ExprContext *econtext,
 	if (econtext->ecxt_aggvalues == NULL)		/* safety check */
 		elog(ERROR, "no window functions in this expression context");
 
-	*isNull = econtext->ecxt_aggnulls[wfunc->funcno];
-	return econtext->ecxt_aggvalues[wfunc->funcno];
-
+	*isNull = econtext->ecxt_aggnulls[wfunc->wfuncno];
+	return econtext->ecxt_aggvalues[wfunc->wfuncno];
 }
 
 /* ----------------------------------------------------------------
@@ -5211,12 +5205,12 @@ ExecEvalExprSwitchContext(ExprState *expression,
  * executions of the expression are needed.  Typically the context will be
  * the same as the per-query context of the associated ExprContext.
  *
- * Any Aggref and SubPlan nodes found in the tree are added to the lists
- * of such nodes held by the parent PlanState.	Otherwise, we do very little
- * initialization here other than building the state-node tree.  Any nontrivial
- * work associated with initializing runtime info for a node should happen
- * during the first actual evaluation of that node.  (This policy lets us
- * avoid work if the node is never actually evaluated.)
+ * Any Aggref, WindowFunc, or SubPlan nodes found in the tree are added to the
+ * lists of such nodes held by the parent PlanState. Otherwise, we do very
+ * little initialization here other than building the state-node tree.  Any
+ * nontrivial work associated with initializing runtime info for a node should
+ * happen during the first actual evaluation of that node.  (This policy lets
+ * us avoid work if the node is never actually evaluated.)
  *
  * Note: there is no ExecEndExpr function; we assume that any resource
  * cleanup needed will be handled by just releasing the memory context
@@ -5320,7 +5314,7 @@ ExecInitExpr(Expr *node, PlanState *parent)
 				else
 				{
 					/* planner messed up */
-					elog(ERROR, "aggref found in non-Agg plan node");
+					elog(ERROR, "Aggref found in non-Agg plan node");
 				}
 				state = (ExprState *) astate;
 			}
@@ -5354,14 +5348,17 @@ ExecInitExpr(Expr *node, PlanState *parent)
 			{
 				WindowFunc *wfunc = (WindowFunc *) node;
 				WindowFuncExprState *wfstate = makeNode(WindowFuncExprState);
-				int			numrefs;
-				WindowState *winstate = (WindowState *) parent;
 
 				wfstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalWindowFunc;
-				if (parent && IsA(parent, WindowState))
+				if (parent && IsA(parent, WindowAggState))
 				{
-					winstate->wfxstates = lcons(wfstate, winstate->wfxstates);
-					numrefs = list_length(winstate->wfxstates);
+					WindowAggState *winstate = (WindowAggState *) parent;
+					int			nfuncs;
+
+					winstate->funcs = lcons(wfstate, winstate->funcs);
+					nfuncs = ++winstate->numfuncs;
+					if (wfunc->winagg)
+						winstate->numaggs++;
 
 					wfstate->args = (List *) ExecInitExpr((Expr *) wfunc->args,
 														  parent);
@@ -5374,7 +5371,7 @@ ExecInitExpr(Expr *node, PlanState *parent)
 					 * nonsensical.  (This should have been caught earlier,
 					 * but we defend against it here anyway.)
 					 */
-					if (numrefs != list_length(winstate->wfxstates))
+					if (nfuncs != winstate->numfuncs)
 						ereport(ERROR,
 								(errcode(ERRCODE_WINDOWING_ERROR),
 						  errmsg("window function calls cannot be nested")));

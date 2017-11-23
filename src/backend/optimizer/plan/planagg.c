@@ -99,11 +99,11 @@ optimize_minmax_aggregates(PlannerInfo *root, List *tlist, Path *best_path)
 	/*
 	 * Reject unoptimizable cases.
 	 *
-	 * We don't handle GROUP BY, because our current implementations of
-	 * grouping require looking at all the rows anyway, and so there's not
-	 * much point in optimizing MIN/MAX.
+	 * We don't handle GROUP BY or windowing, because our current
+	 * implementations of grouping require looking at all the rows anyway, and
+	 * so there's not much point in optimizing MIN/MAX.
 	 */
-	if (parse->groupClause)
+	if (parse->groupClause || parse->hasWindowFuncs)
 		return NULL;
 
 	/*
@@ -250,7 +250,6 @@ find_minmax_aggs_walker(Node *node, List **context)
 		Assert(aggref->agglevelsup == 0);
 		if (list_length(aggref->args) != 1)
 			return true;		/* it couldn't be MIN/MAX */
-		/* note: we do not care if DISTINCT is mentioned ... */
 
 		/*
 		 * We might implement the optimization when a FILTER clause is present
@@ -259,6 +258,7 @@ find_minmax_aggs_walker(Node *node, List **context)
 		 */
 		if (aggref->aggfilter != NULL)
 			return true;
+		/* note: we do not care if DISTINCT is mentioned ... */
 
 		aggsortop = fetch_agg_sort_op(aggref->aggfnoid);
 		if (!OidIsValid(aggsortop))

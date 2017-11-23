@@ -421,7 +421,7 @@ create_scan_plan(PlannerInfo *root, Path *best_path)
 	 */
 	if (plan->flow && plan->flow->hashExpr)
 	{
-		plan->targetlist = add_to_flat_tlist(plan->targetlist, plan->flow->hashExpr, true /* resjunk */ );
+		plan->targetlist = add_to_flat_tlist_junk(plan->targetlist, plan->flow->hashExpr, true /* resjunk */ );
 	}
 
 	/*
@@ -560,7 +560,7 @@ disuse_physical_tlist(Plan *plan, Path *path)
 			 */
 			if (plan->flow && plan->flow->hashExpr)
 			{
-				plan->targetlist = add_to_flat_tlist(plan->targetlist, plan->flow->hashExpr, true /* resjunk */);
+				plan->targetlist = add_to_flat_tlist_junk(plan->targetlist, plan->flow->hashExpr, true /* resjunk */);
 			}
 			break;
 		default:
@@ -684,7 +684,7 @@ create_join_plan(PlannerInfo *root, JoinPath *best_path)
 	 */
 	if (plan->flow && plan->flow->hashExpr)
 	{
-		plan->targetlist = add_to_flat_tlist(plan->targetlist, plan->flow->hashExpr, true /* resjunk */ );
+		plan->targetlist = add_to_flat_tlist_junk(plan->targetlist, plan->flow->hashExpr, true /* resjunk */ );
 	}
 
 	/*
@@ -4625,6 +4625,8 @@ make_sort_from_pathkeys(PlannerInfo *root, Plan *lefttree, List *pathkeys,
 					tlist = copyObject(tlist);
 					lefttree = (Plan *) make_result(root, tlist, NULL,
 													lefttree);
+					if (lefttree->lefttree->flow)
+						lefttree->flow = pull_up_Flow(lefttree, lefttree->lefttree);
 				}
 
 				/*
@@ -5115,8 +5117,8 @@ add_agg_cost(PlannerInfo *root, Plan *plan,
 	 * anything for Aggref nodes; this is okay since they are really
 	 * comparable to Vars.
 	 *
-	 * See notes in grouping_planner about why this routine and make_group are
-	 * the only ones in this file that worry about tlist eval cost.
+	 * See notes in grouping_planner about why only make_agg, make_windowagg
+	 * and make_group worry about tlist eval cost.
 	 */
 	if (qual)
 	{
@@ -5135,6 +5137,7 @@ add_agg_cost(PlannerInfo *root, Plan *plan,
 
 WindowAgg *
 make_windowagg(PlannerInfo *root, List *tlist,
+			   List *windowFuncs, Index winref,
 			   int partNumCols, AttrNumber *partColIdx, Oid *partOperators,
 			   int ordNumCols, AttrNumber *ordColIdx, Oid *ordOperators,
 			   int frameOptions, Node *startOffset, Node *endOffset,
@@ -5142,9 +5145,10 @@ make_windowagg(PlannerInfo *root, List *tlist,
 {
 	WindowAgg  *node = makeNode(WindowAgg);
 	Plan	   *plan = &node->plan;
-	Path		window_path;	/* dummy for result of cost_window */
+	Path		windowagg_path; /* dummy for result of cost_windowagg */
 	QualCost	qual_cost;
 
+	node->winref = winref;
 	node->partNumCols = partNumCols;
 	node->partColIdx = partColIdx;
 	node->partOperators = partOperators;
@@ -5156,23 +5160,33 @@ make_windowagg(PlannerInfo *root, List *tlist,
 	node->endOffset = endOffset;
 
 	copy_plan_costsize(plan, lefttree); /* only care about copying size */
-	cost_window(&window_path, root,
-			   ordNumCols,
-			   lefttree->startup_cost,
-			   lefttree->total_cost,
-			   lefttree->plan_rows);
-	plan->startup_cost = window_path.startup_cost;
-	plan->total_cost = window_path.total_cost;
+	cost_windowagg(&windowagg_path, root,
+				   list_length(windowFuncs), partNumCols, ordNumCols,
+				   lefttree->startup_cost,
+				   lefttree->total_cost,
+				   lefttree->plan_rows);
+	plan->startup_cost = windowagg_path.startup_cost;
+	plan->total_cost = windowagg_path.total_cost;
 
+	/*
+	 * We also need to account for the cost of evaluation of the tlist.
+	 *
+	 * See notes in grouping_planner about why only make_agg, make_windowagg
+	 * and make_group worry about tlist eval cost.
+	 */
 	cost_qual_eval(&qual_cost, tlist, root);
 	plan->startup_cost += qual_cost.startup;
 	plan->total_cost += qual_cost.startup;
 	plan->total_cost += qual_cost.per_tuple * plan->plan_rows;
 
-	plan->qual = NIL;
 	plan->targetlist = tlist;
 	plan->lefttree = lefttree;
 	plan->righttree = NULL;
+	/* WindowAgg nodes never have a qual clause */
+	plan->qual = NIL;
+
+	if (lefttree->flow)
+		plan->flow = pull_up_Flow(plan, lefttree);
 
 	return node;
 }

@@ -196,9 +196,6 @@
         <xref href="./pg_type.xml#topic1" type="topic" format="dita"/>
       </li>
       <li id="eu151122">pg_user_mapping (not supported)</li>
-      <li id="eu149986">
-        <xref href="./pg_window.xml#topic1" type="topic" format="dita"/>
-      </li>
     </ul>
   </body>
 </topic>

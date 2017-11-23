@@ -96,16 +96,6 @@ extern Plan *make_distinctaggs_for_rollup(PlannerInfo *root, bool is_agg,
 										  Plan *lefttree);
 
 /*
- * prototypes for plan/planwindow.c
- */
-extern Plan *window_planner(PlannerInfo *root, double tuple_fraction, List **pathkeys_ptr);
-extern RangeTblEntry *package_plan_as_rte(Query *query, Plan *plan, Alias *eref, List *pathkeys);
-extern Value *get_tle_name(TargetEntry *tle, List* rtable, const char *default_name);
-extern Plan *wrap_plan(PlannerInfo *root, Plan *plan, Query *query, List **p_pathkeys,
-       const char *alias_name, List *col_names, Query **query_p);
-
-
-/*
  * prototype for plan/plangroupext.c
  */
 extern Plan *plan_grouping_extension(PlannerInfo *root,
@@ -180,6 +170,7 @@ extern MergeJoin *make_mergejoin(List *tlist,
 			   Plan *lefttree, Plan *righttree,
 			   JoinType jointype);
 extern WindowAgg *make_windowagg(PlannerInfo *root, List *tlist,
+			   List *windowFuncs, Index winref,
 			   int partNumCols, AttrNumber *partColIdx, Oid *partOperators,
 			   int ordNumCols, AttrNumber *ordColIdx, Oid *ordOperators,
 			   int frameOptions, Node *startOffset, Node *endOffset,

@@ -513,6 +513,23 @@ CTranslatorDXLToScalar::PwindowrefFromDXLNodeScWindowRef
 
 	WindowFunc *pwindowfunc = MakeNode(WindowFunc);
 	pwindowfunc->winfnoid = CMDIdGPDB::PmdidConvert(pdxlop->PmdidFunc())->OidObjectId();
+
+	// GPDB_84_MERGE_FIXME: The OIDS of a few built-in window
+	// functions have been hard-coded in ORCA. But the OIDs
+	// were changed when we merged the upstream window function
+	// implementation, to match the upstream OIDs. Map the old
+	// OIDs to the upstream ones.
+	if (pwindowfunc->winfnoid == 7000)	// ROW_NUMBER()
+		pwindowfunc->winfnoid = 3100;
+	if (pwindowfunc->winfnoid == 7002)	// DENSE_RANK()
+		pwindowfunc->winfnoid = 3102;
+	if (pwindowfunc->winfnoid == 7003)	// PERCENT_RANK()
+		pwindowfunc->winfnoid = 3103;
+	if (pwindowfunc->winfnoid == 7004)	// CUME_DIST()
+		pwindowfunc->winfnoid = 3104;
+	if (pwindowfunc->winfnoid == 7005)	// NTILE(int4)
+		pwindowfunc->winfnoid = 3105;
+
 	pwindowfunc->windistinct = pdxlop->FDistinct();
 	pwindowfunc->location = -1;
 	pwindowfunc->winref = pdxlop->UlWinSpecPos() + 1;

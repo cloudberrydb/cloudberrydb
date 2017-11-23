@@ -21,9 +21,10 @@
 #include "nodes/params.h"
 #include "nodes/parsenodes.h"
 #include "nodes/plannodes.h"
-#include "nodes/relation.h"   /* GroupContext */
+#include "nodes/relation.h"
 
 #include "optimizer/clauses.h" /* AggClauseCounts */
+#include "optimizer/planmain.h"   /* GroupContext */
 
 extern Plan *
 cdb_grouping_planner(PlannerInfo* root,

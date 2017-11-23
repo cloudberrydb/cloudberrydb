@@ -373,6 +373,10 @@ EvaluateParams(PreparedStatement *pstmt, List *params,
 			ereport(ERROR,
 					(errcode(ERRCODE_GROUPING_ERROR),
 			  errmsg("cannot use aggregate function in EXECUTE parameter")));
+		if (pstate->p_hasWindowFuncs)
+			ereport(ERROR,
+					(errcode(ERRCODE_WINDOWING_ERROR),
+				 errmsg("cannot use window function in EXECUTE parameter")));
 
 		given_type_id = exprType(expr);
 

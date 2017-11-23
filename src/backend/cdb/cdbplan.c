@@ -17,18 +17,21 @@
  */
 
 #include "postgres.h"
+
+#include "cdb/cdbgroup.h"
+#include "cdb/cdbplan.h"
+#include "cdb/cdbsetop.h"
 #include "miscadmin.h"
-#include "optimizer/clauses.h"
 #include "nodes/primnodes.h"
 #include "nodes/parsenodes.h"
 #include "nodes/plannodes.h"
-#include "cdb/cdbplan.h"
+#include "optimizer/clauses.h"
+#include "parser/parsetree.h"
+#include "utils/lsyscache.h"
 
 
 static void mutate_plan_fields(Plan *newplan, Plan *oldplan, Node *(*mutator) (), void *context);
 static void mutate_join_fields(Join *newplan, Join *oldplan, Node *(*mutator) (), void *context);
-
-
 
 
 
@@ -937,4 +940,258 @@ void		mutate_join_fields(Join *newjoin, Join *oldjoin, Node *(*mutator) (), void
 
 	/* Node fields need mutation. */
 	MUTATE(newjoin->joinqual, oldjoin->joinqual, List *);
+}
+
+
+/*
+ * package_plan_as_rte
+ *	   Package a plan as a pre-planned subquery RTE
+ *
+ * Note that the input query is often root->parse (since that is the
+ * query from which this invocation of the planner usually takes it's
+ * context), but may be a derived query, e.g., in the case of sequential
+ * window plans or multiple-DQA pruning (in cdbgroup.c).
+ * 
+ * Note also that the supplied plan's target list must be congruent with
+ * the supplied query: its Var nodes must refer to RTEs in the range
+ * table of the Query node, it should conserve sort/group reference
+ * values, and its SubqueryScan nodes should match up with the query's
+ * Subquery RTEs.
+ *
+ * The result is a pre-planned subquery RTE which incorporates the given
+ * plan, alias, and pathkeys (if any) directly.  The input query is not
+ * modified.
+ *
+ * The caller must install the RTE in the range table of an appropriate query
+ * and the corresponding plan should reference it's results through a
+ * SubqueryScan node.
+ */
+RangeTblEntry *
+package_plan_as_rte(Query *query, Plan *plan, Alias *eref, List *pathkeys)
+{
+	Query *subquery;
+	RangeTblEntry *rte;
+	
+	
+	Assert( query != NULL );
+	Assert( plan != NULL );
+	Assert( eref != NULL );
+	Assert( plan->flow != NULL ); /* essential in a pre-planned RTE */
+	
+	/* Make a plausible subquery for the RTE we'll produce. */
+	subquery = makeNode(Query);
+	memcpy(subquery, query, sizeof(Query));
+	
+	subquery->querySource = QSRC_PLANNER;
+	subquery->canSetTag = false;
+	subquery->resultRelation = 0;
+	subquery->intoClause = NULL;
+	
+	subquery->rtable = copyObject(subquery->rtable);
+
+	subquery->targetList = copyObject(plan->targetlist);
+	subquery->windowClause = NIL;
+	
+	subquery->distinctClause = NIL;
+	subquery->sortClause = NIL;
+	subquery->limitOffset = NULL;
+	subquery->limitCount = NULL;
+	
+	Assert( subquery->setOperations == NULL );
+	
+	/* Package up the RTE. */
+	rte = makeNode(RangeTblEntry);
+	rte->rtekind = RTE_SUBQUERY;
+	rte->subquery = subquery;
+	rte->eref = eref;
+	rte->subquery_plan = plan;
+	rte->subquery_rtable = subquery->rtable;
+	rte->subquery_pathkeys = pathkeys;
+
+	return rte;
+}
+
+
+/* Utility to get a name for a function to use as an eref. */
+static char *
+get_function_name(Oid proid, const char *dflt)
+{
+	char	   *result;
+
+	if (!OidIsValid(proid))
+	{
+		result = pstrdup(dflt);
+	}
+	else
+	{
+		result = get_func_name(proid);
+
+		if (result == NULL)
+			result = pstrdup(dflt);
+	}
+
+	return result;
+}
+
+/* Utility to get a name for a tle to use as an eref. */
+Value *
+get_tle_name(TargetEntry *tle, List *rtable, const char *default_name)
+{
+	char *name = NULL;
+	Node *expr = (Node*)tle->expr;
+	
+	if ( tle->resname != NULL )
+	{
+		name = pstrdup(tle->resname);
+	}
+	else if ( IsA(tle->expr, Var) && rtable != NULL )
+	{
+		Var *var = (Var*)tle->expr;
+		RangeTblEntry *rte = rt_fetch(var->varno, rtable);
+		name = pstrdup(get_rte_attribute_name(rte, var->varattno));
+	}
+	else if ( IsA(tle->expr, WindowFunc) )
+	{
+		if ( default_name == NULL ) default_name = "window_func";
+		name = get_function_name(((WindowFunc *)expr)->winfnoid, default_name);
+	}
+	else if ( IsA(tle->expr, Aggref) )
+	{
+		if ( default_name == NULL ) default_name = "aggregate_func";
+		name = get_function_name(((Aggref*)expr)->aggfnoid, default_name);
+	}
+	
+	if ( name == NULL )
+	{
+		if (default_name == NULL ) default_name = "unnamed_attr";
+		name = pstrdup(default_name);
+	}
+	
+	return makeString(name);
+}
+
+
+/* Wrap a window plan under construction in a SubqueryScan thereby 
+ * renumbering its attributes so that its targetlist becomes a list 
+ * of Var nodes on a single entry range table (thus the only varno 
+ * is 1).
+ *
+ * The input consists of
+ * - the window Plan (with attached Flow) under development
+ * - the pathkeys corresponding to the plan
+ * - the Query tree corresponding to the plan
+ * 
+ * The output consists of
+ * - the Plan modified by the addition of a SubqueryScan node
+ *   (explicit result), and
+ * - a Query tree representing simple select of all targets
+ *   from the sub-query (in location query_p).
+ *
+ * Input query table expression gets pushed down into a sqry RTE.
+ * 
+ * The caller is responsible for translating pathkeys and locus, if needed.
+ *
+ * XXX Is it necessary to adjust varlevelsup in the plan and query trees?
+ *     I don't think so.
+ */
+Plan *
+wrap_plan(PlannerInfo *root, Plan *plan, Query *query, 
+		  List **p_pathkeys, 
+		  const char *alias_name, List *col_names, 
+		  Query **query_p)	
+{
+	Query *subquery;
+	Alias *eref;
+	RangeTblEntry *rte;
+	RangeTblRef *rtr;
+	FromExpr *jointree;
+	List *subq_tlist = NIL;
+	Index varno = 1;
+	int *resno_map;
+	
+	Assert( query_p != NULL );
+	
+	/*
+	 * If NIL passed for col_names, generates it from subplan's targetlist.
+	 */
+	if (col_names == NIL)
+	{
+		ListCell	   *l;
+
+		foreach (l, plan->targetlist)
+		{
+			TargetEntry	   *tle = lfirst(l);
+			Value		   *col_name;
+
+			col_name = get_tle_name(tle, query->rtable, NULL);
+			col_names = lappend(col_names, col_name);
+		}
+	}
+	/* Make the subquery RTE. Note that this will include a Query derived
+	 * from the input Query.
+	 */
+	eref = makeNode(Alias);
+	eref->aliasname = pstrdup(alias_name);
+	eref->colnames = col_names;
+
+	rte = package_plan_as_rte(query, plan, eref, p_pathkeys ? *p_pathkeys : NIL);
+	
+	/* Make the target list for the plan and for the wrapper Query
+	 * that will correspond to it.
+	 */
+	subq_tlist = generate_subquery_tlist(varno, plan->targetlist, false, &resno_map);
+	
+	/* Make the plan. 
+	 */
+	plan = (Plan*)make_subqueryscan(root, subq_tlist, NIL, varno, plan, query->rtable);
+	mark_passthru_locus(plan, true, true);
+	
+	/* Make the corresponding Query.
+	 */
+	subquery = makeNode(Query);
+	
+	subquery->commandType = CMD_SELECT;
+	subquery->querySource = QSRC_PLANNER;
+	subquery->canSetTag = false;
+	subquery->intoClause = NULL;
+	subquery->rtable = list_make1(rte);	
+	rtr = makeNode(RangeTblRef);
+	rtr->rtindex = varno;
+	jointree = makeNode(FromExpr);
+	jointree->fromlist = list_make1(rtr);
+	subquery->jointree = jointree;
+	subquery->targetList = subq_tlist;
+	subquery->windowClause = copyObject(query->windowClause); /* XXX need translation for frame vals */
+
+	/* The rest may default to zero ...
+	
+	subquery->utilityStmt = NULL;
+	subquery->resultRelation = 0;
+	subquery->intoClause = NULL;
+	subquery->hasAggs = false;
+	subquery->hasWindowFuncs = false;
+	subquery->hasSubLinks = false;
+	subquery->returningList = NIL;
+	subquery->groupClause = NIL;
+	subquery->havingClause = NULL;
+	subquery->distinctClause = NIL;
+	subquery->sortClause = NIL;
+	subquery->limitOffset = NULL;
+	subquery->limitCount = NULL;
+	subquery->rowMarks = NIL;
+	subquery->setOperations = NULL;
+	subquery->resultRelations = NIL;
+	subquery->returningLists = NIL;
+	
+	... */
+
+	/* Construct the new pathkeys */
+	if (p_pathkeys != NULL)
+		*p_pathkeys = reconstruct_pathkeys(root, *p_pathkeys, resno_map,
+										   ((SubqueryScan *)plan)->subplan->targetlist,
+										   subq_tlist);
+	pfree(resno_map);
+	
+	*query_p = subquery;
+	return plan;
 }

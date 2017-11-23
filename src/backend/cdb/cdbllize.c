@@ -25,6 +25,7 @@
 #include "nodes/pg_list.h"
 #include "nodes/print.h"
 
+#include "optimizer/paths.h"
 #include "optimizer/planmain.h" /* for is_projection_capable_plan() */
 #include "optimizer/var.h"		/* for contain_vars_of_level_or_above() */
 #include "parser/parsetree.h"	/* for rt_fetch() */
@@ -1095,8 +1096,33 @@ repartitionPlan(Plan *plan, bool stable, bool rescannable, List *hashExpr)
 	return adjustPlanFlow(plan, stable, rescannable, MOVEMENT_REPARTITION, hashExpr);
 }
 
+/*
+ * repartitionPlanForGroupClauses
+ */
+bool
+repartitionPlanForGroupClauses(PlannerInfo *root, Plan *plan,
+							   bool stable, bool rescannable,
+							   List *groupclauses, List *targetlist)
+{
+	List	   *hashExpr;
+	ListCell   *lc;
 
+	/*
+	 * Build a hashExpr from the SortGroupClauses.
+	 */
+	hashExpr = NIL;
+	foreach (lc, groupclauses)
+	{
+		SortGroupClause *sortcl = (SortGroupClause *) lfirst(lc);
+		Node	   *n;
 
+		n = get_sortgroupclause_expr(sortcl, targetlist);
+
+		hashExpr = lappend(hashExpr, n);
+	}
+
+	return repartitionPlan(plan, stable, rescannable, hashExpr);
+}
 
 /*
  * Helper Function: adjustPlanFlow
