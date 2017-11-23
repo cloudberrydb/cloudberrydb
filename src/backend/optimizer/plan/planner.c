@@ -1380,10 +1380,30 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		 * Recover sort pathkeys for use later.  These may or may not match
 		 * the current_pathkeys resulting from the window plan.
 		 */
-		root->sort_pathkeys = make_pathkeys_for_sortclauses(root,
-															parse->sortClause,
-															result_plan->targetlist,
-															true);
+		if (parse->groupClause &&
+			grouping_is_sortable(parse->groupClause))
+			root->group_pathkeys =
+			make_pathkeys_for_groupclause(root,
+										  parse->groupClause,
+										  result_plan->targetlist);
+		else
+			root->group_pathkeys = NIL;
+
+		if (parse->distinctClause &&
+			grouping_is_sortable(parse->distinctClause))
+			root->distinct_pathkeys =
+				make_pathkeys_for_sortclauses(root,
+											  parse->distinctClause,
+											  result_plan->targetlist,
+											  false);
+		else
+			root->distinct_pathkeys = NIL;
+
+		root->sort_pathkeys =
+			make_pathkeys_for_sortclauses(root,
+										  parse->sortClause,
+										  result_plan->targetlist,
+										  false);
 	}
 	else
 	{
