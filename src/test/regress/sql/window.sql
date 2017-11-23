@@ -1,3 +1,7 @@
+-- start_ignore
+-- GPDB_84_MERGE_FIXME
+set optimizer to off;
+-- end_ignore
 --
 -- WINDOW FUNCTIONS
 --

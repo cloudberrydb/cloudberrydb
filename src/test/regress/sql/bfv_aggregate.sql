@@ -47,6 +47,10 @@ create aggregate mysum1(int4) (sfunc = int4_sum, prefunc=int8pl, stype=bigint);
 create aggregate mysum2(int4) (sfunc = int4_sum, stype=bigint);
 
 -- TEST
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: QP team should look at this query (the implementation
+-- changed in the window func merge)
+-- end_ignore
 select
    id, val,
    sum(val) over (w),
@@ -179,6 +183,10 @@ select string_agg(b) over (partition by a+1) from foo order by 1;
 select string_agg(b || 'txt') over (partition by a) from foo order by 1;
 select string_agg(b || 'txt') over (partition by a+1) from foo order by 1;
 -- fall back and planner's plan produces unsupported execution
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: QP team should look at these three queries (the
+-- implementation changed in the window func merge)
+-- end_ignore
 select string_agg(b) over (partition by a order by a) from foo order by 1;
 select string_agg(b || 'txt') over (partition by a,b order by a,b) from foo order by 1;
 select '1' || string_agg(b) over (partition by a+1 order by a+1) from foo;
@@ -1361,7 +1369,7 @@ INSERT INTO t1 VALUES ('bbbbbbb', 'eeee');
 INSERT INTO t1 VALUES ('bbbbbbb', 'eeef');
 INSERT INTO t1 VALUES ('bbbbb', 'dfafa');
 SELECT substr(a, 1) as a FROM (SELECT ('-'||a)::varchar as a FROM (SELECT a FROM t1) t2) t3 GROUP BY a ORDER BY a;
-SELECT array_agg(f)  FROM (SELECT b::text as f FROM t1 GROUP BY b ORDER BY b) q;
+SELECT array_agg(f ORDER BY f)  FROM (SELECT b::text as f FROM t1 GROUP BY b ORDER BY b) q;
 
 
 -- Check that ORDER BY NULLS FIRST/LAST in an aggregate is respected (these are
