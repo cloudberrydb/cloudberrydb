@@ -2931,7 +2931,6 @@ static PyObject *
  
          PyObject *reslist,
                       *str;
-        int      i;
  
          /* allocate list for result */
          if ((reslist = PyList_New(0)) == NULL)
