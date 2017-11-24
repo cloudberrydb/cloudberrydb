@@ -499,7 +499,6 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <node>	filter_clause
 %type <list>	window_clause window_definition_list opt_partition_clause
 %type <windef>	window_definition over_clause window_specification
-%type <list>	opt_window_order_clause
 %type <str>		opt_existing_window_name
 %type <windef>	opt_frame_clause frame_extent frame_bound
 %type <ival>	window_frame_exclusion
@@ -682,8 +681,19 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
  * RANGE, ROWS to support opt_existing_window_name; and for RANGE, ROWS
  * so that they can follow a_expr without creating
  * postfix-operator problems.
+ *
+ * The frame_bound productions UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING
+ * are even messier: since UNBOUNDED is an unreserved keyword (per spec!),
+ * there is no principled way to distinguish these from the productions
+ * a_expr PRECEDING/FOLLOWING.  We hack this up by giving UNBOUNDED slightly
+ * lower precedence than PRECEDING and FOLLOWING.  At present this doesn't
+ * appear to cause UNBOUNDED to be treated differently from other unreserved
+ * keywords anywhere else in the grammar, but it's definitely risky.  We can
+ * blame any funny behavior of UNBOUNDED on the SQL standard, though.
  */
-%nonassoc	IDENT PARTITION RANGE ROWS
+%nonassoc	UNBOUNDED		/* ideally should have same precedence as IDENT */
+%nonassoc	IDENT PARTITION RANGE ROWS PRECEDING FOLLOWING
+
 /*
  * This is a bit ugly... To allow these to be column aliases without
  * the "AS" keyword, and not conflict with PostgreSQL's non-standard
@@ -12496,7 +12506,7 @@ over_clause: OVER window_specification
 		;
 
 window_specification: '(' opt_existing_window_name opt_partition_clause
-				opt_window_order_clause opt_frame_clause ')'
+						opt_sort_clause opt_frame_clause ')'
 				{
 					WindowDef *n = makeNode(WindowDef);
 					n->name = NULL;
@@ -12512,17 +12522,23 @@ window_specification: '(' opt_existing_window_name opt_partition_clause
 				}
 		;
 
+/*
+ * If we see PARTITION, RANGE, or ROWS as the first token after the '('
+ * of a window_specification, we want the assumption to be that there is
+ * no existing_window_name; but those keywords are unreserved and so could
+ * be ColIds.  We fix this by making them have the same precedence as IDENT
+ * and giving the empty production here a slightly higher precedence, so
+ * that the shift/reduce conflict is resolved in favor of reducing the rule.
+ * These keywords are thus precluded from being an existing_window_name but
+ * are not reserved for any other purpose.
+ */
 opt_existing_window_name: ColId						{ $$ = $1; }
-			| /*EMPTY*/ { $$ = NULL; }
+			| /*EMPTY*/				%prec Op		{ $$ = NULL; }
 		;
 
 opt_partition_clause: PARTITION BY sortby_list { $$ = $3; }
 			| /*EMPTY*/ { $$ = NIL; }
 		;
-
-opt_window_order_clause: sort_clause { $$ = $1; }
-			| /*EMPTY*/ { $$ = NIL; }
-        ;
 
 /*
  * For frame clauses, we return a WindowDef, but only some fields are used:
@@ -13601,6 +13617,7 @@ unreserved_keyword:
 			| QUEUE
 			| QUOTE
 			| RANDOMLY /* gp */
+			| RANGE
 			| READ
 			| READABLE
 			| READS
@@ -13625,6 +13642,7 @@ unreserved_keyword:
 			| ROLE
 			| ROLLBACK
 			| ROOTPARTITION
+			| ROWS
 			| RULE
 			| SAVEPOINT
 			| SCHEMA
@@ -13890,6 +13908,7 @@ PartitionIdentKeyword: ABORT_P
 			| PROTOCOL
 			| QUEUE
 			| QUOTE
+			| RANGE
 			| READ
 			| REASSIGN
 			| RECHECK
@@ -13907,6 +13926,7 @@ PartitionIdentKeyword: ABORT_P
 			| REVOKE
 			| ROLE
 			| ROLLBACK
+			| ROWS
 			| RULE
 			| SAVEPOINT
 			| SCHEMA
@@ -14183,10 +14203,8 @@ reserved_keyword:
 			| PLACING
 			| PRECEDING
 			| PRIMARY
-			| RANGE
 			| REFERENCES
 			| RETURNING
-			| ROWS
 			| SCATTER  /* gp */
 			| SELECT
 			| SESSION_USER
