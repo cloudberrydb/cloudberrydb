@@ -2343,34 +2343,6 @@ exec_bind_message(StringInfo input_message)
 	}
 
 	/*
-	 * Prepare to copy stuff into the portal's memory context.  We do all this
-	 * copying first, because it could possibly fail (out-of-memory) and we
-	 * don't want a failure to occur between RevalidateCachedPlan and
-	 * PortalDefineQuery; that would result in leaking our plancache refcount.
-	 */
-	oldContext = MemoryContextSwitchTo(PortalGetHeapMemory(portal));
-
-	/* Copy the plan's query string into the portal */
-	query_string = pstrdup(psrc->query_string);
-
-	/* Likewise make a copy of the statement name, unless it's unnamed */
-	if (stmt_name[0])
-		saved_stmt_name = pstrdup(stmt_name);
-	else
-		saved_stmt_name = NULL;
-
-	/*
-	 * Set a snapshot if we have parameters to fetch (since the input
-	 * functions might need it) or the query isn't a utility command (and
-	 * hence could require redoing parse analysis and planning).
-	 */
-	if (numParams > 0 || analyze_requires_snapshot(psrc->raw_parse_tree))
-	{
-		PushActiveSnapshot(GetTransactionSnapshot());
-		snapshot_set = true;
-	}
-
-	/*
 	 * Fetch parameters, if any, and store in the portal's memory context.
 	 */
 	if (numParams > 0)
@@ -2566,10 +2538,6 @@ exec_bind_message(StringInfo input_message)
 		/* ... and we don't want the portal to depend on it, either */
 		cplan = NULL;
 	}
-
-	/* Done with the snapshot used for parameter I/O and parsing/planning */
-	if (snapshot_set)
-		PopActiveSnapshot();
 
 	/*
 	 * Now we can define the portal.
