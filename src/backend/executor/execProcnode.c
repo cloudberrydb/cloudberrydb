@@ -107,6 +107,7 @@
 #include "executor/nodeTidscan.h"
 #include "executor/nodeUnique.h"
 #include "executor/nodeValuesscan.h"
+#include "executor/nodeWindowAgg.h"
 #include "executor/nodeWorktablescan.h"
 #include "miscadmin.h"
 
@@ -128,7 +129,6 @@
 #include "executor/nodeSplitUpdate.h"
 #include "executor/nodeTableFunction.h"
 #include "executor/nodeTableScan.h"
-#include "executor/nodeWindow.h"
 #include "pg_trace.h"
 #include "tcop/tcopprot.h"
 #include "utils/debugbreak.h"
@@ -682,8 +682,8 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 
 			START_MEMORY_ACCOUNT(curMemoryAccountId);
 			{
-			result = (PlanState *) ExecInitWindow((WindowAgg *) node,
-											   estate, eflags);
+			result = (PlanState *) ExecInitWindowAgg((WindowAgg *) node,
+													 estate, eflags);
 			}
 			END_MEMORY_ACCOUNT();
 			break;
@@ -1186,8 +1186,8 @@ ExecProcNode(PlanState *node)
 			result = ExecShareInputScan((ShareInputScanState *) node);
 			break;
 
-		case T_WindowState:
-			result = ExecWindow((WindowState *) node);
+		case T_WindowAggState:
+			result = ExecWindowAgg((WindowAggState *) node);
 			break;
 
 		case T_RepeatState:
@@ -1452,7 +1452,7 @@ ExecCountSlotsNode(Plan *node)
 			return ExecCountSlotsAgg((Agg *) node);
 
 		case T_WindowAgg:
-			return ExecCountSlotsWindow((WindowAgg *) node);
+			return 0;
 
 		case T_Unique:
 			return ExecCountSlotsUnique((Unique *) node);
@@ -1786,8 +1786,8 @@ ExecEndNode(PlanState *node)
 			ExecEndAgg((AggState *) node);
 			break;
 
-		case T_WindowState:
-			ExecEndWindow((WindowState *) node);
+		case T_WindowAggState:
+			ExecEndWindowAgg((WindowAggState *) node);
 			break;
 
 		case T_UniqueState:

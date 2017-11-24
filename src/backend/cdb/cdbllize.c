@@ -25,6 +25,7 @@
 #include "nodes/pg_list.h"
 #include "nodes/print.h"
 
+#include "optimizer/paths.h"
 #include "optimizer/planmain.h" /* for is_projection_capable_plan() */
 #include "optimizer/var.h"		/* for contain_vars_of_level_or_above() */
 #include "parser/parsetree.h"	/* for rt_fetch() */
@@ -557,11 +558,16 @@ ParallelizeCorrelatedSubPlanMutator(Node *node, ParallelizeCorrelatedPlanWalkerC
 		 * Step 3: Find all the vars that are needed from the scan node
 		 * for upstream processing.
 		 */
-		/* GPDB_84_MERGE_FIXME: Should we pass includePlaceHolderVars as true */
-		/* in pull_var_clause ? */
-		List	   *scanVars = pull_var_clause((Node *) scanPlan->targetlist, false);
+		/* GPDB_84_MERGE_FIXME: What are the correct PVC_* modes here? */
+		List	   *scanVars;
 
-		scanVars = list_concat(scanVars, pull_var_clause((Node *) resQual, false));
+		scanVars = list_concat(
+			pull_var_clause((Node *) scanPlan->targetlist,
+							PVC_RECURSE_AGGREGATES,
+							PVC_REJECT_PLACEHOLDERS),
+			pull_var_clause((Node *) resQual,
+							PVC_RECURSE_AGGREGATES,
+							PVC_REJECT_PLACEHOLDERS));
 
 		/*
 		 * Step 4: Construct the new targetlist for the scan node
@@ -1095,8 +1101,33 @@ repartitionPlan(Plan *plan, bool stable, bool rescannable, List *hashExpr)
 	return adjustPlanFlow(plan, stable, rescannable, MOVEMENT_REPARTITION, hashExpr);
 }
 
+/*
+ * repartitionPlanForGroupClauses
+ */
+bool
+repartitionPlanForGroupClauses(PlannerInfo *root, Plan *plan,
+							   bool stable, bool rescannable,
+							   List *groupclauses, List *targetlist)
+{
+	List	   *hashExpr;
+	ListCell   *lc;
 
+	/*
+	 * Build a hashExpr from the SortGroupClauses.
+	 */
+	hashExpr = NIL;
+	foreach (lc, groupclauses)
+	{
+		SortGroupClause *sortcl = (SortGroupClause *) lfirst(lc);
+		Node	   *n;
 
+		n = get_sortgroupclause_expr(sortcl, targetlist);
+
+		hashExpr = lappend(hashExpr, n);
+	}
+
+	return repartitionPlan(plan, stable, rescannable, hashExpr);
+}
 
 /*
  * Helper Function: adjustPlanFlow

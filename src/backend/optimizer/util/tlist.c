@@ -119,9 +119,8 @@ tlist_member_ignore_relabel(Node *node, List *targetlist)
  * flatten_tlist
  *	  Create a target list that only contains unique variables.
  *
- * Note that Vars with varlevelsup > 0 are not included in the output
- * tlist.  We expect that those will eventually be replaced with Params,
- * but that probably has not happened at the time this routine is called.
+ * Aggrefs and PlaceHolderVars in the input are treated according to
+ * aggbehavior and phbehavior, for which see pull_var_clause().
  *
  * 'tlist' is the current target list
  *
@@ -131,40 +130,49 @@ tlist_member_ignore_relabel(Node *node, List *targetlist)
  * Copying the Var nodes is probably overkill, but be safe for now.
  */
 List *
-flatten_tlist(List *tlist)
+flatten_tlist(List *tlist, PVCAggregateBehavior aggbehavior,
+			  PVCPlaceHolderBehavior phbehavior)
 {
-	List	   *vlist = pull_var_clause((Node *) tlist, true);
+	List	   *vlist = pull_var_clause((Node *) tlist,
+										aggbehavior,
+										phbehavior);
 	List	   *new_tlist;
 
-	new_tlist = add_to_flat_tlist(NIL, vlist, false /* resjunk */);
+	new_tlist = add_to_flat_tlist(NIL, vlist);
 	list_free(vlist);
 	return new_tlist;
 }
 
 /*
  * add_to_flat_tlist
- *		Add more vars to a flattened tlist (if they're not already in it)
+ *		Add more items to a flattened tlist (if they're not already in it)
  *
  * 'tlist' is the flattened tlist
- * 'vars' is a list of Var and/or PlaceHolderVar nodes
+ * 'exprs' is a list of expressions (usually, but not necessarily, Vars)
  *
  * Returns the extended tlist.
  */
 List *
-add_to_flat_tlist(List *tlist, List *vars, bool resjunk)
+add_to_flat_tlist(List *tlist, List *exprs)
+{
+	return add_to_flat_tlist_junk(tlist, exprs, false);
+}
+
+List *
+add_to_flat_tlist_junk(List *tlist, List *exprs, bool resjunk)
 {
 	int			next_resno = list_length(tlist) + 1;
-	ListCell   *v;
+	ListCell   *lc;
 
-	foreach(v, vars)
+	foreach(lc, exprs)
 	{
-		Node	   *var = (Node *) lfirst(v);
+		Node	   *expr = (Node *) lfirst(lc);
 
-		if (!tlist_member_ignore_relabel(var, tlist))
+		if (!tlist_member_ignore_relabel(expr, tlist))
 		{
 			TargetEntry *tle;
 
-			tle = makeTargetEntry(copyObject(var),		/* copy needed?? */
+			tle = makeTargetEntry(copyObject(expr),		/* copy needed?? */
 								  next_resno++,
 								  NULL,
 								  resjunk);
@@ -701,12 +709,12 @@ bool maxSortGroupRef_walker(Node *node, maxSortGroupRef_context *cxt)
 	if ( IsA(node, Aggref) )
 	{
 		Aggref *ref = (Aggref*)node;
-		if ( ref->aggorder && cxt->include_orderedagg )
+
+		if ( cxt->include_orderedagg )
 		{
 			ListCell *lc;
-			AggOrder *aggorder = ref->aggorder;
 
-			foreach (lc, aggorder->sortClause)
+			foreach (lc, ref->aggorder)
 			{
 				SortGroupClause *sort = (SortGroupClause *)lfirst(lc);
 				Assert(IsA(sort, SortGroupClause));

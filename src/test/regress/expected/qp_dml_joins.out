@@ -4121,7 +4121,7 @@ SELECT SUM(b) FROM dml_heap_r;
 (1 row)
 
 UPDATE dml_heap_r SET b = MAX(dml_heap_s.b) FROM dml_heap_s WHERE dml_heap_r.b = dml_heap_s.a;
-ERROR:  cannot use aggregate function in UPDATE
+ERROR:  aggregate functions are not allowed in UPDATE
 LINE 1: UPDATE dml_heap_r SET b = MAX(dml_heap_s.b) FROM dml_heap_s ...
                                   ^
 SELECT SUM(b) FROM dml_heap_r;

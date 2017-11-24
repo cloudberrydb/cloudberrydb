@@ -1008,7 +1008,8 @@ ProcessUtility(Node *parsetree,
 					case OBJECT_AGGREGATE:
 						DefineAggregate(stmt->defnames, stmt->args,
 										stmt->oldstyle, stmt->definition,
-										stmt->ordered);
+										false, /* FIXME: GPDB-specific ordered flag */
+										queryString);
 						break;
 					case OBJECT_OPERATOR:
 						Assert(stmt->args == NIL);

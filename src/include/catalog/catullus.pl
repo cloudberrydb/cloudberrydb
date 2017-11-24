@@ -77,8 +77,7 @@ the new generated code for the previous contents.
 The aggregate transition functions are constructed from CREATE
 FUNCTION statements.  But we should really use CREATE AGGREGATE
 statements to generate the DATA statements for pg_aggregate and the
-pg_proc entries.  A similar limitation exists for window functions in
-pg_window.  And operators and operator classes?  Access methods? Casts?
+pg_proc entries.  And operators and operator classes?  Access methods? Casts?
 
 
 =head1 AUTHORS
@@ -1291,8 +1290,7 @@ the new generated code for the previous contents.
 The aggregate transition functions are constructed from CREATE
 FUNCTION statements.  But we should really use CREATE AGGREGATE
 statements to generate the DATA statements for pg_aggregate and the
-pg_proc entries.  A similar limitation exists for window functions in
-pg_window.  And operators and operator classes?  Access methods? Casts?
+pg_proc entries.  And operators and operator classes?  Access methods? Casts?
 
 EOF_toplong
 

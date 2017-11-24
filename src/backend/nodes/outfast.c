@@ -459,6 +459,7 @@ _outWindowAgg(StringInfo str, WindowAgg *node)
 
 	_outPlanInfo(str, (Plan *) node);
 
+	WRITE_UINT_FIELD(winref);
 	WRITE_INT_FIELD(partNumCols);
 	WRITE_INT_ARRAY(partColIdx, node->partNumCols, AttrNumber);
 	WRITE_OID_ARRAY(partOperators, node->partNumCols);
@@ -467,6 +468,9 @@ _outWindowAgg(StringInfo str, WindowAgg *node)
 
 	WRITE_INT_ARRAY(ordColIdx, node->ordNumCols, AttrNumber);
 	WRITE_OID_ARRAY(ordOperators, node->ordNumCols);
+	WRITE_INT_FIELD(firstOrderCol);
+	WRITE_OID_FIELD(firstOrderCmpOperator);
+	WRITE_BOOL_FIELD(firstOrderNullsFirst);
 	WRITE_INT_FIELD(frameOptions);
 	WRITE_NODE_FIELD(startOffset);
 	WRITE_NODE_FIELD(endOffset);
@@ -574,24 +578,6 @@ _outConst(StringInfo str, Const *node)
 
 	if (!node->constisnull)
 		_outDatum(str, node->constvalue, node->constlen, node->constbyval);
-}
-
-static void
-_outAggref(StringInfo str, Aggref *node)
-{
-	WRITE_NODE_TYPE("AGGREF");
-
-	WRITE_OID_FIELD(aggfnoid);
-	WRITE_OID_FIELD(aggtype);
-	WRITE_NODE_FIELD(args);
-	WRITE_UINT_FIELD(agglevelsup);
-	WRITE_BOOL_FIELD(aggstar);
-	WRITE_BOOL_FIELD(aggdistinct);
-	WRITE_NODE_FIELD(aggfilter);
-
-	WRITE_ENUM_FIELD(aggstage, AggStage);
-    WRITE_NODE_FIELD(aggorder);
-
 }
 
 static void
@@ -1438,9 +1424,6 @@ _outNode(StringInfo str, void *obj)
 			case T_Aggref:
 				_outAggref(str, obj);
 				break;
-			case T_AggOrder:
-				_outAggOrder(str, obj);
-				break;
 			case T_WindowFunc:
 				_outWindowFunc(str, obj);
 				break;
@@ -1914,9 +1897,6 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_GroupId:
 				_outGroupId(str, obj);
-				break;
-			case T_PercentileExpr:
-				_outPercentileExpr(str, obj);
 				break;
 			case T_WindowClause:
 				_outWindowClause(str, obj);

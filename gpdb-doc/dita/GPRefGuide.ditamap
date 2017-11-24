@@ -284,7 +284,6 @@
 			<topicref href="ref_guide/system_catalogs/pg_type.xml"/>
 			<topicref href="ref_guide/system_catalogs/pg_type_encoding.xml"/>
 			<topicref href="ref_guide/system_catalogs/pg_user_mapping.xml"/>
-			<topicref href="ref_guide/system_catalogs/pg_window.xml"/>
 		</topicref>
 	</chapter>
 	<chapter href="ref_guide/gp_toolkit.xml" navtitle="The gp_toolkit Administrative Schema"

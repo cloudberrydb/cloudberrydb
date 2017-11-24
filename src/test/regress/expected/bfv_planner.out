@@ -332,6 +332,14 @@ select a from (select * from bfv_planner_t3 order by a, b) as x limit 1;
 ---
 (0 rows)
 
+-- Similar case, but when evaluating a window function rather than LIMIT
+select first_value(a) over w, a
+from (select * from bfv_planner_t3 order by a, b) as x
+WINDOW w AS (order by a);
+ first_value | a 
+-------------+---
+(0 rows)
+
 -- start_ignore
 drop table if exists bfv_planner_x;
 drop table if exists testbadsql;

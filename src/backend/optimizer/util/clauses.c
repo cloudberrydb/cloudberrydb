@@ -37,6 +37,7 @@
 #include "optimizer/prep.h"
 #include "optimizer/var.h"
 #include "parser/analyze.h"
+#include "parser/parse_agg.h"
 #include "parser/parse_coerce.h"
 #include "parser/parse_func.h"
 #include "rewrite/rewriteManip.h"
@@ -78,6 +79,7 @@ typedef struct
 
 static bool contain_agg_clause_walker(Node *node, void *context);
 static bool count_agg_clauses_walker(Node *node, AggClauseCounts *counts);
+static bool find_window_functions_walker(Node *node, WindowFuncLists *lists);
 static bool expression_returns_set_rows_walker(Node *node, double *count);
 static bool contain_subplans_walker(Node *node, void *context);
 static bool contain_mutable_functions_walker(Node *node, void *context);
@@ -98,6 +100,7 @@ static List *simplify_and_arguments(List *args,
 static Expr *simplify_boolean_equality(List *args);
 static Expr *simplify_function(Oid funcid,
 				  Oid result_type, int32 result_typmod, List **args,
+				  bool funcvariadic, 
 				  bool allow_inline,
 				  eval_const_expressions_context *context);
 static bool large_const(Expr *expr, Size max_size);
@@ -105,9 +108,11 @@ static List *add_function_defaults(List *args, Oid result_type,
 								   HeapTuple func_tuple);
 static Expr *evaluate_function(Oid funcid,
 				  Oid result_type, int32 result_typmod, List *args,
+				  bool funcvariadic,
 				  HeapTuple func_tuple,
 				  eval_const_expressions_context *context);
 static Expr *inline_function(Oid funcid, Oid result_type, List *args,
+				bool funcvariadic,
 				HeapTuple func_tuple,
 				eval_const_expressions_context *context);
 static Node *substitute_actual_parameters(Node *expr, int nargs, List *args,
@@ -400,9 +405,6 @@ contain_agg_clause_walker(Node *node, void *context)
 	if (IsA(node, GroupId) || IsA(node, GroupingFunc))
 		return true;
 
-	if (IsA(node, PercentileExpr))
-		return true;
-
 	Assert(!IsA(node, SubLink));
 	return expression_tree_walker(node, contain_agg_clause_walker, context);
 }
@@ -440,51 +442,14 @@ count_agg_clauses_walker(Node *node, AggClauseCounts *counts)
 	if (IsA(node, Aggref))
 	{
 		Aggref	   *aggref = (Aggref *) node;
-		Oid		   *inputTypes;
+		Oid			inputTypes[FUNC_MAX_ARGS];
 		int			numArguments;
 		HeapTuple	aggTuple;
 		Form_pg_aggregate aggform;
 		Oid			aggtranstype;
 		Oid			aggprelimfn;
-		int			i;
-		ListCell   *l;
 
 		Assert(aggref->agglevelsup == 0);
-		counts->numAggs++;
-		if (aggref->aggdistinct)
-		{
-			Node *arg;
-			
-			counts->numDistinctAggs++;
-			
-			/* This check anticipates the one in ExecInitAgg(). */
-			if ( list_length(aggref->args) != 1 )
-				ereport(ERROR,
-						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						 errmsg("DISTINCT is supported only for single-argument aggregates")));
-				
-			arg = (Node*)linitial(aggref->args);
-			if ( !list_member(counts->dqaArgs, arg) )
-				counts->dqaArgs = lappend(counts->dqaArgs, arg);
-		}
-
-		/*
-		 * Build up a list of all ordering clauses from any ordered aggregates
-		 */
-		if (aggref->aggorder)
-		{
-			if ( !list_member(counts->aggOrder, aggref->aggorder) )
-				counts->aggOrder = lappend(counts->aggOrder, aggref->aggorder);
-		}
-
-		/* extract argument types */
-		numArguments = list_length(aggref->args);
-		inputTypes = (Oid *) palloc(sizeof(Oid) * numArguments);
-		i = 0;
-		foreach(l, aggref->args)
-		{
-			inputTypes[i++] = exprType((Node *) lfirst(l));
-		}
 
 		/* fetch aggregate transition datatype from pg_aggregate */
 		aggTuple = SearchSysCache(AGGFNOID,
@@ -498,31 +463,38 @@ count_agg_clauses_walker(Node *node, AggClauseCounts *counts)
 		aggprelimfn = aggform->aggprelimfn;
 		ReleaseSysCache(aggTuple);
 
+		/* count it; note ordered-set aggs always have nonempty aggorder */
+		counts->numAggs++;
+		if (aggref->aggorder != NIL || aggref->aggdistinct != NIL)
+			counts->numOrderedAggs++;
+
+		if (aggref->aggdistinct != NIL)
+		{
+			ListCell *lc;
+
+			foreach(lc, aggref->args)
+			{
+				TargetEntry *tle = (TargetEntry *) lfirst(lc);
+
+				if ( !list_member(counts->dqaArgs, tle->expr) )
+					counts->dqaArgs = lappend(counts->dqaArgs, tle->expr);
+			}
+		}
+
 		/* CDB wants to know whether the function can do 2-stage aggregation */
 		if ( aggprelimfn == InvalidOid )
 		{
 			counts->missing_prelimfunc = true; /* Nope! */
 		}
 
-		/* resolve actual type of transition state, if polymorphic */
-		if (IsPolymorphicType(aggtranstype))
-		{
-			/* have to fetch the agg's declared input types... */
-			Oid		   *declaredArgTypes;
-			int			agg_nargs;
+		/* extract argument types (ignoring any ORDER BY expressions) */
+		numArguments = get_aggregate_argtypes(aggref, inputTypes);
 
-			(void) get_func_signature(aggref->aggfnoid,
-									  &declaredArgTypes, &agg_nargs);
-			Assert(agg_nargs == numArguments);
-			aggtranstype = enforce_generic_type_consistency(inputTypes,
-															declaredArgTypes,
-															agg_nargs,
-															aggtranstype,
-															false);
-			pfree(declaredArgTypes);
-			
-			counts->missing_prelimfunc = true; /* CDB: Disable 2P aggregation */
-		}
+		/* resolve actual type of transition state, if polymorphic */
+		aggtranstype = resolve_aggregate_transtype(aggref->aggfnoid,
+												   aggtranstype,
+												   inputTypes,
+												   numArguments);
 
 		/*
 		 * If the transition type is pass-by-value then it doesn't add
@@ -563,9 +535,6 @@ count_agg_clauses_walker(Node *node, AggClauseCounts *counts)
 			counts->transitionSpace += ALLOCSET_DEFAULT_INITSIZE;
 		}
 
-		if ( inputTypes != NULL )
-			pfree(inputTypes);
-
 		/*
 		 * Complain if the aggregate's arguments contain any aggregates;
 		 * nested agg functions are semantically nonsensical.  Aggregates in
@@ -603,7 +572,56 @@ count_agg_clauses_walker(Node *node, AggClauseCounts *counts)
 bool
 contain_window_function(Node *clause)
 {
-	return checkExprHasWindowFuncs(clause);
+	return contain_windowfuncs(clause);
+}
+
+/*
+ * find_window_functions
+ *	  Locate all the WindowFunc nodes in an expression tree, and organize
+ *	  them by winref ID number.
+ *
+ * Caller must provide an upper bound on the winref IDs expected in the tree.
+ */
+WindowFuncLists *
+find_window_functions(Node *clause, Index maxWinRef)
+{
+	WindowFuncLists *lists = palloc(sizeof(WindowFuncLists));
+
+	lists->numWindowFuncs = 0;
+	lists->maxWinRef = maxWinRef;
+	lists->windowFuncs = (List **) palloc0((maxWinRef + 1) * sizeof(List *));
+	(void) find_window_functions_walker(clause, lists);
+	return lists;
+}
+
+static bool
+find_window_functions_walker(Node *node, WindowFuncLists *lists)
+{
+	if (node == NULL)
+		return false;
+	if (IsA(node, WindowFunc))
+	{
+		WindowFunc *wfunc = (WindowFunc *) node;
+
+		/* winref is unsigned, so one-sided test is OK */
+		if (wfunc->winref > lists->maxWinRef)
+			elog(ERROR, "WindowFunc contains out-of-range winref %u",
+				 wfunc->winref);
+		lists->windowFuncs[wfunc->winref] =
+			lappend(lists->windowFuncs[wfunc->winref], wfunc);
+		lists->numWindowFuncs++;
+
+		/*
+		 * We assume that the parser checked that there are no window
+		 * functions in the arguments or filter clause.  Hence, we need not
+		 * recurse into them.  (If either the parser or the planner screws up
+		 * on this point, the executor will still catch it; see ExecInitExpr.)
+		 */
+		return false;
+	}
+	Assert(!IsA(node, SubLink));
+	return expression_tree_walker(node, find_window_functions_walker,
+								  (void *) lists);
 }
 
 
@@ -654,6 +672,8 @@ expression_returns_set_rows_walker(Node *node, double *count)
 
 	/* Avoid recursion for some cases that can't return a set */
 	if (IsA(node, Aggref))
+		return false;
+	if (IsA(node, WindowFunc))
 		return false;
 	if (IsA(node, DistinctExpr))
 		return false;
@@ -1720,7 +1740,8 @@ check_execute_on_functions(Node *clause)
  * not-constant expressions, namely aggregates (Aggrefs).  In current usage
  * this is only applied to WHERE clauses and so a check for Aggrefs would be
  * a waste of cycles; but be sure to also check contain_agg_clause() if you
- * want to know about pseudo-constness in other contexts.
+ * want to know about pseudo-constness in other contexts.  The same goes
+ * for window functions (WindowFuncs).
  */
 bool
 is_pseudo_constant_clause(Node *clause)
@@ -2283,6 +2304,7 @@ eval_const_expressions_mutator(Node *node,
 		simple = simplify_function(expr->funcid,
 								   expr->funcresulttype, exprTypmod(node),
 								   &args,
+								   expr->funcvariadic,
 								   true, context);
 		if (simple)				/* successfully simplified it */
 			return (Node *) simple;
@@ -2296,6 +2318,7 @@ eval_const_expressions_mutator(Node *node,
 		newexpr->funcid = expr->funcid;
 		newexpr->funcresulttype = expr->funcresulttype;
 		newexpr->funcretset = expr->funcretset;
+		newexpr->funcvariadic = expr->funcvariadic;
 		newexpr->funcformat = expr->funcformat;
 		newexpr->args = args;
 		newexpr->location = expr->location;
@@ -2341,6 +2364,7 @@ eval_const_expressions_mutator(Node *node,
 		simple = simplify_function(expr->opfuncid,
 								   expr->opresulttype, -1,
 								   &args,
+								   false,
 								   true, context);
 		if (simple)				/* successfully simplified it */
 			return (Node *) simple;
@@ -2432,6 +2456,7 @@ eval_const_expressions_mutator(Node *node,
 			simple = simplify_function(expr->opfuncid,
 									   expr->opresulttype, -1,
 									   &args,
+									   false,
 									   false, context);
 			if (simple)			/* successfully simplified it */
 			{
@@ -2624,7 +2649,9 @@ eval_const_expressions_mutator(Node *node,
 		simple = simplify_function(outfunc,
 								   CSTRINGOID, -1,
 								   &args,
-								   true, context);
+								   false,
+								   true,
+								   context);
 		if (simple)				/* successfully simplified output fn */
 		{
 			/*
@@ -2642,7 +2669,9 @@ eval_const_expressions_mutator(Node *node,
 			simple = simplify_function(infunc,
 									   expr->resulttype, -1,
 									   &args,
-									   true, context);
+									   false,
+									   true,
+									   context);
 			if (simple)			/* successfully simplified input fn */
 				return (Node *) simple;
 		}
@@ -3515,6 +3544,7 @@ simplify_boolean_equality(List *args)
 static Expr *
 simplify_function(Oid funcid, Oid result_type, int32 result_typmod,
 				  List **args,
+				  bool funcvariadic,
 				  bool allow_inline,
 				  eval_const_expressions_context *context)
 {
@@ -3540,6 +3570,7 @@ simplify_function(Oid funcid, Oid result_type, int32 result_typmod,
 		*args = add_function_defaults(*args, result_type, func_tuple);
 
 	newexpr = evaluate_function(funcid, result_type, result_typmod, *args,
+								funcvariadic,
 								func_tuple, context);
 
 	if (large_const(newexpr, context->max_size))
@@ -3550,6 +3581,7 @@ simplify_function(Oid funcid, Oid result_type, int32 result_typmod,
 
 	if (!newexpr && allow_inline)
 		newexpr = inline_function(funcid, result_type, *args,
+								  funcvariadic,
 								  func_tuple, context);
 
 	ReleaseSysCache(func_tuple);
@@ -3670,6 +3702,7 @@ large_const(Expr *expr, Size max_size)
  */
 static Expr *
 evaluate_function(Oid funcid, Oid result_type, int32 result_typmod, List *args,
+				  bool funcvariadic,
 				  HeapTuple func_tuple,
 				  eval_const_expressions_context *context)
 {
@@ -3755,6 +3788,7 @@ evaluate_function(Oid funcid, Oid result_type, int32 result_typmod, List *args,
 	newexpr->funcid = funcid;
 	newexpr->funcresulttype = result_type;
 	newexpr->funcretset = false;
+	newexpr->funcvariadic = funcvariadic;
 	newexpr->funcformat = COERCE_DONTCARE;		/* doesn't matter */
 	newexpr->args = args;
 	newexpr->location = -1;
@@ -3793,6 +3827,7 @@ evaluate_function(Oid funcid, Oid result_type, int32 result_typmod, List *args,
  */
 static Expr *
 inline_function(Oid funcid, Oid result_type, List *args,
+				bool funcvariadic,
 				HeapTuple func_tuple,
 				eval_const_expressions_context *context)
 {
@@ -3893,6 +3928,7 @@ inline_function(Oid funcid, Oid result_type, List *args,
 		querytree->utilityStmt ||
 		querytree->intoClause ||
 		querytree->hasAggs ||
+		querytree->hasWindowFuncs ||
 		querytree->hasSubLinks ||
 		querytree->cteList ||
 		querytree->rtable ||
@@ -3900,6 +3936,7 @@ inline_function(Oid funcid, Oid result_type, List *args,
 		querytree->jointree->quals ||
 		querytree->groupClause ||
 		querytree->havingQual ||
+		querytree->windowClause ||
 		querytree->distinctClause ||
 		querytree->sortClause ||
 		querytree->limitOffset ||

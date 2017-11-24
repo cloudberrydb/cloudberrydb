@@ -27,11 +27,13 @@ ERROR:  syntax error at or near "order"
 LINE 1: SELECT count(order by a) from aggtest;
                      ^
 SELECT count(a order by a) from aggtest;     -- regular (non-orderd) aggregate
-ERROR:  ORDER BY specified, but count is not an ordered aggregate function
-LINE 1: SELECT count(a order by a) from aggtest;
-               ^
+ count 
+-------
+     4
+(1 row)
+
 SELECT abs(a order by a) from aggtest;       -- regular function
-ERROR:  ORDER BY specified, but abs is not an ordered aggregate function
+ERROR:  ORDER BY specified, but abs is not an aggregate function
 LINE 1: SELECT abs(a order by a) from aggtest;
                ^
 SELECT a(aggtest order by a) from aggtest;   -- function-like column reference
@@ -45,7 +47,7 @@ LINE 1: SELECT nosuchagg(a order by a) FROM aggtest;
                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT lag(a order by a) from aggtest;       -- window function (no window clause)
-ERROR:  window function call requires an OVER clause
+ERROR:  window function lag requires an OVER clause
 LINE 1: SELECT lag(a order by a) from aggtest;
                ^
 SELECT lag(a order by a) over (order by a) FROM aggtest;  -- window function

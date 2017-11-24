@@ -20,6 +20,59 @@
 struct HTAB;  /* utils/hsearch.h */
 
 /*
+ * Expression kinds distinguished by transformExpr().  Many of these are not
+ * semantically distinct so far as expression transformation goes; rather,
+ * we distinguish them so that context-specific error messages can be printed.
+ *
+ * Note: EXPR_KIND_OTHER is not used in the core code, but is left for use
+ * by extension code that might need to call transformExpr().  The core code
+ * will not enforce any context-driven restrictions on EXPR_KIND_OTHER
+ * expressions, so the caller would have to check for sub-selects, aggregates,
+ * and window functions if those need to be disallowed.
+ */
+typedef enum ParseExprKind
+{
+	EXPR_KIND_NONE = 0,				/* "not in an expression" */
+	EXPR_KIND_OTHER,				/* reserved for extensions */
+	EXPR_KIND_JOIN_ON,				/* JOIN ON */
+	EXPR_KIND_JOIN_USING,			/* JOIN USING */
+	EXPR_KIND_FROM_SUBSELECT,		/* sub-SELECT in FROM clause */
+	EXPR_KIND_FROM_FUNCTION,		/* function in FROM clause */
+	EXPR_KIND_WHERE,				/* WHERE */
+	EXPR_KIND_HAVING,				/* HAVING */
+	EXPR_KIND_FILTER,				/* FILTER */
+	EXPR_KIND_WINDOW_PARTITION,		/* window definition PARTITION BY */
+	EXPR_KIND_WINDOW_ORDER,			/* window definition ORDER BY */
+	EXPR_KIND_WINDOW_FRAME_RANGE,	/* window frame clause with RANGE */
+	EXPR_KIND_WINDOW_FRAME_ROWS,	/* window frame clause with ROWS */
+	EXPR_KIND_SELECT_TARGET,		/* SELECT target list item */
+	EXPR_KIND_INSERT_TARGET,		/* INSERT target list item */
+	EXPR_KIND_UPDATE_SOURCE,		/* UPDATE assignment source item */
+	EXPR_KIND_UPDATE_TARGET,		/* UPDATE assignment target item */
+	EXPR_KIND_GROUP_BY,				/* GROUP BY */
+	EXPR_KIND_ORDER_BY,				/* ORDER BY */
+	EXPR_KIND_DISTINCT_ON,			/* DISTINCT ON */
+	EXPR_KIND_LIMIT,				/* LIMIT */
+	EXPR_KIND_OFFSET,				/* OFFSET */
+	EXPR_KIND_RETURNING,			/* RETURNING */
+	EXPR_KIND_VALUES,				/* VALUES */
+	EXPR_KIND_CHECK_CONSTRAINT,		/* CHECK constraint for a table */
+	EXPR_KIND_DOMAIN_CHECK,			/* CHECK constraint for a domain */
+	EXPR_KIND_COLUMN_DEFAULT,		/* default value for a table column */
+	EXPR_KIND_FUNCTION_DEFAULT,		/* default parameter value for function */
+	EXPR_KIND_INDEX_EXPRESSION,		/* index expression */
+	EXPR_KIND_INDEX_PREDICATE,		/* index predicate */
+	EXPR_KIND_ALTER_COL_TRANSFORM,	/* transform expr in ALTER COLUMN TYPE */
+	EXPR_KIND_EXECUTE_PARAMETER,	/* parameter value in EXECUTE */
+	EXPR_KIND_TRIGGER_WHEN,			/* WHEN condition in CREATE TRIGGER */
+	EXPR_KIND_PARTITION_EXPRESSION,	/* PARTITION BY expression */
+
+	/* GPDB additions */
+	EXPR_KIND_SCATTER_BY			/* SCATTER BY expression */
+} ParseExprKind;
+
+
+/*
  * State information used during parse analysis
  *
  * parentParseState: NULL in a top-level ParseState.  When parsing a subquery,
@@ -86,6 +139,7 @@ typedef struct ParseState
 	List	   *p_ctenamespace; /* current namespace for common table exprs */
 	List	   *p_future_ctes;	/* common table exprs not yet in namespace */
 	List	   *p_windowdefs;	/* raw representations of window clauses */
+	ParseExprKind p_expr_kind;	/* what kind of expression we're parsing */
 	Oid		   *p_paramtypes;	/* OIDs of types for $n parameter symbols */
 	int			p_numparams;	/* allocated size of p_paramtypes[] */
 	int			p_next_resno;	/* next targetlist resno to assign */

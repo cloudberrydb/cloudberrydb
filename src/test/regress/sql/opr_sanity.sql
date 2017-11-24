@@ -26,6 +26,7 @@ SELECT ($1 = $2) OR
  EXISTS(select 1 from pg_catalog.pg_cast where
         castsource = $1 and casttarget = $2 and
         castmethod = 'b' and castcontext = 'i') OR
+ ($2 = 'pg_catalog.any'::pg_catalog.regtype) OR
  ($2 = 'pg_catalog.anyarray'::pg_catalog.regtype AND
   EXISTS(select 1 from pg_catalog.pg_type where
          oid = $1 and typelem != 0 and typlen = -1))
@@ -38,6 +39,7 @@ SELECT ($1 = $2) OR
  EXISTS(select 1 from pg_catalog.pg_cast where
         castsource = $1 and casttarget = $2 and
         castmethod = 'b') OR
+ ($2 = 'pg_catalog.any'::pg_catalog.regtype) OR
  ($2 = 'pg_catalog.anyarray'::pg_catalog.regtype AND
   EXISTS(select 1 from pg_catalog.pg_type where
          oid = $1 and typelem != 0 and typlen = -1))
@@ -122,8 +124,7 @@ WHERE p1.oid < p2.oid AND
      p1.proisstrict != p2.proisstrict OR
      p1.proretset != p2.proretset OR
      p1.provolatile != p2.provolatile OR
-     (p1.pronargs != p2.pronargs AND p1.oid 
-	  NOT IN (select winfunc from pg_window)));
+     p1.pronargs != p2.pronargs);
 
 -- Look for uses of different type OIDs in the argument/result type fields
 -- for different aliases of the same built-in function.
@@ -267,6 +268,55 @@ SELECT p1.oid, p1.proname
 FROM pg_proc as p1
 WHERE p1.prorettype = 'internal'::regtype AND NOT
     'internal'::regtype = ANY (p1.proargtypes);
+
+-- Look for functions that return a polymorphic type and do not have any
+-- polymorphic argument.  Calls of such functions would be unresolvable
+-- at parse time.  As of 9.4 this query should find only some input functions
+-- associated with these pseudotypes.
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE p1.prorettype IN
+    ('anyelement'::regtype, 'anyarray'::regtype, 'anynonarray'::regtype,
+     'anyenum'::regtype)
+  AND NOT
+    ('anyelement'::regtype = ANY (p1.proargtypes) OR
+     'anyarray'::regtype = ANY (p1.proargtypes) OR
+     'anynonarray'::regtype = ANY (p1.proargtypes) OR
+     'anyenum'::regtype = ANY (p1.proargtypes))
+ORDER BY 2;
+
+-- Check for length inconsistencies between the various argument-info arrays.
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE proallargtypes IS NOT NULL AND
+    array_length(proallargtypes,1) < array_length(proargtypes,1);
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE proargmodes IS NOT NULL AND
+    array_length(proargmodes,1) < array_length(proargtypes,1);
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE proargnames IS NOT NULL AND
+    array_length(proargnames,1) < array_length(proargtypes,1);
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE proallargtypes IS NOT NULL AND proargmodes IS NOT NULL AND
+    array_length(proallargtypes,1) <> array_length(proargmodes,1);
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE proallargtypes IS NOT NULL AND proargnames IS NOT NULL AND
+    array_length(proallargtypes,1) <> array_length(proargnames,1);
+
+SELECT p1.oid, p1.proname
+FROM pg_proc as p1
+WHERE proargmodes IS NOT NULL AND proargnames IS NOT NULL AND
+    array_length(proargmodes,1) <> array_length(proargnames,1);
 
 
 -- **************** pg_cast ****************
@@ -537,14 +587,18 @@ WHERE p1.oprjoin = p2.oid AND
 
 SELECT ctid, aggfnoid::oid
 FROM pg_aggregate as p1
-WHERE aggfnoid = 0 OR aggtransfn = 0 OR aggtranstype = 0;
+WHERE aggfnoid = 0 OR aggtransfn = 0 OR
+    aggkind NOT IN ('n', 'o', 'h') OR
+    aggnumdirectargs < 0 OR
+    (aggkind = 'n' AND aggnumdirectargs > 0) OR
+    aggtranstype = 0;
 
 -- Make sure the matching pg_proc entry is sensible, too.
 
 SELECT a.aggfnoid::oid, p.proname
 FROM pg_aggregate as a, pg_proc as p
 WHERE a.aggfnoid = p.oid AND
-    (NOT p.proisagg OR p.proretset);
+    (NOT p.proisagg OR p.proretset OR p.pronargs < a.aggnumdirectargs);
 
 -- Make sure there are no proisagg pg_proc entries without matches.
 
@@ -568,7 +622,9 @@ FROM pg_aggregate AS a, pg_proc AS p, pg_proc AS ptr
 WHERE a.aggfnoid = p.oid AND
     a.aggtransfn = ptr.oid AND
     (ptr.proretset
-     OR NOT (ptr.pronargs = p.pronargs + 1)
+     OR NOT (ptr.pronargs =
+             CASE WHEN a.aggkind = 'n' THEN p.pronargs + 1
+             ELSE greatest(p.pronargs - a.aggnumdirectargs, 1) + 1 END)
      OR NOT physically_coercible(ptr.prorettype, a.aggtranstype)
      OR NOT physically_coercible(a.aggtranstype, ptr.proargtypes[0])
      OR (p.pronargs > 0 AND
@@ -577,7 +633,7 @@ WHERE a.aggfnoid = p.oid AND
          NOT physically_coercible(p.proargtypes[1], ptr.proargtypes[2]))
      OR (p.pronargs > 2 AND
          NOT physically_coercible(p.proargtypes[2], ptr.proargtypes[3]))
-     -- we could carry the check further, but that's enough for now
+     -- we could carry the check further, but 3 args is enough for now
     );
 
 -- Cross-check finalfn (if present) against its entry in pg_proc.
@@ -586,10 +642,19 @@ SELECT a.aggfnoid::oid, p.proname, pfn.oid, pfn.proname
 FROM pg_aggregate AS a, pg_proc AS p, pg_proc AS pfn
 WHERE a.aggfnoid = p.oid AND
     a.aggfinalfn = pfn.oid AND
-    (pfn.proretset
-     OR NOT binary_coercible(pfn.prorettype, p.prorettype)
-     OR pfn.pronargs != 1
-     OR NOT binary_coercible(a.aggtranstype, pfn.proargtypes[0]));
+    (pfn.proretset OR
+     NOT binary_coercible(pfn.prorettype, p.prorettype) OR
+     NOT binary_coercible(a.aggtranstype, pfn.proargtypes[0]) OR
+     CASE WHEN a.aggfinalextra THEN pfn.pronargs != p.pronargs + 1
+          ELSE pfn.pronargs != a.aggnumdirectargs + 1 END
+     OR (pfn.pronargs > 1 AND
+         NOT binary_coercible(p.proargtypes[0], pfn.proargtypes[1]))
+     OR (pfn.pronargs > 2 AND
+         NOT binary_coercible(p.proargtypes[1], pfn.proargtypes[2]))
+     OR (pfn.pronargs > 3 AND
+         NOT binary_coercible(p.proargtypes[2], pfn.proargtypes[3]))
+     -- we could carry the check further, but 3 args is enough for now
+    );
 
 -- If transfn is strict then either initval should be non-NULL, or
 -- input type should match transtype so that the first non-null input
@@ -638,6 +703,42 @@ WHERE a.aggfnoid = p.oid AND a.aggsortop = o.oid AND
     amopopr = o.oid AND
     amopmethod = (SELECT oid FROM pg_am WHERE amname = 'btree')
 ORDER BY 1, 2;
+
+-- Check that there are not aggregates with the same name and different
+-- numbers of arguments.  While not technically wrong, we have a project policy
+-- to avoid this because it opens the door for confusion in connection with
+-- ORDER BY: novices frequently put the ORDER BY in the wrong place.
+-- See the fate of the single-argument form of string_agg() for history.
+-- (Note: we don't forbid users from creating such aggregates; the policy is
+-- just to think twice before creating built-in aggregates like this.)
+-- The only aggregates that should show up here are count(x) and count(*).
+
+SELECT p1.oid::regprocedure, p2.oid::regprocedure
+FROM pg_proc AS p1, pg_proc AS p2
+WHERE p1.oid < p2.oid AND p1.proname = p2.proname AND
+    p1.proisagg AND p2.proisagg AND
+    array_dims(p1.proargtypes) != array_dims(p2.proargtypes)
+ORDER BY 1;
+
+-- For the same reason, we avoid creating built-in variadic aggregates.
+
+SELECT oid, proname
+FROM pg_proc AS p
+WHERE proisagg AND provariadic != 0;
+
+-- For the same reason, built-in aggregates with default arguments are no good.
+
+SELECT oid, proname
+FROM pg_proc AS p
+WHERE proisagg AND proargdefaults IS NOT NULL;
+
+-- For the same reason, we avoid creating built-in variadic aggregates, except
+-- that variadic ordered-set aggregates are OK (since they have special syntax
+-- that is not subject to the misplaced ORDER BY issue).
+
+SELECT p.oid, proname
+FROM pg_proc AS p JOIN pg_aggregate AS a ON a.aggfnoid = p.oid
+WHERE proisagg AND provariadic != 0 AND a.aggkind = 'n';
 
 -- **************** pg_opfamily ****************
 

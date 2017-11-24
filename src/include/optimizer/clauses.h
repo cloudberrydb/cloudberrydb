@@ -21,6 +21,7 @@
 #define is_opclause(clause)		((clause) != NULL && IsA(clause, OpExpr))
 #define is_funcclause(clause)	((clause) != NULL && IsA(clause, FuncExpr))
 
+
 // max size of a folded constant when optimizing queries in Orca
 // Note: this is to prevent OOM issues when trying to serialize very large constants
 // Current limit: 100KB
@@ -29,12 +30,20 @@
 typedef struct
 {
 	int			numAggs;		/* total number of aggregate calls */
-	int			numDistinctAggs;	/* number that use DISTINCT */
+	int			numOrderedAggs; /* number w/ DISTINCT/ORDER BY/WITHIN GROUP */
 	Size		transitionSpace;	/* for pass-by-ref transition data */
 	List   *dqaArgs;	/* CDB: List of distinct DQA argument exprs. */
-	List   *aggOrder;   /* CDB: List of AggOrder clauses */
+	bool		hasOrderedAggs;	/* any ordered aggs? */
 	bool	missing_prelimfunc; /* CDB: any agg func w/o a prelim func? */
 } AggClauseCounts;
+
+typedef struct
+{
+	int			numWindowFuncs; /* total number of WindowFuncs found */
+	Index		maxWinRef;		/* windowFuncs[] is indexed 0 .. maxWinRef */
+	List	  **windowFuncs;	/* lists of WindowFuncs for each winref */
+} WindowFuncLists;
+
 
 /*
  * Representing a canonicalized grouping sets.
@@ -71,6 +80,7 @@ extern bool contain_agg_clause(Node *clause);
 extern void count_agg_clauses(Node *clause, AggClauseCounts *counts);
 
 extern bool contain_window_function(Node *clause);
+extern WindowFuncLists *find_window_functions(Node *clause, Index maxWinRef);
 
 extern double expression_returns_set_rows(Node *clause);
 

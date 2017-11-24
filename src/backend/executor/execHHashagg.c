@@ -1803,16 +1803,18 @@ agg_hash_reload(AggState *aggstate)
 				fcinfo.argnull[1] = input_pergroupstate[aggno].transValueIsNull;
 
 				pergroupstate->transValue =
-					invoke_agg_trans_func(&(peraggstate->prelimfn),
-							peraggstate->prelimfn.fn_nargs - 1,
-							pergroupstate->transValue,
-							&(pergroupstate->noTransValue),
-							&(pergroupstate->transValueIsNull),
-							peraggstate->transtypeByVal,
-							peraggstate->transtypeLen,
-							&fcinfo, (void *)aggstate,
-							aggstate->tmpcontext->ecxt_per_tuple_memory,
-							&(aggstate->mem_manager));
+					invoke_agg_trans_func(aggstate,
+										  peraggstate,
+										  &(peraggstate->prelimfn),
+										  peraggstate->prelimfn.fn_nargs - 1,
+										  pergroupstate->transValue,
+										  &(pergroupstate->noTransValue),
+										  &(pergroupstate->transValueIsNull),
+										  peraggstate->transtypeByVal,
+										  peraggstate->transtypeLen,
+										  &fcinfo, (void *)aggstate,
+										  aggstate->tmpcontext->ecxt_per_tuple_memory,
+										  &(aggstate->mem_manager));
 				Assert(peraggstate->transtypeByVal ||
 				       (pergroupstate->transValueIsNull ||
 					PointerIsValid(DatumGetPointer(pergroupstate->transValue))));

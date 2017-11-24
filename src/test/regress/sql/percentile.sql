@@ -1,4 +1,4 @@
-create table perct as select a, a / 10 as b from generate_series(1, 100)a;
+create table perct as select a, a / 10 as b from generate_series(1, 100)a distributed by (a);
 create table perct2 as select a, a / 10 as b from generate_series(1, 100)a, generate_series(1, 2);
 create table perct3 as select a, b from perct, generate_series(1, 10)i where a % 7 < i;
 create table perct4 as select case when a % 10 = 5 then null else a end as a,
@@ -200,14 +200,14 @@ select count(median(a)) from perct;
 select median(count(*)) from perct;
 select percentile_cont(0.2) within group (order by count(*) over()) from perct;
 select percentile_disc(0.1) within group (order by group_id()) from perct;
--- subquery is not allowed to the argument
+-- subquery in argument
 select percentile_cont((select 0.1 from gp_id)) within group (order by a) from perct;
--- the argument must not be volatile expression
-select percentile_cont(random()) within group (order by a) from perct;
+-- volatile argument
+select percentile_cont(floor(random()*0.1)+0.5) within group (order by a) from perct;
 -- out of range
 select percentile_cont(-0.1) within group (order by a) from perct;
 select percentile_cont(1.00000001) within group (order by a) from perct;
--- CSQ is not supported currently.  Shame.
+-- correlated subquery
 select sum((select median(a) from perct where b = t.b)) from perct t;
 -- used in LIMIT
 select * from perct limit median(a);
@@ -221,8 +221,9 @@ select median(a) from perct group by grouping sets((), (b));
 select median('text') from perct;
 select percentile_cont(now()) within group (order by a) from percts;
 select percentile_cont(0.5) within group (order by point(0,0)) from perct;
--- outer reference is not allowed for now
+-- outer references
 select (select a from perct where median(t.a) = 5) from perct t;
+select array((select a from perct where median(t.a) = 50.5)) from (select * from perct t order by a offset 0) as t;
 
 -- MPP-22219
 select count(*) from

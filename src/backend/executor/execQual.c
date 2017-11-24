@@ -170,9 +170,6 @@ static Datum ExecEvalCoerceToDomain(CoerceToDomainState *cstate,
 static Datum ExecEvalCoerceToDomainValue(ExprState *exprstate,
 							ExprContext *econtext,
 							bool *isNull, ExprDoneCond *isDone);
-static Datum ExecEvalPercentileExpr(PercentileExprState *exprstate,
-					ExprContext *econtext,
-					bool *isNull, ExprDoneCond *isDone);
 static Datum ExecEvalFieldSelect(FieldSelectState *fstate,
 					ExprContext *econtext,
 					bool *isNull, ExprDoneCond *isDone);
@@ -649,11 +646,6 @@ ExecEvalGroupId(ExprState *gstate, ExprContext *econtext,
  *
  *		Returns a Datum whose value is the value of the precomputed
  *		window function found in the given expression context.
- *
- * XXX	Note that this routine is essentially the same as
- *		ExecEvalAggref since we use the same buffers. However,
- *		since the state structures for WindowFunc and Aggref
- *		are different, we separate the execution routines, too.
  * ----------------------------------------------------------------
  */
 static Datum
@@ -666,9 +658,8 @@ ExecEvalWindowFunc(WindowFuncExprState *wfunc, ExprContext *econtext,
 	if (econtext->ecxt_aggvalues == NULL)		/* safety check */
 		elog(ERROR, "no window functions in this expression context");
 
-	*isNull = econtext->ecxt_aggnulls[wfunc->funcno];
-	return econtext->ecxt_aggvalues[wfunc->funcno];
-
+	*isNull = econtext->ecxt_aggnulls[wfunc->wfuncno];
+	return econtext->ecxt_aggvalues[wfunc->wfuncno];
 }
 
 /* ----------------------------------------------------------------
@@ -4479,30 +4470,6 @@ ExecEvalCoerceToDomainValue(ExprState *exprstate,
 	return econtext->domainValue_datum;
 }
 
-/*
- * ExecEvalPercentileExpr
- *
- * Returns a Datum whose value is the value of the precomputed
- * the value at the percentile found in the given expression context.
- * Actually,  this is almost same as ExecEvalAggref.  The main reason
- * to add this is because we don't change the catalog at the moment.
- * This will be cleaned when we can change the catalog.
- */
-static Datum
-ExecEvalPercentileExpr(PercentileExprState *exprstate,
-					   ExprContext *econtext,
-					   bool *isNull, ExprDoneCond *isDone)
-{
-	if (isDone)
-		*isDone = ExprSingleResult;
-
-	if (econtext->ecxt_aggvalues == NULL)		/* safety check */
-		elog(ERROR, "no aggregates in this expression context");
-
-	*isNull = econtext->ecxt_aggnulls[exprstate->aggno];
-	return econtext->ecxt_aggvalues[exprstate->aggno];
-}
-
 /* ----------------------------------------------------------------
  *		ExecEvalFieldSelect
  *
@@ -5211,12 +5178,12 @@ ExecEvalExprSwitchContext(ExprState *expression,
  * executions of the expression are needed.  Typically the context will be
  * the same as the per-query context of the associated ExprContext.
  *
- * Any Aggref and SubPlan nodes found in the tree are added to the lists
- * of such nodes held by the parent PlanState.	Otherwise, we do very little
- * initialization here other than building the state-node tree.  Any nontrivial
- * work associated with initializing runtime info for a node should happen
- * during the first actual evaluation of that node.  (This policy lets us
- * avoid work if the node is never actually evaluated.)
+ * Any Aggref, WindowFunc, or SubPlan nodes found in the tree are added to the
+ * lists of such nodes held by the parent PlanState. Otherwise, we do very
+ * little initialization here other than building the state-node tree.  Any
+ * nontrivial work associated with initializing runtime info for a node should
+ * happen during the first actual evaluation of that node.  (This policy lets
+ * us avoid work if the node is never actually evaluated.)
  *
  * Note: there is no ExecEndExpr function; we assume that any resource
  * cleanup needed will be handled by just releasing the memory context
@@ -5291,17 +5258,9 @@ ExecInitExpr(Expr *node, PlanState *parent)
 					aggstate->aggs = lcons(astate, aggstate->aggs);
 					naggs = ++aggstate->numaggs;
 
-					/*
-					 * Combine the argument and sortkey expressions into a single list
-					 * along with the corresponding sortkey clauses, if any.
-					 * The code here is a bit different from postgres, because
-					 * GPDB does different things in parser for the ordered aggregate;
-					 * We don't construct target list in parser but do it here.
-					 * These lists are referenced in ExecInitAgg()
-					 */
-					astate->inputTargets =
-							combineAggrefArgs(aggref, &astate->inputSortClauses);
-					astate->args = (List *) ExecInitExpr((Expr *) astate->inputTargets,
+					astate->aggdirectargs = (List *) ExecInitExpr((Expr *) aggref->aggdirectargs,
+																  parent);
+					astate->args = (List *) ExecInitExpr((Expr *) aggref->args,
 														 parent);
 					astate->aggfilter = ExecInitExpr(aggref->aggfilter,
 													 parent);
@@ -5320,7 +5279,7 @@ ExecInitExpr(Expr *node, PlanState *parent)
 				else
 				{
 					/* planner messed up */
-					elog(ERROR, "aggref found in non-Agg plan node");
+					elog(ERROR, "Aggref found in non-Agg plan node");
 				}
 				state = (ExprState *) astate;
 			}
@@ -5354,14 +5313,17 @@ ExecInitExpr(Expr *node, PlanState *parent)
 			{
 				WindowFunc *wfunc = (WindowFunc *) node;
 				WindowFuncExprState *wfstate = makeNode(WindowFuncExprState);
-				int			numrefs;
-				WindowState *winstate = (WindowState *) parent;
 
 				wfstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalWindowFunc;
-				if (parent && IsA(parent, WindowState))
+				if (parent && IsA(parent, WindowAggState))
 				{
-					winstate->wfxstates = lcons(wfstate, winstate->wfxstates);
-					numrefs = list_length(winstate->wfxstates);
+					WindowAggState *winstate = (WindowAggState *) parent;
+					int			nfuncs;
+
+					winstate->funcs = lcons(wfstate, winstate->funcs);
+					nfuncs = ++winstate->numfuncs;
+					if (wfunc->winagg)
+						winstate->numaggs++;
 
 					wfstate->args = (List *) ExecInitExpr((Expr *) wfunc->args,
 														  parent);
@@ -5374,7 +5336,7 @@ ExecInitExpr(Expr *node, PlanState *parent)
 					 * nonsensical.  (This should have been caught earlier,
 					 * but we defend against it here anyway.)
 					 */
-					if (numrefs != list_length(winstate->wfxstates))
+					if (nfuncs != winstate->numfuncs)
 						ereport(ERROR,
 								(errcode(ERRCODE_WINDOWING_ERROR),
 						  errmsg("window function calls cannot be nested")));
@@ -5924,43 +5886,6 @@ ExecInitExpr(Expr *node, PlanState *parent)
 		case T_CurrentOfExpr:
 			state = (ExprState *) makeNode(ExprState);
 			state->evalfunc = ExecEvalCurrentOfExpr;
-			break;
-		case T_PercentileExpr:
-			{
-				PercentileExpr	   *p = (PercentileExpr *) node;
-				PercentileExprState *pstate = makeNode(PercentileExprState);
-				AggState		   *aggstate = (AggState *) parent;
-				int					naggs;
-
-				if (!IsA(aggstate, AggState))
-					elog(ERROR, "PercentileExpr found in non-Agg plan node: %d",
-							(int) nodeTag(parent));
-
-				aggstate->percs = lcons(pstate, aggstate->percs);
-				naggs = ++aggstate->numaggs;
-
-				pstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalPercentileExpr;
-
-
-				/* This is to build TupleDesc. */
-				pstate->tlist = combinePercentileArgs(p);
-
-				/* This is to build ProjectionInfo. */
-				pstate->args = (List *) ExecInitExpr((Expr *) pstate->tlist, parent);
-
-				/*
-				 * Complain if the aggregate's arguments contain any
-				 * aggregates; nested agg functions are semantically
-				 * nonsensical.  (This should have been caught earlier,
-				 * but we defend against it here anyway.)
-				 */
-				if (naggs != aggstate->numaggs)
-					ereport(ERROR,
-							(errcode(ERRCODE_GROUPING_ERROR),
-							 errmsg("aggregate function calls may not be nested")));
-
-				state = (ExprState *) pstate;
-			}
 			break;
 		case T_TargetEntry:
 			{

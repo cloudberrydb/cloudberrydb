@@ -170,38 +170,40 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 
 				subplan = (Plan *) make_result(root, tlist, NULL, subplan);
 			}
-			subplan->targetlist = add_to_flat_tlist(subplan->targetlist,
-													hashExpr,
-													true /* resjunk */ );
-		}
-		motion = make_hashed_motion(subplan,
-									hashExpr,
-									false /* useExecutorVarFormat */ );
-	}
-	else
-		Insist(0);
+			subplan->targetlist = add_to_flat_tlist_junk(subplan->targetlist,
+														 hashExpr,
+														 true /* resjunk */);
+        }
+        motion = make_hashed_motion(subplan,
+                                    hashExpr,
+                                    false /* useExecutorVarFormat */);
+    }
+    else
+        Insist(0);
 
-	/*
-	 * Decorate the subplan with a Flow node telling the plan slicer what kind
-	 * of gang will be needed to execute the subplan.
-	 */
-	subplan->flow = cdbpathtoplan_create_flow(root,
-											  subpath->locus,
-											  subpath->parent
-											  ? subpath->parent->relids
-											  : NULL,
-											  subpath->pathkeys,
-											  subplan);
+    /*
+     * Decorate the subplan with a Flow node telling the plan slicer
+     * what kind of gang will be needed to execute the subplan.
+     */
+    subplan->flow = cdbpathtoplan_create_flow(root,
+                                              subpath->locus,
+                                              subpath->parent
+                                                ? subpath->parent->relids
+                                                : NULL,
+                                              subpath->pathkeys,
+                                              subplan);
 
 	/**
 	 * If plan has a flow node, and its child is projection capable,
 	 * then ensure all entries of hashExpr are in the targetlist.
 	 */
-	if (subplan->flow
-		&& subplan->flow->hashExpr
-		&& is_projection_capable_plan(subplan))
+	if (subplan->flow &&
+		subplan->flow->hashExpr &&
+		is_projection_capable_plan(subplan))
 	{
-		subplan->targetlist = add_to_flat_tlist(subplan->targetlist, subplan->flow->hashExpr, true /* resjunk */ );
+		subplan->targetlist = add_to_flat_tlist_junk(subplan->targetlist,
+													 subplan->flow->hashExpr,
+													 true /* resjunk */);
 	}
 
 	return motion;

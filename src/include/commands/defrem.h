@@ -15,6 +15,7 @@
 #define DEFREM_H
 
 #include "nodes/parsenodes.h"
+#include "utils/array.h"
 
 struct HTAB;  /* utils/hsearch.h */
 
@@ -63,6 +64,17 @@ extern void DropCast(DropCastStmt *stmt);
 extern void DropCastById(Oid castOid);
 extern void ExecuteDoStmt(DoStmt *stmt);
 extern Oid  get_cast_oid(Oid sourcetypeid, Oid targettypeid, bool missing_ok);
+extern void interpret_function_parameter_list(List *parameters,
+								  Oid languageOid,
+								  bool is_aggregate,
+								  const char *queryString,
+								  oidvector **parameterTypes,
+								  ArrayType **allParameterTypes,
+								  ArrayType **parameterModes,
+								  ArrayType **parameterNames,
+								  List **parameterDefaults,
+								  Oid *variadicArgType,
+								  Oid *requiredResultType);
 extern void AlterFunctionNamespace(List *name, List *argtypes, bool isagg,
 					   const char *newschema);
 extern Oid	AlterFunctionNamespace_oid(Oid procOid, Oid nspOid);
@@ -79,10 +91,11 @@ extern Oid	AlterOperatorNamespace_oid(Oid operOid, Oid newNspOid);
 
 /* commands/aggregatecmds.c */
 extern void DefineAggregate(List *name, List *args, bool oldstyle,
-							List *parameters, bool ordered);
+							List *parameters, bool ordered, const char *queryString);
 extern void RemoveAggregate(RemoveFuncStmt *stmt);
 extern void RenameAggregate(List *name, List *args, const char *newname);
 extern void AlterAggregateOwner(List *name, List *args, Oid newOwnerId);
+
 /* commands/opclasscmds.c */
 extern void DefineOpClass(CreateOpClassStmt *stmt);
 extern void DefineOpFamily(CreateOpFamilyStmt *stmt);

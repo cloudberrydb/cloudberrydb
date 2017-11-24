@@ -1056,7 +1056,7 @@ DATA(insert OID = 2331 (  unnest		   PGNSP PGUID 12 1 100 0 f f f t t i 1 0 2283
 DESCR("expand array to set of rows");
 DATA(insert OID = 2333 (  array_agg_transfn   PGNSP PGUID 12 1 0 0 f f f f f i 2 0 2281 "2281 2283" _null_ _null_ _null_ _null_ array_agg_transfn _null_ _null_ _null_ ));
 DESCR("array_agg transition function");
-DATA(insert OID = 2334 (  array_agg_finalfn   PGNSP PGUID 12 1 0 0 f f f f f i 1 0 2277 "2281" _null_ _null_ _null_ _null_ array_agg_finalfn _null_ _null_ _null_ ));
+DATA(insert OID = 2334 (  array_agg_finalfn   PGNSP PGUID 12 1 0 0 f f f f f i 2 0 2277 "2281 2283" _null_ _null_ _null_ _null_ array_agg_finalfn _null_ _null_ _null_ ));
 DESCR("array_agg final function");
 DATA(insert OID = 2335 (  array_agg        PGNSP PGUID 12 1 0 0 t f f f f i 1 0 2277 "2283" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ ));
 DESCR("concatenate aggregate input into an array");
@@ -4790,6 +4790,120 @@ DATA(insert OID = 3084 (  pg_extension_update_paths		PGNSP PGUID 12 10 100 0 f f
 DESCR("list an extension's version update paths");
 DATA(insert OID = 3086 (  pg_extension_config_dump		PGNSP PGUID 12 1 0 0 f f f t f v 2 0 2278 "2205 25" _null_ _null_ _null_ _null_ pg_extension_config_dump _null_ _null_ _null_ n a));
 DESCR("flag an extension's table contents to be emitted by pg_dump");
+
+/* SQL-spec window functions */
+DATA(insert OID = 3100 (  row_number	PGNSP PGUID 12 1 0 0 f t f f f i 0 0 20 "" _null_ _null_ _null_ _null_ window_row_number _null_ _null_ _null_ n a));
+DESCR("row number within partition");
+DATA(insert OID = 3101 (  rank			PGNSP PGUID 12 1 0 0 f t f f f i 0 0 20 "" _null_ _null_ _null_ _null_ window_rank _null_ _null_ _null_ n a ));
+DESCR("integer rank with gaps");
+DATA(insert OID = 3102 (  dense_rank	PGNSP PGUID 12 1 0 0 f t f f f i 0 0 20 "" _null_ _null_ _null_ _null_ window_dense_rank _null_ _null_ _null_ n a ));
+DESCR("integer rank without gaps");
+DATA(insert OID = 3103 (  percent_rank	PGNSP PGUID 12 1 0 0 f t f f f i 0 0 701 "" _null_ _null_ _null_ _null_ window_percent_rank _null_ _null_ _null_ n a ));
+DESCR("fractional rank within partition");
+DATA(insert OID = 3104 (  cume_dist		PGNSP PGUID 12 1 0 0 f t f f f i 0 0 701 "" _null_ _null_ _null_ _null_ window_cume_dist _null_ _null_ _null_ n a ));
+DESCR("fractional row number within partition");
+DATA(insert OID = 3105 (  ntile			PGNSP PGUID 12 1 0 0 f t f t f i 1 0 23 "23" _null_ _null_ _null_ _null_ window_ntile _null_ _null_ _null_ n a ));
+DESCR("split rows into N groups");
+DATA(insert OID = 3106 (  lag			PGNSP PGUID 12 1 0 0 f t f t f i 1 0 2283 "2283" _null_ _null_ _null_ _null_ window_lag _null_ _null_ _null_ n a ));
+DESCR("fetch the preceding row value");
+DATA(insert OID = 3107 (  lag			PGNSP PGUID 12 1 0 0 f t f t f i 2 0 2283 "2283 23" _null_ _null_ _null_ _null_ window_lag_with_offset _null_ _null_ _null_ n a ));
+DESCR("fetch the Nth preceding row value");
+DATA(insert OID = 3108 (  lag			PGNSP PGUID 12 1 0 0 f t f t f i 3 0 2283 "2283 23 2283" _null_ _null_ _null_ _null_ window_lag_with_offset_and_default _null_ _null_ _null_ n a ));
+DESCR("fetch the Nth preceding row value with default");
+DATA(insert OID = 3109 (  lead			PGNSP PGUID 12 1 0 0 f t f t f i 1 0 2283 "2283" _null_ _null_ _null_ _null_ window_lead _null_ _null_ _null_ n a ));
+DESCR("fetch the following row value");
+DATA(insert OID = 3110 (  lead			PGNSP PGUID 12 1 0 0 f t f t f i 2 0 2283 "2283 23" _null_ _null_ _null_ _null_ window_lead_with_offset _null_ _null_ _null_ n a ));
+DESCR("fetch the Nth following row value");
+DATA(insert OID = 3111 (  lead			PGNSP PGUID 12 1 0 0 f t f t f i 3 0 2283 "2283 23 2283" _null_ _null_ _null_ _null_ window_lead_with_offset_and_default _null_ _null_ _null_ n a ));
+DESCR("fetch the Nth following row value with default");
+DATA(insert OID = 3112 (  first_value	PGNSP PGUID 12 1 0 0 f t f t f i 1 0 2283 "2283" _null_ _null_ _null_ _null_ window_first_value _null_ _null_ _null_ n a ));
+DESCR("fetch the first row value");
+DATA(insert OID = 3113 (  last_value	PGNSP PGUID 12 1 0 0 f t f t f i 1 0 2283 "2283" _null_ _null_ _null_ _null_ window_last_value _null_ _null_ _null_ n a ));
+DESCR("fetch the last row value");
+DATA(insert OID = 3114 (  nth_value		PGNSP PGUID 12 1 0 0 f t f t f i 2 0 2283 "2283 23" _null_ _null_ _null_ _null_ window_nth_value _null_ _null_ _null_ n a ));
+DESCR("fetch the Nth row value");
+
+/* generic transition functions for ordered-set aggregates */
+DATA(insert OID = 3970 ( ordered_set_transition			PGNSP PGUID 12 1 0 0 f f f f f i 2 0 2281 "2281 2276" _null_ _null_ _null_ _null_ ordered_set_transition _null_ _null_ _null_ n a ));
+DESCR("aggregate transition function");
+DATA(insert OID = 3971 ( ordered_set_transition_multi	PGNSP PGUID 12 1 0 2276 f f f f f i 2 0 2281 "2281 2276" "{2281,2276}" "{i,v}" _null_ _null_ ordered_set_transition_multi _null_ _null_ _null_ n a));
+DESCR("aggregate transition function");
+
+/* inverse distribution aggregates (and their support functions) */
+DATA(insert OID = 3972 ( percentile_disc		PGNSP PGUID 12 1 0 0 t f f f f i 2 0 2283 "701 2283" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("discrete percentile");
+DATA(insert OID = 3973 ( percentile_disc_final	PGNSP PGUID 12 1 0 0 f f f f f i 3 0 2283 "2281 701 2283" _null_ _null_ _null_ _null_ percentile_disc_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 3974 ( percentile_cont		PGNSP PGUID 12 1 0 0 t f f f f i 2 0 701 "701 701" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("continuous distribution percentile");
+DATA(insert OID = 3975 ( percentile_cont_float8_final	PGNSP PGUID 12 1 0 0 f f f f f i 2 0 701 "2281 701" _null_ _null_ _null_ _null_ percentile_cont_float8_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 3976 ( percentile_cont		PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1186 "701 1186" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("continuous distribution percentile");
+DATA(insert OID = 3977 ( percentile_cont_interval_final PGNSP PGUID 12 1 0 0 f f f f f i 2 0 1186 "2281 701" _null_ _null_ _null_ _null_ percentile_cont_interval_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 3978 ( percentile_disc		PGNSP PGUID 12 1 0 0 t f f f f i 2 0 2277 "1022 2283" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("multiple discrete percentiles");
+DATA(insert OID = 3979 ( percentile_disc_multi_final	PGNSP PGUID 12 1 0 0 f f f f f i 3 0 2277 "2281 1022 2283" _null_ _null_ _null_ _null_ percentile_disc_multi_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 3980 ( percentile_cont		PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1022 "1022 701" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("multiple continuous percentiles");
+DATA(insert OID = 3981 ( percentile_cont_float8_multi_final PGNSP PGUID 12 1 0 0 f f f f f i 2 0 1022 "2281 1022" _null_ _null_ _null_ _null_ percentile_cont_float8_multi_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 3982 ( percentile_cont		PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1187 "1022 1186" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("multiple continuous percentiles");
+DATA(insert OID = 3983 ( percentile_cont_interval_multi_final	PGNSP PGUID 12 1 0 0 f f f f f i 2 0 1187 "2281 1022" _null_ _null_ _null_ _null_ percentile_cont_interval_multi_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 3984 ( mode					PGNSP PGUID 12 1 0 0 t f f f f i 1 0 2283 "2283" _null_ _null_ _null_ _null_	aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("most common value");
+DATA(insert OID = 3985 ( mode_final				PGNSP PGUID 12 1 0 0 f f f f f i 2 0 2283 "2281 2283" _null_ _null_ _null_ _null_	mode_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+
+/* GPDB: additional variants of percentile_cont, for timestamps */
+DATA(insert OID = 6119 ( percentile_cont		PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1114 "701 1114" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("continuous distribution percentile");
+DATA(insert OID = 6120 ( percentile_cont_timestamp_final PGNSP PGUID 12 1 0 0 f f f f f i 2 0 1114 "2281 701" _null_ _null_ _null_ _null_ percentile_cont_timestamp_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 6121 ( percentile_cont		PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1115 "1022 1114" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("multiple continuous percentiles");
+DATA(insert OID = 6122 ( percentile_cont_timestamp_multi_final	PGNSP PGUID 12 1 0 0 f f f f f i 2 0 1115 "2281 1022" _null_ _null_ _null_ _null_ percentile_cont_timestamp_multi_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 6123 ( percentile_cont		PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1184 "701 1184" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("continuous distribution percentile");
+DATA(insert OID = 6124 ( percentile_cont_timestamptz_final PGNSP PGUID 12 1 0 0 f f f f f i 2 0 1184 "2281 701" _null_ _null_ _null_ _null_ percentile_cont_timestamptz_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 6125 ( percentile_cont		PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1185 "1022 1184" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("multiple continuous percentiles");
+DATA(insert OID = 6126 ( percentile_cont_timestamptz_multi_final	PGNSP PGUID 12 1 0 0 f f f f f i 2 0 1185 "2281 1022" _null_ _null_ _null_ _null_ percentile_cont_timestamptz_multi_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+
+DATA(insert OID = 6127 ( median					PGNSP PGUID 12 1 0 0 t f f f f i 2 0 701 "701 701" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("median");
+DATA(insert OID = 6128 ( median					PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1186 "701 1186" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("median");
+DATA(insert OID = 6129 ( median					PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1114 "701 1114" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("median");
+DATA(insert OID = 6130 ( median					PGNSP PGUID 12 1 0 0 t f f f f i 2 0 1184 "701 1184" _null_ _null_ _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("median");
+#define IS_MEDIAN_OID(x) ((x) == 6127 || (x) == 6128 || (x) == 6129 || (x) == 6130)
+
+/* hypothetical-set aggregates (and their support functions) */
+DATA(insert OID = 3986 ( rank				PGNSP PGUID 12 1 0 2276 t f f f f i 1 0 20 "2276" "{2276}" "{v}" _null_ _null_	aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("rank of hypothetical row");
+DATA(insert OID = 3987 ( rank_final			PGNSP PGUID 12 1 0 2276 f f f f f i 2 0 20 "2281 2276" "{2281,2276}" "{i,v}" _null_ _null_	hypothetical_rank_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 3988 ( percent_rank		PGNSP PGUID 12 1 0 2276 t f f f f i 1 0 701 "2276" "{2276}" "{v}" _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("fractional rank of hypothetical row");
+DATA(insert OID = 3989 ( percent_rank_final PGNSP PGUID 12 1 0 2276 f f f f f i 2 0 701 "2281 2276" "{2281,2276}" "{i,v}" _null_ _null_ hypothetical_percent_rank_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 3990 ( cume_dist			PGNSP PGUID 12 1 0 2276 t f f f f i 1 0 701 "2276" "{2276}" "{v}" _null_ _null_ aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("cumulative distribution of hypothetical row");
+DATA(insert OID = 3991 ( cume_dist_final	PGNSP PGUID 12 1 0 2276 f f f f f i 2 0 701 "2281 2276" "{2281,2276}" "{i,v}" _null_ _null_ hypothetical_cume_dist_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
+DATA(insert OID = 3992 ( dense_rank			PGNSP PGUID 12 1 0 2276 t f f f f i 1 0 20 "2276" "{2276}" "{v}" _null_ _null_	aggregate_dummy _null_ _null_ _null_ n a ));
+DESCR("rank of hypothetical row without gaps");
+DATA(insert OID = 3993 ( dense_rank_final	PGNSP PGUID 12 1 0 2276 f f f f f i 2 0 20 "2281 2276" "{2281,2276}" "{i,v}" _null_ _null_	hypothetical_dense_rank_final _null_ _null_ _null_ n a ));
+DESCR("aggregate final function");
 
 /*
  * Include more definitions from pg_proc_gp.h, for GPDB-added functions. They

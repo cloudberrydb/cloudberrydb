@@ -229,7 +229,6 @@
 				<topicref href="system_catalogs/pg_type.xml"/>
 				<topicref href="system_catalogs/pg_type_encoding.xml"/>
 				<topicref href="system_catalogs/pg_user_mapping.xml"/>
-				<topicref href="system_catalogs/pg_window.xml"/>
 			</topicref>
 		</topicref>
 		<topicref href="gp_toolkit.ditamap" format="ditamap"/>

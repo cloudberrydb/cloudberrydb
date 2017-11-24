@@ -52,13 +52,9 @@ typedef struct
 
 typedef struct
 {
-	int			min_varlevel;
-} find_minimum_var_level_context;
-
-typedef struct
-{
 	List	   *varlist;
-	bool		includePlaceHolderVars;
+	PVCAggregateBehavior aggbehavior;
+	PVCPlaceHolderBehavior phbehavior;
 } pull_var_clause_context;
 
 typedef struct
@@ -621,166 +617,25 @@ contain_vars_of_level_or_above(Node *node, int levelsup)
 }
 
 /*
- * find_minimum_var_level
- *	  Recursively scan a clause to find the lowest variable level it
- *	  contains --- for example, zero is returned if there are any local
- *	  variables, one if there are no local variables but there are
- *	  one-level-up outer references, etc.  Subqueries are scanned to see
- *	  if they possess relevant outer references.  (But any local variables
- *	  within subqueries are not relevant.)
- *
- *	  -1 is returned if the clause has no variables at all.
- *
- * Will recurse into sublinks.	Also, may be invoked directly on a Query.
- */
-static bool
-find_minimum_var_level_cbVar(Var   *var,
-							 void  *context,
-                             int    sublevelsup)
-{
-    find_minimum_var_level_context *ctx = (find_minimum_var_level_context *)context;
-    int			varlevelsup = var->varlevelsup;
-
-	/* convert levelsup to frame of reference of original query */
-	varlevelsup -= sublevelsup;
-	/* ignore local vars of subqueries */
-	if (varlevelsup >= 0)
-	{
-		if (ctx->min_varlevel < 0 ||
-			ctx->min_varlevel > varlevelsup)
-		{
-			ctx->min_varlevel = varlevelsup;
-
-			/*
-			 * As soon as we find a local variable, we can abort the tree
-			 * traversal, since min_varlevel is then certainly 0.
-			 */
-			if (varlevelsup == 0)
-				return true;
-		}
-	}
-    return false;
-}
-
-static bool
-find_minimum_var_level_cbAggref(Aggref *aggref,
-						        void   *context,
-                                int     sublevelsup)
-{
-	/*
-	 * An Aggref must be treated like a Var of its level.  Normally we'd get
-	 * the same result from looking at the Vars in the aggregate's argument,
-	 * but this fails in the case of a Var-less aggregate call (COUNT(*)).
-	 */
-    find_minimum_var_level_context *ctx = (find_minimum_var_level_context *)context;
-    int			agglevelsup = aggref->agglevelsup;
-
-	/* convert levelsup to frame of reference of original query */
-	agglevelsup -= sublevelsup;
-	/* ignore local aggs of subqueries */
-	if (agglevelsup >= 0)
-	{
-		if (ctx->min_varlevel < 0 ||
-			ctx->min_varlevel > agglevelsup)
-		{
-			ctx->min_varlevel = agglevelsup;
-
-			/*
-			 * As soon as we find a local aggregate, we can abort the tree
-			 * traversal, since min_varlevel is then certainly 0.
-			 */
-			if (agglevelsup == 0)
-				return true;
-		}
-	}
-
-    /* visit aggregate's args */
-	if (cdb_walk_vars((Node *)aggref->args,
-					  find_minimum_var_level_cbVar,
-					  find_minimum_var_level_cbAggref,
-					  NULL,
-					  NULL,
-					  ctx,
-					  sublevelsup))
-		return true;
-	if (cdb_walk_vars((Node *)aggref->aggfilter,
-					  find_minimum_var_level_cbVar,
-					  find_minimum_var_level_cbAggref,
-					  NULL,
-					  NULL,
-					  ctx,
-					  sublevelsup))
-		return true;
-	return false;
-}
-
-static bool
-find_minimum_var_level_cbPlaceHolderVar(PlaceHolderVar   *placeholdervar,
-										void  *context,
-										int    sublevelsup)
-{
-	int			phlevelsup = placeholdervar->phlevelsup;
-
-	/* convert levelsup to frame of reference of original query */
-	phlevelsup -= sublevelsup;
-	/* ignore local vars of subqueries */
-	find_minimum_var_level_context *ctx = (find_minimum_var_level_context *) context;
-	if (phlevelsup >= 0)
-	{
-		if (ctx->min_varlevel < 0 ||
-			ctx->min_varlevel > phlevelsup)
-		{
-			ctx->min_varlevel = phlevelsup;
-
-			/*
-			 * As soon as we find a local variable, we can abort the tree
-			 * traversal, since min_varlevel is then certainly 0.
-			 */
-			if (phlevelsup == 0)
-				return true;
-		}
-	}
-	/* visit the contained expression */
-	return cdb_walk_vars((Node *) placeholdervar->phexpr,
-						 find_minimum_var_level_cbVar,
-						 find_minimum_var_level_cbAggref,
-						 NULL,  // GPDB_84_MERGE_FIXME: Can PlaceHolder expression have CurrentOf ?
-						 find_minimum_var_level_cbPlaceHolderVar,
-						 ctx,
-						 sublevelsup);
-}
-
-int
-find_minimum_var_level(Node *node)
-{
-	find_minimum_var_level_context context;
-
-	context.min_varlevel = -1;	/* signifies nothing found yet */
-
-	cdb_walk_vars(node,
-                  find_minimum_var_level_cbVar,
-                  find_minimum_var_level_cbAggref,
-				  NULL,
-                  find_minimum_var_level_cbPlaceHolderVar,
-                  &context,
-                  0);
-
-	return context.min_varlevel;
-}
-
-
-/*
  * pull_var_clause
  *	  Recursively pulls all Var nodes from an expression clause.
  *
- *	  PlaceHolderVars are included too, if includePlaceHolderVars is true.
- *	  If it isn't true, an error is thrown if any are found.
- *	  Note that Vars within a PHV's expression are *not* included.
+ *	  Aggrefs are handled according to 'aggbehavior':
+ *		PVC_REJECT_AGGREGATES		throw error if Aggref found
+ *		PVC_INCLUDE_AGGREGATES		include Aggrefs in output list
+ *		PVC_RECURSE_AGGREGATES		recurse into Aggref arguments
+ *	  Vars within an Aggref's expression are included only in the last case.
  *
- *	  CurrentOfExpr nodes are *not* included.
+ *	  PlaceHolderVars are handled according to 'phbehavior':
+ *		PVC_REJECT_PLACEHOLDERS		throw error if PlaceHolderVar found
+ *		PVC_INCLUDE_PLACEHOLDERS	include PlaceHolderVars in output list
+ *		PVC_RECURSE_PLACEHOLDERS	recurse into PlaceHolderVar arguments
+ *	  Vars within a PHV's expression are included only in the last case.
  *
- *	  Upper-level vars (with varlevelsup > 0) are not included.
- *	  (These probably represent errors too, but we don't complain.)
+ *	  CurrentOfExpr nodes are ignored in all cases.
+ *
+ *	  Upper-level vars (with varlevelsup > 0) should not be seen here,
+ *	  likewise for upper-level Aggrefs and PlaceHolderVars.
  *
  *	  Returns list of nodes found.  Note the nodes themselves are not
  *	  copied, only referenced.
@@ -789,12 +644,14 @@ find_minimum_var_level(Node *node)
  * of sublinks to subplans!
  */
 List *
-pull_var_clause(Node *node, bool includePlaceHolderVars)
+pull_var_clause(Node *node, PVCAggregateBehavior aggbehavior,
+				PVCPlaceHolderBehavior phbehavior)
 {
 	pull_var_clause_context context;
 
 	context.varlist = NIL;
-	context.includePlaceHolderVars = includePlaceHolderVars;
+	context.aggbehavior = aggbehavior;
+	context.phbehavior = phbehavior;
 
 	pull_var_clause_walker(node, &context);
 	return context.varlist;
@@ -807,18 +664,46 @@ pull_var_clause_walker(Node *node, pull_var_clause_context *context)
 		return false;
 	if (IsA(node, Var))
 	{
-		if (((Var *) node)->varlevelsup == 0)
-			context->varlist = lappend(context->varlist, node);
+		if (((Var *) node)->varlevelsup != 0)
+			elog(ERROR, "Upper-level Var found where not expected");
+		context->varlist = lappend(context->varlist, node);
 		return false;
 	}
-	if (IsA(node, PlaceHolderVar))
+	else if (IsA(node, Aggref))
 	{
-		if (!context->includePlaceHolderVars)
-			elog(ERROR, "PlaceHolderVar found where not expected");
-		if (((PlaceHolderVar *) node)->phlevelsup == 0)
-			context->varlist = lappend(context->varlist, node);
-		/* we do NOT descend into the contained expression */
-		return false;
+		if (((Aggref *) node)->agglevelsup != 0)
+			elog(ERROR, "Upper-level Aggref found where not expected");
+		switch (context->aggbehavior)
+		{
+			case PVC_REJECT_AGGREGATES:
+				elog(ERROR, "Aggref found where not expected");
+				break;
+			case PVC_INCLUDE_AGGREGATES:
+				context->varlist = lappend(context->varlist, node);
+				/* we do NOT descend into the contained expression */
+				return false;
+			case PVC_RECURSE_AGGREGATES:
+				/* ignore the aggregate, look at its argument instead */
+				break;
+		}
+	}
+	else if (IsA(node, PlaceHolderVar))
+	{
+		if (((PlaceHolderVar *) node)->phlevelsup != 0)
+			elog(ERROR, "Upper-level PlaceHolderVar found where not expected");
+		switch (context->phbehavior)
+		{
+			case PVC_REJECT_PLACEHOLDERS:
+				elog(ERROR, "PlaceHolderVar found where not expected");
+				break;
+			case PVC_INCLUDE_PLACEHOLDERS:
+				context->varlist = lappend(context->varlist, node);
+				/* we do NOT descend into the contained expression */
+				return false;
+			case PVC_RECURSE_PLACEHOLDERS:
+				/* ignore the placeholder, look at its argument instead */
+				break;
+		}
 	}
 	return expression_tree_walker(node, pull_var_clause_walker,
 								  (void *) context);

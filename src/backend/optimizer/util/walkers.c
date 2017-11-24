@@ -474,7 +474,6 @@ plan_tree_walker(Node *node,
 		case T_CurrentOfExpr:
 		case T_RangeTblRef:
 		case T_Aggref:
-		case T_AggOrder:
 		case T_ArrayRef:
 		case T_FuncExpr:
 		case T_OpExpr:
@@ -507,7 +506,6 @@ plan_tree_walker(Node *node,
 		case T_PartBoundOpenExpr:
 		case T_PartListRuleExpr:
 		case T_PartListNullTestExpr:
-		case T_WindowKey:
 
 		default:
 			return expression_tree_walker(node, walker, context);

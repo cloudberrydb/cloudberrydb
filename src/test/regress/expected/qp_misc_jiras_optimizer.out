@@ -1200,10 +1200,21 @@ insert into qp_misc_jiras.tbl5246_sale values
   ( 3, 30, 600, '1401-6-1', 12, 5),
   ( 4, 40, 700, '1401-6-1', 1, 1),
   ( 4, 40, 800, '1401-6-1', 1, 1);
---The following query shouldn't crash and error out
 explain select cn, count(*) over (order by dt range between '2 day'::interval preceding and 2 preceding) from qp_misc_jiras.tbl5246_sale;
-ERROR:  can't coerce leading frame bound to type of trailing frame bound
-HINT:  specify the leading and trailing frame bounds as the same type
+                                        QUERY PLAN                                         
+-------------------------------------------------------------------------------------------
+ Result  (cost=0.00..431.00 rows=4 width=12)
+   ->  WindowAgg  (cost=0.00..431.00 rows=4 width=12)
+         Order By: dt
+         ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=12 width=8)
+               Merge Key: dt
+               ->  Sort  (cost=0.00..431.00 rows=4 width=8)
+                     Sort Key: dt
+                     ->  Table Scan on tbl5246_sale  (cost=0.00..431.00 rows=4 width=8)
+ Settings:  enable_nestloop=on
+ Optimizer status: PQO version 2.50.1
+(10 rows)
+
 drop table qp_misc_jiras.tbl5246_sale;
 create table qp_misc_jiras.tbl4896_customer
 (
@@ -2372,28 +2383,33 @@ create table qp_misc_jiras.tbl7553_test (i int, j int);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into qp_misc_jiras.tbl7553_test values(1,2);
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: GPORCA is falling back during Query to DXL translation
+-- with error: CTranslatorQueryToDXL.cpp:3864: Failed assertion: fResult.
+-- Tracker Story: #153070478
+-- Re-enable GPORCA once issue is fixed
+set optimizer=off;
+-- end_ignore
 explain select i as a, i as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a, b), (a));
-                                                                      QUERY PLAN                                                                       
--------------------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1293.00 rows=1 width=4)
-   ->  Sequence  (cost=0.00..1293.00 rows=1 width=4)
-         ->  Shared Scan (share slice:id 1:0)  (cost=0.00..431.00 rows=1 width=1)
-               ->  Materialize  (cost=0.00..431.00 rows=1 width=1)
-                     ->  Table Scan on tbl7553_test  (cost=0.00..431.00 rows=1 width=4)
-         ->  Append  (cost=0.00..862.00 rows=1 width=4)
-               ->  GroupAggregate  (cost=0.00..431.00 rows=1 width=4)
-                     Group By: i
-                     ->  Sort  (cost=0.00..431.00 rows=1 width=4)
-                           Sort Key: i
-                           ->  Shared Scan (share slice:id 1:0)  (cost=0.00..431.00 rows=1 width=4)
-               ->  GroupAggregate  (cost=0.00..431.00 rows=1 width=4)
-                     Group By: i, i
-                     ->  Sort  (cost=0.00..431.00 rows=1 width=4)
-                           Sort Key: i, i
-                           ->  Shared Scan (share slice:id 1:0)  (cost=0.00..431.00 rows=1 width=4)
- Settings:  enable_indexscan=off; enable_nestloop=on; enable_seqscan=off; gp_enable_agg_distinct=off; gp_enable_agg_distinct_pruning=off; optimizer=on
- Optimizer status: PQO version 1.624
-(18 rows)
+                                                                                             QUERY PLAN                                                                                             
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=8731.75..8759.25 rows=2750 width=20)
+   ->  HashAggregate  (cost=8731.75..8759.25 rows=917 width=20)
+         Group By: "rollup".a, "rollup".a, "rollup"."grouping", "rollup"."group_id"
+         ->  Subquery Scan "rollup"  (cost=8018.50..8724.25 rows=250 width=20)
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=8018.50..8716.75 rows=250 width=20)
+                     Hash Key: "rollup".a, "rollup".a, (Grouping), group_id()
+                     ->  GroupAggregate  (cost=8018.50..8701.75 rows=250 width=20)
+                           Group By: "rollup".a, "rollup"."grouping", "rollup"."group_id"
+                           ->  Subquery Scan "rollup"  (cost=8018.50..8684.25 rows=334 width=20)
+                                 ->  GroupAggregate  (cost=8018.50..8674.25 rows=334 width=20)
+                                       Group By: tbl7553_test.i, tbl7553_test.i
+                                       ->  Sort  (cost=8018.50..8233.75 rows=28700 width=4)
+                                             Sort Key: tbl7553_test.i
+                                             ->  Seq Scan on tbl7553_test  (cost=0.00..961.00 rows=28700 width=4)
+ Settings:  enable_indexscan=off; enable_nestloop=on; enable_seqscan=off; gp_enable_agg_distinct=off; gp_enable_agg_distinct_pruning=off; optimizer=off; optimizer_force_three_stage_scalar_dqa=off
+ Optimizer status: legacy query optimizer
+(16 rows)
 
 select i as a, i as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a, b), (a)); 
  a | b 
@@ -2403,39 +2419,25 @@ select i as a, i as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a
 (2 rows)
 
 explain select j as a, j as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a, b), (a)); 
-                                                                      QUERY PLAN                                                                       
--------------------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..1293.00 rows=1 width=4)
-   ->  Sequence  (cost=0.00..1293.00 rows=1 width=4)
-         ->  Shared Scan (share slice:id 3:0)  (cost=0.00..431.00 rows=1 width=1)
-               ->  Materialize  (cost=0.00..431.00 rows=1 width=1)
-                     ->  Table Scan on tbl7553_test  (cost=0.00..431.00 rows=1 width=4)
-         ->  Append  (cost=0.00..862.00 rows=1 width=4)
-               ->  GroupAggregate  (cost=0.00..431.00 rows=1 width=4)
-                     Group By: j
-                     ->  Sort  (cost=0.00..431.00 rows=1 width=4)
-                           Sort Key: j
-                           ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
-                                 Hash Key: j
-                                 ->  GroupAggregate  (cost=0.00..431.00 rows=1 width=4)
-                                       Group By: j
-                                       ->  Sort  (cost=0.00..431.00 rows=1 width=4)
-                                             Sort Key: j
-                                             ->  Shared Scan (share slice:id 1:0)  (cost=0.00..431.00 rows=1 width=4)
-               ->  GroupAggregate  (cost=0.00..431.00 rows=1 width=4)
-                     Group By: j, j
-                     ->  Sort  (cost=0.00..431.00 rows=1 width=4)
-                           Sort Key: j, j
-                           ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
-                                 Hash Key: j, j
-                                 ->  GroupAggregate  (cost=0.00..431.00 rows=1 width=4)
-                                       Group By: j, j
-                                       ->  Sort  (cost=0.00..431.00 rows=1 width=4)
-                                             Sort Key: j, j
-                                             ->  Shared Scan (share slice:id 2:0)  (cost=0.00..431.00 rows=1 width=4)
- Settings:  enable_indexscan=off; enable_nestloop=on; enable_seqscan=off; gp_enable_agg_distinct=off; gp_enable_agg_distinct_pruning=off; optimizer=on
- Optimizer status: PQO version 1.624
-(30 rows)
+                                                                                             QUERY PLAN                                                                                             
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=8731.75..8759.25 rows=2750 width=8)
+   ->  HashAggregate  (cost=8731.75..8759.25 rows=917 width=8)
+         Group By: partial_aggregation.a, partial_aggregation.a, partial_aggregation."grouping", partial_aggregation."group_id"
+         ->  Subquery Scan partial_aggregation  (cost=8018.50..8724.25 rows=250 width=20)
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=8018.50..8716.75 rows=250 width=20)
+                     Hash Key: "rollup".a, "rollup".a
+                     ->  GroupAggregate  (cost=8018.50..8701.75 rows=250 width=20)
+                           Group By: "rollup".a, "rollup"."grouping", "rollup"."group_id"
+                           ->  Subquery Scan "rollup"  (cost=8018.50..8684.25 rows=334 width=20)
+                                 ->  GroupAggregate  (cost=8018.50..8674.25 rows=334 width=20)
+                                       Group By: tbl7553_test.j, tbl7553_test.j
+                                       ->  Sort  (cost=8018.50..8233.75 rows=28700 width=4)
+                                             Sort Key: tbl7553_test.j
+                                             ->  Seq Scan on tbl7553_test  (cost=0.00..961.00 rows=28700 width=4)
+ Settings:  enable_indexscan=off; enable_nestloop=on; enable_seqscan=off; gp_enable_agg_distinct=off; gp_enable_agg_distinct_pruning=off; optimizer=off; optimizer_force_three_stage_scalar_dqa=off
+ Optimizer status: legacy query optimizer
+(16 rows)
 
 select j as a, j as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a, b), (a)); 
  a | b 
@@ -2444,6 +2446,9 @@ select j as a, j as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a
  2 | 2
 (2 rows)
 
+-- start_ignore
+reset optimizer;
+-- end_ignore
 drop table qp_misc_jiras.tbl7553_test;
 -- Check that a table created with CTAS "inherits" the distribution key from
 -- the source table.
@@ -3030,115 +3035,97 @@ reset enable_seqscan;
 reset gp_enable_agg_distinct; 
 reset gp_enable_agg_distinct_pruning;
 set enable_groupagg=off;
+-- start_ignore
+-- GPDB_84_MERGE_FIXME: GPORCA is falling back during Query to DXL translation
+-- due to following error: GPDB Expression type: Distinct aggregates not supported in DXL
+-- Tracker Story: #153040298
+-- Re-enable ORCA once the issue is fixed.
+set optimizer=off;
+-- end_ignore
 -- both queries should use hashagg
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.j = t2.j) tmp group by j;
-                                                                 QUERY PLAN                                                                  
----------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
-   ->  Result  (cost=0.00..862.00 rows=1 width=8)
-         ->  GroupAggregate  (cost=0.00..862.00 rows=1 width=8)
-               Group By: qp_misc_jiras.tbl5994_test.j
-               ->  GroupAggregate  (cost=0.00..862.00 rows=1 width=4)
-                     Group By: qp_misc_jiras.tbl5994_test.j
-                     ->  Sort  (cost=0.00..862.00 rows=1 width=4)
-                           Sort Key: qp_misc_jiras.tbl5994_test.j
-                           ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
-                                 Hash Key: qp_misc_jiras.tbl5994_test.j
-                                 ->  GroupAggregate  (cost=0.00..862.00 rows=1 width=4)
-                                       Group By: qp_misc_jiras.tbl5994_test.j
-                                       ->  Sort  (cost=0.00..862.00 rows=1 width=4)
-                                             Sort Key: qp_misc_jiras.tbl5994_test.j
-                                             ->  Hash Join  (cost=0.00..862.00 rows=1 width=4)
-                                                   Hash Cond: qp_misc_jiras.tbl5994_test.j = qp_misc_jiras.tbl5994_test.j
-                                                   ->  Table Scan on tbl5994_test  (cost=0.00..431.00 rows=1 width=4)
-                                                   ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-                                                         ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
-                                                               ->  Table Scan on tbl5994_test  (cost=0.00..431.00 rows=1 width=4)
- Settings:  enable_groupagg=off; optimizer=on; optimizer_segments=3
- Optimizer status: PQO version 1.624
-(22 rows)
+                                                        QUERY PLAN                                                        
+--------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=1468508.37..1542655.47 rows=1000 width=12)
+   ->  GroupAggregate  (cost=1468508.37..1542655.47 rows=334 width=12)
+         Group By: t1.j
+         ->  Sort  (cost=1468508.37..1487041.40 rows=2471070 width=4)
+               Sort Key: t1.j
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=7633.75..249739.33 rows=2471070 width=4)
+                     Hash Key: t1.j
+                     ->  Hash Join  (cost=7633.75..101475.12 rows=2471070 width=4)
+                           Hash Cond: t1.j = t2.j
+                           ->  Seq Scan on tbl5994_test t1  (cost=0.00..961.00 rows=28700 width=4)
+                           ->  Hash  (cost=4405.00..4405.00 rows=86100 width=4)
+                                 ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..4405.00 rows=86100 width=4)
+                                       ->  Seq Scan on tbl5994_test t2  (cost=0.00..961.00 rows=28700 width=4)
+ Settings:  enable_groupagg=off; optimizer=off; optimizer_force_three_stage_scalar_dqa=off; optimizer_segments=3
+ Optimizer status: legacy query optimizer
+(15 rows)
 
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.i = t2.i) tmp group by j;
-                                                         QUERY PLAN                                                         
-----------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
-   ->  Result  (cost=0.00..862.00 rows=1 width=8)
-         ->  GroupAggregate  (cost=0.00..862.00 rows=1 width=8)
-               Group By: qp_misc_jiras.tbl5994_test.j
-               ->  GroupAggregate  (cost=0.00..862.00 rows=1 width=4)
-                     Group By: qp_misc_jiras.tbl5994_test.j
-                     ->  Sort  (cost=0.00..862.00 rows=1 width=4)
-                           Sort Key: qp_misc_jiras.tbl5994_test.j
-                           ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
-                                 Hash Key: qp_misc_jiras.tbl5994_test.j
-                                 ->  GroupAggregate  (cost=0.00..862.00 rows=1 width=4)
-                                       Group By: qp_misc_jiras.tbl5994_test.j
-                                       ->  Sort  (cost=0.00..862.00 rows=1 width=4)
-                                             Sort Key: qp_misc_jiras.tbl5994_test.j
-                                             ->  Hash Join  (cost=0.00..862.00 rows=1 width=4)
-                                                   Hash Cond: qp_misc_jiras.tbl5994_test.i = qp_misc_jiras.tbl5994_test.i
-                                                   ->  Table Scan on tbl5994_test  (cost=0.00..431.00 rows=1 width=8)
-                                                   ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-                                                         ->  Table Scan on tbl5994_test  (cost=0.00..431.00 rows=1 width=4)
- Settings:  enable_groupagg=off; optimizer=on; optimizer_segments=3
- Optimizer status: PQO version 1.624
-(21 rows)
+                                                    QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=1462911.87..1537058.97 rows=1000 width=12)
+   ->  GroupAggregate  (cost=1462911.87..1537058.97 rows=334 width=12)
+         Group By: t1.j
+         ->  Sort  (cost=1462911.87..1481444.90 rows=2471070 width=4)
+               Sort Key: t1.j
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=2037.25..244142.83 rows=2471070 width=4)
+                     Hash Key: t1.j
+                     ->  Hash Join  (cost=2037.25..95878.62 rows=2471070 width=4)
+                           Hash Cond: t1.i = t2.i
+                           ->  Seq Scan on tbl5994_test t1  (cost=0.00..961.00 rows=28700 width=8)
+                           ->  Hash  (cost=961.00..961.00 rows=28700 width=4)
+                                 ->  Seq Scan on tbl5994_test t2  (cost=0.00..961.00 rows=28700 width=4)
+ Settings:  enable_groupagg=off; optimizer=off; optimizer_force_three_stage_scalar_dqa=off; optimizer_segments=3
+ Optimizer status: legacy query optimizer
+(14 rows)
 
 set enable_groupagg=on;
 -- first query should use groupagg, and second one - hashagg
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.j = t2.j) tmp group by j;
-                                                                 QUERY PLAN                                                                  
----------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
-   ->  Result  (cost=0.00..862.00 rows=1 width=8)
-         ->  GroupAggregate  (cost=0.00..862.00 rows=1 width=8)
-               Group By: qp_misc_jiras.tbl5994_test.j
-               ->  GroupAggregate  (cost=0.00..862.00 rows=1 width=4)
-                     Group By: qp_misc_jiras.tbl5994_test.j
-                     ->  Sort  (cost=0.00..862.00 rows=1 width=4)
-                           Sort Key: qp_misc_jiras.tbl5994_test.j
-                           ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
-                                 Hash Key: qp_misc_jiras.tbl5994_test.j
-                                 ->  GroupAggregate  (cost=0.00..862.00 rows=1 width=4)
-                                       Group By: qp_misc_jiras.tbl5994_test.j
-                                       ->  Sort  (cost=0.00..862.00 rows=1 width=4)
-                                             Sort Key: qp_misc_jiras.tbl5994_test.j
-                                             ->  Hash Join  (cost=0.00..862.00 rows=1 width=4)
-                                                   Hash Cond: qp_misc_jiras.tbl5994_test.j = qp_misc_jiras.tbl5994_test.j
-                                                   ->  Table Scan on tbl5994_test  (cost=0.00..431.00 rows=1 width=4)
-                                                   ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-                                                         ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
-                                                               ->  Table Scan on tbl5994_test  (cost=0.00..431.00 rows=1 width=4)
- Settings:  enable_groupagg=on; optimizer=on; optimizer_segments=3
- Optimizer status: PQO version 1.624
-(22 rows)
+                                                        QUERY PLAN                                                        
+--------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice3; segments: 3)  (cost=1468508.37..1542655.47 rows=1000 width=12)
+   ->  GroupAggregate  (cost=1468508.37..1542655.47 rows=334 width=12)
+         Group By: t1.j
+         ->  Sort  (cost=1468508.37..1487041.40 rows=2471070 width=4)
+               Sort Key: t1.j
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=7633.75..249739.33 rows=2471070 width=4)
+                     Hash Key: t1.j
+                     ->  Hash Join  (cost=7633.75..101475.12 rows=2471070 width=4)
+                           Hash Cond: t1.j = t2.j
+                           ->  Seq Scan on tbl5994_test t1  (cost=0.00..961.00 rows=28700 width=4)
+                           ->  Hash  (cost=4405.00..4405.00 rows=86100 width=4)
+                                 ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..4405.00 rows=86100 width=4)
+                                       ->  Seq Scan on tbl5994_test t2  (cost=0.00..961.00 rows=28700 width=4)
+ Settings:  enable_groupagg=on; optimizer=off; optimizer_force_three_stage_scalar_dqa=off; optimizer_segments=3
+ Optimizer status: legacy query optimizer
+(15 rows)
 
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.i = t2.i) tmp group by j;
-                                                         QUERY PLAN                                                         
-----------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
-   ->  Result  (cost=0.00..862.00 rows=1 width=8)
-         ->  GroupAggregate  (cost=0.00..862.00 rows=1 width=8)
-               Group By: qp_misc_jiras.tbl5994_test.j
-               ->  GroupAggregate  (cost=0.00..862.00 rows=1 width=4)
-                     Group By: qp_misc_jiras.tbl5994_test.j
-                     ->  Sort  (cost=0.00..862.00 rows=1 width=4)
-                           Sort Key: qp_misc_jiras.tbl5994_test.j
-                           ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=4)
-                                 Hash Key: qp_misc_jiras.tbl5994_test.j
-                                 ->  GroupAggregate  (cost=0.00..862.00 rows=1 width=4)
-                                       Group By: qp_misc_jiras.tbl5994_test.j
-                                       ->  Sort  (cost=0.00..862.00 rows=1 width=4)
-                                             Sort Key: qp_misc_jiras.tbl5994_test.j
-                                             ->  Hash Join  (cost=0.00..862.00 rows=1 width=4)
-                                                   Hash Cond: qp_misc_jiras.tbl5994_test.i = qp_misc_jiras.tbl5994_test.i
-                                                   ->  Table Scan on tbl5994_test  (cost=0.00..431.00 rows=1 width=8)
-                                                   ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-                                                         ->  Table Scan on tbl5994_test  (cost=0.00..431.00 rows=1 width=4)
- Settings:  enable_groupagg=on; optimizer=on; optimizer_segments=3
- Optimizer status: PQO version 1.624
-(21 rows)
+                                                    QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=1462911.87..1537058.97 rows=1000 width=12)
+   ->  GroupAggregate  (cost=1462911.87..1537058.97 rows=334 width=12)
+         Group By: t1.j
+         ->  Sort  (cost=1462911.87..1481444.90 rows=2471070 width=4)
+               Sort Key: t1.j
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=2037.25..244142.83 rows=2471070 width=4)
+                     Hash Key: t1.j
+                     ->  Hash Join  (cost=2037.25..95878.62 rows=2471070 width=4)
+                           Hash Cond: t1.i = t2.i
+                           ->  Seq Scan on tbl5994_test t1  (cost=0.00..961.00 rows=28700 width=8)
+                           ->  Hash  (cost=961.00..961.00 rows=28700 width=4)
+                                 ->  Seq Scan on tbl5994_test t2  (cost=0.00..961.00 rows=28700 width=4)
+ Settings:  enable_groupagg=on; optimizer=off; optimizer_force_three_stage_scalar_dqa=off; optimizer_segments=3
+ Optimizer status: legacy query optimizer
+(14 rows)
 
+-- start_ignore
+reset optimizer;
+-- end_ignore
 drop table qp_misc_jiras.tbl5994_test;
 CREATE TABLE qp_misc_jiras.tbl_8205 (
 text_col text,
@@ -4303,195 +4290,195 @@ insert into qp_misc_jiras.esc176_1 values (1,9,0.3, CURRENT_TIMESTAMP);
 insert into qp_misc_jiras.esc176_1 values (1,10,0.4,CURRENT_TIMESTAMP);
 insert into qp_misc_jiras.esc176_1 values (1,11,0.6,CURRENT_TIMESTAMP);
 select id, seq, sum (val) over (partition by id order by clickdate range between interval '0 seconds' following and interval '1000 seconds' following) from qp_misc_jiras.esc176_1;
- id | seq |        sum        
-----+-----+-------------------
-  1 |   1 |              23.7
-  1 |   1 |              23.7
-  1 |   1 |              23.7
-  1 |   1 |              23.7
-  1 |   1 |              23.7
-  1 |   1 |              23.7
-  1 |   1 |              23.7
-  1 |   1 |              23.7
-  1 |   2 |              22.1
-  1 |   2 |              22.1
-  1 |   2 |              22.1
-  1 |   2 |              22.1
-  1 |   2 |              22.1
-  1 |   2 |              22.1
-  1 |   2 |              22.1
-  1 |   2 |              22.1
-  1 |   3 |              21.3
-  1 |   3 |              21.3
-  1 |   3 |              21.3
-  1 |   3 |              21.3
-  1 |   3 |              21.3
-  1 |   3 |              21.3
-  1 |   3 |              21.3
-  1 |   3 |              21.3
-  1 |   4 |              17.3
-  1 |   4 |              17.3
-  1 |   4 |              17.3
-  1 |   4 |              17.3
-  1 |   4 |              17.3
-  1 |   4 |              17.3
-  1 |   4 |              17.3
-  1 |   4 |              17.3
-  1 |   9 |              11.7
-  1 |   9 |              11.7
-  1 |   9 |              11.7
-  1 |   9 |              11.7
-  1 |   9 |              11.7
-  1 |   9 |              11.7
-  1 |   9 |              11.7
-  1 |   9 |              11.7
-  1 |  10 |  9.30000000000001
-  1 |  10 |  9.30000000000001
-  1 |  10 |  9.30000000000001
-  1 |  10 |  9.30000000000001
-  1 |  10 |  9.30000000000001
-  1 |  10 |  9.30000000000001
-  1 |  10 |  9.30000000000001
-  1 |  10 |  9.30000000000001
-  1 |  11 |  6.10000000000001
-  1 |  11 |  6.10000000000001
-  1 |  11 |  6.10000000000001
-  1 |  11 |  6.10000000000001
-  1 |  11 |  6.10000000000001
-  1 |  11 |  6.10000000000001
-  1 |  11 |  6.10000000000001
-  1 |  11 |  6.10000000000001
-  1 |   9 |               1.3
-  1 |  10 |                 1
-  1 |  11 | 0.600000000000001
+ id | seq | sum  
+----+-----+------
+  1 |   1 | 23.7
+  1 |   1 | 23.7
+  1 |   1 | 23.7
+  1 |   1 | 23.7
+  1 |   1 | 23.7
+  1 |   1 | 23.7
+  1 |   1 | 23.7
+  1 |   1 | 23.7
+  1 |   2 | 22.1
+  1 |   2 | 22.1
+  1 |   2 | 22.1
+  1 |   2 | 22.1
+  1 |   2 | 22.1
+  1 |   2 | 22.1
+  1 |   2 | 22.1
+  1 |   2 | 22.1
+  1 |   3 | 21.3
+  1 |   3 | 21.3
+  1 |   3 | 21.3
+  1 |   3 | 21.3
+  1 |   3 | 21.3
+  1 |   3 | 21.3
+  1 |   3 | 21.3
+  1 |   3 | 21.3
+  1 |   4 | 17.3
+  1 |   4 | 17.3
+  1 |   4 | 17.3
+  1 |   4 | 17.3
+  1 |   4 | 17.3
+  1 |   4 | 17.3
+  1 |   4 | 17.3
+  1 |   4 | 17.3
+  1 |   9 | 11.7
+  1 |   9 | 11.7
+  1 |   9 | 11.7
+  1 |   9 | 11.7
+  1 |   9 | 11.7
+  1 |   9 | 11.7
+  1 |   9 | 11.7
+  1 |   9 | 11.7
+  1 |  10 |  9.3
+  1 |  10 |  9.3
+  1 |  10 |  9.3
+  1 |  10 |  9.3
+  1 |  10 |  9.3
+  1 |  10 |  9.3
+  1 |  10 |  9.3
+  1 |  10 |  9.3
+  1 |  11 |  6.1
+  1 |  11 |  6.1
+  1 |  11 |  6.1
+  1 |  11 |  6.1
+  1 |  11 |  6.1
+  1 |  11 |  6.1
+  1 |  11 |  6.1
+  1 |  11 |  6.1
+  1 |   9 |  1.3
+  1 |  10 |    1
+  1 |  11 |  0.6
 (59 rows)
 
 select id, seq, sum (val) over (partition by id order by clickdate range between interval '0 seconds' preceding and interval '1000 seconds' following) from qp_misc_jiras.esc176_1;
- id | seq |        sum        
-----+-----+-------------------
-  1 |   1 |              23.7
-  1 |   1 |              23.7
-  1 |   1 |              23.7
-  1 |   1 |              23.7
-  1 |   1 |              23.7
-  1 |   1 |              23.7
-  1 |   1 |              23.7
-  1 |   1 |              23.7
-  1 |   2 |              22.1
-  1 |   2 |              22.1
-  1 |   2 |              22.1
-  1 |   2 |              22.1
-  1 |   2 |              22.1
-  1 |   2 |              22.1
-  1 |   2 |              22.1
-  1 |   2 |              22.1
-  1 |   3 |              21.3
-  1 |   3 |              21.3
-  1 |   3 |              21.3
-  1 |   3 |              21.3
-  1 |   3 |              21.3
-  1 |   3 |              21.3
-  1 |   3 |              21.3
-  1 |   3 |              21.3
-  1 |   4 |              17.3
-  1 |   4 |              17.3
-  1 |   4 |              17.3
-  1 |   4 |              17.3
-  1 |   4 |              17.3
-  1 |   4 |              17.3
-  1 |   4 |              17.3
-  1 |   4 |              17.3
-  1 |   9 |              11.7
-  1 |   9 |              11.7
-  1 |   9 |              11.7
-  1 |   9 |              11.7
-  1 |   9 |              11.7
-  1 |   9 |              11.7
-  1 |   9 |              11.7
-  1 |   9 |              11.7
-  1 |  10 |  9.30000000000001
-  1 |  10 |  9.30000000000001
-  1 |  10 |  9.30000000000001
-  1 |  10 |  9.30000000000001
-  1 |  10 |  9.30000000000001
-  1 |  10 |  9.30000000000001
-  1 |  10 |  9.30000000000001
-  1 |  10 |  9.30000000000001
-  1 |  11 |  6.10000000000001
-  1 |  11 |  6.10000000000001
-  1 |  11 |  6.10000000000001
-  1 |  11 |  6.10000000000001
-  1 |  11 |  6.10000000000001
-  1 |  11 |  6.10000000000001
-  1 |  11 |  6.10000000000001
-  1 |  11 |  6.10000000000001
-  1 |   9 |               1.3
-  1 |  10 |                 1
-  1 |  11 | 0.600000000000001
+ id | seq | sum  
+----+-----+------
+  1 |   1 | 23.7
+  1 |   1 | 23.7
+  1 |   1 | 23.7
+  1 |   1 | 23.7
+  1 |   1 | 23.7
+  1 |   1 | 23.7
+  1 |   1 | 23.7
+  1 |   1 | 23.7
+  1 |   2 | 22.1
+  1 |   2 | 22.1
+  1 |   2 | 22.1
+  1 |   2 | 22.1
+  1 |   2 | 22.1
+  1 |   2 | 22.1
+  1 |   2 | 22.1
+  1 |   2 | 22.1
+  1 |   3 | 21.3
+  1 |   3 | 21.3
+  1 |   3 | 21.3
+  1 |   3 | 21.3
+  1 |   3 | 21.3
+  1 |   3 | 21.3
+  1 |   3 | 21.3
+  1 |   3 | 21.3
+  1 |   4 | 17.3
+  1 |   4 | 17.3
+  1 |   4 | 17.3
+  1 |   4 | 17.3
+  1 |   4 | 17.3
+  1 |   4 | 17.3
+  1 |   4 | 17.3
+  1 |   4 | 17.3
+  1 |   9 | 11.7
+  1 |   9 | 11.7
+  1 |   9 | 11.7
+  1 |   9 | 11.7
+  1 |   9 | 11.7
+  1 |   9 | 11.7
+  1 |   9 | 11.7
+  1 |   9 | 11.7
+  1 |  10 |  9.3
+  1 |  10 |  9.3
+  1 |  10 |  9.3
+  1 |  10 |  9.3
+  1 |  10 |  9.3
+  1 |  10 |  9.3
+  1 |  10 |  9.3
+  1 |  10 |  9.3
+  1 |  11 |  6.1
+  1 |  11 |  6.1
+  1 |  11 |  6.1
+  1 |  11 |  6.1
+  1 |  11 |  6.1
+  1 |  11 |  6.1
+  1 |  11 |  6.1
+  1 |  11 |  6.1
+  1 |   9 |  1.3
+  1 |  10 |    1
+  1 |  11 |  0.6
 (59 rows)
 
 select id, seq, sum(val) over (partition by id order by seq::numeric range between 0 following and 10 following), val from qp_misc_jiras.esc176_1;
- id | seq |       sum        | val 
-----+-----+------------------+-----
-  1 |   1 |             23.7 | 0.2
-  1 |   1 |             23.7 | 0.2
-  1 |   1 |             23.7 | 0.2
-  1 |   1 |             23.7 | 0.2
-  1 |   1 |             23.7 | 0.2
-  1 |   1 |             23.7 | 0.2
-  1 |   1 |             23.7 | 0.2
-  1 |   1 |             23.7 | 0.2
-  1 |   2 |             22.1 | 0.1
-  1 |   2 |             22.1 | 0.1
-  1 |   2 |             22.1 | 0.1
-  1 |   2 |             22.1 | 0.1
-  1 |   2 |             22.1 | 0.1
-  1 |   2 |             22.1 | 0.1
-  1 |   2 |             22.1 | 0.1
-  1 |   2 |             22.1 | 0.1
-  1 |   3 |             21.3 | 0.5
-  1 |   3 |             21.3 | 0.5
-  1 |   3 |             21.3 | 0.5
-  1 |   3 |             21.3 | 0.5
-  1 |   3 |             21.3 | 0.5
-  1 |   3 |             21.3 | 0.5
-  1 |   3 |             21.3 | 0.5
-  1 |   3 |             21.3 | 0.5
-  1 |   4 |             17.3 | 0.7
-  1 |   4 |             17.3 | 0.7
-  1 |   4 |             17.3 | 0.7
-  1 |   4 |             17.3 | 0.7
-  1 |   4 |             17.3 | 0.7
-  1 |   4 |             17.3 | 0.7
-  1 |   4 |             17.3 | 0.7
-  1 |   4 |             17.3 | 0.7
-  1 |   9 |             11.7 | 0.3
-  1 |   9 |             11.7 | 0.3
-  1 |   9 |             11.7 | 0.3
-  1 |   9 |             11.7 | 0.3
-  1 |   9 |             11.7 | 0.3
-  1 |   9 |             11.7 | 0.3
-  1 |   9 |             11.7 | 0.3
-  1 |   9 |             11.7 | 0.3
-  1 |   9 |             11.7 | 0.3
-  1 |  10 | 9.00000000000001 | 0.4
-  1 |  10 | 9.00000000000001 | 0.4
-  1 |  10 | 9.00000000000001 | 0.4
-  1 |  10 | 9.00000000000001 | 0.4
-  1 |  10 | 9.00000000000001 | 0.4
-  1 |  10 | 9.00000000000001 | 0.4
-  1 |  10 | 9.00000000000001 | 0.4
-  1 |  10 | 9.00000000000001 | 0.4
-  1 |  10 | 9.00000000000001 | 0.4
-  1 |  11 | 5.40000000000001 | 0.6
-  1 |  11 | 5.40000000000001 | 0.6
-  1 |  11 | 5.40000000000001 | 0.6
-  1 |  11 | 5.40000000000001 | 0.6
-  1 |  11 | 5.40000000000001 | 0.6
-  1 |  11 | 5.40000000000001 | 0.6
-  1 |  11 | 5.40000000000001 | 0.6
-  1 |  11 | 5.40000000000001 | 0.6
-  1 |  11 | 5.40000000000001 | 0.6
+ id | seq | sum  | val 
+----+-----+------+-----
+  1 |   1 | 23.7 | 0.2
+  1 |   1 | 23.7 | 0.2
+  1 |   1 | 23.7 | 0.2
+  1 |   1 | 23.7 | 0.2
+  1 |   1 | 23.7 | 0.2
+  1 |   1 | 23.7 | 0.2
+  1 |   1 | 23.7 | 0.2
+  1 |   1 | 23.7 | 0.2
+  1 |   2 | 22.1 | 0.1
+  1 |   2 | 22.1 | 0.1
+  1 |   2 | 22.1 | 0.1
+  1 |   2 | 22.1 | 0.1
+  1 |   2 | 22.1 | 0.1
+  1 |   2 | 22.1 | 0.1
+  1 |   2 | 22.1 | 0.1
+  1 |   2 | 22.1 | 0.1
+  1 |   3 | 21.3 | 0.5
+  1 |   3 | 21.3 | 0.5
+  1 |   3 | 21.3 | 0.5
+  1 |   3 | 21.3 | 0.5
+  1 |   3 | 21.3 | 0.5
+  1 |   3 | 21.3 | 0.5
+  1 |   3 | 21.3 | 0.5
+  1 |   3 | 21.3 | 0.5
+  1 |   4 | 17.3 | 0.7
+  1 |   4 | 17.3 | 0.7
+  1 |   4 | 17.3 | 0.7
+  1 |   4 | 17.3 | 0.7
+  1 |   4 | 17.3 | 0.7
+  1 |   4 | 17.3 | 0.7
+  1 |   4 | 17.3 | 0.7
+  1 |   4 | 17.3 | 0.7
+  1 |   9 | 11.7 | 0.3
+  1 |   9 | 11.7 | 0.3
+  1 |   9 | 11.7 | 0.3
+  1 |   9 | 11.7 | 0.3
+  1 |   9 | 11.7 | 0.3
+  1 |   9 | 11.7 | 0.3
+  1 |   9 | 11.7 | 0.3
+  1 |   9 | 11.7 | 0.3
+  1 |   9 | 11.7 | 0.3
+  1 |  10 |    9 | 0.4
+  1 |  10 |    9 | 0.4
+  1 |  10 |    9 | 0.4
+  1 |  10 |    9 | 0.4
+  1 |  10 |    9 | 0.4
+  1 |  10 |    9 | 0.4
+  1 |  10 |    9 | 0.4
+  1 |  10 |    9 | 0.4
+  1 |  10 |    9 | 0.4
+  1 |  11 |  5.4 | 0.6
+  1 |  11 |  5.4 | 0.6
+  1 |  11 |  5.4 | 0.6
+  1 |  11 |  5.4 | 0.6
+  1 |  11 |  5.4 | 0.6
+  1 |  11 |  5.4 | 0.6
+  1 |  11 |  5.4 | 0.6
+  1 |  11 |  5.4 | 0.6
+  1 |  11 |  5.4 | 0.6
 (59 rows)
 
 select id, seq, sum(val) over (partition by id order by seq::numeric range between 10 preceding and 0 preceding), val from qp_misc_jiras.esc176_1;

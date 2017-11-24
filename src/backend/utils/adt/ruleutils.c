@@ -22,6 +22,7 @@
 #include "access/sysattr.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
+#include "catalog/pg_aggregate.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_attribute_encoding.h"
 #include "catalog/pg_constraint.h"
@@ -43,6 +44,7 @@
 #include "optimizer/tlist.h"
 #include "parser/gramparse.h"
 #include "parser/keywords.h"
+#include "parser/parse_agg.h"
 #include "parser/parse_func.h"
 #include "parser/parse_oper.h"
 #include "parser/parse_cte.h"
@@ -226,8 +228,9 @@ static Node *processIndirection(Node *node, deparse_context *context,
 static void printSubscripts(ArrayRef *aref, deparse_context *context);
 static char *get_relation_name(Oid relid);
 static char *generate_relation_name(Oid relid, List *namespaces);
-static char *generate_function_name(Oid funcid, int nargs, Oid *argtypes,
-					   bool *is_variadic);
+static char *generate_function_name(Oid funcid, int nargs,
+					   Oid *argtypes,
+					   bool has_variadic, bool *use_variadic_p);
 static char *generate_operator_name(Oid operid, Oid arg1, Oid arg2);
 static text *string_to_text(char *str);
 static char *flatten_reloptions(Oid relid);
@@ -570,7 +573,9 @@ pg_get_triggerdef(PG_FUNCTION_ARGS)
 		appendStringInfo(&buf, "FOR EACH STATEMENT ");
 
 	appendStringInfo(&buf, "EXECUTE PROCEDURE %s(",
-					 generate_function_name(trigrec->tgfoid, 0, NULL, NULL));
+					 generate_function_name(trigrec->tgfoid, 0,
+											NULL,
+											false, NULL));
 
 	if (trigrec->tgnargs > 0)
 	{
@@ -1737,6 +1742,7 @@ print_function_arguments(StringInfo buf, HeapTuple proctup,
 	Oid		   *argtypes;
 	char	  **argnames;
 	char	   *argmodes;
+	int			insertorderbyat = -1;
 	int			argsprinted;
 	int			inputargno;
 	int			nlackdefaults;
@@ -1768,6 +1774,23 @@ print_function_arguments(StringInfo buf, HeapTuple proctup,
 			/* nlackdefaults counts only *input* arguments lacking defaults */
 			nlackdefaults = proc->pronargs - list_length(argdefaults);
 		}
+	}
+
+	/* Check for special treatment of ordered-set aggregates */
+	if (proc->proisagg)
+	{
+		HeapTuple	aggtup;
+		Form_pg_aggregate agg;
+
+		aggtup = SearchSysCache1(AGGFNOID,
+								 ObjectIdGetDatum(HeapTupleGetOid(proctup)));
+		if (!HeapTupleIsValid(aggtup))
+			elog(ERROR, "cache lookup failed for aggregate %u",
+				 HeapTupleGetOid(proctup));
+		agg = (Form_pg_aggregate) GETSTRUCT(aggtup);
+		if (AGGKIND_IS_ORDERED_SET(agg->aggkind))
+			insertorderbyat = agg->aggnumdirectargs;
+		ReleaseSysCache(aggtup);
 	}
 
 	argsprinted = 0;
@@ -1814,8 +1837,15 @@ print_function_arguments(StringInfo buf, HeapTuple proctup,
 		if (print_table_args != (argmode == PROARGMODE_TABLE))
 			continue;
 
-		if (argsprinted)
+		if (argsprinted == insertorderbyat)
+		{
+			if (argsprinted)
+				appendStringInfoChar(buf, ' ');
+			appendStringInfoString(buf, "ORDER BY ");
+		}
+		else if (argsprinted)
 			appendStringInfoString(buf, ", ");
+
 		appendStringInfoString(buf, modename);
 		if (argname && argname[0])
 			appendStringInfo(buf, "%s ", quote_identifier(argname));
@@ -1832,6 +1862,14 @@ print_function_arguments(StringInfo buf, HeapTuple proctup,
 							 deparse_expression(expr, NIL, false, false));
 		}
 		argsprinted++;
+
+		/* nasty hack: print the last arg twice for variadic ordered-set agg */
+		if (argsprinted == insertorderbyat && i == numargs - 1)
+		{
+			i--;
+			/* aggs shouldn't have defaults anyway, but just to be sure ... */
+			print_defaults = false;
+		}
 	}
 
 	return argsprinted;
@@ -4227,7 +4265,6 @@ isSimpleNode(Node *node, Node *parentNode, int prettyFlags)
 		case T_NullIfExpr:
 		case T_Aggref:
 		case T_FuncExpr:
-		case T_PercentileExpr:
 			/* function-like: name(..) or name[..] */
 			return true;
 
@@ -5340,41 +5377,6 @@ get_rule_expr(Node *node, deparse_context *context,
 			}
 			break;
 
-		case T_PercentileExpr:
-			{
-				PercentileExpr *p = (PercentileExpr *) node;
-
-				if (p->perckind == PERC_MEDIAN)
-				{
-					Node	   *expr;
-
-					expr = get_sortgroupclause_expr(linitial(p->sortClause), p->sortTargets);
-					appendStringInfoString(buf, "median(");
-					get_rule_expr(expr, context, false);
-					appendStringInfoString(buf, ")");
-				}
-				else
-				{
-					if (p->perckind == PERC_CONT)
-					{
-						appendStringInfoString(buf, "percentile_cont(");
-					}
-					else if (p->perckind == PERC_DISC)
-					{
-						appendStringInfoString(buf, "percentile_disc(");
-					}
-					else
-						Assert(false);
-					get_rule_expr((Node *) p->args, context, true);
-					appendStringInfoString(buf, ") WITHIN GROUP (");
-					get_sortlist_expr(p->sortClause,
-									  p->sortTargets,
-									  false, context, "ORDER BY ");
-					appendStringInfoString(buf, ") ");
-				}
-			}
-			break;
-
 		case T_CoerceToDomainValue:
 			appendStringInfo(buf, "VALUE");
 			break;
@@ -5504,7 +5506,7 @@ get_func_expr(FuncExpr *expr, deparse_context *context,
 	Oid			funcoid = expr->funcid;
 	Oid			argtypes[FUNC_MAX_ARGS];
 	int			nargs;
-	bool		is_variadic;
+	bool		use_variadic;
 	ListCell   *l;
 
 	/*
@@ -5555,14 +5557,16 @@ get_func_expr(FuncExpr *expr, deparse_context *context,
 	}
 
 	appendStringInfo(buf, "%s(",
-					 generate_function_name(funcoid, nargs, argtypes,
-											&is_variadic));
+					 generate_function_name(funcoid, nargs,
+											argtypes,
+											expr->funcvariadic,
+											&use_variadic));
 	nargs = 0;
 	foreach(l, expr->args)
 	{
 		if (nargs++ > 0)
 			appendStringInfoString(buf, ", ");
-		if (is_variadic && lnext(l) == NULL)
+		if (use_variadic && lnext(l) == NULL)
 			appendStringInfoString(buf, "VARIADIC ");
 		get_rule_expr((Node *) lfirst(l), context, true);
 	}
@@ -5605,6 +5609,56 @@ get_groupingfunc_expr(GroupingFunc *grpfunc, deparse_context *context)
 	appendStringInfoString(buf, ")");
 }
 
+static void
+get_rule_orderby(List *orderList, List *targetList,
+				 bool force_colno, deparse_context *context)
+{
+	get_sortlist_expr(orderList, targetList, force_colno,
+					  context, "");
+}
+
+/*
+ * Deparse an Aggref as a special MEDIAN() construct, if it looks like
+ * one.
+ *
+ * Returns true if the reference was handled as MEDIAN, false otherwise.
+ */
+static bool
+get_median_expr(Aggref *aggref, deparse_context *context)
+{
+	StringInfo	buf = context->buf;
+	TargetEntry *tle;
+
+	if (!IS_MEDIAN_OID(aggref->aggfnoid))
+		return false;
+	if (list_length(aggref->aggdirectargs) != 1)
+		return false;
+	if (list_length(aggref->args) != 1)
+		return false;
+
+	tle = (TargetEntry *) linitial(aggref->args);
+	if (tle->resjunk)
+		return false;
+
+	/* Ok, it looks like a MEDIAN */
+	appendStringInfoString(buf, "MEDIAN(");
+
+	get_rule_expr((Node *) tle->expr, context, false);
+
+	/*
+	 * MEDIAN (...) FILTER (...) isn't currently allowed by the grammar,
+	 * but it's easy enough to handle here, so let's be prepared.
+	 */
+	if (aggref->aggfilter != NULL)
+	{
+		appendStringInfoString(buf, ") FILTER (WHERE ");
+		get_rule_expr((Node *) aggref->aggfilter, context, false);
+	}
+	appendStringInfoChar(buf, ')');
+
+	return true;
+}
+
 /*
  * get_agg_expr			- Parse back an Aggref node
  */
@@ -5614,19 +5668,12 @@ get_agg_expr(Aggref *aggref, deparse_context *context)
 	StringInfo	buf = context->buf;
 	Oid			argtypes[FUNC_MAX_ARGS];
 	int			nargs;
-	ListCell   *l;
+	bool		use_variadic;
 	Oid fnoid;
 
-	nargs = 0;
-	foreach(l, aggref->args)
-	{
-		if (nargs >= FUNC_MAX_ARGS)
-			ereport(ERROR,
-					(errcode(ERRCODE_TOO_MANY_ARGUMENTS),
-					 errmsg("too many arguments")));
-		argtypes[nargs] = exprType((Node *) lfirst(l));
-		nargs++;
-	}
+	/* Special handling of MEDIAN */
+	if (get_median_expr(aggref, context))
+		return;
 
 	/*
 	 * Depending on the stage of aggregation, this Aggref
@@ -5654,24 +5701,60 @@ get_agg_expr(Aggref *aggref, deparse_context *context)
 			break;
 	}
 
-	appendStringInfo(buf, "%s(%s",
-					 generate_function_name(fnoid, nargs, argtypes, NULL),
-					 aggref->aggdistinct ? "DISTINCT " : "");
-	/* aggstar can be set only in zero-argument aggregates */
-	if (aggref->aggstar)
-		appendStringInfoChar(buf, '*');
-	else
-		get_rule_expr((Node *) aggref->args, context, true);
+	/* Extract the argument types as seen by the parser */
+	nargs = get_aggregate_argtypes(aggref, argtypes);
 
-    /* Handle ORDER BY clause for ordered aggregates */
-    if (aggref->aggorder != NULL && !aggref->aggorder->sortImplicit)
-    {
-        get_sortlist_expr(aggref->aggorder->sortClause,
-                          aggref->aggorder->sortTargets,
-                          false,  /* force_colno */
-                          context,
-                          " ORDER BY ");
-    }
+	/* Print the aggregate name, schema-qualified if needed */
+	appendStringInfo(buf, "%s(%s",
+					 generate_function_name(fnoid, nargs,
+											argtypes,
+											aggref->aggvariadic,
+											&use_variadic),
+					 aggref->aggdistinct ? "DISTINCT " : "");
+	if (AGGKIND_IS_ORDERED_SET(aggref->aggkind))
+	{
+		/*
+		 * Ordered-set aggregates do not use "*" syntax.  Also, we needn't
+		 * worry about inserting VARIADIC.  So we can just dump the direct
+		 * args as-is.
+		 */
+		get_rule_expr((Node *) aggref->aggdirectargs, context, true);
+		Assert(aggref->aggorder != NIL);
+		appendStringInfoString(buf, ") WITHIN GROUP (ORDER BY ");
+		get_rule_orderby(aggref->aggorder, aggref->args, false, context);
+	}
+	else
+	{
+		/* aggstar can be set only in zero-argument aggregates */
+		if (aggref->aggstar)
+			appendStringInfoChar(buf, '*');
+		else
+		{
+			ListCell   *l;
+			int			i;
+
+			i = 0;
+			foreach(l, aggref->args)
+			{
+				TargetEntry *tle = (TargetEntry *) lfirst(l);
+				Node	   *arg = (Node *) tle->expr;
+
+				if (tle->resjunk)
+					continue;
+				if (i++ > 0)
+					appendStringInfoString(buf, ", ");
+				if (use_variadic && i == nargs)
+					appendStringInfoString(buf, "VARIADIC ");
+				get_rule_expr(arg, context, true);
+			}
+		}
+
+		if (aggref->aggorder != NIL)
+		{
+			appendStringInfoString(buf, " ORDER BY ");
+			get_rule_orderby(aggref->aggorder, aggref->args, false, context);
+		}
+	}
 
 	if (aggref->aggfilter != NULL)
 	{
@@ -5758,9 +5841,10 @@ get_windowfunc_expr(WindowFunc *wfunc, deparse_context *context)
 		nargs++;
 	}
 
-	appendStringInfo(buf, "%s(%s",
-					 generate_function_name(wfunc->winfnoid,
-											nargs, argtypes, NULL), "");
+	appendStringInfo(buf, "%s(",
+					 generate_function_name(wfunc->winfnoid, nargs,
+											argtypes,
+											false, NULL));
 	/* winstar can be set only in zero-argument aggregates */
 	if (wfunc->winstar)
 		appendStringInfoChar(buf, '*');
@@ -6867,23 +6951,31 @@ generate_relation_name(Oid relid, List *namespaces)
  *		given that it is being called with the specified actual arg types.
  *		(Arg types matter because of ambiguous-function resolution rules.)
  *
- * The result includes all necessary quoting and schema-prefixing.  We can
- * also pass back an indication of whether the function is variadic.
+ * If we're dealing with a potentially variadic function (in practice, this
+ * means a FuncExpr or Aggref, not some other way of calling a function), then
+ * has_variadic must specify whether variadic arguments have been merged,
+ * and *use_variadic_p will be set to indicate whether to print VARIADIC in
+ * the output.  For non-FuncExpr cases, has_variadic should be FALSE and
+ * use_variadic_p can be NULL.
+ *
+ * The result includes all necessary quoting and schema-prefixing.
  */
 static char *
 generate_function_name(Oid funcid, int nargs, Oid *argtypes,
-					   bool *is_variadic)
+					   bool has_variadic, bool *use_variadic_p)
 {
+	char	   *result;
 	HeapTuple	proctup;
 	Form_pg_proc procform;
 	char	   *proname;
+	bool		use_variadic;
 	char	   *nspname;
-	char	   *result;
 	FuncDetailCode p_result;
 	Oid			p_funcid;
 	Oid			p_rettype;
 	bool		p_retset;
 	int			p_nvargs;
+	Oid			p_vatype;
 	Oid		   *p_true_typeids;
 
 	proctup = SearchSysCache(PROCOID,
@@ -6895,49 +6987,53 @@ generate_function_name(Oid funcid, int nargs, Oid *argtypes,
 	proname = NameStr(procform->proname);
 
 	/*
+	 * Determine whether VARIADIC should be printed.  We must do this first
+	 * since it affects the lookup rules in func_get_detail().
+	 *
+	 * Currently, we always print VARIADIC if the function has a merged
+	 * variadic-array argument.  Note that this is always the case for
+	 * functions taking a VARIADIC argument type other than VARIADIC ANY.
+	 *
+	 * In principle, if VARIADIC wasn't originally specified and the array
+	 * actual argument is deconstructable, we could print the array elements
+	 * separately and not print VARIADIC, thus more nearly reproducing the
+	 * original input.  For the moment that seems like too much complication
+	 * for the benefit, and anyway we do not know whether VARIADIC was
+	 * originally specified if it's a non-ANY type.
+	 */
+	if (use_variadic_p)
+	{
+		/* Parser should not have set funcvariadic unless fn is variadic */
+		Assert(!has_variadic || OidIsValid(procform->provariadic));
+		use_variadic = has_variadic;
+		*use_variadic_p = use_variadic;
+	}
+	else
+	{
+		Assert(!has_variadic);
+		use_variadic = false;
+	}
+
+	/*
 	 * The idea here is to schema-qualify only if the parser would fail to
 	 * resolve the correct function given the unqualified func name with the
-	 * specified argtypes.
+	 * specified argtypes and VARIADIC flag.
 	 */
 	p_result = func_get_detail(list_make1(makeString(proname)),
-							   NIL, nargs, argtypes, false, true,
+							   NIL, nargs, argtypes,
+							   !use_variadic, true,
 							   &p_funcid, &p_rettype,
-							   &p_retset, &p_nvargs, &p_true_typeids, NULL);
-	if ((p_result == FUNCDETAIL_NORMAL || p_result == FUNCDETAIL_AGGREGATE) &&
+							   &p_retset, &p_nvargs, &p_vatype,
+							   &p_true_typeids, NULL);
+	if ((p_result == FUNCDETAIL_NORMAL ||
+		 p_result == FUNCDETAIL_AGGREGATE ||
+		 p_result == FUNCDETAIL_WINDOWFUNC) &&
 		p_funcid == funcid)
 		nspname = NULL;
 	else
 		nspname = get_namespace_name(procform->pronamespace);
 
 	result = quote_qualified_identifier(nspname, proname);
-	/* Check variadic-ness if caller cares */
-	if (is_variadic)
-	{
-		bool 	isnull;
-		Datum	varDatum;
-		Oid		varOid;
-
-		varDatum = SysCacheGetAttr (PROCOID, proctup,
-									Anum_pg_proc_provariadic, &isnull);
-		varOid = DatumGetObjectId(varDatum);
-
-		/* "any" variadics are not treated as variadics for listing */
-		if (OidIsValid(varOid) && varOid != ANYOID)
-			*is_variadic = true;
-		else
-			*is_variadic = false;
-	}
-
-	/* Check variadic-ness if caller cares */
-	if (is_variadic)
-	{
-		/* "any" variadics are not treated as variadics for listing */
-		if (OidIsValid(procform->provariadic) &&
-			procform->provariadic != ANYOID)
-			*is_variadic = true;
-		else
-			*is_variadic = false;
-	}
 
 	ReleaseSysCache(proctup);
 

@@ -17,18 +17,21 @@
  */
 
 #include "postgres.h"
+
+#include "cdb/cdbgroup.h"
+#include "cdb/cdbplan.h"
+#include "cdb/cdbsetop.h"
 #include "miscadmin.h"
-#include "optimizer/clauses.h"
 #include "nodes/primnodes.h"
 #include "nodes/parsenodes.h"
 #include "nodes/plannodes.h"
-#include "cdb/cdbplan.h"
+#include "optimizer/clauses.h"
+#include "parser/parsetree.h"
+#include "utils/lsyscache.h"
 
 
 static void mutate_plan_fields(Plan *newplan, Plan *oldplan, Node *(*mutator) (), void *context);
 static void mutate_join_fields(Join *newplan, Join *oldplan, Node *(*mutator) (), void *context);
-
-
 
 
 
@@ -854,7 +857,6 @@ plan_tree_mutator(Node *node,
 		case T_SetToDefault:
 		case T_RangeTblRef:
 		case T_Aggref:
-		case T_AggOrder:
 		case T_WindowFunc:
 		case T_ArrayRef:
 		case T_FuncExpr:
@@ -937,4 +939,132 @@ void		mutate_join_fields(Join *newjoin, Join *oldjoin, Node *(*mutator) (), void
 
 	/* Node fields need mutation. */
 	MUTATE(newjoin->joinqual, oldjoin->joinqual, List *);
+}
+
+
+/*
+ * package_plan_as_rte
+ *	   Package a plan as a pre-planned subquery RTE
+ *
+ * Note that the input query is often root->parse (since that is the
+ * query from which this invocation of the planner usually takes it's
+ * context), but may be a derived query, e.g., in the case of sequential
+ * window plans or multiple-DQA pruning (in cdbgroup.c).
+ * 
+ * Note also that the supplied plan's target list must be congruent with
+ * the supplied query: its Var nodes must refer to RTEs in the range
+ * table of the Query node, it should conserve sort/group reference
+ * values, and its SubqueryScan nodes should match up with the query's
+ * Subquery RTEs.
+ *
+ * The result is a pre-planned subquery RTE which incorporates the given
+ * plan, alias, and pathkeys (if any) directly.  The input query is not
+ * modified.
+ *
+ * The caller must install the RTE in the range table of an appropriate query
+ * and the corresponding plan should reference it's results through a
+ * SubqueryScan node.
+ */
+RangeTblEntry *
+package_plan_as_rte(Query *query, Plan *plan, Alias *eref, List *pathkeys)
+{
+	Query *subquery;
+	RangeTblEntry *rte;
+	
+	
+	Assert( query != NULL );
+	Assert( plan != NULL );
+	Assert( eref != NULL );
+	Assert( plan->flow != NULL ); /* essential in a pre-planned RTE */
+	
+	/* Make a plausible subquery for the RTE we'll produce. */
+	subquery = makeNode(Query);
+	memcpy(subquery, query, sizeof(Query));
+	
+	subquery->querySource = QSRC_PLANNER;
+	subquery->canSetTag = false;
+	subquery->resultRelation = 0;
+	subquery->intoClause = NULL;
+	
+	subquery->rtable = copyObject(subquery->rtable);
+
+	subquery->targetList = copyObject(plan->targetlist);
+	subquery->windowClause = NIL;
+	
+	subquery->distinctClause = NIL;
+	subquery->sortClause = NIL;
+	subquery->limitOffset = NULL;
+	subquery->limitCount = NULL;
+	
+	Assert( subquery->setOperations == NULL );
+	
+	/* Package up the RTE. */
+	rte = makeNode(RangeTblEntry);
+	rte->rtekind = RTE_SUBQUERY;
+	rte->subquery = subquery;
+	rte->eref = eref;
+	rte->subquery_plan = plan;
+	rte->subquery_rtable = subquery->rtable;
+	rte->subquery_pathkeys = pathkeys;
+
+	return rte;
+}
+
+
+/* Utility to get a name for a function to use as an eref. */
+static char *
+get_function_name(Oid proid, const char *dflt)
+{
+	char	   *result;
+
+	if (!OidIsValid(proid))
+	{
+		result = pstrdup(dflt);
+	}
+	else
+	{
+		result = get_func_name(proid);
+
+		if (result == NULL)
+			result = pstrdup(dflt);
+	}
+
+	return result;
+}
+
+/* Utility to get a name for a tle to use as an eref. */
+Value *
+get_tle_name(TargetEntry *tle, List *rtable, const char *default_name)
+{
+	char *name = NULL;
+	Node *expr = (Node*)tle->expr;
+	
+	if ( tle->resname != NULL )
+	{
+		name = pstrdup(tle->resname);
+	}
+	else if ( IsA(tle->expr, Var) && rtable != NULL )
+	{
+		Var *var = (Var*)tle->expr;
+		RangeTblEntry *rte = rt_fetch(var->varno, rtable);
+		name = pstrdup(get_rte_attribute_name(rte, var->varattno));
+	}
+	else if ( IsA(tle->expr, WindowFunc) )
+	{
+		if ( default_name == NULL ) default_name = "window_func";
+		name = get_function_name(((WindowFunc *)expr)->winfnoid, default_name);
+	}
+	else if ( IsA(tle->expr, Aggref) )
+	{
+		if ( default_name == NULL ) default_name = "aggregate_func";
+		name = get_function_name(((Aggref*)expr)->aggfnoid, default_name);
+	}
+	
+	if ( name == NULL )
+	{
+		if (default_name == NULL ) default_name = "unnamed_attr";
+		name = pstrdup(default_name);
+	}
+	
+	return makeString(name);
 }

@@ -257,6 +257,9 @@ namespace gpdb {
 	// get equality operator for given type
 	Oid OidEqualityOp(Oid oidType);
 
+	// get equality operator for given ordering op (i.e. < or >)
+	Oid OidEqualityOpForOrderingOp(Oid opno, bool *reverse);
+
 	// function name
 	char *SzFuncName(Oid funcid);
 

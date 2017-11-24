@@ -2641,7 +2641,8 @@ preprocess_range_spec(partValidationState *vstate)
 			continue;
 		}
 
-		pbs = (PartitionBoundSpec *) transformExpr(pstate, (Node *) pbs);
+		pbs = (PartitionBoundSpec *) transformExpr(pstate, (Node *) pbs,
+												   EXPR_KIND_PARTITION_EXPRESSION);
 
 		pStoreAttr = el->storeAttr;
 
@@ -3265,21 +3266,24 @@ partition_range_every(ParseState *pstate, PartitionBy *pBy, List *coltypes,
 				oprcompare = lappend(NIL, makeString(compare_op));
 				ltop = lappend(NIL, makeString("<"));
 
-				n1t = transformExpr(pstate, n1);
+				n1t = transformExpr(pstate, n1,
+									EXPR_KIND_PARTITION_EXPRESSION);
 				n1t = coerce_type(NULL, n1t, exprType(n1t), coltypid,
 								  coltypmod,
 								  COERCION_EXPLICIT, COERCE_IMPLICIT_CAST,
 								  -1);
 				n1t = (Node *) flatten_partition_val(n1t, coltypid);
 
-				n2t = transformExpr(pstate, n2);
+				n2t = transformExpr(pstate, n2,
+									EXPR_KIND_PARTITION_EXPRESSION);
 				n2t = coerce_type(NULL, n2t, exprType(n2t), coltypid,
 								  coltypmod,
 								  COERCION_EXPLICIT, COERCE_IMPLICIT_CAST,
 								  -1);
 				n2t = (Node *) flatten_partition_val(n2t, coltypid);
 
-				n3t = transformExpr(pstate, n3);
+				n3t = transformExpr(pstate, n3,
+									EXPR_KIND_PARTITION_EXPRESSION);
 				n3t = (Node *) flatten_partition_val(n3t, exprType(n3t));
 
 				Assert(IsA(n3t, Const));
@@ -4332,7 +4336,8 @@ validate_list_partition(partValidationState *vstate)
 			foreach(lc_val, vals)
 			{
 				Node	   *node = transformExpr(vstate->pstate,
-												 (Node *) lfirst(lc_val));
+												 (Node *) lfirst(lc_val),
+												 EXPR_KIND_PARTITION_EXPRESSION);
 				TypeName   *type = lfirst(llc2);
 				int32		typmod;
 				Oid			typid = typenameTypeId(vstate->pstate, type, &typmod);

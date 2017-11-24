@@ -24,7 +24,7 @@ OBJS = execAmi.o execCurrent.o execGrouping.o execJunk.o execMain.o \
        nodeSeqscan.o nodeSetOp.o nodeSort.o nodeUnique.o \
        nodeValuesscan.o nodeCtescan.o nodeWorktablescan.o \
        nodeLimit.o nodeSubplan.o nodeSubqueryscan.o nodeTidscan.o \
-       tstoreReceiver.o spi.o \
+       nodeWindowAgg.o tstoreReceiver.o spi.o \
        nodeBitmapTableScan.o \
        nodeExternalscan.o \
        nodeDynamicIndexscan.o \
@@ -34,7 +34,6 @@ OBJS = execAmi.o execCurrent.o execGrouping.o execJunk.o execMain.o \
        nodeShareInputScan.o \
        nodeTableFunction.o \
        nodeTableScan.o nodeDynamicTableScan.o \
-       nodeWindow.o \
        nodeSequence.o \
        nodeRowTrigger.o \
        nodeAssertOp.o \

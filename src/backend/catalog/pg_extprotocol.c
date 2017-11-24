@@ -231,6 +231,7 @@ ValidateProtocolFunction(List *fnName, ExtPtcFuncType fntype)
 	Oid 		inputTypes[1] = {InvalidOid}; /* dummy */
 	int			nargs = 0; /* true for all 3 function types at the moment */
 	int			nvargs;
+	Oid			vatype;
 	
 	if (fntype == EXTPTC_FUNC_VALIDATOR)
 		desired_rettype = VOIDOID;
@@ -246,7 +247,7 @@ ValidateProtocolFunction(List *fnName, ExtPtcFuncType fntype)
 	 */
 	fdresult = func_get_detail(fnName, NIL, nargs, inputTypes, false, false,
 							   &fnOid, &actual_rettype, &retset,
-							   &nvargs, &true_oid_array, NULL);
+							   &nvargs, &vatype, &true_oid_array, NULL);
 
 	/* only valid case is a normal function not returning a set */
 	if (fdresult != FUNCDETAIL_NORMAL || !OidIsValid(fnOid))
@@ -254,7 +255,13 @@ ValidateProtocolFunction(List *fnName, ExtPtcFuncType fntype)
 				(errcode(ERRCODE_UNDEFINED_FUNCTION),
 				 errmsg("function %s does not exist",
 						func_signature_string(fnName, nargs, inputTypes))));
-	
+
+	if (OidIsValid(vatype))
+		ereport(ERROR,
+				(errcode(ERRCODE_DATATYPE_MISMATCH),
+				 errmsg("Invalid protocol function"),
+				 errdetail("Protocol functions cannot be variadic.")));
+
 	if (retset)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATATYPE_MISMATCH),

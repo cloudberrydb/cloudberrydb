@@ -156,7 +156,7 @@ typedef struct ExprContext
 	/* Link to containing EState (NULL if a standalone ExprContext) */
 	struct EState *ecxt_estate;
 
-	/* Functions to call back when ExprContext is shut down */
+	/* Functions to call back when ExprContext is shut down or rescanned */
 	ExprContext_CB *ecxt_callbacks;
 
 	/* Representing the final grouping and group_id for a tuple
@@ -838,10 +838,9 @@ typedef struct WholeRowVarExprState
 typedef struct AggrefExprState
 {
 	ExprState	xprstate;
-	List	   *args;			/* states of argument expressions */
-	ExprState  *aggfilter;		/* FILTER expression */
-	List	   *inputTargets;	/* combined TargetList */
-	List	   *inputSortClauses; /* list of SortClause */
+	List	   *aggdirectargs;	/* states of direct-argument expressions */
+	List	   *args;			/* states of aggregated-argument expressions */
+	ExprState  *aggfilter;		/* state of FILTER expression, if any */
 	int			aggno;			/* ID number for agg within its plan node */
 } AggrefExprState;
 
@@ -864,13 +863,9 @@ typedef struct GroupingFuncExprState
 typedef struct WindowFuncExprState
 {
 	ExprState	xprstate;
-	struct WindowState *windowstate; /* reflect parent window state */
 	List	   *args;			/* states of argument expressions */
 	ExprState  *aggfilter;		/* FILTER expression */
-	bool	   *argtypbyval;	/* pg_type.typbyval for each argument */
-	int16	   *argtyplen;		/* pg_type.typlen of each argument */
-	int			funcno;			/* index in window state's func_state array */
-	char		winkind;		/* pg_window.winkind */
+	int			wfuncno;		/* ID number for wfunc within its plan node */
 } WindowFuncExprState;
 
 /* ----------------
@@ -1305,19 +1300,6 @@ typedef struct CoerceToDomainState
 	/* Cached list of constraints that need to be checked */
 	List	   *constraints;	/* list of DomainConstraintState nodes */
 } CoerceToDomainState;
-
-
-/* ----------------
- *		PercentileExprState node
- * ----------------
- */
-typedef struct PercentileExprState
-{
-	ExprState	xprstate;
-	List	   *args;			/* states of argument expressions */
-	List	   *tlist;			/* combined TargetList */
-	int			aggno;			/* ID number within its plan node */
-} PercentileExprState;
 
 /*
  * DomainConstraintState - one item to check during CoerceToDomain
@@ -2440,6 +2422,7 @@ typedef struct AggState
 	AggStatePerAgg peragg;		/* per-Aggref information */
 	MemoryContext aggcontext;	/* memory context for long-lived data */
 	ExprContext *tmpcontext;	/* econtext for input expressions */
+	AggStatePerAgg curperagg;	/* identifies currently active aggregate */
 	bool		agg_done;		/* indicates completion of Agg scan */
 	bool        has_partial_agg;/* indicate if a partial aggregate result
 								 * has been calculated in the previous call.
@@ -2470,7 +2453,6 @@ typedef struct AggState
 	Datum	   *replValues;
 	bool	   *replIsnull;
 	bool	   *doReplace;
-	List	   *percs;			/* all PercentileExpr nodes in targetlist & quals */
 
 	/* set if the operator created workfiles */
 	bool		workfiles_created;
@@ -2480,67 +2462,95 @@ typedef struct AggState
 #endif
 } AggState;
 
-
 /* ----------------
- *	WindowState information
+ *	WindowAggState information
  * ----------------
  */
-typedef struct WindowStatePerLevelData *WindowStatePerLevel;
-typedef struct WindowStatePerFunctionData *WindowStatePerFunction;
-typedef struct WindowInputBufferData *WindowInputBuffer;
+/* these structs are private in nodeWindowAgg.c: */
+typedef struct WindowStatePerFuncData *WindowStatePerFunc;
+typedef struct WindowStatePerAggData *WindowStatePerAgg;
 
-typedef struct WindowState
+typedef struct WindowAggState
 {
-	PlanState	ps;			/* its first field is NodeTag */
-	List	   *wfxstates;	/* all WindowFuncExprState nodes in targetlist */
-	FmgrInfo   *eqfunctions; /* equality fns for partition key */
-	TupleTableSlot *priorslot;	/* place for prior tuple */
-	TupleTableSlot *curslot;		/* current tuple */
-	TupleTableSlot *spare;		/* current tuple */
+	ScanState	ss;				/* its first field is NodeTag */
 
-	/* meta data about the current slot */
-	bool		cur_slot_is_new;	/* is this a slot from a buffer or outer plan */
-	bool		cur_slot_part_break; /* slot breaks the partition key */
-	int			cur_slot_key_break; /* break level of the key in the slot */
+	/* these fields are filled in by ExecInitExpr: */
+	List	   *funcs;			/* all WindowFunc nodes in targetlist */
+	int			numfuncs;		/* total number of window functions */
+	int			numaggs;		/* number that are plain aggregates */
 
-	/* Array of working states per distinct window function */
-	int			numfuncs;
-	WindowStatePerFunction func_state;
+	WindowStatePerFunc perfunc; /* per-window-function information */
+	WindowStatePerAgg peragg;	/* per-plain-aggregate information */
+	FmgrInfo   *partEqfunctions;	/* equality funcs for partition columns */
+	FmgrInfo   *ordEqfunctions; /* equality funcs for ordering columns */
+	Tuplestorestate *buffer;	/* stores rows of current partition */
+	int			current_ptr;	/* read pointer # for current */
+	int64		spooled_rows;	/* total # of rows in buffer */
+	int64		currentpos;		/* position of current row in partition */
+	int64		frameheadpos;	/* current frame head position */
+	int64		frametailpos;	/* current frame tail position */
+	/* use struct pointer to avoid including windowapi.h here */
+	struct WindowObjectData *agg_winobj;		/* winobj for aggregate
+												 * fetches */
+	int64		aggregatedbase; /* start row for current aggregates */
+	int64		aggregatedupto; /* rows before this one are aggregated */
 
-	/* Per row state */
-	int64		row_index;
+	int			frameOptions;	/* frame_clause options, see WindowDef */
+	ExprState  *startOffset;	/* expression for starting bound offset */
+	ExprState  *endOffset;		/* expression for ending bound offset */
+	Datum		startOffsetValue;		/* result of startOffset evaluation */
+	Datum		endOffsetValue; /* result of endOffset evaluation */
 
-	/* frame does not require buffering and complexity of invokeWindowFuncs() */
-	bool		trivial_frame;
+	FmgrInfo	ordCmpFunction;	/* btree cmp function for first ORDER BY col */
+	bool		ordReverse;		/* is the first ORDER BY col reversed? */
+	bool		start_offset_valid;	/* is startOffsetValue valid for current row? */
+	bool		end_offset_valid;	/* is endOffsetValue valid for current row? */
 
-	WindowStatePerLevel level_state;
+	ExprState  *startBound;		/* expression for RANGE starting boundary */
+	ExprState  *endBound;		/* expression for RANGE ending boundary */
+	Datum		startBoundValue;
+	bool		startBoundIsNull;
+	Datum		endBoundValue;
+	bool		endBoundIsNull;
+	int16		boundTypeLen;
+	bool		boundTypeByVal;
 
-	/* memory context for transition value processing */
-	/* XXX: we should probably have one context per level, so that we can
-	 * reset it when there's a key change at that level
-	 */
-	MemoryContext transcontext;
-	MemoryManagerContainer mem_manager;
+	ExprState  *startOffsetIsNegative; /* expression to test if startOffset is negative */
+	ExprState  *endOffsetIsNegative; /* expression to test if startOffset is negative */
 
 	/*
-	 * context for comparing datums immediately.
-	 * we need reset this context every time we run comparison,
-	 * since window frame may contain unlimited number of rows.
+	 * In GPDB, we support RANGE/ROWS start/end expressions to contain
+	 * variables. You lose on some optimizations in that case, so we use
+	 * these flags to indicate if they don't contain any variables, to allow
+	 * those optimizations in the usual case that they don't.
 	 */
-	MemoryContext cmpcontext;
+	bool		start_offset_var_free;
+	bool		end_offset_var_free;
 
-	/* framed window functions need access to their frames */
-	WindowStatePerFunction cur_funcstate;
+	MemoryContext partcontext;	/* context for partition-lifespan data */
+	MemoryContext aggcontext;	/* context for each aggregate data */
+	ExprContext *tmpcontext;	/* short-term evaluation context */
 
-	/* input buffer */
-	WindowInputBuffer input_buffer;
+	bool		all_first;		/* true if the scan is starting */
+	bool		all_done;		/* true if the scan is finished */
+	bool		partition_spooled;		/* true if all tuples in current
+										 * partition have been spooled into
+										 * tuplestore */
+	bool		more_partitions;/* true if there's more partitions after this
+								 * one */
+	bool		framehead_valid;/* true if frameheadpos is known up to date
+								 * for current row */
+	bool		frametail_valid;/* true if frametailpos is known up to date
+								 * for current row */
 
-	/* Indicate if any function need a peer count. */
-	bool		need_peercount;
+	TupleTableSlot *first_part_slot;	/* first tuple of current or next
+										 * partition */
 
-	/* Indicate if child is done returning tuples */
-	bool	    is_input_done;
-} WindowState;
+	/* temporary slots for tuples fetched back from tuplestore */
+	TupleTableSlot *agg_row_slot;
+	TupleTableSlot *temp_slot_1;
+	TupleTableSlot *temp_slot_2;
+} WindowAggState;
 
 /* ----------------
  *	 UniqueState information

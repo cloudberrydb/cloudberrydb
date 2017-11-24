@@ -487,6 +487,8 @@ array_agg_transfn(PG_FUNCTION_ARGS)
 
 	if (fcinfo->context && IsA(fcinfo->context, AggState))
 		aggcontext = ((AggState *) fcinfo->context)->aggcontext;
+	else if (fcinfo->context && IsA(fcinfo->context, WindowAggState))
+		aggcontext = ((WindowAggState *) fcinfo->context)->aggcontext;
 	else
 	{
 		/* cannot be called directly because of internal-type argument */
@@ -527,11 +529,9 @@ array_agg_finalfn(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();		/* returns null iff no input values */
 
 	/* cannot be called directly because of internal-type argument */
-	if (!(fcinfo->context && IsA(fcinfo->context, AggState)))
-	{
-		/* cannot be called directly because of internal-type argument */
-		elog(ERROR, "array_agg_finalfn called in non-aggregate context");
-	}
+	Assert(fcinfo->context &&
+		   (IsA(fcinfo->context, AggState) ||
+			IsA(fcinfo->context, WindowAggState)));
 
 	state = (ArrayBuildState *) PG_GETARG_POINTER(0);
 

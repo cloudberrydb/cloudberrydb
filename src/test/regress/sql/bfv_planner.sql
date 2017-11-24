@@ -221,6 +221,11 @@ T1.a=T2.g and T1.c=T2.f;
 create table bfv_planner_t3 (a int4, b int4);
 select a from (select * from bfv_planner_t3 order by a, b) as x limit 1;
 
+-- Similar case, but when evaluating a window function rather than LIMIT
+select first_value(a) over w, a
+from (select * from bfv_planner_t3 order by a, b) as x
+WINDOW w AS (order by a);
+
 
 -- start_ignore
 drop table if exists bfv_planner_x;

@@ -1041,8 +1041,11 @@ pull_up_simple_subquery(PlannerInfo *root, Node *jtnode, RangeTblEntry *rte,
 	 * subquery->hasSubLinks anyway.  Perhaps this can be improved someday.
 	 */
 	parse->hasSubLinks |= subquery->hasSubLinks;
-	/* subquery won't be pulled up if it hasAggs, so no work there */
 
+	/*
+	 * subquery won't be pulled up if it hasAggs or hasWindowFuncs, so no work
+	 * needed on those flags
+	 */
 
     /*
      * CDB: Wipe old RTE so subquery parse tree won't be sent to QEs.

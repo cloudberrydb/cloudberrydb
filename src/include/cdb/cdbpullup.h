@@ -108,6 +108,8 @@ cdbpullup_exprHasSubplanRef(Expr *expr);
 
 extern Expr *cdbpullup_findPathKeyExprInTargetList(PathKey *item, List *targetlist);
 
+extern List *cdbpullup_truncatePathKeysForTargetList(List *pathkeys, List *targetlist);
+
 
 /*
  * cdbpullup_findSubplanRefInTargetList

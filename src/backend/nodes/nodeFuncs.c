@@ -239,9 +239,6 @@ exprType(Node *expr)
 		case T_GroupId:
 			type = INT4OID;
 			break;
-		case T_PercentileExpr:
-			type = ((PercentileExpr *) expr)->perctype;
-			break;
 		case T_DMLActionExpr:
 			type = INT4OID;
 			break;
@@ -922,6 +919,10 @@ exprLocation(Node *expr)
 		case T_TypeName:
 			loc = ((TypeName *) expr)->location;
 			break;
+		case T_FunctionParameter:
+			/* just use typename's location */
+			loc = exprLocation((Node *) ((const FunctionParameter *) expr)->argType);
+			break;
 		case T_XmlSerialize:
 			/* XMLSERIALIZE keyword should always be the first thing */
 			loc = ((XmlSerialize *) expr)->location;
@@ -1100,6 +1101,9 @@ expression_tree_walker(Node *node,
 				Aggref	   *expr = (Aggref *) node;
 
 				/* recurse directly on List */
+				if (expression_tree_walker((Node *) expr->aggdirectargs,
+										   walker, context))
+					return true;
 				if (expression_tree_walker((Node *) expr->args,
 										   walker, context))
 					return true;
@@ -1107,19 +1111,6 @@ expression_tree_walker(Node *node,
 										   walker, context))
 					return true;
 				if (walker((Node *) expr->aggfilter, context))
-					return true;
-			}
-			break;
-		case T_AggOrder:
-			{
-				AggOrder	   *expr = (AggOrder *) node;
-
-				/* recurse directly on List */
-				if (expression_tree_walker((Node *) expr->sortTargets,
-										   walker, context))
-					return true;
-				if (expression_tree_walker((Node *) expr->sortClause,
-										   walker, context))
 					return true;
 			}
 			break;
@@ -1455,22 +1446,6 @@ expression_tree_walker(Node *node,
 				return false;
 			}
 			break;
-		case T_PercentileExpr:
-			{
-				PercentileExpr *perc = (PercentileExpr *) node;
-
-				if (walker((Node *) perc->args, context))
-					return true;
-				if (walker((Node *) perc->sortClause, context))
-					return true;
-				if (walker((Node *) perc->sortTargets, context))
-					return true;
-				if (walker((Node *) perc->pcExpr, context))
-					return true;
-				if (walker((Node *) perc->tcExpr, context))
-					return true;
-			}
-			break;
 
 		default:
 			elog(ERROR, "unrecognized node type: %d",
@@ -1763,8 +1738,10 @@ expression_tree_mutator(Node *node,
 				Aggref	   *newnode;
 
 				FLATCOPY(newnode, aggref, Aggref);
+				MUTATE(newnode->aggdirectargs, aggref->aggdirectargs, List *);
 				MUTATE(newnode->args, aggref->args, List *);
-				MUTATE(newnode->aggorder, aggref->aggorder, AggOrder *);
+				MUTATE(newnode->aggorder, aggref->aggorder, List *);
+				MUTATE(newnode->aggdistinct, aggref->aggdistinct, List *);
 				MUTATE(newnode->aggfilter, aggref->aggfilter, Expr *);
 				return (Node *) newnode;
 			}
@@ -2220,17 +2197,6 @@ expression_tree_mutator(Node *node,
 				return (Node *) newnode;
 			}
 			break;
-		case T_AggOrder:
-			{
-				AggOrder	*aggorder = (AggOrder *)node;
-				AggOrder	*newnode;
-
-				FLATCOPY(newnode, aggorder, AggOrder);
-				MUTATE(newnode->sortTargets, aggorder->sortTargets, List *);
-				MUTATE(newnode->sortClause, aggorder->sortClause, List *);
-				return (Node *) newnode;
-			}
-			break;
 		case T_GroupingFunc:
 			{
 				GroupingFunc *newnode;
@@ -2280,21 +2246,6 @@ expression_tree_mutator(Node *node,
 
 				return (Node *) newnode;
 
-			}
-		case T_PercentileExpr:
-			{
-				PercentileExpr *perc = (PercentileExpr *) node;
-				PercentileExpr *newnode;
-
-				FLATCOPY(newnode, perc, PercentileExpr);
-
-				MUTATE(newnode->args, perc->args, List *);
-				MUTATE(newnode->sortClause, perc->sortClause, List *);
-				MUTATE(newnode->sortTargets, perc->sortTargets, List *);
-				MUTATE(newnode->pcExpr, perc->pcExpr, Expr *);
-				MUTATE(newnode->tcExpr, perc->tcExpr, Expr *);
-
-				return (Node *) newnode;
 			}
 		case T_SortGroupClause:
 			{

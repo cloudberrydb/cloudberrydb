@@ -245,7 +245,9 @@ preprocess_targetlist(PlannerInfo *root, List *tlist)
 		List	   *vars;
 		ListCell   *l;
 
-		vars = pull_var_clause((Node *) parse->returningList, true);
+		vars = pull_var_clause((Node *) parse->returningList,
+							   PVC_RECURSE_AGGREGATES,
+							   PVC_INCLUDE_PLACEHOLDERS);
 		foreach(l, vars)
 		{
 			Var		   *var = (Var *) lfirst(l);

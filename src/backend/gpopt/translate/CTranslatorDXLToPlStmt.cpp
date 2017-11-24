@@ -2262,6 +2262,19 @@ CTranslatorDXLToPlStmt::PwindowFromDXLWindow
 		pdxltrctxOut
 		);
 
+	ListCell *plc;
+
+	foreach (plc, pplan->targetlist)
+	{
+		TargetEntry *pte = (TargetEntry *) lfirst(plc);
+		if (IsA(pte->expr, WindowFunc))
+		{
+			WindowFunc *pwinfunc = (WindowFunc *) pte->expr;
+			pwindow->winref = pwinfunc->winref;
+			break;
+		}
+	}
+
 	pplan->lefttree = pplanChild;
 	pplan->nMotionNodes = pplanChild->nMotionNodes;
 
@@ -2317,8 +2330,28 @@ CTranslatorDXLToPlStmt::PwindowFromDXLWindow
 		pwindow->ordNumCols = ulNumCols;
 		pwindow->ordColIdx = (AttrNumber *) gpdb::GPDBAlloc(ulNumCols * sizeof(AttrNumber));
 		pwindow->ordOperators = (Oid *) gpdb::GPDBAlloc(ulNumCols * sizeof(Oid));
-		pwindow->nullsFirst = (bool *) gpdb::GPDBAlloc(ulNumCols * sizeof(bool));
-		TranslateSortCols(pdxlnSortColList, &dxltrctxChild, pwindow->ordColIdx, pwindow->ordOperators, pwindow->nullsFirst);
+		bool *pNullsFirst = (bool *) gpdb::GPDBAlloc(ulNumCols * sizeof(bool));
+		TranslateSortCols(pdxlnSortColList, &dxltrctxChild, pwindow->ordColIdx, pwindow->ordOperators, pNullsFirst);
+
+		// The firstOrder* fields are separate from just picking the first of ordCol*,
+		// because the Postgres planner might omit columns that are redundant with the
+		// PARTITION BY from ordCol*. But ORCA doesn't do that, so we can just copy
+		// the first entry of ordColIdx/ordOperators into firstOrder* fields.
+		if (ulNumCols > 0)
+		{
+			pwindow->firstOrderCol = pwindow->ordColIdx[0];
+			pwindow->firstOrderCmpOperator = pwindow->ordOperators[0];
+			pwindow->firstOrderNullsFirst = pNullsFirst[0];
+		}
+		gpdb::GPDBFree(pNullsFirst);
+
+		// The ordOperators array is actually supposed to contain equality operators,
+		// not ordering operators (< or >). So look up the corresponding equality
+		// operator for each ordering operator.
+		for (ULONG i = 0; i < ulNumCols; i++)
+		{
+			pwindow->ordOperators[i] = gpdb::OidEqualityOpForOrderingOp(pwindow->ordOperators[i], NULL);
+		}
 
 		// translate the window frame specified in the window key
 		if (NULL != pdxlwindowkey->Pdxlwf())

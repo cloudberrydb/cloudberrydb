@@ -136,6 +136,14 @@
 },
 
 {
+	"invalid_argument_for_ntile_function", ERRCODE_INVALID_ARGUMENT_FOR_NTILE
+},
+
+{
+	"invalid_argument_for_nth_value_function", ERRCODE_INVALID_ARGUMENT_FOR_NTH_VALUE
+},
+
+{
 	"invalid_argument_for_power_function", ERRCODE_INVALID_ARGUMENT_FOR_POWER_FUNCTION
 },
 
@@ -481,6 +489,10 @@
 
 {
 	"grouping_error", ERRCODE_GROUPING_ERROR
+},
+
+{
+	"windowing_error", ERRCODE_WINDOWING_ERROR
 },
 
 {

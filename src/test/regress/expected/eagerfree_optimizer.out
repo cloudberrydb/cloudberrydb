@@ -123,43 +123,25 @@ select count(distinct d) from smallt;
 (1 row)
 
 explain analyze select count(distinct d) from smallt;
-                                                                                  QUERY PLAN                                                                                  
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=0.00..431.01 rows=1 width=8)
-   Rows out:  1 rows with 1.020 ms to end, start offset by 0.328 ms.
-   ->  Gather Motion 2:1  (slice2; segments: 2)  (cost=0.00..431.01 rows=20 width=4)
-         Rows out:  20 rows at destination with 0.985 ms to first row, 1.007 ms to end, start offset by 0.328 ms.
-         ->  GroupAggregate  (cost=0.00..431.01 rows=10 width=4)
-               Group By: d
-               Rows out:  Avg 10.0 rows x 2 workers.  Max 10 rows (seg0) with 0.517 ms to first row, 0.525 ms to end, start offset by 0.693 ms.
-               ->  Sort  (cost=0.00..431.01 rows=10 width=4)
-                     Sort Key: d
-                     Rows out:  Avg 10.0 rows x 2 workers.  Max 10 rows (seg0) with 0.514 ms to first row, 0.515 ms to end, start offset by 0.693 ms.
-                     Executor memory:  29K bytes avg, 29K bytes max (seg0).
-                     Work_mem used:  29K bytes avg, 29K bytes max (seg0). Workfile: (0 spilling, 0 reused)
-                     ->  Redistribute Motion 2:2  (slice1; segments: 2)  (cost=0.00..431.01 rows=10 width=4)
-                           Hash Key: d
-                           Rows out:  Avg 10.0 rows x 2 workers at destination.  Max 10 rows (seg0) with 0.471 ms to first row, 0.475 ms to end, start offset by 0.721 ms.
-                           ->  GroupAggregate  (cost=0.00..431.01 rows=10 width=4)
-                                 Group By: d
-                                 Rows out:  Avg 10.0 rows x 2 workers.  Max 10 rows (seg0) with 0.154 ms to first row, 0.177 ms to end, start offset by 0.882 ms.
-                                 ->  Sort  (cost=0.00..431.00 rows=50 width=4)
-                                       Sort Key: d
-                                       Rows out:  Avg 50.0 rows x 2 workers.  Max 50 rows (seg0) with 0.148 ms to first row, 0.157 ms to end, start offset by 0.882 ms.
-                                       Executor memory:  29K bytes avg, 29K bytes max (seg0).
-                                       Work_mem used:  29K bytes avg, 29K bytes max (seg0). Workfile: (0 spilling, 0 reused)
-                                       ->  Table Scan on smallt  (cost=0.00..431.00 rows=50 width=4)
-                                             Rows out:  Avg 50.0 rows x 2 workers.  Max 50 rows (seg0) with 0.077 ms to first row, 0.096 ms to end, start offset by 0.898 ms.
+                                                                   QUERY PLAN                                                                   
+------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=8.51..8.52 rows=1 width=8)
+   Rows out:  1 rows with 0.597 ms to end, start offset by 0.224 ms.
+   Executor memory:  33K bytes.
+   Work_mem used:  33K bytes.
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..8.00 rows=100 width=4)
+         Rows out:  100 rows at destination with 0.406 ms to first row, 0.502 ms to end, start offset by 0.224 ms.
+         ->  Seq Scan on smallt  (cost=0.00..4.00 rows=34 width=4)
+               Rows out:  Avg 33.3 rows x 3 workers.  Max 50 rows (seg1) with 0.013 ms to first row, 0.052 ms to end, start offset by 0.491 ms.
  Slice statistics:
-   (slice0)    Executor memory: 159K bytes.
-   (slice1)    Executor memory: 195K bytes avg x 2 workers, 195K bytes max (seg0).  Work_mem: 29K bytes max.
-   (slice2)    Executor memory: 195K bytes avg x 2 workers, 195K bytes max (seg0).  Work_mem: 29K bytes max.
+   (slice0)    Executor memory: 322K bytes.  Work_mem: 33K bytes max.
+   (slice1)    Executor memory: 135K bytes avg x 3 workers, 135K bytes max (seg0).
  Statement statistics:
    Memory used: 128000K bytes
- Settings:  gp_enable_agg_distinct=off; optimizer=on; optimizer_segments=3
- Optimizer status: PQO version 1.611
- Total runtime: 1.764 ms
-(34 rows)
+ Settings:  gp_enable_agg_distinct=off; optimizer_segments=3
+ Optimizer status: legacy query optimizer
+ Total runtime: 1.053 ms
+(16 rows)
 
 set statement_mem=2560;
 select count(distinct d) from bigt;
@@ -169,35 +151,27 @@ select count(distinct d) from bigt;
 (1 row)
 
 explain analyze select count(distinct d) from bigt;
-                                                                               QUERY PLAN                                                                               
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Aggregate  (cost=0.00..485.92 rows=1 width=8)
-   Rows out:  1 rows with 1020 ms to end, start offset by 0.376 ms.
-   ->  Gather Motion 2:1  (slice2; segments: 2)  (cost=0.00..485.90 rows=50333 width=4)
-         Rows out:  50000 rows at destination with 949 ms to first row, 1005 ms to end, start offset by 0.377 ms.
-         ->  HashAggregate  (cost=0.00..485.15 rows=25167 width=4)
-               Group By: d
-               Rows out:  Avg 25000.0 rows x 2 workers.  Max 25000 rows (seg0) with 948 ms to first row, 955 ms to end, start offset by 0.768 ms.
-               Executor memory:  969K bytes avg, 969K bytes max (seg0).
-               ->  Redistribute Motion 2:2  (slice1; segments: 2)  (cost=0.00..483.09 rows=25167 width=4)
-                     Hash Key: d
-                     Rows out:  Avg 50000.0 rows x 2 workers at destination.  Max 50000 rows (seg0) with 667 ms to first row, 921 ms to end, start offset by 0.822 ms.
-                     ->  HashAggregate  (cost=0.00..482.88 rows=25167 width=4)
-                           Group By: d
-                           Rows out:  Avg 50000.0 rows x 2 workers.  Max 50000 rows (seg0) with 665 ms to first row, 891 ms to end, start offset by 0.971 ms.
-                           Executor memory:  1609K bytes avg, 1609K bytes max (seg0).
-                           ->  Table Scan on bigt  (cost=0.00..439.81 rows=500588 width=4)
-                                 Rows out:  Avg 500000.0 rows x 2 workers.  Max 500000 rows (seg0) with 0.080 ms to first row, 550 ms to end, start offset by 1.002 ms.
+                                                                      QUERY PLAN                                                                      
+------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=56631.65..56631.66 rows=1 width=8)
+   Rows out:  1 rows with 3654 ms to end, start offset by 0.314 ms.
+   Executor memory:  2649K bytes.
+   Work_mem used:  2649K bytes.
+   Work_mem wanted: 23514K bytes to lessen workfile I/O.
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..51627.95 rows=1000739 width=4)
+         Rows out:  1000000 rows at destination with 1.670 ms to first row, 942 ms to end, start offset by 0.315 ms.
+         ->  Seq Scan on bigt  (cost=0.00..11598.39 rows=333580 width=4)
+               Rows out:  Avg 333333.3 rows x 3 workers.  Max 333490 rows (seg0) with 0.034 ms to first row, 120 ms to end, start offset by 0.570 ms.
  Slice statistics:
-   (slice0)    Executor memory: 267K bytes.
-   (slice1)    Executor memory: 1807K bytes avg x 2 workers, 1807K bytes max (seg0).
-   (slice2)    Executor memory: 1251K bytes avg x 2 workers, 1251K bytes max (seg0).
+   (slice0)  * Executor memory: 3047K bytes.  Work_mem: 2649K bytes max, 23514K bytes wanted.
+   (slice1)    Executor memory: 159K bytes avg x 3 workers, 159K bytes max (seg0).
  Statement statistics:
    Memory used: 2560K bytes
- Settings:  gp_enable_agg_distinct=off; optimizer=on; optimizer_segments=3
- Optimizer status: PQO version 1.611
- Total runtime: 1020.891 ms
-(26 rows)
+   Memory wanted: 23713K bytes
+ Settings:  gp_enable_agg_distinct=off; optimizer_segments=3
+ Optimizer status: legacy query optimizer
+ Total runtime: 3654.132 ms
+(18 rows)
 
 set statement_mem=128000;
 set gp_enable_agg_distinct=on;

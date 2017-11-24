@@ -294,9 +294,9 @@ namespace gpdxl
 			static
 			Node *PnodeFixGrpCol(Node *pnode, TargetEntry *pteOriginal, SContextGrpbyPlMutator *pctxGrpByMutator);
 
-			// return a target entry for the aggregate or percentile expression
+			// return a target entry for the aggregate expression
 			static
-			TargetEntry *PteAggregateOrPercentileExpr(IMemoryPool *pmp, CMDAccessor *pmda, Node *pnode, ULONG ulAttno);
+			TargetEntry *PteAggregateExpr(IMemoryPool *pmp, CMDAccessor *pmda, Node *pnode, ULONG ulAttno);
 
 			// traverse the having qual to extract all aggregate functions,
 			// fix correlated vars and return the modified having qual

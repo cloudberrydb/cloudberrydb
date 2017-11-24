@@ -797,27 +797,6 @@ _readAExpr(void)
 }
 
 /*
- * _readAggref
- */
-static Aggref *
-_readAggref(void)
-{
-	READ_LOCALS(Aggref);
-
-	READ_OID_FIELD(aggfnoid);
-	READ_OID_FIELD(aggtype);
-	READ_NODE_FIELD(args);
-	READ_UINT_FIELD(agglevelsup);
-	READ_BOOL_FIELD(aggstar);
-	READ_BOOL_FIELD(aggdistinct);
-	READ_NODE_FIELD(aggfilter);
-	READ_ENUM_FIELD(aggstage, AggStage);
-    READ_NODE_FIELD(aggorder);
-
-	READ_DONE();
-}
-
-/*
  * _readOpExpr
  */
 static OpExpr *
@@ -1345,7 +1324,6 @@ _readDefineStmt(void)
 	READ_NODE_FIELD(defnames);
 	READ_NODE_FIELD(args);
 	READ_NODE_FIELD(definition);
-	READ_BOOL_FIELD(ordered);   /* CDB */
 	READ_BOOL_FIELD(trusted);   /* CDB */
 
 	READ_DONE();
@@ -1995,6 +1973,7 @@ _readWindowAgg(void)
 
 	readPlanInfo((Plan *)local_node);
 
+	READ_UINT_FIELD(winref);
 	READ_INT_FIELD(partNumCols);
 	READ_INT_ARRAY(partColIdx, local_node->partNumCols, AttrNumber);
 	READ_OID_ARRAY(partOperators, local_node->partNumCols);
@@ -2002,6 +1981,9 @@ _readWindowAgg(void)
 	READ_INT_FIELD(ordNumCols);
 	READ_INT_ARRAY(ordColIdx, local_node->ordNumCols, AttrNumber);
 	READ_OID_ARRAY(ordOperators, local_node->ordNumCols);
+	READ_INT_FIELD(firstOrderCol);
+	READ_OID_FIELD(firstOrderCmpOperator);
+	READ_BOOL_FIELD(firstOrderNullsFirst);
 	READ_INT_FIELD(frameOptions);
 	READ_NODE_FIELD(startOffset);
 	READ_NODE_FIELD(endOffset);
@@ -3109,9 +3091,6 @@ readNodeBinary(void)
 			case T_Aggref:
 				return_value = _readAggref();
 				break;
-			case T_AggOrder:
-				return_value = _readAggOrder();
-				break;
 			case T_WindowFunc:
 				return_value = _readWindowFunc();
 				break;
@@ -3500,9 +3479,6 @@ readNodeBinary(void)
 				break;
 			case T_GroupId:
 				return_value = _readGroupId();
-				break;
-			case T_PercentileExpr:
-				return_value = _readPercentileExpr();
 				break;
 			case T_DMLActionExpr:
 				return_value = _readDMLActionExpr();

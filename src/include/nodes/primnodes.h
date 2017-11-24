@@ -228,34 +228,44 @@ typedef enum AggStage
 } AggStage;
 
 
-
-/*
- * AggOrder describes ordering information for ordered aggregates
- */
-typedef struct AggOrder
-{
-    Expr        xpr;
-    bool        sortImplicit;   /* Implict or explicit ordering? */
-    List       *sortTargets;    /* Targetlist for order by clause */
-    List       *sortClause;     /* Sort clause for the aggregate */
-} AggOrder;
-
-
 /*
  * Aggref
+ *
+ * The aggregate's args list is a targetlist, ie, a list of TargetEntry nodes.
+ *
+ * For a normal (non-ordered-set) aggregate, the non-resjunk TargetEntries
+ * represent the aggregate's regular arguments (if any) and resjunk TLEs can
+ * be added at the end to represent ORDER BY expressions that are not also
+ * arguments.  As in a top-level Query, the TLEs can be marked with
+ * ressortgroupref indexes to let them be referenced by SortGroupClause
+ * entries in the aggorder and/or aggdistinct lists.  This represents ORDER BY
+ * and DISTINCT operations to be applied to the aggregate input rows before
+ * they are passed to the transition function.  The grammar only allows a
+ * simple "DISTINCT" specifier for the arguments, but we use the full
+ * query-level representation to allow more code sharing.
+ *
+ * For an ordered-set aggregate, the args list represents the WITHIN GROUP
+ * (aggregated) arguments, all of which will be listed in the aggorder list.
+ * DISTINCT is not supported in this case, so aggdistinct will be NIL.
+ * The direct arguments appear in aggdirectargs (as a list of plain
+ * expressions, not TargetEntry nodes).
  */
 typedef struct Aggref
 {
 	Expr		xpr;
 	Oid			aggfnoid;		/* pg_proc Oid of the aggregate */
 	Oid			aggtype;		/* type Oid of result of the aggregate */
-	List	   *args;			/* arguments to the aggregate */
-	Index		agglevelsup;	/* > 0 if agg belongs to outer query */
-	bool		aggstar;		/* TRUE if argument list was really '*' */
-	bool		aggdistinct;	/* TRUE if it's agg(DISTINCT ...) */
+	List	   *aggdirectargs;	/* direct arguments, if an ordered-set agg */
+	List	   *args;			/* aggregated arguments and sort expressions */
+	List	   *aggorder;		/* ORDER BY (list of SortGroupClause) */
+	List	   *aggdistinct;	/* DISTINCT (list of SortGroupClause) */
 	Expr	   *aggfilter;		/* FILTER expression, if any */
+	bool		aggstar;		/* TRUE if argument list was really '*' */
+	bool		aggvariadic;	/* true if variadic arguments have been
+								 * combined into an array last argument */
+	char		aggkind;		/* aggregate kind (see pg_aggregate.h) */
+	Index		agglevelsup;	/* > 0 if agg belongs to outer query */
 	AggStage	aggstage;		/* MPP: 2-stage? If so, which stage */
-    AggOrder   *aggorder;       /* Ordered aggregate definition */
 	int			location;		/* token location, or -1 if unknown */
 } Aggref;
 
@@ -421,6 +431,8 @@ typedef struct FuncExpr
 	Oid			funcid;			/* PG_PROC OID of the function */
 	Oid			funcresulttype; /* PG_TYPE OID of result value */
 	bool		funcretset;		/* true if function returns set */
+	bool		funcvariadic;	/* true if variadic arguments have been
+								 * combined into an array last argument */
 	CoercionForm funcformat;	/* how to display this function call */
 	List	   *args;			/* arguments to the function */
 	int			location;		/* token location, or -1 if unknown */
@@ -1385,39 +1397,6 @@ typedef enum GroupingType
 	GROUPINGTYPE_CUBE,           /* CUBE grouping extension */
 	GROUPINGTYPE_GROUPING_SETS   /* GROUPING SETS grouping extension */
 } GroupingType;
-
-/*
- * PercKind
- * Represent function type of PercentileExpr
- */
-typedef enum PercKind
-{
-	PERC_MEDIAN,
-	PERC_CONT,
-	PERC_DISC
-} PercKind;
-
-/*
- * PercentileExpr
- *
- * This represents expressions for percentile_cont, percentile_disc and median.
- * They could be expressed as normal Aggref, but at present we are not able
- * to change the catalog, so we introduce this dedicated node.  As such, the node
- * is treated as Aggref in any cases.  Since we don't support Var in its
- * argument, we don't need var-level field here.
- */
-typedef struct PercentileExpr
-{
-	NodeTag			type;
-	Oid				perctype;		/* result type */
-	List		   *args;			/* list of argument expression */
-	PercKind		perckind;		/* type of percentile function */
-	List		   *sortClause;		/* ORDER BY clause */
-	List		   *sortTargets;	/* target list for ORDER BY clause */
-	Expr		   *pcExpr;			/* peer count expression */
-	Expr		   *tcExpr;			/* total count expression */
-	int				location;		/* token location, or -1 if unknown */
-} PercentileExpr;
 
 
 /*
