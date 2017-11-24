@@ -8244,6 +8244,19 @@ get_rule_def_common(Oid partid, int prettyFlags, int bLeafTablename)
 
 	ReleaseSysCache(tuple);
 
+	/*
+	 * Look up the child relation too, just to check if it has been dropped
+	 * concurrently. partition_rule_def_worker() calls flatten_reloptions(),
+	 * which errors out if it can't find the relation. This isn't 100% reliable,
+	 * it's possible that the relation gets dropped between here and
+	 * flatten_reloptions(), but it's better than nothing.
+	 */
+	if (rule->parchildrelid)
+	{
+		if (!SearchSysCacheExists1(RELOID, ObjectIdGetDatum(rule->parchildrelid)))
+			return NULL;
+	}
+
 	return partition_rule_def_worker(rule, rule->parrangestart,
 									 rule->parrangeend, rule,
 									 rule->parrangeevery, part,
