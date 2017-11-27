@@ -2609,10 +2609,6 @@ timetz_part(PG_FUNCTION_ARGS)
 /* timetz_zone()
  * Encode time with time zone type with specified time zone.
  * Applies DST rules as of the current date.
- *
- * We've pulled this function from 8_4_STABLE, but kept PG_GETARG_TEXT_P
- * instead of PG_GETARG_TEXT_PP which was used in 8_4_STABLE.
- * GPDB_84_MERGE_FIXME
  */
 Datum
 timetz_zone(PG_FUNCTION_ARGS)
