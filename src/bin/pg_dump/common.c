@@ -17,23 +17,13 @@
  */
 #include "postgres_fe.h"
 
-/*
- * GPDB_84_MERGE_FIXME: need to clean up these header includes. Some are
- * gpdb-specific, others appear to have been taken from older postgres versions,
- * some are duplicated.
- */
 #include <ctype.h>
-#include <time.h>
+
+#include "catalog/pg_class.h"
+
+#include "pg_backup_archiver.h"
+
 #include "dumputils.h"
-#include "postgres.h"
-#include "catalog/pg_class.h"
-
-#include "pg_backup_archiver.h"
-
-#include "catalog/pg_class.h"
-
-#include "pg_backup_archiver.h"
-
 
 /*
  * Variables for mapping DumpId to DumpableObject
