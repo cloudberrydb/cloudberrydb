@@ -36,13 +36,8 @@ cp ./postgresql.conf.orig ./postgresql.conf.kerberized
 echo "krb_server_keyfile='server.keytab'" >> ./postgresql.conf.kerberized
 cp ./postgresql.conf.kerberized  ${MASTER_DATA_DIRECTORY}/postgresql.conf
 
-###
-# Restart the server, to reload the config.
-#
-# Changing krb_server_keyfile requires a restart to take effect, SIGHUP
-# is not enough (GPDB_84_MERGE_FIXME: this changes in PostgreSQL 8.4, commit
-# a27addbc87)
-pg_ctl -D ${MASTER_DATA_DIRECTORY} restart -w
+# Reload the config.
+pg_ctl -D ${MASTER_DATA_DIRECTORY} reload -w
 
 echo "Server configured for Kerberos authentication"
 
