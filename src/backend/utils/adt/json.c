@@ -1329,16 +1329,7 @@ json_categorize_type(Oid typoid,
 					{
 						Form_pg_cast castForm = (Form_pg_cast) GETSTRUCT(tuple);
 
-						/*
-						 * GPDB_84_MERGE_FIXME: handle when merging upstream
-						 * patch 092bc4965378840479e0250ae679e1d8e86577ee
-						 * "Add support for user-defined I/O conversion casts"
-						 */
-#if 0
 						if (castForm->castmethod == COERCION_METHOD_FUNCTION)
-#else
-						if (castForm->castfunc != InvalidOid)
-#endif
 						{
 							*tcategory = JSONTYPE_CAST;
 							*outfuncoid = castForm->castfunc;
