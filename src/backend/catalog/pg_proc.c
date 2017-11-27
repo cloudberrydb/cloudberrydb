@@ -418,8 +418,6 @@ ProcedureCreate(const char *procedureName,
 		 * parameter is polymorphic, and in such cases a change of default
 		 * type might alter the resolved output type of existing calls.)
 		 */
-		/* GPDB_84_MERGE_FIXME: was it correct to get rid of the
-		 * SysCacheGetAttr() calls to retrieve pronargdefaults? */
 		if (oldproc->pronargdefaults != 0)
 		{
 			Datum		proargdefaults;
