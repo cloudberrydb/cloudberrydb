@@ -6209,14 +6209,6 @@ dumpDumpableObject(Archive *fout, DumpableObject *dobj)
 						 NULL, 0,
 						 dumpBlobComments, NULL);
 			break;
-		/*
-		 * The TYPE_CACHE object is only used for the pg_type cache during
-		 * binary_upgrade operation and should not be dumped. To keep the
-		 * compilers and static analyzers happy we still need to handle
-		 * the case though.
-		 */
-		case DO_TYPE_CACHE:
-			break;
 	}
 }
 

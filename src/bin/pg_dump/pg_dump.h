@@ -141,8 +141,7 @@ typedef enum
 	DO_BLOBS,
 	DO_BLOB_COMMENTS,
 	DO_EXTPROTOCOL,
-	DO_TYPE_STORAGE_OPTIONS,
-	DO_TYPE_CACHE
+	DO_TYPE_STORAGE_OPTIONS
 } DumpableObjectType;
 
 typedef struct _dumpableObject

@@ -59,7 +59,6 @@ static const int oldObjectTypePriority[] =
 	11,							/* DO_BLOB_COMMENTS */
 	3,							/* DO_EXTPROTOCOL */
 	/* GPDB_84_MERGE_FIXME: missing DO_TYPE_STORAGE_OPTIONS? */
-	/* GPDB_84_MERGE_FIXME: missing DO_TYPE_CACHE? */
 };
 
 /*
@@ -99,7 +98,6 @@ static const int newObjectTypePriority[] =
 	19,							/* DO_BLOB_COMMENTS */
 	8,							/* DO_EXTPROTOCOL */
 	19							/* DO_TYPE_STORAGE_OPTIONS */
-	/* GPDB_84_MERGE_FIXME: missing DO_TYPE_CACHE? */
 };
 
 
@@ -1170,8 +1168,6 @@ describeDumpableObject(DumpableObject *obj, char *buf, int bufsize)
 			snprintf(buf, bufsize,
 					 "BLOB COMMENTS  (ID %d)",
 					 obj->dumpId);
-			return;
-		case DO_TYPE_CACHE:
 			return;
 	}
 	/* shouldn't get here */
