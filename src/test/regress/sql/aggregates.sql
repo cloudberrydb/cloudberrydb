@@ -4,6 +4,13 @@
 
 -- start_ignore
 SET optimizer_trace_fallback to on;
+
+-- issue a dummy pg_get_viewdef() call, to prime the cached SPI plans inside
+-- pg_get_viewdef(). Otherwise, the first call can produce INFO messages
+-- because of ORCA fallback on the internal queries. (They are not supported
+-- by ORCA, because they access master-only catalog tables.)
+select pg_get_viewdef('pg_tables'::regclass);
+
 -- end_ignore
 
 SELECT avg(four) AS avg_1 FROM onek;
