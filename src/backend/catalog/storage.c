@@ -250,7 +250,13 @@ RelationCreateStorage(RelFileNode rnode, bool istemp,
 					   mirrorDataLossTrackingSessionNum,
 					   false, /* ignoreAlreadyExists */
 					   mirrorDataLossOccurred);
-	if (istemp)
+
+	/*
+	 * With file replication, the caller is expected to create an MMXLOG WAL
+	 * record for this instead.
+	 */
+#ifdef USE_SEGWALREP
+	if (!istemp)
 	{
 		/*
 		 * Make an XLOG entry showing the file creation.  If we abort, the file
@@ -265,6 +271,7 @@ RelationCreateStorage(RelFileNode rnode, bool istemp,
 
 		lsn = XLogInsert(RM_SMGR_ID, XLOG_SMGR_CREATE, &rdata);
 	}
+#endif
 }
 
 void
