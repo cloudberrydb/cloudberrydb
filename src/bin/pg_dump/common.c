@@ -18,6 +18,7 @@
 #include "postgres_fe.h"
 
 #include <ctype.h>
+#include <time.h>
 
 #include "catalog/pg_class.h"
 
