@@ -4,13 +4,6 @@
 
 -- start_ignore
 SET optimizer_trace_fallback to on;
-
--- issue a dummy pg_get_viewdef() call, to prime the cached SPI plans inside
--- pg_get_viewdef(). Otherwise, the first call can produce INFO messages
--- because of ORCA fallback on the internal queries. (They are not supported
--- by ORCA, because they access master-only catalog tables.)
-select pg_get_viewdef('pg_tables'::regclass);
-
 -- end_ignore
 
 SELECT avg(four) AS avg_1 FROM onek;
@@ -308,6 +301,12 @@ select aggfns(distinct a,b,c order by a,c using ~<~,b)
 
 -- check node I/O via view creation and usage, also deparsing logic
 
+-- start_ignore
+-- pg_get_viewdef() runs some internal queries on catalogs, and we don't want
+-- fallback notices about those.
+reset optimizer_trace_fallback;
+-- end_ignore
+
 create view agg_view1 as
   select aggfns(a,b,c)
     from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c);
@@ -361,6 +360,10 @@ select * from agg_view1;
 select pg_get_viewdef('agg_view1'::regclass);
 
 drop view agg_view1;
+
+-- start_ignore
+SET optimizer_trace_fallback to on;
+-- end_ignore
 
 -- incorrect DISTINCT usage errors
 
@@ -509,9 +512,19 @@ select ten,
   from tenk1
  group by ten order by ten;
 
+-- start_ignore
+-- pg_get_viewdef() runs some internal queries on catalogs, and we don't want
+-- fallback notices about those.
+reset optimizer_trace_fallback;
+-- end_ignore
+
 select pg_get_viewdef('aggordview1');
+-- start_ignore
+SET optimizer_trace_fallback to on;
+-- end_ignore
 select * from aggordview1 order by ten;
 drop view aggordview1;
+
 
 -- variadic aggregates
 select least_agg(q1,q2) from int8_tbl;
