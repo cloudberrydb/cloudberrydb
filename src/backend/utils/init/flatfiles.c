@@ -486,18 +486,6 @@ load_auth_entries(Relation rel_authid, auth_entry **auth_info_out, int *total_ro
 		}
 		else
 		{
-			/* GPDB_84_MERGE_FIXME: ensure that the following block is
-			 * equivalent to the upstream code that follows it, then remove the
-			 * block */
-#if 0
-			/*
-			 * rolvaliduntil is timestamptz, which we assume is double
-			 * alignment and pass-by-value.
-			 */
-			off = att_align_nominal(off, 'd');
-			datum = fetch_att(tp + off, true, sizeof(TimestampTz));
-			auth_info[curr_role].rolvaliduntil = DatumGetCString(DirectFunctionCall1(timestamptz_out, datum));
-#endif
 			TimestampTz *rvup;
 
 			/* Assume timestamptz has double alignment */
