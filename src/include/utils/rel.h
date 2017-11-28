@@ -277,9 +277,10 @@ typedef struct StdRdOptions
 	bool		appendonly;		/* is this an appendonly relation? */
 	int			blocksize;		/* max varblock size (AO rels only) */
 	int			compresslevel;  /* compression level (AO rels only) */
-	char*		compresstype;   /* compression type (AO rels only) */
+	char	   *compresstype;	/* compression type (AO rels only) */
 	bool		checksum;		/* checksum (AO rels only) */
-	bool 		columnstore;		/* columnstore (AO only) */
+	bool 		columnstore;	/* columnstore (AO only) */
+	char	   *orientation;	/* orientation (AO only) */
 } StdRdOptions;
 
 #define HEAP_MIN_FILLFACTOR			10
