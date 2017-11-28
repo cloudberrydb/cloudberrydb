@@ -14,7 +14,7 @@ check_relfilenode_function(const RelFileNode *value, const RelFileNode *check_va
 }
 
 /*
- * Test that an MMXLOG_REMOVE_FILE AO transaction log record will call
+ * Test that an MMXLOG_REMOVE_APPENDONLY_FILE xlog record will call
  * XLogAODropSegmentFile.
  */
 void
@@ -56,6 +56,9 @@ test_mmxlog_redo_mmxlog_remove_file_ao(void **state)
 	memcpy(buffer, &record, SizeOfXLogRecord);
 	memcpy(&buffer[SizeOfXLogRecord], &xlmmfsobj, sizeof(xl_mm_fs_obj));
 	mockrecord = (XLogRecord *) buffer;
+
+	/* Make sure we are in standby mode for any AO xlog replays */
+	will_return(IsStandbyMode, true);
 
 	/* XLogAODropSegmentFile should be called with our mock relfilenode and segment file number */
 	expect_check(XLogAODropSegmentFile, &rnode, check_relfilenode_function, &relfilenode);

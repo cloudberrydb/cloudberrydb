@@ -122,6 +122,10 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 	xl_mm_fs_obj *xlrec = (xl_mm_fs_obj *) XLogRecGetData(record);
 	char *path = obj_get_path(xlrec);
 
+	/* mmxlog records are only used by standby */
+	if (!IsStandbyMode())
+		return;
+
 	if (path == NULL)
 	{
 		/*
@@ -183,7 +187,7 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		 * Inform the persistent table code about the new filespace or
 		 * tablespace.
 		 */
-		if (xlrec->objtype == MM_OBJ_FILESPACE && IsStandbyMode())
+		if (xlrec->objtype == MM_OBJ_FILESPACE)
 		{
 			fspc_map m;
 
@@ -196,7 +200,7 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 			strlcpy(m.path2, xlrec->mirror_path, MAXPGPATH);
 			add_filespace_map_entry(&m, &beginLoc, "mmxlog_redo");
 		}
-		else if (xlrec->objtype == MM_OBJ_TABLESPACE && IsStandbyMode())
+		else if (xlrec->objtype == MM_OBJ_TABLESPACE)
 		{
 			tspc_map m;
 
@@ -222,16 +226,7 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 			 */
 			if (errno != EEXIST)
 			{
-				if (IsStandbyMode())
-				{
-					elog(ERROR, "could not create directory \"%s\": %m",
-						 path);
-				}
-				else
-				{
-					elog(LOG, "Note: unable a create directory \"%s\" from Master Mirroring redo: %m",
-						 path);
-				}
+				elog(ERROR, "could not create directory \"%s\": %m", path);
 			}
 			else
 			{
@@ -272,40 +267,33 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		/* tablespace and database should be fine */
 		unlink_obj(path, info);
 
-
-		/*
-		 * We only maintain the master mirroring hash tables on the standby.
-		 */
-		if (IsStandbyMode())
+		if (xlrec->objtype == MM_OBJ_FILESPACE)
 		{
-			if (xlrec->objtype == MM_OBJ_FILESPACE)
-			{
-				if (filespace_map_ht == NULL)
-					elog(ERROR, "Master mirroring hash table for filespaces not initialized");
+			if (filespace_map_ht == NULL)
+				elog(ERROR, "Master mirroring hash table for filespaces not initialized");
 
-				entry = hash_search(filespace_map_ht,
-									&(xlrec->filespace),
-									HASH_REMOVE,
-									&found);
-				if (entry == NULL)
-					elog(ERROR,
-						 "Master mirroring hash table entry for filespace %u not found",
-						 xlrec->filespace);
-			}
-			else if (xlrec->objtype == MM_OBJ_TABLESPACE)
-			{
-				if (tablespace_map_ht == NULL)
-					elog(ERROR, "Master mirroring hash table for tablespaces not initialized");
+			entry = hash_search(filespace_map_ht,
+								&(xlrec->filespace),
+								HASH_REMOVE,
+								&found);
+			if (entry == NULL)
+				elog(ERROR,
+					 "Master mirroring hash table entry for filespace %u not found",
+					 xlrec->filespace);
+		}
+		else if (xlrec->objtype == MM_OBJ_TABLESPACE)
+		{
+			if (tablespace_map_ht == NULL)
+				elog(ERROR, "Master mirroring hash table for tablespaces not initialized");
 
-				entry = hash_search(tablespace_map_ht,
-									&(xlrec->tablespace),
-									HASH_REMOVE,
-									&found);
-				if (entry == NULL)
-					elog(ERROR,
-						 "Master mirroring hash table entry for tablespace %u not found",
-						 xlrec->tablespace);
-			}
+			entry = hash_search(tablespace_map_ht,
+								&(xlrec->tablespace),
+								HASH_REMOVE,
+								&found);
+			if (entry == NULL)
+				elog(ERROR,
+					 "Master mirroring hash table entry for tablespace %u not found",
+					 xlrec->tablespace);
 		}
 	}
 	else if (info == MMXLOG_CREATE_FILE)
@@ -325,6 +313,7 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 				 xlrec->u.dbid.mirror,
 				 xlrec->mirror_path);
 		}
+
 		int fd = open(path, O_CREAT | O_RDWR | PG_BINARY, 0600);
 
 		if (fd < 0)
@@ -363,46 +352,6 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		rnode.spcNode = xlrec->tablespace;
 		rnode.dbNode = xlrec->database;
 		rnode.relNode = xlrec->relfilenode;
-
-		if (GpIdentity.segindex == MASTER_CONTENT_ID && !IsStandbyMode())
-		{
-			PersistentTablespaceGetFilespaces tablespaceGetFilespaces;
-
-			char *primaryFilespaceLocation;
-			char *mirrorFilespaceLocation;
-
-			Oid filespaceOid;
-
-			/*
-			 * If we are re-doing Master Mirroring work on the Master and the tablespace
-			 * doesn't exist in the shared-memory persistent hash-table, skip the unlink...
-			 */
-			tablespaceGetFilespaces =
-				PersistentTablespace_TryGetPrimaryAndMirrorFilespaces(
-															rnode.spcNode,
-															&primaryFilespaceLocation,
-															&mirrorFilespaceLocation,
-															&filespaceOid);
-			switch (tablespaceGetFilespaces)
-			{
-			case PersistentTablespaceGetFilespaces_Ok:
-				break;
-
-			case PersistentTablespaceGetFilespaces_TablespaceNotFound:
-				elog(LOG, "Note: unable find tablespace %u from Master Mirroring redo",
-					 rnode.spcNode);
-				return;
-
-			case PersistentTablespaceGetFilespaces_FilespaceNotFound:
-				elog(LOG, "Note: unable find filespace %u for tablespace %u for Master Mirroring redo",
-					 filespaceOid, rnode.spcNode);
-				return;
-
-			default:
-				elog(ERROR, "Unexpected tablespace filespace fetch result: %d",
-					 tablespaceGetFilespaces);
-			}
-		}
 
 		if (info == MMXLOG_REMOVE_APPENDONLY_FILE)
 		{

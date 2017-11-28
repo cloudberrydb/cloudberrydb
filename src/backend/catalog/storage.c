@@ -1508,6 +1508,11 @@ smgr_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 
 	if (info == XLOG_SMGR_CREATE)
 	{
+/*
+ * Disable replay of XLOG_SMGR_CREATE until persistent tables and MMXLOG
+ * records are removed from Greenplum.
+ */
+#if 0
 		MirrorDataLossTrackingState mirrorDataLossTrackingState;
 		int64		mirrorDataLossTrackingSessionNum;
 
@@ -1525,6 +1530,14 @@ smgr_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 						   mirrorDataLossTrackingSessionNum,
 						   /* ignoreAlreadyExists */ true,
 						   &mirrorDataLossOccurred);
+#endif
+		/*
+		 * Multipass crash recovery using persistent tables will handle
+		 * relation file creation on primary or master. On Standby,
+		 * MMXLOG_CREATE_FILE xlog record replayed in mmxlog_redo will take
+		 * care of things.
+		 */
+		return;
 	}
 	else if (info == XLOG_SMGR_TRUNCATE)
 	{
