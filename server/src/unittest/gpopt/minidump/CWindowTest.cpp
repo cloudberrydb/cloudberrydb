@@ -34,6 +34,8 @@ CWindowTest::EresUnittest()
 			"../data/dxl/minidump/Preds-Over-WinFunc4.mdp",
 			"../data/dxl/minidump/Preds-Over-WinFunc5.mdp",
 			"../data/dxl/minidump/window-count-gpdb6.mdp",
+			"../data/dxl/minidump/LastValueWithOrderByChild.mdp",
+			"../data/dxl/minidump/CountWithOrderByChild.mdp",
 	};
 
 	return CTestUtils::EresUnittest_RunTestsWithoutAdditionalTraceFlags

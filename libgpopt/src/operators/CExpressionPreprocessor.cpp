@@ -359,6 +359,12 @@ CExpressionPreprocessor::PexprRemoveSuperfluousLimit
 	GPOS_ASSERT(NULL != pexpr);
 
 	COperator *pop = pexpr->Pop();
+	if (COperator::EopLogicalSequenceProject == pop->Eopid())
+	{
+		pexpr->AddRef();
+		return pexpr;
+	}
+	
 	// if current operator is a logical limit with zero offset, and no specified
 	// row count, skip to limit's logical child
 	if (COperator::EopLogicalLimit == pop->Eopid() &&
