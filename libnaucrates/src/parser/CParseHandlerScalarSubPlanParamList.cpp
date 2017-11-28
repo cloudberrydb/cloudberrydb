@@ -42,7 +42,6 @@ CParseHandlerScalarSubPlanParamList::CParseHandlerScalarSubPlanParamList
 	CParseHandlerScalarOp(pmp, pphm, pphRoot)
 {
 	m_pdrgdxlcr = GPOS_NEW(pmp) DrgPdxlcr(pmp);
-	m_pdrgmdid = GPOS_NEW(pmp) DrgPmdid(pmp);
 	m_fParamList = false;
 }
 
@@ -57,7 +56,6 @@ CParseHandlerScalarSubPlanParamList::CParseHandlerScalarSubPlanParamList
 CParseHandlerScalarSubPlanParamList::~CParseHandlerScalarSubPlanParamList()
 {
 	m_pdrgdxlcr->Release();
-	m_pdrgmdid->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -134,11 +132,8 @@ CParseHandlerScalarSubPlanParamList::EndElement
 		CParseHandlerScalarSubPlanParam *pphParam = dynamic_cast<CParseHandlerScalarSubPlanParam *>((*this)[ul]);
 
 		CDXLColRef *pdxlcr = pphParam->Pdxlcr();
-		IMDId *pmdid = pphParam->Pmdid();
 		pdxlcr->AddRef();
-		pmdid->AddRef();
 		m_pdrgdxlcr->Append(pdxlcr);
-		m_pdrgmdid->Append(pmdid);
 	}
 
 	// deactivate handler

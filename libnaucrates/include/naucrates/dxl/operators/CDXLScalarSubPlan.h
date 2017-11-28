@@ -57,9 +57,6 @@ namespace gpdxl
 			// array of outer column references
 			DrgPdxlcr *m_pdrgdxlcr;
 
-			// array of outer column reference types
-			DrgPmdid *m_pdrgmdid;
-
 			// subplan type
 			EdxlSubPlanType m_edxlsubplantype;
 
@@ -77,7 +74,6 @@ namespace gpdxl
 				IMemoryPool *pmp,
 				IMDId *pmdidFirstColType,
 				DrgPdxlcr *pdrgdxlcr,
-				DrgPmdid *pdrgmdid,
 				EdxlSubPlanType edxlsubplantype,
 				CDXLNode *pdxlnTestExpr
 				);
@@ -101,12 +97,6 @@ namespace gpdxl
 			const DrgPdxlcr *DrgdxlcrOuterRefs() const
 			{
 				return m_pdrgdxlcr;
-			}
-
-			// return the types of the outer references
-			const DrgPmdid *DrgmdidOuterRefs() const
-			{
-				return m_pdrgmdid;
 			}
 
 			// return subplan type

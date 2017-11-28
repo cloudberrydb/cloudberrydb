@@ -39,9 +39,6 @@ namespace gpdxl
 			// array of outer column references
 			DrgPdxlcr *m_pdrgdxlcr;
 
-			// array of outer column reference types
-			DrgPmdid *m_pdrgmdid;
-
 			// private copy ctor
 			CParseHandlerScalarSubPlanParamList(const CParseHandlerScalarSubPlanParamList &);
 	
@@ -80,13 +77,6 @@ namespace gpdxl
 			const
 			{
 				return m_pdrgdxlcr;
-			}
-
-			// return types
-			DrgPmdid *Pdrgmdid()
-			const
-			{
-				return m_pdrgmdid;
 			}
 	};
 

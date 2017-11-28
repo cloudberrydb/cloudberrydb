@@ -877,7 +877,6 @@ CDXLOperatorFactory::PdxlopSubPlan
 	CDXLMemoryManager *pmm,
 	IMDId *pmdid,
 	DrgPdxlcr *pdrgdxlcr,
-	DrgPmdid *pdrgmdid,
 	EdxlSubPlanType edxlsubplantype,
 	CDXLNode *pdxlnTestExpr
 	)
@@ -885,7 +884,7 @@ CDXLOperatorFactory::PdxlopSubPlan
 	// get the memory pool from the memory manager
 	IMemoryPool *pmp = pmm->Pmp();
 
-	return GPOS_NEW(pmp) CDXLScalarSubPlan(pmp, pmdid, pdrgdxlcr, pdrgmdid, edxlsubplantype, pdxlnTestExpr);
+	return GPOS_NEW(pmp) CDXLScalarSubPlan(pmp, pmdid, pdrgdxlcr, edxlsubplantype, pdxlnTestExpr);
 }
 
 //---------------------------------------------------------------------------
@@ -1406,16 +1405,8 @@ CDXLOperatorFactory::PdxlopScalarIdent
 	IMemoryPool *pmp = pmm->Pmp();
 	
 	CDXLColRef *pdxlcr = Pdxlcr(pmm, attrs, EdxltokenScalarIdent);
-	
-	IMDId *pmdidType = PmdidFromAttrs
-							(
-							pmm,
-							attrs,
-							EdxltokenTypeId,
-							EdxltokenScalarIdent
-							);
 
-	return GPOS_NEW(pmp) CDXLScalarIdent(pmp, pdxlcr, pmdidType);
+	return GPOS_NEW(pmp) CDXLScalarIdent(pmp, pdxlcr);
 }
 
 //---------------------------------------------------------------------------
@@ -1836,11 +1827,11 @@ CDXLOperatorFactory::Pdxlcr
 	
 	// parse column name from attributes
 	const XMLCh *xmlszColumnName = XmlstrFromAttrs
-										(
-										attrs,
-										EdxltokenColName,
-										edxltokenElement
-										);
+									(
+									attrs,
+									EdxltokenColName,
+									edxltokenElement
+									);
 
 	// parse column id
 	ULONG ulId = 0;
@@ -1864,8 +1855,17 @@ CDXLOperatorFactory::Pdxlcr
 	CMDName *pmdname = GPOS_NEW(pmp) CMDName(pmp, pstrColumnName);
 	
 	GPOS_DELETE(pstrColumnName);
+
+	IMDId *pmdidType = PmdidFromAttrs
+						(
+						pmm,
+						attrs,
+						EdxltokenTypeId,
+						edxltokenElement
+						);
+
 	
-	return GPOS_NEW(pmp) CDXLColRef(pmp, pmdname, ulId);
+	return GPOS_NEW(pmp) CDXLColRef(pmp, pmdname, ulId, pmdidType);
 }
 
 //---------------------------------------------------------------------------

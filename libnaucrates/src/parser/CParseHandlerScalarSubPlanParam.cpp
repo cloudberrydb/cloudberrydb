@@ -40,8 +40,7 @@ CParseHandlerScalarSubPlanParam::CParseHandlerScalarSubPlanParam
 	)
 	:
 	CParseHandlerScalarOp(pmp, pphm, pphRoot),
-	m_pdxlcr(NULL),
-	m_pmdid(NULL)
+	m_pdxlcr(NULL)
 {
 }
 
@@ -56,7 +55,6 @@ CParseHandlerScalarSubPlanParam::CParseHandlerScalarSubPlanParam
 CParseHandlerScalarSubPlanParam::~CParseHandlerScalarSubPlanParam()
 {
 	m_pdxlcr->Release();
-	m_pmdid->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -83,7 +81,6 @@ CParseHandlerScalarSubPlanParam::StartElement
 	}
 
 	m_pdxlcr = CDXLOperatorFactory::Pdxlcr(m_pphm->Pmm(), attrs, EdxltokenScalarSubPlanParam);
-	m_pmdid = CDXLOperatorFactory::PmdidFromAttrs(m_pphm->Pmm(), attrs,	EdxltokenTypeId, EdxltokenScalarSubPlanParam);
 }
 
 //---------------------------------------------------------------------------

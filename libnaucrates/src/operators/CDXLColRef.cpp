@@ -28,13 +28,16 @@ CDXLColRef::CDXLColRef
 	(
 	IMemoryPool *pmp,
 	CMDName *pmdname,
-	ULONG ulId
+	ULONG ulId,
+	IMDId *pmdidType
 	)
 	:
 	m_pmp(pmp),
 	m_pmdname(pmdname),
-	m_ulId(ulId)
+	m_ulId(ulId),
+	m_pmdidType(pmdidType)
 {
+	GPOS_ASSERT(m_pmdidType->FValid());
 }
 
 //---------------------------------------------------------------------------
@@ -48,6 +51,7 @@ CDXLColRef::CDXLColRef
 CDXLColRef::~CDXLColRef()
 {
 	GPOS_DELETE(m_pmdname);
+	m_pmdidType->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -62,6 +66,20 @@ const CMDName *
 CDXLColRef::Pmdname() const
 {
 	return m_pmdname;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CDXLColRef::PmdidType
+//
+//	@doc:
+//		Returns column's type md id
+//
+//---------------------------------------------------------------------------
+IMDId *
+CDXLColRef::PmdidType() const
+{
+	return m_pmdidType;
 }
 
 //---------------------------------------------------------------------------

@@ -35,9 +35,6 @@ namespace gpdxl
 			// column reference
 			CDXLColRef *m_pdxlcr;
 			
-			// column type
-			IMDId *m_pmdidType;
-			
 			// private copy ctor
 			CDXLScalarIdent(CDXLScalarIdent&);
 			
@@ -46,8 +43,7 @@ namespace gpdxl
 			CDXLScalarIdent
 				(
 				IMemoryPool *,
-				CDXLColRef *,
-				IMDId *
+				CDXLColRef *
 				);
 			
 			virtual

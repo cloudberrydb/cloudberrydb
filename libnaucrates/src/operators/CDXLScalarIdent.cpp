@@ -32,16 +32,13 @@ using namespace gpdxl;
 CDXLScalarIdent::CDXLScalarIdent
 	(
 	IMemoryPool *pmp,
-	CDXLColRef *pdxlcr,
-	IMDId *pmdidType
+	CDXLColRef *pdxlcr
 	)
 	:
 	CDXLScalar(pmp),
-	m_pdxlcr(pdxlcr),
-	m_pmdidType(pmdidType)
+	m_pdxlcr(pdxlcr)
 {
 	GPOS_ASSERT(NULL != m_pdxlcr);
-	GPOS_ASSERT(m_pmdidType->FValid());
 }
 
 
@@ -55,7 +52,6 @@ CDXLScalarIdent::CDXLScalarIdent
 //---------------------------------------------------------------------------
 CDXLScalarIdent::~CDXLScalarIdent()
 {
-	m_pmdidType->Release();
 	m_pdxlcr->Release();
 }
 
@@ -113,7 +109,7 @@ CDXLScalarIdent::Pdxlcr() const
 IMDId *
 CDXLScalarIdent::PmdidType() const
 {
-	return m_pmdidType;
+	return m_pdxlcr->PmdidType();
 }
 
 //---------------------------------------------------------------------------
@@ -141,7 +137,7 @@ CDXLScalarIdent::SerializeToDXL
 
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColId), m_pdxlcr->UlID());
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColName), strCName);
-	m_pmdidType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
+	m_pdxlcr->PmdidType()->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
 	pdxln->SerializeChildrenToDXL(pxmlser);
 
 	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);	
@@ -162,7 +158,7 @@ CDXLScalarIdent::FBoolean
 	)
 	const
 {
-	return (IMDType::EtiBool == pmda->Pmdtype(m_pmdidType)->Eti());
+	return (IMDType::EtiBool == pmda->Pmdtype(m_pdxlcr->PmdidType())->Eti());
 }
 
 #ifdef GPOS_DEBUG
@@ -183,7 +179,7 @@ CDXLScalarIdent::AssertValid
 	const
 {
 	GPOS_ASSERT(0 == pdxln->UlArity());
-	GPOS_ASSERT(m_pmdidType->FValid());
+	GPOS_ASSERT(m_pdxlcr->PmdidType()->FValid());
 	GPOS_ASSERT(NULL != m_pdxlcr);
 }
 #endif // GPOS_DEBUG

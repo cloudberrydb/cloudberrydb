@@ -37,9 +37,6 @@ namespace gpdxl
 			// column reference
 			CDXLColRef *m_pdxlcr;
 
-			// param type
-			IMDId *m_pmdid;
-
 			// private copy ctor
 			CParseHandlerScalarSubPlanParam(const CParseHandlerScalarSubPlanParam &);
 	
@@ -83,7 +80,7 @@ namespace gpdxl
 			IMDId *Pmdid(void)
 			const
 			{
-				return m_pmdid;
+				return m_pdxlcr->PmdidType();
 			}
 	};
 

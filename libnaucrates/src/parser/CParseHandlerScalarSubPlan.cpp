@@ -172,15 +172,14 @@ CParseHandlerScalarSubPlan::EndElement
 	CParseHandlerPhysicalOp *pphChild = dynamic_cast<CParseHandlerPhysicalOp *>((*this)[2]);
 
 	DrgPdxlcr *pdrgdxlcr = pphParamList->Pdrgdxlcr();
-	DrgPmdid *pdrgmdid = pphParamList->Pdrgmdid();
 	pdrgdxlcr->AddRef();
-	pdrgmdid->AddRef();
+
 	CDXLNode *pdxlnTestExpr = pphTestExpr->PdxlnTestExpr();
 	if (NULL != pdxlnTestExpr)
 	{
 		pdxlnTestExpr->AddRef();
 	}
-	CDXLScalarSubPlan *pdxlop = (CDXLScalarSubPlan *) CDXLOperatorFactory::PdxlopSubPlan(m_pphm->Pmm(), m_pmdidFirstCol, pdrgdxlcr, pdrgmdid, m_edxlsubplantype, pdxlnTestExpr);
+	CDXLScalarSubPlan *pdxlop = (CDXLScalarSubPlan *) CDXLOperatorFactory::PdxlopSubPlan(m_pphm->Pmm(), m_pmdidFirstCol, pdrgdxlcr, m_edxlsubplantype, pdxlnTestExpr);
 
 	m_pdxln = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlop);
 

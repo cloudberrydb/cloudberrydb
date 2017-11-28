@@ -19,6 +19,7 @@
 #include "gpos/common/CRefCount.h"
 
 #include "naucrates/md/CMDName.h"
+#include "naucrates/md/IMDId.h"
 
 namespace gpdxl
 {
@@ -51,7 +52,10 @@ namespace gpdxl
 	
 			// id
 			const ULONG m_ulId;
-			
+
+			// column type
+			IMDId *m_pmdidType;
+
 			// private copy ctor
 			CDXLColRef(const CDXLColRef &);
 		
@@ -61,13 +65,17 @@ namespace gpdxl
 				(
 				IMemoryPool *,
 				CMDName *,
-				ULONG
+				ULONG,
+				IMDId *
 				);
 			
 			~CDXLColRef();
 			
 			// accessors
 			const CMDName *Pmdname() const;
+
+			IMDId *PmdidType() const;
+
 			ULONG UlID() const;
 
 	};

@@ -293,7 +293,6 @@ namespace gpdxl
 				CDXLMemoryManager *pmm,
 				IMDId *pmdid,
 				DrgPdxlcr *pdrgdxlcr,
-				DrgPmdid *pdrgmdid,
 				EdxlSubPlanType edxlsubplantype,
 				CDXLNode *pdxlnTestExpr
 				);

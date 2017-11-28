@@ -34,7 +34,6 @@ CDXLScalarSubPlan::CDXLScalarSubPlan
 	IMemoryPool *pmp,
 	IMDId *pmdidFirstColType,
 	DrgPdxlcr *pdrgdxlcr,
-	DrgPmdid *pdrgmdid,
 	EdxlSubPlanType edxlsubplantype,
 	CDXLNode *pdxlnTestExpr
 	)
@@ -42,7 +41,6 @@ CDXLScalarSubPlan::CDXLScalarSubPlan
 	CDXLScalar(pmp),
 	m_pmdidFirstColType(pmdidFirstColType),
 	m_pdrgdxlcr(pdrgdxlcr),
-	m_pdrgmdid(pdrgmdid),
 	m_edxlsubplantype(edxlsubplantype),
 	m_pdxlnTestExpr(pdxlnTestExpr)
 {
@@ -62,7 +60,6 @@ CDXLScalarSubPlan::~CDXLScalarSubPlan()
 {
 	m_pmdidFirstColType->Release();
 	m_pdrgdxlcr->Release();
-	m_pdrgmdid->Release();
 	CRefCount::SafeRelease(m_pdxlnTestExpr);
 }
 
@@ -205,9 +202,9 @@ CDXLScalarSubPlan::SerializeToDXL
 		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColId), ulid);
 
 		const CMDName *pmdname = (*m_pdrgdxlcr)[ul]->Pmdname();
+		const IMDId *pmdidType = (*m_pdrgdxlcr)[ul]->PmdidType();
 		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColName), pmdname->Pstr());
-
-		(*m_pdrgmdid)[ul]->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
+		pmdidType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
 
 		pxmlser->CloseElement
 					(
