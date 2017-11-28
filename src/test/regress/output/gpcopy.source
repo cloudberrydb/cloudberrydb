@@ -1,30 +1,6 @@
 --
 -- This test suite tests COPY code that is unique to greenplum db.
 --
--- start_matchignore
---
--- # in assertions that errors are correctly thrown if the user tries to
--- # COPY FROM a program with bad arguments, ignore extra information that
--- # Debian (vs RedHat) emits on stderr
---
--- m/DETAIL:.*sh.*Illegal number.*/i
---
--- end_matchignore
---
--- start_matchsubs
---
--- # in assertions that errors are correctly thrown if the user tries to
--- # COPY FROM a non-existent program, ignore slight differences in how
--- # Debian vs RedHat emits the message to the user
---
--- m/(ERROR\:\s+.*)?sh\:.*ttt.*not found/i
--- s/sh: 1: /sh: /
---
--- m/(ERROR\:\s+.*)?sh\:.*ttt.*not found/i
--- s/ ttt:.*not found/ ttt: NOT FOUND/
---
--- end_matchsubs
---
 -- ######################################################
 -- different distribution columns and distribution types
 -- ######################################################
@@ -1312,14 +1288,14 @@ COMMIT;
 CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 SELECT gp_inject_fault('cdb_copy_start_after_dispatch', 'reset', 1);
 NOTICE:  Success:
- gp_inject_fault 
+ gp_inject_fault
 -----------------
  t
 (1 row)
 
 SELECT gp_inject_fault('cdb_copy_start_after_dispatch', 'interrupt', 1);
 NOTICE:  Success:
- gp_inject_fault 
+ gp_inject_fault
 -----------------
  t
 (1 row)
@@ -1330,7 +1306,7 @@ CREATE TABLE lineitem_aborted (LIKE lineitem);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 COPY lineitem_aborted FROM '/tmp/aborted.data';
 SELECT count(*) < 57190 FROM lineitem_aborted;
- ?column? 
+ ?column?
 ----------
  t
 (1 row)
