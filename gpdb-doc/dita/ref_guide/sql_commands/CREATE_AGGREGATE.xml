@@ -84,7 +84,7 @@ ffunc( internal-state ) ---&gt; aggregate-value</codeblock><p>You
         the specified operator is the "less than" or "greater than" strategy member of a B-tree
         index operator class.</p>
 
-</sectiondiv></section><section id="section5"><title>Parameters</title><parml><plentry><pt><varname>name</varname></pt><pd>The name (optionally schema-qualified) of the aggregate function
+</section><section id="section5"><title>Parameters</title><parml><plentry><pt><varname>name</varname></pt><pd>The name (optionally schema-qualified) of the aggregate function
 to create.</pd></plentry><plentry><pt><varname>input_data_type</varname></pt><pd>An input data type on which this aggregate function operates. To
 create a zero-argument aggregate function, write * in place of the list
 of input data types. An example of such an aggregate is count(*).</pd></plentry><plentry><pt><varname>sfunc</varname></pt><pd>The name of the state transition function to be called for each input
@@ -135,10 +135,10 @@ so that the server can locate the files.</p>
 ordered aggregates. Since version 6, any aggregate can be called as an
 ordered aggregate, using the syntax:
 
-<codeblock>name ( arg [ , ... ] [ORDER BY sortspec [ , ...]] )</codeblock>
+<codeblock>name ( arg [ , ... ] [ORDER BY sortspec [ , ...]] )</codeblock></p>
 
-The <codeph>ORDERED</codeph> keyword is accepted for backwards compatibility, but
-is ignored.
+<p>The <codeph>ORDERED</codeph> keyword is accepted for backwards compatibility, but
+  is ignored.</p>
 
 </section><section id="section7"><title>Example</title><p>The following simple example creates an aggregate function that computes
 the sum of two columns. </p><p>Before creating the aggregate function, create two functions that
