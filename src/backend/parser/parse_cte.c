@@ -650,7 +650,6 @@ checkWellFormedRecursion(CteState *cstate)
 		if (!cte->cterecursive)
 			continue;
 
-		/* GPDB_84_MERGE_FIXME: Do we support UNION without ALL in GPDB? Can we? */
 		/* Must have top-level UNION */
 		if (stmt->op != SETOP_UNION)
 			ereport(ERROR,
