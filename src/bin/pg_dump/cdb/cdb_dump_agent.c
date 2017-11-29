@@ -1409,8 +1409,6 @@ skipalldata:
 		for (i = 0; i < numObjs; i++)
 			dumpDumpableObject(g_fout, dobjs[i]);
 
-		reset();
-
 		CloseArchive(g_fout);
 		free(postDumpFileName);
 
@@ -1418,7 +1416,6 @@ skipalldata:
 	}
 	else
 	{
-		reset();
 		CloseArchive(g_fout);
 	}
 }

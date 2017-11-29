@@ -542,7 +542,6 @@ extern void getDumpableObjects(DumpableObject ***objs, int *numObjs);
 extern void addObjectDependency(DumpableObject *dobj, DumpId refId);
 extern void removeObjectDependency(DumpableObject *dobj, DumpId refId);
 
-extern DumpableObject **buildIndexArray(void *objArray, int numObjs, Size objSize);
 extern DumpableObject *findObjectByOid(Oid oid, DumpableObject **indexArray, int numObjs);
 
 extern TableInfo *findTableByOid(Oid oid);

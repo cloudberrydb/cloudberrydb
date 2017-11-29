@@ -80,7 +80,7 @@ bool is_gpdump = false; /* determines whether to print extra logging messages in
 static void flagInhTables(TableInfo *tbinfo, int numTables,
 			  InhInfo *inhinfo, int numInherits);
 static void flagInhAttrs(TableInfo *tblinfo, int numTables);
-DumpableObject **buildIndexArray(void *objArray, int numObjs,
+static DumpableObject **buildIndexArray(void *objArray, int numObjs,
 				Size objSize);
 static int	DOCatalogIdCompare(const void *p1, const void *p2);
 static int	ExtensionMemberIdCompare(const void *p1, const void *p2);
@@ -90,7 +90,6 @@ static int	strInArray(const char *pattern, char **arr, int arr_size);
 
 void status_log_msg(const char *loglevel, const char *prog, const char *fmt,...);
 
-void		reset(void);
 /*
  * getSchemaData
  *	  Collect information about all potentially dumpable objects
@@ -682,7 +681,7 @@ findObjectByOid(Oid oid, DumpableObject **indexArray, int numObjs)
 /*
  * Build an index array of DumpableObject pointers, sorted by OID
  */
-DumpableObject **
+static DumpableObject **
 buildIndexArray(void *objArray, int numObjs, Size objSize)
 {
 	DumpableObject **ptrs;
@@ -1056,32 +1055,6 @@ strInArray(const char *pattern, char **arr, int arr_size)
 	}
 	return -1;
 }
-
-
-/* cdb addition */
-void
-reset(void)
-{
-	free(dumpIdMap);
-	dumpIdMap = NULL;
-	allocedDumpIds = 0;
-	lastDumpId = 0;
-
-/*
- * Variables for mapping CatalogId to DumpableObject
- */
-	catalogIdMapValid = false;
-	free(catalogIdMap);
-	catalogIdMap = NULL;
-	numCatalogIds = 0;
-
-	numTables = 0;
-	numTypes = 0;
-	numFuncs = 0;
-	numOperators = 0;
-}
-
-/* end cdb_addition */
 
 
 /*
