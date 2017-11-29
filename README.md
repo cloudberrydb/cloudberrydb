@@ -43,8 +43,9 @@ Follow [appropriate linux steps](README.linux.md) for getting your system ready 
 
 ```bash
 cd depends
-conan remote add conan-gpdb https://api.bintray.com/conan/greenplum-db/gpdb-oss
-conan install --build
+./configure
+make
+make install_local
 cd ..
 ```
 
