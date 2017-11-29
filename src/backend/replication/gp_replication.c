@@ -12,10 +12,8 @@
  */
 
 #include "replication/gp_replication.h"
-#include "utils/guc.h"
-
-#include "replication/walsender.h"
 #include "replication/walsender_private.h"
+#include "utils/builtins.h"
 
 /*
  * Checking the WalSndCtl to figure out whether the mirror is up or not.
@@ -59,6 +57,7 @@ void GetMirrorStatus(bool *IsMirrorUp, bool *IsInSync)
 	LWLockRelease(SyncRepLock);
 }
 
+#ifdef USE_SEGWALREP
 /*
  * Set WalSndCtl->sync_standbys_defined to true to enable synchronous segment
  * WAL replication and insert synchronous_standby_names="*" into the
@@ -77,4 +76,11 @@ SetSyncStandbysDefined(void)
 	}
 
 	LWLockRelease(SyncRepLock);
+}
+#endif
+
+Datum
+gp_replication_error(PG_FUNCTION_ARGS)
+{
+	PG_RETURN_TEXT_P(cstring_to_text(WalSndCtl->error == WALSNDERROR_WALREAD ? "walread" : "none"));
 }

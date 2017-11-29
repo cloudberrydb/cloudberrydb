@@ -18,11 +18,7 @@ override CPPFLAGS := -I$(libpq_srcdir) $(CPPFLAGS)
 #OBJS = walsender.o walreceiverfuncs.o walreceiver.o basebackup.o \
 #	repl_gram.o syncrep.o
 OBJS = basebackup.o gp_libpqwalreceiver.o repl_gram.o walreceiver.o \
-	   walreceiverfuncs.o walsender.o syncrep.o
-
-ifeq ($(enable_segwalrep), yes)
-OBJS += gp_replication.o
-endif
+	   walreceiverfuncs.o walsender.o syncrep.o gp_replication.o
 
 include $(top_srcdir)/src/backend/common.mk
 

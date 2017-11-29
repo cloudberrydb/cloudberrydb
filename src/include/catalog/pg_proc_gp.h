@@ -249,6 +249,10 @@ DESCR("Statistics: Greenplum session id of backend");
 DATA(insert OID = 6042 ( pg_renice_session  PGNSP PGUID 12 1 0 0 f f f t f v 2 0 23 "23 23" _null_ _null_ _null_ _null_ pg_renice_session _null_ _null_ _null_ n a ));
 DESCR("change priority of all the backends for a given session id");
 
+/* gp_replication_error() => text */
+DATA(insert OID = 3098 ( gp_replication_error PGNSP PGUID 12 1 0 0 f f f t f v 0 0 25 "" _null_ _null_ _null_ _null_ gp_replication_error _null_ _null_ _null_ ));
+DESCR("get replication error");
+
 /* pg_stat_get_wal_senders(OUT pid int4, OUT state text, OUT sent_location text, OUT write_location text, OUT flush_location text, OUT replay_location text, OUT sync_priority int4, OUT sync_state text) => SETOF pg_catalog.record */
 DATA(insert OID = 3099 ( pg_stat_get_wal_senders  PGNSP PGUID 12 1 1000 0 f f f f t s 0 0 2249 "" "{23,25,25,25,25,25,23,25}" "{o,o,o,o,o,o,o,o}" "{pid,state,sent_location,write_location,flush_location,replay_location,sync_priority,sync_state}" _null_ pg_stat_get_wal_senders _null_ _null_ _null_ n a ));
 DESCR("statistics: information about currently active replication");

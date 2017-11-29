@@ -887,6 +887,7 @@ XLogRead(char *buf, XLogRecPtr startptr, Size count)
 			sendFile = BasicOpenFile(path, O_RDONLY | PG_BINARY, 0);
 			if (sendFile < 0)
 			{
+				WalSndCtl->error = WALSNDERROR_WALREAD;
 				/*
 				 * If the file is not found, assume it's because the standby
 				 * asked for a too old WAL segment that has already been
@@ -915,10 +916,15 @@ XLogRead(char *buf, XLogRecPtr startptr, Size count)
 		if (sendOff != startoff)
 		{
 			if (lseek(sendFile, (off_t) startoff, SEEK_SET) < 0)
+			{
+				WalSndCtl->error = WALSNDERROR_WALREAD;
+
 				ereport(ERROR,
 						(errcode_for_file_access(),
 						 errmsg("could not seek in log file %u, segment %u to offset %u: %m",
 								sendId, sendSeg, startoff)));
+			}
+
 			sendOff = startoff;
 		}
 
@@ -930,11 +936,14 @@ XLogRead(char *buf, XLogRecPtr startptr, Size count)
 
 		readbytes = read(sendFile, p, segbytes);
 		if (readbytes <= 0)
+		{
+			WalSndCtl->error = WALSNDERROR_WALREAD;
 			ereport(ERROR,
 					(errcode_for_file_access(),
 			errmsg("could not read from log file %u, segment %u, offset %u, "
 				   "length %lu: %m",
 				   sendId, sendSeg, sendOff, (unsigned long) segbytes)));
+		}
 
 		/* Update state for read */
 		XLByteAdvance(recptr, readbytes);
@@ -958,12 +967,16 @@ XLogRead(char *buf, XLogRecPtr startptr, Size count)
 	{
 		char		filename[MAXFNAMELEN];
 
+		WalSndCtl->error = WALSNDERROR_WALREAD;
+
 		XLogFileName(filename, ThisTimeLineID, log, seg);
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("requested WAL segment %s has already been removed",
 						filename)));
 	}
+
+	WalSndCtl->error = WALSNDERROR_NONE;
 }
 
 /*
