@@ -6121,10 +6121,16 @@ BLD_ARCH=`echo $BLD_ARCH`
 
 
 # Get the Greenplum version string from VERSION
-bash getversion > VERSION
+
+GP_VERSION_LONG=`bash ./getversion`
+
+GP_VERSION_LONG="$GP_VERSION_LONG$with_extra_version"
+
+echo $GP_VERSION_LONG > VERSION
 GP_VERSION=`cat VERSION`
 
 GP_VERSION_SHORT=`bash ./getversion --short`
+GP_VERSION_SHORT="$GP_VERSION_SHORT$with_extra_version"
 
 
 GP_VERSION_IN="src/include/catalog/gp_version.in"
