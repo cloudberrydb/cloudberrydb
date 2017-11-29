@@ -143,6 +143,12 @@ void
 initialize_reloptions_gp(void)
 {
 	int			i;
+	static bool	initialized = false;
+
+	/* only add these on first call. */
+	if (initialized)
+		return;
+	initialized = true;
 
 	/* Set GPDB specific options */
 	for (i = 0; boolRelOpts_gp[i].gen.name; i++)
