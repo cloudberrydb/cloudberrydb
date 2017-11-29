@@ -3244,21 +3244,6 @@ eval_const_expressions_mutator(Node *node,
 					0);
 	}
 
-	if (IsA(node, PlaceHolderVar) && context->estimate)
-	{
-		/*
-		 * In estimation mode, just strip the PlaceHolderVar node altogether;
-		 * this amounts to estimating that the contained value won't be forced
-		 * to null by an outer join.  In regular mode we just use the default
-		 * behavior (ie, simplify the expression but leave the PlaceHolderVar
-		 * node intact).
-		 */
-		PlaceHolderVar *phv = (PlaceHolderVar *) node;
-		
-		return eval_const_expressions_mutator((Node *) phv->phexpr,
-											  context);
-	}
-
 	/*
 	 * For any node type not handled above, we recurse using
 	 * expression_tree_mutator, which will copy the node unchanged but try to

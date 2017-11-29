@@ -4438,8 +4438,6 @@ add_sort_column(AttrNumber colIdx, Oid sortOp, bool nulls_first,
 
 	Assert(OidIsValid(sortOp));
 
-	Assert(OidIsValid(sortOp));
-
 	for (i = 0; i < numCols; i++)
 	{
 		/*
