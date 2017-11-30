@@ -2057,13 +2057,13 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 				List	   *extravars;
 
 				extravars = pull_var_clause(wc->startOffset,
-											PVC_INCLUDE_PLACEHOLDERS,
-											PVC_REJECT_AGGREGATES);
+											PVC_REJECT_AGGREGATES,
+											PVC_INCLUDE_PLACEHOLDERS);
 				window_tlist = add_to_flat_tlist(window_tlist, extravars);
 
 				extravars = pull_var_clause(wc->endOffset,
-											PVC_INCLUDE_PLACEHOLDERS,
-											PVC_REJECT_AGGREGATES);
+											PVC_REJECT_AGGREGATES,
+											PVC_INCLUDE_PLACEHOLDERS);
 				window_tlist = add_to_flat_tlist(window_tlist, extravars);
 			}
 
