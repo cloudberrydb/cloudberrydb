@@ -44,6 +44,9 @@ namespace gpdxl
 			// name of window specification
 			CMDName *m_pmdname;
 
+			// does the window spec have a frame definition
+			BOOL m_fHasWindowFrame;
+
 			// private copy ctor
 			CParseHandlerWindowSpec(const CParseHandlerWindowSpec&);
 
