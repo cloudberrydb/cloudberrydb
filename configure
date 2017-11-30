@@ -3070,18 +3070,16 @@ if test "${with_extra_version+set}" = set; then :
       as_fn_error $? "argument required for --with-extra-version option" "$LINENO" 5
       ;;
     *)
-      PG_VERSION="$PG_PACKAGE_VERSION$withval"
+
       ;;
   esac
 
-else
-  PG_VERSION="$PG_PACKAGE_VERSION"
 fi
 
 
 
 cat >>confdefs.h <<_ACEOF
-#define PG_VERSION "$PG_VERSION"
+#define PG_VERSION "$PG_PACKAGE_VERSION"
 _ACEOF
 
 
