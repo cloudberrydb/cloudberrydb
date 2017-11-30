@@ -423,7 +423,7 @@ see sql/BitmapIndexScan.sql
     <dxl:Plan Id="0" SpaceSize="36">
       <dxl:GatherMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="5172.027240" Rows="1.000000" Width="9"/>
+          <dxl:Cost StartupCost="0" TotalCost="6896.008582" Rows="1.000000" Width="9"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="23" Alias="fid">
@@ -434,7 +434,7 @@ see sql/BitmapIndexScan.sql
         <dxl:SortingColumnList/>
         <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="5172.027219" Rows="1.000000" Width="9"/>
+            <dxl:Cost StartupCost="0" TotalCost="6896.008562" Rows="1.000000" Width="9"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="23" Alias="fid">
@@ -448,9 +448,10 @@ see sql/BitmapIndexScan.sql
               <dxl:Ident ColId="0" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
             </dxl:Comparison>
           </dxl:JoinFilter>
-          <dxl:BroadcastMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63" OutputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63">
+          <dxl:BroadcastMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63"
+                               OutputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63">
             <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="431.006516" Rows="64.000000" Width="9"/>
+              <dxl:Cost StartupCost="0" TotalCost="862.001851" Rows="64.000000" Width="9"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="flex_value_set_id">
@@ -461,7 +462,7 @@ see sql/BitmapIndexScan.sql
             <dxl:SortingColumnList/>
             <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true">
               <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="431.006497" Rows="1.000000" Width="9"/>
+                <dxl:Cost StartupCost="0" TotalCost="862.001832" Rows="1.000000" Width="9"/>
               </dxl:Properties>
               <dxl:ProjList>
                 <dxl:ProjElem ColId="0" Alias="flex_value_set_id">
@@ -472,7 +473,8 @@ see sql/BitmapIndexScan.sql
               <dxl:JoinFilter>
                 <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
               </dxl:JoinFilter>
-              <dxl:BroadcastMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63" OutputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63">
+              <dxl:BroadcastMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63"
+                                   OutputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.001803" Rows="64.000000" Width="9"/>
                 </dxl:Properties>
@@ -525,7 +527,7 @@ see sql/BitmapIndexScan.sql
               </dxl:BroadcastMotion>
               <dxl:BitmapTableScan>
                 <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="0.004687" Rows="1.000000" Width="9"/>
+                  <dxl:Cost StartupCost="0" TotalCost="431.000023" Rows="1.000000" Width="9"/>
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="0" Alias="flex_value_set_id">

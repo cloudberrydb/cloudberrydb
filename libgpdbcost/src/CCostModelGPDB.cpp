@@ -1343,20 +1343,26 @@ CCostModelGPDB::CostBitmapTableScan
 	GPOS_ASSERT(COperator::EopPhysicalBitmapTableScan == exprhdl.Pop()->Eopid() ||
 		 COperator::EopPhysicalDynamicBitmapTableScan == exprhdl.Pop()->Eopid());
 
-	// TODO: ; 2014-04-11; compute the real cost here
-//	return CCost(pci->DRebinds() * (pci->DRows() * pci->DWidth()) / dSeqIOBandwidth * 0.5);
-
 	CExpression *pexprIndexCond = exprhdl.PexprScalarChild(1 /*ulChildIndex*/);
 	CColRefSet *pcrsUsed = CDrvdPropScalar::Pdpscalar(pexprIndexCond->PdpDerive())->PcrsUsed();
 
 	if (COperator::EopScalarBitmapIndexProbe != pexprIndexCond->Pop()->Eopid() || 1 < pcrsUsed->CElements())
 	{
 		// child is Bitmap AND/OR, or we use Multi column index
-		const CDouble dRandomIOBandwidth = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpRandomIOBandwidth)->DVal();
-		GPOS_ASSERT(0 < dRandomIOBandwidth);
+		const CDouble dInitScan = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpInitScanFactor)->DVal();
+		const CDouble dIndexFilterCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpIndexFilterCostUnit)->DVal();
 
-		// TODO: ; 2014-04-11; compute the real cost here
-		return CCost(pci->DRebinds() * (pci->DRows() * pci->DWidth()) / dRandomIOBandwidth);
+		GPOS_ASSERT(0 < dIndexFilterCostUnit);
+		GPOS_ASSERT(0 < dInitScan);
+
+		// For now we are trying to cost Bitmap Scan similar to Index Scan. dIndexFilterCostUnit is
+		// the dominant factor in costing Index Scan so we are using it in our model. Also we are giving
+		// Bitmap Scan a start up cost similar to Sequential Scan.
+
+		// TODO: ; 2017-11-14; use proper start up cost value.
+		// Conceptually the cost of evaluating index qual is also linear in the
+		// number of index columns, but we're only accounting for the dominant cost
+		return CCost(pci->DRebinds() * (pci->DRows() * pci->DWidth() * dIndexFilterCostUnit +  dInitScan));
 	}
 
 	// if the expression is const table get, the pcrsUsed is empty

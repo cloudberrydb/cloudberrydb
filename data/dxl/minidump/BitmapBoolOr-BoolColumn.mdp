@@ -775,7 +775,7 @@ explain select * from t where c2 = 'HEAP' or c4 = 't' or c5 = 'f';
     <dxl:Plan Id="0" SpaceSize="1">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="38.345799" Rows="100.000000" Width="23"/>
+          <dxl:Cost StartupCost="0" TotalCost="431.202216" Rows="100.000000" Width="23"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="0" Alias="c1">
@@ -804,7 +804,7 @@ explain select * from t where c2 = 'HEAP' or c4 = 't' or c5 = 'f';
         <dxl:SortingColumnList/>
         <dxl:BitmapTableScan>
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="38.333333" Rows="100.000000" Width="23"/>
+            <dxl:Cost StartupCost="0" TotalCost="431.189750" Rows="100.000000" Width="23"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="c1">
