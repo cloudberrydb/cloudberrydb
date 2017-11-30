@@ -2161,18 +2161,6 @@ StartTransaction(void)
 	}
 
 	/*
-	 * Acquire a resource group slot.
-	 *
-	 * AssignResGroupOnMaster() might throw error, so call it before touch
-	 * transaction state.
-	 * Slot is successfully acquired when AssignResGroupOnMaster() is returned,
-	 * this slot will be release when transaction is committed or abortted,
-	 * so don't error out before transaction state is set to TRANS_START.
-	 */
-	if (ShouldAssignResGroupOnMaster())
-		AssignResGroupOnMaster();
-
-	/*
 	 * Let's just make sure the state stack is empty
 	 */
 	s = &TopTransactionStateData;
@@ -2436,6 +2424,25 @@ StartTransaction(void)
 	 * progress"
 	 */
 	s->state = TRANS_INPROGRESS;
+
+	/*
+	 * Acquire a resource group slot.
+	 *
+	 * Slot is successfully acquired when AssignResGroupOnMaster() is returned.
+	 * This slot will be released when the transaction is committed or aborted.
+	 *
+	 * Note that AssignResGroupOnMaster() can throw a PG exception. Since we
+	 * have set the transaction state to TRANS_INPROGRESS by this point, any
+	 * exceptions thrown will trigger AbortTransaction() and free the slot.
+	 *
+	 * It's important that we acquire the resource group *after* starting the
+	 * transaction (i.e. setting up the per-transaction memory context).
+	 * As part of determining the resource group that the transaction should be
+	 * assigned to, AssignResGroupOnMaster() accesses pg_authid, and a
+	 * transaction should be in progress when it does so.
+	 */
+	if (ShouldAssignResGroupOnMaster())
+		AssignResGroupOnMaster();
 
 	ShowTransactionState("StartTransaction");
 
