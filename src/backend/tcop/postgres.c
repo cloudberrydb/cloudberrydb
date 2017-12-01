@@ -4890,6 +4890,13 @@ PostgresMain(int argc, char *argv[],
             gp_command_count = 0;
 
 		/*
+		 * Do deactiving and runaway detecting before ReadyForQuery(),
+		 * so any OOM errors of current query will not muddle following
+		 * queries
+		 */
+		IdleTracker_DeactivateProcess();
+
+		/*
 		 * (1) If we've reached idle state, tell the frontend we're ready for
 		 * a new query.
 		 *
@@ -4968,7 +4975,6 @@ PostgresMain(int argc, char *argv[],
 					elog(FATAL, "could not set timer for client wait timeout");
 		}
 
-		IdleTracker_DeactivateProcess();
 		firstchar = ReadCommand(&input_message);
 		IdleTracker_ActivateProcess();
 
