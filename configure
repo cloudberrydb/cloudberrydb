@@ -3055,6 +3055,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
+PG_VERSION="$PG_PACKAGE_VERSION"
 
 pgac_args="$pgac_args with_extra_version"
 
