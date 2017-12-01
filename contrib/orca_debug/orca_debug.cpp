@@ -805,9 +805,9 @@ static int extractFrozenQueryPlanAndExecute(char *pcQuery)
 
 	// The following steps are required to be able to execute the query.
 
-	DestReceiver *pdest = CreateDestReceiver(DestNone, NULL);
+	DestReceiver *pdest = CreateDestReceiver(DestNone);
 	QueryDesc    *pqueryDesc = CreateQueryDesc(pplstmt, PStrDup("Internal Query") /*plan->query */,
-			ActiveSnapshot,
+			GetActiveSnapshot(),
 			InvalidSnapshot,
 			pdest,
 			NULL /*paramLI*/,
@@ -854,9 +854,9 @@ static int extractFrozenPlanAndExecute(char *pcSerializedPS)
 
 	//The following steps are required to be able to execute the query.
 
-	DestReceiver *pdest = CreateDestReceiver(DestNone, NULL);
+	DestReceiver *pdest = CreateDestReceiver(DestNone);
 	QueryDesc    *pqueryDesc = CreateQueryDesc(pplstmt, PStrDup("Internal Query") /*plan->query */,
-			ActiveSnapshot,
+			GetActiveSnapshot(),
 			InvalidSnapshot,
 			pdest,
 			NULL /*paramLI*/,
@@ -886,9 +886,9 @@ static int executeXMLPlan(char *szXml)
 
 	// The following steps are required to be able to execute the query.
 
-	DestReceiver *pdest = CreateDestReceiver(DestNone, NULL);
+	DestReceiver *pdest = CreateDestReceiver(DestNone);
 	QueryDesc    *pqueryDesc = CreateQueryDesc(pplstmt, PStrDup("Internal Query") /*plan->query */,
-			ActiveSnapshot,
+			GetActiveSnapshot(),
 			InvalidSnapshot,
 			pdest,
 			NULL /*paramLI*/,
