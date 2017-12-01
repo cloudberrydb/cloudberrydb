@@ -350,6 +350,9 @@ if [ "${BLDWRAP_POSTGRES_CONF_ADDONS}" != "__none__" ]  && \
     for addon in $( echo ${BLDWRAP_POSTGRES_CONF_ADDONS} | sed -e "s/|/ /g" ); do
         echo "" >> ${CLUSTER_CONFIG_POSTGRES_ADDONS}
         echo $addon >> ${CLUSTER_CONFIG_POSTGRES_ADDONS}
+	if [ "$addon" == "fsync=off" ]; then
+		echo "WARNING: fsync is off, database consistency is not guaranteed."
+	fi
         echo "" >> ${CLUSTER_CONFIG_POSTGRES_ADDONS}
     done
 

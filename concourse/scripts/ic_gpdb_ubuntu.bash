@@ -21,7 +21,6 @@ function setup_gpadmin_user() {
 }
 
 function make_cluster() {
-  export BLDWRAP_POSTGRES_CONF_ADDONS="fsync=off"
   source "${GREENPLUM_INSTALL_DIR}/greenplum_path.sh"
   export DEFAULT_QD_MAX_CONNECT=150
   pushd gpdb_src/gpAux/gpdemo

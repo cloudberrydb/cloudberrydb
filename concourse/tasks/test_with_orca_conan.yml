@@ -15,5 +15,4 @@ run:
     - --mode=orca
     - --gpdb_name=bin_gpdb
 params:
-  BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
   TEST_SUITE: "icg"

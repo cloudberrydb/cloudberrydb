@@ -122,7 +122,6 @@ jobs:
           bin_gpdb: gpdb_artifacts
         params:
           MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off' installcheck-world
-          BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
           TEST_OS: centos
           CONFIGURE_FLAGS: {{configure_flags}}
         timeout: 2h
@@ -136,7 +135,6 @@ jobs:
           bin_gpdb: gpdb_artifacts
         params:
           MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on' installcheck-world
-          BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
           TEST_OS: centos
           CONFIGURE_FLAGS: {{configure_flags}}
         timeout: 5h
