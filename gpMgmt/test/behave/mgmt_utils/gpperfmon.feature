@@ -122,7 +122,7 @@ Feature: gpperfmon
         # default history table is created with three partitions
         Then wait until the results from boolean sql "SELECT count(*) = 3 FROM pg_partitions WHERE tablename = 'diskspace_history'" is "true"
         Then wait until the results from boolean sql "SELECT count(*) = 1 from pg_partitions where tablename = 'diskspace_history' and partitionrangestart like '%' || date_part('year', CURRENT_DATE) || '-' || to_char(CURRENT_DATE, 'MM') || '%';" is "true"
-        Then wait until the results from boolean sql "SELECT count(*) = 1 from pg_partitions where tablename = 'diskspace_history' and partitionrangestart like '%' || date_part('year', CURRENT_DATE) || '-' || to_char(CURRENT_DATE  + interval '1 month' * 1, 'MM') || '%';" is "true"
+        Then wait until the results from boolean sql "SELECT count(*) = 1 from pg_partitions where tablename = 'diskspace_history' and partitionrangestart like '%' || date_part('year', CURRENT_DATE + interval '1 month') || '-' || to_char(CURRENT_DATE  + interval '1 month' * 1, 'MM') || '%';" is "true"
         When below sql is executed in "gpperfmon" db
             """
             ALTER table diskspace_history add partition
