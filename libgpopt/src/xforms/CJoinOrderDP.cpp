@@ -29,8 +29,6 @@
 
 using namespace gpopt;
 
-#define GPOPT_DP_JOIN_ORDERING_SIZE_THRESHOLD	10
-#define GPOPT_DP_JOIN_ORDERING_CONNECTEDNESS_THRESHOLD	0.5
 #define GPOPT_DP_JOIN_ORDERING_TOPK	10
 
 //---------------------------------------------------------------------------
@@ -662,68 +660,6 @@ CJoinOrderDP::PdrgpbsSubsets
 	return pdrgpbsSubsets;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDP::DConnectedness
-//
-//	@doc:
-//		 Return connectedness measure of given component
-//
-//---------------------------------------------------------------------------
-CDouble
-CJoinOrderDP::DConnectedness
-	(
-	ULONG ulComp
-	)
-{
-	CBitSet *pbsConnected = GPOS_NEW(m_pmp) CBitSet(m_pmp);
-	for (ULONG ul = 0; ul < m_ulEdges; ul++)
-	{
-		SEdge *pedge = m_rgpedge[ul];
-		if (pedge->m_pbs->FBit(ulComp))
-		{
-			pbsConnected->Union(pedge->m_pbs);
-		}
-	}
-	(void) pbsConnected->FExchangeClear(ulComp);
-	DOUBLE dConnectedness = (DOUBLE) pbsConnected->CElements() / m_ulComps;
-	pbsConnected->Release();
-
-	return CDouble(dConnectedness);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CJoinOrderDP::DMaxConnectedness
-//
-//	@doc:
-//		 Return maximum connectedness of elements in given set
-//
-//---------------------------------------------------------------------------
-CDouble
-CJoinOrderDP::DMaxConnectedness
-	(
-	CBitSet *pbs
-	)
-{
-	GPOS_ASSERT(NULL != pbs);
-
-	CBitSetIter bsi(*pbs);
-	CDouble dMax = 0.0;
-	while (bsi.FAdvance())
-	{
-		CDouble d = DConnectedness(bsi.UlBit());
-		if (0.0 == dMax || dMax < d)
-		{
-			dMax = d;
-		}
-	}
-
-	return CDouble(dMax);
-}
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CJoinOrderDP::DCost
@@ -1054,15 +990,6 @@ CJoinOrderDP::PexprExpand()
 	for (ULONG ul = 0; ul < m_ulComps; ul++)
 	{
 		(void) pbs->FExchangeSet(ul);
-	}
-
-	if (GPOPT_DP_JOIN_ORDERING_SIZE_THRESHOLD < m_ulComps &&
-		GPOPT_DP_JOIN_ORDERING_CONNECTEDNESS_THRESHOLD < DMaxConnectedness(pbs))
-	{
-		// terminate early if computation cost is expected to be large
-		pbs->Release();
-
-		return NULL;
 	}
 
 	CExpression *pexprResult = PexprBestJoinOrder(pbs);

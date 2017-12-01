@@ -142,12 +142,6 @@ namespace gpopt
 			// generate cross product for the given components
 			CExpression *PexprCross(CBitSet *pbs);
 
-			// return maximum connectedness of elements in given set
-			CDouble DMaxConnectedness(CBitSet *pbs);
-
-			// return connectedness measure of given component
-			CDouble DConnectedness(ULONG ulComp);
-
 			// join a covered subset with uncovered subset
 			CExpression *PexprJoinCoveredSubsetWithUncoveredSubset(CBitSet *pbs, CBitSet *pbsCovered, CBitSet *pbsUncovered);
 
