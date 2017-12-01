@@ -40,10 +40,6 @@ CREATE FUNCTION _pg_expandarray(IN anyarray, OUT x anyelement, OUT n int)
                                         pg_catalog.array_upper($1,1),
                                         1) as g(s)';
 
--- _pg_keyissubset is deprecated in the 4.0 release
-CREATE FUNCTION _pg_keyissubset(smallint[], smallint[]) RETURNS boolean
-    LANGUAGE internal IMMUTABLE AS 'gp_deprecated';
-
 CREATE FUNCTION _pg_keysequal(smallint[], smallint[]) RETURNS boolean
     LANGUAGE sql IMMUTABLE  -- intentionally not STRICT, to allow inlining
     AS 'select $1 <@ $2 and $2 <@ $1';
