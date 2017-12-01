@@ -136,3 +136,31 @@ NOTICE:  Success:
  t
 (1 row)
 
+-- test if a query can be canceled when cancel signal arrives fast than the query dispatched.
+create table _tmp_table1 as select i as c1, i as c2 from generate_series(1, 10) i;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'c1' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+create table _tmp_table2 as select i as c1, 0 as c2 from generate_series(0, 10) i;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'c1' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+-- make one QE sleep before reading command
+select gp_inject_fault('before_read_command', 'sleep', '', '', '', 1, 50, 2::smallint);
+NOTICE:  Success:
+ gp_inject_fault 
+-----------------
+ t
+(1 row)
+
+begin;
+select count(*) from _tmp_table1, _tmp_table2 where 100 / _tmp_table2.c2 > 1;
+ERROR:  division by zero  (seg0 slice1 172.17.0.2:25433 pid=31180)
+end;
+select gp_inject_fault('before_read_command', 'reset', 2);
+NOTICE:  Success:
+ gp_inject_fault 
+-----------------
+ t
+(1 row)
+
+drop table _tmp_table1;
+drop table _tmp_table2;

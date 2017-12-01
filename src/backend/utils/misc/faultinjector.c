@@ -337,6 +337,8 @@ FaultInjectorIdentifierEnumToString[] = {
 		/* inject fault to report ERROR just after creating Gang */
 	_("resgroup_assigned_on_master"),
 		/* inject fault to report ERROR just after resource group is assigned on master */
+	_("before_read_command"),
+		/* inject fault before reading command */
 	_("not recognized"),
 };
 

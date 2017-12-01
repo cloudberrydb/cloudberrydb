@@ -589,6 +589,8 @@ ReadCommand(StringInfo inBuf)
 {
 	int			result;
 
+	SIMPLE_FAULT_INJECTOR(BeforeReadCommand);
+
 	if (whereToSendOutput == DestRemote)
 		result = SocketBackend(inBuf);
 	else
