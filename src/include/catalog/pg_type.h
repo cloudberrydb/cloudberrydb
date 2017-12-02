@@ -623,8 +623,6 @@ DATA(insert OID = 2970 ( txid_snapshot	PGNSP PGUID -1 f b U f t \054 0 0 2949 tx
 DESCR("txid snapshot");
 DATA(insert OID = 2949 ( _txid_snapshot PGNSP PGUID -1 f b A f t \054 0 2970 0 array_in array_out array_recv array_send - - - d x f 0 -1 0 _null_ _null_ ));
 
-DATA(insert OID = 3251 (	nb_classification	   PGNSP PGUID -1 f c C f t \054 3250	0 0 record_in record_out record_recv record_send - - - d x f 0 -1 0 _null_ _null_ ));
-
 DATA(insert OID = 3300 (	gpaotid	   PGNSP PGUID 6 f b N f t \054 0	0 3301 gpaotidin gpaotidout gpaotidrecv gpaotidsend - - - s p f 0 -1 0 _null_ _null_ ));
 DESCR("(segment file num, row number), logical location of append-only tuple");
 #define AOTIDOID	3300

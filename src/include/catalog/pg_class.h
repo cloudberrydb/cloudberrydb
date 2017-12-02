@@ -142,9 +142,6 @@ DESCR("");
 DATA(insert OID = 1259 (  pg_class		PGNSP 83 PGUID 0 1259 0 0 0 0 0 f f r h 25 0 t f f f f 3 _null_ _null_ ));
 DESCR("");
 
-/* abstract tuple types */
-DATA(insert OID = 3250    ( nb_classification PGNSP 3251 PGUID 0 3250 0 0 0 0 0 f f c v 3 0 f f f f f 0 _null_ _null_ ));
-
 
 /*
  * pg_class table values for FormData_pg_class.

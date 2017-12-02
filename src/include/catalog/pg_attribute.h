@@ -509,15 +509,4 @@ DATA(insert ( 1259 gp_segment_id   23 0  4  -8 0 -1 -1 t p i t f f t 0));
 { 0, {"indexprs"},			25, -1, -1, 13, 0, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
 { 0, {"indpred"},			25, -1, -1, 14, 0, -1, -1, false, 'x', 'i', false, false, false, true, 0 }
 
-
-/* -----------------------------------------------
- *      abstract types with no backing relations
- * -----------------------------------------------
- */
-
-/* nb_classification */
-DATA(insert ( 3250 classes  1009 -1 -1 1 1 -1 -1 f x i f f f t 0 ));
-DATA(insert ( 3250 accum    1022 -1 -1 2 1 -1 -1 f x d f f f t 0 ));
-DATA(insert ( 3250 apriori  1016 -1 -1 3 1 -1 -1 f x d f f f t 0 ));
-
 #endif   /* PG_ATTRIBUTE_H */
