@@ -3200,9 +3200,6 @@ CTranslatorRelcacheToDXL::GetPartKeysAndTypes
 	*pdrgpulPartKeys = GPOS_NEW(pmp) DrgPul(pmp);
 	*pdrgpszPartTypes = GPOS_NEW(pmp) DrgPsz(pmp);
 
-	PartitionNode *pn = gpdb::PpnParts(oid, 0 /*level*/, 0 /*parent*/, false /*inctemplate*/, true /*includesubparts*/);
-	GPOS_ASSERT(NULL != pn);
-	
 	List *plPartKeys = NIL;
 	List *plPartTypes = NIL;
 	gpdb::GetOrderedPartKeysAndKinds(oid, &plPartKeys, &plPartTypes);
