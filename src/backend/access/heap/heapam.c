@@ -1070,7 +1070,7 @@ CdbTryOpenRelation(Oid relid, LOCKMODE reqmode, bool noWait, bool *lockUpgraded)
 	 * to Exclusive lock (locking the whole relation) when doing updates
 	 * on distributed relations.
 	 *
-	 * Historically the need for this was do to limitations caused by lack of
+	 * Historically the need for this was due to limitations caused by lack of
 	 * distributed deadlock detection (which we now have) and due to our use
 	 * of logical mirroring (which has been replaced with physical replication).
 	 * However the need for this remains due to our current implementation
@@ -1080,7 +1080,7 @@ CdbTryOpenRelation(Oid relid, LOCKMODE reqmode, bool noWait, bool *lockUpgraded)
 	 * we may be updating.  So we need to serialize UPDATE and DELETE operations
 	 * to the same partitioned table.  
 	 *
-	 * Note: This code could be improved substantiatally.
+	 * Note: This code could be improved substantially.
 	 */
 	if (lockmode == RowExclusiveLock)
 	{
