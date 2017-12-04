@@ -545,20 +545,28 @@ ccp_gen_cluster_default_params_anchor: &ccp_gen_cluster_default_params
   BUCKET_PATH: {{tf-bucket-path}}
   BUCKET_NAME: {{tf-bucket-name}}
 
-debug_sleep_anchor: &debug_sleep
+set_failed_anchor: &set_failed
   do:
-  - task: debug_sleep
+  - task: on_failure_set_failed
     tags: ["ccp"]
     config:
       platform: linux
       image_resource:
         type: docker-image
         source:
-          repository: alpine
-          tag: latest
+          repository: toolsmiths/ccp
+          tag: "7"
+      inputs:
+        - name: ccp_src
+        - name: terraform
       run:
-        path: 'sh'
-        args: ['-c', 'sleep {{ccp_debug_sleep}}']
+        path: 'ccp_src/aws/ccp_failed_test.sh'
+      params:
+        AWS_ACCESS_KEY_ID: {{tf-machine-access-key-id}}
+        AWS_SECRET_ACCESS_KEY: {{tf-machine-secret-access-key}}
+        AWS_DEFAULT_REGION: {{tf-machine-region}}
+        BUCKET_PATH: {{tf-bucket-path}}
+        BUCKET_NAME: {{tf-bucket-name}}
 
 pulse_properties_anchor: &pulse_properties
   PULSE_URL: {{pulse_url}}
@@ -616,9 +624,10 @@ cs_ccp_run_tests_params_anchor: &cs_ccp_run_tests_params
   tags: ["ccp"]
   file: gpdb_src/concourse/tasks/run_tinc.yml
   image: centos-gpdb-dev-6
+  on_success:
+    <<: *ccp_destroy
   on_failure:
-    <<: *debug_sleep
-
+    <<: *set_failed
 
 ## ======================================================================
 ## jobs
@@ -1330,10 +1339,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       TINC_TARGET: walrep_1
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_walrep_2
   plan:
@@ -1369,9 +1380,11 @@ jobs:
     params:
       TINC_TARGET: walrep_2
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
+    on_success:
+      <<: *ccp_destroy
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_pg_twophase_01_10
   plan:
@@ -1409,10 +1422,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       TINC_TARGET: test_pg_twophase_01_10
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_pg_twophase_11_20
   plan:
@@ -1450,10 +1465,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       TINC_TARGET: test_pg_twophase_11_20
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_pg_twophase_21_30
   plan:
@@ -1491,10 +1508,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       TINC_TARGET: test_pg_twophase_21_30
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_pg_twophase_31_40
   plan:
@@ -1532,10 +1551,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       TINC_TARGET: test_pg_twophase_31_40
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_pg_twophase_41_49
   plan:
@@ -1573,10 +1594,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       TINC_TARGET: test_pg_twophase_41_49
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_pg_twophase_switch
   plan:
@@ -1614,10 +1637,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       TINC_TARGET: test_switch_01_12
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_crash_recovery_schema_topology
   plan:
@@ -1632,7 +1657,7 @@ jobs:
     params:
       TINC_TARGET: crash_recovery_schema_topology
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_crash_recovery_04_10
   plan:
@@ -1647,7 +1672,7 @@ jobs:
     params:
       TINC_TARGET: crash_recovery_04_10
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_crash_recovery_11_20
   plan:
@@ -1662,7 +1687,7 @@ jobs:
     params:
       TINC_TARGET: crash_recovery_11_20
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_crash_recovery_21_30
   plan:
@@ -1677,7 +1702,7 @@ jobs:
     params:
       TINC_TARGET: crash_recovery_21_30
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_crash_recovery_31_42
   plan:
@@ -1692,7 +1717,7 @@ jobs:
     params:
       TINC_TARGET: crash_recovery_31_42
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: fts
   plan:
@@ -1874,13 +1899,13 @@ jobs:
             sudo yum -y install kernel-devel-$(uname -r)
           SSH_CMD
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   - task: run_tests
     <<: *cs_ccp_run_tests_params
     params:
       TINC_TARGET: mpp_interconnect
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: mpp_resource_group_centos6
   plan:
@@ -1917,10 +1942,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       TEST_OS: centos6
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: mpp_resource_group_centos7
   plan:
@@ -1958,10 +1985,12 @@ jobs:
     image: centos-gpdb-dev-7
     params:
       TEST_OS: centos7
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: gate_mpp_end
   plan:
@@ -2043,10 +2072,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       BEHAVE_FLAGS: --tags=gppkg
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: MM_gprecoverseg
   plan:
@@ -2084,10 +2115,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       BEHAVE_FLAGS: --tags=gprecoverseg
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: MM_gpcheck
   plan:
@@ -2214,7 +2247,7 @@ jobs:
     image: centos-gpdb-dev-6
     file: gpdb_src/concourse/tasks/setup_for_gpexpand_to_make_new_gpdb.yml
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   - task: run_tests
     tags: ["ccp"]
     file: gpdb_src/concourse/tasks/run_tinc.yml
@@ -2222,10 +2255,12 @@ jobs:
     params:
       TINC_TARGET: gpexpand_1
       CUSTOM_ENV: HOST1=mdw HOST2=sdw1 HOST3=sdw2 HOST4=sdw3 HOST5=sdw4
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: MM_gpexpand_2
   plan:
@@ -2263,7 +2298,7 @@ jobs:
     image: centos-gpdb-dev-6
     file: gpdb_src/concourse/tasks/setup_for_gpexpand_to_make_new_gpdb.yml
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   - task: run_tests
     tags: ["ccp"]
     file: gpdb_src/concourse/tasks/run_tinc.yml
@@ -2271,10 +2306,12 @@ jobs:
     params:
       TINC_TARGET: gpexpand_2
       CUSTOM_ENV: HOST1=mdw HOST2=sdw1 HOST3=sdw2 HOST4=sdw3 HOST5=sdw4
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: MM_gpcheckcat
   plan:
@@ -2312,10 +2349,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       BEHAVE_FLAGS: --tags=gpcheckcat
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: gate_mm_end
   plan:
@@ -2456,23 +2495,12 @@ jobs:
     params:
       BEHAVE_FLAGS: --tags=gptransfer --tags=-skip_source_43
       CUSTOM_ENV: export GPTRANSFER_DEST_HOST=mdw; export GPTRANSFER_DEST_PORT=5432; export GPTRANSFER_DEST_USER=gpadmin; export GPTRANSFER_MAP_FILE=/tmp/source_map_file; export GPTRANSFER_SOURCE_HOST=mdw-2; export GPTRANSFER_SOURCE_PORT=5432; export GPTRANSFER_SOURCE_USER=gpadmin;
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      do:
-      - task: debug_sleep_2_cluster
-        tags: ["ccp"]
-        config:
-          platform: linux
-          image_resource:
-            type: docker-image
-            source:
-              repository: alpine
-              tag: latest
-          run:
-            path: 'sh'
-            args: ['-c', 'sleep {{ccp_debug_sleep}}']
-  # Similar to the on_failure blocks, the final cleanup needs to be both clusters as well
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy_2_cluster
+    <<: *set_failed
 
 - name: DPM_gptransfer
   plan:
@@ -2564,23 +2592,13 @@ jobs:
     params:
       BEHAVE_FLAGS: --tags=gptransfer --tags=-skip_source_5
       CUSTOM_ENV: export GPTRANSFER_DEST_HOST=mdw; export GPTRANSFER_DEST_PORT=5432; export GPTRANSFER_DEST_USER=gpadmin; export GPTRANSFER_MAP_FILE=/tmp/source_map_file; export GPTRANSFER_SOURCE_HOST=mdw-2; export GPTRANSFER_SOURCE_PORT=5432; export GPTRANSFER_SOURCE_USER=gpadmin;
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      do:
-      - task: debug_sleep_2_cluster
-        tags: ["ccp"]
-        config:
-          platform: linux
-          image_resource:
-            type: docker-image
-            source:
-              repository: alpine
-              tag: latest
-          run:
-            path: 'sh'
-            args: ['-c', 'sleep {{ccp_debug_sleep}}']
+      <<: *set_failed
   # Similar to the on_failure blocks, the final cleanup needs to be both clusters as well
   ensure:
-    <<: *ccp_destroy_2_cluster
+    <<: *set_failed
 
 - name: DPM_backup-restore
   plan:
@@ -2618,10 +2636,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       BEHAVE_FLAGS: --tags=backups,backup_and_restore_backups,backup_and_restore_restores,restores --tags=-nbuonly --tags=-ddonly
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: gate_dpm_end
   plan:
@@ -2846,10 +2866,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       TINC_TARGET: filerep_end_to_end_full_mirror
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_filerep_e2e_incr_mirror
   plan:
@@ -2887,10 +2909,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       TINC_TARGET: filerep_end_to_end_incr_mirror
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_filerep_e2e_full_primary
   plan:
@@ -2927,10 +2951,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       TINC_TARGET: filerep_end_to_end_full_primary
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: cs_filerep_e2e_incr_primary
   plan:
@@ -2968,10 +2994,12 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       TINC_TARGET: filerep_end_to_end_incr_primary
+    on_success:
+      <<: *ccp_destroy
     on_failure:
-      <<: *debug_sleep
+      <<: *set_failed
   ensure:
-    <<: *ccp_destroy
+    <<: *set_failed
 
 - name: gate_filerep_end
   plan:
