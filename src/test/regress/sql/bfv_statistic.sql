@@ -40,7 +40,7 @@ explain select a from bfv_statistics_foo2 where a > 1 order by a;
 set gp_create_table_random_default_distribution=off;
 create table bfv_statistics_foo3(a int);
 
-select * from gp_toolkit.gp_stats_missing where smischema = 'public' AND  smitable = 'bfv_statistics_foo';
+select * from gp_toolkit.gp_stats_missing where smischema = 'bfv_statistic' AND  smitable = 'bfv_statistics_foo3';
 
 --
 -- for Orca's Split Operator ensure that the columns needed for stats derivation is correct
