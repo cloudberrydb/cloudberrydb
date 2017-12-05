@@ -14446,16 +14446,32 @@ split_rows(Relation intoa, Relation intob, Relation temprel)
 	/* constr might not be defined if this is a default partition */
 	if (intoa->rd_att->constr && intoa->rd_att->constr->num_check)
 	{
-		Node *bin = (Node *)make_ands_implicit(
-				(Expr *)stringToNode(intoa->rd_att->constr->check[0].ccbin));
-		achk = ExecPrepareExpr((Expr *)bin, estate);
+		uint16 idx;
+		List *bins = NIL;
+		
+		for (idx = 0; idx < intoa->rd_att->constr->num_check; idx++)
+		{
+			bins = list_concat(bins,
+					make_ands_implicit(
+						(Expr *)stringToNode(intoa->rd_att->constr->check[idx].ccbin)));
+		}
+
+		achk = ExecPrepareExpr((Expr *)bins, estate);
 	}
 
 	if (intob->rd_att->constr && intob->rd_att->constr->num_check)
 	{
-		Node *bin = (Node *)make_ands_implicit(
-				(Expr *)stringToNode(intob->rd_att->constr->check[0].ccbin));
-		bchk = ExecPrepareExpr((Expr *)bin, estate);
+		uint16 idx;
+		List *bins = NIL;
+		
+		for (idx = 0; idx < intob->rd_att->constr->num_check; idx++)
+		{
+			bins = list_concat(bins,
+					make_ands_implicit(
+						(Expr *)stringToNode(intob->rd_att->constr->check[idx].ccbin)));
+		}
+
+		bchk = ExecPrepareExpr((Expr *)bins, estate);
 	}
 
 	/* be careful about AO vs. normal heap tables */
