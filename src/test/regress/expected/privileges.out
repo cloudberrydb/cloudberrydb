@@ -52,7 +52,7 @@ BEGIN;
 LOCK atest1 IN ACCESS EXCLUSIVE MODE;
 COMMIT;
 REVOKE ALL ON atest1 FROM PUBLIC;
-NOTICE:  no privileges could be revoked from role PUBLIC on object atest1
+NOTICE:  no privileges could be revoked
 SELECT * FROM atest1;
  a | b 
 ---+---
@@ -608,7 +608,7 @@ GRANT UPDATE ON atest4 TO regressuser3; -- fail
 WARNING:  no privileges were granted for "atest4"
 SET SESSION AUTHORIZATION regressuser1;
 REVOKE SELECT ON atest4 FROM regressuser3; -- does nothing
-NOTICE:  no privileges could be revoked from role regressuser3 on object atest4
+NOTICE:  no privileges could be revoked
 SELECT has_table_privilege('regressuser3', 'atest4', 'SELECT'); -- true
  has_table_privilege 
 ---------------------

@@ -60,6 +60,11 @@
 #include "cdb/cdbpartition.h"
 #include "cdb/cdbvars.h"
 
+/*
+ * Flag used during REVOKE processing, to keep track of whether it did
+ * anything.
+ */
+bool		revoked_something = false;
 
 static void ExecGrant_Relation(InternalGrant *grantStmt);
 static void ExecGrant_Database(InternalGrant *grantStmt);
@@ -155,7 +160,7 @@ merge_acl_with_grant(Acl *old_acl, bool is_grant,
 					(is_grant || !grant_option) ? privileges : ACL_NO_RIGHTS,
 				   (!is_grant || grant_option) ? privileges : ACL_NO_RIGHTS);
 
-		newer_acl = aclupdate(new_acl, &aclitem, modechg, ownerId, behavior, objName);
+		newer_acl = aclupdate(new_acl, &aclitem, modechg, ownerId, behavior);
 
 		/* avoid memory leak when there are many grantees */
 		pfree(new_acl);
@@ -486,9 +491,37 @@ ExecuteGrantStmt(GrantStmt *stmt)
 		istmt.cooked_privs = NIL;
 	}
 
+	/* reset flag before processing the command; see below */
+	revoked_something = false;
+
 	ExecGrantStmt_oids(&istmt);
-	
-		
+
+	/*
+	 * If a REVOKE doesn't find any permissions to REVOKE, it's a no-op.
+	 * Users find that confusing, e.g. when an object has a permission
+	 * that's granted by a different user with GRANT OPTION, and you try
+	 * to REVOKE the permission as a different user. It will do nothing,
+	 * because there is no permission granted by the current user.
+	 *
+	 * See discussion on this in the upstream:
+	 *
+	 * https://www.postgresql.org/message-id/flat/CA%2BTgmoZ%2B79wnTCt56YBnbPw-%3D0FPF-CzgL%3DNjnQip0MtORp2NQ%40mail.gmail.com
+	 *
+	 * The case mentioned there is if you try to deny a user from
+	 * connecting with "REVOKE CONNECT ON DATABASE foo FROM someuser;".
+	 * If there's a GRANT on PUBLIC to connect, rather than on the specific
+	 * user, then it will do nothing.
+	 *
+	 * To make that a little bit less confusing, emit a NOTICE, when
+	 * REVOKE find no permissions to remove.
+	 */
+	if (!revoked_something && !stmt->is_grant && Gp_role == GP_ROLE_DISPATCH)
+	{
+		ereport(NOTICE,
+				(errcode(ERRCODE_WARNING_PRIVILEGE_NOT_REVOKED),
+				 errmsg("no privileges could be revoked")));
+	}
+
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
 		CdbDispatchUtilityStatement((Node *) stmt,
@@ -498,7 +531,6 @@ ExecuteGrantStmt(GrantStmt *stmt)
 									NIL,
 									NULL);
 	}
-	
 }
 
 /*

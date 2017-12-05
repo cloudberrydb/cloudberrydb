@@ -221,7 +221,7 @@ typedef struct
  */
 extern Acl *acldefault(GrantObjectType objtype, Oid ownerId);
 extern Acl *aclupdate(const Acl *old_acl, const AclItem *mod_aip,
-		  int modechg, Oid ownerId, DropBehavior behavior, char *objName);
+		  int modechg, Oid ownerId, DropBehavior behavior);
 extern Acl *aclnewowner(const Acl *old_acl, Oid oldOwnerId, Oid newOwnerId);
 
 extern AclMode aclmask(const Acl *acl, Oid roleid, Oid ownerId,
@@ -240,6 +240,9 @@ extern void select_best_grantor(Oid roleId, AclMode privileges,
 					Oid *grantorId, AclMode *grantOptions);
 
 extern void initialize_acl(void);
+
+extern bool revoked_something;
+
 
 /*
  * SQL functions (from acl.c)

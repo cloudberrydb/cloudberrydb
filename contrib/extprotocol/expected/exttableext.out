@@ -2070,7 +2070,7 @@ drop cascades to external table exttabtest_w_new
     -- As superuser, REVOKE ALL privileges on protocol from non-privileged user demoprot_nopriv
     -- Both SELECT and INSERT permissions are revoked
     REVOKE ALL ON PROTOCOL demoprot FROM demoprot_nopriv;
-NOTICE:  no privileges could be revoked from role demoprot_nopriv on object demoprot
+NOTICE:  no privileges could be revoked
     -- login as non-privileged user "demoprot_nopriv"
     SET ROLE demoprot_nopriv;
     select user;
@@ -2166,7 +2166,7 @@ NOTICE:  drop cascades to external table exttabtest_r_new
     GRANT SELECT ON exttabtest TO demoprot_nopriv;
     -- As superuser, REVOKE SElECT privilege on protocol from non-privileged user demoprot_nopriv
     REVOKE SELECT ON PROTOCOL demoprot FROM demoprot_nopriv;
-NOTICE:  no privileges could be revoked from role demoprot_nopriv on object demoprot
+NOTICE:  no privileges could be revoked
     -- login as non-privileged user "demoprot_nopriv"
     SET ROLE demoprot_nopriv;
     select user;
@@ -2244,7 +2244,7 @@ NOTICE:  drop cascades to external table exttabtest_w_new
     GRANT SELECT ON exttabtest TO demoprot_nopriv;
     -- As superuser, REVOKE INSERT privilege on protocol from non-privileged user demoprot_nopriv
     REVOKE INSERT ON PROTOCOL demoprot FROM demoprot_nopriv;
-NOTICE:  no privileges could be revoked from role demoprot_nopriv on object demoprot
+NOTICE:  no privileges could be revoked
     -- login as non-privileged user "demoprot_nopriv"
     SET ROLE demoprot_nopriv;
     select user;
