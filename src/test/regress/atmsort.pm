@@ -1013,7 +1013,7 @@ sub format_query_output
         {
             # If no ordering cols specified (no directive), and SELECT has
             # ORDER BY, see if number of order by cols matches all cols in
-            # selected lists. Treat the order by cols as a column separated
+            # selected lists. Treat the order by cols as a comma separated
             # list and count them. Works ok for simple ORDER BY clauses
             if (defined($directive->{sql_statement}))
             {
