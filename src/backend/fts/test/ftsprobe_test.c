@@ -30,7 +30,7 @@ static void write_log_will_be_called()
 	will_be_called(write_log);
 }
 
-static void probeTimeout_mock_timeout(ProbeConnectionInfo *info)
+static void probeTimeout_mock_timeout(FtsConnectionInfo *info)
 {
 	/*
 	 * set info->startTime to set proper elapse_ms
@@ -43,7 +43,7 @@ static void probeTimeout_mock_timeout(ProbeConnectionInfo *info)
 	write_log_will_be_called();
 }
 
-static void probePollIn_mock_success(ProbeConnectionInfo *info)
+static void probePollIn_mock_success(FtsConnectionInfo *info)
 {
 	expect_any(PQsocket, conn);
 	will_be_called(PQsocket);
@@ -52,7 +52,7 @@ static void probePollIn_mock_success(ProbeConnectionInfo *info)
 }
 
 
-static void probePollIn_mock_timeout(ProbeConnectionInfo *info)
+static void probePollIn_mock_timeout(FtsConnectionInfo *info)
 {
 	expect_any(PQsocket, conn);
 	will_be_called(PQsocket);
@@ -103,15 +103,15 @@ static void PQclear_will_be_called()
 }
 
 /*
- * Scenario: if primary didn't respond in time to FTS probe, probeReceive on
+ * Scenario: if primary didn't respond in time to FTS probe, ftsReceive on
  * master should fail.
  *
  * We are mocking the timeout behavior using probeTimeout().
  */
 void
-test_probeReceive_when_fts_handler_hung(void **state)
+test_ftsReceive_when_fts_handler_hung(void **state)
 {
-	ProbeConnectionInfo info;
+	FtsConnectionInfo info;
 	struct pg_conn conn;
 
 	info.conn = &conn;
@@ -126,19 +126,19 @@ test_probeReceive_when_fts_handler_hung(void **state)
 	/*
 	 * TEST
 	 */
-	bool actual_return_value = probeReceive(&info);
+	bool actual_return_value = ftsReceive(&info);
 
 	assert_false(actual_return_value);
 }
 
 /*
- * Scenario: if primary responds FATAL to FTS probe, probeReceive on master
+ * Scenario: if primary responds FATAL to FTS probe, ftsReceive on master
  * should fail due to PQconsumeInput() failed
  */
 void
-test_probeReceive_when_fts_handler_FATAL(void **state)
+test_ftsReceive_when_fts_handler_FATAL(void **state)
 {
-	ProbeConnectionInfo info;
+	FtsConnectionInfo info;
 	struct pg_conn conn;
 
 	info.conn = &conn;
@@ -154,19 +154,19 @@ test_probeReceive_when_fts_handler_FATAL(void **state)
 	/*
 	 * TEST
 	 */
-	bool actual_return_value = probeReceive(&info);
+	bool actual_return_value = ftsReceive(&info);
 
 	assert_false(actual_return_value);
 }
 
 /*
- * Scenario: if primary response ERROR to FTS probe, probeReceive on master
+ * Scenario: if primary response ERROR to FTS probe, ftsReceive on master
  * should fail due to PQresultStatus(lastResult) returned PGRES_FATAL_ERROR
  */
 void
-test_probeReceive_when_fts_handler_ERROR(void **state)
+test_ftsReceive_when_fts_handler_ERROR(void **state)
 {
-	ProbeConnectionInfo info;
+	FtsConnectionInfo info;
 	struct pg_conn conn;
 
 	info.conn = &conn;
@@ -187,7 +187,7 @@ test_probeReceive_when_fts_handler_ERROR(void **state)
 	/*
 	 * TEST
 	 */
-	bool actual_return_value = probeReceive(&info);
+	bool actual_return_value = ftsReceive(&info);
 
 	assert_false(actual_return_value);
 }
@@ -198,9 +198,9 @@ main(int argc, char* argv[])
 	cmockery_parse_arguments(argc, argv);
 
 	const UnitTest tests[] = {
-		unit_test(test_probeReceive_when_fts_handler_hung),
-		unit_test(test_probeReceive_when_fts_handler_FATAL),
-		unit_test(test_probeReceive_when_fts_handler_ERROR),
+		unit_test(test_ftsReceive_when_fts_handler_hung),
+		unit_test(test_ftsReceive_when_fts_handler_FATAL),
+		unit_test(test_ftsReceive_when_fts_handler_ERROR),
 	};
 	return run_tests(tests);
 }

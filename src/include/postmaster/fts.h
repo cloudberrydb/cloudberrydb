@@ -24,11 +24,11 @@
 /* Queries for FTS messages */
 #define	FTS_MSG_TYPE_PROBE "PROBE"
 
-#define Natts_fts_probe_response 2
-#define Anum_fts_probe_response_is_mirror_up 0
-#define Anum_fts_probe_response_is_in_sync 1
+#define Natts_fts_message_response 2
+#define Anum_fts_message_response_is_mirror_up 0
+#define Anum_fts_message_response_is_in_sync 1
 
-#define FTS_PROBE_RESPONSE_NTUPLES 1
+#define FTS_MESSAGE_RESPONSE_NTUPLES 1
 
 typedef struct
 {
@@ -49,13 +49,13 @@ typedef struct
 {
 	int count;
 	probe_response_per_segment *responses;
-} probe_context;
+} fts_context;
 
-typedef struct ProbeResponse
+typedef struct FtsResponse
 {
 	bool IsMirrorUp;
 	bool IsInSync;
-} ProbeResponse;
+} FtsResponse;
 
 #endif
 
@@ -164,7 +164,7 @@ extern bool FtsIsActive(void);
  * Interface for WALREP specific checking
  */
 extern void HandleFtsWalRepProbe(void);
-extern void FtsWalRepProbeSegments(probe_context *context);
+extern void FtsWalRepMessageSegments(fts_context *context);
 #else
 extern bool probePublishUpdate(CdbComponentDatabases *dbs, uint8 *probe_results);
 

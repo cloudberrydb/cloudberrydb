@@ -301,7 +301,7 @@ PrimaryOrMirrorWillBeUpdated(int count)
 void
 test_probeWalRepPublishUpdate_for_zero_segment(void **state)
 {
-	probe_context context;
+	fts_context context;
 
 	context.count = 0;
 
@@ -316,7 +316,7 @@ test_probeWalRepPublishUpdate_for_zero_segment(void **state)
 void
 test_probeWalRepPublishUpdate_for_FtsIsActive_false(void **state)
 {
-	probe_context context;
+	fts_context context;
 
 	context.count = 1;
 	probe_response_per_segment response;
@@ -341,7 +341,7 @@ test_probeWalRepPublishUpdate_for_FtsIsActive_false(void **state)
 void
 test_probeWalRepPublishUpdate_for_shutdown_requested(void **state)
 {
-	probe_context context;
+	fts_context context;
 
 	context.count = 1;
 	probe_response_per_segment response;
@@ -371,7 +371,7 @@ test_probeWalRepPublishUpdate_for_shutdown_requested(void **state)
 void
 test_PrimayUpMirrorUpNotInSync_to_PrimayUpMirrorUpNotInSync(void **state)
 {
-	probe_context context;
+	fts_context context;
 	CdbComponentDatabases *cdb_component_dbs;
 
 	cdb_component_dbs = InitTestCdb(2,
@@ -397,7 +397,7 @@ test_PrimayUpMirrorUpNotInSync_to_PrimayUpMirrorUpNotInSync(void **state)
 void
 test_PrimayUpMirrorUpNotInSync_to_PrimaryDown(void **state)
 {
-	probe_context context;
+	fts_context context;
 	CdbComponentDatabases *cdb_component_dbs;
 
 	cdb_component_dbs = InitTestCdb(2,
@@ -423,7 +423,7 @@ test_PrimayUpMirrorUpNotInSync_to_PrimaryDown(void **state)
 void
 test_PrimayUpMirrorUpNotInSync_to_PrimaryUpMirrorDownNotInSync(void **state)
 {
-	probe_context context;
+	fts_context context;
 	CdbComponentDatabases *cdb_component_dbs;
 
 	cdb_component_dbs = InitTestCdb(2,
@@ -465,7 +465,7 @@ test_PrimayUpMirrorUpNotInSync_to_PrimaryUpMirrorDownNotInSync(void **state)
 void
 test_PrimaryUpMirrorDownNotInSync_to_PrimayUpMirrorUpNotInSync(void **state)
 {
-	probe_context context;
+	fts_context context;
 	CdbComponentDatabases *cdb_component_dbs;
 
 	cdb_component_dbs = InitTestCdb(3,
@@ -515,7 +515,7 @@ test_PrimaryUpMirrorDownNotInSync_to_PrimayUpMirrorUpNotInSync(void **state)
 void
 test_probeWalRepPublishUpdate_multiple_segments(void **state)
 {
-	probe_context context;
+	fts_context context;
 	CdbComponentDatabases *cdb_component_dbs;
 
 	cdb_component_dbs = InitTestCdb(4,
@@ -586,7 +586,7 @@ test_probeWalRepPublishUpdate_multiple_segments(void **state)
 void
 test_PrimayUpMirrorUpSync_to_PrimaryUpMirrorUpNotInSync(void **state)
 {
-	probe_context context;
+	fts_context context;
 	CdbComponentDatabases *cdb_component_dbs;
 
 	/* Start in SYNC state */
@@ -624,7 +624,7 @@ test_PrimayUpMirrorUpSync_to_PrimaryUpMirrorUpNotInSync(void **state)
 void
 test_PrimayUpMirrorUpSync_to_PrimaryUpMirrorDownNotInSync(void **state)
 {
-	probe_context context;
+	fts_context context;
 	CdbComponentDatabases *cdb_component_dbs;
 
 	/* Start in SYNC mode */
@@ -663,7 +663,7 @@ test_PrimayUpMirrorUpSync_to_PrimaryUpMirrorDownNotInSync(void **state)
 void
 test_PrimayUpMirrorUpSync_to_PrimaryDown(void **state)
 {
-	probe_context context;
+	fts_context context;
 	CdbComponentDatabases *cdb_component_dbs;
 
 	/* set the mode to SYNC in config */
@@ -700,7 +700,7 @@ test_PrimayUpMirrorUpSync_to_PrimaryDown(void **state)
 void
 test_PrimayUpMirrorUpNotInSync_to_PrimayUpMirrorUpSync(void **state)
 {
-	probe_context context;
+	fts_context context;
 	CdbComponentDatabases *cdb_component_dbs;
 
 	cdb_component_dbs = InitTestCdb(1,
@@ -737,7 +737,7 @@ test_PrimayUpMirrorUpNotInSync_to_PrimayUpMirrorUpSync(void **state)
 void
 test_PrimaryUpMirrorDownNotInSync_to_PrimayUpMirrorUpSync(void **state)
 {
-	probe_context context;
+	fts_context context;
 	CdbComponentDatabases *cdb_component_dbs;
 
 	cdb_component_dbs = InitTestCdb(1,
@@ -781,7 +781,7 @@ test_PrimaryUpMirrorDownNotInSync_to_PrimayUpMirrorUpSync(void **state)
 void
 test_PrimaryUpMirrorDownNotInSync_to_PrimayUpMirrorDownNotInSync(void **state)
 {
-	probe_context context;
+	fts_context context;
 	CdbComponentDatabases *cdb_component_dbs;
 
 	cdb_component_dbs = InitTestCdb(1,
@@ -815,7 +815,7 @@ test_PrimaryUpMirrorDownNotInSync_to_PrimayUpMirrorDownNotInSync(void **state)
 void
 test_PrimaryUpMirrorDownNotInSync_to_PrimaryDown(void **state)
 {
-	probe_context context;
+	fts_context context;
 	CdbComponentDatabases *cdb_component_dbs;
 
 	cdb_component_dbs = InitTestCdb(2,

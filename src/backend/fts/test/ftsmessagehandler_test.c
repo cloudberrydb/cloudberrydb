@@ -15,7 +15,7 @@ void AssertFailed()
 }
 
 /* Actual function body */
-#include "../ftsprobehandler.c"
+#include "../ftsmessagehandler.c"
 
 void
 test_HandleFtsWalRepProbe(void **state)

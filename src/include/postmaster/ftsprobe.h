@@ -19,7 +19,7 @@
 #define PROBE_ERR_MSG_LEN   (256)        /* length of error message for errno */
 
 struct pg_conn; /* PGconn ... #include "gp-libpq-fe.h" */
-typedef struct ProbeConnectionInfo
+typedef struct FtsConnectionInfo
 {
 	int16 dbId;                          /* the dbid of the segment */
 	int16 segmentId;                     /* content indicator: -1 for master, 0, ..., n-1 for segments */
@@ -34,10 +34,14 @@ typedef struct ProbeConnectionInfo
 	int16 probe_errno;                   /* saved errno from the latest system call */
 	char errmsg[PROBE_ERR_MSG_LEN];      /* message returned by strerror() */
 	struct pg_conn *conn;                        /* libpq connection object */
-} ProbeConnectionInfo;
+} FtsConnectionInfo;
 
-extern char *errmessage(ProbeConnectionInfo *probeInfo);
-extern bool probePollIn(ProbeConnectionInfo *probeInfo);
-extern bool probeTimeout(ProbeConnectionInfo *probeInfo, const char* calledFrom);
+#ifndef USE_SEGWALREP
+typedef FtsConnectionInfo ProbeConnectionInfo;
+#endif
+
+extern char *errmessage(FtsConnectionInfo *probeInfo);
+extern bool probePollIn(FtsConnectionInfo *probeInfo);
+extern bool probeTimeout(FtsConnectionInfo *probeInfo, const char* calledFrom);
 
 #endif

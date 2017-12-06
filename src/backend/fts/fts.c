@@ -501,7 +501,7 @@ probeWalRepUpdateConfig(int16 dbid, int16 segindex, bool IsSegmentAlive, bool Is
 }
 
 static bool
-probeWalRepPublishUpdate(CdbComponentDatabases *cdbs, probe_context *context)
+probeWalRepPublishUpdate(CdbComponentDatabases *cdbs, fts_context *context)
 {
 	bool is_updated = false;
 
@@ -594,7 +594,7 @@ probeWalRepPublishUpdate(CdbComponentDatabases *cdbs, probe_context *context)
 }
 
 static void
-FtsWalRepInitProbeContext(CdbComponentDatabases *cdbs, probe_context *context)
+FtsWalRepInitProbeContext(CdbComponentDatabases *cdbs, fts_context *context)
 {
 	context->count = cdbs->total_segments;
 	context->responses = (probe_response_per_segment *)palloc(context->count * sizeof(probe_response_per_segment));
@@ -734,10 +734,10 @@ void FtsLoop()
 		oldContext = MemoryContextSwitchTo(probeContext);
 
 #ifdef USE_SEGWALREP
-		probe_context context;
+		fts_context context;
 
 		FtsWalRepInitProbeContext(cdbs, &context);
-		FtsWalRepProbeSegments(&context);
+		FtsWalRepMessageSegments(&context);
 
 		updated_probe_state = probeWalRepPublishUpdate(cdbs, &context);
 #else
