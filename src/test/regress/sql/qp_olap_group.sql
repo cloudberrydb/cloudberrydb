@@ -61,20 +61,10 @@ WHERE sale.pn=product.pn
 GROUP BY ROLLUP((sale.vn),(sale.vn),(sale.qty)),sale.pn,sale.cn;
 
 -- ###### Queries involving COVAR_POP() function ###### --
--- start_ignore
--- GPDB_84_MERGE_FIXME: GPORCA is falling back during Query to DXL translation
--- due to following error: GPDB Expression type: Distinct aggregates not supported in DXL
--- Tracker Story: #153040298
--- Re-enable ORCA once the issue is fixed.
-set optimizer=off;
--- end_ignore
 SELECT DISTINCT sale.qty,sale.pn,GROUPING(sale.pn,sale.pn), TO_CHAR(COALESCE(COVAR_POP(floor(sale.prc-sale.prc),floor(sale.vn-sale.prc)),0),'99999999.9999999'),TO_CHAR(COALESCE(VAR_POP(floor(sale.qty+sale.vn)),0),'99999999.9999999'),TO_CHAR(COALESCE(STDDEV_SAMP(floor(sale.pn)),0),'99999999.9999999'),TO_CHAR(COALESCE(AVG(DISTINCT floor(sale.pn)),0),'99999999.9999999') 
 FROM sale,product
 WHERE sale.pn=product.pn
 GROUP BY (),sale.qty,sale.pn;
--- start_ignore
-reset optimizer;
--- end_ignore
 
 -- ###### Queries involving COVAR_SAMP() function ###### --
 
@@ -168,25 +158,9 @@ GROUP BY ROLLUP((sale.prc),(sale.prc,sale.vn),(sale.qty,sale.qty),(sale.vn)),GRO
 
 -- ###### Rollup with DQA and constants in target list expressions and qualifications with same value as that of constant grouping column ###### --
 SELECT COUNT(DISTINCT cn) as cn_r, f, g FROM (SELECT cn, CASE WHEN (vn = 0) THEN 1 END AS f, 1 AS g FROM sale) sale_view GROUP BY ROLLUP(f,g);
--- start_ignore
--- GPDB_84_MERGE_FIXME: GPORCA is falling back during Query to DXL translation
--- due to following error: GPDB Expression type: Distinct aggregates not supported in DXL
--- Tracker Story: #153040298
--- Re-enable ORCA once the issue is fixed.
-set optimizer=off;
--- end_ignore
 SELECT COUNT(DISTINCT cn) as cn_r, f, g FROM (SELECT cn, vn + 1 AS f, 1 AS g FROM sale) sale_view GROUP BY ROLLUP(f,g) HAVING (f > 1);
--- start_ignore
--- GPDB_84_MERGE_FIXME: GPORCA is falling back during Query to DXL translation
--- due to following error: GPDB Expression type: Distinct aggregates not supported in DXL
--- Tracker Story: #153040298
--- Re-enable ORCA once the issue is fixed.
--- end_ignore
 PREPARE p AS SELECT COUNT(DISTINCT cn) as cn_r, f, g FROM (SELECT cn, vn + $1 AS f, $1 AS g FROM sale) sale_view GROUP BY ROLLUP(f,g) HAVING (g > 1);
 EXECUTE p(2);
--- start_ignore
-reset optimizer;
--- end_ignore
 
 -- ###### Queries involving CUBE with HAVING CLAUSE ###### --
 

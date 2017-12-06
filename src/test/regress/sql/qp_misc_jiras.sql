@@ -1864,11 +1864,6 @@ reset gp_enable_agg_distinct_pruning;
 
 
 set enable_groupagg=off;
--- start_ignore
--- GPDB_84_MERGE_FIXME: GPORCA fallback: GPDB Expression type: Distinct aggregates not supported in DXL
--- Re-enable ORCA once the issue is fixed.
-set optimizer=off;
--- end_ignore
 -- both queries should use hashagg
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.j = t2.j) tmp group by j;
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.i = t2.i) tmp group by j;
@@ -1877,9 +1872,6 @@ set enable_groupagg=on;
 -- first query should use groupagg, and second one - hashagg
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.j = t2.j) tmp group by j;
 explain select count(distinct j) from (select t1.* from qp_misc_jiras.tbl5994_test t1, qp_misc_jiras.tbl5994_test t2 where t1.i = t2.i) tmp group by j;
--- start_ignore
-reset optimizer;
--- end_ignore
 
 drop table qp_misc_jiras.tbl5994_test;
 CREATE TABLE qp_misc_jiras.tbl_8205 (

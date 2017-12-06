@@ -30,16 +30,10 @@ set statement_mem=128000;
 set gp_enable_agg_distinct=off;
 set gp_eager_one_phase_agg=on;
 select count(distinct d) from smallt;
--- start_ignore
--- GPDB_84_MERGE_FIXME: GPORCA fallback: GPDB Expression type: Distinct aggregates not supported in DXL
--- end_ignore
 explain analyze select count(distinct d) from smallt;
 
 set statement_mem=2560;
 select count(distinct d) from bigt;
--- start_ignore
--- GPDB_84_MERGE_FIXME: GPORCA fallback: GPDB Expression type: Distinct aggregates not supported in DXL
--- end_ignore
 explain analyze select count(distinct d) from bigt;
 set statement_mem=128000;
 

@@ -259,6 +259,9 @@ namespace gpdb {
 
 	// get equality operator for given ordering op (i.e. < or >)
 	Oid OidEqualityOpForOrderingOp(Oid opno, bool *reverse);
+	
+	// get ordering operator for given equality op (i.e. =)
+	Oid OidOrderingOpForEqualityOp(Oid opno, bool *reverse);
 
 	// function name
 	char *SzFuncName(Oid funcid);

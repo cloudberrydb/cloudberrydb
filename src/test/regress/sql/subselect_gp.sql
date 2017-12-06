@@ -708,10 +708,6 @@ EXPLAIN SELECT '' AS five, f1 AS "Correlated Field"
 EXPLAIN select count(*) from
   (select 1 from tenk1 a
    where unique1 IN (select hundred from tenk1 b)) ss;
--- start_ignore
--- GPDB_84_MERGE_FIXME: ORCA started supporting this feature, investigate why
-set optimizer = off;
--- end_ignore
 EXPLAIN select count(distinct ss.ten) from
   (select ten from tenk1 a
    where unique1 IN (select hundred from tenk1 b)) ss;
@@ -721,9 +717,6 @@ EXPLAIN select count(*) from
 EXPLAIN select count(distinct ss.ten) from
   (select ten from tenk1 a
    where unique1 IN (select distinct hundred from tenk1 b)) ss;
--- start_ignore
-reset optimizer;
--- end_ignore
 
 --
 -- In case of simple exists query, planner can generate alternative

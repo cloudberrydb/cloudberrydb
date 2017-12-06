@@ -1156,6 +1156,22 @@ gpdb::OidEqualityOpForOrderingOp
 	return InvalidOid;
 }
 
+Oid
+gpdb::OidOrderingOpForEqualityOp
+(
+	Oid opno,
+	bool *reverse
+	)
+{
+	GP_WRAP_START;
+	{
+		/* catalog tables: pg_amop */
+		return get_ordering_op_for_equality_op(opno, reverse);
+	}
+	GP_WRAP_END;
+	return InvalidOid;
+}
+
 char *
 gpdb::SzFuncName
 	(

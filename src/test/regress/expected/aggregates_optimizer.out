@@ -205,7 +205,6 @@ SELECT count(four) AS cnt_1000 FROM onek;
 (1 row)
 
 SELECT count(DISTINCT four) AS cnt_4 FROM onek;
-INFO:  GPORCA failed to produce a plan, falling back to planner
  cnt_4 
 -------
      4
@@ -229,7 +228,6 @@ group by ten order by ten;
 
 select ten, count(four), sum(DISTINCT four) from onek
 group by ten order by ten;
-INFO:  GPORCA failed to produce a plan, falling back to planner
  ten | count | sum 
 -----+-------+-----
    0 |   100 |   2
@@ -288,7 +286,6 @@ CONTEXT:  SQL function "sum3" during startup
 select ten, sum(distinct four) from onek a
 group by ten
 having exists (select 1 from onek b where sum(distinct a.four) = b.four);
-INFO:  GPORCA failed to produce a plan, falling back to planner
  ten | sum 
 -----+-----
    2 |   2
@@ -592,7 +589,6 @@ INFO:  GPORCA failed to produce a plan, falling back to planner
 
 select array_agg(distinct a)
   from (values (1),(2),(1),(3),(null),(2)) v(a);
-INFO:  GPORCA failed to produce a plan, falling back to planner
   array_agg   
 --------------
  {1,2,3,NULL}
@@ -645,7 +641,6 @@ select aggfstr(distinct a,b,c)
   from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
        generate_series(1,3) i;
 INFO:  GPORCA failed to produce a plan, falling back to planner
-INFO:  GPORCA failed to produce a plan, falling back to planner
 CONTEXT:  SQL function "aggf_trans" during startup
                 aggfstr                
 ---------------------------------------
@@ -655,7 +650,6 @@ CONTEXT:  SQL function "aggf_trans" during startup
 select aggfns(distinct a,b,c)
   from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
        generate_series(1,3) i;
-INFO:  GPORCA failed to produce a plan, falling back to planner
 INFO:  GPORCA failed to produce a plan, falling back to planner
 CONTEXT:  SQL function "aggfns_trans" during startup
                     aggfns                     

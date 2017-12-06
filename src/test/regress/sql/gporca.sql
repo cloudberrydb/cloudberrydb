@@ -347,17 +347,9 @@ insert into orca.onek values (439,5,1,3,9,19,9,39,39,439,439,18,19,'XQAAAA','FAA
 insert into orca.onek values (670,6,0,2,0,10,0,70,70,170,670,0,1,'UZAAAA','GAAAAA','OOOOxx');
 insert into orca.onek values (543,7,1,3,3,3,3,43,143,43,543,6,7,'XUAAAA','HAAAAA','VVVVxx');
 
--- start_ignore
--- GPDB_84_MERGE_FIXME: GPORCA fallback: GPDB Expression type: Distinct aggregates not supported in DXL
--- Re-enable GPORCA once issue is fixed
-set optimizer=off;
--- end_ignore
 select ten, sum(distinct four) from orca.onek a
 group by ten 
 having exists (select 1 from orca.onek b where sum(distinct a.four) = b.four);
--- start_ignore
-reset optimizer;
--- end_ignore
 
 -- indexes on partitioned tables
 create table orca.pp(a int) partition by range(a)(partition pp1 start(1) end(10));
@@ -632,25 +624,9 @@ create table orca.tab1(a int, b int, c int, d int, e int);
 insert into orca.tab1 values (1,2,3,4,5);
 insert into orca.tab1 values (1,2,3,4,5);
 insert into orca.tab1 values (1,2,3,4,5);
--- start_ignore
--- GPDB_84_MERGE_FIXME: GPORCA fallback: GPDB Expression type: Distinct aggregates not supported in DXL
--- Re-enable GPORCA once issue is fixed
-set optimizer=off;
--- end_ignore
 select b,d from orca.tab1 group by b,d having min(distinct d)>3;
--- start_ignore
-reset optimizer;
--- end_ignore
 select b,d from orca.tab1 group by b,d having d>3;
--- start_ignore
--- GPDB_84_MERGE_FIXME: GPORCA fallback: GPDB Expression type: Distinct aggregates not supported in DXL
--- Re-enable GPORCA once issue is fixed
-set optimizer=off;
--- end_ignore
 select b,d from orca.tab1 group by b,d having min(distinct d)>b;
--- start_ignore
-reset optimizer;
--- end_ignore
 
 create table orca.fooh1 (a int, b int, c int);
 create table orca.fooh2 (a int, b int, c int);
@@ -1326,17 +1302,9 @@ insert into canSetTag_input_data values(1, 1, 'A', 1);
 insert into canSetTag_input_data values(2, 1, 'A', 0);
 insert into canSetTag_input_data values(3, 0, 'B', 1);
 
--- start_ignore
--- GPDB_84_MERGE_FIXME: GPORCA fallback: GPDB Expression type: Distinct aggregates not supported in DXL
--- Re-enable GPORCA once issue is fixed
-set optimizer=off;
--- end_ignore
 create table canSetTag_bug_table as 
 SELECT attr, class, (select canSetTag_Func(count(distinct class)::int) from canSetTag_input_data)
    as dclass FROM canSetTag_input_data GROUP BY attr, class distributed by (attr);
--- start_ignore
-reset optimizer;
--- end_ignore
 
 drop function canSetTag_Func(x int);
 drop table canSetTag_bug_table;

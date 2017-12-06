@@ -1298,6 +1298,7 @@ CTranslatorScalarToDXL::PdxlnScAggrefFromAggref
 {
 	GPOS_ASSERT(IsA(pexpr, Aggref));
 	const Aggref *paggref = (Aggref *) pexpr;
+	BOOL aggDistinct = false;
 
 	static ULONG rgrgulMapping[][2] =
 		{
@@ -1317,12 +1318,9 @@ CTranslatorScalarToDXL::PdxlnScAggrefFromAggref
 		);
 	}
 
-	// FIXME: ORCA should keep the list of SortGroupClause objects for an Aggref
 	if (paggref->aggdistinct)
 	{
-		GPOS_RAISE(gpdxl::ExmaDXL,
-				   gpdxl::ExmiPlStmt2DXLConversion,
-				   GPOS_WSZ_LIT("Distinct aggregates"));
+		aggDistinct = true;
 	}
 
 	EdxlAggrefStage edxlaggstage = EdxlaggstageSentinel;
@@ -1363,7 +1361,7 @@ CTranslatorScalarToDXL::PdxlnScAggrefFromAggref
 		pmdidResolvedRetType = GPOS_NEW(m_pmp) CMDIdGPDB(paggref->aggtype);
 	}
 
-	CDXLScalarAggref *pdxlopAggref = GPOS_NEW(m_pmp) CDXLScalarAggref(m_pmp, pmdidAgg, pmdidResolvedRetType, paggref->aggdistinct, edxlaggstage);
+	CDXLScalarAggref *pdxlopAggref = GPOS_NEW(m_pmp) CDXLScalarAggref(m_pmp, pmdidAgg, pmdidResolvedRetType, aggDistinct, edxlaggstage);
 
 	// create the DXL node holding the scalar aggref
 	CDXLNode *pdxln = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlopAggref);

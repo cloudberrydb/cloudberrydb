@@ -59,10 +59,6 @@ select cn, vn, pn, sum(qty*prc) from sale group by cube (cn, vn, pn);
 select cn, vn, pn, sum(qty*prc) from sale group by grouping sets ((), (cn), (vn), (pn), (cn,vn), (cn,pn), (vn,pn), (cn,vn,pn));
 --end_equiv
 
--- start_ignore
--- GPDB_84_MERGE_FIXME: Revert this after supporting DQA in ORCA after window merge
-set optimizer = off;
--- end_ignore
 -- start_equiv
 select cn, vn, pn, count(distinct dt) from sale group by cn, vn, pn
 union all
@@ -95,9 +91,6 @@ order by 1,2,3; -- order 1,2,3
 select cn, vn, pn, count(distinct dt) from sale group by cube (cn, vn, pn) order by 1,2,3; -- order 1,2,3
 select cn, vn, pn, count(distinct dt) from sale group by grouping sets ((), (cn), (vn), (pn), (cn,vn), (cn,pn), (vn,pn), (cn,vn,pn)) order by 1,2,3; -- order 1,2,3
 --end_equiv
--- start_ignore
-reset optimizer;
--- end_ignore
 --start_equiv order 1,2,3
 select cn, vn, pn, sum(qty*prc) from sale group by cn, vn, pn
 union all
