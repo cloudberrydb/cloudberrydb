@@ -429,7 +429,7 @@ test_gpbridge_write_no_data(void **state) {
 	gphadoop_context *context = (gphadoop_context *) palloc0(sizeof(gphadoop_context));
 
 	/* call function under test */
-	char*	databuf;
+	char*	databuf = NULL;
 	int		datalen = 0;
 	int bytes_written = gpbridge_write(context, databuf, datalen);
 

@@ -22,7 +22,7 @@ ao_invalid_segment_file_test(uint8 xl_info)
 	XLogRecord record;
 	XLogRecord *mockrecord;
 	xl_ao_target xlaotarget;
-	char *buffer;
+	char *buffer = NULL;
 
 	/* create mock transaction log */
 	relfilenode.spcNode = DEFAULTTABLESPACE_OID;
@@ -53,6 +53,7 @@ ao_invalid_segment_file_test(uint8 xl_info)
 		buffer = (char *) malloc(SizeOfXLogRecord + sizeof(xl_ao_truncate));
 		memcpy(&buffer[SizeOfXLogRecord], &xlaotruncate, sizeof(xl_ao_truncate));
 	}
+
 	memcpy(buffer, &record, SizeOfXLogRecord);
 	mockrecord = (XLogRecord *) buffer;
 
