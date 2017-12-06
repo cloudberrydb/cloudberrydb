@@ -85,8 +85,10 @@ class SQLIsolationExecutor(object):
             self.has_open = True
 
         def join(self):
+            r = None
             print >>self.out_file, " <... completed>"
-            r = self.pipe.recv()
+            if self.has_open:
+                r = self.pipe.recv()
             if r is None:
                 raise Exception("Execution failed")
             print >>self.out_file, r.strip()
