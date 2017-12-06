@@ -402,7 +402,12 @@ external_endscan(FileScanDesc scan)
 	 */
 	if (!scan->fs_noop && scan->fs_file)
 	{
-		url_fclose(scan->fs_file, true, relname);
+		/*
+		 * QueryFinishPending == true means QD have got
+		 * enough tuples and query can return correctly,
+		 * so slient errors when closing external file.
+		 */
+		url_fclose(scan->fs_file, !QueryFinishPending, relname);
 		scan->fs_file = NULL;
 	}
 
