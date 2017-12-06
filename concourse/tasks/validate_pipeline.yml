@@ -6,4 +6,4 @@ inputs:
 run:
   path: gpdb_src/concourse/scripts/validate_pipeline_release_jobs.py
 params:
-  PIPELINE_FILE: gpdb_src/concourse/pipelines/pipeline.yml
+  PIPELINE_FILE: gpdb_src/concourse/pipelines/gpdb_master-generated.yml
