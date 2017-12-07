@@ -17,3 +17,6 @@ run:
     - bin_orca
     - --action=build
     - --configure-option=--disable-gpcloud
+params:
+  CC: /opt/gcc-6.2.0/bin/gcc
+  CXX: /opt/gcc-6.2.0/bin/g++
