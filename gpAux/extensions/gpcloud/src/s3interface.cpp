@@ -36,26 +36,7 @@ Response S3InterfaceService::getResponseWithRetries(const string &url, HTTPHeade
 
     while (retry--) {
         try {
-            Response response = this->restfulService->get(url, headers);
-
-            if (response.getStatus() == RESPONSE_OK) {
-                return response;
-            }
-
-            S3MessageParser s3msg(response);
-            message = s3msg.getMessage();
-            ResponseCode responseCode = response.getResponseCode();
-
-            if ((responseCode == 500) || (responseCode == 503)) {
-                S3_DIE(S3ConnectionError, message);
-            }
-            if (responseCode == 400) {
-                if (s3msg.getCode().compare("RequestTimeout") == 0) {
-                    S3_DIE(S3ConnectionError, message);
-                }
-            }
-
-            return response;
+            return this->restfulService->get(url, headers);
         } catch (S3ConnectionError &e) {
             message = e.getMessage();
             if (S3QueryIsAbortInProgress()) {
@@ -75,26 +56,7 @@ Response S3InterfaceService::putResponseWithRetries(const string &url, HTTPHeade
 
     while (retry--) {
         try {
-            Response response = this->restfulService->put(url, headers, data);
-
-            if (response.getStatus() == RESPONSE_OK) {
-                return response;
-            }
-
-            S3MessageParser s3msg(response);
-            message = s3msg.getMessage();
-            ResponseCode responseCode = response.getResponseCode();
-
-            if ((responseCode == 500) || (responseCode == 503)) {
-                S3_DIE(S3ConnectionError, message);
-            }
-            if (responseCode == 400) {
-                if (s3msg.getCode().compare("RequestTimeout") == 0) {
-                    S3_DIE(S3ConnectionError, message);
-                }
-            }
-
-            return response;
+            return this->restfulService->put(url, headers, data);
         } catch (S3ConnectionError &e) {
             message = e.getMessage();
             if (S3QueryIsAbortInProgress()) {
@@ -115,26 +77,7 @@ Response S3InterfaceService::postResponseWithRetries(const string &url, HTTPHead
 
     while (retry--) {
         try {
-            Response response = this->restfulService->post(url, headers, data);
-
-            if (response.getStatus() == RESPONSE_OK) {
-                return response;
-            }
-
-            S3MessageParser s3msg(response);
-            message = s3msg.getMessage();
-            ResponseCode responseCode = response.getResponseCode();
-
-            if ((responseCode == 500) || (responseCode == 503)) {
-                S3_DIE(S3ConnectionError, message);
-            }
-            if (responseCode == 400) {
-                if (s3msg.getCode().compare("RequestTimeout") == 0) {
-                    S3_DIE(S3ConnectionError, message);
-                }
-            }
-
-            return response;
+            return this->restfulService->post(url, headers, data);
         } catch (S3ConnectionError &e) {
             message = e.getMessage();
             if (S3QueryIsAbortInProgress()) {
@@ -158,13 +101,7 @@ ResponseCode S3InterfaceService::headResponseWithRetries(const string &url, HTTP
 
     while (retry--) {
         try {
-            ResponseCode responseCode = this->restfulService->head(url, headers);
-
-            if ((responseCode == 500) || (responseCode == 503)) {
-                S3_DIE(S3ConnectionError, "Server temporary unavailable");
-            }
-
-            return responseCode;
+            return this->restfulService->head(url, headers);
         } catch (S3ConnectionError &e) {
             message = e.getMessage();
             if (S3QueryIsAbortInProgress()) {
@@ -185,26 +122,7 @@ Response S3InterfaceService::deleteRequestWithRetries(const string &url, HTTPHea
 
     while (retry--) {
         try {
-            Response response = this->restfulService->deleteRequest(url, headers);
-
-            if (response.getStatus() == RESPONSE_OK) {
-                return response;
-            }
-
-            S3MessageParser s3msg(response);
-            message = s3msg.getMessage();
-            ResponseCode responseCode = response.getResponseCode();
-
-            if ((responseCode == 500) || (responseCode == 503)) {
-                S3_DIE(S3ConnectionError, message);
-            }
-            if (responseCode == 400) {
-                if (s3msg.getCode().compare("RequestTimeout") == 0) {
-                    S3_DIE(S3ConnectionError, message);
-                }
-            }
-
-            return response;
+            return this->restfulService->deleteRequest(url, headers);
         } catch (S3ConnectionError &e) {
             message = e.getMessage();
             if (S3QueryIsAbortInProgress()) {
@@ -636,52 +554,4 @@ bool S3InterfaceService::abortUpload(const S3Url &s3Url, const string &uploadId)
     } else {
         S3_DIE(S3RuntimeError, "unexpected response status");
     }
-}
-
-S3MessageParser::S3MessageParser(const Response &resp)
-    : xmlptr(NULL), message("Unkown error"), code("Unknown error code") {
-    // Compatible S3 services don't always return XML
-    if (resp.getRawData().data() == NULL) {
-        return;
-    }
-
-    xmlptr = xmlCreatePushParserCtxt(NULL, NULL, (const char *)(resp.getRawData().data()),
-                                     resp.getRawData().size(), "S3MessageParser.xml");
-    if (xmlptr != NULL) {
-        xmlParseChunk(xmlptr, "", 0, 1);
-        message = parseS3Tag("Message");
-        code = parseS3Tag("Code");
-    }
-}
-
-S3MessageParser::~S3MessageParser() {
-    if (xmlptr != NULL) {
-        xmlFreeDoc(xmlptr->myDoc);
-        xmlFreeParserCtxt(xmlptr);
-    }
-}
-
-string S3MessageParser::parseS3Tag(const string &tag) {
-    string contentStr("Unknown value");
-
-    xmlNode *rootElement = xmlDocGetRootElement(xmlptr->myDoc);
-    if (rootElement == NULL) {
-        S3ERROR("Failed to parse returned xml of bucket list");
-        return contentStr;
-    }
-
-    xmlNodePtr curNode = rootElement->xmlChildrenNode;
-    while (curNode != NULL) {
-        if (xmlStrcmp(curNode->name, (const xmlChar *)tag.c_str()) == 0) {
-            char *content = (char *)xmlNodeGetContent(curNode);
-            if (content != NULL) {
-                contentStr = content;
-                xmlFree(content);
-            }
-            return contentStr;
-        }
-
-        curNode = curNode->next;
-    }
-    return contentStr;
 }
