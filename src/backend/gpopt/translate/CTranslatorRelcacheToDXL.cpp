@@ -1461,7 +1461,7 @@ CTranslatorRelcacheToDXL::FDefaultPartition
 //		CTranslatorRelcacheToDXL::PdrgpulIndexIncludedColumns
 //
 //	@doc:
-//		Compute the included colunms in an index
+//		Compute the included columns in an index
 //
 //---------------------------------------------------------------------------
 DrgPul *
