@@ -1189,7 +1189,6 @@ shdepDropOwned(List *roleids, DropBehavior behavior)
 					istmt.grantees = list_make1_oid(roleid);
 					istmt.grant_option = false;
 					istmt.behavior = DROP_CASCADE;
-					istmt.cooked_privs = NIL;
 
 					ExecGrantStmt_oids(&istmt);
 					break;

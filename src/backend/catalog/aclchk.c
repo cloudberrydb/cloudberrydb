@@ -298,6 +298,12 @@ ExecuteGrantStmt(GrantStmt *stmt)
 	istmt.is_grant = stmt->is_grant;
 	istmt.objtype = stmt->objtype;
 	istmt.objects = objectNamesToOids(stmt->objtype, stmt->objects);
+	/* all_privs to be filled below */
+	/* privileges to be filled below */
+	istmt.grantees = NIL;
+	/* filled below */
+	istmt.grant_option = stmt->grant_option;
+	istmt.behavior = stmt->behavior;
 
 	/* If this is a GRANT/REVOKE on a table, expand partition references */
 	if (istmt.objtype == ACL_OBJECT_RELATION)
@@ -329,7 +335,7 @@ ExecuteGrantStmt(GrantStmt *stmt)
 						added_objs = true;
 
 					objs = list_concat(objs, a);
-	
+
 					/* find_all_inheritors() adds me, don't do it twice */
 					add_self = false;
 				}
@@ -362,133 +368,110 @@ ExecuteGrantStmt(GrantStmt *stmt)
 		stmt->objects = n;
 	}
 
-	if (stmt->cooked_privs)
+	/*
+	 * Convert the PrivGrantee list into an Oid list.  Note that at this point
+	 * we insert an ACL_ID_PUBLIC into the list if an empty role name is
+	 * detected (which is what the grammar uses if PUBLIC is found), so
+	 * downstream there shouldn't be any additional work needed to support
+	 * this case.
+	 */
+	foreach(cell, stmt->grantees)
 	{
-		istmt.all_privs = false;
-		istmt.privileges = 0;
-		istmt.grantees = NIL;
-		istmt.grant_option = stmt->grant_option;
-		istmt.behavior = stmt->behavior;
-		istmt.cooked_privs = stmt->cooked_privs;
+		PrivGrantee *grantee = (PrivGrantee *) lfirst(cell);
+
+		if (grantee->rolname == NULL)
+			istmt.grantees = lappend_oid(istmt.grantees, ACL_ID_PUBLIC);
+		else
+			istmt.grantees =
+				lappend_oid(istmt.grantees,
+							get_roleid_checked(grantee->rolname));
+	}
+
+	/*
+	 * Convert stmt->privileges, a textual list, into an AclMode bitmask.
+	 */
+	switch (stmt->objtype)
+	{
+			/*
+			 * Because this might be a sequence, we test both relation and
+			 * sequence bits, and later do a more limited test when we know
+			 * the object type.
+			 */
+		case ACL_OBJECT_RELATION:
+			all_privileges = ACL_ALL_RIGHTS_RELATION | ACL_ALL_RIGHTS_SEQUENCE;
+			errormsg = gettext_noop("invalid privilege type %s for relation");
+			break;
+		case ACL_OBJECT_SEQUENCE:
+			all_privileges = ACL_ALL_RIGHTS_SEQUENCE;
+			errormsg = gettext_noop("invalid privilege type %s for sequence");
+			break;
+		case ACL_OBJECT_DATABASE:
+			all_privileges = ACL_ALL_RIGHTS_DATABASE;
+			errormsg = gettext_noop("invalid privilege type %s for database");
+			break;
+		case ACL_OBJECT_FUNCTION:
+			all_privileges = ACL_ALL_RIGHTS_FUNCTION;
+			errormsg = gettext_noop("invalid privilege type %s for function");
+			break;
+		case ACL_OBJECT_LANGUAGE:
+			all_privileges = ACL_ALL_RIGHTS_LANGUAGE;
+			errormsg = gettext_noop("invalid privilege type %s for language");
+			break;
+		case ACL_OBJECT_NAMESPACE:
+			all_privileges = ACL_ALL_RIGHTS_NAMESPACE;
+			errormsg = gettext_noop("invalid privilege type %s for schema");
+			break;
+		case ACL_OBJECT_TABLESPACE:
+			all_privileges = ACL_ALL_RIGHTS_TABLESPACE;
+			errormsg = gettext_noop("invalid privilege type %s for tablespace");
+			break;
+		case ACL_OBJECT_FDW:
+			all_privileges = ACL_ALL_RIGHTS_FDW;
+			errormsg = gettext_noop("invalid privilege type %s for foreign-data wrapper");
+			break;
+		case ACL_OBJECT_FOREIGN_SERVER:
+			all_privileges = ACL_ALL_RIGHTS_FOREIGN_SERVER;
+			errormsg = gettext_noop("invalid privilege type %s for foreign server");
+			break;
+		case ACL_OBJECT_EXTPROTOCOL:
+			all_privileges = ACL_ALL_RIGHTS_EXTPROTOCOL;
+			errormsg = gettext_noop("invalid privilege type %s for external protocol");
+			break;
+		default:
+			/* keep compiler quiet */
+			all_privileges = ACL_NO_RIGHTS;
+			errormsg = NULL;
+			elog(ERROR, "unrecognized GrantStmt.objtype: %d",
+				 (int) stmt->objtype);
+	}
+
+	if (stmt->privileges == NIL)
+	{
+		istmt.all_privs = true;
+
+		/*
+		 * will be turned into ACL_ALL_RIGHTS_* by the internal routines
+		 * depending on the object type
+		 */
+		istmt.privileges = ACL_NO_RIGHTS;
 	}
 	else
 	{
-		/* all_privs to be filled below */
-		/* privileges to be filled below */
-		istmt.grantees = NIL;
-		/* filled below */
-		istmt.grant_option = stmt->grant_option;
-		istmt.behavior = stmt->behavior;
-	
-	
-		/*
-		 * Convert the PrivGrantee list into an Oid list.  Note that at this point
-		 * we insert an ACL_ID_PUBLIC into the list if an empty role name is
-		 * detected (which is what the grammar uses if PUBLIC is found), so
-		 * downstream there shouldn't be any additional work needed to support
-		 * this case.
-		 */
-		foreach(cell, stmt->grantees)
+		istmt.all_privs = false;
+		istmt.privileges = ACL_NO_RIGHTS;
+
+		foreach(cell, stmt->privileges)
 		{
-			PrivGrantee *grantee = (PrivGrantee *) lfirst(cell);
-	
-			if (grantee->rolname == NULL)
-				istmt.grantees = lappend_oid(istmt.grantees, ACL_ID_PUBLIC);
-			else
-				istmt.grantees =
-					lappend_oid(istmt.grantees,
-								get_roleid_checked(grantee->rolname));
+			char	   *privname = strVal(lfirst(cell));
+			AclMode		priv = string_to_privilege(privname);
+
+			if (priv & ~((AclMode) all_privileges))
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_GRANT_OPERATION),
+						 errmsg(errormsg, privilege_to_string(priv))));
+
+			istmt.privileges |= priv;
 		}
-	
-		/*
-		 * Convert stmt->privileges, a textual list, into an AclMode bitmask.
-		 */
-		switch (stmt->objtype)
-		{
-				/*
-				 * Because this might be a sequence, we test both relation and
-				 * sequence bits, and later do a more limited test when we know
-				 * the object type.
-				 */
-			case ACL_OBJECT_RELATION:
-				all_privileges = ACL_ALL_RIGHTS_RELATION | ACL_ALL_RIGHTS_SEQUENCE;
-				errormsg = gettext_noop("invalid privilege type %s for relation");
-				break;
-			case ACL_OBJECT_SEQUENCE:
-				all_privileges = ACL_ALL_RIGHTS_SEQUENCE;
-				errormsg = gettext_noop("invalid privilege type %s for sequence");
-				break;
-			case ACL_OBJECT_DATABASE:
-				all_privileges = ACL_ALL_RIGHTS_DATABASE;
-				errormsg = gettext_noop("invalid privilege type %s for database");
-				break;
-			case ACL_OBJECT_FUNCTION:
-				all_privileges = ACL_ALL_RIGHTS_FUNCTION;
-				errormsg = gettext_noop("invalid privilege type %s for function");
-				break;
-			case ACL_OBJECT_LANGUAGE:
-				all_privileges = ACL_ALL_RIGHTS_LANGUAGE;
-				errormsg = gettext_noop("invalid privilege type %s for language");
-				break;
-			case ACL_OBJECT_NAMESPACE:
-				all_privileges = ACL_ALL_RIGHTS_NAMESPACE;
-				errormsg = gettext_noop("invalid privilege type %s for schema");
-				break;
-			case ACL_OBJECT_TABLESPACE:
-				all_privileges = ACL_ALL_RIGHTS_TABLESPACE;
-				errormsg = gettext_noop("invalid privilege type %s for tablespace");
-				break;
-			case ACL_OBJECT_FDW:
-				all_privileges = ACL_ALL_RIGHTS_FDW;
-				errormsg = gettext_noop("invalid privilege type %s for foreign-data wrapper");
-				break;
-			case ACL_OBJECT_FOREIGN_SERVER:
-				all_privileges = ACL_ALL_RIGHTS_FOREIGN_SERVER;
-				errormsg = gettext_noop("invalid privilege type %s for foreign server");
-				break;
-			case ACL_OBJECT_EXTPROTOCOL:
-				all_privileges = ACL_ALL_RIGHTS_EXTPROTOCOL;
-				errormsg = gettext_noop("invalid privilege type %s for external protocol");
-				break;
-			default:
-				/* keep compiler quiet */
-				all_privileges = ACL_NO_RIGHTS;
-				errormsg = NULL;
-				elog(ERROR, "unrecognized GrantStmt.objtype: %d",
-					 (int) stmt->objtype);
-		}
-	
-		if (stmt->privileges == NIL)
-		{
-			istmt.all_privs = true;
-	
-			/*
-			 * will be turned into ACL_ALL_RIGHTS_* by the internal routines
-			 * depending on the object type
-			 */
-			istmt.privileges = ACL_NO_RIGHTS;
-		}
-		else
-		{
-			istmt.all_privs = false;
-			istmt.privileges = ACL_NO_RIGHTS;
-	
-			foreach(cell, stmt->privileges)
-			{
-				char	   *privname = strVal(lfirst(cell));
-				AclMode		priv = string_to_privilege(privname);
-	
-				if (priv & ~((AclMode) all_privileges))
-					ereport(ERROR,
-							(errcode(ERRCODE_INVALID_GRANT_OPERATION),
-							 errmsg(errormsg,
-									privilege_to_string(priv))));
-	
-				istmt.privileges |= priv;
-			}
-		}
-	
-		istmt.cooked_privs = NIL;
 	}
 
 	/* reset flag before processing the command; see below */
@@ -720,7 +703,7 @@ objectNamesToOids(GrantObjectType objtype, List *objnames)
 
 				objects = lappend_oid(objects, ptcid);
 			}
-			break;			
+			break;
 		default:
 			elog(ERROR, "unrecognized GrantStmt.objtype: %d",
 				 (int) objtype);
@@ -751,19 +734,16 @@ ExecGrant_Relation(InternalGrant *istmt)
 		Acl		   *old_acl;
 		Acl		   *new_acl;
 		Oid			grantorId;
-		Oid			ownerId	 = InvalidOid;
+		Oid			ownerId;
 		HeapTuple	tuple;
 		HeapTuple	newtuple;
 		Datum		values[Natts_pg_class];
 		bool		nulls[Natts_pg_class];
 		bool		replaces[Natts_pg_class];
+		int			noldmembers;
 		int			nnewmembers;
-		Oid		   *newmembers;
-		int			noldmembers = 0;
 		Oid		   *oldmembers;
-		bool		bTemp;
-
-		bTemp = false;
+		Oid		   *newmembers;
 
 		tuple = SearchSysCache(RELOID,
 							   ObjectIdGetDatum(relOid),
@@ -794,145 +774,107 @@ ExecGrant_Relation(InternalGrant *istmt)
 					 errmsg("\"%s\" is not a sequence",
 							NameStr(pg_class_tuple->relname))));
 
-		/* pre-cooked privileges -- probably from ADD PARTITION */
-		if (istmt->cooked_privs)
+		/* Adjust the default permissions based on whether it is a sequence */
+		if (istmt->all_privs && istmt->privileges == ACL_NO_RIGHTS)
 		{
-			ListCell *lc;
-			AclItem *aip;
-			int size = ACL_N_SIZE(list_length(istmt->cooked_privs));
-
-			new_acl = (Acl *) palloc0(size);
-			SET_VARSIZE(new_acl, size);
-			new_acl->ndim = 1;
-			new_acl->dataoffset = 0;	/* we never put in any nulls */
-			new_acl->elemtype = ACLITEMOID;
-			ARR_LBOUND(new_acl)[0] = 1;
-			ARR_DIMS(new_acl)[0] = list_length(istmt->cooked_privs);
-			aip = ACL_DAT(new_acl);
-
-			foreach(lc, istmt->cooked_privs)
-			{
-				char *aclstr = strVal(lfirst(lc));
-				AclItem *newai;
-
-				newai = (AclItem *)DatumGetPointer(DirectFunctionCall1(aclitemin,
-											CStringGetDatum(aclstr)));
-
-				aip->ai_grantee = newai->ai_grantee;
-				aip->ai_grantor = newai->ai_grantor;
-				aip->ai_privs = newai->ai_privs;
-
-				aip++;
-			}
+			if (pg_class_tuple->relkind == RELKIND_SEQUENCE)
+				this_privileges = ACL_ALL_RIGHTS_SEQUENCE;
+			else
+				this_privileges = ACL_ALL_RIGHTS_RELATION;
 		}
 		else
+			this_privileges = istmt->privileges;
+
+		/*
+		 * The GRANT TABLE syntax can be used for sequences and non-sequences,
+		 * so we have to look at the relkind to determine the supported
+		 * permissions.  The OR of table and sequence permissions were already
+		 * checked.
+		 */
+		if (istmt->objtype == ACL_OBJECT_RELATION)
 		{
-			/* 
-			 * Adjust the default permissions based on whether it is a 
-			 * sequence
-			 */
-			if (istmt->all_privs && istmt->privileges == ACL_NO_RIGHTS)
+			if (pg_class_tuple->relkind == RELKIND_SEQUENCE)
 			{
-				if (pg_class_tuple->relkind == RELKIND_SEQUENCE)
-					this_privileges = ACL_ALL_RIGHTS_SEQUENCE;
-				else
-					this_privileges = ACL_ALL_RIGHTS_RELATION;
-			}
-			else
-				this_privileges = istmt->privileges;
-	
-			/*
-			 * The GRANT TABLE syntax can be used for sequences and
-			 * non-sequences, so we have to look at the relkind to determine
-			 * the supported permissions.  The OR of table and sequence
-			 * permissions were already checked.
-			 */
-			if (istmt->objtype == ACL_OBJECT_RELATION)
-			{
-				if (pg_class_tuple->relkind == RELKIND_SEQUENCE)
+				/*
+				 * For backward compatibility, throw just a warning for
+				 * invalid sequence permissions when using the non-sequence
+				 * GRANT syntax is used.
+				 */
+				if (this_privileges & ~((AclMode) ACL_ALL_RIGHTS_SEQUENCE))
 				{
 					/*
-					 * For backward compatibility, throw just a warning for
-					 * invalid sequence permissions when using the non-sequence
-					 * GRANT syntax is used.
+					 * Mention the object name because the user needs to know
+					 * which operations succeeded.  This is required because
+					 * WARNING allows the command to continue.
 					 */
-					if (this_privileges & ~((AclMode) ACL_ALL_RIGHTS_SEQUENCE))
-					{
-						/*
-						 * Mention the object name because the user
-						 * needs to know which operations
-						 * succeeded. This is required because WARNING
-						 * allows the command to continue.
-						 */
-						ereport(WARNING,
-								(errcode(ERRCODE_INVALID_GRANT_OPERATION),
-								 errmsg("sequence \"%s\" only supports USAGE, SELECT, and UPDATE",
-										NameStr(pg_class_tuple->relname))));
-						this_privileges &= (AclMode) ACL_ALL_RIGHTS_SEQUENCE;
-					}
-				}
-				else
-				{
-					if (this_privileges & ~((AclMode) ACL_ALL_RIGHTS_RELATION))
-					{
-						/*
-						 * USAGE is the only permission supported by
-						 * sequences but not by non-sequences.  Don't
-						 * mention the object name because we didn't
-						 * in the combined TABLE | SEQUENCE check.
-						 */
-						ereport(ERROR,
-								(errcode(ERRCODE_INVALID_GRANT_OPERATION),
-							  errmsg("invalid privilege type USAGE for table")));
-					}
+					ereport(WARNING,
+							(errcode(ERRCODE_INVALID_GRANT_OPERATION),
+							 errmsg("sequence \"%s\" only supports USAGE, SELECT, and UPDATE",
+									NameStr(pg_class_tuple->relname))));
+					this_privileges &= (AclMode) ACL_ALL_RIGHTS_SEQUENCE;
 				}
 			}
-
-			/*
-			 * Get owner ID and working copy of existing ACL. If
-			 * there's no ACL, substitute the proper default.
-			 */
-			ownerId = pg_class_tuple->relowner;
-			aclDatum = SysCacheGetAttr(RELOID, tuple, Anum_pg_class_relacl,
-									   &isNull);
-			if (isNull)
-				old_acl = acldefault(pg_class_tuple->relkind == RELKIND_SEQUENCE ?
-									 ACL_OBJECT_SEQUENCE : ACL_OBJECT_RELATION,
-									 ownerId);
 			else
-				old_acl = DatumGetAclPCopy(aclDatum);
-
-			/* Determine ID to do the grant as, and available grant options */
-			select_best_grantor(GetUserId(), this_privileges,
-								old_acl, ownerId,
-								&grantorId, &avail_goptions);
-
-			/*
-			 * Restrict the privileges to what we can actually grant,
-			 * and emit the standards-mandated warning and error
-			 * messages.
-			 */
-			this_privileges =
-				restrict_and_check_grant(istmt->is_grant, avail_goptions,
-										 istmt->all_privs, this_privileges,
-										 relOid, grantorId,
-									  pg_class_tuple->relkind == RELKIND_SEQUENCE
-										 ? ACL_KIND_SEQUENCE : ACL_KIND_CLASS,
-										 NameStr(pg_class_tuple->relname));
-	
-			/*
-			 * Generate new ACL.
-			 *
-			 * We need the members of both old and new ACLs so we can
-			 * correct the shared dependency information.
-			 */
-			noldmembers = aclmembers(old_acl, &oldmembers);
-	
-			new_acl = merge_acl_with_grant(old_acl, istmt->is_grant,
-										   istmt->grant_option, istmt->behavior,
-										   istmt->grantees, this_privileges,
-										   grantorId, ownerId, NameStr(pg_class_tuple->relname));
+			{
+				if (this_privileges & ~((AclMode) ACL_ALL_RIGHTS_RELATION))
+				{
+					/*
+					 * USAGE is the only permission supported by sequences but
+					 * not by non-sequences.  Don't mention the object name
+					 * because we didn't in the combined TABLE | SEQUENCE
+					 * check.
+					 */
+					ereport(ERROR,
+							(errcode(ERRCODE_INVALID_GRANT_OPERATION),
+						  errmsg("invalid privilege type USAGE for table")));
+				}
+			}
 		}
+
+		/*
+		 * Get owner ID and working copy of existing ACL. If there's no ACL,
+		 * substitute the proper default.
+		 */
+		ownerId = pg_class_tuple->relowner;
+		aclDatum = SysCacheGetAttr(RELOID, tuple, Anum_pg_class_relacl,
+								   &isNull);
+		if (isNull)
+			old_acl = acldefault(pg_class_tuple->relkind == RELKIND_SEQUENCE ?
+								 ACL_OBJECT_SEQUENCE : ACL_OBJECT_RELATION,
+								 ownerId);
+		else
+			old_acl = DatumGetAclPCopy(aclDatum);
+
+		/* Determine ID to do the grant as, and available grant options */
+		select_best_grantor(GetUserId(), this_privileges,
+							old_acl, ownerId,
+							&grantorId, &avail_goptions);
+
+		/*
+		 * Restrict the privileges to what we can actually grant, and emit the
+		 * standards-mandated warning and error messages.
+		 */
+		this_privileges =
+			restrict_and_check_grant(istmt->is_grant, avail_goptions,
+									 istmt->all_privs, this_privileges,
+									 relOid, grantorId,
+								  pg_class_tuple->relkind == RELKIND_SEQUENCE
+									 ? ACL_KIND_SEQUENCE : ACL_KIND_CLASS,
+									 NameStr(pg_class_tuple->relname));
+
+		/*
+		 * Generate new ACL.
+		 *
+		 * We need the members of both old and new ACLs so we can correct the
+		 * shared dependency information.
+		 */
+		noldmembers = aclmembers(old_acl, &oldmembers);
+
+		new_acl = merge_acl_with_grant(old_acl, istmt->is_grant,
+									   istmt->grant_option, istmt->behavior,
+									   istmt->grantees, this_privileges,
+									   grantorId, ownerId,
+									   NameStr(pg_class_tuple->relname));
 
 		nnewmembers = aclmembers(new_acl, &newmembers);
 
@@ -954,32 +896,29 @@ ExecGrant_Relation(InternalGrant *istmt)
 		/* MPP-7572: Don't track metadata if table in any
 		 * temporary namespace
 		 */
-		bTemp = isAnyTempNamespace(pg_class_tuple->relnamespace);
-
-		/* MPP-6929: metadata tracking */
-		if (!bTemp && 
-			(Gp_role == GP_ROLE_DISPATCH)
-			&& (
-				(pg_class_tuple->relkind == RELKIND_INDEX) ||
-				(pg_class_tuple->relkind == RELKIND_RELATION) ||
-				(pg_class_tuple->relkind == RELKIND_SEQUENCE) ||
-				(pg_class_tuple->relkind == RELKIND_VIEW)))
-			MetaTrackUpdObject(RelationRelationId,
-							   relOid,
-							   GetUserId(), /* not grantorId, */
-							   "PRIVILEGE", 
-							   (istmt->is_grant) ? "GRANT" : "REVOKE"
-					);
-
-
-		if (!istmt->cooked_privs)
+		if (Gp_role == GP_ROLE_DISPATCH)
 		{
-			/* Update the shared dependency ACL info */
-			updateAclDependencies(RelationRelationId, relOid,
-								  ownerId, istmt->is_grant,
-								  noldmembers, oldmembers,
-								  nnewmembers, newmembers);
+			bool		bTemp = isAnyTempNamespace(pg_class_tuple->relnamespace);
+
+			/* MPP-6929: metadata tracking */
+			if (!bTemp
+				&& ((pg_class_tuple->relkind == RELKIND_INDEX) ||
+					(pg_class_tuple->relkind == RELKIND_RELATION) ||
+					(pg_class_tuple->relkind == RELKIND_SEQUENCE) ||
+					(pg_class_tuple->relkind == RELKIND_VIEW)))
+				MetaTrackUpdObject(RelationRelationId,
+								   relOid,
+								   GetUserId(), /* not grantorId, */
+								   "PRIVILEGE",
+								   (istmt->is_grant) ? "GRANT" : "REVOKE"
+					);
 		}
+
+		/* Update the shared dependency ACL info */
+		updateAclDependencies(RelationRelationId, relOid,
+							  ownerId, istmt->is_grant,
+							  noldmembers, oldmembers,
+							  nnewmembers, newmembers);
 
 		ReleaseSysCache(tuple);
 
@@ -989,6 +928,100 @@ ExecGrant_Relation(InternalGrant *istmt)
 		CommandCounterIncrement();
 	}
 
+	heap_close(relation, RowExclusiveLock);
+}
+
+/*
+ * Copy ACL info from one relation to another.
+ *
+ * This is currently used by ADD PARTITION, to copy the ACLs of the parent
+ * to the new partition.
+ */
+void
+CopyRelationAcls(Oid srcId, Oid destId)
+{
+	Relation	relation;
+	Datum		aclDatum;
+	bool		isNull;
+	Acl		   *acl;
+	Form_pg_class pg_class_tuple;
+	HeapTuple	srcTuple;
+	HeapTuple	destTuple;
+	HeapTuple	newTuple;
+	Datum		values[Natts_pg_class];
+	bool		nulls[Natts_pg_class];
+	bool		replaces[Natts_pg_class];
+	int			nnewmembers;
+	Oid		   *newmembers;
+	Oid			ownerId;
+
+	relation = heap_open(RelationRelationId, RowExclusiveLock);
+
+	/* Look up the ACL on the source relation. */
+	srcTuple = SearchSysCache1(RELOID, ObjectIdGetDatum(srcId));
+	if (!HeapTupleIsValid(srcTuple))
+		elog(ERROR, "cache lookup failed for relation %u", srcId);
+	aclDatum = SysCacheGetAttr(RELOID, srcTuple, Anum_pg_class_relacl,
+							   &isNull);
+	if (isNull)
+		acl = NULL;
+	else
+		acl = DatumGetAclPCopy(aclDatum);
+
+	/* Open the pg_class row of the dest relation */
+	destTuple = SearchSysCache1(RELOID, ObjectIdGetDatum(destId));
+	if (!HeapTupleIsValid(destTuple))
+		elog(ERROR, "cache lookup failed for relation %u", destId);
+	pg_class_tuple = (Form_pg_class) GETSTRUCT(destTuple);
+
+	if (pg_class_tuple->relkind != RELKIND_RELATION)
+		elog(ERROR, "unexpected relkind %c",  pg_class_tuple->relkind);
+
+	/*
+	 * Check that the target ACL is NULL. Overwriting a non-NULL would require
+	 * removing the old dependencies first, and we're not preprared to do
+	 * that. In the current use of this function, there should be no previous
+	 * privileges.
+	 */
+	(void) SysCacheGetAttr(RELOID, destTuple, Anum_pg_class_relacl,
+						   &isNull);
+	if (!isNull)
+		elog(ERROR, "cannot copy ACL from parent, because there is an existing ACL");
+
+	/* Replace the ACL value */
+	MemSet(values, 0, sizeof(values));
+	MemSet(nulls, false, sizeof(nulls));
+	MemSet(replaces, false, sizeof(replaces));
+
+	replaces[Anum_pg_class_relacl - 1] = true;
+	if (acl)
+	{
+		values[Anum_pg_class_relacl - 1] = PointerGetDatum(acl);
+		nulls[Anum_pg_class_relacl - 1] = false;
+	}
+	else
+	{
+		values[Anum_pg_class_relacl - 1] = (Datum) 0;
+		nulls[Anum_pg_class_relacl - 1] = true;
+	}
+	newTuple = heap_modify_tuple(destTuple, RelationGetDescr(relation), values, nulls, replaces);
+
+	simple_heap_update(relation, &newTuple->t_self, newTuple);
+
+	/* keep the catalog indexes up to date */
+	CatalogUpdateIndexes(relation, newTuple);
+
+	/* Update the shared dependency ACL info */
+	ownerId = pg_class_tuple->relowner;
+	nnewmembers = aclmembers(acl, &newmembers);
+
+	updateAclDependencies(RelationRelationId, destId,
+						  ownerId, true /* isGrant */,
+						  0, NULL,
+						  nnewmembers, newmembers);
+
+	ReleaseSysCache(srcTuple);
+	ReleaseSysCache(destTuple);
 	heap_close(relation, RowExclusiveLock);
 }
 

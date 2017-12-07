@@ -6815,79 +6815,6 @@ atpxPartAddList(Relation rel,
 		l1 = transformCreateStmt(ct, "ADD PARTITION", true);
 
 		/*
-		 * Look for the first CreateStmt and generate a GrantStmt based on the
-		 * RangeVar in it.
-		 */
-		foreach(lc, l1)
-		{
-			Node	   *s = lfirst(lc);
-
-			/* skip the first one, it's the fake create table for the parent */
-			if (lc == list_head(l1))
-				continue;
-
-			if (IsA(s, CreateStmt))
-			{
-				HeapTuple	tuple;
-				Datum		aclDatum;
-				bool		isNull;
-				CreateStmt *t = (CreateStmt *) s;
-
-				tuple = SearchSysCache1(RELOID, ObjectIdGetDatum(RelationGetRelid(rel)));
-				if (!HeapTupleIsValid(tuple))
-					elog(ERROR, "cache lookup failed for relation %u",
-						 RelationGetRelid(rel));
-
-				aclDatum = SysCacheGetAttr(RELOID, tuple,
-										   Anum_pg_class_relacl,
-										   &isNull);
-				if (!isNull)
-				{
-					List	   *cp = NIL;
-					int			i,
-								num;
-					Acl		   *acl;
-					AclItem    *aidat;
-
-					acl = DatumGetAclP(aclDatum);
-
-					num = ACL_NUM(acl);
-					aidat = ACL_DAT(acl);
-
-					for (i = 0; i < num; i++)
-					{
-						AclItem    *aidata = &aidat[i];
-						Datum		d;
-						char	   *str;
-
-						d = DirectFunctionCall1(aclitemout,
-												PointerGetDatum(aidata));
-						str = DatumGetCString(d);
-
-						cp = lappend(cp, makeString(str));
-
-					}
-
-					if (list_length(cp))
-					{
-						GrantStmt  *gs = makeNode(GrantStmt);
-
-						gs->is_grant = true;
-						gs->objtype = ACL_OBJECT_RELATION;
-						gs->cooked_privs = cp;
-
-						gs->objects = list_make1(copyObject(t->relation));
-
-						l1 = lappend(l1, gs);
-					}
-				}
-
-				ReleaseSysCache(tuple);
-				break;
-			}
-		}
-
-		/*
 		 * skip the first cell because the table already exists -- don't
 		 * recreate it
 		 */
@@ -6908,7 +6835,6 @@ atpxPartAddList(Relation rel,
 				skipTableRelid = RangeVarGetRelid(t->relation, true);
 			}
 		}
-
 
 		for_each_cell(lc, lnext(lc))
 		{

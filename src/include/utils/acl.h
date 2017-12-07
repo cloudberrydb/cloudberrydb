@@ -213,7 +213,6 @@ typedef struct
 	List	   *grantees;
 	bool		grant_option;
 	DropBehavior behavior;
-	List	   *cooked_privs; /* precooked AclItems from partitioning code */
 } InternalGrant;
 
 /*
@@ -261,6 +260,8 @@ extern Datum hash_aclitem(PG_FUNCTION_ARGS);
  */
 extern void ExecuteGrantStmt(GrantStmt *stmt);
 extern void ExecGrantStmt_oids(InternalGrant *istmt);
+
+extern void CopyRelationAcls(Oid src, Oid dest);
 
 extern AclMode pg_class_aclmask(Oid table_oid, Oid roleid,
 				 AclMode mask, AclMaskHow how);

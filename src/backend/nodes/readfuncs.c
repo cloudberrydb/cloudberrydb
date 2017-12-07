@@ -2560,7 +2560,6 @@ _readCreateConversionStmt(void)
 	READ_DONE();
 }
 
-#ifndef COMPILING_BINARY_FUNCS
 static GrantStmt *
 _readGrantStmt(void)
 {
@@ -2573,11 +2572,9 @@ _readGrantStmt(void)
 	READ_NODE_FIELD(grantees);
 	READ_BOOL_FIELD(grant_option);
 	READ_ENUM_FIELD(behavior, DropBehavior);
-	READ_NODE_FIELD(cooked_privs);
 
 	READ_DONE();
 }
-#endif /* COMPILING_BINARY_FUNCS */
 
 static PrivGrantee *
 _readPrivGrantee(void)

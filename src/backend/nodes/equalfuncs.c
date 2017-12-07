@@ -1130,7 +1130,6 @@ _equalGrantStmt(GrantStmt *a, GrantStmt *b)
 	COMPARE_NODE_FIELD(grantees);
 	COMPARE_SCALAR_FIELD(grant_option);
 	COMPARE_SCALAR_FIELD(behavior);
-	COMPARE_NODE_FIELD(cooked_privs);
 
 	return true;
 }

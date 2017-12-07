@@ -1777,8 +1777,37 @@ select 'pg_partitions', count(*) from pg_partitions where tablename='partition_c
 select 'pg_partition_templates', count(*) from pg_partition_templates where tablename='partition_cleanup%';
 
 
+--
+-- Check that dependencies to users are recorded correctly when operating on partitions.
+--
+CREATE ROLE part_acl_owner;
+CREATE ROLE part_acl_u1;
+GRANT ALL ON SCHEMA bfv_partition to part_acl_owner;
+
+SET ROLE part_acl_owner;
+
+CREATE TABLE part_acl_test (id int4) PARTITION BY LIST (id) (PARTITION p1 VALUES (1));
+GRANT SELECT ON part_acl_test TO part_acl_u1;
+
+ALTER TABLE part_acl_test ADD PARTITION p2 VALUES (2);
+
+-- View permissions
+\dp part_acl_*
+
+-- View dependencies
+select classid::regclass, objid::regclass,
+       refclassid::regclass, rolname
+from pg_shdepend
+inner join pg_database on pg_database.oid = pg_shdepend.dbid
+left join pg_roles on pg_roles.oid = pg_shdepend.refobjid
+where classid = 'pg_class'::regclass and objid::regclass::text like 'part_acl_test%'
+and datname = current_database();
+
+
 -- CLEANUP
 -- start_ignore
 drop schema if exists bfv_partition cascade;
 DROP USER mpp3641_user;
+DROP ROLE part_acl_owner;
+DROP ROLE part_acl_u1;
 -- end_ignore

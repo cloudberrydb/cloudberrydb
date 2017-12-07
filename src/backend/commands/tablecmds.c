@@ -11216,6 +11216,16 @@ ATExecAddInherit(Relation child_rel, Node *node)
 	inherit_parent(parent_rel, child_rel, is_partition, inhAttrNameList);
 
 	/*
+	 * Also copy the ACL from the parent, if we're attaching a new partition
+	 * to a partitioned table.
+	 */
+	if (is_partition)
+	{
+		CopyRelationAcls(RelationGetRelid(parent_rel),
+						 RelationGetRelid(child_rel));
+	}
+
+	/*
 	 * Keep our lock on the parent relation until commit, unless we're
 	 * doing partitioning, in which case the parent is sufficiently locked.
 	 * We want to unlock here in case we're doing deep sub partitioning. We do

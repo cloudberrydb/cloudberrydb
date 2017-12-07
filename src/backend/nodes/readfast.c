@@ -1351,22 +1351,6 @@ _readCopyStmt(void)
 	READ_DONE();
 
 }
-static GrantStmt *
-_readGrantStmt(void)
-{
-	READ_LOCALS(GrantStmt);
-
-	READ_BOOL_FIELD(is_grant);
-	READ_ENUM_FIELD(objtype,GrantObjectType);
-	READ_NODE_FIELD(objects);
-	READ_NODE_FIELD(privileges);
-	READ_NODE_FIELD(grantees);
-	READ_BOOL_FIELD(grant_option);
-	READ_ENUM_FIELD(behavior, DropBehavior); Assert(local_node->behavior <= DROP_CASCADE);
-	READ_NODE_FIELD(cooked_privs);
-
-	READ_DONE();
-}
 
 static GrantRoleStmt *
 _readGrantRoleStmt(void)
