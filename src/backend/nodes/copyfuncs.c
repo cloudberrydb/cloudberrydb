@@ -339,7 +339,6 @@ _copyRecursiveUnion(RecursiveUnion *from)
 	 * copy remainder of node
 	 */
 	COPY_SCALAR_FIELD(wtParam);
-#if 0 /* GPDB_84_MERGE_FIXME: see FIXME in the typedef */
 	COPY_SCALAR_FIELD(numCols);
 	if (from->numCols > 0)
 	{
@@ -347,7 +346,6 @@ _copyRecursiveUnion(RecursiveUnion *from)
 		COPY_POINTER_FIELD(dupOperators, from->numCols * sizeof(Oid));
 	}
 	COPY_SCALAR_FIELD(numGroups);
-#endif
 
 	return newnode;
 }
