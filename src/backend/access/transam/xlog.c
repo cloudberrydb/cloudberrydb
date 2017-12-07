@@ -53,6 +53,7 @@
 #include "storage/bufmgr.h"
 #include "storage/fd.h"
 #include "storage/ipc.h"
+#include "storage/latch.h"
 #include "storage/pmsignal.h"
 #include "storage/procarray.h"
 #include "storage/smgr.h"
@@ -11604,6 +11605,13 @@ StartupProcTriggerHandler(SIGNAL_ARGS)
 	errno = save_errno;
 }
 
+/* SIGUSR1: let latch facility handle the signal */
+static void
+StartupProcSigUsr1Handler(SIGNAL_ARGS)
+{
+	latch_sigusr1_handler();
+}
+
 /* SIGHUP: set flag to re-read config file at next convenient time */
 static void
 StartupProcSigHupHandler(SIGNAL_ARGS)
@@ -11693,7 +11701,7 @@ StartupProcessMain(int passNum)
 	pqsignal(SIGQUIT, startupproc_quickdie);		/* hard crash time */
 	pqsignal(SIGALRM, SIG_IGN);
 	pqsignal(SIGPIPE, SIG_IGN);
-	pqsignal(SIGUSR1, SIG_IGN);
+	pqsignal(SIGUSR1, StartupProcSigUsr1Handler);
 	if (passNum == 1)
 		pqsignal(SIGUSR2, StartupProcTriggerHandler);
 	else
@@ -12532,16 +12540,6 @@ CheckPromoteSignal(bool do_unlink)
 }
 
 /*
- * Wake up startup process to replay newly arrived WAL, or to notice that
- * failover has been requested.
- */
-void
-WakeupRecovery(void)
-{
-	SetLatch(&XLogCtl->recoveryWakeupLatch);
-}
-
-/*
  * Put the current standby master dbid in the shared memory, which will
  * be looked up from mmxlog.
  */
@@ -12753,4 +12751,14 @@ checkXLogConsistency(XLogRecord *record, XLogRecPtr EndRecPtr)
 				 bkpb.block);
 		}
 	}
+}
+
+/*
+ * Wake up startup process to replay newly arrived WAL, or to notice that
+ * failover has been requested.
+ */
+void
+WakeupRecovery(void)
+{
+	SetLatch(&XLogCtl->recoveryWakeupLatch);
 }
