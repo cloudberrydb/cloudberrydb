@@ -65,7 +65,7 @@
 
 #include <math.h>
 
-#include "executor/hashjoin.h"
+#include "executor/nodeHash.h"
 #include "miscadmin.h"
 #include "nodes/nodeFuncs.h"
 #include "optimizer/clauses.h"
@@ -133,10 +133,6 @@ static Selectivity adjust_selectivity_for_nulltest(Selectivity selec,
 												JoinType jointype,
 												RelOptInfo *left,
 												RelOptInfo *right);
-
-static void hash_table_size(double ntuples, int tupwidth, double memory_bytes,
-						int *numbuckets,
-						int *numbatches);
 
 /* CDB: The clamp_row_est() function definition has been moved to cost.h */
 
@@ -2184,7 +2180,7 @@ cost_hashjoin(HashPath *path, PlannerInfo *root, SpecialJoinInfo *sjinfo)
 	run_cost += cpu_operator_cost * num_hashclauses * outer_path_rows;
 
 	/* Get hash table size that executor would use for inner relation */
-	hash_table_size(inner_path_rows,
+	ExecChooseHashTableSize(inner_path_rows,
 							inner_path->parent->width,
 							global_work_mem(root),
 							&numbuckets,
@@ -3327,7 +3323,11 @@ Cost incremental_hashjoin_cost(double rows, int inner_width, int outer_width, Li
 	run_cost += cpu_operator_cost * num_hashclauses * rows;
 
 	/* Get hash table size that executor would use for inner relation */
-	hash_table_size(rows, inner_width, global_work_mem(root), &numbuckets, &numbatches);
+	ExecChooseHashTableSize(rows,
+							inner_width,
+							global_work_mem(root),
+							&numbuckets,
+							&numbatches);
 	virtualbuckets = (double) numbuckets *(double) numbatches;
 
 	/*
@@ -3407,100 +3407,4 @@ Cost incremental_mergejoin_cost(double rows, List *mergeclauses, PlannerInfo *ro
 	run_cost += (cpu_tuple_cost + per_tuple_cost) * rows;
 	
 	return startup_cost + run_cost;
-}
-
-/**
- * This method determines the number of batches and buckets
- * required to build a hash table over a set of tuples. 
- * NOTE: this is a clone of ExecChooseHashTableSize() in nodeHash.c. Please
- * keep the two functions in sync.
- * 
- * Input:
- * 	ntuples - number of tuples
- * 	tupwidth - width of tuple
- * 	memory_bytes	- total memory available, in bytes
- * Output:
- * 	numbuckets - number of buckets in hash table
- * 	numbatches - number of batches needed
- */
-static void hash_table_size(double ntuples, int tupwidth, double memory_bytes,
-						int *numbuckets,
-						int *numbatches)
-{
-	int			tupsize;
-	double		inner_rel_bytes;
-	int			nbatch;
-	int			nbuckets;
-
-	/* Force a plausible relation size if no info */
-	if (ntuples <= 0.0)
-		ntuples = 1000.0;
-
-	/*
-	 * Estimate tupsize based on footprint of tuple in hashtable... note this
-	 * does not allow for any palloc overhead.	The manipulations of spaceUsed
-	 * don't count palloc overhead either.
-	 */
-	tupsize = HJTUPLE_OVERHEAD + MAXALIGN(sizeof(MemTupleData)) +
-			MAXALIGN(tupwidth);
-	inner_rel_bytes = ntuples * tupsize;
-
-	/*
-	 * Set nbuckets to achieve an average bucket load of gp_hashjoin_tuples_per_bucket when
-	 * memory is filled.  Set nbatch to the smallest power of 2 that appears
-	 * sufficient.
-	 */
-	if (inner_rel_bytes > memory_bytes)
-	{
-		/* We'll need multiple batches */
-		long		lbuckets;
-		double		dbatch;
-		int			minbatch;
-
-		lbuckets = (memory_bytes / tupsize) / gp_hashjoin_tuples_per_bucket;
-		lbuckets = Min(lbuckets, INT_MAX / 32);
-		nbuckets = (int) lbuckets;
-
-		dbatch = ceil(inner_rel_bytes / memory_bytes);
-		dbatch = Min(dbatch, INT_MAX / 32);
-		minbatch = (int) dbatch;
-		nbatch = 2;
-		while (nbatch < minbatch)
-			nbatch <<= 1;
-	}
-	else
-	{
-		/* We expect the hashtable to fit in memory, we want to use
-		 * more buckets if we have memory to spare */
-		double		dbuckets_lower;
-		double		dbuckets_upper;
-		double		dbuckets;
-
-		/* divide our tuple row-count estimate by our the number of
-		 * tuples we'd like in a bucket: this produces a small bucket
-		 * count independent of our work_mem setting */
-		dbuckets_lower = (double)ntuples / (double)gp_hashjoin_tuples_per_bucket;
-
-		/* if we have work_mem to spare, we'd like to use it -- so
-		 * divide up our memory evenly (see the spill case above) */
-		dbuckets_upper = (double)memory_bytes / ((double)tupsize * gp_hashjoin_tuples_per_bucket);
-
-		/* we'll use our "lower" work_mem independent guess as a lower
-		 * limit; but if we've got memory to spare we'll take the mean
-		 * of the lower-limit and the upper-limit */
-		if (dbuckets_upper > dbuckets_lower)
-			dbuckets = (dbuckets_lower + dbuckets_upper)/2.0;
-		else
-			dbuckets = dbuckets_lower;
-
-		dbuckets = ceil(dbuckets);
-		dbuckets = Min(dbuckets, INT_MAX);
-
-		nbuckets = (int)dbuckets;
-
-		nbatch = 1;
-	}
-
-	*numbuckets = nbuckets;
-	*numbatches = nbatch;
 }

@@ -54,12 +54,6 @@ ExecHashTableExplainBatches(HashJoinTable   hashtable,
                             const char     *title);
 static void ExecHashTableReallocBatchData(HashJoinTable hashtable, int new_nbatch);
 
-void ExecChooseHashTableSize(double ntuples, int tupwidth,
-						int *numbuckets,
-						int *numbatches,
-						uint64 operatorMemKB
-						);
-
 #define BLOOMVAL(hk)  (((uint64)1) << (((hk) >> 13) & 0x3f))
 
 /* Amount of metadata memory required per batch */
@@ -289,8 +283,8 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 	 */
 	outerNode = outerPlan(node);
 
-	ExecChooseHashTableSize(outerNode->plan_rows, outerNode->plan_width,
-							&nbuckets, &nbatch, operatorMemKB);
+	ExecChooseHashTableSize(outerNode->plan_rows, outerNode->plan_width, operatorMemKB,
+							&nbuckets, &nbatch);
 
 #ifdef HJDEBUG
     elog(LOG, "HJ: nbatch = %d, nbuckets = %d\n", nbatch, nbuckets);
@@ -448,9 +442,9 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 
 void
 ExecChooseHashTableSize(double ntuples, int tupwidth,
+						uint64 operatorMemKB,
 						int *numbuckets,
-						int *numbatches,
-						uint64 operatorMemKB)
+						int *numbatches)
 {
 	int			tupsize;
 	double		inner_rel_bytes;
@@ -489,7 +483,7 @@ ExecChooseHashTableSize(double ntuples, int tupwidth,
 	 * sufficient.  The Min() steps limit the results so that the pointer
 	 * arrays we'll try to allocate do not exceed work_mem.
 	 */
-	max_pointers = (work_mem * 1024L) / sizeof(void *);
+	max_pointers = (operatorMemKB * 1024L) / sizeof(void *);
 	/* also ensure we avoid integer overflow in nbatch and nbuckets */
 	max_pointers = Min(max_pointers, INT_MAX / 2);
 
@@ -624,7 +618,7 @@ ExecChooseHashTableSize(double ntuples, int tupwidth,
 			dbuckets = dbuckets_lower;
 
 		dbuckets = ceil(dbuckets);
-		dbuckets = Min(dbuckets, INT_MAX);
+		dbuckets = Min(dbuckets, max_pointers);
 
 		nbuckets = (int) dbuckets;
 

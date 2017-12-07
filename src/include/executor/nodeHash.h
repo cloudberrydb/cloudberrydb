@@ -46,6 +46,11 @@ extern void ExecHashGetBucketAndBatch(HashJoinTable hashtable,
 extern HashJoinTuple ExecScanHashBucket(HashState *hashState, HashJoinState *hjstate,
 				   ExprContext *econtext);
 extern void ExecHashTableReset(HashState *hashState, HashJoinTable hashtable);
+extern void ExecChooseHashTableSize(double ntuples, int tupwidth,
+						uint64 operatorMemKB,
+						int *numbuckets,
+						int *numbatches);
+
 extern void ExecHashTableExplainInit(HashState *hashState, HashJoinState *hjstate,
                                      HashJoinTable  hashtable);
 extern void ExecHashTableExplainBatchEnd(HashState *hashState, HashJoinTable hashtable);
