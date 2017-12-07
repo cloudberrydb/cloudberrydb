@@ -1328,9 +1328,9 @@ NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution 
         -- using source data file format_long_test13 created by previous test
     LOCATION ('demoprot://format_long_test13') 
     FORMAT 'CUSTOM' (FORMATTER='formatter_import_s');
-    -- Drop colum value1 from source table formatsource
+    -- Drop column value1 from source table formatsource
     ALTER TABLE formatsource DROP COLUMN value1;
-    -- Drop colum value1 from RET and WET
+    -- Drop column value1 from RET and WET
     ALTER EXTERNAL TABLE format_r DROP COLUMN value1;
     ALTER EXTERNAL TABLE format_w DROP COLUMN value1;
     -- Loading records 

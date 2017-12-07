@@ -1683,7 +1683,7 @@ plan_append_aggs_with_rewrite(PlannerInfo *root,
  * Create the first Agg node whose subplan is not an Agg node.
  *
  * Params:
- *    num_nullcols: the number of grouping colummns should not be considered
+ *    num_nullcols: the number of grouping columns should not be considered
  *                  as a grouping column in this Agg node. For an input tuple
  *                  in this Agg node, the values for these grouping columns
  *                  will be set to NULL.
