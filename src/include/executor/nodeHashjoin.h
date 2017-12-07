@@ -27,7 +27,7 @@ extern void ExecEndHashJoin(HashJoinState *node);
 extern void ExecReScanHashJoin(HashJoinState *node, ExprContext *exprCtxt);
 
 extern void ExecHashJoinSaveTuple(PlanState *ps, MemTuple tuple, uint32 hashvalue,
-								  HashJoinTable hashtable, struct HashJoinBatchSide *batchside,
+								  HashJoinTable hashtable, ExecWorkFile **fileptr,
 								  MemoryContext bfCxt);
 extern void ExecEagerFreeHashJoin(HashJoinState *node);
 

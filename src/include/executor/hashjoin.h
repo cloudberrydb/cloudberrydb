@@ -110,39 +110,6 @@ typedef struct HashJoinTableStats
 
 
 /*
- * HashJoinBatchSide
- *
- * State of the outer or inner side of one batch.
- */
-typedef struct HashJoinBatchSide
-{
-	/*
-	 * A file is opened only when we first write a tuple into it
-	 * (otherwise its pointer remains NULL).  Note that the zero'th
-	 * batch never has files, since we will process rather than dump
-	 * out any tuples of batch zero.
-	 */
-	ExecWorkFile *workfile;
-	int total_tuples;
-} HashJoinBatchSide;
-
-
-/*
- * HashJoinBatchData
- *
- * State of one batch.
- */
-typedef struct HashJoinBatchData
-{
-    Size                innerspace;     /* work_mem bytes for inner tuples */
-    unsigned            innertuples;    /* inner number of tuples */
-
-    HashJoinBatchSide   innerside;
-    HashJoinBatchSide   outerside;
-} HashJoinBatchData;
-
-
-/*
  * HashJoinTableData
  */
 typedef struct HashJoinTableData
@@ -165,7 +132,15 @@ typedef struct HashJoinTableData
 
 	double		totalTuples;	/* # tuples obtained from inner plan */
 
-	HashJoinBatchData **batches;    /* array [0..nbatch-1] of ptr to HJBD */
+	/*
+	 * These arrays are allocated for the life of the hash join, but only if
+	 * nbatch > 1.  A file is opened only when we first write a tuple into it
+	 * (otherwise its pointer remains NULL).  Note that the zero'th array
+	 * elements never get used, since we will process rather than dump out any
+	 * tuples of batch zero.
+	 */
+	ExecWorkFile **innerBatchFile; /* buffered virtual temp file per batch */
+	ExecWorkFile **outerBatchFile; /* buffered virtual temp file per batch */
 
 	/* Representation of all spill file names, for spill file reuse */
 	workfile_set * work_set;
@@ -181,6 +156,7 @@ typedef struct HashJoinTableData
 	FmgrInfo   *inner_hashfunctions;	/* lookup data for hash functions */
 	bool	   *hashStrict;		/* is each hash join operator strict? */
 
+	Size		spaceUsed;		/* memory space currently used by tuples */
 	Size		spaceAllowed;	/* upper limit for space used */
 
 	MemoryContext hashCxt;		/* context for whole-hash-join storage */
