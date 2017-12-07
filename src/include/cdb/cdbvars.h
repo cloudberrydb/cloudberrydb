@@ -648,13 +648,6 @@ extern int gp_hashjoin_tuples_per_bucket;
 extern int gp_hashagg_groups_per_bucket;
 
 /*
- * Capping the amount of memory used for metadata (buckets and batches pointers)
- * for spilling HashJoins. This is in addition to the operator memory quota,
- * which is used only for storing tuples (MPP-22417)
- */
-extern int gp_hashjoin_metadata_memory_percent;
-
-/*
  * Damping of selectivities of clauses which pertain to the same base
  * relation; compensates for undetected correlation
  */
