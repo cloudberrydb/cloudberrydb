@@ -21,7 +21,7 @@ override CPPFLAGS := -I$(srcdir) -I$(libpq_srcdir) -I$(srcdir)/../regress $(CPPF
 override LDLIBS := $(libpq_pgport) $(LDLIBS)
 
 ifeq ($(enable_segwalrep), yes)
-EXTRA_TESTS=segwalrep/commit_blocking
+EXTRA_TESTS=segwalrep/commit_blocking segwalrep/fts_unblock_primary
 endif
 
 all: pg_isolation2_regress$(X) all-lib

@@ -34,6 +34,7 @@ typedef struct FtsConnectionInfo
 	int16 probe_errno;                   /* saved errno from the latest system call */
 	char errmsg[PROBE_ERR_MSG_LEN];      /* message returned by strerror() */
 	struct pg_conn *conn;                        /* libpq connection object */
+	const char *message;
 } FtsConnectionInfo;
 
 #ifndef USE_SEGWALREP

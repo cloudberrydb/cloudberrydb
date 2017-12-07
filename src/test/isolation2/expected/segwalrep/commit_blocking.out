@@ -81,6 +81,10 @@ server starting
 
 (1 row)
 
+-- should unblock and commit now that mirror is back up and in-sync
+3<:  <... completed>
+COMMIT
+
 -- turn on fts
 ! gpconfig -c gp_fts_probe_pause -v false --masteronly --skipvalidation;
 completed successfully with parameters '-c gp_fts_probe_pause -v false --masteronly --skipvalidation'
@@ -91,10 +95,6 @@ pg_ctl
 server signaled
 
 (1 row)
-
--- should unblock and commit now that mirror is back up
-3<:  <... completed>
-COMMIT
 
 -- everything should be back to normal
 4: insert into segwalrep_commit_blocking select i from generate_series(1,10)i;

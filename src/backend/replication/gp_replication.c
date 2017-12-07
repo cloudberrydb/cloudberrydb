@@ -15,16 +15,15 @@
 #include "replication/walsender_private.h"
 #include "utils/builtins.h"
 
+#ifdef USE_SEGWALREP
 /*
- * Checking the WalSndCtl to figure out whether the mirror is up or not.
- *
- * True: if any mirror is up.
- * False: if none of the mirrors is up.
+ * Check the WalSndCtl to obtain if mirror is up or down, if the wal sender is
+ * in streaming, and if synchronous replication is enabled or not.
  */
-void GetMirrorStatus(bool *IsMirrorUp, bool *IsInSync)
+void GetMirrorStatus(FtsResponse *response)
 {
-	*IsMirrorUp = false;
-	*IsInSync = false;
+	response->IsMirrorUp = false;
+	response->IsInSync = false;
 
 	/*
 	 * Greenplum currently supports only ONE mirror per primary.
@@ -44,20 +43,18 @@ void GetMirrorStatus(bool *IsMirrorUp, bool *IsInSync)
 			if(walsnd->state == WALSNDSTATE_CATCHUP
 			   || walsnd->state == WALSNDSTATE_STREAMING)
 			{
-				*IsMirrorUp = true;
-
-				if (walsnd->state == WALSNDSTATE_STREAMING)
-					*IsInSync = true;
-
+				response->IsMirrorUp = true;
+				response->IsInSync = (walsnd->state == WALSNDSTATE_STREAMING);
 				break;
 			}
 		}
 	}
 
+	response->IsSyncRepEnabled = WalSndCtl->sync_standbys_defined;
+
 	LWLockRelease(SyncRepLock);
 }
 
-#ifdef USE_SEGWALREP
 /*
  * Set WalSndCtl->sync_standbys_defined to true to enable synchronous segment
  * WAL replication and insert synchronous_standby_names="*" into the
@@ -71,6 +68,21 @@ SetSyncStandbysDefined(void)
 	if (!WalSndCtl->sync_standbys_defined)
 	{
 		SyncRepStandbyNames = "*";
+		set_gp_replication_config("synchronous_standby_names", SyncRepStandbyNames);
+		SyncRepUpdateSyncStandbysDefined();
+	}
+
+	LWLockRelease(SyncRepLock);
+}
+
+void
+UnsetSyncStandbysDefined(void)
+{
+	LWLockAcquire(SyncRepLock, LW_EXCLUSIVE);
+
+	if (WalSndCtl->sync_standbys_defined)
+	{
+		SyncRepStandbyNames = "";
 		set_gp_replication_config("synchronous_standby_names", SyncRepStandbyNames);
 		SyncRepUpdateSyncStandbysDefined();
 	}

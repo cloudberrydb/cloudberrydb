@@ -236,18 +236,28 @@ class DestroyMirrors():
 
         commands.append("pg_ctl -D %s stop" % mirror_dir)
         commands.append("rm -rf %s" % mirror_dir)
+        thread_name = 'Mirror content %d' % mirror_contentid
+        command_finish = 'Destroyed mirror at %s' % mirror_dir
+        runcommands(commands, thread_name, command_finish, False)
 
+        # Let FTS recognize that mirrors are gone.  As a result,
+        # primaries will be marked not-in-sync.  If this step is
+        # omitted, FTS will stop probing as soon as mirrors are
+        # removed from catalog and primaries will be left "in-sync"
+        # without mirrors.
+        #
+        # FIXME: enhance gp_remove_segment_mirror() to do this, so
+        # that utility remains simplified.  Remove this stopgap
+        # thereafter.
+        ForceFTSProbeScan(self.clusterconfig,
+                          GpSegmentConfiguration.STATUS_DOWN,
+                          GpSegmentConfiguration.NOT_IN_SYNC)
+
+        commands = []
         catalog_update_query = "select pg_catalog.gp_remove_segment_mirror(%d::int2)" % (mirror_contentid)
         commands.append("PGOPTIONS=\"-c gp_session_role=utility\" psql postgres -c \"%s\"" % catalog_update_query)
 
-        for sc in self.segconfigs:
-            if sc.content == mirror_contentid and sc.preferred_role == GpSegmentConfiguration.ROLE_PRIMARY:
-                commands.append("echo > %s/gp_replication.conf" % sc.fselocation)
-                commands.append("pg_ctl -D %s reload" % sc.fselocation)
-                break
-
-        thread_name = 'Mirror content %d' % mirror_contentid
-        command_finish = 'Destroyed mirror at %s' % mirror_dir
+        command_finish = 'Removed mirror %s from catalog' % mirror_dir
         runcommands(commands, thread_name, command_finish, False)
 
     def run(self):

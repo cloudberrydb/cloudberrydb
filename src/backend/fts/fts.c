@@ -500,12 +500,18 @@ probeWalRepUpdateConfig(int16 dbid, int16 segindex, bool IsSegmentAlive, bool Is
 	}
 }
 
+/*
+ * Process probe resonses from primary segments:
+ * (a) Update gp_segment_configuration catalog table, if needed.
+ * (b) Indicate the segments that need to be messaged subsequently.
+ */
 static bool
 probeWalRepPublishUpdate(CdbComponentDatabases *cdbs, fts_context *context)
 {
 	bool is_updated = false;
 
-	for (int response_index = 0; response_index < context->count; response_index ++)
+	for (int response_index = 0; response_index < context->num_primary_segments;
+		 response_index ++)
 	{
 		probe_response_per_segment *response = &(context->responses[response_index]);
 
@@ -542,6 +548,24 @@ probeWalRepPublishUpdate(CdbComponentDatabases *cdbs, fts_context *context)
 		 */
 		if (IsInSync != SEGMENT_IS_IN_SYNC(primary))
 			UpdatePrimary = UpdateMirror = true;
+
+		/* Primary must block commits as long as it and its mirror are alive. */
+		AssertImply(IsMirrorAlive && IsPrimaryAlive,
+					response->result.isSyncRepEnabled);
+
+		/*
+		 * Primaries that have syncrep enabled continue to block commits.  FTS
+		 * must notify them to unblock commits by sending syncrep off message.
+		 */
+		if (!IsMirrorAlive && response->result.isSyncRepEnabled)
+		{
+			response->message = FTS_MSG_SYNCREP_OFF;
+			/*
+			 * Mirror must be marked down in FTS configuration before primary
+			 * can be notified to unblock commits.
+			 */
+			Assert(UpdateMirror || !SEGMENT_IS_ALIVE(mirror));
+		}
 
 		/*
 		 * ----------------------------
@@ -596,8 +620,9 @@ probeWalRepPublishUpdate(CdbComponentDatabases *cdbs, fts_context *context)
 static void
 FtsWalRepInitProbeContext(CdbComponentDatabases *cdbs, fts_context *context)
 {
-	context->count = cdbs->total_segments;
-	context->responses = (probe_response_per_segment *)palloc(context->count * sizeof(probe_response_per_segment));
+	context->num_primary_segments = cdbs->total_segments;
+	context->responses = (probe_response_per_segment *) palloc(
+		context->num_primary_segments * sizeof(probe_response_per_segment));
 
 	int response_index = 0;
 
@@ -632,13 +657,51 @@ FtsWalRepInitProbeContext(CdbComponentDatabases *cdbs, fts_context *context)
 		response->result.isPrimaryAlive = false;
 		response->result.isMirrorAlive = SEGMENT_IS_ALIVE(mirror);
 		response->result.isInSync = false;
+		response->result.isSyncRepEnabled = false;
+		response->message = FTS_MSG_PROBE;
 
 		response->segment_db_info = primary;
 		response->isScheduled = false;
 
-		Assert(response_index < context->count);
+		Assert(response_index < context->num_primary_segments);
 		response_index ++;
 	}
+}
+
+/*
+ * Setup context such that FTS threads can send a message other than PROBE to
+ * segments.  PROBE message must already be sent and response processed by the
+ * time this funtion is called.  Returns true if one or more segments need to
+ * be messaged.
+ */
+static bool
+FtsWalRepSetupMessageContext(fts_context *context)
+{
+	int i;
+	bool message_segments = false;
+
+	if (!FtsIsActive())
+		return false;
+
+	for (i = 0; i < context->num_primary_segments; i++)
+	{
+		probe_response_per_segment *response = &context->responses[i];
+		if (response->message == FTS_MSG_PROBE)
+		{
+			response->message = NULL;
+			response->isScheduled = true;
+		}
+		else
+		{
+			Assert(response->message == FTS_MSG_SYNCREP_OFF);
+			response->isScheduled = false;
+			response->result.isPrimaryAlive = false;
+			response->result.isInSync = false;
+			response->result.isSyncRepEnabled = false;
+			message_segments = true;
+		}
+	}
+	return message_segments;
 }
 #endif
 
@@ -740,6 +803,9 @@ void FtsLoop()
 		FtsWalRepMessageSegments(&context);
 
 		updated_probe_state = probeWalRepPublishUpdate(cdbs, &context);
+
+		if (FtsWalRepSetupMessageContext(&context))
+			FtsWalRepMessageSegments(&context);
 #else
 		/* probe segments */
 		FtsProbeSegments(cdbs, scan_status);

@@ -76,11 +76,11 @@ ftsConnect(CdbComponentDatabaseInfo *dbInfo,
 static bool
 ftsSend(FtsConnectionInfo *ftsInfo)
 {
-	if (!PQsendQuery(ftsInfo->conn, FTS_MSG_TYPE_PROBE))
+	if (!PQsendQuery(ftsInfo->conn, ftsInfo->message))
 	{
 		write_log("FTS: failed to send query '%s' to (content=%d, dbid=%d): "
 				  "connection status %d, %s",
-				  FTS_MSG_TYPE_PROBE, ftsInfo->segmentId, ftsInfo->dbId,
+				  FTS_MSG_PROBE, ftsInfo->segmentId, ftsInfo->dbId,
 				  ftsInfo->conn->status, ftsInfo->conn->errorMessage.data);
 		return false;
 	}
@@ -105,10 +105,16 @@ probeRecordResponse(FtsConnectionInfo *ftsInfo, PGresult *result)
 	Assert (isInSync);
 	ftsInfo->result->isInSync = *isInSync;
 
-	write_log("FTS: segment (content=%d, dbid=%d, role=%c) reported isMirrorUp %d and isInSync %d to the prober.",
+	int *isSyncRepEnabled = (int *) PQgetvalue(result, 0,
+											   Anum_fts_message_response_is_syncrep_enabled);
+	Assert (isSyncRepEnabled);
+	ftsInfo->result->isSyncRepEnabled = *isSyncRepEnabled;
+
+	write_log("FTS: segment (content=%d, dbid=%d, role=%c) reported isMirrorUp %d, isInSync %d, and isSyncRepEnabled %d to the prober.",
 			  ftsInfo->segmentId, ftsInfo->dbId, ftsInfo->role,
 			  ftsInfo->result->isMirrorAlive,
-			  ftsInfo->result->isInSync);
+			  ftsInfo->result->isInSync,
+			  ftsInfo->result->isSyncRepEnabled);
 }
 
 /*
@@ -175,6 +181,7 @@ ftsReceive(FtsConnectionInfo *ftsInfo)
 			return false;	/* trouble */
 		}
 	}
+
 	if (PQresultStatus(lastResult) != PGRES_TUPLES_OK)
 	{
 		PQclear(lastResult);
@@ -184,6 +191,7 @@ ftsReceive(FtsConnectionInfo *ftsInfo)
 				  PQerrorMessage(ftsInfo->conn));
 		return false;
 	}
+
 	if (PQnfields(lastResult) != Natts_fts_message_response ||
 		PQntuples(lastResult) != FTS_MESSAGE_RESPONSE_NTUPLES)
 	{
@@ -198,7 +206,20 @@ ftsReceive(FtsConnectionInfo *ftsInfo)
 		return false;
 	}
 
-	probeRecordResponse(ftsInfo, lastResult);
+	/*
+	 * FTS_MSG_SYNCREP_OFF response only needs an ack for now. In future
+	 * iterations, we could parse that response to detect the case when mirror
+	 * has come back up in-sync when previously thought not in-sync from probe
+	 * response. In that situation, we should force another probe to update
+	 * the gp_segment_configuration to avoid waiting the fts probe interval.
+	 */
+	if (ftsInfo->message == FTS_MSG_PROBE)
+		probeRecordResponse(ftsInfo, lastResult);
+	/* Primary must have syncrep disabled in response to SYNCREP_OFF message. */
+	AssertImply(ftsInfo->message == FTS_MSG_SYNCREP_OFF,
+				PQgetvalue(lastResult, 0, Anum_fts_message_response_is_syncrep_enabled) != NULL &&
+				*(PQgetvalue(lastResult, 0, Anum_fts_message_response_is_syncrep_enabled)) == false);
+
 	return true;
 }
 
@@ -266,6 +287,7 @@ messageWalRepSegment(probe_response_per_segment *response)
 	ftsInfo.role = segment_db_info->role;
 	ftsInfo.mode = segment_db_info->mode;
 	ftsInfo.result = &(response->result);
+	ftsInfo.message = response->message;
 
 	ftsSegmentHelper(segment_db_info, &ftsInfo);
 }
@@ -279,7 +301,7 @@ messageWalRepSegmentFromThread(void *arg)
 
 	int number_of_probed_segments = 0;
 
-	while(number_of_probed_segments < context->count)
+	while(number_of_probed_segments < context->num_primary_segments)
 	{
 		/*
 		 * Look for the unprocessed context
@@ -287,7 +309,7 @@ messageWalRepSegmentFromThread(void *arg)
 		int response_index = number_of_probed_segments;
 
 		pthread_mutex_lock(&worker_thread_mutex);
-		while(response_index < context->count)
+		while(response_index < context->num_primary_segments)
 		{
 			if (!context->responses[response_index].isScheduled)
 			{
@@ -302,7 +324,7 @@ messageWalRepSegmentFromThread(void *arg)
 		/*
 		 * If probed all the segments, we are done.
 		 */
-		if (response_index == context->count)
+		if (response_index == context->num_primary_segments)
 			break;
 
 		/*

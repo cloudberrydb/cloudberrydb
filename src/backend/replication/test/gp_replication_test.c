@@ -4,6 +4,7 @@
 #include "cmockery.h"
 
 #include "postgres.h"
+#include "storage/pg_shmem.h"
 
 #define Assert(condition) if (!condition) AssertFailed()
 
@@ -42,8 +43,7 @@ test_setup(WalSndCtlData *data, WalSndState state)
 void
 test_GetMirrorStatus_Pid_Zero(void **state)
 {
-	bool isMirrorUp;
-	bool isInSync;
+	FtsResponse response;
 	WalSndCtlData data;
 
 	max_wal_senders = 1;
@@ -51,66 +51,62 @@ test_GetMirrorStatus_Pid_Zero(void **state)
 	data.walsnds[0].pid = 0;
 
 	expect_lwlock(LW_SHARED);
-	GetMirrorStatus(&isMirrorUp, &isInSync);
+	GetMirrorStatus(&response);
 
-	assert_false(isMirrorUp);
-	assert_false(isInSync);
+	assert_false(response.IsMirrorUp);
+	assert_false(response.IsInSync);
 }
 
 void
 test_GetMirrorStatus_WALSNDSTATE_STARTUP(void **state)
 {
-	bool isMirrorUp;
-	bool isInSync;
+	FtsResponse response;
 	WalSndCtlData data;
 
 	test_setup(&data, WALSNDSTATE_STARTUP);
-	GetMirrorStatus(&isMirrorUp, &isInSync);
+	GetMirrorStatus(&response);
 
-	assert_false(isMirrorUp);
-	assert_false(isInSync);
+	assert_false(response.IsMirrorUp);
+	assert_false(response.IsInSync);
 }
 
 void
 test_GetMirrorStatus_WALSNDSTATE_BACKUP(void **state)
 {
-	bool isMirrorUp;
-	bool isInSync;
+	FtsResponse response;
 	WalSndCtlData data;
 
 	test_setup(&data, WALSNDSTATE_BACKUP);
-	GetMirrorStatus(&isMirrorUp, &isInSync);
+	GetMirrorStatus(&response);
 
-	assert_false(isMirrorUp);
-	assert_false(isInSync);
+	assert_false(response.IsMirrorUp);
+	assert_false(response.IsInSync);
 }
 
 void
 test_GetMirrorStatus_WALSNDSTATE_CATCHUP(void **state)
 {
-	bool isMirrorUp;
-	bool isInSync;
+	FtsResponse response;
 	WalSndCtlData data;
 
 	test_setup(&data, WALSNDSTATE_CATCHUP);
-	GetMirrorStatus(&isMirrorUp, &isInSync);
+	GetMirrorStatus(&response);
 
-	assert_true(isMirrorUp);
-	assert_false(isInSync);
+	assert_true(response.IsMirrorUp);
+	assert_false(response.IsInSync);
 }
 
 void
 test_GetMirrorStatus_WALSNDSTATE_STREAMING(void **state)
 {
-	bool isMirrorUp;
-	bool isInSync;
+	FtsResponse response;
 	WalSndCtlData data;
 
 	test_setup(&data, WALSNDSTATE_STREAMING);
-	GetMirrorStatus(&isMirrorUp, &isInSync);
+	GetMirrorStatus(&response);
 
-	assert_true(isMirrorUp);
-	assert_true(isInSync);
+	assert_true(response.IsMirrorUp);
+	assert_true(response.IsInSync);
 }
 
 void
@@ -149,6 +145,48 @@ test_SetSyncStandbysDefined(void **state)
 	SetSyncStandbysDefined();
 }
 
+void
+test_UnsetSyncStandbysDefined(void **state)
+{
+	int shmqueuenext_calls;
+	WalSndCtlData data;
+	WalSndCtl = &data;
+	data.sync_standbys_defined = true;
+
+	/* mock SHMQueueNext to skip the SyncRepWakeQueue */
+#ifdef USE_ASSERT_CHECKING
+	shmqueuenext_calls = 4;
+#else
+	shmqueuenext_calls = 2;
+#endif
+	expect_any_count(SHMQueueNext, queue, shmqueuenext_calls);
+	expect_any_count(SHMQueueNext, curElem, shmqueuenext_calls);
+	expect_any_count(SHMQueueNext, linkOffset, shmqueuenext_calls);
+	will_return_count(SHMQueueNext, NULL, shmqueuenext_calls);
+
+	expect_lwlock(LW_EXCLUSIVE);
+#ifdef USE_ASSERT_CHECKING
+	expect_value(LWLockHeldByMe, lockid, SyncRepLock);
+	will_return(LWLockHeldByMe, true);
+#endif
+
+	/* unset the GUC in-memory */
+	expect_string_count(set_gp_replication_config, name, "synchronous_standby_names", 1);
+	expect_string_count(set_gp_replication_config, value, "", 1);
+	will_be_called(set_gp_replication_config);
+
+	/* simulate call when primary is in synchronous replication */
+	assert_true(WalSndCtl->sync_standbys_defined);
+	assert_true(strcmp(SyncRepStandbyNames, "*") == 0);
+
+	/* call the function we are testing */
+	UnsetSyncStandbysDefined();
+
+	/* relative variables should have updated */
+	assert_false(WalSndCtl->sync_standbys_defined);
+	assert_true(strcmp(SyncRepStandbyNames, "") == 0);
+}
+
 int
 main(int argc, char* argv[])
 {
@@ -160,7 +198,8 @@ main(int argc, char* argv[])
 		unit_test(test_GetMirrorStatus_WALSNDSTATE_BACKUP),
 		unit_test(test_GetMirrorStatus_WALSNDSTATE_CATCHUP),
 		unit_test(test_GetMirrorStatus_WALSNDSTATE_STREAMING),
-		unit_test(test_SetSyncStandbysDefined)
+		unit_test(test_SetSyncStandbysDefined),
+		unit_test(test_UnsetSyncStandbysDefined)
 	};
 	return run_tests(tests);
 }

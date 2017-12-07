@@ -17,15 +17,10 @@ void AssertFailed()
 /* Actual function body */
 #include "../ftsmessagehandler.c"
 
-void
-test_HandleFtsWalRepProbe(void **state)
+static void
+mockSendFtsResponse(const char *messagetype)
 {
-	expect_any(GetMirrorStatus, IsMirrorUp);
-	expect_any(GetMirrorStatus, IsInSync);
-	will_assign_value(GetMirrorStatus, IsMirrorUp, true);
-	will_be_called(GetMirrorStatus);
-
-	expect_value(BeginCommand, commandTag, FTS_MSG_TYPE_PROBE);
+	expect_value(BeginCommand, commandTag, messagetype);
 	expect_value(BeginCommand, dest, DestRemote);
 	will_be_called(BeginCommand);
 
@@ -57,15 +52,48 @@ test_HandleFtsWalRepProbe(void **state)
 	expect_any_count(pq_sendstring, str, -1);
 	will_be_called_count(pq_sendstring, -1);
 
-	will_be_called(pq_flush);
-
-	expect_value(EndCommand, commandTag, FTS_MSG_TYPE_PROBE);
+	expect_value(EndCommand, commandTag, messagetype);
 	expect_value(EndCommand, dest, DestRemote);
 	will_be_called(EndCommand);
 
+	will_be_called(pq_flush);
+}
+void
+test_HandleFtsWalRepProbe(void **state)
+{
+	FtsResponse mockresponse;
+	mockresponse.IsMirrorUp = true;
+	mockresponse.IsInSync = true;
+	mockresponse.IsSyncRepEnabled = false;
+
+	expect_any(GetMirrorStatus, response);
+	will_assign_memory(GetMirrorStatus, response, &mockresponse, sizeof(FtsResponse));
+	will_be_called(GetMirrorStatus);
+
 	will_be_called(SetSyncStandbysDefined);
 
+	mockSendFtsResponse(FTS_MSG_PROBE);
+
 	HandleFtsWalRepProbe();
+}
+
+void
+test_HandleFtsWalRepSyncRepOff(void **state)
+{
+	FtsResponse mockresponse;
+	mockresponse.IsMirrorUp = false;
+	mockresponse.IsInSync = false;
+	mockresponse.IsSyncRepEnabled = true;
+
+	expect_any(GetMirrorStatus, response);
+	will_assign_memory(GetMirrorStatus, response, &mockresponse, sizeof(FtsResponse));
+	will_be_called(GetMirrorStatus);
+
+	will_be_called(UnsetSyncStandbysDefined);
+
+	mockSendFtsResponse(FTS_MSG_SYNCREP_OFF);
+
+	HandleFtsWalRepSyncRepOff();
 }
 
 int
@@ -74,7 +102,8 @@ main(int argc, char* argv[])
 	cmockery_parse_arguments(argc, argv);
 
 	const UnitTest tests[] = {
-		unit_test(test_HandleFtsWalRepProbe)
+		unit_test(test_HandleFtsWalRepProbe),
+		unit_test(test_HandleFtsWalRepSyncRepOff)
 	};
 	return run_tests(tests);
 }

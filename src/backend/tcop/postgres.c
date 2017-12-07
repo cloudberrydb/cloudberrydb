@@ -5022,11 +5022,7 @@ PostgresMain(int argc, char *argv[],
 						exec_replication_command(query_string);
 #ifdef USE_SEGWALREP
 					else if (am_ftshandler)
-					{
-						Assert(strncmp(query_string, FTS_MSG_TYPE_PROBE,
-									   strlen(FTS_MSG_TYPE_PROBE)) == 0);
-						HandleFtsWalRepProbe();
-					}
+						HandleFtsMessage(query_string);
 #endif
 					else
 						exec_simple_query(query_string, NULL, -1);

@@ -9,7 +9,6 @@ include $(top_builddir)/src/backend/mock.mk
 
 ftsmessagehandler.t: \
     $(MOCK_DIR)/backend/utils/error/assert_mock.o \
-    $(MOCK_DIR)/backend/utils/error/elog_mock.o \
     $(MOCK_DIR)/backend/storage/lmgr/lwlock_mock.o \
     $(MOCK_DIR)/backend/replication/gp_replication_mock.o \
     $(MOCK_DIR)/backend/lib/stringinfo_mock.o \

@@ -55,12 +55,12 @@ insert into segwalrep_commit_blocking values (1);
 -- bring the mirror back up
 1U: select pg_ctl((select fselocation from gp_segment_configuration c, pg_filespace_entry f where c.role='m' and c.content=0 and c.dbid = f.fsedbid), 'start', (select port from gp_segment_configuration where content = 0 and preferred_role = 'm'), 0);
 
+-- should unblock and commit now that mirror is back up and in-sync
+3<:
+
 -- turn on fts
 ! gpconfig -c gp_fts_probe_pause -v false --masteronly --skipvalidation;
 1U: select pg_ctl((select fselocation from gp_segment_configuration c, pg_filespace_entry f where c.role='p' and c.content=-1 and c.dbid = f.fsedbid), 'reload', NULL, NULL);
-
--- should unblock and commit now that mirror is back up
-3<:
 
 -- everything should be back to normal
 4: insert into segwalrep_commit_blocking select i from generate_series(1,10)i;

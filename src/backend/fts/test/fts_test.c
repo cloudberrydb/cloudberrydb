@@ -303,11 +303,13 @@ test_probeWalRepPublishUpdate_for_zero_segment(void **state)
 {
 	fts_context context;
 
-	context.count = 0;
+	context.num_primary_segments = 0;
 
-	bool		is_updated = probeWalRepPublishUpdate(NULL, &context);
+	bool is_updated = probeWalRepPublishUpdate(NULL, &context);
 
 	assert_false(is_updated);
+	MockFtsIsActive(true);
+	assert_false(FtsWalRepSetupMessageContext(&context));
 }
 
 /*
@@ -318,7 +320,7 @@ test_probeWalRepPublishUpdate_for_FtsIsActive_false(void **state)
 {
 	fts_context context;
 
-	context.count = 1;
+	context.num_primary_segments = 1;
 	probe_response_per_segment response;
 
 	context.responses = &response;
@@ -330,9 +332,10 @@ test_probeWalRepPublishUpdate_for_FtsIsActive_false(void **state)
 	/* mock FtsIsActive false */
 	MockFtsIsActive(false);
 
-	bool		is_updated = probeWalRepPublishUpdate(NULL, &context);
+	bool is_updated = probeWalRepPublishUpdate(NULL, &context);
 
 	assert_false(is_updated);
+	assert_false(FtsWalRepSetupMessageContext(&context));
 }
 
 /*
@@ -343,7 +346,7 @@ test_probeWalRepPublishUpdate_for_shutdown_requested(void **state)
 {
 	fts_context context;
 
-	context.count = 1;
+	context.num_primary_segments = 1;
 	probe_response_per_segment response;
 
 	context.responses = &response;
@@ -356,7 +359,7 @@ test_probeWalRepPublishUpdate_for_shutdown_requested(void **state)
 	shutdown_requested = true;
 	MockFtsIsActive(true);
 
-	bool		is_updated = probeWalRepPublishUpdate(NULL, &context);
+	bool is_updated = probeWalRepPublishUpdate(NULL, &context);
 
 	/* restore the original value to let the rest of the test pass */
 	shutdown_requested = false;
@@ -379,13 +382,17 @@ test_PrimayUpMirrorUpNotInSync_to_PrimayUpMirrorUpNotInSync(void **state)
 									GP_SEGMENT_CONFIGURATION_MODE_NOTINSYNC);
 	FtsWalRepInitProbeContext(cdb_component_dbs, &context);
 
+	/* Primary must block commits as long as it and its mirror are alive. */
 	context.responses[0].result.isPrimaryAlive = true;
+	context.responses[0].result.isSyncRepEnabled = true;
 	context.responses[1].result.isPrimaryAlive = true;
+	context.responses[1].result.isSyncRepEnabled = true;
 
 	/* probeWalRepPublishUpdate should not update a probe state */
-	bool		is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+	bool is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
 
 	assert_false(is_updated);
+	assert_false(FtsWalRepSetupMessageContext(&context));
 	pfree(cdb_component_dbs);
 }
 
@@ -409,11 +416,13 @@ test_PrimayUpMirrorUpNotInSync_to_PrimaryDown(void **state)
 
 	/* Response received from second segment */
 	context.responses[1].result.isPrimaryAlive = true;
+	context.responses[1].result.isSyncRepEnabled = true;
 
 	/* No update must happen */
-	bool		is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+	bool is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
 
 	assert_false(is_updated);
+	assert_false(FtsWalRepSetupMessageContext(&context));
 	pfree(cdb_component_dbs);
 }
 
@@ -439,8 +448,9 @@ test_PrimayUpMirrorUpNotInSync_to_PrimaryUpMirrorDownNotInSync(void **state)
 	context.responses[0].result.isPrimaryAlive = true;
 	context.responses[0].result.isMirrorAlive = false;
 
+	/* Syncrep must be enabled because mirror is up. */
 	context.responses[1].result.isPrimaryAlive = true;
-
+	context.responses[1].result.isSyncRepEnabled = true;
 
 	/* the mirror will be updated */
 	PrimaryOrMirrorWillBeUpdated(1);
@@ -452,8 +462,9 @@ test_PrimayUpMirrorUpNotInSync_to_PrimaryUpMirrorDownNotInSync(void **state)
 										   /* willUpdatePrimary */ false,
 										   /* willUpdateMirror */ true);
 
-	bool		is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+	bool is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
 
+	assert_false(FtsWalRepSetupMessageContext(&context));
 	assert_true(is_updated);
 	pfree(cdb_component_dbs);
 }
@@ -487,10 +498,14 @@ test_PrimaryUpMirrorDownNotInSync_to_PrimayUpMirrorUpNotInSync(void **state)
 	 */
 	context.responses[0].result.isPrimaryAlive = true;
 	context.responses[0].result.isMirrorAlive = true;
+	context.responses[0].isScheduled = true;
+	context.responses[0].result.isSyncRepEnabled = true;
 
 	/* no change */
 	context.responses[1].result.isPrimaryAlive = true;
+	context.responses[1].result.isSyncRepEnabled = true;
 	context.responses[2].result.isPrimaryAlive = true;
+	context.responses[2].result.isSyncRepEnabled = true;
 
 	/* the mirror will be updated */
 	PrimaryOrMirrorWillBeUpdated(1);
@@ -502,7 +517,11 @@ test_PrimaryUpMirrorDownNotInSync_to_PrimayUpMirrorUpNotInSync(void **state)
 										   /* willUpdatePrimary */ false,
 										   /* willUpdateMirror */ true);
 
-	bool		is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+	bool is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+
+	/* we do not expect to send syncrep off libpq message */
+	assert_false(FtsWalRepSetupMessageContext(&context));
+	assert_true(context.responses[0].isScheduled);
 
 	assert_true(is_updated);
 	pfree(cdb_component_dbs);
@@ -537,6 +556,7 @@ test_probeWalRepPublishUpdate_multiple_segments(void **state)
 	/* First segment DOWN mirror, now reported UP */
 	context.responses[0].result.isPrimaryAlive = true;
 	context.responses[0].result.isMirrorAlive = true;
+	context.responses[0].result.isSyncRepEnabled = true;
 
 	/* Second segment no response received */
 
@@ -546,6 +566,7 @@ test_probeWalRepPublishUpdate_multiple_segments(void **state)
 
 	/* Fourth segment, response received no change */
 	context.responses[3].result.isPrimaryAlive = true;
+	context.responses[3].result.isSyncRepEnabled = true;
 
 	/* we are updating two of the four segments */
 	PrimaryOrMirrorWillBeUpdated(2);
@@ -573,8 +594,9 @@ test_probeWalRepPublishUpdate_multiple_segments(void **state)
 										   /* willUpdateMirror */ true);
 	/* Fourth segment will not change status */
 
-	bool		is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+	bool is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
 
+	assert_false(FtsWalRepSetupMessageContext(&context));
 	assert_true(is_updated);
 	pfree(cdb_component_dbs);
 }
@@ -596,9 +618,11 @@ test_PrimayUpMirrorUpSync_to_PrimaryUpMirrorUpNotInSync(void **state)
 
 	FtsWalRepInitProbeContext(cdb_component_dbs, &context);
 
-	/* Probe responded with Mirror Up and Not In SYNC */
+	/* Probe responded with Mirror Up and Not In SYNC with syncrep enabled */
 	context.responses[0].result.isPrimaryAlive = true;
 	context.responses[0].result.isInSync = false;
+	context.responses[0].result.isSyncRepEnabled = true;
+	context.responses[0].isScheduled = true;
 
 	/* we are updating one segment pair */
 	PrimaryOrMirrorWillBeUpdated(1);
@@ -611,15 +635,19 @@ test_PrimayUpMirrorUpSync_to_PrimaryUpMirrorUpNotInSync(void **state)
 										   /* willUpdatePrimary */ true,
 										   /* willUpdateMirror */ true);
 
-	bool		is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+	bool is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+
+	/* we do not expect to send syncrep off libpq message */
+	assert_false(FtsWalRepSetupMessageContext(&context));
+	assert_true(context.responses[0].isScheduled);
 
 	assert_true(is_updated);
 	pfree(cdb_component_dbs);
 }
 
 /*
- * 1 segment, is_updated is true, because mirror will be marked down and
- * both will be marked not in sync
+ * 2 segments, is_updated is true, because mirror will be marked down and
+ * both will be marked not in sync for first primary mirror pair
  */
 void
 test_PrimayUpMirrorUpSync_to_PrimaryUpMirrorDownNotInSync(void **state)
@@ -628,16 +656,23 @@ test_PrimayUpMirrorUpSync_to_PrimaryUpMirrorDownNotInSync(void **state)
 	CdbComponentDatabases *cdb_component_dbs;
 
 	/* Start in SYNC mode */
-	cdb_component_dbs = InitTestCdb(1,
+	cdb_component_dbs = InitTestCdb(2,
 									true,
 									GP_SEGMENT_CONFIGURATION_MODE_INSYNC);
 
 	FtsWalRepInitProbeContext(cdb_component_dbs, &context);
 
-	/* Probe responded with Mirror Up and Not In SYNC */
+	/* Probe responded with one mirror down and not in-sync, and syncrep enabled on both primaries */
 	context.responses[0].result.isPrimaryAlive = true;
 	context.responses[0].result.isMirrorAlive = false;
 	context.responses[0].result.isInSync = false;
+	context.responses[0].result.isSyncRepEnabled = true;
+	context.responses[0].isScheduled = true;
+	context.responses[1].result.isPrimaryAlive = true;
+	context.responses[1].result.isMirrorAlive = true;
+	context.responses[1].result.isInSync = true;
+	context.responses[1].result.isSyncRepEnabled = true;
+	context.responses[1].isScheduled = true;
 
 	/* we are updating one segment pair */
 	PrimaryOrMirrorWillBeUpdated(1);
@@ -650,7 +685,12 @@ test_PrimayUpMirrorUpSync_to_PrimaryUpMirrorDownNotInSync(void **state)
 										   /* willUpdatePrimary */ true,
 										   /* willUpdateMirror */ true);
 
-	bool		is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+	bool is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+
+	/* we expect to send syncrep off libpq message to only one segment */
+	assert_true(FtsWalRepSetupMessageContext(&context));
+	assert_false(context.responses[0].isScheduled);
+	assert_true(context.responses[1].isScheduled);
 
 	assert_true(is_updated);
 	pfree(cdb_component_dbs);
@@ -675,6 +715,7 @@ test_PrimayUpMirrorUpSync_to_PrimaryDown(void **state)
 
 	/* Probe responded with Mirror Up and Not In SYNC */
 	context.responses[0].result.isPrimaryAlive = false;
+	context.responses[0].result.isSyncRepEnabled = true;
 
 	/* we are updating one segment pair */
 	PrimaryOrMirrorWillBeUpdated(1);
@@ -687,9 +728,10 @@ test_PrimayUpMirrorUpSync_to_PrimaryDown(void **state)
 										   /* willUpdatePrimary */ true,
 										   /* willUpdateMirror */ true);
 
-	bool		is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+	bool is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
 
 	assert_true(is_updated);
+	assert_false(FtsWalRepSetupMessageContext(&context));
 	pfree(cdb_component_dbs);
 }
 
@@ -712,6 +754,7 @@ test_PrimayUpMirrorUpNotInSync_to_PrimayUpMirrorUpSync(void **state)
 	/* Probe responded with Mirror Up and SYNC */
 	context.responses[0].result.isPrimaryAlive = true;
 	context.responses[0].result.isInSync = true;
+	context.responses[0].result.isSyncRepEnabled = true;
 
 	/* we are updating one segment pair */
 	PrimaryOrMirrorWillBeUpdated(1);
@@ -724,9 +767,10 @@ test_PrimayUpMirrorUpNotInSync_to_PrimayUpMirrorUpSync(void **state)
 										   /* willUpdatePrimary */ true,
 										   /* willUpdateMirror */ true);
 
-	bool		is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+	bool is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
 
 	assert_true(is_updated);
+	assert_false(FtsWalRepSetupMessageContext(&context));
 	pfree(cdb_component_dbs);
 }
 
@@ -757,6 +801,7 @@ test_PrimaryUpMirrorDownNotInSync_to_PrimayUpMirrorUpSync(void **state)
 	context.responses[0].result.isPrimaryAlive = true;
 	context.responses[0].result.isMirrorAlive = true;
 	context.responses[0].result.isInSync = true;
+	context.responses[0].result.isSyncRepEnabled = true;
 
 	/* we are updating one segment pair */
 	PrimaryOrMirrorWillBeUpdated(1);
@@ -769,9 +814,10 @@ test_PrimaryUpMirrorDownNotInSync_to_PrimayUpMirrorUpSync(void **state)
 										   /* willUpdatePrimary */ true,
 										   /* willUpdateMirror */ true);
 
-	bool		is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+	bool is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
 
 	assert_true(is_updated);
+	assert_false(FtsWalRepSetupMessageContext(&context));
 	pfree(cdb_component_dbs);
 }
 
@@ -802,8 +848,9 @@ test_PrimaryUpMirrorDownNotInSync_to_PrimayUpMirrorDownNotInSync(void **state)
 	context.responses[0].result.isMirrorAlive = false;
 	context.responses[0].result.isInSync = false;
 
-	bool		is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+	bool is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
 
+	assert_false(FtsWalRepSetupMessageContext(&context));
 	assert_false(is_updated);
 	pfree(cdb_component_dbs);
 }
@@ -835,10 +882,12 @@ test_PrimaryUpMirrorDownNotInSync_to_PrimaryDown(void **state)
 
 	/* no change for segment 2, probe returned */
 	context.responses[1].result.isPrimaryAlive = true;
+	context.responses[1].result.isSyncRepEnabled = true;
 
-	bool		is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
+	bool is_updated = probeWalRepPublishUpdate(cdb_component_dbs, &context);
 
 	assert_false(is_updated);
+	assert_false(FtsWalRepSetupMessageContext(&context));
 	pfree(cdb_component_dbs);
 }
 
