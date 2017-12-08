@@ -734,7 +734,7 @@ transformWindowFuncCall(ParseState *pstate, WindowFunc *wfunc,
 		if (lc == NULL)			/* didn't find it? */
 			ereport(ERROR,
 					(errcode(ERRCODE_UNDEFINED_OBJECT),
-					 errmsg("window \"%s\" does not exist", windef->name),
+					 errmsg("window \"%s\" does not exist", name),
 					 parser_errposition(pstate, windef->location)));
 	}
 	else

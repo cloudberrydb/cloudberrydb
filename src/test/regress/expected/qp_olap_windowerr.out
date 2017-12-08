@@ -5108,6 +5108,17 @@ LINE 1: delete from wintest_for_window_seq where count(*) over (orde...
                                                  ^
 drop table wintest_for_window_seq;
 --
+-- Test "window does not exist" error in window parsing code
+--
+select row_number() over (bogus) FROM generate_series(1,10) i;
+ERROR:  window "bogus" does not exist
+LINE 1: select row_number() over (bogus) FROM generate_series(1,10) ...
+                                 ^
+select row_number() over bogus FROM generate_series(1,10) i;
+ERROR:  window "bogus" does not exist
+LINE 1: select row_number() over bogus FROM generate_series(1,10) i;
+                                 ^
+--
 -- STANDARD DATA FOR olap_* TESTS.
 --
 -- start_ignore
