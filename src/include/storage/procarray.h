@@ -27,6 +27,7 @@ extern void CreateSharedProcArray(void);
 extern void ProcArrayAdd(PGPROC *proc);
 extern void ProcArrayRemove(PGPROC *proc, TransactionId latestXid);
 extern bool ProcArrayEndTransaction(PGPROC *proc, TransactionId latestXid, bool isCommit);
+extern void ProcArrayEndGxact(void);
 extern void ProcArrayClearTransaction(PGPROC *proc, bool commit);
 extern void ClearTransactionFromPgProc_UnderLock(PGPROC *proc, bool commit);
 
@@ -66,5 +67,7 @@ extern void updateSharedLocalSnapshot(struct DtxContextInfo *dtxContextInfo, str
 extern void GetSlotTableDebugInfo(void **snapshotArray, int *maxSlots);
 
 extern bool FindAndSignalProcess(int sessionId, int commandId);
+
+extern void getDtxCheckPointInfo(char **result, int *result_size);
 
 #endif   /* PROCARRAY_H */

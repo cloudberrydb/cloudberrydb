@@ -267,7 +267,7 @@ m/\s+\(seg.*pid.*\)/
 s/\s+\(seg.*pid.*\)//
 
 # distributed transactions
-m/^(?:ERROR|WARNING|CONTEXT|NOTICE):.*gid\s+=\s+(?:\d+)/
+m/^(?:ERROR|WARNING|CONTEXT|NOTICE|PANIC):.*gid\s+=\s+(?:\d+)/
 s/gid.*/gid DUMMY/
 
 m/^(?:ERROR|WARNING|CONTEXT|NOTICE):.*connection.*failed.*(?:http|gpfdist)/

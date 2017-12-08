@@ -63,6 +63,7 @@
 
 #include "cdb/cdblocaldistribxact.h"
 #include "cdb/cdbgang.h"
+#include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"  /*Gp_is_writer*/
 #include "port/atomics.h"
 #include "utils/session_state.h"
@@ -437,6 +438,9 @@ InitProcess(void)
 	MyProc->waitPortalId = INVALID_PORTALID;
 
 	MyProc->queryCommandId = -1;
+
+	/* Init gxact */
+	initGxact(&MyProc->gxact);
 
 	/*
 	 * Arrange to clean up at backend exit.

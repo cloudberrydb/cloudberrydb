@@ -23,6 +23,7 @@
 #include "access/xlog.h"
 
 #include "cdb/cdblocaldistribxact.h"  /* LocalDistribXactData */
+#include "cdb/cdbtm.h"  /* TMGXACT */
 
 
 /*
@@ -172,6 +173,7 @@ struct PGPROC
 	void		*resSlot;	/* the resource group slot granted.
    							 * NULL indicates the resource group is
 							 * locked for drop. */
+	TMGXACT		gxact;
 };
 
 /* NOTE: "typedef struct PGPROC PGPROC" appears in storage/lock.h. */

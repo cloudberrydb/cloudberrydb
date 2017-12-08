@@ -108,3 +108,7 @@ test: vacuum_after_vacuum_skip_drop_column
 test: segwalrep/commit_blocking
 test: segwalrep/fts_unblock_primary
 test: segwalrep/mirror_promotion
+
+# Tests for crash recovery
+test: crash_recovery
+test: crash_recovery_redundant_dtx

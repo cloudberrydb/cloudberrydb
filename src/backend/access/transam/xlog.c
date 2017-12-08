@@ -8546,6 +8546,32 @@ CreateCheckPoint(int flags)
 	pfree(vxids);
 
 	/*
+	 * When the crash happens, we need to handle the transactions that have
+	 * already inserted 'commit' record and haven't inserted 'forget' record.
+	 *
+	 * If the 'commit' record is logically before the checkpoint REDO pointer,
+	 * we save the transactions in checkpoint record, and these transactions
+	 * will be load into shared memory and mark as 'crash committed' during
+	 * redo checkpoint.
+	 * If the 'commit' record is logically after the checkpoint REDO pointer,
+	 * the transactions will be added to shared memory and mark as 'crash
+	 * committed' during redo xact.
+	 * All these transactions will be stored in the shutdown checkpoint record
+	 * after recovery, and they will be finally recovered in recoverTM().
+	 *
+	 * So if it's a shutdown checkpoint here, we should include all 'crash
+	 * committed' transactions, and if it's a normal checkpoint should include
+	 * all transactions whose 'commit' record is logically before checkpoint
+	 * REDO pointer.
+	 *
+	 * We don't hold the WALInsertLock, so there's a time window that allows
+	 * transactions insert 'commit' record and/or 'forget' record after
+	 * checkpoint REDO pointer. That's fine, resend 'commit prepared' to already
+	 * finished transactions is handled.
+	 */
+	getDtxCheckPointInfo(&dtxCheckPointInfo, &dtxCheckPointInfoSize);
+
+	/*
 	 * Get the other info we need for the checkpoint record.
 	 */
 	LWLockAcquire(XidGenLock, LW_SHARED);
@@ -8592,12 +8618,10 @@ CreateCheckPoint(int flags)
 	 *
 	 * Here is the locking order and scope:
 	 *
-	 * getDtxCheckPointInfoAndLock (i.e. shmControlLock)
 	 * 	READ_PERSISTENT_STATE_ORDERED_LOCK (i.e. PersistentObjLock)
 	 * 		mmxlog_append_checkpoint_data
 	 * 		XLogInsert
 	 * 	READ_PERSISTENT_STATE_ORDERED_UNLOCK
-	 * freeDtxCheckPointInfoAndUnlock
 	 * XLogFlush
 	 *
 	 * We get the PersistentObjLock to prevent Persistent Object writers as
@@ -8616,8 +8640,6 @@ CreateCheckPoint(int flags)
 	 * then recreated based on the checkpoint record. That will ends-up left behind the directories already
 	 * dropped on the master, break the consistency between the master and the standby.
 	 */
-
-	getDtxCheckPointInfoAndLock(&dtxCheckPointInfo, &dtxCheckPointInfoSize);
 
 	rdata[0].data = (char *) (&checkPoint);
 	rdata[0].len = sizeof(checkPoint);
@@ -8656,8 +8678,6 @@ CreateCheckPoint(int flags)
 	recptr = XLogInsert(RM_XLOG_ID,
 			            shutdown ? XLOG_CHECKPOINT_SHUTDOWN : XLOG_CHECKPOINT_ONLINE,
 			            rdata);
-
-	freeDtxCheckPointInfoAndUnlock(dtxCheckPointInfo, dtxCheckPointInfoSize, &recptr);
 
 	XLogFlush(recptr);
 

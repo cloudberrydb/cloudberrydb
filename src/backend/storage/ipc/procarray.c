@@ -37,6 +37,7 @@
 #include "access/xact.h"
 #include "access/twophase.h"
 #include "miscadmin.h"
+#include "port/atomics.h"
 #include "storage/procarray.h"
 #include "utils/combocid.h"
 #include "utils/snapmgr.h"
@@ -227,6 +228,13 @@ ProcArrayRemove(PGPROC *proc, TransactionId latestXid)
 	elog(LOG, "failed to find proc %p in ProcArray", proc);
 }
 
+
+void
+ProcArrayEndGxact(void)
+{
+	Assert(LWLockHeldByMe(ProcArrayLock));
+	initGxact(&MyProc->gxact);
+}
 
 /*
  * ProcArrayEndTransaction -- mark a transaction as no longer running
@@ -1042,6 +1050,309 @@ QEwriterSnapshotUpToDate(void)
 	LWLockRelease(SharedLocalSnapshotSlot->slotLock);
 
 	return result;
+}
+
+void
+getAllDistributedXactStatus(TMGALLXACTSTATUS **allDistributedXactStatus)
+{
+	TMGALLXACTSTATUS *all;
+	int			count;
+	ProcArrayStruct *arrayP = procArray;
+
+	all = palloc(sizeof(TMGALLXACTSTATUS));
+	all->next = 0;
+	all->count = 0;
+	all->statusArray = NULL;
+
+	LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
+	count = arrayP->numProcs;
+	if (count > 0)
+	{
+		int			i;
+
+		all->statusArray =
+			palloc(MAXALIGN(count * sizeof(TMGXACTSTATUS)));
+		for (i = 0; i < count; i++)
+		{
+			PGPROC *proc = arrayP->procs[i];
+			TMGXACT *gxact = &proc->gxact;
+
+			all->statusArray[i].gxid = gxact->gxid;
+			if (strlen(gxact->gid) >= TMGIDSIZE)
+				elog(PANIC, "Distribute transaction identifier too long (%d)",
+						(int) strlen(gxact->gid));
+			memcpy(all->statusArray[i].gid, gxact->gid, TMGIDSIZE);
+			all->statusArray[i].state = gxact->state;
+			all->statusArray[i].sessionId = gxact->sessionId;
+			all->statusArray[i].xminDistributedSnapshot = gxact->xminDistributedSnapshot;
+		}
+
+		all->count = count;
+	}
+
+	LWLockRelease(ProcArrayLock);
+
+	*allDistributedXactStatus = all;
+}
+
+/*
+ * Get check point information
+ *
+ * Whether DTM started or not, we must always store DTM information in
+ * this checkpoint record.  A possible case to consider is we might have
+ * in-progress global transactions in shared memory after postmaster reset,
+ * and shutting down without performing DTM recovery.  The subsequent
+ * recovery after this shutdown will read this checkpoint, so we would
+ * lose the in-progress global transaction information if we didn't write it
+ * here.  Note we will certainly read this global transaction information
+ * even if this is a clean shutdown (i.e. not performing multi-pass recovery.)
+ */
+void
+getDtxCheckPointInfo(char **result, int *result_size)
+{
+	TMGXACT_CHECKPOINT *gxact_checkpoint;
+	TMGXACT_LOG *gxact_log_array;
+	int			i;
+	int			actual;
+	ProcArrayStruct *arrayP = procArray;
+
+	if (GpIdentity.segindex != MASTER_CONTENT_ID)
+	{
+		gxact_checkpoint = palloc(TMGXACT_CHECKPOINT_BYTES(0));
+		gxact_checkpoint->committedCount = 0;
+		*result = (char*) gxact_checkpoint;
+		*result_size = TMGXACT_CHECKPOINT_BYTES(0);
+		return;
+	}
+
+	gxact_checkpoint = palloc(TMGXACT_CHECKPOINT_BYTES(arrayP->numProcs + *shmNumCommittedGxacts));
+	gxact_log_array = &gxact_checkpoint->committedGxactArray[0];
+
+	actual = 0;
+	for (i = 0; i < *shmNumCommittedGxacts; i++)
+		gxact_log_array[actual++] = shmCommittedGxactArray[i++];
+
+	SIMPLE_FAULT_INJECTOR(CheckPointDtxInfo);
+
+	/*
+	 * If a transaction inserted 'commit' record logically before the checkpoint
+	 * REDO pointer, and it hasn't inserted the 'forget' record. we will see its
+	 * 'TMGXACT->state' is between 'DTX_STATE_INSERTED_COMMITTED' and
+	 * 'DTX_STATE_INSERTING_FORGET_COMMITTED'. such transactions should be included
+	 * in the checkpoint record so that the second phase of 2PC can be executed
+	 * during crash recovery.
+	 *
+	 * NOTE: the REDO pointer is obtained much earlier in CreateCheckpoint().
+	 * It is possible to include transactions having their commit records
+	 * *after* the REDO pointer in checkpoint record.  Second phase of 2PC for
+	 * such transactions will be executed twice during crash recovery.
+	 * Although redundant, this is not a problem.
+	 */
+	LWLockAcquire(ProcArrayLock, LW_SHARED);
+
+	for (i = 0; i < arrayP->numProcs; i++)
+	{
+		TMGXACT_LOG *gxact_log;
+		PGPROC  *proc = arrayP->procs[i];
+		TMGXACT *gxact = &proc->gxact;
+
+		if (!includeInCheckpointIsNeeded(gxact))
+			continue;
+
+		gxact_log = &gxact_log_array[actual];
+		if (strlen(gxact->gid) >= TMGIDSIZE)
+			elog(PANIC, "Distribute transaction identifier too long (%d)",
+				 (int) strlen(gxact->gid));
+		memcpy(gxact_log->gid, gxact->gid, TMGIDSIZE);
+		gxact_log->gxid = gxact->gxid;
+
+		elog((Debug_print_full_dtm ? LOG : DEBUG5),
+			 "Add DTM checkpoint entry gid = %s.", gxact->gid);
+
+		actual++;
+	}
+
+	LWLockRelease(ProcArrayLock);
+
+	gxact_checkpoint->committedCount = actual;
+
+	*result = (char *) gxact_checkpoint;
+	*result_size = TMGXACT_CHECKPOINT_BYTES(actual);
+
+	elog((Debug_print_full_dtm ? LOG : DEBUG5),
+		 "Filled in DTM checkpoint information (count = %d).", actual);
+}
+
+/*
+ * DistributedSnapshotMappedEntry_Compare: A compare function for
+ * DistributedTransactionId for use with qsort.
+ */
+static int
+DistributedSnapshotMappedEntry_Compare(const void *p1, const void *p2)
+{
+	const DistributedTransactionId distribXid1 = *(DistributedTransactionId *) p1;
+	const DistributedTransactionId distribXid2 = *(DistributedTransactionId *) p2;
+
+	if (distribXid1 == distribXid2)
+		return 0;
+	else if (distribXid1 > distribXid2)
+		return 1;
+	else
+		return -1;
+}
+
+/*
+ * create distributed snapshot based on current visible distributed transaction
+ */
+static bool
+CreateDistributedSnapshot(DistributedSnapshotWithLocalMapping *distribSnapshotWithLocalMapping)
+{
+	int			i;
+	int			count;
+	DistributedTransactionId xmin;
+	DistributedTransactionId xmax;
+	DistributedSnapshotId distribSnapshotId;
+	DistributedTransactionId globalXminDistributedSnapshots;
+	DistributedSnapshot *ds;
+	ProcArrayStruct *arrayP = procArray;
+
+	Assert(LWLockHeldByMe(ProcArrayLock));
+	if (*shmNumCommittedGxacts != 0)
+		elog(ERROR, "Create distributed snapshot before DTM recovery finish");
+
+	xmin = LastDistributedTransactionId;
+
+	/*
+	 * This is analogous to the code in GetSnapshotData() (which calls
+	 * ReadNewTransactionId(), the distributed-xmax of a transaction is the
+	 * last distributed-xmax available
+	 */
+	xmax = getMaxDistributedXid();
+
+	/*
+	 * initialize for calculation with xmax, the calculation for this is on
+	 * same lines as globalxmin for local snapshot.
+	 */
+	globalXminDistributedSnapshots = xmax;
+	count = 0;
+	ds = &distribSnapshotWithLocalMapping->ds;
+
+	/*
+	 * Gather up current in-progress global transactions for the distributed
+	 * snapshot.
+	 */
+	for (i = 0; i < arrayP->numProcs; i++)
+	{
+		PGPROC	*proc = arrayP->procs[i];
+		TMGXACT	*gxact_candidate = &proc->gxact;
+		volatile DistributedTransactionId gxid;
+		DistributedTransactionId dxid;
+
+		/* just fetch once */
+		gxid = gxact_candidate->gxid;
+		if (gxid == InvalidDistributedTransactionId)
+			continue;
+
+		if (gxact_candidate->state == DTX_STATE_ACTIVE_NOT_DISTRIBUTED)
+			continue;
+
+		Assert(gxact_candidate->state != DTX_STATE_ACTIVE_NOT_DISTRIBUTED &&
+			   gxact_candidate->state != DTX_STATE_NONE);
+
+		/* Update globalXminDistributedSnapshots to be the smallest valid dxid */
+		dxid = gxact_candidate->xminDistributedSnapshot;
+		if ((dxid != InvalidDistributedTransactionId) &&
+			dxid < globalXminDistributedSnapshots)
+		{
+			globalXminDistributedSnapshots = dxid;
+		}
+
+		/*
+		 * Include the current distributed transaction in the min/max
+		 * calculation.
+		 */
+		if (gxid < xmin)
+		{
+			xmin = gxid;
+		}
+		if (gxid > xmax)
+		{
+			xmax = gxid;
+		}
+
+		if (proc == MyProc)
+			continue;
+
+		if (count >= ds->maxCount)
+			elog(ERROR, "Too many distributed transactions for snapshot");
+
+		ds->inProgressXidArray[count++] = gxid;
+
+		elog((Debug_print_full_dtm ? LOG : DEBUG5),
+			 "CreateDistributedSnapshot added inProgressDistributedXid = %u to snapshot",
+			 gxid);
+	}
+
+	distribSnapshotId = pg_atomic_add_fetch_u32((pg_atomic_uint32 *)shmNextSnapshotId, 1);
+
+	/*
+	 * Above globalXminDistributedSnapshots was calculated based on lowest
+	 * dxid in all snapshots but update it to also include actual process
+	 * dxids.
+	 */
+	if (xmin < globalXminDistributedSnapshots)
+		globalXminDistributedSnapshots = xmin;
+
+	/*
+	 * Sort the entry {distribXid} to support the QEs doing culls on their
+	 * DisribToLocalXact sorted lists.
+	 */
+	qsort(
+		  ds->inProgressXidArray,
+		  count,
+		  sizeof(DistributedTransactionId),
+		  DistributedSnapshotMappedEntry_Compare);
+
+	/*
+	 * Copy the information we just captured under lock and then sorted into
+	 * the distributed snapshot.
+	 */
+	ds->distribTransactionTimeStamp = *shmDistribTimeStamp;
+	ds->xminAllDistributedSnapshots = globalXminDistributedSnapshots;
+	ds->distribSnapshotId = distribSnapshotId;
+	ds->xmin = xmin;
+	ds->xmax = xmax;
+	ds->count = count;
+
+	if (xmin < MyProc->gxact.xminDistributedSnapshot)
+		MyProc->gxact.xminDistributedSnapshot = xmin;
+
+	elog((Debug_print_full_dtm ? LOG : DEBUG5),
+		 "CreateDistributedSnapshot distributed snapshot has xmin = %u, count = %u, xmax = %u.",
+		 xmin, count, xmax);
+	elog((Debug_print_snapshot_dtm ? LOG : DEBUG5),
+		 "[Distributed Snapshot #%u] *Create* (gxid = %u, '%s')",
+		 distribSnapshotId,
+		 MyProc->gxact.gxid,
+		 DtxContextToString(DistributedTransactionContext));
+
+	/*
+	 * At snapshot creation time, local xid cache is empty. Gets populated as
+	 * reverse mapping takes place during visibility checks using this
+	 * snapshot.
+	 */
+	distribSnapshotWithLocalMapping->currentLocalXidsCount = 0;
+	distribSnapshotWithLocalMapping->minCachedLocalXid = InvalidTransactionId;
+	distribSnapshotWithLocalMapping->maxCachedLocalXid = InvalidTransactionId;
+
+	Assert(distribSnapshotWithLocalMapping->maxLocalXidsCount != 0);
+	Assert(distribSnapshotWithLocalMapping->inProgressMappedLocalXids != NULL);
+
+	memset(distribSnapshotWithLocalMapping->inProgressMappedLocalXids,
+		   InvalidTransactionId,
+		   sizeof(TransactionId) * distribSnapshotWithLocalMapping->maxLocalXidsCount);
+
+	return true;
 }
 
 /*----------

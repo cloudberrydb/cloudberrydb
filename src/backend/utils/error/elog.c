@@ -386,7 +386,6 @@ errstart(int elevel, const char *filename, int lineno,
 				case DTX_STATE_INSERTING_FORGET_COMMITTED:
 				case DTX_STATE_INSERTED_FORGET_COMMITTED:
 				case DTX_STATE_NOTIFYING_ABORT_NO_PREPARED:
-				case DTX_STATE_CRASH_COMMITTED:
 					break;
 			}
 		}

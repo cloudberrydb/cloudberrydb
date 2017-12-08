@@ -1161,9 +1161,28 @@ RecordTransactionCommit(void)
 
 			rdata[1].next = NULL;
 
+			/*
+			 * Checkpoint process should hold off obtaining the REDO
+			 * pointer while a backend is writing distributed commit
+			 * xlog record and changing state of the distributed
+			 * trasaction.  Otherwise, it is possible that a commit
+			 * record is written by a transaction and the checkpointer
+			 * determines REDO pointer to be after this commit record.
+			 * But the transaction is yet to chance its state to
+			 * INSERTED_DISRIBUTED_COMMITTED and the checkpoint process
+			 * fails to record this transaction in the checkpoint.
+			 * Crash recovery will never see the commit record for this
+			 * transaction and the second phase of 2PC will never
+			 * happen.  The inCommit flag avoids the situation by
+			 * blocking checkpointer untill a backend has finished
+			 * updating the state.
+			 */
+			save_inCommit = MyProc->inCommit;
+			MyProc->inCommit = true;
 			insertingDistributedCommitted();
 			recptr = XLogInsert(RM_XACT_ID, XLOG_XACT_DISTRIBUTED_COMMIT, rdata);
 			insertedDistributedCommitted();
+			MyProc->inCommit = save_inCommit;
 		}
 
 		/*
@@ -1253,6 +1272,11 @@ RecordTransactionCommit(void)
 		{
 			insertingDistributedCommitted();
 
+			/*
+			 * MyProc->inCommit flag is already set, checkpointer will
+			 * be able to see this transaction only after distributed
+			 * commit xlog is written and the state is changed.
+			 */
 			recptr = XLogInsert(RM_XACT_ID, XLOG_XACT_DISTRIBUTED_COMMIT, rdata);
 
 			insertedDistributedCommitted();
@@ -2027,7 +2051,8 @@ StartTransaction(void)
 			 * distributed transaction to a local transaction id for the
 			 * master database.
 			 */
-			createDtx(&currentDistribXid);
+			setCurrentGxact();
+			currentDistribXid = MyProc->gxact.gxid;
 
 			if (SharedLocalSnapshotSlot != NULL)
 			{

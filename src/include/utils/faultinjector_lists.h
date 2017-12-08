@@ -204,6 +204,8 @@ FI_IDENT(GangCreated, "gang_created")
 FI_IDENT(ResGroupAssignedOnMaster, "resgroup_assigned_on_master")
 /* inject fault before reading command */
 FI_IDENT(BeforeReadCommand, "before_read_command")
+/* inject fault before get checkpoint dtx information */
+FI_IDENT(CheckPointDtxInfo, "checkpoint_dtx_info")
 #endif
 
 /*
