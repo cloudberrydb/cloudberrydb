@@ -189,7 +189,7 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	 * ORCA excels in complex queries, most of which will access distributed
 	 * tables. We can't run such queries from the segments slices anyway because
 	 * they require dispatching a query within another - which is not allowed in
-	 * GPDB (see querytree_safe_for_segment()). Note that this restriction also
+	 * GPDB (see querytree_safe_for_qe()). Note that this restriction also
 	 * applies to non-QD master slices.  Furthermore, ORCA doesn't currently
 	 * support pl/* statements (relevant when they are planned on the segments).
 	 * For these reasons, restrict to using ORCA on the master QD processes only.

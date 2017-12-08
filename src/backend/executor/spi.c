@@ -1718,7 +1718,7 @@ _SPI_prepare_plan(const char *src, SPIPlanPtr plan, ParamListInfo boundParams)
 					 * This method will error out if the query cannot be
 					 * safely executed on segment.
 					 */
-					querytree_safe_for_segment(query);
+					querytree_safe_for_qe(query);
 				}
 			}
 		}

@@ -2586,7 +2586,7 @@ end;
 $$
 language plpgsql;
 select gp_segment_id, a, func2(a) from qp_misc_jiras.fim1; -- we should disallow this
-ERROR:  function cannot execute on segment because it accesses relation "qp_misc_jiras.pg_foo"  (seg2 slice1 nikos-mac:25434 pid=94008)
+ERROR:  function cannot execute on a QE slice because it accesses relation "qp_misc_jiras.pg_foo"  (seg2 slice1 nikos-mac:25434 pid=94008)
 DETAIL:  
 SQL statement "select count(*) from qp_misc_jiras.pg_foo"
 PL/pgSQL function "func2" line 4 at EXECUTE statement
@@ -3475,7 +3475,7 @@ explain select x, median2(y) from qp_misc_jiras.tbl9613 group by x; -- this shou
 (8 rows)
 
 select x, median2(y) from qp_misc_jiras.tbl9613 group by x; -- this should be disallowed
-ERROR:  function cannot execute on segment because it accesses relation "qp_misc_jiras.tbl9613"  (seg0 slice1 nikos-mac:25432 pid=94006)
+ERROR:  function cannot execute on a QE slice because it accesses relation "qp_misc_jiras.tbl9613"  (seg0 slice1 nikos-mac:25432 pid=94006)
 DETAIL:  SQL function "_final_median2" during startup
 -- start_ignore
 drop table qp_misc_jiras.tbl9613;

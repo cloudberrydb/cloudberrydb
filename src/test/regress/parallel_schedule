@@ -55,7 +55,7 @@ test: constraints create_misc create_aggregate create_operator vacuum drop_if_ex
 # 'triggers' test is disabled in GPDB, because it contains a trigger function
 # that would need to access rows on other segments, which doens't work. You
 # get errors like:
-# ERROR: function cannot execute on segment because it accesses relation "public.pkeys"
+# ERROR: function cannot execute on a QE slice because it accesses relation "public.pkeys"
 #test: triggers
 
 # Depends on the above
@@ -92,7 +92,7 @@ test: namespace
 
 # The 'transactions' test is disabled in GPDB, because it uses functions
 # in segments in a way that doesn't work:
-# ERROR:  function cannot execute on segment because it accesses relation "public.xacttest"
+# ERROR:  function cannot execute on a QE slice because it accesses relation "public.xacttest"
 #test: transactions
 
 test: privileges

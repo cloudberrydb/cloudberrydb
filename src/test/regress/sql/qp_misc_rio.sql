@@ -374,7 +374,7 @@ select * from ccdd1;
 -- Test: 34
 -- ----------------------------------------------------------------------
 -- This is expected to fail, with an error along the lines of:
--- function cannot execute on segment because it accesses relation "qp_misc_rio.testdata_in"
+-- function cannot execute on a QE slice because it accesses relation "qp_misc_rio.testdata_in"
 
 set search_path to qp_misc_rio;
 

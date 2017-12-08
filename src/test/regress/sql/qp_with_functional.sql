@@ -16,7 +16,7 @@
 -- # The error message you get when you have a UDF that tries to do SQL access
 -- # depends on the plan, and when the error is caught. Mask out that
 -- # difference.
--- m/.*ERROR:.*function cannot execute on segment because it accesses relation.*/
+-- m/.*ERROR:.*function cannot execute on a QE slice because it accesses relation.*/
 -- s/.*ERROR:.*/ERROR: error message might be different for CTE/
 --
 -- m/.*ERROR:  query plan with multiple segworker groups is not supported.*/

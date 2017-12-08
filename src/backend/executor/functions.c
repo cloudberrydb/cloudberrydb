@@ -126,16 +126,13 @@ static Datum postquel_get_single_result(TupleTableSlot *slot,
 						   MemoryContext resultcontext);
 static void sql_exec_error_callback(void *arg);
 static void ShutdownSQLFunction(Datum arg);
-static bool querytree_safe_for_segment_walker(Node *expr, void *context);
+static bool querytree_safe_for_qe_walker(Node *expr, void *context);
 static void sqlfunction_startup(DestReceiver *self, int operation, TupleDesc typeinfo);
 static void sqlfunction_receive(TupleTableSlot *slot, DestReceiver *self);
 static void sqlfunction_shutdown(DestReceiver *self);
 static void sqlfunction_destroy(DestReceiver *self);
 
-/**
- * Walker for querytree_safe_for_segment. 
- */
-bool querytree_safe_for_segment_walker(Node *expr, void *context)
+bool querytree_safe_for_qe_walker(Node *expr, void *context)
 {
 	Assert(context == NULL);
 	
@@ -160,7 +157,7 @@ bool querytree_safe_for_segment_walker(Node *expr, void *context)
 				{
 					ereport(ERROR,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-							 errmsg("function cannot execute on segment because it issues a non-SELECT statement")));
+							 errmsg("function cannot execute on a QE slice because it issues a non-SELECT statement")));
 				}
 				
 				ListCell * f = NULL;
@@ -182,33 +179,34 @@ bool querytree_safe_for_segment_walker(Node *expr, void *context)
 						{
 							ereport(ERROR,
 									(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-									 errmsg("function cannot execute on segment because it accesses relation \"%s.%s\"",
+									 errmsg("function cannot execute on a QE slice because it accesses relation \"%s.%s\"",
 											quote_identifier(get_namespace_name(namespaceId)),
 											quote_identifier(get_rel_name(rte->relid)))));
 						}
 					}
 				}
-				query_tree_walker(q, querytree_safe_for_segment_walker, context, 0);
+				query_tree_walker(q, querytree_safe_for_qe_walker, context, 0);
 				break;
 			}
 		default:
 			break;
 	}
 	
-	return expression_tree_walker(expr, querytree_safe_for_segment_walker, context);
+	return expression_tree_walker(expr, querytree_safe_for_qe_walker, context);
 }
 
 
 /**
- * This function determines if the query tree is safe to be planned and executed on a segment. The checks it performs are:
+ * This function determines if the query tree is safe to be planned and
+ * executed on a QE. The checks it performs are:
  * 1. The query cannot access any non-catalog relation.
  * 2. The query must be select only.
  * In case of a problem, the method spits out an error.
  */
-void querytree_safe_for_segment(Query *query)
+void querytree_safe_for_qe(Query *query)
 {
 	Assert(query);
-	querytree_safe_for_segment_walker((Node *)query, NULL);
+	querytree_safe_for_qe_walker((Node *)query, NULL);
 }
 
 /* Set up the list of per-query execution_state records for a SQL function */
@@ -431,7 +429,7 @@ init_sql_fcache(FmgrInfo *finfo, bool lazyEvalOK)
 			if (IsA(parsetree,Query))
 			{
 				/* This will error out if there is a problem with the query tree */
-				querytree_safe_for_segment((Query*)parsetree);
+				querytree_safe_for_qe((Query*)parsetree);
 			}
 			else
 			{
