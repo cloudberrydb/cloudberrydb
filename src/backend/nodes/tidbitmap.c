@@ -690,8 +690,6 @@ tbm_iterate_page(PagetableEntry *page, TBMIterateResult *output)
  * remember the exact tuples to look at on this page --- the caller must
  * examine all tuples on the page and check if they meet the intended
  * condition.
- *
- * If 'output' is NULL, simple advance the HashBitmap by one.
  */
 static bool
 tbm_iterate_hash(HashBitmap *tbm, TBMIterateResult *output)
