@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/execnodes.h,v 1.199 2009/01/01 17:23:59 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/execnodes.h,v 1.200 2009/01/10 21:08:36 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1796,6 +1796,7 @@ typedef struct DynamicBitmapIndexScanState
  *
  *		bitmapqualorig	   execution state for bitmapqualorig expressions
  *		tbm				   bitmap obtained from child index scan(s)
+ *		tbmiterator		   iterator for scanning current pages
  *		tbmres			   current-page data
  * ----------------
  */
@@ -1805,6 +1806,7 @@ typedef struct BitmapHeapScanState
 	struct HeapScanDescData *ss_currentScanDesc;
 	List	   *bitmapqualorig;
 	Node	   *tbm;
+	GenericBMIterator *tbmiterator;
 	TBMIterateResult *tbmres;
 } BitmapHeapScanState;
 
@@ -1824,7 +1826,7 @@ typedef struct BitmapAppendOnlyScanState
 	struct AOCSFetchDescData *baos_currentAOCSFetchDesc;
 	struct AOCSFetchDescData *baos_currentAOCSLossyFetchDesc;
 	List	   *baos_bitmapqualorig;
-	Node  		*baos_tbm;
+	GenericBMIterator *baos_iterator;
 	TBMIterateResult *baos_tbmres;
 	bool		baos_gotpage;
 	int			baos_cindex;
@@ -1853,6 +1855,7 @@ typedef struct BitmapTableScanState
 	void 						*scanDesc;
 	List           				*bitmapqualorig;
 	Node  						*tbm;
+	GenericBMIterator			*tbmiterator;
 	TBMIterateResult 	*tbmres;
 	bool						isLossyBitmapPage;
 	bool						recheckTuples;

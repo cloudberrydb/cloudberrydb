@@ -72,12 +72,7 @@ getBitmapTableScanMethod(TableType tableType)
 static inline void
 initBitmapState(BitmapTableScanState *scanstate)
 {
-	if (scanstate->tbmres == NULL)
-	{
-		scanstate->tbmres =
-			palloc0(sizeof(TBMIterateResult) +
-					MAX_TUPLES_PER_PAGE * sizeof(OffsetNumber));
-	}
+	/* GPDB_84_MERGE_FIXME: nothing to do? */
 }
 
 /*
@@ -89,10 +84,13 @@ freeBitmapState(BitmapTableScanState *scanstate)
 	/* BitmapIndexScan is the owner of the bitmap memory. Don't free it here */
 	scanstate->tbm = NULL;
 
-	/* BitmapTableScan created the iterator, so it is responsible to free its iterator */
-	if (scanstate->tbmres != NULL)
+	/* BitmapTableScan created the iterator, so it is responsible to free its
+	 * iterator. We free our GenericBMIterator here, though. It owns the tbmres
+	 * memory. */
+	if (scanstate->tbmiterator != NULL)
 	{
-		pfree(scanstate->tbmres);
+		tbm_generic_end_iterate(scanstate->tbmiterator);
+		scanstate->tbmiterator = NULL;
 		scanstate->tbmres = NULL;
 	}
 }
@@ -153,7 +151,7 @@ readBitmap(BitmapTableScanState *scanState)
 
 	Node *tbm = (Node *) MultiExecProcNode(outerPlanState(scanState));
 
-	if (!tbm || !(IsA(tbm, HashBitmap) || IsA(tbm, StreamBitmap)))
+	if (!tbm || !(IsA(tbm, TIDBitmap) || IsA(tbm, StreamBitmap)))
 		elog(ERROR, "unrecognized result from subplan");
 
 	scanState->tbm = tbm;
@@ -166,27 +164,28 @@ readBitmap(BitmapTableScanState *scanState)
 static bool
 fetchNextBitmapPage(BitmapTableScanState *scanState)
 {
+	TBMIterateResult *tbmres;
+
 	if (scanState->tbm == NULL)
 	{
 		return false;
 	}
 
-	TBMIterateResult *tbmres = (TBMIterateResult *)scanState->tbmres;
-
 	Assert(scanState->needNewBitmapPage);
 
-	bool gotBitmapPage = true;
-
-	/* Set to 0 so that we can enter the while loop */
-	tbmres->ntuples = 0;
-
-	while (gotBitmapPage && tbmres->ntuples == 0)
+	if (scanState->tbmiterator == NULL)
 	{
-		gotBitmapPage = tbm_iterate(scanState->tbm, (TBMIterateResult *)scanState->tbmres);
+		scanState->tbmiterator = tbm_generic_begin_iterate(scanState->tbm);
 	}
 
-	if (gotBitmapPage)
+	do
 	{
+		tbmres = tbm_generic_iterate(scanState->tbmiterator);
+	} while (tbmres && (tbmres->ntuples == 0));
+
+	if (tbmres)
+	{
+		scanState->tbmres = tbmres;
 		scanState->iterator = NULL;
 		scanState->needNewBitmapPage = false;
 
@@ -200,7 +199,7 @@ fetchNextBitmapPage(BitmapTableScanState *scanState)
 		}
 	}
 
-	return gotBitmapPage;
+	return (tbmres != NULL);
 }
 
 /*
@@ -383,5 +382,8 @@ BitmapTableScanReScan(BitmapTableScanState *node, ExprContext *exprCtxt)
 {
 	ScanState *scanState = &node->ss;
 	DynamicScan_ReScan(scanState, exprCtxt);
+
+	freeBitmapState(node);
+
 	ExecReScan(outerPlanState(node), exprCtxt);
 }

@@ -567,7 +567,7 @@ btgettuple(PG_FUNCTION_ARGS)
 }
 
 /*
- * btgetbitmap() -- construct a HashBitmap.
+ * btgetbitmap() -- construct a TIDBitmap.
  */
 Datum
 btgetbitmap(PG_FUNCTION_ARGS)
@@ -576,7 +576,7 @@ btgetbitmap(PG_FUNCTION_ARGS)
 
 	IndexScanDesc scan = (IndexScanDesc) PG_GETARG_POINTER(0);
 	Node *n = (Node *)PG_GETARG_POINTER(1);
-	HashBitmap	*tbm;
+	TIDBitmap	*tbm;
 	BTScanOpaque so = (BTScanOpaque) scan->opaque;
 	int64		ntids = 0;
 	ItemPointer heapTid;
@@ -588,13 +588,13 @@ btgetbitmap(PG_FUNCTION_ARGS)
 		/* XXX should we use less than work_mem for this? */
 		tbm = tbm_create(work_mem * 1024L);
 	}
-	else if (!IsA(n, HashBitmap))
+	else if (!IsA(n, TIDBitmap))
 	{
 		elog(ERROR, "non hash bitmap");
 	}
 	else
 	{
-		tbm = (HashBitmap *)n;
+		tbm = (TIDBitmap *)n;
 	}
 
 	/* If we haven't started the scan yet, fetch the first page & tuple. */

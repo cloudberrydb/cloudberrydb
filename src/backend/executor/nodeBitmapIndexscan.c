@@ -94,7 +94,7 @@ MultiExecBitmapIndexScan(BitmapIndexScanState *node)
 		bitmap = index_getbitmap(scandesc, node->biss_result);
 
 		if ((NULL != bitmap) &&
-			!(IsA(bitmap, HashBitmap) || IsA(bitmap, StreamBitmap)))
+			!(IsA(bitmap, TIDBitmap) || IsA(bitmap, StreamBitmap)))
 		{
 			elog(ERROR, "unrecognized result from bitmap index scan");
 		}
@@ -106,7 +106,7 @@ MultiExecBitmapIndexScan(BitmapIndexScanState *node)
 
 		/* CDB: If EXPLAIN ANALYZE, let bitmap share our Instrumentation. */
 		if (node->ss.ps.instrument)
-			tbm_bitmap_set_instrument(bitmap, node->ss.ps.instrument);
+			tbm_generic_set_instrument(bitmap, node->ss.ps.instrument);
 
 		if (node->biss_result == NULL)
 			node->biss_result = (Node *) bitmap;
@@ -182,7 +182,7 @@ ExecBitmapIndexReScan(BitmapIndexScanState *node, ExprContext *exprCtxt)
 
 	/* Sanity check */
 	if (node->biss_result &&
-		(!IsA(node->biss_result, HashBitmap) && !IsA(node->biss_result, StreamBitmap)))
+		(!IsA(node->biss_result, TIDBitmap) && !IsA(node->biss_result, StreamBitmap)))
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_GP_INTERNAL_ERROR),
@@ -191,7 +191,7 @@ ExecBitmapIndexReScan(BitmapIndexScanState *node, ExprContext *exprCtxt)
 
 	if (NULL != node->biss_result)
 	{
-		tbm_bitmap_free(node->biss_result);
+		tbm_generic_free(node->biss_result);
 		node->biss_result = NULL;
 	}
 }
@@ -228,7 +228,7 @@ ExecEndBitmapIndexScan(BitmapIndexScanState *node)
 	if (indexRelationDesc)
 		index_close(indexRelationDesc, NoLock);
 
-	tbm_bitmap_free(node->biss_result);
+	tbm_generic_free(node->biss_result);
 	node->biss_result = NULL;
 
 	EndPlanStateGpmonPkt(&node->ss.ps);

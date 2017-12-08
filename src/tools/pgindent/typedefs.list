@@ -1232,7 +1232,6 @@ HashAggStatus
 HashAggTable
 HashAggTableSizes
 HashAllocFunc
-HashBitmap
 HASHBUCKET
 HashBuildState
 HashCompareFunc
@@ -2472,6 +2471,7 @@ TheLexeme
 TheSubstitute
 ThreadWaitingState
 threadWorkerInfo
+TIDBitmap
 TidHashKey
 TidPath
 TidScan

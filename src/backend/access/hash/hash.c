@@ -294,17 +294,17 @@ hashgetbitmap(PG_FUNCTION_ARGS)
 
 	IndexScanDesc 	scan = (IndexScanDesc) PG_GETARG_POINTER(0);
 	Node		   *n = (Node *) PG_GETARG_POINTER(1);
-	HashBitmap	   *tbm;
+	TIDBitmap	   *tbm;
 	HashScanOpaque	so = (HashScanOpaque) scan->opaque;
 	bool			res;
 	int64			ntids = 0;
 
 	if (n == NULL)
 		tbm = tbm_create(work_mem * 1024L);
-	else if (!IsA(n, HashBitmap))
+	else if (!IsA(n, TIDBitmap))
 		elog(ERROR, "non hash bitmap");
 	else
-		tbm = (HashBitmap *) n;
+		tbm = (TIDBitmap *) n;
 
 	// -------- MirroredLock ----------
 	MIRROREDLOCK_BUFMGR_LOCK;

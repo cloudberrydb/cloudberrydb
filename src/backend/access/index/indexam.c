@@ -678,7 +678,7 @@ index_getnext(IndexScanDesc scan, ScanDirection direction)
  *
  *		it invokes am's getmulti function to get a bitmap. If am is an on-disk
  *		bitmap index access method (see bitmap.h), then a StreamBitmap is
- *		returned; a HashBitmap otherwise. Note that an index am's getmulti
+ *		returned; a TIDBitmap otherwise. Note that an index am's getmulti
  *		function can assume that the bitmap that it's given as argument is of
  *		the same type as what the function constructs itself.
  * ----------------

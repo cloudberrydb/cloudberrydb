@@ -184,15 +184,7 @@ freeFetchDesc(BitmapAppendOnlyScanState *scanstate)
 static inline void
 initBitmapState(BitmapAppendOnlyScanState *scanstate)
 {
-	if (scanstate->baos_tbmres == NULL)
-	{
-		scanstate->baos_tbmres =
-			palloc(sizeof(TBMIterateResult) +
-					MAX_TUPLES_PER_PAGE * sizeof(OffsetNumber));
-
-		/* initialize result header */
-		MemSetAligned(scanstate->baos_tbmres, 0, sizeof(TBMIterateResult));
-	}
+	/* GPDB_84_MERGE_FIXME: nothing to do? */
 }
 
 /*
@@ -201,11 +193,11 @@ initBitmapState(BitmapAppendOnlyScanState *scanstate)
 static inline void
 freeBitmapState(BitmapAppendOnlyScanState *scanstate)
 {
-	/* BitmapIndexScan is the owner of the bitmap memory. Don't free it here */
-	scanstate->baos_tbm = NULL;
-	if (scanstate->baos_tbmres != NULL)
+	if (scanstate->baos_iterator)
 	{
-		pfree(scanstate->baos_tbmres);
+		tbm_generic_end_iterate(scanstate->baos_iterator);
+		scanstate->baos_iterator = NULL;
+		/* baos_tbmres is owned by the iterator and freed during end_iterate. */
 		scanstate->baos_tbmres = NULL;
 	}
 }
@@ -225,8 +217,7 @@ BitmapAppendOnlyScanNext(BitmapAppendOnlyScanState *node)
 	AOCSFetchDesc aocsFetchDesc;
 	AOCSFetchDesc aocsLossyFetchDesc;
 	Index		scanrelid;
-	Node  		*tbm;
-	TBMIterateResult *tbmres;
+	GenericBMIterator *iterator;
 	OffsetNumber psuedoHeapOffset;
 	ItemPointerData psudeoHeapTid;
 	AOTupleId aoTid;
@@ -246,9 +237,7 @@ BitmapAppendOnlyScanNext(BitmapAppendOnlyScanState *node)
 	aocsFetchDesc = node->baos_currentAOCSFetchDesc;
 	aocsLossyFetchDesc = node->baos_currentAOCSLossyFetchDesc;
 	scanrelid = ((BitmapAppendOnlyScan *) node->ss.ps.plan)->scan.scanrelid;
-	tbm = node->baos_tbm;
-	tbmres = (TBMIterateResult *) node->baos_tbmres;
-	Assert(tbmres != NULL);
+	iterator = node->baos_iterator;
 
 	/*
 	 * Check if we are evaluating PlanQual for tuple of this relation.
@@ -293,28 +282,36 @@ BitmapAppendOnlyScanNext(BitmapAppendOnlyScanState *node)
 	 * we have used up the bitmaps from the previous scan, do the next scan,
 	 * and prepare the bitmap to be iterated over.
  	 */
-	if (tbm == NULL)
+	if (iterator == NULL)
 	{
-		tbm = (Node *) MultiExecProcNode(outerPlanState(node));
+		Node *tbm = (Node *) MultiExecProcNode(outerPlanState(node));
 
-		if (!tbm || !(IsA(tbm, HashBitmap) || IsA(tbm, StreamBitmap)))
+		if (!tbm || !(IsA(tbm, TIDBitmap) || IsA(tbm, StreamBitmap)))
 			elog(ERROR, "unrecognized result from subplan");
 
-		node->baos_tbm = tbm;
+		if (tbm == NULL)
+		{
+			ExecEagerFreeBitmapAppendOnlyScan(node);
+
+			return ExecClearTuple(slot);
+		}
+
+		/*
+		 * BitmapIndexScan is the owner of the bitmap memory. We don't take
+		 * ownership here; just begin iteration.
+		 */
+		node->baos_iterator = iterator = tbm_generic_begin_iterate(tbm);
 	}
 
-	if (tbm == NULL)
-	{
-		ExecEagerFreeBitmapAppendOnlyScan(node);
-
-		return ExecClearTuple(slot);
-	}
-
-	Assert(tbm != NULL);
-	Assert(tbmres != NULL);
+	Assert(iterator != NULL);
 
 	for (;;)
 	{
+		/* GPDB_84_MERGE_FIXME: can the baos_tbmres state be removed from
+		 * BitmapAppendOnlyScanState, or is it possible for it to be carried
+		 * through multiple calls to BitmapAppendOnlyScanNext()? */
+		TBMIterateResult *tbmres = node->baos_tbmres;
+
 		CHECK_FOR_INTERRUPTS();
 
 		if (QueryFinishPending)
@@ -327,11 +324,14 @@ BitmapAppendOnlyScanNext(BitmapAppendOnlyScanState *node)
 			 * convert the (psuedo) heap block number and item number to an
 			 * Append-Only TID.
 			 */
-			if (!tbm_iterate(tbm, tbmres))
+			tbmres = tbm_generic_iterate(iterator);
+			if (!tbmres)
 			{
 				/* no more entries in the bitmap */
 				break;
 			}
+
+			node->baos_tbmres = tbmres;
 
 			/* If tbmres contains no tuples, continue. */
 			if (tbmres->ntuples == 0)
@@ -364,6 +364,7 @@ BitmapAppendOnlyScanNext(BitmapAppendOnlyScanState *node)
 			/*
 			 * Continuing in previously obtained page; advance cindex
 			 */
+			Assert(tbmres);
 			node->baos_cindex++;
 		}
 
@@ -596,7 +597,7 @@ ExecInitBitmapAppendOnlyScan(BitmapAppendOnlyScan *node, EState *estate, int efl
 	scanstate->ss.ps.plan = (Plan *) node;
 	scanstate->ss.ps.state = estate;
 
-	scanstate->baos_tbm = NULL;
+	scanstate->baos_iterator = NULL;
 	scanstate->baos_tbmres = NULL;
 	scanstate->baos_gotpage = false;
 	scanstate->baos_lossy = false;

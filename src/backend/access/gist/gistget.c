@@ -25,7 +25,7 @@
 
 
 static OffsetNumber gistfindnext(IndexScanDesc scan, OffsetNumber n);
-static int64 gistnext(IndexScanDesc scan, HashBitmap *tbm);
+static int64 gistnext(IndexScanDesc scan, TIDBitmap *tbm);
 static bool gistindex_keytest(IndexTuple tuple, IndexScanDesc scan,
 				  OffsetNumber offset);
 
@@ -112,15 +112,15 @@ gistgetbitmap(PG_FUNCTION_ARGS)
 {
 	IndexScanDesc scan = (IndexScanDesc) PG_GETARG_POINTER(0);
 	Node		   *n = (Node *) PG_GETARG_POINTER(1);
-	HashBitmap	   *tbm;
+	TIDBitmap	   *tbm;
 	int64			ntids;
 
 	if (n == NULL)
 		tbm = tbm_create(work_mem * 1024L);
-	else if (!IsA(n, HashBitmap))
+	else if (!IsA(n, TIDBitmap))
 		elog(ERROR, "non hash bitmap");
 	else
-		tbm = (HashBitmap *) n;
+		tbm = (TIDBitmap *) n;
 
 	ntids = gistnext(scan, tbm);
 
@@ -142,7 +142,7 @@ gistgetbitmap(PG_FUNCTION_ARGS)
  * non-killed tuple that matches the search key.
  */
 static int64
-gistnext(IndexScanDesc scan, HashBitmap *tbm)
+gistnext(IndexScanDesc scan, TIDBitmap *tbm)
 {
 	MIRROREDLOCK_BUFMGR_DECLARE;
 

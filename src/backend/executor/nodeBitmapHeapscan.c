@@ -21,7 +21,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeBitmapHeapscan.c,v 1.31 2009/01/01 17:23:41 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeBitmapHeapscan.c,v 1.32 2009/01/10 21:08:36 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -95,10 +95,7 @@ freeScanDesc(BitmapHeapScanState *scanstate)
 static inline void
 initBitmapState(BitmapHeapScanState *scanstate)
 {
-	if (scanstate->tbmres == NULL)
-		scanstate->tbmres =
-			palloc0(sizeof(TBMIterateResult) +
-					MAX_TUPLES_PER_PAGE * sizeof(OffsetNumber));
+	/* GPDB_84_MERGE_FIXME: nothing to do? */
 }
 
 /*
@@ -109,11 +106,12 @@ freeBitmapState(BitmapHeapScanState *scanstate)
 {
 	/* BitmapIndexScan is the owner of the bitmap memory. Don't free it here */
 	scanstate->tbm = NULL;
-	if (scanstate->tbmres != NULL)
-	{
-		pfree(scanstate->tbmres);
-		scanstate->tbmres = NULL;
-	}
+	/* Likewise, the tbmres member is owned by the iterator. It'll be freed
+	 * during end_iterate. */
+	scanstate->tbmres = NULL;
+	if (scanstate->tbmiterator)
+		tbm_generic_end_iterate(scanstate->tbmiterator);
+	scanstate->tbmiterator = NULL;
 }
 
 /* ----------------------------------------------------------------
@@ -130,6 +128,7 @@ BitmapHeapNext(BitmapHeapScanState *node)
 	HeapScanDesc scan;
 	Index		scanrelid;
 	Node  		*tbm;
+	GenericBMIterator *tbmiterator;
 	TBMIterateResult *tbmres;
 	OffsetNumber targoffset;
 	TupleTableSlot *slot;
@@ -148,7 +147,8 @@ BitmapHeapNext(BitmapHeapScanState *node)
 	scan = node->ss_currentScanDesc;
 	scanrelid = ((BitmapHeapScan *) node->ss.ps.plan)->scan.scanrelid;
 	tbm = node->tbm;
-	tbmres = (TBMIterateResult *) node->tbmres;
+	tbmiterator = node->tbmiterator;
+	tbmres = node->tbmres;
 
 	/*
 	 * Check if we are evaluating PlanQual for tuple of this relation.
@@ -189,18 +189,19 @@ BitmapHeapNext(BitmapHeapScanState *node)
 	}
 
 	/*
-	 * If we haven't yet performed the underlying index scan, or
-	 * we have used up the bitmaps from the previous scan, do the next scan,
-	 * and prepare the bitmap to be iterated over.
- 	 */
+	 * If we haven't yet performed the underlying index scan, do it, and
+	 * begin the iteration over the bitmap.
+	 */
 	if (tbm == NULL)
 	{
 		tbm = (Node *) MultiExecProcNode(outerPlanState(node));
 
-		if (!tbm || !(IsA(tbm, HashBitmap) || IsA(tbm, StreamBitmap)))
+		if (!tbm || !(IsA(tbm, TIDBitmap) || IsA(tbm, StreamBitmap)))
 			elog(ERROR, "unrecognized result from subplan");
 
 		node->tbm = tbm;
+		node->tbmiterator = tbmiterator = tbm_generic_begin_iterate(tbm);
+		node->tbmres = tbmres = NULL;
 	}
 
 	for (;;)
@@ -215,10 +216,8 @@ BitmapHeapNext(BitmapHeapScanState *node)
 			if (QueryFinishPending)
 				return NULL;
 
-			if (tbm == NULL)
-				more = false;
-			else
-				more = tbm_iterate(tbm, tbmres);
+			node->tbmres = tbmres = tbm_generic_iterate(tbmiterator);
+			more = (tbmres != NULL);
 
 			if (!more)
 			{
@@ -561,6 +560,7 @@ ExecInitBitmapHeapScan(BitmapHeapScan *node, EState *estate, int eflags)
 	scanstate->ss.ps.state = estate;
 
 	scanstate->tbm = NULL;
+	scanstate->tbmiterator = NULL;
 	scanstate->tbmres = NULL;
 
 	/*

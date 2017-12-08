@@ -123,7 +123,7 @@ MultiExecBitmapOr(BitmapOrState *node)
 	PlanState **bitmapplans;
 	int			nplans;
 	int			i;
-	HashBitmap *hbm = NULL;
+	TIDBitmap  *hbm = NULL;
 
 	/* must provide our own instrumentation support */
 	if (node->ps.instrument)
@@ -148,17 +148,17 @@ MultiExecBitmapOr(BitmapOrState *node)
 		if(subresult == NULL)
 			continue;
 
-		if (!(IsA(subresult, HashBitmap) ||
+		if (!(IsA(subresult, TIDBitmap) ||
 			  IsA(subresult, StreamBitmap)))
 			elog(ERROR, "unrecognized result from subplan");
 
-		if (IsA(subresult, HashBitmap))
+		if (IsA(subresult, TIDBitmap))
 		{
 			if (hbm == NULL)
-				hbm = (HashBitmap *)subresult;
+				hbm = (TIDBitmap *)subresult;
 			else
 			{
-				tbm_union(hbm, (HashBitmap *)subresult);
+				tbm_union(hbm, (TIDBitmap *)subresult);
 			}
 		}
 		else

@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *			$PostgreSQL: pgsql/src/backend/access/gin/ginget.c,v 1.21 2009/01/01 17:23:34 momjian Exp $
+ *			$PostgreSQL: pgsql/src/backend/access/gin/ginget.c,v 1.22 2009/01/10 21:08:36 tgl Exp $
  *-------------------------------------------------------------------------
  */
 
@@ -107,7 +107,7 @@ scanForItems( Relation index, GinScanEntry scanEntry, BlockNumber rootPostingTre
 
 		if ((GinPageGetOpaque(page)->flags & GIN_DELETED) == 0 && GinPageGetOpaque(page)->maxoff >= FirstOffsetNumber )
 		{
-			tbm_add_tuples( (HashBitmap *) scanEntry->partialMatch,
+			tbm_add_tuples(scanEntry->partialMatch,
 							(ItemPointer)GinDataPageGetItem(page, FirstOffsetNumber),
 						 	GinPageGetOpaque(page)->maxoff, false);
 			scanEntry->predictNumberResult += GinPageGetOpaque(page)->maxoff;
@@ -140,7 +140,7 @@ computePartialMatchList( GinBtreeData *btree, GinBtreeStack *stack, GinScanEntry
 	Datum		idatum;
 	int32		cmp;
 
-	scanEntry->partialMatch = (Node *) tbm_create( work_mem * 1024L );
+	scanEntry->partialMatch = tbm_create(work_mem * 1024L);
 
 	for(;;)
 	{
@@ -244,7 +244,7 @@ computePartialMatchList( GinBtreeData *btree, GinBtreeStack *stack, GinScanEntry
 		}
 		else
 		{
-			tbm_add_tuples( (HashBitmap *) scanEntry->partialMatch, GinGetPosting(itup),  GinGetNPosting(itup), false);
+			tbm_add_tuples(scanEntry->partialMatch, GinGetPosting(itup), GinGetNPosting(itup), false);
 			scanEntry->predictNumberResult +=  GinGetNPosting(itup);
 		}
 
@@ -296,6 +296,7 @@ startScanEntry(Relation index, GinState *ginstate, GinScanEntry entry)
 	entry->list = NULL;
 	entry->nlist = 0;
 	entry->partialMatch = NULL;
+	entry->partialMatchIterator = NULL;
 	entry->partialMatchResult = NULL;
 	entry->reduceResult = FALSE;
 	entry->predictNumberResult = 0;
@@ -317,7 +318,10 @@ startScanEntry(Relation index, GinState *ginstate, GinScanEntry entry)
 			 */
 			if ( entry->partialMatch )
 			{
-				tbm_free( (HashBitmap *) entry->partialMatch );
+				if (entry->partialMatchIterator)
+					tbm_end_iterate(entry->partialMatchIterator);
+				entry->partialMatchIterator = NULL;
+				tbm_free( entry->partialMatch );
 				entry->partialMatch = NULL;
 			}
 			LockBuffer(stackEntry->buffer, GIN_UNLOCK);
@@ -327,9 +331,9 @@ startScanEntry(Relation index, GinState *ginstate, GinScanEntry entry)
 			return;
 		}
 
-		if ( (HashBitmap *) entry->partialMatch && !tbm_is_empty((HashBitmap *) entry->partialMatch) )
+		if ( entry->partialMatch && !tbm_is_empty(entry->partialMatch) )
 		{
-			tbm_begin_iterate((HashBitmap *) entry->partialMatch);
+			entry->partialMatchIterator = tbm_begin_iterate(entry->partialMatch);
 			entry->isFinished = FALSE;
 		}
 	}
@@ -559,11 +563,13 @@ entryGetItem(Relation index, GinScanEntry entry)
 		{
 			if ( entry->partialMatchResult == NULL || entry->offset >= entry->partialMatchResult->ntuples )
 			{
-				tbm_iterate( (Node *) entry->partialMatch, entry->partialMatchResult );
+				entry->partialMatchResult = tbm_iterate( entry->partialMatchIterator );
 
 				if ( entry->partialMatchResult == NULL )
 				{
 					ItemPointerSet(&entry->curItem, InvalidBlockNumber, InvalidOffsetNumber);
+					tbm_end_iterate(entry->partialMatchIterator);
+					entry->partialMatchIterator = NULL;
 					entry->isFinished = TRUE;
 					break;
 				}
@@ -768,16 +774,16 @@ gingetbitmap(PG_FUNCTION_ARGS)
 {
 	IndexScanDesc scan = (IndexScanDesc) PG_GETARG_POINTER(0);
 	Node 		   *n = (Node *) PG_GETARG_POINTER(1);
-	HashBitmap	   *tbm;
+	TIDBitmap	   *tbm;
 	int64			ntids;
 
 	if (n == NULL)
 		/* XXX should we use less than work_mem for this? */
 		tbm = tbm_create(work_mem * 1024L);
-	else if (!IsA(n, HashBitmap))
+	else if (!IsA(n, TIDBitmap))
 		elog(ERROR, "non hash bitmap");
 	else
-		tbm = (HashBitmap *)n;
+		tbm = (TIDBitmap *)n;
  
 	if (GinIsNewKey(scan))
 		newScanKey(scan);
