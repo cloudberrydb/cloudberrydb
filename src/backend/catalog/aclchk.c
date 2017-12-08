@@ -2370,9 +2370,7 @@ pg_class_aclmask(Oid table_oid, Oid roleid,
 #ifdef ACLDEBUG
 				elog(DEBUG2, "permission denied for persistent system catalog update");
 #endif
-				/* GPDB_84_MERGE_FIXME: wait, was this supposed to include
-				 * ACL_TRUNCATE? */
-				mask &= ~(ACL_INSERT | ACL_UPDATE | ACL_DELETE | ACL_USAGE);
+				mask &= ~(ACL_INSERT | ACL_UPDATE | ACL_DELETE | ACL_TRUNCATE | ACL_USAGE);
 			}
 		}
 
@@ -2390,9 +2388,7 @@ pg_class_aclmask(Oid table_oid, Oid roleid,
 #ifdef ACLDEBUG
 				elog(DEBUG2, "permission denied for gp_relation_node system catalog update");
 #endif
-				/* GPDB_84_MERGE_FIXME: wait, was this supposed to include
-				 * ACL_TRUNCATE? */
-				mask &= ~(ACL_INSERT | ACL_UPDATE | ACL_DELETE | ACL_USAGE);
+				mask &= ~(ACL_INSERT | ACL_UPDATE | ACL_DELETE | ACL_TRUNCATE | ACL_USAGE);
 			}
 		}
 	}
