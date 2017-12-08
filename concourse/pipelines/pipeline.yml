@@ -486,19 +486,6 @@ resources:
 ## reusable anchors
 ## ======================================================================
 
-ccp_jitter_delay_anchor: &ccp_jitter_delay
-  do:
-  - task: ccp jitter delay
-    config:
-      platform: linux
-      image_resource:
-        type: docker-image
-        source:
-          repository: alpine
-      run:
-        path: 'sh'
-        args: ['-c', 'sleep `expr $RANDOM % {{ccp_delay_jitter}} + 1`']
-
 ccp_create_params_anchor: &ccp_default_params
   action: create
   delete_on_failure: true
@@ -1308,7 +1295,6 @@ jobs:
 
 - name: cs_walrep_1
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -1348,7 +1334,6 @@ jobs:
 
 - name: cs_walrep_2
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -1388,7 +1373,6 @@ jobs:
 
 - name: cs_pg_twophase_01_10
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -1431,7 +1415,6 @@ jobs:
 
 - name: cs_pg_twophase_11_20
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -1474,7 +1457,6 @@ jobs:
 
 - name: cs_pg_twophase_21_30
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -1517,7 +1499,6 @@ jobs:
 
 - name: cs_pg_twophase_31_40
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -1560,7 +1541,6 @@ jobs:
 
 - name: cs_pg_twophase_41_49
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -1603,7 +1583,6 @@ jobs:
 
 - name: cs_pg_twophase_switch
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -1646,7 +1625,6 @@ jobs:
 
 - name: cs_crash_recovery_schema_topology
   plan:
-  - *ccp_jitter_delay
   - aggregate: *cs_ccp_aggregate_cluster_start
   - put: terraform
     <<: *cs_ccp_terraform_params
@@ -1661,7 +1639,6 @@ jobs:
 
 - name: cs_crash_recovery_04_10
   plan:
-  - *ccp_jitter_delay
   - aggregate: *cs_ccp_aggregate_cluster_start
   - put: terraform
     <<: *cs_ccp_terraform_params
@@ -1676,7 +1653,6 @@ jobs:
 
 - name: cs_crash_recovery_11_20
   plan:
-  - *ccp_jitter_delay
   - aggregate: *cs_ccp_aggregate_cluster_start
   - put: terraform
     <<: *cs_ccp_terraform_params
@@ -1691,7 +1667,6 @@ jobs:
 
 - name: cs_crash_recovery_21_30
   plan:
-  - *ccp_jitter_delay
   - aggregate: *cs_ccp_aggregate_cluster_start
   - put: terraform
     <<: *cs_ccp_terraform_params
@@ -1706,7 +1681,6 @@ jobs:
 
 - name: cs_crash_recovery_31_42
   plan:
-  - *ccp_jitter_delay
   - aggregate: *cs_ccp_aggregate_cluster_start
   - put: terraform
     <<: *cs_ccp_terraform_params
@@ -1862,7 +1836,6 @@ jobs:
 
 - name: mpp_interconnect
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -1909,7 +1882,6 @@ jobs:
 
 - name: mpp_resource_group_centos6
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -1951,7 +1923,6 @@ jobs:
 
 - name: mpp_resource_group_centos7
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -2033,7 +2004,6 @@ jobs:
 
 - name: MM_gppkg
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -2081,7 +2051,6 @@ jobs:
 
 - name: MM_gprecoverseg
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -2213,7 +2182,6 @@ jobs:
 
 - name: MM_gpexpand_1
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -2264,7 +2232,6 @@ jobs:
 
 - name: MM_gpexpand_2
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -2315,7 +2282,6 @@ jobs:
 
 - name: MM_gpcheckcat
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -2403,7 +2369,6 @@ jobs:
   - get: nightly-trigger
     tags: ["ccp"]
     trigger: ((nightly-trigger-flag))
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -2504,7 +2469,6 @@ jobs:
 
 - name: DPM_gptransfer
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -2602,7 +2566,6 @@ jobs:
 
 - name: DPM_backup-restore
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -2832,7 +2795,6 @@ jobs:
 
 - name: cs_filerep_e2e_full_mirror
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -2875,7 +2837,6 @@ jobs:
 
 - name: cs_filerep_e2e_incr_mirror
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -2918,7 +2879,6 @@ jobs:
 
 - name: cs_filerep_e2e_full_primary
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
@@ -2960,7 +2920,6 @@ jobs:
 
 - name: cs_filerep_e2e_incr_primary
   plan:
-  - *ccp_jitter_delay
   - aggregate:
     - get: gpdb_src
       tags: ["ccp"]
