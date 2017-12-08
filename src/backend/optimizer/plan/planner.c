@@ -184,11 +184,17 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	instr_time		endtime;
 
 	/*
-	 * If ORCA has been enabled, and we are in a state in which ORCA planning
-	 * is supported, then go ahead.
+	 * Use ORCA only if it is enabled and we are in a master QD process.
+	 *
+	 * ORCA excels in complex queries, most of which will access distributed
+	 * tables. We can't run such queries from the segments slices anyway because
+	 * they require dispatching a query within another - which is not allowed in
+	 * GPDB (see querytree_safe_for_segment()). Note that this restriction also
+	 * applies to non-QD master slices.  Furthermore, ORCA doesn't currently
+	 * support pl/* statements (relevant when they are planned on the segments).
+	 * For these reasons, restrict to using ORCA on the master QD processes only.
 	 */
-	if (optimizer &&
-		GP_ROLE_UTILITY != Gp_role && MASTER_CONTENT_ID == GpIdentity.segindex)
+	if (optimizer && GP_ROLE_DISPATCH == Gp_role)
 	{
 		if (gp_log_optimization_time)
 			INSTR_TIME_SET_CURRENT(starttime);

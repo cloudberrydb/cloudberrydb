@@ -1944,35 +1944,6 @@ select sum(a) from orca.r group by b having count(*) > 2 order by b+1;
   57
 (6 rows)
 
--- test interruption requests to optimization
-CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
-select gp_inject_fault('opt_relcache_translator_catalog_access', 'reset', 1);
-NOTICE:  Success:
- gp_inject_fault 
------------------
- t
-(1 row)
-
-select gp_inject_fault('opt_relcache_translator_catalog_access', 'interrupt', 1);
-NOTICE:  Success:
- gp_inject_fault 
------------------
- t
-(1 row)
-
-select count(*) from orca.s;
- count 
--------
-    30
-(1 row)
-
-select gp_inject_fault('opt_relcache_translator_catalog_access', 'reset', 1);
-NOTICE:  Success:
- gp_inject_fault 
------------------
- t
-(1 row)
-
 -- constants
 select 0.001::numeric from orca.r;
  numeric 
