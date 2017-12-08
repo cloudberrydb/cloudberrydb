@@ -461,7 +461,7 @@ CCostContext::FBetterThan
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CCostContext::ComputeCost
+//		CCostContext::CostCompute
 //
 //	@doc:
 //		Compute cost of current context,
