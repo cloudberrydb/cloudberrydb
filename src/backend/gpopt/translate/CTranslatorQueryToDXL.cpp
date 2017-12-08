@@ -3856,12 +3856,15 @@ CTranslatorQueryToDXL::StoreAttnoColIdMapping
 {
 	GPOS_ASSERT(NULL != phmiul);
 
-#ifdef GPOS_DEBUG
-	BOOL fResult =
-#endif // GPOS_DEBUG
-	phmiul->FInsert(GPOS_NEW(m_pmp) INT(iAttno), GPOS_NEW(m_pmp) ULONG(ulColId));
+	INT *piKey = GPOS_NEW(m_pmp) INT(iAttno);
+	ULONG *pulValue = GPOS_NEW(m_pmp) ULONG(ulColId);
+	BOOL fResult = phmiul->FInsert(piKey, pulValue);
 
-	GPOS_ASSERT(fResult);
+	if (!fResult)
+	{
+		GPOS_DELETE(piKey);
+		GPOS_DELETE(pulValue);
+	}
 }
 
 //---------------------------------------------------------------------------

@@ -1434,12 +1434,6 @@ DROP TABLE IF EXISTS qp_misc_jiras.one_of_every_data_type;
 
 create table qp_misc_jiras.tbl7553_test (i int, j int);
 insert into qp_misc_jiras.tbl7553_test values(1,2);
--- start_ignore
--- GPDB_84_MERGE_FIXME: GPORCA fallback: CTranslatorQueryToDXL.cpp:3864: Failed assertion: fResult
--- Tracker Story: #153070478
--- Re-enable GPORCA once issue is fixed
-set optimizer=off;
--- end_ignore
 explain select i as a, i as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a, b), (a));
 
 select i as a, i as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a, b), (a)); 
@@ -1448,9 +1442,6 @@ explain select j as a, j as b from qp_misc_jiras.tbl7553_test group by grouping 
 
 select j as a, j as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a, b), (a)); 
 
--- start_ignore
-reset optimizer;
--- end_ignore
 drop table qp_misc_jiras.tbl7553_test;
 
 -- Check that a table created with CTAS "inherits" the distribution key from
