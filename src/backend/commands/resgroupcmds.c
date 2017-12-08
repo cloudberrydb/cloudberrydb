@@ -574,7 +574,7 @@ GetResGroupIdForRole(Oid roleid)
  *	to Oid.
  */
 Oid
-GetResGroupIdForName(char *name, LOCKMODE lockmode)
+GetResGroupIdForName(const char *name, LOCKMODE lockmode)
 {
 	Relation	rel;
 	ScanKeyData scankey;

@@ -23,7 +23,7 @@ extern void DropResourceGroup(DropResourceGroupStmt *stmt);
 extern void AlterResourceGroup(AlterResourceGroupStmt *stmt);
 
 /* catalog access function */
-extern Oid GetResGroupIdForName(char *name, LOCKMODE lockmode);
+extern Oid GetResGroupIdForName(const char *name, LOCKMODE lockmode);
 extern char *GetResGroupNameForId(Oid oid, LOCKMODE lockmode);
 extern Oid GetResGroupIdForRole(Oid roleid);
 extern void GetResGroupCapabilities(Relation rel,
