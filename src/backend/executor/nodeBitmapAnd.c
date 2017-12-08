@@ -146,21 +146,7 @@ MultiExecBitmapAnd(BitmapAndState *node)
 
 		subresult = MultiExecProcNode(subnode);
 
-		/*
-		 * If at any stage we have a completely empty bitmap, we can fall out
-		 * without evaluating the remaining subplans, since ANDing them can no
-		 * longer change the result.  (Note: the fact that indxpath.c orders
-		 * the subplans by selectivity should make this case more likely to
-		 * occur.)
-		 */
-		if (subresult == NULL)
-		{
-			empty = true;
-			break;
-		}
-
-		if (!(IsA(subresult, HashBitmap) ||
-			  IsA(subresult, StreamBitmap)))
+		if (!subresult || !(IsA(subresult, HashBitmap) || IsA(subresult, StreamBitmap)))
 			elog(ERROR, "unrecognized result from subplan");
 
 		/*
@@ -178,9 +164,22 @@ MultiExecBitmapAnd(BitmapAndState *node)
 				tbm_intersect(hbm, (HashBitmap *)subresult);
 			}
 
-			/* If tbm is empty, short circuit, per logic outlined above */
+			/*
+			 * If at any stage we have a completely empty bitmap, we can fall out
+			 * without evaluating the remaining subplans, since ANDing them can no
+			 * longer change the result.  (Note: the fact that indxpath.c orders
+			 * the subplans by selectivity should make this case more likely to
+			 * occur.)
+			 */
 			if (tbm_is_empty(hbm))
 			{
+				/*
+				 * GPDB_84_MERGE_FIXME: If we saw any StreamBitmap inputs, we
+				 * will create an OpStream to AND the empty result with the
+				 * StreamBitmaps we saw already. We could just close them now,
+				 * and return an empty hash bitmap here, but I'm not sure how
+				 * to close the already-opened stream bitmaps correctly.
+				 */
 				empty = true;
 				break;
 			}
@@ -208,20 +207,14 @@ MultiExecBitmapAnd(BitmapAndState *node)
 	if (node->ps.instrument)
         InstrStopNode(node->ps.instrument, empty ? 0 : 1);
 
-	if (empty)
-	{
-		node->bitmap = NULL;
-		return (Node*) NULL;
-	}
-
 	/* check to see if we have any hash bitmaps */
 	if (hbm != NULL)
 	{
-		if(node->bitmap && IsA(node->bitmap, StreamBitmap))
+		if (node->bitmap && IsA(node->bitmap, StreamBitmap))
 			stream_add_node((StreamBitmap *)node->bitmap,
 						tbm_create_stream_node(hbm), BMS_AND);
 		else
-			node->bitmap = (Node *)hbm;
+			node->bitmap = (Node *) hbm;
 	}
 
 	return (Node *) node->bitmap;

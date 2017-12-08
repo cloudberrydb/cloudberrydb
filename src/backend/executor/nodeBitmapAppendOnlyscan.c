@@ -297,8 +297,7 @@ BitmapAppendOnlyScanNext(BitmapAppendOnlyScanState *node)
 	{
 		tbm = (Node *) MultiExecProcNode(outerPlanState(node));
 
-		if (tbm != NULL && (!(IsA(tbm, HashBitmap) ||
-							  IsA(tbm, StreamBitmap))))
+		if (!tbm || !(IsA(tbm, HashBitmap) || IsA(tbm, StreamBitmap)))
 			elog(ERROR, "unrecognized result from subplan");
 
 		node->baos_tbm = tbm;

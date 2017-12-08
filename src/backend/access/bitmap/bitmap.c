@@ -244,6 +244,11 @@ bmgetbitmap(PG_FUNCTION_ARGS)
 			bmvec->bm_lovBuffer = InvalidBuffer;
 		}
 	}
+	else
+	{
+		/* Return an empty bitmap */
+		bm = (Node *) tbm_create(10 * 1024L);
+	}
 
 	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_EXIT;
 
