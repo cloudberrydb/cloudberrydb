@@ -91,7 +91,7 @@ jobs:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on' installcheck-world
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
       TEST_OS: centos
-      CONFIGURE_FLAGS: "--enable-segwalrep"
+      CONFIGURE_FLAGS: "((configure_flags)) --enable-segwalrep"
 
 - name: icw_planner_centos6
   plan:
@@ -110,7 +110,7 @@ jobs:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off' installcheck-world
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
       TEST_OS: centos
-      CONFIGURE_FLAGS: "--enable-segwalrep"
+      CONFIGURE_FLAGS: "((configure_flags)) --enable-segwalrep"
 
 - name: segwalrep_mirrorless_centos6
   plan:
@@ -129,5 +129,5 @@ jobs:
       MAKE_TEST_COMMAND: "-C src/test/regress && make -C src/test/walrep install installcheck"
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
       TEST_OS: centos
-      CONFIGURE_FLAGS: "--enable-segwalrep"
+      CONFIGURE_FLAGS: "((configure_flags)) --enable-segwalrep"
       WITH_MIRRORS: false
