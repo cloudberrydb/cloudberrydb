@@ -27,8 +27,6 @@
 #include "cdb/cdbfilerepprimaryrecovery.h"
 #include "cdb/cdbfilerepmirror.h"
 #include "cdb/cdbfilerepmirrorack.h"
-#include "cdb/cdbfilerepresyncmanager.h"
-#include "cdb/cdbfilerepresyncworker.h"
 #include "cdb/cdbvars.h"
 #include "libpq/pqsignal.h"
 #include "postmaster/postmaster.h"
@@ -150,20 +148,7 @@ FileRepSubProcess_ShutdownHandler(SIGNAL_ARGS)
 			if (isInTransition == TRUE &&
 				dataStateTransition == DataStateInChangeTracking)
 			{
-				/*
-				 * Resync workers and manager may be waiting on lock that is
-				 * acquired by backend process that is suspended during
-				 * transition to Change Tracking and so FileRep backend
-				 * shutdown may never be completed.
-				 */
-				if (fileRepProcessType == FileRepProcessTypeResyncManager)
-				{
-					FileRepResync_Cleanup();
-				}
-				else
-				{
-					LockReleaseAll(DEFAULT_LOCKMETHOD, false);
-				}
+				LockReleaseAll(DEFAULT_LOCKMETHOD, false);
 
 				/*
 				 * We remove ourself from LW waiter list (if applicable).
@@ -878,27 +863,6 @@ FileRepSubProcess_Main()
 			 * deferred to only after all of xlog has been replayed.
 			 */
 			FileRepPrimary_StartRecovery();
-
-			ResourceOwnerRelease(CurrentResourceOwner,
-								 RESOURCE_RELEASE_BEFORE_LOCKS,
-								 false, true);
-			break;
-
-		case FileRepProcessTypeResyncManager:
-			FileRepSubProcess_InitProcess();
-			FileRepPrimary_StartResyncManager();
-
-			ResourceOwnerRelease(CurrentResourceOwner,
-								 RESOURCE_RELEASE_BEFORE_LOCKS,
-								 false, true);
-			break;
-
-		case FileRepProcessTypeResyncWorker1:
-		case FileRepProcessTypeResyncWorker2:
-		case FileRepProcessTypeResyncWorker3:
-		case FileRepProcessTypeResyncWorker4:
-			FileRepSubProcess_InitProcess();
-			FileRepPrimary_StartResyncWorker();
 
 			ResourceOwnerRelease(CurrentResourceOwner,
 								 RESOURCE_RELEASE_BEFORE_LOCKS,

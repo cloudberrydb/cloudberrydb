@@ -24,8 +24,6 @@
 #include "catalog/pg_tablespace.h"
 #include "cdb/cdbfilerepprimary.h"
 #include "cdb/cdbmirroredbufferpool.h"
-#include "cdb/cdbfilerepresyncmanager.h"
-#include "cdb/cdbfilerepresyncworker.h"
 #include "cdb/cdbfilerepprimary.h"
 #include "cdb/cdbpersistenttablespace.h"
 #include "cdb/cdbpersistentstore.h"
@@ -461,7 +459,7 @@ MirroredBufferPool_Open(
 							  mirrorDataLossTrackingSessionNum,
 							   /* create */ false,
 							   /* mirrorOnly */ false,
-							   /* copyToMirror */ FileRepResyncWorker_IsResyncRequest(),
+							   /* copyToMirror */ false,
 							  primaryError,
 							  mirrorDataLossOccurred);
 
@@ -614,8 +612,7 @@ MirroredBufferPool_Flush(
 		open->mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
 	}
 
-	if (StorageManagerMirrorMode_DoPrimaryWork(open->mirrorMode) &&
-		!FileRepResyncWorker_IsResyncRequest())
+	if (StorageManagerMirrorMode_DoPrimaryWork(open->mirrorMode))
 	{
 		errno = 0;
 
@@ -791,8 +788,7 @@ MirroredBufferPool_Write(
 
 	}
 
-	if (StorageManagerMirrorMode_DoPrimaryWork(open->mirrorMode) &&
-		!FileRepResyncWorker_IsResyncRequest())
+	if (StorageManagerMirrorMode_DoPrimaryWork(open->mirrorMode))
 	{
 		errno = 0;
 
@@ -1553,8 +1549,7 @@ MirroredBufferPool_Truncate(
 		open->mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
 	}
 
-	if (StorageManagerMirrorMode_DoPrimaryWork(open->mirrorMode) &&
-		!FileRepResyncWorker_IsResyncRequest())
+	if (StorageManagerMirrorMode_DoPrimaryWork(open->mirrorMode))
 	{
 		errno = 0;
 

@@ -32,7 +32,6 @@
 #include "cdb/cdbfilerepprimary.h"
 #include "cdb/cdbfilerepprimaryack.h"
 #include "cdb/cdbfilerepconnclient.h"
-#include "cdb/cdbfilerepresyncmanager.h"
 #include "cdb/cdbvars.h"
 #include "storage/lwlock.h"
 #include "storage/pmsignal.h"
@@ -96,14 +95,6 @@ FileRepPrimary_GetMirrorDataLossTrackingSessionNum(int64 *sessionNum)
 		case DataStateNotInitialized:
 			return MirrorDataLossTrackingState_MirrorNotConfigured;
 
-		case DataStateInResync:
-			if (!FileRepResync_IsReMirrorAllowed() &&
-				(segmentState == SegmentStateInitialization ||
-				 segmentState == SegmentStateInResyncTransition))
-				return MirrorDataLossTrackingState_MirrorDown;
-			else
-				return MirrorDataLossTrackingState_MirrorCurrentlyUpInResync;
-
 		case DataStateInSync:
 			return MirrorDataLossTrackingState_MirrorCurrentlyUpInSync;
 
@@ -140,19 +131,19 @@ FileRepPrimary_IsMirrorDataLossOccurred(void)
 int
 FileRepPrimary_IntentAppendOnlyCommitWork(void)
 {
-	return FileRepResync_IncAppendOnlyCommitCount();
+	return 0;
 }
 
 int
 FileRepPrimary_FinishedAppendOnlyCommitWork(int count)
 {
-	return FileRepResync_DecAppendOnlyCommitCount(count);
+	return 0;
 }
 
 int
 FileRepPrimary_GetAppendOnlyCommitWorkCount(void)
 {
-	return FileRepResync_GetAppendOnlyCommitCount();
+	return 0;
 }
 
 /*
@@ -202,16 +193,6 @@ FileRepPrimary_IsMirroringRequired(
 				/* Insist(0); */
 				break;
 
-			case DataStateInResync:
-				if (!FileRepResync_IsReMirrorAllowed())
-				{
-					if (segmentState == SegmentStateInitialization ||
-						segmentState == SegmentStateInResyncTransition)
-					{
-						break;
-					}
-				}
-				/* no break */
 			case DataStateInSync:
 
 				/*

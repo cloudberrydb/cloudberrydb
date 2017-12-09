@@ -41,7 +41,6 @@
 #include "utils/snapmgr.h"
 
 #include "cdb/cdbfilerep.h"
-#include "cdb/cdbfilerepresyncmanager.h"
 #include "cdb/cdbresynchronizechangetracking.h"
 #include "cdb/cdbpersistentrelation.h"
 #include "cdb/cdbpersistentstore.h"
@@ -2534,9 +2533,6 @@ ChangeTracking_RecordLastChangeTrackedLoc(void)
 
 	endResyncLSN = XLogLastChangeTrackedLoc();
 
-	/* the routine stores last LSN in shared memory */
-	FileRepResyncManager_SetEndResyncLSN(endResyncLSN);
-
 	/*
 	 * append "endResyncLSN" (last LSN recorded in Change Tracking log files)
 	 * in Change Tracking meta file. "endResyncLSN" also marks the last entry
@@ -2639,7 +2635,6 @@ ChangeTracking_RetrieveLastChangeTrackedLoc(void)
 		 */
 		if (!XLByteEQ(recptr->resync_lsn_end, DummyRecPtr))
 		{
-			FileRepResyncManager_SetEndResyncLSN(recptr->resync_lsn_end);
 			return recptr->resync_transition_completed;
 		}
 	}

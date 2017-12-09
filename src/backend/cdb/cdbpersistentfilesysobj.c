@@ -33,7 +33,6 @@
 #include "cdb/cdbmirroredfilesysobj.h"
 #include "cdb/cdbdirectopen.h"
 #include "cdb/cdbfilerepservice.h"
-#include "cdb/cdbfilerepresyncmanager.h"
 #include "cdb/cdbresynchronizechangetracking.h"
 #include "cdb/cdbmirroredbufferpool.h"
 #include "cdb/cdbmirroredappendonly.h"
@@ -4639,8 +4638,6 @@ static void PersistentFileSysObj_ScanStateAction(
 
 					}
 
-					FileRepResync_AddToTotalBlocksToSynchronize(moreBlocksToSynchronize);
-
 					if (Debug_persistent_print)
 						elog(Persistent_DebugPrintLevel(),
 							 "StateAction_MarkWholeMirrorFullCopy: Mark '%s' full copy, persistent state '%s', relation storage manager '%s', number of 32k blocks " INT64_FORMAT ", old mirror existence state '%s', new mirror existence state '%s', serial number " INT64_FORMAT " at TID %s",
@@ -4712,8 +4709,6 @@ static void PersistentFileSysObj_ScanStateAction(
 				// Don't hold lock during physical file-system operation.
 				WRITE_PERSISTENT_STATE_ORDERED_UNLOCK;
 
-				FileRepResync_SetReMirrorAllowed();
-
 				// UNDONE: Pass this in from the resync worker?
 				mirrorDataLossTrackingState =
 							FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
@@ -4728,18 +4723,9 @@ static void PersistentFileSysObj_ScanStateAction(
 										mirrorDataLossTrackingSessionNum,
 										&mirrorDataLossOccurred);
 
-				FileRepResync_ResetReMirrorAllowed();
-
 				// UNDONE: Act on mirrorDataLossOccurred
 
 				WRITE_PERSISTENT_STATE_ORDERED_LOCK;
-				/*
-				 * We calculate only RelationFile objects to create for resync.
-				 * As it seems unnecessary overhead to scan database/tablespace/etc..
-				 * Hence only decrement for RelationFile.
-				 */
-				if (fsObjType == PersistentFsObjType_RelationFile)
-					FileRepResync_DecFsobjCount();
 			}
 			else
 			{
@@ -4762,15 +4748,11 @@ static void PersistentFileSysObj_ScanStateAction(
 									DatumGetInt16(
 												  values[Anum_gp_persistent_relation_node_relation_storage_manager - 1]);
 
-					FileRepResync_SetReMirrorAllowed();
-
 					PersistentFileSysObj_DoMirrorValidation(
 															&fsObjName,
 															relStorageMgr,
 															&persistentTid,
 															persistentSerialNum);
-
-					FileRepResync_ResetReMirrorAllowed();
 				}
 			}
 			break;
@@ -4891,9 +4873,6 @@ static void PersistentFileSysObj_ScanStateAction(
 				 */
 				if (StateAction_MirrorReDrop == stateAction)
 				{
-					/* Set this flag to allow actions on mirror during resync transition */
-					FileRepResync_SetReMirrorAllowed();
-
 					mirrorDataLossTrackingState =
 								FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
 																&mirrorDataLossTrackingSessionNum);
@@ -4907,19 +4886,6 @@ static void PersistentFileSysObj_ScanStateAction(
 											mirrorDataLossTrackingState,
 											mirrorDataLossTrackingSessionNum,
 											&mirrorDataLossOccurred);
-
-					// UNDONE: Act on mirrorDataLossOccurred
-					FileRepResync_ResetReMirrorAllowed();
-
-					/*
-					 * We calculate only RelationFile objects to create for resync.
-					 * As it seems unnecessary overhead to scan database/tablespace/etc..
-					 * Hence only decrement for RelationFile.
-					 */
-					if (fsObjType == PersistentFsObjType_RelationFile)
-					{
-						FileRepResync_DecFsobjCount();
-					}
 				}
 				else
 				{
@@ -5256,8 +5222,6 @@ void PersistentFileSysObj_MarkSpecialScanIncremental(void)
 					PersistentFileSysObj_GetBufferPoolRelationTotalBlocks(
 										PersistentFileSysObjName_GetRelFileNodePtr(&fsObjName));
 
-			FileRepResync_AddToTotalBlocksToSynchronize(numOf32kBlocks);
-
 			if (Debug_persistent_print)
 				elog(Persistent_DebugPrintLevel(),
 					 "PersistentFileSysObj_MarkSpecialScanIncremental: Mark '%s' needing special scan incremental, number of 32k blocks %d, persistent state '%s', mirror existence state '%s', serial number " INT64_FORMAT " at TID %s",
@@ -5294,8 +5258,6 @@ void PersistentFileSysObj_MarkSpecialScanIncremental(void)
 			numOf32kBlocks =
 					PersistentFileSysObj_GetBufferPoolRelationTotalBlocks(
 										PersistentFileSysObjName_GetRelFileNodePtr(&fsObjName));
-
-			FileRepResync_AddToTotalBlocksToSynchronize(numOf32kBlocks);
 
 			if (Debug_persistent_print)
 				elog(Persistent_DebugPrintLevel(),
@@ -5438,8 +5400,6 @@ void PersistentFileSysObj_MarkAppendOnlyCatchup(void)
 				heap_freetuple(tupleCopy);
 
 				roundedUp32kBlocks = (mirrorAppendOnlyNewEof - mirrorAppendOnlyLossEof + BLCKSZ - 1) / BLCKSZ;
-
-				FileRepResync_AddToTotalBlocksToSynchronize(roundedUp32kBlocks);
 
 				if (Debug_persistent_print)
 					elog(Persistent_DebugPrintLevel(),
@@ -5721,8 +5681,6 @@ void PersistentFileSysObj_MarkPageIncrementalFromChangeLog(void)
 											&incrementalChangeList->entries[i].persistentTid,
 											incrementalChangeList->entries[i].persistentSerialNum,
 											incrementalChangeList->entries[i].numblocks);
-
-		FileRepResync_AddToTotalBlocksToSynchronize(incrementalChangeList->entries[i].numblocks);
 	}
 
 	if (incrementalChangeList != NULL)

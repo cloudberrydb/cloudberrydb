@@ -695,13 +695,6 @@ bool Gp_entry_postmaster = false;
 static int Save_MppLocalProcessCounter = 0;
 static DistributedTransactionTimeStamp Save_DtxStartTime = 0;
 
-/** resync status info from cdbfilerepresyncmanager.h **/
-extern struct timeval FileRepResync_GetEstimateResyncCompletionTime(void);
-extern int64 FileRepResync_GetBlocksSynchronized(void);
-extern int64 FileRepResync_GetTotalBlocksToSynchronize(void);
-extern int FileRepResync_GetCurFsobjCount(void);
-extern int FileRepResync_GetTotalFsobjCount(void);
-
 /* changetracking size info from cdbresynchronizechangetracking.h */
 extern int64 ChangeTracking_GetTotalSpaceUsedOnDisk(void);
 
@@ -3083,20 +3076,18 @@ processTransitionRequest_getMirrorStatus(void)
 
 	getPrimaryMirrorStatusCodes(&pm_mode, &s_state, &d_state, &f_type);
 
-	int64 resyncNumCompleted = FileRepResync_GetBlocksSynchronized();
-	int64 resyncTotalToComplete = FileRepResync_GetTotalBlocksToSynchronize();
-	int64 changeTrackingBytesUsed = ChangeTracking_GetTotalSpaceUsedOnDisk();
+	int64 resyncNumCompleted = 0;
+	int64 resyncTotalToComplete = 0;
+	int64 changeTrackingBytesUsed = 0;
 
-	int fsobjCount = FileRepResync_GetCurFsobjCount();
-	int totalFsobjCount = FileRepResync_GetTotalFsobjCount();
+	int fsobjCount = 0;
+	int totalFsobjCount = 0;
 
 	/**
 	 * Note: call this one AFTER calling the others above -- it will return a sentinel
 	 *       if estimates are invalid, and we want to be sure we get the sentinel
 	 *       (the system can go from valid to invalid estimates but no vice-versa)
 	 */
-	struct timeval estimateResyncCompletionTime = FileRepResync_GetEstimateResyncCompletionTime();
-
 	bool isIOSuspended = primaryMirrorIsIOSuspended();
 	char *databaseStatus;
 
@@ -3153,7 +3144,7 @@ processTransitionRequest_getMirrorStatus(void)
 			 resyncNumCompleted,
 			 resyncTotalToComplete,
 			 changeTrackingBytesUsed,
-			 (int64)estimateResyncCompletionTime.tv_sec,
+			 (int64)0,
 			 totalFsobjCount,
 			 fsobjCount);
 

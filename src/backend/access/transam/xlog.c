@@ -78,7 +78,6 @@
 
 #include "cdb/cdbtm.h"
 #include "cdb/cdbfilerep.h"
-#include "cdb/cdbfilerepresyncmanager.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbpersistentrelation.h"
 #include "cdb/cdbmirroredflatfile.h"
@@ -10066,8 +10065,6 @@ CreateCheckPoint(int flags)
 	if (resync_to_sync_transition)
 	{
 		RequestXLogSwitch();
-
-		FileRepResyncManager_ResyncFlatFiles();
 
 		UpdateControlFile();
 

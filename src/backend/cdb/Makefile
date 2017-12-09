@@ -28,7 +28,6 @@ OBJS = cdbappendonlystorage.o cdbappendonlystorageformat.o \
 	   cdbfilerepprimary.o cdbfilerepmirror.o \
 	   cdbfilerepprimaryack.o cdbfilerepmirrorack.o \
 	   cdbfilerepconnclient.o cdbfilerepconnserver.o \
-	   cdbfilerepresyncmanager.o cdbfilerepresyncworker.o \
 	   cdbfilerepresetpeerprocess.o \
 	   cdbfts.o \
 	   cdbglobalsequence.o \
