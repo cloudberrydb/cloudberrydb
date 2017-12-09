@@ -612,15 +612,15 @@ SyncRepWakeQueue(bool all, int mode)
 									   offsetof(PGPROC, syncRepLinks));
 
 		/*
+		 * Remove thisproc from queue.
+		 */
+		SHMQueueDelete(&(thisproc->syncRepLinks));
+
+		/*
 		 * Set state to complete; see SyncRepWaitForLSN() for discussion of
 		 * the various states.
 		 */
 		thisproc->syncRepState = SYNC_REP_WAIT_COMPLETE;
-
-		/*
-		 * Remove thisproc from queue.
-		 */
-		SHMQueueDelete(&(thisproc->syncRepLinks));
 
 		/*
 		 * Wake only when we have set state and removed from queue.
