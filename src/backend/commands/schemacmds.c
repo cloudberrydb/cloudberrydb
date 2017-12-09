@@ -272,12 +272,16 @@ RemoveSchemas(DropStmt *drop)
 						   namespaceName);
 
 		/*
-		 * Additional check to protect reserved schema names, exclude temp
-		 * schema
+		 * Additional check to protect reserved schema names.
+		 *
+		 * But allow dropping temp schemas. This makes it much easier to get rid
+		 * of leaked temp schemas. I wish it wasn't necessary, but we do tend to
+		 * leak them on crashes, so let's make life a bit easier for admins.
+		 * gpcheckcat will also try to automatically drop any leaked temp schemas.
 		 */
 		if (!allowSystemTableModsDDL &&	IsReservedName(namespaceName) &&
-			(strlen(namespaceName) >= 7 &&
-			 strncmp(namespaceName, "pg_temp", 7) != 0))
+			strncmp(namespaceName, "pg_temp_", 8) != 0 &&
+			strncmp(namespaceName, "pg_toast_temp_", 14) != 0)
 			ereport(ERROR,
 					(errcode(ERRCODE_RESERVED_NAME),
 					 errmsg("cannot drop schema %s because it is required by the database system",
