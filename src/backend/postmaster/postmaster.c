@@ -738,17 +738,6 @@ bool GPAreFileReplicationStructuresRequired(void)
 }
 
 /**
- * filerep process is interested in the bg writer's pid, so
- *   all sets of bgwriter pid should go through this function
- *   so that we update shared memory
- */
-static void SetBGWriterPID(pid_t pid)
-{
-    BgWriterPID = pid;
-    primaryMirrorSetBGWriterPID(pid);
-}
-
-/**
  * return true if we are allowed to start actual database processes in this state.
  *
  * Note that this checks whether we are in fault from postmaster reset, so should not be used for
@@ -2490,7 +2479,7 @@ ServerLoop(void)
 			    pmState > PM_STARTUP_PASS4 &&
 			    pmState < PM_CHILD_STOP_BEGIN)
 			{
-				SetBGWriterPID(StartBackgroundWriter());
+				BgWriterPID = StartBackgroundWriter();
 				if (Debug_print_server_processes)
 					elog(LOG,"restarted 'background writer process' as pid %ld",
 						 (long)BgWriterPID);
@@ -4250,7 +4239,7 @@ CommenceNormalOperations(void)
 	 */
 	if (BgWriterPID == 0)
 	{
-		SetBGWriterPID(StartBackgroundWriter());
+		BgWriterPID = StartBackgroundWriter();
 		if (Debug_print_server_processes)
 			elog(LOG,"on startup successful: started 'background writer' as pid %ld",
 				 (long)BgWriterPID);
@@ -4730,8 +4719,7 @@ do_reaper()
 		 */
 		if (pid == BgWriterPID)
 		{
-		    SetBGWriterPID(0);
-
+			BgWriterPID = 0;
 			if (EXIT_STATUS_0(exitstatus) &&
 			    (pmState == PM_CHILD_STOP_WAIT_BGWRITER_CHECKPOINT
 			    || (FatalError && pmState >= PM_CHILD_STOP_BEGIN)))
@@ -5368,11 +5356,9 @@ HandleChildCrash(int pid, int exitstatus, const char *procname)
 		signal_child(StartupPass4PID, (SendStop ? SIGSTOP : SIGQUIT));
 	}
 
-    /* Take care of the bgwriter too */
+	/* Take care of the bgwriter too */
 	if (pid == BgWriterPID)
-    {
-        SetBGWriterPID(0);
-    }
+		BgWriterPID = 0;
 	else if (BgWriterPID != 0 && !FatalError)
 	{
 		ereport((Debug_print_server_processes ? LOG : DEBUG2),
@@ -5913,9 +5899,7 @@ StateMachineTransition_ShutdownBgWriterWithCheckpoint(void)
 	{
 		/* Start the bgwriter if not running */
 		if (BgWriterPID == 0 )
-		{
-			SetBGWriterPID(StartBackgroundWriter());
-		}
+			BgWriterPID = StartBackgroundWriter();
 	}
 
 	/* SIGUSR2, regardless of shutdown mode */
@@ -7381,7 +7365,7 @@ sigusr1_handler(SIGNAL_ARGS)
 		 * we'll just try again later.
 		 */
 		Assert(BgWriterPID == 0);
-		SetBGWriterPID(StartBackgroundWriter());
+		BgWriterPID = StartBackgroundWriter();
 
 		pmState = PM_RECOVERY;
 	}

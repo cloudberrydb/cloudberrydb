@@ -299,9 +299,6 @@ extern bool updateDataState(DataState_e dataState);
 
 extern int64 getChangeTrackingSessionId(void);
 
-extern void primaryMirrorSetBGWriterPID( pid_t pid );
-extern pid_t primaryMirrorGetBGWriterPID(void);
-
 extern void primaryMirrorSetIOSuspended( bool ioSuspended );
 extern bool primaryMirrorIsIOSuspended(void);
 
