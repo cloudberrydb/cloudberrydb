@@ -29,7 +29,7 @@ Feature: gpcheckcat tests
         And psql should print "(1 row)" to stdout
         When the user runs "gpcheckcat leak_db"
         Then gpchekcat should return a return code of 0
-        Then gpcheckcat should print "Found and dropped 1 unbound temporary schemas" to stdout
+        Then gpcheckcat should print "Found and dropped 2 unbound temporary schemas" to stdout
         And the user runs "psql leak_db -f test/behave/mgmt_utils/steps/data/gpcheckcat/leaked_schema.sql"
         Then psql should return a return code of 0
         And psql should print "(0 rows)" to stdout
