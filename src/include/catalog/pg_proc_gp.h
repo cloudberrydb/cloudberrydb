@@ -539,10 +539,6 @@ DESCR("view logged local transaction status");
 DATA(insert OID = 6044 ( gp_distributed_log  PGNSP PGUID 12 1 1000 0 f f f f t v 0 0 2249 "" _null_ _null_ _null_ _null_ gp_distributed_log _null_ _null_ _null_ n a ));
 DESCR("view logged distributed transaction status");
 
-/* gp_changetracking_log(IN filetype int4, OUT segment_id int2, OUT dbid int2, OUT space oid, OUT db oid, OUT rel oid, OUT xlogloc gpxlogloc, OUT blocknum int4, OUT persistent_tid tid, OUT persistent_sn int8) => SETOF pg_catalog.record */
-DATA(insert OID = 6435 ( gp_changetracking_log  PGNSP PGUID 12 1 1000 0 f f f f t v 1 0 2249 "23" "{23,21,21,26,26,26,3310,23,27,20}" "{i,o,o,o,o,o,o,o,o,o}" "{filetype,segment_id,dbid,space,db,rel,xlogloc,blocknum,persistent_tid,persistent_sn}" _null_ gp_changetracking_log _null_ _null_ _null_ n a ));
-DESCR("view logged change tracking records");
-
 /* gp_execution_dbid() => int4 */
 DATA(insert OID = 6068 ( gp_execution_dbid  PGNSP PGUID 12 1 0 0 f f f f f v 0 0 23 "" _null_ _null_ _null_ _null_ gp_execution_dbid _null_ _null_ _null_ n a ));
 DESCR("dbid executing function");

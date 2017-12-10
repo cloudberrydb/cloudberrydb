@@ -261,8 +261,6 @@ extern void PersistentFileSysObj_MarkAppendOnlyCatchup(void);
 
 extern void PersistentFileSysObj_MarkSpecialScanIncremental(void);
 
-extern void PersistentFileSysObj_MarkPageIncrementalFromChangeLog(void);
-
 extern void PersistentFileSysObj_MirrorReCreate(void);
 
 extern void PersistentFileSysObj_MarkMirrorReCreated(void);

@@ -82,7 +82,6 @@
 #include "cdb/cdbpersistentrelation.h"
 #include "cdb/cdbmirroredflatfile.h"
 #include "cdb/cdbpersistentrecovery.h"
-#include "cdb/cdbresynchronizechangetracking.h"
 #include "cdb/cdbpersistentfilesysobj.h"
 #include "utils/resscheduler.h"
 #include "utils/snapmgr.h"
@@ -847,7 +846,6 @@ XLogInsert_Internal(RmgrId rmid, uint8 info, XLogRecData *rdata, TransactionId h
 	uint32		freespace;
 	int			curridx;
 	XLogRecData *rdt;
-	char 		*rdatabuf = NULL;
 	Buffer		dtbuf[XLR_MAX_BKP_BLOCKS];
 	bool		dtbuf_bkp[XLR_MAX_BKP_BLOCKS];
 	BkpBlock	dtbuf_xlg[XLR_MAX_BKP_BLOCKS];
@@ -862,7 +860,6 @@ XLogInsert_Internal(RmgrId rmid, uint8 info, XLogRecData *rdata, TransactionId h
 	bool		updrqst;
 	bool		doPageWrites;
 	bool		isLogSwitch = (rmid == RM_XLOG_ID && info == XLOG_SWITCH);
-	bool		rdata_iscopy = false;
 	uint8       extended_info = 0;
 
     /* Safety check in case our assumption is ever broken. */
@@ -1308,13 +1305,6 @@ begin:;
 	}
 
 	/*
-	 * Always copy of the relevant rdata information in case we discover below we
-	 * are in 'Change Tracking' mode and need to call ChangeTracking_AddRecordFromXlog().
-	 */
-
-	rdatabuf = ChangeTracking_CopyRdataBuffers(rdata, rmid, info, &rdata_iscopy);
-
-	/*
 	 * Append the data, including backup blocks if any
 	 */
 	while (write_len)
@@ -1453,74 +1443,6 @@ begin:;
 		}
 		WriteRqst = XLogCtl->xlblocks[curridx];
 	}
-
-	/*
-	 * Use this lock to make sure we add Change Tracking records correctly.
-	 *
-	 * IMPORTANT: Acquiring this lock must be done AFTER ALL WRITE AND FSYNC calls under
-	 * WALInsertLock.  Otherwise, the write suspension that occurs as a natural part of
-	 * mirror communication loss and fault handling would suspend us and cause a deadlock.
-	 *
-	 * When this lock is held EXCLUSIVE, we are in transition from 'In Sync' to
-	 * 'Change Tracking'.  During that time other processes are initializing the
-	 * 'Change Tracking' log with information since the last checkpoint.  Thus, we need to
-	 * wait here before we add our information.
-	 */
-	LWLockAcquire(ChangeTrackingTransitionLock, LW_SHARED);
-
-	if (Debug_print_xlog_relation_change_info && rdatabuf != NULL)
-	{
-		bool skipIssue;
-
-		skipIssue =
-			ChangeTracking_PrintRelationChangeInfo(
-												rmid,
-												info,
-												(void *)rdatabuf,
-												&RecPtr,
-												/* weAreGeneratingXLogNow */ true,
-												/* printSkipIssuesOnly */ Debug_print_xlog_relation_change_info_skip_issues_only);
-
-		if (Debug_print_xlog_relation_change_info_backtrace_skip_issues &&
-			skipIssue)
-		{
-			/* Code for investigating MPP-13909, will be removed as part of the fix */
-			elog(WARNING, 
-				 "ChangeTracking_PrintRelationChangeInfo hang skipIssue %s",
-				 (skipIssue ? "true" : "false"));
-			
-			for (int i=0; i < 24 * 60; i++)
-			{
-				pg_usleep(60000000L); /* 60 sec */
-			}
-			Insist(0);
-			debug_backtrace();
-		}
-	}
-
-	/* if needed, send this record to the changetracker */
-	if (ChangeTracking_ShouldTrackChanges() && rdatabuf != NULL)
-	{
-		ChangeTracking_AddRecordFromXlog(rmid, info, (void *)rdatabuf, &RecPtr);
-	}
-
-	/*
-	 * Last LSN location has to be tracked also when no mirrors are configured
-	 * in order to handle gpaddmirrors correctly
-	 */
-	XLogCtl->lastChangeTrackingEndLoc = RecPtr;
-
-	if(rdata_iscopy)
-	{
-		if (rdatabuf != NULL)
-		{
-			pfree(rdatabuf);
-			rdatabuf = NULL;
-		}
-		rdata_iscopy = false;
-	}
-
-	LWLockRelease(ChangeTrackingTransitionLock);
 
 	LWLockRelease(WALInsertLock);
 
@@ -5989,56 +5911,6 @@ XLogFileRepFlushCache(
 }
 
 void
-XLogInChangeTrackingTransition(void)
-{
-	XLogRecPtr	lastChangeTrackingEndLoc;
-	XLogRecPtr      recPtrInit = {0, 0};
-
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(),
-			 "XLogInChangeTrackingTransition: Acquiring ChangeTrackingTransitionLock...");
-
-	LWLockAcquire(ChangeTrackingTransitionLock, LW_EXCLUSIVE);
-
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(),
-			 "XLogInChangeTrackingTransition: SegmentStateInChangeTrackingTransition...");
-
-	FileRep_SetSegmentState(SegmentStateInChangeTrackingTransition, FaultTypeNotInitialized);
-
-	XLogFileRepFlushCache(&lastChangeTrackingEndLoc);
-
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(),
-			 "XLogInChangeTrackingTransition: Calling ChangeTracking_CreateInitialFromPreviousCheckpoint with lastChangeTrackingEndLoc %s",
-			 XLogLocationToString(&lastChangeTrackingEndLoc));
-
-	/*
-	 * During gpstart the following order is followed for recovery:
-	 *                      a) xlog records from last checkpoint are replayed into change tracking log file
-	 *                      b) xlog is replayed by 3 pass mechanism
-	 * In that case XLogCtl->lastChangeTrackingEndLoc will be still set to {0,0} and
-	 * in order to insert all xlog records from last checkpoint into change tracking log file
-	 * ChangeTracking_CreateInitialFromPreviousCheckpoint(NULL); has to be called.
-	 */
-	if (XLByteEQ(lastChangeTrackingEndLoc, recPtrInit))
-	{
-		ChangeTracking_CreateInitialFromPreviousCheckpoint(NULL);
-	}
-	else
-	{
-		ChangeTracking_CreateInitialFromPreviousCheckpoint(&lastChangeTrackingEndLoc);
-	}
-
-	LWLockRelease(ChangeTrackingTransitionLock);
-
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(),
-			 "XLogInChangeTrackingTransition: Released ChangeTrackingTransitionLock");
-
-}
-
-void
 UpdateControlFile(void)
 {
 	MirroredFlatFileOpen	mirroredOpen;
@@ -10102,7 +9974,6 @@ CheckPointGuts(XLogRecPtr checkPointRedo, int flags)
 	CheckPointCLOG();
 	CheckPointSUBTRANS();
 	CheckPointMultiXact();
-	CheckPointChangeTracking();
 	DistributedLog_CheckPoint();
 	CheckPointBuffers(flags);	/* performs all required fsyncs */
 	/* We deliberately delay 2PC checkpointing as long as possible */
@@ -12800,198 +12671,6 @@ XLogRecoverMirrorControlFile(void)
 	} // while(1)
 
 	return retval;
-}
-
-/*
- * The ChangeTracking module will call this xlog routine in order for
- * it to gather all the xlog records since the last checkpoint and
- * add any relevant information to the change log if necessary.
- *
- * It returns the number of records that were found (not all of them
- * were interesting to the changetracker though).
- *
- * See ChangeTracking_CreateInitialFromPreviousCheckpoint()
- * for more information.
- */
-int XLogAddRecordsToChangeTracking(
-	XLogRecPtr	*lastChangeTrackingEndLoc)
-{
-	XLogRecord *record;
-	XLogRecPtr	redoCheckpointLoc;
-	CheckPoint	redoCheckpoint;
-	XLogRecPtr	startLoc;
-	XLogRecPtr	lastEndLoc;
-	XLogRecPtr	lastChangeTrackingLogEndLoc = {0, 0};
-	int count = 0;
-
-	/*
-	 * Find latest checkpoint record and the redo record from xlog. This record
-	 * will be used to find the starting point to scan xlog records to be pushed
-	 * to changetracking log. This is needed either to generate/produce new change
-	 * tracking log or to make the changetracking log catchup with xlog in case
-	 * it has fallen behind.
-	 * TODO: does this function really work for us? if so, change its name for something more global
-	 */
-	XLogGetRecoveryStart("CHANGETRACKING",
-						 "get checkpoint location",
-						 &redoCheckpointLoc,
-						 &redoCheckpoint);
-
-	startLoc = redoCheckpoint.redo;
-
-	XLogCloseReadRecord();
-	elog(LOG, "last checkpoint location for generating initial changetracking log %s",
-			XLogLocationToString(&startLoc));
-
-	/*
-	 * Find the last entry and thus the LSN recorded by it from the CT_FULL
-	 * log. Later, it will be used to maintain the xlog and changetracking log
-	 * to the same end point.
-	 * We perform this when the lastChangetrackingEndLoc is not known.
-	 */
-	if (lastChangeTrackingEndLoc == NULL)
-	{
-		if (!ChangeTracking_GetLastChangeTrackingLogEndLoc(&lastChangeTrackingLogEndLoc))
-		{
-			return 0;
-		}
-		
-		elog(LOG, "last changetracked location in changetracking full log %s",
-				XLogLocationToString(&lastChangeTrackingLogEndLoc));
-	}
-
-	record = XLogReadRecord(&startLoc, false, LOG);
-	if (record == NULL)
-	{
-		elog(ERROR," couldn't read start location %s",
-			 XLogLocationToString(&startLoc));
-	}
-
-	if (lastChangeTrackingEndLoc != NULL &&
-		XLByteLT(*lastChangeTrackingEndLoc, EndRecPtr))
-	{
-		XLogCloseReadRecord();
-
-		if (Debug_persistent_print)
-			elog(Persistent_DebugPrintLevel(),
-				 "XLogAddRecordsToChangeTracking: Returning 0 records through end location %s",
-				 XLogLocationToString(lastChangeTrackingEndLoc));
-
-		return 0;
-	}
-
-	/*
-	 * Make a pass through all xlog records from last checkpoint and
-	 * gather information from the interesting ones into the change log.
-	 */
-	while (true)
-	{
-		if (Debug_persistent_print)
-			elog(Persistent_DebugPrintLevel(),
-				 "XLogAddRecordsToChangeTracking: Going to add change tracking record for XLOG (end) location %s",
-				 XLogLocationToString(&EndRecPtr));
-
-		ChangeTracking_AddRecordFromXlog(record->xl_rmid,
-									     record->xl_info,
-										 (XLogRecData *)XLogRecGetData(record),
-										 &EndRecPtr);
-		count++;
-
-		lastEndLoc = EndRecPtr;
-
-		SIMPLE_FAULT_INJECTOR(FileRepTransitionToChangeTracking);
-
-		if (lastChangeTrackingEndLoc != NULL)
-		{
-			if (XLByteEQ(EndRecPtr, *lastChangeTrackingEndLoc))
-			{
-				if (Debug_persistent_print)
-					elog(Persistent_DebugPrintLevel(),
-						 "XLogAddRecordsToChangeTracking: Returning %d records from start location %s through end location %s",
-						 count,
-						 XLogLocationToString(&startLoc),
-						 XLogLocationToString2(lastChangeTrackingEndLoc));
-				break;
-			}
-
-			record = XLogReadRecord(NULL, false, ERROR);
-			Assert (record != NULL);
-
-			if (!XLByteLE(EndRecPtr, *lastChangeTrackingEndLoc))
-			{
-				if (Debug_persistent_print)
-					elog(Persistent_DebugPrintLevel(),
-						 "XLogAddRecordsToChangeTracking: Read beyond expected last change tracking XLOG record.  "
-						 "Returning %d records. "
-						 "Last change tracking XLOG record (end) position is %s; scanned XLOG record (end) position is %s (start location is %s)",
-						 count,
-						 XLogLocationToString(lastChangeTrackingEndLoc),
-						 XLogLocationToString2(&EndRecPtr),
-						 XLogLocationToString3(&startLoc));
-				break;
-			}
-		}
-		else
-		{
-			/*
-			 * Read to end of log.
-			 */
-			record = XLogReadRecord(NULL, false, LOG);
-			if (record == NULL)
-			{
-				if (Debug_persistent_print)
-					elog(Persistent_DebugPrintLevel(),
-						 "XLogAddRecordsToChangeTracking: Returning %d records through end of log location %s",
-						 count,
-						 XLogLocationToString(&lastEndLoc));
-
-				break;
-			}
-		}
-	}
-
-	/*
-	 * We now need to make sure that (in the case of crash recovery) there are no
-	 * records in the change tracking logs that have lsn higher than the highest lsn in xlog.
-	 *
-	 *	a) Find the highest lsn in xlog
-	 *	b) Find the highest lsn in change tracking log files before interesting
-	 *	   xlog entries from last checkpoint onwards are appended to it
-	 *	   (see above)
-	 *	c) if the highest lsn in change tracking > the highest lsn in xlog then
-	 *		i) store in compacting shared memory the highest lsn in xlog
-	 *		ii) Flush all data into CT_LOG_FULL
-	 *		iii) Rename CT_LOG_FULL to CT_LOG_TRANSIENT
-	 *	d) after database is started the compacting (CT_LOG_TRANSIENT) will discard all records from
-	 *	   change tracking log file that are higher than the highest lsn in xlog
-	 */
-	if (lastChangeTrackingEndLoc == NULL)
-	{
-		/*
-		 * Xlog must have been read till the end to get last lsn on
-		 * disk (EndRecPtr).
-		 */
-		Assert (record == NULL);
-
-		if (! (lastChangeTrackingLogEndLoc.xlogid == 0 && lastChangeTrackingLogEndLoc.xrecoff == 0) &&
-			XLByteLT(EndRecPtr, lastChangeTrackingLogEndLoc))
-		{
-			elog(LOG,
-				 "changetracking: "
-				 "found last changetracking log LSN (%s) higher than last xlog LSN, "
-				 "invalid records will be discarded",
-				 XLogLocationToString(&lastChangeTrackingLogEndLoc));
-
-			elog(LOG, "xlog LSN (%s)", XLogLocationToString(&EndRecPtr));
-
-			ChangeTracking_FsyncDataIntoLog(CTF_LOG_FULL);
-			ChangeTrackingSetXLogEndLocation(EndRecPtr);
-			ChangeTracking_CreateTransientLog();
-		}
-	}
-
-	XLogCloseReadRecord();
-	return count;
 }
 
 int

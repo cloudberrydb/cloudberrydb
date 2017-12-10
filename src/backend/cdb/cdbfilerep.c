@@ -42,7 +42,6 @@
 #include "cdb/cdbfilerepconnserver.h"
 #include "cdb/cdbfilerepservice.h"
 #include "cdb/cdbpersistenttablespace.h"
-#include "cdb/cdbresynchronizechangetracking.h"
 #include "libpq/pqsignal.h"
 #include "libpq/ip.h"
 #include "postmaster/fork_process.h"
@@ -3548,16 +3547,6 @@ FileRep_Main(void)
 
 		FileRep_SetState(FileRepStateFault);
 		goto shutdown;
-	}
-
-	/*
-	 * Change Tracking shared memory is not re-initialized during transition
-	 * to resync since Change Tracking buffers are flushed during transition
-	 * to resync under MirroredLock.
-	 */
-	if (segmentState != SegmentStateInResyncTransition)
-	{
-		ChangeTrackingShmemReset();
 	}
 
 	snprintf(title, sizeof(title), "%s",

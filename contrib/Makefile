@@ -25,7 +25,6 @@ WANTED_DIRS = \
 WANTED_DIRS += \
 		xlogdump \
 		pgbench \
-		changetrackingdump \
 		formatter \
 		formatter_fixedwidth \
 		extprotocol \

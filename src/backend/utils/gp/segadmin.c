@@ -23,7 +23,6 @@
 #include "catalog/pg_filespace.h"
 #include "catalog/pg_filespace_entry.h"
 #include "catalog/pg_proc.h"
-#include "cdb/cdbresynchronizechangetracking.h"
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdbpersistentdatabase.h"
 #include "cdb/cdbpersistentfilespace.h"
@@ -1450,9 +1449,6 @@ gp_add_segment_persistent_entries(PG_FUNCTION_ARGS)
 	seg.db.role = GP_SEGMENT_CONFIGURATION_ROLE_MIRROR;
 
 	add_segment_persistent_entries(dbid, &seg, fsmap);
-
-	/* tell filerep to start a full resync */
-	ChangeTracking_MarkFullResync();
 
 	PG_RETURN_BOOL(true);
 }

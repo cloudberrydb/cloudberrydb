@@ -49,10 +49,10 @@
 #define FILEREP_MAX_LOG_DESCRIPTION_LEN 128
 
 #define FileRepConfigLogPath(path) \
-		snprintf(path, MAXPGPATH, CHANGETRACKINGDIR "/FILEREP_CONFIG_LOG")
+		snprintf(path, MAXPGPATH, "/FILEREP_CONFIG_LOG")
 
 #define FileRepLogPath(path) \
-	snprintf(path, MAXPGPATH, CHANGETRACKINGDIR "/FILEREP_LOG")
+	snprintf(path, MAXPGPATH, "/FILEREP_LOG")
 
 #define FILEREPFLATFILEID_WHOLE_FILE -1
 

@@ -319,9 +319,6 @@ extern int XLogReconcileEofMirror(
 					   XLogRecPtr	*mirrorEof);
 
 extern int XLogRecoverMirrorControlFile(void);
-extern int XLogAddRecordsToChangeTracking(
-	XLogRecPtr	*lastChangeTrackingEndLoc);
-extern void XLogInChangeTrackingTransition(void);
 
 extern void xlog_print_redo_read_buffer_not_found(
 		RelFileNode		*reln,

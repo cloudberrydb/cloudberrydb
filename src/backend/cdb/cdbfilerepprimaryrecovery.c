@@ -25,13 +25,9 @@
 #include "cdb/cdbfilerepprimaryrecovery.h"
 #include "cdb/cdbfilerepservice.h"
 #include "cdb/cdbmirroredflatfile.h"
-#include "cdb/cdbresynchronizechangetracking.h"
 #include "utils/flatfiles.h"
 
 static void FileRepPrimary_StartRecoveryInSync(void);
-static void FileRepPrimary_StartRecoveryInChangeTracking(void);
-static void FileRepPrimary_RunChangeTrackingCompacting(void);
-
 static int	FileRepPrimary_RunRecoveryInSync(void);
 
 static void FileRepPrimary_RunHeartBeat(void);
@@ -50,11 +46,6 @@ FileRepPrimary_StartRecovery(void)
 		case DataStateInSync:
 			FileRepPrimary_StartRecoveryInSync();
 			FileRepPrimary_RunHeartBeat();
-			break;
-
-		case DataStateInChangeTracking:
-			FileRepPrimary_StartRecoveryInChangeTracking();
-			FileRepPrimary_RunChangeTrackingCompacting();
 			break;
 
 		case DataStateInResync:
@@ -241,175 +232,6 @@ FileRepPrimary_RunRecoveryInSync(void)
 
 
 	return status;
-}
-
-/****************************************************************
- * DataStateInChangeTracking
- ****************************************************************/
-
-/*
- *
- * FileRepPrimary_StartRecoveryInChangeTracking()
- *
- */
-static void
-FileRepPrimary_StartRecoveryInChangeTracking(void)
-{
-	FileRep_InsertConfigLogEntry("run recovery");
-
-	while (1)
-	{
-
-		while (FileRepSubProcess_GetState() == FileRepStateFault)
-		{
-			FileRepSubProcess_ProcessSignals();
-			pg_usleep(50000L);	/* 50 ms */
-		}
-
-		if (FileRepSubProcess_GetState() == FileRepStateShutdown ||
-			FileRepSubProcess_GetState() == FileRepStateShutdownBackends)
-		{
-
-			break;
-		}
-
-		Insist(fileRepRole == FileRepPrimaryRole);
-		Insist(dataState == DataStateInChangeTracking);
-		Insist(FileRepSubProcess_GetState() != FileRepStateReady);
-
-		if (ChangeTracking_RetrieveIsTransitionToInsync())
-		{
-			ChangeTracking_DropAll();
-		}
-		else
-		{
-			if (ChangeTracking_RetrieveIsTransitionToResync() == FALSE &&
-				isFullResync())
-			{
-				ChangeTracking_MarkFullResync();
-				/* segmentState == SegmentStateChangeTrackingDisabled */
-				getFileRepRoleAndState(&fileRepRole, &segmentState, &dataState, NULL, NULL);
-				Assert(segmentState == SegmentStateChangeTrackingDisabled);
-
-				/* database is resumed */
-				primaryMirrorSetIOSuspended(FALSE);
-
-				FileRep_InsertConfigLogEntry("change tracking recovery completed");
-
-				break;
-			}
-			else
-			{
-				ChangeTracking_MarkIncrResync();
-			}
-
-		}
-
-		XLogInChangeTrackingTransition();
-
-		getFileRepRoleAndState(&fileRepRole, &segmentState, &dataState, NULL, NULL);
-		if (segmentState != SegmentStateChangeTrackingDisabled)
-		{
-			/*
-			 * NOTE: Any error during change tracking will result in disabling
-			 * Change Tracking
-			 */
-			FileRepSubProcess_SetState(FileRepStateReady);
-		}
-
-		/* database is resumed */
-		primaryMirrorSetIOSuspended(FALSE);
-
-		FileRep_InsertConfigLogEntry("change tracking recovery completed");
-
-		break;
-
-	}
-}
-
-/*
- *
- * FileRepPrimary_RunChangeTrackingCompacting()
- *
- */
-static void
-FileRepPrimary_RunChangeTrackingCompacting(void)
-{
-	int			retry = 0;
-
-	if (segmentState != SegmentStateChangeTrackingDisabled)
-		FileRep_InsertConfigLogEntry("run change tracking compacting if records has to be discarded");
-	else
-		FileRep_InsertConfigLogEntry("change tracking disabled, so skipping compaction");
-
-	/*
-	 * We have to check if any records have to be discarded from Change
-	 * Tracking log file. Due to crash it can happen that the highest change
-	 * tracking log lsn > the highest xlog lsn.
-	 *
-	 * Records from change tracking log file can be discarded only after
-	 * database is started. Full environhment has to be set up in order to run
-	 * queries over SPI.
-	 */
-	while (FileRepSubProcess_GetState() != FileRepStateShutdown &&
-		   FileRepSubProcess_GetState() != FileRepStateShutdownBackends &&
-		   isDatabaseRunning() == FALSE)
-	{
-
-		FileRepSubProcess_ProcessSignals();
-
-		pg_usleep(50000L);		/* 50 ms */
-	}
-
-	/*
-	 * It is safe to initialize relcache and use heap access methods now,
-	 * after crash recovery passes have finished applying xlog.
-	 */
-	FileRepSubProcess_InitHeapAccess();
-
-	if (segmentState != SegmentStateChangeTrackingDisabled)
-		ChangeTracking_DoFullCompactingRoundIfNeeded();
-
-	/*---------------------------------------------------------------------
-	 * Periodically check if compacting is required.
-	 * Periodic compacting is required in order to
-	 *		a) reduce space for change tracking log file
-	 *		b) reduce time for transition from Change Tracking to Resync
-	 *---------------------------------------------------------------------
-	 */
-	if (segmentState != SegmentStateChangeTrackingDisabled)
-		FileRep_InsertConfigLogEntry("run change tracking compacting");
-	while (1)
-	{
-
-		FileRepSubProcess_ProcessSignals();
-
-		while (FileRepSubProcess_GetState() == FileRepStateFault ||
-			   segmentState == SegmentStateChangeTrackingDisabled)
-		{
-			FileRepSubProcess_ProcessSignals();
-			pg_usleep(50000L);	/* 50 ms */
-		}
-
-		if (!(FileRepSubProcess_GetState() == FileRepStateReady &&
-			  dataState == DataStateInChangeTracking))
-		{
-			break;
-		}
-
-		Insist(fileRepRole == FileRepPrimaryRole);
-		Insist(dataState == DataStateInChangeTracking);
-		Insist(FileRepSubProcess_GetState() == FileRepStateReady);
-
-		/* retry compacting of change tracking log files once per minute */
-		pg_usleep(50000L);		/* 50 ms */
-
-		if (++retry == 1200)
-		{
-			ChangeTracking_CompactLogsIfPossible();
-			retry = 0;
-		}
-	}
 }
 
 /*

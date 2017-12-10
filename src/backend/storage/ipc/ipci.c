@@ -33,7 +33,6 @@
 #include "cdb/cdbpersistenttablespace.h"
 #include "cdb/cdbpersistentdatabase.h"
 #include "cdb/cdbpersistentrelation.h"
-#include "cdb/cdbresynchronizechangetracking.h"
 #include "cdb/cdbvars.h"
 #include "miscadmin.h"
 #include "pgstat.h"
@@ -151,7 +150,6 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 		size = add_size(size, XLOGShmemSize());
 		size = add_size(size, DistributedLog_ShmemSize());
 		size = add_size(size, CLOGShmemSize());
-		size = add_size(size, ChangeTrackingShmemSize());
 		size = add_size(size, SUBTRANSShmemSize());
 		size = add_size(size, TwoPhaseShmemSize());
 		size = add_size(size, MultiXactShmemSize());
@@ -275,7 +273,6 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 	 */
 	XLOGShmemInit();
 	CLOGShmemInit();
-	ChangeTrackingShmemInit();
 	DistributedLog_ShmemInit();
 	SUBTRANSShmemInit();
 	TwoPhaseShmemInit();

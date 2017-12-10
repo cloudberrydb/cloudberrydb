@@ -47,7 +47,7 @@ OBJS = cdbappendonlystorage.o cdbappendonlystorageformat.o \
 	   cdbpersistentfilesysobj.o cdbpersistentrecovery.o cdbpersistentstore.o \
 	   cdbpgdatabase.o \
 	   cdbplan.o cdbpullup.o \
-	   cdbrelsize.o cdbresynchronizechangetracking.o \
+	   cdbrelsize.o \
 	   cdbshareddoublylinked.o cdbsharedoidsearch.o \
 	   cdbsetop.o cdbsreh.o cdbsrlz.o cdbsubplan.o cdbsubselect.o \
 	   cdbtargeteddispatch.o cdbthreadlog.o \
