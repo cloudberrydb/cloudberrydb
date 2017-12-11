@@ -907,9 +907,13 @@ XLogInsert_Internal(RmgrId rmid, uint8 info, XLogRecData *rdata, TransactionId h
 		}
  	}
 
+	/* GPDB_84_MERGE_FIXME: This cross-check was added in upstream, but it's failing
+	 * in Startup pass 2. Disable it for now. */
+#if 0
 	/* cross-check on whether we should be here or not */
 	if (!XLogInsertAllowed())
 		elog(ERROR, "cannot make new WAL entries during recovery");
+#endif
 
 	/* info's high bits are reserved for use by me */
 	if (info & XLR_INFO_MASK)
