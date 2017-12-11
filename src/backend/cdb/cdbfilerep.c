@@ -36,7 +36,6 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbfilerep.h"
 #include "cdb/cdbfilerepprimary.h"
-#include "cdb/cdbfilerepmirror.h"
 #include "cdb/cdbfilerepconnserver.h"
 #include "cdb/cdbfilerepservice.h"
 #include "cdb/cdbpersistenttablespace.h"
