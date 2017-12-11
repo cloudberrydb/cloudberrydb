@@ -251,7 +251,6 @@ print_rmgr_xlog(XLogRecPtr cur, XLogRecord *record, uint8 info, bool hideTimesta
 		break;
 	}
 
-#if PG_VERSION_NUM >= 90000
 	case XLOG_BACKUP_END:
 	{
 		XLogRecPtr startpoint;
@@ -264,6 +263,7 @@ print_rmgr_xlog(XLogRecPtr cur, XLogRecord *record, uint8 info, bool hideTimesta
 		break;
 	}
 
+#if PG_VERSION_NUM >= 90000
 	case XLOG_PARAMETER_CHANGE:
 	{
 		snprintf(buf, sizeof(buf), "parameter change:");
@@ -288,7 +288,7 @@ print_rmgr_xlog(XLogRecPtr cur, XLogRecord *record, uint8 info, bool hideTimesta
 #endif
 
 	default:
-		snprintf(buf, sizeof(buf), "unknown XLOG operation - %d.", info);
+		snprintf(buf, sizeof(buf), "unknown XLOG operation - 0x%02x.", info);
 		break;
 	}
 
