@@ -7826,6 +7826,31 @@ StartupXLOG(void)
 					SpinLockAcquire(&xlogctl->info_lck);
 					xlogctl->lastReplayedEndRecPtr = EndRecPtr;
 					SpinLockRelease(&xlogctl->info_lck);
+
+					/*
+					 * GPDB_84_MERGE_FIXME: Create restartpoints aggressively.
+					 *
+					 * In PostgreSQL, the bgwriter creates restartpoints during archive
+					 * recovery at its own leisure. In GDPB, with WAL replication based
+					 * mirroring, that was tripping the gp_replica_check checks, because
+					 * it bypasses the shared buffer cache and reads directly from disk.
+					 * For now, restore the old behavior, before the upstream change
+					 * to start bgwriter during archive recovery, and create a
+					 * restartpoint immediately after replaying a checkpoint record.
+					 */
+					{
+						uint8 xlogRecInfo = record->xl_info & ~XLR_INFO_MASK;
+
+						if (record->xl_rmid == RM_XLOG_ID &&
+							(xlogRecInfo == XLOG_CHECKPOINT_SHUTDOWN ||
+							 xlogRecInfo == XLOG_CHECKPOINT_ONLINE))
+						{
+							if (bgwriterLaunched)
+								RequestCheckpoint(CHECKPOINT_IMMEDIATE | CHECKPOINT_WAIT);
+							else
+								CreateRestartPoint(CHECKPOINT_IMMEDIATE);
+						}
+					}
 				}
 
 				/* Pop the error context stack */
