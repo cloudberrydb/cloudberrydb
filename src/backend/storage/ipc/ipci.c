@@ -25,7 +25,6 @@
 #include "access/distributedlog.h"
 #include "access/appendonlywriter.h"
 #include "cdb/cdbfilerep.h"
-#include "cdb/cdbfilerepprimaryrecovery.h"
 #include "cdb/cdblocaldistribxact.h"
 #include "cdb/cdbpersistentfilesysobj.h"
 #include "cdb/cdbpersistentfilespace.h"

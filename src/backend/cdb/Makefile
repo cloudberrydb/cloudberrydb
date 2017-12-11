@@ -24,7 +24,7 @@ OBJS = cdbappendonlystorage.o cdbappendonlystorageformat.o \
 	   cdbdoublylinked.o \
 	   cdbdtxcontextinfo.o \
 	   cdbexplain.o \
-	   cdbfilerep.o cdbfilerepservice.o cdbfilerepprimaryrecovery.o \
+	   cdbfilerep.o cdbfilerepservice.o \
 	   cdbfilerepprimary.o \
 	   cdbfilerepconnclient.o cdbfilerepconnserver.o \
 	   cdbfts.o \

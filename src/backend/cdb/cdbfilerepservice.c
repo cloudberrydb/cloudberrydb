@@ -23,7 +23,6 @@
 #include "catalog/pg_tablespace.h"
 #include "cdb/cdbfilerepservice.h"
 #include "cdb/cdbfilerepprimary.h"
-#include "cdb/cdbfilerepprimaryrecovery.h"
 #include "cdb/cdbvars.h"
 #include "libpq/pqsignal.h"
 #include "postmaster/postmaster.h"
@@ -581,54 +580,6 @@ FileRepSubProcess_SetState(FileRepState_e fileRepStateLocal)
 
 }
 
-static void
-FileRepSubProcess_InitProcess(void)
-{
-	SetProcessingMode(InitProcessing);
-
-	/*
-	 * Create a resource owner to keep track of our resources
-	 */
-	CurrentResourceOwner = ResourceOwnerCreate(NULL,
-											   FileRepProcessTypeToString[fileRepProcessType]);
-
-
-	InitXLOGAccess();
-
-	SetProcessingMode(NormalProcessing);
-
-	InitBufferPoolAccess();
-
-	/*
-	 * Don't add Filerep backend subprocesses to the proc array.
-	 *
-	 * This avoids any deadlock situations during Filerep transition. E.g. If
-	 * a normal backend has acquired ProcArrayLock and is waiting for Filerep
-	 * transition to finish, the Filerep backend subprocesses will deadlock
-	 * forever as they can't acquire the ProcArray lock to remove themselves
-	 * from the ProcArray. This directly causes the transition to stall and
-	 * thus the whole system.
-	 */
-
-	/*
-	 * Initialize my entry in the shared-invalidation manager's array of
-	 * per-backend data.
-	 *
-	 * Sets up MyBackendId, a unique backend identifier.
-	 */
-	MyBackendId = InvalidBackendId;
-
-	SharedInvalBackendInit(false);
-
-	if (MyBackendId > MaxBackends || MyBackendId <= 0)
-		elog(FATAL, "bad backend id: %d", MyBackendId);
-
-	/*
-	 * bufmgr needs another initialization call too
-	 */
-	InitBufferPoolBackend();
-}
-
 void
 FileRepSubProcess_InitHeapAccess(void)
 {
@@ -819,29 +770,6 @@ FileRepSubProcess_Main()
 	{
 		case FileRepProcessTypePrimarySender:
 			FileRepPrimary_StartSender();
-			break;
-
-		case FileRepProcessTypePrimaryRecovery:
-			FileRepSubProcess_InitProcess();
-
-			/*
-			 * At this point, database is starting up and xlog is not yet
-			 * replayed.  Initializing relcache now is dangerous, a sequential
-			 * scan of catalog tables may end up with incorrect hint bits.
-			 * E.g. a committed transaction's dirty heap pages made it to disk
-			 * but pg_clog update was still in memory and we crashed.  If a
-			 * tuple inserted by this transaction is read during relcache
-			 * initialization, status of the tuple's xmin will be incorrectly
-			 * determined as "not commited" from pg_clog. And
-			 * HEAP_XMIN_INVALID hint bit will be set, rendering the tuple
-			 * perpetually invisible.  Relcache initialization must be
-			 * deferred to only after all of xlog has been replayed.
-			 */
-			FileRepPrimary_StartRecovery();
-
-			ResourceOwnerRelease(CurrentResourceOwner,
-								 RESOURCE_RELEASE_BEFORE_LOCKS,
-								 false, true);
 			break;
 
 		default:
