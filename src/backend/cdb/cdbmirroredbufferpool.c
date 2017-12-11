@@ -31,9 +31,9 @@
 #include "utils/guc.h"
 #include "utils/memutils.h"
 #include "utils/palloc.h"
-#include "cdb/cdbfilerep.h"
 #include "cdb/cdbpersistentfilesysobj.h"
 #include "cdb/cdbpersistentrelation.h"
+#include "postmaster/primary_mirror_mode.h"
 
 static int32 writeBufLen = 0;
 static char *writeBuf = NULL;

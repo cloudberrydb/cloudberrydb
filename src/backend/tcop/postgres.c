@@ -100,7 +100,6 @@
 #include "pgstat.h"
 #include "executor/nodeFunctionscan.h"
 
-#include "cdb/cdbfilerep.h"
 #include "postmaster/primary_mirror_mode.h"
 #include "utils/session_state.h"
 #include "utils/vmem_tracker.h"
@@ -3401,7 +3400,6 @@ quickdie_impl()
 	 * to allow the possibility that filerep itself has sent us a SIGQUIT
 	 * message as part of filerep transition.
 	 */
-	FileRep_resetSpinLocks();
 	primaryMirrorModeResetSpinLocks();
 
 	_exit(2);

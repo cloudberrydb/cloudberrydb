@@ -147,8 +147,6 @@
 #include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"
 
-#include "cdb/cdbfilerep.h"
-
 #ifdef EXEC_BACKEND
 #include "storage/spin.h"
 void SeqServerMain(int argc, char *argv[]);
@@ -4731,7 +4729,6 @@ do_reaper()
 				 */
 				if (!EXIT_STATUS_0(exitstatus))
 				{
-					FileRep_SignalChildren(SIGQUIT, false);
 					HandleChildCrash(pid, exitstatus,
 									 _("filerep main process"));
 				}

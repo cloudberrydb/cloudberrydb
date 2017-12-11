@@ -24,7 +24,6 @@
 #include "access/xlog_internal.h"
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbdisp.h"
-#include "cdb/cdbfilerep.h"
 #include "cdb/cdbsreh.h"
 #include "cdb/cdbvars.h"
 #include "cdb/memquota.h"
@@ -4331,56 +4330,6 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&gp_perfmon_segment_interval,
 		1000, 500, INT_MAX, NULL, NULL
-	},
-
-	{
-		{"filerep_message_body_length", PGC_POSTMASTER, DEVELOPER_OPTIONS,
-			gettext_noop("size (in bytes) for filerep message body."),
-			NULL,
-			GUC_NO_SHOW_ALL
-		},
-		&file_rep_message_body_length,
-		32768, 32768, 262144, NULL, NULL
-	},
-
-	{
-		{"filerep_buffer_size", PGC_POSTMASTER, DEVELOPER_OPTIONS,
-			gettext_noop("size (in bytes) for filerep shared memory"),
-			NULL,
-			GUC_NO_SHOW_ALL
-		},
-		&file_rep_buffer_size,
-		2097152, 1048576, 16777216, NULL, NULL
-	},
-
-	{
-		{"filerep_ack_buffer_size", PGC_POSTMASTER, DEVELOPER_OPTIONS,
-			gettext_noop("size (in bytes) for filerep ack shared memory"),
-			NULL,
-			GUC_NO_SHOW_ALL
-		},
-		&file_rep_ack_buffer_size,
-		524288, 131072, 1048576, NULL, NULL
-	},
-
-	{
-		{"filerep_min_data_before_flush", PGC_POSTMASTER, DEVELOPER_OPTIONS,
-			gettext_noop("size (in bytes) that a filerep buffer must reach before the client flushes the data"),
-			NULL,
-			GUC_NO_SHOW_ALL
-		},
-		&file_rep_min_data_before_flush,
-		128 * 1024, 8 * 1024, 16 * 1024 * 1024, NULL, NULL
-	},
-
-	{
-		{"filerep_socket_timeout", PGC_POSTMASTER, DEVELOPER_OPTIONS,
-			gettext_noop("Timeout (in seconds) if we cannot write to socket (the socket is blocking)"),
-			NULL,
-			GUC_NO_SHOW_ALL
-		},
-		&file_rep_socket_timeout,
-		10, 0, 300, NULL, NULL
 	},
 
 	{

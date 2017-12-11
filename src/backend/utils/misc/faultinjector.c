@@ -29,8 +29,6 @@
 #include <signal.h>
 
 #include "access/xact.h"
-#include "cdb/cdbfilerep.h"
-#include "cdb/cdbfilerepservice.h"
 #include "cdb/cdbutil.h"
 #include "postmaster/bgwriter.h"
 #include "postmaster/fts.h"

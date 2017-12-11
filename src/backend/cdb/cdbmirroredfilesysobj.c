@@ -36,7 +36,6 @@
 #include "storage/lwlock.h"
 #include "miscadmin.h"
 #include "postmaster/primary_mirror_mode.h"
-#include "cdb/cdbfilerep.h"
 #include "catalog/catalog.h"
 #include "cdb/cdbpersistentfilesysobj.h"
 #include "utils/guc.h"

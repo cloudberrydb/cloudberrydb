@@ -77,7 +77,6 @@
 #include "storage/sinvaladt.h"
 
 #include "cdb/cdbtm.h"
-#include "cdb/cdbfilerep.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbpersistentrelation.h"
 #include "cdb/cdbmirroredflatfile.h"
@@ -8588,8 +8587,6 @@ XLogGetRecoveryStart(char *callerStr, char *reasonStr, XLogRecPtr *redoCheckPoin
 		}
 		else
 		{
-			FileRep_SetSegmentState(SegmentStateFault, FaultTypeDB);
-
 			ereport(ERROR,
 				 (errmsg("%s: could not locate a valid checkpoint record", callerStr)));
 		}
@@ -8601,21 +8598,15 @@ XLogGetRecoveryStart(char *callerStr, char *reasonStr, XLogRecPtr *redoCheckPoin
 	if (XLByteEQ(checkPointLoc,checkPoint.redo))
 	{
 		{
-			char	tmpBuf[FILEREP_MAX_LOG_DESCRIPTION_LEN];
-
-			snprintf(tmpBuf, sizeof(tmpBuf),
-					 "control file has restart '%s' and redo start checkpoint at location(lsn) '%s(%s)' ",
-					 (previous ? "previous " : ""),
-					 XLogLocationToString3(&checkPointLoc),
-					 XLogLocationToString4(&checkPointLSN));
-
-			FileRep_InsertConfigLogEntry(tmpBuf);
+			elog(LOG,
+				 "control file has restart '%s' and redo start checkpoint at location(lsn) '%s(%s)' ",
+				 (previous ? "previous " : ""),
+				 XLogLocationToString3(&checkPointLoc),
+				 XLogLocationToString4(&checkPointLSN));
 		}
 	}
  	else if (XLByteLT(checkPointLoc, checkPoint.redo))
 	{
-		FileRep_SetSegmentState(SegmentStateFault, FaultTypeDB);
-
 		ereport(ERROR,
 				(errmsg("%s: invalid redo in checkpoint record", callerStr)));
 	}
@@ -8626,25 +8617,19 @@ XLogGetRecoveryStart(char *callerStr, char *reasonStr, XLogRecPtr *redoCheckPoin
 		record = XLogReadRecord(&checkPoint.redo, false, LOG);
 		if (record == NULL)
 		{
-			FileRep_SetSegmentState(SegmentStateFault, FaultTypeDB);
-
 			ereport(ERROR,
 			 (errmsg("%s: first redo record before checkpoint not found at %s",
 					 callerStr, XLogLocationToString(&checkPoint.redo))));
 		}
 
 		{
-			char	tmpBuf[FILEREP_MAX_LOG_DESCRIPTION_LEN];
-
-			snprintf(tmpBuf, sizeof(tmpBuf),
-					 "control file has restart '%s' checkpoint at location(lsn) '%s(%s)', redo starts at location(lsn) '%s(%s)' ",
-					 (previous ? "previous " : ""),
-					 XLogLocationToString3(&checkPointLoc),
-					 XLogLocationToString4(&checkPointLSN),
-					 XLogLocationToString(&checkPoint.redo),
-					 XLogLocationToString2(&EndRecPtr));
-
-			FileRep_InsertConfigLogEntry(tmpBuf);
+			elog(LOG,
+				 "control file has restart '%s' checkpoint at location(lsn) '%s(%s)', redo starts at location(lsn) '%s(%s)' ",
+				 (previous ? "previous " : ""),
+				 XLogLocationToString3(&checkPointLoc),
+				 XLogLocationToString4(&checkPointLSN),
+				 XLogLocationToString(&checkPoint.redo),
+				 XLogLocationToString2(&EndRecPtr));
 		}
 	}
 
@@ -12251,8 +12236,6 @@ StartupProcessMain(int passNum)
 		SetProcessingMode(NormalProcessing);
 
 		StartupXLOG_Pass3();
-
-		PgVersionRecoverMirror();
 		break;
 
 	default:

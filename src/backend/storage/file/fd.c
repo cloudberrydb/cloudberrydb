@@ -72,13 +72,13 @@
 #include "miscadmin.h"
 #include "access/xact.h"
 #include "catalog/pg_tablespace.h"
-#include "cdb/cdbfilerep.h"
 #include "storage/fd.h"
 #include "storage/ipc.h"
 #include "utils/guc.h"
 #include "utils/resowner.h"
 #include "utils/workfile_mgr.h"
 #include "utils/faultinjector.h"
+#include "postmaster/primary_mirror_mode.h"
 
 // Provide some indirection here in case we have problems with lseek and
 // 64 bits on some platforms

@@ -27,7 +27,6 @@
 #include "bootstrap/bootstrap.h"
 #include "catalog/index.h"
 #include "catalog/pg_type.h"
-#include "cdb/cdbfilerep.h"
 #include "libpq/pqsignal.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
@@ -494,10 +493,6 @@ AuxiliaryProcessMain(int argc, char *argv[])
 			InitXLOGAccess();
 			WalWriterMain();
 			proc_exit(1);		/* should never return */
-
-		case FilerepProcess:
-			FileRep_Main();
-			proc_exit(1); /* should never return */
 
 		default:
 			elog(PANIC, "unrecognized process type: %d", MyAuxProcType);
