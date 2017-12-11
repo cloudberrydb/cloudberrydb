@@ -37,7 +37,6 @@
 #include "access/slru.h"
 #include "cdb/cdbfilerepservice.h"
 #include "cdb/cdbfilerepmirror.h"
-#include "cdb/cdbfilerepmirrorack.h"
 #include "cdb/cdbfilerep.h"
 #include "cdb/cdbfilerepconnserver.h"
 #include "cdb/cdbmirroredflatfile.h"
@@ -2208,32 +2207,6 @@ FileRepMirror_RunConsumer(void)
 
 			if (fileRepMessageHeader->messageBodyLength)
 				Assert(responseData != NULL);
-
-			if (FileRepAckMirror_Ack(
-									 fileRepMessageHeader->fileRepIdentifier,
-									 fileRepMessageHeader->fileRepRelationType,
-									 fileRepMessageHeader->fileRepOperation,
-									 fileRepMessageHeader->fileRepOperationDescription,
-									 fileRepMessageHeader->fileRepAckState,
-									 fileRepMessageHeader->messageBodyLength,
-									 (char *) responseData) != STATUS_OK)
-			{
-				status = STATUS_ERROR;
-
-				ereport(WARNING,
-						(errmsg("mirror failure, "
-								"could not queue ack message to be sent to primary, "
-								"failover requested"),
-						 errhint("run gprecoverseg to re-establish mirror connectivity"),
-						 FileRep_errdetail(fileRepMessageHeader->fileRepIdentifier,
-										   fileRepMessageHeader->fileRepRelationType,
-										   fileRepMessageHeader->fileRepOperation,
-										   fileRepMessageHeader->messageCount),
-						 FileRep_errdetail_ShmemAck(),
-						 FileRep_errcontext()));
-
-				FileRep_SetSegmentState(SegmentStateFault, FaultTypeMirror);
-			}
 		}
 
 		if (status != STATUS_OK)

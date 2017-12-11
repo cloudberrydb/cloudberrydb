@@ -26,7 +26,6 @@
 #include "cdb/cdbfilerepprimaryack.h"
 #include "cdb/cdbfilerepprimaryrecovery.h"
 #include "cdb/cdbfilerepmirror.h"
-#include "cdb/cdbfilerepmirrorack.h"
 #include "cdb/cdbvars.h"
 #include "libpq/pqsignal.h"
 #include "postmaster/postmaster.h"
@@ -832,10 +831,6 @@ FileRepSubProcess_Main()
 		case FileRepProcessTypeMirrorConsumerWriter:
 		case FileRepProcessTypeMirrorConsumerAppendOnly1:
 			FileRepMirror_StartConsumer();
-			break;
-
-		case FileRepProcessTypeMirrorSenderAck:
-			FileRepAckMirror_StartSender();
 			break;
 
 		case FileRepProcessTypePrimaryReceiverAck:
