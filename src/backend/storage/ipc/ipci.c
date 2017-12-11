@@ -25,7 +25,6 @@
 #include "access/distributedlog.h"
 #include "access/appendonlywriter.h"
 #include "cdb/cdbfilerep.h"
-#include "cdb/cdbfilerepprimaryack.h"
 #include "cdb/cdbfilerepprimaryrecovery.h"
 #include "cdb/cdblocaldistribxact.h"
 #include "cdb/cdbpersistentfilesysobj.h"
@@ -176,7 +175,6 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 			size = add_size(size, FileRep_SubProcShmemSize());
 			size = add_size(size, FileRep_ShmemSize());
 			size = add_size(size, FileRepAck_ShmemSize());
-			size = add_size(size, FileRepAckPrimary_ShmemSize());
 			size = add_size(size, FileRepIpc_ShmemSize());
 			size = add_size(size, FileRepLog_ShmemSize());
 		}
@@ -348,7 +346,6 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 		FileRep_SubProcShmemInit();
 		FileRep_ShmemInit();
 		FileRepAck_ShmemInit();
-		FileRepAckPrimary_ShmemInit();
 		FileRepIpc_ShmemInit();
 		FileRepLog_ShmemInit();
 	}

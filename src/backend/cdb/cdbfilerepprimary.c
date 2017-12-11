@@ -30,7 +30,6 @@
 #include "access/xlog_internal.h"
 #include "cdb/cdbfilerepservice.h"
 #include "cdb/cdbfilerepprimary.h"
-#include "cdb/cdbfilerepprimaryack.h"
 #include "cdb/cdbfilerepconnclient.h"
 #include "cdb/cdbvars.h"
 #include "storage/lwlock.h"
@@ -362,15 +361,6 @@ FileRepPrimary_ConstructAndInsertMessage(
 	 * cancel/die interrupts. See MPP-10040.
 	 */
 	HOLD_INTERRUPTS();
-
-	if (FileRep_IsOperationSynchronous(fileRepOperation) == TRUE)
-	{
-
-		status = FileRepAckPrimary_NewHashEntry(
-												fileRepIdentifier,
-												fileRepOperation,
-												fileRepRelationType);
-	}
 
 	if (status != STATUS_OK)
 	{
@@ -1158,12 +1148,6 @@ FileRepPrimary_MirrorValidation(FileRepIdentifier_u fileRepIdentifier,
 			return mirrorStatus;
 		}
 
-		FileRepAckPrimary_IsOperationCompleted(
-											   fileRepIdentifier,
-											   fileRepRelationType);
-
-		mirrorStatus = FileRepAckPrimary_GetMirrorErrno();
-
 		/*
 		 * During resynchronization with incremental copy if directories and
 		 * relations marked with MirroredObjectExistenceState_MirrorCreated do
@@ -1237,9 +1221,6 @@ FileRepPrimary_MirrorShutdown(void)
 														  0);	/* data length */
 		if (status != STATUS_OK)
 			return;
-		retval = FileRepAckPrimary_IsOperationCompleted(
-														fileRepIdentifier,
-														FileRepRelationTypeUnknown);
 
 		if (retval == FALSE &&
 			dataState != DataStateInChangeTracking &&
@@ -1295,9 +1276,6 @@ FileRepPrimary_MirrorInSyncTransition(void)
 		if (status != STATUS_OK)
 			return;
 
-		retval = FileRepAckPrimary_IsOperationCompleted(
-														fileRepIdentifier,
-														FileRepRelationTypeUnknown);
 		if (retval == FALSE &&
 			dataState != DataStateInChangeTracking &&
 			!primaryMirrorIsIOSuspended())
@@ -1354,9 +1332,6 @@ FileRepPrimary_MirrorHeartBeat(FileRepConsumerProcIndex_e index)
 		if (status != STATUS_OK)
 			return;
 
-		retval = FileRepAckPrimary_IsOperationCompleted(
-														fileRepIdentifier,
-														FileRepRelationTypeUnknown);
 		if (retval == FALSE &&
 			dataState != DataStateInChangeTracking &&
 			!primaryMirrorIsIOSuspended())
@@ -1395,9 +1370,6 @@ FileRepPrimary_IsOperationCompleted(
 			  fileRepRelationType == FileRepRelationTypeFlatFile &&
 			  segmentState != SegmentStateInSyncTransition))
 		{
-			retval = FileRepAckPrimary_IsOperationCompleted(
-															fileRepIdentifier,
-															fileRepRelationType);
 
 			/* suspend if mirror reported fault */
 			if (retval == FALSE)
@@ -1466,16 +1438,10 @@ FileRepPrimary_IsOperationCompleted(
 	return retval;
 }
 
-XLogRecPtr
-FileRepPrimary_GetMirrorXLogEof(void)
-{
-	return FileRepAckPrimary_GetMirrorXLogEof();
-}
-
 int
 FileRepPrimary_GetMirrorStatus(void)
 {
-	return FileRepAckPrimary_GetMirrorErrno();
+	return 0;
 }
 
 /****************************************************************
@@ -1857,10 +1823,6 @@ FileRepPrimary_MirrorVerifyDirectoryChecksum(
 														  0);	/* data length */
 		if (status)
 			return status;
-
-		FileRepAckPrimary_IsOperationCompleted(fileRepIdentifier, FileRepRelationTypeFlatFile);
-
-		mirrorStatus = FileRepAckPrimary_GetMirrorErrno();
 
 		if (FileRepStatusSuccess != mirrorStatus)
 		{

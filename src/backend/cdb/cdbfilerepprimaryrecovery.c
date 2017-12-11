@@ -21,7 +21,6 @@
 #include "access/slru.h"
 #include "cdb/cdbfilerep.h"
 #include "cdb/cdbfilerepprimary.h"
-#include "cdb/cdbfilerepprimaryack.h"
 #include "cdb/cdbfilerepprimaryrecovery.h"
 #include "cdb/cdbfilerepservice.h"
 #include "cdb/cdbmirroredflatfile.h"

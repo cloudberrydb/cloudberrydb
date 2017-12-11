@@ -245,8 +245,6 @@ extern bool FileRepPrimary_IsOperationCompleted(
 	FileRepRelationType_e fileRepRelationType);								 
 		/* type on which operation was performed */
 
-extern XLogRecPtr FileRepPrimary_GetMirrorXLogEof(void);
-
 extern int FileRepPrimary_GetMirrorStatus(void);
 
 /*

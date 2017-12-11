@@ -1017,17 +1017,6 @@ MirroredFlatFile_ReconcileXLogEof(
 			status = STATUS_ERROR;
 
 		}
-		else
-		{
-
-			*mirrorXLogEof = FileRepPrimary_GetMirrorXLogEof();
-			if (mirrorXLogEof->xlogid == 0 && mirrorXLogEof->xrecoff == 0)
-			{
-				ereport(LOG,
-						(errmsg("could not get Xlog EOF from mirror")));
-				status = STATUS_ERROR;
-			}
-		}
 	}
 
 	return status;

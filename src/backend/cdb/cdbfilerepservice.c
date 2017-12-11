@@ -23,7 +23,6 @@
 #include "catalog/pg_tablespace.h"
 #include "cdb/cdbfilerepservice.h"
 #include "cdb/cdbfilerepprimary.h"
-#include "cdb/cdbfilerepprimaryack.h"
 #include "cdb/cdbfilerepprimaryrecovery.h"
 #include "cdb/cdbfilerepmirror.h"
 #include "cdb/cdbvars.h"
@@ -831,14 +830,6 @@ FileRepSubProcess_Main()
 		case FileRepProcessTypeMirrorConsumerWriter:
 		case FileRepProcessTypeMirrorConsumerAppendOnly1:
 			FileRepMirror_StartConsumer();
-			break;
-
-		case FileRepProcessTypePrimaryReceiverAck:
-			FileRepAckPrimary_StartReceiver();
-			break;
-
-		case FileRepProcessTypePrimaryConsumerAck:
-			FileRepAckPrimary_StartConsumer();
 			break;
 
 		case FileRepProcessTypePrimaryRecovery:
