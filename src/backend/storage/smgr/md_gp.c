@@ -310,50 +310,10 @@ mdcreatefilespacedir(
 					 int *primaryError,
 					 bool *mirrorDataLossOccurred)
 {
-	int			mirrorStatus = FileRepStatusSuccess;
-
 	*primaryError = 0;
-	*mirrorDataLossOccurred = false;
 
-	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
-		!*mirrorDataLossOccurred)
-	{
-		mirrorStatus = FileRepPrimary_MirrorCreate(
-												   FileRep_GetDirFilespaceIdentifier(mirrorFilespaceLocation),
-												   FileRepRelationTypeDir,
-												   ignoreAlreadyExists);
-
-		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
-	}
-
-	if (StorageManagerMirrorMode_DoPrimaryWork(mirrorMode))
-	{
-		if (mkdir(primaryFilespaceLocation, 0700) < 0)
-			*primaryError = errno;
-	}
-
-	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
-		!*mirrorDataLossOccurred)
-	{
-		FileRepPrimary_IsOperationCompleted(
-											FileRep_GetDirFilespaceIdentifier(mirrorFilespaceLocation),
-											FileRepRelationTypeDir);
-
-		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
-
-		if (!*mirrorDataLossOccurred)
-		{
-			mirrorStatus = FileRepPrimary_GetMirrorStatus();
-
-			if (mirrorStatus != FileRepStatusSuccess)
-			{
-				ereport(ERROR,
-						(errcode(ERRCODE_GP_COMMAND_ERROR),
-						 errmsg("could not create dbdir on mirror '%s' ",
-								FileRepStatusToString[mirrorStatus])));
-			}
-		}
-	}
+	if (mkdir(primaryFilespaceLocation, 0700) < 0)
+		*primaryError = errno;
 }
 
 /*
@@ -373,44 +333,17 @@ mdcreatetablespacedir(Oid tablespaceOid,
 	char		tablespacePath[MAXPGPATH];
 
 	*primaryError = 0;
-	*mirrorDataLossOccurred = false;
 
 	PersistentTablespace_GetPrimaryAndMirrorFilespaces(tablespaceOid,
 													   &primaryFilespaceLocation,
 													   &mirrorFilespaceLocation);
 
-	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
-		!*mirrorDataLossOccurred)
-	{
-		FileRepPrimary_MirrorCreate(
-									FileRep_GetDirTablespaceIdentifier(mirrorFilespaceLocation,
-																	   tablespaceOid),
-									FileRepRelationTypeDir,
-									TRUE);
+	FormTablespacePath(tablespacePath,
+					   primaryFilespaceLocation,
+					   tablespaceOid);
 
-		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
-	}
-
-	if (StorageManagerMirrorMode_DoPrimaryWork(mirrorMode))
-	{
-		FormTablespacePath(tablespacePath,
-						   primaryFilespaceLocation,
-						   tablespaceOid);
-
-		if (mkdir(tablespacePath, 0700) < 0)
-			*primaryError = errno;
-	}
-
-	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
-		!*mirrorDataLossOccurred)
-	{
-		FileRepPrimary_IsOperationCompleted(
-											FileRep_GetDirTablespaceIdentifier(mirrorFilespaceLocation,
-																			   tablespaceOid),
-											FileRepRelationTypeDir);
-
-		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
-	}
+	if (mkdir(tablespacePath, 0700) < 0)
+		*primaryError = errno;
 
 	if (primaryFilespaceLocation)
 		pfree(primaryFilespaceLocation);
@@ -441,125 +374,27 @@ mdcreatedbdir(DbDirNode *dbDirNode,
 													   &primaryFilespaceLocation,
 													   &mirrorFilespaceLocation);
 
-	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
-		!*mirrorDataLossOccurred)
+	FormDatabasePath(dbPath,
+					 primaryFilespaceLocation,
+					 dbDirNode->tablespace,
+					 dbDirNode->database);
+
+	if (mkdir(dbPath, 0700) < 0)
 	{
-		FileRepPrimary_MirrorCreate(
-									FileRep_GetDirDatabaseIdentifier(mirrorFilespaceLocation,
-																	 *dbDirNode),
-									FileRepRelationTypeDir,
-									TRUE);
-
-		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
-
-	}
-
-	if (StorageManagerMirrorMode_DoPrimaryWork(mirrorMode))
-	{
-		FormDatabasePath(dbPath,
-						 primaryFilespaceLocation,
-						 dbDirNode->tablespace,
-						 dbDirNode->database);
-
-		if (mkdir(dbPath, 0700) < 0)
+		if (ignoreAlreadyExists && (errno == EEXIST))
 		{
-			if (ignoreAlreadyExists && (errno == EEXIST))
-			{
-				elog(LOG, "Directory already exists %s", dbPath);
-			}
-			else
-			{
-				*primaryError = errno;
-			}
+			elog(LOG, "Directory already exists %s", dbPath);
 		}
-	}
-
-	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
-		!*mirrorDataLossOccurred)
-	{
-		FileRepPrimary_IsOperationCompleted(
-											FileRep_GetDirDatabaseIdentifier(mirrorFilespaceLocation,
-																			 *dbDirNode),
-											FileRepRelationTypeDir);
-
-		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
+		else
+		{
+			*primaryError = errno;
+		}
 	}
 
 	if (primaryFilespaceLocation)
 		pfree(primaryFilespaceLocation);
 	if (mirrorFilespaceLocation)
 		pfree(mirrorFilespaceLocation);
-}
-
-
-static void
-mdsetupdropobjmirroraccess(bool primaryOnly,
-						   bool mirrorOnly,
-						   StorageManagerMirrorMode *mirrorMode,
-						   bool *mirrorDataLossOccurred)
-{
-	MirrorDataLossTrackingState mirrorDataLossTrackingState;
-	int64		mirrorDataLossTrackingSessionNum;
-
-	*mirrorMode = StorageManagerMirrorMode_None;
-	*mirrorDataLossOccurred = false;
-	/* Assume. */
-
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(&mirrorDataLossTrackingSessionNum);
-
-	if (gp_initdb_mirrored)
-	{
-		/* Kludge for initdb */
-		*mirrorMode = StorageManagerMirrorMode_Both;
-	}
-	else
-	{
-		switch (mirrorDataLossTrackingState)
-		{
-			case MirrorDataLossTrackingState_MirrorNotConfigured:
-				if (mirrorOnly)
-					elog(ERROR, "No mirror configured for mirror only");
-
-				*mirrorMode = StorageManagerMirrorMode_PrimaryOnly;
-				break;
-
-			case MirrorDataLossTrackingState_MirrorCurrentlyUpInSync:
-				if (primaryOnly)
-					*mirrorMode = StorageManagerMirrorMode_PrimaryOnly;
-				else if (!mirrorOnly)
-					*mirrorMode = StorageManagerMirrorMode_Both;
-				else
-					*mirrorMode = StorageManagerMirrorMode_MirrorOnly;
-				break;
-
-			case MirrorDataLossTrackingState_MirrorCurrentlyUpInResync:
-				if (primaryOnly)
-					*mirrorMode = StorageManagerMirrorMode_PrimaryOnly;
-				else if (!mirrorOnly)
-					*mirrorMode = StorageManagerMirrorMode_Both;
-				else
-					*mirrorMode = StorageManagerMirrorMode_MirrorOnly;
-				break;
-			case MirrorDataLossTrackingState_MirrorDown:
-				if (!mirrorOnly)
-					*mirrorMode = StorageManagerMirrorMode_PrimaryOnly;
-				else
-					*mirrorMode = StorageManagerMirrorMode_MirrorOnly;
-				/* Mirror only operations fails from the outset. */
-
-				*mirrorDataLossOccurred = true;
-				/* Mirror communication is down. */
-				break;
-
-			default:
-				elog(ERROR, "Unexpected mirror data loss tracking state: %d",
-					 mirrorDataLossTrackingState);
-				*mirrorMode = StorageManagerMirrorMode_None;
-				/* A happy optimizer is the sound of one hand clapping. */
-		}
-	}
-
 }
 
 /*
@@ -581,51 +416,12 @@ mdrmfilespacedir(Oid filespaceOid,
 				 bool ignoreNonExistence,
 				 bool *mirrorDataLossOccurred)
 {
-	StorageManagerMirrorMode mirrorMode;
-
-	bool		result;
-
-	*mirrorDataLossOccurred = false;
-
-	mdsetupdropobjmirroraccess(primaryOnly,
-							   mirrorOnly,
-							   &mirrorMode,
-							   mirrorDataLossOccurred);
-
-	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
-		!*mirrorDataLossOccurred)
-	{
-		FileRepPrimary_MirrorDrop(
-								  FileRep_GetDirFilespaceIdentifier(mirrorFilespaceLocation),
-								  FileRepRelationTypeDir);
-
-		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
-
-	}
-
-	if (StorageManagerMirrorMode_DoPrimaryWork(mirrorMode))
-	{
-		/*
-		 * The rmtree routine unfortunately emits errors, so there is not
-		 * errno available...
-		 */
-		/* Just a bool. */
-		result = rmtree(primaryFilespaceLocation, true);
-	}
-	else
-		result = true;
-
-	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
-		!*mirrorDataLossOccurred)
-	{
-		FileRepPrimary_IsOperationCompleted(
-											FileRep_GetDirFilespaceIdentifier(mirrorFilespaceLocation),
-											FileRepRelationTypeDir);
-
-		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
-	}
-
-	return result;
+	/*
+	 * The rmtree routine unfortunately emits errors, so there is not
+	 * errno available...
+	 */
+	/* Just a bool. */
+	return rmtree(primaryFilespaceLocation, true);
 }
 
 /*
@@ -640,66 +436,29 @@ mdrmtablespacedir(Oid tablespaceOid,
 				  bool ignoreNonExistence,
 				  bool *mirrorDataLossOccurred)
 {
-	StorageManagerMirrorMode mirrorMode;
-
 	char	   *primaryFilespaceLocation;
 	char	   *mirrorFilespaceLocation;
 	char		tablespacePath[MAXPGPATH];
 	bool		result;
 
-	*mirrorDataLossOccurred = false;
-
-	mdsetupdropobjmirroraccess(primaryOnly,
-							   mirrorOnly,
-							   &mirrorMode,
-							   mirrorDataLossOccurred);
-
 	PersistentTablespace_GetPrimaryAndMirrorFilespaces(tablespaceOid,
 													   &primaryFilespaceLocation,
 													   &mirrorFilespaceLocation);
 
-	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
-		!*mirrorDataLossOccurred)
-	{
-		FileRepPrimary_MirrorDrop(
-								  FileRep_GetDirTablespaceIdentifier(mirrorFilespaceLocation,
-																	 tablespaceOid),
-								  FileRepRelationTypeDir);
+	/*
+	 * We've removed all relations, so all that is left are PG* files and
+	 * work files.
+	 */
+	FormTablespacePath(tablespacePath,
+					   primaryFilespaceLocation,
+					   tablespaceOid);
 
-		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
-
-	}
-
-	if (StorageManagerMirrorMode_DoPrimaryWork(mirrorMode))
-	{
-		/*
-		 * We've removed all relations, so all that is left are PG* files and
-		 * work files.
-		 */
-		FormTablespacePath(tablespacePath,
-						   primaryFilespaceLocation,
-						   tablespaceOid);
-
-		/*
-		 * The rmtree routine unfortunately emits errors, so there is not
-		 * errno available...
-		 */
-		/* Just a bool. */
-		result = rmtree(tablespacePath, true);
-	}
-	else
-		result = true;
-
-	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
-		!*mirrorDataLossOccurred)
-	{
-		FileRepPrimary_IsOperationCompleted(
-											FileRep_GetDirTablespaceIdentifier(mirrorFilespaceLocation,
-																			   tablespaceOid),
-											FileRepRelationTypeDir);
-
-		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
-	}
+	/*
+	 * The rmtree routine unfortunately emits errors, so there is not
+	 * errno available...
+	 */
+	/* Just a bool. */
+	result = rmtree(tablespacePath, true);
 
 	if (primaryFilespaceLocation != NULL)
 		pfree(primaryFilespaceLocation);
@@ -722,8 +481,6 @@ mdrmdbdir(DbDirNode *dbDirNode,
 		  bool ignoreNonExistence,
 		  bool *mirrorDataLossOccurred)
 {
-	StorageManagerMirrorMode mirrorMode;
-
 	char	   *primaryFilespaceLocation;
 	char	   *mirrorFilespaceLocation;
 	char		dbPath[MAXPGPATH];
@@ -731,58 +488,25 @@ mdrmdbdir(DbDirNode *dbDirNode,
 
 	*mirrorDataLossOccurred = false;
 
-	mdsetupdropobjmirroraccess(primaryOnly,
-							   mirrorOnly,
-							   &mirrorMode,
-							   mirrorDataLossOccurred);
-
 	PersistentTablespace_GetPrimaryAndMirrorFilespaces(dbDirNode->tablespace,
 													   &primaryFilespaceLocation,
 													   &mirrorFilespaceLocation);
 
-	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
-		!*mirrorDataLossOccurred)
-	{
-		FileRepPrimary_MirrorDrop(
-								  FileRep_GetDirDatabaseIdentifier(mirrorFilespaceLocation,
-																   *dbDirNode),
-								  FileRepRelationTypeDir);
+	/*
+	 * We've removed all relations, so all that is left are PG* files and
+	 * work files.
+	 */
+	FormDatabasePath(dbPath,
+					 primaryFilespaceLocation,
+					 dbDirNode->tablespace,
+					 dbDirNode->database);
 
-		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
-
-	}
-
-	if (StorageManagerMirrorMode_DoPrimaryWork(mirrorMode))
-	{
-		/*
-		 * We've removed all relations, so all that is left are PG* files and
-		 * work files.
-		 */
-		FormDatabasePath(dbPath,
-						 primaryFilespaceLocation,
-						 dbDirNode->tablespace,
-						 dbDirNode->database);
-
-		/*
-		 * The rmtree routine unfortunately emits errors, so there is not
-		 * errno available...
-		 */
-		/* Just a bool. */
-		result = rmtree(dbPath, true);
-	}
-	else
-		result = true;
-
-	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
-		!*mirrorDataLossOccurred)
-	{
-		FileRepPrimary_IsOperationCompleted(
-											FileRep_GetDirDatabaseIdentifier(mirrorFilespaceLocation,
-																			 *dbDirNode),
-											FileRepRelationTypeDir);
-
-		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
-	}
+	/*
+	 * The rmtree routine unfortunately emits errors, so there is not
+	 * errno available...
+	 */
+	/* Just a bool. */
+	result = rmtree(dbPath, true);
 
 	if (primaryFilespaceLocation != NULL)
 		pfree(primaryFilespaceLocation);
