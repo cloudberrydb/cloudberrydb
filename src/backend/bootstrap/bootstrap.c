@@ -50,8 +50,6 @@ extern char *optarg;
 
 uint32 bootstrap_data_checksum_version = 0;  /* No checksum */
 
-extern void FileRepResetPeer_Main(void);
-
 #define ALLOC(t, c)		((t *) calloc((unsigned)(c), sizeof(t)))
 
 static void CheckerModeMain(void);
@@ -499,10 +497,6 @@ AuxiliaryProcessMain(int argc, char *argv[])
 
 		case FilerepProcess:
 			FileRep_Main();
-			proc_exit(1); /* should never return */
-
-		case FilerepResetPeerProcess:
-			FileRepResetPeer_Main();
 			proc_exit(1); /* should never return */
 
 		default:
