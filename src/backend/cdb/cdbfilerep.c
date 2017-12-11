@@ -35,7 +35,6 @@
 #include "cdb/cdbgang.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbfilerep.h"
-#include "cdb/cdbfilerepconnserver.h"
 #include "cdb/cdbfilerepservice.h"
 #include "cdb/cdbpersistenttablespace.h"
 #include "libpq/pqsignal.h"
