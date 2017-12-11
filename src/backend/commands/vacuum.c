@@ -55,7 +55,6 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbsrlz.h"
 #include "cdb/cdbdispatchresult.h"      /* CdbDispatchResults */
-#include "cdb/cdbfilerepprimary.h"
 #include "cdb/cdbpersistentfilesysobj.h"
 #include "cdb/cdbappendonlyblockdirectory.h"
 #include "executor/executor.h"

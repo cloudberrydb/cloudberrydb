@@ -183,54 +183,6 @@ MirroredFileSysObj_FinishMirroredCreate(
 }
 
 void
-MirroredFileSysObj_ValidateFilespaceDir(char *mirrorFilespaceLocation)
-{
-	char	   *parentdir = NULL;
-	char	   *errdir = NULL;
-	int			status;
-
-	status = FileRepPrimary_MirrorValidation(
-											 FileRep_GetDirFilespaceIdentifier(mirrorFilespaceLocation),
-											 FileRepRelationTypeDir,
-											 FileRepValidationFilespace
-		);
-
-	/*
-	 * Check return status and return or report error.
-	 *
-	 * Known errors: - File or directory exists - Parent directory does not
-	 * exist - Parent directory not a directory - No write permission on
-	 * parent directory
-	 */
-	switch (status)
-	{
-		case FileRepStatusSuccess:
-			return;
-
-			/* Errors on the parent directory */
-		case FileRepStatusNoSuchFileOrDirectory:
-		case FileRepStatusNotDirectory:
-			parentdir = pstrdup(mirrorFilespaceLocation);
-			get_parent_directory(parentdir);
-			errdir = parentdir;
-			break;
-
-			/* All other errors use the specified directory */
-		case FileRepStatusDirectoryExist:
-		case FileRepStatusNoPermissions:
-		default:
-			errdir = mirrorFilespaceLocation;
-			break;
-	}
-	ereport(ERROR,
-			(errcode_for_file_access(),
-			 errmsg("%s: %s", errdir, FileRepStatusToString[status])));
-
-	/* unreachable */
-	return;
-}
-
-void
 MirroredFileSysObj_TransactionCreateFilespaceDir(
 												 Oid filespaceOid,
 
@@ -272,9 +224,8 @@ MirroredFileSysObj_TransactionCreateFilespaceDir(
 
 	LWLockAcquire(MirroredLock, LW_SHARED);
 
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &mirrorDataLossTrackingSessionNum);
+	mirrorDataLossTrackingState = MirrorDataLossTrackingState_MirrorNotConfigured;
+	mirrorDataLossTrackingSessionNum = getChangeTrackingSessionId();
 
 	/*
 	 * MPP-8595 - In order to prevent commiting to filespace locations that
@@ -409,48 +360,8 @@ void
 MirroredFileSysObj_ScheduleDropFilespaceDir(
 											Oid filespaceOid)
 {
-	MirrorDataLossTrackingState mirrorDataLossTrackingState;
-	int64		mirrorDataLossTrackingSessionNum;
 	ItemPointerData persistentTid;
 	int64		persistentSerialNum;
-
-	/*
-	 * MPP-9893 - Dropping the filespace while in resync mode caused the
-	 * mirrors to be marked as dropped and revert back to change tracking
-	 * mode.
-	 *
-	 * Since we disable CREATE FILESPACE when in change-tracking/resync the
-	 * simplest solution was to simply make the disabling symetric and disable
-	 * dropping them in change-tracking/resync as well.
-	 */
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &mirrorDataLossTrackingSessionNum);
-	switch (mirrorDataLossTrackingState)
-	{
-		case MirrorDataLossTrackingState_MirrorNotConfigured:
-		case MirrorDataLossTrackingState_MirrorCurrentlyUpInSync:
-			break;
-
-		case MirrorDataLossTrackingState_MirrorCurrentlyUpInResync:
-			ereport(ERROR,
-					(errcode(ERRCODE_GP_COMMAND_ERROR),
-					 errmsg("cannot DROP FILESPACE in resync mode"),
-					 errhint("run gprecoverseg to re-establish mirror connectivity")));
-			break;
-
-		case MirrorDataLossTrackingState_MirrorDown:
-			ereport(ERROR,
-					(errcode(ERRCODE_GP_COMMAND_ERROR),
-					 errmsg("cannot DROP FILESPACE in change tracking mode"),
-					 errhint("run gprecoverseg to re-establish mirror connectivity")));
-			break;
-
-		default:
-			elog(ERROR, "unexpected mirror data loss tracking state: %d",
-				 mirrorDataLossTrackingState);
-			break;
-	}
 
 	PersistentFilespace_LookupTidAndSerialNum(
 											  filespaceOid,
@@ -509,9 +420,6 @@ MirroredFileSysObj_TransactionCreateTablespaceDir(
 {
 	PersistentFileSysObjName fsObjName;
 
-	MirrorDataLossTrackingState mirrorDataLossTrackingState;
-	int64		mirrorDataLossTrackingSessionNum;
-
 	MirroredObjectExistenceState mirrorExistenceState = MirroredObjectExistenceState_None;
 	MirroredRelDataSynchronizationState relDataSynchronizationState = MirroredRelDataSynchronizationState_None;
 	StorageManagerMirrorMode mirrorMode = StorageManagerMirrorMode_None;
@@ -524,13 +432,9 @@ MirroredFileSysObj_TransactionCreateTablespaceDir(
 
 	LWLockAcquire(MirroredLock, LW_SHARED);
 
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &mirrorDataLossTrackingSessionNum);
-
 	MirroredFileSysObj_BeginMirroredCreate(
 										   &fsObjName,
-										   mirrorDataLossTrackingState,
+										   MirrorDataLossTrackingState_MirrorNotConfigured,
 										   &mirrorExistenceState,
 										   &relDataSynchronizationState,
 										   &mirrorMode);
@@ -648,9 +552,6 @@ MirroredFileSysObj_TransactionCreateDbDir(
 {
 	PersistentFileSysObjName fsObjName;
 
-	MirrorDataLossTrackingState mirrorDataLossTrackingState;
-	int64		mirrorDataLossTrackingSessionNum;
-
 	MirroredObjectExistenceState mirrorExistenceState = MirroredObjectExistenceState_None;
 	MirroredRelDataSynchronizationState relDataSynchronizationState = MirroredRelDataSynchronizationState_None;
 	StorageManagerMirrorMode mirrorMode = StorageManagerMirrorMode_None;
@@ -664,13 +565,9 @@ MirroredFileSysObj_TransactionCreateDbDir(
 
 	LWLockAcquire(MirroredLock, LW_SHARED);
 
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &mirrorDataLossTrackingSessionNum);
-
 	MirroredFileSysObj_BeginMirroredCreate(
 										   &fsObjName,
-										   mirrorDataLossTrackingState,
+										   MirrorDataLossTrackingState_MirrorNotConfigured,
 										   &mirrorExistenceState,
 										   &relDataSynchronizationState,
 										   &mirrorMode);
@@ -783,9 +680,6 @@ MirroredFileSysObj_JustInTimeDbDirCreate(
 {
 	PersistentFileSysObjName fsObjName;
 
-	MirrorDataLossTrackingState mirrorDataLossTrackingState;
-	int64		mirrorDataLossTrackingSessionNum;
-
 	MirroredObjectExistenceState mirrorExistenceState = MirroredObjectExistenceState_None;
 	MirroredRelDataSynchronizationState relDataSynchronizationState = MirroredRelDataSynchronizationState_None;
 	StorageManagerMirrorMode mirrorMode = StorageManagerMirrorMode_None;
@@ -831,13 +725,9 @@ MirroredFileSysObj_JustInTimeDbDirCreate(
 
 	LWLockAcquire(MirroredLock, LW_SHARED);
 
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &mirrorDataLossTrackingSessionNum);
-
 	MirroredFileSysObj_BeginMirroredCreate(
 										   &fsObjName,
-										   mirrorDataLossTrackingState,
+										   MirrorDataLossTrackingState_MirrorNotConfigured,
 										   &mirrorExistenceState,
 										   &relDataSynchronizationState,
 										   &mirrorMode);
@@ -941,7 +831,6 @@ MirroredFileSysObj_TransactionCreateBufferPoolFile(RelFileNode *rnode,
 {
 	PersistentFileSysObjName fsObjName;
 
-	MirrorDataLossTrackingState mirrorDataLossTrackingState;
 	int64		mirrorDataLossTrackingSessionNum;
 
 	MirroredObjectExistenceState mirrorExistenceState = MirroredObjectExistenceState_None;
@@ -973,13 +862,11 @@ MirroredFileSysObj_TransactionCreateBufferPoolFile(RelFileNode *rnode,
 
 	LWLockAcquire(MirroredLock, LW_SHARED);
 
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &mirrorDataLossTrackingSessionNum);
+	mirrorDataLossTrackingSessionNum = getChangeTrackingSessionId();
 
 	MirroredFileSysObj_BeginMirroredCreate(
 										   &fsObjName,
-										   mirrorDataLossTrackingState,
+										   MirrorDataLossTrackingState_MirrorNotConfigured,
 										   &mirrorExistenceState,
 										   &relDataSynchronizationState,
 										   &mirrorMode);
@@ -1007,7 +894,7 @@ MirroredFileSysObj_TransactionCreateBufferPoolFile(RelFileNode *rnode,
 	RelationCreateStorage(*rnode,
 						  isLocalBuf,
 						  relationName,
-						  mirrorDataLossTrackingState,
+						  MirrorDataLossTrackingState_MirrorNotConfigured,
 						  mirrorDataLossTrackingSessionNum,
 						  &mirrorDataLossOccurred);
 	smgrclosenode(*rnode);
@@ -1062,9 +949,6 @@ MirroredFileSysObj_TransactionCreateAppendOnlyFile(
 {
 	PersistentFileSysObjName fsObjName;
 
-	MirrorDataLossTrackingState mirrorDataLossTrackingState;
-	int64		mirrorDataLossTrackingSessionNum;
-
 	MirroredObjectExistenceState mirrorExistenceState = MirroredObjectExistenceState_None;
 	MirroredRelDataSynchronizationState relDataSynchronizationState = MirroredRelDataSynchronizationState_None;
 	StorageManagerMirrorMode mirrorMode = StorageManagerMirrorMode_None;
@@ -1096,13 +980,9 @@ MirroredFileSysObj_TransactionCreateAppendOnlyFile(
 
 	LWLockAcquire(MirroredLock, LW_SHARED);
 
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &mirrorDataLossTrackingSessionNum);
-
 	MirroredFileSysObj_BeginMirroredCreate(
 										   &fsObjName,
-										   mirrorDataLossTrackingState,
+										   MirrorDataLossTrackingState_MirrorNotConfigured,
 										   &mirrorExistenceState,
 										   &relDataSynchronizationState,
 										   &mirrorMode);
@@ -1132,8 +1012,8 @@ MirroredFileSysObj_TransactionCreateAppendOnlyFile(
 							  relFileNode,
 							  segmentFileNum,
 							  relationName,
-							  mirrorDataLossTrackingState,
-							  mirrorDataLossTrackingSessionNum,
+							  MirrorDataLossTrackingState_MirrorNotConfigured,
+							  getChangeTrackingSessionId(),
 							  &primaryError,
 							  &mirrorDataLossOccurred);
 	if (primaryError != 0)

@@ -26,7 +26,6 @@
 #include "miscadmin.h"
 #include "parser/parsetree.h"
 #include "cdb/cdbvars.h" /* gp_select_invisible */
-#include "cdb/cdbfilerepprimary.h"
 #include "nodes/tidbitmap.h"
 
 /*

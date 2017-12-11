@@ -312,8 +312,6 @@ extern char *XLogLocationToString5_Long(XLogRecPtr *loc);
 extern void HandleStartupProcInterrupts(void);
 extern void StartupProcessMain(int passNum);
 
-extern int XLogReconcileEofPrimary(void);
-
 extern int XLogReconcileEofMirror(
 					   XLogRecPtr	primaryEof,
 					   XLogRecPtr	*mirrorEof);

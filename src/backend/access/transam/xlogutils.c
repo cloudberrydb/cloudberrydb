@@ -33,7 +33,7 @@
 
 #include "cdb/cdbpersistentrecovery.h"
 #include "cdb/cdbpersistenttablespace.h"
-
+#include "postmaster/primary_mirror_mode.h"
 
 /*
  * During XLOG replay, we may see XLOG records for incremental updates of
@@ -363,8 +363,6 @@ XLogReadBufferExtended(RelFileNode rnode, ForkNumber forknum,
 	 * tables are removed.  To be clear, that the smgrcreate() call exists in
 	 * upstream.
 	 */
-	MirrorDataLossTrackingState mirrorDataLossTrackingState;
-	int64 mirrorDataLossTrackingSessionNum;
 	bool mirrorDataLossOccurred;
 
 	// UNDONE: What about the persistent rel files table???
@@ -372,14 +370,10 @@ XLogReadBufferExtended(RelFileNode rnode, ForkNumber forknum,
 	// UNDONE: segmentFileNum and AO?
 	if (forknum ==  MAIN_FORKNUM)
 	{
-		mirrorDataLossTrackingState =
-			FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-				&mirrorDataLossTrackingSessionNum);
-
 		smgrmirroredcreate(smgr,
 						   /* relationName */ NULL,    // Ok to be NULL -- we don't know the name here.
-						   mirrorDataLossTrackingState,
-						   mirrorDataLossTrackingSessionNum,
+						   MirrorDataLossTrackingState_MirrorNotConfigured,
+						   getChangeTrackingSessionId(),
 						   /* ignoreAlreadyExists */ true,
 						   &mirrorDataLossOccurred);
 	}

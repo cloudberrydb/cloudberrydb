@@ -302,8 +302,7 @@ smgrDoAppendOnlyResyncEofs(bool forCommit)
 	if (Debug_persistent_print ||
 		Debug_persistent_appendonly_commit_count_print)
 		elog(Persistent_DebugPrintLevel(),
-			 "Storage Manager: Enter Append-Only mirror resync eofs list entries (Append-Only commit work count %d)",
-			 FileRepPrimary_GetAppendOnlyCommitWorkCount());
+			 "Storage Manager: Enter Append-Only mirror resync eofs list entries (Append-Only commit work count %d)", 0);
 
 	hash_seq_init(
 				  &iterateStatus,
@@ -339,8 +338,7 @@ smgrDoAppendOnlyResyncEofs(bool forCommit)
 
 				LWLockAcquire(FileRepAppendOnlyCommitCountLock, LW_EXCLUSIVE);
 
-				systemAppendOnlyCommitWorkCount =
-					FileRepPrimary_FinishedAppendOnlyCommitWork(1);
+				systemAppendOnlyCommitWorkCount = 0;
 
 				if (entry->isDistributedTransaction)
 				{
@@ -431,8 +429,7 @@ smgrGetAppendOnlyMirrorResyncEofs(EndXactRecKind endXactRecKind,
 		Debug_persistent_appendonly_commit_count_print)
 		elog(Persistent_DebugPrintLevel(),
 			 "Storage Manager: Get Append-Only mirror resync eofs list entries (current transaction nest level %d, Append-Only commit work system count %d)",
-			 nestLevel,
-			 FileRepPrimary_GetAppendOnlyCommitWorkCount());
+			 nestLevel, 0);
 
 	rptr = (PersistentEndXactAppendOnlyMirrorResyncEofs *)
 		palloc(nentries * sizeof(PersistentEndXactAppendOnlyMirrorResyncEofs));
@@ -492,8 +489,7 @@ smgrGetAppendOnlyMirrorResyncEofs(EndXactRecKind endXactRecKind,
 
 			LWLockAcquire(FileRepAppendOnlyCommitCountLock, LW_EXCLUSIVE);
 
-			resultSystemAppendOnlyCommitCount =
-				FileRepPrimary_IntentAppendOnlyCommitWork();
+			resultSystemAppendOnlyCommitCount = 0;
 
 			/* Set this inside the Critical Section. */
 			entry->didIncrementCommitCount = true;
@@ -522,8 +518,7 @@ smgrGetAppendOnlyMirrorResyncEofs(EndXactRecKind endXactRecKind,
 
 			LWLockAcquire(FileRepAppendOnlyCommitCountLock, LW_EXCLUSIVE);
 
-			resultSystemAppendOnlyCommitCount =
-				FileRepPrimary_GetAppendOnlyCommitWorkCount();
+			resultSystemAppendOnlyCommitCount = 0;
 		}
 
 		if (Debug_persistent_print ||

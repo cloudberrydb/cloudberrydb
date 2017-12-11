@@ -22,9 +22,7 @@
 
 #include "access/xlogmm.h"
 #include "catalog/pg_tablespace.h"
-#include "cdb/cdbfilerepprimary.h"
 #include "cdb/cdbmirroredbufferpool.h"
-#include "cdb/cdbfilerepprimary.h"
 #include "cdb/cdbpersistenttablespace.h"
 #include "cdb/cdbpersistentstore.h"
 #include "storage/bufmgr.h"
@@ -33,6 +31,7 @@
 #include "utils/guc.h"
 #include "utils/memutils.h"
 #include "utils/palloc.h"
+#include "cdb/cdbfilerep.h"
 #include "cdb/cdbpersistentfilesysobj.h"
 #include "cdb/cdbpersistentrelation.h"
 
@@ -50,8 +49,6 @@ MirroredBufferPool_SetUpMirrorAccess(
  /* For tracing only.  Can be NULL in some execution paths. */
 
 									 MirrorDataLossTrackingState mirrorDataLossTrackingState,
-
-									 int64 mirrorDataLossTrackingSessionNum,
 
 									 bool primaryOnly,
 
@@ -137,84 +134,6 @@ MirroredBufferPool_SetUpMirrorAccess(
 			 (*mirrorDataLossOccurred ? "true" : "false"));
 
 		SUPPRESS_ERRCONTEXT_POP();
-	}
-
-}
-
-/*
- * The Background writer (for example) might have an open in the primary when the mirror was down.
- * Later when the mirror comes up we need to recognize that and send new writes there....
- */
-static void
-MirroredBufferPool_RecheckMirrorAccess(
-									   MirroredBufferPoolOpen *open)
- /* The resulting open struct. */
-{
-	MirrorDataLossTrackingState mirrorDataLossTrackingState;
-	int64		mirrorDataLossTrackingSessionNum;
-
-	/*
-	 * Make this call while under the MirroredLock (unless we are a resync
-	 * worker).
-	 */
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &mirrorDataLossTrackingSessionNum);
-	MirroredBufferPool_SetUpMirrorAccess(
-										 &open->relFileNode,
-										 open->segmentFileNum,
-										  /* relationName, don't know the name here */ NULL,
-										 mirrorDataLossTrackingState,
-										 mirrorDataLossTrackingSessionNum,
-										  /* primaryOnly */ false,
-										 open->mirrorOnly,
-										 &open->mirrorMode,
-										 &open->mirrorDataLossOccurred);
-	/*---------------------------------------------------------------------
-	 * mirror filespace location has to be populated for
-	 *			a) adding mirror with filespaces
-	 *			b) resynchronization with filespaces and full copy to new location
-	 *---------------------------------------------------------------------
-	 */
-	if (open->relFileNode.spcNode != GLOBALTABLESPACE_OID &&
-		open->relFileNode.spcNode != DEFAULTTABLESPACE_OID &&
-		strcmp(open->mirrorFilespaceLocation, "") == 0)
-	{
-		if (mirrorDataLossTrackingState == MirrorDataLossTrackingState_MirrorCurrentlyUpInSync ||
-			mirrorDataLossTrackingState == MirrorDataLossTrackingState_MirrorCurrentlyUpInResync)
-		{
-			char	   *primaryFilespaceLocation;
-			char	   *mirrorFilespaceLocation;
-
-			PersistentTablespace_GetPrimaryAndMirrorFilespaces(
-															   open->relFileNode.spcNode,
-															   &primaryFilespaceLocation,
-															   &mirrorFilespaceLocation);
-
-			if (mirrorFilespaceLocation != NULL)
-			{
-				sprintf(open->mirrorFilespaceLocation, "%s", mirrorFilespaceLocation);
-
-				{
-					char		tmpBuf[FILEREP_MAX_LOG_DESCRIPTION_LEN];
-
-					snprintf(tmpBuf, sizeof(tmpBuf),
-							 "recheck mirror access, identifier '%s/%u/%u/%u' ",
-							 open->mirrorFilespaceLocation,
-							 open->relFileNode.spcNode,
-							 open->relFileNode.dbNode,
-							 open->relFileNode.relNode);
-
-					FileRep_InsertConfigLogEntry(tmpBuf);
-				}
-			}
-
-			if (primaryFilespaceLocation != NULL)
-				pfree(primaryFilespaceLocation);
-
-			if (mirrorFilespaceLocation != NULL)
-				pfree(mirrorFilespaceLocation);
-		}
 	}
 }
 
@@ -320,8 +239,7 @@ MirroredBufferPool_DoOpen(
 										 relFileNode,
 										 segmentFileNum,
 										 relationName,
-										 mirrorDataLossTrackingState,
-										 mirrorDataLossTrackingSessionNum,
+										 MirrorDataLossTrackingState_MirrorNotConfigured,
 										  /* primaryOnly */ false,
 										 mirrorOnly,
 										 &open->mirrorMode,
@@ -403,27 +321,16 @@ MirroredBufferPool_Open(
 {
 	MIRROREDLOCK_BUFMGR_DECLARE;
 
-	MirrorDataLossTrackingState mirrorDataLossTrackingState;
-	int64		mirrorDataLossTrackingSessionNum;
-
 	/* -------- MirroredLock ---------- */
 	MIRROREDLOCK_BUFMGR_LOCK;
-
-	/*
-	 * Make this call while under the MirroredLock (unless we are a resync
-	 * worker).
-	 */
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &mirrorDataLossTrackingSessionNum);
 
 	MirroredBufferPool_DoOpen(
 							  open,
 							  relFileNode,
 							  segmentFileNum,
 							  relationName,
-							  mirrorDataLossTrackingState,
-							  mirrorDataLossTrackingSessionNum,
+							  MirrorDataLossTrackingState_MirrorNotConfigured,
+							  getChangeTrackingSessionId(),
 							   /* create */ false,
 							   /* mirrorOnly */ false,
 							   /* copyToMirror */ false,
@@ -549,14 +456,6 @@ MirroredBufferPool_Flush(
 
 	primaryError = 0;
 
-	/*
-	 * For Buffer Pool managed, we are normally not session oriented like
-	 * Append-Only.
-	 *
-	 * Figure out mirroring each time...
-	 */
-	MirroredBufferPool_RecheckMirrorAccess(open);
-
 	if (StorageManagerMirrorMode_DoPrimaryWork(open->mirrorMode))
 	{
 		errno = 0;
@@ -642,14 +541,6 @@ MirroredBufferPool_Write(
 					(errcode(ERRCODE_OUT_OF_MEMORY),
 					 (errmsg("could not allocate memory for mirrored aligned buffer"))));
 	}
-
-	/*
-	 * For Buffer Pool managed, we are normally not session oriented like
-	 * Append-Only.
-	 *
-	 * Figure out mirroring each time...
-	 */
-	MirroredBufferPool_RecheckMirrorAccess(open);
 
 	/*
 	 * memcpy() is required since buffer is still changing, however filerep
@@ -784,9 +675,8 @@ MirroredBufferPool_BeginBulkLoad(
 	 * Make this call while under the MirroredLock (unless we are a resync
 	 * worker).
 	 */
-	bulkLoadInfo->mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &bulkLoadInfo->mirrorDataLossTrackingSessionNum);
+	bulkLoadInfo->mirrorDataLossTrackingState = MirrorDataLossTrackingState_MirrorNotConfigured;
+	bulkLoadInfo->mirrorDataLossTrackingSessionNum = getChangeTrackingSessionId();
 
 	MIRROREDLOCK_BUFMGR_UNLOCK;
 	/* -------- MirroredLock ---------- */
@@ -833,9 +723,8 @@ MirroredBufferPool_EvaluateBulkLoadFinish(
 	 * Make this call while under the MirroredLock (unless we are a resync
 	 * worker).
 	 */
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &mirrorDataLossTrackingSessionNum);
+	mirrorDataLossTrackingState = MirrorDataLossTrackingState_MirrorNotConfigured;
+	mirrorDataLossTrackingSessionNum = getChangeTrackingSessionId();
 
 	bulkLoadFinished = false;
 	/* Assume. */
@@ -1089,9 +978,8 @@ MirroredBufferPool_CopyToMirror(
 
 		LWLockAcquire(MirroredLock, LW_SHARED);
 
-		currentMirrorDataLossTrackingState =
-			FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-															   &currentMirrorDataLossTrackingSessionNum);
+		currentMirrorDataLossTrackingState = MirrorDataLossTrackingState_MirrorNotConfigured;
+		currentMirrorDataLossTrackingSessionNum = getChangeTrackingSessionId();
 		if (currentMirrorDataLossTrackingSessionNum != mirrorDataLossTrackingSessionNum)
 		{
 			*mirrorDataLossOccurred = true;
@@ -1208,8 +1096,7 @@ MirroredBufferPool_DoDrop(
 										 relFileNode,
 										 segmentFileNum,
 										 relationName,
-										 mirrorDataLossTrackingState,
-										 mirrorDataLossTrackingSessionNum,
+										 MirrorDataLossTrackingState_MirrorNotConfigured,
 										 primaryOnly,
 										 mirrorOnly,
 										 &mirrorMode,
@@ -1274,19 +1161,12 @@ MirroredBufferPool_Drop(
 
 						bool *mirrorDataLossOccurred)
 {
-	MirrorDataLossTrackingState mirrorDataLossTrackingState;
-	int64		mirrorDataLossTrackingSessionNum;
-
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &mirrorDataLossTrackingSessionNum);
-
 	MirroredBufferPool_DoDrop(
 							  relFileNode,
 							  segmentFileNum,
 							  relationName,
-							  mirrorDataLossTrackingState,
-							  mirrorDataLossTrackingSessionNum,
+							  MirrorDataLossTrackingState_MirrorNotConfigured,
+							  getChangeTrackingSessionId(),
 							  primaryOnly,
 							   /* mirrorOnly */ false,
 							  primaryError,
@@ -1340,14 +1220,6 @@ MirroredBufferPool_Truncate(
 	int			primaryError;
 
 	primaryError = 0;
-
-	/*
-	 * For Buffer Pool managed, we are normally not session oriented like
-	 * Append-Only.
-	 *
-	 * Figure out mirroring each time...
-	 */
-	MirroredBufferPool_RecheckMirrorAccess(open);
 
 	if (StorageManagerMirrorMode_DoPrimaryWork(open->mirrorMode))
 	{

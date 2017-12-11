@@ -18,7 +18,6 @@
 #include "storage/fd.h"
 #include "storage/relfilenode.h"
 #include "storage/smgr.h"
-#include "cdb/cdbfilerepprimary.h"
 #include "cdb/cdbpersistentstore.h"
 
 /*

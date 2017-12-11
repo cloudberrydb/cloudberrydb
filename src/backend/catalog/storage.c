@@ -32,6 +32,7 @@
 #include "cdb/cdbpersistentdatabase.h"
 #include "cdb/cdbpersistentfilespace.h"
 #include "cdb/cdbpersistentrelation.h"
+#include "postmaster/primary_mirror_mode.h"
 #include "utils/faultinjector.h"
 #include "storage/lmgr.h"
 #include "storage/smgr_ao.h"
@@ -1542,8 +1543,6 @@ smgr_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 	}
 	else if (info == XLOG_SMGR_TRUNCATE)
 	{
-		MirrorDataLossTrackingState mirrorDataLossTrackingState;
-		int64		mirrorDataLossTrackingSessionNum;
 		xl_smgr_truncate *xlrec = (xl_smgr_truncate *) XLogRecGetData(record);
 		SMgrRelation reln;
 
@@ -1555,13 +1554,10 @@ smgr_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		 * XLogReadBuffer, we prefer to recreate the rel and replay the log
 		 * as best we can until the drop is seen.
 		 */
-		mirrorDataLossTrackingState =
-			FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-				&mirrorDataLossTrackingSessionNum);
 		smgrmirroredcreate(reln,
 						   /* relationName */ NULL, // Ok to be NULL -- we don't know the name here.
-						   mirrorDataLossTrackingState,
-						   mirrorDataLossTrackingSessionNum,
+						   MirrorDataLossTrackingState_MirrorNotConfigured,
+						   getChangeTrackingSessionId(),
 						   /* ignoreAlreadyExists */ true,
 						   &mirrorDataLossOccurred);
 

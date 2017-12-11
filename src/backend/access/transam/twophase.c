@@ -1505,8 +1505,6 @@ FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFo
 						"failover requested"),
 				 errhint("run gprecoverseg to re-establish mirror connectivity")));
 
-		FileRep_SetSegmentState(SegmentStateFault, FaultTypeIO);
-
 		ereport(ERROR,
 				(errcode(ERRCODE_DATA_CORRUPTED),
 				 errmsg("xlog record is invalid"),

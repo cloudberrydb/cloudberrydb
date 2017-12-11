@@ -1369,49 +1369,6 @@ PersistentFileSysObjStateChangeResult PersistentFileSysObj_StateChange(
 			badMirrorExistenceStateTransition = true;
 		}
 
-		/*
-		 * Since bulk copy is copying data itself, we need to adjust the
-		 * MirroredRelDataSynchronizationState based on the FileRep state...
-		 */
-		if (currentMirrorExistenceState == MirroredObjectExistenceState_MirrorCreatePending)
-		{
-			MirrorDataLossTrackingState 	currentMirrorDataLossTrackingState;
-			int64							currentMirrorDataLossTrackingSessionNum;
-
-			/*
-			 * We are under the MirroredLock.
-			 */
-			currentMirrorDataLossTrackingState =
-						FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														&currentMirrorDataLossTrackingSessionNum);
-			switch (currentMirrorDataLossTrackingState)
-			{
-			case MirrorDataLossTrackingState_MirrorNotConfigured:
-				/*
-				 * Rare case when you remove mirrors during bulk load.
-				 */
-				newDataSynchronizationState = MirroredRelDataSynchronizationState_None;
-				break;
-
-			case MirrorDataLossTrackingState_MirrorCurrentlyUpInSync:
-			case MirrorDataLossTrackingState_MirrorCurrentlyUpInResync:
-				newDataSynchronizationState = MirroredRelDataSynchronizationState_DataSynchronized;
-				break;
-
-			case MirrorDataLossTrackingState_MirrorDown:
-				/*
-				 * In Change Tracking mode -- need 'Full Copy'.
-				 */
-				newDataSynchronizationState = MirroredRelDataSynchronizationState_FullCopy;
-				break;
-
-			default:
-				elog(ERROR, "unexpected mirror data loss tracking state: %d",
-					 currentMirrorDataLossTrackingState);
-				break;
-			}
-		}
-
 		// Keep parent XID since we are still in '*Create Pending' state.
 		break;
 
@@ -2097,14 +2054,6 @@ PersistentFileSysObj_DoMirrorValidation(
 															   &primaryFilespaceLocation,
 															   &mirrorFilespaceLocation);
 
-			FileRepPrimary_MirrorValidation(
-											FileRep_GetRelationIdentifier(
-																		  mirrorFilespaceLocation,
-																		  *relFileNode,
-																		  segmentFileNum),
-											fileRepRelationType,
-											FileRepValidationExistence);
-
 			if (primaryFilespaceLocation != NULL)
 				pfree(primaryFilespaceLocation);
 			if (mirrorFilespaceLocation != NULL)
@@ -2123,13 +2072,6 @@ PersistentFileSysObj_DoMirrorValidation(
 															   &primaryFilespaceLocation,
 															   &mirrorFilespaceLocation);
 
-			FileRepPrimary_MirrorValidation(
-											FileRep_GetDirDatabaseIdentifier(
-																			 mirrorFilespaceLocation,
-																			 *dbDirNode),
-											FileRepRelationTypeDir,
-											FileRepValidationExistence);
-
 			if (primaryFilespaceLocation != NULL)
 				pfree(primaryFilespaceLocation);
 			if (mirrorFilespaceLocation != NULL)
@@ -2147,13 +2089,6 @@ PersistentFileSysObj_DoMirrorValidation(
 															   &primaryFilespaceLocation,
 															   &mirrorFilespaceLocation);
 
-			FileRepPrimary_MirrorValidation(
-											FileRep_GetDirTablespaceIdentifier(
-																			   mirrorFilespaceLocation,
-																			   fsObjName->variant.tablespaceOid),
-											FileRepRelationTypeDir,
-											FileRepValidationExistence);
-
 			if (primaryFilespaceLocation != NULL)
 				pfree(primaryFilespaceLocation);
 			if (mirrorFilespaceLocation != NULL)
@@ -2170,12 +2105,6 @@ PersistentFileSysObj_DoMirrorValidation(
 													fsObjName->variant.filespaceOid,
 													&primaryFilespaceLocation,
 													&mirrorFilespaceLocation);
-
-			FileRepPrimary_MirrorValidation(
-											FileRep_GetDirFilespaceIdentifier(
-																			  mirrorFilespaceLocation),
-											FileRepRelationTypeDir,
-											FileRepValidationExistence);
 
 			if (primaryFilespaceLocation != NULL)
 				pfree(primaryFilespaceLocation);
@@ -3669,7 +3598,7 @@ injectfaultexit:
 
 		LWLockAcquire(FileRepAppendOnlyCommitCountLock , LW_EXCLUSIVE);
 
-		systemAppendOnlyCommitWorkCount = FileRepPrimary_GetAppendOnlyCommitWorkCount();
+		systemAppendOnlyCommitWorkCount = 0;
 
 		elog(Persistent_DebugPrintLevel(),
 			 "PersistentFileSysObj_PreparedEndXactAction: Append-Only Mirror Resync EOFs commit count %d at fault-injection "
@@ -4580,9 +4509,8 @@ static void PersistentFileSysObj_ScanStateAction(
 				WRITE_PERSISTENT_STATE_ORDERED_UNLOCK;
 
 				// UNDONE: Pass this in from the resync worker?
-				mirrorDataLossTrackingState =
-							FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-															&mirrorDataLossTrackingSessionNum);
+				mirrorDataLossTrackingState = MirrorDataLossTrackingState_MirrorNotConfigured;
+				mirrorDataLossTrackingSessionNum = getChangeTrackingSessionId();
 
 				PersistentFileSysObj_DoMirrorReCreate(
 										&fsObjName,
@@ -4743,9 +4671,8 @@ static void PersistentFileSysObj_ScanStateAction(
 				 */
 				if (StateAction_MirrorReDrop == stateAction)
 				{
-					mirrorDataLossTrackingState =
-								FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-																&mirrorDataLossTrackingSessionNum);
+					mirrorDataLossTrackingState = MirrorDataLossTrackingState_MirrorNotConfigured;;
+					mirrorDataLossTrackingSessionNum = getChangeTrackingSessionId();
 
 					// UNDONE: Pass this in from the resync worker?
 					PersistentFileSysObj_DoMirrorReDrop(

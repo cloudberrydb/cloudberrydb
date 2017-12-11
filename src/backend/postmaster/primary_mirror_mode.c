@@ -1440,16 +1440,7 @@ updateSegmentState(SegmentState_e segmentState, FaultType_e faultType)
 		}
 		if (isUpdated)
 		{
-			if (Debug_filerep_print)
-			{
-				ereport(LOG,
-						(errmsg("update segment from '%s' to '%s'",
-								SegmentStateToString[curState],
-								SegmentStateToString[segmentState]),
-						 errprintstack(true)));
-			}
 			pmModuleState->segmentState = segmentState;
-
 
 			if (segmentState == SegmentStateFault)
 			{

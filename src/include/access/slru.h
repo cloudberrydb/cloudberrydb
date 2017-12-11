@@ -147,9 +147,5 @@ extern void SimpleLruTruncate(SlruCtl ctl, int cutoffPage);
 extern void SimpleLruTruncateWithLock(SlruCtl ctl, int cutoffPage);
 extern bool SlruScanDirectory(SlruCtl ctl, int cutoffPage, bool doDeletions);
 extern bool SimpleLruPageExists(SlruCtl ctl, int pageno);
-extern int SlruRecoverMirror(void);
-extern int SlruCreateChecksumFile(const char *fullDirName);
-extern int SlruMirrorVerifyDirectoryChecksum(char *dirName, char *cksumFile,
-											 char *primaryMd5);
 
 #endif   /* SLRU_H */

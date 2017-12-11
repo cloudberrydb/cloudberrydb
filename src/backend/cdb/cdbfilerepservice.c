@@ -22,7 +22,6 @@
 #include "catalog/pg_database.h"
 #include "catalog/pg_tablespace.h"
 #include "cdb/cdbfilerepservice.h"
-#include "cdb/cdbfilerepprimary.h"
 #include "cdb/cdbvars.h"
 #include "libpq/pqsignal.h"
 #include "postmaster/postmaster.h"
@@ -137,36 +136,6 @@ FileRepSubProcess_ShutdownHandler(SIGNAL_ARGS)
 
 	if (FileRepIsBackendSubProcess(fileRepProcessType))
 	{
-		if (FileRepPrimary_IsResyncManagerOrWorker())
-		{
-			getFileRepRoleAndState(&fileRepRole, &segmentState, &dataState, &isInTransition, &dataStateTransition);
-
-			if (isInTransition == TRUE &&
-				dataStateTransition == DataStateInChangeTracking)
-			{
-				LockReleaseAll(DEFAULT_LOCKMETHOD, false);
-
-				/*
-				 * We remove ourself from LW waiter list (if applicable).
-				 *
-				 * If the current backend is waiting on a LWLock and exits w/o
-				 * any cleanup (remove from waiters list) it can cause a
-				 * breakage in the LWlock's waiters linked list after it dies.
-				 * This can lead to unpleasant issues causing starvation for
-				 * subsequent waiters because the current backend is already
-				 * dead without assigning the LWLock to the next waiter.
-				 *
-				 * XXX Side note - Although implemented here, avoid exiting
-				 * inside an signal handler.
-				 */
-				LWLockWaitCancel();
-				LWLockReleaseAll();
-
-				proc_exit(0);
-				return;
-			}
-		}
-
 		/*
 		 * call the normal postgres die so that it requests query
 		 * cancel/procdie
@@ -716,11 +685,6 @@ FileRepSubProcess_Main()
 
 		LWLockReleaseAll();
 
-		if (FileRepPrimary_IsResyncManagerOrWorker())
-		{
-			LockReleaseAll(DEFAULT_LOCKMETHOD, false);
-		}
-
 		if (FileRepIsBackendSubProcess(fileRepProcessType))
 		{
 			AbortBufferIO();
@@ -768,10 +732,6 @@ FileRepSubProcess_Main()
 
 	switch (fileRepProcessType)
 	{
-		case FileRepProcessTypePrimarySender:
-			FileRepPrimary_StartSender();
-			break;
-
 		default:
 			elog(PANIC, "unrecognized process type: %s(%d)",
 				 statmsg, fileRepProcessType);

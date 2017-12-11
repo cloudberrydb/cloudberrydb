@@ -347,8 +347,6 @@ CreateFileSpace(CreateFileSpaceStmt *stmt)
 	 * transaction can create filespaces at one time.
 	 */
 	checkPathPermissions(primary->location);
-	if (mirror)
-		MirroredFileSysObj_ValidateFilespaceDir(mirror->location);
 
 	/* 
 	 * Having identified the fse entry for this segment we now know what

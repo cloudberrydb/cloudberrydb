@@ -21,12 +21,10 @@
 
 #include "access/xlogmm.h"
 #include "utils/palloc.h"
-#include "cdb/cdbfilerepprimary.h"
 #include "cdb/cdbmirroredappendonly.h"
 #include "storage/fd.h"
 #include "catalog/catalog.h"
 #include "cdb/cdbpersistenttablespace.h"
-#include "cdb/cdbfilerepprimary.h"
 #include "storage/smgr.h"
 #include "storage/smgr_ao.h"
 #include "storage/lwlock.h"
@@ -34,6 +32,7 @@
 #include "cdb/cdbpersistentfilesysobj.h"
 #include "cdb/cdbpersistentstore.h"
 #include "cdb/cdbpersistentrecovery.h"
+#include "postmaster/primary_mirror_mode.h"
 
 #ifdef USE_SEGWALREP
 #include "access/xlogutils.h"
@@ -510,42 +509,9 @@ MirroredAppendOnly_OpenReadWrite(
 		 * Make this call while under the MirroredLock (unless we are a resync
 		 * worker).
 		 */
-		mirrorDataLossTrackingState =
-			FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-															   &mirrorDataLossTrackingSessionNum);
-
+		mirrorDataLossTrackingState = MirrorDataLossTrackingState_MirrorNotConfigured;
+		mirrorDataLossTrackingSessionNum = getChangeTrackingSessionId();
 		primaryOnlyToLetResynchronizeWork = false;
-		if (mirrorDataLossTrackingState == MirrorDataLossTrackingState_MirrorCurrentlyUpInResync &&
-			logicalEof > 0)
-		{
-			int64		eof;
-
-			/*
-			 * While in resynchronize state, we don't know for this
-			 * Append-Only segment file whether to write to the mirror or not.
-			 *
-			 * If the Append-Only segment file already has mirror loss, then
-			 * NO.
-			 *
-			 * However, if the Append-Only segment file is synchronized
-			 * because either there was no data loss from a previous committed
-			 * transaction or resynchronize has completed recovery of that
-			 * segment file.
-			 */
-			if (!PersistentFileSysObj_CanAppendOnlyCatchupDuringResync(
-																	   relFileNode,
-																	   segmentFileNum,
-																	   persistentTid,
-																	   persistentSerialNum,
-																	   &eof))
-			{
-				/*
-				 * Don't write to mirror while resynchronize may be working on
-				 * the segment file.
-				 */
-				primaryOnlyToLetResynchronizeWork = true;
-			}
-		}
 	}
 	MirroredAppendOnly_DoOpen(
 							  open,
@@ -594,9 +560,8 @@ MirroredAppendOnly_OpenResynchonize(
 
 	/* NOTE: No acquisition of MirroredLock */
 
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &mirrorDataLossTrackingSessionNum);
+	mirrorDataLossTrackingState = MirrorDataLossTrackingState_MirrorNotConfigured;
+	mirrorDataLossTrackingSessionNum = getChangeTrackingSessionId();
 
 	MirroredAppendOnly_DoOpen(
 							  open,
@@ -933,9 +898,8 @@ MirroredAppendOnly_AddMirrorResyncEofs(
 			return;
 		}
 
-		flushMirrorDataLossTrackingState =
-			FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-															   &flushMirrorDataLossTrackingSessionNum);
+		flushMirrorDataLossTrackingState = MirrorDataLossTrackingState_MirrorNotConfigured;
+		flushMirrorDataLossTrackingSessionNum = getChangeTrackingSessionId();
 
 		switch (flushMirrorDataLossTrackingState)
 		{
@@ -1252,9 +1216,8 @@ MirroredAppendOnly_EndXactCatchup(
 
 	int64		startEof;
 
-	currentMirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &currentMirrorDataLossTrackingSessionNum);
+	currentMirrorDataLossTrackingState = MirrorDataLossTrackingState_MirrorNotConfigured;
+	currentMirrorDataLossTrackingSessionNum = getChangeTrackingSessionId();
 
 	if (Debug_persistent_print ||
 		Debug_persistent_appendonly_commit_count_print)
@@ -1610,16 +1573,9 @@ MirroredAppendOnly_EndXactCatchup(
 				SUPPRESS_ERRCONTEXT_POP();
 			}
 		}
-
-		if (flushMirrorCatchupRequired)
-		{
-			flushMirrorDataLossTrackingState =
-				FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-																   &flushMirrorDataLossTrackingSessionNum);
-		}
 	}
-
 }
+
 static void
 MirroredAppendOnly_DoDrop(
 						  RelFileNode *relFileNode,
@@ -1725,19 +1681,12 @@ MirroredAppendOnly_Drop(
 
 						bool *mirrorDataLossOccurred)
 {
-	MirrorDataLossTrackingState mirrorDataLossTrackingState;
-	int64		mirrorDataLossTrackingSessionNum;
-
-	mirrorDataLossTrackingState =
-		FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														   &mirrorDataLossTrackingSessionNum);
-
 	MirroredAppendOnly_DoDrop(
 							  relFileNode,
 							  segmentFileNum,
 							  relationName,
-							  mirrorDataLossTrackingState,
-							  mirrorDataLossTrackingSessionNum,
+							  MirrorDataLossTrackingState_MirrorNotConfigured,
+							  getChangeTrackingSessionId(),
 							  primaryOnly,
 							   /* mirrorOnly */ false,
 							  primaryError,

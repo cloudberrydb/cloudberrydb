@@ -22,7 +22,6 @@
 #include "access/genam.h"
 #include "access/heapam.h"
 #include "utils/relcache.h"
-#include "cdb/cdbfilerepprimary.h"
 #include "cdb/cdbdirectopen.h"
 #include "utils/guc.h"
 
@@ -139,7 +138,7 @@ typedef struct MirroredLockLocalVars
 #define MIRRORED_LOCK \
 	{ \
 		mirroredLockLocalVars.mirroredLockIsHeldByMe = LWLockHeldByMe(MirroredLock); \
-		mirroredLockLocalVars.specialResyncManagerFlag = FileRepPrimary_IsResyncManagerOrWorker(); \
+		mirroredLockLocalVars.specialResyncManagerFlag = false; \
 		mirroredLockLocalVars.mirroredVariablesSet = true; \
 		\
 		if (!mirroredLockLocalVars.mirroredLockIsHeldByMe) \
@@ -160,7 +159,7 @@ typedef struct MirroredLockLocalVars
 #define MIRRORED_LOCK \
 	{ \
 		mirroredLockLocalVars.mirroredLockIsHeldByMe = LWLockHeldByMe(MirroredLock); \
-		mirroredLockLocalVars.specialResyncManagerFlag = FileRepPrimary_IsResyncManagerOrWorker(); \
+		mirroredLockLocalVars.specialResyncManagerFlag = false; \
 		\
 		if (!mirroredLockLocalVars.mirroredLockIsHeldByMe) \
 		{ \
@@ -216,7 +215,7 @@ typedef struct MirroredLockLocalVars
 #define MIRRORED_LOCK_BY_REF \
 	{ \
 		mirroredLockByRefVars->mirroredLockIsHeldByMe = LWLockHeldByMe(MirroredLock); \
-		mirroredLockByRefVars->specialResyncManagerFlag = FileRepPrimary_IsResyncManagerOrWorker(); \
+		mirroredLockByRefVars->specialResyncManagerFlag = false; \
 		mirroredLockByRefVars->mirroredVariablesSet = true; \
 		\
 		if (!mirroredLockByRefVars->mirroredLockIsHeldByMe) \
@@ -237,7 +236,7 @@ typedef struct MirroredLockLocalVars
 #define MIRRORED_LOCK_BY_REF \
 	{ \
 		mirroredLockByRefVars->mirroredLockIsHeldByMe = LWLockHeldByMe(MirroredLock); \
-		mirroredLockByRefVars->specialResyncManagerFlag = FileRepPrimary_IsResyncManagerOrWorker(); \
+		mirroredLockByRefVars->specialResyncManagerFlag = false; \
 		\
 		if (!mirroredLockByRefVars->mirroredLockIsHeldByMe) \
 		{ \

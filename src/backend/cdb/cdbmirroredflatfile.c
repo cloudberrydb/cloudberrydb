@@ -25,7 +25,7 @@
 #include "access/slru.h"
 #include "access/xlog_internal.h"
 #include "utils/palloc.h"
-#include "cdb/cdbfilerepprimary.h"
+#include "cdb/cdbfilerep.h"
 #include "cdb/cdbmirroredflatfile.h"
 #include "cdb/cdbpersistentdatabase.h"
 #include "cdb/cdbpersistenttablespace.h"
@@ -165,20 +165,6 @@ MirroredFlatFile_Open(
 		ereport(ERROR, (errmsg("cannot generate path %s/%s", dir, open->simpleFileName)));
 	}
 
-	if (FileRepPrimary_MirrorOpen(
-								  FileRep_GetFlatFileIdentifier(
-																open->subDirectory,
-																open->simpleFileName),
-								  FileRepRelationTypeFlatFile,
-								  FILEREP_OFFSET_UNDEFINED,
-								  fileFlags,
-								  fileMode,
-								  suppressError) != 0)
-		ereport(LOG,
-				(errmsg("could not sent open file to mirror \"%s\" open file flags:'%x' ",
-						open->path,
-						fileFlags)));
-
 	errno = 0;
 
 	if (!open->isMirrorRecovery)
@@ -298,21 +284,6 @@ MirroredFlatFile_OpenInDbDir(
 
 	sprintf(open->path, "%s/%s", subDirectoryPrimary, simpleFileName);
 
-	if (FileRepPrimary_MirrorOpen(
-								  FileRep_GetFlatFileIdentifier(
-																open->subDirectory,
-																open->simpleFileName),
-								  FileRepRelationTypeFlatFile,
-								  FILEREP_OFFSET_UNDEFINED,
-								  fileFlags,
-								  fileMode,
-								  suppressError) != 0)
-		ereport(LOG,
-				(errmsg("could not sent open file to mirror '%s/%s' open file flags:'%x' ",
-						open->subDirectory,
-						open->simpleFileName,
-						fileFlags)));
-
 	errno = 0;
 	open->primaryFile = PathNameOpenFile(open->path, fileFlags, fileMode);
 	save_errno = errno;
@@ -377,25 +348,10 @@ MirroredFlatFile_Flush(
 					   bool suppressError)
 
 {
-	bool		mirrorFlush = TRUE;
 	int			save_errno = 0;
 
 	Assert(open != NULL);
 	Assert(open->isActive);
-
-	if (FileRepPrimary_MirrorFlush(
-								   FileRep_GetFlatFileIdentifier(
-																 open->subDirectory,
-																 open->simpleFileName),
-								   FileRepRelationTypeFlatFile) != 0)
-	{
-
-		mirrorFlush = FALSE;
-		ereport(LOG,
-				(errmsg("could not sent fsync file to mirror '%s/%s' ",
-						open->subDirectory,
-						open->simpleFileName)));
-	}
 
 	if (!open->isMirrorRecovery)
 	{
@@ -406,21 +362,6 @@ MirroredFlatFile_Flush(
 					 errmsg("could not fsync file \"%s\": %m", open->path)));
 
 		save_errno = errno;
-	}
-
-	if (mirrorFlush)
-	{
-		if (FileRepPrimary_IsOperationCompleted(
-												FileRep_GetFlatFileIdentifier(
-																			  open->subDirectory,
-																			  open->simpleFileName),
-												FileRepRelationTypeFlatFile) == FALSE)
-		{
-			ereport(LOG,
-					(errmsg("could not fsync file on mirror '%s/%s' ",
-							open->subDirectory,
-							open->simpleFileName)));
-		}
 	}
 
 	return save_errno;
@@ -438,15 +379,6 @@ MirroredFlatFile_Close(
 {
 	Assert(open != NULL);
 	Assert(open->isActive);
-
-
-	if (FileRepPrimary_MirrorClose(
-								   FileRep_GetFlatFileIdentifier(
-																 open->subDirectory,
-																 open->simpleFileName),
-								   FileRepRelationTypeFlatFile) != 0)
-		ereport(LOG,
-				(errmsg("could not sent close file to mirror \"%s\"", open->path)));
 
 	if (!open->isMirrorRecovery)
 	{
@@ -500,7 +432,6 @@ MirroredFlatFile_Rename(
 {
 	char	   *oldPath;
 	char	   *newPath;
-	bool		mirrorRename = TRUE;
 	int			save_errno = 0;
 	struct stat buf;
 
@@ -538,22 +469,6 @@ MirroredFlatFile_Rename(
 				 newPath);
 	}
 
-	if (FileRepPrimary_MirrorRename(
-									FileRep_GetFlatFileIdentifier(
-																  mirrorDir,
-																  oldSimpleFileName),
-									FileRep_GetFlatFileIdentifier(
-																  mirrorDir,
-																  newSimpleFileName),
-									FileRepRelationTypeFlatFile) != 0)
-	{
-
-		mirrorRename = FALSE;
-		ereport(LOG,
-				(errmsg("could not sent rename file to mirror from \"%s\" to \"%s\"",
-						oldPath, newPath)));
-	}
-
 	if (!isMirrorRecovery)
 	{
 		if (rename(oldPath, newPath) != 0)
@@ -564,17 +479,6 @@ MirroredFlatFile_Rename(
 		else
 			errno = 0;
 		save_errno = errno;
-	}
-
-	if (mirrorRename)
-	{
-		if (FileRepPrimary_IsOperationCompleted(
-												FileRep_GetFlatFileIdentifier(mirrorDir,
-																			  oldSimpleFileName),
-												FileRepRelationTypeFlatFile) == FALSE)
-			ereport(LOG,
-					(errmsg("could not rename file on mirror from \"%s\" to \"%s\" ",
-							oldPath, newPath)));
 	}
 
 	pfree(oldPath);
@@ -612,20 +516,6 @@ MirroredFlatFile_Append(
 
 	Assert(open != NULL);
 	Assert(open->isActive);
-
-	if (FileRepPrimary_MirrorWrite(
-								   FileRep_GetFlatFileIdentifier(
-																 open->subDirectory,
-																 open->simpleFileName),
-								   FileRepRelationTypeFlatFile,
-								   FILEREP_OFFSET_UNDEFINED,
-								   buffer,
-								   bufferLen,
-								   FileRep_GetXLogRecPtrUndefined()) != 0)
-		ereport(LOG,
-				(errmsg("could not sent write to mirror '%s/%s' ",
-						open->subDirectory,
-						open->simpleFileName)));
 
 	if (!open->isMirrorRecovery)
 	{
@@ -682,20 +572,6 @@ MirroredFlatFile_Write(
 	 * requires identical data are written to primary and its mirror
 	 */
 	memcpy(writeBufAligned, buffer, bufferLen);
-
-	if (FileRepPrimary_MirrorWrite(
-								   FileRep_GetFlatFileIdentifier(
-																 open->subDirectory,
-																 open->simpleFileName),
-								   FileRepRelationTypeFlatFile,
-								   position,
-								   writeBufAligned,
-								   bufferLen,
-								   FileRep_GetXLogRecPtrUndefined()) != 0)
-		ereport(LOG,
-				(errmsg("could not sent seek and write to mirror '%s/%s' ",
-						open->subDirectory,
-						open->simpleFileName)));
 
 	if (!open->isMirrorRecovery)
 	{
@@ -903,7 +779,6 @@ MirroredFlatFile_Drop(
  /* if TRUE then request is not performed on primary */
 {
 	char	   *path;
-	bool		mirrorDrop = TRUE;
 	int			save_errno = 0;
 	int			return_value = 0;
 	char	   *dir = NULL,
@@ -927,18 +802,6 @@ MirroredFlatFile_Drop(
 		ereport(ERROR, (errmsg("cannot generate path %s/%s", dir, simpleFileName)));
 	}
 
-	if (FileRepPrimary_MirrorDrop(
-								  FileRep_GetFlatFileIdentifier(
-																mirrorDir,
-																simpleFileName),
-								  FileRepRelationTypeFlatFile) != 0)
-	{
-
-		mirrorDrop = FALSE;
-		ereport(LOG,
-				(errmsg("could not sent drop file to mirror \"%s\"", path)));
-	}
-
 	if (!isMirrorRecovery)
 	{
 		errno = 0;
@@ -952,74 +815,12 @@ MirroredFlatFile_Drop(
 		save_errno = errno;
 	}
 
-	if (mirrorDrop)
-	{
-		if (FileRepPrimary_IsOperationCompleted(
-												FileRep_GetFlatFileIdentifier(
-																			  mirrorDir,
-																			  simpleFileName),
-												FileRepRelationTypeFlatFile) == FALSE)
-			ereport(LOG,
-					(errmsg("could not drop file on mirror \"%s\"", path)));
-	}
-
 	pfree(path);
 	pfree(dir);
 	pfree(mirrorDir);
 
 	errno = save_errno;
 	return return_value;
-}
-
-
-/*
- * Reconcile xlog (WAL) EOF between primary and mirror.
- *		xlog gets truncated to the same EOF on primary and mirror.
- *		Truncated area is set to zero.
- */
-int
-MirroredFlatFile_ReconcileXLogEof(
-								  char *subDirectory,
-
-								  char *simpleFileName,
-
-								  XLogRecPtr primaryXLogEof,
-
-								  XLogRecPtr *mirrorXLogEof)
-{
-	bool		mirrorReconcile = TRUE;
-	int			status = STATUS_OK;
-
-	if (FileRepPrimary_ReconcileXLogEof(
-										FileRep_GetFlatFileIdentifier(
-																	  subDirectory,
-																	  simpleFileName),
-										FileRepRelationTypeFlatFile,
-										primaryXLogEof) != 0)
-	{
-
-		mirrorReconcile = FALSE;
-		ereport(LOG,
-				(errmsg("could not sent reconcile Xlog EOF request to mirror")));
-		status = STATUS_ERROR;
-	}
-
-	if (mirrorReconcile)
-	{
-		if (FileRepPrimary_IsOperationCompleted(
-												FileRep_GetFlatFileIdentifier(
-																			  subDirectory,
-																			  simpleFileName),
-												FileRepRelationTypeFlatFile) == FALSE)
-		{
-			ereport(LOG,
-					(errmsg("could not reconcile Xlog EOF on mirror")));
-			status = STATUS_ERROR;
-
-		}
-	}
-
-	return status;
 }
 
 /*
@@ -1189,37 +990,6 @@ MirroredFlatFile_DropFilesFromDir(void)
 	char	   *mirrorMultiXactOffsetDir = makeRelativeToPeerTxnFilespace(MULTIXACT_OFFSETS_DIR);
 	char	   *mirrorSubxactDir = makeRelativeToPeerTxnFilespace(SUBTRANS_DIR);
 
-	FileRepPrimary_MirrorDropFilesFromDir(
-										  FileRep_GetFlatFileIdentifier(TWOPHASE_DIR, ""),
-										  FileRepRelationTypeFlatFile);
-
-	FileRepPrimary_MirrorDropFilesFromDir(
-										  FileRep_GetFlatFileIdentifier(mirrorCLogDir, ""),
-										  FileRepRelationTypeFlatFile);
-
-	FileRepPrimary_MirrorDropFilesFromDir(
-										  FileRep_GetFlatFileIdentifier(mirrorDistributedLogDir, ""),
-										  FileRepRelationTypeFlatFile);
-
-	FileRepPrimary_MirrorDropFilesFromDir(
-										  FileRep_GetFlatFileIdentifier(mirrorDistributedXidMapDir, ""),
-										  FileRepRelationTypeFlatFile);
-
-	FileRepPrimary_MirrorDropFilesFromDir(
-										  FileRep_GetFlatFileIdentifier(mirrorMultiXactMemberDir, ""),
-										  FileRepRelationTypeFlatFile);
-
-	FileRepPrimary_MirrorDropFilesFromDir(
-										  FileRep_GetFlatFileIdentifier(mirrorMultiXactOffsetDir, ""),
-										  FileRepRelationTypeFlatFile);
-
-	FileRepPrimary_MirrorDropFilesFromDir(
-										  FileRep_GetFlatFileIdentifier(mirrorSubxactDir, ""),
-										  FileRepRelationTypeFlatFile);
-
-	FileRepPrimary_MirrorDropFilesFromDir(
-										  FileRep_GetFlatFileIdentifier(mirrorXLogDir, ""),
-										  FileRepRelationTypeFlatFile);
 
 	pfree(mirrorSubxactDir);
 	pfree(mirrorMultiXactOffsetDir);
@@ -1270,46 +1040,6 @@ MirroredFlatFile_DropTemporaryFiles(void)
 	{
 		FreeDir(global_dir);
 	}
-}
-
-/*
- * Send to mirror request for drop temporary files of pg_database, pg_auth, pg_auth_time_constraint
- */
-void
-MirroredFlatFile_MirrorDropTemporaryFiles(void)
-{
-
-	if (FileRepPrimary_MirrorDropTemporaryFiles(
-												FileRep_GetFlatFileIdentifier(
-																			  "global",
-																			  "pg_database."),
-												FileRepRelationTypeFlatFile) != 0)
-	{
-		ereport(LOG,
-				(errmsg("could not sent drop file to mirror identifier 'global/pg_database' ")));
-	}
-
-	if (FileRepPrimary_MirrorDropTemporaryFiles(
-												FileRep_GetFlatFileIdentifier(
-																			  "global",
-																			  "pg_auth."),
-												FileRepRelationTypeFlatFile) != 0)
-	{
-		ereport(LOG,
-				(errmsg("could not sent drop file to mirror identifier 'global/pg_auth' ")));
-	}
-
-	if (FileRepPrimary_MirrorDropTemporaryFiles(
-												FileRep_GetFlatFileIdentifier(
-																			  "global",
-																			  "pg_auth_time_constraint."),
-												FileRepRelationTypeFlatFile) != 0)
-	{
-		ereport(LOG,
-				(errmsg("could not sent drop file to mirror identifier 'global/pg_auth_time_constraint' ")));
-	}
-
-	return;
 }
 
 /*

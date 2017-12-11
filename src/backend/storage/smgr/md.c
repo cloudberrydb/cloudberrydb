@@ -34,7 +34,7 @@
 #include "catalog/pg_tablespace.h"
 #include "cdb/cdbmirroredbufferpool.h"
 #include "cdb/cdbpersistenttablespace.h"
-#include "cdb/cdbfilerepprimary.h"
+#include "postmaster/primary_mirror_mode.h"
 #include "utils/faultinjector.h"
 
 
@@ -814,19 +814,13 @@ if (forknum == MAIN_FORKNUM)
 		 */
 		if (IsBootstrapProcessingMode())
 		{
-			MirrorDataLossTrackingState mirrorDataLossTrackingState;
-			int64						mirrorDataLossTrackingSessionNum;
-			
-			mirrorDataLossTrackingState = 
-						FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
-														&mirrorDataLossTrackingSessionNum);
 			MirroredBufferPool_Create(
 							&mirroredOpen,
 							&reln->smgr_rnode,
 							/* segmentFileNum */ 0,
 							/* relationName */ NULL,		// Ok to be NULL -- we don't know the name here.
-							mirrorDataLossTrackingState,
-							mirrorDataLossTrackingSessionNum,
+							MirrorDataLossTrackingState_MirrorNotConfigured,
+							getChangeTrackingSessionId(),
 							&primaryError,
 							&mirrorDataLossOccurred);
 		}
@@ -1207,7 +1201,7 @@ mdtruncate(SMgrRelation reln, ForkNumber forknum, BlockNumber nblocks,
 	 * will be always identical to curnblock since nblocks is allocated while
 	 * holding LockRelationForResyncExtension.
 	 */
-	if (nblocks == curnblk && (forknum != MAIN_FORKNUM || !FileRepPrimary_IsResyncWorker()))
+	if (nblocks == curnblk && (forknum != MAIN_FORKNUM))
 		return;					/* no work */
 
 	v = mdopen(reln, forknum, EXTENSION_FAIL);
@@ -1927,19 +1921,13 @@ if (forknum == MAIN_FORKNUM)
 	{
 	    if ((oflags & O_CREAT) != 0 )
 	    {
-            MirrorDataLossTrackingState mirrorDataLossTrackingState;
-            int64						mirrorDataLossTrackingSessionNum;
-
-            mirrorDataLossTrackingState =
-                FileRepPrimary_GetMirrorDataLossTrackingSessionNum(&mirrorDataLossTrackingSessionNum);
-
 	        MirroredBufferPool_Create(
 					&mirroredOpen,
 					&reln->smgr_rnode,
 					segno,
 					/* relationName */ NULL,		// Ok to be NULL -- we don't know the name here.
-					mirrorDataLossTrackingState,
-					mirrorDataLossTrackingSessionNum,
+					MirrorDataLossTrackingState_MirrorNotConfigured,
+					getChangeTrackingSessionId(),
 					&primaryError,
 					&mirrorDataLossOccurred);
 

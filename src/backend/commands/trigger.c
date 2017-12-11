@@ -49,8 +49,6 @@
 
 #include "cdb/cdbvars.h"
 #include "cdb/cdbdisp_query.h"
-#include "cdb/cdbfilerepprimary.h"
-
 
 /* GUC variables */
 int			SessionReplicationRole = SESSION_REPLICATION_ROLE_ORIGIN;

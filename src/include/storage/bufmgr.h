@@ -14,7 +14,6 @@
 #ifndef BUFMGR_H
 #define BUFMGR_H
 
-#include "cdb/cdbfilerepprimary.h"
 #include "miscadmin.h"
 #include "storage/block.h"
 #include "storage/buf.h"
@@ -170,7 +169,7 @@ typedef struct MirroredLockBufMgrLocalVars
 #define MIRROREDLOCK_BUFMGR_LOCK \
 	{ \
 		mirroredLockBufMgrLocalVars.mirroredLockIsHeldByMe = LWLockHeldByMe(MirroredLock); \
-		mirroredLockBufMgrLocalVars.specialResyncManagerFlag = FileRepPrimary_IsResyncManagerOrWorker(); \
+		mirroredLockBufMgrLocalVars.specialResyncManagerFlag = false; \
 		mirroredLockBufMgrLocalVars.mirroredVariablesSet = true; \
 		\
 		if (!mirroredLockBufMgrLocalVars.mirroredLockIsHeldByMe) \
@@ -191,7 +190,7 @@ typedef struct MirroredLockBufMgrLocalVars
 #define MIRROREDLOCK_BUFMGR_LOCK \
 	{ \
 		mirroredLockBufMgrLocalVars.mirroredLockIsHeldByMe = LWLockHeldByMe(MirroredLock); \
-		mirroredLockBufMgrLocalVars.specialResyncManagerFlag = FileRepPrimary_IsResyncManagerOrWorker(); \
+		mirroredLockBufMgrLocalVars.specialResyncManagerFlag = false; \
 		\
 		if (!mirroredLockBufMgrLocalVars.mirroredLockIsHeldByMe) \
 		{ \
@@ -246,11 +245,9 @@ typedef struct MirroredLockBufMgrLocalVars
 #define MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD \
 	{ \
 		bool alreadyMirroredLockIsHeldByMe; \
-		bool alreadySpecialResyncManagerFlag; \
 		\
 		alreadyMirroredLockIsHeldByMe = LWLockHeldByMe(MirroredLock); \
-		alreadySpecialResyncManagerFlag = FileRepPrimary_IsResyncManagerOrWorker(); \
-		if (!alreadyMirroredLockIsHeldByMe && !alreadySpecialResyncManagerFlag) \
+		if (!alreadyMirroredLockIsHeldByMe) \
 			elog(ERROR, "Mirrored lock must already be held"); \
 	}
 

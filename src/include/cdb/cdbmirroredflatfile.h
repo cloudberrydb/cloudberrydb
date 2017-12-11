@@ -254,20 +254,6 @@ extern int MirroredFlatFile_Drop(
 // -----------------------------------------------------------------------------
 // Reconcile XLog Eof
 // -----------------------------------------------------------------------------
-
-/*
- * Mirrored reconcile.
- */
-extern int MirroredFlatFile_ReconcileXLogEof(	
-						  char 			*subDirectory,
-						  
-						  char			*simpleFileName,
-						  
-						  XLogRecPtr	primaryXLogEof,
-						  
-						  XLogRecPtr	*mirrorXLogEof);
-
-
 extern int MirrorFlatFile(
 			   char 		*subDirectory,
 			   char			*simpleFileName);
@@ -275,8 +261,6 @@ extern int MirrorFlatFile(
 extern void MirroredFlatFile_DropFilesFromDir(void);
 
 extern void MirroredFlatFile_DropTemporaryFiles(void);
-
-extern void MirroredFlatFile_MirrorDropTemporaryFiles(void);
 
 extern int PgVersionRecoverMirror(void);
 

@@ -19,7 +19,6 @@
 #include "storage/relfilenode.h"
 #include "catalog/catalog.h"
 #include "storage/smgr.h"
-#include "cdb/cdbfilerepprimary.h"
 
 /*
  * This module is for doing mirrored writes for relation files currently managed by the

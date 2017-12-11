@@ -52,7 +52,6 @@
 #include "pgstat.h"
 #include "access/heapam.h"
 #include "cdb/cdbpersistentrelation.h"
-#include "cdb/cdbfilerepprimary.h"
 
 #include "access/aosegfiles.h"
 #include "access/aocssegfiles.h"

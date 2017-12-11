@@ -35,7 +35,6 @@
 #include "cdb/cdbgang.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbfilerep.h"
-#include "cdb/cdbfilerepprimary.h"
 #include "cdb/cdbfilerepconnserver.h"
 #include "cdb/cdbfilerepservice.h"
 #include "cdb/cdbpersistenttablespace.h"
@@ -2193,8 +2192,6 @@ FileRep_ProcessSignals()
 
 					InitBufferPoolBackend();
 				}
-
-				FileRepPrimary_MirrorShutdown();
 			}
 
 			processExit = true;
