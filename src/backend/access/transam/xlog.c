@@ -464,11 +464,6 @@ typedef struct XLogCtlData
 	XLogRecPtr	lastCheckPointRecPtr;
 	CheckPoint	lastCheckPoint;
 
-	/* end+1 of the last record replayed (or being replayed) */
-	XLogRecPtr	replayEndRecPtr;
-
-	slock_t		info_lck;		/* locks shared variables shown above */
-
 	/*
 	 * Save the location of the last checkpoint record to enable supressing
 	 * unnecessary checkpoint records -- when no new xlog has been written
@@ -480,9 +475,14 @@ typedef struct XLogCtlData
 
 	/*
 	 * lastReplayedEndRecPtr points to end+1 of the last record successfully
-	 * replayed.
+	 * replayed. When we're currently replaying a record, ie. in a redo
+	 * function, replayEndRecPtr points to the end+1 of the record being
+	 * replayed, otherwise it's equal to lastReplayedEndRecPtr.
 	 */
 	XLogRecPtr	lastReplayedEndRecPtr;
+	XLogRecPtr	replayEndRecPtr;
+
+	slock_t		info_lck;		/* locks shared variables shown above */
 
 	/* current effective recovery target timeline */
 	TimeLineID	RecoveryTargetTLI;
@@ -666,6 +666,7 @@ static void XLogArchiveCleanup(const char *xlog);
 static void exitArchiveRecovery(TimeLineID endTLI,
 					uint32 endLogId, uint32 endLogSeg);
 static bool recoveryStopsHere(XLogRecord *record, bool *includeThis);
+static void LocalSetXLogInsertAllowed(void);
 static void CheckPointGuts(XLogRecPtr checkPointRedo, int flags);
 static void Checkpoint_RecoveryPass(XLogRecPtr checkPointRedo);
 
@@ -906,13 +907,9 @@ XLogInsert_Internal(RmgrId rmid, uint8 info, XLogRecData *rdata, TransactionId h
 		}
  	}
 
-	/* GPDB_84_MERGE_FIXME: This cross-check was added in upstream, but it's failing
-	 * in Startup pass 2. Disable it for now. */
-#if 0
 	/* cross-check on whether we should be here or not */
 	if (!XLogInsertAllowed())
 		elog(ERROR, "cannot make new WAL entries during recovery");
-#endif
 
 	/* info's high bits are reserved for use by me */
 	if (info & XLR_INFO_MASK)
@@ -7633,18 +7630,16 @@ StartupXLOG(void)
 		}
 
 		/*
-		 * Initialize shared lastReplayedEndRecPtr.
-		 *
-		 * This is slightly confusing if we're starting from an online
-		 * checkpoint; we've just read and replayed the chekpoint record, but
-		 * we're going to start replay from its redo pointer, which precedes
-		 * the location of the checkpoint record itself. So even though the
-		 * last record we've replayed is indeed ReadRecPtr, we haven't
-		 * replayed all the preceding records yet. That's OK for the current
-		 * use of these variables.
+		 * Initialize shared variables for tracking progress of WAL replay,
+		 * as if we had just replayed the record before the REDO location
+		 * (or the checkpoint record itself, if it's a shutdown checkpoint).
 		 */
 		SpinLockAcquire(&xlogctl->info_lck);
-		xlogctl->lastReplayedEndRecPtr = EndRecPtr;
+		if (XLByteLT(checkPoint.redo, RecPtr))
+			xlogctl->replayEndRecPtr = checkPoint.redo;
+		else
+			xlogctl->replayEndRecPtr = EndRecPtr;
+		xlogctl->lastReplayedEndRecPtr = xlogctl->replayEndRecPtr;
 		xlogctl->currentChunkStartTime = 0;
 		SpinLockRelease(&xlogctl->info_lck);
 
@@ -7701,14 +7696,6 @@ StartupXLOG(void)
 			bool		lastReadRecWasCheckpoint=false;
 			CurrentResourceOwner = ResourceOwnerCreate(NULL, "xlog");
 			bool		reachedMinRecoveryPoint = false;
-
-			/* use volatile pointer to prevent code rearrangement */
-			volatile XLogCtlData *xlogctl = XLogCtl;
-
-			/* initialize shared replayEndRecPtr */
-			SpinLockAcquire(&xlogctl->info_lck);
-			xlogctl->replayEndRecPtr = ReadRecPtr;
-			SpinLockRelease(&xlogctl->info_lck);
 
 			InRedo = true;
 
@@ -7821,6 +7808,14 @@ StartupXLOG(void)
 						memcpy(&checkPoint, XLogRecGetData(record), sizeof(CheckPoint));
 						lastReadRecWasCheckpoint = true;
 					}
+
+					/*
+					 * Update shared replayEndRecPtr before replaying this record,
+					 * so that XLogFlush will update minRecoveryPoint correctly.
+					 */
+					SpinLockAcquire(&xlogctl->info_lck);
+					xlogctl->replayEndRecPtr = EndRecPtr;
+					SpinLockRelease(&xlogctl->info_lck);
 
 					ApplyStartupRedo(&ReadRecPtr, &EndRecPtr, record);
 
@@ -8048,6 +8043,13 @@ StartupXLOG(void)
 		int			rmid;
 
 		/*
+		 * Resource managers might need to write WAL records, eg, to record
+		 * index cleanup actions.  So temporarily enable XLogInsertAllowed in
+		 * this process only.
+		 */
+		LocalSetXLogInsertAllowed();
+
+		/*
 		 * Allow resource managers to do any required cleanup.
 		 */
 		for (rmid = 0; rmid <= RM_MAX_ID; rmid++)
@@ -8055,6 +8057,9 @@ StartupXLOG(void)
 			if (RmgrTable[rmid].rm_cleanup != NULL)
 				RmgrTable[rmid].rm_cleanup();
 		}
+
+		/* Disallow XLogInsert again */
+		LocalXLogInsertAllowed = -1;
 
 		/*
 		 * Check to see if the XLOG sequence contained any unresolved
@@ -9853,6 +9858,17 @@ CreateCheckPoint(int flags)
 	}
 
 	/*
+	 * An end-of-recovery checkpoint is created before anyone is allowed to
+	 * write WAL. To allow us to write the checkpoint record, temporarily
+	 * enable XLogInsertAllowed.  (This also ensures ThisTimeLineID is
+	 * initialized, which we need here and in AdvanceXLInsertBuffer.)
+	 */
+	if (flags & CHECKPOINT_END_OF_RECOVERY)
+		LocalSetXLogInsertAllowed();
+
+	checkPoint.ThisTimeLineID = ThisTimeLineID;
+
+	/*
 	 * Compute new REDO record ptr = location of next XLOG record.
 	 *
 	 * NB: this is NOT necessarily where the checkpoint record itself will be,
@@ -9990,20 +10006,6 @@ CreateCheckPoint(int flags)
 	CheckPointGuts(checkPoint.redo, flags);
 
 	START_CRIT_SECTION();
-
-	/*
-	 * An end-of-recovery checkpoint is created before anyone is allowed to
-	 * write WAL. To allow us to write the checkpoint record, temporarily
-	 * enable XLogInsertAllowed.
-	 */
-	if (flags & CHECKPOINT_END_OF_RECOVERY)
-		LocalSetXLogInsertAllowed();
-
-	/*
-	 * This needs to be done after LocalSetXLogInsertAllowed(), else
-	 * ThisTimeLineID might still be uninitialized.
-	 */
-	checkPoint.ThisTimeLineID = ThisTimeLineID;
 
 	/*
 	 * Now insert the checkpoint record into XLOG.
