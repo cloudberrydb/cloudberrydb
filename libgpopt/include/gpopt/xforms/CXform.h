@@ -209,6 +209,7 @@ namespace gpopt
 				ExfInnerJoinWithInnerSelect2DynamicBitmapIndexGetApply,
 				ExfGbAggWithMDQA2Join,
 				ExfCollapseProject,
+				ExfRemoveSubqDistinct,
 				ExfInvalid,
 				ExfSentinel = ExfInvalid
 			};

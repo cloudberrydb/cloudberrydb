@@ -34,6 +34,7 @@ const CHAR *rgszExistsFileNames[] =
 		"../data/dxl/minidump/NotExists-SuperfluousEquality.mdp",
 		"../data/dxl/minidump/SimplifyExistsSubquery2Limit.mdp",
 		"../data/dxl/minidump/NotExists-SuperflousOuterRefWithGbAgg.mdp",
+		"../data/dxl/minidump/Remove-Distinct-From-Subquery.mdp",
 	};
 
 

@@ -165,6 +165,7 @@
 #include "gpopt/xforms/CXformPushGbBelowUnionAll.h"
 #include "gpopt/xforms/CXformGbAggWithMDQA2Join.h"
 #include "gpopt/xforms/CXformMaxOneRow2Assert.h"
+#include "gpopt/xforms/CXformRemoveSubqDistinct.h"
 
 #endif // !GPOPT_xforms_H
 

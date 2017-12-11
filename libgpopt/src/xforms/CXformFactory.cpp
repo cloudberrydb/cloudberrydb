@@ -283,6 +283,7 @@ CXformFactory::Instantiate()
 	Add(GPOS_NEW(m_pmp) CXformInnerJoinWithInnerSelect2DynamicBitmapIndexGetApply(m_pmp));
 	Add(GPOS_NEW(m_pmp) CXformGbAggWithMDQA2Join(m_pmp));
 	Add(GPOS_NEW(m_pmp) CXformCollapseProject(m_pmp));
+	Add(GPOS_NEW(m_pmp) CXformRemoveSubqDistinct(m_pmp));
 	
 	GPOS_ASSERT(NULL != m_rgpxf[CXform::ExfSentinel - 1] &&
 				"Not all xforms have been instantiated");

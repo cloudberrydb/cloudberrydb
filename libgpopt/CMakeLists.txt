@@ -846,6 +846,8 @@ add_library(gpopt
             src/xforms/CXformPushGbDedupBelowJoin.cpp
             include/gpopt/xforms/CXformPushGbWithHavingBelowJoin.h
             src/xforms/CXformPushGbWithHavingBelowJoin.cpp
+            include/gpopt/xforms/CXformRemoveSubqDistinct.h
+            src/xforms/CXformRemoveSubqDistinct.cpp
             include/gpopt/xforms/CXformResult.h
             src/xforms/CXformResult.cpp
             include/gpopt/xforms/CXformSelect2Apply.h
