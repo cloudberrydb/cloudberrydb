@@ -184,14 +184,11 @@ CXformSimplifySubquery::FSimplify
 	}
 
 	// for all other types of subqueries, or if no other subqueries are
-	// below this point, we add-ref root node and return immediately
+	// below this point, we return false immediately.
 	if (CUtils::FSubquery(pexprScalar->Pop()) ||
 		!CDrvdPropScalar::Pdpscalar(pexprScalar->PdpDerive())->FHasSubquery())
 	{
-		pexprScalar->AddRef();
-		*ppexprNewScalar = pexprScalar;
-
-		return true;
+		return false;
 	}
 
 	// otherwise, recursively process children
