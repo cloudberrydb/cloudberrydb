@@ -400,7 +400,7 @@ ExecInitLimit(Limit *node, EState *estate, int eflags)
 	 */
 	ExecAssignResultTypeFromTL(&limitstate->ps);
 	limitstate->ps.ps_ProjInfo = NULL;
-	
+
 	return limitstate;
 }
 

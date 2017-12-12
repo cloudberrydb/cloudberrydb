@@ -90,7 +90,7 @@ ExecInitBitmapOr(BitmapOr *node, EState *estate, int eflags)
 		bitmapplanstates[i] = ExecInitNode(initNode, estate, eflags);
 		i++;
 	}
-	
+
 	return bitmaporstate;
 }
 

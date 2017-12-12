@@ -277,7 +277,7 @@ ExecInitValuesScan(ValuesScan *node, EState *estate, int eflags)
 	 */
 	ExecAssignResultTypeFromTL(&scanstate->ss.ps);
 	ExecAssignScanProjectionInfo(&scanstate->ss);
-	
+
 	return scanstate;
 }
 

@@ -62,7 +62,6 @@ ExecSort(SortState *node)
 
 	estate = node->ss.ps.state;
 	dir = estate->es_direction;
-
 	tuplesortstate = node->tuplesortstate->sortstore;
 
 	/*
@@ -181,9 +180,7 @@ ExecSort(SortState *node)
 			slot = ExecProcNode(outerNode);
 
 			if (TupIsNull(slot))
-			{
 				break;
-			}
 
 			tuplesort_puttupleslot(tuplesortstate, slot);
 		}
@@ -504,14 +501,10 @@ ExecReScanSort(SortState *node, ExprContext *exprCtxt)
 		 * first ExecProcNode.
 		 */
 		if (((PlanState *) node)->lefttree->chgParam == NULL)
-		{
 			ExecReScan(((PlanState *) node)->lefttree, exprCtxt);
-		}
 	}
 	else
-	{
 		tuplesort_rescan(node->tuplesortstate->sortstore);
-	}
 }
 
 

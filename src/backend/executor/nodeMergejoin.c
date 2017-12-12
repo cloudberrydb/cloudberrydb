@@ -1709,7 +1709,7 @@ ExecInitMergeJoin(MergeJoin *node, EState *estate, int eflags)
 	 */
 	MJ1_printf("ExecInitMergeJoin: %s\n",
 			   "node initialized");
-	
+
 	return mergestate;
 }
 

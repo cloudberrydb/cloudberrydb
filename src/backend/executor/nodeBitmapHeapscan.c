@@ -279,8 +279,8 @@ BitmapHeapNext(BitmapHeapScanState *node)
 			CheckSendPlanStateGpmonPkt(&node->ss.ps);
 
 			/*
-		 	* Set rs_cindex to first slot to examine
-		 	*/
+			 * Set rs_cindex to first slot to examine
+			 */
 			scan->rs_cindex = 0;
 
 #ifdef USE_PREFETCH
@@ -435,7 +435,6 @@ bitgetpage(HeapScanDesc scan, TBMIterateResult *tbmres)
 	scan->rs_cbuf = ReleaseAndReadBuffer(scan->rs_cbuf,
 										 scan->rs_rd,
 										 page);
-
 	buffer = scan->rs_cbuf;
 	snapshot = scan->rs_snapshot;
 

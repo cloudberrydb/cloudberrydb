@@ -162,7 +162,6 @@ ExecRecursiveUnion(RecursiveUnionState *node)
 		node->intermediate_empty = false;
 		tuplestore_puttupleslot(node->intermediate_table, slot);
 		/* ... and return it */
-
 		return slot;
 	}
 

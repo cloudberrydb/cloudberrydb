@@ -347,7 +347,6 @@ ExecResultRestrPos(ResultState *node)
 		elog(ERROR, "Result nodes do not support mark/restore");
 }
 
-
 /* ----------------------------------------------------------------
  *		ExecInitResult
  *

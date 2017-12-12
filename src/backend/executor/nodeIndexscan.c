@@ -90,7 +90,8 @@ IndexNext(IndexScanState *node)
 			return ExecClearTuple(slot);
 		}
 
-		ExecStoreHeapTuple(estate->es_evTuple[scanrelid - 1], slot, InvalidBuffer, false);
+		ExecStoreHeapTuple(estate->es_evTuple[scanrelid - 1],
+					   slot, InvalidBuffer, false);
 
 		/* Does the tuple meet the indexqual condition? */
 		econtext->ecxt_scantuple = slot;

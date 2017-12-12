@@ -490,7 +490,7 @@ ExecInitNestLoop(NestLoop *node, EState *estate, int eflags)
 
 	NL1_printf("ExecInitNestLoop: %s\n",
 			   "node initialized");
-	
+
 	return nlstate;
 }
 
