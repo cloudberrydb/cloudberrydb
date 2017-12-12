@@ -613,60 +613,11 @@ CREATE TYPE <replaceable class="parameter">name</replaceable>
      </para>
     </listitem>
    </varlistentry>
-
-   <varlistentry>
-    <term><replaceable class="parameter">compression_type</replaceable></term>
-    <listitem>
-     <para>
-      One of the following: ZLIB, QUICKLZ , RLE_TYPE, or NONE.
-     </para>
-    </listitem>
-   </varlistentry>
-
-   <varlistentry>
-    <term><replaceable class="parameter">compression_level</replaceable></term>
-    <listitem>
-     <para>
-      Values between 0 and 9.
-     </para>
-    </listitem>
-   </varlistentry>
-
-   <varlistentry>
-    <term><replaceable class="parameter">blocksize</replaceable></term>
-    <listitem>
-     <para>
-      8192 – 2097152
-      The value must be a multiple of 8192. The default is 32768.
-     </para>
-     <para>
-       For more information on the compression and blocksize parameters, see the
-       "Storage Directives for Column-level Compression" in the Greenplum
-       Database Administrator Guide.
-     </para>
-    </listitem>
-   </varlistentry>
-  
-
-
-
   </variablelist>
  </refsect1>
 
  <refsect1 id="SQL-CREATETYPE-notes">
   <title>Notes</title>
-
-  <para>
-   It is best to avoid using type names that begin with the underscore
-   character (<literal>_</literal>).  <productname>PostgreSQL</productname>
-   forms the name of an array type by prepending one or more underscores
-   to the element type's name, and these names may collide with user-defined
-   type names that begin with underscore.  While the system will modify
-   generated array type names to avoid collisions, this does not help if the
-   conflicting array type already exists when you try to create your type.
-   Also, various old client software may assume that names beginning with
-   underscores always represent arrays.
-  </para>
 
   <para>
    Because there are no restrictions on use of a data type once it's been

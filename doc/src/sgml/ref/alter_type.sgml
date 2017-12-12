@@ -23,14 +23,10 @@ PostgreSQL documentation
 
  <refsynopsisdiv>
   <synopsis>
-<!--
-     GPDB_84_MERGE_FIXME: Upstream has documentation on "RENAME TO"
-     that we didn't take. Should we add that?
--->
-ALTER TYPE <replaceable class="PARAMETER">name</replaceable> 
-   SET DEFAULT ENCODING ( storage_directive )
-     OWNER TO <replaceable class="PARAMETER">new_owner</replaceable> 
-   | SET SCHEMA <replaceable class="PARAMETER">new_schema</replaceable>
+ALTER TYPE <replaceable class="PARAMETER">name</replaceable> RENAME TO <replaceable class="PARAMETER">new_name</replaceable>
+ALTER TYPE <replaceable class="PARAMETER">name</replaceable> OWNER TO <replaceable class="PARAMETER">new_owner</replaceable> 
+ALTER TYPE <replaceable class="PARAMETER">name</replaceable> SET SCHEMA <replaceable class="PARAMETER">new_schema</replaceable>
+ALTER TYPE <replaceable class="PARAMETER">name</replaceable> SET DEFAULT ENCODING ( storage_directive )
   </synopsis>
  </refsynopsisdiv>
 
@@ -95,23 +91,6 @@ ALTER TYPE <replaceable class="PARAMETER">name</replaceable>
       </listitem>
      </varlistentry>
 
-     <varlistentry>
-      <term><replaceable class="PARAMETER">storage_directive</replaceable></term>
-      <listitem>
-       <para>
-        Sets any or all of the following: compression type, compression level, 
-        and blocksize, using the following format:
-        COMPRESSTYPE={ZLIB | QUICKLZ | RLE_TYPE | NONE} | 
-        COMPRESSLEVEL={0-9} | BLOCKSIZE={8192-2097152}
-       </para>
-       <para>
-       For more information on the compression and blocksize parameters, see the
-       "Storage Directives for Column-level Compression" in the Greenplum
-       Database Administrator Guide.
-       </para>
-      </listitem>
-     </varlistentry>
-
     </variablelist>
    </para>
   </refsect1>
@@ -139,13 +118,6 @@ ALTER TYPE email OWNER TO joe;
    to <literal>customers</literal>:
    <programlisting>
 ALTER TYPE email SET SCHEMA customers;
-   </programlisting>
-  </para>
-
-  <para>
-   To change the type int to have ZLIB column compression:
-   <programlisting>
-ALTER TYPE int SET DEFAULT ENCODING (COMPRESSTYPE=ZLIB);
    </programlisting>
   </para>
  </refsect1>
