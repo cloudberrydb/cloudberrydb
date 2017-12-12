@@ -4130,10 +4130,7 @@
   <topic id="gp_hadoop_home" otherprops="oss">
     <title>gp_hadoop_home</title>
     <body>
-      <p>When using Pivotal HD, specify the installation directory for Hadoop. For example, the
-        default installation directory is <codeph>/usr/lib/gphd</codeph>.</p>
-      <p>When using Greenplum HD 1.2 or earlier, specify the same value as the HADOOP_HOME
-        environment variable.</p>
+      <p>Specifies the installation directory for the Greenplum Database <codeph>gphdfs</codeph> Hadoop target.</p>
       <table id="gp_hadoop_home_table">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
@@ -4160,7 +4157,7 @@
   <topic id="gp_hadoop_target_version">
     <title>gp_hadoop_target_version</title>
     <body>
-      <p>The installed version of Greenplum Hadoop target.</p>
+      <p>The installed version of the Greenplum Database <codeph>gphdfs</codeph> Hadoop target.</p>
       <table id="gp_hadoop_target_version_table">
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="1*"/>
@@ -4176,13 +4173,14 @@
           <tbody>
             <row>
               <entry colname="col1"
-                  >gphd-1.0<p>gphd-1.1</p><p>gphd-1.2</p><p>gphd-2.0</p><p>gphd-3.0</p><p>gpmr-1.0</p><p>gpmr-1.2</p><p>hadoop2</p><p>hdp2</p><p>cdh5</p><p>cdh3u2</p><p>cdh4.1</p></entry>
-              <entry colname="col2">gphd-1.1</entry>
+                  >gpmr-1.2<p>hadoop2</p><p>hdp2</p><p>cdh5</p><p>cdh4.1</p></entry>
+              <entry colname="col2">gphd-1.1*</entry>
               <entry colname="col3">local<p>session</p><p>reload</p></entry>
             </row>
           </tbody>
         </tgroup>
       </table>
+      <note>*The default <codeph>gp_hadoop_target_version</codeph> value <codeph>gphd-1.1</codeph> is not supported; you must set this server configuration parameter to a supported value.</note>
     </body>
   </topic>
   <topic id="gp_hashjoin_tuples_per_bucket">
