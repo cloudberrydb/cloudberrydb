@@ -153,14 +153,6 @@ extern void PersistentRelation_Dropped(
 	int64				persistentSerialNum);
 				/* Serial number for the relation.	Distinquishes the uses of the tuple. */
 
-extern void PersistentRelation_MarkBufPoolRelationForScanIncrementalResync(
-	RelFileNode 		*relFileNode,
-				/* The tablespace, database, and relation OIDs for the created relation. */
-	ItemPointer 		persistentTid,
-				/* TID of the gp_persistent_rel_files tuple for the relation. */
-	int64				persistentSerialNum);
-				/* Serial number for the relation.	Distinquishes the uses of the tuple. */
-
 // -----------------------------------------------------------------------------
 // Shmem and Startup/Shutdown
 // -----------------------------------------------------------------------------

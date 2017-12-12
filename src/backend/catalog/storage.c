@@ -466,29 +466,6 @@ RelationTruncate(Relation rel, BlockNumber nblocks, bool markPersistentAsPhysica
 	// Fetch gp_persistent_relation_node information that will be added to XLOG record.
 	RelationFetchGpRelationNodeForXLog(rel);
 
-	if (markPersistentAsPhysicallyTruncated)
-	{
-		LockRelationForResynchronize(&rel->rd_node, AccessExclusiveLock);
-
-		/*
-		 * Fetch gp_persistent_relation_node information so we can mark the persistent entry.
-		 */
-		RelationFetchGpRelationNodeForXLog(rel);
-
-		if (rel->rd_segfile0_relationnodeinfo.isPresent)
-		{
-			/*
-			 * Since we are deleting 0, 1, or more segments files and possibly lopping off the
-			 * end of new last segment file, we need to indicate to resynchronize that
-			 * it should use 'Scan Incremental' only.
-			 */
-			PersistentRelation_MarkBufPoolRelationForScanIncrementalResync(
-															&rel->rd_node,
-															&rel->rd_segfile0_relationnodeinfo.persistentTid,
-															rel->rd_segfile0_relationnodeinfo.persistentSerialNum);
-		}
-	}
-
 	// -------- MirroredLock ----------
 	// NOTE: PersistentFileSysObj_EndXactDrop acquires relation resynchronize lock before MirroredLock, too.
 	MIRROREDLOCK_BUFMGR_LOCK;

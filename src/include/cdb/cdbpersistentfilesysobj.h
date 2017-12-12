@@ -215,20 +215,6 @@ extern void PersistentFileSysObj_PreparedEndXactAction(
 	bool							isCommit,
 	int								prepareAppendOnlyIntentCount);
 
-extern void PersistentFileSysObj_ChangeMirrorState(
-	PersistentFsObjType 			fsObjType,
-	ItemPointer 					persistentTid,
-	int64							persistentSerialNum,
-	MirroredObjectExistenceState	mirrorExistenceState,
-	MirroredRelDataSynchronizationState relDataSynchronizationState,
-	bool							flushToXLog);
-
-extern void PersistentFileSysObj_MarkBufPoolRelationForScanIncrementalResync(
-	PersistentFileSysObjName 	*fsObjName,
-	ItemPointer					persistentTid,
-	int64						persistentSerialNum,
-	bool						flushToXLog);
-
 extern void PersistentFileSysObj_UpdateAppendOnlyMirrorResyncEofs(
 	RelFileNode					*relFileNode,
 	int32						segmentFileNum,
@@ -238,87 +224,6 @@ extern void PersistentFileSysObj_UpdateAppendOnlyMirrorResyncEofs(
 	int64						mirrorNewEof,
 	bool						recovery,
 	bool						flushToXLog);
-
-extern bool PersistentFileSysObj_CanAppendOnlyCatchupDuringResync(
-		RelFileNode 				*relFileNode,
-		int32						segmentFileNum,
-		ItemPointer 				persistentTid,
-		int64						persistentSerialNum,
-		int64						*eof);
-
-extern void PersistentFileSysObj_GetAppendOnlyCatchupMirrorStartEof(
-	RelFileNode					*relFileNode,
-	int32						segmentFileNum,
-	ItemPointer 				persistentTid,
-	int64						persistentSerialNum,
-	int64						*startEof);
-
-extern void PersistentFileSysObj_RequestResynchronizeTransition(void);
-
-extern void PersistentFileSysObj_MarkWholeMirrorFullCopy(void);
-
-extern void PersistentFileSysObj_MarkAppendOnlyCatchup(void);
-
-extern void PersistentFileSysObj_MarkSpecialScanIncremental(void);
-
-extern void PersistentFileSysObj_MirrorReCreate(void);
-
-extern void PersistentFileSysObj_MarkMirrorReCreated(void);
-
-extern void PersistentFileSysObj_MirrorReDrop(void);
-
-extern void PersistentFileSysObj_MarkMirrorReDropped(void);
-
-typedef struct ResynchronizeScanToken
-{
-	bool				beginScan;
-	PersistentStoreScan storeScan;
-	bool				done;
-} ResynchronizeScanToken;
-
-inline static void ResynchronizeScanToken_Init(
-	ResynchronizeScanToken		*token)
-{
-	MemSet(token, 0, sizeof(ResynchronizeScanToken));
-	token->beginScan = false;
-	token->done = false;
-}
-
-extern bool PersistentFileSysObj_ResynchronizeScan(
-	ResynchronizeScanToken			*resynchronizeScanToken,
-	RelFileNode						*relFileNode,
-	int32							*segmentFileNum,
-	PersistentFileSysRelStorageMgr 	*relStorageMgr,
-	MirroredRelDataSynchronizationState *mirrorDataSynchronizationState,
-	int64							*mirrorBufpoolResyncChangedPageCount,
-	XLogRecPtr						*mirrorBufpoolResyncCkptLoc,
-	BlockNumber 					*mirrorBufpoolResyncCkptBlockNum,
-	int64							*mirrorAppendOnlyLossEof,
-	int64							*mirrorAppendOnlyNewEof,
-	ItemPointer						persistentTid,
-	int64							*persistentSerialNum);
-
-/*
- * Refetch the resynchronize relation information while under RELATION_RESYNCHRONIZE lock
- * based on its persistent TID and serial number.
- */
-extern bool PersistentFileSysObj_ResynchronizeRefetch(
-	RelFileNode						*relFileNode,
-	int32							*segmentFileNum,
-	ItemPointer						persistentTid,
-	int64							persistentSerialNum,
-	PersistentFileSysRelStorageMgr 	*relStorageMgr,
-	MirroredRelDataSynchronizationState *mirrorDataSynchronizationState,
-	XLogRecPtr						*mirrorBufpoolResyncCkptLoc,
-	BlockNumber 					*mirrorBufpoolResyncCkptBlockNum,
-	int64							*mirrorAppendOnlyLossEof,
-	int64							*mirrorAppendOnlyNewEof);
-
-extern void PersistentFileSysObj_ResynchronizeRelationComplete(
-	ItemPointer 					persistentTid,
-	int64							persistentSerialNum,
-	int64							mirrorLossEof,
-	bool							flushToXLog);
 
 typedef struct OnlineVerifyScanToken
 {
