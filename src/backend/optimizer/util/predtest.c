@@ -2330,7 +2330,7 @@ ProcessOrClauseForPossibleValues( PredIterInfoData *clauseInfo, Node *clause, No
  * Check to see if the given OpExpr is a valid equality between the listed variable and a constant.
  *
  * @param expr the expression to check for being a valid quality
- * @param variable the varaible to look for
+ * @param variable the variable to look for
  * @param resultOut will be updated with the modified values
  */
 static bool
