@@ -63,8 +63,6 @@ ExecHashTableExplainBatches(HashJoinTable   hashtable,
                             int             ibatch_end,
                             const char     *title);
 
-#define BLOOMVAL(hk)  (((uint64)1) << (((hk) >> 13) & 0x3f))
-
 /* Amount of metadata memory required per bucket */
 #define MD_MEM_PER_BUCKET (sizeof(HashJoinTuple) + sizeof(uint64))
 
@@ -327,7 +325,6 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 	hashtable->nbuckets = nbuckets;
 	hashtable->log2_nbuckets = log2_nbuckets;
 	hashtable->buckets = NULL;
-	hashtable->bloom = NULL;
 	hashtable->skewEnabled = false;
 	hashtable->skewBucket = NULL;
 	hashtable->skewBucketLen = 0;
@@ -434,9 +431,6 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 	 */
 	if (nbatch > 1)
 		ExecHashBuildSkewHash(hashtable, node, num_skew_mcvs);
-
-	if(gp_hashjoin_bloomfilter!=0)
-		hashtable->bloom = (uint64*) palloc0(nbuckets * sizeof(uint64));
 
 	MemoryContextSwitchTo(oldcxt);
 	}
@@ -795,7 +789,6 @@ ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 	{
 		HashJoinTuple prevtuple;
 		HashJoinTuple tuple;
-		uint64		bloom = 0;
 
 		prevtuple = NULL;
 		tuple = hashtable->buckets[i];
@@ -815,7 +808,6 @@ ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 			{
 				/* keep tuple */
 				prevtuple = tuple;
-				bloom |= BLOOMVAL(tuple->hashvalue);
 			}
 			else
 			{
@@ -846,9 +838,6 @@ ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 
 			tuple = nexttuple;
 		}
-
-		if (gp_hashjoin_bloomfilter != 0)
-			hashtable->bloom[i] = bloom;
 	}
 
 #ifdef HJDEBUG
@@ -931,9 +920,6 @@ ExecHashTableInsert(HashState *hashState, HashJoinTable hashtable,
 		hashTuple->next = hashtable->buckets[bucketno];
 		hashtable->buckets[bucketno] = hashTuple;
 		hashtable->spaceUsed += hashTupleSize;
-
-		if(gp_hashjoin_bloomfilter!=0)
-			hashtable->bloom[bucketno] |= BLOOMVAL(hashvalue);
 
 		/* Double the number of batches when too much data in hash table. */
 		if (hashtable->spaceUsed > hashtable->spaceAllowed)
@@ -1151,12 +1137,7 @@ ExecScanHashBucket(HashState *hashState, HashJoinState *hjstate,
 	else if (hjstate->hj_CurSkewBucketNo != INVALID_SKEW_BUCKET_NO)
 		hashTuple = hashtable->skewBucket[hjstate->hj_CurSkewBucketNo]->tuples;
 	else
-	{
-		/* GPDB_84_MERGE_FIXME: Should we apply the bloom filter for the skew bucket, too? */
-		/* if bloom filter fails, then no match - don't even bother to scan */
-		if (gp_hashjoin_bloomfilter == 0 || 0 != (hashtable->bloom[hjstate->hj_CurBucketNo] & BLOOMVAL(hashvalue)))
-			hashTuple = hashtable->buckets[hjstate->hj_CurBucketNo];
-	}
+		hashTuple = hashtable->buckets[hjstate->hj_CurBucketNo];
 
 	while (hashTuple != NULL)
 	{
@@ -1216,9 +1197,6 @@ ExecHashTableReset(HashState *hashState, HashJoinTable hashtable)
 	/* Reallocate and reinitialize the hash bucket headers. */
 	hashtable->buckets = (HashJoinTuple *)
 		palloc0(nbuckets * sizeof(HashJoinTuple));
-
-	if(gp_hashjoin_bloomfilter != 0)
-		hashtable->bloom = (uint64*) palloc0(nbuckets * sizeof(uint64));
 
 	hashtable->spaceUsed = 0;
 	hashtable->totalTuples = 0;

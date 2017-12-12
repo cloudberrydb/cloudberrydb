@@ -4259,16 +4259,6 @@ struct config_int ConfigureNamesInt_gp[] =
 	},
 
 	{
-		{"gp_hashjoin_bloomfilter", PGC_USERSET, GP_ARRAY_TUNING,
-			gettext_noop("Use bloomfilter in hash join"),
-			gettext_noop("Use bloomfilter may speed up hashtable probing"),
-			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL | GUC_GPDB_ADDOPT
-		},
-		&gp_hashjoin_bloomfilter,
-		1, 0, 1, NULL, NULL
-	},
-
-	{
 		{"gp_motion_slice_noop", PGC_USERSET, GP_ARRAY_TUNING,
 			gettext_noop("Make motion nodes in certain slices noop"),
 			gettext_noop("Make motion nodes noop, to help analyze performance"),

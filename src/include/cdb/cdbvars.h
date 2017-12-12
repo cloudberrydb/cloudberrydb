@@ -863,9 +863,6 @@ extern bool gp_hashagg_streambottom;
  */
 extern int gp_hashagg_default_nbatches;
 
-/* Hashjoin use bloom filter */
-extern int gp_hashjoin_bloomfilter;
-
 /* Get statistics for partitioned parent from a child */
 extern bool 	gp_statistics_pullup_from_child_partition;
 
