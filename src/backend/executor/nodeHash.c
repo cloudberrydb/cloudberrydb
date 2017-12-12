@@ -1695,6 +1695,8 @@ ExecHashBuildSkewHash(HashJoinTable hashtable, Hash *node, int mcvsToUse)
 			MemoryContextAllocZero(hashtable->batchCxt,
 								   mcvsToUse * sizeof(int));
 
+		hashtable->spaceUsed += nbuckets * sizeof(HashSkewBucket *)
+			+ mcvsToUse * sizeof(int);
 		hashtable->spaceUsedSkew += nbuckets * sizeof(HashSkewBucket *)
 			+ mcvsToUse * sizeof(int);
 
@@ -1743,6 +1745,7 @@ ExecHashBuildSkewHash(HashJoinTable hashtable, Hash *node, int mcvsToUse)
 			hashtable->skewBucket[bucket]->tuples = NULL;
 			hashtable->skewBucketNums[hashtable->nSkewBuckets] = bucket;
 			hashtable->nSkewBuckets++;
+			hashtable->spaceUsed += SKEW_BUCKET_OVERHEAD;
 			hashtable->spaceUsedSkew += SKEW_BUCKET_OVERHEAD;
 		}
 
@@ -1829,17 +1832,14 @@ ExecHashSkewTableInsert(HashState *hashState,
 	hashtable->skewBucket[bucketNumber]->tuples = hashTuple;
 
 	/* Account for space used, and back off if we've used too much */
+	hashtable->spaceUsed += hashTupleSize;
 	hashtable->spaceUsedSkew += hashTupleSize;
 	while (hashtable->spaceUsedSkew > hashtable->spaceAllowedSkew)
 		ExecHashRemoveNextSkewBucket(hashState, hashtable);
 
 	/* Check we are not over the total spaceAllowed, either */
-	/* GPDB_84_MERGE_FIXME: spaceUsed has been removed in GPDB. What's the
-	 * right criteria here? Or should we resurrect spaceUsed? */
-#if 0
 	if (hashtable->spaceUsed > hashtable->spaceAllowed)
 		ExecHashIncreaseNumBatches(hashtable);
-#endif
 }
 
 /*
@@ -1906,6 +1906,7 @@ ExecHashRemoveNextSkewBucket(HashState *hashState, HashJoinTable hashtable)
 								  hashtable,
 								  &hashtable->innerBatchFile[batchno], hashtable->bfCxt);
 			pfree(hashTuple);
+			hashtable->spaceUsed -= tupleSize;
 			hashtable->spaceUsedSkew -= tupleSize;
 		}
 
@@ -1927,6 +1928,7 @@ ExecHashRemoveNextSkewBucket(HashState *hashState, HashJoinTable hashtable)
 	hashtable->skewBucket[bucketToRemove] = NULL;
 	hashtable->nSkewBuckets--;
 	pfree(bucket);
+	hashtable->spaceUsed -= SKEW_BUCKET_OVERHEAD;
 	hashtable->spaceUsedSkew -= SKEW_BUCKET_OVERHEAD;
 
 	/*
@@ -1940,6 +1942,7 @@ ExecHashRemoveNextSkewBucket(HashState *hashState, HashJoinTable hashtable)
 		pfree(hashtable->skewBucketNums);
 		hashtable->skewBucket = NULL;
 		hashtable->skewBucketNums = NULL;
+		hashtable->spaceUsed -= hashtable->spaceUsedSkew;
 		hashtable->spaceUsedSkew = 0;
 	}
 }
