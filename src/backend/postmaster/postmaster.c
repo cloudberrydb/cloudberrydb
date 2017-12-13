@@ -3603,8 +3603,6 @@ processPrimaryMirrorTransitionQuery(Port *port, void *pkt)
 				elog(LOG, "FTS_PROBE for IO Check: FAILED");
 				s_state = SegmentStateFault;
 				f_type = FaultTypeIO; 
-
-				FileRep_SetSegmentState(s_state, f_type);
 			}
 		}
 	}

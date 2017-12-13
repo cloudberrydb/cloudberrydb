@@ -806,15 +806,6 @@ void FtsLoop()
 
 		if (FtsWalRepSetupMessageContext(&context))
 			FtsWalRepMessageSegments(&context);
-#else
-		/* probe segments */
-		FtsProbeSegments(cdbs, scan_status);
-
-		/*
-		 * Now we've completed the scan, update shared-memory. if we
-		 * change anything, we return true.
-		 */
-		updated_probe_state = probePublishUpdate(cdbs, scan_status);
 #endif
 
 		MemoryContextSwitchTo(oldContext);
