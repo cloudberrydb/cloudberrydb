@@ -30,6 +30,27 @@ returns text as $$
 	return subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).replace('.', '')
 $$ language plpythonu;
 
+create or replace function wait_for_replication_replay (retries int) returns bool as
+$$
+declare
+	i int;
+begin
+	i := 0;
+	loop
+		if (select count(*) from gp_stat_replication) =
+			(select count(*) from gp_stat_replication
+				where replay_location = sent_location) then
+			return true;
+		end if;
+		if i >= retries then
+			return false;
+		end if;
+		perform pg_sleep(0.1);
+		i := i + 1;
+	end loop;
+end;
+$$ language plpgsql;
+
 create or replace function wait_for_replication_error (expected_error text, segment_id int, retries int) returns bool as
 $$
 declare
@@ -48,6 +69,11 @@ begin
 	end loop;
 end;
 $$ language plpgsql;
+
+-- checkpoint to ensure clean xlog replication before bring down mirror
+checkpoint;
+begin;end;
+select wait_for_replication_replay(200);
 
 -- stop a mirror 
 select pg_ctl((select fselocation from gp_segment_configuration c, pg_filespace_entry f where c.role='m' and c.content=0 and c.dbid = f.fsedbid), 'stop', NULL, NULL);
