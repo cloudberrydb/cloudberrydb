@@ -194,7 +194,9 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	 * support pl/* statements (relevant when they are planned on the segments).
 	 * For these reasons, restrict to using ORCA on the master QD processes only.
 	 */
-	if (optimizer && GP_ROLE_DISPATCH == Gp_role)
+	if (optimizer &&
+		GP_ROLE_DISPATCH == Gp_role &&
+		MASTER_CONTENT_ID == GpIdentity.segindex)
 	{
 		if (gp_log_optimization_time)
 			INSTR_TIME_SET_CURRENT(starttime);
