@@ -306,6 +306,19 @@ typedef union Datum_U
 
 typedef Datum *DatumPtr;
 
+#define GET_1_BYTE(datum)	(((Datum) (datum)) & 0x000000ff)
+#define GET_2_BYTES(datum)	(((Datum) (datum)) & 0x0000ffff)
+#define GET_4_BYTES(datum)	(((Datum) (datum)) & 0xffffffff)
+#if SIZEOF_DATUM == 8
+#define GET_8_BYTES(datum)	((Datum) (datum))
+#endif
+#define SET_1_BYTE(value)	(((Datum) (value)) & 0x000000ff)
+#define SET_2_BYTES(value)	(((Datum) (value)) & 0x0000ffff)
+#define SET_4_BYTES(value)	(((Datum) (value)) & 0xffffffff)
+#if SIZEOF_DATUM == 8
+#define SET_8_BYTES(value)	((Datum) (value))
+#endif
+
 /* 
  * Conversion between Datum and type X.  Changed from Macro to static inline
  * functions to get proper type checking.
@@ -347,8 +360,32 @@ static inline int64 DatumGetInt64(Datum d) { return (int64) d; }
 static inline Datum Int64GetDatum(int64 i64) { return (Datum) i64; } 
 static inline Datum Int64GetDatumFast(int64 x) { return Int64GetDatum(x); } 
 
-static inline uint64 DatumGetUInt64(Datum d) { return (uint64) d; } 
-static inline Datum UInt64GetDatum(uint64 ui64) { return (Datum) ui64; } 
+/*
+ * DatumGetUInt64
+ *		Returns 64-bit unsigned integer value of a datum.
+ *
+ * Note: this macro hides whether int64 is pass by value or by reference.
+ */
+
+#ifdef USE_FLOAT8_BYVAL
+#define DatumGetUInt64(X) ((uint64) GET_8_BYTES(X))
+#else
+#define DatumGetUInt64(X) (* ((uint64 *) DatumGetPointer(X)))
+#endif
+
+/*
+ * UInt64GetDatum
+ *		Returns datum representation for a 64-bit unsigned integer.
+ *
+ * Note: if int64 is pass by reference, this function returns a reference
+ * to palloc'd space.
+ */
+
+#ifdef USE_FLOAT8_BYVAL
+#define UInt64GetDatum(X) ((Datum) SET_8_BYTES(X))
+#else
+#define UInt64GetDatum(X) Int64GetDatum((int64) (X))
+#endif
 
 static inline Oid DatumGetObjectId(Datum d) { return (Oid) d; } 
 static inline Datum ObjectIdGetDatum(Oid oid) { return (Datum) oid; } 

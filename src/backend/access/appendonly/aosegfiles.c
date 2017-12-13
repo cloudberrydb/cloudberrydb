@@ -1165,7 +1165,7 @@ gp_update_aorow_master_stats_internal(Relation parentrel, Snapshot appendOnlyMet
 	Relation	aosegrel;
 	bool		connected = false;
 	char		aoseg_relname[NAMEDATALEN];
-	int			proc;
+	int			proc;	/* 32 bit, only holds number of segments */
 	int			ret;
 	int64		total_count = 0;
 	MemoryContext oldcontext = CurrentMemoryContext;
@@ -1200,7 +1200,7 @@ gp_update_aorow_master_stats_internal(Relation parentrel, Snapshot appendOnlyMet
 
 		/* Do the query. */
 		ret = SPI_execute(sqlstmt.data, false, 0);
-		proc = SPI_processed;
+		proc = (int) SPI_processed;
 
 
 		if (ret > 0 && SPI_tuptable != NULL)
@@ -1554,8 +1554,10 @@ gp_update_ao_master_stats_oid(PG_FUNCTION_ARGS)
 
 typedef struct
 {
-	int			index;
-	int			rows;
+	uint64 index;
+	/* there is a chance the count will return more than 2^32 rows
+	 * plus SPI_processed is 64 bit anyway */
+	uint64 rows;
 } QueryInfo;
 
 
@@ -1982,7 +1984,7 @@ aorow_compression_ratio_internal(Relation parentrel)
 	Relation	aosegrel;
 	bool		connected = false;
 	char		aoseg_relname[NAMEDATALEN];
-	int			proc;
+	int			proc;	/* 32 bit, only holds number of segments */
 	int			ret;
 	float8		compress_ratio = -1;	/* the default, meaning "not
 										 * available" */
@@ -2026,7 +2028,7 @@ aorow_compression_ratio_internal(Relation parentrel)
 
 		/* Do the query. */
 		ret = SPI_execute(sqlstmt.data, false, 0);
-		proc = SPI_processed;
+		proc = (int) SPI_processed;
 
 		if (ret > 0 && SPI_tuptable != NULL)
 		{
