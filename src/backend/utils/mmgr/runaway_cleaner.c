@@ -142,7 +142,7 @@ RunawayCleaner_ShouldCancelQuery()
 	}
 	else
 	{
-		Assert(MySessionState->runawayStatus = RunawayStatus_SecondaryRunawaySession);
+		Assert(MySessionState->runawayStatus == RunawayStatus_SecondaryRunawaySession);
 
 		/*
 		 * If this process was flagged as a runaway session inspite another session
