@@ -880,7 +880,7 @@
         </dxl:LogicalSelect>
       </dxl:LogicalLimit>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="6876">
+    <dxl:Plan Id="0" SpaceSize="12492">
       <dxl:Sort SortDiscardDuplicates="false">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="281618.935587" Rows="3009.000000" Width="64"/>
@@ -991,7 +991,7 @@
               <dxl:AssertConstraintList>
                 <dxl:AssertConstraint ErrorMessage="Expected no more than one row to be returned by expression">
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.410.1.0">
-                    <dxl:Ident ColId="85" ColName="row_number" TypeMdid="0.20.1.0"/>
+                    <dxl:Ident ColId="90" ColName="row_number" TypeMdid="0.20.1.0"/>
                     <dxl:Cast TypeMdid="0.20.1.0" FuncId="0.481.1.0">
                       <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
                     </dxl:Cast>
@@ -1003,7 +1003,7 @@
                   <dxl:Cost StartupCost="0" TotalCost="1.746667" Rows="2.800000" Width="16"/>
                 </dxl:Properties>
                 <dxl:ProjList>
-                  <dxl:ProjElem ColId="85" Alias="row_number">
+                  <dxl:ProjElem ColId="90" Alias="row_number">
                     <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="35" Alias="oid">
@@ -1130,7 +1130,7 @@
               <dxl:AssertConstraintList>
                 <dxl:AssertConstraint ErrorMessage="Expected no more than one row to be returned by expression">
                   <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.410.1.0">
-                    <dxl:Ident ColId="84" ColName="row_number" TypeMdid="0.20.1.0"/>
+                    <dxl:Ident ColId="89" ColName="row_number" TypeMdid="0.20.1.0"/>
                     <dxl:Cast TypeMdid="0.20.1.0" FuncId="0.481.1.0">
                       <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
                     </dxl:Cast>
@@ -1142,7 +1142,7 @@
                   <dxl:Cost StartupCost="0" TotalCost="1.746667" Rows="2.800000" Width="16"/>
                 </dxl:Properties>
                 <dxl:ProjList>
-                  <dxl:ProjElem ColId="84" Alias="row_number">
+                  <dxl:ProjElem ColId="89" Alias="row_number">
                     <dxl:WindowFunc Mdid="0.7000.1.0" TypeMdid="0.20.1.0" Distinct="false" WindowStarArg="false" WindowSimpleAgg="false" WindowStrategy="Immediate" WinSpecPos="0"/>
                   </dxl:ProjElem>
                   <dxl:ProjElem ColId="77" Alias="oid">
