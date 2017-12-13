@@ -1560,7 +1560,7 @@ Optional Features:
   --enable-netbackup      enable NetBackup support
   --enable-mapreduce      enable Greenplum Mapreduce support
   --disable-gpcloud       disable gpcloud support
-  --enable-segwalrep      enable segment WAL replication
+  --disable-segwalrep     disable segment WAL replication
   --disable-thread-safety do not make client libraries thread-safe
   --enable-thread-safety-force
                           force thread-safety despite thread test failure
@@ -7294,7 +7294,9 @@ $as_echo "#define USE_SEGWALREP 1" >>confdefs.h
   esac
 
 else
-  enable_segwalrep=no
+  enable_segwalrep=yes
+
+$as_echo "#define USE_SEGWALREP 1" >>confdefs.h
 
 fi
 
