@@ -2,7 +2,7 @@
 #
 # Copyright (c) Greenplum Inc 2008. All Rights Reserved. 
 #
-from gppylib.gparray import GpDB
+from gppylib.gparray import Segment
 from gppylib.test.unit.gp_unittest import *
 import tempfile, os, shutil
 from gppylib.commands.base import CommandResult
@@ -100,7 +100,7 @@ class buildMirrorSegmentsTestCase(GpTestCase):
         self.assertEquals(self.logger.call_count, 0)
 
     @patch('gppylib.operations.utils.ParallelOperation.run')
-    @patch('gppylib.gparray.GpDB.getSegmentHostName', side_effect=['foo1', 'foo2'])
+    @patch('gppylib.gparray.Segment.getSegmentHostName', side_effect=['foo1', 'foo2'])
     def test_ensureSharedMemCleaned(self, mock1, mock2):
         self.buildMirrorSegs._GpMirrorListToBuild__ensureSharedMemCleaned(Mock(), [Mock(), Mock()])
         self.logger.info.assert_any_call('Ensuring that shared memory is cleaned up for stopped segments')
@@ -119,7 +119,7 @@ class buildMirrorSegmentsTestCase(GpTestCase):
     @patch('gppylib.operations.startSegments.StartSegmentsOperation')
     def test_startAll_fails(self, mock1, mock2):
         result = StartSegmentsResult()
-        failed_segment = GpDB.initFromString(
+        failed_segment = Segment.initFromString(
             "2|0|p|p|s|u|sdw1|sdw1|40000|41000|/data/primary0||/data/primary0/base/10899,/data/primary0/base/1,/data/primary0/base/10898,/data/primary0/base/25780,/data/primary0/base/34782")
         result.addFailure(failed_segment, 'reason', 'reasoncode')
         mock1.return_value.startSegments.return_value = result

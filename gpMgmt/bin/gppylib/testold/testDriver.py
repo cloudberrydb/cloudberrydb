@@ -4,7 +4,7 @@ from gppylib.gplog import *
 from gppylib.system.configurationInterface import *
 from gppylib.system import configurationImplTest, fileSystemImplTest, fileSystemInterface, osInterface, osImplTest, \
         faultProberInterface, faultProberImplTest
-from gppylib.gparray import GpDB
+from gppylib.gparray import Segment
 
 logger = get_default_logger()
 
@@ -51,17 +51,17 @@ class TestDriver:
             dataDirectory = row[9]
             replicationPort = None if row[10] == "" else int(row[10])
 
-            segment = GpDB(content=contentId,
-                           preferred_role=preferredRole,
-                           dbid=dbId,
-                           role=role,
-                           mode=mode,
-                           status=status,
-                           hostname=hostName,
-                           address=address,
-                           port=port,
-                           datadir=dataDirectory,
-                           replicationPort=replicationPort)
+            segment = Segment(content=contentId,
+                              preferred_role=preferredRole,
+                              dbid=dbId,
+                              role=role,
+                              mode=mode,
+                              status=status,
+                              hostname=hostName,
+                              address=address,
+                              port=port,
+                              datadir=dataDirectory,
+                              replicationPort=replicationPort)
 
             self.__configurationProvider.addTestSegment(segment)
 

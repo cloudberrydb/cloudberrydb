@@ -2,7 +2,7 @@ import imp
 import os
 import sys
 
-from gparray import GpDB, GpArray, Segment
+from gparray import Segment, GpArray, SegmentPair
 from mock import Mock, patch
 from gppylib.test.unit.gp_unittest import GpTestCase, run_tests
 from gppylib.commands.gp import GpSegStopCmd
@@ -57,25 +57,25 @@ class GpStop(GpTestCase):
         super(GpStop, self).tearDown()
 
     def createGpArrayWith4Primary4Mirrors(self):
-        self.master = GpDB.initFromString(
+        self.master = Segment.initFromString(
             "1|-1|p|p|s|u|mdw|mdw|5432|None|/data/master||/data/master/base/10899,/data/master/base/1,/data/master/base/10898,/data/master/base/25780,/data/master/base/34782")
 
-        self.primary0 = GpDB.initFromString(
+        self.primary0 = Segment.initFromString(
             "2|0|p|p|s|u|sdw1|sdw1|40000|41000|/data/primary0||/data/primary0/base/10899,/data/primary0/base/1,/data/primary0/base/10898,/data/primary0/base/25780,/data/primary0/base/34782")
-        self.primary1 = GpDB.initFromString(
+        self.primary1 = Segment.initFromString(
             "3|1|p|p|s|u|sdw1|sdw1|40001|41001|/data/primary1||/data/primary1/base/10899,/data/primary1/base/1,/data/primary1/base/10898,/data/primary1/base/25780,/data/primary1/base/34782")
-        self.primary2 = GpDB.initFromString(
+        self.primary2 = Segment.initFromString(
             "4|2|p|p|s|u|sdw2|sdw2|40002|41002|/data/primary2||/data/primary2/base/10899,/data/primary2/base/1,/data/primary2/base/10898,/data/primary2/base/25780,/data/primary2/base/34782")
-        self.primary3 = GpDB.initFromString(
+        self.primary3 = Segment.initFromString(
             "5|3|p|p|s|u|sdw2|sdw2|40003|41003|/data/primary3||/data/primary3/base/10899,/data/primary3/base/1,/data/primary3/base/10898,/data/primary3/base/25780,/data/primary3/base/34782")
 
-        self.mirror0 = GpDB.initFromString(
+        self.mirror0 = Segment.initFromString(
             "6|0|m|m|s|u|sdw2|sdw2|50000|51000|/data/mirror0||/data/mirror0/base/10899,/data/mirror0/base/1,/data/mirror0/base/10898,/data/mirror0/base/25780,/data/mirror0/base/34782")
-        self.mirror1 = GpDB.initFromString(
+        self.mirror1 = Segment.initFromString(
             "7|1|m|m|s|u|sdw2|sdw2|50001|51001|/data/mirror1||/data/mirror1/base/10899,/data/mirror1/base/1,/data/mirror1/base/10898,/data/mirror1/base/25780,/data/mirror1/base/34782")
-        self.mirror2 = GpDB.initFromString(
+        self.mirror2 = Segment.initFromString(
             "8|2|m|m|s|u|sdw1|sdw1|50002|51002|/data/mirror2||/data/mirror2/base/10899,/data/mirror2/base/1,/data/mirror2/base/10898,/data/mirror2/base/25780,/data/mirror2/base/34782")
-        self.mirror3 = GpDB.initFromString(
+        self.mirror3 = Segment.initFromString(
             "9|3|m|m|s|u|sdw1|sdw1|50003|51003|/data/mirror3||/data/mirror3/base/10899,/data/mirror3/base/1,/data/mirror3/base/10898,/data/mirror3/base/25780,/data/mirror3/base/34782")
         return GpArray([self.master, self.primary0, self.primary1, self.primary2, self.primary3, self.mirror0, self.mirror1, self.mirror2, self.mirror3])
 
@@ -179,9 +179,9 @@ class GpStop(GpTestCase):
         parser = self.subject.GpStop.createParser()
         options, args = parser.parse_args()
 
-        self.primary0 = GpDB.initFromString(
+        self.primary0 = Segment.initFromString(
             "2|0|p|p|c|u|sdw1|sdw1|40000|41000|/data/primary0||/data/primary0/base/10899,/data/primary0/base/1,/data/primary0/base/10898,/data/primary0/base/25780,/data/primary0/base/34782")
-        self.mirror0 = GpDB.initFromString(
+        self.mirror0 = Segment.initFromString(
             "6|0|m|m|s|d|sdw2|sdw2|50000|51000|/data/mirror0||/data/mirror0/base/10899,/data/mirror0/base/1,/data/mirror0/base/10898,/data/mirror0/base/25780,/data/mirror0/base/34782")
         self.mock_gparray.return_value = GpArray([self.master, self.primary0,
                                                   self.primary1, self.primary2,
@@ -200,9 +200,9 @@ class GpStop(GpTestCase):
         parser = self.subject.GpStop.createParser()
         options, args = parser.parse_args()
 
-        self.primary0 = GpDB.initFromString(
+        self.primary0 = Segment.initFromString(
             "2|0|p|p|r|u|sdw1|sdw1|40000|41000|/data/primary0||/data/primary0/base/10899,/data/primary0/base/1,/data/primary0/base/10898,/data/primary0/base/25780,/data/primary0/base/34782")
-        self.mirror0 = GpDB.initFromString(
+        self.mirror0 = Segment.initFromString(
             "6|0|m|m|r|u|sdw2|sdw2|50000|51000|/data/mirror0||/data/mirror0/base/10899,/data/mirror0/base/1,/data/mirror0/base/10898,/data/mirror0/base/25780,/data/mirror0/base/34782")
         self.mock_gparray.return_value = GpArray([self.master, self.primary0,
                                                   self.primary1, self.primary2,
@@ -221,9 +221,9 @@ class GpStop(GpTestCase):
         parser = self.subject.GpStop.createParser()
         options, args = parser.parse_args()
 
-        self.primary0 = GpDB.initFromString(
+        self.primary0 = Segment.initFromString(
             "2|0|m|p|s|d|sdw1|sdw1|40000|41000|/data/primary0||/data/primary0/base/10899,/data/primary0/base/1,/data/primary0/base/10898,/data/primary0/base/25780,/data/primary0/base/34782")
-        self.mirror0 = GpDB.initFromString(
+        self.mirror0 = Segment.initFromString(
             "6|0|p|m|c|u|sdw2|sdw2|50000|51000|/data/mirror0||/data/mirror0/base/10899,/data/mirror0/base/1,/data/mirror0/base/10898,/data/mirror0/base/25780,/data/mirror0/base/34782")
         self.mock_gparray.return_value = GpArray([self.master, self.primary0,
                                                   self.primary1, self.primary2,
@@ -246,12 +246,12 @@ class GpStop(GpTestCase):
         parser = self.subject.GpStop.createParser()
         options, args = parser.parse_args()
 
-        self.master = GpDB.initFromString(
+        self.master = Segment.initFromString(
             "1|-1|p|p|s|u|mdw|mdw|5432|None|/data/master||/data/master/base/10899,/data/master/base/1,/data/master/base/10898,/data/master/base/25780,/data/master/base/34782")
 
-        self.primary0 = GpDB.initFromString(
+        self.primary0 = Segment.initFromString(
             "2|0|p|p|s|u|sdw1|sdw1|40000|41000|/data/primary0||/data/primary0/base/10899,/data/primary0/base/1,/data/primary0/base/10898,/data/primary0/base/25780,/data/primary0/base/34782")
-        self.mirror0 = GpDB.initFromString(
+        self.mirror0 = Segment.initFromString(
             "3|0|m|m|s|u|sdw1|sdw1|50000|51000|/data/mirror0||/data/mirror0/base/10899,/data/mirror0/base/1,/data/mirror0/base/10898,/data/mirror0/base/25780,/data/mirror0/base/34782")
         self.mock_gparray.return_value = GpArray([self.master, self.primary0, self.mirror0])
 
@@ -266,11 +266,11 @@ class GpStop(GpTestCase):
         parser = self.subject.GpStop.createParser()
         options, args = parser.parse_args()
 
-        self.master = GpDB.initFromString(
+        self.master = Segment.initFromString(
             "1|-1|p|p|s|u|mdw|mdw|5432|None|/data/master||/data/master/base/10899,/data/master/base/1,/data/master/base/10898,/data/master/base/25780,/data/master/base/34782")
-        self.primary0 = GpDB.initFromString(
+        self.primary0 = Segment.initFromString(
             "2|0|p|p|s|u|sdw1|sdw1|40000|41000|/data/primary0||/data/primary0/base/10899,/data/primary0/base/1,/data/primary0/base/10898,/data/primary0/base/25780,/data/primary0/base/34782")
-        self.mirror0 = GpDB.initFromString(
+        self.mirror0 = Segment.initFromString(
             "3|0|m|m|s|u|sdw1|sdw1|50000|51000|/data/mirror0||/data/mirror0/base/10899,/data/mirror0/base/1,/data/mirror0/base/10898,/data/mirror0/base/25780,/data/mirror0/base/34782")
         self.mock_gparray.return_value = GpArray([self.master, self.primary0, self.mirror0])
 
@@ -286,13 +286,13 @@ class GpStop(GpTestCase):
         parser = self.subject.GpStop.createParser()
         options, args = parser.parse_args()
 
-        self.master = GpDB.initFromString(
+        self.master = Segment.initFromString(
             "1|-1|p|p|s|u|mdw|mdw|5432|None|/data/master||/data/master/base/10899,/data/master/base/1,/data/master/base/10898,/data/master/base/25780,/data/master/base/34782")
-        self.standby = GpDB.initFromString(
+        self.standby = Segment.initFromString(
             "2|-1|m|m|s|u|sdw1|sdw1|25432|None|/data/master||/data/master/base/10899,/data/master/base/1,/data/master/base/10898,/data/master/base/25780,/data/master/base/34782")
-        self.primary0 = GpDB.initFromString(
+        self.primary0 = Segment.initFromString(
             "3|0|p|p|s|u|sdw1|sdw1|40000|41000|/data/primary0||/data/primary0/base/10899,/data/primary0/base/1,/data/primary0/base/10898,/data/primary0/base/25780,/data/primary0/base/34782")
-        self.mirror0 = GpDB.initFromString(
+        self.mirror0 = Segment.initFromString(
             "4|0|m|m|s|u|sdw2|sdw2|50000|51000|/data/mirror0||/data/mirror0/base/10899,/data/mirror0/base/1,/data/mirror0/base/10898,/data/mirror0/base/25780,/data/mirror0/base/34782")
         self.mock_gparray.return_value = GpArray([self.master, self.standby, self.primary0, self.mirror0])
 
@@ -308,13 +308,13 @@ class GpStop(GpTestCase):
         parser = self.subject.GpStop.createParser()
         options, args = parser.parse_args()
 
-        self.master = GpDB.initFromString(
+        self.master = Segment.initFromString(
             "1|-1|p|p|s|u|mdw|mdw|5432|None|/data/master||/data/master/base/10899,/data/master/base/1,/data/master/base/10898,/data/master/base/25780,/data/master/base/34782")
-        self.standby = GpDB.initFromString(
+        self.standby = Segment.initFromString(
             "2|-1|m|m|s|u|sdw1|sdw1|25432|None|/data/master||/data/master/base/10899,/data/master/base/1,/data/master/base/10898,/data/master/base/25780,/data/master/base/34782")
-        self.primary0 = GpDB.initFromString(
+        self.primary0 = Segment.initFromString(
             "3|0|p|p|s|u|sdw1|sdw1|40000|41000|/data/primary0||/data/primary0/base/10899,/data/primary0/base/1,/data/primary0/base/10898,/data/primary0/base/25780,/data/primary0/base/34782")
-        self.primary1 = GpDB.initFromString(
+        self.primary1 = Segment.initFromString(
             "4|0|p|p|s|u|sdw2|sdw2|40001|41001|/data/primary1||/data/primary1/base/10899,/data/primary1/base/1,/data/primary1/base/10898,/data/primary1/base/25780,/data/primary1/base/34782")
         self.mock_gparray.return_value = GpArray([self.master, self.standby, self.primary0, self.primary1])
 

@@ -7,7 +7,7 @@ import os
 import shutil
 import unittest
 from gppylib.commands.base import CommandResult
-from gppylib.gparray import GpArray, GpDB
+from gppylib.gparray import GpArray, Segment
 from gppylib.operations.backup_utils import *
 from . import setup_fake_gparray
 

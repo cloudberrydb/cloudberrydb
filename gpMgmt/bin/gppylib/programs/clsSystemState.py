@@ -682,7 +682,7 @@ class GpSystemStateProgram:
 
         # segments that are down (excluding those that are part of changetracking)
         changeTrackingMirrors = [contentIdToMirror[s.getSegmentContentId()][0] for s in primariesInChangeTracking]
-        changeTrackingMirrorsByDbId = GpArray.getSegmentsGroupedByValue(changeTrackingMirrors, gparray.GpDB.getSegmentDbId)
+        changeTrackingMirrorsByDbId = GpArray.getSegmentsGroupedByValue(changeTrackingMirrors, gparray.Segment.getSegmentDbId)
         segmentsThatAreDown = [s for s in gpArray.getSegDbList() if \
                             not s.getSegmentDbId() in changeTrackingMirrorsByDbId and \
                             data.isSegmentProbablyDown(s)]

@@ -742,7 +742,7 @@ class SegmentTemplate:
     def _select_src_segment(self):
         """Gets a segment to use as a source for pg_hba.conf
         and postgresql.conf files"""
-        seg = self.gparray.segments[0]
+        seg = self.gparray.segmentPairs[0]
         if seg.primaryDB.valid:
             self.srcSegHostname = seg.primaryDB.getSegmentHostName()
             self.srcSegDataDir = seg.primaryDB.getSegmentDataDirectory()
@@ -2503,7 +2503,7 @@ UPDATE gp_distribution_policy
         if not heap_checksum_util.are_segments_consistent(consistent, inconsistent):
             self.logger.fatal("Cluster heap checksum setting differences reported")
             self.logger.fatal("Heap checksum settings on %d of %d segment instances do not match master <<<<<<<<"
-                              % (len(inconsistent_segment_msgs), len(self.gparray.segments)))
+                              % (len(inconsistent_segment_msgs), len(self.gparray.segmentPairs)))
             self.logger.fatal("Review %s for details" % get_logfile())
             log_to_file_only("Failed checksum consistency validation:", logging.WARN)
             self.logger.fatal("gpexpand error: Cluster will not be modified as checksum settings are not consistent "

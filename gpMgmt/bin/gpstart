@@ -547,8 +547,8 @@ class GpStart:
                              if f.getReasonCode() == gp.SEGSTART_ERROR_MIRRORING_FAILURE]
 
         allSegmentsByContent = GpArray.getSegmentsByContentId(gparray.getSegDbList())
-        successfulSegmentsByDbId = GpArray.getSegmentsGroupedByValue(successfulSegments, GpDB.getSegmentDbId)
-        mirroringFailuresByDbId = GpArray.getSegmentsGroupedByValue(mirroringFailures, GpDB.getSegmentDbId)
+        successfulSegmentsByDbId = GpArray.getSegmentsGroupedByValue(successfulSegments, Segment.getSegmentDbId)
+        mirroringFailuresByDbId = GpArray.getSegmentsGroupedByValue(mirroringFailures, Segment.getSegmentDbId)
 
         #
         # look at each content, see if there is a segment available (or one which can be made

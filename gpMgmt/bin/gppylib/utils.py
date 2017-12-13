@@ -643,7 +643,7 @@ def createSegmentSpecificPath(path, gpPrefix, segment):
     Create a segment specific path for the given gpPrefix and segment
 
     @param gpPrefix a string used to prefix directory names
-    @param segment a GpDB value
+    @param segment a Segment value
     """
     return os.path.join(path, '%s%d' % (gpPrefix, segment.getSegmentContentId()))
 

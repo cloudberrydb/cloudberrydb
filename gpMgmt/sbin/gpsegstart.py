@@ -135,7 +135,7 @@ class GpSegStart:
 
         # validate/store arguments
         #
-        self.dblist                = map(gparray.GpDB.initFromString, dblist)
+        self.dblist                = map(gparray.Segment.initFromString, dblist)
 
         expected_gpversion         = gpversion
         actual_gpversion           = gp.GpVersion.local('local GP software version check', os.path.abspath(os.pardir))
@@ -297,7 +297,7 @@ class GpSegStart:
         # examine the results from the segments
         #
         segments     = self.overall_status.dirmap.values()
-        dataDirToSeg = gparray.GpArray.getSegmentsGroupedByValue(segments, gparray.GpDB.getSegmentDataDirectory)
+        dataDirToSeg = gparray.GpArray.getSegmentsGroupedByValue(segments, gparray.Segment.getSegmentDataDirectory)
         toStop       = []
         cmds         = self.pool.getCompletedItems()
 

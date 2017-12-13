@@ -60,7 +60,7 @@ def validateFlexibleHeadersListAllFilespaces(configFileLabel, gpArray, fileData)
 
 class GpMirrorBuildCalculator:
     """
-    Create mirror segment (GpDB) objects for an existing array, using different strategies.
+    Create mirror segment (Segment) objects for an existing array, using different strategies.
 
     This class should be used by constructing and then calling either getSpreadMirrors, getGroupMirrors, or call
        addMirror multiple times
@@ -121,7 +121,7 @@ class GpMirrorBuildCalculator:
         mirrorIndexOnTargetHost = self.__mirrorsAddedByHost[targetHost]
         assert mirrorIndexOnTargetHost is not None
 
-        mirror = gparray.GpDB(
+        mirror = gparray.Segment(
             content=primary.getSegmentContentId(),
             preferred_role=gparray.ROLE_MIRROR,
             dbid=self.__nextDbId,
@@ -614,7 +614,7 @@ class GpAddMirrorsProgram:
         if not heap_checksum_util.are_segments_consistent(consistent, inconsistent):
             logger.fatal("Cluster heap checksum setting differences reported")
             logger.fatal("Heap checksum settings on %d of %d segment instances do not match master <<<<<<<<"
-                              % (len(inconsistent_segment_msgs), len(gpArray.segments)))
+                              % (len(inconsistent_segment_msgs), len(gpArray.segmentPairs)))
             logger.fatal("Review %s for details" % get_logfile())
             log_to_file_only("Failed checksum consistency validation:", logging.WARN)
             logger.fatal("gpaddmirrors error: Cluster will not be modified as checksum settings are not consistent "
