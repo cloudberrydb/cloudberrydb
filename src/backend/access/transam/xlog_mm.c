@@ -328,7 +328,6 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 	else if (info == MMXLOG_REMOVE_HEAP_FILE || info == MMXLOG_REMOVE_APPENDONLY_FILE)
 	{
 		RelFileNode rnode;
-		bool mirrorDataLossOccurred;
 
 		Insist(xlrec->objtype == MM_OBJ_RELFILENODE);
 
@@ -362,10 +361,7 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 			MirroredAppendOnly_Drop(
 				&rnode,
 				xlrec->segnum,
-				NULL,
-				true,
-				&primaryError,
-				&mirrorDataLossOccurred);
+				&primaryError);
 		}
 		else if (info == MMXLOG_REMOVE_HEAP_FILE)
 		{
@@ -376,6 +372,7 @@ mmxlog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 			 */
 			SMgrRelation srel = smgropen(rnode);
 			ForkNumber fork;
+			bool mirrorDataLossOccurred;
 
 			for (fork = 0; fork <= MAX_FORKNUM; fork++)
 			{

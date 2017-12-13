@@ -532,11 +532,6 @@ RelationTruncate(Relation rel, BlockNumber nblocks, bool markPersistentAsPhysica
 
 	MIRROREDLOCK_BUFMGR_UNLOCK;
 	// -------- MirroredLock ----------
-
-	if (markPersistentAsPhysicallyTruncated)
-	{
-		UnlockRelationForResynchronize(&rel->rd_node, AccessExclusiveLock);
-	}
 }
 
 /*

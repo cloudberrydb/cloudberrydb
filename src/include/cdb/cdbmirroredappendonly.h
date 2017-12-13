@@ -91,19 +91,6 @@ extern void MirroredAppendOnly_Create(
 	bool						*mirrorDataLossOccurred);
 
 
-extern void MirroredAppendOnly_MirrorReCreate(
-	RelFileNode 				*relFileNode,
-				/* The tablespace, database, and relation OIDs for the open. */
-
-	int32						segmentFileNum,
-				/* Which segment file. */
-	
-	MirrorDataLossTrackingState mirrorDataLossTrackingState,
-
-	int64						mirrorDataLossTrackingSessionNum,
-	
-	bool						*mirrorDataLossOccurred);
-
 /*
  * MirroredAppendOnly_OpenReadWrite will acquire and release the MirroredLock.
  */
@@ -177,23 +164,6 @@ extern void MirroredAppendOnly_EndXactCatchup(
 	
 		int64							mirrorNewEof);
 
-extern void MirroredAppendOnly_OpenResynchonize(
-	MirroredAppendOnlyOpen		*open,
-				/* The resulting open struct. */
-
-	RelFileNode 				*relFileNode,
-				/* The tablespace, database, and relation OIDs for the open. */
-
-	int32						segmentFileNum,
-				/* Which segment file. */
-		
-	int64						logicalEof,
-				/* The logical EOF to begin appending the new data. */
-									
-	int 						*primaryError,
-	
-	bool						*mirrorDataLossOccurred);
-
 /*
  * Flush and Close an Append-Only relation file.
  *
@@ -239,29 +209,8 @@ extern void MirroredAppendOnly_Close(
 
 extern void MirroredAppendOnly_Drop(
 	RelFileNode					*relFileNode,
-	 
 	int32						segmentFileNum,
-
-	char						*relationName,
-					/* For tracing only.  Can be NULL in some execution paths. */
-	
-	bool  						primaryOnly,
-
-	int							*primaryError,
-
-	bool						*mirrorDataLossOccurred);
-
-
-extern void MirroredAppendOnly_MirrorReDrop(
-	RelFileNode					*relFileNode,
-	 
-	int32						segmentFileNum,
-	
-	MirrorDataLossTrackingState mirrorDataLossTrackingState,
-
-	int64						mirrorDataLossTrackingSessionNum,
-	
-	bool						*mirrorDataLossOccurred);
+	int							*primaryError);
 
 // -----------------------------------------------------------------------------
 // Append 
@@ -297,19 +246,6 @@ extern void MirroredAppendOnly_Truncate(
 	int 		*primaryError,
 	
 	bool		*mirrorDataLossOccurred);
-
-
-// -----------------------------------------------------------------------------
-// Read local side (primary segment)
-// ----------------------------------------------------------------------------
-extern int MirroredAppendOnly_Read(
-	MirroredAppendOnlyOpen *open,
-	/* The open struct. */
-	
-	void					*buffer,
-	/* Pointer to the buffer. */
-	
-	int32					bufferLen);
 
 #ifdef USE_SEGWALREP
 extern void

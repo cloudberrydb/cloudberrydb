@@ -1136,10 +1136,8 @@ MirroredFileSysObj_DropRelFile(
 			MirroredAppendOnly_Drop(
 									relFileNode,
 									segmentFileNum,
-									relationName,
-									primaryOnly,
-									&primaryError,
-									mirrorDataLossOccurred);
+									&primaryError);
+			*mirrorDataLossOccurred = false;
 			if (ignoreNonExistence && primaryError == ENOENT)
 				primaryError = 0;
 

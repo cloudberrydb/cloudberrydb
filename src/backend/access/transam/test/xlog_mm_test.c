@@ -68,10 +68,7 @@ test_mmxlog_redo_mmxlog_remove_file_ao(void **state)
 	/* mock MirroredAppendOnly_Drop to skip */
 	expect_check(MirroredAppendOnly_Drop, relFileNode, check_relfilenode_function, &relfilenode);
 	expect_value(MirroredAppendOnly_Drop, segmentFileNum, xlmmfsobj.segnum);
-	expect_value(MirroredAppendOnly_Drop, relationName, NULL);
-	expect_value(MirroredAppendOnly_Drop, primaryOnly, true);
 	expect_not_value(MirroredAppendOnly_Drop, primaryError, NULL);
-	expect_not_value(MirroredAppendOnly_Drop, mirrorDataLossOccurred, NULL);
 	will_be_called(MirroredAppendOnly_Drop);
 
 	/* test that mmxlog_redo properly calls XLogAODropSegmentFile */
