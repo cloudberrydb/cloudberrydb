@@ -1262,6 +1262,8 @@ RecordTransactionCommit(void)
 		}
 		rdata[lastrdata].next = NULL;
 
+		SIMPLE_FAULT_INJECTOR(OnePhaseTransactionCommit);
+
 		if (isDtxPrepared)
 		{
 			insertingDistributedCommitted();

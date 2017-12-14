@@ -149,6 +149,8 @@ FI_IDENT(FinishPreparedTransactionAbortPass1AbortingCreateNeeded, "finish_prepar
 FI_IDENT(FinishPreparedTransactionAbortPass2AbortingCreateNeeded, "finish_prepared_transaction_abort_pass2_aborting_create_needed")
 /* inject fault to start verification (create pending => aborting create) */
 FI_IDENT(FileRepVerification, "filerep_verification")
+/* inject fault after transaction is prepared */
+FI_IDENT(OnePhaseTransactionCommit, "onephase_transaction_commit")
 /* inject fault before transaction commit is recorded in xlog (trigger filerep verification)*/
 FI_IDENT(TwoPhaseTransactionCommitPrepared, "twophase_transaction_commit_prepared")
 /* inject fault before transaction abort is recorded in xlog */

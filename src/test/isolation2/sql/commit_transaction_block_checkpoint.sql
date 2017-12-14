@@ -23,7 +23,7 @@ select gp_inject_fault('twophase_transaction_commit_prepared', 'reset', 3);
 
 -- pause the CommitTransaction right before persistent table cleanup after
 -- notifyCommittedDtxTransaction()
-select gp_inject_fault('transaction_commit_pass1_from_drop_in_memory_to_drop_pending', 'suspend', 1);
+select gp_inject_fault('onephase_transaction_commit', 'suspend', 1);
 
 -- trigger a 2PC, and it will block at commit;
 2: checkpoint;
@@ -35,7 +35,7 @@ select gp_inject_fault('transaction_commit_pass1_from_drop_in_memory_to_drop_pen
 1U&: checkpoint;
 
 -- resume the 2PC
-select gp_inject_fault('transaction_commit_pass1_from_drop_in_memory_to_drop_pending', 'reset', 1);
+select gp_inject_fault('onephase_transaction_commit', 'reset', 1);
 2<:
 1U<:
 

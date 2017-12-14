@@ -742,22 +742,6 @@ FaultInjector_NewHashEntry(
 			case FsyncCounter:
 			case BgBufferSyncDefaultLogic:
 			case ChangeTrackingDisable:
-			case FileRepVerification:
-
-			case FinishPreparedTransactionCommitPass1FromCreatePendingToCreated:
-			case FinishPreparedTransactionCommitPass2FromCreatePendingToCreated:
-				
-			case FinishPreparedTransactionCommitPass1FromDropInMemoryToDropPending:
-			case FinishPreparedTransactionCommitPass2FromDropInMemoryToDropPending:
-				
-			case FinishPreparedTransactionCommitPass1AbortingCreateNeeded:
-			case FinishPreparedTransactionCommitPass2AbortingCreateNeeded:
-
-			case FinishPreparedTransactionAbortPass1FromCreatePendingToAbortingCreate:
-			case FinishPreparedTransactionAbortPass2FromCreatePendingToAbortingCreate:
-				
-			case FinishPreparedTransactionAbortPass1AbortingCreateNeeded:
-			case FinishPreparedTransactionAbortPass2AbortingCreateNeeded:
 
 			case InterconnectStopAckIsLost:
 			case SendQEDetailsInitBackend:
