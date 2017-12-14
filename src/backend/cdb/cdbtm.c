@@ -41,7 +41,6 @@
 #include "access/distributedlog.h"
 #include "postmaster/postmaster.h"
 #include "storage/procarray.h"
-#include "cdb/cdbpersistentrecovery.h"
 
 #include "cdb/cdbllize.h"
 #include "utils/faultinjector.h"
@@ -1787,12 +1786,6 @@ redoDtxCheckPoint(TMGXACT_CHECKPOINT *gxact_checkpoint)
 
 	committedCount = gxact_checkpoint->committedCount;
 	elog(DTM_DEBUG5, "redoDtxCheckPoint has committedCount = %d", committedCount);
-	if (Debug_persistent_recovery_print)
-	{
-		elog(PersistentRecovery_DebugPrintLevel(),
-			 "redoDtxCheckPoint: committedCount = %d",
-			 committedCount);
-	}
 
 	for (i = 0; i < committedCount; i++)
 	{
@@ -2546,10 +2539,6 @@ createDtx(DistributedTransactionId *distribXid)
 {
 	TMGXACT    *gxact;
 
-	MIRRORED_LOCK_DECLARE;
-
-	MIRRORED_LOCK;
-
 	getTmLock();
 
 	if (*shmNumGxacts >= max_tm_gxacts)
@@ -2577,8 +2566,6 @@ createDtx(DistributedTransactionId *distribXid)
 	setGxactState(gxact, DTX_STATE_ACTIVE_NOT_DISTRIBUTED);
 
 	releaseTmLock();
-
-	MIRRORED_UNLOCK;
 
 	currentGxact = gxact;
 
@@ -2784,20 +2771,6 @@ getDtxCheckPointInfoAndLock(char **result, int *result_size)
 
 		elog(DTM_DEBUG5, "Add DTM checkpoint entry gid = %s.",
 			 gxact->gid);
-		if (Debug_persistent_recovery_print)
-		{
-			SUPPRESS_ERRCONTEXT_DECLARE;
-
-			SUPPRESS_ERRCONTEXT_PUSH();
-
-			elog(PersistentRecovery_DebugPrintLevel(),
-				 "getDtxCheckPointInfoAndLock[%d]: distributed transaction identifier %s (distributed xid %u)",
-				 actual,
-				 gxact_log->gid,
-				 gxact_log->gxid);
-
-			SUPPRESS_ERRCONTEXT_POP();
-		}
 
 		actual++;
 	}

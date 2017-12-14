@@ -233,9 +233,7 @@ create_toast_table(Relation rel, Oid toastOid, Oid toastIndexOid,
 										   NULL, /* CDB POLICY */
 										   reloptions,
 										   true,
-										   /* valid_opts */ false,
-										   /* persistentTid */ NULL,
-										   /* persistentSerialNum */ NULL);
+										   /* valid_opts */ false);
 
 	/* make the toast relation visible, else index creation will fail */
 	CommandCounterIncrement();

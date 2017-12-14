@@ -34,7 +34,6 @@
 #include "catalog/indexing.h"
 #include "catalog/pg_appendonly_fn.h"
 #include "cdb/cdbappendonlyam.h"
-#include "cdb/cdbpersistentfilesysobj.h"
 #include "cdb/cdbmirroredfilesysobj.h"
 #include "cdb/cdbpersistentstore.h"
 #include "cdb/cdbvars.h"
@@ -57,31 +56,15 @@ static void
 AppendOnlyCompaction_DropSegmentFile(Relation aorel,
 									 int segno)
 {
-	ItemPointerData persistentTid;
-	int64		persistentSerialNum;
-
-	if (!ReadGpRelationNode(
-							aorel->rd_rel->reltablespace,
-							aorel->rd_rel->relfilenode,
-							segno,
-							&persistentTid,
-							&persistentSerialNum))
-	{
-		/* There is nothing to drop */
-		return;
-	}
-
 	elogif(Debug_appendonly_print_compaction, LOG,
 		   "Drop segment file: segno %d", segno);
 
-	MirroredFileSysObj_ScheduleDropAppendOnlyFile(
-												  &aorel->rd_node,
+	// WALREP_FIXME: smgrunlink() or something here.
+#if 0
+	MirroredFileSysObj_ScheduleDropAppendOnlyFile(&aorel->rd_node,
 												  segno,
-												  RelationGetRelationName(aorel),
-												  &persistentTid,
-												  persistentSerialNum);
-
-	DeleteGpRelationNodeTuple(aorel, segno);
+												  RelationGetRelationName(aorel));
+#endif
 }
 
 /*

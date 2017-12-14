@@ -91,8 +91,6 @@ void
 _bt_doinsert(Relation rel, IndexTuple itup,
 			 bool index_is_unique, Relation heapRel)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	int			natts = rel->rd_rel->relnatts;
 	ScanKey		itup_scankey;
 	BTStack		stack;
@@ -103,9 +101,6 @@ _bt_doinsert(Relation rel, IndexTuple itup,
 	itup_scankey = _bt_mkscankey(rel, itup);
 
 top:
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
-	
 	/* find the first page containing this key */
 	stack = _bt_search(rel, natts, itup_scankey, false, &buf, BT_WRITE);
 
@@ -157,7 +152,6 @@ top:
 			 * the lock in XactLockTableWait and a cancellation is requested,
 			 * we should be able to respond it.
 			 */
-			MIRROREDLOCK_BUFMGR_UNLOCK;
 			XactLockTableWait(xwait);
 			/* start over... */
 			_bt_freestack(stack);
@@ -168,9 +162,6 @@ top:
 	/* do the insertion */
 	_bt_findinsertloc(rel, &buf, &offset, natts, itup_scankey, itup);
 	_bt_insertonpg(rel, buf, stack, itup, offset, false);
-
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
 	
 	/* be tidy */
 	_bt_freestack(stack);
@@ -278,8 +269,6 @@ _bt_check_unique(Relation rel, IndexTuple itup, Relation heapRel,
 	Page		page;
 	BTPageOpaque opaque;
 	Buffer		nbuf = InvalidBuffer;
-
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	InitDirtySnapshot(SnapshotDirty);
 
@@ -699,14 +688,6 @@ _bt_insertonpg(Relation rel,
 	OffsetNumber firstright = InvalidOffsetNumber;
 	Size		itemsz;
 
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
-	/*
-	 * Fetch gp_persistent_relation_node information that will be added to XLOG
-	 * record.
-	 */
-	RelationFetchGpRelationNodeForXLog(rel);
-
 	page = BufferGetPage(buf);
 	lpageop = (BTPageOpaque) PageGetSpecialPointer(page);
 
@@ -933,14 +914,6 @@ _bt_split(Relation rel, Buffer buf, OffsetNumber firstright,
 	OffsetNumber maxoff;
 	OffsetNumber i;
 	bool		isroot;
-
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
-	/*
-	 * Fetch gp_persistent_relation_node information that will be added to
-	 * XLOG record.
-	 */
-	RelationFetchGpRelationNodeForXLog(rel);
 
 	/* Acquire a new page to split into */
 	rbuf = _bt_getbuf(rel, P_NEW, BT_WRITE);
@@ -1232,9 +1205,6 @@ _bt_split(Relation rel, Buffer buf, OffsetNumber firstright,
 		xlrec.rnext = ropaque->btpo_next;
 		xlrec.level = ropaque->btpo.level;
 		xlrec.firstright = firstright;
-
-		/* Set persistentTid and persistentSerialNum like xl_btreetid_set() does */
-		RelationGetPTInfo(rel, &xlrec.persistentTid, &xlrec.persistentSerialNum);
 
 		rdata[0].data = (char *) &xlrec;
 		rdata[0].len = SizeOfBtreeSplit;
@@ -1657,8 +1627,6 @@ _bt_insert_parent(Relation rel,
 				  bool is_root,
 				  bool is_only)
 {
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
 	/*
 	 * Here we have to do something Lehman and Yao don't talk about: deal with
 	 * a root split and construction of a new root.  If our stack is empty
@@ -1770,8 +1738,6 @@ _bt_getstackbuf(Relation rel, BTStack stack, int access)
 {
 	BlockNumber blkno;
 	OffsetNumber start;
-
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	blkno = stack->bts_blkno;
 	start = stack->bts_offset;
@@ -1897,11 +1863,6 @@ _bt_newroot(Relation rel, Buffer lbuf, Buffer rbuf)
 	Buffer		metabuf;
 	Page		metapg;
 	BTMetaPageData *metad;
-
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
-	// Fetch gp_persistent_relation_node information that will be added to XLOG record.
-	RelationFetchGpRelationNodeForXLog(rel);
 
 	lbkno = BufferGetBlockNumber(lbuf);
 	rbkno = BufferGetBlockNumber(rbuf);

@@ -4139,109 +4139,6 @@ do_immediate_shutdown_reaper(void)
 }
 
 /*
- * Startup succeeded, commence normal operations
- */
-static bool
-CommenceNormalOperations(void)
-{
-	bool didServiceProcessWork = true;
-	int s;
-
-	FatalError = false;
-	pmState = PM_RUN;
-
-	/*
-	 * Load the flat authorization file into postmaster's cache. The
-	 * startup process has recomputed this from the database contents,
-	 * so we wait till it finishes before loading it.
-	 */
-	load_role();
-
-	/*
-	 * Crank up the background writer, if we didn't do that already
-	 * when we entered consistent recovery state.  It doesn't matter
-	 * if this fails, we'll just try again later.
-	 */
-	if (BgWriterPID == 0)
-	{
-		BgWriterPID = StartBackgroundWriter();
-		if (Debug_print_server_processes)
-			elog(LOG,"on startup successful: started 'background writer' as pid %ld",
-				 (long)BgWriterPID);
-	}
-
-	if (CheckpointerPID == 0)
-	{
-		CheckpointerPID = StartCheckpointer();
-		if (Debug_print_server_processes)
-			elog(LOG,"on startup successful: started 'checkpointer' as pid %ld",
-				 (long)CheckpointerPID);
-		didServiceProcessWork &= (CheckpointerPID > 0);
-	}
-
-	/*
-	 * Likewise, start other special children as needed.  In a restart
-	 * situation, some of them may be alive already.
-	 */
-	if (Shutdown > NoShutdown && BgWriterPID != 0)
-		signal_child(BgWriterPID, SIGUSR2);
-	else if (Shutdown == NoShutdown)
-	{
-		if (XLogArchivingActive() && PgArchPID == 0)
-		{
-			PgArchPID = pgarch_start();
-			if (Debug_print_server_processes)
-				elog(LOG,"on startup successful: started 'archiver process' as pid %ld",
-					 (long)PgArchPID);
-			didServiceProcessWork &= (PgArchPID > 0);
-		}
-		if (PgStatPID == 0)
-		{
-			PgStatPID = pgstat_start();
-			if (Debug_print_server_processes)
-				elog(LOG,"on startup successful: started 'statistics collector process' as pid %ld",
-					 (long)PgStatPID);
-			didServiceProcessWork &= (PgStatPID > 0);
-		}
-
-		for (s = 0; s < MaxPMSubType; s++)
-		{
-			PMSubProc *subProc = &PMSubProcList[s];
-
-			if (subProc->pid == 0 && ServiceStartable(subProc))
-			{
-				subProc->pid = (subProc->serverStart)();
-
-				if (Debug_print_server_processes)
-					elog(LOG,"on startup successful: started '%s' as pid %ld",
-						 subProc->procName, (long)subProc->pid);
-				didServiceProcessWork &= (subProc->pid > 0);
-			}
-		}
-	}
-
-	/* at this point we are really open for business */
-	{
-		char version[512];
-
-		strlcpy(version, PG_VERSION_STR " compiled on " __DATE__ " " __TIME__,
-			sizeof(version));
-
-#ifdef USE_ASSERT_CHECKING
-		strlcat(version, " (with assert checking)", sizeof(version));
-#endif
-		ereport(LOG,(errmsg("%s", version)));
-
-		ereport(LOG,
-			 (errmsg("database system is ready to accept connections"),
-			  errdetail("%s",version),
-			  errSendAlert(true)));
-	}
-
-	return didServiceProcessWork;
-}
-
-/*
  * Reaper -- signal handler to cleanup after a child process dies.
  */
 static void
@@ -4339,248 +4236,62 @@ do_reaper()
 			}
 
 			/*
-			 * When we are not doing single backend startup, we do
-			 * multiple startup passes.
-			 *
-			 * If Crash Recovery is needed we do Pass 2 and 3.
-			 *
-			 * Pass 4 is a verification pass done in for a clean shutdown as
-			 * well as after Crash Recovery.
-			 */
-			if (XLogStartupMultipleRecoveryPassesNeeded())
-			{
-			    Assert(StartupPass2PID == 0);
-				StartupPass2PID = StartupPass2DataBase();
-				Assert(StartupPass2PID != 0);
-
-				pmState = PM_STARTUP_PASS2;
-			}
-			else if (XLogStartupIntegrityCheckNeeded())
-			{
-				/*
-				 * Clean shutdown case and wants (and can do) integrity checks.
-				 */
-			    Assert(StartupPass4PID == 0);
-				StartupPass4PID = StartupPass4DataBase();
-				Assert(StartupPass4PID != 0);
-
-				pmState = PM_STARTUP_PASS4;
-			}
-			else
-			{
-				/*
-				 * Startup succeeded, commence normal operations
-				 */
-				if (CommenceNormalOperations())
-					didServiceProcessWork &= true;
-			}
-
-			continue;
-		}
-
-		/*
-		 * Check if this child was a startup pass 2 process.
-		 */
-		if (pid == StartupPass2PID)
-		{
-			StartupPass2PID = 0;
-
-			Assert(isPrimaryMirrorModeAFullPostmaster(true));
-
-			/*
-			 * Unexpected exit of startup process (including FATAL exit)
-			 * during PM_STARTUP is treated as catastrophic. There are no
-			 * other processes running yet, so we can just exit.
-			 */
-			if (pmState == PM_STARTUP_PASS2 && !EXIT_STATUS_0(exitstatus))
-			{
-				LogChildExit(LOG, _("startup pass 2 process"),
-							 pid, exitstatus);
-				ereport(LOG,
-						(errmsg("aborting startup due to startup process failure")));
-				ExitPostmaster(1);
-			}
-
-			/*
-			 * Startup process exited in response to a shutdown request (or it
-			 * completed normally regardless of the shutdown request).
-			 */
-			if (Shutdown > NoShutdown &&
-				(EXIT_STATUS_0(exitstatus) || EXIT_STATUS_1(exitstatus)))
-			{
-				/* PostmasterStateMachine logic does the rest */
-				continue;
-			}
-
-			/*
-			 * Any unexpected exit (including FATAL exit) of the startup
-			 * process is treated as a crash, except that we don't want to
-			 * reinitialize.
-			 */
-			if (!EXIT_STATUS_0(exitstatus))
-			{
-				RecoveryError = true;
-				HandleChildCrash(pid, exitstatus,
-								 _("startup pass 2 process"));
-				continue;
-			}
-
-			/*
-			 * Start the bgwriter if not running.
-			 *
-			 * In archive recovery, the startup process already asked us
-			 * to start it. There's no particular reason the pass 3 needs it
-			 * it to be running, except that it needs to know whether it's
-			 * running or not, when it wants to create a checkpoint. The
-			 * easiest way to deal with that is to ensure it's always
-			 * running.
-			 *
-			 * In GPDB, it's actually the checkpointer process that we care
-			 * about. So launch that too.
-			 */
-			if (BgWriterPID == 0)
-				BgWriterPID = StartBackgroundWriter();
-			if (CheckpointerPID == 0)
-				CheckpointerPID = StartCheckpointer();
-
-		    Assert(StartupPass3PID == 0);
-			StartupPass3PID = StartupPass3DataBase();
-			Assert(StartupPass3PID != 0);
-
-			pmState = PM_STARTUP_PASS3;
-			continue;
-		}
-
-		/*
-		 * Check if this child was a startup pass 3 process.
-		 */
-		if (pid == StartupPass3PID)
-		{
-			StartupPass3PID = 0;
-
-			Assert(isPrimaryMirrorModeAFullPostmaster(true));
-
-			/*
-			 * Unexpected exit of startup process (including FATAL exit)
-			 * during PM_STARTUP is treated as catastrophic. There are no
-			 * other processes running yet, so we can just exit.
-			 */
-			if (pmState == PM_STARTUP_PASS3 && !EXIT_STATUS_0(exitstatus))
-			{
-				LogChildExit(LOG, _("startup pass 3 process"),
-							 pid, exitstatus);
-				ereport(LOG,
-						(errmsg("aborting startup due to startup process failure")));
-				ExitPostmaster(1);
-			}
-
-			/*
-			 * Startup process exited in response to a shutdown request (or it
-			 * completed normally regardless of the shutdown request).
-			 */
-			if (Shutdown > NoShutdown &&
-				(EXIT_STATUS_0(exitstatus) || EXIT_STATUS_1(exitstatus)))
-			{
-				/* PostmasterStateMachine logic does the rest */
-				continue;
-			}
-
-			/*
-			 * Any unexpected exit (including FATAL exit) of the startup
-			 * process is treated as a crash, except that we don't want to
-			 * reinitialize.
-			 */
-			if (!EXIT_STATUS_0(exitstatus))
-			{
-				RecoveryError = true;
-				HandleChildCrash(pid, exitstatus,
-								 _("startup pass 3 process"));
-				continue;
-			}
-
-			if (XLogStartupIntegrityCheckNeeded())
-			{
-				/*
-				 * Wants (and can do) integrity checks.
-				 */
-			    Assert(StartupPass4PID == 0);
-				StartupPass4PID = StartupPass4DataBase();
-				Assert(StartupPass4PID != 0);
-
-				pmState = PM_STARTUP_PASS4;
-			}
-			else
-			{
-				/*
-				 * Startup succeeded, commence normal operations
-				 */
-				if (CommenceNormalOperations())
-					didServiceProcessWork &= true;
-			}
-			continue;
-		}
-
-		/*
-		 * Check if this child was a startup pass 4 process.
-		 */
-		if (pid == StartupPass4PID)
-		{
-			StartupPass4PID = 0;
-
-			Assert(isPrimaryMirrorModeAFullPostmaster(true));
-
-			/*
-			 * Unexpected exit of startup process (including FATAL exit)
-			 * during PM_STARTUP is treated as catastrophic. There are no
-			 * other processes running yet, so we can just exit.
-			 */
-			if (pmState == PM_STARTUP_PASS4 && !EXIT_STATUS_0(exitstatus))
-			{
-				LogChildExit(LOG, _("startup pass 4 process"),
-							 pid, exitstatus);
-				ereport(LOG,
-						(errmsg("aborting startup due to startup process failure")));
-				ExitPostmaster(1);
-			}
-
-			/*
-			 * Startup process exited in response to a shutdown request (or it
-			 * completed normally regardless of the shutdown request).
-			 */
-			if (Shutdown > NoShutdown &&
-				(EXIT_STATUS_0(exitstatus) || EXIT_STATUS_1(exitstatus)))
-			{
-				/* PostmasterStateMachine logic does the rest */
-				continue;
-			}
-
-			/*
-			 * Any unexpected exit (including FATAL exit) of the startup
-			 * process is treated as a crash, except that we don't want to
-			 * reinitialize.
-			 */
-			if (!EXIT_STATUS_0(exitstatus))
-			{
-				RecoveryError = true;
-				HandleChildCrash(pid, exitstatus,
-								 _("startup pass 4 process"));
-				continue;
-			}
-
-			if (PgStatPID == 0)
-			{
-				PgStatPID = pgstat_start();
-				if (Debug_print_server_processes)
-					elog(LOG,"on startup successful: started 'statistics collector process' as pid %ld",
-						 (long)PgStatPID);
-				didServiceProcessWork &= (PgStatPID > 0);
-			}
-
-			/*
 			 * Startup succeeded, commence normal operations
 			 */
-			if (CommenceNormalOperations())
-				didServiceProcessWork &= true;
+			FatalError = false;
+			pmState = PM_RUN;
+
+			/*
+			 * Load the flat authorization file into postmaster's cache. The
+			 * startup process has recomputed this from the database contents,
+			 * so we wait till it finishes before loading it.
+			 */
+			load_role();
+
+			/*
+			 * Crank up the background writer, if we didn't do that already
+			 * when we entered consistent recovery state.  It doesn't matter
+			 * if this fails, we'll just try again later.
+			 */
+			if (BgWriterPID == 0)
+			{
+				BgWriterPID = StartBackgroundWriter();
+				if (Debug_print_server_processes)
+					elog(LOG,"on startup successful: started 'background writer' as pid %ld",
+						 (long)BgWriterPID);
+			}
+
+			/*
+			 * Likewise, start other special children as needed.  In a restart
+			 * situation, some of them may be alive already.
+			 */
+			if (WalWriterPID == 0)
+				WalWriterPID = StartWalWriter();
+			if (AutoVacuumingActive() && AutoVacPID == 0)
+				AutoVacPID = StartAutoVacLauncher();
+			if (XLogArchivingActive() && PgArchPID == 0)
+				PgArchPID = pgarch_start();
+			if (PgStatPID == 0)
+				PgStatPID = pgstat_start();
+
+			/* at this point we are really open for business */
+			{
+				char version[512];
+
+				strlcpy(version, PG_VERSION_STR " compiled on " __DATE__ " " __TIME__,
+						sizeof(version));
+
+#ifdef USE_ASSERT_CHECKING
+				strlcat(version, " (with assert checking)", sizeof(version));
+#endif
+				ereport(LOG,(errmsg("%s", version)));
+
+				ereport(LOG,
+						(errmsg("database system is ready to accept connections"),
+						 errdetail("%s",version),
+						 errSendAlert(true)));
+			}
+
 			continue;
 		}
 

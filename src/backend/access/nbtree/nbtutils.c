@@ -1114,8 +1114,6 @@ _bt_check_rowcompare(ScanKey skey, IndexTuple tuple, TupleDesc tupdesc,
 void
 _bt_killitems(IndexScanDesc scan, bool haveLock)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	BTScanOpaque so = (BTScanOpaque) scan->opaque;
 	Page		page;
 	BTPageOpaque opaque;
@@ -1128,16 +1126,7 @@ _bt_killitems(IndexScanDesc scan, bool haveLock)
 	Assert(BufferIsValid(so->currPos.buf));
 
 	if (!haveLock)
-	{
-		// -------- MirroredLock ----------
-		MIRROREDLOCK_BUFMGR_LOCK;
-		
 		LockBuffer(so->currPos.buf, BT_READ);
-	}
-	else
-	{
-		MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-	}
 
 	page = BufferGetPage(so->currPos.buf);
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
@@ -1183,13 +1172,7 @@ _bt_killitems(IndexScanDesc scan, bool haveLock)
 	}
 
 	if (!haveLock)
-	{
 		LockBuffer(so->currPos.buf, BUFFER_LOCK_UNLOCK);
-		
-		MIRROREDLOCK_BUFMGR_UNLOCK;
-		// -------- MirroredLock ----------
-		
-	}
 
 	/*
 	 * Always reset the scan state, so we don't look for same items on other

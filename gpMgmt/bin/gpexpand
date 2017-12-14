@@ -1686,48 +1686,6 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
         self.statusLogger.set_status('UPDATE_CATALOG_DONE')
 
     # --------------------------------------------------------------------------
-    def configure_new_segment_filespaces(self):
-        """
-        This method is called after all new segments have been configured.
-        """
-
-        self.logger.info('Configuring new segment filespaces')
-        newSegments = self.gparray.getExpansionSegDbList()
-        fsObjList = self.gparray.getFilespaces(includeSystemFilespace=False)
-
-        if len(fsObjList) == 0:
-            # No filespaces to configure
-            return
-
-        """ Connect to the back end of each new segment directly, and call the filespace setup function. """
-        for seg in newSegments:
-            if seg.isSegmentMirror() == True:
-                continue
-            name = "gpexpand prep new segment filespaces. host = %s, sysdatadir = %s" % (
-                seg.getSegmentHostName(), seg.getSegmentDataDirectory())
-            segFilespaces = seg.getSegmentFilespaces()
-            filespaceNames = []
-            filespaceLocations = []
-            for entry in fsObjList:
-                fsname = entry.getName()
-                oid = entry.getOid()
-                location = segFilespaces[oid]
-                filespaceNames.append(fsname)
-                filespaceLocations.append(location)
-            prepCmd = PrepFileSpaces(name=name
-                                     , filespaceNames=filespaceNames
-                                     , filespaceLocations=filespaceLocations
-                                     , sysDataDirectory=seg.getSegmentDataDirectory()
-                                     , dbid=seg.getSegmentDbId()
-                                     , contentId=seg.getSegmentContentId()
-                                     , ctxt=REMOTE
-                                     , remoteHost=seg.getSegmentHostName()
-                                     )
-            self.pool.addCommand(prepCmd)
-        self.pool.join()
-        self.pool.check_results()
-
-    # --------------------------------------------------------------------------
     def cleanup_new_segments(self):
         """
         This method is called after all new segments have been configured.
@@ -2638,30 +2596,6 @@ class ExpandTable():
 
 
 # -----------------------------------------------
-class PrepFileSpaces(Command):
-    """
-    This class will connect to a segment backend and execute the gp_prep_new_segment function to setup the file spaces.
-    """
-
-    def __init__(self, name, filespaceNames, filespaceLocations, sysDataDirectory, dbid, contentId, ctxt=LOCAL,
-                 remoteHost=None):
-        self.name = name
-        self.filespaceNames = filespaceNames
-        self.filespaceLocations = filespaceLocations
-        self.sysDataDirectory = sysDataDirectory
-        self.dbid = dbid
-        self.contentId = contentId
-        self.filespaces = []
-        for i in range(len(filespaceNames)):
-            entry = [filespaceNames[i], filespaceLocations[i]]
-            self.filespaces.append(entry)
-        cmdStr = """echo "select * from gp_prep_new_segment( array %s )" """ % (str(self.filespaces))
-        cmdStr += """ | $GPHOME/bin/postgres --single --gp_num_contents_in_cluster=1 -O -c gp_session_role=utility -c gp_debug_linger=0 -c gp_before_filespace_setup=true  -E -D %s --gp_dbid=%s --gp_contentid=%s template1""" % (
-            self.sysDataDirectory, str(self.dbid), str(self.contentId))
-        Command.__init__(self, name, cmdStr, ctxt, remoteHost)
-
-
-# -----------------------------------------------
 class ExecuteSQLStatementsCommand(SQLCommand):
     """
     This class will execute a list of SQL statements.
@@ -3153,7 +3087,6 @@ def main(options, args, parser):
             _gp_expand.update_original_segments()
             _gp_expand.update_catalog()
             _gp_expand.move_filespaces()
-            _gp_expand.configure_new_segment_filespaces()
             _gp_expand.cleanup_new_segments()
             _gp_expand.setup_schema()
             _gp_expand.prepare_schema()

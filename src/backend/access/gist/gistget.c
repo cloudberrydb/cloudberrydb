@@ -32,13 +32,8 @@ static bool gistindex_keytest(IndexTuple tuple, IndexScanDesc scan,
 static void
 killtuple(Relation r, GISTScanOpaque so, ItemPointer iptr)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	Page        p;
 	OffsetNumber offset;
-
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
 
 	LockBuffer(so->curbuf, GIST_SHARE);
 	gistcheckpage(r, so->curbuf);
@@ -71,9 +66,6 @@ killtuple(Relation r, GISTScanOpaque so, ItemPointer iptr)
 	}
 
 	LockBuffer(so->curbuf, GIST_UNLOCK);
-
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
 }
 
 /*
@@ -144,8 +136,6 @@ gistgetbitmap(PG_FUNCTION_ARGS)
 static int64
 gistnext(IndexScanDesc scan, TIDBitmap *tbm)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	Page		p;
 	OffsetNumber n;
 	GISTScanOpaque so;
@@ -158,9 +148,6 @@ gistnext(IndexScanDesc scan, TIDBitmap *tbm)
 
 	if (so->qual_ok == false)
 		return 0;
-
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
 
 	if (so->curbuf == InvalidBuffer)
 	{
@@ -181,9 +168,6 @@ gistnext(IndexScanDesc scan, TIDBitmap *tbm)
 		}
 		else
 		{
-			MIRROREDLOCK_BUFMGR_UNLOCK;
-			// -------- MirroredLock ----------
-
 			/* scan is finished */
 			return 0;
 		}
@@ -210,9 +194,6 @@ gistnext(IndexScanDesc scan, TIDBitmap *tbm)
 
 			so->curPageData++;
 
-			MIRROREDLOCK_BUFMGR_UNLOCK;
-			// -------- MirroredLock ----------
-
 			return 1;
 		}
 		else
@@ -229,9 +210,6 @@ gistnext(IndexScanDesc scan, TIDBitmap *tbm)
 			{
 				ReleaseBuffer(so->curbuf);
 				so->curbuf = InvalidBuffer;
-
-				MIRROREDLOCK_BUFMGR_UNLOCK;
-				// -------- MirroredLock ----------
 
 				return ntids;
 			}
@@ -286,9 +264,6 @@ gistnext(IndexScanDesc scan, TIDBitmap *tbm)
 				ReleaseBuffer(so->curbuf);
 				so->curbuf = InvalidBuffer;
 
-				MIRROREDLOCK_BUFMGR_UNLOCK;
-				// -------- MirroredLock ----------
-
 				return ntids;
 			}
 
@@ -311,8 +286,6 @@ gistnext(IndexScanDesc scan, TIDBitmap *tbm)
 				if (!tbm && so->nPageData)
 				{
 					LockBuffer(so->curbuf, GIST_UNLOCK);
-					MIRROREDLOCK_BUFMGR_UNLOCK;
-
 					return gistnext(scan, NULL);
 				}
 
@@ -356,9 +329,6 @@ gistnext(IndexScanDesc scan, TIDBitmap *tbm)
 				{
 					ReleaseBuffer(so->curbuf);
 					so->curbuf = InvalidBuffer;
-					
-					MIRROREDLOCK_BUFMGR_UNLOCK;
-					// -------- MirroredLock ----------
 					
 					return ntids;
 				}
@@ -414,9 +384,6 @@ gistnext(IndexScanDesc scan, TIDBitmap *tbm)
 			n = OffsetNumberNext(n);
 		}
 	}
-
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
 
 	return ntids;
 }

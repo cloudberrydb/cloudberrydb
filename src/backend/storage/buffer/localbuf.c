@@ -200,10 +200,7 @@ LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum, BlockNumber blockNum,
 		/* Find smgr relation for buffer */
 		oreln = smgropen(bufHdr->tag.rnode);
 
-		// -------- MirroredLock ----------
 		// UNDONE: Unfortunately, I think we write temp relations to the mirror...
-		LWLockAcquire(MirroredLock, LW_SHARED);
-
 		PageSetChecksumInplace(localpage, bufHdr->tag.blockNum);
 
 		/* And write... */
@@ -212,9 +209,6 @@ LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum, BlockNumber blockNum,
 				  bufHdr->tag.blockNum,
 				  localpage,
 				  true);
-
-		LWLockRelease(MirroredLock);
-		// -------- MirroredLock ----------
 
 		/* Mark not-dirty now in case we error out below */
 		bufHdr->flags &= ~BM_DIRTY;

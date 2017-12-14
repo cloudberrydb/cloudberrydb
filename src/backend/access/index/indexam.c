@@ -187,19 +187,12 @@ index_insert(Relation indexRelation,
 			 Relation heapRelation,
 			 bool check_uniqueness)
 {
-	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_DECLARE;
-
 	FmgrInfo   *procedure;
 
 	bool result;
 
-	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_ENTER;
-
 	RELATION_CHECKS;
 	GET_REL_PROCEDURE(aminsert);
-
-	// Fetch gp_persistent_relation_node information that will be added to XLOG record.
-	RelationFetchGpRelationNodeForXLog(indexRelation);
 
 	/*
 	 * have the am's insert proc do all the work.
@@ -211,8 +204,6 @@ index_insert(Relation indexRelation,
 									  PointerGetDatum(heap_t_ctid),
 									  PointerGetDatum(heapRelation),
 									  BoolGetDatum(check_uniqueness)));
-
-	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_EXIT;
 
 	return result;
 }
@@ -228,11 +219,7 @@ index_beginscan(Relation heapRelation,
 				Snapshot snapshot,
 				int nkeys, ScanKey key)
 {
-	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_DECLARE;
-
 	IndexScanDesc scan;
-
-	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_ENTER;
 
 	scan = index_beginscan_internal(indexRelation, nkeys, key);
 
@@ -242,8 +229,6 @@ index_beginscan(Relation heapRelation,
 	 */
 	scan->heapRelation = heapRelation;
 	scan->xs_snapshot = snapshot;
-
-	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_EXIT;
 
 	return scan;
 }
@@ -431,8 +416,6 @@ index_restrpos(IndexScanDesc scan)
 HeapTuple
 index_getnext(IndexScanDesc scan, ScanDirection direction)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	HeapTuple	heapTuple = &scan->xs_ctup;
 	ItemPointer tid = &heapTuple->t_self;
 	FmgrInfo   *procedure;
@@ -468,9 +451,6 @@ index_getnext(IndexScanDesc scan, ScanDirection direction)
 			offnum = scan->xs_next_hot;
 			at_chain_start = false;
 			scan->xs_next_hot = InvalidOffsetNumber;
-
-			// -------- MirroredLock ----------
-			MIRROREDLOCK_BUFMGR_LOCK;
 		}
 		else
 		{
@@ -501,9 +481,6 @@ index_getnext(IndexScanDesc scan, ScanDirection direction)
 				break;
 
 			pgstat_count_index_tuples(scan->indexRelation, 1);
-
-			// -------- MirroredLock ----------
-			MIRROREDLOCK_BUFMGR_LOCK;
 
 			/* Switch to correct buffer if we don't have it already */
 			prev_buf = scan->xs_cbuf;
@@ -620,9 +597,6 @@ index_getnext(IndexScanDesc scan, ScanDirection direction)
 
 				pgstat_count_heap_fetch(scan->indexRelation);
 
-				MIRROREDLOCK_BUFMGR_UNLOCK;
-				// -------- MirroredLock ----------
-
 				return heapTuple;
 			}
 
@@ -655,9 +629,6 @@ index_getnext(IndexScanDesc scan, ScanDirection direction)
 		}						/* loop over a single HOT chain */
 
 		LockBuffer(scan->xs_cbuf, BUFFER_LOCK_UNLOCK);
-
-		MIRROREDLOCK_BUFMGR_UNLOCK;
-		// -------- MirroredLock ----------
 
 		/* Loop around to ask index AM for another TID */
 		scan->xs_next_hot = InvalidOffsetNumber;

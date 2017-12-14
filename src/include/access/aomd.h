@@ -37,11 +37,10 @@ extern void MakeAOSegmentFileName(
 					  int32 *fileSegNo,
 					  char *filepathname);
 
-extern bool OpenAOSegmentFile(
-				  Relation rel,
+extern bool OpenAOSegmentFile(Relation rel,
 				  char *filepathname,
 				  int32 segmentFileNum,
-				  int64 logicalEof,
+				  int64	logicalEof,
 				  struct MirroredAppendOnlyOpen *mirroredOpen);
 
 extern void CloseAOSegmentFile(

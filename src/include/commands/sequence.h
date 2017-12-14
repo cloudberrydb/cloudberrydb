@@ -85,8 +85,6 @@ typedef FormData_pg_sequence *Form_pg_sequence;
 typedef struct xl_seq_rec
 {
 	RelFileNode 	node;
-	ItemPointerData persistentTid;
-	int64 			persistentSerialNum;
 
 	/* SEQUENCE TUPLE DATA FOLLOWS AT THE END */
 } xl_seq_rec;

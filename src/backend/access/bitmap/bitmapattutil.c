@@ -120,9 +120,6 @@ _bitmap_create_lov_heapandindex(Relation rel,
 
 		if (!lovIndex->rd_istemp)
 		{
-			// Fetch gp_persistent_relation_node information that will be added to XLOG record.
-			RelationFetchGpRelationNodeForXLog(lovIndex);
-
 			log_newpage_rel(lovIndex, BufferGetBlockNumber(btree_metabuf), MAIN_FORKNUM,
 						btree_metapage);
 		}
@@ -159,9 +156,7 @@ _bitmap_create_lov_heapandindex(Relation rel,
 								 rel->rd_rel->relisshared, false, /* bufferPoolBulkLoad */ false, 0,
 								 ONCOMMIT_NOOP, NULL /* GP Policy */,
 								 (Datum)0, true,
-								 /* valid_opts */ true,
-						 		 /* persistentTid */ NULL,
-						 		 /* persistentSerialNum */ NULL);
+								 /* valid_opts */ true);
 	*lovHeapOid = heapid;
 
 	/*

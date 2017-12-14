@@ -122,8 +122,6 @@ DistributedLog_SetCommitted(
 {
 	Assert(TransactionIdIsValid(localXid));
 
-	MIRRORED_LOCK_DECLARE;
-
 	int			page = TransactionIdToPage(localXid);
 	int			entryno = TransactionIdToEntry(localXid);
 	int			slotno;
@@ -132,8 +130,6 @@ DistributedLog_SetCommitted(
 
 	bool alreadyThere = false;
 
-	MIRRORED_LOCK;
-	
 	LWLockAcquire(DistributedLogControlLock, LW_EXCLUSIVE);
 
 	if (isRedo)
@@ -178,8 +174,6 @@ DistributedLog_SetCommitted(
 	
 	LWLockRelease(DistributedLogControlLock);
 
-	MIRRORED_UNLOCK;
-	
 	elog((Debug_print_full_dtm ? LOG : DEBUG5), 
 		 "DistributedLog_SetCommitted with local xid = %d (page = %d, entryno = %d) and distributed transaction xid = %u (timestamp = %u) status = %s",
 		 localXid, page, entryno, distribXid, distribTimeStamp,
@@ -196,15 +190,11 @@ DistributedLog_CommittedCheck(
 	DistributedTransactionTimeStamp		*distribTimeStamp,
 	DistributedTransactionId 			*distribXid)
 {
-	MIRRORED_LOCK_DECLARE;
-
 	int			page = TransactionIdToPage(localXid);
 	int			entryno = TransactionIdToEntry(localXid);
 	int			slotno;
 	
 	DistributedLogEntry *ptr;
-
-	MIRRORED_LOCK;
 
 	LWLockAcquire(DistributedLogControlLock, LW_EXCLUSIVE);
 
@@ -215,8 +205,6 @@ DistributedLog_CommittedCheck(
 		 * We prevously discovered we didn't have the page...
 		 */
 		LWLockRelease(DistributedLogControlLock);
-
-		MIRRORED_UNLOCK;
 
 		*distribTimeStamp = 0;	// Set it to something.
 		*distribXid = 0;
@@ -242,8 +230,6 @@ DistributedLog_CommittedCheck(
 		
 		LWLockRelease(DistributedLogControlLock);
 
-		MIRRORED_UNLOCK;
-
 		*distribTimeStamp = 0;	// Set it to something.
 		*distribXid = 0;
 
@@ -257,8 +243,6 @@ DistributedLog_CommittedCheck(
 	*distribXid = ptr->distribXid;
 	ptr = NULL;
 	LWLockRelease(DistributedLogControlLock);
-
-	MIRRORED_UNLOCK;
 
 	if (*distribTimeStamp != 0 && *distribXid != 0)
 	{
@@ -293,8 +277,6 @@ DistributedLog_ScanForPrevCommitted(
 	DistributedTransactionTimeStamp 	*distribTimeStamp,
 	DistributedTransactionId 			*distribXid)
 {
-	MIRRORED_LOCK_DECLARE;
-
 	TransactionId highXid;
 	int pageno;
 	TransactionId lowXid;
@@ -309,8 +291,6 @@ DistributedLog_ScanForPrevCommitted(
 	highXid = (*indexXid) - 1;
 	if (highXid < FirstNormalTransactionId)
 		return false;
-
-	MIRRORED_LOCK;
 
 	while (true)
 	{
@@ -331,8 +311,6 @@ DistributedLog_ScanForPrevCommitted(
 		if (!SimpleLruPageExists(DistributedLogCtl, pageno))
 		{
 			LWLockRelease(DistributedLogControlLock);
-
-			MIRRORED_UNLOCK;
 
 			*indexXid = InvalidTransactionId;
 			*distribTimeStamp = 0;	// Set it to something.
@@ -357,8 +335,6 @@ DistributedLog_ScanForPrevCommitted(
 				*distribXid = ptr->distribXid;
 				LWLockRelease(DistributedLogControlLock);
 
-				MIRRORED_UNLOCK;
-
 				return true;
 			}
 		}
@@ -367,8 +343,6 @@ DistributedLog_ScanForPrevCommitted(
 
 		if (lowXid == FirstNormalTransactionId)
 		{
-			MIRRORED_UNLOCK;
-
 			*indexXid = InvalidTransactionId;
 			*distribTimeStamp = 0;	// Set it to something.
 			*distribXid = 0;
@@ -377,8 +351,6 @@ DistributedLog_ScanForPrevCommitted(
 		
 		highXid = lowXid - 1;	// Go to last xid of previous page.
 	}
-
-	MIRRORED_UNLOCK;
 
 	return false;	// We'll never reach this.
 }
@@ -440,11 +412,7 @@ DistributedLog_ShmemInit(void)
 void
 DistributedLog_BootStrap(void)
 {
-	MIRRORED_LOCK_DECLARE;
-
 	int			slotno;
-
-	MIRRORED_LOCK;
 
 	LWLockAcquire(DistributedLogControlLock, LW_EXCLUSIVE);
 
@@ -456,8 +424,6 @@ DistributedLog_BootStrap(void)
 	Assert(!DistributedLogCtl->shared->page_dirty[slotno]);
 
 	LWLockRelease(DistributedLogControlLock);
-
-	MIRRORED_UNLOCK;
 }
 
 /*
@@ -472,11 +438,7 @@ DistributedLog_BootStrap(void)
 static int
 DistributedLog_ZeroPage(int page, bool writeXlog)
 {
-	MIRRORED_LOCK_DECLARE;
-
 	int			slotno;
-
-	MIRRORED_LOCK;
 
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
 		 "DistributedLog_ZeroPage zero page %d", 
@@ -485,8 +447,6 @@ DistributedLog_ZeroPage(int page, bool writeXlog)
 
 	if (writeXlog)
 		DistributedLog_WriteZeroPageXlogRec(page);
-
-	MIRRORED_UNLOCK;
 
 	return slotno;
 }
@@ -500,8 +460,6 @@ DistributedLog_Startup(
 					TransactionId oldestActiveXid,
 					TransactionId nextXid)
 {
-	MIRRORED_LOCK_DECLARE;
-
 	int	startPage;
 	int	endPage;
 
@@ -512,8 +470,6 @@ DistributedLog_Startup(
 	 */
 	startPage = TransactionIdToPage(oldestActiveXid);
 	endPage = TransactionIdToPage(nextXid);
-
-	MIRRORED_LOCK;
 
 	LWLockAcquire(DistributedLogControlLock, LW_EXCLUSIVE);
 
@@ -559,8 +515,6 @@ DistributedLog_Startup(
 	}
 
 	LWLockRelease(DistributedLogControlLock);
-
-	MIRRORED_UNLOCK;
 }
 
 /*
@@ -569,17 +523,11 @@ DistributedLog_Startup(
 void
 DistributedLog_Shutdown(void)
 {
-	MIRRORED_LOCK_DECLARE;
-
-	MIRRORED_LOCK;
-
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
 		 "DistributedLog_Shutdown");
 
 	/* Flush dirty DistributedLog pages to disk */
 	SimpleLruFlush(DistributedLogCtl, false);
-
-	MIRRORED_UNLOCK;
 }
 
 /*
@@ -588,17 +536,11 @@ DistributedLog_Shutdown(void)
 void
 DistributedLog_CheckPoint(void)
 {
-	MIRRORED_LOCK_DECLARE;
-
-	MIRRORED_LOCK;
-
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
 		 "DistributedLog_CheckPoint");
 
 	/* Flush dirty DistributedLog pages to disk */
 	SimpleLruFlush(DistributedLogCtl, true);
-
-	MIRRORED_UNLOCK;
 }
 
 
@@ -613,8 +555,6 @@ DistributedLog_CheckPoint(void)
 void
 DistributedLog_Extend(TransactionId newestXact)
 {
-	MIRRORED_LOCK_DECLARE;
-
 	int			page;
 
 	/*
@@ -631,16 +571,12 @@ DistributedLog_Extend(TransactionId newestXact)
 		 "DistributedLog_Extend page %d",
 		 page);
 
-	MIRRORED_LOCK;
-
 	LWLockAcquire(DistributedLogControlLock, LW_EXCLUSIVE);
 
 	/* Zero the page and make an XLOG entry about it */
 	DistributedLog_ZeroPage(page, true);
 
 	LWLockRelease(DistributedLogControlLock);
-
-	MIRRORED_UNLOCK;
 	
 	elog((Debug_print_full_dtm ? LOG : DEBUG5), 
 		 "DistributedLog_Extend with newest local xid = %d to page = %d",
@@ -670,8 +606,6 @@ DistributedLog_Extend(TransactionId newestXact)
 void
 DistributedLog_Truncate(TransactionId oldestXid)
 {
-	MIRRORED_LOCK_DECLARE;
-
 	int			cutoffPage;
 
 	/*
@@ -680,17 +614,12 @@ DistributedLog_Truncate(TransactionId oldestXid)
 	 */
 	cutoffPage = TransactionIdToPage(oldestXid);
 
-	MIRRORED_LOCK;
-	
 	LWLockAcquire(DistributedLogControlLock, LW_EXCLUSIVE);
 	
 	/* Check to see if there's any files that could be removed */
 	if (!SlruScanDirectory(DistributedLogCtl, cutoffPage, false))
 	{
 		LWLockRelease(DistributedLogControlLock);
-
-		MIRRORED_UNLOCK;
-
 		return;					/* nothing to remove */
 	}
 
@@ -711,8 +640,6 @@ DistributedLog_Truncate(TransactionId oldestXid)
 		 oldestXid, cutoffPage);
 	
 	LWLockRelease(DistributedLogControlLock);
-
-	MIRRORED_UNLOCK;
 }
 
 
@@ -788,11 +715,7 @@ DistributedLog_WriteTruncateXlogRec(int page)
 void
 DistributedLog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 {
-	MIRRORED_LOCK_DECLARE;
-
 	uint8		info = record->xl_info & ~XLR_INFO_MASK;
-
-	MIRRORED_LOCK;
 
 	if (info == DISTRIBUTEDLOG_ZEROPAGE)
 	{
@@ -841,8 +764,6 @@ DistributedLog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 	}
 	else
 		elog(PANIC, "DistributedLog_redo: unknown op code %u", info);
-
-	MIRRORED_UNLOCK;
 }
 
 void

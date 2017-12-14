@@ -266,8 +266,6 @@
 
  CREATE FUNCTION gp_distributed_log() RETURNS SETOF record LANGUAGE internal VOLATILE AS 'gp_distributed_log' WITH (OID=6044, DESCRIPTION="view logged distributed transaction status");
 
- CREATE FUNCTION gp_changetracking_log(IN filetype int4, OUT segment_id int2, OUT dbid int2, OUT space oid, OUT db oid, OUT rel oid, OUT xlogloc gpxlogloc, OUT blocknum int4, OUT persistent_tid tid, OUT persistent_sn int8) RETURNS SETOF pg_catalog.record LANGUAGE internal VOLATILE AS 'gp_changetracking_log' WITH (OID=6435, DESCRIPTION="view logged change tracking records");
-
  CREATE FUNCTION gp_execution_dbid() RETURNS int4 LANGUAGE internal VOLATILE AS 'gp_execution_dbid' WITH (OID=6068, DESCRIPTION="dbid executing function");
 
  CREATE FUNCTION get_ao_distribution(IN reloid oid, OUT segmentid int4, OUT tupcount int8) RETURNS SETOF pg_catalog.record LANGUAGE internal VOLATILE READS SQL DATA AS 'get_ao_distribution_oid' WITH (OID=7169, DESCRIPTION="show append only table tuple distribution across segment databases");
@@ -281,14 +279,6 @@
  CREATE FUNCTION gp_update_ao_master_stats(oid) RETURNS int8 LANGUAGE internal VOLATILE MODIFIES SQL DATA AS 'gp_update_ao_master_stats_oid' WITH (OID=7173, DESCRIPTION="append only tables utility function");
 
  CREATE FUNCTION gp_update_ao_master_stats(text) RETURNS int8 LANGUAGE internal VOLATILE MODIFIES SQL DATA AS 'gp_update_ao_master_stats_name' WITH (OID=7174, DESCRIPTION="append only tables utility function");
-
- CREATE FUNCTION gp_persistent_build_db(bool) RETURNS int4 LANGUAGE internal VOLATILE AS 'gp_persistent_build_db' WITH (OID=7178, DESCRIPTION="populate the persistent tables and gp_relation_node for the current database");
-
- CREATE FUNCTION gp_persistent_build_all(bool) RETURNS int4 LANGUAGE internal VOLATILE AS 'gp_persistent_build_all' WITH (OID=7179, DESCRIPTION="populate the persistent tables and gp_relation_node for the whole database instance");
-
- CREATE FUNCTION gp_persistent_reset_all() RETURNS int4 LANGUAGE internal VOLATILE AS 'gp_persistent_reset_all' WITH (OID=7180, DESCRIPTION="Remove the persistent tables and gp_relation_node for the whole database instance");
-
- CREATE FUNCTION gp_persistent_repair_delete(int4, tid) RETURNS int4 LANGUAGE internal VOLATILE AS 'gp_persistent_repair_delete' WITH (OID=7181, DESCRIPTION="Remove an entry specified by TID from a persistent table for the current database instance");
 
  CREATE FUNCTION xmlexists(text, xml) RETURNS bool LANGUAGE internal IMMUTABLE STRICT AS 'xmlexists' WITH (OID=7182, DESCRIPTION="test XML value against XPath expression");
 
@@ -380,59 +370,17 @@
 
  CREATE FUNCTION gp_remove_segment(int2) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_remove_segment' WITH (OID=5051, DESCRIPTION="Remove a primary segment from the system catalog");
 
- CREATE FUNCTION gp_prep_new_segment(_text) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_prep_new_segment' WITH (OID=5052, DESCRIPTION="Convert a cloned master catalog for use as a segment");
-
  CREATE FUNCTION gp_activate_standby() RETURNS bool LANGUAGE internal VOLATILE AS 'gp_activate_standby' WITH (OID=5053, DESCRIPTION="Activate a standby");
 
  CREATE FUNCTION gp_request_fts_probe_scan() RETURNS bool LANGUAGE internal VOLATILE AS 'gp_request_fts_probe_scan' EXECUTE ON MASTER WITH (OID=5035, DESCRIPTION="Request a FTS probe scan and wait for response");
 
--- We cheat in the following two functions: they are technically volatile but
--- we can only dispatch them if they're immutable :(.
-
-
- CREATE FUNCTION gp_add_segment_persistent_entries(int2, int2, _text) RETURNS bool LANGUAGE internal IMMUTABLE AS 'gp_add_segment_persistent_entries' WITH (OID=5054, DESCRIPTION="Persist object nodes on a segment");
-
- CREATE FUNCTION gp_remove_segment_persistent_entries(int2, int2) RETURNS bool LANGUAGE internal IMMUTABLE AS 'gp_remove_segment_persistent_entries' WITH (OID=5055, DESCRIPTION="Remove persistent object node references at a segment");
-
 -- persistent table repair functions
-
- CREATE FUNCTION gp_add_persistent_filespace_node_entry(tid, oid, int2, text, int2, text, int2, int8, int2, int4, int4, int8) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_add_persistent_filespace_node_entry' WITH (OID=5056, DESCRIPTION="Add a new entry to gp_persistent_filespace_node");
-
- CREATE FUNCTION gp_add_persistent_tablespace_node_entry(tid, oid, oid, int2, int8, int2, int4, int4, int8) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_add_persistent_tablespace_node_entry' WITH (OID=5057, DESCRIPTION="Add a new entry to gp_persistent_tablespace_node");
-
- CREATE FUNCTION gp_add_persistent_database_node_entry(tid, oid, oid, int2, int8, int2, int4, int4, int8) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_add_persistent_database_node_entry' WITH (OID=5058, DESCRIPTION="Add a new entry to gp_persistent_database_node");
-
- CREATE FUNCTION gp_add_persistent_relation_node_entry(tid, oid, oid, oid, int4, int2, int2, int8, int2, int2, bool, int8, gpxlogloc, int4, int8, int8, int4, int4, int8) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_add_persistent_relation_node_entry' WITH (OID=5059, DESCRIPTION="Add a new entry to gp_persistent_relation_node");
 
  CREATE FUNCTION gp_add_global_sequence_entry(tid, int8) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_add_global_sequence_entry' WITH (OID=5060, DESCRIPTION="Add a new entry to gp_global_sequence");
 
- CREATE FUNCTION gp_add_relation_node_entry(tid, oid, oid, int4, int8, tid, int8) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_add_relation_node_entry' WITH (OID=5061, DESCRIPTION="Add a new entry to gp_relation_node");
-
- CREATE FUNCTION gp_update_persistent_filespace_node_entry(tid, oid, int2, text, int2, text, int2, int8, int2, int4, int4, int8) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_update_persistent_filespace_node_entry' WITH (OID=5062, DESCRIPTION="Update an entry in gp_persistent_filespace_node");
-
- CREATE FUNCTION gp_update_persistent_tablespace_node_entry(tid, oid, oid, int2, int8, int2, int4, int4, int8) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_update_persistent_tablespace_node_entry' WITH (OID=5063, DESCRIPTION="Update an entry in gp_persistent_tablespace_node");
-
- CREATE FUNCTION gp_update_persistent_database_node_entry(tid, oid, oid, int2, int8, int2, int4, int4, int8) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_update_persistent_database_node_entry' WITH (OID=5064, DESCRIPTION="Update an entry in gp_persistent_database_node");
-
- CREATE FUNCTION gp_update_persistent_relation_node_entry(tid, oid, oid, oid, int4, int2, int2, int8, int2, int2, bool, int8, gpxlogloc, int4, int8, int8, int4, int4, int8) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_update_persistent_relation_node_entry' WITH (OID=5065, DESCRIPTION="Update an entry in gp_persistent_relation_node");
-
  CREATE FUNCTION gp_update_global_sequence_entry(tid, int8) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_update_global_sequence_entry' WITH (OID=5066, DESCRIPTION="Update an entry in gp_global_sequence");
 
- CREATE FUNCTION gp_update_relation_node_entry(tid, oid, oid, int4, int8, tid, int8) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_update_relation_node_entry' WITH (OID=5067, DESCRIPTION="Update an entry in gp_relation_node");
-
- CREATE FUNCTION gp_delete_persistent_filespace_node_entry(tid) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_delete_persistent_filespace_node_entry' WITH (OID=5068, DESCRIPTION="Remove an entry from gp_persistent_filespace_node");
-
- CREATE FUNCTION gp_delete_persistent_tablespace_node_entry(tid) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_delete_persistent_tablespace_node_entry' WITH (OID=5069, DESCRIPTION="Remove an entry from gp_persistent_tablespace_node");
-
- CREATE FUNCTION gp_delete_persistent_database_node_entry(tid) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_delete_persistent_database_node_entry' WITH (OID=5070, DESCRIPTION="Remove an entry from gp_persistent_database_node");
-
- CREATE FUNCTION gp_delete_persistent_relation_node_entry(tid) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_delete_persistent_relation_node_entry' WITH (OID=5071, DESCRIPTION="Remove an entry from gp_persistent_relation_node");
-
  CREATE FUNCTION gp_delete_global_sequence_entry(tid) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_delete_global_sequence_entry' WITH (OID=5072, DESCRIPTION="Remove an entry from gp_global_sequence");
-
- CREATE FUNCTION gp_delete_relation_node_entry(tid) RETURNS bool LANGUAGE internal VOLATILE AS 'gp_delete_relation_node_entry' WITH (OID=5073, DESCRIPTION="Remove an entry from gp_relation_node");
-
- CREATE FUNCTION gp_persistent_relation_node_check() RETURNS SETOF gp_persistent_relation_node LANGUAGE internal VOLATILE AS 'gp_persistent_relation_node_check' WITH (OID=5074, DESCRIPTION="physical filesystem information");
 
  CREATE FUNCTION cosh(float8) RETURNS float8 LANGUAGE internal IMMUTABLE AS 'dcosh' WITH (OID=3539, DESCRIPTION="Hyperbolic cosine function");
 

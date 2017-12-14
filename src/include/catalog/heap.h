@@ -83,9 +83,7 @@ extern Oid heap_create_with_catalog(const char *relname,
                          const struct GpPolicy *policy,    /* MPP */
 						 Datum reloptions,
 						 bool allow_system_table_mods,
-						 bool valid_opts,
-						 ItemPointer persistentTid,
-						 int64 *persistentSerialNum);
+						 bool valid_opts);
 
 extern void heap_drop_with_catalog(Oid relid);
 
@@ -103,25 +101,6 @@ extern void InsertPgClassTuple(Relation pg_class_desc,
 				   Relation new_rel_desc,
 				   Oid new_rel_oid,
 				   Datum reloptions);
-
-extern void InsertGpRelationNodeTuple(
-	Relation 		gp_relation_node,
-	Oid				relationId,
-	char			*relname,
-	Oid				tablespaceOid,
-	Oid				relation,
-	int32			segmentFileNum,
-	bool			updateIndex,
-	ItemPointer		persistentTid,
-	int64			persistentSerialNum);
-extern void UpdateGpRelationNodeTuple(
-		Relation	gp_relation_node,
-		HeapTuple	tuple,
-		Oid 		tablespaceOid,
-		Oid 		relation,
-		int32		segmentFileNum,
-		ItemPointer persistentTid,
-		int64		persistentSerialNum);
 
 extern List *AddRelationNewConstraints(Relation rel,
 						  List *newColDefaults,
@@ -180,6 +159,6 @@ extern void MetaTrackDropObject(Oid		classid,
 		|| ((relkind) == RELKIND_SEQUENCE) \
 		|| ((relkind) == RELKIND_VIEW)) 
 
-extern void remove_gp_relation_node_and_schedule_drop(Relation rel);
 extern bool should_have_valid_relfrozenxid(Oid oid, char relkind, char relstorage);
+
 #endif   /* HEAP_H */

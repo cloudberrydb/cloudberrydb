@@ -61,7 +61,6 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdboidsync.h"
-#include "cdb/cdbpersistentfilesysobj.h"
 
 /*
  * This struct is used to pass around the information on tables to be
@@ -794,9 +793,7 @@ make_new_heap(Oid OIDOldHeap, const char *NewName, Oid NewTableSpace,
                                           NULL,                         /*CDB*/
 										  reloptions,
 										  allowSystemTableModsDDL,
-										  /* valid_opts */ true,
-						 				  /* persistentTid */ NULL,
-						 				  /* persistentSerialNum */ NULL);
+										  /* valid_opts */ true);
 
 	ReleaseSysCache(tuple);
 
@@ -946,12 +943,9 @@ copy_heap_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex)
 		HeapTuple	copiedTuple;
 		bool		isdead;
 		int			i;
-		MIRROREDLOCK_BUFMGR_DECLARE;
 
 		CHECK_FOR_INTERRUPTS();
 
-		/* -------- MirroredLock ---------- */
-		MIRROREDLOCK_BUFMGR_LOCK;
 		/* Since we used no scan keys, should never need to recheck */
 		if (scan->xs_recheck)
 			elog(ERROR, "CLUSTER does not support lossy index conditions");
@@ -1002,9 +996,6 @@ copy_heap_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex)
 		}
 
 		LockBuffer(scan->xs_cbuf, BUFFER_LOCK_UNLOCK);
-
-		MIRROREDLOCK_BUFMGR_UNLOCK;
-		/* -------- MirroredLock ---------- */
 
 		if (isdead)
 		{
@@ -1170,23 +1161,6 @@ swap_relation_files(Oid r1, Oid r2, TransactionId frozenXid, bool swap_stats)
 	isAO2 = (relform2->relstorage == RELSTORAGE_AOROWS ||
 			 relform2->relstorage == RELSTORAGE_AOCOLS);
 
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(), 
-			 "swap_relation_files (#1): ENTER relation '%s', relation id %u, relfilenode %u, reltablespace %u, relstorage '%c'",
-			 relform1->relname.data,
-			 r1,
-			 relform1->relfilenode,
-			 relform1->reltablespace,
-			 relform1->relstorage);
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(), 
-			 "swap_relation_files (#2): ENTER relation '%s', relation id %u, relfilenode %u, reltablespace %u, relstorage '%c'",
-			 relform2->relname.data,
-			 r2,
-			 relform2->relfilenode,
-			 relform2->reltablespace,
-			 relform2->relstorage);
-
 	/*
 	 * Actually swap the fields in the two tuples
 	 */
@@ -1256,23 +1230,6 @@ swap_relation_files(Oid r1, Oid r2, TransactionId frozenXid, bool swap_stats)
 	}
 	else
 		relform1->relfrozenxid = InvalidTransactionId;
-
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(), 
-			 "swap_relation_files (#1): UPDATE relation '%s', relation id %u, relfilenode %u, reltablespace %u, relstorage '%c'",
-			 relform1->relname.data,
-			 r1,
-			 relform1->relfilenode,
-			 relform1->reltablespace,
-			 relform1->relstorage);
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(), 
-			 "swap_relation_files (#2): UPDATE relation '%s', relation id %u, relfilenode %u, reltablespace %u, relstorage '%c'",
-			 relform2->relname.data,
-			 r2,
-			 relform2->relfilenode,
-			 relform2->reltablespace,
-			 relform2->relstorage);
 
 	/* Update the tuples in pg_class */
 	simple_heap_update(relRelation, &reltup1->t_self, reltup1);

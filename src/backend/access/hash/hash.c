@@ -202,8 +202,6 @@ hashinsert(PG_FUNCTION_ARGS)
 Datum
 hashgettuple(PG_FUNCTION_ARGS)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	IndexScanDesc scan = (IndexScanDesc) PG_GETARG_POINTER(0);
 	ScanDirection dir = (ScanDirection) PG_GETARG_INT32(1);
 	HashScanOpaque so = (HashScanOpaque) scan->opaque;
@@ -219,10 +217,6 @@ hashgettuple(PG_FUNCTION_ARGS)
 	 * We hold pin but not lock on current buffer while outside the hash AM.
 	 * Reacquire the read lock here.
 	 */
-
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
-
 	if (BufferIsValid(so->hashso_curbuf))
 		_hash_chgbufaccess(rel, so->hashso_curbuf, HASH_NOLOCK, HASH_READ);
 
@@ -278,9 +272,6 @@ hashgettuple(PG_FUNCTION_ARGS)
 	if (BufferIsValid(so->hashso_curbuf))
 		_hash_chgbufaccess(rel, so->hashso_curbuf, HASH_READ, HASH_NOLOCK);
 	
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
-	
 	PG_RETURN_BOOL(res);
 }
 
@@ -290,8 +281,6 @@ hashgettuple(PG_FUNCTION_ARGS)
 Datum
 hashgetbitmap(PG_FUNCTION_ARGS)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	IndexScanDesc scan = (IndexScanDesc) PG_GETARG_POINTER(0);
 	Node	   *n = (Node *) PG_GETARG_POINTER(1);
 	TIDBitmap  *tbm;
@@ -306,9 +295,6 @@ hashgetbitmap(PG_FUNCTION_ARGS)
 	else
 		tbm = (TIDBitmap *) n;
 
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
-	
 	res = _hash_first(scan, ForwardScanDirection);
 
 	while (res)
@@ -340,9 +326,6 @@ hashgetbitmap(PG_FUNCTION_ARGS)
 
 		res = _hash_next(scan, ForwardScanDirection);
 	}
-
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
 
 	PG_RETURN_POINTER(tbm);
 }
@@ -475,8 +458,6 @@ hashrestrpos(PG_FUNCTION_ARGS)
 Datum
 hashbulkdelete(PG_FUNCTION_ARGS)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	IndexVacuumInfo *info = (IndexVacuumInfo *) PG_GETARG_POINTER(0);
 	IndexBulkDeleteResult *stats = (IndexBulkDeleteResult *) PG_GETARG_POINTER(1);
 	IndexBulkDeleteCallback callback = (IndexBulkDeleteCallback) PG_GETARG_POINTER(2);
@@ -503,10 +484,6 @@ hashbulkdelete(PG_FUNCTION_ARGS)
 	 * array cannot change under us; and it beats rereading the metapage for
 	 * each bucket.
 	 */
-	
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
-	
 	metabuf = _hash_getbuf(rel, HASH_METAPAGE, HASH_READ, LH_META_PAGE);
 	_hash_checkpage(rel, metabuf, LH_META_PAGE);
 	metap = HashPageGetMeta(BufferGetPage(metabuf));
@@ -649,9 +626,6 @@ loop_top:
 	}
 
 	_hash_wrtbuf(rel, metabuf);
-
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
 
 	/* return statistics */
 	if (stats == NULL)

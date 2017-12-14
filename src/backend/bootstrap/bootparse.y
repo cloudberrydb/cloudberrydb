@@ -248,9 +248,7 @@ Boot_CreateStmt:
 													  NULL,			/*CDB*/
 													  (Datum) 0,
 													  true,
-													  /* valid_opts */ false,
-						 					  		  /* persistentTid */ NULL,
-						 					  		  /* persistentSerialNum */ NULL);
+													  /* valid_opts */ false);
 						elog(DEBUG4, "relation created with oid %u", id);
 					}
 					do_end();

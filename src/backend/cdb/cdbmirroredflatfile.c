@@ -26,7 +26,6 @@
 #include "access/xlog_internal.h"
 #include "utils/palloc.h"
 #include "cdb/cdbmirroredflatfile.h"
-#include "cdb/cdbpersistentdatabase.h"
 #include "cdb/cdbpersistenttablespace.h"
 #include "storage/fd.h"
 #include "catalog/catalog.h"

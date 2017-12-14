@@ -52,13 +52,6 @@ typedef struct BkpBlock
 /* Information stored in block_info */
 #define BLOCK_APPLY 0x01 /* page image should be restored during replay */
 
-typedef struct BkpBlockWithPT
-{
-	ItemPointerData persistentTid;
-	int64 persistentSerialNum;
-	BkpBlock bkpb;
-} BkpBlockWithPT;
-
 /*
  * When there is not enough space on current page for whole record, we
  * continue on the next page with continuation record.	(However, the

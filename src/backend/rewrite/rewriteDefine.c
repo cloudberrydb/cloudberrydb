@@ -39,8 +39,6 @@
 
 #include "catalog/heap.h"
 #include "cdb/cdbdisp_query.h"
-#include "cdb/cdbmirroredfilesysobj.h"
-#include "cdb/cdbpersistentfilesysobj.h"
 #include "cdb/cdbvars.h"
 
 
@@ -516,74 +514,7 @@ DefineQueryRewrite(char *rulename,
 	 * XXX what about getting rid of its TOAST table?  For now, we don't.
 	 */
 	if (RelisBecomingView)
-	{
-		PersistentFileSysRelStorageMgr relStorageMgr;
-
-		relStorageMgr = ((RelationIsAoRows(event_relation) || RelationIsAoCols(event_relation)) ?
-														PersistentFileSysRelStorageMgr_AppendOnly:
-														PersistentFileSysRelStorageMgr_BufferPool);
-		
-		if (relStorageMgr == PersistentFileSysRelStorageMgr_BufferPool)
-		{
-			MirroredFileSysObj_ScheduleDropBufferPoolRel(event_relation);
-			
-			DeleteGpRelationNodeTuple(
-							event_relation,
-							/* segmentFileNum */ 0);
-		}
-		else
-		{
-			Relation relNodeRelation;
-
-			GpRelationNodeScan	gpRelationNodeScan;
-			
-			HeapTuple tuple;
-			
-			int32 segmentFileNum;
-			
-			ItemPointerData persistentTid;
-			int64 persistentSerialNum;
-			
-			relNodeRelation = heap_open(GpRelationNodeRelationId, RowExclusiveLock);
-
-			GpRelationNodeBeginScan(
-							SnapshotNow,
-							relNodeRelation,
-							event_relation->rd_id,
-							event_relation->rd_rel->reltablespace,
-							event_relation->rd_rel->relfilenode,
-							&gpRelationNodeScan);
-			
-			while ((tuple = GpRelationNodeGetNext(
-									&gpRelationNodeScan,
-									&segmentFileNum,
-									&persistentTid,
-									&persistentSerialNum)))
-			{
-				if (Debug_persistent_print)
-					elog(Persistent_DebugPrintLevel(), 
-						 "DefineQueryRewrite: For Append-Only relation %u relfilenode %u scanned segment file #%d, serial number " INT64_FORMAT " at TID %s for DROP",
-						 event_relation->rd_id,
-						 event_relation->rd_rel->relfilenode,
-						 segmentFileNum,
-						 persistentSerialNum,
-						 ItemPointerToString(&persistentTid));
-				
-				simple_heap_delete(relNodeRelation, &tuple->t_self);
-				
-				MirroredFileSysObj_ScheduleDropAppendOnlyFile(
-												&event_relation->rd_node,
-												segmentFileNum,
-												event_relation->rd_rel->relname.data,
-												&persistentTid,
-												persistentSerialNum);
-			}
-			
-			GpRelationNodeEndScan(&gpRelationNodeScan);
-		
-			heap_close(relNodeRelation, RowExclusiveLock);		
-		}
-	}
+		RelationDropStorage(event_relation);
 
 	/* Close rel, but keep lock till commit... */
 	heap_close(event_relation, NoLock);

@@ -72,8 +72,6 @@ _hash_readnext(Relation rel,
 {
 	BlockNumber blkno;
 
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
 	blkno = (*opaquep)->hasho_nextblkno;
 	_hash_relbuf(rel, *bufp);
 	*bufp = InvalidBuffer;
@@ -95,8 +93,6 @@ _hash_readprev(Relation rel,
 			   Buffer *bufp, Page *pagep, HashPageOpaque *opaquep)
 {
 	BlockNumber blkno;
-
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	blkno = (*opaquep)->hasho_prevblkno;
 	_hash_relbuf(rel, *bufp);
@@ -138,8 +134,6 @@ _hash_first(IndexScanDesc scan, ScanDirection dir)
 	IndexTuple	itup;
 	ItemPointer current;
 	OffsetNumber offnum;
-
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	pgstat_count_index_scan(rel);
 

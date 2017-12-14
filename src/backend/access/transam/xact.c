@@ -1085,13 +1085,9 @@ RecordTransactionCommit(void)
 	TransactionId latestXid = InvalidTransactionId;
 	/* Initializing just to make compiler happy */
 	bool save_inCommit = MyProc->inCommit;
-	MIRRORED_LOCK_DECLARE;
-
-	int32						persistentCommitSerializeLen;
-	PersistentEndXactRecObjects persistentCommitObjects;
-	int16						persistentCommitObjectCount;
-	char						*persistentCommitBuffer = NULL;
-
+	int			nrels;
+	RelFileNode *rels;
+	bool		haveNonTemp;
 	int			nchildren;
 	TransactionId *children;
 	bool		isDtxPrepared = 0;
@@ -1110,12 +1106,7 @@ RecordTransactionCommit(void)
 	markXidCommitted = TransactionIdIsValid(xid);
 
 	/* Get data needed for commit record */
-	persistentCommitSerializeLen =
-			PersistentEndXactRec_FetchObjectsFromSmgr(
-										&persistentCommitObjects,
-										EndXactRecKind_Commit,
-										&persistentCommitObjectCount);
-
+	nrels = smgrGetPendingDeletes(true, &rels, &haveNonTemp);
 	nchildren = xactGetCommittedChildren(&children);
 
 	isDtxPrepared = isPreparedDtxTransaction();
@@ -1156,7 +1147,7 @@ RecordTransactionCommit(void)
 		 * pending deletes.  Use a real test not just an Assert to check this,
 		 * since it's a bit fragile.
 		 */
-		if (persistentCommitObjectCount != 0)
+		if (nrels != 0)
 			elog(ERROR, "cannot commit a transaction that deleted files but has no xid");
 
 		/* Can't have child XIDs either; AssignTransactionId enforces this */
@@ -1170,7 +1161,7 @@ RecordTransactionCommit(void)
 
 			SetCurrentTransactionStopTimestamp();
 			xlrec.xact_time = xactStopTimestamp;
-			xlrec.persistentCommitObjectCount = 0;
+			xlrec.nrels = 0;
 			xlrec.nsubxacts = 0;
 			rdata[0].data = (char *) (&xlrec);
 			rdata[0].len = MinSizeOfXactCommit;
@@ -1233,37 +1224,19 @@ RecordTransactionCommit(void)
 		save_inCommit = MyProc->inCommit;
 		MyProc->inCommit = true;
 
-		MIRRORED_LOCK;
-
 		SetCurrentTransactionStopTimestamp();
 		xlrec.xact_time = xactStopTimestamp;
-		xlrec.persistentCommitObjectCount = persistentCommitObjectCount;
+		xlrec.nrels = nrels;
 		xlrec.nsubxacts = nchildren;
 		rdata[0].data = (char *) (&xlrec);
 		rdata[0].len = MinSizeOfXactCommit;
 		rdata[0].buffer = InvalidBuffer;
-		/* dump persistent commit objects */
-		if (persistentCommitObjectCount > 0)
+		/* dump rels to delete */
+		if (nrels > 0)
 		{
-			int16 objectCount;
-
-			Assert(persistentCommitSerializeLen > 0);
-			persistentCommitBuffer =
-				(char *) palloc(persistentCommitSerializeLen);
-
-			PersistentEndXactRec_Serialize(
-				&persistentCommitObjects,
-				EndXactRecKind_Commit,
-				&objectCount,
-				(uint8*)persistentCommitBuffer,
-				persistentCommitSerializeLen);
-
-			if (Debug_persistent_print)
-				PersistentEndXactRec_Print("RecordTransactionCommit", &persistentCommitObjects);
-
 			rdata[0].next = &(rdata[1]);
-			rdata[1].data = persistentCommitBuffer;
-			rdata[1].len = persistentCommitSerializeLen;
+			rdata[1].data = (char *) rels;
+			rdata[1].len = nrels * sizeof(RelFileNode);
 			rdata[1].buffer = InvalidBuffer;
 			lastrdata = 1;
 		}
@@ -1432,8 +1405,6 @@ RecordTransactionCommit(void)
 	{
 		MyProc->inCommit = save_inCommit;
 		END_CRIT_SECTION();
-
-		MIRRORED_UNLOCK;
 	}
 
 	/*
@@ -1456,11 +1427,6 @@ RecordTransactionCommit(void)
 
 cleanup:
 	/* And clean up local data */
-
-	// UNDONE: Free storage in persistentCommitObjects...
-
-	if (persistentCommitBuffer != NULL)
-		pfree(persistentCommitBuffer);
 
 	return latestXid;
 }
@@ -1650,11 +1616,8 @@ RecordTransactionAbort(bool isSubXact)
 {
 	TransactionId xid;
 	TransactionId latestXid;
-	int32						persistentAbortSerializeLen;
-	PersistentEndXactRecObjects persistentAbortObjects;
-	int16						persistentAbortObjectCount;
-	char						*persistentAbortBuffer = NULL;
-
+	int			nrels;
+	RelFileNode *rels;
 	int			nchildren;
 	TransactionId *children;
 	XLogRecData rdata[3];
@@ -1707,12 +1670,7 @@ RecordTransactionAbort(bool isSubXact)
 			 xid);
 
 	/* Get data needed for abort record */
-	persistentAbortSerializeLen =
-			PersistentEndXactRec_FetchObjectsFromSmgr(
-										&persistentAbortObjects,
-										EndXactRecKind_Abort,
-										&persistentAbortObjectCount);
-
+	nrels = smgrGetPendingDeletes(false, &rels, NULL);
 	nchildren = xactGetCommittedChildren(&children);
 
 	/* XXX do we really need a critical section here? */
@@ -1726,33 +1684,17 @@ RecordTransactionAbort(bool isSubXact)
 		SetCurrentTransactionStopTimestamp();
 		xlrec.xact_time = xactStopTimestamp;
 	}
-	xlrec.persistentAbortObjectCount = persistentAbortObjectCount;
+	xlrec.nrels = nrels;
 	xlrec.nsubxacts = nchildren;
 	rdata[0].data = (char *) (&xlrec);
 	rdata[0].len = MinSizeOfXactAbort;
 	rdata[0].buffer = InvalidBuffer;
-	/* dump persistent abort objects */
-	if (persistentAbortObjectCount > 0)
+	/* dump rels to delete */
+	if (nrels > 0)
 	{
-		int16		objectCount;
-
-		Assert(persistentAbortSerializeLen > 0);
-		persistentAbortBuffer =
-			(char *) palloc(persistentAbortSerializeLen);
-
-		PersistentEndXactRec_Serialize(
-			&persistentAbortObjects,
-			EndXactRecKind_Abort,
-			&objectCount,
-			(uint8*)persistentAbortBuffer,
-			persistentAbortSerializeLen);
-
-		if (Debug_persistent_print)
-			PersistentEndXactRec_Print("RecordTransactionAbort", &persistentAbortObjects);
-
 		rdata[0].next = &(rdata[1]);
-		rdata[1].data = persistentAbortBuffer;
-		rdata[1].len = persistentAbortSerializeLen;
+		rdata[1].data = (char *) rels;
+		rdata[1].len = nrels * sizeof(RelFileNode);
 		rdata[1].buffer = InvalidBuffer;
 		lastrdata = 1;
 	}
@@ -1800,147 +1742,7 @@ RecordTransactionAbort(bool isSubXact)
 	if (max_wal_senders > 0)
 		WalSndWakeup();
 
-	/* And clean up local data */
-	if (persistentAbortBuffer != 0)
-		pfree(persistentAbortBuffer);
-
 	return latestXid;
-}
-
-
-bool RecordCrashTransactionAbortRecord(
-	TransactionId				xid,
-	PersistentEndXactRecObjects *persistentAbortObjects)
-{
-	int 	persistentAbortObjectCount;
-	int 	persistentAbortSerializeLen;
-	char	*persistentAbortBuffer = NULL;
-
-	XLogRecData rdata[3];
-	int			lastrdata = 0;
-	xl_xact_abort xlrec;
-	XLogRecPtr	recptr;
-	XidStatus status;
-	bool           validStatus;
-	int			nchildren;
-	TransactionId *children;
-
-	/* Fix for MPP-12614. The call to TransactionIdGetStatus() has been removed since    */
-	/* The clog many not have the the referenced transaction as of crash recovery        */
-	/* pass 2. The clog will be fully built in pass 3 of crash recovery.                 */
-	/* The new call "InRecoveryTansactionIdGetStatus will return TRUE or FALSE in the    */
-	/* validStatus parameter, which indicates whether or not the returned value is good. */
-
-	validStatus = false;
-
-	status = InRecoveryTransactionIdGetStatus(xid, &validStatus);
-	if (validStatus == true && status != 0 &&
-	    status != TRANSACTION_STATUS_ABORTED)
-	{
-	    int			elevel;
-
-		if (gp_crash_recovery_abort_suppress_fatal)
-			elevel = WARNING;
-		else
-			elevel = FATAL;
-
-		elog(elevel, "Crash recovery abort invalid for transaction %u current status '%s' (0x%x) and new status '%s' (0x%x)",
-			 xid,
-			 XidStatus_Name(status),
-			 status,
-			 XidStatus_Name(TRANSACTION_STATUS_ABORTED),
-			 TRANSACTION_STATUS_ABORTED);
-	    return false;
-	}
-
-	persistentAbortObjectCount =
-				PersistentEndXactRec_ObjectCount(
-										persistentAbortObjects,
-										EndXactRecKind_Abort);
-	Assert(persistentAbortObjectCount > 0);
-
-	persistentAbortSerializeLen =
-				PersistentEndXactRec_SerializeLen(
-										persistentAbortObjects,
-										EndXactRecKind_Abort);
-
-	START_CRIT_SECTION();
-
-	xlrec.xtime = time(NULL);
-	/* Write the ABORT record */
-	/*
-	if (isSubXact)
-		xlrec.xact_time = GetCurrentTimestamp();
-	else
-	{
-		xlrec.xact_time = xactStopTimestamp;
-	}*/
-	xlrec.persistentAbortObjectCount = persistentAbortObjectCount;
-	xlrec.nsubxacts = 0;
-	rdata[0].data = (char *) (&xlrec);
-	rdata[0].len = MinSizeOfXactAbort;
-	rdata[0].buffer = InvalidBuffer;
-	/* dump persistent abort objects */
-
-	{
-		int16 objectCount;
-
-		Assert(persistentAbortSerializeLen > 0);
-		persistentAbortBuffer =
-					(char *) palloc(persistentAbortSerializeLen);
-
-		PersistentEndXactRec_Serialize(
-								persistentAbortObjects,
-								EndXactRecKind_Abort,
-								&objectCount,
-								(uint8*)persistentAbortBuffer,
-								persistentAbortSerializeLen);
-
-		if (Debug_persistent_print)
-			PersistentEndXactRec_Print("RecordCrashTransactionAbortRecord", persistentAbortObjects);
-
-		rdata[0].next = &(rdata[1]);
-		rdata[1].data = persistentAbortBuffer;
-		rdata[1].len = persistentAbortSerializeLen;
-		rdata[1].buffer = InvalidBuffer;
-		lastrdata = 1;
-	}
-	/* no committed child Xids */
-	rdata[lastrdata].next = NULL;
-
-	/*
-	 * Raw set the transaction id... so XLogInsert can call GetCurrentTransactionIdIfAny.
-	 */
-	{
-		TransactionState s = CurrentTransactionState;
-
-		s->transactionId = xid;
-	}
-	recptr = XLogInsert(RM_XACT_ID, XLOG_XACT_ABORT, rdata);
-
-	/*
-	 * Mark the transaction aborted in clog.  This is not absolutely
-	 * necessary but we may as well do it while we are here.
-	 *
-	 * The ordering here isn't critical but it seems best to mark the
-	 * parent first.  This assures an atomic transition of all the
-	 * subtransactions to aborted state from the point of view of
-	 * concurrent TransactionIdDidAbort calls.
-	 */
-
-	/* Fix for MPP-12614. Only set the clog status for the transaciton if the returned */
-	/* value for TransactionIdGetStatus() was good.                                    */
-
-	if (validStatus == true)
-	{
-		nchildren = xactGetCommittedChildren(&children);
-
-		TransactionIdAbortTree(xid, nchildren, children);
-	}
-
-	END_CRIT_SECTION();
-
-	return true;
 }
 
 /*
@@ -2460,14 +2262,11 @@ StartTransaction(void)
 static void
 CommitTransaction(void)
 {
-	MIRRORED_LOCK_DECLARE;
-
 	TransactionState s = CurrentTransactionState;
 	TransactionId latestXid;
 
 	TransactionId localXid;
 	bool needNotifyCommittedDtxTransaction = false;
-	bool willHaveObjectsFromSmgr;
 
 	ShowTransactionState("CommitTransaction");
 
@@ -2564,27 +2363,6 @@ CommitTransaction(void)
 		ereport(ERROR,
 				(errcode(ERRCODE_FAULT_INJECT),
 				 errmsg("Raise an error as directed by Debug_abort_after_distributed_prepared")));
-	}
-
-	willHaveObjectsFromSmgr =
-			PersistentEndXactRec_WillHaveObjectsFromSmgr(EndXactRecKind_Commit);
-
-	if (willHaveObjectsFromSmgr)
-	{
-		/*
-		 * This is to protect access to counter fileRepResyncShmem->appendOnlyCommitCount
-		 * and FileRepResyncManager_InResyncTransition()
-		 */
-		MIRRORED_LOCK;
-		/*
-		 * Need to ensure the recording of the commit record and the
-		 * persistent post-commit work will be done either before or after a
-		 * checkpoint. The commit xlog record carries the information for
-		 * objects which serves us for crash-recovery till post-commit
-		 * persistent object work is done, hence cannot allow checkpoint in
-		 * between.
-		 */
-		MyProc->inCommit = true;
 	}
 
 	/* Prevent cancel/die interrupt while cleaning up */
@@ -2697,12 +2475,7 @@ CommitTransaction(void)
 	 * necessary during commit, since such pins should have been released
 	 * already, but this ordering is definitely critical during abort.)
 	 */
-	AtEOXact_smgr(true);
-
-	if (willHaveObjectsFromSmgr)
-	{
-		MIRRORED_UNLOCK;
-	}
+	smgrDoPendingDeletes(true);
 
 	/* Let checkpoint go through now, defered from cleaning these in
 	 * ProcArrayClearTransaction.
@@ -3072,13 +2845,10 @@ PrepareTransaction(void)
 static void
 AbortTransaction(void)
 {
-	MIRRORED_LOCK_DECLARE;
-
 	TransactionState s = CurrentTransactionState;
 	TransactionId latestXid;
 
 	TransactionId localXid = GetTopTransactionIdIfAny();
-	bool willHaveObjectsFromSmgr;
 
 	SIMPLE_FAULT_INJECTOR(AbortTransactionFail);
 
@@ -3155,18 +2925,6 @@ AbortTransaction(void)
 	AtEOXact_UpdateFlatFiles(false);
 	AtAbort_Twophase();
 
-	willHaveObjectsFromSmgr =
-			PersistentEndXactRec_WillHaveObjectsFromSmgr(EndXactRecKind_Abort);
-
-	if (willHaveObjectsFromSmgr)
-	{
-		/*
-		 * This is to protect access to counter fileRepResyncShmem->appendOnlyCommitCount
-		 * and FileRepResyncManager_InResyncTransition()
-		 */
-		MIRRORED_LOCK;
-	}
-
 	/* Like in CommitTransaction(), treat a QE reader as if there was no XID */
 	if (DistributedTransactionContext == DTX_CONTEXT_QE_READER ||
 		DistributedTransactionContext == DTX_CONTEXT_QE_ENTRY_DB_SINGLETON)
@@ -3207,11 +2965,7 @@ AbortTransaction(void)
 		AtEOXact_Buffers(false);
 		AtEOXact_RelationCache(false);
 		AtEOXact_Inval(false);
-		AtEOXact_smgr(false);
-	}
-	if (willHaveObjectsFromSmgr)
-	{
-		MIRRORED_UNLOCK;
+		smgrDoPendingDeletes(false);
 	}
 	if (TopTransactionResourceOwner != NULL)
 	{
@@ -5750,17 +5504,9 @@ xactGetCommittedChildren(TransactionId **ptr)
 static TMGXACT_LOG*
 xact_get_distributed_info_from_commit(xl_xact_commit *xlrec)
 {
-	uint8	   *data;
-	int32		deserializeLen;
 	TransactionId *sub_xids;
 
-	data = xlrec->data;
-	deserializeLen = 
-			PersistentEndXactRec_DeserializeLen(
-											data,
-											xlrec->persistentCommitObjectCount);
-	
-	sub_xids = (TransactionId *)&data[deserializeLen]; 
+	sub_xids = (TransactionId *) &xlrec->xnodes[xlrec->nrels]; 
 
 	return (TMGXACT_LOG*) &sub_xids[xlrec->nsubxacts];
 }
@@ -5770,24 +5516,12 @@ xact_redo_commit(xl_xact_commit *xlrec, TransactionId xid,
 				 DistributedTransactionId distribXid,
 				 DistributedTransactionTimeStamp distribTimeStamp)
 {
-	uint8	   *data;
-	PersistentEndXactRecObjects persistentCommitObjects;
 	TransactionId *sub_xids;
 	TransactionId max_xid;
 	int			i;
 
-	data = xlrec->data;
-	PersistentEndXactRec_Deserialize(
-								data,
-								xlrec->persistentCommitObjectCount,
-								&persistentCommitObjects,
-								&data);
-	
-	if (Debug_persistent_print)
-		PersistentEndXactRec_Print("xact_redo_commit", &persistentCommitObjects);
-
 	/* Mark the transaction committed in pg_clog */
-	sub_xids = (TransactionId *) data;
+	sub_xids = (TransactionId *) &xlrec->xnodes[xlrec->nrels];
 
 	if (distribXid != 0 && distribTimeStamp != 0)
 	{
@@ -5838,8 +5572,6 @@ xact_redo_distributed_commit(xl_xact_commit *xlrec, TransactionId xid)
 	DistributedTransactionTimeStamp	distribTimeStamp;
 	DistributedTransactionId 		distribXid;
 
-	uint8 *data;
-	PersistentEndXactRecObjects persistentCommitObjects;
 	TransactionId *sub_xids;
 	TransactionId max_xid;
 	int			i;
@@ -5885,18 +5617,9 @@ xact_redo_distributed_commit(xl_xact_commit *xlrec, TransactionId xid)
 		 * only addition being redo of DistributeLog updates to subtransaction
 		 * log.
 		 */
-		data = xlrec->data;
-		PersistentEndXactRec_Deserialize(
-			data,
-			xlrec->persistentCommitObjectCount,
-			&persistentCommitObjects,
-			&data);
-	
-		if (Debug_persistent_print)
-			PersistentEndXactRec_Print("xact_redo_distributed_commit", &persistentCommitObjects);
 
 		/* Mark the transaction committed in pg_clog */
-		sub_xids = (TransactionId *) data;
+		sub_xids = (TransactionId *) &xlrec->xnodes[xlrec->nrels];
 
 		/* Add the committed subtransactions to the DistributedLog, too. */
 		DistributedLog_SetCommittedTree(xid, xlrec->nsubxacts, sub_xids,
@@ -5947,24 +5670,12 @@ xact_redo_distributed_commit(xl_xact_commit *xlrec, TransactionId xid)
 static void
 xact_redo_abort(xl_xact_abort *xlrec, TransactionId xid)
 {
-	uint8	   *data;
-	PersistentEndXactRecObjects persistentAbortObjects;
 	TransactionId *sub_xids;
 	TransactionId max_xid;
 	int			i;
 
-	data = xlrec->data;
-	PersistentEndXactRec_Deserialize(
-								data,
-								xlrec->persistentAbortObjectCount,
-								&persistentAbortObjects,
-								&data);
-
-	if (Debug_persistent_print)
-		PersistentEndXactRec_Print("xact_redo_abort", &persistentAbortObjects);
-
 	/* Mark the transaction aborted in pg_clog */
-	sub_xids = (TransactionId *) data;
+	sub_xids = (TransactionId *) &xlrec->xnodes[xlrec->nrels];
 	TransactionIdAbortTree(xid, xlrec->nsubxacts, sub_xids);
 
 	/* Make sure nextXid is beyond any XID mentioned in the record */
@@ -6066,208 +5777,38 @@ xact_redo(XLogRecPtr beginLoc __attribute__((unused)), XLogRecPtr lsn __attribut
 		elog(PANIC, "xact_redo: unknown op code %u", info);
 }
 
-static void
-xact_redo_get_commit_info(
-	xl_xact_commit *xlrec,
-
-	PersistentEndXactRecObjects *persistentCommitObjects,
-
-	TransactionId 	**subXids,
-
-	int 			*subXidCount)
-{
-	uint8 *data;
-
-	data = xlrec->data;
-	PersistentEndXactRec_Deserialize(
-								data,
-								xlrec->persistentCommitObjectCount,
-								persistentCommitObjects,
-								&data);
-
-	*subXids = (TransactionId *)data;
-	*subXidCount = xlrec->nsubxacts;
-}
-
-static void
-xact_redo_get_abort_info(
-	xl_xact_abort *xlrec,
-
-	PersistentEndXactRecObjects *persistentAbortObjects,
-
-	TransactionId 	**subXids,
-
-	int 			*subXidCount)
-{
-	uint8 *data;
-
-	data = xlrec->data;
-	PersistentEndXactRec_Deserialize(
-								data,
-								xlrec->persistentAbortObjectCount,
-								persistentAbortObjects,
-								&data);
-
-	*subXids = (TransactionId *)data;
-	*subXidCount = xlrec->nsubxacts;
-}
-
-bool
-xact_redo_get_info(
-	XLogRecord 					*record,
-
-	XactInfoKind				*infoKind,
-
-	TransactionId				*xid,
-
-	PersistentEndXactRecObjects *persistentObjects,
-
-	TransactionId 				**subXids,
-
-	int 						*subXidCount)
-{
-	uint8		info = record->xl_info & ~XLR_INFO_MASK;
-
-	if (info == XLOG_XACT_COMMIT)
-	{
-		xl_xact_commit *xlrec = (xl_xact_commit *) XLogRecGetData(record);
-
-		xact_redo_get_commit_info(
-								xlrec, 
-								persistentObjects,
-								subXids,
-								subXidCount);
-		*infoKind = XACT_INFOKIND_COMMIT;
-		*xid = record->xl_xid;
-	}
-	else if (info == XLOG_XACT_ABORT)
-	{
-		xl_xact_abort *xlrec = (xl_xact_abort *) XLogRecGetData(record);
-
-		xact_redo_get_abort_info(
-								xlrec, 
-								persistentObjects,
-								subXids,
-								subXidCount);
-		*infoKind = XACT_INFOKIND_ABORT;
-		*xid = record->xl_xid;
-	}
-	else if (info == XLOG_XACT_PREPARE)
-	{
-		// UNDONE: For now, return no prepare information
-		MemSet(persistentObjects, 0, sizeof(PersistentEndXactRecObjects));
-		subXids = NULL;
-		subXidCount = 0;
-
-		*infoKind = XACT_INFOKIND_PREPARE;
-		*xid = record->xl_xid;
-	}
-	else if (info == XLOG_XACT_COMMIT_PREPARED)
-	{
-		xl_xact_commit_prepared *xlrec = (xl_xact_commit_prepared *) XLogRecGetData(record);
-
-		xact_redo_get_commit_info(
-								&xlrec->crec,
-								persistentObjects,
-								subXids,
-								subXidCount);
-		*infoKind = XACT_INFOKIND_COMMIT;
-		*xid = xlrec->xid;
-	}
-	else if (info == XLOG_XACT_ABORT_PREPARED)
-	{
-		xl_xact_abort_prepared *xlrec = (xl_xact_abort_prepared *) XLogRecGetData(record);
-
-		xact_redo_get_abort_info(
-								&xlrec->arec,
-								persistentObjects,
-								subXids,
-								subXidCount);
-		*infoKind = XACT_INFOKIND_ABORT;
-		*xid = xlrec->xid;
-	}
-	else if (info == XLOG_XACT_DISTRIBUTED_COMMIT)
-	{
-		xl_xact_commit *xlrec = (xl_xact_commit *) XLogRecGetData(record);
-
-		xact_redo_get_commit_info(
-								xlrec,
-								persistentObjects,
-								subXids,
-								subXidCount);
-		*infoKind = XACT_INFOKIND_COMMIT;
-		*xid = record->xl_xid;
-	}
-	else
-	{
-		*infoKind = XACT_INFOKIND_NONE;
-		*xid = InvalidTransactionId;
-		return false;
-	}
-
-	return true;
-}
-
 static char*
 xact_desc_commit(StringInfo buf, xl_xact_commit *xlrec)
 {
 	int			i;
-	uint8 *data;
-	PersistentEndXactRecObjects persistentCommitObjects;
 	TransactionId *sub_xids;
 
 	appendStringInfoString(buf, timestamptz_to_str(xlrec->xact_time));
-	data = xlrec->data;
-	appendStringInfo(buf, "; persistent commit object count = %d",
-					 xlrec->persistentCommitObjectCount);
-	PersistentEndXactRec_Deserialize(
-								data,
-								xlrec->persistentCommitObjectCount,
-								&persistentCommitObjects,
-								&data);
-
-	sub_xids = (TransactionId *) data;
-
-	if (persistentCommitObjects.typed.fileSysActionInfosCount > 0)
+	if (xlrec->nrels > 0)
 	{
-		appendStringInfo(buf, "; drop file-system objects:");
-		for (i = 0; i < persistentCommitObjects.typed.fileSysActionInfosCount; i++)
+		appendStringInfo(buf, "; rels:");
+		for (i = 0; i < xlrec->nrels; i++)
 		{
-			PersistentEndXactFileSysActionInfo	*fileSysActionInfo =
-						&persistentCommitObjects.typed.fileSysActionInfos[i];
+			char	   *path = relpath(xlrec->xnodes[i], MAIN_FORKNUM);
 
-			if (fileSysActionInfo->action == PersistentEndXactFileSysAction_Drop)
-			{
-				if (i > 10)
-				{
-					appendStringInfo(buf, " ...");
-					break;
-				}
-
-				appendStringInfo(buf, " %s",
-								 PersistentFileSysObjName_TypeAndObjectName(&fileSysActionInfo->fsObjName));
-			}
+			appendStringInfo(buf, " %s", path);
+			pfree(path);
 		}
 	}
-
 	if (xlrec->nsubxacts > 0)
 	{
+		TransactionId *xacts = (TransactionId *)
+		&xlrec->xnodes[xlrec->nrels];
+
 		appendStringInfo(buf, "; subxacts:");
 		for (i = 0; i < xlrec->nsubxacts; i++)
-		{
-			if (i > 10)
-			{
-				appendStringInfo(buf, " ...");
-				break;
-			}
-
-			appendStringInfo(buf, " %u", sub_xids[i]);
-		}
+			appendStringInfo(buf, " %u", xacts[i]);
 	}
 
 	/*
-	 * MPP: Return end of regular commit information.
+-	 * MPP: Return end of regular commit information.
 	 */
+	sub_xids = (TransactionId *) &xlrec->xnodes[xlrec->nrels];
 	return (char*) &sub_xids[xlrec->nsubxacts];
 }
 
@@ -6295,54 +5836,28 @@ xact_desc_distributed_forget(StringInfo buf, xl_xact_distributed_forget *xlrec)
 static void
 xact_desc_abort(StringInfo buf, xl_xact_abort *xlrec)
 {
-	uint8 *data;
-	PersistentEndXactRecObjects persistentAbortObjects;
-	TransactionId *sub_xids;
 	int			i;
 
 	appendStringInfoString(buf, timestamptz_to_str(xlrec->xact_time));
-	data = xlrec->data;
-	appendStringInfo(buf, "; persistent abort object count = %d",
-					 xlrec->persistentAbortObjectCount);
-	PersistentEndXactRec_Deserialize(
-								data,
-								xlrec->persistentAbortObjectCount,
-								&persistentAbortObjects,
-								&data);
-
-	sub_xids = (TransactionId *) data;
-
-	if (persistentAbortObjects.typed.fileSysActionInfosCount > 0)
+	if (xlrec->nrels > 0)
 	{
-		appendStringInfo(buf, "; aborted create file-system objects:");
-		for (i = 0; i < persistentAbortObjects.typed.fileSysActionInfosCount; i++)
+		appendStringInfo(buf, "; rels:");
+		for (i = 0; i < xlrec->nrels; i++)
 		{
-			PersistentEndXactFileSysActionInfo	*fileSysActionInfo =
-						&persistentAbortObjects.typed.fileSysActionInfos[i];
+			char	   *path = relpath(xlrec->xnodes[i], MAIN_FORKNUM);
 
-			if (i > 10)
-			{
-				appendStringInfo(buf, " ...");
-				break;
-			}
-
-			appendStringInfo(buf, " %s",
-							 PersistentFileSysObjName_TypeAndObjectName(&fileSysActionInfo->fsObjName));
+			appendStringInfo(buf, " %s", path);
+			pfree(path);
 		}
 	}
 	if (xlrec->nsubxacts > 0)
 	{
+		TransactionId *xacts = (TransactionId *)
+		&xlrec->xnodes[xlrec->nrels];
+
 		appendStringInfo(buf, "; subxacts:");
 		for (i = 0; i < xlrec->nsubxacts; i++)
-		{
-			if (i > 10)
-			{
-				appendStringInfo(buf, " ...");
-				break;
-			}
-
-			appendStringInfo(buf, " %u", sub_xids[i]);
-		}
+			appendStringInfo(buf, " %u", xacts[i]);
 	}
 }
 

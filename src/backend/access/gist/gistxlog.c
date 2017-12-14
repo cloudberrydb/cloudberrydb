@@ -190,8 +190,6 @@ decodePageUpdateRecord(PageUpdateRecord *decoded, XLogRecord *record)
 static void
 gistRedoPageUpdateRecord(XLogRecPtr lsn, XLogRecord *record, bool isnewroot)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	gistxlogPageUpdate *xldata = (gistxlogPageUpdate *) XLogRecGetData(record);
 	PageUpdateRecord xlrec;
 	Buffer		buffer;
@@ -211,29 +209,14 @@ gistRedoPageUpdateRecord(XLogRecPtr lsn, XLogRecord *record, bool isnewroot)
 		return;
 
 	decodePageUpdateRecord(&xlrec, record);
-
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
-	
 	buffer = XLogReadBuffer(xlrec.data->node, xlrec.data->blkno, false);
-	REDO_PRINT_READ_BUFFER_NOT_FOUND(&xlrec.data->node, xlrec.data->blkno, buffer, lsn);
 	if (!BufferIsValid(buffer))
-	{
-		
-		MIRROREDLOCK_BUFMGR_UNLOCK;
-		// -------- MirroredLock ----------
-		
 		return;
-	}
 	page = (Page) BufferGetPage(buffer);
 
 	if (XLByteLE(lsn, PageGetLSN(page)))
 	{
 		UnlockReleaseBuffer(buffer);
-		
-		MIRROREDLOCK_BUFMGR_UNLOCK;
-		// -------- MirroredLock ----------
-		
 		return;
 	}
 
@@ -272,17 +255,11 @@ gistRedoPageUpdateRecord(XLogRecPtr lsn, XLogRecord *record, bool isnewroot)
 	PageSetLSN(page, lsn);
 	MarkBufferDirty(buffer);
 	UnlockReleaseBuffer(buffer);
-	
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
-	
 }
 
 static void
 gistRedoPageDeleteRecord(XLogRecPtr lsn, XLogRecord *record)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	gistxlogPageDelete *xldata = (gistxlogPageDelete *) XLogRecGetData(record);
 	Buffer		buffer;
 	Page		page;
@@ -291,11 +268,7 @@ gistRedoPageDeleteRecord(XLogRecPtr lsn, XLogRecord *record)
 	if (IsBkpBlockApplied(record, 0))
 		return;
 
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
-	
 	buffer = XLogReadBuffer(xldata->node, xldata->blkno, false);
-	REDO_PRINT_READ_BUFFER_NOT_FOUND(&xldata->node, xldata->blkno, buffer, lsn);
 	if (!BufferIsValid(buffer))
 		return;
 
@@ -305,10 +278,6 @@ gistRedoPageDeleteRecord(XLogRecPtr lsn, XLogRecord *record)
 	PageSetLSN(page, lsn);
 	MarkBufferDirty(buffer);
 	UnlockReleaseBuffer(buffer);
-	
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
-	
 }
 
 static void
@@ -345,8 +314,6 @@ decodePageSplitRecord(PageSplitRecord *decoded, XLogRecord *record)
 static void
 gistRedoPageSplitRecord(XLogRecPtr lsn, XLogRecord *record)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	PageSplitRecord xlrec;
 	Buffer		buffer;
 	Page		page;
@@ -361,9 +328,6 @@ gistRedoPageSplitRecord(XLogRecPtr lsn, XLogRecord *record)
 	{
 		NewPage    *newpage = xlrec.page + i;
 
-		// -------- MirroredLock ----------
-		MIRROREDLOCK_BUFMGR_LOCK;
-
 		buffer = XLogReadBuffer(xlrec.data->node, newpage->header->blkno, true);
 		Assert(BufferIsValid(buffer));
 		page = (Page) BufferGetPage(buffer);
@@ -377,10 +341,6 @@ gistRedoPageSplitRecord(XLogRecPtr lsn, XLogRecord *record)
 		PageSetLSN(page, lsn);
 		MarkBufferDirty(buffer);
 		UnlockReleaseBuffer(buffer);
-		
-		MIRROREDLOCK_BUFMGR_UNLOCK;
-		// -------- MirroredLock ----------
-		
 	}
 
 	forgetIncompleteInsert(xlrec.data->node, xlrec.data->key);
@@ -393,17 +353,12 @@ gistRedoPageSplitRecord(XLogRecPtr lsn, XLogRecord *record)
 static void
 gistRedoCreateIndex(XLogRecPtr lsn, XLogRecord *record)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	gistxlogCreateIndex *xldata = (gistxlogCreateIndex *) XLogRecGetData(record);
 	
 	RelFileNode *node = &(xldata->node);
 	Buffer		buffer;
 	Page		page;
 
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
-	
 	buffer = XLogReadBuffer(*node, GIST_ROOT_BLKNO, true);
 	Assert(BufferIsValid(buffer));
 	page = (Page) BufferGetPage(buffer);
@@ -414,10 +369,6 @@ gistRedoCreateIndex(XLogRecPtr lsn, XLogRecord *record)
 
 	MarkBufferDirty(buffer);
 	UnlockReleaseBuffer(buffer);
-	
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
-	
 }
 
 static void
@@ -574,8 +525,6 @@ gistxlogFindPath(Relation index, gistIncompleteInsert *insert)
 {
 	GISTInsertStack *top;
 
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
 	insert->pathlen = 0;
 	insert->path = NULL;
 
@@ -688,8 +637,6 @@ gist_mask(char *pagedata, BlockNumber blkno)
 static void
 gistContinueInsert(gistIncompleteInsert *insert)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	IndexTuple *itup;
 	int			i,
 				lenitup;
@@ -706,9 +653,6 @@ gistContinueInsert(gistIncompleteInsert *insert)
 
 	for (i = 0; i < insert->lenblk; i++)
 		itup[i] = gist_form_invalid_tuple(insert->blkno[i]);
-
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
 
 	/*
 	 * any insertion of itup[] should make LOG message about
@@ -892,9 +836,6 @@ gistContinueInsert(gistIncompleteInsert *insert)
 		}
 	}
 
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
-
 	FreeFakeRelcacheEntry(index);
 
 	ereport(LOG,
@@ -963,12 +904,8 @@ formSplitRdata(Relation r, BlockNumber blkno, bool page_is_leaf,
 	}
 
 	rdata = (XLogRecData *) palloc(sizeof(XLogRecData) * (npage * 2 + 2));
-
-	// Fetch gp_persistent_relation_node information that will be added to XLOG record.
-	RelationFetchGpRelationNodeForXLog(r);
 	
 	xlrec->node = r->rd_node;
-	RelationGetPTInfo(r, &xlrec->persistentTid, &xlrec->persistentSerialNum);
 	xlrec->origblkno = blkno;
 	xlrec->origleaf = page_is_leaf;
 	xlrec->npage = (uint16) npage;
@@ -1025,12 +962,7 @@ formUpdateRdata(Relation r, Buffer buffer,
 
 	rdata = (XLogRecData *) palloc(sizeof(XLogRecData) * (3 + ituplen));
 	xlrec = (gistxlogPageUpdate *) palloc(sizeof(gistxlogPageUpdate));
-
-	// Fetch gp_persistent_relation_node information that will be added to XLOG record.
-	RelationFetchGpRelationNodeForXLog(r);
-
 	xlrec->node = r->rd_node;
-	RelationGetPTInfo(r, &xlrec->persistentTid, &xlrec->persistentSerialNum);
 	xlrec->blkno = BufferGetBlockNumber(buffer);
 	xlrec->ntodelete = ntodelete;
 
@@ -1079,12 +1011,7 @@ formCreateRData(Relation r)
 	gistxlogCreateIndex *xlrec = (gistxlogCreateIndex *) palloc(sizeof(gistxlogCreateIndex));
 
 	rdata = (XLogRecData *) palloc(sizeof(XLogRecData));
-
-	// Fetch gp_persistent_relation_node information that will be added to XLOG record.
-	RelationFetchGpRelationNodeForXLog(r);
-
 	xlrec->node = r->rd_node;
-	RelationGetPTInfo(r, &xlrec->persistentTid, &xlrec->persistentSerialNum);
 
 	rdata[0].data = (char *) xlrec;
 	rdata[0].len = sizeof(gistxlogCreateIndex);

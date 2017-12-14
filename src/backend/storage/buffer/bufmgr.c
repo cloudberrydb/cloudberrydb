@@ -51,7 +51,6 @@
 #include "utils/faultinjector.h"
 #include "pgstat.h"
 #include "access/heapam.h"
-#include "cdb/cdbpersistentrelation.h"
 
 #include "access/aosegfiles.h"
 #include "access/aocssegfiles.h"
@@ -370,8 +369,6 @@ ReadBuffer_common(SMgrRelation smgr, bool isLocalBuf, ForkNumber forkNum,
 				  BlockNumber blockNum, ReadBufferMode mode,
 				  BufferAccessStrategy strategy, bool *hit)
 {
-		//MIRROREDLOCK_BUFMGR_DECLARE;
-
 	volatile BufferDesc *bufHdr;
 	Block		bufBlock;
 	bool		found;
@@ -381,8 +378,6 @@ ReadBuffer_common(SMgrRelation smgr, bool isLocalBuf, ForkNumber forkNum,
 
 	Assert(smgr != NULL);
 
-	if (forkNum == MAIN_FORKNUM)
-		MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 	/* Make sure we will have room to remember the buffer pin */
 	ResourceOwnerEnlargeBuffers(CurrentResourceOwner);
 
@@ -400,11 +395,7 @@ ReadBuffer_common(SMgrRelation smgr, bool isLocalBuf, ForkNumber forkNum,
 		blockNum = smgrnblocks(smgr, forkNum);
 
 //	pgstat_count_buffer_read(smgr);
-	
-	// -------- MirroredLock ----------
-	// UNDONE: Unfortunately, I think we write temp relations to the mirror...
-	//MIRROREDLOCK_BUFMGR_LOCK;
-	
+
 	if (isLocalBuf)
 	{
 		ReadLocalBufferCount++;
@@ -562,9 +553,6 @@ ReadBuffer_common(SMgrRelation smgr, bool isLocalBuf, ForkNumber forkNum,
 	done:
 	if (VacuumCostActive)
 		VacuumCostBalance += VacuumCostPageMiss;
-
-	//MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
 
 	TRACE_POSTGRESQL_BUFFER_READ_DONE(forkNum, blockNum,
 									  smgr->smgr_rnode.spcNode,
@@ -1101,8 +1089,6 @@ ReleaseAndReadBuffer(Buffer buffer,
 {
 	ForkNumber	forkNum = MAIN_FORKNUM;
 	volatile BufferDesc *bufHdr;
-
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD_BUF(buffer);
 
 	if (BufferIsValid(buffer))
 	{
@@ -1720,13 +1706,8 @@ BgBufferSync(void)
 static int
 SyncOneBuffer(int buf_id, bool skip_recently_used)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-	
 	volatile BufferDesc *bufHdr = &BufferDescriptors[buf_id];
 	int			result = 0;
-
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
 	
 	/*
 	 * Check whether buffer needs writing.
@@ -1745,7 +1726,6 @@ SyncOneBuffer(int buf_id, bool skip_recently_used)
 	{
 		/* Caller told us not to write recently-used buffers */
 		UnlockBufHdr(bufHdr);
-		MIRROREDLOCK_BUFMGR_UNLOCK;
 		// -------- MirroredLock ----------
 		return result;
 	}
@@ -1754,7 +1734,6 @@ SyncOneBuffer(int buf_id, bool skip_recently_used)
 	{
 		/* It's clean, so nothing to do */
 		UnlockBufHdr(bufHdr);
-		MIRROREDLOCK_BUFMGR_UNLOCK;
 		// -------- MirroredLock ----------
 
 		return result;
@@ -1771,9 +1750,6 @@ SyncOneBuffer(int buf_id, bool skip_recently_used)
 
 	ReleaseContentLock(bufHdr);
 	UnpinBuffer(bufHdr, true);
-
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
 
 	return result | BUF_WRITTEN;
 }
@@ -2256,7 +2232,7 @@ DropRelFileNodeBuffers(RelFileNode rnode, ForkNumber forkNum, bool istemp,
  * --------------------------------------------------------------------
  */
 void
-DropDatabaseBuffers(Oid tblspc, Oid dbid)
+DropDatabaseBuffers(Oid dbid)
 {
 	int			i;
 	volatile BufferDesc *bufHdr;
@@ -2270,13 +2246,8 @@ DropDatabaseBuffers(Oid tblspc, Oid dbid)
 	{
 		bufHdr = &BufferDescriptors[i];
 		LockBufHdr(bufHdr);
-		if (!OidIsValid(tblspc) || bufHdr->tag.rnode.spcNode == tblspc)
-		{
-			if (bufHdr->tag.rnode.dbNode == dbid)
-				InvalidateBuffer(bufHdr);	/* releases spinlock */
-			else
-				UnlockBufHdr(bufHdr);
-		}
+		if (bufHdr->tag.rnode.dbNode == dbid)
+			InvalidateBuffer(bufHdr);	/* releases spinlock */
 		else
 			UnlockBufHdr(bufHdr);
 	}
@@ -2374,18 +2345,12 @@ FlushRelationBuffers(Relation rel)
 				Page					localpage;
 
 				localpage = (char *) LocalBufHdrGetBlock(bufHdr);
-
-				MIRROREDLOCK_BUFMGR_DECLARE;
 				
 				/* Setup error traceback support for ereport() */
 				errcontext.callback = buffer_write_error_callback;
 				errcontext.arg = (void *) bufHdr;
 				errcontext.previous = error_context_stack;
 				error_context_stack = &errcontext;
-
-				// -------- MirroredLock ----------
-				// UNDONE: Unfortunately, I think we write temp relations to the mirror...
-				MIRROREDLOCK_BUFMGR_LOCK;
 
 				PageSetChecksumInplace(localpage, bufHdr->tag.blockNum);
 				
@@ -2394,9 +2359,6 @@ FlushRelationBuffers(Relation rel)
 						  bufHdr->tag.blockNum,
 						  localpage,
 						  rel->rd_istemp);
-
-				MIRROREDLOCK_BUFMGR_UNLOCK;
-				// -------- MirroredLock ----------
 
 				bufHdr->flags &= ~(BM_DIRTY | BM_JUST_DIRTIED);
 
@@ -2413,11 +2375,6 @@ FlushRelationBuffers(Relation rel)
 
 	for (i = 0; i < NBuffers; i++)
 	{
-		MIRROREDLOCK_BUFMGR_DECLARE;
-				
-		// -------- MirroredLock ----------
-		MIRROREDLOCK_BUFMGR_LOCK;
-		
 		bufHdr = &BufferDescriptors[i];
 		LockBufHdr(bufHdr);
 		if (RelFileNodeEquals(bufHdr->tag.rnode, rel->rd_node) &&
@@ -2431,10 +2388,6 @@ FlushRelationBuffers(Relation rel)
 		}
 		else
 			UnlockBufHdr(bufHdr);
-		
-		MIRROREDLOCK_BUFMGR_UNLOCK;
-		// -------- MirroredLock ----------
-		
 	}
 }
 
@@ -2518,8 +2471,6 @@ ReleaseBuffer(Buffer buffer)
 void
 UnlockReleaseBuffer(Buffer buffer)
 {
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD_BUF(buffer);
-
 	LockBuffer(buffer, BUFFER_LOCK_UNLOCK);
 	ReleaseBuffer(buffer);
 }
@@ -2732,8 +2683,6 @@ LockBuffer(Buffer buffer, int mode)
 {
 	volatile BufferDesc *buf;
 
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD_BUF(buffer);
-
 	Assert(BufferIsValid(buffer));
 	if (BufferIsLocal(buffer))
 		return;					/* local buffers need no lock */
@@ -2759,8 +2708,6 @@ bool
 ConditionalLockBuffer(Buffer buffer)
 {
 	volatile BufferDesc *buf;
-
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD_BUF(buffer);
 
 	Assert(BufferIsValid(buffer));
 	if (BufferIsLocal(buffer))

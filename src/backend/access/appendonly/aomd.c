@@ -33,6 +33,7 @@
 #include "access/appendonlytid.h"
 #include "cdb/cdbappendonlystorage.h"
 #include "cdb/cdbmirroredappendonly.h"
+#include "cdb/cdbpersistenttablespace.h"
 
 int
 AOSegmentFilePathNameLen(Relation rel)
@@ -130,52 +131,53 @@ MakeAOSegmentFileName(
  * the File* routines can be used to read, write, close, etc, the file.
  */
 bool
-OpenAOSegmentFile(
-					Relation rel, 
-					char *filepathname, 
+OpenAOSegmentFile(Relation rel, 
+				  char *filepathname, 
 				  int32	segmentFileNum,
 				  int64	logicalEof,
 				  MirroredAppendOnlyOpen *mirroredOpen)
 {	
-	ItemPointerData persistentTid;
-	int64 persistentSerialNum;
+	char	   *primaryFilespaceLocation;
+	char	   *mirrorFilespaceLocation;
+	char	   *dbPath;
+	char	   *path;
+	int			fileFlags = O_RDWR | PG_BINARY;
 
-	int primaryError;
+	PersistentTablespace_GetPrimaryAndMirrorFilespaces(
+										rel->rd_node.spcNode,
+										&primaryFilespaceLocation,
+										&mirrorFilespaceLocation);
 
-	if (!ReadGpRelationNode(
-			rel->rd_rel->reltablespace,
-			rel->rd_rel->relfilenode,
-			segmentFileNum,
-			&persistentTid,
-			&persistentSerialNum))
+	dbPath = (char *) palloc(MAXPGPATH + 1);
+	path = (char *) palloc(MAXPGPATH + 1);
+
+	FormDatabasePath(dbPath,
+					 primaryFilespaceLocation,
+					 rel->rd_node.spcNode,
+					 rel->rd_node.dbNode);
+
+	if (segmentFileNum == 0)
+		sprintf(path, "%s/%u", dbPath, rel->rd_node.relNode);
+	else
+		sprintf(path, "%s/%u.%u", dbPath, rel->rd_node.relNode, segmentFileNum);
+
+	errno = 0;
+
+	mirroredOpen->primaryFile = PathNameOpenFile(path, fileFlags, 0600);
+
+	if (mirroredOpen->primaryFile < 0)
 	{
-		if (logicalEof == 0)
+		if (logicalEof == 0 && errno == ENOENT)
 			return false;
 
-		elog(ERROR, "Did not find gp_relation_node entry for relation name %s, relation id %u, relfilenode %u, segment file #%d, logical eof " INT64_FORMAT,
-			 rel->rd_rel->relname.data,
-			 rel->rd_id,
-			 rel->rd_node.relNode,
-			 segmentFileNum,
-			 logicalEof);
-	}
-
-	MirroredAppendOnly_OpenReadWrite(
-							mirroredOpen, 
-							&rel->rd_node,
-							segmentFileNum,
-							/* relationName */ NULL,		// Ok to be NULL -- we don't know the name here.
-							logicalEof,
-							/* traceOpenFlags */ false,
-							&persistentTid,
-							persistentSerialNum,
-							&primaryError);
-	if (primaryError != 0)
 		ereport(ERROR,
-			   (errcode_for_file_access(),
-			    errmsg("Could not open Append-Only segment file '%s': %s",
-					   filepathname,
-					   strerror(primaryError))));
+				(errcode_for_file_access(),
+				 errmsg("could not open Append-Only segment file \"%s\": %m",
+						filepathname)));
+	}
+	mirroredOpen->isActive = true;
+	pfree(dbPath);
+	pfree(path);
 
 	return true;
 }

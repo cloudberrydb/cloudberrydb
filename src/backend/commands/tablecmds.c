@@ -109,7 +109,6 @@
 #include "cdb/cdbmirroredfilesysobj.h"
 #include "cdb/cdbmirroredbufferpool.h"
 #include "cdb/cdbmirroredappendonly.h"
-#include "cdb/cdbpersistentfilesysobj.h"
 
 
 /*
@@ -393,8 +392,6 @@ static void ATPExecPartTruncate(Relation rel,
                                 AlterPartitionCmd *pc);		/* Truncate */
 static void copy_buffer_pool_data(Relation rel, SMgrRelation dst,
 					  ForkNumber forknum, bool isTemp,
-					  ItemPointer persistentTid,
-					  int64 persistentSerialNum,
 					  bool useWal);
 
 static bool TypeTupleExists(Oid typeId);
@@ -443,10 +440,6 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage, bool dispatch)
 	ListCell   *listptr;
 	AttrNumber	attnum;
 	bool		isPartitioned;
-
-	ItemPointerData	persistentTid;
-	int64			persistentSerialNum;
-
 	List	   *cooked_constraints;
 	bool		shouldDispatch = dispatch &&
 								 Gp_role == GP_ROLE_DISPATCH &&
@@ -751,9 +744,7 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage, bool dispatch)
                                           stmt->policy,  /*CDB*/
                                           reloptions,
 										  allowSystemTableModsDDL,
-										  valid_opts,
-										  &persistentTid,
-										  &persistentSerialNum);
+										  valid_opts);
 
 	StoreCatalogInheritance(relationId, stmt->inhOids);
 
@@ -776,17 +767,6 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage, bool dispatch)
 		rel = relation_open(relationId, NoLock);
 	else
 		rel = relation_open(relationId, AccessExclusiveLock);
-
-	/*
-	 * For some reason, even though we have bumped the command counter above,
-	 * occasionally we are not able to see the persistent info just stored in
-	 * gp_relation_node at the XLOG level.  So, we save the values here for
-	 * debugging purposes.
-	 */
-	rel->rd_haveCreateDebugInfo = true;
-	rel->rd_createDebugIsZeroTid = PersistentStore_IsZeroTid(&persistentTid);
-	rel->rd_createDebugPersistentTid = persistentTid;
-	rel->rd_createDebugPersistentSerialNum = persistentSerialNum;
 
 	/*
 	 * Now add any newly specified column default values and CHECK constraints
@@ -10173,6 +10153,8 @@ ATExecSetRelOptions(Relation rel, List *defList, bool isReset)
 				);
 }
 
+// WALREP_FIXME: Need to re-implemet this
+#if 0
 static void 
 copy_append_only_data(
 	RelFileNode		*oldRelFileNode,
@@ -10180,12 +10162,8 @@ copy_append_only_data(
 	int32			segmentFileNum,
 	char			*relationName,
 	int64			eof,
-	ItemPointer		persistentTid,
-	int64			persistentSerialNum,
 	char			*buffer)
 {
-	MIRRORED_LOCK_DECLARE;
-
 	char		   *basepath;
 	char srcFileName[MAXPGPATH];
 	char dstFileName[MAXPGPATH];
@@ -10200,13 +10178,6 @@ copy_append_only_data(
 	int 	retval;
 
 	int 		primaryError;
-
-	bool mirrorDataLossOccurred;
-
-	bool mirrorCatchupRequired;
-
-	MirrorDataLossTrackingState 	originalMirrorDataLossTrackingState;
-	int64 							originalMirrorDataLossTrackingSessionNum;
 
 	/*
 	 * Open the files
@@ -10238,8 +10209,6 @@ copy_append_only_data(
 								relationName,
 								/* logicalEof */ 0, // NOTE: This is the START EOF.  Since we are copying, we start at 0.
 								/* traceOpenFlags */ false,
-								persistentTid,
-								persistentSerialNum,
 								&primaryError);
 	if (primaryError != 0)
 		ereport(ERROR,
@@ -10275,8 +10244,7 @@ copy_append_only_data(
 							  &mirroredDstOpen,
 							  buffer,
 							  bufferLen,
-							  &primaryError,
-							  &mirrorDataLossOccurred);
+							  &primaryError);
 		if (primaryError != 0)
 			ereport(ERROR,
 					(errcode_for_file_access(),
@@ -10288,72 +10256,19 @@ copy_append_only_data(
 		
 		bufferLen = (Size) Min(2*BLCKSZ, endOffset - readOffset); 					
 	}
-	
-	/*
-	 * Use the MirroredLock here to cover the flush (and close) and evaluation below whether
-	 * we must catchup the mirror.
-	 */
-	MIRRORED_LOCK;
 
-	MirroredAppendOnly_FlushAndClose(
-							&mirroredDstOpen,
-							&primaryError,
-							&mirrorDataLossOccurred,
-							&mirrorCatchupRequired,
-							&originalMirrorDataLossTrackingState,
-							&originalMirrorDataLossTrackingSessionNum);
-	if (primaryError != 0)
+	if (FileSync(open->primaryFile) != 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not flush (fsync) file \"%s\" for relation '%s': %s",
 						dstFileName,
 						relationName,
 						strerror(primaryError))));
-
-	FileClose(srcFile);
-
-	if (eof > 0)
-	{
-		/* 
-		 * This routine will handle both updating the persistent information about the
-		 * new EOFs and copy data to the mirror if we are now in synchronized state.
-		 */
-		if (Debug_persistent_print)
-			elog(Persistent_DebugPrintLevel(),
-				 "copy_append_only_data: %u/%u/%u, segment file #%d, serial number " INT64_FORMAT ", TID %s, mirror catchup required %s, "
-				 "mirror data loss tracking (state '%s', session num " INT64_FORMAT "), mirror new EOF " INT64_FORMAT,
-				 newRelFileNode->spcNode,
-				 newRelFileNode->dbNode,
-				 newRelFileNode->relNode,
-				 segmentFileNum,
-				 persistentSerialNum,
-				 ItemPointerToString(persistentTid),
-				 (mirrorCatchupRequired ? "true" : "false"),
-				 MirrorDataLossTrackingState_Name(originalMirrorDataLossTrackingState),
-				 originalMirrorDataLossTrackingSessionNum,
-				 eof);
-		MirroredAppendOnly_AddMirrorResyncEofs(
-										newRelFileNode,
-										segmentFileNum,
-										relationName,
-										persistentTid,
-										persistentSerialNum,
-										&mirroredLockLocalVars,
-										mirrorCatchupRequired,
-										originalMirrorDataLossTrackingState,
-										originalMirrorDataLossTrackingSessionNum,
-										eof);
-
-	}
+	FileClose(open->primaryFile);
 	
-	MIRRORED_UNLOCK;
-
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(), 
-			 "ALTER TABLE SET TABLESPACE: Copied Append-Only segment file #%d EOF " INT64_FORMAT,
-			 segmentFileNum,
-			 eof);
+	FileClose(srcFile);
 }
+#endif
 
 static void
 ATExecSetTableSpace_AppendOnly(
@@ -10362,6 +10277,9 @@ ATExecSetTableSpace_AppendOnly(
 	Relation		gp_relation_node,
 	RelFileNode		*newRelFileNode)
 {
+	// WALREP_FIXME: rewrite this without gp_relation_node
+#if 0
+
 	char *buffer;
 
 	GpRelationNodeScan 	gpRelationNodeScan;
@@ -10369,14 +10287,6 @@ ATExecSetTableSpace_AppendOnly(
 	HeapTuple tuple;
 
 	int32 segmentFileNum;
-
-	ItemPointerData oldPersistentTid;
-	int64 oldPersistentSerialNum;
-
-	ItemPointerData newPersistentTid;
-	int64 newPersistentSerialNum;
-
-	HeapTuple tupleCopy;
 
 	Snapshot	appendOnlyMetaDataSnapshot = SnapshotNow;
 				/*
@@ -10399,17 +10309,6 @@ ATExecSetTableSpace_AppendOnly(
 
 	/* Use palloc to ensure we get a maxaligned buffer */		
 	buffer = palloc(2*BLCKSZ);
-
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(), 
-			 "ALTER TABLE SET TABLESPACE: pg_appendonly entry for Append-Only %u/%u/%u, "
-			 "segrelid %u, "
-			 "persistent TID %s",
-			 rel->rd_node.spcNode,
-			 rel->rd_node.dbNode,
-			 rel->rd_node.relNode,
-			 rel->rd_appendonly->segrelid,
-			 ItemPointerToString(&oldPersistentTid));
 
 	/*
 	 * Loop through segment files
@@ -10440,57 +10339,12 @@ ATExecSetTableSpace_AppendOnly(
 		MirroredFileSysObj_TransactionCreateAppendOnlyFile(
 											newRelFileNode,
 											segmentFileNum,
-											rel->rd_rel->relname.data,
-											/* doJustInTimeDirCreate */ true,
-											&newPersistentTid,
-											&newPersistentSerialNum);
-
-		if (Debug_persistent_print)
-			elog(Persistent_DebugPrintLevel(), 
-				 "ALTER TABLE SET TABLESPACE: Create for Append-Only %u/%u/%u, segment file #%d "
-				 "persistent TID %s and serial number " INT64_FORMAT,
-				 newRelFileNode->spcNode,
-				 newRelFileNode->dbNode,
-				 newRelFileNode->relNode,
-				 segmentFileNum,
-				 ItemPointerToString(&newPersistentTid),
-				 newPersistentSerialNum);
-
-
-		/*
-		 * Update gp_relation_node with new persistent information.
-		 */
-		tupleCopy = heap_copytuple(tuple);
-
-		UpdateGpRelationNodeTuple(
-							gp_relation_node,
-							tupleCopy,
-							(newRelFileNode->spcNode == MyDatabaseTableSpace) ? 0:newRelFileNode->spcNode,
-							newRelFileNode->relNode,
-							segmentFileNum,
-							&newPersistentTid,
-							newPersistentSerialNum);
+											rel->rd_rel->relname.data);
 
 		/*
 		 * Schedule old segment file for drop under transaction.
 		 */
-		MirroredFileSysObj_ScheduleDropAppendOnlyFile(
-											&rel->rd_node,
-											segmentFileNum,
-											rel->rd_rel->relname.data,
-											&oldPersistentTid,
-											oldPersistentSerialNum);
-
-		if (Debug_persistent_print)
-			elog(Persistent_DebugPrintLevel(), 
-				 "ALTER TABLE SET TABLESPACE: Drop for Append-Only %u/%u/%u, segment file #%d "
-				 "persistent TID %s and serial number " INT64_FORMAT,
-				 rel->rd_node.spcNode,
-				 rel->rd_node.dbNode,
-				 rel->rd_node.relNode,
-				 segmentFileNum,
-				 ItemPointerToString(&oldPersistentTid),
-				 oldPersistentSerialNum);
+		RelationDropStorage(rel);
 
 		/*
 		 * Copy Append-Only segment file data and fsync.
@@ -10586,8 +10440,6 @@ ATExecSetTableSpace_AppendOnly(
 						segmentFileNum,
 						rel->rd_rel->relname.data,
 						eof,
-						&newPersistentTid,
-						newPersistentSerialNum,
 						buffer);
 
 		segmentCount++;
@@ -10595,42 +10447,20 @@ ATExecSetTableSpace_AppendOnly(
 
 	GpRelationNodeEndScan(&gpRelationNodeScan);
 
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(), 
-			 "ALTER TABLE SET TABLESPACE: Copied %d Append-Only segments from %u/%u/%u to %u/%u/%u, "
-			 "persistent TID %s and serial number " INT64_FORMAT,
-			 segmentCount,
-			 rel->rd_node.spcNode,
-			 rel->rd_node.dbNode,
-			 rel->rd_node.relNode,
-			 newRelFileNode->spcNode,
-			 newRelFileNode->dbNode,
-			 newRelFileNode->relNode,
-			 ItemPointerToString(&newPersistentTid),
-			 newPersistentSerialNum);
-
 	pfree(buffer);
+#endif
 }
 
 static void
 ATExecSetTableSpace_BufferPool(
 	Oid				tableOid,
 	Relation		rel,
-	Relation		gp_relation_node,
 	RelFileNode		*newRelFileNode)
 {
 	Oid			oldTablespace;
-	HeapTuple	nodeTuple;
-	ItemPointerData newPersistentTid;
-	int64 newPersistentSerialNum;
 	SMgrRelation dstrel;
 	ForkNumber forkNum;
 	bool useWal;
-	ItemPointerData oldPersistentTid;
-	int64 oldPersistentSerialNum;
-
-	PersistentFileSysRelStorageMgr localRelStorageMgr;
-	PersistentFileSysRelBufpoolKind relBufpoolKind;
 	
 	oldTablespace = rel->rd_rel->reltablespace ? rel->rd_rel->reltablespace : MyDatabaseTableSpace;
 
@@ -10639,67 +10469,18 @@ ATExecSetTableSpace_BufferPool(
 	 */
 	useWal = XLogIsNeeded() && !rel->rd_istemp;
 
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(), 
-			 "ALTER TABLE SET TABLESPACE: Buffer Pool managed "
-			 "relation id %u, old path '%s', old relfilenode %u, old reltablespace %u, "
-			 "new path '%s', new relfilenode %u, new reltablespace %u, "
-			 "bulk load %s",
-			 RelationGetRelid(rel),
-			 relpath(rel->rd_node, MAIN_FORKNUM),
-			 rel->rd_rel->relfilenode,
-			 oldTablespace,
-			 relpath(*newRelFileNode, MAIN_FORKNUM),
-			 newRelFileNode->relNode,
-			 newRelFileNode->spcNode,
-			 (!useWal ? "true" : "false"));
-	
-	/* Fetch relation's gp_relation_node row */
-	nodeTuple = FetchGpRelationNodeTuple(
-					gp_relation_node,
-					rel->rd_rel->reltablespace,
-					rel->rd_rel->relfilenode,
-					/* segmentFileNum */ 0,
-					&oldPersistentTid,
-					&oldPersistentSerialNum);
-
-	if (!HeapTupleIsValid(nodeTuple))
-		elog(ERROR, "cache lookup failed for relation %u, tablespace %u, relation file node %u", 
-		     tableOid,
-		     oldTablespace,
-		     rel->rd_rel->relfilenode);
-
-	GpPersistentRelationNode_GetRelationInfo(
-										rel->rd_rel->relkind,
-										rel->rd_rel->relstorage,
-										rel->rd_rel->relam,
-										&localRelStorageMgr,
-										&relBufpoolKind);
-	Assert(localRelStorageMgr == PersistentFileSysRelStorageMgr_BufferPool);
-
-	MirroredFileSysObj_TransactionCreateBufferPoolFile(
-		newRelFileNode,
-		relBufpoolKind,
-		rel->rd_isLocalBuf,
-		rel->rd_rel->relname.data,
-		/* doJustInTimeDirCreate */ true,
-		/* bufferPoolBulkLoad */ !useWal,
-		&newPersistentTid,
-		&newPersistentSerialNum);
-
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(), 
-		     "ALTER TABLE SET TABLESPACE: Create for Buffer Pool managed '%s' "
-			 "persistent TID %s and serial number " INT64_FORMAT,
-			 relpath(*newRelFileNode, MAIN_FORKNUM),
-			 ItemPointerToString(&newPersistentTid),
-			 newPersistentSerialNum);
+	/*
+	 * Create and copy all forks of the relation, and schedule unlinking of
+	 * old physical files.
+	 *
+	 * NOTE: any conflict in relfilenode value will be caught in
+	 * RelationCreateStorage().
+	 */
+	RelationCreateStorage(*newRelFileNode, rel->rd_isLocalBuf);
 
 	/* copy main fork */
 	dstrel = smgropen(*newRelFileNode);
 	copy_buffer_pool_data(rel, dstrel, MAIN_FORKNUM, rel->rd_istemp,
-						  &newPersistentTid,
-						  newPersistentSerialNum,
 						  useWal);
 
 	/* copy those extra forks that exist */
@@ -10708,38 +10489,15 @@ ATExecSetTableSpace_BufferPool(
 		if (smgrexists(rel->rd_smgr, forkNum))
 		{
 			smgrcreate(dstrel, forkNum, false);
-			/* GPDB_84_MERGE_FIXME: What would be the correct persistenttid/serialnum
-			 * values for the extra forks? And what about the WAL-logging?
-			 */
-			copy_buffer_pool_data(rel, dstrel, forkNum, rel->rd_istemp,
-								  &newPersistentTid,
-								  newPersistentSerialNum,
+			copy_buffer_pool_data(rel, dstrel, forkNum, rel->rd_isLocalBuf,
 								  useWal);
 		}
 	}
 	smgrclose(dstrel);
 
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(), 
-			 "ALTER TABLE SET TABLESPACE: Scheduling drop for '%s' "
-			 "persistent TID %s and serial number " INT64_FORMAT,
-			 relpath(*newRelFileNode, MAIN_FORKNUM),
-			 ItemPointerToString(&rel->rd_segfile0_relationnodeinfo.persistentTid),
-			 rel->rd_segfile0_relationnodeinfo.persistentSerialNum);
-
-
-	/* schedule unlinking old physical file */
-	MirroredFileSysObj_ScheduleDropBufferPoolRel(rel);
-
-	/* Update gp_relation_node row. */
-	UpdateGpRelationNodeTuple(
-						gp_relation_node,
-						nodeTuple,
-						(newRelFileNode->spcNode == MyDatabaseTableSpace) ? 0 : newRelFileNode->spcNode,
-						newRelFileNode->relNode,
-						/* segmentFileNum */ 0,
-						&newPersistentTid,
-						newPersistentSerialNum);
+	/* drop old relation, and close new one */
+	RelationDropStorage(rel);
+	smgrclose(dstrel);
 }
 
 static bool
@@ -10827,13 +10585,6 @@ ATExecSetTableSpace_Relation(Oid tableOid, Oid newTableSpace)
 	/* update the pg_class row */
 	rd_rel->reltablespace = (newTableSpace == MyDatabaseTableSpace) ? InvalidOid : newTableSpace;
 	rd_rel->relfilenode = newrelfilenode;
-	
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(), 
-			 "ALTER TABLE SET TABLESPACE: Update pg_class for relation id %u --> relfilenode to %u, reltablespace to %u",
-			 tableOid,
-			 rd_rel->relfilenode,
-			 rd_rel->reltablespace);
 
 	simple_heap_update(pg_class, &tuple->t_self, tuple);
 	CatalogUpdateIndexes(pg_class, tuple);
@@ -10850,7 +10601,6 @@ ATExecSetTableSpace_Relation(Oid tableOid, Oid newTableSpace)
 		ATExecSetTableSpace_BufferPool(
 								tableOid,
 								rel, 
-								gp_relation_node, 
 								&newrnode);
 
 
@@ -10966,7 +10716,6 @@ ATExecSetTableSpace(Oid tableOid, Oid newTableSpace)
 static void
 copy_buffer_pool_data(Relation rel, SMgrRelation dst,
 					  ForkNumber forkNum, bool istemp,
-					  ItemPointer persistentTid, int64 persistentSerialNum,
 					  bool useWal)
 {
 	SMgrRelation src;
@@ -10974,8 +10723,6 @@ copy_buffer_pool_data(Relation rel, SMgrRelation dst,
 	Page		page;
 	BlockNumber nblocks;
 	BlockNumber blkno;
-
-	MirroredBufferPoolBulkLoadInfo bulkLoadInfo;
 
 	/*
 	 * palloc the buffer so that it's MAXALIGN'd.  If it were just a local
@@ -10990,29 +10737,6 @@ copy_buffer_pool_data(Relation rel, SMgrRelation dst,
 
 	/* RelationGetNumberOfBlocks will certainly have opened rd_smgr */
 	src = rel->rd_smgr;
-
-	if (!useWal && forkNum == MAIN_FORKNUM)
-	{
-		MirroredBufferPool_BeginBulkLoad(
-								&rel->rd_node,
-								persistentTid,
-								persistentSerialNum,
-								&bulkLoadInfo);
-	}
-	else
-	{
-		if (Debug_persistent_print)
-		{
-			elog(Persistent_DebugPrintLevel(),
-				 "copy_buffer_pool_data %u/%u/%u: not bypassing the WAL -- not using bulk load, persistent serial num " INT64_FORMAT ", TID %s",
-				 rel->rd_node.spcNode,
-				 rel->rd_node.dbNode,
-				 rel->rd_node.relNode,
-				 persistentSerialNum,
-				 ItemPointerToString(persistentTid));
-		}
-		MemSet(&bulkLoadInfo, 0, sizeof(MirroredBufferPoolBulkLoadInfo));
-	}
 	
 	for (blkno = 0; blkno < nblocks; blkno++)
 	{
@@ -11029,25 +10753,16 @@ copy_buffer_pool_data(Relation rel, SMgrRelation dst,
 
 		/* XLOG stuff */
 		if (useWal)
-		{
-			log_newpage_relFileNode(&dst->smgr_rnode, forkNum, blkno, page, persistentTid,
-						persistentSerialNum);
-		}
+			log_newpage_relFileNode(&dst->smgr_rnode, forkNum, blkno, page);
 
 		PageSetChecksumInplace(page, blkno);
 
-		// -------- MirroredLock ----------
-		LWLockAcquire(MirroredLock, LW_SHARED);
-		
 		/*
 		 * Now write the page.	We say isTemp = true even if it's not a temp
 		 * rel, because there's no need for smgr to schedule an fsync for this
 		 * write; we'll do it ourselves below.
 		 */
 		smgrextend(dst, forkNum, blkno, buf, true);
-
-		LWLockRelease(MirroredLock);
-		// -------- MirroredLock ----------
 	}
 
 	pfree(buf);
@@ -11066,71 +10781,8 @@ copy_buffer_pool_data(Relation rel, SMgrRelation dst,
 	 * wouldn't replay our earlier WAL entries. If we do not fsync those pages
 	 * here, they might still not be on disk when the crash occurs.
 	 */
-	
-	// -------- MirroredLock ----------
-	LWLockAcquire(MirroredLock, LW_SHARED);
-	
 	if (!istemp)
 		smgrimmedsync(dst, forkNum);
-	
-	LWLockRelease(MirroredLock);
-	// -------- MirroredLock ----------
-
-	if (!useWal && forkNum == MAIN_FORKNUM)
-	{
-		bool mirrorDataLossOccurred;
-	
-		/*
-		 * We may have to catch-up the mirror since bulk loading of data is
-		 * ignored by resynchronize.
-		 */
-		while (true)
-		{
-			bool bulkLoadFinished;
-	
-			bulkLoadFinished = 
-				MirroredBufferPool_EvaluateBulkLoadFinish(
-												&bulkLoadInfo);
-	
-			if (bulkLoadFinished)
-			{
-				/*
-				 * The flush was successful to the mirror (or the mirror is
-				 * not configured).
-				 *
-				 * We have done a state-change from 'Bulk Load Create Pending'
-				 * to 'Create Pending'.
-				 */
-				break;
-			}
-	
-			/*
-			 * Copy primary data to mirror and flush.
-			 */
-			MirroredBufferPool_CopyToMirror(
-									&rel->rd_node,
-									rel->rd_rel->relname.data,
-									persistentTid,
-									persistentSerialNum,
-									bulkLoadInfo.mirrorDataLossTrackingState,
-									bulkLoadInfo.mirrorDataLossTrackingSessionNum,
-									nblocks,
-									&mirrorDataLossOccurred);
-		}
-	}
-	else
-	{
-		if (Debug_persistent_print)
-		{
-			elog(Persistent_DebugPrintLevel(),
-				 "copy_buffer_pool_data %u/%u/%u: did not bypass the WAL -- did not use bulk load, persistent serial num " INT64_FORMAT ", TID %s",
-				 rel->rd_node.spcNode,
-				 rel->rd_node.dbNode,
-				 rel->rd_node.relNode,
-				 persistentSerialNum,
-				 ItemPointerToString(persistentTid));
-		}
-	}
 }
 
 /*

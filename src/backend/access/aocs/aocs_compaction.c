@@ -25,7 +25,6 @@
 #include "catalog/pg_appendonly_fn.h"
 #include "cdb/cdbaocsam.h"
 #include "cdb/cdbvars.h"
-#include "cdb/cdbpersistentfilesysobj.h"
 #include "cdb/cdbmirroredfilesysobj.h"
 #include "cdb/cdbpersistentstore.h"
 #include "commands/vacuum.h"
@@ -46,8 +45,6 @@ static void
 AOCSCompaction_DropSegmentFile(Relation aorel,
 							   int segno)
 {
-	ItemPointerData persistentTid;
-	int64		persistentSerialNum;
 	int			pseudoSegNo;
 	int			col;
 
@@ -57,31 +54,12 @@ AOCSCompaction_DropSegmentFile(Relation aorel,
 	{
 		pseudoSegNo = (col * AOTupleId_MultiplierSegmentFileNum) + segno;
 
-		if (!ReadGpRelationNode(
-								aorel->rd_rel->reltablespace,
-								aorel->rd_rel->relfilenode,
-								pseudoSegNo,
-								&persistentTid,
-								&persistentSerialNum))
-		{
-			/* There is nothing to drop */
-			return;
-		}
+		// WALREP_FIXME: Call smgrunlink() directly on the segfile.
 
 		elogif(Debug_appendonly_print_compaction, LOG,
 			   "Drop segment file: "
 			   "segno %d",
 			   pseudoSegNo);
-
-		MirroredFileSysObj_ScheduleDropAppendOnlyFile(
-													  &aorel->rd_node,
-													  pseudoSegNo,
-													  RelationGetRelationName(aorel),
-													  &persistentTid,
-													  persistentSerialNum);
-
-		DeleteGpRelationNodeTuple(aorel,
-								  pseudoSegNo);
 	}
 }
 

@@ -1165,12 +1165,6 @@ Datum int4_pivot_accum(PG_FUNCTION_ARGS);
 Datum int8_pivot_accum(PG_FUNCTION_ARGS);
 Datum float8_pivot_accum(PG_FUNCTION_ARGS);
 
-/* cdb/cdbpersistentbuild.c */
-Datum gp_persistent_build_db(PG_FUNCTION_ARGS);
-Datum gp_persistent_build_all(PG_FUNCTION_ARGS);
-Datum gp_persistent_reset_all(PG_FUNCTION_ARGS);
-Datum gp_persistent_repair_delete(PG_FUNCTION_ARGS);
-
 /* utils/error/elog.c */
 extern Datum gp_elog(PG_FUNCTION_ARGS);
 
@@ -1191,34 +1185,12 @@ extern Datum gp_remove_segment(PG_FUNCTION_ARGS);
 
 extern Datum gp_prep_new_segment(PG_FUNCTION_ARGS);
 
-extern Datum gp_add_segment_persistent_entries(PG_FUNCTION_ARGS);
-extern Datum gp_remove_segment_persistent_entries(PG_FUNCTION_ARGS);
-
 extern Datum gp_request_fts_probe_scan(PG_FUNCTION_ARGS);
 
 /* utils/gp/persistentutil.c */
-extern Datum gp_add_persistent_filespace_node_entry(PG_FUNCTION_ARGS);
-extern Datum gp_add_persistent_tablespace_node_entry(PG_FUNCTION_ARGS);
-extern Datum gp_add_persistent_database_node_entry(PG_FUNCTION_ARGS);
-extern Datum gp_add_persistent_relation_node_entry(PG_FUNCTION_ARGS);
 extern Datum gp_add_global_sequence_entry(PG_FUNCTION_ARGS);
-extern Datum gp_add_relation_node_entry(PG_FUNCTION_ARGS);
-
-extern Datum gp_update_persistent_filespace_node_entry(PG_FUNCTION_ARGS);
-extern Datum gp_update_persistent_tablespace_node_entry(PG_FUNCTION_ARGS);
-extern Datum gp_update_persistent_database_node_entry(PG_FUNCTION_ARGS);
-extern Datum gp_update_persistent_relation_node_entry(PG_FUNCTION_ARGS);
 extern Datum gp_update_global_sequence_entry(PG_FUNCTION_ARGS);
-extern Datum gp_update_relation_node_entry(PG_FUNCTION_ARGS);
-
-extern Datum gp_delete_persistent_filespace_node_entry(PG_FUNCTION_ARGS);
-extern Datum gp_delete_persistent_tablespace_node_entry(PG_FUNCTION_ARGS);
-extern Datum gp_delete_persistent_database_node_entry(PG_FUNCTION_ARGS);
-extern Datum gp_delete_persistent_relation_node_entry(PG_FUNCTION_ARGS);
 extern Datum gp_delete_global_sequence_entry(PG_FUNCTION_ARGS);
-extern Datum gp_delete_relation_node_entry(PG_FUNCTION_ARGS);
-
-extern Datum gp_persistent_relation_node_check(PG_FUNCTION_ARGS);
 
 /* storage/compress.c */
 extern Datum quicklz_constructor(PG_FUNCTION_ARGS);

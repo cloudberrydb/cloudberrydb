@@ -340,10 +340,6 @@ bool
 systable_recheck_tuple(SysScanDesc sysscan, HeapTuple tup)
 {
 	bool		result;
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
-	/* -------- MirroredLock ---------- */
-	MIRROREDLOCK_BUFMGR_LOCK;
 
 	if (sysscan->irel)
 	{
@@ -369,9 +365,6 @@ systable_recheck_tuple(SysScanDesc sysscan, HeapTuple tup)
 											  scan->rs_cbuf);
 		LockBuffer(scan->rs_cbuf, BUFFER_LOCK_UNLOCK);
 	}
-
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	/* -------- MirroredLock ---------- */
 
 	return result;
 }

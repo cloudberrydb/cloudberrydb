@@ -20,7 +20,6 @@
 #include "utils/guc.h"
 #include "utils/netcheck.h"
 #include "catalog/pg_filespace.h"
-#include "cdb/cdbpersistentfilespace.h"
 #include "cdb/cdbvars.h"
 #include <string.h>
 #include "access/slru.h"
@@ -2346,127 +2345,6 @@ makeRelativeToPeerTxnFilespace(char *path)
         else
                 sprintf(fullPath, "%s/%s", primaryMirrorGetPeerTxnFilespacePath(), path);
         return fullPath;
-}
-
-/*
- * Check if the filespace information is consistent between persistent node filespace info
- * and the values read from the flat files
- */
-bool
-isFilespaceInfoConsistent(void)
-{
-	char *primaryFilespaceLocation = NULL;
-	char *mirrorFilespaceLocation = NULL;
-	Oid filespaceOid = primaryMirrorGetTxnFilespaceOID();
-	bool ret = true;
-
-	if (pmModuleState->isUsingDefaultFilespaceForTxnFiles == 1)
-	{
-		/* Using default filespace */
-		Insist(pmModuleState->txnFilespacePath[0] == '\0');
-		Insist(pmModuleState->peerTxnFilespacePath[0] == '\0');
-		return true;
-	}
-
-	Insist(pmModuleState->isUsingDefaultFilespaceForTxnFiles == 0);
-
-	/* Use the oid to retrieve the paths on primary and mirror */
-	PersistentFilespace_GetPrimaryAndMirror(
-		filespaceOid,
-		&primaryFilespaceLocation,
-		&mirrorFilespaceLocation);
-
-	/* Compare the values with shared memory contents */
-	if (strncmp(primaryFilespaceLocation, (char*)pmModuleState->txnFilespacePath, MAXPGPATH))
-	{
-		ereport(gp_temporary_files_filespace_repair ? WARNING : ERROR,
-				(errcode(ERRCODE_RAISE_EXCEPTION),
-				 errmsg("Transaction files filespace Inconsistent. Filespace oid %d filespace flatfile locations - local:%s peer %s, "
-						"Filespace gp_persistent_filespace_node locations - local:%s peer:%s", filespaceOid, (char*)pmModuleState->txnFilespacePath,
-						(char*)pmModuleState->peerTxnFilespacePath, primaryFilespaceLocation, mirrorFilespaceLocation ? mirrorFilespaceLocation : ""),
-				 errSendAlert(true)));
-		ret = false;
-		goto cleanup;
-	}
-
-	/* See if the mirror is configured */
-	if (mirrorFilespaceLocation)
-	{
-		Insist(pmModuleState->peerTxnFilespacePath[0]);
-		if (strncmp(mirrorFilespaceLocation, (char*)pmModuleState->peerTxnFilespacePath, MAXPGPATH))
-		{
-			ereport(gp_temporary_files_filespace_repair ? WARNING : ERROR,
-					(errcode(ERRCODE_RAISE_EXCEPTION),
-					 errmsg("Transaction files filespace Inconsistent. Filespace oid %d filespace flatfile locations - local:%s peer %s, "
-							"Filespace gp_persistent_filespace_node locations - local:%s peer:%s", filespaceOid, (char*)pmModuleState->txnFilespacePath,
-							(char*)pmModuleState->peerTxnFilespacePath, primaryFilespaceLocation, mirrorFilespaceLocation),
-					 errSendAlert(true)));
-
-			ret = false;
-			goto cleanup;
-		}
-		pfree(mirrorFilespaceLocation);
-		mirrorFilespaceLocation = NULL;
-	}
-
-	pfree(primaryFilespaceLocation);
-	primaryFilespaceLocation = NULL;
-
-	filespaceOid = primaryMirrorGetTempFilespaceOID();
-	ret = true;
-
-	if (pmModuleState->isUsingDefaultFilespaceForTempFiles)
-	{
-		Insist(pmModuleState->tempFilespacePath[0] == '\0');
-		Insist(pmModuleState->peerTempFilespacePath[0] == '\0');
-		return true;
-	}
-
-	Insist(pmModuleState->isUsingDefaultFilespaceForTempFiles == 0);
-
-	/* Use the oid to retrieve the paths on primary and mirror */
-	PersistentFilespace_GetPrimaryAndMirror(
-		filespaceOid,
-		&primaryFilespaceLocation,
-		&mirrorFilespaceLocation);
-
-	/* Compare the values with shared memory contents */
-	if (strncmp(primaryFilespaceLocation, (char*)pmModuleState->tempFilespacePath, MAXPGPATH))
-	{
-		ereport(gp_temporary_files_filespace_repair ? WARNING :ERROR,
-				(errcode(ERRCODE_RAISE_EXCEPTION),
-				 errmsg("Temporary files filespace Inconsistent. Filespace oid %d filespace flatfile locations - local:%s peer %s, "
-						"Filespace gp_persistent_filespace_node locations - local:%s peer:%s", filespaceOid, (char*)pmModuleState->txnFilespacePath,
-						(char*)pmModuleState->peerTxnFilespacePath, primaryFilespaceLocation, mirrorFilespaceLocation ? mirrorFilespaceLocation : ""),
-				 errSendAlert(true)));
-		ret = false;
-		goto cleanup;
-	}
-
-	/* Check if the mirror is configured as well */
-	if (mirrorFilespaceLocation)
-	{
-		Insist(pmModuleState->peerTempFilespacePath[0]);
-		if (strncmp(mirrorFilespaceLocation, (char*)pmModuleState->peerTempFilespacePath, MAXPGPATH))
-		{
-			ereport(gp_temporary_files_filespace_repair ? WARNING :ERROR,
-					(errcode(ERRCODE_RAISE_EXCEPTION),
-					 errmsg("Temporary files filespace Inconsistent. Filespace oid %d filespace flatfile locations - local:%s peer %s, "
-							"Filespace gp_persistent_filespace_node locations - local:%s peer:%s", filespaceOid, (char*)pmModuleState->txnFilespacePath,
-							(char*)pmModuleState->peerTxnFilespacePath, primaryFilespaceLocation, mirrorFilespaceLocation),
-					 errSendAlert(true)));
-
-			ret = false;
-			goto cleanup;
-		}
-	}
-
-cleanup:
-	pfree(primaryFilespaceLocation);
-	if (mirrorFilespaceLocation)
-		pfree(mirrorFilespaceLocation);
-
-	return ret;
 }
 
 void

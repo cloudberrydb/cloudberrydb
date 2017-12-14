@@ -143,8 +143,6 @@ readindex(PG_FUNCTION_ARGS)
 	Relation	irel = NULL;
 	Relation	hrel = NULL;
 
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	if (SRF_IS_FIRSTCALL())
 	{
 		Oid		irelid = PG_GETARG_OID(0);
@@ -235,11 +233,9 @@ readindex(PG_FUNCTION_ARGS)
 			 */
 			info->page = MemoryContextAlloc(funcctx->multi_call_memory_ctx, BLCKSZ);
 
-			MIRROREDLOCK_BUFMGR_LOCK;
 			buf = ReadBuffer(irel, info->blkno);
 			memcpy(info->page, BufferGetPage(buf), BLCKSZ);
 			ReleaseBuffer(buf);
-			MIRROREDLOCK_BUFMGR_UNLOCK;
 
 			info->opaque = (BTPageOpaque) PageGetSpecialPointer(info->page);
 			info->minoff = P_FIRSTDATAKEY(info->opaque);

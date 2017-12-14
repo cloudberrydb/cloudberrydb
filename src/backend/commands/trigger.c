@@ -2235,8 +2235,6 @@ GetTupleForTrigger(EState *estate, ResultRelInfo *relinfo,
 				   ItemPointer tid,
 				   TupleTableSlot **newSlot)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	Relation	relation = relinfo->ri_RelationDesc;
 	HeapTupleData tuple;
 	HeapTuple	result;
@@ -2316,10 +2314,7 @@ ltrmark:;
 	{
 		Page		page;
 		ItemId		lp;
-		
-		// -------- MirroredLock ----------
-		MIRROREDLOCK_BUFMGR_LOCK;
-		
+
 		buffer = ReadBuffer(relation, ItemPointerGetBlockNumber(tid));
 
 		/*
@@ -2342,9 +2337,6 @@ ltrmark:;
 		tuple.t_self = *tid;
 
 		LockBuffer(buffer, BUFFER_LOCK_UNLOCK);
-
-		MIRROREDLOCK_BUFMGR_UNLOCK;
-		// -------- MirroredLock ----------
 	}
 
 	result = heap_copytuple(&tuple);

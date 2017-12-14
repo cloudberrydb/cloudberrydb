@@ -645,8 +645,6 @@ static inline uint32 heaptuple_get_size(HeapTuple htup)
 typedef struct xl_heaptid
 {
 	RelFileNode node;
-	ItemPointerData persistentTid;
-	int64 persistentSerialNum;
 	ItemPointerData tid;		/* changed tuple id */
 } xl_heaptid;
 
@@ -655,8 +653,6 @@ typedef struct xl_heaptid
 typedef struct xl_heapnode
 {
 	RelFileNode node;
-	ItemPointerData persistentTid;
-	int64 persistentSerialNum;
 } xl_heapnode;
 
 /* This is what we need to know about delete */

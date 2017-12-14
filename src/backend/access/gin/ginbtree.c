@@ -28,8 +28,6 @@ ginTraverseLock(Buffer buffer, bool searchMode)
 	Page		page;
 	int			access = GIN_SHARE;
 
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
 	LockBuffer(buffer, GIN_SHARE);
 	page = BufferGetPage(buffer);
 	if (GinPageIsLeaf(page))
@@ -60,8 +58,6 @@ ginPrepareFindLeafPage(GinBtree btree, BlockNumber blkno)
 {
 	GinBtreeStack *stack = (GinBtreeStack *) palloc(sizeof(GinBtreeStack));
 
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
 	stack->blkno = blkno;
 	stack->buffer = ReadBuffer(btree->index, stack->blkno);
 	stack->parent = NULL;
@@ -80,8 +76,6 @@ ginFindLeafPage(GinBtree btree, GinBtreeStack *stack)
 {
 	bool		isfirst = TRUE;
 	BlockNumber rootBlkno;
-
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	if (!stack)
 		stack = ginPrepareFindLeafPage(btree, GIN_ROOT_BLKNO);
@@ -190,8 +184,6 @@ findParents(GinBtree btree, GinBtreeStack *stack,
 	GinBtreeStack *root = stack->parent;
 	GinBtreeStack *ptr;
 
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
 	if (!root)
 	{
 		/* XLog mode... */
@@ -283,8 +275,6 @@ ginInsertValue(GinBtree btree, GinBtreeStack *stack)
 	Page		page,
 				rpage,
 				lpage;
-
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/* remember root BlockNumber */
 	while (parent)

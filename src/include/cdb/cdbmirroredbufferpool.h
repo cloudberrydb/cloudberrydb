@@ -45,37 +45,17 @@ typedef struct MirroredBufferPoolOpen
 
 	File		primaryFile;
 
-	MirrorDataLossTrackingState mirrorDataLossTrackingState;
-
-	int64						mirrorDataLossTrackingSessionNum;
-
 	bool						create;
 
 	bool						mirrorOnly;
 
 	bool						copyToMirror;
 
-	StorageManagerMirrorMode	mirrorMode;
-
-	bool						mirrorDataLossOccurred;
 } MirroredBufferPoolOpen;
 
 // -----------------------------------------------------------------------------
 // Open, Flush, Close 
 // -----------------------------------------------------------------------------
-
-extern void MirroredBufferPool_BeginBulkLoad(
-	RelFileNode 					*relFileNode,
-				/* The tablespace, database, and relation OIDs for the relation. */
-
-	ItemPointer						persistentTid,
-
-	int64							persistentSerialNum,
-
-	MirroredBufferPoolBulkLoadInfo *bulkLoadInfo);
-
-extern bool MirroredBufferPool_EvaluateBulkLoadFinish(
-	MirroredBufferPoolBulkLoadInfo *bulkLoadInfo);
 
 /*
  * Open a relation for mirrored write.
@@ -110,10 +90,6 @@ extern void MirroredBufferPool_Create(
 	char						*relationName,
 				/* For tracing only.  Can be NULL in some execution paths. */
 
-	MirrorDataLossTrackingState mirrorDataLossTrackingState,
-
-	int64						mirrorDataLossTrackingSessionNum,
-
 	int 						*primaryError,
 
 	bool						*mirrorDataLossOccurred);
@@ -124,10 +100,6 @@ extern void MirroredBufferPool_MirrorReCreate(
 
 	uint32						segmentFileNum,
 				/* Which segment file. */
-
-	MirrorDataLossTrackingState mirrorDataLossTrackingState,
-
-	int64						mirrorDataLossTrackingSessionNum,
 
 	bool						*mirrorDataLossOccurred);
 
@@ -170,11 +142,7 @@ extern void MirroredBufferPool_MirrorReDrop(
 	RelFileNode					*relFileNode,
 	 
 	int32						segmentFileNum,
-	
-	MirrorDataLossTrackingState mirrorDataLossTrackingState,
-
-	int64						mirrorDataLossTrackingSessionNum,
-	
+		
 	bool						*mirrorDataLossOccurred);
 
 /*
@@ -226,10 +194,6 @@ extern void MirroredBufferPool_CopyToMirror(
 		ItemPointer 					persistentTid,
 	
 		int64							persistentSerialNum,
-	
-		MirrorDataLossTrackingState 	mirrorDataLossTrackingState,
-	
-		int64							mirrorDataLossTrackingSessionNum,
 	
 		int32							numOfBlocks,
 		

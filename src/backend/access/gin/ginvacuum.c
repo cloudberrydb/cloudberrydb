@@ -159,8 +159,6 @@ ginVacuumPostingTreeLeaves(GinVacuumState *gvs, BlockNumber blkno, bool isRoot, 
 	Page		page;
 	bool		hasVoidPage = FALSE;
 
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
 	buffer = ReadBufferExtended(gvs->index, MAIN_FORKNUM, blkno,
 								RBM_NORMAL, gvs->strategy);
 	page = BufferGetPage(buffer);
@@ -252,8 +250,6 @@ ginDeletePage(GinVacuumState *gvs, BlockNumber deleteBlkno, BlockNumber leftBlkn
 	Buffer		pBuffer;
 	Page		page,
 				parentPage;
-
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	dBuffer = ReadBufferExtended(gvs->index, MAIN_FORKNUM, deleteBlkno,
 								 RBM_NORMAL, gvs->strategy);
@@ -395,8 +391,6 @@ typedef struct DataPageDeleteStack
 static bool
 ginScanToDelete(GinVacuumState *gvs, BlockNumber blkno, bool isRoot, DataPageDeleteStack *parent, OffsetNumber myoff)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	DataPageDeleteStack *me;
 	Buffer		buffer;
 	Page		page;
@@ -418,9 +412,6 @@ ginScanToDelete(GinVacuumState *gvs, BlockNumber blkno, bool isRoot, DataPageDel
 		else
 			me = parent->child;
 	}
-
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
 
 	buffer = ReadBufferExtended(gvs->index, MAIN_FORKNUM, blkno,
 								RBM_NORMAL, gvs->strategy);
@@ -455,9 +446,6 @@ ginScanToDelete(GinVacuumState *gvs, BlockNumber blkno, bool isRoot, DataPageDel
 			}
 		}
 	}
-	
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
 	
 	ReleaseBuffer(buffer);
 
@@ -590,8 +578,6 @@ ginVacuumEntryPage(GinVacuumState *gvs, Buffer buffer, BlockNumber *roots, uint3
 Datum
 ginbulkdelete(PG_FUNCTION_ARGS)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	IndexVacuumInfo *info = (IndexVacuumInfo *) PG_GETARG_POINTER(0);
 	IndexBulkDeleteResult *stats = (IndexBulkDeleteResult *) PG_GETARG_POINTER(1);
 	IndexBulkDeleteCallback callback = (IndexBulkDeleteCallback) PG_GETARG_POINTER(2);
@@ -608,9 +594,6 @@ ginbulkdelete(PG_FUNCTION_ARGS)
 	gvs.callback_state = callback_state;
 	gvs.strategy = info->strategy;
 	initGinState(&gvs.ginstate, index);
-
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
 
 	/* first time through? */
 	if (stats == NULL)
@@ -706,17 +689,12 @@ ginbulkdelete(PG_FUNCTION_ARGS)
 		LockBuffer(buffer, GIN_EXCLUSIVE);
 	}
 	
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
-	
 	PG_RETURN_POINTER(gvs.result);
 }
 
 Datum
 ginvacuumcleanup(PG_FUNCTION_ARGS)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	IndexVacuumInfo *info = (IndexVacuumInfo *) PG_GETARG_POINTER(0);
 	IndexBulkDeleteResult *stats = (IndexBulkDeleteResult *) PG_GETARG_POINTER(1);
 	Relation	index = info->index;
@@ -785,9 +763,6 @@ ginvacuumcleanup(PG_FUNCTION_ARGS)
 
 		vacuum_delay_point();
 
-		// -------- MirroredLock ----------
-		MIRROREDLOCK_BUFMGR_LOCK;
-
 		buffer = ReadBufferExtended(index, MAIN_FORKNUM, blkno,
 									RBM_NORMAL, info->strategy);
 		LockBuffer(buffer, GIN_SHARE);
@@ -802,18 +777,13 @@ ginvacuumcleanup(PG_FUNCTION_ARGS)
 			lastFilledBlock = blkno;
 
 		UnlockReleaseBuffer(buffer);
-		
-		MIRROREDLOCK_BUFMGR_UNLOCK;
-		// -------- MirroredLock ----------
-		
 	}
 	lastBlock = npages - 1;
 
 	if (info->vacuum_full && lastBlock > lastFilledBlock)
 	{
 		/* try to truncate index */
-		RelationTruncate(index, lastFilledBlock + 1,
-						 /* markPersistentAsPhysicallyTruncated */ true);
+		RelationTruncate(index, lastFilledBlock + 1);
 
 		stats->pages_removed = lastBlock - lastFilledBlock;
 		totFreePages = totFreePages - stats->pages_removed;

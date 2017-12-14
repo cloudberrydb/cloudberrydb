@@ -24,10 +24,6 @@
 #include "catalog/pg_filespace_entry.h"
 #include "catalog/pg_proc.h"
 #include "cdb/cdbdisp_query.h"
-#include "cdb/cdbpersistentdatabase.h"
-#include "cdb/cdbpersistentfilespace.h"
-#include "cdb/cdbpersistentrelation.h"
-#include "cdb/cdbpersistenttablespace.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbfts.h"
@@ -370,7 +366,6 @@ persist_all_filespaces(int16 pridbid, int16 mirdbid, ArrayType *fsmap)
 		char	   *fsname = TextDatumGetCString(d[i]);
 		char	   *path;
 		Oid			fsoid;
-		bool		set_mirror_existence;
 
 		/* we do not persist system filespaces */
 		if (strcmp(fsname, SYSTEMFILESPACE_NAME) == 0)
@@ -382,23 +377,8 @@ persist_all_filespaces(int16 pridbid, int16 mirdbid, ArrayType *fsmap)
 
 		Insist(i + 1 < n);
 		path = TextDatumGetCString(d[i + 1]);
-
-		/* only set the mirror existence on segments */
-		set_mirror_existence = (pridbid != MASTER_DBID);
-		PersistentFilespace_AddMirror(fsoid, path, pridbid, mirdbid,
-									  set_mirror_existence);
 	}
 	heap_close(rel, NoLock);
-}
-
-/*
- * Remove knowledge of filespaces for a given segment from the persistent
- * catalog.
- */
-static void
-desist_all_filespaces(int16 dbid)
-{
-	PersistentFilespace_RemoveSegment(dbid, true);
 }
 
 /*
@@ -434,69 +414,6 @@ update_filespaces(int16 pridbid, seginfo *i, bool add, ArrayType *fsmap)
 	 */
 	if (add)
 		persist_all_filespaces(pridbid, i->db.dbid, fsmap);
-	else
-		desist_all_filespaces(i->db.dbid);
-}
-
-/* As above, for tablespaces */
-static void
-update_tablespaces(int16 pridbid, seginfo *i, bool add)
-{
-	/* if we're adding a new primary (for expansion), bail out */
-	if (pridbid == i->db.dbid)
-	{
-		Insist(i->db.role == GP_SEGMENT_CONFIGURATION_ROLE_PRIMARY);
-		return;
-	}
-
-	if (pridbid == MASTER_DBID ||
-		!must_update_persistent(pridbid, i))
-		return;
-
-	/*
-	 * Teach the persistent tablespace table about us.
-	 */
-	if (add)
-		PersistentTablespace_AddMirrorAll(pridbid, i->db.dbid);
-	else
-		PersistentTablespace_RemoveSegment(i->db.dbid,
-										   i->db.role == GP_SEGMENT_CONFIGURATION_ROLE_MIRROR);
-}
-
-/* As above, for databases. */
-static void
-update_databases(int16 pridbid, seginfo *i, bool add)
-{
-	if (pridbid == MASTER_DBID ||
-		!must_update_persistent(pridbid, i))
-		return;
-
-	/*
-	 * Teach the persistent database table about us.
-	 */
-	if (add)
-		PersistentDatabase_AddMirrorAll(pridbid, i->db.dbid);
-	else
-		PersistentDatabase_RemoveSegment(i->db.dbid,
-										 i->db.role == GP_SEGMENT_CONFIGURATION_ROLE_MIRROR);
-}
-
-/* As above, for relations */
-static void
-update_relations(int16 pridbid, seginfo *i, bool add)
-{
-	if (pridbid == MASTER_DBID ||
-		!must_update_persistent(pridbid, i))
-		return;
-
-	/*
-	 * Teach the persistent relation table about us.
-	 */
-	if (add)
-		PersistentRelation_AddMirrorAll(pridbid, i->db.dbid);
-	else
-		PersistentRelation_RemoveSegment(i->db.dbid,
-										 i->db.role == GP_SEGMENT_CONFIGURATION_ROLE_MIRROR);
 }
 
 static void
@@ -547,25 +464,9 @@ static void
 add_segment_persistent_entries(int16 pridbid, seginfo *i, ArrayType *fsmap)
 {
 	/*
-	 * Add filespace entries in pg_filespace_entry and
-	 * gp_persistent_filespace_node
+	 * Add filespace entries in pg_filespace_entry.
 	 */
 	update_filespaces(pridbid, i, true, fsmap);
-
-	/*
-	 * Update gp_persistent_tablespace_node.
-	 */
-	update_tablespaces(pridbid, i, true);
-
-	/*
-	 * Update gp_persistent_database_node table
-	 */
-	update_databases(pridbid, i, true);
-
-	/*
-	 * Update gp_persistent_relation_node table
-	 */
-	update_relations(pridbid, i, true);
 
 	/*
 	 * If we're adding a new segment mirror, we need to dispatch to that
@@ -587,21 +488,6 @@ remove_segment_persistent_entries(int16 pridbid, seginfo *i)
 	 * gp_persistent_filespace_node
 	 */
 	update_filespaces(pridbid, i, false, NULL);
-
-	/*
-	 * Update gp_persistent_tablespace_node.
-	 */
-	update_tablespaces(pridbid, i, false);
-
-	/*
-	 * Update gp_persistent_database_node table
-	 */
-	update_databases(pridbid, i, false);
-
-	/*
-	 * Update gp_persistent_relation_node table
-	 */
-	update_relations(pridbid, i, false);
 
 	/*
 	 * If we're removing a segment mirror, we need to dispatch to that
@@ -1144,88 +1030,6 @@ gp_remove_master_standby(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(true);
 }
 
-/*
- * Run only on a segment, we use this to update the filespace locations for the
- * PRIMARY as part of building a full segment. Used by gpexpand.
- *
- * gp_prep_new_segment(filespace_map)
- *
- * Args:
- *   filespace_map - as above
- *
- * Returns:
- *   true upon success, otherwise throws error
- */
-Datum
-gp_prep_new_segment(PG_FUNCTION_ARGS)
-{
-	int16		pridbid;
-	int16		mirdbid;
-	ArrayType  *fsmap;
-
-	if (PG_ARGISNULL(0))
-		elog(ERROR, "filespace_map cannot be NULL");
-
-	fsmap = PG_GETARG_ARRAYTYPE_P(0);
-
-	/*
-	 * The restriction on single-user mode (as opposed to utility mode) is
-	 * because the database cannot be fully started under the postmaster when
-	 * a database has been created in a filespace other than "pg_system" due
-	 * to the need to invalidate the databases cache on startup.  Since this
-	 * is the function to fix the filespace locations it MUST be run in a mode
-	 * that can startup in this circumstance.
-	 */
-	mirroring_sanity_check(SUPERUSER | SEGMENT_ONLY | SINGLE_USER_MODE,
-						   "gp_prep_new_segment");
-
-	/*
-	 * If the guc isn't set then this function is being called incorrectly -
-	 * the guc is required to start the database when there is a database
-	 * defined in a filespace other than pg_system.
-	 */
-	if (!gp_before_filespace_setup)
-		elog(ERROR, "gp_prep_new_segment requires the database to be started "
-			 "with gp_before_filespace_setup=true");
-
-	/*
-	 * Fixup the filespace locations for this segment.
-	 *
-	 * :HACK: Currently there are no functions to set a PRIMARY directory
-	 * location but only a mirror location, however the
-	 * PersistentFilespace_AddMirrors function only knows which is which based
-	 * on what it is told.  So by declaring that the 'primary' is actually the
-	 * 'mirror' it lets us do what we need to have happen.  The downside is
-	 * that this will set the 'mirror_existence_state', but since we are about
-	 * to desist the mirror directory anyways that is only a temporary
-	 * problem. :HACK:
-	 */
-	pridbid = GpIdentity.dbid;
-	mirdbid = PersistentFilespace_LookupMirrorDbid(MASTER_DBID);
-	persist_all_filespaces(mirdbid, pridbid, fsmap);
-
-	/*
-	 * Clear out the existing mirror information from gp_persistent_filespace.
-	 */
-	desist_all_filespaces(mirdbid);
-
-	/* Return true on success */
-	PG_RETURN_BOOL(true);
-}
-
-/*
- * Perform operations necessary to mask a standby master the actual
- * master in the persistent catalogs.
- */
-static void
-persistent_activate_standby(int16 standbyid, int16 newdbid)
-{
-	PersistentFilespace_ActivateStandby(standbyid, newdbid);
-	PersistentTablespace_ActivateStandby(standbyid, newdbid);
-	PersistentDatabase_ActivateStandby(standbyid, newdbid);
-	PersistentRelation_ActivateStandby(standbyid, newdbid);
-}
-
 static void
 segment_config_activate_standby(int16 standbydbid, int16 newdbid)
 {
@@ -1386,8 +1190,6 @@ gp_activate_standby(PG_FUNCTION_ARGS)
 	mirroring_sanity_check(SUPERUSER | UTILITY_MODE | STANDBY_ONLY,
 						   PG_FUNCNAME_MACRO);
 
-	persistent_activate_standby(olddbid, newdbid);
-
 	catalog_activate_standby(olddbid, newdbid);
 
 	/*
@@ -1398,94 +1200,6 @@ gp_activate_standby(PG_FUNCTION_ARGS)
 	primaryMirrorSetNewDbid(newdbid);
 
 	/* done */
-	PG_RETURN_BOOL(true);
-}
-
-/*
- * Add entries to persistent tables on a segment.
- *
- * gp_add_segment_persistent_entries(dbid, mirdbid, filespace_map)
- *
- * Args:
- *  dbid of the primary
- *  mirdbid - dbid of the mirror
- *  filespace_map - as above
- *
- * Returns:
- *  true upon success otherwise false
- *
- * Runs only at the segment level.
- */
-Datum
-gp_add_segment_persistent_entries(PG_FUNCTION_ARGS)
-{
-	int16		dbid;
-	int16		mirdbid;
-	ArrayType  *fsmap;
-	seginfo		seg;
-
-	if (PG_ARGISNULL(0))
-		elog(ERROR, "dbid cannot be NULL");
-	if (PG_ARGISNULL(1))
-		elog(ERROR, "mirror_dbid cannot be NULL");
-	if (PG_ARGISNULL(2))
-		elog(ERROR, "filespace_map cannot be NULL");
-
-	mirroring_sanity_check(SEGMENT_ONLY | SUPERUSER,
-						   "gp_add_segment_persistent_entries");
-
-	dbid = PG_GETARG_INT16(0);
-	mirdbid = PG_GETARG_INT16(1);
-	fsmap = PG_GETARG_ARRAYTYPE_P(2);
-
-	elog(LOG, "received request to execute %s on %i, desired site %i",
-		 PG_FUNCNAME_MACRO, GpIdentity.dbid, dbid);
-
-	if (dbid != GpIdentity.dbid)
-		PG_RETURN_BOOL(true);
-
-	MemSet(&seg, 0, sizeof(seginfo));
-	seg.db.dbid = mirdbid;
-	seg.db.role = GP_SEGMENT_CONFIGURATION_ROLE_MIRROR;
-
-	add_segment_persistent_entries(dbid, &seg, fsmap);
-
-	PG_RETURN_BOOL(true);
-}
-
-/*
- * Opposite of gp_add_segment_persistent_entries()
- */
-Datum
-gp_remove_segment_persistent_entries(PG_FUNCTION_ARGS)
-{
-	int16		dbid;
-	int16		mirdbid;
-	seginfo		seg;
-
-	if (PG_ARGISNULL(0))
-		elog(ERROR, "dbid cannot be NULL");
-	if (PG_ARGISNULL(1))
-		elog(ERROR, "mirdbid cannot be NULL");
-
-	mirroring_sanity_check(SEGMENT_ONLY | SUPERUSER,
-						   "gp_remove_segment_persistent_entries");
-
-	dbid = PG_GETARG_INT16(0);
-	mirdbid = PG_GETARG_INT16(1);
-
-	elog(LOG, "received request to execute %s on %i, desired site %i",
-		 PG_FUNCNAME_MACRO, GpIdentity.dbid, dbid);
-
-	if (dbid != GpIdentity.dbid)
-		PG_RETURN_BOOL(true);
-
-	MemSet(&seg, 0, sizeof(seginfo));
-	seg.db.dbid = mirdbid;
-	seg.db.role = GP_SEGMENT_CONFIGURATION_ROLE_MIRROR;
-
-	remove_segment_persistent_entries(dbid, &seg);
-
 	PG_RETURN_BOOL(true);
 }
 

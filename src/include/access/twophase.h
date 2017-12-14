@@ -15,7 +15,6 @@
 #define TWOPHASE_H
 
 #include "access/xlogdefs.h"
-#include "access/xlogmm.h"
 #include "storage/backendid.h"
 #include "storage/proc.h"
 #include "utils/timestamp.h"

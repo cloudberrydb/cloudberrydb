@@ -71,16 +71,15 @@
 #include "utils/inval.h"
 #include "utils/memutils.h"
 #include "utils/relcache.h"
-#include "utils/relationnode.h"
 #include "utils/resowner.h"
 #include "utils/syscache.h"
 #include "utils/tqual.h"
 
+#include "access/transam.h"         /* GpPolicy */
 #include "catalog/gp_policy.h"         /* GpPolicy */
 #include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"        /* Gp_role */
 #include "cdb/cdbmirroredflatfile.h"
-#include "cdb/cdbpersistentfilesysobj.h"
 #include "cdb/cdbsreh.h"
 #include "utils/visibility_summary.h"
 
@@ -311,455 +310,6 @@ ScanPgRelation(Oid targetRelId, bool indexOK, Relation *pg_class_relation)
 	return pg_class_tuple;
 }
 
-void
-GpRelationNodeBeginScan(
-	Snapshot	snapshot,
-	Relation 	gp_relation_node,
-	Oid		relationId,
-	Oid 		tablespaceOid,
-	Oid 		relfilenode,
-	GpRelationNodeScan 	*gpRelationNodeScan)
-{
-	Assert (relfilenode != 0);
-
-	MemSet(gpRelationNodeScan, 0, sizeof(GpRelationNodeScan));
-
-	/*
-	 * form a scan key
-	 */
-	ScanKeyInit(&gpRelationNodeScan->scankey[0],
-				Anum_gp_relation_node_tablespace_oid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(tablespaceOid));
-
-	ScanKeyInit(&gpRelationNodeScan->scankey[1],
-				Anum_gp_relation_node_relfilenode_oid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(relfilenode));
-
-	/*
-	 * Open gp_relation_node and fetch a tuple.  Force heap scan if we haven't yet
-	 * built the critical relcache entries (this includes initdb and startup
-	 * without a pg_internal.init file).  The caller can also force a heap
-	 * scan by setting indexOK == false.
-	 */
-	gpRelationNodeScan->scan = \
-		systable_beginscan(gp_relation_node, GpRelationNodeOidIndexId,
-						   /* indexOK */ true,
-						   snapshot,
-						   /* nKeys */ 2,
-						   gpRelationNodeScan->scankey);
-
-	gpRelationNodeScan->gp_relation_node = gp_relation_node;
-	gpRelationNodeScan->relationId = relationId;
-	gpRelationNodeScan->tablespaceOid = tablespaceOid;
-	gpRelationNodeScan->relfilenode = relfilenode;
-}
-
-HeapTuple
-GpRelationNodeGetNext(
-	GpRelationNodeScan 	*gpRelationNodeScan,
-	int32				*segmentFileNum,
-	ItemPointer			persistentTid,
-	int64				*persistentSerialNum)
-{
-	HeapTuple tuple;
-
-	bool			nulls[Natts_gp_relation_node];
-	Datum			values[Natts_gp_relation_node];
-
-	Oid tablespace;
-	Oid actualRelationNode;
-
-	int64 createMirrorDataLossTrackingSessionNum;
-
-	tuple = systable_getnext((SysScanDesc)gpRelationNodeScan->scan);
-
-	/*
-	 * if no such tuple exists, return NULL
-	 */
-	if (!HeapTupleIsValid(tuple))
-	{
-		MemSet(persistentTid, 0, sizeof(ItemPointerData));
-		*persistentSerialNum = 0;
-		return tuple;
-	}
-	
-	heap_deform_tuple(tuple, RelationGetDescr(gpRelationNodeScan->gp_relation_node), values, nulls);
-		
-	GpRelationNode_GetValues(
-						values,
-						&tablespace,
-						&actualRelationNode,
-						segmentFileNum,
-						&createMirrorDataLossTrackingSessionNum,
-						persistentTid,
-						persistentSerialNum);
-	if (actualRelationNode != gpRelationNodeScan->relfilenode)
-		elog(FATAL, "Index on gp_relation_node broken."
-			   "Mismatch in node tuple for gp_relation_node for relation %u, tablespace %u, relfilenode %u, relation node %u",
-			 gpRelationNodeScan->relationId,
-			 gpRelationNodeScan->tablespaceOid,
-			 gpRelationNodeScan->relfilenode,
-			 actualRelationNode);
-
-	return tuple;
-}
-
-
-void
-GpRelationNodeEndScan(
-	GpRelationNodeScan 	*gpRelationNodeScan)
-{
-	/* all done */
-	systable_endscan((SysScanDesc)gpRelationNodeScan->scan);
-}
-
-static HeapTuple
-ScanGpRelationNodeTuple(
-	Relation 	gp_relation_node,
-	Oid 		tablespaceOid,
-	Oid 		relfilenode,
-	int32		segmentFileNum)
-{
-	HeapTuple	tuple;
-	SysScanDesc scan;
-	ScanKeyData key[3];
-
-	Assert (tablespaceOid != MyDatabaseTableSpace);
-	Assert (relfilenode != 0);
-
-	/*
-	 * form a scan key
-	 */
-	ScanKeyInit(&key[0],
-				Anum_gp_relation_node_tablespace_oid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(tablespaceOid));
-	ScanKeyInit(&key[1],
-				Anum_gp_relation_node_relfilenode_oid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(relfilenode));
-	ScanKeyInit(&key[2],
-				Anum_gp_relation_node_segment_file_num,
-				BTEqualStrategyNumber, F_INT4EQ,
-				Int32GetDatum(segmentFileNum));
-
-	/*
-	 * Open gp_relation_node and fetch a tuple.  Force heap scan if we haven't yet
-	 * built the critical relcache entries (this includes initdb and startup
-	 * without a pg_internal.init file).  The caller can also force a heap
-	 * scan by setting indexOK == false.
-	 */
-	scan = systable_beginscan(gp_relation_node, GpRelationNodeOidIndexId,
-									   /* indexOK */ true,
-									   SnapshotNow,
-									   3, key);
-
-	tuple = systable_getnext(scan);
-
-	/*
-	 * Must copy tuple before releasing buffer.
-	 */
-	if (HeapTupleIsValid(tuple))
-		tuple = heap_copytuple(tuple);
-
-	/* all done */
-	systable_endscan(scan);
-
-	return tuple;
-}
-
-HeapTuple
-FetchGpRelationNodeTuple(
-	Relation 		gp_relation_node,
-	Oid 			tablespaceOid,
-	Oid 			relfilenode,
-	int32			segmentFileNum,
-	ItemPointer		persistentTid,
-	int64			*persistentSerialNum)
-{
-	HeapTuple tuple;
-	
-	bool			nulls[Natts_gp_relation_node];
-	Datum			values[Natts_gp_relation_node];
-
-	Oid tablespace;
-	Oid actualRelationNode;
-	int32 actualSegmentFileNum;
-
-	int64 createMirrorDataLossTrackingSessionNum;
-
-	/*
-	 * gp_relation_node stores tablespaceOId in pg_class fashion, hence need
-	 * to fetch the similar way.
-	 */
-	Assert (tablespaceOid != MyDatabaseTableSpace);
-	Assert (relfilenode != 0);
-	
-	tuple = ScanGpRelationNodeTuple(
-					gp_relation_node,
-					tablespaceOid,
-					relfilenode,
-					segmentFileNum);
-	
-	/*
-	 * if no such tuple exists, return NULL
-	 */
-	if (!HeapTupleIsValid(tuple))
-	{
-		MemSet(persistentTid, 0, sizeof(ItemPointerData));
-		*persistentSerialNum = 0;
-		return tuple;
-	}
-	
-	heap_deform_tuple(tuple, RelationGetDescr(gp_relation_node), values, nulls);
-		
-	GpRelationNode_GetValues(
-						values,
-						&tablespace,
-						&actualRelationNode,
-						&actualSegmentFileNum,
-						&createMirrorDataLossTrackingSessionNum,
-						persistentTid,
-						persistentSerialNum);
-	
-	if (actualRelationNode != relfilenode)
-	{
-		elog(ERROR, "Index on gp_relation_node broken."
-			   "Mismatch in node tuple for gp_relation_node intended relfilenode %u, fetched relfilenode %u",
-			 relfilenode,
-			 actualRelationNode);
-	}
-
-	return tuple;
-}
-
-/*
- * Deletes the gp relation node entry for the
- * given segment file.
- */ 
-void
-DeleteGpRelationNodeTuple(
-	Relation 	relation,
-	int32		segmentFileNum)
-{
-	Relation	gp_relation_node;
-	HeapTuple	tuple;
-	ItemPointerData     persistentTid;
-	int64               persistentSerialNum;
-
-	gp_relation_node = heap_open(GpRelationNodeRelationId, RowExclusiveLock);
-
-	tuple = FetchGpRelationNodeTuple(gp_relation_node,
-									 relation->rd_rel->reltablespace,
-									 relation->rd_rel->relfilenode,
-									 segmentFileNum,
-									 &persistentTid,
-									 &persistentSerialNum);
-
-	if (!HeapTupleIsValid(tuple))
-		elog(ERROR, "could not find node tuple for relation %u, tablespace %u, relation file node %u, segment file #%d",
-			 RelationGetRelid(relation),
-			 relation->rd_rel->reltablespace,
-			 relation->rd_rel->relfilenode,
-			 segmentFileNum);
-
-	/* delete the relation tuple from gp_relation_node, and finish up */
-	simple_heap_delete(gp_relation_node, &tuple->t_self);
-	heap_freetuple(tuple);
-
-	heap_close(gp_relation_node, RowExclusiveLock);
-}
-
-bool
-ReadGpRelationNode(
-	Oid 			tablespaceOid,
-	Oid 			relfilenode,
-	int32			segmentFileNum,
-	ItemPointer		persistentTid,
-	int64			*persistentSerialNum)
-{
-	Relation gp_relation_node;
-	HeapTuple tuple;
-	bool found;
-
-	MemSet(persistentTid, 0, sizeof(ItemPointerData));
-	*persistentSerialNum = 0;
-
-	gp_relation_node = heap_open(GpRelationNodeRelationId, AccessShareLock);
-
-	tuple = FetchGpRelationNodeTuple(
-						gp_relation_node,
-						tablespaceOid,
-						relfilenode,
-						segmentFileNum,
-						persistentTid,
-						persistentSerialNum);
-
-	/*
-	 * if no such tuple exists, return NULL
-	 */
-	if (!HeapTupleIsValid(tuple))
-	{
-		found = false;
-	}
-	else
-	{
-		if (Debug_persistent_print)
-		{
-			TupleVisibilitySummary tupleVisibilitySummary;
-			char *tupleVisibilitySummaryString;
-			
-			GetTupleVisibilitySummary(
-									tuple,
-									&tupleVisibilitySummary);
-			tupleVisibilitySummaryString = GetTupleVisibilitySummaryString(&tupleVisibilitySummary);
-			
-			elog(Persistent_DebugPrintLevel(), 
-				 "ReadGpRelationNode: For tablespace %u relfilenode %u, segment file #%d found persistent serial number " INT64_FORMAT ", TID %s (gp_relation_node tuple visibility: %s)",
-				 tablespaceOid,
-				 relfilenode,
-				 segmentFileNum,
-				 *persistentSerialNum,
-				 ItemPointerToString(persistentTid),
-				 tupleVisibilitySummaryString);
-			pfree(tupleVisibilitySummaryString);
-		}
-
-		found = true;
-		heap_freetuple(tuple);
-	}
-
-	heap_close(gp_relation_node, AccessShareLock);
-
-	return found;
-}
-
-void
-RelationFetchSegFile0GpRelationNode(
-	Relation relation)
-{
-	if (!relation->rd_segfile0_relationnodeinfo.isPresent)
-	{
-		if (Persistent_BeforePersistenceWork() || InRecovery)
-		{
-			MemSet(&relation->rd_segfile0_relationnodeinfo.persistentTid, 0, sizeof(ItemPointerData));
-			relation->rd_segfile0_relationnodeinfo.persistentSerialNum = 0;
-		
-			relation->rd_segfile0_relationnodeinfo.isPresent = true;
-			relation->rd_segfile0_relationnodeinfo.tidAllowedToBeZero = true;
-			
-			return; // The initdb process will load the persistent table once we out of bootstrap mode.
-		}
-
-		if (!ReadGpRelationNode(
-				relation->rd_rel->reltablespace,
-				relation->rd_rel->relfilenode,
-				/* segmentFileNum */ 0,
-				&relation->rd_segfile0_relationnodeinfo.persistentTid,
-				&relation->rd_segfile0_relationnodeinfo.persistentSerialNum))
-		{
-			elog(ERROR, "Did not find gp_relation_node entry for relation name %s, relation id %u, tablespaceOid %u, relfilenode %u",
-				 relation->rd_rel->relname.data,
-				 relation->rd_id,
-				 relation->rd_rel->reltablespace,
-				 relation->rd_rel->relfilenode);
-		}
-
-		Assert(!Persistent_BeforePersistenceWork());
-		if (PersistentStore_IsZeroTid(&relation->rd_segfile0_relationnodeinfo.persistentTid))
-		{	
-			elog(ERROR, 
-				 "RelationFetchSegFile0GpRelationNode has invalid TID (0,0) into relation %u/%u/%u '%s', serial number " INT64_FORMAT,
-				 relation->rd_node.spcNode,
-				 relation->rd_node.dbNode,
-				 relation->rd_node.relNode,
-				 NameStr(relation->rd_rel->relname),
-				 relation->rd_segfile0_relationnodeinfo.persistentSerialNum);
-		}
-
-		relation->rd_segfile0_relationnodeinfo.isPresent = true;
-		
-	}
-	else if (gp_validate_pt_info_relcache &&
-		     !(relation->rd_index &&
-			   relation->rd_index->indrelid == GpRelationNodeRelationId))
-	{
-		/*
-		 * bypass the check for gp_relation_node_index because
-		 * ReadGpRelationNode() uses the same index to probe relfile node.
-		 */
-
-		ItemPointerData persistentTid;
-		int64			persistentSerialNum;
-
-		if (!ReadGpRelationNode(
-				relation->rd_rel->reltablespace,
-				relation->rd_rel->relfilenode,
-				/* segmentFileNum */ 0,
-				&persistentTid,
-				&persistentSerialNum))
-		{
-			elog(ERROR,
-				 "did not find gp_relation_node entry for relation name %s, "
-				 "relation id %u, tablespace %u, relfilenode %u",
-				 relation->rd_rel->relname.data,
-				 relation->rd_id,
-				 relation->rd_rel->reltablespace,
-				 relation->rd_rel->relfilenode);
-		}
-
-		if (ItemPointerCompare(&persistentTid,
-							   &relation->rd_segfile0_relationnodeinfo.persistentTid) ||
-			(persistentSerialNum != relation->rd_segfile0_relationnodeinfo.persistentSerialNum))
-		{
-			ereport(ERROR,
-					(errmsg("invalid persistent TID and/or serial number in "
-							"relcache entry"),
-					 errdetail("relation name %s, relation id %u, relfilenode %u "
-							   "contains invalid persistent TID %s and/or serial "
-							   "number " INT64_FORMAT ".  Expected TID is %s and "
-							   "serial number " INT64_FORMAT,
-							   relation->rd_rel->relname.data, relation->rd_id,
-							   relation->rd_node.relNode,
-							   ItemPointerToString(
-								   &relation->rd_segfile0_relationnodeinfo.persistentTid),
-							   relation->rd_segfile0_relationnodeinfo.persistentSerialNum,
-							   ItemPointerToString2(&persistentTid),
-							   persistentSerialNum)));
-		}
-	}
-
-}
-
-// UNDONE: Temporary
-void
-RelationFetchGpRelationNodeForXLog_Index(
-	Relation relation)
-{
-	static int countInThisBackend = 0;
-	static int deep = 0;
-	
-	deep++;
-
-	countInThisBackend++;
-
-	if (deep >= 2)
-	{
-		elog(ERROR, "RelationFetchGpRelationNodeForXLog_Index [%d] for non-heap %u/%u/%u (deep %d)",
-			 countInThisBackend,
-			 relation->rd_node.spcNode,
-			 relation->rd_node.dbNode,
-			 relation->rd_node.relNode,
-			 deep);
-	}
-
-	RelationFetchSegFile0GpRelationNode(relation);
-
-	deep--;
-}
-
 /*
  *		AllocateRelationDesc
  *
@@ -809,13 +359,6 @@ AllocateRelationDesc(Form_pg_class relp)
 
 	/* initialize relation tuple form */
 	relation->rd_rel = relationForm;
-
-	/*
-	 * This part MUST be remain as a fetch on demand, otherwise you end up
-	 * needing it to open pg_class and then relation_open does infinite recursion...
-	 */
-	relation->rd_segfile0_relationnodeinfo.isPresent = false;
-	relation->rd_segfile0_relationnodeinfo.tidAllowedToBeZero = false;
 
 	/* and allocate attribute tuple form storage */
 	relation->rd_att = CreateTemplateTupleDesc(relationForm->relnatts,
@@ -1944,12 +1487,6 @@ formrdesc(const char *relationName, Oid relationReltype,
 	relation->rd_rel->relstorage = RELSTORAGE_HEAP;
 	relation->rd_rel->relhasoids = hasoids;
 	relation->rd_rel->relnatts = (int16) natts;
-
-	/*
-	 * Physical file-system information.
-	 */
-	relation->rd_segfile0_relationnodeinfo.isPresent = false;
-	relation->rd_segfile0_relationnodeinfo.tidAllowedToBeZero = false;
 	
 	/*
 	 * initialize attribute tuple form
@@ -2297,9 +1834,6 @@ RelationReloadIndexInfo(Relation relation)
 		pfree(relation->rd_amcache);
 	relation->rd_amcache = NULL;
 
-	/* Forget gp_relation_node information -- it may have changed. */
-	MemSet(&relation->rd_segfile0_relationnodeinfo, 0, sizeof(RelationNodeInfo));
-
 	/*
 	 * For a non-system index, there are fields of the pg_index row that are
 	 * allowed to change, so re-read that row and update the relcache entry.
@@ -2528,7 +2062,6 @@ RelationClearRelation(Relation relation, bool rebuild)
  		Oid			save_relid = RelationGetRelid(relation);
 		bool		keep_tupdesc;
 		bool		keep_rules;
-		bool		keep_pt_info;
 
 		/* Build temporary entry, but don't link it into hashtable */
 		newrel = RelationBuildDesc(save_relid, false);
@@ -2542,8 +2075,6 @@ RelationClearRelation(Relation relation, bool rebuild)
  
 		keep_tupdesc = equalTupleDescs(relation->rd_att, newrel->rd_att, true);
 		keep_rules = equalRuleLocks(relation->rd_rules, newrel->rd_rules);
-		keep_pt_info = (relation->rd_rel->relfilenode ==
-						newrel->rd_rel->relfilenode);
 
 		/*
 		 * Perform swapping of the relcache entry contents.  Within this
@@ -2594,10 +2125,6 @@ RelationClearRelation(Relation relation, bool rebuild)
  		}
 		/* pgstat_info must be preserved */
 		SWAPFIELD(struct PgStat_TableStatus *, pgstat_info);
-
-		/* preserve persistent table information for the relation  */
-		if (keep_pt_info)
-			SWAPFIELD(struct RelationNodeInfo, rd_segfile0_relationnodeinfo);
 
 #undef SWAPFIELD
 
@@ -3186,13 +2713,6 @@ RelationBuildLocalRelation(const char *relname,
 	rel->rd_rel->reltype = InvalidOid;
 	/* needed when bootstrapping: */
 	rel->rd_rel->relowner = BOOTSTRAP_SUPERUSERID;
-
-	/*
-	 * Create zeroed-out gp_relation_node data.  It will be filled in when the
-	 * disk file is created.
-	 */
-	rel->rd_segfile0_relationnodeinfo.isPresent = false;
-	rel->rd_segfile0_relationnodeinfo.tidAllowedToBeZero = false;
 
 	/*
 	 * Insert relation physical and logical identifiers (OIDs) into the right
@@ -5032,21 +4552,4 @@ unlink_initfile(const char *initfilename)
 		if (errno != ENOENT)
 			elog(LOG, "could not remove cache file \"%s\": %m", initfilename);
 	}
-}
-
-void
-RelationGetPTInfo(Relation rel,
-	ItemPointer persistentTid,
-	int64 *persistentSerialNum)
-{
-	if (! GpPersistent_SkipXLogInfo(rel->rd_node.relNode) &&
-		! rel->rd_segfile0_relationnodeinfo.isPresent)
-	{
-		elog(ERROR,
-			 "required Persistent Table information missing for relation %u/%u/%u",
-			 rel->rd_node.spcNode, rel->rd_node.dbNode, rel->rd_node.relNode);
-	}
-
-	*persistentTid = rel->rd_segfile0_relationnodeinfo.persistentTid;
-	*persistentSerialNum = rel->rd_segfile0_relationnodeinfo.persistentSerialNum;
 }

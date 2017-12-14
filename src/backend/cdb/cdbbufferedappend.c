@@ -175,14 +175,12 @@ BufferedAppendWrite(
 	while (writeLen > 0)
 	{
 		int			primaryError;
-		bool		mirrorDataLossOccurred;
 
 		MirroredAppendOnly_Append(
 								  &bufferedAppend->mirroredOpen,
 								  (char *) largeWriteMemory,
 								  writeLen,
-								  &primaryError,
-								  &mirrorDataLossOccurred);
+								  &primaryError);
 		if (primaryError != 0)
 			ereport(ERROR,
 					(errcode_for_file_access(),

@@ -22,7 +22,6 @@
 #include "storage/bufpage.h"
 #include "storage/lock.h"
 #include "utils/relcache.h"
-#include "utils/relationnode.h"
 #include "utils/snapshot.h"
 #include "utils/tqual.h"
 
@@ -31,45 +30,6 @@
 #define HEAP_INSERT_SKIP_FSM	0x0002
 
 typedef struct BulkInsertStateData *BulkInsertState;
-
-// UNDONE: Temporarily.
-extern void RelationFetchGpRelationNodeForXLog_Index(Relation relation);
-
-/*
- * Check if we have the persistent TID and serial number for a relation.
- */
-static inline bool
-RelationNeedToFetchGpRelationNodeForXLog(Relation relation)
-{
-	if (!InRecovery && !GpPersistent_SkipXLogInfo(relation->rd_id))
-	{
-		return true;
-	}
-	else
-		return false;
-}
-
-/*
- * Fetch the persistent TID and serial number for a relation from the gp_relation_node
- * if needed to put in the XLOG record header.
- */
-static inline void
-RelationFetchGpRelationNodeForXLog(Relation relation)
-{
-	if (RelationNeedToFetchGpRelationNodeForXLog(relation))
-	{
-		if (relation->rd_rel->relkind == RELKIND_INDEX )
-		{
-			// UNDONE: Temporarily.
-			RelationFetchGpRelationNodeForXLog_Index(relation);
-			return;
-		}
-		RelationFetchSegFile0GpRelationNode(relation);
-	}
-}
-
-extern bool
-RelationAllowedToGenerateXLogRecord(Relation relation);
 
 typedef enum
 {
@@ -100,7 +60,6 @@ inline static void xl_heaptid_set(
 	ItemPointer tid)
 {
 	heaptid->node = rel->rd_node;
-	RelationGetPTInfo(rel, &heaptid->persistentTid, &heaptid->persistentSerialNum);
 	heaptid->tid = *tid;
 }
 
@@ -110,7 +69,6 @@ inline static void xl_heapnode_set(
 	Relation rel)
 {
 	heapnode->node = rel->rd_node;
-	RelationGetPTInfo(rel, &heapnode->persistentTid, &heapnode->persistentSerialNum);
 }
 
 /* in heap/heapam.c */
@@ -238,9 +196,7 @@ extern XLogRecPtr log_newpage_rel(Relation rel, ForkNumber forkNum, BlockNumber 
 
 extern XLogRecPtr log_newpage_relFileNode(RelFileNode *relFileNode,
 										  ForkNumber forkNum,
-										  BlockNumber blkno, Page page,
-										  ItemPointer persistentTid,
-										  int64 persistentSerialNum);
+										  BlockNumber blkno, Page page);
 
 /* in heap/pruneheap.c */
 extern void heap_page_prune_opt(Relation relation, Buffer buffer,

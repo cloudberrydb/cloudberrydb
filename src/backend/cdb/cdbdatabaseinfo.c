@@ -26,13 +26,11 @@
 #include "access/heapam.h"
 #include "access/transam.h"
 #include "catalog/pg_tablespace.h"
-#include "cdb/cdbpersistentdatabase.h"
 #include "cdb/cdbdirectopen.h"
 #include "catalog/pg_appendonly_fn.h"
 #include "access/aosegfiles.h"
 #include "access/aocssegfiles.h"
 #include "access/appendonlytid.h"
-#include "cdb/cdbpersistentfilesysobj.h"
 
 
 /*-------------------------------------------------------------------------
@@ -511,17 +509,6 @@ DatabaseInfo_AddAppendOnlyCatalogSegmentInfo(
 
 	appendOnlyCatalogSegmentInfo->segmentFileNum = segmentFileNum;
 	appendOnlyCatalogSegmentInfo->logicalEof = logicalEof;
-
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(),
-			 "DatabaseInfo_AddAppendOnlyCatalogSegmentInfo: relation id %u, relation name %s, tablespace %u, relfilenode %u, segment file #%d, EOF " INT64_FORMAT,
-			 dbInfoRel->relationOid,
-			 dbInfoRel->relname,
-			 dbInfoRel->dbInfoRelKey.reltablespace,
-			 dbInfoRel->dbInfoRelKey.relfilenode,
-			 segmentFileNum,
-			 logicalEof);
-
 }
 
 
@@ -672,15 +659,6 @@ DatabaseInfo_AddGpRelationNode(
 	dbInfoGpRelationNode->persistentSerialNum = persistentSerialNum;
 	dbInfoGpRelationNode->logicalEof = 0;
 	//This will obtained from the other sources later(e.g.aoseg / aocsseg).
-
-		if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(),
-			 "DatabaseInfo_AddGpRelationNode: gp_relation_node TID %s, relfilenode %u, segment file #%d, persistent serial number " INT64_FORMAT ", persistent TID %s",
-			 ItemPointerToString(gpRelationNodeTid),
-			 relfilenode,
-			 segmentFileNum,
-			 persistentSerialNum,
-			 ItemPointerToString(persistentTid));
 
 	return found;
 }
@@ -1097,26 +1075,6 @@ DatabaseInfo_HandleAppendOnly(
 					 dbInfoRel->relname, aoEntry->segrelid,
 					 aoEntry->visimaprelid, aoEntry->visimapidxid);
 
-			if (Debug_persistent_print)
-				elog(Persistent_DebugPrintLevel(),
-					 "DatabaseInfo_AddPgClassStoredRelation: Append-Only entry for relation id %u, relation name %s, "
-					 "blocksize %d, safefswritesize %d, compresslevel %d, "
-					 " checksum %s, compresstype %s, columnstore %s, segrelid %u, blkdirrelid %u, blkdiridxid %u, "
-					 " visimaprelid %u, visimapidxid %u",
-					 dbInfoRel->relationOid,
-					 dbInfoRel->relname,
-					 aoEntry->blocksize,
-					 aoEntry->safefswritesize,
-					 aoEntry->compresslevel,
-					 (aoEntry->checksum ? "true" : "false"),
-					 NameStr(aoEntry->compresstype),
-					 (aoEntry->columnstore ? "true" : "false"),
-					 aoEntry->segrelid,
-					 aoEntry->blkdirrelid,
-					 aoEntry->blkdiridxid,
-					 aoEntry->visimaprelid,
-					 aoEntry->visimapidxid);
-
 			/*
 			 * Translate the ao[cs]seg relation id to relfilenode.
 			 */
@@ -1228,22 +1186,6 @@ DatabaseInfo_CollectPgAppendOnly(
 		if (aoEntry->segrelid == 0)
 			elog(ERROR, "Null segrelid in pg_appendonly for relation id %u",
 				 aoEntry->relid);
-
-		if (Debug_persistent_print)
-			elog(Persistent_DebugPrintLevel(),
-				 "DatabaseInfo_Collect: Append-Only entry for relation id %u, "
-				 "blocksize %d, safefswritesize %d, compresslevel %d, "
-				 " checksum %s, compresstype %s, columnstore %s, segrelid %u, blkdirrelid %u, blkdiridxid %u",
-				 aoEntry->relid,
-				 aoEntry->blocksize,
-				 aoEntry->safefswritesize,
-				 aoEntry->compresslevel,
-				 (aoEntry->checksum ? "true" : "false"),
-				 NameStr(aoEntry->compresstype),
-				 (aoEntry->columnstore ? "true" : "false"),
-				 aoEntry->segrelid,
-				 aoEntry->blkdirrelid,
-				 aoEntry->blkdiridxid);
 
 		DatabaseInfo_AddPgAppendOnly(
 									 pgAppendOnlyHashTable,

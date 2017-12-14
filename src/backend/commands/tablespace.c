@@ -82,8 +82,6 @@
 #include "cdb/cdbsrlz.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbutil.h"
-#include "cdb/cdbpersistentdatabase.h"
-#include "cdb/cdbpersistentrelation.h"
 #include "cdb/cdbmirroredfilesysobj.h"
 
 /* GUC variables */
@@ -103,7 +101,7 @@ char	   *default_tablespace = NULL;
 char	   *temp_tablespaces = "";
 
 
-static bool remove_tablespace_directories(Oid tablespaceoid, bool redo, char *phys);
+static bool remove_tablespace_directories(Oid tablespaceoid, bool redo);
 
 /*
  * Create a table space
@@ -123,9 +121,6 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 	Oid			tablespaceoid;
 	Oid         filespaceoid;
 	Oid			ownerId;
-	TablespaceDirNode tablespaceDirNode;
-	ItemPointerData persistentTid;
-	int64		persistentSerialNum;
 
 	/* Must be super user */
 	if (!superuser())
@@ -229,14 +224,6 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 	/* We keep the lock on pg_tablespace until commit */
 	heap_close(rel, NoLock);
 
-	/* Create the persistent directory for the tablespace */
-	tablespaceDirNode.tablespace = tablespaceoid;
-	tablespaceDirNode.filespace = filespaceoid;
-	MirroredFileSysObj_TransactionCreateTablespaceDir(
-											&tablespaceDirNode,
-											&persistentTid,
-											&persistentSerialNum);
-
 	/*
 	 * Record dependency on owner
 	 *
@@ -295,12 +282,6 @@ DropTableSpace(DropTableSpaceStmt *stmt)
 	HeapTuple	tuple;
 	ScanKeyData entry[1];
 	Oid			tablespaceoid;
-	int32		count;
-	RelFileNode	relfilenode;
-	DbDirNode	dbDirNode;
-	PersistentFileSysState persistentState;
-	ItemPointerData persistentTid;
-	int64		persistentSerialNum;
 
 	/*
 	 * Find the target tuple
@@ -388,63 +369,48 @@ DropTableSpace(DropTableSpaceStmt *stmt)
 	LWLockAcquire(TablespaceCreateLock, LW_EXCLUSIVE);
 
 	/*
-	 * Check for any relations still defined in the tablespace.
+	 * Try to remove the physical infrastructure.
 	 */
-	PersistentRelation_CheckTablespace(tablespaceoid, &count, &relfilenode);
-	if (count > 0)
+	if (!remove_tablespace_directories(tablespaceoid, false))
 	{
-		ereport(ERROR,
-				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 errmsg("tablespace \"%s\" is not empty", tablespacename)));
+		/*
+		 * Not all files deleted?  However, there can be lingering empty files
+		 * in the directories, left behind by for example DROP TABLE, that
+		 * have been scheduled for deletion at next checkpoint (see comments
+		 * in mdunlink() for details).  We could just delete them immediately,
+		 * but we can't tell them apart from important data files that we
+		 * mustn't delete.  So instead, we force a checkpoint which will clean
+		 * out any lingering files, and try again.
+		 */
+		RequestCheckpoint(CHECKPOINT_IMMEDIATE | CHECKPOINT_FORCE | CHECKPOINT_WAIT);
+		if (!remove_tablespace_directories(tablespaceoid, false))
+		{
+			/* Still not empty, the files must be important then */
+			ereport(ERROR,
+					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+					 errmsg("tablespace \"%s\" is not empty",
+							tablespacename)));
+		}
 	}
 
-	/*
-	 * Schedule the removal the physical infrastructure.
-	 *
-	 * Note: This only schedules the delete, the delete won't actually occur
-	 * until after the transaction has committed.  This should however do
-	 * everything it can to assure that the delete will occur successfully,
-	 * e.g. check permissions etc.
-	 */
+	/* Record the filesystem change in XLOG */
+	{
+		xl_tblspc_drop_rec xlrec;
+		XLogRecData rdata[1];
 
-    /*
-	 * Schedule all persistent database directory removals for transaction commit.
-	 */
-    PersistentDatabase_DirIterateInit();
-    while (PersistentDatabase_DirIterateNext(
-                                        &dbDirNode,
-                                        &persistentState,
-                                        &persistentTid,
-                                        &persistentSerialNum))
-    {
-        if (dbDirNode.tablespace != tablespaceoid)
-            continue;
+		xlrec.ts_id = tablespaceoid;
+		rdata[0].data = (char *) &xlrec;
+		rdata[0].len = sizeof(xl_tblspc_drop_rec);
+		rdata[0].buffer = InvalidBuffer;
+		rdata[0].next = NULL;
 
-		/*
-		 * Database directory objects can linger in 'Drop Pending' state, etc,
-		 * when the mirror is down and needs drop work.  So only pay attention
-		 * to 'Created' objects.
-		 */
-        if (persistentState != PersistentFileSysState_Created)
-            continue;
-
-        MirroredFileSysObj_ScheduleDropDbDir(
-                                        &dbDirNode,
-                                        &persistentTid,
-                                        persistentSerialNum);
-    }
-
-	/*
-	 * Now schedule the tablespace directory removal.
-	 */
-	MirroredFileSysObj_ScheduleDropTablespaceDir(tablespaceoid);
+		(void) XLogInsert(RM_TBLSPC_ID, XLOG_TBLSPC_DROP, rdata);
+	}
 
 	/*
 	 * Note: because we checked that the tablespace was empty, there should be
 	 * no need to worry about flushing shared buffers or free space map
 	 * entries for relations in the tablespace.
-	 *
-	 * CHECK THIS, also check if the lock makes any sense in this context.
 	 */
 
 	/*
@@ -486,7 +452,7 @@ DropTableSpace(DropTableSpaceStmt *stmt)
  * redo indicates we are redoing a drop from XLOG; okay if nothing there
  */
 static bool
-remove_tablespace_directories(Oid tablespaceoid, bool redo, char *phys)
+remove_tablespace_directories(Oid tablespaceoid, bool redo)
 {
 	char	   *location;
 	DIR		   *dirdesc;
@@ -623,11 +589,11 @@ remove_tablespace_directories(Oid tablespaceoid, bool redo, char *phys)
 
 	pfree(location);
 
+#if 0 // WALREP_FIXME
 	/* Now we have removed all of our linkage to the physical
 	 * location; remove the per-segment location that we built at
 	 * CreateTablespace() time */
 	tempstr = psprintf("%s/seg%d", phys, Gp_segment);
-
 	if (rmdir(tempstr) < 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
@@ -635,6 +601,7 @@ remove_tablespace_directories(Oid tablespaceoid, bool redo, char *phys)
 						tempstr)));
 
 	pfree(tempstr);
+#endif
 
 	return true;
 }
@@ -1372,7 +1339,7 @@ tblspc_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 	{
 		xl_tblspc_drop_rec *xlrec = (xl_tblspc_drop_rec *) XLogRecGetData(record);
 
-		if (!remove_tablespace_directories(xlrec->ts_id, true, xlrec->ts_path))
+		if (!remove_tablespace_directories(xlrec->ts_id, true))
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 					 errmsg("tablespace %u is not empty",

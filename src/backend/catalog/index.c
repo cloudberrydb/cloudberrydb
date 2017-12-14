@@ -47,7 +47,6 @@
 #include "catalog/pg_tablespace.h"
 #include "catalog/pg_type.h"
 #include "catalog/storage.h"
-#include "cdb/cdbpersistentfilesysobj.h"
 #include "commands/tablecmds.h"
 #include "executor/executor.h"
 #include "miscadmin.h"
@@ -74,8 +73,6 @@
 #include "cdb/cdbaocsam.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdboidsync.h"
-#include "cdb/cdbmirroredfilesysobj.h"
-#include "cdb/cdbpersistentfilesysobj.h"
 #include "utils/faultinjector.h"
 
 /* state info for validate_index bulkdelete callback */
@@ -554,7 +551,6 @@ index_create(Oid heapRelationId,
 			 const char *altConName)
 {
 	Relation	pg_class;
-	Relation	gp_relation_node;
 	Relation	heapRelation;
 	Relation	indexRelation;
 	TupleDesc	indexTupDesc;
@@ -564,11 +560,6 @@ index_create(Oid heapRelationId,
 	LOCKMODE	heap_lockmode;
 
 	pg_class = heap_open(RelationRelationId, RowExclusiveLock);
-
-	if (!IsBootstrapProcessingMode())
-		gp_relation_node = heap_open(GpRelationNodeRelationId, RowExclusiveLock);
-	else
-		gp_relation_node = NULL;
 
 	/*
 	 * Only SELECT ... FOR UPDATE/SHARE are allowed while doing a standard
@@ -749,22 +740,6 @@ index_create(Oid heapRelationId,
 							   GetUserId(), /* not ownerid */
 							   "CREATE", subtyp
 					);
-	}
-
-	if (gp_relation_node != NULL)
-	{
-		InsertGpRelationNodeTuple(
-							gp_relation_node,
-							indexRelation->rd_id,
-							indexRelation->rd_rel->relname.data,
-							indexRelation->rd_rel->reltablespace,
-							indexRelation->rd_rel->relfilenode,
-							/* segmentFileNum */ 0,
-							/* updateIndex */ true,
-							&indexRelation->rd_segfile0_relationnodeinfo.persistentTid,
-							indexRelation->rd_segfile0_relationnodeinfo.persistentSerialNum);
-	
-		heap_close(gp_relation_node, RowExclusiveLock);
 	}
 
 	/*
@@ -1050,10 +1025,6 @@ index_drop(Oid indexId)
 
 	userIndexRelation = index_open(indexId, AccessExclusiveLock);
 
-
-	if (!userIndexRelation->rd_segfile0_relationnodeinfo.isPresent)
-		RelationFetchSegFile0GpRelationNode(userIndexRelation);
-
 	/*
 	 * There can no longer be anyone *else* touching the index, but we
 	 * might still have open queries using it in our own session.
@@ -1063,13 +1034,7 @@ index_drop(Oid indexId)
 	/*
 	 * Schedule physical removal of the files
 	 */
-	/* GPDB_84_MERGE_FIXME: make sure this calls RelationDropStorage. */
-	MirroredFileSysObj_ScheduleDropBufferPoolRel(userIndexRelation);
-
-	DeleteGpRelationNodeTuple(
-					userIndexRelation,
-					/* segmentFileNum */ 0);
-	
+	RelationDropStorage(userIndexRelation);
 
 	/*
 	 * Close and flush the index's relcache entry, to ensure relcache doesn't
@@ -1440,9 +1405,7 @@ index_update_stats(Relation rel, bool hasindex, bool isprimary,
  * The relation is marked with relfrozenxid=freezeXid (InvalidTransactionId
  * must be passed for indexes)
  *
- * Replaces relfilenode and updates pg_class / gp_relation_node.
- * If the updating relation is gp_relation_node's index, the caller
- * should rebuild the index by index_build().
+ * Replaces relfilenode and updates pg_class
  */
 void
 setNewRelfilenode(Relation relation, TransactionId freezeXid)
@@ -1450,15 +1413,9 @@ setNewRelfilenode(Relation relation, TransactionId freezeXid)
 	Oid			newrelfilenode;
 	RelFileNode newrnode;
 	Relation	pg_class;
-	Relation	gp_relation_node;
 	HeapTuple	tuple;
 	Form_pg_class rd_rel;
 	bool		isAppendOnly;
-	bool		is_gp_relation_node_index;
-
-	PersistentFileSysRelStorageMgr localRelStorageMgr;
-	ItemPointerData		persistentTid;
-	int64				persistentSerialNum;
 
 	/* Can't change relfilenode for nailed tables (indexes ok though) */
 	Assert(!relation->rd_isnailed ||
@@ -1479,7 +1436,6 @@ setNewRelfilenode(Relation relation, TransactionId freezeXid)
 	 * during bootstrap, so okay to use heap_update always.
 	 */
 	pg_class = heap_open(RelationRelationId, RowExclusiveLock);
-	gp_relation_node = heap_open(GpRelationNodeRelationId, RowExclusiveLock);
 
 	tuple = SearchSysCacheCopy(RELOID,
 							   ObjectIdGetDatum(RelationGetRelid(relation)),
@@ -1497,74 +1453,15 @@ setNewRelfilenode(Relation relation, TransactionId freezeXid)
 	newrnode = relation->rd_node;
 	newrnode.relNode = newrelfilenode;
 
-	/* schedule unlinking old relfilenode */
-	remove_gp_relation_node_and_schedule_drop(relation);
-
 	/*
 	 * Create the main fork, like heap_create() does, and drop the old
 	 * storage.
 	 */
 	isAppendOnly = (relation->rd_rel->relstorage == RELSTORAGE_AOROWS || 
 					relation->rd_rel->relstorage == RELSTORAGE_AOCOLS);
-
-	if (!isAppendOnly)
-	{
-		PersistentFileSysRelBufpoolKind relBufpoolKind;
-
-		GpPersistentRelationNode_GetRelationInfo(
-											relation->rd_rel->relkind,
-											relation->rd_rel->relstorage,
-											relation->rd_rel->relam,
-											&localRelStorageMgr,
-											&relBufpoolKind);
-		Assert(localRelStorageMgr == PersistentFileSysRelStorageMgr_BufferPool);
-
-		MirroredFileSysObj_TransactionCreateBufferPoolFile(&newrnode,
-											relBufpoolKind,
-											relation->rd_isLocalBuf,
-											NameStr(relation->rd_rel->relname),
-											/* doJustInTimeDirCreate */ true,
-											/* bufferPoolBulkLoad */ false,
-											&persistentTid,
-											&persistentSerialNum);
-	}
-	else
-	{
-		localRelStorageMgr = PersistentFileSysRelStorageMgr_AppendOnly;
-		MirroredFileSysObj_TransactionCreateAppendOnlyFile(
-											&newrnode,
-											/* segmentFileNum */ 0,
-											NameStr(relation->rd_rel->relname),
-											/* doJustInTimeDirCreate */ true,
-											&persistentTid,
-											&persistentSerialNum);
-	}
-
-	if (!Persistent_BeforePersistenceWork() &&
-		PersistentStore_IsZeroTid(&persistentTid))
-	{
-		elog(ERROR,
-			 "setNewRelfilenodeCommon has invalid TID (0,0) for relation %u/%u/%u '%s', serial number " INT64_FORMAT,
-			 newrnode.spcNode,
-			 newrnode.dbNode,
-			 newrnode.relNode,
-			 NameStr(relation->rd_rel->relname),
-			 persistentSerialNum);
-	}
-
-	if (Debug_persistent_print)
-		elog(Persistent_DebugPrintLevel(),
-			 "setNewRelfilenodeCommon: NEW '%s', Append-Only '%s', persistent TID %s and serial number " INT64_FORMAT,
-			 relpath(newrnode, MAIN_FORKNUM),
-			 (isAppendOnly ? "true" : "false"),
-			 ItemPointerToString(&persistentTid),
-			 persistentSerialNum);
-
-	/*
-	 * In upstream, we call RelationDropStorage() here. In GPDB, that's done by
-	 * the remove_gp_relation_node_and_schedule_drop() call above.
-	 */
+	RelationCreateStorage(newrnode, relation->rd_isLocalBuf);
 	smgrclosenode(newrnode);
+	RelationDropStorage(relation);
 
 	/* update the pg_class row */
 	rd_rel->relfilenode = newrelfilenode;
@@ -1584,31 +1481,9 @@ setNewRelfilenode(Relation relation, TransactionId freezeXid)
 	simple_heap_update(pg_class, &tuple->t_self, tuple);
 	CatalogUpdateIndexes(pg_class, tuple);
 
-	/*
-	 * If the swapping relation is an index of gp_relation_node,
-	 * updating itself is bogus; if gp_relation_node has old indexlist,
-	 * CatalogUpdateIndexes updates old index file, and is crash-unsafe.
-	 * Hence, here we skip it and count on later index_build.
-	 * (Or should we add index_build() call after CCI below in this case?)
-	 */
-	is_gp_relation_node_index = relation->rd_index &&
-								relation->rd_index->indrelid == GpRelationNodeRelationId;
-	InsertGpRelationNodeTuple(
-						gp_relation_node,
-						relation->rd_id,
-						NameStr(relation->rd_rel->relname),
-						relation->rd_rel->reltablespace,
-						newrelfilenode,
-						/* segmentFileNum */ 0,
-						/* updateIndex */ !is_gp_relation_node_index,
-						&persistentTid,
-						persistentSerialNum);
-
 	heap_freetuple(tuple);
 
 	heap_close(pg_class, RowExclusiveLock);
-
-	heap_close(gp_relation_node, RowExclusiveLock);
 
 	/* Make sure the relfilenode change is visible */
 	CommandCounterIncrement();
@@ -1922,8 +1797,6 @@ IndexBuildHeapScan(Relation heapRelation,
 				   IndexBuildCallback callback,
 				   void *callback_state)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	HeapScanDesc scan;
 	HeapTuple	heapTuple;
 	Datum		values[INDEX_MAX_KEYS];
@@ -1991,15 +1864,9 @@ IndexBuildHeapScan(Relation heapRelation,
 		{
 			Page		page = BufferGetPage(scan->rs_cbuf);
 
-			// -------- MirroredLock ----------
-			MIRROREDLOCK_BUFMGR_LOCK;
-
 			LockBuffer(scan->rs_cbuf, BUFFER_LOCK_SHARE);
 			heap_get_root_tuples(page, root_offsets);
 			LockBuffer(scan->rs_cbuf, BUFFER_LOCK_UNLOCK);
-
-			MIRROREDLOCK_BUFMGR_UNLOCK;
-			// -------- MirroredLock ----------
 
 			root_blkno = scan->rs_cblock;
 		}
@@ -2017,10 +1884,6 @@ IndexBuildHeapScan(Relation heapRelation,
 			 * be conservative about it.  (This remark is still correct even
 			 * with HOT-pruning: our pin on the buffer prevents pruning.)
 			 */
-
-			// -------- MirroredLock ----------
-			MIRROREDLOCK_BUFMGR_LOCK;
-			
 			LockBuffer(scan->rs_cbuf, BUFFER_LOCK_SHARE);
 
 			switch (HeapTupleSatisfiesVacuum(heapRelation, heapTuple->t_data, OldestXmin,
@@ -2161,9 +2024,6 @@ IndexBuildHeapScan(Relation heapRelation,
 			}
 
 			LockBuffer(scan->rs_cbuf, BUFFER_LOCK_UNLOCK);
-
-			MIRROREDLOCK_BUFMGR_UNLOCK;
-			// -------- MirroredLock ----------
 
 			if (!indexIt)
 				continue;
@@ -2656,8 +2516,6 @@ validate_index_heapscan(Relation heapRelation,
 						Snapshot snapshot,
 						v_i_state *state)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	HeapScanDesc scan;
 	HeapTuple	heapTuple;
 	Datum		values[INDEX_MAX_KEYS];
@@ -2739,15 +2597,9 @@ validate_index_heapscan(Relation heapRelation,
 		{
 			Page		page = BufferGetPage(scan->rs_cbuf);
 
-			// -------- MirroredLock ----------
-			MIRROREDLOCK_BUFMGR_LOCK;
-
 			LockBuffer(scan->rs_cbuf, BUFFER_LOCK_SHARE);
 			heap_get_root_tuples(page, root_offsets);
 			LockBuffer(scan->rs_cbuf, BUFFER_LOCK_UNLOCK);
-
-			MIRROREDLOCK_BUFMGR_UNLOCK;
-			// -------- MirroredLock ----------
 
 			memset(in_index, 0, sizeof(in_index));
 
@@ -3035,10 +2887,7 @@ reindex_index(Oid indexId)
 			/*
 			 * Truncate the actual file (and discard buffers).
 			 */
-			RelationTruncate(
-						iRel, 
-						0,
-						/* markPersistentAsPhysicallyTruncated */ true);
+			RelationTruncate(iRel, 0);
 		}
 		else
 		{

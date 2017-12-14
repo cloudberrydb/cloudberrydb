@@ -87,8 +87,6 @@ gistDeleteSubtree(GistVacuum *gv, BlockNumber blkno)
 	Buffer		buffer;
 	Page		page;
 
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
 	buffer = ReadBufferExtended(gv->index, MAIN_FORKNUM, blkno, RBM_NORMAL,
 								gv->strategy);
 	LockBuffer(buffer, GIST_EXCLUSIVE);
@@ -121,11 +119,7 @@ gistDeleteSubtree(GistVacuum *gv, BlockNumber blkno)
 		XLogRecPtr	recptr;
 		gistxlogPageDelete xlrec;
 
-		// Fetch gp_persistent_relation_node information that will be added to XLOG record.
-		RelationFetchGpRelationNodeForXLog(gv->index);
-
 		xlrec.node = gv->index->rd_node;
-		RelationGetPTInfo(gv->index, &xlrec.persistentTid, &xlrec.persistentSerialNum);
 		xlrec.blkno = blkno;
 
 		rdata[0].buffer = buffer;
@@ -162,8 +156,6 @@ vacuumSplitPage(GistVacuum *gv, Page tempPage, Buffer buffer, IndexTuple *addon,
 	BlockNumber blkno;
 	MemoryContext oldCtx;
 
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-	
 	blkno = BufferGetBlockNumber(buffer);
 	oldCtx = MemoryContextSwitchTo(gv->opCtx);
 
@@ -283,8 +275,6 @@ vacuumSplitPage(GistVacuum *gv, Page tempPage, Buffer buffer, IndexTuple *addon,
 static ArrayTuple
 gistVacuumUpdate(GistVacuum *gv, BlockNumber blkno, bool needunion)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	ArrayTuple	res = {NULL, 0, false};
 	Buffer		buffer;
 	Page		page,
@@ -306,9 +296,6 @@ gistVacuumUpdate(GistVacuum *gv, BlockNumber blkno, bool needunion)
 				lencompleted = 16;
 
 	vacuum_delay_point();
-
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
 
 	buffer = ReadBufferExtended(gv->index, MAIN_FORKNUM, blkno, RBM_NORMAL,
 								gv->strategy);
@@ -495,9 +482,6 @@ gistVacuumUpdate(GistVacuum *gv, BlockNumber blkno, bool needunion)
 			gistxlogInsertCompletion(gv->index->rd_node, completed, ncompleted);
 	}
 
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
-
 	for (i = 0; i < curlenaddon; i++)
 		pfree(addon[i]);
 	if (addon)
@@ -520,8 +504,6 @@ gistVacuumUpdate(GistVacuum *gv, BlockNumber blkno, bool needunion)
 Datum
 gistvacuumcleanup(PG_FUNCTION_ARGS)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	IndexVacuumInfo *info = (IndexVacuumInfo *) PG_GETARG_POINTER(0);
 	GistBulkDeleteResult *stats = (GistBulkDeleteResult *) PG_GETARG_POINTER(1);
 	Relation	rel = info->index;
@@ -607,9 +589,6 @@ gistvacuumcleanup(PG_FUNCTION_ARGS)
 
 		vacuum_delay_point();
 
-		// -------- MirroredLock ----------
-		MIRROREDLOCK_BUFMGR_LOCK;
-
 		buffer = ReadBufferExtended(rel, MAIN_FORKNUM, blkno, RBM_NORMAL,
 									info->strategy);
 		LockBuffer(buffer, GIST_SHARE);
@@ -623,16 +602,12 @@ gistvacuumcleanup(PG_FUNCTION_ARGS)
 		else
 			lastFilledBlock = blkno;
 		UnlockReleaseBuffer(buffer);
-
-		MIRROREDLOCK_BUFMGR_UNLOCK;
-		// -------- MirroredLock ----------
 	}
 	lastBlock = npages - 1;
 
 	if (info->vacuum_full && lastFilledBlock < lastBlock)
 	{							/* try to truncate index */
-		RelationTruncate(rel, lastFilledBlock + 1,
-						 /* markPersistentAsPhysicallyTruncated */ true);
+		RelationTruncate(rel, lastFilledBlock + 1);
 		stats->std.pages_removed = lastBlock - lastFilledBlock;
 		totFreePages = totFreePages - stats->std.pages_removed;
 	}
@@ -690,8 +665,6 @@ pushStackIfSplited(Page page, GistBDItem *stack)
 Datum
 gistbulkdelete(PG_FUNCTION_ARGS)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	IndexVacuumInfo *info = (IndexVacuumInfo *) PG_GETARG_POINTER(0);
 	GistBulkDeleteResult *stats = (GistBulkDeleteResult *) PG_GETARG_POINTER(1);
 	IndexBulkDeleteCallback callback = (IndexBulkDeleteCallback) PG_GETARG_POINTER(2);
@@ -719,9 +692,6 @@ gistbulkdelete(PG_FUNCTION_ARGS)
 		IndexTuple	idxtuple;
 		ItemId		iid;
 
-		// -------- MirroredLock ----------
-		MIRROREDLOCK_BUFMGR_LOCK;
-
 		buffer = ReadBufferExtended(rel, MAIN_FORKNUM, stack->blkno,
 									RBM_NORMAL, info->strategy);
 		LockBuffer(buffer, GIST_SHARE);
@@ -741,9 +711,6 @@ gistbulkdelete(PG_FUNCTION_ARGS)
 			{
 				/* only the root can become non-leaf during relock */
 				UnlockReleaseBuffer(buffer);
-
-				MIRROREDLOCK_BUFMGR_UNLOCK;
-				// -------- MirroredLock ----------
 
 				/* one more check */
 				continue;
@@ -835,9 +802,6 @@ gistbulkdelete(PG_FUNCTION_ARGS)
 		}
 
 		UnlockReleaseBuffer(buffer);
-
-		MIRROREDLOCK_BUFMGR_UNLOCK;
-		// -------- MirroredLock ----------
 
 		ptr = stack->next;
 		pfree(stack);

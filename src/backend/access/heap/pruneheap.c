@@ -109,14 +109,6 @@ heap_page_prune_opt(Relation relation, Buffer buffer, TransactionId OldestXmin)
 
 	if (PageIsFull(page) || PageGetHeapFreeSpace(page) < minfree)
 	{
-		/*
-		 * Check if we have gp_persistent_relation_node information, to be
-		 * added to the XLOG record. As in some cases it maybe too late to
-		 * fetch the same and hence for such cases just give-up.
-		 */
-		if (!RelationAllowedToGenerateXLogRecord(relation))
-			return;
-
 		/* OK, try to get exclusive buffer lock */
 		if (!ConditionalLockBufferForCleanup(buffer))
 			return;

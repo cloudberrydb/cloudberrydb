@@ -29,17 +29,14 @@ OBJS = cdbappendonlystorage.o cdbappendonlystorageformat.o \
 	   cdbgroup.o \
 	   cdbhash.o cdbheap.o \
 	   cdbllize.o cdblocaldistribxact.o \
-	   cdbmirroredbufferpool.o \
-	   cdbmirroredfilesysobj.o cdbmirroredflatfile.o \
+	   cdbmirroredflatfile.o \
 	   cdbmirroredappendonly.o \
 	   cdbmutate.o \
 	   cdboidsync.o \
 	   cdbpartindex.o \
 	   cdbpartition.o \
 	   cdbpath.o cdbpathlocus.o cdbpathtoplan.o \
-	   cdbpersistentbuild.o cdbpersistentfilespace.o \
-	   cdbpersistentrelation.o cdbpersistentdatabase.o cdbpersistenttablespace.o \
-	   cdbpersistentfilesysobj.o cdbpersistentrecovery.o cdbpersistentstore.o \
+	   cdbpersistenttablespace.o \
 	   cdbpgdatabase.o \
 	   cdbplan.o cdbpullup.o \
 	   cdbrelsize.o \

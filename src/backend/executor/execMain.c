@@ -102,9 +102,6 @@
 #include "cdb/cdbmotion.h"
 #include "cdb/cdbtm.h"
 #include "cdb/cdboidsync.h"
-#include "cdb/cdbmirroredbufferpool.h"
-#include "cdb/cdbpersistentstore.h"
-#include "cdb/cdbpersistentfilesysobj.h"
 #include "cdb/cdbllize.h"
 #include "cdb/memquota.h"
 #include "cdb/cdbtargeteddispatch.h"
@@ -4883,8 +4880,6 @@ typedef struct
 
 	ItemPointerData last_heap_tid;
 
-	struct MirroredBufferPoolBulkLoadInfo *bulkloadinfo;
-
 } DR_intorel;
 
 /*
@@ -4918,9 +4913,6 @@ OpenIntoRel(QueryDesc *queryDesc)
 	bool		validate_reloptions;
 
 	RelFileNode relFileNode;
-	
-	ItemPointerData persistentTid;
-	int64			persistentSerialNum;
 	
 	targetPolicy = queryDesc->plannedstmt->intoPolicy;
 
@@ -5061,9 +5053,7 @@ OpenIntoRel(QueryDesc *queryDesc)
 											  targetPolicy,  	/* MPP */
 											  reloptions,
 											  allowSystemTableModsDDL,
-											  /* valid_opts */ !validate_reloptions,
-						 					  &persistentTid,
-						 					  &persistentSerialNum);
+											  /* valid_opts */ !validate_reloptions);
 
 	FreeTupleDesc(tupdesc);
 
@@ -5131,39 +5121,9 @@ OpenIntoRel(QueryDesc *queryDesc)
 	/* Not using WAL requires rd_targblock be initially invalid */
 	Assert(intoRelationDesc->rd_targblock == InvalidBlockNumber);
 
-	myState->bulkloadinfo = (struct MirroredBufferPoolBulkLoadInfo *) palloc0(sizeof(MirroredBufferPoolBulkLoadInfo));
-
 	relFileNode.spcNode = tablespaceId;
 	relFileNode.dbNode = MyDatabaseId;
 	relFileNode.relNode = intoRelationId;
-	if (relstorage_is_buffer_pool(relstorage) && !use_wal)
-	{
-		MirroredBufferPool_BeginBulkLoad(
-								&relFileNode,
-								&persistentTid,
-								persistentSerialNum,
-								myState->bulkloadinfo);
-	}
-	else
-	{
-		/*
-		 * Save this information for tracing in CloseIntoRel.
-		 */
-		myState->bulkloadinfo->relFileNode = relFileNode;
-		myState->bulkloadinfo->persistentTid = persistentTid;
-		myState->bulkloadinfo->persistentSerialNum = persistentSerialNum;
-
-		if (Debug_persistent_print)
-		{
-			elog(Persistent_DebugPrintLevel(),
-				 "OpenIntoRel %u/%u/%u: not bypassing the WAL -- not using bulk load, persistent serial num " INT64_FORMAT ", TID %s",
-				 relFileNode.spcNode,
-				 relFileNode.dbNode,
-				 relFileNode.relNode,
-				 persistentSerialNum,
-				 ItemPointerToString(&persistentTid));
-		}
-	}
 }
 
 /*
@@ -5190,55 +5150,9 @@ CloseIntoRel(QueryDesc *queryDesc)
 		 */
 		if (RelationIsHeap(rel) && (myState->hi_options & HEAP_INSERT_SKIP_WAL) != 0)
 		{
-			int32 numOfBlocks;
-			bool mirrorDataLossOccurred;
-
 			FlushRelationBuffers(rel);
 			/* FlushRelationBuffers will have opened rd_smgr */
 			smgrimmedsync(rel->rd_smgr, MAIN_FORKNUM);
-
-			if (PersistentStore_IsZeroTid(&myState->last_heap_tid))
-				numOfBlocks = 0;
-			else
-				numOfBlocks = ItemPointerGetBlockNumber(&myState->last_heap_tid) + 1;
-
-			/*
-			 * We may have to catch-up the mirror since bulk loading of data is
-			 * ignored by resynchronize.
-			 */
-			while (true)
-			{
-				bool bulkLoadFinished;
-
-				bulkLoadFinished =
-					MirroredBufferPool_EvaluateBulkLoadFinish(
-						myState->bulkloadinfo);
-
-				if (bulkLoadFinished)
-				{
-					/*
-					 * The flush was successful to the mirror (or the mirror is
-					 * not configured).
-					 *
-					 * We have done a state-change from 'Bulk Load Create Pending'
-					 * to 'Create Pending'.
-					 */
-					break;
-				}
-
-				/*
-				 * Copy primary data to mirror and flush.
-				 */
-				MirroredBufferPool_CopyToMirror(
-					&myState->bulkloadinfo->relFileNode,
-					rel->rd_rel->relname.data,
-					&myState->bulkloadinfo->persistentTid,
-					myState->bulkloadinfo->persistentSerialNum,
-					myState->bulkloadinfo->mirrorDataLossTrackingState,
-					myState->bulkloadinfo->mirrorDataLossTrackingSessionNum,
-					numOfBlocks,
-					&mirrorDataLossOccurred);
-			}
 		}
 
 		/* close rel, but keep lock until commit */

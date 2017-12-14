@@ -46,10 +46,6 @@ typedef struct MirroredAppendOnlyOpen
 	
 	File		primaryFile;
 
-	MirrorDataLossTrackingState mirrorDataLossTrackingState;
-
-	int64						mirrorDataLossTrackingSessionNum;
-
 	bool						create;
 
 	bool						primaryOnlyToLetResynchronizeWork;
@@ -58,133 +54,12 @@ typedef struct MirroredAppendOnlyOpen
 	
 	bool						copyToMirror;
 
-	bool						guardOtherCallsWithMirroredLock;
-	
-	StorageManagerMirrorMode	mirrorMode;
-
 	bool						mirrorDataLossOccurred;
 } MirroredAppendOnlyOpen;
 
 // -----------------------------------------------------------------------------
 // Open, Flush, and Close 
 // -----------------------------------------------------------------------------
-
-/*
- * We call MirroredAppendOnly_Create with the MirroredLock already held.
- */
-extern void MirroredAppendOnly_Create(
-	RelFileNode 				*relFileNode,
-				/* The tablespace, database, and relation OIDs for the open. */
-
-	int32						segmentFileNum,
-				/* Which segment file. */
-	
-	char						*relationName,
-					/* For tracing only.  Can be NULL in some execution paths. */
-	
-	MirrorDataLossTrackingState mirrorDataLossTrackingState,
-
-	int64						mirrorDataLossTrackingSessionNum,
-	
-	int 						*primaryError,
-	
-	bool						*mirrorDataLossOccurred);
-
-
-/*
- * MirroredAppendOnly_OpenReadWrite will acquire and release the MirroredLock.
- */
-extern void MirroredAppendOnly_OpenReadWrite(
-	MirroredAppendOnlyOpen		*open,
-				/* The resulting open struct. */
-
-	RelFileNode 				*relFileNode,
-				/* The tablespace, database, and relation OIDs for the open. */
-
-	int32						segmentFileNum,
-				/* Which segment file. */
-	
-	char						*relationName,
-					/* For tracing only.  Can be NULL in some execution paths. */
-	
-	int64						logicalEof,
-				/* The logical EOF to begin appending the new data. */
-
-	bool						traceOpenFlags,
-
-	ItemPointer					persistentTid,
-
-	int64						persistentSerialNum,
-	
-	int 						*primaryError);
-
-extern void MirroredAppendOnly_AddMirrorResyncEofs(
-	RelFileNode						*relFileNode,
-
-	int32							segmentFileNum,
-
-	char							*relationName,
-
-	ItemPointer						persistentTid,
-
-	int64							persistentSerialNum,
-
-	MirroredLockLocalVars 			*mirroredLockByRefVars,
-
-	bool							originalMirrorCatchupRequired,
-
-	MirrorDataLossTrackingState 	originalMirrorDataLossTrackingState,
-
-	int64 							originalMirrorDataLossTrackingSessionNum,
-
-	int64							mirrorNewEof);
-
-extern void MirroredAppendOnly_EndXactCatchup(
-		int 							entryIndex,
-	
-		RelFileNode 					*relFileNode,
-	
-		int32							segmentFileNum,
-	
-		int 							nestLevel,
-	
-		char							*relationName,
-	
-		ItemPointer 					persistentTid,
-	
-		int64							persistentSerialNum,
-	
-		MirroredLockLocalVars			*mirroredLockVarsByRef,
-	
-		bool							lastMirrorCatchupRequired,
-	
-		MirrorDataLossTrackingState 	lastMirrorDataLossTrackingState,
-	
-		int64							lastMirrorDataLossTrackingSessionNum,
-	
-		int64							mirrorNewEof);
-
-/*
- * Flush and Close an Append-Only relation file.
- *
- * If the flush is unable to complete on the mirror, then information (segment file, old EOF, 
- * new EOF) on the new Append-Only data will be added to the commit, distributed commit,
- * distributed prepared and commit prepared XLOG records so that data can be resynchronized
- * later.
- */
-extern void MirroredAppendOnly_FlushAndClose(
-	MirroredAppendOnlyOpen 		*open,
-				/* The open struct. */				
-
-	int 						*primaryError,
-	
-	bool					*mirrorDataLossOccurred,
-
-	bool					*mirrorCatchupRequired,
-
-	MirrorDataLossTrackingState 	*originalMirrorDataLossTrackingState,
-	
-	int64 							*originalMirrorDataLossTrackingSessionNum);
 
 /*
  * Flush an Append-Only relation file.
@@ -229,9 +104,7 @@ extern void MirroredAppendOnly_Append(
 	int32		appendDataLen,
 	
 				/* The byte length of the Append-Only data. */
-	int 		*primaryError,
-	
-	bool		*mirrorDataLossOccurred);
+	int 		*primaryError);
 
 // -----------------------------------------------------------------------------
 // Truncate
@@ -247,15 +120,9 @@ extern void MirroredAppendOnly_Truncate(
 	
 	bool		*mirrorDataLossOccurred);
 
-#ifdef USE_SEGWALREP
-extern void
-ao_insert_replay(XLogRecord *record);
-
-extern void
-xlog_ao_truncate(MirroredAppendOnlyOpen *open, int64 offset);
-
-extern void
-ao_truncate_replay(XLogRecord *record);
-#endif
+extern void ao_create_segfile_replay(XLogRecord *record);
+extern void ao_insert_replay(XLogRecord *record);
+extern void xlog_ao_truncate(MirroredAppendOnlyOpen *open, int64 offset);
+extern void ao_truncate_replay(XLogRecord *record);
 
 #endif   /* CDBMIRROREDAPPENDONLY_H */

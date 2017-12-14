@@ -674,8 +674,6 @@ gistNewBuffer(Relation r)
 	Buffer		buffer;
 	bool		needLock;
 
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
 	/* First, try to get a page from FSM */
 	for (;;)
 	{

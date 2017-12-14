@@ -93,37 +93,28 @@ typedef struct xl_xact_commit
 {
 	TimestampTz xact_time;		/* time of commit */
 	time_t		xtime;
-
-	int16		persistentCommitObjectCount;	
-								/* number of PersistentEndXactRec style objects */
-
+	int			nrels;			/* number of RelFileNodes */
 	int			nsubxacts;		/* number of subtransaction XIDs */
-
-	/* PersistentEndXactRec style objects for commit */
-	uint8 data[0];				/* VARIABLE LENGTH ARRAY */
-
+	/* Array of RelFileNode(s) to drop at commit */
+	RelFileNode xnodes[1];		/* VARIABLE LENGTH ARRAY */
 	/* ARRAY OF COMMITTED SUBTRANSACTION XIDs FOLLOWS */
+	/* DISTRIBUTED XACT STUFF FOLLOWS */
 } xl_xact_commit;
 
-#define MinSizeOfXactCommit offsetof(xl_xact_commit, data)
+#define MinSizeOfXactCommit offsetof(xl_xact_commit, xnodes)
 
 typedef struct xl_xact_abort
 {
 	TimestampTz xact_time;		/* time of abort */
 	time_t		xtime;
-
-	int16		persistentAbortObjectCount;	
-								/* number of PersistentEndXactRec style objects */
-
+	int			nrels;			/* number of RelFileNodes */
 	int			nsubxacts;		/* number of subtransaction XIDs */
-	
-	/* PersistentEndXactRec style objects for abort */
-	uint8 data[0];		/* VARIABLE LENGTH ARRAY */
-	
-	/* ARRAY OF COMMITTED SUBTRANSACTION XIDs FOLLOWS */
+	/* Array of RelFileNode(s) to drop at abort */
+	RelFileNode xnodes[1];		/* VARIABLE LENGTH ARRAY */
+	/* ARRAY OF ABORTED SUBTRANSACTION XIDs FOLLOWS */
 } xl_xact_abort;
 
-#define MinSizeOfXactAbort offsetof(xl_xact_abort, data)
+#define MinSizeOfXactAbort offsetof(xl_xact_abort, xnodes)
 
 /*
  * COMMIT_PREPARED and ABORT_PREPARED are identical to COMMIT/ABORT records
@@ -141,7 +132,7 @@ typedef struct xl_xact_commit_prepared
 	/* MORE DATA FOLLOWS AT END OF STRUCT */
 } xl_xact_commit_prepared;
 
-#define MinSizeOfXactCommitPrepared offsetof(xl_xact_commit_prepared, crec.data)
+#define MinSizeOfXactCommitPrepared offsetof(xl_xact_commit_prepared, crec.xnodes)
 
 typedef struct xl_xact_abort_prepared
 {
@@ -150,7 +141,7 @@ typedef struct xl_xact_abort_prepared
 	/* MORE DATA FOLLOWS AT END OF STRUCT */
 } xl_xact_abort_prepared;
 
-#define MinSizeOfXactAbortPrepared offsetof(xl_xact_abort_prepared, arec.data)
+#define MinSizeOfXactAbortPrepared offsetof(xl_xact_abort_prepared, arec.xnodes)
 
 /* 
  * xl_xact_distributed_forget - moved to cdb/cdbtm.h 
@@ -234,20 +225,10 @@ extern void RegisterSubXactCallback(SubXactCallback callback, void *arg);
 extern void UnregisterSubXactCallback(SubXactCallback callback, void *arg);
 
 extern void RecordDistributedForgetCommitted(struct TMGXACT_LOG *gxact_log);
-extern bool RecordCrashTransactionAbortRecord(
-	TransactionId				xid,
-	PersistentEndXactRecObjects *persistentAbortObjects);
 
 extern int	xactGetCommittedChildren(TransactionId **ptr);
 
 extern void xact_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record);
-extern bool xact_redo_get_info(
-		XLogRecord					*record,
-		XactInfoKind				*infoKind,
-		TransactionId				*xid,
-		PersistentEndXactRecObjects *persistentObjects,
-		TransactionId				**subXids,
-		int 						*subXidCount);
 extern void xact_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record);
 extern const char *IsoLevelAsUpperString(int IsoLevel);
 

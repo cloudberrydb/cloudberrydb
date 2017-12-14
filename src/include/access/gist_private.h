@@ -98,8 +98,6 @@ typedef GISTScanOpaqueData *GISTScanOpaque;
 typedef struct gistxlogPageUpdate
 {
 	RelFileNode 	node;
-	ItemPointerData persistentTid;
-	int64 			persistentSerialNum;
 	BlockNumber 	blkno;
 
 	/*
@@ -118,9 +116,6 @@ typedef struct gistxlogPageUpdate
 typedef struct gistxlogPageSplit
 {
 	RelFileNode 	node;
-	ItemPointerData persistentTid;
-	int64 			persistentSerialNum;
-
 	BlockNumber  origblkno;		/* splitted page */
 	bool		origleaf;		/* was splitted page a leaf page? */
 	uint16		npage;
@@ -136,9 +131,6 @@ typedef struct gistxlogPageSplit
 typedef struct gistxlogCreateIndex
 {
 	RelFileNode 	node;
-	ItemPointerData persistentTid;
-	int64 			persistentSerialNum;
-
 } gistxlogCreateIndex;
 
 typedef struct gistxlogPage
@@ -156,8 +148,6 @@ typedef struct gistxlogInsertComplete
 typedef struct gistxlogPageDelete
 {
 	RelFileNode 	node;
-	ItemPointerData persistentTid;
-	int64 			persistentSerialNum;
 	BlockNumber 	blkno;
 } gistxlogPageDelete;
 

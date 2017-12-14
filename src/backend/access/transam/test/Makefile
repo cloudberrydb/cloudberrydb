@@ -5,7 +5,7 @@ include $(top_builddir)/src/Makefile.global
 TARGETS=xact distributedlog xlog
 
 ifeq ($(enable_segwalrep), yes)
-TARGETS += xlogutils xlog_mm
+TARGETS += xlogutils
 endif
 
 include $(top_builddir)/src/backend/mock.mk
@@ -21,8 +21,3 @@ xact.t: \
 
 xlog.t: \
     $(MOCK_DIR)/backend/replication/walsender_mock.o
-
-xlog_mm.t: \
-	$(MOCK_DIR)/backend/access/transam/xlog_mock.o \
-	$(MOCK_DIR)/backend/access/transam/xlogutils_mock.o \
-	$(MOCK_DIR)/backend/cdb/cdbmirroredappendonly_mock.o

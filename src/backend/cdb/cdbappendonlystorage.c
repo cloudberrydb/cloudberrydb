@@ -40,7 +40,6 @@ AppendOnlyStorage_GetUsableBlockSize(int32 configBlockSize)
 	return result;
 }
 
-#ifdef USE_SEGWALREP
 void
 appendonly_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 {
@@ -104,4 +103,3 @@ appendonly_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record)
 			appendStringInfo(buf, "UNKNOWN");
 	}
 }
-#endif

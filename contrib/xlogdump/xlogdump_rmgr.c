@@ -19,7 +19,6 @@
 #include "catalog/pg_control.h"
 #include "commands/dbcommands.h"
 #include "cdb/cdbappendonlyam.h"
-#include "access/xlogmm.h"
 
 #if PG_VERSION_NUM >=90000
 #include "utils/relmapper.h"
@@ -59,10 +58,9 @@ const char * const RM_names[RM_MAX_ID+1] = {
 	"Reserved 16",
 #endif	/* PG_VERSION_NUM >=90200 */
 	"DistributedLog",			/* 17 */
-	"MasterMirrorLog",			/* 18 */
 
 #ifdef USE_SEGWALREP
-	"Appendonly"				/* 19 */
+	"Appendonly"				/* 18 */
 #endif		/* USE_SEGWALREP */
 };
 
@@ -1409,81 +1407,6 @@ print_rmgr_seq(XLogRecPtr cur, XLogRecord *record, uint8 info)
 }
 
 void
-print_rmgr_mmxlog(XLogRecPtr cur, XLogRecord *record, uint8 info)
-{
-	xl_mm_fs_obj *xlrec = (xl_mm_fs_obj *)XLogRecGetData(record);
-	char 		  buf[1024];
-	char		  operation[256];
-	char 		  objectDetails[256];
-
-	switch (info)
-	{
-	case MMXLOG_CREATE_DIR:
-		strlcpy(operation, "create dir", sizeof(operation));
-		break;
-
-	case MMXLOG_CREATE_FILE:
-		strlcpy(operation, "create file", sizeof(operation));
-		break;
-
-	case MMXLOG_REMOVE_DIR:
-		strlcpy(operation, "remove dir", sizeof(operation));
-		break;
-
-	case MMXLOG_REMOVE_APPENDONLY_FILE:
-		strlcpy(operation, "remove appendonly file", sizeof(operation));
-		break;
-
-	case MMXLOG_REMOVE_HEAP_FILE:
-		strlcpy(operation, "remove heap file", sizeof(operation));
-		break;
-
-	default:
-		snprintf(operation, sizeof(operation),
-				 "unknown MMX operation - 0x%x", info);
-		break;
-	}
-
-	switch (xlrec->objtype)
-	{
-	case MM_OBJ_FILESPACE:
-		snprintf(objectDetails, sizeof(objectDetails), "filespace %u",
-				 xlrec->filespace);
-		break;
-
-	case MM_OBJ_TABLESPACE:
-		snprintf(objectDetails, sizeof(objectDetails), "tablespace %u",
-				 xlrec->tablespace);
-		break;
-
-	case MM_OBJ_DATABASE:
-		snprintf(objectDetails, sizeof(objectDetails),
-				 "tablespace %d, database %u",
-				 xlrec->tablespace, xlrec->database);
-		break;
-
-	case MM_OBJ_RELFILENODE:
-		snprintf(objectDetails, sizeof(objectDetails),
-				 "relation  %u/%u/%u, segment file #%u", xlrec->tablespace,
-				 xlrec->database, xlrec->relfilenode, xlrec->segnum);
-		break;
-
-	default:
-		snprintf(objectDetails, sizeof(objectDetails), "unknown object type - %d",
-				 xlrec->objtype);
-		break;
-	}
-
-	snprintf(buf, sizeof(buf),"%s for %s, master dbid: %d, mirror dbid: %d, "
-			 "master path: %s, mirror path: %s", operation, objectDetails,
-			 xlrec->u.dbid.master, xlrec->u.dbid.mirror, xlrec->master_path,
-			 xlrec->mirror_path);
-
-	print_rmgr_record(cur, record, buf);
-}
-
-#ifdef USE_SEGWALREP
-void
 print_rmgr_ao(XLogRecPtr cur, XLogRecord *record, uint8 info)
 {
 	char spaceName[NAMEDATALEN];
@@ -1529,4 +1452,3 @@ print_rmgr_ao(XLogRecPtr cur, XLogRecord *record, uint8 info)
 
 	print_rmgr_record(cur, record, buf);
 }
-#endif		/* USE_SEGWALREP */

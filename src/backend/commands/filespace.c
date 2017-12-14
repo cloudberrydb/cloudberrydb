@@ -102,8 +102,6 @@ CreateFileSpace(CreateFileSpaceStmt *stmt)
 	FileSpaceEntry      *primary  = NULL;
 	FileSpaceEntry      *mirror	  = NULL;
 	List                *nodeSegs = NULL;
-	ItemPointerData		 persistentTid;
-	int64				 persistentSerialNum;
 
 	if (Gp_role == GP_ROLE_UTILITY)
 		elog(ERROR, "cannot create filespaces in utility mode");
@@ -474,6 +472,7 @@ CreateFileSpace(CreateFileSpaceStmt *stmt)
 	 * mechanisms know how to use this to cleanup after a hard failure or 
 	 * replay the creation for mirror resynchronisation.
 	 */
+#if 0 // WALREP_FIXME: not re-implemented yet
 	if (mirror == NULL)
 	{
 		MirroredFileSysObj_TransactionCreateFilespaceDir(
@@ -488,6 +487,7 @@ CreateFileSpace(CreateFileSpaceStmt *stmt)
 			primary->dbid, primary->location, mirror->dbid, mirror->location,
 			&persistentTid, &persistentSerialNum);
 	}
+#endif
 }
 
 /*
@@ -603,6 +603,7 @@ DropFileSpace(DropFileSpaceStmt *drop)
 									NULL);
 	}
 
+#if 0 // WALREP_FIXME: not re-implemented yet
 	/* 
 	 * The persistent object layer is responsible for actually managing the
 	 * actual directory on disk.  Tell it that this filespace is removed by
@@ -610,6 +611,7 @@ DropFileSpace(DropFileSpaceStmt *drop)
 	 * will be deleted iff the transaction commits.
 	 */
 	MirroredFileSysObj_ScheduleDropFilespaceDir(fsoid);
+#endif
 }
 
 /* 

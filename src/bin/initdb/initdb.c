@@ -2242,34 +2242,6 @@ setup_cdb_schema(void)
 }
 
 /*
- * Load persistent tables from pg_class, etc.
- */
-static void
-setup_gp_persistent_tables(void)
-{
-	PG_CMD_DECL;
-
-	fprintf(stdout, _("loading file-system persistent tables for template1 (mirrored = %s) ... \n"), 
-		    (gIsFileRepMirrored  ? "true" : "false"));
-	fflush(stdout);
-
-	snprintf(cmd, sizeof(cmd),
-			 "\"%s\" %s -c gp_before_persistence_work=on template1 >%s",
-			 backend_exec, backend_options,
-			 backend_output);
-
-	PG_CMD_OPEN;
-	
-	PG_CMD_PRINTF1("SELECT gp_persistent_build_db(%s);\n",
-				   (gIsFileRepMirrored  ? "true" : "false"));
-
-	PG_CMD_CLOSE;
-
-	check_ok();
-}
-
-
-/*
  * clean everything up in template1
  */
 static void
@@ -3658,12 +3630,6 @@ main(int argc, char *argv[])
 		set_short_version(short_version, "base/1");
 
 		/* Create the stuff we don't need to use bootstrap mode for */
-
-		/*
-		 * Must be the first thing we do on template1 to make sure we capture all
-		 * relation creates.
-		 */
-		setup_gp_persistent_tables();
 
 		setup_auth();
 		if (pwprompt || pwfilename)

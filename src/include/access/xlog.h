@@ -24,25 +24,6 @@
 #include "replication/walsender.h"
 
 /*
- * REDO Tracking DEFINEs.
- */
-#define REDO_PRINT_READ_BUFFER_NOT_FOUND(rnode,blkno,buffer,lsn) \
-{ \
-	if (Debug_persistent_recovery_print && !BufferIsValid(buffer)) \
-	{ \
-		xlog_print_redo_read_buffer_not_found(rnode, blkno, lsn, PG_FUNCNAME_MACRO); \
-	} \
-}
-
-#define REDO_PRINT_LSN_APPLICATION(rnode,blkno,page,lsn) \
-{ \
-	if (Debug_persistent_recovery_print) \
-	{ \
-		xlog_print_redo_lsn_application(rnode, blkno, (void*)page, lsn, PG_FUNCNAME_MACRO); \
-	} \
-}
-
-/*
  * The overall layout of an XLOG record is:
  *		Fixed-size header (XLogRecord struct)
  *		rmgr-specific data
@@ -318,11 +299,6 @@ extern int XLogReconcileEofMirror(
 
 extern int XLogRecoverMirrorControlFile(void);
 
-extern void xlog_print_redo_read_buffer_not_found(
-		RelFileNode		*reln,
-		BlockNumber 	blkno,
-		XLogRecPtr 		lsn,
-		const char		*funcName);
 extern void xlog_print_redo_lsn_application(
 		RelFileNode		*rnode,
 		BlockNumber 	blkno,

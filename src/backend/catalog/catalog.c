@@ -120,7 +120,13 @@ GetFilespacePathForTablespace(Oid tablespaceOid)
 	 */
 	if (mirror_path)
 		pfree(mirror_path);
-	Assert(primary_path != NULL);
+
+
+	//WALREP_FIXME: Tablespace/filespace stuff is horribly broken. For now,
+	// just pretend that everything is in the default tablespace.
+	//Assert(primary_path != NULL);
+	if (primary_path == NULL)
+		return pstrdup("base");
 
 	return primary_path;
 }

@@ -160,8 +160,6 @@ RelationGetBufferForTuple(Relation relation, Size len,
 				otherBlock;
 	bool		needLock;
 
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
 	len = MAXALIGN(len);		/* be conservative */
 
 	/* Bulk insert is not supported for updates, only inserts. */

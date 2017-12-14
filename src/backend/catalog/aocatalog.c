@@ -129,9 +129,7 @@ CreateAOAuxiliaryTable(
 											     NULL, /* GP Policy */
 											     (Datum) 0,
 											     true,
-												 /* valid_opts */ false,
-											     /* persistentTid */ NULL,
-											     /* persistentSerialNum */ NULL);
+												 /* valid_opts */ false);
 
 	/* Make this table visible, else index creation will fail */
 	CommandCounterIncrement();

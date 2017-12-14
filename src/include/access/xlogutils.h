@@ -21,7 +21,7 @@
 extern void XLogCheckInvalidPages(void);
 
 extern void XLogDropRelation(RelFileNode rnode, ForkNumber forknum);
-extern void XLogDropDatabase(Oid tblspc, Oid dbid);
+extern void XLogDropDatabase(Oid dbid);
 extern void XLogTruncateRelation(RelFileNode rnode, ForkNumber forkNum,
 					 BlockNumber nblocks);
 

@@ -43,8 +43,6 @@ GetNewTransactionId(bool isSubXact, bool setProcXid)
 {
 	TransactionId xid;
 
-	MIRRORED_LOCK_DECLARE;
-
 	/*
 	 * During bootstrap initialization, we return the special bootstrap
 	 * transaction id.
@@ -55,7 +53,6 @@ GetNewTransactionId(bool isSubXact, bool setProcXid)
 		return BootstrapTransactionId;
 	}
 
-	MIRRORED_LOCK;
 	LWLockAcquire(XidGenLock, LW_EXCLUSIVE);
 
 	xid = ShmemVariableCache->nextXid;
@@ -192,7 +189,6 @@ GetNewTransactionId(bool isSubXact, bool setProcXid)
 	}
 
 	LWLockRelease(XidGenLock);
-	MIRRORED_UNLOCK;
 
 	return xid;
 }

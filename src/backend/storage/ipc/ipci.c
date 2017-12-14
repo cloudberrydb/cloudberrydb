@@ -25,11 +25,6 @@
 #include "access/distributedlog.h"
 #include "access/appendonlywriter.h"
 #include "cdb/cdblocaldistribxact.h"
-#include "cdb/cdbpersistentfilesysobj.h"
-#include "cdb/cdbpersistentfilespace.h"
-#include "cdb/cdbpersistenttablespace.h"
-#include "cdb/cdbpersistentdatabase.h"
-#include "cdb/cdbpersistentrelation.h"
 #include "cdb/cdbvars.h"
 #include "miscadmin.h"
 #include "pgstat.h"
@@ -163,11 +158,6 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 		size = add_size(size, FtsShmemSize());
 		size = add_size(size, tmShmemSize());
 		size = add_size(size, SeqServerShmemSize());
-		size = add_size(size, PersistentFileSysObj_ShmemSize());
-		size = add_size(size, PersistentFilespace_ShmemSize());
-		size = add_size(size, PersistentTablespace_ShmemSize());
-		size = add_size(size, PersistentDatabase_ShmemSize());
-		size = add_size(size, PersistentRelation_ShmemSize());
 
 #ifdef FAULT_INJECTOR
 		size = add_size(size, FaultInjector_ShmemSize());
@@ -274,12 +264,6 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 	 */
 	if (Gp_role == GP_ROLE_DISPATCH)
 		InitAppendOnlyWriter();
-
-	PersistentFileSysObj_ShmemInit();
-	PersistentFilespace_ShmemInit();
-	PersistentTablespace_ShmemInit();
-	PersistentDatabase_ShmemInit();
-	PersistentRelation_ShmemInit();
 
 	/*
 	 * Set up resource manager 

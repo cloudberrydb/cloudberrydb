@@ -69,7 +69,6 @@
 
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbvars.h"
-#include "cdb/cdbpersistentfilesysobj.h"
 #include "storage/smgr.h"
 #include "utils/faultinjector.h"
 #include "utils/snapmgr.h"
@@ -445,8 +444,6 @@ static void
 lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 			   Relation *Irel, int nindexes, bool scan_all, List *updated_stats)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	BlockNumber nblocks,
 				blkno;
 	HeapTupleData tuple;
@@ -463,9 +460,6 @@ lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 	PGRUsage	ru0;
 	Buffer		vmbuffer = InvalidBuffer;
 	BlockNumber all_visible_streak;
-
-	/* Fetch gp_persistent_relation_node information that will be added to XLOG record. */
-	RelationFetchGpRelationNodeForXLog(onerel);
 
 	pg_rusage_init(&ru0);
 
@@ -557,9 +551,6 @@ lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 			vacrelstats->num_index_scans++;
 		}
 
-		/* -------- MirroredLock ---------- */
-		MIRROREDLOCK_BUFMGR_LOCK;
-
 		buf = ReadBufferExtended(onerel, MAIN_FORKNUM, blkno,
 								 RBM_NORMAL, vac_strategy);
 
@@ -592,14 +583,8 @@ lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 			 */
 			LockBuffer(buf, BUFFER_LOCK_UNLOCK);
 
-			MIRROREDLOCK_BUFMGR_UNLOCK;
-			/* -------- MirroredLock ---------- */
-
 			LockRelationForExtension(onerel, ExclusiveLock);
 			UnlockRelationForExtension(onerel, ExclusiveLock);
-
-			/* -------- MirroredLock ---------- */
-			MIRROREDLOCK_BUFMGR_LOCK;
 
 			LockBufferForCleanup(buf);
 			if (PageIsNew(page))
@@ -618,9 +603,6 @@ lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 			MarkBufferDirty(buf);
 			UnlockReleaseBuffer(buf);
 
-			MIRROREDLOCK_BUFMGR_UNLOCK;
-			/* -------- MirroredLock ---------- */
-
 			RecordPageWithFreeSpace(onerel, blkno, freespace);
 			continue;
 		}
@@ -637,9 +619,6 @@ lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 			}
 
 			LockBuffer(buf, BUFFER_LOCK_UNLOCK);
-
-			MIRROREDLOCK_BUFMGR_UNLOCK;
-			/* -------- MirroredLock ---------- */
 
 			/* Update the visibility map */
 			if (!all_visible_according_to_vm)
@@ -930,9 +909,6 @@ lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 		if (hastup)
 			vacrelstats->nonempty_pages = blkno + 1;
 
-		MIRROREDLOCK_BUFMGR_UNLOCK;
-		/* -------- MirroredLock ---------- */
-
 		/*
 		 * If we remembered any tuples for deletion, then the page will be
 		 * visited again by lazy_vacuum_heap, which will compute and record
@@ -1017,8 +993,6 @@ lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 static void
 lazy_vacuum_heap(Relation onerel, LVRelStats *vacrelstats)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	int			tupindex;
 	int			npages;
 	PGRUsage	ru0;
@@ -1027,9 +1001,6 @@ lazy_vacuum_heap(Relation onerel, LVRelStats *vacrelstats)
 	npages = 0;
 
 	tupindex = 0;
-
-	/* Fetch gp_persistent_relation_node information that will be added to XLOG record. */
-	RelationFetchGpRelationNodeForXLog(onerel);
 
 	while (tupindex < vacrelstats->num_dead_tuples)
 	{
@@ -1042,9 +1013,6 @@ lazy_vacuum_heap(Relation onerel, LVRelStats *vacrelstats)
 
 		tblk = ItemPointerGetBlockNumber(&vacrelstats->dead_tuples[tupindex]);
 
-		/* -------- MirroredLock ---------- */
-		MIRROREDLOCK_BUFMGR_LOCK;
-
 		buf = ReadBufferExtended(onerel, MAIN_FORKNUM, tblk, RBM_NORMAL,
 								 vac_strategy);
 		LockBufferForCleanup(buf);
@@ -1055,9 +1023,6 @@ lazy_vacuum_heap(Relation onerel, LVRelStats *vacrelstats)
 		freespace = PageGetHeapFreeSpace(page);
 
 		UnlockReleaseBuffer(buf);
-
-		MIRROREDLOCK_BUFMGR_UNLOCK;
-		/* -------- MirroredLock ---------- */
 
 		RecordPageWithFreeSpace(onerel, tblk, freespace);
 		npages++;
@@ -1088,8 +1053,6 @@ lazy_vacuum_page(Relation onerel, BlockNumber blkno, Buffer buffer,
 	Page		page = BufferGetPage(buffer);
 	OffsetNumber unused[MaxOffsetNumber];
 	int			uncnt = 0;
-
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	START_CRIT_SECTION();
 
@@ -1280,10 +1243,7 @@ lazy_truncate_heap(Relation onerel, LVRelStats *vacrelstats)
 	/*
 	 * Okay to truncate.
 	 */
-	RelationTruncate(
-				onerel,
-				new_rel_pages,
-				/* markPersistentAsPhysicallyTruncated */ true);
+	RelationTruncate(onerel, new_rel_pages);
 
 	/* force relcache inval so all backends reset their rd_targblock */
 	CacheInvalidateRelcache(onerel);
@@ -1470,8 +1430,6 @@ vacuum_appendonly_rel(Relation aorel, VacuumStmt *vacstmt)
 static BlockNumber
 count_nondeletable_pages(Relation onerel, LVRelStats *vacrelstats)
 {
-	MIRROREDLOCK_BUFMGR_DECLARE;
-
 	BlockNumber blkno;
 
 	/* Strange coding of loop control is needed because blkno is unsigned */
@@ -1493,9 +1451,6 @@ count_nondeletable_pages(Relation onerel, LVRelStats *vacrelstats)
 
 		blkno--;
 
-		/* -------- MirroredLock ---------- */
-		MIRROREDLOCK_BUFMGR_LOCK;
-
 		buf = ReadBufferExtended(onerel, MAIN_FORKNUM, blkno,
 								 RBM_NORMAL, vac_strategy);
 
@@ -1508,10 +1463,6 @@ count_nondeletable_pages(Relation onerel, LVRelStats *vacrelstats)
 		{
 			/* PageIsNew probably shouldn't happen... */
 			UnlockReleaseBuffer(buf);
-
-			MIRROREDLOCK_BUFMGR_UNLOCK;
-			/* -------- MirroredLock ---------- */
-
 			continue;
 		}
 
@@ -1539,9 +1490,6 @@ count_nondeletable_pages(Relation onerel, LVRelStats *vacrelstats)
 		}						/* scan along page */
 
 		UnlockReleaseBuffer(buf);
-
-		MIRROREDLOCK_BUFMGR_UNLOCK;
-		/* -------- MirroredLock ---------- */
 
 		/* Done scanning if we found a tuple here */
 		if (hastup)

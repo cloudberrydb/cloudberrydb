@@ -1,4 +1,3 @@
-test: pt_io_in_progress_deadlock
 test: pg_terminate_backend
 test: deadlock_under_entry_db_singleton
 test: starve_case

@@ -359,7 +359,6 @@ extern char* primaryMirrorGetPeerTxnFilespacePath(void);
 extern char* makeRelativeToPeerTxnFilespace(char *path);
 extern bool isTxnFilespaceInfoConsistent(void);
 extern bool isTempFilespaceInfoConsistent(void);
-extern bool isFilespaceInfoConsistent(void);
 extern void populateFilespaceInfo(void);
 extern void primaryMirrorPopulateFilespaceInfo(void);
 extern bool isTxnDir(char *path);

@@ -264,9 +264,6 @@ _bt_blnewpage(uint32 level)
 static void
 _bt_blwritepage(BTWriteState *wstate, Page page, BlockNumber blkno)
 {
-	// Fetch gp_persistent_relation_node information that will be added to XLOG record.
-	RelationFetchGpRelationNodeForXLog(wstate->index);
-
 	/* Ensure rd_smgr is open (could have been closed by relcache flush!) */
 	RelationOpenSmgr(wstate->index);
 
@@ -289,24 +286,17 @@ _bt_blwritepage(BTWriteState *wstate, Page page, BlockNumber blkno)
 		if (!wstate->btws_zeropage)
 			wstate->btws_zeropage = (Page) palloc0(BLCKSZ);
 
-		// -------- MirroredLock ----------
 		// UNDONE: Unfortunately, I think we write temp relations to the mirror...
-		LWLockAcquire(MirroredLock, LW_SHARED);
 
 		/* don't set checksum for all-zero page */
 		smgrextend(wstate->index->rd_smgr, MAIN_FORKNUM,
 				   wstate->btws_pages_written++,
 				   (char *) wstate->btws_zeropage,
 				   true);
-
-		LWLockRelease(MirroredLock);
-		// -------- MirroredLock ----------
 	}
 
 
-	// -------- MirroredLock ----------
 	// UNDONE: Unfortunately, I think we write temp relations to the mirror...
-	LWLockAcquire(MirroredLock, LW_SHARED);
 	PageSetChecksumInplace(page, blkno);
 
 	/*
@@ -327,9 +317,6 @@ _bt_blwritepage(BTWriteState *wstate, Page page, BlockNumber blkno)
 		smgrwrite(wstate->index->rd_smgr, MAIN_FORKNUM, blkno,
 				  (char *) page, true);
 	}
-
-	LWLockRelease(MirroredLock);
-	// -------- MirroredLock ----------
 
 	pfree(page);
 }
