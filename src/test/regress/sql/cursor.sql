@@ -57,7 +57,9 @@ select gp_inject_fault('qe_got_snapshot_and_interconnect', 'suspend', 2);
 DECLARE cursor_c2 CURSOR FOR SELECT * FROM cursor_writer_reader WHERE b=666 ORDER BY 1;
 SAVEPOINT x;
 UPDATE cursor_writer_reader SET b=333 WHERE b=666;
+-- start_ignore
 select gp_inject_fault('qe_got_snapshot_and_interconnect', 'status', 2);
+-- end_ignore
 select gp_inject_fault('qe_got_snapshot_and_interconnect', 'resume', 2);
 FETCH cursor_c2;
 SELECT * FROM cursor_writer_reader WHERE b=666 ORDER BY 1;
