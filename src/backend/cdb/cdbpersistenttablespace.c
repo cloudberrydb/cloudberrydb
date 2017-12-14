@@ -66,8 +66,10 @@ PersistentTablespace_TryGetPrimaryAndMirrorFilespaces(
 	*mirrorFilespaceLocation = NULL;
 	*filespaceOid = InvalidOid;
 
-	// WALREP_FIXME: Heikki: I stubbed out this function to just always return NULL.
-	// What should we do here?
+	// WALREP_FIXME: Heikki: I stubbed out this function to just always return a
+	// dummy location. What should we do here?
+	if (tablespaceOid > FirstNormalObjectId)
+			*primaryFilespaceLocation = psprintf("tblspc_fixme_%u", tablespaceOid);
 
 	/*
 	 * Optimize out the common cases.

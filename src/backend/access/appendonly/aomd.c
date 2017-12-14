@@ -164,7 +164,6 @@ OpenAOSegmentFile(Relation rel,
 	errno = 0;
 
 	mirroredOpen->primaryFile = PathNameOpenFile(path, fileFlags, 0600);
-
 	if (mirroredOpen->primaryFile < 0)
 	{
 		if (logicalEof == 0 && errno == ENOENT)
@@ -175,6 +174,8 @@ OpenAOSegmentFile(Relation rel,
 				 errmsg("could not open Append-Only segment file \"%s\": %m",
 						filepathname)));
 	}
+	mirroredOpen->relFileNode = rel->rd_node;
+	mirroredOpen->segmentFileNum = segmentFileNum;
 	mirroredOpen->isActive = true;
 	pfree(dbPath);
 	pfree(path);

@@ -165,6 +165,7 @@ MirroredAppendOnly_Append(
 {
 	Assert(open != NULL);
 	Assert(open->isActive);
+	Assert(open->relFileNode.relNode != InvalidOid);
 
 	*primaryError = 0;
 

@@ -348,6 +348,8 @@ AppendOnlyStorageWrite_OpenFile(AppendOnlyStorageWrite *storageWrite,
 						filePathName,
 						storageWrite->relationName)));
 
+	storageWrite->bufferedAppend.mirroredOpen.relFileNode = *relFileNode;
+	storageWrite->bufferedAppend.mirroredOpen.segmentFileNum = segmentFileNum;
 	storageWrite->bufferedAppend.mirroredOpen.primaryFile = file;
 	storageWrite->bufferedAppend.mirroredOpen.isActive = true;
 
