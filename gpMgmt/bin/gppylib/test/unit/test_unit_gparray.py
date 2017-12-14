@@ -224,7 +224,7 @@ class GpArrayTestCase(GpTestCase):
         lastport = 0
         for seg in gparray.segmentPairs:
             prim = seg.primaryDB            
-            mir = seg.mirrorDBs[0]
+            mir = seg.mirrorDB
             self.assertNotEqual(prim.hostname, mir.hostname)
             if prim.port not in portdict:
                 portdict[prim.port] = 1

@@ -742,13 +742,13 @@ class SegmentTemplate:
     def _select_src_segment(self):
         """Gets a segment to use as a source for pg_hba.conf
         and postgresql.conf files"""
-        seg = self.gparray.segmentPairs[0]
-        if seg.primaryDB.valid:
-            self.srcSegHostname = seg.primaryDB.getSegmentHostName()
-            self.srcSegDataDir = seg.primaryDB.getSegmentDataDirectory()
-        elif seg.mirrorDBs[0] is not None and seg.mirrorDBs[0].valid:
-            self.srcSegHostname = seg.mirrorDBs[0].getSegmentHostName()
-            self.srcSegDataDir = seg.mirrorDBs[0].getSegmentDataDirectory()
+        segPair = self.gparray.segmentPairs[0]
+        if segPair.primaryDB.valid:
+            self.srcSegHostname = segPair.primaryDB.getSegmentHostName()
+            self.srcSegDataDir = segPair.primaryDB.getSegmentDataDirectory()
+        elif segPair.mirrorDB and segPair.mirrorDB.valid:
+            self.srcSegHostname = segPair.mirrorDB.getSegmentHostName()
+            self.srcSegDataDir = segPair.mirrorDB.getSegmentDataDirectory()
         else:
             raise SegmentTemplateError("no valid segdb for content=0 to use as a template")
 
