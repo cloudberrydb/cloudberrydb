@@ -48,6 +48,8 @@ void gpos_init(struct gpos_init_params* params) {
 	  pfnFree = clib::Free;
 	}
 
+	CWorker::pfnAbortRequestedBySystem = params->abort_requested;
+
 	if (GPOS_OK != gpos::CMemoryPoolManager::EresInit(pfnAlloc, pfnFree))
 	{
 		return;

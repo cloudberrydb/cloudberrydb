@@ -21,7 +21,7 @@
 
 #define GPOS_INIT(pma)  struct gpos_init_params init_params = { \
     (FUseCustomAllocator(pma) ? CCustomAllocator::fnAlloc : NULL), \
-    (FUseCustomAllocator(pma) ? CCustomAllocator::fnFree : NULL)}; \
+    (FUseCustomAllocator(pma) ? CCustomAllocator::fnFree : NULL), NULL}; \
     gpos_init(&init_params);
 
 namespace gpos

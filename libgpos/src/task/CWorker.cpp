@@ -18,8 +18,9 @@
 
 using namespace gpos;
 
-volatile bool
-CWorker::abort_requested = false;
+// host system callback function to report abort requests
+bool (*CWorker::pfnAbortRequestedBySystem) (void);
+
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -172,7 +173,8 @@ CWorker::CheckForAbort
 		SimulateAbort(szFile, ulLine);
 #endif // GPOS_FPSIMULATOR
 
-		if (CWorker::abort_requested || m_ptsk->FCanceled())
+		if ((NULL != pfnAbortRequestedBySystem && pfnAbortRequestedBySystem()) ||
+			m_ptsk->FCanceled())
 		{
 			// raise exception
 			GPOS_ABORT;

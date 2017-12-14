@@ -155,7 +155,8 @@ namespace gpos
 				return dynamic_cast<CWorker*>(IWorker::PwrkrSelf());
 			}
 
-			static volatile bool abort_requested;
+			// host system callback function to report abort requests
+			static bool (*pfnAbortRequestedBySystem) (void);
 
 	}; // class CWorker
 }
