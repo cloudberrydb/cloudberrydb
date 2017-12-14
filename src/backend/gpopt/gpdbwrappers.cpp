@@ -3142,4 +3142,13 @@ gpdb::OptimizerFree
 	GP_WRAP_END;
 }
 
+// returns true if a query cancel is requested in GPDB
+bool
+gpdb::FAbortRequested
+	(
+	void
+	)
+{
+	return (QueryCancelPending || ProcDiePending);
+}
 // EOF
