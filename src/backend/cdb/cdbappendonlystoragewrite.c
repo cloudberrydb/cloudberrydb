@@ -21,6 +21,7 @@
 #include <sys/file.h>
 #include <unistd.h>
 
+#include "catalog/catalog.h"
 #include "catalog/heap.h"
 #include "catalog/pg_compression.h"
 #include "cdb/cdbappendonlystorageread.h"

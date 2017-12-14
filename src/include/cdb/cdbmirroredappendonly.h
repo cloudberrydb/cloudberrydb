@@ -18,7 +18,6 @@
 #include "storage/fd.h"
 #include "storage/relfilenode.h"
 #include "storage/smgr.h"
-#include "cdb/cdbpersistentstore.h"
 
 /*
  * This module is for doing mirrored writes for Append-Only relation files privately being written

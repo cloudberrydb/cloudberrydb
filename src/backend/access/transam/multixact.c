@@ -61,8 +61,6 @@
 #include "storage/procarray.h"
 #include "utils/memutils.h"
 
-#include "cdb/cdbpersistentstore.h"
-
 /*
  * Defines for MultiXactOffset page sizes.	A page is the same BLCKSZ as is
  * used everywhere else in Postgres.

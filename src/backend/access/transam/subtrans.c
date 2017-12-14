@@ -34,7 +34,6 @@
 #include "pg_trace.h"
 #include "utils/snapmgr.h"
 #include "utils/tqual.h"
-#include "cdb/cdbpersistentstore.h"
 
 
 /*

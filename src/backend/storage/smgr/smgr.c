@@ -28,7 +28,6 @@
 #include "storage/bufmgr.h"
 #include "storage/ipc.h"
 #include "storage/smgr.h"
-#include "storage/smgr_ao.h"
 #include "utils/faultinjector.h"
 #include "utils/hsearch.h"
 

@@ -29,7 +29,6 @@
 #include "cdb/cdbsharedoidsearch.h"
 #include "cdb/cdbdirectopen.h"
 #include "cdb/cdbmirroredfilesysobj.h"
-#include "cdb/cdbpersistentstore.h"
 #include "cdb/cdbpersistenttablespace.h"
 #include "postmaster/postmaster.h"
 #include "storage/itemptr.h"

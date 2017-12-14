@@ -31,7 +31,6 @@
 #include "miscadmin.h"
 #include "utils/memutils.h"
 #include "cdb/cdbdoublylinked.h"
-#include "cdb/cdbpersistentstore.h"
 
 /*  ***************************************************************************** */
 

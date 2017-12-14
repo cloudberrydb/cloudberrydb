@@ -23,7 +23,6 @@
 #include "utils/builtins.h"
 #include "utils/guc.h"
 #include "access/distributedlog.h"
-#include "cdb/cdbpersistentstore.h"
 #include "cdb/cdbvars.h"
 
 /* Number of OIDs to prefetch (preallocate) per XLOG write */

@@ -346,42 +346,23 @@ heap_create(const char *relname,
 	if (create_storage)
 	{
 		bool isAppendOnly;
-		bool skipCreatingSharedTable = false;
 
-		/* GPDB_84_MERGE_FIXME: ensure RelationCreateStorage is eventually
-		 * called by our custom helpers here. */
-		/*
-		 * We save the persistent TID and serial number in pg_class so we
-		 * can supply them to the Storage Manager if the object is subsequently
-		 * dropped.
-		 *
-		 * For shared table (that we created during upgrade), we create it once in every
-		 * database, but they will all point to the same file. So, the file might have already
-		 * been created.
-		 *
-		 * Note that we have not tried creating shared AO table.
-		 *
-		 * For non-shared table, we should always need to create a file.
-		 */
 		// WARNING: Do not use the rel structure -- it doesn't have relstorage set...
 		isAppendOnly = (relstorage == RELSTORAGE_AOROWS || relstorage == RELSTORAGE_AOCOLS);
 
-		if (!skipCreatingSharedTable)
-		{
-			// WALREP_FIXME: We used to treat AO tables differently here. But now
-			// the 0 segment is treated exactly like a heap rel. That seems good,
-			// but how does the pending and WAL logging stuff work for AO tables?
-			// I think it's ok.
-			RelationOpenSmgr(rel);
-			RelationCreateStorage(rel->rd_node, rel->rd_istemp);
+		// WALREP_FIXME: We used to treat AO tables differently here. But now
+		// the 0 segment is treated exactly like a heap rel. That seems good,
+		// but how does the pending and WAL logging stuff work for AO tables?
+		// I think it's ok.
+		RelationOpenSmgr(rel);
+		RelationCreateStorage(rel->rd_node, rel->rd_istemp);
 
-			/*
-			 * AO tables don't use the buffer manager, better to not keep the
-			 * smgr open for it.
-			 */
-			if (isAppendOnly)
-				RelationCloseSmgr(rel);
-		}
+		/*
+		 * AO tables don't use the buffer manager, better to not keep the
+		 * smgr open for it.
+		 */
+		if (isAppendOnly)
+			RelationCloseSmgr(rel);
 	}
 
 	return rel;

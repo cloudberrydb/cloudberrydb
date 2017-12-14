@@ -67,7 +67,6 @@
 #include "cdb/cdbdistributedsnapshot.h"
 #include "cdb/cdbgang.h"
 #include "cdb/cdblocaldistribxact.h"
-#include "cdb/cdbpersistentstore.h"
 #include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h" /* Gp_role, Gp_is_writer, interconnect_setup_timeout */
 #include "utils/vmem_tracker.h"

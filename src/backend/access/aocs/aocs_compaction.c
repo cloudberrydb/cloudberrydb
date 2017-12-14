@@ -26,7 +26,6 @@
 #include "cdb/cdbaocsam.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbmirroredfilesysobj.h"
-#include "cdb/cdbpersistentstore.h"
 #include "commands/vacuum.h"
 #include "executor/executor.h"
 #include "nodes/execnodes.h"

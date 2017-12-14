@@ -41,7 +41,6 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "cdb/cdbpersistentstore.h"
 
 /* We need 8 bytes per xact */
 #define ENTRIES_PER_PAGE (BLCKSZ / sizeof(DistributedLogEntry))

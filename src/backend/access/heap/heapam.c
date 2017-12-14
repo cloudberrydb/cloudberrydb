@@ -68,7 +68,6 @@
 #include "utils/syscache.h"
 #include "utils/tqual.h"
 
-#include "cdb/cdbpersistentstore.h"
 #include "cdb/cdbvars.h"
 #include "utils/visibility_summary.h"
 
@@ -4658,8 +4657,7 @@ log_heap_move(Relation reln, Buffer oldbuf, ItemPointerData from,
 
 /*
  * Insert HEAP_NEWPAGE record into XLOG.  Caller is responsible for providing a
- * xl_heap_newpage record with valid blkno, persistent TID, persistent serial
- * number, and relfilenode set.
+ * xl_heap_newpage record with valid blkno and relfilenode set.
  *
  * Note: all current callers build pages in private memory and write them
  * directly to smgr, rather than using bufmgr.	Therefore there is no need
@@ -4709,8 +4707,8 @@ log_newpage_internal(xl_heap_newpage *xlrec, Page page)
 
 
 /*
- * This is a wrapper over log_newpage_internal() to be used when the Relation
- * object contains the persistentTid and persistentSerialNum.
+ * This is a wrapper over log_newpage_internal() to be used when you have
+ * Relation object at hand.
  */
 XLogRecPtr
 log_newpage_rel(Relation rel, ForkNumber forkNum, BlockNumber blkno, Page page)
@@ -4726,9 +4724,7 @@ log_newpage_rel(Relation rel, ForkNumber forkNum, BlockNumber blkno, Page page)
 
 /*
  * This is a wrapper over log_newpage_internal to be used when we don't have a
- * Relation object available with persistentTid and persistentSerialNum.  In
- * which case, the persistentTid and persistentSerialNum are explicitly passed
- * along with the relFileNode for the relation.
+ * Relation object available.
  */
 XLogRecPtr
 log_newpage_relFileNode(RelFileNode *relFileNode, ForkNumber forkNum, BlockNumber blkno,

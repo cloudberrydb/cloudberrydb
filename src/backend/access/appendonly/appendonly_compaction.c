@@ -35,7 +35,6 @@
 #include "catalog/pg_appendonly_fn.h"
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbmirroredfilesysobj.h"
-#include "cdb/cdbpersistentstore.h"
 #include "cdb/cdbvars.h"
 #include "commands/vacuum.h"
 #include "executor/executor.h"

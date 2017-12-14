@@ -484,32 +484,6 @@ typedef struct XLogCtlData
 	 * only relevant for replication or archive recovery
 	 */
 	TimestampTz currentChunkStartTime;
-
-	/*
-	 * Save the redo range used in Pass 1 recovery so it can be used in subsequent passes.
-	 */
-	bool		multipleRecoveryPassesNeeded;
-	XLogRecPtr	pass1StartLoc;
-	XLogRecPtr	pass1LastLoc;
-	XLogRecPtr	pass1LastCheckpointLoc;
-
-	/*=================Pass 4 PersistentTable-Cat verification================*/
-	/*If true integrity checks will be performed in Pass4.*/
-	bool		integrityCheckNeeded;
-
-	/*
-	 * Currently set database and tablespace to be verified for database specific
-	 * PT-Cat verification in Pass4. These fields also act as implicit flags
-	 * PT-Cat which indicate if there are any more databases to perform
-	 * PT-Cat verifications checks on.
-	 */
-	Oid			currentDatabaseToVerify;
-	Oid			tablespaceOfCurrentDatabaseToVerify;
-
-	/*Indicates if pass4 PT-Cat verification checks passed*/
-	bool		pass4_PTCatVerificationPassed;
-	/*==========Pass 4 PersistentTable-Cat verification End===================*/
-
 } XLogCtlData;
 
 static XLogCtlData *XLogCtl = NULL;
@@ -5980,8 +5954,6 @@ XLOGShmemInit(void)
 
 	memset(XLogCtl, 0, sizeof(XLogCtlData));
 
-	XLogCtl->pass4_PTCatVerificationPassed = true;
-
 	/*
 	 * Since XLogCtlData contains XLogRecPtr fields, its sizeof should be a
 	 * multiple of the alignment for same, so no extra alignment padding is
@@ -6713,11 +6685,6 @@ printEndOfXLogFile(XLogRecPtr	*loc)
 }
 
 static void
-StartupXLOG_InProduction(bool bgwriterLaunched)
-{
-}
-
-static void
 ApplyStartupRedo(
 	XLogRecPtr		*beginLoc,
 
@@ -6814,7 +6781,6 @@ StartupXLOG(void)
 	uint32		endLogSeg;
 	XLogRecord *record;
 	uint32		freespace;
-	bool		multipleRecoveryPassesNeeded = false;
 	bool		backupEndRequired = false;
 	bool		bgwriterLaunched = false;
 
@@ -7071,7 +7037,6 @@ StartupXLOG(void)
 	}
 
 	LastRec = RecPtr = checkPointLoc;
-	XLogCtl->pass1LastCheckpointLoc = checkPointLoc;
 
 	/*
 	 * Currently, standby mode (WAL based replication support) is not provided
@@ -7841,45 +7806,6 @@ StartupXLOG(void)
 		SpinLockAcquire(&xlogctl->info_lck);
 		xlogctl->SharedRecoveryInProgress = false;
 		SpinLockRelease(&xlogctl->info_lck);
-	}
-
-	
-	if (!IsUnderPostmaster)
-	{
-		Assert(!multipleRecoveryPassesNeeded);
-
-		StartupXLOG_InProduction(bgwriterLaunched);
-
-		ereport(LOG,
-				(errmsg("Finished single backend startup")));
-	}
-	else
-	{
-		XLogCtl->multipleRecoveryPassesNeeded = multipleRecoveryPassesNeeded;
-
-		if (!gp_startup_integrity_checks)
-		{
-			ereport(LOG,
-					(errmsg("Integrity checks will be skipped because gp_startup_integrity_checks = off")));
-		}
-		else
-		{
-			XLogCtl->integrityCheckNeeded = true;
-		}
-
-		if (!XLogCtl->multipleRecoveryPassesNeeded)
-		{
-			StartupXLOG_InProduction(bgwriterLaunched);
-
-			ereport(LOG,
-					(errmsg("Finished normal startup for clean shutdown case")));
-
-		}
-		else
-		{
-			ereport(LOG,
-					(errmsg("Finished startup pass 1.  Proceeding to startup crash recovery passes 2 and 3.")));
-		}
 	}
 
 	XLogCloseReadRecord();

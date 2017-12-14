@@ -25,10 +25,8 @@
 #include "catalog/catalog.h"
 #include "cdb/cdbpersistenttablespace.h"
 #include "storage/smgr.h"
-#include "storage/smgr_ao.h"
 #include "storage/lwlock.h"
 #include "utils/guc.h"
-#include "cdb/cdbpersistentstore.h"
 #include "postmaster/primary_mirror_mode.h"
 
 #include "access/xlogutils.h"
