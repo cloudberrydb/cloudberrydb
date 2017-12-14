@@ -266,6 +266,7 @@ ao_insert_replay(XLogRecord *record)
 	int			written_len;
 	int64		seek_offset;
 	File		file;
+	int			fileFlags;
 
 	xl_ao_insert *xlrec = (xl_ao_insert *) XLogRecGetData(record);
 	char	   *buffer = (char *) xlrec + SizeOfAOInsert;
@@ -287,7 +288,12 @@ ao_insert_replay(XLogRecord *record)
 	else
 		snprintf(path, MAXPGPATH, "%s/%u.%u", dbPath, xlrec->target.node.relNode, xlrec->target.segment_filenum);
 
-	file = PathNameOpenFile(path, O_RDWR | PG_BINARY, 0600);
+	fileFlags = O_RDWR | PG_BINARY;
+
+	/* When writing from the beginning of the file, it might not exist yet. Create it. */
+	if (xlrec->target.offset == 0)
+		fileFlags |= O_CREAT;
+	file = PathNameOpenFile(path, fileFlags, 0600);
 	if (file < 0)
 	{
 		XLogAOSegmentFile(xlrec->target.node, xlrec->target.segment_filenum);
