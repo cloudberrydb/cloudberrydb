@@ -7346,8 +7346,6 @@ StartupXLOG(void)
 			 */
 			do
 			{
-				ErrorContextCallback errcontext;
-
 				HandleStartupProcInterrupts();
 
 				/*
@@ -11295,6 +11293,8 @@ StartupProcessMain(int passNum)
 	PG_SETMASK(&UnBlockSig);
 
 	StartupXLOG();
+
+	BuildFlatFiles(false);
 
 	/*
 	 * Exit normally. Exit code 0 tells postmaster that we completed
