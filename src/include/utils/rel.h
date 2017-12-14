@@ -28,8 +28,6 @@
 #include "storage/relfilenode.h"
 #include "utils/relcache.h"
 
-#include "catalog/gp_persistent.h"
-
 
 /*
  * LockRelId and LockInfo really belong to lmgr.h, but it's more convenient

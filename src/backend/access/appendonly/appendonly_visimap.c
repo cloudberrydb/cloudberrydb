@@ -12,12 +12,14 @@
  *------------------------------------------------------------------------------
 */
 #include "postgres.h"
+
 #include "access/appendonly_visimap.h"
 #include "access/appendonly_visimap_entry.h"
 #include "access/appendonly_visimap_store.h"
 #include "access/appendonlytid.h"
-#include "cdb/cdbappendonlyblockdirectory.h"
 #include "access/hash.h"
+#include "cdb/cdbappendonlyblockdirectory.h"
+#include "storage/fd.h"
 #include "utils/guc.h"
 #include "utils/memutils.h"
 

@@ -1006,7 +1006,6 @@ PostmasterMain(int argc, char *argv[])
 				 * 3. TODO: disable the 4.1 xlog format (stick with the old)
 				 */
 				SetConfigOption("upgrade_mode",                         "true", PGC_POSTMASTER, PGC_S_ARGV);
-				SetConfigOption("gp_permit_persistent_metadata_update", "true", PGC_POSTMASTER, PGC_S_ARGV);
 				SetConfigOption("allow_segment_DML",  		            "true", PGC_POSTMASTER, PGC_S_ARGV);
 				SetConfigOption("allow_system_table_mods",              "all",  PGC_POSTMASTER, PGC_S_ARGV);
 				break;

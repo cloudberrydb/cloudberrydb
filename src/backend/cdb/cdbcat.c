@@ -16,6 +16,7 @@
 #include "postgres.h"
 
 #include "access/genam.h"
+#include "catalog/indexing.h"
 #include "catalog/pg_exttable.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/gp_policy.h"

@@ -23,6 +23,7 @@
 #include "cdb/cdbtimer.h"
 #include "miscadmin.h"
 #include "postmaster/postmaster.h"
+#include "storage/fd.h"
 #include "utils/guc.h"
 
 #define DUMP_PREFIX (dump_prefix==NULL?"":dump_prefix)

@@ -33,6 +33,8 @@
 #include "utils/memutils.h"
 #include "utils/guc.h"
 
+#include "catalog/indexing.h"
+
 
 /* Working state for btbuild and its callback */
 typedef struct
@@ -322,30 +324,6 @@ _bt_validate_vacuum(Relation irel, Relation hrel, TransactionId oldest_xmin)
 							elog(ERROR,
 								 "btvalidatevacuum: index oid(%d) != heap oid(%d)"
 								 " tuple (%d,%d) index %s", ioid, hoid,
-								 ItemPointerGetBlockNumber(&itup->t_tid),
-								 ItemPointerGetOffsetNumber(&itup->t_tid),
-								 RelationGetRelationName(irel));
-						}
-						break;
-					case GpRelationNodeOidIndexId:
-						hoid = heap_getattr(&htup, 1, RelationGetDescr(hrel), &isnull);
-						ioid = index_getattr(itup, 1, RelationGetDescr(irel), &isnull);
-						if (hoid != ioid)
-						{
-							elog(ERROR,
-								 "btvalidatevacuum: index oid(%d) != heap oid(%d)"
-								 " tuple (%d,%d) index %s", ioid, hoid,
-								 ItemPointerGetBlockNumber(&itup->t_tid),
-								 ItemPointerGetOffsetNumber(&itup->t_tid),
-								 RelationGetRelationName(irel));
-						}
-						int4 hsegno = heap_getattr(&htup, 2, RelationGetDescr(hrel), &isnull);
-						int4 isegno = index_getattr(itup, 2, RelationGetDescr(irel), &isnull);
-						if (isegno != hsegno)
-						{
-							elog(ERROR,
-								 "btvalidatevacuum: index segno(%d) != heap segno(%d)"
-								 " tuple (%d,%d) index %s", isegno, hsegno,
 								 ItemPointerGetBlockNumber(&itup->t_tid),
 								 ItemPointerGetOffsetNumber(&itup->t_tid),
 								 RelationGetRelationName(irel));

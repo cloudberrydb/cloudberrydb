@@ -408,16 +408,3 @@ Feature: gpcheckcat tests
         Then gpcheckcat should print "Name of test which found this issue: dependency_pg_type" to stdout
         Then gpcheckcat should print "Table pg_type has a dependency issue on oid .* at content 0" to stdout
         And the user runs "dropdb gpcheckcat_dependency"
-
-    @persistent
-    Scenario: gpcheckcat should report persistence errors # we need to run this test at the end because it makes the database go into a PANIC state.
-        Given database "persistent_db" is dropped and recreated
-        And there is a "heap" table "myheaptable1" in "persistent_db" with data
-        And there is a "heap" table "myheaptable2" in "persistent_db" with data
-        And there is a "heap" table "myheaptable3" in "persistent_db" with data
-        And there is a "heap" table "myheaptable4" in "persistent_db" with data
-        And there is a "heap" table "myheaptable5" in "persistent_db" with data
-        And the user runs "psql persistent_db -c "select gp_delete_persistent_relation_node_entry(ctid) from (select ctid from gp_persistent_relation_node where relfilenode_oid=(select relfilenode from pg_class where relname = 'myheaptable2')) as unwanted;""
-        And the user runs "psql persistent_db -c "select gp_delete_persistent_relation_node_entry(ctid) from (select ctid from gp_persistent_relation_node where relfilenode_oid=(select relfilenode from pg_class where relname = 'myheaptable3')) as unwanted;""
-        When the user runs "gpcheckcat -R persistent persistent_db"
-        Then gpcheckcat should print "Failed test\(s\) that are not reported here: persistent" to stdout

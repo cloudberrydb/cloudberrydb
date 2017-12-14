@@ -23,6 +23,7 @@
 #include "catalog/pg_filespace.h"
 #include "catalog/pg_filespace_entry.h"
 #include "catalog/pg_proc.h"
+#include "catalog/indexing.h"
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"

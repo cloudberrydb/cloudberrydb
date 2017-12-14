@@ -4007,133 +4007,113 @@ lreplace:;
 	if (resultRelationDesc->rd_att->constr)
 		ExecConstraints(resultRelInfo, slot, estate);
 
-	if (!GpPersistent_IsPersistentRelation(resultRelationDesc->rd_id))
+	/*
+	 * replace the heap tuple
+	 *
+	 * Note: if es_crosscheck_snapshot isn't InvalidSnapshot, we check that
+	 * the row to be updated is visible to that snapshot, and throw a can't-
+	 * serialize error if not.	This is a special-case behavior needed for
+	 * referential integrity updates in serializable transactions.
+	 */
+	if (rel_is_heap)
 	{
-		/*
-		 * Normal UPDATE path.
-		 */
+		HeapTuple tuple;
 
-		/*
-		 * replace the heap tuple
-		 *
-		 * Note: if es_crosscheck_snapshot isn't InvalidSnapshot, we check that
-		 * the row to be updated is visible to that snapshot, and throw a can't-
-		 * serialize error if not.	This is a special-case behavior needed for
-		 * referential integrity updates in serializable transactions.
-		 */
-		if (rel_is_heap)
-		{
-			HeapTuple tuple;
+		tuple = ExecMaterializeSlot(slot);
 
-			tuple = ExecMaterializeSlot(slot);
-
-			result = heap_update(resultRelationDesc, tupleid, tuple,
+		result = heap_update(resultRelationDesc, tupleid, tuple,
 							 &update_ctid, &update_xmax,
 							 estate->es_output_cid,
 							 estate->es_crosscheck_snapshot,
 							 true /* wait for commit */ );
-			lastTid = tuple->t_self;
-			wasHotUpdate = HeapTupleIsHeapOnly(tuple) != 0;
-		}
-		else if (rel_is_aorows)
-		{
-			MemTuple mtuple;
+		lastTid = tuple->t_self;
+		wasHotUpdate = HeapTupleIsHeapOnly(tuple) != 0;
+	}
+	else if (rel_is_aorows)
+	{
+		MemTuple mtuple;
 
-			if (IsXactIsoLevelSerializable)
-			{
-				ereport(ERROR,
+		if (IsXactIsoLevelSerializable)
+		{
+			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					errmsg("Updates on append-only tables are not supported in serializable transactions.")));
-			}
-
-			if (resultRelInfo->ri_updateDesc == NULL)
-			{
-				ResultRelInfoSetSegno(resultRelInfo, estate->es_result_aosegnos);
-				resultRelInfo->ri_updateDesc = (AppendOnlyUpdateDesc)
-					appendonly_update_init(resultRelationDesc, GetActiveSnapshot(), resultRelInfo->ri_aosegno);
-			}
-
-			mtuple = ExecFetchSlotMemTuple(slot, false);
-
-			result = appendonly_update(resultRelInfo->ri_updateDesc,
-									   mtuple, (AOTupleId *) tupleid, (AOTupleId *) &lastTid);
-			wasHotUpdate = false;
+					 errmsg("Updates on append-only tables are not supported in serializable transactions.")));
 		}
-		else if (rel_is_aocols)
+
+		if (resultRelInfo->ri_updateDesc == NULL)
 		{
-			if (IsXactIsoLevelSerializable)
-			{
-				ereport(ERROR,
+			ResultRelInfoSetSegno(resultRelInfo, estate->es_result_aosegnos);
+			resultRelInfo->ri_updateDesc = (AppendOnlyUpdateDesc)
+				appendonly_update_init(resultRelationDesc, GetActiveSnapshot(), resultRelInfo->ri_aosegno);
+		}
+
+		mtuple = ExecFetchSlotMemTuple(slot, false);
+
+		result = appendonly_update(resultRelInfo->ri_updateDesc,
+								   mtuple, (AOTupleId *) tupleid, (AOTupleId *) &lastTid);
+		wasHotUpdate = false;
+	}
+	else if (rel_is_aocols)
+	{
+		if (IsXactIsoLevelSerializable)
+		{
+			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					errmsg("Updates on append-only tables are not supported in serializable transactions.")));
-			}
-
-			if (resultRelInfo->ri_updateDesc == NULL)
-			{
-				ResultRelInfoSetSegno(resultRelInfo, estate->es_result_aosegnos);
-				resultRelInfo->ri_updateDesc = (AppendOnlyUpdateDesc)
-					aocs_update_init(resultRelationDesc, resultRelInfo->ri_aosegno);
-			}
-			result = aocs_update(resultRelInfo->ri_updateDesc,
-								 slot, (AOTupleId *) tupleid, (AOTupleId *) &lastTid);
-			wasHotUpdate = false;
+					 errmsg("Updates on append-only tables are not supported in serializable transactions.")));
 		}
-		else
+
+		if (resultRelInfo->ri_updateDesc == NULL)
 		{
-			elog(ERROR, "invalid relation type");
+			ResultRelInfoSetSegno(resultRelInfo, estate->es_result_aosegnos);
+			resultRelInfo->ri_updateDesc = (AppendOnlyUpdateDesc)
+				aocs_update_init(resultRelationDesc, resultRelInfo->ri_aosegno);
 		}
-
-		switch (result)
-		{
-			case HeapTupleSelfUpdated:
-				/* already deleted by self; nothing to do */
-				return;
-
-			case HeapTupleMayBeUpdated:
-				break;
-
-			case HeapTupleUpdated:
-				if (IsXactIsoLevelSerializable)
-					ereport(ERROR,
-							(errcode(ERRCODE_T_R_SERIALIZATION_FAILURE),
-							 errmsg("could not serialize access due to concurrent update")));
-				else if (!ItemPointerEquals(tupleid, &update_ctid))
-				{
-					TupleTableSlot *epqslot;
-
-					Assert(update_xmax != InvalidTransactionId);
-
-					epqslot = EvalPlanQual(estate,
-										   resultRelInfo->ri_RangeTableIndex,
-										   &update_ctid,
-										   update_xmax);
-					if (!TupIsNull(epqslot))
-					{
-						*tupleid = update_ctid;
-						slot = ExecFilterJunk(estate->es_junkFilter, epqslot);
-						goto lreplace;
-					}
-				}
-				/* tuple already deleted; nothing to do */
-				return;
-
-			default:
-				elog(ERROR, "unrecognized heap_update status: %u", result);
-				return;
-		}
+		result = aocs_update(resultRelInfo->ri_updateDesc,
+							 slot, (AOTupleId *) tupleid, (AOTupleId *) &lastTid);
+		wasHotUpdate = false;
 	}
 	else
 	{
-		HeapTuple persistentTuple;
+		elog(ERROR, "invalid relation type");
+	}
 
-		/*
-		 * Persistent metadata path.
-		 */
-		persistentTuple = ExecMaterializeSlot(slot);
-		persistentTuple->t_self = *tupleid;
+	switch (result)
+	{
+		case HeapTupleSelfUpdated:
+			/* already deleted by self; nothing to do */
+			return;
 
-		frozen_heap_inplace_update(resultRelationDesc, persistentTuple);
-		wasHotUpdate = false;
+		case HeapTupleMayBeUpdated:
+			break;
+
+		case HeapTupleUpdated:
+			if (IsXactIsoLevelSerializable)
+				ereport(ERROR,
+						(errcode(ERRCODE_T_R_SERIALIZATION_FAILURE),
+						 errmsg("could not serialize access due to concurrent update")));
+			else if (!ItemPointerEquals(tupleid, &update_ctid))
+			{
+				TupleTableSlot *epqslot;
+
+				Assert(update_xmax != InvalidTransactionId);
+
+				epqslot = EvalPlanQual(estate,
+									   resultRelInfo->ri_RangeTableIndex,
+									   &update_ctid,
+									   update_xmax);
+				if (!TupIsNull(epqslot))
+				{
+					*tupleid = update_ctid;
+					slot = ExecFilterJunk(estate->es_junkFilter, epqslot);
+					goto lreplace;
+				}
+			}
+			/* tuple already deleted; nothing to do */
+			return;
+
+		default:
+			elog(ERROR, "unrecognized heap_update status: %u", result);
+			return;
 	}
 
 	(estate->es_processed)++;

@@ -4220,7 +4220,6 @@ process_postgres_switches(int argc, char *argv[], GucContext ctx,
 				 * 3. TODO: disable the 4.1 xlog format (stick with the old)
 				 */
 				SetConfigOption("upgrade_mode",                         "true", ctx, gucsource);
-				SetConfigOption("gp_permit_persistent_metadata_update", "true", ctx, gucsource);
 				SetConfigOption("allow_segment_DML",  		            "true", ctx, gucsource);
 				SetConfigOption("allow_system_table_mods",              "all",  ctx, gucsource);
 				break;

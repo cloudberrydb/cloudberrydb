@@ -22,6 +22,7 @@
 #include "utils/memutils.h"
 #include "catalog/pg_authid.h"
 #include "utils/fmgroids.h"		/* include this before pg_am.h, for Am_btree */
+#include "catalog/gp_global_sequence.h"
 #include "catalog/pg_am.h"
 #include "catalog/pg_class.h"
 #include "catalog/pg_index.h"
@@ -46,24 +47,6 @@ DirectOpenDefineStatic(DirectOpen_PgClass, \
 					   DatabaseInfo_PgClassPgClass, \
 					   DatabaseInfo_PgClassAttrArray, \
 					   true);
-
-/*
- * gp_relation_node.
- */
-
-static FormData_pg_class
-			DatabaseInfo_GpRelationNodePgClass =
-{Class_gp_relation_node};
-
-static FormData_pg_attribute
-			DatabaseInfo_GpRelationNodeAttrArray[Natts_gp_relation_node] =
-{Schema_gp_relation_node};
-
-DirectOpenDefineStatic(DirectOpen_GpRelationNode, \
-					   DatabaseInfo_GpRelationNodePgClass, \
-					   DatabaseInfo_GpRelationNodeAttrArray, \
-					   false);
-
 
 /*
  * pg_appendonly.
@@ -128,117 +111,6 @@ DirectOpenDefineStatic(DirectOpen_GpGlobalSequence, \
 					   GlobalSequence_PgClass, \
 					   GlobalSequence_AttrArray, \
 					   false);
-
-/*
- * gp_persistent_relation_node.
- */
-static FormData_pg_class
-			PersistentFileSysObj_RelationPgClass =
-{Class_gp_persistent_relation_node};
-
-static FormData_pg_attribute
-			PersistentFileSysObj_RelationAttrArray[Natts_gp_persistent_relation_node] =
-{Schema_gp_persistent_relation_node};
-
-DirectOpenDefineStatic(DirectOpen_GpPersistentRelationNode, \
-					   PersistentFileSysObj_RelationPgClass, \
-					   PersistentFileSysObj_RelationAttrArray, \
-					   false);
-
-
-/*
- * gp_persistent_database_node.
- */
-static FormData_pg_class
-			PersistentFileSysObj_DatabasePgClass =
-{Class_gp_persistent_database_node};
-
-static FormData_pg_attribute
-			PersistentFileSysObj_DatabaseAttrArray[Natts_gp_persistent_database_node] =
-{Schema_gp_persistent_database_node};
-
-DirectOpenDefineStatic(DirectOpen_GpPersistentDatabaseNode, \
-					   PersistentFileSysObj_DatabasePgClass, \
-					   PersistentFileSysObj_DatabaseAttrArray, \
-					   false);
-
-/*
- * This HUGE MAGIC DEFINE expands into module globals and two routines:
- *     PersistentFileSysObj_TablespaceOpenShared
- *     PersistentFileSysObj_TablespaceClose
- * It allows for opening the relation without going through pg_class, etc.
- */
-static FormData_pg_class
-			PersistentFileSysObj_TablespacePgClass =
-{Class_gp_persistent_tablespace_node};
-
-static FormData_pg_attribute
-			PersistentFileSysObj_TablespaceAttrArray[Natts_gp_persistent_tablespace_node] =
-{Schema_gp_persistent_tablespace_node};
-
-DirectOpenDefineStatic(DirectOpen_GpPersistentTableSpaceNode, \
-					   PersistentFileSysObj_TablespacePgClass, \
-					   PersistentFileSysObj_TablespaceAttrArray, \
-					   false);
-
-
-/*
- * This HUGE MAGIC DEFINE expands into module globals and two routines:
- *     PersistentFileSysObj_FilespaceOpenShared
- *     PersistentFileSysObj_FilespaceClose
- * It allows for opening the relation without going through pg_class, etc.
- */
-static FormData_pg_class
-			PersistentFileSysObj_FilespacePgClass =
-{Class_gp_persistent_filespace_node};
-
-static FormData_pg_attribute
-			PersistentFileSysObj_FilespaceAttrArray[Natts_gp_persistent_filespace_node] =
-{Schema_gp_persistent_filespace_node};
-
-DirectOpenDefineStatic(DirectOpen_GpPersistentFileSpaceNode, \
-					   PersistentFileSysObj_FilespacePgClass, \
-					   PersistentFileSysObj_FilespaceAttrArray, \
-					   false);
-
-/*  INDEX Variants */
-
-
-/*
- * gp_relation_node_index.
- */
-
-static FormData_pg_class
-			DatabaseInfo_GpRelationNodeIndexPgClass =
-{Class_gp_relation_node_index};
-
-static FormData_pg_attribute
-			DatabaseInfo_GpRelationNodeIndexAttrArray[Natts_gp_relation_node_index] =
-{Schema_gp_relation_node_index};
-
-static FormData_pg_am
-			DatabaseInfo_GpRelationNodeIndexPgAm =
-{Am_gp_relation_node_index};
-
-static FormData_pg_index
-			DatabaseInfo_GpRelationNodeIndexPgIndex =
-{Index_gp_relation_node_index};
-
-static int2 DatabaseInfo_GpRelationNodeIndexIndKeyArray[Natts_gp_relation_node_index] =
-{IndKey_gp_relation_node_index};
-
-static Oid	DatabaseInfo_GpRelationNodeIndexIndClassArray[Natts_gp_relation_node_index] =
-{IndClass_gp_relation_node_index};
-
-DirectOpenIndexDefineStatic(DirectOpen_GpRelationNodeIndex, \
-							DatabaseInfo_GpRelationNodeIndexPgClass, \
-							DatabaseInfo_GpRelationNodeIndexAttrArray, \
-							DatabaseInfo_GpRelationNodeIndexPgAm, \
-							DatabaseInfo_GpRelationNodeIndexPgIndex, \
-							DatabaseInfo_GpRelationNodeIndexIndKeyArray, \
-							DatabaseInfo_GpRelationNodeIndexIndClassArray, \
-							false);
-
 
 Relation
 DirectOpen_Open(

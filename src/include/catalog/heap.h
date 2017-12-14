@@ -17,7 +17,6 @@
 #define HEAP_H
 
 #include "parser/parse_node.h"
-#include "catalog/gp_persistent.h"
 #include "catalog/indexing.h"
 
 /*

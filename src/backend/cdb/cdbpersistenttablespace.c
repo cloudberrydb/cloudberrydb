@@ -21,7 +21,6 @@
 #include "access/persistentfilesysobjname.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
-#include "catalog/gp_persistent.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_tablespace.h"

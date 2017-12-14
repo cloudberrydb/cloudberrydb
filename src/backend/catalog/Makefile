@@ -22,7 +22,7 @@ OBJS = catalog.o dependency.o heap.o index.o indexing.o namespace.o aclchk.o \
        pg_proc_callback.o \
        aoseg.o aoblkdir.o gp_fastsequence.o gp_segment_config.o \
        pg_attribute_encoding.o pg_compression.o aovisimap.o \
-       gp_global_sequence.o gp_persistent.o pg_appendonly.o \
+       gp_global_sequence.o pg_appendonly.o \
        oid_dispatch.o aocatalog.o zstd_compression.o $(QUICKLZ_COMPRESSION)
 
 BKIFILES = postgres.bki postgres.description postgres.shdescription
@@ -56,7 +56,7 @@ POSTGRES_BKI_SRCS := $(addprefix $(top_srcdir)/src/include/catalog/, \
 	pg_exttable.h pg_appendonly.h aoseg.h \
 	gp_fastsequence.h pg_extprotocol.h \
 	pg_partition.h pg_partition_rule.h pg_filespace.h pg_filespace_entry.h \
-	gp_global_sequence.h gp_persistent.h \
+	gp_global_sequence.h \
 	pg_attribute_encoding.h \
 	pg_auth_time_constraint.h \
 	pg_compression.h \

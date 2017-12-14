@@ -26,7 +26,6 @@
 
 #include "access/heapam.h"
 #include "catalog/catalog.h"
-#include "catalog/gp_persistent.h"
 #include "catalog/pg_tablespace.h"
 #include "cdb/cdbglobalsequence.h"
 #include "executor/executor.h"

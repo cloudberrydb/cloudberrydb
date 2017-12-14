@@ -82,7 +82,7 @@
 #include "utils/syscache.h"
 #include "utils/tqual.h"
 
-#include "catalog/gp_persistent.h"
+#include "catalog/gp_global_sequence.h"
 #include "cdb/cdbpartition.h"
 #include "cdb/cdbsreh.h"
 #include "cdb/cdbvars.h"
@@ -1279,22 +1279,6 @@ heap_create_with_catalog(const char *relname,
 		 */
 		switch (relid)
 		{
-			case GpPersistentRelationNodeRelationId:
-				existing_rowtype_oid = GP_PERSISTENT_RELATION_NODE_OID;
-				break;
-			case GpPersistentDatabaseNodeRelationId:
-				existing_rowtype_oid = GP_PERSISTENT_DATABASE_NODE_OID;
-				break;
-			case GpPersistentTablespaceNodeRelationId:
-				existing_rowtype_oid = GP_PERSISTENT_TABLESPACE_NODE_OID;
-				break;
-			case GpPersistentFilespaceNodeRelationId:
-				existing_rowtype_oid = GP_PERSISTENT_FILESPACE_NODE_OID;
-				break;
-			case GpRelationNodeRelationId:
-				existing_rowtype_oid = GP_RELATION_NODE_OID;
-				break;
-
 			case GpGlobalSequenceRelationId:
 				existing_rowtype_oid = GP_GLOBAL_SEQUENCE_RELTYPE_OID;
 				break;
@@ -3355,8 +3339,8 @@ should_have_valid_relfrozenxid(Oid oid, char relkind, char relstorage)
 				return false;
 			}
 
-			/* Persistent tables' always store tuples with forzenXid. */
-			if (GpPersistent_IsPersistentRelation(oid))
+			/* gp_global_sequence always stores tuples with frozenXid. */
+			if (oid == GpGlobalSequenceRelationId)
 				return false;
 
 			return true;

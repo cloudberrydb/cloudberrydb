@@ -17,7 +17,6 @@
 #include "cdb/cdbglobalsequence.h"
 
 #include "catalog/catalog.h"
-#include "catalog/gp_persistent.h"
 #include "cdb/cdbdirectopen.h"
 
 #include "storage/itemptr.h"

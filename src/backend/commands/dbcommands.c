@@ -74,7 +74,6 @@
 #include "cdb/cdbmirroredappendonly.h"
 #include "cdb/cdbmirroredbufferpool.h"
 #include "cdb/cdbmirroredflatfile.h"
-#include "cdb/cdbdatabaseinfo.h"
 #include "cdb/cdbdirectopen.h"
 
 #include "utils/pg_rusage.h"

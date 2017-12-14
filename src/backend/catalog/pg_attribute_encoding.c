@@ -19,6 +19,7 @@
 #include "access/genam.h"
 #include "access/reloptions.h"
 #include "access/xact.h"
+#include "catalog/indexing.h"
 #include "catalog/pg_attribute_encoding.h"
 #include "catalog/pg_compression.h"
 #include "catalog/dependency.h"

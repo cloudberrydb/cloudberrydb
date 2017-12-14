@@ -8,6 +8,7 @@
 #include "postmaster/bgwriter.h"
 #include "replication/walsender_private.h"
 #include "replication/walsender.h"
+#include "storage/fd.h"
 #include "utils/builtins.h"
 #include "utils/hsearch.h"
 

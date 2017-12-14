@@ -2949,46 +2949,6 @@ pg_class_aclmask(Oid table_oid, Oid roleid,
 #endif
 			mask &= ~(ACL_INSERT | ACL_UPDATE | ACL_DELETE | ACL_TRUNCATE | ACL_USAGE);
 		}
-
-		/* 
-		 * Deny even superusers with rolcatupdate permissions to modify the
-		 * persistent tables.  These tables are special and rely on precise
-		 * settings of the ctids within the tables, attempting to modify these
-		 * tables via INSERT/UPDATE/DELETE is a mistake.
-		 */
-		if (GpPersistent_IsPersistentRelation(table_oid))
-		{
-			if ((mask & ACL_UPDATE) &&
-				gp_permit_persistent_metadata_update)
-			{
-				// Let this UPDATE through.
-			}
-			else
-			{
-#ifdef ACLDEBUG
-				elog(DEBUG2, "permission denied for persistent system catalog update");
-#endif
-				mask &= ~(ACL_INSERT | ACL_UPDATE | ACL_DELETE | ACL_TRUNCATE | ACL_USAGE);
-			}
-		}
-
-		/*
-		 * And, gp_relation_node, too.
-		 */
-		if (table_oid == GpRelationNodeRelationId)
-		{
-			if (gp_permit_relation_node_change)
-			{
-				// Let this change through.
-			}
-			else
-			{
-#ifdef ACLDEBUG
-				elog(DEBUG2, "permission denied for gp_relation_node system catalog update");
-#endif
-				mask &= ~(ACL_INSERT | ACL_UPDATE | ACL_DELETE | ACL_TRUNCATE | ACL_USAGE);
-			}
-		}
 	}
 
 	/*

@@ -215,8 +215,6 @@ extern bool gp_crash_recovery_abort_suppress_fatal;
 extern bool gp_persistent_statechange_suppress_error;
 extern bool Debug_bitmap_print_insert;
 extern bool Test_appendonly_override;
-extern bool	gp_permit_persistent_metadata_update;
-extern bool gp_permit_relation_node_change;
 extern bool enable_checksum_on_tables;
 extern int  Test_compresslevel_override;
 extern bool Master_mirroring_administrator_disable;

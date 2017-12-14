@@ -1567,16 +1567,6 @@ get_rel_oids(Oid relid, VacuumStmt *vacstmt, const char *stmttype)
 					classForm->relstorage == RELSTORAGE_VIRTUAL))
 				continue;
 
-			/* Skip persistent tables for Vacuum full. Vacuum full could turn
-			 * out dangerous as it has potential to move tuples around causing
-			 * the TIDs for tuples to change, which violates its reference from
-			 * gp_relation_node. One scenario where this can happen is zero-page
-			 * due to failure after page extension but before page initialization.
-			 */
-			if (vacstmt->full &&
-				GpPersistent_IsPersistentRelation(HeapTupleGetOid(tuple)))
-				continue;
-
 			/* Make a relation list entry for this guy */
 			candidateOid = HeapTupleGetOid(tuple);
 
@@ -5560,11 +5550,10 @@ open_relation_and_check_permission(VacuumStmt *vacstmt,
 	 * seems safer to check after we've locked the relation.
 	 */
 	if (onerel->rd_rel->relkind != expected_relkind ||
-		RelationIsExternal(onerel) ||
-		(vacstmt->full && GpPersistent_IsPersistentRelation(RelationGetRelid(onerel))))
+		RelationIsExternal(onerel))
 	{
 		ereport(WARNING,
-				(errmsg("skipping \"%s\" --- cannot vacuum indexes, views, external tables, or special system tables",
+				(errmsg("skipping \"%s\" --- cannot vacuum indexes, views or external tables",
 						RelationGetRelationName(onerel))));
 		relation_close(onerel, lmode);
 		return NULL;

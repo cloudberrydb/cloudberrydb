@@ -24,6 +24,7 @@
 #include "access/heapam.h"
 #include "access/xact.h"
 #include "catalog/gp_segment_config.h"
+#include "catalog/indexing.h"
 #include "catalog/pg_authid.h"
 #include "libpq/pqsignal.h"
 #include "miscadmin.h"

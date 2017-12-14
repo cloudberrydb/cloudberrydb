@@ -1,9 +1,11 @@
 #include "postgres.h"
+
 #include "funcapi.h"
 #include "miscadmin.h"
 
 #include "access/heapam.h"
 #include "access/genam.h"
+#include "catalog/indexing.h"
 #include "cdb/cdbvars.h"
 #include "libpq/ip.h"
 #include "postmaster/postmaster.h"

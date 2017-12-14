@@ -14,6 +14,7 @@
  */
 #include "postgres.h"
 
+#include "catalog/indexing.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_namespace.h"
 #include "commands/alter.h"

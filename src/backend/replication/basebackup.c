@@ -23,6 +23,7 @@
 #include "access/xlog_internal.h"		/* for pg_start/stop_backup */
 #include "cdb/cdbvars.h"
 #include "catalog/catalog.h"
+#include "catalog/indexing.h"
 #include "catalog/pg_database.h"
 #include "catalog/pg_filespace.h"
 #include "catalog/pg_filespace_entry.h"
