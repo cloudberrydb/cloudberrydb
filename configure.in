@@ -233,7 +233,7 @@ AC_SUBST(enable_pxf)
 #
 # gphdfs
 #
-PGAC_ARG_BOOL(enable, gphdfs, yes,
+PGAC_ARG_BOOL(enable, gphdfs, no,
              [do not build gphdfs])
 AC_SUBST(enable_gphdfs)
 

@@ -1542,7 +1542,7 @@ Optional Features:
   --disable-atomics       do not use atomic operations
   --disable-gpfdist       do not use gpfdist
   --disable-pxf           do not build pxf
-  --disable-gphdfs        do not build gphdfs
+  --enable-gphdfs         do not build gphdfs
   --enable-gpperfmon      build with gpperfmon
   --enable-debug          build with debugging symbols (-g)
   --enable-profiling      build with profiling enabled
@@ -3638,7 +3638,7 @@ if test "${enable_gphdfs+set}" = set; then :
   esac
 
 else
-  enable_gphdfs=yes
+  enable_gphdfs=no
 
 fi
 
