@@ -68,14 +68,6 @@ class GpExpand(GpTestCase):
         sys.argv = self.old_sys_argv
         super(GpExpand, self).tearDown()
 
-    def test_PrepFileSpaces_issues_correct_postgres_command(self):
-        prep_file_spaces = self.subject.PrepFileSpaces("name", [""], [""], "foo", 1, 1)
-
-        self.assertIn("--gp_contentid=", prep_file_spaces.cmdStr)
-        self.assertIn("--gp_num_contents_in_cluster=", prep_file_spaces.cmdStr)
-        self.assertIn("--gp_dbid=", prep_file_spaces.cmdStr)
-
-
     # @patch('gpexpand.PgControlData.return_value.get_value', side_effect=[1, 1, 0])
     def test_validate_heap_checksums_aborts_when_cluster_inconsistent(self):
         self.options.filename = '/tmp/doesnotexist' # Replacement of the sys.argv

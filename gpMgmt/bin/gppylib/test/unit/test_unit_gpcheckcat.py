@@ -319,15 +319,5 @@ class GpCheckCatTestCase(GpTestCase):
                 self.num_joins = 0
                 self.num_starts = 0
 
-        with patch('gpcheckcat.execThread') as mock_execThread:
-            mock_execThread.return_value.cfg = self.subject.GV.cfg[0]
-            mock_execThread.return_value.join.side_effect = count_joins
-            mock_execThread.return_value.start.side_effect = count_starts
-            self.subject.runOneCheck('persistent')
-
-            self.assertTrue(self.num_batches > 0)
-            if self.is_remainder_case:
-                self.assertTrue(self.num_joins < BATCH_SIZE)
-
 if __name__ == '__main__':
     run_tests()
