@@ -122,6 +122,8 @@ extern void MirroredAppendOnly_Truncate(
 
 extern void ao_create_segfile_replay(XLogRecord *record);
 extern void ao_insert_replay(XLogRecord *record);
+extern void xlog_ao_insert(RelFileNode relFileNode, int32 segmentFileNum,
+			   int64 offset, void *buffer, int32 bufferLen);
 extern void xlog_ao_truncate(MirroredAppendOnlyOpen *open, int64 offset);
 extern void ao_truncate_replay(XLogRecord *record);
 

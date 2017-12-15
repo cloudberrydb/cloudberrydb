@@ -270,6 +270,15 @@ AppendOnlyStorageWrite_TransactionCreateFile(AppendOnlyStorageWrite *storageWrit
 	// exists already. That's currently OK, but in the future, other things
 	// might depend on the isRedo flag, like whether to WAL-log the creation.
 	smgrcreate_ao(*relFileNode, segmentFileNum, true);
+
+	/*
+	 * Create a WAL record, so that the segfile is also created after crash or
+	 * in possible standby server. Not strictly necessarily, because a 0-length
+	 * segfile and a non-existent segfile are treated the same. But the
+	 * gp_replica_check tool, to compare primary and mirror, will complain if
+	 * a file exists in master but not in mirror, even if it's empty.
+	 */
+	xlog_ao_insert(*relFileNode, segmentFileNum, 0, NULL, 0);
 }
 
 /*

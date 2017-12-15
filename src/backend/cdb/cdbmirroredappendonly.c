@@ -34,8 +34,6 @@
 #include "access/xlogutils.h"
 #include "cdb/cdbappendonlyam.h"
 
-static void xlog_ao_insert(MirroredAppendOnlyOpen *open, int64 offset,
-						   void *buffer, int32 bufferLen);
 
 /*
  * Flush and close a bulk relation file.
@@ -199,7 +197,7 @@ MirroredAppendOnly_Append(
 		 * controls the visibility of data in AO / CO files, writing xlog
 		 * record after writing to file works fine.
 		 */
-		xlog_ao_insert(open, offset, buffer, bufferLen);
+		xlog_ao_insert(open->relFileNode, open->segmentFileNum, offset, buffer, bufferLen);
 	}
 	/* Keep reporting-- it may have occurred anytime during the open session. */
 
@@ -231,27 +229,36 @@ MirroredAppendOnly_Truncate(
 }
 
 /*
- * Insert an AO XLOG/AOCO record
+ * Insert an AO XLOG/AOCO record.
+ *
+ * This is also used with 0 length, to mark creation of a new segfile.
  */
-static void xlog_ao_insert(MirroredAppendOnlyOpen *open, int64 offset,
-						   void *buffer, int32 bufferLen)
+void
+xlog_ao_insert(RelFileNode relFileNode, int32 segmentFileNum,
+			   int64 offset, void *buffer, int32 bufferLen)
 {
 	xl_ao_insert	xlaoinsert;
 	XLogRecData		rdata[2];
 
-	xlaoinsert.target.node = open->relFileNode;
-	xlaoinsert.target.segment_filenum = open->segmentFileNum;
+	xlaoinsert.target.node = relFileNode;
+	xlaoinsert.target.segment_filenum = segmentFileNum;
 	xlaoinsert.target.offset = offset;
 
 	rdata[0].data = (char*) &xlaoinsert;
 	rdata[0].len = SizeOfAOInsert;
 	rdata[0].buffer = InvalidBuffer;
-	rdata[0].next = &(rdata[1]);
 
-	rdata[1].data = (char*) buffer;
-	rdata[1].len = bufferLen;
-	rdata[1].buffer = InvalidBuffer;
-	rdata[1].next = NULL;
+	if (bufferLen == 0)
+		rdata[0].next = NULL;
+	else
+	{
+		rdata[0].next = &(rdata[1]);
+
+		rdata[1].data = (char*) buffer;
+		rdata[1].len = bufferLen;
+		rdata[1].buffer = InvalidBuffer;
+		rdata[1].next = NULL;
+	}
 
 	XLogInsert(RM_APPEND_ONLY_ID, XLOG_APPENDONLY_INSERT, rdata);
 }
