@@ -10908,12 +10908,26 @@ GetXLogReplayRecPtr(TimeLineID *targetTLI)
 	/* use volatile pointer to prevent code rearrangement */
 	volatile XLogCtlData *xlogctl = XLogCtl;
 	XLogRecPtr	recptr;
+	uint32		freespace;
 
 	SpinLockAcquire(&xlogctl->info_lck);
 	recptr = xlogctl->lastReplayedEndRecPtr;
 	if (targetTLI)
 		*targetTLI = xlogctl->RecoveryTargetTLI;
 	SpinLockRelease(&xlogctl->info_lck);
+
+	/*
+	 * No more records fit on this page. Report the apply location
+	 * as the end of the page.
+	 *
+	 * GPDB_93_MERGE_FIXME: The need for this goes away in PG 9.3. After
+	 * commit 061e7efb1b, the page header can be split across pages, too.
+	 */
+	freespace = XLOG_BLCKSZ - (recptr.xrecoff % XLOG_BLCKSZ);
+	if (freespace < SizeOfXLogRecord)
+	{
+		XLByteAdvance(recptr, freespace);
+	}
 
 	return recptr;
 }
