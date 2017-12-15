@@ -598,9 +598,10 @@
                             <codeph>gptransfer</codeph> replicates the complete database schema,
                         including all tables, indexes, views, user defined types (UDT), and user
                         defined functions (UDF) for the source databases. No data is transferred. </pd>
-                    <pd>If you specify tables with the <codeph>-t</codeph> or <codeph>-f</codeph>
-                        option with <codeph>--schema-only</codeph>, <codeph>gptransfer</codeph>
-                        creates only the tables and indexes. No data is transferred. </pd>
+                    <pd>If you specify databases with the <codeph>-d</codeph> option or tables with
+                        the <codeph>-t</codeph> or <codeph>-f</codeph> options,
+                            <codeph>gptransfer</codeph> creates only the tables and indexes. No data
+                        is transferred.</pd>
                     <pd>Not valid with the <codeph>--partition-transfer</codeph>,
                             <codeph>--partition-transfer-non-partition-target</codeph>, or
                             <codeph>--truncate</codeph> options.<note>Because of the overhead
