@@ -5,6 +5,8 @@
 
 #include "../cdbmirroredappendonly.c"
 
+#include "catalog/pg_tablespace.h"
+
 static int
 check_relfilenode_function(const RelFileNode *value, const RelFileNode *check_value)
 {
