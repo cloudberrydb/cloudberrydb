@@ -41,13 +41,8 @@
  * un-mirrored bulk initial data.
  */
 void
-MirroredAppendOnly_Flush(
-						 MirroredAppendOnlyOpen *open,
- /* The open struct. */
-
-						 int *primaryError,
-
-						 bool *mirrorDataLossOccurred)
+MirroredAppendOnly_Flush(MirroredAppendOnlyOpen *open,
+						 int *primaryError)
 {
 	Assert(open != NULL);
 	Assert(open->isActive);
@@ -58,9 +53,6 @@ MirroredAppendOnly_Flush(
 	{
 		*primaryError = errno;
 	}
-
-	*mirrorDataLossOccurred = open->mirrorDataLossOccurred;
-	/* Keep reporting-- it may have occurred anytime during the open session. */
 }
 
 /*
@@ -68,11 +60,7 @@ MirroredAppendOnly_Flush(
  *
  */
 void
-MirroredAppendOnly_Close(
-						 MirroredAppendOnlyOpen *open,
- /* The open struct. */
-
-						 bool *mirrorDataLossOccurred)
+MirroredAppendOnly_Close(MirroredAppendOnlyOpen *open)
 {
 	Assert(open != NULL);
 	Assert(open->isActive);
@@ -82,16 +70,12 @@ MirroredAppendOnly_Close(
 
 	FileClose(open->primaryFile);
 
-	*mirrorDataLossOccurred = open->mirrorDataLossOccurred;
-	/* Keep reporting-- it may have occurred anytime during the open session. */
-
 	open->isActive = false;
 	open->primaryFile = 0;
 }
 
 void
-MirroredAppendOnly_Drop(
-						RelFileNode *relFileNode,
+MirroredAppendOnly_Drop(RelFileNode *relFileNode,
 						int32 segmentFileNum,
 						int *primaryError)
 {
@@ -210,20 +194,13 @@ MirroredAppendOnly_Truncate(
  /* The open struct. */
 							int64 position,
  /* The position to cutoff the data. */
-
-							int *primaryError,
-
-							bool *mirrorDataLossOccurred)
+							int *primaryError)
 {
 	*primaryError = 0;
-	*mirrorDataLossOccurred = false;
 
 	errno = 0;
 	if (FileTruncate(open->primaryFile, position) < 0)
 		*primaryError = errno;
-
-	*mirrorDataLossOccurred = open->mirrorDataLossOccurred;
-	/* Keep reporting-- it may have occurred anytime during the open session. */
 }
 
 /*

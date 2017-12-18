@@ -369,10 +369,7 @@ AppendOnlyStorageWrite_OpenFile(AppendOnlyStorageWrite *storageWrite,
 	seekResult = FileSeek(file, logicalEof, SEEK_SET);
 	if (seekResult != logicalEof)
 	{
-		bool		mirrorDataLossOccurred;
-
-		MirroredAppendOnly_Close(&storageWrite->bufferedAppend.mirroredOpen,
-								 &mirrorDataLossOccurred);
+		MirroredAppendOnly_Close(&storageWrite->bufferedAppend.mirroredOpen);
 
 		ereport(ERROR,
 				(errcode(ERRCODE_IO_ERROR),

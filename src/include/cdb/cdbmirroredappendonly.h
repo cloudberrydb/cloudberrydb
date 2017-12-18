@@ -38,22 +38,8 @@ typedef struct MirroredAppendOnlyOpen
 	
 	uint32		segmentFileNum;
 	
-	char		mirrorFilespaceLocation[MAXPGPATH+1];
-					// UNDONE: Consider palloc'ing this instead of statically allocating
-					// UNDONE: to use less stack space...
-	
-	
 	File		primaryFile;
 
-	bool						create;
-
-	bool						primaryOnlyToLetResynchronizeWork;
-	
-	bool						mirrorOnly;
-	
-	bool						copyToMirror;
-
-	bool						mirrorDataLossOccurred;
 } MirroredAppendOnlyOpen;
 
 // -----------------------------------------------------------------------------
@@ -63,22 +49,13 @@ typedef struct MirroredAppendOnlyOpen
 /*
  * Flush an Append-Only relation file.
  */
-extern void MirroredAppendOnly_Flush(
-	MirroredAppendOnlyOpen 		*open,
-				/* The open struct. */				
-
-	int 						*primaryError,
-	
-	bool						*mirrorDataLossOccurred);
+extern void MirroredAppendOnly_Flush(MirroredAppendOnlyOpen *open,
+									 int *primaryError);
 
 /*
  * Close an Append-Only relation file.
  */
-extern void MirroredAppendOnly_Close(
-	MirroredAppendOnlyOpen 	*open,
-				/* The open struct. */				
-
-	bool					*mirrorDataLossOccurred);
+extern void MirroredAppendOnly_Close(MirroredAppendOnlyOpen *open);
 
 
 extern void MirroredAppendOnly_Drop(
@@ -111,13 +88,9 @@ extern void MirroredAppendOnly_Append(
 extern void MirroredAppendOnly_Truncate(
 	MirroredAppendOnlyOpen *open,
 				/* The open struct. */
-	
 	int64		position,
 				/* The position to cutoff the data. */
-
-	int 		*primaryError,
-	
-	bool		*mirrorDataLossOccurred);
+	int 		*primaryError);
 
 extern void ao_create_segfile_replay(XLogRecord *record);
 extern void ao_insert_replay(XLogRecord *record);
