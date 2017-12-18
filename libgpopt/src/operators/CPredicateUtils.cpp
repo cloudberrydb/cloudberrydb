@@ -1227,6 +1227,30 @@ CPredicateUtils::FIdentINDFConstIgnoreCast
 	return FIdentCompareConstIgnoreCast((*pexpr)[0], COperator::EopScalarIsDistinctFrom);
 }
 
+// is the given expression a comparison between a scalar ident under a scalar cast and a constant array
+// +--CScalarArrayCmp Any (=)
+// |--CScalarCast
+// |  +--CScalarIdent
+// +--CScalarConstArray:
+BOOL
+CPredicateUtils::FCompareCastIdentToConstArray
+	(
+	CExpression *pexpr
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
+
+	if (CUtils::FScalarArrayCmp(pexpr) &&
+		(CCastUtils::FBinaryCoercibleCast((*pexpr)[0]) &&
+		 CUtils::FScalarIdent((*(*pexpr)[0])[0])))
+	{
+		CExpression *pexprArray = CUtils::PexprScalarArrayChild(pexpr);
+		return CUtils::FScalarConstArray(pexprArray);
+	}
+
+	return false;
+}
+
 // is the given expression a comparison between a scalar ident and a constant array
 BOOL
 CPredicateUtils::FCompareIdentToConstArray

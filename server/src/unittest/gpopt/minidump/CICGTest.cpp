@@ -41,6 +41,7 @@ ULONG CICGTest::m_ulNegativeIndexApplyTestCounter = 0;
 const CHAR *rgszFileNames[] =
 	{
 		"../data/dxl/minidump/LOJ-Condition-False.mdp",
+		"../data/dxl/minidump/FilterScalarCast.mdp",
 		"../data/dxl/minidump/FOJ-Condition-False.mdp",
 		"../data/dxl/minidump/ArrayCoerceExpr.mdp",
 		"../data/dxl/minidump/DisableLargeTableBroadcast.mdp",

@@ -906,12 +906,19 @@ CStatsPredUtils::ProcessArrayCmp
 	GPOS_ASSERT(NULL != pdrgpstatspred);
 	GPOS_ASSERT(NULL != pexprPred);
 	GPOS_ASSERT(2 == pexprPred->UlArity());
-
+	CExpression *pexprIdent = NULL;
 	CScalarArrayCmp *popScArrayCmp = CScalarArrayCmp::PopConvert(pexprPred->Pop());
-	CExpression *pexprIdent = (*pexprPred)[0];
+	if (CUtils::FScalarIdent((*pexprPred)[0]))
+	{
+		pexprIdent = (*pexprPred)[0];
+	}
+	else if (CCastUtils::FBinaryCoercibleCast((*pexprPred)[0]))
+	{
+		pexprIdent = (*(*pexprPred)[0])[0];
+	}
 	CExpression *pexprArray = CUtils::PexprScalarArrayChild(pexprPred);
 
-	BOOL fCompareToConst = CPredicateUtils::FCompareIdentToConstArray(pexprPred);
+	BOOL fCompareToConst = CPredicateUtils::FCompareIdentToConstArray(pexprPred) || CPredicateUtils::FCompareCastIdentToConstArray(pexprPred);
 
 	if (!fCompareToConst)
 	{

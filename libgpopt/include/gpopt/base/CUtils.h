@@ -736,7 +736,7 @@ namespace gpopt
 			// check if expression is scalar identifier
 			static
 			BOOL FScalarIdent(CExpression *pexpr);
-			
+
 			// check if expression is scalar identifier of boolean type
 			static
 			BOOL FScalarIdentBoolType(CExpression *pexpr);

@@ -177,7 +177,7 @@ namespace gpopt
 			// check if expression is an Is DISTINCT FROM FALSE expression
 			static
 			BOOL FIDFFalse(CExpression *pexpr);
- 
+
 			// is the given expression in the form (expr IS DISTINCT FROM expr)
 			static
 			BOOL FIDF(CExpression *pexpr);
@@ -216,6 +216,10 @@ namespace gpopt
 			// checks if comparison is between two columns, or a column and a const
 			static
 			BOOL FCompareColToConstOrCol(CExpression *pexprScalar);
+
+			// is the given expression a comparison between a scalar ident under a scalar cast and a constant array
+			static
+			BOOL FCompareCastIdentToConstArray(CExpression *pexpr);
 
 			// is the given expression a comparison between a scalar ident and a constant array
 			static
