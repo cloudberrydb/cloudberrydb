@@ -749,20 +749,6 @@ DESCR("Activate a standby");
 DATA(insert OID = 5035 ( gp_request_fts_probe_scan  PGNSP PGUID 12 1 0 0 f f f f f v 0 0 16 "" _null_ _null_ _null_ _null_ gp_request_fts_probe_scan _null_ _null_ _null_ n m ));
 DESCR("Request a FTS probe scan and wait for response");
 
-
-/* persistent table repair functions */
-/* gp_add_global_sequence_entry(tid, int8) => bool */
-DATA(insert OID = 5060 ( gp_add_global_sequence_entry  PGNSP PGUID 12 1 0 0 f f f f f v 2 0 16 "27 20" _null_ _null_ _null_ _null_ gp_add_global_sequence_entry _null_ _null_ _null_ n a ));
-DESCR("Add a new entry to gp_global_sequence");
-
-/* gp_update_global_sequence_entry(tid, int8) => bool */
-DATA(insert OID = 5066 ( gp_update_global_sequence_entry  PGNSP PGUID 12 1 0 0 f f f f f v 2 0 16 "27 20" _null_ _null_ _null_ _null_ gp_update_global_sequence_entry _null_ _null_ _null_ n a ));
-DESCR("Update an entry in gp_global_sequence");
-
-/* gp_delete_global_sequence_entry(tid) => bool */
-DATA(insert OID = 5072 ( gp_delete_global_sequence_entry  PGNSP PGUID 12 1 0 0 f f f f f v 1 0 16 "27" _null_ _null_ _null_ _null_ gp_delete_global_sequence_entry _null_ _null_ _null_ n a ));
-DESCR("Remove an entry from gp_global_sequence");
-
 /* cosh(float8) => float8 */
 DATA(insert OID = 3539 ( cosh  PGNSP PGUID 12 1 0 0 f f f f f i 1 0 701 "701" _null_ _null_ _null_ _null_ dcosh _null_ _null_ _null_ n a ));
 DESCR("Hyperbolic cosine function");

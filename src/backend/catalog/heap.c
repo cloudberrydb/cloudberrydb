@@ -82,7 +82,6 @@
 #include "utils/syscache.h"
 #include "utils/tqual.h"
 
-#include "catalog/gp_global_sequence.h"
 #include "cdb/cdbpartition.h"
 #include "cdb/cdbsreh.h"
 #include "cdb/cdbvars.h"
@@ -1260,10 +1259,6 @@ heap_create_with_catalog(const char *relname,
 		 */
 		switch (relid)
 		{
-			case GpGlobalSequenceRelationId:
-				existing_rowtype_oid = GP_GLOBAL_SEQUENCE_RELTYPE_OID;
-				break;
-
 			case DatabaseRelationId:
 				existing_rowtype_oid = PG_DATABASE_RELTYPE_OID;
 				break;
@@ -3319,11 +3314,6 @@ should_have_valid_relfrozenxid(Oid oid, char relkind, char relstorage)
 			{
 				return false;
 			}
-
-			/* gp_global_sequence always stores tuples with frozenXid. */
-			if (oid == GpGlobalSequenceRelationId)
-				return false;
-
 			return true;
 
 		case RELKIND_TOASTVALUE:

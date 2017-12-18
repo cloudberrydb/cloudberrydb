@@ -40,16 +40,6 @@ MASTER_ONLY_TABLES = [
     'pg_auth_time_constraint',
     ]
 
-# Hard coded since "persistent" is not defined in the catalog
-PERSISTENT_TABLES = [
-    'gp_global_sequence',
-    'gp_persistent_database_node',
-    'gp_persistent_filespace_node',
-    'gp_persistent_relation_node',
-    'gp_persistent_tablespace_node',
-    'gp_relation_node',
-    ]
-
 # Hard coded tables that have different values on every segment
 SEGMENT_LOCAL_TABLES = [
     'gp_id',
@@ -228,10 +218,6 @@ class GPCatalog():
                 self._tables[name]._setMasterOnly()
 
         for name in SEGMENT_LOCAL_TABLES:
-            if name in self._tables:
-                self._tables[name]._setMasterOnly()
-
-        for name in PERSISTENT_TABLES:
             if name in self._tables:
                 self._tables[name]._setMasterOnly()
 

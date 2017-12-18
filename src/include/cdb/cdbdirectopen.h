@@ -153,16 +153,6 @@ DirectOpenDefineExtern(DirectOpen_PgAoSeg);
 
 DirectOpenDefineExtern(DirectOpen_PgAoCsSeg);
 
-DirectOpenDefineExtern(DirectOpen_GpGlobalSequence);
-
-DirectOpenDefineExtern(DirectOpen_GpPersistentRelationNode);
-
-DirectOpenDefineExtern(DirectOpen_GpPersistentDatabaseNode);
-
-DirectOpenDefineExtern(DirectOpen_GpPersistentTableSpaceNode);
-
-DirectOpenDefineExtern(DirectOpen_GpPersistentFileSpaceNode);
-
 // INDEX Variant
 //
 // HUGE MAGIC DEFINE creates static variables with values for DirectOpen_Open. 

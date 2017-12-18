@@ -22,7 +22,6 @@
 #include "utils/memutils.h"
 #include "catalog/pg_authid.h"
 #include "utils/fmgroids.h"		/* include this before pg_am.h, for Am_btree */
-#include "catalog/gp_global_sequence.h"
 #include "catalog/pg_am.h"
 #include "catalog/pg_class.h"
 #include "catalog/pg_index.h"
@@ -94,22 +93,6 @@ static FormData_pg_attribute
 DirectOpenDefineStatic(DirectOpen_PgAoCsSeg, \
 					   DatabaseInfo_PgAoCsSegPgClass, \
 					   DatabaseInfo_PgAoCsSegAttrArray, \
-					   false);
-
-/*
- * gp_global_sequence.
- */
-static FormData_pg_class
-			GlobalSequence_PgClass =
-{Class_gp_global_sequence};
-
-static FormData_pg_attribute
-			GlobalSequence_AttrArray[Natts_gp_global_sequence] =
-{Schema_gp_global_sequence};
-
-DirectOpenDefineStatic(DirectOpen_GpGlobalSequence, \
-					   GlobalSequence_PgClass, \
-					   GlobalSequence_AttrArray, \
 					   false);
 
 Relation

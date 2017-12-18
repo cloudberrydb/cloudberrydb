@@ -50,7 +50,6 @@
 #include "catalog/gp_configuration_history.h"
 #include "catalog/gp_segment_config.h"
 
-#include "catalog/gp_global_sequence.h"
 #include "catalog/gp_id.h"
 #include "catalog/gp_version.h"
 #include "catalog/toasting.h"
@@ -620,8 +619,6 @@ IsSharedRelation(Oid relationId)
 	if (relationId == FileSpaceRelationId ||
 		relationId == GpIdRelationId ||
 		relationId == GpVersionRelationId ||
-
-		relationId == GpGlobalSequenceRelationId ||
 
 		/* MPP-6929: metadata tracking */
 		relationId == StatLastShOpRelationId ||

@@ -1914,9 +1914,6 @@ CREATE VIEW tables AS
            CAST(null AS sql_identifier) AS user_defined_type_name,
 
            CAST(CASE WHEN (c.relkind != 'r' 
-           				   OR (nc.nspname = 'pg_catalog' 
-           				       AND (c.relname LIKE 'gp_persistent_%'
-           				            OR c.relname = 'gp_global_sequence'))
            				   OR c.relstorage = 'f'
            				   OR (c.relstorage = 'x'
            				       AND x.writable = 'f'))
