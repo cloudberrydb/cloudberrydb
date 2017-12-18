@@ -249,13 +249,36 @@ compare_files(char* primaryfilepath, char* mirrorfilepath, RelfilenodeEntry *ren
 static XLogRecPtr*
 get_synced_lsns()
 {
-	const int max_retry = 20;
+	const int max_retry = 60;
+	const int checkpoint_between = 20;
 	int retry = 0;
 	XLogRecPtr *sent_lsns = (XLogRecPtr *)palloc(max_wal_senders * sizeof(XLogRecPtr));
 
+	/*
+	 * Request a checkpoint on first call, to flush out data changes from
+	 * shared buffer to disk.
+	 */
+	RequestCheckpoint(CHECKPOINT_IMMEDIATE);
+
 	while (retry < max_retry)
 	{
-		int i;
+		int			i;
+
+		/*
+		 * There is no mechanism to force the master to flush and send WAL
+		 * records to the standby. Transaction commit and some other operations
+		 * force a WAL flush, which usually happens often enough that the
+		 * WAL is flushed and synced, but there is no guarantee. Therefore, if
+		 * the standby doesn't seem to catch up in a timely fashion, request a
+		 * new checkpoint, to create some WAL activity that is flushed to disk,
+		 * and keep trying.
+		 */
+		if (retry > 0 && retry % checkpoint_between == 0)
+		{
+			ereport(WARNING,
+					(errmsg("unable to obtain synced LSN values between primary and mirror, retrying after a checkpoint...")));
+			RequestCheckpoint(CHECKPOINT_IMMEDIATE);
+		}
 
 		LWLockAcquire(SyncRepLock, LW_SHARED);
 		for (i = 0; i < max_wal_senders; i++)
@@ -386,26 +409,12 @@ gp_replica_check(PG_FUNCTION_ARGS)
 	 * checkpoint, to create some WAL activity that is flushed to disk, and
 	 * retry.
 	 */
-	int attempts = 0;
-	for (;;)
+	start_sent_lsns = get_synced_lsns();
+	if (!start_sent_lsns)
 	{
-		attempts++;
-		start_sent_lsns = get_synced_lsns();
-		if (start_sent_lsns)
-			break;
-
-		if (attempts == 3)
-		{
-			ereport(WARNING,
-					(errmsg("unable to obtain start synced LSN values between primary and mirror")));
-			PG_RETURN_BOOL(false);
-		}
-		else
-		{
-			ereport(WARNING,
-					(errmsg("unable to obtain start synced LSN values between primary and mirror, retrying after a checkpoint...")));
-			RequestCheckpoint(CHECKPOINT_IMMEDIATE);
-		}
+		ereport(WARNING,
+				(errmsg("unable to obtain start synced LSN values between primary and mirror")));
+		PG_RETURN_BOOL(false);
 	}
 
 	/* Store information from pg_class for each relfilenode */

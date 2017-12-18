@@ -81,10 +81,6 @@ def install_extension(databases):
         if len(datname) > 1 and (datname.strip() in database_list or 'all' in database_list):
             print subprocess.check_output('psql %s -t -c "%s"' % (datname.strip(), create_ext_sql), stderr=subprocess.STDOUT, shell=True)
 
-def run_checkpoint():
-    print "Calling checkpoint:"
-    print subprocess.check_output('psql postgres -t -c "CHECKPOINT"', stderr=subprocess.STDOUT, shell=True)
-
 def get_fsmap(databases):
     fslist_sql = '''
 SELECT gscp.address,
@@ -153,5 +149,4 @@ if __name__ == '__main__':
     args = defargs()
 
     install_extension(args.databases)
-    run_checkpoint()
     start_verification(get_fsmap(args.databases), args.relation_types)
