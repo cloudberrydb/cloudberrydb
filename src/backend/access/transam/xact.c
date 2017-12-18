@@ -5554,7 +5554,13 @@ xact_redo_commit(xl_xact_commit *xlrec, TransactionId xid,
 
 		for (fork = 0; fork <= MAX_FORKNUM; fork++)
 		{
-			if (smgrexists(srel, fork))
+			/*
+			 * In GPDB, always try to drop the main fork. This is because
+			 * smgrexists() doesn't do the right thing for AOCO tables.
+			 * smgrexists() checks for the existence of the first segment (0),
+			 * but an AOCO table doesn't user segment 0.
+			 */
+			if (smgrexists(srel, fork) || fork == MAIN_FORKNUM)
 			{
 				XLogDropRelation(xlrec->xnodes[i], fork);
 				smgrdounlink(srel, fork, false, true);
@@ -5650,7 +5656,13 @@ xact_redo_distributed_commit(xl_xact_commit *xlrec, TransactionId xid)
 
 			for (fork = 0; fork <= MAX_FORKNUM; fork++)
 			{
-				if (smgrexists(srel, fork))
+				/*
+				 * In GPDB, always try to drop the main fork. This is because
+				 * smgrexists() doesn't do the right thing for AOCO tables.
+				 * smgrexists() checks for the existence of the first segment (0),
+				 * but an AOCO table doesn't user segment 0.
+				 */
+				if (smgrexists(srel, fork) || fork == MAIN_FORKNUM)
 				{
 					XLogDropRelation(xlrec->xnodes[i], fork);
 					smgrdounlink(srel, fork, false, true);
@@ -5699,7 +5711,13 @@ xact_redo_abort(xl_xact_abort *xlrec, TransactionId xid)
 
 		for (fork = 0; fork <= MAX_FORKNUM; fork++)
 		{
-			if (smgrexists(srel, fork))
+			/*
+			 * In GPDB, always try to drop the main fork. This is because
+			 * smgrexists() doesn't do the right thing for AOCO tables.
+			 * smgrexists() checks for the existence of the first segment (0),
+			 * but an AOCO table doesn't user segment 0.
+			 */
+			if (smgrexists(srel, fork) || fork == MAIN_FORKNUM)
 			{
 				XLogDropRelation(xlrec->xnodes[i], fork);
 				smgrdounlink(srel, fork, false, true);
