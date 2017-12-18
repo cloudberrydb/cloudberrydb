@@ -26,8 +26,6 @@
 #include "storage/bufmgr.h"
 #include "utils/builtins.h"
 
-#include "cdb/cdbfilerepprimary.h"
-
 PG_MODULE_MAGIC;
 
 Datum		get_raw_page(PG_FUNCTION_ARGS);
@@ -101,7 +99,6 @@ get_raw_page_internal(text *relname, ForkNumber forknum, BlockNumber blkno)
 	Relation	rel;
 	char	   *raw_page_data;
 	Buffer		buf;
-	MIRROREDLOCK_BUFMGR_DECLARE;
 
 	if (!superuser())
 		ereport(ERROR,
@@ -142,9 +139,6 @@ get_raw_page_internal(text *relname, ForkNumber forknum, BlockNumber blkno)
 	SET_VARSIZE(raw_page, BLCKSZ + VARHDRSZ);
 	raw_page_data = VARDATA(raw_page);
 
-	// -------- MirroredLock ----------
-	MIRROREDLOCK_BUFMGR_LOCK;
-
 	/* Take a verbatim copy of the page */
 
 	buf = ReadBufferExtended(rel, forknum, blkno, RBM_NORMAL, NULL);
@@ -154,9 +148,6 @@ get_raw_page_internal(text *relname, ForkNumber forknum, BlockNumber blkno)
 
 	LockBuffer(buf, BUFFER_LOCK_UNLOCK);
 	ReleaseBuffer(buf);
-
-	MIRROREDLOCK_BUFMGR_UNLOCK;
-	// -------- MirroredLock ----------
 
 	relation_close(rel, AccessShareLock);
 

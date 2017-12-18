@@ -1826,7 +1826,7 @@ RecordTransactionCommitPrepared(TransactionId xid,
 	DistributedTransactionId distribXid;
 
 	/*
-	 * Ensure the caller already has MirroredLock and has set MyProc->isCommit.
+	 * Ensure the caller already has set MyProc->isCommit.
 	 */
 	Assert(MyProc->inCommit);
 
