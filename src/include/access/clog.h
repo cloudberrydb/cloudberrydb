@@ -35,7 +35,6 @@ typedef int XidStatus;
 extern void TransactionIdSetTreeStatus(TransactionId xid, int nsubxids,
 				   TransactionId *subxids, XidStatus status, XLogRecPtr lsn);
 extern XidStatus TransactionIdGetStatus(TransactionId xid, XLogRecPtr *lsn);
-extern XidStatus InRecoveryTransactionIdGetStatus(TransactionId xid, bool *valid);
 
 extern char *XidStatus_Name(XidStatus status);
 

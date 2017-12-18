@@ -1726,7 +1726,6 @@ SyncOneBuffer(int buf_id, bool skip_recently_used)
 	{
 		/* Caller told us not to write recently-used buffers */
 		UnlockBufHdr(bufHdr);
-		// -------- MirroredLock ----------
 		return result;
 	}
 
@@ -1734,8 +1733,6 @@ SyncOneBuffer(int buf_id, bool skip_recently_used)
 	{
 		/* It's clean, so nothing to do */
 		UnlockBufHdr(bufHdr);
-		// -------- MirroredLock ----------
-
 		return result;
 	}
 

@@ -28,7 +28,6 @@ OBJS = cdbappendonlystorage.o cdbappendonlystorageformat.o \
 	   cdbgroup.o \
 	   cdbhash.o cdbheap.o \
 	   cdbllize.o cdblocaldistribxact.o \
-	   cdbmirroredflatfile.o \
 	   cdbmirroredappendonly.o \
 	   cdbmutate.o \
 	   cdboidsync.o \

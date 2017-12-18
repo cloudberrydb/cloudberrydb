@@ -427,47 +427,6 @@ TransactionIdGetStatus(TransactionId xid, XLogRecPtr *lsn)
 	return status;
 }
 
-
-/* 
- * Interrogate the state of a transaction in the commit log, but 
- * allow situations were the status can not be retrieved.
- * 
- * The parameter valid is a pointer to a boolean. The value it points too 
- * will be "true" if the fuction's return value is a valid XidStatus, and
- * false if the function's return value is not a valid XidStatus.  
- *
- * return the XidStatus of the transaction (only 
- */
-XidStatus
-InRecoveryTransactionIdGetStatus(TransactionId xid, bool *valid)
-{
-  int                     pageno = TransactionIdToPage(xid);
-  int                     byteno = TransactionIdToByte(xid);
-  int                     bshift = TransactionIdToBIndex(xid) * CLOG_BITS_PER_XACT;
-  int                     slotno;
-  char       *byteptr;
-  XidStatus       status;
-
-  /* lock is acquired by SimpleLruReadPage_ReadOnly */
-
-  slotno = SimpleLruReadPage_ReadOnly(ClogCtl, pageno, xid, valid);
-
-  if (valid != NULL && *valid == false)
-    {
-    /* The returned slotno is invalid. */ 
-    return TRANSACTION_STATUS_IN_PROGRESS;
-    }
-
-  byteptr = ClogCtl->shared->page_buffer[slotno] + byteno;
-
-  status = (*byteptr >> bshift) & CLOG_XACT_BITMASK;
-
-  LWLockRelease(CLogControlLock);
-
-  return status;
-}
-
-
 /*
  * Find the next lowest transaction with a logged or recorded status.
  * I.e. One that does not have a status of default (0) -- i.e: in-progress.

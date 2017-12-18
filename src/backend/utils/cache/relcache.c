@@ -79,7 +79,6 @@
 #include "catalog/gp_policy.h"         /* GpPolicy */
 #include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"        /* Gp_role */
-#include "cdb/cdbmirroredflatfile.h"
 #include "cdb/cdbsreh.h"
 #include "utils/visibility_summary.h"
 

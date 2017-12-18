@@ -1590,8 +1590,6 @@ MirroredAppendOnlyOpen
 MirroredBufferPoolBulkLoadInfo
 MirroredBufferPoolOpen
 MirroredFlatFileOpen
-MirroredLockBufMgrLocalVars
-MirroredLockLocalVars
 MirroredObjectExistenceState
 MirroredRelDataSynchronizationState
 MiscEntry

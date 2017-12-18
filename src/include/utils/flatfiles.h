@@ -34,8 +34,4 @@ extern Datum flatfile_update_trigger(PG_FUNCTION_ARGS);
 extern void flatfile_twophase_postcommit(TransactionId xid, uint16 info,
 							 void *recdata, uint32 len);
 
-extern int FlatFilesRecoverMirror(void);
-
-extern int FlatFilesTemporaryResynchronizeMirror(void);
-
 #endif   /* FLATFILES_H */

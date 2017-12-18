@@ -58,7 +58,6 @@
 #include "storage/shmem.h"
 #include "miscadmin.h"
 
-#include "cdb/cdbmirroredflatfile.h"
 #include "postmaster/primary_mirror_mode.h"
 #include "libpq/md5.h"
 
@@ -84,8 +83,6 @@
 
 #define SlruFileName(ctl, path, seg) \
 	snprintf(path, MAXPGPATH, "%s/%04X", (ctl)->Dir, seg)
-#define SlruSimpleFileName(path, seg) \
-		snprintf(path, MAXPGPATH, "%04X", seg)
 
 /*
  * During SimpleLruFlush(), we will usually not need to write/fsync more
@@ -99,9 +96,7 @@
 typedef struct SlruFlushData
 {
 	int			num_files;		/* # files actually open */
-
-	MirroredFlatFileOpen	mirroredOpens[MAX_FLUSH_BUFFERS];
-
+	int			fd[MAX_FLUSH_BUFFERS];	/* their FD's */
 	int			segno[MAX_FLUSH_BUFFERS];		/* their log seg#s */
 } SlruFlushData;
 
@@ -146,16 +141,6 @@ typedef enum
 
 static SlruErrorCause slru_errcause;
 static int	slru_errno;
-
-
-/*
- * GUC variable to control the batch size used to display the
- * total number of files that get shipped to the mirror.
- * For e.g After every 1000 files have been shipped to the mirror,
- * a log message is printed indicating the total number of
- * files shipped to the mirror.
- */
-int log_count_recovered_files_batch = 1000;
 
 static int SimpleLruReadPage_Internal(SlruCtl ctl, int pageno, bool write_ok, TransactionId xid, bool *valid);
 static void SimpleLruZeroLSNs(SlruCtl ctl, int slotno);
@@ -255,9 +240,7 @@ SimpleLruInit(SlruCtl ctl, const char *name, int nslots, int nlsns,
 		}
 	}
 	else
-	{
 		Assert(found);
-	}
 
 	/*
 	 * Initialize the unshared control struct, including directory path. We
@@ -597,7 +580,7 @@ SimpleLruWritePage(SlruCtl ctl, int slotno, SlruFlush fdata)
 		int			i;
 
 		for (i = 0; i < fdata->num_files; i++)
-			MirroredFlatFile_Close(&fdata->mirroredOpens[i]);
+			close(fdata->fd[i]);
 	}
 
 	/* Re-acquire control lock and update page state */
@@ -620,24 +603,6 @@ SimpleLruWritePage(SlruCtl ctl, int slotno, SlruFlush fdata)
 }
 
 /*
- * Generate the file name for flat file.
- */
-static void
-SlruFlatFileName(SlruCtl ctl, char *path, char *simpleFileName)
-{
-	char *dir = ctl->Dir;
-
-	if (isTxnDir(ctl->Dir))
-	{
-		dir = makeRelativeToTxnFilespace(ctl->Dir);
-	}
-
-	if (snprintf(path, MAXPGPATH, "%s/%s", dir, simpleFileName) > MAXPGPATH)
-	{
-		ereport(ERROR, (errmsg("cannot generate path %s/%s", dir, simpleFileName)));
-	}
-}
-/*
  * Physical read of a (previously existing) page into a buffer slot
  *
  * On failure, we cannot just ereport(ERROR) since caller has put state in
@@ -654,12 +619,10 @@ SlruPhysicalReadPage(SlruCtl ctl, int pageno, int slotno)
 	int			segno = pageno / SLRU_PAGES_PER_SEGMENT;
 	int			rpageno = pageno % SLRU_PAGES_PER_SEGMENT;
 	int			offset = rpageno * BLCKSZ;
-	char		simpleFileName[MAXPGPATH];
 	char		path[MAXPGPATH];
 	int			fd;
 
-	SlruSimpleFileName(simpleFileName, segno);
-	SlruFlatFileName(ctl, path, simpleFileName);
+	SlruFileName(ctl, path, segno);
 
 	/*
 	 * In a crash-and-restart situation, it's possible for us to receive
@@ -693,6 +656,7 @@ SlruPhysicalReadPage(SlruCtl ctl, int pageno, int slotno)
 		return false;
 	}
 
+	errno = 0;
 	if (read(fd, shared->page_buffer[slotno], BLCKSZ) != BLCKSZ)
 	{
 		slru_errcause = SLRU_READ_FAILED;
@@ -732,11 +696,8 @@ SlruPhysicalWritePage(SlruCtl ctl, int pageno, int slotno, SlruFlush fdata)
 	int			segno = pageno / SLRU_PAGES_PER_SEGMENT;
 	int			rpageno = pageno % SLRU_PAGES_PER_SEGMENT;
 	int			offset = rpageno * BLCKSZ;
-	char		simpleFileName[MAXPGPATH];
-
-	MirroredFlatFileOpen	*existingMirroredOpen = NULL;
-	MirroredFlatFileOpen	newMirroredOpen = MirroredFlatFileOpen_Init;
-	MirroredFlatFileOpen	*useMirroredOpen = NULL;
+	char		path[MAXPGPATH];
+	int			fd = -1;
 
 	/*
 	 * Honor the write-WAL-before-data rule, if appropriate, so that we do not
@@ -791,14 +752,13 @@ SlruPhysicalWritePage(SlruCtl ctl, int pageno, int slotno, SlruFlush fdata)
 		{
 			if (fdata->segno[i] == segno)
 			{
-				existingMirroredOpen = &fdata->mirroredOpens[i];
+				fd = fdata->fd[i];
 				break;
 			}
 		}
 	}
 
-	if (existingMirroredOpen == NULL ||
-		!MirroredFlatFile_IsActive(existingMirroredOpen))
+	if (fd < 0)
 	{
 		/*
 		 * If the file doesn't already exist, we should create it.  It is
@@ -817,16 +777,10 @@ SlruPhysicalWritePage(SlruCtl ctl, int pageno, int slotno, SlruFlush fdata)
 		 * code simultaneously for different pages of the same file. Hence,
 		 * don't use O_EXCL or O_TRUNC or anything like that.
 		 */
-		SlruSimpleFileName(simpleFileName, segno);
-		if (MirroredFlatFile_Open(
-						&newMirroredOpen,
-						ctl->Dir,
-						simpleFileName,
-						O_RDWR | O_CREAT | PG_BINARY,
-						S_IRUSR | S_IWUSR,
-						/* suppressError */ true,
-						/* atomic operation */ false,
-						/*isMirrorRecovery */ false))
+		SlruFileName(ctl, path, segno);
+		fd = BasicOpenFile(path, O_RDWR | O_CREAT | PG_BINARY,
+						   S_IRUSR | S_IWUSR);
+		if (fd < 0)
 		{
 			slru_errcause = SLRU_OPEN_FAILED;
 			slru_errno = errno;
@@ -837,8 +791,7 @@ SlruPhysicalWritePage(SlruCtl ctl, int pageno, int slotno, SlruFlush fdata)
 		{
 			if (fdata->num_files < MAX_FLUSH_BUFFERS)
 			{
-				fdata->mirroredOpens[fdata->num_files] = newMirroredOpen;
-				useMirroredOpen = &fdata->mirroredOpens[fdata->num_files];
+				fdata->fd[fdata->num_files] = fd;
 				fdata->segno[fdata->num_files] = segno;
 				fdata->num_files++;
 			}
@@ -849,41 +802,29 @@ SlruPhysicalWritePage(SlruCtl ctl, int pageno, int slotno, SlruFlush fdata)
 				 * fall back to treating it as a standalone write.
 				 */
 				fdata = NULL;
-
-				useMirroredOpen = &newMirroredOpen;
 			}
 		}
-		else
-			useMirroredOpen = &newMirroredOpen;
-	
 	}
-	else
-		useMirroredOpen = existingMirroredOpen;
 
-	Assert(useMirroredOpen != NULL);
-
-	if (MirroredFlatFile_SeekSet(
-						useMirroredOpen,
-						offset) != offset)
+	if (lseek(fd, (off_t) offset, SEEK_SET) < 0)
 	{
 		slru_errcause = SLRU_SEEK_FAILED;
 		slru_errno = errno;
 		if (!fdata)
-			MirroredFlatFile_Close(useMirroredOpen);
+			close(fd);
 		return false;
 	}
 
-	if (MirroredFlatFile_Write(
-						useMirroredOpen,
-						offset,
-						shared->page_buffer[slotno], 
-						BLCKSZ,
-						/* suppressError */ true))
+	errno = 0;
+	if (write(fd, shared->page_buffer[slotno], BLCKSZ) != BLCKSZ)
 	{
+		/* if write didn't set errno, assume problem is no disk space */
+		if (errno == 0)
+			errno = ENOSPC;
 		slru_errcause = SLRU_WRITE_FAILED;
 		slru_errno = errno;
 		if (!fdata)
-			MirroredFlatFile_Close(useMirroredOpen);
+			close(fd);
 		return false;
 	}
 
@@ -893,19 +834,20 @@ SlruPhysicalWritePage(SlruCtl ctl, int pageno, int slotno, SlruFlush fdata)
 	 */
 	if (!fdata)
 	{
-		if (ctl->do_fsync && 
-			MirroredFlatFile_Flush(
-							useMirroredOpen,
-							/* suppressError */ true))
+		if (ctl->do_fsync && pg_fsync(fd))
 		{
 			slru_errcause = SLRU_FSYNC_FAILED;
 			slru_errno = errno;
-			MirroredFlatFile_Close(useMirroredOpen);
+			close(fd);
 			return false;
 		}
 
-		// UNDONE: We don't have a suppressError for close...
-		MirroredFlatFile_Close(useMirroredOpen);
+		if (close(fd))
+		{
+			slru_errcause = SLRU_CLOSE_FAILED;
+			slru_errno = errno;
+			return false;
+		}
 	}
 
 	return true;
@@ -1138,10 +1080,7 @@ SimpleLruFlush(SlruCtl ctl, bool checkpoint)
 	ok = true;
 	for (i = 0; i < fdata.num_files; i++)
 	{
-		if (ctl->do_fsync && 
-			MirroredFlatFile_Flush(
-							&fdata.mirroredOpens[i],
-							/* suppressError */ true))
+		if (ctl->do_fsync && pg_fsync(fdata.fd[i]))
 		{
 			slru_errcause = SLRU_FSYNC_FAILED;
 			slru_errno = errno;
@@ -1149,8 +1088,13 @@ SimpleLruFlush(SlruCtl ctl, bool checkpoint)
 			ok = false;
 		}
 
-		// UNDONE: We don't have a suppressError for close...
-		MirroredFlatFile_Close(&fdata.mirroredOpens[i]);
+		if (close(fdata.fd[i]))
+		{
+			slru_errcause = SLRU_CLOSE_FAILED;
+			slru_errno = errno;
+			pageno = fdata.segno[i] * SLRU_PAGES_PER_SEGMENT;
+			ok = false;
+		}
 	}
 	if (!ok)
 		SlruReportIOError(ctl, pageno, InvalidTransactionId);
@@ -1263,8 +1207,6 @@ SlruScanDirectory(SlruCtl ctl, int cutoffPage, bool doDeletions)
 	int			segno;
 	int			segpage;
 	char		path[MAXPGPATH];
-	char		*dir = NULL;
-	char		*mirrorDir = NULL;
 
 	/*
 	 * The cutoff point is the start of the segment containing cutoffPage.
@@ -1273,25 +1215,8 @@ SlruScanDirectory(SlruCtl ctl, int cutoffPage, bool doDeletions)
 	 */
 	cutoffPage -= cutoffPage % SLRU_PAGES_PER_SEGMENT;
 
-	/* 
-	 * PG_SUBTRANS is initialized with the default directory. Make sure
-	 * it is relative to the current transaction filespace
-	 */
-	if (isTxnDir(ctl->Dir))
-	{
-		dir = makeRelativeToTxnFilespace(ctl->Dir);
-		mirrorDir = makeRelativeToPeerTxnFilespace(ctl->Dir);
-	}
-	else
-	{
-		dir = (char*)palloc(MAXPGPATH);
-		strncpy(dir, ctl->Dir, MAXPGPATH);
-		mirrorDir = (char*)palloc(MAXPGPATH);
-		strncpy(mirrorDir, ctl->Dir, MAXPGPATH);
-	}
-
-	cldir = AllocateDir(dir);
-	while ((clde = ReadDir(cldir, dir)) != NULL)
+	cldir = AllocateDir(ctl->Dir);
+	while ((clde = ReadDir(cldir, ctl->Dir)) != NULL)
 	{
 		if (isSlruFileName(clde->d_name))
 		{
@@ -1302,27 +1227,15 @@ SlruScanDirectory(SlruCtl ctl, int cutoffPage, bool doDeletions)
 				found = true;
 				if (doDeletions)
 				{
-					if (snprintf(path, MAXPGPATH, "%s/%s", dir, clde->d_name) > MAXPGPATH)
-					{
-						ereport(ERROR, (errmsg("cannot form path %s/%s", dir, clde->d_name)));
-					}
+					snprintf(path, MAXPGPATH, "%s/%s", ctl->Dir, clde->d_name);
 					ereport(DEBUG2,
 							(errmsg("removing file \"%s\"", path)));
-
-					// UNDONE: Old code ignored errors...
-					MirroredFlatFile_Drop(
-									ctl->Dir,
-									clde->d_name,
-									/* suppressError */ true,
-									/*isMirrorRecovery */ false);
+					unlink(path);
 				}
 			}
 		}
 	}
 	FreeDir(cldir);
-
-	pfree(dir);
-	pfree(mirrorDir);
 
 	return found;
 }

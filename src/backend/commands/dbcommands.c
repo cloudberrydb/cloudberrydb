@@ -70,10 +70,7 @@
 #include "cdb/cdbsreh.h"
 #include "cdb/cdbsrlz.h"
 #include "cdb/cdbvars.h"
-#include "cdb/cdbmirroredfilesysobj.h"
 #include "cdb/cdbmirroredappendonly.h"
-#include "cdb/cdbmirroredbufferpool.h"
-#include "cdb/cdbmirroredflatfile.h"
 #include "cdb/cdbdirectopen.h"
 
 #include "utils/pg_rusage.h"

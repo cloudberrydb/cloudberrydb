@@ -60,7 +60,6 @@
 #include "catalog/pg_filespace.h"
 #include "catalog/pg_tablespace.h"
 #include "catalog/pg_type.h"
-#include "cdb/cdbmirroredflatfile.h"
 #include "commands/comment.h"
 #include "commands/filespace.h"
 #include "commands/tablespace.h"
@@ -607,13 +606,10 @@ remove_tablespace_directories(Oid tablespaceoid, bool redo)
 }
 
 /*
- * write out the PG_VERSION file in the specified directory. If mirror is true,
- * mirror the file creation to our segment mirror.
- *
- * XXX: API is terrible, make it cleaner
+ * write out the PG_VERSION file in the specified directory
  */
 void
-set_short_version(const char *path, DbDirNode *dbDirNode, bool mirror)
+set_short_version(const char *path)
 {
 	char	   *short_version;
 	bool		gotdot = false;
@@ -644,47 +640,23 @@ set_short_version(const char *path, DbDirNode *dbDirNode, bool mirror)
 	short_version[end++] = '\n';
 	short_version[end] = '\0';
 
-	if (mirror)
-	{
-		MirroredFlatFileOpen mirroredOpen;
+	/* Now write the file */
+	fullname = palloc(strlen(path) + 11 + 1);
+	sprintf(fullname, "%s/PG_VERSION", path);
+	version_file = AllocateFile(fullname, PG_BINARY_W);
+	if (version_file == NULL)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not write to file \"%s\": %m",
+						fullname)));
+	fprintf(version_file, "%s", short_version);
+	if (FreeFile(version_file))
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not write to file \"%s\": %m",
+						fullname)));
 
-		Insist(!PointerIsValid(path));
-		Insist(PointerIsValid(dbDirNode));
-
-		MirroredFlatFile_OpenInDbDir(&mirroredOpen, dbDirNode, "PG_VERSION",
-							O_CREAT | O_WRONLY | PG_BINARY, S_IRUSR | S_IWUSR,
-							/* suppressError */ false);
-
-		MirroredFlatFile_Append(&mirroredOpen, short_version,
-								end,
-								/* suppressError */ false);
-
-		MirroredFlatFile_Flush(&mirroredOpen, /* suppressError */ false);
-		MirroredFlatFile_Close(&mirroredOpen);
-	}
-	else
-	{
-		Insist(!PointerIsValid(dbDirNode));
-		Insist(PointerIsValid(path));
-
-		/* Now write the file */
-		fullname = palloc(strlen(path) + 11 + 1);
-		sprintf(fullname, "%s/PG_VERSION", path);
-		version_file = AllocateFile(fullname, PG_BINARY_W);
-		if (version_file == NULL)
-			ereport(ERROR,
-					(errcode_for_file_access(),
-					 errmsg("could not write to file \"%s\": %m",
-							fullname)));
-		fprintf(version_file, "%s", short_version);
-		if (FreeFile(version_file))
-			ereport(ERROR,
-					(errcode_for_file_access(),
-					 errmsg("could not write to file \"%s\": %m",
-							fullname)));
-
-		pfree(fullname);
-	}
+	pfree(fullname);
 	pfree(short_version);
 }
 
@@ -1317,7 +1289,7 @@ tblspc_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 							sublocation)));
 
 		/* Create or re-create the PG_VERSION file in the target directory */
-		set_short_version(sublocation, NULL, false);
+		set_short_version(sublocation);
 
 		/* Create the symlink if not already present */
 		linkloc = (char *) palloc(10 + 10 + 1);

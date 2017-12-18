@@ -129,7 +129,6 @@ bool		Debug_appendonly_print_visimap = false;
 bool		Debug_appendonly_print_compaction = false;
 bool		Debug_resource_group = false;
 bool		gp_crash_recovery_abort_suppress_fatal = false;
-bool		gp_persistent_statechange_suppress_error = false;
 bool		Debug_bitmap_print_insert = false;
 bool		Test_appendonly_override = false;
 bool		Test_print_direct_dispatch_info = false;
@@ -200,12 +199,7 @@ int			gp_max_tablespaces = GP_MAX_TABLESPACES_DEFAULT;
 #define GP_MAX_FILESPACES_DEFAULT 8
 int			gp_max_filespaces = GP_MAX_FILESPACES_DEFAULT;
 bool		gp_initdb_mirrored = false;
-bool		gp_before_persistence_work = false;
-bool		gp_before_filespace_setup = false;
 bool		gp_startup_integrity_checks = true;
-bool		gp_change_tracking = true;
-bool		gp_persistent_repair_global_sequence = false;
-bool		gp_validate_pt_info_relcache = false;
 bool		Debug_print_xlog_relation_change_info = false;
 bool		Debug_print_xlog_relation_change_info_skip_issues_only = false;
 bool		Debug_print_xlog_relation_change_info_backtrace_skip_issues = false;
@@ -1079,15 +1073,7 @@ struct config_bool ConfigureNamesBool_gp[] =
 		&gp_crash_recovery_abort_suppress_fatal,
 		false, NULL, NULL
 	},
-	{
-		{"gp_persistent_statechange_suppress_error", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Warning about persistent state-change issue"),
-			NULL,
-			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
-		},
-		&gp_persistent_statechange_suppress_error,
-		false, NULL, NULL
-	},
+
 	{
 		{"gp_select_invisible", PGC_USERSET, DEVELOPER_OPTIONS,
 			gettext_noop("Use dummy snapshot for MVCC visibility calculation."),
@@ -1780,36 +1766,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"gp_before_persistence_work", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Indicate we are initializing / upgrading and do not want to do persistence work yet."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_before_persistence_work,
-		false, NULL, NULL
-	},
-
-	{
-		{"gp_before_filespace_setup", PGC_POSTMASTER, DEVELOPER_OPTIONS,
-			gettext_noop("Indicates that the gp_persistent_filespace_node table is not setup and should not be used for lookups."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_before_filespace_setup,
-		false, NULL, NULL
-	},
-
-	{
-		{"gp_startup_integrity_checks", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Perform integrity checks after performing startup but before allowing connections in."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_startup_integrity_checks,
-		true, NULL, NULL
-	},
-
-	{
 		{"debug_print_xlog_relation_change_info", PGC_SUSET, DEVELOPER_OPTIONS,
 			gettext_noop("Print relation change information"),
 			NULL,
@@ -1998,36 +1954,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&gp_enable_resqueue_priority,
 		true, NULL, NULL
-	},
-
-	{
-		{"gp_change_tracking", PGC_SUSET, UNGROUPED,
-			gettext_noop("Allows disabling change tracking."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_change_tracking,
-		true, NULL, NULL
-	},
-
-	{
-		{"gp_persistent_repair_global_sequence", PGC_SUSET, UNGROUPED,
-			gettext_noop("Repair a global sequence number to use the maximum scanned value."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_persistent_repair_global_sequence,
-		false, NULL, NULL
-	},
-
-	{
-		{"gp_validate_pt_info_relcache", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Validate persistent TID and serial number in relcache entry."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_validate_pt_info_relcache,
-		false, NULL, NULL
 	},
 
 	{
@@ -4534,16 +4460,6 @@ struct config_int ConfigureNamesInt_gp[] =
 			GUC_GPDB_ADDOPT
 		},
 		&gp_initial_bad_row_limit,
-		1000, 0, INT_MAX, NULL, NULL
-	},
-
-	{
-		{"log_count_recovered_files_batch", PGC_POSTMASTER, DEVELOPER_OPTIONS,
-			gettext_noop("Logs the total number of files shipped to the mirror after every batch of size specified by this value"),
-			NULL,
-			GUC_NOT_IN_SAMPLE,
-		},
-		&log_count_recovered_files_batch,
 		1000, 0, INT_MAX, NULL, NULL
 	},
 

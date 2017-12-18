@@ -72,9 +72,6 @@
 #include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"
 
-#include "cdb/cdbmirroredflatfile.h"
-#include "cdb/cdbmirroredfilesysobj.h"
-
 /* GUC variable, can't be changed after startup */
 int			max_prepared_xacts = 0;
 

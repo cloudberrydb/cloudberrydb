@@ -1563,7 +1563,7 @@ bootstrap_template1(char *short_version)
 	unsetenv("PGCLIENTENCODING");
 
 	snprintf(cmd, sizeof(cmd),
-			 "\"%s\" --boot -x1 %s %s -c gp_before_persistence_work=on %s",
+			 "\"%s\" --boot -x1 %s %s %s",
 			 backend_exec, 
 			 data_checksums ? "-k" : "",
 			 boot_options, talkargs);

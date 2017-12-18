@@ -210,9 +210,7 @@ extern int  Debug_appendonly_bad_header_print_level;
 extern bool Debug_appendonly_print_datumstream;
 extern bool Debug_appendonly_print_visimap;
 extern bool Debug_appendonly_print_compaction;
-extern bool Debug_gp_relation_node_fetch_wait_for_debugging;
 extern bool gp_crash_recovery_abort_suppress_fatal;
-extern bool gp_persistent_statechange_suppress_error;
 extern bool Debug_bitmap_print_insert;
 extern bool Test_appendonly_override;
 extern bool enable_checksum_on_tables;
@@ -264,13 +262,7 @@ extern bool	Debug_database_command_print;
 extern int	gp_max_databases;
 extern int	gp_max_tablespaces;
 extern int	gp_max_filespaces;
-extern bool gp_initdb_mirrored;
-extern bool gp_before_persistence_work;
-extern bool gp_before_filespace_setup;
 extern bool gp_startup_integrity_checks;
-extern bool gp_change_tracking;
-extern bool	gp_persistent_repair_global_sequence;
-extern bool gp_validate_pt_info_relcache;
 extern bool Debug_print_xlog_relation_change_info;
 extern bool Debug_print_xlog_relation_change_info_skip_issues_only;
 extern bool Debug_print_xlog_relation_change_info_backtrace_skip_issues;
@@ -585,15 +577,6 @@ extern char  *gp_default_storage_options;
 
 /* copy GUC */
 extern bool gp_enable_segment_copy_checking;
-
-/*
- * This is the batch size used when we want to display the number of files that
- * have been shipped to the mirror during crash recovery.
- * For e.g if this value is set to 1000, after shipping 1000 files during
- * a message gets printed out which indicates the total number of files shipped to
- * the mirror for a particular directory.
- */
-extern int log_count_recovered_files_batch;
 
 extern int writable_external_table_bufsize;
 
