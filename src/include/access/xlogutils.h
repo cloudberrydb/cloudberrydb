@@ -32,9 +32,7 @@ extern Buffer XLogReadBufferExtended(RelFileNode rnode, ForkNumber forknum,
 extern Relation CreateFakeRelcacheEntry(RelFileNode rnode);
 extern void FreeFakeRelcacheEntry(Relation fakerel);
 
-#ifdef USE_SEGWALREP
 extern void XLogAOSegmentFile(RelFileNode rnode, uint32 segmentFileNum);
 extern void XLogAODropSegmentFile(RelFileNode rnode, uint32 segmentFileNum);
-#endif
 
 #endif

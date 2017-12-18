@@ -26,20 +26,12 @@ typedef struct FtsConnectionInfo
 	char role;                           /* primary ('p'), mirror ('m') */
 	char mode;                           /* sync ('s'), resync ('r'), change-tracking ('c') */
 	GpMonotonicTime startTime;           /* probe start timestamp */
-#ifdef USE_SEGWALREP
 	probe_result *result;
-#else
-	char segmentStatus;                  /* probed segment status */
-#endif
 	int16 probe_errno;                   /* saved errno from the latest system call */
 	char errmsg[PROBE_ERR_MSG_LEN];      /* message returned by strerror() */
 	struct pg_conn *conn;                        /* libpq connection object */
 	const char *message;
 } FtsConnectionInfo;
-
-#ifndef USE_SEGWALREP
-typedef FtsConnectionInfo ProbeConnectionInfo;
-#endif
 
 extern char *errmessage(FtsConnectionInfo *probeInfo);
 extern bool probePollIn(FtsConnectionInfo *probeInfo);

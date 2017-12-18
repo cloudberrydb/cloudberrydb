@@ -549,9 +549,6 @@ static int	BackendStartup(Port *port);
 static int	ProcessStartupPacket(Port *port, bool SSLdone);
 static void processCancelRequest(Port *port, void *pkt, MsgType code);
 static void processPrimaryMirrorTransitionRequest(Port *port, void *pkt);
-#ifndef USE_SEGWALREP
-static void processPrimaryMirrorTransitionQuery(Port *port, void *pkt);
-#endif
 static int	initMasks(fd_set *rmask);
 static void report_fork_failure_to_client(Port *port, int errnum);
 static enum CAC_state canAcceptConnections(void);
@@ -1160,18 +1157,11 @@ PostmasterMain(int argc, char *argv[])
              )));
 	}
 
-/*
- * This value of max_wal_senders will be inherited by all the child processes
- * through fork(). This value is used by XLogIsNeeded().
- */
-#ifdef USE_SEGWALREP
-		max_wal_senders = 1;
-#else
-	if ( GpIdentity.segindex == MASTER_CONTENT_ID)
-		max_wal_senders = 1;
-	else
-		max_wal_senders = 0;
-#endif
+	/*
+	 * This value of max_wal_senders will be inherited by all the child processes
+	 * through fork(). This value is used by XLogIsNeeded().
+	 */
+	max_wal_senders = 1;
 
 	if ( GpIdentity.numsegments < 0 )
 	{
@@ -2615,17 +2605,6 @@ ProcessStartupPacket(Port *port, bool SSLdone)
 		return 127;
 	}
 
-#ifndef USE_SEGWALREP
-	else if (proto == PRIMARY_MIRROR_TRANSITION_QUERY_CODE)
-	{
-	    /* disable the authentication timeout in case it takes a long time */
-        if (!disable_sig_alarm(false))
-            elog(FATAL, "could not disable timer for authorization timeout");
-		processPrimaryMirrorTransitionQuery(port, buf);
-		return 127;
-	}
-#endif
-
 	/* Otherwise this is probably a normal postgres-message */
 
 	if (proto == NEGOTIATE_SSL_CODE && !SSLdone)
@@ -3501,116 +3480,6 @@ processPrimaryMirrorTransitionRequest(Port *port, void *pkt)
 	}
 }
 
-#ifndef USE_SEGWALREP
-static void
-sendPrimaryMirrorTransitionQuery(uint32 mode, uint32 segstate, uint32 datastate, uint32 faulttype)
-{
-	StringInfoData buf;
-
-	initStringInfo(&buf);
-
-	pq_beginmessage(&buf, '\0');
-
-	pq_sendint(&buf, mode, 4);
-	pq_sendint(&buf, segstate, 4);
-	pq_sendint(&buf, datastate, 4);
-	pq_sendint(&buf, faulttype, 4);
-
-	pq_endmessage(&buf);
-	pq_flush();
-}
-
-/**
- * Called during startup packet processing.
- *
- * Note that we don't worry about freeing memory here because this is
- * called on a new backend which is closed after this operation
- */
-static void
-processPrimaryMirrorTransitionQuery(Port *port, void *pkt)
-{
-	PrimaryMirrorTransitionPacket *transition = (PrimaryMirrorTransitionPacket *) pkt;
-	int length;
-
-	PrimaryMirrorMode pm_mode;
-	SegmentState_e s_state;
-	DataState_e d_state;
-	FaultType_e f_type;
-
-	init_ps_display("filerep status query process", "", "", "");
-
-	length = (int)ntohl(transition->dataLength);
-	if (length != 0)
-	{
-		ereport(COMMERROR, (errcode(ERRCODE_PROTOCOL_VIOLATION),
-				 errmsg("corrupt length value %d in primary mirror query packet", length)));
-		return;
-	}
-
-	SIMPLE_FAULT_INJECTOR(SegmentProbeResponse);
-
-	getPrimaryMirrorStatusCodes(&pm_mode, &s_state, &d_state, &f_type);
-
-	/* check if resync has completed on both primary and mirror */
-	if (pm_mode == PMModePrimarySegment && d_state == DataStateInSync && isResyncRunning())
-	{
-		d_state = DataStateInResync;
-	}
-
-	/* check if segment is mirrorless primary */
-	if (pm_mode == PMModeMirrorlessSegment)
-	{
-		Assert(d_state == DataStateNotInitialized);
-
-		/* report segment as in sync to conform with master's segment configuration */
-		d_state = DataStateInSync;
-	}
-
-	/* in case of a mirroring fault, check if there is a NIC failure */
-	if ((pm_mode == PMModePrimarySegment && f_type == FaultTypeMirror) ||
-	     (pm_mode == PMModeMirrorSegment &&
-	       (f_type == FaultTypeNotInitialized || f_type == FaultTypeMirror)))
-	{
-		if (primaryMirrorCheckNICFailure())
-		{
-			/* report NIC failure to FTS */
-			f_type = FaultTypeNet;
-		}
-	}
-	
-	if (gp_log_fts >= GPVARS_VERBOSITY_VERBOSE)
-	{
-		ereport(LOG, (errmsg("FTS: Probe Request (mode: %s) (segmentState: %s) (dataState: %s) (fault: %s)", 
-			getMirrorModeLabel(pm_mode), getSegmentStateLabel(s_state), getDataStateLabel(d_state), getFaultTypeLabel(f_type))));
-	}
-
-	/*
-	 * FTS apart from below code doesn't perform any disk IO,
-	 * hence adding code to perform reads and writes to segment data directory.
-	 * Several DU cases exposed FTS not detecting server hangs because of IO hang.
-	 * Hence adding this code to perform IO and if some issue will hang similar to other queries,
-	 * causing FTS to detect the problem.
-	 */
-	if (fts_diskio_check)
-	{
-		if (pm_mode == PMModePrimarySegment && 
-			f_type == FaultTypeNotInitialized)
-		{
-			bool failure = checkIODataDirectory();
-			if (failure)
-			{
-				elog(LOG, "FTS_PROBE for IO Check: FAILED");
-				s_state = SegmentStateFault;
-				f_type = FaultTypeIO; 
-			}
-		}
-	}
-
-	sendPrimaryMirrorTransitionQuery((uint32)pm_mode, (uint32)s_state, (uint32)d_state, (uint32)f_type);
-
-	return;
-}
-#endif
 
 /*
  * The client has sent a cancel request packet, not a normal

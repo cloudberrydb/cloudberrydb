@@ -58,10 +58,7 @@ const char * const RM_names[RM_MAX_ID+1] = {
 	"Reserved 16",
 #endif	/* PG_VERSION_NUM >=90200 */
 	"DistributedLog",			/* 17 */
-
-#ifdef USE_SEGWALREP
 	"Appendonly"				/* 18 */
-#endif		/* USE_SEGWALREP */
 };
 
 /* copy from utils/timestamp.h */

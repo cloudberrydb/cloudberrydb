@@ -4976,10 +4976,8 @@ PostgresMain(int argc, char *argv[],
 
 					if (am_walsender)
 						exec_replication_command(query_string);
-#ifdef USE_SEGWALREP
 					else if (am_ftshandler)
 						HandleFtsMessage(query_string);
-#endif
 					else
 						exec_simple_query(query_string, NULL, -1);
 

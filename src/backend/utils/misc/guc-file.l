@@ -157,14 +157,12 @@ ProcessConfigFile(GucContext context)
 						 &head, &tail))
 		goto cleanup_list;
 
-#ifdef USE_SEGWALREP
 	Assert(gp_replication_config_filename);
 
 	if (!ParseConfigFile(gp_replication_config_filename, NULL,
 						 0, context, elevel,
 						 &head, &tail))
 		goto cleanup_list;
-#endif
 
 	/*
 	 * We need the proposed new value of custom_variable_classes to check

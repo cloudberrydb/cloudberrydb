@@ -19,7 +19,6 @@
 #include "utils/guc.h"
 #include "cdb/cdbutil.h"
 
-#ifdef USE_SEGWALREP
 
 /* Queries for FTS messages */
 #define	FTS_MSG_PROBE "PROBE"
@@ -61,8 +60,6 @@ typedef struct FtsResponse
 	bool IsInSync;
 	bool IsSyncRepEnabled;
 } FtsResponse;
-
-#endif
 
 extern bool am_ftshandler;
 
@@ -164,25 +161,11 @@ extern void FtsDumpChanges(FtsSegmentStatusChange *changes, int changeEntries);
  */
 extern bool FtsIsActive(void);
 
-#ifdef USE_SEGWALREP
 /*
  * Interface for WALREP specific checking
  */
 extern void HandleFtsMessage(const char* query_string);
 extern void FtsWalRepMessageSegments(fts_context *context);
-#else
-extern bool probePublishUpdate(CdbComponentDatabases *dbs, uint8 *probe_results);
-
-/*
- * Interface for FireRep-specific segment state machine and transitions
- */
-extern uint32 FtsGetPairStateFilerep(CdbComponentDatabaseInfo *primary, CdbComponentDatabaseInfo *mirror);
-extern uint32 FtsTransitionFilerep(uint32 stateOld, uint32 trans);
-extern void FtsResolveStateFilerep(FtsSegmentPairState *pairState);
-
-extern void FtsPreprocessProbeResultsFilerep(CdbComponentDatabases *dbs, uint8 *probe_results);
-extern void FtsFailoverFilerep(FtsSegmentStatusChange *changes, int changeCount);
-#endif
 
 /*
  * Interface for requesting master to shut down

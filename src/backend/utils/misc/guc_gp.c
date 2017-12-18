@@ -269,9 +269,7 @@ int			gp_filerep_ct_batch_size;
 
 int			WalSendClientTimeout = 30000;		/* 30 seconds. */
 
-#ifdef USE_SEGWALREP
 char	   *gp_replication_config_filename = NULL;
-#endif
 
 char	   *data_directory;
 
@@ -5650,7 +5648,6 @@ assign_gp_default_storage_options(const char *newval,
 	return doit ? storageOptToString() : newval;
 }
 
-#ifdef USE_SEGWALREP
 bool
 select_gp_replication_config_files(const char *configdir, const char *progname)
 {
@@ -6072,4 +6069,3 @@ set_gp_replication_config(const char *name, const char *value)
 
 	LWLockRelease(GpReplicationConfigFileLock);
 }
-#endif

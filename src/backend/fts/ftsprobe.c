@@ -37,7 +37,6 @@
 #include <sys/poll.h>
 #endif
 
-#ifdef USE_SEGWALREP
 /* mutex used for pthread synchronization in parallel probing */
 static pthread_mutex_t worker_thread_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -371,7 +370,6 @@ FtsWalRepMessageSegments(fts_context *context)
 		}
 	}
 }
-#endif
 
 /*
  * Check if probe timeout has expired

@@ -684,11 +684,7 @@ gp_add_segment_primary(PG_FUNCTION_ARGS)
 	new.db.dbid = get_availableDbId();
 	new.db.role = GP_SEGMENT_CONFIGURATION_ROLE_PRIMARY;
 	new.db.preferred_role = GP_SEGMENT_CONFIGURATION_ROLE_PRIMARY;
-#ifdef USE_SEGWALREP
 	new.db.mode = GP_SEGMENT_CONFIGURATION_MODE_NOTINSYNC;
-#else
-	new.db.mode = GP_SEGMENT_CONFIGURATION_MODE_INSYNC;
-#endif
 	new.db.status = GP_SEGMENT_CONFIGURATION_STATUS_UP;
 	new.db.filerep_port = -1;
 
@@ -759,10 +755,8 @@ gp_add_segment(PG_FUNCTION_ARGS)
 
 	mirroring_sanity_check(MASTER_ONLY | SUPERUSER, "gp_add_segment");
 
-#ifdef USE_SEGWALREP
 	new.db.mode = GP_SEGMENT_CONFIGURATION_MODE_NOTINSYNC;
 	elog(NOTICE, "mode is changed to GP_SEGMENT_CONFIGURATION_MODE_NOTINSYNC under walrep.");
-#endif
 
 	add_segment(new, fsmap);
 
@@ -852,13 +846,8 @@ gp_add_segment_mirror(PG_FUNCTION_ARGS)
 	mirroring_sanity_check(MASTER_ONLY | SUPERUSER, "gp_add_segment_mirror");
 
 	new.db.dbid = get_availableDbId();
-#ifdef USE_SEGWALREP
 	new.db.mode = GP_SEGMENT_CONFIGURATION_MODE_NOTINSYNC;
 	new.db.status = GP_SEGMENT_CONFIGURATION_STATUS_DOWN;
-#else
-	new.db.mode = GP_SEGMENT_CONFIGURATION_MODE_INSYNC;
-	new.db.status = GP_SEGMENT_CONFIGURATION_STATUS_UP;
-#endif
 	new.db.role = GP_SEGMENT_CONFIGURATION_ROLE_MIRROR;
 	new.db.preferred_role = GP_SEGMENT_CONFIGURATION_ROLE_MIRROR;
 

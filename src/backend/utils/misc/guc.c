@@ -3893,11 +3893,9 @@ SelectConfigFiles(const char *userDoption, const char *progname)
 	SetConfigOption("config_file", fname, PGC_POSTMASTER, PGC_S_OVERRIDE);
 	free(fname);
 
-#ifdef USE_SEGWALREP
 	/* Perform similar processes for Greenplum-specific configuration files. */
 	if (!select_gp_replication_config_files(configdir, progname))
 		return false;
-#endif
 
 	/*
 	 * Now read the config file for the first time.

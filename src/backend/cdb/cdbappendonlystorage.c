@@ -17,9 +17,7 @@
 #include "cdb/cdbappendonlystorage.h"
 #include "utils/guc.h"
 
-#ifdef USE_SEGWALREP
 #include "cdb/cdbappendonlyam.h"
-#endif							/* USE_SEGWALREP */
 
 
 int32

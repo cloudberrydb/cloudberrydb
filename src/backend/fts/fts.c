@@ -72,10 +72,6 @@
 #define MAX_NUM_OF_SEGMENTS  32768
 
 bool am_ftshandler = false;
-#ifndef USE_SEGWALREP
-/* one byte of status for each segment */
-static uint8 scan_status[MAX_NUM_OF_SEGMENTS];
-#endif
 
 #define GpConfigHistoryRelName    "gp_configuration_history"
 
@@ -405,7 +401,6 @@ CdbComponentDatabases *readCdbComponentInfoAndUpdateStatus(MemoryContext probeCo
 	return cdbs;
 }
 
-#ifdef USE_SEGWALREP
 static void
 probeWalRepUpdateConfig(int16 dbid, int16 segindex, bool IsSegmentAlive, bool IsInSync)
 {
@@ -704,7 +699,6 @@ FtsWalRepSetupMessageContext(fts_context *context)
 	}
 	return message_segments;
 }
-#endif
 
 static
 void FtsLoop()
@@ -797,7 +791,6 @@ void FtsLoop()
 		 */
 		oldContext = MemoryContextSwitchTo(probeContext);
 
-#ifdef USE_SEGWALREP
 		fts_context context;
 
 		FtsWalRepInitProbeContext(cdbs, &context);
@@ -807,7 +800,6 @@ void FtsLoop()
 
 		if (FtsWalRepSetupMessageContext(&context))
 			FtsWalRepMessageSegments(&context);
-#endif
 
 		MemoryContextSwitchTo(oldContext);
 
