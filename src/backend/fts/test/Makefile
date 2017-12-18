@@ -2,7 +2,6 @@ subdir=src/backend/fts
 top_builddir=../../../..
 include $(top_builddir)/src/Makefile.global
 
-ifeq ($(enable_segwalrep), yes)
 TARGETS=ftsmessagehandler ftsprobe fts
 
 include $(top_builddir)/src/backend/mock.mk
@@ -30,4 +29,3 @@ fts.t: \
     $(MOCK_DIR)/backend/catalog/indexing_mock.o \
     $(MOCK_DIR)/backend/access/common/scankey_mock.o \
     $(MOCK_DIR)/backend/access/index/genam_mock.o
-endif

@@ -180,9 +180,7 @@ pg_regress_call = ./pg_regress --inputdir=$(srcdir) --dlpath=. --multibyte=$(MUL
 # These are currently skipped because they don't work yet for segment wal replication
 # segspace: cannot restart database at the moment
 # filespace: segment wal replication does not handle filespaces yet
-ifeq ($(enable_segwalrep), yes)
 pg_regress_call := $(pg_regress_call) --exclude-tests="segspace_setup segspace segspace_cleanup filespace"
-endif
 
 check: all
 	$(pg_regress_call) --temp-install=./tmp_check --top-builddir=$(top_builddir) --schedule=$(srcdir)/parallel_schedule 

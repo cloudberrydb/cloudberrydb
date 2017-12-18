@@ -8,9 +8,7 @@ TARGETS=cdbtm \
 	cdbsrlz \
 	cdbdistributedsnapshot
 
-ifeq ($(enable_segwalrep), yes)
 TARGETS += cdbappendonlystorage cdbmirroredappendonly
-endif
 
 include $(top_builddir)/src/backend/mock.mk
 cdbtm.t: $(MOCK_DIR)/backend/storage/lmgr/lwlock_mock.o

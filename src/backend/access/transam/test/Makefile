@@ -4,9 +4,7 @@ include $(top_builddir)/src/Makefile.global
 
 TARGETS=xact distributedlog xlog
 
-ifeq ($(enable_segwalrep), yes)
 TARGETS += xlogutils
-endif
 
 include $(top_builddir)/src/backend/mock.mk
 

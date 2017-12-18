@@ -38,7 +38,6 @@ all:
 	$(MAKE) probe
 
 cluster create-demo-cluster:
-ifeq ($(enable_segwalrep), yes)
 	@WITH_MIRRORS=false ./demo_cluster.sh # will generate gpdemo-env.sh
 ifeq ($(WITH_MIRRORS), true)
 	@. ./gpdemo-env.sh; \
@@ -46,10 +45,6 @@ ifeq ($(WITH_MIRRORS), true)
 	./gpsegwalrep.py start;
 endif
 	@echo ""
-else
-	@./demo_cluster.sh
-	@echo ""
-endif
 
 probe:
 	@./probe_config.sh

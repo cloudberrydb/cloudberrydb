@@ -196,7 +196,6 @@ enable_mapreduce    = @enable_mapreduce@
 enable_gpcloud 	    = @enable_gpcloud@
 enable_gpperfmon    = @enable_gpperfmon@
 
-enable_segwalrep    = @enable_segwalrep@
 enable_tap_tests = @enable_tap_tests@
 
 python_includespec	= @python_includespec@
