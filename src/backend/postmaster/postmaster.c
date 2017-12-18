@@ -253,9 +253,6 @@ static PrimaryMirrorMode gInitialMode = PMModeMirrorlessSegment;
  * as well.
  */
 static pid_t StartupPID = 0,
-			StartupPass2PID = 0,
-			StartupPass3PID = 0,
-			StartupPass4PID = 0,
 			BgWriterPID = 0,
 			CheckpointerPID = 0,
 			WalWriterPID = 0,
@@ -266,8 +263,6 @@ static pid_t StartupPID = 0,
 			SysLoggerPID = 0,
 			FilerepPID = 0,
 			FilerepPeerResetPID = 0;
-
-#define StartupPidsAllZero() (StartupPID == 0 || StartupPass2PID == 0 || StartupPass3PID == 0 || StartupPass4PID == 0)
 
 static volatile sig_atomic_t filerep_has_signaled_state_change = false;
 static volatile sig_atomic_t filerep_requires_postmaster_reset = false;
@@ -338,9 +333,6 @@ typedef enum
 {
 	PM_INIT,					/* postmaster starting */
 	PM_STARTUP,					/* waiting for startup subprocess */
-	PM_STARTUP_PASS2, 			/* waiting for startup pass 2 subprocess */
-	PM_STARTUP_PASS3,			/* waiting for startup pass 3 subprocess */
-	PM_STARTUP_PASS4,			/* waiting for startup pass 4 subprocess */
 	PM_RECOVERY,				/* in archive recovery mode */
 	PM_RECOVERY_CONSISTENT,		/* consistent recovery mode */
 	PM_RUN,						/* normal "database is alive" state */
@@ -388,9 +380,6 @@ static const char *const gPmStateLabels[] =
 {
 	"init",
     "startup",
-    "startup_pass2",
-    "startup_pass3",
-	"startup_pass4",
     "recovery",
     "recovery_consistent",
     "run",
@@ -665,9 +654,6 @@ static void ShmemBackendArrayRemove(Backend *bn);
 #endif   /* EXEC_BACKEND */
 
 #define StartupDataBase()		StartChildProcess(StartupProcess)
-#define StartupPass2DataBase()	StartChildProcess(StartupPass2Process)
-#define StartupPass3DataBase()	StartChildProcess(StartupPass3Process)
-#define StartupPass4DataBase()	StartChildProcess(StartupPass4Process)
 #define StartBackgroundWriter() StartChildProcess(BgWriterProcess)
 #define StartCheckpointer()     StartChildProcess(CheckpointerProcess)
 #define StartWalWriter()		StartChildProcess(WalWriterProcess)
@@ -2393,7 +2379,7 @@ ServerLoop(void)
 			 * fails, we'll just try again later.
 			 */
 			if (BgWriterPID == 0 &&
-			    pmState > PM_STARTUP_PASS4 &&
+			    pmState > PM_STARTUP &&
 			    pmState < PM_CHILD_STOP_BEGIN)
 			{
 				BgWriterPID = StartBackgroundWriter();
@@ -2403,7 +2389,7 @@ ServerLoop(void)
 			}
 
 			if (CheckpointerPID == 0 &&
-			    pmState > PM_STARTUP_PASS4 &&
+			    pmState > PM_STARTUP &&
 			    pmState < PM_CHILD_STOP_BEGIN)
 			{
 				CheckpointerPID = StartCheckpointer();
@@ -2436,7 +2422,7 @@ ServerLoop(void)
 
 			/* If we have lost the stats collector, try to start a new one */
 			if (PgStatPID == 0 &&
-			    pmState > PM_STARTUP_PASS4 &&
+			    pmState > PM_STARTUP &&
 			    pmState < PM_CHILD_STOP_BEGIN)
 			{
 				PgStatPID = pgstat_start();
@@ -2452,8 +2438,8 @@ ServerLoop(void)
 				PMSubProc *subProc = &PMSubProcList[s];
 
 				if (subProc->pid == 0 &&
-					StartupPidsAllZero() &&
-					pmState > PM_STARTUP_PASS4 &&
+					StartupPID == 0 &&
+					pmState > PM_STARTUP &&
 					!FatalError &&
 					Shutdown == NoShutdown &&
 					ServiceStartable(subProc))
@@ -3580,9 +3566,6 @@ canAcceptConnections(void)
 
 		if (!FatalError &&
 			(pmState == PM_STARTUP ||
-			 pmState == PM_STARTUP_PASS2 ||
-			 pmState == PM_STARTUP_PASS3 ||
-			 pmState == PM_STARTUP_PASS4 ||
 			 pmState == PM_RECOVERY ||
 			 pmState == PM_RECOVERY_CONSISTENT))
 			return CAC_STARTUP; /* normal startup */
@@ -3779,9 +3762,6 @@ SIGHUP_handler(SIGNAL_ARGS)
 		ProcessConfigFile(PGC_SIGHUP);
 		SignalChildren(SIGHUP);
 		signal_child_if_up(StartupPID, SIGHUP);
-        signal_child_if_up(StartupPass2PID, SIGHUP);
-        signal_child_if_up(StartupPass3PID, SIGHUP);
-        signal_child_if_up(StartupPass4PID, SIGHUP);
 		signal_child_if_up(BgWriterPID, SIGHUP);
 		signal_child_if_up(CheckpointerPID, SIGHUP);
 		signal_child_if_up(WalWriterPID, SIGHUP);
@@ -3901,9 +3881,6 @@ pmdie(SIGNAL_ARGS)
 
 			SignalChildren(SIGQUIT);
 			signal_child_if_up(StartupPID, SIGQUIT);
-            signal_child_if_up(StartupPass2PID, SIGQUIT);
-            signal_child_if_up(StartupPass3PID, SIGQUIT);
-            signal_child_if_up(StartupPass4PID, SIGQUIT);
  			StopServices(0, SIGQUIT);
 			signal_child_if_up(BgWriterPID, SIGQUIT);
 			signal_child_if_up(CheckpointerPID, SIGQUIT);
@@ -3985,9 +3962,6 @@ do_immediate_shutdown_reaper(void)
         }
 
         zeroIfPidEqual(pid, &StartupPID);
-        zeroIfPidEqual(pid, &StartupPass2PID);
-        zeroIfPidEqual(pid, &StartupPass3PID);
-        zeroIfPidEqual(pid, &StartupPass4PID);
 
         /* services */
 		for (s = 0; s < MaxPMSubType; s++)
@@ -4182,7 +4156,7 @@ do_reaper()
 
 				if (ServiceStartable(subProc))
 				{
-					if (StartupPidsAllZero() && 
+					if (StartupPID == 0 &&
 						!FatalError && Shutdown == NoShutdown)
 					{
 						/*
@@ -4497,9 +4471,6 @@ do_reaper()
 		 */
 		if (CountChildren(BACKEND_TYPE_ALL) != 0 ||
 		    StartupPID != 0 ||
-		    StartupPass2PID != 0 ||
-		    StartupPass3PID != 0 ||
-		    StartupPass4PID != 0 ||
 		    BgWriterPID != 0 ||
 		    CheckpointerPID != 0 ||
 		    FilerepPID  != 0 ||
@@ -4646,12 +4617,6 @@ GetServerProcessTitle(int pid)
 		return "system logger process";
 	if (pid == StartupPID)
 		return "startup process";
-	if (pid == StartupPass2PID)
-		return "startup pass 2 process";
-	if (pid == StartupPass3PID)
-		return "startup pass 3 process";
-	if (pid == StartupPass4PID)
-		return "startup pass 4 process";
 	if (pid == PostmasterPid)
 		return "postmaster process";
 	if (pid == FilerepPID )
@@ -4816,42 +4781,6 @@ HandleChildCrash(int pid, int exitstatus, const char *procname)
 								 (SendStop ? "SIGSTOP" : "SIGQUIT"),
 								 (int) StartupPID)));
 		signal_child(StartupPID, (SendStop ? SIGSTOP : SIGQUIT));
-	}
-
-	/* Take care of the startup process too */
-	if (pid == StartupPass2PID)
-		StartupPass2PID = 0;
-	else if (StartupPass2PID != 0 && !FatalError)
-	{
-		ereport(DEBUG2,
-				(errmsg_internal("sending %s to process %d",
-								 (SendStop ? "SIGSTOP" : "SIGQUIT"),
-								 (int) StartupPass2PID)));
-		signal_child(StartupPass2PID, (SendStop ? SIGSTOP : SIGQUIT));
-	}
-
-	/* Take care of the startup process too */
-	if (pid == StartupPass3PID)
-		StartupPass3PID = 0;
-	else if (StartupPass3PID != 0 && !FatalError)
-	{
-		ereport(DEBUG2,
-				(errmsg_internal("sending %s to process %d",
-								 (SendStop ? "SIGSTOP" : "SIGQUIT"),
-								 (int) StartupPass3PID)));
-		signal_child(StartupPass3PID, (SendStop ? SIGSTOP : SIGQUIT));
-	}
-	
-	/* Take care of the startup process too */
-	if (pid == StartupPass4PID)
-		StartupPass4PID = 0;
-	else if (StartupPass4PID != 0 && !FatalError)
-	{
-		ereport(DEBUG2,
-				(errmsg_internal("sending %s to process %d",
-								 (SendStop ? "SIGSTOP" : "SIGQUIT"),
-								 (int) StartupPass4PID)));
-		signal_child(StartupPass4PID, (SendStop ? SIGSTOP : SIGQUIT));
 	}
 
 	/* Take care of the bgwriter too */
@@ -5258,8 +5187,7 @@ static PMState StateMachineCheck_WaitStartupProcesses(void)
 {
     Assert(pmState == PM_CHILD_STOP_WAIT_STARTUP_PROCESSES);
 
-    bool moveToNextState = StartupPID == 0 && StartupPass2PID == 0 && StartupPass3PID == 0 && StartupPass4PID == 0;
-    return moveToNextState ? (pmState+1) : pmState;
+    return (StartupPID == 0) ? (pmState+1) : pmState;
 }
 
 /**
@@ -5330,15 +5258,12 @@ static PMState StateMachineCheck_WaitBgWriterCheckpointComplete(void)
  ***************************************/
 
 /**
- * Called to transition to PM_CHILD_STOP_WAIT_STARTUP_PROCESSES -- so tell any startup processes to complete
+ * Called to transition to PM_CHILD_STOP_WAIT_STARTUP_PROCESSES -- so tell the startup process to complete
  */
 static void
 StateMachineTransition_ShutdownStartupProcesses(void)
 {
 	signal_child_if_up(StartupPID, SIGTERM);
-	signal_child_if_up(StartupPass2PID, SIGTERM);
-	signal_child_if_up(StartupPass3PID, SIGTERM);
-	signal_child_if_up(StartupPass4PID, SIGTERM);
 	signal_child_if_up(WalReceiverPID, SIGTERM);
 }
 
@@ -5537,9 +5462,6 @@ PostmasterStateMachine(void)
         {
             case PM_INIT:
             case PM_STARTUP:
-            case PM_STARTUP_PASS2:
-			case PM_STARTUP_PASS3:
-			case PM_STARTUP_PASS4:
             case PM_RECOVERY:
             case PM_RECOVERY_CONSISTENT:
             case PM_RUN:
@@ -5621,9 +5543,6 @@ PostmasterStateMachine(void)
         {
             case PM_INIT:
             case PM_STARTUP:
-            case PM_STARTUP_PASS2:
-			case PM_STARTUP_PASS3:
-			case PM_STARTUP_PASS4:
             case PM_RECOVERY:
             case PM_RECOVERY_CONSISTENT:
             case PM_RUN:
@@ -7016,6 +6935,8 @@ sigusr1_handler(SIGNAL_ARGS)
 			 * startup pass 4, where nobody else has forked dbid value to
 			 * local memory.  This is not the best solution, and at some point
 			 * we should revisit design around dbid.
+			 *
+			 * WALREP_FIXME: Multi-pass recovery is gone. Is this still needed?
 			 */
 			GpIdentity.dbid = newdbid;
 
@@ -7200,9 +7121,6 @@ StartChildProcess(AuxProcType type)
         case BgWriterProcess:
 		case CheckpointerProcess:
         case StartupProcess:
-        case StartupPass2Process:
-		case StartupPass3Process:
-		case StartupPass4Process:
         case WalWriterProcess:
         case WalReceiverProcess:
             Assert(isPrimaryMirrorModeAFullPostmaster(true));
@@ -7257,18 +7175,6 @@ StartChildProcess(AuxProcType type)
 			case StartupProcess:
 				ereport(LOG,
 						(errmsg("could not fork startup process: %m")));
-				break;
-			case StartupPass2Process:
-				ereport(LOG,
-						(errmsg("could not fork startup pass 2 process: %m")));
-				break;
-			case StartupPass3Process:
-				ereport(LOG,
-						(errmsg("could not fork startup pass 3 process: %m")));
-				break;
-			case StartupPass4Process:
-				ereport(LOG,
-						(errmsg("could not fork startup pass 4 process: %m")));
 				break;
 			case BgWriterProcess:
 				ereport(LOG,
