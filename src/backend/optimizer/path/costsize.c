@@ -716,8 +716,8 @@ cost_bitmap_heap_scan(Path *path, PlannerInfo *root, RelOptInfo *baserel,
 	 * cost per page.
 	 */
 	if (pages_fetched >= 2.0)
-		cost_per_page = random_page_cost -
-			(random_page_cost - seq_page_cost) * sqrt(pages_fetched / T);
+		cost_per_page = seq_page_cost *
+			pow(random_page_cost / seq_page_cost, 1 - sqrt(pages_fetched / T));
 	else
 		cost_per_page = random_page_cost;
 
@@ -817,8 +817,8 @@ cost_bitmap_appendonly_scan(Path *path, PlannerInfo *root, RelOptInfo *baserel,
 	 * cost per page.
 	 */
 	if (pages_fetched >= 2.0)
-		cost_per_page = random_page_cost -
-			(random_page_cost - seq_page_cost) * sqrt(pages_fetched / T);
+		cost_per_page = seq_page_cost *
+			pow(random_page_cost / seq_page_cost, 1 - sqrt(pages_fetched / T));
 	else
 		cost_per_page = random_page_cost;
 
