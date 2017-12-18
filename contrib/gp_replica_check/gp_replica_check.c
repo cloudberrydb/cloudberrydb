@@ -5,6 +5,7 @@
 #include "access/gist_private.h"
 #include "access/gin.h"
 #include "commands/sequence.h"
+#include "postmaster/bgwriter.h"
 #include "replication/walsender_private.h"
 #include "replication/walsender.h"
 #include "utils/builtins.h"
@@ -247,7 +248,7 @@ compare_files(char* primaryfilepath, char* mirrorfilepath, RelfilenodeEntry *ren
 static XLogRecPtr*
 get_synced_lsns()
 {
-	const int max_retry = 60;
+	const int max_retry = 20;
 	int retry = 0;
 	XLogRecPtr *sent_lsns = (XLogRecPtr *)palloc(max_wal_senders * sizeof(XLogRecPtr));
 
@@ -369,13 +370,41 @@ gp_replica_check(PG_FUNCTION_ARGS)
 	DIR *primarydir = AllocateDir(primarydirpath);
 	DIR *mirrordir = AllocateDir(mirrordirpath);
 
-	/* Store the LSN to compare at the end to make sure no IO was done during the replication check */
-	XLogRecPtr *start_sent_lsns = get_synced_lsns();
-	if (start_sent_lsns == NULL)
+	XLogRecPtr *start_sent_lsns;
+
+	/*
+	 * Wait until the standby has replayed all the WAL. Store the LSN, to
+	 * compare at the end, to make sure no IO was done during the replication
+	 * check.
+	 *
+	 * There is no mechanism to force the master to flush and send WAL
+	 * records to the standby. Transaction commit and some other operations
+	 * force a WAL flush, which usually happens often enough that the
+	 * WAL is flushed and synced, but there is no guarantee. Therefore, if
+	 * the standby doesn't seem to catch up in a timely fashion, request a
+	 * checkpoint, to create some WAL activity that is flushed to disk, and
+	 * retry.
+	 */
+	int attempts = 0;
+	for (;;)
 	{
-		ereport(WARNING,
-				(errmsg("unable to obtain start synced LSN values between primary and mirror")));
-		PG_RETURN_BOOL(false);
+		attempts++;
+		start_sent_lsns = get_synced_lsns();
+		if (start_sent_lsns)
+			break;
+
+		if (attempts == 3)
+		{
+			ereport(WARNING,
+					(errmsg("unable to obtain start synced LSN values between primary and mirror")));
+			PG_RETURN_BOOL(false);
+		}
+		else
+		{
+			ereport(WARNING,
+					(errmsg("unable to obtain start synced LSN values between primary and mirror, retrying after a checkpoint...")));
+			RequestCheckpoint(CHECKPOINT_IMMEDIATE);
+		}
 	}
 
 	/* Store information from pg_class for each relfilenode */
