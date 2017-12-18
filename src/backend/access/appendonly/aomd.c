@@ -201,9 +201,8 @@ CloseAOSegmentFile(MirroredAppendOnlyOpen *mirroredOpen)
 void
 TruncateAOSegmentFile(MirroredAppendOnlyOpen *mirroredOpen, Relation rel, int64 offset)
 {
-	int primaryError;
 	char *relname = RelationGetRelationName(rel);
-	
+
 	Assert(mirroredOpen->primaryFile > 0);
 	Assert(offset >= 0);
 
@@ -211,14 +210,10 @@ TruncateAOSegmentFile(MirroredAppendOnlyOpen *mirroredOpen, Relation rel, int64 
 	 * Call the 'fd' module with a 64-bit length since AO segment files
 	 * can be multi-gigabyte to the terabytes...
 	 */
-	MirroredAppendOnly_Truncate(mirroredOpen,
-								offset,
-								&primaryError);
-	if (primaryError != 0)
+	if (FileTruncate(mirroredOpen->primaryFile, offset) != 0)
 		ereport(ERROR,
-				(errmsg("\"%s\": failed to truncate data after eof: %s", 
-					    relname,
-					    strerror(primaryError))));
+				(errmsg("\"%s\": failed to truncate data after eof: %m",
+					    relname)));
 	if (!rel->rd_istemp)
 		xlog_ao_truncate(mirroredOpen, offset);
 }

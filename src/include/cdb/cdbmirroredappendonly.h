@@ -82,16 +82,6 @@ extern void MirroredAppendOnly_Append(
 				/* The byte length of the Append-Only data. */
 	int 		*primaryError);
 
-// -----------------------------------------------------------------------------
-// Truncate
-// ----------------------------------------------------------------------------
-extern void MirroredAppendOnly_Truncate(
-	MirroredAppendOnlyOpen *open,
-				/* The open struct. */
-	int64		position,
-				/* The position to cutoff the data. */
-	int 		*primaryError);
-
 extern void ao_create_segfile_replay(XLogRecord *record);
 extern void ao_insert_replay(XLogRecord *record);
 extern void xlog_ao_insert(RelFileNode relFileNode, int32 segmentFileNum,

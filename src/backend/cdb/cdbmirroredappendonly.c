@@ -185,24 +185,6 @@ MirroredAppendOnly_Append(
 
 }
 
-/* ----------------------------------------------------------------------------- */
-/*  Truncate */
-/* ---------------------------------------------------------------------------- */
-void
-MirroredAppendOnly_Truncate(
-							MirroredAppendOnlyOpen *open,
- /* The open struct. */
-							int64 position,
- /* The position to cutoff the data. */
-							int *primaryError)
-{
-	*primaryError = 0;
-
-	errno = 0;
-	if (FileTruncate(open->primaryFile, position) < 0)
-		*primaryError = errno;
-}
-
 /*
  * Insert an AO XLOG/AOCO record.
  *
