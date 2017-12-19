@@ -1,13 +1,13 @@
 /*-------------------------------------------------------------------------
  *
- * cdbmirroredappendonly.c
+ * cdbappendonlyxlog.c
  *
  * Portions Copyright (c) 2009-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
  *
  *
  * IDENTIFICATION
- *	    src/backend/cdb/cdbmirroredappendonly.c
+ *	    src/backend/cdb/cdbappendonlyxlog.c
  *
  *-------------------------------------------------------------------------
  */
@@ -20,7 +20,7 @@
 #include <sys/file.h>
 
 #include "utils/palloc.h"
-#include "cdb/cdbmirroredappendonly.h"
+#include "cdb/cdbappendonlyxlog.h"
 #include "storage/fd.h"
 #include "catalog/catalog.h"
 #include "cdb/cdbpersistenttablespace.h"
@@ -31,159 +31,6 @@
 
 #include "access/xlogutils.h"
 #include "cdb/cdbappendonlyam.h"
-
-
-/*
- * Flush and close a bulk relation file.
- *
- * If the flush is unable to complete on the mirror, then this relation will be marked in the
- * commit, distributed commit, distributed prepared and commit prepared records as having
- * un-mirrored bulk initial data.
- */
-void
-MirroredAppendOnly_Flush(MirroredAppendOnlyOpen *open,
-						 int *primaryError)
-{
-	Assert(open != NULL);
-	Assert(open->isActive);
-
-	errno = 0;
-
-	if (FileSync(open->primaryFile) != 0)
-	{
-		*primaryError = errno;
-	}
-}
-
-/*
- * Close a bulk relation file.
- *
- */
-void
-MirroredAppendOnly_Close(MirroredAppendOnlyOpen *open)
-{
-	Assert(open != NULL);
-	Assert(open->isActive);
-
-	/* No primary error to report. */
-	errno = 0;
-
-	FileClose(open->primaryFile);
-
-	open->isActive = false;
-	open->primaryFile = 0;
-}
-
-void
-MirroredAppendOnly_Drop(RelFileNode *relFileNode,
-						int32 segmentFileNum,
-						int *primaryError)
-{
-	char	   *primaryFilespaceLocation;
-	char	   *mirrorFilespaceLocation;
-
-	*primaryError = 0;
-
-	PersistentTablespace_GetPrimaryAndMirrorFilespaces(
-													   relFileNode->spcNode,
-													   &primaryFilespaceLocation,
-													   &mirrorFilespaceLocation);
-
-	char	   *dbPath;
-	char	   *path;
-
-	dbPath = (char *) palloc(MAXPGPATH + 1);
-	path = (char *) palloc(MAXPGPATH + 1);
-
-	FormDatabasePath(
-		dbPath,
-		primaryFilespaceLocation,
-		relFileNode->spcNode,
-		relFileNode->dbNode);
-
-	if (segmentFileNum == 0)
-		sprintf(path, "%s/%u", dbPath, relFileNode->relNode);
-	else
-		sprintf(path, "%s/%u.%u", dbPath, relFileNode->relNode, segmentFileNum);
-
-	errno = 0;
-
-	if (unlink(path) < 0)
-	{
-		*primaryError = errno;
-	}
-
-	pfree(dbPath);
-	pfree(path);
-
-	if (primaryFilespaceLocation != NULL)
-		pfree(primaryFilespaceLocation);
-
-	if (mirrorFilespaceLocation != NULL)
-		pfree(mirrorFilespaceLocation);
-}
-
-/* ----------------------------------------------------------------------------- */
-/*  Append */
-/* ----------------------------------------------------------------------------- */
-
-/*
- * Write bulk mirrored.
- */
-void
-MirroredAppendOnly_Append(
-						  MirroredAppendOnlyOpen *open,
- /* The open struct. */
-
-						  void *buffer,
- /* Pointer to the buffer. */
-
-						  int32 bufferLen,
- /* Byte length of buffer. */
-
-						  int *primaryError)
-{
-	Assert(open != NULL);
-	Assert(open->isActive);
-	Assert(open->relFileNode.relNode != InvalidOid);
-
-	*primaryError = 0;
-
-	/*
-	 * Using FileSeek to fetch the current write offset. Passing 0 offset
-	 * with SEEK_CUR avoids actual disk-io, as it just returns from
-	 * VFDCache the current file position value. Make sure to populate
-	 * this before the FileWrite call else the file pointer has moved
-	 * forward.
-	 */
-	int64 offset = FileSeek(open->primaryFile, 0, SEEK_CUR);
-
-	errno = 0;
-
-	if ((int) FileWrite(open->primaryFile, buffer, bufferLen) != bufferLen)
-	{
-		/* if write didn't set errno, assume problem is no disk space */
-		if (errno == 0)
-			errno = ENOSPC;
-		*primaryError = errno;
-	}
-	else
-	{
-		/*
-		 * Log each varblock to the XLog. Write to the file first, before
-		 * writing the WAL record, to avoid trouble if you run out of disk
-		 * space. If WAL record is written first, and then the FileWrite()
-		 * fails, there's no way to "undo" the WAL record. If crash
-		 * happens, crash recovery will also try to replay the WAL record,
-		 * and will also run out of disk space, and will fail. As EOF
-		 * controls the visibility of data in AO / CO files, writing xlog
-		 * record after writing to file works fine.
-		 */
-		xlog_ao_insert(open->relFileNode, open->segmentFileNum, offset, buffer, bufferLen);
-	}
-	/* Keep reporting-- it may have occurred anytime during the open session. */
-
-}
 
 /*
  * Insert an AO XLOG/AOCO record.
@@ -308,13 +155,13 @@ ao_insert_replay(XLogRecord *record)
 /*
  * AO/CO truncate xlog record insertion.
  */
-void xlog_ao_truncate(MirroredAppendOnlyOpen *open, int64 offset)
+void xlog_ao_truncate(RelFileNode relFileNode, int32 segmentFileNum, int64 offset)
 {
 	xl_ao_truncate	xlaotruncate;
 	XLogRecData		rdata[1];
 
-	xlaotruncate.target.node = open->relFileNode;
-	xlaotruncate.target.segment_filenum = open->segmentFileNum;
+	xlaotruncate.target.node = relFileNode;
+	xlaotruncate.target.segment_filenum = segmentFileNum;
 	xlaotruncate.target.offset = offset;
 
 	rdata[0].data = (char*) &xlaotruncate;

@@ -32,7 +32,7 @@
 #include "utils/guc.h"
 #include "access/appendonlytid.h"
 #include "cdb/cdbappendonlystorage.h"
-#include "cdb/cdbmirroredappendonly.h"
+#include "cdb/cdbappendonlyxlog.h"
 #include "cdb/cdbpersistenttablespace.h"
 
 int
@@ -130,18 +130,18 @@ MakeAOSegmentFileName(
  * The fd module's PathNameOpenFile() is used to open the file, so the
  * the File* routines can be used to read, write, close, etc, the file.
  */
-bool
+File
 OpenAOSegmentFile(Relation rel, 
 				  char *filepathname, 
 				  int32	segmentFileNum,
-				  int64	logicalEof,
-				  MirroredAppendOnlyOpen *mirroredOpen)
+				  int64	logicalEof)
 {	
 	char	   *primaryFilespaceLocation;
 	char	   *mirrorFilespaceLocation;
 	char	   *dbPath;
 	char	   *path;
 	int			fileFlags = O_RDWR | PG_BINARY;
+	File		fd;
 
 	PersistentTablespace_GetPrimaryAndMirrorFilespaces(
 										rel->rd_node.spcNode,
@@ -163,24 +163,21 @@ OpenAOSegmentFile(Relation rel,
 
 	errno = 0;
 
-	mirroredOpen->primaryFile = PathNameOpenFile(path, fileFlags, 0600);
-	if (mirroredOpen->primaryFile < 0)
+	fd = PathNameOpenFile(path, fileFlags, 0600);
+	if (fd < 0)
 	{
 		if (logicalEof == 0 && errno == ENOENT)
-			return false;
+			return -1;
 
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not open Append-Only segment file \"%s\": %m",
 						filepathname)));
 	}
-	mirroredOpen->relFileNode = rel->rd_node;
-	mirroredOpen->segmentFileNum = segmentFileNum;
-	mirroredOpen->isActive = true;
 	pfree(dbPath);
 	pfree(path);
 
-	return true;
+	return fd;
 }
 
 
@@ -188,32 +185,30 @@ OpenAOSegmentFile(Relation rel,
  * Close an Append Only relation file segment
  */
 void
-CloseAOSegmentFile(MirroredAppendOnlyOpen *mirroredOpen)
+CloseAOSegmentFile(File fd)
 {
-	Assert(mirroredOpen->primaryFile > 0);
-	
-	MirroredAppendOnly_Close(mirroredOpen);
+	FileClose(fd);
 }
 
 /*
  * Truncate all bytes from offset to end of file.
  */
 void
-TruncateAOSegmentFile(MirroredAppendOnlyOpen *mirroredOpen, Relation rel, int64 offset)
+TruncateAOSegmentFile(File fd, Relation rel, int32 segFileNum, int64 offset)
 {
 	char *relname = RelationGetRelationName(rel);
 
-	Assert(mirroredOpen->primaryFile > 0);
+	Assert(fd > 0);
 	Assert(offset >= 0);
 
 	/*
 	 * Call the 'fd' module with a 64-bit length since AO segment files
 	 * can be multi-gigabyte to the terabytes...
 	 */
-	if (FileTruncate(mirroredOpen->primaryFile, offset) != 0)
+	if (FileTruncate(fd, offset) != 0)
 		ereport(ERROR,
 				(errmsg("\"%s\": failed to truncate data after eof: %m",
 					    relname)));
 	if (!rel->rd_istemp)
-		xlog_ao_truncate(mirroredOpen, offset);
+		xlog_ao_truncate(rel->rd_node, segFileNum, offset);
 }

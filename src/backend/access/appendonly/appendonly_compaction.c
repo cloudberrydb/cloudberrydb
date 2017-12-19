@@ -187,7 +187,7 @@ AppendOnlySegmentFileTruncateToEOF(Relation aorel,
 								   FileSegInfo *fsinfo)
 {
 	const char *relname = RelationGetRelationName(aorel);
-	MirroredAppendOnlyOpen mirroredOpened;
+	File		fd;
 	int32		fileSegNo;
 	char		filenamepath[MAXPGPATH];
 	int			segno;
@@ -212,10 +212,11 @@ AppendOnlySegmentFileTruncateToEOF(Relation aorel,
 		   segno,
 		   segeof);
 
-	if (OpenAOSegmentFile(aorel, filenamepath, fileSegNo, segeof, &mirroredOpened))
+	fd = OpenAOSegmentFile(aorel, filenamepath, fileSegNo, segeof);
+	if (fd >= 0)
 	{
-		TruncateAOSegmentFile(&mirroredOpened, aorel, segeof);
-		CloseAOSegmentFile(&mirroredOpened);
+		TruncateAOSegmentFile(fd, aorel, fileSegNo, segeof);
+		CloseAOSegmentFile(fd);
 
 		elogif(Debug_appendonly_print_compaction, LOG,
 			   "Successfully truncated AO ROW relation \"%s.%s\", relation id %u, relfilenode %u (physical segment file #%d, logical EOF " INT64_FORMAT ")",

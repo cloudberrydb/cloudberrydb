@@ -107,8 +107,7 @@
 #include "cdb/cdboidsync.h"
 
 #include "cdb/cdbmirroredfilesysobj.h"
-#include "cdb/cdbmirroredbufferpool.h"
-#include "cdb/cdbmirroredappendonly.h"
+
 
 
 /*

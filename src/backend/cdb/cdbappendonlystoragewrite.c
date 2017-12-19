@@ -29,6 +29,7 @@
 #include "cdb/cdbappendonlystoragelayer.h"
 #include "cdb/cdbappendonlystorageformat.h"
 #include "cdb/cdbappendonlystoragewrite.h"
+#include "cdb/cdbappendonlyxlog.h"
 #include "cdb/cdbmirroredfilesysobj.h"
 #include "cdb/cdbpersistenttablespace.h"
 #include "utils/guc.h"
@@ -175,10 +176,6 @@ AppendOnlyStorageWrite_Init(AppendOnlyStorageWrite *storageWrite,
 	MemoryContextSwitchTo(oldMemoryContext);
 
 	storageWrite->isActive = true;
-
-	storageWrite->bufferedAppend.mirroredOpen.isActive = FALSE;
-	storageWrite->bufferedAppend.mirroredOpen.segmentFileNum = 0;
-	storageWrite->bufferedAppend.mirroredOpen.primaryFile = -1;
 }
 
 /*
@@ -358,18 +355,13 @@ AppendOnlyStorageWrite_OpenFile(AppendOnlyStorageWrite *storageWrite,
 						filePathName,
 						storageWrite->relationName)));
 
-	storageWrite->bufferedAppend.mirroredOpen.relFileNode = *relFileNode;
-	storageWrite->bufferedAppend.mirroredOpen.segmentFileNum = segmentFileNum;
-	storageWrite->bufferedAppend.mirroredOpen.primaryFile = file;
-	storageWrite->bufferedAppend.mirroredOpen.isActive = true;
-
 	/*
 	 * Seek to the logical EOF write position.
 	 */
 	seekResult = FileSeek(file, logicalEof, SEEK_SET);
 	if (seekResult != logicalEof)
 	{
-		MirroredAppendOnly_Close(&storageWrite->bufferedAppend.mirroredOpen);
+		FileClose(file);
 
 		ereport(ERROR,
 				(errcode(ERRCODE_IO_ERROR),
@@ -408,6 +400,8 @@ AppendOnlyStorageWrite_OpenFile(AppendOnlyStorageWrite *storageWrite,
 	 */
 	BufferedAppendSetFile(&storageWrite->bufferedAppend,
 						  storageWrite->file,
+						  storageWrite->relFileNode,
+						  storageWrite->segmentFileNum,
 						  storageWrite->segmentFileName,
 						  logicalEof,
 						  fileLen_uncompressed);
@@ -526,7 +520,7 @@ AppendOnlyStorageWrite_FlushAndCloseFile(
 	 * do it for us.
 	 */
 
-	if (FileSync(storageWrite->bufferedAppend.mirroredOpen.primaryFile) != 0)
+	if (FileSync(storageWrite->file) != 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("Could not flush (fsync) Append-Only segment file '%s' to disk for relation '%s': %m",
@@ -538,8 +532,6 @@ AppendOnlyStorageWrite_FlushAndCloseFile(
 
 	MemSet(&storageWrite->relFileNode, 0, sizeof(RelFileNode));
 	storageWrite->segmentFileNum = 0;
-	MemSet(&storageWrite->persistentTid, 0, sizeof(ItemPointerData));
-	storageWrite->persistentSerialNum = 0;
 }
 
 /*

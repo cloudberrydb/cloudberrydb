@@ -3,7 +3,7 @@
 #include <setjmp.h>
 #include "cmockery.h"
 
-#include "../cdbmirroredappendonly.c"
+#include "../cdbappendonlyxlog.c"
 
 #include "catalog/pg_tablespace.h"
 

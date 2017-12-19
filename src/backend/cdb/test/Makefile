@@ -8,7 +8,7 @@ TARGETS=cdbtm \
 	cdbsrlz \
 	cdbdistributedsnapshot
 
-TARGETS += cdbappendonlystorage cdbmirroredappendonly
+TARGETS += cdbappendonlystorage cdbappendonlyxlog
 
 include $(top_builddir)/src/backend/mock.mk
 cdbtm.t: $(MOCK_DIR)/backend/storage/lmgr/lwlock_mock.o
@@ -17,8 +17,8 @@ cdbdistributedsnapshot.t: $(MOCK_DIR)/backend/access/transam/distributedlog_mock
 
 cdbappendonlystorage.t: \
 	$(MOCK_DIR)/backend/access/transam/xlog_mock.o \
-	$(MOCK_DIR)/backend/cdb/cdbmirroredappendonly_mock.o
+	$(MOCK_DIR)/backend/cdb/cdbappendonlyxlog_mock.o
 
-cdbmirroredappendonly.t: \
+cdbappendonlyxlog.t: \
 	$(MOCK_DIR)/backend/storage/file/fd_mock.o \
 	$(MOCK_DIR)/backend/access/transam/xlogutils_mock.o

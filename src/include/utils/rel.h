@@ -121,10 +121,6 @@ typedef struct RelationNodeInfo
 	bool	isPresent;
 
 	bool	tidAllowedToBeZero;
-				// Persistent TID allowed to be zero for "Before Persistence" or Recovery.
-
-	ItemPointerData		persistentTid;
-	int64				persistentSerialNum;
 } RelationNodeInfo;
 
 /*

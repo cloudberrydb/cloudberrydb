@@ -88,7 +88,7 @@ AOCSSegmentFileTruncateToEOF(Relation aorel,
 		int64		segeof;
 		char		filenamepath[MAXPGPATH];
 		AOCSVPInfoEntry *entry;
-		MirroredAppendOnlyOpen mirroredOpened;
+		File		fd;
 		int32		fileSegNo;
 
 		entry = getAOCSVPEntry(fsinfo, j);
@@ -108,10 +108,11 @@ AOCSSegmentFileTruncateToEOF(Relation aorel,
 			   fileSegNo,
 			   segeof);
 
-		if (OpenAOSegmentFile(aorel, filenamepath, fileSegNo, segeof, &mirroredOpened))
+		fd = OpenAOSegmentFile(aorel, filenamepath, fileSegNo, segeof);
+		if (fd >= 0)
 		{
-			TruncateAOSegmentFile(&mirroredOpened, aorel, segeof);
-			CloseAOSegmentFile(&mirroredOpened);
+			TruncateAOSegmentFile(fd, aorel, fileSegNo, segeof);
+			CloseAOSegmentFile(fd);
 
 			elogif(Debug_appendonly_print_compaction, LOG,
 				   "Successfully truncated AO COL relation \"%s.%s\", relation id %u, relfilenode %u column #%d, logical segment #%d (physical segment file #%d, logical EOF " INT64_FORMAT ")",
