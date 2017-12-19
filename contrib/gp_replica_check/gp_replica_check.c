@@ -524,7 +524,6 @@ gp_replica_check(PG_FUNCTION_ARGS)
 		ereport(WARNING,
 				(errmsg("results may not be correct"),
 				 errdetail("IO may have been performed during the check")));
-		PG_RETURN_BOOL(false);
 	}
 
 	PG_RETURN_BOOL(dir_equal);
