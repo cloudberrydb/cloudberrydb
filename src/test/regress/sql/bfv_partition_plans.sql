@@ -510,6 +510,9 @@ INSERT INTO part_tbl VALUES (2015111000, 479534741, 99999999);
 INSERT INTO part_tbl VALUES (2015111000, 479534742, 99999999);
 CREATE INDEX part_tbl_idx 
 ON part_tbl(profile_key);
+-- start_ignore
+analyze part_tbl;
+-- end_ignore
 EXPLAIN SELECT * FROM part_tbl WHERE profile_key = 99999999;
 SELECT * FROM part_tbl WHERE profile_key = 99999999;
 DROP TABLE part_tbl;

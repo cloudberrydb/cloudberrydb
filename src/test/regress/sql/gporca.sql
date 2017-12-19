@@ -481,6 +481,9 @@ set optimizer_enable_space_pruning=off;
 set optimizer_enable_constant_expression_evaluation=on;
 set optimizer_enumerate_plans=on;
 set optimizer_plan_id = 2;
+-- start_ignore
+analyze orca.t_date;
+-- end_ignore
 explain select * from orca.t_date where user_id=9;
 select * from orca.t_date where user_id=9;
 
@@ -517,7 +520,9 @@ set optimizer_enable_space_pruning=off;
 set optimizer_enable_constant_expression_evaluation=on;
 set optimizer_enumerate_plans=on;
 set optimizer_plan_id = 2;
-
+-- start_ignore
+analyze orca.t_text;
+-- end_ignore
 explain select * from orca.t_text where user_id=9;
 select * from orca.t_text where user_id=9;
 
@@ -563,6 +568,9 @@ insert into orca.t_employee values('01-08-2012'::date,2,'tag1','(2, ''foo'')'::o
 
 set optimizer_enable_constant_expression_evaluation=on;
 set optimizer_enable_dynamictablescan = off;
+-- start_ignore
+analyze orca.t_employee;
+-- end_ignore
 explain select * from orca.t_employee where user_id = 2;
 select * from orca.t_employee where user_id = 2;
 reset optimizer_enable_dynamictablescan;
@@ -591,7 +599,9 @@ set optimizer_enable_constant_expression_evaluation=on;
 set optimizer_use_external_constant_expression_evaluation_for_ints = on;
 set optimizer_enumerate_plans=on;
 set optimizer_plan_id = 2;
-
+-- start_ignore
+analyze orca.t_ceeval_ints;
+-- end_ignore
 explain select * from orca.t_ceeval_ints where user_id=4;
 select * from orca.t_ceeval_ints where user_id=4;
 
@@ -923,6 +933,9 @@ alter table orca.bm_dyn_test add partition part5 values(5);
 insert into orca.bm_dyn_test values(2, 5, '2');
 
 set optimizer_enable_bitmapscan=on;
+-- start_ignore
+analyze orca.bm_dyn_test;
+-- end_ignore
 -- gather on 1 segment because of direct dispatch
 explain select * from orca.bm_dyn_test where i=2 and t='2';
 select * from orca.bm_dyn_test where i=2 and t='2';
@@ -946,6 +959,9 @@ insert into orca.bm_dyn_test_onepart values(2, 5, '2');
 
 set optimizer_enable_bitmapscan=on;
 set optimizer_enable_dynamictablescan = off;
+-- start_ignore
+analyze orca.bm_dyn_test_onepart;
+-- end_ignore
 -- gather on 1 segment because of direct dispatch
 explain select * from orca.bm_dyn_test_onepart where i=2 and t='2';
 select * from orca.bm_dyn_test_onepart where i=2 and t='2';
