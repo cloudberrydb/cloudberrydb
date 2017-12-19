@@ -718,7 +718,7 @@ WARNING:  Only dropped the index "pt1_idx"
 HINT:  To drop other indexes on child partitions, drop each one explicitly.
 drop table if exists mpp24151_t;
 drop table if exists mpp24151_pt;
-reset optimizer_enable_dynamictablescan
+reset optimizer_enable_dynamictablescan;
 -- end_ignore
 --
 -- No DPE (Dynamic Partition Elimination) on second child of a union under a join
@@ -1265,6 +1265,7 @@ ON part_tbl(profile_key);
 NOTICE:  building index for child partition "part_tbl_1_prt_p20151110"
 NOTICE:  building index for child partition "part_tbl_1_prt_p20151110_2_prt_package5"
 NOTICE:  building index for child partition "part_tbl_1_prt_p20151110_2_prt_other_services"
+analyze part_tbl;
 EXPLAIN SELECT * FROM part_tbl WHERE profile_key = 99999999;
                                                QUERY PLAN                                               
 --------------------------------------------------------------------------------------------------------
