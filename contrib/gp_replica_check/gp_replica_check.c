@@ -258,7 +258,7 @@ get_synced_lsns()
 	 * Request a checkpoint on first call, to flush out data changes from
 	 * shared buffer to disk.
 	 */
-	RequestCheckpoint(CHECKPOINT_IMMEDIATE);
+	RequestCheckpoint(CHECKPOINT_IMMEDIATE | CHECKPOINT_WAIT);
 
 	while (retry < max_retry)
 	{
