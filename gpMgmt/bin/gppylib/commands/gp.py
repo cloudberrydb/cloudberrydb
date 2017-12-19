@@ -205,7 +205,7 @@ class PgCtlBackendOptions(CmdArgs):
         @param mode: mirroring mode
         @param content: content id
         """
-        self.extend(["-i", "-M", str(mode), "--gp_contentid="+str(content)])
+        self.extend(["-i", "-M", "mirrorless", "--gp_contentid="+str(content)])
         return self
 
     #

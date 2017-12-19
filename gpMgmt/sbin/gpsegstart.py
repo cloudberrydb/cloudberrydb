@@ -397,9 +397,6 @@ class GpSegStart:
         #
         self.checkPostmasters(must_be_running=True)
 
-        self.__convertSegments()
-        self.checkPostmasters(must_be_running=True)
-
         # At this point any segments remaining in the mapping are assumed to
         # have successfully started.
         #

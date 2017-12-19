@@ -911,7 +911,7 @@ def are_segments_synchronized():
     gparray = GpArray.initFromCatalog(dbconn.DbURL())
     segments = gparray.getDbList()
     for seg in segments:
-        if seg.mode != MODE_SYNCHRONIZED:
+        if seg.mode != MODE_SYNCHRONIZED and not seg.isSegmentMaster(True):
             return False
     return True
 

@@ -45,12 +45,7 @@ all:
 	$(MAKE) probe
 
 cluster create-demo-cluster:
-	@WITH_MIRRORS=false ./demo_cluster.sh # will generate gpdemo-env.sh
-ifeq ($(WITH_MIRRORS), true)
-	@. ./gpdemo-env.sh; \
-	./gpsegwalrep.py init --host `hostname`; \
-	./gpsegwalrep.py start;
-endif
+	@./demo_cluster.sh
 	@echo ""
 
 probe:
