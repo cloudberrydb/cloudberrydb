@@ -1267,7 +1267,6 @@ ON part_tbl(profile_key);
 NOTICE:  building index for child partition "part_tbl_1_prt_p20151110"
 NOTICE:  building index for child partition "part_tbl_1_prt_p20151110_2_prt_package5"
 NOTICE:  building index for child partition "part_tbl_1_prt_p20151110_2_prt_other_services"
-analyze part_tbl;
 EXPLAIN SELECT * FROM part_tbl WHERE profile_key = 99999999;
                                                       QUERY PLAN                                                      
 ----------------------------------------------------------------------------------------------------------------------

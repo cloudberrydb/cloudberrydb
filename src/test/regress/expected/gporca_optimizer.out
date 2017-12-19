@@ -9243,12 +9243,9 @@ INFO:  GPORCA failed to produce a plan, falling back to planner
                Filter: i = 2 AND t = '2'::text
          ->  Seq Scan on bm_dyn_test_onepart_1_prt_part1 bm_dyn_test_onepart  (cost=0.00..8.00 rows=1 width=40)
                Filter: i = 2 AND t = '2'::text
-         ->  Bitmap Append-Only Row-Oriented Scan on bm_dyn_test_onepart_1_prt_part2 bm_dyn_test_onepart  (cost=100.70..323.68 rows=1 width=40)
-               Recheck Cond: i = 2
-               Filter: t = '2'::text
-               ->  Bitmap Index Scan on bm_test_idx_part  (cost=0.00..100.70 rows=16 width=0)
-                     Index Cond: i = 2
-         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part3 bm_dyn_test_onepart  (cost=0.00..800.50 rows=1 width=40)
+         ->  Append-only Scan on bm_dyn_test_onepart_1_prt_part2 bm_dyn_test_onepart  (cost=0.00..8.00 rows=1 width=40)
+               Filter: i = 2 AND t = '2'::text
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part3 bm_dyn_test_onepart  (cost=0.00..8.00 rows=1 width=40)
                Filter: i = 2 AND t = '2'::text
          ->  Seq Scan on bm_dyn_test_onepart_1_prt_part4 bm_dyn_test_onepart  (cost=0.00..8.00 rows=1 width=40)
                Filter: i = 2 AND t = '2'::text

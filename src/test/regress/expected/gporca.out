@@ -8195,14 +8195,12 @@ set optimizer_enable_constant_expression_evaluation=on;
 set optimizer_enumerate_plans=on;
 set optimizer_plan_id = 2;
 explain select * from orca.t_date where user_id=9;
-                                               QUERY PLAN                                               
---------------------------------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=100.61..2931.39 rows=201 width=68)
-   ->  Append  (cost=100.61..2931.39 rows=67 width=68)
-         ->  Bitmap Heap Scan on t_date_1_prt_part201203 t_date  (cost=100.61..343.89 rows=12 width=68)
-               Recheck Cond: user_id = 9::numeric
-               ->  Bitmap Index Scan on user_id_idx  (cost=0.00..100.60 rows=12 width=0)
-                     Index Cond: user_id = 9::numeric
+                                          QUERY PLAN                                          
+----------------------------------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..3105.00 rows=201 width=68)
+   ->  Append  (cost=0.00..3105.00 rows=67 width=68)
+         ->  Seq Scan on t_date_1_prt_part201203 t_date  (cost=0.00..517.50 rows=12 width=68)
+               Filter: user_id = 9::numeric
          ->  Seq Scan on t_date_1_prt_part201204 t_date  (cost=0.00..517.50 rows=12 width=68)
                Filter: user_id = 9::numeric
          ->  Seq Scan on t_date_1_prt_part201205 t_date  (cost=0.00..517.50 rows=12 width=68)
@@ -8215,7 +8213,7 @@ explain select * from orca.t_date where user_id=9;
                Filter: user_id = 9::numeric
  Settings:  optimizer=off; optimizer_segments=3
  Optimizer status: legacy query optimizer
-(18 rows)
+(16 rows)
 
 select * from orca.t_date where user_id=9;
    timest   | user_id | tag1  | tag2  
@@ -8256,21 +8254,19 @@ set optimizer_enable_constant_expression_evaluation=on;
 set optimizer_enumerate_plans=on;
 set optimizer_plan_id = 2;
 explain select * from orca.t_text where user_id=9;
-                                              QUERY PLAN                                              
-------------------------------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=100.61..1378.89 rows=101 width=68)
-   ->  Append  (cost=100.61..1378.89 rows=34 width=68)
-         ->  Bitmap Heap Scan on t_text_1_prt_partgood t_text  (cost=100.61..343.89 rows=12 width=68)
-               Recheck Cond: user_id = 9::numeric
-               ->  Bitmap Index Scan on user_id_idx  (cost=0.00..100.60 rows=12 width=0)
-                     Index Cond: user_id = 9::numeric
+                                         QUERY PLAN                                         
+--------------------------------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..1552.50 rows=101 width=68)
+   ->  Append  (cost=0.00..1552.50 rows=34 width=68)
+         ->  Seq Scan on t_text_1_prt_partgood t_text  (cost=0.00..517.50 rows=12 width=68)
+               Filter: user_id = 9::numeric
          ->  Seq Scan on t_text_1_prt_partbad t_text  (cost=0.00..517.50 rows=12 width=68)
                Filter: user_id = 9::numeric
          ->  Seq Scan on t_text_1_prt_partugly t_text  (cost=0.00..517.50 rows=12 width=68)
                Filter: user_id = 9::numeric
  Settings:  optimizer=off; optimizer_segments=3
  Optimizer status: legacy query optimizer
-(12 rows)
+(10 rows)
 
 select * from orca.t_text where user_id=9;
    timest   | user_id | tag1  | tag2  
@@ -8320,21 +8316,17 @@ insert into orca.t_employee values('01-08-2012'::date,2,'tag1','(2, ''foo'')'::o
 set optimizer_enable_constant_expression_evaluation=on;
 set optimizer_enable_dynamictablescan = off;
 explain select * from orca.t_employee where user_id = 2;
-                                                QUERY PLAN                                                 
------------------------------------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=100.59..695.31 rows=62 width=76)
-   ->  Append  (cost=100.59..695.31 rows=21 width=76)
-         ->  Bitmap Heap Scan on t_employee_1_prt_part1 t_employee  (cost=100.59..347.65 rows=11 width=76)
-               Recheck Cond: user_id = 2::numeric
-               ->  Bitmap Index Scan on user_id_idx1  (cost=0.00..100.58 rows=11 width=0)
-                     Index Cond: user_id = 2::numeric
-         ->  Bitmap Heap Scan on t_employee_1_prt_part2 t_employee  (cost=100.59..347.65 rows=11 width=76)
-               Recheck Cond: user_id = 2::numeric
-               ->  Bitmap Index Scan on user_id_idx2  (cost=0.00..100.58 rows=11 width=0)
-                     Index Cond: user_id = 2::numeric
+                                           QUERY PLAN                                            
+-------------------------------------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..970.00 rows=62 width=76)
+   ->  Append  (cost=0.00..970.00 rows=21 width=76)
+         ->  Seq Scan on t_employee_1_prt_part1 t_employee  (cost=0.00..485.00 rows=11 width=76)
+               Filter: user_id = 2::numeric
+         ->  Seq Scan on t_employee_1_prt_part2 t_employee  (cost=0.00..485.00 rows=11 width=76)
+               Filter: user_id = 2::numeric
  Settings:  optimizer=off; optimizer_segments=3
  Optimizer status: legacy query optimizer
-(12 rows)
+(8 rows)
 
 select * from orca.t_employee where user_id = 2;
    timest   | user_id | tag1  |     emp      
@@ -8370,21 +8362,19 @@ set optimizer_use_external_constant_expression_evaluation_for_ints = on;
 set optimizer_enumerate_plans=on;
 set optimizer_plan_id = 2;
 explain select * from orca.t_ceeval_ints where user_id=4;
-                                                    QUERY PLAN                                                     
--------------------------------------------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..1378.89 rows=101 width=68)
-   ->  Append  (cost=0.00..1378.89 rows=34 width=68)
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..1552.50 rows=101 width=68)
+   ->  Append  (cost=0.00..1552.50 rows=34 width=68)
          ->  Seq Scan on t_ceeval_ints_1_prt_part100 t_ceeval_ints  (cost=0.00..517.50 rows=12 width=68)
                Filter: user_id = 4::numeric
-         ->  Bitmap Heap Scan on t_ceeval_ints_1_prt_part101 t_ceeval_ints  (cost=100.61..343.89 rows=12 width=68)
-               Recheck Cond: user_id = 4::numeric
-               ->  Bitmap Index Scan on user_id_ceeval_ints  (cost=0.00..100.60 rows=12 width=0)
-                     Index Cond: user_id = 4::numeric
+         ->  Seq Scan on t_ceeval_ints_1_prt_part101 t_ceeval_ints  (cost=0.00..517.50 rows=12 width=68)
+               Filter: user_id = 4::numeric
          ->  Seq Scan on t_ceeval_ints_1_prt_part103 t_ceeval_ints  (cost=0.00..517.50 rows=12 width=68)
                Filter: user_id = 4::numeric
  Settings:  optimizer=off; optimizer_segments=3
  Optimizer status: legacy query optimizer
-(12 rows)
+(10 rows)
 
 select * from orca.t_ceeval_ints where user_id=4;
  user_id | category_id | tag1  | tag2  
@@ -9163,43 +9153,25 @@ insert into orca.bm_dyn_test values(2, 5, '2');
 set optimizer_enable_bitmapscan=on;
 -- gather on 1 segment because of direct dispatch
 explain select * from orca.bm_dyn_test where i=2 and t='2';
-                                                            QUERY PLAN                                                             
------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=100.70..1942.10 rows=9 width=40)
-   ->  Append  (cost=100.70..1942.10 rows=3 width=40)
-         ->  Bitmap Append-Only Column-Oriented Scan on bm_dyn_test_1_prt_part0 bm_dyn_test  (cost=100.70..323.68 rows=1 width=40)
-               Recheck Cond: i = 2
-               Filter: t = '2'::text
-               ->  Bitmap Index Scan on bm_dyn_test_idx_1_prt_part0  (cost=0.00..100.70 rows=16 width=0)
-                     Index Cond: i = 2
-         ->  Bitmap Heap Scan on bm_dyn_test_1_prt_part1 bm_dyn_test  (cost=100.70..323.68 rows=1 width=40)
-               Recheck Cond: i = 2
-               Filter: t = '2'::text
-               ->  Bitmap Index Scan on bm_dyn_test_idx_1_prt_part1  (cost=0.00..100.70 rows=16 width=0)
-                     Index Cond: i = 2
-         ->  Bitmap Append-Only Row-Oriented Scan on bm_dyn_test_1_prt_part2 bm_dyn_test  (cost=100.70..323.68 rows=1 width=40)
-               Recheck Cond: i = 2
-               Filter: t = '2'::text
-               ->  Bitmap Index Scan on bm_dyn_test_idx_1_prt_part2  (cost=0.00..100.70 rows=16 width=0)
-                     Index Cond: i = 2
-         ->  Bitmap Heap Scan on bm_dyn_test_1_prt_part3 bm_dyn_test  (cost=100.70..323.68 rows=1 width=40)
-               Recheck Cond: i = 2
-               Filter: t = '2'::text
-               ->  Bitmap Index Scan on bm_dyn_test_idx_1_prt_part3  (cost=0.00..100.70 rows=16 width=0)
-                     Index Cond: i = 2
-         ->  Bitmap Heap Scan on bm_dyn_test_1_prt_part4 bm_dyn_test  (cost=100.70..323.68 rows=1 width=40)
-               Recheck Cond: i = 2
-               Filter: t = '2'::text
-               ->  Bitmap Index Scan on bm_dyn_test_idx_1_prt_part4  (cost=0.00..100.70 rows=16 width=0)
-                     Index Cond: i = 2
-         ->  Bitmap Heap Scan on bm_dyn_test_1_prt_part5 bm_dyn_test  (cost=100.70..323.68 rows=1 width=40)
-               Recheck Cond: i = 2
-               Filter: t = '2'::text
-               ->  Bitmap Index Scan on bm_dyn_test_1_prt_part5_i_key  (cost=0.00..100.70 rows=16 width=0)
-                     Index Cond: i = 2
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..4803.00 rows=9 width=40)
+   ->  Append  (cost=0.00..4803.00 rows=3 width=40)
+         ->  Append-only Columnar Scan on bm_dyn_test_1_prt_part0 bm_dyn_test  (cost=0.00..800.50 rows=1 width=40)
+               Filter: i = 2 AND t = '2'::text
+         ->  Seq Scan on bm_dyn_test_1_prt_part1 bm_dyn_test  (cost=0.00..800.50 rows=1 width=40)
+               Filter: i = 2 AND t = '2'::text
+         ->  Append-only Scan on bm_dyn_test_1_prt_part2 bm_dyn_test  (cost=0.00..800.50 rows=1 width=40)
+               Filter: i = 2 AND t = '2'::text
+         ->  Seq Scan on bm_dyn_test_1_prt_part3 bm_dyn_test  (cost=0.00..800.50 rows=1 width=40)
+               Filter: i = 2 AND t = '2'::text
+         ->  Seq Scan on bm_dyn_test_1_prt_part4 bm_dyn_test  (cost=0.00..800.50 rows=1 width=40)
+               Filter: i = 2 AND t = '2'::text
+         ->  Seq Scan on bm_dyn_test_1_prt_part5 bm_dyn_test  (cost=0.00..800.50 rows=1 width=40)
+               Filter: i = 2 AND t = '2'::text
  Settings:  optimizer=off; optimizer_cte_inlining_bound=1000
  Optimizer status: legacy query optimizer
-(34 rows)
+(16 rows)
 
 select * from orca.bm_dyn_test where i=2 and t='2';
  i | j | t 
@@ -9242,19 +9214,16 @@ set optimizer_enable_bitmapscan=on;
 set optimizer_enable_dynamictablescan = off;
 -- gather on 1 segment because of direct dispatch
 explain select * from orca.bm_dyn_test_onepart where i=2 and t='2';
-                                                                   QUERY PLAN                                                                   
-------------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..4326.18 rows=9 width=40)
-   ->  Append  (cost=0.00..4326.18 rows=3 width=40)
+                                                            QUERY PLAN                                                             
+-----------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..4803.00 rows=9 width=40)
+   ->  Append  (cost=0.00..4803.00 rows=3 width=40)
          ->  Append-only Columnar Scan on bm_dyn_test_onepart_1_prt_part0 bm_dyn_test_onepart  (cost=0.00..800.50 rows=1 width=40)
                Filter: i = 2 AND t = '2'::text
          ->  Seq Scan on bm_dyn_test_onepart_1_prt_part1 bm_dyn_test_onepart  (cost=0.00..800.50 rows=1 width=40)
                Filter: i = 2 AND t = '2'::text
-         ->  Bitmap Append-Only Row-Oriented Scan on bm_dyn_test_onepart_1_prt_part2 bm_dyn_test_onepart  (cost=100.70..323.68 rows=1 width=40)
-               Recheck Cond: i = 2
-               Filter: t = '2'::text
-               ->  Bitmap Index Scan on bm_test_idx_part  (cost=0.00..100.70 rows=16 width=0)
-                     Index Cond: i = 2
+         ->  Append-only Scan on bm_dyn_test_onepart_1_prt_part2 bm_dyn_test_onepart  (cost=0.00..800.50 rows=1 width=40)
+               Filter: i = 2 AND t = '2'::text
          ->  Seq Scan on bm_dyn_test_onepart_1_prt_part3 bm_dyn_test_onepart  (cost=0.00..800.50 rows=1 width=40)
                Filter: i = 2 AND t = '2'::text
          ->  Seq Scan on bm_dyn_test_onepart_1_prt_part4 bm_dyn_test_onepart  (cost=0.00..800.50 rows=1 width=40)
@@ -9263,7 +9232,7 @@ explain select * from orca.bm_dyn_test_onepart where i=2 and t='2';
                Filter: i = 2 AND t = '2'::text
  Settings:  optimizer=off; optimizer_cte_inlining_bound=1000
  Optimizer status: legacy query optimizer
-(19 rows)
+(16 rows)
 
 select * from orca.bm_dyn_test_onepart where i=2 and t='2';
  i | j | t 
