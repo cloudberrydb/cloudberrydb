@@ -496,7 +496,11 @@ class Segment:
 
         Note: is Nullable (so can return None)
         """
-        return self.replicationPort
+        # WALREP_FIXME: filerep is gone, this isn't used for anything anymore.
+        # But these ports are passed around many of the management tools,
+        # so just stub out for now, and clean up later.
+        return -1
+        #return self.replicationPort
 
     def getSegmentHostName(self):
         """
