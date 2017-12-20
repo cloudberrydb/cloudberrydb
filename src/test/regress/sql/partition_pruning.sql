@@ -15,7 +15,7 @@ set enable_bitmapscan=on;
 set enable_indexscan=on;
 
 create schema partition_pruning;
-set search_path to partition_pruning, public;
+set search_path to partition_pruning;
 
 -- Set up common test tables.
 CREATE TABLE pt_lt_tab
@@ -563,7 +563,7 @@ select * from ds_2 where month_id::int in (200808, 200801, 2008010) order by mon
 -- cleanup
 drop table ds_2;
 
-Create or replace function public.reverse(text) Returns text as $BODY$
+Create or replace function reverse(text) Returns text as $BODY$
 DECLARE
    Original alias for $1;
    Reverse_str text;
@@ -612,10 +612,10 @@ order by dnsname;
 
 -- cleanup
 drop table dnsdata cascade;
-drop function public.reverse(text) cascade;
+drop function reverse(text) cascade;
 
 
-Create or replace function public.ZeroFunc(int) Returns int as $BODY$
+Create or replace function ZeroFunc(int) Returns int as $BODY$
 BEGIN
   RETURN 0;
 END;
@@ -627,7 +627,7 @@ create table mytable(i int, j int);
 insert into mytable select x, x+1 from generate_series(1, 100000) as x;
 analyze mytable;
 
-CREATE INDEX mytable_idx1 ON mytable USING bitmap(zerofunc(i));
+CREATE INDEX mytable_idx1 ON mytable USING bitmap(ZeroFunc(i));
 
 
 select * from mytable where ZeroFunc(i)=0 and i=100 order by i;
