@@ -1529,7 +1529,7 @@ IsDatabaseInRunMode(void)
 void
 SignalShutdownFilerepProcess(void)
 {
-    if ( Debug_print_server_processes || Debug_filerep_print)
+    if (Debug_print_server_processes)
     {
     	elog(LOG, "Shutting down filerep process");
     }
@@ -1539,7 +1539,7 @@ SignalShutdownFilerepProcess(void)
 void
 SignalShutdownFilerepBackendProcesses(void)
 {
-    if ( Debug_print_server_processes || Debug_filerep_print)
+    if (Debug_print_server_processes)
     {
 	    elog(LOG, "Shutting down filerep backend processes");
     }

@@ -283,8 +283,6 @@ getPrimaryMirrorModeDebugLogLevel(bool isLowPriority)
 {
 	if (isLowPriority)
 		return DEBUG3;
-	else if (Debug_filerep_print)
-		return LOG;
 	else return DEBUG1;
 }
 
@@ -1444,13 +1442,7 @@ updateSegmentState(SegmentState_e segmentState, FaultType_e faultType)
 			if (segmentState == SegmentStateFault)
 			{
 				if (pmModuleState->faultType == FaultTypeNotInitialized)
-				{
-					if (Debug_filerep_print)
-						ereport(LOG,
-								(errmsg("update fault type from %d to %d",
-										pmModuleState->faultType, faultType)));
 					pmModuleState->faultType = faultType;
-				}
 			}
 		}
 	}

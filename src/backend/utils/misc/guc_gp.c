@@ -151,16 +151,6 @@ bool		Debug_appendonly_guard_end_quicklz_scratch = false;
 bool		gp_local_distributed_cache_stats = false;
 bool		Debug_xlog_insert_print = false;
 bool		debug_xlog_record_read = false;
-bool		Debug_persistent_print = false;
-int			Debug_persistent_print_level = LOG;
-bool		Debug_persistent_recovery_print = true;
-int			Debug_persistent_recovery_print_level = LOG;
-bool		Disable_persistent_recovery_logging = false;
-bool		Debug_persistent_store_print = false;
-int			Debug_persistent_store_print_level = LOG;
-bool		Debug_persistent_bootstrap_print = false;
-bool		persistent_integrity_checks = true;
-bool		Debug_persistent_appendonly_commit_count_print = false;
 bool		Debug_cancel_print = false;
 bool		Debug_datumstream_write_print_small_varlena_info = false;
 bool		Debug_datumstream_write_print_large_varlena_info = false;
@@ -203,14 +193,6 @@ bool		gp_startup_integrity_checks = true;
 bool		Debug_print_xlog_relation_change_info = false;
 bool		Debug_print_xlog_relation_change_info_skip_issues_only = false;
 bool		Debug_print_xlog_relation_change_info_backtrace_skip_issues = false;
-
-bool		Debug_filerep_crc_on = true;
-bool		Debug_filerep_print = false;
-bool		Debug_filerep_gcov = false;
-bool		Debug_filerep_config_print = false;
-bool		Debug_filerep_memory_log_flush = false;
-bool		filerep_mirrorvalidation_during_resync = false;
-bool		log_filerep_to_syslogger = false;
 
 /* WAL based replication debug GUCs */
 bool		debug_walrepl_snd = false;
@@ -255,11 +237,6 @@ int			Debug_dtm_action_nestinglevel = DEBUG_DTM_ACTION_NESTINGLEVEL_DEFAULT;
 bool		gp_encoding_check_locale_compatibility;
 
 int			gp_connection_send_timeout;
-
-int			gp_filerep_tcp_keepalives_idle;
-int			gp_filerep_tcp_keepalives_interval;
-int			gp_filerep_tcp_keepalives_count;
-int			gp_filerep_ct_batch_size;
 
 int			WalSendClientTimeout = 30000;		/* 30 seconds. */
 
@@ -1596,76 +1573,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"debug_persistent_print", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Print persistent file-system object debugging information."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_persistent_print,
-		false, NULL, NULL
-	},
-
-	{
-		{"debug_persistent_recovery_print", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Print persistent recovery debugging information."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_persistent_recovery_print,
-		false, NULL, NULL
-	},
-
-	{
-		{"Disable_persistent_recovery_logging", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("By default important persistent recovery information is logged, setting this GUC allows to disable it if required"),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Disable_persistent_recovery_logging,
-		true, NULL, NULL
-	},
-
-	{
-		{"debug_persistent_store_print", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Print persistent file-system object store debugging information."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_persistent_store_print,
-		false, NULL, NULL
-	},
-
-	{
-		{"debug_persistent_bootstrap_print", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Print persistent store debugging information during bootstrap."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_persistent_bootstrap_print,
-		false, NULL, NULL
-	},
-
-	{
-		{"persistent_integrity_checks", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("When set enables all set of integrity checks for persistent tables."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&persistent_integrity_checks,
-		false, NULL, NULL
-	},
-
-	{
-		{"debug_persistent_appendonly_commit_count_print", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Print persistent Append-Only resync commit count information."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_persistent_appendonly_commit_count_print,
-		true, NULL, NULL
-	},
-
-	{
 		{"debug_cancel_print", PGC_SUSET, DEVELOPER_OPTIONS,
 			gettext_noop("Print cancel detail information."),
 			NULL,
@@ -1957,16 +1864,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"filerep_crc_on", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("enable adler 32 crc in filerep"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_filerep_crc_on,
-		false, NULL, NULL
-	},
-
-	{
 		{"rle_type_compression_stats", PGC_SUSET, DEVELOPER_OPTIONS,
 			gettext_noop("show compression ratio stats for rle_type compression"),
 			NULL,
@@ -1977,72 +1874,12 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"debug_filerep_print", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("enable filerep logs"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_filerep_print,
-		false, NULL, NULL
-	},
-
-	{
-		{"log_filerep_to_syslogger", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("log all filerep related log messages to the server log files"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&log_filerep_to_syslogger,
-		true, NULL, NULL
-	},
-
-	{
-		{"debug_filerep_gcov", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("workaround for filerep gcov issue"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_filerep_gcov,
-		false, NULL, NULL
-	},
-
-	{
-		{"debug_filerep_config_print", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("enable filerep config logs"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_filerep_config_print,
-		true, NULL, NULL
-	},
-
-	{
-		{"debug_filerep_memory_log_flush", PGC_SIGHUP, DEVELOPER_OPTIONS,
-			gettext_noop("enable filerep config logs"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_filerep_memory_log_flush,
-		false, NULL, NULL
-	},
-
-	{
 		{"debug_resource_group", PGC_USERSET, DEVELOPER_OPTIONS,
 			gettext_noop("Prints resource groups debug logs."),
 			NULL,
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&Debug_resource_group,
-		false, NULL, NULL
-	},
-
-	{
-		{"filerep_mirrorvalidation_during_resync", PGC_POSTMASTER, DEVELOPER_OPTIONS,
-			gettext_noop("Setting enables checking for file existence for all relations on mirror during incremental resynchronization"),
-			NULL,
-			GUC_NO_SHOW_ALL
-		},
-		&filerep_mirrorvalidation_during_resync,
 		false, NULL, NULL
 	},
 
@@ -3525,47 +3362,6 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&gp_connection_send_timeout,
 		3600, 0, INT_MAX, NULL, NULL
-	},
-
-	{
-		{"gp_filerep_tcp_keepalives_idle", PGC_USERSET, GP_ARRAY_TUNING,
-			gettext_noop("Seconds between issuing TCP keepalives for FileRep connection."),
-			gettext_noop("A value of 0 uses the system default."),
-			GUC_UNIT_S
-		},
-		&gp_filerep_tcp_keepalives_idle,
-		60, 0, INT_MAX, NULL, NULL
-	},
-
-	{
-		{"gp_filerep_tcp_keepalives_interval", PGC_USERSET, GP_ARRAY_TUNING,
-			gettext_noop("Seconds between TCP keepalive retransmits for FileRep connection."),
-			gettext_noop("A value of 0 uses the system default."),
-			GUC_UNIT_S
-		},
-		&gp_filerep_tcp_keepalives_interval,
-		30, 0, INT_MAX, NULL, NULL
-	},
-
-	{
-		{"gp_filerep_tcp_keepalives_count", PGC_USERSET, GP_ARRAY_TUNING,
-			gettext_noop("Maximum number of TCP keepalive retransmits for FileRep connection."),
-			gettext_noop("This controls the number of consecutive keepalive retransmits that can be "
-						 "lost before a connection is considered dead. A value of 0 uses the "
-						 "system default."),
-		},
-		&gp_filerep_tcp_keepalives_count,
-		2, 0, INT_MAX, NULL, NULL
-	},
-
-	{
-		{"gp_filerep_ct_batch_size", PGC_USERSET, GP_ARRAY_TUNING,
-			gettext_noop("Maximum number of blocks from changetracking log that"
-						 " a filerep resync worker processes at one time."),
-		 NULL,
-		},
-		&gp_filerep_ct_batch_size,
-		64 * 1024, 1, INT_MAX, NULL, NULL
 	},
 
 	{
@@ -5094,42 +4890,6 @@ struct config_string ConfigureNamesString_gp[] =
 
 struct config_enum ConfigureNamesEnum_gp[] =
 {
-	{
-		{"debug_persistent_print_level", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets the persistent relation debug message levels that are logged."),
-			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, DEBUG1, "
-			"INFO, NOTICE, WARNING, ERROR, LOG, FATAL, and PANIC. Each level "
-						 "includes all the levels that follow it."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL
-		},
-		&Debug_persistent_print_level,
-		DEBUG1, server_message_level_options, NULL, NULL
-	},
-
-	{
-		{"debug_persistent_recovery_print_level", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets the persistent recovery debug message levels that are logged."),
-			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, DEBUG1, "
-			"INFO, NOTICE, WARNING, ERROR, LOG, FATAL, and PANIC. Each level "
-						 "includes all the levels that follow it."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL
-		},
-		&Debug_persistent_recovery_print_level,
-		DEBUG1, server_message_level_options, NULL, NULL
-	},
-
-	{
-		{"debug_persistent_store_print_level", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets the persistent relation store debug message levels that are logged."),
-			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, DEBUG1, "
-			"INFO, NOTICE, WARNING, ERROR, LOG, FATAL, and PANIC. Each level "
-						 "includes all the levels that follow it."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL
-		},
-		&Debug_persistent_store_print_level,
-		DEBUG1, server_message_level_options, NULL, NULL
-	},
-
 	{
 		{"gp_workfile_caching_loglevel", PGC_SUSET, DEVELOPER_OPTIONS,
 			gettext_noop("Sets the logging level for workfile caching debugging messages"),

@@ -44,67 +44,8 @@ FI_IDENT(PgControl, "pg_control")
 FI_IDENT(PgXlog, "pg_xlog")
 /* inject fault during start prepare */
 FI_IDENT(StartPrepareTx, "start_prepare")
-/* inject fault after adding entry to persistent relation table in CP state but before adding to Pending delete list */
-FI_IDENT(FaultBeforePendingDeleteRelationEntry, "fault_before_pending_delete_relation_entry")
-/* inject fault after adding entry to persistent database table in CP state but before adding to Pending delete list */
-FI_IDENT(FaultBeforePendingDeleteDatabaseEntry, "fault_before_pending_delete_database_entry")
-/* inject fault after adding entry to persistent tablespace table in CP state but before adding to Pending delete list */
-FI_IDENT(FaultBeforePendingDeleteTablespaceEntry, "fault_before_pending_delete_tablespace_entry")
-/* inject fault after adding entry to persistent filespace table in CP state but before adding to Pending delete list */
-FI_IDENT(FaultBeforePendingDeleteFilespaceEntry, "fault_before_pending_delete_filespace_entry")
-/*
- * inject fault before data are processed
- *		*) file operation is issued to file system (if mirror)
- *		*) file operation performed on mirror is acknowledged to backend processes (if primary)
- */
-FI_IDENT(FileRepConsumer, "filerep_consumer")
-/* inject fault before ack verification data are consumed on primary */
-FI_IDENT(FileRepConsumerVerification, "filerep_consumer_verification")
-/* Ashwin - inject fault during compacting change tracking */
-FI_IDENT(FileRepChangeTrackingCompacting, "filerep_change_tracking_compacting")
-/* inject fault before data are sent to network */
-	FI_IDENT(FileRepSender, "filerep_sender")
-/*
- * inject fault after data are received from the network and
- * before data are made available for consuming
- */
-FI_IDENT(FileRepReceiver, "filerep_receiver")
-/* inject fault before fsync is issued to file system */
-FI_IDENT(FileRepFlush, "filerep_flush")
-/* inject fault while InResync when first relations is inserted to be resynced */
-FI_IDENT(FileRepResync, "filerep_resync")
-/* inject fault while InResync when more then 10 relations in progress */
-FI_IDENT(FileRepResyncInProgress, "filerep_resync_in_progress")
-/* inject fault after write to mirror while all locks are still hold */
-FI_IDENT(FileRepResyncWorker, "filerep_resync_worker")
-/* inject fault on read required for resync by resync worker process */
-FI_IDENT(FileRepResyncWorkerRead, "filerep_resync_worker_read")
-/* inject fault during transition to InResync before objects are re-created on mirror */
-FI_IDENT(FileRepTransitionToInResyncMirrorReCreate, "filerep_transition_to_resync")
-/* inject fault during transition to InResync before objects are marked re-created */
-FI_IDENT(FileRepTransitionToInResyncMarkReCreated, "filerep_transition_to_resync_mark_recreate")
-/* inject fault during transition to InResync before transition is marked completed */
-FI_IDENT(FileRepTransitionToInResyncMarkCompleted, "filerep_transition_to_resync_mark_completed")
-/* inject fault before transition to InSync begin */
-FI_IDENT(FileRepTransitionToInSyncBegin, "filerep_transition_to_sync_begin")
-/* inject fault during transition to InSync */
-FI_IDENT(FileRepTransitionToInSync, "filerep_transition_to_sync")
-/* inject fault during transition to InSync before checkpoint is taken */
-FI_IDENT(FileRepTransitionToInSyncBeforeCheckpoint, "filerep_transition_to_sync_before_checkpoint")
-/* inject fault during transition to InSync before transition is marked completed */
-FI_IDENT(FileRepTransitionToInSyncMarkCompleted, "filerep_transition_to_sync_mark_completed")
-/* inject fault during transition to Change Tracking */
-FI_IDENT(FileRepTransitionToChangeTracking, "filerep_transition_to_change_tracking")
-/* inject fault in FileRep Is Operation completed function */
-FI_IDENT(FileRepIsOperationCompleted, "fileRep_is_operation_completed")
-/* inject fault just before sending SIGQUIT to child flerep processes */
-FI_IDENT(FileRepImmediateShutdownRequested, "filerep_immediate_shutdown_request")
 /* inject fault before checkpoint is taken */
 FI_IDENT(Checkpoint, "checkpoint")
-/* report if compacting is in progress */
-FI_IDENT(ChangeTrackingCompactingReport, "change_tracking_compacting_report")
-/* inject fault during fsync to Change Tracking log */
-FI_IDENT(ChangeTrackingDisable, "change_tracking_disable")
 /* inject fault during transaction start with DistributedTransactionContext in ENTRY_DB_SINGLETON mode */
 FI_IDENT(TransactionStartUnderEntryDbSingleton, "transaction_start_under_entry_db_singleton")
 /* inject fault after transaction is prepared */
@@ -185,8 +126,6 @@ FI_IDENT(WorkfileWriteFail, "workfile_write_failure")
 FI_IDENT(WorkfileHashJoinFailure, "workfile_hashjoin_failure")
 /* inject fault before we close workfile in ExecHashJoinNewBatch */
 FI_IDENT(ExecutorRunHighProcessed, "executor_run_high_processed")
-/* inject fault before committed EOF is updated in gp_persistent_relation_node for Append Only segment files */
-FI_IDENT(UpdateCommittedEofInPersistentTable, "update_committed_eof_in_persistent_table")
 /* large palloc inside MultiExecHash to attempt to exceed vmem limit */
 FI_IDENT(MultiExecHashLargeVmem, "multi_exec_hash_large_vmem")
 /* inject fault in ExecSort before doing the actual sort */
@@ -229,8 +168,6 @@ FI_IDENT(VacuumFullAfterTruncate, "vacuum_full_after_truncate")
 FI_IDENT(VacuumRelationEndOfFirstRound, "vacuum_relation_end_of_first_round")
 /* inject fault during the open relation of the drop phase of vacuumRelation loop */
 FI_IDENT(VacuumRelationOpenRelationDuringDropPhase, "vacuum_relation_open_relation_during_drop_phase")
-/* inject fault while rebuilding persistent tables (for each db) */
-FI_IDENT(RebuildPTDB, "rebuild_pt_db")
 /* inject fault while adding PGPROC to procarray */
 FI_IDENT(ProcArray_Add, "procarray_add")
 /* inject fault before switching to a new batch in Hash Join */

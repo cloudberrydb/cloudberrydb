@@ -1261,11 +1261,6 @@ FileRead(File file, char *buffer, int amount)
 			   (int64) VfdCache[file].seekPos,
 			   amount, buffer));
 
-	if (Debug_filerep_print)
-		elog(LOG, "FileRead: %d (%s) " INT64_FORMAT " %d %p",
-			  file, VfdCache[file].fileName,
-			  VfdCache[file].seekPos, amount, buffer);
-
 	returnCode = FileAccess(file);
 	if (returnCode < 0)
 		return returnCode;
@@ -1403,8 +1398,6 @@ FileSync(File file)
 	returnCode = FileAccess(file);
 	if (returnCode < 0)
 		return returnCode;
-
-	SIMPLE_FAULT_INJECTOR(FileRepFlush);
 
 	returnCode =  pg_fsync(VfdCache[file].fd);
 

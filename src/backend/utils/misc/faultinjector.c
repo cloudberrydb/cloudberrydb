@@ -430,8 +430,6 @@ FaultInjector_InjectFaultNameIfSet(
 					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							entryLocal->faultName,
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));
-			if (entryLocal->faultInjectorIdentifier == FileRepImmediateShutdownRequested)
-				cnt = entryLocal->sleepTime;
 
 			for (ii=0; ii < cnt; ii++)
 			{
@@ -439,11 +437,9 @@ FaultInjector_InjectFaultNameIfSet(
 				SegmentState_e segmentState;
 				getFileRepRoleAndState(NULL, &segmentState, NULL, NULL, NULL);
 
-				if ((entryLocal->faultInjectorIdentifier != FileRepImmediateShutdownRequested) &&
-					(segmentState == SegmentStateShutdownFilerepBackends ||
-					segmentState == SegmentStateImmediateShutdown ||
+				if (segmentState == SegmentStateImmediateShutdown ||
 					segmentState == SegmentStateShutdown ||
-					IsFtsShudownRequested()))
+					IsFtsShudownRequested())
 				{
 					break;
 				}
@@ -741,7 +737,6 @@ FaultInjector_NewHashEntry(
 			case Checkpoint:
 			case FsyncCounter:
 			case BgBufferSyncDefaultLogic:
-			case ChangeTrackingDisable:
 
 			case InterconnectStopAckIsLost:
 			case SendQEDetailsInitBackend:
