@@ -80,297 +80,33 @@ static int FaultInjector_UpdateHashEntry(
 static bool FaultInjector_RemoveHashEntry(
 								const char* faultName);
 
-/*
- * NB: This list needs to be kept in sync with:
- * - FaultInjectorType_e
- * - the help message in clsInjectFault.py
- */
+/* Arrays to map between enum values and strings */
 const char*
 FaultInjectorTypeEnumToString[] = {
-	_(""), /* not specified */
-	_("sleep"),
-	_("fault"),
-	_("fatal"),
-	_("panic"),
-	_("error"),
-	_("infinite_loop"),
-	_("data_corruption"),
-	_("suspend"),
-	_("resume"),
-	_("skip"),
-	_("memory_full"),
-	_("reset"),
-	_("status"),
-	_("segv"),
-	_("interrupt"),
-	_("finish_pending"),
-	_("checkpoint_and_panic"),
-	_("not recognized"),
+#define FI_TYPE(id, str) str,
+#include "utils/faultinjector_lists.h"
+#undef FI_TYPE
 };
 
 const char*
 FaultInjectorIdentifierEnumToString[] = {
-	_(""),		
-		/* not specified */
-	_("all"),  
-		/* reset or display all injected faults */
-	_("postmaster"),
-		/* inject fault when new connection is accepted in postmaster */
-	_("pg_control"),
-		/* inject fault when pg_control file is written */
-	_("pg_xlog"),
-		/* inject fault when files in pg_xlog directory are written */
-	_("start_prepare"),
-		/* inject fault during start prepare */
-	_("fault_before_pending_delete_relation_entry"),
-		/* inject fault after adding entry to persistent relation table in CP state but before adding to Pending delete list */
-	_("fault_before_pending_delete_database_entry"),
-		/* inject fault after adding entry to persistent database table in CP state but before adding to Pending delete list */
-	_("fault_before_pending_delete_tablespace_entry"),
-		/* inject fault after adding entry to persistent tablespace table in CP state but before adding to Pending delete list */
-	_("fault_before_pending_delete_filespace_entry"),
-		/* inject fault after adding entry to persistent filespace table in CP state but before adding to Pending delete list */
-	_("filerep_consumer"),
-		/* 
-		 * inject fault before data are processed
-		 *		*) file operation is issued to file system (if mirror)
-		 *		*) file operation performed on mirror is acknowledged to backend processes (if primary)
-		 */
-	_("filerep_consumer_verification"),
-		/* inject fault before ack verification data are consumed on primary */
-	_("filerep_change_tracking_compacting"),
-		/* Ashwin - inject fault during compacting change tracking */
-	_("filerep_sender"),
-		/* inject fault before data are sent to network */
-	_("filerep_receiver"),
-		/* 
-		 * inject fault after data are received from the network and 
-		 * before data are made available for consuming 
-		 */
-	_("filerep_flush"),
-		/* inject fault before fsync is issued to file system */
-	_("filerep_resync"),
-		/* inject fault while InResync when first relations is inserted to be resynced */
-	_("filerep_resync_in_progress"),
-		/* inject fault while InResync when more then 10 relations in progress */
-	_("filerep_resync_worker"),
-		/* inject fault after write to mirror while all locks are still hold */
-	_("filerep_resync_worker_read"),
-		/* inject fault on read required for resync by resync worker process */
-	_("filerep_transition_to_resync"),
-		/* inject fault during transition to InResync before objects are re-created on mirror */
-	_("filerep_transition_to_resync_mark_recreate"),
-		/* inject fault during transition to InResync before objects are marked re-created */
-	_("filerep_transition_to_resync_mark_completed"),
-		/* inject fault during transition to InResync before transition is marked completed */
-	_("filerep_transition_to_sync_begin"),
-		/* inject fault before transition to InSync begin */
-	_("filerep_transition_to_sync"),
-		/* inject fault during transition to InSync */
-	_("filerep_transition_to_sync_before_checkpoint"),
-		/* inject fault during transition to InSync before checkpoint is taken */
-	_("filerep_transition_to_sync_mark_completed"),
-		/* inject fault during transition to InSync before transition is marked completed */
-	_("filerep_transition_to_change_tracking"),
-		/* inject fault during transition to Change Tracking */
-	_("fileRep_is_operation_completed"),
-		/* inject fault in FileRep Is Operation completed function */
-	_("filerep_immediate_shutdown_request"),
-		/* inject fault just before sending SIGQUIT to child flerep processes */
-	_("checkpoint"),
-		/* inject fault before checkpoint is taken */
-	_("change_tracking_compacting_report"),
-		/* report if compacting is in progress */
-	_("change_tracking_disable"),
-		/* inject fault during fsync to Change Tracking log */
-	_("transaction_start_under_entry_db_singleton"),
-		/* inject fault during transaction start with DistributedTransactionContext in ENTRY_DB_SINGLETON mode */
-	_("transaction_abort_after_distributed_prepared"),
-		/* inject fault after transaction is prepared */
-	_("transaction_commit_pass1_from_create_pending_to_created"),
-		/* inject fault after persistent state change is permanently stored during first pass */
-	_("transaction_commit_pass1_from_drop_in_memory_to_drop_pending"),
-		/* inject fault after persistent state change is permanently stored during first pass */
-	_("transaction_commit_pass1_from_aborting_create_needed_to_aborting_create"),
-		/* inject fault after persistent state change is permanently stored during first pass */
-	_("transaction_abort_pass1_from_create_pending_to_aborting_create"),
-		/* inject fault after persistent state change is permanently stored during first pass */
-	_("transaction_abort_pass1_from_aborting_create_needed_to_aborting_create"),
-		/* inject fault after persistent state change is permanently stored during first pass */
-	_("transaction_commit_pass2_from_drop_in_memory_to_drop_pending"),
-		/* inject fault after physical drop and before final persistent state change is permanently stored during second pass */
-	_("transaction_commit_pass2_from_aborting_create_needed_to_aborting_create"),
-		/* inject fault after physical drop and before final persistent state change is permanently stored during second pass */
-	_("transaction_abort_pass2_from_create_pending_to_aborting_create"),
-		/* inject fault after physical drop and before final persistent state change is permanently stored during second pass */
-	_("transaction_abort_pass2_from_aborting_create_needed_to_aborting_create"),
-		/* inject fault after physical drop and before final persistent state change is permanently stored during second pass */
-	_("finish_prepared_transaction_commit_pass1_from_create_pending_to_created"),
-		/* inject fault after persistent state change is permanently stored during first pass */
-	_("finish_prepared_transaction_commit_pass2_from_create_pending_to_created"),
-		/* inject fault after physical drop and before final persistent state change is permanently stored during second pass */
-	_("finish_prepared_transaction_abort_pass1_from_create_pending_to_aborting_create"),
-		/* inject fault after persistent state change is permanently stored during first pass */
-	_("finish_prepared_transaction_abort_pass2_from_create_pending_to_aborting_create"),
-		/* inject fault after physical drop and before final persistent state change is permanently stored during second pass */
-	_("finish_prepared_transaction_commit_pass1_from_drop_in_memory_to_drop_pending"),
-		/* inject fault after persistent state change is permanently stored during first pass */
-	_("finish_prepared_transaction_commit_pass2_from_drop_in_memory_to_drop_pending"),
-		/* inject fault after physical drop and before final persistent state change is permanently stored during second pass */
-	_("finish_prepared_transaction_commit_pass1_aborting_create_needed"),
-		/* inject fault after persistent state change is permanently stored during first pass */
-	_("finish_prepared_transaction_commit_pass2_aborting_create_needed"),
-		/* inject fault after physical drop and before final persistent state change is permanently stored during second pass */
-	_("finish_prepared_transaction_abort_pass1_aborting_create_needed"),
-		/* inject fault after persistent state change is permanently stored during first pass */
-	_("finish_prepared_transaction_abort_pass2_aborting_create_needed"),
-		/* inject fault after physical drop and before final persistent state change is permanently stored during second pass */
-	_("filerep_verification"),
-	    /* inject fault to start verification */
-	_("twophase_transaction_commit_prepared"),
-		/* inject fault before transaction commit is recorded in xlog */
-	_("twophase_transaction_abort_prepared"),
-		 /* inject fault before transaction abort is recorded in xlog */
-	_("dtm_broadcast_prepare"),
-		/* inject fault after prepare broadcast */
-	_("dtm_broadcast_commit_prepared"),
-		/* inject fault after commit broadcast */
-	_("dtm_broadcast_abort_prepared"),
-		/* inject fault after abort broadcast */
-	_("dtm_xlog_distributed_commit"),
-		/* inject fault after distributed commit was inserted in xlog */
-	_("dtm_init"),
-		/* inject fault before initializing dtm */
-        _("end_prepare_two_phase_sleep"),
-	        /* inject sleep after creation of two phase file */
-	_("segment_transition_request"),
-    	/* inject fault after segment receives state transition request */
-	_("segment_probe_response"),
-		/* inject fault after segment is probed by FTS */
-	_("local_tm_record_transaction_commit"),
-		/* inject fault after recording transaction commit for local transaction  */
-	_("malloc_failure"),
-		/* inject fault to simulate memory allocation failure */
-	_("transaction_abort_failure"),
-		/* inject fault to simulate transaction abort failure  */
-	_("workfile_creation_failure"),
-	  /* inject fault to simulate workfile creation failure  */
-	_("workfile_write_failure"),
-	  /* inject fault to simulate workfile write failure  */
-	_("workfile_hashjoin_failure"),
-	  /* pretend that a query processed billions of rows  */
-	_("executor_run_high_processed"),
-	 /* inject fault before we close workfile in ExecHashJoinNewBatch */
-	_("update_committed_eof_in_persistent_table"),
-		/* inject fault before committed EOF is updated in gp_persistent_relation_node for Append Only segment files */
-	_("multi_exec_hash_large_vmem"),
-		/* large palloc inside MultiExecHash to attempt to exceed vmem limit */
-	_("execsort_before_sorting"),
-		/* inject fault in ExecSort before doing the actual sort */
-	_("execsort_mksort_mergeruns"),
-		/* inject fault in MKSort during the mergeruns phase */
-	_("execshare_input_next"),
-		/* inject fault after shared input scan retrieved a tuple */
-	_("base_backup_post_create_checkpoint"),
-		/* inject fault after creation of checkpoint when basebackup requested */
-	_("compaction_before_segmentfile_drop"),
-		/* inject fault after compaction, but before the drop of the
-		 * segment file */
-	_("compaction_before_cleanup_phase"),
-		/* inject fault after compaction and drop, but before
-		 * the cleanup phase for a relation */
-	_("appendonly_insert"),
-		/* inject fault before an append-only insert */
-	_("appendonly_delete"),
-		/* inject fault before an append-only delete */
-	_("appendonly_update"),
-		/* inject fault before an append-only update */
-	_("reindex_db"),
-		/* inject fault while reindex db is in progress */
-	_("reindex_relation"),
-		/* inject fault while reindex relation is in progress */
-	_("fault_during_exec_dynamic_table_scan"),
-		/* inject fault during scanning of a partition */
-	_("fault_in_background_writer_main"),
-		/* inject fault at the beginning of rxThreadFunc */
-	_("cdb_copy_start_after_dispatch"),
-		/* inject fault in cdbCopyStart after dispatch */
-	_("repair_frag_end"),
-		/* inject fault at the end of repair_frag */
-	_("vacuum_full_before_truncate"),
-		/* inject fault before truncate in vacuum full */
-	_("vacuum_full_after_truncate"),
-		/* inject fault after truncate in vacuum full */
-	_("vacuum_relation_end_of_first_round"),
-		/* inject fault at the end of first round of vacuumRelation loop */
-	_("vacuum_relation_open_relation_during_drop_phase"),
-		/* inject fault during the open relation of the drop phase of vacuumRelation loop */
-	_("rebuild_pt_db"),
-		/* inject fault while rebuilding persistent tables (for each db) */
-	_("procarray_add"),
-		/* inject fault while adding PGPROC to procarray */
-	_("exec_hashjoin_new_batch"),
-		/* inject fault before switching to a new batch in Hash Join */
-	_("fts_wait_for_shutdown"),
-		/* pause FTS process before committing changes, until shutdown */
-	_("runaway_cleanup"),
-		/* inject fault before cleaning up a runaway query */		
-	_("opt_relcache_translator_catalog_access"),
-		/* inject fault while translating relcache entries */
-	_("send_qe_details_init_backend"),
-		/* inject fault before sending QE details during backend initialization */
-	_("process_startup_packet"),
-		/* inject fault in ProcessStartupPacket() */
-	_("quickdie"),
-		/* inject fault in quickdie*/
-	_("after_one_slice_dispatched"),
-		/* inject fault in cdbdisp_dispatchX*/
-	_("interconnect_stop_ack_is_lost"),
-		/* inject fault in interconnect to skip sending the stop ack */
-	_("qe_got_snapshot_and_interconnect"),
-		/* inject fault after qe got snapshot and interconnect*/
-	_("fsync_counter"),
-		/* inject fault to 'skip' in order to flush all buffers in BgBufferSync() */
-	_("bg_buffer_sync_default_logic"),
-		/* inject fault to count buffers fsync'ed by checkpoint process */
-	_("finish_prepared_after_record_commit_prepared"),
-		/* inject fault in FinishPreparedTransaction() after recording the commit prepared record */
-	_("gang_created"),
-		/* inject fault to report ERROR just after creating Gang */
-	_("resgroup_assigned_on_master"),
-		/* inject fault to report ERROR just after resource group is assigned on master */
-	_("before_read_command"),
-		/* inject fault before reading command */
-	_("not recognized"),
+#define FI_IDENT(id, str) str,
+#include "utils/faultinjector_lists.h"
+#undef FI_IDENT
 };
 
 const char*
 FaultInjectorDDLEnumToString[] = {
-	_(""),		/* not specified */
-	_("create_database"),
-	_("drop_database"),
-	_("create_table"),
-	_("drop_table"),
-	_("create_index"),
-	_("alter_index"),
-	_("reindex"),
-	_("drop_index"),
-	_("create_filespaces"),
-	_("drop_filespaces"),
-	_("create_tablespaces"),
-	_("drop_tablespaces"),
-	_("truncate"),
-	_("vacuum"),
-	_("not recognized"),
+#define FI_DDL_STATEMENT(id, str) str,
+#include "utils/faultinjector_lists.h"
+#undef FI_DDL_STATEMENT
 };
 
 const char*
 FaultInjectorStateEnumToString[] = {
-	_("not initialized"),
-	_("set"),
-	_("triggered"),
-	_("completed"),
-	_("failed"),
+#define FI_STATE(id, str) str,
+#include "utils/faultinjector_lists.h"
+#undef FI_STATE
 };
 
 /*
