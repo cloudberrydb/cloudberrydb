@@ -10,7 +10,8 @@ explain select count(*) from foo where c = 1;
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
-      <dxl:CTEConfig CTEInliningCutoff="0"/>
+      <dxl:CTEConfig CTEInliningCutoff="0"/> 
+      <dxl:WindowOids RowNumber="7000" Rank="7001"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3"/>
       <dxl:TraceFlags Value="101013,102115,102116,102120,102128,102134,102135,102136,103001,103014,103015,103022,103023,104004,104005,105000"/>
     </dxl:OptimizerConfig>

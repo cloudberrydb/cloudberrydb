@@ -151,7 +151,16 @@ namespace gpdxl
 				const WCHAR *wszDXL,
 				const CHAR *szXSDPath
 				);
-			
+
+			// parse optimizer config DXL
+			static
+			COptimizerConfig *PoptimizerConfigParseDXL
+				(
+				IMemoryPool *pmp,
+				const CHAR *szDXL,
+				const CHAR *szXSDPath
+				);
+
 			static 
 			DrgPimdobj *PdrgpmdobjParseDXL
 				(

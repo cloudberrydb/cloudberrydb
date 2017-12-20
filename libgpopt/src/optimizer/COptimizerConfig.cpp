@@ -23,6 +23,7 @@
 
 using namespace gpos;
 using namespace gpopt;
+using namespace gpnaucrates;
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -38,20 +39,23 @@ COptimizerConfig::COptimizerConfig
 	CStatisticsConfig *pstatsconf,
 	CCTEConfig *pcteconf,
 	ICostModel *pcm,
-	CHint *phint
+	CHint *phint,
+	CWindowOids *pwindowoids
 	)
 	:
 	m_pec(pec),
 	m_pstatsconf(pstatsconf),
 	m_pcteconf(pcteconf),
 	m_pcm(pcm),
-	m_phint(phint)
+	m_phint(phint),
+	m_pwindowoids(pwindowoids)
 {
 	GPOS_ASSERT(NULL != pec);
 	GPOS_ASSERT(NULL != pstatsconf);
 	GPOS_ASSERT(NULL != pcteconf);
 	GPOS_ASSERT(NULL != pcm);
 	GPOS_ASSERT(NULL != phint);
+	GPOS_ASSERT(NULL != m_pwindowoids);
 }
 
 //---------------------------------------------------------------------------
@@ -69,6 +73,7 @@ COptimizerConfig::~COptimizerConfig()
 	m_pcteconf->Release();
 	m_pcm->Release();
 	m_phint->Release();
+	m_pwindowoids->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -91,7 +96,8 @@ COptimizerConfig::PoconfDefault
 						CStatisticsConfig::PstatsconfDefault(pmp),
 						CCTEConfig::PcteconfDefault(pmp),
 						ICostModel::PcmDefault(pmp),
-						CHint::PhintDefault(pmp)
+						CHint::PhintDefault(pmp),
+						CWindowOids::Pwindowoids(pmp)
 						);
 }
 
@@ -118,7 +124,8 @@ COptimizerConfig::PoconfDefault
 						CStatisticsConfig::PstatsconfDefault(pmp),
 						CCTEConfig::PcteconfDefault(pmp),
 						pcm,
-						CHint::PhintDefault(pmp)
+						CHint::PhintDefault(pmp),
+						CWindowOids::Pwindowoids(pmp)
 						);
 }
 

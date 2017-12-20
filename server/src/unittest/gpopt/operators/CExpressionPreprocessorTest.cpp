@@ -24,6 +24,7 @@
 #include "gpopt/operators/CLogicalInnerJoin.h"
 #include "gpopt/operators/CLogicalLeftOuterJoin.h"
 #include "gpopt/operators/CExpressionUtils.h"
+#include "gpopt/optimizer/COptimizerConfig.h"
 #include "gpopt/xforms/CXformUtils.h"
 
 #include "unittest/base.h"
@@ -374,8 +375,10 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessWindowFunc()
 	// pre-processing should transform Outer Join to Inner Join
 	CExpression *pexprSelectOnOuterJoin = CTestUtils::PexprLogicalSelectOnOuterJoin(pmp);
 
+	OID oidRowNumber = COptCtxt::PoctxtFromTLS()->Poconf()->Pwindowoids()->OidRowNumber();
+
 	// add a window function with a predicate on top of the Outer Join expression
-	CExpression *pexprWindow = CTestUtils::PexprLogicalSequenceProject(pmp, GPDB_WIN_ROW_NUMBER, pexprSelectOnOuterJoin);
+	CExpression *pexprWindow = CTestUtils::PexprLogicalSequenceProject(pmp, oidRowNumber, pexprSelectOnOuterJoin);
 	CExpression *pexpr = CTestUtils::PexprLogicalSelect(pmp, pexprWindow);
 
 	CWStringDynamic str(pmp);

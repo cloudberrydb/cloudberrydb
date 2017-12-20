@@ -64,7 +64,7 @@ namespace gpdxl
 			// files for testing exception handling in DXL parsing
 			static
 			const CHAR *m_rgszNegativeTestsFileNames[];
-			
+
 			// test parsing and serializing of plans 
 			static 
 			GPOS_RESULT EresParseAndSerializePlan(IMemoryPool *, const CHAR *, BOOL fValidate);

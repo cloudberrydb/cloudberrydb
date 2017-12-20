@@ -62,6 +62,9 @@ namespace gpdxl
 		EdxltokenJoinOrderDPThreshold,
 		EdxltokenBroadcastThreshold,
 		EdxltokenEnforceConstraintsOnDML,
+		EdxltokenWindowOids,
+		EdxltokenOidRowNumber,
+		EdxltokenOidRank,
 
 		EdxltokenPlanSamples,
 

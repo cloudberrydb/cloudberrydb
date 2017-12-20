@@ -19,6 +19,7 @@
 #include "gpopt/engine/CEnumeratorConfig.h"
 #include "gpopt/engine/CCTEConfig.h"
 #include "gpopt/engine/CHint.h"
+#include "gpopt/base/CWindowOids.h"
 
 namespace gpopt
 {
@@ -26,7 +27,7 @@ namespace gpopt
 
 	// fwd decl
 	class ICostModel;
-	
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		COptimizerConfig
@@ -55,6 +56,9 @@ namespace gpopt
 			// hint configuration
 			CHint *m_phint;
 
+			// default window oids
+			CWindowOids *m_pwindowoids;
+
 		public:
 
 			// ctor
@@ -64,7 +68,8 @@ namespace gpopt
 				CStatisticsConfig *pstatsconf,
 				CCTEConfig *pcteconf,
 				ICostModel *pcm,
-				CHint *phint
+				CHint *phint,
+				CWindowOids *pdefoidsGPDB
 				);
 
 			// dtor
@@ -96,6 +101,12 @@ namespace gpopt
 				return m_pcm;
 			}
 			
+			// default window oids
+			CWindowOids *Pwindowoids() const
+			{
+				return m_pwindowoids;
+			}
+
 			// hint configuration
 			CHint *Phint() const
 			{

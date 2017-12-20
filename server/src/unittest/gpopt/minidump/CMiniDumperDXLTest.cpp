@@ -130,7 +130,8 @@ CMiniDumperDXLTest::EresUnittest_Basic()
 												CStatisticsConfig::PstatsconfDefault(pmp),
 												CCTEConfig::PcteconfDefault(pmp),
 												ICostModel::PcmDefault(pmp),
-												CHint::PhintDefault(pmp)
+												CHint::PhintDefault(pmp),
+												CWindowOids::Pwindowoids(pmp)
 												);
 
 		// setup opt ctx

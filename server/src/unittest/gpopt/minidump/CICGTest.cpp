@@ -466,7 +466,8 @@ CICGTest::EresUnittest_NegativeIndexApplyTests()
 						CStatisticsConfig::PstatsconfDefault(pmp),
 						CCTEConfig::PcteconfDefault(pmp),
 						pcm,
-						CHint::PhintDefault(pmp)
+						CHint::PhintDefault(pmp),
+						CWindowOids::Pwindowoids(pmp)
 						);
 			CDXLNode *pdxlnPlan = CMinidumperUtils::PdxlnExecuteMinidump
 									(

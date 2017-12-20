@@ -23,7 +23,8 @@ SELECT * FROM my_tq_agg_small tq WHERE 110 >= tq.ets;
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
-      <dxl:CTEConfig CTEInliningCutoff="0"/>
+      <dxl:CTEConfig CTEInliningCutoff="0"/> 
+      <dxl:WindowOids RowNumber="7000" Rank="7001"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3"/>
       <dxl:TraceFlags Value="102013,102024,102025,102119,102128,102129,103014,103015"/>
     </dxl:OptimizerConfig>

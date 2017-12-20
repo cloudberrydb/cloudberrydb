@@ -522,6 +522,8 @@ add_library(naucrates
             src/parser/CParseHandlerHashJoin.cpp
             include/naucrates/dxl/parser/CParseHandlerHint.h
             src/parser/CParseHandlerHint.cpp
+            include/naucrates/dxl/parser/CParseHandlerWindowOids.h
+            src/parser/CParseHandlerWindowOids.cpp
             include/naucrates/dxl/parser/CParseHandlerIndexCondList.h
             src/parser/CParseHandlerIndexCondList.cpp
             include/naucrates/dxl/parser/CParseHandlerIndexDescr.h

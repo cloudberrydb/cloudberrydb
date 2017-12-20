@@ -553,6 +553,29 @@ CDXLUtils::PmdrequestParseDXL
 	return pmdr;
 }
 
+// parse optimizer config DXL
+COptimizerConfig *
+CDXLUtils::PoptimizerConfigParseDXL
+	(
+	IMemoryPool *pmp,
+	const CHAR *szDXL,
+	const CHAR *szXSDPath
+	)
+{
+	GPOS_ASSERT(NULL != pmp);
+
+	// create and install a parse handler for the DXL document
+	CParseHandlerDXL *pphdxl = PphdxlParseDXL(pmp, szDXL, szXSDPath);
+	CAutoP<CParseHandlerDXL> a_pphdxl(pphdxl);
+
+	// collect optimizer conf from dxl parse handler
+	COptimizerConfig *poconf = pphdxl->Poconf();
+	GPOS_ASSERT(NULL != poconf);
+	poconf->AddRef();
+
+	return poconf;
+}
+
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -1183,6 +1206,7 @@ CDXLUtils::SerializeOptimizerConfig
 	const CCTEConfig *pcteconf = poconf->Pcteconf();
 	const ICostModel *pcm = poconf->Pcm();
 	const CHint *phint = poconf->Phint();
+	const CWindowOids *pwindowoids = poconf->Pwindowoids();
 
 	CXMLSerializer xmlser(pmp, os, fIndent);
 
@@ -1205,6 +1229,11 @@ CDXLUtils::SerializeOptimizerConfig
 	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenCTEInliningCutoff), pcteconf->UlCTEInliningCutoff());
 	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenCTEConfig));
 	
+	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenWindowOids));
+	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenOidRowNumber), pwindowoids->OidRowNumber());
+	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenOidRank), pwindowoids->OidRank());
+	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenWindowOids));
+
 	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenCostModelConfig));
 	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenCostModelType), pcm->Ecmt());
 	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenSegmentsForCosting), pcm->UlHosts());

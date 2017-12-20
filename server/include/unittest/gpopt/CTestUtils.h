@@ -73,12 +73,6 @@
 #define GPDB_INT4_SUM_AGG OID(2114)
 #define GPDB_INT8_GENERATE_SERIES OID(1067)
 
-// GPDB window functions
-#define GPDB_WIN_ROW_NUMBER OID(7000)
-#define GPDB_WIN_RANK OID(7001)
-#define GPDB_WIN_FIRST_VALUE OID(7029)
-#define GPDB_WIN_LAST_VALUE OID(7012)
-
 // forward declarations
 namespace gpmd
 {

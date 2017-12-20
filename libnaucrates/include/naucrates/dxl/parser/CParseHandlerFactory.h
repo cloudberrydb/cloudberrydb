@@ -171,6 +171,15 @@ namespace gpdxl
 				CParseHandlerBase *pphRoot
 				);
 
+			// construct window oids parse handler
+			static
+			CParseHandlerBase *PphWindowOids
+				(
+				IMemoryPool *pmp,
+				CParseHandlerManager *pphm,
+				CParseHandlerBase *pphRoot
+				);
+
 			// construct a trace flag parse handler
 			static 
 			CParseHandlerBase *PphTraceFlags

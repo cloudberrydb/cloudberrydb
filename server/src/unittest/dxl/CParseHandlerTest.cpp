@@ -169,7 +169,6 @@ CParseHandlerTest::m_rgszNegativeTestsFileNames[] =
 		"../data/dxl/parse_tests/f16-Case-NoResultClause.xml",
 		"../data/dxl/parse_tests/f17-Limit-MissingCount.xml",
 	};
-
                                   
 //---------------------------------------------------------------------------
 //	@function:

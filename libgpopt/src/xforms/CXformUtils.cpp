@@ -15,6 +15,7 @@
 #include "gpos/error/CMessageRepository.h"
 #include "gpos/memory/CAutoMemoryPool.h"
 
+#include "naucrates/base/CDatumInt8GPDB.h"
 #include "naucrates/md/CMDIdGPDB.h"
 #include "naucrates/md/CMDTriggerGPDB.h"
 #include "naucrates/md/IMDScalarOp.h"
@@ -2365,12 +2366,14 @@ CXformUtils::PexprRowNumber
 	IMemoryPool *pmp
 	)
 {
-	// TODO:  - Jan 24, 2013; remove magic OIDs
+
+	OID oidRowNumber = COptCtxt::PoctxtFromTLS()->Poconf()->Pwindowoids()->OidRowNumber();
+
 	CScalarWindowFunc *popRowNumber = GPOS_NEW(pmp) CScalarWindowFunc
 													(
 													pmp,
-													GPOS_NEW(pmp) CMDIdGPDB(7000),
-													GPOS_NEW(pmp) CMDIdGPDB(20),
+													GPOS_NEW(pmp) CMDIdGPDB(oidRowNumber),
+													GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT8_OID),
 													GPOS_NEW(pmp) CWStringConst(pmp, GPOS_WSZ_LIT("row_number")),
 													CScalarWindowFunc::EwsImmediate,
 													false /* fDistinct */,

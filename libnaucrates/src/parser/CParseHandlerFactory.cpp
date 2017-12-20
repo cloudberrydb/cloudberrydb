@@ -3,13 +3,13 @@
 //	Copyright (C) 2010-2011 EMC Corp.
 //
 //	@filename:
-//		CParseHandlerFactory.cpp
+// CParseHandlerFactory.cpp
 //
 //	@doc:
-//		Implementation of the factory methods for creating parse handlers
+// Implementation of the factory methods for creating parse handlers
 //
 //	@owner: 
-//		
+//
 //
 //	@test:
 //
@@ -26,14 +26,7 @@ XERCES_CPP_NAMESPACE_USE
 CParseHandlerFactory::HMXMLStrPfPHCreator *
 CParseHandlerFactory::m_phmPHCreators = NULL;
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::AddMapping
-//
-//	@doc:
-//		Adds a new mapping of token to corresponding parse handler
-//
-//---------------------------------------------------------------------------
+// adds a new mapping of token to corresponding parse handler
 void
 CParseHandlerFactory::AddMapping
 	(
@@ -53,14 +46,7 @@ CParseHandlerFactory::AddMapping
 	GPOS_ASSERT(fInserted);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::Init
-//
-//	@doc:
-//		Initialize mapping of tokens to parse handlers
-//
-//---------------------------------------------------------------------------
+// initialize mapping of tokens to parse handlers
 void
 CParseHandlerFactory::Init
 	(
@@ -84,6 +70,7 @@ CParseHandlerFactory::Init
 			{EdxltokenCTEConfig, &PphCTEConfig},
 			{EdxltokenCostModelConfig, &PphCostModelConfig},
 			{EdxltokenHint, &PphHint},
+			{EdxltokenWindowOids, &PphWindowOids},
 
 			{EdxltokenRelation, &PphMetadataRelation},
 			{EdxltokenIndex, &PphMDIndex},
@@ -302,14 +289,7 @@ CParseHandlerFactory::Init
 	}
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::Pph
-//
-//	@doc:
-//		Creates a parse handler instance given an xml tag
-//
-//---------------------------------------------------------------------------
+// creates a parse handler instance given an xml tag
 CParseHandlerBase *
 CParseHandlerFactory::Pph
 	(
@@ -343,14 +323,7 @@ CParseHandlerFactory::Pph
 	return NULL;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::Pphdxl
-//
-//	@doc:
-//		Creates a parse handler for parsing a DXL document.
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a DXL document.
 CParseHandlerDXL *
 CParseHandlerFactory::Pphdxl
 	(
@@ -361,14 +334,7 @@ CParseHandlerFactory::Pphdxl
 	return GPOS_NEW(pmp) CParseHandlerDXL(pmp, pphm);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphPlan
-//
-//	@doc:
-//		Creates a parse handler for parsing a Plan
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a Plan
 CParseHandlerBase *
 CParseHandlerFactory::PphPlan
 	(
@@ -380,14 +346,7 @@ CParseHandlerFactory::PphPlan
 	return GPOS_NEW(pmp) CParseHandlerPlan(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMetadata
-//
-//	@doc:
-//		Creates a parse handler for parsing metadata
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing metadata
 CParseHandlerBase *
 CParseHandlerFactory::PphMetadata
 	(
@@ -399,14 +358,7 @@ CParseHandlerFactory::PphMetadata
 	return GPOS_NEW(pmp) CParseHandlerMetadata(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMDRequest
-//
-//	@doc:
-//		Creates a parse handler for parsing a metadata request
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a metadata request
 CParseHandlerBase *
 CParseHandlerFactory::PphMDRequest
 	(
@@ -418,14 +370,7 @@ CParseHandlerFactory::PphMDRequest
 	return GPOS_NEW(pmp) CParseHandlerMDRequest(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphTraceFlags
-//
-//	@doc:
-//		Creates a parse handler for parsing trace flags
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing trace flags
 CParseHandlerBase *
 CParseHandlerFactory::PphTraceFlags
 	(
@@ -437,14 +382,7 @@ CParseHandlerFactory::PphTraceFlags
 	return GPOS_NEW(pmp) CParseHandlerTraceFlags(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphOptimizerConfig
-//
-//	@doc:
-//		Creates a parse handler for parsing optimizer config
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing optimizer config
 CParseHandlerBase *
 CParseHandlerFactory::PphOptimizerConfig
 	(
@@ -456,14 +394,7 @@ CParseHandlerFactory::PphOptimizerConfig
 	return GPOS_NEW(pmp) CParseHandlerOptimizerConfig(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphEnumeratorConfig
-//
-//	@doc:
-//		Creates a parse handler for parsing enumerator config
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing enumerator config
 CParseHandlerBase *
 CParseHandlerFactory::PphEnumeratorConfig
 	(
@@ -475,14 +406,7 @@ CParseHandlerFactory::PphEnumeratorConfig
 	return GPOS_NEW(pmp) CParseHandlerEnumeratorConfig(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphStatisticsConfig
-//
-//	@doc:
-//		Creates a parse handler for parsing statistics configuration
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing statistics configuration
 CParseHandlerBase *
 CParseHandlerFactory::PphStatisticsConfig
 	(
@@ -494,14 +418,7 @@ CParseHandlerFactory::PphStatisticsConfig
 	return GPOS_NEW(pmp) CParseHandlerStatisticsConfig(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphCTEConfig
-//
-//	@doc:
-//		Creates a parse handler for parsing CTE configuration
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing CTE configuration
 CParseHandlerBase *
 CParseHandlerFactory::PphCTEConfig
 	(
@@ -513,15 +430,7 @@ CParseHandlerFactory::PphCTEConfig
 	return GPOS_NEW(pmp) CParseHandlerCTEConfig(pmp, pphm, pphRoot);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphCostModelConfig
-//
-//	@doc:
-//		Creates a parse handler for parsing cost model configuration
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing cost model configuration
 CParseHandlerBase *
 CParseHandlerFactory::PphCostModelConfig
 	(
@@ -533,14 +442,7 @@ CParseHandlerFactory::PphCostModelConfig
 	return GPOS_NEW(pmp) CParseHandlerCostModel(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphHint
-//
-//	@doc:
-//		Creates a parse handler for parsing hint configuration
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing hint configuration
 CParseHandlerBase *
 CParseHandlerFactory::PphHint
 	(
@@ -552,14 +454,19 @@ CParseHandlerFactory::PphHint
 	return GPOS_NEW(pmp) CParseHandlerHint(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMetadataRelation
-//
-//	@doc:
-//		Creates a parse handler for parsing relation metadata
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing window oids configuration
+CParseHandlerBase *
+CParseHandlerFactory::PphWindowOids
+	(
+	IMemoryPool *pmp,
+	CParseHandlerManager *pphm,
+	CParseHandlerBase *pphRoot
+	)
+{
+	return GPOS_NEW(pmp) CParseHandlerWindowOids(pmp, pphm, pphRoot);
+}
+
+// creates a parse handler for parsing relation metadata
 CParseHandlerBase *
 CParseHandlerFactory::PphMetadataRelation
 	(
@@ -571,14 +478,7 @@ CParseHandlerFactory::PphMetadataRelation
 	return GPOS_NEW(pmp) CParseHandlerMDRelation(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMetadataRelationExternal
-//
-//	@doc:
-//		Creates a parse handler for parsing external relation metadata
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing external relation metadata
 CParseHandlerBase *
 CParseHandlerFactory::PphMetadataRelationExternal
 	(
@@ -590,14 +490,7 @@ CParseHandlerFactory::PphMetadataRelationExternal
 	return GPOS_NEW(pmp) CParseHandlerMDRelationExternal(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMetadataRelationCTAS
-//
-//	@doc:
-//		Creates a parse handler for parsing CTAS relation metadata
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing CTAS relation metadata
 CParseHandlerBase *
 CParseHandlerFactory::PphMetadataRelationCTAS
 	(
@@ -609,14 +502,7 @@ CParseHandlerFactory::PphMetadataRelationCTAS
 	return GPOS_NEW(pmp) CParseHandlerMDRelationCtas(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMDIndex
-//
-//	@doc:
-//		Creates a parse handler for parsing a MD index
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a MD index
 CParseHandlerBase *
 CParseHandlerFactory::PphMDIndex
 	(
@@ -628,14 +514,7 @@ CParseHandlerFactory::PphMDIndex
 	return GPOS_NEW(pmp) CParseHandlerMDIndex(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphRelStats
-//
-//	@doc:
-//		Creates a parse handler for parsing relation stats
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing relation stats
 CParseHandlerBase *
 CParseHandlerFactory::PphRelStats
 	(
@@ -647,14 +526,7 @@ CParseHandlerFactory::PphRelStats
 	return GPOS_NEW(pmp) CParseHandlerRelStats(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphColStats
-//
-//	@doc:
-//		Creates a parse handler for parsing column stats
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing column stats
 CParseHandlerBase *
 CParseHandlerFactory::PphColStats
 	(
@@ -666,14 +538,7 @@ CParseHandlerFactory::PphColStats
 	return GPOS_NEW(pmp) CParseHandlerColStats(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphColStatsBucket
-//
-//	@doc:
-//		Creates a parse handler for parsing column stats bucket
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing column stats bucket
 CParseHandlerBase *
 CParseHandlerFactory::PphColStatsBucket
 	(
@@ -685,14 +550,7 @@ CParseHandlerFactory::PphColStatsBucket
 	return GPOS_NEW(pmp) CParseHandlerColStatsBucket(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMDGPDBType
-//
-//	@doc:
-//		Creates a parse handler for parsing GPDB type metadata
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing GPDB type metadata
 CParseHandlerBase *
 CParseHandlerFactory::PphMDGPDBType
 	(
@@ -704,14 +562,7 @@ CParseHandlerFactory::PphMDGPDBType
 	return GPOS_NEW(pmp) CParseHandlerMDType(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMDGPDBScalarOp
-//
-//	@doc:
-//		Creates a parse handler for parsing GPDB-specific operator metadata
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing GPDB-specific operator metadata
 CParseHandlerBase *
 CParseHandlerFactory::PphMDGPDBScalarOp
 	(
@@ -723,14 +574,7 @@ CParseHandlerFactory::PphMDGPDBScalarOp
 	return GPOS_NEW(pmp) CParseHandlerMDGPDBScalarOp(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMDGPDBFunc
-//
-//	@doc:
-//		Creates a parse handler for parsing GPDB-specific function metadata
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing GPDB-specific function metadata
 CParseHandlerBase *
 CParseHandlerFactory::PphMDGPDBFunc
 	(
@@ -742,14 +586,7 @@ CParseHandlerFactory::PphMDGPDBFunc
 	return GPOS_NEW(pmp) CParseHandlerMDGPDBFunc(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMDGPDBAgg
-//
-//	@doc:
-//		Creates a parse handler for parsing GPDB-specific aggregate metadata
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing GPDB-specific aggregate metadata
 CParseHandlerBase *
 CParseHandlerFactory::PphMDGPDBAgg
 	(
@@ -761,14 +598,7 @@ CParseHandlerFactory::PphMDGPDBAgg
 	return GPOS_NEW(pmp) CParseHandlerMDGPDBAgg(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMDGPDBTrigger
-//
-//	@doc:
-//		Creates a parse handler for parsing GPDB-specific trigger metadata
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing GPDB-specific trigger metadata
 CParseHandlerBase *
 CParseHandlerFactory::PphMDGPDBTrigger
 	(
@@ -780,14 +610,7 @@ CParseHandlerFactory::PphMDGPDBTrigger
 	return GPOS_NEW(pmp) CParseHandlerMDGPDBTrigger(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMDCast
-//
-//	@doc:
-//		Creates a parse handler for parsing GPDB-specific cast metadata
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing GPDB-specific cast metadata
 CParseHandlerBase *
 CParseHandlerFactory::PphMDCast
 	(
@@ -799,14 +622,7 @@ CParseHandlerFactory::PphMDCast
 	return GPOS_NEW(pmp) CParseHandlerMDCast(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMDScCmp
-//
-//	@doc:
-//		Creates a parse handler for parsing GPDB-specific scalar comparison metadata
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing GPDB-specific scalar comparison metadata
 CParseHandlerBase *
 CParseHandlerFactory::PphMDScCmp
 	(
@@ -818,14 +634,7 @@ CParseHandlerFactory::PphMDScCmp
 	return GPOS_NEW(pmp) CParseHandlerMDScCmp(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMetadataIdList
-//
-//	@doc:
-//		Creates a parse handler for parsing a list of metadata identifiers
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a list of metadata identifiers
 CParseHandlerBase *
 CParseHandlerFactory::PphMetadataIdList
 	(
@@ -837,14 +646,7 @@ CParseHandlerFactory::PphMetadataIdList
 	return GPOS_NEW(pmp) CParseHandlerMetadataIdList(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMetadataColumns
-//
-//	@doc:
-//		Creates a parse handler for parsing a list of column metadata info
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a list of column metadata info
 CParseHandlerBase *
 CParseHandlerFactory::PphMetadataColumns
 	(
@@ -867,14 +669,7 @@ CParseHandlerFactory::PphMDIndexInfoList
 	return GPOS_NEW(pmp) CParseHandlerMDIndexInfoList(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMetadataColumn
-//
-//	@doc:
-//		Creates a parse handler for parsing column info
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing column info
 CParseHandlerBase *
 CParseHandlerFactory::PphMetadataColumn
 	(
@@ -886,14 +681,7 @@ CParseHandlerFactory::PphMetadataColumn
 	return GPOS_NEW(pmp) CParseHandlerMetadataColumn(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphColumnDefaultValueExpr
-//
-//	@doc:
-//		Creates a parse handler for parsing a a default value for a column
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a a default value for a column
 CParseHandlerBase *
 CParseHandlerFactory::PphColumnDefaultValueExpr
 	(
@@ -905,14 +693,7 @@ CParseHandlerFactory::PphColumnDefaultValueExpr
 	return GPOS_NEW(pmp) CParseHandlerDefaultValueExpr(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphPhysOp
-//
-//	@doc:
-//		Creates a parse handler for parsing a physical operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a physical operator
 CParseHandlerBase *
 CParseHandlerFactory::PphPhysOp
 	(
@@ -924,15 +705,7 @@ CParseHandlerFactory::PphPhysOp
 	return GPOS_NEW(pmp) CParseHandlerPhysicalOp(pmp, pphm, pphRoot);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarOp
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar operator
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarOp
 	(
@@ -944,14 +717,7 @@ CParseHandlerFactory::PphScalarOp
 	return GPOS_NEW(pmp) CParseHandlerScalarOp(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphProperties
-//
-//	@doc:
-//		Creates a parse handler for parsing the properties of a physical operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing the properties of a physical operator
 CParseHandlerBase *
 CParseHandlerFactory::PphProperties
 	(
@@ -963,14 +729,7 @@ CParseHandlerFactory::PphProperties
 	return GPOS_NEW(pmp) CParseHandlerProperties(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphFilter
-//
-//	@doc:
-//		Creates a parse handler for parsing a filter operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a filter operator
 CParseHandlerBase *
 CParseHandlerFactory::PphFilter
 	(
@@ -982,14 +741,7 @@ CParseHandlerFactory::PphFilter
 	return GPOS_NEW(pmp) CParseHandlerFilter(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphTableScan
-//
-//	@doc:
-//		Creates a parse handler for parsing a table scan
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a table scan
 CParseHandlerBase *
 CParseHandlerFactory::PphTableScan
 	(
@@ -1001,14 +753,7 @@ CParseHandlerFactory::PphTableScan
 	return GPOS_NEW(pmp) CParseHandlerTableScan(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphBitmapTableScan
-//
-//	@doc:
-//		Creates a parse handler for parsing a bitmap table scan
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a bitmap table scan
 CParseHandlerBase *
 CParseHandlerFactory::PphBitmapTableScan
 	(
@@ -1020,14 +765,7 @@ CParseHandlerFactory::PphBitmapTableScan
 	return GPOS_NEW(pmp) CParseHandlerPhysicalBitmapTableScan(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphDynamicBitmapTableScan
-//
-//	@doc:
-//		Creates a parse handler for parsing a dynamic bitmap table scan
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a dynamic bitmap table scan
 CParseHandlerBase *
 CParseHandlerFactory::PphDynamicBitmapTableScan
 	(
@@ -1039,14 +777,7 @@ CParseHandlerFactory::PphDynamicBitmapTableScan
 	return GPOS_NEW(pmp) CParseHandlerPhysicalDynamicBitmapTableScan(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphExternalScan
-//
-//	@doc:
-//		Creates a parse handler for parsing an external scan
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing an external scan
 CParseHandlerBase *
 CParseHandlerFactory::PphExternalScan
 	(
@@ -1058,14 +789,7 @@ CParseHandlerFactory::PphExternalScan
 	return GPOS_NEW(pmp) CParseHandlerExternalScan(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphSubqScan
-//
-//	@doc:
-//		Creates a parse handler for parsing a subquery scan
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a subquery scan
 CParseHandlerBase *
 CParseHandlerFactory::PphSubqScan
 	(
@@ -1077,14 +801,7 @@ CParseHandlerFactory::PphSubqScan
 	return GPOS_NEW(pmp) CParseHandlerSubqueryScan(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphResult
-//
-//	@doc:
-//		Creates a parse handler for parsing a result node
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a result node
 CParseHandlerBase *
 CParseHandlerFactory::PphResult
 	(
@@ -1096,14 +813,7 @@ CParseHandlerFactory::PphResult
 	return GPOS_NEW(pmp) CParseHandlerResult(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphHashJoin
-//
-//	@doc:
-//		Creates a parse handler for parsing a hash join operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a hash join operator
 CParseHandlerBase *
 CParseHandlerFactory::PphHashJoin
 	(
@@ -1115,14 +825,7 @@ CParseHandlerFactory::PphHashJoin
 	return GPOS_NEW(pmp) CParseHandlerHashJoin(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphNLJoin
-//
-//	@doc:
-//		Creates a parse handler for parsing a nested loop join operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a nested loop join operator
 CParseHandlerBase *
 CParseHandlerFactory::PphNLJoin
 	(
@@ -1134,14 +837,7 @@ CParseHandlerFactory::PphNLJoin
 	return GPOS_NEW(pmp) CParseHandlerNLJoin(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMergeJoin
-//
-//	@doc:
-//		Creates a parse handler for parsing a merge join operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a merge join operator
 CParseHandlerBase *
 CParseHandlerFactory::PphMergeJoin
 	(
@@ -1153,15 +849,7 @@ CParseHandlerFactory::PphMergeJoin
 	return GPOS_NEW(pmp) CParseHandlerMergeJoin(pmp, pphm, pphRoot);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphSort
-//
-//	@doc:
-//		Creates a parse handler for parsing a sort operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a sort operator
 CParseHandlerBase *
 CParseHandlerFactory::PphSort
 	(
@@ -1173,14 +861,7 @@ CParseHandlerFactory::PphSort
 	return GPOS_NEW(pmp) CParseHandlerSort(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphAppend
-//
-//	@doc:
-//		Creates a parse handler for parsing an append operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing an append operator
 CParseHandlerBase *
 CParseHandlerFactory::PphAppend
 	(
@@ -1192,14 +873,7 @@ CParseHandlerFactory::PphAppend
 	return GPOS_NEW(pmp) CParseHandlerAppend(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMaterialize
-//
-//	@doc:
-//		Creates a parse handler for parsing a materialize operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a materialize operator
 CParseHandlerBase *
 CParseHandlerFactory::PphMaterialize
 	(
@@ -1211,14 +885,7 @@ CParseHandlerFactory::PphMaterialize
 	return GPOS_NEW(pmp) CParseHandlerMaterialize(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphDynamicTableScan
-//
-//	@doc:
-//		Creates a parse handler for parsing a dynamic table scan operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a dynamic table scan operator
 CParseHandlerBase *
 CParseHandlerFactory::PphDynamicTableScan
 	(
@@ -1230,14 +897,7 @@ CParseHandlerFactory::PphDynamicTableScan
 	return GPOS_NEW(pmp) CParseHandlerDynamicTableScan(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphDynamicIndexScan
-//
-//	@doc:
-//		Creates a parse handler for parsing a dynamic index scan operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a dynamic index scan operator
 CParseHandlerBase *
 CParseHandlerFactory::PphDynamicIndexScan
 	(
@@ -1249,14 +909,7 @@ CParseHandlerFactory::PphDynamicIndexScan
 	return GPOS_NEW(pmp) CParseHandlerDynamicIndexScan(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphPartitionSelector
-//
-//	@doc:
-//		Creates a parse handler for parsing a partition selector operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a partition selector operator
 CParseHandlerBase *
 CParseHandlerFactory::PphPartitionSelector
 	(
@@ -1268,14 +921,7 @@ CParseHandlerFactory::PphPartitionSelector
 	return GPOS_NEW(pmp) CParseHandlerPartitionSelector(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphSequence
-//
-//	@doc:
-//		Creates a parse handler for parsing a sequence operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a sequence operator
 CParseHandlerBase *
 CParseHandlerFactory::PphSequence
 	(
@@ -1287,14 +933,7 @@ CParseHandlerFactory::PphSequence
 	return GPOS_NEW(pmp) CParseHandlerSequence(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLimit
-//
-//	@doc:
-//		Creates a parse handler for parsing a Limit operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a Limit operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLimit
 	(
@@ -1306,14 +945,7 @@ CParseHandlerFactory::PphLimit
 	return GPOS_NEW(pmp) CParseHandlerLimit(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLimitcount
-//
-//	@doc:
-//		Creates a parse handler for parsing a Limit Count operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a Limit Count operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLimitcount
 	(
@@ -1325,14 +957,7 @@ CParseHandlerFactory::PphLimitcount
 	return GPOS_NEW(pmp) CParseHandlerScalarLimitCount(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarSubquery
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar subquery operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar subquery operator
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarSubquery
 	(
@@ -1344,14 +969,7 @@ CParseHandlerFactory::PphScalarSubquery
 	return GPOS_NEW(pmp) CParseHandlerScalarSubquery(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarBitmapBoolOp
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar bitmap boolean operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar bitmap boolean operator
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarBitmapBoolOp
 	(
@@ -1363,14 +981,7 @@ CParseHandlerFactory::PphScalarBitmapBoolOp
 	return GPOS_NEW(pmp) CParseHandlerScalarBitmapBoolOp(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarArray
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar array operator.
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar array operator.
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarArray
 	(
@@ -1382,14 +993,7 @@ CParseHandlerFactory::PphScalarArray
 	return GPOS_NEW(pmp) CParseHandlerArray(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarArrayRef
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar arrayref operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar arrayref operator
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarArrayRef
 	(
@@ -1401,14 +1005,7 @@ CParseHandlerFactory::PphScalarArrayRef
 	return GPOS_NEW(pmp) CParseHandlerScalarArrayRef(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarArrayRefIndexList
-//
-//	@doc:
-//		Creates a parse handler for parsing an arrayref index list
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing an arrayref index list
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarArrayRefIndexList
 	(
@@ -1420,14 +1017,7 @@ CParseHandlerFactory::PphScalarArrayRefIndexList
 	return GPOS_NEW(pmp) CParseHandlerScalarArrayRefIndexList(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarAssertConstraintList
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar assert predicate operator.
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar assert predicate operator.
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarAssertConstraintList
 	(
@@ -1439,15 +1029,7 @@ CParseHandlerFactory::PphScalarAssertConstraintList
 	return GPOS_NEW(pmp) CParseHandlerScalarAssertConstraintList(pmp, pphm, pphRoot);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarDMLAction
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar DML action operator.
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar DML action operator.
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarDMLAction
 	(
@@ -1459,14 +1041,7 @@ CParseHandlerFactory::PphScalarDMLAction
 	return GPOS_NEW(pmp) CParseHandlerScalarDMLAction(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarOpList
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar operator list
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar operator list
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarOpList
 	(
@@ -1478,14 +1053,7 @@ CParseHandlerFactory::PphScalarOpList
 	return GPOS_NEW(pmp) CParseHandlerScalarOpList(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarPartOid
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar part OID
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar part OID
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarPartOid
 	(
@@ -1497,14 +1065,7 @@ CParseHandlerFactory::PphScalarPartOid
 	return GPOS_NEW(pmp) CParseHandlerScalarPartOid(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarPartDefault
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar part default
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar part default
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarPartDefault
 	(
@@ -1516,14 +1077,7 @@ CParseHandlerFactory::PphScalarPartDefault
 	return GPOS_NEW(pmp) CParseHandlerScalarPartDefault(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarPartBound
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar part boundary
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar part boundary
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarPartBound
 	(
@@ -1535,14 +1089,7 @@ CParseHandlerFactory::PphScalarPartBound
 	return GPOS_NEW(pmp) CParseHandlerScalarPartBound(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarPartBoundInclusion
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar part bound inclusion
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar part bound inclusion
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarPartBoundInclusion
 	(
@@ -1554,14 +1101,7 @@ CParseHandlerFactory::PphScalarPartBoundInclusion
 	return GPOS_NEW(pmp) CParseHandlerScalarPartBoundInclusion(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarPartBoundOpen
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar part bound openness
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar part bound openness
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarPartBoundOpen
 	(
@@ -1573,7 +1113,7 @@ CParseHandlerFactory::PphScalarPartBoundOpen
 	return GPOS_NEW(pmp) CParseHandlerScalarPartBoundOpen(pmp, pphm, pphRoot);
 }
 
-// Creates a parse handler for parsing a scalar part list values
+// creates a parse handler for parsing a scalar part list values
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarPartListValues
 	(
@@ -1585,7 +1125,7 @@ CParseHandlerFactory::PphScalarPartListValues
 	return GPOS_NEW(pmp) CParseHandlerScalarPartListValues(pmp, pphm, pphRoot);
 }
 
-// Creates a parse handler for parsing a scalar part list null test
+// creates a parse handler for parsing a scalar part list null test
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarPartListNullTest
 	(
@@ -1597,14 +1137,7 @@ CParseHandlerFactory::PphScalarPartListNullTest
 	return GPOS_NEW(pmp) CParseHandlerScalarPartListNullTest(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphDirectDispatchInfo
-//
-//	@doc:
-//		Creates a parse handler for parsing direct dispatch info
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing direct dispatch info
 CParseHandlerBase *
 CParseHandlerFactory::PphDirectDispatchInfo
 	(
@@ -1616,14 +1149,7 @@ CParseHandlerFactory::PphDirectDispatchInfo
 	return GPOS_NEW(pmp) CParseHandlerDirectDispatchInfo(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLimitoffset
-//
-//	@doc:
-//		Creates a parse handler for parsing a Limit Count operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a Limit Count operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLimitoffset
 	(
@@ -1635,14 +1161,7 @@ CParseHandlerFactory::PphLimitoffset
 	return GPOS_NEW(pmp) CParseHandlerScalarLimitOffset(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphGatherMotion
-//
-//	@doc:
-//		Creates a parse handler for parsing a gather motion operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a gather motion operator
 CParseHandlerBase *
 CParseHandlerFactory::PphGatherMotion
 	(
@@ -1654,14 +1173,7 @@ CParseHandlerFactory::PphGatherMotion
 	return GPOS_NEW(pmp) CParseHandlerGatherMotion(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphBroadcastMotion
-//
-//	@doc:
-//		Creates a parse handler for parsing a broadcast motion operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a broadcast motion operator
 CParseHandlerBase *
 CParseHandlerFactory::PphBroadcastMotion
 	(
@@ -1673,14 +1185,7 @@ CParseHandlerFactory::PphBroadcastMotion
 	return GPOS_NEW(pmp) CParseHandlerBroadcastMotion(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphRedistributeMotion
-//
-//	@doc:
-//		Creates a parse handler for parsing a redistribute motion operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a redistribute motion operator
 CParseHandlerBase *
 CParseHandlerFactory::PphRedistributeMotion
 	(
@@ -1692,14 +1197,7 @@ CParseHandlerFactory::PphRedistributeMotion
 	return GPOS_NEW(pmp) CParseHandlerRedistributeMotion(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphRoutedMotion
-//
-//	@doc:
-//		Creates a parse handler for parsing a routed motion operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a routed motion operator
 CParseHandlerBase *
 CParseHandlerFactory::PphRoutedMotion
 	(
@@ -1711,14 +1209,7 @@ CParseHandlerFactory::PphRoutedMotion
 	return GPOS_NEW(pmp) CParseHandlerRoutedMotion(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphRandomMotion
-//
-//	@doc:
-//		Creates a parse handler for parsing a random motion operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a random motion operator
 CParseHandlerBase *
 CParseHandlerFactory::PphRandomMotion
 	(
@@ -1730,14 +1221,7 @@ CParseHandlerFactory::PphRandomMotion
 	return GPOS_NEW(pmp) CParseHandlerRandomMotion(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphAgg
-//
-//	@doc:
-//		Creates a parse handler for parsing a group by operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a group by operator
 CParseHandlerBase *
 CParseHandlerFactory::PphAgg
 	(
@@ -1749,14 +1233,7 @@ CParseHandlerFactory::PphAgg
 	return GPOS_NEW(pmp) CParseHandlerAgg(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphAggref
-//
-//	@doc:
-//		Creates a parse handler for parsing aggref operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing aggref operator
 CParseHandlerBase *
 CParseHandlerFactory::PphAggref
 	(
@@ -1768,14 +1245,8 @@ CParseHandlerFactory::PphAggref
 	return GPOS_NEW(pmp) CParseHandlerScalarAggref(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphGroupingColList
-//
-//	@doc:
-//		Creates a parse handler for parsing a grouping cols list in a group by
-//		operator
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a grouping cols list in a group by
+// operator
 CParseHandlerBase *
 CParseHandlerFactory::PphGroupingColList
 	(
@@ -1787,14 +1258,7 @@ CParseHandlerFactory::PphGroupingColList
 	return GPOS_NEW(pmp) CParseHandlerGroupingColList(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarCmp
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar comparison operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar comparison operator
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarCmp
 	(
@@ -1806,14 +1270,7 @@ CParseHandlerFactory::PphScalarCmp
 	return GPOS_NEW(pmp) CParseHandlerScalarComp(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphDistinctCmp
-//
-//	@doc:
-//		Creates a parse handler for parsing a distinct comparison operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a distinct comparison operator
 CParseHandlerBase *
 CParseHandlerFactory::PphDistinctCmp
 	(
@@ -1825,14 +1282,7 @@ CParseHandlerFactory::PphDistinctCmp
 	return GPOS_NEW(pmp) CParseHandlerDistinctComp(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarId
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar identifier operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar identifier operator
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarId
 	(
@@ -1844,14 +1294,7 @@ CParseHandlerFactory::PphScalarId
 	return GPOS_NEW(pmp) CParseHandlerScalarIdent(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarFuncExpr
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar FuncExpr
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar FuncExpr
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarFuncExpr
 	(
@@ -1863,14 +1306,7 @@ CParseHandlerFactory::PphScalarFuncExpr
 	return GPOS_NEW(pmp) CParseHandlerScalarFuncExpr(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarOpexpr
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar OpExpr
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar OpExpr
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarOpexpr
 	(
@@ -1882,14 +1318,7 @@ CParseHandlerFactory::PphScalarOpexpr
 	return GPOS_NEW(pmp) CParseHandlerScalarOpExpr(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarArrayCmp
-//
-//	@doc:
-//		Creates a parse handler for parsing a scalar OpExpr
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a scalar OpExpr
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarArrayCmp
 	(
@@ -1901,14 +1330,7 @@ CParseHandlerFactory::PphScalarArrayCmp
 	return GPOS_NEW(pmp) CParseHandlerScalarArrayComp(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarBoolExpr
-//
-//	@doc:
-//		Creates a parse handler for parsing a BoolExpr
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a BoolExpr
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarBoolExpr
 	(
@@ -1920,14 +1342,7 @@ CParseHandlerFactory::PphScalarBoolExpr
 	return GPOS_NEW(pmp) CParseHandlerScalarBoolExpr(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarMinMax
-//
-//	@doc:
-//		Creates a parse handler for parsing a MinMax
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a MinMax
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarMinMax
 	(
@@ -1939,14 +1354,7 @@ CParseHandlerFactory::PphScalarMinMax
 	return GPOS_NEW(pmp) CParseHandlerScalarMinMax(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphBooleanTest
-//
-//	@doc:
-//		Creates a parse handler for parsing a BooleanTest
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a BooleanTest
 CParseHandlerBase *
 CParseHandlerFactory::PphBooleanTest
 	(
@@ -1958,14 +1366,7 @@ CParseHandlerFactory::PphBooleanTest
 	return GPOS_NEW(pmp) CParseHandlerScalarBooleanTest(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarNullTest
-//
-//	@doc:
-//		Creates a parse handler for parsing a NullTest
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a NullTest
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarNullTest
 	(
@@ -1977,14 +1378,7 @@ CParseHandlerFactory::PphScalarNullTest
 	return GPOS_NEW(pmp) CParseHandlerScalarNullTest(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarNullIf
-//
-//	@doc:
-//		Creates a parse handler for parsing a NullIf
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a NullIf
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarNullIf
 	(
@@ -1996,14 +1390,7 @@ CParseHandlerFactory::PphScalarNullIf
 	return GPOS_NEW(pmp) CParseHandlerScalarNullIf(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarCast
-//
-//	@doc:
-//		Creates a parse handler for parsing a cast
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a cast
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarCast
 	(
@@ -2015,14 +1402,7 @@ CParseHandlerFactory::PphScalarCast
 	return GPOS_NEW(pmp) CParseHandlerScalarCast(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarCoerceToDomain
-//
-//	@doc:
-//		Creates a parse handler for parsing a CoerceToDomain operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a CoerceToDomain operator
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarCoerceToDomain
 	(
@@ -2034,14 +1414,7 @@ CParseHandlerFactory::PphScalarCoerceToDomain
 	return GPOS_NEW(pmp) CParseHandlerScalarCoerceToDomain(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarCoerceViaIO
-//
-//	@doc:
-//		Creates a parse handler for parsing a CoerceViaIO operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a CoerceViaIO operator
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarCoerceViaIO
 	(
@@ -2053,14 +1426,7 @@ CParseHandlerFactory::PphScalarCoerceViaIO
 	return GPOS_NEW(pmp) CParseHandlerScalarCoerceViaIO(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarArrayCoerceExpr
-//
-//	@doc:
-//		Creates a parse handler for parsing an array coerce expression operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing an array coerce expression operator
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarArrayCoerceExpr
 	(
@@ -2072,14 +1438,7 @@ CParseHandlerFactory::PphScalarArrayCoerceExpr
 	return GPOS_NEW(pmp) CParseHandlerScalarArrayCoerceExpr(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarSubPlan
-//
-//	@doc:
-//		Creates a parse handler for parsing a SubPlan.
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a SubPlan.
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarSubPlan
 	(
@@ -2091,15 +1450,7 @@ CParseHandlerFactory::PphScalarSubPlan
 	return GPOS_NEW(pmp) CParseHandlerScalarSubPlan(pmp, pphm, pphRoot);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarSubPlanTestExpr
-//
-//	@doc:
-//		Creates a parse handler for parsing a SubPlan test expression
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a SubPlan test expression
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarSubPlanTestExpr
 	(
@@ -2111,15 +1462,7 @@ CParseHandlerFactory::PphScalarSubPlanTestExpr
 	return GPOS_NEW(pmp) CParseHandlerScalarSubPlanTestExpr(pmp, pphm, pphRoot);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarSubPlanParamList
-//
-//	@doc:
-//		Creates a parse handler for parsing a SubPlan Params DXL node
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a SubPlan Params DXL node
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarSubPlanParamList
 	(
@@ -2131,14 +1474,7 @@ CParseHandlerFactory::PphScalarSubPlanParamList
 	return GPOS_NEW(pmp) CParseHandlerScalarSubPlanParamList(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarSubPlanParam
-//
-//	@doc:
-//		Creates a parse handler for parsing a single SubPlan Param
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a single SubPlan Param
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarSubPlanParam
 	(
@@ -2150,14 +1486,7 @@ CParseHandlerFactory::PphScalarSubPlanParam
 	return GPOS_NEW(pmp) CParseHandlerScalarSubPlanParam(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLogicalTVF
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical TVF
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical TVF
 CParseHandlerBase *
 CParseHandlerFactory::PphLogicalTVF
 	(
@@ -2169,14 +1498,7 @@ CParseHandlerFactory::PphLogicalTVF
 	return GPOS_NEW(pmp) CParseHandlerLogicalTVF(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphPhysicalTVF
-//
-//	@doc:
-//		Creates a parse handler for parsing a physical TVF
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a physical TVF
 CParseHandlerBase *
 CParseHandlerFactory::PphPhysicalTVF
 	(
@@ -2188,14 +1510,7 @@ CParseHandlerFactory::PphPhysicalTVF
 	return GPOS_NEW(pmp) CParseHandlerPhysicalTVF(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarCoalesce
-//
-//	@doc:
-//		Creates a parse handler for parsing a coalesce operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a coalesce operator
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarCoalesce
 	(
@@ -2207,14 +1522,7 @@ CParseHandlerFactory::PphScalarCoalesce
 	return GPOS_NEW(pmp) CParseHandlerScalarCoalesce(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarSwitch
-//
-//	@doc:
-//		Creates a parse handler for parsing a Switch operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a Switch operator
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarSwitch
 	(
@@ -2226,14 +1534,7 @@ CParseHandlerFactory::PphScalarSwitch
 	return GPOS_NEW(pmp) CParseHandlerScalarSwitch(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarSwitchCase
-//
-//	@doc:
-//		Creates a parse handler for parsing a SwitchCase operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a SwitchCase operator
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarSwitchCase
 	(
@@ -2245,14 +1546,7 @@ CParseHandlerFactory::PphScalarSwitchCase
 	return GPOS_NEW(pmp) CParseHandlerScalarSwitchCase(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarCaseTest
-//
-//	@doc:
-//		Creates a parse handler for parsing a case test
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a case test
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarCaseTest
 	(
@@ -2264,14 +1558,7 @@ CParseHandlerFactory::PphScalarCaseTest
 	return GPOS_NEW(pmp) CParseHandlerScalarCaseTest(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarConstValue
-//
-//	@doc:
-//		Creates a parse handler for parsing a Const
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a Const
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarConstValue
 	(
@@ -2283,14 +1570,7 @@ CParseHandlerFactory::PphScalarConstValue
 	return GPOS_NEW(pmp) CParseHandlerScalarConstValue(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphIfStmt
-//
-//	@doc:
-//		Creates a parse handler for parsing an if statement
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing an if statement
 CParseHandlerBase *
 CParseHandlerFactory::PphIfStmt
 	(
@@ -2302,14 +1582,7 @@ CParseHandlerFactory::PphIfStmt
 	return GPOS_NEW(pmp) CParseHandlerScalarIfStmt(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphProjList
-//
-//	@doc:
-//		Creates a parse handler for parsing a projection list
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a projection list
 CParseHandlerBase *
 CParseHandlerFactory::PphProjList
 	(
@@ -2321,14 +1594,7 @@ CParseHandlerFactory::PphProjList
 	return GPOS_NEW(pmp) CParseHandlerProjList(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphProjElem
-//
-//	@doc:
-//		Creates a parse handler for parsing a projection element
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a projection element
 CParseHandlerBase *
 CParseHandlerFactory::PphProjElem
 	(
@@ -2340,14 +1606,7 @@ CParseHandlerFactory::PphProjElem
 	return GPOS_NEW(pmp) CParseHandlerProjElem(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphHashExprList
-//
-//	@doc:
-//		Creates a parse handler for parsing a hash expr list
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a hash expr list
 CParseHandlerBase *
 CParseHandlerFactory::PphHashExprList
 	(
@@ -2359,14 +1618,8 @@ CParseHandlerFactory::PphHashExprList
 	return GPOS_NEW(pmp) CParseHandlerHashExprList(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphHashExpr
-//
-//	@doc:
-//		Creates a parse handler for parsing a hash expression in a redistribute
-//		motion node
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a hash expression in a redistribute
+// motion node
 CParseHandlerBase *
 CParseHandlerFactory::PphHashExpr
 	(
@@ -2378,15 +1631,8 @@ CParseHandlerFactory::PphHashExpr
 	return GPOS_NEW(pmp) CParseHandlerHashExpr(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphCondList
-//
-//	@doc:
-//		Creates a parse handler for parsing a condition list in a hash join or
-//		merge join node
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a condition list in a hash join or
+// merge join node
 CParseHandlerBase *
 CParseHandlerFactory::PphCondList
 	(
@@ -2398,14 +1644,7 @@ CParseHandlerFactory::PphCondList
 	return GPOS_NEW(pmp) CParseHandlerCondList(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphSortColList
-//
-//	@doc:
-//		Creates a parse handler for parsing a sorting column list in a sort node
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a sorting column list in a sort node
 CParseHandlerBase *
 CParseHandlerFactory::PphSortColList
 	(
@@ -2417,14 +1656,7 @@ CParseHandlerFactory::PphSortColList
 	return GPOS_NEW(pmp) CParseHandlerSortColList(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphSortCol
-//
-//	@doc:
-//		Creates a parse handler for parsing a sorting column in a sort node
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a sorting column in a sort node
 CParseHandlerBase *
 CParseHandlerFactory::PphSortCol
 	(
@@ -2436,14 +1668,8 @@ CParseHandlerFactory::PphSortCol
 	return GPOS_NEW(pmp) CParseHandlerSortCol(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphCost
-//
-//	@doc:
-//		Creates a parse handler for parsing the cost estimates of a physical
-//		operator
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing the cost estimates of a physical
+// operator
 CParseHandlerBase *
 CParseHandlerFactory::PphCost
 	(
@@ -2455,14 +1681,7 @@ CParseHandlerFactory::PphCost
 	return GPOS_NEW(pmp) CParseHandlerCost(pmp, pphm, pphRoot);	
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphTableDesc
-//
-//	@doc:
-//		Creates a parse handler for parsing a table descriptor
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a table descriptor
 CParseHandlerBase *
 CParseHandlerFactory::PphTableDesc
 	(
@@ -2474,14 +1693,7 @@ CParseHandlerFactory::PphTableDesc
 	return GPOS_NEW(pmp) CParseHandlerTableDescr(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphColDesc
-//
-//	@doc:
-//		Creates a parse handler for parsing a column descriptor
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a column descriptor
 CParseHandlerBase *
 CParseHandlerFactory::PphColDesc				
 	(
@@ -2493,15 +1705,7 @@ CParseHandlerFactory::PphColDesc
 	return GPOS_NEW(pmp) CParseHandlerColDescr(pmp, pphm, pphRoot);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphIndexScan
-//
-//	@doc:
-//		Creates a parse handler for parsing an index scan node
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing an index scan node
 CParseHandlerBase *
 CParseHandlerFactory::PphIndexScan
 	(
@@ -2513,14 +1717,7 @@ CParseHandlerFactory::PphIndexScan
 	return GPOS_NEW(pmp) CParseHandlerIndexScan(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphIndexOnlyScan
-//
-//	@doc:
-//		Creates a parse handler for parsing an index only scan node
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing an index only scan node
 CParseHandlerBase *
 CParseHandlerFactory::PphIndexOnlyScan
 	(
@@ -2532,14 +1729,7 @@ CParseHandlerFactory::PphIndexOnlyScan
 	return GPOS_NEW(pmp) CParseHandlerIndexOnlyScan(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphBitmapIndexProbe
-//
-//	@doc:
-//		Creates a parse handler for parsing a bitmap index scan node
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a bitmap index scan node
 CParseHandlerBase *
 CParseHandlerFactory::PphBitmapIndexProbe
 	(
@@ -2551,15 +1741,8 @@ CParseHandlerFactory::PphBitmapIndexProbe
 	return GPOS_NEW(pmp) CParseHandlerScalarBitmapIndexProbe(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphIndexDescr
-//
-//	@doc:
-//		Creates a parse handler for parsing an index descriptor of an
-//		index scan node
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing an index descriptor of an
+// index scan node
 CParseHandlerBase *
 CParseHandlerFactory::PphIndexDescr
 	(
@@ -2571,15 +1754,8 @@ CParseHandlerFactory::PphIndexDescr
 	return GPOS_NEW(pmp) CParseHandlerIndexDescr(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphIndexCondList
-//
-//	@doc:
-//		Creates a parse handler for parsing the list of index condition in a
-//		index scan node
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing the list of index condition in a
+// index scan node
 CParseHandlerBase *
 CParseHandlerFactory::PphIndexCondList
 	(
@@ -2591,15 +1767,7 @@ CParseHandlerFactory::PphIndexCondList
 	return GPOS_NEW(pmp) CParseHandlerIndexCondList(pmp, pphm, pphRoot);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphQuery
-//
-//	@doc:
-//		Creates a parse handler for parsing a query
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a query
 CParseHandlerBase *
 CParseHandlerFactory::PphQuery
 	(
@@ -2611,14 +1779,7 @@ CParseHandlerFactory::PphQuery
 	return GPOS_NEW(pmp) CParseHandlerQuery(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgOp
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgOp
 	(
@@ -2630,14 +1791,7 @@ CParseHandlerFactory::PphLgOp
 	return GPOS_NEW(pmp) CParseHandlerLogicalOp(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgGet
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical get operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical get operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgGet
 	(
@@ -2649,14 +1803,7 @@ CParseHandlerFactory::PphLgGet
 	return GPOS_NEW(pmp) CParseHandlerLogicalGet(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgExternalGet
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical external get operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical external get operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgExternalGet
 	(
@@ -2668,14 +1815,7 @@ CParseHandlerFactory::PphLgExternalGet
 	return GPOS_NEW(pmp) CParseHandlerLogicalExternalGet(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgProject
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical project operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical project operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgProject
 	(
@@ -2687,14 +1827,7 @@ CParseHandlerFactory::PphLgProject
 	return GPOS_NEW(pmp) CParseHandlerLogicalProject(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgCTEProducer
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical CTE producer operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical CTE producer operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgCTEProducer
 	(
@@ -2706,14 +1839,7 @@ CParseHandlerFactory::PphLgCTEProducer
 	return GPOS_NEW(pmp) CParseHandlerLogicalCTEProducer(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgCTEConsumer
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical CTE consumer operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical CTE consumer operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgCTEConsumer
 	(
@@ -2725,14 +1851,7 @@ CParseHandlerFactory::PphLgCTEConsumer
 	return GPOS_NEW(pmp) CParseHandlerLogicalCTEConsumer(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgCTEAnchor
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical CTE anchor operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical CTE anchor operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgCTEAnchor
 	(
@@ -2744,14 +1863,7 @@ CParseHandlerFactory::PphLgCTEAnchor
 	return GPOS_NEW(pmp) CParseHandlerLogicalCTEAnchor(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphCTEList
-//
-//	@doc:
-//		Creates a parse handler for parsing a CTE list
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a CTE list
 CParseHandlerBase *
 CParseHandlerFactory::PphCTEList
 	(
@@ -2763,14 +1875,7 @@ CParseHandlerFactory::PphCTEList
 	return GPOS_NEW(pmp) CParseHandlerCTEList(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgSetOp
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical set operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical set operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgSetOp
 	(
@@ -2782,14 +1887,7 @@ CParseHandlerFactory::PphLgSetOp
 	return GPOS_NEW(pmp) CParseHandlerLogicalSetOp(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgSelect
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical select operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical select operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgSelect
 	(
@@ -2801,15 +1899,7 @@ CParseHandlerFactory::PphLgSelect
 	return GPOS_NEW(pmp) CParseHandlerLogicalSelect(pmp, pphm, pphRoot);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgJoin
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical join operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical join operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgJoin
 	(
@@ -2821,14 +1911,7 @@ CParseHandlerFactory::PphLgJoin
 	return GPOS_NEW(pmp) CParseHandlerLogicalJoin(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphQueryOutput
-//
-//	@doc:
-//		Creates a parse handler for parsing dxl representing query output
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing dxl representing query output
 CParseHandlerBase *
 CParseHandlerFactory::PphQueryOutput
 	(
@@ -2840,14 +1923,7 @@ CParseHandlerFactory::PphQueryOutput
 	return GPOS_NEW(pmp) CParseHandlerQueryOutput(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgGrpBy
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical group by operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical group by operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgGrpBy
 	(
@@ -2859,14 +1935,7 @@ CParseHandlerFactory::PphLgGrpBy
 	return GPOS_NEW(pmp) CParseHandlerLogicalGroupBy(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgLimit
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical limit operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical limit operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgLimit
 	(
@@ -2878,14 +1947,7 @@ CParseHandlerFactory::PphLgLimit
 	return GPOS_NEW(pmp) CParseHandlerLogicalLimit(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgConstTable
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical constant table operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical constant table operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgConstTable
 	(
@@ -2897,14 +1959,7 @@ CParseHandlerFactory::PphLgConstTable
 	return GPOS_NEW(pmp) CParseHandlerLogicalConstTable(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScSubqueryQuantified
-//
-//	@doc:
-//		Creates a parse handler for parsing ALL/ANY subquery operators
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing ALL/ANY subquery operators
 CParseHandlerBase *
 CParseHandlerFactory::PphScSubqueryQuantified
 	(
@@ -2916,14 +1971,7 @@ CParseHandlerFactory::PphScSubqueryQuantified
 	return GPOS_NEW(pmp) CParseHandlerScalarSubqueryQuantified(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScSubqueryExists
-//
-//	@doc:
-//		Creates a parse handler for parsing an EXISTS/NOT EXISTS subquery operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing an EXISTS/NOT EXISTS subquery operator
 CParseHandlerBase *
 CParseHandlerFactory::PphScSubqueryExists
 	(
@@ -2935,14 +1983,7 @@ CParseHandlerFactory::PphScSubqueryExists
 	return GPOS_NEW(pmp) CParseHandlerScalarSubqueryExists(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphStats
-//
-//	@doc:
-//		Creates a parse handler for parsing relation statistics
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing relation statistics
 CParseHandlerBase *
 CParseHandlerFactory::PphStats
 	(
@@ -2954,14 +1995,7 @@ CParseHandlerFactory::PphStats
 	return GPOS_NEW(pmp) CParseHandlerStatistics(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphStacktrace
-//
-//	@doc:
-//		Creates a pass-through parse handler
-//
-//---------------------------------------------------------------------------
+// creates a pass-through parse handler
 CParseHandlerBase *
 CParseHandlerFactory::PphStacktrace
 	(
@@ -2973,14 +2007,7 @@ CParseHandlerFactory::PphStacktrace
 	return GPOS_NEW(pmp) CParseHandlerStacktrace(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphStatsDerivedRelation
-//
-//	@doc:
-//		Creates a parse handler for parsing relation statistics
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing relation statistics
 CParseHandlerBase *
 CParseHandlerFactory::PphStatsDerivedRelation
 	(
@@ -2992,14 +2019,7 @@ CParseHandlerFactory::PphStatsDerivedRelation
 	return GPOS_NEW(pmp) CParseHandlerStatsDerivedRelation(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphStatsDerivedColumn
-//
-//	@doc:
-//		Creates a parse handler for parsing derived column statistics
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing derived column statistics
 CParseHandlerBase *
 CParseHandlerFactory::PphStatsDerivedColumn
 	(
@@ -3011,14 +2031,7 @@ CParseHandlerFactory::PphStatsDerivedColumn
 	return GPOS_NEW(pmp) CParseHandlerStatsDerivedColumn(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphStatsBucketBound
-//
-//	@doc:
-//		Creates a parse handler for parsing bucket bound in a histogram
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing bucket bound in a histogram
 CParseHandlerBase *
 CParseHandlerFactory::PphStatsBucketBound
 	(
@@ -3030,14 +2043,7 @@ CParseHandlerFactory::PphStatsBucketBound
 	return GPOS_NEW(pmp) CParseHandlerStatsBound(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphWindow
-//
-//	@doc:
-//		Creates a parse handler for parsing a window node
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a window node
 CParseHandlerBase *
 CParseHandlerFactory::PphWindow
 	(
@@ -3049,14 +2055,7 @@ CParseHandlerFactory::PphWindow
 	return GPOS_NEW(pmp) CParseHandlerPhysicalWindow(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphWindowRef
-//
-//	@doc:
-//		Creates a parse handler for parsing WindowRef operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing WindowRef operator
 CParseHandlerBase *
 CParseHandlerFactory::PphWindowRef
 	(
@@ -3068,14 +2067,7 @@ CParseHandlerFactory::PphWindowRef
 	return GPOS_NEW(pmp) CParseHandlerScalarWindowRef(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphWindowFrame
-//
-//	@doc:
-//		Creates a parse handler for parsing window frame node
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing window frame node
 CParseHandlerBase *
 CParseHandlerFactory::PphWindowFrame
 	(
@@ -3087,14 +2079,7 @@ CParseHandlerFactory::PphWindowFrame
 	return GPOS_NEW(pmp) CParseHandlerWindowFrame(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphWindowKey
-//
-//	@doc:
-//		Creates a parse handler for parsing window key node
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing window key node
 CParseHandlerBase *
 CParseHandlerFactory::PphWindowKey
 	(
@@ -3106,14 +2091,7 @@ CParseHandlerFactory::PphWindowKey
 	return GPOS_NEW(pmp) CParseHandlerWindowKey(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphWindowKeyList
-//
-//	@doc:
-//		Creates a parse handler for parsing a list of window keys
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a list of window keys
 CParseHandlerBase *
 CParseHandlerFactory::PphWindowKeyList
 	(
@@ -3125,14 +2103,7 @@ CParseHandlerFactory::PphWindowKeyList
 	return GPOS_NEW(pmp) CParseHandlerWindowKeyList(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphWindowSpec
-//
-//	@doc:
-//		Creates a parse handler for parsing window specification node
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing window specification node
 CParseHandlerBase *
 CParseHandlerFactory::PphWindowSpec
 	(
@@ -3144,14 +2115,7 @@ CParseHandlerFactory::PphWindowSpec
 	return GPOS_NEW(pmp) CParseHandlerWindowSpec(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphWindowSpecList
-//
-//	@doc:
-//		Creates a parse handler for parsing a list of window specifications
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a list of window specifications
 CParseHandlerBase *
 CParseHandlerFactory::PphWindowSpecList
 	(
@@ -3163,14 +2127,7 @@ CParseHandlerFactory::PphWindowSpecList
 	return GPOS_NEW(pmp) CParseHandlerWindowSpecList(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgWindow
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical window operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical window operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgWindow
 	(
@@ -3182,14 +2139,7 @@ CParseHandlerFactory::PphLgWindow
 	return GPOS_NEW(pmp) CParseHandlerLogicalWindow(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgInsert
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical insert operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical insert operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgInsert
 	(
@@ -3201,14 +2151,7 @@ CParseHandlerFactory::PphLgInsert
 	return GPOS_NEW(pmp) CParseHandlerLogicalInsert(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgDelete
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical delete operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical delete operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgDelete
 	(
@@ -3220,14 +2163,7 @@ CParseHandlerFactory::PphLgDelete
 	return GPOS_NEW(pmp) CParseHandlerLogicalDelete(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgUpdate
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical update operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical update operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgUpdate
 	(
@@ -3239,14 +2175,7 @@ CParseHandlerFactory::PphLgUpdate
 	return GPOS_NEW(pmp) CParseHandlerLogicalUpdate(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphLgCTAS
-//
-//	@doc:
-//		Creates a parse handler for parsing a logical CTAS operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a logical CTAS operator
 CParseHandlerBase *
 CParseHandlerFactory::PphLgCTAS
 	(
@@ -3258,14 +2187,7 @@ CParseHandlerFactory::PphLgCTAS
 	return GPOS_NEW(pmp) CParseHandlerLogicalCTAS(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphPhCTAS
-//
-//	@doc:
-//		Creates a parse handler for parsing a physical CTAS operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a physical CTAS operator
 CParseHandlerBase *
 CParseHandlerFactory::PphPhCTAS
 	(
@@ -3277,14 +2199,7 @@ CParseHandlerFactory::PphPhCTAS
 	return GPOS_NEW(pmp) CParseHandlerPhysicalCTAS(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphCTASOptions
-//
-//	@doc:
-//		Creates a parse handler for parsing CTAS storage options
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing CTAS storage options
 CParseHandlerBase *
 CParseHandlerFactory::PphCTASOptions
 	(
@@ -3296,14 +2211,7 @@ CParseHandlerFactory::PphCTASOptions
 	return GPOS_NEW(pmp) CParseHandlerCtasStorageOptions(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphPhCTEProducer
-//
-//	@doc:
-//		Creates a parse handler for parsing a physical CTE producer operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a physical CTE producer operator
 CParseHandlerBase *
 CParseHandlerFactory::PphPhCTEProducer
 (
@@ -3315,14 +2223,7 @@ CParseHandlerFactory::PphPhCTEProducer
 	return GPOS_NEW(pmp) CParseHandlerPhysicalCTEProducer(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphPhCTEConsumer
-//
-//	@doc:
-//		Creates a parse handler for parsing a physical CTE consumer operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a physical CTE consumer operator
 CParseHandlerBase *
 CParseHandlerFactory::PphPhCTEConsumer
 (
@@ -3334,14 +2235,7 @@ CParseHandlerFactory::PphPhCTEConsumer
 	return GPOS_NEW(pmp) CParseHandlerPhysicalCTEConsumer(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphPhDML
-//
-//	@doc:
-//		Creates a parse handler for parsing a physical DML operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a physical DML operator
 CParseHandlerBase *
 CParseHandlerFactory::PphPhDML
 	(
@@ -3353,14 +2247,7 @@ CParseHandlerFactory::PphPhDML
 	return GPOS_NEW(pmp) CParseHandlerPhysicalDML(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphPhSplit
-//
-//	@doc:
-//		Creates a parse handler for parsing a physical split operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a physical split operator
 CParseHandlerBase *
 CParseHandlerFactory::PphPhSplit
 	(
@@ -3372,14 +2259,7 @@ CParseHandlerFactory::PphPhSplit
 	return GPOS_NEW(pmp) CParseHandlerPhysicalSplit(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphPhRowTrigger
-//
-//	@doc:
-//		Creates a parse handler for parsing a physical row trigger operator
-//
-//---------------------------------------------------------------------------
+//	creates a parse handler for parsing a physical row trigger operator
 CParseHandlerBase *
 CParseHandlerFactory::PphPhRowTrigger
 	(
@@ -3391,14 +2271,7 @@ CParseHandlerFactory::PphPhRowTrigger
 	return GPOS_NEW(pmp) CParseHandlerPhysicalRowTrigger(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphPhAssert
-//
-//	@doc:
-//		Creates a parse handler for parsing a physical assert operator
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing a physical assert operator
 CParseHandlerBase *
 CParseHandlerFactory::PphPhAssert
 	(
@@ -3410,14 +2283,7 @@ CParseHandlerFactory::PphPhAssert
 	return GPOS_NEW(pmp) CParseHandlerAssert(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphWindowFrameTrailingEdge
-//
-//	@doc:
-//		Creates a trailing window frame edge parser
-//
-//---------------------------------------------------------------------------
+// creates a trailing window frame edge parser
 CParseHandlerBase *
 CParseHandlerFactory::PphWindowFrameTrailingEdge
 	(
@@ -3429,14 +2295,7 @@ CParseHandlerFactory::PphWindowFrameTrailingEdge
 	return GPOS_NEW(pmp) CParseHandlerScalarWindowFrameEdge(pmp, pphm, pphRoot, false /*fLeading*/);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphWindowFrameLeadingEdge
-//
-//	@doc:
-//		Creates a leading window frame edge parser
-//
-//---------------------------------------------------------------------------
+// creates a leading window frame edge parser
 CParseHandlerBase *
 CParseHandlerFactory::PphWindowFrameLeadingEdge
 	(
@@ -3448,15 +2307,7 @@ CParseHandlerFactory::PphWindowFrameLeadingEdge
 	return GPOS_NEW(pmp) CParseHandlerScalarWindowFrameEdge(pmp, pphm, pphRoot, true /*fLeading*/);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphSearchStrategy
-//
-//	@doc:
-//		Creates a parse handler for parsing search strategy
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing search strategy
 CParseHandlerBase *
 CParseHandlerFactory::PphSearchStrategy
 	(
@@ -3468,15 +2319,7 @@ CParseHandlerFactory::PphSearchStrategy
 	return GPOS_NEW(pmp) CParseHandlerSearchStrategy(pmp, pphm, pphRoot);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphSearchStage
-//
-//	@doc:
-//		Creates a parse handler for parsing search stage
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing search stage
 CParseHandlerBase *
 CParseHandlerFactory::PphSearchStage
 	(
@@ -3488,15 +2331,7 @@ CParseHandlerFactory::PphSearchStage
 	return GPOS_NEW(pmp) CParseHandlerSearchStage(pmp, pphm, pphRoot);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphXform
-//
-//	@doc:
-//		Creates a parse handler for parsing xform
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing xform
 CParseHandlerBase *
 CParseHandlerFactory::PphXform
 	(
@@ -3508,15 +2343,7 @@ CParseHandlerFactory::PphXform
 	return GPOS_NEW(pmp) CParseHandlerXform(pmp, pphm, pphRoot);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphCostParams
-//
-//	@doc:
-//		Creates cost params parse handler
-//
-//---------------------------------------------------------------------------
+// creates cost params parse handler
 CParseHandlerBase *
 CParseHandlerFactory::PphCostParams
 	(
@@ -3528,14 +2355,7 @@ CParseHandlerFactory::PphCostParams
 	return GPOS_NEW(pmp) CParseHandlerCostParams(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphCostParam
-//
-//	@doc:
-//		Creates cost param parse handler
-//
-//---------------------------------------------------------------------------
+// creates cost param parse handler
 CParseHandlerBase *
 CParseHandlerFactory::PphCostParam
 	(
@@ -3547,14 +2367,7 @@ CParseHandlerFactory::PphCostParam
 	return GPOS_NEW(pmp) CParseHandlerCostParam(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphScalarExpr
-//
-//	@doc:
-//		Creates a parse handler for top level scalar expressions
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for top level scalar expressions
 CParseHandlerBase *
 CParseHandlerFactory::PphScalarExpr
 	(
@@ -3566,14 +2379,7 @@ CParseHandlerFactory::PphScalarExpr
 	return GPOS_NEW(pmp) CParseHandlerScalarExpr(pmp, pphm, pphRoot);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CParseHandlerFactory::PphMDGPDBCheckConstraint
-//
-//	@doc:
-//		Creates a parse handler for parsing GPDB-specific check constraint
-//
-//---------------------------------------------------------------------------
+// creates a parse handler for parsing GPDB-specific check constraint
 CParseHandlerBase *
 CParseHandlerFactory::PphMDGPDBCheckConstraint
 	(

@@ -210,6 +210,8 @@ add_library(gpopt
             src/base/CCastUtils.cpp
             include/gpopt/base/CWindowFrame.h
             src/base/CWindowFrame.cpp
+            include/gpopt/base/CWindowOids.h
+            src/base/CWindowOids.cpp
             include/gpopt/base/IColConstraintsMapper.h
             src/base/IColConstraintsMapper.cpp
             include/gpopt/engine/CEngine.h

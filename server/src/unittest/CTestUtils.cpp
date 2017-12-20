@@ -2560,7 +2560,9 @@ CTestUtils::PexprOneWindowFunction
 {
 	CExpression *pexprGet = PexprLogicalGet(pmp);
 
-	return PexprLogicalSequenceProject(pmp, GPDB_WIN_ROW_NUMBER, pexprGet);
+	OID oidRowNumber = COptCtxt::PoctxtFromTLS()->Poconf()->Pwindowoids()->OidRowNumber();
+
+	return PexprLogicalSequenceProject(pmp, oidRowNumber, pexprGet);
 }
 
 
@@ -2580,7 +2582,9 @@ CTestUtils::PexprTwoWindowFunctions
 {
 	CExpression *pexprWinFunc = PexprOneWindowFunction(pmp);
 
-	return PexprLogicalSequenceProject(pmp, GPDB_WIN_RANK, pexprWinFunc);
+	OID oidRank = COptCtxt::PoctxtFromTLS()->Poconf()->Pwindowoids()->OidRank();
+
+	return PexprLogicalSequenceProject(pmp, oidRank, pexprWinFunc);
 }
 
 
@@ -3807,7 +3811,8 @@ CTestUtils::EresSamplePlans
 								CStatisticsConfig::PstatsconfDefault(pmp),
 								CCTEConfig::PcteconfDefault(pmp),
 								ICostModel::PcmDefault(pmp),
-								CHint::PhintDefault(pmp)
+								CHint::PhintDefault(pmp),
+								CWindowOids::Pwindowoids(pmp)
 								);
 		}
 		else
@@ -3948,7 +3953,8 @@ CTestUtils::EresCheckPlans
 								CStatisticsConfig::PstatsconfDefault(pmp),
 								CCTEConfig::PcteconfDefault(pmp),
 								ICostModel::PcmDefault(pmp),
-								CHint::PhintDefault(pmp)
+								CHint::PhintDefault(pmp),
+								CWindowOids::Pwindowoids(pmp)
 								);
 		}
 		else

@@ -24,6 +24,7 @@
 #include "naucrates/dxl/parser/CParseHandlerCTEConfig.h"
 #include "naucrates/dxl/parser/CParseHandlerCostModel.h"
 #include "naucrates/dxl/parser/CParseHandlerHint.h"
+#include "naucrates/dxl/parser/CParseHandlerWindowOids.h"
 
 #include "naucrates/dxl/parser/CParseHandlerMDRelation.h"
 #include "naucrates/dxl/parser/CParseHandlerMDRelationExternal.h"
