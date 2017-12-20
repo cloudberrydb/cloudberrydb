@@ -47,8 +47,8 @@ function run_pxf_automation() {
 	psi_dir=\$(find /usr/lib64 -name psi | sort -r | head -1)
 	cp -r \${psi_dir} ${GPHOME}/lib/python
 	psql -d template1 -c "CREATE EXTENSION PXF"
-	cd \${1}/pxf_automation_src
-	make GROUP=gpdb
+	cd \${1}/pxf_infra_src/pxf_automation
+	make GROUP=${GROUP}
 
 	exit 0
 	EOF
@@ -173,7 +173,7 @@ function _main() {
         # Let's make sure that the pxf_automation_src directory is writeable
         # Recusive chowning will hammer OverlayFS and introduce flakiness so we'll make
         # the directory structure writable by all
-        local pxf_src_dir=pxf_automation_src
+        local pxf_src_dir=pxf_infra_src/pxf_automation
         if [ -d "${pxf_src_dir}" ]
         then
             chmod a+w ${pxf_src_dir} 
