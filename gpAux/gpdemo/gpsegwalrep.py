@@ -515,7 +515,7 @@ if __name__ == "__main__":
                                               role=GpSegmentConfiguration.ROLE_PRIMARY, include_master=False)
         InitMirrors(cluster_config, args.host).run()
         cluster_config = ClusterConfiguration(args.host, args.port, args.database,
-                                              role=GpSegmentConfiguration.ROLE_MIRROR)
+                                              role=GpSegmentConfiguration.ROLE_MIRROR, include_master=False)
         ForceFTSProbeScan(cluster_config, GpSegmentConfiguration.STATUS_DOWN, GpSegmentConfiguration.NOT_IN_SYNC)
     elif args.operation == 'clusterstart':
         # If we are starting the cluster, we need to start the master before we get the segment info
