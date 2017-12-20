@@ -118,7 +118,6 @@ PROCESS_QE () {
     cmd="$cmd $LC_ALL_SETTINGS"
     cmd="$cmd --max_connections=$QE_MAX_CONNECT"
     cmd="$cmd --shared_buffers=$QE_SHARED_BUFFERS"
-    cmd="$cmd --is_filerep_mirrored=$IS_FILEREP_MIRRORED_OPTION"
     if [ x"$HEAP_CHECKSUM" == x"on" ]; then
         cmd="$cmd --data-checksums"
     fi
@@ -284,7 +283,6 @@ case $TYPE in
 		        exit 2
             fi
         fi
-        IS_FILEREP_MIRRORED_OPTION=$1;shift # yes or no, should we tell initdb to create persistent values
 		INST_COUNT=$1;shift		#Unique number for this parallel script, starts at 0
 		BACKOUT_FILE=/tmp/gpsegcreate.sh_backout.$$
 		LOG_FILE=$1;shift		#Central logging file

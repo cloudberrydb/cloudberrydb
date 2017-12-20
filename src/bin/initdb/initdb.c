@@ -99,11 +99,6 @@ static bool show_setting = false;
 static bool data_checksums = false;
 static char *xlog_dir = "";
 
-/**
- * Should we create persistent table entries needed for file replication?
- */
-static bool gIsFileRepMirrored = false;
-
 
 /* internal vars */
 static const char *progname;
@@ -151,8 +146,7 @@ static char *authwarning = NULL;
  * (no quoting to worry about).
  */
 static const char *boot_options = "-F";
-static char backend_options[200];
-static const char *backend_options_format = "--single -F -O -c gp_session_role=utility -c search_path=pg_catalog -c exit_on_error=true -c gp_initdb_mirrored=%s";
+static const char *backend_options = "--single -F -O -c gp_session_role=utility -c search_path=pg_catalog -c exit_on_error=true";
 
 
 /* path to 'initdb' binary directory */
@@ -2882,7 +2876,6 @@ main(int argc, char *argv[])
 		{"username", required_argument, NULL, 'U'},
         {"max_connections", required_argument, NULL, 1001},     /*CDB*/
         {"shared_buffers", required_argument, NULL, 1003},      /*CDB*/
-        {"is_filerep_mirrored", required_argument, NULL, 1004},      /*CDB*/
         {"backend_output", optional_argument, NULL, 1005},      /*CDB*/
 		{"help", no_argument, NULL, '?'},
 		{"version", no_argument, NULL, 'V'},
@@ -3052,19 +3045,6 @@ main(int argc, char *argv[])
 			case 1003:
                 n_buffers = parse_long(optarg, true, optname);
 				break;
-            case 1004:
-                if ( strcmp("yes", optarg) == 0  )
-                    gIsFileRepMirrored = true;
-                else if ( strcmp("no", optarg) == 0  )
-                    gIsFileRepMirrored = false;
-                else
-                {
-                    fprintf(stderr, "Invalid value for is_filerep_mirrored\n");
-                    fprintf(stderr, _("Try \"%s --help\" for more information.\n"),
-						progname);
-    				exit(1);
-                }
-                break;
 			case 1005:
 				backend_output = xstrdup(optarg);
 				break;
@@ -3614,9 +3594,6 @@ main(int argc, char *argv[])
 
 	if ( ! forMirrorOnly)
 	{
-		sprintf(backend_options, backend_options_format,
-			    ((gIsFileRepMirrored  ? "true" : "false")));
-
 		/* Bootstrap template1 */
 		bootstrap_template1(short_version);
 

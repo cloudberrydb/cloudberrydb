@@ -1188,10 +1188,6 @@ CREATE_QD_DB () {
 		LOG_MSG "[INFO]:-Initializing Master Postgres instance $GP_DIR"
 		$EXPORT_LIB_PATH
 
-        #
-        # note: is_filerep_mirrored is no because the QD is not mirrored by filerep right now (standby master works differently)
-        #
-        
         if [ x"" != x"$LCCOLLATE" ]; then
 			LC_COLLATE_SETTING="--lc-collate=$LCCOLLATE"
 		fi
@@ -1227,7 +1223,6 @@ CREATE_QD_DB () {
 		cmd="$cmd $LC_ALL_SETTINGS"
 		cmd="$cmd --max_connections=$MASTER_MAX_CONNECT"
 		cmd="$cmd --shared_buffers=$MASTER_SHARED_BUFFERS"
-		cmd="$cmd --is_filerep_mirrored=no"
 		if [ x"$HEAP_CHECKSUM" == x"on" ]; then
 			cmd="$cmd --data-checksums"
 		fi
@@ -1439,7 +1434,7 @@ CREATE_QES_PRIMARY () {
                 HAS_MIRRORS_OPTION=no
             fi
 
-			$GPCREATESEG $FLAG $$ 1 $I IS_PRIMARY $HAS_MIRRORS_OPTION $INST_COUNT  $LOG_FILE $HEAP_CHECKSUM \
+			$GPCREATESEG $FLAG $$ 1 $I IS_PRIMARY $INST_COUNT  $LOG_FILE $HEAP_CHECKSUM \
 `$ECHO ${MASTER_IP_ADDRESS[@]}|$TR ' ' '~'` \
 `$ECHO ${STANDBY_IP_ADDRESS[@]}|$TR ' ' '~'` &
 			PARALLEL_COUNT $BATCH_LIMIT $BATCH_DEFAULT
@@ -1499,7 +1494,7 @@ CREATE_QES_MIRROR () {
 		    FLAG="-p $PG_CONF_ADD_FILE"
 		fi
 
-		$GPCREATESEG $FLAG $$ 1 ${MIRRORS_ORDERED_BY_CONTENT_ID[$I_INDEX]} ${PRIMARIES_ORDERED_BY_CONTENT_ID[$I_INDEX]} no $INST_COUNT  $LOG_FILE $HEAP_CHECKSUM \
+		$GPCREATESEG $FLAG $$ 1 ${MIRRORS_ORDERED_BY_CONTENT_ID[$I_INDEX]} ${PRIMARIES_ORDERED_BY_CONTENT_ID[$I_INDEX]} $INST_COUNT  $LOG_FILE $HEAP_CHECKSUM \
 `$ECHO ${MASTER_IP_ADDRESS[@]}|$TR ' ' '~'` \
 `$ECHO ${STANDBY_IP_ADDRESS[@]}|$TR ' ' '~'` &
 		PARALLEL_COUNT $BATCH_LIMIT $BATCH_DEFAULT

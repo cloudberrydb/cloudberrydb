@@ -188,7 +188,6 @@ int			gp_max_databases = GP_MAX_DATABASES_DEFAULT;
 int			gp_max_tablespaces = GP_MAX_TABLESPACES_DEFAULT;
 #define GP_MAX_FILESPACES_DEFAULT 8
 int			gp_max_filespaces = GP_MAX_FILESPACES_DEFAULT;
-bool		gp_initdb_mirrored = false;
 bool		gp_startup_integrity_checks = true;
 bool		Debug_print_xlog_relation_change_info = false;
 bool		Debug_print_xlog_relation_change_info_skip_issues_only = false;
@@ -1659,16 +1658,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&Debug_database_command_print,
-		false, NULL, NULL
-	},
-
-	{
-		{"gp_initdb_mirrored", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Indicate we are initializing a mirrored cluster during initdb."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_initdb_mirrored,
 		false, NULL, NULL
 	},
 
