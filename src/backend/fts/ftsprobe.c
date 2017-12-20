@@ -213,10 +213,10 @@ ftsReceive(FtsConnectionInfo *ftsInfo)
 	 * response. In that situation, we should force another probe to update
 	 * the gp_segment_configuration to avoid waiting the fts probe interval.
 	 */
-	if (ftsInfo->message == FTS_MSG_PROBE)
+	if (strcmp(ftsInfo->message, FTS_MSG_PROBE) == 0)
 		probeRecordResponse(ftsInfo, lastResult);
 	/* Primary must have syncrep disabled in response to SYNCREP_OFF message. */
-	AssertImply(ftsInfo->message == FTS_MSG_SYNCREP_OFF,
+	AssertImply(strcmp(ftsInfo->message, FTS_MSG_SYNCREP_OFF) == 0,
 				PQgetvalue(lastResult, 0, Anum_fts_message_response_is_syncrep_enabled) != NULL &&
 				*(PQgetvalue(lastResult, 0, Anum_fts_message_response_is_syncrep_enabled)) == false);
 

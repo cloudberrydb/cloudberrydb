@@ -686,14 +686,14 @@ FtsWalRepSetupMessageContext(fts_context *context)
 	for (i = 0; i < context->num_primary_segments; i++)
 	{
 		probe_response_per_segment *response = &context->responses[i];
-		if (response->message == FTS_MSG_PROBE)
+		if (strcmp(response->message, FTS_MSG_PROBE) == 0)
 		{
 			response->message = NULL;
 			response->isScheduled = true;
 		}
 		else
 		{
-			Assert(response->message == FTS_MSG_SYNCREP_OFF);
+			Assert(strcmp(response->message, FTS_MSG_SYNCREP_OFF) == 0);
 			response->isScheduled = false;
 			response->result.isPrimaryAlive = false;
 			response->result.isInSync = false;
