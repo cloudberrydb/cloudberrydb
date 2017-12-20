@@ -159,7 +159,6 @@ bool		Debug_datumstream_block_read_check_integrity = false;
 bool		Debug_datumstream_block_write_check_integrity = false;
 bool		Debug_datumstream_read_print_varlena_info = false;
 bool		Debug_datumstream_write_use_small_initial_buffers = false;
-bool		gp_temporary_files_filespace_repair = false;
 bool		gp_create_table_random_default_distribution = true;
 bool		gp_allow_non_uniform_partitioning_ddl = true;
 bool		gp_enable_exchange_default_partition = false;
@@ -186,8 +185,6 @@ bool		Debug_database_command_print = false;
 int			gp_max_databases = GP_MAX_DATABASES_DEFAULT;
 #define GP_MAX_TABLESPACES_DEFAULT 16
 int			gp_max_tablespaces = GP_MAX_TABLESPACES_DEFAULT;
-#define GP_MAX_FILESPACES_DEFAULT 8
-int			gp_max_filespaces = GP_MAX_FILESPACES_DEFAULT;
 bool		gp_startup_integrity_checks = true;
 bool		Debug_print_xlog_relation_change_info = false;
 bool		Debug_print_xlog_relation_change_info_skip_issues_only = false;
@@ -1942,16 +1939,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		true, NULL, NULL
 	},
 
-	{
-		{"gp_temporary_files_filespace_repair", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Change the filespace inconsistency to a warning"),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_temporary_files_filespace_repair,
-		false, NULL, NULL
-	},
-
 	/* for pljava */
 	{
 		{"pljava_release_lingering_savepoints", PGC_SUSET, CUSTOM_OPTIONS,
@@ -3092,15 +3079,6 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&gp_max_tablespaces,
 		GP_MAX_TABLESPACES_DEFAULT, 8, 2048, NULL, NULL
-	},
-
-	{
-		{"gp_max_filespaces", PGC_POSTMASTER, RESOURCES_MEM,
-			gettext_noop("Sets the maximum number of filespaces."),
-			NULL
-		},
-		&gp_max_filespaces,
-		GP_MAX_FILESPACES_DEFAULT, 8, 256, NULL, NULL
 	},
 
 	{

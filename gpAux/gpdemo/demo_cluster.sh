@@ -330,7 +330,7 @@ fi
 
 STANDBY_INIT_OPTS=""
 if [ "${WITH_STANDBY}" == "true" ]; then
-	STANDBY_INIT_OPTS="-s ${LOCALHOST} -P ${STANDBY_DEMO_PORT} -F pg_system:${STANDBYDIR}"
+	STANDBY_INIT_OPTS="-s ${LOCALHOST} -P ${STANDBY_DEMO_PORT} -F ${STANDBYDIR}"
 fi
 
 if [ ! -z "${EXTRA_CONFIG}" ]; then

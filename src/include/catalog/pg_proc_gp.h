@@ -709,32 +709,32 @@ DESCR("Insert text into the error log");
 
 
 /* Segment and master administration functions, see utils/gp/segadmin.c */
-/* gp_add_master_standby(text, text, _text) => int2 */
-DATA(insert OID = 5046 ( gp_add_master_standby  PGNSP PGUID 12 1 0 0 f f f f f v 3 0 21 "25 25 1009" _null_ _null_ _null_ _null_ gp_add_master_standby _null_ _null_ _null_ n a ));
+/* gp_add_master_standby(text, text, text) => int2 */
+DATA(insert OID = 5046 ( gp_add_master_standby  PGNSP PGUID 12 1 0 0 f f f f f v 3 0 21 "25 25 25" _null_ _null_ _null_ _null_ gp_add_master_standby _null_ _null_ _null_ n a ));
 DESCR("Perform the catalog operations necessary for adding a new standby");
 
-/* gp_add_master_standby(text, text, _text, int4) => int2 */
-DATA(insert OID = 5038 ( gp_add_master_standby  PGNSP PGUID 12 1 0 0 f f f f f v 4 0 21 "25 25 1009 23" _null_ _null_ _null_ _null_ gp_add_master_standby_port _null_ _null_ _null_ n a ));
+/* gp_add_master_standby(text, text, text, int4) => int2 */
+DATA(insert OID = 5038 ( gp_add_master_standby  PGNSP PGUID 12 1 0 0 f f f f f v 4 0 21 "25 25 25 23" _null_ _null_ _null_ _null_ gp_add_master_standby_port _null_ _null_ _null_ n a ));
 DESCR("Perform the catalog operations necessary for adding a new standby");
 
 /* gp_remove_master_standby() => bool */
 DATA(insert OID = 5047 ( gp_remove_master_standby  PGNSP PGUID 12 1 0 0 f f f f f v 0 0 16 "" _null_ _null_ _null_ _null_ gp_remove_master_standby _null_ _null_ _null_ n a ));
 DESCR("Remove a master standby from the system catalog");
 
-/* gp_add_segment_primary(text, text, int4, _text) => int2 */
-DATA(insert OID = 5039 ( gp_add_segment_primary  PGNSP PGUID 12 1 0 0 f f f f f v 4 0 21 "25 25 23 1009" _null_ _null_ _null_ _null_ gp_add_segment_primary _null_ _null_ _null_ n a ));
+/* gp_add_segment_primary(text, text, int4) => int2 */
+DATA(insert OID = 5039 ( gp_add_segment_primary  PGNSP PGUID 12 1 0 0 f f f f f v 3 0 21 "25 25 23" _null_ _null_ _null_ _null_ gp_add_segment_primary _null_ _null_ _null_ n a ));
 DESCR("Perform the catalog operations necessary for adding a new primary segment");
 
-/* gp_add_segment_mirror(int2, text, text, int4, int4, _text) => int2 */
-DATA(insert OID = 5048 ( gp_add_segment_mirror  PGNSP PGUID 12 1 0 0 f f f f f v 6 0 21 "21 25 25 23 23 1009" _null_ _null_ _null_ _null_ gp_add_segment_mirror _null_ _null_ _null_ n a ));
+/* gp_add_segment_mirror(int2, text, text, int4, text) => int2 */
+DATA(insert OID = 5048 ( gp_add_segment_mirror  PGNSP PGUID 12 1 0 0 f f f f f v 5 0 21 "21 25 25 23 25" _null_ _null_ _null_ _null_ gp_add_segment_mirror _null_ _null_ _null_ n a ));
 DESCR("Perform the catalog operations necessary for adding a new segment mirror");
 
 /* gp_remove_segment_mirror(int2) => bool */
 DATA(insert OID = 5049 ( gp_remove_segment_mirror  PGNSP PGUID 12 1 0 0 f f f f f v 1 0 16 "21" _null_ _null_ _null_ _null_ gp_remove_segment_mirror _null_ _null_ _null_ n a ));
 DESCR("Remove a segment mirror from the system catalog");
 
-/* gp_add_segment(int2, int2, "char", "char", "char", "char", int4, text, text, int4, _text) => int2 */
-DATA(insert OID = 5050 ( gp_add_segment  PGNSP PGUID 12 1 0 0 f f f f f v 11 0 21 "21 21 18 18 18 18 23 25 25 23 1009" _null_ _null_ _null_ _null_ gp_add_segment _null_ _null_ _null_ n a ));
+/* gp_add_segment(int2, int2, "char", "char", "char", "char", int4, text, text, text) => int2 */
+DATA(insert OID = 5050 ( gp_add_segment  PGNSP PGUID 12 1 0 0 f f f f f v 10 0 21 "21 21 18 18 18 18 23 25 25 25" _null_ _null_ _null_ _null_ gp_add_segment _null_ _null_ _null_ n a ));
 DESCR("Perform the catalog operations necessary for adding a new segment");
 
 /* gp_remove_segment(int2) => bool */

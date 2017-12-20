@@ -72,8 +72,6 @@ class Gpfilespace(object):
     
     def run(self, config=None, logdir=None, output=None,
                             host=None, port=None, username=None, password=None,
-                            movetemp=None, movetrans=None, 
-                            showtemp=None, showtrans=None,
                             help=None):
         '''
         @param config: Config File
@@ -83,10 +81,6 @@ class Gpfilespace(object):
         @param port: port number
         @param username: username
         @param password: password
-        @param movetempfilespace: move temporary filespace
-        @param movetransfilespace: move transaction filespace
-        @param showtempfilespace: show temporary filespace
-        @param showtransfilespace: show transaction filespace
         @param help: show help
         @return result object (result.rc, result.stdout, result.stderr)
         '''
@@ -112,18 +106,6 @@ class Gpfilespace(object):
             
         if password:
             cmd_opt += " -W %s " % password
-
-        if movetemp:
-            cmd_opt += " --movetempfilespace %s " % movetemp
-            
-        if movetrans:
-            cmd_opt += " --movetransfilespace %s " % movetrans
-            
-        if showtemp:
-            cmd_opt += " --showtempfilespace "
-            
-        if showtrans:
-            cmd_opt += " --showtransfilespace "
             
         if help:
             cmd_opt = " -? "
@@ -138,36 +120,6 @@ class Gpfilespace(object):
             raise GPfilespaceException('Issue with Gpfilespace Command')
         return result
 
-    def move_tempdefault(self):
-        '''
-        gpfilespace --movetempfilespace default
-        '''
-        self.run(movetemp="default")
-        if not self.get_filespace_location(self.TEMPORARY_FILE) == self.DEFAULT_FS:
-            raise GPfilespaceException("Issue with gpfilespace")
-
-    def move_transdefault(self):
-        '''
-        gpfilespace --movetransfilespace default
-        '''
-        self.run(movetrans="default")
-        if not self.get_filespace_location(self.TRANSACTION_FILE) == self.DEFAULT_FS:
-            raise GPfilespaceException("Issue with gpfilespace")
-        
-    def showtempfiles(self):
-        '''
-        gpfilespace --showtempfilespace
-        @return output and return code
-        '''
-        return self.run(showtemp=True)
-
-    def showtransfiles(self):
-        '''
-        gpfilespace --showtransfilespace
-        @return output and return code
-        '''
-        return self.run(showtrans=True)
-    
     def get_filespace_location(self, ftype=TEMPORARY_FILE):
         '''
         Get the filespace name for temporary location
@@ -216,31 +168,6 @@ class Gpfilespace(object):
             return filespace
         else:
             raise GPfilespaceException("Issue with getting host for filespace")
-
-    def movetransfiles_localfilespace(self, filespace):
-        '''
-        Helper function to move Transaction Files to local filespace
-        '''
-        cur_filespace = self.get_filespace_location(self.TRANSACTION_FILE)
-        if cur_filespace != filespace: # Do not move again
-            out = self.run(movetrans=filespace)
-            # Verify after moving, if it has been moved
-            cur_filespace = self.get_filespace_location(self.TRANSACTION_FILE)
-            if not (cur_filespace==filespace):
-                raise GPfilespaceException("Issue with moving transaction filespace")
-
-
-    def movetempfiles_localfilespace(self, filespace):
-        '''
-        Helper function to move Temporary Files to local filespace
-        '''
-        cur_filespace = self.get_filespace_location(self.TEMPORARY_FILE)
-        if cur_filespace != filespace: # Do not move again
-            out = self.run(movetemp=filespace)
-            # Verify after moving, if it has been moved
-            cur_filespace = self.get_filespace_location(self.TEMPORARY_FILE)
-            if not (cur_filespace==filespace):
-                raise GPfilespaceException("Issue with moving temporary filespace")
 
     def exists(self, filespace):
         '''

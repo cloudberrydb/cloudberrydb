@@ -440,10 +440,9 @@ def getGPConfiguration():
     qry = '''
           SELECT content, preferred_role = 'p' as definedprimary,
                  dbid, role = 'p' as isprimary, hostname, address, port,
-                 fselocation as datadir
-            FROM gp_segment_configuration JOIN pg_filespace_entry on (dbid = fsedbid)
-           WHERE fsefsoid = (select oid from pg_filespace where fsname='pg_system')
-             AND (role = 'p' or content < 0 )
+                 datadir
+            FROM gp_segment_configuration
+           WHERE (role = 'p' or content < 0 )
           '''
     curs = db.query(qry)
     for row in curs.dictresult():
@@ -2298,7 +2297,6 @@ def checkOwners():
         # Check owners in pg_proc
         # Check owners in pg_database
         # Check owners in pg_tablespace
-        # Check owners in pg_filespace
         # Check owners in pg_namespace
         # Check owners in pg_operator
         # Check owners in pg_opclass

@@ -212,7 +212,6 @@ class GPExpandTestCase(MPPTestCase, ScenarioTestCase):
         self.use_parallel_expansion = False
         self.use_end_time = False
         self.use_interview = False
-        self.use_filespaces = False
         self.use_host_file = False
 
 
@@ -239,7 +238,6 @@ class GPExpandTestCase(MPPTestCase, ScenarioTestCase):
             self.use_parallel_expansion = self._metadata.get('use_parallel_expansion', "False").lower() in ['true', 'yes']
             self.use_end_time = self._metadata.get('use_end_time', "False").lower() in ['true', 'yes']
             self.use_interview = self._metadata.get('use_interview', "False").lower() in ['true', 'yes']
-            self.use_filespaces = self._metadata.get('use_filespaces', "False").lower() in ['true', 'yes']
             self.use_host_file = self._metadata.get('use_host_file', "False").lower() in ['true', 'yes']
 
 
@@ -277,22 +275,6 @@ class GPExpandTestCase(MPPTestCase, ScenarioTestCase):
             self._do_gpinitsystem()
         if self.standby_enabled:
             self._do_gpinitstandby()
-        if self.use_filespaces:
-            tinctest.logger.info("Setting filespaces")
-            gpfs=Gpfilespace()
-            gpfs.create_filespace('expand_filespace')
-
-            res = {'rc': 0, 'stdout' : '', 'stderr': ''}
- 
-            cmdStr="export MASTER_DATA_DIRECTORY=%s; gpfilespace --movetransfilespace expand_filespace" % (mdd)
-            run_shell_command(cmdStr, 'create segment dirs', res)
-            if res['rc'] > 0:
-                raise GpExpandTestCaseException("Failed to movetransfilespace")
-
-            cmdStr="export MASTER_DATA_DIRECTORY=%s; gpfilespace --movetempfilespace expand_filespace" % (mdd)
-            run_shell_command(cmdStr, 'create segment dirs', res)
-            if res['rc'] > 0:
-                raise GpExpandTestCaseException("Failed to movetempfilespace")
 
         tinctest.logger.info("Performing setup tasks")
         self._setup_gpexpand()
@@ -631,20 +613,6 @@ class GpExpandTests(GPExpandTestCase):
         @mirror_enabled true
         @use_interview true
         @tags part1
-        """
-        self.construct_expansion_scenario()
-
-    def test_expand_transtempfs_parallel(self):
-        """ 
-        @number_of_segments 1
-        @number_of_hosts 2
-        @number_of_expansion_segments 1
-        @mirror_enabled true
-        @use_interview true
-        @use_parallel_expansion true
-        @number_of_parallel_table_redistributed 4
-        @use_filespaces true
-        @tags part2
         """
         self.construct_expansion_scenario()
 

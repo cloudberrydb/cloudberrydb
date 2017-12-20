@@ -35,7 +35,6 @@ MASTER_ONLY_TABLES = [
     'pg_stat_last_operation',
     'pg_stat_last_shoperation',
     'pg_statistic',
-    'pg_filespace_entry',
     'pg_partition_encoding',
     'pg_auth_time_constraint',
     ]
@@ -57,7 +56,6 @@ DEPENDENCY_EXCLUSION = [
     'pg_conversion',
     'pg_database',
     'pg_enum',
-    'pg_filespace',
     'pg_namespace',
     'pg_partition',
     'pg_partition_rule',

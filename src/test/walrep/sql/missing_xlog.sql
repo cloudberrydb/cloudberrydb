@@ -76,7 +76,7 @@ begin;end;
 select wait_for_replication_replay(200);
 
 -- stop a mirror 
-select pg_ctl((select fselocation from gp_segment_configuration c, pg_filespace_entry f where c.role='m' and c.content=0 and c.dbid = f.fsedbid), 'stop', NULL, NULL);
+select pg_ctl((select datadir from gp_segment_configuration c where c.role='m' and c.content=0), 'stop', NULL, NULL);
 
 -- checkpoint and switch the xlog to avoid corrupting the xlog due to background processes
 checkpoint;
@@ -84,17 +84,17 @@ checkpoint;
 select substring(pg_switch_xlog(), 0, 0) from gp_dist_random('gp_id') where gp_segment_id = 0;
 
 -- hide old xlog on segment 0
-select move_xlog((select fselocation || '/pg_xlog' from gp_segment_configuration c, pg_filespace_entry f where c.role='p' and c.content=0 and c.dbid=f.fsedbid), '/tmp/missing_xlog');
+select move_xlog((select datadir || '/pg_xlog' from gp_segment_configuration c where c.role='p' and c.content=0), '/tmp/missing_xlog');
 
 -- bring the mirror back up
-select pg_ctl((select fselocation from gp_segment_configuration c, pg_filespace_entry f where c.role='m' and c.content=0 and c.dbid = f.fsedbid), 'start', (select port from gp_segment_configuration where content = 0 and preferred_role = 'm'), 0);
+select pg_ctl((select datadir from gp_segment_configuration c where c.role='m' and c.content=0), 'start', (select port from gp_segment_configuration where content = 0 and preferred_role = 'm'), 0);
 
 -- check the view, we expect to see error
 select wait_for_replication_error('walread', 0, 200);
 select sync_error from gp_stat_replication where gp_segment_id = 0;
 
 -- bring the missing xlog back on segment 0
-select move_xlog('/tmp/missing_xlog', (select fselocation || '/pg_xlog' from gp_segment_configuration c, pg_filespace_entry f where c.role='p' and c.content=0 and c.dbid=f.fsedbid));
+select move_xlog('/tmp/missing_xlog', (select datadir || '/pg_xlog' from gp_segment_configuration c where c.role='p' and c.content=0));
 
 -- the error should go away
 select wait_for_replication_error('none', 0, 100);
