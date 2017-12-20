@@ -217,10 +217,10 @@
       <p>Performance with compressed append-optimized tables depends on hardware, query tuning
         settings, and other factors. You should perform comparison testing to determine
         the actual performance in your environment.</p>
-	<note type="note">Zstd compression level can be set between 1 and 19.
-	QuickLZ compression level can only be set to level 1; no other options are
-        available. Compression level with zlib can be set at values from 1 - 9. Compression level
-        with RLE can be set at values from 1 - 4.<p>An <codeph>ENCODING</codeph> clause specifies
+	<note type="note">Zstd compression level can be set to values between 1 and 19.
+	QuickLZ compression level can only be set to level 1; no other values are
+        available. Compression level with zlib can be set to values from 1 - 9. Compression level
+        with RLE can be set to values from 1 - 4.<p>An <codeph>ENCODING</codeph> clause specifies
           compression type and level for individual columns. When an <codeph>ENCODING</codeph>
           clause conflicts with a <codeph>WITH</codeph> clause, the <codeph>ENCODING</codeph> clause
           has higher precedence than the <codeph>WITH</codeph> clause.</p></note>
@@ -370,6 +370,13 @@
               </entry>
               <entry colname="col2" morerows="2">Compression level.</entry>
               <entry colname="col3"><codeph>zlib</codeph> compression:
+                  <codeph>1</codeph>-<codeph>9</codeph></entry>
+              <entry colname="col4"><codeph>1</codeph> is the fastest method with the least
+                compression. <codeph>1</codeph> is the default.<p><codeph>9</codeph> is the slowest
+                  method with the most compression.</p></entry>
+            </row>
+            <row>
+              <entry colname="col3"><codeph>zstd</codeph> compression:
                   <codeph>1</codeph>-<codeph>19</codeph></entry>
               <entry colname="col4"><codeph>1</codeph> is the fastest method with the least
                 compression. <codeph>1</codeph> is the default.<p><codeph>19</codeph> is the slowest
@@ -491,12 +498,12 @@
       <topic id="topic48" xml:lang="en">
         <title>Example 1 </title>
         <body>
-          <p>In this example, column <codeph>c1</codeph> is compressed using <codeph>zlib</codeph>
+          <p>In this example, column <codeph>c1</codeph> is compressed using <codeph>zstd</codeph>
             and uses the block size defined by the system. Column <codeph>c2</codeph> is compressed
             with <codeph>quicklz</codeph>, and uses a block size of <codeph>65536</codeph>. Column
               <codeph>c3</codeph> is not compressed and uses the block size defined by the
             system.</p>
-          <codeblock>CREATE TABLE T1 (c1 int ENCODING (compresstype=zlib),
+          <codeblock>CREATE TABLE T1 (c1 int ENCODING (compresstype=zstd),
                   c2 char ENCODING (compresstype=quicklz, blocksize=65536),
                   c3 char     WITH (appendonly=true, orientation=column);</codeblock>
         </body>
