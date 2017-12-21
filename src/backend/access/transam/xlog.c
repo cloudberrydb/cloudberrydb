@@ -10808,7 +10808,7 @@ HandleCrash(SIGNAL_ARGS)
 
 /* Main entry point for startup process */
 void
-StartupProcessMain(int passNum)
+StartupProcessMain(void)
 {
 	am_startup = true;
 	/*
@@ -10830,10 +10830,7 @@ StartupProcessMain(int passNum)
 	pqsignal(SIGALRM, SIG_IGN);
 	pqsignal(SIGPIPE, SIG_IGN);
 	pqsignal(SIGUSR1, StartupProcSigUsr1Handler);
-	if (passNum == 1)
-		pqsignal(SIGUSR2, StartupProcTriggerHandler);
-	else
-		pqsignal(SIGUSR2, SIG_IGN);
+	pqsignal(SIGUSR2, StartupProcTriggerHandler);
 
 #ifdef SIGBUS
 	pqsignal(SIGBUS, HandleCrash);

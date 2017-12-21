@@ -281,7 +281,7 @@ extern char *XLogLocationToString4_Long(XLogRecPtr *loc);
 extern char *XLogLocationToString5_Long(XLogRecPtr *loc);
 
 extern void HandleStartupProcInterrupts(void);
-extern void StartupProcessMain(int passNum);
+extern void StartupProcessMain(void);
 
 extern void xlog_print_redo_lsn_application(
 		RelFileNode		*rnode,
