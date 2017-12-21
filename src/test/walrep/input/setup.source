@@ -45,3 +45,25 @@ BEGIN
 END;
 $func$ LANGUAGE plpgsql;
 
+CREATE LANGUAGE plpythonu;
+
+CREATE OR REPLACE FUNCTION save_standby_opts()
+RETURNS void
+EXECUTE ON MASTER AS
+$func$
+	DROP TABLE IF EXISTS init_standby_opts;
+    CREATE TABLE init_standby_opts AS SELECT ' -a -s ' || hostname || ' -P ' || port || ' -F ' || fsname || ':' || fselocation::text AS opts from gp_segment_configuration gsc, pg_filespace_entry pfe, pg_filespace fs where content = -1 AND role = 'm' AND gsc.dbid = pfe.fsedbid AND pfe.fsefsoid = fs.oid DISTRIBUTED BY(opts);
+$func$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION remove_standby()
+RETURNS void
+EXECUTE ON MASTER AS
+$func$
+   import subprocess
+
+   cmd = 'gpinitstandby -ra'
+   subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).replace('.', '')
+$func$ LANGUAGE plpythonu;
+
+SELECT save_standby_opts();
+SELECT remove_standby();
