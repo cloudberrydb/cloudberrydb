@@ -42,7 +42,6 @@ class GpStart(GpTestCase):
             patch('gpstart.GpArray.getSegmentsByContentId', return_value=self.segments_by_content_id),
             patch('gpstart.GpArray.getSegmentsGroupedByValue',
                   side_effect=[{2: self.primary0, 3: self.primary1}, [], []]),
-            patch('gpstart.catalog.getCollationSettings', return_value=("x", "x", "x")),
             patch('gpstart.GpDbidFile'),
             patch('gpstart.GpEraFile'),
             patch('gpstart.userinput'),

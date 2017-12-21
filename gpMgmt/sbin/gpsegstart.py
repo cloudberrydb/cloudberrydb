@@ -129,7 +129,7 @@ class GpSegStart:
     Logic to start segment servers on this host.
     """
 
-    def __init__(self, dblist, gpversion, collation, mirroringMode, num_cids, era, 
+    def __init__(self, dblist, gpversion, mirroringMode, num_cids, era,
                  timeout, pickledTransitionData, specialMode, wrapper, wrapper_args,
                  logfileDirectory=False):
 
@@ -144,11 +144,6 @@ class GpSegStart:
                             "The local software version is: '%s'\n"
                             "But we were expecting it to be: '%s'\n"
                             "Please review and correct" % (actual_gpversion, expected_gpversion))
-
-        collation_strings          = collation.split(':')
-        if len(collation_strings) != 3:
-            raise Exception("Invalid collation string specified!")
-        (self.expected_lc_collate, self.expected_lc_monetary, self.expected_lc_numeric) = collation_strings
 
         self.mirroringMode         = mirroringMode
         self.num_cids              = num_cids
@@ -440,8 +435,6 @@ class GpSegStart:
         #
         addStandardLoggingAndHelpOptions(parser, includeNonInteractiveOption=False)
 
-        parser.add_option("-C", "--collation", type="string",
-                            help="values for lc_collate, lc_monetary, lc_numeric separated by :")
         parser.add_option("-D", "--dblist", dest="dblist", action="append", type="string")
         parser.add_option("-M", "--mirroringmode", dest="mirroringMode", type="string")
         parser.add_option("-p", "--pickledTransitionData", dest="pickledTransitionData", type="string")
@@ -466,7 +459,6 @@ class GpSegStart:
         logfileDirectory = options.ensure_value("logfileDirectory", False)
         return GpSegStart(options.dblist,
                           options.gpversion,
-                          options.collation,
                           options.mirroringMode,
                           options.num_cids,
                           options.era,

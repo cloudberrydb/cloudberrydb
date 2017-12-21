@@ -74,8 +74,6 @@ class GpRecoversegTestCase(GpTestCase):
             patch('gppylib.db.dbconn.execSQLForSingletonRow', return_value=["foo"]),
             patch('gppylib.pgconf.readfile', return_value=self.pgconf_dict),
             patch('gppylib.commands.gp.GpVersion'),
-            patch('gppylib.db.catalog.getCollationSettings',
-                  return_value=("en_US.utf-8", "en_US.utf-8", "en_US.utf-8")),
             patch('gppylib.system.faultProberInterface.getFaultProber'),
             patch('gppylib.system.configurationInterface.getConfigurationProvider', return_value=self.config_provider_mock),
             patch('gppylib.commands.base.WorkerPool', return_value=self.pool),

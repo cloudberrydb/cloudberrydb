@@ -848,7 +848,7 @@ class GpMirrorListToBuild:
 
     def __createStartSegmentsOp(self, gpEnv):
         return startSegments.StartSegmentsOperation(self.__pool, self.__quiet,
-                                                    gpEnv.getLocaleData(), gpEnv.getGpVersion(),
+                                                    gpEnv.getGpVersion(),
                                                     gpEnv.getGpHome(), gpEnv.getMasterDataDir()
                                                     )
 
