@@ -120,7 +120,7 @@ function export_gpdb() {
   TARBALL="$GPDB_ARTIFACTS_DIR"/$GPDB_BIN_FILENAME
   pushd $GREENPLUM_INSTALL_DIR
     source greenplum_path.sh
-    python -m compileall -x test .
+    python -m compileall -q -x test .
     chmod -R 755 .
     tar -czf "${TARBALL}" ./*
   popd
