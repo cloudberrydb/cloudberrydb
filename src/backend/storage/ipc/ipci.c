@@ -57,7 +57,6 @@
 #include "utils/resource_manager.h"
 #include "utils/faultinjector.h"
 #include "utils/sharedsnapshot.h"
-#include "utils/simex.h"
 
 #include "libpq-fe.h"
 #include "libpq-int.h"
@@ -192,15 +191,6 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 		
 #ifdef EXEC_BACKEND
 		size = add_size(size, ShmemBackendArraySize());
-#endif
-
-#ifdef USE_TEST_UTILS
-		if (gp_simex_init)
-		{
-			// initialize SimEx
-			simex_init();
-			size = add_size(size, SyncBitVector_ShmemSize(simex_get_subclass_count()));
-		}
 #endif
 
 		/* This elog happens before we know the name of the log file we are supposed to use */
@@ -372,15 +362,6 @@ CreateSharedMemoryAndSemaphores(bool makePrivate, int port)
 #ifdef FAULT_INJECTOR
 	FaultInjector_ShmemInit();
 #endif
-
-#ifdef USE_TEST_UTILS
-	if (gp_simex_init)
-	{
-		// initialize shmem segment for SimEx
-		simex_set_sync_bitvector_container(
-			SyncBitVector_ShmemInit("SimEx bit vector container", simex_get_subclass_count()));
-	}
-#endif /* USE_TEST_UTILS */
 
 	/*
 	 * Set up other modules that need some shared memory space

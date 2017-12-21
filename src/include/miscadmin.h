@@ -112,20 +112,6 @@ do { \
 		CHECK_TIME_SLICE(); \
 	} \
 \
-	if (gp_simex_init && gp_simex_run && gp_simex_class == SimExESClass_Cancel && !InterruptPending) \
-	{\
-		SimExESSubClass subclass = SimEx_CheckInject(); \
-		if (subclass == SimExESSubClass_Cancel_QueryCancel) \
-		{\
-			InterruptPending = true; \
-			QueryCancelPending = true; \
-		}\
-		else if (subclass == SimExESSubClass_Cancel_ProcDie) \
-		{\
-			InterruptPending = true; \
-			ProcDiePending = true; \
-		}\
-	}\
 	if (InterruptPending) \
 		ProcessInterrupts(__FILE__, __LINE__); \
 	if (IsResQueueEnabled() && gp_enable_resqueue_priority)	\

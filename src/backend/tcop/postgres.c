@@ -3627,22 +3627,9 @@ SigHupHandler(SIGNAL_ARGS)
 void
 ProcessInterrupts(const char* filename, int lineno)
 {
-
-#ifdef USE_TEST_UTILS
-	int simex_run = gp_simex_run;
-#endif   /* USE_TEST_UTILS */
-
 	/* OK to accept interrupt now? */
 	if (InterruptHoldoffCount != 0 || CritSectionCount != 0)
 		return;
-
-#ifdef USE_TEST_UTILS
-	/* disable SimEx for CHECK_FOR_INTERRUPTS */
-	if (gp_simex_init && gp_simex_run && gp_simex_class == SimExESClass_Cancel)
-	{
-		gp_simex_run = 0;
-	}
-#endif   /* USE_TEST_UTILS */
 
 	InterruptPending = false;
 	if (ProcDiePending)
@@ -3737,14 +3724,6 @@ ProcessInterrupts(const char* filename, int lineno)
 		}
 	}
 	/* If we get here, do nothing (probably, QueryCancelPending was reset) */
-
-#ifdef USE_TEST_UTILS
-	/* restore SimEx for CHECK_FOR_INTERRUPTS */
-	if (gp_simex_init && simex_run && gp_simex_class == SimExESClass_Cancel)
-	{
-		gp_simex_run = simex_run;
-	}
-#endif   /* USE_TEST_UTILS */
 }
 
 /*

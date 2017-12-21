@@ -98,7 +98,6 @@
 #include "utils/memutils.h"
 #include "utils/rel.h"
 #include "utils/relcache.h"
-#include "utils/simex.h"
 #include "utils/syscache.h"
 
 
@@ -751,60 +750,6 @@ AcceptInvalidationMessages(void)
 								 InvalidateSystemCaches);
 
 	Assert(SysCacheFlushForce_IsValid(gp_test_system_cache_flush_force));
-
-#ifdef USE_TEST_UTILS
-	/*
-	 * Test code to force cache flushes anytime a flush could happen.
-	 *
-	 * If used with CLOBBER_FREED_MEMORY, gp_test_system_cache_flush_force provides
-	 * a fairly thorough test that the system contains no cache-flush hazards.
-	 * However, it also makes the system unbelievably slow --- the regression
-	 * tests take about 100 times longer than normal.
-	 *
-	 * gp_test_system_cache_flush_force_recursive slows things by
-	 * at least a factor of 10000, so I wouldn't suggest
-	 * trying to run the entire regression tests that way.	It's useful to try
-	 * a few simple tests, to make sure that cache reload isn't subject to
-	 * internal cache-flush hazards, but after you've done a few thousand
-	 * recursive reloads it's unlikely you'll learn more.
-	 */
-	if (SysCacheFlushForce_Recursive == gp_test_system_cache_flush_force)
-	{
-		/* potentially recursive cache invalidation */
-		InvalidateSystemCaches();
-	}
-	else
-	{
-		static bool in_recursion = false;
-
-		if (!in_recursion)
-		{
-			bool invalidate = (SysCacheFlushForce_NonRecursive == gp_test_system_cache_flush_force);
-
-			if (!invalidate &&
-				gp_simex_init &&
-				gp_simex_run && 
-				gp_simex_class == SimExESClass_CacheInvalidation)
-			{
-				/*
-				 * Same basic idea as above, except using the SimEx facility, the main
-				 * advantage of this approach is that it only triggers the invalidation
-				 * once per unique call stack, which should make testing significantly
-				 * faster.
-				 */
-				invalidate = (SimExESSubClass_CacheInvalidation == SimEx_CheckInject());
-			}
-
-			if (invalidate)
-			{
-				/* avoid recursive cache invalidation */
-				in_recursion = true;
-				InvalidateSystemCaches();
-				in_recursion = false;
-			}
-		}
-	}
-#endif
 }
 
 /*

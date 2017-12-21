@@ -53,7 +53,6 @@ extern "C" {
 #include "utils/elog.h"
 #include "utils/palloc.h"
 #include "storage/itemptr.h"
-#include "utils/simex.h"
 #include "utils/testutils.h"
 
 /* ----------------------------------------------------------------

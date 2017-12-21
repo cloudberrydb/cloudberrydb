@@ -28,7 +28,6 @@
 
 #include "postgres.h"
 #include "utils/netcheck.h"
-#include "utils/simex.h"
 #include "utils/timestamp.h"
 
 #if defined(__darwin__) || defined(sun)
