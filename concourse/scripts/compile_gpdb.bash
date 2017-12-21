@@ -112,7 +112,7 @@ function build_pxf() {
   export BUILD_NUMBER="${TARGET_OS}"
   export PXF_HOME="${GREENPLUM_INSTALL_DIR}/pxf"
   export JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
-  make install -s DATABASE=gpdb
+  make install -s DATABASE=gpdb | grep -v "Download http"
   popd
 }
 
