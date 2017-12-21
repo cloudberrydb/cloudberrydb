@@ -1164,7 +1164,7 @@ ifeq "$(findstring $(BLD_ARCH),$(GPPKG_PLATFORMS))" ""
 	@echo "on this platform: $(BLD_ARCH)"
 	@echo ""
 else
-	for source in $(GPPKG_SOURCES); do \
+	@for source in $(GPPKG_SOURCES); do \
 		echo "";\
 		echo "====================================================================================================";\
 		echo "Starting build of gppkg: $${source}" ; \
