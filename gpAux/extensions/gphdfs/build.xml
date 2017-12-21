@@ -105,7 +105,7 @@
           description="--> Retrieve Ivy-managed artifacts for the compile configurations">
     <ivy:settings id="basic.settings" file="ivysettings.xml" />
     <ivy:retrieve settingsRef="basic.settings" pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}"
-                  sync="true" conf="${gpgnet.configuration}"/>
+                  sync="true" log="quiet" conf="${gpgnet.configuration}"/>
     <ivy:cachepath pathid="ivy-classpath" conf="${gpgnet.configuration}"/>
   </target>
 
