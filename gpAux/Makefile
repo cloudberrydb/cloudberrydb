@@ -700,10 +700,10 @@ else
 	fi
 	ssh $(WIX_PACKAGER) 'if [ -d $(BLD_PACKAGING_PID) ]; then rm -rf $(BLD_PACKAGING_PID); fi'
 	ssh $(WIX_PACKAGER) 'mkdir -p $(BLD_PACKAGING_PID)/packaging/src/windows'
-	scp -r client/install/src/windows/* $(WIX_PACKAGER):$(BLD_PACKAGING_PID)/packaging/src/windows/
-	scp -r $(CLIENTINSTLOC) $(WIX_PACKAGER):$(BLD_PACKAGING_PID)/packaging/
+	scp -qr client/install/src/windows/* $(WIX_PACKAGER):$(BLD_PACKAGING_PID)/packaging/src/windows/
+	scp -qr $(CLIENTINSTLOC) $(WIX_PACKAGER):$(BLD_PACKAGING_PID)/packaging/
 	ssh $(WIX_PACKAGER) 'cd $(BLD_PACKAGING_PID)/packaging/src/windows/ && make PACKAGE=greenplum-$@ VERSION=$(VERSION_SHORT) SRCDIR=../../$(notdir $(CLIENTINSTLOC))'
-	scp $(WIX_PACKAGER):$(BLD_PACKAGING_PID)/packaging/greenplum-$@-$(VERSION_SHORT)-WinXP-x86_32.msi .
+	scp -q $(WIX_PACKAGER):$(BLD_PACKAGING_PID)/packaging/greenplum-$@-$(VERSION_SHORT)-WinXP-x86_32.msi .
 	chmod 755 greenplum-$@-$(VERSION_SHORT)-WinXP-x86_32.msi
 	ssh $(WIX_PACKAGER) 'rm -rf $(BLD_PACKAGING_PID)'
 endif
@@ -772,10 +772,10 @@ else
 	fi
 	ssh $(WIX_PACKAGER) 'if [ -d $(BLD_PACKAGING_PID) ]; then rm -rf $(BLD_PACKAGING_PID); fi'
 	ssh $(WIX_PACKAGER) 'mkdir -p $(BLD_PACKAGING_PID)/packaging/src/windows'
-	scp -r client/install/src/windows/* $(WIX_PACKAGER):$(BLD_PACKAGING_PID)/packaging/src/windows/
-	scp -r $(LOADERSINSTLOC) $(WIX_PACKAGER):$(BLD_PACKAGING_PID)/packaging/
+	scp -qr client/install/src/windows/* $(WIX_PACKAGER):$(BLD_PACKAGING_PID)/packaging/src/windows/
+	scp -qr $(LOADERSINSTLOC) $(WIX_PACKAGER):$(BLD_PACKAGING_PID)/packaging/
 	ssh $(WIX_PACKAGER) 'cd $(BLD_PACKAGING_PID)/packaging/src/windows/ && make PACKAGE=greenplum-$@ VERSION=$(VERSION_SHORT) SRCDIR=../../$(notdir $(LOADERSINSTLOC))'
-	scp $(WIX_PACKAGER):$(BLD_PACKAGING_PID)/packaging/greenplum-$@-$(VERSION_SHORT)-WinXP-x86_32.msi .
+	scp -q $(WIX_PACKAGER):$(BLD_PACKAGING_PID)/packaging/greenplum-$@-$(VERSION_SHORT)-WinXP-x86_32.msi .
 	chmod 755 greenplum-$@-$(VERSION_SHORT)-WinXP-x86_32.msi
 	ssh $(WIX_PACKAGER) 'rm -rf $(BLD_PACKAGING_PID)'
 endif
