@@ -3709,10 +3709,10 @@ NOTICE:  CREATE TABLE will create partition "sg_cal_detail_r1_1_prt_r348824926_2
 NOTICE:  CREATE TABLE will create partition "sg_cal_detail_r1_1_prt_r348824926_2_prt_xdc_3_prt_et3" for table "sg_cal_detail_r1_1_prt_r348824926_2_prt_xdc"
 NOTICE:  CREATE TABLE will create partition "sg_cal_detail_r1_1_prt_r348824926_2_prt_xdc_3_prt_et4" for table "sg_cal_detail_r1_1_prt_r348824926_2_prt_xdc"
 NOTICE:  CREATE TABLE will create partition "sg_cal_detail_r1_1_prt_r348824926_2_prt_xdc_3_prt_etx" for table "sg_cal_detail_r1_1_prt_r348824926_2_prt_xdc"
-select count(*) from pg_partitions where tablename = 'sg_cal_detail_r1';
+select count(*) from pg_class where relname like 'sg_cal_detail_r1%';
  count 
 -------
-    62
+    63
 (1 row)
 
 drop table sg_cal_detail_r1;
