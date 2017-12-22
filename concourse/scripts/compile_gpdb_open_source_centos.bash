@@ -35,7 +35,7 @@ function install_system_deps() {
              libffi-devel "
   for dep in "$deps_list";
   do
-    yum install -y $dep
+    yum install -y -d 1 $dep
   done
 }
 
