@@ -1,7 +1,3 @@
--- start_ignore
--- GPDB_84_MERGE_FIXME
-set optimizer to off;
--- end_ignore
 --
 -- WINDOW FUNCTIONS
 --
@@ -80,11 +76,11 @@ SELECT first_value(ten) OVER (PARTITION BY four ORDER BY ten), ten, four FROM te
 SELECT last_value(four) OVER (ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10; 
 
 set search_path=singleseg, public;
-SELECT last_value(ten) OVER (PARTITION BY four), ten, four FROM
+SELECT last_value(ten) OVER (PARTITION BY four ORDER BY ten), ten, four FROM
 	(SELECT * FROM tenk1 WHERE unique2 < 10 ORDER BY four, ten)s
 	ORDER BY four, ten;
 
-SELECT nth_value(ten, four + 1) OVER (PARTITION BY four), ten, four
+SELECT nth_value(ten, four + 1) OVER (PARTITION BY four ORDER BY ten), ten, four
 	FROM (SELECT * FROM tenk1 WHERE unique2 < 10 ORDER BY four, ten)s order by four,ten;
 
 reset search_path;
