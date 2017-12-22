@@ -28,6 +28,8 @@ Python module requirements:
 import os
 import datetime
 import argparse
+import subprocess
+
 from jinja2 import Environment, FileSystemLoader
 
 PATH = os.path.dirname(os.path.abspath(__file__))
@@ -126,6 +128,15 @@ if __name__ == "__main__":
     if ARGS.pipeline_type == 'prod':
         ARGS.os_types = ['centos6', 'centos7', 'sles', 'aix7', 'win', 'ubuntu16']
         ARGS.test_sections = ['ICW', 'CS', 'MPP', 'MM', 'DPM', 'UD', 'FileRep']
+        print "======================================================================"
+        print "Validate Pipeline Release Jobs"
+        print "----------------------------------------------------------------------"
+        try:
+            subprocess.check_call(["python",
+                                   "../scripts/validate_pipeline_release_jobs.py"],
+                                  env={"PIPELINE_FILE":ARGS.output_filename})
+        except subprocess.CalledProcessError:
+            exit(1)
 
     if ARGS.pipeline_type != 'prod' and ARGS.output_filename == 'gpdb_master-generated.yml':
         ARGS.output_filename = 'gpdb-' + ARGS.pipeline_type + '-' + ARGS.user + '.yml'
@@ -139,15 +150,22 @@ if __name__ == "__main__":
     MSG += '  Test sections ............ : %s\n' % ARGS.test_sections
     MSG += '  test_trigger ............. : %s\n' % ARGS.test_trigger_false
     MSG += '======================================================================\n\n'
-    MSG += 'NOTE: You can now set the pipeline with the following:\n\n'
     if ARGS.pipeline_type == 'prod':
+        MSG += 'NOTE: You can set the production pipelines with the following:\n\n'
         MSG += 'fly -t gpdb-prod \\\n'
         MSG += '    set-pipeline \\\n'
-        MSG += '    -p %s \\\n' % ARGS.output_filename.rsplit('.', 1)[0]
+        MSG += '    -p gpdb_master \\\n'
         MSG += '    -c %s \\\n' % ARGS.output_filename
         MSG += '    -l ~/workspace/continuous-integration/secrets/gpdb_common-ci-secrets.yml \\\n'
-        MSG += '    -l ~/workspace/continuous-integration/secrets/gpdb_master-ci-secrets.yml'
+        MSG += '    -l ~/workspace/continuous-integration/secrets/gpdb_master-ci-secrets.yml\n\n'
+        MSG += 'fly -t gpdb-prod \\\n'
+        MSG += '    set-pipeline \\\n'
+        MSG += '    -p gpdb_master_without_asserts \\\n'
+        MSG += '    -c %s \\\n' % ARGS.output_filename
+        MSG += '    -l ~/workspace/continuous-integration/secrets/gpdb_common-ci-secrets.yml \\\n'
+        MSG += '    -l ~/workspace/continuous-integration/secrets/gpdb_master_without_asserts-ci-secrets.yml\n' # pylint: disable=line-too-long
     else:
+        MSG += 'NOTE: You can set the developer pipeline with the following:\n\n'
         MSG += 'fly -t gpdb-dev \\\n'
         MSG += '    set-pipeline \\\n'
         MSG += '    -p %s \\\n' % ARGS.output_filename.rsplit('.', 1)[0]
@@ -155,7 +173,7 @@ if __name__ == "__main__":
         MSG += '    -l ~/workspace/continuous-integration/secrets/gpdb_common-ci-secrets.yml \\\n'
         MSG += '    -l ~/workspace/continuous-integration/secrets/gpdb_master-ci-secrets.yml \\\n'
         MSG += '    -v tf-bucket-path=dev/' + ARGS.pipeline_type + '/ \\\n'
-        MSG += '    -v bucket-name=gpdb5-concourse-builds-dev'
+        MSG += '    -v bucket-name=gpdb5-concourse-builds-dev\n'
 
     print MSG
 

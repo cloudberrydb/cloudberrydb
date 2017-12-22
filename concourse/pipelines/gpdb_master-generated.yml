@@ -30,7 +30,6 @@ groups:
 - name: all
   jobs:
   ## --------------------------------------------------------------------
-  - validate_pipeline
   - gate_compile_start
   - compile_gpdb_centos6
   - compile_gpdb_binary_swap_centos6
@@ -721,16 +720,6 @@ cs_ccp_run_tests_params_anchor: &cs_ccp_run_tests_params
 ## ======================================================================
 
 jobs:
-
-- name: validate_pipeline
-  plan:
-  - aggregate:
-    - get: gpdb_src
-      trigger: true
-    - get: centos-gpdb-dev-6
-  - task: validate_pipeline
-    file: gpdb_src/concourse/tasks/validate_pipeline.yml
-    image: centos-gpdb-dev-6
 
 ## ======================================================================
 ##   ____                      _ _      
@@ -3426,4 +3415,3 @@ jobs:
     - DPM_gptransfer_43x_to_master
     - DPM_gptransfer
     - mpp_interconnect
-    - validate_pipeline

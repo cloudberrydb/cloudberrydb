@@ -106,13 +106,6 @@ jobs:
           BINTRAY_REMOTE: {{bintray_remote}}
           BINTRAY_REMOTE_URL: {{bintray_remote_url}}
 
-      - task: validate_pipeline
-        file: gpdb_pr/concourse/tasks/validate_pipeline.yml
-        image: centos-gpdb-dev-6
-        input_mapping:
-          gpdb_src: gpdb_pr
-        on_failure: *pr_failure
-
     - aggregate:
       - task: icw_planner_centos6
         file: gpdb_pr/concourse/tasks/ic_gpdb.yml

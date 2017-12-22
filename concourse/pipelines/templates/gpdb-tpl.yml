@@ -38,9 +38,6 @@ groups:
 - name: all
   jobs:
   ## --------------------------------------------------------------------
-{% if pipeline_type == "prod" %}
-  - validate_pipeline
-{% endif %}
   - gate_compile_start
 {% if "centos6" in os_types %}
   - compile_gpdb_centos6
@@ -257,6 +254,7 @@ groups:
 
 ## ======================================================================
 
+{% if "centos6" in os_types %}
 - name: G:SegWALRep
   jobs:
   - compile_gpdb_segwalrep_centos6
@@ -264,6 +262,7 @@ groups:
   - icw_gporca_segwalrep_centos6
   - segwalrep_mirrorless_centos6
 
+{% endif %}
 {% endif %}
 {% if "MPP" in test_sections %}
 ## ======================================================================
@@ -361,11 +360,12 @@ resource_types:
 ## ======================================================================
 
 resources:
-{% if "CS" in test_sections or
-      "DPM" in test_sections or
+{% if ("ICW"    in test_sections and "sles" in os_types) or
+      "CS"      in test_sections or
+      "DPM"     in test_sections or
       "FileRep" in test_sections or
-      "MPP" in test_sections or
-      "MM" in test_sections %}
+      "MPP"     in test_sections or
+      "MM"      in test_sections %}
 - name: ccp_src
   type: git
   source:
@@ -374,7 +374,8 @@ resources:
     uri: {{ccp-git-remote}}
     tag_filter: {{ccp-tag-filter}}
 
-{% if "centos6" in os_types %}
+{% if "centos6" in os_types or
+      "ICW"     in test_sections %}
 - name: terraform
   type: terraform
   source:
@@ -471,7 +472,7 @@ resources:
     uri: ((debian-release-git-remote))
 
 {% endif %}
-{% if "centos6" in os_types or "aix7" in os_types %}
+{% if "centos6" in os_types or "sles" in os_types or "aix7" in os_types %}
 - name: centos-gpdb-dev-6
   type: docker-image
   source:
@@ -834,19 +835,7 @@ cs_ccp_run_tests_params_anchor: &cs_ccp_run_tests_params
 ## ======================================================================
 
 jobs:
-{% if pipeline_type == "prod" %}
 
-- name: validate_pipeline
-  plan:
-  - aggregate:
-    - get: gpdb_src
-      trigger: true
-    - get: centos-gpdb-dev-6
-  - task: validate_pipeline
-    file: gpdb_src/concourse/tasks/validate_pipeline.yml
-    image: centos-gpdb-dev-6
-
-{% endif %}
 ## ======================================================================
 ##   ____                      _ _      
 ##  / ___|___  _ __ ___  _ __ (_) | ___ 
@@ -3039,5 +3028,4 @@ jobs:
     - DPM_gptransfer_43x_to_master
     - DPM_gptransfer
     - mpp_interconnect
-    - validate_pipeline
 {% endif %}

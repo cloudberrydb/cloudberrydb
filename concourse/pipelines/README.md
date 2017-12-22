@@ -19,14 +19,15 @@ configure workflow.
   public repos.
 * The production pipeline should not be edited directly. Only the
   editing of the template should be performed.
+* The utility may recommend setting more than one production pipeline.
 
 ## Workflow
 
 The following workflow should be followed:
 
-* Edit the template file (templates/gpdb-tpl.yml).
-* Generate the pipeline.
-* Use the Concourse `fly` command to set the pipeline (gpdb_master-generated.yml).
+* Edit the template file (`templates/gpdb-tpl.yml`).
+* Generate the pipeline. During this step, the pipeline release jobs will be validated.
+* Use the Concourse `fly` command to set the pipeline (`gpdb_master-generated.yml`).
 * Once the pipeline is validated to function properly, commit the updated template and pipeline.
 
 ## Requirements
@@ -51,19 +52,26 @@ The utility options can be retrieved with the following:
 gen_pipeline.py -h|--help
 ```
 
-## Example
+## Examples of usage
 
 ### Create Production Pipeline
 
-Use the following to generate a production pipeline
-(`gpdb-prod.yml`). All supported platforms and test sections are
-included. The output of the utility will provide details of the
-pipeline generated. Following standard conventions, a basic `fly`
-command is provided as output so the engineer can copy and paste this
-into their terminal to set the pipeline.
+The `./gen_pipeline.py -t prod` command will generate the production
+pipeline (`gpdb_master-generated.yml`). All supported platforms and
+test sections are included. The pipeline release jobs will be
+validated. The output of the utility will provide details of the
+pipeline generated. Following standard conventions, two `fly`
+commands are provided as output so the engineer can copy and
+paste this into their terminal to set the production pipelines.
+
+Example:
 
 ```
 $ ./gen_pipeline.py -t prod
+======================================================================
+Validate Pipeline Release Jobs
+----------------------------------------------------------------------
+all jobs accounted for
 
 ======================================================================
   Generate Pipeline type: .. : prod
@@ -74,28 +82,39 @@ $ ./gen_pipeline.py -t prod
   test_trigger ............. : True
 ======================================================================
 
-NOTE: You can now set the pipeline with the following:
+NOTE: You can set the production pipelines with the following:
 
 fly -t gpdb-prod \
     set-pipeline \
-    -p gpdb_master-generated \
+    -p gpdb_master \
     -c gpdb_master-generated.yml \
     -l ~/workspace/continuous-integration/secrets/gpdb_common-ci-secrets.yml \
     -l ~/workspace/continuous-integration/secrets/gpdb_master-ci-secrets.yml
 
+fly -t gpdb-prod \
+    set-pipeline \
+    -p gpdb_master_without_asserts \
+    -c gpdb_master-generated.yml \
+    -l ~/workspace/continuous-integration/secrets/gpdb_common-ci-secrets.yml \
+    -l ~/workspace/continuous-integration/secrets/gpdb_master_without_asserts-ci-secrets.yml
 ```
 
-The generated pipeline file `gpdb-prod.yml` will be set, validated and
-ultimately committed (including the updated pipeline template) to the
-source repository.
+The generated pipeline file `gpdb_master-generated.yml` will be set,
+validated and ultimately committed (including the updated pipeline
+template) to the source repository.
 
-### Create Developer ICW pipeline for centos6 platform
+### Creating Developer pipelines
 
-Use the following to generate a developer ICW pipeline. NOTE: The
-majority of jobs are only available for the `centos6` platform. The
-generated pipeline and helper `fly` command are intended encourage the
-engineer to set the pipeline with team (-t) and engineer (-u)
-identifiable names.
+As an example of generating a pipeline with a targeted test subset,
+the following can be used to generate a pipeline with supporting
+builds (default: centos6 platform) and `DPM` only jobs.
+
+The generated pipeline and helper `fly` command are intended encourage
+engineers to set the pipeline with a team-name-string (-t) and engineer
+(-u) identifiable names.
+
+NOTE: The majority of jobs are only available for the `centos6`
+      platform.
 
 ```
 $ ./gen_pipeline.py -t dpm -u curry -a DPM
@@ -109,7 +128,7 @@ $ ./gen_pipeline.py -t dpm -u curry -a DPM
   test_trigger ............. : True
 ======================================================================
 
-NOTE: You can now set the pipeline with the following:
+NOTE: You can set the developer pipeline with the following:
 
 fly -t gpdb-dev \
     set-pipeline \
@@ -119,8 +138,13 @@ fly -t gpdb-dev \
     -l ~/workspace/continuous-integration/secrets/gpdb_master-ci-secrets.yml \
     -v tf-bucket-path=dev/dpm/ \
     -v bucket-name=gpdb5-concourse-builds-dev
+```
 
-$ ./gen_pipeline.py -t cs -u durant -O centos6 sles -a ICW CS
+Use the following to generate a pipeline with `ICW` and `CS` test jobs
+for `centos6` and `sles` platforms.
+
+```
+$ ./gen_pipeline.py -t cs -u durant -O {centos6,sles} -a {ICW,CS}
 
 ======================================================================
   Generate Pipeline type: .. : cs
@@ -131,7 +155,7 @@ $ ./gen_pipeline.py -t cs -u durant -O centos6 sles -a ICW CS
   test_trigger ............. : True
 ======================================================================
 
-NOTE: You can now set the pipeline with the following:
+NOTE: You can set the developer pipeline with the following:
 
 fly -t gpdb-dev \
     set-pipeline \
