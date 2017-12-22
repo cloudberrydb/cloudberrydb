@@ -2936,35 +2936,6 @@ CTranslatorDXLToExpr::PexprScalarFunc
 	return pexprFunc;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorDXLToExpr::FUnsupportedWindowFunc
-//
-//	@doc:
-// 		Check unsupported window functions
-//
-//---------------------------------------------------------------------------
-BOOL
-CTranslatorDXLToExpr::FUnsupportedWindowFunc
-	(
-	const IMDId *pmdidFunc
-	)
-{
-	const CMDIdGPDB *pmdidgpdb = CMDIdGPDB::PmdidConvert(pmdidFunc);
-	OID oid = pmdidgpdb->OidObjectId();
-
-	if (GPDB_PERCENT_RANK_OID == oid ||
-		GPDB_CUME_DIST_OID == oid ||
-		GPDB_NTILE_INT4_OID == oid ||
-		GPDB_NTILE_INT8_OID == oid ||
-		GPDB_NTILE_NUMERIC_OID == oid)
-	{
-		return true;
-	}
-
-	return false;
-}
-
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -2986,10 +2957,6 @@ CTranslatorDXLToExpr::PexprWindowFunc
 	pmdidFunc->AddRef();
 
 	CWStringConst *pstrName = GPOS_NEW(m_pmp) CWStringConst(m_pmp, CMDAccessorUtils::PstrWindowFuncName(m_pmda, pmdidFunc)->Wsz());
-	if (FUnsupportedWindowFunc(pmdidFunc))
-	{
-		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp, pstrName->Wsz());
-	}
 
 	CScalarWindowFunc::EWinStage ews = Ews(pdxlopWinref->Edxlwinstage());
 

@@ -391,10 +391,6 @@ namespace gpopt
 			// construct the mapping between the DXL ColId and CColRef
 			void ConstructDXLColId2ColRefMapping(const DrgPdxlcd *pdrgpdxlcd, const DrgPcr *pdrgpcr);
 
-			// check unsupported window function
-			static
-			BOOL FUnsupportedWindowFunc(const IMDId *pmdidFunc);
-
 			// look up the column reference in the hash map. We raise an exception if
 			// the column is not found
 			static
