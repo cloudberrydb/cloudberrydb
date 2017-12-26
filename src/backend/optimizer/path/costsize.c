@@ -714,17 +714,10 @@ cost_bitmap_heap_scan(Path *path, PlannerInfo *root, RelOptInfo *baserel,
 	 * appropriate to charge seq_page_cost apiece.	The effect is nonlinear,
 	 * too. For lack of a better idea, interpolate like this to determine the
 	 * cost per page.
-	 *
-	 * GPDB:
-	 * The original formula from Postgres is still more like linear, in which
-	 * the cost per page will be dominated by random_page_cost, because the
-	 * default value of random_page_cost is 100x larger than seq_page_cost in
-	 * GPDB. Therefore, we update it to the following non-linear formula to
-	 * reflect the real cost per page when a majority of pages are fetched.
 	 */
 	if (pages_fetched >= 2.0)
-		cost_per_page = seq_page_cost *
-			pow(random_page_cost / seq_page_cost, 1 - sqrt(pages_fetched / T));
+		cost_per_page = random_page_cost -
+			(random_page_cost - seq_page_cost) * sqrt(pages_fetched / T);
 	else
 		cost_per_page = random_page_cost;
 
@@ -822,17 +815,10 @@ cost_bitmap_appendonly_scan(Path *path, PlannerInfo *root, RelOptInfo *baserel,
 	 * appropriate to charge seq_page_cost apiece.	The effect is nonlinear,
 	 * too. For lack of a better idea, interpolate like this to determine the
 	 * cost per page.
-	 *
-	 * GPDB:
-	 * The original formula from Postgres is still more like linear, in which
-	 * the cost per page will be dominated by random_page_cost, because the
-	 * default value of random_page_cost is 100x larger than seq_page_cost in
-	 * GPDB. Therefore, we update it to the following non-linear formula to
-	 * reflect the real cost per page when a majority of pages are fetched.
 	 */
 	if (pages_fetched >= 2.0)
-		cost_per_page = seq_page_cost *
-			pow(random_page_cost / seq_page_cost, 1 - sqrt(pages_fetched / T));
+		cost_per_page = random_page_cost -
+			(random_page_cost - seq_page_cost) * sqrt(pages_fetched / T);
 	else
 		cost_per_page = random_page_cost;
 
