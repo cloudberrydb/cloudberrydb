@@ -264,4 +264,6 @@ extern void aocs_addcol_finish(AOCSAddColumnDesc desc);
 extern void aocs_addcol_emptyvpe(
 		Relation rel, AOCSFileSegInfo **segInfos,
 		int32 nseg, int num_newcols);
+extern void aocs_addcol_setfirstrownum(AOCSAddColumnDesc desc,
+		int64 firstRowNum);
 #endif   /* AOCSAM_H */
