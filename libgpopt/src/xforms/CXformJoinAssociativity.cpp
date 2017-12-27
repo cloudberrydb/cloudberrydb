@@ -133,6 +133,21 @@ CXformJoinAssociativity::CreatePredicates
 			pdrgpexprUpper->Append(pexprPred);			
 		}
 	}
+	
+	// No predicates indicate a cross join. And for that, ORCA expects
+	// predicate to be a scalar const "true".
+	if (pdrgpexprLower->UlLength() == 0)
+	{
+		CExpression *pexprCrossLowerJoinPred = CUtils::PexprScalarConstBool(pmp, true, false);
+		pdrgpexprLower->Append(pexprCrossLowerJoinPred);
+	}
+	
+	// Same for upper predicates
+	if (pdrgpexprUpper->UlLength() == 0)
+	{
+		CExpression *pexprCrossUpperJoinPred = CUtils::PexprScalarConstBool(pmp, true, false);
+		pdrgpexprUpper->Append(pexprCrossUpperJoinPred);
+	}
 
 	// clean up
 	pcrsLower->Release();
@@ -172,14 +187,34 @@ CXformJoinAssociativity::Exfp
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CXformJoinAssociativity::Transform
+//	Associativity Transform: (RS)T ==> (RT)S
+//	Example:
+//	Input Expression:
+//	+--CLogicalInnerJoin
+//		 |--CLogicalInnerJoin
+//		 |  |--CLogicalGet "t1"
+//		 |  |--CLogicalGet "t2"
+//		 |  +--CScalarCmp (=)
+//		 |     |--CScalarIdent "a" (0) ==> from t1
+//		 |     +--CScalarIdent "b" (9) ==> from t2
+//		 |--CLogicalGet "t3"
+//		 +--CScalarCmp (=)
+//				|--CScalarIdent "a" (0) ==> from t1
+//				+--CScalarIdent "c" (19) ==> from t3
 //
-//	@doc:
-//		Actual transformation: (RS)T ==> (RT)S
-//
-//---------------------------------------------------------------------------
+//	Output CExpression:
+//	+--CLogicalInnerJoin
+//		 |--CLogicalInnerJoin
+//		 |  |--CLogicalGet "t1"
+//		 |  |--CLogicalGet "t3"
+//		 |  +--CScalarCmp (=)
+//		 |     |--CScalarIdent "a" (0)  ==> from t1
+//		 |     +--CScalarIdent "c" (19) ==> from t3
+//		 |--CLogicalGet "t2"
+//		 +--CScalarCmp (=)
+//				|--CScalarIdent "a" (0) ==> from t1
+//				+--CScalarIdent "b" (9) ==> from t2
+
 void
 CXformJoinAssociativity::Transform
 	(
@@ -200,8 +235,47 @@ CXformJoinAssociativity::Transform
 	DrgPexpr *pdrgpexprUpper = GPOS_NEW(pmp) DrgPexpr(pmp);
 	CreatePredicates(pmp, pexpr, pdrgpexprLower, pdrgpexprUpper);
 	
-	// build join only if it does not result in a cross product
-	if (0 < pdrgpexprLower->UlLength())
+	GPOS_ASSERT(pdrgpexprLower->UlLength() > 0);
+	
+	//  cross join contains CScalarConst(1) as the join condition.  if the
+	//  input expression is as below with cross join at top level between
+	//  CLogicalInnerJoin and CLogicalGet "t3"
+	//  +--CLogicalInnerJoin
+	//     |--CLogicalInnerJoin
+	//     |  |--CLogicalGet "t1"
+	//     |  |--CLogicalGet "t2"
+	//     |  +--CScalarCmp (=)
+	//     |     |--CScalarIdent "a" (0)
+	//     |     +--CScalarIdent "b" (9)
+	//     |--CLogicalGet "t3"
+	//     +--CScalarConst (1)
+	//  for the above expression (lower) predicate generated for the cross join
+	//  between t1 and t3 will be: CScalarConst (1) In *only* such cases, donot
+	//  generate such alternative with the lower join as cross join example:
+	//  +--CLogicalInnerJoin
+	//     |--CLogicalInnerJoin
+	//     |  |--CLogicalGet "t1"
+	//     |  |--CLogicalGet "t3"
+	//     |  +--CScalarConst (1)
+	//     |--CLogicalGet "t2"
+	//     +--CScalarCmp (=)
+	//        |--CScalarIdent "a" (0)
+	//        +--CScalarIdent "b" (9)
+
+	// NOTE that we want to be careful to check that input lower join wasn't a
+	// cross join to begin with, because we want to build a join in this case even
+	// though a new cross join will be created.
+
+	// check if the input lower join expression is a cross join
+	BOOL fInputLeftIsCrossJoin = CUtils::FCrossJoin((*pexpr)[0]);
+
+	// check if the output lower join would result in a cross join
+	BOOL fOutputLeftIsCrossJoin = (1 == pdrgpexprLower->UlLength() &&
+			CUtils::FScalarConstTrue((*pdrgpexprLower)[0]));
+
+	// build a join only if it does not result in a cross join
+	// unless the input itself was a cross join (see earlier comments)
+	if (!fOutputLeftIsCrossJoin || fInputLeftIsCrossJoin)
 	{
 		// bind operators
 		CExpression *pexprLeft = (*pexpr)[0];

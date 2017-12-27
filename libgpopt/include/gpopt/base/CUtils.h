@@ -1075,6 +1075,10 @@ namespace gpopt
 			// return true if given expression contains window aggregate function
 			static
 			BOOL FHasAggWindowFunc(CExpression *pexpr);
+
+			// return true if the given expression is a cross join
+			static
+			BOOL FCrossJoin(CExpression *pexpr);
 	}; // class CUtils
 
 	// hash set from expressions

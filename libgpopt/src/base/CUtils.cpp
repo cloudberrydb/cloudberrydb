@@ -5124,4 +5124,23 @@ CUtils::FHasAggWindowFunc
 	return fHasAggWindowFunc;
 }
 
+BOOL
+CUtils::FCrossJoin
+	(
+	CExpression *pexpr
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
+
+	BOOL fCrossJoin = false;
+	if (pexpr->Pop()->Eopid() == COperator::EopLogicalInnerJoin)
+	{
+		GPOS_ASSERT(3 == pexpr->UlArity());
+		CExpression *pexprPred = (*pexpr)[2];
+		if (CUtils::FScalarConstTrue(pexprPred))
+			fCrossJoin = true;
+	}
+	return fCrossJoin;
+}
+
 // EOF
