@@ -540,9 +540,9 @@ if __name__ == "__main__":
             failed_gp_segment_ids = WaitForRecover(cluster_config)
             if len(failed_gp_segment_ids) > 0:
                 print("ERROR: incremental recovery failed for some segments (%s)" % failed_gp_segment_ids)
-                ForceFTSProbeScan(cluster_config)
                 cluster_config.refresh()
                 StopInstances(cluster_config).run()
+                ForceFTSProbeScan(cluster_config)
                 sys.exit(1)
             ForceFTSProbeScan(cluster_config, GpSegmentConfiguration.STATUS_UP, GpSegmentConfiguration.IN_SYNC)
     elif args.operation == 'recoverfull':
