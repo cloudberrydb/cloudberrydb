@@ -45,20 +45,7 @@ resources:
       # This is not parameterized, on purpose. All tfstates will go to this spot,
       # and different teams will place there clusters' tfstate files under different paths
       bucket: pivotal-pa-toolsmiths-pipeline-dynamic-terraform
-      ###########################################################
-      # Two conventions are allowed for bucket_path:            #
-      # 1) Cluster are expected to be destroyed automatically   #
-      #    Toolsmiths will reap old and orphaned clusters       #
-      #                                                         #
-      #      bucket_path: prod/[Pipeline Name]/                 #
-      #                                                         #
-      # 2) Long lived clusters for development.                 #
-      #    The team that creates it is responsible for cluster  #
-      #                                                         #
-      #     bucket_path: dev/[Team Name]/                       #
-      #                                                         #
-      ###########################################################
-      bucket_path: {{tf-bucket-path}}
+      bucket_path: clusters/
 
 - name: gpdb_src
   type: git
@@ -146,7 +133,7 @@ ccp_gen_cluster_default_params_anchor: &ccp_gen_cluster_default_params
   AWS_ACCESS_KEY_ID: {{gpdb4-tf-machine-access-key-id}}
   AWS_SECRET_ACCESS_KEY: {{gpdb4-tf-machine-secret-access-key}}
   AWS_DEFAULT_REGION: {{aws-region}}
-  BUCKET_PATH: {{tf-bucket-path}}
+  BUCKET_PATH: clusters/
   BUCKET_NAME: pivotal-pa-toolsmiths-pipeline-dynamic-terraform
 
 debug_sleep_anchor: &debug_sleep
