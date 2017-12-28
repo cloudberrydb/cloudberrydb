@@ -4601,7 +4601,7 @@ struct config_int ConfigureNamesInt_gp[] =
 			GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_join_arity_for_associativity_commutativity,
-		7, 0, INT_MAX, NULL, NULL
+		18, 0, INT_MAX, NULL, NULL
 	},
 
 	{
