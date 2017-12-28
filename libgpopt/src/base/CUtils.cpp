@@ -1210,6 +1210,21 @@ CUtils::FPhysicalJoin
 	return FHashJoin(pop) || FNLJoin(pop);
 }
 
+// check if a given operator is a physical inner join
+BOOL
+CUtils::FPhysicalInnerJoin
+	(
+	COperator *pop
+	)
+{
+	GPOS_ASSERT(NULL != pop);
+
+	return 	COperator::EopPhysicalInnerNLJoin == pop->Eopid() ||
+		COperator::EopPhysicalInnerIndexNLJoin == pop->Eopid() ||
+		COperator::EopPhysicalInnerHashJoin == pop->Eopid() ||
+		COperator::EopPhysicalCorrelatedInnerNLJoin == pop->Eopid();
+}
+
 // check if a given operator is a physical outer join
 BOOL
 CUtils::FPhysicalOuterJoin

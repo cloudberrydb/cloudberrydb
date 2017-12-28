@@ -115,6 +115,7 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/MultiLevel-CorrelatedExec.mdp",
 		"../data/dxl/minidump/OneLevel-CorrelatedExec.mdp",
 		"../data/dxl/minidump/MultiLevel-IN-Subquery.mdp",
+		"../data/dxl/minidump/Join-Dist-Key-No-Motion.mdp",
 		"../data/dxl/minidump/Join-With-Subq-Preds-1.mdp",
 
 #ifndef GPOS_32BIT
