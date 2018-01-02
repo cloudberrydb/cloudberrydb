@@ -46,19 +46,8 @@ namespace gpopt
 			// order
 			COrderSpec *m_pos;
 
-			// derive hashed distribution when index conditions have outer references
-			CDistributionSpecHashed *PdshashedDeriveWithOuterRefs(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
-
 			// private copy ctor
 			CPhysicalIndexScan(const CPhysicalIndexScan&);
-
-			// search the given array of predicates for an equality predicate that has one side equal to given expression
-			static
-			CExpression *PexprMatchEqualitySide
-				(
-				CExpression *pexprToMatch,
-				DrgPexpr *pdrgpexpr // array of predicates to inspect
-				);
 
 		public:
 
@@ -104,10 +93,6 @@ namespace gpopt
 			{
 				return m_ulOriginOpId;
 			}
-
-			// derive distribution
-			virtual
-			CDistributionSpec *PdsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
 
 			// operator specific hash function
 			virtual

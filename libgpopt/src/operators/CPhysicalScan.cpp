@@ -11,15 +11,15 @@
 
 #include "gpos/base.h"
 
-#include "gpopt/base/COptCtxt.h"
 #include "gpopt/base/CUtils.h"
+#include "gpopt/base/CCastUtils.h"
 #include "gpopt/base/CDistributionSpec.h"
 #include "gpopt/base/CDistributionSpecRandom.h"
 
 #include "gpopt/operators/CPhysicalScan.h"
+#include "gpopt/operators/CPredicateUtils.h"
 #include "gpopt/metadata/CTableDescriptor.h"
 #include "gpopt/metadata/CName.h"
-#include "gpopt/cost/ICostModel.h"
 
 using namespace gpopt;
 
@@ -155,6 +155,126 @@ CPhysicalScan::EpetOrder
 
 //---------------------------------------------------------------------------
 //	@function:
+//		CPhysicalScan::PexprMatchEqualitySide
+//
+//	@doc:
+//		Search the given array of predicates for an equality predicate
+//		that has one side equal to the given expression,
+//		if found, return the other side of equality, otherwise return NULL
+//
+//---------------------------------------------------------------------------
+CExpression *
+CPhysicalScan::PexprMatchEqualitySide
+	(
+	CExpression *pexprToMatch,
+	DrgPexpr *pdrgpexpr // array of predicates to inspect
+	)
+{
+	GPOS_ASSERT(NULL != pexprToMatch);
+	GPOS_ASSERT(NULL != pdrgpexpr);
+
+	CExpression *pexprMatching = NULL;
+	const ULONG ulSize = pdrgpexpr->UlLength();
+	for (ULONG ul = 0; ul < ulSize; ul++)
+	{
+		CExpression *pexprPred = (*pdrgpexpr)[ul];
+		if (!CPredicateUtils::FEquality(pexprPred))
+		{
+			continue;
+		}
+
+		// extract equality sides
+		CExpression *pexprPredOuter = (*pexprPred)[0];
+		CExpression *pexprPredInner = (*pexprPred)[1];
+
+		IMDId *pmdidTypeOuter = CScalar::PopConvert(pexprPredOuter->Pop())->PmdidType();
+		IMDId *pmdidTypeInner = CScalar::PopConvert(pexprPredInner->Pop())->PmdidType();
+		if (!pmdidTypeOuter->FEquals(pmdidTypeInner))
+		{
+			// only consider equality of identical types
+			continue;
+		}
+
+		pexprToMatch = CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprToMatch);
+		if (CUtils::FEqual(CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprPredOuter), pexprToMatch))
+		{
+			pexprMatching = pexprPredInner;
+			break;
+		}
+
+		if (CUtils::FEqual(CCastUtils::PexprWithoutBinaryCoercibleCasts(pexprPredInner), pexprToMatch))
+		{
+			pexprMatching = pexprPredOuter;
+			break;
+		}
+	}
+
+	return pexprMatching;
+}
+
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CPhysicalScan::PdshashedDeriveWithOuterRefs
+//
+//	@doc:
+//		Derive hashed distribution when predicates have outer references
+//
+//---------------------------------------------------------------------------
+CDistributionSpecHashed *
+CPhysicalScan::PdshashedDeriveWithOuterRefs
+	(
+	IMemoryPool *pmp,
+	CExpressionHandle &exprhdl
+	)
+	const
+{
+	GPOS_ASSERT(exprhdl.FHasOuterRefs());
+	GPOS_ASSERT(CDistributionSpec::EdtHashed == m_pds->Edt());
+
+	CExpression *pexprIndexPred = exprhdl.PexprScalarChild(0 /*ulChildIndex*/);
+	DrgPexpr *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(pmp, pexprIndexPred);
+
+	DrgPexpr *pdrgpexprMatching = GPOS_NEW(pmp) DrgPexpr(pmp);
+	CDistributionSpecHashed *pdshashed = CDistributionSpecHashed::PdsConvert(m_pds);
+	DrgPexpr *pdrgpexprHashed = pdshashed->Pdrgpexpr();
+	const ULONG ulSize = pdrgpexprHashed->UlLength();
+
+	BOOL fSuccess = true;
+	for (ULONG ul = 0; fSuccess && ul < ulSize; ul++)
+	{
+		CExpression *pexpr = (*pdrgpexprHashed)[ul];
+		CExpression *pexprMatching = PexprMatchEqualitySide(pexpr, pdrgpexpr);
+		fSuccess = (NULL != pexprMatching);
+		if (fSuccess)
+		{
+			pexprMatching->AddRef();
+			pdrgpexprMatching->Append(pexprMatching);
+		}
+	}
+	pdrgpexpr->Release();
+
+	if (fSuccess)
+	{
+		GPOS_ASSERT(pdrgpexprMatching->UlLength() == pdrgpexprHashed->UlLength());
+
+		// create a matching hashed distribution request
+		BOOL fNullsColocated = pdshashed->FNullsColocated();
+		CDistributionSpecHashed *pdshashedEquiv = GPOS_NEW(pmp) CDistributionSpecHashed(pdrgpexprMatching, fNullsColocated);
+
+		pdrgpexprHashed->AddRef();
+		CDistributionSpecHashed *pdshashedResult = GPOS_NEW(pmp) CDistributionSpecHashed(pdrgpexprHashed, fNullsColocated, pdshashedEquiv);
+
+		return pdshashedResult;
+	}
+
+	pdrgpexprMatching->Release();
+
+	return NULL;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
 //		CPhysicalScan::PdsDerive
 //
 //	@doc:
@@ -164,11 +284,27 @@ CPhysicalScan::EpetOrder
 CDistributionSpec *
 CPhysicalScan::PdsDerive
 	(
-	IMemoryPool *, // pmp
-	CExpressionHandle & // exprhdl
+	IMemoryPool *pmp,
+	CExpressionHandle &exprhdl
 	)
 	const
 {
+	BOOL fIndexOrBitmapScan = COperator::EopPhysicalIndexScan == Eopid() ||
+				COperator::EopPhysicalBitmapTableScan == Eopid();
+	if (fIndexOrBitmapScan &&
+		CDistributionSpec::EdtHashed == m_pds->Edt() &&
+		exprhdl.FHasOuterRefs())
+	{
+		// if index conditions have outer references and index relation is hashed,
+		// check to see if we can derive an equivalent hashed distribution for the
+		// outer references
+		CDistributionSpecHashed *pdshashed = PdshashedDeriveWithOuterRefs(pmp, exprhdl);
+		if (NULL != pdshashed)
+		{
+			return pdshashed;
+		}
+	}
+
 	m_pds->AddRef();
 
 	return m_pds;

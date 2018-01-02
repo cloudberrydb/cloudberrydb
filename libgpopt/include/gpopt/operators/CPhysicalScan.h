@@ -13,7 +13,9 @@
 
 #include "gpos/base.h"
 #include "gpopt/operators/CPhysical.h"
+#include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/base/CCTEMap.h"
+#include "gpopt/base/CDistributionSpecHashed.h"
 
 namespace gpopt
 {
@@ -69,6 +71,22 @@ namespace gpopt
 			
 			// compute stats of underlying table
 			void ComputeTableStats(IMemoryPool *pmp);
+
+			// derive hashed distribution when index conditions have outer references
+			CDistributionSpecHashed *PdshashedDeriveWithOuterRefs
+				(
+				IMemoryPool *pmp,
+				CExpressionHandle &exprhdl
+				) const;
+
+			// search the given array of predicates for an equality predicate that has
+			// one side equal to given expression
+			static
+			CExpression *PexprMatchEqualitySide
+				(
+				CExpression *pexprToMatch,
+				DrgPexpr *pdrgpexpr // array of predicates to inspect
+				);
 
 			// private copy ctor
 			CPhysicalScan(const CPhysicalScan&);
