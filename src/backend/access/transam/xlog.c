@@ -6514,13 +6514,6 @@ StartupXLOG(void)
 				 errhint("If this has occurred more than once something unexpected is happening"
 				" after standby has been promoted"),
 				 errSendAlert(true)));
-	else if (ControlFile->state == DB_IN_STANDBY_NEW_TLI_SET)
-		ereport(LOG,
-				(errmsg("database system was interrupted post new TLI was setup on standby promotion at %s",
-						str_time(ControlFile->checkPointCopy.time)),
-						 errhint("If this has occurred more than once something unexpected is happening"
-						" after standby has been promoted and new TLI has been set"),
-				 errSendAlert(true)));
 	else if (ControlFile->state == DB_IN_PRODUCTION)
 		ereport(LOG,
 				(errmsg("database system was interrupted; last known up at %s",
@@ -6563,8 +6556,7 @@ StartupXLOG(void)
 
 	if (StandbyModeRequested)
 	{
-		Assert(ControlFile->state != DB_IN_CRASH_RECOVERY
-				&& ControlFile->state != DB_IN_STANDBY_NEW_TLI_SET);
+		Assert(ControlFile->state != DB_IN_CRASH_RECOVERY);
 
 		/*
 		 * If the standby was promoted (last time) and recovery.conf
@@ -6837,8 +6829,7 @@ StartupXLOG(void)
 					(errmsg("database system was not properly shut down; "
 							"automatic recovery in progress")));
 
-			if (ControlFile->state != DB_IN_STANDBY_PROMOTED
-				&& ControlFile->state != DB_IN_STANDBY_NEW_TLI_SET)
+			if (ControlFile->state != DB_IN_STANDBY_PROMOTED)
 				ControlFile->state = DB_IN_CRASH_RECOVERY;
 		}
 
@@ -7436,27 +7427,11 @@ StartupXLOG(void)
 							   true);
 #endif
 
-	/*
-	 * If this system was a standby which was promoted (or whose catalog is not
-	 * yet updated after promote), we delay going into actual production till Pass4.
-	 * Pass4 updates the catalog to comply with the standby promotion changes.
-	 */
 	LWLockAcquire(ControlFileLock, LW_EXCLUSIVE);
-	if (ControlFile->state == DB_IN_STANDBY_PROMOTED
-		|| ControlFile->state == DB_IN_STANDBY_NEW_TLI_SET)
-	{
-		ControlFile->state = DB_IN_STANDBY_NEW_TLI_SET;
-		ControlFile->time = (pg_time_t) time(NULL);
-		UpdateControlFile();
-		ereport(LOG, (errmsg("database system is almost ready")));
-	}
-	else
-	{
-		ControlFile->state = DB_IN_PRODUCTION;
-		ControlFile->time = (pg_time_t) time(NULL);
-		UpdateControlFile();
-		ereport(LOG, (errmsg("database system is ready")));
-	}
+	ControlFile->state = DB_IN_PRODUCTION;
+	ControlFile->time = (pg_time_t) time(NULL);
+	UpdateControlFile();
+	ereport(LOG, (errmsg("database system is ready")));
 	LWLockRelease(ControlFileLock);
 
 	{
@@ -8318,8 +8293,7 @@ CreateCheckPoint(int flags)
 		 *
 		 * Refer to Startup_InProduction() for more details
 		 */
-		if (ControlFile->state != DB_IN_STANDBY_PROMOTED
-			&& ControlFile->state != DB_IN_STANDBY_NEW_TLI_SET)
+		if (ControlFile->state != DB_IN_STANDBY_PROMOTED)
 		{
 			LWLockAcquire(ControlFileLock, LW_EXCLUSIVE);
 			ControlFile->state = DB_SHUTDOWNING;
@@ -8675,8 +8649,7 @@ CreateCheckPoint(int flags)
 		 * Ugly fix to dis-allow changing pg_control state
 		 * for standby promotion continuity
 		 */
-		if (ControlFile->state != DB_IN_STANDBY_PROMOTED
-			&& ControlFile->state != DB_IN_STANDBY_NEW_TLI_SET)
+		if (ControlFile->state != DB_IN_STANDBY_PROMOTED)
 			ControlFile->state = DB_SHUTDOWNED;
 	}
 

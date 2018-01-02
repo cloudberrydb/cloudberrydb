@@ -59,8 +59,6 @@ dbState(DBState state)
 			return _("in standby mode");
 		case DB_IN_STANDBY_PROMOTED:
 			return _("in standby mode (promoted)");
-		case DB_IN_STANDBY_NEW_TLI_SET:
-			return _("in standby mode (new tli set)");
 		case DB_IN_PRODUCTION:
 			return _("in production");
 	}
