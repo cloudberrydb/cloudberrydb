@@ -24,8 +24,6 @@
 #include "commands/queue.h"
 #include "executor/execUtils.h"
 #include "executor/instrument.h"
-#include "nodes/pg_list.h"
-#include "nodes/print.h"
 #include "optimizer/clauses.h"
 #include "optimizer/planner.h"
 #include "optimizer/var.h"
@@ -34,9 +32,7 @@
 #include "tcop/tcopprot.h"
 #include "utils/builtins.h"
 #include "utils/guc.h"
-#include "utils/json.h"
 #include "utils/lsyscache.h"
-#include "utils/memutils.h"             /* AllocSetContextCreate() */
 #include "utils/tuplesort.h"
 #include "utils/snapmgr.h"
 
@@ -77,8 +73,6 @@ typedef struct ExplainState
     struct CdbExplain_ShowStatCtx  *showstatctx;    /* EXPLAIN ANALYZE info */
     Slice          *currentSlice;   /* slice whose nodes we are visiting */
 } ExplainState;
-
-extern bool Test_print_direct_dispatch_info;
 
 static void ExplainOneQuery(Query *query, ExplainStmt *stmt,
 				const char *queryString,
@@ -372,9 +366,7 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ExplainStmt *stmt,
 	instr_time	starttime;
 	double		totaltime = 0;
 	StringInfoData buf;
-	EState     *estate = NULL;
 	int			eflags;
-	char	   *settings;
 
 	/*
 	 * Use a snapshot with an updated command ID to ensure this query sees
@@ -399,10 +391,10 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ExplainStmt *stmt,
 				GetResqueuePriority(GetResQueueId()));
 	}
 
-    /*
-     * Start timing.
-     */
-    INSTR_TIME_SET_CURRENT(starttime);
+	/*
+	 * Start timing.
+	 */
+	INSTR_TIME_SET_CURRENT(starttime);
 
 	/* If analyzing, we need to cope with queued triggers */
 	if (stmt->analyze)
@@ -443,8 +435,6 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ExplainStmt *stmt,
 	}
 #endif
 
-    estate = queryDesc->estate;
-
 	/* Execute the plan for statistics if asked for */
 	if (stmt->analyze)
 	{
@@ -452,12 +442,12 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ExplainStmt *stmt,
 		ExecutorRun(queryDesc, ForwardScanDirection, 0L);
 
 		/* Wait for completion of all qExec processes. */
-		if (estate->dispatcherState && estate->dispatcherState->primaryResults)
-			CdbCheckDispatchResult(estate->dispatcherState, DISPATCH_WAIT_NONE);
+		if (queryDesc->estate->dispatcherState && queryDesc->estate->dispatcherState->primaryResults)
+			CdbCheckDispatchResult(queryDesc->estate->dispatcherState, DISPATCH_WAIT_NONE);
 
 		/* We can't clean up 'till we're done printing the stats... */
-        /* Suspend timing. */
-	    totaltime += elapsed_time(&starttime);
+		/* Suspend timing. */
+		totaltime += elapsed_time(&starttime);
 	}
 
 	/* Create textual dump of plan tree */
@@ -502,15 +492,20 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ExplainStmt *stmt,
      * Display per-slice and whole-query statistics.
      */
     if (stmt->analyze)
-        cdbexplain_showExecStatsEnd(queryDesc->plannedstmt, queryDesc->showstatctx, &buf, estate);
+        cdbexplain_showExecStatsEnd(queryDesc->plannedstmt, queryDesc->showstatctx,
+									&buf, queryDesc->estate);
 
     /*
      * Show non-default GUC settings that might have affected the plan.
      */
-	settings = gp_guc_list_show(PGC_S_DEFAULT, gp_guc_list_for_explain);
-	if (*settings)
-		appendStringInfo(&buf, "Settings:  %s\n", settings);
-	pfree(settings);
+	{
+		char	   *settings;
+
+		settings = gp_guc_list_show(PGC_S_DEFAULT, gp_guc_list_for_explain);
+		if (*settings)
+			appendStringInfo(&buf, "Settings:  %s\n", settings);
+		pfree(settings);
+	}
 
     /* Display optimizer status: either 'legacy query optimizer' or Orca version number */
 	appendStringInfo(&buf, "Optimizer status: ");
@@ -643,6 +638,7 @@ ExplainPrintPlan(StringInfo str, QueryDesc *queryDesc,
 		appendStringInfo(str, "  ->  ");
 		indent = 3;
 	}
+
 	explain_outNode(str,
 					childPlan, queryDesc->planstate,
 					NULL, NULL, indent, &es);
@@ -1358,10 +1354,6 @@ explain_outNode(StringInfo str,
 	}
 
 	appendStringInfoChar(str, '\n');
-
-#ifdef DEBUG_EXPLAIN
-	appendStringInfo(str, "plan->targetlist=%s\n", nodeToString(plan->targetlist));
-#endif
 
 	/* target list */
 	if (es->printTList)
@@ -2099,8 +2091,6 @@ show_sort_keys(Plan *sortplan, int nkeys, AttrNumber *keycols,
 
 	if (nkeys <= 0)
 		return;
-
-	useprefix = list_length(es->rtable) > 1;    /*CDB*/
 
 	for (i = 0; i < indent; i++)
 		appendStringInfo(str, "  ");
