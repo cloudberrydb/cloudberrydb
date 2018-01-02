@@ -2110,11 +2110,8 @@ CTranslatorExprToDXL::PdxlnResultFromConstTableGet
 	{
 		GPOS_ASSERT(NULL != pdrgpcrCTGOutput);
 
-		CColRefSet *pcrsOutput = GPOS_NEW(m_pmp) CColRefSet(m_pmp);
-		pcrsOutput->Include(pdrgpcrCTGOutput);
-
-		pdxlnPrL = PdxlnProjList(pcrsOutput, pdrgpcr);
-		pcrsOutput->Release();
+		CColRefSet *pcrsOutput = CDrvdPropRelational::Pdprel(pexprCTG->Pdp(CDrvdProp::EptRelational))->PcrsOutput();
+		pdxlnPrL = PdxlnProjList(pcrsOutput, pdrgpcrCTGOutput);
 
 		CDXLNode *pdxlnValuesScan = CTranslatorExprToDXLUtils::PdxlnValuesScan
 																(
