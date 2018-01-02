@@ -3277,7 +3277,6 @@ set_joinrel_size_estimates(PlannerInfo *root, RelOptInfo *rel,
 
 }
 
-
 /*
  * set_function_size_estimates
  *		Set the size estimates for a base relation that is a function call.

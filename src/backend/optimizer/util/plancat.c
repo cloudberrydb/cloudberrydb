@@ -1107,7 +1107,6 @@ join_selectivity(PlannerInfo *root,
 	return (Selectivity) result;
 }
 
-
 /*
  * has_unique_index
  *

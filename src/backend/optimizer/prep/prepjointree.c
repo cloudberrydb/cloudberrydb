@@ -225,9 +225,9 @@ pull_up_sublinks_jointree_recurse(PlannerInfo *root, Node *jtnode,
 
 		/* Recurse to process children and collect their relids */
 		j->larg = pull_up_sublinks_jointree_recurse(root, j->larg,
-														&leftrelids);
+													&leftrelids);
 		j->rarg = pull_up_sublinks_jointree_recurse(root, j->rarg,
-														&rightrelids);
+													&rightrelids);
 
 		/*
 		 * Now process qual, showing appropriate child relids as available,
@@ -250,8 +250,8 @@ pull_up_sublinks_jointree_recurse(PlannerInfo *root, Node *jtnode,
 		 * We don't expect to see any pre-existing JOIN_SEMI or JOIN_ANTI
 		 * nodes here.
 		 */
-		 switch (j->jointype)
-		 {
+		switch (j->jointype)
+		{
 			case JOIN_INNER:
 				j->quals = pull_up_sublinks_qual_recurse(root, j->quals,
 														 bms_union(leftrelids,
@@ -662,6 +662,7 @@ pull_up_subqueries(PlannerInfo *root, Node *jtnode,
 			is_simple_union_all(rte->subquery))
 			return pull_up_simple_union_all(root, jtnode, rte);
 #endif
+
 		/* Otherwise, do nothing at this node. */
 	}
 	else if (IsA(jtnode, FromExpr))
@@ -720,7 +721,6 @@ pull_up_subqueries(PlannerInfo *root, Node *jtnode,
 			 (int) nodeTag(jtnode));
 	return jtnode;
 }
-
 
 /*
  * pull_up_simple_subquery
@@ -1112,7 +1112,7 @@ is_simple_subquery(PlannerInfo *root, Query *subquery)
 	 * limiting, or WITH.  (XXX WITH could possibly be allowed later)
 	 */
 	if (subquery->hasAggs ||
-	    subquery->hasWindowFuncs ||
+		subquery->hasWindowFuncs ||
 		subquery->groupClause ||
 		subquery->havingQual ||
 		subquery->windowClause ||
@@ -1988,7 +1988,6 @@ substitute_multiple_relids(Node *node, int varno, Relids subrelids)
 									(void *) &context,
 									0);
 }
-
 
 /*
  * fix_append_rel_relids: update RT-index fields of AppendRelInfo nodes

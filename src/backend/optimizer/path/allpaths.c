@@ -1448,7 +1448,7 @@ push_down_restrict(PlannerInfo *root, RelOptInfo *rel,
  *
  * 2. If the subquery contains any window functions, we can't push quals
  * into it, because that would change the results.
-
+ *
  * 3. If the subquery contains EXCEPT or EXCEPT ALL set ops we cannot push
  * quals into it, because that would change the results.
  *

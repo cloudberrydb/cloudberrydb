@@ -42,6 +42,7 @@ static List *select_nonredundant_join_list(List *restrictinfo_list,
 static bool join_clause_is_redundant(RestrictInfo *rinfo,
 						 List *reference_list);
 
+
 /*
  * make_restrictinfo
  *

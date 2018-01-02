@@ -573,16 +573,16 @@ make_join_rel(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2)
 		bms_free(joinrelids);
 		return NULL;
 	}
-	
+
 	/* Swap rels if needed to match the join info. */
 	if (reversed)
 	{
 		RelOptInfo *trel = rel1;
-		
+
 		rel1 = rel2;
 		rel2 = trel;
 	}
-	
+
 	/*
 	 * If it's a plain inner join, then we won't have found anything in
 	 * join_info_list.	Make up a SpecialJoinInfo so that selectivity

@@ -185,7 +185,7 @@ add_to_flat_tlist_junk(List *tlist, List *exprs, bool resjunk)
 
 /*
  * get_tlist_exprs
- *		Get Ejust the expression subtrees of a tlist
+ *		Get just the expression subtrees of a tlist
  *
  * Resjunk columns are ignored unless includeJunk is true
  */

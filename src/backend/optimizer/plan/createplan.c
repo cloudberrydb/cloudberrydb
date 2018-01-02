@@ -4153,7 +4153,7 @@ make_recursive_union(List *tlist,
 	RecursiveUnion *node = makeNode(RecursiveUnion);
 	Plan	   *plan = &node->plan;
 	int			numCols = list_length(distinctList);
-	
+
 	cost_recursive_union(plan, lefttree, righttree);
 
 	plan->targetlist = tlist;
