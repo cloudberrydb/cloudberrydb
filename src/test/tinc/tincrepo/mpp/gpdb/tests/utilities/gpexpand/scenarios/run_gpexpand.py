@@ -291,7 +291,7 @@ class GpExpandTests(MPPTestCase):
         tinctest.logger.info("pexpect 4: %s" %child.before)
         child.sendline (str(num_new_segs))
 
-        count_filespaces = self.get_value_from_query("select distinct count (*) from gp_persistent_filespace_node;");
+        count_filespaces = self.get_value_from_query("select count(*) from pg_filespace;");
 
 
         for i in range(int(num_new_segs)):
@@ -344,7 +344,7 @@ class GpExpandTests(MPPTestCase):
            fs_path_mir= os.path.join(mirror_data_dir, filespaces , "mirror/")
            self.create_segment_dirs(fs_path_pri, fs_path_mir,"make filespace prim and mirr dirs" )
 
-        count_filespaces = self.get_value_from_query("select distinct count (*) from gp_persistent_filespace_node;");
+        count_filespaces = self.get_value_from_query("select count(*) from pg_filespace;");
         for j in range(int(count_filespaces)):
            fs_path_pri= filespace_data_dir+"/filespace_pri_"+str(j)
            fs_path_mir= filespace_data_dir+"/filesapce_mir_"+str(j)
