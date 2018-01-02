@@ -1229,54 +1229,8 @@ insert into mpp3487 select i from generate_series(1, 9) i;
 vacuum analyze mpp3487;
 select  schemaname, tablename, attname, null_frac, avg_width, n_distinct, most_common_freqs, histogram_bounds from pg_stats where tablename like 'mpp3487%' order by 2;
 drop table mpp3487;
--- Negative Test for Alter subpartition template
-CREATE TABLE qa147sales (trans_id int, date date, amount 
-decimal(9,2), region text)  
-DISTRIBUTED BY (trans_id) 
-PARTITION BY RANGE (date) 
-SUBPARTITION BY LIST (region) 
-SUBPARTITION TEMPLATE 
-( SUBPARTITION usa VALUES ('usa'), 
-  SUBPARTITION asia VALUES ('asia'), 
-  SUBPARTITION europe VALUES ('europe') ) 
-( START (date '2008-01-01') INCLUSIVE 
-   END (date '2009-01-01') EXCLUSIVE 
-   EVERY (INTERVAL '1 month') ); 
 
--- Invalid TEMPLATE
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (NULL);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (-1);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (10000);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE ('');
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE ("");
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (*);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (1*);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE ("1*");
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (ABC);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE ($);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (%%);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (#);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (!);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (&);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (^);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (@);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (<);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (>);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (.);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (?);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (/);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (|);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (~);
-ALTER TABLE qa147sales SET SUBPARTITION TEMPLATE (`);
-
-select * from pg_partition_templates where tablename='qa147sales';
-
-drop table qa147sales;
-
-select * from pg_partition_templates where tablename='qa147sales';;
-
--- Now with Schema
--- Negative Test for alter subpartition template with Schema
+-- Negative Tests for alter subpartition template syntax with Schema
 create schema qa147;
 CREATE TABLE qa147.sales (trans_id int, date date, amount
 decimal(9,2), region text)
