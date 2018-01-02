@@ -409,7 +409,8 @@ alter table mpp3265 drop partition for (0);
 ERROR:  FOR expression matches DEFAULT partition "default_part" of relation "mpp3265"
 HINT:  FOR expression may only specify a non-default partition in this context.
 drop table mpp3265;
-CREATE TABLE mpp3237(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
+-- Test very deeply nested subpartitioning
+CREATE TABLE MULTI_PART2(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
 distributed by (a)
 partition by range (a)
 subpartition by range (b) subpartition template ( start (1) end (2) every (1)),
@@ -438,7 +439,42 @@ subpartition by range (x) subpartition template ( start (1) end (2) every (1)),
 subpartition by range (y) subpartition template ( start (1) end (2) every (1)),
 subpartition by range (z) subpartition template ( start (1) end (2) every (1))
 ( start (1) end (2) every (1));
-DROP TABLE mpp3237;
+alter table multi_part2 rename to multi_part2_0000000;
+ERROR:  relation name "multi_part2_0000000_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6_prt_1" for child partition is too long
+alter table multi_part2 rename to m_0000000;
+WARNING:  renamed 6 partitions, skipped 20 child partitions due to name truncation
+select tablename, partitionlevel, partitiontablename, partitionname, partitionrank, partitionboundary from pg_partitions where tablename like 'm_000%' order by tablename;
+ tablename | partitionlevel |                       partitiontablename                        | partitionname | partitionrank |      partitionboundary      
+-----------+----------------+-----------------------------------------------------------------+---------------+---------------+-----------------------------
+ m_0000000 |              0 | m_0000000_1_prt_1                                               |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |              1 | m_0000000_1_prt_1_2_prt_1                                       |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |              2 | m_0000000_1_prt_1_2_prt_1_3_prt_1                               |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |              3 | m_0000000_1_prt_1_2_prt_1_3_prt_1_4_prt_1                       |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |              4 | m_0000000_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1               |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |              5 | m_0000000_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6_prt_1       |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |              6 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6_p_7_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |              7 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6_p_8_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |              8 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6_p_9_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |              9 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__10_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             10 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__11_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             11 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__12_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             12 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__13_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             13 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__14_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             14 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__15_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             15 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__16_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             16 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__17_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             17 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__18_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             18 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__19_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             19 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__20_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             20 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__21_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             21 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__22_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             22 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__23_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             23 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__24_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             24 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__25_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+ m_0000000 |             25 | multi_part2_1_prt_1_2_prt_1_3_prt_1_4_prt_1_5_prt_1_6__26_prt_1 |               |             1 | START (1) END (2) EVERY (1)
+(26 rows)
+
+drop table m_0000000;
 drop  TABLE IF EXISTS INT_P1A CASCADE;
 CREATE TABLE INT_P1A ( num1    INTEGER NOT NULL,
                       num2     INTEGER NOT NULL,

@@ -378,47 +378,6 @@ alter table mpp3542_0000000000111111111122222222223333333333444444444455555 rena
 -- MPP-3542
 alter table  mpp3542_0000000000111111111122222222223333333333444444444455555 rename to m; 
 
-
-CREATE TABLE MULTI_PART2(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
-distributed by (a)
-partition by range (a)
-subpartition by range (b) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (c) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (d) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (e) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (f) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (g) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (h) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (i) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (j) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (k) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (l) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (m) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (n) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (o) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (p) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (q) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (r) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (s) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (t) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (u) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (v) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (w) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (x) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (y) subpartition template ( start (1) end (2) every (1)),
-subpartition by range (z) subpartition template ( start (1) end (2) every (1))
-( start (1) end (2) every (1));
-
-alter table multi_part2 rename to multi_part2_0000000;
-alter table multi_part2 rename to m_0000000;
-
--- We want to check both m and m_00000, thus I didn't put where clause
--- Assumes that there are no other partitions
--- order 2
-select tablename, partitionlevel, partitiontablename, partitionname, partitionrank, partitionboundary from pg_partitions where tablename like 'm_000%' order by tablename;
-
-drop table m;
-drop table m_0000000;
 create table mpp3466 (i int) partition by range(i) (start(1) end(10) every(2), default partition f);
 alter table mpp3466 split partition f at (3) into (partition f, partition new);
 drop table mpp3466;

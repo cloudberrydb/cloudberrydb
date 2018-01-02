@@ -363,7 +363,9 @@ alter table mpp3265 drop partition for (-5);
 alter table mpp3265 drop partition for (0);
 
 drop table mpp3265;
-CREATE TABLE mpp3237(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
+
+-- Test very deeply nested subpartitioning
+CREATE TABLE MULTI_PART2(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
 distributed by (a)
 partition by range (a)
 subpartition by range (b) subpartition template ( start (1) end (2) every (1)),
@@ -392,8 +394,12 @@ subpartition by range (x) subpartition template ( start (1) end (2) every (1)),
 subpartition by range (y) subpartition template ( start (1) end (2) every (1)),
 subpartition by range (z) subpartition template ( start (1) end (2) every (1))
 ( start (1) end (2) every (1));
+alter table multi_part2 rename to multi_part2_0000000;
+alter table multi_part2 rename to m_0000000;
+select tablename, partitionlevel, partitiontablename, partitionname, partitionrank, partitionboundary from pg_partitions where tablename like 'm_000%' order by tablename;
 
-DROP TABLE mpp3237;
+drop table m_0000000;
+
 drop  TABLE IF EXISTS INT_P1A CASCADE;
 CREATE TABLE INT_P1A ( num1    INTEGER NOT NULL,
                       num2     INTEGER NOT NULL,
