@@ -830,67 +830,6 @@ LWLockRelease(LWLockId lockid)
 }
 
 /*
- * LWLockWaitCancel - cancel currently waiting on LW lock
- *
- * Used to clean up before immediate exit in certain very special situations
- * like shutdown request to Filerep Resync Manger or Workers. Although this is
- * not the best practice it is necessary to avoid any starvation situations
- * during filerep transition situations (Resync Mode -> Changetracking mode)
- *
- * Note:- This function should not be used for normal situations. It is strictly
- * written for very special situations. If you need to use this, you may want
- * to re-think your design.
- */
-void
-LWLockWaitCancel(void)
-{
-	volatile PGPROC *proc = MyProc;
-	volatile LWLock *lwWaitingLock = NULL;
-
-	/* We better have a PGPROC structure */
-	Assert(proc != NULL);
-
-	/* If we're not waiting on any LWLock then nothing doing here */
-	if (!proc->lwWaiting)
-		return;
-
-	lwWaitingLock = &(LWLockArray[lwWaitingLockId].lock);
-
-	/* Protect from other modifiers */
-	SpinLockAcquire(&lwWaitingLock->mutex);
-
-	PGPROC *currProc = lwWaitingLock->head;
-
-	/* Search our PROC in the waiters list and remove it */
-	if (proc == lwWaitingLock->head)
-	{
-		lwWaitingLock->head = currProc = proc->lwWaitLink;
-		proc->lwWaitLink = NULL;
-	}
-	else
-	{
-		while(currProc != NULL)
-		{
-			if (currProc->lwWaitLink == proc)
-			{
-				currProc->lwWaitLink = proc->lwWaitLink;
-				proc->lwWaitLink = NULL;
-				break;
-			}
-			currProc = currProc->lwWaitLink;
-		}
-	}
-
-	if (lwWaitingLock->tail == proc)
-		lwWaitingLock->tail = currProc;
-
-	/* Done with modification */
-	SpinLockRelease(&lwWaitingLock->mutex);
-
-	return;
-}
-
-/*
  * LWLockReleaseAll - release all currently-held locks
  *
  * Used to clean up after ereport(ERROR). An important difference between this
