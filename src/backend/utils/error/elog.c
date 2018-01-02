@@ -88,7 +88,6 @@
 #include "cdb/cdbselect.h"
 #include "pgtime.h"
 
-#include "utils/debugbreak.h"
 #include "utils/builtins.h"  /* gp_elog() */
 
 #include "miscadmin.h"

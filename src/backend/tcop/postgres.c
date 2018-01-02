@@ -102,7 +102,6 @@
 
 #include "cdb/cdbfilerep.h"
 #include "postmaster/primary_mirror_mode.h"
-#include "utils/debugbreak.h"
 #include "utils/session_state.h"
 #include "utils/vmem_tracker.h"
 

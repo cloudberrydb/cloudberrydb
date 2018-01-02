@@ -36,7 +36,6 @@
 #include "libpq/libpq-be.h"
 #include "libpq/ip.h"
 #include "utils/builtins.h"
-#include "utils/debugbreak.h"
 #include "utils/faultinjector.h"
 #include "port/atomics.h"
 #include "port/pg_crc32c.h"

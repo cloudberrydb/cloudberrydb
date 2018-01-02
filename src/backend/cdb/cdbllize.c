@@ -35,8 +35,6 @@
 #include "nodes/value.h"		/* for makeString() */
 #include "utils/relcache.h"		/* RelationGetPartitioningKey() */
 
-#include "utils/debugbreak.h"
-
 #include "cdb/cdbvars.h"
 #include "cdb/cdbplan.h"
 #include "cdb/cdbpullup.h"

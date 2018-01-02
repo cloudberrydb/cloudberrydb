@@ -131,7 +131,6 @@
 #include "executor/nodeTableScan.h"
 #include "pg_trace.h"
 #include "tcop/tcopprot.h"
-#include "utils/debugbreak.h"
 
 #include "codegen/codegen_wrapper.h"
 

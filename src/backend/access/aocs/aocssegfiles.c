@@ -50,7 +50,6 @@
 #include "executor/executor.h"
 #include "storage/lmgr.h"
 
-#include "utils/debugbreak.h"
 #include "funcapi.h"
 #include "access/heapam.h"
 #include "catalog/pg_type.h"

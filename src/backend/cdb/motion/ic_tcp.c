@@ -30,7 +30,6 @@
 #include "libpq/libpq-be.h"
 #include "libpq/ip.h"
 #include "utils/builtins.h"
-#include "utils/debugbreak.h"
 
 #include "cdb/cdbselect.h"
 #include "cdb/tupchunklist.h"

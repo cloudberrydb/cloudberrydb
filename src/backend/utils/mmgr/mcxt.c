@@ -27,8 +27,6 @@
 #include "utils/memutils.h"
 #include "utils/memaccounting.h"
 
-#include "utils/debugbreak.h"
-
 #include "cdb/cdbvars.h"                    /* gp_process_memory_cutoff_bytes */
 #include "inttypes.h"
 

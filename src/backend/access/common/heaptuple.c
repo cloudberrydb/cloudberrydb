@@ -67,8 +67,6 @@
 #include "catalog/pg_type.h"
 #include "cdb/cdbvars.h"                /* Gp_segment */
 
-#include "utils/debugbreak.h"
-
 /* Does att's datatype allow packing into the 1-byte-header varlena format? */
 #define ATT_IS_PACKABLE(att) \
 	((att)->attlen == -1 && (att)->attstorage != 'p')

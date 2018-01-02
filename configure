@@ -862,7 +862,6 @@ with_wal_segsize
 with_CC
 enable_depend
 enable_cassert
-enable_debugbreak
 enable_debugntuplestore
 enable_testutils
 enable_orca
@@ -1551,7 +1550,6 @@ Optional Features:
   --enable-tap-tests      enable TAP tests (requires Perl and IPC::Run)
   --enable-depend         turn on automatic dependency tracking
   --enable-cassert        enable assertion checks (for debugging)
-  --enable-debugbreak     enable debug_break and debug_break_n (for debugging)
   --enable-debugntuplestore
                           enable debug_ntuplestore (for debugging)
   --enable-testutils      enable testing utilities
@@ -6194,36 +6192,6 @@ $as_echo "#define USE_ASSERT_CHECKING 1" >>confdefs.h
 
 else
   enable_cassert=no
-
-fi
-
-
-
-#
-# Enable debug_break
-#
-
-pgac_args="$pgac_args enable_debugbreak"
-
-# Check whether --enable-debugbreak was given.
-if test "${enable_debugbreak+set}" = set; then :
-  enableval=$enable_debugbreak;
-  case $enableval in
-    yes)
-
-$as_echo "#define USE_DEBUG_BREAK 1" >>confdefs.h
-
-      ;;
-    no)
-      :
-      ;;
-    *)
-      as_fn_error $? "no argument expected for --enable-debugbreak option" "$LINENO" 5
-      ;;
-  esac
-
-else
-  enable_debugbreak=no
 
 fi
 

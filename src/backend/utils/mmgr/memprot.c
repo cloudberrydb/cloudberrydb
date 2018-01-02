@@ -34,7 +34,6 @@
 #include "utils/memutils.h"
 
 #include "cdb/cdbvars.h"
-#include "utils/debugbreak.h"
 #include "utils/vmem_tracker.h"
 #include "utils/session_state.h"
 #include "utils/gp_alloc.h"

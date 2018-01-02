@@ -45,7 +45,6 @@
 #include "storage/procarray.h"
 #include "storage/smgr.h"
 #include "utils/datumstream.h"
-#include "utils/debugbreak.h"
 #include "utils/faultinjector.h"
 #include "utils/guc.h"
 #include "utils/inval.h"

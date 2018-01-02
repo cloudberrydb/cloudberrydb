@@ -445,7 +445,7 @@ devel : INSTLOC=$(DEVPATH)
 devel : CLIENTINSTLOC=$(CLIENTDEVPATH)
 devel : LOADERSINSTLOC=$(LOADERSDEVPATH)
 devel : GPPKGINSTLOC=$(GPPKGDEVPATH)
-devel : CONFIGFLAGS+= --enable-cassert --enable-debug --enable-testutils --enable-debugbreak --enable-depend
+devel : CONFIGFLAGS+= --enable-cassert --enable-debug --enable-testutils --enable-depend
 ifdef ENABLE_VPATH_BUILD
 devel : BUILDDIR=Debug
 devel : ISCONFIG=$(BUILDDIR)/GNUmakefile
@@ -493,7 +493,7 @@ endif
 
 dist_faultinj : CLIENTINSTLOC=$(CLIENTDISTPATH)
 dist_faultinj : LOADERSINSTLOC=$(LOADERSDISTPATH)
-dist_faultinj : CONFIGFLAGS+= --enable-testutils --enable-debugbreak
+dist_faultinj : CONFIGFLAGS+= --enable-testutils
 ifdef ENABLE_VPATH_BUILD
 dist_faultinj : BUILDDIR=Release
 dist_faultinj : ISCONFIG=$(BUILDDIR)/GNUmakefile

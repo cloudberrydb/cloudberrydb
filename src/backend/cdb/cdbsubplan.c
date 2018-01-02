@@ -24,8 +24,6 @@
 #include "cdb/cdbvars.h"		/* currentSliceId */
 #include "cdb/ml_ipc.h"
 
-#include "utils/debugbreak.h"
-
 typedef struct ParamWalkerContext
 {
 	plan_tree_base_prefix base; /* Required prefix for

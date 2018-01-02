@@ -21,8 +21,6 @@
 
 #include "cdb/cdbvars.h"
 
-#include "utils/debugbreak.h"
-
 #define MAX_ATTR_COUNT_STATIC_ALLOC 20
 
 /* Memory tuple format:

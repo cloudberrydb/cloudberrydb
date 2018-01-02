@@ -25,7 +25,6 @@
 #include "utils/builtins.h"
 #include "utils/memutils.h"
 #include "postmaster/primary_mirror_mode.h"
-#include "utils/debugbreak.h"
 
 #define WORKFILE_SET_MASK  "XXXXXXXXXX"
 

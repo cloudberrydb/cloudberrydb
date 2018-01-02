@@ -39,7 +39,6 @@
 #include "utils/dynahash.h"
 #include "utils/memutils.h"
 #include "utils/lsyscache.h"
-#include "utils/debugbreak.h"
 #include "utils/faultinjector.h"
 #include "utils/syscache.h"
 
