@@ -664,27 +664,6 @@ SELECT COUNT(*) FROM dml_ao_pt_r;
    100
 (1 row)
 
---Negative tests Insert column of different data type
-SELECT COUNT(*) FROM dml_ao_pt_r;
- count 
--------
-   100
-(1 row)
-
-SELECT COUNT(*) FROM (SELECT ('a')::int, dml_ao_pt_r.b,10 FROM dml_ao_pt_s WHERE dml_ao_pt_r.b = dml_ao_pt_s.b)foo;
-ERROR:  invalid input syntax for integer: "a"
-LINE 1: SELECT COUNT(*) FROM (SELECT ('a')::int, dml_ao_pt_r.b,10 FR...
-                                      ^
-INSERT INTO dml_ao_pt_r SELECT ('a')::int, dml_ao_pt_r.b,10 FROM dml_ao_pt_s WHERE dml_ao_pt_r.b = dml_ao_pt_s.b;
-ERROR:  invalid input syntax for integer: "a"
-LINE 1: INSERT INTO dml_ao_pt_r SELECT ('a')::int, dml_ao_pt_r.b,10 ...
-                                        ^
-SELECT COUNT(*) FROM dml_ao_pt_r;
- count 
--------
-   100
-(1 row)
-
 --Negative test case. INSERT has more expressions than target columns
 begin;
 SELECT COUNT(*) FROM dml_ao_pt_s;
@@ -1115,27 +1094,6 @@ SELECT COUNT(*) FROM dml_ao_r;
 
 INSERT INTO dml_ao_r SELECT dml_ao_r.* FROM dml_ao_r,dml_ao_s WHERE dml_ao_r.b = dml_ao_s.a and false;
 SELECT COUNT(*) FROM dml_ao_r;
- count 
--------
-   113
-(1 row)
-
---Negative test case. INSERT has more expressions than target columns
-SELECT COUNT(*) FROM dml_ao_s;
- count 
--------
-   113
-(1 row)
-
-SELECT COUNT(*) FROM (SELECT COUNT(*) as a, dml_ao_r.* FROM dml_ao_r, dml_ao_s WHERE dml_ao_s.a = dml_ao_r.a GROUP BY dml_ao_r.a, dml_ao_r.b, dml_ao_r.c)foo;
- count 
--------
-   110
-(1 row)
-
-INSERT INTO dml_ao_s SELECT COUNT(*) as a, dml_ao_r.* FROM dml_ao_r, dml_ao_s WHERE dml_ao_s.a = dml_ao_r.a GROUP BY dml_ao_r.a, dml_ao_r.b, dml_ao_r.c;
-ERROR:  INSERT has more expressions than target columns
-SELECT COUNT(*) FROM dml_ao_s;
  count 
 -------
    113
@@ -2002,48 +1960,6 @@ SELECT COUNT(*) FROM dml_co_r;
 
 INSERT INTO dml_co_r SELECT dml_co_r.* FROM dml_co_r,dml_co_s WHERE dml_co_r.b = dml_co_s.a and false;
 SELECT COUNT(*) FROM dml_co_r;
- count 
--------
-   113
-(1 row)
-
---Negative tests Insert column of different data type
-SELECT COUNT(*) FROM dml_co_r;
- count 
--------
-   113
-(1 row)
-
-SELECT COUNT(*) FROM ( SELECT ('a')::int, dml_co_r.b,10 FROM dml_co_s WHERE dml_co_r.b = dml_co_s.b)foo;
-ERROR:  invalid input syntax for integer: "a"
-LINE 1: SELECT COUNT(*) FROM ( SELECT ('a')::int, dml_co_r.b,10 FROM...
-                                       ^
-INSERT INTO dml_co_r SELECT ('a')::int, dml_co_r.b,10 FROM dml_co_s WHERE dml_co_r.b = dml_co_s.b;
-ERROR:  invalid input syntax for integer: "a"
-LINE 1: INSERT INTO dml_co_r SELECT ('a')::int, dml_co_r.b,10 FROM d...
-                                     ^
-SELECT COUNT(*) FROM dml_co_r;
- count 
--------
-   113
-(1 row)
-
---Negative test case. INSERT has more expressions than target columns
-SELECT COUNT(*) FROM dml_co_s;
- count 
--------
-   113
-(1 row)
-
-SELECT COUNT(*) FROM (SELECT COUNT(*) as a, dml_co_r.* FROM dml_co_r, dml_co_s WHERE dml_co_s.a = dml_co_r.a GROUP BY dml_co_r.a, dml_co_r.b, dml_co_r.c)foo;
- count 
--------
-   110
-(1 row)
-
-INSERT INTO dml_co_s SELECT COUNT(*) as a, dml_co_r.* FROM dml_co_r, dml_co_s WHERE dml_co_s.a = dml_co_r.a GROUP BY dml_co_r.a, dml_co_r.b, dml_co_r.c;
-ERROR:  INSERT has more expressions than target columns
-SELECT COUNT(*) FROM dml_co_s;
  count 
 -------
    113
@@ -3051,27 +2967,6 @@ SELECT COUNT(*) FROM dml_heap_pt_r;
    100
 (1 row)
 
---Negative tests Insert column of different data type
-SELECT COUNT(*) FROM dml_heap_pt_r;
- count 
--------
-   100
-(1 row)
-
-SELECT COUNT(*) FROM (SELECT ('a')::int, dml_heap_pt_r.b,10 FROM dml_heap_pt_s WHERE dml_heap_pt_r.b = dml_heap_pt_s.b)foo;
-ERROR:  invalid input syntax for integer: "a"
-LINE 1: SELECT COUNT(*) FROM (SELECT ('a')::int, dml_heap_pt_r.b,10 ...
-                                      ^
-INSERT INTO dml_heap_pt_r SELECT ('a')::int, dml_heap_pt_r.b,10 FROM dml_heap_pt_s WHERE dml_heap_pt_r.b = dml_heap_pt_s.b;
-ERROR:  invalid input syntax for integer: "a"
-LINE 1: INSERT INTO dml_heap_pt_r SELECT ('a')::int, dml_heap_pt_r.b...
-                                          ^
-SELECT COUNT(*) FROM dml_heap_pt_r;
- count 
--------
-   100
-(1 row)
-
 --Negative test case. INSERT has more expressions than target columns
 begin;
 SELECT COUNT(*) FROM dml_heap_pt_s;
@@ -3901,48 +3796,6 @@ SELECT COUNT(*) FROM dml_heap_r;
 
 INSERT INTO dml_heap_r SELECT dml_heap_r.* FROM dml_heap_r,dml_heap_s WHERE dml_heap_r.b = dml_heap_s.a and false;
 SELECT COUNT(*) FROM dml_heap_r;
- count 
--------
-   113
-(1 row)
-
---Negative tests Insert column of different data type
-SELECT COUNT(*) FROM dml_heap_r;
- count 
--------
-   113
-(1 row)
-
-SELECT COUNT(*) FROM ( SELECT ('a')::int, dml_heap_r.b,10 FROM dml_heap_s WHERE dml_heap_r.b = dml_heap_s.b)foo;
-ERROR:  invalid input syntax for integer: "a"
-LINE 1: SELECT COUNT(*) FROM ( SELECT ('a')::int, dml_heap_r.b,10 FR...
-                                       ^
-INSERT INTO dml_heap_r SELECT ('a')::int, dml_heap_r.b,10 FROM dml_heap_s WHERE dml_heap_r.b = dml_heap_s.b;
-ERROR:  invalid input syntax for integer: "a"
-LINE 1: INSERT INTO dml_heap_r SELECT ('a')::int, dml_heap_r.b,10 FR...
-                                       ^
-SELECT COUNT(*) FROM dml_heap_r;
- count 
--------
-   113
-(1 row)
-
---Negative test case. INSERT has more expressions than target columns
-SELECT COUNT(*) FROM dml_heap_s;
- count 
--------
-   113
-(1 row)
-
-SELECT COUNT(*) FROM (SELECT COUNT(*) as a, dml_heap_r.* FROM dml_heap_r, dml_heap_s WHERE dml_heap_s.a = dml_heap_r.a GROUP BY dml_heap_r.a, dml_heap_r.b, dml_heap_r.c)foo;
- count 
--------
-   110
-(1 row)
-
-INSERT INTO dml_heap_s SELECT COUNT(*) as a, dml_heap_r.* FROM dml_heap_r, dml_heap_s WHERE dml_heap_s.a = dml_heap_r.a GROUP BY dml_heap_r.a, dml_heap_r.b, dml_heap_r.c;
-ERROR:  INSERT has more expressions than target columns
-SELECT COUNT(*) FROM dml_heap_s;
  count 
 -------
    113
