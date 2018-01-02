@@ -2562,111 +2562,25 @@ update v set j = 2;
 -- should fail
 update v set j = 3;
 drop table v;
--- test AO seg totals
---
--- Note: ignore partition tablenames due to endianness issues
---
-create  or replace function ao_ptotal(relname text) returns float8 as $$
-declare
-  aosegname text;
-  tupcount float8 := 0;
-  rc int := 0;
-begin
-
-  execute 'select relname from pg_class where oid=(select segrelid from pg_class, pg_appendonly where relname=''' || relname || ''' and relid = pg_class.oid)' into aosegname;
-  if aosegname > 0 then
-	  execute 'select tupcount from pg_aoseg.' || aosegname into tupcount;
-  end if;
-  return tupcount;
-end; $$ language plpgsql volatile READS SQL DATA;
+-- try SREH on a partitioned table.
 create table ao_p (i int) with (appendonly = true)
  partition by range(i)
- (start(1) end(10) every(1));
+ (start(1) end(5) every(1));
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 NOTICE:  CREATE TABLE will create partition "ao_p_1_prt_1" for table "ao_p"
 NOTICE:  CREATE TABLE will create partition "ao_p_1_prt_2" for table "ao_p"
 NOTICE:  CREATE TABLE will create partition "ao_p_1_prt_3" for table "ao_p"
 NOTICE:  CREATE TABLE will create partition "ao_p_1_prt_4" for table "ao_p"
-NOTICE:  CREATE TABLE will create partition "ao_p_1_prt_5" for table "ao_p"
-NOTICE:  CREATE TABLE will create partition "ao_p_1_prt_6" for table "ao_p"
-NOTICE:  CREATE TABLE will create partition "ao_p_1_prt_7" for table "ao_p"
-NOTICE:  CREATE TABLE will create partition "ao_p_1_prt_8" for table "ao_p"
-NOTICE:  CREATE TABLE will create partition "ao_p_1_prt_9" for table "ao_p"
-insert into ao_p values(1), (2), (3);
--- start_ignore
-select partitiontablename, ao_ptotal(partitiontablename)
-from pg_partitions where tablename = 'ao_p';
- partitiontablename | ao_ptotal 
---------------------+-----------
- ao_p_1_prt_1       |         1
- ao_p_1_prt_2       |         1
- ao_p_1_prt_3       |         1
- ao_p_1_prt_4       |          
- ao_p_1_prt_5       |          
- ao_p_1_prt_6       |          
- ao_p_1_prt_7       |          
- ao_p_1_prt_8       |          
- ao_p_1_prt_9       |          
-(9 rows)
-
--- end_ignore
-truncate ao_p;
--- start_ignore
-select partitiontablename, ao_ptotal(partitiontablename)
-from pg_partitions where tablename = 'ao_p';
- partitiontablename | ao_ptotal 
---------------------+-----------
- ao_p_1_prt_1       |          
- ao_p_1_prt_2       |          
- ao_p_1_prt_3       |          
- ao_p_1_prt_4       |          
- ao_p_1_prt_5       |          
- ao_p_1_prt_6       |          
- ao_p_1_prt_7       |          
- ao_p_1_prt_8       |          
- ao_p_1_prt_9       |          
-(9 rows)
-
--- end_ignore
-copy ao_p from stdin;
--- start_ignore
-select partitiontablename, ao_ptotal(partitiontablename)
-from pg_partitions where tablename = 'ao_p';
- partitiontablename | ao_ptotal 
---------------------+-----------
- ao_p_1_prt_1       |          
- ao_p_1_prt_2       |          
- ao_p_1_prt_3       |          
- ao_p_1_prt_4       |         1
- ao_p_1_prt_5       |         1
- ao_p_1_prt_6       |         1
- ao_p_1_prt_7       |          
- ao_p_1_prt_8       |          
- ao_p_1_prt_9       |          
-(9 rows)
-
--- end_ignore
--- try SREH
 copy ao_p from stdin log errors segment reject limit 100;
 NOTICE:  Found 2 data formatting errors (2 or more input rows). Rejected related input data.
--- start_ignore
-select partitiontablename, ao_ptotal(partitiontablename)
-from pg_partitions where tablename = 'ao_p';
- partitiontablename | ao_ptotal 
---------------------+-----------
- ao_p_1_prt_1       |          
- ao_p_1_prt_2       |          
- ao_p_1_prt_3       |          
- ao_p_1_prt_4       |         1
- ao_p_1_prt_5       |         1
- ao_p_1_prt_6       |         2
- ao_p_1_prt_7       |         1
- ao_p_1_prt_8       |          
- ao_p_1_prt_9       |          
-(9 rows)
+select * from ao_p;
+ i 
+---
+ 2
+ 3
+(2 rows)
 
--- end_ignore
 drop table ao_p;
 -- MPP-3591: make sure we get inclusive/exclusive right with every().
 create table k (i int) partition by range(i)
