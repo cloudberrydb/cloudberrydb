@@ -6071,6 +6071,21 @@ XLogReadRecoveryCommandFile(int emode)
 	}
 }
 
+static void
+renameRecoveryFile()
+{
+	/*
+	 * Rename the config file out of the way, so that we don't accidentally
+	 * re-enter archive recovery mode in a subsequent crash.
+	 */
+	unlink(RECOVERY_COMMAND_DONE);
+	if (rename(RECOVERY_COMMAND_FILE, RECOVERY_COMMAND_DONE) != 0)
+		ereport(FATAL,
+				(errcode_for_file_access(),
+				 errmsg("could not rename file \"%s\" to \"%s\": %m",
+						RECOVERY_COMMAND_FILE, RECOVERY_COMMAND_DONE)));
+}
+
 /*
  * Exit archive-recovery state
  */
@@ -6173,17 +6188,7 @@ exitArchiveRecovery(TimeLineID endTLI, uint32 endLogId, uint32 endLogSeg)
 	/* Get rid of any remaining recovered timeline-history file, too */
 	snprintf(recoveryPath, MAXPGPATH, XLOGDIR "/RECOVERYHISTORY");
 	unlink(recoveryPath);		/* ignore any error */
-
-	/*
-	 * Rename the config file out of the way, so that we don't accidentally
-	 * re-enter archive recovery mode in a subsequent crash.
-	 */
-	unlink(RECOVERY_COMMAND_DONE);
-	if (rename(RECOVERY_COMMAND_FILE, RECOVERY_COMMAND_DONE) != 0)
-		ereport(FATAL,
-				(errcode_for_file_access(),
-				 errmsg("could not rename file \"%s\" to \"%s\": %m",
-						RECOVERY_COMMAND_FILE, RECOVERY_COMMAND_DONE)));
+	renameRecoveryFile();
 }
 
 /*
@@ -6439,6 +6444,131 @@ XLogProcessCheckpointRecord(XLogRecord *rec, XLogRecPtr loc)
 		redoDtxCheckPoint(ckptExtended.dtxCheckpoint);
 		UtilityModeCloseDtmRedoFile();
 	}
+}
+
+
+static void
+UpdateCatalogForStandbyPromotion(void)
+{
+	/*
+	 * NOTE: The following initialization logic was borrowed from ftsprobe.
+	 */
+	SetProcessingMode(InitProcessing);
+
+	/*
+	 * Create a resource owner to keep track of our resources (currently only
+	 * buffer pins).
+	 */
+	CurrentResourceOwner = ResourceOwnerCreate(NULL, "Startup Pass 4");
+
+	/*
+	 * NOTE: AuxiliaryProcessMain has already called:
+	 * NOTE:      BaseInit,
+	 * NOTE:      InitAuxiliaryProcess instead of InitProcess, and
+	 * NOTE:      InitBufferPoolBackend.
+	 */
+
+	InitXLOGAccess();
+
+	SetProcessingMode(NormalProcessing);
+
+	/*
+	 * Add my PGPROC struct to the ProcArray.
+	 *
+	 * Once I have done this, I am visible to other backends!
+	 */
+	InitProcessPhase2();
+
+	/*
+	 * Initialize my entry in the shared-invalidation manager's array of
+	 * per-backend data.
+	 *
+	 * Sets up MyBackendId, a unique backend identifier.
+	 */
+	MyBackendId = InvalidBackendId;
+
+	/*
+	 * Though this is a startup process and currently no one sends invalidation
+	 * messages concurrently, we set sendOnly = false, since we have relcaches.
+	 */
+	SharedInvalBackendInit(false);
+
+	if (MyBackendId > MaxBackends || MyBackendId <= 0)
+			elog(FATAL, "bad backend id: %d", MyBackendId);
+
+	/*
+	 * bufmgr needs another initialization call too
+	 */
+	InitBufferPoolBackend();
+
+	/* heap access requires the rel-cache.
+	 *
+	 * Pass 2 uses heap API to insert/update/delete from persistent
+	 * tables.  In order to use the heap API, RelationDescriptor is
+	 * required.  In pass 2, persistent tables are accessed using
+	 * DirectOpen API to obtain the RelationDescriptor.  Hence, we
+	 * don't need to load full relcache as in
+	 * RelationCacheInitializePhase3().
+	 *
+	 * However, there is cache invalidation logic within heap API
+	 * needs basic data structures for catalog cache to be
+	 * initialized.  Hence, we need to do RelationCacheInitialize(),
+	 * InitCatalogCache(), and RelationCacheInitializePhase2()
+	 * before StartupXLOG_Pass2().
+	 *
+	 * Pass 4 needs RelationCacheInitializePhase3() to do catalog
+	 * validation, after xlog replay is complete.
+	 */
+	RelationCacheInitialize();
+	InitCatalogCache();
+
+	/*
+	 * It's now possible to do real access to the system catalogs.
+	 *
+	 * Load relcache entries for the system catalogs.  This must create at
+	 * least the minimum set of "nailed-in" cache entries.
+	 */
+	RelationCacheInitializePhase2();
+
+	char *fullpath;
+
+	/*
+	 * In order to access the catalog, we need a database, and a
+	 * tablespace; our access to the heap is going to be slightly
+	 * limited, so we'll just use some defaults.
+	 */
+	MyDatabaseId = TemplateDbOid;
+	MyDatabaseTableSpace = DEFAULTTABLESPACE_OID;
+
+	/*
+	 * Now we can mark our PGPROC entry with the database ID
+	 * (We assume this is an atomic store so no lock is needed)
+	 */
+	MyProc->databaseId = MyDatabaseId;
+
+	fullpath = GetDatabasePath(MyDatabaseId, MyDatabaseTableSpace);
+
+	SetDatabasePath(fullpath);
+
+	RelationCacheInitializePhase3();
+
+	/*
+	 * Now, finally, update the catalog.
+	 */
+	GpRoleValue old_role = Gp_role;
+
+	/* I am privileged */
+	InitializeSessionUserIdStandalone();
+	/* Start transaction locally */
+	Gp_role = GP_ROLE_UTILITY;
+	StartTransactionCommand();
+	GetTransactionSnapshot();
+	DirectFunctionCall1(gp_activate_standby, (Datum) 0);
+	/* close the transaction we started above */
+	CommitTransactionCommand();
+	Gp_role = old_role;
+
+	ereport(LOG, (errmsg("Updated catalog to support standby promotion")));
 }
 
 
@@ -7222,6 +7352,14 @@ StartupXLOG(void)
 		exitArchiveRecovery(curFileTLI, endLogId, endLogSeg);
 
 	/*
+	 * Recovery command file must be deleted during promotion to prevent
+	 * StartupXLOG from incorrectly concluding that we are still a standby.
+	 * This could happen if the promoted standby goes through a restart.
+	 */
+	if (ControlFile->state == DB_IN_STANDBY_PROMOTED)
+		renameRecoveryFile();
+
+	/*
 	 * Prepare to write WAL starting at EndOfLog position, and init xlog
 	 * buffer cache using the block containing the last record from the
 	 * previous incarnation.
@@ -7420,6 +7558,15 @@ StartupXLOG(void)
 							   true);
 #endif
 
+	/*
+	 * If we are a standby with contentid -1 and undergoing promotion,
+	 * update ourselves as the new master in catalog.  This does not
+	 * apply to a mirror (standby of a GPDB segment) because it is
+	 * managed by FTS.
+	 */
+	bool needToPromoteCatalog = (GpIdentity.segindex == MASTER_CONTENT_ID &&
+								 ControlFile->state == DB_IN_STANDBY_PROMOTED);
+
 	LWLockAcquire(ControlFileLock, LW_EXCLUSIVE);
 	ControlFile->state = DB_IN_PRODUCTION;
 	ControlFile->time = (pg_time_t) time(NULL);
@@ -7452,6 +7599,17 @@ StartupXLOG(void)
 		SpinLockAcquire(&xlogctl->info_lck);
 		xlogctl->SharedRecoveryInProgress = false;
 		SpinLockRelease(&xlogctl->info_lck);
+	}
+
+	/*
+	 * Now we can update the catalog to tell the system is fully-promoted,
+	 * if was standby.  This should be done after all WAL-replay finished
+	 * otherwise we'll be in inconsistent state where catalog says I'm in
+	 * primary state while the recovery is trying to stream.
+	 */
+	if (needToPromoteCatalog)
+	{
+		UpdateCatalogForStandbyPromotion();
 	}
 
 	XLogCloseReadRecord();
