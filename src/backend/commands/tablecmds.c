@@ -106,9 +106,6 @@
 #include "cdb/cdbrelsize.h"
 #include "cdb/cdboidsync.h"
 
-#include "cdb/cdbmirroredfilesysobj.h"
-
-
 
 /*
  * ON COMMIT action list
@@ -10491,7 +10488,6 @@ ATExecSetTableSpace_BufferPool(
 								  useWal);
 		}
 	}
-	smgrclose(dstrel);
 
 	/* drop old relation, and close new one */
 	RelationDropStorage(rel);

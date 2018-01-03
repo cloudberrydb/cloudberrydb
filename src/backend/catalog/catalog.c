@@ -96,6 +96,21 @@ forkname_to_number(char *forkName)
 }
 
 /*
+ * Return directory name within tablespace location to use, for this server.
+ * This is the GDPB replacement for PostgreSQL's TABLESPACE_VERSION_DIRECTORY
+ * constant.
+ */
+const char *
+tablespace_version_directory(void)
+{
+	static char path[MAXPGPATH];
+
+	snprintf(path, MAXPGPATH, "%s_db%d", GP_TABLESPACE_VERSION_DIRECTORY, GpIdentity.dbid);
+
+	return path;
+}
+
+/*
  * relpath			- construct path to a relation's file
  *
  * Result is a palloc'd string.
@@ -133,16 +148,14 @@ relpath(RelFileNode rnode, ForkNumber forknum)
 	else
 	{
 		/* All other tablespaces are accessed via symlinks */
-		pathlen = 10 + OIDCHARS + 1 + OIDCHARS + 1 + OIDCHARS + 1
-			+ FORKNAMECHARS + 1;
-		path = (char *) palloc(pathlen);
 		if (forknum != MAIN_FORKNUM)
-			snprintf(path, pathlen, "pg_tblspc/%u/%u/%u_%s",
-					 rnode.spcNode, rnode.dbNode, rnode.relNode,
-					 forkNames[forknum]);
+			path = psprintf("pg_tblspc/%u/%s/%u/%u_%s",
+					 rnode.spcNode, tablespace_version_directory(),
+					 rnode.dbNode, rnode.relNode, forkNames[forknum]);
 		else
-			snprintf(path, pathlen, "pg_tblspc/%u/%u/%u",
-					 rnode.spcNode, rnode.dbNode, rnode.relNode);
+			path = psprintf("pg_tblspc/%u/%s/%u/%u",
+					 rnode.spcNode, tablespace_version_directory(),
+					 rnode.dbNode, rnode.relNode);
 	}
 	return path;
 }
@@ -179,10 +192,8 @@ GetDatabasePath(Oid dbNode, Oid spcNode)
 	else
 	{
 		/* All other tablespaces are accessed via symlinks */
-		pathlen = 10 + OIDCHARS + 1 + OIDCHARS + 1;
-		path = (char *) palloc(pathlen);
-		snprintf(path, pathlen, "pg_tblspc/%u/%u",
-				 spcNode, dbNode);
+		path = psprintf("pg_tblspc/%u/%s/%u",
+						spcNode, tablespace_version_directory(), dbNode);
 	}
 	return path;
 }

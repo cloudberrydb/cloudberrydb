@@ -195,8 +195,8 @@ calculate_database_size(Oid dbOid)
 			strcmp(direntry->d_name, "..") == 0)
 			continue;
 
-		snprintf(pathname, MAXPGPATH, "pg_tblspc/%s/%u",
-				 direntry->d_name, dbOid);
+		snprintf(pathname, MAXPGPATH, "pg_tblspc/%s/%s/%u",
+				 direntry->d_name, tablespace_version_directory(), dbOid);
 		totalsize += db_dir_size(pathname);
 	}
 
@@ -287,7 +287,8 @@ calculate_tablespace_size(Oid tblspcOid)
 	else if (tblspcOid == GLOBALTABLESPACE_OID)
 		snprintf(tblspcPath, MAXPGPATH, "global");
 	else
-		snprintf(tblspcPath, MAXPGPATH, "pg_tblspc/%u", tblspcOid);
+		snprintf(tblspcPath, MAXPGPATH, "pg_tblspc/%u/%s", tblspcOid,
+				 tablespace_version_directory());
 
 	dirdesc = AllocateDir(tblspcPath);
 

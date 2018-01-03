@@ -20,6 +20,7 @@
 #include <math.h>
 
 #include "access/xact.h"
+#include "catalog/catalog.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_tablespace.h"
 #include "commands/dbcommands.h"
@@ -286,7 +287,8 @@ pg_tablespace_databases(PG_FUNCTION_ARGS)
 		/*
 		 * size = tablespace dirname length + dir sep char + oid + terminator
 		 */
-		fctx->location = (char *) palloc(10 + 10 + 1);
+		fctx->location = (char *) palloc(9 + 1 + OIDCHARS + 1 +
+										 strlen(tablespace_version_directory()) + 1);
 		if (tablespaceOid == GLOBALTABLESPACE_OID)
 		{
 			fctx->dirdesc = NULL;
@@ -298,7 +300,8 @@ pg_tablespace_databases(PG_FUNCTION_ARGS)
 			if (tablespaceOid == DEFAULTTABLESPACE_OID)
 				sprintf(fctx->location, "base");
 			else
-				sprintf(fctx->location, "pg_tblspc/%u", tablespaceOid);
+				sprintf(fctx->location, "pg_tblspc/%u/%s", tablespaceOid,
+						tablespace_version_directory());
 
 			fctx->dirdesc = AllocateDir(fctx->location);
 

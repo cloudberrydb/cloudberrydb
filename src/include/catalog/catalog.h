@@ -14,6 +14,7 @@
 #ifndef CATALOG_H
 #define CATALOG_H
 
+#include "catalog/catversion.h"
 #include "catalog/pg_class.h"
 #include "storage/relfilenode.h"
 #include "utils/relcache.h"
@@ -21,7 +22,13 @@
 #include "catalog/oid_dispatch.h"
 
 #define OIDCHARS		10		/* max chars printed by %u */
-#define TABLESPACE_VERSION_DIRECTORY	"PG_" PG_MAJORVERSION "_" \
+/*
+ * In PostgreSQL, this is called just TABLESPACE_VERSION_DIRECTORY. But in 
+ * GPDB, you should use tablespace_version_directory() function instead.
+ * This constant has been renamed so that we catch and know to modify all
+ * upstream uses of TABLESPACE_VERSION_DIRECTORY.
+ */
+#define GP_TABLESPACE_VERSION_DIRECTORY	"GPDB_" PG_MAJORVERSION "_" \
 									CppAsString2(CATALOG_VERSION_NO)
 
 extern const char *forkNames[];
@@ -50,5 +57,7 @@ extern Oid GetNewOidWithIndex(Relation relation, Oid indexId,
 				   AttrNumber oidcolumn);
 extern Oid GetNewSequenceRelationOid(Relation relation);
 extern Oid GetNewRelFileNode(Oid reltablespace, bool relisshared);
+
+const char *tablespace_version_directory(void);
 
 #endif   /* CATALOG_H */

@@ -171,16 +171,15 @@ static int	mkdir_p(char *path, mode_t omode);
 static void exit_nicely(void);
 static char *get_id(void);
 static char *get_encoding_id(char *encoding_name);
-static char *get_short_version(void);
 static int	check_data_dir(char *dir);
 static bool mkdatadir(const char *subdir);
 static void set_input(char **dest, char *filename);
 static void check_input(char *path);
-static void set_short_version(char *short_version, char *extrapath);
+static void write_version_file(char *extrapath);
 static void set_null_conf(const char *conf_name);
 static void test_config_settings(void);
 static void setup_config(void);
-static void bootstrap_template1(char *short_version);
+static void bootstrap_template1(void);
 static void setup_auth(void);
 static void get_set_pwd(void);
 static void setup_depend(void);
@@ -946,42 +945,6 @@ find_matching_ts_config(const char *lc_type)
 
 
 /*
- * get short version of VERSION
- */
-static char *
-get_short_version(void)
-{
-	bool		gotdot = false;
-	int			end;
-	char	   *vr;
-
-	vr = xstrdup(PG_VERSION);
-
-	for (end = 0; vr[end] != '\0'; end++)
-	{
-		if (vr[end] == '.')
-		{
-			if (end == 0)
-				return NULL;
-			else if (gotdot)
-				break;
-			else
-				gotdot = true;
-		}
-		else if (vr[end] < '0' || vr[end] > '9')
-		{
-			/* gone past digits and dots */
-			break;
-		}
-	}
-	if (end == 0 || vr[end - 1] == '.' || !gotdot)
-		return NULL;
-
-	vr[end] = '\0';
-	return vr;
-}
-
-/*
  * make sure the directory either doesn't exist or is empty
  *
  * Returns 0 if nonexistent, 1 if exists and empty, 2 if not empty,
@@ -1115,7 +1078,7 @@ check_input(char *path)
  * if extrapath is not NULL
  */
 static void
-set_short_version(char *short_version, char *extrapath)
+write_version_file(char *extrapath)
 {
 	FILE	   *version_file;
 	char	   *path;
@@ -1130,14 +1093,14 @@ set_short_version(char *short_version, char *extrapath)
 		path = pg_malloc(strlen(pg_data) + strlen(extrapath) + 13);
 		sprintf(path, "%s/%s/PG_VERSION", pg_data, extrapath);
 	}
-	version_file = fopen(path, PG_BINARY_W);
-	if (version_file == NULL)
+
+	if ((version_file = fopen(path, PG_BINARY_W)) == NULL)
 	{
 		fprintf(stderr, _("%s: could not open file \"%s\" for writing: %s\n"),
 				progname, path, strerror(errno));
 		exit_nicely();
 	}
-	if (fprintf(version_file, "%s\n", short_version) < 0 ||
+	if (fprintf(version_file, "%s\n", PG_MAJORVERSION) < 0 ||
 		fclose(version_file))
 	{
 		fprintf(stderr, _("%s: could not write file \"%s\": %s\n"),
@@ -1482,7 +1445,7 @@ setup_config(void)
  * run the BKI script in bootstrap mode to create template1
  */
 static void
-bootstrap_template1(char *short_version)
+bootstrap_template1(void)
 {
 	PG_CMD_DECL;
 	char	  **line;
@@ -1502,7 +1465,7 @@ bootstrap_template1(char *short_version)
 	/* Check that bki file appears to be of the right version */
 
 	snprintf(headerline, sizeof(headerline), "# PostgreSQL %s\n",
-			 short_version);
+			 PG_MAJORVERSION);
 
 	if (strcmp(headerline, *bki_lines) != 0)
 	{
@@ -2891,7 +2854,6 @@ main(int argc, char *argv[])
 				i,
 				ret;
 	int			option_index = -1;
-	char	   *short_version;
 	char	   *effective_user;
 	char	   *pgdenv;			/* PGDATA value gotten from and sent to
 								 * environment */
@@ -3237,12 +3199,6 @@ main(int argc, char *argv[])
 
 	canonicalize_path(share_path);
 
-	if ((short_version = get_short_version()) == NULL)
-	{
-		fprintf(stderr, _("%s: could not determine valid short version string\n"), progname);
-		exit(1);
-	}
-
 	effective_user = get_id();
 	if (strlen(username) == 0)
 		username = effective_user;
@@ -3580,7 +3536,7 @@ main(int argc, char *argv[])
 	check_ok();
 
 	/* Top level PG_VERSION is checked by bootstrapper, so make it first */
-	set_short_version(short_version, NULL);
+	write_version_file(NULL);
 
 	/* Select suitable configuration settings */
 	set_null_conf("postgresql.conf");
@@ -3595,12 +3551,12 @@ main(int argc, char *argv[])
 	if ( ! forMirrorOnly)
 	{
 		/* Bootstrap template1 */
-		bootstrap_template1(short_version);
+		bootstrap_template1();
 
 		/*
 		 * Make the per-database PG_VERSION for template1 only after init'ing it
 		 */
-		set_short_version(short_version, "base/1");
+		write_version_file("base/1");
 
 		/* Create the stuff we don't need to use bootstrap mode for */
 
