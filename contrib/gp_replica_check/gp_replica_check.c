@@ -215,8 +215,11 @@ sync_wait(void)
 		LWLockAcquire(SyncRepLock, LW_SHARED);
 		for (i = 0; i < max_wal_senders; i++)
 		{
-			if (WalSndCtl->walsnds[i].pid == 0
-				|| WalSndCtl->walsnds[i].state != WALSNDSTATE_STREAMING
+			/* Ignore standbys that are not connected at the moment */
+			if (WalSndCtl->walsnds[i].pid == 0)
+				continue;
+
+			if (WalSndCtl->walsnds[i].state != WALSNDSTATE_STREAMING
 				|| !XLByteLE(ckpt_lsn, WalSndCtl->walsnds[i].apply))
 				break;
 		}
