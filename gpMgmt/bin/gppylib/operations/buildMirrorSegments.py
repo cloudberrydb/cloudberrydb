@@ -16,9 +16,6 @@ from gppylib.operations import startSegments
 from gppylib.gp_era import read_era
 from gppylib.operations.utils import ParallelOperation, RemoteOperation
 from gppylib.operations.unix import CleanSharedMem
-from gppylib.operations.filespace import PG_SYSTEM_FILESPACE, GP_TRANSACTION_FILES_FILESPACE, \
-    GP_TEMPORARY_FILES_FILESPACE, GetMoveOperationList, GetFilespaceEntriesDict, GetFilespaceEntries, \
-    GetCurrentFilespaceEntries, RollBackFilespaceChanges, UpdateFlatFiles, FileType, MoveFilespaceError
 from gppylib.commands.gp import is_pid_postmaster, get_pid_from_remotehost
 from gppylib.commands.unix import check_pid_on_remotehost, Scp
 
@@ -195,85 +192,6 @@ class GpMirrorListToBuild:
         """
         return self.__additionalWarnings
 
-    def __moveFilespaces(self, gparray, target_segment):
-        """
-            Moves filespaces for temporary and transaction files to a particular location.
-        """
-        master_seg = gparray.master
-        default_filespace_dir = master_seg.getSegmentDataDirectory()
-
-        cur_filespace_entries = GetFilespaceEntriesDict(GetFilespaceEntries(gparray,
-                                                                            PG_SYSTEM_FILESPACE).run()).run()
-        pg_system_filespace_entries = GetFilespaceEntriesDict(GetFilespaceEntries(gparray,
-                                                                                  PG_SYSTEM_FILESPACE).run()).run()
-        cur_filespace_name = gparray.getFileSpaceName(int(cur_filespace_entries[1][0]))
-        segments = [target_segment] + [seg for seg in gparray.getDbList() if
-                                       seg.getSegmentContentId() == target_segment.getSegmentContentId() and
-                                       seg.getSegmentDbId() != target_segment.getSegmentDbId()]
-
-        self.__logger.info('Starting file move procedure for %s' % target_segment)
-
-        if os.path.exists(os.path.join(default_filespace_dir, GP_TRANSACTION_FILES_FILESPACE)):
-            # On the expansion segments, the current filespace used by existing nodes will be the
-            # new filespace to which we want to move the transaction and temp files.
-            # The filespace directories which have to be moved will be the default pg_system directories.
-            new_filespace_entries = GetFilespaceEntriesDict(
-                GetCurrentFilespaceEntries(gparray, FileType.TRANSACTION_FILES).run()).run()
-            self.__logger.info('getting filespace information')
-            new_filespace_name = gparray.getFileSpaceName(int(new_filespace_entries[1][0]))
-            self.__logger.info('getting move operations list for filespace %s' % new_filespace_name)
-            operation_list = GetMoveOperationList(segments,
-                                                  FileType.TRANSACTION_FILES,
-                                                  new_filespace_name,
-                                                  new_filespace_entries,
-                                                  cur_filespace_entries,
-                                                  pg_system_filespace_entries).run()
-            self.__logger.info('Starting transaction files move')
-            ParallelOperation(operation_list).run()
-
-            self.__logger.debug('Checking transaction files move')
-            try:
-                for operation in operation_list:
-                    operation.get_ret()
-                    pass
-            except Exception, e:
-                self.__logger.info('Failed to move transaction filespace. Rolling back changes ...')
-                RollBackFilespaceChanges(gparray.getExpansionSegDbList(),
-                                         FileType.TRANSACTION_FILES,
-                                         cur_filespace_name,
-                                         cur_filespace_entries,
-                                         new_filespace_entries,
-                                         pg_system_filespace_entries).run()
-                raise
-
-        if os.path.exists(os.path.join(default_filespace_dir, GP_TEMPORARY_FILES_FILESPACE)):
-            new_filespace_entries = GetFilespaceEntriesDict(GetCurrentFilespaceEntries(gparray,
-                                                                                       FileType.TEMPORARY_FILES).run()).run()
-            new_filespace_name = gparray.getFileSpaceName(int(new_filespace_entries[1][0]))
-            operation_list = GetMoveOperationList(segments,
-                                                  FileType.TEMPORARY_FILES,
-                                                  new_filespace_name,
-                                                  new_filespace_entries,
-                                                  cur_filespace_entries,
-                                                  pg_system_filespace_entries).run()
-            self.__logger.info('Starting temporary files move')
-            ParallelOperation(operation_list).run()
-
-            self.__logger.debug('Checking temporary files move')
-            try:
-                for operation in operation_list:
-                    operation.get_ret()
-                    pass
-            except Exception, e:
-                self.__logger.info('Failed to move temporary filespace. Rolling back changes ...')
-                RollBackFilespaceChanges(gparray.getExpansionDbList(),
-                                         FileType.TRANSACTION_FILES,
-                                         cur_filespace_name,
-                                         cur_filespace_entries,
-                                         new_filespace_entries,
-                                         pg_system_filespace_entries).run()
-                raise
-
     def buildMirrors(self, actionName, gpEnv, gpArray):
         """
         Build the mirrors.
@@ -291,8 +209,6 @@ class GpMirrorListToBuild:
         self.checkForPortAndDirectoryConflicts(gpArray)
 
         self.__logger.info("%s segment(s) to %s" % (len(self.__mirrorsToBuild), actionName))
-
-        self.__verifyGpArrayContents(gpArray)
 
         # make sure the target directories are up-to-date
         #  by cleaning them, if needed, and then copying a basic directory there
@@ -333,33 +249,6 @@ class GpMirrorListToBuild:
         self.__ensureMarkedDown(gpEnv, toEnsureMarkedDown)
         self.__cleanUpSegmentDirectories(cleanupDirectives)
         self.__copySegmentDirectories(gpEnv, gpArray, copyDirectives)
-
-        # Move the filespace for transaction and temporary files
-        for toRecover in self.__mirrorsToBuild:
-            target_segment = None
-
-            if toRecover.getFailoverSegment() is not None:
-                target_segment = toRecover.getFailoverSegment()
-            elif toRecover.isFullSynchronization():
-                target_segment = toRecover.getFailedSegment()
-
-            if target_segment is not None:
-                self.__moveFilespaces(gpArray, target_segment)
-
-        # If we are adding mirrors, we need to update the flat files on the primaries as well
-        if actionName == "add":
-            try:
-                UpdateFlatFiles(gpArray, primaries=True).run()
-            except MoveFilespaceError, e:
-                self.__logger.error(str(e))
-                raise
-        else:
-            try:
-                print 'updating flat files'
-                UpdateFlatFiles(gpArray, primaries=False).run()
-            except MoveFilespaceError, e:
-                self.__logger.error(str(e))
-                raise
 
         # update and save metadata in memory
         for toRecover in self.__mirrorsToBuild:
@@ -453,15 +342,6 @@ class GpMirrorListToBuild:
 
         return start_all_successful
 
-    def __verifyGpArrayContents(self, gpArray):
-        """
-        Run some simple assertions against gpArray contents
-        """
-        for seg in gpArray.getDbList():
-            if seg.getSegmentDataDirectory() != seg.getSegmentFilespaces()[gparray.SYSTEM_FILESPACE]:
-                raise Exception("Mismatch between segment data directory and filespace entry for segment %s" %
-                                seg.getSegmentDbId())
-
     def checkForPortAndDirectoryConflicts(self, gpArray):
         """
         Check gpArray for internal consistency -- no duplicate ports or directories on the same host, for example
@@ -502,15 +382,13 @@ class GpMirrorListToBuild:
                 usedPorts[replicationPort] = dbid
 
                 # check for directory conflict; could improve this by reporting nicer the conflicts
-                paths = [path for oid, path in segment.getSegmentFilespaces().items() if
-                         oid != gparray.SYSTEM_FILESPACE]
                 paths.append(segment.getSegmentDataDirectory())
 
                 for path in paths:
                     if path in usedDataDirectories:
                         raise Exception(
-                            "On host %s, directory (base or filespace) for segment with dbid %s conflicts with a "
-                            "directory (base or filespace) for segment dbid %s; directory: %s" %
+                            "On host %s, data directory for segment with dbid %s conflicts with "
+                            "data directory for segment dbid %s; directory: %s" %
                             (hostName, dbid, usedDataDirectories.get(path), path))
                     usedDataDirectories[path] = dbid
 
