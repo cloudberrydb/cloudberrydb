@@ -2633,7 +2633,7 @@ def impl(context):
     hostname = get_master_hostname('template1')[0][0]
     port_guaranteed_open = get_open_port()
     temp_data_dir = tempfile.mkdtemp() + "/standby_datadir"
-    cmd = "gpinitstandby -a -s %s -P %d -F pg_system:%s" % (hostname, port_guaranteed_open, temp_data_dir)
+    cmd = "gpinitstandby -a -s %s -P %d -F %s" % (hostname, port_guaranteed_open, temp_data_dir)
     run_gpcommand(context, cmd)
     context.standby_data_dir = temp_data_dir
     context.standby_was_initialized = True
