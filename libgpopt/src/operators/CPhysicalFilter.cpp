@@ -165,8 +165,13 @@ CPhysicalFilter::PrsRequired
 	const
 {
 	GPOS_ASSERT(0 == ulChildIndex);
-	// if there are outer references, then we need a materialize
-	if (exprhdl.FHasOuterRefs())
+
+	// If there are outer references in the Filter (but none coming from the
+	// child), we can optimize by adding a materialize in between. However, if
+	// there are outer references in the child, we should *not* add a materialize
+	// here.  Otherwise the child will not get rescanned leading to wrong
+	// results.
+	if (exprhdl.FHasOuterRefs() && !exprhdl.FHasOuterRefs(0))
 	{
 		return GPOS_NEW(pmp) CRewindabilitySpec(CRewindabilitySpec::ErtGeneral);
 	}

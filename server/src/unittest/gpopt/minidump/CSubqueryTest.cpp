@@ -35,6 +35,7 @@ const CHAR *rgszSubqueryFileNames[] =
 		"../data/dxl/minidump/SimplifyExistsSubquery2Limit.mdp",
 		"../data/dxl/minidump/NotExists-SuperflousOuterRefWithGbAgg.mdp",
 		"../data/dxl/minidump/Remove-Distinct-From-Subquery.mdp",
+		"../data/dxl/minidump/MultiLevel-NOT-IN-Subquery.mdp",
 		"../data/dxl/minidump/Coalesce-With-Subquery.mdp",
 		"../data/dxl/minidump/NullIf-With-Subquery.mdp",
 		"../data/dxl/minidump/Switch-With-Subquery.mdp",
