@@ -48,7 +48,7 @@ class high_transaction_id(MPPTestCase):
         """
 
         # @note: need a class to get GPDB configuration, need to get primary/mirror segment location
-        sqlcmd = "select fselocation from gp_segment_configuration, pg_filespace_entry where dbid=fsedbid and content=0"
+        sqlcmd = "select datadir from gp_segment_configuration where content=0"
         with dbconn.connect(dbconn.DbURL()) as conn:
             segments = dbconn.execSQL(conn, sqlcmd)
 
