@@ -30,6 +30,7 @@ SELECT relname, spcname FROM pg_catalog.pg_tablespace t, pg_catalog.pg_class c
 
 -- let's try moving a table from one place to another
 CREATE TABLE testschema.atable AS VALUES (1), (2);
+alter table testschema.atable set with (reorganize=true) distributed by (column1);
 CREATE UNIQUE INDEX anindex ON testschema.atable(column1);
 
 ALTER TABLE testschema.atable SET TABLESPACE testspace;
