@@ -25,16 +25,18 @@ LINE 1: select * from foo2, foot(foo2.fooid) z where foo2.f2 = z.f2;
                                  ^
 -- function in subselect
 select * from foo2 where f2 in (select f2 from foot(foo2.fooid) z where z.fooid = foo2.fooid) ORDER BY 1,2;
-ERROR:  function cannot execute on a QE slice because it accesses relation "public.foo2" 
-DETAIL:  SQL function "foot" during startup
+ERROR:  query plan with multiple segworker groups is not supported
+HINT:  likely caused by a function that reads or modifies data in a distributed table
+CONTEXT:  SQL function "foot" statement 1
 -- function in subselect
 select * from foo2 where f2 in (select f2 from foot(1) z where z.fooid = foo2.fooid) ORDER BY 1,2;
 ERROR:  function cannot execute on a QE slice because it accesses relation "public.foo2"  
 DETAIL:  SQL function "foot" during startup
 -- function in subselect
 select * from foo2 where f2 in (select f2 from foot(foo2.fooid) z where z.fooid = 1) ORDER BY 1,2;
-ERROR:  function cannot execute on a QE slice because it accesses relation "public.foo2" 
-DETAIL:  SQL function "foot" during startup
+ERROR:  query plan with multiple segworker groups is not supported
+HINT:  likely caused by a function that reads or modifies data in a distributed table
+CONTEXT:  SQL function "foot" statement 1
 -- nested functions
 select foot.fooid, foot.f2 from foot(sin(pi()/2)::int) ORDER BY 1,2;
  fooid | f2  
