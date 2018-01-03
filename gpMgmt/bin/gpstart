@@ -34,7 +34,6 @@ try:
     from gppylib.utils import TableLogger
     from gppylib.gp_dbid import GpDbidFile
     from gppylib.gp_era import GpEraFile
-    from gppylib.operations.filespace import CheckFilespaceConsistency, FileType
 except ImportError, e:
     sys.exit('Cannot import modules.  Please check that you have sourced greenplum_path.sh.  Detail: ' + str(e))
 
