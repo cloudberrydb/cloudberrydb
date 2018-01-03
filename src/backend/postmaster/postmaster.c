@@ -1145,8 +1145,12 @@ PostmasterMain(int argc, char *argv[])
 	/*
 	 * This value of max_wal_senders will be inherited by all the child processes
 	 * through fork(). This value is used by XLogIsNeeded().
+	 *
+	 * In a normal setup, each node only has one replica. But have some headroom,
+	 * for other tools that want to use a replication connection, and for hung
+	 * connections, etc.
 	 */
-	max_wal_senders = 1;
+	max_wal_senders = 5;
 
 	if ( GpIdentity.numsegments < 0 )
 	{
