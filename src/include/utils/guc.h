@@ -493,20 +493,6 @@ extern bool optimizer_use_gpdb_allocators;
 
 
 /**
- * GUCs related to code generation.
- **/
-#define CODEGEN_OPTIMIZATION_LEVEL_NONE          0
-#define CODEGEN_OPTIMIZATION_LEVEL_LESS          1
-#define CODEGEN_OPTIMIZATION_LEVEL_DEFAULT       2
-#define CODEGEN_OPTIMIZATION_LEVEL_AGGRESSIVE    3
-
-extern bool init_codegen;
-extern bool codegen;
-extern bool codegen_validate_functions;
-extern int codegen_varlen_tolerance;
-extern int codegen_optimization_level;
-
-/**
  * Enable logging of DPE match in optimizer.
  */
 extern bool	optimizer_partition_selection_log;

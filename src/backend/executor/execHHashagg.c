@@ -938,7 +938,7 @@ agg_hash_initial_pass(AggState *aggstate)
 		}
 			
 		/* Advance the aggregates */
-		call_AdvanceAggregates(aggstate, hashtable->groupaggs->aggs, &(aggstate->mem_manager));
+		advance_aggregates(aggstate, hashtable->groupaggs->aggs, &(aggstate->mem_manager));
 		
 		hashtable->num_tuples++;
 

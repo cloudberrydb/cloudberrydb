@@ -17,7 +17,7 @@ all: pg_config.h pg_config_os.h check_oids
 
 
 # Subdirectories containing headers for server-side dev
-SUBDIRS = access bootstrap catalog cdb codegen commands executor gpmon lib libpq \
+SUBDIRS = access bootstrap catalog cdb commands executor gpmon lib libpq \
 	mb nodes optimizer parser postmaster regex replication rewrite storage tcop \
 	snowball snowball/libstemmer tsearch tsearch/dicts utils \
 	port port/atomics port/win32 port/win32_msvc port/win32_msvc/sys \

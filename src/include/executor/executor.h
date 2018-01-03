@@ -51,7 +51,6 @@ struct ChunkTransportState;             /* #include "cdb/cdbinterconnect.h" */
 #define EXEC_FLAG_REWIND		0x0002	/* expect rescan */
 #define EXEC_FLAG_BACKWARD		0x0004	/* need backward scan */
 #define EXEC_FLAG_MARK			0x0008	/* need mark/restore */
-#define EXEC_FLAG_EXPLAIN_CODEGEN	0x0010	/* EXPLAIN CODEGEN */
 
 
 /*
@@ -318,9 +317,6 @@ extern ExprState *ExecInitExpr(Expr *node, PlanState *parent);
 extern ExprState *ExecPrepareExpr(Expr *node, EState *estate);
 extern bool ExecQual(List *qual, ExprContext *econtext, bool resultForNull);
 extern int	ExecTargetListLength(List *targetlist);
-#ifdef USE_CODEGEN
-extern bool ExecTargetList(List *targetlist, ExprContext *econtext, Datum *values, bool *isnull, ExprDoneCond *itemIsDone, ExprDoneCond *isDone);
-#endif
 extern int	ExecCleanTargetListLength(List *targetlist);
 extern TupleTableSlot *ExecProject(ProjectionInfo *projInfo,
 			ExprDoneCond *isDone);

@@ -2282,11 +2282,11 @@ should_exclude_test(char *test)
 }
 
 /*
- * @brief Check whether a feature (i.e., optimizer or codegen) is on or off.
+ * @brief Check whether a feature (e.g. optimizer) is on or off.
  * If the input feature is optimizer, then set the global
  * variable "optimizer_enabled" accordingly.
  *
- * @param feature_name Name of the feature to be checked (i.e., optimizer or codegen)
+ * @param feature_name Name of the feature to be checked (e.g. optimizer)
  * @param feature_value Expected value when the feature is enabled (i.e., on or group)
  * @param on_msg Message to be printed when the feature is enabled
  * @param off_msg Message to be printed when the feature is disabled
@@ -2803,11 +2803,6 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 	resgroup_enabled = check_feature_status("gp_resource_manager", "group",
 			"Resource group enabled. Using resource group answer files whenever possible",
 			"Resource group disabled. Using default answer files");
-
-	/*
-	 * Find out if codegen is on or off
-	 */
-	check_feature_status("codegen", "on", "Codegen enabled", "Codegen disabled");
 
 	/*
 	 * Ready to run the tests

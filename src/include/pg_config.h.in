@@ -881,9 +881,6 @@
 /* Define to 1 to build with Bonjour support. (--with-bonjour) */
 #undef USE_BONJOUR
 
-/* Define to 1 to enable code generation. (--enable-codegen) */
-#undef USE_CODEGEN
-
 /* Define to 1 to build with libcurl support. (--with-libcurl) */
 #undef USE_CURL
 

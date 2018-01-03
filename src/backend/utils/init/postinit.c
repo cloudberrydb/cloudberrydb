@@ -65,7 +65,6 @@
 #include "utils/tqual.h"
 
 #include "utils/session_state.h"
-#include "codegen/codegen_wrapper.h"
 
 
 static HeapTuple GetDatabaseTuple(const char *dbname);
@@ -577,9 +576,6 @@ BaseInit(void)
 	InitFileAccess();
 	smgrinit();
 	InitBufferPoolAccess();
-
-	/* Initialize llvm library if USE_CODEGEN is defined */
-	init_codegen();
 }
 
 /*

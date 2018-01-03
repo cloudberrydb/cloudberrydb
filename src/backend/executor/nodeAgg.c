@@ -1316,7 +1316,7 @@ agg_retrieve_direct(AggState *aggstate)
 					if (!aggstate->has_partial_agg)
 					{
 						has_partial_agg = true;
-						call_AdvanceAggregates(aggstate, pergroup, &(aggstate->mem_manager));
+						advance_aggregates(aggstate, pergroup, &(aggstate->mem_manager));
 					}
 
 					/* Reset per-input-tuple context after each tuple */
@@ -1390,7 +1390,7 @@ agg_retrieve_direct(AggState *aggstate)
 							{
 								has_partial_agg = true;
 								tmpcontext->ecxt_outertuple = outerslot;
-								call_AdvanceAggregates(aggstate, pergroup, &(aggstate->mem_manager));
+								advance_aggregates(aggstate, pergroup, &(aggstate->mem_manager));
 							}
 
 							passthru_ready = true;
@@ -1434,7 +1434,7 @@ agg_retrieve_direct(AggState *aggstate)
 			ResetExprContext(tmpcontext);
 			tmpcontext->ecxt_outertuple = outerslot;
 
-			call_AdvanceAggregates(aggstate, perpassthru, &(aggstate->mem_manager));
+			advance_aggregates(aggstate, perpassthru, &(aggstate->mem_manager));
 		}
 
 		/*

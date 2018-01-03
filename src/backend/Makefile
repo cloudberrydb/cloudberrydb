@@ -29,10 +29,6 @@ ifeq ($(enable_orca),yes)
 SUBDIRS += gpopt
 endif
 
-ifeq ($(enable_codegen),yes)
-SUBDIRS += codegen
-endif
-
 include $(srcdir)/common.mk
 
 # As of 1/2010:
@@ -58,11 +54,6 @@ LIBS := $(filter-out -lpgport, $(LIBS)) $(LDAP_LIBS_BE)
 
 # The backend doesn't need everything that's in LIBS, however
 LIBS := $(filter-out -lreadline -ledit -ltermcap -lncurses -lcurses, $(LIBS))
-
-# adding codegen libraries
-ifeq ($(enable_codegen),yes)
-LIBS := $(LIBS) -L$(top_builddir)/src/backend/codegen -lgpcodegen
-endif
 
 # Greenplum uses threads in the backend
 LIBS := $(LIBS) -lpthread
@@ -211,9 +202,6 @@ endif
 	$(INSTALL_DATA) $(srcdir)/access/transam/recovery.conf.sample '$(DESTDIR)$(datadir)/recovery.conf.sample'
 ifeq ($(enable_orca), yes)
 	$(MAKE) -C gpopt $@ INSTLOC=$(DESTDIR)$(libdir)
-endif
-ifeq ($(enable_codegen), yes)
-	$(MAKE) -C codegen $@ DESTDIR=$(DESTDIR)
 endif
 
 install-bin: postgres $(POSTGRES_IMP) installdirs

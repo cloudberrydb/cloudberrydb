@@ -73,9 +73,6 @@ static const char *assign_gp_workfile_compress_algorithm(const char *newval, boo
 static const char *assign_optimizer_minidump(const char *newval,
 						  bool doit, GucSource source);
 static bool assign_optimizer(bool newval, bool doit, GucSource source);
-static bool assign_codegen(bool newval, bool doit, GucSource source);
-static bool assign_codegen_optimization_level(int newval, bool doit,
-							GucSource source);
 static bool assign_dispatch_log_stats(bool newval, bool doit, GucSource source);
 static bool assign_gp_hashagg_default_nbatches(int newval, bool doit, GucSource source);
 
@@ -460,19 +457,6 @@ bool		optimizer_enable_space_pruning;
 bool		optimizer_analyze_root_partition;
 bool		optimizer_analyze_midlevel_partition;
 
-/**
- * GUCs related to code generation.
- **/
-bool		init_codegen;
-bool		codegen;
-bool		codegen_validate_functions;
-bool		codegen_exec_variable_list;
-bool		codegen_slot_getattr;
-bool		codegen_exec_eval_expr;
-bool		codegen_advance_aggregate;
-int		codegen_varlen_tolerance;
-int		codegen_optimization_level;
-
 /* System Information */
 static int	gp_server_version_num;
 static char *gp_server_version_string;
@@ -521,14 +505,6 @@ static const struct config_enum_entry optimizer_log_failure_options[] = {
 	{"all", OPTIMIZER_ALL_FAIL},
 	{"unexpected", OPTIMIZER_UNEXPECTED_FAIL},
 	{"expected", OPTIMIZER_EXPECTED_FAIL},
-	{NULL, 0}
-};
-
-static const struct config_enum_entry codegen_optimization_level_options[] = {
-	{"none", CODEGEN_OPTIMIZATION_LEVEL_NONE},
-	{"less", CODEGEN_OPTIMIZATION_LEVEL_LESS},
-	{"default", CODEGEN_OPTIMIZATION_LEVEL_DEFAULT},
-	{"aggressive", CODEGEN_OPTIMIZATION_LEVEL_AGGRESSIVE},
 	{NULL, 0}
 };
 
@@ -2786,102 +2762,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"init_codegen", PGC_POSTMASTER, DEVELOPER_OPTIONS,
-			gettext_noop("Enable just-in-time code generation."),
-			NULL,
-			GUC_NOT_IN_SAMPLE
-		},
-		&init_codegen,
-#ifdef USE_CODEGEN
-		true,
-#else
-		false,
-#endif
-		assign_codegen, NULL
-	},
-
-	{
-		{"codegen", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Perform just-in-time code generation."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&codegen,
-		false,
-		assign_codegen, NULL
-	},
-
-	{
-		{"codegen_validate_functions", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Perform verify for generated functions to catch any error before compiling"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&codegen_validate_functions,
-#if defined(USE_ASSERT_CHECKING) && defined(USE_CODEGEN)
-		true, 	/* true by default on debug builds. */
-#else
-		false,
-#endif
-		assign_codegen, NULL
-	},
-	{
-		{"codegen_exec_variable_list", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Enable codegen for ExecVariableList"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&codegen_exec_variable_list,
-#ifdef USE_CODEGEN
-		true,
-#else
-		false,
-#endif
-		assign_codegen, NULL
-	},
-	{
-		{"codegen_slot_getattr", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Enable codegen for slot_get_attr"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&codegen_slot_getattr,
-#ifdef USE_CODEGEN
-		true,
-#else
-		false,
-#endif
-		assign_codegen, NULL
-	},
-	{
-		{"codegen_exec_eval_expr", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Enable codegen for ExecEvalExpr"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&codegen_exec_eval_expr,
-#ifdef USE_CODEGEN
-		true,
-#else
-		false,
-#endif
-		assign_codegen, NULL
-	},
-	{
-		{"codegen_advance_aggregate", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Enable codegen for AdvanceAggregate"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&codegen_advance_aggregate,
-#ifdef USE_CODEGEN
-		true,
-#else
-		false,
-#endif
-		assign_codegen, NULL
-	},
-	{
 		{"vmem_process_interrupt", PGC_USERSET, DEVELOPER_OPTIONS,
 			gettext_noop("Checks for interrupts before reserving VMEM"),
 			NULL,
@@ -4110,21 +3990,6 @@ struct config_int ConfigureNamesInt_gp[] =
 	},
 
 	{
-		{"codegen_varlen_tolerance", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Minimum number of initial fixed length attributes in the table to generate code for deforming tuples."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&codegen_varlen_tolerance,
-#ifdef USE_CODEGEN
-		5,
-#else
-		0,
-#endif
-		0, INT_MAX, NULL, NULL
-	},
-
-	{
 		{"dtx_phase2_retry_count", PGC_SUSET, DEVELOPER_OPTIONS,
 			gettext_noop("Maximum number of retries during two phase commit after which master PANICs."),
 			NULL,
@@ -4806,21 +4671,6 @@ struct config_enum ConfigureNamesEnum_gp[] =
 	},
 
 	{
-		{"codegen_optimization_level", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets optimizer level to use when compiling generated code."),
-			gettext_noop("Valid values are none, less, default, aggressive."),
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&codegen_optimization_level,
-#ifdef USE_CODEGEN
-		CODEGEN_OPTIMIZATION_LEVEL_DEFAULT,
-#else
-		CODEGEN_OPTIMIZATION_LEVEL_NONE,
-#endif
-		codegen_optimization_level_options, assign_codegen_optimization_level, NULL
-	},
-
-	{
 		{"optimizer_cost_model", PGC_USERSET, DEVELOPER_OPTIONS,
 			gettext_noop("Set optimizer cost model."),
 			gettext_noop("Valid values are legacy, calibrated"),
@@ -4914,21 +4764,6 @@ assign_pljava_classpath_insecure(bool newval, bool doit, GucSource source)
 	return true;
 }
 
-static bool
-assign_codegen_optimization_level(int val, bool assign, GucSource source) {
-#ifndef USE_CODEGEN
-	if (val != CODEGEN_OPTIMIZATION_LEVEL_NONE)
-	{
-		ereport(ERROR,
-			(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-				errmsg("Code generation is not supported by this build")));
-		return false;
-	}
-#endif
-
-	return true;
-}
-
 static const char *
 assign_optimizer_minidump(const char *val, bool assign, GucSource source)
 {
@@ -4985,19 +4820,6 @@ assign_optimizer(bool newval, bool doit, GucSource source)
 			return false;
 		}
 	}
-
-	return true;
-}
-
-static bool
-assign_codegen(bool newval, bool doit, GucSource source)
-{
-#ifndef USE_CODEGEN
-	if (newval)
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-				 errmsg("Code generation is not supported by this build")));
-#endif
 
 	return true;
 }

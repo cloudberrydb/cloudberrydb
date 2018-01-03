@@ -14,7 +14,7 @@
 #   to the segments, and therefore has to run in smaller groups to avoid
 #   hitting max_connections limit on segments.
 #
-test: gp_tablespace gp_aggregates gp_metadata variadic_parameters default_parameters function_extensions spi gp_xml pgoptions shared_scan null
+test: gp_tablespace gp_aggregates gp_metadata variadic_parameters default_parameters function_extensions spi gp_xml pgoptions shared_scan
 test: spi_processed64bit
 
 test: leastsquares opr_sanity_gp decode_expr bitmapscan bitmapscan_ao case_gp limit_gp notin percentile join_gp union_gp gpcopy gp_create_table gp_create_view window_views

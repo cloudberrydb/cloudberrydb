@@ -15,7 +15,6 @@
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
-#include "codegen/codegen_wrapper.h"
 
 #include "executor/executor.h"
 #include "miscadmin.h"

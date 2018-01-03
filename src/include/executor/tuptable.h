@@ -19,7 +19,6 @@
 #include "access/heapam.h"
 #include "access/memtup.h"
 #include "storage/buf.h"
-#include "codegen/codegen_wrapper.h"
 
 /*----------
  * The executor stores tuples in a "tuple table" which is a List of

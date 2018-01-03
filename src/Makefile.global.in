@@ -185,7 +185,6 @@ enable_coverage	= @enable_coverage@
 enable_thread_safety	= @enable_thread_safety@
 enable_largefile	= @enable_largefile@
 enable_orca		= @enable_orca@
-enable_codegen		= @enable_codegen@
 enable_gpfdist		= @enable_gpfdist@
 enable_pxf			= @enable_pxf@
 enable_gphdfs		= @enable_gphdfs@

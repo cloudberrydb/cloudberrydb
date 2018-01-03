@@ -6176,10 +6176,7 @@ ExecCleanTargetListLength(List *targetlist)
  * of *isDone = ExprEndResult signifies end of the set of tuple.
  * We assume that *isDone has been initialized to ExprSingleResult by caller.
  */
-#ifndef USE_CODEGEN
-static
-#endif
-bool
+static bool
 ExecTargetList(List *targetlist,
 			   ExprContext *econtext,
 			   Datum *values,

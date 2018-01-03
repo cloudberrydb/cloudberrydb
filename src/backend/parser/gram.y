@@ -373,7 +373,6 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <boolean> opt_freeze opt_default opt_ordered opt_recheck
 %type <boolean> opt_rootonly_all
 %type <boolean> opt_dxl
-%type <boolean> codegen
 %type <defelt>	opt_binary opt_oids copy_delimiter
 
 %type <boolean> copy_from opt_program skip_external_partition
@@ -611,7 +610,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %token <keyword>
 	ACTIVE
 
-	CODEGEN CONTAINS CPU_RATE_LIMIT CREATEEXTTABLE CUBE
+	CONTAINS CPU_RATE_LIMIT CREATEEXTTABLE CUBE
 
 	DECODE DENY DISTRIBUTED DXL
 
@@ -2647,7 +2646,7 @@ reloption_list:
 		;
 
 /* This should match def_elem and also allow qualified names */
-reloption_elem:	
+reloption_elem:
 			ColLabel '=' def_arg
 				{
 					$$ = makeDefElem($1, (Node *) $3);
@@ -4043,7 +4042,7 @@ tab_part_val: tab_part_val_no_paran { $$ = $1; }
 					$$ = makeTypeCast($2, $5, @4); 
 				}
 		; 
-		
+
 TabPartitionBoundarySpecValList:
               tab_part_val				{ $$ = list_make1($1); }
 			| TabPartitionBoundarySpecValList ',' 
@@ -4058,7 +4057,7 @@ OptTabPartitionRangeInclusive:
 
 TabPartitionBoundarySpecStart:
 			START 
-            '(' TabPartitionBoundarySpecValList ')' 
+            '(' TabPartitionBoundarySpecValList ')'
 			OptTabPartitionRangeInclusive
 				{
                         PartitionRangeItem *n = makeNode(PartitionRangeItem); 
@@ -4074,7 +4073,7 @@ TabPartitionBoundarySpecStart:
 
 TabPartitionBoundarySpecEnd:
 			END_P 
-            '(' TabPartitionBoundarySpecValList ')' 
+            '(' TabPartitionBoundarySpecValList ')'
 			OptTabPartitionRangeInclusive
 				{
                         PartitionRangeItem *n = makeNode(PartitionRangeItem); 
@@ -4346,7 +4345,7 @@ TabPartitionByType:
 
 OptTabPartitionBy:
 			PARTITION BY 
-            TabPartitionByType '(' columnList ')' 
+            TabPartitionByType '(' columnList ')'
 			opt_list_subparts
             OptTabPartitionSpec						
 				{
@@ -4441,11 +4440,11 @@ list_subparts: TabSubPartitionBy { $$ = $1; }
 
 TabSubPartitionBy:
 			SUBPARTITION BY 
-            TabPartitionByType '(' columnList ')' 
+            TabPartitionByType '(' columnList ')'
 				{
                         PartitionBy *n = makeNode(PartitionBy); 
                         n->partType = $3;
-                        n->keys     = $5; 
+                        n->keys     = $5;
                         n->subPart  = NULL;
                         n->partSpec = NULL;
                         n->partDepth = 0;
@@ -9216,7 +9215,7 @@ opt_name_list:
  *
  *****************************************************************************/
 
-ExplainStmt: EXPLAIN opt_analyze opt_verbose opt_dxl opt_force codegen ExplainableStmt
+ExplainStmt: EXPLAIN opt_analyze opt_verbose opt_dxl opt_force ExplainableStmt
 				{
 					ExplainStmt *n = makeNode(ExplainStmt);
 					n->analyze = $2;
@@ -9226,8 +9225,7 @@ ExplainStmt: EXPLAIN opt_analyze opt_verbose opt_dxl opt_force codegen Explainab
 						ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR), 
 								errmsg("cannot use force with explain statement")
 							       ));
-					n->codegen = $6;
-					n->query = $7;
+					n->query = $6;
 					$$ = (Node *)n;
 				}
 		;
@@ -9255,11 +9253,6 @@ opt_dxl:	DXL										{ $$ = TRUE; }
 
 opt_analyze:
 			analyze_keyword			{ $$ = TRUE; }
-			| /* EMPTY */			{ $$ = FALSE; }
-		;
-
-codegen:
-			CODEGEN				{ $$ = TRUE; }
 			| /* EMPTY */			{ $$ = FALSE; }
 		;
 
@@ -13442,7 +13435,6 @@ unreserved_keyword:
 			| CLASS
 			| CLOSE
 			| CLUSTER
-			| CODEGEN
 			| COMMENT
 			| COMMIT
 			| COMMITTED
