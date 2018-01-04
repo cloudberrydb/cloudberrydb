@@ -177,10 +177,6 @@ hooktest:
 
 pg_regress_call = ./pg_regress --inputdir=$(srcdir) --dlpath=. --multibyte=$(MULTIBYTE) $(MAXCONNOPT) $(NOLOCALE) --init-file=$(srcdir)/init_file
 
-# These are currently skipped because they don't work yet for segment wal replication
-# filespace: segment wal replication does not handle filespaces yet
-pg_regress_call := $(pg_regress_call) --exclude-tests="filespace"
-
 check: all
 	$(pg_regress_call) --temp-install=./tmp_check --top-builddir=$(top_builddir) --schedule=$(srcdir)/parallel_schedule 
 
