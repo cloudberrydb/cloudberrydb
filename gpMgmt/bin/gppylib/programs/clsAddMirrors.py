@@ -339,7 +339,7 @@ class GpAddMirrorsProgram:
             mirror = toBuild.getFailoverSegment()
             primary = toBuild.getLiveSegment()
 
-            line = 'mirror%d=%d:%s:%d:%s%s' % \
+            line = 'mirror%d=%d:%s:%d:%s' % \
                    (i, \
                     mirror.getSegmentContentId(), \
                     canonicalize_address(mirror.getSegmentAddress()), \
@@ -450,7 +450,7 @@ class GpAddMirrorsProgram:
 
     def checkMirrorOffset(self, gpArray):
         """
-        return an array of the ports to use to begin mirror port, replication port, and mirror replication port
+        return an array of the ports to use to begin mirror port
         """
 
         maxAllowedPort = 61000
