@@ -19,7 +19,7 @@ limitations under the License.
 # The plan is to deprecate walrepl.lib.dbconn
 import gppylib.db.dbconn
 from gppylib.commands.base import *
-from gppylib.gparray import GpArray, SYSTEM_FILESPACE
+from gppylib.gparray import GpArray
 
 import os
 import re
