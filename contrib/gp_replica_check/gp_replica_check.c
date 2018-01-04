@@ -212,6 +212,8 @@ sync_wait(void)
 	{
 		int			i;
 
+		CHECK_FOR_INTERRUPTS();
+
 		LWLockAcquire(SyncRepLock, LW_SHARED);
 		for (i = 0; i < max_wal_senders; i++)
 		{
