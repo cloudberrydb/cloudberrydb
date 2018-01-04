@@ -355,7 +355,6 @@ class GpMirrorListToBuild:
             for segment in segmentArr:
 
                 # check for port conflict
-                replicationPort = segment.getSegmentReplicationPort()
                 port = segment.getSegmentPort()
                 dbid = segment.getSegmentDbId()
                 if port in usedPorts:
@@ -363,34 +362,17 @@ class GpMirrorListToBuild:
                         "On host %s, port %s for segment with dbid %s conflicts with port for segment dbid %s" %
                         (hostName, port, dbid, usedPorts.get(port)))
 
-                if segment.isSegmentQE():
-                    if replicationPort is None:
-                        raise Exception("On host %s, the replication port is not set for segment with dbid %s" %
-                                        (hostName, dbid))
-
-                    if replicationPort in usedPorts:
-                        raise Exception(
-                            "On host %s, replication port %s for segment with dbid %s conflicts "
-                            "with a port for segment dbid %s" %
-                            (hostName, dbid, replicationPort, usedPorts.get(replicationPort)))
-
-                    if port == replicationPort:
-                        raise Exception("On host %s, segment with dbid %s has equal port and replication port" %
-                                        (hostName, dbid))
-
                 usedPorts[port] = dbid
-                usedPorts[replicationPort] = dbid
 
                 # check for directory conflict; could improve this by reporting nicer the conflicts
-                paths.append(segment.getSegmentDataDirectory())
+                path = segment.getSegmentDataDirectory()
 
-                for path in paths:
-                    if path in usedDataDirectories:
-                        raise Exception(
-                            "On host %s, data directory for segment with dbid %s conflicts with "
-                            "data directory for segment dbid %s; directory: %s" %
-                            (hostName, dbid, usedDataDirectories.get(path), path))
-                    usedDataDirectories[path] = dbid
+                if path in usedDataDirectories:
+                    raise Exception(
+                        "On host %s, data directory for segment with dbid %s conflicts with "
+                        "data directory for segment dbid %s; directory: %s" %
+                        (hostName, dbid, usedDataDirectories.get(path), path))
+                usedDataDirectories[path] = dbid
 
     def __runWaitAndCheckWorkerPoolForErrorsAndClear(self, cmds, actionVerb, suppressErrorCheck=False):
         for cmd in cmds:

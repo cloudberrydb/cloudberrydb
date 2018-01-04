@@ -496,7 +496,7 @@ class SendFilerepVerifyMessage(Command):
         'pg_ident.conf', 'pg_fsm.cache', 'gp_dbid', 'gp_pmtransitions_args',
         'gp_dump', 'postgresql.conf', 'postmaster.log', 'postmaster.opts',
         'postmaser.pids', 'postgresql.conf.bak', 'core',  'wet_execute.tbl',
-        'recovery.done', 'gp_temporary_files_filespace', 'gp_transaction_files_filespace']
+        'recovery.done']
 
     DEFAULT_IGNORE_DIRS = [
         'pgsql_tmp', 'pg_xlog', 'pg_log', 'pg_stat_tmp', 'pg_changetracking', 'pg_verify', 'db_dumps', 'pg_utilitymodedtmredo', 'gpperfmon'
@@ -1111,7 +1111,6 @@ class ConfigureNewSegment(Command):
                         : if primary then 'true' else 'false'
                         : if target is reused location then 'true' else 'false'
                         : <segment dbid>
-                      [ : <filespace oid> : <file space directory> ]...
 
         """
         result = {}
@@ -1128,16 +1127,10 @@ class ConfigureNewSegment(Command):
 
             isTargetReusedLocation = isTargetReusedLocationArr and isTargetReusedLocationArr[segIndex]
 
-            filespaces = []
-            for fsOid, path in seg.getSegmentFilespaces().iteritems():
-                if fsOid not in [gparray.SYSTEM_FILESPACE]:
-                    filespaces.append(str(fsOid) + ":" + path)
-
-            result[hostname] += '%s:%d:%s:%s:%d%s' % (seg.getSegmentDataDirectory(), seg.getSegmentPort(),
+            result[hostname] += '%s:%d:%s:%s:%d' % (seg.getSegmentDataDirectory(), seg.getSegmentPort(),
                         "true" if seg.isSegmentPrimary(current_role=True) else "false",
                         "true" if isTargetReusedLocation else "false",
-                        seg.getSegmentDbId(),
-                        "" if len(filespaces) == 0 else (":" + ":".join(filespaces))
+                        seg.getSegmentDbId()
             )
         return result
 

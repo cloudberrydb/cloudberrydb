@@ -200,17 +200,15 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
         # add the new segment
         dbId = self.__callSegmentAdd(conn, gpArray, seg)
 
-        # update the segment mode, status and replication port
+        # update the segment mode and status
         self.__updateSegmentModeStatus(conn, seg)
-        if gpArray.get_mirroring_enabled() == True:
-            self.__updateSegmentReplicationPort(conn, seg)
 
         # get the newly added segment's content id
         # MPP-12393 et al WARNING: there is an unusual side effect going on here.  
         # Although gp_add_segment_primary() executed by __callSegmentAdd() above returns
         # the dbId of the new row in gp_segment_configuration, the following
         # select from gp_segment_configuration can return 0 rows if the updates
-        # done by __updateSegmentModeStatus() and/or __updateSegmentReplicationPort()
+        # done by __updateSegmentModeStatus()
         # are not done first.  Don't change the order of these operations unless you 
         # understand why gp_add_segment_primary() behaves as it does.
         sql = "select content from pg_catalog.gp_segment_configuration where dbId = %s" % self.__toSqlIntValue(seg.getSegmentDbId())
@@ -258,14 +256,9 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
     def __updateSystemConfigUpdateSegment(self, conn, gpArray, seg, originalSeg, textForConfigTable):
 
         # update mode and status
-        # when adding a mirror, the replication port may change as well
         #
         what = "%s: segment mode and status"
         self.__updateSegmentModeStatus(conn, seg)
-
-        if seg.getSegmentReplicationPort() != originalSeg.getSegmentReplicationPort():
-            what = "%s: segment mode, status, and replication port"
-            self.__updateSegmentReplicationPort(conn, seg)
 
         self.__insertConfigHistory(conn, seg.getSegmentDbId(), what % textForConfigTable)
 
@@ -333,16 +326,6 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
         dbId = int(sqlResult[0])
         seg.setSegmentDbId(dbId)
         return dbId
-
-
-    def __updateSegmentReplicationPort(self, conn, seg):
-        # run an update
-        sql = "UPDATE pg_catalog.gp_segment_configuration\n" + \
-            "  SET\n" + \
-            "  replication_port = " + self.__toSqlIntValue(seg.getSegmentReplicationPort()) + "\n" \
-            "WHERE dbid = " + self.__toSqlIntValue(seg.getSegmentDbId())
-        logger.debug(sql)
-        dbconn.executeUpdateOrInsert(conn, sql, 1)
 
 
     def __updateSegmentModeStatus(self, conn, seg):
