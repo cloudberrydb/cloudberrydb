@@ -656,12 +656,6 @@ def createSegmentRows( hostlist
             index = 0
             for mdir in mirror_list:
                 fulldir = "%s/%s%d" % (mdir,dir_prefix,content)
-                fsDict = {}
-                if mirror_fs_list != None and len(mirror_fs_list) > index:
-                    fsDict = mirror_fs_list[index]
-                fullFsDict = {}
-                for oid in fsDict:
-                    fullFsDict[oid] = "%s/%s%d" % (fsDict[oid], dir_prefix, content)
                 mirror_host = hostlist[mirror_host_offset % num_hosts]
                 if mirror_host == host:
                     mirror_host_offset += 1
@@ -714,12 +708,6 @@ def createSegmentRows( hostlist
                     address = mirror_host + '-' + str(interfaceNumber)
                 else:
                     address = mirror_host
-                fsDict = {}
-                if mirror_fs_list != None and len(mirror_fs_list) > index:
-                    fsDict = mirror_fs_list[index]
-                fullFsDict = {}
-                for oid in fsDict:
-                    fullFsDict[oid] = "%s/%s%d" % (fsDict[oid], dir_prefix, content)
                 rows.append( SegmentRow( content = content
                                        , isprimary = isprimary
                                        , dbid = dbid
@@ -1762,7 +1750,7 @@ class GpArray:
         self._fixup_and_add_expansion_segments(rows, interface_list)
 
     # --------------------------------------------------------------------
-    def addExpansionDatadirs(self, datadirs, mirrordirs, mirror_type, fs_dirs = None, fs_mirror_dirs = None):
+    def addExpansionDatadirs(self, datadirs, mirrordirs, mirror_type):
         """ Adds new segments based on new data directories to both original
         hosts and hosts that were added by addExpansionHosts.
         """

@@ -362,39 +362,15 @@ class GpAddMirrorsProgram:
 
             labelOfPathsBeingRead = "data"
             index = 0
-            fsOid = gparray.SYSTEM_FILESPACE
             enteredFilespaces = {}
             for line in lines:
-                if line.startswith("filespace "):
-                    if index < maxPrimariesPerHost:
-                        raise Exception('Number of %s directories must equal %d but %d were read from %s' % \
-                                        (labelOfPathsBeingRead, maxPrimariesPerHost, index, configFile))
+                if index == maxPrimariesPerHost:
+                    raise Exception('Number of %s directories must equal %d but more were read from %s' % \
+                                    (labelOfPathsBeingRead, maxPrimariesPerHost, configFile))
 
-                    fsName = line[len("filespace "):].strip()
-                    labelOfPathsBeingRead = fsName
-
-                    if fsName not in filespaceNameToOid:
-                        raise Exception("Unknown filespace %s specified in input file %s" % \
-                                        (fsName, configFile))
-                    fsOid = filespaceNameToOid[fsName]
-
-                    if fsName in enteredFilespaces:
-                        raise Exception("Filespace %s specified twice in input file %s" % \
-                                        (fsName, configFile))
-                    enteredFilespaces[fsName] = True
-
-                    index = 0
-                else:
-                    if index == maxPrimariesPerHost:
-                        raise Exception('Number of %s directories must equal %d but more were read from %s' % \
-                                        (labelOfPathsBeingRead, maxPrimariesPerHost, configFile))
-
-                    path = normalizeAndValidateInputPath(line, "config file")
-                    if fsOid == gparray.SYSTEM_FILESPACE:
-                        dirs.append(path)
-                    else:
-                        filespaceOidToPathMaps[index][fsOid] = path
-                    index += 1
+                path = normalizeAndValidateInputPath(line, "config file")
+                dirs.append(path)
+                index += 1
             if index < maxPrimariesPerHost:
                 raise Exception('Number of %s directories must equal %d but %d were read from %s' % \
                                 (labelOfPathsBeingRead, maxPrimariesPerHost, index, configFile))

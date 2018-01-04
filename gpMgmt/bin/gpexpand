@@ -49,9 +49,7 @@ GPDB_STOPPED = 1
 GPDB_STARTED = 2
 GPDB_UTILITY = 3
 
-FILE_SPACES_INPUT_FILENAME_SUFFIX = ".fs"
 SEGMENT_CONFIGURATION_BACKUP_FILE = "gpexpand.gp_segment_configuration"
-FILE_SPACES_INPUT_FILE_LINE_1_PREFIX = "filespaceOrder"
 
 #global var
 _gp_expand = None
@@ -914,7 +912,7 @@ class SegmentTemplate:
 # ------------------------------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------------------------------
 class NewSegmentInput:
-    def __init__(self, hostname, address, port, datadir, dbid, contentId, role, fileSpaces=None):
+    def __init__(self, hostname, address, port, datadir, dbid, contentId, role):
         self.hostname = hostname
         self.address = address
         self.port = port
@@ -922,7 +920,6 @@ class NewSegmentInput:
         self.dbid = dbid
         self.contentId = contentId
         self.role = role
-        self.fileSpaces = fileSpaces
 
 
 # ------------------------------------------------------------------------------------------------------
@@ -1265,49 +1262,6 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
 
         return outputfile
 
-    # ------------------------------------------------------------------------
-    def generate_filespaces_inputfile(self, outFileNamePrefix):
-        """
-        Writes a gpexpand filespace input file based on expansion segments
-        added to gparray by the gpexpand interview. If the new segments
-        contain filespaces, then return the name of the file, else return
-        None.
-        """
-        filespaces = self.gparray.getFilespaces(includeSystemFilespace=False)
-        if filespaces != None and len(filespaces) > 0:
-            outputfile = outFileNamePrefix + FILE_SPACES_INPUT_FILENAME_SUFFIX
-        else:
-            outputfile = None
-
-        if outputfile != None:
-            outfileFD = open(outputfile, 'w')
-
-            logger.info("Generating filespaces input file...")
-
-            firstLine = FILE_SPACES_INPUT_FILE_LINE_1_PREFIX + "="
-            firstFs = True
-            for fs in filespaces:
-                if firstFs == True:
-                    firstLine = firstLine + fs.getName()
-                    firstFs = False
-                else:
-                    firstLine = firstLine + ":" + fs.getName()
-            outfileFD.write(firstLine + '\n')
-
-            for db in self.gparray.getExpansionSegDbList():
-                dbid = db.getSegmentDbId()
-                outLine = str(dbid)
-                segmentFilespaces = db.getSegmentFilespaces()
-                for fs in filespaces:
-                    oid = fs.getOid()
-                    path = segmentFilespaces[oid]
-                    outLine = outLine + ":" + path
-                outfileFD.write(outLine + '\n')
-
-            outfileFD.close()
-
-        return outputfile
-
     def addNewSegments(self, inputFileEntryList):
         for seg in inputFileEntryList:
             self.gparray.addExpansionSeg(content=int(seg.contentId)
@@ -1318,7 +1272,6 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
                                          , address=seg.address.strip()
                                          , port=int(seg.port)
                                          , datadir=os.path.abspath(seg.datadir.strip())
-                                         , fileSpaces=seg.fileSpaces
                                          )
         try:
             self.gparray.validateExpansionSegs()
@@ -1336,49 +1289,7 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
 
         if self.options.filename:
             inputFilename = self.options.filename
-        fsInputFilename = inputFilename + FILE_SPACES_INPUT_FILENAME_SUFFIX
-        fsOidList = []
-        fsDictionary = {}
         f = None
-        try:
-            existsCmd = FileDirExists(name="gpexpand see if .fs file exists", directory=fsInputFilename)
-            existsCmd.run(validateAfter=True)
-            exists = existsCmd.filedir_exists()
-            if exists == False and len(self.gparray.getFilespaces(includeSystemFilespace=False)) != 0:
-                raise ExpansionError("Expecting filespaces input file: " + fsInputFilename)
-            if exists == True:
-                f = open(fsInputFilename, 'r')
-                for lineNumber, l in line_reader(f):
-                    if lineNumber == 1:
-                        fsNameString = l.strip().split("=")
-                        fsNameList = fsNameString[1].strip().split(":")
-                        for name in fsNameList:
-                            oid = self.gparray.getFileSpaceOid(name)
-                            if oid == None:
-                                raise ExpansionError("Unknown filespace name: " + str(name))
-                            fsOidList.append(oid)
-                        # Make sure all the filespace names are specified.
-                        if len(fsNameList) != len(self.gparray.getFilespaces(includeSystemFilespace=False)):
-                            missingFsNames = []
-                            filespaces = self.gparray.getFilespaces()
-                            for fs in filespaces:
-                                if fs.getName() not in fsNameList:
-                                    missingFsNames.append(fs.getName())
-                            raise ExpansionError("Missing filespaces: " + str(missingFsNames))
-
-                    else:
-                        fsLine = l.strip().split(":")
-                        try:
-                            fsDictionary[fsLine[0]] = fsLine[1:]
-                        except Exception, e:
-                            raise ExpansionError("Problem with inputfile %s, line number %s, exceptin %s." % \
-                                                 (fsInputFilename, str(lineNumber), str(e)))
-
-        except IOError, ioe:
-            raise ExpansionError('Problem with filespace input file: %s. Exception: %s' % (fsInputFilename, str(ioe)))
-        finally:
-            if f != None:
-                f.close()
 
         try:
             f = open(inputFilename, 'r')
@@ -1387,16 +1298,6 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
 
                     hostname, address, port, datadir, dbid, contentId, role \
                         = parse_gpexpand_segment_line(inputFilename, line, l)
-
-                    filespaces = {}
-                    if len(fsDictionary) > 0:
-                        fileSpacesPathList = fsDictionary[dbid]
-                    else:
-                        fileSpacesPathList = []
-                    index = 0
-                    for oid in fsOidList:
-                        filespaces[oid] = fileSpacesPathList[index]
-                        index = index + 1
 
                     # Check that input values look reasonable.
                     if hostname == None or len(hostname) == 0:
@@ -1421,7 +1322,6 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
                                                     , dbid=dbid
                                                     , contentId=contentId
                                                     , role=role
-                                                    , fileSpaces=filespaces
                                                     ))
             except ValueError:
                 raise ExpansionError('Missing or invalid value on line %d.' % line)
@@ -1567,23 +1467,6 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
             self.pool.check_results()
         except ExecutionError:
             raise ExpansionError('Failed to restore original segments')
-
-    def _construct_filespace_parameter(self, seg, gpFSobjList):
-        """ return a string containing a filespace parameter appropriate for use in sql functions. """
-        filespaces = []
-        segFilespaces = seg.getSegmentFilespaces()
-        filespaceNames = []
-        filespaceLocations = []
-        for entry in gpFSobjList:
-            name = entry.getName()
-            oid = entry.getOid()
-            location = segFilespaces[oid]
-            filespaceNames.append(name)
-            filespaceLocations.append(location)
-        for i in range(len(filespaceNames)):
-            entry = [filespaceNames[i], filespaceLocations[i]]
-            filespaces.append(entry)
-        return str(filespaces)
 
     def update_catalog(self):
         """
@@ -2309,90 +2192,6 @@ UPDATE gp_distribution_policy
             logger.exception('Syncing of Greenplum Database extensions has failed.')
             logger.warning('Please run gppkg --clean after successful expansion.')
 
-    def move_filespaces(self):
-        """
-            Move filespaces for temporary and transaction files.
-        """
-
-        segments = self.gparray.getExpansionSegDbList()
-
-        cur_filespace_entries = GetFilespaceEntriesDict(GetFilespaceEntries(self.gparray,
-                                                                            PG_SYSTEM_FILESPACE
-                                                                            ).run()).run()
-        pg_system_filespace_entries = cur_filespace_entries
-        cur_filespace_name = self.gparray.getFileSpaceName(int(cur_filespace_entries[1][0]))
-        segments = self.gparray.getExpansionSegDbList()
-
-        logger.info('Checking if Transaction filespace was moved')
-        if os.path.exists(os.path.join(cur_filespace_entries[1][2], GP_TRANSACTION_FILES_FILESPACE)):
-            logger.info('Transaction filespace was moved')
-            new_filespace_entries = GetFilespaceEntriesDict(GetCurrentFilespaceEntries(self.gparray,
-                                                                                       FileType.TRANSACTION_FILES
-                                                                                       ).run()).run()
-            new_filespace_name = self.gparray.getFileSpaceName(int(new_filespace_entries[1][0]))
-            operations_list = GetMoveOperationList(segments,
-                                                   FileType.TRANSACTION_FILES,
-                                                   new_filespace_name,
-                                                   new_filespace_entries,
-                                                   cur_filespace_entries,
-                                                   pg_system_filespace_entries
-                                                   ).run()
-
-            logger.info('Moving Transaction filespace on expansion segments')
-            ParallelOperation(operations_list).run()
-
-            logger.debug('Checking results of transaction files move')
-            for operation in operations_list:
-                try:
-                    operation.get_ret()
-                except Exception as _:
-                    logger.info('Transaction filespace move failed on expansion segment')
-                    RollBackFilespaceChanges(segments,
-                                             FileType.TRANSACTION_FILES,
-                                             cur_filespace_name,
-                                             cur_filespace_entries,
-                                             new_filespace_entries,
-                                             pg_system_filespace_entries,
-                                             ).run()
-                    raise
-
-        logger.info('Checking if Temporary filespace was moved')
-        if os.path.exists(os.path.join(cur_filespace_entries[1][2], GP_TEMPORARY_FILES_FILESPACE)):
-            logger.info('Temporary filespace was moved')
-            new_filespace_entries = GetFilespaceEntriesDict(GetCurrentFilespaceEntries(self.gparray,
-                                                                                       FileType.TEMPORARY_FILES
-                                                                                       ).run()).run()
-            new_filespace_name = self.gparray.getFileSpaceName(int(new_filespace_entries[1][0]))
-            operations_list = GetMoveOperationList(segments,
-                                                   FileType.TEMPORARY_FILES,
-                                                   new_filespace_name,
-                                                   new_filespace_entries,
-                                                   cur_filespace_entries,
-                                                   pg_system_filespace_entries
-                                                   ).run()
-
-            logger.info('Moving Temporary filespace on expansion segments')
-            ParallelOperation(operations_list).run()
-
-            logger.debug('Checking results of temporary files move')
-            for operation in operations_list:
-                try:
-                    operation.get_ret()
-                except Exception:
-                    logger.info('Temporary filespace move failed on expansion segment')
-                    RollBackFilespaceChanges(segments,
-                                             FileType.TEMPORARY_FILES,
-                                             cur_filespace_name,
-                                             cur_filespace_entries,
-                                             new_filespace_entries,
-                                             pg_system_filespace_entries
-                                             ).run()
-                    raise
-
-        # Update flat files on mirrors
-        UpdateFlatFiles(self.gparray, primaries=False, expansion=True).run()
-
-
     def validate_heap_checksums(self):
         num_workers = min(len(self.gparray.get_hostlist()), MAX_PARALLEL_EXPANDS)
         heap_checksum_util = HeapChecksum(gparray=self.gparray, num_workers=num_workers, logger=self.logger)
@@ -2833,29 +2632,12 @@ before continuing by re-running this utility and providing the input file. """
 
     if num_new_datadirs > 0:
         new_datadirs = []
-        new_fsDirs = []
         new_mirrordirs = []
-        new_mirrorFsDirs = []
-
-        gpFSobjList = gparray.getFilespaces(includeSystemFilespace=False)
 
         for i in range(1, num_new_datadirs + 1):
             new_datadir = ask_input(None, 'Enter new primary data directory %d' % i, '',
                                     '/data/gpdb_p%d' % i, datadir_validator, None)
             new_datadirs.append(new_datadir.strip())
-
-            fsDict = {}
-            for fsObj in gpFSobjList:
-                # Prompt the user for a location for each filespace
-                fsLoc = ask_input(None
-                                  , 'Enter new file space location for file space name: %s' % fsObj.getName()
-                                  , ''
-                                  , ''
-                                  , datadir_validator
-                                  , None
-                                  )
-                fsDict[fsObj.getOid()] = fsLoc.strip()
-            new_fsDirs.append(fsDict)
 
         if len(new_datadirs) != num_new_datadirs:
             raise ExpansionError(
@@ -2867,19 +2649,6 @@ before continuing by re-running this utility and providing the input file. """
                                           '/data/gpdb_m%d' % i, datadir_validator, None)
                 new_mirrordirs.append(new_mirrordir.strip())
 
-                fsDict = {}
-                for fsObj in gpFSobjList:
-                    # Prompt the user for a location for each filespace
-                    fsLoc = ask_input(None
-                                      , 'Enter new file space location for file space name: %s' % fsObj.getName()
-                                      , ''
-                                      , ''
-                                      , datadir_validator
-                                      , None
-                                      )
-                    fsDict[fsObj.getOid()] = fsLoc.strip()
-                new_mirrorFsDirs.append(fsDict)
-
             if len(new_mirrordirs) != num_new_datadirs:
                 raise ExpansionError(
                     'The number of new mirror data directories entered does not match the number of segments added')
@@ -2887,8 +2656,6 @@ before continuing by re-running this utility and providing the input file. """
         gparray.addExpansionDatadirs(datadirs=new_datadirs
                                      , mirrordirs=new_mirrordirs
                                      , mirror_type=mirror_type
-                                     , fs_dirs=new_fsDirs
-                                     , fs_mirror_dirs=new_mirrorFsDirs
                                      )
         try:
             gparray.validateExpansionSegs()
@@ -2902,13 +2669,9 @@ before continuing by re-running this utility and providing the input file. """
     print "\nGenerating configuration file...\n"
 
     outfile = _gp_expand.generate_inputfile()
-    outFilespaceFileName = _gp_expand.generate_filespaces_inputfile(outFileNamePrefix=outfile)
 
     outFileStr = ""
-    if outfile != None:
-        outFileStr = """\nInput configuration files were written to '%s' and '%s'.""" % (outfile, outFilespaceFileName)
-    else:
-        outFileStr = """\nInput configuration file was written to '%s'.""" % (outfile)
+    outFileStr = """\nInput configuration file was written to '%s'.""" % (outfile)
 
     print outFileStr
     print """Please review the file and make sure that it is correct then re-run
@@ -3038,7 +2801,6 @@ def main(options, args, parser):
             _gp_expand.add_segments()
             _gp_expand.update_original_segments()
             _gp_expand.update_catalog()
-            _gp_expand.move_filespaces()
             _gp_expand.cleanup_new_segments()
             _gp_expand.setup_schema()
             _gp_expand.prepare_schema()
