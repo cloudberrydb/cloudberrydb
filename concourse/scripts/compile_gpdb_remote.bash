@@ -50,7 +50,6 @@ EOF
     # Get git information from local repo(concourse gpdb_src input)
     cd gpdb_src
     GIT_URI=`git config --get remote.origin.url`
-    GIT_BRANCH=`git show -s --pretty=%d HEAD | cut -d / -f 2 | cut -d , -f 1`
     GIT_COMMIT=`git rev-parse HEAD`
     cd ..
 }
@@ -61,7 +60,7 @@ EOF
 function remote_clone() {
     ssh -A -T -p $REMOTE_PORT $REMOTE_USER@$REMOTE_HOST <<- EOF
     cd $GPDB_DIR
-    git clone --recursive -b $GIT_BRANCH $GIT_URI gpdb_src
+    git clone --recursive $GIT_URI gpdb_src
     cd gpdb_src
     git reset --hard $GIT_COMMIT
 EOF
