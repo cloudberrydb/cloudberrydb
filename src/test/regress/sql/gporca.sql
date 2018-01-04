@@ -1435,3 +1435,7 @@ drop table bar;
 create table bar(name text);
 insert into bar values('person');
 select * from unnest((select string_to_array(name, ',') from bar)) as a;
+
+-- start_ignore
+DROP SCHEMA orca CASCADE;
+-- end_ignore
