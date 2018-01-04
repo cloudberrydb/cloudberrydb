@@ -36,9 +36,6 @@ try:
     from gppylib.operations.utils import ParallelOperation
     from gppylib.parseutils import line_reader, parse_gpexpand_segment_line, \
         canonicalize_address
-    from gppylib.operations.filespace import PG_SYSTEM_FILESPACE, GP_TRANSACTION_FILES_FILESPACE, \
-        GP_TEMPORARY_FILES_FILESPACE, GetCurrentFilespaceEntries, GetFilespaceEntries, GetFilespaceEntriesDict, \
-        RollBackFilespaceChanges, GetMoveOperationList, FileType, UpdateFlatFiles
     from gppylib.heapchecksum import HeapChecksum
 
 except ImportError, e:
@@ -798,18 +795,6 @@ class SegmentTemplate:
         self.pool.join()
         self.pool.check_results()
 
-    def _get_transaction_filespace_dir(self, transaction_flat_file):
-        filespace_dir = None
-
-        with open(transaction_flat_file) as tfile:
-            for line in tfile:
-                fs_info = line.split()
-                if len(fs_info) != 2:
-                    continue
-                filespace_dir = fs_info[1]
-
-        return filespace_dir
-
     def _fixup_template(self):
         """Copies postgresql.conf and pg_hba.conf files from a valid segment on the system.
         Then modifies the template copy of pg_hba.conf"""
@@ -832,24 +817,6 @@ class SegmentTemplate:
         # Copy the transaction directories into template
         pg_system_filespace_entries = GetFilespaceEntriesDict(GetFilespaceEntries(self.gparray,
                                                                                   PG_SYSTEM_FILESPACE).run()).run()
-        transaction_flat_file = os.path.join(pg_system_filespace_entries[1][2], GP_TRANSACTION_FILES_FILESPACE)
-        filespace_dir = None
-        if os.path.exists(transaction_flat_file):
-            filespace_dir = self._get_transaction_filespace_dir(transaction_flat_file)
-            logger.debug('Filespace location = %s' % filespace_dir)
-
-            if filespace_dir:
-                transaction_files_dir = ['pg_xlog', 'pg_multixact', 'pg_subtrans', 'pg_clog',
-                                         'pg_distributedlog', 'pg_distributedxidmap']
-                for directory in transaction_files_dir:
-                    dst_dir = os.path.join(self.tempDir, directory)
-                    src_dir = os.path.join(filespace_dir, directory)
-
-                    mkCmd = MakeDirectory('gpexpand creating transaction directories in template', dst_dir)
-                    mkCmd.run(validateAfter=True)
-                    cpCmd = LocalDirCopy('gpexpand copying dir %s' % src_dir, src_dir, dst_dir)
-                    cpCmd.run(validateAfter=True)
-
         # Don't need log files and gpperfmon files in template.
         rmCmd = RemoveDirectory('gpexpand remove gppermfon data from template',
                                 self.tempDir + '/gpperfmon/data')
@@ -867,14 +834,6 @@ class SegmentTemplate:
         rmCmd.run(validateAfter=True)
         rmCmd = RemoveGlob('gpexpand remove gpexpand files from template',
                             self.tempDir + '/gpexpand.*')
-        rmCmd.run(validateAfter=True)
-
-        # We dont need the flat files
-        rmCmd = RemoveFile('gpexpand remove transaction flat file from template',
-                            self.tempDir + '/' + GP_TRANSACTION_FILES_FILESPACE)
-        rmCmd.run(validateAfter=True)
-        rmCmd = RemoveFile('gpexpand remove temporary flat file from template',
-                            self.tempDir + '/' + GP_TEMPORARY_FILES_FILESPACE)
         rmCmd.run(validateAfter=True)
 
         self.logger.info('Adding new segments into template pg_hba.conf')
