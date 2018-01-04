@@ -151,7 +151,7 @@ class GpArrayTestCase(GpTestCase):
         offset = len(hostlist) * len(primary_list) # need to continue numbering where the last createSegmentRows left off
         for row in rows:
             gparray.addExpansionSeg(row.content+offset, 'p' if convert_bool(row.isprimary) else 'm', row.dbid+offset,
-                                    'p' if convert_bool(row.isprimary) else 'm', row.host, row.address, row.port, row.fulldir, row.prPort)
+                                    'p' if convert_bool(row.isprimary) else 'm', row.host, row.address, row.port, row.fulldir)
         self._validate_get_segment_list(gparray, hostlist, expansion_hosts, primary_list)
 
 

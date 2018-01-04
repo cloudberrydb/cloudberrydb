@@ -362,7 +362,6 @@ class GpAddMirrorsProgram:
 
             labelOfPathsBeingRead = "data"
             index = 0
-            enteredFilespaces = {}
             for line in lines:
                 if index == maxPrimariesPerHost:
                     raise Exception('Number of %s directories must equal %d but more were read from %s' % \
@@ -374,10 +373,6 @@ class GpAddMirrorsProgram:
             if index < maxPrimariesPerHost:
                 raise Exception('Number of %s directories must equal %d but %d were read from %s' % \
                                 (labelOfPathsBeingRead, maxPrimariesPerHost, index, configFile))
-
-            if len(enteredFilespaces) != len(filespaceNameToOid):
-                raise Exception("Only read directories for %d of %d filespaces from %s" % \
-                                (len(enteredFilespaces), len(filespaceNameToOid), configFile))
         else:
 
             #
