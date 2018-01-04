@@ -404,13 +404,11 @@ class GpAddMirrorsProgram:
                 assert path is not None  # checking consistency should have been done earlier, but doublecheck here
                 filespaceValues.append(":" + path)
 
-            line = 'mirror%d=%d:%s:%d:%d:%d:%s%s' % \
+            line = 'mirror%d=%d:%s:%d:%s%s' % \
                    (i, \
                     mirror.getSegmentContentId(), \
                     canonicalize_address(mirror.getSegmentAddress()), \
                     mirror.getSegmentPort(), \
-                    mirror.getSegmentReplicationPort(), \
-                    primary.getSegmentReplicationPort(), \
                     mirror.getSegmentDataDirectory(),
                     "".join(filespaceValues))
 

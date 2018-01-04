@@ -914,7 +914,7 @@ class SegmentTemplate:
 # ------------------------------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------------------------------
 class NewSegmentInput:
-    def __init__(self, hostname, address, port, datadir, dbid, contentId, role, replicationPort=None, fileSpaces=None):
+    def __init__(self, hostname, address, port, datadir, dbid, contentId, role, fileSpaces=None):
         self.hostname = hostname
         self.address = address
         self.port = port
@@ -922,7 +922,6 @@ class NewSegmentInput:
         self.dbid = dbid
         self.contentId = contentId
         self.role = role
-        self.replicationPort = replicationPort
         self.fileSpaces = fileSpaces
 
 
@@ -1260,8 +1259,6 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
                                                 , db.getSegmentContentId()
                                                 , db.getSegmentPreferredRole()
                                                 )
-            if db.getSegmentReplicationPort() != None:
-                tempStr = tempStr + ':' + str(db.getSegmentReplicationPort())
             outfile.write(tempStr + "\n")
 
         outfile.close()
@@ -1321,7 +1318,6 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
                                          , address=seg.address.strip()
                                          , port=int(seg.port)
                                          , datadir=os.path.abspath(seg.datadir.strip())
-                                         , replication_port=seg.replicationPort
                                          , fileSpaces=seg.fileSpaces
                                          )
         try:
@@ -1389,7 +1385,7 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
             try:
                 for line, l in line_reader(f):
 
-                    hostname, address, port, datadir, dbid, contentId, role, replicationPort \
+                    hostname, address, port, datadir, dbid, contentId, role \
                         = parse_gpexpand_segment_line(inputFilename, line, l)
 
                     filespaces = {}
@@ -1417,8 +1413,6 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
                         raise ExpansionError("Invalid contentId on line " + str(line))
                     if role == None or len(role) > 1 or (role != 'p' and role != 'm'):
                         raise ExpansionError("Invalid role on line " + str(line))
-                    if replicationPort != None and int(replicationPort) < 0:
-                        raise ExpansionError("Invalid replicationPort on line " + str(line))
 
                     retValue.append(NewSegmentInput(hostname=hostname
                                                     , port=port
@@ -1427,7 +1421,6 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
                                                     , dbid=dbid
                                                     , contentId=contentId
                                                     , role=role
-                                                    , replicationPort=replicationPort
                                                     , fileSpaces=filespaces
                                                     ))
             except ValueError:

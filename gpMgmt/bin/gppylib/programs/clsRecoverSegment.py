@@ -13,7 +13,6 @@
 #       -z "Primary segment data dir and host to force recovery" see removed -S option for comment
 #       -f        : force Greenplum Database instance shutdown and restart
 #       -F (HAS BEEN CHANGED) -- used to mean "force recovery" and now means "full recovery)
-# And a change to the -i input file: it now takes replicationPort in list of args (for failover target)
 #
 # import mainUtils FIRST to get python version check
 # THIS IMPORT SHOULD COME FIRST
@@ -64,11 +63,8 @@ class PortAssigner:
         #
         segments = gpArray.getDbList()
         ports = [seg.getSegmentPort() for seg in segments if seg.isSegmentQE()]
-        replicationPorts = [seg.getSegmentReplicationPort() for seg in segments if
-                            seg.getSegmentReplicationPort() is not None]
-        if len(replicationPorts) > 0 and len(ports) > 0:
+        if len(ports) > 0:
             self.__minPort = min(ports)
-            self.__minReplicationPort = min(replicationPorts)
         else:
             raise Exception("No segment ports found in array.")
         self.__usedPortsByHostName = {}
@@ -78,9 +74,8 @@ class PortAssigner:
             usedPorts = self.__usedPortsByHostName[hostName] = {}
             for seg in segments:
                 usedPorts[seg.getSegmentPort()] = True
-                usedPorts[seg.getSegmentReplicationPort()] = True
 
-    def findAndReservePort(self, getReplicationPortNotPostmasterPort, hostName, address):
+    def findAndReservePort(self, hostName, address):
         """
         Find an unused port of the given type (normal postmaster or replication port)
         When found, add an entry:  usedPorts[port] = True   and return the port found
@@ -90,7 +85,7 @@ class PortAssigner:
             self.__usedPortsByHostName[hostName] = {}
         usedPorts = self.__usedPortsByHostName[hostName]
 
-        minPort = self.__minReplicationPort if getReplicationPortNotPostmasterPort else self.__minPort
+        minPort = self.__minPort
         for port in range(minPort, PortAssigner.MAX_PORT_EXCLUSIVE):
             if port not in usedPorts:
                 usedPorts[port] = True
@@ -165,8 +160,8 @@ class GpRecoverSegmentProgram:
 
                 output_str += ' '
                 addr = canonicalize_address(seg.getSegmentAddress())
-                output_str += ('%s:%d:%d:%s%s' % (
-                    addr, seg.getSegmentPort(), seg.getSegmentReplicationPort(), seg.getSegmentDataDirectory(),
+                output_str += ('%s:%d:%s%s' % (
+                    addr, seg.getSegmentPort(), seg.getSegmentDataDirectory(),
                     "".join(filespaceValues)))
 
             lines.append(output_str)
@@ -249,7 +244,6 @@ class GpRecoverSegmentProgram:
                 address = fixedValues["newAddress"]
                 try:
                     port = int(fixedValues["newPort"])
-                    replicationPort = int(fixedValues["newReplicationPort"])
                 except ValueError:
                     raise Exception('Config file format error, invalid number value in line: %s' % (row.getLine()))
 
@@ -269,7 +263,6 @@ class GpRecoverSegmentProgram:
                 failoverSegment.setSegmentAddress(address)
                 failoverSegment.setSegmentHostName(hostName)
                 failoverSegment.setSegmentPort(port)
-                failoverSegment.setSegmentReplicationPort(replicationPort)
                 failoverSegment.setSegmentDataDirectory(dataDirectory)
 
                 for fsOid, path in filespaceOidToPathMap.iteritems():
@@ -498,10 +491,8 @@ class GpRecoverSegmentProgram:
                 failedSegment = failoverSegment.copy()
                 failoverSegment.setSegmentHostName(newRecoverHost)
                 failoverSegment.setSegmentAddress(newRecoverAddress)
-                port = portAssigner.findAndReservePort(False, newRecoverHost, newRecoverAddress)
-                replicationPort = portAssigner.findAndReservePort(True, newRecoverHost, newRecoverAddress)
+                port = portAssigner.findAndReservePort(newRecoverHost, newRecoverAddress)
                 failoverSegment.setSegmentPort(port)
-                failoverSegment.setSegmentReplicationPort(replicationPort)
 
             if spareDirectoryMap is not None:
                 #
