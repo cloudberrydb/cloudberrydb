@@ -690,7 +690,7 @@ class GpRecoverSegmentProgram:
         if self.__options.rebalanceSegments:
             optionCnt += 1
         if optionCnt > 1:
-            raise ProgramArgumentValidationException("Only one of -i, -p, -s, -r, and -S may be specified")
+            raise ProgramArgumentValidationException("Only one of -i, -p, and -r may be specified")
 
         faultProberInterface.getFaultProber().initializeProber(gpEnv.getMasterPort())
 
