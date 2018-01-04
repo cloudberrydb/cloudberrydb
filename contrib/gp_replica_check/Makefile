@@ -17,4 +17,4 @@ endif
 # For now run only for HEAP as for other object types like Sequence, btree
 # there are still known differences to be fixed.
 installcheck: install
-	gp_replica_check.py -r="heap, sequence, ao"
+	gp_replica_check.py -r="heap, ao"
