@@ -27,12 +27,6 @@ import time
 
 class mpp23395(MPPTestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        super(mpp23395, cls).setUpClass()
-        recoverseg = GpRecover()
-        recoverseg.recover_rebalance_segs()
-
     def tearDown(self):
         self.util.inject_fault(f='dtm_broadcast_commit_prepared', y='reset', seg_id=1);
         self.util.inject_fault(f='dtm_broadcast_abort_prepared', y='reset', seg_id=1);
