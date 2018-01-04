@@ -47,8 +47,6 @@ class GpStart(GpTestCase):
             patch('gpstart.userinput'),
             patch('gpstart.HeapChecksum'),
             patch('gpstart.log_to_file_only'),
-            patch("gpstart.is_filespace_configured", return_value=True),
-            patch("gpstart.CheckFilespaceConsistency"),
             patch("gpstart.StartSegmentsOperation"),
             patch("gpstart.base.WorkerPool"),
             patch("gpstart.gp.MasterStart.local"),
@@ -56,9 +54,6 @@ class GpStart(GpTestCase):
             patch("gpstart.TableLogger"),
             patch('gpstart.PgControlData'),
         ])
-
-        self.mockFilespaceConsistency = self.get_mock_from_apply_patch("CheckFilespaceConsistency")
-        self.mockFilespaceConsistency.return_value.run.return_value = True
 
         self.mock_start_result = self.get_mock_from_apply_patch('StartSegmentsOperation')
         self.mock_start_result.return_value.startSegments.return_value.getSuccessfulSegments.return_value = start_result.getSuccessfulSegments()
