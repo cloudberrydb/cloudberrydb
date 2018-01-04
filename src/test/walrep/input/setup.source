@@ -44,17 +44,3 @@ BEGIN
 	LEFT JOIN pg_class pg ON t.relnode = pg.relfilenode;
 END;
 $func$ LANGUAGE plpgsql;
-
-CREATE LANGUAGE plpythonu;
-
-CREATE OR REPLACE FUNCTION remove_standby()
-RETURNS void
-EXECUTE ON MASTER AS
-$func$
-   import subprocess
-
-   cmd = 'gpinitstandby -raq; exit 0'
-   subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).replace('.', '')
-$func$ LANGUAGE plpythonu;
-
-SELECT remove_standby();

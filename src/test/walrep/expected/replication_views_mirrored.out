@@ -2,14 +2,14 @@
 SELECT count(*) FROM gp_segment_configuration where preferred_role='m' and status='u';
  count
 -------
-     3
+     4
 (1 row)
 
 -- Check how many WAL replication mirrors are up and in-sync
 SELECT count(*) FROM gp_segment_configuration where preferred_role='m' and mode='s';
  count 
 -------
-     3
+     4
 (1 row)
 
 -- Check pg_stat_replication view of master and primary segments
@@ -19,5 +19,6 @@ SELECT gp_segment_id, application_name, state, sync_state FROM gp_stat_replicati
              0 | walreceiver      | streaming | sync
              1 | walreceiver      | streaming | sync
              2 | walreceiver      | streaming | sync
-(3 rows)
+            -1 | walreceiver      | streaming | sync
+(4 rows)
 
