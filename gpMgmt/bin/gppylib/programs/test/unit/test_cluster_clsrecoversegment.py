@@ -13,7 +13,7 @@ from test.unit.gp_unittest import GpTestCase
 class GpRecoverSegmentProgramTestCase(GpTestCase):
     def setUp(self):
         raw_options = GpRecoverSegmentProgram.createParser()
-        (options, _) = raw_options.parse_args()
+        (options, _) = raw_options.parse_args(args=[])
         options.spareDataDirectoryFile = None
         options.newRecoverHosts = None
         self.subject = GpRecoverSegmentProgram(options)
