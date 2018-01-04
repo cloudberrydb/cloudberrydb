@@ -22,6 +22,12 @@ returns text as $$
     return subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).replace('.', '')
 $$ language plpythonu;
 
+-- make sure we are in-sync for the primary we will be testing with
+select content, role, preferred_role, mode, status from gp_segment_configuration where content=2;
+
+-- print synchronous_standby_names should be set to '*' at start of test
+2U: show synchronous_standby_names;
+
 -- create table and show commits are not blocked
 create table segwalrep_commit_blocking (a int) distributed by (a);
 insert into segwalrep_commit_blocking values (1);

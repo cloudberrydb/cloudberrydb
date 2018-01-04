@@ -10,6 +10,21 @@ cmd = 'pg_ctl -D %s ' % datadir if command in ('stop', 'restart'): cmd = cmd + '
 return subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).replace('.', '') $$ language plpythonu;
 CREATE
 
+-- make sure we are in-sync for the primary we will be testing with
+select content, role, preferred_role, mode, status from gp_segment_configuration where content=2;
+content|role|preferred_role|mode|status
+-------+----+--------------+----+------
+2      |p   |p             |s   |u     
+2      |m   |m             |s   |u     
+(2 rows)
+
+-- print synchronous_standby_names should be set to '*' at start of test
+2U: show synchronous_standby_names;
+synchronous_standby_names
+-------------------------
+*                        
+(1 row)
+
 -- create table and show commits are not blocked
 create table segwalrep_commit_blocking (a int) distributed by (a);
 CREATE
@@ -18,7 +33,7 @@ INSERT 1
 
 -- turn off fts
 ! gpconfig -c gp_fts_probe_pause -v true --masteronly --skipvalidation;
-completed successfully with parameters '-c gp_fts_probe_pause -v true --masteronly --skipvalidation'
+20180104:13:17:57:019143 gpconfig:station1:csteam-[INFO]:-completed successfully with parameters '-c gp_fts_probe_pause -v true --masteronly --skipvalidation'
 
 1U: select pg_ctl((select datadir from gp_segment_configuration c where c.role='p' and c.content=-1), 'reload', NULL, NULL);
 pg_ctl          
@@ -87,7 +102,7 @@ COMMIT
 
 -- turn on fts
 ! gpconfig -c gp_fts_probe_pause -v false --masteronly --skipvalidation;
-completed successfully with parameters '-c gp_fts_probe_pause -v false --masteronly --skipvalidation'
+20180104:13:18:02:019373 gpconfig:station1:csteam-[INFO]:-completed successfully with parameters '-c gp_fts_probe_pause -v false --masteronly --skipvalidation'
 
 1U: select pg_ctl((select datadir from gp_segment_configuration c where c.role='p' and c.content=-1), 'reload', NULL, NULL);
 pg_ctl          
