@@ -272,25 +272,7 @@ class SuspendCheckpointCrashRecovery(MPPTestCase):
         ''' Do gpstop immediate, gpstart and see if all segments come back up fine '''
         if cluster_state == 'sync' :
             self.stop_db()
-            self.switch_primary_mirror_role_in_utility_mode()
-            tinctest.logger.info('Successfully switched roles of primary and mirrors in gp_segment_configuration')
             self.start_db(down_segments=True)
-            rc = self.gprecover.incremental()
-            if not rc:
-                raise Exception('Gprecoverseg failed')
-            if not self.gprecover.wait_till_insync_transition():
-                raise Exception('Segments not in sync')
-        if cluster_state == 'change_tracking':
-            self.stop_db()
-            self.start_db(down_segments=True)
-
-        if cluster_state == 'resync':
-            #Resume the filerep_resync filerep_transition_to_sync_begin before stop-start
-            self.fileutil.inject_fault(f='filerep_transition_to_sync_begin', y='resume', r='primary')
-            self.stop_db()
-            self.start_db()
-            if not self.gprecover.wait_till_insync_transition():
-                raise Exception('Segments not in sync')
         self.dbstate.check_catalog(alldb=False)
 
     def cluster_in_change_tracking(self):
@@ -300,7 +282,6 @@ class SuspendCheckpointCrashRecovery(MPPTestCase):
         self.base.invoke_fault('filerep_consumer', 'fault', role='primary')
         self.fileutil.wait_till_change_tracking_transition()
         tinctest.logger.info('Change_tracking transition complete')
-
 
     def validate_system(self, cluster_state):
         # Validate the system's integrity
@@ -337,13 +318,6 @@ class SuspendCheckpointCrashRecovery(MPPTestCase):
     def do_post_run_checks(self):
         self.stop_start_validate('sync')
 
-        rc = self.gprecover.incremental()
-        if not rc:
-            raise Exception('Gprecvoerseg failed')
-
-        self.gprecover.wait_till_insync_transition()
-
-        tinctest.logger.info("Done going from resync to insync")
         self.dbstate.check_catalog(alldb=False)
         self.dbstate.check_mirrorintegrity()
 
