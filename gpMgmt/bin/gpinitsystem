@@ -133,6 +133,7 @@ USAGE () {
 		$ECHO "          Also see gpinitsystem_INSTRUCTIONS file for greater detail on"
 		$ECHO "          the operation and configuration of this script"
 		$ECHO "      -e, <password>, password to set for Greenplum superuser in database [default $GP_PASSWD]"
+		$ECHO "      -F, standby_datadir [optiona]"
 		$ECHO "      -h, gp_hostlist_file [optional]"
 		$ECHO "          Contains a list of all segment instance hostnames required to participate in"
 		$ECHO "          the new Greenplum instance. Normally set in gp_config_file."
@@ -1513,6 +1514,9 @@ CREATE_STANDBY_QD () {
 		if [ x"" != x"$STANDBY_PORT" ]; then
 			INIT_STANDBY_ARGS+=" -P $STANDBY_PORT"
 		fi
+		if [ x"" != x"$STANDBY_DATADIR" ]; then
+			INIT_STANDBY_ARGS+=" -F $STANDBY_DATADIR"
+		fi
 		export MASTER_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1;$INIT_STANDBY_PROG -s $STANDBY_HOSTNAME $INIT_STANDBY_ARGS -a
 		STANDBY_RET_CODE=$?
 		case ${STANDBY_RET_CODE} in
@@ -1932,6 +1936,7 @@ while getopts ":vaqe:c:l:-:p:m:h:n:s:P:F:b:DB:SI:O:" opt
 				b ) NEW_BUFFERS=$OPTARG ;;
 				s ) STANDBY_HOSTNAME=$OPTARG ;;
 				P ) STANDBY_PORT=$OPTARG ;;
+				F ) STANDBY_DATADIR=$OPTARG ;;
 				n ) REQ_LOCALE_SETTING=$OPTARG ;;
 				D ) DEBUG_LEVEL=1 ;;
 				B ) BATCH_DEFAULT=$OPTARG ;;
