@@ -29,7 +29,6 @@ from mpp.lib.gprecoverseg import GpRecover
 from mpp.lib.gpstart import GpStart
 from mpp.lib.gpstop import GpStop
 from mpp.lib.config import GPDBConfig
-from mpp.lib.gpfilespace import Gpfilespace
 from mpp.lib.gpdbverify import GpdbVerify
 from mpp.models import MPPTestCase
 from mpp.gpdb.tests.storage.lib.dbstate import DbStateClass
@@ -52,7 +51,6 @@ class GPDBStorageBaseTestCase():
         self.gprecover = GpRecover(self.config)
         self.gpstop = GpStop()
         self.gpstart = GpStart()
-        self.gpfile = Gpfilespace(self.config)
         self.gpverify = GpdbVerify(config=self.config)
         self.dbstate = DbStateClass('run_validation', self.config)
         self.port = os.getenv('PGPORT')
