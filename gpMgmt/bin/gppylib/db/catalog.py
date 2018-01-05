@@ -75,23 +75,6 @@ def dropSchemaIfExist(conn,schemaname):
             cursor.close()
         conn.commit()
 
-def get_master_filespace_map(conn):
-    """Returns an array of [fsname, fspath] arrays that represents
-    all the filespaces on the master."""
-    sql = """SELECT fsname, fselocation 
-    FROM pg_filespace, pg_filespace_entry 
-WHERE pg_filespace.oid = pg_filespace_entry.fsefsoid 
-    AND fsedbid = (SELECT dbid FROM gp_segment_configuration
-                    WHERE role = 'p' AND content = -1)"""
-    cursor = None
-    try:
-        cursor = dbconn.execSQL(conn, sql)
-        return cursor.fetchall()
-    finally:
-        if cursor:
-            cursor.close()
-
-
 def get_catalogtable_list(conn):
     sql = """SELECT schemaname || '.' ||  tablename 
              FROM pg_tables 

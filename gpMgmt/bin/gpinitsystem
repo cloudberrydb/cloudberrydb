@@ -53,7 +53,6 @@ GP_USER=$USER_NAME
 # System table names
 GP_TBL=gp_id
 GP_CONFIG_TBL=gp_segment_configuration
-PG_SYSTEM_FILESPACE_NAME="pg_system"
 unset PG_CONF_ADD_FILE
 #unset QD_PRIMARY_ARRAY QE_PRIMARY_ARRAY QE_MIRROR_ARRAY
 EXIT_STATUS=0
@@ -134,7 +133,6 @@ USAGE () {
 		$ECHO "          Also see gpinitsystem_INSTRUCTIONS file for greater detail on"
 		$ECHO "          the operation and configuration of this script"
 		$ECHO "      -e, <password>, password to set for Greenplum superuser in database [default $GP_PASSWD]"
-		$ECHO "      -F, standby_filespaces [optiona]"
 		$ECHO "      -h, gp_hostlist_file [optional]"
 		$ECHO "          Contains a list of all segment instance hostnames required to participate in"
 		$ECHO "          the new Greenplum instance. Normally set in gp_config_file."
@@ -1335,7 +1333,7 @@ UPDATE_GPCONFIG () {
 		if [ $CHK_COUNT -eq 0 ]; then
 				LOG_MSG "[INFO]:-Adding $U_CONTENT on $U_HOSTNAME, path $U_DIR to Master gp_segment_configuration"
 				env PGOPTIONS="-c gp_session_role=utility" $PSQL -p $MASTER_PORT -d "$U_DB" -c "SELECT pg_catalog.gp_add_segment(${U_DBID}::int2, ${U_CONTENT}::int2, '${U_ROLE}', '${U_ROLE}', 's', 'u', ${U_PORT}, '${U_HOSTNAME}', '${U_ADDRESS}', '${U_DIR}');" >> $LOG_FILE 2>&1
-				ERROR_CHK $? "add $U_CONTENT on $U_HOSTNAME to Master gp_segment_configuration and $U_DIR to pg_filespace_entry" 2
+				ERROR_CHK $? "add $U_CONTENT on $U_HOSTNAME in dir $U_DIR to Master gp_segment_configuration" 2
 		else
 				LOG_MSG "[INFO]:-Content $U_CONTENT already exists in gp_segment_configuration system table"
 		fi
@@ -1514,9 +1512,6 @@ CREATE_STANDBY_QD () {
 		INIT_STANDBY_ARGS=""
 		if [ x"" != x"$STANDBY_PORT" ]; then
 			INIT_STANDBY_ARGS+=" -P $STANDBY_PORT"
-		fi
-		if [ x"" != x"$STANDBY_FILESPACES" ]; then
-			INIT_STANDBY_ARGS+=" -F $STANDBY_FILESPACES"
 		fi
 		export MASTER_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1;$INIT_STANDBY_PROG -s $STANDBY_HOSTNAME $INIT_STANDBY_ARGS -a
 		STANDBY_RET_CODE=$?
@@ -1937,7 +1932,6 @@ while getopts ":vaqe:c:l:-:p:m:h:n:s:P:F:b:DB:SI:O:" opt
 				b ) NEW_BUFFERS=$OPTARG ;;
 				s ) STANDBY_HOSTNAME=$OPTARG ;;
 				P ) STANDBY_PORT=$OPTARG ;;
-				F ) STANDBY_FILESPACES=$OPTARG ;;
 				n ) REQ_LOCALE_SETTING=$OPTARG ;;
 				D ) DEBUG_LEVEL=1 ;;
 				B ) BATCH_DEFAULT=$OPTARG ;;
