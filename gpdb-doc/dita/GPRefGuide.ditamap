@@ -211,7 +211,6 @@
 			<topicref href="ref_guide/system_catalogs/gp_fastsequence.xml"/>
 			<topicref href="ref_guide/system_catalogs/gp_id.xml"/>
 			<topicref href="ref_guide/system_catalogs/gp_pgdatabase.xml"/>
-			<topicref href="ref_guide/system_catalogs/gp_relation_node.xml"/>
 			<topicref href="ref_guide/system_catalogs/gp_resqueue_status.xml"/>
 			<topicref href="ref_guide/system_catalogs/gp_segment_configuration.xml"/>
 			<topicref href="ref_guide/system_catalogs/gp_transaction_log.xml"/>

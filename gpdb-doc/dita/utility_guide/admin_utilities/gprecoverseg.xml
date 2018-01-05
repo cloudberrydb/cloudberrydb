@@ -56,15 +56,14 @@
         The word <b>SPACE</b> indicates the location of a required space. Do not add additional
         spaces.</p>
       <codeblock>&lt;failed_host_address&gt;:&lt;port&gt;:&lt;data_directory&gt;<b>SPACE</b>
-&lt;recovery_host_address&gt;:&lt;port&gt;:&lt;replication_port&gt;:&lt;data_directory&gt;
-[:&lt;fselocation&gt;:...]</codeblock>
+&lt;recovery_host_address&gt;:&lt;port&gt;:&lt;data_directory&gt;
+</codeblock>
       <p>See the <codeph>-i</codeph> option below for details and examples of a recovery
         configuration file.</p>
       <p>The <codeph>gp_segment_configuration</codeph> system catalog table can help you determine your
         current segment configuration so that you can plan your mirror recovery configuration. For
         example, run the following query:</p>
-      <codeblock>=# SELECT dbid, content, address, port, 
-   replication_port, datadir 
+      <codeblock>=# SELECT dbid, content, address, port, datadir 
    FROM gp_segment_configuration
    ORDER BY dbid;</codeblock>
       <p>The new recovery segment host must be pre-installed with the Greenplum Database software
@@ -107,8 +106,8 @@
             line in the file is in the following format. The word <b>SPACE</b> indicates the
             location of a required space. Do not add additional
                 spaces.<codeblock>&lt;failed_host_address&gt;:&lt;port&gt;:&lt;data_directory&gt;<b>SPACE</b> 
-&lt;recovery_host_address&gt;:&lt;port&gt;:&lt;replication_port&gt;:&lt;data_directory&gt;
-[:&lt;fselocation&gt;:...]</codeblock><p><b>Comments</b></p><p>Lines
+&lt;recovery_host_address&gt;:&lt;port&gt;:&lt;data_directory&gt;
+</codeblock><p><b>Comments</b></p><p>Lines
               beginning with <codeph>#</codeph> are treated as comments and
               ignored.</p>
 	      <p><b>Segments to Recover</b></p><p>Each line after the first specifies a segment to
@@ -119,13 +118,13 @@
               in the line. The required space is indicated by <b>SPACE</b>. Do not add additional
               spaces.</p><p>
               <codeblock>failedAddress:failedPort:failedDataDirectory<b>SPACE</b>newAddress:
-newPort:newReplicationPort:newDataDirectory</codeblock>
+newPort:newDataDirectory</codeblock>
             </p><p><b>Examples</b></p><p><b>In-place
                 recovery of a single
                 mirror</b></p>
 		<codeblock>sdw1-1:50001:/data1/mirror/gpseg16</codeblock>
 		<p><b>Recovery of a single mirror to a new host</b></p>
-		<codeblock>sdw1-1:50001:/data1/mirror/gpseg16<b>SPACE</b>sdw4-1:50001:51001:/data1/recover1/gpseg16</codeblock>
+		<codeblock>sdw1-1:50001:/data1/mirror/gpseg16<b>SPACE</b>sdw4-1:50001:/data1/recover1/gpseg16</codeblock>
 		<p><b>Obtaining a Sample File</b></p>
 		<p>You can use the <codeph>-o</codeph> option to output a
               sample recovery configuration file to use as a starting point.</p></pd>

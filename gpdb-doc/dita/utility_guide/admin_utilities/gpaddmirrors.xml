@@ -60,8 +60,7 @@ mirror1=1:sdw1-1:60001:/gpdata/mir2/gp1</codeblock>
             <p>The <codeph>gp_segment_configuration</codeph> system catalog table can help you determine
                 your current primary segment configuration so that you can plan your mirror segment
                 configuration. For example, run the following query:</p>
-            <codeblock>=# SELECT dbid, content, address as host_address, port, 
-   replication_port, datadir 
+            <codeblock>=# SELECT dbid, content, address as host_address, port, datadir 
    FROM gp_segment_configuration
    ORDER BY dbid;</codeblock>
             <p>If creating your mirrors on alternate mirror hosts, the new mirror segment hosts must
@@ -107,7 +106,7 @@ mirror1=1:sdw1-1:60001:/gpdata/mir2/gp1</codeblock>
                         the system. The format of this file is as follows (as per attributes in the
                             <codeph>gp_segment_configuration</codeph> catalog table):</pd>
                     <pd>
-                        <codeblock>mirror[<varname>content</varname>]=<varname>content</varname>:<varname>address</varname>:<varname>port</varname>:<varname>fselocation</varname></codeblock>
+                        <codeblock>mirror[<varname>content</varname>]=<varname>content</varname>:<varname>address</varname>:<varname>port</varname>:<varname></varname></codeblock>
                     </pd>
                 </plentry>
                 <plentry>
@@ -140,15 +139,12 @@ mirror1=1:sdw1-1:60001:/gpdata/mir2/gp1</codeblock>
                 </plentry>
                 <plentry>
                     <pt>-p <varname>port_offset</varname></pt>
-                    <pd>Optional. This number is used to calculate the database ports and
-                        replication ports used for mirror segments. The default offset is 1000.
+                    <pd>Optional. This number is used to calculate the database ports
+                        used for mirror segments. The default offset is 1000.
                         Mirror port assignments are calculated as follows: </pd>
                     <pd>primary port + offset = mirror database port</pd>
-                    <pd>primary port + (2 * offset) = mirror replication port</pd>
-                    <pd>primary port + (3 * offset) = primary replication port</pd>
                     <pd>For example, if a primary segment has port 50001, then its mirror will use a
-                        database port of 51001, a mirror replication port of 52001, and a primary
-                        replication port of 53001 by default.</pd>
+                        database port of 51001, by default.</pd>
                 </plentry>
                 <plentry>
                     <pt>-s (spread mirrors)</pt>
@@ -176,7 +172,7 @@ mirror1=1:sdw1-1:60001:/gpdata/mir2/gp1</codeblock>
         <section id="section5">
             <title>Examples</title>
             <p>Add mirroring to an existing Greenplum Database system using the same set of hosts as
-                your primary data. Calculate the mirror database and replication ports by adding 100
+                your primary data. Calculate the mirror database ports by adding 100
                 to the current primary segment port numbers:</p>
             <codeblock>$ gpaddmirrors -p 100</codeblock>
             <p>Add mirroring to an existing Greenplum Database system using a different set of hosts
@@ -184,9 +180,9 @@ mirror1=1:sdw1-1:60001:/gpdata/mir2/gp1</codeblock>
             <codeblock>$ gpaddmirrors -i mirror_config_file</codeblock>
             <p>Where <codeph>mirror_config_file</codeph> looks something like this:</p>
             <codeblock>mirror0=0:sdw1-1:52001:53001:54001:/gpdata/mir1/gp0
-mirror1=1:sdw1-2:52002:53002:54002:/gpdata/mir2/gp1
-mirror2=2:sdw2-1:52001:53001:54001:/gpdata/mir1/gp2
-mirror3=3:sdw2-2:52002:53002:54002:/gpdata/mir2/gp3</codeblock>
+mirror1=1:sdw1-2:52002:/gpdata/mir2/gp1
+mirror2=2:sdw2-1:52001:/gpdata/mir1/gp2
+mirror3=3:sdw2-2:52002:/gpdata/mir2/gp3</codeblock>
             <p>Output a sample mirror configuration file to use with <codeph>gpaddmirrors
                     -i</codeph>:</p>
             <codeblock>$ gpaddmirrors -o /home/gpadmin/sample_mirror_config</codeblock>
