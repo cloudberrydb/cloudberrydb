@@ -26,8 +26,7 @@ STANDBYDIR=$DATADIRS/standby
 # Database Ports
 # ======================================================================
 
-# Note there are 2 ports per segment (postmaster port + replication_port)
-for (( i=0; i<`expr 4 \* $NUM_PRIMARY_MIRROR_PAIRS`; i++ )); do
+for (( i=0; i<`expr 2 \* $NUM_PRIMARY_MIRROR_PAIRS`; i++ )); do
   PORT_NUM=`expr $DEMO_PORT_BASE + $i`
   DEMO_SEG_PORTS_LIST="$DEMO_SEG_PORTS_LIST $PORT_NUM"
 done
