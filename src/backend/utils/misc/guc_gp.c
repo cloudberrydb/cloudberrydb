@@ -181,10 +181,6 @@ VERIFY_CHECKPOINT_INTERVAL_DEFAULT;
 bool		rle_type_compression_stats = false;
 
 bool		Debug_database_command_print = false;
-#define GP_MAX_DATABASES_DEFAULT 16
-int			gp_max_databases = GP_MAX_DATABASES_DEFAULT;
-#define GP_MAX_TABLESPACES_DEFAULT 16
-int			gp_max_tablespaces = GP_MAX_TABLESPACES_DEFAULT;
 bool		gp_startup_integrity_checks = true;
 bool		Debug_print_xlog_relation_change_info = false;
 bool		Debug_print_xlog_relation_change_info_skip_issues_only = false;
@@ -3061,24 +3057,6 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&gp_max_local_distributed_cache,
 		1024, 0, INT_MAX, NULL, NULL
-	},
-
-	{
-		{"gp_max_databases", PGC_POSTMASTER, RESOURCES_MEM,
-			gettext_noop("Sets the maximum number of databases."),
-			NULL
-		},
-		&gp_max_databases,
-		GP_MAX_DATABASES_DEFAULT, 8, 256, NULL, NULL
-	},
-
-	{
-		{"gp_max_tablespaces", PGC_POSTMASTER, RESOURCES_MEM,
-			gettext_noop("Sets the maximum number of tablespaces."),
-			NULL
-		},
-		&gp_max_tablespaces,
-		GP_MAX_TABLESPACES_DEFAULT, 8, 2048, NULL, NULL
 	},
 
 	{

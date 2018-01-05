@@ -361,9 +361,6 @@
               <xref href="#gp_max_csv_line_length"/>
             </li>
             <li>
-              <xref href="#gp_max_databases"/>
-            </li>
-            <li>
               <xref href="#gp_max_local_distributed_cache"/>
             </li>
             <li>
@@ -371,9 +368,6 @@
             </li>
             <li>
               <xref href="#gp_max_plan_size"/>
-            </li>
-            <li>
-              <xref href="#gp_max_tablespaces"/>
             </li>
             <li>
               <xref href="#gp_motion_cost_per_row"/>
@@ -4491,33 +4485,6 @@
       </table>
     </body>
   </topic>
-  <topic id="gp_max_databases">
-    <title>gp_max_databases</title>
-    <body>
-      <p>The maximum number of databases allowed in a Greenplum Database system.</p>
-      <table id="gp_max_databases_table">
-        <tgroup cols="3">
-          <colspec colnum="1" colname="col1" colwidth="1*"/>
-          <colspec colnum="2" colname="col2" colwidth="1*"/>
-          <colspec colnum="3" colname="col3" colwidth="1*"/>
-          <thead>
-            <row>
-              <entry colname="col1">Value Range</entry>
-              <entry colname="col2">Default</entry>
-              <entry colname="col3">Set Classifications</entry>
-            </row>
-          </thead>
-          <tbody>
-            <row>
-              <entry colname="col1">integer</entry>
-              <entry colname="col2">16</entry>
-              <entry colname="col3">master<p>system</p><p>restart</p></entry>
-            </row>
-          </tbody>
-        </tgroup>
-      </table>
-    </body>
-  </topic>
   <topic id="gp_max_local_distributed_cache">
     <title>gp_max_local_distributed_cache</title>
     <body>
@@ -4607,33 +4574,6 @@
               <entry colname="col1">integer</entry>
               <entry colname="col2">0</entry>
               <entry colname="col3">master<p>superuser</p><p>session</p></entry>
-            </row>
-          </tbody>
-        </tgroup>
-      </table>
-    </body>
-  </topic>
-  <topic id="gp_max_tablespaces">
-    <title>gp_max_tablespaces</title>
-    <body>
-      <p>The maximum number of tablespaces allowed in a Greenplum Database system.</p>
-      <table id="gp_max_tablespaces_table">
-        <tgroup cols="3">
-          <colspec colnum="1" colname="col1" colwidth="1*"/>
-          <colspec colnum="2" colname="col2" colwidth="1*"/>
-          <colspec colnum="3" colname="col3" colwidth="1*"/>
-          <thead>
-            <row>
-              <entry colname="col1">Value Range</entry>
-              <entry colname="col2">Default</entry>
-              <entry colname="col3">Set Classifications</entry>
-            </row>
-          </thead>
-          <tbody>
-            <row>
-              <entry colname="col1">integer</entry>
-              <entry colname="col2">16</entry>
-              <entry colname="col3">master<p>system</p><p>restart</p></entry>
             </row>
           </tbody>
         </tgroup>

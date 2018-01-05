@@ -50,9 +50,6 @@
       <li>
         <xref href="#topic46" type="topic" format="dita"/>
       </li>
-      <li>
-        <xref href="#topic47" type="topic" format="dita"/>
-      </li>
       <li id="kh158599">
         <xref href="#topic48" type="topic" format="dita"/>
       </li>
@@ -1335,24 +1332,6 @@
         </simpletable>
       </body>
     </topic>
-  </topic>
-  <topic id="topic47" xml:lang="en">
-    <title>Database and Tablespace Parameters</title>
-    <body>
-      <p>The following parameters configure the maximum number of databases, and tablespaces allowed in a system.</p>
-      <simpletable id="d1e1305" frame="none">
-        <strow>
-          <stentry>
-            <p>
-              <xref href="guc-list.xml#gp_max_tablespaces" type="section">gp_max_tablespaces</xref>
-            </p>
-            <p>
-              <xref href="guc-list.xml#gp_max_databases" type="section">gp_max_databases</xref>
-            </p>
-          </stentry>
-        </strow>
-      </simpletable>
-    </body>
   </topic>
   <topic id="topic48" xml:lang="en">
     <title id="kh178569">Past PostgreSQL Version Compatibility Parameters</title>

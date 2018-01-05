@@ -1156,20 +1156,6 @@
         </ul>
       </body>
     </topic>
-    <topic id="topic47" xml:lang="en">
-      <title>Database and Tablespace Parameters</title>
-      <body>
-        <p>The following parameters configure the maximum number of databases, and tablespaces allowed in a system.</p>
-        <ul>
-          <li id="kh178570">
-            <codeph>gp_max_tablespaces</codeph>
-          </li>
-          <li id="kh178586">
-            <codeph>gp_max_databases</codeph>
-          </li>
-        </ul>
-      </body>
-    </topic>
     <topic id="topic48" xml:lang="en">
       <title id="kh178569">Past PostgreSQL Version Compatibility Parameters</title>
       <body>

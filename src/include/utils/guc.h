@@ -247,8 +247,6 @@ extern bool Debug_datumstream_block_write_check_integrity;
 extern bool Debug_datumstream_read_print_varlena_info;
 extern bool Debug_datumstream_write_use_small_initial_buffers;
 extern bool	Debug_database_command_print;
-extern int	gp_max_databases;
-extern int	gp_max_tablespaces;
 extern bool gp_startup_integrity_checks;
 extern bool Debug_print_xlog_relation_change_info;
 extern bool Debug_print_xlog_relation_change_info_skip_issues_only;
