@@ -291,28 +291,15 @@ class GpExpandTests(MPPTestCase):
         tinctest.logger.info("pexpect 4: %s" %child.before)
         child.sendline (str(num_new_segs))
 
-        count_filespaces = self.get_value_from_query("select count(*) from pg_filespace;");
-
-
         for i in range(int(num_new_segs)):
             child.expect('Enter new primary data directory')
             tinctest.logger.info("pexpect 5: %s" %child.before)
             child.sendline (primary_data_dir)
-            for j in range(int(count_filespaces)):
-                child.expect('Enter new file space location for file space name')
-                tinctest.logger.info("pexpect 5: %s" %child.before)
-                child.sendline (filespace_data_dir+"/filespace_pri_"+str(j))
-
 
         for i in range(int(num_new_segs)):
             child.expect('Enter new mirror data directory')
             tinctest.logger.info("pexpect 6: %s" %child.before)
             child.sendline (mirror_data_dir)
-            for j in range(int(count_filespaces)):
-                child.expect('Enter new file space location for file space name')
-                tinctest.logger.info("pexpect 5: %s" %child.before)
-                child.sendline (filespace_data_dir+"/filesapce_mir_"+str(j))
-
 
         child.expect('Please review the file')
 
@@ -343,12 +330,6 @@ class GpExpandTests(MPPTestCase):
            fs_path_pri= os.path.join(primary_data_dir, filespaces ,"primary/")
            fs_path_mir= os.path.join(mirror_data_dir, filespaces , "mirror/")
            self.create_segment_dirs(fs_path_pri, fs_path_mir,"make filespace prim and mirr dirs" )
-
-        count_filespaces = self.get_value_from_query("select count(*) from pg_filespace;");
-        for j in range(int(count_filespaces)):
-           fs_path_pri= filespace_data_dir+"/filespace_pri_"+str(j)
-           fs_path_mir= filespace_data_dir+"/filesapce_mir_"+str(j)
-           self.create_segment_dirs(fs_path_pri, fs_path_mir,"make filespace dirs" )
 
     def create_segment_dirs(self, fs_path_pri, fs_path_mir, cmd_name):
         """ helper method to create dirs """
