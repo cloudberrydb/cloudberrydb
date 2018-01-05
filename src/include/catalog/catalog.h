@@ -37,6 +37,9 @@ extern ForkNumber forkname_to_number(char *forkName);
 extern char *relpath(RelFileNode rnode, ForkNumber forknum);
 extern char *GetDatabasePath(Oid dbNode, Oid spcNode);
 
+extern void reldir_and_filename(RelFileNode rnode, ForkNumber forknum,
+					char **dir, char **filename);
+
 extern bool IsSystemRelation(Relation relation);
 extern bool IsToastRelation(Relation relation);
 

@@ -472,47 +472,39 @@ mdunlink(RelFileNode rnode, ForkNumber forkNum, bool isRedo)
 		 *
 		 * However, we don't try to be smart here, we just always scan the
 		 * directory. We don't know what kind of a table it was down here.
+		 *
+		 * NOTE: If you find a smarter way to do this than by scanning the dir,
+		 * consider changing copy_append_only_data(), in tablecmds.c, to also
+		 * use the smarter way.
 		 */
 		if (forkNum == MAIN_FORKNUM)
 		{
 			DIR		   *dir;
 			struct dirent *de;
-			char		dirpart[MAXPGPATH];
-			char		filepart[MAXPGPATH];
-			int			i;
-
-			if (strlen(path) >= MAXPGPATH)
-				elog(ERROR, "path too long"); /* shouldn't happen */
+			char	   *dirpart;
+			char	   *filepart;
+			char	   *filedot;
 
 			/*
 			 * The base path is like "<path>/<rnode>". Split it into
 			 * path and filename parts.
 			 */
-			for (i = strlen(path) - 1; i >= 0; i--)
-			{
-				if (path[i] == '/')
-					break;
-			}
-			if (i <= 0 || path[i] != '/')
-				elog(ERROR, "unexpected path: \"%s\"", path);
-
-			memcpy(dirpart, path, i);
-			dirpart[i] = '\0';
-			snprintf(filepart, MAXPGPATH, "%s.", &path[i + 1]);
+			reldir_and_filename(rnode, forkNum, &dirpart, &filepart);
+			filedot = psprintf("%s.", filepart);
 
 			/* Scan the directory */
 			dir = AllocateDir(dirpart);
 			while ((de = ReadDir(dir, dirpart)) != NULL)
 			{
-				char *suffix;
+				char	   *suffix;
 
 				if (strcmp(de->d_name, ".") == 0 ||
 					strcmp(de->d_name, "..") == 0)
 					continue;
 
 				/* Does it begin with the relfilenode? */
-				if (strlen(de->d_name) <= strlen(filepart) ||
-					strncmp(de->d_name, filepart, strlen(filepart)) != 0)
+				if (strlen(de->d_name) <= strlen(filedot) ||
+					strncmp(de->d_name, filedot, strlen(filedot)) != 0)
 					continue;
 
 				/*
@@ -520,7 +512,7 @@ mdunlink(RelFileNode rnode, ForkNumber forkNum, bool isRedo)
 				 * necessary to check, but better be conservative when deleting
 				 * files.)
 				 */
-				suffix = de->d_name + strlen(filepart);
+				suffix = de->d_name + strlen(filedot);
 				if (strspn(suffix, "0123456789") != strlen(suffix) ||
 					strlen(suffix) > 10)
 					continue;
@@ -536,6 +528,9 @@ mdunlink(RelFileNode rnode, ForkNumber forkNum, bool isRedo)
 				}
 			}
 			FreeDir(dir);
+			pfree(filedot);
+			pfree(filepart);
+			pfree(dirpart);
 		}
 
 		pfree(segpath);

@@ -161,6 +161,37 @@ relpath(RelFileNode rnode, ForkNumber forknum)
 }
 
 /*
+ * Like relpath(), but gets the directory containing the data file
+ * and the filename separately.
+ */
+void
+reldir_and_filename(RelFileNode rnode, ForkNumber forknum,
+					char **dir, char **filename)
+{
+	char	   *path;
+	size_t		i;
+
+	path = relpath(rnode, forknum);
+
+	/*
+	 * The base path is like "<path>/<rnode>". Split it into
+	 * path and filename parts.
+	 */
+	for (i = strlen(path) - 1; i >= 0; i--)
+	{
+		if (path[i] == '/')
+			break;
+	}
+	if (i <= 0 || path[i] != '/')
+		elog(ERROR, "unexpected path: \"%s\"", path);
+
+	*dir = pnstrdup(path, i);
+	*filename = pstrdup(&path[i + 1]);
+
+	pfree(path);
+}
+
+/*
  * GetDatabasePath			- construct path to a database dir
  *
  * Result is a palloc'd string.
