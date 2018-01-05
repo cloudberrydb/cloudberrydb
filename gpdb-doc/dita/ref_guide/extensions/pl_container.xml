@@ -499,11 +499,11 @@ $$ LANGUAGE plcontainer;</codeblock></p>
 
   runtime-add {<b>-r</b> | <b>--runtime</b>} <varname>runtime_id</varname>
      {<b>-i</b> | <b>--image</b>} <varname>image_name</varname> {<b>-l | --language</b>} {python | r}
-     [{<b>-v</b> | <b>--volume</b>} <varname>shared_volume</varname> [{<b>-v</b>| <b>--volume</b>} <varname>shared_volume</varname>...]] 
+     [{<b>-v</b> | <b>--volume</b>} <varname>shared_volume</varname> [{<b>-v</b>| <b>--volume</b>} <varname>shared_volume</varname>...]]
      [{<b>-s</b> | <b>--setting</b>} <varname>param_value</varname> [{<b>-s</b> | <b>--setting</b>} <varname>param_value</varname> ...]]
   runtime-replace {<b>-r</b> | <b>--runtime</b>} <varname>runtime_id</varname>
      {<b>-i</b> | <b>--image</b>} <varname>image_name</varname> <b>-l</b> {r | python}
-     [{<b>-v</b> | <b>--volume</b>} <varname>shared_volume</varname> [{<b>-v</b> | <b>--volume</b>} <varname>shared_volume</varname>...]] 
+     [{<b>-v</b> | <b>--volume</b>} <varname>shared_volume</varname> [{<b>-v</b> | <b>--volume</b>} <varname>shared_volume</varname>...]]
      [{<b>-s</b> | <b>--setting</b>} <varname>param_value</varname> [{<b>-s</b> | <b>--setting</b>} <varname>param_value</varname> ...]]
   runtime-show {<b>-r</b> | <b>--runtime</b>} <varname>runtime_id</varname>
   runtime-delete {<b>-r</b> | <b>--runtime</b>} <varname>runtime_id</varname>
@@ -972,11 +972,7 @@ $$ LANGUAGE plcontainer;</codeblock></p>
               <codeph>plcontainer_configuration.xml</codeph> in the data directory of all Greenplum
             Database segment instances: master, standby master, primary, and mirror. This query
             lists the Greenplum Database system data
-              directories:<codeblock>SELECT g.hostname, fe.fselocation as directory 
-   FROM pg_filespace AS f, pg_filespace_entry AS fe, 
-       gp_segment_configuration AS g
-   WHERE f.oid = fe.fsefsoid AND g.dbid = fe.fsedbid 
-       AND f.fsname = 'pg_system';</codeblock><p>A
+              directories:<codeblock>SELECT hostname, datadir FROM gp_segment_configuration;</codeblock><p>A
               sample PL/Container configuration file is in
                 <codeph>$GPHOME/share/postgresql/plcontainer</codeph>. </p></li>
           <li>In some cases, when PL/Container is running in a high concurrency environment, the

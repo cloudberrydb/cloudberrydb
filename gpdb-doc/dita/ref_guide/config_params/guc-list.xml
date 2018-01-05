@@ -364,9 +364,6 @@
               <xref href="#gp_max_databases"/>
             </li>
             <li>
-              <xref href="#gp_max_filespaces"/>
-            </li>
-            <li>
               <xref href="#gp_max_local_distributed_cache"/>
             </li>
             <li>
@@ -4514,33 +4511,6 @@
             <row>
               <entry colname="col1">integer</entry>
               <entry colname="col2">16</entry>
-              <entry colname="col3">master<p>system</p><p>restart</p></entry>
-            </row>
-          </tbody>
-        </tgroup>
-      </table>
-    </body>
-  </topic>
-  <topic id="gp_max_filespaces">
-    <title>gp_max_filespaces</title>
-    <body>
-      <p>The maximum number of filespaces allowed in a Greenplum Database system.</p>
-      <table id="gp_max_filespaces_table">
-        <tgroup cols="3">
-          <colspec colnum="1" colname="col1" colwidth="1*"/>
-          <colspec colnum="2" colname="col2" colwidth="1*"/>
-          <colspec colnum="3" colname="col3" colwidth="1*"/>
-          <thead>
-            <row>
-              <entry colname="col1">Value Range</entry>
-              <entry colname="col2">Default</entry>
-              <entry colname="col3">Set Classifications</entry>
-            </row>
-          </thead>
-          <tbody>
-            <row>
-              <entry colname="col1">integer</entry>
-              <entry colname="col2">8</entry>
               <entry colname="col3">master<p>system</p><p>restart</p></entry>
             </row>
           </tbody>
