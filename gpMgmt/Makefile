@@ -14,7 +14,6 @@ SET_VERSION_SCRIPTS = \
 	bin/gpdbrestore \
 	bin/gpdeletesystem \
 	bin/gpexpand \
-	bin/gpfilespace \
 	bin/gpinitstandby \
 	bin/gpinitsystem \
 	bin/gpload.py \
