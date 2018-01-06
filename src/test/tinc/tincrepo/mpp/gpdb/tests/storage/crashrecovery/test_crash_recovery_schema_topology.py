@@ -17,7 +17,6 @@ limitations under the License.
 
 import tinctest
 from tinctest.lib import local_path
-from mpp.gpdb.tests.catalog.schema_topology import test_ST_GPFilespaceTablespaceTest
 from tinctest.models.scenario import ScenarioTestCase
 
 from tinctest.loader import TINCTestLoader
@@ -32,12 +31,10 @@ class CrashRecoverySchemaTopologyTestCase(ScenarioTestCase):
         super(CrashRecoverySchemaTopologyTestCase, self).__init__(methodName)
         db = Database()
         db.setupDatabase('gptest')
-        #Run setup class which creates database componets, filespaces etc.
-        test_ST_GPFilespaceTablespaceTest.GPFilespaceTablespaceTest.setUpClass()
 
     def execute_individual_tests(self):
         '''
-        This test runs four schema topology tests from classlist. Each of these four tests has a number of sql files.
+        This test runs two schema topology tests from classlist. Each of these two tests has a number of sql files.
         tloader.loadTestsFromName creates test methods for individual sql files.
         For each sql file in each test case we first run the suspend check point fault injector, next we run the test method gerenrated earlier
         finally we run checks.
@@ -74,4 +71,3 @@ class CrashRecoverySchemaTopologyTestCase(ScenarioTestCase):
     def test_check_schema_topology(self):
         tinctest.logger.info("running check function...")
         self.execute_individual_tests()
-
