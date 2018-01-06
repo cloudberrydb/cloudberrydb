@@ -49,6 +49,12 @@ test_GetMirrorStatus_Pid_Zero(void **state)
 	max_wal_senders = 1;
 	WalSndCtl = &data;
 	data.walsnds[0].pid = 0;
+	/*
+	 * This would make sure Mirror is reported as DOWN, as grace period
+	 * duration is taken into account.
+	 */
+	data.walsnds[0].marked_pid_zero_at_time =
+		((pg_time_t) time(NULL)) - FTS_MARKING_MIRROR_DOWN_GRACE_PERIOD;
 
 	expect_lwlock(LW_SHARED);
 	GetMirrorStatus(&response);
