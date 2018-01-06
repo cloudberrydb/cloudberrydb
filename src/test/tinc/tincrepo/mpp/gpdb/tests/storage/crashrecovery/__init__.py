@@ -29,7 +29,6 @@ from mpp.lib.gpstart import GpStart
 from mpp.lib.gpstop import GpStop
 from mpp.lib.config import GPDBConfig
 from mpp.models import MPPTestCase
-from mpp.lib.gpfilespace import Gpfilespace
 from mpp.gpdb.tests.storage.lib.dbstate import DbStateClass
 from mpp.gpdb.tests.storage.GPDBStorageBaseTestCase import GPDBStorageBaseTestCase
 
@@ -42,7 +41,6 @@ class SuspendCheckpointCrashRecovery(MPPTestCase):
         self.gprecover = GpRecover(self.config)
         self.gpstart = GpStart()
         self.gpstop = GpStop()
-        self.gpfile = Gpfilespace(self.config)
         self.dbstate = DbStateClass('run_validation', self.config)
         self.port = os.getenv('PGPORT')
         self.base = GPDBStorageBaseTestCase()
@@ -317,9 +315,4 @@ class SuspendCheckpointCrashRecovery(MPPTestCase):
 
     def do_post_run_checks(self):
         self.stop_start_validate('sync')
-
         self.dbstate.check_catalog(alldb=False)
-        self.dbstate.check_mirrorintegrity()
-
-        if self.config.has_master_mirror():
-            self.dbstate.check_mirrorintegrity(master=True)
