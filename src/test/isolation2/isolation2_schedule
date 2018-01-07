@@ -107,3 +107,4 @@ test: vacuum_after_vacuum_skip_drop_column
 # Tests for FTS
 test: segwalrep/commit_blocking
 test: segwalrep/fts_unblock_primary
+test: segwalrep/mirror_promotion
