@@ -97,16 +97,15 @@ class StandbyVerify(object):
         # We could use gparray, but for now let's stay away from gppylib
         with DbConn(dbname='postgres') as conn:
             results = conn.execute("""
-                SELECT hostname, fselocation
+                SELECT hostname, datadir
                 FROM gp_segment_configuration
-                INNER JOIN pg_filespace_entry ON dbid = fsedbid
-                WHERE fsefsoid = 3052 AND content = -1 AND role = 'm'
+                WHERE content = -1 AND role = 'm'
                 """)
             # If standby is not configured, there must not be any standby processes.
             if len(results) == 0:
                 return False
             host = results[0].hostname
-            datadir = results[0].fselocation
+            datadir = results[0].datadir
 
         # We look for these processes that are spawned from standby postmaster.
         # They should have postmaster pid as ppid.  We minimize remote operation
