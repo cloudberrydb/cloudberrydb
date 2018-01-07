@@ -103,3 +103,7 @@ test: uao/vacuum_while_vacuum_column
 test: uao/vacuum_cleanup_column
 test: add_column_after_vacuum_skip_drop_column
 test: vacuum_after_vacuum_skip_drop_column
+
+# Tests for FTS
+test: segwalrep/commit_blocking
+test: segwalrep/fts_unblock_primary
