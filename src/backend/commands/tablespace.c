@@ -476,9 +476,6 @@ DropTableSpace(DropTableSpaceStmt *stmt)
 
 	/*
 	 * Remove dependency on owner.
-	 *
-	 * If shared dependencies are added between filespace <=> tablespace
-	 * they will be deleted as well.
 	 */
 	deleteSharedDependencyRecordsFor(TableSpaceRelationId, tablespaceoid, 0);
 
