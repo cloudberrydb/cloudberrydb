@@ -71,8 +71,8 @@ add_executable(gporca_test
                src/unittest/gpopt/search/CSearchStrategyTest.cpp
                include/unittest/gpopt/minidump/CAggTest.h
                src/unittest/gpopt/minidump/CAggTest.cpp
-               include/unittest/gpopt/minidump/CExistsSubqueryTest.h
-               src/unittest/gpopt/minidump/CExistsSubqueryTest.cpp
+               include/unittest/gpopt/minidump/CSubqueryTest.h
+               src/unittest/gpopt/minidump/CSubqueryTest.cpp
                include/unittest/gpopt/minidump/CCollapseProjectTest.h
                src/unittest/gpopt/minidump/CCollapseProjectTest.cpp
                include/unittest/gpopt/minidump/CArrayExpansionTest.h
@@ -185,6 +185,16 @@ add_executable(gporca_test
                src/unittest/gpopt/metadata/CNameTest.cpp
                include/unittest/gpopt/minidump/CPhysicalParallelUnionAllTest.h
                src/unittest/gpopt/minidump/CPhysicalParallelUnionAllTest.cpp
+               include/unittest/gpopt/minidump/CCastTest.h
+               include/unittest/gpopt/minidump/CConstTblGetTest.h
+               include/unittest/gpopt/minidump/COuterJoinTest.h
+               include/unittest/gpopt/minidump/CPredicateTest.h
+               include/unittest/gpopt/minidump/CSemiJoinTest.h
+               src/unittest/gpopt/minidump/CCastTest.cpp
+               src/unittest/gpopt/minidump/CConstTblGetTest.cpp
+               src/unittest/gpopt/minidump/COuterJoinTest.cpp
+               src/unittest/gpopt/minidump/CPredicateTest.cpp
+               src/unittest/gpopt/minidump/CSemiJoinTest.cpp
         )
 target_link_libraries(gporca_test
                       gpdbcost
@@ -230,7 +240,7 @@ add_orca_test(CDirectDispatchTest)
 add_orca_test(CTVFTest)
 add_orca_test(CPullUpProjectElementTest)
 add_orca_test(CAggTest)
-add_orca_test(CExistsSubqueryTest)
+add_orca_test(CSubqueryTest)
 add_orca_test(CCollapseProjectTest)
 add_orca_test(CPruneColumnsTest)
 add_orca_test(CMissingStatsTest)
@@ -259,6 +269,11 @@ add_orca_test(CContradictionTest)
 add_orca_test(CCorrelatedExecutionTest)
 add_orca_test(CDecorrelatorTest)
 add_orca_test(CDistributionSpecTest)
+add_orca_test(CCastTest)
+add_orca_test(CConstTblGetTest)
+add_orca_test(COuterJoinTest)
+add_orca_test(CPredicateTest)
+add_orca_test(CSemiJoinTest)
 
 if (GPOS_ARCH_BITS EQUAL 64)
   add_orca_test(CSubqueryHandlerTest)

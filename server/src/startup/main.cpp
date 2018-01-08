@@ -83,7 +83,7 @@
 #include "unittest/gpopt/minidump/CTVFTest.h"
 #include "unittest/gpopt/minidump/CDMLTest.h"
 #include "unittest/gpopt/minidump/CAggTest.h"
-#include "unittest/gpopt/minidump/CExistsSubqueryTest.h"
+#include "unittest/gpopt/minidump/CSubqueryTest.h"
 #include "unittest/gpopt/minidump/CCollapseProjectTest.h"
 #include "unittest/gpopt/minidump/CPhysicalParallelUnionAllTest.h"
 #include "unittest/gpopt/minidump/CPruneColumnsTest.h"
@@ -95,6 +95,11 @@
 #include "unittest/gpopt/minidump/CExternalTableTest.h"
 #include "unittest/gpopt/minidump/CEscapeMechanismTest.h"
 #include "unittest/gpopt/minidump/CDirectDispatchTest.h"
+#include "unittest/gpopt/minidump/CCastTest.h"
+#include "unittest/gpopt/minidump/CConstTblGetTest.h"
+#include "unittest/gpopt/minidump/COuterJoinTest.h"
+#include "unittest/gpopt/minidump/CPredicateTest.h"
+#include "unittest/gpopt/minidump/CSemiJoinTest.h"
 
 #include "unittest/gpopt/operators/CContradictionTest.h"
 #include "unittest/gpopt/operators/CExpressionPreprocessorTest.h"
@@ -149,7 +154,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CDirectDispatchTest),
 	GPOS_UNITTEST_STD(CTVFTest),
 	GPOS_UNITTEST_STD(CAggTest),
-	GPOS_UNITTEST_STD(CExistsSubqueryTest),
+	GPOS_UNITTEST_STD(CSubqueryTest),
 	GPOS_UNITTEST_STD(CCollapseProjectTest),
 	GPOS_UNITTEST_STD(CPruneColumnsTest),
 	GPOS_UNITTEST_STD(CPhysicalParallelUnionAllTest),
@@ -158,7 +163,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CPartTblTest),
 	GPOS_UNITTEST_STD(CBitmapTest),
 	GPOS_UNITTEST_STD(CCTETest),
-  GPOS_UNITTEST_STD(CExternalTableTest),
+	GPOS_UNITTEST_STD(CExternalTableTest),
 	GPOS_UNITTEST_STD(CEscapeMechanismTest),
 
 	GPOS_UNITTEST_STD(CMinidumpWithConstExprEvaluatorTest),
@@ -183,6 +188,12 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CCorrelatedExecutionTest),
 	GPOS_UNITTEST_STD(CDecorrelatorTest),
 	GPOS_UNITTEST_STD(CDistributionSpecTest),
+	GPOS_UNITTEST_STD(CCastTest),
+	GPOS_UNITTEST_STD(CConstTblGetTest),
+	GPOS_UNITTEST_STD(COuterJoinTest),
+	GPOS_UNITTEST_STD(CPredicateTest),
+	GPOS_UNITTEST_STD(CSemiJoinTest),
+
 #if !defined(GPOS_32BIT)
 	GPOS_UNITTEST_STD(CSubqueryHandlerTest),
 #endif  // !defined(GPOS_32BIT)

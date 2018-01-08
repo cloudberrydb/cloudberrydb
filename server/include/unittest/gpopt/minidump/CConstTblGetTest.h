@@ -1,27 +1,21 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2017 Pivotal, Inc.
-//
-//	@filename:
-//		CExistsSubqueryTest.h
-//
-//	@doc:
-//		Test for exists and not exists subquery optimization
+//	Copyright (C) 2018 Pivotal, Inc.
 //---------------------------------------------------------------------------
-#ifndef GPOPT_CExistsSubqueryTest_H
-#define GPOPT_CExistsSubqueryTest_H
+#ifndef GPOPT_CConstTblGetTest_H
+#define GPOPT_CConstTblGetTest_H
 
 #include "gpos/base.h"
 
 namespace gpopt
 {
-	class CExistsSubqueryTest
+	class CConstTblGetTest
 	{
 		private:
 
 			// counter used to mark last successful test
 			static
-			gpos::ULONG m_ulExistsSubQueryTestCounter;
+			gpos::ULONG m_ulTestCounter;
 
 		public:
 
@@ -32,10 +26,10 @@ namespace gpopt
 			static
 			gpos::GPOS_RESULT EresUnittest_RunTests();
 
-	}; // class CExistsSubqueryTest
+	}; // class CConstTblGetTest
 }
 
-#endif // !GPOPT_CExistsSubqueryTest_H
+#endif // !GPOPT_CConstTblGetTest_H
 
 // EOF
 
