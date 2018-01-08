@@ -271,8 +271,6 @@ extern bool gp_allow_rename_relation_without_lock;
 
 extern bool gp_ignore_window_exclude;
 
-extern int verify_checkpoint_interval;
-
 extern bool rle_type_compression_stats;
 
 extern bool	Debug_print_server_processes;

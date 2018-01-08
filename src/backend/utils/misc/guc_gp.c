@@ -172,11 +172,6 @@ char	   *memory_profiler_query_id = "none";
 int			memory_profiler_dataset_size = 0;
 bool		gp_dump_memory_usage = FALSE;
 
-
-#define VERIFY_CHECKPOINT_INTERVAL_DEFAULT 180
-int			verify_checkpoint_interval =
-VERIFY_CHECKPOINT_INTERVAL_DEFAULT;
-
 bool		rle_type_compression_stats = false;
 
 bool		Debug_database_command_print = false;
@@ -3610,16 +3605,6 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&gp_segment_connect_timeout,
 		180, 0, INT_MAX, NULL, NULL
-	},
-
-	{
-		{"verify_checkpoint_interval", PGC_POSTMASTER, DEVELOPER_OPTIONS,
-			gettext_noop("set the online verification checkpoint interval (seconds)"),
-			gettext_noop("0 means do not checkpoint"),
-			GUC_UNIT_S | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&verify_checkpoint_interval,
-		VERIFY_CHECKPOINT_INTERVAL_DEFAULT, 0, 1800, NULL, NULL
 	},
 
 	{
