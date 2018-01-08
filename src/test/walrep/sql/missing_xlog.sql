@@ -30,18 +30,57 @@ returns text as $$
 	return subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).replace('.', '')
 $$ language plpythonu;
 
-create or replace function wait_for_replication_replay (retries int) returns bool as
+-- Issue a checkpoint, and wait for it to be replayed on all segments.
+create or replace function checkpoint_and_wait_for_replication_replay (retries int) returns bool as
 $$
 declare
 	i int;
+	checkpoint_locs text[];
+	r record;
+	all_caught_up bool;
 begin
 	i := 0;
+
+	-- Issue a checkpoint.
+	checkpoint;
+
+	-- Get the WAL positions after the checkpoint records on every segment.
+	for r in select gp_segment_id, pg_current_xlog_location() as loc from gp_dist_random('gp_id') loop
+		checkpoint_locs[r.gp_segment_id] = r.loc;
+	end loop;
+	-- and the QD, too.
+	checkpoint_locs[-1] = pg_current_xlog_location();
+
+	-- Force some WAL activity, to nudge the mirrors to replay past the
+	-- checkpoint location. There are some cases where a non-transactional
+	-- WAL record is created right after the checkpoint record, which
+	-- doesn't get replayed on the mirror until something else forces it
+	-- out.
+	create temp table dummy (id int4) distributed randomly;
+
+	-- Wait until all mirrors have replayed up to the location we
+	-- memorized above.
 	loop
-		if (select count(*) from gp_stat_replication) =
-			(select count(*) from gp_stat_replication
-				where replay_location = sent_location) then
+		all_caught_up = true;
+		for r in select gp_segment_id, replay_location as loc from gp_stat_replication loop
+			-- XXX: Using text comparison to compare XLOG positions
+			-- is not quite right. Comparing 10/12345678 with
+			-- 9/12345678 would yield incorrect result, for
+			-- example. Ignore that for now, because this test is
+			-- executed in a fresh test cluster, which surely
+			-- hasn't written enough WAL yet to hit that problem.
+			-- With WAL positions smaller than 10/00000000, this
+			-- should work. PostgreSQL 9.4 got a pg_lsn datatype
+			-- that we could use here, once we merge up to 9.4.
+			if r.loc < checkpoint_locs[r.gp_segment_id] then
+				all_caught_up = false;
+			end if;
+		end loop;
+
+		if all_caught_up then
 			return true;
 		end if;
+
 		if i >= retries then
 			return false;
 		end if;
@@ -71,9 +110,7 @@ end;
 $$ language plpgsql;
 
 -- checkpoint to ensure clean xlog replication before bring down mirror
-checkpoint;
-begin;end;
-select wait_for_replication_replay(200);
+select checkpoint_and_wait_for_replication_replay(200);
 
 -- stop a mirror 
 select pg_ctl((select datadir from gp_segment_configuration c where c.role='m' and c.content=0), 'stop', NULL, NULL);
