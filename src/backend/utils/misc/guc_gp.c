@@ -181,9 +181,6 @@ bool		rle_type_compression_stats = false;
 
 bool		Debug_database_command_print = false;
 bool		gp_startup_integrity_checks = true;
-bool		Debug_print_xlog_relation_change_info = false;
-bool		Debug_print_xlog_relation_change_info_skip_issues_only = false;
-bool		Debug_print_xlog_relation_change_info_backtrace_skip_issues = false;
 
 /* WAL based replication debug GUCs */
 bool		debug_walrepl_snd = false;
@@ -1640,36 +1637,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&Debug_database_command_print,
-		false, NULL, NULL
-	},
-
-	{
-		{"debug_print_xlog_relation_change_info", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Print relation change information"),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_print_xlog_relation_change_info,
-		false, NULL, NULL
-	},
-
-	{
-		{"debug_print_xlog_relation_change_info_skip_issues_only", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Print relation change information only when there is a skip issue"),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_print_xlog_relation_change_info_skip_issues_only,
-		false, NULL, NULL
-	},
-
-	{
-		{"debug_print_xlog_relation_change_info_backtrace_skip_issues", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Print relation change information backtrace when there is a skip issue"),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_print_xlog_relation_change_info_backtrace_skip_issues,
 		false, NULL, NULL
 	},
 
