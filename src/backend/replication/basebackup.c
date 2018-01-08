@@ -58,7 +58,8 @@ typedef struct
 } basebackup_options;
 
 
-static int64 sendDir(char *path, int basepathlen, bool sizeonly, List *tablespaces);
+static bool match_exclude_list(char *path, List *exclude);
+static int64 sendDir(char *path, int basepathlen, bool sizeonly, List *tablespaces, List *exclude);
 static int64 sendTablespace(char *path, bool sizeonly);
 static bool sendFile(char *readfilename, char *tarfilename,
 		 struct stat * statbuf, bool missing_ok);
@@ -201,7 +202,7 @@ perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
 
 		/* Add a node for the base directory at the end */
 		ti = palloc0(sizeof(tablespaceinfo));
-		ti->size = opt->progress ? sendDir(".", 1, true, tablespaces) : -1;
+		ti->size = opt->progress ? sendDir(".", 1, true, tablespaces, opt->exclude) : -1;
 		tablespaces = lappend(tablespaces, ti);
 
 		/* Send tablespace header */
@@ -227,7 +228,7 @@ perform_base_backup(basebackup_options *opt, DIR *tblspcdir)
 				sendFileWithContent(BACKUP_LABEL_FILE, labelfile);
 
 				/* ... then the bulk of the files ... */
-				sendDir(".", 1, false, tablespaces);
+				sendDir(".", 1, false, tablespaces, opt->exclude);
 
 				/* ... and pg_control after everything else. */
 				if (lstat(XLOG_CONTROL_FILE, &statbuf) != 0)
@@ -675,9 +676,30 @@ sendTablespace(char *path, bool sizeonly)
 	size = 512;		/* Size of the header just added */
 
 	/* Send all the files in the tablespace version directory */
-	size += sendDir(pathbuf, strlen(path), sizeonly, NIL);
+	size += sendDir(pathbuf, strlen(path), sizeonly, NIL, NIL);
 
 	return size;
+}
+
+/*
+ * Check if client EXCLUDE option matches this path.  Current implementation
+ * is only the exact match for the relative path from the datadir root (e.g.
+ * "./pg_log" etc).
+ */
+static bool
+match_exclude_list(char *path, List *exclude)
+{
+	ListCell	   *l;
+
+	foreach (l, exclude)
+	{
+		char	   *val = strVal(lfirst(l));
+
+		if (strcmp(val, path) == 0)
+			return true;
+	}
+
+	return false;
 }
 
 /*
@@ -687,9 +709,12 @@ sendTablespace(char *path, bool sizeonly)
  *
  * Omit any directory in the tablespaces list, to avoid backing up
  * tablespaces twice when they were created inside PGDATA.
+ *
+ * GPDB: Also omit any files in the 'exclude' list.
  */
 static int64
-sendDir(char *path, int basepathlen, bool sizeonly, List *tablespaces)
+sendDir(char *path, int basepathlen, bool sizeonly, List *tablespaces,
+		List *exclude)
 {
 	DIR		   *dir;
 	struct dirent *de;
@@ -772,6 +797,10 @@ sendDir(char *path, int basepathlen, bool sizeonly, List *tablespaces)
 			continue;			/* don't recurse into pg_xlog */
 		}
 
+		/* Skip if client does not want */
+		if (match_exclude_list(pathbuf, exclude))
+			continue;
+
 		/* Allow symbolic links in pg_tblspc only */
 		if (strcmp(path, "./pg_tblspc") == 0 &&
 #ifndef WIN32
@@ -848,7 +877,7 @@ sendDir(char *path, int basepathlen, bool sizeonly, List *tablespaces)
 				}
 			}
 			if (!skip_this_dir)
-				size += sendDir(pathbuf, basepathlen, sizeonly, tablespaces);
+				size += sendDir(pathbuf, basepathlen, sizeonly, tablespaces, NIL);
 		}
 		else if (S_ISREG(statbuf.st_mode))
 		{
