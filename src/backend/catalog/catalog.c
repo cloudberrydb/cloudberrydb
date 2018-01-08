@@ -169,7 +169,7 @@ reldir_and_filename(RelFileNode rnode, ForkNumber forknum,
 					char **dir, char **filename)
 {
 	char	   *path;
-	size_t		i;
+	int			i;
 
 	path = relpath(rnode, forknum);
 
