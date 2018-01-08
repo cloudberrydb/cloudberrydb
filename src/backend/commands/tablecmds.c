@@ -10462,7 +10462,7 @@ copy_append_only_data(RelFileNode src, RelFileNode dst, bool istemp)
 		char		dstsegpath[MAXPGPATH + 12];
 		File		srcFile;
 		File		dstFile;
-		size_t		left;
+		int64		left;
 		off_t		offset;
 		int			segfilenum;
 
