@@ -339,8 +339,6 @@ bool		gp_log_stack_trace_lines;
  */
 bool		dml_ignore_target_partition_check = false;
 
-bool		fts_diskio_check = false;
-
 /* Planner gucs */
 bool		gp_enable_hashjoin_size_heuristic = false;
 bool		gp_enable_fallback_plan = true;
@@ -2762,16 +2760,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&gp_reject_internal_tcp_conn,
-		true, NULL, NULL
-	},
-
-	{
-		{"fts_diskio_check", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Controls if FTS should perform disk IO checks on primary segments as part of probe"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&fts_diskio_check,
 		true, NULL, NULL
 	},
 

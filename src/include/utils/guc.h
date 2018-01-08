@@ -310,7 +310,6 @@ extern bool gp_partitioning_dynamic_selection_log;
 extern int gp_max_partition_level;
 
 extern bool gp_perfmon_print_packet_info;
-extern bool fts_diskio_check;
 
 extern bool gp_enable_relsize_collection;
 
