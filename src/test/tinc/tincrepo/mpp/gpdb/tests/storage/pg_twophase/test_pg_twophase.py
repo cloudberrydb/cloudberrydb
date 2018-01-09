@@ -19,15 +19,14 @@ import os
 import tinctest
 from mpp.gpdb.tests.storage.pg_twophase.pg_twophase import PgtwoPhaseTestCase
 
-class PgtwoPhase01To10(PgtwoPhaseTestCase):
+class PgtwoPhase01ToN(PgtwoPhaseTestCase):
     ''' 
     Testing state of prepared transactions upon crash-recovery
     @gucs gp_create_table_random_default_distribution=off
     '''
 
     def __init__(self, methodName):
-        super(PgtwoPhase01To10,self).__init__(methodName)
-    
+        super(PgtwoPhase01ToN,self).__init__(methodName)
 
     def test_execute_split_sqls_01_10(self):
         ''' 

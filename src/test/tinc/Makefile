@@ -103,38 +103,10 @@ filerep_end_to_end_full_mirror:
 filerep_end_to_end_incr_mirror:
 	$(TESTER) mpp.gpdb.tests.storage.filerep_end_to_end.test_filerep_e2e.FilerepE2EScenarioTestCase.test_incr_mirror
 
-
-# cs-pg-two-phase
-# The following targets are pulled from:
-# http://pulse-cloud.gopivotal.com/admin/projects/cs-pg-two-phase
-#
-# Refer to the properties of the pulse project and individual build
-# stages for configuration requirements.
-
-test_pg_twophase_01_10:
+test_pg_twophase:
 	$(TESTER) $(DISCOVER) \
 	-s tincrepo/mpp/gpdb/tests/storage/pg_twophase \
-	-p test_pg_twophase_01_10.py
-
-test_pg_twophase_11_20:
-	$(TESTER) $(DISCOVER) \
-	-s tincrepo/mpp/gpdb/tests/storage/pg_twophase \
-	-p test_pg_twophase_11_20.py
-
-test_pg_twophase_21_30:
-	$(TESTER) $(DISCOVER) \
-	-s tincrepo/mpp/gpdb/tests/storage/pg_twophase \
-	-p test_pg_twophase_21_30.py
-
-test_pg_twophase_31_40:
-	$(TESTER) $(DISCOVER) \
-	-s tincrepo/mpp/gpdb/tests/storage/pg_twophase \
-	-p test_pg_twophase_31_40.py
-
-test_pg_twophase_41_49:
-	$(TESTER) $(DISCOVER) \
-	-s tincrepo/mpp/gpdb/tests/storage/pg_twophase \
-	-p test_pg_twophase_41_49.py
+	-p test_pg_twophase.py
 
 test_switch_01_12:
 	$(TESTER) $(DISCOVER) \
