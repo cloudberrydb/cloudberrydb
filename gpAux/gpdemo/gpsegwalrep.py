@@ -595,6 +595,7 @@ if __name__ == "__main__":
         InitMirrors(cluster_config_primary, args.host, True).run()
         cluster_config_mirror.refresh()
         StartInstances(cluster_config_mirror, args.host, args.operation).run()
+        ForceFTSProbeScan(cluster_config_primary, GpSegmentConfiguration.STATUS_UP, GpSegmentConfiguration.IN_SYNC)
 
     if args.operation != 'clusterstop':
         displaySegmentConfiguration()
