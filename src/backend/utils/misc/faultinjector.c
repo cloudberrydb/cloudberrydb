@@ -926,6 +926,40 @@ FaultInjector_SetFaultInjection(
 			
 			break;
 		}
+
+		case FaultInjectorTypeWaitUntilTriggered:
+		{
+			FaultInjectorEntry_s	*entryLocal;
+
+			while ((entryLocal = FaultInjector_LookupHashEntry(entry->faultName)) != NULL &&
+				   entry->occurrence > entryLocal->numTimesTriggered)
+			{
+				pg_usleep(1000000L);  // 1 sec
+			}
+
+			if (entryLocal != NULL)
+			{
+				ereport(LOG,
+						(errcode(ERRCODE_FAULT_INJECT),
+						 errmsg("fault triggered %d times, fault name:'%s' fault type:'%s' ",
+							entry->occurrence,
+							entryLocal->faultName,
+							FaultInjectorTypeEnumToString[entry->faultInjectorType])));
+				status = STATUS_OK;
+			}
+			else
+			{
+				ereport(LOG,
+						(errcode(ERRCODE_FAULT_INJECT),
+						 errmsg("fault 'NULL', fault name:'%s'  ",
+								entryLocal->faultName)));
+
+				status = STATUS_ERROR;
+			}
+
+			break;
+		}
+
 		case FaultInjectorTypeStatus:
 		{	
 			HASH_SEQ_STATUS			hash_status;

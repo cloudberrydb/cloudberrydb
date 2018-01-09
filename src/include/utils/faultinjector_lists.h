@@ -229,6 +229,7 @@ FI_TYPE(FaultInjectorTypeSegv, "segv")
 FI_TYPE(FaultInjectorTypeInterrupt, "interrupt")
 FI_TYPE(FaultInjectorTypeFinishPending, "finish_pending")
 FI_TYPE(FaultInjectorTypeCheckpointAndPanic, "checkpoint_and_panic")
+FI_TYPE(FaultInjectorTypeWaitUntilTriggered, "wait_until_triggered")
 #endif
 
 /*
