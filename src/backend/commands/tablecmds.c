@@ -10348,6 +10348,8 @@ ATExecSetTableSpace(Oid tableOid, Oid newTableSpace)
 		Assert(!relaosegrelid);
 		ATExecSetTableSpace(relbmrelid, newTableSpace);
 	}
+	if (OidIsValid(relbmidxid))
+		ATExecSetTableSpace(relbmidxid, newTableSpace);
 }
 
 /*
