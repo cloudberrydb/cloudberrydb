@@ -217,6 +217,10 @@ typedef struct CheckpointStatsData
 
 extern CheckpointStatsData CheckpointStats;
 
+/* File path names (all relative to $PGDATA) */
+#define RECOVERY_COMMAND_FILE	"recovery.conf"
+#define RECOVERY_COMMAND_DONE	"recovery.done"
+#define PROMOTE_SIGNAL_FILE "promote"
 
 extern XLogRecPtr XLogInsert(RmgrId rmid, uint8 info, XLogRecData *rdata);
 extern XLogRecPtr XLogInsert_OverrideXid(RmgrId rmid, uint8 info, XLogRecData *rdata, TransactionId overrideXid);
@@ -302,6 +306,8 @@ extern TimeLineID GetRecoveryTargetTLI(void);
 extern bool CheckPromoteSignal(bool do_unlink);
 extern void WakeupRecovery(void);
 extern bool IsStandbyMode(void);
+extern DBState GetCurrentDBState(void);
+extern bool IsRoleMirror(void);
 
 /*
  * Starting/stopping a base backup

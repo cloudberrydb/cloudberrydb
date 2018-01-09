@@ -109,16 +109,22 @@ probeRecordResponse(FtsConnectionInfo *ftsInfo, PGresult *result)
 	Assert (isSyncRepEnabled);
 	ftsInfo->result->isSyncRepEnabled = *isSyncRepEnabled;
 
+	int *isRoleMirror = (int *) PQgetvalue(result, 0,
+										   Anum_fts_message_response_is_role_mirror);
+	Assert (isRoleMirror);
+	ftsInfo->result->isRoleMirror = *isRoleMirror;
+
 	int *retryRequested = (int *) PQgetvalue(result, 0,
 											 Anum_fts_message_response_request_retry);
 	Assert (retryRequested);
 	ftsInfo->result->retryRequested = *retryRequested;
 
-	write_log("FTS: segment (content=%d, dbid=%d, role=%c) reported isMirrorUp %d, isInSync %d, isSyncRepEnabled %d and retryRequested %d to the prober.",
+	write_log("FTS: segment (content=%d, dbid=%d, role=%c) reported isMirrorUp %d, isInSync %d, isSyncRepEnabled %d, isRoleMirror %d, and retryRequested %d to the prober.",
 			  ftsInfo->segmentId, ftsInfo->dbId, ftsInfo->role,
 			  ftsInfo->result->isMirrorAlive,
 			  ftsInfo->result->isInSync,
 			  ftsInfo->result->isSyncRepEnabled,
+			  ftsInfo->result->isRoleMirror,
 			  ftsInfo->result->retryRequested);
 }
 
@@ -344,7 +350,8 @@ messageWalRepSegmentFromThread(void *arg)
 
 		/* now let's probe the primary. */
 		probe_response_per_segment *response = &context->responses[response_index];
-		Assert(SEGMENT_IS_ACTIVE_PRIMARY(response->segment_db_info));
+		AssertImply(strcmp(response->message, FTS_MSG_PROMOTE) != 0,
+					SEGMENT_IS_ACTIVE_PRIMARY(response->segment_db_info));
 		messageWalRepSegment(response);
 	}
 
