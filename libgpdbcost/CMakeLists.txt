@@ -5,17 +5,15 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libgpopt/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libnaucrates/include)
 # for the generated config.h file.
 include_directories(${PROJECT_BINARY_DIR}/libgpos/include/)
-add_library(gpdbcost
-            include/gpdbcost/CCostModelGPDB.h
-            src/CCostModelGPDB.cpp
-            include/gpdbcost/CCostModelGPDBLegacy.h
-            src/CCostModelGPDBLegacy.cpp
-            include/gpdbcost/CCostModelParamsGPDB.h
-            src/CCostModelParamsGPDB.cpp
-            include/gpdbcost/CCostModelParamsGPDBLegacy.h
-            src/CCostModelParamsGPDBLegacy.cpp
-            src/ICostModel.cpp
-        )
+
+file(GLOB_RECURSE hdrs ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h
+                       ${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl)
+file(GLOB_RECURSE srcs ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+
+# Add headers to make them visible in some IDEs (Clion, VS, Xcode)
+list(APPEND srcs ${hdrs})
+
+add_library(gpdbcost ${srcs})
 
 target_link_libraries(gpdbcost  
                       ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS}

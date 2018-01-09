@@ -26,54 +26,16 @@ if (COMPILER_HAS_WNO_UNUSED_VARIABLE)
     PROPERTIES COMPILE_FLAGS "-Wno-unused-variable")
 endif()
 
+file(GLOB_RECURSE hdrs ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h
+                       ${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl)
+file(GLOB_RECURSE srcs ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+
+# Add headers to make them visible in some IDEs (Clion, VS, Xcode)
+list(APPEND srcs ${hdrs})
+
 # Monolithic gpos_test executable.
-add_executable(gpos_test
-               src/startup/main.cpp
-               src/unittest/gpos/common/CAutoPTest.cpp
-               src/unittest/gpos/common/CAutoRefTest.cpp
-               src/unittest/gpos/common/CAutoRgTest.cpp
-               src/unittest/gpos/common/CBitSetIterTest.cpp
-               src/unittest/gpos/common/CBitSetTest.cpp
-               src/unittest/gpos/common/CBitVectorTest.cpp
-               src/unittest/gpos/common/CDoubleTest.cpp
-               src/unittest/gpos/common/CDynamicPtrArrayTest.cpp
-               src/unittest/gpos/common/CEnumSetTest.cpp
-               src/unittest/gpos/common/CHashMapIterTest.cpp
-               src/unittest/gpos/common/CHashMapTest.cpp
-               src/unittest/gpos/common/CHashSetIterTest.cpp
-               src/unittest/gpos/common/CHashSetTest.cpp
-               src/unittest/gpos/common/CListTest.cpp
-               src/unittest/gpos/common/CRefCountTest.cpp
-               src/unittest/gpos/common/CStackTest.cpp
-               src/unittest/gpos/common/CSyncHashtableTest.cpp
-               src/unittest/gpos/common/CSyncListTest.cpp
-               src/unittest/gpos/error/CErrorHandlerTest.cpp
-               src/unittest/gpos/error/CExceptionTest.cpp
-               src/unittest/gpos/error/CFSimulatorTest.cpp
-               src/unittest/gpos/error/CLoggerTest.cpp
-               src/unittest/gpos/error/CMessageRepositoryTest.cpp
-               src/unittest/gpos/error/CMessageTableTest.cpp
-               src/unittest/gpos/error/CMessageTest.cpp
-               src/unittest/gpos/error/CMiniDumperTest.cpp
-               src/unittest/gpos/io/CFileTest.cpp
-               src/unittest/gpos/io/COstreamBasicTest.cpp
-               src/unittest/gpos/io/COstreamFileTest.cpp
-               src/unittest/gpos/io/COstreamStringTest.cpp
-               src/unittest/gpos/memory/CCacheTest.cpp
-               src/unittest/gpos/memory/CMemoryPoolBasicTest.cpp
-               src/unittest/gpos/memory/IMemoryPoolTest.cpp
-               src/unittest/gpos/memory/CMemoryPoolAllocTest.cpp
-               src/unittest/gpos/string/CStringTest.cpp
-               src/unittest/gpos/string/CWStringTest.cpp
-               src/unittest/gpos/sync/CAutoMutexTest.cpp
-               src/unittest/gpos/sync/CAutoSpinlockTest.cpp
-               src/unittest/gpos/sync/CEventTest.cpp
-               src/unittest/gpos/sync/CMutexTest.cpp
-               src/unittest/gpos/sync/CSpinlockTest.cpp
-               src/unittest/gpos/task/CAutoTaskProxyTest.cpp
-               src/unittest/gpos/task/CTaskLocalStorageTest.cpp
-               src/unittest/gpos/task/CWorkerPoolManagerTest.cpp
-               src/unittest/gpos/test/CUnittestTest.cpp)
+add_executable(gpos_test ${srcs})
+
 target_link_libraries(gpos_test
                       gpos)
 
