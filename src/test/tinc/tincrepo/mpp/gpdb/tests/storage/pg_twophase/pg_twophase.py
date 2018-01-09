@@ -34,9 +34,23 @@ class PgtwoPhaseTestCase(ScenarioTestCase, MPPTestCase):
         super(PgtwoPhaseTestCase,self).__init__(methodName)
     
     def setUp(self):
+        if (PSQL.run_sql_command("select count(*) from pg_tablespace WHERE spcname = 'twophase_test_ts'", flags ='-q -t').strip() == '0'):
+            if not os.path.exists('/tmp/twophase_test_ts'):
+                os.mkdir('/tmp/twophase_test_ts')
+            PSQL.run_sql_command("CREATE TABLESPACE twophase_test_ts LOCATION '/tmp/twophase_test_ts';", dbname='postgres')
+
+        if (PSQL.run_sql_command("select count(*) from pg_tablespace WHERE spcname = 'twophase_test_ts2'", flags ='-q -t').strip() == '0'):
+            if not os.path.exists('/tmp/twophase_test_ts2'):
+                os.mkdir('/tmp/twophase_test_ts2')
+            PSQL.run_sql_command("CREATE TABLESPACE twophase_test_ts2 LOCATION '/tmp/twophase_test_ts2';", dbname='postgres')
+
+        if not os.path.exists('/tmp/twophase_create_tablespace_test_ts'):
+            os.mkdir('/tmp/twophase_create_tablespace_test_ts')
         super(PgtwoPhaseTestCase,self).setUp()
-        
+
     def tearDown(self):
+        # Note: We don't destroy the tablespaces. We'll rather leave them around, so that
+        # they can be reused by subsequent tests.
         port = os.getenv('PGPORT')
         self.filereputil.inject_fault(f='checkpoint', y='reset', r='primary', o='0', p=port)
         super(PgtwoPhaseTestCase,self).tearDown()
