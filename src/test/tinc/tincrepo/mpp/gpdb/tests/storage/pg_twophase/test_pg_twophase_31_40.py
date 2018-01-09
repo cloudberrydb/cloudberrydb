@@ -43,13 +43,8 @@ class PgtwoPhase31To40(PgtwoPhaseTestCase):
         
 @tinctest.dataProvider('data_types_provider')
 def test_data_provider():
-    data = {'31_noskip_resync_drop_commit_gpstop_i': ['noskip','resync','drop','commit','gpstop_i'],
-            '33_skip_sync_create_abort_gpstop_i': ['skip','sync','create','abort','gpstop_i'],
-            '35_skip_sync_create_abort_failover_to_primary': ['skip','sync','create','abort','failover_to_primary'],
-            '36_skip_sync_create_abort_failover_to_mirror': ['skip','sync','create','abort','failover_to_mirror'],
+    data = {'33_skip_sync_create_abort_gpstop_i': ['skip','sync','create','abort','gpstop_i'],
             '37_noskip_sync_create_abort_gpstop_i': ['noskip','sync','create','abort','gpstop_i'],
-            '39_noskip_sync_create_abort_failover_to_primary': ['noskip','sync','create','abort','failover_to_primary'],
-            '40_noskip_sync_create_abort_failover_to_mirror': ['noskip','sync','create','abort','failover_to_mirror']
             }
     return data
         

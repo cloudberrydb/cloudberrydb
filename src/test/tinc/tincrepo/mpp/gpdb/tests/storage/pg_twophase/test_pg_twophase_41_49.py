@@ -43,10 +43,6 @@ class PgtwoPhase41To49(PgtwoPhaseTestCase):
         
 @tinctest.dataProvider('data_types_provider')
 def test_data_provider():
-    data = {'41_skip_change_tracking_create_abort_gpstop_i': ['skip','change_tracking','create','abort','gpstop_i'],
-            '43_noskip_change_tracking_create_abort_gpstop_i': ['noskip','change_tracking','create','abort','gpstop_i'],
-            '45_skip_resync_create_abort_gpstop_i': ['skip','resync','create','abort','gpstop_i'],
-            '47_noskip_resync_create_abort_gpstop_i': ['noskip','resync','create','abort','gpstop_i'],
-            '49_noskip_sync_create_end_prepare_two_phase_sleep_gpstop_i' : ['noskip','sync','create','end_prepare_two_phase_sleep', 'gpstop_i']
+    data = {'49_noskip_sync_create_end_prepare_two_phase_sleep_gpstop_i' : ['noskip','sync','create','end_prepare_two_phase_sleep', 'gpstop_i']
             }
     return data
