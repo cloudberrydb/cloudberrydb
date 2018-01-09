@@ -519,7 +519,7 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    versioned_file: {{bin_gpdb_centos_versioned_file}}
+    versioned_file: {{segwalrep_gpdb_centos_versioned_file}}
 
 {% endif %}
 {% if "ubuntu16" in os_types %}
