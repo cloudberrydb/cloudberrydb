@@ -39,13 +39,14 @@ class PgtwoPhase01To10(PgtwoPhaseTestCase):
         fault_type = self.test_data[1][3]
         crash_type = self.test_data[1][4]
         self.execute_split_sqls(skip_state, cluster_state, ddl_type, fault_type, crash_type)
-        
-        
+
 @tinctest.dataProvider('data_types_provider')
 def test_data_provider():
     data = {'01_skip_sync_create_commit_gpstop_i': ['skip','sync','create','commit','gpstop_i'],
             '05_noskip_sync_create_commit_gpstop_i': ['noskip','sync','create','commit','gpstop_i'],
-            }
+            '17_skip_sync_drop_commit_gpstop_i': ['skip','sync','drop','commit','gpstop_i'],
+            '21_noskip_sync_drop_commit_gpstop_i': ['noskip','sync','drop','commit','gpstop_i'],
+            '33_skip_sync_create_abort_gpstop_i': ['skip','sync','create','abort','gpstop_i'],                                 '37_noskip_sync_create_abort_gpstop_i': ['noskip','sync','create','abort','gpstop_i'],
+            '49_noskip_sync_create_end_prepare_two_phase_sleep_gpstop_i' : ['noskip','sync','create','end_prepare_two_phase_sleep', 'gpstop_i'],
+    }
     return data
-        
-
