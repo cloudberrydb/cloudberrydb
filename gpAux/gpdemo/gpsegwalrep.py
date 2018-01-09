@@ -131,10 +131,11 @@ class InitMirrors():
 class StartInstances():
     ''' Start a greenplum segment '''
 
-    def __init__(self, cluster_config, host, wait=False):
+    def __init__(self, cluster_config, host, operation, wait=False):
         self.clusterconfig = cluster_config
         self.segconfigs = cluster_config.get_seg_configs()
         self.host = host
+        self.operation = operation
         self.wait = wait
 
     def startThread(self, segconfig):
@@ -193,9 +194,17 @@ class StartInstances():
     def run(self):
         startThreads = []
         for segconfig in self.segconfigs:
-            thread = threading.Thread(target=self.startThread, args=(segconfig,))
-            thread.start()
-            startThreads.append(thread)
+            # Do not start mirrors that are marked down if we are
+            # doing "clusterstart" operation.
+            if (segconfig.content == GpSegmentConfiguration.MASTER_CONTENT_ID or
+                segconfig.status == GpSegmentConfiguration.STATUS_UP or
+                self.operation != "clusterstart"):
+                thread = threading.Thread(target=self.startThread, args=(segconfig,))
+                thread.start()
+                startThreads.append(thread)
+            else:
+                print ("WARNING: not starting segment (content=%d, dbid=%d, role=%c status=%c) as it is not up" %
+                       (segconfig.content, segconfig.dbid, segconfig.role, segconfig.status))
 
         for thread in startThreads:
             thread.join()
