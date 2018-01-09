@@ -708,14 +708,26 @@ ProcessUtility(Node *parsetree,
 			break;
 
 		case T_CreateTableSpaceStmt:
+			if (Gp_role != GP_ROLE_EXECUTE)
+			{
+				/*
+				 * Don't allow master to call this in a transaction block. Segments
+				 * are ok as distributed transaction participants.
+				 */
+				PreventTransactionChain(isTopLevel, "CREATE TABLESPACE");
+			}
 			CreateTableSpace((CreateTableSpaceStmt *) parsetree);
 			break;
 
 		case T_DropTableSpaceStmt:
-			/* In GPDB; this is allowed in a transaction */
-#if 0
-			PreventTransactionChain(isTopLevel, "DROP TABLESPACE");
-#endif
+			if (Gp_role != GP_ROLE_EXECUTE)
+			{
+				/*
+				 * Don't allow master to call this in a transaction block.  Segments are ok as
+				 * distributed transaction participants.
+				 */
+				PreventTransactionChain(isTopLevel, "DROP TABLESPACE");
+			}
 			DropTableSpace((DropTableSpaceStmt *) parsetree);
 			break;
 
@@ -1180,7 +1192,7 @@ ProcessUtility(Node *parsetree,
 			{
 				/*
 				 * Don't allow master to call this in a transaction block. Segments
-				 * are ok as distributed transaction participants. 
+				 * are ok as distributed transaction participants.
 				 */
 				PreventTransactionChain(isTopLevel, "CREATE DATABASE");
 			}
@@ -1202,7 +1214,7 @@ ProcessUtility(Node *parsetree,
 				if (Gp_role != GP_ROLE_EXECUTE)
 				{
 					/*
-					 * Don't allow master tp call this in a transaction block.  Segments are ok as
+					 * Don't allow master to call this in a transaction block.  Segments are ok as
 					 * distributed transaction participants. 
 					 */
 					PreventTransactionChain(isTopLevel, "DROP DATABASE");
