@@ -82,11 +82,11 @@ class InitMirrors():
         if self.init:
             primary_port = segconfig.port
             primary_dir = segconfig.datadir
-            mirror_dir = cluster_config.get_pair_dir(segconfig)
-            mirror_port = cluster_config.get_pair_port(segconfig)
+            mirror_dir = self.clusterconfig.get_pair_dir(segconfig)
+            mirror_port = self.clusterconfig.get_pair_port(segconfig)
         else:
-            primary_port = cluster_config.get_pair_port(segconfig)
-            primary_dir = cluster_config.get_pair_dir(segconfig)
+            primary_port = self.clusterconfig.get_pair_port(segconfig)
+            primary_dir = self.clusterconfig.get_pair_dir(segconfig)
             mirror_dir = segconfig.datadir
             mirror_port = segconfig.port
 
@@ -276,7 +276,7 @@ class DestroyMirrors():
     def run(self):
         destroyThreads = []
         for segconfig in self.segconfigs:
-            assert(segconfig.preferred_role == GpSegmentConfiguration.ROLE_MIRROR)
+            assert(segconfig.role == GpSegmentConfiguration.ROLE_MIRROR)
             thread = threading.Thread(target=self.destroyThread, args=(segconfig,))
             thread.start()
             destroyThreads.append(thread)
