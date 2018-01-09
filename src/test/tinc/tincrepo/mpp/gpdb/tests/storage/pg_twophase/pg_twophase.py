@@ -19,7 +19,6 @@ import os
 import tinctest
 from tinctest.lib import local_path
 from mpp.lib.PSQL import PSQL
-from mpp.lib.gpfilespace import Gpfilespace
 from mpp.lib.config import GPDBConfig
 from mpp.lib.filerep_util import Filerepe2e_Util
 from mpp.gpdb.tests.storage.lib.common_utils import copy_files_to_segments, copy_files_to_master
@@ -31,18 +30,13 @@ class PgtwoPhaseTestCase(ScenarioTestCase, MPPTestCase):
     ''' Testing state of prepared transactions upon crash-recovery'''
 
     def __init__(self, methodName):
-        self.gpfile = Gpfilespace()
         self.filereputil = Filerepe2e_Util()
         super(PgtwoPhaseTestCase,self).__init__(methodName)
     
     def setUp(self):
-        '''Create filespace '''
-        self.gpfile.create_filespace('filespace_test_a')
         super(PgtwoPhaseTestCase,self).setUp()
         
     def tearDown(self):
-        ''' Cleanup up the filespace created , reset skip chekpoint fault'''
-        self.gpfile.drop_filespace('filespace_test_a')
         port = os.getenv('PGPORT')
         self.filereputil.inject_fault(f='checkpoint', y='reset', r='primary', o='0', p=port)
         super(PgtwoPhaseTestCase,self).tearDown()

@@ -18,7 +18,6 @@ limitations under the License.
 import tinctest
 from tinctest.lib import local_path
 from mpp.lib.PSQL import PSQL
-from mpp.lib.gpfilespace import Gpfilespace
 from tinctest.models.scenario import ScenarioTestCase
 
 
@@ -26,17 +25,12 @@ class SwitchCheckpointTestCase(ScenarioTestCase):
     ''' Testing state of transactions with faults on master after crash-recovery'''
 
     def __init__(self, methodName):
-        self.gpfile = Gpfilespace()
         super(SwitchCheckpointTestCase,self).__init__(methodName)
     
     def setUp(self):
-        '''Create filespace '''
-        self.gpfile.create_filespace('filespace_test_a')
         super(SwitchCheckpointTestCase,self).setUp()
 
     def tearDown(self):
-        ''' Cleanup up the filespace created '''
-        self.gpfile.drop_filespace('filespace_test_a')
         super(SwitchCheckpointTestCase,self).tearDown()
 
     def switch_checkpoint(self, cluster_state, fault_type, crash_type):
