@@ -120,25 +120,35 @@ class SQLIsolationExecutor(object):
             self.dbname = dbname
             if self.utility_mode:
                 (hostname, port) = self.get_utility_mode_port(name)
-                self.con = pygresql.pg.connect(host=hostname, 
-                    port=port, 
-                    opt="-c gp_session_role=utility",
-                    dbname=self.dbname)
-            else:
-                self.con = self.connectdb()
+                self.con = self.connectdb(given_dbname=self.dbname,
+                                          given_host=hostname,
+                                          given_port=port,
+                                          given_opt="-c gp_session_role=utility")
 
-        def connectdb(self):
+            else:
+                self.con = self.connectdb(self.dbname)
+
+        def connectdb(self, given_dbname, given_host = None, given_port = None, given_opt = None):
             con = None
             retry = 1000
             while retry:
                 try:
-                    con = pygresql.pg.connect(dbname=self.dbname)
+                    if (given_port is None):
+                        con = pygresql.pg.connect(host= given_host,
+                                          opt= given_opt,
+                                          dbname= given_dbname)
+                    else:
+                        con = pygresql.pg.connect(host= given_host,
+                                                  port= given_port,
+                                                  opt= given_opt,
+                                                  dbname= given_dbname)
                     break
                 except Exception as e:
                     if (("the database system is starting up" in str(e) or
                          "the database system is in recovery mode" in str(e)) and
                         retry > 1):
                         retry -= 1
+                        time.sleep(0.1)
                     else:
                         raise
             return con
@@ -148,7 +158,7 @@ class SQLIsolationExecutor(object):
                 Gets the port number/hostname combination of the
                 dbid with the id = name
             """
-            con = self.connectdb()
+            con = self.connectdb(self.dbname)
             r = con.query("SELECT hostname, port FROM gp_segment_configuration WHERE dbid = %s" % name).getresult()
             if len(r) == 0:
                 raise Exception("Invalid dbid %s" % name)
