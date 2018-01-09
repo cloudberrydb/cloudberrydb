@@ -39,6 +39,7 @@ const CHAR *rgszOJMdpFiles[] =
 	"../data/dxl/minidump/EffectOfLocalPredOnJoin.mdp",
 	"../data/dxl/minidump/EffectOfLocalPredOnJoin2.mdp",
 	"../data/dxl/minidump/EffectOfLocalPredOnJoin3.mdp",
+	"../data/dxl/minidump/LeftJoin-UnsupportedFilter-Cardinality.mdp",
 	"../data/dxl/minidump/LeftOuter2InnerUnionAllAntiSemiJoin.mdp",
 #ifndef GPOS_DEBUG
 	// TODO:  - Jul 14 2015; disabling it for debug build to reduce testing time

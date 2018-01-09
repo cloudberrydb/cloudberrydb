@@ -1242,6 +1242,7 @@ CStatisticsUtils::PstatsJoinArray
 	// join statistics objects one by one using relevant predicates in given scalar expression
 	const ULONG ulStats = pdrgpstat->UlLength();
 	IStatistics *pstats = (*pdrgpstat)[0]->PstatsCopy(pmp);
+	CDouble dRowsOuter = pstats->DRows();
 
 	for (ULONG ul = 1; ul < ulStats; ul++)
 	{
@@ -1283,8 +1284,19 @@ CStatisticsUtils::PstatsJoinArray
 															pstatspredUnsupported,
 															false /* fCapNdvs */
 															);
-			pstats->Release();
-			pstats = pstatsAfterJoinFilter;
+
+			// If it is outer join and the cardinality after applying the unsupported join
+			// filters is less than the cardinality of outer child, we don't use this stats.
+			// Because we need to make sure that Card(LOJ) >= Card(Outer child of LOJ).
+			if (fOuterJoin && pstatsAfterJoinFilter->DRows() < dRowsOuter)
+			{
+				pstatsAfterJoinFilter->Release();
+			}
+			else
+			{
+				pstats->Release();
+				pstats = pstatsAfterJoinFilter;
+			}
 
 			pstatspredUnsupported->Release();
 		}
