@@ -105,11 +105,7 @@ filerep_end_to_end_incr_mirror:
 test_pg_twophase:
 	$(TESTER) $(DISCOVER) \
 	-s tincrepo/mpp/gpdb/tests/storage/pg_twophase \
-	-p test_pg_twophase.py
-
-test_switch_01_12:
-	$(TESTER) $(DISCOVER) \
-	-s tincrepo/mpp/gpdb/tests/storage/pg_twophase \
+	-p test_pg_twophase.py \
 	-p test_switch.py
 
 # cs-fts
