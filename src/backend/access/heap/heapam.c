@@ -87,11 +87,6 @@ static XLogRecPtr log_heap_update(Relation reln, Buffer oldbuf,
 static bool HeapSatisfiesHOTUpdate(Relation relation, Bitmapset *hot_attrs,
 					   HeapTuple oldtup, HeapTuple newtup);
 
-static HTSU_Result
-heap_delete_xid(Relation relation, ItemPointer tid,
-				TransactionId xid, ItemPointer ctid,
-				TransactionId *update_xmax, CommandId cid,
-				Snapshot crosscheck, bool wait);
 
 /* ----------------------------------------------------------------
  *						 heap support routines
@@ -2449,18 +2444,8 @@ heap_delete(Relation relation, ItemPointer tid,
 			ItemPointer ctid, TransactionId *update_xmax,
 			CommandId cid, Snapshot crosscheck, bool wait)
 {
-	return heap_delete_xid(relation, tid,
-						   GetCurrentTransactionId(), ctid,
-						   update_xmax, cid, crosscheck, wait);
-}
-
-static HTSU_Result
-heap_delete_xid(Relation relation, ItemPointer tid,
-				TransactionId xid, ItemPointer ctid,
-				TransactionId *update_xmax, CommandId cid,
-				Snapshot crosscheck, bool wait)
-{
 	HTSU_Result result;
+	TransactionId xid = GetCurrentTransactionId();
 	ItemId		lp;
 	HeapTupleData tp;
 	Page		page;
@@ -2719,18 +2704,11 @@ l1:
 void
 simple_heap_delete(Relation relation, ItemPointer tid)
 {
-	simple_heap_delete_xid(relation, tid, GetCurrentTransactionId());
-}
-
-void
-simple_heap_delete_xid(Relation relation, ItemPointer tid, TransactionId xid)
-{
-
 	HTSU_Result result;
 	ItemPointerData update_ctid;
 	TransactionId update_xmax;
 
-	result = heap_delete_xid(relation, tid, xid,
+	result = heap_delete(relation, tid,
 						 &update_ctid, &update_xmax,
 						 GetCurrentCommandId(true), InvalidSnapshot,
 						 true /* wait for commit */ );
@@ -3975,8 +3953,8 @@ l3:
  * tuple is an in-memory tuple structure containing the data to be written
  * over the target tuple.  Also, tuple->t_self identifies the target tuple.
  */
-static void
-heap_inplace_update_internal(Relation relation, HeapTuple tuple, bool freeze)
+void
+heap_inplace_update(Relation relation, HeapTuple tuple)
 {
 	Buffer		buffer;
 	Page		page;
@@ -4033,10 +4011,7 @@ heap_inplace_update_internal(Relation relation, HeapTuple tuple, bool freeze)
 		rdata[1].buffer_std = true;
 		rdata[1].next = NULL;
 
-		if (!freeze)
-			recptr = XLogInsert(RM_HEAP_ID, XLOG_HEAP_INPLACE, rdata);
-		else
-			recptr = XLogInsert_OverrideXid(RM_HEAP_ID, XLOG_HEAP_INPLACE, rdata, FrozenTransactionId);
+		recptr = XLogInsert(RM_HEAP_ID, XLOG_HEAP_INPLACE, rdata);
 
 		PageSetLSN(page, recptr);
 	}
@@ -4048,18 +4023,6 @@ heap_inplace_update_internal(Relation relation, HeapTuple tuple, bool freeze)
 	/* Send out shared cache inval if necessary */
 	if (!IsBootstrapProcessingMode())
 		CacheInvalidateHeapTuple(relation, tuple);
-}
-
-void
-frozen_heap_inplace_update(Relation relation, HeapTuple tuple)
-{
-	heap_inplace_update_internal(relation, tuple, true);
-}
-
-void
-heap_inplace_update(Relation relation, HeapTuple tuple)
-{
-	heap_inplace_update_internal(relation, tuple, false);
 }
 
 /*

@@ -148,7 +148,6 @@ extern HTSU_Result heap_lock_tuple(Relation relation, HeapTuple tuple,
 				TransactionId *update_xmax, CommandId cid,
 				LockTupleMode mode, LockTupleWaitType waittype);
 extern void heap_inplace_update(Relation relation, HeapTuple tuple);
-extern void frozen_heap_inplace_update(Relation relation, HeapTuple tuple);
 extern bool heap_freeze_tuple(HeapTupleHeader tuple, TransactionId *cutoff_xid,
 							  Buffer buf, bool xlog_replay);
 
@@ -156,7 +155,6 @@ extern Oid	simple_heap_insert(Relation relation, HeapTuple tup);
 extern Oid frozen_heap_insert(Relation relation, HeapTuple tup);
 extern Oid frozen_heap_insert_directed(Relation relation, HeapTuple tup, BlockNumber blockNum);
 extern void simple_heap_delete(Relation relation, ItemPointer tid);
-extern void simple_heap_delete_xid(Relation relation, ItemPointer tid, TransactionId xid);
 extern void simple_heap_update(Relation relation, ItemPointer otid,
 				   HeapTuple tup);
 
