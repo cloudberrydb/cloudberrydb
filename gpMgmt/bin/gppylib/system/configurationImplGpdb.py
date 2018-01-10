@@ -39,7 +39,7 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
         """
         Initialize the provider to get information from the given master db, if
         it chooses to get its data from the database
-     
+
         returns self
         """
 
@@ -59,18 +59,18 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
         """
 
         # ensure initializeProvider() was called
-        checkNotNone("masterDbUrl", self.__masterDbUrl) 
+        checkNotNone("masterDbUrl", self.__masterDbUrl)
 
         if verbose :
             logger.info("Obtaining Segment details from master...")
 
         array = GpArray.initFromCatalog(self.__masterDbUrl, useUtilityMode)
-        
+
         if get_local_db_mode(array.master.getSegmentDataDirectory()) != 'UTILITY':
             logger.debug("Validating configuration...")
             if not array.is_array_valid():
                 raise InvalidSegmentConfiguration(array)
-            
+
         return array
 
 
@@ -96,7 +96,7 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
         """
         Update the configuration for the given segments in the underlying
         configuration store to match the current values
-    
+
         Also resets any dirty bits on saved/updated objects
 
         @param textForConfigTable label to be used when adding to segment configuration history
@@ -106,7 +106,7 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
         """
 
         # ensure initializeProvider() was called
-        checkNotNone("masterDbUrl", self.__masterDbUrl) 
+        checkNotNone("masterDbUrl", self.__masterDbUrl)
 
         logger.debug("Validating configuration changes...")
 
@@ -168,8 +168,8 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
 
     def __updateSystemConfigRemoveMirror(self, conn, seg, textForConfigTable):
         """
-        Remove a mirror segment currently in gp_segment_configuration 
-        but not present in the goal configuration and record our action 
+        Remove a mirror segment currently in gp_segment_configuration
+        but not present in the goal configuration and record our action
         in gp_configuration_history.
         """
         dbId   = seg.getSegmentDbId()
@@ -179,8 +179,8 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
 
     def __updateSystemConfigRemovePrimary(self, conn, seg, textForConfigTable):
         """
-        Remove a primary segment currently in gp_segment_configuration 
-        but not present in the goal configuration and record our action 
+        Remove a primary segment currently in gp_segment_configuration
+        but not present in the goal configuration and record our action
         in gp_configuration_history.
         """
         dbId = seg.getSegmentDbId()
@@ -204,12 +204,12 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
         self.__updateSegmentModeStatus(conn, seg)
 
         # get the newly added segment's content id
-        # MPP-12393 et al WARNING: there is an unusual side effect going on here.  
+        # MPP-12393 et al WARNING: there is an unusual side effect going on here.
         # Although gp_add_segment_primary() executed by __callSegmentAdd() above returns
         # the dbId of the new row in gp_segment_configuration, the following
         # select from gp_segment_configuration can return 0 rows if the updates
         # done by __updateSegmentModeStatus()
-        # are not done first.  Don't change the order of these operations unless you 
+        # are not done first.  Don't change the order of these operations unless you
         # understand why gp_add_segment_primary() behaves as it does.
         sql = "select content from pg_catalog.gp_segment_configuration where dbId = %s" % self.__toSqlIntValue(seg.getSegmentDbId())
         logger.debug(sql)
@@ -248,7 +248,7 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
 
         # now update mode/status since this is not done by gp_add_segment_mirror
         self.__updateSegmentModeStatus(conn, seg)
-        self.__insertConfigHistory(conn, seg.getSegmentDbId(), 
+        self.__insertConfigHistory(conn, seg.getSegmentDbId(),
                                    "%s: inserted segment configuration for full recovery or original dbid %s" \
                                    % (textForConfigTable, origDbId))
 
@@ -288,14 +288,12 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
         Return the new segment's dbid.
         """
         logger.debug('callSegmentAdd %s' % repr(seg))
-        filespaceMapStr = self.__toSqlFilespaceMapStr(gpArray, seg)
 
-        sql = "SELECT gp_add_segment_primary(%s, %s, %s, %s)" \
+        sql = "SELECT gp_add_segment_primary(%s, %s, %s)" \
             % (
-                self.__toSqlTextValue(seg.getSegmentHostName()), 
-                self.__toSqlTextValue(seg.getSegmentAddress()), 
-                self.__toSqlIntValue(seg.getSegmentPort()), 
-                self.__toSqlTextValue(filespaceMapStr)
+                self.__toSqlTextValue(seg.getSegmentHostName()),
+                self.__toSqlTextValue(seg.getSegmentAddress()),
+                self.__toSqlIntValue(seg.getSegmentPort()),
               )
         logger.debug(sql)
         sqlResult = self.__fetchSingleOutputRow(conn, sql)
@@ -310,7 +308,6 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
         Return the new segment's dbid.
         """
         logger.debug('callSegmentAddMirror %s' % repr(seg))
-        filespaceMapStr = self.__toSqlFilespaceMapStr(gpArray, seg)
 
         sql = "SELECT gp_add_segment_mirror(%s::int2, %s, %s, %s, %s)" \
             % (
@@ -318,7 +315,6 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
                 self.__toSqlTextValue(seg.getSegmentHostName()),
                 self.__toSqlTextValue(seg.getSegmentAddress()),
                 self.__toSqlIntValue(seg.getSegmentPort()),
-                self.__toSqlTextValue(filespaceMapStr)
               )
 
         logger.debug(sql)
@@ -352,7 +348,7 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
         for row in cursor:
             if numrows != 1:
                 #
-                # if we got back more than one row 
+                # if we got back more than one row
                 # we print a few of the rows first
                 # instead of immediately raising an exception
                 #
@@ -378,22 +374,6 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
                     self.__toSqlCharValue(msg) + "\n)"
         logger.debug(sql)
         dbconn.executeUpdateOrInsert(conn, sql, 1)
-
-
-    def __toSqlFilespaceMapStr(self, gpArray, seg):
-        """
-        Return a string representation of the filespace map suitable
-        for inclusion into the call to gp_add_segment_mirror().
-        """
-        filespaceArrayString = []
-        for fs in gpArray.getFilespaces():
-            path = seg.getSegmentFilespaces()[ fs.getOid() ]
-            filespaceArrayString.append("{%s,%s}" % \
-                        (self.__toSqlArrayStringValue(fs.getName()), \
-                         self.__toSqlArrayStringValue(path)))
-
-        filespaceMapStr = "{" + ",".join(filespaceArrayString) + "}"
-        return filespaceMapStr
 
     def __toSqlIntValue(self, val):
         if val is None:

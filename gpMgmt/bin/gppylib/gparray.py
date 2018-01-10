@@ -293,50 +293,11 @@ class Segment:
                            )
         duCmd.run(validateAfter=True)
         requiredSize = duCmd.get_bytes_used()
-        name = "segcopy filespace get_size"
-        for oid in self.__filespaces:
-            if oid == SYSTEM_FILESPACE:
-                continue
-            dir = self.__filespaces[oid]
-            duCmd = DiskUsage(name, dir)
-            duCmd.run(validateAfter=True)
-            size = duCmd.get_bytes_used()
-            requiredSize = requiredSize + size
-
-        dstBytesAvail = DiskFree.get_size_local(name = "Check for available free space for segment template", directory = dstDir)
-        if dstBytesAvail <= requiredSize:
-            raise Exception("Not enough space on directory: '%s'.  Currently %d bytes free but need %d bytes." % (dstDir, int(dstBytesAvail), int(requiredSize)))
-
         logger.info("Starting copy of segment dbid %d to location %s" % (int(self.getSegmentDbId()), dstDir))
 
         cpCmd = LocalDirCopy("Copy system data directory", self.getSegmentDataDirectory(), dstDir)
         cpCmd.run(validateAfter = True)
         res = cpCmd.get_results()
-
-        if len(self.__filespaces) > 1:
-            """ Make directory to hold file spaces """
-            fullPathFsDir = dstDir + "/" +  DESTINATION_FILE_SPACES_DIRECTORY
-            cmd = FileDirExists( name = "check for existance of template filespace directory"
-                                 , directory = fullPathFsDir
-                                )
-            cmd.run(validateAfter = True)
-            MakeDirectory.local("gpexpand make directory to hold file spaces", fullPathFsDir)
-            for oid in self.__filespaces:
-                MakeDirectory.local("gpexpand make directory to hold file space oid: " + str(oid), fullPathFsDir)
-                dir = self.__filespaces[oid]
-                destDir = fullPathFsDir + "/" + str(oid)
-                MakeDirectory.local("gpexpand make directory to hold file space: " + destDir, destDir)
-                name = "GpSegCopy %s to %s" % (dir, destDir)
-                cpCmd = LocalDirCopy(name, dir, destDir)
-                cpCmd.run(validateAfter = True)
-                res = cpCmd.get_results()
-
-            # Remove the gp_dbid file from the data dir
-            RemoveFile.local('Remove gp_dbid file', os.path.normpath(dstDir + '/gp_dbid'))
-            logger.info("Cleaning up catalog for schema only copy on destination")
-            # We need 700 permissions or postgres won't start
-            Chmod.local('set template permissions', dstDir, '0700')
-
 
     # --------------------------------------------------------------------
     # Six simple helper functions to identify what role a segment plays:

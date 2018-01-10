@@ -365,8 +365,7 @@ try:
     cmd.run(validateAfter=True)
 
     """ Delete old mirror directories. """
-    fileSpacesObjList = gpArrayInstance.getFilespaces(includeSystemFilespace=False)
-    totalDirsToDelete = len(newConfig.oldMirrorList) + len(fileSpacesObjList)
+    totalDirsToDelete = len(newConfig.oldMirrorList)
     numberOfWorkers = min(totalDirsToDelete, options.batch_size)
     if numberOfWorkers > 1:
         pool = WorkerPool(numWorkers=numberOfWorkers)
