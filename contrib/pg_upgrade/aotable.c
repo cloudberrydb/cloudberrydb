@@ -202,19 +202,3 @@ restore_aosegment_tables(migratorContext *ctx)
 
 	check_ok(ctx);
 }
-
-void
-restore_persistent_tables(migratorContext *ctx)
-{
-	PGconn	   *conn = connectToServer(ctx, "template1", CLUSTER_NEW);
-
-	prep_status(ctx, "Rebuild gp_relation_node in new cluster");
-	report_progress(ctx, CLUSTER_NEW, FIXUP, "Rebuild gp_relation_node");
-
-	PQclear(executeQueryOrDie(ctx, conn, "checkpoint"));
-	PQclear(executeQueryOrDie(ctx, conn, "select gp_persistent_reset_all()"));
-	PQclear(executeQueryOrDie(ctx, conn, "select gp_persistent_build_all(false)"));
-	PQfinish(conn);
-
-	check_ok(ctx);
-}
