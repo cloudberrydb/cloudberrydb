@@ -926,7 +926,10 @@
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:IndexInfoList/>
+        <dxl:IndexInfoList>
+          <dxl:IndexInfo Mdid="0.2684.1.0" IsPartial="false"/>
+          <dxl:IndexInfo Mdid="0.2685.1.0" IsPartial="false"/>
+        </dxl:IndexInfoList>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

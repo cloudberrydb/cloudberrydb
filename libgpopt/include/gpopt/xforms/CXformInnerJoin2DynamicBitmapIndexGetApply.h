@@ -19,7 +19,7 @@
 #define GPOPT_CXformInnerJoin2DynamicBitmapIndexGetApply_H
 
 #include "gpos/base.h"
-#include "gpopt/xforms/CXformJoin2IndexApplyBase.h"
+#include "gpopt/xforms/CXformInnerJoin2IndexApply.h"
 
 namespace gpopt
 {
@@ -33,9 +33,7 @@ namespace gpopt
 	//		Transform Inner Join to Dynamic Bitmap IndexGet Apply
 	//
 	//---------------------------------------------------------------------------
-	class CXformInnerJoin2DynamicBitmapIndexGetApply : public CXformJoin2IndexApplyBase
-		<CLogicalInnerJoin, CLogicalInnerIndexApply, CLogicalDynamicGet,
-		false /*fWithSelect*/, false /*fPartial*/, IMDIndex::EmdindBitmap>
+	class CXformInnerJoin2DynamicBitmapIndexGetApply : public CXformInnerJoin2IndexApply
 	{
 		private:
 			// private copy ctor
@@ -44,12 +42,7 @@ namespace gpopt
 		public:
 			// ctor
 			explicit
-			CXformInnerJoin2DynamicBitmapIndexGetApply(IMemoryPool *pmp)
-				: CXformJoin2IndexApplyBase
-				 <CLogicalInnerJoin, CLogicalInnerIndexApply, CLogicalDynamicGet,
-				 false /*fWithSelect*/, false /*fPartial*/, IMDIndex::EmdindBitmap>
-				(pmp)
-			{}
+			CXformInnerJoin2DynamicBitmapIndexGetApply(IMemoryPool *pmp);
 
 			// dtor
 			virtual
@@ -69,6 +62,9 @@ namespace gpopt
 				return "CXformInnerJoin2DynamicBitmapIndexGetApply";
 			}
 
+			// actual transform
+			virtual
+			void Transform(CXformContext *pxfctxt, CXformResult *pxfres, CExpression *pexpr) const;
 	}; // class CXformInnerJoin2DynamicBitmapIndexGetApply
 }
 

@@ -21,8 +21,7 @@
 
 #include "gpos/base.h"
 
-#include "gpopt/xforms/CXformJoin2IndexApply.h"
-#include "gpopt/xforms/CXformJoin2IndexApplyBase.h"
+#include "gpopt/xforms/CXformInnerJoin2IndexApply.h"
 
 namespace gpopt
 {
@@ -40,19 +39,12 @@ namespace gpopt
 	//		of dynamic index get applies
 	//
 	//---------------------------------------------------------------------------
-	class CXformInnerJoinWithInnerSelect2PartialDynamicIndexGetApply : public CXformJoin2IndexApplyBase
-		<CLogicalInnerJoin, CLogicalInnerIndexApply, CLogicalDynamicGet,
-		true /*fWithSelect*/, true /*fPartial*/, IMDIndex::EmdindBtree>
+	class CXformInnerJoinWithInnerSelect2PartialDynamicIndexGetApply : public CXformInnerJoin2IndexApply
 	{
 		public:
 			// ctor
 			explicit
-			CXformInnerJoinWithInnerSelect2PartialDynamicIndexGetApply(IMemoryPool *pmp)
-				: CXformJoin2IndexApplyBase
-				 <CLogicalInnerJoin, CLogicalInnerIndexApply, CLogicalDynamicGet,
-				 true /*fWithSelect*/, true /*fPartial*/, IMDIndex::EmdindBtree>
-				(pmp)
-			{}
+			CXformInnerJoinWithInnerSelect2PartialDynamicIndexGetApply(IMemoryPool *pmp);
 
 			// dtor
 			virtual
@@ -61,20 +53,7 @@ namespace gpopt
 
 			// compute xform promise for a given expression handle
 			virtual
-			CXform::EXformPromise Exfp(CExpressionHandle &exprhdl) const
-			{
-				if (CXform::ExfpNone == CXformJoin2IndexApply::Exfp(exprhdl))
-				{
-					return CXform::ExfpNone;
-				}
-
-				if (exprhdl.Pdprel(1 /*ulChildIndex*/)->FHasPartialIndexes())
-				{
-					return CXform::ExfpHigh;
-				}
-
-				return CXform::ExfpNone;
-			}
+			EXformPromise Exfp(CExpressionHandle &exprhdl) const;
 
 			// ident accessor
 			virtual
@@ -90,6 +69,9 @@ namespace gpopt
 				return "CXformInnerJoinWithInnerSelect2PartialDynamicIndexGetApply";
 			}
 
+			// actual transform
+			virtual
+			void Transform(CXformContext *pxfctxt, CXformResult *pxfres, CExpression *pexpr) const;
 	};
 }
 

@@ -73,8 +73,7 @@ const CCostModelGPDB::SCostMapping CCostModelGPDB::m_rgcm[] =
 	{COperator::EopPhysicalLeftAntiSemiHashJoinNotIn, CostHashJoin},
 	{COperator::EopPhysicalLeftOuterHashJoin, CostHashJoin},
 
-	{COperator::EopPhysicalInnerIndexNLJoin, CostIndexNLJoin},
-	{COperator::EopPhysicalLeftOuterIndexNLJoin, CostIndexNLJoin},
+	{COperator::EopPhysicalInnerIndexNLJoin, CostInnerIndexNLJoin},
 
 	{COperator::EopPhysicalMotionGather, CostMotion},
 	{COperator::EopPhysicalMotionBroadcast, CostMotion},
@@ -940,14 +939,14 @@ CCostModelGPDB::CostHashJoin
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CCostModelGPDB::CostIndexNLJoin
+//		CCostModelGPDB::CostInnerIndexNLJoin
 //
 //	@doc:
-//		Cost of inner or outer index-nljoin
+//		Cost of inner index-nljoin
 //
 //---------------------------------------------------------------------------
 CCost
-CCostModelGPDB::CostIndexNLJoin
+CCostModelGPDB::CostInnerIndexNLJoin
 	(
 	IMemoryPool *pmp,
 	CExpressionHandle &exprhdl,
@@ -957,8 +956,7 @@ CCostModelGPDB::CostIndexNLJoin
 {
 	GPOS_ASSERT(NULL != pcmgpdb);
 	GPOS_ASSERT(NULL != pci);
-	GPOS_ASSERT(COperator::EopPhysicalInnerIndexNLJoin == exprhdl.Pop()->Eopid() ||
-			COperator::EopPhysicalLeftOuterIndexNLJoin == exprhdl.Pop()->Eopid());
+	GPOS_ASSERT	(COperator::EopPhysicalInnerIndexNLJoin == exprhdl.Pop()->Eopid());
 
 	const DOUBLE dRowsOuter = pci->PdRows()[0];
 	const DOUBLE dWidthOuter = pci->PdWidth()[0];
@@ -996,12 +994,7 @@ CCostModelGPDB::CostIndexNLJoin
 	ULONG ulPenalizationFactor = 1;
 	const CDouble dIndexJoinAllowedRiskThreshold =
 			pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpIndexJoinAllowedRiskThreshold)->DVal();
-	BOOL fInnerJoin = COperator::EopPhysicalInnerIndexNLJoin == exprhdl.Pop()->Eopid();
-
-	// Only apply penalize factor for inner index nestloop join, because we are more confident
-	// on the cardinality estimation of outer join than inner join. So don't penalize outer join
-	// cost, otherwise Orca generate bad plan.
-	if (fInnerJoin && dIndexJoinAllowedRiskThreshold < ulRisk)
+	if (dIndexJoinAllowedRiskThreshold < ulRisk)
 	{
 		ulPenalizationFactor = ulRisk;
 	}

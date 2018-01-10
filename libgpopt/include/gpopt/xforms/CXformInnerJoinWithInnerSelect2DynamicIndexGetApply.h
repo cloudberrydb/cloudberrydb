@@ -19,7 +19,7 @@
 #define GPOPT_CXformInnerJoinWithInnerSelect2DynamicIndexGetApply_H
 
 #include "gpos/base.h"
-#include "gpopt/xforms/CXformJoin2IndexApplyBase.h"
+#include "gpopt/xforms/CXformInnerJoin2IndexApply.h"
 
 namespace gpopt
 {
@@ -33,9 +33,7 @@ namespace gpopt
 	//		Transform Inner Join with Select over Dynamic Get on the inner branch into IndexGet Apply
 	//
 	//---------------------------------------------------------------------------
-	class CXformInnerJoinWithInnerSelect2DynamicIndexGetApply : public CXformJoin2IndexApplyBase
-		<CLogicalInnerJoin, CLogicalInnerIndexApply, CLogicalDynamicGet,
-		true /*fWithSelect*/, false /*fPartial*/, IMDIndex::EmdindBtree>
+	class CXformInnerJoinWithInnerSelect2DynamicIndexGetApply : public CXformInnerJoin2IndexApply
 	{
 		private:
 			// private copy ctor
@@ -47,12 +45,7 @@ namespace gpopt
 		public:
 			// ctor
 			explicit
-			CXformInnerJoinWithInnerSelect2DynamicIndexGetApply(IMemoryPool *pmp)
-				: CXformJoin2IndexApplyBase
-				 <CLogicalInnerJoin, CLogicalInnerIndexApply, CLogicalDynamicGet,
-				 true /*fWithSelect*/, false /*fPartial*/, IMDIndex::EmdindBtree>
-				(pmp)
-			{}
+			CXformInnerJoinWithInnerSelect2DynamicIndexGetApply(IMemoryPool *pmp);
 
 			// dtor
 			virtual
@@ -71,6 +64,10 @@ namespace gpopt
 			{
 				return "CXformInnerJoinWithInnerSelect2DynamicIndexGetApply";
 			}
+
+			// actual transform
+			virtual
+			void Transform(CXformContext *pxfctxt, CXformResult *pxfres, CExpression *pexpr) const;
 	};
 }
 

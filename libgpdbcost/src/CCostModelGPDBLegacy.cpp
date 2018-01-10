@@ -61,8 +61,7 @@ const CCostModelGPDBLegacy::SCostMapping CCostModelGPDBLegacy::m_rgcm[] =
 	{COperator::EopPhysicalLeftAntiSemiHashJoinNotIn, CostHashJoin},
 	{COperator::EopPhysicalLeftOuterHashJoin, CostHashJoin},
 
-	{COperator::EopPhysicalInnerIndexNLJoin, CostIndexNLJoin},
-	{COperator::EopPhysicalLeftOuterIndexNLJoin, CostIndexNLJoin},
+	{COperator::EopPhysicalInnerIndexNLJoin, CostInnerIndexNLJoin},
 
 	{COperator::EopPhysicalMotionGather, CostMotion},
 	{COperator::EopPhysicalMotionBroadcast, CostMotion},
@@ -752,14 +751,14 @@ CCostModelGPDBLegacy::CostHashJoin
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CCostModelGPDBLegacy::CostIndexNLJoin
+//		CCostModelGPDBLegacy::CostInnerIndexNLJoin
 //
 //	@doc:
-//		Cost of inner or outer index-nljoin
+//		Cost of inner index-nljoin
 //
 //---------------------------------------------------------------------------
 CCost
-CCostModelGPDBLegacy::CostIndexNLJoin
+CCostModelGPDBLegacy::CostInnerIndexNLJoin
 	(
 	IMemoryPool *, // pmp
 	CExpressionHandle &
@@ -773,8 +772,7 @@ CCostModelGPDBLegacy::CostIndexNLJoin
 {
 	GPOS_ASSERT(NULL != pcmgpdb);
 	GPOS_ASSERT(NULL != pci);
-	GPOS_ASSERT(COperator::EopPhysicalInnerIndexNLJoin == exprhdl.Pop()->Eopid() ||
-			COperator::EopPhysicalLeftOuterIndexNLJoin == exprhdl.Pop()->Eopid());
+	GPOS_ASSERT	(COperator::EopPhysicalInnerIndexNLJoin == exprhdl.Pop()->Eopid());
 
 	CCost costLocal = CCost(pci->DRebinds() * CostTupleProcessing(pci->DRows(), pci->DWidth(), pcmgpdb->Pcp()).DVal());
 	CCost costChild = CostSum(pci->PdCost(), pci->UlChildren());

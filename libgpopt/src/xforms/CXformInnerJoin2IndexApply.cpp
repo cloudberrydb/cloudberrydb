@@ -3,10 +3,10 @@
 //	Copyright (C) 2013 Pivotal, Inc.
 //
 //	@filename:
-//		CXformJoin2IndexApply.cpp
+//		CXformInnerJoin2IndexApply.cpp
 //
 //	@doc:
-//		Implementation of Inner/Outer Join to Apply transform
+//		Implementation of Inner Join to Apply transform
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"
@@ -18,7 +18,7 @@
 #include "gpopt/operators/CNormalizer.h"
 #include "gpopt/operators/CPredicateUtils.h"
 #include "gpopt/xforms/CSubqueryHandler.h"
-#include "gpopt/xforms/CXformJoin2IndexApply.h"
+#include "gpopt/xforms/CXformInnerJoin2IndexApply.h"
 #include "gpopt/xforms/CXformUtils.h"
 
 #include "naucrates/md/IMDIndex.h"
@@ -28,14 +28,14 @@ using namespace gpopt;
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformJoin2IndexApply::Exfp
+//		CXformInnerJoin2IndexApply::Exfp
 //
 //	@doc:
 //		Compute xform promise for a given expression handle;
 //
 //---------------------------------------------------------------------------
 CXform::EXformPromise
-CXformJoin2IndexApply::Exfp
+CXformInnerJoin2IndexApply::Exfp
 	(
 	CExpressionHandle &exprhdl
 	)
@@ -58,7 +58,7 @@ CXformJoin2IndexApply::Exfp
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformJoin2IndexApply::ComputeColumnSets
+//		CXformInnerJoin2IndexApply::ComputeColumnSets
 //
 //	@doc:
 //		Based on the inner and the scalar expression, it computes scalar expression
@@ -68,7 +68,7 @@ CXformJoin2IndexApply::Exfp
 //
 //---------------------------------------------------------------------------
 void
-CXformJoin2IndexApply::ComputeColumnSets
+CXformInnerJoin2IndexApply::ComputeColumnSets
 	(
 	IMemoryPool *pmp,
 	CExpression *pexprInner,
@@ -76,7 +76,7 @@ CXformJoin2IndexApply::ComputeColumnSets
 	CColRefSet **ppcrsScalarExpr,
 	CColRefSet **ppcrsOuterRefs,
 	CColRefSet **ppcrsReqd
-	) const
+	)
 {
 	CColRefSet *pcrsInnerOutput = CDrvdPropRelational::Pdprel(pexprInner->PdpDerive())->PcrsOutput();
 	*ppcrsScalarExpr = CDrvdPropScalar::Pdpscalar(pexprScalar->PdpDerive())->PcrsUsed();
@@ -91,14 +91,14 @@ CXformJoin2IndexApply::ComputeColumnSets
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformJoin2IndexApply::CreateFullIndexApplyAlternatives
+//		CXformInnerJoin2IndexApply::CreateFullIndexApplyAlternatives
 //
 //	@doc:
 //		Helper to add IndexApply expression to given xform results container
 //
 //---------------------------------------------------------------------------
 void
-CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives
+CXformInnerJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives
 	(
 	IMemoryPool *pmp,
 	ULONG ulOriginOpId,
@@ -109,7 +109,7 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives
 	CLogicalDynamicGet *popDynamicGet,
 	CXformResult *pxfres,
 	IMDIndex::EmdindexType emdtype
-	) const
+	)
 {
 	GPOS_ASSERT(NULL != pexprOuter);
 	GPOS_ASSERT(NULL != pexprInner);
@@ -179,7 +179,7 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
+//		CXformInnerJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
 //
 //	@doc:
 //		Helper to add IndexApply expression to given xform results container
@@ -187,7 +187,7 @@ CXformJoin2IndexApply::CreateHomogeneousIndexApplyAlternatives
 //
 //---------------------------------------------------------------------------
 void
-CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
+CXformInnerJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
 	(
 	IMemoryPool *pmp,
 	ULONG ulOriginOpId,
@@ -201,7 +201,7 @@ CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
 	CColRefSet *pcrsReqd,
 	ULONG ulIndices,
 	CXformResult *pxfres
-	) const
+	)
 {
 	// array of expressions in the scalar expression
 	DrgPexpr *pdrgpexpr = CPredicateUtils::PdrgpexprConjuncts(pmp, pexprScalar);
@@ -251,7 +251,7 @@ CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformJoin2IndexApply::CreateAlternativesForBtreeIndex
+//		CXformInnerJoin2IndexApply::CreateAlternativesForBtreeIndex
 //
 //	@doc:
 //		Helper to add IndexApply expression to given xform results container
@@ -259,7 +259,7 @@ CXformJoin2IndexApply::CreateHomogeneousBtreeIndexApplyAlternatives
 //
 //---------------------------------------------------------------------------
 void
-CXformJoin2IndexApply::CreateAlternativesForBtreeIndex
+CXformInnerJoin2IndexApply::CreateAlternativesForBtreeIndex
 	(
 	IMemoryPool *pmp,
 	ULONG ulOriginOpId,
@@ -274,7 +274,7 @@ CXformJoin2IndexApply::CreateAlternativesForBtreeIndex
 	const IMDIndex *pmdindex,
 	CPartConstraint *ppartcnstrIndex,
 	CXformResult *pxfres
-	) const
+	)
 {
 	CExpression *pexprLogicalIndexGet = CXformUtils::PexprLogicalIndexGet
 						(
@@ -301,7 +301,7 @@ CXformJoin2IndexApply::CreateAlternativesForBtreeIndex
 			GPOS_NEW(pmp) CExpression
 				(
 				pmp,
-				PopLogicalApply(pmp, pdrgpcr),
+				GPOS_NEW(pmp) CLogicalInnerIndexApply(pmp, pdrgpcr),
 				pexprOuter,
 				pexprLogicalIndexGet,
 				CPredicateUtils::PexprConjunction(pmp, NULL /*pdrgpexpr*/)
@@ -312,14 +312,14 @@ CXformJoin2IndexApply::CreateAlternativesForBtreeIndex
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
+//		CXformInnerJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
 //
 //	@doc:
 //		Helper to add IndexApply expression to given xform results container
 //		for homogeneous bitmap indexes.
 //
 //---------------------------------------------------------------------------
-void CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
+void CXformInnerJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
 	(
 	IMemoryPool *pmp,
 	ULONG ulOriginOpId,
@@ -330,7 +330,7 @@ void CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
 	CColRefSet *pcrsOuterRefs,
 	CColRefSet *pcrsReqd,
 	CXformResult *pxfres
-	) const
+	)
 {
 	CLogical *popGet = CLogical::PopConvert(pexprInner->Pop());
 	CExpression *pexprLogicalIndexGet = CXformUtils::PexprBitmapTableGet
@@ -353,7 +353,7 @@ void CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
 			GPOS_NEW(pmp) CExpression
 				(
 				pmp,
-				PopLogicalApply(pmp, pdrgpcr),
+				GPOS_NEW(pmp) CLogicalInnerIndexApply(pmp, pdrgpcr),
 				pexprOuter,
 				pexprLogicalIndexGet,
 				CPredicateUtils::PexprConjunction(pmp, NULL /*pdrgpexpr*/)
@@ -364,7 +364,7 @@ void CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
+//		CXformInnerJoin2IndexApply::CreatePartialIndexApplyAlternatives
 //
 //	@doc:
 //		Helper to add IndexApply expressions to given xform results container
@@ -427,7 +427,7 @@ void CXformJoin2IndexApply::CreateHomogeneousBitmapIndexApplyAlternatives
 //
 //---------------------------------------------------------------------------
 void
-CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
+CXformInnerJoin2IndexApply::CreatePartialIndexApplyAlternatives
 	(
 	IMemoryPool *pmp,
 	ULONG ulOriginOpId,
@@ -437,7 +437,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
 	CTableDescriptor *ptabdescInner,
 	CLogicalDynamicGet *popDynamicGet,
 	CXformResult *pxfres
-	) const
+	)
 {
 	GPOS_ASSERT(NULL != pexprOuter);
 	GPOS_ASSERT(NULL != pexprInner);
@@ -530,7 +530,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformJoin2IndexApply::CreatePartialIndexApplyPlan
+//		CXformInnerJoin2IndexApply::CreatePartialIndexApplyPlan
 //
 //	@doc:
 //		Create a plan as a union of the given partial index apply candidates and
@@ -538,7 +538,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyAlternatives
 //
 //---------------------------------------------------------------------------
 void
-CXformJoin2IndexApply::CreatePartialIndexApplyPlan
+CXformInnerJoin2IndexApply::CreatePartialIndexApplyPlan
 	(
 	IMemoryPool *pmp,
 	ULONG ulOriginOpId,
@@ -549,7 +549,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 	DrgPpartdig *pdrgppartdig,
 	const IMDRelation *pmdrel,
 	CXformResult *pxfres
-	) const
+	)
 {
 	const ULONG ulPartialIndexes = pdrgppartdig->UlLength();
 	if (0 == ulPartialIndexes)
@@ -633,7 +633,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 		}
 		else
 		{
-			pexprUnionAllChild = PexprJoinOverCTEConsumer
+			pexprUnionAllChild = PexprInnerJoinOverCTEConsumer
 								(
 								pmp,
 								ulOriginOpId,
@@ -714,15 +714,15 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformJoin2IndexApply::PexprJoinOverCTEConsumer
+//		CXformInnerJoin2IndexApply::PexprInnerJoinOverCTEConsumer
 //
 //	@doc:
-//		Create an join with a CTE consumer on the inner branch,
+//		Create an inner join with a CTE consumer on the inner branch,
 //		with the given partition constraint
 //
 //---------------------------------------------------------------------------
 CExpression *
-CXformJoin2IndexApply::PexprJoinOverCTEConsumer
+CXformInnerJoin2IndexApply::PexprInnerJoinOverCTEConsumer
 	(
 	IMemoryPool *pmp,
 	ULONG, //  ulOriginOpId
@@ -733,7 +733,7 @@ CXformJoin2IndexApply::PexprJoinOverCTEConsumer
 	CPartConstraint *ppartcnstr,
 	DrgPcr *pdrgpcrOuter,
 	DrgPcr *pdrgpcrOuterNew
-	) const
+	)
 {
 	HMUlCr *phmulcr =
 			CUtils::PhmulcrMapping(pmp, popDynamicGet->PdrgpcrOutput(), pdrgpcrDynamicGet);
@@ -768,10 +768,10 @@ CXformJoin2IndexApply::PexprJoinOverCTEConsumer
 		GPOS_ASSERT(fInserted);
 	}
 
-	CExpression *pexprJoin = GPOS_NEW(pmp) CExpression
+	CExpression *pexprInnerJoin = GPOS_NEW(pmp) CExpression
 								(
 								pmp,
-								PopLogicalJoin(pmp),
+								GPOS_NEW(pmp) CLogicalInnerJoin(pmp),
 								CXformUtils::PexprCTEConsumer(pmp, ulCTEId, pdrgpcrOuterNew),
 								GPOS_NEW(pmp) CExpression(pmp, popPartialDynamicGet),
 								pexprScalar->PexprCopyWithRemappedColumns
@@ -783,12 +783,12 @@ CXformJoin2IndexApply::PexprJoinOverCTEConsumer
 								);
 	phmulcr->Release();
 
-	return pexprJoin;
+	return pexprInnerJoin;
 }
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformJoin2IndexApply::PexprIndexApplyOverCTEConsumer
+//		CXformInnerJoin2IndexApply::PexprIndexApplyOverCTEConsumer
 //
 //	@doc:
 //		Create an index apply with a CTE consumer on the outer branch
@@ -796,7 +796,7 @@ CXformJoin2IndexApply::PexprJoinOverCTEConsumer
 //
 //---------------------------------------------------------------------------
 CExpression *
-CXformJoin2IndexApply::PexprIndexApplyOverCTEConsumer
+CXformInnerJoin2IndexApply::PexprIndexApplyOverCTEConsumer
 	(
 	IMemoryPool *pmp,
 	ULONG ulOriginOpId,
@@ -814,7 +814,7 @@ CXformJoin2IndexApply::PexprIndexApplyOverCTEConsumer
 	DrgPcr *pdrgpcrOuterNew,
 	DrgPcr *pdrgpcrOuterRefsInScan,
 	DrgPul *pdrgpulIndexesOfRefsInScan
-	) const
+	)
 {
 	CExpression *pexprDynamicScan = CXformUtils::PexprPartialDynamicIndexGet
 								(
@@ -852,7 +852,7 @@ CXformJoin2IndexApply::PexprIndexApplyOverCTEConsumer
 	return GPOS_NEW(pmp) CExpression
 			(
 			pmp,
-			PopLogicalApply(pmp, pdrgpcrOuterRefsInScanNew),
+			GPOS_NEW(pmp) CLogicalInnerIndexApply(pmp, pdrgpcrOuterRefsInScanNew),
 			CXformUtils::PexprCTEConsumer(pmp, ulCTEId, pdrgpcrOuterNew),
 			pexprDynamicScan,
 			CPredicateUtils::PexprConjunction(pmp, NULL /*pdrgpexpr*/)
@@ -861,7 +861,7 @@ CXformJoin2IndexApply::PexprIndexApplyOverCTEConsumer
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformJoin2IndexApply::PexprConstructUnionAll
+//		CXformInnerJoin2IndexApply::PexprConstructUnionAll
 //
 //	@doc:
 //		Create a union-all with the given children. Takes ownership of all
@@ -869,7 +869,7 @@ CXformJoin2IndexApply::PexprIndexApplyOverCTEConsumer
 //
 //---------------------------------------------------------------------------
 CExpression *
-CXformJoin2IndexApply::PexprConstructUnionAll
+CXformInnerJoin2IndexApply::PexprConstructUnionAll
 	(
 	IMemoryPool *pmp,
 	DrgPcr *pdrgpcrLeftSchema,
@@ -877,7 +877,7 @@ CXformJoin2IndexApply::PexprConstructUnionAll
 	CExpression *pexprLeftChild,
 	CExpression *pexprRightChild,
 	ULONG ulScanId
-	) const
+	)
 {
 	DrgDrgPcr *pdrgpdrgpcrInput = GPOS_NEW(pmp) DrgDrgPcr(pmp);
 	pdrgpdrgpcrInput->Append(pdrgpcrLeftSchema);
@@ -895,7 +895,7 @@ CXformJoin2IndexApply::PexprConstructUnionAll
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformJoin2IndexApply::AddUnionPlanForPartialIndexes
+//		CXformInnerJoin2IndexApply::AddUnionPlanForPartialIndexes
 //
 //	@doc:
 //		Constructs a CTE Anchor over the given UnionAll and adds it to the given
@@ -903,7 +903,7 @@ CXformJoin2IndexApply::PexprConstructUnionAll
 //
 //---------------------------------------------------------------------------
 void
-CXformJoin2IndexApply::AddUnionPlanForPartialIndexes
+CXformInnerJoin2IndexApply::AddUnionPlanForPartialIndexes
 	(
 	IMemoryPool *pmp,
 	CLogicalDynamicGet *popDynamicGet,
@@ -911,7 +911,7 @@ CXformJoin2IndexApply::AddUnionPlanForPartialIndexes
 	CExpression *pexprUnion,
 	CExpression *pexprScalar,
 	CXformResult *pxfres
-	) const
+	)
 {
 	if (NULL == pexprUnion)
 	{

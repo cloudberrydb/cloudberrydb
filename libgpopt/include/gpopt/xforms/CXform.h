@@ -210,11 +210,6 @@ namespace gpopt
 				ExfGbAggWithMDQA2Join,
 				ExfCollapseProject,
 				ExfRemoveSubqDistinct,
-				ExfLeftOuterJoin2BitmapIndexGetApply,
-				ExfLeftOuterJoin2IndexGetApply,
-				ExfLeftOuterJoinWithInnerSelect2BitmapIndexGetApply,
-				ExfLeftOuterJoinWithInnerSelect2IndexGetApply,
-				ExfImplementLeftOuterIndexApply,
 				ExfInvalid,
 				ExfSentinel = ExfInvalid
 			};
