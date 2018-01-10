@@ -426,10 +426,18 @@ if (RelationIsHeap(rel))
 		totalsize += fst.st_size;
 	}
 }
-else if (RelationIsAoRows(rel))
-	totalsize = GetAOTotalBytes(rel, SnapshotNow);
-else if (RelationIsAoCols(rel))
-	totalsize = GetAOCSTotalBytes(rel, SnapshotNow, true);
+/* AO tables don't have any extra forks. */
+else if (forknum == MAIN_FORKNUM)
+{
+	if (RelationIsAoRows(rel))
+	{
+		totalsize = GetAOTotalBytes(rel, SnapshotNow);
+	}
+	else if (RelationIsAoCols(rel))
+	{
+		totalsize = GetAOCSTotalBytes(rel, SnapshotNow, true);
+	}
+}
 
     /* RELSTORAGE_VIRTUAL has no space usage */
     return totalsize;
@@ -608,7 +616,8 @@ pg_total_relation_size(PG_FUNCTION_ARGS)
 
 		initStringInfo(&buffer);
 
-		appendStringInfo(&buffer, "select sum(pg_total_relation_size('%s.%s'))::int8 from gp_dist_random('gp_id');", quote_identifier(schemaName), quote_identifier(relName));
+		appendStringInfo(&buffer, "select pg_catalog.sum(pg_catalog.pg_total_relation_size('%s.%s'))::int8 from gp_dist_random('gp_id');",
+						 quote_identifier(schemaName), quote_identifier(relName));
 
 		size += get_size_from_segDBs(buffer.data);
 	}
