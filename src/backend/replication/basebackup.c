@@ -877,7 +877,7 @@ sendDir(char *path, int basepathlen, bool sizeonly, List *tablespaces,
 				}
 			}
 			if (!skip_this_dir)
-				size += sendDir(pathbuf, basepathlen, sizeonly, tablespaces, NIL);
+				size += sendDir(pathbuf, basepathlen, sizeonly, tablespaces, exclude);
 		}
 		else if (S_ISREG(statbuf.st_mode))
 		{
