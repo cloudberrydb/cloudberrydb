@@ -134,14 +134,6 @@ crash_recovery_schema_topology:
 	-p test_crash_recovery_schema_topology.py \
 	-p test_reindex_pg_class.py
 
-
-# Crash recovery test during ptrebuild
-
-persistent_table_rebuild:
-	$(TESTER) $(DISCOVER) \
-	-s tincrepo/mpp/gpdb/tests/storage/persistent_tables \
-	-p test_PT_RebuildPT.py
-
 runaway_query:
 	$(TESTER) \
 		resource_management.runaway_query.runaway_query_scenario.test_runaway_query_scenario.RQTScenarioTestCase \
