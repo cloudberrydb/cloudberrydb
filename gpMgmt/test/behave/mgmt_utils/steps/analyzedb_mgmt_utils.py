@@ -215,9 +215,10 @@ def impl(context, mod_count, table, schema, dbname):
 def get_mod_count_in_state_file(dbname, schema, table):
     file = get_latest_aostate_file(dbname)
     comma_name = ','.join([schema, table])
-    for line in get_lines_from_file(file):
-        if comma_name in line:
-            return line.split(',')[2]
+    with open(file) as fd:
+        for line in fd:
+            if comma_name in line:
+                return line.split(',')[2].strip()
     return -1
 
 
