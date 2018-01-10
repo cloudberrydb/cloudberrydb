@@ -51,21 +51,11 @@ class Standby(object):
     def add_catalog_standby(self, dburl, gparray):
         master = gparray.master
 
-        # This will eventually support extra filespaces,
-        # but for now only signle filespace, which is pg_system
-        # is supported.  pg_basebackup also needs to
-        # recognize this setting.
-        #
-        #fsmap = master.getSegmentFilespaces()
-        #fslist = ["['{0}', '{1}']".format(dbarray.getFileSpaceName(fsoid), path)
-        #            for fsoid, path in fsmap.items()]
-        fslist = ["['pg_system', '{0}']".format(self.datadir)]
-
         sql = ("SELECT gp_add_master_standby('{hostname}', '{address}', "
-               "ARRAY[{filespaces}], {port})").format(
+               "'{datadir}', {port})").format(
                 hostname=master.getSegmentHostName(),
                 address=master.getSegmentAddress(),
-                filespaces=', '.join(fslist),
+                datadir=self.datadir,
                 port=self.port)
         self._run_utility_sql(sql)
 
