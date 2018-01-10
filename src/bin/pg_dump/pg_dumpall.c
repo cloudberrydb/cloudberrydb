@@ -1355,13 +1355,12 @@ dumpTablespaces(PGconn *conn)
 	else
 	{
 		res = executeQuery(conn, "SELECT spcname, "
-						 "pg_catalog.pg_get_userbyid(spcowner) AS spcowner, "
-						   "fsname, spcacl, "
-					  "pg_catalog.shobj_description(t.oid, 'pg_tablespace') "
-						   "FROM pg_catalog.pg_tablespace t, "
-						   "pg_catalog.pg_filespace fs "
-						   "WHERE t.spcfsoid = fs.oid AND spcname !~ '^pg_' "
-						   "ORDER BY 1");
+						"pg_catalog.pg_get_userbyid(spcowner) AS spcowner, "
+						"spclocation, spcacl, "
+						"pg_catalog.shobj_description(t.oid, 'pg_tablespace') "
+						"FROM pg_catalog.pg_tablespace t "
+						"WHERE spcname !~ '^pg_' "
+						"ORDER BY 1");
 	}
 
 	if (PQntuples(res) > 0)
