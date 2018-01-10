@@ -20,6 +20,7 @@
 
 #include "gpos/base.h"
 
+#include "gpopt/xforms/CXformJoin2IndexApply.h"
 #include "gpopt/xforms/CXformJoin2IndexApplyBase.h"
 
 namespace gpopt
@@ -61,7 +62,7 @@ namespace gpopt
 			virtual
 			CXform::EXformPromise Exfp(CExpressionHandle &exprhdl) const
 			{
-				if (CXform::ExfpNone == CXformJoin2IndexApplyBase::Exfp(exprhdl))
+				if (CXform::ExfpNone == CXformJoin2IndexApply::Exfp(exprhdl))
 				{
 					return CXform::ExfpNone;
 				}
