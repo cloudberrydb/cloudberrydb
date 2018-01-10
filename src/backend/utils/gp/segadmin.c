@@ -417,6 +417,7 @@ add_segment(seginfo new_segment_information)
  *   hostname - host name string
  *   address - either hostname or something else
  *   port - port number
+ *   datadir - absolute path to primary data directory.
  *
  * Returns the dbid of the new segment.
  */
@@ -438,6 +439,10 @@ gp_add_segment_primary(PG_FUNCTION_ARGS)
 	if (PG_ARGISNULL(2))
 		elog(ERROR, "port cannot be NULL");
 	new.db.port = PG_GETARG_INT32(2);
+
+	if (PG_ARGISNULL(3))
+		elog(ERROR, "datadir cannot be NULL");
+	new.db.datadir = TextDatumGetCString(PG_GETARG_DATUM(3));
 
 	mirroring_sanity_check(MASTER_ONLY | SUPERUSER, "gp_add_segment_primary");
 
@@ -564,7 +569,7 @@ gp_remove_segment(PG_FUNCTION_ARGS)
 /*
  * Add a mirror of an existing segment.
  *
- * gp_add_segment_mirror(contentid, hostname, address, port)
+ * gp_add_segment_mirror(contentid, hostname, address, port, datadir)
  */
 Datum
 gp_add_segment_mirror(PG_FUNCTION_ARGS)

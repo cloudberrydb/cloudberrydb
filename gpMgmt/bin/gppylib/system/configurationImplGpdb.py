@@ -289,11 +289,12 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
         """
         logger.debug('callSegmentAdd %s' % repr(seg))
 
-        sql = "SELECT gp_add_segment_primary(%s, %s, %s)" \
+        sql = "SELECT gp_add_segment_primary(%s, %s, %s, %s)" \
             % (
                 self.__toSqlTextValue(seg.getSegmentHostName()),
                 self.__toSqlTextValue(seg.getSegmentAddress()),
                 self.__toSqlIntValue(seg.getSegmentPort()),
+                self.__toSqlTextValue(seg.getSegmentDataDirectory()),
               )
         logger.debug(sql)
         sqlResult = self.__fetchSingleOutputRow(conn, sql)
