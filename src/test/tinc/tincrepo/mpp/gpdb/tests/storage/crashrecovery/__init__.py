@@ -290,9 +290,12 @@ class SuspendCheckpointCrashRecovery(MPPTestCase):
                 raise Exception('Segments not in sync')
             tinctest.logger.info('Segments recovered and back in sync')
 
-        self.dbstate.check_mirrorintegrity()
-        if self.config.has_master_mirror():
-            self.dbstate.check_mirrorintegrity(master=True)
+        # WALREP_FIXME: gpcheckmirrorseg doesn't work with WAL replication.
+        # Need a replacement, something based on gp_replica_check probably.
+        # But for now, just disable this part of the validation.
+        #self.dbstate.check_mirrorintegrity()
+        #if self.config.has_master_mirror():
+        #    self.dbstate.check_mirrorintegrity(master=True)
 
     def run_fault_injector_to_skip_checkpoint(self):
         tinctest.logger.info('Skip Checkpointing using fault injector.')
