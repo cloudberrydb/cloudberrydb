@@ -104,9 +104,9 @@ namespace gpopt
 					CXformResult *pxfres
 					) const;
 
-			// create an inner join with a CTE consumer on the inner branch, with the given
+			// create an join with a CTE consumer on the inner branch, with the given
 			// partition constraint
-			CExpression *PexprInnerJoinOverCTEConsumer
+			CExpression *PexprJoinOverCTEConsumer
 				(
 				IMemoryPool *pmp,
 				ULONG ulOriginOpId,

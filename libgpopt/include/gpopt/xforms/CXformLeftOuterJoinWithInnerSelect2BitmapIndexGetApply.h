@@ -11,13 +11,15 @@
 #define GPOPT_CXformLeftOuterJoinWithInnerSelect2BitmapIndexGetApply_H
 
 #include "gpos/base.h"
-#include "gpopt/xforms/CXformLeftOuterJoin2IndexApply.h"
+#include "gpopt/xforms/CXformJoin2IndexApplyBase.h"
 
 namespace gpopt
 {
 	using namespace gpos;
 
-	class CXformLeftOuterJoinWithInnerSelect2BitmapIndexGetApply : public CXformLeftOuterJoin2IndexApply
+	class CXformLeftOuterJoinWithInnerSelect2BitmapIndexGetApply : public CXformJoin2IndexApplyBase
+		<CLogicalLeftOuterJoin, CLogicalLeftOuterIndexApply, CLogicalGet,
+		true /*fWithSelect*/, false /*fPartial*/, IMDIndex::EmdindBitmap>
 	{
 		private:
 			// private copy ctor
@@ -29,7 +31,12 @@ namespace gpopt
 		public:
 			// ctor
 			explicit
-			CXformLeftOuterJoinWithInnerSelect2BitmapIndexGetApply(IMemoryPool *pmp);
+			CXformLeftOuterJoinWithInnerSelect2BitmapIndexGetApply(IMemoryPool *pmp)
+				: CXformJoin2IndexApplyBase
+				<CLogicalLeftOuterJoin, CLogicalLeftOuterIndexApply, CLogicalGet,
+				true /*fWithSelect*/, false /*fPartial*/, IMDIndex::EmdindBitmap>
+				(pmp)
+			{}
 
 			// dtor
 			virtual
@@ -48,11 +55,6 @@ namespace gpopt
 			{
 				return "CXformLeftOuterJoinWithInnerSelect2BitmapIndexGetApply";
 			}
-
-			// actual transform
-			virtual
-			void Transform(CXformContext *pxfctxt, CXformResult *pxfres, CExpression *pexpr) const;
-
 	}; // class CXformLeftOuterJoinWithInnerSelect2BitmapIndexGetApply
 }
 

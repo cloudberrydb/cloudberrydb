@@ -6,7 +6,7 @@
 //		CXformJoin2IndexApply.cpp
 //
 //	@doc:
-//		Implementation of Inner Join to Apply transform
+//		Implementation of Inner/Outer Join to Apply transform
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"
@@ -633,7 +633,7 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 		}
 		else
 		{
-			pexprUnionAllChild = PexprInnerJoinOverCTEConsumer
+			pexprUnionAllChild = PexprJoinOverCTEConsumer
 								(
 								pmp,
 								ulOriginOpId,
@@ -714,15 +714,15 @@ CXformJoin2IndexApply::CreatePartialIndexApplyPlan
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CXformJoin2IndexApply::PexprInnerJoinOverCTEConsumer
+//		CXformJoin2IndexApply::PexprJoinOverCTEConsumer
 //
 //	@doc:
-//		Create an inner join with a CTE consumer on the inner branch,
+//		Create an join with a CTE consumer on the inner branch,
 //		with the given partition constraint
 //
 //---------------------------------------------------------------------------
 CExpression *
-CXformJoin2IndexApply::PexprInnerJoinOverCTEConsumer
+CXformJoin2IndexApply::PexprJoinOverCTEConsumer
 	(
 	IMemoryPool *pmp,
 	ULONG, //  ulOriginOpId
@@ -768,7 +768,7 @@ CXformJoin2IndexApply::PexprInnerJoinOverCTEConsumer
 		GPOS_ASSERT(fInserted);
 	}
 
-	CExpression *pexprInnerJoin = GPOS_NEW(pmp) CExpression
+	CExpression *pexprJoin = GPOS_NEW(pmp) CExpression
 								(
 								pmp,
 								PopLogicalJoin(pmp),
@@ -783,7 +783,7 @@ CXformJoin2IndexApply::PexprInnerJoinOverCTEConsumer
 								);
 	phmulcr->Release();
 
-	return pexprInnerJoin;
+	return pexprJoin;
 }
 
 //---------------------------------------------------------------------------

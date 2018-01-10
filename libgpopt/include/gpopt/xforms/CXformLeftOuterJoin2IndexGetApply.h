@@ -8,13 +8,15 @@
 #define GPOPT_CXformLeftOuterJoin2IndexGetApply_H
 
 #include "gpos/base.h"
-#include "gpopt/xforms/CXformLeftOuterJoin2IndexApply.h"
+#include "gpopt/xforms/CXformJoin2IndexApplyBase.h"
 
 namespace gpopt
 {
 	using namespace gpos;
 
-	class CXformLeftOuterJoin2IndexGetApply : public CXformLeftOuterJoin2IndexApply
+	class CXformLeftOuterJoin2IndexGetApply : public CXformJoin2IndexApplyBase
+		<CLogicalLeftOuterJoin, CLogicalLeftOuterIndexApply, CLogicalGet,
+		false /*fWithSelect*/, false /*fPartial*/, IMDIndex::EmdindBtree>
 	{
 
 		private:
@@ -26,7 +28,12 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformLeftOuterJoin2IndexGetApply(IMemoryPool *pmp);
+			CXformLeftOuterJoin2IndexGetApply(IMemoryPool *pmp)
+				: CXformJoin2IndexApplyBase
+				<CLogicalLeftOuterJoin, CLogicalLeftOuterIndexApply, CLogicalGet,
+				false /*fWithSelect*/, false /*fPartial*/, IMDIndex::EmdindBtree>
+				(pmp)
+			{}
 
 			// dtor
 			virtual
@@ -45,10 +52,6 @@ namespace gpopt
 			{
 				return "CXformLeftOuterJoin2IndexGetApply";
 			}
-
-			// actual transform
-			virtual
-			void Transform(CXformContext *pxfctxt, CXformResult *pxfres, CExpression *pexpr) const;
 
 	}; // class CXformLeftOuterJoin2IndexGetApply
 

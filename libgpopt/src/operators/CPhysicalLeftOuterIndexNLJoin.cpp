@@ -2,7 +2,7 @@
 //	Greenplum Database
 //	Copyright (C) 2017 Greenplum, Inc.
 //
-//	Implementation of index inner nested-loops join operator
+//	Implementation of left outer index nested-loops join operator
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

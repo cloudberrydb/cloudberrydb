@@ -65,8 +65,8 @@ add_library(gpopt
             include/gpopt/xforms/CXformInnerJoinAntiSemiJoinNotInSwap.h
             include/gpopt/xforms/CXformInnerJoinAntiSemiJoinSwap.h
             include/gpopt/xforms/CXformInnerJoinSemiJoinSwap.h
-            include/gpopt/xforms/CXformInnerJoin2IndexApply.h
-            include/gpopt/xforms/CXformLeftOuterJoin2IndexApply.h
+            include/gpopt/xforms/CXformJoin2IndexApplyBase.h
+            include/gpopt/xforms/CXformLeftOuterJoin2IndexGetApply.h
             include/gpopt/xforms/CXformJoinSwap.h
             include/gpopt/xforms/CXformLeftAntiSemiJoinNotIn2CrossProduct.h
             include/gpopt/xforms/CXformLeftSemiApplyIn2LeftSemiJoin.h
@@ -763,39 +763,24 @@ add_library(gpopt
             include/gpopt/xforms/CXformInnerApplyWithOuterKey2InnerJoin.h
             src/xforms/CXformInnerApplyWithOuterKey2InnerJoin.cpp
             include/gpopt/xforms/CXformInnerJoin2BitmapIndexGetApply.h
-            src/xforms/CXformInnerJoin2BitmapIndexGetApply.cpp
             include/gpopt/xforms/CXformInnerJoin2DynamicBitmapIndexGetApply.h
-            src/xforms/CXformInnerJoin2DynamicBitmapIndexGetApply.cpp
             include/gpopt/xforms/CXformInnerJoin2DynamicIndexGetApply.h
-            src/xforms/CXformInnerJoin2DynamicIndexGetApply.cpp
             include/gpopt/xforms/CXformInnerJoin2HashJoin.h
             src/xforms/CXformInnerJoin2HashJoin.cpp
             include/gpopt/xforms/CXformJoin2IndexApply.h
             src/xforms/CXformJoin2IndexApply.cpp
             include/gpopt/xforms/CXformInnerJoin2IndexGetApply.h
-            src/xforms/CXformInnerJoin2IndexGetApply.cpp
             include/gpopt/xforms/CXformLeftOuterJoin2BitmapIndexGetApply.h
-            src/xforms/CXformLeftOuterJoin2BitmapIndexGetApply.cpp
-            include/gpopt/xforms/CXformLeftOuterJoin2IndexGetApply.h
-            src/xforms/CXformLeftOuterJoin2IndexGetApply.cpp
             include/gpopt/xforms/CXformLeftOuterJoinWithInnerSelect2IndexGetApply.h
-            src/xforms/CXformLeftOuterJoinWithInnerSelect2IndexGetApply.cpp
             include/gpopt/xforms/CXformLeftOuterJoinWithInnerSelect2BitmapIndexGetApply.h
-            src/xforms/CXformLeftOuterJoinWithInnerSelect2BitmapIndexGetApply.cpp
             include/gpopt/xforms/CXformInnerJoin2NLJoin.h
             src/xforms/CXformInnerJoin2NLJoin.cpp
             include/gpopt/xforms/CXformInnerJoin2PartialDynamicIndexGetApply.h
-            src/xforms/CXformInnerJoin2PartialDynamicIndexGetApply.cpp
             include/gpopt/xforms/CXformInnerJoinWithInnerSelect2BitmapIndexGetApply.h
-            src/xforms/CXformInnerJoinWithInnerSelect2BitmapIndexGetApply.cpp
             include/gpopt/xforms/CXformInnerJoinWithInnerSelect2DynamicBitmapIndexGetApply.h
-            src/xforms/CXformInnerJoinWithInnerSelect2DynamicBitmapIndexGetApply.cpp
             include/gpopt/xforms/CXformInnerJoinWithInnerSelect2DynamicIndexGetApply.h
-            src/xforms/CXformInnerJoinWithInnerSelect2DynamicIndexGetApply.cpp
             include/gpopt/xforms/CXformInnerJoinWithInnerSelect2IndexGetApply.h
-            src/xforms/CXformInnerJoinWithInnerSelect2IndexGetApply.cpp
             include/gpopt/xforms/CXformInnerJoinWithInnerSelect2PartialDynamicIndexGetApply.h
-            src/xforms/CXformInnerJoinWithInnerSelect2PartialDynamicIndexGetApply.cpp
             include/gpopt/xforms/CXformInsert2DML.h
             src/xforms/CXformInsert2DML.cpp
             include/gpopt/xforms/CXformIntersect2Join.h

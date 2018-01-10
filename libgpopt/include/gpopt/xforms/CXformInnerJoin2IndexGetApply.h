@@ -12,7 +12,7 @@
 #define GPOPT_CXformInnerJoin2IndexGetApply_H
 
 #include "gpos/base.h"
-#include "gpopt/xforms/CXformInnerJoin2IndexApply.h"
+#include "gpopt/xforms/CXformJoin2IndexApplyBase.h"
 
 namespace gpopt
 {
@@ -26,7 +26,9 @@ namespace gpopt
 	//		Transform Inner Join to IndexGet Apply
 	//
 	//---------------------------------------------------------------------------
-	class CXformInnerJoin2IndexGetApply : public CXformInnerJoin2IndexApply
+	class CXformInnerJoin2IndexGetApply : public CXformJoin2IndexApplyBase
+		<CLogicalInnerJoin, CLogicalInnerIndexApply, CLogicalGet,
+		false /*fWithSelect*/, false /*fPartial*/, IMDIndex::EmdindBtree>
 	{
 
 		private:
@@ -38,7 +40,12 @@ namespace gpopt
 
 			// ctor
 			explicit
-			CXformInnerJoin2IndexGetApply(IMemoryPool *pmp);
+			CXformInnerJoin2IndexGetApply(IMemoryPool *pmp)
+				: CXformJoin2IndexApplyBase
+				 <CLogicalInnerJoin, CLogicalInnerIndexApply, CLogicalGet,
+				 false /*fWithSelect*/, false /*fPartial*/, IMDIndex::EmdindBtree>
+				(pmp)
+			{}
 
 			// dtor
 			virtual
@@ -57,10 +64,6 @@ namespace gpopt
 			{
 				return "CXformInnerJoin2IndexGetApply";
 			}
-
-			// actual transform
-			virtual
-			void Transform(CXformContext *pxfctxt, CXformResult *pxfres, CExpression *pexpr) const;
 
 	}; // class CXformInnerJoin2IndexGetApply
 
