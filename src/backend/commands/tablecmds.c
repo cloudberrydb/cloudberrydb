@@ -10366,12 +10366,6 @@ copy_relation_data(SMgrRelation src, SMgrRelation dst,
 	BlockNumber blkno;
 
 	/*
-	 * We need to log the copied data in WAL iff WAL archiving is enabled AND
-	 * it's not a temp rel.
-	 */
-	use_wal = XLogArchivingActive() && !istemp;
-
-	/*
 	 * palloc the buffer so that it's MAXALIGN'd.  If it were just a local
 	 * char[] array, the compiler might align it on any byte boundary, which
 	 * can seriously hurt transfer speed to and from the kernel; not to
@@ -10379,6 +10373,12 @@ copy_relation_data(SMgrRelation src, SMgrRelation dst,
 	 */
 	buf = (char *) palloc(BLCKSZ);
 	page = (Page) buf;
+
+	/*
+	 * We need to log the copied data in WAL iff WAL archiving/streaming is
+	 * enabled AND it's not a temp rel.
+	 */
+	use_wal = XLogIsNeeded() && !istemp;
 
 	nblocks = smgrnblocks(src, forkNum);
 
