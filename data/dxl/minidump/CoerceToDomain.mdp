@@ -198,9 +198,7 @@ SELECT * FROM information_schema.tables;
             <dxl:DefaultValue/>
           </dxl:Column>
         </dxl:Columns>
-        <dxl:IndexInfoList>
-          <dxl:IndexInfo Mdid="0.6041.1.0" IsPartial="false"/>
-        </dxl:IndexInfoList>
+        <dxl:IndexInfoList/>
         <dxl:Triggers/>
         <dxl:CheckConstraints/>
       </dxl:Relation>

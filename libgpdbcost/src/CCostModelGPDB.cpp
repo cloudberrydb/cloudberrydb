@@ -73,7 +73,8 @@ const CCostModelGPDB::SCostMapping CCostModelGPDB::m_rgcm[] =
 	{COperator::EopPhysicalLeftAntiSemiHashJoinNotIn, CostHashJoin},
 	{COperator::EopPhysicalLeftOuterHashJoin, CostHashJoin},
 
-	{COperator::EopPhysicalInnerIndexNLJoin, CostInnerIndexNLJoin},
+	{COperator::EopPhysicalInnerIndexNLJoin, CostIndexNLJoin},
+	{COperator::EopPhysicalLeftOuterIndexNLJoin, CostIndexNLJoin},
 
 	{COperator::EopPhysicalMotionGather, CostMotion},
 	{COperator::EopPhysicalMotionBroadcast, CostMotion},
@@ -939,14 +940,14 @@ CCostModelGPDB::CostHashJoin
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CCostModelGPDB::CostInnerIndexNLJoin
+//		CCostModelGPDB::CostIndexNLJoin
 //
 //	@doc:
-//		Cost of inner index-nljoin
+//		Cost of inner or outer index-nljoin
 //
 //---------------------------------------------------------------------------
 CCost
-CCostModelGPDB::CostInnerIndexNLJoin
+CCostModelGPDB::CostIndexNLJoin
 	(
 	IMemoryPool *pmp,
 	CExpressionHandle &exprhdl,
@@ -956,7 +957,6 @@ CCostModelGPDB::CostInnerIndexNLJoin
 {
 	GPOS_ASSERT(NULL != pcmgpdb);
 	GPOS_ASSERT(NULL != pci);
-	GPOS_ASSERT	(COperator::EopPhysicalInnerIndexNLJoin == exprhdl.Pop()->Eopid());
 
 	const DOUBLE dRowsOuter = pci->PdRows()[0];
 	const DOUBLE dWidthOuter = pci->PdWidth()[0];
@@ -994,7 +994,12 @@ CCostModelGPDB::CostInnerIndexNLJoin
 	ULONG ulPenalizationFactor = 1;
 	const CDouble dIndexJoinAllowedRiskThreshold =
 			pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpIndexJoinAllowedRiskThreshold)->DVal();
-	if (dIndexJoinAllowedRiskThreshold < ulRisk)
+	BOOL fInnerJoin = COperator::EopPhysicalInnerIndexNLJoin == exprhdl.Pop()->Eopid();
+
+	// Only apply penalize factor for inner index nestloop join, because we are more confident
+	// on the cardinality estimation of outer join than inner join. So don't penalize outer join
+	// cost, otherwise Orca generate bad plan.
+	if (fInnerJoin && dIndexJoinAllowedRiskThreshold < ulRisk)
 	{
 		ulPenalizationFactor = ulRisk;
 	}

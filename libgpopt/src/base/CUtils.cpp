@@ -1235,6 +1235,7 @@ CUtils::FPhysicalOuterJoin
 	GPOS_ASSERT(NULL != pop);
 
 	return 	COperator::EopPhysicalLeftOuterNLJoin == pop->Eopid() ||
+		COperator::EopPhysicalLeftOuterIndexNLJoin == pop->Eopid() ||
 		COperator::EopPhysicalLeftOuterHashJoin == pop->Eopid() ||
 		COperator::EopPhysicalCorrelatedLeftOuterNLJoin == pop->Eopid();
 }

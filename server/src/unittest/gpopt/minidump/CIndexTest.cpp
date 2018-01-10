@@ -28,6 +28,7 @@ ULONG CIndexTest::m_ulIndexTestCounter = 0;  // start from first test
 // minidump files
 const CHAR *rgszIndexFileNames[] =
 	{
+	"../data/dxl/minidump/IndexApply-LeftOuter-NLJoin.mdp",
 	"../data/dxl/minidump/IndexNLJoin_Cast_NoMotion.mdp",
 	"../data/dxl/minidump/BTreeIndex-Against-InList.mdp",
 	"../data/dxl/minidump/BTreeIndex-Against-ScalarSubquery.mdp",
