@@ -72,7 +72,6 @@ walrep_1:
 walrep_2:
 	$(TESTER) $(DISCOVER) -t tincrepo/mpp/gpdb/tests/storage/walrepl \
 	-s basebackup \
-	-s filerep \
 	-s oom \
 	-s regress \
 	-s smart_shutdown \
