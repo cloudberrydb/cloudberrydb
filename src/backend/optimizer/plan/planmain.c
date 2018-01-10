@@ -540,7 +540,6 @@ PlannerConfig *DefaultPlannerConfig(void)
 	c1->gp_enable_multiphase_agg = gp_enable_multiphase_agg;
 	c1->gp_enable_preunique = gp_enable_preunique;
 	c1->gp_eager_preunique = gp_eager_preunique;
-	c1->gp_enable_sequential_window_plans = gp_enable_sequential_window_plans;
 	c1->gp_hashagg_streambottom = gp_hashagg_streambottom;
 	c1->gp_enable_agg_distinct = gp_enable_agg_distinct;
 	c1->gp_enable_dqa_pruning = gp_enable_dqa_pruning;

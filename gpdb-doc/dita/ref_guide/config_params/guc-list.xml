@@ -269,9 +269,6 @@
             <li>
               <xref href="#gp_enable_segment_copy_checking" format="dita"/></li>
             <li>
-              <xref href="#gp_enable_sequential_window_plans"/>
-            </li>
-            <li>
               <xref href="#gp_enable_sort_distinct"/>
             </li>
             <li>
@@ -322,9 +319,6 @@
             </li>
             <li>
               <xref href="#gp_hashjoin_tuples_per_bucket"/>
-            </li>
-            <li>
-              <xref href="#gp_idf_deduplicate"/>
             </li>
             <li>
               <xref href="#topic_lvm_ttc_3p"/>
@@ -3575,35 +3569,6 @@
       </table>
     </body>
   </topic>
-  <topic id="gp_enable_sequential_window_plans">
-    <title>gp_enable_sequential_window_plans</title>
-    <body>
-      <p>If on, enables non-parallel (sequential) query plans for queries containing window function
-        calls. If off, evaluates compatible window functions in parallel and rejoins the results.
-        This is an experimental parameter.</p>
-      <table id="gp_enable_sequential_window_plans_table">
-        <tgroup cols="3">
-          <colspec colnum="1" colname="col1" colwidth="1*"/>
-          <colspec colnum="2" colname="col2" colwidth="1*"/>
-          <colspec colnum="3" colname="col3" colwidth="1*"/>
-          <thead>
-            <row>
-              <entry colname="col1">Value Range</entry>
-              <entry colname="col2">Default</entry>
-              <entry colname="col3">Set Classifications</entry>
-            </row>
-          </thead>
-          <tbody>
-            <row>
-              <entry colname="col1">Boolean</entry>
-              <entry colname="col2">on</entry>
-              <entry colname="col3">master<p>session</p><p>reload</p></entry>
-            </row>
-          </tbody>
-        </tgroup>
-      </table>
-    </body>
-  </topic>
   <topic id="gp_enable_segment_copy_checking">
     <title>gp_enable_segment_copy_checking</title>
     <body>
@@ -4204,33 +4169,6 @@
             <row>
               <entry colname="col1">integer</entry>
               <entry colname="col2">5</entry>
-              <entry colname="col3">master<p>session</p><p>reload</p></entry>
-            </row>
-          </tbody>
-        </tgroup>
-      </table>
-    </body>
-  </topic>
-  <topic id="gp_idf_deduplicate">
-    <title>gp_idf_deduplicate</title>
-    <body>
-      <p>Changes the strategy to compute and process MEDIAN, and PERCENTILE_DISC.</p>
-      <table id="gp_idf_deduplicate_table">
-        <tgroup cols="3">
-          <colspec colnum="1" colname="col1" colwidth="1*"/>
-          <colspec colnum="2" colname="col2" colwidth="1*"/>
-          <colspec colnum="3" colname="col3" colwidth="1*"/>
-          <thead>
-            <row>
-              <entry colname="col1">Value Range</entry>
-              <entry colname="col2">Default</entry>
-              <entry colname="col3">Set Classifications</entry>
-            </row>
-          </thead>
-          <tbody>
-            <row>
-              <entry colname="col1">auto<p>none</p><p>force</p></entry>
-              <entry colname="col2">auto</entry>
               <entry colname="col3">master<p>session</p><p>reload</p></entry>
             </row>
           </tbody>

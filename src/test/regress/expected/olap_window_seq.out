@@ -2,7 +2,6 @@
 -- OLAP_WINDOW 
 --
 -- Changes here should also be made to olap_window_seq.sql
-set gp_enable_sequential_window_plans to true;
 ---- 1 -- Null window specification -- OVER () ----
 select row_number() over (), cn,pn,vn 
 from sale; -- mvd 1->1
@@ -1614,7 +1613,6 @@ from sale_ord;
          ->  Sort  (cost=2.34..2.37 rows=6 width=12)
                Sort Key: ord, cn
                ->  Seq Scan on sale_ord  (cost=0.00..2.12 rows=6 width=12)
- Settings:  gp_enable_sequential_window_plans=on
 (8 rows)
 
 select cn,
@@ -7682,7 +7680,7 @@ explain select n from ( select row_number() over () from (values (0)) as t(x) ) 
    Group By: pg_catalog.row_number()
    ->  WindowAgg  (cost=0.00..0.01 rows=1 width=0)
          ->  Values Scan on "*VALUES*"  (cost=0.00..0.01 rows=1 width=0)
- Settings:  gp_enable_sequential_window_plans=on; optimizer=off
+ Settings:  optimizer=off
  Optimizer status: legacy query optimizer
 (6 rows)
 
@@ -7903,7 +7901,7 @@ explain select count(*) over (order by i), count(*) over (partition by i order b
                      ->  Sort  (cost=7208.12..7402.87 rows=25967 width=8)
                            Sort Key: i
                            ->  Seq Scan on redundant_sort_check  (cost=0.00..879.00 rows=25967 width=8)
- Settings:  gp_enable_sequential_window_plans=on; optimizer=off
+ Settings:  optimizer=off
  Optimizer status: legacy query optimizer
 (14 rows)
 
@@ -8137,7 +8135,6 @@ explain select foo.a, sum(b) over (partition by bar.a order by bar.b) from foo, 
                            ->  Redistribute Motion 2:2  (slice1; segments: 2)  (cost=0.00..1.15 rows=3 width=8)
                                  Hash Key: bar.a
                                  ->  Seq Scan on bar  (cost=0.00..1.05 rows=3 width=8)
- Settings:  gp_enable_sequential_window_plans=off
 (14 rows)
 
 drop table foo, bar;
@@ -8212,7 +8209,7 @@ FROM foo;
                                                          ->  Sort  (cost=3.27..3.29 rows=4 width=16)
                                                                Sort Key: a, b, c, d
                                                                ->  Seq Scan on foo  (cost=0.00..3.10 rows=4 width=16)
- Settings:  gp_enable_sequential_window_plans=on; optimizer=off
+ Settings:  optimizer=off
  Optimizer status: legacy query optimizer
 (30 rows)
 

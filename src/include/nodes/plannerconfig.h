@@ -33,7 +33,6 @@ typedef struct PlannerConfig
 	bool		gp_enable_multiphase_agg;
 	bool		gp_enable_preunique;
 	bool		gp_eager_preunique;
-	bool		gp_enable_sequential_window_plans;
 	bool 		gp_hashagg_streambottom;
 	bool		gp_enable_agg_distinct;
 	bool		gp_enable_dqa_pruning;

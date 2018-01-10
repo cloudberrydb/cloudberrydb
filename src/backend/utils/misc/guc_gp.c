@@ -387,8 +387,6 @@ bool		gp_log_stack_trace_lines;
  */
 bool		dml_ignore_target_partition_check = false;
 
-int			gp_idf_deduplicate;
-
 bool		fts_diskio_check = false;
 
 /* Planner gucs */
@@ -398,7 +396,6 @@ bool		gp_enable_predicate_propagation = false;
 bool		gp_enable_multiphase_agg = true;
 bool		gp_enable_preunique = TRUE;
 bool		gp_eager_preunique = FALSE;
-bool		gp_enable_sequential_window_plans = FALSE;
 bool		gp_hashagg_streambottom = true;
 bool		gp_enable_agg_distinct = true;
 bool		gp_enable_dqa_pruning = true;
@@ -610,13 +607,6 @@ static const struct config_enum_entry system_cache_flush_force_options[] = {
 	{"off", SysCacheFlushForce_Off},
 	{"recursive", SysCacheFlushForce_Recursive},
 	{"plain", SysCacheFlushForce_NonRecursive},
-	{NULL, 0}
-};
-
-static const struct config_enum_entry gp_idf_deduplicate_options[] = {
-	{"auto", IDF_DEDUPLICATE_AUTO},
-	{"none", IDF_DEDUPLICATE_NONE},
-	{"force", IDF_DEDUPLICATE_FORCE},
 	{NULL, 0}
 };
 
@@ -860,16 +850,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&gp_eager_preunique,
 		false, NULL, NULL
-	},
-
-	{
-		{"gp_enable_sequential_window_plans", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Experimental feature: Enable non-parallel window plans."),
-			gettext_noop("The planner will evaluate window functions associated with separate "
-			   "window specifications sequentially rather that in parallel.")
-		},
-		&gp_enable_sequential_window_plans,
-		true, NULL, NULL
 	},
 
 	{
@@ -5471,15 +5451,6 @@ struct config_enum ConfigureNamesEnum_gp[] =
 		},
 		&gp_test_system_cache_flush_force,
 		SysCacheFlushForce_Off, system_cache_flush_force_options, NULL, NULL
-	},
-
-	{
-		{"gp_idf_deduplicate", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Sets the mode to control inverse distribution function's de-duplicate strategy."),
-			gettext_noop("Valid values are AUTO, NONE, and FORCE.")
-		},
-		&gp_idf_deduplicate,
-		IDF_DEDUPLICATE_AUTO, gp_idf_deduplicate_options, NULL, NULL
 	},
 
 	{

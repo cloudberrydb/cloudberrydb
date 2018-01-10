@@ -168,9 +168,6 @@ max_prepared_transactions = 250		# can be 0 or more
 #gp_selectivity_damping_for_scans = on
 #gp_selectivity_damping_for_joins = off
 
-
-#gp_enable_sequential_window_plans = off
-
 #enable_sort = on
 #gp_enable_sort_limit = on
 #gp_enable_sort_distinct = on

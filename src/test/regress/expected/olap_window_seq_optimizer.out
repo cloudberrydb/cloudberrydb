@@ -2,7 +2,6 @@
 -- OLAP_WINDOW 
 --
 -- Changes here should also be made to olap_window_seq.sql
-set gp_enable_sequential_window_plans to true;
 ---- 1 -- Null window specification -- OVER () ----
 select row_number() over (), cn,pn,vn 
 from sale; -- mvd 1->1
@@ -1615,7 +1614,7 @@ from sale_ord;
                ->  Sort  (cost=0.00..431.00 rows=6 width=12)
                      Sort Key: ord, cn
                      ->  Table Scan on sale_ord  (cost=0.00..431.00 rows=6 width=12)
- Settings:  gp_enable_sequential_window_plans=on; optimizer=on; optimizer_segments=3
+ Settings:  optimizer=on; optimizer_segments=3
 (9 rows)
 
 select cn,
@@ -7688,7 +7687,7 @@ explain select n from ( select row_number() over () from (values (0)) as t(x) ) 
                Sort Key: row_number
                ->  WindowAgg  (cost=0.00..0.00 rows=1 width=8)
                      ->  Result  (cost=0.00..0.00 rows=1 width=1)
- Settings:  gp_enable_sequential_window_plans=on; optimizer=on; optimizer_segments=3
+ Settings:  optimizer=on; optimizer_segments=3
 (9 rows)
 
 -- Test for MPP-11645
@@ -7909,7 +7908,7 @@ explain select count(*) over (order by i), count(*) over (partition by i order b
                            ->  Sort  (cost=0.00..431.00 rows=1 width=8)
                                  Sort Key: i
                                  ->  Table Scan on redundant_sort_check  (cost=0.00..431.00 rows=1 width=8)
- Settings:  gp_enable_sequential_window_plans=on; optimizer=on
+ Settings:  optimizer=on
  Optimizer status: PQO version 1.675
 (15 rows)
 
@@ -8148,7 +8147,7 @@ explain select foo.a, sum(b) over (partition by bar.a order by bar.b) from foo, 
                                  ->  Table Scan on bar  (cost=0.00..431.00 rows=3 width=8)
                            ->  Hash  (cost=431.00..431.00 rows=5 width=4)
                                  ->  Table Scan on foo  (cost=0.00..431.00 rows=5 width=4)
- Settings:  gp_enable_sequential_window_plans=on; optimizer=on
+ Settings:  optimizer=on
  Optimizer status: PQO version 1.622
 (16 rows)
 
@@ -8225,7 +8224,7 @@ FROM foo;
                                                                ->  Sort  (cost=0.00..431.00 rows=4 width=16)
                                                                      Sort Key: a, b, c, d
                                                                      ->  Table Scan on foo  (cost=0.00..431.00 rows=4 width=16)
- Settings:  gp_enable_sequential_window_plans=on; optimizer=on
+ Settings:  optimizer=on
  Optimizer status: PQO version 2.45.0
 (31 rows)
 
