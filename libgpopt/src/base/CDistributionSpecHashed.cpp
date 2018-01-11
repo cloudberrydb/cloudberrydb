@@ -380,6 +380,34 @@ CDistributionSpecHashed::PcrsUsed
 }
 
 
+// set equivalent hashed distribution. It doesn't replace existing equivalent
+// hashed distribution if it has one, instead it adds input hashed distribution
+// into equivalent hashed distribution chain, recursively. Caller should not
+// increment the reference count of the input argument 'pdshashedEquiv', this
+// function will take care of whether and when to increment.
+void
+CDistributionSpecHashed::SetHashedEquiv
+	(
+	CDistributionSpecHashed *pdshashedEquiv
+	)
+{
+	if (pdshashedEquiv == NULL || pdshashedEquiv == this)
+	{
+		// avoid self referencing
+		return;
+	}
+	else if (m_pdshashedEquiv == NULL)
+	{
+		pdshashedEquiv->AddRef();
+		m_pdshashedEquiv = pdshashedEquiv;
+	}
+	else
+	{
+		m_pdshashedEquiv->SetHashedEquiv(pdshashedEquiv);
+	}
+}
+
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CDistributionSpecHashed::FMatchHashedDistribution

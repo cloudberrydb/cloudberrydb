@@ -35,6 +35,8 @@ const CHAR *rgszOJMdpFiles[] =
 	"../data/dxl/minidump/Select-Proj-OuterJoin.mdp",
 	"../data/dxl/minidump/OuterJoin-With-OuterRefs.mdp",
 	"../data/dxl/minidump/Join-Disj-Subqs.mdp",
+	"../data/dxl/minidump/Join-Dist-Key-No-Motion.mdp",
+	"../data/dxl/minidump/RightJoin-NonDistKey-EquivClass.mdp",
 	"../data/dxl/minidump/EffectOfLocalPredOnJoin.mdp",
 	"../data/dxl/minidump/EffectOfLocalPredOnJoin2.mdp",
 	"../data/dxl/minidump/EffectOfLocalPredOnJoin3.mdp",
