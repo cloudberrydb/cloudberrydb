@@ -154,7 +154,7 @@ class GpExpandTests(MPPTestCase):
         Validate if new entries for all the hosts are added to pg_hba.conf files in all the segments
         """
         tinctest.logger.info("Verifying pg_hba entries for all segment hosts")
-        segment_dirs_sql = """select distinct hostname, directory, content from gp_segment_configuration where content > -1"""
+        segment_dirs_sql = """select distinct hostname, datadir, content from gp_segment_configuration where content > -1"""
 
         dburl = dbconn.DbURL()
         pg_hba_files = []
