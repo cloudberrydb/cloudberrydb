@@ -6558,7 +6558,7 @@ UpdateCatalogForStandbyPromotion(void)
 	Gp_role = GP_ROLE_UTILITY;
 	StartTransactionCommand();
 	GetTransactionSnapshot();
-	DirectFunctionCall1(gp_activate_standby, (Datum) 0);
+	gp_activate_standby();
 	/* close the transaction we started above */
 	CommitTransactionCommand();
 	Gp_role = old_role;

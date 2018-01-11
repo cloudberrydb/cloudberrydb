@@ -850,8 +850,8 @@ catalog_activate_standby(int16 standbydbid, int16 olddbid)
  * Returns:
  *  true upon success, otherwise throws error.
  */
-Datum
-gp_activate_standby(PG_FUNCTION_ARGS)
+bool
+gp_activate_standby(void)
 {
 	int16		olddbid = GpIdentity.dbid;
 	int16		newdbid;
@@ -872,7 +872,7 @@ gp_activate_standby(PG_FUNCTION_ARGS)
 		 * Job is already done, nothing needs to be done. We mostly crashed
 		 * after updating the catalogs.
 		 */
-		PG_RETURN_BOOL(true);
+		return true;
 	}
 
 	mirroring_sanity_check(SUPERUSER | UTILITY_MODE | STANDBY_ONLY,
@@ -888,7 +888,7 @@ gp_activate_standby(PG_FUNCTION_ARGS)
 	primaryMirrorSetNewDbid(newdbid);
 
 	/* done */
-	PG_RETURN_BOOL(true);
+	return true;
 }
 
 Datum
