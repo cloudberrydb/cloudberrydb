@@ -86,20 +86,12 @@ class WalReplKillProcessScenarioTestCase(ScenarioTestCase):
         test_case_list3.append('mpp.gpdb.tests.storage.walrepl.crash.WalReplKillProcessTestCase.verify_standby_sync')
         self.test_case_scenario.append(test_case_list3) 
 
-        test_case_list4 = []
-        test_case_list4.append('mpp.gpdb.tests.storage.walrepl.crash.WalReplKillProcessTestCase.check_mirror_seg')
-        self.test_case_scenario.append(test_case_list4)
-
     def test_kill_transc_backend(self):
         test_case_list0 = []
         test_case_list0.append('mpp.gpdb.tests.storage.walrepl.crash.WalReplKillProcessTestCase.run_transaction_backend')
         test_case_list0.append('mpp.gpdb.tests.storage.walrepl.crash.WalReplKillProcessTestCase.kill_transc_backend_check_reset')
         self.test_case_scenario.append(test_case_list0)
 
-        test_case_list1 = []
-        test_case_list1.append('mpp.gpdb.tests.storage.walrepl.crash.WalReplKillProcessTestCase.check_mirror_seg')
-        self.test_case_scenario.append(test_case_list1) 
-       
 
     def test_kill_walstartup(self):
         test_case_list0 = []
@@ -119,10 +111,6 @@ class WalReplKillProcessScenarioTestCase(ScenarioTestCase):
         test_case_list3 = []
         test_case_list3.append('mpp.gpdb.tests.storage.walrepl.crash.WalReplKillProcessTestCase.verify_standby_sync')
         self.test_case_scenario.append(test_case_list3) 
-
-        test_case_list4 = []
-        test_case_list4.append('mpp.gpdb.tests.storage.walrepl.crash.WalReplKillProcessTestCase.check_mirror_seg')
-        self.test_case_scenario.append(test_case_list4)
 
 
     def test_run_gpstart_kill_stdby_postmaster(self):
