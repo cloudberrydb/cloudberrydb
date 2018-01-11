@@ -259,36 +259,6 @@ mirroring_sanity_check(int flags, const char *func)
 }
 
 /*
- * The opposite of the above, we remove knowledge from the persistent
- * catalogs.
- */
-static void
-remove_segment_persistent_entries(int16 pridbid, seginfo *i)
-{
-	/*
-	 * If we're removing a segment mirror, we need to dispatch to that
-	 * segment's primary.
-	 */
-	if (Gp_role == GP_ROLE_DISPATCH && i->db.role == GP_SEGMENT_CONFIGURATION_ROLE_MIRROR)
-	{
-		StringInfoData *q = makeStringInfo();
-
-		appendStringInfo(q,
-						 "SELECT gp_remove_segment_persistent_entries(%i::int2,"
-						 "%i::int2);",
-						 pridbid,
-						 i->db.dbid);
-
-		CdbDispatchCommand(q->data,
-						   DF_CANCEL_ON_ERROR |
-						   DF_WITH_SNAPSHOT,
-						   NULL);
-		pfree(q->data);
-		pfree(q);
-	}
-}
-
-/*
  * Add a new row to gp_segment_configuration.
  */
 static void
@@ -534,8 +504,6 @@ remove_segment(int16 pridbid, int16 mirdbid)
 	i = get_seginfo(mirdbid);
 
 	remove_segment_config(mirdbid);
-
-	remove_segment_persistent_entries(pridbid, i);
 }
 
 /*
