@@ -33,8 +33,10 @@ select content, preferred_role, role, status, mode
 from gp_segment_configuration
 where content = 0;
 
--- wait for dbid 5 (mirror for content 0) to finish the promotion
-5U: select 1;
+-- wait for content 0 (earlier mirror, now primary) to finish the promotion
+0U: select 1;
+-- Quit this utility mode session, as need to start fresh one below
+0Uq:
 
 -- fully recover the failed primary as new mirror
 !\retcode ../../../gpAux/gpdemo/gpsegwalrep.py recoverfull;
@@ -56,8 +58,8 @@ select content, preferred_role, role, status, mode
 from gp_segment_configuration
 where content = 0;
 
--- wait for dbid 2 (primary for content 0) finish promotion
-2U: select 1;
+-- wait for content 0 (earlier mirror, now primary) to finish the promotion
+0U: select 1;
 
 -- now, let's fully recover the mirror
 !\retcode ../../../gpAux/gpdemo/gpsegwalrep.py recoverfull;
@@ -67,4 +69,3 @@ where content = 0;
 select content, preferred_role, role, status, mode
 from gp_segment_configuration
 where content = 0;
-

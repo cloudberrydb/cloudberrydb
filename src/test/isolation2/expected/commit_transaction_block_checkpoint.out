@@ -19,8 +19,8 @@ BEGIN
 CREATE
 2&: commit;  <waiting ...>
 
--- do checkpoint on dbid 3 (segment 1) in utility mode, and it should block
-3U&: checkpoint;  <waiting ...>
+-- do checkpoint on segment content 1 in utility mode, and it should block
+1U&: checkpoint;  <waiting ...>
 
 -- resume the 2PC after setting inCommit flag
 select gp_inject_fault('twophase_transaction_commit_prepared', 'reset', 3);
@@ -30,7 +30,7 @@ t
 (1 row)
 2<:  <... completed>
 COMMIT
-3U<:  <... completed>
+1U<:  <... completed>
 CHECKPOINT
 
 -- TEST 2: block checkpoint on master
@@ -52,8 +52,8 @@ BEGIN
 DROP
 2&: commit;  <waiting ...>
 
--- do checkpoint on dbid 1 (master) in utility mode, and it should block
-1U&: checkpoint;  <waiting ...>
+-- do checkpoint on master in utility mode, and it should block
+-1U&: checkpoint;  <waiting ...>
 
 -- resume the 2PC
 select gp_inject_fault('onephase_transaction_commit', 'reset', 1);
@@ -63,6 +63,5 @@ t
 (1 row)
 2<:  <... completed>
 COMMIT
-1U<:  <... completed>
+-1U<:  <... completed>
 CHECKPOINT
-

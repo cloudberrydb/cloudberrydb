@@ -34,7 +34,7 @@ gp_inject_fault
 t              
 (1 row)
 -- create utility session to segment which will be used to reset the fault
-2U: SELECT 1;
+0U: SELECT 1;
 ?column?
 --------
 1       
@@ -48,7 +48,7 @@ server closed the connection unexpectedly
 	This probably means the server terminated abnormally
 	before or while processing the request.
 -- Reset the fault using utility mode connection
-2U: SELECT gp_inject_fault('finish_prepared_start_of_function', 'reset', 2);
+0U: SELECT gp_inject_fault('finish_prepared_start_of_function', 'reset', 2);
 gp_inject_fault
 ---------------
 t              

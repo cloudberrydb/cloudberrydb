@@ -36,13 +36,13 @@ $$ LANGUAGE plpgsql;
 -- Inject fault to fail the COMMIT PREPARED always on one segment, till fault is not reset
 1: SELECT gp_inject_fault('finish_prepared_start_of_function', 'error', '', '', '', -1, 0, 2);
 -- create utility session to segment which will be used to reset the fault
-2U: SELECT 1;
+0U: SELECT 1;
 -- Start looping in background, till master panics and closes the session
 3&: SELECT wait_till_master_shutsdown();
 -- Start transaction which should hit PANIC as COMMIT PREPARED will fail to one segment
 1: CREATE TABLE commit_phase1_panic(a int, b int);
 -- Reset the fault using utility mode connection
-2U: SELECT gp_inject_fault('finish_prepared_start_of_function', 'reset', 2);
+0U: SELECT gp_inject_fault('finish_prepared_start_of_function', 'reset', 2);
 -- Join back to know master has completed postmaster reset.
 3<:
 -- Start a session on master which would complete the DTM recovery and hence COMMIT PREPARED
