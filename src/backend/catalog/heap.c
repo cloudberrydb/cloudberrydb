@@ -349,10 +349,6 @@ heap_create(const char *relname,
 		// WARNING: Do not use the rel structure -- it doesn't have relstorage set...
 		isAppendOnly = (relstorage == RELSTORAGE_AOROWS || relstorage == RELSTORAGE_AOCOLS);
 
-		// WALREP_FIXME: We used to treat AO tables differently here. But now
-		// the 0 segment is treated exactly like a heap rel. That seems good,
-		// but how does the pending and WAL logging stuff work for AO tables?
-		// I think it's ok.
 		RelationOpenSmgr(rel);
 		RelationCreateStorage(rel->rd_node, rel->rd_istemp);
 
