@@ -120,8 +120,6 @@ def parseargs():
                       help='remove the expansion schema.')
     parser.add_option('-r', '--rollback', action='store_true',
                       help='rollback failed expansion setup.')
-    parser.add_option('-V', '--novacuum', action='store_true',
-                      help='Do not vacuum catalog tables before creating schema copy.')
     parser.add_option('-a', '--analyze', action='store_true',
                       help='Analyze the expanded table after redistribution.')
     parser.add_option('-d', '--duration', type='duration', metavar='[h][:m[:s]]',
@@ -634,13 +632,12 @@ class SegmentTemplate:
 
     def __init__(self, logger, statusLogger, pool,
                  gparray, masterDataDirectory,
-                 dburl, conn, noVacuumCatalog, tempDir, batch_size,
+                 dburl, conn, tempDir, batch_size,
                  segTarDir='.', schemaTarFile='gpexpand_schema.tar'):
         self.logger = logger
         self.statusLogger = statusLogger
         self.pool = pool
         self.gparray = gparray
-        self.noVacuumCatalog = noVacuumCatalog
         self.tempDir = tempDir
         self.batch_size = batch_size
         self.dburl = dburl
@@ -701,10 +698,6 @@ class SegmentTemplate:
     def _create_template(self):
         """Creates the schema template that is used by new segments"""
         self.logger.info('Creating segment template')
-
-        if not self.noVacuumCatalog:
-            self.logger.info('VACUUM FULL on the catalog tables')
-            catalog.vacuum_catalog(self.dburl, self.conn, full=True, utility=True)
 
         MakeDirectory.local('gpexpand create temp dir', self.tempDir)
 
@@ -1337,7 +1330,6 @@ Set PGDATABASE or use the -D option to specify the correct database to use.""" %
                                            masterDataDirectory=self.options.master_data_directory,
                                            dburl=self.dburl,
                                            conn=self.conn,
-                                           noVacuumCatalog=self.options.novacuum,
                                            tempDir=self.tempDir,
                                            segTarDir=self.options.tardir,
                                            batch_size=self.options.batch_size)
