@@ -2825,7 +2825,9 @@ def main(options, args, parser):
         if options and options.verbose:
             logger.exception("gpexpand failed. exiting...")
         else:
-            logger.error("gpexpand failed: %s \n\nExiting..." % e)
+            # WALREP__FIXME: I changed this temporarily to print full stack trace, for
+            # debugging.
+            logger.error("gpexpand failed: %s \n\nExiting..." % traceback.format_exc(e))
         if _gp_expand is not None and _gp_expand.pastThePointOfNoReturn == True:
             logger.error(
                 'gpexpand is past the point of rollback. Any remaining issues must be addressed outside of gpexpand.')
