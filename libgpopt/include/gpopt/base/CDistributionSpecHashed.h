@@ -113,9 +113,6 @@ namespace gpopt
 				return m_pdshashedEquiv;
 			}
 
-			// set equivalent hashed distribution
-			void SetHashedEquiv(CDistributionSpecHashed *pdshashedEquiv);
-
 			// columns used by distribution expressions
 			virtual
 			CColRefSet *PcrsUsed(IMemoryPool *pmp) const;

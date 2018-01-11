@@ -380,20 +380,6 @@ CDistributionSpecHashed::PcrsUsed
 }
 
 
-// set equivalent hashed distribution
-void
-CDistributionSpecHashed::SetHashedEquiv
-	(
-	CDistributionSpecHashed *pdshashedEquiv
-	)
-{
-	GPOS_ASSERT(pdshashedEquiv != NULL);
-	pdshashedEquiv->AddRef();
-	CRefCount::SafeRelease(m_pdshashedEquiv);
-	m_pdshashedEquiv = pdshashedEquiv;
-}
-
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CDistributionSpecHashed::FMatchHashedDistribution
