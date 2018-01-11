@@ -133,6 +133,24 @@ make installcheck-world
   upstream. We try to keep the upstream tests identical to the upstream
   versions, to make merging with newer PostgreSQL releases easier.
 
+### Running TINC tests
+
+* create TINC test cluster
+
+It's different from the `create-demo-cluster` to pass the ICW tests. It has
+less number of primaries and also support more connections.
+
+```
+# assuming repo cloned under ~/workspace/gpdb
+cd ~/workspace/gpdb
+source /usr/local/gpdb/greenplum_path.sh
+make create-tinc-test-cluster
+source gpAux/gpdemo/gpdemo-env.sh
+make -C src/test/tinc walrep_2 # to run walrep_2 tinc tests
+```
+
+To understand more about TINC, please refer to `src/test/tinc/README`.
+
 ## Alternative Configurations
 
 ### Building GPDB without GPORCA
