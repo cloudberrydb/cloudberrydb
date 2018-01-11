@@ -27,7 +27,6 @@
 #include "cdb/cdbvars.h"
 #include "cdb/cdbfts.h"
 #include "executor/spi.h"
-#include "lib/stringinfo.h"
 #include "postmaster/primary_mirror_mode.h"
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
