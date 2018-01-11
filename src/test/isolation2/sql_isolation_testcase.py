@@ -27,10 +27,17 @@ import socket
 from optparse import OptionParser
 import traceback
 
+def is_digit(n):
+    try:
+        int(n)
+        return True
+    except ValueError:
+        return  False
+
 class SQLIsolationExecutor(object):
     def __init__(self, dbname=''):
         self.processes = {}
-        self.command_pattern = re.compile(r"^(\d+)([&\\<\\>Uq]*?)\:(.*)")
+        self.command_pattern = re.compile(r"^(-?\d+)([&\\<\\>Uq]*?)\:(.*)")
         if dbname:
             self.dbname = dbname
         else:
@@ -156,12 +163,12 @@ class SQLIsolationExecutor(object):
         def get_utility_mode_port(self, name):
             """
                 Gets the port number/hostname combination of the
-                dbid with the id = name
+                contentid = name and role = primary
             """
             con = self.connectdb(self.dbname)
-            r = con.query("SELECT hostname, port FROM gp_segment_configuration WHERE dbid = %s" % name).getresult()
+            r = con.query("SELECT hostname, port FROM gp_segment_configuration WHERE content = %s and role = 'p'" % name).getresult()
             if len(r) == 0:
-                raise Exception("Invalid dbid %s" % name)
+                raise Exception("Invalid content %s" % name)
             if r[0][0] == socket.gethostname():
                 return (None, int(r[0][1]))
             return (r[0][0], int(r[0][1]))
@@ -217,11 +224,12 @@ class SQLIsolationExecutor(object):
 
                 (c, wait) = self.pipe.recv()
 
+
     def get_process(self, out_file, name, utility_mode=False, dbname=""):
         """
             Gets or creates the process by the given name
         """
-        if len(name) > 0 and not name.isdigit():
+        if len(name) > 0 and not is_digit(name):
             raise Exception("Name should be a number")
         if len(name) > 0 and not utility_mode and int(name) >= 1024:
             raise Exception("Session name should be smaller than 1024 unless it is utility mode number")
@@ -236,7 +244,7 @@ class SQLIsolationExecutor(object):
         """
         Quits a process with the given name
         """
-        if len(name) > 0 and not name.isdigit():
+        if len(name) > 0 and not is_digit(name):
             raise Exception("Name should be a number")
         if len(name) > 0 and not utility_mode and int(name) >= 1024:
             raise Exception("Session name should be smaller than 1024 unless it is utility mode number")
@@ -373,14 +381,14 @@ class SQLIsolationTestCase:
         executing transactions. This is mainly used to test isolation behavior.
 
         [<#>[flag]:] <sql> | ! <shell scripts or command>
-        #: just any integer indicating an unique session or dbid if followed by U
+        #: just any integer indicating an unique session or content-id if followed by U
         flag:
             &: expect blocking behavior
             >: running in background without blocking
             <: join an existing session
             q: quit the given session
 
-            U: connect in utility mode to dbid from gp_segment_configuration
+            U: connect in utility mode to primary contentid from gp_segment_configuration
             U&: expect blocking behavior in utility mode
             U<: join an existing utility mode session
 
