@@ -262,6 +262,3 @@ class PgControlData(Command):
                     (n,v) = l.split(':', 1)
                     self.data[n.strip()] = v.strip() 
         return self.data[name]
-
-    def get_datadir(self):
-        return self.datadir
