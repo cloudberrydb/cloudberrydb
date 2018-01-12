@@ -918,9 +918,10 @@ CStatsPredUtils::ProcessArrayCmp
 	}
 	CExpression *pexprArray = CUtils::PexprScalarArrayChild(pexprPred);
 
-	BOOL fCompareToConst = CPredicateUtils::FCompareIdentToConstArray(pexprPred) || CPredicateUtils::FCompareCastIdentToConstArray(pexprPred);
+	BOOL fCompareToConstAndScalarIdents = CPredicateUtils::FCompareCastIdentToConstArray(pexprPred) ||
+										  CPredicateUtils::FCompareScalarIdentToConstAndScalarIdentArray(pexprPred);
 
-	if (!fCompareToConst)
+	if (!fCompareToConstAndScalarIdents)
 	{
 		// unsupported predicate for stats calculations
 		pdrgpstatspred->Append(GPOS_NEW(pmp) CStatsPredUnsupported(ULONG_MAX, CStatsPred::EstatscmptOther));

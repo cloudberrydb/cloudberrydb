@@ -106,6 +106,7 @@ add_orca_test(CConstTblGetTest)
 add_orca_test(COuterJoinTest)
 add_orca_test(CPredicateTest)
 add_orca_test(CSemiJoinTest)
+add_orca_test(CScalarArrayCmpTest)
 
 if (GPOS_ARCH_BITS EQUAL 64)
   add_orca_test(CSubqueryHandlerTest)

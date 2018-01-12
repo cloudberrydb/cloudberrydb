@@ -178,6 +178,9 @@ namespace gpopt
 			static
 			BOOL FIDFFalse(CExpression *pexpr);
 
+			static
+			BOOL FCompareScalarIdentToConstAndScalarIdentArray(CExpression *pexpr);
+
 			// is the given expression in the form (expr IS DISTINCT FROM expr)
 			static
 			BOOL FIDF(CExpression *pexpr);

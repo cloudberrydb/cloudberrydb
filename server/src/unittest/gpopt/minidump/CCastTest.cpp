@@ -23,7 +23,6 @@ ULONG CCastTest::m_ulTestCounter = 0;  // start from first test
 const CHAR *rgszCastMdpFiles[] =
 {
 	"../data/dxl/minidump/InferPredicatesForLimit.mdp",
-	"../data/dxl/minidump/FilterScalarCast.mdp",
 	"../data/dxl/minidump/ArrayCoerceExpr.mdp",
 	"../data/dxl/minidump/SelectOnCastedCol.mdp",
 	"../data/dxl/minidump/JOIN-Pred-Cast-Int4.mdp",

@@ -1251,6 +1251,26 @@ CPredicateUtils::FCompareCastIdentToConstArray
 	return false;
 }
 
+// is the given expression a comparison between a scalar ident and an array with constants or ScalarIdents
+BOOL
+CPredicateUtils::FCompareScalarIdentToConstAndScalarIdentArray
+(
+	CExpression *pexpr
+)
+{
+	GPOS_ASSERT(NULL != pexpr);
+
+	if (!CUtils::FScalarArrayCmp(pexpr) ||
+		!CUtils::FScalarIdent((*pexpr)[0]) ||
+		!CUtils::FScalarArray((*pexpr)[1]))
+	{
+		return false;
+	}
+
+	CExpression *pexprArray = CUtils::PexprScalarArrayChild(pexpr);
+	return CUtils::FScalarConstAndScalarIdentArray(pexprArray);
+}
+
 // is the given expression a comparison between a scalar ident and a constant array
 BOOL
 CPredicateUtils::FCompareIdentToConstArray

@@ -100,6 +100,7 @@
 #include "unittest/gpopt/minidump/COuterJoinTest.h"
 #include "unittest/gpopt/minidump/CPredicateTest.h"
 #include "unittest/gpopt/minidump/CSemiJoinTest.h"
+#include "unittest/gpopt/minidump/CScalarArrayCmpTest.h"
 
 #include "unittest/gpopt/operators/CContradictionTest.h"
 #include "unittest/gpopt/operators/CExpressionPreprocessorTest.h"
@@ -193,6 +194,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(COuterJoinTest),
 	GPOS_UNITTEST_STD(CPredicateTest),
 	GPOS_UNITTEST_STD(CSemiJoinTest),
+	GPOS_UNITTEST_STD(CScalarArrayCmpTest),
 
 #if !defined(GPOS_32BIT)
 	GPOS_UNITTEST_STD(CSubqueryHandlerTest),

@@ -21,6 +21,7 @@
 #include "gpopt/base/CConstraintInterval.h"
 #include "gpopt/base/CKeyCollection.h"
 #include "gpopt/base/CUtils.h"
+#include "gpopt/base/CCastUtils.h"
 #include "gpopt/base/CPartIndexMap.h"
 #include "gpopt/base/CDistributionSpecRandom.h"
 #include "gpopt/operators/CPhysicalMotionRandom.h"
@@ -664,6 +665,24 @@ CUtils::PexprScalarArrayChild
 		pexprArray = (*pexprArray)[0];
 	}
 	return pexprArray;
+}
+
+// returns if the scalar array has all constant elements or ScalarIdents
+BOOL
+CUtils::FScalarConstAndScalarIdentArray(CExpression *pexprArray)
+{
+	for (ULONG i = 0; i < pexprArray->UlArity(); ++i)
+	{
+		CExpression *pexprChild = (*pexprArray)[i];
+
+		if (!FScalarIdent(pexprChild) && !FScalarConst(pexprChild) &&
+			!(CCastUtils::FScalarCast(pexprChild) && FScalarIdent((*pexprChild)[0])))
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 // returns if the scalar array has all constant elements or children
