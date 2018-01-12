@@ -105,7 +105,7 @@ class GpactivateStandby(object):
         out = result.stdout
         if not out:
             tinctest.logger.info('Start the old master again ...')
-            master = gp.MasterStart("Starting orig Master", self.orig_master.datadir, self.orig_master.port, self.orig_master.dbid, 0, self.numcontent, None, None, None)
+            master = gp.MasterStart("Starting orig Master", self.orig_master.datadir, self.orig_master.port, self.orig_master.dbid, self.numcontent, None, None, None)
             master.run(validateAfter=True)
             result = master.get_results()
             tinctest.logger.info ('orig Master started result : %s' % result.stdout)

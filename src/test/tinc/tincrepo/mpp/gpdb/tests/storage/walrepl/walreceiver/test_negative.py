@@ -92,7 +92,7 @@ class neg_test(StandbyRunMixin, MPPTestCase):
         logger.info('Start the old master again (to act as the new standby)...')
         master = gp.MasterStart("Starting orig Master in standby mode",
                                 orig_master.datadir, orig_master.port, orig_master.dbid,
-                                0, numcontent, None, None, None)
+                                numcontent, None, None, None)
 
         # -w option would wait forever.
         master.cmdStr = master.cmdStr.replace(' -w', '')

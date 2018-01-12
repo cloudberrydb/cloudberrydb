@@ -297,7 +297,7 @@ class PgCtlStopArgs(CmdArgs):
 
 
 class MasterStart(Command):
-    def __init__(self, name, dataDir, port, dbid, standby_dbid, numContentsInCluster, era,
+    def __init__(self, name, dataDir, port, dbid, numContentsInCluster, era,
                  wrapper, wrapper_args, specialMode=None, restrictedMode=False, timeout=SEGMENT_TIMEOUT_DEFAULT,
                  max_connections=1, utilityMode=False, ctxt=LOCAL, remoteHost=None,
                  wait=True
@@ -322,10 +322,10 @@ class MasterStart(Command):
         Command.__init__(self, name, self.cmdStr, ctxt, remoteHost)
 
     @staticmethod
-    def local(name, dataDir, port, dbid, standbydbid, numContentsInCluster, era,
+    def local(name, dataDir, port, dbid, numContentsInCluster, era,
               wrapper, wrapper_args, specialMode=None, restrictedMode=False, timeout=SEGMENT_TIMEOUT_DEFAULT,
               max_connections=1, utilityMode=False):
-        cmd=MasterStart(name, dataDir, port, dbid, standbydbid, numContentsInCluster, era,
+        cmd=MasterStart(name, dataDir, port, dbid, numContentsInCluster, era,
                         wrapper, wrapper_args, specialMode, restrictedMode, timeout,
                         max_connections, utilityMode)
         cmd.run(validateAfter=True)
@@ -846,7 +846,6 @@ class GpStandbyStart(MasterStart, object):
                 dataDir=datadir,
                 port=port,
                 dbid=dbid,
-                standby_dbid=0,
                 numContentsInCluster=ncontents,
                 era=era,
                 wrapper=wrapper,

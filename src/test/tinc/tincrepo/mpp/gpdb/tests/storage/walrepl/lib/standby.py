@@ -129,7 +129,7 @@ class Standby(object):
         standby = gparray.standbyMaster
         master = gp.MasterStart("Starting Master Standby",
                                 self.datadir, self.port, standby.dbid,
-                                0, numcontent, None, None, None)
+                                numcontent, None, None, None)
         # -w option would wait forever.
         master.cmdStr = master.cmdStr.replace(' -w', '')
         master.run(validateAfter=True)
