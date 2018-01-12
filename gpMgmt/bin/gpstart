@@ -749,7 +749,7 @@ class GpStart:
                              numContentsInCluster, self.era,
                              wrapper=self.wrapper, wrapper_args=self.wrapper_args,
                              specialMode=self.specialMode, restrictedMode=self.restricted, timeout=self.timeout,
-                             max_connections=self.max_connections, disableMasterMirror=(not self.start_standby)
+                             max_connections=self.max_connections
                              )
 
         # check that master is running now

@@ -215,7 +215,6 @@ extern bool Debug_bitmap_print_insert;
 extern bool Test_appendonly_override;
 extern bool enable_checksum_on_tables;
 extern int  Test_compresslevel_override;
-extern bool Master_mirroring_administrator_disable;
 extern int  gp_max_local_distributed_cache;
 extern bool gp_local_distributed_cache_stats;
 extern bool gp_appendonly_verify_block_checksums;

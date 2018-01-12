@@ -137,7 +137,6 @@ bool		gp_permit_relation_node_change = false;
 int			Test_compresslevel_override = 0;
 int			Test_blocksize_override = 0;
 int			Test_safefswritesize_override = 0;
-bool		Master_mirroring_administrator_disable = false;
 int			gp_max_local_distributed_cache = 1024;
 bool		gp_appendonly_verify_block_checksums = true;
 bool		gp_appendonly_verify_write_block = false;
@@ -1648,16 +1647,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&Debug_bitmap_print_insert,
-		false, NULL, NULL
-	},
-
-	{
-		{"master_mirroring_administrator_disable", PGC_POSTMASTER, GP_ARRAY_CONFIGURATION,
-			gettext_noop("Used by gpstart to indicate the standby master was not started by the administrator."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Master_mirroring_administrator_disable,
 		false, NULL, NULL
 	},
 

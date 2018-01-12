@@ -147,9 +147,9 @@ class PgCtlBackendOptions(CmdArgs):
 
     >>> str(PgCtlBackendOptions(5432, 1, 2))
     '-p 5432 --gp_dbid=1 --gp_num_contents_in_cluster=2 --silent-mode=true'
-    >>> str(PgCtlBackendOptions(5432, 1, 2).set_master(False, False))
+    >>> str(PgCtlBackendOptions(5432, 1, 2).set_master(False))
     '-p 5432 --gp_dbid=1 --gp_num_contents_in_cluster=2 --silent-mode=true -i -M master --gp_contentid=-1'
-    >>> str(PgCtlBackendOptions(5432, 1, 2).set_master(False, True))
+    >>> str(PgCtlBackendOptions(5432, 1, 2).set_master(True))
     '-p 5432 --gp_dbid=1 --gp_num_contents_in_cluster=2 --silent-mode=true -i -M master --gp_contentid=-1 -E'
     >>> str(PgCtlBackendOptions(5432, 1, 2).set_segment('mirror', 1))
     '-p 5432 --gp_dbid=1 --gp_num_contents_in_cluster=2 --silent-mode=true -i -M mirror --gp_contentid=1'
@@ -184,13 +184,11 @@ class PgCtlBackendOptions(CmdArgs):
     # master/segment-specific options
     #
 
-    def set_master(self, disable, seqserver):
+    def set_master(self, seqserver):
         """
-        @param disable: start without master mirroring?
         @param seqserver: start with seqserver?
         """
         self.extend(["-i", "-M", "master", "--gp_contentid=-1"])
-        if disable: self.append("-y")
         if seqserver: self.append("-E")
         return self
 
@@ -301,7 +299,7 @@ class PgCtlStopArgs(CmdArgs):
 class MasterStart(Command):
     def __init__(self, name, dataDir, port, dbid, standby_dbid, numContentsInCluster, era,
                  wrapper, wrapper_args, specialMode=None, restrictedMode=False, timeout=SEGMENT_TIMEOUT_DEFAULT,
-                 max_connections=1, disableMasterMirror=False, utilityMode=False, ctxt=LOCAL, remoteHost=None,
+                 max_connections=1, utilityMode=False, ctxt=LOCAL, remoteHost=None,
                  wait=True
                  ):
         self.dataDir=dataDir
@@ -312,7 +310,7 @@ class MasterStart(Command):
 
         # build backend options
         b = PgCtlBackendOptions(port, dbid, numContentsInCluster)
-        b.set_master(disableMasterMirror, seqserver=not utilityMode)
+        b.set_master(seqserver=not utilityMode)
         b.set_utility(utilityMode)
         b.set_special(specialMode)
         b.set_restricted(restrictedMode, max_connections)
@@ -326,10 +324,10 @@ class MasterStart(Command):
     @staticmethod
     def local(name, dataDir, port, dbid, standbydbid, numContentsInCluster, era,
               wrapper, wrapper_args, specialMode=None, restrictedMode=False, timeout=SEGMENT_TIMEOUT_DEFAULT,
-              max_connections=1, disableMasterMirror=False, utilityMode=False):
+              max_connections=1, utilityMode=False):
         cmd=MasterStart(name, dataDir, port, dbid, standbydbid, numContentsInCluster, era,
                         wrapper, wrapper_args, specialMode, restrictedMode, timeout,
-                        max_connections, disableMasterMirror, utilityMode)
+                        max_connections, utilityMode)
         cmd.run(validateAfter=True)
 
 #-----------------------------------------------
@@ -853,7 +851,6 @@ class GpStandbyStart(MasterStart, object):
                 era=era,
                 wrapper=wrapper,
                 wrapper_args=wrapper_args,
-                disableMasterMirror=True,
                 ctxt=ctxt,
                 remoteHost=remoteHost,
                 wait=False

@@ -811,7 +811,7 @@ PostmasterMain(int argc, char *argv[])
 	 * tcop/postgres.c (the option sets should not conflict) and with the
 	 * common help() function in main/main.c.
 	 */
-	while ((opt = getopt(argc, argv, "A:B:bc:D:d:EeFf:h:ijk:lN:mM:nOo:Pp:r:S:sTt:UW:y-:")) != -1)
+	while ((opt = getopt(argc, argv, "A:B:bc:D:d:EeFf:h:ijk:lN:mM:nOo:Pp:r:S:sTt:UW:-:")) != -1)
 	{
 		switch (opt)
 		{
@@ -1020,11 +1020,6 @@ PostmasterMain(int argc, char *argv[])
 						free(value);
 					break;
 				}
-
-			case 'y':
-				// Indicate that gpstart did not start the standby master.
-				SetConfigOption("master_mirroring_administrator_disable", "true", PGC_POSTMASTER, PGC_S_ARGV);
-				break;
 
 			default:
 				write_stderr("Try \"%s --help\" for more information.\n",
