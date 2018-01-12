@@ -51,9 +51,10 @@ storage_uao_and_transactionmanagement:
 	-s storage/transaction_management \
 	-s storage/uao
 
+# WALREP_FIXME: there are no "peristent" tests anymore. Rename this
+# target, and fix concourse pipelines accordingly.
 storage_persistent_accessmethods_and_vacuum:
 	$(TESTER) $(DISCOVER) -t tincrepo/mpp/gpdb/tests/storage \
-	-s persistent \
 	-s access_methods \
 	-s vacuum \
 	-q "class!=XidlimitsTests"
