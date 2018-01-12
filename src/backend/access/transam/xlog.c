@@ -429,12 +429,6 @@ typedef struct XLogCtlData
 	Latch		recoveryWakeupLatch;
 
 	/*
-	 * the standby's dbid when it runs.  Used in mmxlog to emit standby filepath.
-	 * Protected by info_lck
-	 */
-	int16		standbyDbid;
-
-	/*
 	 * During recovery, we keep a copy of the latest checkpoint record here.
 	 * Used by the background writer when it wants to create a restartpoint.
 	 *
@@ -5673,14 +5667,6 @@ XLOGShmemInit(void)
 	XLogCtl->haveLastCheckpointLoc = false;
 	memset(&XLogCtl->lastCheckpointLoc, 0, sizeof(XLogRecPtr));
 	memset(&XLogCtl->lastCheckpointEndLoc, 0, sizeof(XLogRecPtr));
-
-	/*
-	 * Initialize the shared memory by the parameter given to postmaster.
-	 * GpStandbyDbid could be inconsistent with the catalog if the postmaster
-	 * is given wrong id, but there is no chance to check it in this early
-	 * stage of startup, and this is how we have been doing historically.
-	 */
-	XLogCtl->standbyDbid = GpStandbyDbid;
 }
 
 /**
@@ -11039,43 +11025,6 @@ CheckPromoteSignal(bool do_unlink)
 		return true;
 	}
 	return false;
-}
-
-/*
- * Put the current standby master dbid in the shared memory, which will
- * be looked up from mmxlog.
- */
-void
-SetStandbyDbid(int16 dbid)
-{
-	/* use volatile pointer to prevent code rearrangement */
-	volatile XLogCtlData *xlogctl = XLogCtl;
-
-	SpinLockAcquire(&xlogctl->info_lck);
-	xlogctl->standbyDbid = dbid;
-	SpinLockRelease(&xlogctl->info_lck);
-
-	/*
-	 * Let postmaster know we've changed standby dbid.
-	 */
-	SendPostmasterSignal(PMSIGNAL_SEGCONFIG_CHANGE);
-}
-
-/*
- * Returns current standby dbid.
- */
-int16
-GetStandbyDbid(void)
-{
-	/* use volatile pointer to prevent code rearrangement */
-	volatile XLogCtlData *xlogctl = XLogCtl;
-	int16	dbid;
-
-	SpinLockAcquire(&xlogctl->info_lck);
-	dbid = xlogctl->standbyDbid;
-	SpinLockRelease(&xlogctl->info_lck);
-
-	return dbid;
 }
 
 /*

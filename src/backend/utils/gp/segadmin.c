@@ -703,9 +703,6 @@ gp_add_master_standby(PG_FUNCTION_ARGS)
 
 	heap_close(gprel, NoLock);
 
-	/* Update shared memory for mmxlog */
-	SetStandbyDbid(new.db.dbid);
-
 	PG_RETURN_INT16(new.db.dbid);
 }
 
@@ -729,9 +726,6 @@ gp_remove_master_standby(PG_FUNCTION_ARGS)
 		elog(ERROR, "no master standby defined");
 
 	remove_segment(GpIdentity.dbid, dbid);
-
-	/* Update shared memory for mmxlog */
-	SetStandbyDbid(InvalidDbid);
 
 	PG_RETURN_BOOL(true);
 }

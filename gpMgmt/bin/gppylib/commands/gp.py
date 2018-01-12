@@ -147,10 +147,10 @@ class PgCtlBackendOptions(CmdArgs):
 
     >>> str(PgCtlBackendOptions(5432, 1, 2))
     '-p 5432 --gp_dbid=1 --gp_num_contents_in_cluster=2 --silent-mode=true'
-    >>> str(PgCtlBackendOptions(5432, 1, 2).set_master(2, False, False))
-    '-p 5432 --gp_dbid=1 --gp_num_contents_in_cluster=2 --silent-mode=true -i -M master --gp_contentid=-1 -x 2'
-    >>> str(PgCtlBackendOptions(5432, 1, 2).set_master(2, False, True))
-    '-p 5432 --gp_dbid=1 --gp_num_contents_in_cluster=2 --silent-mode=true -i -M master --gp_contentid=-1 -x 2 -E'
+    >>> str(PgCtlBackendOptions(5432, 1, 2).set_master(False, False))
+    '-p 5432 --gp_dbid=1 --gp_num_contents_in_cluster=2 --silent-mode=true -i -M master --gp_contentid=-1'
+    >>> str(PgCtlBackendOptions(5432, 1, 2).set_master(False, True))
+    '-p 5432 --gp_dbid=1 --gp_num_contents_in_cluster=2 --silent-mode=true -i -M master --gp_contentid=-1 -E'
     >>> str(PgCtlBackendOptions(5432, 1, 2).set_segment('mirror', 1))
     '-p 5432 --gp_dbid=1 --gp_num_contents_in_cluster=2 --silent-mode=true -i -M mirror --gp_contentid=1'
     >>> str(PgCtlBackendOptions(5432, 1, 2).set_special('upgrade'))
@@ -184,13 +184,12 @@ class PgCtlBackendOptions(CmdArgs):
     # master/segment-specific options
     #
 
-    def set_master(self, standby_dbid, disable, seqserver):
+    def set_master(self, disable, seqserver):
         """
-        @param standby_dbid: standby dbid
         @param disable: start without master mirroring?
         @param seqserver: start with seqserver?
         """
-        self.extend(["-i", "-M", "master", "--gp_contentid=-1", "-x", str(standby_dbid)])
+        self.extend(["-i", "-M", "master", "--gp_contentid=-1"])
         if disable: self.append("-y")
         if seqserver: self.append("-E")
         return self
@@ -313,7 +312,7 @@ class MasterStart(Command):
 
         # build backend options
         b = PgCtlBackendOptions(port, dbid, numContentsInCluster)
-        b.set_master(standby_dbid, disableMasterMirror, seqserver=not utilityMode)
+        b.set_master(disableMasterMirror, seqserver=not utilityMode)
         b.set_utility(utilityMode)
         b.set_special(specialMode)
         b.set_restricted(restrictedMode, max_connections)

@@ -301,8 +301,6 @@ extern TimeLineID GetRecoveryTargetTLI(void);
 
 extern bool CheckPromoteSignal(bool do_unlink);
 extern void WakeupRecovery(void);
-extern void SetStandbyDbid(int16 dbid);
-extern int16 GetStandbyDbid(void);
 extern bool IsStandbyMode(void);
 
 /*

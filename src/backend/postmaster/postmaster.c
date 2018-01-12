@@ -811,7 +811,7 @@ PostmasterMain(int argc, char *argv[])
 	 * tcop/postgres.c (the option sets should not conflict) and with the
 	 * common help() function in main/main.c.
 	 */
-	while ((opt = getopt(argc, argv, "A:B:bc:D:d:EeFf:h:ijk:lN:mM:nOo:Pp:r:S:sTt:UW:yx:-:")) != -1)
+	while ((opt = getopt(argc, argv, "A:B:bc:D:d:EeFf:h:ijk:lN:mM:nOo:Pp:r:S:sTt:UW:y-:")) != -1)
 	{
 		switch (opt)
 		{
@@ -1024,10 +1024,6 @@ PostmasterMain(int argc, char *argv[])
 			case 'y':
 				// Indicate that gpstart did not start the standby master.
 				SetConfigOption("master_mirroring_administrator_disable", "true", PGC_POSTMASTER, PGC_S_ARGV);
-				break;
-
-			case 'x': /* standby master dbid */
-				SetConfigOption("gp_standby_dbid", optarg, PGC_POSTMASTER, PGC_S_ARGV);
 				break;
 
 			default:
@@ -6879,12 +6875,6 @@ sigusr1_handler(SIGNAL_ARGS)
 	if (CheckPostmasterSignal(PMSIGNAL_SEGCONFIG_CHANGE))
 	{
 		int16		newdbid;
-
-		/*
-		 * Read back standby dbid to postmaster local from shared memory,
-		 * as this is the single source.
-		 */
-		GpStandbyDbid = GetStandbyDbid();
 
 		newdbid = primaryMirrorGetNewDbid();
 		if (newdbid != InvalidDbid)

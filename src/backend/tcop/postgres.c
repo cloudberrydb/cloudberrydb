@@ -4073,7 +4073,7 @@ process_postgres_switches(int argc, char *argv[], GucContext ctx,
 	 * postmaster/postmaster.c (the option sets should not conflict) and with
 	 * the common help() function in main/main.c.
 	 */
-	while ((flag = getopt(argc, argv, "A:B:bc:D:d:EeFf:h:ijk:m:lN:nOo:Pp:r:S:sTt:Uv:W:x:y:-:")) != -1)
+	while ((flag = getopt(argc, argv, "A:B:bc:D:d:EeFf:h:ijk:m:lN:nOo:Pp:r:S:sTt:Uv:W:y:-:")) != -1)
 	{
 		switch (flag)
 		{
@@ -4270,10 +4270,6 @@ process_postgres_switches(int argc, char *argv[], GucContext ctx,
 						free(value);
 					break;
 				}
-
-			case 'x': /* standby master dbid */
-				SetConfigOption("gp_standby_dbid", optarg, ctx, gucsource);
-				break;
 
 			default:
 				errs++;

@@ -152,8 +152,7 @@ class StartInstances():
         opts = ("-p %d --gp_dbid=%d --silent-mode=true -i -M %s --gp_contentid=%d --gp_num_contents_in_cluster=%d" %
                 (segment_port, dbid, segment_role, contentid, self.clusterconfig.get_num_contents()))
 
-        # Arguments for the master. -x sets the dbid for the standby master. Hardcoded to 0 for now, but may need to be
-        # refactored when we start to focus on the standby master.
+        # Arguments for the master.
         #
         # -E in GPDB will set Gp_entry_postmaster = true;
         # to start master in utility mode, need to remove -E and add -c gp_role=utility
@@ -161,7 +160,6 @@ class StartInstances():
         # we automatically assume people want to start in master only utility mode
         # if the self.clusterconfig.get_num_contents() is 0
         if contentid == GpSegmentConfiguration.MASTER_CONTENT_ID:
-            opts += " -x 0"
             if self.clusterconfig.get_num_contents() == 0:
                 opts += " -c gp_role=utility"
             else:

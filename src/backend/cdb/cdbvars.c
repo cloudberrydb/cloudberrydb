@@ -395,15 +395,6 @@ bool		gp_cost_hashjoin_chainwalk = false;
  */
 GpId		GpIdentity = {UNINITIALIZED_GP_IDENTITY_VALUE, UNINITIALIZED_GP_IDENTITY_VALUE, UNINITIALIZED_GP_IDENTITY_VALUE};
 
-/*
- * This has to be int because of guc.c stupidity :(
- * The value is supposed to be passed through postmaster command line
- * and go to XLogCtlData for mmxlog purpose.  We'd like to fetch the value
- * from the catalog but the value is too fundamental and accessed too early
- * to fetch it from catalog.
- */
-int			GpStandbyDbid = InvalidDbid;
-
 void
 verifyGpIdentityIsSet(void)
 {

@@ -993,7 +993,6 @@ typedef struct GpId
  */
 extern GpId GpIdentity;
 #define UNINITIALIZED_GP_IDENTITY_VALUE (-10000)
-extern int GpStandbyDbid;
 
 
 /* Stores the listener port that this process uses to listen for incoming
