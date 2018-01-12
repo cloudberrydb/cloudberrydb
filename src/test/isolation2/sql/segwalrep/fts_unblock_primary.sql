@@ -44,8 +44,7 @@ select content, role, preferred_role, mode, status from gp_segment_configuration
 
 -- synchronous_standby_names should be set to '*' by default on primary 2, since
 -- we have a working/sync'd mirror
--- XXX We assume primary 2 is DBID 4, which may not be the case.
-4U: show synchronous_standby_names;
+2U: show synchronous_standby_names;
 
 -- create table and show commits are not blocked
 create table fts_unblock_primary (a int) distributed by (a);
@@ -78,7 +77,7 @@ select content, role, preferred_role, mode, status from gp_segment_configuration
 2<:
 
 -- synchronous_standby_names should now be empty on the primary
-4U: show synchronous_standby_names;
+2U: show synchronous_standby_names;
 
 -- bring the mirror back up and see primary s/u and mirror s/u
 -1U: select pg_ctl((select datadir from gp_segment_configuration c where c.role='m' and c.content=2), 'start', (select port from gp_segment_configuration where content = 2 and preferred_role = 'm'), 2);
@@ -89,4 +88,4 @@ select content, role, preferred_role, mode, status from gp_segment_configuration
 insert into fts_unblock_primary select i from generate_series(1,10)i;
 
 -- synchronous_standby_names should be back to its original value on the primary
-4U: show synchronous_standby_names;
+2U: show synchronous_standby_names;

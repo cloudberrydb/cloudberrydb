@@ -24,8 +24,7 @@ content|role|preferred_role|mode|status
 
 -- synchronous_standby_names should be set to '*' by default on primary 2, since
 -- we have a working/sync'd mirror
--- XXX We assume primary 2 is DBID 4, which may not be the case.
-4U: show synchronous_standby_names;
+2U: show synchronous_standby_names;
 synchronous_standby_names
 -------------------------
 *                        
@@ -97,7 +96,7 @@ content|role|preferred_role|mode|status
 COMMIT
 
 -- synchronous_standby_names should now be empty on the primary
-4U: show synchronous_standby_names;
+2U: show synchronous_standby_names;
 synchronous_standby_names
 -------------------------
                          
@@ -127,7 +126,7 @@ insert into fts_unblock_primary select i from generate_series(1,10)i;
 INSERT 10
 
 -- synchronous_standby_names should be back to its original value on the primary
-4U: show synchronous_standby_names;
+2U: show synchronous_standby_names;
 synchronous_standby_names
 -------------------------
 *                        
