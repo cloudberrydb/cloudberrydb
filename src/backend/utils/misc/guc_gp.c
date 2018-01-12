@@ -196,7 +196,6 @@ VERIFY_CHECKPOINT_INTERVAL_DEFAULT;
 bool		rle_type_compression_stats = false;
 
 bool		Debug_database_command_print = false;
-int			Debug_database_command_print_level = LOG;
 #define GP_MAX_DATABASES_DEFAULT 16
 int			gp_max_databases = GP_MAX_DATABASES_DEFAULT;
 #define GP_MAX_TABLESPACES_DEFAULT 16
@@ -5301,18 +5300,6 @@ struct config_enum ConfigureNamesEnum_gp[] =
 	},
 
 	{
-		{"debug_database_command_error_level", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Sets the database command debug message levels that are logged."),
-			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, DEBUG1, "
-			"INFO, NOTICE, WARNING, ERROR, LOG, FATAL, and PANIC. Each level "
-						 "includes all the levels that follow it."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL
-		},
-		&Debug_database_command_print_level,
-		LOG, server_message_level_options, NULL, NULL
-	},
-
-		{
 		{"gp_workfile_caching_loglevel", PGC_SUSET, DEVELOPER_OPTIONS,
 			gettext_noop("Sets the logging level for workfile caching debugging messages"),
 			gettext_noop("Valid values are DEBUG5, DEBUG4, DEBUG3, DEBUG2, "
