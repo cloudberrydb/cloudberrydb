@@ -674,8 +674,13 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 	/*
 	 * Initialize local process's access to XLOG.  In bootstrap case we may
 	 * skip this since StartupXLOG() was run instead.
+	 *
+	 * Skip this step if we are responding to a FTS message on mirror. Mirror
+	 * operates in standby mode and doesn't need xlog access, as its only
+	 * invoked to check if we are acting as mirror and if yes send promote
+	 * signal.
 	 */
-	if (!bootstrap)
+	if (!bootstrap && !(am_ftshandler && am_mirror))
 		InitXLOGAccess();
 
 	/*
