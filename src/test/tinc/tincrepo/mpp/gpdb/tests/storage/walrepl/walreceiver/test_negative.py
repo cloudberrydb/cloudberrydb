@@ -123,7 +123,7 @@ class neg_test(StandbyRunMixin, MPPTestCase):
         os.remove(os.path.join(orig_master.datadir,'recovery.conf'))
 
         logger.info('Stop the original master again...')
-        rc = subprocess.Popen('pg_ctl stop -D ' + orig_master.datadir + ' -m immediate',
+        subprocess.check_call('pg_ctl stop -D ' + orig_master.datadir + ' -m immediate',
                               shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
         # Perform gpstart to get the original master (& cluster) back again
