@@ -146,7 +146,7 @@ check_old_cluster(migratorContext *ctx, bool live_check,
 				old_8_3_create_sequence_script(ctx, CLUSTER_OLD);
 	}
 
-#ifdef GPDB_90MERGE_FIXME
+#ifdef GPDB_90_MERGE_FIXME
 	/* Pre-PG 9.0 had no large object permissions */
 	if (GET_MAJOR_VERSION(ctx->old.major_version) <= 804)
 		new_9_0_populate_pg_largeobject_metadata(ctx, true, CLUSTER_OLD);
@@ -240,7 +240,7 @@ issue_warnings(migratorContext *ctx, char *sequence_script_file_name)
 		old_8_3_invalidate_bpchar_pattern_ops_indexes(ctx, false, CLUSTER_NEW);
 	}
 
-#ifdef GPDB_90MERGE_FIXME
+#ifdef GPDB_90_MERGE_FIXME
 	/* Create dummy large object permissions for old < PG 9.0? */
 	if (GET_MAJOR_VERSION(ctx->old.major_version) <= 804)
 	{
