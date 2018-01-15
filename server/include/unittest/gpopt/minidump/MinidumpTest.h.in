@@ -1,15 +1,15 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2018 Pivotal, Inc.
+//	Copyright (C) 2018 Pivotal Software, Inc.
 //---------------------------------------------------------------------------
-#ifndef GPOPT_CSemiJoinTest_H
-#define GPOPT_CSemiJoinTest_H
+#ifndef GPOPT_${test_name}_H
+#define GPOPT_${test_name}_H
 
 #include "gpos/base.h"
 
 namespace gpopt
 {
-	class CSemiJoinTest
+	class ${test_name}
 	{
 		private:
 
@@ -26,10 +26,10 @@ namespace gpopt
 			static
 			gpos::GPOS_RESULT EresUnittest_RunTests();
 
-	}; // class CSemiJoinTest
+	}; // class ${test_name}
 }
 
-#endif // !GPOPT_CSemiJoinTest_H
+#endif // !GPOPT_${test_name}_H
 
 // EOF
 

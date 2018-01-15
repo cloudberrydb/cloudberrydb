@@ -6,6 +6,8 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include"
                     "${PROJECT_SOURCE_DIR}/libnaucrates/include")
 # for the generated config.h file.
 include_directories(${PROJECT_BINARY_DIR}/libgpos/include/)
+# for the auto generated minidump test classes
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/include/)
 
 # Some tests use C99 long long integer constants, but the C++ dialect may not
 # explicitly include C99. We supress such errors here.
@@ -18,21 +20,6 @@ if (COMPILER_HAS_WNO_LONG_LONG)
                                 src/unittest/gpopt/metadata/CPartConstraintTest.cpp
                                 PROPERTIES COMPILE_FLAGS "-Wno-long-long")
 endif()
-
-file(GLOB_RECURSE hdrs ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h
-                       ${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl)
-file(GLOB_RECURSE srcs ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
-
-# Add headers to make them visible in some IDEs (Clion, VS, Xcode)
-list(APPEND srcs ${hdrs})
-
-add_executable(gporca_test ${srcs})
-
-target_link_libraries(gporca_test
-                      gpdbcost
-                      gpopt
-                      naucrates
-                      gpos)
 
 option(ENABLE_EXTENDED_TESTS
        "Enable extended tests for fault-injection and timing that may take a long time to run."
@@ -48,6 +35,152 @@ function(add_orca_test TEST_NAME)
            COMMAND gporca_test -U ${TEST_NAME}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endfunction()
+
+# minidump tests must follow rule:
+# "CxxxTest: file1 file2; CxxxTest: file3 file4"
+# each test case should end with ";", EXCEPT LAST ONE.
+# comments with format /*...*/ are allowed at any place.
+set(MDP_GROUPS "
+
+CSemiJoinTest:
+SemiJoin2InnerJoin SemiJoin2Select-1 SemiJoin2Select-2 SemiJoin2Select-EnforceSubplan
+InSubqWithPrjListOuterRefNoInnerRefColumnIn InSubqWithPrjListOuterRefNoInnerRefConstIn
+NestedInSubqWithPrjListOuterRefNoInnerRef  InEqualityJoin Correlated-SemiJoin
+CorrelatedSemiJoin-True CorrelatedIN-LeftSemiJoin-True CorrelatedIN-LeftSemiNotIn-True
+InSubqWithPrjListOuterRefNoInnerRefColumnPlusConstIn;
+
+CAntiSemiJoinTest:
+AntiSemiJoin2Select-1 AntiSemiJoin2Select-2 NOT-IN-NotNullBoth NOT-IN-NullInner NOT-IN-NullOuter
+Correlated-AntiSemiJoin CorrelatedAntiSemiJoin-True Correlated-LASJ-With-Outer-Col
+Correlated-LASJ-With-Outer-Const Correlated-LASJ-With-Outer-Expr;
+
+CPredicateTest:
+InferPredicatesForLimit OR-WithIsNullPred Int2Predicate UnsupportedStatsPredicate IN-Numeric
+AddEqualityPredicates AddPredsInSubqueries DeduplicatePredicates ExtractPredicateFromDisjWithComputedColumns
+Join-With-Subq-Preds-1 Non-Hashjoinable-Pred Non-Hashjoinable-Pred-2 Factorized-Preds IN OR;
+
+CLikeIDFTest:
+LIKE-Pattern-green LIKE-Pattern-green-2 LIKE-Pattern-Empty Nested-Or-Predicates
+LikePredStatsNotComparable PredStatsNotComparable ExtractPredicateFromDisj CollapseNot
+IDF-NotNullConstant IDF-NullConstant INDF-NotNullConstant INDF-NullConstant NullConstant-INDF-Col;
+
+CIndexScanTest:
+BTreeIndex-Against-InList BTreeIndex-Against-ScalarSubquery BitmapIndex-Against-InList
+IndexScan-AOTable IndexScan-DroppedColumns IndexScan-BoolTrue IndexScan-BoolFalse
+IndexScan-Relabel IndexGet-OuterRefs LogicalIndexGetDroppedCols;
+
+CIndexApplyTest:
+IndexApply1 IndexApply1-CalibratedCostModel IndexApply2 IndexApply3 IndexApply4
+IndexApply-IndexCondDisjointWithHashedDistr IndexApply-IndexCondIntersectWithHashedDistr
+IndexApply-IndexCondMatchHashedDistr IndexApply-IndexCondSubsetOfHashedDistr
+IndexApply-IndexCondSupersetOfHashedDistr IndexApply-IndexOnMasterOnlyTable
+IndexApply-PartTable IndexApply-Heterogeneous-NoDTS IndexApply-Heterogeneous-DTS
+IndexApply-No-Motion-Below-Join IndexApply-Redistribute-Const-Table IndexApply-PartResolverExpand
+IndexApply-InnerSelect-Basic IndexApply-InnerSelect-PartTable IndexApply-PartKey-Is-IndexKey
+IndexApply-InnerSelect-Heterogeneous-DTS IndexApply-Heterogeneous-BothSidesPartitioned;
+
+CDynamicIndexScanTest:
+DynamicIndexScan-Homogenous DynamicIndexScan-BoolTrue DynamicIndexScan-BoolFalse
+DynamicIndexScan-Heterogenous-NoDTS DynamicIndexScan-Heterogenous-Union
+DynamicIndexScan-Heterogenous-Overlapping DynamicIndexScan-Heterogenous
+DynamicIndexScan-DefaultPartition DynamicIndexScan-DefaultPartition-2 DynamicIndexGetDroppedCols
+DynamicIndexScan-Homogenous-UnsupportedConstraint DynamicIndexScan-Heterogenous-UnsupportedConstraint
+DynamicIndexScan-Heterogenous-UnsupportedPredicate DynamicIndexScan-Heterogenous-PartSelectEquality
+DynamicIndexScan-Heterogenous-PartSelectRange DynamicIndexScan-OpenEndedPartitions
+DynamicIndexScan-Relabel DynamicIndexScan-DroppedColumns DynamicIndexGet-OuterRefs;
+
+CIndexScanOnLeafTest:
+IndexOnLeaf-AddNewPartitionToRootTableContainingHeterogenousIndex
+IndexOnLeaf-AddPartitionToRootWithHomogenousIndex IndexOnLeaf-AddPartitionToRootWithHomogenousIndex
+IndexOnLeaf-IndexOnPartitionsWithDifferentStorageTypes IndexOnLeaf-NonOverlappingHeterogenousIndex-ANDPredicate-AO
+IndexOnLeaf-NonOverlappingHeterogenousIndex-ANDPredicate-HEAP IndexOnLeaf-NonOverlappingHomogenousIndexesOnRoot-ANDPredicate-AO
+IndexOnLeaf-NonOverlappingHomogenousIndexesOnRoot-ORPredicate-AO IndexOnLeaf-OverlappingHeterogenousIndex-ANDPredicate-AO
+IndexOnLeaf-OverlappingHeterogenousIndex-ANDPredicate-HEAP IndexOnLeaf-OverlappingHeterogenousIndex-ORPredicate-AO
+IndexOnLeaf-OverlappingHomogenousIndexesOnRoot-ANDPredicate-AO IndexOnLeaf-OverlappingHomogenousIndexesOnRoot-AO
+IndexOnLeaf-OverlappingHomogenousIndexesOnRoot-ORPredicate-AO IndexOnLeaf-SingleColumnHeterogenousIndexOnRoot-1-AO
+IndexOnLeaf-SingleColumnHeterogenousIndexOnRoot-1-HEAP IndexOnLeaf-SingleColumnHeterogenousIndexOnRoot-2-AO
+IndexOnLeaf-SingleColumnHeterogenousIndexOnRoot-2-HEAP NonOverlappingHomogenousIndexesOnRoot-ANDPredicate-HEAP
+OverlappingHomogenousIndexesOnRoot-ANDPredicate-HEAP OverlappingHomogenousIndexesOnRoot-HEAP
+SingleColumnHomogenousIndexOnRoot-AO SingleColumnHomogenousIndexOnRoot-HEAP;
+
+CEquivClassTest:
+Equiv-HashedDistr-1 Equiv-HashedDistr-2 EquivClassesAndOr EquivClassesLimit IndexNLJoin_Cast_NoMotion
+")
+
+set(mdp_dir "../data/dxl/minidump/")
+set(mdp_incl_dir "unittest/gpopt/minidump")
+set(mdp_test_hdr_tpl "${CMAKE_CURRENT_SOURCE_DIR}/include/${mdp_incl_dir}/MinidumpTest.h.in")
+set(mdp_test_src_tpl "${CMAKE_CURRENT_SOURCE_DIR}/src/${mdp_incl_dir}/MinidumpTest.cpp.in")
+set(mdp_test_hdr_dir "${CMAKE_CURRENT_BINARY_DIR}/include/${mdp_incl_dir}")
+set(mdp_test_src_dir "${CMAKE_CURRENT_BINARY_DIR}/src/${mdp_incl_dir}")
+set(mdp_headers "${mdp_test_hdr_dir}/MinidumpTestHeaders")
+set(mdp_tests "${mdp_test_hdr_dir}/MinidumpTestArray")
+set(mdp_headers_h "${mdp_headers}.h")
+set(mdp_tests_inl "${mdp_tests}.inl")
+
+# if the old file exists and the new file is the same with old file,
+# do nothing. otherwise, write the old file with new file's content.
+function(update_file old_file new_file)
+  if(NOT EXISTS ${old_file})
+    file(RENAME ${new_file} ${old_file})
+  else()
+    file(READ ${old_file} old_hex HEX)
+    file(READ ${new_file} new_hex HEX)
+    if("${old_hex}" STREQUAL "${new_hex}")
+      file(REMOVE ${new_file})
+    else()
+      file(RENAME ${new_file} ${old_file})
+    endif()
+  endif()
+endfunction()
+
+file(WRITE ${mdp_headers} "")
+file(WRITE ${mdp_tests} "")
+
+foreach(mdp_group IN LISTS MDP_GROUPS)
+
+  # remove comments /*...*/ from minidump test group string
+  string(REGEX REPLACE "\\/\\*.*\\*\\/" "" mdp_group ${mdp_group})
+
+  string(STRIP ${mdp_group} mdp_group)
+
+  # get minidump test name
+  string(REGEX MATCH "C.+Test" test_name ${mdp_group})
+
+  # get the length of "CxxxTest:"
+  string(LENGTH "${test_name}:" name_len)
+
+  # get minidump file names (without .mdp) concatenated by spaces
+  string(SUBSTRING ${mdp_group} ${name_len} -1 mdp_names)
+
+  string(STRIP ${mdp_names} mdp_names)
+
+  # generate full minidump paths array
+  string(REGEX REPLACE "([A-Za-z0-9_\-]+)" "\"${mdp_dir}\\1.mdp\"," mdp_names ${mdp_names})
+  string(REGEX REPLACE "[ \t\n]+" "\n" mdp_files ${mdp_names})
+
+  # generate header/src file name for current test
+  set(header_file ${mdp_test_hdr_dir}/${test_name})
+  set(source_file ${mdp_test_src_dir}/${test_name})
+
+  # auto generate test class from template
+  configure_file(${mdp_test_hdr_tpl} ${header_file})
+  configure_file(${mdp_test_src_tpl} ${source_file})
+
+  update_file(${header_file}.h ${header_file})
+  update_file(${source_file}.cpp ${source_file})
+
+  # add test header file into include file used in main.cpp
+  file(APPEND ${mdp_headers} "#include \"${mdp_incl_dir}/${test_name}.h\"\n")
+
+  # add unittest into test array in main.cpp
+  file(APPEND ${mdp_tests} "GPOS_UNITTEST_STD(${test_name}),\n")
+
+  add_orca_test(${test_name})
+endforeach()
+
+update_file(${mdp_headers_h} ${mdp_headers})
+update_file(${mdp_tests_inl} ${mdp_tests})
 
 # The ordering of tests and the conditions by which tests are enabled or
 # disabled matches the static array of tests in "src/startup/main.cpp".
@@ -76,7 +209,6 @@ add_orca_test(CSubqueryTest)
 add_orca_test(CCollapseProjectTest)
 add_orca_test(CPruneColumnsTest)
 add_orca_test(CMissingStatsTest)
-add_orca_test(CIndexTest)
 add_orca_test(CPartTblTest)
 add_orca_test(CBitmapTest)
 add_orca_test(CCTETest)
@@ -104,8 +236,6 @@ add_orca_test(CDistributionSpecTest)
 add_orca_test(CCastTest)
 add_orca_test(CConstTblGetTest)
 add_orca_test(COuterJoinTest)
-add_orca_test(CPredicateTest)
-add_orca_test(CSemiJoinTest)
 add_orca_test(CScalarArrayCmpTest)
 
 if (GPOS_ARCH_BITS EQUAL 64)
@@ -150,3 +280,21 @@ if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
     add_orca_test(CTimeSliceTest)
   endif()
 endif()
+
+file(GLOB_RECURSE hdrs ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h
+                       ${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl
+                       ${mdp_test_hdr_dir}/*.h
+                       ${mdp_test_hdr_dir}/*.inl)
+file(GLOB_RECURSE srcs ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+                       ${mdp_test_src_dir}/*.cpp)
+
+# Add headers to make them visible in some IDEs (Clion, VS, Xcode)
+list(APPEND srcs ${hdrs})
+
+add_executable(gporca_test ${srcs})
+
+target_link_libraries(gporca_test
+                      gpdbcost
+                      gpopt
+                      naucrates
+                      gpos)
