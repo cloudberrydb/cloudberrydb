@@ -36,29 +36,52 @@
 #include "utils/guc.h"
 #include "miscadmin.h"
 
-/**
+/*
  * Drops a segment file.
  *
+ * Actually, we just truncate the segfile to 0 bytes, to reclaim the space.
+ * Before GPDB 6, we used to remove the file, but with WAL replication, we
+ * no longer have a convenient function to remove a single segment of a
+ * relation. An empty file is as almost as good as a non-existent file. If
+ * the relation is dropped later, the code in mdunlink() will remove all
+ * segments, including any empty ones we've left behind.
  */
 static void
 AOCSCompaction_DropSegmentFile(Relation aorel,
 							   int segno)
 {
-	int			pseudoSegNo;
 	int			col;
 
 	Assert(RelationIsAoCols(aorel));
 
 	for (col = 0; col < RelationGetNumberOfAttributes(aorel); col++)
 	{
-		pseudoSegNo = (col * AOTupleId_MultiplierSegmentFileNum) + segno;
+		char		filenamepath[MAXPGPATH];
+		int			pseudoSegNo;
+		File		fd;
 
-		// WALREP_FIXME: Call smgrunlink() directly on the segfile.
+		/* Open and truncate the relation segfile */
+		MakeAOSegmentFileName(aorel, segno, col, &pseudoSegNo, filenamepath);
 
 		elogif(Debug_appendonly_print_compaction, LOG,
 			   "Drop segment file: "
 			   "segno %d",
 			   pseudoSegNo);
+
+		fd = OpenAOSegmentFile(aorel, filenamepath, pseudoSegNo, 0);
+		if (fd >= 0)
+		{
+			TruncateAOSegmentFile(fd, aorel, pseudoSegNo, 0);
+			CloseAOSegmentFile(fd);
+		}
+		else
+		{
+			/*
+			 * The file we were about to drop/truncate didn't exist. That's normal,
+			 * for example, if a column is added with ALTER TABLE ADD COLUMN.
+			 */
+			elog(DEBUG1, "could not truncate segfile %s, because it does not exist", filenamepath);
+		}
 	}
 }
 
@@ -94,7 +117,7 @@ AOCSSegmentFileTruncateToEOF(Relation aorel,
 		entry = getAOCSVPEntry(fsinfo, j);
 		segeof = entry->eof;
 
-		/* Open and truncate the relation segfile beyond its eof */
+		/* Open and truncate the relation segfile to its eof */
 		MakeAOSegmentFileName(aorel, segno, j, &fileSegNo, filenamepath);
 
 		elogif(Debug_appendonly_print_compaction, LOG,
