@@ -7742,21 +7742,6 @@ RecoveryInProgress(void)
 
 		return LocalRecoveryInProgress;
 	}
-
-	/*
-	 * All done.  Allow backends to write WAL.  (Although the bool flag is
-	 * probably atomic in itself, we use the info_lck here to ensure that
-	 * there are no race conditions concerning visibility of other recent
-	 * updates to shared memory.)
-	 */
-	{
-		/* use volatile pointer to prevent code rearrangement */
-		volatile XLogCtlData *xlogctl = XLogCtl;
-
-		SpinLockAcquire(&xlogctl->info_lck);
-		xlogctl->SharedRecoveryInProgress = false;
-		SpinLockRelease(&xlogctl->info_lck);
-	}
 }
 
 /*
