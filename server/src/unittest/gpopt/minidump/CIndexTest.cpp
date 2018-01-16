@@ -120,23 +120,12 @@ const CHAR *rgszIndexFileNames[] =
 GPOS_RESULT
 CIndexTest::EresUnittest()
 {
-
-#ifdef GPOS_DEBUG
-	// enable extended asserts after running test
-	fEnableExtendedAsserts = true;
-#endif // GPOS_DEBUG
-
 	CUnittest rgut[] =
 		{
 		GPOS_UNITTEST_FUNC(EresUnittest_RunTests),
 		};
 
 	GPOS_RESULT eres = CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
-
-#ifdef GPOS_DEBUG
-	// enable extended asserts after running test
-	fEnableExtendedAsserts = true;
-#endif // GPOS_DEBUG
 
 	// reset metadata cache
 	CMDCache::Reset();

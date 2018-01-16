@@ -143,12 +143,6 @@ const CHAR *rgszPreferHashJoinVersusIndexJoin[] =
 GPOS_RESULT
 CICGTest::EresUnittest()
 {
-
-#ifdef GPOS_DEBUG
-	// disable extended asserts before running test
-	fEnableExtendedAsserts = false;
-#endif // GPOS_DEBUG
-
 	CUnittest rgut[] =
 		{
 		// keep test for testing partially supported operators/xforms
@@ -164,11 +158,6 @@ CICGTest::EresUnittest()
 		};
 
 	GPOS_RESULT eres = CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
-
-#ifdef GPOS_DEBUG
-	// enable extended asserts after running test
-	fEnableExtendedAsserts = true;
-#endif // GPOS_DEBUG
 
 	// reset metadata cache
 	CMDCache::Reset();

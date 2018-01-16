@@ -56,11 +56,6 @@ const CHAR *rgszConstExprEvaluatorOnFileNames[] =
 GPOS_RESULT
 CMinidumpWithConstExprEvaluatorTest::EresUnittest()
 {
-#ifdef GPOS_DEBUG
-	// disable extended asserts before running test
-	fEnableExtendedAsserts = false;
-#endif // GPOS_DEBUG
-
 	CUnittest rgut[] =
 		{
 		GPOS_UNITTEST_FUNC(
@@ -68,11 +63,6 @@ CMinidumpWithConstExprEvaluatorTest::EresUnittest()
 		};
 
 	GPOS_RESULT eres =  CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
-
-#ifdef GPOS_DEBUG
-	// enable extended asserts after running test
-	fEnableExtendedAsserts = true;
-#endif // GPOS_DEBUG
 
 	return eres;
 }

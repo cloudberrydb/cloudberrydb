@@ -584,11 +584,6 @@ CUnittest::Init
 
 	// disable allocations using global new operator
 	CMemoryPoolManager::Pmpm()->DisableGlobalNew();
-
-#ifdef GPOS_DEBUG
-	// enable extended asserts before running any unittest
-	fEnableExtendedAsserts = true;
-#endif // GPOS_DEBUG
 }
 
 // EOF

@@ -25,11 +25,6 @@ extern "C"
 #include <stddef.h>
 #endif /* __cplusplus */
 
-#ifdef GPOS_DEBUG
-extern
-bool fEnableExtendedAsserts;   // flag to control extended (time consuming) asserts
-#endif // GPOS_DEBUG
-
 /*
  * struct with configuration parameters for task execution;
  * this needs to be in sync with the corresponding structure in optserver.h

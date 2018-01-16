@@ -227,11 +227,6 @@ namespace gpos
                 GPOS_ASSERT(NULL != m_ptTail);
                 GPOS_ASSERT(0 != m_ulSize);
 
-                // ensure this element is actually member of the list,
-                // this assert is expensive as it traverses the list to make sure
-                // that an entry is accessible by following entries' next pointers
-                GPOS_ASSERT_IMP(fEnableExtendedAsserts, GPOS_OK == EresFind(pt));
-
                 SLink &sl = Link(pt);
 
                 if (sl.m_pvNext)

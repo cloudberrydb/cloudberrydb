@@ -72,22 +72,12 @@ const CHAR *rgszCTEFileNames[] =
 GPOS_RESULT
 CCTETest::EresUnittest()
 {
-#ifdef GPOS_DEBUG
-	// disable extended asserts before running test
-	fEnableExtendedAsserts = false;
-#endif // GPOS_DEBUG
-
 	CUnittest rgut[] =
 		{
 		GPOS_UNITTEST_FUNC(EresUnittest_RunTests),
 		};
 
 	GPOS_RESULT eres = CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
-
-#ifdef GPOS_DEBUG
-	// enable extended asserts after running test
-	fEnableExtendedAsserts = true;
-#endif // GPOS_DEBUG
 
 	// reset metadata cache
 	CMDCache::Reset();

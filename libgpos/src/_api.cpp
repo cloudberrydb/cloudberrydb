@@ -26,10 +26,6 @@
 
 using namespace gpos;
 
-#ifdef GPOS_DEBUG
-bool fEnableExtendedAsserts = false;  // by default, extended asserts are disabled
-#endif // GPOS_DEBUG
-
 //---------------------------------------------------------------------------
 //	@function:
 //		gpos_init

@@ -117,11 +117,6 @@ CTpchTest::EresSubtest(ULONG ulQueryNum)
 	IMemoryPool *pmp = amp.Pmp();
 
 #ifdef GPOS_DEBUG
-	// disable extended asserts before running test
-	fEnableExtendedAsserts = false;
-#endif // GPOS_DEBUG
-
-#ifdef GPOS_DEBUG
 	const ULONG ulTests = GPOS_ARRAY_SIZE(rgszTpch);
 	GPOS_ASSERT(ulQueryNum > 0);
 	GPOS_ASSERT(ulQueryNum - 1 < ulTests);
@@ -169,11 +164,6 @@ CTpchTest::EresSubtest(ULONG ulQueryNum)
 			false  // fTestSpacePruning
 			);
 	}
-
-#ifdef GPOS_DEBUG
-	// enable extended asserts after running test
-	fEnableExtendedAsserts = true;
-#endif // GPOS_DEBUG
 
 	// reset metadata cache
 	CMDCache::Reset();
