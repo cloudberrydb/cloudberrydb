@@ -476,7 +476,7 @@ extern bool gp_interconnect_full_crc;
 /*
  * Parameter gp_interconnect_log_stats
  *
- * Emit inteconnect statistics at log-level, instead of debug1
+ * Emit interconnect statistics at log-level, instead of debug1
  */
 extern bool gp_interconnect_log_stats;
 
