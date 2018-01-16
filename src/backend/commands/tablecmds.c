@@ -12775,7 +12775,7 @@ ATPExecPartAdd(AlteredTableInfo *tab,
 								lrelname)));
 
 			/* XXX XXX: move this check to gram.y ? */
-			if (pelem && pelem->boundSpec)
+			if (pelem->boundSpec)
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
 						 errmsg("invalid use of boundary specification "
@@ -13243,7 +13243,7 @@ ATPExecPartDrop(Relation rel,
 					   NULL);
 
 		/* Notify of name if did not use name for partition id spec */
-		if (prule && prule->topRule && prule->topRule->children
+		if (prule->topRule && prule->topRule->children
 			&& (ds->behavior != DROP_CASCADE ))
 		{
 			ereport(NOTICE,
