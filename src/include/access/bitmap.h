@@ -6,7 +6,7 @@
  * Copyright (c) 2006-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	$PostgreSQL$
+ *	src/include/access/bitmap.h
  *
  *-------------------------------------------------------------------------
  */

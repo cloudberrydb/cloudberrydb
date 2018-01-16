@@ -10,7 +10,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: $
+ *	  src/include/utils/resscheduler.h
  *
  *-------------------------------------------------------------------------
  */
