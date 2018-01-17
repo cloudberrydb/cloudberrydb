@@ -323,10 +323,6 @@ ExtendSUBTRANS(TransactionId newestXact)
 	int			pageno;
 
 	/*
-	 * Caller must have already taken mirrored lock shared.
-	 */
-
-	/*
 	 * No work except at first XID of a page.  But beware: just after
 	 * wraparound, the first XID of page zero is FirstNormalTransactionId.
 	 */

@@ -82,10 +82,6 @@ extern void smgrwrite(SMgrRelation reln, ForkNumber forknum,
 extern BlockNumber smgrnblocks(SMgrRelation reln, ForkNumber forknum);
 extern void smgrtruncate(SMgrRelation reln, ForkNumber forknum,
 			 BlockNumber nblocks, bool isTemp);
-extern bool smgrgetpersistentinfo(XLogRecord *record,
-					  RelFileNode *relFileNode,
-					  ItemPointer persistentTid,
-					  int64 *persistentSerialNum);
 extern void smgrimmedsync(SMgrRelation reln, ForkNumber forknum);
 extern void smgrpreckpt(void);
 extern void smgrsync(void);

@@ -2859,14 +2859,8 @@ reindex_index(Oid indexId)
 	 * Since inplace processing isn't crash-safe, we only allow it in a
 	 * standalone backend.	(In the REINDEX TABLE and REINDEX DATABASE cases,
 	 * the caller should have detected this.)
-	 *
-	 * MPP: If we are in a standalone backend always perform reindex operations
-	 * in place.  In postgres this only applies to shared relations, for 
-	 * Greenplum we apply it to all tables as a means of enabling upgrade to
-	 * filerep: it is required to reindex gp_relation_node in place before it
-	 * is possible to populate the gp_persistent tables.
 	 */
-	inplace = iRel->rd_rel->relisshared || !IsUnderPostmaster;
+	inplace = iRel->rd_rel->relisshared;
 
 	if (inplace && IsUnderPostmaster)
 		ereport(ERROR,

@@ -42,7 +42,6 @@ struct MemTupleBinding;
 struct MemTupleData;
 struct HeapScanDescData;
 struct FileScanDescData;
-struct MirroredBufferPoolBulkLoadInfo;
 struct SliceTable;
 
 /* ----------------

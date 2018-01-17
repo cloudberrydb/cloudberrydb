@@ -99,12 +99,6 @@ typedef struct AppendOnlyStorageWrite
 	int32		segmentFileNum;
 
 	/*
-	 * Persistence information for current write open.
-	 */
-	ItemPointerData persistentTid;
-	int64		persistentSerialNum;
-
-	/*
 	 * The number of blocks written since the beginning of the segment file.
 	 */
 	int64		bufferCount;

@@ -30,7 +30,6 @@
 #include "cdb/cdbappendonlystorageformat.h"
 #include "cdb/cdbappendonlystoragewrite.h"
 #include "cdb/cdbappendonlyxlog.h"
-#include "cdb/cdbmirroredfilesysobj.h"
 #include "utils/guc.h"
 
 

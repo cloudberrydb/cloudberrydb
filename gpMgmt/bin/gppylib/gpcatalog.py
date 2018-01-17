@@ -199,10 +199,9 @@ class GPCatalog():
 
     def _markMasterOnlyTables(self):
         """
-        We mark three types of catalog tables as "master only"
+        We mark two types of catalog tables as "master only"
           - True "master only" tables
           - Tables we know to have different contents on master/segment
-          - Persistent Tables
 
         While the later two are not technically "master only" they have
         the property that we cannot validate cross segment consistency,

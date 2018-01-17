@@ -6994,21 +6994,6 @@ StartupXLOG(void)
 		}
 
 		/*
-		 * In case where its not a clean shutdown but it doesn't have a record
-		 * following the checkpoint record, just proceed with the Pass 2, 3, 4
-		 * to clear any inconsistent entries in Persistent Tables without
-		 * doing the whole redo loop below.
-		 */
-		if (record == NULL)	
-		{
-			/*
-			 * There are no WAL records following the checkpoint
-			 */
-			ereport(LOG,
-					(errmsg("no record for redo after checkpoint, skip redo and proceed for recovery pass")));
-		}
-
-		/*
 		 * main redo apply loop, executed if we have record after checkpoint
 		 */
 		if (record != NULL)
