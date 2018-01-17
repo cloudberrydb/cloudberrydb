@@ -2245,8 +2245,9 @@ heap_insert(Relation relation, HeapTuple tup, CommandId cid,
 		Page		page = BufferGetPage(buffer);
 		uint8		info = XLOG_HEAP_INSERT;
 
-		xl_heaptid_set(&xlrec.target, relation, &heaptup->t_self);
 		xlrec.all_visible_cleared = all_visible_cleared;
+		xlrec.target.node = relation->rd_node;
+		xlrec.target.tid = heaptup->t_self;
 		rdata[0].data = (char *) &xlrec;
 		rdata[0].len = SizeOfHeapInsert;
 		rdata[0].buffer = InvalidBuffer;
@@ -2613,8 +2614,9 @@ l1:
 		XLogRecPtr	recptr;
 		XLogRecData rdata[2];
 
-		xl_heaptid_set(&xlrec.target, relation, &tp.t_self);
 		xlrec.all_visible_cleared = all_visible_cleared;
+		xlrec.target.node = relation->rd_node;
+		xlrec.target.tid = tp.t_self;
 		rdata[0].data = (char *) &xlrec;
 		rdata[0].len = SizeOfHeapDelete;
 		rdata[0].buffer = InvalidBuffer;
@@ -3028,7 +3030,8 @@ l2:
 			XLogRecPtr	recptr;
 			XLogRecData	rdata[2];
 
-			xl_heaptid_set(&xlrec.target, relation, &oldtup.t_self);
+			xlrec.target.node = relation->rd_node;
+			xlrec.target.tid = oldtup.t_self;
 
 			xlrec.locking_xid = xid;
 			xlrec.xid_is_mxact = false;
@@ -3872,7 +3875,8 @@ l3:
 		XLogRecPtr	recptr;
 		XLogRecData rdata[2];
 
-		xl_heaptid_set(&xlrec.target, relation, &tuple->t_self);
+		xlrec.target.node = relation->rd_node;
+		xlrec.target.tid = tuple->t_self;
 		xlrec.locking_xid = xid;
 		xlrec.xid_is_mxact = ((new_infomask & HEAP_XMAX_IS_MULTI) != 0);
 		xlrec.shared_lock = (mode == LockTupleShared);
@@ -3972,7 +3976,8 @@ heap_inplace_update(Relation relation, HeapTuple tuple)
 		XLogRecPtr	recptr;
 		XLogRecData rdata[2];
 
-		xl_heaptid_set(&xlrec.target, relation, &tuple->t_self);
+		xlrec.target.node = relation->rd_node;
+		xlrec.target.tid = tuple->t_self;
 
 		rdata[0].data = (char *) &xlrec;
 		rdata[0].len = SizeOfHeapInplace;
@@ -4320,7 +4325,7 @@ log_heap_newpage(Relation rel,
 
 	START_CRIT_SECTION();
 
-	xl_heapnode_set(&xlrec.heapnode, rel);
+	xlrec.node = rel->rd_node;
 	xlrec.blkno = bno;
 
 	rdata[0].data = (char*) &xlrec;
@@ -4362,7 +4367,7 @@ log_heap_clean(Relation reln, Buffer buffer,
 	/* Caller should not call me on a temp relation */
 	Assert(!reln->rd_istemp);
 
-	xl_heapnode_set(&xlrec.heapnode, reln);
+	xlrec.node = reln->rd_node;
 	xlrec.block = BufferGetBlockNumber(buffer);
 	xlrec.nredirected = nredirected;
 	xlrec.ndead = ndead;
@@ -4446,7 +4451,7 @@ log_heap_freeze(Relation reln, Buffer buffer,
 	/* nor when there are no tuples to freeze */
 	Assert(offcnt > 0);
 
-	xl_heapnode_set(&xlrec.heapnode, reln);
+	xlrec.node = reln->rd_node;
 	xlrec.block = BufferGetBlockNumber(buffer);
 	xlrec.cutoff_xid = cutoff_xid;
 
@@ -4501,8 +4506,6 @@ log_heap_update(Relation reln, Buffer oldbuf, ItemPointerData from,
 
 	/* Caller should not call me on a temp relation */
 	Assert(!reln->rd_istemp);
-
-	xl_heaptid_set(&xlrec.target, reln, &from);
 
 	if (move)
 	{
@@ -4611,7 +4614,7 @@ log_newpage_internal(xl_heap_newpage *xlrec, Page page)
 	XLogRecPtr	recptr;
 	XLogRecData rdata[2];
 
-	Assert(!RelFileNode_IsEmpty(&xlrec->heapnode.node));
+	Assert(!RelFileNode_IsEmpty(&xlrec->node));
 	Assert(BlockNumberIsValid(xlrec->blkno));
 
 	/* NO ELOG(ERROR) from here till newpage op is logged */
@@ -4653,7 +4656,7 @@ log_newpage_rel(Relation rel, ForkNumber forkNum, BlockNumber blkno, Page page)
 {
 	xl_heap_newpage xlrec;
 
-	xl_heapnode_set(&xlrec.heapnode, rel);
+	xlrec.node = rel->rd_node;
 	xlrec.forknum = forkNum;
 	xlrec.blkno = blkno;
 	return log_newpage_internal(&xlrec, page);
@@ -4670,7 +4673,7 @@ log_newpage_relFileNode(RelFileNode *relFileNode, ForkNumber forkNum, BlockNumbe
 {
 	xl_heap_newpage xlrec;
 
-	xlrec.heapnode.node = *relFileNode;
+	xlrec.node = *relFileNode;
 	xlrec.forknum = forkNum;
 	xlrec.blkno = blkno;
 	return log_newpage_internal(&xlrec, page);
@@ -4698,7 +4701,7 @@ heap_xlog_clean(XLogRecPtr lsn, XLogRecord *record, bool clean_move)
 	if (IsBkpBlockApplied(record, 0))
 		return;
 
-	buffer = XLogReadBuffer(xlrec->heapnode.node, xlrec->block, false);
+	buffer = XLogReadBuffer(xlrec->node, xlrec->block, false);
 	if (!BufferIsValid(buffer))
 		return;
 	page = (Page) BufferGetPage(buffer);
@@ -4743,7 +4746,7 @@ heap_xlog_clean(XLogRecPtr lsn, XLogRecord *record, bool clean_move)
 	 * We don't bother to update the FSM in that case, it doesn't need to be
 	 * totally accurate anyway.
 	 */
-	XLogRecordPageWithFreeSpace(xlrec->heapnode.node, xlrec->block, freespace);
+	XLogRecordPageWithFreeSpace(xlrec->node, xlrec->block, freespace);
 }
 
 static void
@@ -4757,7 +4760,7 @@ heap_xlog_freeze(XLogRecPtr lsn, XLogRecord *record)
 	if (IsBkpBlockApplied(record, 0))
 		return;
 
-	buffer = XLogReadBuffer(xlrec->heapnode.node, xlrec->block, false);
+	buffer = XLogReadBuffer(xlrec->node, xlrec->block, false);
 	if (!BufferIsValid(buffer))
 		return;
 	page = (Page) BufferGetPage(buffer);
@@ -4804,7 +4807,7 @@ heap_xlog_newpage(XLogRecPtr lsn, XLogRecord *record)
 	 * not do anything that assumes we are touching a heap.
 	 */
 
-	buffer = XLogReadBuffer(xlrec->heapnode.node, xlrec->blkno, true);
+	buffer = XLogReadBuffer(xlrec->node, xlrec->blkno, true);
 	Assert(BufferIsValid(buffer));
 	page = (Page) BufferGetPage(buffer);
 
@@ -5503,8 +5506,8 @@ heap_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record)
 		xl_heap_newpage *xlrec = (xl_heap_newpage *) rec;
 
 		appendStringInfo(buf, "newpage: rel %u/%u/%u; blk %u",
-						 xlrec->heapnode.node.spcNode, xlrec->heapnode.node.dbNode,
-						 xlrec->heapnode.node.relNode, xlrec->blkno);
+						 xlrec->node.spcNode, xlrec->node.dbNode,
+						 xlrec->node.relNode, xlrec->blkno);
 	}
 	else if (info == XLOG_HEAP_LOCK)
 	{
@@ -5568,13 +5571,13 @@ bool heap_getrelfilenode(
 	{
 		xl_heap_clean *xlrec = (xl_heap_clean *) data;
 
-		*relFileNode = xlrec->heapnode.node;
+		*relFileNode = xlrec->node;
 	}
 	else if (info == XLOG_HEAP_NEWPAGE)
 	{
 		xl_heap_newpage *xlrec = (xl_heap_newpage *) data;
 
-		*relFileNode = xlrec->heapnode.node;
+		*relFileNode = xlrec->node;
 	}
 	else if (info == XLOG_HEAP_LOCK)
 	{
@@ -5607,8 +5610,8 @@ heap2_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record)
 		xl_heap_freeze *xlrec = (xl_heap_freeze *) rec;
 
 		appendStringInfo(buf, "freeze: rel %u/%u/%u; blk %u; cutoff %u",
-						 xlrec->heapnode.node.spcNode, xlrec->heapnode.node.dbNode,
-						 xlrec->heapnode.node.relNode, xlrec->block,
+						 xlrec->node.spcNode, xlrec->node.dbNode,
+						 xlrec->node.relNode, xlrec->block,
 						 xlrec->cutoff_xid);
 	}
 	else if (info == XLOG_HEAP2_CLEAN)
@@ -5616,16 +5619,16 @@ heap2_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record)
 		xl_heap_clean *xlrec = (xl_heap_clean *) rec;
 
 		appendStringInfo(buf, "clean: rel %u/%u/%u; blk %u",
-						 xlrec->heapnode.node.spcNode, xlrec->heapnode.node.dbNode,
-						 xlrec->heapnode.node.relNode, xlrec->block);
+						 xlrec->node.spcNode, xlrec->node.dbNode,
+						 xlrec->node.relNode, xlrec->block);
 	}
 	else if (info == XLOG_HEAP2_CLEAN_MOVE)
 	{
 		xl_heap_clean *xlrec = (xl_heap_clean *) rec;
 
 		appendStringInfo(buf, "clean_move: rel %u/%u/%u; blk %u",
-						 xlrec->heapnode.node.spcNode, xlrec->heapnode.node.dbNode,
-						 xlrec->heapnode.node.relNode, xlrec->block);
+						 xlrec->node.spcNode, xlrec->node.dbNode,
+						 xlrec->node.relNode, xlrec->block);
 	}
 	else
 		appendStringInfo(buf, "UNKNOWN");

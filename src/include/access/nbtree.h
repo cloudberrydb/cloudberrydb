@@ -230,33 +230,6 @@ typedef struct xl_btreetid
 	ItemPointerData tid;		/* changed tuple id */
 } xl_btreetid;
 
-inline static void xl_btreetid_set(
-	struct xl_btreetid	*btreeid,
-
-	Relation rel,
-
-	BlockNumber itup_blkno,
-	
-	OffsetNumber itup_off)
-{
-	btreeid->node = rel->rd_node;
-	ItemPointerSet(&(btreeid->tid), itup_blkno, itup_off);
-}
-
-typedef struct xl_btreenode
-{
-	RelFileNode node;
-} xl_btreenode;
-
-inline static void xl_btreenode_set(
-	struct xl_btreenode	*btreenode,
-
-	Relation rel)
-{
-	btreenode->node = rel->rd_node;
-}
-
-
 /*
  * All that we need to regenerate the meta-data page
  */
@@ -337,7 +310,7 @@ typedef struct xl_btree_split
  */
 typedef struct xl_btree_delete
 {
-	xl_btreenode btreenode;
+	RelFileNode node;
 	BlockNumber block;
 	/* TARGET OFFSET NUMBERS FOLLOW AT THE END */
 } xl_btree_delete;
@@ -371,7 +344,7 @@ typedef struct xl_btree_delete_page
  */
 typedef struct xl_btree_newroot
 {
-	xl_btreenode btreenode;
+	RelFileNode node;
 	BlockNumber rootblk;		/* location of new root */
 	uint32		level;			/* its tree level */
 	/* 0 or 2 INDEX TUPLES FOLLOW AT END OF STRUCT */

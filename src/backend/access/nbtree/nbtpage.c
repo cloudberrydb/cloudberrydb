@@ -231,7 +231,7 @@ _bt_getroot(Relation rel, int access)
 			XLogRecPtr	recptr;
 			XLogRecData rdata;
 
-			xl_btreenode_set(&(xlrec.btreenode), rel);
+			xlrec.node = rel->rd_node;
 			xlrec.rootblk = rootblkno;
 			xlrec.level = 0;
 
@@ -696,7 +696,7 @@ _bt_delitems(Relation rel, Buffer buf,
 		XLogRecPtr	recptr;
 		XLogRecData rdata[2];
 
-		xl_btreenode_set(&(xlrec.btreenode), rel);
+		xlrec.node = rel->rd_node;
 		xlrec.block = BufferGetBlockNumber(buf);
 
 		rdata[0].data = (char *) &xlrec;
@@ -1236,7 +1236,8 @@ _bt_pagedel(Relation rel, Buffer buf, BTStack stack, bool vacuum_full)
 		XLogRecData rdata[5];
 		XLogRecData *nextrdata;
 
-		xl_btreetid_set(&(xlrec.target), rel, parent, poffset);
+		xlrec.target.node = rel->rd_node;
+		ItemPointerSet(&(xlrec.target.tid), parent, poffset);
 		xlrec.deadblk = target;
 		xlrec.leftblk = leftsib;
 		xlrec.rightblk = rightsib;

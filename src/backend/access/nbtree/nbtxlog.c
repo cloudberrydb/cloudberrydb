@@ -468,7 +468,7 @@ btree_xlog_delete(XLogRecPtr lsn, XLogRecord *record)
 
 	xlrec = (xl_btree_delete *) XLogRecGetData(record);
 
-	buffer = XLogReadBuffer(xlrec->btreenode.node, xlrec->block, false);
+	buffer = XLogReadBuffer(xlrec->node, xlrec->block, false);
 	if (!BufferIsValid(buffer))
 		return;
 	page = (Page) BufferGetPage(buffer);
@@ -660,7 +660,7 @@ btree_xlog_newroot(XLogRecPtr lsn, XLogRecord *record)
 	BTPageOpaque pageop;
 	BlockNumber downlink = 0;
 
-	buffer = XLogReadBuffer(xlrec->btreenode.node, xlrec->rootblk, true);
+	buffer = XLogReadBuffer(xlrec->node, xlrec->rootblk, true);
 	Assert(BufferIsValid(buffer));
 	page = (Page) BufferGetPage(buffer);
 
@@ -691,13 +691,13 @@ btree_xlog_newroot(XLogRecPtr lsn, XLogRecord *record)
 	MarkBufferDirty(buffer);
 	UnlockReleaseBuffer(buffer);
 
-	_bt_restore_meta(xlrec->btreenode.node, lsn,
+	_bt_restore_meta(xlrec->node, lsn,
 					 xlrec->rootblk, xlrec->level,
 					 xlrec->rootblk, xlrec->level);
 
 	/* Check to see if this satisfies any incomplete insertions */
 	if (record->xl_len > SizeOfBtreeNewroot)
-		forget_matching_split(xlrec->btreenode.node, downlink, true);
+		forget_matching_split(xlrec->node, downlink, true);
 }
 
 
@@ -957,8 +957,8 @@ btree_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record)
 				xl_btree_delete *xlrec = (xl_btree_delete *) rec;
 
 				appendStringInfo(buf, "delete: rel %u/%u/%u; blk %u",
-								 xlrec->btreenode.node.spcNode, xlrec->btreenode.node.dbNode,
-								 xlrec->btreenode.node.relNode, xlrec->block);
+								 xlrec->node.spcNode, xlrec->node.dbNode,
+								 xlrec->node.relNode, xlrec->block);
 				out_delete(buf, record);
 				break;
 			}
@@ -980,8 +980,8 @@ btree_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record)
 				xl_btree_newroot *xlrec = (xl_btree_newroot *) rec;
 
 				appendStringInfo(buf, "newroot: rel %u/%u/%u; root %u lev %u",
-								 xlrec->btreenode.node.spcNode, xlrec->btreenode.node.dbNode,
-								 xlrec->btreenode.node.relNode,
+								 xlrec->node.spcNode, xlrec->node.dbNode,
+								 xlrec->node.relNode,
 								 xlrec->rootblk, xlrec->level);
 				break;
 			}

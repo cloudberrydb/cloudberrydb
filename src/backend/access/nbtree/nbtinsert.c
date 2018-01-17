@@ -798,7 +798,8 @@ _bt_insertonpg(Relation rel,
 			XLogRecData *nextrdata;
 			IndexTupleData trunctuple;
 
-			xl_btreetid_set(&(xlrec.target), rel, itup_blkno, itup_off);
+			xlrec.target.node = rel->rd_node;
+			ItemPointerSet(&(xlrec.target.tid), itup_blkno, itup_off);
 
 			rdata[0].data = (char *) &xlrec;
 			rdata[0].len = SizeOfBtreeInsert;
@@ -1950,7 +1951,7 @@ _bt_newroot(Relation rel, Buffer lbuf, Buffer rbuf)
 		XLogRecPtr	recptr;
 		XLogRecData rdata[2];
 
-		xl_btreenode_set(&(xlrec.btreenode), rel);
+		xlrec.node = rel->rd_node;
 		xlrec.rootblk = rootblknum;
 		xlrec.level = metad->btm_level;
 

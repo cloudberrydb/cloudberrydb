@@ -54,23 +54,6 @@ typedef enum
 	LockTupleIfNotLocked/* if can't get lock right away, give up. no error */
 } LockTupleWaitType;
 
-inline static void xl_heaptid_set(
-	struct xl_heaptid	*heaptid,
-	Relation rel,
-	ItemPointer tid)
-{
-	heaptid->node = rel->rd_node;
-	heaptid->tid = *tid;
-}
-
-inline static void xl_heapnode_set(
-	struct xl_heapnode	*heapnode,
-
-	Relation rel)
-{
-	heapnode->node = rel->rd_node;
-}
-
 /* in heap/heapam.c */
 extern Relation relation_open(Oid relationId, LOCKMODE lockmode);
 extern Relation try_relation_open(Oid relationId, LOCKMODE lockmode, 

@@ -636,9 +636,9 @@ print_rmgr_heap2(XLogRecPtr cur, XLogRecord *record, uint8 info)
 			xl_heap_freeze xlrec;
 			memcpy(&xlrec, XLogRecGetData(record), sizeof(xlrec));
 			snprintf(buf, sizeof(buf), "freeze: ts %d db %d rel %d block %d cutoff_xid %d",
-				xlrec.heapnode.node.spcNode,
-				xlrec.heapnode.node.dbNode,
-				xlrec.heapnode.node.relNode,
+				xlrec.node.spcNode,
+				xlrec.node.dbNode,
+				xlrec.node.relNode,
 				xlrec.block, xlrec.cutoff_xid
 			);
 		}
@@ -661,9 +661,9 @@ print_rmgr_heap2(XLogRecPtr cur, XLogRecord *record, uint8 info)
 			getDbName(xlrec.node.dbNode, dbName, sizeof(dbName));
 			getRelName(xlrec.node.relNode, relName, sizeof(relName));
 #else
-			getSpaceName(xlrec.heapnode.node.spcNode, spaceName, sizeof(spaceName));
-			getDbName(xlrec.heapnode.node.dbNode, dbName, sizeof(dbName));
-			getRelName(xlrec.heapnode.node.relNode, relName, sizeof(relName));
+			getSpaceName(xlrec.node.spcNode, spaceName, sizeof(spaceName));
+			getDbName(xlrec.node.dbNode, dbName, sizeof(dbName));
+			getRelName(xlrec.node.relNode, relName, sizeof(relName));
 #endif
 
 			total_off = (record->xl_len - SizeOfHeapClean) / sizeof(OffsetNumber);
@@ -867,9 +867,9 @@ print_rmgr_heap(XLogRecPtr cur, XLogRecord *record, uint8 info, bool statements)
 			xl_heap_newpage xlrec;
 
 			memcpy(&xlrec, XLogRecGetData(record), sizeof(xlrec));
-			getSpaceName(xlrec.heapnode.node.spcNode, spaceName, sizeof(spaceName));
-			getDbName(xlrec.heapnode.node.dbNode, dbName, sizeof(dbName));
-			getRelName(xlrec.heapnode.node.relNode, relName, sizeof(relName));
+			getSpaceName(xlrec.node.spcNode, spaceName, sizeof(spaceName));
+			getDbName(xlrec.node.dbNode, dbName, sizeof(dbName));
+			getRelName(xlrec.node.relNode, relName, sizeof(relName));
 			snprintf(buf, sizeof(buf), "newpage: s/d/r:%s/%s/%s block %u", 
 					spaceName, dbName, relName,
 				   xlrec.blkno);
@@ -1105,9 +1105,9 @@ print_rmgr_btree(XLogRecPtr cur, XLogRecord *record, uint8 info)
 			xl_btree_delete xlrec;
 
 			memcpy(&xlrec, XLogRecGetData(record), sizeof(xlrec));
-			getSpaceName(xlrec.btreenode.node.spcNode, spaceName, sizeof(spaceName));
-			getDbName(xlrec.btreenode.node.dbNode, dbName, sizeof(dbName));
-			getRelName(xlrec.btreenode.node.relNode, relName, sizeof(relName));
+			getSpaceName(xlrec.node.spcNode, spaceName, sizeof(spaceName));
+			getDbName(xlrec.node.dbNode, dbName, sizeof(dbName));
+			getRelName(xlrec.node.relNode, relName, sizeof(relName));
 			snprintf(buf, sizeof(buf), "delete: s/d/r:%s/%s/%s block %u", 
 					spaceName, dbName,	relName,
 				   	xlrec.block);
@@ -1155,9 +1155,9 @@ print_rmgr_btree(XLogRecPtr cur, XLogRecord *record, uint8 info)
 			xl_btree_newroot xlrec;
 
 			memcpy(&xlrec, XLogRecGetData(record), sizeof(xlrec));
-			getSpaceName(xlrec.btreenode.node.spcNode, spaceName, sizeof(spaceName));
-			getDbName(xlrec.btreenode.node.dbNode, dbName, sizeof(dbName));
-			getRelName(xlrec.btreenode.node.relNode, relName, sizeof(relName));
+			getSpaceName(xlrec.node.spcNode, spaceName, sizeof(spaceName));
+			getDbName(xlrec.node.dbNode, dbName, sizeof(dbName));
+			getRelName(xlrec.node.relNode, relName, sizeof(relName));
 
 			snprintf(buf, sizeof(buf), "newroot: s/d/r:%s/%s/%s rootblk %u level %u", 
 					spaceName, dbName, relName,
