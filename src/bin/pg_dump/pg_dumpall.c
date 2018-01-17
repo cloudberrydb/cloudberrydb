@@ -595,7 +595,6 @@ help(void)
 	printf(_("Usage:\n"));
 	printf(_("  %s [OPTION]...\n"), progname);
 
-
 	printf(_("\nGeneral options:\n"));
 	printf(_("  -f, --file=FILENAME         output file name\n"));
 	printf(_("  --lock-wait-timeout=TIMEOUT fail after waiting TIMEOUT for a table lock\n"));

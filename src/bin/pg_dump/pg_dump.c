@@ -955,7 +955,7 @@ main(int argc, char **argv)
 	 * Now scan the database and create DumpableObject structs for all the
 	 * objects we intend to dump.
 	 */
-	tblinfo = getSchemaData(&numTables, 1);
+	tblinfo = getSchemaData(&numTables);
 
 	if (g_fout->remoteVersion < 80400)
 		guessConstraintInheritance(tblinfo, numTables);
