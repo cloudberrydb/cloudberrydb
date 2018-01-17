@@ -2376,21 +2376,6 @@ frozen_heap_insert(Relation relation, HeapTuple tup)
 	return result;
 }
 
-Oid
-frozen_heap_insert_directed(
-	Relation 		relation, 
-	HeapTuple 		tup, 
-	BlockNumber 	blockNum)
-{
-	Oid result;
-
-	relation->rd_targblock = blockNum;
-	result = heap_insert(relation, tup, GetCurrentCommandId(true),
-						 0, NULL,
-						 FrozenTransactionId);
-	return result;
-}
-
 /*
  * heap_trace_current_tuple
  *
