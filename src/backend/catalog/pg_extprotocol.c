@@ -36,6 +36,7 @@
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
+#include "utils/tqual.h"
 
 static Oid ValidateProtocolFunction(List *fnName, ExtPtcFuncType fntype);
 static char *func_type_to_name(ExtPtcFuncType ftype);

@@ -48,7 +48,7 @@
 #include "utils/relcache.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
-
+#include "utils/tqual.h"
 
 #include "catalog/pg_authid.h"
 #include "catalog/pg_database.h"

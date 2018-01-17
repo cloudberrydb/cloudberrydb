@@ -30,6 +30,7 @@
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
+#include "utils/tqual.h"
 
 /* initial estimate for number of logical indexes */
 #define INITIAL_NUM_LOGICAL_INDEXES_ESTIMATE 100

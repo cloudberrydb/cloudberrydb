@@ -35,6 +35,7 @@
 #include "postmaster/autostats.h"
 #include "postmaster/backoff.h"
 #include "utils/resscheduler.h"
+#include "utils/tqual.h"
 
 
 /*

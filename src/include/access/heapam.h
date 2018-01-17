@@ -23,7 +23,7 @@
 #include "storage/lock.h"
 #include "utils/relcache.h"
 #include "utils/snapshot.h"
-#include "utils/tqual.h"
+
 
 /* "options" flag bits for heap_insert */
 #define HEAP_INSERT_SKIP_WAL	0x0001

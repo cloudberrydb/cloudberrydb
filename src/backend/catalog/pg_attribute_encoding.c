@@ -14,7 +14,6 @@
  */
 
 #include "postgres.h"
-#include "fmgr.h"
 
 #include "access/genam.h"
 #include "access/reloptions.h"
@@ -23,6 +22,7 @@
 #include "catalog/pg_attribute_encoding.h"
 #include "catalog/pg_compression.h"
 #include "catalog/dependency.h"
+#include "fmgr.h"
 #include "parser/analyze.h"
 #include "utils/builtins.h"
 #include "utils/datum.h"
@@ -32,6 +32,7 @@
 #include "utils/rel.h"
 #include "utils/relcache.h"
 #include "utils/syscache.h"
+#include "utils/tqual.h"
 
 /*
  * Add a single attribute encoding entry.

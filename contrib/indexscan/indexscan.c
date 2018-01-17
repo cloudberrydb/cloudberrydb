@@ -9,6 +9,7 @@
 #include "access/nbtree.h"
 #include "utils/builtins.h"
 #include "utils/rel.h"
+#include "utils/tqual.h"
 
 PG_MODULE_MAGIC;
 

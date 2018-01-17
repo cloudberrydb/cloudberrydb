@@ -50,6 +50,7 @@
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
 #include "utils/fmgroids.h"
+#include "utils/tqual.h"
 #include "funcapi.h"
 
 /* Hook for plugins to get control in get_attavgwidth() */
