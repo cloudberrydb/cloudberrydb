@@ -29,6 +29,7 @@
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 #include "utils/tqual.h"
+#include "utils/syscache.h"
 
 static void extract_INT2OID_array(Datum array_datum, int *lenp, int16 **vecp);
 
@@ -106,7 +107,6 @@ GpPolicy *
 GpPolicyCopy(MemoryContext mcxt, const GpPolicy *src)
 {
 	GpPolicy   *tgt;
-	size_t	nb;
 	int i;
 
 	if (!src)
@@ -223,9 +223,6 @@ GpPolicy *
 GpPolicyFetch(MemoryContext mcxt, Oid tbloid)
 {
 	GpPolicy   *policy = NULL;	/* The result */
-	Relation	gp_policy_rel;
-	ScanKeyData scankey;
-	SysScanDesc scan;
 	HeapTuple	gp_policy_tuple = NULL;
 
 	/*
@@ -263,23 +260,12 @@ GpPolicyFetch(MemoryContext mcxt, Oid tbloid)
 	}
 
 	/*
-	 * We need to read the gp_distribution_policy table
-	 */
-	gp_policy_rel = heap_open(GpPolicyRelationId, AccessShareLock);
-
-	/*
 	 * Select by value of the localoid field
 	 *
 	 * SELECT * FROM gp_distribution_policy WHERE localoid = :1
 	 */
-	ScanKeyInit(&scankey, Anum_gp_policy_localoid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(tbloid));
-
-	scan = systable_beginscan(gp_policy_rel, GpPolicyLocalOidIndexId, true,
-							  SnapshotNow, 1, &scankey);
-
-	gp_policy_tuple = systable_getnext(scan);
+	gp_policy_tuple = SearchSysCache1(GPPOLICYID,
+									 ObjectIdGetDatum(tbloid));
 
 	/*
 	 * Read first (and only) tuple
@@ -292,8 +278,11 @@ GpPolicyFetch(MemoryContext mcxt, Oid tbloid)
 					nattrs = 0;
 		int16	   *attrnums = NULL;
 
-		attr = heap_getattr(gp_policy_tuple, Anum_gp_policy_type,
-				RelationGetDescr(gp_policy_rel), &isNull);
+		attr = SysCacheGetAttr(GPPOLICYID, gp_policy_tuple,
+							   Anum_gp_policy_type,
+							   &isNull);
+
+		Assert(!isNull);
 
 		char ptype = DatumGetChar(attr);
 
@@ -306,8 +295,9 @@ GpPolicyFetch(MemoryContext mcxt, Oid tbloid)
 				/*
 				 * Get the attributes on which to partition.
 				 */
-				attr = heap_getattr(gp_policy_tuple, Anum_gp_policy_attrnums,
-						RelationGetDescr(gp_policy_rel), &isNull);
+				attr = SysCacheGetAttr(GPPOLICYID, gp_policy_tuple,
+									   Anum_gp_policy_attrnums,
+									   &isNull);
 
 				/*
 				 * Get distribution keys only if this table has a policy.
@@ -327,15 +317,12 @@ GpPolicyFetch(MemoryContext mcxt, Oid tbloid)
 				}
 				break;
 			default:
+				ReleaseSysCache(gp_policy_tuple);
 				elog(ERROR, "unrecognized distribution policy type");	
 		}
-	}
 
-	/*
-	 * Cleanup the scan and relation objects.
-	 */
-	systable_endscan(scan);
-	heap_close(gp_policy_rel, AccessShareLock);
+		ReleaseSysCache(gp_policy_tuple);
+	}
 
 	/* Interpret absence of a valid policy row as POLICYTYPE_ENTRY */
 	if (policy == NULL)

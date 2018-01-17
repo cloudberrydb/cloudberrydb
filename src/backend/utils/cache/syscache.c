@@ -404,6 +404,17 @@ static const struct cachedesc cacheinfo[] = {
 		},
 		32
 	},
+	{GpPolicyRelationId,	/* GPPOLICYID */
+		GpPolicyLocalOidIndexId,
+		1,
+		{
+			Anum_gp_policy_localoid,
+			0,
+			0,
+			0
+		},
+		1024
+	},
 	{IndexRelationId,			/* INDEXRELID */
 		IndexRelidIndexId,
 		1,
