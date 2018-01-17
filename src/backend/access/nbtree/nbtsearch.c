@@ -930,7 +930,6 @@ _bt_next(IndexScanDesc scan, ScanDirection dir)
 	 * Advance to next tuple on current page; or if there's no more, try to
 	 * step to the next page with data.
 	 */
-
 	if (ScanDirectionIsForward(dir))
 	{
 		if (++so->currPos.itemIndex > so->currPos.lastItem)

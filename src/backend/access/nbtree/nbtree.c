@@ -141,7 +141,6 @@ btbuild(PG_FUNCTION_ARGS)
 	 */
 	_bt_leafbuild(buildstate.spool, buildstate.spool2);
 	_bt_spooldestroy(buildstate.spool);
-
 	if (buildstate.spool2)
 		_bt_spooldestroy(buildstate.spool2);
 
@@ -982,6 +981,7 @@ btvacuumpage(BTVacState *vstate, BlockNumber blkno, BlockNumber orig_blkno)
 	Buffer		buf;
 	Page		page;
 	BTPageOpaque opaque;
+
 restart:
 	delete_now = false;
 	recurse_to = P_NONE;

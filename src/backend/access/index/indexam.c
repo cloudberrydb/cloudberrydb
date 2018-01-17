@@ -189,23 +189,19 @@ index_insert(Relation indexRelation,
 {
 	FmgrInfo   *procedure;
 
-	bool result;
-
 	RELATION_CHECKS;
 	GET_REL_PROCEDURE(aminsert);
 
 	/*
 	 * have the am's insert proc do all the work.
 	 */
-	result = DatumGetBool(FunctionCall6(procedure,
+	return DatumGetBool(FunctionCall6(procedure,
 									  PointerGetDatum(indexRelation),
 									  PointerGetDatum(values),
 									  PointerGetDatum(isnull),
 									  PointerGetDatum(heap_t_ctid),
 									  PointerGetDatum(heapRelation),
 									  BoolGetDatum(check_uniqueness)));
-
-	return result;
 }
 
 /*

@@ -13,13 +13,12 @@
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
+
 #include "access/nbtree.h"
 #include "access/transam.h"
 #include "storage/bufmgr.h"
 
 #include "access/bufmask.h"
-#include "miscadmin.h"
-#include "utils/guc.h"
 
 /*
  * We must keep track of expected insertions due to page splits, and apply
@@ -252,7 +251,7 @@ btree_xlog_insert(bool isleaf, bool ismeta,
 		_bt_restore_meta(xlrec->target.node, lsn,
 						 md.root, md.level,
 						 md.fastroot, md.fastlevel);
-	
+
 	/* Forget any split this insertion completes */
 	if (!isleaf)
 		forget_matching_split(xlrec->target.node, downlink, false);

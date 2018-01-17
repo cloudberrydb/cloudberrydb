@@ -694,9 +694,10 @@ _bt_load(BTWriteState *wstate, BTSpool *btspool, BTSpool *btspool2)
 		 */
 
 		/* the preparation of merge */
-		itup = tuplesort_getindextuple(btspool->sortstate, true, &should_free);
-		itup2 = tuplesort_getindextuple(btspool2->sortstate, true, &should_free2);
-
+		itup = tuplesort_getindextuple(btspool->sortstate,
+									   true, &should_free);
+		itup2 = tuplesort_getindextuple(btspool2->sortstate,
+										true, &should_free2);
 		indexScanKey = _bt_mkscankey_nodata(wstate->index);
 
 		for (;;)
@@ -767,7 +768,8 @@ _bt_load(BTWriteState *wstate, BTSpool *btspool, BTSpool *btspool2)
 				_bt_buildadd(wstate, state, itup);
 				if (should_free)
 					pfree(itup);
-				itup = tuplesort_getindextuple(btspool->sortstate, true, &should_free);
+				itup = tuplesort_getindextuple(btspool->sortstate,
+											   true, &should_free);
 			}
 			else
 			{

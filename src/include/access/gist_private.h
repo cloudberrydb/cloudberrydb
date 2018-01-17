@@ -128,11 +128,6 @@ typedef struct gistxlogPageSplit
 	 */
 } gistxlogPageSplit;
 
-typedef struct gistxlogCreateIndex
-{
-	RelFileNode 	node;
-} gistxlogCreateIndex;
-
 typedef struct gistxlogPage
 {
 	BlockNumber blkno;
@@ -260,15 +255,13 @@ extern bool gist_safe_restartpoint(void);
 extern IndexTuple gist_form_invalid_tuple(BlockNumber blkno);
 extern void gist_mask(char *pagedata, BlockNumber blkno);
 
-extern XLogRecData *formUpdateRdata(Relation r, Buffer buffer,
+extern XLogRecData *formUpdateRdata(RelFileNode node, Buffer buffer,
 				OffsetNumber *todelete, int ntodelete,
 				IndexTuple *itup, int ituplen, ItemPointer key);
 
-extern XLogRecData *formSplitRdata(Relation r,
+extern XLogRecData *formSplitRdata(RelFileNode node,
 			   BlockNumber blkno, bool page_is_leaf,
 			   ItemPointer key, SplitedPageLayout *dist);
-
-extern XLogRecData *formCreateRData(Relation r);
 
 extern XLogRecPtr gistxlogInsertCompletion(RelFileNode node, ItemPointerData *keys, int len);
 

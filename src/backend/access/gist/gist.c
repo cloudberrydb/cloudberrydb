@@ -118,11 +118,14 @@ gistbuild(PG_FUNCTION_ARGS)
 	if (!index->rd_istemp)
 	{
 		XLogRecPtr	recptr;
-		XLogRecData *rdata;
-		
-		rdata = formCreateRData(index);
+		XLogRecData rdata;
 
-		recptr = XLogInsert(RM_GIST_ID, XLOG_GIST_CREATE_INDEX, rdata);
+		rdata.data = (char *) &(index->rd_node);
+		rdata.len = sizeof(RelFileNode);
+		rdata.buffer = InvalidBuffer;
+		rdata.next = NULL;
+
+		recptr = XLogInsert(RM_GIST_ID, XLOG_GIST_CREATE_INDEX, &rdata);
 		PageSetLSN(page, recptr);
 	}
 	else
@@ -402,7 +405,7 @@ gistplacetopage(GISTInsertState *state, GISTSTATE *giststate)
 			XLogRecPtr	recptr;
 			XLogRecData *rdata;
 
-			rdata = formSplitRdata(state->r, state->stack->blkno,
+			rdata = formSplitRdata(state->r->rd_node, state->stack->blkno,
 								   is_leaf, &(state->key), dist);
 
 			recptr = XLogInsert(RM_GIST_ID, XLOG_GIST_PAGE_SPLIT, rdata);
@@ -474,7 +477,7 @@ gistplacetopage(GISTInsertState *state, GISTSTATE *giststate)
 				noffs = 1;
 			}
 
-			rdata = formUpdateRdata(state->r, state->stack->buffer,
+			rdata = formUpdateRdata(state->r->rd_node, state->stack->buffer,
 									offs, noffs,
 									state->itup, state->ituplen,
 									&(state->key));
@@ -1025,7 +1028,7 @@ gistnewroot(Relation r, Buffer buffer, IndexTuple *itup, int len, ItemPointer ke
 		XLogRecPtr	recptr;
 		XLogRecData *rdata;
 
-		rdata = formUpdateRdata(r, buffer,
+		rdata = formUpdateRdata(r->rd_node, buffer,
 								NULL, 0,
 								itup, len, key);
 

@@ -15,7 +15,6 @@
 #include "postgres.h"
 
 #include "access/genam.h"
-#include "access/heapam.h"
 #include "access/gist_private.h"
 #include "catalog/storage.h"
 #include "commands/vacuum.h"
@@ -25,6 +24,7 @@
 #include "storage/indexfsm.h"
 #include "storage/lmgr.h"
 #include "utils/memutils.h"
+
 
 typedef struct GistBulkDeleteResult
 {
@@ -153,11 +153,8 @@ vacuumSplitPage(GistVacuum *gv, Page tempPage, Buffer buffer, IndexTuple *addon,
 			   *ptr;
 	int			i,
 				veclen = 0;
-	BlockNumber blkno;
-	MemoryContext oldCtx;
-
-	blkno = BufferGetBlockNumber(buffer);
-	oldCtx = MemoryContextSwitchTo(gv->opCtx);
+	BlockNumber blkno = BufferGetBlockNumber(buffer);
+	MemoryContext oldCtx = MemoryContextSwitchTo(gv->opCtx);
 
 	vec = gistextractpage(tempPage, &veclen);
 	vec = gistjoinvector(vec, &veclen, addon, curlenaddon);
@@ -230,7 +227,7 @@ vacuumSplitPage(GistVacuum *gv, Page tempPage, Buffer buffer, IndexTuple *addon,
 
 		ItemPointerSet(&key, blkno, TUPLE_IS_VALID);
 
-		rdata = formSplitRdata(gv->index, blkno,
+		rdata = formSplitRdata(gv->index->rd_node, blkno,
 							   false, &key, dist);
 		xlinfo = rdata->data;
 
@@ -448,7 +445,7 @@ gistVacuumUpdate(GistVacuum *gv, BlockNumber blkno, bool needunion)
 				XLogRecPtr	recptr;
 				char	   *xlinfo;
 
-				rdata = formUpdateRdata(gv->index, buffer,
+				rdata = formUpdateRdata(gv->index->rd_node, buffer,
 										offToDelete, nOffToDelete,
 										addon, curlenaddon, NULL);
 				xlinfo = rdata->next->data;
@@ -481,6 +478,7 @@ gistVacuumUpdate(GistVacuum *gv, BlockNumber blkno, bool needunion)
 		if (ncompleted && !gv->index->rd_istemp)
 			gistxlogInsertCompletion(gv->index->rd_node, completed, ncompleted);
 	}
+
 
 	for (i = 0; i < curlenaddon; i++)
 		pfree(addon[i]);
@@ -608,6 +606,7 @@ gistvacuumcleanup(PG_FUNCTION_ARGS)
 	if (info->vacuum_full && lastFilledBlock < lastBlock)
 	{							/* try to truncate index */
 		RelationTruncate(rel, lastFilledBlock + 1);
+
 		stats->std.pages_removed = lastBlock - lastFilledBlock;
 		totFreePages = totFreePages - stats->std.pages_removed;
 	}
@@ -711,7 +710,6 @@ gistbulkdelete(PG_FUNCTION_ARGS)
 			{
 				/* only the root can become non-leaf during relock */
 				UnlockReleaseBuffer(buffer);
-
 				/* one more check */
 				continue;
 			}
@@ -759,7 +757,7 @@ gistbulkdelete(PG_FUNCTION_ARGS)
 					XLogRecPtr	recptr;
 					gistxlogPageUpdate *xlinfo;
 
-					rdata = formUpdateRdata(rel, buffer,
+					rdata = formUpdateRdata(rel->rd_node, buffer,
 											todelete, ntodelete,
 											NULL, 0,
 											NULL);

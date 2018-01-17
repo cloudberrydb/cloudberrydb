@@ -32,7 +32,7 @@ static bool gistindex_keytest(IndexTuple tuple, IndexScanDesc scan,
 static void
 killtuple(Relation r, GISTScanOpaque so, ItemPointer iptr)
 {
-	Page        p;
+	Page		p;
 	OffsetNumber offset;
 
 	LockBuffer(so->curbuf, GIST_SHARE);
@@ -44,7 +44,6 @@ killtuple(Relation r, GISTScanOpaque so, ItemPointer iptr)
 		/* page unchanged, so all is simple */
 		offset = ItemPointerGetOffsetNumber(iptr);
 		ItemIdMarkDead(PageGetItemId(p, offset));
-
 		MarkBufferDirtyHint(so->curbuf, r);
 	}
 	else
@@ -53,7 +52,7 @@ killtuple(Relation r, GISTScanOpaque so, ItemPointer iptr)
 
 		for (offset = FirstOffsetNumber; offset <= maxoff; offset = OffsetNumberNext(offset))
 		{
-			IndexTuple  ituple = (IndexTuple) PageGetItem(p, PageGetItemId(p, offset));
+			IndexTuple	ituple = (IndexTuple) PageGetItem(p, PageGetItemId(p, offset));
 
 			if (ItemPointerEquals(&(ituple->t_tid), iptr))
 			{

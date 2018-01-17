@@ -365,7 +365,6 @@ systable_recheck_tuple(SysScanDesc sysscan, HeapTuple tup)
 											  scan->rs_cbuf);
 		LockBuffer(scan->rs_cbuf, BUFFER_LOCK_UNLOCK);
 	}
-
 	return result;
 }
 

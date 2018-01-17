@@ -366,7 +366,6 @@ heapgettup(HeapScanDesc scan,
 			 */
 			if (scan->rs_nblocks == 0)
 			{
-				
 				Assert(!BufferIsValid(scan->rs_cbuf));
 				tuple->t_data = NULL;
 				return;
@@ -1520,6 +1519,7 @@ HeapTuple
 heap_getnext(HeapScanDesc scan, ScanDirection direction)
 {
 	/* Note: no locking manipulations needed */
+
 	HEAPDEBUG_1;				/* heap_getnext( info ) */
 
 	if (scan->rs_pageatatime)
@@ -1695,7 +1695,6 @@ heap_fetch(Relation relation,
 	/*
 	 * Fetch and pin the appropriate page of the relation.
 	 */
-
 	buffer = ReadBuffer(relation, ItemPointerGetBlockNumber(tid));
 
 	/*
@@ -1712,7 +1711,6 @@ heap_fetch(Relation relation,
 	if (offnum < FirstOffsetNumber || offnum > PageGetMaxOffsetNumber(page))
 	{
 		LockBuffer(buffer, BUFFER_LOCK_UNLOCK);
-
 		if (keep_buf)
 			*userbuf = buffer;
 		else
@@ -1735,7 +1733,6 @@ heap_fetch(Relation relation,
 	if (!ItemIdIsNormal(lp))
 	{
 		LockBuffer(buffer, BUFFER_LOCK_UNLOCK);
-
 		if (keep_buf)
 			*userbuf = buffer;
 		else
@@ -2073,6 +2070,7 @@ UpdateXmaxHintBits(HeapTupleHeader tuple, Buffer buffer, TransactionId xid, Rela
 								 InvalidTransactionId);
 	}
 }
+
 
 /*
  * GetBulkInsertState - prepare status object for a bulk insert
@@ -2456,7 +2454,7 @@ heap_delete(Relation relation, ItemPointer tid,
 
 	Assert(ItemPointerIsValid(tid));
 	Assert(RelationIsHeap(relation));
-	
+
 	buffer = ReadBuffer(relation, ItemPointerGetBlockNumber(tid));
 	LockBuffer(buffer, BUFFER_LOCK_EXCLUSIVE);
 
@@ -2488,7 +2486,7 @@ l1:
 		infomask = tp.t_data->t_infomask;
 
 		LockBuffer(buffer, BUFFER_LOCK_UNLOCK);
-		
+
 		/*
 		 * Acquire tuple lock to establish our priority for the tuple (see
 		 * heap_lock_tuple).  LockTuple will release us when we are
@@ -2514,7 +2512,7 @@ l1:
 		{
 			/* wait for multixact */
 			MultiXactIdWait((MultiXactId) xwait);
-			
+
 			LockBuffer(buffer, BUFFER_LOCK_EXCLUSIVE);
 
 			/*
@@ -2541,7 +2539,6 @@ l1:
 		{
 			/* wait for regular transaction to end */
 			XactLockTableWait(xwait);
-
 			LockBuffer(buffer, BUFFER_LOCK_EXCLUSIVE);
 
 			/*
@@ -2585,7 +2582,6 @@ l1:
 		*ctid = tp.t_data->t_ctid;
 		*update_xmax = HeapTupleHeaderGetXmax(tp.t_data);
 		UnlockReleaseBuffer(buffer);
-
 		if (have_tuple_lock)
 			UnlockTuple(relation, &(tp.t_self), ExclusiveLock);
 		return result;
@@ -2790,7 +2786,7 @@ heap_update_internal(Relation relation, ItemPointer otid, HeapTuple newtup,
 
 	Assert(ItemPointerIsValid(otid));
 	Assert(!(RelationIsAoRows(relation) || RelationIsAoCols(relation)));
-	
+
 	/*
 	 * Fetch the list of attributes to be checked for HOT update.  This is
 	 * wasted effort if we fail to update or have to put the new tuple on a
@@ -2872,7 +2868,6 @@ l2:
 		{
 			/* wait for multixact */
 			MultiXactIdWait((MultiXactId) xwait);
-
 			LockBuffer(buffer, BUFFER_LOCK_EXCLUSIVE);
 
 			/*
@@ -2899,7 +2894,6 @@ l2:
 		{
 			/* wait for regular transaction to end */
 			XactLockTableWait(xwait);
-
 			LockBuffer(buffer, BUFFER_LOCK_EXCLUSIVE);
 
 			/*
@@ -2949,7 +2943,6 @@ l2:
 			heap_trace_current_tuple("heap_update", &oldtup);
 		}
 		UnlockReleaseBuffer(buffer);
-
 		if (have_tuple_lock)
 			UnlockTuple(relation, &(oldtup.t_self), ExclusiveLock);
 		bms_free(hot_attrs);
@@ -3109,7 +3102,6 @@ l2:
 		 * while not holding the lock on the old page, and we must rely on it
 		 * to get the locks on both pages in the correct order.
 		 */
-
 		if (newtupsize > pagefree)
 		{
 			/* Assume there's no chance to put heaptup on same page. */
@@ -3552,7 +3544,7 @@ heap_lock_tuple(Relation relation, HeapTuple tuple, Buffer *buffer,
 	bool		have_tuple_lock = false;
 
 	tuple_lock_type = (mode == LockTupleShared) ? ShareLock : ExclusiveLock;
-	
+
 	*buffer = ReadBuffer(relation, ItemPointerGetBlockNumber(tid));
 	LockBuffer(*buffer, BUFFER_LOCK_EXCLUSIVE);
 
@@ -3636,7 +3628,6 @@ l3:
 			 * Acquiring sharelock when there's at least one sharelocker
 			 * already.  We need not wait for him/them to complete.
 			 */
-
 			LockBuffer(*buffer, BUFFER_LOCK_EXCLUSIVE);
 
 			/*
@@ -3741,7 +3732,6 @@ l3:
 		*ctid = tuple->t_data->t_ctid;
 		*update_xmax = HeapTupleHeaderGetXmax(tuple->t_data);
 		LockBuffer(*buffer, BUFFER_LOCK_UNLOCK);
-
 		if (have_tuple_lock)
 			UnlockTuple(relation, tid, tuple_lock_type);
 		return result;
@@ -3770,7 +3760,6 @@ l3:
 		TransactionIdIsCurrentTransactionId(xmax))
 	{
 		LockBuffer(*buffer, BUFFER_LOCK_UNLOCK);
-
 		/* Probably can't hold tuple lock here, but may as well check */
 		if (have_tuple_lock)
 			UnlockTuple(relation, tid, tuple_lock_type);
@@ -4024,6 +4013,7 @@ heap_inplace_update(Relation relation, HeapTuple tuple)
 	if (!IsBootstrapProcessingMode())
 		CacheInvalidateHeapTuple(relation, tuple);
 }
+
 
 /*
  * heap_freeze_tuple
@@ -5088,7 +5078,6 @@ heap_xlog_update(XLogRecPtr lsn, XLogRecord *record, bool move, bool hot_update)
 	{
 		if (samepage)
 			return;				/* backup block covered both changes */
-		
 		goto newt;
 	}
 
@@ -5164,6 +5153,7 @@ heap_xlog_update(XLogRecPtr lsn, XLogRecord *record, bool move, bool hot_update)
 	/* Deal with new tuple */
 
 newt:;
+
 	/*
 	 * The visibility map always needs to be updated, even if the heap page is
 	 * already up-to-date.
@@ -5302,6 +5292,7 @@ heap_xlog_lock(XLogRecPtr lsn, XLogRecord *record)
 	if (!BufferIsValid(buffer))
 		return;
 	page = (Page) BufferGetPage(buffer);
+
 	if (XLByteLE(lsn, PageGetLSN(page)))		/* changes are applied */
 	{
 		UnlockReleaseBuffer(buffer);
@@ -5359,6 +5350,7 @@ heap_xlog_inplace(XLogRecPtr lsn, XLogRecord *record)
 	if (!BufferIsValid(buffer))
 		return;
 	page = (Page) BufferGetPage(buffer);
+
 	if (XLByteLE(lsn, PageGetLSN(page)))		/* changes are applied */
 	{
 		UnlockReleaseBuffer(buffer);

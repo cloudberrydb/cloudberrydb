@@ -446,7 +446,7 @@ ginScanToDelete(GinVacuumState *gvs, BlockNumber blkno, bool isRoot, DataPageDel
 			}
 		}
 	}
-	
+
 	ReleaseBuffer(buffer);
 
 	if (!meDelete)
@@ -688,7 +688,7 @@ ginbulkdelete(PG_FUNCTION_ARGS)
 									RBM_NORMAL, info->strategy);
 		LockBuffer(buffer, GIN_EXCLUSIVE);
 	}
-	
+
 	PG_RETURN_POINTER(gvs.result);
 }
 

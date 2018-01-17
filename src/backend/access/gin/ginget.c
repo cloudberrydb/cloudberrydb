@@ -13,6 +13,7 @@
  */
 
 #include "postgres.h"
+
 #include "access/gin.h"
 #include "access/relscan.h"
 #include "catalog/index.h"
@@ -1227,7 +1228,7 @@ gingetbitmap(PG_FUNCTION_ARGS)
 		elog(ERROR, "non hash bitmap");
 	else
 		tbm = (TIDBitmap *)n;
- 
+
 	if (GinIsNewKey(scan))
 		newScanKey(scan);
 
@@ -1267,7 +1268,7 @@ gingetbitmap(PG_FUNCTION_ARGS)
 		else
 			tbm_add_tuples(tbm, &iptr, 1, recheck);
 		ntids++;
-	}	
+	}
 
 	PG_RETURN_POINTER(tbm);
 }

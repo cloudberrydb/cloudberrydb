@@ -162,7 +162,7 @@ top:
 	/* do the insertion */
 	_bt_findinsertloc(rel, &buf, &offset, natts, itup_scankey, itup);
 	_bt_insertonpg(rel, buf, stack, itup, offset, false);
-	
+
 	/* be tidy */
 	_bt_freestack(stack);
 	_bt_freeskey(itup_scankey);

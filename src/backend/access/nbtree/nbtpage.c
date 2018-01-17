@@ -177,7 +177,7 @@ _bt_getroot(Relation rel, int access)
 			_bt_relbuf(rel, metabuf);
 			return InvalidBuffer;
 		}
-		
+
 		/* trade in our read lock for a write lock */
 		LockBuffer(metabuf, BUFFER_LOCK_UNLOCK);
 		LockBuffer(metabuf, BT_WRITE);

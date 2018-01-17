@@ -21,7 +21,6 @@
 #include "utils/memutils.h"
 #include "utils/rel.h"
 
-#include "utils/guc.h"
 
 typedef struct
 {
@@ -209,6 +208,7 @@ gistRedoPageUpdateRecord(XLogRecPtr lsn, XLogRecord *record, bool isnewroot)
 		return;
 
 	decodePageUpdateRecord(&xlrec, record);
+
 	buffer = XLogReadBuffer(xlrec.data->node, xlrec.data->blkno, false);
 	if (!BufferIsValid(buffer))
 		return;
@@ -353,9 +353,7 @@ gistRedoPageSplitRecord(XLogRecPtr lsn, XLogRecord *record)
 static void
 gistRedoCreateIndex(XLogRecPtr lsn, XLogRecord *record)
 {
-	gistxlogCreateIndex *xldata = (gistxlogCreateIndex *) XLogRecGetData(record);
-	
-	RelFileNode *node = &(xldata->node);
+	RelFileNode *node = (RelFileNode *) XLogRecGetData(record);
 	Buffer		buffer;
 	Page		page;
 
@@ -780,7 +778,7 @@ gistContinueInsert(gistIncompleteInsert *insert)
 					PageIndexTupleDelete(pages[0], todelete[j]);
 
 				xlinfo = XLOG_GIST_PAGE_SPLIT;
-				rdata = formSplitRdata(index, insert->path[i],
+				rdata = formSplitRdata(index->rd_node, insert->path[i],
 									   false, &(insert->key),
 									 gistMakePageLayout(buffers, numbuffer));
 
@@ -794,7 +792,7 @@ gistContinueInsert(gistIncompleteInsert *insert)
 				gistfillbuffer(pages[0], itup, lenitup, InvalidOffsetNumber);
 
 				xlinfo = XLOG_GIST_PAGE_UPDATE;
-				rdata = formUpdateRdata(index, buffers[0],
+				rdata = formUpdateRdata(index->rd_node, buffers[0],
 										todelete, ntodelete,
 										itup, lenitup, &(insert->key));
 			}
@@ -887,7 +885,7 @@ gist_safe_restartpoint(void)
 
 
 XLogRecData *
-formSplitRdata(Relation r, BlockNumber blkno, bool page_is_leaf,
+formSplitRdata(RelFileNode node, BlockNumber blkno, bool page_is_leaf,
 			   ItemPointer key, SplitedPageLayout *dist)
 {
 	XLogRecData *rdata;
@@ -904,8 +902,8 @@ formSplitRdata(Relation r, BlockNumber blkno, bool page_is_leaf,
 	}
 
 	rdata = (XLogRecData *) palloc(sizeof(XLogRecData) * (npage * 2 + 2));
-	
-	xlrec->node = r->rd_node;
+
+	xlrec->node = node;
 	xlrec->origblkno = blkno;
 	xlrec->origleaf = page_is_leaf;
 	xlrec->npage = (uint16) npage;
@@ -951,7 +949,7 @@ formSplitRdata(Relation r, BlockNumber blkno, bool page_is_leaf,
  * ituplen are both zero; this ensures that XLogInsert knows about the buffer.
  */
 XLogRecData *
-formUpdateRdata(Relation r, Buffer buffer,
+formUpdateRdata(RelFileNode node, Buffer buffer,
 				OffsetNumber *todelete, int ntodelete,
 				IndexTuple *itup, int ituplen, ItemPointer key)
 {
@@ -962,7 +960,8 @@ formUpdateRdata(Relation r, Buffer buffer,
 
 	rdata = (XLogRecData *) palloc(sizeof(XLogRecData) * (3 + ituplen));
 	xlrec = (gistxlogPageUpdate *) palloc(sizeof(gistxlogPageUpdate));
-	xlrec->node = r->rd_node;
+
+	xlrec->node = node;
 	xlrec->blkno = BufferGetBlockNumber(buffer);
 	xlrec->ntodelete = ntodelete;
 
@@ -1000,23 +999,6 @@ formUpdateRdata(Relation r, Buffer buffer,
 		rdata[cur].next = NULL;
 		cur++;
 	}
-
-	return rdata;
-}
-
-XLogRecData *
-formCreateRData(Relation r)
-{
-	XLogRecData 		*rdata;
-	gistxlogCreateIndex *xlrec = (gistxlogCreateIndex *) palloc(sizeof(gistxlogCreateIndex));
-
-	rdata = (XLogRecData *) palloc(sizeof(XLogRecData));
-	xlrec->node = r->rd_node;
-
-	rdata[0].data = (char *) xlrec;
-	rdata[0].len = sizeof(gistxlogCreateIndex);
-	rdata[0].buffer = InvalidBuffer;
-	rdata[0].next = NULL;
 
 	return rdata;
 }

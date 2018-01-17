@@ -13,15 +13,11 @@
  */
 #include "postgres.h"
 
-#include "miscadmin.h"
-
 #include "access/gin.h"
-#include "access/heapam.h"
 #include "access/bufmask.h"
 #include "access/xlogutils.h"
 #include "storage/bufmgr.h"
 #include "utils/memutils.h"
-#include "utils/guc.h"
 
 static MemoryContext opCtx;		/* working memory for operations */
 static MemoryContext topCtx;
@@ -108,7 +104,7 @@ ginRedoCreatePTree(XLogRecPtr lsn, XLogRecord *record)
 	ItemPointerData *items = (ItemPointerData *) (XLogRecGetData(record) + sizeof(ginxlogCreatePostingTree));
 	Buffer		buffer;
 	Page		page;
-	
+
 	buffer = XLogReadBuffer(data->node, data->blkno, true);
 	Assert(BufferIsValid(buffer));
 	page = (Page) BufferGetPage(buffer);
