@@ -1106,7 +1106,7 @@ cdb_make_pathkey_for_expr(PlannerInfo *root,
 	PathKey    *pk = NULL;
 	List	   *mergeopfamilies;
 	EquivalenceClass *eclass;
-	int			strategy;
+	int			strategy = 0;
 	ListCell   *lc;
 
 	/* Get the expr's data type. */
@@ -1130,6 +1130,8 @@ cdb_make_pathkey_for_expr(PlannerInfo *root,
 		if (strategy)
 			break;
 	}
+	if (!lc)
+		elog(ERROR, "could not find operator family for equality operator %u", eqopoid);
 	eclass = get_eclass_for_sort_expr(root, (Expr *) expr, typeoid, mergeopfamilies, 0);
 	if (!canonical)
 		pk = makePathKey(eclass, opfamily, strategy, false);
