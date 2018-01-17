@@ -71,7 +71,7 @@ static uint32	portalId = 0;		/* id of portal, for tracking cursors. */
 static int32	numHoldPortals = 0;	/* # of holdable cursors tracked. */
 
 /*
- * ResSchedulerShmemSize -- estimate size the schedular structures will need in
+ * ResSchedulerShmemSize -- estimate size the scheduler structures will need in
  *	shared memory.
  *
  */
@@ -118,7 +118,7 @@ ResPortalIncrementShmemSize(void)
 
 
 /*
- * InitResScheduler -- initialize the schedular queues hash in shared memory.
+ * InitResScheduler -- initialize the scheduler queues hash in shared memory.
  *
  * The queuek hash table has no data in it as yet (InitResQueues cannot be 
  * called until catalog access is available.
@@ -293,7 +293,7 @@ ResCreateQueue(Oid queueid, Cost limits[NUM_RES_LIMIT_TYPES], bool overcommit,
 
 	Assert(LWLockHeldExclusiveByMe(ResQueueLock));
 	
-	/* If the new queue pointer is NULL, then we are out of queueus. */
+	/* If the new queue pointer is NULL, then we are out of queues. */
 	if (ResScheduler->num_queues >= MaxResourceQueues)
 		return false;
 
@@ -304,7 +304,7 @@ ResCreateQueue(Oid queueid, Cost limits[NUM_RES_LIMIT_TYPES], bool overcommit,
 	queue = ResQueueHashNew(queueid);
 	Assert(queue != NULL);
 	
-	/* Set queue oid and offset in the schedular array */
+	/* Set queue oid and offset in the scheduler array */
 	queue->queueid = queueid;
 
 	/* Set the number of limits 0 initially. */
