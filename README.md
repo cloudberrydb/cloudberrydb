@@ -296,6 +296,9 @@ Build and install:
 ninja install -C build
 ```
 
+### Common Issues
+
+Note that because Red Hat-based systems do not normally look for shared libraries in `/usr/local/lib`, it is suggested to add `/usr/local/lib` to the /etc/ld.so.conf if developing on one of these Linux distributions.
 
 ## Cleanup
 
