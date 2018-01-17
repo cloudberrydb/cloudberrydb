@@ -3345,15 +3345,6 @@ def _str2bool(string):
     return string.lower().strip() in ['t', 'true', '1', 'yes', 'y']
 
 
-@when('run gppersistent_rebuild with the saved content id')
-@then('run gppersistent_rebuild with the saved content id')
-def impl(context):
-    cmdStr = "echo -e 'y\ny\n' | $GPHOME/sbin/gppersistentrebuild -c %s" % context.saved_segcid
-    cmd = Command(name='Run gppersistentrebuild', cmdStr=cmdStr)
-    cmd.run(validateAfter=True)
-    context.ret_code = cmd.get_return_code()
-
-
 @given('the information of a "{seg}" segment on any host is saved')
 @when('the information of a "{seg}" segment on any host is saved')
 @then('the information of a "{seg}" segment on any host is saved')
