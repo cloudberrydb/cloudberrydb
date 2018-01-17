@@ -1,23 +1,14 @@
----
 platform: linux
-
 image_resource:
   type: docker-image
-  source:
-    repository: pivotaldata/sles-gpdb-dev
-    tag: 11-beta
-
 inputs:
-- name: gpdb_src
-- name: gpaddon_src
-- name: pxf_tarball
-
+  - name: gpdb_src
+  - name: gpaddon_src
+  - name: pxf_tarball
 outputs:
-- name: gpdb_artifacts
-
+  - name: gpdb_artifacts
 run:
   path: gpdb_src/concourse/scripts/compile_gpdb.bash
-
 params:
   TARGET_OS:
   TARGET_OS_VERSION:
