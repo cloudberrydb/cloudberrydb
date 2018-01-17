@@ -85,8 +85,6 @@ extern void CheckPointTwoPhase(XLogRecPtr redo_horizon);
 
 extern bool FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFound);
 
-extern int TwoPhaseRecoverMirror(void);
-
 extern void TwoPhaseAddPreparedTransactionInit(
 					        prepared_transaction_agg_state **ptas
 					      , int                             *maxCount);

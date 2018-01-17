@@ -1922,15 +1922,6 @@ RecordTransactionAbortPrepared(TransactionId xid,
 	SyncRepWaitForLSN(recptr);
 }
 
-int
-TwoPhaseRecoverMirror(void)
-{
-	int			retval = 0;
-
-	/* No need to do anything. */
-	return retval;
-}
-
 /*
  * This function will gather up all the current prepared transaction xlog pointers,
  * and pass that information back to the caller.
