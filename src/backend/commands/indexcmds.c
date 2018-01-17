@@ -419,12 +419,6 @@ DefineIndex(RangeVar *heapRelation,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("hash indexes are not supported")));
 
-	/* MPP-9329: disable creation of GIN indexes */
-	if (accessMethodId == GIN_AM_OID)
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("GIN indexes are not supported")));
-
 	if (unique && !accessMethodForm->amcanunique)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
