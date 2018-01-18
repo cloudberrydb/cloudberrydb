@@ -435,6 +435,8 @@ resources:
     secret_access_key: {{bucket-secret-access-key}}
     versioned_file: {{bin_gpdb_centos_versioned_file}}
 
+{% endif %}
+{% if "UD" in test_sections %}
 - name: pxf_tarball
   type: s3
   source:
