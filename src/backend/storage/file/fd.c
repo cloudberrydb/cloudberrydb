@@ -2263,16 +2263,3 @@ static bool HasTempFilePrefix(char * fileName)
 
 	return matching_dir;
 }
-
-/*
- * Set the file as temporary to ensure that FileClose() removes it on exit.
- * This mimics the old FileUnlin() behavior that was removed in PostgreSQL
- * 8.3 but that Greenplum still use.
- */
-void
-SetDeleteOnExit(File file)
-{
-	Assert(FileIsValid(file));
-
-	VfdCache[file].fdstate |= FD_TEMPORARY;
-}
