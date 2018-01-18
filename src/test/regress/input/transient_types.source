@@ -176,5 +176,22 @@ INSERT INTO typemod_init VALUES ('A');
 SELECT C FROM ( SELECT B.varchar_col FROM ( SELECT A.varchar_col FROM typemod_init A) B GROUP BY B.varchar_col) C;
 DROP TABLE typemod_init ;
 
+-- Test the case that there is no fields require remapping, such as VOIDOID
+DROP TABLE IF EXISTS t_nomap;
+CREATE TABLE t_nomap AS SELECT f1 FROM generate_series(1,10) f1;
+CREATE OR REPLACE FUNCTION foo()
+RETURNS VOID
+AS $$
+BEGIN
+
+END
+$$
+LANGUAGE plpgsql
+IMMUTABLE;
+
+SELECT q FROM (SELECT max(f1) AS max FROM t_nomap GROUP BY f1 ORDER BY f1) q ORDER BY max;
+SELECT foo() FROM t_nomap;
+DROP TABLE t_nomap;
+DROP FUNCTION foo();
 
 drop schema transient_types;
