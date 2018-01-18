@@ -8008,11 +8008,11 @@ lead(salary,1) over (partition by depname order by salary desc) qianzhi1,
 lead(salary,2) over (partition by depname order by salary desc) qianzhi2,
 lead(empno,1) over (partition by depname order by salary desc) qianzhi11
 from empsalary;
- depname | empno |  salary  | enroll_date | qianzhi1 | qianzhi2 | qianzhi11
+ depname | empno |  salary  | enroll_date | qianzhi1 | qianzhi2 | qianzhi11 
 ---------+-------+----------+-------------+----------+----------+-----------
  develop |     8 | 6000     | 10-01-2006  | 5200     | 4500     |        11
  develop |    11 | 5200     | 08-15-2007  | 4500     |          |         9
- develop |     9 | 4500     | 01-01-2008  |          |          |
+ develop |     9 | 4500     | 01-01-2008  |          |          |          
 (3 rows)
 
 -- Lead functions are in order.
@@ -8021,11 +8021,11 @@ lead(salary,1) over (partition by depname order by salary desc) qianzhi1,
 lead(empno,1) over (partition by depname order by salary desc) qianzhi11,
 lead(salary,2) over (partition by depname order by salary desc) qianzhi2
 from empsalary;
- depname | empno |  salary  | enroll_date | qianzhi1 | qianzhi11 | qianzhi2
+ depname | empno |  salary  | enroll_date | qianzhi1 | qianzhi11 | qianzhi2 
 ---------+-------+----------+-------------+----------+-----------+----------
- develop |     8 | 6000     | 10-01-2006  | 5200     |        11 | 4500
- develop |    11 | 5200     | 08-15-2007  | 4500     |         9 |
- develop |     9 | 4500     | 01-01-2008  |          |           |
+ develop |     8 | 6000     | 10-01-2006  | 5200     |        11 | 4500    
+ develop |    11 | 5200     | 08-15-2007  | 4500     |         9 | 
+ develop |     9 | 4500     | 01-01-2008  |          |           | 
 (3 rows)
 
 DROP TABLE IF EXISTS empsalary;
@@ -8046,11 +8046,11 @@ lead(salary,1) over (partition by depname order by salary desc) qianzhi1,
 lead(salary,2) over (partition by depname order by salary desc) qianzhi2,
 lead(empno,1) over (partition by depname order by salary desc) qianzhi11
 from empsalary;
- depname | empno |   salary    | enroll_date |  qianzhi1   |  qianzhi2   | qianzhi11
+ depname | empno |   salary    | enroll_date |  qianzhi1   |  qianzhi2   | qianzhi11 
 ---------+-------+-------------+-------------+-------------+-------------+-----------
  develop |     8 | 6000.000000 | 10-01-2006  | 5200.000000 | 4500.000000 |        11
  develop |    11 | 5200.000000 | 08-15-2007  | 4500.000000 |             |         9
- develop |     9 | 4500.000000 | 01-01-2008  |             |             |
+ develop |     9 | 4500.000000 | 01-01-2008  |             |             |          
 (3 rows)
 
 DROP TABLE IF EXISTS empsalary;
@@ -8071,11 +8071,11 @@ lead(salary,1) over (partition by depname order by salary desc) qianzhi1,
 lead(salary,2) over (partition by depname order by salary desc) qianzhi2,
 lead(empno,1) over (partition by depname order by salary desc) qianzhi11
 from empsalary;
- depname | empno | salary | enroll_date | qianzhi1 | qianzhi2 | qianzhi11
+ depname | empno | salary | enroll_date | qianzhi1 | qianzhi2 | qianzhi11 
 ---------+-------+--------+-------------+----------+----------+-----------
  develop |     8 |   6000 | 10-01-2006  |     5200 |     4500 |        11
  develop |    11 |   5200 | 08-15-2007  |     4500 |          |         9
- develop |     9 |   4500 | 01-01-2008  |          |          |
+ develop |     9 |   4500 | 01-01-2008  |          |          |          
 (3 rows)
 
 -- There was a bug at one point where the planner would not recognize that the
@@ -8145,7 +8145,7 @@ create table foo (a int, b int) distributed by (a);
 create table bar (c int, d int) distributed by (c);
 insert into foo select i,i from generate_series(1,10) i;
 insert into bar select i,i from generate_series(1,10) i;
-set optimizer_segments to 1; 
+set optimizer_segments to 1;
 SELECT bar.*, count(*) OVER() AS e FROM foo, bar where foo.b = bar.d;
  c  | d  | e  
 ----+----+----

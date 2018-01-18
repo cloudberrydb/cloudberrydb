@@ -2950,21 +2950,21 @@ NOTICE:  CREATE TABLE will create partition "mpp25537_facttable1_1_prt_17" for t
 NOTICE:  CREATE TABLE will create partition "mpp25537_facttable1_1_prt_18" for table "mpp25537_facttable1"
 NOTICE:  CREATE TABLE will create partition "mpp25537_facttable1_1_prt_19" for table "mpp25537_facttable1"
 NOTICE:  CREATE TABLE will create partition "mpp25537_facttable1_1_prt_20" for table "mpp25537_facttable1"
-insert into mpp25537_facttable1 select col1, col1, col1 from (select generate_series(1,20) col1)a;
+insert into mpp25537_facttable1 select col1, col1, col1 from (select generate_series(1,20) col1) a;
 CREATE TABLE mpp25537_dimdate (
   wk_id smallint,
   col2 date
 );
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'wk_id' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
-insert into mpp25537_dimdate select col1, current_date - col1 from (select generate_series(1,20,2) col1)a;
+insert into mpp25537_dimdate select col1, current_date - col1 from (select generate_series(1,20,2) col1) a;
 CREATE TABLE mpp25537_dimtabl1 (
   id integer,
   col2 integer
 );
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
-insert into mpp25537_dimtabl1 select col1, col1 from (select generate_series(1,20,3) col1)a;
+insert into mpp25537_dimtabl1 select col1, col1 from (select generate_series(1,20,3) col1) a;
 CREATE INDEX idx_mpp25537_facttable1 on mpp25537_facttable1 (id);
 NOTICE:  building index for child partition "mpp25537_facttable1_1_prt_dflt"
 NOTICE:  building index for child partition "mpp25537_facttable1_1_prt_2"

@@ -1,5 +1,5 @@
 -- @Description Ensures that an alter table while a vacuum operation is ok
--- 
+--
 DROP TABLE IF EXISTS ao;
 DROP
 
@@ -21,7 +21,7 @@ INSERT 100000
 DELETE FROM ao WHERE a < 12000;
 DELETE 71994
 1: SELECT COUNT(*) FROM ao;
-count
+count 
 ------
 528006
 (1 row)
@@ -35,5 +35,5 @@ VACUUM
 1: SELECT COUNT(*) FROM ao WHERE a < 12010;
 count
 -----
-60
+60   
 (1 row)

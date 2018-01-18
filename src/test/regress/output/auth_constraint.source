@@ -11,7 +11,7 @@ CREATE FUNCTION check_auth_time_constraints(cstring, timestamptz)
 SELECT check_auth_time_constraints('abc', '5');
 ERROR:  invalid input syntax for type timestamp with time zone: "5"
 LINE 1: SELECT check_auth_time_constraints('abc', '5');
-               ^
+                                                  ^
 ---
 --- basic day level constraints
 ---

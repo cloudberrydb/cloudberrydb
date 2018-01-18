@@ -734,20 +734,20 @@ ERROR:  'COPY (SELECT ...) TO' doesn't support 'ON SEGMENT'.
 \COPY segment_reject_limit_from from '/tmp/segment_reject_limit<SEGID>.csv' ON SEGMENT;
 \COPY command doesn't support ON SEGMENT
 --on segment with \t
-\copy segment_reject_limit_from from '/tmp/segment_reject_limit<SEGID>.csv' on  segment;
+\copy segment_reject_limit_from from '/tmp/segment_reject_limit<SEGID>.csv' on	segment;  
 \COPY command doesn't support ON SEGMENT
 -- \copy to doesn't support on segment
 --on segment lower case
 \COPY segment_reject_limit_from to '/tmp/copy_on_segment<SEGID>.csv' on segment;
 \COPY command doesn't support ON SEGMENT
 --on segment with spaces
-\COPY segment_reject_limit_from to '/tmp/copy_on_segment<SEGID>.csv' on   segment;
+\COPY segment_reject_limit_from to '/tmp/copy_on_segment<SEGID>.csv' on  segment;
 \COPY command doesn't support ON SEGMENT
 --on segment are capital
 \COPY segment_reject_limit_from to '/tmp/copy_on_segment<SEGID>.csv' ON SEGMENT;
 \COPY command doesn't support ON SEGMENT
 --on segment with \t
-\copy segment_reject_limit_from from '/tmp/copy_on_segment<SEGID>.csv' on       segment;
+\copy segment_reject_limit_from from '/tmp/copy_on_segment<SEGID>.csv' on	segment;  
 \COPY command doesn't support ON SEGMENT
 -- \copy to/from 'stdin'/'stdout' (quoted)
 \copy segment_reject_limit_from to 'stdin';
@@ -1276,14 +1276,14 @@ COMMIT;
 CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 SELECT gp_inject_fault('cdb_copy_start_after_dispatch', 'reset', 1);
 NOTICE:  Success:
- gp_inject_fault
+ gp_inject_fault 
 -----------------
  t
 (1 row)
 
 SELECT gp_inject_fault('cdb_copy_start_after_dispatch', 'interrupt', 1);
 NOTICE:  Success:
- gp_inject_fault
+ gp_inject_fault 
 -----------------
  t
 (1 row)
@@ -1294,7 +1294,7 @@ CREATE TABLE lineitem_aborted (LIKE lineitem);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 COPY lineitem_aborted FROM '/tmp/aborted.data';
 SELECT count(*) < 57190 FROM lineitem_aborted;
- ?column?
+ ?column? 
 ----------
  t
 (1 row)

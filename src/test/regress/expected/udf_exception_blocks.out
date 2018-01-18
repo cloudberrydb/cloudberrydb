@@ -9,13 +9,13 @@ CREATE OR REPLACE FUNCTION test_plpgsql() RETURNS VOID AS
 $$
 BEGIN
     BEGIN
-	ALTER TABLE test_exception_error set with ( reorganize='true') distributed randomly;
+    ALTER TABLE test_exception_error set with ( reorganize='true') distributed randomly;
         EXCEPTION
-       	    WHEN OTHERS THEN
+            WHEN OTHERS THEN
             BEGIN
-			    RAISE NOTICE 'catching the exception ...';
+                RAISE NOTICE 'catching the exception ...';
             END;
-	END;
+    END;
 END;
 $$
 LANGUAGE plpgsql;
@@ -37,14 +37,14 @@ CREATE OR REPLACE FUNCTION test_plpgsql() RETURNS VOID AS
 $$
 BEGIN
     BEGIN
-	ALTER TABLE test_exception_error set with ( reorganize='true') distributed randomly;
+    ALTER TABLE test_exception_error set with ( reorganize='true') distributed randomly;
         INSERT INTO test_exception_error(a) VALUES(NULL);
         EXCEPTION
-       	    WHEN OTHERS THEN
+            WHEN OTHERS THEN
             BEGIN
-			    RAISE NOTICE 'catching the exception ...';
+                RAISE NOTICE 'catching the exception ...';
             END;
-	END;
+    END;
 END;
 $$
 LANGUAGE plpgsql;

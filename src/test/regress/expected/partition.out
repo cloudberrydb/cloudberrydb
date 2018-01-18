@@ -123,8 +123,8 @@ select * from region where r_regionkey = '7';
 -- tables since we cannot enforce them. But since this insert maps to a
 -- single definitive partition, we can detect it.
 insert into region values(7, 'AUSTRALIA', 'def');
-ERROR: duplicate key value violates unique constraint "region_pkey_1_prt_region3_2_prt_australia"  (seg0 slarimac:40000 pid=97859)
-DETAIL: Key (r_regionkey)=(7) already exists.
+ERROR:  duplicate key value violates unique constraint "region_pkey_1_prt_region3_2_prt_australia"  (seg0 slarimac:40000 pid=97859)
+DETAIL:  Key (r_regionkey)=(7) already exists.
 drop table region;
 -- exchange
 -- 1) test all sanity checking
@@ -728,7 +728,7 @@ partition by range (f1)
 );
 ERROR:  END parameter not reached before type overflows
 LINE 4:   start (time '00:00') end (time '24:00') EVERY (INTERVAL '1...
-                                         ^
+                                    ^
 -- Should fail
 CREATE TABLE TIME_TBL_HOUR_2 (f1 time(2)) distributed by (f1)
 partition by range (f1)
@@ -737,7 +737,7 @@ partition by range (f1)
 );
 ERROR:  END parameter not reached before type overflows
 LINE 4:   start (time '00:00') end (time '23:59') EVERY (INTERVAL '1...
-                                         ^
+                                    ^
 -- Should work
 CREATE TABLE TIME_TBL_HOUR_2 (f1 time(2)) distributed by (f1)
 partition by range (f1)
@@ -777,7 +777,7 @@ partition aa start (date '2007-01-01') end (date '2008-01-01')
 );
 ERROR:  EVERY parameter too small
 LINE 5:       every (interval '0 days')
-                              ^
+                     ^
 create table foo_p (i int) distributed by(i)
 partition by range(i)
 (start (1) end (20) every(0));
@@ -5524,15 +5524,15 @@ NOTICE:  exchanged partition "sp2" of partition "p1" of relation "mpp10223b" wit
 NOTICE:  dropped partition "sp2" for partition "p1" of relation "mpp10223b"
 NOTICE:  CREATE TABLE will create partition "mpp10223b_1_prt_p1_2_prt_sp2" for table "mpp10223b_1_prt_p1"
 NOTICE:  CREATE TABLE will create partition "mpp10223b_1_prt_p1_2_prt_sp3" for table "mpp10223b_1_prt_p1"
- select partitiontablename,partitionposition,partitionrangestart,
-        partitionrangeend from pg_partitions where tablename = 'mpp10223b'
-            order by partitionposition;
-       partitiontablename      | partitionposition | partitionrangestart | partitionrangeend 
- ------------------------------+-------------------+---------------------+-------------------
-  mpp10223b_1_prt_p1           |                 1 | 1                   | 10
-  mpp10223b_1_prt_p1_2_prt_sp2 |                 1 | 20                  | 25
-  mpp10223b_1_prt_p1_2_prt_sp3 |                 2 | 25                  | 30
- (3 rows)
+select partitiontablename,partitionposition,partitionrangestart,
+       partitionrangeend from pg_partitions where tablename = 'mpp10223b'
+           order by partitionposition;
+      partitiontablename      | partitionposition | partitionrangestart | partitionrangeend 
+------------------------------+-------------------+---------------------+-------------------
+ mpp10223b_1_prt_p1           |                 1 | 1                   | 10
+ mpp10223b_1_prt_p1_2_prt_sp2 |                 1 | 20                  | 25
+ mpp10223b_1_prt_p1_2_prt_sp3 |                 2 | 25                  | 30
+(3 rows)
  
 select pg_get_partition_def('mpp10223b'::regclass,true);
                    pg_get_partition_def                   
@@ -5542,8 +5542,8 @@ select pg_get_partition_def('mpp10223b'::regclass,true);
            (                                              
            PARTITION p1 START (1) END (10)                
                    (                                      
-                   SUBPARTITION sp2 START (20) END (25),   
-                   SUBPARTITION sp3 START (25) END (30)  
+                   SUBPARTITION sp2 START (20) END (25),  
+                   SUBPARTITION sp3 START (25) END (30)   
                    )                                      
            )
 (1 row)
@@ -7677,14 +7677,14 @@ alter table pt_td_leak exchange partition part2 with table pt_td_leak_exchange;
 insert into pt_td_leak values(1,8,1);
 copy pt_td_leak from '/tmp/pt_td_leak.out' with delimiter ',';
 select * from pt_td_leak where col1 = 5;
- col1 | col2 | col3
+ col1 | col2 | col3 
 ------+------+------
     5 |    5 |    5
 (1 row)
 
 -- Check that data inserted into dropped/added column is correct
 select * from pt_td_leak where col3 = 1;
- col1 | col2 | col3
+ col1 | col2 | col3 
 ------+------+------
     1 |    1 |    1
     1 |    8 |    1
@@ -7699,9 +7699,9 @@ CREATE TABLE test_split_part ( log_id int NOT NULL, f_array int[] NOT NULL)
 DISTRIBUTED BY (log_id)
 PARTITION BY RANGE(log_id)
 (
-        START (1::int) END (100::int) EVERY (5) WITH (appendonly=false),
-        PARTITION "Old" START (101::int) END (201::int) WITH (appendonly=false),
-        DEFAULT PARTITION other_log_ids  WITH (appendonly=false)
+       START (1::int) END (100::int) EVERY (5) WITH (appendonly=false),
+       PARTITION "Old" START (101::int) END (201::int) WITH (appendonly=false),
+       DEFAULT PARTITION other_log_ids  WITH (appendonly=false)
 );
 NOTICE:  CREATE TABLE will create partition "test_split_part_1_prt_other_log_ids" for table "test_split_part"
 NOTICE:  CREATE TABLE will create partition "test_split_part_1_prt_2" for table "test_split_part"
@@ -7873,14 +7873,14 @@ select tablename, partitiontablename from pg_partitions where tablename = 'pt_ta
 (2 rows)
 
 select gp_segment_id, attrelid::regclass, attnum, attoptions from pg_attribute_encoding where attrelid = 'pt_tab_encode_1_prt_s_abc'::regclass;
- gp_segment_id |         attrelid          | attnum |                       attoptions                       
+ gp_segment_id |         attrelid          | attnum |                     attoptions                      
 ---------------+---------------------------+--------+-----------------------------------------------------
             -1 | pt_tab_encode_1_prt_s_abc |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
             -1 | pt_tab_encode_1_prt_s_abc |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
 (2 rows)
 
 select gp_segment_id, attrelid::regclass, attnum, attoptions from gp_dist_random('pg_attribute_encoding') where attrelid = 'pt_tab_encode_1_prt_s_abc'::regclass order by 1,3 limit 5;
- gp_segment_id |         attrelid          | attnum |                       attoptions                       
+ gp_segment_id |         attrelid          | attnum |                     attoptions                      
 ---------------+---------------------------+--------+-----------------------------------------------------
              0 | pt_tab_encode_1_prt_s_abc |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
              0 | pt_tab_encode_1_prt_s_abc |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
@@ -7890,14 +7890,14 @@ select gp_segment_id, attrelid::regclass, attnum, attoptions from gp_dist_random
 (5 rows)
 
 select gp_segment_id, attrelid::regclass, attnum, attoptions from pg_attribute_encoding where attrelid = 'pt_tab_encode_1_prt_s_xyz'::regclass;
- gp_segment_id |         attrelid          | attnum |                       attoptions                       
+ gp_segment_id |         attrelid          | attnum |                     attoptions                      
 ---------------+---------------------------+--------+-----------------------------------------------------
             -1 | pt_tab_encode_1_prt_s_xyz |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
             -1 | pt_tab_encode_1_prt_s_xyz |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
 (2 rows)
 
 select gp_segment_id, attrelid::regclass, attnum, attoptions from gp_dist_random('pg_attribute_encoding') where attrelid = 'pt_tab_encode_1_prt_s_xyz'::regclass order by 1,3 limit 5;
- gp_segment_id |         attrelid          | attnum |                       attoptions                       
+ gp_segment_id |         attrelid          | attnum |                     attoptions                      
 ---------------+---------------------------+--------+-----------------------------------------------------
              0 | pt_tab_encode_1_prt_s_xyz |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
              0 | pt_tab_encode_1_prt_s_xyz |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
@@ -7907,13 +7907,13 @@ select gp_segment_id, attrelid::regclass, attnum, attoptions from gp_dist_random
 (5 rows)
 
 select oid::regclass, relkind, relstorage, reloptions from pg_class where oid = 'pt_tab_encode_1_prt_s_abc'::regclass;
-            oid            | relkind | relstorage |                                reloptions                                 
+            oid            | relkind | relstorage |                               reloptions                               
 ---------------------------+---------+------------+------------------------------------------------------------------------
  pt_tab_encode_1_prt_s_abc | r       | c          | {appendonly=true,orientation=column,compresstype=zlib,compresslevel=1}
 (1 row)
 
 select oid::regclass, relkind, relstorage, reloptions from pg_class where oid = 'pt_tab_encode_1_prt_s_xyz'::regclass;
-            oid            | relkind | relstorage |                                reloptions                                 
+            oid            | relkind | relstorage |                               reloptions                               
 ---------------------------+---------+------------+------------------------------------------------------------------------
  pt_tab_encode_1_prt_s_xyz | r       | c          | {appendonly=true,orientation=column,compresstype=zlib,compresslevel=1}
 (1 row)

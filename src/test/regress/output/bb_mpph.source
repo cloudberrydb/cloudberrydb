@@ -5810,7 +5810,7 @@ from
 	(select p_partkey, min(ps_supplycost) as min_ps_cost 
 		from 
 			co_part, 
-			co_partsupp , 	
+			co_partsupp,
 			co_supplier,
 			co_nation, 
 			co_region 

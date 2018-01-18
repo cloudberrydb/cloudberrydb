@@ -55,7 +55,7 @@ select sum((select count(*) from t11_t group by b having b = s.b)) as sum_col fr
 -- ----------------------------------------------------------------------
 -- Test: 15
 -- ----------------------------------------------------------------------
--- aggregate over partition by 
+-- aggregate over partition by
 select state,
        sum(revenue) over (partition by state)
 from

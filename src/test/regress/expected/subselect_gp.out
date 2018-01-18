@@ -1378,7 +1378,7 @@ NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO bar_s VALUES (9,9);
 SELECT * FROM bar_s T1 WHERE c = (SELECT max(c) FROM bar_s T2 WHERE T2.d = T1.d GROUP BY c) AND c < 10;
- c | d
+ c | d 
 ---+---
  9 | 9
 (1 row)
@@ -1717,7 +1717,7 @@ EXPLAIN SELECT EXISTS(SELECT * FROM tenk1 WHERE tenk1.unique1 = tenk2.unique1) F
 (16 rows)
 
 SELECT EXISTS(SELECT * FROM tenk1 WHERE tenk1.unique1 = tenk2.unique1) FROM tenk2 LIMIT 1;
- ?column?
+ ?column? 
 ----------
  t
 (1 row)

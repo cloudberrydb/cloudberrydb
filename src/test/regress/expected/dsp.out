@@ -965,9 +965,9 @@ select relname, relstorage, reloptions from pg_class where relname='select_into_
 (1 row)
 
 select count(*) from select_into_heap_to;
- count
+ count 
 -------
-   50
+    50
 (1 row)
 
 -- cleanup

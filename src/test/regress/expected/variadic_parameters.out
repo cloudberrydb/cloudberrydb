@@ -47,9 +47,9 @@ select myleast(variadic array[1.1, -5.5]);
 
 --test with empty variadic call parameter
 select myleast(variadic array[]::int[]);
- myleast
+ myleast 
 ---------
-
+        
 (1 row)
 
 -- an example with some ordinary arguments too

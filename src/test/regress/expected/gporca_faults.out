@@ -11,20 +11,20 @@ INSERT INTO foo VALUES (1,1);
 -- test interruption requests to optimization
 select gp_inject_fault('opt_relcache_translator_catalog_access', 'reset', 1);
 NOTICE:  Success:
- gp_inject_fault
+ gp_inject_fault 
 -----------------
  t
 (1 row)
 
 select gp_inject_fault('opt_relcache_translator_catalog_access', 'interrupt', 1);
 NOTICE:  Success:
- gp_inject_fault
+ gp_inject_fault 
 -----------------
  t
 (1 row)
 
 select count(*) from foo;
- count
+ count 
 -------
      1
 (1 row)
@@ -52,20 +52,20 @@ EXPLAIN SELECT * FROM func1_nosql_vol(5), foo;
 
 select gp_inject_fault('opt_relcache_translator_catalog_access', 'reset', 1);
 NOTICE:  Success:
- gp_inject_fault
+ gp_inject_fault 
 -----------------
  t
 (1 row)
 
 select gp_inject_fault('opt_relcache_translator_catalog_access', 'interrupt', 1);
 NOTICE:  Success:
- gp_inject_fault
+ gp_inject_fault 
 -----------------
  t
 (1 row)
 
 SELECT * FROM func1_nosql_vol(5), foo;
- func1_nosql_vol | a | b
+ func1_nosql_vol | a | b 
 -----------------+---+---
                6 | 1 | 1
 (1 row)
@@ -73,7 +73,7 @@ SELECT * FROM func1_nosql_vol(5), foo;
 -- The fault should *not* be hit above when optimizer = off, to reset it now.
 SELECT gp_inject_fault('opt_relcache_translator_catalog_access', 'reset', 1);
 NOTICE:  Success:
- gp_inject_fault
+ gp_inject_fault 
 -----------------
  t
 (1 row)

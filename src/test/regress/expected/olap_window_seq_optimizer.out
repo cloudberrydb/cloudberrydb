@@ -8019,7 +8019,7 @@ lead(salary,1) over (partition by depname order by salary desc) qianzhi1,
 lead(salary,2) over (partition by depname order by salary desc) qianzhi2,
 lead(empno,1) over (partition by depname order by salary desc) qianzhi11
 from empsalary;
- depname | empno |  salary  | enroll_date | qianzhi1 | qianzhi2 | qianzhi11
+ depname | empno |  salary  | enroll_date | qianzhi1 | qianzhi2 | qianzhi11 
 ---------+-------+----------+-------------+----------+----------+-----------
  develop |     8 | 6000     | 10-01-2006  | 5200     | 4500     |        11
  develop |    11 | 5200     | 08-15-2007  | 4500     |          |         9
@@ -8032,7 +8032,7 @@ lead(salary,1) over (partition by depname order by salary desc) qianzhi1,
 lead(empno,1) over (partition by depname order by salary desc) qianzhi11,
 lead(salary,2) over (partition by depname order by salary desc) qianzhi2
 from empsalary;
- depname | empno |  salary  | enroll_date | qianzhi1 | qianzhi11 | qianzhi2
+ depname | empno |  salary  | enroll_date | qianzhi1 | qianzhi11 | qianzhi2 
 ---------+-------+----------+-------------+----------+-----------+----------
  develop |     8 | 6000     | 10-01-2006  | 5200     |        11 | 4500
  develop |    11 | 5200     | 08-15-2007  | 4500     |         9 |
@@ -8057,7 +8057,7 @@ lead(salary,1) over (partition by depname order by salary desc) qianzhi1,
 lead(salary,2) over (partition by depname order by salary desc) qianzhi2,
 lead(empno,1) over (partition by depname order by salary desc) qianzhi11
 from empsalary;
- depname | empno |   salary    | enroll_date |  qianzhi1   |  qianzhi2   | qianzhi11
+ depname | empno |   salary    | enroll_date |  qianzhi1   |  qianzhi2   | qianzhi11 
 ---------+-------+-------------+-------------+-------------+-------------+-----------
  develop |     8 | 6000.000000 | 10-01-2006  | 5200.000000 | 4500.000000 |        11
  develop |    11 | 5200.000000 | 08-15-2007  | 4500.000000 |             |         9
@@ -8082,7 +8082,7 @@ lead(salary,1) over (partition by depname order by salary desc) qianzhi1,
 lead(salary,2) over (partition by depname order by salary desc) qianzhi2,
 lead(empno,1) over (partition by depname order by salary desc) qianzhi11
 from empsalary;
- depname | empno | salary | enroll_date | qianzhi1 | qianzhi2 | qianzhi11
+ depname | empno | salary | enroll_date | qianzhi1 | qianzhi2 | qianzhi11 
 ---------+-------+--------+-------------+----------+----------+-----------
  develop |     8 |   6000 | 10-01-2006  |     5200 |     4500 |        11
  develop |    11 |   5200 | 08-15-2007  |     4500 |          |         9

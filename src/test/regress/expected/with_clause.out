@@ -988,7 +988,7 @@ from my_sum;
 -- CREATE TABLE AS
 drop table if exists with_test3;
 NOTICE:  table "with_test3" does not exist, skipping
-create table with_test3 as 
+create table with_test3 as
 with my_sum(i, total) as (select i, sum(value) from with_test1 group by i)
 select *
 from my_sum;

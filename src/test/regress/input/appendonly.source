@@ -52,7 +52,7 @@ CREATE TABLE tenk_ao12 (like tenk_heap) with (appendonly=false,blocksize=8192);
 SELECT c.relname, a.blocksize, a.compresstype, a.compresslevel, a.checksum FROM pg_class c, pg_appendonly a
        WHERE c.relname LIKE 'tenk_ao%' AND c.oid=a.relid AND c.relname not like 'tenk_aocs%' ORDER BY c.relname;
 
--------------------- 
+--------------------
 -- fn needed later
 --------------------
 create  or replace function aototal(relname text) returns float8 as $$

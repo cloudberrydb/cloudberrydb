@@ -3,7 +3,7 @@
 --
 -- show version
 SELECT count(*) from gp_opt_version();
- count
+ count 
 -------
      1
 (1 row)

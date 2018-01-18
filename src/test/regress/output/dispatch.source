@@ -514,7 +514,7 @@ NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entr
 SELECT c1/0 FROM foo_test WHERE c1 = 1;
 ERROR:  division by zero  (seg1 slice1 11.111.111.116:25433 pid=166651)
 SELECT numActiveMotionConns();
- numactivemotionconns
+ numactivemotionconns 
 ----------------------
                     0
 (1 row)
@@ -525,7 +525,7 @@ FETCH BACKWARD 1 FROM C1;
 ERROR:  backward scan is not supported in this version of Greenplum Database
 END;
 SELECT numActiveMotionConns();
- numactivemotionconns
+ numactivemotionconns 
 ----------------------
                     0
 (1 row)

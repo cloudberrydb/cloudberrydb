@@ -63,14 +63,14 @@ CREATE TABLE tenk_aocs12 (like tenk_heap_for_aocs) with (appendonly=true, orient
 CREATE TABLE tenk_aocs13 (like tenk_heap_for_aocs) with (orientation=column) distributed by(unique1);
 
 
--------------------- 
+--------------------
 -- catalog checks
 --------------------
 
 -- check pg_appendonly
 SELECT c.relname, a.blocksize, a.compresstype, a.compresslevel, a.checksum FROM pg_class c, pg_appendonly a WHERE c.relname LIKE 'tenk_aocs%' AND c.oid=a.relid ORDER BY c.relname;
 
--------------------- 
+--------------------
 -- supported sql
 --------------------
 
@@ -112,8 +112,8 @@ SELECT count(*) FROM tenk_aocs4;
 
 --
 -- Test that the catalog eof entry doesn't change even if the file gets
--- larger due to bad data that isn't cleaned up until the next VACUUM. 
--- make sure the SELECT stops at eof (count is the same). 
+-- larger due to bad data that isn't cleaned up until the next VACUUM.
+-- make sure the SELECT stops at eof (count is the same).
 -- The first row is good (so it grows the file), the second is bad.
 --
 COPY tenk_aocs1 FROM STDIN;
@@ -138,7 +138,7 @@ SELECT count(*) FROM tenk_aocs3;
 SELECT count(*) FROM tenk_aocs4;
 SELECT aototal('tenk_aocs1'), aototal('tenk_aocs2'), aototal('tenk_aocs3'), aototal('tenk_aocs4');
 
--------------------- 
+--------------------
 -- transactionality
 --------------------
 
@@ -283,7 +283,7 @@ SELECT count(*) FROM tenk_aocs1 t1 LEFT OUTER JOIN tenk_aocs2 t2 ON (t1.unique1 
 SELECT count(*) FROM tenk_aocs1 t1 RIGHT OUTER JOIN tenk_aocs2 t2 ON (t1.unique1 = t2.unique2) where t1.unique1 = 8095;
 SELECT count(*) FROM tenk_aocs1 t1 FULL OUTER JOIN tenk_aocs2 t2 ON (t1.unique1 = t2.unique2) where t1.unique1 = 8095;
 
-CREATE TABLE empty_aocs_table_for_join (like tenk_heap_for_aocs) with (appendonly=true, orientation=column) distributed by(unique1);
+CREATE TABLE empty_aocs_table_for_join (like tenk_heap_for_aocs) with (appendonly=true, orientation=column) distributed by (unique1);
 SELECT count(*) FROM tenk_aocs1 t1 INNER JOIN empty_aocs_table_for_join t2 ON (t1.unique1 = t2.unique2);
 SELECT count(*) FROM tenk_aocs1 t1 LEFT OUTER JOIN empty_aocs_table_for_join t2 ON (t1.unique1 = t2.unique2);
 
@@ -297,7 +297,7 @@ SELECT count(*) FROM tenk_aocs2;
 
 -- OID with aocs NYI
 -- OIDS
--- 
+--
 -- MPP-8058: should fail
 CREATE TABLE aocswithoids(a int, b int) WITH (appendonly=true, orientation=column, oids=true);
 
@@ -438,8 +438,8 @@ INSERT INTO syscoltest VALUES(1);
 SELECT ctid FROM syscoltest;
 DROP TABLE syscoltest;
 
--------------------- 
--- supported sql 
+--------------------
+-- supported sql
 --------------------
 DROP TABLE tenk_heap_for_aocs;
 DROP TABLE tenk_aocs1;
@@ -523,12 +523,12 @@ create index bms_ao_bug_ix1 on bms_ao_bug (c2);
 set enable_seqscan=off;
 set work_mem=256;
 
-select 
+select
 a.c1,
 count(*) row_cnt
-from bms_ao_bug a 
+from bms_ao_bug a
 where a.c2 = 1
-group by 
+group by
 a.c1
 ;
 

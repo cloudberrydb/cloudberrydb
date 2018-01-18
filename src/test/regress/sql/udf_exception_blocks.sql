@@ -44,7 +44,7 @@ LANGUAGE plpgsql;
 
 -- Raises expected Exception
 SELECT test_plpgsql();
-SELECT count(*) FROM test_exception_error;                                                                                             
+SELECT count(*) FROM test_exception_error;
 
 -- INSERT into table case in function with exception
 --

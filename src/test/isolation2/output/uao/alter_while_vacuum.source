@@ -20,7 +20,7 @@ VACUUM
 1<:  <... completed>
 ALTER
 1: SELECT * FROM ao WHERE a < 12010;
-a    |b    |d
+a    |b    |d 
 -----+-----+--
 12000|12000|10
 12001|12001|10

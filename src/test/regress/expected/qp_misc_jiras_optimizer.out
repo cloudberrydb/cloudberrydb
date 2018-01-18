@@ -3709,7 +3709,7 @@ NOTICE:  2  (seg0 192.168.1.64:25432 pid=44904)
 NOTICE:  2  (seg0 192.168.1.64:25432 pid=44904)
 NOTICE:  3  (seg0 192.168.1.64:25432 pid=44904)
 SELECT gp_segment_id, * FROM qp_misc_jiras.test_trig;
- gp_segment_id | id |           aaa           
+ gp_segment_id | id |           aaa            
 ---------------+----+--------------------------
              0 |  2 | before creating trigger1
              0 |  2 | after creating trigger11
@@ -4577,14 +4577,14 @@ create table qp_misc_jiras.tbl13491_aocol with (appendonly=true, orientation=col
 truncate table qp_misc_jiras.tbl13491_h;
 \t off
 select str = lpad('a', 100000, 'b') from qp_misc_jiras.tbl13491_aocol;
-?column?
+ ?column? 
 ----------
  t
 (1 row)
 
 drop table qp_misc_jiras.tbl13491_h;
 select str = lpad('a', 100000, 'b') from qp_misc_jiras.tbl13491_aocol;
-?column?
+ ?column? 
 ----------
  t
 (1 row)
