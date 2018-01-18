@@ -106,7 +106,7 @@ struct cachedesc
 
 static const struct cachedesc cacheinfo[] = {
 	{AggregateRelationId,		/* AGGFNOID */
-		AggregateAggfnoidIndexId,
+		AggregateFnoidIndexId,
 		1,
 		{
 			Anum_pg_aggregate_aggfnoid,
@@ -425,7 +425,7 @@ static const struct cachedesc cacheinfo[] = {
 		4
 	},
 	{NamespaceRelationId,		/* NAMESPACENAME */
-		NamespaceNspnameIndexId,
+		NamespaceNameIndexId,
 		1,
 		{
 			Anum_pg_namespace_nspname,

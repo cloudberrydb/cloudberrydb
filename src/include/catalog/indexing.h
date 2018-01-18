@@ -60,7 +60,7 @@ extern void CatalogUpdateIndexes(Relation heapRel, HeapTuple heapTuple);
  */
 
 DECLARE_UNIQUE_INDEX(pg_aggregate_fnoid_index, 2650, on pg_aggregate using btree(aggfnoid oid_ops));
-#define AggregateAggfnoidIndexId	2650
+#define AggregateFnoidIndexId  2650
 
 DECLARE_UNIQUE_INDEX(pg_am_name_index, 2651, on pg_am using btree(amname name_ops));
 #define AmNameIndexId  2651
@@ -169,10 +169,10 @@ DECLARE_UNIQUE_INDEX(pg_language_oid_index, 2682, on pg_language using btree(oid
 #define LanguageOidIndexId	2682
 
 DECLARE_UNIQUE_INDEX(pg_largeobject_loid_pn_index, 2683, on pg_largeobject using btree(loid oid_ops, pageno int4_ops));
-#define LargeObjectLoidPagenoIndexId	2683
+#define LargeObjectLOidPNIndexId  2683
 
 DECLARE_UNIQUE_INDEX(pg_namespace_nspname_index, 2684, on pg_namespace using btree(nspname name_ops));
-#define NamespaceNspnameIndexId	2684
+#define NamespaceNameIndexId  2684
 DECLARE_UNIQUE_INDEX(pg_namespace_oid_index, 2685, on pg_namespace using btree(oid oid_ops));
 #define NamespaceOidIndexId  2685
 

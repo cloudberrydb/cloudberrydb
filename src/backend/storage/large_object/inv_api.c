@@ -79,7 +79,7 @@ open_lo_relation(void)
 		if (lo_heap_r == NULL)
 			lo_heap_r = heap_open(LargeObjectRelationId, RowExclusiveLock);
 		if (lo_index_r == NULL)
-			lo_index_r = index_open(LargeObjectLoidPagenoIndexId, RowExclusiveLock);
+			lo_index_r = index_open(LargeObjectLOidPNIndexId, RowExclusiveLock);
 	}
 	PG_CATCH();
 	{
@@ -154,7 +154,7 @@ myLargeObjectExists(Oid loid, Snapshot snapshot)
 
 	pg_largeobject = heap_open(LargeObjectRelationId, AccessShareLock);
 
-	sd = systable_beginscan(pg_largeobject, LargeObjectLoidPagenoIndexId, true,
+	sd = systable_beginscan(pg_largeobject, LargeObjectLOidPNIndexId, true,
 							snapshot, 1, skey);
 
 	if (systable_getnext(sd) != NULL)
@@ -202,7 +202,7 @@ inv_create(Oid lobjId)
 	{
 		open_lo_relation();
 
-		lobjId = GetNewOidWithIndex(lo_heap_r, LargeObjectLoidPagenoIndexId,
+		lobjId = GetNewOidWithIndex(lo_heap_r, LargeObjectLOidPNIndexId,
 									Anum_pg_largeobject_loid);
 	}
 
