@@ -217,7 +217,6 @@ GRANT SELECT ON information_schema_catalog_name TO PUBLIC;
 CREATE DOMAIN time_stamp AS timestamp(2) with time zone
     DEFAULT current_timestamp(2);
 
-
 /*
  * 5.7
  * YES_OR_NO domain

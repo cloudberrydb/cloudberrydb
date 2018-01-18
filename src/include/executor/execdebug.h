@@ -69,7 +69,6 @@
 #define T_OR_F(b)				((b) ? "true" : "false")
 #define NULL_OR_TUPLE(slot)		(TupIsNull(slot) ? "null" : "a tuple")
 
-
 /* ----------------
  *		nest loop debugging defines
  * ----------------

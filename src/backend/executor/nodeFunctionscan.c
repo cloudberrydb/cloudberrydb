@@ -34,6 +34,7 @@
 #include "cdb/memquota.h"
 #include "executor/spi.h"
 
+
 static TupleTableSlot *FunctionNext(FunctionScanState *node);
 static void ExecFunctionScanExplainEnd(PlanState *planstate, struct StringInfoData *buf);
 

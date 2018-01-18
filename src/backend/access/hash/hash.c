@@ -271,9 +271,10 @@ hashgettuple(PG_FUNCTION_ARGS)
 	/* Release read lock on current buffer, but keep it pinned */
 	if (BufferIsValid(so->hashso_curbuf))
 		_hash_chgbufaccess(rel, so->hashso_curbuf, HASH_READ, HASH_NOLOCK);
-	
+
 	PG_RETURN_BOOL(res);
 }
+
 
 /*
  * hashgetbitmap() -- get all tuples at once
@@ -329,6 +330,7 @@ hashgetbitmap(PG_FUNCTION_ARGS)
 
 	PG_RETURN_POINTER(tbm);
 }
+
 
 /*
  *	hashbeginscan() -- start a scan on a hash index

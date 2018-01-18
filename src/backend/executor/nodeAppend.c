@@ -247,7 +247,7 @@ ExecInitAppend(Append *node, EState *estate, int eflags)
 		 */
 		appendstate->as_whichplan = i;
 		exec_append_initialize_next(appendstate);
-		
+
 		appendplanstates[i] = ExecInitNode(initNode, estate, eflags);
 	}
 
@@ -351,7 +351,6 @@ ExecAppend(AppendState *node)
 			return result;
 		}
 
-
 		/*
 		 * Go on to the "next" subplan in the appropriate direction. If no
 		 * more subplans, return the empty slot set up for us by
@@ -361,7 +360,6 @@ ExecAppend(AppendState *node)
 			node->as_whichplan++;
 		else
 			node->as_whichplan--;
-
 		if (!exec_append_initialize_next(node))
 			return ExecClearTuple(node->ps.ps_ResultTupleSlot);
 
