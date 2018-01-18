@@ -3455,7 +3455,7 @@ def impl(context):
                               When the user runs "gpstart -a"
                               Then gpstart should return a return code of 0
                               And verify that a role "gpmon" exists in database "gpperfmon"
-                              And verify that the last line of the file "postgresql.conf" in the master data directory contains the string "gpperfmon_log_alert_level='warning'"
+                              And verify that the last line of the file "postgresql.conf" in the master data directory contains the string "gpperfmon_log_alert_level=warning"
                               And verify that there is a "heap" table "database_history" in "gpperfmon"
                               Then wait until the process "gpmmon" is up
                               And wait until the process "gpsmon" is up
