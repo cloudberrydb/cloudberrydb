@@ -13,12 +13,9 @@
 #ifndef PREPARE_H
 #define PREPARE_H
 
-#include "executor/execdesc.h"
 #include "executor/executor.h"
 #include "utils/plancache.h"
 #include "utils/timestamp.h"
-
-struct TupOutputState;                  /* #include "executor/executor.h" */
 
 /*
  * The data structure representing a prepared statement.  This is now just

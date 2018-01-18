@@ -17,9 +17,6 @@
 #include "nodes/execnodes.h"
 #include "storage/buffile.h"
 
-struct HashJoinBatchSide;               /* #include "executor/hashjoin.h" */
-struct Instrumentation;                 /* #include "executor/instrument.h" */
-
 extern int	ExecCountSlotsHashJoin(HashJoin *node);
 extern HashJoinState *ExecInitHashJoin(HashJoin *node, EState *estate, int eflags);
 extern TupleTableSlot *ExecHashJoin(HashJoinState *node);

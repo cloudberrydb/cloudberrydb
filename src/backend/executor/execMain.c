@@ -33,7 +33,6 @@
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
-#include "gpmon/gpmon.h"
 
 #include "access/heapam.h"
 #include "access/aosegfiles.h"
