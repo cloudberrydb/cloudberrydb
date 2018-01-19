@@ -35,8 +35,6 @@
 /* Fixed workfile numbers common for all operators */
 #define WORKFILE_NUM_ALL_PLAN 0
 /* Fixed workfile numbers for each operator type */
-#define WORKFILE_NUM_HASHJOIN_METADATA 1
-#define WORKFILE_NUM_HASHAGG_METADATA 1
 #define WORKFILE_NUM_MKSORT_METADATA 1
 #define WORKFILE_NUM_MKSORT_TAPESET 2
 #define WORKFILE_NUM_TUPLESTORE_DATA 1

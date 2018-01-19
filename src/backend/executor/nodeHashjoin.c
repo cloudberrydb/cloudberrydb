@@ -1005,6 +1005,9 @@ ExecHashJoinSaveTuple(PlanState *ps, MemTuple tuple, uint32 hashvalue,
 
 	if (hashtable->work_set == NULL)
 	{
+		/*
+		 * First time spilling.
+		 */
 		hashtable->hjstate->workfiles_created = true;
 		if (hashtable->hjstate->js.ps.instrument)
 		{
@@ -1014,18 +1017,9 @@ ExecHashJoinSaveTuple(PlanState *ps, MemTuple tuple, uint32 hashvalue,
 		MemoryContext oldcxt;
 
 		oldcxt = MemoryContextSwitchTo(bfCxt);
-
 		hashtable->work_set = workfile_mgr_create_set(gp_workfile_type_hashjoin,
 				true, /* can_be_reused */
 				&hashtable->hjstate->js.ps);
-
-		/*
-		 * First time spilling. Before creating any spill files, create a
-		 * metadata file
-		 */
-		hashtable->state_file = workfile_mgr_create_fileno(hashtable->work_set, WORKFILE_NUM_HASHJOIN_METADATA);
-		elog(gp_workfile_caching_loglevel, "created state file %s", ExecWorkFile_GetFileName(hashtable->state_file));
-
 		MemoryContextSwitchTo(oldcxt);
 	}
 

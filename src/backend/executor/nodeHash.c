@@ -338,7 +338,6 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 	hashtable->innerBatchFile = NULL;
 	hashtable->outerBatchFile = NULL;
 	hashtable->work_set = NULL;
-	hashtable->state_file = NULL;
 	hashtable->spaceUsed = 0;
 	hashtable->spaceAllowed = operatorMemKB * 1024L;
 	hashtable->spaceUsedSkew = 0;
@@ -678,13 +677,6 @@ ExecHashTableDestroy(HashState *hashState, HashJoinTable hashtable)
 			hashtable->innerBatchFile[i] = NULL;
 			hashtable->outerBatchFile[i] = NULL;
 		}
-	}
-
-	/* Close state file as well */
-	if (hashtable->state_file != NULL)
-	{
-		workfile_mgr_close_file(hashtable->work_set, hashtable->state_file);
-		hashtable->state_file = NULL;
 	}
 
 	if (hashtable->work_set != NULL)
