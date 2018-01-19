@@ -304,7 +304,6 @@ double		gp_workfile_limit_per_query = 0;
 
 /* Maximum number of workfiles to be created by a query */
 int			gp_workfile_limit_files_per_query = 0;
-bool		gp_workfile_faultinject = false;
 int			gp_workfile_bytes_to_checksum = 16;
 
 /* The type of work files that HashJoin should use */

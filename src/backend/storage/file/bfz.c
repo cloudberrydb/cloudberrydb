@@ -161,18 +161,7 @@ read_bfz_buffer(bfz_t *bfz, char *buffer)
 	int bytesRead = 0;
 	struct bfz_freeable_stuff *fs = bfz->freeable_stuff;
 	int dataSize = 0;
-	char *oldBuffer = NULL;
 	
-	/*
-	 * Copy the original buffer so that we can simulate a torn page
-	 * later.
-	 */
-	if (gp_workfile_faultinject)
-	{
-		oldBuffer = palloc(sizeof(fs->buffer));
-		memcpy(oldBuffer, buffer, sizeof(fs->buffer));
-	}
-
 	bytesRead = fs->read_ex(bfz, buffer, sizeof(fs->buffer));
 	Assert(bytesRead <= sizeof(fs->buffer));
 
@@ -180,33 +169,6 @@ read_bfz_buffer(bfz_t *bfz, char *buffer)
 		return 0;
 
 	dataSize = bytesRead;
-
-	/*
-	 * If size is greater than WORKFILE_SAFEWRITE_SIZE, and the GUC
-	 * gp_workfile_faultinject is on, we simulate a torn page
-	 * if this block is chosen to do so.
-	 */
-	if (dataSize > WORKFILE_SAFEWRITE_SIZE &&
-		gp_workfile_faultinject)
-	{
-		if (bfz->blockNo == bfz->chosenBlockNo)
-		{
-			Assert(oldBuffer != NULL);
-			
-			/*
-			 * Simulate a torn page by copying the data after
-			 * WORKFILE_SAFEWRITE_SIZE in the old buffer into
-			 * the new buffer.
-			 */
-			memcpy(buffer + WORKFILE_SAFEWRITE_SIZE,
-				   oldBuffer + WORKFILE_SAFEWRITE_SIZE,
-				   sizeof(fs->buffer) - WORKFILE_SAFEWRITE_SIZE);
-			elog(NOTICE, "Simulate a torn page at block " INT64_FORMAT, bfz->blockNo);
-		}
-	}
-
-	if (gp_workfile_faultinject)
-		pfree(oldBuffer);
 
 	if (bfz->has_checksum)
 	{
@@ -443,14 +405,6 @@ bfz_scan_begin(bfz_t * thiz)
 	fs->tot_bytes = 0L;
 
 	MemoryContextSwitchTo(oldcxt);
-
-	if (gp_workfile_faultinject)
-	{
-		thiz->chosenBlockNo = (((double)random()) / ((double)MAX_RANDOM_VALUE)) * thiz->numBlocks;
-		elog(LOG, "Test workfile checksumming: choose block " INT64_FORMAT
-			 " to simulate a torn page",
-			 thiz->chosenBlockNo);
-	}
 }
 
 void

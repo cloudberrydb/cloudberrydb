@@ -864,7 +864,6 @@ extern double gp_workfile_limit_per_query;
 extern int gp_workfile_limit_files_per_query;
 extern int gp_workfile_caching_loglevel;
 extern int gp_sessionstate_loglevel;
-extern bool gp_workfile_faultinject;
 extern int gp_workfile_bytes_to_checksum;
 /* The type of work files that HashJoin should use */
 extern int gp_workfile_type_hashjoin;

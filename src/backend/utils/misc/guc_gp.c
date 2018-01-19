@@ -715,15 +715,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		false, NULL, NULL
 	},
 	{
-		{"gp_workfile_faultinject", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Fault inject a torn page to an executor workfile."),
-			gettext_noop("Used to simulate a failure and test workfile checksumming."),
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&gp_workfile_faultinject,
-		false, NULL, NULL
-	},
-	{
 		{"memory_protect_buffer_pool", PGC_POSTMASTER, DEVELOPER_OPTIONS,
 			gettext_noop("Enables memory protection of the buffer pool"),
 			gettext_noop("Turn on memory protection of the buffer pool "
