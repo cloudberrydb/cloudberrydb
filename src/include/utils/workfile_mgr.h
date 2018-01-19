@@ -42,13 +42,6 @@
 
 typedef struct
 {
-
-	/* number of buckets in a spilled hashtable */
-	uint32 buckets;
-
-	/* number of leaf (that did not re-spill) files for a hashagg operator */
-	uint32 num_leaf_files;
-
 	/* type of workfiles used by this operator */
 	enum ExecWorkFileType type;
 
@@ -142,9 +135,7 @@ void workfile_mgr_close_set(workfile_set *work_set);
 void workfile_mgr_cleanup(void);
 Size workfile_mgr_shmem_size(void);
 void workfile_mgr_cache_init(void);
-void workfile_mgr_mark_complete(workfile_set *work_set);
 Cache *workfile_mgr_get_cache(void);
-int32 workfile_mgr_clear_cache(int seg_id);
 void workfile_set_update_in_progress_size(workfile_set *work_set, int64 size);
 
 /* Workfile File operations */

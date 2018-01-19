@@ -360,7 +360,6 @@ workfile_mgr_populate_set(const void *resource, const void *param)
 	work_set->node_type = set_info->nodeType;
 	work_set->metadata.type = set_info->file_type;
 	work_set->metadata.bfz_compress_type = gp_workfile_compress_algorithm;
-	work_set->metadata.num_leaf_files = 0;
 	work_set->slice_id = currentSliceId;
 	work_set->session_id = gp_session_id;
 	work_set->command_count = gp_command_count;
