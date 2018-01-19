@@ -53,7 +53,7 @@ typedef enum DataLineStatus
 	END_MARKER
 } DataLineStatus;
 
-extern FileScanDesc external_beginscan(Relation relation, Index scanrelid,
+extern FileScanDesc external_beginscan(Relation relation,
 				   uint32 scancounter, List *uriList,
 				   List *fmtOpts, char fmtType, bool isMasterOnly,
 				   int rejLimit, bool rejLimitInRows,

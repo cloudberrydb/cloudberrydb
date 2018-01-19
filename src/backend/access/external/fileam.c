@@ -117,7 +117,7 @@ elog(DEBUG2, "external_getnext returning tuple")
 * ----------------
 */
 FileScanDesc
-external_beginscan(Relation relation, Index scanrelid, uint32 scancounter,
+external_beginscan(Relation relation, uint32 scancounter,
 			   List *uriList, List *fmtOpts, char fmtType, bool isMasterOnly,
 			  int rejLimit, bool rejLimitInRows, Oid fmterrtbl, int encoding)
 {
@@ -146,7 +146,6 @@ external_beginscan(Relation relation, Index scanrelid, uint32 scancounter,
 	ItemPointerSetInvalid(&scan->fs_ctup.t_self);
 	scan->fs_cbuf = InvalidBuffer;
 	scan->fs_rd = relation;
-	scan->fs_scanrelid = scanrelid;
 	scan->fs_scancounter = scancounter;
 	scan->fs_noop = false;
 	scan->fs_file = NULL;
