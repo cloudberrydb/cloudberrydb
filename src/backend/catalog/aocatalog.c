@@ -123,7 +123,6 @@ CreateAOAuxiliaryTable(
 											     RELSTORAGE_HEAP,
 											     shared_relation,
 											     true,
-											     /* bufferPoolBulkLoad */ false,
 											     0,
 											     ONCOMMIT_NOOP,
 											     NULL, /* GP Policy */

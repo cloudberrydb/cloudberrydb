@@ -227,7 +227,6 @@ create_toast_table(Relation rel, Oid toastOid, Oid toastIndexOid,
 										   RELSTORAGE_HEAP,
 										   shared_relation,
 										   true,
-										   /* bufferPoolBulkLoad */ false,
 										   0,
 										   ONCOMMIT_NOOP,
 										   NULL, /* CDB POLICY */

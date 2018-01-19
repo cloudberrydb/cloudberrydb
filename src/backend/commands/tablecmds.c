@@ -734,7 +734,6 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage, bool dispatch)
 										  relstorage,
 										  tablespaceId==GLOBALTABLESPACE_OID,
 										  localHasOids,
-										  /* bufferPoolBulkLoad */ false,
 										  stmt->parentOidCount,
 										  stmt->oncommit,
                                           stmt->policy,  /*CDB*/

@@ -61,8 +61,7 @@ extern Relation heap_create(const char *relname,
 			char relkind,
 			char relstorage,
 			bool shared_relation,
-			bool allow_system_table_mods,
-			bool bufferPoolBulkLoad);
+			bool allow_system_table_mods);
 
 extern Oid heap_create_with_catalog(const char *relname,
 						 Oid relnamespace,
@@ -76,7 +75,6 @@ extern Oid heap_create_with_catalog(const char *relname,
 						 char relstorage,
 						 bool shared_relation,
 						 bool oidislocal,
-						 bool bufferPoolBulkLoad,
 						 int oidinhcount,
 						 OnCommitAction oncommit,
                          const struct GpPolicy *policy,    /* MPP */

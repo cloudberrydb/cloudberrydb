@@ -176,7 +176,7 @@ DESCR("");
 #define		  RELSTORAGE_EXTERNAL 'x'
 #define		  RELSTORAGE_FOREIGN 'f'
 
-static inline bool relstorage_is_buffer_pool(char c)
+static inline bool relstorage_is_heap(char c)
 {
 	return (c == RELSTORAGE_HEAP);
 }

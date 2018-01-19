@@ -673,8 +673,7 @@ index_create(Oid heapRelationId,
 								RELKIND_INDEX,
 								RELSTORAGE_HEAP,
 								shared_relation,
-								allow_system_table_mods,
-								/* bufferPoolBulkLoad */ false);
+								allow_system_table_mods);
 
 	Assert(indexRelationId == RelationGetRelid(indexRelation));
 

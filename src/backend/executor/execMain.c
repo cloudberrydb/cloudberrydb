@@ -5026,7 +5026,6 @@ OpenIntoRel(QueryDesc *queryDesc)
 											  relstorage,
 											  false,
 											  true,
-											  relstorage_is_buffer_pool(relstorage) ? !use_wal:false,
 											  0,
 											  into->onCommit,
 											  targetPolicy,  	/* MPP */

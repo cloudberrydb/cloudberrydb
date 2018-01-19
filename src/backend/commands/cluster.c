@@ -787,7 +787,6 @@ make_new_heap(Oid OIDOldHeap, const char *NewName, Oid NewTableSpace,
 										  OldHeap->rd_rel->relstorage,
 										  OldHeap->rd_rel->relisshared,
 										  true,
-										  /* bufferPoolBulkLoad */ false,
 										  0,
 										  ONCOMMIT_NOOP,
                                           NULL,                         /*CDB*/
