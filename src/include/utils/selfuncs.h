@@ -87,6 +87,7 @@ typedef struct VariableStatData
 			(* (vardata).freefunc) ((vardata).statsTuple); \
 	} while(0)
 
+
 typedef enum
 {
 	Pattern_Type_Like, Pattern_Type_Like_IC,

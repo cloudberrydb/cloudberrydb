@@ -162,7 +162,6 @@ static bool assign_ssl(bool newval, bool doit, GucSource source);
 static bool assign_stage_log_stats(bool newval, bool doit, GucSource source);
 static bool assign_log_stats(bool newval, bool doit, GucSource source);
 static bool assign_transaction_read_only(bool newval, bool doit, GucSource source);
-
 static const char *assign_canonical_path(const char *newval, bool doit, GucSource source);
 static const char *assign_timezone_abbreviations(const char *newval, bool doit, GucSource source);
 static const char *show_archive_command(void);
@@ -177,7 +176,6 @@ static bool assign_maxconnections(int newval, bool doit, GucSource source);
 static bool assign_autovacuum_max_workers(int newval, bool doit, GucSource source);
 static bool assign_effective_io_concurrency(int newval, bool doit, GucSource source);
 static const char *assign_pgstat_temp_directory(const char *newval, bool doit, GucSource source);
-
 static const char *assign_application_name(const char *newval, bool doit, GucSource source);
 
 static int	defunct_int = 0;

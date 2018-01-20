@@ -97,7 +97,7 @@ extern void mdcreate(SMgrRelation reln, ForkNumber forknum, bool isRedo);
 extern void mdcreate_ao(RelFileNode rnode, int32 segmentFileNum, bool isRedo);
 extern bool mdexists(SMgrRelation reln, ForkNumber forknum);
 extern void mdunlink(RelFileNode rnode, ForkNumber forknum, bool isRedo);
-extern void mdextend(SMgrRelation reln,  ForkNumber forknum,
+extern void mdextend(SMgrRelation reln, ForkNumber forknum,
 		 BlockNumber blocknum, char *buffer, bool isTemp);
 extern void mdprefetch(SMgrRelation reln, ForkNumber forknum,
 		   BlockNumber blocknum);
@@ -126,4 +126,4 @@ extern Datum smgrin(PG_FUNCTION_ARGS);
 extern Datum smgreq(PG_FUNCTION_ARGS);
 extern Datum smgrne(PG_FUNCTION_ARGS);
 
-#endif							/* SMGR_H */
+#endif   /* SMGR_H */

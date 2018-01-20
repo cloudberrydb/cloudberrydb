@@ -179,6 +179,7 @@ extern void MarkBufferDirty(Buffer buffer);
 extern void IncrBufferRefCount(Buffer buffer);
 extern Buffer ReleaseAndReadBuffer(Buffer buffer, Relation relation,
 					 BlockNumber blockNum);
+
 extern void InitBufferPool(void);
 extern void InitBufferPoolAccess(void);
 extern void InitBufferPoolBackend(void);

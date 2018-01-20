@@ -21,6 +21,7 @@
 #include "access/xlog.h"
 #include "fmgr.h"
 
+
 /*
  * amproc indexes for inverted indexes.
  */

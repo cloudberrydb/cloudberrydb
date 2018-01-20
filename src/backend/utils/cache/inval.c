@@ -169,7 +169,6 @@ static TransInvalidationInfo *transInvalInfo = NULL;
 #define MAX_SYSCACHE_CALLBACKS 40
 #define MAX_RELCACHE_CALLBACKS 5
 
-
 static struct SYSCACHECALLBACK
 {
 	int16		id;				/* cache number */
