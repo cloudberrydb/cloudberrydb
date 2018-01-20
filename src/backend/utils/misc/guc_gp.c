@@ -309,9 +309,6 @@ char	   *gp_auth_time_override_str = NULL;
 /* Password hashing */
 int			password_hash_algorithm = PASSWORD_HASH_MD5;
 
-/* system cache invalidation mode*/
-int			gp_test_system_cache_flush_force = SysCacheFlushForce_Off;
-
 /* include file/line information to stack traces */
 bool		gp_log_stack_trace_lines;
 
@@ -512,13 +509,6 @@ static const struct config_enum_entry explain_memory_verbosity_options[] = {
 	{"suppress", EXPLAIN_MEMORY_VERBOSITY_SUPPRESS},
 	{"summary", EXPLAIN_MEMORY_VERBOSITY_SUMMARY},
 	{"detail", EXPLAIN_MEMORY_VERBOSITY_DETAIL},
-	{NULL, 0}
-};
-
-static const struct config_enum_entry system_cache_flush_force_options[] = {
-	{"off", SysCacheFlushForce_Off},
-	{"recursive", SysCacheFlushForce_Recursive},
-	{"plain", SysCacheFlushForce_NonRecursive},
 	{NULL, 0}
 };
 
@@ -4597,16 +4587,6 @@ struct config_enum ConfigureNamesEnum_gp[] =
 		},
 		&explain_memory_verbosity,
 		EXPLAIN_MEMORY_VERBOSITY_SUPPRESS, explain_memory_verbosity_options, NULL, NULL
-	},
-
-	{
-		{"gp_test_system_cache_flush_force", PGC_USERSET, GP_ERROR_HANDLING,
-			gettext_noop("Force invalidation of system caches on each access"),
-			gettext_noop("Valid values are OFF, PLAIN and RECURSIVE."),
-			GUC_GPDB_ADDOPT | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_test_system_cache_flush_force,
-		SysCacheFlushForce_Off, system_cache_flush_force_options, NULL, NULL
 	},
 
 	{

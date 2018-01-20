@@ -60,19 +60,4 @@ extern void CacheRegisterRelcacheCallback(RelcacheCallbackFunction func,
 extern void inval_twophase_postcommit(TransactionId xid, uint16 info,
 						  void *recdata, uint32 len);
 
-/* Enum for system cache invalidation mode */
-typedef enum SysCacheFlushForce
-{
-	SysCacheFlushForce_Off = 0,
-	SysCacheFlushForce_NonRecursive,
-	SysCacheFlushForce_Recursive,
-	SysCacheFlushForce_Max				/* must always be last */
-} SysCacheFlushForce;
-
-#define SysCacheFlushForce_IsValid(subclass) \
-	(subclass >= SysCacheFlushForce_Off && subclass < SysCacheFlushForce_Max)
-
-/* GUCs */
-extern int gp_test_system_cache_flush_force; /* session GUC, forces system cache invalidation on each access */
-
 #endif   /* INVAL_H */

@@ -748,7 +748,35 @@ AcceptInvalidationMessages(void)
 	ReceiveSharedInvalidMessages(LocalExecuteInvalidationMessage,
 								 InvalidateSystemCaches);
 
-	Assert(SysCacheFlushForce_IsValid(gp_test_system_cache_flush_force));
+	/*
+	 * Test code to force cache flushes anytime a flush could happen.
+	 *
+	 * If used with CLOBBER_FREED_MEMORY, CLOBBER_CACHE_ALWAYS provides a
+	 * fairly thorough test that the system contains no cache-flush hazards.
+	 * However, it also makes the system unbelievably slow --- the regression
+	 * tests take about 100 times longer than normal.
+	 *
+	 * If you're a glutton for punishment, try CLOBBER_CACHE_RECURSIVELY. This
+	 * slows things by at least a factor of 10000, so I wouldn't suggest
+	 * trying to run the entire regression tests that way.  It's useful to try
+	 * a few simple tests, to make sure that cache reload isn't subject to
+	 * internal cache-flush hazards, but after you've done a few thousand
+	 * recursive reloads it's unlikely you'll learn more.
+	 */
+#if defined(CLOBBER_CACHE_ALWAYS)
+	{
+		static bool in_recursion = false;
+
+		if (!in_recursion)
+		{
+			in_recursion = true;
+			InvalidateSystemCaches();
+			in_recursion = false;
+		}
+	}
+#elif defined(CLOBBER_CACHE_RECURSIVELY)
+	InvalidateSystemCaches();
+#endif
 }
 
 /*
