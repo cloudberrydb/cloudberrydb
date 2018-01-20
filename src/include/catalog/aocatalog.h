@@ -16,7 +16,6 @@
 #ifndef AOCATALOG_H
 #define AOCATALOG_H
 
-#include "postgres.h"
 #include "catalog/heap.h"
 #include "catalog/index.h"
 

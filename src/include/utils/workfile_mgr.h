@@ -17,7 +17,6 @@
 #ifndef __WORKFILE_MGR_H__
 #define __WORKFILE_MGR_H__
 
-#include "postgres.h"
 #include "executor/execWorkfile.h"
 #include "utils/sharedcache.h"
 #include "nodes/execnodes.h"

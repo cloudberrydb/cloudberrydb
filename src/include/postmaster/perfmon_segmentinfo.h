@@ -20,8 +20,6 @@
 #ifndef PERFMON_SEGMENTINFO_H
 #define PERFMON_SEGMENTINFO_H
 
-#include "postgres.h"
-
 /* GUCs */
 extern int gp_perfmon_segment_interval;
 

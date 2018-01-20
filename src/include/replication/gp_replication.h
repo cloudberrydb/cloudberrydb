@@ -14,7 +14,6 @@
 #ifndef GPDB_GP_REPLICATION_H
 #define GPDB_GP_REPLICATION_H
 
-#include "postgres.h"
 #include "fmgr.h"
 
 #include "postmaster/fts.h"

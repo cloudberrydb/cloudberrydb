@@ -25,6 +25,7 @@
  *
  *-------------------------------------------------------------------------
  */
+#include "postgres.h"
 
 #include "postmaster/backoff.h"
 #include "postmaster/fork_process.h"

@@ -14,9 +14,6 @@
 #ifndef COMBOCID_H
 #define COMBOCID_H
 
-#include "postgres.h"
-#include "utils/combocid.h"
-
 /*
  * HeapTupleHeaderGetCmin and HeapTupleHeaderGetCmax function prototypes
  * are in access/htup.h, because that's where the macro definitions that

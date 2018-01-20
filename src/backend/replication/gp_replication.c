@@ -10,6 +10,7 @@
  *
  *-------------------------------------------------------------------------
  */
+#include "postgres.h"
 
 #include "replication/gp_replication.h"
 #include "replication/walreceiver.h"
