@@ -38,7 +38,7 @@ int xid_warn_limit;
  * Allocate the next XID for my new transaction or subtransaction.
  */
 TransactionId
-GetNewTransactionId(bool isSubXact, bool setProcXid)
+GetNewTransactionId(bool isSubXact)
 {
 	TransactionId xid;
 
@@ -160,7 +160,6 @@ GetNewTransactionId(bool isSubXact, bool setProcXid)
 	 * window *will* include the parent XID, so they will deliver the correct
 	 * answer later on when someone does have a reason to inquire.)
 	 */
-	if (setProcXid && MyProc != NULL)
 	{
 		/*
 		 * Use volatile pointer to prevent code rearrangement; other backends

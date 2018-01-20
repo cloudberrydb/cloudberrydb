@@ -528,7 +528,7 @@ AssignTransactionId(TransactionState s)
 	 * PG_PROC, the subtrans entry is needed to ensure that other backends see
 	 * the Xid as "running".  See GetNewTransactionId.
 	 */
-	s->transactionId = GetNewTransactionId(isSubXact, true);
+	s->transactionId = GetNewTransactionId(isSubXact);
 	ereport((Debug_print_full_dtm ? LOG : DEBUG5),
 			(errmsg("AssignTransactionId(): assigned xid %u", s->transactionId)));
 
