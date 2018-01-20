@@ -55,11 +55,6 @@ static SlruCtlData DistributedLogCtlData;
 
 #define DistributedLogCtl (&DistributedLogCtlData)
 
-/*
- * Directory where the distributed logs reside within PGDATA
- */
-#define DISTRIBUTEDLOG_DIR "pg_distributedlog"
-
 typedef struct DistributedLogShmem
 {
 	TransactionId	oldestXid;
@@ -383,7 +378,7 @@ DistributedLog_ShmemInit(void)
 	/* Set up SLRU for the distributed log. */
 	DistributedLogCtl->PagePrecedes = DistributedLog_PagePrecedes;
 	SimpleLruInit(DistributedLogCtl, "DistributedLogCtl", NUM_DISTRIBUTEDLOG_BUFFERS, 0,
-				  DistributedLogControlLock, DISTRIBUTEDLOG_DIR);
+				  DistributedLogControlLock, "pg_distributedlog");
 
 	/* Create or attach to the shared structure */
 	DistributedLogShared = 

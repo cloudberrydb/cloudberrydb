@@ -16,13 +16,6 @@
 #include "access/xlogdefs.h"
 #include "storage/lwlock.h"
 
-#define CLOG_DIR				"pg_clog"
-#define DISTRIBUTEDLOG_DIR		"pg_distributedlog"
-#define DISTRIBUTEDXIDMAP_DIR	"pg_distributedxidmap" 
-#define MULTIXACT_MEMBERS_DIR	"pg_multixact/members"
-#define MULTIXACT_OFFSETS_DIR	"pg_multixact/offsets"
-#define SUBTRANS_DIR			"pg_subtrans" 
-
 
 /*
  * Page status codes.  Note that these do not include the "dirty" bit.
