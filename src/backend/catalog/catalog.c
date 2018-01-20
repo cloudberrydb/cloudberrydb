@@ -701,7 +701,6 @@ GetNewSequenceRelationOid(Relation relation)
 		if (!collides)
 		{
 			/* Check for existing file of same name */
-			/* GPDB_84_MERGE_FIXME: check my work; is MAIN_FORKNUM right? */
 			rpath = relpath(rnode, MAIN_FORKNUM);
 			fd = BasicOpenFile(rpath, O_RDONLY | PG_BINARY, 0);
 
