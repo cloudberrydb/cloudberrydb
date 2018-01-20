@@ -139,6 +139,7 @@ typedef enum
 static SlruErrorCause slru_errcause;
 static int	slru_errno;
 
+
 static int SimpleLruReadPage_Internal(SlruCtl ctl, int pageno, bool write_ok, TransactionId xid, bool *valid);
 static void SimpleLruZeroLSNs(SlruCtl ctl, int slotno);
 static void SimpleLruWaitIO(SlruCtl ctl, int slotno);
@@ -147,7 +148,7 @@ static bool SlruPhysicalWritePage(SlruCtl ctl, int pageno, int slotno,
 					  SlruFlush fdata);
 static void SlruReportIOError(SlruCtl ctl, int pageno, TransactionId xid);
 static int	SlruSelectLRUPage(SlruCtl ctl, int pageno);
-static bool isSlruFileName(const char *fileName);
+
 
 /*
  * Initialization of shared memory
@@ -1215,7 +1216,8 @@ SlruScanDirectory(SlruCtl ctl, int cutoffPage, bool doDeletions)
 	cldir = AllocateDir(ctl->Dir);
 	while ((clde = ReadDir(cldir, ctl->Dir)) != NULL)
 	{
-		if (isSlruFileName(clde->d_name))
+		if (strlen(clde->d_name) == 4 &&
+			strspn(clde->d_name, "0123456789ABCDEF") == 4)
 		{
 			segno = (int) strtol(clde->d_name, NULL, 16);
 			segpage = segno * SLRU_PAGES_PER_SEGMENT;
@@ -1309,15 +1311,4 @@ SimpleLruPageExists(SlruCtl ctl, int pageno)
 	}
 
 	return false;	// Should not reach here.
-}
-
-/*
- * Given a filename, this function will return true if and only if it is a valid
- * SLRU filename. Filenames with 4 hex characters are valid.
- */
-static bool
-isSlruFileName(const char *fileName)
-{
-	return (strlen(fileName) == SLRU_FILENAME_LEN &&
-			strspn(fileName, "0123456789ABCDEF") == SLRU_FILENAME_LEN);
 }
