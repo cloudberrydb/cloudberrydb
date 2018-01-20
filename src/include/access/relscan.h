@@ -18,8 +18,6 @@
 #include "access/heapam.h"
 
 #include "access/formatter.h"
-#include "access/memtup.h"
-#include "access/aosegfiles.h"
 
 typedef struct HeapScanDescData
 {

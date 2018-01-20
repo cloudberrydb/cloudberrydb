@@ -79,11 +79,6 @@
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdbvars.h"
 
-#ifdef USE_SSL
-#include <openssl/crypto.h>
-#include <openssl/err.h>
-#endif
-
 #ifndef PG_KRB_SRVTAB
 #define PG_KRB_SRVTAB ""
 #endif

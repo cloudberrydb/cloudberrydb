@@ -58,9 +58,6 @@
 #include "storage/shmem.h"
 #include "miscadmin.h"
 
-#include "postmaster/primary_mirror_mode.h"
-#include "libpq/md5.h"
-
 
 /*
  * Define segment size.  A page is the same BLCKSZ as is used everywhere

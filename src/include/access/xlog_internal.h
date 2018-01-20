@@ -21,7 +21,6 @@
 #include "pgtime.h"
 #include "storage/block.h"
 #include "storage/relfilenode.h"
-#include "postmaster/primary_mirror_mode.h"
 
 
 /*
@@ -197,8 +196,6 @@ typedef XLogLongPageHeaderData *XLogLongPageHeader;
  */
 #define XLOGDIR				"pg_xlog"
 #define XLOG_CONTROL_FILE	"global/pg_control"
-#define XLOG_CONTROL_FILE_SUBDIR	"global"
-#define XLOG_CONTROL_FILE_SIMPLE	"pg_control"
 
 /*
  * These macros encapsulate knowledge about the exact layout of XLog file

@@ -49,7 +49,6 @@
 #include "executor/execdesc.h"
 #include "utils/resowner.h"
 #include "utils/timestamp.h"
-#include "utils/tuplestore.h"
 
 /*
  * We have several execution strategies for Portals, depending on what
