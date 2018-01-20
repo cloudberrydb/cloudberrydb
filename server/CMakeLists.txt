@@ -55,12 +55,12 @@ Correlated-AntiSemiJoin CorrelatedAntiSemiJoin-True Correlated-LASJ-With-Outer-C
 Correlated-LASJ-With-Outer-Const Correlated-LASJ-With-Outer-Expr;
 
 CPredicateTest:
-InferPredicatesForLimit OR-WithIsNullPred Int2Predicate UnsupportedStatsPredicate IN-Numeric
-AddEqualityPredicates AddPredsInSubqueries DeduplicatePredicates ExtractPredicateFromDisjWithComputedColumns
+InferPredicatesForLimit OR-WithIsNullPred Int2Predicate IN-Numeric DeduplicatePredicates
+AddEqualityPredicates AddPredsInSubqueries ExtractPredicateFromDisjWithComputedColumns
 Join-With-Subq-Preds-1 Non-Hashjoinable-Pred Non-Hashjoinable-Pred-2 Factorized-Preds IN OR;
 
 CLikeIDFTest:
-LIKE-Pattern-green LIKE-Pattern-green-2 LIKE-Pattern-Empty Nested-Or-Predicates
+LIKE-Pattern-green LIKE-Pattern-green-2 LIKE-Pattern-Empty Nested-Or-Predicates Join-IDF
 LikePredStatsNotComparable PredStatsNotComparable ExtractPredicateFromDisj CollapseNot
 IDF-NotNullConstant IDF-NullConstant INDF-NotNullConstant INDF-NullConstant NullConstant-INDF-Col;
 
@@ -107,6 +107,86 @@ IndexOnLeaf-SingleColumnHeterogenousIndexOnRoot-1-HEAP IndexOnLeaf-SingleColumnH
 IndexOnLeaf-SingleColumnHeterogenousIndexOnRoot-2-HEAP NonOverlappingHomogenousIndexesOnRoot-ANDPredicate-HEAP
 OverlappingHomogenousIndexesOnRoot-ANDPredicate-HEAP OverlappingHomogenousIndexesOnRoot-HEAP
 SingleColumnHomogenousIndexOnRoot-AO SingleColumnHomogenousIndexOnRoot-HEAP;
+
+CStatsTest:
+Stat-Derivation-Leaf-Pattern MissingBoolColStats JoinColWithOnlyNDV UnsupportedStatsPredicate;
+
+CICGMiscTest:
+OrderByNullsFirst ConvertHashToRandomSelect ConvertHashToRandomInsert HJN-DeeperOuter CTAS CTAS-Random CheckAsUser
+ProjectRepeatedColumn1 ProjectRepeatedColumn2 NLJ-BC-Outer-Spool-Inner Self-Comparison Self-Comparison-Nullable
+SelectCheckConstraint ExpandJoinOrder SelectOnBpchar EqualityJoin EffectsOfJoinFilter InnerJoin-With-OuterRefs
+UDA-AnyElement-1 UDA-AnyElement-2;
+
+CArrayCmpTest:
+ArrayConcat ArrayRef FoldedArrayCmp IN-ArrayCmp NOT-IN-ArrayCmp ArrayCmpAll UDA-AnyArray InClauseWithMCV
+CastedInClauseWithMCV FilterScalarCast;
+
+CProjectTest:
+ProjectWithConstant ProjectWithTextConstant ProjectSetFunction;
+
+CPartTbl1Test:
+NoPartConstraint-WhenNoDefaultPartsAndIndices
+PartConstraint-WhenIndicesAndNoDefaultParts PartConstraint-WithOnlyDefaultPartInfo
+PartConstraint-WhenDefaultPartsAndIndices CorrelatedNLJ-PartSelector-Subplan
+DonotPushPartConstThruLimit PartTbl-DPE-Correlated-NLOuter Select-Over-PartTbl
+PartTbl-DPE PartTbl-DPE-WindowFunction PartTbl-DPE-GroupBy PartTbl-DPE-Limit;
+
+CPartTbl2Test:
+DPE-SemiJoin DPE-IN DPE-NOT-IN HJN-DPE-Bitmap-Outer-Child
+NLJ-Broadcast-DPE-Outer-Child Part-Selection-IN Part-Selection-NOT-IN
+Part-Selection-ConstArray-1 Part-Selection-ConstArray-2 PartTbl-WindowFunction
+PartTbl-MultiWayJoin PartTbl-MultiWayJoinWithDPE PartTbl-MultiWayJoinWithDPE-2
+PartTbl-AsymmetricRangePredicate PartTbl-NEqPredicate PartTbl-SQExists;
+
+CPartTbl3Test:
+PartTbl-SQNotExists PartTbl-SQAny PartTbl-SQAll PartTbl-SQScalar PartTbl-HJ3
+PartTbl-HJ4 PartTbl-HJ5 PartTbl-JoinOverGbAgg PartTbl-JoinOverGbAgg-2
+PartTbl-NonConstSelect PartTbl-VolatileFunc PartTbl-DateTime
+PartTbl-ComplexRangePredicate-DefaultPart
+PartTbl-ComplexRangePredicate-NoDefaultPart PartTbl-LASJ;
+
+CPartTbl4Test:
+PartTbl-Relabel-Equality PartTbl-Relabel-Range PartTbl-DisablePartSelection
+PartTbl-DisablePartSelectionJoin PartTbl-JoinOverUnion-1
+PartTbl-JoinOverUnion-2 PartTbl-JoinOverIntersect PartTbl-JoinOverExcept
+PartTbl-RangeJoinPred PartTbl-ArrayIn PartTbl-ArrayCoerce PartTbl-Disjunction
+PartTbl-ComplexPredicate1 PartTbl-ComplexPredicate2 PartTbl-ComplexPredicate3
+PartTbl-ComplexPredicate4 PartTbl-ComplexPredicate5;
+
+CPartTbl5Test:
+PartTbl-IsNullPredicate PartTbl-IsNotNullPredicate PartTbl-IndexOnDefPartOnly
+PartTbl-SubqueryOuterRef PartTbl-CSQ-PartKey PartTbl-CSQ-NonPartKey
+PartTbl-LeftOuterHashJoin-DPE-IsNull PartTbl-LeftOuterNLJoin-DPE-IsNull
+PartTbl-List-DPE-Varchar-Predicates PartTbl-List-DPE-Int-Predicates;
+
+CPartTbl6Test:
+PartTbl-PredicateWithCast PartTbl-IDFList PartTbl-IDFNull
+PartTbl-PredicateWithCast PartTbl-EqPredicateWithCastRange
+PartTbl-PredicateWithCastList PartTbl-IDFWithCast
+PartTbl-PredicateWithCastMultiLevelList;
+
+CSetop1Test:
+ValueScanWithDuplicateAndSelfComparison PushGbBelowNaryUnionAll
+PushGbBelowNaryUnion-1 PushGbBelowNaryUnion-2 MS-UnionAll-1
+MS-UnionAll-5 MS-UnionAll-6 MS-UnionAll-7;
+
+CSetop2Test:
+Cascaded-UnionAll-Same-Cols-Order Cascaded-UnionAll-Differing-Cols
+Cascaded-UnionAll-Differing-Cols-Order Union-Over-UnionAll Nested-Setops
+Nested-Setops-2 Except IsNullUnionAllIsNotNull UnionAllWithTruncatedOutput
+Union-OuterRefs-Output Union-OuterRefs-Casting-Output
+Union-OuterRefs-InnerChild MS-UnionAll-2;
+
+CSetop3Test:
+UnionWithOuterRefs UnionAll Union-On-HJNs
+Union-Distributed-Table-With-Const-Table ExceptAllCompatibleDataType
+UnionAllCompatibleDataType UnionOfDQAQueries Union-Volatile-Func
+Intersect-Volatile-Func Except-Volatile-Func;
+
+CSetop4Test:
+PushSelectDownUnionAllOfCTG Push-Subplan-Below-Union Intersect-OuterRefs
+PushSelectWithOuterRefBelowUnion PushGbBelowUnion UnionGbSubquery MS-UnionAll-4
+AnyPredicate-Over-UnionOfConsts EquivClassesUnion EquivClassesIntersect;
 
 CEquivClassTest:
 Equiv-HashedDistr-1 Equiv-HashedDistr-2 EquivClassesAndOr EquivClassesLimit IndexNLJoin_Cast_NoMotion
@@ -204,7 +284,6 @@ add_orca_test(CExpressionPreprocessorTest)
 add_orca_test(CWindowTest)
 add_orca_test(CICGTest)
 add_orca_test(CMultilevelPartitionTest)
-add_orca_test(CSetopTest)
 add_orca_test(CDMLTest)
 add_orca_test(CDirectDispatchTest)
 add_orca_test(CTVFTest)
@@ -214,7 +293,6 @@ add_orca_test(CSubqueryTest)
 add_orca_test(CCollapseProjectTest)
 add_orca_test(CPruneColumnsTest)
 add_orca_test(CMissingStatsTest)
-add_orca_test(CPartTblTest)
 add_orca_test(CBitmapTest)
 add_orca_test(CCTETest)
 add_orca_test(CEscapeMechanismTest)
@@ -241,7 +319,6 @@ add_orca_test(CDistributionSpecTest)
 add_orca_test(CCastTest)
 add_orca_test(CConstTblGetTest)
 add_orca_test(COuterJoinTest)
-add_orca_test(CScalarArrayCmpTest)
 
 if (GPOS_ARCH_BITS EQUAL 64)
   add_orca_test(CSubqueryHandlerTest)
