@@ -797,48 +797,6 @@ ntuplestore_create_workset(workfile_set *workSet, int64 maxBytes)
 }
 
 void 
-ntuplestore_reset(NTupleStore *ts)
-{
-	NTupleStorePage *p = ts->first_page;
-
-	Assert(list_length(ts->accessors) == 0); 
-	Assert(!ts->fwacc);
-	Assert(ts->rwflag == NTS_NOT_READERWRITER || !"Reset NYI for reader writer");
-
-	while(p)
-	{
-		NTupleStorePage *next = nts_page_next(p); 
-		ts->first_free_page = NTS_PREPEND_1(ts->first_free_page, p);
-		p = next;
-	}
-	ts->pin_cnt = 0;
-
-	Assert(ts->first_free_page != NULL);
-
-	ts->first_page = ts->first_free_page;
-	ts->first_free_page = nts_page_next(ts->first_page);
-	init_page(ts->first_page);
-	nts_page_set_blockn(ts->first_page, 0);
-
-	ts->last_page = ts->first_page;
-	nts_pin_page(ts, ts->first_page);
-	nts_pin_page(ts, ts->last_page);
-
-	ts->first_ondisk_blockn = 0;
-
-	if(ts->plobfile)
-	{
-#ifdef USE_ASSERT_CHECKING
-		int errorcode = 
-#endif /* USE_ASSERT_CHECKING */
-		    ExecWorkFile_Seek(ts->plobfile, 0 /* offset */, SEEK_SET);
-		Assert(errorcode == 0);
-	}
-
-	ts->lobbytes = 0;
-}
-
-void 
 ntuplestore_flush(NTupleStore *ts)
 {
 	NTupleStorePage *p = ts->first_page;
@@ -1114,48 +1072,6 @@ void ntuplestore_acc_put_data(NTupleStoreAccessor *tsa, void *data, int len)
 	tsa->pos.slotn = nts_page_slot_cnt(tsa->page) - 1; 
 }
 
-/* XXX Not done yet.
- * Postgres does not allow hole in the BufFile, therefore, even if we are trimming
- * a page, if, we are already in disk mode, we will have to flush the page (or write
- * any junk, but we need to write a page).  A better way is to may logical page blockn
- * to a physical blockn.  
- */
-void ntuplestore_trim(NTupleStore *ts, NTupleStorePos *pos)
-{
-	NTupleStorePage *page = nts_load_page(ts, pos->blockn); 
-
-	Assert(page); 
-	nts_page_set_first_valid_slotn(page, pos->slotn);
-
-	nts_unpin_page(ts, ts->first_page);
-
-	while(ts->first_page != page)
-	{
-		NTupleStorePage *next = nts_page_next(ts->first_page);
-
-		Assert(nts_page_pin_cnt(ts->first_page) == 0);
-
-		/* Flush dirty page anyway, to prevent holes in file */
-		if(nts_page_is_dirty(ts->first_page))
-		{
-			if(ts->pfile)
-			{
-				if (!ntsWriteBlock(ts, ts->first_page))
-				{
-					workfile_mgr_report_error();
-				}
-			}
-
-		}
-
-		ts->first_free_page = NTS_PREPEND_1(ts->first_free_page, ts->first_page); 
-		ts->first_page = next;
-	}
-
-	Assert(ts->first_page);
-	nts_pin_page(ts, ts->first_page);
-}
-
 static void ntuplestore_acc_advance_in_page(NTupleStoreAccessor *tsa, int* pn)
 {
 	if(*pn == 0)
@@ -1390,18 +1306,6 @@ bool ntuplestore_acc_seek_last(NTupleStoreAccessor *tsa)
 	return ntuplestore_acc_advance(tsa, -1);
 }
 
-void  ntuplestore_acc_set_invalid(NTupleStoreAccessor *tsa)
-{
-	Assert(tsa);
-	
-	if(tsa->page)
-		nts_unpin_page(tsa->store, tsa->page);
-
-	tsa->page = NULL;
-	tsa->pos.blockn = -1;
-	tsa->pos.slotn = -1;
-}
-
 void ntuplestore_acc_seek_bof(NTupleStoreAccessor *tsa)
 {
 	Assert(tsa && tsa->store && tsa->store->first_page);
@@ -1428,27 +1332,6 @@ void ntuplestore_acc_seek_eof(NTupleStoreAccessor *tsa)
 
 	tsa->pos.blockn = nts_page_blockn(tsa->page);
 	tsa->pos.slotn = nts_page_slot_cnt(tsa->page);
-}
-
-/*
- * Check if the tuple pointed by tsa1 is before the tuple pointed by tsa2.
- *
- * This function assumes that both tsa1 and tsa2 are pointing to a valid position.
- */
-bool ntuplestore_acc_is_before(NTupleStoreAccessor *tsa1, NTupleStoreAccessor *tsa2)
-{
-	Assert(ntuplestore_acc_tell(tsa1, NULL) &&
-		   ntuplestore_acc_tell(tsa2, NULL));
-	if (tsa1->pos.blockn < tsa2->pos.blockn)
-		return true;
-
-	if (tsa1->pos.blockn > tsa2->pos.blockn)
-		return false;
-	
-	if (tsa1->pos.slotn < tsa2->pos.slotn)
-		return true;
-	else
-		return false;
 }
 
 /*
