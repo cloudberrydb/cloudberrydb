@@ -88,23 +88,6 @@ static void TransactionIdSetStatusBit(TransactionId xid, XidStatus status,
 static void set_status_by_pages(int nsubxids, TransactionId *subxids,
 					XidStatus status, XLogRecPtr lsn);
 
-char *XidStatus_Name(XidStatus status)
-{
-	switch (status)
-	{
-	case TRANSACTION_STATUS_IN_PROGRESS:
-		return "In-Progress";
-	case TRANSACTION_STATUS_COMMITTED:
-		return "Committed";
-	case TRANSACTION_STATUS_ABORTED:
-		return "Aborted";
-	case TRANSACTION_STATUS_SUB_COMMITTED:
-		return "Sub-Transaction Committed";
-
-	default:
-		return "Unknown";
-	}
-}
 
 /*
  * TransactionIdSetTreeStatus

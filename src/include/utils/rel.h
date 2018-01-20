@@ -116,12 +116,6 @@ typedef struct RelationAmInfo
 	FmgrInfo	amoptions;
 } RelationAmInfo;
 
-typedef struct RelationNodeInfo
-{
-	bool	isPresent;
-
-	bool	tidAllowedToBeZero;
-} RelationNodeInfo;
 
 /*
  * Here are the contents of a relation cache entry.

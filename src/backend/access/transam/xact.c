@@ -335,20 +335,6 @@ static bool IsCurrentTransactionIdForReader(TransactionId xid);
 
 extern void FtsCondSetTxnReadOnly(bool *);
 
-char *
-XactInfoKind_Name(const XactInfoKind		kind)
-{
-	switch (kind)
-	{
-		case XACT_INFOKIND_NONE: 		return "None";
-		case XACT_INFOKIND_COMMIT: 		return "Commit";
-		case XACT_INFOKIND_ABORT: 		return "Abort";
-		case XACT_INFOKIND_PREPARE: 	return "Prepare";
-		default:
-			return "Unknown";
-	}
-}
-
 /* ----------------------------------------------------------------
  *	transaction state accessors
  * ----------------------------------------------------------------

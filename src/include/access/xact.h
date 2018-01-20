@@ -150,22 +150,12 @@ typedef struct xl_xact_distributed_forget
 	TMGXACT_LOG gxact_log;
 } xl_xact_distributed_forget;
 
-typedef enum
-{
-	XACT_INFOKIND_NONE = 0,
-	XACT_INFOKIND_COMMIT,
-	XACT_INFOKIND_ABORT,
-	XACT_INFOKIND_PREPARE
-} XactInfoKind;
-
 /* ----------------
  *		extern definitions
  * ----------------
  */
 
 /* Greenplum Database specific */ 
-extern char *XactInfoKind_Name(
-	const XactInfoKind		kind);
 extern void SetSharedTransactionId_writer(void);
 extern void SetSharedTransactionId_reader(TransactionId xid, CommandId cid);
 extern bool IsTransactionState(void);
