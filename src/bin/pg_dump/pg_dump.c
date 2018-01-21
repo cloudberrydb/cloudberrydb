@@ -286,27 +286,33 @@ error_unsupported_server_version(void)
 static bool
 isGPDB4300OrLater(void)
 {
+	static int	value = -1;		/* -1 = not known yet, 0 = no, 1 = yes */
 	bool	retValue = false;
 
-	if (isGPbackend)
+	/* Query the server on first call, and cache the result */
+	if (value == -1)
 	{
-		PQExpBuffer query;
-		PGresult   *res;
+		if (isGPbackend)
+		{
+			const char *query;
+			PGresult   *res;
 
-		query = createPQExpBuffer();
-		appendPQExpBuffer(query,
-				"select attnum from pg_catalog.pg_attribute "
-				"where attrelid = 'pg_catalog.pg_proc'::regclass and "
-				"attname = 'prodataaccess'");
+			query = "select attnum from pg_catalog.pg_attribute "
+					"where attrelid = 'pg_catalog.pg_proc'::regclass and "
+					"attname = 'prodataaccess'";
 
-		res = PQexec(g_conn, query->data);
-		check_sql_result(res, g_conn, query->data, PGRES_TUPLES_OK);
+			res = PQexec(g_conn, query);
+			check_sql_result(res, g_conn, query, PGRES_TUPLES_OK);
 
-		if (PQntuples(res) == 1)
-			retValue = true;
+			if (PQntuples(res) == 1)
+				value = 1;
+			else
+				value = 0;
 
-		PQclear(res);
-		destroyPQExpBuffer(query);
+			PQclear(res);
+		}
+		else
+			value = 0;
 	}
 
 	return retValue;
@@ -318,54 +324,38 @@ isGPDB4300OrLater(void)
 static bool
 isGPDB(void)
 {
-	PQExpBuffer query;
-	PGresult   *res;
-	char	   *ver;
-	bool		retValue = false;
+	static int	value = -1;		/* -1 = not known yet, 0 = no, 1 = yes */
 
-	query = createPQExpBuffer();
-	appendPQExpBuffer(query, "select version()");
-	res = PQexec(g_conn, query->data);
-	check_sql_result(res, g_conn, query->data, PGRES_TUPLES_OK);
+	/* Query the server on first call, and cache the result */
+	if (value == -1)
+	{
+		const char *query = "select pg_catalog.version()";
+		PGresult   *res;
+		char	   *ver;
 
-	ver = (PQgetvalue(res, 0, 0));
-	if (strstr(ver, "Greenplum") != NULL)
-		retValue = true;
+		res = PQexec(g_conn, query);
+		check_sql_result(res, g_conn, query, PGRES_TUPLES_OK);
 
-	PQclear(res);
-	destroyPQExpBuffer(query);
-	return retValue;
+		ver = (PQgetvalue(res, 0, 0));
+		if (strstr(ver, "Greenplum") != NULL)
+			value = 1;
+		else
+			value = 0;
+
+		PQclear(res);
+	}
+	return (value == 1) ? true : false;
 }
 
 
-/*
- * If GPDB version is 5.0, pg_proc has provariadic column.
- * When we have version() returns GPDB version instead of "main build dev" or
- * something similar, we'll fix this function (MPP-17313)
- */
 static bool
 isGPDB5000OrLater(void)
 {
-	bool	retValue = false;
+	if (!isGPDB())
+		return false;		/* Not Greenplum at all. */
 
-	if (isGPDB() == true)
-	{
-		PQExpBuffer query;
-		PGresult   *res;
-
-		query = createPQExpBuffer();
-		appendPQExpBuffer(query,"select attnum from pg_catalog.pg_attribute where attrelid = 1255 and attname = 'provariadic'");
-		res = PQexec(g_conn, query->data);
-		check_sql_result(res, g_conn, query->data, PGRES_TUPLES_OK);
-
-		if (PQntuples(res) == 1)
-			retValue = true;
-
-		PQclear(res);
-		destroyPQExpBuffer(query);
-	}
-
-	return retValue;
+	/* GPDB 5 is based on PostgreSQL 8.3 */
+	return g_fout->remoteVersion >= 80400;
 }
 
 
@@ -11024,6 +11014,7 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 	char	   *storage;
 	int			j,
 				k;
+	bool		isPartitioned = false;
 
 	/* Make sure we are in proper schema */
 	selectSourceSchema(tbinfo->dobj.namespace->dobj.name);
@@ -11289,7 +11280,8 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 							  tbinfo->dobj.name);
 				exit_nicely();
 			}
-			if (!PQgetisnull(res, 0, 0))
+			isPartitioned = !PQgetisnull(res, 0, 0);
+			if (isPartitioned)
 				appendPQExpBuffer(q, " %s", PQgetvalue(res, 0, 0));
 
 			PQclear(res);
@@ -11343,7 +11335,7 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 		appendPQExpBuffer(q, ";\n");
 
 		/* Exchange external partition */
-		if (gp_partitioning_available)
+		if (isPartitioned)
 		{
 			int i = 0;
 			int ntups = 0;
