@@ -1614,16 +1614,16 @@ psql_completion(char *text, int start, int end)
 			 pg_strcasecmp(prev2_wd, "TABLESPACE") == 0)
 	{
 		static const char *const list_CREATETABLESPACE[] =
-		{"OWNER", "FILESPACE", NULL};
+		{"OWNER", "LOCATION", NULL};
 
 		COMPLETE_WITH_LIST(list_CREATETABLESPACE);
 	}
-	/* Complete CREATE TABLESPACE name OWNER name with "FILESPACE" */
+	/* Complete CREATE TABLESPACE name OWNER name with "LOCATION" */
 	else if (pg_strcasecmp(prev5_wd, "CREATE") == 0 &&
 			 pg_strcasecmp(prev4_wd, "TABLESPACE") == 0 &&
 			 pg_strcasecmp(prev2_wd, "OWNER") == 0)
 	{
-		COMPLETE_WITH_CONST("FILESPACE");
+		COMPLETE_WITH_CONST("LOCATION");
 	}
 
 /* CREATE TEXT SEARCH */
