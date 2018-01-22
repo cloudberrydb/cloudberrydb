@@ -3070,6 +3070,8 @@ SetupUDPIFCInterconnect_Internal(EState *estate)
 				conn->pkt_q_size = 0;
 				conn->pkt_q_head = 0;
 				conn->pkt_q_tail = 0;
+
+				SIMPLE_FAULT_INJECTOR(InterconnectSetupPalloc);
 				conn->pkt_q = (uint8 **) palloc0(conn->pkt_q_capacity * sizeof(uint8 *));
 
 				/* update the max buffer count of our rx buffer pool.  */
@@ -3459,11 +3461,11 @@ TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
 					if (conn->cdbProc == NULL)
 						continue;
 
-					rx_buffer_pool.maxCount -= conn->pkt_q_capacity;
-
 					/* out of memory has occurred, break out */
 					if (!conn->pkt_q)
 						break;
+
+					rx_buffer_pool.maxCount -= conn->pkt_q_capacity;
 
 					connDelHash(&ic_control_info.connHtab, conn);
 

@@ -188,6 +188,8 @@ FI_IDENT(QuickDie, "quickdie")
 FI_IDENT(AfterOneSliceDispatched, "after_one_slice_dispatched")
 /* inject fault in interconnect to skip sending the stop ack */
 FI_IDENT(InterconnectStopAckIsLost, "interconnect_stop_ack_is_lost")
+/* inject fault in interconnect to make palloc0 fail in setup */
+FI_IDENT(InterconnectSetupPalloc, "interconnect_setup_palloc")
 /* inject fault after qe got snapshot and interconnect*/
 FI_IDENT(QEGotSnapshotAndInterconnect, "qe_got_snapshot_and_interconnect")
 /* inject fault to 'skip' in order to flush all buffers in BgBufferSync() */
