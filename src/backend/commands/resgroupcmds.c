@@ -383,7 +383,7 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 	 * Check the pg_resgroup relation to be certain the resource group already
 	 * exists.
 	 */
-	groupid = GetResGroupIdForName(stmt->name, RowExclusiveLock);
+	groupid = GetResGroupIdForName(stmt->name);
 	if (groupid == InvalidOid)
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
@@ -603,32 +603,27 @@ GetResGroupIdForRole(Oid roleid)
  *	to Oid.
  */
 Oid
-GetResGroupIdForName(const char *name, LOCKMODE lockmode)
+GetResGroupIdForName(const char *name)
 {
-	Relation	rel;
-	ScanKeyData scankey;
-	SysScanDesc scan;
 	HeapTuple	tuple;
 	Oid			rsgid;
 
-	rel = heap_open(ResGroupRelationId, lockmode);
+	tuple = SearchSysCache1(RESGROUPNAME,
+							CStringGetDatum(name));
 
-	/* SELECT oid FROM pg_resgroup WHERE rsgname = :1 */
-	ScanKeyInit(&scankey,
-				Anum_pg_resgroup_rsgname,
-				BTEqualStrategyNumber, F_NAMEEQ,
-				CStringGetDatum(name));
-	scan = systable_beginscan(rel, ResGroupRsgnameIndexId, true,
-							  SnapshotNow, 1, &scankey);
-
-	tuple = systable_getnext(scan);
 	if (HeapTupleIsValid(tuple))
-		rsgid = HeapTupleGetOid(tuple);
+	{
+		bool isnull;
+		Datum oidDatum = SysCacheGetAttr(RESGROUPNAME, tuple,
+										  ObjectIdAttributeNumber,
+										  &isnull);
+		Assert (!isnull);
+		rsgid = DatumGetObjectId(oidDatum);
+	}
 	else
-		rsgid = InvalidOid;
+		return InvalidOid;
 
-	systable_endscan(scan);
-	heap_close(rel, lockmode);
+	ReleaseSysCache(tuple);
 
 	return rsgid;
 }
@@ -637,37 +632,28 @@ GetResGroupIdForName(const char *name, LOCKMODE lockmode)
  * GetResGroupNameForId -- Return the resource group name for an Oid
  */
 char *
-GetResGroupNameForId(Oid oid, LOCKMODE lockmode)
+GetResGroupNameForId(Oid oid)
 {
-	Relation	rel;
-	ScanKeyData scankey;
-	SysScanDesc scan;
 	HeapTuple	tuple;
 	char		*name = NULL;
 
-	rel = heap_open(ResGroupRelationId, lockmode);
+	tuple = SearchSysCache1(RESGROUPOID,
+							ObjectIdGetDatum(oid));
 
-	/* SELECT rsgname FROM pg_resgroup WHERE oid = :1 */
-	ScanKeyInit(&scankey,
-				ObjectIdAttributeNumber,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(oid));
-	scan = systable_beginscan(rel, ResGroupOidIndexId, true,
-							  SnapshotNow, 1, &scankey);
-
-	tuple = systable_getnext(scan);
 	if (HeapTupleIsValid(tuple))
 	{
 		bool isnull;
-		Datum nameDatum = heap_getattr(tuple, Anum_pg_resgroup_rsgname,
-									   rel->rd_att, &isnull);
+		Datum nameDatum = SysCacheGetAttr(RESGROUPOID, tuple,
+										  Anum_pg_resgroup_rsgname,
+										  &isnull);
 		Assert (!isnull);
 		Name resGroupName = DatumGetName(nameDatum);
 		name = pstrdup(NameStr(*resGroupName));
 	}
+	else
+		return "unknow";
 
-	systable_endscan(scan);
-	heap_close(rel, lockmode);
+	ReleaseSysCache(tuple);
 
 	return name;
 }
