@@ -12,7 +12,7 @@
                                                         QUERY PLAN
      Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..12183.97 rows=1 width=24)
        ->  Hash Join  (cost=0.00..12183.97 rows=1 width=24)
-             Hash Cond: foo.b = bar.b AND p1.b = bar.b
+             Hash Cond: p1.b = bar.b AND foo.b = bar.b
              ->  Hash Join  (cost=0.00..2738.17 rows=33333334 width=16)
                    Hash Cond: foo.b = p1.b
                    ->  Table Scan on foo  (cost=0.00..431.07 rows=3334 width=8)
@@ -1194,11 +1194,11 @@
           <dxl:JoinFilter/>
           <dxl:HashCondList>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-              <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
+              <dxl:Ident ColId="10" ColName="b" TypeMdid="0.23.1.0"/>
               <dxl:Ident ColId="19" ColName="b" TypeMdid="0.23.1.0"/>
             </dxl:Comparison>
             <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-              <dxl:Ident ColId="10" ColName="b" TypeMdid="0.23.1.0"/>
+              <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
               <dxl:Ident ColId="19" ColName="b" TypeMdid="0.23.1.0"/>
             </dxl:Comparison>
           </dxl:HashCondList>

@@ -85,9 +85,25 @@ CXformExpandNAryJoin::Exfp
 //		CXformExpandNAryJoin::Transform
 //
 //	@doc:
-//		Actual transformation of n-ary join to cluster of inner joins
+//		Actual transformation of n-ary join to cluster of inner joins in
+//		the order of the joins existing in the query
 //
 //---------------------------------------------------------------------------
+//Example Input tree:
+//	+--CLogicalNAryJoin
+//	   |--CLogicalGet "t1"
+//	   |--CLogicalGet "t2"
+//	   |--CLogicalGet "t3"
+//	   +--CScalarBoolOp (EboolopAnd)
+//		  |--CScalarCmp (=)
+//		  |  |--CScalarIdent "a" (0)
+//		  |  +--CScalarIdent "a" (9)
+//		  |--CScalarCmp (=)
+//		  |  |--CScalarIdent "a" (9)
+//		  |  +--CScalarIdent "a" (18)
+//		  +--CScalarCmp (=)
+//			 |--CScalarIdent "a" (0)
+//			 +--CScalarIdent "a" (18)
 void
 CXformExpandNAryJoin::Transform
 	(
@@ -107,25 +123,33 @@ CXformExpandNAryJoin::Transform
 	const ULONG ulArity = pexpr->UlArity();
 	GPOS_ASSERT(ulArity >= 3);
 
-	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
-	for (ULONG ul = 0; ul < ulArity - 1; ul++)
+	// create a cluster of inner joins with same order of given relations
+	// and dummy join condition
+	//	+--CLogicalInnerJoin
+	//	   |--CLogicalInnerJoin
+	//	   |  |--CLogicalGet "t1"
+	//	   |  |--CLogicalGet "t2"
+	//	   |  +--CScalarConst (1)
+	//	   |--CLogicalGet "t3"
+	//	   +--CScalarConst (1)
+	(*pexpr)[0]->AddRef();
+	(*pexpr)[1]->AddRef();
+	CExpression *pexprJoin = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(pmp, (*pexpr)[0], (*pexpr)[1], CPredicateUtils::PexprConjunction(pmp, NULL));
+	for (ULONG ul = 2; ul < ulArity - 1; ul++)
 	{
-		CExpression *pexprChild = (*pexpr)[ul];
-		pexprChild->AddRef();
-		pdrgpexpr->Append(pexprChild);
+		(*pexpr)[ul]->AddRef();
+		pexprJoin = CUtils::PexprLogicalJoin<CLogicalInnerJoin>(pmp, pexprJoin, (*pexpr)[ul], CPredicateUtils::PexprConjunction(pmp, NULL));
 	}
 
 	CExpression *pexprScalar = (*pexpr)[ulArity - 1];
+	pexprScalar->AddRef();
 
-	DrgPexpr *pdrgpexprPreds = CPredicateUtils::PdrgpexprConjuncts(pmp, pexprScalar);
+	// create a logical select with the join expression and scalar condition child
+	CExpression *pexprSelect = CUtils::PexprLogicalSelect(pmp, pexprJoin, pexprScalar);
 
-	// create a join order based on query-specified order of joins
-	CJoinOrder jo(pmp, pdrgpexpr, pdrgpexprPreds);
-	CExpression *pexprResult = jo.PexprExpand();
-
-	// normalize resulting expression
-	CExpression *pexprNormalized = CNormalizer::PexprNormalize(pmp, pexprResult);
-	pexprResult->Release();
+	// normalize the tree and push down the predicates
+	CExpression *pexprNormalized = CNormalizer::PexprNormalize(pmp, pexprSelect);
+	pexprSelect->Release();
 	pxfres->Add(pexprNormalized);
 }
 
