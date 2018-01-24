@@ -27,7 +27,7 @@ PGPORT?=15432
 PSQLDIR = $(bindir)
 
 # default encoding
-##MULTIBYTE = LATIN1
+MULTIBYTE = SQL_ASCII
 
 # maximum simultaneous connections for parallel tests
 MAXCONNOPT =
