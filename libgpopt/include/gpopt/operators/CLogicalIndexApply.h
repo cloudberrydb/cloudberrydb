@@ -1,18 +1,14 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2013 Pivotal, Inc.
+//	Copyright (C) 2018 Pivotal Software, Inc.
 //
-//	@filename:
-//		CLogicalInnerIndexApply.h
-//
-//	@doc:
-//		Inner Index Apply operator;
-//		a variant of inner apply that captures the need to implement a
-//		correlated-execution strategy on the physical side, where the inner
-//		side is an index scan with parameters from outer side
+//	Base Index Apply operator for Inner and Outer Join;
+//	a variant of inner/outer apply that captures the need to implement a
+//	correlated-execution strategy on the physical side, where the inner
+//	side is an index scan with parameters from outer side
 //---------------------------------------------------------------------------
-#ifndef GPOPT_CLogicalInnerIndexApply_H
-#define GPOPT_CLogicalInnerIndexApply_H
+#ifndef GPOPT_CLogicalIndexApply_H
+#define GPOPT_CLogicalIndexApply_H
 
 #include "gpos/base.h"
 #include "gpopt/operators/CLogicalApply.h"
@@ -21,57 +17,58 @@
 namespace gpopt
 {
 
-
-	//---------------------------------------------------------------------------
-	//	@class:
-	//		CLogicalInnerIndexApply
-	//
-	//	@doc:
-	//		Index Apply operator
-	//
-	//---------------------------------------------------------------------------
-	class CLogicalInnerIndexApply : public CLogicalApply
+	class CLogicalIndexApply : public CLogicalApply
 	{
-
 		private:
+
+			// private copy ctor
+			CLogicalIndexApply(const CLogicalIndexApply &);
+
+		protected:
 
 			// columns used from Apply's outer child used by index in Apply's inner child
 			DrgPcr *m_pdrgpcrOuterRefs;
 
-			// private copy ctor
-			CLogicalInnerIndexApply(const CLogicalInnerIndexApply &);
+			// is this an outer join?
+			BOOL m_fOuterJoin;
 
 		public:
 
 			// ctor
-			CLogicalInnerIndexApply(IMemoryPool *pmp,  DrgPcr *pdrgpcrOuterRefs);
+			CLogicalIndexApply(IMemoryPool *pmp,  DrgPcr *pdrgpcrOuterRefs, BOOL fOuterJoin);
 
 			// ctor for patterns
 			explicit
-			CLogicalInnerIndexApply(IMemoryPool *pmp);
+			CLogicalIndexApply(IMemoryPool *pmp);
 
 			// dtor
 			virtual
-			~CLogicalInnerIndexApply();
+			~CLogicalIndexApply();
 
 			// ident accessors
 			virtual
 			EOperatorId Eopid() const
 			{
-				return EopLogicalInnerIndexApply;
+				return EopLogicalIndexApply;
 			}
 
 			// return a string for operator name
 			virtual
 			const CHAR *SzId() const
 			{
-				return "CLogicalInnerIndexApply";
+				return "CLogicalIndexApply";
 			}
 
 			// outer column references accessor
 			DrgPcr *PdrgPcrOuterRefs() const
 			{
 				return m_pdrgpcrOuterRefs;
+			}
+
+			// outer column references accessor
+			BOOL FouterJoin() const
+			{
+				return m_fOuterJoin;
 			}
 
 			//-------------------------------------------------------------------------------------
@@ -152,22 +149,22 @@ namespace gpopt
 
 			// conversion function
 			static
-			CLogicalInnerIndexApply *PopConvert
+			CLogicalIndexApply *PopConvert
 				(
 				COperator *pop
 				)
 			{
 				GPOS_ASSERT(NULL != pop);
-				GPOS_ASSERT(EopLogicalInnerIndexApply == pop->Eopid());
+				GPOS_ASSERT(EopLogicalIndexApply == pop->Eopid());
 
-				return dynamic_cast<CLogicalInnerIndexApply*>(pop);
+				return dynamic_cast<CLogicalIndexApply*>(pop);
 			}
 
-	}; // class CLogicalInnerIndexApply
+	}; // class CLogicalIndexApply
 
 }
 
 
-#endif // !GPOPT_CLogicalInnerIndexApply_H
+#endif // !GPOPT_CLogicalIndexApply_H
 
 // EOF

@@ -98,7 +98,7 @@ namespace gpopt
 				ExfInnerJoin2DynamicIndexGetApply,
 				ExfInnerApplyWithOuterKey2InnerJoin,
 				ExfInnerJoin2NLJoin,
-				ExfImplementInnerIndexApply,
+				ExfImplementIndexApply,
 				ExfInnerJoin2HashJoin,
 				ExfInnerApply2InnerJoin,
 				ExfInnerApply2InnerJoinNoCorrelations,
@@ -210,6 +210,10 @@ namespace gpopt
 				ExfGbAggWithMDQA2Join,
 				ExfCollapseProject,
 				ExfRemoveSubqDistinct,
+				ExfLeftOuterJoin2BitmapIndexGetApply,
+				ExfLeftOuterJoin2IndexGetApply,
+				ExfLeftOuterJoinWithInnerSelect2BitmapIndexGetApply,
+				ExfLeftOuterJoinWithInnerSelect2IndexGetApply,
 				ExfInvalid,
 				ExfSentinel = ExfInvalid
 			};

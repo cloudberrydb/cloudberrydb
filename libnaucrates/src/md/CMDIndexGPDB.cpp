@@ -201,8 +201,6 @@ CMDIndexGPDB::UlPosInKey
 		}
 	}
 
-	GPOS_ASSERT("Column not found in Index's key columns");
-
 	return ULONG_MAX;
 }
 

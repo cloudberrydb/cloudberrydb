@@ -1,15 +1,11 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2013 Pivotal, Inc.
+//	Copyright (C) 2017 Pivotal, Inc.
 //
-//	@filename:
-//		CXformInnerJoin2IndexApply.h
-//
-//	@doc:
-//		Transform Inner Join to Index Apply
+//	Transform Inner/Outer Join to Index Apply
 //---------------------------------------------------------------------------
-#ifndef GPOPT_CXformInnerJoin2IndexApply_H
-#define GPOPT_CXformInnerJoin2IndexApply_H
+#ifndef GPOPT_CXformJoin2IndexApply_H
+#define GPOPT_CXformJoin2IndexApply_H
 
 #include "gpos/base.h"
 #include "gpopt/xforms/CXformExploration.h"
@@ -22,25 +18,16 @@ namespace gpopt
 	// fwd declaration
 	class CLogicalDynamicGet;
 
-	//---------------------------------------------------------------------------
-	//	@class:
-	//		CXformInnerJoin2IndexApply
-	//
-	//	@doc:
-	//		Transform Inner Join to Index Apply
-	//
-	//---------------------------------------------------------------------------
-	class CXformInnerJoin2IndexApply : public CXformExploration
+	class CXformJoin2IndexApply : public CXformExploration
 	{
 
 		private:
 
 			// private copy ctor
-			CXformInnerJoin2IndexApply(const CXformInnerJoin2IndexApply &);
+			CXformJoin2IndexApply(const CXformJoin2IndexApply &);
 
 			// helper to add IndexApply expression to given xform results container
 			// for homogeneous b-tree indexes
-			static
 			void CreateHomogeneousBtreeIndexApplyAlternatives
 				(
 				IMemoryPool *pmp,
@@ -55,11 +42,10 @@ namespace gpopt
 				CColRefSet *pcrsReqd,
 				ULONG ulIndices,
 				CXformResult *pxfres
-				);
+				) const;
 
 			// helper to add IndexApply expression to given xform results container
 			// for homogeneous b-tree indexes
-			static
 			void CreateAlternativesForBtreeIndex
 				(
 				IMemoryPool *pmp,
@@ -75,11 +61,10 @@ namespace gpopt
 				const IMDIndex *pmdindex,
 				CPartConstraint *ppartcnstrIndex,
 				CXformResult *pxfres
-				);
+				) const;
 
 			// helper to add IndexApply expression to given xform results container
 			// for homogeneous bitmap indexes
-			static
 			void CreateHomogeneousBitmapIndexApplyAlternatives
 				(
 				IMemoryPool *pmp,
@@ -91,11 +76,10 @@ namespace gpopt
 				CColRefSet *pcrsOuterRefs,
 				CColRefSet *pcrsReqd,
 				CXformResult *pxfres
-				);
+				) const;
 
 			// based on the inner and the scalar expression, it computes scalar expression
 			// columns, outer references and required columns
-			static
 			void ComputeColumnSets
 				(
 				IMemoryPool *pmp,
@@ -104,10 +88,9 @@ namespace gpopt
 				CColRefSet **ppcrsScalarExpr,
 				CColRefSet **ppcrsOuterRefs,
 				CColRefSet **ppcrsReqd
-				);
+				) const;
 
 			// create an index apply plan when applicable
-			static
 			void CreatePartialIndexApplyPlan
 					(
 					IMemoryPool *pmp,
@@ -119,12 +102,11 @@ namespace gpopt
 					DrgPpartdig *pdrgppartdig,
 					const IMDRelation *pmdrel,
 					CXformResult *pxfres
-					);
+					) const;
 
-			// create an inner join with a CTE consumer on the inner branch, with the given
+			// create an join with a CTE consumer on the inner branch, with the given
 			// partition constraint
-			static
-			CExpression *PexprInnerJoinOverCTEConsumer
+			CExpression *PexprJoinOverCTEConsumer
 				(
 				IMemoryPool *pmp,
 				ULONG ulOriginOpId,
@@ -135,11 +117,10 @@ namespace gpopt
 				CPartConstraint *ppartcnstr,
 				DrgPcr *pdrgpcrOuter,
 				DrgPcr *pdrgpcrOuterNew
-				);
+				) const;
 
 			// create an index apply with a CTE consumer on the outer branch
 			// and a dynamic get on the inner one
-			static
 			CExpression *PexprIndexApplyOverCTEConsumer
 				(
 				IMemoryPool *pmp,
@@ -158,10 +139,9 @@ namespace gpopt
 				DrgPcr *pdrgpcrOuterNew,
 				DrgPcr *pdrgpcrOuterRefsInScan,
 				DrgPul *pdrgpulIndexesOfRefsInScan
-				);
+				) const;
 
 			// create a union-all with the given children
-			static
 			CExpression *PexprConstructUnionAll
 				(
 				IMemoryPool *pmp,
@@ -170,11 +150,10 @@ namespace gpopt
 				CExpression *pexprLeftChild,
 				CExpression *pexprRightChild,
 				ULONG ulScanId
-				);
+				) const;
 
 			//	construct a CTE Anchor over the given UnionAll and adds it to the given
 			//	Xform result
-			static
 			void AddUnionPlanForPartialIndexes
 				(
 				IMemoryPool *pmp,
@@ -183,12 +162,24 @@ namespace gpopt
 				CExpression *pexprUnion,
 				CExpression *pexprScalar,
 				CXformResult *pxfres
-				);
+				) const;
+
+			// check whether distribution key and the index key are matched.
+			// always returns true for master only table.
+			BOOL FMatchDistKeyAndIndexKey
+				(
+				const IMDRelation *pmdrel,
+				const IMDIndex *pmdindex
+				) const;
 
 		protected:
+
+			// is the logical join that is being transformed an outer join?
+			BOOL m_fOuterJoin;
+
 			// helper to add IndexApply expression to given xform results container
 			// for homogeneous indexes
-			static
+			virtual
 			void CreateHomogeneousIndexApplyAlternatives
 				(
 				IMemoryPool *pmp,
@@ -200,11 +191,11 @@ namespace gpopt
 				CLogicalDynamicGet *popDynamicGet,
 				CXformResult *pxfres,
 				gpmd::IMDIndex::EmdindexType emdtype
-				);
+				) const;
 
 			// helper to add IndexApply expression to given xform results container
 			// for partial indexes
-			static
+			virtual
 			void CreatePartialIndexApplyAlternatives
 				(
 				IMemoryPool *pmp,
@@ -215,33 +206,53 @@ namespace gpopt
 				CTableDescriptor *PtabdescInner,
 				CLogicalDynamicGet *popDynamicGet,
 				CXformResult *pxfres
-				);
+				) const;
+
+			// return the new instance of logical join operator
+			// being targeted in the current xform rule, caller
+			// takes the ownership and responsibility to release
+			// the instance.
+			virtual
+			CLogicalJoin *PopLogicalJoin(IMemoryPool *pmp) const = 0;
+
+			// return the new instance of logical apply operator
+			// that it is trying to transform to in the current
+			// xform rule, caller takes the ownership and
+			// responsibility to release the instance.
+			virtual
+			CLogicalApply *PopLogicalApply
+				(
+				IMemoryPool *pmp,
+				DrgPcr *pdrgpcrOuterRefs
+				) const = 0;
 
 		public:
 
 			// ctor
 			explicit
-			CXformInnerJoin2IndexApply
+			CXformJoin2IndexApply
 				(
 				CExpression *pexprPattern
 				)
 				:
 				CXformExploration(pexprPattern)
-			{}
+			{
+				m_fOuterJoin = (COperator::EopLogicalLeftOuterJoin == pexprPattern->Pop()->Eopid());
+			}
 
 			// dtor
 			virtual
-			~CXformInnerJoin2IndexApply()
+			~CXformJoin2IndexApply()
 			{}
 
 			// compute xform promise for a given expression handle
 			virtual
 			EXformPromise Exfp(CExpressionHandle &exprhdl) const;
 
-	}; // class CXformInnerJoin2IndexApply
+	}; // class CXformJoin2IndexApply
 
 }
 
-#endif // !GPOPT_CXformInnerJoin2IndexApply_H
+#endif // !GPOPT_CXformJoin2IndexApply_H
 
 // EOF
