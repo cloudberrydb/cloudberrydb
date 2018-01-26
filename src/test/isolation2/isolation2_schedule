@@ -7,8 +7,7 @@ test: instr_in_shmem_terminate
 
 test: setup
 # Tests on Append-Optimized tables (row-oriented).
-test: uao/alter_while_vacuum_row
-test: uao/alter_while_vacuum2_row
+test: uao/alter_while_vacuum_row uao/alter_while_vacuum2_row
 test: uao/compaction_full_stats_row
 test: uao/compaction_utility_row
 test: uao/compaction_utility_insert_row
@@ -53,8 +52,7 @@ test: uao/vacuum_while_vacuum_row
 test: uao/vacuum_cleanup_row
 
 # Tests on Append-Optimized tables (column-oriented).
-test: uao/alter_while_vacuum_column
-test: uao/alter_while_vacuum2_column
+test: uao/alter_while_vacuum_column uao/alter_while_vacuum2_column
 test: uao/compaction_full_stats_column
 test: uao/compaction_utility_column
 test: uao/compaction_utility_insert_column
