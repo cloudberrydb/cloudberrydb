@@ -343,6 +343,15 @@ resources:
     secret_access_key: {{bucket-secret-access-key}}
     versioned_file: {{bin_gpdb_centos_versioned_file}}
 
+- name: bin_gpdb_centos6_icw_green
+  type: s3
+  source:
+    access_key_id: {{bucket-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{bucket-secret-access-key}}
+    versioned_file: bin_gpdb_centos6/gpdb_branch_master/icw_green/bin_gpdb.tar.gz
+
 - name: pxf_tarball
   type: s3
   source:
@@ -1351,6 +1360,9 @@ jobs:
       - icw_gporca_sles12
       - icw_planner_sles12
       trigger: true
+  - put: bin_gpdb_centos6_icw_green
+    params:
+      file: bin_gpdb_centos6/bin_gpdb.tar.gz
 
 ## ======================================================================
 ##   ____ ____  
