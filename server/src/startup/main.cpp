@@ -77,7 +77,6 @@
 #include "unittest/gpopt/minidump/CMinidumpWithConstExprEvaluatorTest.h"
 #include "unittest/gpopt/minidump/CWindowTest.h"
 #include "unittest/gpopt/minidump/CICGTest.h"
-#include "unittest/gpopt/minidump/CTpcdsTest.h"
 #include "unittest/gpopt/minidump/CMultilevelPartitionTest.h"
 #include "unittest/gpopt/minidump/CSetopTest.h"
 #include "unittest/gpopt/minidump/CTVFTest.h"
@@ -111,7 +110,6 @@
 
 #include "unittest/gpopt/translate/CTranslatorDXLToExprTest.h"
 #include "unittest/gpopt/translate/CTranslatorExprToDXLTest.h"
-#include "unittest/gpopt/translate/CTpchTest.h"
 
 #include "unittest/gpopt/csq/CCorrelatedExecutionTest.h"
 #include "unittest/gpopt/eval/CConstExprEvaluatorDefaultTest.h"
