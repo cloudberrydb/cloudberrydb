@@ -1535,6 +1535,16 @@ jobs:
 - name: gate_icw_end
   plan:
   - aggregate:
+{% if "centos6" in os_types %}
+    - get: bin_gpdb_centos6
+      passed:
+      - icw_gporca_centos6
+      - icw_gporca_centos6_gpos_memory
+      - icw_planner_centos6
+      - icw_planner_ictcp_centos6
+      - QP_memory-accounting
+      - icw_extensions_gpcloud
+{% endif %}
     - get: gpdb_src
       passed:
 {% if "centos6" in os_types %}
@@ -1560,7 +1570,7 @@ jobs:
       - icw_planner_sles12
 {% endif %}
       trigger: true
-{% if pipeline_type == "prod" %}
+{% if pipeline_type == "prod" and "centos6" in os_types %}
   - put: bin_gpdb_centos6_icw_green
     params:
       file: bin_gpdb_centos6/bin_gpdb.tar.gz
