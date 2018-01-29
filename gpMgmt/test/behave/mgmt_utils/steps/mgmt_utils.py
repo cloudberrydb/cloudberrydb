@@ -1761,6 +1761,20 @@ def impl(context, query, dbname):
     dbname, host, port, query)
     Command(name='Running Remote command: %s' % psql_cmd, cmdStr=psql_cmd).run(validateAfter=True)
 
+@then('The user runs sql "{query}" in "{dbname}" on all the segments')
+@when('The user runs sql "{query}" in "{dbname}" on all the segments')
+@given('The user runs sql "{query}" in "{dbname}" on all the segments')
+def impl(context, query, dbname):
+    gparray = GpArray.initFromCatalog(dbconn.DbURL())
+    segments = gparray.getDbList()
+    for seg in segments:
+        host = seg.getSegmentHostName()
+        if seg.isSegmentPrimary() or seg.isSegmentMaster():
+            port = seg.getSegmentPort()
+            psql_cmd = "PGDATABASE=\'%s\' PGOPTIONS=\'-c gp_session_role=utility\' psql -h %s -p %s -c \"%s\"; " % (
+            dbname, host, port, query)
+            Command(name='Running Remote command: %s' % psql_cmd, cmdStr=psql_cmd).run(validateAfter=True)
+
 
 @then('The user runs sql file "{file}" in "{dbname}" on all the segments')
 @when('The user runs sql file "{file}" in "{dbname}" on all the segments')

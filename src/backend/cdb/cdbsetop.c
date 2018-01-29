@@ -84,6 +84,10 @@ choose_setop_type(List *planlist)
 				ok_general = ok_replicated = FALSE;
 				break;
 
+			case CdbLocusType_SegmentGeneral:
+				ok_general = ok_replicated = FALSE;
+				break;
+
 			case CdbLocusType_General:
 				break;
 
@@ -139,6 +143,7 @@ adjust_setop_arguments(PlannerInfo *root, List *planlist, GpSetOpType setop_type
 						break;
 					case CdbLocusType_SingleQE:
 					case CdbLocusType_General:
+					case CdbLocusType_SegmentGeneral:
 						Assert(subplanflow->flotype == FLOW_SINGLETON && subplanflow->segindex > -1);
 
 						/*
@@ -205,6 +210,11 @@ adjust_setop_arguments(PlannerInfo *root, List *planlist, GpSetOpType setop_type
 						break;
 
 					case CdbLocusType_General:
+						break;
+
+					case CdbLocusType_SegmentGeneral:
+						/* Gather to QE.  No need to keep ordering. */
+						adjusted_plan = (Plan *) make_motion_gather_to_QE(root, subplan, NULL);
 						break;
 
 					case CdbLocusType_Entry:
@@ -534,4 +544,13 @@ mark_plan_singleQE(Plan *plan)
 	plan->flow = makeFlow(FLOW_SINGLETON);
 	plan->flow->segindex = 0;
 	plan->flow->locustype = CdbLocusType_SingleQE;
+}
+
+void
+mark_plan_segment_general(Plan *plan)
+{
+	Assert(is_plan_node((Node *) plan) && plan->flow == NULL);
+	plan->flow = makeFlow(FLOW_SINGLETON);
+	plan->flow->segindex = 0;
+	plan->flow->locustype = CdbLocusType_SegmentGeneral;
 }

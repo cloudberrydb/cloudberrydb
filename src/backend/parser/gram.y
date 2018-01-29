@@ -476,7 +476,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <list>	constraints_set_list
 %type <boolean> constraints_set_mode
 %type <str>		OptTableSpace OptConsTableSpace OptTableSpaceOwner
-%type <list>    DistributedBy OptDistributedBy 
+%type <node>    DistributedBy OptDistributedBy 
 %type <ival>	TabPartitionByType OptTabPartitionRangeInclusive
 %type <node>	OptTabPartitionBy TabSubPartitionBy 
 				tab_part_val tab_part_val_no_paran
@@ -668,7 +668,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 
 	QUEUE
 
-	RANDOMLY READABLE READS REF REJECT_P RESOURCE
+	RANDOMLY READABLE READS REF REJECT_P REPLICATED RESOURCE
 	ROLLUP ROOTPARTITION
 
 	SCATTER SEGMENT SEGMENTS SETS SPLIT SQL SUBPARTITION
@@ -4123,8 +4123,27 @@ OptConsTableSpace:   USING INDEX TABLESPACE name	{ $$ = $4; }
 			| /*EMPTY*/								{ $$ = NULL; }
 		;
 
-DistributedBy:   DISTRIBUTED BY  '(' columnListUnique ')'		{ $$ = $4; }
-			| DISTRIBUTED RANDOMLY			{ $$ = list_make1(NULL); }
+DistributedBy:   DISTRIBUTED BY  '(' columnListUnique ')'
+			{
+				DistributedBy *distributedBy = makeNode(DistributedBy);
+				distributedBy->ptype = POLICYTYPE_PARTITIONED;
+				distributedBy->keys = $4;
+				$$ = (Node *)distributedBy;
+			}
+			| DISTRIBUTED RANDOMLY
+			{
+				DistributedBy *distributedBy = makeNode(DistributedBy);
+				distributedBy->ptype = POLICYTYPE_PARTITIONED;
+				distributedBy->keys = NIL;
+				$$ = (Node *)distributedBy;
+			}
+			| DISTRIBUTED REPLICATED
+			{
+				DistributedBy *distributedBy = makeNode(DistributedBy);
+				distributedBy->ptype = POLICYTYPE_REPLICATED;
+				distributedBy->keys = NIL;
+				$$ = (Node *)distributedBy;
+			}
 		;
 
 OptDistributedBy:   DistributedBy			{ $$ = $1; }
@@ -14171,6 +14190,7 @@ unreserved_keyword:
 			| REPEATABLE
 			| REPLACE
 			| REPLICA
+			| REPLICATED
 			| RESET
 			| RESOURCE
 			| RESTART

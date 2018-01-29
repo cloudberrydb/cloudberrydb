@@ -922,7 +922,7 @@ CTranslatorRelcacheToDXL::Ereldistribution
 		return IMDRelation::EreldistrMasterOnly;
 	}
 
-	GPOS_ASSERT(!"Unrecognized distribution policy");
+	GPOS_RAISE(gpdxl::ExmaMD, ExmiDXLUnrecognizedType, GPOS_WSZ_LIT("unrecognized distribution policy"));
 	return IMDRelation::EreldistrSentinel;
 }
 

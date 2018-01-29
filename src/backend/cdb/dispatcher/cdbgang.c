@@ -1043,16 +1043,12 @@ getCdbProcessList(Gang *gang, int sliceIndex, DirectDispatchInfo *directDispatch
 		/* Currently, direct dispatch is to one segment db. */
 		Assert(list_length(directDispatch->contentIds) == 1);
 
-		/* initialize a list of NULL */
-		for (i = 0; i < gang->size; i++)
-			list = lappend(list, NULL);
-
 		int			directDispatchContentId = linitial_int(directDispatch->contentIds);
 		SegmentDatabaseDescriptor *segdbDesc = &gang->db_descriptors[directDispatchContentId];
 		CdbProcess *process = makeCdbProcess(segdbDesc);
 
 		setQEIdentifier(segdbDesc, sliceIndex, gang->perGangContext);
-		list_nth_replace(list, directDispatchContentId, process);
+		list = lappend(list, (void*)process);
 	}
 	else
 	{

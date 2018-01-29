@@ -343,12 +343,12 @@ static bool QueryHasDistributedRelation(Query *q)
 				&& rte->rtekind == RTE_RELATION)
 		{
 			GpPolicy *policy = GpPolicyFetch(CurrentMemoryContext, rte->relid);
-			bool result = (policy->ptype == POLICYTYPE_PARTITIONED);
-			pfree(policy);
-			if (result)
+			if (GpPolicyIsPartitioned(policy))
 			{
+				pfree(policy);
 				return true;
 			}
+			pfree(policy);
 		}
 	}
 	return false;

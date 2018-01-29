@@ -127,9 +127,10 @@ typedef struct PlannedStmt
 
 	int			nInitPlans;		/* number of initPlans in plan */
 
-	/* GPDB: Used only on QD. Don't serialize.  Cloned from top Query node
-	 *       at the end of planning.  Holds the result distribution policy
-	 *       for SELECT ... INTO and set operations.
+	/* 
+	 * Cloned from top Query node at the end of planning.
+	 * Holds the result distribution policy
+	 * for SELECT ... INTO and set operations.
 	 */
 	struct GpPolicy  *intoPolicy;
 

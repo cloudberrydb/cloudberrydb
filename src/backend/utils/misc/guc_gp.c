@@ -451,6 +451,9 @@ bool		optimizer_enable_associativity;
 bool		optimizer_analyze_root_partition;
 bool		optimizer_analyze_midlevel_partition;
 
+/* GUCs for replicated table */
+bool		optimizer_replicated_table_insert;
+
 /* System Information */
 static int	gp_server_version_num;
 static char *gp_server_version_string;
@@ -2825,6 +2828,17 @@ struct config_bool ConfigureNamesBool_gp[] =
 		&optimizer_enable_associativity,
 		false, NULL, NULL
 	},
+
+	{
+		{"optimizer_replicated_table_insert", PGC_USERSET, STATS_ANALYZE,
+			gettext_noop("Omit broadcast motion when inserting into replicated table"),
+			gettext_noop("Only when source is SegmentGeneral or General locus"),
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_replicated_table_insert,
+		true, NULL, NULL
+	},
+
 
 	/* End-of-list marker */
 	{

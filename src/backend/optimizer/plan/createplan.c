@@ -52,7 +52,6 @@
 #include "cdb/cdbsreh.h"
 #include "cdb/cdbvars.h"
 
-
 static Plan *create_subplan(PlannerInfo *root, Path *best_path);		/* CDB */
 static Plan *create_scan_plan(PlannerInfo *root, Path *best_path);
 static bool use_physical_tlist(PlannerInfo *root, RelOptInfo *rel);
@@ -259,6 +258,7 @@ create_subplan(PlannerInfo *root, Path *best_path)
 	}
 
 	if (CdbPathLocus_IsPartitioned(best_path->locus) ||
+		CdbPathLocus_IsSegmentGeneral(best_path->locus) ||
 		CdbPathLocus_IsReplicated(best_path->locus))
 		plan->dispatch = DISPATCH_PARALLEL;
 
@@ -5689,6 +5689,42 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 										errmsg("Cannot parallelize that INSERT yet")));
 				}
 			}
+			else if (targetPolicyType == POLICYTYPE_REPLICATED)
+			{
+				Assert(subplan->flow->flotype != FLOW_REPLICATED);
+
+				/*
+				 * CdbLocusType_SegmentGeneral is only used by replicated table
+				 * right now, so if both input and target are replicated table,
+				 * no need to add a motion.
+				 *
+				 * Also, to expand a replicated table to new segments, gpexpand
+				 * force a data reorganization by a query like:
+				 * CREATE TABLE tmp_tab AS SELECT * FROM source_table DISTRIBUTED REPLICATED
+				 * Obviously, tmp_tab in new segments can't get data if we don't
+				 * add a broadcast here. 
+				 */
+				if (optimizer_replicated_table_insert &&
+					subplan->flow->flotype == FLOW_SINGLETON &&
+					subplan->flow->locustype == CdbLocusType_SegmentGeneral &&
+					!contain_volatile_functions((Node *)subplan->targetlist))
+					break;
+
+				/* plan's data are available on all segment, no motion needed */
+				if (optimizer_replicated_table_insert &&
+					subplan->flow->flotype == FLOW_SINGLETON &&
+					subplan->flow->locustype == CdbLocusType_General &&
+					!contain_volatile_functions((Node *)subplan->targetlist))
+				{
+					subplan->dispatch = DISPATCH_PARALLEL;
+					break;
+				}
+
+				if (!broadcastPlan(subplan, false, false))
+					ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_YET),
+								errmsg("Cannot parallelize that INSERT yet")));
+
+			}
 			else
 				elog(ERROR, "unrecognized policy type %u", targetPolicyType);
 		}
@@ -5761,6 +5797,10 @@ adjust_modifytable_flow(PlannerInfo *root, ModifyTable *node)
 					 */
 					subplan->flow->req_move = MOVEMENT_NONE;
 				}
+			}
+			else if (targetPolicyType == POLICYTYPE_REPLICATED)
+			{
+				/* Do nothing here, see main work in cdbpath_motion_for_join() */
 			}
 			else
 				elog(ERROR, "unrecognized policy type %u", targetPolicyType);

@@ -55,6 +55,7 @@
 #include "catalog/pg_proc.h"
 #include "catalog/pg_trigger.h"
 #include "catalog/pg_type.h"
+#include "catalog/gp_policy.h"
 #include "libpq/libpq-fs.h"
 
 #include "pg_backup_archiver.h"
@@ -13756,11 +13757,12 @@ addDistributedBy(PQExpBuffer q, TableInfo *tbinfo, int actual_atts)
 {
 	PQExpBuffer query = createPQExpBuffer();
 	PGresult   *res;
+	char	   policytype;
 	char	   *policydef;
 	char	   *policycol;
 
 	appendPQExpBuffer(query,
-					  "SELECT attrnums FROM gp_distribution_policy as p "
+					  "SELECT attrnums, policytype FROM gp_distribution_policy as p "
 					  "WHERE p.localoid = %u",
 					  tbinfo->dobj.catId.oid);
 
@@ -13805,8 +13807,14 @@ addDistributedBy(PQExpBuffer q, TableInfo *tbinfo, int actual_atts)
 		 * one or NULL).
 		 */
 		policydef = PQgetvalue(res, 0, 0);
+		policytype = *(char *)PQgetvalue(res, 0, 1);
 
-		if (strlen(policydef) > 0)
+		if (policytype == SYM_POLICYTYPE_REPLICATED)
+		{
+			/* policy type is 'r' - distribute replicated */
+			appendPQExpBufferStr(q, " DISTRIBUTED REPLICATED");
+		}
+		else if (strlen(policydef) > 0)
 		{
 			/* policy indicates one or more columns to distribute on */
 			policydef[strlen(policydef) - 1] = '\0';

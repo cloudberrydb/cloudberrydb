@@ -1359,6 +1359,12 @@ vac_update_relstats_from_list(List *updated_stats)
 
 		rel = relation_open(stats->relid, AccessShareLock);
 
+		if (GpPolicyIsReplicated(rel->rd_cdbpolicy))
+		{
+			stats->rel_pages = stats->rel_pages / getgpsegmentCount();
+			stats->rel_tuples = stats->rel_tuples / getgpsegmentCount();
+		}
+
 		/*
 		 * Pass 'false' for isvacuum, so that the stats are
 		 * actually updated.
