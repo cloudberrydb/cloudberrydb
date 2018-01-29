@@ -35,6 +35,7 @@
 #include "postmaster/autostats.h"
 #include "postmaster/backoff.h"
 #include "utils/resscheduler.h"
+#include "utils/metrics_utils.h"
 #include "utils/tqual.h"
 
 
@@ -249,6 +250,10 @@ ProcessQuery(Portal portal,
 				GetResqueueName(portal->queueId),
 				GetResqueuePriority(portal->queueId));
 	}
+
+	/* GPDB hook for collecting query info */
+	if (query_info_collect_hook)
+		(*query_info_collect_hook)(METRICS_QUERY_SUBMIT, queryDesc);
 
 	queryDesc->plannedstmt->query_mem = ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
 
@@ -654,6 +659,10 @@ PortalStart(Portal portal, ParamListInfo params, Snapshot snapshot,
 							GetResqueueName(portal->queueId),
 							GetResqueuePriority(portal->queueId));
 				}
+
+				/* GPDB hook for collecting query info */
+				if (query_info_collect_hook)
+					(*query_info_collect_hook)(METRICS_QUERY_SUBMIT, queryDesc);
 
 				/* 
 				 * let queryDesc know that it is running a query in stages

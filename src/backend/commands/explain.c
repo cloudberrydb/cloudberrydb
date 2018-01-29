@@ -33,6 +33,7 @@
 #include "utils/builtins.h"
 #include "utils/guc.h"
 #include "utils/lsyscache.h"
+#include "utils/metrics_utils.h"
 #include "utils/tuplesort.h"
 #include "utils/snapmgr.h"
 
@@ -366,6 +367,10 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ExplainStmt *stmt,
 				GetResqueueName(GetResQueueId()),
 				GetResqueuePriority(GetResQueueId()));
 	}
+
+	/* GPDB hook for collecting query info */
+	if (query_info_collect_hook)
+		(*query_info_collect_hook)(METRICS_QUERY_SUBMIT, queryDesc);
 
 	/*
 	 * Start timing.

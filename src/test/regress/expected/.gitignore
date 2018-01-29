@@ -32,3 +32,4 @@ tablespace.out
 transient_types.out
 workfile_mgr_test.out
 trigger_sets_oid.out
+query_info_hook_test.out
