@@ -53,3 +53,7 @@ source ./gpAux/gpdemo/gpdemo-env.sh
 createdb greenplum
 psql -d greenplum
 ```
+
+# Docker container with GPDB database running
+For more information follow the [link](ubuntu-16.04/README.md)
+
