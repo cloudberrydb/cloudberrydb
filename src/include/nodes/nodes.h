@@ -166,7 +166,13 @@ typedef enum NodeTag
 	T_RowTriggerState,
 	T_AssertOpState,
 	T_PartitionSelectorState,
+
+	/*
+	 * TupleDesc and ParamListInfo are not Nodes as such, but you can wrap
+	 * them in TupleDescNode and SerializedParamExternData structs for serialization.
+	 */
 	T_TupleDescNode,
+	T_SerializedParamExternData,
 
 	/*
 	 * TAGS FOR PRIMITIVE NODES (primnodes.h)
@@ -611,9 +617,10 @@ extern char *nodeToString(void *obj);
  * nodes/outfast.c. This special version of nodeToString is only used by serializeNode.
  * It's a quick hack that allocates 8K buffer for StringInfo struct through initStringIinfoSizeOf
  */
-extern char *nodeToBinaryStringFast(void *obj, int * size);
+extern char *nodeToBinaryStringFast(void *obj, int *length);
 
 extern Node *readNodeFromBinaryString(const char *str, int len);
+
 /*
  * nodes/{readfuncs.c,read.c}
  */

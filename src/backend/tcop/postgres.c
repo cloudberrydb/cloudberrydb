@@ -1174,60 +1174,10 @@ exec_mpp_query(const char *query_string,
 	/*
 	 * Get (possibly 0) parameters.
 	 */
-	paramLI = NULL;
 	if (serializedParams != NULL && serializedParamslen > 0)
-	{
-		ParamListInfoData   paramhdr;
-		Size                length;
-		const char         *cpos;
-		const char         *epos;
-
-		/* Peek at header using an aligned workarea. */
-		length = offsetof(ParamListInfoData, params);
-		Insist(length <= serializedParamslen);
-		memcpy(&paramhdr, serializedParams, length);
-
-		/* Get ParamListInfoData header and ParamExternData array. */
-		length += paramhdr.numParams * sizeof(paramhdr.params[0]);
-		Insist(paramhdr.numParams > 0 &&
-			   length <= serializedParamslen);
-		paramLI = palloc(length);
-		memcpy(paramLI, serializedParams, length);
-
-		/* Get pass-by-reference data. */
-		cpos = serializedParams + length;
-		epos = serializedParams + serializedParamslen;
-		while (cpos < epos)
-		{
-			ParamExternData    *pxd;
-			int32               iparam;
-
-			/* param index */
-			memcpy(&iparam, cpos, sizeof(iparam));
-			cpos += sizeof(iparam);
-			Insist(cpos <= epos &&
-				   iparam >= 0 &&
-				   iparam < paramhdr.numParams);
-
-			/* length */
-			pxd = &paramLI->params[iparam];
-			length = DatumGetInt32(pxd->value);
-
-			/* value */
-			Insist((int)length >= 0 &&
-				   length <= epos - cpos);
-			if (length > 0)
-			{
-				char   *v = (char *)palloc(length);
-
-				pxd->value = PointerGetDatum(v);
-				memcpy(v, cpos, length);
-				cpos += length;
-			}
-		}
-		Insist(cpos == epos);
-	}
-
+		paramLI = deserializeParamListInfo(serializedParams, serializedParamslen);
+	else
+		paramLI = NULL;
 
 	/*
 	 * Switch back to transaction context to enter the loop.

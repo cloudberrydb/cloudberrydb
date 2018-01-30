@@ -54,6 +54,26 @@ typedef struct ParamListInfoData
 typedef ParamListInfoData *ParamListInfo;
 
 
+/*
+ * Serialized form of ParamExternData. This is used when query parameters
+ * are serialized, when dispatching a query from QD to QEs.
+ */
+typedef struct SerializedParamExternData
+{
+	NodeTag		type;
+
+	/* Fields from ParamExternData */
+	Datum		value;			/* parameter value */
+	bool		isnull;			/* is it NULL? */
+	uint16		pflags;			/* flag bits, see above */
+	Oid			ptype;			/* parameter's datatype, or 0 */
+
+	/* Extra information about the type */
+	int16		plen;
+	bool		pbyval;
+
+} SerializedParamExternData;
+
 /* ----------------
  *	  ParamExecData
  *

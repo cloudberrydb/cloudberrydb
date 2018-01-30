@@ -2537,6 +2537,23 @@ _readTupleDescNode(void)
 	READ_DONE();
 }
 
+static SerializedParamExternData *
+_readSerializedParamExternData(void)
+{
+	READ_LOCALS(SerializedParamExternData);
+
+	READ_BOOL_FIELD(isnull);
+	READ_INT16_FIELD(pflags);
+	READ_OID_FIELD(ptype);
+	READ_INT16_FIELD(plen);
+	READ_BOOL_FIELD(pbyval);
+
+	if (!local_node->isnull)
+		local_node->value = readDatum(local_node->pbyval);
+
+	READ_DONE();
+}
+
 static AlterExtensionStmt *
 _readAlterExtensionStmt(void)
 {
@@ -3593,8 +3610,12 @@ readNodeBinary(void)
 			case T_AlterExtensionContentsStmt:
 				return_value = _readAlterExtensionContentsStmt();
 				break;
+
 			case T_TupleDescNode:
 				return_value = _readTupleDescNode();
+				break;
+			case T_SerializedParamExternData:
+				return_value = _readSerializedParamExternData();
 				break;
 
 			case T_AlterTSConfigurationStmt:

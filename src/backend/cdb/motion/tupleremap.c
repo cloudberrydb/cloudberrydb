@@ -260,6 +260,29 @@ TRHandleTypeLists(TupleRemapper *remapper, List *typelist)
 	}
 }
 
+
+/*
+ * Remap a single Datum, which can be a RECORD datum using the remote system's
+ * typmods.
+ */
+Datum
+TRRemapDatum(TupleRemapper *remapper, Oid typeid, Datum value)
+{
+	TupleRemapInfo *remapinfo;
+	bool		changed;
+
+	remapinfo = BuildTupleRemapInfo(typeid, remapper->mycontext);
+
+	if (!remapinfo)
+		return value;
+
+	value = TRRemap(remapper, remapinfo, value, &changed);
+
+	pfree(remapinfo);
+
+	return value;
+}
+
 /*
  * Copy the given tuple, remapping any transient typmods contained in it.
  */
