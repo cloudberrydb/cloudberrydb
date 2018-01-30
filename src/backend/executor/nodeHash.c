@@ -1268,7 +1268,7 @@ ExecHashTableExplainEnd(PlanState *planstate, struct StringInfoData *buf)
     stats = hashtable->stats;
 
 	/* Check batchstats not null: If nodeHash failed to palloc batchstats, it will
-	 * throw.  Posgres will catch and handle it, but no matter what, postgres will 
+	 * throw.  Postgres will catch and handle it, but no matter what, postgres will
 	 * try to get some explain results.  We must check here in this case or we will
 	 * segv.
 	 */
