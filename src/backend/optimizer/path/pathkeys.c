@@ -1330,10 +1330,16 @@ make_pathkeys_for_groupclause(PlannerInfo *root,
 
 		if (IsA(node, SortGroupClause))
 		{
-			SortGroupClause *gc = (SortGroupClause *) node;
+			SortGroupClause *sortcl = (SortGroupClause *) node;
 
-			sortkey = (Expr *) get_sortgroupclause_expr(gc, tlist);
-			pathkey = make_pathkey_from_sortinfo(root, sortkey, gc->sortop, gc->nulls_first, false, 0);
+			sortkey = (Expr *) get_sortgroupclause_expr(sortcl, tlist);
+			Assert(OidIsValid(sortcl->sortop));
+			pathkey = make_pathkey_from_sortinfo(root,
+												 sortkey,
+												 sortcl->sortop,
+												 sortcl->nulls_first,
+												 sortcl->tleSortGroupRef,
+												 false);
 
 			/*
 			 * The pathkey becomes a one-element sublist. canonicalize_pathkeys() might
