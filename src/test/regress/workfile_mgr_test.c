@@ -1365,8 +1365,9 @@ buffile_size_test(void)
 					file_name)));
 	}
 
-	BufFile *testBf = BufFileCreateFile(test_filepath->data,
-			false /* delOnClose */, false /* interXact */);
+	BufFile *testBf = BufFileCreateNamedTemp(file_name,
+											 false /* delOnClose */,
+											 false /* interXact */);
 
 	unit_test_result(NULL != testBf);
 
@@ -1407,11 +1408,9 @@ buffile_size_test(void)
 	unit_test_result(true);
 
 	elog(LOG, "Running sub-test: Opening existing and testing size");
-	testBf = BufFileOpenFile(test_filepath->data,
-			false /* create */,
-			false /*delOnClose */,
-			false /*interXact */
-			);
+	testBf = BufFileOpenNamedTemp(file_name,
+								  false /*delOnClose */,
+								  false /*interXact */);
 	test_size = BufFileGetSize(testBf);
 
 	unit_test_result(test_size == expected_size);
@@ -1526,7 +1525,7 @@ buffile_large_file_test(void)
 					 PG_TEMP_FILES_DIR,
 					 "Test_large_buff.dat");
 
-	BufFile *bfile = BufFileCreateFile(filename->data, true /* delOnClose */, true /* interXact */);
+	BufFile *bfile = BufFileCreateNamedTemp(filename->data, true /* delOnClose */, true /* interXact */);
 
 	int nchars = 100000;
 	/* 4.5 GBs */
