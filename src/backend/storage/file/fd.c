@@ -962,6 +962,54 @@ FileNameOpenFile(FileName fileName, int fileFlags, int fileMode)
 	return fd;
 }
 
+
+/*
+ * Open a temporary file that will (optionally) disappear when we close it.
+ *
+ * 'fileName' identify a new or existing temporary file which other processes
+ * also could open and share.
+ *
+ * If 'create' is true, a new file is created.  If successful, a valid vfd
+ * index (>0) is returned; otherwise an error is thrown.
+ *
+ * If 'create' is false, an existing file is opened.  If successful, a valid
+ * vfd index (>0) is returned.  If the file does not exist or cannot be
+ * opened, an invalid vfd index (<= 0) is returned.
+ *
+ * If 'delOnClose' is true, then the file is removed when you call
+ * FileClose(); or when the process exits; or (unless 'interXact' is
+ * true) when the transaction ends.
+ *
+ * If 'interXact' is false, the vfd is closed automatically at end of
+ * transaction unless you have called FileClose() to close it before then.
+ * If 'interXact' is true, the vfd state is not changed at end of
+ * transaction.
+ *
+ * In most cases, you don't want temporary files to outlive the transaction
+ * that created them, so you should specify 'true' for 'delOnClose' and
+ * 'false' for 'interXact'.
+ *
+ * This is used for inter-process communication, where one process creates
+ * a file, and another process reads it.
+ */
+File
+OpenNamedTemporaryFile(const char *fileName,
+					   bool create,
+					   bool delOnClose,
+					   bool interXact)
+{
+	char		tempfileprefix[MAXPGPATH];
+	int			len;
+
+	Assert(fileName);
+
+	len = GetTempFilePrefix(tempfileprefix, MAXPGPATH, fileName);
+	insist_log(len <= MAXPGPATH - 1, "could not generate temporary file name");
+
+	return OpenNamedFile(tempfileprefix, create, delOnClose, !interXact);
+}
+
+
 /* Commit acfce502 changed things so that PostgreSQL
  * no longer stores temporary files in the database directories, but in
  * $PGDATA/pgsql_tmp, or within a tablespace's pgsql_tmp dir.
@@ -978,71 +1026,45 @@ FileNameOpenFile(FileName fileName, int fileFlags, int fileMode)
 /*
  * Open a temporary file that will (optionally) disappear when we close it.
  *
- * If 'makenameunique' is true, this function generates a file name which
+ * This function generates a file name which
  * should be unique to this particular OpenTemporaryFile() request and
  * distinct from any others in concurrent use on the same host.  As a
  * convenience for monitoring and debugging, the given 'fileName' string
  * is embedded in the file name.
  *
- * If 'makenameunique' is false, then 'fileName' identify a new or existing
- * temporary file which other processes also could open and share.
- *
- * If 'create' is true, a new file is created.  If successful, a valid vfd
+ * A new file is created.  If successful, a valid vfd
  * index (>0) is returned; otherwise an error is thrown.
  *
- * If 'create' is false, an existing file is opened.  If successful, a valid
- * vfd index (>0) is returned.  If the file does not exist or cannot be
- * opened, an invalid vfd index (<= 0) is returned.
- *
- * If 'delOnClose' is true, then the file is removed when you call
+ * The file is removed when you call
  * FileClose(); or when the process exits; or (provided 'closeAtEOXact' is
  * true) when the transaction ends.
  *
- * If 'closeAtEOXact' is true, the vfd is closed automatically at end of
+ * If 'interXact' is false, the vfd is closed automatically at end of
  * transaction unless you have called FileClose() to close it before then.
- * If 'closeAtEOXact' is false, the vfd state is not changed at end of
+ * If 'interXact' is true, the vfd state is not changed at end of
  * transaction.
- *
- * In most cases, you don't want temporary files to outlive the transaction
- * that created them, so you should specify 'true' for both 'delOnClose' and
- * 'closeAtEOXact'.
  */
 File
-OpenTemporaryFile(const char   *fileName,
-                  bool          makenameunique,
-                  bool          create,
-                  bool          delOnClose,
-                  bool          closeAtEOXact)
+OpenTemporaryFile(const char *fileName, bool interXact)
 {
-
 	char		tempfilepath[MAXPGPATH];
     char		tempfileprefix[MAXPGPATH];
 	int			len;
 
 	Assert(fileName);
-    AssertImply(makenameunique, create && delOnClose);
 
     len = GetTempFilePrefix(tempfileprefix, MAXPGPATH, fileName);
     insist_log(len <= MAXPGPATH - 1, "could not generate temporary file name");
 
-    if (makenameunique)
-	{
-		/*
-		 * Generate a tempfile name that should be unique within the current
-		 * database instance.
-		 */
-		snprintf(tempfilepath, sizeof(tempfilepath),
-				 "%s_%d.%ld", tempfileprefix,
-				 MyProcPid, tempFileCounter++);
-	}
-	else
-	{
-        snprintf(tempfilepath, sizeof(tempfilepath),
-				 "%s",
-				 tempfileprefix);
-	}
+	/*
+	 * Generate a tempfile name that should be unique within the current
+	 * database instance.
+	 */
+	snprintf(tempfilepath, sizeof(tempfilepath),
+			 "%s_%d.%ld", tempfileprefix,
+			 MyProcPid, tempFileCounter++);
 
-    return OpenNamedFile(tempfilepath, create, delOnClose, closeAtEOXact);
+    return OpenNamedFile(tempfilepath, true, true, !interXact);
 }
 
 /*

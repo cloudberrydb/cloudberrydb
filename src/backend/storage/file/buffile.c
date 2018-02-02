@@ -106,13 +106,8 @@ BufFileCreateTemp(const char *filePrefix, bool interXact)
 {
 	BufFile	   *file;
 	File		pfile;
-	bool		closeAtEOXact = !interXact;
 
-	pfile = OpenTemporaryFile(filePrefix,
-							  true, /* makenameunique */
-							  true, /* create */
-							  true, /* delOnClose */
-							  closeAtEOXact); /* closeAtEOXact */
+	pfile = OpenTemporaryFile(filePrefix, interXact);
 	Assert(pfile >= 0);
 
 	file = makeBufFile(pfile);
@@ -191,11 +186,10 @@ BufFileCreateTemp_ReaderWriter(const char *filePrefix, bool isWriter,
 							   bool interXact)
 {
 	bool closeAtEOXact = !interXact;
-	File pfile = OpenTemporaryFile(filePrefix,
-								   false, /* makenameunique */
-								   isWriter, /* create */
-								   isWriter, /* delOnClose */
-								   closeAtEOXact); /* closeAtEOXact */
+	File pfile = OpenNamedTemporaryFile(filePrefix,
+										isWriter, /* create */
+										isWriter, /* delOnClose */
+										!closeAtEOXact); /* interXact */
 	if (pfile < 0)
 	{
 		elog(ERROR, "could not open temporary file \"%s\": %m", filePrefix);

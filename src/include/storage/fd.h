@@ -64,12 +64,11 @@ extern int	max_files_per_process;
 /* Operations on virtual Files --- equivalent to Unix kernel file ops */
 extern File PathNameOpenFile(FileName fileName, int fileFlags, int fileMode);
 
-File
-OpenTemporaryFile(const char   *fileName,
-                  bool          makenameunique,
-                  bool          create,
-                  bool          delOnClose,
-                  bool          closeAtEOXact);
+extern File OpenNamedTemporaryFile(const char *fileName,
+								   bool create,
+								   bool delOnClose,
+								   bool interXact);
+extern File OpenTemporaryFile(const char *fileName, bool interXact);
 
 File
 OpenNamedFile(const char   *fileName,
