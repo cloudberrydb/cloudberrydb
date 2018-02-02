@@ -86,116 +86,112 @@ NOTICE:  CREATE TABLE will create partition "csq_t2_1_prt_4" for table "csq_t2"
 insert into csq_t1 select * from csq_t1_base;
 insert into csq_t2 select * from csq_t2_base;
 explain select * from csq_t1 where csq_t1.x >ALL (select csq_t2.x from csq_t2 where csq_t2.y=csq_t1.y) order by 1;
-                                                              QUERY PLAN                                                              
---------------------------------------------------------------------------------------------------------------------------------------
+                                                           QUERY PLAN                                                           
+--------------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice17; segments: 3)  (cost=810368945.20..810369375.70 rows=172200 width=8)
-   Merge Key: x
+   Merge Key: subselect_gp.csq_t1.x
    ->  Sort  (cost=810368945.20..810369375.70 rows=57400 width=8)
-         Sort Key: public.csq_t1.x
+         Sort Key: subselect_gp.csq_t1.x
          ->  Append  (cost=0.00..810353969.20 rows=57400 width=8)
                ->  Seq Scan on csq_t1_1_prt_1 csq_t1  (cost=0.00..202588492.30 rows=14350 width=8)
-                     Filter: (subplan)
+                     Filter: (SubPlan 1)
                      SubPlan 1
-                       ->  Result  (cost=0.00..4705.00 rows=115 width=4)
-                             ->  Append  (cost=0.00..4705.00 rows=115 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_1 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_2 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_3 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_4 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                       ->  Append  (cost=0.00..4705.00 rows=115 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_1 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_2 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_3 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_4 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
                ->  Seq Scan on csq_t1_1_prt_2 csq_t1  (cost=0.00..202588492.30 rows=14350 width=8)
-                     Filter: (subplan)
+                     Filter: (SubPlan 1)
                      SubPlan 1
-                       ->  Result  (cost=0.00..4705.00 rows=115 width=4)
-                             ->  Append  (cost=0.00..4705.00 rows=115 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice5; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_1 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice6; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_2 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice7; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_3 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice8; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_4 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                       ->  Append  (cost=0.00..4705.00 rows=115 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice5; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_1 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice6; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_2 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice7; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_3 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice8; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_4 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
                ->  Seq Scan on csq_t1_1_prt_3 csq_t1  (cost=0.00..202588492.30 rows=14350 width=8)
-                     Filter: (subplan)
+                     Filter: (SubPlan 1)
                      SubPlan 1
-                       ->  Result  (cost=0.00..4705.00 rows=115 width=4)
-                             ->  Append  (cost=0.00..4705.00 rows=115 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice9; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_1 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice10; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_2 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice11; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_3 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice12; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_4 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                       ->  Append  (cost=0.00..4705.00 rows=115 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice9; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_1 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice10; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_2 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice11; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_3 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice12; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_4 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
                ->  Seq Scan on csq_t1_1_prt_4 csq_t1  (cost=0.00..202588492.30 rows=14350 width=8)
-                     Filter: (subplan)
+                     Filter: (SubPlan 1)
                      SubPlan 1
-                       ->  Result  (cost=0.00..4705.00 rows=115 width=4)
-                             ->  Append  (cost=0.00..4705.00 rows=115 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice13; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_1 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice14; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_2 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice15; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_3 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
-                                   ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
-                                         Filter: public.csq_t2.y = $0
-                                         ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
-                                               ->  Broadcast Motion 3:3  (slice16; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
-                                                     ->  Seq Scan on csq_t2_1_prt_4 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
- Settings:  optimizer_segments=3
+                       ->  Append  (cost=0.00..4705.00 rows=115 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice13; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_1 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice14; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_2 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice15; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_3 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+                             ->  Result  (cost=1176.34..1177.20 rows=29 width=4)
+                                   Filter: subselect_gp.csq_t2.y = $0
+                                   ->  Materialize  (cost=1176.34..1177.20 rows=29 width=4)
+                                         ->  Broadcast Motion 3:3  (slice16; segments: 3)  (cost=0.00..1176.25 rows=29 width=4)
+                                               ->  Seq Scan on csq_t2_1_prt_4 csq_t2  (cost=0.00..1176.25 rows=29 width=4)
+ Settings:  optimizer=off; optimizer_nestloop_factor=1; optimizer_segments=3
  Optimizer status: legacy query optimizer
-(107 rows)
+(103 rows)
 
 select * from csq_t1 where csq_t1.x >ALL (select csq_t2.x from csq_t2 where csq_t2.y=csq_t1.y) order by 1; -- expected (4,2)
  x | y 
@@ -1260,27 +1256,27 @@ CASE
 	ELSE 'Q2'::text END  AS  cc,  1 AS nn
 FROM t_mpp_20470 b;
 explain SELECT  cc, sum(nn) over() FROM v1_mpp_20470;
-                                                     QUERY PLAN                                                      
----------------------------------------------------------------------------------------------------------------------
+                                                  QUERY PLAN                                                   
+---------------------------------------------------------------------------------------------------------------
  WindowAgg  (cost=0.00..128121463.20 rows=93400 width=28)
    ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..1134.00 rows=93400 width=28)
-         ->  Append  (cost=0.00..1134.00 rows=31134 width=28)
-               ->  Seq Scan on t_mpp_20470_ptr1 b  (cost=0.00..567.00 rows=15567 width=28)
-               ->  Seq Scan on t_mpp_20470_ptr2 b  (cost=0.00..567.00 rows=15567 width=28)
+         ->  Result  (cost=0.00..1134.00 rows=31134 width=28)
+               ->  Append  (cost=0.00..1134.00 rows=31134 width=28)
+                     ->  Seq Scan on t_mpp_20470_ptr1 b  (cost=0.00..567.00 rows=15567 width=28)
+                     ->  Seq Scan on t_mpp_20470_ptr2 b  (cost=0.00..567.00 rows=15567 width=28)
    SubPlan 1
      ->  Aggregate  (cost=1371.71..1371.72 rows=1 width=8)
-           ->  Result  (cost=0.00..1367.50 rows=32 width=4)
-                 ->  Append  (cost=0.00..1367.50 rows=32 width=4)
-                       ->  Result  (cost=683.80..684.26 rows=16 width=4)
-                             Filter: a.col_name::text = $0::text
-                             ->  Materialize  (cost=683.80..684.26 rows=16 width=4)
-                                   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..683.75 rows=47 width=4)
-                                         ->  Seq Scan on t_mpp_20470_ptr1 a  (cost=0.00..683.75 rows=16 width=4)
-                       ->  Result  (cost=683.80..684.26 rows=16 width=4)
-                             Filter: a.col_name::text = $0::text
-                             ->  Materialize  (cost=683.80..684.26 rows=16 width=4)
-                                   ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..683.75 rows=47 width=4)
-                                         ->  Seq Scan on t_mpp_20470_ptr2 a  (cost=0.00..683.75 rows=16 width=4)
+           ->  Append  (cost=0.00..1367.50 rows=32 width=4)
+                 ->  Result  (cost=683.80..684.26 rows=16 width=4)
+                       Filter: a.col_name::text = $0::text
+                       ->  Materialize  (cost=683.80..684.26 rows=16 width=4)
+                             ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..683.75 rows=47 width=4)
+                                   ->  Seq Scan on t_mpp_20470_ptr1 a  (cost=0.00..683.75 rows=16 width=4)
+                 ->  Result  (cost=683.80..684.26 rows=16 width=4)
+                       Filter: a.col_name::text = $0::text
+                       ->  Materialize  (cost=683.80..684.26 rows=16 width=4)
+                             ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..683.75 rows=47 width=4)
+                                   ->  Seq Scan on t_mpp_20470_ptr2 a  (cost=0.00..683.75 rows=16 width=4)
  Settings:  optimizer=off; optimizer_nestloop_factor=1; optimizer_segments=3
  Optimizer status: legacy query optimizer
 (21 rows)

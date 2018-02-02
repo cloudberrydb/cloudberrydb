@@ -448,7 +448,6 @@ _outAppend(StringInfo str, Append *node)
 
 	WRITE_NODE_FIELD(appendplans);
 	WRITE_BOOL_FIELD(isTarget);
-	WRITE_BOOL_FIELD(isZapped);
 }
 
 static void

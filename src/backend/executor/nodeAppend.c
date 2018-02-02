@@ -57,7 +57,6 @@
 
 #include "postgres.h"
 
-#include "cdb/cdbvars.h"
 #include "executor/execdebug.h"
 #include "executor/nodeAppend.h"
 
@@ -123,35 +122,6 @@ exec_append_initialize_next(AppendState *appendstate)
 	}
 }
 
-static bool append_need_prj(Append *node)
-{
-	ListCell *lc;
-	int attno=1;
-
-	if(!node->isZapped)
-		return false;
-
-	if(node->plan.qual)
-		return true;
-
-	foreach(lc, node->plan.targetlist)
-	{
-		Var *var;
-		TargetEntry *te = (TargetEntry *) lfirst(lc);
-		if(!IsA(te->expr, Var))
-			return true;
-		
-		var = (Var *) te->expr;
-
-		if(var->varattno != attno)
-			return true;
-
-		++attno;
-	}
-			
-	return false;
-}
-		
 /* ----------------------------------------------------------------
  *		ExecInitAppend
  *
@@ -258,23 +228,7 @@ ExecInitAppend(Append *node, EState *estate, int eflags)
 	 * look the same.)
 	 */
 	ExecAssignResultTypeFromTL(&appendstate->ps);
-
-	/* 
-	 * determine if need project 
-	 */
-	if(!node->isTarget && append_need_prj(node))
-	{
-		ExecAssignExprContext(estate, &appendstate->ps);
-		appendstate->ps.targetlist = (List *)
-			ExecInitExpr((Expr *) node->plan.targetlist, (PlanState *) appendstate);
-		appendstate->ps.qual = (List *)
-			ExecInitExpr((Expr *) node->plan.qual, (PlanState *) appendstate);
-		ExecAssignProjectionInfo(&appendstate->ps, NULL);
-	}
-	else
-	{
-		appendstate->ps.ps_ProjInfo = NULL;
-	}
+	appendstate->ps.ps_ProjInfo = NULL;
 
 	/*
 	 * return the result from the first subplan's initialization
@@ -315,8 +269,6 @@ ExecAppend(AppendState *node)
 		 */
 		subnode = node->appendplans[node->as_whichplan];
 
-		Assert(subnode != NULL);
-
 		/*
 		 * get a tuple from the subplan
 		 */
@@ -324,23 +276,6 @@ ExecAppend(AppendState *node)
 
 		if (!TupIsNull(result))
 		{
-
-			if(node->ps.ps_ProjInfo != NULL)
-			{
-				ExprContext *econtext = node->ps.ps_ExprContext;
-				ExprDoneCond isDone;
-
-				ResetExprContext(econtext);
-
-				/*
-				 * XXX gross hack. use outer tuple as scan tuple for projection
-				 */
-				econtext->ecxt_outertuple = result;
-				econtext->ecxt_scantuple = result;
-
-				result = ExecProject(node->ps.ps_ProjInfo, &isDone);
-			}
-
 			/*
 			 * If the subplan gave us something then return it as-is. We do
 			 * NOT make use of the result slot that was set up in

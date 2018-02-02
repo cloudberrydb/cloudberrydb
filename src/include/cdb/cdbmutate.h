@@ -38,7 +38,6 @@ extern Motion *make_explicit_motion(Plan *lefttree, AttrNumber segidColIdx, bool
 void 
 cdbmutate_warn_ctid_without_segid(struct PlannerInfo *root, struct RelOptInfo *rel);
 
-extern Plan *zap_trivial_result(PlannerInfo *root, Plan *plan); 
 extern Plan *apply_shareinput_dag_to_tree(PlannerGlobal *glob, Plan *plan, List *rtable);
 extern void collect_shareinput_producers(PlannerGlobal *glob, Plan *plan, List *rtable);
 extern Plan *replace_shareinput_targetlists(PlannerGlobal *glob, Plan *plan, List *rtable);

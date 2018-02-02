@@ -394,8 +394,6 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	remove_unused_subplans(root, &subplan_context);
 	bms_free(subplan_context.bms_subplans);
 
-	top_plan = zap_trivial_result(root, top_plan);
-
 	/* fix ShareInputScans for EXPLAIN */
 	foreach(lp, glob->subplans)
 	{

@@ -4137,7 +4137,6 @@ make_append(List *appendplans, bool isTarget, List *tlist)
 	plan->righttree = NULL;
 	node->appendplans = appendplans;
 	node->isTarget = isTarget;
-	node->isZapped = false;
 
 	return node;
 }
@@ -5542,7 +5541,46 @@ is_projection_capable_plan(Plan *plan)
 Plan *
 plan_pushdown_tlist(PlannerInfo *root, Plan *plan, List *tlist)
 {
+	bool		need_result;
+
 	if (is_projection_capable_plan(plan))
+		need_result = false;
+	else
+	{
+		/*
+		 * The Plan node doesn't support projection. But if we're lucky,
+		 * the target list we're about to assign is equal to what the plan
+		 * already has. In that case, we don't need projection, after all,
+		 * and we can just replace the target list.
+		 *
+		 * "Equal" in this case means that the expressions are equal;
+		 * resnames, resjunk and other TargetEntry fields don't matter, all
+		 * Node plans are capable of dealing with those, without projection.
+		 */
+		if (list_length(tlist) == list_length(plan->targetlist))
+		{
+			ListCell   *a;
+			ListCell   *b;
+			bool		all_equal = true;
+
+			forboth(a, tlist, b, plan->targetlist)
+			{
+				TargetEntry *tla = (TargetEntry *) lfirst(a);
+				TargetEntry *tlb = (TargetEntry *) lfirst(b);
+
+				if (!equal(tla->expr, tlb->expr))
+				{
+					all_equal = false;
+					break;
+				}
+			}
+			need_result = !all_equal;
+		}
+		else
+			need_result = true;
+	}
+
+	if (!need_result)
 	{
 		/* Fix up annotation of plan's distribution and ordering properties. */
 		if (plan->flow)

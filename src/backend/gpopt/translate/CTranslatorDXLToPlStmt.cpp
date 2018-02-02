@@ -2932,7 +2932,6 @@ CTranslatorDXLToPlStmt::PappendFromDXLAppend
 	CDXLPhysicalAppend *pdxlopAppend = CDXLPhysicalAppend::PdxlopConvert(pdxlnAppend->Pdxlop());
 
 	pappend->isTarget = pdxlopAppend->FIsTarget();
-	pappend->isZapped = pdxlopAppend->FIsZapped();
 
 	// translate operator costs
 	TranslatePlanCosts
