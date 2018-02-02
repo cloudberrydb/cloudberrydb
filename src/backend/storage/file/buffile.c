@@ -107,7 +107,7 @@ BufFileCreateTemp(const char *filePrefix, bool interXact)
 	BufFile	   *file;
 	File		pfile;
 
-	pfile = OpenTemporaryFile(filePrefix, interXact);
+	pfile = OpenTemporaryFile(interXact, filePrefix);
 	Assert(pfile >= 0);
 
 	file = makeBufFile(pfile);
@@ -119,7 +119,7 @@ BufFileCreateTemp(const char *filePrefix, bool interXact)
 /*
  * Create a BufFile for a new file.
  *
- * Does not add the pgsql_tmp/ prefix to the file path before creating.
+ * Adds the pgsql_tmp/ prefix to the file path before creating.
  *
  * If interXact is true, the temp file will not be automatically deleted
  * at end of transaction.
@@ -148,7 +148,7 @@ BufFileCreateNamedTemp(const char *fileName, bool delOnClose, bool interXact)
 /*
  * Opens an existing file as BufFile
  *
- * Does not add the pgsql_tmp/ prefix to the file path before opening.
+ * Adds the pgsql_tmp/ prefix to the file path before opening.
  */
 BufFile *
 BufFileOpenNamedTemp(const char *fileName, bool delOnClose, bool interXact)

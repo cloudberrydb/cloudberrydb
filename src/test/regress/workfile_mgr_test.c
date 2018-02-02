@@ -797,20 +797,15 @@ bfz_test_reopen(void)
 
 	elog(LOG, "Running test: bfz_test_reopen");
 
-	StringInfo filename = makeStringInfo();
-
-	appendStringInfo(filename,
-						"%s/%s",
-						PG_TEMP_FILES_DIR,
-						"Test_bfz.dat");
+	char *file_name = "Test_bfz.dat";
 
 	StringInfo text = makeStringInfo();
 	appendStringInfo(text,"Small amount of data to test.");
 
-	elog(LOG, "Running sub-test: Creating file %s", filename->data);
+	elog(LOG, "Running sub-test: Creating file %s", file_name);
 
 	/* Write data to file */
-	bfz_t * fileWrite = bfz_create(filename->data, false, TRUE);
+	bfz_t * fileWrite = bfz_create(file_name, false, TRUE);
 	fileWrite->del_on_close=false;
 	bfz_append(fileWrite, text->data, text->len);
 	/* Flush data */
@@ -820,8 +815,8 @@ bfz_test_reopen(void)
 	char result[TEST_NAME_LENGTH];
 	int result_size = 0;
 
-	elog(LOG, "Running sub-test: Reading file %s", filename->data);
-	bfz_t * fileRead = bfz_open(filename->data, true, TRUE);
+	elog(LOG, "Running sub-test: Reading file %s", file_name);
+	bfz_t * fileRead = bfz_open(file_name, true, TRUE);
 	/* Seek 0 */
 	bfz_scan_begin(fileRead);
 	result_size = bfz_scan_next(fileRead,result,text->len);
@@ -829,9 +824,7 @@ bfz_test_reopen(void)
 	unit_test_result(	(result_size == text->len) &&
 						(strncmp(text->data, result, text->len) == 0));
 
-	pfree(filename->data);
 	pfree(text->data);
-	pfree(filename);
 	pfree(text);
 
 	return unit_test_summary();
@@ -879,12 +872,10 @@ remove_tmp_file(char *path, int64 size, bool update_diskspace)
 	Assert(NULL != path);
 
 	/* Create path to file by adding crt temp path */
-	StringInfo full_filepath = makeStringInfo();
-	appendStringInfo(full_filepath, "%s/%s",
-			getCurrentTempFilePath, path);
+	char *full_filepath = GetTempFilePath(path, false);
 
 	/* Remove file from disk */
-	int res = unlink(full_filepath->data);
+	int res = unlink(full_filepath);
 
 	if (update_diskspace)
 	{
@@ -892,7 +883,6 @@ remove_tmp_file(char *path, int64 size, bool update_diskspace)
 		WorkfileDiskspace_Commit(0, size, true /* update_query_space */ );
 	}
 
-	pfree(full_filepath->data);
 	pfree(full_filepath);
 
 	return (res == 0);
@@ -927,22 +917,10 @@ execworkfile_buffile_test(void)
 
 	/* Create file name */
 	char *file_name = "test_execworkfile_buffile.dat";
-	StringInfo test_filepath = makeStringInfo();
-	appendStringInfo(test_filepath,
-					"%s/%s",
-					PG_TEMP_FILES_DIR,
-					file_name);
-
-	if (test_filepath->len > MAXPGPATH)
-	{
-		ereport(ERROR, (errmsg("cannot generate path: %s/%s",
-					PG_TEMP_FILES_DIR,
-					file_name)));
-	}
 
 	elog(LOG, "Running sub-test: Creating EWF/Buffile");
 
-	ExecWorkFile *ewf = ExecWorkFile_Create(test_filepath->data,
+	ExecWorkFile *ewf = ExecWorkFile_Create(file_name,
 			BUFFILE,
 			false, /* delOnClose */
 			0 /* compressionType */);
@@ -990,7 +968,7 @@ execworkfile_buffile_test(void)
 
 	elog(LOG, "Running sub-test: Opening existing EWF/Buffile and checking size");
 
-	ewf = ExecWorkFile_Open(test_filepath->data,
+	ewf = ExecWorkFile_Open(file_name,
 				BUFFILE,
 				false, /* delOnClose */
 				0 /* compressionType */);
@@ -1013,12 +991,10 @@ execworkfile_buffile_test(void)
 	unit_test_result(final_size == current_size);
 
 	elog(LOG, "Running sub-test: Removing physical file from disk");
-	success = remove_tmp_file(test_filepath->data, final_size, true /* update_diskspace */);
+	success = remove_tmp_file(file_name, final_size, true /* update_diskspace */);
 
 	unit_test_result(success);
 
-	pfree(test_filepath->data);
-	pfree(test_filepath);
 	pfree(text->data);
 	pfree(text);
 
@@ -1055,22 +1031,10 @@ execworkfile_bfz_zlib_test(void)
 
 	/* Create file name */
 	char *file_name = "test_execworkfile_bfz_zlib.dat";
-	StringInfo test_filepath = makeStringInfo();
-	appendStringInfo(test_filepath,
-					"%s/%s",
-					PG_TEMP_FILES_DIR,
-					file_name);
-
-	if (test_filepath->len > MAXPGPATH)
-	{
-		ereport(ERROR, (errmsg("cannot generate path: %s/%s",
-					PG_TEMP_FILES_DIR,
-					file_name)));
-	}
 
 	elog(LOG, "Running sub-test: Creating EWF/Buffile");
 
-	ExecWorkFile *ewf = ExecWorkFile_Create(test_filepath->data,
+	ExecWorkFile *ewf = ExecWorkFile_Create(file_name,
 			BFZ,
 			false, /* delOnClose */
 			1 /* compressionType */);
@@ -1109,7 +1073,7 @@ execworkfile_bfz_zlib_test(void)
 
 	elog(LOG, "Running sub-test: Opening existing EWF/BFZ and checking size");
 
-	ewf = ExecWorkFile_Open(test_filepath->data,
+	ewf = ExecWorkFile_Open(file_name,
 			BFZ,
 			false, /* delOnClose */
 			1 /* compressionType */);
@@ -1131,12 +1095,10 @@ execworkfile_bfz_zlib_test(void)
 	unit_test_result(final_size == current_size);
 
 	elog(LOG, "Running sub-test: Removing physical file from disk");
-	success = remove_tmp_file(test_filepath->data, final_size, true /* update_diskspace */);
+	success = remove_tmp_file(file_name, final_size, true /* update_diskspace */);
 
 	unit_test_result(success);
 
-	pfree(test_filepath->data);
-	pfree(test_filepath);
 	pfree(text->data);
 	pfree(text);
 
@@ -1174,22 +1136,10 @@ execworkfile_bfz_uncompressed_test(void)
 
 	/* Create file name */
 	char *file_name = "test_execworkfile_bfz_uncomp.dat";
-	StringInfo test_filepath = makeStringInfo();
-	appendStringInfo(test_filepath,
-					"%s/%s",
-					PG_TEMP_FILES_DIR,
-					file_name);
-
-	if (test_filepath->len > MAXPGPATH)
-	{
-		ereport(ERROR, (errmsg("cannot generate path: %s/%s",
-					PG_TEMP_FILES_DIR,
-					file_name)));
-	}
 
 	elog(LOG, "Running sub-test: Creating EWF/Buffile");
 
-	ExecWorkFile *ewf = ExecWorkFile_Create(test_filepath->data,
+	ExecWorkFile *ewf = ExecWorkFile_Create(file_name,
 			BFZ,
 			false, /* delOnClose */
 			0 /* compressionType */);
@@ -1232,7 +1182,7 @@ execworkfile_bfz_uncompressed_test(void)
 
 	elog(LOG, "Running sub-test: Opening existing EWF/BFZ and checking size");
 
-	ewf = ExecWorkFile_Open(test_filepath->data,
+	ewf = ExecWorkFile_Open(file_name,
 			BFZ,
 			false, /* delOnClose */
 			0 /* compressionType */);
@@ -1254,12 +1204,10 @@ execworkfile_bfz_uncompressed_test(void)
 	unit_test_result(final_size == current_size);
 
 	elog(LOG, "Running sub-test: Removing physical file from disk");
-	success = remove_tmp_file(test_filepath->data, final_size, true /* update_diskspace */);
+	success = remove_tmp_file(file_name, final_size, true /* update_diskspace */);
 
 	unit_test_result(success);
 
-	pfree(test_filepath->data);
-	pfree(test_filepath);
 	pfree(text->data);
 	pfree(text);
 
@@ -1278,22 +1226,7 @@ fd_tests(void)
 
 	elog(LOG, "Running sub-test: Creating fd file");
 
-	/* Create file name */
-	char *file_name = "test_fd.dat";
-	StringInfo test_filepath = makeStringInfo();
-	appendStringInfo(test_filepath,
-					"%s/%s",
-					PG_TEMP_FILES_DIR,
-					file_name);
-
-	if (test_filepath->len > MAXPGPATH)
-	{
-		ereport(ERROR, (errmsg("cannot generate path: %s/%s",
-					PG_TEMP_FILES_DIR,
-					file_name)));
-	}
-
-	File testFd = OpenNamedFile(test_filepath->data,
+	File testFd = OpenNamedTemporaryFile("test_fd.dat",
 			true /* create */,
 			false /* delOnClose */,
 			true /* closeAtEOXact */);
@@ -1309,7 +1242,7 @@ fd_tests(void)
 	unit_test_result(true);
 
 	elog(LOG, "Running sub-test: Opening existing empty file and reading size");
-	testFd = OpenNamedFile(test_filepath->data,
+	testFd = OpenNamedTemporaryFile("test_fd.dat",
 			false /* create */,
 			false /* delOnClose */,
 			true /* closeAtEOXact */);
@@ -1352,18 +1285,6 @@ buffile_size_test(void)
 
 	/* Create file name */
 	char *file_name = "test_buffile.dat";
-	StringInfo test_filepath = makeStringInfo();
-	appendStringInfo(test_filepath,
-					"%s/%s",
-					PG_TEMP_FILES_DIR,
-					file_name);
-
-	if (test_filepath->len > MAXPGPATH)
-	{
-		ereport(ERROR, (errmsg("cannot generate path: %s/%s",
-					PG_TEMP_FILES_DIR,
-					file_name)));
-	}
 
 	BufFile *testBf = BufFileCreateNamedTemp(file_name,
 											 false /* delOnClose */,
@@ -1517,6 +1438,7 @@ buffile_large_file_test(void)
 {
 	unit_test_reset();
 	elog(LOG, "Running test: buffile_large_file_test");
+	char *file_name = "Test_large_buff.dat";
 
 	StringInfo filename = makeStringInfo();
 
@@ -1535,7 +1457,7 @@ buffile_large_file_test(void)
 
 	StringInfo test_string = create_text_stringinfo(nchars);
 
-	elog(LOG, "Running sub-test: Creating file %s", filename->data);
+	elog(LOG, "Running sub-test: Creating file %s", file_name);
 
 	for (int i = 0; i < total_entries; i++)
 	{
@@ -1553,7 +1475,7 @@ buffile_large_file_test(void)
 			pfree(text);
 		}
 	}
-	elog(LOG, "Running sub-test: Reading record %s", filename->data);
+	elog(LOG, "Running sub-test: Reading record %s", file_name);
 
 	char *buffer = palloc(nchars * sizeof(char));
 
@@ -1567,9 +1489,7 @@ buffile_large_file_test(void)
 	unit_test_result (nread == nchars &&
 					 (strncmp(test_string->data, buffer, test_string->len) == 0));
 
-	pfree(filename->data);
 	pfree(test_string->data);
-	pfree(filename);
 	pfree(test_string);
 
 	return unit_test_summary();
@@ -1680,20 +1600,8 @@ fd_large_file_test(void)
 
 	/* Create file name */
 	char *file_name = "test_large_fd.dat";
-	StringInfo test_filepath = makeStringInfo();
-	appendStringInfo(test_filepath,
-					"%s/%s",
-					PG_TEMP_FILES_DIR,
-					file_name);
 
-	if (test_filepath->len > MAXPGPATH)
-	{
-		ereport(ERROR, (errmsg("cannot generate path: %s/%s",
-					PG_TEMP_FILES_DIR,
-					file_name)));
-	}
-
-	File testFd = OpenNamedFile(test_filepath->data,
+	File testFd = OpenNamedTemporaryFile(file_name,
 			true /* create */,
 			true /* delOnClose */,
 			true /* closeAtEOXact */);
@@ -1723,9 +1631,6 @@ fd_large_file_test(void)
 	FileClose(testFd);
 	unit_test_result(true);
 
-	pfree(test_filepath->data);
-	pfree(test_filepath);
-
 	return unit_test_summary();
 }
 
@@ -1742,8 +1647,7 @@ execworkfile_create_one_MB_file(void)
 	StringInfo filename = makeStringInfo();
 
 	appendStringInfo(filename,
-					 "%s/%s",
-					 PG_TEMP_FILES_DIR,
+					 "%s",
 					 "Test_buffile_one_MB_file_test.dat");
 
 	ExecWorkFile *ewf = ExecWorkFile_Create(filename->data,
