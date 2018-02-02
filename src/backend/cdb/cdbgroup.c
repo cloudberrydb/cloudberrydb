@@ -4799,7 +4799,7 @@ cost_2phase_aggregation(PlannerInfo *root, MppGroupContext *ctx, AggPlanInfo *in
  * Corresponds to make_three_stage_agg_plan and must be maintained in sync
  * with it.
  *
- * This function assumes the enviroment established by planDqaJoinOrder()
+ * This function assumes the environment established by planDqaJoinOrder()
  * and set_coplan_strategies().
  */
 Cost
