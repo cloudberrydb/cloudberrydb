@@ -63,6 +63,9 @@ namespace gpopt
 				return EopScalarIsDistinctFrom;
 			}
 
+			virtual
+			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;
+
 			// return a string for operator name
 			virtual
 			const CHAR *SzId() const
