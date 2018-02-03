@@ -55,7 +55,7 @@ aocoalter_catalog_loaders:
 storage_accessmethods_and_vacuum:
 	$(TESTER) $(DISCOVER) -t tincrepo/mpp/gpdb/tests/storage \
 	-s access_methods \
-	-s storage/transaction_management \
+	-s transaction_management \
 	-s vacuum \
 	-q "class!=XidlimitsTests"
 
