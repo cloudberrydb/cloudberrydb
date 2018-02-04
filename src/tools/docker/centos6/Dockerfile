@@ -14,8 +14,8 @@ RUN yum makecache && \
     yum -y install ant-junit libicu perl-ExtUtils-Embed perl-JSON json-c-devel libgsasl-devel protobuf && \
     pip install --upgrade pip && pip install psi lockfile && yum clean all
 
-RUN rpm -Uvh http://www.city-fan.org/ftp/contrib/yum-repo/rhel6/x86_64/city-fan.org-release-1-13.rhel6.noarch.rpm && \
-    yum install -y libcurl && yum remove -y city-fan.org-release && \
+RUN rpm -Uvh http://www.city-fan.org/ftp/contrib/yum-repo/rhel6/x86_64/city-fan.org-release-2-1.rhel6.noarch.rpm && \
+    yum --enablerepo city-fan.org install -y libcurl && yum remove -y city-fan.org-release && \
     wget https://repos.fedorapeople.org/repos/dchen/apache-maven/epel-apache-maven.repo \
     -O /etc/yum.repos.d/epel-apache-maven.repo && yum install -y apache-maven && \
     rm /etc/yum.repos.d/epel-apache-maven.repo && yum clean all
