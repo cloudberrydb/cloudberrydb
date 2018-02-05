@@ -189,7 +189,21 @@ PushSelectWithOuterRefBelowUnion PushGbBelowUnion UnionGbSubquery MS-UnionAll-4
 AnyPredicate-Over-UnionOfConsts EquivClassesUnion EquivClassesIntersect;
 
 CEquivClassTest:
-Equiv-HashedDistr-1 Equiv-HashedDistr-2 EquivClassesAndOr EquivClassesLimit IndexNLJoin_Cast_NoMotion
+Equiv-HashedDistr-1 Equiv-HashedDistr-2 EquivClassesAndOr EquivClassesLimit IndexNLJoin_Cast_NoMotion;
+
+COuterJoinTest:
+LOJ-Condition-False FOJ-Condition-False FullOuterJoin FullOuterJoin2
+LeftJoin-With-Pred-On-Inner LeftJoin-With-Pred-On-Inner2
+LeftJoin-With-Col-Const-Pred LeftJoin-With-Coalesce LOJWithFalsePred
+LOJ-IsNullPred Select-Proj-OuterJoin OuterJoin-With-OuterRefs Join-Disj-Subqs
+Join-Dist-Key-No-Motion RightJoin-NonDistKey-EquivClass EffectOfLocalPredOnJoin
+EffectOfLocalPredOnJoin2 EffectOfLocalPredOnJoin3
+LeftJoin-UnsupportedFilter-Cardinality LeftOuter2InnerUnionAllAntiSemiJoin
+LOJ-IDF-NotInner LOJ_IDF_no_convert_outer_ref_predicate_with_NULL
+LOJ_IDF_no_convert_outer_ref_predicate_with_inner_ref LOJ_convert_to_inner_with_inner_predicate_IDF
+LOJ_dont_convert_to_inner_with_outer_predicate_IDF_const LOJ_dont_convert_to_inner_with_outer_predicate_INDF
+LOJ_dont_convert_to_inner_with_outer_predicate_INDF_const
+
 ")
 
 set(mdp_dir "../data/dxl/minidump/")
@@ -318,7 +332,6 @@ add_orca_test(CDecorrelatorTest)
 add_orca_test(CDistributionSpecTest)
 add_orca_test(CCastTest)
 add_orca_test(CConstTblGetTest)
-add_orca_test(COuterJoinTest)
 add_orca_test(CScalarIsDistinctFromTest)
 
 if (GPOS_ARCH_BITS EQUAL 64)

@@ -93,7 +93,6 @@
 #include "unittest/gpopt/minidump/CDirectDispatchTest.h"
 #include "unittest/gpopt/minidump/CCastTest.h"
 #include "unittest/gpopt/minidump/CConstTblGetTest.h"
-#include "unittest/gpopt/minidump/COuterJoinTest.h"
 
 #include "unittest/gpopt/operators/CContradictionTest.h"
 #include "unittest/gpopt/operators/CExpressionPreprocessorTest.h"
@@ -184,7 +183,6 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CDistributionSpecTest),
 	GPOS_UNITTEST_STD(CCastTest),
 	GPOS_UNITTEST_STD(CConstTblGetTest),
-	GPOS_UNITTEST_STD(COuterJoinTest),
 
 #if !defined(GPOS_32BIT)
 	GPOS_UNITTEST_STD(CSubqueryHandlerTest),
