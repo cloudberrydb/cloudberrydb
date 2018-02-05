@@ -428,10 +428,6 @@
                   >gp_enable_direct_dispatch</xref>
               </p>
               <p>
-                <xref href="guc-list.xml#gp_enable_fallback_plan" type="section"
-                  >gp_enable_fallback_plan</xref>
-              </p>
-              <p>
                 <xref href="guc-list.xml#gp_enable_fast_sri" type="section"
                   >gp_enable_fast_sri</xref>
               </p>

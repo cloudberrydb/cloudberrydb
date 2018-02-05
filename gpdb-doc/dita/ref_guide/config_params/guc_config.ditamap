@@ -99,7 +99,6 @@
             <topicref href="guc-list.xml#gp_enable_agg_distinct_pruning"/>
             <topicref href="guc-list.xml#gp_enable_direct_dispatch"/>
             <topicref href="guc-list.xml#gp_enable_exchange_default_partition"/>
-            <topicref href="guc-list.xml#gp_enable_fallback_plan"/>
             <topicref href="guc-list.xml#gp_enable_fast_sri"/>
             <topicref href="guc-list.xml#gp_enable_gpperfmon"/>
             <topicref href="guc-list.xml#gp_enable_groupext_distinct_gather"/>
