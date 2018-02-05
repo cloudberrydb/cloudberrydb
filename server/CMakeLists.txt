@@ -319,6 +319,7 @@ add_orca_test(CDistributionSpecTest)
 add_orca_test(CCastTest)
 add_orca_test(CConstTblGetTest)
 add_orca_test(COuterJoinTest)
+add_orca_test(CScalarIsDistinctFromTest)
 
 if (GPOS_ARCH_BITS EQUAL 64)
   add_orca_test(CSubqueryHandlerTest)

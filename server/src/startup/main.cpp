@@ -99,6 +99,7 @@
 #include "unittest/gpopt/operators/CExpressionPreprocessorTest.h"
 #include "unittest/gpopt/operators/CExpressionTest.h"
 #include "unittest/gpopt/operators/CPredicateUtilsTest.h"
+#include "unittest/gpopt/operators/CScalarIsDistinctFromTest.h"
 
 #include "unittest/gpopt/search/CSchedulerTest.h"
 #include "unittest/gpopt/search/CSearchStrategyTest.h"
@@ -199,6 +200,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(COrderSpecTest),
 	GPOS_UNITTEST_STD(CRangeTest),
 	GPOS_UNITTEST_STD(CPredicateUtilsTest),
+	GPOS_UNITTEST_STD(CScalarIsDistinctFromTest),
 	GPOS_UNITTEST_STD(CPartConstraintTest),
 #if !defined(GPOS_SunOS)
 	GPOS_UNITTEST_STD(CSchedulerTest),
