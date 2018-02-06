@@ -165,7 +165,7 @@ select move_xlog('/tmp/missing_xlog', (select datadir || '/pg_xlog' from gp_segm
 (1 row)
 
 -- the error should go away
-select wait_for_replication_error('none', 0, 100);
+select wait_for_replication_error('none', 0, 200);
  wait_for_replication_error 
 ----------------------------
  t
