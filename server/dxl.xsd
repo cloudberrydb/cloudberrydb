@@ -676,7 +676,6 @@
 	</xsd:complexType>
 	
 	<xsd:complexType name="LogicalCTASType">
-	<xsd:complexContent>
 		<xsd:sequence>
 			<xsd:element name="Columns" type="dxl:ColumnsType"/>
 			<xsd:element name="CTASOptions" type="dxl:CTASOptionsType"/>
@@ -708,8 +707,6 @@
 		<xsd:attribute name="DistributionColumns" type="xsd:string" use="optional"/>
 		<xsd:attribute name="InsertColumns" type="xsd:string" use="required"/>
 		<xsd:attribute name="VarTypeModList" type="xsd:string" use="required"/>
-	</xsd:complexContent>
-		
 	</xsd:complexType>
 
 	<xsd:complexType name="TableScanType">
@@ -753,8 +750,8 @@
 					<xsd:group ref="dxl:PhysicalBitmapAccessPathType" minOccurs="1" maxOccurs="1"/>
 					<xsd:group ref="dxl:PhysicalBitmapAccessPathType" minOccurs="1" maxOccurs="1"/>
 				</xsd:sequence>
+				<xsd:attribute name="TypeId" type="xsd:string" use="optional"/>
 			</xsd:extension>
-			<xsd:attribute name="TypeId" type="xsd:string" use="optional"/>
 		</xsd:complexContent>
 	</xsd:complexType>
 
@@ -1465,7 +1462,7 @@
 	
 	<xsd:complexType name="SubPlanType">
 		<xsd:sequence>
-			<xsd:element name="TestExpr" type="SubPlanTestExpr"/>
+			<xsd:element name="TestExpr" type="dxl:SubPlanTestExpr"/>
 			<xsd:element name="ParamList" type="dxl:SubPlanParamListType"/>
 			<xsd:group ref="dxl:PhysicalOp"/>
 		</xsd:sequence>
