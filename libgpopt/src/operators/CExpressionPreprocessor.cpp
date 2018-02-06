@@ -2137,29 +2137,35 @@ CExpressionPreprocessor::PexprPreprocess
 	GPOS_CHECK_ABORT;
 	pexprSimplified->Release();
 
-	// (4) remove superfluous outer references from the order spec in limits, grouping columns in GbAgg, and
-	// Partition/Order columns in window operators
-	CExpression *pexprOuterRefsEleminated = PexprRemoveSuperfluousOuterRefs(pmp, pexprTrimmed);
+	// (4) collapse cascaded union / union all
+	CExpression *pexprNaryUnionUnionAll = PexprCollapseUnionUnionAll(pmp, pexprTrimmed);
 
 	GPOS_CHECK_ABORT;
 	pexprTrimmed->Release();
 
-	// (5) remove superfluous equality
+	// (5) remove superfluous outer references from the order spec in limits, grouping columns in GbAgg, and
+	// Partition/Order columns in window operators
+	CExpression *pexprOuterRefsEleminated = PexprRemoveSuperfluousOuterRefs(pmp, pexprNaryUnionUnionAll);
+
+	GPOS_CHECK_ABORT;
+	pexprNaryUnionUnionAll->Release();
+
+	// (6) remove superfluous equality
 	CExpression *pexprTrimmed2 = PexprPruneSuperfluousEquality(pmp, pexprOuterRefsEleminated);
 	GPOS_CHECK_ABORT;
 	pexprOuterRefsEleminated->Release();
 
-	// (6) simplify quantified subqueries
+	// (7) simplify quantified subqueries
 	CExpression *pexprSubqSimplified = PexprSimplifyQuantifiedSubqueries(pmp, pexprTrimmed2);
 	GPOS_CHECK_ABORT;
 	pexprTrimmed2->Release();
 
-	// (7) do preliminary unnesting of scalar subqueries
+	// (8) do preliminary unnesting of scalar subqueries
 	CExpression *pexprSubqUnnested = PexprUnnestScalarSubqueries(pmp, pexprSubqSimplified);
 	GPOS_CHECK_ABORT;
 	pexprSubqSimplified->Release();
 
-	// (8) unnest AND/OR/NOT predicates
+	// (9) unnest AND/OR/NOT predicates
 	CExpression *pexprUnnested = CExpressionUtils::PexprUnnest(pmp, pexprSubqUnnested);
 	GPOS_CHECK_ABORT;
 	pexprSubqUnnested->Release();
@@ -2168,51 +2174,47 @@ CExpressionPreprocessor::PexprPreprocess
 
 	if (GPOS_FTRACE(EopttraceArrayConstraints))
 	{
-		// (8.5) ensure predicates are array IN or NOT IN where applicable
+		// (9.5) ensure predicates are array IN or NOT IN where applicable
 		pexprConvert2In = PexprConvert2In(pmp, pexprUnnested);
 		GPOS_CHECK_ABORT;
 		pexprUnnested->Release();
 	}
 
-	// (9) infer predicates from constraints
+	// (10) infer predicates from constraints
 	CExpression *pexprInferredPreds = PexprInferPredicates(pmp, pexprConvert2In);
 	GPOS_CHECK_ABORT;
 	pexprConvert2In->Release();
 
-	// (10) eliminate self comparisons
+	// (11) eliminate self comparisons
 	CExpression *pexprSelfCompEliminated = PexprEliminateSelfComparison(pmp, pexprInferredPreds);
 	GPOS_CHECK_ABORT;
 	pexprInferredPreds->Release();
 
-	// (11) remove duplicate AND/OR children
+	// (12) remove duplicate AND/OR children
 	CExpression *pexprDeduped = CExpressionUtils::PexprDedupChildren(pmp, pexprSelfCompEliminated);
 	GPOS_CHECK_ABORT;
 	pexprSelfCompEliminated->Release();
 
-	// (12) factorize common expressions
+	// (13) factorize common expressions
 	CExpression *pexprFactorized = CExpressionFactorizer::PexprFactorize(pmp, pexprDeduped);
 	GPOS_CHECK_ABORT;
 	pexprDeduped->Release();
 
-	// (13) infer filters out of components of disjunctive filters
+	// (14) infer filters out of components of disjunctive filters
 	CExpression *pexprPrefiltersExtracted =
 			CExpressionFactorizer::PexprExtractInferredFilters(pmp, pexprFactorized);
 	GPOS_CHECK_ABORT;
 	pexprFactorized->Release();
 
-	// (14) pre-process window functions
+	// (15) pre-process window functions
 	CExpression *pexprWindowPreprocessed = CWindowPreprocessor::PexprPreprocess(pmp, pexprPrefiltersExtracted);
 	GPOS_CHECK_ABORT;
 	pexprPrefiltersExtracted->Release();
 
-	// (15) collapse cascaded union / union all
-	CExpression *pexprNaryUnionUnionAll = PexprCollapseUnionUnionAll(pmp, pexprWindowPreprocessed);
-	pexprWindowPreprocessed->Release();
-
 	// (16) eliminate unused computed columns
-	CExpression *pexprNoUnusedPrEl = PexprPruneUnusedComputedCols(pmp, pexprNaryUnionUnionAll, pcrsOutputAndOrderCols);
+	CExpression *pexprNoUnusedPrEl = PexprPruneUnusedComputedCols(pmp, pexprWindowPreprocessed, pcrsOutputAndOrderCols);
 	GPOS_CHECK_ABORT;
-	pexprNaryUnionUnionAll->Release();
+	pexprWindowPreprocessed->Release();
 
 	// (17) normalize expression
 	CExpression *pexprNormalized = CNormalizer::PexprNormalize(pmp, pexprNoUnusedPrEl);
