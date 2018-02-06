@@ -2001,9 +2001,13 @@ cost_mergejoin(MergePath *path, PlannerInfo *root, SpecialJoinInfo *sjinfo)
 	/*
 	 * Convert selectivities to row counts.  We force outer_rows and
 	 * inner_rows to be at least 1, but the skip_rows estimates can be zero.
+	 *
+	 * CDB: Don't round the skip-estimates, like camp_row_est() doesn't
+	 * round the normal estimates in GPDB. Otherwise the assertions might
+	 * fail.
 	 */
-	outer_skip_rows = rint(outer_path_rows * outerstartsel);
-	inner_skip_rows = rint(inner_path_rows * innerstartsel);
+	outer_skip_rows = outer_path_rows * outerstartsel;
+	inner_skip_rows = inner_path_rows * innerstartsel;
 	outer_rows = clamp_row_est(outer_path_rows * outerendsel);
 	inner_rows = clamp_row_est(inner_path_rows * innerendsel);
 
