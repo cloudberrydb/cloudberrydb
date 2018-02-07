@@ -4286,9 +4286,11 @@ add_second_stage_agg(PlannerInfo *root,
 								 result_plan);
 
 	/*
-	 * Agg will not change the sort order unless it is hashed.
+	 * A sorted Agg will not change the sort order.
 	 */
 	agg_node->flow = pull_up_Flow(agg_node, agg_node->lefttree);
+	if (aggstrategy != AGG_SORTED)
+		*p_current_pathkeys = NIL;
 
 	/*
 	 * Since the rtable has changed, we had better recreate a RelOptInfo entry
