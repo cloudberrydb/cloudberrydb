@@ -3,7 +3,7 @@
 
 #include "postgres.h"
 
-/* convert input string to upper case and prepend "X-GP-OPTIONS-" prefix */
+/* convert input string to upper case and prepend "X-GP-" prefix */
 char	   *normalize_key_name(const char *key);
 
 /* get the name of the type, given the OID */

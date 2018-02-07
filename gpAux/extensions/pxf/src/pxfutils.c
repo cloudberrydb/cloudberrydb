@@ -4,8 +4,7 @@
 
 /*
  * Full name of the HEADER KEY expected by the PXF service
- * Converts input string to upper case and prepends "X-GP-OPTIONS-" string
- * This will be used for all user defined parameters to be isolate from internal parameters
+ * Converts input string to upper case and prepends "X-GP-" string
  */
 char *
 normalize_key_name(const char *key)
@@ -17,7 +16,7 @@ normalize_key_name(const char *key)
 				 errmsg("internal error in pxfutils.c:normalize_key_name. Parameter key is null or empty.")));
 	}
 
-	return psprintf("X-GP-OPTIONS-%s", str_toupper(pstrdup(key), strlen(key)));
+	return psprintf("X-GP-%s", str_toupper(pstrdup(key), strlen(key)));
 }
 
 /*
