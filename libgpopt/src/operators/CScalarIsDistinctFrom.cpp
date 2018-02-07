@@ -37,8 +37,8 @@ CScalarIsDistinctFrom::Eber(DrgPul *pdrgpulChildren) const
 {
 	GPOS_ASSERT(2 == pdrgpulChildren->UlLength());
 
-	EBoolEvalResult firstResult = (EBoolEvalResult) * (*pdrgpulChildren)[0];
-	EBoolEvalResult secondResult = (EBoolEvalResult) * (*pdrgpulChildren)[1];
+	EBoolEvalResult firstResult = (EBoolEvalResult) *(*pdrgpulChildren)[0];
+	EBoolEvalResult secondResult = (EBoolEvalResult) *(*pdrgpulChildren)[1];
 
 	if (firstResult == EberUnknown || secondResult == EberUnknown)
 	{
