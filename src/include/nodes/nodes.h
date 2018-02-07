@@ -55,7 +55,7 @@ typedef enum NodeTag
 	T_Scan,
 	T_Join,
 
-	/* Real plan node starts below.  Scan and Join are "Virtal nodes",
+	/* Real plan node starts below.  Scan and Join are "Virtual nodes",
 	 * It will take the form of IndexScan, SeqScan, etc.
 	 * CteScan will take the form of SubqueryScan.
 	 */
