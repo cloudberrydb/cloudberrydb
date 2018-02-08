@@ -13,25 +13,27 @@ namespace gpopt
 	class SEberFixture
 	{
 		private:
-			CAutoMemoryPool m_amp;
+			const CAutoMemoryPool m_amp;
 			CMDAccessor m_mda;
-			CAutoOptCtxt m_aoc;
-			CScalarIsDistinctFrom* m_pScalarIDF;
+			const CAutoOptCtxt m_aoc;
+			CScalarIsDistinctFrom* const m_pScalarIDF;
 
+			static IMDProvider* Pmdp()
+			{
+				CTestUtils::m_pmdpf->AddRef();
+				return CTestUtils::m_pmdpf;
+			}
 		public:
 			SEberFixture():
-					m_mda(m_amp.Pmp(), CMDCache::Pcache(), CTestUtils::m_sysidDefault, CTestUtils::m_pmdpf),
-					m_aoc(m_amp.Pmp(), &m_mda, NULL /* pceeval */, CTestUtils::Pcm(m_amp.Pmp()))
+					m_amp(),
+					m_mda(m_amp.Pmp(), CMDCache::Pcache(), CTestUtils::m_sysidDefault, Pmdp()),
+					m_aoc(m_amp.Pmp(), &m_mda, NULL /* pceeval */, CTestUtils::Pcm(m_amp.Pmp())),
+					m_pScalarIDF(GPOS_NEW(m_amp.Pmp()) CScalarIsDistinctFrom(
+														Pmp(),
+														GPOS_NEW(m_amp.Pmp()) CMDIdGPDB(GPDB_INT4_EQ_OP),
+														GPOS_NEW(m_amp.Pmp()) CWStringConst(GPOS_WSZ_LIT("="))
+														))
 			{
-				CMDIdGPDB *pmdidEqOp = GPOS_NEW(m_amp.Pmp()) CMDIdGPDB(GPDB_INT4_EQ_OP);
-				const CWStringConst *pwsOpName = GPOS_NEW(Pmp()) CWStringConst(GPOS_WSZ_LIT("="));
-
-				m_pScalarIDF = GPOS_NEW(m_amp.Pmp()) CScalarIsDistinctFrom
-														(Pmp(),
-														 pmdidEqOp,
-														 pwsOpName
-														);
-				CTestUtils::m_pmdpf->AddRef();
 			}
 
 			~SEberFixture()
