@@ -1706,7 +1706,8 @@ jobs:
       passed: [gate_cs_start]
       trigger: [[ test_trigger ]]
     - get: centos-gpdb-dev-6
-    - task: storage
+  - aggregate:
+    - task: storage_tests
       file: gpdb_src/concourse/tasks/tinc_gpdb.yml
       params:
         MAKE_TEST_COMMAND: storage
