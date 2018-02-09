@@ -101,7 +101,7 @@ ALTER SEQUENCE ss1 OWNED BY deptest2.f1;
 RESET SESSION AUTHORIZATION;
 REASSIGN OWNED BY regression_user1 TO regression_user2;
 \dt deptest
-              List of relations
+                   List of relations
  Schema |  Name   | Type  |      Owner       | Storage 
 --------+---------+-------+------------------+---------
  public | deptest | table | regression_user2 | heap

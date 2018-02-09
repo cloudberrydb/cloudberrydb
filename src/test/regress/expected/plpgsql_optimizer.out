@@ -2,24 +2,24 @@
 -- PLPGSQL
 --
 -- Scenario:
--- 
+--
 --     A building with a modern TP cable installation where any
 --     of the wall connectors can be used to plug in phones,
 --     ethernet interfaces or local office hubs. The backside
 --     of the wall connectors is wired to one of several patch-
 --     fields in the building.
--- 
+--
 --     In the patchfields, there are hubs and all the slots
 --     representing the wall connectors. In addition there are
 --     slots that can represent a phone line from the central
 --     phone system.
--- 
+--
 --     Triggers ensure consistency of the patching information.
--- 
+--
 --     Functions are used to build up powerful views that let
 --     you look behind the wall when looking at a patchfield
 --     or into a room.
--- 
+--
 create table Room (
     roomno	char(8),
     comment	text
@@ -84,10 +84,10 @@ create table PHone (
 );
 create unique index PHone_name on PHone using btree (slotname bpchar_ops);
 -- ************************************************************
--- * 
+-- *
 -- * Trigger procedures and functions for the patchfield
 -- * test of PL/pgSQL
--- * 
+-- *
 -- ************************************************************
 -- ************************************************************
 -- * AFTER UPDATE on Room
@@ -597,11 +597,11 @@ begin
     mytype := substr(myname, 1, 2);
     link := mytype || substr(blname, 1, 2);
     if link = ''PLPL'' then
-        raise exception 
+        raise exception
 		''backlink between two phone lines does not make sense'';
     end if;
     if link in (''PLWS'', ''WSPL'') then
-        raise exception 
+        raise exception
 		''direct link of phone line to wall slot not permitted'';
     end if;
     if mytype = ''PS'' then
@@ -745,19 +745,19 @@ begin
     mytype := substr(myname, 1, 2);
     link := mytype || substr(blname, 1, 2);
     if link = ''PHPH'' then
-        raise exception 
+        raise exception
 		''slotlink between two phones does not make sense'';
     end if;
     if link in (''PHHS'', ''HSPH'') then
-        raise exception 
+        raise exception
 		''link of phone to hub does not make sense'';
     end if;
     if link in (''PHIF'', ''IFPH'') then
-        raise exception 
+        raise exception
 		''link of phone to hub does not make sense'';
     end if;
     if link in (''PSWS'', ''WSPS'') then
-        raise exception 
+        raise exception
 		''slotlink from patchslot to wallslot not permitted'';
     end if;
     if mytype = ''PS'' then
@@ -3298,7 +3298,7 @@ CONTEXT:  PL/pgSQL function "footest" line 4 at EXECUTE statement
 drop function footest();
 -- test scrollable cursor support
 create function sc_test() returns setof integer as $$
-declare 
+declare
   c scroll cursor for select f1 from int4_tbl;
   x integer;
 begin
@@ -3315,7 +3315,7 @@ select * from sc_test();
 ERROR:  backward scan is not supported in this version of Greenplum Database
 CONTEXT:  PL/pgSQL function "sc_test" line 6 at FETCH
 create or replace function sc_test() returns setof integer as $$
-declare 
+declare
   c no scroll cursor for select f1 from int4_tbl;
   x integer;
 begin
@@ -3332,7 +3332,7 @@ select * from sc_test();  -- fails because of NO SCROLL specification
 ERROR:  backward scan is not supported in this version of Greenplum Database
 CONTEXT:  PL/pgSQL function "sc_test" line 6 at FETCH
 create or replace function sc_test() returns setof integer as $$
-declare 
+declare
   c refcursor;
   x integer;
 begin
@@ -3349,7 +3349,7 @@ select * from sc_test();
 ERROR:  backward scan is not supported in this version of Greenplum Database
 CONTEXT:  PL/pgSQL function "sc_test" line 6 at FETCH
 create or replace function sc_test() returns setof integer as $$
-declare 
+declare
   c refcursor;
   x integer;
 begin

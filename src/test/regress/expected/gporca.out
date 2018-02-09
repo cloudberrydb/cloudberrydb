@@ -712,7 +712,7 @@ select count(*) from orca.r;
 (1 row)
 
 select a, b from orca.r, orca.s group by a,b;
- a  | b
+ a  | b 
 ----+---
  13 | 4
   9 | 3
@@ -1973,26 +1973,26 @@ select 0.001::numeric from orca.r;
 select NULL::text, NULL::int from orca.r;
  text | int4 
 ------+------
-      |
-      |
-      |
-      |
-      |
-      |
-      |
-      |
-      |
-      |
-      |
-      |
-      |
-      |
-      |
-      |
-      |
-      |
-      |
-      |
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
+      |     
 (20 rows)
 
 select 'helloworld'::text, 'helloworld2'::varchar from orca.r;
@@ -7785,7 +7785,7 @@ ERROR:  more than one row returned by a subquery used as an expression
 select (select a from orca.foo inner1 where inner1.a=outer1.a  union select b from orca.foo inner2 where inner2.b=outer1.b) from orca.foo outer1;
 ERROR:  more than one row returned by a subquery used as an expression  (seg0 slice3 192.168.0.37:25432 pid=14095)
 select (select generate_series(1,1)) as series;
- series
+ series 
 --------
       1
 (1 row)
@@ -8019,7 +8019,7 @@ NOTICE:  CREATE TABLE will create partition "multilevel_p_1_prt_bb_2_2_prt_sp2_3
 NOTICE:  CREATE TABLE will create partition "multilevel_p_1_prt_bb_2_2_prt_sp2_4" for table "multilevel_p_1_prt_bb_2"
 insert into orca.multilevel_p values (1,1), (100,200);
 select * from orca.multilevel_p;
-  a  |  b
+  a  |  b  
 -----+-----
    1 |   1
  100 | 200

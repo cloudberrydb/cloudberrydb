@@ -1024,7 +1024,7 @@ WITH outermost(x) AS (
          UNION SELECT 3)
 )
 SELECT * FROM outermost;
-x
+ x 
 ---
  1
  2

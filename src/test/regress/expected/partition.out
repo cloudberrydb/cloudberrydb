@@ -7699,9 +7699,9 @@ CREATE TABLE test_split_part ( log_id int NOT NULL, f_array int[] NOT NULL)
 DISTRIBUTED BY (log_id)
 PARTITION BY RANGE(log_id)
 (
-       START (1::int) END (100::int) EVERY (5) WITH (appendonly=false),
-       PARTITION "Old" START (101::int) END (201::int) WITH (appendonly=false),
-       DEFAULT PARTITION other_log_ids  WITH (appendonly=false)
+    START (1::int) END (100::int) EVERY (5) WITH (appendonly=false),
+    PARTITION "Old" START (101::int) END (201::int) WITH (appendonly=false),
+    DEFAULT PARTITION other_log_ids  WITH (appendonly=false)
 );
 NOTICE:  CREATE TABLE will create partition "test_split_part_1_prt_other_log_ids" for table "test_split_part"
 NOTICE:  CREATE TABLE will create partition "test_split_part_1_prt_2" for table "test_split_part"

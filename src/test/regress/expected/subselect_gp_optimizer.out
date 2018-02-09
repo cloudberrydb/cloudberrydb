@@ -1134,13 +1134,13 @@ explain select 1 from t1 where a in (select b from t2 where a = 1 offset 1);
 (14 rows)
 
 select 1 from t1 where a in (select b from t2 where a = 1 limit 1);
- ?column?
+ ?column? 
 ----------
         1
 (1 row)
 
 select 1 from t1 where a in (select b from t2 where a = 1 offset 1);
- ?column?
+ ?column? 
 ----------
 (0 rows)
 
@@ -1763,7 +1763,7 @@ EXPLAIN SELECT EXISTS(SELECT * FROM tenk1 WHERE tenk1.unique1 = tenk2.unique1) F
 (14 rows)
 
 SELECT EXISTS(SELECT * FROM tenk1 WHERE tenk1.unique1 = tenk2.unique1) FROM tenk2 LIMIT 1;
- ?column?
+ ?column? 
 ----------
  t
 (1 row)

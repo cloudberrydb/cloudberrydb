@@ -471,16 +471,16 @@ WHERE total <> fourcount + twosum;
 SELECT avg(four) OVER (PARTITION BY four ORDER BY thousand / 100) FROM tenk1 WHERE unique2 < 10;
  avg 
 -----
- 0
- 0
- 0
- 1
- 1
- 1
- 1
- 2
- 3
- 3
+   0
+   0
+   0
+   1
+   1
+   1
+   1
+   2
+   3
+   3
 (10 rows)
 
 SELECT ten, two, sum(hundred) AS gsum, sum(sum(hundred)) OVER win AS wsum 

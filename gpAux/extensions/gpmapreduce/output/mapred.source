@@ -554,7 +554,7 @@ STDERR> Error: INPUT: Missing NAME, at line 138
 STDERR> Error: INPUT: Missing FILE, GPFDIST, TABLE, QUERY, or EXEC, at line 138
 STDERR> Error: INPUT 'mystart': Duplicate QUERY for INPUT, at line 144
 STDERR> Error: parse failure
-STDERR>
+STDERR> 
 STDOUT>
 
 (3 rows)

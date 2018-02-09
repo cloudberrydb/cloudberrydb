@@ -302,7 +302,7 @@ WHERE p1.oid != p2.oid AND
     NOT p1.proisagg AND NOT p2.proisagg AND
     NOT p1.proiswindow AND NOT p2.proiswindow AND
     (p1.proargtypes[7] < p2.proargtypes[7])
-ORDER BY 1, 2; -- order none 
+ORDER BY 1, 2; -- order none
  proargtypes | proargtypes 
 -------------+-------------
 (0 rows)

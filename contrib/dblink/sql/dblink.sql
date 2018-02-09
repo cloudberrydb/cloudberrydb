@@ -351,7 +351,7 @@ SELECT dblink_build_sql_update('test_dropped', '2', 1,
 SELECT dblink_build_sql_delete('test_dropped', '2', 1,
                                ARRAY['2'::TEXT]);
 
--- test nested query for GPDB 
+-- test nested query for GPDB
 CREATE TEMPORARY TABLE result AS
 (SELECT * from dblink('dbname=contrib_regression','select * from foo where f1 > 2 and f1 < 7') as t1(f1 int, f2 text, f3 text[]))
 UNION
@@ -359,7 +359,7 @@ UNION
 UNION
 (SELECT * from dblink('dbname=contrib_regression','select * from foo where f1 > 2 and f1 < 7') as t3(f1 int, f2 text, f3 text[]))
 ORDER by f1;
-SELECT * FROM result; 
+SELECT * FROM result;
 DROP TABLE result;
 CREATE TEMPORARY TABLE result (f1 int, f2 text, f3 text[]);
 INSERT INTO result SELECT * FROM dblink ('dbname=contrib_regression','select * from foo') AS t(f1 int, f2 text, f3 text[]);

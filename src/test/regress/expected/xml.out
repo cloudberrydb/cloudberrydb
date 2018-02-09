@@ -346,7 +346,7 @@ SELECT xmlserialize(content data as character varying(20)) FROM xmltest;
 SELECT xmlserialize(content 'good' as char(10));
  xmlserialize 
 --------------
- good
+ good      
 (1 row)
 
 SELECT xmlserialize(document 'bad' as text);

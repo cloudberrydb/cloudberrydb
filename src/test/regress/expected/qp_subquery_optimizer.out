@@ -1162,7 +1162,7 @@ select * from Tbl04 where (x,y) not in (select x,y from Tbl10);
 ---+---
  3 | 4
 (1 row)
-                      
+
 -- start_ignore
 create table TblText1(a text, b text);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.

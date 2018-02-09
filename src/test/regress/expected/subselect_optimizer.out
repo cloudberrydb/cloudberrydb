@@ -570,7 +570,7 @@ select (select (a.*)::text) from view_a a;
 --
 select q from (select max(f1) from int4_tbl group by f1 order by f1) q
   order by max;
-       q
+       q       
 ---------------
  (-2147483647)
  (-123456)

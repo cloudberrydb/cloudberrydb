@@ -724,7 +724,7 @@ select * from A,B where exists (select * from C where C.j = A.j and B.i = all (s
 
 -- Planner should fail due to skip-level correlation not supported. ORCA should pass
 select * from A,B where exists (select * from C where C.j = A.j and B.i = all (select min(C.j) from C where C.j = B.j)) order by 1,2,3,4;
- i  | j  | i | j
+ i  | j  | i | j 
 ----+----+---+---
   1 |  1 | 1 | 1
   1 |  1 | 1 | 1
