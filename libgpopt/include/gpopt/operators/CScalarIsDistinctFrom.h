@@ -63,6 +63,7 @@ namespace gpopt
 				return EopScalarIsDistinctFrom;
 			}
 
+			// boolean expression evaluation
 			virtual
 			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;
 

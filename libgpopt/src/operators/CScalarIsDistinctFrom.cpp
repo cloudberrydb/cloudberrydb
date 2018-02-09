@@ -32,11 +32,14 @@ CScalarIsDistinctFrom::PopConvert
 	return reinterpret_cast<CScalarIsDistinctFrom*>(pop);
 }
 
+// perform boolean expression evaluation
 CScalar::EBoolEvalResult
 CScalarIsDistinctFrom::Eber(DrgPul *pdrgpulChildren) const
 {
 	GPOS_ASSERT(2 == pdrgpulChildren->UlLength());
 
+	// Is Distinct From(IDF) expression will always evaluate
+	// to a true/false/unknown but not a NULL
 	EBoolEvalResult firstResult = (EBoolEvalResult) *(*pdrgpulChildren)[0];
 	EBoolEvalResult secondResult = (EBoolEvalResult) *(*pdrgpulChildren)[1];
 
