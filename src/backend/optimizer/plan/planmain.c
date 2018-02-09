@@ -285,17 +285,6 @@ query_planner(PlannerInfo *root, List *tlist,
 	Insist(final_rel->cheapest_startup_path);
 
 	/*
-	 * CDB: Subquery duplicate suppression should be all finished by now.
-	 *
-	 * CDB TODO: If query has DISTINCT, GROUP BY with just MIN/MAX aggs, or
-	 * LIMIT 1, consider paths in which subquery duplicate suppression has
-	 * not been completed.  (Would have to change set_cheapest_dedup() to not
-	 * discard them.)
-	 */
-	Insist(final_rel->cheapest_startup_path->subq_complete &&
-		   final_rel->cheapest_total_path->subq_complete);
-
-	/*
 	 * If there's grouping going on, estimate the number of result groups. We
 	 * couldn't do this any earlier because it depends on relation size
 	 * estimates that were set up above.
