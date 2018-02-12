@@ -80,7 +80,6 @@ CDefaultComparator::FEvalComparison
 
 	CExpression *pexprResult = m_pceeval->PexprEval(pexprComp);
 	pexprComp->Release();
-
 	CScalarConst *popScalarConst = CScalarConst::PopConvert(pexprResult->Pop());
 	IDatum *pdatum = popScalarConst->Pdatum();
 
@@ -122,6 +121,15 @@ CDefaultComparator::FEqual
 	}
 	CAutoMemoryPool amp;
 
+	// NULL datum is a special case and is being handled here. Assumptions made are
+	// NULL is less than everything else. NULL = NULL.
+	// Note : NULL is considered equal to NULL because we are using the comparator for
+	//        interval calculation.
+	if (pdatum1->FNull() && pdatum2->FNull())
+	{
+		return true;
+	}
+
 	return FEvalComparison(amp.Pmp(), pdatum1, pdatum2, IMDType::EcmptEq);
 }
 
@@ -155,6 +163,15 @@ CDefaultComparator::FLessThan
 	}
 	CAutoMemoryPool amp;
 
+	// NULL datum is a special case and is being handled here. Assumptions made are
+	// NULL is less than everything else. NULL = NULL.
+	// Note : NULL is considered equal to NULL because we are using the comparator for
+	//        interval calculation.
+	if (pdatum1->FNull() && !pdatum2->FNull())
+	{
+		return true;
+	}
+	
 	return FEvalComparison(amp.Pmp(), pdatum1, pdatum2, IMDType::EcmptL);
 }
 
@@ -187,6 +204,22 @@ CDefaultComparator::FLessThanOrEqual
 		return pdatum1->FStatsLessThan(pdatum2) || pdatum1->FStatsEqual(pdatum2);
 	}
 	CAutoMemoryPool amp;
+
+	// NULL datum is a special case and is being handled here. Assumptions made are
+	// NULL is less than everything else. NULL = NULL.
+	// Note : NULL is considered equal to NULL because we are using the comparator for
+	//        interval calculation.
+	if (pdatum1->FNull())
+	{
+		// return true since either:
+		// 1. pdatum1 is NULL and pdatum2 is not NULL. Since NULL is considered
+		// less that not null values for interval computations we return true
+		// 2. when pdatum1 and pdatum2 are both NULL so they are equal
+		// for interval computation
+
+		return true;
+	}
+
 
 	return FEvalComparison(amp.Pmp(), pdatum1, pdatum2, IMDType::EcmptLEq);
 }
@@ -221,6 +254,15 @@ CDefaultComparator::FGreaterThan
 	}
 	CAutoMemoryPool amp;
 
+	// NULL datum is a special case and is being handled here. Assumptions made are
+	// NULL is less than everything else. NULL = NULL.
+	// Note : NULL is considered equal to NULL because we are using the comparator for
+	//        interval calculation.
+	if (!pdatum1->FNull() && pdatum2->FNull())
+	{
+		return true;
+	}
+
 	return FEvalComparison(amp.Pmp(), pdatum1, pdatum2, IMDType::EcmptG);
 }
 
@@ -253,6 +295,20 @@ CDefaultComparator::FGreaterThanOrEqual
 		return pdatum1->FStatsGreaterThan(pdatum2) || pdatum1->FStatsEqual(pdatum2);
 	}
 	CAutoMemoryPool amp;
+
+	// NULL datum is a special case and is being handled here. Assumptions made are
+	// NULL is less than everything else. NULL = NULL.
+	// Note : NULL is considered equal to NULL because we are using the comparator for
+	//        interval calculation.
+	if (pdatum2->FNull())
+	{
+		// return true since either:
+		// 1. pdatum2 is NULL and pdatum1 is not NULL. Since NULL is considered
+		// less that not null values for interval computations we return true
+		// 2. when pdatum1 and pdatum2 are both NULL so they are equal
+		// for interval computation
+		return true;
+	}
 
 	return FEvalComparison(amp.Pmp(), pdatum1, pdatum2, IMDType::EcmptGEq);
 }
