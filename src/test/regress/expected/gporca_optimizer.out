@@ -10239,3 +10239,29 @@ SELECT a FROM csq_cast_param_outer WHERE b in (SELECT CASE WHEN a > 1 THEN d ELS
  2
 (2 rows)
 
+SELECT a FROM ggg WHERE a IN (NULL, 'x');
+ a 
+---
+ x
+ x
+ x
+(3 rows)
+
+EXPLAIN SELECT a FROM ggg WHERE a NOT IN (NULL, '');
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=2)
+   ->  Table Scan on ggg  (cost=0.00..431.00 rows=1 width=2)
+         Filter: a <> ALL ('{NULL,""}'::bpchar[])
+ Optimizer: PQO version 2.54.5
+(4 rows)
+
+EXPLAIN SELECT a FROM ggg WHERE a IN (NULL, 'x');
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=2)
+   ->  Table Scan on ggg  (cost=0.00..431.00 rows=1 width=2)
+         Filter: a = ANY ('{NULL,x}'::bpchar[])
+ Optimizer: PQO version 2.54.5
+(4 rows)
+
