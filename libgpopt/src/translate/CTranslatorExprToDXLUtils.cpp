@@ -2430,4 +2430,192 @@ CTranslatorExprToDXLUtils::ExtractCastMdids
 	*ppmdidCastFunc = popCast->PmdidFunc();
 }
 
+BOOL
+CTranslatorExprToDXLUtils::FDXLOpExists
+	(
+	const CDXLOperator *pop,
+	const gpdxl::Edxlopid *peopid,
+	ULONG ulOps
+	)
+{
+	GPOS_ASSERT(NULL != pop);
+	GPOS_ASSERT(NULL != peopid);
+
+	gpdxl::Edxlopid eopid = pop->Edxlop();
+	for (ULONG ul = 0; ul < ulOps; ul++)
+	{
+		if (eopid == peopid[ul])
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+BOOL
+CTranslatorExprToDXLUtils::FHasDXLOp
+	(
+	const CDXLNode *pdxln,
+	const gpdxl::Edxlopid *peopid,
+	ULONG ulOps
+	)
+{
+	GPOS_CHECK_STACK_SIZE;
+	GPOS_ASSERT(NULL != pdxln);
+	GPOS_ASSERT(NULL != peopid);
+
+	if (FDXLOpExists(pdxln->Pdxlop(), peopid, ulOps))
+	{
+		return true;
+	}
+
+	// recursively check children
+	const ULONG ulArity = pdxln->UlArity();
+
+	for (ULONG ul = 0; ul < ulArity; ul++)
+	{
+		if (FHasDXLOp((*pdxln)[ul], peopid, ulOps))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+BOOL
+CTranslatorExprToDXLUtils::FProjListContainsSubplanWithBroadCast
+	(
+	CDXLNode *pdxlnPrjList
+	)
+{
+	if (pdxlnPrjList->Pdxlop()->Edxlop() == EdxlopScalarSubPlan)
+	{
+		gpdxl::Edxlopid rgeopidMotion[] =	{
+			EdxlopPhysicalMotionBroadcast
+		};
+		return FHasDXLOp(pdxlnPrjList, rgeopidMotion, GPOS_ARRAY_SIZE(rgeopidMotion));
+	}
+
+	const ULONG ulArity = pdxlnPrjList->UlArity();
+
+	for (ULONG ul =0; ul < ulArity; ul++)
+	{
+		if (FProjListContainsSubplanWithBroadCast((*pdxlnPrjList)[ul]))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void
+CTranslatorExprToDXLUtils::ExtractIdentColIds
+	(
+	CDXLNode *pdxln,
+	CBitSet *pbs
+	)
+{
+	if (pdxln->Pdxlop()->Edxlop() == EdxlopScalarIdent)
+	{
+		const CDXLColRef *pdxlcr = CDXLScalarIdent::PdxlopConvert(pdxln->Pdxlop())->Pdxlcr();
+		pbs->FExchangeSet(pdxlcr->UlID());
+	}
+
+	ULONG ulArity = pdxln->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ul++)
+	{
+		ExtractIdentColIds((*pdxln)[ul], pbs);
+	}
+}
+
+BOOL
+CTranslatorExprToDXLUtils::FMotionHazard
+	(
+	IMemoryPool *pmp,
+	CDXLNode *pdxln,
+	const gpdxl::Edxlopid *peopid,
+	ULONG ulOps,
+	CBitSet *pbsPrjCols
+	)
+{
+	GPOS_ASSERT(pbsPrjCols);
+
+	// non-streaming operator/Gather motion neutralizes any motion hazard that its subtree imposes
+	// hence stop recursing further
+	if (FMotionHazardSafeOp(pdxln))
+		return false;
+
+	if (FDXLOpExists(pdxln->Pdxlop(), peopid, ulOps))
+	{
+		// check if the current motion node projects any column from the
+		// input project list.
+		// If yes, then we have detected a motion hazard for the parent Result node.
+		CBitSet *pbsPrjList = GPOS_NEW(pmp) CBitSet(pmp);
+		ExtractIdentColIds((*pdxln)[0], pbsPrjList);
+		BOOL fDisJoint = pbsPrjCols->FDisjoint(pbsPrjList);
+		pbsPrjList->Release();
+
+		return !fDisJoint;
+	}
+
+	// recursively check children
+	const ULONG ulArity = pdxln->UlArity();
+
+	// In ORCA, inner child of Hash Join is always exhausted first,
+	// so only check the outer child for motions
+	if (pdxln->Pdxlop()->Edxlop() == EdxlopPhysicalHashJoin)
+	{
+		if (FMotionHazard(pmp, (*pdxln)[EdxlhjIndexHashLeft], peopid, ulOps, pbsPrjCols))
+		{
+			return true;
+		}
+	}
+	else
+	{
+		for (ULONG ul = 0; ul < ulArity; ul++)
+		{
+			if (FMotionHazard(pmp, (*pdxln)[ul], peopid, ulOps, pbsPrjCols))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+BOOL
+CTranslatorExprToDXLUtils::FMotionHazardSafeOp
+	(
+	CDXLNode *pdxln
+	)
+{
+	BOOL fMotionHazardSafeOp = false;
+	Edxlopid edxlop = pdxln->Pdxlop()->Edxlop();
+
+	switch (edxlop)
+	{
+		case EdxlopPhysicalSort:
+		case EdxlopPhysicalMotionGather:
+		case EdxlopPhysicalMaterialize:
+			fMotionHazardSafeOp = true;
+			break;
+
+		case EdxlopPhysicalAgg:
+		{
+			CDXLPhysicalAgg *pdxlnPhysicalAgg = CDXLPhysicalAgg::PdxlopConvert(pdxln->Pdxlop());
+			if (pdxlnPhysicalAgg->Edxlaggstr() == EdxlaggstrategyHashed)
+				fMotionHazardSafeOp = true;
+		}
+			break;
+
+		default:
+			break;
+	}
+
+	return fMotionHazardSafeOp;
+}
 // EOF

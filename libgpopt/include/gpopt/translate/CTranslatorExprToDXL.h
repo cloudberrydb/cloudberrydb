@@ -218,6 +218,9 @@ namespace gpopt
 
 			CDXLNode *PdxlnResult(CExpression *pexprFilter, DrgPcr *pdrgpcr, DrgPds *pdrgpdsBaseTables, ULONG *pulNonGatherMotions, BOOL *pfDML);
 
+			// create a DXL result node for the given project list
+			CDXLNode *PdxlnResult(CDXLNode *pdxlnProjList, CExpression *pexprFilter, DrgPcr *pdrgpcr, DrgPds *pdrgpdsBaseTables, ULONG *pulNonGatherMotions, BOOL *pfDML);
+
 			// given a DXL plan tree pdxlnChild which represents the physical plan pexprRelational, construct a DXL
 			// Result node that filters on top of it using the scalar condition pdxlnScalar
 			CDXLNode *PdxlnAddScalarFilterOnRelationalChild
@@ -713,6 +716,12 @@ namespace gpopt
 			// translate expression children and add them as children of the DXL node
 			void TranslateScalarChildren(CExpression *pexpr, CDXLNode *pdxln);
 
+			// add a result node, if required a materialize node is added below result node to avoid deadlock hazard
+			CDXLNode *PdxlnResult(CDXLPhysicalProperties *pdxlprop, CDXLNode *pdxlnPrL, CDXLNode *pdxlnChild);
+		
+			// add a materialize node
+			CDXLNode *PdxlnMaterialize(CDXLNode *pdxln);
+
 			// add result node if necessary
 			CDXLNode *PdxlnRemapOutputColumns
 						(
@@ -797,6 +806,9 @@ namespace gpopt
 			
 			// check if the motion node is valid
 			void CheckValidity(CDXLPhysicalMotion *pdxlopMotion);
+
+			// check if result node imposes a motion hazard
+			BOOL FNeedsMaterializeUnderResult(CDXLNode *pdxlnProjList, CDXLNode *pdxlnChild);
 
 			// helper to find subplan type from a correlated left outer join expression
 			static

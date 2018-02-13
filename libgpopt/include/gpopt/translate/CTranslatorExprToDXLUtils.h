@@ -561,6 +561,30 @@ namespace gpopt
 			// return a copy the dxl node's physical properties
 			static
 			CDXLPhysicalProperties *PdxlpropCopy(IMemoryPool *pmp, CDXLNode *pdxln);
+
+			// check if given dxl operator exists in the given list
+			static
+			BOOL FDXLOpExists(const CDXLOperator *pop, const gpdxl::Edxlopid *peopid, ULONG ulOps);
+
+			// check if given dxl node has any operator in the given list
+			static
+			BOOL FHasDXLOp(const CDXLNode *pdxln, const gpdxl::Edxlopid *peopid, ULONG ulOps);
+
+			// check if the project lists contains subplans with broadcast motion
+			static
+			BOOL FProjListContainsSubplanWithBroadCast(CDXLNode *pdxlnPrLNew);
+
+			// check if the dxl node imposes a motion hazard
+			static
+			BOOL FMotionHazard(IMemoryPool *pmp, CDXLNode *pdxln, const gpdxl::Edxlopid *peopid, ULONG ulOps, CBitSet *pbsPrjCols);
+
+			// check if the dxl operator does not impose a motion hazard
+			static
+			BOOL FMotionHazardSafeOp(CDXLNode *pdxln);
+
+			// extract the column ids of the ident from project list
+			static
+			void ExtractIdentColIds(CDXLNode *pdxln, CBitSet *pbs);
 	};
 }
 

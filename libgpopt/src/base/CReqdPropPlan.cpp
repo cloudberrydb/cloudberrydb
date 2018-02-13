@@ -676,16 +676,36 @@ CReqdPropPlan::OsPrint
 	{
 		os << (*m_pcrs);
 	}
-	
+
 	os << "], req CTEs: [";
 	if (NULL != m_pcter)
 	{
 		os << (*m_pcter);
 	}
-	os << "], req order: [" << (*m_peo);
-	os << "], req dist: [" << (*m_ped);
-	os << "], req rewind: [" << (*m_per);	
-	os	<<	"], req partition propagation: [" << pp(m_pepp);
+
+	os << "], req order: [";
+	if (NULL != m_peo)
+	{
+		os << (*m_peo);
+	}
+
+	os << "], req dist: [";
+	if (NULL != m_ped)
+	{
+		os << (*m_ped);
+	}
+
+	os << "], req rewind: [";
+	if (NULL != m_per)
+	{
+		os << "], req rewind: [" << (*m_per);
+	}
+
+	os << "], req partition propagation: [";
+	if (NULL != m_pepp)
+	{
+		os << pp(m_pepp);
+	}
 	os <<  "]";
 	
 	return os;

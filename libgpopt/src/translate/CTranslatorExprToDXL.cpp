@@ -9,7 +9,7 @@
 //		Implementation of the methods for translating Optimizer physical expression
 //		trees into DXL.
 //
-//	@owner: 
+//	@owner:
 //		
 //
 //	@test:
@@ -1262,7 +1262,6 @@ CTranslatorExprToDXL::PdxlnResult
 	return PdxlnResult(pexprRelational, pdrgpcr, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, pdxlnScalar, pdxlprop);
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CTranslatorExprToDXL::PdxlnResult
@@ -1992,20 +1991,13 @@ CTranslatorExprToDXL::PdxlnRemapOutputColumns
 	CDXLNode *pdxlnPrLNew = PdxlnProjList(pcrsOutput, pdrgpcrOrder);
 	pcrsOutput->Release();
 
-	// empty one time filter
-	CDXLNode *pdxlnOneTimeFilter = GPOS_NEW(m_pmp) CDXLNode(m_pmp, GPOS_NEW(m_pmp) CDXLScalarOneTimeFilter(m_pmp));
-
-	CDXLNode *pdxlnResult = CTranslatorExprToDXLUtils::PdxlnResult
-														(
-														m_pmp,
-														Pdxlprop(pexpr),
-														pdxlnPrLNew,
-														PdxlnFilter(NULL),
-														pdxlnOneTimeFilter,
-														pdxln
-														);
-
-	return pdxlnResult;
+	// create a result node on top of the current dxl node with a new project list
+	return PdxlnResult
+				(
+				Pdxlprop(pexpr),
+				pdxlnPrLNew,
+				pdxln
+				);
 }
 
 //---------------------------------------------------------------------------
@@ -2221,26 +2213,16 @@ CTranslatorExprToDXL::PdxlnComputeScalar
 		pdxlnPrL = PdxlnProjList(pexprProjList, pcrsOutput, pdrgpcr);
 	}
 
-	// construct an empty plan filter
-	CDXLNode *pdxlnFilter = PdxlnFilter(NULL);
-
-	// create an empty one-time filter
-	CDXLNode *pdxlnOneTimeFilter = GPOS_NEW(m_pmp) CDXLNode(m_pmp, GPOS_NEW(m_pmp) CDXLScalarOneTimeFilter(m_pmp));
-
-	// construct a Result node
-	CDXLPhysicalResult *pdxlopResult = GPOS_NEW(m_pmp) CDXLPhysicalResult(m_pmp);
-	CDXLPhysicalProperties *pdxlprop = Pdxlprop(pexprComputeScalar);	
-	CDXLNode *pdxlnResult = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlopResult);
-	pdxlnResult->SetProperties(pdxlprop);
-	
-	// add children
-	pdxlnResult->AddChild(pdxlnPrL);
-	pdxlnResult->AddChild(pdxlnFilter);
-	pdxlnResult->AddChild(pdxlnOneTimeFilter);
-	pdxlnResult->AddChild(pdxlnChild);
+	// construct a result node
+	CDXLNode *pdxlnResult = PdxlnResult
+					(
+					 Pdxlprop(pexprComputeScalar),
+					 pdxlnPrL,
+					 pdxlnChild
+					 );
 
 #ifdef GPOS_DEBUG
-	(void) pdxlopResult->AssertValid(pdxlnResult, false /* fValidateChildren */);
+	(void) CDXLPhysicalResult::PdxlopConvert(pdxlnResult->Pdxlop())->AssertValid(pdxlnResult, false /* fValidateChildren */);
 #endif
 	return pdxlnResult;
 }
@@ -7912,4 +7894,106 @@ CTranslatorExprToDXL::UlPosInArray
 	return ulSize;
 }
 
+// A wrapper around CTranslatorExprToDXLUtils::PdxlnResult to check if the project list imposes a motion hazard,
+// eventually leading to a deadlock. If yes, add a Materialize on the Result child to break the deadlock cycle
+CDXLNode *
+CTranslatorExprToDXL::PdxlnResult
+	(
+	CDXLPhysicalProperties *pdxlprop,
+	CDXLNode *pdxlnPrL,
+	CDXLNode *pdxlnChild
+	)
+{
+	CDXLNode *pdxlnMaterialize = NULL;
+	CDXLNode *pdxlnScalarOneTimeFilter = GPOS_NEW(m_pmp) CDXLNode(m_pmp, GPOS_NEW(m_pmp) CDXLScalarOneTimeFilter(m_pmp));
+
+	// If the result project list contains a subplan with a Broadcast motion,
+	// along with other projections from the result's child node with a motion as well,
+	// it may result in a deadlock. In such cases, add a materialize node.
+	if (FNeedsMaterializeUnderResult(pdxlnPrL, pdxlnChild))
+	{
+		pdxlnMaterialize = PdxlnMaterialize(pdxlnChild);
+	}
+
+	return CTranslatorExprToDXLUtils::PdxlnResult
+										(
+										 m_pmp,
+										 pdxlprop,
+										 pdxlnPrL,
+										 PdxlnFilter(NULL),
+										 pdxlnScalarOneTimeFilter,
+										 pdxlnMaterialize ? pdxlnMaterialize: pdxlnChild
+										 );
+}
+
+CDXLNode *
+CTranslatorExprToDXL::PdxlnMaterialize
+	(
+	CDXLNode *pdxln // node that needs to be materialized
+	)
+{
+	GPOS_ASSERT(NULL != pdxln);
+	GPOS_ASSERT(NULL != pdxln->Pdxlprop());
+
+	CDXLPhysicalMaterialize *pdxlopMaterialize = GPOS_NEW(m_pmp) CDXLPhysicalMaterialize(m_pmp, true /* fEager */);
+	CDXLNode *pdxlnMaterialize = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlopMaterialize);
+	CDXLPhysicalProperties *pdxlpropChild = CDXLPhysicalProperties::PdxlpropConvert(pdxln->Pdxlprop());
+	pdxlpropChild->AddRef();
+	pdxlnMaterialize->SetProperties(pdxlpropChild);
+
+	// construct an empty filter node
+	CDXLNode *pdxlnFilter = PdxlnFilter(NULL /* pdxlnCond */);
+
+	CDXLNode *pdxlnProjListChild = (*pdxln)[0];
+	CDXLNode *pdxlnProjList = CTranslatorExprToDXLUtils::PdxlnProjListFromChildProjList(m_pmp, m_pcf, m_phmcrdxln, pdxlnProjListChild);
+
+	// add children
+	pdxlnMaterialize->AddChild(pdxlnProjList);
+	pdxlnMaterialize->AddChild(pdxlnFilter);
+	pdxlnMaterialize->AddChild(pdxln);
+	return pdxlnMaterialize;
+}
+
+BOOL
+CTranslatorExprToDXL::FNeedsMaterializeUnderResult
+	(
+	CDXLNode *pdxlnProjList,
+	CDXLNode *pdxlnChild
+	)
+{
+	BOOL fMotionHazard = false;
+
+	// if there is no subplan with a broadcast motion in the project list,
+	// then don't bother checking for motion hazard
+	BOOL fPrjListContainsSubplan = CTranslatorExprToDXLUtils::FProjListContainsSubplanWithBroadCast(pdxlnProjList);
+
+	if (fPrjListContainsSubplan)
+	{
+		CBitSet *pbsScIdentColIds = GPOS_NEW(m_pmp) CBitSet(m_pmp);
+
+		// recurse into project elements to extract out columns ids of scalar idents
+		CTranslatorExprToDXLUtils::ExtractIdentColIds(pdxlnProjList, pbsScIdentColIds);
+
+		// result node will impose motion hazard only if it projects a Subplan
+		// and an Ident produced by a tree that contains a motion
+		if (pbsScIdentColIds->CElements() > 0)
+		{
+			// motions which can impose a hazard
+			gpdxl::Edxlopid rgeopid[] = {
+				EdxlopPhysicalMotionBroadcast,
+				EdxlopPhysicalMotionRedistribute,
+				EdxlopPhysicalMotionRandom,
+			};
+
+			fMotionHazard = CTranslatorExprToDXLUtils::FMotionHazard(
+																	 m_pmp,
+																	 pdxlnChild,
+																	 rgeopid,
+																	 GPOS_ARRAY_SIZE(rgeopid),
+																	 pbsScIdentColIds);
+		}
+		pbsScIdentColIds->Release();
+	}
+	return fMotionHazard;
+}
 // EOF
