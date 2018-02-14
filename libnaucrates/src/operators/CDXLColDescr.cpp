@@ -34,6 +34,7 @@ CDXLColDescr::CDXLColDescr
 	ULONG ulId,
 	INT iAttno,
 	IMDId *pmdidType,
+	INT iTypeModifier,
 	BOOL fDropped,
 	ULONG ulWidth
 	)
@@ -43,6 +44,7 @@ CDXLColDescr::CDXLColDescr
 	m_ulId(ulId),
 	m_iAttno(iAttno),
 	m_pmdidType(pmdidType),
+	m_iTypeModifier(iTypeModifier),
 	m_fDropped(fDropped),
 	m_ulWidth(ulWidth)
 {
@@ -119,6 +121,12 @@ CDXLColDescr::PmdidType() const
 	return m_pmdidType;
 }
 
+INT
+CDXLColDescr::ITypeModifier() const
+{
+	return m_iTypeModifier;
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CDXLColDescr::FDropped
@@ -170,7 +178,12 @@ CDXLColDescr::SerializeToDXL
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenAttno), m_iAttno);
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColName), m_pmdname->Pstr());
 	m_pmdidType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
-		
+
+	if (IDefaultTypeModifier != ITypeModifier())
+	{
+		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
+	}
+
 	if (m_fDropped)
 	{
 		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColDropped), m_fDropped);

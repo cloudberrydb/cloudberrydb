@@ -31,6 +31,7 @@ CMDColumn::CMDColumn
 	CMDName *pmdname,
 	INT iAttNo,
 	IMDId *pmdidType,
+	INT iTypeModifier,
 	BOOL fNullable,
 	BOOL fDropped,
 	CDXLNode *pdxnlDefaultValue,
@@ -40,6 +41,7 @@ CMDColumn::CMDColumn
 	m_pmdname(pmdname),
 	m_iAttNo(iAttNo),
 	m_pmdidType(pmdidType),
+	m_iTypeModifier(iTypeModifier),
 	m_fNullable(fNullable),
 	m_fDropped(fDropped),
 	m_ulLength(ulLength),
@@ -105,6 +107,12 @@ CMDColumn::PmdidType() const
 	return m_pmdidType;
 }
 
+INT
+CMDColumn::ITypeModifier() const
+{
+	return m_iTypeModifier;
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CMDColumn::FNullable
@@ -153,7 +161,13 @@ CMDColumn::Serialize
 	
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenName), m_pmdname->Pstr());
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenAttno), m_iAttNo);
+
 	m_pmdidType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenMdid));
+	if (IDefaultTypeModifier != ITypeModifier())
+	{
+		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
+	}
+
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColumnNullable), m_fNullable);
 	if (ULONG_MAX != m_ulLength)
 	{

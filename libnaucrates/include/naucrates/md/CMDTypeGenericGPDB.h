@@ -39,28 +39,7 @@ namespace gpmd
 	//---------------------------------------------------------------------------
 	class CMDTypeGenericGPDB : public IMDTypeGeneric
 	{		
-		// shorthand for functions that generate dxl datums of generic types
-		typedef CDXLDatum * (PfPdxldatum)
-								(
-								IMemoryPool *pmp,
-								IMDId *pmdid,
-								BOOL fByValue,
-								BOOL fNull,
-								BYTE *pba,
-								ULONG ulLength,
-								LINT lValue,
-								CDouble dValue
-								);
-
 		private:
-
-			// pair of DXL datum type and dxl datum generation function
-			struct SGenericDXLDatumMap
-			{
-				CMDIdGPDB *m_pmdid;
-				PfPdxldatum *m_pf;
-			};
-
 			// memory pool
 			IMemoryPool *m_pmp;
 			
@@ -308,6 +287,7 @@ namespace gpmd
 						(
 						IMemoryPool *pmp,
 						IMDId *pmdid,
+						INT iTypeModifier,
 						BOOL fByVal,
 						BOOL fNull,
 						BYTE *pba,
@@ -322,6 +302,7 @@ namespace gpmd
 						(
 						IMemoryPool *pmp,
 						IMDId *pmdid,
+						INT iTypeModifier,
 						BOOL fByValue,
 						BOOL fNull,
 						BYTE *pba,
@@ -336,6 +317,7 @@ namespace gpmd
 						(
 						IMemoryPool *pmp,
 						IMDId *pmdid,
+						INT iTypeModifier,
 						BOOL fByValue,
 						BOOL fNull,
 						BYTE *pba,

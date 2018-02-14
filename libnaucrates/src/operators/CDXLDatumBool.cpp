@@ -32,7 +32,7 @@ CDXLDatumBool::CDXLDatumBool
 	BOOL fVal
 	)
 	:
-	CDXLDatum(pmp, pmdidType, fNull, 1 /*ulLength*/),
+	CDXLDatum(pmp, pmdidType, IDefaultTypeModifier, fNull, 1 /*ulLength*/),
 	m_fVal(fVal)
 {
 }

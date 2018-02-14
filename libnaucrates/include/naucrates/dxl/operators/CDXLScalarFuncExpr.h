@@ -39,6 +39,8 @@ namespace gpdxl
 			// return type
 			IMDId *m_pmdidRetType;
 
+			const INT m_iRetTypeModifier;
+
 			// does the func return a set
 			BOOL m_fReturnSet;
 
@@ -52,6 +54,7 @@ namespace gpdxl
 				IMemoryPool *pmp,
 				IMDId *pmdidFunc,
 				IMDId *pmdidRetType,
+				INT iRetTypeModifier,
 				BOOL fretset
 				);
 
@@ -70,6 +73,8 @@ namespace gpdxl
 
 			// return type
 			IMDId *PmdidRetType() const;
+
+			INT ITypeModifier() const;
 
 			// does function return a set
 			BOOL FReturnSet() const;

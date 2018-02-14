@@ -271,7 +271,7 @@ CDXLTokens::Init
 			{EdxltokenConstTuple, GPOS_WSZ_LIT("ConstTuple")},
 			{EdxltokenDatum, GPOS_WSZ_LIT("Datum")},
 
-			{EdxltokenTypeMod, GPOS_WSZ_LIT("TypeModification")},
+			{EdxltokenTypeMod, GPOS_WSZ_LIT("TypeModifier")},
 			{EdxltokenCoercionForm, GPOS_WSZ_LIT("CoercionForm")},
 			{EdxltokenLocation, GPOS_WSZ_LIT("Location")},
 			{EdxltokenElementFunc, GPOS_WSZ_LIT("ElementFunc")},

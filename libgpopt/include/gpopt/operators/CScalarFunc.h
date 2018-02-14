@@ -43,6 +43,8 @@ namespace gpopt
 			// return type
 			IMDId *m_pmdidRetType;
 
+			const INT m_iRetTypeModifier;
+
 			// function name
 			const CWStringConst *m_pstrFunc;
 
@@ -68,13 +70,11 @@ namespace gpopt
 
 
 		public:
-		
-			// ctor
 			explicit
 			CScalarFunc(IMemoryPool *pmp);
 
 			// ctor
-			CScalarFunc(IMemoryPool *pmp, IMDId *pmdidFunc, IMDId *pmdidRetType, const CWStringConst *pstrFunc);
+			CScalarFunc(IMemoryPool *pmp, IMDId *pmdidFunc, IMDId *pmdidRetType, INT iRetTypeModifier, const CWStringConst *pstrFunc);
 
 			// dtor
 			virtual 
@@ -93,7 +93,6 @@ namespace gpopt
 			{
 				return "CScalarFunc";
 			}
-
 
 			// operator specific hash function
 			ULONG UlHash() const;
@@ -154,6 +153,8 @@ namespace gpopt
 
 			// func id
 			IMDId *PmdidFunc() const;
+
+			virtual INT ITypeModifier() const;
 
 			// the type of the scalar expression
 			virtual 

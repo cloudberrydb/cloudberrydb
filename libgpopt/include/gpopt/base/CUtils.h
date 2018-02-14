@@ -251,10 +251,6 @@ namespace gpopt
 				EAggfuncStage eaggfuncstage,
 				BOOL fSplit
 				);
-			
-			// generate a scalar function
-			static
-			CExpression *PexprScalarFunc(IMemoryPool *pmp, IMDId *pmdidFunc, IMDId *pmdidRetType, const CWStringConst *pstrFunc, DrgPexpr *pdrgpexprArgs);
 
 			// generate a count(*) expression
 			static

@@ -967,11 +967,11 @@ CDXLOperatorFactory::PdxlopCoerceToDomain
 
 	// parse type id and function id
 	IMDId *pmdidType = PmdidFromAttrs(pmm, attrs, EdxltokenTypeId, EdxltokenScalarCoerceToDomain);
-	INT iMod = IValueFromAttrs(pmm, attrs, EdxltokenTypeMod, EdxltokenScalarCoerceToDomain);
+	INT iTypeModifier = IValueFromAttrs(pmm, attrs, EdxltokenTypeMod, EdxltokenScalarCoerceToDomain, true, IDefaultTypeModifier);
 	ULONG ulCoercionForm = UlValueFromAttrs(pmm, attrs, EdxltokenCoercionForm, EdxltokenScalarCoerceToDomain);
 	INT iLoc = IValueFromAttrs(pmm, attrs, EdxltokenLocation, EdxltokenScalarCoerceToDomain);
 
-	return GPOS_NEW(pmp) CDXLScalarCoerceToDomain(pmp, pmdidType, iMod, (EdxlCoercionForm) ulCoercionForm, iLoc);
+	return GPOS_NEW(pmp) CDXLScalarCoerceToDomain(pmp, pmdidType, iTypeModifier, (EdxlCoercionForm) ulCoercionForm, iLoc);
 }
 
 //---------------------------------------------------------------------------
@@ -994,11 +994,11 @@ CDXLOperatorFactory::PdxlopCoerceViaIO
 
 	// parse type id and function id
 	IMDId *pmdidType = PmdidFromAttrs(pmm, attrs, EdxltokenTypeId, EdxltokenScalarCoerceViaIO);
-	INT iMod = IValueFromAttrs(pmm, attrs, EdxltokenTypeMod, EdxltokenScalarCoerceViaIO);
+	INT iTypeModifier = IValueFromAttrs(pmm, attrs, EdxltokenTypeMod, EdxltokenScalarCoerceViaIO, true, IDefaultTypeModifier);
 	ULONG ulCoercionForm = UlValueFromAttrs(pmm, attrs, EdxltokenCoercionForm, EdxltokenScalarCoerceViaIO);
 	INT iLoc = IValueFromAttrs(pmm, attrs, EdxltokenLocation, EdxltokenScalarCoerceViaIO);
 
-	return GPOS_NEW(pmp) CDXLScalarCoerceViaIO(pmp, pmdidType, iMod, (EdxlCoercionForm) ulCoercionForm, iLoc);
+	return GPOS_NEW(pmp) CDXLScalarCoerceViaIO(pmp, pmdidType, iTypeModifier, (EdxlCoercionForm) ulCoercionForm, iLoc);
 }
 
 //---------------------------------------------------------------------------
@@ -1020,12 +1020,12 @@ CDXLOperatorFactory::PdxlopArrayCoerceExpr
 
 	IMDId *pmdidElementFunc = PmdidFromAttrs(pmm, attrs, EdxltokenElementFunc, EdxltokenScalarArrayCoerceExpr);
 	IMDId *pmdidType = PmdidFromAttrs(pmm, attrs, EdxltokenTypeId, EdxltokenScalarArrayCoerceExpr);
-	INT iMod = IValueFromAttrs(pmm, attrs, EdxltokenTypeMod, EdxltokenScalarArrayCoerceExpr);
+	INT iTypeModifier = IValueFromAttrs(pmm, attrs, EdxltokenTypeMod, EdxltokenScalarArrayCoerceExpr, true, IDefaultTypeModifier);
 	BOOL fIsExplicit = FValueFromAttrs(pmm, attrs, EdxltokenIsExplicit, EdxltokenScalarArrayCoerceExpr);
 	ULONG ulCoercionForm = UlValueFromAttrs(pmm, attrs, EdxltokenCoercionForm, EdxltokenScalarArrayCoerceExpr);
 	INT iLoc = IValueFromAttrs(pmm, attrs, EdxltokenLocation, EdxltokenScalarArrayCoerceExpr);
 
-	return GPOS_NEW(pmp) CDXLScalarArrayCoerceExpr(pmp, pmdidElementFunc, pmdidType, iMod, fIsExplicit, (EdxlCoercionForm) ulCoercionForm, iLoc);
+	return GPOS_NEW(pmp) CDXLScalarArrayCoerceExpr(pmp, pmdidElementFunc, pmdidType, iTypeModifier, fIsExplicit, (EdxlCoercionForm) ulCoercionForm, iLoc);
 }
 
 //---------------------------------------------------------------------------
@@ -1122,7 +1122,17 @@ CDXLOperatorFactory::PdxlopFuncExpr
 							EdxltokenScalarFuncExpr
 							);
 
-	return GPOS_NEW(pmp) CDXLScalarFuncExpr(pmp, pmdidFunc, pmdidRetType, fRetset);
+	INT iTypeModifier = IValueFromAttrs
+						(
+						pmm,
+						attrs,
+						EdxltokenTypeMod,
+						EdxltokenScalarCast,
+						true,
+						IDefaultTypeModifier
+						);
+
+	return GPOS_NEW(pmp) CDXLScalarFuncExpr(pmp, pmdidFunc, pmdidRetType, iTypeModifier, fRetset);
 }
 
 //---------------------------------------------------------------------------
@@ -1764,6 +1774,17 @@ CDXLOperatorFactory::Pdxlcd
 							EdxltokenColDescr
 							);
 
+	// parse optional type modifier from attributes
+	INT iTypeModifier = IValueFromAttrs
+						(
+						pmm,
+						attrs,
+						EdxltokenTypeMod,
+						EdxltokenColDescr,
+						true,
+						IDefaultTypeModifier
+						);
+
 	BOOL fColDropped = false;
 	
 	const XMLCh *xmlszColDropped = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenColDropped));
@@ -1803,7 +1824,7 @@ CDXLOperatorFactory::Pdxlcd
 	
 	GPOS_DELETE(pstrColumnName);
 	
-	return GPOS_NEW(pmp) CDXLColDescr(pmp, pmdname, ulId, iAttno, pmdidType, fColDropped, ulColLen);
+	return GPOS_NEW(pmp) CDXLColDescr(pmp, pmdname, ulId, iAttno, pmdidType, iTypeModifier, fColDropped, ulColLen);
 }
 
 //---------------------------------------------------------------------------
@@ -1864,8 +1885,18 @@ CDXLOperatorFactory::Pdxlcr
 						edxltokenElement
 						);
 
+	// parse optional type modifier
+	INT iTypeModifier = IValueFromAttrs
+						(
+						pmm,
+						attrs,
+						EdxltokenTypeMod,
+						edxltokenElement,
+						true,
+						IDefaultTypeModifier
+						);
 	
-	return GPOS_NEW(pmp) CDXLColRef(pmp, pmdname, ulId, pmdidType);
+	return GPOS_NEW(pmp) CDXLColRef(pmp, pmdname, ulId, pmdidType, iTypeModifier);
 }
 
 //---------------------------------------------------------------------------
@@ -3141,9 +3172,19 @@ CDXLOperatorFactory::PdxldatumGeneric
 			// unable to decode value. probably not Base64 encoded.
 			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLInvalidAttributeValue, CDXLTokens::XmlstrToken(EdxltokenValue), CDXLTokens::PstrToken(edxltokenElement));
 		}
-	}	
+	}
 
-	return GPOS_NEW(pmp) CDXLDatumGeneric(pmp, pmdid, fConstByVal, fConstNull, pba, ulPbaLength);
+	INT iTypeModifier = IValueFromAttrs
+						(
+						pmm,
+						attrs,
+						EdxltokenTypeMod,
+						EdxltokenScalarCast,
+						true,
+						IDefaultTypeModifier
+						);
+
+	return GPOS_NEW(pmp) CDXLDatumGeneric(pmp, pmdid, iTypeModifier, fConstByVal, fConstNull, pba, ulPbaLength);
 }
 
 
@@ -3179,7 +3220,17 @@ CDXLOperatorFactory::PdxldatumStatsLintMappable
 		lValue = LValue(pmm, attrs, edxltokenElement, pba);
 	}
 
-	return GPOS_NEW(pmp) CDXLDatumStatsLintMappable(pmp, pmdid, fConstByVal, fConstNull, pba, ulPbaLength, lValue);
+	INT iTypeModifier = IValueFromAttrs
+						(
+						pmm,
+						attrs,
+						EdxltokenTypeMod,
+						EdxltokenScalarCast,
+						true,
+						-1 /* default value */
+						);
+
+	return GPOS_NEW(pmp) CDXLDatumStatsLintMappable(pmp, pmdid, iTypeModifier, fConstByVal, fConstNull, pba, ulPbaLength, lValue);
 }
 
 //---------------------------------------------------------------------------
@@ -3269,7 +3320,16 @@ CDXLOperatorFactory::PdxldatumStatsDoubleMappable
 
 		dValue = DValueFromAttrs(pmm, attrs, EdxltokenDoubleValue, edxltokenElement);
 	}
-	return GPOS_NEW(pmp) CDXLDatumStatsDoubleMappable(pmp, pmdid, fConstByVal, fConstNull, pba, ulPbaLength, dValue);
+	INT iTypeModifier = IValueFromAttrs
+						(
+						pmm,
+						attrs,
+						EdxltokenTypeMod,
+						EdxltokenScalarCast,
+						true,
+						-1 /* default value */
+						);
+	return GPOS_NEW(pmp) CDXLDatumStatsDoubleMappable(pmp, pmdid, iTypeModifier, fConstByVal, fConstNull, pba, ulPbaLength, dValue);
 }
 
 //---------------------------------------------------------------------------

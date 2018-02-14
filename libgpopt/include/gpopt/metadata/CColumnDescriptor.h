@@ -40,6 +40,9 @@ namespace gpopt
 			// type information
 			const IMDType *m_pmdtype;
 
+			// type modifier
+			const INT m_iTypeModifier;
+
 			// name of column -- owned
 			CName m_name;			
 			
@@ -59,6 +62,7 @@ namespace gpopt
 				(
 				IMemoryPool *pmp,
 				const IMDType *pmdtype,
+				INT iTypeModifier,
 				const CName &name,
 				INT iAttno,
 				BOOL fNullable,
@@ -79,6 +83,12 @@ namespace gpopt
 			const IMDType *Pmdtype() const
 			{
 				return m_pmdtype;
+			}
+
+			// type modifier
+			INT ITypeModifier() const
+			{
+				return m_iTypeModifier;
 			}
 			
 			// return attribute number

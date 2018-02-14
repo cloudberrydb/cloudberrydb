@@ -49,7 +49,7 @@ namespace gpopt
 				(
 				IMemoryPool *pmp,
 				IMDId *pmdidType,
-				INT iMod,
+				INT iTypeModifier,
 				ECoercionForm edxlcf,
 				INT iLoc
 				);

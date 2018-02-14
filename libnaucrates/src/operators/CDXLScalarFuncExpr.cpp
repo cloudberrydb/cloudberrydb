@@ -33,12 +33,14 @@ CDXLScalarFuncExpr::CDXLScalarFuncExpr
 	IMemoryPool *pmp,
 	IMDId *pmdidFunc,
 	IMDId *pmdidRetType,
+	INT iRetTypeModifier,
 	BOOL fRetSet
 	)
 	:
 	CDXLScalar(pmp),
 	m_pmdidFunc(pmdidFunc),
 	m_pmdidRetType(pmdidRetType),
+	m_iRetTypeModifier(iRetTypeModifier),
 	m_fReturnSet(fRetSet)
 {
 	GPOS_ASSERT(m_pmdidFunc->FValid());
@@ -116,6 +118,12 @@ CDXLScalarFuncExpr::PmdidRetType() const
 	return m_pmdidRetType;
 }
 
+INT
+CDXLScalarFuncExpr::ITypeModifier() const
+{
+	return m_iRetTypeModifier;
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CDXLScalarFuncExpr::FReturnSet
@@ -152,6 +160,11 @@ CDXLScalarFuncExpr::SerializeToDXL
 	m_pmdidFunc->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenFuncId));
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenFuncRetSet), m_fReturnSet);
 	m_pmdidRetType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
+
+	if (IDefaultTypeModifier != ITypeModifier())
+	{
+		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
+	}
 
 	pdxln->SerializeChildrenToDXL(pxmlser);
 

@@ -54,7 +54,7 @@ namespace gpdxl
 				(
 				IMemoryPool *pmp,
 				IMDId *pmdidType,
-				INT iMod,
+				INT iTypeModifier,
 				EdxlCoercionForm edxlcf,
 				INT iLoc
 				);

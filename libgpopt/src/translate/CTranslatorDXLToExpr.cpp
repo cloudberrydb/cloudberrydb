@@ -472,6 +472,7 @@ CTranslatorDXLToExpr::PexprLogicalTVF
 													(
 													m_pmp,
 													pmdtype,
+													pdxlcoldesc->ITypeModifier(),
 													CName(m_pmp, &strColName),
 													iAttNo,
 													true, // fNullable
@@ -734,7 +735,16 @@ CTranslatorDXLToExpr::PexprCastPrjElem
 		GPOS_NEW(m_pmp) CExpression
 		(
 			m_pmp,
-			GPOS_NEW(m_pmp) CScalarArrayCoerceExpr(m_pmp, parrayCoerceCast->PmdidCastFunc(), pmdidDest, parrayCoerceCast->IMod(), parrayCoerceCast->FIsExplicit(), (COperator::ECoercionForm) parrayCoerceCast->Ecf(), parrayCoerceCast->ILoc()),
+			GPOS_NEW(m_pmp) CScalarArrayCoerceExpr
+							(
+							m_pmp,
+							parrayCoerceCast->PmdidCastFunc(),
+							pmdidDest,
+							parrayCoerceCast->ITypeModifier(),
+							parrayCoerceCast->FIsExplicit(),
+							(COperator::ECoercionForm) parrayCoerceCast->Ecf(),
+							parrayCoerceCast->ILoc()
+							),
 			GPOS_NEW(m_pmp) CExpression(m_pmp, GPOS_NEW(m_pmp) CScalarIdent(m_pmp, pcrToCast))
 		);
 	}
@@ -809,12 +819,15 @@ CTranslatorDXLToExpr::BuildSetOpChild
 		// check if a cast function needs to be introduced
 		IMDId *pmdidSource = pcr->Pmdtype()->Pmdid();
 		IMDId *pmdidDest = pdxlcdOutput->PmdidType();
+
 		if (FCastingUnknownType(pmdidSource, pmdidDest))
 		{
 			GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp, GPOS_WSZ_LIT("Casting of columns of unknown data type"));
 		}
 
 		const IMDType *pmdtype = m_pmda->Pmdtype(pmdidDest);
+		INT iTypeModifier = pdxlcdOutput->ITypeModifier();
+
 		BOOL fEqualTypes = IMDId::FEqualMDId(pmdidSource, pmdidDest);
 		BOOL fFirstChild = (0 == ulChildIndex);
 		BOOL fUnionOrUnionAll = ((EdxlsetopUnionAll == pdxlop->Edxlsetoptype()) || (EdxlsetopUnion == pdxlop->Edxlsetoptype()));
@@ -824,7 +837,7 @@ CTranslatorDXLToExpr::BuildSetOpChild
 			// input column is an outer reference, add a project element for input column
 
 			// add the colref to the hash map between DXL ColId and colref as they can used above the setop
-			CColRef *pcrNew = PcrCreate(pcr, pmdtype, fFirstChild, pdxlcdOutput->UlID());
+			CColRef *pcrNew = PcrCreate(pcr, pmdtype, iTypeModifier, fFirstChild, pdxlcdOutput->UlID());
 			(*ppdrgpcrChild)->Append(pcrNew);
 
 			CExpression *pexprChildProjElem = NULL;
@@ -859,7 +872,7 @@ CTranslatorDXLToExpr::BuildSetOpChild
 		if (fUnionOrUnionAll || fFirstChild)
 		{
 			// add the colref to the hash map between DXL ColId and colref as they can used above the setop
-			CColRef *pcrNew = PcrCreate(pcr, pmdtype, fFirstChild, pdxlcdOutput->UlID());
+			CColRef *pcrNew = PcrCreate(pcr, pmdtype, iTypeModifier, fFirstChild, pdxlcdOutput->UlID());
 			(*ppdrgpcrChild)->Append(pcrNew);
 
 			// introduce cast expression for input column
@@ -1005,13 +1018,14 @@ CTranslatorDXLToExpr::PcrCreate
 	(
 	const CColRef *pcr,
 	const IMDType *pmdtype,
+	INT iTypeModifier,
 	BOOL fStoreMapping,
 	ULONG ulColId
 	)
 {
 	// generate a new column reference
 	CName name(pcr->Name().Pstr());
-	CColRef *pcrNew = m_pcf->PcrCreate(pmdtype, name);
+	CColRef *pcrNew = m_pcf->PcrCreate(pmdtype, iTypeModifier, name);
 
 	if (fStoreMapping)
 	{
@@ -1051,7 +1065,7 @@ CTranslatorDXLToExpr::Pdrgpcr
 
 		CName name(pdxlcd->Pmdname()->Pstr());
 		// generate a new column reference
-		CColRef *pcr = m_pcf->PcrCreate(pmdtype, name);
+		CColRef *pcr = m_pcf->PcrCreate(pmdtype, pdxlcd->ITypeModifier(), name);
 		pdrgpcrOutput->Append(pcr);
 	}
 
@@ -1706,7 +1720,7 @@ CTranslatorDXLToExpr::PexprLogicalSeqPr
 			CName name(pdxlopPrEl->PmdnameAlias()->Pstr());
 
 			// generate a new column reference
-			CColRef *pcr = m_pcf->PcrCreate(pmdtype, name);
+			CColRef *pcr = m_pcf->PcrCreate(pmdtype, popScalar->ITypeModifier(), name);
 			CScalarProjectElement *popScPrEl = GPOS_NEW(m_pmp) CScalarProjectElement(m_pmp, pcr);
 
 			// store colid -> colref mapping
@@ -2114,6 +2128,7 @@ CTranslatorDXLToExpr::Ptabdesc
 													(
 													m_pmp,
 													pmdtype,
+													pdxlcoldesc->ITypeModifier(),
 													CName(m_pmp, &strColName),
 													iAttNo,
 													fNullable,
@@ -2189,6 +2204,7 @@ CTranslatorDXLToExpr::RegisterMDRelationCtas
 				GPOS_NEW(m_pmp) CMDName(m_pmp, pdxlcd->Pmdname()->Pstr()),
 				pdxlcd->IAttno(),
 				pdxlcd->PmdidType(),
+				pdxlcd->ITypeModifier(),
 				true, // fNullable,
 				pdxlcd->FDropped(),
 				NULL, // pdxlnDefaultValue,
@@ -2315,6 +2331,7 @@ CTranslatorDXLToExpr::PtabdescFromCTAS
 													(
 													m_pmp,
 													pmdtype,
+													pdxlcoldesc->ITypeModifier(),
 													CName(m_pmp, &strColName),
 													iAttNo,
 													fNullable,
@@ -2405,6 +2422,7 @@ CTranslatorDXLToExpr::PexprLogicalConstTableGet
 														(
 														m_pmp,
 														pmdtype,
+														pdxlcd->ITypeModifier(),
 														name,
 														ulColIdx + 1, // iAttno
 														true, // FNullable
@@ -2895,7 +2913,7 @@ CTranslatorDXLToExpr::PexprScalarFunc
 					m_pmp,
 					parrayCoerceCast->PmdidCastFunc(),
 					pmdidRetType,
-					parrayCoerceCast->IMod(),
+					parrayCoerceCast->ITypeModifier(),
 					parrayCoerceCast->FIsExplicit(),
 					(COperator::ECoercionForm) parrayCoerceCast->Ecf(),
 					parrayCoerceCast->ILoc()
@@ -2919,6 +2937,7 @@ CTranslatorDXLToExpr::PexprScalarFunc
 				m_pmp,
 				pmdidFunc,
 				pmdidRetType,
+				pdxlopFuncExpr->ITypeModifier(),
 				GPOS_NEW(m_pmp) CWStringConst(m_pmp, (pmdfunc->Mdname().Pstr())->Wsz())
 				);
 	}
@@ -3199,7 +3218,7 @@ CTranslatorDXLToExpr::PexprArrayRef
 	IMDId *pmdidReturn = pdxlop->PmdidReturn();
 	pmdidReturn->AddRef();
 
-	CScalarArrayRef *popArrayref = GPOS_NEW(m_pmp) CScalarArrayRef(m_pmp, pmdidElem, pmdidArray, pmdidReturn);
+	CScalarArrayRef *popArrayref = GPOS_NEW(m_pmp) CScalarArrayRef(m_pmp, pmdidElem, pdxlop->ITypeModifier(), pmdidArray, pmdidReturn);
 
 	DrgPexpr *pdrgpexprChildren = PdrgpexprChildren(pdxln);
 
@@ -3586,7 +3605,7 @@ CTranslatorDXLToExpr::PexprScalarCast
 														m_pmp,
 														parrayCoerceCast->PmdidCastFunc(),
 														pmdidType,
-														parrayCoerceCast->IMod(),
+														parrayCoerceCast->ITypeModifier(),
 														parrayCoerceCast->FIsExplicit(),
 														(COperator::ECoercionForm) parrayCoerceCast->Ecf(),
 														parrayCoerceCast->ILoc()
@@ -3644,7 +3663,7 @@ CTranslatorDXLToExpr::PexprScalarCoerceToDomain
 						(
 						m_pmp,
 						pmdidType,
-						pdxlop->IMod(),
+						pdxlop->ITypeModifier(),
 						(COperator::ECoercionForm) edxlcf, // map Coercion Form directly based on position in enum
 						pdxlop->ILoc()
 						),
@@ -3688,7 +3707,7 @@ CTranslatorDXLToExpr::PexprScalarCoerceViaIO
 						(
 						m_pmp,
 						pmdidType,
-						pdxlop->IMod(),
+						pdxlop->ITypeModifier(),
 						(COperator::ECoercionForm) edxlcf, // map Coercion Form directly based on position in enum
 						pdxlop->ILoc()
 						),
@@ -3734,7 +3753,7 @@ CTranslatorDXLToExpr::PexprScalarArrayCoerceExpr
 						m_pmp,
 						pmdidElementFunc,
 						pmdidResultType,
-						pdxlop->IMod(),
+						pdxlop->ITypeModifier(),
 						pdxlop->FIsExplicit(),
 						(COperator::ECoercionForm) edxlcf, // map Coercion Form directly based on position in enum
 						pdxlop->ILoc()
@@ -3831,7 +3850,7 @@ CTranslatorDXLToExpr::PexprScalarProjElem
 	CName name(pdxlopPrEl->PmdnameAlias()->Pstr());
 	
 	// generate a new column reference
-	CColRef *pcr = m_pcf->PcrCreate(pmdtype, name);
+	CColRef *pcr = m_pcf->PcrCreate(pmdtype, popScalar->ITypeModifier(), name);
 	
 	// store colid -> colref mapping
 #ifdef GPOS_DEBUG

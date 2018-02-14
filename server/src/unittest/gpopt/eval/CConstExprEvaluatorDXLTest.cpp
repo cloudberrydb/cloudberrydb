@@ -210,7 +210,7 @@ GPOS_RESULT CConstExprEvaluatorDXLTest::EresUnittest_ScalarContainingVariables()
 
 	const IMDTypeInt4 *pmdtypeint4 = testsetup.Pmda()->PtMDType<IMDTypeInt4>();
 	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
-	CColRef *pcrComputed = pcf->PcrCreate(pmdtypeint4);
+	CColRef *pcrComputed = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier);
 
 	// create a comparison, where one of the children is a variable
 	CExpression *pexprFunCall = CUtils::PexprScalarEqCmp

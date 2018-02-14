@@ -57,7 +57,7 @@
         <dxl:SumAgg Mdid="0.0.0.0"/>
         <dxl:CountAgg Mdid="0.2147.1.0"/>
       </dxl:Type>
-      <dxl:ArrayCoerceCast Mdid="3.1007.1.0;1231.1.0" Name="numeric" CoercePathType="3" BinaryCoercible="false" SourceTypeId="0.1007.1.0" DestinationTypeId="0.1231.1.0" CastFuncId="0.1740.1.0" TypeModification="-1" IsExplicit="false" CoercionForm="2" Location="-1"/>
+      <dxl:ArrayCoerceCast Mdid="3.1007.1.0;1231.1.0" Name="numeric" CoercePathType="3" BinaryCoercible="false" SourceTypeId="0.1007.1.0" DestinationTypeId="0.1231.1.0" CastFuncId="0.1740.1.0" IsExplicit="false" CoercionForm="2" Location="-1"/>
       <dxl:Type Mdid="0.1007.1.0" Name="_int4" IsRedistributable="true" IsHashable="false" IsComposite="false" IsFixedLength="false" PassByValue="false">
         <dxl:EqualityOp Mdid="0.1070.1.0"/>
         <dxl:InequalityOp Mdid="0.1071.1.0"/>
@@ -156,7 +156,7 @@
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="4" Alias="array">
-              <dxl:ArrayCoerceExpr ElementFunc="0.1740.1.0" TypeMdid="0.1231.1.0" TypeModification="-1" IsExplicit="false" CoercionForm="2" Location="-1">
+              <dxl:ArrayCoerceExpr ElementFunc="0.1740.1.0" TypeMdid="0.1231.1.0" IsExplicit="false" CoercionForm="2" Location="-1">
                 <dxl:Ident ColId="3" ColName="array" TypeMdid="0.1007.1.0"/>
               </dxl:ArrayCoerceExpr>
             </dxl:ProjElem>

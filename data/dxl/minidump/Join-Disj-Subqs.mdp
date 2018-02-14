@@ -877,7 +877,7 @@ OR
               <dxl:LogicalProject>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="89" Alias="role_name">
-                    <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+                    <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
                       <dxl:FuncExpr FuncId="0.1401.1.0" FuncRetSet="false" TypeMdid="0.1043.1.0">
                         <dxl:Ident ColId="64" ColName="rolname" TypeMdid="0.19.1.0"/>
                       </dxl:FuncExpr>
@@ -928,7 +928,7 @@ OR
               <dxl:LogicalProject>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="115" Alias="role_name">
-                    <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+                    <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
                       <dxl:FuncExpr FuncId="0.1401.1.0" FuncRetSet="false" TypeMdid="0.1043.1.0">
                         <dxl:Ident ColId="90" ColName="rolname" TypeMdid="0.19.1.0"/>
                       </dxl:FuncExpr>
@@ -2273,7 +2273,7 @@ OR
                         </dxl:Properties>
                         <dxl:ProjList>
                           <dxl:ProjElem ColId="88" Alias="role_name">
-                            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+                            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
                               <dxl:FuncExpr FuncId="0.1401.1.0" FuncRetSet="false" TypeMdid="0.1043.1.0">
                                 <dxl:Ident ColId="63" ColName="rolname" TypeMdid="0.19.1.0"/>
                               </dxl:FuncExpr>
@@ -2594,7 +2594,7 @@ OR
                 </dxl:Properties>
                 <dxl:ProjList>
                   <dxl:ProjElem ColId="114" Alias="role_name">
-                    <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+                    <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
                       <dxl:FuncExpr FuncId="0.1401.1.0" FuncRetSet="false" TypeMdid="0.1043.1.0">
                         <dxl:Ident ColId="89" ColName="rolname" TypeMdid="0.19.1.0"/>
                       </dxl:FuncExpr>

@@ -131,7 +131,7 @@ CCastUtils::PexprCast
 		  pmp,
 		  parrayCoerceCast->PmdidCastFunc(),
 		  pmdidDest,
-		  parrayCoerceCast->IMod(),
+		  parrayCoerceCast->ITypeModifier(),
 		  parrayCoerceCast->FIsExplicit(),
 		  (COperator::ECoercionForm) parrayCoerceCast->Ecf(),
 		  parrayCoerceCast->ILoc()
@@ -324,7 +324,7 @@ CCastUtils::PexprCast
         pexprCast = GPOS_NEW(pmp) CExpression
         (
          pmp,
-         GPOS_NEW(pmp) CScalarArrayCoerceExpr(pmp, parrayCoerceCast->PmdidCastFunc(), pmdidDest, parrayCoerceCast->IMod(), parrayCoerceCast->FIsExplicit(), (COperator::ECoercionForm) parrayCoerceCast->Ecf(), parrayCoerceCast->ILoc()),
+         GPOS_NEW(pmp) CScalarArrayCoerceExpr(pmp, parrayCoerceCast->PmdidCastFunc(), pmdidDest, parrayCoerceCast->ITypeModifier(), parrayCoerceCast->FIsExplicit(), (COperator::ECoercionForm) parrayCoerceCast->Ecf(), parrayCoerceCast->ILoc()),
          pexpr
          );
     }

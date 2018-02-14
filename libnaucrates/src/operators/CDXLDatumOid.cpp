@@ -37,7 +37,7 @@ CDXLDatumOid::CDXLDatumOid
 	OID oidVal
 	)
 	:
-	CDXLDatum(pmp, pmdidType, fNull, 4 /*ulLength*/ ),
+	CDXLDatum(pmp, pmdidType, IDefaultTypeModifier, fNull, 4 /*ulLength*/ ),
 	m_oidVal(oidVal)
 {
 }

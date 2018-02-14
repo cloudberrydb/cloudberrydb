@@ -42,8 +42,8 @@ namespace gpdxl
 			// catalog MDId of the result type
 			IMDId *m_pmdidResultType;
 
-			// output type modifications
-			INT m_iMod;
+			// output type modifier
+			INT m_iTypeModifier;
 
 			// coercion form
 			EdxlCoercionForm m_edxlcf;
@@ -60,7 +60,7 @@ namespace gpdxl
 				(
 				IMemoryPool *pmp,
 				IMDId *pmdidType,
-				INT iMod,
+				INT iTypeModifier,
 				EdxlCoercionForm edxlcf,
 				INT iLoc
 				);
@@ -74,10 +74,10 @@ namespace gpdxl
 				return m_pmdidResultType;
 			}
 
-			// return type modification
-			INT IMod() const
+			// return type modifier
+			INT ITypeModifier() const
 			{
-				return m_iMod;
+				return m_iTypeModifier;
 			}
 
 			// return coercion form

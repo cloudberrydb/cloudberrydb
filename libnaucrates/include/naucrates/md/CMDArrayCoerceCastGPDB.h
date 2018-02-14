@@ -31,7 +31,7 @@ namespace gpmd
 			const CWStringDynamic *m_pstr;
 
 			// type mod
-			INT m_iMod;
+			INT m_iTypeModifier;
 
 			// is explicit
 			BOOL m_fIsExplicit;
@@ -57,7 +57,7 @@ namespace gpmd
 				BOOL fBinaryCoercible,
 				IMDId *pmdidCastFunc,
 				EmdCoercepathType emdPathType,
-				INT iMod,
+				INT iTypeModifier,
 				BOOL fIsExplicit,
 				EdxlCoercionForm edxlcf,
 				INT iLoc
@@ -74,9 +74,9 @@ namespace gpmd
 				return m_pstr;
 			}
 
-			// return type modification
+			// return type modifier
 			virtual
-			INT IMod() const;
+			INT ITypeModifier() const;
 
 			virtual
 			BOOL FIsExplicit() const;

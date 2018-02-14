@@ -37,6 +37,8 @@ namespace gpmd
 
 	// fwd decl
 	class CSystemId;
+
+	static const INT IDefaultTypeModifier = -1;
 	
 	//---------------------------------------------------------------------------
 	//	@class:

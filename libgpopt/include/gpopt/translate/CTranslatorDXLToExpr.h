@@ -184,6 +184,7 @@ namespace gpopt
 						(
 						const CColRef *pcr,
 						const IMDType *pmdtype,
+						INT iTypeModifier,
 						BOOL fStoreMapping,
 						ULONG ulColId
 						);

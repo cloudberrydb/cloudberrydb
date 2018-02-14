@@ -120,7 +120,10 @@ namespace gpopt
 			// the type of the scalar expression
 			virtual 
 			IMDId *PmdidType() const;
-			
+
+			virtual
+			INT ITypeModifier() const;
+
 			// boolean expression evaluation
 			virtual
 			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;

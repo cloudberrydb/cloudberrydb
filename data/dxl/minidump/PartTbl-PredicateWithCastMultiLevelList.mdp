@@ -293,7 +293,7 @@ EXPLAIN SELECT * FROM pt_complex WHERE  k::numeric = 2::numeric AND j::numeric =
               <dxl:Or>
                 <dxl:ArrayComp OperatorName="=" OperatorMdid="0.1752.1.0" OperatorType="Any">
                   <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAACAA==" DoubleValue="2.000000"/>
-                  <dxl:ArrayCoerceExpr ElementFunc="0.1740.1.0" TypeMdid="0.1231.1.0" TypeModification="-1" IsExplicit="true" CoercionForm="3" Location="-1">
+                  <dxl:ArrayCoerceExpr ElementFunc="0.1740.1.0" TypeMdid="0.1231.1.0" IsExplicit="true" CoercionForm="3" Location="-1">
                     <dxl:PartListValues Level="0" ResultType="0.1007.1.0" ElementType="0.23.1.0"/>
                   </dxl:ArrayCoerceExpr>
                 </dxl:ArrayComp>
@@ -302,7 +302,7 @@ EXPLAIN SELECT * FROM pt_complex WHERE  k::numeric = 2::numeric AND j::numeric =
               <dxl:Or>
                 <dxl:ArrayComp OperatorName="=" OperatorMdid="0.1752.1.0" OperatorType="Any">
                   <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAABAA==" DoubleValue="1.000000"/>
-                  <dxl:ArrayCoerceExpr ElementFunc="0.1740.1.0" TypeMdid="0.1231.1.0" TypeModification="-1" IsExplicit="true" CoercionForm="3" Location="-1">
+                  <dxl:ArrayCoerceExpr ElementFunc="0.1740.1.0" TypeMdid="0.1231.1.0" IsExplicit="true" CoercionForm="3" Location="-1">
                     <dxl:PartListValues Level="1" ResultType="0.1007.1.0" ElementType="0.23.1.0"/>
                   </dxl:ArrayCoerceExpr>
                 </dxl:ArrayComp>

@@ -44,7 +44,10 @@ namespace gpmd
 			// id of attribute type
 			virtual 
 			IMDId *PmdidType() const = 0;
-			
+
+			virtual
+			INT ITypeModifier() const = 0;
+
 			// are nulls allowed for this column
 			virtual 
 			BOOL FNullable() const = 0;

@@ -49,6 +49,8 @@ namespace gpmd
 			// column type
 			IMDId *m_pmdidType;
 
+			INT m_iTypeModifier;
+
 			// is NULL an allowed value for the attribute
 			BOOL m_fNullable;
 
@@ -71,6 +73,7 @@ namespace gpmd
 				CMDName *pmdname,
 				INT iAttNo,
 				IMDId *pmdidType,
+				INT iTypeModifier,
 				BOOL fNullable,
 				BOOL fDropped,
 				gpdxl::CDXLNode *pdxnlDefaultValue,
@@ -88,7 +91,10 @@ namespace gpmd
 			// column type
 			virtual 
 			IMDId *PmdidType() const;
-			
+
+			virtual
+			INT ITypeModifier() const;
+
 			// attribute number
 			virtual
 			INT IAttno() const;

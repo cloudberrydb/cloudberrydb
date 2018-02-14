@@ -28,12 +28,14 @@ CScalarArrayRef::CScalarArrayRef
 	(
 	IMemoryPool *pmp,
 	IMDId *pmdidElem,
+	INT iTypeModifier,
 	IMDId *pmdidArray,
 	IMDId *pmdidReturn
 	)
 	:
 	CScalar(pmp),
 	m_pmdidElem(pmdidElem),
+	m_iTypeModifier(iTypeModifier),
 	m_pmdidArray(pmdidArray),
 	m_pmdidType(pmdidReturn)
 {
@@ -56,6 +58,13 @@ CScalarArrayRef::~CScalarArrayRef()
 	m_pmdidElem->Release();
 	m_pmdidArray->Release();
 	m_pmdidType->Release();
+}
+
+
+INT
+CScalarArrayRef::ITypeModifier() const
+{
+	return m_iTypeModifier;
 }
 
 //---------------------------------------------------------------------------

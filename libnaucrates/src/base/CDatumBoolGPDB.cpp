@@ -159,7 +159,6 @@ CDatumBoolGPDB::Pmdid() const
 	return m_pmdid;
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CDatumBoolGPDB::UlHash

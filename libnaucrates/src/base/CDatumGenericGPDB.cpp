@@ -42,6 +42,7 @@ CDatumGenericGPDB::CDatumGenericGPDB
 	(
 	IMemoryPool *pmp,
 	IMDId *pmdid,
+	INT iTypeModifier,
 	const void *pv,
 	ULONG ulSize,
 	BOOL fNull,
@@ -54,6 +55,7 @@ CDatumGenericGPDB::CDatumGenericGPDB
 	m_pbVal(NULL),
 	m_fNull(fNull),
 	m_pmdid(pmdid),
+	m_iTypeModifier(iTypeModifier),
 	m_lValue(lValue),
 	m_dValue(dValue)
 {
@@ -128,6 +130,12 @@ CDatumGenericGPDB::Pmdid() const
 	return m_pmdid;
 }
 
+
+INT
+CDatumGenericGPDB::ITypeModifier() const
+{
+	return m_iTypeModifier;
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -260,7 +268,7 @@ CDatumGenericGPDB::PdatumCopy
 	m_pmdid->AddRef();
 	
 	// CDatumGenericGPDB makes a copy of the buffer
-	return GPOS_NEW(pmp) CDatumGenericGPDB(pmp, m_pmdid, m_pbVal, m_ulSize, m_fNull, m_lValue, m_dValue);
+	return GPOS_NEW(pmp) CDatumGenericGPDB(pmp, m_pmdid, m_iTypeModifier, m_pbVal, m_ulSize, m_fNull, m_lValue, m_dValue);
 }
 
 
@@ -482,6 +490,7 @@ CDatumGenericGPDB::PdatumPadded
 													(
 													pmp,
 													this->Pmdid(),
+													this->ITypeModifier(),
 													pba,
 													ulAdjustedColWidth,
 													this->FNull(),

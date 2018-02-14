@@ -52,7 +52,7 @@ namespace gpdxl
 				IMemoryPool *pmp,
 				IMDId *pmdidElementFunc,
 				IMDId *pmdidResultType,
-				INT iMod,
+				INT iTypeModifier,
 				BOOL fIsExplicit,
 				EdxlCoercionForm edxlcf,
 				INT iLoc

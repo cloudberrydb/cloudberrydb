@@ -29,13 +29,15 @@ CDXLColRef::CDXLColRef
 	IMemoryPool *pmp,
 	CMDName *pmdname,
 	ULONG ulId,
-	IMDId *pmdidType
+	IMDId *pmdidType,
+	INT iTypeModifier
 	)
 	:
 	m_pmp(pmp),
 	m_pmdname(pmdname),
 	m_ulId(ulId),
-	m_pmdidType(pmdidType)
+	m_pmdidType(pmdidType),
+	m_iTypeModifer(iTypeModifier)
 {
 	GPOS_ASSERT(m_pmdidType->FValid());
 }
@@ -80,6 +82,12 @@ IMDId *
 CDXLColRef::PmdidType() const
 {
 	return m_pmdidType;
+}
+
+INT
+CDXLColRef::ITypeModifier() const
+{
+	return m_iTypeModifer;
 }
 
 //---------------------------------------------------------------------------

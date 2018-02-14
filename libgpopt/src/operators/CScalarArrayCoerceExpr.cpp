@@ -35,13 +35,13 @@ CScalarArrayCoerceExpr::CScalarArrayCoerceExpr
 	IMemoryPool *pmp,
 	IMDId *pmdidElementFunc,
 	IMDId *pmdidResultType,
-	INT iMod,
+	INT iTypeModifier,
 	BOOL fIsExplicit,
 	ECoercionForm ecf,
 	INT iLoc
 	)
 	:
-	CScalarCoerceBase(pmp, pmdidResultType, iMod, ecf, iLoc),
+	CScalarCoerceBase(pmp, pmdidResultType, iTypeModifier, ecf, iLoc),
 	m_pmdidElementFunc(pmdidElementFunc),
 	m_fIsExplicit(fIsExplicit)
 {
@@ -146,7 +146,7 @@ CScalarArrayCoerceExpr::FMatch
 
 	return popCoerce->PmdidElementFunc()->FEquals(m_pmdidElementFunc) &&
 			popCoerce->PmdidType()->FEquals(PmdidType()) &&
-			popCoerce->IMod() == IMod() &&
+			popCoerce->ITypeModifier() == ITypeModifier() &&
 			popCoerce->FIsExplicit() == m_fIsExplicit &&
 			popCoerce->Ecf() == Ecf() &&
 			popCoerce->ILoc() == ILoc();

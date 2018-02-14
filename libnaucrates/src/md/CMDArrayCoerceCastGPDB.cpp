@@ -31,14 +31,14 @@ CMDArrayCoerceCastGPDB::CMDArrayCoerceCastGPDB
 	BOOL fBinaryCoercible,
 	IMDId *pmdidCastFunc,
 	EmdCoercepathType emdPathType,
-	INT iMod,
+	INT iTypeModifier,
 	BOOL fIsExplicit,
 	EdxlCoercionForm edxlcf,
 	INT iLoc
 	)
 	:
 	CMDCastGPDB(pmp, pmdid, pmdname, pmdidSrc, pmdidDest, fBinaryCoercible, pmdidCastFunc, emdPathType),
-	m_iMod(iMod),
+	m_iTypeModifier(iTypeModifier),
 	m_fIsExplicit(fIsExplicit),
 	m_edxlcf(edxlcf),
 	m_iLoc(iLoc)
@@ -52,11 +52,11 @@ CMDArrayCoerceCastGPDB::~CMDArrayCoerceCastGPDB()
 	GPOS_DELETE(m_pstr);
 }
 
-// return type modification
+// return type modifier
 INT
-CMDArrayCoerceCastGPDB::IMod() const
+CMDArrayCoerceCastGPDB::ITypeModifier() const
 {
-	return m_iMod;
+	return m_iTypeModifier;
 }
 
 // return is explicit cast
@@ -102,7 +102,11 @@ CMDArrayCoerceCastGPDB::Serialize
 	m_pmdidDest->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenGPDBCastDestType));
 	m_pmdidCastFunc->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenGPDBCastFuncId));
 
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), m_iMod);
+	if (IDefaultTypeModifier != ITypeModifier())
+	{
+		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
+	}
+
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIsExplicit), m_fIsExplicit);
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenCoercionForm), (ULONG) m_edxlcf);
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenLocation), m_iLoc);
@@ -124,7 +128,7 @@ CMDArrayCoerceCastGPDB::DebugPrint
 {
 	CMDCastGPDB::DebugPrint(os);
 	os << ", Result Type Mod: ";
-	os << m_iMod;
+	os << m_iTypeModifier;
 	os << ", isExplicit: ";
 	os << m_fIsExplicit;
 	os << ", coercion form: ";

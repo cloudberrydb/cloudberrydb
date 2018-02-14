@@ -54,7 +54,10 @@ namespace gpopt
 			
 			// type information
 			const IMDType *m_pmdtype;
-			
+
+			// type modifier
+			const INT m_iTypeModifier;
+
 			// name: SQL alias or artificial name
 			const CName *m_pname;
 
@@ -72,7 +75,7 @@ namespace gpopt
 			};
 		
 			// ctor
-			CColRef(const IMDType *pmdtype, ULONG ulId, const CName *pname);
+			CColRef(const IMDType *pmdtype, const INT iTypeModifier, ULONG ulId, const CName *pname);
 
 			// dtor
 			virtual
@@ -82,6 +85,12 @@ namespace gpopt
 			const IMDType *Pmdtype() const
 			{
 				return m_pmdtype;
+			}
+
+			// type modifier
+			INT ITypeModifier() const
+			{
+				return m_iTypeModifier;
 			}
 			
 			// name

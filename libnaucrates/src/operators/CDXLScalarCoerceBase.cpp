@@ -38,14 +38,14 @@ CDXLScalarCoerceBase::CDXLScalarCoerceBase
 	(
 	IMemoryPool *pmp,
 	IMDId *pmdidType,
-	INT iMod,
+	INT iTypeModifier,
 	EdxlCoercionForm edxlcf,
 	INT iLoc
 	)
 	:
 	CDXLScalar(pmp),
 	m_pmdidResultType(pmdidType),
-	m_iMod(iMod),
+	m_iTypeModifier(iTypeModifier),
 	m_edxlcf(edxlcf),
 	m_iLoc(iLoc)
 {
@@ -89,7 +89,10 @@ CDXLScalarCoerceBase::SerializeToDXL
 
 	m_pmdidResultType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
 
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), m_iMod);
+	if (IDefaultTypeModifier != ITypeModifier())
+	{
+		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
+	}
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenCoercionForm), (ULONG) m_edxlcf);
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenLocation), m_iLoc);
 

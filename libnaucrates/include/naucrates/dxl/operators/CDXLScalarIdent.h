@@ -60,6 +60,8 @@ namespace gpdxl
 
 			IMDId *PmdidType() const;
 
+			INT ITypeModifier() const;
+
 			// serialize operator in DXL format
 			virtual
 			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;

@@ -237,6 +237,12 @@ CScalarConst::Eber
 	return EberUnknown;
 }
 
+INT
+CScalarConst::ITypeModifier() const
+{
+	return m_pdatum->ITypeModifier();
+}
+
 
 // EOF
 

@@ -260,7 +260,7 @@ explain select * from L where b::numeric < 3::numeric;
               <dxl:Or>
                 <dxl:ArrayComp OperatorName="&gt;" OperatorMdid="0.1756.1.0" OperatorType="Any">
                   <dxl:ConstValue TypeMdid="0.1700.1.0" IsNull="false" IsByValue="false" Value="AAAACgAAAAADAA==" DoubleValue="3.000000"/>
-                  <dxl:ArrayCoerceExpr ElementFunc="0.1740.1.0" TypeMdid="0.1231.1.0" TypeModification="-1" IsExplicit="true" CoercionForm="3" Location="-1">
+                  <dxl:ArrayCoerceExpr ElementFunc="0.1740.1.0" TypeMdid="0.1231.1.0" IsExplicit="true" CoercionForm="3" Location="-1">
                     <dxl:PartListValues Level="0" ResultType="0.1007.1.0" ElementType="0.23.1.0"/>
                   </dxl:ArrayCoerceExpr>
                 </dxl:ArrayComp>

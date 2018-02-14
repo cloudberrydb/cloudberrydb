@@ -40,6 +40,9 @@ namespace gpopt
 			// element type id
 			IMDId *m_pmdidElem;
 
+			// element type modifier
+			INT m_iTypeModifier;
+
 			// array type id
 			IMDId *m_pmdidArray;
 
@@ -52,7 +55,7 @@ namespace gpopt
 		public:
 
 			// ctor
-			CScalarArrayRef(IMemoryPool *pmp, IMDId *pmdidElem, IMDId *pmdidArray, IMDId *pmdidReturn);
+			CScalarArrayRef(IMemoryPool *pmp, IMDId *pmdidElem, INT iTypeModifier, IMDId *pmdidArray, IMDId *pmdidReturn);
 
 			// dtor
 			virtual
@@ -77,6 +80,9 @@ namespace gpopt
 			{
 				return m_pmdidElem;
 			}
+
+			// element type modifier
+			virtual INT ITypeModifier() const;
 
 			// array type id
 			IMDId *PmdidArray() const

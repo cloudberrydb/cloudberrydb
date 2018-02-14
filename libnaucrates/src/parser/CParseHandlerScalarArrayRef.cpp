@@ -71,8 +71,9 @@ CParseHandlerScalarArrayRef::StartElement
 		IMDId *pmdidElem = CDXLOperatorFactory::PmdidFromAttrs(m_pphm->Pmm(), attrs, EdxltokenArrayElementType, EdxltokenScalarArrayRef);
 		IMDId *pmdidArray = CDXLOperatorFactory::PmdidFromAttrs(m_pphm->Pmm(), attrs, EdxltokenArrayType, EdxltokenScalarArrayRef);
 		IMDId *pmdidReturn = CDXLOperatorFactory::PmdidFromAttrs(m_pphm->Pmm(), attrs, EdxltokenTypeId, EdxltokenScalarArrayRef);
+		INT iTypeModifier = CDXLOperatorFactory::IValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenTypeMod, EdxltokenScalarArrayRef, true, IDefaultTypeModifier);
 
-		m_pdxln = GPOS_NEW(m_pmp) CDXLNode (m_pmp, GPOS_NEW(m_pmp) CDXLScalarArrayRef(m_pmp, pmdidElem, pmdidArray, pmdidReturn));
+		m_pdxln = GPOS_NEW(m_pmp) CDXLNode (m_pmp, GPOS_NEW(m_pmp) CDXLScalarArrayRef(m_pmp, pmdidElem, iTypeModifier, pmdidArray, pmdidReturn));
 	}
 	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarArrayRefIndexList), xmlszLocalname))
 	{

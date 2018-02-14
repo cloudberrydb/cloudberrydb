@@ -2942,7 +2942,7 @@ CTranslatorExprToDXL::PdxlnProjectBoolConst
 
 	CDXLDatumBool *pdxldatum = GPOS_NEW(m_pmp) CDXLDatumBool(m_pmp, pmdid, false /* fNull */,  fVal);
 	CDXLScalarConstValue *pdxlopConstValue = GPOS_NEW(m_pmp) CDXLScalarConstValue(m_pmp, pdxldatum);
-	CColRef *pcr = m_pcf->PcrCreate(pmdtypebool);
+	CColRef *pcr = m_pcf->PcrCreate(pmdtypebool, IDefaultTypeModifier);
 	CDXLNode *pdxlnPrEl = PdxlnProjElem(pcr, GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlopConstValue));
 
 	CDXLScalarProjList *pdxlopPrL = GPOS_NEW(m_pmp) CDXLScalarProjList(m_pmp);
@@ -3236,7 +3236,7 @@ CTranslatorExprToDXL::PdxlnCorrelatedNLJoin
 		CMDName *pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, pcr->Name().Pstr());
 		IMDId *pmdid = pcr->Pmdtype()->Pmdid();
 		pmdid->AddRef();
-		CDXLColRef *pdxlcr = GPOS_NEW(m_pmp) CDXLColRef(m_pmp, pmdname, pcr->UlId(), pmdid);
+		CDXLColRef *pdxlcr = GPOS_NEW(m_pmp) CDXLColRef(m_pmp, pmdname, pcr->UlId(), pmdid, pcr->ITypeModifier());
 		pdrgdxlcr->Append(pdxlcr);
 	}
 
@@ -3367,7 +3367,7 @@ CTranslatorExprToDXL::PdxlnBooleanScalarWithSubPlan
 	CDXLDatumBool *pdxldatum = GPOS_NEW(m_pmp) CDXLDatumBool(m_pmp, pmdid, false /* fNull */, true /* fVal */);
 	CDXLScalarConstValue *pdxlopConstValue = GPOS_NEW(m_pmp) CDXLScalarConstValue(m_pmp, pdxldatum);
 
-	CColRef *pcr = m_pcf->PcrCreate(pmdtypebool);
+	CColRef *pcr = m_pcf->PcrCreate(pmdtypebool, IDefaultTypeModifier);
 
 	CDXLNode *pdxlnPrEl = PdxlnProjElem(pcr, GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlopConstValue));
 
@@ -5414,7 +5414,7 @@ CTranslatorExprToDXL::PdxlnCTAS
 		const CColumnDescriptor *pcd = ptabdesc->Pcoldesc(ul);
 
 		CMDName *pmdnameCol = GPOS_NEW(m_pmp) CMDName(m_pmp, pcd->Name().Pstr());
-		CColRef *pcr = m_pcf->PcrCreate(pcd->Pmdtype(), pcd->Name());
+		CColRef *pcr = m_pcf->PcrCreate(pcd->Pmdtype(), pcd->ITypeModifier(), pcd->Name());
 
 		// use the col ref id for the corresponding output output column as 
 		// colid for the dxl column
@@ -5428,6 +5428,7 @@ CTranslatorExprToDXL::PdxlnCTAS
 											pcr->UlId(),
 											pcd->IAttno(),
 											pmdidColType,
+											pcr->ITypeModifier(),
 											false /* fdropped */,
 											pcd->UlWidth()
 											);
@@ -6041,7 +6042,7 @@ CTranslatorExprToDXL::PdxlnScFuncExpr
 	CDXLNode *pdxlnFuncExpr = GPOS_NEW(m_pmp) CDXLNode
 											(
 											m_pmp,
-											GPOS_NEW(m_pmp) CDXLScalarFuncExpr(m_pmp, pmdidFunc, pmdidRetType, pmdfunc->FReturnsSet())
+											GPOS_NEW(m_pmp) CDXLScalarFuncExpr(m_pmp, pmdidFunc, pmdidRetType, popScFunc->ITypeModifier(), pmdfunc->FReturnsSet())
 											);
 
 	// translate children
@@ -6535,9 +6536,9 @@ CTranslatorExprToDXL::PdxlnScCoerceToDomain
 	)
 {
 	GPOS_ASSERT(NULL != pexprCoerce);
-	CScalarCoerceToDomain *popScCerce = CScalarCoerceToDomain::PopConvert(pexprCoerce->Pop());
+	CScalarCoerceToDomain *popScCoerce = CScalarCoerceToDomain::PopConvert(pexprCoerce->Pop());
 
-	IMDId *pmdid = popScCerce->PmdidType();
+	IMDId *pmdid = popScCoerce->PmdidType();
 	pmdid->AddRef();
 
 
@@ -6549,9 +6550,9 @@ CTranslatorExprToDXL::PdxlnScCoerceToDomain
 					(
 					m_pmp,
 					pmdid,
-					popScCerce->IMod(),
-					(EdxlCoercionForm) popScCerce->Ecf(), // map Coercion Form directly based on position in enum
-					popScCerce->ILoc()
+					popScCoerce->ITypeModifier(),
+					(EdxlCoercionForm) popScCoerce->Ecf(), // map Coercion Form directly based on position in enum
+					popScCoerce->ILoc()
 					)
 			);
 
@@ -6594,7 +6595,7 @@ CTranslatorExprToDXL::PdxlnScCoerceViaIO
 					(
 					m_pmp,
 					pmdid,
-					popScCerce->IMod(),
+					popScCerce->ITypeModifier(),
 					(EdxlCoercionForm) popScCerce->Ecf(), // map Coercion Form directly based on position in enum
 					popScCerce->ILoc()
 					)
@@ -6640,7 +6641,7 @@ CTranslatorExprToDXL::PdxlnScArrayCoerceExpr
 					m_pmp,
 					pmdidElemFunc,
 					pmdid,
-					popScArrayCoerceExpr->IMod(),
+					popScArrayCoerceExpr->ITypeModifier(),
 					popScArrayCoerceExpr->FIsExplicit(),
 					(EdxlCoercionForm) popScArrayCoerceExpr->Ecf(), // map Coercion Form directly based on position in enum
 					popScArrayCoerceExpr->ILoc()
@@ -6923,6 +6924,7 @@ CTranslatorExprToDXL::PdxlnArrayRef
 									(
 									m_pmp,
 									pmdidElem,
+									pop->ITypeModifier(),
 									pmdidArray,
 									pmdidReturn
 									)
@@ -7210,7 +7212,7 @@ CTranslatorExprToDXL::Pdxltabdesc
 		}
 		else
 		{
-			pcr = m_pcf->PcrCreate(pcd->Pmdtype(), pcd->Name());
+			pcr = m_pcf->PcrCreate(pcd->Pmdtype(), pcd->ITypeModifier(), pcd->Name());
 		}
 
 		// use the col ref id for the corresponding output output column as 
@@ -7225,6 +7227,7 @@ CTranslatorExprToDXL::Pdxltabdesc
 											pcr->UlId(),
 											pcd->IAttno(),
 											pmdidColType,
+											pcr->ITypeModifier(),
 											false /* fdropped */,
 											pcd->UlWidth()
 											);

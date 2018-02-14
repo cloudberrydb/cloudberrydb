@@ -863,13 +863,15 @@ CSubqueryHandler::FCreateOuterApplyForExistOrQuant
 		CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
 
 		CExpression *pexprCount = CUtils::PexprCountStar(pmp);
-		const IMDType *pmdtypeCount = pmda->Pmdtype(CScalarAggFunc::PopConvert(pexprCount->Pop())->PmdidType());
-		pcrCount = pcf->PcrCreate(pmdtypeCount);
+		CScalarAggFunc *popCount = CScalarAggFunc::PopConvert(pexprCount->Pop());
+		const IMDType *pmdtypeCount = pmda->Pmdtype(popCount->PmdidType());
+		pcrCount = pcf->PcrCreate(pmdtypeCount, popCount->ITypeModifier());
 		CExpression *pexprPrjElemCount = CUtils::PexprScalarProjectElement(pmp, pcrCount, pexprCount);
 
 		CExpression *pexprSum = CUtils::PexprSum(pmp, pcr);
-		const IMDType *pmdtypeSum = pmda->Pmdtype(CScalarAggFunc::PopConvert(pexprSum->Pop())->PmdidType());
-		pcrSum = pcf->PcrCreate(pmdtypeSum);
+		CScalarAggFunc *popSum = CScalarAggFunc::PopConvert(pexprSum->Pop());
+		const IMDType *pmdtypeSum = pmda->Pmdtype(popSum->PmdidType());
+		pcrSum = pcf->PcrCreate(pmdtypeSum, popSum->ITypeModifier());
 		CExpression *pexprPrjElemSum = CUtils::PexprScalarProjectElement(pmp, pcrSum, pexprSum);
 		pexprPrjList = GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarProjectList(pmp), pexprPrjElemCount, pexprPrjElemSum);
 	}

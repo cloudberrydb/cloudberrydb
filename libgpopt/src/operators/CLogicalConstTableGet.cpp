@@ -319,6 +319,7 @@ CLogicalConstTableGet::PdrgpcoldescMapping
 													(
 													pmp,
 													pcr->Pmdtype(),
+													pcr->ITypeModifier(),
 													pcr->Name(),
 													ul + 1, //iAttno
 													true, // FNullable

@@ -160,7 +160,6 @@ CDatumInt2GPDB::Pmdid() const
 	return m_pmdid;
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CDatumInt2GPDB::UlHash

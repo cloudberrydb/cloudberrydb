@@ -1659,26 +1659,26 @@ SELECT * FROM information_schema.tables;
       <dxl:LogicalProject>
         <dxl:ProjList>
           <dxl:ProjElem ColId="67" Alias="table_catalog">
-            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
               <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAADXdhcmVob3VzZQ==" LintValue="921740140"/>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="68" Alias="table_schema">
-            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
               <dxl:FuncExpr FuncId="0.1401.1.0" FuncRetSet="false" TypeMdid="0.1043.1.0">
                 <dxl:Ident ColId="56" ColName="nspname" TypeMdid="0.19.1.0"/>
               </dxl:FuncExpr>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="69" Alias="table_name">
-            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
               <dxl:FuncExpr FuncId="0.1401.1.0" FuncRetSet="false" TypeMdid="0.1043.1.0">
                 <dxl:Ident ColId="1" ColName="relname" TypeMdid="0.19.1.0"/>
               </dxl:FuncExpr>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="70" Alias="table_type">
-            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" CoercionForm="1" Location="0">
               <dxl:If TypeMdid="0.25.1.0">
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
                   <dxl:Ident ColId="60" ColName="oid" TypeMdid="0.26.1.0"/>
@@ -1704,32 +1704,32 @@ SELECT * FROM information_schema.tables;
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="71" Alias="self_referencing_column_name">
-            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
               <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="72" Alias="reference_generation">
-            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" CoercionForm="1" Location="0">
               <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="73" Alias="user_defined_type_catalog">
-            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
               <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="74" Alias="user_defined_type_schema">
-            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
               <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="75" Alias="user_defined_type_name">
-            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
               <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="76" Alias="is_insertable_into">
-            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" CoercionForm="1" Location="0">
               <dxl:If TypeMdid="0.25.1.0">
                 <dxl:Or>
                   <dxl:Comparison ComparisonOperator="&lt;&gt;" OperatorMdid="0.630.1.0">
@@ -1772,12 +1772,12 @@ SELECT * FROM information_schema.tables;
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="77" Alias="is_typed">
-            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" CoercionForm="1" Location="0">
               <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABk5P" LintValue="723378980"/>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="78" Alias="commit_action">
-            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" CoercionForm="1" Location="0">
               <dxl:If TypeMdid="0.25.1.0">
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
                   <dxl:Ident ColId="60" ColName="oid" TypeMdid="0.26.1.0"/>
@@ -1938,26 +1938,26 @@ SELECT * FROM information_schema.tables;
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="66" Alias="table_catalog">
-            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
               <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAADXdhcmVob3VzZQ==" LintValue="921740140"/>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="67" Alias="table_schema">
-            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
               <dxl:FuncExpr FuncId="0.1401.1.0" FuncRetSet="false" TypeMdid="0.1043.1.0">
                 <dxl:Ident ColId="55" ColName="nspname" TypeMdid="0.19.1.0"/>
               </dxl:FuncExpr>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="68" Alias="table_name">
-            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
               <dxl:FuncExpr FuncId="0.1401.1.0" FuncRetSet="false" TypeMdid="0.1043.1.0">
                 <dxl:Ident ColId="0" ColName="relname" TypeMdid="0.19.1.0"/>
               </dxl:FuncExpr>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="69" Alias="table_type">
-            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" CoercionForm="1" Location="0">
               <dxl:If TypeMdid="0.25.1.0">
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
                   <dxl:Ident ColId="59" ColName="oid" TypeMdid="0.26.1.0"/>
@@ -1983,32 +1983,32 @@ SELECT * FROM information_schema.tables;
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="70" Alias="self_referencing_column_name">
-            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
               <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="71" Alias="reference_generation">
-            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" CoercionForm="1" Location="0">
               <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="72" Alias="user_defined_type_catalog">
-            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
               <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="73" Alias="user_defined_type_schema">
-            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
               <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="74" Alias="user_defined_type_name">
-            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10689.1.0" CoercionForm="1" Location="0">
               <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="true" IsByValue="false" LintValue="0"/>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="75" Alias="is_insertable_into">
-            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" CoercionForm="1" Location="0">
               <dxl:If TypeMdid="0.25.1.0">
                 <dxl:And>
                   <dxl:Or>
@@ -2077,12 +2077,12 @@ SELECT * FROM information_schema.tables;
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="76" Alias="is_typed">
-            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" CoercionForm="1" Location="0">
               <dxl:ConstValue TypeMdid="0.1043.1.0" IsNull="false" IsByValue="false" Value="AAAABk5P" LintValue="723378980"/>
             </dxl:CoerceToDomain>
           </dxl:ProjElem>
           <dxl:ProjElem ColId="77" Alias="commit_action">
-            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" TypeModification="-1" CoercionForm="1" Location="0">
+            <dxl:CoerceToDomain TypeMdid="0.10688.1.0" CoercionForm="1" Location="0">
               <dxl:If TypeMdid="0.25.1.0">
                 <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
                   <dxl:Ident ColId="59" ColName="oid" TypeMdid="0.26.1.0"/>

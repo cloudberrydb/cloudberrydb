@@ -39,7 +39,7 @@ CDXLDatumInt8::CDXLDatumInt8
 	LINT lVal
 	)
 	:
-	CDXLDatum(pmp, pmdidType, fNull, 8 /*ulLength*/),
+	CDXLDatum(pmp, pmdidType, IDefaultTypeModifier, fNull, 8 /*ulLength*/),
 	m_lVal(lVal)
 {
 	if (fNull)

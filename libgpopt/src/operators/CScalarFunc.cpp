@@ -40,6 +40,7 @@ CScalarFunc::CScalarFunc
 	CScalar(pmp),
 	m_pmdidFunc(NULL),
 	m_pmdidRetType(NULL),
+	m_iRetTypeModifier(IDefaultTypeModifier),
 	m_pstrFunc(NULL),
 	m_efs(IMDFunction::EfsSentinel),
 	m_efda(IMDFunction::EfdaSentinel),
@@ -62,12 +63,14 @@ CScalarFunc::CScalarFunc
 	IMemoryPool *pmp,
 	IMDId *pmdidFunc,
 	IMDId *pmdidRetType,
+	INT iRetTypeModifier,
 	const CWStringConst *pstrFunc
 	)
 	:
 	CScalar(pmp),
 	m_pmdidFunc(pmdidFunc),
 	m_pmdidRetType(pmdidRetType),
+	m_iRetTypeModifier(iRetTypeModifier),
 	m_pstrFunc(pstrFunc),
 	m_fReturnsSet(false),
 	m_fReturnsNullOnNullInput(false),
@@ -204,6 +207,12 @@ IMDId *
 CScalarFunc::PmdidType() const
 {
 	return m_pmdidRetType;
+}
+
+INT
+CScalarFunc::ITypeModifier() const
+{
+	return m_iRetTypeModifier;
 }
 
 //---------------------------------------------------------------------------

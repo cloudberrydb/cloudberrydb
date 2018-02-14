@@ -34,12 +34,12 @@ CScalarCoerceViaIO::CScalarCoerceViaIO
 	(
 	IMemoryPool *pmp,
 	IMDId *pmdidType,
-	INT iMod,
+	INT iTypeModifier,
 	ECoercionForm ecf,
 	INT iLoc
 	)
 	:
-	CScalarCoerceBase(pmp, pmdidType, iMod, ecf, iLoc)
+	CScalarCoerceBase(pmp, pmdidType, iTypeModifier, ecf, iLoc)
 {
 }
 
@@ -64,7 +64,7 @@ CScalarCoerceViaIO::FMatch
 		CScalarCoerceViaIO *popCoerce = CScalarCoerceViaIO::PopConvert(pop);
 
 		return popCoerce->PmdidType()->FEquals(PmdidType()) &&
-				popCoerce->IMod() == IMod() &&
+				popCoerce->ITypeModifier() == ITypeModifier() &&
 				popCoerce->Ecf() == Ecf() &&
 				popCoerce->ILoc() == ILoc();
 	}

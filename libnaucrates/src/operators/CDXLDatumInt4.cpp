@@ -37,7 +37,7 @@ CDXLDatumInt4::CDXLDatumInt4
 	INT iVal
 	)
 	:
-	CDXLDatum(pmp, pmdidType, fNull, 4 /*ulLength*/ ),
+	CDXLDatum(pmp, pmdidType, IDefaultTypeModifier, fNull, 4 /*ulLength*/ ),
 	m_iVal(iVal)
 {
 }

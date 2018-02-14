@@ -726,7 +726,7 @@ union all
             </dxl:TableDescriptor>
           </dxl:LogicalGet>
           <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
-            <dxl:CoerceViaIO TypeMdid="0.26.1.0" TypeModification="-1" CoercionForm="1" Location="65">
+            <dxl:CoerceViaIO TypeMdid="0.26.1.0" CoercionForm="1" Location="65">
               <dxl:Ident ColId="1" ColName="a" TypeMdid="0.1043.1.0"/>
             </dxl:CoerceViaIO>
             <dxl:Ident ColId="37" ColName="oid" TypeMdid="0.26.1.0"/>
@@ -791,7 +791,7 @@ union all
             </dxl:TableDescriptor>
           </dxl:LogicalGet>
           <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.609.1.0">
-            <dxl:CoerceViaIO TypeMdid="0.26.1.0" TypeModification="-1" CoercionForm="1" Location="155">
+            <dxl:CoerceViaIO TypeMdid="0.26.1.0" CoercionForm="1" Location="155">
               <dxl:Ident ColId="45" ColName="b" TypeMdid="0.1043.1.0"/>
             </dxl:CoerceViaIO>
             <dxl:Ident ColId="82" ColName="oid" TypeMdid="0.26.1.0"/>
@@ -890,7 +890,7 @@ union all
             <dxl:IndexCondList>
               <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.607.1.0">
                 <dxl:Ident ColId="36" ColName="oid" TypeMdid="0.26.1.0"/>
-                <dxl:CoerceViaIO TypeMdid="0.26.1.0" TypeModification="-1" CoercionForm="1" Location="65">
+                <dxl:CoerceViaIO TypeMdid="0.26.1.0" CoercionForm="1" Location="65">
                   <dxl:Ident ColId="0" ColName="a" TypeMdid="0.1043.1.0"/>
                 </dxl:CoerceViaIO>
               </dxl:Comparison>
@@ -1010,7 +1010,7 @@ union all
             <dxl:IndexCondList>
               <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.610.1.0">
                 <dxl:Ident ColId="81" ColName="oid" TypeMdid="0.26.1.0"/>
-                <dxl:CoerceViaIO TypeMdid="0.26.1.0" TypeModification="-1" CoercionForm="1" Location="155">
+                <dxl:CoerceViaIO TypeMdid="0.26.1.0" CoercionForm="1" Location="155">
                   <dxl:Ident ColId="44" ColName="b" TypeMdid="0.1043.1.0"/>
                 </dxl:CoerceViaIO>
               </dxl:Comparison>

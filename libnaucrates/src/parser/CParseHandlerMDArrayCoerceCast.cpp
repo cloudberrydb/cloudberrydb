@@ -112,12 +112,14 @@ CParseHandlerMDArrayCoerceCast::StartElement
 															EdxltokenGPDBArrayCoerceCast
 															);
 
-	INT iMod = CDXLOperatorFactory::IValueFromAttrs
+	INT iTypeModifier = CDXLOperatorFactory::IValueFromAttrs
 							(
 							m_pphm->Pmm(),
 							attrs,
 							EdxltokenTypeMod,
-							EdxltokenGPDBArrayCoerceCast
+							EdxltokenGPDBArrayCoerceCast,
+							true,
+							IDefaultTypeModifier
 							);
 
 	BOOL fIsExplicit =CDXLOperatorFactory::FValueFromAttrs
@@ -144,7 +146,7 @@ CParseHandlerMDArrayCoerceCast::StartElement
 							EdxltokenGPDBArrayCoerceCast
 							);
 
-	m_pimdobj = GPOS_NEW(m_pmp) CMDArrayCoerceCastGPDB(m_pmp, pmdid, pmdname, pmdidSrc, pmdidDest, fBinaryCoercible, pmdidCastFunc, eCoercePathType, iMod, fIsExplicit, edcf, iLoc);
+	m_pimdobj = GPOS_NEW(m_pmp) CMDArrayCoerceCastGPDB(m_pmp, pmdid, pmdname, pmdidSrc, pmdidDest, fBinaryCoercible, pmdidCastFunc, eCoercePathType, iTypeModifier, fIsExplicit, edcf, iLoc);
 }
 
 // invoked by Xerces to process a closing tag

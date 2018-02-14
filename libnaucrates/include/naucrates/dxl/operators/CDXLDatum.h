@@ -49,6 +49,8 @@ namespace gpdxl
 			// mdid of the datum's type
 			IMDId *m_pmdidType;
 
+			const INT m_iTypeModifier;
+
 			// is the datum NULL
 			BOOL m_fNull;
 	
@@ -75,6 +77,7 @@ namespace gpdxl
 				(
 				IMemoryPool *pmp,
 				IMDId *pmdidType,
+				INT iTypeModifier,
 				BOOL fNull,
 				ULONG ulLength
 				);
@@ -93,10 +96,13 @@ namespace gpdxl
 				return m_pmdidType;
 			}
 
+			INT
+			ITypeModifier() const;
+
 			// is datum NULL
 			virtual
 			BOOL FNull() const;
-			
+
 			// byte array length
 			virtual
 			ULONG UlLength() const;

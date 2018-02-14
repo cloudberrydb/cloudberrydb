@@ -34,6 +34,7 @@ CDXLDatumStatsLintMappable::CDXLDatumStatsLintMappable
 	(
 	IMemoryPool *pmp,
 	IMDId *pmdidType,
+	INT iTypeModifier,
 	BOOL fByVal,
 	BOOL fNull,
 	BYTE *pba,
@@ -41,7 +42,7 @@ CDXLDatumStatsLintMappable::CDXLDatumStatsLintMappable
 	LINT lValue
 	)
 	:
-	CDXLDatumGeneric(pmp, pmdidType, fByVal, fNull, pba, ulLength),
+	CDXLDatumGeneric(pmp, pmdidType, iTypeModifier, fByVal, fNull, pba, ulLength),
 	m_lValue(lValue)
 {
 }
@@ -62,6 +63,10 @@ CDXLDatumStatsLintMappable::Serialize
 	)
 {
 	m_pmdidType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
+	if (IDefaultTypeModifier != ITypeModifier())
+	{
+		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
+	}
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIsNull), m_fNull);
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIsByValue), m_fByVal);
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenValue), m_fNull, Pba(), UlLength());

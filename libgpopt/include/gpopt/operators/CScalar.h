@@ -219,6 +219,13 @@ namespace gpopt
 			// the type of the scalar expression
 			virtual 
 			IMDId *PmdidType() const = 0;
+
+			// the type modifier of the scalar expression
+			virtual
+			INT ITypeModifier() const
+			{
+				return IDefaultTypeModifier;
+			}
 			
 	}; // class CScalar
 

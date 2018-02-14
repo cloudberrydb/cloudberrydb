@@ -74,7 +74,15 @@ namespace gpopt
 			
 			// create a column reference
 			static
-			CColRef *PcrCreate(IMemoryPool *pmp, CMDAccessor *pmda, CColumnFactory *pcf, IMDId *pmdid, const WCHAR *wszName);
+			CColRef *PcrCreate
+				(
+				IMemoryPool *pmp,
+				CMDAccessor *pmda,
+				CColumnFactory *pcf,
+				IMDId *pmdid,
+				INT iTypeModifier,
+				const WCHAR *wszName
+				);
 
 			// find the partitioning level of the given part key, given the whole
 			// array of part keys

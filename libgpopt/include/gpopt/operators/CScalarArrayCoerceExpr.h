@@ -55,7 +55,7 @@ namespace gpopt
 				IMemoryPool *pmp,
 				IMDId *pmdidElementFunc,
 				IMDId *pmdidResultType,
-				INT iMod,
+				INT iTypeModifier,
 				BOOL fIsExplicit,
 				ECoercionForm edxlcf,
 				INT iLoc

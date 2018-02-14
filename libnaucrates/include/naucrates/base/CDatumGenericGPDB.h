@@ -49,6 +49,8 @@ class CDatumGenericGPDB : public IDatumGeneric
 		// type information
 		IMDId *m_pmdid;
 
+		INT m_iTypeModifier;
+
 		// long int value used for statistic computation
 		LINT m_lValue;
 
@@ -65,6 +67,7 @@ class CDatumGenericGPDB : public IDatumGeneric
 			(
 			IMemoryPool *pmp,
 			IMDId *pmdid,
+			INT iTypeModifier,
 			const void *pv,
 			ULONG ulSize,
 			BOOL fNull,
@@ -79,6 +82,9 @@ class CDatumGenericGPDB : public IDatumGeneric
 		// accessor of metadata type id
 		virtual
 		IMDId *Pmdid() const;
+
+		virtual
+		INT ITypeModifier() const;
 
 		// accessor of size
 		virtual

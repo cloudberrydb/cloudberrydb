@@ -112,6 +112,12 @@ CDXLScalarIdent::PmdidType() const
 	return m_pdxlcr->PmdidType();
 }
 
+INT
+CDXLScalarIdent::ITypeModifier() const
+{
+	return m_pdxlcr->ITypeModifier();
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CDXLScalarIdent::SerializeToDXL
@@ -138,6 +144,12 @@ CDXLScalarIdent::SerializeToDXL
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColId), m_pdxlcr->UlID());
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColName), strCName);
 	m_pdxlcr->PmdidType()->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
+
+	if (IDefaultTypeModifier != ITypeModifier())
+	{
+		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
+	}
+
 	pdxln->SerializeChildrenToDXL(pxmlser);
 
 	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);	

@@ -28,12 +28,12 @@ CDXLScalarCoerceToDomain::CDXLScalarCoerceToDomain
 	(
 	IMemoryPool *pmp,
 	IMDId *pmdidType,
-	INT iMod,
+	INT iTypeModifier,
 	EdxlCoercionForm edxlcf,
 	INT iLoc
 	)
 	:
-	CDXLScalarCoerceBase(pmp, pmdidType, iMod, edxlcf, iLoc)
+	CDXLScalarCoerceBase(pmp, pmdidType, iTypeModifier, edxlcf, iLoc)
 {
 }
 

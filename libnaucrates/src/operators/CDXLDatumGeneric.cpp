@@ -34,13 +34,14 @@ CDXLDatumGeneric::CDXLDatumGeneric
 	(
 	IMemoryPool *pmp,
 	IMDId *pmdidType,
+	INT iTypeModifier,
 	BOOL fByVal,
 	BOOL fNull,
 	BYTE *pba,
 	ULONG ulLength
 	)
 	:
-	CDXLDatum(pmp, pmdidType, fNull, ulLength),
+	CDXLDatum(pmp, pmdidType, iTypeModifier, fNull, ulLength),
 	m_fByVal(fByVal),
 	m_pba(pba)
 {
@@ -89,6 +90,10 @@ CDXLDatumGeneric::Serialize
 	)
 {
 	m_pmdidType->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
+	if (IDefaultTypeModifier != ITypeModifier())
+	{
+		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), m_iTypeModifier);
+	}
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIsNull), m_fNull);
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIsByValue), m_fByVal);
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenValue), m_fNull, Pba(), UlLength());

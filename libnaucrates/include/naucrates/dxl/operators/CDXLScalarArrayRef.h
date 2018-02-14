@@ -35,6 +35,9 @@ namespace gpdxl
 			// base element type id
 			IMDId *m_pmdidElem;
 
+			// element type modifier
+			INT m_iTypeModifier;
+
 			// array type id
 			IMDId *m_pmdidArray;
 
@@ -50,6 +53,7 @@ namespace gpdxl
 				(
 				IMemoryPool *pmp,
 				IMDId *pmdidElem,
+				INT iTypeModifier,
 				IMDId *pmdidArray,
 				IMDId *pmdidReturn
 				);
@@ -71,6 +75,10 @@ namespace gpdxl
 			{
 				return m_pmdidElem;
 			}
+
+			// element type modifier
+			INT
+			ITypeModifier() const;
 
 			// array type id
 			IMDId *PmdidArray() const

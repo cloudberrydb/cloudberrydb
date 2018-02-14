@@ -36,13 +36,13 @@ CDXLScalarArrayCoerceExpr::CDXLScalarArrayCoerceExpr
 	IMemoryPool *pmp,
 	IMDId *pmdidElementFunc,
 	IMDId *pmdidResultType,
-	INT iMod,
+	INT iTypeModifier,
 	BOOL fIsExplicit,
 	EdxlCoercionForm edxlcf,
 	INT iLoc
 	)
 	:
-	CDXLScalarCoerceBase(pmp, pmdidResultType, iMod, edxlcf, iLoc),
+	CDXLScalarCoerceBase(pmp, pmdidResultType, iTypeModifier, edxlcf, iLoc),
 	m_pmdidElementFunc(pmdidElementFunc),
 	m_fIsExplicit(fIsExplicit)
 {
@@ -86,7 +86,10 @@ CDXLScalarArrayCoerceExpr::SerializeToDXL
 	m_pmdidElementFunc->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenElementFunc));
 	PmdidResultType()->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
 
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), IMod());
+	if (IDefaultTypeModifier != ITypeModifier())
+	{
+		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
+	}
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenIsExplicit), m_fIsExplicit);
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenCoercionForm), (ULONG) Edxlcf());
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenLocation), ILoc());

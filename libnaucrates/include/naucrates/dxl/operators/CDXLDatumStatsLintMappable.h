@@ -53,6 +53,7 @@ namespace gpdxl
 				(
 				IMemoryPool *pmp,
 				IMDId *pmdidType,
+				INT iTypeModifier,
 				BOOL fByVal,
 				BOOL fNull,
 				BYTE *pba,

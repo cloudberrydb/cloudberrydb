@@ -34,14 +34,14 @@ CScalarCoerceBase::CScalarCoerceBase
 	(
 	IMemoryPool *pmp,
 	IMDId *pmdidType,
-	INT iMod,
+	INT iTypeModifier,
 	ECoercionForm ecf,
 	INT iLoc
 	)
 	:
 	CScalar(pmp),
 	m_pmdidResultType(pmdidType),
-	m_iMod(iMod),
+	m_iTypeModifier(iTypeModifier),
 	m_ecf(ecf),
 	m_iLoc(iLoc)
 {
@@ -81,16 +81,16 @@ CScalarCoerceBase::PmdidType() const
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarCoerceBase::IMod
+//		CScalarCoerceBase::ITypeModifier
 //
 //	@doc:
-//		Return type modification
+//		Return type modifier
 //
 //---------------------------------------------------------------------------
 INT
-CScalarCoerceBase::IMod() const
+CScalarCoerceBase::ITypeModifier() const
 {
-	return m_iMod;
+	return m_iTypeModifier;
 }
 
 

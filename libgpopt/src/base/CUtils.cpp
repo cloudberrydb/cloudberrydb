@@ -1972,24 +1972,6 @@ CUtils::PexprAggFunc
 	return GPOS_NEW(pmp) CExpression(pmp, popScAggFunc, pdrgpexpr);
 }
 
-// construct a scalar function
-CExpression *
-CUtils::PexprScalarFunc
-	(
-	IMemoryPool *pmp,
-	IMDId *pmdidFunc,
-	IMDId *pmdidRetType,
-	const CWStringConst *pstrFuncName, 
-	DrgPexpr *pdrgpexpr
-	)
-{
-	GPOS_ASSERT(NULL != pstrFuncName);
-
-	// construct function
-	CScalarFunc *popScFunc = GPOS_NEW(pmp) CScalarFunc(pmp, pmdidFunc, pmdidRetType, pstrFuncName);
-
-	return GPOS_NEW(pmp) CExpression(pmp, popScFunc, pdrgpexpr);
-}
 
 // generate a count(*) expression
 CExpression *
@@ -2027,9 +2009,11 @@ CUtils::PexprCountStar
 	CExpression *pexprCountStar = PexprCountStar(pmp);
 
 	// generate a computed column with count(*) type
-	IMDId *pmdidType = CScalarAggFunc::PopConvert(pexprCountStar->Pop())->PmdidType();
+	CScalarAggFunc *popScalarAggFunc = CScalarAggFunc::PopConvert(pexprCountStar->Pop());
+	IMDId *pmdidType = popScalarAggFunc->PmdidType();
+	INT iTypeModifier = popScalarAggFunc->ITypeModifier();
 	const IMDType *pmdtype = pmda->Pmdtype(pmdidType);
-	CColRef *pcrComputed = pcf->PcrCreate(pmdtype);
+	CColRef *pcrComputed = pcf->PcrCreate(pmdtype, iTypeModifier);
 	CExpression *pexprPrjElem = PexprScalarProjectElement(pmp, pcrComputed, pexprCountStar);
 	CExpression *pexprPrjList = GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarProjectList(pmp), pexprPrjElem);
 
@@ -2056,15 +2040,18 @@ CUtils::PexprCountStarAndSum
 	CExpression *pexprCountStar = PexprCountStar(pmp);
 
 	// generate a computed column with count(*) type
-	IMDId *pmdidType = CScalarAggFunc::PopConvert(pexprCountStar->Pop())->PmdidType();
+	CScalarAggFunc *popScalarAggFunc = CScalarAggFunc::PopConvert(pexprCountStar->Pop());
+	IMDId *pmdidType = popScalarAggFunc->PmdidType();
+	INT iTypeModifier = popScalarAggFunc->ITypeModifier();
 	const IMDType *pmdtype = pmda->Pmdtype(pmdidType);
-	CColRef *pcrComputed = pcf->PcrCreate(pmdtype);
+	CColRef *pcrComputed = pcf->PcrCreate(pmdtype, iTypeModifier);
 	CExpression *pexprPrjElemCount = PexprScalarProjectElement(pmp, pcrComputed, pexprCountStar);
 
 	// generate sum(col) expression
 	CExpression *pexprSum = PexprSum(pmp, pcr);
-	const IMDType *pmdtypeSum = pmda->Pmdtype(CScalarAggFunc::PopConvert(pexprSum->Pop())->PmdidType());
-	CColRef *pcrSum = pcf->PcrCreate(pmdtypeSum);
+	CScalarAggFunc *popScalarSumFunc = CScalarAggFunc::PopConvert(pexprSum->Pop());
+	const IMDType *pmdtypeSum = pmda->Pmdtype(popScalarSumFunc->PmdidType());
+	CColRef *pcrSum = pcf->PcrCreate(pmdtypeSum, popScalarSumFunc->ITypeModifier());
 	CExpression *pexprPrjElemSum = PexprScalarProjectElement(pmp, pcrSum, pexprSum);
 	CExpression *pexprPrjList = GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarProjectList(pmp), pexprPrjElemCount, pexprPrjElemSum);
 
@@ -2212,8 +2199,9 @@ CUtils::PexprGbAggSum
 	{
 		CColRef *pcr = (*pdrgpcrSum)[ul];
 		CExpression *pexprSum = PexprSum(pmp, pcr);
-		const IMDType *pmdtypeSum = pmda->Pmdtype(CScalarAggFunc::PopConvert(pexprSum->Pop())->PmdidType());
-		CColRef *pcrSum = pcf->PcrCreate(pmdtypeSum);
+		CScalarAggFunc *popScalarAggFunc = CScalarAggFunc::PopConvert(pexprSum->Pop());
+		const IMDType *pmdtypeSum = pmda->Pmdtype(popScalarAggFunc->PmdidType());
+		CColRef *pcrSum = pcf->PcrCreate(pmdtypeSum, popScalarAggFunc->ITypeModifier());
 		CExpression *pexprPrjElemSum = PexprScalarProjectElement(pmp, pcrSum, pexprSum);
 		pdrgpexpr->Append(pexprPrjElemSum);
 	}
@@ -2462,7 +2450,7 @@ CUtils::PexprScalarProjListConst
 		CScalarConst *popScConst = GPOS_NEW(pmp) CScalarConst(pmp, pdatum);
 		CExpression *pexprScConst = GPOS_NEW(pmp) CExpression(pmp, popScConst);
 
-		CColRef *pcrNew = pcf->PcrCreate(pcr->Pmdtype(), pcr->Name());
+		CColRef *pcrNew = pcf->PcrCreate(pcr->Pmdtype(), pcr->ITypeModifier(), pcr->Name());
 		if (NULL != phmulcr)
 		{
 #ifdef GPOS_DEBUG
@@ -2531,9 +2519,9 @@ CUtils::PexprAddProjection
 		GPOS_ASSERT(pexprProjected->Pop()->FScalar());
 
 		// generate a computed column with scalar expression type
-		IMDId *pmdidType = CScalar::PopConvert(pexprProjected->Pop())->PmdidType();
-		const IMDType *pmdtype = pmda->Pmdtype(pmdidType);
-		CColRef *pcr = pcf->PcrCreate(pmdtype);
+		CScalar *popScalar = CScalar::PopConvert(pexprProjected->Pop());
+		const IMDType *pmdtype = pmda->Pmdtype(popScalar->PmdidType());
+		CColRef *pcr = pcf->PcrCreate(pmdtype, popScalar->ITypeModifier());
 
 		pexprProjected->AddRef();
 		pdrgpexprPrjElem->Append(PexprScalarProjectElement(pmp, pcr, pexprProjected));
@@ -4196,7 +4184,7 @@ CUtils::PexprCast
 		  pmp,
 		  parrayCoerceCast->PmdidCastFunc(),
 		  pmdidDest,
-		  parrayCoerceCast->IMod(),
+		  parrayCoerceCast->ITypeModifier(),
 		  parrayCoerceCast->FIsExplicit(),
 		  (COperator::ECoercionForm) parrayCoerceCast->Ecf(),
 		  parrayCoerceCast->ILoc()
@@ -4488,7 +4476,7 @@ CUtils::PexprLogicalCTGDummy
 
 	// generate a bool column
 	const IMDTypeBool *pmdtypebool = pmda->PtMDType<IMDTypeBool>();
-	CColRef *pcr = pcf->PcrCreate(pmdtypebool);
+	CColRef *pcr = pcf->PcrCreate(pmdtypebool, IDefaultTypeModifier);
 	DrgPcr *pdrgpcrCTG = GPOS_NEW(pmp) DrgPcr(pmp);
 	pdrgpcrCTG->Append(pcr);
 

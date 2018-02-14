@@ -89,7 +89,7 @@ CKeyCollectionTest::EresUnittest_Basics()
 	const ULONG ulCols = 10;
 	for(ULONG i = 0; i < ulCols; i++)
 	{
-		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, name);
+		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, name);
 		pcrs->Include(pcr);
 	}
 
@@ -157,7 +157,7 @@ CKeyCollectionTest::EresUnittest_Subsumes()
 	const ULONG ulLen1 = 3;
 	for(ULONG ul = 0; ul < ulCols; ul++)
 	{
-		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, name);
+		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, name);
 		pcrs0->Include(pcr);
 
 		if (ul < ulLen1)

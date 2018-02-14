@@ -30,12 +30,14 @@ CDXLScalarArrayRef::CDXLScalarArrayRef
 	(
 	IMemoryPool *pmp,
 	IMDId *pmdidElem,
+	INT iTypeModifier,
 	IMDId *pmdidArray,
 	IMDId *pmdidReturn
 	)
 	:
 	CDXLScalar(pmp),
 	m_pmdidElem(pmdidElem),
+	m_iTypeModifier(iTypeModifier),
 	m_pmdidArray(pmdidArray),
 	m_pmdidReturn(pmdidReturn)
 {
@@ -88,6 +90,12 @@ CDXLScalarArrayRef::PstrOpName() const
 	return CDXLTokens::PstrToken(EdxltokenScalarArrayRef);
 }
 
+INT
+CDXLScalarArrayRef::ITypeModifier() const
+{
+	return m_iTypeModifier;
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CDXLScalarArrayRef::SerializeToDXL
@@ -108,6 +116,10 @@ CDXLScalarArrayRef::SerializeToDXL
 
 	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), pstrElemName);
 	m_pmdidElem->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenArrayElementType));
+	if (IDefaultTypeModifier != ITypeModifier())
+	{
+		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
+	}
 	m_pmdidArray->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenArrayType));
 	m_pmdidReturn->Serialize(pxmlser, CDXLTokens::PstrToken(EdxltokenTypeId));
 
