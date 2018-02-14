@@ -665,11 +665,12 @@ CTranslatorDXLToScalar::PsubplanFromDXLNodeScSubPlan
 		CDXLColRef *pdxlcr = (*pdrgdxlcrOuterRefs)[ul];
 		IMDId *pmdid = pdxlcr->PmdidType();
 		ULONG ulColid = pdxlcr->UlID();
+		INT iTypeModifier = pdxlcr->ITypeModifier();
 
 		if (NULL == dxltrctxSubplan.Pmecolidparamid(ulColid))
 		{
 			// keep outer reference mapping to the original column for subsequent subplans
-			CMappingElementColIdParamId *pmecolidparamid = GPOS_NEW(m_pmp) CMappingElementColIdParamId(ulColid, pctxdxltoplstmt->UlNextParamId(), pmdid);
+			CMappingElementColIdParamId *pmecolidparamid = GPOS_NEW(m_pmp) CMappingElementColIdParamId(ulColid, pctxdxltoplstmt->UlNextParamId(), pmdid, iTypeModifier);
 
 #ifdef GPOS_DEBUG
 			BOOL fInserted =
@@ -718,7 +719,7 @@ inline BOOL FDXLCastedId(CDXLNode *pdxln)
 		   pdxln->UlArity() > 0 && EdxlopScalarIdent == (*pdxln)[0]->Pdxlop()->Edxlop();
 }
 
-inline Oid OidParamOidFromDXLIdentOrDXLCastIdent(CDXLNode *pdxlnIdentOrCastIdent)
+inline CTranslatorDXLToScalar::STypeOidAndTypeModifier OidParamOidFromDXLIdentOrDXLCastIdent(CDXLNode *pdxlnIdentOrCastIdent)
 {
 	GPOS_ASSERT(EdxlopScalarIdent == pdxlnIdentOrCastIdent->Pdxlop()->Edxlop() || FDXLCastedId(pdxlnIdentOrCastIdent));
 
@@ -732,7 +733,8 @@ inline Oid OidParamOidFromDXLIdentOrDXLCastIdent(CDXLNode *pdxlnIdentOrCastIdent
 		pdxlopInnerIdent = CDXLScalarIdent::PdxlopConvert((*pdxlnIdentOrCastIdent)[0]->Pdxlop());
 	}
 	Oid oidInnerType = CMDIdGPDB::PmdidConvert(pdxlopInnerIdent->PmdidType())->OidObjectId();
-	return oidInnerType;
+	INT iTypeModifier = pdxlopInnerIdent->ITypeModifier();
+	return {oidInnerType, iTypeModifier};
 }
 
 //---------------------------------------------------------------------------
@@ -807,7 +809,9 @@ CTranslatorDXLToScalar::PexprSubplanTestExpr
 	pparam->paramkind = PARAM_EXEC;
 	CContextDXLToPlStmt *pctxdxltoplstmt = (dynamic_cast<CMappingColIdVarPlStmt *>(pmapcidvar))->Pctxdxltoplstmt();
 	pparam->paramid = pctxdxltoplstmt->UlNextParamId();
-	pparam->paramtype = OidParamOidFromDXLIdentOrDXLCastIdent(pdxlnInnerChild);
+	CTranslatorDXLToScalar::STypeOidAndTypeModifier oidAndTypeModifier = OidParamOidFromDXLIdentOrDXLCastIdent(pdxlnInnerChild);
+	pparam->paramtype = oidAndTypeModifier.OidType;
+	pparam->paramtypmod = oidAndTypeModifier.ITypeModifier;
 
 	// test expression is used for non-scalar subplan,
 	// second arg of test expression must be an EXEC param referring to subplan output,
@@ -861,6 +865,7 @@ CTranslatorDXLToScalar::TranslateSubplanParams
 		pdxlcr->AddRef();
 		const CMappingElementColIdParamId *pmecolidparamid = pdxltrctx->Pmecolidparamid(pdxlcr->UlID());
 
+		// TODO: eliminate pparam, it's not *really* used, and it's (short-term) leaked
 		Param *pparam = PparamFromMapping(pmecolidparamid);
 		psubplan->parParam = gpdb::PlAppendInt(psubplan->parParam, pparam->paramid);
 
@@ -958,6 +963,7 @@ CTranslatorDXLToScalar::PparamFromMapping
 	pparam->paramid = pmecolidparamid->UlParamId();
 	pparam->paramkind = PARAM_EXEC;
 	pparam->paramtype = CMDIdGPDB::PmdidConvert(pmecolidparamid->PmdidType())->OidObjectId();
+	pparam->paramtypmod = pmecolidparamid->ITypeModifier();
 
 	return pparam;
 }
@@ -1220,7 +1226,7 @@ CTranslatorDXLToScalar::PcoerceFromDXLNodeScCoerceToDomain
 
         pcoerce->resulttype = CMDIdGPDB::PmdidConvert(pdxlop->PmdidResultType())->OidObjectId();
         pcoerce->arg = pexprChild;
-        pcoerce->resulttypmod = pdxlop->IMod();
+        pcoerce->resulttypmod = pdxlop->ITypeModifier();
         pcoerce->location = pdxlop->ILoc();
         pcoerce->coercionformat = (CoercionForm)  pdxlop->Edxlcf();
 
@@ -1288,7 +1294,7 @@ CTranslatorDXLToScalar::PcoerceFromDXLNodeScArrayCoerceExpr
         pcoerce->arg = pexprChild;
         pcoerce->elemfuncid = CMDIdGPDB::PmdidConvert(pdxlop->PmdidElementFunc())->OidObjectId();
         pcoerce->resulttype = CMDIdGPDB::PmdidConvert(pdxlop->PmdidResultType())->OidObjectId();
-        pcoerce->resulttypmod = pdxlop->IMod();
+        pcoerce->resulttypmod = pdxlop->ITypeModifier();
         pcoerce->isExplicit = pdxlop->FIsExplicit();
         pcoerce->coerceformat = (CoercionForm)  pdxlop->Edxlcf();
         pcoerce->location = pdxlop->ILoc();
@@ -1657,7 +1663,7 @@ CTranslatorDXLToScalar::PconstGeneric
 
 	Const *pconst = MakeNode(Const);
 	pconst->consttype = CMDIdGPDB::PmdidConvert(pdxldatumgeneric->Pmdid())->OidObjectId();
-	pconst->consttypmod = -1;
+	pconst->consttypmod = pdxldatumgeneric->ITypeModifier();
 	pconst->constbyval = pdxldatumgeneric->FByValue();
 	pconst->constisnull = pdxldatumgeneric->FNull();
 	pconst->constlen = pdxldatumgeneric->UlLength();
@@ -1967,6 +1973,7 @@ CTranslatorDXLToScalar::PexprArrayRef
 	ArrayRef *parrayref = MakeNode(ArrayRef);
 	parrayref->refarraytype = CMDIdGPDB::PmdidConvert(pdxlop->PmdidArray())->OidObjectId();
 	parrayref->refelemtype = CMDIdGPDB::PmdidConvert(pdxlop->PmdidElem())->OidObjectId();
+	parrayref->reftypmod = pdxlop->ITypeModifier();
 
 	const ULONG ulArity = pdxlnArrayref->UlArity();
 	GPOS_ASSERT(3 == ulArity || 4 == ulArity);
