@@ -2488,7 +2488,7 @@ CTranslatorScalarToDXL::Pdatum
 	}
 	GPOS_ASSERT(fNull || ulLength > 0);
 
-	CDXLDatum *pdxldatum = CTranslatorScalarToDXL::Pdxldatum(pmp, pmdtype, 0, fNull, ulLength, datum);
+	CDXLDatum *pdxldatum = CTranslatorScalarToDXL::Pdxldatum(pmp, pmdtype, gpmd::IDefaultTypeModifier, fNull, ulLength, datum);
 	IDatum *pdatum = pmdtype->Pdatum(pmp, pdxldatum);
 	pdxldatum->Release();
 	return pdatum;
