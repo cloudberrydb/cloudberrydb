@@ -481,7 +481,7 @@ see sql/DynamicBitmapIndexScan.sql
     <dxl:Plan Id="0" SpaceSize="121">
       <dxl:GatherMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="6896.008561" Rows="1.000000" Width="9"/>
+          <dxl:Cost StartupCost="0" TotalCost="6896.008552" Rows="1.000000" Width="9"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="24" Alias="fid">
@@ -492,7 +492,7 @@ see sql/DynamicBitmapIndexScan.sql
         <dxl:SortingColumnList/>
         <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="6896.008541" Rows="1.000000" Width="9"/>
+            <dxl:Cost StartupCost="0" TotalCost="6896.008532" Rows="1.000000" Width="9"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="24" Alias="fid">
@@ -506,159 +506,6 @@ see sql/DynamicBitmapIndexScan.sql
               <dxl:Ident ColId="0" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
             </dxl:Comparison>
           </dxl:JoinFilter>
-          <dxl:BroadcastMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63"
-                               OutputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63">
-            <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="862.001847" Rows="64.000000" Width="8"/>
-            </dxl:Properties>
-            <dxl:ProjList>
-              <dxl:ProjElem ColId="0" Alias="flex_value_set_id">
-                <dxl:Ident ColId="0" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
-              </dxl:ProjElem>
-            </dxl:ProjList>
-            <dxl:Filter/>
-            <dxl:SortingColumnList/>
-            <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true">
-              <dxl:Properties>
-                <dxl:Cost StartupCost="0" TotalCost="862.001830" Rows="1.000000" Width="8"/>
-              </dxl:Properties>
-              <dxl:ProjList>
-                <dxl:ProjElem ColId="0" Alias="flex_value_set_id">
-                  <dxl:Ident ColId="0" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
-                </dxl:ProjElem>
-              </dxl:ProjList>
-              <dxl:Filter/>
-              <dxl:JoinFilter>
-                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-              </dxl:JoinFilter>
-              <dxl:BroadcastMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63"
-                                   OutputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63">
-                <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="431.001803" Rows="64.000000" Width="9"/>
-                </dxl:Properties>
-                <dxl:ProjList>
-                  <dxl:ProjElem ColId="7" Alias="flex_value_id">
-                    <dxl:Ident ColId="7" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
-                  </dxl:ProjElem>
-                </dxl:ProjList>
-                <dxl:Filter/>
-                <dxl:SortingColumnList/>
-                <dxl:TableScan>
-                  <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="431.000578" Rows="1.000000" Width="9"/>
-                  </dxl:Properties>
-                  <dxl:ProjList>
-                    <dxl:ProjElem ColId="7" Alias="flex_value_id">
-                      <dxl:Ident ColId="7" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
-                    </dxl:ProjElem>
-                  </dxl:ProjList>
-                  <dxl:Filter>
-                    <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
-                      <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
-                        <dxl:Ident ColId="8" ColName="language" TypeMdid="0.1043.1.0"/>
-                      </dxl:Cast>
-                      <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAAB1pIUw==" LintValue="686711588"/>
-                    </dxl:Comparison>
-                  </dxl:Filter>
-                  <dxl:TableDescriptor Mdid="0.16929.1.1" TableName="outer_table">
-                    <dxl:Columns>
-                      <dxl:Column ColId="7" Attno="1" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="8" Attno="2" ColName="language" TypeMdid="0.1043.1.0" ColWidth="4"/>
-                      <dxl:Column ColId="9" Attno="3" ColName="last_update_date" TypeMdid="0.1082.1.0"/>
-                      <dxl:Column ColId="10" Attno="4" ColName="last_updated_by" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="11" Attno="5" ColName="creation_date" TypeMdid="0.1082.1.0"/>
-                      <dxl:Column ColId="12" Attno="6" ColName="created_by" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="13" Attno="7" ColName="last_update_login" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="14" Attno="8" ColName="description" TypeMdid="0.1043.1.0" ColWidth="240"/>
-                      <dxl:Column ColId="15" Attno="9" ColName="source_lang" TypeMdid="0.1043.1.0" ColWidth="4"/>
-                      <dxl:Column ColId="16" Attno="10" ColName="flex_value_meaning" TypeMdid="0.1043.1.0" ColWidth="150"/>
-                      <dxl:Column ColId="17" Attno="11" ColName="legalhold" TypeMdid="0.1043.1.0" ColWidth="5"/>
-                      <dxl:Column ColId="18" Attno="12" ColName="legaldescription" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                      <dxl:Column ColId="19" Attno="13" ColName="dataowner" TypeMdid="0.1043.1.0" ColWidth="255"/>
-                      <dxl:Column ColId="20" Attno="14" ColName="purgedate" TypeMdid="0.1082.1.0"/>
-                      <dxl:Column ColId="21" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                      <dxl:Column ColId="22" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                      <dxl:Column ColId="23" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-                    </dxl:Columns>
-                  </dxl:TableDescriptor>
-                </dxl:TableScan>
-              </dxl:BroadcastMotion>
-              <dxl:Sequence>
-                <dxl:Properties>
-                  <dxl:Cost StartupCost="0" TotalCost="431.000021" Rows="1.000000" Width="8"/>
-                </dxl:Properties>
-                <dxl:ProjList>
-                  <dxl:ProjElem ColId="0" Alias="flex_value_set_id">
-                    <dxl:Ident ColId="0" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
-                  </dxl:ProjElem>
-                  <dxl:ProjElem ColId="1" Alias="flex_value_id">
-                    <dxl:Ident ColId="1" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
-                  </dxl:ProjElem>
-                </dxl:ProjList>
-                <dxl:PartitionSelector RelationMdid="0.16959.1.1" PartitionLevels="1" ScanId="1">
-                  <dxl:Properties>
-                    <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
-                  </dxl:Properties>
-                  <dxl:ProjList/>
-                  <dxl:PartEqFilters>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-                  </dxl:PartEqFilters>
-                  <dxl:PartFilters>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-                  </dxl:PartFilters>
-                  <dxl:ResidualFilter>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-                  </dxl:ResidualFilter>
-                  <dxl:PropagationExpression>
-                    <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                  </dxl:PropagationExpression>
-                  <dxl:PrintableFilter>
-                    <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-                  </dxl:PrintableFilter>
-                </dxl:PartitionSelector>
-                <dxl:DynamicBitmapTableScan PartIndexId="1">
-                  <dxl:Properties>
-                    <dxl:Cost StartupCost="0" TotalCost="431.000021" Rows="1.000000" Width="8"/>
-                  </dxl:Properties>
-                  <dxl:ProjList>
-                    <dxl:ProjElem ColId="0" Alias="flex_value_set_id">
-                      <dxl:Ident ColId="0" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
-                    </dxl:ProjElem>
-                    <dxl:ProjElem ColId="1" Alias="flex_value_id">
-                      <dxl:Ident ColId="1" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
-                    </dxl:ProjElem>
-                  </dxl:ProjList>
-                  <dxl:Filter/>
-                  <dxl:RecheckCond>
-                    <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1752.1.0">
-                      <dxl:Ident ColId="1" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
-                      <dxl:Ident ColId="7" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
-                    </dxl:Comparison>
-                  </dxl:RecheckCond>
-                  <dxl:BitmapIndexProbe>
-                    <dxl:IndexCondList>
-                      <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1752.1.0">
-                        <dxl:Ident ColId="1" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
-                        <dxl:Ident ColId="7" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
-                      </dxl:Comparison>
-                    </dxl:IndexCondList>
-                    <dxl:IndexDescriptor Mdid="0.17270.1.0" IndexName="inner_table_idx_1_prt_other"/>
-                  </dxl:BitmapIndexProbe>
-                  <dxl:TableDescriptor Mdid="0.16959.1.1" TableName="inner_table">
-                    <dxl:Columns>
-                      <dxl:Column ColId="0" Attno="1" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="1" Attno="2" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
-                      <dxl:Column ColId="2" Attno="3" ColName="flex_value" TypeMdid="0.1043.1.0" ColWidth="150"/>
-                      <dxl:Column ColId="3" Attno="4" ColName="flex_partition" TypeMdid="0.23.1.0"/>
-                      <dxl:Column ColId="4" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
-                      <dxl:Column ColId="5" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
-                      <dxl:Column ColId="6" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
-                    </dxl:Columns>
-                  </dxl:TableDescriptor>
-                </dxl:DynamicBitmapTableScan>
-              </dxl:Sequence>
-            </dxl:NestedLoopJoin>
-          </dxl:BroadcastMotion>
           <dxl:TableScan>
             <dxl:Properties>
               <dxl:Cost StartupCost="0" TotalCost="431.000021" Rows="1.000000" Width="9"/>
@@ -682,6 +529,173 @@ see sql/DynamicBitmapIndexScan.sql
               </dxl:Columns>
             </dxl:TableDescriptor>
           </dxl:TableScan>
+          <dxl:Materialize Eager="false">
+            <dxl:Properties>
+              <dxl:Cost StartupCost="0" TotalCost="862.001845" Rows="1.000000" Width="8"/>
+            </dxl:Properties>
+            <dxl:ProjList>
+              <dxl:ProjElem ColId="0" Alias="flex_value_set_id">
+                <dxl:Ident ColId="0" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
+              </dxl:ProjElem>
+            </dxl:ProjList>
+            <dxl:Filter/>
+            <dxl:RedistributeMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63" OutputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63">
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0" TotalCost="862.001837" Rows="1.000000" Width="8"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="0" Alias="flex_value_set_id">
+                  <dxl:Ident ColId="0" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:SortingColumnList/>
+              <dxl:HashExprList>
+                <dxl:HashExpr TypeMdid="0.1700.1.0">
+                  <dxl:Ident ColId="0" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
+                </dxl:HashExpr>
+              </dxl:HashExprList>
+              <dxl:NestedLoopJoin JoinType="Inner" IndexNestedLoopJoin="true">
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0" TotalCost="862.001830" Rows="1.000000" Width="8"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="0" Alias="flex_value_set_id">
+                    <dxl:Ident ColId="0" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter/>
+                <dxl:JoinFilter>
+                  <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                </dxl:JoinFilter>
+                <dxl:BroadcastMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63" OutputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63">
+                  <dxl:Properties>
+                    <dxl:Cost StartupCost="0" TotalCost="431.001803" Rows="64.000000" Width="9"/>
+                  </dxl:Properties>
+                  <dxl:ProjList>
+                    <dxl:ProjElem ColId="7" Alias="flex_value_id">
+                      <dxl:Ident ColId="7" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
+                    </dxl:ProjElem>
+                  </dxl:ProjList>
+                  <dxl:Filter/>
+                  <dxl:SortingColumnList/>
+                  <dxl:TableScan>
+                    <dxl:Properties>
+                      <dxl:Cost StartupCost="0" TotalCost="431.000578" Rows="1.000000" Width="9"/>
+                    </dxl:Properties>
+                    <dxl:ProjList>
+                      <dxl:ProjElem ColId="7" Alias="flex_value_id">
+                        <dxl:Ident ColId="7" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
+                      </dxl:ProjElem>
+                    </dxl:ProjList>
+                    <dxl:Filter>
+                      <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.98.1.0">
+                        <dxl:Cast TypeMdid="0.25.1.0" FuncId="0.0.0.0">
+                          <dxl:Ident ColId="8" ColName="language" TypeMdid="0.1043.1.0"/>
+                        </dxl:Cast>
+                        <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAAB1pIUw==" LintValue="686711588"/>
+                      </dxl:Comparison>
+                    </dxl:Filter>
+                    <dxl:TableDescriptor Mdid="0.16929.1.1" TableName="outer_table">
+                      <dxl:Columns>
+                        <dxl:Column ColId="7" Attno="1" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
+                        <dxl:Column ColId="8" Attno="2" ColName="language" TypeMdid="0.1043.1.0" ColWidth="4"/>
+                        <dxl:Column ColId="9" Attno="3" ColName="last_update_date" TypeMdid="0.1082.1.0"/>
+                        <dxl:Column ColId="10" Attno="4" ColName="last_updated_by" TypeMdid="0.1700.1.0"/>
+                        <dxl:Column ColId="11" Attno="5" ColName="creation_date" TypeMdid="0.1082.1.0"/>
+                        <dxl:Column ColId="12" Attno="6" ColName="created_by" TypeMdid="0.1700.1.0"/>
+                        <dxl:Column ColId="13" Attno="7" ColName="last_update_login" TypeMdid="0.1700.1.0"/>
+                        <dxl:Column ColId="14" Attno="8" ColName="description" TypeMdid="0.1043.1.0" ColWidth="240"/>
+                        <dxl:Column ColId="15" Attno="9" ColName="source_lang" TypeMdid="0.1043.1.0" ColWidth="4"/>
+                        <dxl:Column ColId="16" Attno="10" ColName="flex_value_meaning" TypeMdid="0.1043.1.0" ColWidth="150"/>
+                        <dxl:Column ColId="17" Attno="11" ColName="legalhold" TypeMdid="0.1043.1.0" ColWidth="5"/>
+                        <dxl:Column ColId="18" Attno="12" ColName="legaldescription" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                        <dxl:Column ColId="19" Attno="13" ColName="dataowner" TypeMdid="0.1043.1.0" ColWidth="255"/>
+                        <dxl:Column ColId="20" Attno="14" ColName="purgedate" TypeMdid="0.1082.1.0"/>
+                        <dxl:Column ColId="21" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                        <dxl:Column ColId="22" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                        <dxl:Column ColId="23" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                      </dxl:Columns>
+                    </dxl:TableDescriptor>
+                  </dxl:TableScan>
+                </dxl:BroadcastMotion>
+                <dxl:Sequence>
+                  <dxl:Properties>
+                    <dxl:Cost StartupCost="0" TotalCost="431.000021" Rows="1.000000" Width="8"/>
+                  </dxl:Properties>
+                  <dxl:ProjList>
+                    <dxl:ProjElem ColId="0" Alias="flex_value_set_id">
+                      <dxl:Ident ColId="0" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
+                    </dxl:ProjElem>
+                    <dxl:ProjElem ColId="1" Alias="flex_value_id">
+                      <dxl:Ident ColId="1" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
+                    </dxl:ProjElem>
+                  </dxl:ProjList>
+                  <dxl:PartitionSelector RelationMdid="0.16959.1.1" PartitionLevels="1" ScanId="1">
+                    <dxl:Properties>
+                      <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
+                    </dxl:Properties>
+                    <dxl:ProjList/>
+                    <dxl:PartEqFilters>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    </dxl:PartEqFilters>
+                    <dxl:PartFilters>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    </dxl:PartFilters>
+                    <dxl:ResidualFilter>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    </dxl:ResidualFilter>
+                    <dxl:PropagationExpression>
+                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                    </dxl:PropagationExpression>
+                    <dxl:PrintableFilter>
+                      <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                    </dxl:PrintableFilter>
+                  </dxl:PartitionSelector>
+                  <dxl:DynamicBitmapTableScan PartIndexId="1">
+                    <dxl:Properties>
+                      <dxl:Cost StartupCost="0" TotalCost="431.000021" Rows="1.000000" Width="8"/>
+                    </dxl:Properties>
+                    <dxl:ProjList>
+                      <dxl:ProjElem ColId="0" Alias="flex_value_set_id">
+                        <dxl:Ident ColId="0" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
+                      </dxl:ProjElem>
+                      <dxl:ProjElem ColId="1" Alias="flex_value_id">
+                        <dxl:Ident ColId="1" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
+                      </dxl:ProjElem>
+                    </dxl:ProjList>
+                    <dxl:Filter/>
+                    <dxl:RecheckCond>
+                      <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1752.1.0">
+                        <dxl:Ident ColId="1" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
+                        <dxl:Ident ColId="7" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
+                      </dxl:Comparison>
+                    </dxl:RecheckCond>
+                    <dxl:BitmapIndexProbe>
+                      <dxl:IndexCondList>
+                        <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.1752.1.0">
+                          <dxl:Ident ColId="1" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
+                          <dxl:Ident ColId="7" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
+                        </dxl:Comparison>
+                      </dxl:IndexCondList>
+                      <dxl:IndexDescriptor Mdid="0.17270.1.0" IndexName="inner_table_idx_1_prt_other"/>
+                    </dxl:BitmapIndexProbe>
+                    <dxl:TableDescriptor Mdid="0.16959.1.1" TableName="inner_table">
+                      <dxl:Columns>
+                        <dxl:Column ColId="0" Attno="1" ColName="flex_value_set_id" TypeMdid="0.1700.1.0"/>
+                        <dxl:Column ColId="1" Attno="2" ColName="flex_value_id" TypeMdid="0.1700.1.0"/>
+                        <dxl:Column ColId="2" Attno="3" ColName="flex_value" TypeMdid="0.1043.1.0" ColWidth="150"/>
+                        <dxl:Column ColId="3" Attno="4" ColName="flex_partition" TypeMdid="0.23.1.0"/>
+                        <dxl:Column ColId="4" Attno="-1" ColName="ctid" TypeMdid="0.27.1.0"/>
+                        <dxl:Column ColId="5" Attno="-7" ColName="tableoid" TypeMdid="0.26.1.0"/>
+                        <dxl:Column ColId="6" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
+                      </dxl:Columns>
+                    </dxl:TableDescriptor>
+                  </dxl:DynamicBitmapTableScan>
+                </dxl:Sequence>
+              </dxl:NestedLoopJoin>
+            </dxl:RedistributeMotion>
+          </dxl:Materialize>
         </dxl:NestedLoopJoin>
       </dxl:GatherMotion>
     </dxl:Plan>

@@ -486,7 +486,7 @@
         </dxl:LogicalProject>
       </dxl:UnionAll>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="7584669188751360">
+    <dxl:Plan Id="0" SpaceSize="7629520121610240">
       <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="54.180489" Rows="2.000000" Width="32"/>

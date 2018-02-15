@@ -358,7 +358,7 @@ SELECT z.*,x.* FROM x,y,z WHERE x.i=y.i AND x.i=z.i;
         </dxl:And>
       </dxl:LogicalJoin>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="1550">
+    <dxl:Plan Id="0" SpaceSize="1618">
       <dxl:HashJoin JoinType="Inner">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="4.390625" Rows="1.000000" Width="32"/>
