@@ -232,7 +232,9 @@ AllocateWriterGang()
 	{
 		if (!GangOK(primaryWriterGang))
 		{
-			elog(ERROR, "could not connect to segment: initialization of segworker group failed");
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
+					 errmsg("could not connect to segment: initialization of segworker group failed")));
 		}
 		else
 		{

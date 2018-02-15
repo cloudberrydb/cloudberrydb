@@ -97,7 +97,7 @@ NOTICE:  Releasing segworker groups to finish aborting the transaction.
 ERROR:  DTM error (gathered results from cmd ' Begin Internal Subtransaction') (cdbtm.c:2040)
 DETAIL:  PANIC for debug_dtm_action = 4, debug_dtm_action_protocol =  Begin Internal Subtransaction (postgres.c:1440)  (seg1 127.0.1.1:25433 pid=24563)
 CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 8 during statement block entry
-ERROR:  could not connect to segment: initialization of segworker group failed (cdbgang.c:235)
+ERROR:  could not connect to segment: initialization of segworker group failed
 select * from employees;
 ERROR:  relation "employees" does not exist
 LINE 1: select * from employees;
@@ -113,9 +113,9 @@ DROP TABLE IF EXISTS employees;
 NOTICE:  table "employees" does not exist, skipping
 select test_protocol_allseg(1, 2,'f');
 NOTICE:  Releasing segworker groups to finish aborting the transaction.
-ERROR:  could not connect to segment: initialization of segworker group failed (cdbgang.c:235)
+ERROR:  could not connect to segment: initialization of segworker group failed
 CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 18 during exception cleanup
-ERROR:  could not connect to segment: initialization of segworker group failed (cdbgang.c:235)
+ERROR:  could not connect to segment: initialization of segworker group failed
 select * from employees;
 ERROR:  relation "employees" does not exist
 LINE 1: select * from employees;
@@ -131,9 +131,9 @@ DROP TABLE IF EXISTS employees;
 NOTICE:  table "employees" does not exist, skipping
 select test_protocol_allseg(1, 2,'f');
 NOTICE:  Releasing segworker groups to finish aborting the transaction.
-ERROR:  could not connect to segment: initialization of segworker group failed (cdbgang.c:235)
+ERROR:  could not connect to segment: initialization of segworker group failed
 CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 18 during exception cleanup
-ERROR:  could not connect to segment: initialization of segworker group failed (cdbgang.c:235)
+ERROR:  could not connect to segment: initialization of segworker group failed
 select * from employees;
 ERROR:  relation "employees" does not exist
 LINE 1: select * from employees;
@@ -149,9 +149,9 @@ DROP TABLE IF EXISTS employees;
 NOTICE:  table "employees" does not exist, skipping
 select test_protocol_allseg(1, 2,'f');
 NOTICE:  Releasing segworker groups to finish aborting the transaction.
-ERROR:  could not connect to segment: initialization of segworker group failed (cdbgang.c:235)
+ERROR:  could not connect to segment: initialization of segworker group failed
 CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 17 during exception cleanup
-ERROR:  could not connect to segment: initialization of segworker group failed (cdbgang.c:235)
+ERROR:  could not connect to segment: initialization of segworker group failed
 select * from employees;
 ERROR:  relation "employees" does not exist
 LINE 1: select * from employees;
@@ -167,9 +167,9 @@ DROP TABLE IF EXISTS employees;
 NOTICE:  table "employees" does not exist, skipping
 select test_protocol_allseg(1, 2,'f');
 NOTICE:  Releasing segworker groups to finish aborting the transaction.
-ERROR:  could not connect to segment: initialization of segworker group failed (cdbgang.c:235)
+ERROR:  could not connect to segment: initialization of segworker group failed
 CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 17 during exception cleanup
-ERROR:  could not connect to segment: initialization of segworker group failed (cdbgang.c:235)
+ERROR:  could not connect to segment: initialization of segworker group failed
 select * from employees;
 ERROR:  relation "employees" does not exist
 LINE 1: select * from employees;
@@ -185,9 +185,9 @@ DROP TABLE IF EXISTS employees;
 NOTICE:  table "employees" does not exist, skipping
 select test_protocol_allseg(1, 2,'f');
 NOTICE:  Releasing segworker groups to finish aborting the transaction.
-ERROR:  could not connect to segment: initialization of segworker group failed (cdbgang.c:235)
+ERROR:  could not connect to segment: initialization of segworker group failed
 CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 17 during exception cleanup
-ERROR:  could not connect to segment: initialization of segworker group failed (cdbgang.c:235)
+ERROR:  could not connect to segment: initialization of segworker group failed
 select * from employees;
 ERROR:  relation "employees" does not exist
 LINE 1: select * from employees;
