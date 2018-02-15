@@ -2269,6 +2269,7 @@ _SPI_pquery(QueryDesc *queryDesc, bool fire_triggers, int64 tcount)
 	{
 		Oid			relationOid = InvalidOid; 	/* relation that is modified */
 		AutoStatsCmdType cmdType = AUTOSTATS_CMDTYPE_SENTINEL; 	/* command type */
+		bool		checkTuples;
 
 		/*
 		 * Temporarily disable gpperfmon since we don't send information for internal queries in
@@ -2282,26 +2283,21 @@ _SPI_pquery(QueryDesc *queryDesc, bool fire_triggers, int64 tcount)
 		ExecutorStart(queryDesc, 0);
 
 		ExecutorRun(queryDesc, ForwardScanDirection, tcount);
-		
-		_SPI_current->processed = queryDesc->estate->es_processed;
-		_SPI_current->lastoid = queryDesc->estate->es_lastoid;
-		
+
+		/*
+		 * In GPDB, in a INSERT/UPDATE/DELETE ... RETURNING statement, the
+		 * es_processed counter is only updated in ExecutorEnd, when we
+		 * collect the results from each segment. Therefore, we cannot
+		 * call _SPI_checktuples() just yet.
+		 */
 		if ((res == SPI_OK_SELECT || queryDesc->plannedstmt->hasReturning) &&
 			queryDesc->dest->mydest == DestSPI)
 		{
-			/*
-			 * only check number tuples if the SPI 64 bit test is NOT running
-			 */
-			if (!FaultInjector_InjectFaultIfSet(ExecutorRunHighProcessed,
-										   DDLNotSpecified,
-										   "" /* databaseName */,
-										   "" /* tableName */))
-			{
-				if (_SPI_checktuples())
-					insist_log(false, "consistency check on SPI tuple count failed");
-			}
+			checkTuples = true;
 		}
-		
+		else
+			checkTuples = false;
+
 		if (!cdbpathlocus_querysegmentcatalogs)
 		{
 			/* Take care of any queued AFTER triggers */
@@ -2314,6 +2310,27 @@ _SPI_pquery(QueryDesc *queryDesc, bool fire_triggers, int64 tcount)
 
 		ExecutorEnd(queryDesc);
 		/* FreeQueryDesc is done by the caller */
+
+		/*
+		 * Now that ExecutorEnd() has run, set # of rows processed (see comment
+		 * above) and call _SPI_checktuples()
+		 */
+		_SPI_current->processed = queryDesc->es_processed;
+		_SPI_current->lastoid = queryDesc->es_lastoid;
+		if (checkTuples)
+		{
+			/*
+			 * only check number tuples if the SPI 64 bit test is NOT running
+			 */
+			if (!FaultInjector_InjectFaultIfSet(ExecutorRunHighProcessed,
+										   DDLNotSpecified,
+										   "" /* databaseName */,
+										   "" /* tableName */))
+			{
+				if (_SPI_checktuples())
+					elog(ERROR, "consistency check on SPI tuple count failed");
+			}
+		}
 
 		gp_enable_gpperfmon = orig_gp_enable_gpperfmon;
 

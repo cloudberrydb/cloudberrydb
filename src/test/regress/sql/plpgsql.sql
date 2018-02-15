@@ -2370,6 +2370,15 @@ declare x record;
 begin
   -- this should work since EXECUTE isn't as picky
   execute 'insert into foo values(7,8),(9,10) returning *' into x;
+-- start_ignore
+ -- In GPDB, since the rows are inserted into different segments, it's
+  -- random which row gets returned to the master first. So in case we get
+  -- the second row first, pretend we got the first one, to make the output
+  -- match the upstream.
+  if x.f1 = 9 and x.f2 = 10 then
+    x.f1 = 7; x.f2 = 8;
+  end if;
+-- end_ignore
   raise notice 'x.f1 = %, x.f2 = %', x.f1, x.f2;
 end$$ language plpgsql;
 

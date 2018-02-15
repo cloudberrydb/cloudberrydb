@@ -184,7 +184,10 @@ static void set_plan_references_input_asserts(PlannerGlobal *glob, Plan *plan, L
 		Assert((var->varno == OUTER
 				|| (var->varno > 0 && var->varno <= list_length(rtable) + list_length(glob->finalrtable)))
 				&& "Plan contains var that refer outside the rtable.");
-		Assert(var->varno == var->varnoold && "Varno and varnoold do not agree!");
+
+		/* ModifyTable plans have a funny target list, set up just for EXPLAIN. */
+		if (!IsA(plan, ModifyTable) && var->varno != var->varnoold)
+			Assert(false && "Varno and varnoold do not agree!");
 
 		/** If a pseudo column, there should be a corresponding entry in the relation */
 		if (var->varattno <= FirstLowInvalidHeapAttributeNumber)

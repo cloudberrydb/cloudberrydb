@@ -90,17 +90,6 @@ static Query *transformDeleteStmt(ParseState *pstate, DeleteStmt *stmt);
 static Query *transformInsertStmt(ParseState *pstate, InsertStmt *stmt);
 static List *transformInsertRow(ParseState *pstate, List *exprlist,
 				   List *stmtcols, List *icolumns, List *attrnos);
-
-/*
- * MPP-2506 [insert/update/delete] RETURNING clause not supported:
- *   We have problems processing the returning clause, so for now we have
- *   simply removed it and replaced it with an error message.
- */
-#define MPP_RETURNING_NOT_SUPPORTED
-#ifndef MPP_RETURNING_NOT_SUPPORTED
-static List *transformReturningList(ParseState *pstate, List *returningList);
-#endif
-
 static Query *transformSelectStmt(ParseState *pstate, SelectStmt *stmt);
 static Query *transformValuesClause(ParseState *pstate, SelectStmt *stmt);
 static Query *transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt);
@@ -116,6 +105,7 @@ static void determineRecursiveColTypes(ParseState *pstate,
 									   Node *larg, List *lcolinfo);
 static void applyColumnNames(List *dst, List *src);
 static Query *transformUpdateStmt(ParseState *pstate, UpdateStmt *stmt);
+static List *transformReturningList(ParseState *pstate, List *returningList);
 static Query *transformDeclareCursorStmt(ParseState *pstate,
 						   DeclareCursorStmt *stmt);
 static Query *transformExplainStmt(ParseState *pstate,
@@ -378,22 +368,7 @@ transformDeleteStmt(ParseState *pstate, DeleteStmt *stmt)
 	qual = transformWhereClause(pstate, stmt->whereClause,
 								EXPR_KIND_WHERE, "WHERE");
 
-	/*
-	 * MPP-2506 [insert/update/delete] RETURNING clause not supported:
-	 *   We have problems processing the returning clause, so for now we have
-	 *   simply removed it and replaced it with an error message.
-	 */
-#ifdef MPP_RETURNING_NOT_SUPPORTED
-	if (stmt->returningList)
-	{
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("The RETURNING clause of the DELETE statement is not "
-						"supported in this version of Greenplum Database.")));
-	}
-#else
 	qry->returningList = transformReturningList(pstate, stmt->returningList);
-#endif
 
 	/* done building the range table and jointree */
 	qry->rtable = pstate->p_rtable;
@@ -733,21 +708,6 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 		attnos = lnext(attnos);
 	}
 
-
-	/*
-	 * MPP-2506 [insert/update/delete] RETURNING clause not supported:
-	 *   We have problems processing the returning clause, so for now we have
-	 *   simply removed it and replaced it with an error message.
-	 */
-#ifdef MPP_RETURNING_NOT_SUPPORTED
-	if (stmt->returningList)
-	{
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("The RETURNING clause of the INSERT statement is not "
-						"supported in this version of Greenplum Database.")));
-	}
-#else
 	/*
 	 * If we have a RETURNING clause, we need to add the target relation to
 	 * the query namespace before processing it, so that Var references in
@@ -763,7 +723,6 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 		qry->returningList = transformReturningList(pstate,
 													stmt->returningList);
 	}
-#endif
 
 	/* done building the range table and jointree */
 	qry->rtable = pstate->p_rtable;
@@ -2815,22 +2774,7 @@ transformUpdateStmt(ParseState *pstate, UpdateStmt *stmt)
 	qual = transformWhereClause(pstate, stmt->whereClause,
 								EXPR_KIND_WHERE, "WHERE");
 
-	/*
-	 * MPP-2506 [insert/update/delete] RETURNING clause not supported:
-	 *   We have problems processing the returning clause, so for now we have
-	 *   simply removed it and replaced it with an error message.
-	 */
-#ifdef MPP_RETURNING_NOT_SUPPORTED
-	if (stmt->returningList)
-	{
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("The RETURNING clause of the UPDATE statement is not "
-						"supported in this version of Greenplum Database.")));
-	}
-#else
 	qry->returningList = transformReturningList(pstate, stmt->returningList);
-#endif
 
     /*
      * CDB: Untyped Const or Param nodes in a subquery in the FROM clause
@@ -2912,13 +2856,6 @@ transformUpdateStmt(ParseState *pstate, UpdateStmt *stmt)
 	return qry;
 }
 
-
-/*
- * MPP-2506 [insert/update/delete] RETURNING clause not supported:
- *   We have problems processing the returning clause, so for now we have
- *   simply removed it and replaced it with an error message.
- */
-#ifndef MPP_RETURNING_NOT_SUPPORTED
 /*
  * transformReturningList -
  *	handle a RETURNING clause in INSERT/UPDATE/DELETE
@@ -2940,6 +2877,8 @@ transformReturningList(ParseState *pstate, List *returningList)
 	 */
 	save_next_resno = pstate->p_next_resno;
 	pstate->p_next_resno = 1;
+
+	length_rtable = list_length(pstate->p_rtable);
 
 	/* transform RETURNING identically to a SELECT targetlist */
 	rlist = transformTargetList(pstate, returningList, EXPR_KIND_RETURNING);
@@ -2971,7 +2910,6 @@ transformReturningList(ParseState *pstate, List *returningList)
 
 	return rlist;
 }
-#endif
 
 
 /*

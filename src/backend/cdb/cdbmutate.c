@@ -228,6 +228,7 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 	GpPolicyType targetPolicyType = POLICYTYPE_ENTRY;
 	ApplyMotionState state;
 	bool		needToAssignDirectDispatchContentIds = false;
+	bool		bringResultToDispatcher = false;
 
 	/* Initialize mutator context. */
 
@@ -262,8 +263,6 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 	switch (query->commandType)
 	{
 		case CMD_SELECT:
-
-
 			if (query->intoClause)
 			{
 				List	   *hashExpr;
@@ -449,47 +448,58 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 			}
 
 			if (plan->flow->flotype == FLOW_PARTITIONED && !query->intoClause)
-			{
-				/*
-				 * Query result needs to be brought back to the QD. Ask for
-				 * motion to a single QE.  Later, apply_motion will override
-				 * that to bring it to the QD instead.
-				 *
-				 * If the query has an ORDER BY clause, use Merge Receive to
-				 * preserve the ordering.
-				 *
-				 * The plan has already been set up to ensure each qExec's
-				 * result is properly ordered according to the ORDER BY
-				 * specification.  The existing ordering could be stronger
-				 * than required; if so, omit the extra trailing columns from
-				 * the Merge Receive key.
-				 *
-				 * An unordered result is ok if the ORDER BY ordering is
-				 * degenerate (on constant exprs) or the result is known to
-				 * have at most one row.
-				 */
-				if (query->sortClause)
-				{
-					Insist(focusPlan(plan, true, false));
-				}
-
-				/* Use UNION RECEIVE.  Does not preserve ordering. */
-				else
-					Insist(focusPlan(plan, false, false));
-			}
+				bringResultToDispatcher = true;
 			needToAssignDirectDispatchContentIds = root->config->gp_enable_direct_dispatch && !query->intoClause;
 			break;
 
 		case CMD_INSERT:
+			if (query->returningList)
+			{
+				bringResultToDispatcher = true;
+			}
 			break;
 
 		case CMD_UPDATE:
 		case CMD_DELETE:
 			needToAssignDirectDispatchContentIds = root->config->gp_enable_direct_dispatch;
+			if (query->returningList)
+			{
+				bringResultToDispatcher = true;
+			}
 			break;
 
 		default:
 			Insist(0);			/* Never see non-DML in here! */
+	}
+
+	if (bringResultToDispatcher)
+	{
+		/*
+		 * Query result needs to be brought back to the QD. Ask for
+		 * motion to a single QE.  Later, apply_motion will override
+		 * that to bring it to the QD instead.
+		 *
+		 * If the query has an ORDER BY clause, use Merge Receive to
+		 * preserve the ordering.
+		 *
+		 * The plan has already been set up to ensure each qExec's
+		 * result is properly ordered according to the ORDER BY
+		 * specification.  The existing ordering could be stronger
+		 * than required; if so, omit the extra trailing columns from
+		 * the Merge Receive key.
+		 *
+		 * An unordered result is ok if the ORDER BY ordering is
+		 * degenerate (on constant exprs) or the result is known to
+		 * have at most one row.
+		 */
+		if (query->sortClause)
+		{
+			Insist(focusPlan(plan, true, false));
+		}
+
+		/* Use UNION RECEIVE.  Does not preserve ordering. */
+		else
+			Insist(focusPlan(plan, false, false));
 	}
 
 	result = (Plan *) apply_motion_mutator((Node *) plan, &state);

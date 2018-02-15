@@ -466,7 +466,9 @@ ChoosePortalStrategy(List *stmts)
 		}
 		/* otherwise, utility command, assumed not canSetTag */
 	}
-	if (nSetTag == 1)
+
+	/* In QE nodes, execute everything as PORTAL_MULTIQUERY. */
+	if (nSetTag == 1 && Gp_role != GP_ROLE_EXECUTE)
 		return PORTAL_ONE_RETURNING;
 
 	/* Else, it's the general case... */

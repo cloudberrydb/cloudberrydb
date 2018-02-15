@@ -3159,9 +3159,12 @@ begin
   raise notice 'x.f1 = %, x.f2 = %', x.f1, x.f2;
 end$$ language plpgsql;
 select footest();
-ERROR:  The RETURNING clause of the INSERT statement is not supported in this version of Greenplum Database.
-CONTEXT:  SQL statement "insert into foo values(5,6) returning *"
-PL/pgSQL function "footest" line 4 at SQL statement
+NOTICE:  x.f1 = 5, x.f2 = 6
+ footest 
+---------
+ 
+(1 row)
+
 create or replace function footest() returns void as $$
 declare x record;
 begin
@@ -3170,9 +3173,8 @@ begin
   raise notice 'x.f1 = %, x.f2 = %', x.f1, x.f2;
 end$$ language plpgsql;
 select footest();
-ERROR:  The RETURNING clause of the INSERT statement is not supported in this version of Greenplum Database.
-CONTEXT:  SQL statement "insert into foo values(7,8),(9,10) returning *"
-PL/pgSQL function "footest" line 4 at SQL statement
+ERROR:  query returned more than one row
+CONTEXT:  PL/pgSQL function "footest" line 4 at SQL statement
 create or replace function footest() returns void as $$
 declare x record;
 begin
@@ -3181,9 +3183,12 @@ begin
   raise notice 'x.f1 = %, x.f2 = %', x.f1, x.f2;
 end$$ language plpgsql;
 select footest();
-ERROR:  The RETURNING clause of the INSERT statement is not supported in this version of Greenplum Database.
-CONTEXT:  SQL statement "insert into foo values(5,6) returning *"
-PL/pgSQL function "footest" line 4 at EXECUTE statement
+NOTICE:  x.f1 = 5, x.f2 = 6
+ footest 
+---------
+ 
+(1 row)
+
 create or replace function footest() returns void as $$
 declare x record;
 begin
@@ -3192,15 +3197,22 @@ begin
   raise notice 'x.f1 = %, x.f2 = %', x.f1, x.f2;
 end$$ language plpgsql;
 select footest();
-ERROR:  The RETURNING clause of the INSERT statement is not supported in this version of Greenplum Database.
-CONTEXT:  SQL statement "insert into foo values(7,8),(9,10) returning *"
-PL/pgSQL function "footest" line 4 at EXECUTE statement
+NOTICE:  x.f1 = 7, x.f2 = 8
+ footest 
+---------
+ 
+(1 row)
+
 select * from foo;
  f1 | f2 
 ----+----
   1 |  2
   3 |  4
-(2 rows)
+  5 |  6
+  5 |  6
+  7 |  8
+  9 | 10
+(6 rows)
 
 create or replace function footest() returns void as $$
 declare x record;
@@ -3234,7 +3246,7 @@ begin
   raise notice 'x.f1 = %, x.f2 = %', x.f1, x.f2;
 end$$ language plpgsql;
 select footest();
-ERROR:  query returned no rows
+ERROR:  query returned more than one row
 CONTEXT:  PL/pgSQL function "footest" line 4 at SQL statement
 create or replace function footest() returns void as $$
 declare x record;
@@ -3268,7 +3280,7 @@ begin
   raise notice 'x.f1 = %, x.f2 = %', x.f1, x.f2;
 end$$ language plpgsql;
 select footest();
-ERROR:  query returned no rows
+ERROR:  query returned more than one row
 CONTEXT:  PL/pgSQL function "footest" line 4 at EXECUTE statement
 drop function footest();
 -- test scrollable cursor support

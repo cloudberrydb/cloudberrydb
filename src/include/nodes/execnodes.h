@@ -670,6 +670,7 @@ struct MotionState;
 
 extern struct MotionState *getMotionState(struct PlanState *ps, int sliceIndex);
 extern int LocallyExecutingSliceIndex(EState *estate);
+extern int PrimaryWriterSliceIndex(EState *estate);
 extern int RootSliceIndex(EState *estate);
 #ifdef USE_ASSERT_CHECKING
 extern void SliceLeafMotionStateAreValid(struct MotionState *ms);

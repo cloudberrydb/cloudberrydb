@@ -98,7 +98,6 @@ static void disconnectAndDestroyAllReaderGangs(bool destroyAllocated);
 static bool isTargetPortal(const char *p1, const char *p2);
 static bool cleanupGang(Gang *gp);
 static void resetSessionForPrimaryGangLoss(void);
-static const char *gangTypeToString(GangType);
 static CdbComponentDatabaseInfo *copyCdbComponentDatabaseInfo(
 							 CdbComponentDatabaseInfo *dbInfo);
 static CdbComponentDatabaseInfo *findDatabaseInfoBySegIndex(
@@ -1765,7 +1764,7 @@ int			gp_pthread_create(pthread_t *thread, void *(*start_routine) (void *),
 	return pthread_err;
 }
 
-static const char *
+const char *
 gangTypeToString(GangType type)
 {
 	const char *ret = "";

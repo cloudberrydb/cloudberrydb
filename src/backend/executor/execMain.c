@@ -562,9 +562,6 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 		if (Gp_role == GP_ROLE_DISPATCH &&
 			queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL)
 		{
-			/* Assign gang descriptions to the root slices of the slice forest. */
-			InitRootSlices(queryDesc);
-
 			if (!(eflags & EXEC_FLAG_EXPLAIN_ONLY))
 			{
 				/*
@@ -4414,6 +4411,7 @@ static bool
 FillSliceTable_walker(Node *node, void *context)
 {
 	FillSliceTable_cxt *cxt = (FillSliceTable_cxt *) context;
+	PlannedStmt *stmt = (PlannedStmt *) cxt->prefix.node;
 	EState	   *estate = cxt->estate;
 	SliceTable *sliceTable = estate->es_sliceTable;
 	int			parentSliceIndex = cxt->currentSliceId;
@@ -4421,6 +4419,66 @@ FillSliceTable_walker(Node *node, void *context)
 
 	if (node == NULL)
 		return false;
+
+	/*
+	 * When we encounter a ModifyTable node, mark the slice it's in as the
+	 * primary writer slice. (There should be only one.)
+	 */
+	if (IsA(node, ModifyTable))
+	{
+		ModifyTable *mt = (ModifyTable *) node;
+
+		if (list_length(mt->resultRelations) > 0)
+		{
+			ListCell   *lc = list_head(mt->resultRelations);
+			int			idx = lfirst_int(lc);
+			Oid			reloid = getrelid(idx, stmt->rtable);
+			GpPolicyType policyType;
+
+			policyType = GpPolicyFetch(CurrentMemoryContext, reloid)->ptype;
+
+#ifdef USE_ASSERT_CHECKING
+			{
+				lc = lc->next;
+				for (; lc != NULL; lc = lnext(lc))
+				{
+					idx = lfirst_int(lc);
+					reloid = getrelid(idx, stmt->rtable);
+
+					if (policyType != GpPolicyFetch(CurrentMemoryContext, reloid)->ptype)
+						elog(ERROR, "ModifyTable mixes distributed and entry-only tables");
+
+				}
+			}
+#endif
+
+			if (policyType != POLICYTYPE_ENTRY)
+			{
+				Slice	   *currentSlice = (Slice *) list_nth(sliceTable->slices, cxt->currentSliceId);
+
+				currentSlice->gangType = GANGTYPE_PRIMARY_WRITER;
+				currentSlice->gangSize = getgpsegmentCount();
+			}
+		}
+	}
+	/* A DML node is the same as a ModifyTable node, in ORCA plans. */
+	if (IsA(node, DML))
+	{
+		DML		   *dml = (DML *) node;
+		int			idx = dml->scanrelid;
+		Oid			reloid = getrelid(idx, stmt->rtable);
+		GpPolicyType policyType;
+
+		policyType = GpPolicyFetch(CurrentMemoryContext, reloid)->ptype;
+
+		if (policyType != POLICYTYPE_ENTRY)
+		{
+			Slice	   *currentSlice = (Slice *) list_nth(sliceTable->slices, cxt->currentSliceId);
+
+			currentSlice->gangType = GANGTYPE_PRIMARY_WRITER;
+			currentSlice->gangSize = getgpsegmentCount();
+		}
+	}
 
 	if (IsA(node, Motion))
 	{
@@ -4508,10 +4566,22 @@ static void
 FillSliceTable(EState *estate, PlannedStmt *stmt)
 {
 	FillSliceTable_cxt cxt;
+	SliceTable *sliceTable = estate->es_sliceTable;
+
+	if (!sliceTable)
+		return;
 
 	cxt.prefix.node = (Node *) stmt;
 	cxt.estate = estate;
 	cxt.currentSliceId = 0;
+
+	if (stmt->intoClause)
+	{
+		Slice	   *currentSlice = (Slice *) linitial(sliceTable->slices);
+
+		currentSlice->gangType = GANGTYPE_PRIMARY_WRITER;
+		currentSlice->gangSize = getgpsegmentCount();
+	}
 
 	/*
 	 * NOTE: We depend on plan_tree_walker() to recurse into subplans of

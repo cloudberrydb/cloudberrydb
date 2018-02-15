@@ -1788,8 +1788,6 @@ sliceCalculateNumSendingProcesses(Slice *slice)
 			return 1; /* on segment */
 
 		case GANGTYPE_PRIMARY_WRITER:
-			return 0; /* writers don't send */
-
 		case GANGTYPE_PRIMARY_READER:
 			if (slice->directDispatch.isDirectDispatch)
 				return list_length(slice->directDispatch.contentIds);
@@ -1799,86 +1797,6 @@ sliceCalculateNumSendingProcesses(Slice *slice)
 		default:
 			Insist(false);
 			return -1;
-	}
-}
-
-/* Assign gang descriptions to the root slices of the slice forest.
- *
- * The root slices of initPlan slice trees will always run on the QD,
- * which, for the time being, we represent as
- *
- *	  (gangType, gangSize) = <GANGTYPE_UNALLOCATED, 0>.
- *
- * The root slice of the main plan wil run on the QD in case it's a
- * SELECT,	but will run on QE(s) in case it's an INSERT, UPDATE, or
- * DELETE. Because we restrict UPDATE and DELETE to have no motions
- * (i.e., one slice) and because INSERT must always route tuples,
- * the assigment for these will be primary and mirror writer gangs,
- * which we represent as
- *
- *	  (gangType, gangSize) =  <GANGTYPE_PRIMARY_WRITER, N>
- */
-void
-InitRootSlices(QueryDesc *queryDesc)
-{
-	EState	   *estate = queryDesc->estate;
-	SliceTable *sliceTable = estate->es_sliceTable;
-	ListCell   *cell;
-	Slice	   *slice;
-	int			i;
-
-	foreach(cell, sliceTable->slices)
-	{
-		slice = (Slice *) lfirst(cell);
-		i = slice->sliceIndex;
-		if (i == 0)
-		{
-			/* Main plan root slice */
-			switch (queryDesc->operation)
-			{
-				case CMD_SELECT:
-					Assert(slice->gangType == GANGTYPE_UNALLOCATED && slice->gangSize == 0);
-					if (queryDesc->plannedstmt->intoClause != NULL)
-					{
-						slice->gangType = GANGTYPE_PRIMARY_WRITER;
-						slice->gangSize = getgpsegmentCount();
-						slice->numGangMembersToBeActive = sliceCalculateNumSendingProcesses(slice);
-					}
-					break;
-
-				case CMD_INSERT:
-				case CMD_UPDATE:
-				case CMD_DELETE:
-				{
-					/* if updating a master-only table: do not dispatch to segments */
-					List *resultRelations = queryDesc->plannedstmt->resultRelations;
-					Assert(list_length(resultRelations) > 0);
-					int idx = list_nth_int(resultRelations, 0);
-					Assert (idx > 0);
-					Oid reloid = getrelid(idx, queryDesc->plannedstmt->rtable);
-					if (GpPolicyFetch(CurrentMemoryContext, reloid)->ptype != POLICYTYPE_ENTRY)
-					{
-						slice->gangType = GANGTYPE_PRIMARY_WRITER;
-						slice->gangSize = getgpsegmentCount();
-						slice->numGangMembersToBeActive = sliceCalculateNumSendingProcesses(slice);
-			        }
-			        /* else: result relation is master-only, so top slice should run on the QD and not be dispatched */
-					break;
-				}
-				default:
-					Assert(FALSE);
-			}
-		}
-		if (i <= sliceTable->nMotions)
-		{
-			/* Non-root slice */
-			continue;
-		}
-		else
-		{
-			/* InitPlan root slice */
-			Assert(slice->gangType == GANGTYPE_UNALLOCATED && slice->gangSize == 0);
-		}
 	}
 }
 
@@ -1914,7 +1832,7 @@ static void AssociateSlicesToProcesses(Slice ** sliceMap, int sliceIndex, SliceR
  *
  * On entry, the slice table (at queryDesc->estate->es_sliceTable) has
  * the correct structure (established by InitSliceTable) and has correct
- * gang types (established by function InitRootSlices).
+ * gang types (established by function FillSliceTable).
  *
  * Gang assignment involves taking an inventory of the requirements of
  * each slice tree in the slice table, asking the executor factory to
@@ -2152,12 +2070,14 @@ AssociateSlicesToProcesses(Slice ** sliceMap, int sliceIndex, SliceReq * req)
 
 		case GANGTYPE_PRIMARY_WRITER:
 			Assert(slice->gangSize == getgpsegmentCount());
-			Assert(req->numNgangs > 0 && req->nxtNgang == 0 && req->writer);
+			Assert(req->numNgangs > 0 && req->writer);
 			Assert(req->vecNgangs[0] != NULL);
 
 			slice->primaryGang = req->vecNgangs[req->nxtNgang++];
 			Assert(slice->primaryGang != NULL);
-			slice->primaryProcesses = getCdbProcessList(slice->primaryGang, slice->sliceIndex, &slice->directDispatch);
+			slice->primaryProcesses = getCdbProcessList(slice->primaryGang,
+														slice->sliceIndex,
+														&slice->directDispatch);
 			break;
 
 		case GANGTYPE_SINGLETON_READER:
@@ -2290,12 +2210,13 @@ void mppExecutorFinishup(QueryDesc *queryDesc)
 		CdbCheckDispatchResult(estate->dispatcherState, waitMode);
 
 		/* If top slice was delegated to QEs, get num of rows processed. */
-		if (sliceRunsOnQE(currentSlice))
+		int primaryWriterSliceIndex = PrimaryWriterSliceIndex(estate);
+		//if (sliceRunsOnQE(currentSlice))
 		{
 			estate->es_processed +=
-				cdbdisp_sumCmdTuples(pr, LocallyExecutingSliceIndex(estate));
+				cdbdisp_sumCmdTuples(pr, primaryWriterSliceIndex);
 			estate->es_lastoid =
-				cdbdisp_maxLastOid(pr, LocallyExecutingSliceIndex(estate));
+				cdbdisp_maxLastOid(pr, primaryWriterSliceIndex);
 			aopartcounts = cdbdisp_sumAoPartTupCount(estate->es_result_partitions, pr);
 		}
 
@@ -2874,6 +2795,29 @@ int LocallyExecutingSliceIndex(EState *estate)
 {
 	Assert(estate);
 	return (!estate->es_sliceTable ? 0 : estate->es_sliceTable->localSlice);
+}
+
+/**
+ * Provide index of slice being executed on the primary writer gang
+ */
+int PrimaryWriterSliceIndex(EState *estate)
+{
+	ListCell   *lc;
+
+	Assert(estate);
+
+	if (!estate->es_sliceTable)
+		return 0;
+
+	foreach (lc, estate->es_sliceTable->slices)
+	{
+		Slice	   *slice = (Slice *) lfirst(lc);
+
+		if (slice->gangType == GANGTYPE_PRIMARY_WRITER)
+			return slice->sliceIndex;
+	}
+
+	return 0;
 }
 
 /**

@@ -886,7 +886,7 @@ ExecInitMotion(Motion * node, EState *estate, int eflags)
 			if (recvSlice->sliceIndex == recvSlice->rootIndex)
 			{
 				motionstate->mstype = MOTIONSTATE_RECV; 
-				Assert(recvSlice->gangType == GANGTYPE_UNALLOCATED);
+				Assert(recvSlice->gangType == GANGTYPE_UNALLOCATED || recvSlice->gangType == GANGTYPE_PRIMARY_WRITER);
 			}
 			else
 			{

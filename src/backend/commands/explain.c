@@ -39,6 +39,8 @@
 #include "utils/snapmgr.h"
 #include "utils/xml.h"
 
+#include "cdb/cdbgang.h"
+
 #ifdef USE_ORCA
 extern char *SzDXLPlan(Query *parse);
 extern const char *OptVersion();
@@ -797,6 +799,7 @@ show_dispatch_info(Slice *slice, ExplainState *es)
 	{
 		ExplainPropertyInteger("Slice", slice->sliceIndex, es);
 		ExplainPropertyInteger("Segments", segments, es);
+		ExplainPropertyText("Gang Type", gangTypeToString(slice->gangType), es);
 	}
 }
 
