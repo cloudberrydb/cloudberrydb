@@ -942,7 +942,7 @@ NEXT 10 ROWS ONLY; </codeblock><p>Greenplum
             <row>
               <entry colname="col1"><codeph>UPDATE</codeph></entry>
               <entry colname="col2">YES</entry>
-              <entry colname="col3"><b>Limitations:</b></p><p><codeph>SET</codeph>
+              <entry colname="col3"><b>Limitations:</b><p><codeph>SET</codeph>
                   not allowed for Greenplum distribution key columns.</p></entry>
             </row>
             <row>
