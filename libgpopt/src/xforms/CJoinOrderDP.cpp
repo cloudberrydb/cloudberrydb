@@ -190,7 +190,8 @@ CJoinOrderDP::AddJoinOrder
 	GPOS_ASSERT(NULL != pexprJoin);
 	GPOS_ASSERT(NULL != m_pdrgpexprTopKOrders);
 
-	const ULONG ulResults = m_pdrgpexprTopKOrders->UlLength();
+	// length of the array will not be more than 10
+	INT ulResults = m_pdrgpexprTopKOrders->UlLength();
 	INT iReplacePos = -1;
 	BOOL fAddJoinOrder = false;
 	if (ulResults < GPOPT_DP_JOIN_ORDERING_TOPK)
@@ -200,16 +201,18 @@ CJoinOrderDP::AddJoinOrder
 	}
 	else
 	{
+		CDouble dmaxCost = 0.0;
 		// we have stored K expressions, evict worst expression
-		for (ULONG ul = 0; !fAddJoinOrder && ul < ulResults; ul++)
+		for (INT ul = 0; ul < ulResults; ul++)
 		{
 			CExpression *pexpr = (*m_pdrgpexprTopKOrders)[ul];
 			CDouble *pd = m_phmexprcost->PtLookup(pexpr);
 			GPOS_ASSERT(NULL != pd);
 
-			if (dCost < *pd)
+			if (dmaxCost < *pd && dCost < *pd)
 			{
 				// found a worse expression
+				dmaxCost = *pd;
 				fAddJoinOrder = true;
 				iReplacePos = ul;
 			}
