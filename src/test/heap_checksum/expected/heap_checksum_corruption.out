@@ -103,6 +103,14 @@ SHOW data_checksums;
  on
 (1 row)
 
+-- skip FTS probes always
+SELECT gp_inject_fault('fts_probe', 'skip', '', '', '', -1, 0, 1);
+NOTICE:  Success:
+ gp_inject_fault 
+-----------------
+ t
+(1 row)
+
 --  Corrupt a heap table
 create table corrupt_table(a int);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
@@ -318,3 +326,11 @@ NOTICE:  Success:
 reset search_path;
 DROP SCHEMA corrupt_heap_checksum CASCADE;
 NOTICE:  drop cascades to 13 other objects
+-- resume fts
+SELECT gp_inject_fault('fts_probe', 'reset', '', '', '', -1, 0, 1);
+NOTICE:  Success:
+ gp_inject_fault 
+-----------------
+ t
+(1 row)
+
