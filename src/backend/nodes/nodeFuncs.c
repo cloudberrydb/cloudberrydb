@@ -1365,14 +1365,6 @@ expression_tree_walker(Node *node,
 					return true;
 			}
 			break;
-			/* GPDB_84_MERGE_FIXME: I suspect we don't need this anymore. Remove if everything
-			 * works
-			 */
-#if 0
-		case T_IntList:
-			/* do nothing */
-			break;
-#endif
 		case T_FromExpr:
 			{
 				FromExpr   *from = (FromExpr *) node;
