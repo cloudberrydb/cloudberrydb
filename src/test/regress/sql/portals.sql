@@ -345,8 +345,6 @@ ROLLBACK;
 SELECT f1, f2 FROM uctest;
 
 -- Check inheritance cases
--- GPDB_84_MERGE_FIXME: This notice is being produced by our version of
--- GPDB,we assume it is correct.
 CREATE TEMP TABLE ucchild () inherits (uctest);
 INSERT INTO ucchild values(100, 'hundred');
 SELECT f1, f2 FROM uctest;
