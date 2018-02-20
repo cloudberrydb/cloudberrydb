@@ -612,13 +612,6 @@ set_append_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
 	}
 
 	/*
-	 * GPDB_84_MERGE_FIXME: review the estimation math here; 8.4 changed the
-	 * logic around. In particular, we capped the minimum parent_rows at 1,
-	 * whereas upstream will divide by any positive number. We also set
-	 * rel->width to width_avg if the parent_rows are zero, whereas upstream
-	 * sets it to zero.
-	 */
-	/*
 	 * Save the finished size estimates.
 	 */
 	rel->rows = parent_rows;
@@ -639,9 +632,6 @@ set_append_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
 	else if (list_length(subpaths) == 1)
 		rel->onerow = ((Path *) linitial(subpaths))->parent->onerow;
 
-	/*
-	 * GPDB_84_MERGE_FIXME: ensure that this rel->tuples count works for us.
-	 */
 	/*
 	 * Set "raw tuples" count equal to "rows" for the appendrel; needed
 	 * because some places assume rel->tuples is valid for any baserel.
