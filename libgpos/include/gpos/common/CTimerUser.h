@@ -35,9 +35,7 @@ namespace gpos
 
 			// ctor
 			CTimerUser()
-			{
-				Restart();
-			}
+			{}
 
 			// retrieve elapsed user time in micro-seconds
 			virtual

@@ -556,7 +556,12 @@ CMDAccessor::Pimdobj
 	IMDId *pmdid
 	)
 {
+	BOOL fPrintOptStats = GPOS_FTRACE(EopttracePrintOptimizationStatistics);
 	CTimerUser timerLookup; // timer to measure lookup time
+	if (fPrintOptStats)
+	{
+		timerLookup.Restart();
+	}
 
 	const IMDCacheObject *pimdobj = NULL;
 
@@ -587,7 +592,11 @@ CMDAccessor::Pimdobj
 		if (NULL == pmdobjNew)
 		{
 			// object not found in MD cache: retrieve it from MD provider
-			CTimerUser timerFetch;  // timer to measure fetch time
+			CTimerUser timerFetch;
+			if (fPrintOptStats)
+			{
+				timerFetch.Restart();
+			}
 			CAutoP<CWStringBase> a_pstr;
 			a_pstr = pmdp->PstrObject(m_pmp, this, pmdid);
 			
@@ -603,7 +612,7 @@ CMDAccessor::Pimdobj
 			pmdobjNew = gpdxl::CDXLUtils::PimdobjParseDXL(pmp, a_pstr.Pt(), NULL /* XSD path */);
 			GPOS_ASSERT(NULL != pmdobjNew);
 
-			if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
+			if (fPrintOptStats)
 			{
 				// add fetch time in msec
 				CDouble dFetch(timerFetch.UlElapsedUS() / CDouble(GPOS_USEC_IN_MSEC));
@@ -671,7 +680,7 @@ CMDAccessor::Pimdobj
 	pimdobj = pmdaccelem->Pimdobj();
 	GPOS_ASSERT(NULL != pimdobj);
 	
-	if (GPOS_FTRACE(EopttracePrintOptimizationStatistics))
+	if (fPrintOptStats)
 	{
 		// add lookup time in msec
 		CDouble dLookup(timerLookup.UlElapsedUS() / CDouble(GPOS_USEC_IN_MSEC));
