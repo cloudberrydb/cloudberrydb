@@ -3147,6 +3147,18 @@ CTranslatorDXLToExpr::PexprAggFunc
 		// translate function arguments
 		DrgPexpr *pdrgpexprArgs = PdrgpexprChildren(pdxlnAggref);
 
+		// check if the arguments have set returning functions, if so raise an exception
+		for (ULONG ul = 0; ul < pdrgpexprArgs->UlLength(); ul++)
+		{
+			CExpression *pexprAggrefChild = (*pdrgpexprArgs)[ul];
+			CDrvdPropScalar *pdpScalar = CDrvdPropScalar::Pdpscalar(pexprAggrefChild->PdpDerive());
+
+			if (pdpScalar->FHasNonScalarFunction())
+			{
+				GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp, GPOS_WSZ_LIT("Aggregate function with set returning attributes"));
+			}
+		}
+
 		pexprAggFunc= GPOS_NEW(m_pmp) CExpression(m_pmp, popScAggFunc, pdrgpexprArgs);
 	}
 	else
