@@ -3463,9 +3463,9 @@ CUtils::UlCountOperator
 	return ulOpCnt;
 }
 
-// return the max prefix of hashable columns for the given columns
+// return the max subset of redistributable columns for the given columns
 DrgPcr *
-CUtils::PdrgpcrHashablePrefix
+CUtils::PdrgpcrRedistributableSubset
 	(
 	IMemoryPool *pmp,
 	DrgPcr *pdrgpcr
@@ -3474,46 +3474,19 @@ CUtils::PdrgpcrHashablePrefix
 	GPOS_ASSERT(NULL != pdrgpcr);
 	GPOS_ASSERT(0 < pdrgpcr->UlLength());
 
-	DrgPcr *pdrgpcrHashable = GPOS_NEW(pmp) DrgPcr (pmp);
+	DrgPcr *pdrgpcrRedist = GPOS_NEW(pmp) DrgPcr(pmp);
 	const ULONG ulSize = pdrgpcr->UlLength();
 	for (ULONG ul = 0; ul < ulSize; ul++)
 	{
 		CColRef *pcr = (*pdrgpcr)[ul];
 		const IMDType *pmdtype = pcr->Pmdtype();
-		if (!pmdtype->FHashable())
+		if (pmdtype->FRedistributable())
 		{
-			return pdrgpcrHashable;
-		}
-		pdrgpcrHashable->Append(pcr);
-	}
-
-	return pdrgpcrHashable;
-}
-
-// return the max subset of hashable columns for the given columns
-DrgPcr *
-CUtils::PdrgpcrHashableSubset
-	(
-	IMemoryPool *pmp,
-	DrgPcr *pdrgpcr
-	)
-{
-	GPOS_ASSERT(NULL != pdrgpcr);
-	GPOS_ASSERT(0 < pdrgpcr->UlLength());
-
-	DrgPcr *pdrgpcrHashable = GPOS_NEW(pmp) DrgPcr(pmp);
-	const ULONG ulSize = pdrgpcr->UlLength();
-	for (ULONG ul = 0; ul < ulSize; ul++)
-	{
-		CColRef *pcr = (*pdrgpcr)[ul];
-		const IMDType *pmdtype = pcr->Pmdtype();
-		if (pmdtype->FHashable())
-		{
-			pdrgpcrHashable->Append(pcr);
+			pdrgpcrRedist->Append(pcr);
 		}
 	}
 
-	return pdrgpcrHashable;
+	return pdrgpcrRedist;
 }
 
 // check if hashing is possible for the given columns

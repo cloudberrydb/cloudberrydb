@@ -475,7 +475,7 @@ CDistributionSpecHashed::PdshashedMaximal
 	GPOS_ASSERT(NULL != pdrgpcr);
 	GPOS_ASSERT(0 < pdrgpcr->UlLength());
 
-	DrgPcr *pdrgpcrHashable = CUtils::PdrgpcrHashableSubset(pmp, pdrgpcr);
+	DrgPcr *pdrgpcrHashable = CUtils::PdrgpcrRedistributableSubset(pmp, pdrgpcr);
 	CDistributionSpecHashed *pdshashed = NULL;
 	if (0 < pdrgpcrHashable->UlLength())
 	{

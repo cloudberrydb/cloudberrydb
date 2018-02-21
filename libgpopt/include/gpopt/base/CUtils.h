@@ -836,13 +836,9 @@ namespace gpopt
 			static
 			ULONG UlCountOperator(const CExpression *pexpr, COperator::EOperatorId eopid);
 
-			// return the max prefix of hashable columns for the given columns
+			// return the max subset of redistributable columns for the given columns
 			static
-			DrgPcr *PdrgpcrHashablePrefix(IMemoryPool *pmp, DrgPcr *pdrgpcr);
-
-			// return the max subset of hashable columns for the given columns
-			static
-			DrgPcr *PdrgpcrHashableSubset(IMemoryPool *pmp, DrgPcr *pdrgpcr);
+			DrgPcr *PdrgpcrRedistributableSubset(IMemoryPool *pmp, DrgPcr *pdrgpcr);
 
 			// check if hashing is possible for the given columns
 			static

@@ -215,7 +215,10 @@ MotionHazard-NoMaterializeSortUnderResult  MotionHazard-NoMaterializeGatherUnder
 MotionHazard-NoMaterializeHashAggUnderResult;
 
 CConstraintNegationTest:
-AggregatesConstraintDeriveNegation CTEConstraintDeriveNegation
+AggregatesConstraintDeriveNegation CTEConstraintDeriveNegation;
+
+CNonRedistributableColTest:
+JOIN-NonRedistributableCol DQA-NonRedistributableCol
 ")
 
 set(mdp_dir "../data/dxl/minidump/")
