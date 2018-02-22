@@ -1588,6 +1588,21 @@ explain select string_agg(a) from mpp14125 group by b;
 (10 rows)
 
 -- end MPP-14125
+-- Test unsupported ORCA feature: agg(set returning function)
+CREATE TABLE tbl_agg_srf (foo int[]) DISTRIBUTED RANDOMLY;
+INSERT INTO tbl_agg_srf VALUES (array[1,2,3]);
+EXPLAIN SELECT count(unnest(foo)) FROM tbl_agg_srf;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Aggregate  (cost=1.09..1.10 rows=1 width=8)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=1.02..1.07 rows=1 width=8)
+         ->  Aggregate  (cost=1.02..1.03 rows=1 width=8)
+               ->  Seq Scan on tbl_agg_srf  (cost=0.00..1.01 rows=1 width=33)
+ Optimizer: legacy query optimizer
+(5 rows)
+
+SELECT count(unnest(foo)) FROM tbl_agg_srf;
+ERROR:  set-valued function called in context that cannot accept a set  (seg1 slice1 127.0.0.1:25433 pid=43559)
 -- CLEANUP
 set client_min_messages='warning';
 drop schema bfv_aggregate cascade;

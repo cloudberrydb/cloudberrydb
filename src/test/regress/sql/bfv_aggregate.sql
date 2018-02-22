@@ -1390,6 +1390,12 @@ select array_agg(a order by b desc nulls last) from aggordertest;
 create temp table mpp14125 as select repeat('a', a) a, a % 10 b from generate_series(1, 100)a;
 explain select string_agg(a) from mpp14125 group by b;
 -- end MPP-14125
+
+-- Test unsupported ORCA feature: agg(set returning function)
+CREATE TABLE tbl_agg_srf (foo int[]) DISTRIBUTED RANDOMLY;
+INSERT INTO tbl_agg_srf VALUES (array[1,2,3]);
+EXPLAIN SELECT count(unnest(foo)) FROM tbl_agg_srf;
+SELECT count(unnest(foo)) FROM tbl_agg_srf;
 -- CLEANUP
 set client_min_messages='warning';
 drop schema bfv_aggregate cascade;
