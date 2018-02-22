@@ -604,7 +604,7 @@ typedef enum SubLinkType
 	EXPR_SUBLINK,
 	ARRAY_SUBLINK,
 	CTE_SUBLINK,				/* for SubPlans only */
-	NOT_EXISTS_SUBLINK   /* GPDB_84_MERGE_FIXME: Does ORCA really need this? */
+	NOT_EXISTS_SUBLINK /* GPORCA uses NOT_EXIST_SUBLINK to implement correlated left anti semijoin. */
 } SubLinkType;
 
 
