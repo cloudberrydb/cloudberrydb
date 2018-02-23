@@ -40,9 +40,14 @@ CLogicalSelect::CLogicalSelect
 	)
 	:
 	CLogicalUnary(pmp)
-{}
+{
+	m_phmPexprPartPred = GPOS_NEW(pmp) HMPexprPartPred(pmp);
+}
 
-	
+CLogicalSelect::~CLogicalSelect()
+{
+	m_phmPexprPartPred->Release();
+}
 //---------------------------------------------------------------------------
 //	@function:
 //		CLogicalSelect::PcrsDeriveOutput
@@ -192,14 +197,25 @@ CLogicalSelect::PstatsDerive
 	return pstats;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CLogicalSelect::PexprPartPred
+// compute partition predicate to pass down to n-th child.
+// given an input scalar expression, find out the predicate
+// in the scalar expression which is used for partitioning
 //
-//	@doc:
-//		Compute partition predicate to pass down to n-th child
+// Input Expr:
+//	+--CScalarBoolOp (EboolopAnd)
+//	|--CScalarArrayCmp Any (=)
+//	|  |--CScalarIdent "risk_set_row_id" (2)
+//	|  +--CScalarArray: {eleMDId: (23,1.0), arrayMDId: (1007,1.0) CScalarConst (32) CScalarConst (33) CScalarConst (43) CScalarConst (9) CScalarConst (10) CScalarConst (15) CScalarConst (16) CScalarConst (36) CScalarConst (11) CScalarConst (50) CScalarConst (46) CScalarConst (356) CScalarConst (468) CScalarConst (42)}
+//	+--CScalarCmp (=)
+//	|--CScalarIdent "value_date" (0)
+//	+--CScalarConst (559094400000000.000)
 //
-//---------------------------------------------------------------------------
+// Let's say the partition key is on value_date, then the extracted
+// predicate is as below:
+// Output Expr:
+//	+--CScalarCmp (=)
+//	|--CScalarIdent "value_date" (0)
+//	+--CScalarConst (559094400000000.000)
 CExpression *
 CLogicalSelect::PexprPartPred
 	(
@@ -237,7 +253,14 @@ CLogicalSelect::PexprPartPred
 		return NULL;
 	}
 
-	CExpression *pexprPredOnPartKey = NULL;
+	// check if a corresponding predicate has already been cached
+	CExpression *pexprPredOnPartKey = m_phmPexprPartPred->PtLookup(pexprScalar);
+	if (pexprPredOnPartKey != NULL)
+	{
+		// predicate on partition key found in cache
+		pexprPredOnPartKey->AddRef();
+		return pexprPredOnPartKey;
+	}
 
 	DrgPpartkeys *pdrgppartkeys = ppartinfo->Pdrgppartkeys(0 /*ulPos*/);
 	const ULONG ulKeySets = pdrgppartkeys->UlLength();
@@ -251,6 +274,15 @@ CLogicalSelect::PexprPartPred
 												NULL, //pcrsAllowedRefs
 												true //fUseConstraints
 												);
+	}
+
+	if (pexprPredOnPartKey != NULL)
+	{
+		// insert the scalar expression and the corresponding partitioning predicate
+		// in the hashmap
+		pexprPredOnPartKey->AddRef();
+		pexprScalar->AddRef();
+		m_phmPexprPartPred->FInsert(pexprScalar, pexprPredOnPartKey);
 	}
 
 	return pexprPredOnPartKey;

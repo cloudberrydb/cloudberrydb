@@ -19,6 +19,9 @@
 namespace gpopt
 {
 
+	typedef CHashMap<CExpression, CExpression, CExpression::UlHash, CUtils::FEqual,
+		CleanupRelease<CExpression>, CleanupRelease<CExpression> > HMPexprPartPred;
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CLogicalSelect
@@ -34,6 +37,8 @@ namespace gpopt
 			// private copy ctor
 			CLogicalSelect(const CLogicalSelect &);
 
+			HMPexprPartPred *m_phmPexprPartPred;
+
 		public:
 
 			// ctor
@@ -42,8 +47,7 @@ namespace gpopt
 
 			// dtor
 			virtual
-			~CLogicalSelect()
-			{}
+			~CLogicalSelect();
 
 			// ident accessors
 			virtual 
