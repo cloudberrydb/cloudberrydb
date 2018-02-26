@@ -900,6 +900,12 @@ def quote(a):
     """
     return "'"+a.replace("'","''").replace('\\','\\\\')+"'"
 
+def quote_no_slash(a):
+    """
+    SQLify a string
+    """
+    return "'"+a.replace("'","''")+"'"
+
 def splitPgpassLine(a):
     """
     If the user has specified a .pgpass file, we'll have to parse it. We simply
@@ -2186,11 +2192,11 @@ class gpload:
         nullas = self.getconfig('gpload:input:null_as', unicode, False)
         self.log(self.DEBUG, "null " + unicode(nullas))
         if nullas != False: # could be empty string
-            self.formatOpts += "null %s " % quote(nullas)
+            self.formatOpts += "null %s " % quote_no_slash(nullas)
         elif formatType=='csv':
             self.formatOpts += "null '' "
         else:
-            self.formatOpts += "null %s " % quote("\N")
+            self.formatOpts += "null %s " % quote_no_slash("\N")
 
 
         esc = self.getconfig('gpload:input:escape', None, None)
