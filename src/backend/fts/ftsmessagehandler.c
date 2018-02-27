@@ -17,6 +17,7 @@
 #include "libpq/libpq.h"
 #include "postmaster/fts.h"
 #include "postmaster/postmaster.h"
+#include "utils/faultinjector.h"
 #include "utils/guc.h"
 #include "replication/gp_replication.h"
 #include "storage/fd.h"
