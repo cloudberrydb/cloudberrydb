@@ -87,6 +87,7 @@ CParseHandlerHint::StartElement
 	ULONG ulArrayExpansionThreshold = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenArrayExpansionThreshold, EdxltokenHint, true, INT_MAX);
 	ULONG ulJoinOrderDPThreshold = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenJoinOrderDPThreshold, EdxltokenHint, true, JOIN_ORDER_DP_THRESHOLD);
 	ULONG ulBroadcastThreshold = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenBroadcastThreshold, EdxltokenHint, true, BROADCAST_THRESHOLD);
+	ULONG ulNestLoopFactor = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenNestloopFactor, EdxltokenHint, true, NESTLOOP_FACTOR);
 	ULONG fEnforceConstraintsOnDML = CDXLOperatorFactory::FValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenEnforceConstraintsOnDML, EdxltokenHint, true, true);
 
 	m_phint = GPOS_NEW(m_pmp) CHint
@@ -96,6 +97,7 @@ CParseHandlerHint::StartElement
 								ulArrayExpansionThreshold,
 								ulJoinOrderDPThreshold,
 								ulBroadcastThreshold,
+								ulNestLoopFactor,
 								fEnforceConstraintsOnDML
 								);
 }
