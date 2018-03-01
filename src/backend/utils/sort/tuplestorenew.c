@@ -81,23 +81,97 @@ static inline void nts_page_set_dirty(NTupleStorePage *page, bool dirty)
 #define NTS_ALLIGN8(n) (((n)+7) & (~7)) 
 
 /* page stuff.  Note slot grow desc, so the minus array index stuff. */
-static inline long nts_page_blockn(NTupleStorePage *page) { return page->header.blockn; }
-static inline void nts_page_set_blockn(NTupleStorePage *page, long blockn) { page->header.blockn = blockn; }
-static inline NTupleStorePage *nts_page_prev(NTupleStorePage *page) { return (NTupleStorePage *) page->header.prev_1; }
-static inline void nts_page_set_prev(NTupleStorePage *page, NTupleStorePage* prev) { page->header.prev_1 = (void *) prev; }
-static inline NTupleStorePage *nts_page_next(NTupleStorePage *page) { return (NTupleStorePage *) page->header.next_1; }
-static inline void nts_page_set_next(NTupleStorePage *page, NTupleStorePage *next) { page->header.next_1 = (void *) next; }
-static inline int nts_page_pin_cnt(NTupleStorePage *page) { return page->header.pin_cnt; }
-static inline void nts_page_set_pin_cnt(NTupleStorePage *page, int pc) { page->header.pin_cnt = pc; }
-static inline void nts_page_incr_pin_cnt(NTupleStorePage *page) { ++page->header.pin_cnt; }
-static inline void nts_page_decr_pin_cnt(NTupleStorePage *page) { --page->header.pin_cnt; }
-static inline int nts_page_slot_cnt(NTupleStorePage *page) { return page->header.slot_cnt; }
-static inline void nts_page_set_slot_cnt(NTupleStorePage *page, int sc) { page->header.slot_cnt = sc; }
-static inline void nts_page_incr_slot_cnt(NTupleStorePage *page) { ++page->header.slot_cnt; }
-static inline int nts_page_data_bcnt(NTupleStorePage *page) { return page->header.data_bcnt; }
-static inline void nts_page_set_data_bcnt(NTupleStorePage *page, int bc) { page->header.data_bcnt = bc; }
-static inline int nts_page_first_valid_slotn(NTupleStorePage *page) { return page->header.first_slot; }
-static inline void nts_page_set_first_valid_slotn(NTupleStorePage *page, int fs) { page->header.first_slot = fs; }
+static inline long
+nts_page_blockn(NTupleStorePage *page)
+{
+	return page->header.blockn;
+}
+static inline void
+nts_page_set_blockn(NTupleStorePage *page, long blockn)
+{
+	page->header.blockn = blockn;
+}
+
+static inline NTupleStorePage *
+nts_page_prev(NTupleStorePage *page)
+{
+	return (NTupleStorePage *) page->header.prev_1;
+}
+static inline void
+nts_page_set_prev(NTupleStorePage *page, NTupleStorePage* prev)
+{
+	page->header.prev_1 = (void *) prev;
+}
+
+static inline NTupleStorePage *
+nts_page_next(NTupleStorePage *page)
+{
+	return (NTupleStorePage *) page->header.next_1;
+}
+static inline void
+nts_page_set_next(NTupleStorePage *page, NTupleStorePage *next)
+{
+	page->header.next_1 = (void *) next;
+}
+
+static inline int
+nts_page_pin_cnt(NTupleStorePage *page)
+{
+	return page->header.pin_cnt;
+}
+static inline void
+nts_page_set_pin_cnt(NTupleStorePage *page, int pc)
+{
+	page->header.pin_cnt = pc;
+}
+static inline void
+nts_page_incr_pin_cnt(NTupleStorePage *page)
+{
+	++page->header.pin_cnt;
+}
+static inline void
+nts_page_decr_pin_cnt(NTupleStorePage *page)
+{
+	--page->header.pin_cnt;
+}
+
+static inline int
+nts_page_slot_cnt(NTupleStorePage *page)
+{
+	return page->header.slot_cnt;
+}
+static inline void
+nts_page_set_slot_cnt(NTupleStorePage *page, int sc)
+{
+	page->header.slot_cnt = sc;
+}
+static inline void
+nts_page_incr_slot_cnt(NTupleStorePage *page)
+{
+	++page->header.slot_cnt;
+}
+
+static inline int
+nts_page_data_bcnt(NTupleStorePage *page)
+{
+	return page->header.data_bcnt;
+}
+static inline void
+nts_page_set_data_bcnt(NTupleStorePage *page, int bc)
+{
+	page->header.data_bcnt = bc;
+}
+
+static inline int
+nts_page_first_valid_slotn(NTupleStorePage *page)
+{
+	return page->header.first_slot;
+}
+static inline void
+nts_page_set_first_valid_slotn(NTupleStorePage *page, int fs)
+{
+	page->header.first_slot = fs;
+}
 static inline int nts_page_valid_slot_cnt(NTupleStorePage *page)
 {
 	return nts_page_slot_cnt(page) - nts_page_first_valid_slotn(page);
