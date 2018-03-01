@@ -728,6 +728,58 @@ errfinish(int dummy __attribute__((unused)),...)
 	errno = saved_errno;                /*CDB*/
 }
 
+/*
+ * Finish constructing an error like errfinish(), but instead of throwing it,
+ * return it to the caller as a palloc'd ErrorData object.
+ */
+ErrorData *
+errfinish_and_return(int dummy __attribute__((unused)),...)
+{
+	ErrorData  *edata = &errordata[errordata_stack_depth];
+	ErrorData  *edata_copy;
+	ErrorContextCallback *econtext;
+	int			saved_errno;            /*CDB*/
+
+	recursion_depth++;
+	CHECK_STACK_DEPTH();
+	saved_errno = edata->saved_errno;   /*CDB*/
+
+	/*
+	 * Call any context callback functions.  Errors occurring in callback
+	 * functions will be treated as recursive errors --- this ensures we will
+	 * avoid infinite recursion (see errstart).
+	 */
+	for (econtext = error_context_stack;
+		 econtext != NULL;
+		 econtext = econtext->previous)
+		(*econtext->callback) (econtext->arg);
+
+	edata_copy = CopyErrorData();
+
+	/* Now free up subsidiary data attached to stack entry, and release it */
+	if (edata->message)
+		pfree(edata->message);
+	if (edata->detail)
+		pfree(edata->detail);
+	if (edata->detail_log)
+		pfree(edata->detail_log);
+	if (edata->hint)
+		pfree(edata->hint);
+	if (edata->context)
+		pfree(edata->context);
+	if (edata->internalquery)
+		pfree(edata->internalquery);
+
+	errordata_stack_depth--;
+
+	/* Exit error-handling context */
+	recursion_depth--;
+
+	errno = saved_errno;                /*CDB*/
+
+	return edata_copy;
+}
+
 
 /*
  * errcode --- add SQLSTATE error code to the current error

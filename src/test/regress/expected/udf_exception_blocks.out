@@ -741,8 +741,7 @@ SET debug_dtm_action_nestinglevel=0;
 DROP TABLE IF EXISTS employees;
 NOTICE:  table "employees" does not exist, skipping
 select test_protocol_allseg(1, 2,'f');
-ERROR:  DTM error (gathered results from cmd 'Rollback Current Subtransaction') (cdbtm.c:2040)
-DETAIL:  Raise error for debug_dtm_action = 3, debug_dtm_action_protocol = Rollback Current Subtransaction  (seg0 127.0.1.1:25432 pid=24104)
+ERROR:  Raise error for debug_dtm_action = 3, debug_dtm_action_protocol = Rollback Current Subtransaction  (seg0 127.0.1.1:25432 pid=24104)
 CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 17 during exception cleanup
 select * from employees;
 ERROR:  relation "employees" does not exist
@@ -759,8 +758,7 @@ DROP TABLE IF EXISTS employees;
 NOTICE:  table "employees" does not exist, skipping
 select test_protocol_allseg(1, 2,'f');
 NOTICE:  catching the exception ...2
-ERROR:  DTM error (gathered results from cmd 'Rollback Current Subtransaction') (cdbtm.c:2040)
-DETAIL:  transaction 1518031192-0000000602 at level 1 already processed (current level 1) (cdbtm.c:3456)  (seg1 127.0.1.1:25433 pid=24105)
+ERROR:  transaction 1518031192-0000000602 at level 1 already processed (current level 1) (cdbtm.c:3456)  (seg1 127.0.1.1:25433 pid=24105)
 CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 8 during exception cleanup
 select * from employees;
 ERROR:  relation "employees" does not exist
@@ -797,8 +795,7 @@ SET debug_dtm_action=fail_begin_command;
 SET debug_dtm_action_nestinglevel=0;
 DROP TABLE IF EXISTS employees;
 select test_protocol_allseg(1, 2,'f');
-ERROR:  DTM error (gathered results from cmd ' Begin Internal Subtransaction') (cdbtm.c:2040)
-DETAIL:  Raise ERROR for debug_dtm_action = 2, debug_dtm_action_protocol =  Begin Internal Subtransaction  (seg0 127.0.1.1:25432 pid=24104)
+ERROR:  Raise ERROR for debug_dtm_action = 2, debug_dtm_action_protocol =  Begin Internal Subtransaction  (seg0 127.0.1.1:25432 pid=24104)
 CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 8 during statement block entry
 select * from employees;
 ERROR:  relation "employees" does not exist
@@ -835,8 +832,7 @@ SET debug_dtm_action=fail_end_command;
 SET debug_dtm_action_nestinglevel=0;
 DROP TABLE IF EXISTS employees;
 select test_protocol_allseg(1, 2,'f');
-ERROR:  DTM error (gathered results from cmd ' Begin Internal Subtransaction') (cdbtm.c:2040)
-DETAIL:  Raise error for debug_dtm_action = 3, debug_dtm_action_protocol =  Begin Internal Subtransaction  (seg0 127.0.1.1:25432 pid=24104)
+ERROR:  Raise error for debug_dtm_action = 3, debug_dtm_action_protocol =  Begin Internal Subtransaction  (seg0 127.0.1.1:25432 pid=24104)
 CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 8 during statement block entry
 select * from employees;
 ERROR:  relation "employees" does not exist
@@ -874,8 +870,7 @@ SET debug_dtm_action_nestinglevel=0;
 DROP TABLE IF EXISTS employees;
 select test_protocol_allseg(1, 2,'f');
 NOTICE:  catching the exception ...2
-ERROR:  DTM error (gathered results from cmd 'Rollback Current Subtransaction') (cdbtm.c:2040)
-DETAIL:  transaction 1518031192-0000000650 at level 1 already processed (current level 1) (cdbtm.c:3456)  (seg0 127.0.1.1:25432 pid=24104)
+ERROR:  transaction 1518031192-0000000650 at level 1 already processed (current level 1) (cdbtm.c:3456)  (seg0 127.0.1.1:25432 pid=24104)
 CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 8 during exception cleanup
 select * from employees;
 ERROR:  relation "employees" does not exist
@@ -912,8 +907,7 @@ SET debug_dtm_action=fail_begin_command;
 SET debug_dtm_action_nestinglevel=0;
 DROP TABLE IF EXISTS employees;
 select test_protocol_allseg(1, 2,'f');
-ERROR:  DTM error (gathered results from cmd 'Rollback Current Subtransaction') (cdbtm.c:2040)
-DETAIL:  Raise ERROR for debug_dtm_action = 2, debug_dtm_action_protocol = Rollback Current Subtransaction  (seg0 127.0.1.1:25432 pid=24104)
+ERROR:  Raise ERROR for debug_dtm_action = 2, debug_dtm_action_protocol = Rollback Current Subtransaction  (seg0 127.0.1.1:25432 pid=24104)
 CONTEXT:  PL/pgSQL function "test_protocol_allseg" line 17 during exception cleanup
 select * from employees;
 ERROR:  relation "employees" does not exist

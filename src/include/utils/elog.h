@@ -204,6 +204,10 @@ void elog_internalerror(const char *filename, int lineno, const char *funcname)
 #define ereport(elevel, rest)	\
 	ereport_domain(elevel, TEXTDOMAIN, rest)
 
+#define ereport_and_return(elevel, rest)	\
+	(errstart((elevel), __FILE__, __LINE__, PG_FUNCNAME_MACRO, TEXTDOMAIN), \
+		errfinish_and_return rest )
+
 #define TEXTDOMAIN NULL
 
 /*
@@ -474,6 +478,8 @@ extern void FreeErrorData(ErrorData *edata);
 extern void FlushErrorState(void);
 extern void ReThrowError(ErrorData *edata)  __attribute__((__noreturn__));
 extern void pg_re_throw(void) __attribute__((noreturn));
+
+extern ErrorData *errfinish_and_return(int dummy,...);
 
 /*
  * CDB: elog_demote

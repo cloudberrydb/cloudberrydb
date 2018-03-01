@@ -169,12 +169,11 @@ CdbCheckDispatchResult(struct CdbDispatcherState *ds,
  * Block until all QEs return results or report errors.
  *
  * Return Values:
- *   Return NULL If one or more QEs got Error in which case qeErrorMsg contain
- *   QE error messages and qeErrorCode the ERRCODE thrown.
+ *   Return NULL If one or more QEs got Error. In that case, *qeErrors contains
+ *   a list of ErrorDatas.
  */
 struct CdbDispatchResults *
-cdbdisp_getDispatchResults(struct CdbDispatcherState *ds,
-						   StringInfoData *qeErrorMsg, int *qeErrorCode)
+cdbdisp_getDispatchResults(struct CdbDispatcherState *ds, ErrorData **qeError)
 {
 	int			errorcode;
 
@@ -182,11 +181,12 @@ cdbdisp_getDispatchResults(struct CdbDispatcherState *ds,
 	{
 		/*
 		 * Fallback in case we have no dispatcher state.  Since the caller is
-		 * likely to output qeErrorMsg on NULL return, add an error message to
+		 * likely to output the errors on NULL return, add an error message to
 		 * aid debugging.
 		 */
-		*qeErrorCode = ERRCODE_INTERNAL_ERROR;
-		appendStringInfoString(qeErrorMsg, "dispatcher error");
+		*qeError = ereport_and_return(ERROR,
+									  (errcode(ERRCODE_INTERNAL_ERROR),
+									   errmsg("no dispatcher state")));
 		return NULL;
 	}
 
@@ -198,9 +198,7 @@ cdbdisp_getDispatchResults(struct CdbDispatcherState *ds,
 
 	if (errorcode)
 	{
-		if (qeErrorCode)
-			*qeErrorCode = errorcode;
-		cdbdisp_dumpDispatchResults(ds->primaryResults, qeErrorMsg);
+		cdbdisp_dumpDispatchResults(ds->primaryResults, qeError);
 		return NULL;
 	}
 
@@ -218,8 +216,7 @@ cdbdisp_getDispatchResults(struct CdbDispatcherState *ds,
 void
 cdbdisp_finishCommand(struct CdbDispatcherState *ds)
 {
-	StringInfoData		qeErrorMsg = {NULL, 0, 0, 0};
-	int					qeErrorCode = 0;
+	ErrorData *qeError;
 	CdbDispatchResults *pr = NULL;
 
 	/*
@@ -245,23 +242,24 @@ cdbdisp_finishCommand(struct CdbDispatcherState *ds)
 	 */
 	PG_TRY();
 	{
-		initStringInfo(&qeErrorMsg);
-
-		pr = cdbdisp_getDispatchResults(ds, &qeErrorMsg, &qeErrorCode);
+		pr = cdbdisp_getDispatchResults(ds, &qeError);
 
 		if (!pr)
 		{
-			ereport(ERROR,
-					(errcode(qeErrorCode),
-					 errmsg("%s", qeErrorMsg.data)));
-		}
+			if (!qeError)
+				elog(ERROR, "dispatch failed with no error message");
 
-		pfree(qeErrorMsg.data);
+			ReThrowError(qeError);
+
+			/*
+			 * Assuming the error was really an error, and not e.g. a warning,
+			 * we should not get here. But just in case..
+			 */
+			elog(ERROR, "dispatch failed");
+		}
 	}
 	PG_CATCH();
 	{
-		if (qeErrorMsg.data != NULL)
-			pfree(qeErrorMsg.data);
 		cdbdisp_destroyDispatcherState(ds);
 		PG_RE_THROW();
 	}
@@ -342,6 +340,16 @@ CdbDispatchHandleError(struct CdbDispatcherState *ds)
 		 * caller can finish cleaning up. Afterwards caller must exit via
 		 * PG_RE_THROW().
 		 */
+		MemoryContext oldcontext;
+
+		/*
+		 * During abort processing, we are running in ErrorContext. Avoid
+		 * doing these heavy things in ErrorContext. (There's one particular
+		 * issue: these calls use CopyErrorData(), which asserts that we
+		 * are not in ErrorContext.)
+		 */
+		oldcontext = MemoryContextSwitchTo(CurTransactionContext);
+
 		PG_TRY();
 		{
 			cdbdisp_finishCommand(ds);
@@ -350,6 +358,8 @@ CdbDispatchHandleError(struct CdbDispatcherState *ds)
 		{
 		}						/* nop; fall thru */
 		PG_END_TRY();
+
+		MemoryContextSwitchTo(oldcontext);
 	}
 	else
 	{

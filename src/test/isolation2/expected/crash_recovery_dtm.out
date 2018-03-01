@@ -185,7 +185,7 @@ t
 11: SET debug_abort_after_segment_prepared = true;
 SET
 11: DELETE FROM QE_panic_test_table;
-ERROR:  The distributed transaction 'Prepare' broadcast failed to one or more segments for gid = 1519017804-0000000012. (cdbtm.c:692)
+ERROR:  Raise an error as directed by Debug_abort_after_segment_prepared  (seg0 127.0.0.1:40000 pid=547)
 11: SELECT count(*) from QE_panic_test_table;
 count
 -----

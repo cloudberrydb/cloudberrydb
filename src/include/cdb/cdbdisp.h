@@ -132,8 +132,7 @@ CdbCheckDispatchResult(struct CdbDispatcherState *ds, DispatchWaitMode waitMode)
  *   QE error messages and qeErrorCode the thrown ERRCODE.
  */
 struct CdbDispatchResults *
-cdbdisp_getDispatchResults(struct CdbDispatcherState *ds,
-						   StringInfoData *qeErrorMsg, int *qeErrorCode);
+cdbdisp_getDispatchResults(struct CdbDispatcherState *ds, ErrorData **qeError);
 
 /*
  * Wait for all QEs to finish, then report any errors from the given

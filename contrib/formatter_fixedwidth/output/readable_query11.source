@@ -33,4 +33,4 @@ FORMAT 'CUSTOM' (formatter='fixedwidth_in',
 -- query ext table correctly show the error message
 select * from tbl_ext_fixedwidth order by s1;
 ERROR:  value too long for type character varying(5)  (seg0 slice1 rh55-qavm55:7532 pid=23646)
-DETAIL:  External table tbl_ext_fixedwidth
+CONTEXT:  External table tbl_ext_fixedwidth

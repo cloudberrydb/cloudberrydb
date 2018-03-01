@@ -676,7 +676,7 @@ doPrepareTransaction(void)
 
 	succeeded = doDispatchDtxProtocolCommand(DTX_PROTOCOL_COMMAND_PREPARE, /* flags */ 0,
 											 currentGxact->gid, currentGxact->gxid,
-											 &currentGxact->badPrepareGangs, /* raiseError */ false, &direct, NULL, 0);
+											 &currentGxact->badPrepareGangs, /* raiseError */ true, &direct, NULL, 0);
 
 	/*
 	 * Now we've cleaned up our dispatched statement, cancels are allowed
@@ -883,7 +883,8 @@ retryAbortPrepared(void)
 		 * all the segment instances.  And, we will abort the transactions in
 		 * the segments. What's left are possibily prepared transactions.
 		 */
-		elog(NOTICE, "Releasing segworker groups to retry broadcast.");
+		if (retry > 1)
+			elog(NOTICE, "Releasing segworker groups to retry broadcast.");
 		DisconnectAndDestroyAllGangs(true);
 
 		/*
@@ -2010,7 +2011,6 @@ doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand, int flags,
 	char	   *dtxProtocolCommandStr = 0;
 
 	struct pg_result **results = NULL;
-	StringInfoData errbuf;
 
 	dtxProtocolCommandStr = DtxProtocolCommandToString(dtxProtocolCommand);
 
@@ -2026,18 +2026,23 @@ doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand, int flags,
 		 dtxProtocolCommand, dtxProtocolCommandStr,
 		 direct->directed_dispatch ? direct->content[0] : -1);
 
-	initStringInfo(&errbuf);
+	ErrorData *qeError;
 	results = CdbDispatchDtxProtocolCommand(dtxProtocolCommand, flags,
 											dtxProtocolCommandStr,
 											gid, gxid,
-											&errbuf, &resultCount, badGangs, direct,
+											&qeError, &resultCount, badGangs, direct,
 											serializedDtxContextInfo, serializedDtxContextInfoLen);
 
-	if (errbuf.len > 0)
+	if (qeError)
 	{
-		ereport((raiseError ? ERROR : LOG),
-				(errmsg("DTM error (gathered results from cmd '%s')", dtxProtocolCommandStr),
-				 errdetail("%s", errbuf.data)));
+		if (!raiseError)
+		{
+			ereport(LOG,
+					(errmsg("DTM error (gathered results from cmd '%s')", dtxProtocolCommandStr),
+					 errdetail("QE reported error: %s", qeError->message)));
+		}
+		else
+			ReThrowError(qeError);
 		return false;
 	}
 
@@ -2081,9 +2086,6 @@ doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand, int flags,
 			}
 		}
 	}
-
-	/* discard the errbuf text */
-	pfree(errbuf.data);
 
 	for (i = 0; i < resultCount; i++)
 		PQclear(results[i]);
@@ -3344,8 +3346,13 @@ performDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 
 					/*
 					 * Spontaneously aborted while we were back at the QD?
+					 *
+					 * It's normal if the transaction doesn't exist. The QD will
+					 * call abort on us, even if we didn't finish the prepare yet,
+					 * if some other QE reported failure already.
 					 */
-					elog(ERROR, "Distributed transaction %s not found", gid);
+					elog(DTM_DEBUG3, "Distributed transaction %s not found during abort", gid);
+					AbortOutOfAnyTransaction();
 					break;
 
 				case DTX_CONTEXT_QE_TWO_PHASE_EXPLICIT_WRITER:

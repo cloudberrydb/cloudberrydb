@@ -252,15 +252,9 @@ CREATE TRIGGER stupid_trigger1
 BEFORE INSERT ON trigger_test
 FOR EACH ROW EXECUTE PROCEDURE stupid1();
 INSERT INTO trigger_test VALUES (1, 'one');
--- start_ignore
--- GPDB_90_MERGE_FIXME: The context information is printed differently than in
--- upstream. Why? Looks like some kind of a bug or deficiency in the error handling
--- code. In GPDB, these errors come from segments, probably related to that.
--- end_ignore
 ERROR:  unexpected return value from trigger procedure
-DETAIL:  
-Expected None or a string.
-PL/Python function "stupid1"
+DETAIL:  Expected None or a string.
+CONTEXT:  PL/Python function "stupid1"
 DROP TRIGGER stupid_trigger1 ON trigger_test;
 -- returning MODIFY from DELETE trigger
 CREATE FUNCTION stupid2() RETURNS trigger
@@ -285,9 +279,8 @@ BEFORE UPDATE ON trigger_test
 FOR EACH ROW EXECUTE PROCEDURE stupid3();
 UPDATE trigger_test SET v = 'null' WHERE i = 0;
 ERROR:  unexpected return value from trigger procedure
-DETAIL:  
-Expected None, "OK", "SKIP", or "MODIFY".
-PL/Python function "stupid3"
+DETAIL:  Expected None, "OK", "SKIP", or "MODIFY".
+CONTEXT:  PL/Python function "stupid3"
 DROP TRIGGER stupid_trigger3 ON trigger_test;
 -- Unicode variant
 CREATE FUNCTION stupid3u() RETURNS trigger
@@ -299,9 +292,8 @@ BEFORE UPDATE ON trigger_test
 FOR EACH ROW EXECUTE PROCEDURE stupid3u();
 UPDATE trigger_test SET v = 'null' WHERE i = 0;
 ERROR:  unexpected return value from trigger procedure
-DETAIL:  
-Expected None, "OK", "SKIP", or "MODIFY".
-PL/Python function "stupid3u"
+DETAIL:  Expected None, "OK", "SKIP", or "MODIFY".
+CONTEXT:  PL/Python function "stupid3u"
 DROP TRIGGER stupid_trigger3 ON trigger_test;
 -- deleting the TD dictionary
 CREATE FUNCTION stupid4() RETURNS trigger
@@ -314,8 +306,7 @@ BEFORE UPDATE ON trigger_test
 FOR EACH ROW EXECUTE PROCEDURE stupid4();
 UPDATE trigger_test SET v = 'null' WHERE i = 0;
 ERROR:  TD["new"] deleted, cannot modify row
-DETAIL:  
-while modifying trigger row
+CONTEXT:  while modifying trigger row
 PL/Python function "stupid4"
 DROP TRIGGER stupid_trigger4 ON trigger_test;
 -- TD not a dictionary
@@ -329,8 +320,7 @@ BEFORE UPDATE ON trigger_test
 FOR EACH ROW EXECUTE PROCEDURE stupid5();
 UPDATE trigger_test SET v = 'null' WHERE i = 0;
 ERROR:  TD["new"] is not a dictionary
-DETAIL:  
-while modifying trigger row
+CONTEXT:  while modifying trigger row
 PL/Python function "stupid5"
 DROP TRIGGER stupid_trigger5 ON trigger_test;
 -- TD not having string keys
@@ -344,8 +334,7 @@ BEFORE UPDATE ON trigger_test
 FOR EACH ROW EXECUTE PROCEDURE stupid6();
 UPDATE trigger_test SET v = 'null' WHERE i = 0;
 ERROR:  TD["new"] dictionary key at ordinal position 0 is not a string
-DETAIL:  
-while modifying trigger row
+CONTEXT:  while modifying trigger row
 PL/Python function "stupid6"
 DROP TRIGGER stupid_trigger6 ON trigger_test;
 -- TD keys not corresponding to row columns
@@ -359,8 +348,7 @@ BEFORE UPDATE ON trigger_test
 FOR EACH ROW EXECUTE PROCEDURE stupid7();
 UPDATE trigger_test SET v = 'null' WHERE i = 0;
 ERROR:  key "a" found in TD["new"] does not exist as a column in the triggering row
-DETAIL:  
-while modifying trigger row
+CONTEXT:  while modifying trigger row
 PL/Python function "stupid7"
 DROP TRIGGER stupid_trigger7 ON trigger_test;
 -- Unicode variant
@@ -374,8 +362,7 @@ BEFORE UPDATE ON trigger_test
 FOR EACH ROW EXECUTE PROCEDURE stupid7u();
 UPDATE trigger_test SET v = 'null' WHERE i = 0;
 ERROR:  key "a" found in TD["new"] does not exist as a column in the triggering row
-DETAIL:  
-while modifying trigger row
+CONTEXT:  while modifying trigger row
 PL/Python function "stupid7u"
 DROP TRIGGER stupid_trigger7 ON trigger_test;
 -- calling a trigger function directly

@@ -11,7 +11,7 @@ NOTICE:  table "exttabtest_options_r" does not exist, skipping
     EXCEPT ALL
     SELECT * FROM exttabtest;
 ERROR:  This is greenplum. (gpextprotocol.c:54)
-DETAIL:  External table exttabtest_options_r, file demoprot://exttabtest.txt
+CONTEXT:  External table exttabtest_options_r, file demoprot://exttabtest.txt
     DROP EXTERNAL TABLE IF EXISTS exttabtest_w;
 NOTICE:  table "exttabtest_w" does not exist, skipping
     CREATE WRITABLE EXTERNAL TABLE exttabtest_w(like exttabtest)
@@ -435,7 +435,7 @@ NOTICE:  table "exttabtest_r_1record" does not exist, skipping
     -- and will cause following SElECT query to fail
     SELECT * FROM exttabtest_r_1record order by id;
 ERROR:  demoprot_import: could not open file "exttabtest_1record.txt" for reading: No such file or directory  (seg0 slice1 rh55-qavm55:7532 pid=23845)
-DETAIL:  External table exttabtest_r_1record, file demoprot://exttabtest_1record.txt
+CONTEXT:  External table exttabtest_r_1record, file demoprot://exttabtest_1record.txt
     -- Drop External Tables
     DROP EXTERNAL TABLE IF EXISTS exttabtest_r_1record;
     DROP EXTERNAL TABLE IF EXISTS exttabtest_w_1record;
@@ -1305,7 +1305,7 @@ ERROR:  formatter_export error: unsupported data type (gpformatter.c:100)  (seg1
     -- select should fail since INT type is not supported
     select count(*) from format_long_r;
 ERROR:  demoprot_import: could not open file "format_long_test13" for reading: No such file or directory  (seg1 slice1 rh55-qavm55:7533 pid=27134)
-DETAIL:  External table format_long_r
+CONTEXT:  External table format_long_r
     -- ERROR:  formatter_import error: unsupported data type (gpformatter.c:256)  (seg1 slice1 rh55-qavm57:5533 pid=20204) (cdbdisp.c:1458)
 -- Test 75: External table contains dropped columns
 -- SAS example formatter does NOT support dropping column from external table (both RET and WET).
@@ -1347,7 +1347,7 @@ ERROR:  formatter_export: dropped columns (gpformatter.c:80)  (seg0 rh55-qavm55:
     -- Read from RET using data file format_long_test13 create by previous test
     select count(*) from format_r;
 ERROR:  demoprot_import: could not open file "format_long_test13" for reading: No such file or directory  (seg0 slice1 rh55-qavm55:7532 pid=27212)
-DETAIL:  External table format_r
+CONTEXT:  External table format_r
     -- ERROR:  formatter_import: dropped columns (gpformatter.c:244)  (seg2 slice1 rh55-qavm58:5532 pid=20911) (cdbdisp.c:1458)
 -- Test 76: External table contains added column
 -- Add column to external table is fine.
@@ -1636,7 +1636,7 @@ ERROR:  protocol "demoprot" does not exist  (seg0 slice1 rh55-qavm55:7532 pid=18
     -- therefore the error is expected.
     select count(*) from exttabtest_r_new;
 ERROR:  internal error: demoprot called with a different protocol (demoprot_new) (gpextprotocol.c:106)  (seg0 slice1 rh55-qavm55:7532 pid=18394) (cdbdisp.c:1453)
-DETAIL:  External table exttabtest_r_new, file demoprot_new://exttabtest.txt
+CONTEXT:  External table exttabtest_r_new, file demoprot_new://exttabtest.txt
     -- Rename protocol name back to demoprot
     ALTER PROTOCOL demoprot_new RENAME to demoprot;
     -- Verify access old ext table that referencing old protocol name would succeed

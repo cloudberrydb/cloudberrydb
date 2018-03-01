@@ -454,8 +454,7 @@ SELECT * FROM func1_sql_setint_imm(5), foo order by 1,2,3;
 -- @description function_in_from_join_9.sql
 SELECT * FROM func1_read_int_sql_vol(5), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_vol" line 4 at SQL statement
 -- @description function_in_from_join_10.sql
 SELECT * FROM func1_read_int_sql_stb(5), foo order by 1,2,3; 
@@ -477,8 +476,7 @@ SELECT * FROM func1_read_int_sql_stb(5), foo order by 1,2,3;
 begin;
 SELECT * FROM func1_mod_int_vol(5), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_14.sql
@@ -587,8 +585,7 @@ SELECT * FROM func1_nosql_vol(func2_sql_int_imm(5)), foo order by 1,2,3;
 -- @description function_in_from_join_withfunc2_6.sql
 SELECT * FROM func1_nosql_vol(func2_read_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func2_read_int_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_7.sql
 SELECT * FROM func1_nosql_vol(func2_read_int_stb(5)), foo order by 1,2,3; 
@@ -610,8 +607,7 @@ SELECT * FROM func1_nosql_vol(func2_read_int_stb(5)), foo order by 1,2,3;
 begin;
 SELECT * FROM func1_nosql_vol(func2_mod_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func2_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_9.sql
@@ -720,8 +716,7 @@ SELECT * FROM func1_nosql_stb(func2_sql_int_imm(5)), foo order by 1,2,3;
 -- @description function_in_from_join_withfunc2_16.sql
 SELECT * FROM func1_nosql_stb(func2_read_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func2_read_int_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_17.sql
 SELECT * FROM func1_nosql_stb(func2_read_int_stb(5)), foo order by 1,2,3; 
@@ -743,8 +738,7 @@ SELECT * FROM func1_nosql_stb(func2_read_int_stb(5)), foo order by 1,2,3;
 begin;
 SELECT * FROM func1_nosql_stb(func2_mod_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func2_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_19.sql
@@ -853,8 +847,7 @@ SELECT * FROM func1_nosql_imm(func2_sql_int_imm(5)), foo order by 1,2,3;
 -- @description function_in_from_join_withfunc2_26.sql
 SELECT * FROM func1_nosql_imm(func2_read_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func2_read_int_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_27.sql
 SELECT * FROM func1_nosql_imm(func2_read_int_stb(5)), foo order by 1,2,3; 
@@ -876,8 +869,7 @@ SELECT * FROM func1_nosql_imm(func2_read_int_stb(5)), foo order by 1,2,3;
 begin;
 SELECT * FROM func1_nosql_imm(func2_mod_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func2_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_29.sql
@@ -986,8 +978,7 @@ SELECT * FROM func1_sql_int_vol(func2_sql_int_imm(5)), foo order by 1,2,3;
 -- @description function_in_from_join_withfunc2_36.sql
 SELECT * FROM func1_sql_int_vol(func2_read_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func2_read_int_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_37.sql
 SELECT * FROM func1_sql_int_vol(func2_read_int_stb(5)), foo order by 1,2,3; 
@@ -1009,8 +1000,7 @@ SELECT * FROM func1_sql_int_vol(func2_read_int_stb(5)), foo order by 1,2,3;
 begin;
 SELECT * FROM func1_sql_int_vol(func2_mod_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func2_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_39.sql
@@ -1119,8 +1109,7 @@ SELECT * FROM func1_sql_int_stb(func2_sql_int_imm(5)), foo order by 1,2,3;
 -- @description function_in_from_join_withfunc2_46.sql
 SELECT * FROM func1_sql_int_stb(func2_read_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func2_read_int_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_47.sql
 SELECT * FROM func1_sql_int_stb(func2_read_int_stb(5)), foo order by 1,2,3; 
@@ -1142,8 +1131,7 @@ SELECT * FROM func1_sql_int_stb(func2_read_int_stb(5)), foo order by 1,2,3;
 begin;
 SELECT * FROM func1_sql_int_stb(func2_mod_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func2_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_49.sql
@@ -1252,8 +1240,7 @@ SELECT * FROM func1_sql_int_imm(func2_sql_int_imm(5)), foo order by 1,2,3;
 -- @description function_in_from_join_withfunc2_56.sql
 SELECT * FROM func1_sql_int_imm(func2_read_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func2_read_int_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_57.sql
 SELECT * FROM func1_sql_int_imm(func2_read_int_stb(5)), foo order by 1,2,3; 
@@ -1275,8 +1262,7 @@ SELECT * FROM func1_sql_int_imm(func2_read_int_stb(5)), foo order by 1,2,3;
 begin;
 SELECT * FROM func1_sql_int_imm(func2_mod_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func2_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_59.sql
@@ -2738,57 +2724,48 @@ rollback;
 -- @description function_in_from_join_withfunc2_90.sql
 SELECT * FROM func1_read_int_sql_vol(func2_nosql_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_91.sql
 SELECT * FROM func1_read_int_sql_vol(func2_nosql_stb(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_92.sql
 SELECT * FROM func1_read_int_sql_vol(func2_nosql_imm(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_93.sql
 SELECT * FROM func1_read_int_sql_vol(func2_sql_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_94.sql
 SELECT * FROM func1_read_int_sql_vol(func2_sql_int_stb(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_95.sql
 SELECT * FROM func1_read_int_sql_vol(func2_sql_int_imm(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_96.sql
 SELECT * FROM func1_read_int_sql_vol(func2_read_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func2_read_int_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_97.sql
 SELECT * FROM func1_read_int_sql_vol(func2_read_int_stb(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_98.sql
 begin;
 SELECT * FROM func1_read_int_sql_vol(func2_mod_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func2_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_99.sql
@@ -2801,8 +2778,7 @@ rollback;
 -- @description function_in_from_join_withfunc2_100.sql
 SELECT * FROM func1_read_int_sql_stb(func2_nosql_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_stb" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_101.sql
 SELECT * FROM func1_read_int_sql_stb(func2_nosql_stb(5)), foo order by 1,2,3; 
@@ -2839,8 +2815,7 @@ SELECT * FROM func1_read_int_sql_stb(func2_nosql_imm(5)), foo order by 1,2,3;
 -- @description function_in_from_join_withfunc2_103.sql
 SELECT * FROM func1_read_int_sql_stb(func2_sql_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_stb" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_104.sql
 SELECT * FROM func1_read_int_sql_stb(func2_sql_int_stb(5)), foo order by 1,2,3; 
@@ -2877,8 +2852,7 @@ SELECT * FROM func1_read_int_sql_stb(func2_sql_int_imm(5)), foo order by 1,2,3;
 -- @description function_in_from_join_withfunc2_106.sql
 SELECT * FROM func1_read_int_sql_stb(func2_read_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func2_read_int_vol" line 4 at SQL statement
 -- @description function_in_from_join_withfunc2_107.sql
 SELECT * FROM func1_read_int_sql_stb(func2_read_int_stb(5)), foo order by 1,2,3; 
@@ -2900,8 +2874,7 @@ SELECT * FROM func1_read_int_sql_stb(func2_read_int_stb(5)), foo order by 1,2,3;
 begin;
 SELECT * FROM func1_read_int_sql_stb(func2_mod_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func2_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_109.sql
@@ -2977,72 +2950,63 @@ rollback;
 begin;
 SELECT * FROM func1_mod_int_vol(func2_nosql_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_131.sql
 begin;
 SELECT * FROM func1_mod_int_vol(func2_nosql_stb(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_132.sql
 begin;
 SELECT * FROM func1_mod_int_vol(func2_nosql_imm(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_133.sql
 begin;
 SELECT * FROM func1_mod_int_vol(func2_sql_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_134.sql
 begin;
 SELECT * FROM func1_mod_int_vol(func2_sql_int_stb(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_135.sql
 begin;
 SELECT * FROM func1_mod_int_vol(func2_sql_int_imm(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_136.sql
 begin;
 SELECT * FROM func1_mod_int_vol(func2_read_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func2_read_int_vol" line 4 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_137.sql
 begin;
 SELECT * FROM func1_mod_int_vol(func2_read_int_stb(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_138.sql
 begin;
 SELECT * FROM func1_mod_int_vol(func2_mod_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func2_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_139.sql
@@ -3056,8 +3020,7 @@ rollback;
 begin;
 SELECT * FROM func1_mod_int_stb(func2_nosql_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_stb" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_141.sql
@@ -3078,8 +3041,7 @@ rollback;
 begin;
 SELECT * FROM func1_mod_int_stb(func2_sql_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_stb" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_144.sql
@@ -3100,8 +3062,7 @@ rollback;
 begin;
 SELECT * FROM func1_mod_int_stb(func2_read_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func2_read_int_vol" line 4 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_147.sql
@@ -3115,8 +3076,7 @@ rollback;
 begin;
 SELECT * FROM func1_mod_int_stb(func2_mod_int_vol(5)), foo order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=30809)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func2_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_149.sql
@@ -5923,8 +5883,7 @@ rollback;
 -- @description function_in_from_subqry_withfunc2_90.sql
 SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_vol(func2_nosql_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=31269)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_vol" line 4 at SQL statement
 -- @description function_in_from_subqry_withfunc2_91.sql
 SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_vol(func2_nosql_stb(5))) r order by 1,2,3; 
@@ -5961,8 +5920,7 @@ SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_vol(func2_nosql_imm(5))) r 
 -- @description function_in_from_subqry_withfunc2_93.sql
 SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_vol(func2_sql_int_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=31282)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_vol" line 4 at SQL statement
 -- @description function_in_from_subqry_withfunc2_94.sql
 SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_vol(func2_sql_int_stb(5))) r order by 1,2,3; 
@@ -5999,8 +5957,7 @@ SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_vol(func2_sql_int_imm(5))) 
 -- @description function_in_from_subqry_withfunc2_96.sql
 SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_vol(func2_read_int_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=31292)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_vol" line 4 at SQL statement
 -- @description function_in_from_subqry_withfunc2_97.sql
 SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_vol(func2_read_int_stb(5))) r order by 1,2,3; 
@@ -6022,8 +5979,7 @@ SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_vol(func2_read_int_stb(5)))
 begin;
 SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_vol(func2_mod_int_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=31302)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_vol" line 4 at SQL statement
 rollback;
 -- @description function_in_from_subqry_withfunc2_99.sql
@@ -6036,8 +5992,7 @@ rollback;
 -- @description function_in_from_subqry_withfunc2_100.sql
 SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_stb(func2_nosql_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=31302)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_stb" line 4 at SQL statement
 -- @description function_in_from_subqry_withfunc2_101.sql
 SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_stb(func2_nosql_stb(5))) r order by 1,2,3; 
@@ -6074,8 +6029,7 @@ SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_stb(func2_nosql_imm(5))) r 
 -- @description function_in_from_subqry_withfunc2_103.sql
 SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_stb(func2_sql_int_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=31302)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_stb" line 4 at SQL statement
 -- @description function_in_from_subqry_withfunc2_104.sql
 SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_stb(func2_sql_int_stb(5))) r order by 1,2,3; 
@@ -6112,8 +6066,7 @@ SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_stb(func2_sql_int_imm(5))) 
 -- @description function_in_from_subqry_withfunc2_106.sql
 SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_stb(func2_read_int_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=31302)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_stb" line 4 at SQL statement
 -- @description function_in_from_subqry_withfunc2_107.sql
 SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_stb(func2_read_int_stb(5))) r order by 1,2,3; 
@@ -6135,8 +6088,7 @@ SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_stb(func2_read_int_stb(5)))
 begin;
 SELECT * FROM foo, (SELECT * FROM func1_read_int_sql_stb(func2_mod_int_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it accesses relation "qp_funcs_in_contexts.bar"  (entry db 127.0.0.1:5432 pid=31302)
-DETAIL:  
-SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
+CONTEXT:  SQL statement "SELECT d FROM bar WHERE c = $1 LIMIT 1"
 PL/pgSQL function "func1_read_int_sql_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_subqry_withfunc2_109.sql
@@ -6212,8 +6164,7 @@ rollback;
 begin;
 SELECT * FROM foo, (SELECT * FROM func1_mod_int_vol(func2_nosql_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=31302)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_subqry_withfunc2_131.sql
@@ -6256,8 +6207,7 @@ rollback;
 begin;
 SELECT * FROM foo, (SELECT * FROM func1_mod_int_vol(func2_sql_int_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=31381)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_subqry_withfunc2_134.sql
@@ -6300,8 +6250,7 @@ rollback;
 begin;
 SELECT * FROM foo, (SELECT * FROM func1_mod_int_vol(func2_read_int_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=31391)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_subqry_withfunc2_137.sql
@@ -6326,8 +6275,7 @@ rollback;
 begin;
 SELECT * FROM foo, (SELECT * FROM func1_mod_int_vol(func2_mod_int_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=31401)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_vol" line 2 at SQL statement
 rollback;
 -- @description function_in_from_subqry_withfunc2_139.sql
@@ -6341,8 +6289,7 @@ rollback;
 begin;
 SELECT * FROM foo, (SELECT * FROM func1_mod_int_stb(func2_nosql_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=31401)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_stb" line 2 at SQL statement
 rollback;
 -- @description function_in_from_subqry_withfunc2_141.sql
@@ -6363,8 +6310,7 @@ rollback;
 begin;
 SELECT * FROM foo, (SELECT * FROM func1_mod_int_stb(func2_sql_int_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=31401)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_stb" line 2 at SQL statement
 rollback;
 -- @description function_in_from_subqry_withfunc2_144.sql
@@ -6385,8 +6331,7 @@ rollback;
 begin;
 SELECT * FROM foo, (SELECT * FROM func1_mod_int_stb(func2_read_int_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=31401)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_stb" line 2 at SQL statement
 rollback;
 -- @description function_in_from_subqry_withfunc2_147.sql
@@ -6400,8 +6345,7 @@ rollback;
 begin;
 SELECT * FROM foo, (SELECT * FROM func1_mod_int_stb(func2_mod_int_vol(5))) r order by 1,2,3; 
 ERROR:  function cannot execute on a QE slice because it issues a non-SELECT statement  (entry db 127.0.0.1:5432 pid=31401)
-DETAIL:  
-SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c = $1"
 PL/pgSQL function "func1_mod_int_stb" line 2 at SQL statement
 rollback;
 -- @description function_in_from_subqry_withfunc2_149.sql

@@ -11,4 +11,4 @@ FORMAT 'CUSTOM' (formatter='fixedwidth_in', s1='10',
     n3='10', n4='10', n5='10', n6='10', n7='15');
 SELECT * FROM tbl_ext_fixedwidth ORDER BY s1;
 ERROR:  Expected line size from the formatting string: 120, but the actual size is: 105  (seg0 slice1 rh55-qavm55:7532 pid=23951)
-DETAIL:  External table tbl_ext_fixedwidth
+CONTEXT:  External table tbl_ext_fixedwidth

@@ -1170,8 +1170,9 @@ EndPrepare(GlobalTransaction gxact)
 	/* If we crash now, we have prepared: WAL replay will fix things */
 	if (Debug_abort_after_segment_prepared)
 	{
-		elog(PANIC,
-			 "Raise an error as directed by Debug_abort_after_segment_prepared");
+		ereport(PANIC,
+				(errcode(ERRCODE_FAULT_INJECT),
+				 errmsg("Raise an error as directed by Debug_abort_after_segment_prepared")));
 	}
 
 	/*

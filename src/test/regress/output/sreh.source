@@ -293,10 +293,10 @@ FORMAT 'text' (delimiter '|')
 SEGMENT REJECT LIMIT 2;
 SELECT * FROM sreh_ext ORDER BY a;
 ERROR:  Segment reject limit reached. Aborting operation. Last error was: missing data for column "c"  (seg1 slice1 @hostname@:11002 pid=68457)
-DETAIL:  External table sreh_ext, line 3 of gpfdist://@hostname@:8080/bad_data1.data: "3|"
+CONTEXT:  External table sreh_ext, line 3 of gpfdist://@hostname@:8080/bad_data1.data: "3|"
 INSERT INTO sreh_target SELECT * FROM sreh_ext;
 ERROR:  Segment reject limit reached. Aborting operation. Last error was: missing data for column "c"  (seg1 slice1 @hostname@:11002 pid=68459)
-DETAIL:  External table sreh_ext, line 3 of gpfdist://@hostname@:8080/bad_data1.data: "3|"
+CONTEXT:  External table sreh_ext, line 3 of gpfdist://@hostname@:8080/bad_data1.data: "3|"
 SELECT count(*) FROM sreh_target;
  count 
 -------
@@ -451,14 +451,14 @@ FORMAT 'text' (delimiter '|')
 SEGMENT REJECT LIMIT 2 PERCENT;
 SELECT count(*) FROM sreh_ext_2percent; -- fail
 ERROR:  Segment reject limit reached. Aborting operation. Last error was: invalid input syntax for integer: "BAD", column a  (seg0 slice1 @hostname@:11001 pid=68456)
-DETAIL:  External table sreh_ext_2percent, line 107 of gpfdist://@hostname@:8080/bad_data3.data, column a
+CONTEXT:  External table sreh_ext_2percent, line 107 of gpfdist://@hostname@:8080/bad_data3.data, column a
 --
 -- test PERCENT reject limit logic with custom threshold 10 (only practical for test purposes)
 --
 set gp_reject_percent_threshold = 10;
 SELECT count(*) FROM sreh_ext_10percent; -- fail
 ERROR:  Segment reject limit reached. Aborting operation. Last error was: invalid input syntax for integer: "BAD", column a  (seg0 slice1 @hostname@:11001 pid=68456)
-DETAIL:  External table sreh_ext_10percent, line 15 of gpfdist://@hostname@:8080/bad_data3.data, column a
+CONTEXT:  External table sreh_ext_10percent, line 15 of gpfdist://@hostname@:8080/bad_data3.data, column a
 CREATE EXTERNAL TABLE sreh_ext_20percent(a int, b int, c int)
 LOCATION ('gpfdist://@hostname@:8080/bad_data3.data' )
 FORMAT 'text' (delimiter '|')

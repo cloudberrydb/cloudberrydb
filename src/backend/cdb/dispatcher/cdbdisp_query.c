@@ -443,8 +443,6 @@ cdbdisp_dispatchCommandInternal(const char *strCommand,
 {
 	struct CdbDispatcherState ds = {NULL, NULL, NULL};
 	CdbDispatchResults *dispatchresults = NULL;
-	StringInfoData	qeErrorMsg;
-	int				qeErrorCode = 0;
 
 	DispatchCommandQueryParms *pQueryParms;
 	Gang	   *primaryGang;
@@ -513,9 +511,10 @@ cdbdisp_dispatchCommandInternal(const char *strCommand,
 	cdbdisp_makeDispatcherState(&ds, /* slice count */ 1, cancelOnError, queryText, queryTextLength);
 	ds.primaryResults->writer_gang = primaryGang;
 
-	initStringInfo(&qeErrorMsg);
 	PG_TRY();
 	{
+		ErrorData *qeError;
+
 		cdbdisp_dispatchToGang(&ds, primaryGang, -1, DEFAULT_DISP_DIRECT);
 
 		cdbdisp_waitDispatchFinish(&ds);
@@ -524,24 +523,19 @@ cdbdisp_dispatchCommandInternal(const char *strCommand,
 		 * Block until valid results is available or one or more QEs got
 		 * errors.
 		 */
-		dispatchresults = cdbdisp_getDispatchResults(&ds, &qeErrorMsg,
-													 &qeErrorCode);
+		dispatchresults = cdbdisp_getDispatchResults(&ds, &qeError);
 
 		/*
 		 * If QEs have errors, throw it up
 		 */
 		if (!dispatchresults)
 		{
-			if (serializedQuerytree != NULL)
-				ereport(ERROR,
-						(errcode(qeErrorCode),
-						 errmsg("%s", qeErrorMsg.data)));
+			if (qeError)
+				ReThrowError(qeError);
 			else
 				ereport(ERROR,
-						(errcode(qeErrorCode),
-						 errmsg("could not execute command on QE"),
-						 errdetail("%s", qeErrorMsg.data),
-						 errhint("command: '%s'", strCommand)));
+						(errmsg("could not execute command on QE"),
+						 errdetail("Command: \"%s\"", strCommand)));
 		}
 
 		if (cdb_pgresults)
