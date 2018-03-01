@@ -4245,14 +4245,14 @@ AfterTriggerSetState(ConstraintsSetStmt *stmt)
 	else
 	{
 		/* no snapshot needed */
-		if (Gp_role == GP_ROLE_DISPATCH)
-		{
-			CdbDispatchUtilityStatement((Node *) stmt,
-										DF_CANCEL_ON_ERROR|
-										DF_NEED_TWO_PHASE,
-										NIL,
-										NULL);
-		}
+	}
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		CdbDispatchUtilityStatement((Node *) stmt,
+									DF_CANCEL_ON_ERROR|
+									DF_NEED_TWO_PHASE,
+									NIL,
+									NULL);
 	}
 }
 

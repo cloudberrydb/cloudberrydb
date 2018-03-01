@@ -497,19 +497,17 @@ ERROR:  The distributed transaction 'Prepare' broadcast failed to one or more se
 BEGIN;
 SET CONSTRAINTS ALL IMMEDIATE;
 INSERT INTO unique_tbl VALUES (3, 'Three'); -- should fail
+ERROR:  duplicate key value violates unique constraint "unique_tbl_i_key"
+DETAIL:  Key (i)=(3) already exists.
 COMMIT;
-WARNING:  the distributed transaction 'Abort [Prepared]' broadcast failed to one or more segments for gid = 1517942707-0000000738.  Retrying ... try 0
-NOTICE:  Releasing segworker groups to retry broadcast.
-ERROR:  The distributed transaction 'Prepare' broadcast failed to one or more segments for gid = 1517942707-0000000738. (cdbtm.c:692)
 -- forced check when SET CONSTRAINTS is called
 BEGIN;
 SET CONSTRAINTS ALL DEFERRED;
 INSERT INTO unique_tbl VALUES (3, 'Three'); -- should succeed for now
 SET CONSTRAINTS ALL IMMEDIATE; -- should fail
+ERROR:  duplicate key value violates unique constraint "unique_tbl_i_key"
+DETAIL:  Key (i)=(3) already exists.
 COMMIT;
-WARNING:  the distributed transaction 'Abort [Prepared]' broadcast failed to one or more segments for gid = 1517942707-0000000739.  Retrying ... try 0
-NOTICE:  Releasing segworker groups to retry broadcast.
-ERROR:  The distributed transaction 'Prepare' broadcast failed to one or more segments for gid = 1517942707-0000000739. (cdbtm.c:692)
 -- test a HOT update that invalidates the conflicting tuple.
 -- the trigger should still fire and catch the violation
 BEGIN;
