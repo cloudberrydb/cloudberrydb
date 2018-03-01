@@ -733,6 +733,7 @@ FaultInjector_NewHashEntry(
 			case ExecutorRunHighProcessed:
 			case FtsProbe:
 			case AppendOnlySkipCompression:
+			case SyncRepQueryCancel:
 
 				break;
 			default:

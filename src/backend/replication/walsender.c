@@ -68,6 +68,7 @@
 #include "utils/ps_status.h"
 #include "utils/resowner.h"
 #include "utils/timestamp.h"
+#include "utils/faultinjector.h"
 #include "cdb/cdbvars.h"
 
 /* Array of WalSnds in shared memory */
@@ -555,6 +556,8 @@ WalSndLoop(void)
 	/* Loop forever, unless we get an error */
 	for (;;)
 	{
+		SIMPLE_FAULT_INJECTOR(WalSenderLoop);
+
 		/* Clear any already-pending wakeups */
 		ResetLatch(&MyWalSnd->latch);
 
