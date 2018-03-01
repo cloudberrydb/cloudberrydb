@@ -170,7 +170,7 @@ $$  LANGUAGE plpgsql;
 --   Fails: plpgsql does not support SFRM_Materialize
 select foor(1);
 ERROR:  set-valued function called in context that cannot accept a set
-CONTEXT:  PL/pgSQL function "foor"
+CONTEXT:  PL/pgSQL function "foor" line 5 at RETURN NEXT
 -- expanding columns in the select list
 --    Fails: record type not registered
 select (foor(1)).*;

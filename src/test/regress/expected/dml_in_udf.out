@@ -215,34 +215,34 @@ LANGUAGE PLPGSQL;
 CREATE TABLE dml_plpgsql_t1(a char) distributed by (a);
 SELECT dml_indata(1,10);
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT  dml_insertvalue(100)"
+CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
 PL/pgSQL function "dml_indata" line 6 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT  dml_insertvalue(100)"
+CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
 PL/pgSQL function "dml_indata" line 6 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT  dml_insertvalue(100)"
+CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
 PL/pgSQL function "dml_indata" line 6 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT  dml_insertvalue(100)"
+CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
 PL/pgSQL function "dml_indata" line 6 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT  dml_insertvalue(100)"
+CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
 PL/pgSQL function "dml_indata" line 6 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT  dml_insertvalue(100)"
+CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
 PL/pgSQL function "dml_indata" line 6 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT  dml_insertvalue(100)"
+CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
 PL/pgSQL function "dml_indata" line 6 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT  dml_insertvalue(100)"
+CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
 PL/pgSQL function "dml_indata" line 6 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT  dml_insertvalue(100)"
+CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
 PL/pgSQL function "dml_indata" line 6 at PERFORM
 NOTICE:  Error in data
-CONTEXT:  SQL statement "SELECT  dml_insertvalue(100)"
+CONTEXT:  SQL statement "SELECT dml_insertvalue(100)"
 PL/pgSQL function "dml_indata" line 6 at PERFORM
  dml_indata 
 ------------

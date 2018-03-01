@@ -154,7 +154,7 @@ rollback;
 begin;
 SELECT * FROM func1_mod_setint_stb(5) order by 1; 
 ERROR:  UPDATE is not allowed in a non-volatile function
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_join_0.sql
@@ -3091,7 +3091,7 @@ begin;
 SELECT * FROM func1_mod_setint_vol(func2_nosql_vol(5)), foo order by 1,2,3; 
 ERROR:  query plan with multiple segworker groups is not supported
 HINT:  likely caused by a function that reads or modifies data in a distributed table
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_vol" line 4 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_153.sql
@@ -3099,7 +3099,7 @@ begin;
 SELECT * FROM func1_mod_setint_vol(func2_sql_int_vol(5)), foo order by 1,2,3; 
 ERROR:  query plan with multiple segworker groups is not supported
 HINT:  likely caused by a function that reads or modifies data in a distributed table
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_vol" line 4 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_156.sql
@@ -3129,14 +3129,14 @@ rollback;
 begin;
 SELECT * FROM func1_mod_setint_stb(func2_nosql_vol(5)), foo order by 1,2,3; 
 ERROR:  UPDATE is not allowed in a non-volatile function
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_163.sql
 begin;
 SELECT * FROM func1_mod_setint_stb(func2_sql_int_vol(5)), foo order by 1,2,3; 
 ERROR:  UPDATE is not allowed in a non-volatile function
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_join_withfunc2_166.sql
@@ -6360,7 +6360,7 @@ begin;
 SELECT * FROM foo, (SELECT * FROM func1_mod_setint_vol(func2_nosql_vol(5))) r order by 1,2,3; 
 ERROR:  query plan with multiple segworker groups is not supported
 HINT:  likely caused by a function that reads or modifies data in a distributed table
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_vol" line 4 at SQL statement
 rollback;
 -- @description function_in_from_subqry_withfunc2_153.sql
@@ -6368,7 +6368,7 @@ begin;
 SELECT * FROM foo, (SELECT * FROM func1_mod_setint_vol(func2_sql_int_vol(5))) r order by 1,2,3; 
 ERROR:  query plan with multiple segworker groups is not supported
 HINT:  likely caused by a function that reads or modifies data in a distributed table
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_vol" line 4 at SQL statement
 rollback;
 -- @description function_in_from_subqry_withfunc2_156.sql
@@ -6398,14 +6398,14 @@ rollback;
 begin;
 SELECT * FROM foo, (SELECT * FROM func1_mod_setint_stb(func2_nosql_vol(5))) r order by 1,2,3; 
 ERROR:  UPDATE is not allowed in a non-volatile function
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_subqry_withfunc2_163.sql
 begin;
 SELECT * FROM foo, (SELECT * FROM func1_mod_setint_stb(func2_sql_int_vol(5))) r order by 1,2,3; 
 ERROR:  UPDATE is not allowed in a non-volatile function
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_subqry_withfunc2_166.sql
@@ -7923,63 +7923,63 @@ rollback;
 begin;
 SELECT * FROM func1_mod_setint_stb(func2_nosql_vol(5)) order by 1; 
 ERROR:  UPDATE is not allowed in a non-volatile function
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_withfunc2_161.sql
 begin;
 SELECT * FROM func1_mod_setint_stb(func2_nosql_stb(5)) order by 1; 
 ERROR:  UPDATE is not allowed in a non-volatile function
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_withfunc2_162.sql
 begin;
 SELECT * FROM func1_mod_setint_stb(func2_nosql_imm(5)) order by 1; 
 ERROR:  UPDATE is not allowed in a non-volatile function
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_withfunc2_163.sql
 begin;
 SELECT * FROM func1_mod_setint_stb(func2_sql_int_vol(5)) order by 1; 
 ERROR:  UPDATE is not allowed in a non-volatile function
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_withfunc2_164.sql
 begin;
 SELECT * FROM func1_mod_setint_stb(func2_sql_int_stb(5)) order by 1; 
 ERROR:  UPDATE is not allowed in a non-volatile function
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_withfunc2_165.sql
 begin;
 SELECT * FROM func1_mod_setint_stb(func2_sql_int_imm(5)) order by 1; 
 ERROR:  UPDATE is not allowed in a non-volatile function
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_withfunc2_166.sql
 begin;
 SELECT * FROM func1_mod_setint_stb(func2_read_int_vol(5)) order by 1; 
 ERROR:  UPDATE is not allowed in a non-volatile function
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_withfunc2_167.sql
 begin;
 SELECT * FROM func1_mod_setint_stb(func2_read_int_stb(5)) order by 1; 
 ERROR:  UPDATE is not allowed in a non-volatile function
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_withfunc2_168.sql
 begin;
 SELECT * FROM func1_mod_setint_stb(func2_mod_int_vol(5)) order by 1; 
 ERROR:  UPDATE is not allowed in a non-volatile function
-CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c >  $1 "
+CONTEXT:  SQL statement "UPDATE bar SET d = d+1 WHERE c > $1"
 PL/pgSQL function "func1_mod_setint_stb" line 4 at SQL statement
 rollback;
 -- @description function_in_from_withfunc2_169.sql
