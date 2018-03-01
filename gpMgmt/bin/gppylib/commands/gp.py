@@ -188,7 +188,7 @@ class PgCtlBackendOptions(CmdArgs):
         """
         @param seqserver: start with seqserver?
         """
-        self.extend(["-i", "--gp_contentid=-1"])
+        self.append("--gp_contentid=-1")
         if seqserver: self.append("-E")
         return self
 
@@ -196,7 +196,7 @@ class PgCtlBackendOptions(CmdArgs):
         """
         @param content: content id
         """
-        self.extend(["-i", "--gp_contentid="+str(content)])
+        self.append("--gp_contentid="+str(content))
         return self
 
     #

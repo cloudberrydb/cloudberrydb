@@ -196,6 +196,7 @@ static Backend *ShmemBackendArray;
 int			PostPortNumber;
 char	   *UnixSocketDir;
 char	   *ListenAddresses;
+char	   *BackendListenAddress;
 
 /*
  * ReservedBackends is the number of backends reserved for superuser use.
@@ -1073,6 +1074,12 @@ PostmasterMain(int argc, char *argv[])
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 					 errmsg("invalid list syntax for \"listen_addresses\"")));
 		}
+
+		/* If there are more than one listen address, backend bind on all addresses*/
+		if (list_length(elemlist) > 1)
+			BackendListenAddress = NULL;
+		else
+			BackendListenAddress = ListenAddresses;
 
 		foreach(l, elemlist)
 		{
