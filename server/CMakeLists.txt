@@ -51,7 +51,7 @@ SemiJoin2InnerJoin SemiJoin2Select-1 SemiJoin2Select-2 SemiJoin2Select-EnforceSu
 InSubqWithPrjListOuterRefNoInnerRefColumnIn InSubqWithPrjListOuterRefNoInnerRefConstIn
 NestedInSubqWithPrjListOuterRefNoInnerRef  InEqualityJoin Correlated-SemiJoin
 CorrelatedSemiJoin-True CorrelatedIN-LeftSemiJoin-True CorrelatedIN-LeftSemiNotIn-True
-InSubqWithPrjListOuterRefNoInnerRefColumnPlusConstIn;
+InSubqWithPrjListOuterRefNoInnerRefColumnPlusConstIn JoinValidateCircularDistSpecRef;
 
 CAntiSemiJoinTest:
 AntiSemiJoin2Select-1 AntiSemiJoin2Select-2 NOT-IN-NotNullBoth NOT-IN-NullInner NOT-IN-NullOuter
