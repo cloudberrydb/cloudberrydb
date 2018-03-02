@@ -1034,10 +1034,10 @@ jobs:
     file: gpdb_src/concourse/tasks/compile_gpdb_remote.yml
     image: centos-gpdb-dev-6
     params:
-      REMOTE_HOST: {{remote_host}}
-      REMOTE_PORT: {{remote_port}}
-      REMOTE_USER: {{remote_user}}
-      REMOTE_KEY: {{remote_key}}
+      REMOTE_HOST: {{remote_host_build}}
+      REMOTE_PORT: {{remote_port_build}}
+      REMOTE_USER: {{remote_user_build}}
+      REMOTE_KEY: {{remote_key_build}}
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
       IVYREPO_USER: {{ivyrepo_user}}
@@ -1081,20 +1081,20 @@ jobs:
     image: centos-gpdb-dev-6
     params:
       BLD_TARGETS: "clients loaders"
-      REMOTE_HOST: {{remote_host}}
-      REMOTE_PORT: {{remote_port}}
-      REMOTE_USER: {{remote_user}}
-      REMOTE_KEY: {{remote_key}}
+      REMOTE_HOST: {{remote_host_test}}
+      REMOTE_PORT: {{remote_port_test}}
+      REMOTE_USER: {{remote_user_test}}
+      REMOTE_KEY: {{remote_key_test}}
     ensure:
       do:
       - task: cleanup_aix
         file: gpdb_src/concourse/tasks/aix_remote_cleanup.yml
         image: centos-gpdb-dev-6
         params:
-          REMOTE_HOST: {{remote_host}}
-          REMOTE_PORT: {{remote_port}}
-          REMOTE_USER: {{remote_user}}
-          REMOTE_KEY: {{remote_key}}
+          REMOTE_HOST: {{remote_host_test}}
+          REMOTE_PORT: {{remote_port_test}}
+          REMOTE_USER: {{remote_user_test}}
+          REMOTE_KEY: {{remote_key_test}}
       - put: aix_environments
         params: {release: aix_environments}
 
