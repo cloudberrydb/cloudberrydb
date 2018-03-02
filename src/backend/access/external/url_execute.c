@@ -777,7 +777,7 @@ read_err_msg(int fid, StringInfo sinfo)
 int
 pclose_with_stderr(int pid, int *pipes, StringInfo sinfo)
 {
-	int status;
+	int status = 0;
 
 	/* close the data pipe. we can now read from error pipe without being blocked */
 	close(pipes[EXEC_DATA_P]);
@@ -786,11 +786,14 @@ pclose_with_stderr(int pid, int *pipes, StringInfo sinfo)
 
 	close(pipes[EXEC_ERR_P]);
 
-#ifndef WIN32
-	waitpid(pid, &status, 0);
-#else
-    status = -1;
-#endif
+	if (kill(pid, 0) == 0) /* process exists */
+	{
+	#ifndef WIN32
+		waitpid(pid, &status, 0);
+	#else
+		status = -1;
+	#endif
+	}
 
 	return status;
 }

@@ -8203,11 +8203,8 @@ close_program_pipes(CopyState cstate, bool ifThrow)
 	{
 		return;
 	}
-
-	if (kill(cstate->program_pipes->pid, 0) == 0) /* process exists */
-	{
-		ret = pclose_with_stderr(cstate->program_pipes->pid, cstate->program_pipes->pipes, &sinfo);
-	}
+	
+	ret = pclose_with_stderr(cstate->program_pipes->pid, cstate->program_pipes->pipes, &sinfo);
 
 	if (ret == 0 || !ifThrow)
 	{
