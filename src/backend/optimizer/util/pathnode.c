@@ -158,6 +158,7 @@ pathnode_walk_kids(Path            *path,
             case T_FunctionScan:
             case T_ValuesScan:
             case T_CteScan:
+            case T_WorkTableScan:
             case T_TableFunctionScan:
             case T_Result:
                     return CdbVisit_Walk;
