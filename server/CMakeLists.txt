@@ -212,7 +212,10 @@ LOJ_dont_convert_to_inner_with_outer_predicate_INDF_const;
 
 CMotionHazardTest:
 MotionHazard-NoMaterializeSortUnderResult  MotionHazard-NoMaterializeGatherUnderResult MotionHazard-MaterializeUnderResult
-MotionHazard-NoMaterializeHashAggUnderResult
+MotionHazard-NoMaterializeHashAggUnderResult;
+
+CConstraintNegationTest:
+AggregatesConstraintDeriveNegation CTEConstraintDeriveNegation
 ")
 
 set(mdp_dir "../data/dxl/minidump/")

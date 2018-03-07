@@ -94,7 +94,15 @@ CConstraintNegation::Pcnstr
 		return NULL;
 	}
 
-	return GPOS_NEW(pmp) CConstraintNegation(pmp, m_pcnstr->Pcnstr(pmp, pcr));
+	// donot recurse down the constraint, return the complete constraint
+	// on a given column which may include other columns as well
+	// in case of NOT (negation) we cannot further simplify the constraint.
+	// for instance, conjunction constraint (NOT a=b) is like:
+	//	 NOT ({"a" (0), ranges: (-inf, inf) } AND {"b" (1), ranges: (-inf, inf) }))
+	// recursing down the constraint will give NOT ({"a" (0), ranges: (-inf, inf) })
+	// but that is equivalent to (NOT a) which is not the case.
+	m_pcnstr->AddRef();
+	return GPOS_NEW(pmp) CConstraintNegation(pmp, m_pcnstr);
 }
 
 //---------------------------------------------------------------------------

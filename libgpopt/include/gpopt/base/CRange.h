@@ -213,6 +213,9 @@ namespace gpopt
 			// print
 			IOstream &OsPrint(IOstream &os) const;
 
+			// debug print
+			void DbgPrint() const;
+
 	}; // class CRange
 
  	// shorthand for printing

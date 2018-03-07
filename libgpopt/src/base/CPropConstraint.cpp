@@ -13,6 +13,8 @@
 
 #include "gpopt/base/CPropConstraint.h"
 #include "gpopt/base/CColRefSetIter.h"
+#include "gpopt/base/COptCtxt.h"
+#include "gpos/error/CAutoTrace.h"
 
 using namespace gpopt;
 
@@ -192,5 +194,12 @@ CPropConstraint::OsPrint
 	return os;
 }
 
+void
+CPropConstraint::DbgPrint() const
+{
+	IMemoryPool *pmp = COptCtxt::PoctxtFromTLS()->Pmp();
+	CAutoTrace at(pmp);
+	(void) this->OsPrint(at.Os());
+}
 // EOF
 
