@@ -279,6 +279,12 @@ CMessage::Pmsg
 				 GPOS_WSZ_WSZLEN("Unhandled exception"),
 				 0,
 				 GPOS_WSZ_WSZLEN("Unhandled exception")),
+
+		CMessage(CException(CException::ExmaSystem, CException::ExmiIllegalByteSequence),
+				 CException::ExsevError,
+				 GPOS_WSZ_WSZLEN("Invalid multibyte character for locale encountered in metadata name"),
+				 0,
+				 GPOS_WSZ_WSZLEN("Invalid multibyte character for locale encountered in metadata name")),
 	};
 
 	return &rgmsg[ulIndex];

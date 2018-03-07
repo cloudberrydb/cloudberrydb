@@ -134,7 +134,10 @@ namespace gpos
 
 				// unknown exception
 				ExmiUnhandled,
-	
+
+				// illegal byte sequence
+				ExmiIllegalByteSequence,
+
 				ExmiSentinel
 			};
 		

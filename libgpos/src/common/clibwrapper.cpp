@@ -486,7 +486,15 @@ gpos::clib::IVswPrintf
 	GPOS_ASSERT(NULL != wszStr);
 	GPOS_ASSERT(NULL != wszFormat);
 
-	return vswprintf(wszStr, ulMaxLen, wszFormat, vaArgs);
+	INT iRes = vswprintf(wszStr, ulMaxLen, wszFormat, vaArgs);
+	if (-1 == iRes && EILSEQ == errno)
+	{
+		// Invalid multibyte character encountered. This can happen if the byte sequence does not
+		// match with the server encoding.
+		GPOS_RAISE(CException::ExmaSystem, CException::ExmiIllegalByteSequence);
+	}
+
+	return iRes;
 }
 
 

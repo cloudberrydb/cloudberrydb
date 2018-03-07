@@ -18,7 +18,7 @@
 #include "gpos/test/CUnittest.h"
 
 #include "unittest/gpos/string/CWStringTest.h"
-
+#include <locale.h>
 
 using namespace gpos;
 
@@ -42,6 +42,9 @@ CWStringTest::EresUnittest()
 		GPOS_UNITTEST_FUNC(CWStringTest::EresUnittest_Copy),
 		GPOS_UNITTEST_FUNC(CWStringTest::EresUnittest_AppendEscape),
 		GPOS_UNITTEST_FUNC(CWStringTest::EresUnittest_AppendFormatLarge),
+#ifndef GPOS_DARWIN
+		GPOS_UNITTEST_FUNC(CWStringTest::EresUnittest_AppendFormatInvalidLocale),
+#endif
 		};
 
 	return CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
@@ -180,6 +183,52 @@ CWStringTest::EresUnittest_AppendFormat()
 	return eres;
 }
 
+
+
+// This tests the behavior of AppendFormat for unicode characters when the locale settings of the system are incompatible
+// AppendFormat uses a C library function, vswprintf(), whose behavior is platform specific.
+// vswprintf() returns with error on non-Darwin platforms when the locale is incompatible with unicode string.
+// Hence do not run this test on Darwin platform.
+#ifndef GPOS_DARWIN
+GPOS_RESULT
+CWStringTest::EresUnittest_AppendFormatInvalidLocale()
+{
+	CAutoMemoryPool amp
+		(
+		CAutoMemoryPool::ElcExc,
+		CMemoryPoolManager::EatTracker,
+		false /*fThreadSafe*/,
+		1024 * 1024 /*ullSizeMax*/
+		);
+	IMemoryPool *pmp = amp.Pmp();
+
+	CHAR *oldLocale = setlocale(LC_CTYPE, NULL);
+	CWStringDynamic *pstr1 = GPOS_NEW(pmp) CWStringDynamic(pmp);
+
+	GPOS_RESULT eres = GPOS_OK;
+
+	setlocale(LC_CTYPE, "C");
+	GPOS_TRY
+	{
+		pstr1->AppendFormat(GPOS_WSZ_LIT("%s"), (CHAR *)"ÃË", 123);
+
+		eres = GPOS_FAILED;
+	}
+	GPOS_CATCH_EX(ex)
+	{
+		GPOS_ASSERT(GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiIllegalByteSequence));
+
+		GPOS_RESET_EX;
+	}
+	GPOS_CATCH_END;
+
+	// cleanup
+	setlocale(LC_CTYPE, oldLocale);
+	GPOS_DELETE(pstr1);
+
+	return eres;
+}
+#endif
 
 //---------------------------------------------------------------------------
 //	@function:
