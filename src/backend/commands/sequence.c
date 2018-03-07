@@ -579,13 +579,15 @@ nextval_internal(Oid relid)
 
 	if (is_overflow)
 	{
+		char	   *relname = pstrdup(RelationGetRelationName(seqrel));
+
 		relation_close(seqrel, NoLock);
 
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("nextval: reached %s value of sequence \"%s\" (" INT64_FORMAT ")",
                         elm->increment>0 ? "maximum":"minimum",
-                        RelationGetRelationName(seqrel), elm->last)));
+                        relname, elm->last)));
 	}
 	else
 		elm->last_valid = true;
