@@ -2505,6 +2505,8 @@ create_mergejoin_path(PlannerInfo *root,
     CdbPathLocus    join_locus;
     List           *outermotionkeys;
     List           *innermotionkeys;
+	bool		preserve_outer_ordering;
+	bool		preserve_inner_ordering;
 
     /*
      * Do subpaths have useful ordering?
@@ -2523,9 +2525,24 @@ create_mergejoin_path(PlannerInfo *root,
     else
         innermotionkeys = NIL;
 
-    /*
-     * Add motion nodes above subpaths and decide where to join.
-     */
+	/*
+	 * Add motion nodes above subpaths and decide where to join.
+	 *
+	 * If we're explicitly sorting one or both sides of the join, don't choose
+	 * a Motion that would break that ordering again. But as a special case,
+	 * if there are no merge clauses, then there is no join order that would need
+	 * preserving. That case can occur with a query like "a FULL JOIN b ON true"
+	 */
+	if (mergeclauses)
+	{
+		preserve_outer_ordering = (outersortkeys == NIL);
+		preserve_inner_ordering = (innersortkeys == NIL);
+	}
+	else
+	{
+		preserve_outer_ordering = preserve_inner_ordering = false;
+	}
+
     join_locus = cdbpath_motion_for_join(root,
                                          jointype,
                                          &outer_path,       /* INOUT */
@@ -2533,8 +2550,8 @@ create_mergejoin_path(PlannerInfo *root,
                                          allmergeclauses,
                                          outermotionkeys,
                                          innermotionkeys,
-                                         outersortkeys == NIL,
-                                         innersortkeys == NIL);
+										 preserve_outer_ordering,
+										 preserve_inner_ordering);
     if (CdbPathLocus_IsNull(join_locus))
         return NULL;
 

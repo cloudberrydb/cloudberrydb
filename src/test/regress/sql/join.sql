@@ -578,6 +578,11 @@ where
 order by 1,2;
 
 --
+-- test the corner cases FULL JOIN ON TRUE and FULL JOIN ON FALSE
+--
+select * from int4_tbl a full join int4_tbl b on true;
+
+--
 -- test handling of potential equivalence clauses above outer joins
 --
 
