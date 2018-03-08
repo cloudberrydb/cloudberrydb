@@ -15,6 +15,10 @@ check_cxx_compiler_flag("-Wno-long-long"
                         COMPILER_HAS_WNO_LONG_LONG)
 if (COMPILER_HAS_WNO_LONG_LONG)
     set_source_files_properties(src/unittest/dxl/statistics/CStatisticsTest.cpp
+                                src/unittest/dxl/statistics/CBucketTest.cpp
+                                src/unittest/dxl/statistics/CPointTest.cpp
+                                src/unittest/dxl/statistics/CHistogramTest.cpp
+                                src/unittest/dxl/statistics/CMCVTest.cpp
                                 src/unittest/dxl/statistics/CJoinCardinalityTest.cpp
                                 src/unittest/gpopt/base/CConstraintTest.cpp
                                 src/unittest/gpopt/metadata/CPartConstraintTest.cpp
@@ -321,6 +325,10 @@ add_orca_test(CMinidumpWithConstExprEvaluatorTest)
 add_orca_test(CParseHandlerManagerTest)
 add_orca_test(CParseHandlerTest)
 add_orca_test(CStatisticsTest)
+add_orca_test(CPointTest)
+add_orca_test(CBucketTest)
+add_orca_test(CHistogramTest)
+add_orca_test(CMCVTest)
 add_orca_test(CJoinCardinalityTest)
 add_orca_test(CTranslatorDXLToExprTest)
 add_orca_test(CTranslatorExprToDXLTest)

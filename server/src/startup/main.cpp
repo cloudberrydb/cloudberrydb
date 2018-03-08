@@ -118,6 +118,10 @@
 #include "unittest/gpopt/xforms/CXformFactoryTest.h"
 
 #include "unittest/dxl/statistics/CStatisticsTest.h"
+#include "unittest/dxl/statistics/CPointTest.h"
+#include "unittest/dxl/statistics/CBucketTest.h"
+#include "unittest/dxl/statistics/CHistogramTest.h"
+#include "unittest/dxl/statistics/CMCVTest.h"
 #include "unittest/dxl/statistics/CJoinCardinalityTest.h"
 #include "unittest/gpopt/cost/CCostTest.h"
 #include "unittest/gpopt/minidump/MinidumpTestHeaders.h" // auto generated header file
@@ -163,6 +167,10 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CParseHandlerManagerTest),
 	GPOS_UNITTEST_STD(CParseHandlerTest),
 	GPOS_UNITTEST_STD(CStatisticsTest),
+	GPOS_UNITTEST_STD(CPointTest),
+	GPOS_UNITTEST_STD(CBucketTest),
+	GPOS_UNITTEST_STD(CHistogramTest),
+	GPOS_UNITTEST_STD(CMCVTest),
 	GPOS_UNITTEST_STD(CJoinCardinalityTest),
 	GPOS_UNITTEST_STD(CTranslatorDXLToExprTest),
 	GPOS_UNITTEST_STD(CTranslatorExprToDXLTest),

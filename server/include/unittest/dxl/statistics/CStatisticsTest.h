@@ -55,58 +55,6 @@ namespace gpnaucrates
 				CDouble m_dVal; // double value
 			}; // SStatsCmpValElem
 
-			// triplet consisting of MCV input file, histogram input file and merged output file
-			struct SMergeTestElem
-			{
-				const CHAR *szInputMCVFile;
-				const CHAR *szInputHistFile;
-				const CHAR *szMergedFile;
-			};
-
-			// test case for intersection of buckets
-			struct SBucketsIntersectTestElem
-			{
-				 // lower bound of bucket 1
-				INT m_iLb1;
-
-				 // upper bound of bucket 1
-				INT m_iUb1;
-
-				// is lower bound of bucket 1 closed
-				BOOL m_fLb1Closed;
-
-				// is upper bound of bucket 1 closed
-				BOOL m_fUb1Closed;
-
-				// lower bound of bucket 2
-				INT m_iLb2;
-
-				// upper bound of bucket 2
-				INT m_iUb2;
-
-				// is lower bound of bucket 2 closed
-				BOOL m_fLb2Closed;
-
-				// is upper bound of bucket 2 closed
-				BOOL m_fUb2Closed;
-
-				// result of the bucket intersect test
-				BOOL fIntersect;
-
-				// lower bound of output bucket
-				INT m_iLbOutput;
-
-				// upper bound of output bucket
-				INT m_iUbOutput;
-
-				// is lower bound of output bucket closed
-				BOOL m_fLbOutputClosed;
-
-				// is upper bound of output bucket closed
-				BOOL m_fUbOutputClosed;
-
-			}; // SBucketsIntersectTestElem
-
 			// test case for disjunctive filter evaluation
 			struct SStatsFilterSTestCase
 			{
@@ -166,11 +114,6 @@ namespace gpnaucrates
 				DrgPstatspred *pgrgpstatspred
 				);
 
-			// generate int histogram having tuples not covered by buckets,
-			// including null fraction and nDistinctRemain
-			static
-			CHistogram* PhistExampleInt4Remain(IMemoryPool *pmp);
-
 			static
 			CHistogram* PhistExampleInt4Dim(IMemoryPool *pmp);
 
@@ -212,10 +155,6 @@ namespace gpnaucrates
 				const CWStringConst &strColA,
 				const CWStringConst &strColB
 				);
-
-			// do the bucket boundaries match
-			static
-			BOOL FMatchBucketBoundary(CBucket *pbucket1, CBucket *pbucket2);
 
 		public:
 
@@ -332,23 +271,9 @@ namespace gpnaucrates
 			static
 			GPOS_RESULT EresUnittest();
 
-			// point related tests
-			static
-			GPOS_RESULT EresUnittest_CPointInt4();
-
-			static
-			GPOS_RESULT EresUnittest_CPointBool();
-
 			// join of histograms with NDVRemain information
 			static
 			GPOS_RESULT EresUnittest_JoinNDVRemain();
-
-			// bucket basic tests
-			static
-			GPOS_RESULT EresUnittest_CBucketInt4();
-
-			static
-			GPOS_RESULT EresUnittest_CBucketBool();
 
 			// join buckets tests
 			static
@@ -357,28 +282,6 @@ namespace gpnaucrates
 			// union all tests
 			static
 			GPOS_RESULT EresUnittest_UnionAll();
-
-			// bucket intersect
-			static
-			GPOS_RESULT EresUnittest_CBucketIntersect();
-
-			// bucket scaling tests
-			static
-			GPOS_RESULT EresUnittest_CBucketScale();
-
-			// bucket difference tests
-			static
-			GPOS_RESULT EresUnittest_CBucketDifference();
-
-			// histogram basic tests
-			static
-			GPOS_RESULT EresUnittest_CHistogramValid();
-
-			static
-			GPOS_RESULT EresUnittest_CHistogramInt4();
-
-			static
-			GPOS_RESULT EresUnittest_CHistogramBool();
 
 			// statistics basic tests
 			static
@@ -423,18 +326,6 @@ namespace gpnaucrates
 			// exercise stats derivation during optimization
 			static
 			GPOS_RESULT EresUnittest_CStatisticsSelectDerivation();
-
-			// skew basic tests
-			static
-			GPOS_RESULT EresUnittest_Skew();
-
-			// sort MCVs tests
-			static
-			GPOS_RESULT EresUnittest_SortInt4MCVs();
-
-			// merge MCVs and histogram
-			static
-			GPOS_RESULT EresUnittest_MergeHistMCV();
 
 			// test for accumulating cardinality in disjunctive and conjunctive predicates
 	 		static
