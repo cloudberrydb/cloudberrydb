@@ -102,20 +102,20 @@ pathnode_walk_node(Path            *path,
 			       CdbVisitOpt    (*walker)(Path *path, void *context),
 			       void            *context)
 {
-    CdbVisitOpt     whatnext;
+	CdbVisitOpt whatnext;
 
-    if (path == NULL)
-        whatnext = CdbVisit_Walk;
-    else
-    {
-        whatnext = walker(path, context);
-        if (whatnext == CdbVisit_Walk)
-            whatnext = pathnode_walk_kids(path, walker, context);
-        else if (whatnext == CdbVisit_Skip)
-            whatnext = CdbVisit_Walk;
-    }
-    Assert(whatnext != CdbVisit_Skip);
-    return whatnext;
+	if (path == NULL)
+		whatnext = CdbVisit_Walk;
+	else
+	{
+		whatnext = walker(path, context);
+		if (whatnext == CdbVisit_Walk)
+			whatnext = pathnode_walk_kids(path, walker, context);
+		else if (whatnext == CdbVisit_Skip)
+			whatnext = CdbVisit_Walk;
+	}
+	Assert(whatnext != CdbVisit_Skip);
+	return whatnext;
 }	                            /* pathnode_walk_node */
 
 static CdbVisitOpt
@@ -123,16 +123,16 @@ pathnode_walk_list(List            *pathlist,
 			       CdbVisitOpt    (*walker)(Path *path, void *context),
 			       void            *context)
 {
-    ListCell       *cell;
-    Path           *path;
-    CdbVisitOpt     v = CdbVisit_Walk;
+	ListCell   *cell;
+	Path	   *path;
+	CdbVisitOpt v = CdbVisit_Walk;
 
 	foreach(cell, pathlist)
 	{
-        path = (Path *)lfirst(cell);
-        v = pathnode_walk_node(path, walker, context);
-        if (v != CdbVisit_Walk) /* stop */
-            break;
+		path = (Path *)lfirst(cell);
+		v = pathnode_walk_node(path, walker, context);
+		if (v != CdbVisit_Walk) /* stop */
+			break;
 	}
 	return v;
 }	                            /* pathnode_walk_list */
@@ -142,74 +142,74 @@ pathnode_walk_kids(Path            *path,
 			       CdbVisitOpt    (*walker)(Path *path, void *context),
 			       void            *context)
 {
-    CdbVisitOpt v;
+	CdbVisitOpt v;
 
-    Assert(path != NULL);
+	Assert(path != NULL);
 
-    switch (path->pathtype)
-    {
-            case T_SeqScan:
-            case T_ExternalScan:
-            case T_AppendOnlyScan:
-            case T_AOCSScan:
-            case T_IndexScan:
-            case T_TidScan:
-            case T_SubqueryScan:
-            case T_FunctionScan:
-            case T_ValuesScan:
-            case T_CteScan:
-            case T_WorkTableScan:
-            case T_TableFunctionScan:
-            case T_Result:
-                    return CdbVisit_Walk;
-            case T_BitmapHeapScan:
-                    v = pathnode_walk_node(((BitmapHeapPath *)path)->bitmapqual, walker, context);
-                    break;
-			case T_BitmapAppendOnlyScan:
-					v = pathnode_walk_node(((BitmapAppendOnlyPath *)path)->bitmapqual, walker, context);
+	switch (path->pathtype)
+	{
+		case T_SeqScan:
+		case T_ExternalScan:
+		case T_AppendOnlyScan:
+		case T_AOCSScan:
+		case T_IndexScan:
+		case T_TidScan:
+		case T_SubqueryScan:
+		case T_FunctionScan:
+		case T_ValuesScan:
+		case T_CteScan:
+		case T_WorkTableScan:
+		case T_TableFunctionScan:
+		case T_Result:
+			return CdbVisit_Walk;
+		case T_BitmapHeapScan:
+			v = pathnode_walk_node(((BitmapHeapPath *)path)->bitmapqual, walker, context);
+			break;
+		case T_BitmapAppendOnlyScan:
+			v = pathnode_walk_node(((BitmapAppendOnlyPath *)path)->bitmapqual, walker, context);
+			break;
+		case T_BitmapAnd:
+			v = pathnode_walk_list(((BitmapAndPath *)path)->bitmapquals, walker, context);
+			break;
+		case T_BitmapOr:
+			v = pathnode_walk_list(((BitmapOrPath *)path)->bitmapquals, walker, context);
+			break;
+		case T_HashJoin:
+		case T_MergeJoin:
+			v = pathnode_walk_node(((JoinPath *)path)->outerjoinpath, walker, context);
+			if (v != CdbVisit_Walk)     /* stop */
+				break;
+			v = pathnode_walk_node(((JoinPath *)path)->innerjoinpath, walker, context);
+			break;
+		case T_NestLoop:
+			{
+				NestPath   *nestpath = (NestPath *)path;
+
+				v = pathnode_walk_node(nestpath->outerjoinpath, walker, context);
+				if (v != CdbVisit_Walk)     /* stop */
 					break;
-            case T_BitmapAnd:
-                    v = pathnode_walk_list(((BitmapAndPath *)path)->bitmapquals, walker, context);
-                    break;
-            case T_BitmapOr:
-                    v = pathnode_walk_list(((BitmapOrPath *)path)->bitmapquals, walker, context);
-                    break;
-            case T_HashJoin:
-            case T_MergeJoin:
-                    v = pathnode_walk_node(((JoinPath *)path)->outerjoinpath, walker, context);
-                    if (v != CdbVisit_Walk)     /* stop */
-                            break;
-                    v = pathnode_walk_node(((JoinPath *)path)->innerjoinpath, walker, context);
-                    break;
-            case T_NestLoop:
-                    {
-                            NestPath   *nestpath = (NestPath *)path;
-
-                            v = pathnode_walk_node(nestpath->outerjoinpath, walker, context);
-                            if (v != CdbVisit_Walk)     /* stop */
-                                    break;
-                            v = pathnode_walk_node(nestpath->innerjoinpath, walker, context);
-                            if (v != CdbVisit_Walk)     /* stop */
-                                    break;
-                    }
-                    break;
-            case T_Append:
-                    v = pathnode_walk_list(((AppendPath *)path)->subpaths, walker, context);
-                    break;
-            case T_Material:
-                    v = pathnode_walk_node(((MaterialPath *)path)->subpath, walker, context);
-                    break;
-            case T_Unique:
-                    v = pathnode_walk_node(((UniquePath *)path)->subpath, walker, context);
-                    break;
-            case T_Motion:
-                    v = pathnode_walk_node(((CdbMotionPath *)path)->subpath, walker, context);
-                    break;
-            default:
-                    v = CdbVisit_Walk;  /* keep compiler quiet */
-                    elog(ERROR, "unrecognized path type: %d", (int)path->pathtype);
-    }
-    return v;
+				v = pathnode_walk_node(nestpath->innerjoinpath, walker, context);
+				if (v != CdbVisit_Walk)     /* stop */
+					break;
+			}
+			break;
+		case T_Append:
+			v = pathnode_walk_list(((AppendPath *)path)->subpaths, walker, context);
+			break;
+		case T_Material:
+			v = pathnode_walk_node(((MaterialPath *)path)->subpath, walker, context);
+			break;
+		case T_Unique:
+			v = pathnode_walk_node(((UniquePath *)path)->subpath, walker, context);
+			break;
+		case T_Motion:
+			v = pathnode_walk_node(((CdbMotionPath *)path)->subpath, walker, context);
+			break;
+		default:
+			v = CdbVisit_Walk;  /* keep compiler quiet */
+			elog(ERROR, "unrecognized path type: %d", (int)path->pathtype);
+	}
+	return v;
 }	                            /* pathnode_walk_kids */
 
 
@@ -269,8 +269,8 @@ compare_path_costs(Path *path1, Path *path2, CostSelector criterion)
 static int
 compare_recursive_path_costs(Path *path1, Path *path2)
 {
-	bool	isWTpath1;
-	bool	isWTpath2;
+	bool		isWTpath1;
+	bool		isWTpath2;
 
 	if (!IsJoinPath(path1) || !IsJoinPath(path2))
 		return 0;
@@ -455,11 +455,11 @@ set_cheapest(PlannerInfo *root, RelOptInfo *parent_rel)
  *	  but just recycling discarded Path nodes is a very useful savings in
  *	  a large join tree.  We can recycle the List nodes of pathlist, too.
  *
- *    NB: The Path that is passed to add_path() must be considered invalid
- *    upon return, and not touched again by the caller, because we free it
- *    if we already know of a better path.  Likewise, a Path that is passed
- *    to add_path() must not be shared as a subpath of any other Path of the
- *    same join level.
+ *	  NB: The Path that is passed to add_path() must be considered invalid
+ *	  upon return, and not touched again by the caller, because we free it
+ *	  if we already know of a better path.  Likewise, a Path that is passed
+ *	  to add_path() must not be shared as a subpath of any other Path of the
+ *	  same join level.
  *
  *	  BUT: we do not pfree IndexPath objects, since they may be referenced as
  *	  children of BitmapHeapPaths as well as being paths in their own right.
@@ -483,10 +483,10 @@ add_path(PlannerInfo *root, RelOptInfo *parent_rel, Path *new_path)
 	 */
 	CHECK_FOR_INTERRUPTS();
 
-    if (!new_path)
-        return;
+	if (!new_path)
+		return;
 
-    Assert(cdbpathlocus_is_valid(new_path->locus));
+	Assert(cdbpathlocus_is_valid(new_path->locus));
 
 	/*
 	 * Loop to check proposed new path against old paths.  Note it is possible
@@ -667,8 +667,8 @@ create_seqscan_path(PlannerInfo *root, RelOptInfo *rel)
 	pathnode->parent = rel;
 	pathnode->pathkeys = NIL;	/* seqscan has unordered result */
 
-    pathnode->locus = cdbpathlocus_from_baserel(root, rel);
-    pathnode->motionHazard = false;
+	pathnode->locus = cdbpathlocus_from_baserel(root, rel);
+	pathnode->motionHazard = false;
 	pathnode->rescannable = true;
 	pathnode->sameslice_relids = rel->relids;
 
@@ -677,20 +677,20 @@ create_seqscan_path(PlannerInfo *root, RelOptInfo *rel)
 	return pathnode;
 }
 
-/* 
+/*
  * Create a path for scanning an append-only table
  */
 AppendOnlyPath *
 create_appendonly_path(PlannerInfo *root, RelOptInfo *rel)
 {
-	AppendOnlyPath	   *pathnode = makeNode(AppendOnlyPath);
+	AppendOnlyPath *pathnode = makeNode(AppendOnlyPath);
 
 	pathnode->path.pathtype = T_AppendOnlyScan;
 	pathnode->path.parent = rel;
 	pathnode->path.pathkeys = NIL;	/* seqscan has unordered result */
 
-    pathnode->path.locus = cdbpathlocus_from_baserel(root, rel);
-    pathnode->path.motionHazard = false;
+	pathnode->path.locus = cdbpathlocus_from_baserel(root, rel);
+	pathnode->path.motionHazard = false;
 	pathnode->path.rescannable = true;
 	pathnode->path.sameslice_relids = rel->relids;
 
@@ -699,14 +699,14 @@ create_appendonly_path(PlannerInfo *root, RelOptInfo *rel)
 	return pathnode;
 }
 
-/* 
+/*
  * Create a path for scanning an append-only table
  */
 AOCSPath *
 create_aocs_path(PlannerInfo *root, RelOptInfo *rel)
 {
-	AOCSPath	   *pathnode = makeNode(AOCSPath);
-	
+	AOCSPath   *pathnode = makeNode(AOCSPath);
+
 	pathnode->path.pathtype = T_AOCSScan;
 	pathnode->path.parent = rel;
 	pathnode->path.pathkeys = NIL;	/* seqscan has unordered result */
@@ -715,24 +715,24 @@ create_aocs_path(PlannerInfo *root, RelOptInfo *rel)
 	pathnode->path.motionHazard = false;
 	pathnode->path.rescannable = true;
 	pathnode->path.sameslice_relids = rel->relids;
-	
+
 	cost_aocsscan(pathnode, root, rel);
 	return pathnode;
 }
-/* 
+/*
 * Create a path for scanning an external table
  */
 ExternalPath *
 create_external_path(PlannerInfo *root, RelOptInfo *rel)
 {
 	ExternalPath   *pathnode = makeNode(ExternalPath);
-	
+
 	pathnode->path.pathtype = T_ExternalScan;
 	pathnode->path.parent = rel;
 	pathnode->path.pathkeys = NIL;	/* external scan has unordered result */
-	
-    pathnode->path.locus = cdbpathlocus_from_baserel(root, rel); 
-    pathnode->path.motionHazard = false;
+
+	pathnode->path.locus = cdbpathlocus_from_baserel(root, rel);
+	pathnode->path.motionHazard = false;
 
 	/*
 	 * Mark external tables as non-rescannable. While rescan is possible,
@@ -743,7 +743,7 @@ create_external_path(PlannerInfo *root, RelOptInfo *rel)
 	pathnode->path.sameslice_relids = rel->relids;
 
 	cost_externalscan(pathnode, root, rel);
-	
+
 	return pathnode;
 }
 
@@ -878,10 +878,10 @@ create_bitmap_heap_path(PlannerInfo *root,
 	pathnode->path.parent = rel;
 	pathnode->path.pathkeys = NIL;		/* always unordered */
 
-    /* Distribution is same as the base table. */
-    pathnode->path.locus = cdbpathlocus_from_baserel(root, rel);
-    pathnode->path.motionHazard = false;
-    pathnode->path.rescannable = true;
+	/* Distribution is same as the base table. */
+	pathnode->path.locus = cdbpathlocus_from_baserel(root, rel);
+	pathnode->path.motionHazard = false;
+	pathnode->path.rescannable = true;
 	pathnode->path.sameslice_relids = rel->relids;
 
 	pathnode->bitmapqual = bitmapqual;
@@ -945,10 +945,10 @@ create_bitmap_appendonly_path(PlannerInfo *root,
 	pathnode->path.parent = rel;
 	pathnode->path.pathkeys = NIL;		/* always unordered */
 
-    /* Distribution is same as the base table. */
-    pathnode->path.locus = cdbpathlocus_from_baserel(root, rel);
-    pathnode->path.motionHazard = false;
-    pathnode->path.rescannable = true;
+	/* Distribution is same as the base table. */
+	pathnode->path.locus = cdbpathlocus_from_baserel(root, rel);
+	pathnode->path.motionHazard = false;
+	pathnode->path.rescannable = true;
 	pathnode->path.sameslice_relids = rel->relids;
 
 	pathnode->bitmapqual = bitmapqual;
@@ -1050,10 +1050,10 @@ create_tidscan_path(PlannerInfo *root, RelOptInfo *rel, List *tidquals)
 
 	pathnode->tidquals = tidquals;
 
-    /* Distribution is same as the base table. */
-    pathnode->path.locus = cdbpathlocus_from_baserel(root, rel);
-    pathnode->path.motionHazard = false;
-    pathnode->path.rescannable = true;
+	/* Distribution is same as the base table. */
+	pathnode->path.locus = cdbpathlocus_from_baserel(root, rel);
+	pathnode->path.motionHazard = false;
+	pathnode->path.rescannable = true;
 	pathnode->path.sameslice_relids = rel->relids;
 
 	cost_tidscan(&pathnode->path, root, rel, tidquals);
@@ -1078,19 +1078,19 @@ create_append_path(PlannerInfo *root, RelOptInfo *rel, List *subpaths)
 										 * unsorted */
 	pathnode->subpaths = NIL;
 
-    pathnode->path.motionHazard = false;
-    pathnode->path.rescannable = true;
+	pathnode->path.motionHazard = false;
+	pathnode->path.rescannable = true;
 
 	pathnode->path.startup_cost = 0;
 	pathnode->path.total_cost = 0;
 
-    /* If no subpath, any worker can execute this Append.  Result has 0 rows. */
-    if (!subpaths)
-        CdbPathLocus_MakeGeneral(&pathnode->path.locus);
-    else
+	/* If no subpath, any worker can execute this Append.  Result has 0 rows. */
+	if (!subpaths)
+		CdbPathLocus_MakeGeneral(&pathnode->path.locus);
+	else
 	{
-		bool fIsNotPartitioned = false;
-		bool fIsPartitionInEntry = false;
+		bool		fIsNotPartitioned = false;
+		bool		fIsPartitionInEntry = false;
 
 		/*
 		 * Do a first pass over the children to determine if
@@ -1099,7 +1099,7 @@ create_append_path(PlannerInfo *root, RelOptInfo *rel, List *subpaths)
 		 */
 		foreach(l, subpaths)
 		{
-			Path *subpath = (Path *) lfirst(l);
+			Path	   *subpath = (Path *) lfirst(l);
 
 			if (CdbPathLocus_IsBottleneck(subpath->locus) ||
 				CdbPathLocus_IsReplicated(subpath->locus))
@@ -1117,8 +1117,8 @@ create_append_path(PlannerInfo *root, RelOptInfo *rel, List *subpaths)
 
 		foreach(l, subpaths)
 		{
-			Path	       *subpath = (Path *) lfirst(l);
-			CdbPathLocus    projectedlocus;
+			Path	   *subpath = (Path *) lfirst(l);
+			CdbPathLocus projectedlocus;
 
 			/*
 			 * In case any of the children is not partitioned convert all
@@ -1263,10 +1263,10 @@ create_material_path(PlannerInfo *root, RelOptInfo *rel, Path *subpath)
 
 	pathnode->path.pathkeys = subpath->pathkeys;
 
-    pathnode->path.locus = subpath->locus;
-    pathnode->path.motionHazard = subpath->motionHazard;
-    pathnode->cdb_strict = false;
-    pathnode->path.rescannable = true; /* Independent of sub-path */
+	pathnode->path.locus = subpath->locus;
+	pathnode->path.motionHazard = subpath->motionHazard;
+	pathnode->cdb_strict = false;
+	pathnode->path.rescannable = true; /* Independent of sub-path */
 	pathnode->path.sameslice_relids = subpath->sameslice_relids;
 
 	pathnode->subpath = subpath;
@@ -1280,7 +1280,6 @@ create_material_path(PlannerInfo *root, RelOptInfo *rel, Path *subpath)
 
 	return pathnode;
 }
-
 
 /*
  * create_unique_path
@@ -1468,10 +1467,11 @@ create_unique_path(PlannerInfo *root, RelOptInfo *rel, Path *subpath,
 	if (contain_volatile_functions((Node *) uniq_exprs))
 		goto no_unique_path;
 
-    /* Repartition first if duplicates might be on different QEs. */
-    if (!CdbPathLocus_IsBottleneck(subpath->locus) &&
+	/* Repartition first if duplicates might be on different QEs. */
+	if (!CdbPathLocus_IsBottleneck(subpath->locus) &&
 		!cdbpathlocus_is_hashed_on_exprs(subpath->locus, uniq_exprs))
 	{
+		// GPDB_90_MERGE_FIXME: this looks very wrong.
 		goto no_unique_path;
         locus = cdbpathlocus_from_exprs(root, uniq_exprs);
         subpath = cdbpath_create_motion_path(root, subpath, NIL, false, locus);
@@ -2107,9 +2107,9 @@ create_subqueryscan_path(PlannerInfo *root, RelOptInfo *rel, List *pathkeys)
 	pathnode->parent = rel;
 	pathnode->pathkeys = pathkeys;
 
-    pathnode->locus = cdbpathlocus_from_subquery(root, rel->subplan, rel->relid);
-    pathnode->motionHazard = true;          /* better safe than sorry */
-    pathnode->rescannable = false;
+	pathnode->locus = cdbpathlocus_from_subquery(root, rel->subplan, rel->relid);
+	pathnode->motionHazard = true;          /* better safe than sorry */
+	pathnode->rescannable = false;
 	pathnode->sameslice_relids = NULL;
 
 	cost_subqueryscan(pathnode, rel);
@@ -2214,7 +2214,7 @@ create_tablefunction_path(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte
 	pathnode->motionHazard = true;      /* better safe than sorry */
 	pathnode->rescannable  = false;     /* better safe than sorry */
 
-	/* 
+	/*
 	 * Inherit the locus of the input subquery.  This is necessary to handle the
 	 * case of a General locus, e.g. if all the data has been concentrated to a
 	 * single segment then the output will all be on that segment, otherwise the
@@ -2248,17 +2248,17 @@ create_valuesscan_path(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 	pathnode->parent = rel;
 	pathnode->pathkeys = NIL;	/* result is always unordered */
 
-    /*
-     * CDB: If VALUES list contains mutable functions, evaluate it on entry db.
-     * Otherwise let it be evaluated in the same slice as its parent operator.
-     */
-    Assert(rte->rtekind == RTE_VALUES);
-    if (contain_mutable_functions((Node *)rte->values_lists))
-        CdbPathLocus_MakeEntry(&pathnode->locus);
-    else
-        CdbPathLocus_MakeGeneral(&pathnode->locus);
+	/*
+	 * CDB: If VALUES list contains mutable functions, evaluate it on entry db.
+	 * Otherwise let it be evaluated in the same slice as its parent operator.
+	 */
+	Assert(rte->rtekind == RTE_VALUES);
+	if (contain_mutable_functions((Node *)rte->values_lists))
+		CdbPathLocus_MakeEntry(&pathnode->locus);
+	else
+		CdbPathLocus_MakeGeneral(&pathnode->locus);
 
-    pathnode->motionHazard = false;
+	pathnode->motionHazard = false;
 	pathnode->rescannable = true;
 	pathnode->sameslice_relids = NULL;
 
@@ -2334,11 +2334,11 @@ create_worktablescan_path(PlannerInfo *root, RelOptInfo *rel, CdbLocusType ctelo
 bool
 path_contains_inner_index(Path *path)
 {
-    if (IsA(path, IndexPath) &&
-        ((IndexPath *)path)->isjoininner)
+	if (IsA(path, IndexPath) &&
+		((IndexPath *)path)->isjoininner)
 		return true;
-    else if (IsA(path, BitmapHeapPath) &&
-             ((BitmapHeapPath *)path)->isjoininner)
+	else if (IsA(path, BitmapHeapPath) &&
+			 ((BitmapHeapPath *)path)->isjoininner)
 		return true;
 	else if (IsA(path, BitmapAppendOnlyPath) &&
 			 ((BitmapAppendOnlyPath *)path)->isjoininner)
@@ -2353,7 +2353,7 @@ path_contains_inner_index(Path *path)
 		/* scan the subpaths of the Append */
 		foreach(l, ((AppendPath *)path)->subpaths)
 		{
-			Path *subpath = (Path *)lfirst(l);
+			Path	   *subpath = (Path *)lfirst(l);
 
 			if (path_contains_inner_index(subpath))
 				return true;
@@ -2386,61 +2386,66 @@ create_nestloop_path(PlannerInfo *root,
 					 Path *outer_path,
 					 Path *inner_path,
 					 List *restrict_clauses,
-                     List *mergeclause_list,    /*CDB*/
+					 List *mergeclause_list,    /*CDB*/
 					 List *pathkeys)
 {
-	NestPath       *pathnode;
-    CdbPathLocus    join_locus;
-    bool            inner_must_be_local = false;
+	NestPath   *pathnode;
+	CdbPathLocus join_locus;
+	bool		inner_must_be_local = false;
 
-    /* CDB: Inner indexpath must execute in the same backend as the
-     * nested join to receive input values from the outer rel.
-     */
+	/*
+	 * CDB: Inner indexpath must execute in the same backend as the
+	 * nested join to receive input values from the outer rel.
+	 */
 	inner_must_be_local = path_contains_inner_index(inner_path);
 
-    /* Add motion nodes above subpaths and decide where to join. */
-    join_locus = cdbpath_motion_for_join(root,
-                                         jointype,
-                                         &outer_path,       /* INOUT */
-                                         &inner_path,       /* INOUT */
-                                         mergeclause_list,
-                                         pathkeys,
-                                         NIL,
-                                         false,
-                                         inner_must_be_local);
-    if (CdbPathLocus_IsNull(join_locus))
-        return NULL;
+	/* Add motion nodes above subpaths and decide where to join. */
+	join_locus = cdbpath_motion_for_join(root,
+										 jointype,
+										 &outer_path,       /* INOUT */
+										 &inner_path,       /* INOUT */
+										 mergeclause_list,
+										 pathkeys,
+										 NIL,
+										 false,
+										 inner_must_be_local);
+	if (CdbPathLocus_IsNull(join_locus))
+		return NULL;
 
-    /* Outer might not be ordered anymore after motion. */
-    if (!outer_path->pathkeys)
-        pathkeys = NIL;
+	/* Outer might not be ordered anymore after motion. */
+	if (!outer_path->pathkeys)
+		pathkeys = NIL;
 
-    /*
-     * If outer has at most one row, NJ will make at most one pass over inner.
-     * Else materialize inner rel after motion so NJ can loop over results.
-     * Skip if an intervening Unique operator will materialize.
-     */
-    if (!outer_path->parent->onerow)
-    {
-        if (!inner_path->rescannable)
+	/*
+	 * If outer has at most one row, NJ will make at most one pass over inner.
+	 * Else materialize inner rel after motion so NJ can loop over results.
+	 * Skip if an intervening Unique operator will materialize.
+	 */
+	if (!outer_path->parent->onerow)
+	{
+		if (!inner_path->rescannable)
 		{
-			/* NLs potentially rescan the inner; if our inner path
-			 * isn't rescannable we have to add a materialize node */
+			/*
+			 * NLs potentially rescan the inner; if our inner path
+			 * isn't rescannable we have to add a materialize node
+			 */
 			inner_path = (Path *)create_material_path(root, inner_path->parent, inner_path);
 
-			/* If we have motion on the outer, to avoid a deadlock; we
+			/*
+			 * If we have motion on the outer, to avoid a deadlock; we
 			 * need to set cdb_strict. In order for materialize to
 			 * fully fetch the underlying (required to avoid our
-			 * deadlock hazard) we must set cdb_strict! */
+			 * deadlock hazard) we must set cdb_strict!
+			 */
 			if (inner_path->motionHazard && outer_path->motionHazard)
 			{
-				((MaterialPath *)inner_path)->cdb_strict = true;
+				((MaterialPath *) inner_path)->cdb_strict = true;
 				inner_path->motionHazard = false;
 			}
 		}
-    }
+	}
 
-    pathnode = makeNode(NestPath);
+	pathnode = makeNode(NestPath);
 	pathnode->path.pathtype = T_NestLoop;
 	pathnode->path.parent = joinrel;
 	pathnode->jointype = jointype;
@@ -2449,11 +2454,11 @@ create_nestloop_path(PlannerInfo *root,
 	pathnode->joinrestrictinfo = restrict_clauses;
 	pathnode->path.pathkeys = pathkeys;
 
-    pathnode->path.locus = join_locus;
-    pathnode->path.motionHazard = outer_path->motionHazard || inner_path->motionHazard;
+	pathnode->path.locus = join_locus;
+	pathnode->path.motionHazard = outer_path->motionHazard || inner_path->motionHazard;
 
 	/* we're only as rescannable as our child plans */
-    pathnode->path.rescannable = outer_path->rescannable && inner_path->rescannable;
+	pathnode->path.rescannable = outer_path->rescannable && inner_path->rescannable;
 
 	pathnode->path.sameslice_relids = bms_union(inner_path->sameslice_relids, outer_path->sameslice_relids);
 
@@ -2497,33 +2502,33 @@ create_mergejoin_path(PlannerInfo *root,
 					  List *restrict_clauses,
 					  List *pathkeys,
 					  List *mergeclauses,
-                      List *allmergeclauses,    /*CDB*/
+					  List *allmergeclauses,    /*CDB*/
 					  List *outersortkeys,
 					  List *innersortkeys)
 {
-    MergePath      *pathnode;
-    CdbPathLocus    join_locus;
-    List           *outermotionkeys;
-    List           *innermotionkeys;
+	MergePath  *pathnode;
+	CdbPathLocus join_locus;
+	List	   *outermotionkeys;
+	List	   *innermotionkeys;
 	bool		preserve_outer_ordering;
 	bool		preserve_inner_ordering;
 
-    /*
-     * Do subpaths have useful ordering?
-     */
-    if (outersortkeys == NIL)           /* must preserve existing ordering */
-        outermotionkeys = outer_path->pathkeys;
-    else if (pathkeys_contained_in(outersortkeys, outer_path->pathkeys))
-        outermotionkeys = outersortkeys;/* lucky coincidence, already ordered */
-    else                                /* existing order useless; must sort */
-        outermotionkeys = NIL;
+	/*
+	 * Do subpaths have useful ordering?
+	 */
+	if (outersortkeys == NIL)           /* must preserve existing ordering */
+		outermotionkeys = outer_path->pathkeys;
+	else if (pathkeys_contained_in(outersortkeys, outer_path->pathkeys))
+		outermotionkeys = outersortkeys;/* lucky coincidence, already ordered */
+	else                                /* existing order useless; must sort */
+		outermotionkeys = NIL;
 
-    if (innersortkeys == NIL)
-        innermotionkeys = inner_path->pathkeys;
-    else if (pathkeys_contained_in(innersortkeys, inner_path->pathkeys))
-        innermotionkeys = innersortkeys;
-    else
-        innermotionkeys = NIL;
+	if (innersortkeys == NIL)
+		innermotionkeys = inner_path->pathkeys;
+	else if (pathkeys_contained_in(innersortkeys, inner_path->pathkeys))
+		innermotionkeys = innersortkeys;
+	else
+		innermotionkeys = NIL;
 
 	/*
 	 * Add motion nodes above subpaths and decide where to join.
@@ -2543,21 +2548,21 @@ create_mergejoin_path(PlannerInfo *root,
 		preserve_outer_ordering = preserve_inner_ordering = false;
 	}
 
-    join_locus = cdbpath_motion_for_join(root,
-                                         jointype,
-                                         &outer_path,       /* INOUT */
-                                         &inner_path,       /* INOUT */
-                                         allmergeclauses,
-                                         outermotionkeys,
-                                         innermotionkeys,
+	join_locus = cdbpath_motion_for_join(root,
+										 jointype,
+										 &outer_path,       /* INOUT */
+										 &inner_path,       /* INOUT */
+										 allmergeclauses,
+										 outermotionkeys,
+										 innermotionkeys,
 										 preserve_outer_ordering,
 										 preserve_inner_ordering);
-    if (CdbPathLocus_IsNull(join_locus))
-        return NULL;
+	if (CdbPathLocus_IsNull(join_locus))
+		return NULL;
 
 	/*
 	 * Sort is not needed if subpath is already well enough ordered and a
-     * disordering motion node (with pathkeys == NIL) hasn't been added.
+	 * disordering motion node (with pathkeys == NIL) hasn't been added.
 	 */
 	if (outermotionkeys &&
 		outer_path->pathkeys)
@@ -2566,15 +2571,15 @@ create_mergejoin_path(PlannerInfo *root,
 		inner_path->pathkeys)
 		innersortkeys = NIL;
 
-    /* If user doesn't want sort, but this MJ requires a sort, fail. */
-    if (!root->config->enable_sort &&
-        !root->config->mpp_trying_fallback_plan)
-    {
-        if (outersortkeys || innersortkeys)
-            return NULL;
-    }
+	/* If user doesn't want sort, but this MJ requires a sort, fail. */
+	if (!root->config->enable_sort &&
+		!root->config->mpp_trying_fallback_plan)
+	{
+		if (outersortkeys || innersortkeys)
+			return NULL;
+	}
 
-    pathnode = makeNode(MergePath);
+	pathnode = makeNode(MergePath);
 
 	pathnode->jpath.path.pathtype = T_MergeJoin;
 	pathnode->jpath.path.parent = joinrel;
@@ -2583,7 +2588,7 @@ create_mergejoin_path(PlannerInfo *root,
 	pathnode->jpath.innerjoinpath = inner_path;
 	pathnode->jpath.joinrestrictinfo = restrict_clauses;
 	pathnode->jpath.path.pathkeys = pathkeys;
-    pathnode->jpath.path.locus = join_locus;
+	pathnode->jpath.path.locus = join_locus;
 
 	pathnode->jpath.path.motionHazard = outer_path->motionHazard || inner_path->motionHazard;
 	pathnode->jpath.path.rescannable = outer_path->rescannable && inner_path->rescannable;
@@ -2620,11 +2625,11 @@ create_hashjoin_path(PlannerInfo *root,
 					 Path *outer_path,
 					 Path *inner_path,
 					 List *restrict_clauses,
-                     List *mergeclause_list,    /*CDB*/
+					 List *mergeclause_list,    /*CDB*/
 					 List *hashclauses)
 {
-	HashPath       *pathnode;
-	CdbPathLocus    join_locus;
+	HashPath   *pathnode;
+	CdbPathLocus join_locus;
 
 	/* Add motion nodes above subpaths and decide where to join. */
 	join_locus = cdbpath_motion_for_join(root,
@@ -2684,18 +2689,18 @@ create_hashjoin_path(PlannerInfo *root,
 	 * outer rel than it does now.)
 	 */
 	pathnode->jpath.path.pathkeys = NIL;
-    pathnode->jpath.path.locus = join_locus;
+	pathnode->jpath.path.locus = join_locus;
 
 	pathnode->path_hashclauses = hashclauses;
 	/* cost_hashjoin will fill in pathnode->num_batches */
 
-    /*
-     * If hash table overflows to disk, and an ancestor node requests rescan
-     * (e.g. because the HJ is in the inner subtree of a NJ), then the HJ has
-     * to be redone, including rescanning the inner rel in order to rebuild
-     * the hash table.
-     */
-    pathnode->jpath.path.rescannable = outer_path->rescannable && inner_path->rescannable;
+	/*
+	 * If hash table overflows to disk, and an ancestor node requests rescan
+	 * (e.g. because the HJ is in the inner subtree of a NJ), then the HJ has
+	 * to be redone, including rescanning the inner rel in order to rebuild
+	 * the hash table.
+	 */
+	pathnode->jpath.path.rescannable = outer_path->rescannable && inner_path->rescannable;
 
 	/* see the comment above; we may have a motion hazard on our inner ?! */
 	if (pathnode->jpath.path.rescannable)
