@@ -1253,11 +1253,13 @@ CreateDistributedSnapshot(DistributedSnapshotWithLocalMapping *distribSnapshotWi
 		if (gxid == InvalidDistributedTransactionId)
 			continue;
 
-		if (gxact_candidate->state == DTX_STATE_ACTIVE_NOT_DISTRIBUTED)
-			continue;
+		/*
+		 * NB: We must include transactions in DTX_STATE_ACTIVE_NOT_DISTRIBUTED
+		 * state. All transactions start in that state, even if they become
+		 * distribute later on.
+		 */
 
-		Assert(gxact_candidate->state != DTX_STATE_ACTIVE_NOT_DISTRIBUTED &&
-			   gxact_candidate->state != DTX_STATE_NONE);
+		Assert(gxact_candidate->state != DTX_STATE_NONE);
 
 		/* Update globalXminDistributedSnapshots to be the smallest valid dxid */
 		dxid = gxact_candidate->xminDistributedSnapshot;
