@@ -207,10 +207,6 @@ extern TimestampTz PgStartTime;
 /* Set at configuration reload */
 extern TimestampTz PgReloadTime;
 
-/* Set at configuration reload */
-extern TimestampTz PgReloadTime;
-
-
 /*
  * timestamp.c prototypes
  */

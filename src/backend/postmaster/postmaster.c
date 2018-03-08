@@ -334,6 +334,9 @@ static PMState pmState = PM_INIT;
 
 /* CDB */
 
+/* Set at database system is ready to accept connections */
+pg_time_t PMAcceptingConnectionsStartTime = 0;
+
 typedef enum PMSUBPROC_FLAGS
 {
 	PMSUBPROC_FLAG_QD 					= 0x1,
@@ -2903,6 +2906,8 @@ reaper(SIGNAL_ARGS)
 						(errmsg("database system is ready to accept connections"),
 						 errdetail("%s",version),
 						 errSendAlert(true)));
+
+				PMAcceptingConnectionsStartTime = (pg_time_t) time(NULL);
 			}
 
 			continue;

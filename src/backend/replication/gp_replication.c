@@ -12,10 +12,14 @@
  */
 #include "postgres.h"
 
+#include "pgtime.h"
 #include "replication/gp_replication.h"
 #include "replication/walreceiver.h"
 #include "replication/walsender_private.h"
 #include "utils/builtins.h"
+
+/* Set at database system is ready to accept connections */
+extern pg_time_t PMAcceptingConnectionsStartTime;
 
 /*
  * If mirror disconnects and re-connects between this period, or just takes
@@ -51,17 +55,32 @@ GetMirrorStatus(FtsResponse *response)
 		if (walsnd->pid == 0)
 		{
 			Assert(walsnd->marked_pid_zero_at_time);
-			pg_time_t delta = ((pg_time_t) time(NULL)) - walsnd->marked_pid_zero_at_time;
+			/*
+			 * PMAcceptingConnectionStartTime is process-local variable, set in
+			 * postmaster process and inherited by the FTS handler child
+			 * process. This works because the timestamp is set only once by
+			 * postmaster, and is guaranteed to be set before FTS handler child
+			 * processes can be spawned.
+			 */
+			Assert(PMAcceptingConnectionsStartTime);
+			pg_time_t delta = ((pg_time_t) time(NULL)) - Max(walsnd->marked_pid_zero_at_time, PMAcceptingConnectionsStartTime);
 			/*
 			 * Report mirror as down, only if it didn't connect for below
 			 * grace period to primary. This helps to avoid marking mirror
 			 * down unnecessarily when restarting primary or due to small n/w
 			 * glitch. During this period, request FTS to probe again.
+			 *
+			 * If the delta is negative, then it's overflowed, meaning it's
+			 * over FTS_MARKING_MIRROR_DOWN_GRACE_PERIOD since either last
+			 * database accepting connections or last time wal sender
+			 * died. Then, we can safely mark the mirror is down.
 			 */
-			if (delta < FTS_MARKING_MIRROR_DOWN_GRACE_PERIOD)
+			if (delta < FTS_MARKING_MIRROR_DOWN_GRACE_PERIOD && delta >= 0)
 			{
-				elog(LOG,
-					 "requesting fts retry as mirror didn't connect yet but in grace period " INT64_FORMAT, delta);
+				ereport(LOG,
+						(errmsg("requesting fts retry as mirror didn't connect yet but in grace period: " INT64_FORMAT, delta),
+						 errdetail("pid zero at time: " INT64_FORMAT " accept connections start time: " INT64_FORMAT,
+									  walsnd->marked_pid_zero_at_time, PMAcceptingConnectionsStartTime)));
 				response->RequestRetry = true;
 			}
 		}
