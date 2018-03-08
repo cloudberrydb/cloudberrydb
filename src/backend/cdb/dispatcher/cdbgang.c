@@ -664,13 +664,17 @@ makeOptions(void)
 	 */
 	if (DefaultXactIsoLevel != XACT_READ_COMMITTED)
 	{
-		if (DefaultXactIsoLevel == XACT_SERIALIZABLE)
+		if (DefaultXactIsoLevel == XACT_REPEATABLE_READ)
+			appendStringInfo(&string, " -c default_transaction_isolation=repeatable\\ read");
+		else if (DefaultXactIsoLevel == XACT_SERIALIZABLE)
 			appendStringInfo(&string, " -c default_transaction_isolation=serializable");
 	}
 
 	if (XactIsoLevel != XACT_READ_COMMITTED)
 	{
-		if (XactIsoLevel == XACT_SERIALIZABLE)
+		if (XactIsoLevel == XACT_REPEATABLE_READ)
+			appendStringInfo(&string, " -c transaction_isolation=repeatable\\ read");
+		else if (XactIsoLevel == XACT_SERIALIZABLE)
 			appendStringInfo(&string, " -c transaction_isolation=serializable");
 	}
 
