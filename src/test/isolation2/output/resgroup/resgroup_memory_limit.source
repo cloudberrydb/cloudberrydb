@@ -242,7 +242,7 @@ hold_memory_by_percent
 SET
 2: BEGIN;
 BEGIN
-2: SELECT hold_memory_by_percent(1,0.2);
+2: SELECT hold_memory_by_percent(1,0.3);
 hold_memory_by_percent
 ----------------------
 0                     
@@ -279,7 +279,7 @@ count
 SET
 2: BEGIN;
 BEGIN
-2: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(t1.dbid,0.2)=0;
+2: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(t1.dbid,0.3)=0;
 count
 -----
 0    
@@ -319,7 +319,7 @@ hold_memory_by_percent
 SET
 2: BEGIN;
 BEGIN
-2: SELECT hold_memory_by_percent(1,0.2);
+2: SELECT hold_memory_by_percent(1,0.3);
 hold_memory_by_percent
 ----------------------
 0                     
@@ -359,7 +359,7 @@ count
 SET
 2: BEGIN;
 BEGIN
-2: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(t1.dbid,0.2)=0;
+2: SELECT count(null) FROM gp_dist_random('gp_id') t1 WHERE hold_memory_by_percent(t1.dbid,0.3)=0;
 count
 -----
 0    
