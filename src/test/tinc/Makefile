@@ -41,10 +41,6 @@ DISCOVER=discover
 # Refer to the properties of the pulse project and individual build
 # stages for configuration requirements.
 
-storage_vacuum_xidlimits:
-	$(TESTER) $(DISCOVER) \
-	-s tincrepo/mpp/gpdb/tests/storage/vacuum/xidlimits
-
 storage:
 	$(TESTER) $(DISCOVER) -s tincrepo/mpp/gpdb/tests/storage/vacuum \
 	-q "class!=XidlimitsTests"

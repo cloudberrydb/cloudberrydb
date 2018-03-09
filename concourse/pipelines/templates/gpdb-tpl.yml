@@ -85,7 +85,6 @@ groups:
                     cs_pg_twophase_suites %}
   - cs_[[ test_name ]]
 {% endfor %}
-  - storage
   - segwalrep_mirrorless_centos6
   - gate_cs_end
 {% endif %}
@@ -210,7 +209,6 @@ groups:
                     cs_pg_twophase_suites %}
   - cs_[[ test_name ]]
 {% endfor %}
-  - storage
   - segwalrep_mirrorless_centos6
   - gate_cs_end
 
@@ -1696,35 +1694,6 @@ jobs:
 
 {% endfor %}
 
-- name: storage
-  plan:
-  - aggregate:
-    - get: gpdb_src
-      params: {submodules: none}
-      passed: [gate_cs_start]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos6
-      passed: [gate_cs_start]
-      trigger: [[ test_trigger ]]
-    - get: centos-gpdb-dev-6
-  - aggregate:
-    - task: storage_tests
-      file: gpdb_src/concourse/tasks/tinc_gpdb.yml
-      params:
-        MAKE_TEST_COMMAND: storage
-        TEST_OS: centos
-        CONFIGURE_FLAGS: {{configure_flags}}
-      image: centos-gpdb-dev-6
-      timeout: 3h
-    - task: storage_vacuum_xidlimits
-      file: gpdb_src/concourse/tasks/tinc_gpdb.yml
-      params:
-        MAKE_TEST_COMMAND: storage_vacuum_xidlimits
-        TEST_OS: centos
-        CONFIGURE_FLAGS: {{configure_flags}}
-      image: centos-gpdb-dev-6
-      timeout: 3h
-
 - name: segwalrep_mirrorless_centos6
   plan:
   - aggregate:
@@ -1753,7 +1722,6 @@ jobs:
                     cs_pg_twophase_suites %}
       - cs_[[ test_name ]]
 {% endfor %}
-      - storage
       - segwalrep_mirrorless_centos6
       trigger: true
 
@@ -2560,7 +2528,6 @@ jobs:
     - mpp_resource_group_centos6
     - mpp_resource_group_centos7
     - mpp_resource_group_sles12
-    - storage
     - segwalrep_mirrorless_centos6
 {% for test_name in cs_walrep_suites +
                     cs_pg_twophase_suites %}
