@@ -75,6 +75,8 @@ bool		Debug_print_slice_table;	/* Shall we log the slice table? */
 
 bool		Debug_resource_group;	/* Shall we log the resource group? */
 
+bool		Debug_burn_xids;
+
 bool		gp_external_enable_exec = true; /* allow ext tables with EXECUTE */
 
 int			gp_external_max_segs;	/* max segdbs per gpfdist/gpfdists URI */
