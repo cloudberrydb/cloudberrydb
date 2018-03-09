@@ -34,17 +34,6 @@ TESTER= \
 
 DISCOVER=discover
 
-# cs-storage
-# The following targets are pulled from:
-# http://pulse-cloud.gopivotal.com/admin/projects/cs-storage
-#
-# Refer to the properties of the pulse project and individual build
-# stages for configuration requirements.
-
-storage:
-	$(TESTER) $(DISCOVER) -s tincrepo/mpp/gpdb/tests/storage/vacuum \
-	-q "class!=XidlimitsTests"
-
 # cs-walrepl-multinode
 walrep_1:
 	$(TESTER) $(DISCOVER) -t tincrepo/mpp/gpdb/tests/storage/walrepl \
