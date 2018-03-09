@@ -42,7 +42,7 @@ CWStringTest::EresUnittest()
 		GPOS_UNITTEST_FUNC(CWStringTest::EresUnittest_Copy),
 		GPOS_UNITTEST_FUNC(CWStringTest::EresUnittest_AppendEscape),
 		GPOS_UNITTEST_FUNC(CWStringTest::EresUnittest_AppendFormatLarge),
-#ifndef GPOS_DARWIN
+#ifndef GPOS_Darwin
 		GPOS_UNITTEST_FUNC(CWStringTest::EresUnittest_AppendFormatInvalidLocale),
 #endif
 		};
@@ -189,7 +189,7 @@ CWStringTest::EresUnittest_AppendFormat()
 // AppendFormat uses a C library function, vswprintf(), whose behavior is platform specific.
 // vswprintf() returns with error on non-Darwin platforms when the locale is incompatible with unicode string.
 // Hence do not run this test on Darwin platform.
-#ifndef GPOS_DARWIN
+#ifndef GPOS_Darwin
 GPOS_RESULT
 CWStringTest::EresUnittest_AppendFormatInvalidLocale()
 {

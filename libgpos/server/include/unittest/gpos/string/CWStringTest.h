@@ -35,7 +35,7 @@ namespace gpos
 			static GPOS_RESULT EresUnittest_Copy();
 			static GPOS_RESULT EresUnittest_AppendEscape();
 			static GPOS_RESULT EresUnittest_AppendFormatLarge();
-#ifndef GPOS_DARWIN
+#ifndef GPOS_Darwin
 			static GPOS_RESULT EresUnittest_AppendFormatInvalidLocale();
 #endif
 	}; // class CWStringTest
