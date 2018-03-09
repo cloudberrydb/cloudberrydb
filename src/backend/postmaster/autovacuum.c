@@ -117,7 +117,7 @@ int			autovacuum_freeze_max_age;
 int			autovacuum_vac_cost_delay;
 int			autovacuum_vac_cost_limit;
 
-int			Log_autovacuum_min_duration = -1;
+int			Log_autovacuum_min_duration = 0;
 
 /* how long to keep pgstat data in the launcher, in milliseconds */
 #define STATS_READ_DELAY 1000
@@ -1017,7 +1017,7 @@ rebuild_database_list(Oid newdb)
 		current_time = GetCurrentTimestamp();
 
 		/*
-		 * move the elements from the array into the dllist, setting the 
+		 * move the elements from the array into the dllist, setting the
 		 * next_worker while walking the array
 		 */
 		for (i = 0; i < nelems; i++)
@@ -1091,13 +1091,12 @@ do_start_worker(void)
 	 * Create and switch to a temporary context to avoid leaking the memory
 	 * allocated for the database list.
 	 */
-	 tmpcxt = AllocSetContextCreate(CurrentMemoryContext,
-									"Start worker tmp cxt",
-									ALLOCSET_DEFAULT_MINSIZE,
-									ALLOCSET_DEFAULT_INITSIZE,
-									ALLOCSET_DEFAULT_MAXSIZE);
-	 oldcxt = MemoryContextSwitchTo(tmpcxt);
-
+	tmpcxt = AllocSetContextCreate(CurrentMemoryContext,
+								   "Start worker tmp cxt",
+								   ALLOCSET_DEFAULT_MINSIZE,
+								   ALLOCSET_DEFAULT_INITSIZE,
+								   ALLOCSET_DEFAULT_MAXSIZE);
+	oldcxt = MemoryContextSwitchTo(tmpcxt);
 
 	/* use fresh stats */
 	autovac_refresh_stats();
@@ -1552,7 +1551,7 @@ AutoVacWorkerMain(int argc, char *argv[])
 		MyWorkerInfo->wi_proc = MyProc;
 
 		/* insert into the running list */
-		SHMQueueInsertBefore(&AutoVacuumShmem->av_runningWorkers, 
+		SHMQueueInsertBefore(&AutoVacuumShmem->av_runningWorkers,
 							 &MyWorkerInfo->wi_links);
 		/*
 		 * remove from the "starting" pointer, so that the launcher can start
@@ -1802,6 +1801,16 @@ get_database_list(void)
 	{
 		Form_pg_database pgdatabase = (Form_pg_database) GETSTRUCT(tup);
 		avw_dbase   *avdb;
+
+		/*
+		 * In GPDB, autovacuum is currently disabled, except for the
+		 * anti-wraparound vacuum of template0 (and any other databases
+		 * with !datallowconn). The administrator is expected to do all
+		 * VACUUMing manually, except for template0, which you cannot
+		 * VACUUM manually because you cannot connect to it.
+		 */
+		if (pgdatabase->datallowconn)
+			continue;
 
 		avdb = (avw_dbase *) palloc(sizeof(avw_dbase));
 

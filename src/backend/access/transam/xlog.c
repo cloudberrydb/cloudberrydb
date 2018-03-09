@@ -8797,7 +8797,7 @@ CreateCheckPoint(int flags)
 	 * StartupSUBTRANS hasn't been called yet.
 	 */
 	if (!RecoveryInProgress())
-		TruncateSUBTRANS(GetOldestXmin(true, false));
+		TruncateSUBTRANS(GetLocalOldestXmin(true, false));
 
 	/* All real work is done, but log before releasing lock. */
 	if (log_checkpoints)

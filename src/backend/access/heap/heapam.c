@@ -4040,11 +4040,6 @@ heap_inplace_update(Relation relation, HeapTuple tuple)
  * exclusive lock ensures no other backend is in process of checking the
  * tuple status.  Also, getting exclusive lock makes it safe to adjust the
  * infomask bits.
- *
- * In GPDB, the caller must ensure that the cutoff_xid covers any transactions
- * that are no longer running locally, but are still visible to a distributed
- * snapshot in the QD node. GetOldestXmin() will do that for you, and
- * RecentGlobalXmin is fine, too.
  */
 bool
 heap_freeze_tuple(HeapTupleHeader tuple, TransactionId cutoff_xid,
