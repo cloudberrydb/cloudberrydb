@@ -5,10 +5,10 @@
  *
  *
  * Portions Copyright (c) 2017, Pivotal Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/optimizer/placeholder.h,v 1.3 2009/06/11 14:49:11 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/optimizer/placeholder.h,v 1.5 2010/03/28 22:59:33 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

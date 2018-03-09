@@ -543,7 +543,10 @@ CheckpointerMain(void)
 
 /*
  * CheckArchiveTimeout -- check for archive_timeout and switch xlog files
- *		if needed
+ *
+ * This will switch to a new WAL file and force an archive file write
+ * if any activity is recorded in the current WAL file, including just
+ * a single checkpoint record.
  */
 static void
 CheckArchiveTimeout(void)

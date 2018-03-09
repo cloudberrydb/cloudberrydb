@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2006 - present, EMC/Greenplum
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execScan.c,v 1.47 2009/10/26 02:26:29 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execScan.c,v 1.49 2010/02/26 02:00:41 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -66,7 +66,7 @@ static bool tlist_matches_tupdesc(PlanState *ps, List *tlist, Index varno, Tuple
  * ExecScanFetch -- fetch next potential tuple
  *
  * This routine is concerned with substituting a test tuple if we are
- * inside an EvalPlanQual recheck.  If we aren't, just execute
+ * inside an EvalPlanQual recheck.	If we aren't, just execute
  * the access method's next-tuple routine.
  */
 static inline TupleTableSlot *
@@ -170,7 +170,7 @@ ExecScan(ScanState *node,
 	ResetExprContext(econtext);
 
 	/*
-	 * get a tuple from the access method.  Loop until we obtain a tuple that
+	 * get a tuple from the access method.	Loop until we obtain a tuple that
 	 * passes the qualification.
 	 */
 	for (;;)

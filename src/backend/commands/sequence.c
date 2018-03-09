@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc.
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/sequence.c,v 1.162 2009/10/13 00:53:07 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/sequence.c,v 1.168 2010/02/20 21:24:02 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -34,6 +34,7 @@
 #include "storage/bufmgr.h"
 #include "storage/lmgr.h"
 #include "storage/proc.h"
+#include "storage/smgr.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/formatting.h"
@@ -545,6 +546,10 @@ nextval_internal(Oid relid)
 	/* open and AccessShareLock sequence */
 	init_sequence(relid, &elm, &seqrel);
 
+	/* read-only transactions may only modify temp sequences */
+	if (!seqrel->rd_islocaltemp)
+		PreventCommandIfReadOnly("nextval()");
+
 	if (elm->last != elm->cached)		/* some numbers were cached */
 	{
 		Assert(elm->last_valid);
@@ -865,9 +870,7 @@ lastval(PG_FUNCTION_ARGS)
 				 errmsg("lastval is not yet defined in this session")));
 
 	/* Someone may have dropped the sequence since the last nextval() */
-	if (!SearchSysCacheExists(RELOID,
-							  ObjectIdGetDatum(last_used_seq->relid),
-							  0, 0, 0))
+	if (!SearchSysCacheExists1(RELOID, ObjectIdGetDatum(last_used_seq->relid)))
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("lastval is not yet defined in this session")));
@@ -927,6 +930,10 @@ do_setval(Oid relid, int64 next, bool iscalled)
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				 errmsg("permission denied for sequence %s",
 						RelationGetRelationName(seqrel))));
+
+	/* read-only transactions may only modify temp sequences */
+	if (!seqrel->rd_islocaltemp)
+		PreventCommandIfReadOnly("setval()");
 
 	/* lock page' buffer and read tuple */
 	seq = read_seq_tuple(elm, seqrel, &buf, &seqtuple);

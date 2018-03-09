@@ -1,5 +1,5 @@
 /*
- * $PostgreSQL: pgsql/contrib/hstore/hstore_op.c,v 1.15 2009/09/30 21:26:17 tgl Exp $
+ * $PostgreSQL: pgsql/contrib/hstore/hstore_op.c,v 1.16 2010/02/26 02:00:32 momjian Exp $
  */
 #include "postgres.h"
 
@@ -13,18 +13,18 @@
 #include "hstore.h"
 
 /* old names for C functions */
-HSTORE_POLLUTE(hstore_fetchval,fetchval);
-HSTORE_POLLUTE(hstore_exists,exists);
-HSTORE_POLLUTE(hstore_defined,defined);
-HSTORE_POLLUTE(hstore_delete,delete);
-HSTORE_POLLUTE(hstore_concat,hs_concat);
-HSTORE_POLLUTE(hstore_contains,hs_contains);
-HSTORE_POLLUTE(hstore_contained,hs_contained);
-HSTORE_POLLUTE(hstore_akeys,akeys);
-HSTORE_POLLUTE(hstore_avals,avals);
-HSTORE_POLLUTE(hstore_skeys,skeys);
-HSTORE_POLLUTE(hstore_svals,svals);
-HSTORE_POLLUTE(hstore_each,each);
+HSTORE_POLLUTE(hstore_fetchval, fetchval);
+HSTORE_POLLUTE(hstore_exists, exists);
+HSTORE_POLLUTE(hstore_defined, defined);
+HSTORE_POLLUTE(hstore_delete, delete);
+HSTORE_POLLUTE(hstore_concat, hs_concat);
+HSTORE_POLLUTE(hstore_contains, hs_contains);
+HSTORE_POLLUTE(hstore_contained, hs_contained);
+HSTORE_POLLUTE(hstore_akeys, akeys);
+HSTORE_POLLUTE(hstore_avals, avals);
+HSTORE_POLLUTE(hstore_skeys, skeys);
+HSTORE_POLLUTE(hstore_svals, svals);
+HSTORE_POLLUTE(hstore_each, each);
 
 
 /*
@@ -34,24 +34,24 @@ HSTORE_POLLUTE(hstore_each,each);
  * one-off or unordered searches.
  */
 int
-hstoreFindKey(HStore * hs, int *lowbound, char *key, int keylen)
+hstoreFindKey(HStore *hs, int *lowbound, char *key, int keylen)
 {
 	HEntry	   *entries = ARRPTR(hs);
-	int         stopLow = lowbound ? *lowbound : 0;
-	int         stopHigh = HS_COUNT(hs);
-	int         stopMiddle;
+	int			stopLow = lowbound ? *lowbound : 0;
+	int			stopHigh = HS_COUNT(hs);
+	int			stopMiddle;
 	char	   *base = STRPTR(hs);
 
 	while (stopLow < stopHigh)
 	{
-		int difference;
+		int			difference;
 
 		stopMiddle = stopLow + (stopHigh - stopLow) / 2;
 
-		if (HS_KEYLEN(entries,stopMiddle) == keylen)
-			difference = strncmp(HS_KEY(entries,base,stopMiddle), key, keylen);
+		if (HS_KEYLEN(entries, stopMiddle) == keylen)
+			difference = strncmp(HS_KEY(entries, base, stopMiddle), key, keylen);
 		else
-			difference = (HS_KEYLEN(entries,stopMiddle) > keylen) ? 1 : -1;
+			difference = (HS_KEYLEN(entries, stopMiddle) > keylen) ? 1 : -1;
 
 		if (difference == 0)
 		{
@@ -73,12 +73,13 @@ hstoreFindKey(HStore * hs, int *lowbound, char *key, int keylen)
 Pairs *
 hstoreArrayToPairs(ArrayType *a, int *npairs)
 {
-	Datum      *key_datums;
-	bool       *key_nulls;
-    int         key_count;
-	Pairs      *key_pairs;
-	int         bufsiz;
-	int         i,j;
+	Datum	   *key_datums;
+	bool	   *key_nulls;
+	int			key_count;
+	Pairs	   *key_pairs;
+	int			bufsiz;
+	int			i,
+				j;
 
 	deconstruct_array(a,
 					  TEXTOID, -1, false, 'i',
@@ -121,14 +122,14 @@ hstore_fetchval(PG_FUNCTION_ARGS)
 	text	   *key = PG_GETARG_TEXT_PP(1);
 	HEntry	   *entries = ARRPTR(hs);
 	text	   *out;
-    int         idx = hstoreFindKey(hs, NULL,
+	int			idx = hstoreFindKey(hs, NULL,
 									VARDATA_ANY(key), VARSIZE_ANY_EXHDR(key));
 
-	if (idx < 0 || HS_VALISNULL(entries,idx))
+	if (idx < 0 || HS_VALISNULL(entries, idx))
 		PG_RETURN_NULL();
 
-	out = cstring_to_text_with_len(HS_VAL(entries,STRPTR(hs),idx),
-								   HS_VALLEN(entries,idx));
+	out = cstring_to_text_with_len(HS_VAL(entries, STRPTR(hs), idx),
+								   HS_VALLEN(entries, idx));
 
 	PG_RETURN_TEXT_P(out);
 }
@@ -141,7 +142,7 @@ hstore_exists(PG_FUNCTION_ARGS)
 {
 	HStore	   *hs = PG_GETARG_HS(0);
 	text	   *key = PG_GETARG_TEXT_PP(1);
-    int         idx = hstoreFindKey(hs, NULL,
+	int			idx = hstoreFindKey(hs, NULL,
 									VARDATA_ANY(key), VARSIZE_ANY_EXHDR(key));
 
 	PG_RETURN_BOOL(idx >= 0);
@@ -155,23 +156,23 @@ hstore_exists_any(PG_FUNCTION_ARGS)
 {
 	HStore	   *hs = PG_GETARG_HS(0);
 	ArrayType  *keys = PG_GETARG_ARRAYTYPE_P(1);
-	int         nkeys;
-	Pairs      *key_pairs = hstoreArrayToPairs(keys, &nkeys);
-	int         i;
-	int         lowbound = 0;
-	bool        res = false;
+	int			nkeys;
+	Pairs	   *key_pairs = hstoreArrayToPairs(keys, &nkeys);
+	int			i;
+	int			lowbound = 0;
+	bool		res = false;
 
 	/*
-	 * we exploit the fact that the pairs list is already sorted into
-	 * strictly increasing order to narrow the hstoreFindKey search;
-	 * each search can start one entry past the previous "found"
-	 * entry, or at the lower bound of the last search.
+	 * we exploit the fact that the pairs list is already sorted into strictly
+	 * increasing order to narrow the hstoreFindKey search; each search can
+	 * start one entry past the previous "found" entry, or at the lower bound
+	 * of the last search.
 	 */
 
 	for (i = 0; !res && i < nkeys; ++i)
 	{
-		int idx = hstoreFindKey(hs, &lowbound,
-								key_pairs[i].key, key_pairs[i].keylen);
+		int			idx = hstoreFindKey(hs, &lowbound,
+									  key_pairs[i].key, key_pairs[i].keylen);
 
 		if (idx >= 0)
 		{
@@ -191,23 +192,23 @@ hstore_exists_all(PG_FUNCTION_ARGS)
 {
 	HStore	   *hs = PG_GETARG_HS(0);
 	ArrayType  *keys = PG_GETARG_ARRAYTYPE_P(1);
-	int         nkeys;
-	Pairs      *key_pairs = hstoreArrayToPairs(keys, &nkeys);
-	int         i;
-	int         lowbound = 0;
-	bool        res = nkeys ? true : false;
+	int			nkeys;
+	Pairs	   *key_pairs = hstoreArrayToPairs(keys, &nkeys);
+	int			i;
+	int			lowbound = 0;
+	bool		res = nkeys ? true : false;
 
 	/*
-	 * we exploit the fact that the pairs list is already sorted into
-	 * strictly increasing order to narrow the hstoreFindKey search;
-	 * each search can start one entry past the previous "found"
-	 * entry, or at the lower bound of the last search.
+	 * we exploit the fact that the pairs list is already sorted into strictly
+	 * increasing order to narrow the hstoreFindKey search; each search can
+	 * start one entry past the previous "found" entry, or at the lower bound
+	 * of the last search.
 	 */
 
 	for (i = 0; res && i < nkeys; ++i)
 	{
-		int idx = hstoreFindKey(hs, &lowbound,
-								key_pairs[i].key, key_pairs[i].keylen);
+		int			idx = hstoreFindKey(hs, &lowbound,
+									  key_pairs[i].key, key_pairs[i].keylen);
 
 		if (idx < 0)
 			res = false;
@@ -225,9 +226,9 @@ hstore_defined(PG_FUNCTION_ARGS)
 	HStore	   *hs = PG_GETARG_HS(0);
 	text	   *key = PG_GETARG_TEXT_PP(1);
 	HEntry	   *entries = ARRPTR(hs);
-    int         idx = hstoreFindKey(hs, NULL,
+	int			idx = hstoreFindKey(hs, NULL,
 									VARDATA_ANY(key), VARSIZE_ANY_EXHDR(key));
-	bool        res = (idx >= 0 && !HS_VALISNULL(entries,idx));
+	bool		res = (idx >= 0 && !HS_VALISNULL(entries, idx));
 
 	PG_RETURN_BOOL(res);
 }
@@ -240,20 +241,20 @@ hstore_delete(PG_FUNCTION_ARGS)
 {
 	HStore	   *hs = PG_GETARG_HS(0);
 	text	   *key = PG_GETARG_TEXT_PP(1);
-	char       *keyptr = VARDATA_ANY(key);
-	int         keylen = VARSIZE_ANY_EXHDR(key);
+	char	   *keyptr = VARDATA_ANY(key);
+	int			keylen = VARSIZE_ANY_EXHDR(key);
 	HStore	   *out = palloc(VARSIZE(hs));
 	char	   *bufs,
-		       *bufd,
+			   *bufd,
 			   *ptrd;
 	HEntry	   *es,
 			   *ed;
-	int         i;
-	int         count = HS_COUNT(hs);
-	int         outcount = 0;
+	int			i;
+	int			count = HS_COUNT(hs);
+	int			outcount = 0;
 
 	SET_VARSIZE(out, VARSIZE(hs));
-	HS_SETCOUNT(out, count);		/* temporary! */
+	HS_SETCOUNT(out, count);	/* temporary! */
 
 	bufs = STRPTR(hs);
 	es = ARRPTR(hs);
@@ -262,18 +263,19 @@ hstore_delete(PG_FUNCTION_ARGS)
 
 	for (i = 0; i < count; ++i)
 	{
-		int len = HS_KEYLEN(es,i);
-		char *ptrs = HS_KEY(es,bufs,i);
+		int			len = HS_KEYLEN(es, i);
+		char	   *ptrs = HS_KEY(es, bufs, i);
 
 		if (!(len == keylen && strncmp(ptrs, keyptr, keylen) == 0))
 		{
-			int vallen = HS_VALLEN(es,i);
-			HS_COPYITEM(ed, bufd, ptrd, ptrs, len, vallen, HS_VALISNULL(es,i));
+			int			vallen = HS_VALLEN(es, i);
+
+			HS_COPYITEM(ed, bufd, ptrd, ptrs, len, vallen, HS_VALISNULL(es, i));
 			++outcount;
 		}
 	}
 
-	HS_FINALIZE(out,outcount,bufd,ptrd);
+	HS_FINALIZE(out, outcount, bufd, ptrd);
 
 	PG_RETURN_POINTER(out);
 }
@@ -286,20 +288,21 @@ hstore_delete_array(PG_FUNCTION_ARGS)
 {
 	HStore	   *hs = PG_GETARG_HS(0);
 	HStore	   *out = palloc(VARSIZE(hs));
-	int         hs_count = HS_COUNT(hs);
+	int			hs_count = HS_COUNT(hs);
 	char	   *ps,
-		       *bufd,
+			   *bufd,
 			   *pd;
 	HEntry	   *es,
 			   *ed;
-	int         i,j;
-	int         outcount = 0;
+	int			i,
+				j;
+	int			outcount = 0;
 	ArrayType  *key_array = PG_GETARG_ARRAYTYPE_P(1);
-	int         nkeys;
-	Pairs      *key_pairs = hstoreArrayToPairs(key_array, &nkeys);
+	int			nkeys;
+	Pairs	   *key_pairs = hstoreArrayToPairs(key_array, &nkeys);
 
 	SET_VARSIZE(out, VARSIZE(hs));
-	HS_SETCOUNT(out, hs_count);		/* temporary! */
+	HS_SETCOUNT(out, hs_count); /* temporary! */
 
 	ps = STRPTR(hs);
 	es = ARRPTR(hs);
@@ -316,22 +319,22 @@ hstore_delete_array(PG_FUNCTION_ARGS)
 	}
 
 	/*
-	 * this is in effect a merge between hs and key_pairs, both of
-	 * which are already sorted by (keylen,key); we take keys from
-	 * hs only
+	 * this is in effect a merge between hs and key_pairs, both of which are
+	 * already sorted by (keylen,key); we take keys from hs only
 	 */
 
-	for (i = j = 0; i < hs_count; )
+	for (i = j = 0; i < hs_count;)
 	{
-		int	difference;
-		
+		int			difference;
+
 		if (j >= nkeys)
 			difference = -1;
 		else
 		{
-			int skeylen = HS_KEYLEN(es,i);
+			int			skeylen = HS_KEYLEN(es, i);
+
 			if (skeylen == key_pairs[j].keylen)
-				difference = strncmp(HS_KEY(es,ps,i),
+				difference = strncmp(HS_KEY(es, ps, i),
 									 key_pairs[j].key,
 									 key_pairs[j].keylen);
 			else
@@ -345,14 +348,14 @@ hstore_delete_array(PG_FUNCTION_ARGS)
 		else
 		{
 			HS_COPYITEM(ed, bufd, pd,
-						HS_KEY(es,ps,i), HS_KEYLEN(es,i),
-						HS_VALLEN(es,i), HS_VALISNULL(es,i));
+						HS_KEY(es, ps, i), HS_KEYLEN(es, i),
+						HS_VALLEN(es, i), HS_VALISNULL(es, i));
 			++outcount;
 			++i;
 		}
 	}
 
-	HS_FINALIZE(out,outcount,bufd,pd);
+	HS_FINALIZE(out, outcount, bufd, pd);
 
 	PG_RETURN_POINTER(out);
 }
@@ -366,20 +369,21 @@ hstore_delete_hstore(PG_FUNCTION_ARGS)
 	HStore	   *hs = PG_GETARG_HS(0);
 	HStore	   *hs2 = PG_GETARG_HS(1);
 	HStore	   *out = palloc(VARSIZE(hs));
-	int         hs_count = HS_COUNT(hs);
-	int         hs2_count = HS_COUNT(hs2);
+	int			hs_count = HS_COUNT(hs);
+	int			hs2_count = HS_COUNT(hs2);
 	char	   *ps,
-		       *ps2,
-		       *bufd,
+			   *ps2,
+			   *bufd,
 			   *pd;
 	HEntry	   *es,
-		       *es2,
+			   *es2,
 			   *ed;
-	int         i,j;
-	int         outcount = 0;
+	int			i,
+				j;
+	int			outcount = 0;
 
 	SET_VARSIZE(out, VARSIZE(hs));
-	HS_SETCOUNT(out, hs_count);		/* temporary! */
+	HS_SETCOUNT(out, hs_count); /* temporary! */
 
 	ps = STRPTR(hs);
 	es = ARRPTR(hs);
@@ -398,25 +402,25 @@ hstore_delete_hstore(PG_FUNCTION_ARGS)
 	}
 
 	/*
-	 * this is in effect a merge between hs and hs2, both of
-	 * which are already sorted by (keylen,key); we take keys from
-	 * hs only; for equal keys, we take the value from hs unless the
-	 * values are equal
+	 * this is in effect a merge between hs and hs2, both of which are already
+	 * sorted by (keylen,key); we take keys from hs only; for equal keys, we
+	 * take the value from hs unless the values are equal
 	 */
 
-	for (i = j = 0; i < hs_count; )
+	for (i = j = 0; i < hs_count;)
 	{
-		int	difference;
-		
+		int			difference;
+
 		if (j >= hs2_count)
 			difference = -1;
 		else
 		{
-			int skeylen = HS_KEYLEN(es,i);
-			int s2keylen = HS_KEYLEN(es2,j);
+			int			skeylen = HS_KEYLEN(es, i);
+			int			s2keylen = HS_KEYLEN(es2, j);
+
 			if (skeylen == s2keylen)
-				difference = strncmp(HS_KEY(es,ps,i),
-									 HS_KEY(es2,ps2,j),
+				difference = strncmp(HS_KEY(es, ps, i),
+									 HS_KEY(es2, ps2, j),
 									 skeylen);
 			else
 				difference = (skeylen > s2keylen) ? 1 : -1;
@@ -426,15 +430,16 @@ hstore_delete_hstore(PG_FUNCTION_ARGS)
 			++j;
 		else if (difference == 0)
 		{
-			int svallen = HS_VALLEN(es,i);
-			int snullval = HS_VALISNULL(es,i);
-			if (snullval != HS_VALISNULL(es2,j)
+			int			svallen = HS_VALLEN(es, i);
+			int			snullval = HS_VALISNULL(es, i);
+
+			if (snullval != HS_VALISNULL(es2, j)
 				|| (!snullval
-					&& (svallen != HS_VALLEN(es2,j)
-						|| strncmp(HS_VAL(es,ps,i), HS_VAL(es2,ps2,j), svallen) != 0)))
+					&& (svallen != HS_VALLEN(es2, j)
+						|| strncmp(HS_VAL(es, ps, i), HS_VAL(es2, ps2, j), svallen) != 0)))
 			{
 				HS_COPYITEM(ed, bufd, pd,
-							HS_KEY(es,ps,i), HS_KEYLEN(es,i),
+							HS_KEY(es, ps, i), HS_KEYLEN(es, i),
 							svallen, snullval);
 				++outcount;
 			}
@@ -443,14 +448,14 @@ hstore_delete_hstore(PG_FUNCTION_ARGS)
 		else
 		{
 			HS_COPYITEM(ed, bufd, pd,
-						HS_KEY(es,ps,i), HS_KEYLEN(es,i),
-						HS_VALLEN(es,i), HS_VALISNULL(es,i));
+						HS_KEY(es, ps, i), HS_KEYLEN(es, i),
+						HS_VALLEN(es, i), HS_VALISNULL(es, i));
 			++outcount;
 			++i;
 		}
 	}
 
-	HS_FINALIZE(out,outcount,bufd,pd);
+	HS_FINALIZE(out, outcount, bufd, pd);
 
 	PG_RETURN_POINTER(out);
 }
@@ -466,16 +471,16 @@ hstore_concat(PG_FUNCTION_ARGS)
 	HStore	   *out = palloc(VARSIZE(s1) + VARSIZE(s2));
 	char	   *ps1,
 			   *ps2,
-		       *bufd,
+			   *bufd,
 			   *pd;
 	HEntry	   *es1,
 			   *es2,
 			   *ed;
-	int         s1idx;
-	int         s2idx;
-	int         s1count = HS_COUNT(s1);
-	int         s2count = HS_COUNT(s2);
-	int         outcount = 0;
+	int			s1idx;
+	int			s2idx;
+	int			s1count = HS_COUNT(s1);
+	int			s2count = HS_COUNT(s2);
+	int			outcount = 0;
 
 	SET_VARSIZE(out, VARSIZE(s1) + VARSIZE(s2) - HSHRDSIZE);
 	HS_SETCOUNT(out, s1count + s2count);
@@ -506,25 +511,26 @@ hstore_concat(PG_FUNCTION_ARGS)
 	ed = ARRPTR(out);
 
 	/*
-	 * this is in effect a merge between s1 and s2, both of which
-	 * are already sorted by (keylen,key); we take s2 for equal keys
+	 * this is in effect a merge between s1 and s2, both of which are already
+	 * sorted by (keylen,key); we take s2 for equal keys
 	 */
 
 	for (s1idx = s2idx = 0; s1idx < s1count || s2idx < s2count; ++outcount)
 	{
-		int	difference;
-		
+		int			difference;
+
 		if (s1idx >= s1count)
 			difference = 1;
 		else if (s2idx >= s2count)
 			difference = -1;
 		else
 		{
-			int s1keylen = HS_KEYLEN(es1,s1idx);
-			int s2keylen = HS_KEYLEN(es2,s2idx);
+			int			s1keylen = HS_KEYLEN(es1, s1idx);
+			int			s2keylen = HS_KEYLEN(es2, s2idx);
+
 			if (s1keylen == s2keylen)
-				difference = strncmp(HS_KEY(es1,ps1,s1idx),
-									 HS_KEY(es2,ps2,s2idx),
+				difference = strncmp(HS_KEY(es1, ps1, s1idx),
+									 HS_KEY(es2, ps2, s2idx),
 									 s1keylen);
 			else
 				difference = (s1keylen > s2keylen) ? 1 : -1;
@@ -533,8 +539,8 @@ hstore_concat(PG_FUNCTION_ARGS)
 		if (difference >= 0)
 		{
 			HS_COPYITEM(ed, bufd, pd,
-						HS_KEY(es2,ps2,s2idx), HS_KEYLEN(es2,s2idx),
-						HS_VALLEN(es2,s2idx), HS_VALISNULL(es2,s2idx));
+						HS_KEY(es2, ps2, s2idx), HS_KEYLEN(es2, s2idx),
+						HS_VALLEN(es2, s2idx), HS_VALISNULL(es2, s2idx));
 			++s2idx;
 			if (difference == 0)
 				++s1idx;
@@ -542,13 +548,13 @@ hstore_concat(PG_FUNCTION_ARGS)
 		else
 		{
 			HS_COPYITEM(ed, bufd, pd,
-						HS_KEY(es1,ps1,s1idx), HS_KEYLEN(es1,s1idx),
-						HS_VALLEN(es1,s1idx), HS_VALISNULL(es1,s1idx));
+						HS_KEY(es1, ps1, s1idx), HS_KEYLEN(es1, s1idx),
+						HS_VALLEN(es1, s1idx), HS_VALISNULL(es1, s1idx));
 			++s1idx;
 		}
 	}
 
-	HS_FINALIZE(out,outcount,bufd,pd);
+	HS_FINALIZE(out, outcount, bufd, pd);
 
 	PG_RETURN_POINTER(out);
 }
@@ -561,15 +567,15 @@ hstore_slice_to_array(PG_FUNCTION_ARGS)
 {
 	HStore	   *hs = PG_GETARG_HS(0);
 	HEntry	   *entries = ARRPTR(hs);
-	char       *ptr = STRPTR(hs);
+	char	   *ptr = STRPTR(hs);
 	ArrayType  *key_array = PG_GETARG_ARRAYTYPE_P(1);
 	ArrayType  *aout;
-	Datum      *key_datums;
-	bool       *key_nulls;
-	Datum      *out_datums;
-	bool       *out_nulls;
-    int         key_count;
-	int         i;
+	Datum	   *key_datums;
+	bool	   *key_nulls;
+	Datum	   *out_datums;
+	bool	   *out_nulls;
+	int			key_count;
+	int			i;
 
 	deconstruct_array(key_array,
 					  TEXTOID, -1, false, 'i',
@@ -586,15 +592,15 @@ hstore_slice_to_array(PG_FUNCTION_ARGS)
 
 	for (i = 0; i < key_count; ++i)
 	{
-		text       *key = (text*) DatumGetPointer(key_datums[i]);
-		int        idx;
+		text	   *key = (text *) DatumGetPointer(key_datums[i]);
+		int			idx;
 
 		if (key_nulls[i])
 			idx = -1;
 		else
 			idx = hstoreFindKey(hs, NULL, VARDATA(key), VARSIZE(key) - VARHDRSZ);
 
-		if (idx < 0 || HS_VALISNULL(entries,idx))
+		if (idx < 0 || HS_VALISNULL(entries, idx))
 		{
 			out_nulls[i] = true;
 			out_datums[i] = (Datum) 0;
@@ -602,8 +608,8 @@ hstore_slice_to_array(PG_FUNCTION_ARGS)
 		else
 		{
 			out_datums[i] = PointerGetDatum(
-				cstring_to_text_with_len(HS_VAL(entries,ptr,idx),
-										 HS_VALLEN(entries,idx)));
+						  cstring_to_text_with_len(HS_VAL(entries, ptr, idx),
+												   HS_VALLEN(entries, idx)));
 			out_nulls[i] = false;
 		}
 	}
@@ -612,7 +618,7 @@ hstore_slice_to_array(PG_FUNCTION_ARGS)
 							  ARR_NDIM(key_array),
 							  ARR_DIMS(key_array),
 							  ARR_LBOUND(key_array),
-							  TEXTOID, -1, false,	'i');
+							  TEXTOID, -1, false, 'i');
 
 	PG_RETURN_POINTER(aout);
 }
@@ -625,16 +631,16 @@ hstore_slice_to_hstore(PG_FUNCTION_ARGS)
 {
 	HStore	   *hs = PG_GETARG_HS(0);
 	HEntry	   *entries = ARRPTR(hs);
-	char       *ptr = STRPTR(hs);
+	char	   *ptr = STRPTR(hs);
 	ArrayType  *key_array = PG_GETARG_ARRAYTYPE_P(1);
-	HStore     *out;
-	int         nkeys;
-	Pairs      *key_pairs = hstoreArrayToPairs(key_array, &nkeys);
-	Pairs      *out_pairs;
-	int         bufsiz;
-	int         lastidx = 0;
-	int         i;
-	int         out_count = 0;
+	HStore	   *out;
+	int			nkeys;
+	Pairs	   *key_pairs = hstoreArrayToPairs(key_array, &nkeys);
+	Pairs	   *out_pairs;
+	int			bufsiz;
+	int			lastidx = 0;
+	int			i;
+	int			out_count = 0;
 
 	if (nkeys == 0)
 	{
@@ -646,32 +652,32 @@ hstore_slice_to_hstore(PG_FUNCTION_ARGS)
 	bufsiz = 0;
 
 	/*
-	 * we exploit the fact that the pairs list is already sorted into
-	 * strictly increasing order to narrow the hstoreFindKey search;
-	 * each search can start one entry past the previous "found"
-	 * entry, or at the lower bound of the last search.
+	 * we exploit the fact that the pairs list is already sorted into strictly
+	 * increasing order to narrow the hstoreFindKey search; each search can
+	 * start one entry past the previous "found" entry, or at the lower bound
+	 * of the last search.
 	 */
 
 	for (i = 0; i < nkeys; ++i)
 	{
-		int idx = hstoreFindKey(hs, &lastidx,
-								key_pairs[i].key, key_pairs[i].keylen);
+		int			idx = hstoreFindKey(hs, &lastidx,
+									  key_pairs[i].key, key_pairs[i].keylen);
 
 		if (idx >= 0)
 		{
 			out_pairs[out_count].key = key_pairs[i].key;
 			bufsiz += (out_pairs[out_count].keylen = key_pairs[i].keylen);
-			out_pairs[out_count].val = HS_VAL(entries,ptr,idx);
-			bufsiz += (out_pairs[out_count].vallen = HS_VALLEN(entries,idx));
-			out_pairs[out_count].isnull = HS_VALISNULL(entries,idx);
+			out_pairs[out_count].val = HS_VAL(entries, ptr, idx);
+			bufsiz += (out_pairs[out_count].vallen = HS_VALLEN(entries, idx));
+			out_pairs[out_count].isnull = HS_VALISNULL(entries, idx);
 			out_pairs[out_count].needfree = false;
 			++out_count;
 		}
 	}
 
 	/*
-	 * we don't use uniquePairs here because we know that the
-	 * pairs list is already sorted and uniq'ed.
+	 * we don't use uniquePairs here because we know that the pairs list is
+	 * already sorted and uniq'ed.
 	 */
 
 	out = hstorePairs(out_pairs, out_count, bufsiz);
@@ -690,8 +696,8 @@ hstore_akeys(PG_FUNCTION_ARGS)
 	ArrayType  *a;
 	HEntry	   *entries = ARRPTR(hs);
 	char	   *base = STRPTR(hs);
-	int         count = HS_COUNT(hs);
-	int         i;
+	int			count = HS_COUNT(hs);
+	int			i;
 
 	if (count == 0)
 	{
@@ -703,13 +709,14 @@ hstore_akeys(PG_FUNCTION_ARGS)
 
 	for (i = 0; i < count; ++i)
 	{
-		text *item = cstring_to_text_with_len(HS_KEY(entries,base,i),
-											  HS_KEYLEN(entries,i));
+		text	   *item = cstring_to_text_with_len(HS_KEY(entries, base, i),
+													HS_KEYLEN(entries, i));
+
 		d[i] = PointerGetDatum(item);
 	}
 
 	a = construct_array(d, count,
-						TEXTOID, -1, false,	'i');
+						TEXTOID, -1, false, 'i');
 
 	PG_RETURN_POINTER(a);
 }
@@ -722,13 +729,13 @@ hstore_avals(PG_FUNCTION_ARGS)
 {
 	HStore	   *hs = PG_GETARG_HS(0);
 	Datum	   *d;
-	bool       *nulls;
+	bool	   *nulls;
 	ArrayType  *a;
 	HEntry	   *entries = ARRPTR(hs);
 	char	   *base = STRPTR(hs);
-	int         count = HS_COUNT(hs);
-	int         lb = 1;
-	int         i;
+	int			count = HS_COUNT(hs);
+	int			lb = 1;
+	int			i;
 
 	if (count == 0)
 	{
@@ -741,22 +748,23 @@ hstore_avals(PG_FUNCTION_ARGS)
 
 	for (i = 0; i < count; ++i)
 	{
-		if (HS_VALISNULL(entries,i))
+		if (HS_VALISNULL(entries, i))
 		{
 			d[i] = (Datum) 0;
 			nulls[i] = true;
 		}
 		else
 		{
-			text *item = cstring_to_text_with_len(HS_VAL(entries,base,i),
-												  HS_VALLEN(entries,i));
+			text	   *item = cstring_to_text_with_len(HS_VAL(entries, base, i),
+													  HS_VALLEN(entries, i));
+
 			d[i] = PointerGetDatum(item);
 			nulls[i] = false;
 		}
 	}
 
 	a = construct_md_array(d, nulls, 1, &count, &lb,
-						   TEXTOID, -1, false,	'i');
+						   TEXTOID, -1, false, 'i');
 
 	PG_RETURN_POINTER(a);
 }
@@ -767,12 +775,12 @@ hstore_to_array_internal(HStore *hs, int ndims)
 {
 	HEntry	   *entries = ARRPTR(hs);
 	char	   *base = STRPTR(hs);
-	int         count = HS_COUNT(hs);
-	int         out_size[2] = { 0, 2 };
-	int         lb[2] = { 1, 1 };
+	int			count = HS_COUNT(hs);
+	int			out_size[2] = {0, 2};
+	int			lb[2] = {1, 1};
 	Datum	   *out_datums;
 	bool	   *out_nulls;
-	int         i;
+	int			i;
 
 	Assert(ndims < 3);
 
@@ -785,22 +793,24 @@ hstore_to_array_internal(HStore *hs, int ndims)
 
 	for (i = 0; i < count; ++i)
 	{
-		text *key = cstring_to_text_with_len(HS_KEY(entries,base,i),
-											 HS_KEYLEN(entries,i));
-		out_datums[i*2] = PointerGetDatum(key);
-		out_nulls[i*2] = false;
+		text	   *key = cstring_to_text_with_len(HS_KEY(entries, base, i),
+												   HS_KEYLEN(entries, i));
 
-		if (HS_VALISNULL(entries,i))
+		out_datums[i * 2] = PointerGetDatum(key);
+		out_nulls[i * 2] = false;
+
+		if (HS_VALISNULL(entries, i))
 		{
-			out_datums[i*2+1] = (Datum) 0;
-			out_nulls[i*2+1] = true;
+			out_datums[i * 2 + 1] = (Datum) 0;
+			out_nulls[i * 2 + 1] = true;
 		}
 		else
 		{
-			text *item = cstring_to_text_with_len(HS_VAL(entries,base,i),
-												  HS_VALLEN(entries,i));
-			out_datums[i*2+1] = PointerGetDatum(item);
-			out_nulls[i*2+1] = false;
+			text	   *item = cstring_to_text_with_len(HS_VAL(entries, base, i),
+													  HS_VALLEN(entries, i));
+
+			out_datums[i * 2 + 1] = PointerGetDatum(item);
+			out_nulls[i * 2 + 1] = false;
 		}
 	}
 
@@ -814,7 +824,7 @@ Datum		hstore_to_array(PG_FUNCTION_ARGS);
 Datum
 hstore_to_array(PG_FUNCTION_ARGS)
 {
-	HStore     *hs = PG_GETARG_HS(0);
+	HStore	   *hs = PG_GETARG_HS(0);
 	ArrayType  *out = hstore_to_array_internal(hs, 1);
 
 	PG_RETURN_POINTER(out);
@@ -825,7 +835,7 @@ Datum		hstore_to_matrix(PG_FUNCTION_ARGS);
 Datum
 hstore_to_matrix(PG_FUNCTION_ARGS)
 {
-	HStore     *hs = PG_GETARG_HS(0);
+	HStore	   *hs = PG_GETARG_HS(0);
 	ArrayType  *out = hstore_to_array_internal(hs, 2);
 
 	PG_RETURN_POINTER(out);
@@ -841,11 +851,11 @@ hstore_to_matrix(PG_FUNCTION_ARGS)
  */
 
 static void
-setup_firstcall(FuncCallContext *funcctx, HStore * hs,
+setup_firstcall(FuncCallContext *funcctx, HStore *hs,
 				FunctionCallInfoData *fcinfo)
 {
 	MemoryContext oldcontext;
-	HStore     *st;
+	HStore	   *st;
 
 	oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
 
@@ -861,7 +871,7 @@ setup_firstcall(FuncCallContext *funcctx, HStore * hs,
 		/* Build a tuple descriptor for our result type */
 		if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
 			elog(ERROR, "return type must be a row type");
-		
+
 		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
 	}
 
@@ -875,8 +885,8 @@ Datum
 hstore_skeys(PG_FUNCTION_ARGS)
 {
 	FuncCallContext *funcctx;
-	HStore    *hs;
-	int        i;
+	HStore	   *hs;
+	int			i;
 
 	if (SRF_IS_FIRSTCALL())
 	{
@@ -891,11 +901,11 @@ hstore_skeys(PG_FUNCTION_ARGS)
 
 	if (i < HS_COUNT(hs))
 	{
-		HEntry     *entries = ARRPTR(hs);
+		HEntry	   *entries = ARRPTR(hs);
 		text	   *item;
 
-		item = cstring_to_text_with_len(HS_KEY(entries,STRPTR(hs),i),
-										HS_KEYLEN(entries,i));
+		item = cstring_to_text_with_len(HS_KEY(entries, STRPTR(hs), i),
+										HS_KEYLEN(entries, i));
 
 		SRF_RETURN_NEXT(funcctx, PointerGetDatum(item));
 	}
@@ -910,8 +920,8 @@ Datum
 hstore_svals(PG_FUNCTION_ARGS)
 {
 	FuncCallContext *funcctx;
-	HStore    *hs;
-	int        i;
+	HStore	   *hs;
+	int			i;
 
 	if (SRF_IS_FIRSTCALL())
 	{
@@ -926,9 +936,9 @@ hstore_svals(PG_FUNCTION_ARGS)
 
 	if (i < HS_COUNT(hs))
 	{
-		HEntry     *entries = ARRPTR(hs);
+		HEntry	   *entries = ARRPTR(hs);
 
-		if (HS_VALISNULL(entries,i))
+		if (HS_VALISNULL(entries, i))
 		{
 			ReturnSetInfo *rsi;
 
@@ -942,8 +952,8 @@ hstore_svals(PG_FUNCTION_ARGS)
 		{
 			text	   *item;
 
-			item = cstring_to_text_with_len(HS_VAL(entries,STRPTR(hs),i),
-											HS_VALLEN(entries,i));
+			item = cstring_to_text_with_len(HS_VAL(entries, STRPTR(hs), i),
+											HS_VALLEN(entries, i));
 
 			SRF_RETURN_NEXT(funcctx, PointerGetDatum(item));
 		}
@@ -965,31 +975,31 @@ hstore_contains(PG_FUNCTION_ARGS)
 	char	   *tstr = STRPTR(tmpl);
 	HEntry	   *ve = ARRPTR(val);
 	char	   *vstr = STRPTR(val);
-	int         tcount = HS_COUNT(tmpl);
-	int         lastidx = 0;
-	int         i;
+	int			tcount = HS_COUNT(tmpl);
+	int			lastidx = 0;
+	int			i;
 
 	/*
-	 * we exploit the fact that keys in "tmpl" are in strictly
-	 * increasing order to narrow the hstoreFindKey search; each search
-	 * can start one entry past the previous "found" entry, or at the
-	 * lower bound of the search
+	 * we exploit the fact that keys in "tmpl" are in strictly increasing
+	 * order to narrow the hstoreFindKey search; each search can start one
+	 * entry past the previous "found" entry, or at the lower bound of the
+	 * search
 	 */
 
 	for (i = 0; res && i < tcount; ++i)
 	{
-		int idx = hstoreFindKey(val, &lastidx,
-								HS_KEY(te,tstr,i), HS_KEYLEN(te,i));
+		int			idx = hstoreFindKey(val, &lastidx,
+									  HS_KEY(te, tstr, i), HS_KEYLEN(te, i));
 
 		if (idx >= 0)
 		{
-			bool nullval = HS_VALISNULL(te,i);
-			int  vallen = HS_VALLEN(te,i);
+			bool		nullval = HS_VALISNULL(te, i);
+			int			vallen = HS_VALLEN(te, i);
 
-			if (nullval != HS_VALISNULL(ve,idx)
+			if (nullval != HS_VALISNULL(ve, idx)
 				|| (!nullval
-					&& (vallen != HS_VALLEN(ve,idx)
-						|| strncmp(HS_VAL(te,tstr,i), HS_VAL(ve,vstr,idx), vallen))))
+					&& (vallen != HS_VALLEN(ve, idx)
+			|| strncmp(HS_VAL(te, tstr, i), HS_VAL(ve, vstr, idx), vallen))))
 				res = false;
 		}
 		else
@@ -1018,8 +1028,8 @@ Datum
 hstore_each(PG_FUNCTION_ARGS)
 {
 	FuncCallContext *funcctx;
-	HStore     *hs;
-	int         i;
+	HStore	   *hs;
+	int			i;
 
 	if (SRF_IS_FIRSTCALL())
 	{
@@ -1035,26 +1045,26 @@ hstore_each(PG_FUNCTION_ARGS)
 	if (i < HS_COUNT(hs))
 	{
 		HEntry	   *entries = ARRPTR(hs);
-		char       *ptr = STRPTR(hs);
+		char	   *ptr = STRPTR(hs);
 		Datum		res,
 					dvalues[2];
 		bool		nulls[2] = {false, false};
 		text	   *item;
 		HeapTuple	tuple;
 
-		item = cstring_to_text_with_len(HS_KEY(entries,ptr,i),
-										HS_KEYLEN(entries,i));
+		item = cstring_to_text_with_len(HS_KEY(entries, ptr, i),
+										HS_KEYLEN(entries, i));
 		dvalues[0] = PointerGetDatum(item);
 
-		if (HS_VALISNULL(entries,i))
+		if (HS_VALISNULL(entries, i))
 		{
 			dvalues[1] = (Datum) 0;
 			nulls[1] = true;
 		}
 		else
 		{
-			item = cstring_to_text_with_len(HS_VAL(entries,ptr,i),
-											HS_VALLEN(entries,i));
+			item = cstring_to_text_with_len(HS_VAL(entries, ptr, i),
+											HS_VALLEN(entries, i));
 			dvalues[1] = PointerGetDatum(item);
 		}
 
@@ -1081,15 +1091,15 @@ hstore_cmp(PG_FUNCTION_ARGS)
 {
 	HStore	   *hs1 = PG_GETARG_HS(0);
 	HStore	   *hs2 = PG_GETARG_HS(1);
-	int         hcount1 = HS_COUNT(hs1);
-	int         hcount2 = HS_COUNT(hs2);
-	int         res = 0;
+	int			hcount1 = HS_COUNT(hs1);
+	int			hcount2 = HS_COUNT(hs2);
+	int			res = 0;
 
 	if (hcount1 == 0 || hcount2 == 0)
 	{
 		/*
-		 * if either operand is empty, and the other is nonempty, the
-		 * nonempty one is larger. If both are empty they are equal.
+		 * if either operand is empty, and the other is nonempty, the nonempty
+		 * one is larger. If both are empty they are equal.
 		 */
 		if (hcount1 > 0)
 			res = 1;
@@ -1099,14 +1109,14 @@ hstore_cmp(PG_FUNCTION_ARGS)
 	else
 	{
 		/* here we know both operands are nonempty */
-		char       *str1 = STRPTR(hs1);
-		char       *str2 = STRPTR(hs2);
-		HEntry     *ent1 = ARRPTR(hs1);
-		HEntry     *ent2 = ARRPTR(hs2);
-		size_t      len1 = HSE_ENDPOS(ent1[2*hcount1 - 1]);
-		size_t      len2 = HSE_ENDPOS(ent2[2*hcount2 - 1]);
+		char	   *str1 = STRPTR(hs1);
+		char	   *str2 = STRPTR(hs2);
+		HEntry	   *ent1 = ARRPTR(hs1);
+		HEntry	   *ent2 = ARRPTR(hs2);
+		size_t		len1 = HSE_ENDPOS(ent1[2 * hcount1 - 1]);
+		size_t		len2 = HSE_ENDPOS(ent2[2 * hcount2 - 1]);
 
-		res = memcmp(str1, str2, Min(len1,len2));
+		res = memcmp(str1, str2, Min(len1, len2));
 
 		if (res == 0)
 		{
@@ -1120,8 +1130,8 @@ hstore_cmp(PG_FUNCTION_ARGS)
 				res = -1;
 			else
 			{
-				int count = hcount1 * 2;
-				int i;
+				int			count = hcount1 * 2;
+				int			i;
 
 				for (i = 0; i < count; ++i)
 					if (HSE_ENDPOS(ent1[i]) != HSE_ENDPOS(ent2[i]) ||
@@ -1147,11 +1157,11 @@ hstore_cmp(PG_FUNCTION_ARGS)
 	}
 
 	/*
-	 * this is a btree support function; this is one of the few
-	 * places where memory needs to be explicitly freed.
+	 * this is a btree support function; this is one of the few places where
+	 * memory needs to be explicitly freed.
 	 */
-	PG_FREE_IF_COPY(hs1,0);
-	PG_FREE_IF_COPY(hs2,1);
+	PG_FREE_IF_COPY(hs1, 0);
+	PG_FREE_IF_COPY(hs2, 1);
 	PG_RETURN_INT32(res);
 }
 
@@ -1161,9 +1171,10 @@ Datum		hstore_eq(PG_FUNCTION_ARGS);
 Datum
 hstore_eq(PG_FUNCTION_ARGS)
 {
-	int     res = DatumGetInt32(DirectFunctionCall2(hstore_cmp,
-													PG_GETARG_DATUM(0),
-													PG_GETARG_DATUM(1)));
+	int			res = DatumGetInt32(DirectFunctionCall2(hstore_cmp,
+														PG_GETARG_DATUM(0),
+														PG_GETARG_DATUM(1)));
+
 	PG_RETURN_BOOL(res == 0);
 }
 
@@ -1172,9 +1183,10 @@ Datum		hstore_ne(PG_FUNCTION_ARGS);
 Datum
 hstore_ne(PG_FUNCTION_ARGS)
 {
-	int     res = DatumGetInt32(DirectFunctionCall2(hstore_cmp,
-													PG_GETARG_DATUM(0),
-													PG_GETARG_DATUM(1)));
+	int			res = DatumGetInt32(DirectFunctionCall2(hstore_cmp,
+														PG_GETARG_DATUM(0),
+														PG_GETARG_DATUM(1)));
+
 	PG_RETURN_BOOL(res != 0);
 }
 
@@ -1183,9 +1195,10 @@ Datum		hstore_gt(PG_FUNCTION_ARGS);
 Datum
 hstore_gt(PG_FUNCTION_ARGS)
 {
-	int     res = DatumGetInt32(DirectFunctionCall2(hstore_cmp,
-													PG_GETARG_DATUM(0),
-													PG_GETARG_DATUM(1)));
+	int			res = DatumGetInt32(DirectFunctionCall2(hstore_cmp,
+														PG_GETARG_DATUM(0),
+														PG_GETARG_DATUM(1)));
+
 	PG_RETURN_BOOL(res > 0);
 }
 
@@ -1194,9 +1207,10 @@ Datum		hstore_ge(PG_FUNCTION_ARGS);
 Datum
 hstore_ge(PG_FUNCTION_ARGS)
 {
-	int     res = DatumGetInt32(DirectFunctionCall2(hstore_cmp,
-													PG_GETARG_DATUM(0),
-													PG_GETARG_DATUM(1)));
+	int			res = DatumGetInt32(DirectFunctionCall2(hstore_cmp,
+														PG_GETARG_DATUM(0),
+														PG_GETARG_DATUM(1)));
+
 	PG_RETURN_BOOL(res >= 0);
 }
 
@@ -1205,9 +1219,10 @@ Datum		hstore_lt(PG_FUNCTION_ARGS);
 Datum
 hstore_lt(PG_FUNCTION_ARGS)
 {
-	int     res = DatumGetInt32(DirectFunctionCall2(hstore_cmp,
-													PG_GETARG_DATUM(0),
-													PG_GETARG_DATUM(1)));
+	int			res = DatumGetInt32(DirectFunctionCall2(hstore_cmp,
+														PG_GETARG_DATUM(0),
+														PG_GETARG_DATUM(1)));
+
 	PG_RETURN_BOOL(res < 0);
 }
 
@@ -1216,9 +1231,10 @@ Datum		hstore_le(PG_FUNCTION_ARGS);
 Datum
 hstore_le(PG_FUNCTION_ARGS)
 {
-	int     res = DatumGetInt32(DirectFunctionCall2(hstore_cmp,
-													PG_GETARG_DATUM(0),
-													PG_GETARG_DATUM(1)));
+	int			res = DatumGetInt32(DirectFunctionCall2(hstore_cmp,
+														PG_GETARG_DATUM(0),
+														PG_GETARG_DATUM(1)));
+
 	PG_RETURN_BOOL(res <= 0);
 }
 
@@ -1229,21 +1245,20 @@ Datum
 hstore_hash(PG_FUNCTION_ARGS)
 {
 	HStore	   *hs = PG_GETARG_HS(0);
-	Datum       hval = hash_any((unsigned char *)VARDATA(hs),
+	Datum		hval = hash_any((unsigned char *) VARDATA(hs),
 								VARSIZE(hs) - VARHDRSZ);
 
 	/*
-	 * this is the only place in the code that cares whether the
-	 * overall varlena size exactly matches the true data size;
-	 * this assertion should be maintained by all the other code,
-	 * but we make it explicit here.
+	 * this is the only place in the code that cares whether the overall
+	 * varlena size exactly matches the true data size; this assertion should
+	 * be maintained by all the other code, but we make it explicit here.
 	 */
 	Assert(VARSIZE(hs) ==
 		   (HS_COUNT(hs) != 0 ?
 			CALCDATASIZE(HS_COUNT(hs),
-						 HSE_ENDPOS(ARRPTR(hs)[2*HS_COUNT(hs) - 1])) :
+						 HSE_ENDPOS(ARRPTR(hs)[2 * HS_COUNT(hs) - 1])) :
 			HSHRDSIZE));
 
-	PG_FREE_IF_COPY(hs,0);
+	PG_FREE_IF_COPY(hs, 0);
 	PG_RETURN_DATUM(hval);
 }

@@ -23,12 +23,12 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execMain.c,v 1.338 2009/12/15 04:57:47 rhaas Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execMain.c,v 1.349 2010/04/28 16:10:42 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -66,6 +66,8 @@
 #include "parser/parsetree.h"
 #include "storage/bufmgr.h"
 #include "storage/lmgr.h"
+#include "storage/smgr.h"
+#include "tcop/utility.h"
 #include "utils/acl.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
@@ -119,7 +121,7 @@ static void ExecutePlan(EState *estate, PlanState *planstate,
 			DestReceiver *dest);
 static void ExecCheckXactReadOnly(PlannedStmt *plannedstmt);
 static void EvalPlanQualStart(EPQState *epqstate, EState *parentestate,
-							  Plan *planTree);
+				  Plan *planTree);
 static void OpenIntoRel(QueryDesc *queryDesc);
 static void CloseIntoRel(QueryDesc *queryDesc);
 static void intorel_startup(DestReceiver *self, int operation, TupleDesc typeinfo);
@@ -322,6 +324,10 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 	/*
 	 * If the transaction is read-only, we need to check if any writes are
 	 * planned to non-temporary tables.  EXPLAIN is considered read-only.
+	 *
+	 * In GPDB, we must call ExecCheckXactReadOnly() in the QD even if the
+	 * transaction is not read-only, because ExecCheckXactReadOnly() also
+	 * determines if two-phase commit is needed.
 	 */
 	if ((XactReadOnly || Gp_role == GP_ROLE_DISPATCH) && !(eflags & EXEC_FLAG_EXPLAIN_ONLY))
 		ExecCheckXactReadOnly(queryDesc->plannedstmt);
@@ -1423,33 +1429,42 @@ ExecCheckRTEPerms(RangeTblEntry *rte)
 }
 
 /*
+ * Check that the query does not imply any writes to non-temp tables.
+ *
  * This function is used to check if the current statement will perform any writes.
  * It is used to enforce:
  *  (1) read-only mode (both fts and transcation isolation level read only)
  *      as well as
  *  (2) to keep track of when a distributed transaction becomes
  *      "dirty" and will require 2pc.
- Check that the query does not imply any writes to non-temp tables.
+ *
+ * Note: in a Hot Standby slave this would need to reject writes to temp
+ * tables as well; but an HS slave can't have created any temp tables
+ * in the first place, so no need to check that.
+ *
+ * In GPDB, an important side-effect of this is to call
+ * ExecutorMarkTransactionDoesWrites(), if the query is not read-only. That
+ * ensures that we use two-phase commit for this transaction.
  */
 static void
 ExecCheckXactReadOnly(PlannedStmt *plannedstmt)
 {
 	ListCell   *l;
     int         rti;
-    bool		changesTempTables = false;
 
 	/*
 	 * CREATE TABLE AS or SELECT INTO?
 	 *
-	 * XXX should we allow this if the destination is temp?
+	 * XXX should we allow this if the destination is temp?  Considering that
+	 * it would still require catalog changes, probably not.
 	 */
 	if (plannedstmt->intoClause != NULL)
 	{
 		Assert(plannedstmt->intoClause->rel);
 		if (plannedstmt->intoClause->rel->istemp)
-			changesTempTables = true;
+			ExecutorMarkTransactionDoesWrites();
 		else
-			goto fail;
+			PreventCommandIfReadOnly(CreateCommandTag((Node *) plannedstmt));
 	}
 
 	/* Fail if write permissions are requested on any non-temp table */
@@ -1468,7 +1483,7 @@ ExecCheckXactReadOnly(PlannedStmt *plannedstmt)
 
 		if (isTempNamespace(get_rel_namespace(rte->relid)))
 		{
-			changesTempTables = true;
+			ExecutorMarkTransactionDoesWrites();
 			continue;
 		}
 
@@ -1494,19 +1509,8 @@ ExecCheckXactReadOnly(PlannedStmt *plannedstmt)
 				continue;
         }
 
-		goto fail;
+		PreventCommandIfReadOnly(CreateCommandTag((Node *) plannedstmt));
 	}
-	if (changesTempTables)
-		ExecutorMarkTransactionDoesWrites();
-	return;
-
-fail:
-	if (XactReadOnly)
-		ereport(ERROR,
-				(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
-				 errmsg("transaction is read-only")));
-	else
-		ExecutorMarkTransactionDoesWrites();
 }
 
 
@@ -1600,8 +1604,8 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 	/*
 	 * initialize result relation stuff, and open/lock the result rels.
 	 *
-	 * We must do this before initializing the plan tree, else we might
-	 * try to do a lock upgrade if a result rel is also a source rel.
+	 * We must do this before initializing the plan tree, else we might try to
+	 * do a lock upgrade if a result rel is also a source rel.
 	 *
 	 * CDB: Note that we need this info even if we aren't the slice that will be doing
 	 * the actual updating, since it's where we learn things, such as if the row needs to
@@ -1753,8 +1757,8 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 
 	/*
 	 * Similarly, we have to lock relations selected FOR UPDATE/FOR SHARE
-	 * before we initialize the plan tree, else we'd be risking lock
-	 * upgrades.  While we are at it, build the ExecRowMark list.
+	 * before we initialize the plan tree, else we'd be risking lock upgrades.
+	 * While we are at it, build the ExecRowMark list.
 	 */
 	estate->es_rowMarks = NIL;
 	foreach(l, plannedstmt->rowMarks)
@@ -1973,8 +1977,8 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 	tupType = ExecGetResultType(planstate);
 
 	/*
-	 * Initialize the junk filter if needed.  SELECT queries need a
-	 * filter if there are any junk attrs in the top-level tlist.
+	 * Initialize the junk filter if needed.  SELECT queries need a filter if
+	 * there are any junk attrs in the top-level tlist.
 	 */
 	if (operation == CMD_SELECT)
 	{
@@ -2432,9 +2436,9 @@ ExecEndPlan(PlanState *planstate, EState *estate)
 
 	/*
 	 * destroy the executor's tuple table.  Actually we only care about
-	 * releasing buffer pins and tupdesc refcounts; there's no need to
-	 * pfree the TupleTableSlots, since the containing memory context
-	 * is about to go away anyway.
+	 * releasing buffer pins and tupdesc refcounts; there's no need to pfree
+	 * the TupleTableSlots, since the containing memory context is about to go
+	 * away anyway.
 	 */
 	ExecResetTupleTable(estate->es_tupleTable, false);
 
@@ -2602,8 +2606,8 @@ ExecutePlan(EState *estate,
 		}
 
 		/*
-		 * If we are supposed to send the tuple somewhere, do so.
-		 * (In practice, this is probably always the case at this point.)
+		 * If we are supposed to send the tuple somewhere, do so. (In
+		 * practice, this is probably always the case at this point.)
 		 */
 		if (sendTuples)
 			(*dest->receiveSlot) (slot, dest);
@@ -2807,8 +2811,8 @@ EvalPlanQual(EState *estate, EPQState *epqstate,
 	EvalPlanQualBegin(epqstate, estate);
 
 	/*
-	 * Free old test tuple, if any, and store new tuple where relation's
-	 * scan node will see it
+	 * Free old test tuple, if any, and store new tuple where relation's scan
+	 * node will see it
 	 */
 	EvalPlanQualSetTuple(epqstate, rti, copyTuple);
 
@@ -2823,19 +2827,19 @@ EvalPlanQual(EState *estate, EPQState *epqstate,
 	slot = EvalPlanQualNext(epqstate);
 
 	/*
-	 * If we got a tuple, force the slot to materialize the tuple so that
-	 * it is not dependent on any local state in the EPQ query (in particular,
+	 * If we got a tuple, force the slot to materialize the tuple so that it
+	 * is not dependent on any local state in the EPQ query (in particular,
 	 * it's highly likely that the slot contains references to any pass-by-ref
-	 * datums that may be present in copyTuple).  As with the next step,
-	 * this is to guard against early re-use of the EPQ query.
+	 * datums that may be present in copyTuple).  As with the next step, this
+	 * is to guard against early re-use of the EPQ query.
 	 */
 	if (!TupIsNull(slot))
 		(void) ExecMaterializeSlot(slot);
 
 	/*
-	 * Clear out the test tuple.  This is needed in case the EPQ query
-	 * is re-used to test a tuple for a different relation.  (Not clear
-	 * that can really happen, but let's be safe.)
+	 * Clear out the test tuple.  This is needed in case the EPQ query is
+	 * re-used to test a tuple for a different relation.  (Not clear that can
+	 * really happen, but let's be safe.)
 	 */
 	EvalPlanQualSetTuple(epqstate, rti, NULL);
 
@@ -2963,6 +2967,8 @@ EvalPlanQualFetch(EState *estate, Relation relation, int lockmode,
 					{
 						/* it was updated, so look at the updated version */
 						tuple.t_self = update_ctid;
+						/* updated row should have xmin matching this xmax */
+						priorXmax = update_xmax;
 						continue;
 					}
 					/* tuple was deleted, so give up */
@@ -3095,8 +3101,8 @@ EvalPlanQualSetTuple(EPQState *epqstate, Index rti, HeapTuple tuple)
 	Assert(rti > 0);
 
 	/*
-	 * free old test tuple, if any, and store new tuple where relation's
-	 * scan node will see it
+	 * free old test tuple, if any, and store new tuple where relation's scan
+	 * node will see it
 	 */
 	if (estate->es_epqTuple[rti - 1] != NULL)
 		heap_freetuple(estate->es_epqTuple[rti - 1]);
@@ -3119,7 +3125,7 @@ EvalPlanQualGetTuple(EPQState *epqstate, Index rti)
 
 /*
  * Fetch the current row values for any non-locked relations that need
- * to be scanned by an EvalPlanQual operation.  origslot must have been set
+ * to be scanned by an EvalPlanQual operation.	origslot must have been set
  * to contain the current result row (top-level row) that we need to recheck.
  */
 void
@@ -3255,7 +3261,7 @@ EvalPlanQualBegin(EPQState *epqstate, EState *parentestate)
 		/* Recopy current values of parent parameters */
 		if (parentestate->es_plannedstmt->nParamExec > 0)
 		{
-			int		i = parentestate->es_plannedstmt->nParamExec;
+			int			i = parentestate->es_plannedstmt->nParamExec;
 
 			while (--i >= 0)
 			{
@@ -3327,7 +3333,7 @@ EvalPlanQualStart(EPQState *epqstate, EState *parentestate, Plan *planTree)
 	estate->es_param_list_info = parentestate->es_param_list_info;
 	if (parentestate->es_plannedstmt->nParamExec > 0)
 	{
-		int		i = parentestate->es_plannedstmt->nParamExec;
+		int			i = parentestate->es_plannedstmt->nParamExec;
 
 		estate->es_param_exec_vals = (ParamExecData *)
 			palloc0(i * sizeof(ParamExecData));
@@ -3343,7 +3349,7 @@ EvalPlanQualStart(EPQState *epqstate, EState *parentestate, Plan *planTree)
 
 	/*
 	 * Each EState must have its own es_epqScanDone state, but if we have
-	 * nested EPQ checks they should share es_epqTuple arrays.  This allows
+	 * nested EPQ checks they should share es_epqTuple arrays.	This allows
 	 * sub-rechecks to inherit the values being examined by an outer recheck.
 	 */
 	estate->es_epqScanDone = (bool *) palloc0(rtsize * sizeof(bool));
@@ -3368,10 +3374,10 @@ EvalPlanQualStart(EPQState *epqstate, EState *parentestate, Plan *planTree)
 	/*
 	 * Initialize private state information for each SubPlan.  We must do this
 	 * before running ExecInitNode on the main query tree, since
-	 * ExecInitSubPlan expects to be able to find these entries.
-	 * Some of the SubPlans might not be used in the part of the plan tree
-	 * we intend to run, but since it's not easy to tell which, we just
-	 * initialize them all.
+	 * ExecInitSubPlan expects to be able to find these entries. Some of the
+	 * SubPlans might not be used in the part of the plan tree we intend to
+	 * run, but since it's not easy to tell which, we just initialize them
+	 * all.
 	 */
 	Assert(estate->es_subplanstates == NIL);
 	foreach(l, parentestate->es_plannedstmt->subplans)
@@ -3386,9 +3392,9 @@ EvalPlanQualStart(EPQState *epqstate, EState *parentestate, Plan *planTree)
 	}
 
 	/*
-	 * Initialize the private state information for all the nodes in the
-	 * part of the plan tree we need to run.  This opens files, allocates
-	 * storage and leaves us ready to start processing tuples.
+	 * Initialize the private state information for all the nodes in the part
+	 * of the plan tree we need to run.  This opens files, allocates storage
+	 * and leaves us ready to start processing tuples.
 	 */
 	epqstate->planstate = ExecInitNode(planTree, estate, 0);
 
@@ -3509,8 +3515,8 @@ OpenIntoRel(QueryDesc *queryDesc)
 	Assert(into);
 
 	/*
-	 * XXX This code needs to be kept in sync with DefineRelation().
-	 * Maybe we should try to use that function instead.
+	 * XXX This code needs to be kept in sync with DefineRelation(). Maybe we
+	 * should try to use that function instead.
 	 */
 
 	/*
@@ -3616,6 +3622,18 @@ OpenIntoRel(QueryDesc *queryDesc)
 	/* Copy the tupdesc because heap_create_with_catalog modifies it */
 	tupdesc = CreateTupleDescCopy(queryDesc->tupDesc);
 
+	/* MPP-8405: disallow OIDS on partitioned tables */
+	if (tupdesc->tdhasoid && IsNormalProcessingMode() && Gp_role == GP_ROLE_DISPATCH)
+	{
+		if (relstorage == RELSTORAGE_AOCOLS)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("OIDS=TRUE is not allowed on tables that use column-oriented storage. Use OIDS=FALSE")));
+		else
+			ereport(NOTICE,
+					(errmsg("OIDS=TRUE is not recommended for user-created tables. Use OIDS=FALSE to prevent wrap-around of the OID counter")));
+	}
+
 	/*
 	 * We can skip WAL-logging the insertions for FileRep on segments, but not on
 	 * master since we are using the WAL based physical replication.
@@ -3630,12 +3648,14 @@ OpenIntoRel(QueryDesc *queryDesc)
 											  tablespaceId,
 											  InvalidOid,
 											  InvalidOid,
+											  InvalidOid,
 											  GetUserId(),
 											  tupdesc,
 											  NIL,
 											  /* relam */ InvalidOid,
 											  relkind,
 											  relstorage,
+											  false,
 											  false,
 											  true,
 											  0,
@@ -3668,8 +3688,7 @@ OpenIntoRel(QueryDesc *queryDesc)
 									 false);
 
 	(void) heap_reloptions(RELKIND_TOASTVALUE, reloptions, true);
-	AlterTableCreateToastTable(intoRelationId, InvalidOid, reloptions, false, false);
-
+	AlterTableCreateToastTable(intoRelationId, reloptions, false);
 	AlterTableCreateAoSegTable(intoRelationId, false);
 	AlterTableCreateAoVisimapTable(intoRelationId, false);
 
@@ -3702,15 +3721,15 @@ OpenIntoRel(QueryDesc *queryDesc)
 	myState->rel = intoRelationDesc;
 
 	/*
-	 * We can skip WAL-logging the insertions, unless PITR is in use.  We can
-	 * skip the FSM in any case.
+	 * We can skip WAL-logging the insertions, unless PITR or streaming
+	 * replication is in use. We can skip the FSM in any case.
 	 */
 	myState->hi_options = HEAP_INSERT_SKIP_FSM |
 		(use_wal ? 0 : HEAP_INSERT_SKIP_WAL);
 	myState->bistate = GetBulkInsertState();
 
-	/* Not using WAL requires rd_targblock be initially invalid */
-	Assert(intoRelationDesc->rd_targblock == InvalidBlockNumber);
+	/* Not using WAL requires smgr_targblock be initially invalid */
+	Assert(RelationGetTargetBlock(intoRelationDesc) == InvalidBlockNumber);
 
 	relFileNode.spcNode = tablespaceId;
 	relFileNode.dbNode = MyDatabaseId;

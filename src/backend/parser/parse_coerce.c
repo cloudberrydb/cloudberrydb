@@ -3,12 +3,12 @@
  * parse_coerce.c
  *		handle type coercions/conversions for parser
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_coerce.c,v 2.178 2009/10/31 01:41:31 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_coerce.c,v 2.182 2010/03/04 09:39:53 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -296,8 +296,8 @@ coerce_type(ParseState *pstate, Node *node,
 		pstate != NULL && pstate->p_coerce_param_hook != NULL)
 	{
 		/*
-		 * Allow the CoerceParamHook to decide what happens.  It can return
-		 * a transformed node (very possibly the same Param node), or return
+		 * Allow the CoerceParamHook to decide what happens.  It can return a
+		 * transformed node (very possibly the same Param node), or return
 		 * NULL to indicate we should proceed with normal coercion.
 		 */
 		result = (*pstate->p_coerce_param_hook) (pstate,
@@ -1064,9 +1064,7 @@ build_coercion_expression(Node *node,
 		HeapTuple	tp;
 		Form_pg_proc procstruct;
 
-		tp = SearchSysCache(PROCOID,
-							ObjectIdGetDatum(funcId),
-							0, 0, 0);
+		tp = SearchSysCache1(PROCOID, ObjectIdGetDatum(funcId));
 		if (!HeapTupleIsValid(tp))
 			elog(ERROR, "cache lookup failed for function %u", funcId);
 		procstruct = (Form_pg_proc) GETSTRUCT(tp);
@@ -2171,15 +2169,14 @@ IsBinaryCoercible(Oid srctype, Oid targettype)
 			return true;
 
 	/* Else look in pg_cast */
-	tuple = SearchSysCache(CASTSOURCETARGET,
-						   ObjectIdGetDatum(srctype),
-						   ObjectIdGetDatum(targettype),
-						   0, 0);
+	tuple = SearchSysCache2(CASTSOURCETARGET,
+							ObjectIdGetDatum(srctype),
+							ObjectIdGetDatum(targettype));
 	if (!HeapTupleIsValid(tuple))
 		return false;			/* no cast */
 	castForm = (Form_pg_cast) GETSTRUCT(tuple);
 
-	result = (!OidIsValid(castForm->castfunc) &&
+	result = (castForm->castmethod == COERCION_METHOD_BINARY &&
 			  castForm->castcontext == COERCION_CODE_IMPLICIT);
 
 	ReleaseSysCache(tuple);
@@ -2238,10 +2235,10 @@ find_coercion_pathway(Oid targetTypeId, Oid sourceTypeId,
 	/* SELECT castcontext from pg_cast */
 
 	/* Look in pg_cast */
-	tuple = SearchSysCache(CASTSOURCETARGET,
-						   ObjectIdGetDatum(sourceTypeId),
-						   ObjectIdGetDatum(targetTypeId),
-						   0, 0);
+	tuple = SearchSysCache2(CASTSOURCETARGET,
+							ObjectIdGetDatum(sourceTypeId),
+							ObjectIdGetDatum(targetTypeId));
+
 	if (HeapTupleIsValid(tuple))
 	{
 		Form_pg_cast castForm = (Form_pg_cast) GETSTRUCT(tuple);
@@ -2402,10 +2399,9 @@ find_typmod_coercion_function(Oid typeId,
 	ReleaseSysCache(targetType);
 
 	/* Look in pg_cast */
-	tuple = SearchSysCache(CASTSOURCETARGET,
-						   ObjectIdGetDatum(typeId),
-						   ObjectIdGetDatum(typeId),
-						   0, 0);
+	tuple = SearchSysCache2(CASTSOURCETARGET,
+							ObjectIdGetDatum(typeId),
+							ObjectIdGetDatum(typeId));
 
 	if (HeapTupleIsValid(tuple))
 	{

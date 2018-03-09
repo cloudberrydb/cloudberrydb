@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeHash.c,v 1.123 2009/10/30 20:58:45 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeHash.c,v 1.129 2010/02/26 02:00:42 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -330,6 +330,7 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 	hashtable->work_set = NULL;
 	hashtable->spaceUsed = 0;
 	hashtable->spaceAllowed = operatorMemKB * 1024L;
+	hashtable->spacePeak = 0;
 	hashtable->spaceUsedSkew = 0;
 	hashtable->spaceAllowedSkew =
 		hashtable->spaceAllowed * SKEW_WORK_MEM_PERCENT / 100;
@@ -519,7 +520,7 @@ ExecChooseHashTableSize(double ntuples, int tupwidth, bool useskew,
 	/*
 	 * Set nbuckets to achieve an average bucket load of gp_hashjoin_tuples_per_bucket when
 	 * memory is filled.  Set nbatch to the smallest power of 2 that appears
-	 * sufficient.  The Min() steps limit the results so that the pointer
+	 * sufficient.	The Min() steps limit the results so that the pointer
 	 * arrays we'll try to allocate do not exceed work_mem.
 	 */
 	max_pointers = (operatorMemKB * 1024L) / sizeof(void *);
@@ -902,8 +903,8 @@ ExecHashTableInsert(HashState *hashState, HashJoinTable hashtable,
 		hashTuple->next = hashtable->buckets[bucketno];
 		hashtable->buckets[bucketno] = hashTuple;
 		hashtable->spaceUsed += hashTupleSize;
-
-		/* Double the number of batches when too much data in hash table. */
+		if (hashtable->spaceUsed > hashtable->spacePeak)
+			hashtable->spacePeak = hashtable->spaceUsed;
 		if (hashtable->spaceUsed > hashtable->spaceAllowed)
 		{
 			ExecHashIncreaseNumBatches(hashtable);
@@ -1600,10 +1601,10 @@ ExecHashBuildSkewHash(HashJoinTable hashtable, Hash *node, int mcvsToUse)
 	/*
 	 * Try to find the MCV statistics for the outer relation's join key.
 	 */
-	statsTuple = SearchSysCache(STATRELATT,
-								ObjectIdGetDatum(node->skewTable),
-								Int16GetDatum(node->skewColumn),
-								0, 0);
+	statsTuple = SearchSysCache3(STATRELATTINH,
+								 ObjectIdGetDatum(node->skewTable),
+								 Int16GetDatum(node->skewColumn),
+								 BoolGetDatum(node->skewInherit));
 	if (!HeapTupleIsValid(statsTuple))
 		return;
 
@@ -1671,6 +1672,8 @@ ExecHashBuildSkewHash(HashJoinTable hashtable, Hash *node, int mcvsToUse)
 			+ mcvsToUse * sizeof(int);
 		hashtable->spaceUsedSkew += nbuckets * sizeof(HashSkewBucket *)
 			+ mcvsToUse * sizeof(int);
+		if (hashtable->spaceUsed > hashtable->spacePeak)
+			hashtable->spacePeak = hashtable->spaceUsed;
 
 		/*
 		 * Create a skew bucket for each MCV hash value.
@@ -1719,6 +1722,8 @@ ExecHashBuildSkewHash(HashJoinTable hashtable, Hash *node, int mcvsToUse)
 			hashtable->nSkewBuckets++;
 			hashtable->spaceUsed += SKEW_BUCKET_OVERHEAD;
 			hashtable->spaceUsedSkew += SKEW_BUCKET_OVERHEAD;
+			if (hashtable->spaceUsed > hashtable->spacePeak)
+				hashtable->spacePeak = hashtable->spaceUsed;
 		}
 
 		free_attstatsslot(&sslot);
@@ -1805,6 +1810,8 @@ ExecHashSkewTableInsert(HashState *hashState,
 	/* Account for space used, and back off if we've used too much */
 	hashtable->spaceUsed += hashTupleSize;
 	hashtable->spaceUsedSkew += hashTupleSize;
+	if (hashtable->spaceUsed > hashtable->spacePeak)
+		hashtable->spacePeak = hashtable->spaceUsed;
 	while (hashtable->spaceUsedSkew > hashtable->spaceAllowedSkew)
 		ExecHashRemoveNextSkewBucket(hashState, hashtable);
 

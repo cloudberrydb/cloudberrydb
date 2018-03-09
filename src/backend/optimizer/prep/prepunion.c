@@ -19,12 +19,12 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/prep/prepunion.c,v 1.178 2009/10/26 02:26:35 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/prep/prepunion.c,v 1.183 2010/07/06 19:18:56 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1296,7 +1296,7 @@ expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte, Index rti)
 		lockmode = AccessShareLock;
 
 	/* Scan for all members of inheritance set, acquire needed locks */
-	inhOIDs = find_all_inheritors(parentOID, lockmode);
+	inhOIDs = find_all_inheritors(parentOID, lockmode, NULL);
 
 	/*
 	 * Check that there's at least one descendant, else treat as no-child
@@ -1312,8 +1312,8 @@ expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte, Index rti)
 
 	/*
 	 * If parent relation is selected FOR UPDATE/SHARE, we need to mark its
-	 * PlanRowMark as isParent = true, and generate a new PlanRowMark for
-	 * each child.
+	 * PlanRowMark as isParent = true, and generate a new PlanRowMark for each
+	 * child.
 	 */
 	if (oldrc)
 		oldrc->isParent = true;
@@ -1365,12 +1365,13 @@ expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte, Index rti)
 		/*
 		 * Build an RTE for the child, and attach to query's rangetable list.
 		 * We copy most fields of the parent's RTE, but replace relation OID,
-		 * and set inh = false.
+		 * and set inh = false.  Also, set requiredPerms to zero since all
+		 * required permissions checks are done on the original RTE.
 		 */
 		childrte = copyObject(rte);
 		childrte->relid = childOID;
 		childrte->inh = false;
-		childrte->requiredPerms = 0; /* do not require permissions on child tables */
+		childrte->requiredPerms = 0;
 		parse->rtable = lappend(parse->rtable, childrte);
 		childRTindex = list_length(parse->rtable);
 
@@ -1393,6 +1394,10 @@ expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte, Index rti)
 		 * Translate the column permissions bitmaps to the child's attnums (we
 		 * have to build the translated_vars list before we can do this). But
 		 * if this is the parent table, leave copyObject's result alone.
+		 *
+		 * Note: we need to do this even though the executor won't run any
+		 * permissions checks on the child RTE.  The modifiedCols bitmap may
+		 * be examined for trigger-firing purposes.
 		 */
 		if (childOID != parentOID)
 		{
@@ -1460,13 +1465,6 @@ expand_inherited_rtentry(PlannerInfo *root, RangeTblEntry *rte, Index rti)
 
 	/* Otherwise, OK to add to root->append_rel_list */
 	root->append_rel_list = list_concat(root->append_rel_list, appinfos);
-
-	/*
-	 * The executor will check the parent table's access permissions when it
-	 * examines the parent's added RTE entry.  There's no need to check twice,
-	 * so turn off access check bits in the original RTE.
-	 */
-	rte->requiredPerms = 0;
 }
 
 /*

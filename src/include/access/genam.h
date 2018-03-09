@@ -4,10 +4,10 @@
  *	  POSTGRES generalized index access method definitions.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/access/genam.h,v 1.81 2009/08/01 20:59:17 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/access/genam.h,v 1.84 2010/02/26 02:01:20 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -42,7 +42,6 @@ typedef struct IndexBuildResult
 typedef struct IndexVacuumInfo
 {
 	Relation	index;			/* the index being vacuumed */
-	bool		vacuum_full;	/* VACUUM FULL (we have exclusive lock) */
 	bool		analyze_only;	/* ANALYZE (without any actual vacuum) */
 	bool		estimated_count;	/* num_heap_tuples is an estimate */
 	int			message_level;	/* ereport level for progress messages */
@@ -93,7 +92,7 @@ typedef struct SysScanDescData *SysScanDesc;
  * blocking to see if a conflicting transaction commits.
  *
  * For deferrable unique constraints, UNIQUE_CHECK_PARTIAL is specified at
- * insertion time.  The index AM should test if the tuple is unique, but
+ * insertion time.	The index AM should test if the tuple is unique, but
  * should not throw error, block, or prevent the insertion if the tuple
  * appears not to be unique.  We'll recheck later when it is time for the
  * constraint to be enforced.  The AM must return true if the tuple is
@@ -102,7 +101,7 @@ typedef struct SysScanDescData *SysScanDesc;
  *
  * When it is time to recheck the deferred constraint, a pseudo-insertion
  * call is made with UNIQUE_CHECK_EXISTING.  The tuple is already in the
- * index in this case, so it should not be inserted again.  Rather, just
+ * index in this case, so it should not be inserted again.	Rather, just
  * check for conflicting live tuples (possibly blocking).
  */
 typedef enum IndexUniqueCheck

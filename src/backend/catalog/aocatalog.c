@@ -40,12 +40,14 @@ CreateAOAuxiliaryTable(
 		char relkind,
 		TupleDesc tupledesc,
 		IndexInfo  *indexInfo,
+		List *indexColNames,
 		Oid	*classObjectId,
 		int16 *coloptions)
 {
 	char aoauxiliary_relname[NAMEDATALEN];
 	char aoauxiliary_idxname[NAMEDATALEN];
 	bool shared_relation;
+	bool mapped_relation;
 	Oid relOid, aoauxiliary_relid = InvalidOid;
 	Oid aoauxiliary_idxid = InvalidOid;
 	ObjectAddress baseobject;
@@ -55,7 +57,6 @@ CreateAOAuxiliaryTable(
 	Assert(RelationIsAoRows(rel) || RelationIsAoCols(rel));
 	Assert(auxiliaryNamePrefix);
 	Assert(tupledesc);
-	Assert(classObjectId);
 	if (relkind != RELKIND_AOSEGMENTS)
 		Assert(indexInfo);
 
@@ -69,6 +70,9 @@ CreateAOAuxiliaryTable(
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("shared tables cannot have append-only auxiliary relations after initdb")));
+
+	/* It's mapped if and only if its parent is, too */
+	mapped_relation = RelationIsMapped(rel);
 
 	relOid = RelationGetRelid(rel);
 
@@ -116,6 +120,7 @@ CreateAOAuxiliaryTable(
 											     rel->rd_rel->reltablespace,
 											     InvalidOid,
 												 InvalidOid,
+												 InvalidOid,
 											     rel->rd_rel->relowner,
 											     tupledesc,
 												 NIL,
@@ -123,6 +128,7 @@ CreateAOAuxiliaryTable(
 											     relkind,
 											     RELSTORAGE_HEAP,
 											     shared_relation,
+												 mapped_relation,
 											     true,
 											     0,
 											     ONCOMMIT_NOOP,
@@ -142,6 +148,7 @@ CreateAOAuxiliaryTable(
 										 aoauxiliary_idxname,
 										 InvalidOid,
 										 indexInfo,
+										 indexColNames,
 										 BTREE_AM_OID,
 										 rel->rd_rel->reltablespace,
 										 classObjectId, coloptions, (Datum) 0,

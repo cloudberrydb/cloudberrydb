@@ -3,12 +3,12 @@
  * parse_func.c
  *		handle function calls in parser
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_func.c,v 1.219 2009/12/15 17:57:47 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_func.c,v 1.224 2010/05/30 18:10:40 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -164,13 +164,13 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	 *
 	 * We allow mixed notation (some named and some not), but only with all
 	 * the named parameters after all the unnamed ones.  So the name list
-	 * corresponds to the last N actual parameters and we don't need any
-	 * extra bookkeeping to match things up.
+	 * corresponds to the last N actual parameters and we don't need any extra
+	 * bookkeeping to match things up.
 	 */
 	argnames = NIL;
 	foreach(l, fargs)
 	{
-		Node   *arg = lfirst(l);
+		Node	   *arg = lfirst(l);
 
 		if (IsA(arg, NamedArgExpr))
 		{
@@ -183,8 +183,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 				if (strcmp(na->name, (char *) lfirst(lc)) == 0)
 					ereport(ERROR,
 							(errcode(ERRCODE_SYNTAX_ERROR),
-							 errmsg("argument name \"%s\" used more than once",
-									na->name),
+						   errmsg("argument name \"%s\" used more than once",
+								  na->name),
 							 parser_errposition(pstate, na->location)));
 			}
 			argnames = lappend(argnames, na->name);
@@ -194,7 +194,7 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 			if (argnames != NIL)
 				ereport(ERROR,
 						(errcode(ERRCODE_SYNTAX_ERROR),
-						 errmsg("positional argument cannot follow named argument"),
+				  errmsg("positional argument cannot follow named argument"),
 						 parser_errposition(pstate, exprLocation(arg))));
 		}
 	}
@@ -292,8 +292,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		if (agg_order != NIL)
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-					 errmsg("ORDER BY specified, but %s is not an aggregate function",
-							NameListToString(funcname)),
+			errmsg("ORDER BY specified, but %s is not an aggregate function",
+				   NameListToString(funcname)),
 					 parser_errposition(pstate, location)));
 		if (agg_filter)
 			ereport(ERROR,
@@ -488,8 +488,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		/*
 		 * Oops.  Time to die.
 		 *
-		 * If we are dealing with the attribute notation rel.function,
-		 * let the caller handle failure.
+		 * If we are dealing with the attribute notation rel.function, let the
+		 * caller handle failure.
 		 */
 		if (is_column)
 			return NULL;
@@ -1457,10 +1457,9 @@ func_get_detail(List *funcname,
 			return FUNCDETAIL_MULTIPLE;
 
 		/*
-		 * We disallow VARIADIC with named arguments unless the last
-		 * argument (the one with VARIADIC attached) actually matched the
-		 * variadic parameter.  This is mere pedantry, really, but some
-		 * folks insisted.
+		 * We disallow VARIADIC with named arguments unless the last argument
+		 * (the one with VARIADIC attached) actually matched the variadic
+		 * parameter.  This is mere pedantry, really, but some folks insisted.
 		 */
 		if (fargnames != NIL && !expand_variadic && nargs > 0 &&
 			best_candidate->argnumbers[nargs - 1] != nargs - 1)
@@ -1490,9 +1489,8 @@ func_get_detail(List *funcname,
 			}
 		}
 
-		ftup = SearchSysCache(PROCOID,
-							  ObjectIdGetDatum(best_candidate->oid),
-							  0, 0, 0);
+		ftup = SearchSysCache1(PROCOID,
+							   ObjectIdGetDatum(best_candidate->oid));
 		if (!HeapTupleIsValid(ftup))	/* should not happen */
 			elog(ERROR, "cache lookup failed for function %u",
 				 best_candidate->oid);
@@ -1526,17 +1524,17 @@ func_get_detail(List *funcname,
 			{
 				/*
 				 * This is a bit tricky in named notation, since the supplied
-				 * arguments could replace any subset of the defaults.  We
+				 * arguments could replace any subset of the defaults.	We
 				 * work by making a bitmapset of the argnumbers of defaulted
 				 * arguments, then scanning the defaults list and selecting
 				 * the needed items.  (This assumes that defaulted arguments
 				 * should be supplied in their positional order.)
 				 */
-				Bitmapset *defargnumbers;
-				int	   *firstdefarg;
-				List   *newdefaults;
-				ListCell *lc;
-				int		i;
+				Bitmapset  *defargnumbers;
+				int		   *firstdefarg;
+				List	   *newdefaults;
+				ListCell   *lc;
+				int			i;
 
 				defargnumbers = NULL;
 				firstdefarg = &best_candidate->argnumbers[best_candidate->nargs - best_candidate->ndargs];
@@ -1558,8 +1556,8 @@ func_get_detail(List *funcname,
 			else
 			{
 				/*
-				 * Defaults for positional notation are lots easier;
-				 * just remove any unwanted ones from the front.
+				 * Defaults for positional notation are lots easier; just
+				 * remove any unwanted ones from the front.
 				 */
 				int			ndelete;
 
@@ -1705,11 +1703,11 @@ make_fn_arguments(ParseState *pstate,
 		/* types don't match? then force coercion using a function call... */
 		if (actual_arg_types[i] != declared_arg_types[i])
 		{
-			Node   *node = (Node *) lfirst(current_fargs);
+			Node	   *node = (Node *) lfirst(current_fargs);
 
 			/*
-			 * If arg is a NamedArgExpr, coerce its input expr instead ---
-			 * we want the NamedArgExpr to stay at the top level of the list.
+			 * If arg is a NamedArgExpr, coerce its input expr instead --- we
+			 * want the NamedArgExpr to stay at the top level of the list.
 			 */
 			if (IsA(node, NamedArgExpr))
 			{
@@ -1843,7 +1841,7 @@ ParseComplexProjection(ParseState *pstate, char *funcname, Node *first_arg,
  *		The result is something like "foo(integer)".
  *
  * If argnames isn't NIL, it is a list of C strings representing the actual
- * arg names for the last N arguments.  This must be considered part of the
+ * arg names for the last N arguments.	This must be considered part of the
  * function signature too, when dealing with named-notation function calls.
  *
  * This is typically used in the construction of function-not-found error
@@ -1869,12 +1867,12 @@ funcname_signature_string(const char *funcname, int nargs,
 	{
 		if (i)
 			appendStringInfoString(&argbuf, ", ");
-		appendStringInfoString(&argbuf, format_type_be(argtypes[i]));
 		if (i >= numposargs)
 		{
-			appendStringInfo(&argbuf, " AS %s", (char *) lfirst(lc));
+			appendStringInfo(&argbuf, "%s := ", (char *) lfirst(lc));
 			lc = lnext(lc);
 		}
+		appendStringInfoString(&argbuf, format_type_be(argtypes[i]));
 	}
 
 	appendStringInfoChar(&argbuf, ')');
@@ -2041,9 +2039,7 @@ LookupAggNameTypeNames(List *aggname, List *argtypes, bool noError)
 	}
 
 	/* Make sure it's an aggregate */
-	ftup = SearchSysCache(PROCOID,
-						  ObjectIdGetDatum(oid),
-						  0, 0, 0);
+	ftup = SearchSysCache1(PROCOID, ObjectIdGetDatum(oid));
 	if (!HeapTupleIsValid(ftup))	/* should not happen */
 		elog(ERROR, "cache lookup failed for function %u", oid);
 	pform = (Form_pg_proc) GETSTRUCT(ftup);

@@ -5,12 +5,12 @@
  *	  Functions for the built-in type "RelativeTime".
  *	  Functions for the built-in type "TimeInterval".
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/nabstime.c,v 1.162 2009/09/04 11:20:22 heikki Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/nabstime.c,v 1.164 2010/02/26 02:01:09 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -786,7 +786,7 @@ tintervalrecv(PG_FUNCTION_ARGS)
 {
 	StringInfo	buf = (StringInfo) PG_GETARG_POINTER(0);
 	TimeInterval tinterval;
-	int32 status;
+	int32		status;
 
 	tinterval = (TimeInterval) palloc(sizeof(TimeIntervalData));
 
@@ -796,7 +796,7 @@ tintervalrecv(PG_FUNCTION_ARGS)
 
 	if (tinterval->data[0] == INVALID_ABSTIME ||
 		tinterval->data[1] == INVALID_ABSTIME)
-		status = T_INTERVAL_INVAL;	/* undefined  */
+		status = T_INTERVAL_INVAL;		/* undefined  */
 	else
 		status = T_INTERVAL_VALID;
 

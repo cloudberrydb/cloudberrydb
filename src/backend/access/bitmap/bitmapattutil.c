@@ -62,6 +62,7 @@ _bitmap_create_lov_heapandindex(Relation rel,
 	char		lovIndexName[NAMEDATALEN];
 	TupleDesc	tupDesc;
 	IndexInfo  *indexInfo;
+	List	   *indexColNames;
 	ObjectAddress	objAddr, referenced;
 	Oid		   *classObjectId;
 	int16	   *coloptions;
@@ -104,8 +105,8 @@ _bitmap_create_lov_heapandindex(Relation rel,
 		lovHeap = heap_open(heapid, AccessExclusiveLock);
 		lovIndex = index_open(idxid, AccessExclusiveLock);
 
-		setNewRelfilenode(lovHeap, RecentXmin);
-		setNewRelfilenode(lovIndex, RecentXmin);
+		RelationSetNewRelfilenode(lovHeap, RecentXmin);
+		RelationSetNewRelfilenode(lovIndex, RecentXmin);
 
 		/*
 		 * After creating the new relfilenode for a btee index, this is not
@@ -148,12 +149,20 @@ _bitmap_create_lov_heapandindex(Relation rel,
 	Assert(rel->rd_rel != NULL);
 
   	heapid =
-		heap_create_with_catalog(lovHeapName, PG_BITMAPINDEX_NAMESPACE,
+		heap_create_with_catalog(lovHeapName,
+								 PG_BITMAPINDEX_NAMESPACE,
 								 rel->rd_rel->reltablespace,
-								 InvalidOid, InvalidOid, rel->rd_rel->relowner,
+								 InvalidOid,
+								 InvalidOid,
+								 InvalidOid,
+								 rel->rd_rel->relowner,
 								 tupDesc, NIL,
-								 /* relam */ InvalidOid, RELKIND_RELATION, RELSTORAGE_HEAP,
-								 rel->rd_rel->relisshared, false, 0,
+								 /* relam */ InvalidOid,
+								 RELKIND_RELATION,
+								 RELSTORAGE_HEAP,
+								 rel->rd_rel->relisshared,
+								 false, /* mapped_relation */
+								 false, 0,
 								 ONCOMMIT_NOOP, NULL /* GP Policy */,
 								 (Datum)0, false, true,
 								 /* valid_opts */ true);
@@ -190,6 +199,7 @@ _bitmap_create_lov_heapandindex(Relation rel,
 
 	classObjectId = (Oid *) palloc(indattrs * sizeof(Oid));
 	coloptions = (int16 *) palloc(indattrs * sizeof(int16));
+	indexColNames = NIL;
 	for (i = 0; i < indattrs; i++)
 	{
 		Oid typid = tupDesc->attrs[i]->atttypid;
@@ -197,10 +207,14 @@ _bitmap_create_lov_heapandindex(Relation rel,
 		indexInfo->ii_KeyAttrNumbers[i] = i + 1;
 		classObjectId[i] = GetDefaultOpClass(typid, BTREE_AM_OID);
 		coloptions[i] = 0;
+
+		indexColNames = lappend(indexColNames, NameStr(tupDesc->attrs[i]->attname));
 	}
 
 	idxid = index_create(heapid, lovIndexName, InvalidOid,
-						 indexInfo, BTREE_AM_OID,
+						 indexInfo,
+						 indexColNames,
+						 BTREE_AM_OID,
 						 rel->rd_rel->reltablespace,
 						 classObjectId, coloptions, (Datum) 0,
 						 /* isprimary */ false,

@@ -1,5 +1,5 @@
 # -*-makefile-*-
-# $PostgreSQL: pgsql/src/Makefile.global.in,v 1.260 2009/12/15 22:59:54 petere Exp $
+# $PostgreSQL: pgsql/src/Makefile.global.in,v 1.264 2010/07/06 22:03:05 tgl Exp $
 
 #------------------------------------------------------------------------------
 # All PostgreSQL makefiles include this file and use the variables it sets,
@@ -18,7 +18,7 @@
 #
 # Meta configuration
 
-.PHONY: all install install-strip installdirs uninstall clean distclean maintainer-clean distprep check installcheck maintainer-check coverage html man installcheck-good
+.PHONY: all install install-strip installdirs uninstall clean distclean maintainer-clean distprep check installcheck maintainer-check coverage html man installcheck-parallel world install-world installcheck-world installcheck-good
 
 # make `all' the default target
 all:
@@ -283,8 +283,6 @@ LDFLAGS += @LDFLAGS@
 LDFLAGS_EX = @LDFLAGS_EX@
 # LDFLAGS_SL might have already been assigned by calling makefile
 LDFLAGS_SL += @LDFLAGS_SL@
-
-
 LDREL = -r
 LDOUT = -o
 RANLIB = @RANLIB@
@@ -543,6 +541,7 @@ endif
 ##########################################################################
 #
 # substitute implementations of C library routines (see src/port/)
+# note we already included -L.../src/port in LDFLAGS above
 
 LIBOBJS = @LIBOBJS@
 
@@ -550,12 +549,6 @@ LIBOBJS = @LIBOBJS@
 PG_CRC32C_OBJS = @PG_CRC32C_OBJS@
 
 LIBS := -lpgport $(LIBS)
-# add location of libpgport.a to LDFLAGS
-ifdef PGXS
-override LDFLAGS := -L$(libdir) $(LDFLAGS)
-else
-override LDFLAGS := -L$(top_builddir)/src/port $(LDFLAGS)
-endif
 
 # to make ws2_32.lib the last library, and always link with shfolder,
 # so SHGetFolderName isn't picked up from shell32.dll

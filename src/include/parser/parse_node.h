@@ -4,10 +4,10 @@
  *		Internal definitions for parser
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/parser/parse_node.h,v 1.66 2009/10/31 01:41:31 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/parser/parse_node.h,v 1.68 2010/02/26 02:01:26 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -77,12 +77,12 @@ typedef enum ParseExprKind
  */
 typedef struct ParseState ParseState;
 
-typedef Node * (*PreParseColumnRefHook) (ParseState *pstate, ColumnRef *cref);
-typedef Node * (*PostParseColumnRefHook) (ParseState *pstate, ColumnRef *cref, Node *var);
-typedef Node * (*ParseParamRefHook) (ParseState *pstate, ParamRef *pref);
-typedef Node * (*CoerceParamHook) (ParseState *pstate, Param *param,
-								   Oid targetTypeId, int32 targetTypeMod,
-								   int location);
+typedef Node *(*PreParseColumnRefHook) (ParseState *pstate, ColumnRef *cref);
+typedef Node *(*PostParseColumnRefHook) (ParseState *pstate, ColumnRef *cref, Node *var);
+typedef Node *(*ParseParamRefHook) (ParseState *pstate, ParamRef *pref);
+typedef Node *(*CoerceParamHook) (ParseState *pstate, Param *param,
+									   Oid targetTypeId, int32 targetTypeMod,
+											  int location);
 
 
 /*
@@ -179,7 +179,7 @@ struct ParseState
 	PostParseColumnRefHook p_post_columnref_hook;
 	ParseParamRefHook p_paramref_hook;
 	CoerceParamHook p_coerce_param_hook;
-	void	   *p_ref_hook_state;	/* common passthrough link for above */
+	void	   *p_ref_hook_state;		/* common passthrough link for above */
 };
 
 /* Support for parser_errposition_callback function */

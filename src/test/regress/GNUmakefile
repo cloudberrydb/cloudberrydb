@@ -3,10 +3,10 @@
 # GNUmakefile--
 #    Makefile for src/test/regress (the regression tests)
 #
-# Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+# Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
 # Portions Copyright (c) 1994, Regents of the University of California
 #
-# $PostgreSQL: pgsql/src/test/regress/GNUmakefile,v 1.80 2009/12/18 21:28:42 momjian Exp $
+# $PostgreSQL: pgsql/src/test/regress/GNUmakefile,v 1.83 2010/07/05 18:54:38 tgl Exp $
 #
 #-------------------------------------------------------------------------
 
@@ -196,6 +196,9 @@ testbouncer: all
 	bash -c "bouncer/setup.sh"
 	$(pg_regress_call)  --port=65432 --psqldir=$(PSQLDIR) --schedule=./minimal_schedule --host=`hostname`;
 	bash -c "bouncer/stop.sh"
+
+standbycheck: all
+	$(pg_regress_call) --psqldir=$(PSQLDIR) --schedule=$(srcdir)/standby_schedule --use-existing
 
 # old interfaces follow...
 

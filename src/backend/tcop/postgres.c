@@ -3,12 +3,12 @@
  * postgres.c
  *	  POSTGRES C Backend Interface
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/tcop/postgres.c,v 1.578 2009/12/16 23:05:00 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/tcop/postgres.c,v 1.595 2010/07/06 19:18:57 momjian Exp $
  *
  * NOTES
  *	  this is the "main" module of the postgres backend and
@@ -202,7 +202,7 @@ static MemoryContext unnamed_stmt_context = NULL;
 /* assorted command-line switches */
 static const char *userDoption = NULL;	/* -D switch */
 
-static bool EchoQuery = false;				/* -E switch */
+static bool EchoQuery = false;	/* -E switch */
 
 static bool DoingPqReading = false; /* in the middle of recv call of secure_read */
 
@@ -226,6 +226,10 @@ static int	UseNewLine = 1;		/* Use newlines query delimiters (the default) */
 static int	UseNewLine = 0;		/* Use EOF as query delimiters */
 #endif   /* TCOP_DONTUSENEWLINE */
 
+/* whether or not, and why, we were cancelled by conflict with recovery */
+static bool RecoveryConflictPending = false;
+static bool RecoveryConflictRetryable = true;
+static ProcSignalReason RecoveryConflictReason;
 
 static DtxContextInfo TempDtxContextInfo = DtxContextInfo_StaticInit;
 
@@ -248,6 +252,8 @@ static List *pg_rewrite_query(Query *query);
 static bool check_log_statement(List *stmt_list);
 static int	errdetail_execute(List *raw_parsetree_list);
 static int	errdetail_params(ParamListInfo params);
+static int	errdetail_abort(void);
+static int	errdetail_recovery_conflict(void);
 static void start_xact_command(void);
 static void finish_xact_command(void);
 static bool IsTransactionExitStmt(Node *parsetree);
@@ -627,12 +633,10 @@ prepare_for_client_read(void)
 		EnableCatchupInterrupt();
 		EnableClientWaitTimeoutInterrupt();
 
-		/* Allow "die" interrupt to be processed while waiting */
+		/* Allow cancel/die interrupts to be processed while waiting */
 		ImmediateInterruptOK = true;
 
 		/* And don't forget to detect one that already arrived */
-		QueryCancelPending = false;
-		QueryFinishPending = false;
 		CHECK_FOR_INTERRUPTS();
 	}
 	else
@@ -658,8 +662,6 @@ client_read_ended(void)
 	if (DoingCommandRead)
 	{
 		ImmediateInterruptOK = false;
-		QueryCancelPending = false;		/* forget any CANCEL signal */
-		QueryFinishPending = false;		/* forget any FINISH signal too */
 
 		DisableNotifyInterrupt();
 		DisableCatchupInterrupt();
@@ -849,7 +851,7 @@ pg_analyze_and_rewrite_params(Node *parsetree,
 	Query	   *query;
 	List	   *querytree_list;
 
-	Assert(query_string != NULL); /* required as of 8.4 */
+	Assert(query_string != NULL);		/* required as of 8.4 */
 
 	TRACE_POSTGRESQL_QUERY_REWRITE_START(query_string);
 
@@ -1685,7 +1687,8 @@ exec_simple_query(const char *query_string, const char *seqServerHost, int seqSe
 			ereport(ERROR,
 					(errcode(ERRCODE_IN_FAILED_SQL_TRANSACTION),
 					 errmsg("current transaction is aborted, "
-						"commands ignored until end of transaction block")));
+						  "commands ignored until end of transaction block"),
+					 errdetail_abort()));
 
 		/* Make sure we are in a transaction command */
 		start_xact_command();
@@ -2008,7 +2011,8 @@ exec_parse_message(const char *query_string,	/* string to execute */
 			ereport(ERROR,
 					(errcode(ERRCODE_IN_FAILED_SQL_TRANSACTION),
 					 errmsg("current transaction is aborted, "
-						"commands ignored until end of transaction block")));
+						  "commands ignored until end of transaction block"),
+					 errdetail_abort()));
 
 		/*
 		 * Set up a snapshot if parse analysis/planning will need one.
@@ -2228,7 +2232,7 @@ exec_bind_message(StringInfo input_message)
 	}
 	else
 	{
-		/* special-case the unnamed statement */
+		/* Unnamed statements are re-prepared for every bind */
 		psrc = unnamed_stmt_psrc;
 		if (!psrc)
 			ereport(ERROR,
@@ -2298,7 +2302,8 @@ exec_bind_message(StringInfo input_message)
 		ereport(ERROR,
 				(errcode(ERRCODE_IN_FAILED_SQL_TRANSACTION),
 				 errmsg("current transaction is aborted, "
-						"commands ignored until end of transaction block")));
+						"commands ignored until end of transaction block"),
+				 errdetail_abort()));
 
 	/*
 	 * Create the portal.  Allow silent replacement of an existing portal only
@@ -2782,7 +2787,8 @@ exec_execute_message(const char *portal_name, int64 max_rows)
 		ereport(ERROR,
 				(errcode(ERRCODE_IN_FAILED_SQL_TRANSACTION),
 				 errmsg("current transaction is aborted, "
-						"commands ignored until end of transaction block")));
+						"commands ignored until end of transaction block"),
+				 errdetail_abort()));
 
 	/* Check for cancel signal before we start execution */
 	CHECK_FOR_INTERRUPTS();
@@ -3051,6 +3057,56 @@ errdetail_params(ParamListInfo params)
 }
 
 /*
+ * errdetail_abort
+ *
+ * Add an errdetail() line showing abort reason, if any.
+ */
+static int
+errdetail_abort(void)
+{
+	if (MyProc->recoveryConflictPending)
+		errdetail("abort reason: recovery conflict");
+
+	return 0;
+}
+
+/*
+ * errdetail_recovery_conflict
+ *
+ * Add an errdetail() line showing conflict source.
+ */
+static int
+errdetail_recovery_conflict(void)
+{
+	switch (RecoveryConflictReason)
+	{
+		case PROCSIG_RECOVERY_CONFLICT_BUFFERPIN:
+			errdetail("User was holding shared buffer pin for too long.");
+			break;
+		case PROCSIG_RECOVERY_CONFLICT_LOCK:
+			errdetail("User was holding a relation lock for too long.");
+			break;
+		case PROCSIG_RECOVERY_CONFLICT_TABLESPACE:
+			errdetail("User was or might have been using tablespace that must be dropped.");
+			break;
+		case PROCSIG_RECOVERY_CONFLICT_SNAPSHOT:
+			errdetail("User query might have needed to see row versions that must be removed.");
+			break;
+		case PROCSIG_RECOVERY_CONFLICT_STARTUP_DEADLOCK:
+			errdetail("User transaction caused buffer deadlock with recovery.");
+			break;
+		case PROCSIG_RECOVERY_CONFLICT_DATABASE:
+			errdetail("User was connected to a database that must be dropped.");
+			break;
+		default:
+			break;
+			/* no errdetail */
+	}
+
+	return 0;
+}
+
+/*
  * exec_describe_statement_message
  *
  * Process a "Describe" message for a prepared statement
@@ -3107,7 +3163,8 @@ exec_describe_statement_message(const char *stmt_name)
 		ereport(ERROR,
 				(errcode(ERRCODE_IN_FAILED_SQL_TRANSACTION),
 				 errmsg("current transaction is aborted, "
-						"commands ignored until end of transaction block")));
+						"commands ignored until end of transaction block"),
+				 errdetail_abort()));
 
 	if (whereToSendOutput != DestRemote)
 		return;					/* can't actually do anything... */
@@ -3187,7 +3244,8 @@ exec_describe_portal_message(const char *portal_name)
 		ereport(ERROR,
 				(errcode(ERRCODE_IN_FAILED_SQL_TRANSACTION),
 				 errmsg("current transaction is aborted, "
-						"commands ignored until end of transaction block")));
+						"commands ignored until end of transaction block"),
+				 errdetail_abort()));
 
 	if (whereToSendOutput != DestRemote)
 		return;					/* can't actually do anything... */
@@ -3494,12 +3552,11 @@ StatementCancelHandler(SIGNAL_ARGS)
 		QueryCancelCleanup = true;
 
 		/*
-		 * If it's safe to interrupt, and we're waiting for a lock, service
-		 * the interrupt immediately.  No point in interrupting if we're
-		 * waiting for input, however.
+		 * If it's safe to interrupt, and we're waiting for input or a lock,
+		 * service the interrupt immediately
 		 */
 		if (ImmediateInterruptOK && InterruptHoldoffCount == 0 &&
-			CritSectionCount == 0 && !DoingCommandRead)
+			CritSectionCount == 0)
 		{
 			/* bump holdoff count to make ProcessInterrupts() a no-op */
 			/* until we are done getting ready for it */
@@ -3594,6 +3651,133 @@ SigHupHandler(SIGNAL_ARGS)
 	errno = save_errno;
 }
 
+/*
+ * RecoveryConflictInterrupt: out-of-line portion of recovery conflict
+ * handling ollowing receipt of SIGUSR1. Designed to be similar to die()
+ * and StatementCancelHandler(). Called only by a normal user backend
+ * that begins a transaction during recovery.
+ */
+void
+RecoveryConflictInterrupt(ProcSignalReason reason)
+{
+	int			save_errno = errno;
+
+	/*
+	 * Don't joggle the elbow of proc_exit
+	 */
+	if (!proc_exit_inprogress)
+	{
+		RecoveryConflictReason = reason;
+		switch (reason)
+		{
+			case PROCSIG_RECOVERY_CONFLICT_STARTUP_DEADLOCK:
+
+				/*
+				 * If we aren't waiting for a lock we can never deadlock.
+				 */
+				if (!IsWaitingForLock())
+					return;
+
+				/* Intentional drop through to check wait for pin */
+
+			case PROCSIG_RECOVERY_CONFLICT_BUFFERPIN:
+
+				/*
+				 * If we aren't blocking the Startup process there is nothing
+				 * more to do.
+				 */
+				if (!HoldingBufferPinThatDelaysRecovery())
+					return;
+
+				MyProc->recoveryConflictPending = true;
+
+				/* Intentional drop through to error handling */
+
+			case PROCSIG_RECOVERY_CONFLICT_LOCK:
+			case PROCSIG_RECOVERY_CONFLICT_TABLESPACE:
+			case PROCSIG_RECOVERY_CONFLICT_SNAPSHOT:
+
+				/*
+				 * If we aren't in a transaction any longer then ignore.
+				 */
+				if (!IsTransactionOrTransactionBlock())
+					return;
+
+				/*
+				 * If we can abort just the current subtransaction then we are
+				 * OK to throw an ERROR to resolve the conflict. Otherwise
+				 * drop through to the FATAL case.
+				 *
+				 * XXX other times that we can throw just an ERROR *may* be
+				 * PROCSIG_RECOVERY_CONFLICT_LOCK if no locks are held in
+				 * parent transactions
+				 *
+				 * PROCSIG_RECOVERY_CONFLICT_SNAPSHOT if no snapshots are held
+				 * by parent transactions and the transaction is not
+				 * serializable
+				 *
+				 * PROCSIG_RECOVERY_CONFLICT_TABLESPACE if no temp files or
+				 * cursors open in parent transactions
+				 */
+				if (!IsSubTransaction())
+				{
+					/*
+					 * If we already aborted then we no longer need to cancel.
+					 * We do this here since we do not wish to ignore aborted
+					 * subtransactions, which must cause FATAL, currently.
+					 */
+					if (IsAbortedTransactionBlockState())
+						return;
+
+					RecoveryConflictPending = true;
+					QueryCancelPending = true;
+					InterruptPending = true;
+					break;
+				}
+
+				/* Intentional drop through to session cancel */
+
+			case PROCSIG_RECOVERY_CONFLICT_DATABASE:
+				RecoveryConflictPending = true;
+				ProcDiePending = true;
+				InterruptPending = true;
+				break;
+
+			default:
+				elog(FATAL, "Unknown conflict mode");
+		}
+
+		Assert(RecoveryConflictPending && (QueryCancelPending || ProcDiePending));
+
+		/*
+		 * All conflicts apart from database cause dynamic errors where the
+		 * command or transaction can be retried at a later point with some
+		 * potential for success. No need to reset this, since non-retryable
+		 * conflict errors are currently FATAL.
+		 */
+		if (reason == PROCSIG_RECOVERY_CONFLICT_DATABASE)
+			RecoveryConflictRetryable = false;
+
+		/*
+		 * If it's safe to interrupt, and we're waiting for input or a lock,
+		 * service the interrupt immediately
+		 */
+		if (ImmediateInterruptOK && InterruptHoldoffCount == 0 &&
+			CritSectionCount == 0)
+		{
+			/* bump holdoff count to make ProcessInterrupts() a no-op */
+			/* until we are done getting ready for it */
+			InterruptHoldoffCount++;
+			LockWaitCancel();	/* prevent CheckDeadLock from running */
+			DisableNotifyInterrupt();
+			DisableCatchupInterrupt();
+			InterruptHoldoffCount--;
+			ProcessInterrupts(__FILE__, __LINE__);
+		}
+	}
+
+	errno = save_errno;
+}
 
 /*
  * ProcessInterrupts: out-of-line portion of CHECK_FOR_INTERRUPTS() macro
@@ -3630,6 +3814,16 @@ ProcessInterrupts(const char* filename, int lineno)
 					(errcode(ERRCODE_ADMIN_SHUTDOWN),
 					 errmsg("terminating autovacuum process due to administrator command"),
 					 errSendAlert(false)));
+		else if (RecoveryConflictPending && RecoveryConflictRetryable)
+			ereport(FATAL,
+					(errcode(ERRCODE_T_R_SERIALIZATION_FAILURE),
+			  errmsg("terminating connection due to conflict with recovery"),
+					 errdetail_recovery_conflict()));
+		else if (RecoveryConflictPending)
+			ereport(FATAL,
+					(errcode(ERRCODE_ADMIN_SHUTDOWN),
+			  errmsg("terminating connection due to conflict with recovery"),
+					 errdetail_recovery_conflict()));
 		else
 		{
 			if (HasCancelMessage())
@@ -3668,6 +3862,55 @@ ProcessInterrupts(const char* filename, int lineno)
 		elog(LOG,"Process interrupt for 'query cancel pending' (%s:%d)", filename, lineno);
 
 		QueryCancelPending = false;
+		if (ClientAuthInProgress)
+		{
+			ImmediateInterruptOK = false;		/* not idle anymore */
+			DisableNotifyInterrupt();
+			DisableCatchupInterrupt();
+			/* As in quickdie, don't risk sending to client during auth */
+			if (whereToSendOutput == DestRemote)
+				whereToSendOutput = DestNone;
+			ereport(ERROR,
+					(errcode(ERRCODE_QUERY_CANCELED),
+					 errmsg("canceling authentication due to timeout")));
+		}
+		if (cancel_from_timeout)
+		{
+			ImmediateInterruptOK = false;		/* not idle anymore */
+			DisableNotifyInterrupt();
+			DisableCatchupInterrupt();
+			ereport(ERROR,
+					(errcode(ERRCODE_QUERY_CANCELED),
+					 errmsg("canceling statement due to statement timeout")));
+		}
+		if (IsAutoVacuumWorkerProcess())
+		{
+			ImmediateInterruptOK = false;		/* not idle anymore */
+			DisableNotifyInterrupt();
+			DisableCatchupInterrupt();
+			ereport(ERROR,
+					(errcode(ERRCODE_QUERY_CANCELED),
+					 errmsg("canceling autovacuum task")));
+		}
+		if (RecoveryConflictPending)
+		{
+			ImmediateInterruptOK = false;		/* not idle anymore */
+			RecoveryConflictPending = false;
+			DisableNotifyInterrupt();
+			DisableCatchupInterrupt();
+			if (DoingCommandRead)
+				ereport(FATAL,
+						(errcode(ERRCODE_T_R_SERIALIZATION_FAILURE),
+						 errmsg("terminating connection due to conflict with recovery"),
+						 errdetail_recovery_conflict(),
+				 errhint("In a moment you should be able to reconnect to the"
+						 " database and repeat your command.")));
+			else
+				ereport(ERROR,
+						(errcode(ERRCODE_T_R_SERIALIZATION_FAILURE),
+				 errmsg("canceling statement due to conflict with recovery"),
+						 errdetail_recovery_conflict()));
+		}
 
 		/*
 		 * If we are reading a command from the client, just ignore the cancel
@@ -3676,28 +3919,14 @@ ProcessInterrupts(const char* filename, int lineno)
 		 */
 		if (!DoingCommandRead)
 		{
-			ImmediateInterruptOK = false;	/* not idle anymore */
+			ImmediateInterruptOK = false;		/* not idle anymore */
 			DisableNotifyInterrupt();
 			DisableCatchupInterrupt();
+
 			if (Gp_role == GP_ROLE_EXECUTE)
 				ereport(ERROR,
 						(errcode(ERRCODE_GP_OPERATION_CANCELED),
 						 errmsg("canceling MPP operation")));
-			/* As in quickdie, don't risk sending to client during auth */
-			if (ClientAuthInProgress && whereToSendOutput == DestRemote)
-				whereToSendOutput = DestNone;
-			if (ClientAuthInProgress)
-				ereport(ERROR,
-						(errcode(ERRCODE_QUERY_CANCELED),
-						 errmsg("canceling authentication due to timeout")));
-			else if (cancel_from_timeout)
-				ereport(ERROR,
-						(errcode(ERRCODE_QUERY_CANCELED),
-						 errmsg("canceling statement due to statement timeout")));
-			else if (IsAutoVacuumWorkerProcess())
-				ereport(ERROR,
-						(errcode(ERRCODE_QUERY_CANCELED),
-						 errmsg("canceling autovacuum task")));
 			else if (HasCancelMessage())
 			{
 				char   *buffer = palloc0(MAX_CANCEL_MSG);
@@ -4218,12 +4447,13 @@ process_postgres_switches(int argc, char *argv[], GucContext ctx,
 				break;
 
 			case 'v':
+
 				/*
 				 * -v is no longer used in normal operation, since
-				 * FrontendProtocol is already set before we get here.
-				 * We keep the switch only for possible use in standalone
-				 * operation, in case we ever support using normal FE/BE
-				 * protocol with a standalone backend.
+				 * FrontendProtocol is already set before we get here. We keep
+				 * the switch only for possible use in standalone operation,
+				 * in case we ever support using normal FE/BE protocol with a
+				 * standalone backend.
 				 */
 				if (secure)
 					FrontendProtocol = (ProtocolVersion) atoi(optarg);
@@ -4490,26 +4720,27 @@ PostgresMain(int argc, char *argv[],
 		WalSndSignals();
 	else
 	{
-		pqsignal(SIGHUP, SigHupHandler); /* set flag to read config file */
-		pqsignal(SIGINT, StatementCancelHandler); /* cancel current query */
+		pqsignal(SIGHUP, SigHupHandler);		/* set flag to read config
+												 * file */
+		pqsignal(SIGINT, StatementCancelHandler);		/* cancel current query */
 		pqsignal(SIGTERM, die); /* cancel current query and exit */
 
 		/*
 		 * In a standalone backend, SIGQUIT can be generated from the keyboard
-		 * easily, while SIGTERM cannot, so we make both signals do die() rather
-		 * than quickdie().
+		 * easily, while SIGTERM cannot, so we make both signals do die()
+		 * rather than quickdie().
 		 */
 		if (IsUnderPostmaster)
-			pqsignal(SIGQUIT, quickdie); /* hard crash time */
+			pqsignal(SIGQUIT, quickdie);		/* hard crash time */
 		else
-			pqsignal(SIGQUIT, die); /* cancel current query and exit */
-		pqsignal(SIGALRM, handle_sig_alarm); /* timeout conditions */
+			pqsignal(SIGQUIT, die);		/* cancel current query and exit */
+		pqsignal(SIGALRM, handle_sig_alarm);	/* timeout conditions */
 
 		/*
 		 * Ignore failure to write to frontend. Note: if frontend closes
 		 * connection, we will notice it and exit cleanly when control next
-		 * returns to outer loop.  This seems safer than forcing exit in the midst
-		 * of output during who-knows-what operation...
+		 * returns to outer loop.  This seems safer than forcing exit in the
+		 * midst of output during who-knows-what operation...
 		 */
 		pqsignal(SIGPIPE, SIG_IGN);
 		pqsignal(SIGUSR1, procsignal_sigusr1_handler);
@@ -4517,10 +4748,11 @@ PostgresMain(int argc, char *argv[],
 		pqsignal(SIGFPE, FloatExceptionHandler);
 
 		/*
-		 * Reset some signals that are accepted by postmaster but not by backend
+		 * Reset some signals that are accepted by postmaster but not by
+		 * backend
 		 */
-		pqsignal(SIGCHLD, SIG_DFL); /* system() requires this on some platforms */
-
+		pqsignal(SIGCHLD, SIG_DFL);		/* system() requires this on some
+										 * platforms */
 #ifndef _WIN32
 #ifdef SIGILL
 		pqsignal(SIGILL, CdbProgramErrorHandler);
@@ -4544,9 +4776,7 @@ PostgresMain(int argc, char *argv[],
 
 	PG_SETMASK(&BlockSig);		/* block everything except SIGQUIT */
 
-	if (IsUnderPostmaster)
-		BaseInit();
-	else
+	if (!IsUnderPostmaster)
 	{
 		/*
 		 * Validate we have been given a reasonable-looking DataDir (if under
@@ -4562,16 +4792,10 @@ PostgresMain(int argc, char *argv[],
 		 * Create lockfile for data directory.
 		 */
 		CreateDataDirLockFile(false);
-
-		BaseInit();
-
-		/*
-		 * Start up xlog for standalone backend, and register to have it
-		 * closed down at exit.
-		 */
-		StartupXLOG();
-		on_shmem_exit(ShutdownXLOG, 0);
 	}
+
+	/* Early initialization */
+	BaseInit();
 
 	/*
 	 * Create a per-backend PGPROC struct in shared memory, except in the
@@ -4643,6 +4867,7 @@ PostgresMain(int argc, char *argv[],
 	/* If this is a WAL sender process, we're done with initialization. */
 	if (am_walsender)
 		InitWalSender();
+
 	/*
 	 * process any libraries that should be preloaded at backend start (this
 	 * likewise can't be done until GUC settings are complete)
@@ -4867,17 +5092,24 @@ PostgresMain(int argc, char *argv[],
 		 * collector, and to update the PS stats display.  We avoid doing
 		 * those every time through the message loop because it'd slow down
 		 * processing of batched messages, and because we don't want to report
-		 * uncommitted updates (that confuses autovacuum).
+		 * uncommitted updates (that confuses autovacuum).	The notification
+		 * processor wants a call too, if we are not in a transaction block.
 		 */
 		if (send_ready_for_query)
 		{
-			if (IsTransactionOrTransactionBlock())
+			if (IsAbortedTransactionBlockState())
+			{
+				set_ps_display("idle in transaction (aborted)", false);
+				pgstat_report_activity("<IDLE> in transaction (aborted)");
+			}
+			else if (IsTransactionOrTransactionBlock())
 			{
 				set_ps_display("idle in transaction", false);
 				pgstat_report_activity("<IDLE> in transaction");
 			}
 			else
 			{
+				ProcessCompletedNotifies();
 				pgstat_report_stat(false);
 				pgstat_report_queuestat();
 
@@ -4895,7 +5127,6 @@ PostgresMain(int argc, char *argv[],
 		 * conditional since we don't want, say, reads on behalf of COPY FROM
 		 * STDIN doing the same thing.)
 		 */
-		QueryCancelPending = false;		/* forget any earlier CANCEL signal */
 		DoingCommandRead = true;
 
 #ifdef USE_TEST_UTILS
@@ -4937,6 +5168,15 @@ PostgresMain(int argc, char *argv[],
 		}
 
 		firstchar = ReadCommand(&input_message);
+
+		/*
+		 * Reset QueryFinishPending flag, so that if we received a delayed
+		 * query finish requested after we had already finished processing
+		 * the previous command, we don't prematurely finish the next
+		 * command.
+		 */
+		QueryFinishPending = false;
+
 		IdleTracker_ActivateProcess();
 
 		/*

@@ -1,11 +1,11 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/alter_table.sgml,v 1.109 2009/09/18 05:00:41 petere Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/alter_table.sgml,v 1.115 2010/06/24 14:57:21 momjian Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-ALTERTABLE">
  <refmeta>
-  <refentrytitle id="sql-altertable-title">ALTER TABLE</refentrytitle>
+  <refentrytitle>ALTER TABLE</refentrytitle>
   <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
@@ -49,6 +49,8 @@ where action is one of:
   ALTER [COLUMN] column DROP DEFAULT
   ALTER [COLUMN] column { SET | DROP } NOT NULL
   ALTER [COLUMN] column SET STATISTICS integer
+  ALTER [COLUMN] column SET ( attribute_option = value [, ... ] )
+  ALTER [COLUMN] column RESET ( attribute_option [, ... ] )
   ADD table_constraint
   DROP CONSTRAINT [ IF EXISTS ] constraint_name [RESTRICT | CASCADE]
   DISABLE TRIGGER [trigger_name | ALL | USER]
@@ -138,7 +140,7 @@ Where column_reference_storage_directive is:
     <listitem>
      <para>
       This form adds a new column to the table, using the same syntax as
-      <xref linkend="SQL-CREATETABLE" endterm="SQL-CREATETABLE-TITLE">.
+      <xref linkend="SQL-CREATETABLE">.
      </para>
     </listitem>
    </varlistentry>
@@ -207,7 +209,7 @@ Where column_reference_storage_directive is:
      <para>
       This form
       sets the per-column statistics-gathering target for subsequent
-      <xref linkend="sql-analyze" endterm="sql-analyze-title"> operations.
+      <xref linkend="sql-analyze"> operations.
       The target can be set in the range 0 to 10000; alternatively, set it
       to -1 to revert to using the system default statistics
       target (<xref linkend="guc-default-statistics-target">).
@@ -219,14 +221,21 @@ Where column_reference_storage_directive is:
    </varlistentry>
 
    <varlistentry>
-    <term><literal>SET STATISTICS DISTINCT</literal></term>
+    <term><literal>SET ( <replaceable class="PARAMETER">attribute_option</replaceable> = <replaceable class="PARAMETER">value</replaceable> [, ... ] )</literal></term>
+    <term><literal>RESET ( <replaceable class="PARAMETER">attribute_option</replaceable> [, ... ] )</literal></term>
     <listitem>
      <para>
-      This form overrides the number-of-distinct-values estimate made by
-      subsequent <xref linkend="sql-analyze" endterm="sql-analyze-title">
-      operations.  When set to a positive value, <command>ANALYZE</> will
-      assume that the column contains exactly the specified number of distinct
-      nonnull values.  When set to a negative value, which must be greater
+      This form sets or resets attribute-level options.  Currently, the only
+      define attribute-level options are <literal>n_distinct</> and
+      <literal>n_distinct_inherited</>, which override the
+      number-of-distinct-values estimate made by subsequent
+      <xref linkend="sql-analyze">
+      operations.  <literal>n_distinct</> affects the statistics for the table
+      itself, while <literal>n_distinct_inherited</> affects the statistics
+      gathered for the table and its inheritance children.  When set to a
+      positive value, <command>ANALYZE</> will assume that the column contains
+      exactly the specified number of distinct nonnull values.  When set to a
+      negative value, which must be greater
       than or equal to -1, <command>ANALYZE</> will assume that the number of
       distinct nonnull values in the column is linear in the size of the
       table; the exact count is to be computed by multiplying the estimated
@@ -253,7 +262,8 @@ Where column_reference_storage_directive is:
     <listitem>
      <para>
       This form sets the storage mode for a column. This controls whether this
-      column is held inline or in a supplementary table, and whether the data
+      column is held inline or in a secondary <acronym>TOAST</> table, and
+      whether the data
       should be compressed or not. <literal>PLAIN</literal> must be used
       for fixed-length values such as <type>integer</type> and is
       inline, uncompressed. <literal>MAIN</literal> is for inline,
@@ -261,9 +271,9 @@ Where column_reference_storage_directive is:
       uncompressed data, and <literal>EXTENDED</literal> is for external,
       compressed data.  <literal>EXTENDED</literal> is the default for most
       data types that support non-<literal>PLAIN</literal> storage.
-      Use of <literal>EXTERNAL</literal> will
-      make substring operations on <type>text</type> and <type>bytea</type>
-      columns faster, at the penalty of increased storage space.  Note that
+      Use of <literal>EXTERNAL</literal> will make substring operations on
+      very large <type>text</type> and <type>bytea</type> values run faster,
+      at the penalty of increased storage space.  Note that
       <literal>SET STORAGE</> doesn't itself change anything in the table,
       it just sets the strategy to be pursued during future table updates.
       See <xref linkend="storage-toast"> for more information.
@@ -276,7 +286,7 @@ Where column_reference_storage_directive is:
     <listitem>
      <para>
       This form adds a new constraint to a table using the same syntax as
-      <xref linkend="SQL-CREATETABLE" endterm="SQL-CREATETABLE-TITLE">.
+      <xref linkend="SQL-CREATETABLE">.
      </para>
     </listitem>
    </varlistentry>
@@ -302,8 +312,10 @@ Where column_reference_storage_directive is:
       status is checked when the event occurs, not when the trigger function
       is actually executed.  One can disable or enable a single
       trigger specified by name, or all triggers on the table, or only
-      user triggers (this option excludes triggers that are used to implement
-      foreign key constraints).  Disabling or enabling constraint triggers
+      user triggers (this option excludes internally generated constraint
+      triggers such as those that are used to implement foreign key
+      constraints or deferrable uniqueness and exclusion constraints).
+      Disabling or enabling internally generated constraint triggers
       requires superuser privileges; it should be done with caution since
       of course the integrity of the constraint cannot be guaranteed if the
       triggers are not executed.
@@ -337,7 +349,7 @@ Where column_reference_storage_directive is:
     <listitem>
      <para>
       This form selects the default index for future
-      <xref linkend="SQL-CLUSTER" endterm="sql-cluster-title">
+      <xref linkend="SQL-CLUSTER">
       operations.  It does not actually re-cluster the table.
      </para>
     </listitem>
@@ -348,7 +360,7 @@ Where column_reference_storage_directive is:
     <listitem>
      <para>
       This form removes the most recently used
-      <xref linkend="SQL-CLUSTER" endterm="sql-cluster-title">
+      <xref linkend="SQL-CLUSTER">
       index specification from the table.  This affects
       future cluster operations that don't specify an index.
      </para>
@@ -391,12 +403,12 @@ Where column_reference_storage_directive is:
      <para>
       This form changes one or more storage parameters for the table.  See
       <xref linkend="SQL-CREATETABLE-storage-parameters"
-      endterm="sql-createtable-storage-parameters-title">
+      endterm="SQL-CREATETABLE-storage-parameters-title">
       for details on the available parameters.  Note that the table contents
       will not be modified immediately by this command; depending on the
       parameter you might need to rewrite the table to get the desired effects.
-      That can be done with <xref linkend="SQL-CLUSTER"
-      endterm="sql-cluster-title"> or one of the forms of <command>ALTER
+      That can be done with <xref linkend="SQL-CLUSTER">
+      or one of the forms of <command>ALTER
       TABLE</> that forces a table rewrite.
      </para>
 
@@ -479,7 +491,7 @@ Where column_reference_storage_directive is:
       Indexes on the table, if any, are not moved; but they can be moved
       separately with additional <literal>SET TABLESPACE</literal> commands.
       See also
-      <xref linkend="SQL-CREATETABLESPACE" endterm="sql-createtablespace-title">.
+      <xref linkend="SQL-CREATETABLESPACE">.
      </para>
     </listitem>
    </varlistentry>
@@ -647,8 +659,10 @@ Where column_reference_storage_directive is:
       <listitem>
        <para>
         Disable or enable all triggers belonging to the table.
-        (This requires superuser privilege if any of the triggers are for
-        foreign key constraints.)
+        (This requires superuser privilege if any of the triggers are
+        internally generated constraint triggers such as those that are used
+        to implement foreign key constraints or deferrable uniqueness and
+        exclusion constraints.)
        </para>
       </listitem>
      </varlistentry>
@@ -658,7 +672,9 @@ Where column_reference_storage_directive is:
       <listitem>
        <para>
         Disable or enable all triggers belonging to the table except for
-        foreign key constraint triggers.
+        internally generated constraint triggers such as those that are used
+        to implement foreign key constraints or deferrable uniqueness and
+        exclusion constraints.
        </para>
       </listitem>
      </varlistentry>
@@ -745,8 +761,8 @@ Where column_reference_storage_directive is:
 
    <para>
     Adding a column with a non-null default or changing the type of an
-    existing column will require the entire table to be rewritten.  This
-    might take a significant amount of time for a large table; and it will
+    existing column will require the entire table and indexes to be rewritten.
+    This might take a significant amount of time for a large table; and it will
     temporarily require double the disk space.  Adding or removing a system
     <literal>oid</> column likewise requires rewriting the entire table.
    </para>
@@ -837,8 +853,7 @@ ALTER TABLE table ALTER COLUMN anycol TYPE anytype;
    </para>
 
    <para>
-    Refer to <xref linkend="sql-createtable"
-    endterm="sql-createtable-title"> for a further description of valid
+    Refer to <xref linkend="sql-createtable"> for a further description of valid
     parameters. <xref linkend="ddl"> has further information on
     inheritance.
    </para>

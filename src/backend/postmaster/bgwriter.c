@@ -26,11 +26,11 @@
  * should be killed by SIGQUIT and then a recovery cycle started.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/postmaster/bgwriter.c,v 1.64 2009/12/16 22:55:33 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/postmaster/bgwriter.c,v 1.68 2010/04/28 16:54:15 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -225,6 +225,12 @@ BackgroundWriterMain(void)
 	 * Unblock signals (they were blocked when the postmaster forked us)
 	 */
 	PG_SETMASK(&UnBlockSig);
+
+	/*
+	 * Use the recovery target timeline ID during recovery
+	 */
+	if (RecoveryInProgress())
+		ThisTimeLineID = GetRecoveryTargetTLI();
 
 	/*
 	 * Loop forever

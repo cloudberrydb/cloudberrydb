@@ -1,7 +1,7 @@
 #
 # PostgreSQL top level makefile
 #
-# $PostgreSQL: pgsql/GNUmakefile.in,v 1.55 2009/11/03 21:28:10 petere Exp $
+# $PostgreSQL: pgsql/GNUmakefile.in,v 1.58 2010/03/30 00:10:46 petere Exp $
 #
 
 subdir =
@@ -10,7 +10,6 @@ include $(top_builddir)/src/Makefile.global
 
 
 all:
-#	$(MAKE) -C doc all
 	$(MAKE) -C src all
 	$(MAKE) -C config all
 	$(MAKE) -C contrib/xlogdump all
@@ -34,11 +33,20 @@ all:
 	$(MAKE) -C gpAux/platform all
 	@echo "All of Greenplum Database successfully made. Ready to install."
 
+docs:
+	$(MAKE) -C doc all
+
+world:
+	$(MAKE) -C doc all
+	$(MAKE) -C src all
+	$(MAKE) -C config all
+	$(MAKE) -C contrib all
+	@echo "PostgreSQL, contrib, and documentation successfully made. Ready to install."
+
 html man:
 	$(MAKE) -C doc $@
 
 install:
-#	$(MAKE) -C doc $@
 	$(MAKE) -C src $@
 	$(MAKE) -C config $@
 	$(MAKE) -C contrib/xlogdump $@
@@ -62,6 +70,16 @@ install:
 	$(MAKE) -C gpAux/gpperfmon $@
 	$(MAKE) -C gpAux/platform $@
 	@echo "Greenplum Database installation complete."
+
+install-docs:
+	$(MAKE) -C doc install
+
+install-world:
+	$(MAKE) -C doc install
+	$(MAKE) -C src install
+	$(MAKE) -C config install
+	$(MAKE) -C contrib install
+	@echo "PostgreSQL, contrib, and documentation installation complete."
 
 installdirs uninstall coverage:
 #	$(MAKE) -C doc $@
@@ -191,7 +209,6 @@ unittest-check:
 	$(MAKE) -C src/bin unittest-check
 	$(MAKE) -C gpAux/extensions unittest-check
 
-
 GNUmakefile: GNUmakefile.in $(top_builddir)/config.status
 	./config.status $@
 
@@ -251,5 +268,4 @@ distcheck: dist
 	rm -rf $(distdir) $(dummy)
 	@echo "Distribution integrity checks out."
 
-.PHONY: dist distdir distcheck
-unexport split-dist
+.PHONY: dist distdir distcheck docs install-docs

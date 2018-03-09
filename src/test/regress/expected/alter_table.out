@@ -161,7 +161,7 @@ CREATE TABLE tmp2 (a int primary key) distributed by (a);
 NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tmp2_pkey" for table "tmp2"
 CREATE TABLE tmp3 (a int, b int);
 CREATE TABLE tmp4 (a int, b int, unique(a,b)) distributed by (a);
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "tmp4_a_key" for table "tmp4"
+NOTICE:  CREATE TABLE / UNIQUE will create implicit index "tmp4_a_b_key" for table "tmp4"
 CREATE TABLE tmp5 (a int, b int);
 -- Insert rows into tmp2 (pktable)
 INSERT INTO tmp2 values (1);
@@ -440,12 +440,12 @@ drop table atacc1;
 create table atacc1 ( test int, test2 int) distributed by (test);
 -- add a unique constraint
 alter table atacc1 add constraint atacc_test1 unique (test, test2);
-NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "atacc1_test_key" for table "atacc1"
+NOTICE:  ALTER TABLE / ADD UNIQUE will create implicit index "atacc1_test_test2_key" for table "atacc1"
 -- insert initial value
 insert into atacc1 (test,test2) values (4,4);
 -- should fail
 insert into atacc1 (test,test2) values (4,4);
-ERROR:  duplicate key value violates unique constraint "atacc1_test_key"
+ERROR:  duplicate key value violates unique constraint "atacc1_test_test2_key"
 DETAIL:  Key (test, test2)=(4, 4) already exists.
 -- should all succeed
 insert into atacc1 (test,test2) values (4,5);
@@ -1290,7 +1290,6 @@ select * from altinhoid;
 
 alter table altwithoid set with oids;
 NOTICE:  OIDS=TRUE is not recommended for user-created tables. Use OIDS=FALSE to prevent wrap-around of the OID counter
-NOTICE:  OIDS=TRUE is not recommended for user-created tables. Use OIDS=FALSE to prevent wrap-around of the OID counter
 select oid > 0, * from altwithoid;
  ?column? | col 
 ----------+-----
@@ -1321,8 +1320,8 @@ select oid > 0, * from altinhoid;
 (1 row)
 
 alter table altwithoid set with oids;
-NOTICE:  merging definition of column "oid" for child "altinhoid"
 NOTICE:  OIDS=TRUE is not recommended for user-created tables. Use OIDS=FALSE to prevent wrap-around of the OID counter
+NOTICE:  merging definition of column "oid" for child "altinhoid"
 select oid > 0, * from altwithoid;
  ?column? | col 
 ----------+-----

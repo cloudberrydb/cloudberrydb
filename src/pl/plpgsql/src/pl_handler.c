@@ -3,12 +3,12 @@
  * pl_handler.c		- Handler for the PL/pgSQL
  *			  procedural language
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_handler.c,v 1.48 2009/11/13 22:43:42 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_handler.c,v 1.51 2010/02/26 02:01:35 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -34,7 +34,7 @@ static const struct config_enum_entry variable_conflict_options[] = {
 	{NULL, 0, false}
 };
 
-int		plpgsql_variable_conflict = PLPGSQL_RESOLVE_ERROR;
+int			plpgsql_variable_conflict = PLPGSQL_RESOLVE_ERROR;
 
 /* Hook for plugins */
 PLpgSQL_plugin **plugin_ptr = NULL;
@@ -231,9 +231,7 @@ plpgsql_validator(PG_FUNCTION_ARGS)
 		PG_RETURN_VOID();
 
 	/* Get the new function's pg_proc entry */
-	tuple = SearchSysCache(PROCOID,
-						   ObjectIdGetDatum(funcoid),
-						   0, 0, 0);
+	tuple = SearchSysCache1(PROCOID, ObjectIdGetDatum(funcoid));
 	if (!HeapTupleIsValid(tuple))
 		elog(ERROR, "cache lookup failed for function %u", funcoid);
 	proc = (Form_pg_proc) GETSTRUCT(tuple);

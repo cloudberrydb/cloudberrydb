@@ -2638,6 +2638,28 @@ $$ language plpgsql;
 
 select exc_using(5, 'foobar');
 
+drop function exc_using(int, text);
+
+create or replace function exc_using(int) returns void as $$
+declare 
+  c refcursor;
+  i int;
+begin
+  open c for execute 'select * from generate_series(1,$1)' using $1+1;
+  loop
+    fetch c into i;
+    exit when not found;
+    raise notice '%', i;
+  end loop;
+  close c;
+  return;  
+end;
+$$ language plpgsql;
+
+select exc_using(5);
+
+drop function exc_using(int);
+
 -- test FOR-over-cursor
 
 create or replace function forc01() returns void as $$
@@ -2898,6 +2920,20 @@ select raise_test();
 create or replace function raise_test() returns void as $$
 begin
   raise;
+end;
+$$ language plpgsql;
+
+select raise_test();
+
+-- check cases where implicit SQLSTATE variable could be confused with
+-- SQLSTATE as a keyword, cf bug #5524
+create or replace function raise_test() returns void as $$
+begin
+  perform 1/0;
+exception
+  when sqlstate '22012' then
+    raise notice using message = sqlstate;
+    raise sqlstate '22012' using message = 'substitute message';
 end;
 $$ language plpgsql;
 

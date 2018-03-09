@@ -1,5 +1,5 @@
 /*
- * $PostgreSQL: pgsql/contrib/pg_standby/pg_standby.c,v 1.27 2009/11/04 12:51:30 heikki Exp $
+ * $PostgreSQL: pgsql/contrib/pg_standby/pg_standby.c,v 1.29 2010/05/15 09:31:57 heikki Exp $
  *
  *
  * pg_standby.c
@@ -581,6 +581,7 @@ main(int argc, char **argv)
 	}
 
 #ifndef WIN32
+
 	/*
 	 * You can send SIGUSR1 to trigger failover.
 	 *
@@ -619,9 +620,10 @@ main(int argc, char **argv)
 				}
 				break;
 			case 'l':			/* Use link */
+
 				/*
-				 * Link feature disabled, possibly permanently. Linking
-				 * causes a problem after recovery ends that is not currently
+				 * Link feature disabled, possibly permanently. Linking causes
+				 * a problem after recovery ends that is not currently
 				 * resolved by PostgreSQL. 25 Jun 2009
 				 */
 #ifdef NOT_USED

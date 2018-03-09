@@ -3,12 +3,12 @@
  * pl_comp.c		- Compiler part of the PL/pgSQL
  *			  procedural language
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_comp.c,v 1.146 2009/11/13 22:43:42 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_comp.c,v 1.150 2010/02/26 02:01:34 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -144,9 +144,7 @@ plpgsql_compile(FunctionCallInfo fcinfo, bool forValidator)
 	/*
 	 * Lookup the pg_proc tuple by Oid; we'll need it in any case
 	 */
-	procTup = SearchSysCache(PROCOID,
-							 ObjectIdGetDatum(funcOid),
-							 0, 0, 0);
+	procTup = SearchSysCache1(PROCOID, ObjectIdGetDatum(funcOid));
 	if (!HeapTupleIsValid(procTup))
 		elog(ERROR, "cache lookup failed for function %u", funcOid);
 	procStruct = (Form_pg_proc) GETSTRUCT(procTup);
@@ -336,8 +334,8 @@ do_compile(FunctionCallInfo fcinfo,
 	plpgsql_curr_compile = function;
 
 	/*
-	 * All the permanent output of compilation (e.g. parse tree) is kept in
-	 * a per-function memory context, so it can be reclaimed easily.
+	 * All the permanent output of compilation (e.g. parse tree) is kept in a
+	 * per-function memory context, so it can be reclaimed easily.
 	 */
 	func_cxt = AllocSetContextCreate(TopMemoryContext,
 									 "PL/PgSQL function context",
@@ -368,7 +366,7 @@ do_compile(FunctionCallInfo fcinfo,
 	plpgsql_nDatums = 0;
 	/* This is short-lived, so needn't allocate in function's cxt */
 	plpgsql_Datums = MemoryContextAlloc(compile_tmp_cxt,
-										sizeof(PLpgSQL_datum *) * datums_alloc);
+									 sizeof(PLpgSQL_datum *) * datums_alloc);
 	datums_last = 0;
 
 	switch (is_trigger)
@@ -536,9 +534,7 @@ do_compile(FunctionCallInfo fcinfo,
 			/*
 			 * Lookup the function's return type
 			 */
-			typeTup = SearchSysCache(TYPEOID,
-									 ObjectIdGetDatum(rettypeid),
-									 0, 0, 0);
+			typeTup = SearchSysCache1(TYPEOID, ObjectIdGetDatum(rettypeid));
 			if (!HeapTupleIsValid(typeTup))
 				elog(ERROR, "cache lookup failed for type %u", rettypeid);
 			typeStruct = (Form_pg_type) GETSTRUCT(typeTup);
@@ -665,7 +661,7 @@ do_compile(FunctionCallInfo fcinfo,
 
 			/* Add the variable tg_argv */
 			var = plpgsql_build_variable("tg_argv", 0,
-										 plpgsql_build_datatype(TEXTARRAYOID, -1),
+									plpgsql_build_datatype(TEXTARRAYOID, -1),
 										 true);
 			function->tg_argv_varno = var->dno;
 
@@ -851,8 +847,8 @@ plpgsql_compile_inline(char *proc_source)
 	fmgr_info(typinput, &(function->fn_retinput));
 
 	/*
-	 * Remember if function is STABLE/IMMUTABLE.  XXX would it be better
-	 * to set this TRUE inside a read-only transaction?  Not clear.
+	 * Remember if function is STABLE/IMMUTABLE.  XXX would it be better to
+	 * set this TRUE inside a read-only transaction?  Not clear.
 	 */
 	function->fn_readonly = false;
 
@@ -1021,8 +1017,8 @@ plpgsql_post_column_ref(ParseState *pstate, ColumnRef *cref, Node *var)
 	if (myvar != NULL && var != NULL)
 	{
 		/*
-		 * We could leave it to the core parser to throw this error, but
-		 * we can add a more useful detail message than the core could.
+		 * We could leave it to the core parser to throw this error, but we
+		 * can add a more useful detail message than the core could.
 		 */
 		ereport(ERROR,
 				(errcode(ERRCODE_AMBIGUOUS_COLUMN),
@@ -1179,11 +1175,7 @@ resolve_column_ref(PLpgSQL_expr *expr, ColumnRef *cref)
 				return make_datum_param(expr, nse->itemno, cref->location);
 			if (nnames == nnames_field)
 			{
-				/* colname must be a field in this record */
-				PLpgSQL_rec *rec = (PLpgSQL_rec *) estate->datums[nse->itemno];
-				FieldSelect *fselect;
-				Oid			fldtype;
-				int			fldno;
+				/* colname could be a field in this record */
 				int			i;
 
 				/* search for a datum referencing this field */
@@ -1200,20 +1192,11 @@ resolve_column_ref(PLpgSQL_expr *expr, ColumnRef *cref)
 				}
 
 				/*
-				 * We can't readily add a recfield datum at runtime, so
-				 * instead build a whole-row Param and a FieldSelect node.
-				 * This is a bit less efficient, so we prefer the recfield
-				 * way when possible.
+				 * We should not get here, because a RECFIELD datum should
+				 * have been built at parse time for every possible qualified
+				 * reference to fields of this record.	But if we do, fall out
+				 * and return NULL.
 				 */
-				fldtype = exec_get_rec_fieldtype(rec, colname,
-												 &fldno);
-				fselect = makeNode(FieldSelect);
-				fselect->arg = (Expr *) make_datum_param(expr, nse->itemno,
-														 cref->location);
-				fselect->fieldnum = fldno;
-				fselect->resulttype = fldtype;
-				fselect->resulttypmod = -1;
-				return (Node *) fselect;
 			}
 			break;
 		case PLPGSQL_NSTYPE_ROW:
@@ -1221,7 +1204,7 @@ resolve_column_ref(PLpgSQL_expr *expr, ColumnRef *cref)
 				return make_datum_param(expr, nse->itemno, cref->location);
 			if (nnames == nnames_field)
 			{
-				/* colname must be a field in this row */
+				/* colname could be a field in this row */
 				PLpgSQL_row *row = (PLpgSQL_row *) estate->datums[nse->itemno];
 				int			i;
 
@@ -1234,10 +1217,7 @@ resolve_column_ref(PLpgSQL_expr *expr, ColumnRef *cref)
 												cref->location);
 					}
 				}
-				ereport(ERROR,
-						(errcode(ERRCODE_UNDEFINED_COLUMN),
-						 errmsg("row \"%s\" has no field \"%s\"",
-								row->refname, colname)));
+				/* Not found, so return NULL */
 			}
 			break;
 		default:
@@ -1304,8 +1284,12 @@ plpgsql_parse_word(char *word1, const char *yytxt,
 {
 	PLpgSQL_nsitem *ns;
 
-	/* No lookup if disabled */
-	if (plpgsql_LookupIdentifiers)
+	/*
+	 * We should do nothing in DECLARE sections.  In SQL expressions, there's
+	 * no need to do anything either --- lookup will happen when the
+	 * expression is compiled.
+	 */
+	if (plpgsql_IdentifierLookup == IDENTIFIER_LOOKUP_NORMAL)
 	{
 		/*
 		 * Do a lookup in the current namespace stack
@@ -1328,6 +1312,7 @@ plpgsql_parse_word(char *word1, const char *yytxt,
 					return true;
 
 				default:
+					/* plpgsql_ns_lookup should never return anything else */
 					elog(ERROR, "unrecognized plpgsql itemtype: %d",
 						 ns->itemtype);
 			}
@@ -1360,8 +1345,12 @@ plpgsql_parse_dblword(char *word1, char *word2,
 	idents = list_make2(makeString(word1),
 						makeString(word2));
 
-	/* No lookup if disabled */
-	if (plpgsql_LookupIdentifiers)
+	/*
+	 * We should do nothing in DECLARE sections.  In SQL expressions, we
+	 * really only need to make sure that RECFIELD datums are created when
+	 * needed.
+	 */
+	if (plpgsql_IdentifierLookup != IDENTIFIER_LOOKUP_DECLARE)
 	{
 		/*
 		 * Do a lookup in the current namespace stack
@@ -1377,7 +1366,7 @@ plpgsql_parse_dblword(char *word1, char *word2,
 					/* Block-qualified reference to scalar variable. */
 					wdatum->datum = plpgsql_Datums[ns->itemno];
 					wdatum->ident = NULL;
-					wdatum->quoted = false; /* not used */
+					wdatum->quoted = false;		/* not used */
 					wdatum->idents = idents;
 					return true;
 
@@ -1385,8 +1374,10 @@ plpgsql_parse_dblword(char *word1, char *word2,
 					if (nnames == 1)
 					{
 						/*
-						 * First word is a record name, so second word must be
-						 * a field in this record.
+						 * First word is a record name, so second word could
+						 * be a field in this record.  We build a RECFIELD
+						 * datum whether it is or not --- any error will be
+						 * detected later.
 						 */
 						PLpgSQL_recfield *new;
 
@@ -1405,7 +1396,7 @@ plpgsql_parse_dblword(char *word1, char *word2,
 						wdatum->datum = plpgsql_Datums[ns->itemno];
 					}
 					wdatum->ident = NULL;
-					wdatum->quoted = false; /* not used */
+					wdatum->quoted = false;		/* not used */
 					wdatum->idents = idents;
 					return true;
 
@@ -1413,8 +1404,9 @@ plpgsql_parse_dblword(char *word1, char *word2,
 					if (nnames == 1)
 					{
 						/*
-						 * First word is a row name, so second word must be a
-						 * field in this row.
+						 * First word is a row name, so second word could be a
+						 * field in this row.  Again, no error now if it
+						 * isn't.
 						 */
 						PLpgSQL_row *row;
 						int			i;
@@ -1432,10 +1424,7 @@ plpgsql_parse_dblword(char *word1, char *word2,
 								return true;
 							}
 						}
-						ereport(ERROR,
-								(errcode(ERRCODE_UNDEFINED_COLUMN),
-								 errmsg("row \"%s\" has no field \"%s\"",
-										word1, word2)));
+						/* fall through to return CWORD */
 					}
 					else
 					{
@@ -1446,6 +1435,7 @@ plpgsql_parse_dblword(char *word1, char *word2,
 						wdatum->idents = idents;
 						return true;
 					}
+					break;
 
 				default:
 					break;
@@ -1476,8 +1466,12 @@ plpgsql_parse_tripword(char *word1, char *word2, char *word3,
 						makeString(word2),
 						makeString(word3));
 
-	/* No lookup if disabled */
-	if (plpgsql_LookupIdentifiers)
+	/*
+	 * We should do nothing in DECLARE sections.  In SQL expressions, we
+	 * really only need to make sure that RECFIELD datums are created when
+	 * needed.
+	 */
+	if (plpgsql_IdentifierLookup != IDENTIFIER_LOOKUP_DECLARE)
 	{
 		/*
 		 * Do a lookup in the current namespace stack. Must find a qualified
@@ -1491,54 +1485,52 @@ plpgsql_parse_tripword(char *word1, char *word2, char *word3,
 			switch (ns->itemtype)
 			{
 				case PLPGSQL_NSTYPE_REC:
-				{
-					/*
-					 * words 1/2 are a record name, so third word must be a
-					 * field in this record.
-					 */
-					PLpgSQL_recfield *new;
+					{
+						/*
+						 * words 1/2 are a record name, so third word could be
+						 * a field in this record.
+						 */
+						PLpgSQL_recfield *new;
 
-					new = palloc(sizeof(PLpgSQL_recfield));
-					new->dtype = PLPGSQL_DTYPE_RECFIELD;
-					new->fieldname = pstrdup(word3);
-					new->recparentno = ns->itemno;
+						new = palloc(sizeof(PLpgSQL_recfield));
+						new->dtype = PLPGSQL_DTYPE_RECFIELD;
+						new->fieldname = pstrdup(word3);
+						new->recparentno = ns->itemno;
 
-					plpgsql_adddatum((PLpgSQL_datum *) new);
+						plpgsql_adddatum((PLpgSQL_datum *) new);
 
-					wdatum->datum = (PLpgSQL_datum *) new;
-					wdatum->ident = NULL;
-					wdatum->quoted = false; /* not used */
-					wdatum->idents = idents;
-					return true;
-				}
+						wdatum->datum = (PLpgSQL_datum *) new;
+						wdatum->ident = NULL;
+						wdatum->quoted = false; /* not used */
+						wdatum->idents = idents;
+						return true;
+					}
 
 				case PLPGSQL_NSTYPE_ROW:
-				{
-					/*
-					 * words 1/2 are a row name, so third word must be a field
-					 * in this row.
-					 */
-					PLpgSQL_row *row;
-					int			i;
-
-					row = (PLpgSQL_row *) (plpgsql_Datums[ns->itemno]);
-					for (i = 0; i < row->nfields; i++)
 					{
-						if (row->fieldnames[i] &&
-							strcmp(row->fieldnames[i], word3) == 0)
+						/*
+						 * words 1/2 are a row name, so third word could be a
+						 * field in this row.
+						 */
+						PLpgSQL_row *row;
+						int			i;
+
+						row = (PLpgSQL_row *) (plpgsql_Datums[ns->itemno]);
+						for (i = 0; i < row->nfields; i++)
 						{
-							wdatum->datum = plpgsql_Datums[row->varnos[i]];
-							wdatum->ident = NULL;
-							wdatum->quoted = false; /* not used */
-							wdatum->idents = idents;
-							return true;
+							if (row->fieldnames[i] &&
+								strcmp(row->fieldnames[i], word3) == 0)
+							{
+								wdatum->datum = plpgsql_Datums[row->varnos[i]];
+								wdatum->ident = NULL;
+								wdatum->quoted = false; /* not used */
+								wdatum->idents = idents;
+								return true;
+							}
 						}
+						/* fall through to return CWORD */
+						break;
 					}
-					ereport(ERROR,
-							(errcode(ERRCODE_UNDEFINED_COLUMN),
-							 errmsg("row \"%s.%s\" has no field \"%s\"",
-									word1, word2, word3)));
-				}
 
 				default:
 					break;
@@ -1588,8 +1580,8 @@ plpgsql_parse_wordtype(char *ident)
 	}
 
 	/*
-	 * Word wasn't found in the namespace stack. Try to find a data type
-	 * with that name, but ignore shell types and complex types.
+	 * Word wasn't found in the namespace stack. Try to find a data type with
+	 * that name, but ignore shell types and complex types.
 	 */
 	typeTup = LookupTypeName(NULL, makeTypeName(ident), NULL);
 	if (typeTup)
@@ -1641,9 +1633,9 @@ plpgsql_parse_cwordtype(List *idents)
 	if (list_length(idents) == 2)
 	{
 		/*
-		 * Do a lookup in the current namespace stack.
-		 * We don't need to check number of names matched, because we will
-		 * only consider scalar variables.
+		 * Do a lookup in the current namespace stack. We don't need to check
+		 * number of names matched, because we will only consider scalar
+		 * variables.
 		 */
 		nse = plpgsql_ns_lookup(plpgsql_ns_top(), false,
 								strVal(linitial(idents)),
@@ -1680,9 +1672,7 @@ plpgsql_parse_cwordtype(List *idents)
 	else
 		goto done;
 
-	classtup = SearchSysCache(RELOID,
-							  ObjectIdGetDatum(classOid),
-							  0, 0, 0);
+	classtup = SearchSysCache1(RELOID, ObjectIdGetDatum(classOid));
 	if (!HeapTupleIsValid(classtup))
 		goto done;
 	classStruct = (Form_pg_class) GETSTRUCT(classtup);
@@ -1704,9 +1694,8 @@ plpgsql_parse_cwordtype(List *idents)
 		goto done;
 	attrStruct = (Form_pg_attribute) GETSTRUCT(attrtup);
 
-	typetup = SearchSysCache(TYPEOID,
-							 ObjectIdGetDatum(attrStruct->atttypid),
-							 0, 0, 0);
+	typetup = SearchSysCache1(TYPEOID,
+							  ObjectIdGetDatum(attrStruct->atttypid));
 	if (!HeapTupleIsValid(typetup))
 		elog(ERROR, "cache lookup failed for type %u", attrStruct->atttypid);
 
@@ -2049,9 +2038,7 @@ plpgsql_build_datatype(Oid typeOid, int32 typmod)
 	HeapTuple	typeTup;
 	PLpgSQL_type *typ;
 
-	typeTup = SearchSysCache(TYPEOID,
-							 ObjectIdGetDatum(typeOid),
-							 0, 0, 0);
+	typeTup = SearchSysCache1(TYPEOID, ObjectIdGetDatum(typeOid));
 	if (!HeapTupleIsValid(typeTup))
 		elog(ERROR, "cache lookup failed for type %u", typeOid);
 

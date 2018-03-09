@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/pathnode.c,v 1.155 2009/11/15 02:45:35 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/pathnode.c,v 1.158 2010/03/28 22:59:33 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

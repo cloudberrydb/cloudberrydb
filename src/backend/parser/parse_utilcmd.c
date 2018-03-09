@@ -16,10 +16,10 @@
  * a quick copyObject() call before manipulating the query tree.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- *	$PostgreSQL: pgsql/src/backend/parser/parse_utilcmd.c,v 2.32 2009/12/15 17:57:47 tgl Exp $
+ *	$PostgreSQL: pgsql/src/backend/parser/parse_utilcmd.c,v 2.40 2010/02/26 02:00:53 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -65,6 +65,7 @@
 #include "utils/memutils.h"
 #include "utils/relcache.h"
 #include "utils/syscache.h"
+#include "utils/typcache.h"
 
 #include "cdb/cdbhash.h"
 #include "cdb/cdbpartition.h"
@@ -94,6 +95,8 @@ static void transformColumnDefinition(ParseState *pstate,
 static void transformTableConstraint(ParseState *pstate,
 						 CreateStmtContext *cxt,
 						 Constraint *constraint);
+static void transformOfType(ParseState *pstate, CreateStmtContext *cxt,
+				TypeName *ofTypename);
 static char *chooseIndexName(const RangeVar *relation, IndexStmt *index_stmt);
 static IndexStmt *generateClonedIndexStmt(CreateStmtContext *cxt,
 						Relation source_idx,
@@ -212,6 +215,11 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString, bool createPartit
 	cxt.dlist = NIL; /* for deferred analysis requiring the created table */
 	cxt.pkey = NULL;
 	cxt.hasoids = interpretOidsOption(stmt->options);
+
+	Assert(!stmt->ofTypename || !stmt->inhRelations);	/* grammar enforces */
+
+	if (stmt->ofTypename)
+		transformOfType(pstate, &cxt, stmt->ofTypename);
 
 	stmt->policy = NULL;
 
@@ -401,8 +409,9 @@ transformColumnDefinition(ParseState *pstate, CreateStmtContext *cxt,
 
 	/* Check for SERIAL pseudo-types */
 	is_serial = false;
-	if (list_length(column->typeName->names) == 1 &&
-		!column->typeName->pct_type)
+	if (column->typeName
+		&& list_length(column->typeName->names) == 1
+		&& !column->typeName->pct_type)
 	{
 		char	   *typname = strVal(linitial(column->typeName->names));
 
@@ -434,7 +443,8 @@ transformColumnDefinition(ParseState *pstate, CreateStmtContext *cxt,
 	}
 
 	/* Do necessary work on the column type declaration */
-	transformColumnType(pstate, column);
+	if (column->typeName)
+		transformColumnType(pstate, column);
 
 	/* Special actions for SERIAL pseudo-types */
 	if (is_serial)
@@ -611,6 +621,7 @@ transformColumnDefinition(ParseState *pstate, CreateStmtContext *cxt,
 				break;
 
 			case CONSTR_FOREIGN:
+
 				/*
 				 * Fill in the current attribute's name and throw it into the
 				 * list of FK constraints to be processed later.
@@ -916,58 +927,25 @@ transformInhRelation(ParseState *pstate, CreateStmtContext *cxt,
 			/* Copy comment on index */
 			if (inhRelation->options & CREATE_TABLE_LIKE_COMMENTS)
 			{
-				CommentStmt	   *stmt;
-				ListCell	   *lc;
-				int				i;
-
 				comment = GetComment(parent_index_oid, RelationRelationId, 0);
-				
+
 				if (comment != NULL)
 				{
-					/* Assign name for index because CommentStmt requires name. */
+					CommentStmt *stmt;
+
+					/*
+					 * We have to assign the index a name now, so that we can
+					 * reference it in CommentStmt.
+					 */
 					if (index_stmt->idxname == NULL)
-						index_stmt->idxname = chooseIndexName(cxt->relation, index_stmt);
+						index_stmt->idxname = chooseIndexName(cxt->relation,
+															  index_stmt);
 
 					stmt = makeNode(CommentStmt);
 					stmt->objtype = OBJECT_INDEX;
-					stmt->objname = list_make2(makeString(cxt->relation->schemaname),
-											   makeString(index_stmt->idxname));
-					stmt->objargs = NIL;
-					stmt->comment = comment;
-
-					cxt->alist = lappend(cxt->alist, stmt);
-				}
-
-				/* Copy comment on index's columns */
-				i = 0;
-				foreach(lc, index_stmt->indexParams)
-				{
-					char	   *attname;
-
-					i++;
-					comment = GetComment(parent_index_oid, RelationRelationId, i);
-					if (comment == NULL)
-						continue;
-
-					/* Assign name for index because CommentStmt requires name. */
-					if (index_stmt->idxname == NULL)
-						index_stmt->idxname = chooseIndexName(cxt->relation, index_stmt);
-
-					attname = ((IndexElem *) lfirst(lc))->name;
-
-					/* expression index has a dummy column name */
-					if (attname == NULL)
-					{
-						attname = palloc(NAMEDATALEN);
-						sprintf(attname, "pg_expression_%d", i);
-					}
-
-					stmt = makeNode(CommentStmt);
-					stmt->objtype = OBJECT_COLUMN;
-					stmt->objname = list_make3(
-										makeString(cxt->relation->schemaname),
-										makeString(index_stmt->idxname),
-										makeString(attname));
+					stmt->objname =
+						list_make2(makeString(cxt->relation->schemaname),
+								   makeString(index_stmt->idxname));
 					stmt->objargs = NIL;
 					stmt->comment = comment;
 
@@ -990,37 +968,67 @@ transformInhRelation(ParseState *pstate, CreateStmtContext *cxt,
 	heap_close(relation, NoLock);
 }
 
+static void
+transformOfType(ParseState *pstate, CreateStmtContext *cxt, TypeName *ofTypename)
+{
+	HeapTuple	tuple;
+	Form_pg_type typ;
+	TupleDesc	tupdesc;
+	int			i;
+	Oid			ofTypeId;
+
+	AssertArg(ofTypename);
+
+	tuple = typenameType(NULL, ofTypename, NULL);
+	typ = (Form_pg_type) GETSTRUCT(tuple);
+	ofTypeId = HeapTupleGetOid(tuple);
+	ofTypename->typeOid = ofTypeId;		/* cached for later */
+
+	if (typ->typtype != TYPTYPE_COMPOSITE)
+		ereport(ERROR,
+				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+				 errmsg("type %s is not a composite type",
+						format_type_be(ofTypeId))));
+
+	tupdesc = lookup_rowtype_tupdesc(ofTypeId, -1);
+	for (i = 0; i < tupdesc->natts; i++)
+	{
+		Form_pg_attribute attr = tupdesc->attrs[i];
+		ColumnDef  *n = makeNode(ColumnDef);
+
+		n->colname = pstrdup(NameStr(attr->attname));
+		n->typeName = makeTypeNameFromOid(attr->atttypid, attr->atttypmod);
+		n->constraints = NULL;
+		n->is_local = true;
+		n->is_from_type = true;
+		cxt->columns = lappend(cxt->columns, n);
+	}
+	DecrTupleDescRefCount(tupdesc);
+
+	ReleaseSysCache(tuple);
+}
+
 /*
  * chooseIndexName
  *
- * Set name for unnamed index. See also the same logic in DefineIndex.
+ * Compute name for an index.  This must match code in indexcmds.c.
+ *
+ * XXX this is inherently broken because the indexes aren't created
+ * immediately, so we fail to resolve conflicts when the same name is
+ * derived for multiple indexes.  However, that's a reasonably uncommon
+ * situation, so we'll live with it for now.
  */
 static char *
 chooseIndexName(const RangeVar *relation, IndexStmt *index_stmt)
 {
-	Oid	namespaceId;
-	
+	Oid			namespaceId;
+	List	   *colnames;
+
 	namespaceId = RangeVarGetCreationNamespace(relation);
-	if (index_stmt->primary)
-	{
-		/* no need for column list with pkey */
-		return ChooseRelationName(relation->relname, NULL, 
-								  "pkey", namespaceId);
-	}
-	else if (index_stmt->excludeOpNames != NIL)
-	{
-		IndexElem  *iparam = (IndexElem *) linitial(index_stmt->indexParams);
-
-		return ChooseRelationName(relation->relname, iparam->name,
-								  "exclusion", namespaceId);
-	}
-	else
-	{
-		IndexElem  *iparam = (IndexElem *) linitial(index_stmt->indexParams);
-
-		return ChooseRelationName(relation->relname, iparam->name,
-								  "key", namespaceId);
-	}
+	colnames = ChooseIndexColumnNames(index_stmt->indexParams);
+	return ChooseIndexName(relation->relname, namespaceId,
+						   colnames, index_stmt->excludeOpNames,
+						   index_stmt->primary, index_stmt->isconstraint);
 }
 
 /*
@@ -1032,6 +1040,7 @@ generateClonedIndexStmt(CreateStmtContext *cxt, Relation source_idx,
 						const AttrNumber *attmap, int attmap_length)
 {
 	Oid			source_relid = RelationGetRelid(source_idx);
+	Form_pg_attribute *attrs = RelationGetDescr(source_idx)->attrs;
 	HeapTuple	ht_idxrel;
 	HeapTuple	ht_idx;
 	Form_pg_class idxrelrec;
@@ -1052,9 +1061,7 @@ generateClonedIndexStmt(CreateStmtContext *cxt, Relation source_idx,
 	 * Fetch pg_class tuple of source index.  We can't use the copy in the
 	 * relcache entry because it doesn't include optional fields.
 	 */
-	ht_idxrel = SearchSysCache(RELOID,
-							   ObjectIdGetDatum(source_relid),
-							   0, 0, 0);
+	ht_idxrel = SearchSysCache1(RELOID, ObjectIdGetDatum(source_relid));
 	if (!HeapTupleIsValid(ht_idxrel))
 		elog(ERROR, "cache lookup failed for relation %u", source_relid);
 	idxrelrec = (Form_pg_class) GETSTRUCT(ht_idxrel);
@@ -1107,9 +1114,8 @@ generateClonedIndexStmt(CreateStmtContext *cxt, Relation source_idx,
 			HeapTuple	ht_constr;
 			Form_pg_constraint conrec;
 
-			ht_constr = SearchSysCache(CONSTROID,
-									   ObjectIdGetDatum(constraintId),
-									   0, 0, 0);
+			ht_constr = SearchSysCache1(CONSTROID,
+										ObjectIdGetDatum(constraintId));
 			if (!HeapTupleIsValid(ht_constr))
 				elog(ERROR, "cache lookup failed for constraint %u",
 					 constraintId);
@@ -1122,9 +1128,9 @@ generateClonedIndexStmt(CreateStmtContext *cxt, Relation source_idx,
 			/* If it's an exclusion constraint, we need the operator names */
 			if (idxrelrec->relhasexclusion)
 			{
-				Datum  *elems;
-				int		nElems;
-				int		i;
+				Datum	   *elems;
+				int			nElems;
+				int			i;
 
 				Assert(conrec->contype == CONSTRAINT_EXCLUSION);
 				/* Extract operator OIDs from the pg_constraint tuple */
@@ -1148,9 +1154,8 @@ generateClonedIndexStmt(CreateStmtContext *cxt, Relation source_idx,
 					char	   *nspname;
 					List	   *namelist;
 
-					opertup = SearchSysCache(OPEROID,
-											 ObjectIdGetDatum(operid),
-											 0, 0, 0);
+					opertup = SearchSysCache1(OPEROID,
+											  ObjectIdGetDatum(operid));
 					if (!HeapTupleIsValid(opertup))
 						elog(ERROR, "cache lookup failed for operator %u",
 							 operid);
@@ -1262,6 +1267,9 @@ generateClonedIndexStmt(CreateStmtContext *cxt, Relation source_idx,
 			keycoltype = exprType(indexkey);
 		}
 
+		/* Copy the original index column name */
+		iparam->indexcolname = pstrdup(NameStr(attrs[keyno]->attname));
+
 		/* Add the operator class name, if non-default */
 		iparam->opclass = get_opclass(indclass->values[keyno], keycoltype);
 
@@ -1350,9 +1358,7 @@ get_opclass(Oid opclass, Oid actual_datatype)
 	Form_pg_opclass opc_rec;
 	List	   *result = NIL;
 
-	ht_opc = SearchSysCache(CLAOID,
-							ObjectIdGetDatum(opclass),
-							0, 0, 0);
+	ht_opc = SearchSysCache1(CLAOID, ObjectIdGetDatum(opclass));
 	if (!HeapTupleIsValid(ht_opc))
 		elog(ERROR, "cache lookup failed for opclass %u", opclass);
 	opc_rec = (Form_pg_opclass) GETSTRUCT(ht_opc);
@@ -2487,17 +2493,17 @@ transformIndexConstraint(Constraint *constraint, CreateStmtContext *cxt)
 	index->concurrent = false;
 
 	/*
-	 * If it's an EXCLUDE constraint, the grammar returns a list of pairs
-	 * of IndexElems and operator names.  We have to break that apart into
+	 * If it's an EXCLUDE constraint, the grammar returns a list of pairs of
+	 * IndexElems and operator names.  We have to break that apart into
 	 * separate lists.
 	 */
 	if (constraint->contype == CONSTR_EXCLUSION)
 	{
 		foreach(lc, constraint->exclusions)
 		{
-			List	*pair = (List *) lfirst(lc);
-			IndexElem *elem;
-			List   *opname;
+			List	   *pair = (List *) lfirst(lc);
+			IndexElem  *elem;
+			List	   *opname;
 
 			Assert(list_length(pair) == 2);
 			elem = (IndexElem *) linitial(pair);
@@ -2632,6 +2638,7 @@ transformIndexConstraint(Constraint *constraint, CreateStmtContext *cxt)
 		iparam = makeNode(IndexElem);
 		iparam->name = pstrdup(key);
 		iparam->expr = NULL;
+		iparam->indexcolname = NULL;
 		iparam->opclass = NIL;
 		iparam->ordering = SORTBY_DEFAULT;
 		iparam->nulls_ordering = SORTBY_NULLS_DEFAULT;
@@ -2911,6 +2918,11 @@ transformIndexStmt_recurse(IndexStmt *stmt, const char *queryString,
 
 		if (ielem->expr)
 		{
+			/* Extract preliminary index col name before transforming expr */
+			if (ielem->indexcolname == NULL)
+				ielem->indexcolname = FigureIndexColname(ielem->expr);
+
+			/* Now do parse transformation of the expression */
 			ielem->expr = transformExpr(pstate, ielem->expr,
 										EXPR_KIND_INDEX_EXPRESSION);
 
@@ -4178,7 +4190,12 @@ transformAttributeEncoding(List *stenc, CreateStmt *stmt, CreateStmtContext *cxt
 					c->encoding = copyObject(deflt->encoding);
 				else
 				{
-					List *te = TypeNameGetStorageDirective(d->typeName);
+					List	   *te;
+
+					if (d->typeName)
+						te = TypeNameGetStorageDirective(d->typeName);
+					else
+						te = NIL;
 
 					if (te)
 						c->encoding = copyObject(te);

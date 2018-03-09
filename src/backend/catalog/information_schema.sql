@@ -2,9 +2,9 @@
  * SQL Information Schema
  * as defined in ISO/IEC 9075-11:2008
  *
- * Copyright (c) 2003-2009, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2010, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/backend/catalog/information_schema.sql,v 1.60 2009/12/07 05:22:21 tgl Exp $
+ * $PostgreSQL: pgsql/src/backend/catalog/information_schema.sql,v 1.66 2010/04/28 21:18:07 tgl Exp $
  */
 
 /*
@@ -24,7 +24,7 @@
 
 CREATE SCHEMA information_schema;
 GRANT USAGE ON SCHEMA information_schema TO PUBLIC;
-SET search_path TO information_schema, public;
+SET search_path TO information_schema;
 
 
 /*
@@ -42,7 +42,7 @@ CREATE FUNCTION _pg_expandarray(IN anyarray, OUT x anyelement, OUT n int)
 
 CREATE FUNCTION _pg_keysequal(smallint[], smallint[]) RETURNS boolean
     LANGUAGE sql IMMUTABLE  -- intentionally not STRICT, to allow inlining
-    AS 'select $1 <@ $2 and $2 <@ $1';
+    AS 'select $1 operator(pg_catalog.<@) $2 and $2 operator(pg_catalog.<@) $1';
 
 /* Given an index's OID and an underlying-table column number, return the
  * column's position in the index (NULL if not there) */
@@ -1673,7 +1673,7 @@ CREATE VIEW table_constraints AS
 
     WHERE nc.oid = c.connamespace AND nr.oid = r.relnamespace
           AND c.conrelid = r.oid
-          AND c.contype <> 'x'  -- ignore nonstandard exclusion constraints
+          AND c.contype NOT IN ('t', 'x')  -- ignore nonstandard constraints
           AND r.relkind = 'r'
           AND (NOT pg_is_other_temp_schema(nr.oid))
           AND (pg_has_role(r.relowner, 'USAGE')
@@ -1806,9 +1806,9 @@ CREATE VIEW tables AS
            CAST(null AS sql_identifier) AS self_referencing_column_name,
            CAST(null AS character_data) AS reference_generation,
 
-           CAST(null AS sql_identifier) AS user_defined_type_catalog,
-           CAST(null AS sql_identifier) AS user_defined_type_schema,
-           CAST(null AS sql_identifier) AS user_defined_type_name,
+           CAST(CASE WHEN t.typname IS NOT NULL THEN current_database() ELSE null END AS sql_identifier) AS user_defined_type_catalog,
+           CAST(nt.nspname AS sql_identifier) AS user_defined_type_schema,
+           CAST(t.typname AS sql_identifier) AS user_defined_type_name,
 
            CAST(CASE WHEN (c.relkind != 'r' 
            				   OR c.relstorage = 'f'
@@ -1818,20 +1818,17 @@ CREATE VIEW tables AS
                               AND EXISTS (SELECT 1 FROM pg_rewrite WHERE ev_class = c.oid AND ev_type = '3' AND is_instead))
                 THEN 'YES' ELSE 'NO' END AS yes_or_no) AS is_insertable_into,
 
-           CAST('NO' AS yes_or_no) AS is_typed,
+           CAST(CASE WHEN t.typname IS NOT NULL THEN 'YES' ELSE 'NO' END AS yes_or_no) AS is_typed,
            CAST(
              CASE WHEN nc.oid = pg_my_temp_schema() THEN 'PRESERVE' -- FIXME
                   ELSE null END
              AS character_data) AS commit_action
 
-    FROM pg_class c 
-    		LEFT OUTER JOIN 
-    	 pg_exttable x 
-    	 	ON c.oid = x.reloid, 
-    	 pg_namespace nc
+    FROM pg_namespace nc JOIN pg_class c ON (nc.oid = c.relnamespace)
+           LEFT JOIN (pg_type t JOIN pg_namespace nt ON (t.typnamespace = nt.oid)) ON (c.reloftype = t.oid)
+           LEFT JOIN pg_exttable x ON c.oid = x.reloid
 
-    WHERE c.relnamespace = nc.oid
-          AND c.relkind IN ('r', 'v')
+    WHERE c.relkind IN ('r', 'v')
           AND (NOT pg_is_other_temp_schema(nc.oid))
           AND (pg_has_role(c.relowner, 'USAGE')
                OR has_table_privilege(c.oid, 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER')
@@ -1866,13 +1863,27 @@ GRANT SELECT ON tables TO PUBLIC;
 
 CREATE VIEW triggered_update_columns AS
     SELECT CAST(current_database() AS sql_identifier) AS trigger_catalog,
-           CAST(null AS sql_identifier) AS trigger_schema,
-           CAST(null AS sql_identifier) AS trigger_name,
+           CAST(n.nspname AS sql_identifier) AS trigger_schema,
+           CAST(t.tgname AS sql_identifier) AS trigger_name,
            CAST(current_database() AS sql_identifier) AS event_object_catalog,
-           CAST(null AS sql_identifier) AS event_object_schema,
-           CAST(null AS sql_identifier) AS event_object_table,
-           CAST(null AS sql_identifier) AS event_object_column
-    WHERE false;
+           CAST(n.nspname AS sql_identifier) AS event_object_schema,
+           CAST(c.relname AS sql_identifier) AS event_object_table,
+           CAST(a.attname AS sql_identifier) AS event_object_column
+
+    FROM pg_namespace n, pg_class c, pg_trigger t,
+         (SELECT tgoid, (ta0.tgat).x AS tgattnum, (ta0.tgat).n AS tgattpos
+          FROM (SELECT oid AS tgoid, information_schema._pg_expandarray(tgattr) AS tgat FROM pg_trigger) AS ta0) AS ta,
+         pg_attribute a
+
+    WHERE n.oid = c.relnamespace
+          AND c.oid = t.tgrelid
+          AND t.oid = ta.tgoid
+          AND (a.attrelid, a.attnum) = (t.tgrelid, ta.tgattnum)
+          AND NOT t.tgisinternal
+          AND (NOT pg_is_other_temp_schema(n.oid))
+          AND (pg_has_role(c.relowner, 'USAGE')
+               -- SELECT privilege omitted, per SQL standard
+               OR has_column_privilege(c.oid, a.attnum, 'INSERT, UPDATE, REFERENCES') );
 
 GRANT SELECT ON triggered_update_columns TO PUBLIC;
 
@@ -1923,7 +1934,12 @@ CREATE VIEW triggers AS
            CAST(n.nspname AS sql_identifier) AS event_object_schema,
            CAST(c.relname AS sql_identifier) AS event_object_table,
            CAST(null AS cardinal_number) AS action_order,
-           CAST(null AS character_data) AS action_condition,
+           -- XXX strange hacks follow
+           CAST(
+             CASE WHEN pg_has_role(c.relowner, 'USAGE')
+               THEN (SELECT m[1] FROM regexp_matches(pg_get_triggerdef(t.oid), E'.{35,} WHEN \\((.+)\\) EXECUTE PROCEDURE') AS rm(m) LIMIT 1)
+               ELSE null END
+             AS character_data) AS action_condition,
            CAST(
              substring(pg_get_triggerdef(t.oid) from
                        position('EXECUTE PROCEDURE' in substring(pg_get_triggerdef(t.oid) from 48)) + 47)
@@ -1948,7 +1964,7 @@ CREATE VIEW triggers AS
     WHERE n.oid = c.relnamespace
           AND c.oid = t.tgrelid
           AND t.tgtype & em.num <> 0
-          AND NOT t.tgisconstraint
+          AND NOT t.tgisinternal
           AND (NOT pg_is_other_temp_schema(n.oid))
           AND (pg_has_role(c.relowner, 'USAGE')
                -- SELECT privilege omitted, per SQL standard

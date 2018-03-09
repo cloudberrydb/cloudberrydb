@@ -60,7 +60,7 @@ CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 2: select gp_inject_fault('vacuum_relation_open_relation_during_drop_phase', 'reset', 1);
 
 1<:
-1: select age(relfrozenxid) < 3, regexp_replace(replace(relname, 'ao_@orientation@_vacuum_cleanup3'::regclass::oid::text, '<oid>'), 'ao.*seg', '<seg>') from gp_dist_random('pg_class') where relkind in ('r','t','o','b','m') and relstorage not in ('x','f','v') and (relname like '%' || 'ao_@orientation@_vacuum_cleanup3'::regclass::oid || '%') and gp_segment_id = 0;
+1: select age(relfrozenxid) < 5, regexp_replace(replace(relname, 'ao_@orientation@_vacuum_cleanup3'::regclass::oid::text, '<oid>'), 'ao.*seg', '<seg>') from gp_dist_random('pg_class') where relkind in ('r','t','o','b','m') and relstorage not in ('x','f','v') and (relname like '%' || 'ao_@orientation@_vacuum_cleanup3'::regclass::oid || '%') and gp_segment_id = 0;
 
 -- Validate that the drop phase was skipped. segfile 1 should be in state 2
 -- (AWAITING_DROP)

@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/joinpath.c,v 1.126 2009/09/19 17:48:09 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/joinpath.c,v 1.133 2010/04/19 00:55:25 rhaas Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -170,7 +170,7 @@ add_paths_to_joinrel(PlannerInfo *root,
  * We already know that the clause is a binary opclause referencing only the
  * rels in the current join.  The point here is to check whether it has the
  * form "outerrel_expr op innerrel_expr" or "innerrel_expr op outerrel_expr",
- * rather than mixing outer and inner vars on either side.  If it matches,
+ * rather than mixing outer and inner vars on either side.	If it matches,
  * we set the transient flag outer_is_left to identify which side is which.
  */
 static inline bool
@@ -480,10 +480,12 @@ match_unsorted_outer(PlannerInfo *root,
 	else if (nestjoinOK)
 	{
 		/*
-		 * Consider materializing the cheapest inner path, unless it is one
-		 * that materializes its output anyway.
+		 * Consider materializing the cheapest inner path, unless
+		 * enable_material is off or the path in question materializes its
+		 * output anyway.
 		 */
-		if (!ExecMaterializesOutput(inner_cheapest_total->pathtype))
+		if (enable_material &&
+			!ExecMaterializesOutput(inner_cheapest_total->pathtype))
 			matpath = (Path *)
 				create_material_path(root, innerrel, inner_cheapest_total);
 
@@ -1077,10 +1079,18 @@ select_mergejoin_clauses(PlannerInfo *root,
 		if (isouterjoin && restrictinfo->is_pushed_down)
 			continue;
 
+		/* Check that clause is a mergeable operator clause */
 		if (!restrictinfo->can_join ||
 			restrictinfo->mergeopfamilies == NIL)
 		{
-			have_nonmergeable_joinclause = true;
+			/*
+			 * The executor can handle extra joinquals that are constants, but
+			 * not anything else, when doing right/full merge join.  (The
+			 * reason to support constants is so we can do FULL JOIN ON
+			 * FALSE.)
+			 */
+			if (!restrictinfo->clause || !IsA(restrictinfo->clause, Const))
+				have_nonmergeable_joinclause = true;
 			continue;			/* not mergejoinable */
 		}
 

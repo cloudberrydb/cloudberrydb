@@ -3,12 +3,12 @@
  * float.c
  *	  Functions for the built-in floating-point types.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/float.c,v 1.163 2009/09/11 19:17:03 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/float.c,v 1.166 2010/02/27 21:53:21 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -116,7 +116,8 @@ get_float4_infinity(void)
 double
 get_float8_nan(void)
 {
-#ifdef NAN
+	/* (double) NAN doesn't work on some NetBSD/MIPS releases */
+#if defined(NAN) && !(defined(__NetBSD__) && defined(__mips__))
 	/* C99 standard way */
 	return (double) NAN;
 #else
@@ -1793,13 +1794,11 @@ float8_accum(PG_FUNCTION_ARGS)
 	CHECKFLOATVAL(sumX2, isinf(transvalues[2]) || isinf(newval), true);
 
 	/*
-	 * If we're invoked by nodeAgg, we can cheat and modify our first
+	 * If we're invoked as an aggregate, we can cheat and modify our first
 	 * parameter in-place to reduce palloc overhead. Otherwise we construct a
 	 * new array with the updated transition data and return it.
 	 */
-	if (fcinfo->context &&
-		(IsA(fcinfo->context, AggState) ||
-		 IsA(fcinfo->context, WindowAggState)))
+	if (AggCheckCallContext(fcinfo, NULL))
 	{
 		transvalues[0] = N;
 		transvalues[1] = sumX;
@@ -1901,13 +1900,11 @@ float4_accum(PG_FUNCTION_ARGS)
 	CHECKFLOATVAL(sumX2, isinf(transvalues[2]) || isinf(newval), true);
 
 	/*
-	 * If we're invoked by nodeAgg, we can cheat and modify our first
+	 * If we're invoked as an aggregate, we can cheat and modify our first
 	 * parameter in-place to reduce palloc overhead. Otherwise we construct a
 	 * new array with the updated transition data and return it.
 	 */
-	if (fcinfo->context &&
-		(IsA(fcinfo->context, AggState) ||
-		 IsA(fcinfo->context, WindowAggState)))
+	if (AggCheckCallContext(fcinfo, NULL))
 	{
 		transvalues[0] = N;
 		transvalues[1] = sumX;
@@ -2156,13 +2153,11 @@ float8_regr_accum(PG_FUNCTION_ARGS)
 				  isinf(newvalY), true);
 
 	/*
-	 * If we're invoked by nodeAgg, we can cheat and modify our first
+	 * If we're invoked as an aggregate, we can cheat and modify our first
 	 * parameter in-place to reduce palloc overhead. Otherwise we construct a
 	 * new array with the updated transition data and return it.
 	 */
-	if (fcinfo->context &&
-		(IsA(fcinfo->context, AggState) ||
-		 IsA(fcinfo->context, WindowAggState)))
+	if (AggCheckCallContext(fcinfo, NULL))
 	{
 		transvalues[0] = N;
 		transvalues[1] = sumX;

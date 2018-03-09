@@ -5,12 +5,12 @@
  *		bits of hard-wired knowledge
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/catalog.c,v 1.84 2009/10/07 22:14:18 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/catalog.c,v 1.90 2010/04/20 23:48:47 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -36,7 +36,9 @@
 #include "catalog/pg_largeobject.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_pltemplate.h"
+#include "catalog/pg_resourcetype.h"
 #include "catalog/pg_resqueue.h"
+#include "catalog/pg_resqueuecapability.h"
 #include "catalog/pg_resgroup.h"
 #include "catalog/pg_db_role_setting.h"
 #include "catalog/pg_shdepend.h"
@@ -48,6 +50,8 @@
 
 #include "catalog/gp_configuration_history.h"
 #include "catalog/gp_segment_config.h"
+#include "catalog/pg_stat_last_operation.h"
+#include "catalog/pg_stat_last_shoperation.h"
 
 #include "catalog/gp_id.h"
 #include "catalog/gp_version.h"
@@ -61,7 +65,6 @@
 
 #include "cdb/cdbvars.h"
 
-#define OIDCHARS		10		/* max chars printed by %u */
 #define FORKNAMECHARS	4		/* max chars for a fork name */
 
 /*
@@ -756,20 +759,30 @@ GetNewSequenceRelationOid(Relation relation)
  *		Generate a new relfilenode number that is unique within the given
  *		tablespace.
  *
+ * If the relfilenode will also be used as the relation's OID, pass the
+ * opened pg_class catalog, and this routine will guarantee that the result
+ * is also an unused OID within pg_class.  If the result is to be used only
+ * as a relfilenode for an existing relation, pass NULL for pg_class.
+ * (in GPDB, 'pg_class' is unused, there is a different mechanism to avoid
+ * clashes, across the whole cluster.)
+ *
+ * As with GetNewOid, there is some theoretical risk of a race condition,
+ * but it doesn't seem worth worrying about.
+ *
  * Note: we don't support using this in bootstrap mode.  All relations
  * created by bootstrap have preassigned OIDs, so there's no need.
  */
 Oid
-GetNewRelFileNode(Oid reltablespace, bool relisshared)
+GetNewRelFileNode(Oid reltablespace, Relation pg_class)
 {
 	RelFileNode rnode;
 	char	   *rpath;
 	int			fd;
 	bool		collides = true;
 
-	/* This should match RelationInitPhysicalAddr */
+	/* This logic should match RelationInitPhysicalAddr */
 	rnode.spcNode = reltablespace ? reltablespace : MyDatabaseTableSpace;
-	rnode.dbNode = relisshared ? InvalidOid : MyDatabaseId;
+	rnode.dbNode = (rnode.spcNode == GLOBALTABLESPACE_OID) ? InvalidOid : MyDatabaseId;
 
 	do
 	{

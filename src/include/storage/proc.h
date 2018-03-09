@@ -6,10 +6,10 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/storage/proc.h,v 1.114 2009/08/31 19:41:00 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/storage/proc.h,v 1.123 2010/07/06 19:19:00 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -20,11 +20,11 @@
 #include "storage/lock.h"
 #include "storage/spin.h"
 #include "storage/pg_sema.h"
+#include "utils/timestamp.h"
 #include "access/xlog.h"
 
 #include "cdb/cdblocaldistribxact.h"  /* LocalDistribXactData */
 #include "cdb/cdbtm.h"  /* TMGXACT */
-
 
 /*
  * Each backend advertises up to PGPROC_MAX_CACHED_SUBXIDS TransactionIds
@@ -120,6 +120,13 @@ struct PGPROC
 
 	uint8		vacuumFlags;	/* vacuum-related flags, see above */
 
+	/*
+	 * While in hot standby mode, shows that a conflict signal has been sent
+	 * for the current transaction. Set/cleared while holding ProcArrayLock,
+	 * though not required. Accessed without lock, if needed.
+	 */
+	bool		recoveryConflictPending;
+
 	/* Info about LWLock the process is currently waiting for, if any. */
 	bool		lwWaiting;		/* true if waiting for an LW lock */
 	bool		lwExclusive;	/* true if waiting for exclusive access */
@@ -200,12 +207,17 @@ typedef struct PROC_HDR
 	/* Current shared estimate of appropriate spins_per_delay value */
 	int			spins_per_delay;
 
+	/* The proc of the Startup process, since not in ProcArray */
+	PGPROC	   *startupProc;
+	int			startupProcPid;
+	/* Buffer id of the buffer that Startup process waits for pin on */
+	int			startupBufferPinWaitBufId;
+
     /* Counter for assigning serial numbers to processes */
     int         mppLocalProcessCounter;
 
 	/* Number of free PGPROC entries in freeProcs list. */
 	int			numFreeProcs;
-
 } PROC_HDR;
 
 /*
@@ -213,13 +225,13 @@ typedef struct PROC_HDR
  * ie things that aren't full-fledged backends but need shmem access.
  *
  * Background writer and WAL writer run during normal operation. Startup
- * process also consumes one slot, but WAL writer is launched only after
- * startup has exited, so we only need 2 slots.
+ * process and WAL receiver also consume 2 slots, but WAL writer is
+ * launched only after startup has exited, so we only need 3 slots.
  *
  * In GPDB, we have some extra processes.
  * GDPB_90_MERGE_FIXME: count them correctly. 10 is an exaggeration.
  */
-#define NUM_AUXILIARY_PROCS		(/* PG */ 2 + /* GPDB */ 10)
+#define NUM_AUXILIARY_PROCS		(/* PG */ 3 + /* GPDB */ 10)
 
 
 /* configurable options */
@@ -240,6 +252,11 @@ extern void InitProcGlobal(void);
 extern void InitProcess(void);
 extern void InitProcessPhase2(void);
 extern void InitAuxiliaryProcess(void);
+
+extern void PublishStartupProcessInformation(void);
+extern void SetStartupBufferPinWaitBufId(int bufid);
+extern int	GetStartupBufferPinWaitBufId(void);
+
 extern bool HaveNFreeProcs(int n);
 extern void ProcReleaseLocks(bool isCommit);
 
@@ -247,6 +264,7 @@ extern void ProcQueueInit(PROC_QUEUE *queue);
 extern int	ProcSleep(LOCALLOCK *locallock, LockMethod lockMethodTable);
 extern PGPROC *ProcWakeup(PGPROC *proc, int waitStatus);
 extern void ProcLockWakeup(LockMethod lockMethodTable, LOCK *lock);
+extern bool IsWaitingForLock(void);
 extern void LockWaitCancel(void);
 
 extern void ProcWaitForSignal(void);
@@ -263,5 +281,10 @@ extern int ResProcSleep(LOCKMODE lockmode, LOCALLOCK *locallock, void *increment
 extern void ResLockWaitCancel(void);
 extern bool ProcCanSetMppSessionId(void);
 extern void ProcNewMppSessionId(int *newSessionId);
+
+extern bool enable_standby_sig_alarm(TimestampTz now,
+						 TimestampTz fin_time, bool deadlock_only);
+extern bool disable_standby_sig_alarm(void);
+extern void handle_standby_sig_alarm(SIGNAL_ARGS);
 
 #endif   /* PROC_H */

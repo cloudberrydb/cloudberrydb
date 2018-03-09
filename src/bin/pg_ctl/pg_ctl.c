@@ -2,9 +2,9 @@
  *
  * pg_ctl --- start/stops/restarts the PostgreSQL server
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/bin/pg_ctl/pg_ctl.c,v 1.117 2009/12/15 00:17:50 itagaki Exp $
+ * $PostgreSQL: pgsql/src/bin/pg_ctl/pg_ctl.c,v 1.122 2010/04/07 03:48:51 itagaki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -737,7 +737,7 @@ find_other_exec_or_die(const char *argv0, const char *target, const char *versio
 static void
 do_init(void)
 {
-	char cmd[MAXPGPATH];
+	char		cmd[MAXPGPATH];
 
 	if (exec_path == NULL)
 		exec_path = find_other_exec_or_die(argv0, "initdb", "initdb (PostgreSQL) " PG_VERSION "\n");
@@ -754,7 +754,7 @@ do_init(void)
 	else
 		snprintf(cmd, MAXPGPATH, SYSTEMQUOTE "\"%s\" %s%s > \"%s\"" SYSTEMQUOTE,
 				 exec_path, pgdata_opt, post_opts, DEVNULL);
-	
+
 	if (system(cmd) != 0)
 	{
 		write_stderr(_("%s: database system initialization failed\n"), progname);
@@ -931,7 +931,7 @@ do_stop(void)
 		}
 		print_msg(_(" done\n"));
 
-		printf(_("server stopped\n"));
+		print_msg(_("server stopped\n"));
 	}
 }
 
@@ -1010,7 +1010,7 @@ do_restart(void)
 		}
 
 		print_msg(_(" done\n"));
-		printf(_("server stopped\n"));
+		print_msg(_("server stopped\n"));
 	}
 	else
 	{
@@ -1252,7 +1252,11 @@ pgwin32_CommandLine(bool registration)
 
 #ifdef __CYGWIN__
 	/* need to convert to windows path */
+#if CYGWIN_VERSION_DLL_MAJOR >= 1007
+	cygwin_conv_path(CCP_POSIX_TO_WIN_A, cmdLine, buf, sizeof(buf));
+#else
 	cygwin_conv_to_full_win32_path(cmdLine, buf);
+#endif
 	strcpy(cmdLine, buf);
 #endif
 
@@ -1781,7 +1785,7 @@ do_help(void)
 #endif
 	printf(_("  -l, --log FILENAME     write (or append) server log to FILENAME\n"));
 	printf(_("  -o OPTIONS             command line options to pass to postgres\n"
-			 "                         (PostgreSQL server executable) or initdb\n"));
+	 "                         (PostgreSQL server executable) or initdb\n"));
 	printf(_("  -p PATH-TO-POSTGRES    normally not necessary\n"));
 	printf(_("\nOptions for stop or restart:\n"));
 	printf(_("  -m SHUTDOWN-MODE   can be \"smart\", \"fast\", or \"immediate\"\n"));

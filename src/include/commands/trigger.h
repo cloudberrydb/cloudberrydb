@@ -3,10 +3,10 @@
  * trigger.h
  *	  Declarations for trigger handling.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/commands/trigger.h,v 1.78 2009/11/20 20:38:11 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/commands/trigger.h,v 1.80 2010/01/17 22:56:23 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -108,8 +108,8 @@ extern PGDLLIMPORT int SessionReplicationRole;
 #define TRIGGER_DISABLED					'D'
 
 extern Oid CreateTrigger(CreateTrigStmt *stmt, const char *queryString,
-			  Oid constraintOid, Oid indexOid, const char *prefix,
-			  bool checkPermissions);
+			  Oid constraintOid, Oid indexOid,
+			  bool isInternal);
 
 extern void DropTrigger(Oid relid, const char *trigname,
 			DropBehavior behavior, bool missing_ok);

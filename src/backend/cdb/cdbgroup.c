@@ -2480,6 +2480,7 @@ join_dqa_coplan(PlannerInfo *root, MppGroupContext *ctx, Plan *outer, int dqa_in
 			bool		motion_added_inner = false;
 			Oid			skewTable = InvalidOid;
 			AttrNumber	skewColumn = InvalidAttrNumber;
+			bool		skewInherit = false;
 			Oid			skewColType = InvalidOid;
 			int32		skewColTypmod = -1;
 
@@ -2520,6 +2521,7 @@ join_dqa_coplan(PlannerInfo *root, MppGroupContext *ctx, Plan *outer, int dqa_in
 					{
 						skewTable = rte->relid;
 						skewColumn = var->varattno;
+						skewInherit = rte->inh;
 						skewColType = var->vartype;
 						skewColTypmod = var->vartypmod;
 					}
@@ -2529,6 +2531,7 @@ join_dqa_coplan(PlannerInfo *root, MppGroupContext *ctx, Plan *outer, int dqa_in
 			Hash	   *hash_plan = make_hash(inner,
 											  skewTable,
 											  skewColumn,
+											  skewInherit,
 											  skewColType,
 											  skewColTypmod);
 

@@ -4,10 +4,10 @@
  *
  * PostgreSQL object comments utility code.
  *
- * Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Copyright (c) 1996-2010, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/comment.c,v 1.109 2009/12/11 03:34:55 itagaki Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/comment.c,v 1.115 2010/06/13 17:43:12 rhaas Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -521,11 +521,11 @@ GetComment(Oid oid, Oid classoid, int32 subid)
 	sd = systable_beginscan(description, DescriptionObjIndexId, true,
 							SnapshotNow, 3, skey);
 
-	comment  = NULL;
+	comment = NULL;
 	while ((tuple = systable_getnext(sd)) != NULL)
 	{
-		Datum	value;
-		bool	isnull;
+		Datum		value;
+		bool		isnull;
 
 		/* Found the tuple, get description field */
 		value = heap_getattr(tuple, Anum_pg_description_description, tupdesc, &isnull);
@@ -649,6 +649,21 @@ CommentAttribute(List *qualname, char *comment)
 	if (!pg_class_ownercheck(RelationGetRelid(relation), GetUserId()))
 		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_CLASS,
 					   RelationGetRelationName(relation));
+
+	/*
+	 * Allow comments only on columns of tables, views, and composite types
+	 * (which are the only relkinds for which pg_dump will dump per-column
+	 * comments).  In particular we wish to disallow comments on index
+	 * columns, because the naming of an index's columns may change across PG
+	 * versions, so dumping per-column comments could create reload failures.
+	 */
+	if (relation->rd_rel->relkind != RELKIND_RELATION &&
+		relation->rd_rel->relkind != RELKIND_VIEW &&
+		relation->rd_rel->relkind != RELKIND_COMPOSITE_TYPE)
+		ereport(ERROR,
+				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+				 errmsg("\"%s\" is not a table, view, or composite type",
+						RelationGetRelationName(relation))));
 
 	/* Now, fetch the attribute number from the system cache */
 
@@ -793,9 +808,7 @@ CommentNamespace(List *qualname, char *comment)
 				 errmsg("schema name cannot be qualified")));
 	namespace = strVal(linitial(qualname));
 
-	oid = GetSysCacheOid(NAMESPACENAME,
-						 CStringGetDatum(namespace),
-						 0, 0, 0);
+	oid = GetSysCacheOid1(NAMESPACENAME, CStringGetDatum(namespace));
 	if (!OidIsValid(oid))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_SCHEMA),
@@ -899,10 +912,9 @@ CommentRule(List *qualname, char *comment)
 		reloid = RelationGetRelid(relation);
 
 		/* Find the rule's pg_rewrite tuple, get its OID */
-		tuple = SearchSysCache(RULERELNAME,
-							   ObjectIdGetDatum(reloid),
-							   PointerGetDatum(rulename),
-							   0, 0);
+		tuple = SearchSysCache2(RULERELNAME,
+								ObjectIdGetDatum(reloid),
+								PointerGetDatum(rulename));
 		if (!HeapTupleIsValid(tuple))
 			ereport(ERROR,
 					(errcode(ERRCODE_UNDEFINED_OBJECT),
@@ -1207,9 +1219,7 @@ CommentLanguage(List *qualname, char *comment)
 				 errmsg("language name cannot be qualified")));
 	language = strVal(linitial(qualname));
 
-	oid = GetSysCacheOid(LANGNAME,
-						 CStringGetDatum(language),
-						 0, 0, 0);
+	oid = GetSysCacheOid1(LANGNAME, CStringGetDatum(language));
 	if (!OidIsValid(oid))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_SCHEMA),
@@ -1250,9 +1260,7 @@ CommentOpClass(List *qualname, List *arguments, char *comment)
 	/*
 	 * Get the access method's OID.
 	 */
-	amID = GetSysCacheOid(AMNAME,
-						  CStringGetDatum(amname),
-						  0, 0, 0);
+	amID = GetSysCacheOid1(AMNAME, CStringGetDatum(amname));
 	if (!OidIsValid(amID))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
@@ -1272,11 +1280,10 @@ CommentOpClass(List *qualname, List *arguments, char *comment)
 		Oid			namespaceId;
 
 		namespaceId = LookupExplicitNamespace(schemaname);
-		tuple = SearchSysCache(CLAAMNAMENSP,
-							   ObjectIdGetDatum(amID),
-							   PointerGetDatum(opcname),
-							   ObjectIdGetDatum(namespaceId),
-							   0);
+		tuple = SearchSysCache3(CLAAMNAMENSP,
+								ObjectIdGetDatum(amID),
+								PointerGetDatum(opcname),
+								ObjectIdGetDatum(namespaceId));
 	}
 	else
 	{
@@ -1287,9 +1294,7 @@ CommentOpClass(List *qualname, List *arguments, char *comment)
 					(errcode(ERRCODE_UNDEFINED_OBJECT),
 					 errmsg("operator class \"%s\" does not exist for access method \"%s\"",
 							opcname, amname)));
-		tuple = SearchSysCache(CLAOID,
-							   ObjectIdGetDatum(opcID),
-							   0, 0, 0);
+		tuple = SearchSysCache1(CLAOID, ObjectIdGetDatum(opcID));
 	}
 
 	if (!HeapTupleIsValid(tuple))
@@ -1338,9 +1343,7 @@ CommentOpFamily(List *qualname, List *arguments, char *comment)
 	/*
 	 * Get the access method's OID.
 	 */
-	amID = GetSysCacheOid(AMNAME,
-						  CStringGetDatum(amname),
-						  0, 0, 0);
+	amID = GetSysCacheOid1(AMNAME, CStringGetDatum(amname));
 	if (!OidIsValid(amID))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
@@ -1360,11 +1363,10 @@ CommentOpFamily(List *qualname, List *arguments, char *comment)
 		Oid			namespaceId;
 
 		namespaceId = LookupExplicitNamespace(schemaname);
-		tuple = SearchSysCache(OPFAMILYAMNAMENSP,
-							   ObjectIdGetDatum(amID),
-							   PointerGetDatum(opfname),
-							   ObjectIdGetDatum(namespaceId),
-							   0);
+		tuple = SearchSysCache3(OPFAMILYAMNAMENSP,
+								ObjectIdGetDatum(amID),
+								PointerGetDatum(opfname),
+								ObjectIdGetDatum(namespaceId));
 	}
 	else
 	{
@@ -1375,9 +1377,7 @@ CommentOpFamily(List *qualname, List *arguments, char *comment)
 					(errcode(ERRCODE_UNDEFINED_OBJECT),
 					 errmsg("operator family \"%s\" does not exist for access method \"%s\"",
 							opfname, amname)));
-		tuple = SearchSysCache(OPFAMILYOID,
-							   ObjectIdGetDatum(opfID),
-							   0, 0, 0);
+		tuple = SearchSysCache1(OPFAMILYOID, ObjectIdGetDatum(opfID));
 	}
 
 	if (!HeapTupleIsValid(tuple))
@@ -1412,32 +1412,9 @@ static void
 CommentLargeObject(List *qualname, char *comment)
 {
 	Oid			loid;
-	Node	   *node;
 
 	Assert(list_length(qualname) == 1);
-	node = (Node *) linitial(qualname);
-
-	switch (nodeTag(node))
-	{
-		case T_Integer:
-			loid = intVal(node);
-			break;
-		case T_Float:
-
-			/*
-			 * Values too large for int4 will be represented as Float
-			 * constants by the lexer.	Accept these if they are valid OID
-			 * strings.
-			 */
-			loid = DatumGetObjectId(DirectFunctionCall1(oidin,
-											 CStringGetDatum(strVal(node))));
-			break;
-		default:
-			elog(ERROR, "unrecognized node type: %d",
-				 (int) nodeTag(node));
-			/* keep compiler quiet */
-			loid = InvalidOid;
-	}
+	loid = oidparse((Node *) linitial(qualname));
 
 	/* check that the large object exists */
 	if (!LargeObjectExists(loid))
@@ -1455,9 +1432,8 @@ CommentLargeObject(List *qualname, char *comment)
 	/*
 	 * Call CreateComments() to create/drop the comments
 	 *
-	 * See the comment in the inv_create() which describes
-	 * the reason why LargeObjectRelationId is used instead
-	 * of the LargeObjectMetadataRelationId.
+	 * See the comment in the inv_create() which describes the reason why
+	 * LargeObjectRelationId is used instead of LargeObjectMetadataRelationId.
 	 */
 	CreateComments(loid, LargeObjectRelationId, 0, comment);
 }
@@ -1492,10 +1468,9 @@ CommentCast(List *qualname, List *arguments, char *comment)
 	sourcetypeid = typenameTypeId(NULL, sourcetype, NULL);
 	targettypeid = typenameTypeId(NULL, targettype, NULL);
 
-	tuple = SearchSysCache(CASTSOURCETARGET,
-						   ObjectIdGetDatum(sourcetypeid),
-						   ObjectIdGetDatum(targettypeid),
-						   0, 0);
+	tuple = SearchSysCache2(CASTSOURCETARGET,
+							ObjectIdGetDatum(sourcetypeid),
+							ObjectIdGetDatum(targettypeid));
 	if (!HeapTupleIsValid(tuple))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),

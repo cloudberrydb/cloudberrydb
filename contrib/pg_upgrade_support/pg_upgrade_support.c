@@ -39,6 +39,7 @@
 #include "catalog/pg_opfamily.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_resqueue.h"
+#include "catalog/pg_resqueuecapability.h"
 #include "catalog/pg_rewrite.h"
 #include "catalog/pg_tablespace.h"
 #include "catalog/pg_ts_config.h"

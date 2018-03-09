@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2006-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/rewrite/rewriteDefine.c,v 1.139 2009/11/05 23:24:24 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/rewrite/rewriteDefine.c,v 1.141 2010/02/14 18:42:15 rhaas Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -102,10 +102,9 @@ InsertRule(char *rulname,
 	/*
 	 * Check to see if we are replacing an existing tuple
 	 */
-	oldtup = SearchSysCache(RULERELNAME,
-							ObjectIdGetDatum(eventrel_oid),
-							PointerGetDatum(rulname),
-							0, 0);
+	oldtup = SearchSysCache2(RULERELNAME,
+							 ObjectIdGetDatum(eventrel_oid),
+							 PointerGetDatum(rulname));
 
 	if (HeapTupleIsValid(oldtup))
 	{
@@ -692,10 +691,9 @@ EnableDisableRule(Relation rel, const char *rulename,
 	 * Find the rule tuple to change.
 	 */
 	pg_rewrite_desc = heap_open(RewriteRelationId, RowExclusiveLock);
-	ruletup = SearchSysCacheCopy(RULERELNAME,
-								 ObjectIdGetDatum(owningRel),
-								 PointerGetDatum(rulename),
-								 0, 0);
+	ruletup = SearchSysCacheCopy2(RULERELNAME,
+								  ObjectIdGetDatum(owningRel),
+								  PointerGetDatum(rulename));
 	if (!HeapTupleIsValid(ruletup))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
@@ -755,10 +753,9 @@ RenameRewriteRule(Oid owningRel, const char *oldName,
 
 	pg_rewrite_desc = heap_open(RewriteRelationId, RowExclusiveLock);
 
-	ruletup = SearchSysCacheCopy(RULERELNAME,
-								 ObjectIdGetDatum(owningRel),
-								 PointerGetDatum(oldName),
-								 0, 0);
+	ruletup = SearchSysCacheCopy2(RULERELNAME,
+								  ObjectIdGetDatum(owningRel),
+								  PointerGetDatum(oldName));
 	if (!HeapTupleIsValid(ruletup))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),

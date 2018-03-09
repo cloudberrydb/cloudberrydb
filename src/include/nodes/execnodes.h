@@ -6,10 +6,10 @@
  *
  * Portions Copyright (c) 2005-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/execnodes.h,v 1.214 2009/12/15 04:57:48 rhaas Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/execnodes.h,v 1.219 2010/02/26 02:01:25 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -79,7 +79,7 @@ typedef struct IndexInfo
 	List	   *ii_ExpressionsState;	/* list of ExprState */
 	List	   *ii_Predicate;	/* list of Expr */
 	List	   *ii_PredicateState;		/* list of ExprState */
-	Oid		   *ii_ExclusionOps;		/* array with one entry per column */
+	Oid		   *ii_ExclusionOps;	/* array with one entry per column */
 	Oid		   *ii_ExclusionProcs;		/* array with one entry per column */
 	uint16	   *ii_ExclusionStrats;		/* array with one entry per column */
 	bool		ii_Unique;
@@ -553,8 +553,8 @@ typedef struct EState
 	/* AO fileseg info for target relation */
 	List	   *es_result_aosegnos;
 
-	TupleTableSlot *es_trig_tuple_slot;		/* for trigger output tuples */
-	TupleTableSlot *es_trig_oldtup_slot;	/* for trigger old tuples */
+	TupleTableSlot *es_trig_tuple_slot; /* for trigger output tuples */
+	TupleTableSlot *es_trig_oldtup_slot;		/* for trigger old tuples */
 
 	/* Parameter info: */
 	ParamListInfo es_param_list_info;	/* values of external params */
@@ -587,16 +587,16 @@ typedef struct EState
 
 	/*
 	 * These fields are for re-evaluating plan quals when an updated tuple is
-	 * substituted in READ COMMITTED mode.  es_epqTuple[] contains tuples
-	 * that scan plan nodes should return instead of whatever they'd normally
+	 * substituted in READ COMMITTED mode.	es_epqTuple[] contains tuples that
+	 * scan plan nodes should return instead of whatever they'd normally
 	 * return, or NULL if nothing to return; es_epqTupleSet[] is true if a
 	 * particular array entry is valid; and es_epqScanDone[] is state to
 	 * remember if the tuple has been returned already.  Arrays are of size
 	 * list_length(es_range_table) and are indexed by scan node scanrelid - 1.
 	 */
-	HeapTuple  *es_epqTuple;		/* array of EPQ substitute tuples */
-	bool	   *es_epqTupleSet;		/* true if EPQ tuple is provided */
-	bool	   *es_epqScanDone;		/* true if EPQ tuple has been fetched */
+	HeapTuple  *es_epqTuple;	/* array of EPQ substitute tuples */
+	bool	   *es_epqTupleSet; /* true if EPQ tuple is provided */
+	bool	   *es_epqScanDone; /* true if EPQ tuple has been fetched */
 
 	/* Additions for MPP plan slicing. */
 	struct SliceTable *es_sliceTable;
@@ -685,7 +685,7 @@ extern void SliceLeafMotionStateAreValid(struct MotionState *ms);
  * parent RTEs, which can be ignored at runtime).  See PlanRowMark for details
  * about most of the fields.
  *
- * es_rowMarks is a list of these structs.  Each LockRows node has its own
+ * es_rowMarks is a list of these structs.	Each LockRows node has its own
  * list, which is the subset of locks that it is supposed to enforce; note
  * that the per-node lists point to the same structs that are in the global
  * list.
@@ -695,7 +695,7 @@ typedef struct ExecRowMark
 	Relation	relation;		/* opened and suitably locked relation */
 	Index		rti;			/* its range table index */
 	Index		prti;			/* parent range table index, if child */
-	RowMarkType	markType;		/* see enum in nodes/plannodes.h */
+	RowMarkType markType;		/* see enum in nodes/plannodes.h */
 	bool		noWait;			/* NOWAIT option */
 	AttrNumber	ctidAttNo;		/* resno of ctid junk attribute, if any */
 	AttrNumber	toidAttNo;		/* resno of tableoid junk attribute, if any */
@@ -1305,8 +1305,7 @@ typedef struct NullTestState
 {
 	ExprState	xprstate;
 	ExprState  *arg;			/* input expression */
-	bool		argisrow;		/* T if input is of a composite type */
-	/* used only if argisrow: */
+	/* used only if input is of composite type: */
 	TupleDesc	argdesc;		/* tupdesc for most recent input */
 } NullTestState;
 
@@ -1495,13 +1494,13 @@ typedef struct RepeatState
  */
 typedef struct ModifyTableState
 {
-	PlanState		ps;				/* its first field is NodeTag */
-	CmdType			operation;
-	PlanState	  **mt_plans;		/* subplans (one per target rel) */
-	int				mt_nplans;		/* number of plans in the array */
-	int				mt_whichplan;	/* which one is being executed (0..n-1) */
-	EPQState		mt_epqstate;	/* for evaluating EvalPlanQual rechecks */
-	bool			fireBSTriggers;	/* do we need to fire stmt triggers? */
+	PlanState	ps;				/* its first field is NodeTag */
+	CmdType		operation;
+	PlanState **mt_plans;		/* subplans (one per target rel) */
+	int			mt_nplans;		/* number of plans in the array */
+	int			mt_whichplan;	/* which one is being executed (0..n-1) */
+	EPQState	mt_epqstate;	/* for evaluating EvalPlanQual rechecks */
+	bool		fireBSTriggers; /* do we need to fire stmt triggers? */
 } ModifyTableState;
 
 /* ----------------
@@ -2250,6 +2249,7 @@ typedef struct NestLoopState
  *		Clauses			   info for each mergejoinable clause
  *		JoinState		   current "state" of join.  see execdefs.h
  *		ExtraMarks		   true to issue extra Mark operations on inner scan
+ *		ConstFalseJoin	   true if we have a constant-false joinqual
  *		FillOuter		   true if should emit unjoined outer tuples anyway
  *		FillInner		   true if should emit unjoined inner tuples anyway
  *		MatchedOuter	   true if found a join match for current outer tuple
@@ -2273,6 +2273,7 @@ typedef struct MergeJoinState
 	MergeJoinClause mj_Clauses; /* array of length mj_NumClauses */
 	int			mj_JoinState;
 	bool		mj_ExtraMarks;
+	bool		mj_ConstFalseJoin;
 	bool		mj_FillOuter;
 	bool		mj_FillInner;
 	bool		mj_MatchedOuter;

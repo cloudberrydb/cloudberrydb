@@ -20,11 +20,11 @@
  * resulting "lex.backup" file says that no backing up is needed.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/scan.l,v 1.164 2009/11/12 00:13:00 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/scan.l,v 1.167 2010/05/30 18:10:41 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -338,8 +338,6 @@ ident_cont		[A-Za-z\200-\377_0-9\$]
 identifier		{ident_start}{ident_cont}*
 
 typecast		"::"
-
-/* these two token types are used by PL/pgsql, though not in core SQL */
 dot_dot			\.\.
 colon_equals	":="
 
@@ -1158,7 +1156,7 @@ process_integer_literal(const char *token, YYSTYPE *lval)
 	return ICONST;
 }
 
-static int
+static unsigned int
 hexval(unsigned char c)
 {
 	if (c >= '0' && c <= '9')
@@ -1215,7 +1213,7 @@ addunicode(pg_wchar c, core_yyscan_t yyscanner)
 			yyerror("Unicode escape values cannot be used for code point values above 007F when the server encoding is not UTF8");
 		yyextra->saw_non_ascii = true;
 	}
-	unicode_to_utf8(c, (unsigned char *)buf);
+	unicode_to_utf8(c, (unsigned char *) buf);
 	addlit(buf, pg_mblen(buf), yyscanner);
 }
 
@@ -1262,9 +1260,17 @@ litbuf_udeescape(unsigned char escape, core_yyscan_t yyscanner)
 				*out++ = escape;
 				in += 2;
 			}
-			else if (isxdigit(in[1]) && isxdigit(in[2]) && isxdigit(in[3]) && isxdigit(in[4]))
+			else if (isxdigit((unsigned char) in[1]) &&
+					 isxdigit((unsigned char) in[2]) &&
+					 isxdigit((unsigned char) in[3]) &&
+					 isxdigit((unsigned char) in[4]))
 			{
-				pg_wchar unicode = hexval(in[1]) * 16*16*16 + hexval(in[2]) * 16*16 + hexval(in[3]) * 16 + hexval(in[4]);
+				pg_wchar unicode;
+
+				unicode = (hexval(in[1]) << 12) +
+					(hexval(in[2]) << 8) +
+					(hexval(in[3]) << 4) +
+					hexval(in[4]);
 				check_unicode_value(unicode, in, yyscanner);
 				if (pair_first)
 				{
@@ -1291,13 +1297,22 @@ litbuf_udeescape(unsigned char escape, core_yyscan_t yyscanner)
 				}
 				in += 5;
 			}
-			else if (in[1] == '+'
-					 && isxdigit(in[2]) && isxdigit(in[3])
-					 && isxdigit(in[4]) && isxdigit(in[5])
-					 && isxdigit(in[6]) && isxdigit(in[7]))
+			else if (in[1] == '+' &&
+					 isxdigit((unsigned char) in[2]) &&
+					 isxdigit((unsigned char) in[3]) &&
+					 isxdigit((unsigned char) in[4]) &&
+					 isxdigit((unsigned char) in[5]) &&
+					 isxdigit((unsigned char) in[6]) &&
+					 isxdigit((unsigned char) in[7]))
 			{
-				pg_wchar unicode = hexval(in[2]) * 16*16*16*16*16 + hexval(in[3]) * 16*16*16*16 + hexval(in[4]) * 16*16*16
-									+ hexval(in[5]) * 16*16 + hexval(in[6]) * 16 + hexval(in[7]);
+				pg_wchar unicode;
+
+				unicode = (hexval(in[2]) << 20) +
+					(hexval(in[3]) << 16) +
+					(hexval(in[4]) << 12) +
+					(hexval(in[5]) << 8) +
+					(hexval(in[6]) << 4) +
+					hexval(in[7]);
 				check_unicode_value(unicode, in, yyscanner);
 				if (pair_first)
 				{

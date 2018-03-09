@@ -3,12 +3,12 @@
  * miscinit.c
  *	  miscellaneous initialization support stuff
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/init/miscinit.c,v 1.179 2009/12/09 21:57:51 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/init/miscinit.c,v 1.184 2010/04/20 23:48:47 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -70,62 +70,6 @@ static char socketLockFile[MAXPGPATH];
 
 bool		IgnoreSystemIndexes = false;
 
-/* ----------------------------------------------------------------
- *		system index reindexing support
- *
- * When we are busy reindexing a system index, this code provides support
- * for preventing catalog lookups from using that index.
- * ----------------------------------------------------------------
- */
-
-static Oid	currentlyReindexedHeap = InvalidOid;
-static Oid	currentlyReindexedIndex = InvalidOid;
-
-/*
- * ReindexIsProcessingHeap
- *		True if heap specified by OID is currently being reindexed.
- */
-bool
-ReindexIsProcessingHeap(Oid heapOid)
-{
-	return heapOid == currentlyReindexedHeap;
-}
-
-/*
- * ReindexIsProcessingIndex
- *		True if index specified by OID is currently being reindexed.
- */
-bool
-ReindexIsProcessingIndex(Oid indexOid)
-{
-	return indexOid == currentlyReindexedIndex;
-}
-
-/*
- * SetReindexProcessing
- *		Set flag that specified heap/index are being reindexed.
- */
-void
-SetReindexProcessing(Oid heapOid, Oid indexOid)
-{
-	Assert(OidIsValid(heapOid) && OidIsValid(indexOid));
-	/* Reindexing is not re-entrant. */
-	if (OidIsValid(currentlyReindexedIndex))
-		elog(ERROR, "cannot reindex while reindexing");
-	currentlyReindexedHeap = heapOid;
-	currentlyReindexedIndex = indexOid;
-}
-
-/*
- * ResetReindexProcessing
- *		Unset reindexing status.
- */
-void
-ResetReindexProcessing(void)
-{
-	currentlyReindexedHeap = InvalidOid;
-	currentlyReindexedIndex = InvalidOid;
-}
 
 /* ----------------------------------------------------------------
  *				database path / name support stuff
@@ -377,7 +321,7 @@ GetAuthenticatedUserId(void)
  * Currently there are two valid bits in SecurityRestrictionContext:
  *
  * SECURITY_LOCAL_USERID_CHANGE indicates that we are inside an operation
- * that is temporarily changing CurrentUserId via these functions.  This is
+ * that is temporarily changing CurrentUserId via these functions.	This is
  * needed to indicate that the actual value of CurrentUserId is not in sync
  * with guc.c's internal state, so SET ROLE has to be disallowed.
  *
@@ -438,7 +382,7 @@ InSecurityRestrictedOperation(void)
 /*
  * These are obsolete versions of Get/SetUserIdAndSecContext that are
  * only provided for bug-compatibility with some rather dubious code in
- * pljava.  We allow the userid to be set, but only when not inside a
+ * pljava.	We allow the userid to be set, but only when not inside a
  * security restriction context.
  */
 void
@@ -484,9 +428,7 @@ InitializeSessionUserId(const char *rolename)
 	/* call only once */
 	AssertState(!OidIsValid(AuthenticatedUserId));
 
-	roleTup = SearchSysCache(AUTHNAME,
-							 PointerGetDatum(rolename),
-							 0, 0, 0);
+	roleTup = SearchSysCache1(AUTHNAME, PointerGetDatum(rolename));
 	if (!HeapTupleIsValid(roleTup))
 		ereport(FATAL,
 				(errcode(ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION),
@@ -509,10 +451,8 @@ InitializeSessionUserId(const char *rolename)
 	 * These next checks are not enforced when in standalone mode, so that
 	 * there is a way to recover from sillinesses like "UPDATE pg_authid SET
 	 * rolcanlogin = false;".
-	 *
-	 * We do not enforce them for the autovacuum process either.
 	 */
-	if (IsUnderPostmaster && !IsAutoVacuumWorkerProcess())
+	if (IsUnderPostmaster)
 	{
 		/*
 		 * Is role allowed to login at all?
@@ -573,7 +513,10 @@ InitializeSessionUserId(const char *rolename)
 void
 InitializeSessionUserIdStandalone(void)
 {
-	/* This function should only be called in a single-user backend. */
+	/*
+	 * This function should only be called in single-user mode and in
+	 * autovacuum workers.
+	 */
 	AssertState(!IsUnderPostmaster || IsAutoVacuumWorkerProcess() || am_startup
 				|| (am_ftshandler && am_mirror));
 
@@ -698,9 +641,7 @@ GetUserNameFromId(Oid roleid)
 	HeapTuple	tuple;
 	char	   *result;
 
-	tuple = SearchSysCache(AUTHOID,
-						   ObjectIdGetDatum(roleid),
-						   0, 0, 0);
+	tuple = SearchSysCache1(AUTHOID, ObjectIdGetDatum(roleid));
 	if (!HeapTupleIsValid(tuple))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
@@ -799,9 +740,10 @@ CreateLockFile(const char *filename, bool amPostmaster,
 #ifndef WIN32
 	my_p_pid = getppid();
 #else
+
 	/*
-	 * Windows hasn't got getppid(), but doesn't need it since it's not
-	 * using real kill() either...
+	 * Windows hasn't got getppid(), but doesn't need it since it's not using
+	 * real kill() either...
 	 */
 	my_p_pid = 0;
 #endif

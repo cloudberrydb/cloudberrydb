@@ -3,12 +3,12 @@
  * execQual.c
  *	  Routines to evaluate qualification and targetlist expressions
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execQual.c,v 1.256 2009/12/14 02:15:49 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execQual.c,v 1.263 2010/02/26 02:00:41 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -63,8 +63,8 @@
 
 /* static function decls */
 static Datum ExecEvalArrayRef(ArrayRefExprState *astate,
-			 ExprContext *econtext,
-			 bool *isNull, ExprDoneCond *isDone);
+				 ExprContext *econtext,
+				 bool *isNull, ExprDoneCond *isDone);
 static bool isAssignmentIndirectionExpr(ExprState *exprstate);
 static Datum ExecEvalAggref(AggrefExprState *aggref,
 		   ExprContext *econtext,
@@ -400,7 +400,7 @@ ExecEvalArrayRef(ArrayRefExprState *astate,
 		 * We might have a nested-assignment situation, in which the
 		 * refassgnexpr is itself a FieldStore or ArrayRef that needs to
 		 * obtain and modify the previous value of the array element or slice
-		 * being replaced.  If so, we have to extract that value from the
+		 * being replaced.	If so, we have to extract that value from the
 		 * array and pass it down via the econtext's caseValue.  It's safe to
 		 * reuse the CASE mechanism because there cannot be a CASE between
 		 * here and where the value would be needed, and an array assignment
@@ -429,7 +429,7 @@ ExecEvalArrayRef(ArrayRefExprState *astate,
 													  astate->refelemlength,
 													  astate->refelembyval,
 													  astate->refelemalign,
-													  &econtext->caseValue_isNull);
+												&econtext->caseValue_isNull);
 			}
 			else
 			{
@@ -1027,7 +1027,7 @@ ExecEvalWholeRowFast(WholeRowVarExprState *wrvstate, ExprContext *econtext,
 /* ----------------------------------------------------------------
  *		ExecEvalWholeRowSlow
  *
- *		Returns a Datum for a whole-row variable, in the "slow" case where
+ *		Returns a Datum for a whole-row variable, in the "slow" cases where
  *		we can't just copy the subplan's output.
  * ----------------------------------------------------------------
  */
@@ -2348,9 +2348,7 @@ ExecMakeTableFunctionResult(ExprState *funcexpr,
 				tuplestore_puttuple(tupstore, (HeapTuple) tuple);
 			}
 			else
-			{
 				tuplestore_putvalues(tupstore, tupdesc, &result, &fcinfo.isnull);
-			}
 
 			/*
 			 * Are we done?
@@ -3269,7 +3267,7 @@ ExecEvalConvertRowtype(ConvertRowtypeExprState *cstate,
 		/* prepare map from old to new attribute numbers */
 		cstate->map = convert_tuples_by_name(cstate->indesc,
 											 cstate->outdesc,
-											 gettext_noop("could not convert row type"));
+								 gettext_noop("could not convert row type"));
 		cstate->initialized = true;
 
 		MemoryContextSwitchTo(old_cxt);
@@ -4162,7 +4160,7 @@ ExecEvalNullTest(NullTestState *nstate,
 	if (isDone && *isDone == ExprEndResult)
 		return result;			/* nothing to check */
 
-	if (nstate->argisrow && !(*isNull))
+	if (ntest->argisrow && !(*isNull))
 	{
 		HeapTupleHeader tuple;
 		Oid			tupType;
@@ -4453,12 +4451,20 @@ ExecEvalFieldSelect(FieldSelectState *fstate,
 	tupDesc = get_cached_rowtype(tupType, tupTypmod,
 								 &fstate->argdesc, econtext);
 
-	/* Check for dropped column, and force a NULL result if so */
-	if (fieldnum <= 0 ||
-		fieldnum > tupDesc->natts)		/* should never happen */
+	/*
+	 * Find field's attr record.  Note we don't support system columns here: a
+	 * datum tuple doesn't have valid values for most of the interesting
+	 * system columns anyway.
+	 */
+	if (fieldnum <= 0)			/* should never happen */
+		elog(ERROR, "unsupported reference to system column %d in FieldSelect",
+			 fieldnum);
+	if (fieldnum > tupDesc->natts)		/* should never happen */
 		elog(ERROR, "attribute number %d exceeds number of columns %d",
 			 fieldnum, tupDesc->natts);
 	attr = tupDesc->attrs[fieldnum - 1];
+
+	/* Check for dropped column, and force a NULL result if so */
 	if (attr->attisdropped)
 	{
 		*isNull = true;
@@ -4474,13 +4480,8 @@ ExecEvalFieldSelect(FieldSelectState *fstate,
 						   format_type_be(attr->atttypid),
 						   format_type_be(fselect->resulttype))));
 
-	/*
-	 * heap_getattr needs a HeapTuple not a bare HeapTupleHeader.  We set all
-	 * the fields in the struct just in case user tries to inspect system
-	 * columns.
-	 */
+	/* heap_getattr needs a HeapTuple not a bare HeapTupleHeader */
 	tmptup.t_len = HeapTupleHeaderGetDatumLength(tuple);
-	ItemPointerSetInvalid(&(tmptup.t_self));
 	tmptup.t_data = tuple;
 
 	result = heap_getattr(&tmptup,
@@ -4563,10 +4564,12 @@ ExecEvalFieldStore(FieldStoreState *fstate,
 
 		/*
 		 * Use the CaseTestExpr mechanism to pass down the old value of the
-		 * field being replaced; this is useful in case we have a nested field
-		 * update situation.  It's safe to reuse the CASE mechanism because
-		 * there cannot be a CASE between here and where the value would be
-		 * needed.
+		 * field being replaced; this is needed in case the newval is itself a
+		 * FieldStore or ArrayRef that has to obtain and modify the old value.
+		 * It's safe to reuse the CASE mechanism because there cannot be a
+		 * CASE between here and where the value would be needed, and a field
+		 * assignment can't be within a CASE either.  (So saving and restoring
+		 * the caseValue is just paranoia, but let's do it anyway.)
 		 */
 		econtext->caseValue_datum = values[fieldnum - 1];
 		econtext->caseValue_isNull = isnull[fieldnum - 1];
@@ -5802,7 +5805,6 @@ ExecInitExpr(Expr *node, PlanState *parent)
 
 				nstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalNullTest;
 				nstate->arg = ExecInitExpr(ntest->arg, parent);
-				nstate->argisrow = type_is_rowtype(exprType((Node *) ntest->arg));
 				nstate->argdesc = NULL;
 				state = (ExprState *) nstate;
 			}

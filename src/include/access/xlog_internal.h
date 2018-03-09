@@ -8,10 +8,10 @@
  * needed by rmgr routines (redo support for individual record types).
  * So the XLogRecord typedef and associated stuff appear in xlog.h.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/access/xlog_internal.h,v 1.25 2009/01/01 17:23:56 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/access/xlog_internal.h,v 1.33 2010/04/28 16:10:43 heikki Exp $
  */
 #ifndef XLOG_INTERNAL_H
 #define XLOG_INTERNAL_H
@@ -74,7 +74,7 @@ typedef struct XLogContRecord
 /*
  * Each page of XLOG file has a header like this:
  */
-#define XLOG_PAGE_MAGIC 0xD063	/* can be used as WAL version indicator */
+#define XLOG_PAGE_MAGIC 0xD064	/* can be used as WAL version indicator */
 
 typedef struct XLogPageHeaderData
 {
@@ -152,6 +152,19 @@ typedef XLogLongPageHeaderData *XLogLongPageHeader;
 			(logId)--; \
 			(logSeg) = XLogSegsPerFile-1; \
 		} \
+	} while (0)
+
+/* Align a record pointer to next page */
+#define NextLogPage(recptr) \
+	do {	\
+		if ((recptr).xrecoff % XLOG_BLCKSZ != 0)	\
+			(recptr).xrecoff +=	\
+				(XLOG_BLCKSZ - (recptr).xrecoff % XLOG_BLCKSZ);	\
+		if ((recptr).xrecoff >= XLogFileSize) \
+		{	\
+			((recptr).xlogid)++;	\
+			(recptr).xrecoff = 0; \
+		}	\
 	} while (0)
 
 /*
@@ -260,11 +273,14 @@ extern XLogRecPtr RequestXLogSwitch(void);
  * These aren't in xlog.h because I'd rather not include fmgr.h there.
  */
 extern Datum pg_start_backup(PG_FUNCTION_ARGS);
-extern Datum pg_stop_backup(PG_FUNCTION_ARGS __attribute__((unused)) );
-extern Datum pg_switch_xlog(PG_FUNCTION_ARGS __attribute__((unused)) );
-extern Datum pg_current_xlog_location(PG_FUNCTION_ARGS __attribute__((unused)) );
-extern Datum pg_current_xlog_insert_location(PG_FUNCTION_ARGS __attribute__((unused)) );
+extern Datum pg_stop_backup(PG_FUNCTION_ARGS);
+extern Datum pg_switch_xlog(PG_FUNCTION_ARGS);
+extern Datum pg_current_xlog_location(PG_FUNCTION_ARGS);
+extern Datum pg_current_xlog_insert_location(PG_FUNCTION_ARGS);
+extern Datum pg_last_xlog_receive_location(PG_FUNCTION_ARGS);
+extern Datum pg_last_xlog_replay_location(PG_FUNCTION_ARGS);
 extern Datum pg_xlogfile_name_offset(PG_FUNCTION_ARGS);
 extern Datum pg_xlogfile_name(PG_FUNCTION_ARGS);
+extern Datum pg_is_in_recovery(PG_FUNCTION_ARGS);
 
 #endif   /* XLOG_INTERNAL_H */

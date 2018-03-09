@@ -11,11 +11,11 @@
  * LWLocks to protect its shared state.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/lmgr/lwlock.c,v 1.53 2009/01/01 17:23:48 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/lmgr/lwlock.c,v 1.56 2010/02/16 22:34:50 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -26,6 +26,7 @@
 #include "access/distributedlog.h"
 #include "access/subtrans.h"
 #include "access/twophase.h"
+#include "commands/async.h"
 #include "miscadmin.h"
 #include "pg_trace.h"
 #include "storage/barrier.h"
@@ -196,12 +197,15 @@ NumLWLocks(void)
 	/* multixact.c needs two SLRU areas */
 	numLocks += NUM_MXACTOFFSET_BUFFERS + NUM_MXACTMEMBER_BUFFERS;
 
+	/* async.c needs one per Async buffer */
+	numLocks += NUM_ASYNC_BUFFERS;
+
 	/* cdbdistributedlog.c needs one per DistributedLog buffer */
 	numLocks += NUM_DISTRIBUTEDLOG_BUFFERS;
 
 	/* sharedsnapshot.c needs one per shared snapshot slot */
 	numLocks += NUM_SHARED_SNAPSHOT_SLOTS;
-    
+
 	/*
 	 * Add any requested by loadable modules; for backwards-compatibility
 	 * reasons, allocate at least NUM_USER_DEFINED_LWLOCKS of them even if
@@ -273,7 +277,7 @@ CreateLWLocks(void)
 	ptr += 2 * sizeof(int);
 
 	/* Ensure desired alignment of LWLock array */
-	ptr += LWLOCK_PADDED_SIZE - ((unsigned long) ptr) % LWLOCK_PADDED_SIZE;
+	ptr += LWLOCK_PADDED_SIZE - ((uintptr_t) ptr) % LWLOCK_PADDED_SIZE;
 
 	LWLockArray = (LWLockPadded *) ptr;
 

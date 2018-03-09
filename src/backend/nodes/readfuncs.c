@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/readfuncs.c,v 1.228 2009/12/15 17:57:46 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/readfuncs.c,v 1.232 2010/02/16 22:34:43 tgl Exp $
  *
  * NOTES
  *	  Path and Plan nodes do not need to have any readfuncs support, because we
@@ -411,6 +411,7 @@ _readNotifyStmt(void)
 	READ_LOCALS(NotifyStmt);
 
 	READ_STRING_FIELD(conditionname);
+	READ_STRING_FIELD(payload);
 
 	READ_DONE();
 }
@@ -834,6 +835,7 @@ _readIndexElem(void)
 
 	READ_STRING_FIELD(name);
 	READ_NODE_FIELD(expr);
+	READ_STRING_FIELD(indexcolname);
 	READ_NODE_FIELD(opclass);
 	READ_ENUM_FIELD(ordering, SortByDir);
 	READ_ENUM_FIELD(nulls_ordering, SortByNulls);
@@ -1866,6 +1868,7 @@ _readNullTest(void)
 
 	READ_NODE_FIELD(arg);
 	READ_ENUM_FIELD(nulltesttype, NullTestType);
+	READ_BOOL_FIELD(argisrow);
 
 	READ_DONE();
 }
@@ -2171,6 +2174,7 @@ _readCreateStmt(void)
 	READ_NODE_FIELD(inhRelations);
 	READ_NODE_FIELD(inhOids);
 	READ_INT_FIELD(parentOidCount);
+	READ_NODE_FIELD(ofTypename);
 	READ_NODE_FIELD(constraints);
 
 	READ_NODE_FIELD(options);
@@ -2740,12 +2744,11 @@ _readVacuumStmt(void)
 	READ_NODE_FIELD(relation);
 	READ_NODE_FIELD(va_cols);
 
+	READ_BOOL_FIELD(skip_twophase);
 	READ_NODE_FIELD(expanded_relids);
 	READ_NODE_FIELD(appendonly_compaction_segno);
 	READ_NODE_FIELD(appendonly_compaction_insert_segno);
-	READ_BOOL_FIELD(appendonly_compaction_vacuum_cleanup);
-	READ_BOOL_FIELD(appendonly_compaction_vacuum_prepare);
-	READ_BOOL_FIELD(heap_truncate);
+	READ_ENUM_FIELD(appendonly_phase, AOVacuumPhase);
 
 	READ_DONE();
 }

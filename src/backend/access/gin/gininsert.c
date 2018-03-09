@@ -4,11 +4,11 @@
  *	  insert routines for the postgres inverted index access method.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *			$PostgreSQL: pgsql/src/backend/access/gin/gininsert.c,v 1.24 2009/10/02 21:14:04 tgl Exp $
+ *			$PostgreSQL: pgsql/src/backend/access/gin/gininsert.c,v 1.26 2010/02/11 14:29:50 teodor Exp $
  *-------------------------------------------------------------------------
  */
 
@@ -245,9 +245,7 @@ ginBuildCallback(Relation index, ItemPointer tupleId, Datum *values,
 															tupleId);
 
 	/* If we've maxed out our available memory, dump everything to the index */
-	/* Also dump if the tree seems to be getting too unbalanced */
-	if (buildstate->accum.allocatedMemory >= maintenance_work_mem * 1024L ||
-		buildstate->accum.maxdepth > GIN_MAX_TREE_DEPTH)
+	if (buildstate->accum.allocatedMemory >= maintenance_work_mem * 1024L)
 	{
 		ItemPointerData *list;
 		Datum		entry;

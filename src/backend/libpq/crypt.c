@@ -6,10 +6,10 @@
  *
  * Original coding by Todd A. Brandys
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/backend/libpq/crypt.c,v 1.78 2009/08/29 19:26:51 tgl Exp $
+ * $PostgreSQL: pgsql/src/backend/libpq/crypt.c,v 1.81 2010/02/26 02:00:42 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -61,25 +61,23 @@ hashed_passwd_verify(const Port *port, const char *role, char *client_pass)
 	bool		isnull;
 
 	/*
-	 * Disable immediate interrupts while doing database access.  (Note
-	 * we don't bother to turn this back on if we hit one of the failure
+	 * Disable immediate interrupts while doing database access.  (Note we
+	 * don't bother to turn this back on if we hit one of the failure
 	 * conditions, since we can expect we'll just exit right away anyway.)
 	 */
 	ImmediateInterruptOK = false;
 
 	/* Get role info from pg_authid */
-	roleTup = SearchSysCache(AUTHNAME,
-							 PointerGetDatum(role),
-							 0, 0, 0);
+	roleTup = SearchSysCache1(AUTHNAME, PointerGetDatum(role));
 	if (!HeapTupleIsValid(roleTup))
-		return STATUS_ERROR;					/* no such user */
+		return STATUS_ERROR;	/* no such user */
 
 	datum = SysCacheGetAttr(AUTHNAME, roleTup,
 							Anum_pg_authid_rolpassword, &isnull);
 	if (isnull)
 	{
 		ReleaseSysCache(roleTup);
-		return STATUS_ERROR;					/* user has no password */
+		return STATUS_ERROR;	/* user has no password */
 	}
 	shadow_pass = TextDatumGetCString(datum);
 
@@ -91,7 +89,7 @@ hashed_passwd_verify(const Port *port, const char *role, char *client_pass)
 	ReleaseSysCache(roleTup);
 
 	if (*shadow_pass == '\0')
-		return STATUS_ERROR;					/* empty password */
+		return STATUS_ERROR;	/* empty password */
 
 	/* Re-enable immediate response to SIGTERM/SIGINT/timeout interrupts */
 	ImmediateInterruptOK = true;

@@ -6,10 +6,10 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/relation.h,v 1.180 2009/11/28 00:46:19 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/relation.h,v 1.187 2010/07/06 19:19:00 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -202,12 +202,12 @@ typedef struct PlannerInfo
 	/*
 	 * When doing a dynamic-programming-style join search, join_rel_level[k]
 	 * is a list of all join-relation RelOptInfos of level k, and
-	 * join_cur_level is the current level.  New join-relation RelOptInfos
-	 * are automatically added to the join_rel_level[join_cur_level] list.
+	 * join_cur_level is the current level.  New join-relation RelOptInfos are
+	 * automatically added to the join_rel_level[join_cur_level] list.
 	 * join_rel_level is NULL if not in use.
 	 */
-	List	  **join_rel_level;	/* lists of join-relation RelOptInfos */
-	int			join_cur_level;	/* index of list being extended */
+	List	  **join_rel_level; /* lists of join-relation RelOptInfos */
+	int			join_cur_level; /* index of list being extended */
 
 	List	   *resultRelations;	/* integer list of RT indexes, or NIL */
 
@@ -264,6 +264,8 @@ typedef struct PlannerInfo
 
 	double		tuple_fraction; /* tuple_fraction passed to query_planner */
 
+	bool		hasInheritedTarget;		/* true if parse->resultRelation is an
+										 * inheritance child rel */
 	bool		hasJoinRTEs;	/* true if any RTEs are RTE_JOIN kind */
 	bool		hasHavingQual;	/* true if havingQual was non-null */
 	bool		hasPseudoConstantQuals; /* true if any RestrictInfo has
@@ -509,6 +511,7 @@ typedef struct RelOptInfo
 
 	/* information about a base rel (not set for join rels!) */
 	Index		relid;
+	Oid			reltablespace;	/* containing tablespace */
 	RTEKind		rtekind;		/* RELATION, SUBQUERY, or FUNCTION */
 	AttrNumber	min_attr;		/* smallest attrno of rel (often <0) */
 	AttrNumber	max_attr;		/* largest attrno of rel */
@@ -579,6 +582,7 @@ typedef struct IndexOptInfo
 	NodeTag		type;
 
 	Oid			indexoid;		/* OID of the index relation */
+	Oid			reltablespace;	/* tablespace of index (not table) */
 	RelOptInfo *rel;			/* back-link to index's table */
 
 	/* statistics from pg_class */
@@ -603,7 +607,7 @@ typedef struct IndexOptInfo
 	bool		predOK;			/* true if predicate matches query */
 	bool		unique;			/* true if a unique index */
 	bool		amoptionalkey;	/* can query omit key for the first column? */
-	bool		amsearchnulls;	/* can AM search for NULL index entries? */
+	bool		amsearchnulls;	/* can AM search for NULL/NOT NULL entries? */
 	bool		amhasgettuple;	/* does AM have amgettuple interface? */
 	bool		amhasgetbitmap; /* does AM have amgetbitmap interface? */
     bool        cdb_default_stats_used; /* true if ANALYZE needed */
@@ -1162,8 +1166,8 @@ typedef struct MergePath
 {
 	JoinPath	jpath;
 	List	   *path_mergeclauses;		/* join clauses to be used for merge */
-	List	   *outersortkeys;			/* keys for explicit sort, if any */
-	List	   *innersortkeys;			/* keys for explicit sort, if any */
+	List	   *outersortkeys;	/* keys for explicit sort, if any */
+	List	   *innersortkeys;	/* keys for explicit sort, if any */
 	bool		materialize_inner;		/* add Materialize to inner? */
 } MergePath;
 

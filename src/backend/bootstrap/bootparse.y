@@ -6,12 +6,12 @@
  *
  * Portions Copyright (c) 2006-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/bootstrap/bootparse.y,v 1.101 2009/12/07 05:22:21 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/bootstrap/bootparse.y,v 1.105 2010/02/07 20:48:09 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -199,10 +199,25 @@ Boot_CreateStmt:
 		  RPAREN
 				{
 					TupleDesc tupdesc;
+					bool	shared_relation;
+					bool	mapped_relation;
 
 					do_start();
 
 					tupdesc = CreateTupleDesc(numattr, !($6), attrtypes);
+
+					shared_relation = $5;
+
+					/*
+					 * The catalogs that use the relation mapper are the
+					 * bootstrap catalogs plus the shared catalogs.  If this
+					 * ever gets more complicated, we should invent a BKI
+					 * keyword to mark the mapped catalogs, but for now a
+					 * quick hack seems the most appropriate thing.  Note in
+					 * particular that all "nailed" heap rels (see formrdesc
+					 * in relcache.c) must be mapped.
+					 */
+					mapped_relation = ($4 || shared_relation);
 
 					if ($4)
 					{
@@ -214,13 +229,14 @@ Boot_CreateStmt:
 
 						boot_reldesc = heap_create($2,
 												   PG_CATALOG_NAMESPACE,
-												   $5 ? GLOBALTABLESPACE_OID : 0,
+												   shared_relation ? GLOBALTABLESPACE_OID : 0,
 												   $3,
 												   tupdesc,
 												   /* relam */ InvalidOid,
 												   RELKIND_RELATION,
 												   RELSTORAGE_HEAP,
-												   $5,
+												   shared_relation,
+												   mapped_relation,
 												   true);
 						elog(DEBUG4, "bootstrap relation created");
 					}
@@ -230,16 +246,18 @@ Boot_CreateStmt:
 
 						id = heap_create_with_catalog($2,
 													  PG_CATALOG_NAMESPACE,
-													  $5 ? GLOBALTABLESPACE_OID : 0,
+													  shared_relation ? GLOBALTABLESPACE_OID : 0,
 													  $3,
 													  $7,
+													  InvalidOid,
 													  BOOTSTRAP_SUPERUSERID,
 													  tupdesc,
 													  NIL,
 													  /* relam */ InvalidOid,
 													  RELKIND_RELATION,
 													  RELSTORAGE_HEAP,
-													  $5,
+													  shared_relation,
+													  mapped_relation,
 													  true,
 													  0,
 													  ONCOMMIT_NOOP,
@@ -345,6 +363,7 @@ boot_index_param:
 					IndexElem *n = makeNode(IndexElem);
 					n->name = $1;
 					n->expr = NULL;
+					n->indexcolname = NULL;
 					n->opclass = list_make1(makeString($2));
 					n->ordering = SORTBY_DEFAULT;
 					n->nulls_ordering = SORTBY_NULLS_DEFAULT;

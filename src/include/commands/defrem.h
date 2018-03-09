@@ -4,10 +4,10 @@
  *	  POSTGRES define and remove utility definitions.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/commands/defrem.h,v 1.98 2009/12/07 05:22:23 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/commands/defrem.h,v 1.102 2010/07/03 13:53:13 rhaas Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -50,6 +50,10 @@ extern char *ChooseRelationName(const char *name1, const char *name2,
 extern char *ChooseRelationNameWithCache(const char *name1, const char *name2,
 								const char *label, Oid namespaceid, 
 								struct HTAB *cache);
+extern char *ChooseIndexName(const char *tabname, Oid namespaceId,
+				List *colnames, List *exclusionOpNames,
+				bool primary, bool isconstraint);
+extern List *ChooseIndexColumnNames(List *indexElems);
 extern Oid	GetDefaultOpClass(Oid type_id, Oid am_id);
 
 /* commands/functioncmds.c */

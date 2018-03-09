@@ -3,12 +3,12 @@
  * nbtinsert.c
  *	  Item insertion in Lehman and Yao btrees for Postgres.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtinsert.c,v 1.174 2009/10/02 21:14:04 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtinsert.c,v 1.178 2010/03/28 09:27:01 sriggs Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -59,7 +59,8 @@ static void _bt_findinsertloc(Relation rel,
 				  OffsetNumber *offsetptr,
 				  int keysz,
 				  ScanKey scankey,
-				  IndexTuple newtup);
+				  IndexTuple newtup,
+				  Relation heapRel);
 static void _bt_insertonpg(Relation rel, Buffer buf,
 			   BTStack stack,
 			   IndexTuple itup,
@@ -79,7 +80,7 @@ static bool _bt_pgaddtup(Page page, Size itemsize, IndexTuple itup,
 			 OffsetNumber itup_off);
 static bool _bt_isequal(TupleDesc itupdesc, Page page, OffsetNumber offnum,
 			int keysz, ScanKey scankey);
-static void _bt_vacuum_one_page(Relation rel, Buffer buffer);
+static void _bt_vacuum_one_page(Relation rel, Buffer buffer, Relation heapRel);
 
 
 /*
@@ -89,7 +90,7 @@ static void _bt_vacuum_one_page(Relation rel, Buffer buffer);
  *		and btinsert.  By here, itup is filled in, including the TID.
  *
  *		If checkUnique is UNIQUE_CHECK_NO or UNIQUE_CHECK_PARTIAL, this
- *		will allow duplicates.  Otherwise (UNIQUE_CHECK_YES or
+ *		will allow duplicates.	Otherwise (UNIQUE_CHECK_YES or
  *		UNIQUE_CHECK_EXISTING) it will throw error for a duplicate.
  *		For UNIQUE_CHECK_EXISTING we merely run the duplicate check, and
  *		don't actually insert.
@@ -150,9 +151,9 @@ top:
 	 * If we must wait for another xact, we release the lock while waiting,
 	 * and then must start over completely.
 	 *
-	 * For a partial uniqueness check, we don't wait for the other xact.
-	 * Just let the tuple in and return false for possibly non-unique,
-	 * or true for definitely unique.
+	 * For a partial uniqueness check, we don't wait for the other xact. Just
+	 * let the tuple in and return false for possibly non-unique, or true for
+	 * definitely unique.
 	 */
 	if (checkUnique != UNIQUE_CHECK_NO)
 	{
@@ -181,7 +182,7 @@ top:
 	if (checkUnique != UNIQUE_CHECK_EXISTING)
 	{
 		/* do the insertion */
-		_bt_findinsertloc(rel, &buf, &offset, natts, itup_scankey, itup);
+		_bt_findinsertloc(rel, &buf, &offset, natts, itup_scankey, itup, heapRel);
 		_bt_insertonpg(rel, buf, stack, itup, offset, false);
 	}
 	else
@@ -461,12 +462,12 @@ _bt_check_unique(Relation rel, IndexTuple itup, Relation heapRel,
 						}
 
 						/*
-						 * This is a definite conflict.  Break the tuple down
-						 * into datums and report the error.  But first, make
-						 * sure we release the buffer locks we're holding ---
+						 * This is a definite conflict.  Break the tuple down into
+						 * datums and report the error.  But first, make sure we
+						 * release the buffer locks we're holding ---
 						 * BuildIndexValueDescription could make catalog accesses,
-						 * which in the worst case might touch this same index
-						 * and cause deadlocks.
+						 * which in the worst case might touch this same index and
+						 * cause deadlocks.
 						 */
 						if (nbuf != InvalidBuffer)
 							_bt_relbuf(rel, nbuf);
@@ -538,16 +539,16 @@ _bt_check_unique(Relation rel, IndexTuple itup, Relation heapRel,
 	}
 
 	/*
-	 * If we are doing a recheck then we should have found the tuple we
-	 * are checking.  Otherwise there's something very wrong --- probably,
-	 * the index is on a non-immutable expression.
+	 * If we are doing a recheck then we should have found the tuple we are
+	 * checking.  Otherwise there's something very wrong --- probably, the
+	 * index is on a non-immutable expression.
 	 */
 	if (checkUnique == UNIQUE_CHECK_EXISTING && !found)
 		ereport(ERROR,
 				(errcode(ERRCODE_INTERNAL_ERROR),
 				 errmsg("failed to re-find tuple within index \"%s\"",
 						RelationGetRelationName(rel)),
-				 errhint("This may be because of a non-immutable index expression.")));
+		errhint("This may be because of a non-immutable index expression.")));
 
 	if (nbuf != InvalidBuffer)
 		_bt_relbuf(rel, nbuf);
@@ -591,7 +592,8 @@ _bt_findinsertloc(Relation rel,
 				  OffsetNumber *offsetptr,
 				  int keysz,
 				  ScanKey scankey,
-				  IndexTuple newtup)
+				  IndexTuple newtup,
+				  Relation heapRel)
 {
 	Buffer		buf = *bufptr;
 	Page		page = BufferGetPage(buf);
@@ -618,10 +620,10 @@ _bt_findinsertloc(Relation rel,
 	if (itemsz > BTMaxItemSize(page))
 		ereport(ERROR,
 				(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-				 errmsg("index row size %lu exceeds maximum %lu for index \"%s\"",
-						(unsigned long) itemsz,
-						(unsigned long) BTMaxItemSize(page),
-						RelationGetRelationName(rel)),
+			errmsg("index row size %lu exceeds maximum %lu for index \"%s\"",
+				   (unsigned long) itemsz,
+				   (unsigned long) BTMaxItemSize(page),
+				   RelationGetRelationName(rel)),
 		errhint("Values larger than 1/3 of a buffer page cannot be indexed.\n"
 				"Consider a function index of an MD5 hash of the value, "
 				"or use full text indexing.")));
@@ -656,7 +658,7 @@ _bt_findinsertloc(Relation rel,
 		 */
 		if (P_ISLEAF(lpageop) && P_HAS_GARBAGE(lpageop))
 		{
-			_bt_vacuum_one_page(rel, buf);
+			_bt_vacuum_one_page(rel, buf, heapRel);
 
 			/*
 			 * remember that we vacuumed this page, because that makes the
@@ -2160,7 +2162,7 @@ _bt_isequal(TupleDesc itupdesc, Page page, OffsetNumber offnum,
  * super-exclusive "cleanup" lock (see nbtree/README).
  */
 static void
-_bt_vacuum_one_page(Relation rel, Buffer buffer)
+_bt_vacuum_one_page(Relation rel, Buffer buffer, Relation heapRel)
 {
 	OffsetNumber deletable[MaxOffsetNumber];
 	int			ndeletable = 0;
@@ -2187,7 +2189,7 @@ _bt_vacuum_one_page(Relation rel, Buffer buffer)
 	}
 
 	if (ndeletable > 0)
-		_bt_delitems(rel, buffer, deletable, ndeletable, false);
+		_bt_delitems_delete(rel, buffer, deletable, ndeletable, heapRel);
 
 	/*
 	 * Note: if we didn't find any LP_DEAD items, then the page's

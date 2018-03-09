@@ -9,10 +9,10 @@
  *
  * Portions Copyright (c) 2005-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/primnodes.h,v 1.152 2009/12/15 17:57:47 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/primnodes.h,v 1.156 2010/02/26 02:01:25 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -240,7 +240,7 @@ typedef enum AggStage
  * ressortgroupref indexes to let them be referenced by SortGroupClause
  * entries in the aggorder and/or aggdistinct lists.  This represents ORDER BY
  * and DISTINCT operations to be applied to the aggregate input rows before
- * they are passed to the transition function.  The grammar only allows a
+ * they are passed to the transition function.	The grammar only allows a
  * simple "DISTINCT" specifier for the arguments, but we use the full
  * query-level representation to allow more code sharing.
  *
@@ -1078,9 +1078,7 @@ typedef OpExpr NullIfExpr;
  * The appropriate test is performed and returned as a boolean Datum.
  *
  * NOTE: the semantics of this for rowtype inputs are noticeably different
- * from the scalar case.  It would probably be a good idea to include an
- * "argisrow" flag in the struct to reflect that, but for the moment,
- * we do not do so to avoid forcing an initdb during 8.2beta.
+ * from the scalar case.  We provide an "argisrow" flag to reflect that.
  * ----------------
  */
 
@@ -1094,6 +1092,7 @@ typedef struct NullTest
 	Expr		xpr;
 	Expr	   *arg;			/* input expression */
 	NullTestType nulltesttype;	/* IS NULL, IS NOT NULL */
+	bool		argisrow;		/* T if input is of a composite type */
 } NullTest;
 
 /*

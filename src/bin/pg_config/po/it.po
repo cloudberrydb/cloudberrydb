@@ -11,16 +11,16 @@
 # Revisori:
 #  * Emanuele Zamprogno <emanuele.zamprogno@itpug.org>
 #
-# Copyright (c) 2009, Associazione Culturale ITPUG
+# Copyright (c) 2010, Associazione Culturale ITPUG
 # Distributed under the same license of the PostgreSQL project
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: PostgreSQL 8.4\n"
 "Report-Msgid-Bugs-To: pgsql-bugs@postgresql.org\n"
-"POT-Creation-Date: 2009-07-08 19:55+0000\n"
-"PO-Revision-Date: 2009-07-18 03:26:17+0200\n"
-"Last-Translator: Cosimo d'Arcangelo <cosimodarcangelo@gmail.com>\n"
+"POT-Creation-Date: 2010-03-26 13:17+0000\n"
+"PO-Revision-Date: 2010-03-27 12:44:19+0100\n"
+"Last-Translator: Gabriele Bartolini <gabriele.bartolini@2ndquadrant.it>\n"
 "Language-Team: Gruppo traduzioni ITPUG <traduzioni@itpug.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -226,60 +226,60 @@ msgstr "%s: programma eseguibile proprio non trovato\n"
 msgid "%s: invalid argument: %s\n"
 msgstr "%s: parametro invalido: %s\n"
 
-#: ../../port/exec.c:195
-#: ../../port/exec.c:309
-#: ../../port/exec.c:352
+#: ../../port/exec.c:125
+#: ../../port/exec.c:239
+#: ../../port/exec.c:282
 #, c-format
 msgid "could not identify current directory: %s"
 msgstr "directory corrente non identificata: %s"
 
-#: ../../port/exec.c:214
+#: ../../port/exec.c:144
 #, c-format
 msgid "invalid binary \"%s\""
 msgstr "binario invalido \"%s\""
 
-#: ../../port/exec.c:263
+#: ../../port/exec.c:193
 #, c-format
 msgid "could not read binary \"%s\""
 msgstr "binario non leggibile \"%s\""
 
-#: ../../port/exec.c:270
+#: ../../port/exec.c:200
 #, c-format
 msgid "could not find a \"%s\" to execute"
 msgstr "non trovato un  \"%s\" da eseguire"
 
-#: ../../port/exec.c:325
-#: ../../port/exec.c:361
+#: ../../port/exec.c:255
+#: ../../port/exec.c:291
 #, c-format
 msgid "could not change directory to \"%s\""
 msgstr "directory non modificabile in \"%s\""
 
-#: ../../port/exec.c:340
+#: ../../port/exec.c:270
 #, c-format
 msgid "could not read symbolic link \"%s\""
 msgstr "link simbolico non leggibile \"%s\""
 
-#: ../../port/exec.c:586
+#: ../../port/exec.c:516
 #, c-format
 msgid "child process exited with exit code %d"
 msgstr "processo figlio uscito con codice d'uscita %d"
 
-#: ../../port/exec.c:590
+#: ../../port/exec.c:520
 #, c-format
 msgid "child process was terminated by exception 0x%X"
 msgstr "processo figlio terminato da eccezione 0x%X"
 
-#: ../../port/exec.c:599
+#: ../../port/exec.c:529
 #, c-format
 msgid "child process was terminated by signal %s"
 msgstr "processo figlio terminato da segnale %s"
 
-#: ../../port/exec.c:602
+#: ../../port/exec.c:532
 #, c-format
 msgid "child process was terminated by signal %d"
 msgstr "processo figlio terminato da segnale %d"
 
-#: ../../port/exec.c:606
+#: ../../port/exec.c:536
 #, c-format
 msgid "child process exited with unrecognized status %d"
 msgstr "processo figlio uscito con stato non riconosciuto %d"

@@ -3,12 +3,12 @@
  * pg_largeobject.c
  *	  routines to support manipulation of the pg_largeobject relation
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/pg_largeobject.c,v 1.34 2009/12/11 03:34:55 itagaki Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/pg_largeobject.c,v 1.40 2010/06/09 21:14:28 rhaas Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -79,10 +79,8 @@ LargeObjectCreate(Oid loid)
 }
 
 /*
- * Drop a large object having the given LO identifier.
- *
- * When we drop a large object, it is necessary to drop both of metadata
- * and data pages in same time.
+ * Drop a large object having the given LO identifier.	Both the data pages
+ * and metadata must be dropped.
  */
 void
 LargeObjectDrop(Oid loid)
@@ -105,7 +103,7 @@ LargeObjectDrop(Oid loid)
 	ScanKeyInit(&skey[0],
 				ObjectIdAttributeNumber,
 				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(loid));	
+				ObjectIdGetDatum(loid));
 
 	scan = systable_beginscan(pg_lo_meta,
 							  LargeObjectMetadataOidIndexId, true,
@@ -152,10 +150,10 @@ LargeObjectDrop(Oid loid)
 void
 LargeObjectAlterOwner(Oid loid, Oid newOwnerId)
 {
-	Form_pg_largeobject_metadata	form_lo_meta;
+	Form_pg_largeobject_metadata form_lo_meta;
 	Relation	pg_lo_meta;
-	ScanKeyData	skey[1];
-	SysScanDesc	scan;
+	ScanKeyData skey[1];
+	SysScanDesc scan;
 	HeapTuple	oldtup;
 	HeapTuple	newtup;
 
@@ -191,13 +189,11 @@ LargeObjectAlterOwner(Oid loid, Oid newOwnerId)
 		if (!superuser())
 		{
 			/*
-			 * The 'lo_compat_privileges' is not checked here, because we
-			 * don't have any access control features in the 8.4.x series
-			 * or earlier release.
-			 * So, it is not a place we can define a compatible behavior.
+			 * lo_compat_privileges is not checked here, because ALTER LARGE
+			 * OBJECT ... OWNER did not exist at all prior to PostgreSQL 9.0.
+			 *
+			 * We must be the owner of the existing object.
 			 */
-
-			/* Otherwise, must be owner of the existing object */
 			if (!pg_largeobject_ownercheck(loid, GetUserId()))
 				ereport(ERROR,
 						(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
@@ -216,8 +212,8 @@ LargeObjectAlterOwner(Oid loid, Oid newOwnerId)
 		replaces[Anum_pg_largeobject_metadata_lomowner - 1] = true;
 
 		/*
-		 * Determine the modified ACL for the new owner.
-		 * This is only necessary when the ACL is non-null.
+		 * Determine the modified ACL for the new owner. This is only
+		 * necessary when the ACL is non-null.
 		 */
 		aclDatum = heap_getattr(oldtup,
 								Anum_pg_largeobject_metadata_lomacl,
@@ -251,20 +247,21 @@ LargeObjectAlterOwner(Oid loid, Oid newOwnerId)
 /*
  * LargeObjectExists
  *
- * Currently, we don't use system cache to contain metadata of
- * large objects, because massive number of large objects can
- * consume not a small amount of process local memory.
+ * We don't use the system cache for large object metadata, for fear of
+ * using too much local memory.
  *
- * Note that LargeObjectExists always scans the system catalog
- * with SnapshotNow, so it is unavailable to use to check
- * existence in read-only accesses.
+ * This function always scans the system catalog using SnapshotNow, so it
+ * should not be used when a large object is opened in read-only mode (because
+ * large objects opened in read only mode are supposed to be viewed relative
+ * to the caller's snapshot, whereas in read-write mode they are relative to
+ * SnapshotNow).
  */
 bool
 LargeObjectExists(Oid loid)
 {
 	Relation	pg_lo_meta;
-	ScanKeyData	skey[1];
-	SysScanDesc	sd;
+	ScanKeyData skey[1];
+	SysScanDesc sd;
 	HeapTuple	tuple;
 	bool		retval = false;
 

@@ -4,12 +4,12 @@
  * nodeSeqscan.c
  *	  Support routines for sequential scans of relations.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeSeqscan.c,v 1.68 2009/10/26 02:26:31 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeSeqscan.c,v 1.70 2010/02/26 02:00:42 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -93,9 +93,8 @@ static bool
 SeqRecheck(SeqScanState *node, TupleTableSlot *slot)
 {
 	/*
-	 * Note that unlike IndexScan, SeqScan never use keys in
-	 * heap_beginscan (and this is very bad) - so, here we do not check
-	 * are keys ok or not.
+	 * Note that unlike IndexScan, SeqScan never use keys in heap_beginscan
+	 * (and this is very bad) - so, here we do not check are keys ok or not.
 	 */
 	return true;
 }

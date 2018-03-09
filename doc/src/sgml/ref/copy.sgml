@@ -1,12 +1,12 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/copy.sgml,v 1.92 2009/09/21 20:10:21 tgl Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/copy.sgml,v 1.99 2010/06/17 17:03:57 tgl Exp $
 PostgreSQL documentation
 -->
 
 
 <refentry id="SQL-COPY">
  <refmeta>
-  <refentrytitle id="sql-copy-title">COPY</refentrytitle>
+  <refentrytitle>COPY</refentrytitle>
   <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
@@ -112,8 +112,8 @@ COPY { <replaceable class="parameter">table_name</replaceable> [ ( <replaceable 
     <term><replaceable class="parameter">query</replaceable></term>
     <listitem>
      <para>
-      A <xref linkend="sql-select" endterm="sql-select-title"> or
-      <xref linkend="sql-values" endterm="sql-values-title"> command
+      A <xref linkend="sql-select"> or
+      <xref linkend="sql-values"> command
       whose results are to be copied.
       Note that parentheses are required around the query.
      </para>
@@ -337,6 +337,16 @@ COPY <replaceable class="parameter">count</replaceable>
    </para>
 
    <para>
+    <command>COPY</command> only deals with the specific table named;
+    it does not copy data to or from child tables.  Thus for example
+    <literal>COPY <replaceable class="parameter">table</> TO</literal>
+    shows the same data as <literal>SELECT * FROM ONLY <replaceable
+    class="parameter">table</></literal>.  But <literal>COPY
+    (SELECT * FROM <replaceable class="parameter">table</>) TO ...</literal>
+    can be used to dump all of the data in an inheritance hierarchy.
+   </para>
+
+   <para>
     You must have select privilege on the table
     whose values are read by <command>COPY TO</command>, and
     insert privilege on the table into which values
@@ -405,9 +415,9 @@ COPY <replaceable class="parameter">count</replaceable>
 
    <para>
     Input data is interpreted according to the current client encoding,
-    and output data is encoded in the the current client encoding, even
+    and output data is encoded in the current client encoding, even
     if the data does not pass through the client but is read from or
-    written to a file.
+    written to a file directly by the server.
    </para>
 
    <para>
@@ -884,7 +894,7 @@ ZW      ZIMBABWE
 
   <para>
    The following syntax was used before <productname>PostgreSQL</>
-   version 8.5 and is still supported:
+   version 9.0 and is still supported:
 
 <synopsis>
 COPY <replaceable class="parameter">table_name</replaceable> [ ( <replaceable class="parameter">column</replaceable> [, ...] ) ]
@@ -897,7 +907,7 @@ COPY <replaceable class="parameter">table_name</replaceable> [ ( <replaceable cl
           [ CSV [ HEADER ]
                 [ QUOTE [ AS ] '<replaceable class="parameter">quote</replaceable>' ]
                 [ ESCAPE [ AS ] '<replaceable class="parameter">escape</replaceable>' ]
-                [ FORCE NOT NULL <replaceable class="parameter">column</replaceable> [, ...] ]
+                [ FORCE NOT NULL <replaceable class="parameter">column</replaceable> [, ...] ] ] ]
 
 COPY { <replaceable class="parameter">table_name</replaceable> [ ( <replaceable class="parameter">column</replaceable> [, ...] ) ] | ( <replaceable class="parameter">query</replaceable> ) }
     TO { '<replaceable class="parameter">filename</replaceable>' | STDOUT }
@@ -909,7 +919,7 @@ COPY { <replaceable class="parameter">table_name</replaceable> [ ( <replaceable 
           [ CSV [ HEADER ]
                 [ QUOTE [ AS ] '<replaceable class="parameter">quote</replaceable>' ]
                 [ ESCAPE [ AS ] '<replaceable class="parameter">escape</replaceable>' ]
-                [ FORCE QUOTE { <replaceable class="parameter">column</replaceable> [, ...] | * } ]
+                [ FORCE QUOTE { <replaceable class="parameter">column</replaceable> [, ...] | * } ] ] ]
 </synopsis>
 
    Note that in this syntax, <literal>BINARY</> and <literal>CSV</> are

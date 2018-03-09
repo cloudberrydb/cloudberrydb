@@ -677,6 +677,7 @@ _outCreateStmt(StringInfo str, CreateStmt *node)
 	WRITE_NODE_FIELD(inhRelations);
 	WRITE_NODE_FIELD(inhOids);
 	WRITE_INT_FIELD(parentOidCount);
+	WRITE_NODE_FIELD(ofTypename);
 	WRITE_NODE_FIELD(constraints);
 	WRITE_NODE_FIELD(options);
 	WRITE_ENUM_FIELD(oncommit, OnCommitAction);

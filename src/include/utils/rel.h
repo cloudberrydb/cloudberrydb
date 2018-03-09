@@ -6,10 +6,10 @@
  *
  * Portions Copyright (c) 2005-2009, Greenplum inc.
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/rel.h,v 1.117 2009/12/07 05:22:23 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/utils/rel.h,v 1.124 2010/02/26 02:01:29 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -59,7 +59,7 @@ typedef struct Trigger
 	Oid			tgfoid;
 	int16		tgtype;
 	char		tgenabled;
-	bool		tgisconstraint;
+	bool		tgisinternal;
 	Oid			tgconstrrelid;
 	Oid			tgconstrindid;
 	Oid			tgconstraint;
@@ -128,8 +128,6 @@ typedef struct RelationData
 	RelFileNode rd_node;		/* relation physical identifier */
 	/* use "struct" here to avoid needing to include smgr.h: */
 	struct SMgrRelationData *rd_smgr;	/* cached file handle, or NULL */
-	BlockNumber rd_targblock;	/* current insertion target block, or
-								 * InvalidBlockNumber */
 	int			rd_refcnt;		/* reference count */
 	bool		rd_istemp;		/* CDB: true => skip locking, logging, fsync */
 	bool		rd_islocaltemp; /* rel is a temp rel of this session */
@@ -138,9 +136,6 @@ typedef struct RelationData
 	bool		rd_isvalid;		/* relcache entry is valid */
 	char		rd_indexvalid;	/* state of rd_indexlist: 0 = not valid, 1 =
 								 * valid, 2 = temporarily forced */
-	SubTransactionId rd_createSubid;	/* rel was created in current xact */
-	SubTransactionId rd_newRelfilenodeSubid;	/* new relfilenode assigned in
-												 * current xact */
 
 	/*
 	 * rd_createSubid is the ID of the highest subtransaction the rel has
@@ -151,6 +146,10 @@ typedef struct RelationData
 	 * subtransaction the relfilenode change has survived into, or zero if not
 	 * changed in the current transaction (or we have forgotten changing it).
 	 */
+	SubTransactionId rd_createSubid;	/* rel was created in current xact */
+	SubTransactionId rd_newRelfilenodeSubid;	/* new relfilenode assigned in
+												 * current xact */
+
 	Form_pg_class rd_rel;		/* RELATION tuple */
 	TupleDesc	rd_att;			/* tuple descriptor */
 	Oid			rd_id;			/* relation's object id */
@@ -174,8 +173,8 @@ typedef struct RelationData
 
 	/* These are non-NULL only for an index relation: */
 	Form_pg_index rd_index;		/* pg_index tuple describing this index */
+	/* use "struct" here to avoid needing to include htup.h: */
 	struct HeapTupleData *rd_indextuple;		/* all of pg_index tuple */
-	/* "struct HeapTupleData *" avoids need to include htup.h here	*/
 	Form_pg_am	rd_am;			/* pg_am tuple for index's AM */
 
 	/*
@@ -209,11 +208,14 @@ typedef struct RelationData
 	void	   *rd_amcache;		/* available for use by index AM */
 
 	/*
-	 * sizes of the free space and visibility map forks, or InvalidBlockNumber
-	 * if not known yet
+	 * Hack for CLUSTER, rewriting ALTER TABLE, etc: when writing a new
+	 * version of a table, we need to make any toast pointers inserted into it
+	 * have the existing toast table's OID, not the OID of the transient toast
+	 * table.  If rd_toastoid isn't InvalidOid, it is the OID to place in
+	 * toast pointers inserted into this rel.  (Note it's set on the new
+	 * version of the main heap, not the toast table itself.)
 	 */
-	BlockNumber rd_fsm_nblocks;
-	BlockNumber rd_vm_nblocks;
+	Oid			rd_toastoid;	/* Real TOAST table's OID, or InvalidOid */
 
 	/*
 	 * AO table support info (used only for AO and AOCS relations)
@@ -392,6 +394,16 @@ typedef struct StdRdOptions
 	((relation)->rd_rel->relnamespace)
 
 /*
+ * RelationIsMapped
+ *		True if the relation uses the relfilenode map.
+ *
+ * NB: this is only meaningful for relkinds that have storage, else it
+ * will misleadingly say "true".
+ */
+#define RelationIsMapped(relation) \
+	((relation)->rd_rel->relfilenode == InvalidOid)
+
+/*
  * RelationOpenSmgr
  *		Open the relation at the smgr level, if not already done.
  */
@@ -414,6 +426,26 @@ typedef struct StdRdOptions
 			smgrclose((relation)->rd_smgr); \
 			Assert((relation)->rd_smgr == NULL); \
 		} \
+	} while (0)
+
+/*
+ * RelationGetTargetBlock
+ *		Fetch relation's current insertion target block.
+ *
+ * Returns InvalidBlockNumber if there is no current target block.	Note
+ * that the target block status is discarded on any smgr-level invalidation.
+ */
+#define RelationGetTargetBlock(relation) \
+	( (relation)->rd_smgr != NULL ? (relation)->rd_smgr->smgr_targblock : InvalidBlockNumber )
+
+/*
+ * RelationSetTargetBlock
+ *		Set relation's current insertion target block.
+ */
+#define RelationSetTargetBlock(relation, targblock) \
+	do { \
+		RelationOpenSmgr(relation); \
+		(relation)->rd_smgr->smgr_targblock = (targblock); \
 	} while (0)
 
 /*

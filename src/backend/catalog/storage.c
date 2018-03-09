@@ -3,12 +3,12 @@
  * storage.c
  *	  code to create and destroy physical storage for relations
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/storage.c,v 1.6 2009/06/11 14:48:55 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/storage.c,v 1.10 2010/02/09 21:43:30 tgl Exp $
  *
  * NOTES
  *	  Some of this code used to be in storage/smgr/smgr.c, and the
@@ -109,8 +109,7 @@ RelationCreateStorage(RelFileNode rnode, bool isLocalBuf)
 	if (!isLocalBuf)
 	{
 		/*
-		 * Make an XLOG entry showing the file creation.  If we abort, the
-		 * file will be dropped at abort time.
+		 * Make an XLOG entry reporting the file creation.
 		 */
 		xlrec.rnode = rnode;
 
@@ -166,6 +165,52 @@ RelationDropStorage(Relation rel)
 }
 
 /*
+ * RelationPreserveStorage
+ *		Mark a relation as not to be deleted after all.
+ *
+ * We need this function because relation mapping changes are committed
+ * separately from commit of the whole transaction, so it's still possible
+ * for the transaction to abort after the mapping update is done.
+ * When a new physical relation is installed in the map, it would be
+ * scheduled for delete-on-abort, so we'd delete it, and be in trouble.
+ * The relation mapper fixes this by telling us to not delete such relations
+ * after all as part of its commit.
+ *
+ * No-op if the relation is not among those scheduled for deletion.
+ */
+void
+RelationPreserveStorage(RelFileNode rnode)
+{
+	PendingRelDelete *pending;
+	PendingRelDelete *prev;
+	PendingRelDelete *next;
+
+	prev = NULL;
+	for (pending = pendingDeletes; pending != NULL; pending = next)
+	{
+		next = pending->next;
+		if (RelFileNodeEquals(rnode, pending->relnode))
+		{
+			/* we should only find delete-on-abort entries, else trouble */
+			if (pending->atCommit)
+				elog(ERROR, "cannot preserve a delete-on-commit relation");
+			/* unlink and delete list entry */
+			if (prev)
+				prev->next = next;
+			else
+				pendingDeletes = next;
+			pfree(pending);
+			/* prev does not change */
+		}
+		else
+		{
+			/* unrelated entry, don't touch it */
+			prev = pending;
+		}
+	}
+}
+
+/*
  * RelationTruncate
  *		Physically truncate a relation to the specified number of blocks.
  *
@@ -181,8 +226,12 @@ RelationTruncate(Relation rel, BlockNumber nblocks)
 	/* Open it at the smgr level if not already done */
 	RelationOpenSmgr(rel);
 
-	/* Make sure rd_targblock isn't pointing somewhere past end */
-	rel->rd_targblock = InvalidBlockNumber;
+	/*
+	 * Make sure smgr_targblock etc aren't pointing somewhere past new end
+	 */
+	rel->rd_smgr->smgr_targblock = InvalidBlockNumber;
+	rel->rd_smgr->smgr_fsm_nblocks = InvalidBlockNumber;
+	rel->rd_smgr->smgr_vm_nblocks = InvalidBlockNumber;
 
 	/* Truncate the FSM first if it exists */
 	fsm = smgrexists(rel->rd_smgr, FSM_FORKNUM);
@@ -200,13 +249,13 @@ RelationTruncate(Relation rel, BlockNumber nblocks)
 	 * likely isn't going to succeed in the truncation either, and cause a
 	 * PANIC. It's tempting to put a critical section here, but that cure
 	 * would be worse than the disease. It would turn a usually harmless
-	 * failure to truncate, that could spell trouble at WAL replay, into a
+	 * failure to truncate, that might spell trouble at WAL replay, into a
 	 * certain PANIC.
 	 */
 	if (!rel->rd_istemp)
 	{
 		/*
-		 * Make an XLOG entry showing the file truncation.
+		 * Make an XLOG entry reporting the file truncation.
 		 */
 		XLogRecPtr	lsn;
 		XLogRecData rdata;
@@ -270,10 +319,8 @@ smgrDoPendingDeletes(bool isCommit)
 			/* do deletion if called for */
 			if (pending->atCommit == isCommit)
 			{
-				int			i;
-
-				/* schedule unlinking old files */
 				SMgrRelation srel;
+				int			i;
 
 				srel = smgropen(pending->relnode);
 				for (i = 0; i <= MAX_FORKNUM; i++)
@@ -415,6 +462,7 @@ smgr_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 	{
 		xl_smgr_truncate *xlrec = (xl_smgr_truncate *) XLogRecGetData(record);
 		SMgrRelation reln;
+		Relation	rel;
 
 		reln = smgropen(xlrec->rnode);
 
@@ -449,15 +497,15 @@ smgr_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 		/* Also tell xlogutils.c about it */
 		XLogTruncateRelation(xlrec->rnode, MAIN_FORKNUM, xlrec->blkno);
 
-		/* Truncate FSM too */
+		/* Truncate FSM and VM too */
+		rel = CreateFakeRelcacheEntry(xlrec->rnode);
+
 		if (smgrexists(reln, FSM_FORKNUM))
-		{
-			Relation	rel = CreateFakeRelcacheEntry(xlrec->rnode);
-
 			FreeSpaceMapTruncateRel(rel, xlrec->blkno);
-			FreeFakeRelcacheEntry(rel);
-		}
+		if (smgrexists(reln, VISIBILITYMAP_FORKNUM))
+			visibilitymap_truncate(rel, xlrec->blkno);
 
+		FreeFakeRelcacheEntry(rel);
 	}
 	else
 		elog(PANIC, "smgr_redo: unknown op code %u", info);

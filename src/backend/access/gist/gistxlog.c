@@ -4,11 +4,11 @@
  *	  WAL replay logic for GiST.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *			 $PostgreSQL: pgsql/src/backend/access/gist/gistxlog.c,v 1.32 2009/01/20 18:59:36 heikki Exp $
+ *			 $PostgreSQL: pgsql/src/backend/access/gist/gistxlog.c,v 1.35 2010/01/02 16:57:34 momjian Exp $
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
@@ -392,6 +392,12 @@ gist_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 {
 	uint8		info = record->xl_info & ~XLR_INFO_MASK;
 	MemoryContext oldCxt;
+
+	/*
+	 * GIST indexes do not require any conflict processing. NB: If we ever
+	 * implement a similar optimization we have in b-tree, and remove killed
+	 * tuples outside VACUUM, we'll need to handle that here.
+	 */
 
 	RestoreBkpBlocks(lsn, record, false);
 

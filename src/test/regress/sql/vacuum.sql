@@ -40,5 +40,18 @@ DELETE FROM vactst;
 SELECT i FROM vactst ORDER BY 1;
 
 VACUUM (FULL, FREEZE) vactst;
+VACUUM (ANALYZE, FULL) vactst;
 
+CREATE TABLE vaccluster (i INT PRIMARY KEY);
+ALTER TABLE vaccluster CLUSTER ON vaccluster_pkey;
+INSERT INTO vaccluster SELECT i FROM vactst;
+CLUSTER vaccluster;
+
+VACUUM FULL pg_am;
+VACUUM FULL pg_class;
+VACUUM FULL pg_database;
+VACUUM FULL vaccluster;
+VACUUM FULL vactst;
+
+DROP TABLE vaccluster;
 DROP TABLE vactst;

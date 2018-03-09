@@ -3,12 +3,12 @@
  *
  * gram.y				- Parser for the PL/pgSQL procedural language
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/gram.y,v 1.136 2009/11/13 22:43:40 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/gram.y,v 1.143 2010/06/25 16:40:13 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -22,7 +22,6 @@
 #include "parser/scanner.h"
 #include "parser/scansup.h"
 
-#include "cdb/cdbvars.h"
 
 /* Location tracking support --- simpler than bison's default */
 #define YYLLOC_DEFAULT(Current, Rhs, N) \
@@ -57,7 +56,9 @@ union YYSTYPE;					/* need forward reference for tok_is_keyword */
 
 static	bool			tok_is_keyword(int token, union YYSTYPE *lval,
 									   int kw_token, const char *kw_str);
-static	void			token_is_not_variable(int tok);
+static	void			word_is_not_variable(PLword *word, int location);
+static	void			cword_is_not_variable(PLcword *cword, int location);
+static	void			current_token_is_not_variable(int tok);
 static	PLpgSQL_expr	*read_sql_construct(int until,
 											int until2,
 											int until3,
@@ -169,7 +170,6 @@ static	List			*read_raise_options(void);
 %type <datum>	decl_cursor_args
 %type <list>	decl_cursor_arglist
 %type <nsitem>	decl_aliasitem
-%type <str>		decl_stmts decl_stmt
 
 %type <expr>	expr_until_semi expr_until_rightbracket
 %type <expr>	expr_until_then expr_until_loop opt_expr_until_when
@@ -370,25 +370,22 @@ pl_block		: decl_sect K_BEGIN proc_sect exception_sect K_END opt_label
 decl_sect		: opt_block_label
 					{
 						/* done with decls, so resume identifier lookup */
-						plpgsql_LookupIdentifiers = true;
+						plpgsql_IdentifierLookup = IDENTIFIER_LOOKUP_NORMAL;
 						$$.label	  = $1;
 						$$.n_initvars = 0;
 						$$.initvarnos = NULL;
 					}
 				| opt_block_label decl_start
 					{
-						plpgsql_LookupIdentifiers = true;
+						plpgsql_IdentifierLookup = IDENTIFIER_LOOKUP_NORMAL;
 						$$.label	  = $1;
 						$$.n_initvars = 0;
 						$$.initvarnos = NULL;
 					}
 				| opt_block_label decl_start decl_stmts
 					{
-						plpgsql_LookupIdentifiers = true;
-						if ($3 != NULL)
-							$$.label = $3;
-						else
-							$$.label = $1;
+						plpgsql_IdentifierLookup = IDENTIFIER_LOOKUP_NORMAL;
+						$$.label	  = $1;
 						/* Remember variables declared in decl_stmts */
 						$$.n_initvars = plpgsql_add_initdatums(&($$.initvarnos));
 					}
@@ -402,22 +399,30 @@ decl_start		: K_DECLARE
 						 * Disable scanner lookup of identifiers while
 						 * we process the decl_stmts
 						 */
-						plpgsql_LookupIdentifiers = false;
+						plpgsql_IdentifierLookup = IDENTIFIER_LOOKUP_DECLARE;
 					}
 				;
 
 decl_stmts		: decl_stmts decl_stmt
-					{	$$ = $2;	}
 				| decl_stmt
-					{	$$ = $1;	}
 				;
 
-decl_stmt		: LESS_LESS any_identifier GREATER_GREATER
-					{	$$ = $2;	}
+decl_stmt		: decl_statement
 				| K_DECLARE
-					{	$$ = NULL;	}
-				| decl_statement
-					{	$$ = NULL;	}
+					{
+						/* We allow useless extra DECLAREs */
+					}
+				| LESS_LESS any_identifier GREATER_GREATER
+					{
+						/*
+						 * Throw a helpful error if user tries to put block
+						 * label just before BEGIN, instead of before DECLARE.
+						 */
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("block label must be placed before DECLARE, not after"),
+								 parser_errposition(@1)));
+					}
 				;
 
 decl_statement	: decl_varname decl_const decl_datatype decl_notnull decl_defval
@@ -852,12 +857,12 @@ getdiag_target	: T_DATUM
 				| T_WORD
 					{
 						/* just to give a better message than "syntax error" */
-						token_is_not_variable(T_WORD);
+						word_is_not_variable(&($1), @1);
 					}
 				| T_CWORD
 					{
 						/* just to give a better message than "syntax error" */
-						token_is_not_variable(T_CWORD);
+						cword_is_not_variable(&($1), @1);
 					}
 				;
 
@@ -1372,19 +1377,12 @@ for_variable	: T_DATUM
 						tok = yylex();
 						plpgsql_push_back_token(tok);
 						if (tok == ',')
-						{
-							/* can't use token_is_not_variable here */
-							ereport(ERROR,
-									(errcode(ERRCODE_SYNTAX_ERROR),
-									 errmsg("\"%s\" is not a known variable",
-											$1.ident),
-									 parser_errposition(@1)));
-						}
+							word_is_not_variable(&($1), @1);
 					}
 				| T_CWORD
 					{
 						/* just to give a better message than "syntax error" */
-						token_is_not_variable(T_CWORD);
+						cword_is_not_variable(&($1), @1);
 					}
 				;
 
@@ -1588,15 +1586,38 @@ loop_body		: proc_sect K_END K_LOOP opt_label ';'
 
 /*
  * T_WORD+T_CWORD match any initial identifier that is not a known plpgsql
- * variable.  The composite case is probably a syntax error, but we'll let
- * the core parser decide that.
+ * variable.  (The composite case is probably a syntax error, but we'll let
+ * the core parser decide that.)  Normally, we should assume that such a
+ * word is a SQL statement keyword that isn't also a plpgsql keyword.
+ * However, if the next token is assignment or '[', it can't be a valid
+ * SQL statement, and what we're probably looking at is an intended variable
+ * assignment.  Give an appropriate complaint for that, instead of letting
+ * the core parser throw an unhelpful "syntax error".
  */
 stmt_execsql	: K_INSERT
-					{ $$ = make_execsql_stmt(K_INSERT, @1); }
+					{
+						$$ = make_execsql_stmt(K_INSERT, @1);
+					}
 				| T_WORD
-					{ $$ = make_execsql_stmt(T_WORD, @1); }
+					{
+						int			tok;
+
+						tok = yylex();
+						plpgsql_push_back_token(tok);
+						if (tok == '=' || tok == COLON_EQUALS || tok == '[')
+							word_is_not_variable(&($1), @1);
+						$$ = make_execsql_stmt(T_WORD, @1);
+					}
 				| T_CWORD
-					{ $$ = make_execsql_stmt(T_CWORD, @1); }
+					{
+						int			tok;
+
+						tok = yylex();
+						plpgsql_push_back_token(tok);
+						if (tok == '=' || tok == COLON_EQUALS || tok == '[')
+							cword_is_not_variable(&($1), @1);
+						$$ = make_execsql_stmt(T_CWORD, @1);
+					}
 				;
 
 stmt_dynexecute : K_EXECUTE
@@ -1687,7 +1708,27 @@ stmt_open		: K_OPEN cursor_variable
 							tok = yylex();
 							if (tok == K_EXECUTE)
 							{
-								new->dynquery = read_sql_stmt("SELECT ");
+								int		endtoken;
+
+								new->dynquery =
+									read_sql_expression2(K_USING, ';',
+														 "USING or ;",
+														 &endtoken);
+
+								/* If we found "USING", collect argument(s) */
+								if (endtoken == K_USING)
+								{
+									PLpgSQL_expr *expr;
+									
+									do
+									{
+										expr = read_sql_expression2(',', ';',
+																	", or ;",
+																	&endtoken);
+										new->params = lappend(new->params,
+															  expr);
+									} while (endtoken == ',');
+								}
 							}
 							else
 							{
@@ -1794,12 +1835,12 @@ cursor_variable	: T_DATUM
 				| T_WORD
 					{
 						/* just to give a better message than "syntax error" */
-						token_is_not_variable(T_WORD);
+						word_is_not_variable(&($1), @1);
 					}
 				| T_CWORD
 					{
 						/* just to give a better message than "syntax error" */
-						token_is_not_variable(T_CWORD);
+						cword_is_not_variable(&($1), @1);
 					}
 				;
 
@@ -2039,11 +2080,36 @@ tok_is_keyword(int token, union YYSTYPE *lval,
 		 * match composite names (hence an unreserved word followed by "."
 		 * will not be recognized).
 		 */
-		if (!lval->word.quoted && lval->word.ident != NULL &&
-			strcmp(lval->word.ident, kw_str) == 0)
+		if (!lval->wdatum.quoted && lval->wdatum.ident != NULL &&
+			strcmp(lval->wdatum.ident, kw_str) == 0)
 			return true;
 	}
 	return false;				/* not the keyword */
+}
+
+/*
+ * Convenience routine to complain when we expected T_DATUM and got T_WORD,
+ * ie, unrecognized variable.
+ */
+static void
+word_is_not_variable(PLword *word, int location)
+{
+	ereport(ERROR,
+			(errcode(ERRCODE_SYNTAX_ERROR),
+			 errmsg("\"%s\" is not a known variable",
+					word->ident),
+			 parser_errposition(location)));
+}
+
+/* Same, for a CWORD */
+static void
+cword_is_not_variable(PLcword *cword, int location)
+{
+	ereport(ERROR,
+			(errcode(ERRCODE_SYNTAX_ERROR),
+			 errmsg("\"%s\" is not a known variable",
+					NameListToString(cword->idents)),
+			 parser_errposition(location)));
 }
 
 /*
@@ -2052,20 +2118,12 @@ tok_is_keyword(int token, union YYSTYPE *lval,
  * look at yylval and yylloc.
  */
 static void
-token_is_not_variable(int tok)
+current_token_is_not_variable(int tok)
 {
 	if (tok == T_WORD)
-		ereport(ERROR,
-				(errcode(ERRCODE_SYNTAX_ERROR),
-				 errmsg("\"%s\" is not a known variable",
-						yylval.word.ident),
-				 parser_errposition(yylloc)));
+		word_is_not_variable(&(yylval.word), yylloc);
 	else if (tok == T_CWORD)
-		ereport(ERROR,
-				(errcode(ERRCODE_SYNTAX_ERROR),
-				 errmsg("\"%s\" is not a known variable",
-						NameListToString(yylval.cword.idents)),
-				 parser_errposition(yylloc)));
+		cword_is_not_variable(&(yylval.cword), yylloc);
 	else
 		yyerror("syntax error");
 }
@@ -2122,7 +2180,7 @@ read_sql_construct(int until,
 {
 	int					tok;
 	StringInfoData		ds;
-	bool				save_LookupIdentifiers;
+	IdentifierLookup	save_IdentifierLookup;
 	int					startlocation = -1;
 	int					parenlevel = 0;
 	PLpgSQL_expr		*expr;
@@ -2130,9 +2188,9 @@ read_sql_construct(int until,
 	initStringInfo(&ds);
 	appendStringInfoString(&ds, sqlstart);
 
-	/* no need to lookup identifiers within the SQL text */
-	save_LookupIdentifiers = plpgsql_LookupIdentifiers;
-	plpgsql_LookupIdentifiers = false;
+	/* special lookup mode for identifiers within the SQL text */
+	save_IdentifierLookup = plpgsql_IdentifierLookup;
+	plpgsql_IdentifierLookup = IDENTIFIER_LOOKUP_EXPR;
 
 	for (;;)
 	{
@@ -2177,7 +2235,7 @@ read_sql_construct(int until,
 		}
 	}
 
-	plpgsql_LookupIdentifiers = save_LookupIdentifiers;
+	plpgsql_IdentifierLookup = save_IdentifierLookup;
 
 	if (startloc)
 		*startloc = startlocation;
@@ -2222,8 +2280,8 @@ read_datatype(int tok)
 	PLpgSQL_type		*result;
 	int					parenlevel = 0;
 
-	/* Should always be called with LookupIdentifiers off */
-	Assert(!plpgsql_LookupIdentifiers);
+	/* Should only be called while parsing DECLARE sections */
+	Assert(plpgsql_IdentifierLookup == IDENTIFIER_LOOKUP_DECLARE);
 
 	/* Often there will be a lookahead token, but if not, get one */
 	if (tok == YYEMPTY)
@@ -2328,7 +2386,7 @@ static PLpgSQL_stmt *
 make_execsql_stmt(int firsttoken, int location)
 {
 	StringInfoData		ds;
-	bool				save_LookupIdentifiers;
+	IdentifierLookup	save_IdentifierLookup;
 	PLpgSQL_stmt_execsql *execsql;
 	PLpgSQL_expr		*expr;
 	PLpgSQL_row			*row = NULL;
@@ -2342,9 +2400,9 @@ make_execsql_stmt(int firsttoken, int location)
 
 	initStringInfo(&ds);
 
-	/* no need to lookup identifiers within the SQL text */
-	save_LookupIdentifiers = plpgsql_LookupIdentifiers;
-	plpgsql_LookupIdentifiers = false;
+	/* special lookup mode for identifiers within the SQL text */
+	save_IdentifierLookup = plpgsql_IdentifierLookup;
+	plpgsql_IdentifierLookup = IDENTIFIER_LOOKUP_EXPR;
 
 	/*
 	 * We have to special-case the sequence INSERT INTO, because we don't want
@@ -2372,13 +2430,13 @@ make_execsql_stmt(int firsttoken, int location)
 				yyerror("INTO specified more than once");
 			have_into = true;
 			into_start_loc = yylloc;
-			plpgsql_LookupIdentifiers = true;
+			plpgsql_IdentifierLookup = IDENTIFIER_LOOKUP_NORMAL;
 			read_into_target(&rec, &row, &have_strict);
-			plpgsql_LookupIdentifiers = false;
+			plpgsql_IdentifierLookup = IDENTIFIER_LOOKUP_EXPR;
 		}
 	}
 
-	plpgsql_LookupIdentifiers = save_LookupIdentifiers;
+	plpgsql_IdentifierLookup = save_IdentifierLookup;
 
 	if (have_into)
 	{
@@ -2827,6 +2885,13 @@ read_into_target(PLpgSQL_rec **rec, PLpgSQL_row **row, bool *strict)
 		tok = yylex();
 	}
 
+	/*
+	 * Currently, a row or record variable can be the single INTO target,
+	 * but not a member of a multi-target list.  So we throw error if there
+	 * is a comma after it, because that probably means the user tried to
+	 * write a multi-target list.  If this ever gets generalized, we should
+	 * probably refactor read_into_scalar_list so it handles all cases.
+	 */
 	switch (tok)
 	{
 		case T_DATUM:
@@ -2834,11 +2899,25 @@ read_into_target(PLpgSQL_rec **rec, PLpgSQL_row **row, bool *strict)
 			{
 				check_assignable(yylval.wdatum.datum, yylloc);
 				*row = (PLpgSQL_row *) yylval.wdatum.datum;
+
+				if ((tok = yylex()) == ',')
+					ereport(ERROR,
+							(errcode(ERRCODE_SYNTAX_ERROR),
+							 errmsg("record or row variable cannot be part of multiple-item INTO list"),
+							 parser_errposition(yylloc)));
+				plpgsql_push_back_token(tok);
 			}
 			else if (yylval.wdatum.datum->dtype == PLPGSQL_DTYPE_REC)
 			{
 				check_assignable(yylval.wdatum.datum, yylloc);
 				*rec = (PLpgSQL_rec *) yylval.wdatum.datum;
+
+				if ((tok = yylex()) == ',')
+					ereport(ERROR,
+							(errcode(ERRCODE_SYNTAX_ERROR),
+							 errmsg("record or row variable cannot be part of multiple-item INTO list"),
+							 parser_errposition(yylloc)));
+				plpgsql_push_back_token(tok);
 			}
 			else
 			{
@@ -2849,7 +2928,7 @@ read_into_target(PLpgSQL_rec **rec, PLpgSQL_row **row, bool *strict)
 
 		default:
 			/* just to give a better message than "syntax error" */
-			token_is_not_variable(tok);
+			current_token_is_not_variable(tok);
 	}
 }
 
@@ -2902,7 +2981,7 @@ read_into_scalar_list(char *initial_name,
 
 			default:
 				/* just to give a better message than "syntax error" */
-				token_is_not_variable(tok);
+				current_token_is_not_variable(tok);
 		}
 	}
 

@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeMaterial.c,v 1.70 2009/09/27 21:10:53 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeMaterial.c,v 1.71 2010/01/02 16:57:42 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -93,7 +93,7 @@ ExecMaterial(MaterialState *node)
 			}
 
 			shareinput_create_bufname_prefix(rwfile_prefix, sizeof(rwfile_prefix), ma->share_id);
-			elog(LOG, "Material node creates shareinput rwfile %s", rwfile_prefix);
+			elog(DEBUG1, "Material node creates shareinput rwfile %s", rwfile_prefix);
 
 			ts = ntuplestore_create_readerwriter(rwfile_prefix, PlanStateOperatorMemKB((PlanState *)node) * 1024, true);
 			tsa = ntuplestore_create_accessor(ts, true);

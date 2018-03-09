@@ -6,10 +6,10 @@
  *
  * Portions Copyright (c) 2007-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Copyright (c) 2000-2009, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2010, PostgreSQL Global Development Group
  * Written by Peter Eisentraut <peter_e@gmx.net>.
  *
- * $PostgreSQL: pgsql/src/include/utils/guc.h,v 1.110 2009/12/09 21:57:51 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/utils/guc.h,v 1.113 2010/03/25 14:44:34 alvherre Exp $
  *--------------------------------------------------------------------
  */
 #ifndef GUC_H

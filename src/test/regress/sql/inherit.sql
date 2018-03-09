@@ -297,8 +297,6 @@ COMMENT ON COLUMN t1.b IS 'B';
 COMMENT ON CONSTRAINT t1_a_check ON t1 IS 't1_a_check';
 COMMENT ON INDEX t1_pkey IS 'index pkey';
 COMMENT ON INDEX t1_b_key IS 'index b_key';
-COMMENT ON COLUMN t1_pkey.a IS 'index column pkey.a';
-COMMENT ON COLUMN t1_fnidx.pg_expression_1 IS 'index column fnidx';
 ALTER TABLE t1 ALTER COLUMN a SET STORAGE MAIN;
 
 CREATE TABLE t2 (c text);
@@ -336,3 +334,42 @@ CREATE TABLE inh_error1 () INHERITS (t1, t4);
 CREATE TABLE inh_error2 (LIKE t4 INCLUDING STORAGE) INHERITS (t1);
 
 DROP TABLE t1, t2, t3, t4, t12_storage, t12_comments, t1_inh, t13_inh, t13_like, t_all;
+
+-- Test for renaming in simple multiple inheritance
+CREATE TABLE t1 (a int, b int);
+CREATE TABLE s1 (b int, c int);
+CREATE TABLE ts (d int) INHERITS (t1, s1);
+
+ALTER TABLE t1 RENAME a TO aa;
+ALTER TABLE t1 RENAME b TO bb;                -- to be failed
+ALTER TABLE ts RENAME aa TO aaa;      -- to be failed
+ALTER TABLE ts RENAME d TO dd;
+\d+ ts
+
+DROP TABLE ts;
+
+-- Test for renaming in diamond inheritance
+CREATE TABLE t2 (x int) INHERITS (t1);
+CREATE TABLE t3 (y int) INHERITS (t1);
+CREATE TABLE t4 (z int) INHERITS (t2, t3);
+
+ALTER TABLE t1 RENAME aa TO aaa;
+\d+ t4
+
+CREATE TABLE ts (d int) INHERITS (t2, s1);
+ALTER TABLE t1 RENAME aaa TO aaaa;
+ALTER TABLE t1 RENAME b TO bb;                -- to be failed
+\d+ ts
+
+WITH RECURSIVE r AS (
+  SELECT 't1'::regclass AS inhrelid
+UNION ALL
+  SELECT c.inhrelid FROM pg_inherits c, r WHERE r.inhrelid = c.inhparent
+)
+SELECT a.attrelid::regclass, a.attname, a.attinhcount, e.expected
+  FROM (SELECT inhrelid, count(*) AS expected FROM pg_inherits
+        WHERE inhparent IN (SELECT inhrelid FROM r) GROUP BY inhrelid) e
+  JOIN pg_attribute a ON e.inhrelid = a.attrelid WHERE NOT attislocal
+  ORDER BY a.attrelid::regclass::name, a.attnum;
+
+DROP TABLE t1, s1 CASCADE;

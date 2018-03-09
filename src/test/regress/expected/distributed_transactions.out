@@ -786,11 +786,11 @@ select count(*) = 5 as passed from subt_reindex_co;
  t
 (1 row)
 
--- Reindex on pg_class or reindex database hung if encountered ERROR, due to a
--- bug. Lets have coverage to validate doesn't happen now.
+-- GPDB has a limitation on REINDEX of catalog tables: you cannot do it in
+-- a transaction block. Check for that.
 \c postgres
-SET debug_abort_after_distributed_prepared = true;
+begin;
 reindex table pg_class;
-ERROR:  Raise an error as directed by Debug_abort_after_distributed_prepared
-RESET debug_abort_after_distributed_prepared;
+ERROR:  REINDEX of a catalog table cannot run inside a transaction block
+commit;
 \c regression

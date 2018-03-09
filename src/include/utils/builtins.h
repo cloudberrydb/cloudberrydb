@@ -6,10 +6,10 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/builtins.h,v 1.341 2009/10/21 20:38:58 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/utils/builtins.h,v 1.350 2010/07/06 19:19:00 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -453,6 +453,10 @@ extern Datum pg_database_size_name(PG_FUNCTION_ARGS);
 extern Datum pg_relation_size(PG_FUNCTION_ARGS);
 extern Datum pg_total_relation_size(PG_FUNCTION_ARGS);
 extern Datum pg_size_pretty(PG_FUNCTION_ARGS);
+extern Datum pg_table_size(PG_FUNCTION_ARGS);
+extern Datum pg_indexes_size(PG_FUNCTION_ARGS);
+extern Datum pg_relation_filenode(PG_FUNCTION_ARGS);
+extern Datum pg_relation_filepath(PG_FUNCTION_ARGS);
 extern Datum gp_statistics_estimate_reltuples_relpages_oid(PG_FUNCTION_ARGS);
 
 /* genfile.c */
@@ -506,6 +510,7 @@ extern Datum oidvectorle(PG_FUNCTION_ARGS);
 extern Datum oidvectorge(PG_FUNCTION_ARGS);
 extern Datum oidvectorgt(PG_FUNCTION_ARGS);
 extern oidvector *buildoidvector(const Oid *oids, int n);
+extern Oid	oidparse(Node *node);
 
 /* orderedsetaggs.c */
 extern Datum ordered_set_transition(PG_FUNCTION_ARGS);
@@ -782,6 +787,8 @@ extern Datum textoctetlen(PG_FUNCTION_ARGS);
 extern Datum textpos(PG_FUNCTION_ARGS);
 extern Datum text_substr(PG_FUNCTION_ARGS);
 extern Datum text_substr_no_len(PG_FUNCTION_ARGS);
+extern Datum textoverlay(PG_FUNCTION_ARGS);
+extern Datum textoverlay_no_len(PG_FUNCTION_ARGS);
 extern Datum name_text(PG_FUNCTION_ARGS);
 extern Datum text_name(PG_FUNCTION_ARGS);
 extern int	varstr_cmp(char *arg1, int len1, char *arg2, int len2);
@@ -826,6 +833,7 @@ extern Datum xidle(PG_FUNCTION_ARGS);
 extern Datum xidge(PG_FUNCTION_ARGS);
 extern Datum btxidcmp(PG_FUNCTION_ARGS);
 extern Datum xid_age(PG_FUNCTION_ARGS);
+extern int	xidComparator(const void *arg1, const void *arg2);
 extern Datum cidin(PG_FUNCTION_ARGS);
 extern Datum cidout(PG_FUNCTION_ARGS);
 extern Datum cidrecv(PG_FUNCTION_ARGS);
@@ -863,6 +871,9 @@ extern Datum translate(PG_FUNCTION_ARGS);
 extern Datum chr (PG_FUNCTION_ARGS);
 extern Datum repeat(PG_FUNCTION_ARGS);
 extern Datum ascii(PG_FUNCTION_ARGS);
+extern Datum string_agg_transfn(PG_FUNCTION_ARGS);
+extern Datum string_agg_delim_transfn(PG_FUNCTION_ARGS);
+extern Datum string_agg_finalfn(PG_FUNCTION_ARGS);
 
 /* inet_cidr_ntop.c */
 extern char *inet_cidr_ntop(int af, const void *src, int bits,

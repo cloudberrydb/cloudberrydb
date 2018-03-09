@@ -3060,7 +3060,7 @@ struct config_int ConfigureNamesInt_gp[] =
 			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
 		},
 		&xid_stop_limit,
-		1000000000, 10000000, INT_MAX, NULL, NULL
+		100000000, 10000000, INT_MAX, NULL, NULL
 	},
 	{
 		{"xid_warn_limit", PGC_POSTMASTER, WAL,

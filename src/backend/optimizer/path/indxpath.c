@@ -6,12 +6,12 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/indxpath.c,v 1.242 2009/09/17 20:49:28 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/indxpath.c,v 1.246 2010/02/26 02:00:44 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1308,7 +1308,7 @@ match_clause_to_indexcol(IndexOptInfo *index,
 	 * Clause must be a binary opclause, or possibly a ScalarArrayOpExpr
 	 * (which is always binary, by definition).  Or it could be a
 	 * RowCompareExpr, which we pass off to match_rowcompare_to_indexcol().
-	 * Or, if the index supports it, we can handle IS NULL clauses.
+	 * Or, if the index supports it, we can handle IS NULL/NOT NULL clauses.
 	 */
 	if (is_opclause(clause))
 	{
@@ -1346,7 +1346,7 @@ match_clause_to_indexcol(IndexOptInfo *index,
 	{
 		NullTest   *nt = (NullTest *) clause;
 
-		if (nt->nulltesttype == IS_NULL &&
+		if (!nt->argisrow &&
 			match_index_to_operand((Node *) nt->arg, indexcol, index))
 			return true;
 		return false;
@@ -2053,8 +2053,8 @@ relation_has_unique_index_for(PlannerInfo *root, RelOptInfo *rel,
 	/* Examine each index of the relation ... */
 	foreach(ic, rel->indexlist)
 	{
-		IndexOptInfo   *ind = (IndexOptInfo *) lfirst(ic);
-		int				c;
+		IndexOptInfo *ind = (IndexOptInfo *) lfirst(ic);
+		int			c;
 
 		/*
 		 * If the index is not unique or if it's a partial index that doesn't
@@ -2073,13 +2073,13 @@ relation_has_unique_index_for(PlannerInfo *root, RelOptInfo *rel,
 
 			foreach(lc, restrictlist)
 			{
-				RestrictInfo   *rinfo = (RestrictInfo *) lfirst(lc);
-				Node   *rexpr;
+				RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
+				Node	   *rexpr;
 
 				/*
 				 * The condition's equality operator must be a member of the
-				 * index opfamily, else it is not asserting the right kind
-				 * of equality behavior for this index.  We check this first
+				 * index opfamily, else it is not asserting the right kind of
+				 * equality behavior for this index.  We check this first
 				 * since it's probably cheaper than match_index_to_operand().
 				 */
 				if (!list_member_oid(rinfo->mergeopfamilies, ind->opfamily[c]))

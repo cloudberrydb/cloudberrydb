@@ -6,10 +6,10 @@
  *
  * Portions Copyright (c) 2007-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/storage/fd.h,v 1.65 2009/08/05 18:01:54 heikki Exp $
+ * $PostgreSQL: pgsql/src/include/storage/fd.h,v 1.68 2010/02/26 02:01:27 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -113,6 +113,8 @@ extern int	pg_fsync(int fd);
 extern int	pg_fsync_no_writethrough(int fd);
 extern int	pg_fsync_writethrough(int fd);
 extern int	pg_fdatasync(int fd);
+extern int	pg_flush_data(int fd, off_t offset, off_t amount);
+
 extern int gp_retry_close(int fd);
 
 /* Filename components for OpenTemporaryFile */

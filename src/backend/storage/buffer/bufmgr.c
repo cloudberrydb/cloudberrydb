@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2006-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/buffer/bufmgr.c,v 1.253 2009/12/15 04:57:47 rhaas Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/buffer/bufmgr.c,v 1.256 2010/02/26 02:00:59 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -47,6 +47,7 @@
 #include "storage/ipc.h"
 #include "storage/proc.h"
 #include "storage/smgr.h"
+#include "storage/standby.h"
 #include "utils/rel.h"
 #include "utils/resowner.h"
 #include "utils/faultinjector.h"
@@ -2717,11 +2718,46 @@ LockBufferForCleanup(Buffer buffer)
 		PinCountWaitBuf = bufHdr;
 		UnlockBufHdr(bufHdr);
 		LockBuffer(buffer, BUFFER_LOCK_UNLOCK);
+
 		/* Wait to be signaled by UnpinBuffer() */
-		ProcWaitForSignal();
+		if (InHotStandby)
+		{
+			/* Share the bufid that Startup process waits on */
+			SetStartupBufferPinWaitBufId(buffer - 1);
+			/* Set alarm and then wait to be signaled by UnpinBuffer() */
+			ResolveRecoveryConflictWithBufferPin();
+			SetStartupBufferPinWaitBufId(-1);
+		}
+		else
+			ProcWaitForSignal();
+
 		PinCountWaitBuf = NULL;
 		/* Loop back and try again */
 	}
+}
+
+/*
+ * Check called from RecoveryConflictInterrupt handler when Startup
+ * process requests cancelation of all pin holders that are blocking it.
+ */
+bool
+HoldingBufferPinThatDelaysRecovery(void)
+{
+	int			bufid = GetStartupBufferPinWaitBufId();
+
+	/*
+	 * If we get woken slowly then it's possible that the Startup process was
+	 * already woken by other backends before we got here. Also possible that
+	 * we get here by multiple interrupts or interrupts at inappropriate
+	 * times, so make sure we do nothing if the bufid is not set.
+	 */
+	if (bufid < 0)
+		return false;
+
+	if (PrivateRefCount[bufid] > 0)
+		return true;
+
+	return false;
 }
 
 /*

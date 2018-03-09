@@ -6,10 +6,10 @@
  * It can be used to buffer either ordinary C strings (null-terminated text)
  * or arbitrary binary data.  All storage is allocated with palloc().
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- *	  $PostgreSQL: pgsql/src/backend/lib/stringinfo.c,v 1.51 2009/07/24 21:08:42 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/lib/stringinfo.c,v 1.54 2010/07/06 19:18:56 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -242,7 +242,8 @@ appendBinaryStringInfo(StringInfo str, const void *data, int datalen)
 
 	/*
 	 * Keep a trailing null in place, even though it's probably useless for
-	 * binary data...
+	 * binary data.  (Some callers are dealing with text but call this because
+	 * their input isn't null-terminated.)
 	 */
 	str->data[str->len] = '\0';
 }

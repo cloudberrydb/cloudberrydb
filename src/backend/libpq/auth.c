@@ -3,12 +3,12 @@
  * auth.c
  *	  Routines to handle network authentication
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/libpq/auth.c,v 1.188 2009/12/12 21:35:21 mha Exp $
+ *	  $PostgreSQL: pgsql/src/backend/libpq/auth.c,v 1.203 2010/07/06 19:18:56 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -42,7 +42,6 @@
 #include "miscadmin.h"
 #include "pgtime.h"
 #include "postmaster/postmaster.h"
-#include "replication/walsender.h"
 #include "utils/builtins.h"
 #include "utils/datetime.h"
 #include "utils/fmgroids.h"
@@ -51,7 +50,7 @@
 #include "utils/syscache.h"
 #include "utils/timestamp.h"
 #include "utils/tqual.h"
-/*#include "replication/walsender.h"*/
+#include "replication/walsender.h"
 #include "storage/ipc.h"
 
 extern bool gp_reject_internal_tcp_conn;
@@ -201,7 +200,7 @@ static int check_valid_until_for_gssapi(Port *port);
  *----------------------------------------------------------------
  */
 #ifdef ENABLE_SSPI
-typedef SECURITY_STATUS
+typedef		SECURITY_STATUS
 			(WINAPI * QUERY_SECURITY_CONTEXT_TOKEN_FN) (
 													   PCtxtHandle, void **);
 static int	pg_SSPI_recvauth(Port *port);
@@ -216,21 +215,6 @@ static int	pg_SSPI_recvauth(Port *port);
 #endif
 static int	CheckRADIUSAuth(Port *port);
 
-
-/*
- * Maximum accepted size of GSS and SSPI authentication tokens.
- *
- * Kerberos tickets are usually quite small, but the TGTs issued by Windows
- * domain controllers include an authorization field known as the Privilege
- * Attribute Certificate (PAC), which contains the user's Windows permissions
- * (group memberships etc.). The PAC is copied into all tickets obtained on
- * the basis of this TGT (even those issued by Unix realms which the Windows
- * realm trusts), and can be several kB in size. The maximum token size
- * accepted by Windows systems is determined by the MaxAuthToken Windows
- * registry setting. Microsoft recommends that it is not set higher than
- * 65535 bytes, so that seems like a reasonable limit for us as well.
- */
-#define PG_MAX_AUTH_TOKEN_LENGTH	65535
 
 /*
  * Maximum accepted size of GSS and SSPI authentication tokens.
@@ -559,22 +543,22 @@ ClientAuthentication(Port *port)
 #endif
 				}
 				else
-                {
+				{
 #ifdef USE_SSL
-				ereport(FATAL,
-						(errcode(ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION),
-						 errmsg("pg_hba.conf rejects connection for host \"%s\", user \"%s\", database \"%s\", %s",
-								hostinfo, port->user_name,
-                                port->database_name,
-								port->ssl ? _("SSL on") : _("SSL off")),
-						 errSendAlert(false)));
+					ereport(FATAL,
+					   (errcode(ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION),
+						errmsg("pg_hba.conf rejects connection for host \"%s\", user \"%s\", database \"%s\", %s",
+							   hostinfo, port->user_name,
+							   port->database_name,
+							   port->ssl ? _("SSL on") : _("SSL off")),
+						errSendAlert(false)));
 #else
-				ereport(FATAL,
-						(errcode(ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION),
-						 errmsg("pg_hba.conf rejects connection for host \"%s\", user \"%s\", database \"%s\"",
-								hostinfo, port->user_name,
-								port->database_name),
-						 errSendAlert(false)));
+					ereport(FATAL,
+					   (errcode(ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION),
+						errmsg("pg_hba.conf rejects connection for host \"%s\", user \"%s\", database \"%s\"",
+							   hostinfo, port->user_name,
+							   port->database_name),
+						errSendAlert(false)));
 #endif
 				}
 				break;
@@ -2287,7 +2271,7 @@ pam_passwd_conv_proc(int num_msg, const struct pam_message ** msg,
 					if (strlen(passwd) == 0)
 					{
 						ereport(LOG,
-								(errmsg("empty password returned by client")));
+							  (errmsg("empty password returned by client")));
 						goto fail;
 					}
 				}
@@ -2724,13 +2708,13 @@ CheckLDAPAuth(Port *port)
 	{
 		fulluser = palloc((port->hba->ldapprefix ? strlen(port->hba->ldapprefix) : 0) +
 						  strlen(port->user_name) +
-						  (port->hba->ldapsuffix ? strlen(port->hba->ldapsuffix) : 0) +
+				(port->hba->ldapsuffix ? strlen(port->hba->ldapsuffix) : 0) +
 						  1);
 
 		sprintf(fulluser, "%s%s%s",
-				 port->hba->ldapprefix ? port->hba->ldapprefix : "",
-				 port->user_name,
-				 port->hba->ldapsuffix ? port->hba->ldapsuffix : "");
+				port->hba->ldapprefix ? port->hba->ldapprefix : "",
+				port->user_name,
+				port->hba->ldapsuffix ? port->hba->ldapsuffix : "");
 	}
 
 	r = ldap_simple_bind_s(ldap, fulluser, passwd);
@@ -2775,7 +2759,6 @@ CheckCertAuth(Port *port)
 	/* Just pass the certificate CN to the usermap check */
 	return check_usermap(port->hba->usermap, port->user_name, port->peer_cn, false);
 }
-
 #endif
 
 
@@ -2879,7 +2862,7 @@ CheckRADIUSAuth(Port *port)
 	struct addrinfo hint;
 	struct addrinfo *serveraddrs;
 	char		portstr[128];
-	socklen_t   addrsize;
+	ACCEPT_TYPE_ARG3 addrsize;
 	fd_set		fdset;
 	struct timeval timeout;
 	int			i,

@@ -4,10 +4,10 @@
  *	  prototypes for tablecmds.c.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/commands/tablecmds.h,v 1.44 2009/07/16 06:33:45 petere Exp $
+ * $PostgreSQL: pgsql/src/include/commands/tablecmds.h,v 1.46 2010/02/01 19:28:56 rhaas Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -83,7 +83,7 @@ extern void renameatt(Oid myrelid,
 		  const char *oldattname,
 		  const char *newattname,
 		  bool recurse,
-		  bool recursing);
+		  int expected_parents);
 
 extern void RenameRelation(Oid myrelid,
 			   const char *newrelname,

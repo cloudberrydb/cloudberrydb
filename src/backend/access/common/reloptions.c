@@ -3,12 +3,12 @@
  * reloptions.c
  *	  Core support for relation options (pg_class.reloptions)
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/common/reloptions.c,v 1.29 2009/08/27 17:18:44 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/common/reloptions.c,v 1.35 2010/06/07 02:59:02 itagaki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -23,8 +23,10 @@
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbvars.h"
 #include "commands/defrem.h"
+#include "commands/tablespace.h"
 #include "nodes/makefuncs.h"
 #include "utils/array.h"
+#include "utils/attoptcache.h"
 #include "utils/builtins.h"
 #include "utils/formatting.h"
 #include "utils/guc.h"
@@ -121,7 +123,7 @@ static relopt_int intRelOpts[] =
 		{
 			"autovacuum_analyze_threshold",
 			"Minimum number of tuple inserts, updates or deletes prior to analyze",
-			RELOPT_KIND_HEAP | RELOPT_KIND_TOAST
+			RELOPT_KIND_HEAP
 		},
 		-1, 0, INT_MAX
 	},
@@ -182,9 +184,41 @@ static relopt_real realRelOpts[] =
 		{
 			"autovacuum_analyze_scale_factor",
 			"Number of tuple inserts, updates or deletes prior to analyze as a fraction of reltuples",
-			RELOPT_KIND_HEAP | RELOPT_KIND_TOAST
+			RELOPT_KIND_HEAP
 		},
 		-1, 0.0, 100.0
+	},
+	{
+		{
+			"seq_page_cost",
+			"Sets the planner's estimate of the cost of a sequentially fetched disk page.",
+			RELOPT_KIND_TABLESPACE
+		},
+		-1, 0.0, DBL_MAX
+	},
+	{
+		{
+			"random_page_cost",
+			"Sets the planner's estimate of the cost of a nonsequentially fetched disk page.",
+			RELOPT_KIND_TABLESPACE
+		},
+		-1, 0.0, DBL_MAX
+	},
+	{
+		{
+			"n_distinct",
+			"Sets the planner's estimate of the number of distinct values appearing in a column (excluding child relations).",
+			RELOPT_KIND_ATTRIBUTE
+		},
+		0, -1.0, DBL_MAX
+	},
+	{
+		{
+			"n_distinct_inherited",
+			"Sets the planner's estimate of the number of distinct values appearing in a column (including child relations).",
+			RELOPT_KIND_ATTRIBUTE
+		},
+		0, -1.0, DBL_MAX
 	},
 	/* list terminator */
 	{{NULL}}
@@ -1147,10 +1181,21 @@ default_reloptions(Datum reloptions, bool validate, relopt_kind kind)
 bytea *
 heap_reloptions(char relkind, Datum reloptions, bool validate)
 {
+	StdRdOptions *rdopts;
+
 	switch (relkind)
 	{
 		case RELKIND_TOASTVALUE:
-			return default_reloptions(reloptions, validate, RELOPT_KIND_TOAST);
+			rdopts = (StdRdOptions *)
+				default_reloptions(reloptions, validate, RELOPT_KIND_TOAST);
+			if (rdopts != NULL)
+			{
+				/* adjust default-only parameters for TOAST relations */
+				rdopts->fillfactor = 100;
+				rdopts->autovacuum.analyze_threshold = -1;
+				rdopts->autovacuum.analyze_scale_factor = -1;
+			}
+			return (bytea *) rdopts;
 		case RELKIND_RELATION:
 			return default_reloptions(reloptions, validate, RELOPT_KIND_HEAP);
 		default:
@@ -1197,4 +1242,66 @@ index_reloptions(RegProcedure amoptions, Datum reloptions, bool validate)
 		return NULL;
 
 	return DatumGetByteaP(result);
+}
+
+/*
+ * Option parser for attribute reloptions
+ */
+bytea *
+attribute_reloptions(Datum reloptions, bool validate)
+{
+	relopt_value *options;
+	AttributeOpts *aopts;
+	int			numoptions;
+	static const relopt_parse_elt tab[] = {
+		{"n_distinct", RELOPT_TYPE_REAL, offsetof(AttributeOpts, n_distinct)},
+		{"n_distinct_inherited", RELOPT_TYPE_REAL, offsetof(AttributeOpts, n_distinct_inherited)}
+	};
+
+	options = parseRelOptions(reloptions, validate, RELOPT_KIND_ATTRIBUTE,
+							  &numoptions);
+
+	/* if none set, we're done */
+	if (numoptions == 0)
+		return NULL;
+
+	aopts = allocateReloptStruct(sizeof(AttributeOpts), options, numoptions);
+
+	fillRelOptions((void *) aopts, sizeof(AttributeOpts), options, numoptions,
+				   validate, tab, lengthof(tab));
+
+	pfree(options);
+
+	return (bytea *) aopts;
+}
+
+/*
+ * Option parser for tablespace reloptions
+ */
+bytea *
+tablespace_reloptions(Datum reloptions, bool validate)
+{
+	relopt_value *options;
+	TableSpaceOpts *tsopts;
+	int			numoptions;
+	static const relopt_parse_elt tab[] = {
+		{"random_page_cost", RELOPT_TYPE_REAL, offsetof(TableSpaceOpts, random_page_cost)},
+		{"seq_page_cost", RELOPT_TYPE_REAL, offsetof(TableSpaceOpts, seq_page_cost)}
+	};
+
+	options = parseRelOptions(reloptions, validate, RELOPT_KIND_TABLESPACE,
+							  &numoptions);
+
+	/* if none set, we're done */
+	if (numoptions == 0)
+		return NULL;
+
+	tsopts = allocateReloptStruct(sizeof(TableSpaceOpts), options, numoptions);
+
+	fillRelOptions((void *) tsopts, sizeof(TableSpaceOpts), options, numoptions,
+				   validate, tab, lengthof(tab));
+
+	pfree(options);
+
+	return (bytea *) tsopts;
 }

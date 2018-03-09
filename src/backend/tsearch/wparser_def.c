@@ -3,11 +3,11 @@
  * wparser_def.c
  *		Default text search parser
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/tsearch/wparser_def.c,v 1.26 2009/12/15 20:37:17 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/tsearch/wparser_def.c,v 1.32 2010/05/09 02:15:59 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -322,6 +322,11 @@ TParserInit(char *str, int len)
 	prs->state->state = TPS_Base;
 
 #ifdef WPARSER_TRACE
+	/*
+	 * Use of %.*s here is a bit risky since it can misbehave if the data
+	 * is not in what libc thinks is the prevailing encoding.  However,
+	 * since this is just a debugging aid, we choose to live with that.
+	 */
 	fprintf(stderr, "parsing \"%.*s\"\n", len, str);
 #endif
 
@@ -361,6 +366,7 @@ TParserCopyInit(const TParser *orig)
 	prs->state->state = TPS_Base;
 
 #ifdef WPARSER_TRACE
+	/* See note above about %.*s */
 	fprintf(stderr, "parsing copy of \"%.*s\"\n", prs->lenstr, prs->str);
 #endif
 
@@ -387,7 +393,7 @@ TParserClose(TParser *prs)
 #endif
 
 #ifdef WPARSER_TRACE
-	fprintf(stderr, "closing parser");
+	fprintf(stderr, "closing parser\n");
 #endif
 	pfree(prs);
 }
@@ -407,7 +413,7 @@ TParserCopyClose(TParser *prs)
 	}
 
 #ifdef WPARSER_TRACE
-	fprintf(stderr, "closing parser copy");
+	fprintf(stderr, "closing parser copy\n");
 #endif
 	pfree(prs);
 }
@@ -583,6 +589,35 @@ p_isasclet(TParser *prs)
 	return (p_isascii(prs) && p_isalpha(prs)) ? 1 : 0;
 }
 
+static int
+p_isurlchar(TParser *prs)
+{
+	char		ch;
+
+	/* no non-ASCII need apply */
+	if (prs->state->charlen != 1)
+		return 0;
+	ch = *(prs->str + prs->state->posbyte);
+	/* no spaces or control characters */
+	if (ch <= 0x20 || ch >= 0x7F)
+		return 0;
+	/* reject characters disallowed by RFC 3986 */
+	switch (ch)
+	{
+		case '"':
+		case '<':
+		case '>':
+		case '\\':
+		case '^':
+		case '`':
+		case '{':
+		case '|':
+		case '}':
+			return 0;
+	}
+	return 1;
+}
+
 
 /* deliberately suppress unused-function complaints for the above */
 void		_make_compiler_happy(void);
@@ -707,9 +742,9 @@ p_isURLPath(TParser *prs)
 	int			res = 0;
 
 	tmpprs->state = newTParserPosition(tmpprs->state);
-	tmpprs->state->state = TPS_InFileFirst;
+	tmpprs->state->state = TPS_InURLPathFirst;
 
-	if (TParserGet(tmpprs) && (tmpprs->type == URLPATH || tmpprs->type == FILEPATH))
+	if (TParserGet(tmpprs) && tmpprs->type == URLPATH)
 	{
 		prs->state->posbyte += tmpprs->lenbytetoken;
 		prs->state->poschar += tmpprs->lenchartoken;
@@ -1047,6 +1082,7 @@ static const TParserStateActionItem actionTPS_InAsciiWord[] = {
 	{p_iseqC, '.', A_PUSH, TPS_InFileNext, 0, NULL},
 	{p_iseqC, '-', A_PUSH, TPS_InHostFirstAN, 0, NULL},
 	{p_iseqC, '-', A_PUSH, TPS_InHyphenAsciiWordFirst, 0, NULL},
+	{p_iseqC, '_', A_PUSH, TPS_InHostFirstAN, 0, NULL},
 	{p_iseqC, '@', A_PUSH, TPS_InEmail, 0, NULL},
 	{p_iseqC, ':', A_PUSH, TPS_InProtocolFirst, 0, NULL},
 	{p_iseqC, '/', A_PUSH, TPS_InFileFirst, 0, NULL},
@@ -1375,6 +1411,7 @@ static const TParserStateActionItem actionTPS_InHostDomainSecond[] = {
 	{p_isasclet, 0, A_NEXT, TPS_InHostDomain, 0, NULL},
 	{p_isdigit, 0, A_PUSH, TPS_InHost, 0, NULL},
 	{p_iseqC, '-', A_PUSH, TPS_InHostFirstAN, 0, NULL},
+	{p_iseqC, '_', A_PUSH, TPS_InHostFirstAN, 0, NULL},
 	{p_iseqC, '.', A_PUSH, TPS_InHostFirstDomain, 0, NULL},
 	{p_iseqC, '@', A_PUSH, TPS_InEmail, 0, NULL},
 	{NULL, 0, A_POP, TPS_Null, 0, NULL}
@@ -1386,6 +1423,7 @@ static const TParserStateActionItem actionTPS_InHostDomain[] = {
 	{p_isdigit, 0, A_PUSH, TPS_InHost, 0, NULL},
 	{p_iseqC, ':', A_PUSH, TPS_InPortFirst, 0, NULL},
 	{p_iseqC, '-', A_PUSH, TPS_InHostFirstAN, 0, NULL},
+	{p_iseqC, '_', A_PUSH, TPS_InHostFirstAN, 0, NULL},
 	{p_iseqC, '.', A_PUSH, TPS_InHostFirstDomain, 0, NULL},
 	{p_iseqC, '@', A_PUSH, TPS_InEmail, 0, NULL},
 	{p_isdigit, 0, A_POP, TPS_Null, 0, NULL},
@@ -1422,6 +1460,7 @@ static const TParserStateActionItem actionTPS_InHost[] = {
 	{p_iseqC, '@', A_PUSH, TPS_InEmail, 0, NULL},
 	{p_iseqC, '.', A_PUSH, TPS_InHostFirstDomain, 0, NULL},
 	{p_iseqC, '-', A_PUSH, TPS_InHostFirstAN, 0, NULL},
+	{p_iseqC, '_', A_PUSH, TPS_InHostFirstAN, 0, NULL},
 	{NULL, 0, A_POP, TPS_Null, 0, NULL}
 };
 
@@ -1437,7 +1476,6 @@ static const TParserStateActionItem actionTPS_InFileFirst[] = {
 	{p_isdigit, 0, A_NEXT, TPS_InFile, 0, NULL},
 	{p_iseqC, '.', A_NEXT, TPS_InPathFirst, 0, NULL},
 	{p_iseqC, '_', A_NEXT, TPS_InFile, 0, NULL},
-	{p_iseqC, '?', A_PUSH, TPS_InURLPathFirst, 0, NULL},
 	{p_iseqC, '~', A_PUSH, TPS_InFileTwiddle, 0, NULL},
 	{NULL, 0, A_POP, TPS_Null, 0, NULL}
 };
@@ -1484,7 +1522,6 @@ static const TParserStateActionItem actionTPS_InFile[] = {
 	{p_iseqC, '_', A_NEXT, TPS_InFile, 0, NULL},
 	{p_iseqC, '-', A_NEXT, TPS_InFile, 0, NULL},
 	{p_iseqC, '/', A_PUSH, TPS_InFileFirst, 0, NULL},
-	{p_iseqC, '?', A_PUSH, TPS_InURLPathFirst, 0, NULL},
 	{NULL, 0, A_BINGO, TPS_Base, FILEPATH, NULL}
 };
 
@@ -1498,9 +1535,7 @@ static const TParserStateActionItem actionTPS_InFileNext[] = {
 
 static const TParserStateActionItem actionTPS_InURLPathFirst[] = {
 	{p_isEOF, 0, A_POP, TPS_Null, 0, NULL},
-	{p_iseqC, '"', A_POP, TPS_Null, 0, NULL},
-	{p_iseqC, '\'', A_POP, TPS_Null, 0, NULL},
-	{p_isnotspace, 0, A_CLEAR, TPS_InURLPath, 0, NULL},
+	{p_isurlchar, 0, A_NEXT, TPS_InURLPath, 0, NULL},
 	{NULL, 0, A_POP, TPS_Null, 0, NULL},
 };
 
@@ -1510,9 +1545,7 @@ static const TParserStateActionItem actionTPS_InURLPathStart[] = {
 
 static const TParserStateActionItem actionTPS_InURLPath[] = {
 	{p_isEOF, 0, A_BINGO, TPS_Base, URLPATH, NULL},
-	{p_iseqC, '"', A_BINGO, TPS_Base, URLPATH, NULL},
-	{p_iseqC, '\'', A_BINGO, TPS_Base, URLPATH, NULL},
-	{p_isnotspace, 0, A_NEXT, TPS_InURLPath, 0, NULL},
+	{p_isurlchar, 0, A_NEXT, TPS_InURLPath, 0, NULL},
 	{NULL, 0, A_BINGO, TPS_Base, URLPATH, NULL}
 };
 

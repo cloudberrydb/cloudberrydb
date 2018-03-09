@@ -3,12 +3,12 @@
  * pl_exec.c		- Executor for the PL/pgSQL
  *			  procedural language
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_exec.c,v 1.251 2009/11/09 00:26:55 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_exec.c,v 1.261 2010/07/06 19:19:01 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -172,7 +172,7 @@ static int exec_run_select(PLpgSQL_execstate *estate,
 static int exec_for_query(PLpgSQL_execstate *estate, PLpgSQL_stmt_forq *stmt,
 			   Portal portal, bool prefetch_ok);
 static ParamListInfo setup_param_list(PLpgSQL_execstate *estate,
-									  PLpgSQL_expr *expr);
+				 PLpgSQL_expr *expr);
 static void plpgsql_param_fetch(ParamListInfo params, int paramid);
 static void exec_move_row(PLpgSQL_execstate *estate,
 			  PLpgSQL_rec *rec,
@@ -204,7 +204,8 @@ static PreparedParamsData *exec_eval_using_params(PLpgSQL_execstate *estate,
 					   List *params);
 static void free_params_data(PreparedParamsData *ppd);
 static Portal exec_dynquery_with_params(PLpgSQL_execstate *estate,
-						  PLpgSQL_expr *query, List *params);
+						  PLpgSQL_expr *dynquery, List *params,
+						  const char *portalname, int cursorOptions);
 
 
 /* ----------
@@ -521,10 +522,10 @@ plpgsql_exec_trigger(PLpgSQL_function *func,
 	/*
 	 * Put the OLD and NEW tuples into record variables
 	 *
-	 * We make the tupdescs available in both records even though only one
-	 * may have a value.  This allows parsing of record references to succeed
-	 * in functions that are used for multiple trigger types.  For example,
-	 * we might have a test like "if (TG_OP = 'INSERT' and NEW.foo = 'xyz')",
+	 * We make the tupdescs available in both records even though only one may
+	 * have a value.  This allows parsing of record references to succeed in
+	 * functions that are used for multiple trigger types.	For example, we
+	 * might have a test like "if (TG_OP = 'INSERT' and NEW.foo = 'xyz')",
 	 * which should parse regardless of the current trigger type.
 	 */
 	rec_new = (PLpgSQL_rec *) (estate.datums[func->new_varno]);
@@ -1876,7 +1877,6 @@ exec_stmt_fors(PLpgSQL_execstate *estate, PLpgSQL_stmt_fors *stmt)
 	 * Open the implicit cursor for the statement using exec_run_select
 	 */
 	exec_run_select(estate, stmt->query, 0, &portal);
-	PinPortal(portal);
 
 	/*
 	 * Execute the loop
@@ -1886,7 +1886,6 @@ exec_stmt_fors(PLpgSQL_execstate *estate, PLpgSQL_stmt_fors *stmt)
 	/*
 	 * Close the implicit cursor
 	 */
-	UnpinPortal(portal);
 	SPI_cursor_close(portal);
 
 	return rc;
@@ -1902,6 +1901,7 @@ exec_stmt_forc(PLpgSQL_execstate *estate, PLpgSQL_stmt_forc *stmt)
 {
 	PLpgSQL_var *curvar;
 	char	   *curname = NULL;
+	const char *portalname;
 	PLpgSQL_expr *query;
 	ParamListInfo paramLI;
 	Portal		portal;
@@ -1971,8 +1971,8 @@ exec_stmt_forc(PLpgSQL_execstate *estate, PLpgSQL_stmt_forc *stmt)
 		exec_prepare_plan(estate, query, curvar->cursor_options | CURSOR_OPT_UPDATABLE);
 
 	/*
-	 * Set up ParamListInfo (note this is only carrying a hook function,
-	 * not any actual data values, at this point)
+	 * Set up ParamListInfo (note this is only carrying a hook function, not
+	 * any actual data values, at this point)
 	 */
 	paramLI = setup_param_list(estate, query);
 
@@ -1985,6 +1985,7 @@ exec_stmt_forc(PLpgSQL_execstate *estate, PLpgSQL_stmt_forc *stmt)
 	if (portal == NULL)
 		elog(ERROR, "could not open cursor: %s",
 			 SPI_result_code_string(SPI_result));
+	portalname = portal->name;
 
 	/* don't need paramlist any more */
 	if (paramLI)
@@ -2176,7 +2177,6 @@ exec_stmt_return_next(PLpgSQL_execstate *estate,
 {
 	TupleDesc	tupdesc;
 	int			natts;
-	MemoryContext oldcxt;
 	HeapTuple	tuple = NULL;
 	bool		free_tuple = false;
 
@@ -2217,10 +2217,8 @@ exec_stmt_return_next(PLpgSQL_execstate *estate,
 												tupdesc->attrs[0]->atttypmod,
 													isNull);
 
-					oldcxt = MemoryContextSwitchTo(estate->tuple_store_cxt);
 					tuplestore_putvalues(estate->tuple_store, tupdesc,
 										 &retval, &isNull);
-					MemoryContextSwitchTo(oldcxt);
 				}
 				break;
 
@@ -2346,23 +2344,21 @@ exec_stmt_return_query(PLpgSQL_execstate *estate,
 		/* RETURN QUERY EXECUTE */
 		Assert(stmt->dynquery != NULL);
 		portal = exec_dynquery_with_params(estate, stmt->dynquery,
-										   stmt->params);
+										   stmt->params, NULL, 0);
 	}
 
 	tupmap = convert_tuples_by_position(portal->tupDesc,
 										estate->rettupdesc,
-										gettext_noop("structure of query does not match function result type"));
+	 gettext_noop("structure of query does not match function result type"));
 
 	while (true)
 	{
-		MemoryContext old_cxt;
 		int			i;
 
 		SPI_cursor_fetch(portal, true, 50);
 		if (SPI_processed == 0)
 			break;
 
-		old_cxt = MemoryContextSwitchTo(estate->tuple_store_cxt);
 		for (i = 0; i < SPI_processed; i++)
 		{
 			HeapTuple	tuple = SPI_tuptable->vals[i];
@@ -2374,7 +2370,6 @@ exec_stmt_return_query(PLpgSQL_execstate *estate,
 				heap_freetuple(tuple);
 			processed++;
 		}
-		MemoryContextSwitchTo(old_cxt);
 
 		SPI_freetuptable(SPI_tuptable);
 	}
@@ -2409,11 +2404,11 @@ exec_init_tuple_store(PLpgSQL_execstate *estate)
 				 errmsg("set-valued function called in context that cannot accept a set")));
 
 	/*
-	 * Switch to the right memory context and resource owner for storing
-	 * the tuplestore for return set. If we're within a subtransaction opened
-	 * for an exception-block, for example, we must still create the
-	 * tuplestore in the resource owner that was active when this function was
-	 * entered, and not in the subtransaction resource owner.
+	 * Switch to the right memory context and resource owner for storing the
+	 * tuplestore for return set. If we're within a subtransaction opened for
+	 * an exception-block, for example, we must still create the tuplestore in
+	 * the resource owner that was active when this function was entered, and
+	 * not in the subtransaction resource owner.
 	 */
 	oldcxt = MemoryContextSwitchTo(estate->tuple_store_cxt);
 	oldowner = CurrentResourceOwner;
@@ -2456,7 +2451,7 @@ exec_stmt_raise(PLpgSQL_execstate *estate, PLpgSQL_stmt_raise *stmt)
 
 	if (stmt->message)
 	{
-		StringInfoData	ds;
+		StringInfoData ds;
 		ListCell   *current_param;
 		char	   *cp;
 
@@ -2734,8 +2729,8 @@ exec_prepare_plan(PLpgSQL_execstate *estate,
 	SPIPlanPtr	plan;
 
 	/*
-	 * The grammar can't conveniently set expr->func while building the
-	 * parse tree, so make sure it's set before parser hooks need it.
+	 * The grammar can't conveniently set expr->func while building the parse
+	 * tree, so make sure it's set before parser hooks need it.
 	 */
 	expr->func = estate->func;
 
@@ -2816,8 +2811,8 @@ exec_stmt_execsql(PLpgSQL_execstate *estate,
 	}
 
 	/*
-	 * Set up ParamListInfo (note this is only carrying a hook function,
-	 * not any actual data values, at this point)
+	 * Set up ParamListInfo (note this is only carrying a hook function, not
+	 * any actual data values, at this point)
 	 */
 	paramLI = setup_param_list(estate, expr);
 
@@ -3071,7 +3066,8 @@ exec_stmt_dynexecute(PLpgSQL_execstate *estate,
 				if (*ptr == 'S' || *ptr == 's')
 					ereport(ERROR,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					errmsg("EXECUTE of SELECT ... INTO is not implemented")));
+					 errmsg("EXECUTE of SELECT ... INTO is not implemented"),
+							 errhint("You might want to use EXECUTE ... INTO instead.")));
 				break;
 			}
 
@@ -3174,7 +3170,8 @@ exec_stmt_dynfors(PLpgSQL_execstate *estate, PLpgSQL_stmt_dynfors *stmt)
 	Portal		portal;
 	int			rc;
 
-	portal = exec_dynquery_with_params(estate, stmt->query, stmt->params);
+	portal = exec_dynquery_with_params(estate, stmt->query, stmt->params,
+									   NULL, 0);
 
 	/*
 	 * Execute the loop
@@ -3202,7 +3199,6 @@ exec_stmt_open(PLpgSQL_execstate *estate, PLpgSQL_stmt_open *stmt)
 	PLpgSQL_expr *query;
 	Portal		portal;
 	ParamListInfo paramLI;
-	bool		isnull;
 
 	/* ----------
 	 * Get the cursor variable and if it has an assigned name, check
@@ -3242,46 +3238,11 @@ exec_stmt_open(PLpgSQL_execstate *estate, PLpgSQL_stmt_open *stmt)
 		 * This is an OPEN refcursor FOR EXECUTE ...
 		 * ----------
 		 */
-		Datum		queryD;
-		Oid			restype;
-		char	   *querystr;
-		SPIPlanPtr	curplan;
-
-		/* ----------
-		 * We evaluate the string expression after the
-		 * EXECUTE keyword. It's result is the querystring we have
-		 * to execute.
-		 * ----------
-		 */
-		queryD = exec_eval_expr(estate, stmt->dynquery, &isnull, &restype);
-		if (isnull)
-			ereport(ERROR,
-					(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
-					 errmsg("query string argument of EXECUTE is null")));
-
-		/* Get the C-String representation */
-		querystr = convert_value_to_string(estate, queryD, restype);
-
-		/* copy it out of the temporary context before we clean up */
-		querystr = pstrdup(querystr);
-
-		exec_eval_cleanup(estate);
-
-		/* ----------
-		 * Now we prepare a query plan for it and open a cursor
-		 * ----------
-		 */
-		curplan = SPI_prepare_cursor(querystr, 0, NULL, stmt->cursor_options | CURSOR_OPT_UPDATABLE);
-		if (curplan == NULL)
-			elog(ERROR, "SPI_prepare_cursor failed for \"%s\": %s",
-				 querystr, SPI_result_code_string(SPI_result));
-		portal = SPI_cursor_open(curname, curplan, NULL, NULL,
-								 estate->readonly_func);
-		if (portal == NULL)
-			elog(ERROR, "could not open cursor for query \"%s\": %s",
-				 querystr, SPI_result_code_string(SPI_result));
-		pfree(querystr);
-		SPI_freeplan(curplan);
+		portal = exec_dynquery_with_params(estate,
+										   stmt->dynquery,
+										   stmt->params,
+										   curname,
+										   stmt->cursor_options | CURSOR_OPT_UPDATABLE);
 
 		/*
 		 * If cursor variable was NULL, store the generated portal name in it
@@ -3341,8 +3302,8 @@ exec_stmt_open(PLpgSQL_execstate *estate, PLpgSQL_stmt_open *stmt)
 	}
 
 	/*
-	 * Set up ParamListInfo (note this is only carrying a hook function,
-	 * not any actual data values, at this point)
+	 * Set up ParamListInfo (note this is only carrying a hook function, not
+	 * any actual data values, at this point)
 	 */
 	paramLI = setup_param_list(estate, query);
 
@@ -4141,7 +4102,7 @@ exec_get_datum_type(PLpgSQL_execstate *estate,
 
 		default:
 			elog(ERROR, "unrecognized dtype: %d", datum->dtype);
-			typeid = InvalidOid;			/* keep compiler quiet */
+			typeid = InvalidOid;	/* keep compiler quiet */
 			break;
 	}
 
@@ -4324,8 +4285,8 @@ exec_run_select(PLpgSQL_execstate *estate,
 		exec_prepare_plan(estate, expr, 0);
 
 	/*
-	 * Set up ParamListInfo (note this is only carrying a hook function,
-	 * not any actual data values, at this point)
+	 * Set up ParamListInfo (note this is only carrying a hook function, not
+	 * any actual data values, at this point)
 	 */
 	paramLI = setup_param_list(estate, expr);
 
@@ -4393,6 +4354,12 @@ exec_for_query(PLpgSQL_execstate *estate, PLpgSQL_stmt_forq *stmt,
 		row = (PLpgSQL_row *) (estate->datums[stmt->row->dno]);
 	else
 		elog(ERROR, "unsupported target");
+
+	/*
+	 * Make sure the portal doesn't get closed by the user statements we
+	 * execute.
+	 */
+	PinPortal(portal);
 
 	/*
 	 * Fetch the initial tuple(s).	If prefetching is allowed then we grab a
@@ -4503,6 +4470,8 @@ loop_exit:
 	 * Release last group of tuples (if any)
 	 */
 	SPI_freetuptable(tuptab);
+
+	UnpinPortal(portal);
 
 	/*
 	 * Set the FOUND variable to indicate the result of executing the loop
@@ -4629,9 +4598,9 @@ exec_eval_simple_expr(PLpgSQL_execstate *estate,
 	}
 
 	/*
-	 * Create the param list in econtext's temporary memory context.
-	 * We won't need to free it explicitly, since it will go away at the
-	 * next reset of that context.
+	 * Create the param list in econtext's temporary memory context. We won't
+	 * need to free it explicitly, since it will go away at the next reset of
+	 * that context.
 	 *
 	 * XXX think about avoiding repeated palloc's for param lists?  It should
 	 * be possible --- this routine isn't re-entrant anymore.
@@ -4686,7 +4655,7 @@ exec_eval_simple_expr(PLpgSQL_execstate *estate,
  *
  * The ParamListInfo array is initially all zeroes, in particular the
  * ptype values are all InvalidOid.  This causes the executor to call the
- * paramFetch hook each time it wants a value.  We thus evaluate only the
+ * paramFetch hook each time it wants a value.	We thus evaluate only the
  * parameters actually demanded.
  *
  * The result is a locally palloc'd array that should be pfree'd after use;
@@ -4698,16 +4667,16 @@ setup_param_list(PLpgSQL_execstate *estate, PLpgSQL_expr *expr)
 	ParamListInfo paramLI;
 
 	/*
-	 * Could we re-use these arrays instead of palloc'ing a new one each
-	 * time?  However, we'd have to zero the array each time anyway,
-	 * since new values might have been assigned to the variables.
+	 * Could we re-use these arrays instead of palloc'ing a new one each time?
+	 * However, we'd have to zero the array each time anyway, since new values
+	 * might have been assigned to the variables.
 	 */
 	if (estate->ndatums > 0)
 	{
 		/* sizeof(ParamListInfoData) includes the first array element */
 		paramLI = (ParamListInfo)
 			palloc0(sizeof(ParamListInfoData) +
-					(estate->ndatums - 1) * sizeof(ParamExternData));
+					(estate->ndatums - 1) *sizeof(ParamExternData));
 		paramLI->paramFetch = plpgsql_param_fetch;
 		paramLI->paramFetchArg = (void *) estate;
 		paramLI->parserSetup = (ParserSetupHook) plpgsql_parser_setup;
@@ -4716,15 +4685,15 @@ setup_param_list(PLpgSQL_execstate *estate, PLpgSQL_expr *expr)
 
 		/*
 		 * Set up link to active expr where the hook functions can find it.
-		 * Callers must save and restore cur_expr if there is any chance
-		 * that they are interrupting an active use of parameters.
+		 * Callers must save and restore cur_expr if there is any chance that
+		 * they are interrupting an active use of parameters.
 		 */
 		estate->cur_expr = expr;
 
 		/*
-		 * Also make sure this is set before parser hooks need it.  There
-		 * is no need to save and restore, since the value is always correct
-		 * once set.
+		 * Also make sure this is set before parser hooks need it.	There is
+		 * no need to save and restore, since the value is always correct once
+		 * set.
 		 */
 		expr->func = estate->func;
 	}
@@ -4755,9 +4724,9 @@ plpgsql_param_fetch(ParamListInfo params, int paramid)
 	Assert(params->numParams == estate->ndatums);
 
 	/*
-	 * Do nothing if asked for a value that's not supposed to be used by
-	 * this SQL expression.  This avoids unwanted evaluations when functions
-	 * such as copyParamList try to materialize all the values.
+	 * Do nothing if asked for a value that's not supposed to be used by this
+	 * SQL expression.	This avoids unwanted evaluations when functions such
+	 * as copyParamList try to materialize all the values.
 	 */
 	if (!bms_is_member(dno, expr->paramnos))
 		return;
@@ -4902,6 +4871,7 @@ exec_move_row(PLpgSQL_execstate *estate,
 			{
 				value = (Datum) 0;
 				isnull = true;
+
 				/*
 				 * InvalidOid is OK because exec_assign_value doesn't care
 				 * about the type of a source NULL
@@ -5690,8 +5660,11 @@ free_params_data(PreparedParamsData *ppd)
  * Open portal for dynamic query
  */
 static Portal
-exec_dynquery_with_params(PLpgSQL_execstate *estate, PLpgSQL_expr *dynquery,
-						  List *params)
+exec_dynquery_with_params(PLpgSQL_execstate *estate,
+						  PLpgSQL_expr *dynquery,
+						  List *params,
+						  const char *portalname,
+						  int cursorOptions)
 {
 	Portal		portal;
 	Datum		query;
@@ -5727,20 +5700,22 @@ exec_dynquery_with_params(PLpgSQL_execstate *estate, PLpgSQL_expr *dynquery,
 		PreparedParamsData *ppd;
 
 		ppd = exec_eval_using_params(estate, params);
-		portal = SPI_cursor_open_with_args(NULL,
+		portal = SPI_cursor_open_with_args(portalname,
 										   querystr,
 										   ppd->nargs, ppd->types,
 										   ppd->values, ppd->nulls,
-										   estate->readonly_func, 0);
+										   estate->readonly_func,
+										   cursorOptions);
 		free_params_data(ppd);
 	}
 	else
 	{
-		portal = SPI_cursor_open_with_args(NULL,
+		portal = SPI_cursor_open_with_args(portalname,
 										   querystr,
 										   0, NULL,
 										   NULL, NULL,
-										   estate->readonly_func, 0);
+										   estate->readonly_func,
+										   cursorOptions);
 	}
 
 	if (portal == NULL)

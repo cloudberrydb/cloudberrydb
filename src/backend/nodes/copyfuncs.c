@@ -13,11 +13,11 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/copyfuncs.c,v 1.454 2009/12/15 17:57:46 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/copyfuncs.c,v 1.464 2010/02/26 02:00:43 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -295,7 +295,7 @@ _copyRepeat(Repeat *from)
 static ModifyTable *
 _copyModifyTable(ModifyTable *from)
 {
-	ModifyTable    *newnode = makeNode(ModifyTable);
+	ModifyTable *newnode = makeNode(ModifyTable);
 
 	/*
 	 * copy node superclass fields
@@ -1109,6 +1109,7 @@ _copyHash(Hash *from)
 	 */
 	COPY_SCALAR_FIELD(skewTable);
 	COPY_SCALAR_FIELD(skewColumn);
+	COPY_SCALAR_FIELD(skewInherit);
 	COPY_SCALAR_FIELD(skewColType);
 	COPY_SCALAR_FIELD(skewColTypmod);
 
@@ -1149,7 +1150,7 @@ _copySetOp(SetOp *from)
 static LockRows *
 _copyLockRows(LockRows *from)
 {
-	LockRows	   *newnode = makeNode(LockRows);
+	LockRows   *newnode = makeNode(LockRows);
 
 	/*
 	 * copy node superclass fields
@@ -2014,6 +2015,7 @@ _copyNullTest(NullTest *from)
 
 	COPY_NODE_FIELD(arg);
 	COPY_SCALAR_FIELD(nulltesttype);
+	COPY_SCALAR_FIELD(argisrow);
 
 	return newnode;
 }
@@ -2723,6 +2725,7 @@ _copyIndexElem(IndexElem *from)
 
 	COPY_STRING_FIELD(name);
 	COPY_NODE_FIELD(expr);
+	COPY_STRING_FIELD(indexcolname);
 	COPY_NODE_FIELD(opclass);
 	COPY_SCALAR_FIELD(ordering);
 	COPY_SCALAR_FIELD(nulls_ordering);
@@ -3286,6 +3289,7 @@ _copyCreateStmt(CreateStmt *from)
 	COPY_NODE_FIELD(inhRelations);
 	COPY_NODE_FIELD(inhOids);
 	COPY_SCALAR_FIELD(parentOidCount);
+	COPY_NODE_FIELD(ofTypename);
 	COPY_NODE_FIELD(constraints);
 	COPY_NODE_FIELD(options);
 	COPY_SCALAR_FIELD(oncommit);
@@ -3768,6 +3772,7 @@ _copyNotifyStmt(NotifyStmt *from)
 	NotifyStmt *newnode = makeNode(NotifyStmt);
 
 	COPY_STRING_FIELD(conditionname);
+	COPY_STRING_FIELD(payload);
 
 	return newnode;
 }
@@ -3970,13 +3975,12 @@ _copyVacuumStmt(VacuumStmt *from)
 	COPY_NODE_FIELD(relation);
 	COPY_NODE_FIELD(va_cols);
 
+	COPY_SCALAR_FIELD(skip_twophase);
 	COPY_NODE_FIELD(expanded_relids);
 	COPY_NODE_FIELD(appendonly_compaction_segno);
 	COPY_NODE_FIELD(appendonly_compaction_insert_segno);
-	COPY_SCALAR_FIELD(appendonly_compaction_vacuum_cleanup);
-	COPY_SCALAR_FIELD(appendonly_compaction_vacuum_prepare);
+	COPY_SCALAR_FIELD(appendonly_phase);
 	COPY_SCALAR_FIELD(appendonly_relation_empty);
-	COPY_SCALAR_FIELD(heap_truncate);
 
 	return newnode;
 }
@@ -4104,6 +4108,18 @@ _copyDropTableSpaceStmt(DropTableSpaceStmt *from)
 
 	COPY_STRING_FIELD(tablespacename);
 	COPY_SCALAR_FIELD(missing_ok);
+
+	return newnode;
+}
+
+static AlterTableSpaceOptionsStmt *
+_copyAlterTableSpaceOptionsStmt(AlterTableSpaceOptionsStmt *from)
+{
+	AlterTableSpaceOptionsStmt *newnode = makeNode(AlterTableSpaceOptionsStmt);
+
+	COPY_STRING_FIELD(tablespacename);
+	COPY_NODE_FIELD(options);
+	COPY_SCALAR_FIELD(isReset);
 
 	return newnode;
 }
@@ -4261,6 +4277,7 @@ _copyCreatePLangStmt(CreatePLangStmt *from)
 {
 	CreatePLangStmt *newnode = makeNode(CreatePLangStmt);
 
+	COPY_SCALAR_FIELD(replace);
 	COPY_STRING_FIELD(plname);
 	COPY_NODE_FIELD(plhandler);
 	COPY_NODE_FIELD(plinline);
@@ -5390,6 +5407,9 @@ copyObject(void *from)
 			break;
 		case T_DropTableSpaceStmt:
 			retval = _copyDropTableSpaceStmt(from);
+			break;
+		case T_AlterTableSpaceOptionsStmt:
+			retval = _copyAlterTableSpaceOptionsStmt(from);
 			break;
 		case T_CreateFdwStmt:
 			retval = _copyCreateFdwStmt(from);

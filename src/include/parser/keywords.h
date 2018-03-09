@@ -4,10 +4,10 @@
  *	  lexical token lookup for key words in PostgreSQL
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/parser/keywords.h,v 1.27 2009/07/14 20:24:10 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/parser/keywords.h,v 1.29 2010/02/26 02:01:26 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -29,10 +29,10 @@ typedef struct ScanKeyword
 } ScanKeyword;
 
 extern const ScanKeyword ScanKeywords[];
-extern const int	NumScanKeywords;
+extern const int NumScanKeywords;
 
 extern const ScanKeyword *ScanKeywordLookup(const char *text,
-											const ScanKeyword *keywords,
-											int num_keywords);
+				  const ScanKeyword *keywords,
+				  int num_keywords);
 
 #endif   /* KEYWORDS_H */

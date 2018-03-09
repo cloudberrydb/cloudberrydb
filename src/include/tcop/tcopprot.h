@@ -4,10 +4,10 @@
  *	  prototypes for postgres.c.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/tcop/tcopprot.h,v 1.101 2009/11/04 22:26:07 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/tcop/tcopprot.h,v 1.104 2010/02/26 02:01:28 momjian Exp $
  *
  * OLD COMMENTS
  *	  This file was created so that other c files could get the two
@@ -21,6 +21,7 @@
 
 #include "executor/execdesc.h"
 #include "nodes/parsenodes.h"
+#include "storage/procsignal.h"
 #include "utils/guc.h"
 
 
@@ -50,9 +51,9 @@ extern List *pg_parse_query(const char *query_string);
 extern List *pg_analyze_and_rewrite(Node *parsetree, const char *query_string,
 					   Oid *paramTypes, int numParams);
 extern List *pg_analyze_and_rewrite_params(Node *parsetree,
-										   const char *query_string,
-										   ParserSetupHook parserSetup,
-										   void *parserSetupArg);
+							  const char *query_string,
+							  ParserSetupHook parserSetup,
+							  void *parserSetupArg);
 extern PlannedStmt *pg_plan_query(Query *querytree, int cursorOptions,
 			  ParamListInfo boundParams);
 extern List *pg_plan_queries(List *querytrees, int cursorOptions,
@@ -65,6 +66,8 @@ extern void quickdie(SIGNAL_ARGS);
 extern void quickdie_impl(void);
 extern void StatementCancelHandler(SIGNAL_ARGS);
 extern void FloatExceptionHandler(SIGNAL_ARGS);
+extern void RecoveryConflictInterrupt(ProcSignalReason reason); /* called from SIGUSR1
+																 * handler */
 extern void prepare_for_client_read(void);
 extern void client_read_ended(void);
 extern void prepare_for_client_write(void);

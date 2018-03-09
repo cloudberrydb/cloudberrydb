@@ -10,12 +10,12 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/dbcommands.c,v 1.228 2009/11/12 02:46:16 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/dbcommands.c,v 1.235 2010/02/26 02:00:38 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -28,7 +28,7 @@
 
 #include "access/genam.h"
 #include "access/heapam.h"
-#include "access/transam.h"				/* InvalidTransactionId */
+#include "access/transam.h"
 #include "access/xact.h"
 #include "access/xlogutils.h"
 #include "catalog/catalog.h"
@@ -55,6 +55,7 @@
 #include "storage/ipc.h"
 #include "storage/procarray.h"
 #include "storage/smgr.h"
+#include "storage/standby.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
@@ -359,11 +360,11 @@ createdb(CreatedbStmt *stmt)
 	 * fails when presented with data in an encoding it's not expecting. We
 	 * allow mismatch in four cases:
 	 *
-	 * 1. locale encoding = SQL_ASCII, which means that the locale is
-	 * C/POSIX which works with any encoding.
+	 * 1. locale encoding = SQL_ASCII, which means that the locale is C/POSIX
+	 * which works with any encoding.
 	 *
-	 * 2. locale encoding = -1, which means that we couldn't determine
-	 * the locale's encoding and have to trust the user to get it right.
+	 * 2. locale encoding = -1, which means that we couldn't determine the
+	 * locale's encoding and have to trust the user to get it right.
 	 *
 	 * 3. selected encoding is UTF8 and platform is win32. This is because
 	 * UTF8 is a pseudo codepage that is supported in all locales since it's
@@ -574,7 +575,7 @@ createdb(CreatedbStmt *stmt)
 
 	/*
 	 * We deliberately set datacl to default (NULL), rather than copying it
-	 * from the template database.  Copying it would be a bad idea when the
+	 * from the template database.	Copying it would be a bad idea when the
 	 * owner is not the same as the template's owner.
 	 */
 	new_record_nulls[Anum_pg_database_datacl - 1] = true;
@@ -926,9 +927,7 @@ dropdb(const char *dbname, bool missing_ok)
 	/*
 	 * Remove the database's tuple from pg_database.
 	 */
-	tup = SearchSysCache(DATABASEOID,
-						 ObjectIdGetDatum(db_id),
-						 0, 0, 0);
+	tup = SearchSysCache1(DATABASEOID, ObjectIdGetDatum(db_id));
 	if (!HeapTupleIsValid(tup))
 		elog(ERROR, "cache lookup failed for database %u", db_id);
 
@@ -992,9 +991,9 @@ dropdb(const char *dbname, bool missing_ok)
 	heap_close(pgdbrel, NoLock);
 
 	/*
-	 * Force synchronous commit, thus minimizing the window between removal
-	 * of the database files and commital of the transaction. If we crash
-	 * before committing, we'll have a DB that's gone on disk but still there
+	 * Force synchronous commit, thus minimizing the window between removal of
+	 * the database files and commital of the transaction. If we crash before
+	 * committing, we'll have a DB that's gone on disk but still there
 	 * according to pg_database, which is not good.
 	 */
 	ForceSyncCommit();
@@ -1070,9 +1069,7 @@ RenameDatabase(const char *oldname, const char *newname)
 				 errdetail_busy_db(notherbackends, npreparedxacts)));
 
 	/* rename */
-	newtup = SearchSysCacheCopy(DATABASEOID,
-								ObjectIdGetDatum(db_id),
-								0, 0, 0);
+	newtup = SearchSysCacheCopy1(DATABASEOID, ObjectIdGetDatum(db_id));
 	if (!HeapTupleIsValid(newtup))
 		elog(ERROR, "cache lookup failed for database %u", db_id);
 	namestrcpy(&(((Form_pg_database) GETSTRUCT(newtup))->datname), newname);
@@ -1561,10 +1558,10 @@ AlterDatabaseSet(AlterDatabaseSetStmt *stmt)
 	Oid			datid = get_database_oid(stmt->dbname, false);
 
 	if (!OidIsValid(datid))
-  		ereport(ERROR,
-  				(errcode(ERRCODE_UNDEFINED_DATABASE),
-  				 errmsg("database \"%s\" does not exist", stmt->dbname)));
-  
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_DATABASE),
+				 errmsg("database \"%s\" does not exist", stmt->dbname)));
+
 	/*
 	 * Obtain a lock on the database and make sure it didn't go away in the
 	 * meantime.
@@ -1572,11 +1569,11 @@ AlterDatabaseSet(AlterDatabaseSetStmt *stmt)
 	shdepLockAndCheckObject(DatabaseRelationId, datid);
 
 	if (!pg_database_ownercheck(datid, GetUserId()))
-  		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_DATABASE,
-  					   stmt->dbname);
+		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_DATABASE,
+					   stmt->dbname);
 
 	AlterSetting(datid, InvalidOid, stmt->setstmt);
-  
+
 	UnlockSharedObject(DatabaseRelationId, datid, 0, AccessShareLock);
 }
 
@@ -1777,9 +1774,7 @@ get_db_info(const char *name, LOCKMODE lockmode,
 		 * the same name, we win; else, drop the lock and loop back to try
 		 * again.
 		 */
-		tuple = SearchSysCache(DATABASEOID,
-							   ObjectIdGetDatum(dbOid),
-							   0, 0, 0);
+		tuple = SearchSysCache1(DATABASEOID, ObjectIdGetDatum(dbOid));
 		if (HeapTupleIsValid(tuple))
 		{
 			Form_pg_database dbform = (Form_pg_database) GETSTRUCT(tuple);
@@ -1843,9 +1838,7 @@ have_createdb_privilege(void)
 	if (superuser())
 		return true;
 
-	utup = SearchSysCache(AUTHOID,
-						  ObjectIdGetDatum(GetUserId()),
-						  0, 0, 0);
+	utup = SearchSysCache1(AUTHOID, ObjectIdGetDatum(GetUserId()));
 	if (HeapTupleIsValid(utup))
 	{
 		result = ((Form_pg_authid) GETSTRUCT(utup))->rolcreatedb;
@@ -2071,9 +2064,7 @@ get_database_name(Oid dbid)
 	HeapTuple	dbtuple;
 	char	   *result;
 
-	dbtuple = SearchSysCache(DATABASEOID,
-							 ObjectIdGetDatum(dbid),
-							 0, 0, 0);
+	dbtuple = SearchSysCache1(DATABASEOID, ObjectIdGetDatum(dbid));
 	if (HeapTupleIsValid(dbtuple))
 	{
 		result = pstrdup(NameStr(((Form_pg_database) GETSTRUCT(dbtuple))->datname));
@@ -2140,6 +2131,18 @@ dbase_redo(XLogRecPtr beginLoc  __attribute__((unused)), XLogRecPtr lsn  __attri
 
 		dst_path = GetDatabasePath(xlrec->db_id, xlrec->tablespace_id);
 
+		if (InHotStandby)
+		{
+			/*
+			 * Lock database while we resolve conflicts to ensure that
+			 * InitPostgres() cannot fully re-execute concurrently. This
+			 * avoids backends re-connecting automatically to same database,
+			 * which can happen in some cases.
+			 */
+			LockSharedObjectForSession(DatabaseRelationId, xlrec->db_id, 0, AccessExclusiveLock);
+			ResolveRecoveryConflictWithDatabase(xlrec->db_id);
+		}
+
 		/* Drop pages for this database that are in the shared buffer cache */
 		DropDatabaseBuffers(xlrec->db_id);
 
@@ -2154,6 +2157,18 @@ dbase_redo(XLogRecPtr beginLoc  __attribute__((unused)), XLogRecPtr lsn  __attri
 			ereport(WARNING,
 					(errmsg("some useless files may be left behind in old database directory \"%s\"",
 							dst_path)));
+
+		if (InHotStandby)
+		{
+			/*
+			 * Release locks prior to commit. XXX There is a race condition
+			 * here that may allow backends to reconnect, but the window for
+			 * this is small because the gap between here and commit is mostly
+			 * fairly small and it is unlikely that people will be dropping
+			 * databases that we are trying to connect to anyway.
+			 */
+			UnlockSharedObjectForSession(DatabaseRelationId, xlrec->db_id, 0, AccessExclusiveLock);
+		}
 	}
 	else
 		elog(PANIC, "dbase_redo: unknown op code %u", info);

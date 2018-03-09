@@ -4,10 +4,10 @@
  *	  prototypes for clauses.c.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/optimizer/clauses.h,v 1.99 2009/12/15 17:57:47 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/optimizer/clauses.h,v 1.101 2010/02/26 02:01:26 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

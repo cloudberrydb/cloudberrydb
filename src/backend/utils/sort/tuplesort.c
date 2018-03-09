@@ -89,11 +89,11 @@
  *
  * Portions Copyright (c) 2007-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/sort/tuplesort.c,v 1.93 2009/08/10 05:46:50 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/sort/tuplesort.c,v 1.95 2010/02/26 02:01:15 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -3119,8 +3119,8 @@ comparetup_index_btree(const SortTuple *a, const SortTuple *b,
 	 */
 	if (state->enforceUnique && !equal_hasnull && tuple1 != tuple2)
 	{
-		Datum	values[INDEX_MAX_KEYS];
-		bool	isnull[INDEX_MAX_KEYS];
+		Datum		values[INDEX_MAX_KEYS];
+		bool		isnull[INDEX_MAX_KEYS];
 
 		index_deform_tuple(tuple1, tupDes, values, isnull);
 		ereport(ERROR,

@@ -3,12 +3,12 @@
  * parse_target.c
  *	  handle target lists
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_target.c,v 1.174 2009/10/31 01:41:31 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_target.c,v 1.177 2010/02/26 02:00:52 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -50,9 +50,9 @@ static List *ExpandAllTables(ParseState *pstate, int location);
 static List *ExpandIndirectionStar(ParseState *pstate, A_Indirection *ind,
 					  bool make_target_entry, ParseExprKind exprKind);
 static List *ExpandSingleTable(ParseState *pstate, RangeTblEntry *rte,
-							   int location, bool targetlist);
+				  int location, bool targetlist);
 static List *ExpandRowReference(ParseState *pstate, Node *expr,
-								bool targetlist);
+				   bool targetlist);
 static int	FigureColnameInternal(Node *node, char **name);
 
 
@@ -910,12 +910,12 @@ ExpandColumnRefStar(ParseState *pstate, ColumnRef *cref,
 		 *
 		 * (e.g., SELECT emp.*, dname FROM emp, dept)
 		 *
-		 * Note: this code is a lot like transformColumnRef; it's tempting
-		 * to call that instead and then replace the resulting whole-row Var
-		 * with a list of Vars.  However, that would leave us with the
-		 * RTE's selectedCols bitmap showing the whole row as needing
-		 * select permission, as well as the individual columns.  That would
-		 * be incorrect (since columns added later shouldn't need select
+		 * Note: this code is a lot like transformColumnRef; it's tempting to
+		 * call that instead and then replace the resulting whole-row Var with
+		 * a list of Vars.	However, that would leave us with the RTE's
+		 * selectedCols bitmap showing the whole row as needing select
+		 * permission, as well as the individual columns.  That would be
+		 * incorrect (since columns added later shouldn't need select
 		 * permissions).  We could try to remove the whole-row permission bit
 		 * after the fact, but duplicating code is less messy.
 		 */
@@ -923,14 +923,15 @@ ExpandColumnRefStar(ParseState *pstate, ColumnRef *cref,
 		char	   *relname = NULL;
 		RangeTblEntry *rte = NULL;
 		int			levels_up;
-		enum {
+		enum
+		{
 			CRSERR_NO_RTE,
 			CRSERR_WRONG_DB,
 			CRSERR_TOO_MANY
 		}			crserr = CRSERR_NO_RTE;
 
 		/*
-		 * Give the PreParseColumnRefHook, if any, first shot.  If it returns
+		 * Give the PreParseColumnRefHook, if any, first shot.	If it returns
 		 * non-null then we should use that expression.
 		 */
 		if (pstate->p_pre_columnref_hook != NULL)
@@ -958,35 +959,35 @@ ExpandColumnRefStar(ParseState *pstate, ColumnRef *cref,
 										   &levels_up);
 				break;
 			case 4:
-			{
-				char	   *catname = strVal(linitial(fields));
-
-				/*
-				 * We check the catalog name and then ignore it.
-				 */
-				if (strcmp(catname, get_database_name(MyDatabaseId)) != 0)
 				{
-					crserr = CRSERR_WRONG_DB;
+					char	   *catname = strVal(linitial(fields));
+
+					/*
+					 * We check the catalog name and then ignore it.
+					 */
+					if (strcmp(catname, get_database_name(MyDatabaseId)) != 0)
+					{
+						crserr = CRSERR_WRONG_DB;
+						break;
+					}
+					nspname = strVal(lsecond(fields));
+					relname = strVal(lthird(fields));
+					rte = refnameRangeTblEntry(pstate, nspname, relname,
+											   cref->location,
+											   &levels_up);
 					break;
 				}
-				nspname = strVal(lsecond(fields));
-				relname = strVal(lthird(fields));
-				rte = refnameRangeTblEntry(pstate, nspname, relname,
-										   cref->location,
-										   &levels_up);
-				break;
-			}
 			default:
 				crserr = CRSERR_TOO_MANY;
 				break;
 		}
 
 		/*
-		 * Now give the PostParseColumnRefHook, if any, a chance.
-		 * We cheat a bit by passing the RangeTblEntry, not a Var,
-		 * as the planned translation.  (A single Var wouldn't be
-		 * strictly correct anyway.  This convention allows hooks
-		 * that really care to know what is happening.)
+		 * Now give the PostParseColumnRefHook, if any, a chance. We cheat a
+		 * bit by passing the RangeTblEntry, not a Var, as the planned
+		 * translation.  (A single Var wouldn't be strictly correct anyway.
+		 * This convention allows hooks that really care to know what is
+		 * happening.)
 		 */
 		if (pstate->p_post_columnref_hook != NULL)
 		{
@@ -1139,9 +1140,9 @@ ExpandSingleTable(ParseState *pstate, RangeTblEntry *rte,
 				  NULL, &vars);
 
 		/*
-		 * Require read access to the table.  This is normally redundant
-		 * with the markVarForSelectPriv calls below, but not if the table
-		 * has zero columns.
+		 * Require read access to the table.  This is normally redundant with
+		 * the markVarForSelectPriv calls below, but not if the table has zero
+		 * columns.
 		 */
 		rte->requiredPerms |= ACL_SELECT;
 
@@ -1175,7 +1176,7 @@ ExpandRowReference(ParseState *pstate, Node *expr,
 
 	/*
 	 * If the rowtype expression is a whole-row Var, we can expand the fields
-	 * as simple Vars.  Note: if the RTE is a relation, this case leaves us
+	 * as simple Vars.	Note: if the RTE is a relation, this case leaves us
 	 * with the RTE's selectedCols bitmap showing the whole row as needing
 	 * select permission, as well as the individual columns.  However, we can
 	 * only get here for weird notations like (table.*).*, so it's not worth
@@ -1193,8 +1194,8 @@ ExpandRowReference(ParseState *pstate, Node *expr,
 	}
 
 	/*
-	 * Otherwise we have to do it the hard way.  Our current implementation
-	 * is to generate multiple copies of the expression and do FieldSelects.
+	 * Otherwise we have to do it the hard way.  Our current implementation is
+	 * to generate multiple copies of the expression and do FieldSelects.
 	 * (This can be pretty inefficient if the expression involves nontrivial
 	 * computation :-(.)
 	 *
@@ -1442,13 +1443,40 @@ FigureColname(Node *node)
 {
 	char	   *name = NULL;
 
-	FigureColnameInternal(node, &name);
+	(void) FigureColnameInternal(node, &name);
 	if (name != NULL)
 		return name;
 	/* default result if we can't guess anything */
 	return "?column?";
 }
 
+/*
+ * FigureIndexColname -
+ *	  choose the name for an expression column in an index
+ *
+ * This is actually just like FigureColname, except we return NULL if
+ * we can't pick a good name.
+ */
+char *
+FigureIndexColname(Node *node)
+{
+	char	   *name = NULL;
+
+	(void) FigureColnameInternal(node, &name);
+	return name;
+}
+
+/*
+ * FigureColnameInternal -
+ *	  internal workhorse for FigureColname
+ *
+ * Return value indicates strength of confidence in result:
+ *		0 - no information
+ *		1 - second-best name choice
+ *		2 - good name choice
+ * The return value is actually only used internally.
+ * If the result isn't zero, *name is set to the chosen name.
+ */
 static int
 FigureColnameInternal(Node *node, char **name)
 {

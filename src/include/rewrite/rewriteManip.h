@@ -4,10 +4,10 @@
  *		Querytree manipulation subroutines for query rewriter.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/rewrite/rewriteManip.h,v 1.51 2009/09/02 17:52:24 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/rewrite/rewriteManip.h,v 1.53 2010/02/26 02:01:27 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -19,16 +19,16 @@
 
 typedef struct replace_rte_variables_context replace_rte_variables_context;
 
-typedef Node * (*replace_rte_variables_callback) (Var *var,
-									replace_rte_variables_context *context);
+typedef Node *(*replace_rte_variables_callback) (Var *var,
+									 replace_rte_variables_context *context);
 
 struct replace_rte_variables_context
 {
 	replace_rte_variables_callback callback;	/* callback function */
-	void	   *callback_arg;		/* context data for callback function */
-	int			target_varno;		/* RTE index to search for */
-	int			sublevels_up;		/* (current) nesting depth */
-	bool		inserted_sublink;	/* have we inserted a SubLink? */
+	void	   *callback_arg;	/* context data for callback function */
+	int			target_varno;	/* RTE index to search for */
+	int			sublevels_up;	/* (current) nesting depth */
+	bool		inserted_sublink;		/* have we inserted a SubLink? */
 };
 
 

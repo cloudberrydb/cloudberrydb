@@ -8,10 +8,10 @@
  *
  * This code is released under the terms of the PostgreSQL License.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/test/regress/pg_regress.c,v 1.67 2009/11/23 16:02:24 tgl Exp $
+ * $PostgreSQL: pgsql/src/test/regress/pg_regress.c,v 1.72 2010/06/12 17:21:29 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -74,7 +74,7 @@ static char gpstringsubsprog[MAXPGPATH];
 
 /*
  * On Windows we use -w in diff switches to avoid problems with inconsistent
- * newline representation.  The actual result files will generally have
+ * newline representation.	The actual result files will generally have
  * Windows-style newlines, but the comparison files might or might not.
  */
 #ifndef WIN32
@@ -104,6 +104,7 @@ static char *temp_install = NULL;
 static char *temp_config = NULL;
 static char *top_builddir = NULL;
 static bool nolocale = false;
+static bool use_existing = false;
 static char *hostname = NULL;
 static int	port = -1;
 static bool port_specified_by_user = false;
@@ -1896,14 +1897,7 @@ run_schedule(const char *schedule, test_function tfunc)
 		gettimeofday(&start_time, NULL);
 		if (num_tests == 1)
 		{
-#ifdef TEST_EACH_SCRIPT_IN_ITS_OWN_DB
-		    _stringlist *strList;
-            for (strList = dblist; strList; strList = strList->next)
-        	    drop_database_if_exists(strList->str);
-            for (strList = dblist; strList; strList = strList->next)
-        		create_database(strList->str);
-#endif
-			status(_("test %-20s ... "), tests[0]);
+			status(_("test %-24s ... "), tests[0]);
 			pids[0] = (tfunc) (tests[0], &resultfiles[0], &expectfiles[0], &tags[0]);
 			wait_for_tests(pids, statuses, NULL, end_times, 1);
 			/* status line is finished below */
@@ -1950,7 +1944,7 @@ run_schedule(const char *schedule, test_function tfunc)
 			struct timeval diff_start_time, diff_end_time;
 
 			if (num_tests > 1)
-				status(_("     %-20s ... "), tests[i]);
+				status(_("     %-24s ... "), tests[i]);
 
 			diff_secs = end_times[i].tv_usec - start_time.tv_usec;
 			diff_secs /= 1000000;
@@ -2195,12 +2189,13 @@ create_database(const char *dbname)
 				 dbname, dbname, dbname, dbname, dbname);
 
 	/*
-	 * Install any requested procedural languages
+	 * Install any requested procedural languages.	We use CREATE OR REPLACE
+	 * so that this will work whether or not the language is preinstalled.
 	 */
 	for (sl = loadlanguage; sl != NULL; sl = sl->next)
 	{
 		header(_("installing %s"), sl->str);
-		psql_command(dbname, "CREATE LANGUAGE \"%s\"", sl->str);
+		psql_command(dbname, "CREATE OR REPLACE LANGUAGE \"%s\"", sl->str);
 	}
 }
 
@@ -2379,6 +2374,7 @@ help(void)
 	printf(_("  --exclude-tests=TEST      command or space delimited tests to exclude from running\n"));
 	printf(_("  --dlpath=DIR              look for dynamic libraries in DIR\n"));
 	printf(_("  --temp-install=DIR        create a temporary installation in DIR\n"));
+	printf(_("  --use-existing            use an existing installation\n"));
     printf(_(" --init-file=GPD_INIT_FILE  init file to be used for gpdiff\n"));
 	printf(_("  --ao-dir=DIR              directory name prefix containing generic\n"));
 	printf(_("                            UAO row and column tests\n"));
@@ -2433,10 +2429,11 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 		{"dlpath", required_argument, NULL, 17},
 		{"create-role", required_argument, NULL, 18},
 		{"temp-config", required_argument, NULL, 19},
-        {"init-file", required_argument, NULL, 20},
-        {"ao-dir", required_argument, NULL, 21},
-        {"resgroup-dir", required_argument, NULL, 22},
-        {"exclude-tests", required_argument, NULL, 23},
+		{"use-existing", no_argument, NULL, 20},
+        {"init-file", required_argument, NULL, 25},
+        {"ao-dir", required_argument, NULL, 26},
+        {"resgroup-dir", required_argument, NULL, 27},
+        {"exclude-tests", required_argument, NULL, 28},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -2527,16 +2524,19 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 			case 19:
 				temp_config = strdup(optarg);
 				break;
-            case 20:
+			case 20:
+				use_existing = true;
+				break;
+            case 25:
                 initfile = strdup(optarg);
                 break;
-            case 21:
+            case 26:
                 aodir = strdup(optarg);
                 break;
-            case 22:
+            case 27:
                 resgroupdir = strdup(optarg);
                 break;
-            case 23:
+            case 28:
                 split_to_stringlist(strdup(optarg), ", ", &exclude_tests);
                 break;
 			default:
@@ -2786,19 +2786,25 @@ regression_main(int argc, char *argv[], init_function ifunc, test_function tfunc
 		 * Using an existing installation, so may need to get rid of
 		 * pre-existing database(s) and role(s)
 		 */
-		for (sl = dblist; sl; sl = sl->next)
-			drop_database_if_exists(sl->str);
-		for (sl = extraroles; sl; sl = sl->next)
-			drop_role_if_exists(sl->str);
+		if (!use_existing)
+		{
+			for (sl = dblist; sl; sl = sl->next)
+				drop_database_if_exists(sl->str);
+			for (sl = extraroles; sl; sl = sl->next)
+				drop_role_if_exists(sl->str);
+		}
 	}
 
 	/*
 	 * Create the test database(s) and role(s)
 	 */
-	for (sl = dblist; sl; sl = sl->next)
-		create_database(sl->str);
-	for (sl = extraroles; sl; sl = sl->next)
-		create_role(sl->str, dblist);
+	if (!use_existing)
+	{
+		for (sl = dblist; sl; sl = sl->next)
+			create_database(sl->str);
+		for (sl = extraroles; sl; sl = sl->next)
+			create_role(sl->str, dblist);
+	}
 
 	/*
 	 * Find out if optimizer is on or off

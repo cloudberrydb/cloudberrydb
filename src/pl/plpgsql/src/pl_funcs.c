@@ -3,12 +3,12 @@
  * pl_funcs.c		- Misc functions for the PL/pgSQL
  *			  procedural language
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_funcs.c,v 1.86 2009/11/12 00:13:00 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_funcs.c,v 1.90 2010/02/26 02:01:35 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -24,7 +24,7 @@
  * list or "chain" (from the youngest item to the root) is accessible from
  * any one plpgsql statement.  During initial parsing of a function, ns_top
  * points to the youngest item accessible from the block currently being
- * parsed.  We store the entire tree, however, since at runtime we will need
+ * parsed.	We store the entire tree, however, since at runtime we will need
  * to access the chain that's relevant to any one statement.
  *
  * Block boundaries in the namespace chain are marked by PLPGSQL_NSTYPE_LABEL
@@ -983,9 +983,28 @@ dump_open(PLpgSQL_stmt_open *stmt)
 		printf("  execute = '");
 		dump_expr(stmt->dynquery);
 		printf("'\n");
+
+		if (stmt->params != NIL)
+		{
+			ListCell   *lc;
+			int			i;
+
+			dump_indent += 2;
+			dump_ind();
+			printf("    USING\n");
+			dump_indent += 2;
+			i = 1;
+			foreach(lc, stmt->params)
+			{
+				dump_ind();
+				printf("    parameter $%d: ", i++);
+				dump_expr((PLpgSQL_expr *) lfirst(lc));
+				printf("\n");
+			}
+			dump_indent -= 4;
+		}
 	}
 	dump_indent -= 2;
-
 }
 
 static void

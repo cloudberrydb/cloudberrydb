@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/cache/syscache.c,v 1.121 2009/10/05 19:24:45 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/cache/syscache.c,v 1.126 2010/02/14 18:42:17 rhaas Exp $
  *
  * NOTES
  *	  These routines allow the parser/planner/executor to perform
@@ -50,6 +50,7 @@
 #include "catalog/pg_proc.h"
 #include "catalog/pg_rewrite.h"
 #include "catalog/pg_statistic.h"
+#include "catalog/pg_tablespace.h"
 #include "catalog/pg_ts_config.h"
 #include "catalog/pg_ts_config_map.h"
 #include "catalog/pg_ts_dict.h"
@@ -579,16 +580,27 @@ static const struct cachedesc cacheinfo[] = {
 		},
 		1024
 	},
-	{StatisticRelationId,		/* STATRELATT */
-		StatisticRelidAttnumIndexId,
-		2,
+	{StatisticRelationId,		/* STATRELATTINH */
+		StatisticRelidAttnumInhIndexId,
+		3,
 		{
 			Anum_pg_statistic_starelid,
 			Anum_pg_statistic_staattnum,
-			0,
+			Anum_pg_statistic_stainherit,
 			0
 		},
 		1024
+	},
+	{TableSpaceRelationId,		/* TABLESPACEOID */
+		TablespaceOidIndexId,
+		1,
+		{
+			ObjectIdAttributeNumber,
+			0,
+			0,
+			0,
+		},
+		16
 	},
 	{TSConfigMapRelationId,		/* TSCONFIGMAP */
 		TSConfigMapIndexId,
@@ -925,10 +937,9 @@ SearchSysCacheAttName(Oid relid, const char *attname)
 {
 	HeapTuple	tuple;
 
-	tuple = SearchSysCache(ATTNAME,
-						   ObjectIdGetDatum(relid),
-						   CStringGetDatum(attname),
-						   0, 0);
+	tuple = SearchSysCache2(ATTNAME,
+							ObjectIdGetDatum(relid),
+							CStringGetDatum(attname));
 	if (!HeapTupleIsValid(tuple))
 		return NULL;
 	if (((Form_pg_attribute) GETSTRUCT(tuple))->attisdropped)

@@ -8,12 +8,12 @@
  * exit-time cleanup for either a postmaster or a backend.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/ipc/ipc.c,v 1.105 2009/06/11 14:49:01 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/ipc/ipc.c,v 1.108 2010/07/06 19:18:57 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -177,13 +177,13 @@ proc_exit_prepare(int code)
 	CritSectionCount = 0;
 
 	/*
-	 * Also clear the error context stack, to prevent error callbacks
-	 * from being invoked by any elog/ereport calls made during proc_exit.
-	 * Whatever context they might want to offer is probably not relevant,
-	 * and in any case they are likely to fail outright after we've done
-	 * things like aborting any open transaction.  (In normal exit scenarios
-	 * the context stack should be empty anyway, but it might not be in the
-	 * case of elog(FATAL) for example.)
+	 * Also clear the error context stack, to prevent error callbacks from
+	 * being invoked by any elog/ereport calls made during proc_exit. Whatever
+	 * context they might want to offer is probably not relevant, and in any
+	 * case they are likely to fail outright after we've done things like
+	 * aborting any open transaction.  (In normal exit scenarios the context
+	 * stack should be empty anyway, but it might not be in the case of
+	 * elog(FATAL) for example.)
 	 */
 	error_context_stack = NULL;
 	/* For the same reason, reset debug_query_string before it's clobbered */

@@ -935,7 +935,7 @@ listDefaultACLs(const char *pattern)
 	initPQExpBuffer(&buf);
 
 	printfPQExpBuffer(&buf,
-					  "SELECT pg_catalog.pg_get_userbyid(d.defaclrole) AS \"%s\",\n"
+			   "SELECT pg_catalog.pg_get_userbyid(d.defaclrole) AS \"%s\",\n"
 					  "  n.nspname AS \"%s\",\n"
 					  "  CASE d.defaclobjtype WHEN 'r' THEN '%s' WHEN 'S' THEN '%s' WHEN 'f' THEN '%s' END AS \"%s\",\n"
 					  "  ",
@@ -949,7 +949,7 @@ listDefaultACLs(const char *pattern)
 	printACLColumn(&buf, "d.defaclacl");
 
 	appendPQExpBuffer(&buf, "\nFROM pg_catalog.pg_default_acl d\n"
-	   "     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = d.defaclnamespace\n");
+					  "     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = d.defaclnamespace\n");
 
 	processSQLNamePattern(pset.db, &buf, pattern, false, false,
 						  NULL,
@@ -1287,7 +1287,6 @@ describeOneTableDetails(const char *schemaname,
 		bool		hasrules;
 		bool		hastriggers;
 		bool		hasoids;
-		bool		hasexclusion;
 		Oid			tablespace;
 		char	   *reloptions;
 		char	   *reloftype;
@@ -1319,8 +1318,9 @@ describeOneTableDetails(const char *schemaname,
 		printfPQExpBuffer(&buf,
 			  "SELECT c.relchecks, c.relkind, c.relhasindex, c.relhasrules, "
 						  "c.relhastriggers, c.relhasoids, "
-						  "%s, c.reltablespace, %s, "
+						  "%s, c.reltablespace, "
 						  "CASE WHEN c.reloftype = 0 THEN '' ELSE c.reloftype::pg_catalog.regtype::pg_catalog.text END\n"
+						  ", %s as relstorage "
 						  "FROM pg_catalog.pg_class c\n "
 		   "LEFT JOIN pg_catalog.pg_class tc ON (c.reltoastrelid = tc.oid)\n"
 						  "WHERE c.oid = '%s'\n",
@@ -1337,7 +1337,7 @@ describeOneTableDetails(const char *schemaname,
 		printfPQExpBuffer(&buf,
 			  "SELECT c.relchecks, c.relkind, c.relhasindex, c.relhasrules, "
 						  "c.relhastriggers, c.relhasoids, "
-						  "%s, c.reltablespace, %s \n"
+						  "%s, c.reltablespace, %s as relstorage\n"
 						  "FROM pg_catalog.pg_class c\n "
 		   "LEFT JOIN pg_catalog.pg_class tc ON (c.reltoastrelid = tc.oid)\n"
 						  "WHERE c.oid = '%s'\n",
@@ -1354,7 +1354,7 @@ describeOneTableDetails(const char *schemaname,
 		printfPQExpBuffer(&buf,
 					  "SELECT relchecks, relkind, relhasindex, relhasrules, "
 						  "reltriggers <> 0, relhasoids, "
-						  "%s, reltablespace, %s\n"
+						  "%s, reltablespace, %s as relstorage\n"
 						  "FROM pg_catalog.pg_class WHERE oid = '%s'",
 						  (verbose ?
 					 "pg_catalog.array_to_string(reloptions, E', ')" : "''"),
@@ -1406,8 +1406,10 @@ describeOneTableDetails(const char *schemaname,
 		atooid(PQgetvalue(res, 0, 7)) : 0;
 	tableinfo.reloftype = (pset.sversion >= 90000 && strcmp(PQgetvalue(res, 0, 8), "") != 0) ?
 		strdup(PQgetvalue(res, 0, 8)) : 0;
+
 	/* GPDB Only:  relstorage  */
-	tableinfo.relstorage = (isGPDB()) ? *(PQgetvalue(res, 0, 8)) : 'h';
+	tableinfo.relstorage = (isGPDB()) ? *(PQgetvalue(res, 0, PQfnumber(res, "relstorage"))) : 'h';
+
 	PQclear(res);
 	res = NULL;
 
@@ -1744,7 +1746,7 @@ describeOneTableDetails(const char *schemaname,
 			appendPQExpBuffer(&buf,
 						"  false AS condeferrable, false AS condeferred,\n");
 		appendPQExpBuffer(&buf, "  a.amname, c2.relname, "
-						  "pg_catalog.pg_get_expr(i.indpred, i.indrelid, true)\n"
+					  "pg_catalog.pg_get_expr(i.indpred, i.indrelid, true)\n"
 						  "FROM pg_catalog.pg_index i, pg_catalog.pg_class c, pg_catalog.pg_class c2, pg_catalog.pg_am a\n"
 		  "WHERE i.indexrelid = c.oid AND c.oid = '%s' AND c.relam = a.oid\n"
 						  "AND i.indrelid = c2.oid",
@@ -2202,12 +2204,6 @@ describeOneTableDetails(const char *schemaname,
 
 					if (strcmp(PQgetvalue(result, i, 4), "t") != 0)
 						appendPQExpBuffer(&buf, " INVALID");
-
-					if (strcmp(PQgetvalue(result, i, 6), "t") == 0)
-						appendPQExpBuffer(&buf, " DEFERRABLE");
-
-					if (strcmp(PQgetvalue(result, i, 7), "t") == 0)
-						appendPQExpBuffer(&buf, " INITIALLY DEFERRED");
 
 					printTableAddFooter(&cont, buf.data);
 
@@ -3082,27 +3078,22 @@ add_role_attribute(PQExpBuffer buf, const char *const str)
 bool
 listDbRoleSettings(const char *pattern, const char *pattern2)
 {
-	PQExpBufferData	buf;
-	PGresult	   *res;
+	PQExpBufferData buf;
+	PGresult   *res;
 	printQueryOpt myopt = pset.popt;
 
 	initPQExpBuffer(&buf);
 
-	// GPDB_90_MERGE_FIXME: change this to '90000' once we bump the version
-	// number
-	if (pset.sversion >= 80500)
+	if (pset.sversion >= 90000)
 	{
-		/* ACHOI: havewhere is false */
-		bool		havewhere = false;
+		bool		havewhere;
 
 		printfPQExpBuffer(&buf, "SELECT rolname AS role, datname AS database,\n"
 				"pg_catalog.array_to_string(setconfig, E'\\n') AS settings\n"
 						  "FROM pg_db_role_setting AS s\n"
 				   "LEFT JOIN pg_database ON pg_database.oid = setdatabase\n"
 						  "LEFT JOIN pg_roles ON pg_roles.oid = setrole\n");
-
-		/* ACHOI: psql 9.0 assing the havewhere here */
-		processSQLNamePattern(pset.db, &buf, pattern, false, false,
+		havewhere = processSQLNamePattern(pset.db, &buf, pattern, false, false,
 									   NULL, "pg_roles.rolname", NULL, NULL);
 		processSQLNamePattern(pset.db, &buf, pattern2, havewhere, false,
 							  NULL, "pg_database.datname", NULL, NULL);
@@ -3111,7 +3102,7 @@ listDbRoleSettings(const char *pattern, const char *pattern2)
 	else
 	{
 		fprintf(pset.queryFout,
-				_("No per-database role settings support in this server version.\n"));
+		_("No per-database role settings support in this server version.\n"));
 		return false;
 	}
 

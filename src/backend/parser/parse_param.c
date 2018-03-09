@@ -12,12 +12,12 @@
  * Note that other approaches to parameters are possible using the parser
  * hooks defined in ParseState.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_param.c,v 2.1 2009/10/31 01:41:31 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_param.c,v 2.4 2010/02/26 02:00:52 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -53,8 +53,8 @@ typedef struct VarParamState
 static Node *fixed_paramref_hook(ParseState *pstate, ParamRef *pref);
 static Node *variable_paramref_hook(ParseState *pstate, ParamRef *pref);
 static Node *variable_coerce_param_hook(ParseState *pstate, Param *param,
-										Oid targetTypeId, int32 targetTypeMod,
-										int location);
+						   Oid targetTypeId, int32 targetTypeMod,
+						   int location);
 static bool check_parameter_resolution_walker(Node *node, ParseState *pstate);
 
 
@@ -100,8 +100,9 @@ fixed_paramref_hook(ParseState *pstate, ParamRef *pref)
 	int			paramno = pref->number;
 	Param	   *param;
 
-	/* Check parameter number is in range */
-	if (paramno <= 0 || paramno > parstate->numParams)
+	/* Check parameter number is valid */
+	if (paramno <= 0 || paramno > parstate->numParams ||
+		!OidIsValid(parstate->paramTypes[paramno - 1]))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_PARAMETER),
 				 errmsg("there is no parameter $%d", paramno),
@@ -244,7 +245,7 @@ variable_coerce_param_hook(ParseState *pstate, Param *param,
  * of parsing with parse_variable_parameters.
  *
  * Note: this code intentionally does not check that all parameter positions
- * were used, nor that all got non-UNKNOWN types assigned.  Caller of parser
+ * were used, nor that all got non-UNKNOWN types assigned.	Caller of parser
  * should enforce that if it's important.
  */
 void

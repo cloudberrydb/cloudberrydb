@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/allpaths.c,v 1.191 2009/11/28 00:46:19 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/allpaths.c,v 1.194 2010/03/28 22:59:32 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -494,11 +494,11 @@ set_append_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
 		 * can disregard this child.
 		 *
 		 * As of 8.4, the child rel's targetlist might contain non-Var
-		 * expressions, which means that substitution into the quals
-		 * could produce opportunities for const-simplification, and perhaps
-		 * even pseudoconstant quals.  To deal with this, we strip the
-		 * RestrictInfo nodes, do the substitution, do const-simplification,
-		 * and then reconstitute the RestrictInfo layer.
+		 * expressions, which means that substitution into the quals could
+		 * produce opportunities for const-simplification, and perhaps even
+		 * pseudoconstant quals.  To deal with this, we strip the RestrictInfo
+		 * nodes, do the substitution, do const-simplification, and then
+		 * reconstitute the RestrictInfo layer.
 		 */
 		childquals = get_all_actual_clauses(rel->baserestrictinfo);
 		childquals = (List *) adjust_appendrel_attrs(root, (Node *) childquals,

@@ -6,10 +6,10 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/storage/smgr.h,v 1.68 2009/06/25 21:36:00 heikki Exp $
+ * $PostgreSQL: pgsql/src/include/storage/smgr.h,v 1.71 2010/02/26 02:01:28 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -44,6 +44,17 @@ typedef struct SMgrRelationData
 
 	/* pointer to owning pointer, or NULL if none */
 	struct SMgrRelationData **smgr_owner;
+
+	/*
+	 * These next three fields are not actually used or manipulated by smgr,
+	 * except that they are reset to InvalidBlockNumber upon a cache flush
+	 * event (in particular, upon truncation of the relation).	Higher levels
+	 * store cached state here so that it will be reset when truncation
+	 * happens.  In all three cases, InvalidBlockNumber means "unknown".
+	 */
+	BlockNumber smgr_targblock; /* current insertion target block */
+	BlockNumber smgr_fsm_nblocks;		/* last known size of fsm fork */
+	BlockNumber smgr_vm_nblocks;	/* last known size of vm fork */
 
 	/* additional public fields may someday exist here */
 

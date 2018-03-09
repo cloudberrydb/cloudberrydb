@@ -1,4 +1,4 @@
-/* $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/ecpg.addons,v 1.12 2009/12/16 10:15:06 meskes Exp $ */
+/* $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/ecpg.addons,v 1.19 2010/03/31 08:45:18 meskes Exp $ */
 ECPG: stmtClosePortalStmt block
 	{
 		if (INFORMIX_MODE)
@@ -84,7 +84,7 @@ ECPG: stmtViewStmt rule
 	}
 	| ECPGDescribe
 	{
-		fprintf(yyout, "{ ECPGdescribe(__LINE__, %s,", $1);
+		fprintf(yyout, "{ ECPGdescribe(__LINE__, %d, %s,", compat, $1);
 		dump_variables(argsresult, 1);
 		fputs("ECPGt_EORT);", yyout);
 		fprintf(yyout, "}");
@@ -106,10 +106,13 @@ ECPG: stmtViewStmt rule
 	| ECPGFree
 	{
 		const char *con = connection ? connection : "NULL";
-		if (strcmp($1, "all"))
-			fprintf(yyout, "{ ECPGdeallocate(__LINE__, %d, %s, \"%s\");", compat, con, $1);
-		else
+
+		if (!strcmp($1, "all"))
 			fprintf(yyout, "{ ECPGdeallocate_all(__LINE__, %d, %s);", compat, con);
+		else if ($1[0] == ':') 
+			fprintf(yyout, "{ ECPGdeallocate(__LINE__, %d, %s, %s);", compat, con, $1+1);
+		else
+			fprintf(yyout, "{ ECPGdeallocate(__LINE__, %d, %s, \"%s\");", compat, con, $1);
 
 		whenever_action(2);
 		free($1);
@@ -303,18 +306,26 @@ ECPG: DeclareCursorStmtDECLAREcursor_namecursor_optionsCURSORopt_holdFORSelectSt
 		for (ptr = cur; ptr != NULL; ptr = ptr->next)
 		{
 			if (strcmp($2, ptr->name) == 0)
-				mmerror(PARSE_ERROR, ET_ERROR, "cursor \"%s\" is already defined", $2);
+			{
+				if ($2[0] == ':')
+                                        mmerror(PARSE_ERROR, ET_ERROR, "using variable \"%s\" in different declare statements is not supported", $2+1);
+                                else
+					mmerror(PARSE_ERROR, ET_ERROR, "cursor \"%s\" is already defined", $2);
+			}
 		}
 
 		this = (struct cursor *) mm_alloc(sizeof(struct cursor));
 
 		this->next = cur;
 		this->name = $2;
+		this->function = (current_function ? mm_strdup(current_function) : NULL);
 		this->connection = connection;
 		this->opened = false;
 		this->command =  cat_str(7, make_str("declare"), cursor_marker, $3, make_str("cursor"), $5, make_str("for"), $7);
 		this->argsinsert = argsinsert;
+		this->argsinsert_oos = NULL;
 		this->argsresult = argsresult;
+		this->argsresult_oos = NULL;
 		argsinsert = argsresult = NULL;
 		cur = this;
 
@@ -327,17 +338,12 @@ ECPG: DeclareCursorStmtDECLAREcursor_namecursor_optionsCURSORopt_holdFORSelectSt
 		}
 		comment = cat_str(3, make_str("/*"), c1, make_str("*/"));
 
-		if (INFORMIX_MODE)
-		{
-			if (braces_open > 0) /* we're in a function */
-			{
-				$$ = cat_str(4, adjust_informix(this->argsinsert), adjust_informix(this->argsresult), make_str("ECPG_informix_reset_sqlca();"), comment);
-			}
-			else
-				$$ = cat_str(3, adjust_informix(this->argsinsert), adjust_informix(this->argsresult), comment);
-		}
+		if ((braces_open > 0) && INFORMIX_MODE) /* we're in a function */
+			$$ = cat_str(3, adjust_outofscope_cursor_vars(this),
+				make_str("ECPG_informix_reset_sqlca();"),
+				comment);
 		else
-			$$ = comment;
+			$$ = cat2_str(adjust_outofscope_cursor_vars(this), comment);
 	}
 ECPG: ClosePortalStmtCLOSEcursor_name block
 	{
@@ -409,29 +415,29 @@ ECPG: VariableShowStmtSHOWALL block
 		$$ = EMPTY;
 	}
 ECPG: FetchStmtMOVEfetch_args rule
-	| FETCH fetch_args ecpg_into
+	| FETCH fetch_args ecpg_fetch_into
 	{
 		$$ = cat2_str(make_str("fetch"), $2);
 	}
-	| FETCH FORWARD cursor_name opt_ecpg_into
+	| FETCH FORWARD cursor_name opt_ecpg_fetch_into
 	{
 		char *cursor_marker = $3[0] == ':' ? make_str("$0") : $3;
 		add_additional_variables($3, false);
 		$$ = cat_str(2, make_str("fetch forward"), cursor_marker);
 	}
-	| FETCH FORWARD from_in cursor_name opt_ecpg_into
+	| FETCH FORWARD from_in cursor_name opt_ecpg_fetch_into
 	{
 		char *cursor_marker = $4[0] == ':' ? make_str("$0") : $4;
 		add_additional_variables($4, false);
 		$$ = cat_str(2, make_str("fetch forward from"), cursor_marker);
 	}
-	| FETCH BACKWARD cursor_name opt_ecpg_into
+	| FETCH BACKWARD cursor_name opt_ecpg_fetch_into
 	{
 		char *cursor_marker = $3[0] == ':' ? make_str("$0") : $3;
 		add_additional_variables($3, false);
 		$$ = cat_str(2, make_str("fetch backward"), cursor_marker);
 	}
-	| FETCH BACKWARD from_in cursor_name opt_ecpg_into
+	| FETCH BACKWARD from_in cursor_name opt_ecpg_fetch_into
 	{
 		char *cursor_marker = $4[0] == ':' ? make_str("$0") : $4;
 		add_additional_variables($4, false);

@@ -39,10 +39,10 @@
  * anything we saw during replay.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/backend/access/transam/multixact.c,v 1.32 2009/11/23 09:58:36 heikki Exp $
+ * $PostgreSQL: pgsql/src/backend/access/transam/multixact.c,v 1.35 2010/02/26 02:00:34 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -59,6 +59,7 @@
 #include "storage/backendid.h"
 #include "storage/lmgr.h"
 #include "storage/procarray.h"
+#include "utils/builtins.h"
 #include "utils/memutils.h"
 
 /*
@@ -219,7 +220,6 @@ static MultiXactId GetNewMultiXactId(int nxids, MultiXactOffset *offset);
 static MultiXactId mXactCacheGetBySet(int nxids, TransactionId *xids);
 static int	mXactCacheGetById(MultiXactId multi, TransactionId **xids);
 static void mXactCachePut(MultiXactId multi, int nxids, TransactionId *xids);
-static int	xidComparator(const void *arg1, const void *arg2);
 
 #ifdef MULTIXACT_DEBUG
 static char *mxid_to_string(MultiXactId multi, int nxids, TransactionId *xids);
@@ -1220,27 +1220,6 @@ mXactCachePut(MultiXactId multi, int nxids, TransactionId *xids)
 	MXactCache = entry;
 }
 
-/*
- * xidComparator
- *		qsort comparison function for XIDs
- *
- * We don't need to use wraparound comparison for XIDs, and indeed must
- * not do so since that does not respect the triangle inequality!  Any
- * old sort order will do.
- */
-static int
-xidComparator(const void *arg1, const void *arg2)
-{
-	TransactionId xid1 = *(const TransactionId *) arg1;
-	TransactionId xid2 = *(const TransactionId *) arg2;
-
-	if (xid1 > xid2)
-		return 1;
-	if (xid1 < xid2)
-		return -1;
-	return 0;
-}
-
 #ifdef MULTIXACT_DEBUG
 static char *
 mxid_to_string(MultiXactId multi, int nxids, TransactionId *xids)
@@ -1318,11 +1297,11 @@ PostPrepare_MultiXact(TransactionId xid)
 	myOldestMember = OldestMemberMXactId[MyBackendId];
 	if (MultiXactIdIsValid(myOldestMember))
 	{
-		BackendId dummyBackendId = TwoPhaseGetDummyBackendId(xid);
+		BackendId	dummyBackendId = TwoPhaseGetDummyBackendId(xid);
 
 		/*
-		 * Even though storing MultiXactId is atomic, acquire lock to make sure
-		 * others see both changes, not just the reset of the slot of the
+		 * Even though storing MultiXactId is atomic, acquire lock to make
+		 * sure others see both changes, not just the reset of the slot of the
 		 * current backend. Using a volatile pointer might suffice, but this
 		 * isn't a hot spot.
 		 */
@@ -1336,8 +1315,8 @@ PostPrepare_MultiXact(TransactionId xid)
 
 	/*
 	 * We don't need to transfer OldestVisibleMXactId value, because the
-	 * transaction is not going to be looking at any more multixacts once
-	 * it's prepared.
+	 * transaction is not going to be looking at any more multixacts once it's
+	 * prepared.
 	 *
 	 * We assume that storing a MultiXactId is atomic and so we need not take
 	 * MultiXactGenLock to do this.
@@ -1360,14 +1339,14 @@ multixact_twophase_recover(TransactionId xid, uint16 info,
 						   void *recdata, uint32 len)
 {
 	BackendId	dummyBackendId = TwoPhaseGetDummyBackendId(xid);
-	MultiXactId	oldestMember;
+	MultiXactId oldestMember;
 
 	/*
-	 * Get the oldest member XID from the state file record, and set it in
-	 * the OldestMemberMXactId slot reserved for this prepared transaction.
+	 * Get the oldest member XID from the state file record, and set it in the
+	 * OldestMemberMXactId slot reserved for this prepared transaction.
 	 */
 	Assert(len == sizeof(MultiXactId));
-	oldestMember = *((MultiXactId *)recdata);
+	oldestMember = *((MultiXactId *) recdata);
 
 	OldestMemberMXactId[dummyBackendId] = oldestMember;
 }
@@ -1393,7 +1372,7 @@ multixact_twophase_postcommit(TransactionId xid, uint16 info,
  */
 void
 multixact_twophase_postabort(TransactionId xid, uint16 info,
-						void *recdata, uint32 len)
+							 void *recdata, uint32 len)
 {
 	multixact_twophase_postcommit(xid, info, recdata, len);
 }
@@ -1873,7 +1852,7 @@ TruncateMultiXact(void)
 		pageno = MultiXactIdToOffsetPage(oldestMXact);
 		entryno = MultiXactIdToOffsetEntry(oldestMXact);
 
-		slotno = SimpleLruReadPage_ReadOnly(MultiXactOffsetCtl, pageno, oldestMXact, NULL);
+		slotno = SimpleLruReadPage_ReadOnly(MultiXactOffsetCtl, pageno, oldestMXact);
 		offptr = (MultiXactOffset *) MultiXactOffsetCtl->shared->page_buffer[slotno];
 		offptr += entryno;
 		oldestOffset = *offptr;
@@ -2051,11 +2030,19 @@ multixact_redo(XLogRecPtr beginLoc __attribute__((unused)), XLogRecPtr lsn __att
 			if (TransactionIdPrecedes(max_xid, xids[i]))
 				max_xid = xids[i];
 		}
+
+		/*
+		 * We don't expect anyone else to modify nextXid, hence startup
+		 * process doesn't need to hold a lock while checking this. We still
+		 * acquire the lock to modify it, though.
+		 */
 		if (TransactionIdFollowsOrEquals(max_xid,
 										 ShmemVariableCache->nextXid))
 		{
+			LWLockAcquire(XidGenLock, LW_EXCLUSIVE);
 			ShmemVariableCache->nextXid = max_xid;
 			TransactionIdAdvance(ShmemVariableCache->nextXid);
+			LWLockRelease(XidGenLock);
 		}
 	}
 	else

@@ -10,10 +10,10 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/backend/access/transam/xlogutils.c,v 1.68 2009/06/11 14:48:54 momjian Exp $
+ * $PostgreSQL: pgsql/src/backend/access/transam/xlogutils.c,v 1.71 2010/07/08 16:08:30 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -261,11 +261,9 @@ XLogCheckInvalidPages(void)
  * LockBuffer(buffer, BUFFER_LOCK_EXCLUSIVE), for reading from the main
  * fork.
  *
- * (Getting the lock is not really necessary, since we expect that this is
- * only used during single-process XLOG replay, but some subroutines such
- * as MarkBufferDirty will complain if we don't. And hopefully we'll get
- * hot standby support in the future, where there will be backends running
- * read-only queries during XLOG replay.)
+ * (Getting the buffer lock is not really necessary during single-process
+ * crash recovery, but some subroutines such as MarkBufferDirty will complain
+ * if we don't have the lock.  In hot standby mode it's definitely necessary.)
  *
  * The returned buffer is exclusively-locked.
  *
@@ -439,9 +437,6 @@ CreateFakeRelcacheEntry(RelFileNode rnode)
 	rel->rd_lockInfo.lockRelId.dbId = rnode.dbNode;
 	rel->rd_lockInfo.lockRelId.relId = rnode.relNode;
 
-	rel->rd_targblock = InvalidBlockNumber;
-	rel->rd_fsm_nblocks = InvalidBlockNumber;
-	rel->rd_vm_nblocks = InvalidBlockNumber;
 	rel->rd_smgr = NULL;
 
 	return rel;

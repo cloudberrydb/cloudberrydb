@@ -3,12 +3,12 @@
  * regexp.c
  *	  Postgres' interface to the regular expression package.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/regexp.c,v 1.84 2009/10/21 20:38:58 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/regexp.c,v 1.86 2010/01/02 20:59:16 tgl Exp $
  *
  *		Alistair Crooks added the code for the regex caching
  *		agc - cached the regular expressions used - there's a good chance
@@ -639,6 +639,7 @@ similar_escape(PG_FUNCTION_ARGS)
 	int			plen,
 				elen;
 	bool		afterescape = false;
+	bool		incharclass = false;
 	int			nquotes = 0;
 
 	/* This function is not strict, so must test explicitly */
@@ -681,10 +682,10 @@ similar_escape(PG_FUNCTION_ARGS)
 	 */
 
 	/*
-	 * We need room for the prefix/postfix plus as many as 2 output bytes per
-	 * input byte
+	 * We need room for the prefix/postfix plus as many as 3 output bytes per
+	 * input byte; since the input is at most 1GB this can't overflow
 	 */
-	result = (text *) palloc(VARHDRSZ + 6 + 2 * plen);
+	result = (text *) palloc(VARHDRSZ + 6 + 3 * plen);
 	r = VARDATA(result);
 
 	*r++ = '^';
@@ -698,7 +699,7 @@ similar_escape(PG_FUNCTION_ARGS)
 
 		if (afterescape)
 		{
-			if (pchar == '"')	/* for SUBSTRING patterns */
+			if (pchar == '"' && !incharclass)	/* for SUBSTRING patterns */
 				*r++ = ((nquotes++ % 2) == 0) ? '(' : ')';
 			else
 			{
@@ -712,6 +713,19 @@ similar_escape(PG_FUNCTION_ARGS)
 			/* SQL99 escape character; do not send to output */
 			afterescape = true;
 		}
+		else if (incharclass)
+		{
+			if (pchar == '\\')
+				*r++ = '\\';
+			*r++ = pchar;
+			if (pchar == ']')
+				incharclass = false;
+		}
+		else if (pchar == '[')
+		{
+			*r++ = pchar;
+			incharclass = true;
+		}
 		else if (pchar == '%')
 		{
 			*r++ = '.';
@@ -719,6 +733,13 @@ similar_escape(PG_FUNCTION_ARGS)
 		}
 		else if (pchar == '_')
 			*r++ = '.';
+		else if (pchar == '(')
+		{
+			/* convert to non-capturing parenthesis */
+			*r++ = '(';
+			*r++ = '?';
+			*r++ = ':';
+		}
 		else if (pchar == '\\' || pchar == '.' ||
 				 pchar == '^' || pchar == '$')
 		{

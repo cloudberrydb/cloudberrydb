@@ -11,10 +11,10 @@
  * disappear!) and also take the entry's mutex spinlock.
  *
  *
- * Copyright (c) 2008-2009, PostgreSQL Global Development Group
+ * Copyright (c) 2008-2010, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/contrib/pg_stat_statements/pg_stat_statements.c,v 1.9 2009/12/15 20:04:49 tgl Exp $
+ *	  $PostgreSQL: pgsql/contrib/pg_stat_statements/pg_stat_statements.c,v 1.14 2010/04/28 16:54:15 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -26,6 +26,7 @@
 #include "catalog/pg_type.h"
 #include "executor/executor.h"
 #include "executor/instrument.h"
+#include "funcapi.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
 #include "pgstat.h"
@@ -44,7 +45,7 @@ PG_MODULE_MAGIC;
 #define PGSS_DUMP_FILE	"global/pg_stat_statements.stat"
 
 /* This constant defines the magic number in the stats file header */
-static const uint32 PGSS_FILE_HEADER = 0x20081202;
+static const uint32 PGSS_FILE_HEADER = 0x20100108;
 
 /* XXX: Should USAGE_EXEC reflect execution time and/or buffer usage? */
 #define USAGE_EXEC(duration)	(1.0)
@@ -78,6 +79,14 @@ typedef struct Counters
 	int64		calls;			/* # of times executed */
 	double		total_time;		/* total execution time in seconds */
 	int64		rows;			/* total # of retrieved or affected rows */
+	int64		shared_blks_hit;	/* # of shared buffer hits */
+	int64		shared_blks_read;		/* # of shared disk blocks read */
+	int64		shared_blks_written;	/* # of shared disk blocks written */
+	int64		local_blks_hit; /* # of local buffer hits */
+	int64		local_blks_read;	/* # of local disk blocks read */
+	int64		local_blks_written;		/* # of local disk blocks written */
+	int64		temp_blks_read; /* # of temp blocks read */
+	int64		temp_blks_written;		/* # of temp blocks written */
 	double		usage;			/* usage factor */
 } Counters;
 
@@ -129,7 +138,8 @@ typedef enum
 	PGSS_TRACK_ALL				/* all statements, including nested ones */
 } PGSSTrackLevel;
 
-static const struct config_enum_entry track_options[] = {
+static const struct config_enum_entry track_options[] =
+{
 	{"none", PGSS_TRACK_NONE, false},
 	{"top", PGSS_TRACK_TOP, false},
 	{"all", PGSS_TRACK_ALL, false},
@@ -138,7 +148,7 @@ static const struct config_enum_entry track_options[] = {
 
 static int	pgss_max;			/* max # statements to track */
 static int	pgss_track;			/* tracking level */
-static bool pgss_track_utility;	/* whether to track utility commands */
+static bool pgss_track_utility; /* whether to track utility commands */
 static bool pgss_save;			/* whether to save stats across shutdown */
 
 
@@ -165,11 +175,12 @@ static void pgss_ExecutorRun(QueryDesc *queryDesc,
 				 long count);
 static void pgss_ExecutorEnd(QueryDesc *queryDesc);
 static void pgss_ProcessUtility(Node *parsetree,
-			   const char *queryString, ParamListInfo params, bool isTopLevel,
-			   DestReceiver *dest, char *completionTag);
+			  const char *queryString, ParamListInfo params, bool isTopLevel,
+					DestReceiver *dest, char *completionTag);
 static uint32 pgss_hash_fn(const void *key, Size keysize);
 static int	pgss_match_fn(const void *key1, const void *key2, Size keysize);
-static void pgss_store(const char *query, double total_time, uint64 rows);
+static void pgss_store(const char *query, double total_time, uint64 rows,
+		   const BufferUsage *bufusage);
 static Size pgss_memsize(void);
 static pgssEntry *entry_alloc(pgssHashKey *key);
 static void entry_dealloc(void);
@@ -220,7 +231,7 @@ _PG_init(void)
 							 NULL);
 
 	DefineCustomBoolVariable("pg_stat_statements.track_utility",
-			   "Selects whether utility commands are tracked by pg_stat_statements.",
+	   "Selects whether utility commands are tracked by pg_stat_statements.",
 							 NULL,
 							 &pgss_track_utility,
 							 true,
@@ -310,8 +321,6 @@ pgss_shmem_startup(void)
 	pgss = ShmemInitStruct("pg_stat_statements",
 						   sizeof(pgssSharedState),
 						   &found);
-	if (!pgss)
-		elog(ERROR, "out of shared memory");
 
 	if (!found)
 	{
@@ -332,8 +341,6 @@ pgss_shmem_startup(void)
 							  pgss_max, pgss_max,
 							  &info,
 							  HASH_ELEM | HASH_FUNCTION | HASH_COMPARE);
-	if (!pgss_hash)
-		elog(ERROR, "out of shared memory");
 
 	LWLockRelease(AddinShmemInitLock);
 
@@ -345,8 +352,8 @@ pgss_shmem_startup(void)
 		on_shmem_exit(pgss_shmem_shutdown, (Datum) 0);
 
 	/*
-	 * Attempt to load old statistics from the dump file, if this is the
-	 * first time through and we weren't told not to.
+	 * Attempt to load old statistics from the dump file, if this is the first
+	 * time through and we weren't told not to.
 	 */
 	if (found || !pgss_save)
 		return;
@@ -558,7 +565,8 @@ pgss_ExecutorEnd(QueryDesc *queryDesc)
 
 		pgss_store(queryDesc->sourceText,
 				   queryDesc->totaltime->total,
-				   queryDesc->estate->es_processed);
+				   queryDesc->estate->es_processed,
+				   &queryDesc->totaltime->bufusage);
 	}
 
 	if (prev_ExecutorEnd)
@@ -580,7 +588,9 @@ pgss_ProcessUtility(Node *parsetree, const char *queryString,
 		instr_time	start;
 		instr_time	duration;
 		uint64		rows = 0;
+		BufferUsage bufusage;
 
+		bufusage = pgBufferUsage;
 		INSTR_TIME_SET_CURRENT(start);
 
 		nested_level++;
@@ -609,7 +619,26 @@ pgss_ProcessUtility(Node *parsetree, const char *queryString,
 			sscanf(completionTag, "COPY " UINT64_FORMAT, &rows) != 1)
 			rows = 0;
 
-		pgss_store(queryString, INSTR_TIME_GET_DOUBLE(duration), rows);
+		/* calc differences of buffer counters. */
+		bufusage.shared_blks_hit =
+			pgBufferUsage.shared_blks_hit - bufusage.shared_blks_hit;
+		bufusage.shared_blks_read =
+			pgBufferUsage.shared_blks_read - bufusage.shared_blks_read;
+		bufusage.shared_blks_written =
+			pgBufferUsage.shared_blks_written - bufusage.shared_blks_written;
+		bufusage.local_blks_hit =
+			pgBufferUsage.local_blks_hit - bufusage.local_blks_hit;
+		bufusage.local_blks_read =
+			pgBufferUsage.local_blks_read - bufusage.local_blks_read;
+		bufusage.local_blks_written =
+			pgBufferUsage.local_blks_written - bufusage.local_blks_written;
+		bufusage.temp_blks_read =
+			pgBufferUsage.temp_blks_read - bufusage.temp_blks_read;
+		bufusage.temp_blks_written =
+			pgBufferUsage.temp_blks_written - bufusage.temp_blks_written;
+
+		pgss_store(queryString, INSTR_TIME_GET_DOUBLE(duration), rows,
+				   &bufusage);
 	}
 	else
 	{
@@ -660,7 +689,8 @@ pgss_match_fn(const void *key1, const void *key2, Size keysize)
  * Store some statistics for a statement.
  */
 static void
-pgss_store(const char *query, double total_time, uint64 rows)
+pgss_store(const char *query, double total_time, uint64 rows,
+		   const BufferUsage *bufusage)
 {
 	pgssHashKey key;
 	double		usage;
@@ -706,6 +736,14 @@ pgss_store(const char *query, double total_time, uint64 rows)
 		e->counters.calls += 1;
 		e->counters.total_time += total_time;
 		e->counters.rows += rows;
+		e->counters.shared_blks_hit += bufusage->shared_blks_hit;
+		e->counters.shared_blks_read += bufusage->shared_blks_read;
+		e->counters.shared_blks_written += bufusage->shared_blks_written;
+		e->counters.local_blks_hit += bufusage->local_blks_hit;
+		e->counters.local_blks_read += bufusage->local_blks_read;
+		e->counters.local_blks_written += bufusage->local_blks_written;
+		e->counters.temp_blks_read += bufusage->temp_blks_read;
+		e->counters.temp_blks_written += bufusage->temp_blks_written;
 		e->counters.usage += usage;
 		SpinLockRelease(&e->mutex);
 	}
@@ -727,7 +765,7 @@ pg_stat_statements_reset(PG_FUNCTION_ARGS)
 	PG_RETURN_VOID();
 }
 
-#define PG_STAT_STATEMENTS_COLS		6
+#define PG_STAT_STATEMENTS_COLS		14
 
 /*
  * Retrieve statement statistics.
@@ -761,27 +799,19 @@ pg_stat_statements(PG_FUNCTION_ARGS)
 				 errmsg("materialize mode required, but it is not " \
 						"allowed in this context")));
 
+	/* Build a tuple descriptor for our result type */
+	if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
+		elog(ERROR, "return type must be a row type");
+
 	per_query_ctx = rsinfo->econtext->ecxt_per_query_memory;
 	oldcontext = MemoryContextSwitchTo(per_query_ctx);
-
-	tupdesc = CreateTemplateTupleDesc(PG_STAT_STATEMENTS_COLS, false);
-	TupleDescInitEntry(tupdesc, (AttrNumber) 1, "userid",
-					   OIDOID, -1, 0);
-	TupleDescInitEntry(tupdesc, (AttrNumber) 2, "dbid",
-					   OIDOID, -1, 0);
-	TupleDescInitEntry(tupdesc, (AttrNumber) 3, "query",
-					   TEXTOID, -1, 0);
-	TupleDescInitEntry(tupdesc, (AttrNumber) 4, "calls",
-					   INT8OID, -1, 0);
-	TupleDescInitEntry(tupdesc, (AttrNumber) 5, "total_time",
-					   FLOAT8OID, -1, 0);
-	TupleDescInitEntry(tupdesc, (AttrNumber) 6, "rows",
-					   INT8OID, -1, 0);
 
 	tupstore = tuplestore_begin_heap(true, false, work_mem);
 	rsinfo->returnMode = SFRM_Materialize;
 	rsinfo->setResult = tupstore;
 	rsinfo->setDesc = tupdesc;
+
+	MemoryContextSwitchTo(oldcontext);
 
 	LWLockAcquire(pgss->lock, LW_SHARED);
 
@@ -792,9 +822,6 @@ pg_stat_statements(PG_FUNCTION_ARGS)
 		bool		nulls[PG_STAT_STATEMENTS_COLS];
 		int			i = 0;
 		Counters	tmp;
-
-		/* generate junk in short-term context */
-		MemoryContextSwitchTo(oldcontext);
 
 		memset(values, 0, sizeof(values));
 		memset(nulls, 0, sizeof(nulls));
@@ -830,11 +857,17 @@ pg_stat_statements(PG_FUNCTION_ARGS)
 		values[i++] = Int64GetDatumFast(tmp.calls);
 		values[i++] = Float8GetDatumFast(tmp.total_time);
 		values[i++] = Int64GetDatumFast(tmp.rows);
+		values[i++] = Int64GetDatumFast(tmp.shared_blks_hit);
+		values[i++] = Int64GetDatumFast(tmp.shared_blks_read);
+		values[i++] = Int64GetDatumFast(tmp.shared_blks_written);
+		values[i++] = Int64GetDatumFast(tmp.local_blks_hit);
+		values[i++] = Int64GetDatumFast(tmp.local_blks_read);
+		values[i++] = Int64GetDatumFast(tmp.local_blks_written);
+		values[i++] = Int64GetDatumFast(tmp.temp_blks_read);
+		values[i++] = Int64GetDatumFast(tmp.temp_blks_written);
 
 		Assert(i == PG_STAT_STATEMENTS_COLS);
 
-		/* switch to appropriate context while storing the tuple */
-		MemoryContextSwitchTo(per_query_ctx);
 		tuplestore_putvalues(tupstore, tupdesc, values, nulls);
 	}
 
@@ -842,8 +875,6 @@ pg_stat_statements(PG_FUNCTION_ARGS)
 
 	/* clean up and return the tuplestore */
 	tuplestore_donestoring(tupstore);
-
-	MemoryContextSwitchTo(oldcontext);
 
 	return (Datum) 0;
 }

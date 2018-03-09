@@ -882,7 +882,9 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 		dummy_path.startup_cost = agg_node->startup_cost;
 		dummy_path.total_cost = agg_node->total_cost;
 		dummy_path.pathkeys = NIL;
-		if (choose_hashed_grouping(root, context->tuple_fraction, -1.0, &dummy_path,
+		if (choose_hashed_grouping(root, context->tuple_fraction, -1.0,
+								   agg_node->plan_rows, agg_node->plan_width,
+								   &dummy_path,
 								   NULL, 0, *context->p_dNumGroups,
 								   context->agg_counts))
 			context->aggstrategy = AGG_HASHED;

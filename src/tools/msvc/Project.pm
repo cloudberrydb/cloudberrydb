@@ -3,7 +3,7 @@ package Project;
 #
 # Package that encapsulates a Visual C++ project file generation
 #
-# $PostgreSQL: pgsql/src/tools/msvc/Project.pm,v 1.21 2009/11/12 00:13:00 tgl Exp $
+# $PostgreSQL: pgsql/src/tools/msvc/Project.pm,v 1.26 2010/04/09 13:05:58 mha Exp $
 #
 use Carp;
 use strict;

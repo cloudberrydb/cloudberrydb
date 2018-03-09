@@ -15,16 +15,6 @@
 -- MPP -- array_add -- special for prospective customer 
  CREATE FUNCTION array_add(_int4, _int4) RETURNS _int4 LANGUAGE internal IMMUTABLE STRICT AS 'array_int4_add' WITH (OID=6012, DESCRIPTION="itemwise add two integer arrays");
 
- CREATE FUNCTION string_agg_transfn(internal, text) RETURNS internal LANGUAGE internal IMMUTABLE AS 'string_agg_transfn' WITH (OID=3534, DESCRIPTION="string_agg(text) transition function");
-
- CREATE FUNCTION string_agg_delim_transfn(internal, text, text) RETURNS internal LANGUAGE internal IMMUTABLE AS 'string_agg_delim_transfn' WITH (OID=3535, DESCRIPTION="string_agg(text, text) transition function");
-
- CREATE FUNCTION string_agg_finalfn(internal) RETURNS text LANGUAGE internal IMMUTABLE AS 'string_agg_finalfn' WITH (OID=3536, DESCRIPTION="string_agg final function");
-
- CREATE FUNCTION string_agg(text) RETURNS text LANGUAGE internal IMMUTABLE AS 'aggregate_dummy' WITH (OID=3537, DESCRIPTION="concatenate aggregate input into an string", proisagg="t");
-
- CREATE FUNCTION string_agg(text, text) RETURNS text LANGUAGE internal IMMUTABLE AS 'aggregate_dummy' WITH (OID=3538, DESCRIPTION="concatenate aggregate input into an string with delimiter", proisagg="t");
-
  CREATE FUNCTION int8dec(int8) RETURNS int8 LANGUAGE internal IMMUTABLE STRICT AS 'int8dec' WITH (OID=3546);
 
 

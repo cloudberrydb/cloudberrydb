@@ -24,6 +24,7 @@
 #include "access/twophase.h"
 #include "access/twophase_rmgr.h"
 #include "access/xact.h"
+#include "catalog/pg_resourcetype.h"
 #include "catalog/pg_resqueue.h"
 #include "catalog/pg_type.h"
 #include "cdb/cdbgang.h"

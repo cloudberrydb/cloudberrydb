@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execUtils.c,v 1.167 2009/12/07 05:22:22 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execUtils.c,v 1.173 2010/07/06 19:18:56 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -438,7 +438,7 @@ CreateStandaloneExprContext(void)
  * any previously computed pass-by-reference expression result will go away!
  *
  * If isCommit is false, we are being called in error cleanup, and should
- * not call callbacks but only release memory.  (It might be better to call
+ * not call callbacks but only release memory.	(It might be better to call
  * the callbacks and pass the isCommit flag to them, but that would require
  * more invasive code changes than currently seems justified.)
  *
@@ -1114,8 +1114,7 @@ ExecCloseIndices(ResultRelInfo *resultRelInfo)
 List *
 ExecInsertIndexTuples(TupleTableSlot *slot,
 					  ItemPointer tupleid,
-					  EState *estate,
-					  bool is_vacuum_full)
+					  EState *estate)
 {
 	List	   *result = NIL;
 	ResultRelInfo *resultRelInfo;
@@ -1207,12 +1206,8 @@ ExecInsertIndexTuples(TupleTableSlot *slot,
 		 * For a deferrable unique index, we tell the index AM to just detect
 		 * possible non-uniqueness, and we add the index OID to the result
 		 * list if further checking is needed.
-		 *
-		 * Special hack: we suppress unique-index checks if we are being
-		 * called from VACUUM FULL, since VACUUM FULL may need to move dead
-		 * tuples that have the same keys as live ones.
 		 */
-		if (is_vacuum_full || !indexRelation->rd_index->indisunique)
+		if (!indexRelation->rd_index->indisunique)
 			checkUnique = UNIQUE_CHECK_NO;
 		else if (indexRelation->rd_index->indimmediate)
 			checkUnique = UNIQUE_CHECK_YES;
@@ -1220,9 +1215,9 @@ ExecInsertIndexTuples(TupleTableSlot *slot,
 			checkUnique = UNIQUE_CHECK_PARTIAL;
 
 		satisfiesConstraint =
-			index_insert(indexRelation,	/* index relation */
-						 values,		/* array of index Datums */
-						 isnull,		/* null flags */
+			index_insert(indexRelation, /* index relation */
+						 values,	/* array of index Datums */
+						 isnull,	/* null flags */
 						 tupleid,		/* tid of heap tuple */
 						 heapRelation,	/* heap relation */
 						 checkUnique);	/* type of uniqueness check to do */
@@ -1230,7 +1225,7 @@ ExecInsertIndexTuples(TupleTableSlot *slot,
 		/*
 		 * If the index has an associated exclusion constraint, check that.
 		 * This is simpler than the process for uniqueness checks since we
-		 * always insert first and then check.  If the constraint is deferred,
+		 * always insert first and then check.	If the constraint is deferred,
 		 * we check now anyway, but don't throw error on violation; instead
 		 * we'll queue a recheck event.
 		 *
@@ -1240,7 +1235,7 @@ ExecInsertIndexTuples(TupleTableSlot *slot,
 		 */
 		if (indexInfo->ii_ExclusionOps != NULL)
 		{
-			bool errorOK = !indexRelation->rd_index->indimmediate;
+			bool		errorOK = !indexRelation->rd_index->indimmediate;
 
 			satisfiesConstraint =
 				check_exclusion_constraint(heapRelation,
@@ -1294,21 +1289,23 @@ check_exclusion_constraint(Relation heap, Relation index, IndexInfo *indexInfo,
 						   ItemPointer tupleid, Datum *values, bool *isnull,
 						   EState *estate, bool newIndex, bool errorOK)
 {
-	Oid			*constr_procs = indexInfo->ii_ExclusionProcs;
-	uint16		*constr_strats = indexInfo->ii_ExclusionStrats;
-	int			 index_natts = index->rd_index->indnatts;
-	IndexScanDesc	index_scan;
-	HeapTuple		tup;
-	ScanKeyData		scankeys[INDEX_MAX_KEYS];
-	SnapshotData	DirtySnapshot;
-	int				i;
-	bool			conflict;
-	bool			found_self;
+	Oid		   *constr_procs = indexInfo->ii_ExclusionProcs;
+	uint16	   *constr_strats = indexInfo->ii_ExclusionStrats;
+	int			index_natts = index->rd_index->indnatts;
+	IndexScanDesc index_scan;
+	HeapTuple	tup;
+	ScanKeyData scankeys[INDEX_MAX_KEYS];
+	SnapshotData DirtySnapshot;
+	int			i;
+	bool		conflict;
+	bool		found_self;
+	ExprContext *econtext;
 	TupleTableSlot *existing_slot;
+	TupleTableSlot *save_scantuple;
 
 	/*
-	 * If any of the input values are NULL, the constraint check is assumed
-	 * to pass (i.e., we assume the operators are strict).
+	 * If any of the input values are NULL, the constraint check is assumed to
+	 * pass (i.e., we assume the operators are strict).
 	 */
 	for (i = 0; i < index_natts; i++)
 	{
@@ -1317,8 +1314,8 @@ check_exclusion_constraint(Relation heap, Relation index, IndexInfo *indexInfo,
 	}
 
 	/*
-	 * Search the tuples that are in the index for any violations,
-	 * including tuples that aren't visible yet.
+	 * Search the tuples that are in the index for any violations, including
+	 * tuples that aren't visible yet.
 	 */
 	InitDirtySnapshot(DirtySnapshot);
 
@@ -1331,12 +1328,22 @@ check_exclusion_constraint(Relation heap, Relation index, IndexInfo *indexInfo,
 					values[i]);
 	}
 
-	/* Need a TupleTableSlot to put existing tuples in */
+	/*
+	 * Need a TupleTableSlot to put existing tuples in.
+	 *
+	 * To use FormIndexDatum, we have to make the econtext's scantuple point
+	 * to this slot.  Be sure to save and restore caller's value for
+	 * scantuple.
+	 */
 	existing_slot = MakeSingleTupleTableSlot(RelationGetDescr(heap));
 
+	econtext = GetPerTupleExprContext(estate);
+	save_scantuple = econtext->ecxt_scantuple;
+	econtext->ecxt_scantuple = existing_slot;
+
 	/*
-	 * May have to restart scan from this point if a potential
-	 * conflict is found.
+	 * May have to restart scan from this point if a potential conflict is
+	 * found.
 	 */
 retry:
 	conflict = false;
@@ -1347,11 +1354,11 @@ retry:
 	while ((tup = index_getnext(index_scan,
 								ForwardScanDirection)) != NULL)
 	{
-		TransactionId	 xwait;
+		TransactionId xwait;
 		Datum		existing_values[INDEX_MAX_KEYS];
 		bool		existing_isnull[INDEX_MAX_KEYS];
-		char		*error_new;
-		char		*error_existing;
+		char	   *error_new;
+		char	   *error_existing;
 
 		/*
 		 * Ignore the entry for the tuple we're trying to check.
@@ -1381,12 +1388,13 @@ retry:
 										  existing_values,
 										  existing_isnull,
 										  values))
-				continue; /* tuple doesn't actually match, so no conflict */
+				continue;		/* tuple doesn't actually match, so no
+								 * conflict */
 		}
 
 		/*
-		 * At this point we have either a conflict or a potential conflict.
-		 * If we're not supposed to raise error, just return the fact of the
+		 * At this point we have either a conflict or a potential conflict. If
+		 * we're not supposed to raise error, just return the fact of the
 		 * potential conflict without waiting to see if it's real.
 		 */
 		if (errorOK)
@@ -1397,7 +1405,7 @@ retry:
 
 		/*
 		 * If an in-progress transaction is affecting the visibility of this
-		 * tuple, we need to wait for it to complete and then recheck.  For
+		 * tuple, we need to wait for it to complete and then recheck.	For
 		 * simplicity we do rechecking by just restarting the whole scan ---
 		 * this case probably doesn't happen often enough to be worth trying
 		 * harder, and anyway we don't want to hold any index internal locks
@@ -1438,15 +1446,18 @@ retry:
 	index_endscan(index_scan);
 
 	/*
-	 * We should have found our tuple in the index, unless we exited the
-	 * loop early because of conflict.  Complain if not.
+	 * We should have found our tuple in the index, unless we exited the loop
+	 * early because of conflict.  Complain if not.  If we ever implement '<>'
+	 * index opclasses, this check will fail and will have to be removed.
 	 */
 	if (!found_self && !conflict)
 		ereport(ERROR,
 				(errcode(ERRCODE_INTERNAL_ERROR),
 				 errmsg("failed to re-find tuple within index \"%s\"",
 						RelationGetRelationName(index)),
-				 errhint("This may be because of a non-immutable index expression.")));
+		errhint("This may be because of a non-immutable index expression.")));
+
+	econtext->ecxt_scantuple = save_scantuple;
 
 	ExecDropSingleTupleTableSlot(existing_slot);
 
@@ -1455,7 +1466,7 @@ retry:
 
 /*
  * Check existing tuple's index values to see if it really matches the
- * exclusion condition against the new_values.  Returns true if conflict.
+ * exclusion condition against the new_values.	Returns true if conflict.
  */
 static bool
 index_recheck_constraint(Relation index, Oid *constr_procs,

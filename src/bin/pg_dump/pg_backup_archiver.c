@@ -15,7 +15,7 @@
  *
  *
  * IDENTIFICATION
- *		$PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_archiver.c,v 1.177 2009/12/14 00:39:10 itagaki Exp $
+ *		$PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_archiver.c,v 1.187 2010/07/06 19:18:59 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -99,6 +99,7 @@ static void _selectTablespace(ArchiveHandle *AH, const char *tablespace);
 static void processEncodingEntry(ArchiveHandle *AH, TocEntry *te);
 static void processStdStringsEntry(ArchiveHandle *AH, TocEntry *te);
 static teReqs _tocEntryRequired(TocEntry *te, RestoreOptions *ropt, bool include_acls);
+static bool _tocEntryIsACL(TocEntry *te);
 static void _disableTriggersIfNecessary(ArchiveHandle *AH, TocEntry *te, RestoreOptions *ropt);
 static void _enableTriggersIfNecessary(ArchiveHandle *AH, TocEntry *te, RestoreOptions *ropt);
 static TocEntry *getTocEntryByDumpId(ArchiveHandle *AH, DumpId id);
@@ -136,9 +137,10 @@ static bool has_lock_conflicts(TocEntry *te1, TocEntry *te2);
 static void repoint_table_dependencies(ArchiveHandle *AH,
 						   DumpId tableId, DumpId tableDataId);
 static void identify_locking_dependencies(TocEntry *te,
-							  TocEntry **tocsByDumpId);
+							  TocEntry **tocsByDumpId,
+							  DumpId maxDumpId);
 static void reduce_dependencies(ArchiveHandle *AH, TocEntry *te,
-								TocEntry *ready_list);
+					TocEntry *ready_list);
 static void mark_create_done(ArchiveHandle *AH, TocEntry *te);
 static void inhibit_data_for_failed_table(ArchiveHandle *AH, TocEntry *te);
 static ArchiveHandle *CloneArchive(ArchiveHandle *AH);
@@ -343,9 +345,9 @@ RestoreArchive(Archive *AHX, RestoreOptions *ropt)
 			AH->currentTE = te;
 
 			reqs = _tocEntryRequired(te, ropt, false /* needn't drop ACLs */ );
-			if (((reqs & REQ_SCHEMA) != 0) && te->dropStmt)
+			/* We want anything that's selected and has a dropStmt */
+			if (((reqs & (REQ_SCHEMA | REQ_DATA)) != 0) && te->dropStmt)
 			{
-				/* We want the schema */
 				ahlog(AH, 1, "dropping %s %s\n", te->desc, te->tag);
 				/* Select owner and schema as necessary */
 				_becomeOwner(AH, te);
@@ -395,7 +397,8 @@ RestoreArchive(Archive *AHX, RestoreOptions *ropt)
 		/* Work out what, if anything, we want from this entry */
 		reqs = _tocEntryRequired(te, ropt, true);
 
-		if ((reqs & REQ_SCHEMA) != 0)	/* We want the schema */
+		/* Both schema and data objects might now have ownership/ACLs */
+		if ((reqs & (REQ_SCHEMA | REQ_DATA)) != 0)
 		{
 			ahlog(AH, 1, "setting owner and privileges for %s %s\n",
 				  te->desc, te->tag);
@@ -828,6 +831,9 @@ PrintTOCSummary(Archive *AHX, RestoreOptions *ropt)
 
 	ahprintf(AH, ";\n;\n; Selected TOC Entries:\n;\n");
 
+	/* We should print DATABASE entries whether or not -C was specified */
+	ropt->createDB = 1;
+
 	for (te = AH->toc->next; te != AH->toc; te = te->next)
 	{
 		if (ropt->verbose || _tocEntryRequired(te, ropt, true) != 0)
@@ -928,6 +934,7 @@ EndRestoreBlobs(ArchiveHandle *AH)
 void
 StartRestoreBlob(ArchiveHandle *AH, Oid oid, bool drop)
 {
+	bool		old_blob_style = (AH->version < K_VERS_1_12);
 	Oid			loOid;
 
 	AH->blobCount++;
@@ -937,24 +944,32 @@ StartRestoreBlob(ArchiveHandle *AH, Oid oid, bool drop)
 
 	ahlog(AH, 1, "restoring large object with OID %u\n", oid);
 
-	if (drop)
+	/* With an old archive we must do drop and create logic here */
+	if (old_blob_style && drop)
 		DropBlobIfExists(AH, oid);
 
 	if (AH->connection)
 	{
-		loOid = lo_create(AH->connection, oid);
-		if (loOid == 0 || loOid != oid)
-			die_horribly(AH, modulename, "could not create large object %u\n",
-						 oid);
-
+		if (old_blob_style)
+		{
+			loOid = lo_create(AH->connection, oid);
+			if (loOid == 0 || loOid != oid)
+				die_horribly(AH, modulename, "could not create large object %u: %s",
+							 oid, PQerrorMessage(AH->connection));
+		}
 		AH->loFd = lo_open(AH->connection, oid, INV_WRITE);
 		if (AH->loFd == -1)
-			die_horribly(AH, modulename, "could not open large object\n");
+			die_horribly(AH, modulename, "could not open large object %u: %s",
+						 oid, PQerrorMessage(AH->connection));
 	}
 	else
 	{
-		ahprintf(AH, "SELECT pg_catalog.lo_open(pg_catalog.lo_create('%u'), %d);\n",
-				 oid, INV_WRITE);
+		if (old_blob_style)
+			ahprintf(AH, "SELECT pg_catalog.lo_open(pg_catalog.lo_create('%u'), %d);\n",
+					 oid, INV_WRITE);
+		else
+			ahprintf(AH, "SELECT pg_catalog.lo_open('%u', %d);\n",
+					 oid, INV_WRITE);
 	}
 
 	AH->writingBlob = 1;
@@ -1878,6 +1893,9 @@ _allocAH(const char *FileSpec, const ArchiveFormat fmt,
 	AH->vmin = K_VERS_MINOR;
 	AH->vrev = K_VERS_REV;
 
+	/* Make a convenient integer <maj><min><rev>00 */
+	AH->version = ((AH->vmaj * 256 + AH->vmin) * 256 + AH->vrev) * 256 + 0;
+
 	/* initialize for backwards compatible string processing */
 	AH->public.encoding = 0;	/* PG_SQL_ASCII */
 	AH->public.std_strings = false;
@@ -1885,6 +1903,8 @@ _allocAH(const char *FileSpec, const ArchiveFormat fmt,
 	/* sql error handling */
 	AH->public.exit_on_error = true;
 	AH->public.n_errors = 0;
+
+	AH->archiveDumpVersion = PG_VERSION;
 
 	AH->createDate = time(NULL);
 
@@ -2117,12 +2137,13 @@ ReadToc(ArchiveHandle *AH)
 		else
 		{
 			/*
-			 * rules for pre-8.4 archives wherein pg_dump hasn't classified
-			 * the entries into sections
+			 * Rules for pre-8.4 archives wherein pg_dump hasn't classified
+			 * the entries into sections.  This list need not cover entry
+			 * types added later than 8.4.
 			 */
 			if (strcmp(te->desc, "COMMENT") == 0 ||
 				strcmp(te->desc, "ACL") == 0 ||
-				strcmp(te->desc, "DEFAULT ACL") == 0)
+				strcmp(te->desc, "ACL LANGUAGE") == 0)
 				te->section = SECTION_NONE;
 			else if (strcmp(te->desc, "TABLE DATA") == 0 ||
 					 strcmp(te->desc, "BLOBS") == 0 ||
@@ -2277,10 +2298,10 @@ _tocEntryRequired(TocEntry *te, RestoreOptions *ropt, bool include_acls)
 		return 0;
 
 	/* If it's an ACL, maybe ignore it */
-	if ((!include_acls || ropt->aclsSkip) &&
-		(strcmp(te->desc, "ACL") == 0 || strcmp(te->desc, "DEFAULT ACL") == 0))
+	if ((!include_acls || ropt->aclsSkip) && _tocEntryIsACL(te))
 		return 0;
 
+	/* Ignore DATABASE entry unless we should create it */
 	if (!ropt->createDB && strcmp(te->desc, "DATABASE") == 0)
 		return 0;
 
@@ -2337,9 +2358,18 @@ _tocEntryRequired(TocEntry *te, RestoreOptions *ropt, bool include_acls)
 	if (!te->hadDumper)
 	{
 		/*
-		 * Special Case: If 'SEQUENCE SET' then it is considered a data entry
+		 * Special Case: If 'SEQUENCE SET' or anything to do with BLOBs, then
+		 * it is considered a data entry.  We don't need to check for the
+		 * BLOBS entry or old-style BLOB COMMENTS, because they will have
+		 * hadDumper = true ... but we do need to check new-style BLOB
+		 * comments.
 		 */
-		if (strcmp(te->desc, "SEQUENCE SET") == 0)
+		if (strcmp(te->desc, "SEQUENCE SET") == 0 ||
+			strcmp(te->desc, "BLOB") == 0 ||
+			(strcmp(te->desc, "ACL") == 0 &&
+			 strncmp(te->tag, "LARGE OBJECT ", 13) == 0) ||
+			(strcmp(te->desc, "COMMENT") == 0 &&
+			 strncmp(te->tag, "LARGE OBJECT ", 13) == 0))
 			res = res & REQ_DATA;
 		else
 			res = res & ~REQ_DATA;
@@ -2369,6 +2399,20 @@ _tocEntryRequired(TocEntry *te, RestoreOptions *ropt, bool include_acls)
 		return 0;
 
 	return res;
+}
+
+/*
+ * Identify TOC entries that are ACLs.
+ */
+static bool
+_tocEntryIsACL(TocEntry *te)
+{
+	/* "ACL LANGUAGE" was a crock emitted only in PG 7.4 */
+	if (strcmp(te->desc, "ACL") == 0 ||
+		strcmp(te->desc, "ACL LANGUAGE") == 0 ||
+		strcmp(te->desc, "DEFAULT ACL") == 0)
+		return true;
+	return false;
 }
 
 /*
@@ -2741,6 +2785,13 @@ _getObjectDescription(PQExpBuffer buf, TocEntry *te, ArchiveHandle *AH)
 		return;
 	}
 
+	/* BLOBs just have a name, but it's numeric so must not use fmtId */
+	if (strcmp(type, "BLOB") == 0)
+	{
+		appendPQExpBuffer(buf, "LARGE OBJECT %s", te->tag);
+		return;
+	}
+
 	/*
 	 * These object types require additional decoration.  Fortunately, the
 	 * information needed is exactly what's in the DROP command.
@@ -2780,14 +2831,12 @@ _printTocEntry(ArchiveHandle *AH, TocEntry *te, RestoreOptions *ropt, bool isDat
 	/* ACLs are dumped only during acl pass */
 	if (acl_pass)
 	{
-		if (!(strcmp(te->desc, "ACL") == 0 ||
-			  strcmp(te->desc, "DEFAULT ACL") == 0))
+		if (!_tocEntryIsACL(te))
 			return;
 	}
 	else
 	{
-		if (strcmp(te->desc, "ACL") == 0 ||
-			strcmp(te->desc, "DEFAULT ACL") == 0)
+		if (_tocEntryIsACL(te))
 			return;
 	}
 
@@ -2954,6 +3003,7 @@ _printTocEntry(ArchiveHandle *AH, TocEntry *te, RestoreOptions *ropt, bool isDat
 		strlen(te->owner) > 0 && strlen(te->dropStmt) > 0)
 	{
 		if (strcmp(te->desc, "AGGREGATE") == 0 ||
+			strcmp(te->desc, "BLOB") == 0 ||
 			strcmp(te->desc, "CONVERSION") == 0 ||
 			strcmp(te->desc, "DATABASE") == 0 ||
 			strcmp(te->desc, "DOMAIN") == 0 ||
@@ -3009,7 +3059,7 @@ _printTocEntry(ArchiveHandle *AH, TocEntry *te, RestoreOptions *ropt, bool isDat
 	 * If it's an ACL entry, it might contain SET SESSION AUTHORIZATION
 	 * commands, so we can no longer assume we know the current auth setting.
 	 */
-	if (strncmp(te->desc, "ACL", 3) == 0)
+	if (acl_pass)
 	{
 		if (AH->currUser)
 			free(AH->currUser);
@@ -3081,7 +3131,12 @@ ReadHead(ArchiveHandle *AH)
 	int			fmt;
 	struct tm	crtm;
 
-	/* If we haven't already read the header... */
+	/*
+	 * If we haven't already read the header, do so.
+	 *
+	 * NB: this code must agree with _discoverArchiveFormat().	Maybe find a
+	 * way to unify the cases?
+	 */
 	if (!AH->readHeader)
 	{
 		if ((*AH->ReadBufPtr) (AH, tmpMag, 5) != 5)
@@ -3099,7 +3154,6 @@ ReadHead(ArchiveHandle *AH)
 			AH->vrev = 0;
 
 		AH->version = ((AH->vmaj * 256 + AH->vmin) * 256 + AH->vrev) * 256 + 0;
-
 
 		if (AH->version < K_VERS_1_0 || AH->version > K_VERS_MAX)
 			die_horribly(AH, modulename, "unsupported version (%d.%d) in file header\n",
@@ -3163,33 +3217,42 @@ ReadHead(ArchiveHandle *AH)
 		AH->archiveRemoteVersion = ReadStr(AH);
 		AH->archiveDumpVersion = ReadStr(AH);
 	}
-
 }
 
 
 /*
  * checkSeek
- *	  check to see if fseek can be performed.
+ *	  check to see if ftell/fseek can be performed.
  */
 bool
 checkSeek(FILE *fp)
 {
-	if (fseeko(fp, 0, SEEK_CUR) != 0)
-		return false;
-	else if (sizeof(pgoff_t) > sizeof(long))
-	{
-		/*
-		 * At this point, pgoff_t is too large for long, so we return based on
-		 * whether an pgoff_t version of fseek is available.
-		 */
-#ifdef HAVE_FSEEKO
-		return true;
-#else
+	pgoff_t		tpos;
+
+	/*
+	 * If pgoff_t is wider than long, we must have "real" fseeko and not an
+	 * emulation using fseek.  Otherwise report no seek capability.
+	 */
+#ifndef HAVE_FSEEKO
+	if (sizeof(pgoff_t) > sizeof(long))
 		return false;
 #endif
-	}
-	else
-		return true;
+
+	/* Check that ftello works on this file */
+	errno = 0;
+	tpos = ftello(fp);
+	if (errno)
+		return false;
+
+	/*
+	 * Check that fseeko(SEEK_SET) works, too.	NB: we used to try to test
+	 * this with fseeko(fp, 0, SEEK_CUR).  But some platforms treat that as a
+	 * successful no-op even on files that are otherwise unseekable.
+	 */
+	if (fseeko(fp, tpos, SEEK_SET) != 0)
+		return false;
+
+	return true;
 }
 
 
@@ -3249,6 +3312,10 @@ restore_toc_entries_parallel(ArchiveHandle *AH)
 	if (AH->ClonePtr == NULL || AH->ReopenPtr == NULL)
 		die_horribly(AH, modulename, "parallel restore is not supported with this archive file format\n");
 
+	/* doesn't work if the archive represents dependencies as OIDs, either */
+	if (AH->version < K_VERS_1_8)
+		die_horribly(AH, modulename, "parallel restore is not supported with archives made by pre-8.0 pg_dump\n");
+
 	slots = (ParallelSlot *) calloc(sizeof(ParallelSlot), n_slots);
 
 	/* Adjust dependency information */
@@ -3297,13 +3364,13 @@ restore_toc_entries_parallel(ArchiveHandle *AH)
 	AH->currWithOids = -1;
 
 	/*
-	 * Initialize the lists of pending and ready items.  After this setup,
-	 * the pending list is everything that needs to be done but is blocked
-	 * by one or more dependencies, while the ready list contains items that
-	 * have no remaining dependencies.  Note: we don't yet filter out entries
-	 * that aren't going to be restored.  They might participate in
-	 * dependency chains connecting entries that should be restored, so we
-	 * treat them as live until we actually process them.
+	 * Initialize the lists of pending and ready items.  After this setup, the
+	 * pending list is everything that needs to be done but is blocked by one
+	 * or more dependencies, while the ready list contains items that have no
+	 * remaining dependencies.	Note: we don't yet filter out entries that
+	 * aren't going to be restored.  They might participate in dependency
+	 * chains connecting entries that should be restored, so we treat them as
+	 * live until we actually process them.
 	 */
 	par_list_header_init(&pending_list);
 	par_list_header_init(&ready_list);
@@ -3809,6 +3876,7 @@ fix_dependencies(ArchiveHandle *AH)
 {
 	TocEntry  **tocsByDumpId;
 	TocEntry   *te;
+	DumpId		maxDumpId;
 	int			i;
 
 	/*
@@ -3816,10 +3884,15 @@ fix_dependencies(ArchiveHandle *AH)
 	 * indexes the TOC entries by dump ID, rather than searching the TOC list
 	 * repeatedly.	Entries for dump IDs not present in the TOC will be NULL.
 	 *
+	 * NOTE: because maxDumpId is just the highest dump ID defined in the
+	 * archive, there might be dependencies for IDs > maxDumpId.  All uses of
+	 * this array must guard against out-of-range dependency numbers.
+	 *
 	 * Also, initialize the depCount fields, and make sure all the TOC items
 	 * are marked as not being in any parallel-processing list.
 	 */
-	tocsByDumpId = (TocEntry **) calloc(AH->maxDumpId, sizeof(TocEntry *));
+	maxDumpId = AH->maxDumpId;
+	tocsByDumpId = (TocEntry **) calloc(maxDumpId, sizeof(TocEntry *));
 	for (te = AH->toc->next; te != AH->toc; te = te->next)
 	{
 		tocsByDumpId[te->dumpId - 1] = te;
@@ -3848,7 +3921,8 @@ fix_dependencies(ArchiveHandle *AH)
 		{
 			DumpId		tableId = te->dependencies[0];
 
-			if (tocsByDumpId[tableId - 1] == NULL ||
+			if (tableId > maxDumpId ||
+				tocsByDumpId[tableId - 1] == NULL ||
 				strcmp(tocsByDumpId[tableId - 1]->desc, "TABLE") == 0)
 			{
 				repoint_table_dependencies(AH, tableId, te->dumpId);
@@ -3893,7 +3967,9 @@ fix_dependencies(ArchiveHandle *AH)
 	{
 		for (i = 0; i < te->nDeps; i++)
 		{
-			if (tocsByDumpId[te->dependencies[i] - 1] == NULL)
+			DumpId		depid = te->dependencies[i];
+
+			if (depid > maxDumpId || tocsByDumpId[depid - 1] == NULL)
 				te->depCount--;
 		}
 	}
@@ -3905,7 +3981,7 @@ fix_dependencies(ArchiveHandle *AH)
 	{
 		te->lockDeps = NULL;
 		te->nLockDeps = 0;
-		identify_locking_dependencies(te, tocsByDumpId);
+		identify_locking_dependencies(te, tocsByDumpId, maxDumpId);
 	}
 
 	free(tocsByDumpId);
@@ -3942,11 +4018,13 @@ repoint_table_dependencies(ArchiveHandle *AH,
  * Identify which objects we'll need exclusive lock on in order to restore
  * the given TOC entry (*other* than the one identified by the TOC entry
  * itself).  Record their dump IDs in the entry's lockDeps[] array.
- * tocsByDumpId[] is a convenience array to avoid searching the TOC
- * for each dependency.
+ * tocsByDumpId[] is a convenience array (of size maxDumpId) to avoid
+ * searching the TOC for each dependency.
  */
 static void
-identify_locking_dependencies(TocEntry *te, TocEntry **tocsByDumpId)
+identify_locking_dependencies(TocEntry *te,
+							  TocEntry **tocsByDumpId,
+							  DumpId maxDumpId)
 {
 	DumpId	   *lockids;
 	int			nlockids;
@@ -3977,7 +4055,7 @@ identify_locking_dependencies(TocEntry *te, TocEntry **tocsByDumpId)
 	{
 		DumpId		depid = te->dependencies[i];
 
-		if (tocsByDumpId[depid - 1] &&
+		if (depid <= maxDumpId && tocsByDumpId[depid - 1] &&
 			strcmp(tocsByDumpId[depid - 1]->desc, "TABLE DATA") == 0)
 			lockids[nlockids++] = depid;
 	}

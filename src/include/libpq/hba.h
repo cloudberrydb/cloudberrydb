@@ -4,7 +4,7 @@
  *	  Interface to hba.c
  *
  *
- * $PostgreSQL: pgsql/src/include/libpq/hba.h,v 1.60 2009/12/12 21:35:21 mha Exp $
+ * $PostgreSQL: pgsql/src/include/libpq/hba.h,v 1.62 2010/04/19 19:02:18 sriggs Exp $
  *
  *-------------------------------------------------------------------------
  */

@@ -4,7 +4,7 @@
 #    Makefile for utils/misc
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/backend/utils/misc/Makefile,v 1.29 2009/08/28 20:26:19 petere Exp $
+#    $PostgreSQL: pgsql/src/backend/utils/misc/Makefile,v 1.30 2010/02/11 14:29:50 teodor Exp $
 #
 #-------------------------------------------------------------------------
 
@@ -18,6 +18,7 @@ SUBDIRS     := fstream
 override CPPFLAGS := -I. -I$(srcdir) $(CPPFLAGS)
 
 OBJS = guc.o help_config.o pg_rusage.o ps_status.o superuser.o tzparser.o uriparser.o \
+       rbtree.o \
        faultinjector.o netcheck.o testutils.o \
 	   bitstream.o bitmap_compression.o guc_gp.o zlib_wrapper.o backend_cancel.o
 

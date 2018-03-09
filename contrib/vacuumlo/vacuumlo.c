@@ -3,12 +3,12 @@
  * vacuumlo.c
  *	  This removes orphaned large objects from a database.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/contrib/vacuumlo/vacuumlo.c,v 1.43 2009/12/14 00:39:10 itagaki Exp $
+ *	  $PostgreSQL: pgsql/contrib/vacuumlo/vacuumlo.c,v 1.45 2010/02/17 04:19:37 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -142,7 +142,7 @@ vacuumlo(char *database, struct _param * param)
 	 */
 	buf[0] = '\0';
 	strcat(buf, "CREATE TEMP TABLE vacuum_l AS ");
-	if (PQserverVersion(conn) >= 80500)
+	if (PQserverVersion(conn) >= 90000)
 		strcat(buf, "SELECT oid AS lo FROM pg_largeobject_metadata");
 	else
 		strcat(buf, "SELECT DISTINCT loid AS lo FROM pg_largeobject");

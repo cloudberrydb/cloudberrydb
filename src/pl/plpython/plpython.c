@@ -304,6 +304,7 @@ typedef struct PLyExceptionEntry
 /* Use separate names to avoid clash in pg_pltemplate */
 #define plpython_validator plpython3_validator
 #define plpython_call_handler plpython3_call_handler
+#define plpython_inline_handler plpython3_inline_handler
 #endif
 
 /* exported functions */
@@ -489,7 +490,7 @@ plpython_error_callback(void *arg)
 static void
 plpython_inline_error_callback(void *arg)
 {
-		errcontext("PL/Python anonymous code block");
+	errcontext("PL/Python anonymous code block");
 }
 
 static void
@@ -513,61 +514,6 @@ PLy_procedure_is_trigger(Form_pg_proc procStruct)
 			(procStruct->prorettype == OPAQUEOID &&
 			 procStruct->pronargs == 0));
 }
-
-Datum
-plpython_inline_handler(PG_FUNCTION_ARGS)
-{
-	InlineCodeBlock *codeblock = (InlineCodeBlock *) DatumGetPointer(PG_GETARG_DATUM(0));
-	FunctionCallInfoData fake_fcinfo;
-	FmgrInfo	flinfo;
-	PLyProcedure *save_curr_proc;
-	PLyProcedure *volatile proc = NULL;
-	ErrorContextCallback plerrcontext;
-
-	if (SPI_connect() != SPI_OK_CONNECT)
-		elog(ERROR, "SPI_connect failed");
-
-	save_curr_proc = PLy_curr_procedure;
-
-	/*
-	 * Setup error traceback support for ereport()
-	 */
-	plerrcontext.callback = plpython_inline_error_callback;
-	plerrcontext.previous = error_context_stack;
-	error_context_stack = &plerrcontext;
-
-	MemSet(&fake_fcinfo, 0, sizeof(fake_fcinfo));
-	MemSet(&flinfo, 0, sizeof(flinfo));
-	fake_fcinfo.flinfo = &flinfo;
-	flinfo.fn_oid = InvalidOid;
-	flinfo.fn_mcxt = CurrentMemoryContext;
-
-	proc = PLy_malloc0(sizeof(PLyProcedure));
-	proc->pyname = PLy_strdup("__plpython_inline_block");
-	proc->result.out.d.typoid = VOIDOID;
-
-	PG_TRY();
-	{
-		PLy_procedure_compile(proc, codeblock->source_text);
-		PLy_curr_procedure = proc;
-		PLy_function_handler(&fake_fcinfo, proc);
-	}
-	PG_CATCH();
-	{
-		PLy_curr_procedure = save_curr_proc;
-		PyErr_Clear();
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
-
-	/* Pop the error context stack */
-	error_context_stack = plerrcontext.previous;
-
-	PLy_curr_procedure = save_curr_proc;
-
-	PG_RETURN_VOID();
-}
-
 
 Datum
 plpython_validator(PG_FUNCTION_ARGS)
@@ -660,6 +606,62 @@ plpython_call_handler(PG_FUNCTION_ARGS)
 	return retval;
 }
 
+Datum
+plpython_inline_handler(PG_FUNCTION_ARGS)
+{
+	InlineCodeBlock *codeblock = (InlineCodeBlock *) DatumGetPointer(PG_GETARG_DATUM(0));
+	FunctionCallInfoData fake_fcinfo;
+	FmgrInfo	flinfo;
+	PLyProcedure *save_curr_proc;
+	PLyProcedure *volatile proc = NULL;
+	ErrorContextCallback plerrcontext;
+
+	if (SPI_connect() != SPI_OK_CONNECT)
+		elog(ERROR, "SPI_connect failed");
+
+	save_curr_proc = PLy_curr_procedure;
+
+	/*
+	 * Setup error traceback support for ereport()
+	 */
+	plerrcontext.callback = plpython_inline_error_callback;
+	plerrcontext.previous = error_context_stack;
+	error_context_stack = &plerrcontext;
+
+	MemSet(&fake_fcinfo, 0, sizeof(fake_fcinfo));
+	MemSet(&flinfo, 0, sizeof(flinfo));
+	fake_fcinfo.flinfo = &flinfo;
+	flinfo.fn_oid = InvalidOid;
+	flinfo.fn_mcxt = CurrentMemoryContext;
+
+	proc = PLy_malloc0(sizeof(PLyProcedure));
+	proc->pyname = PLy_strdup("__plpython_inline_block");
+	proc->result.out.d.typoid = VOIDOID;
+
+	PG_TRY();
+	{
+		PLy_procedure_compile(proc, codeblock->source_text);
+		PLy_curr_procedure = proc;
+		PLy_function_handler(&fake_fcinfo, proc);
+	}
+	PG_CATCH();
+	{
+		PLy_procedure_delete(proc);
+		PLy_curr_procedure = save_curr_proc;
+		PyErr_Clear();
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
+
+	PLy_procedure_delete(proc);
+
+	/* Pop the error context stack */
+	error_context_stack = plerrcontext.previous;
+
+	PLy_curr_procedure = save_curr_proc;
+
+	PG_RETURN_VOID();
+}
 
 /* trigger and function sub handlers
  *
@@ -2169,6 +2171,7 @@ PLy_procedure_delete(PLyProcedure *proc)
 		PLy_free(proc->src);
 	if (proc->argnames)
 		PLy_free(proc->argnames);
+	PLy_free(proc);
 }
 
 /*

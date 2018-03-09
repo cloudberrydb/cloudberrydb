@@ -3397,6 +3397,35 @@ NOTICE:  6
         26
 (1 row)
 
+drop function exc_using(int, text);
+create or replace function exc_using(int) returns void as $$
+declare 
+  c refcursor;
+  i int;
+begin
+  open c for execute 'select * from generate_series(1,$1)' using $1+1;
+  loop
+    fetch c into i;
+    exit when not found;
+    raise notice '%', i;
+  end loop;
+  close c;
+  return;  
+end;
+$$ language plpgsql;
+select exc_using(5);
+NOTICE:  1
+NOTICE:  2
+NOTICE:  3
+NOTICE:  4
+NOTICE:  5
+NOTICE:  6
+ exc_using 
+-----------
+ 
+(1 row)
+
+drop function exc_using(int);
 -- test FOR-over-cursor
 create or replace function forc01() returns void as $$
 declare
@@ -3735,6 +3764,20 @@ $$ language plpgsql;
 select raise_test();
 ERROR:  RAISE without parameters cannot be used outside an exception handler
 CONTEXT:  PL/pgSQL function "raise_test"
+-- check cases where implicit SQLSTATE variable could be confused with
+-- SQLSTATE as a keyword, cf bug #5524
+create or replace function raise_test() returns void as $$
+begin
+  perform 1/0;
+exception
+  when sqlstate '22012' then
+    raise notice using message = sqlstate;
+    raise sqlstate '22012' using message = 'substitute message';
+end;
+$$ language plpgsql;
+select raise_test();
+NOTICE:  22012
+ERROR:  substitute message
 drop function raise_test();
 -- test CASE statement
 create or replace function case_test(bigint) returns text as $$

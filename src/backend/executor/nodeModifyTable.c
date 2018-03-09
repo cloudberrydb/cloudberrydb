@@ -3,17 +3,17 @@
  * nodeModifyTable.c
  *	  routines to handle ModifyTable nodes.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeModifyTable.c,v 1.3 2009/11/20 20:38:10 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeModifyTable.c,v 1.7 2010/02/26 02:00:42 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
 /* INTERFACE ROUTINES
- *		ExecInitModifyTable	- initialize the ModifyTable node
+ *		ExecInitModifyTable - initialize the ModifyTable node
  *		ExecModifyTable		- retrieve the next tuple from the node
  *		ExecEndModifyTable	- shut down the ModifyTable node
  *		ExecReScanModifyTable - rescan the ModifyTable node
@@ -30,7 +30,7 @@
  *
  *		If the query specifies RETURNING, then the ModifyTable returns a
  *		RETURNING tuple after completing each row insert, update, or delete.
- *		It must be called again to continue the operation.  Without RETURNING,
+ *		It must be called again to continue the operation.	Without RETURNING,
  *		we just loop within the node until all the work is done, then
  *		return NULL.  This avoids useless call/return overhead.
  */
@@ -363,7 +363,7 @@ ExecInsert(TupleTableSlot *slot,
 			 * slot should not try to clear it.
 			 */
 			TupleTableSlot *newslot = estate->es_trig_tuple_slot;
-			TupleDesc tupdesc = RelationGetDescr(resultRelationDesc);
+			TupleDesc	tupdesc = RelationGetDescr(resultRelationDesc);
 
 			if (newslot->tts_tupleDescriptor != tupdesc)
 				ExecSetSlotDescriptor(newslot, tupdesc);
@@ -477,7 +477,7 @@ ExecInsert(TupleTableSlot *slot,
 	 */
 	if (resultRelInfo->ri_NumIndices > 0)
 		recheckIndexes = ExecInsertIndexTuples(slot, &lastTid,
-											   estate, false);
+											   estate);
 
 	/* AFTER ROW INSERT Triggers */
 	if (resultRelInfo->ri_TrigDesc &&
@@ -496,6 +496,8 @@ ExecInsert(TupleTableSlot *slot,
 
 		ExecARInsertTriggers(estate, resultRelInfo, tuple, recheckIndexes);
 	}
+
+	list_free(recheckIndexes);
 
 	/* Process RETURNING if present */
 	if (resultRelInfo->ri_projectReturning)
@@ -1187,7 +1189,7 @@ lreplace:;
 	 */
 	if (resultRelInfo->ri_NumIndices > 0 && !wasHotUpdate)
 		recheckIndexes = ExecInsertIndexTuples(slot, &lastTid,
-											   estate, false);
+											   estate);
 
 	/* AFTER ROW UPDATE Triggers */
 	if (resultRelInfo->ri_TrigDesc &&
@@ -1199,6 +1201,8 @@ lreplace:;
 		ExecARUpdateTriggers(estate, resultRelInfo, tupleid, tuple,
 						 recheckIndexes);
 	}
+
+	list_free(recheckIndexes);
 
 	/* Process RETURNING if present */
 	if (resultRelInfo->ri_projectReturning)
@@ -1272,9 +1276,9 @@ fireASTriggers(ModifyTableState *node)
 TupleTableSlot *
 ExecModifyTable(ModifyTableState *node)
 {
-	EState *estate = node->ps.state;
-	CmdType operation = node->operation;
-	PlanState *subplanstate;
+	EState	   *estate = node->ps.state;
+	CmdType		operation = node->operation;
+	PlanState  *subplanstate;
 	JunkFilter *junkfilter;
 	TupleTableSlot *slot;
 	TupleTableSlot *planSlot;
@@ -1297,8 +1301,8 @@ ExecModifyTable(ModifyTableState *node)
 
 	/*
 	 * es_result_relation_info must point to the currently active result
-	 * relation.  (Note we assume that ModifyTable nodes can't be nested.)
-	 * We want it to be NULL whenever we're not within ModifyTable, though.
+	 * relation.  (Note we assume that ModifyTable nodes can't be nested.) We
+	 * want it to be NULL whenever we're not within ModifyTable, though.
 	 */
 	estate->es_result_relation_info =
 		estate->es_result_relations + node->mt_whichplan;
@@ -1426,8 +1430,8 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 	Assert(!(eflags & (EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)));
 
 	/*
-	 * This should NOT get called during EvalPlanQual; we should have passed
-	 * a subplan tree to EvalPlanQual, instead.  Use a runtime test not just
+	 * This should NOT get called during EvalPlanQual; we should have passed a
+	 * subplan tree to EvalPlanQual, instead.  Use a runtime test not just
 	 * Assert because this condition is easy to miss in testing ...
 	 */
 	if (estate->es_epqTuple != NULL)
@@ -1484,8 +1488,8 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 		ExprContext *econtext;
 
 		/*
-		 * Initialize result tuple slot and assign its rowtype using the
-		 * first RETURNING list.  We assume the rest will look the same.
+		 * Initialize result tuple slot and assign its rowtype using the first
+		 * RETURNING list.	We assume the rest will look the same.
 		 */
 		tupDesc = ExecTypeFromTL((List *) linitial(node->returningLists),
 								 false);
@@ -1519,8 +1523,8 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 	else
 	{
 		/*
-		 * We still must construct a dummy result tuple type, because
-		 * InitPlan expects one (maybe should change that?).
+		 * We still must construct a dummy result tuple type, because InitPlan
+		 * expects one (maybe should change that?).
 		 */
 		tupDesc = ExecTypeFromTL(NIL, false);
 		ExecInitResultTupleSlot(estate, &mtstate->ps);
@@ -1530,10 +1534,10 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 	}
 
 	/*
-	 * If we have any secondary relations in an UPDATE or DELETE, they need
-	 * to be treated like non-locked relations in SELECT FOR UPDATE, ie,
-	 * the EvalPlanQual mechanism needs to be told about them.  Locate
-	 * the relevant ExecRowMarks.
+	 * If we have any secondary relations in an UPDATE or DELETE, they need to
+	 * be treated like non-locked relations in SELECT FOR UPDATE, ie, the
+	 * EvalPlanQual mechanism needs to be told about them.	Locate the
+	 * relevant ExecRowMarks.
 	 */
 	foreach(l, node->rowMarks)
 	{
@@ -1571,12 +1575,12 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 
 	/*
 	 * Initialize the junk filter(s) if needed.  INSERT queries need a filter
-	 * if there are any junk attrs in the tlist.  UPDATE and DELETE
-	 * always need a filter, since there's always a junk 'ctid' attribute
-	 * present --- no need to look first.
+	 * if there are any junk attrs in the tlist.  UPDATE and DELETE always
+	 * need a filter, since there's always a junk 'ctid' attribute present ---
+	 * no need to look first.
 	 *
 	 * If there are multiple result relations, each one needs its own junk
-	 * filter.  Note multiple rels are only possible for UPDATE/DELETE, so we
+	 * filter.	Note multiple rels are only possible for UPDATE/DELETE, so we
 	 * can't be fooled by some needing a filter and some not.
 	 *
 	 * This section of code is also a convenient place to verify that the
@@ -1645,9 +1649,9 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 	}
 
 	/*
-	 * Set up a tuple table slot for use for trigger output tuples.
-	 * In a plan containing multiple ModifyTable nodes, all can share
-	 * one such slot, so we keep it in the estate.
+	 * Set up a tuple table slot for use for trigger output tuples. In a plan
+	 * containing multiple ModifyTable nodes, all can share one such slot, so
+	 * we keep it in the estate.
 	 */
 	if (estate->es_trig_tuple_slot == NULL)
 		estate->es_trig_tuple_slot = ExecInitExtraTupleSlot(estate);
@@ -1666,7 +1670,7 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 void
 ExecEndModifyTable(ModifyTableState *node)
 {
-	int i;
+	int			i;
 
 	/*
 	 * Free the exprcontext
@@ -1686,7 +1690,7 @@ ExecEndModifyTable(ModifyTableState *node)
 	/*
 	 * shut down subplans
 	 */
-	for (i=0; i<node->mt_nplans; i++)
+	for (i = 0; i < node->mt_nplans; i++)
 		ExecEndNode(node->mt_plans[i]);
 }
 
@@ -1694,8 +1698,8 @@ void
 ExecReScanModifyTable(ModifyTableState *node, ExprContext *exprCtxt)
 {
 	/*
-	 * Currently, we don't need to support rescan on ModifyTable nodes.
-	 * The semantics of that would be a bit debatable anyway.
+	 * Currently, we don't need to support rescan on ModifyTable nodes. The
+	 * semantics of that would be a bit debatable anyway.
 	 */
 	elog(ERROR, "ExecReScanModifyTable is not implemented");
 }

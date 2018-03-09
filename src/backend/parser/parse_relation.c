@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_relation.c,v 1.147 2009/10/31 01:41:31 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_relation.c,v 1.151 2010/04/28 00:46:33 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -94,11 +94,11 @@ refnameRangeTblEntry(ParseState *pstate,
 
 		/*
 		 * We can use LookupNamespaceNoError() here because we are only
-		 * interested in finding existing RTEs.  Checking USAGE permission
-		 * on the schema is unnecessary since it would have already been
-		 * checked when the RTE was made.  Furthermore, we want to report
-		 * "RTE not found", not "no permissions for schema", if the name
-		 * happens to match a schema name the user hasn't got access to.
+		 * interested in finding existing RTEs.  Checking USAGE permission on
+		 * the schema is unnecessary since it would have already been checked
+		 * when the RTE was made.  Furthermore, we want to report "RTE not
+		 * found", not "no permissions for schema", if the name happens to
+		 * match a schema name the user hasn't got access to.
 		 */
 		namespaceId = LookupNamespaceNoError(schemaname);
 		if (!OidIsValid(namespaceId))
@@ -517,10 +517,9 @@ scanRTEForColumn(ParseState *pstate, RangeTblEntry *rte, char *colname,
 			 * even though views should not have such --- so we also check
 			 * the relkind.  This kluge will not be needed in 9.3 and later.
 			 */
-			if (SearchSysCacheExists(ATTNUM,
-									 ObjectIdGetDatum(rte->relid),
-									 Int16GetDatum(attnum),
-									 0, 0) &&
+			if (SearchSysCacheExists2(ATTNUM,
+									  ObjectIdGetDatum(rte->relid),
+									  Int16GetDatum(attnum)) &&
 				get_rel_relkind(rte->relid) != RELKIND_VIEW)
 			{
 				var = make_var(pstate, rte, attnum, location);
@@ -2258,10 +2257,9 @@ get_rte_attribute_type(RangeTblEntry *rte, AttrNumber attnum,
 				HeapTuple	tp;
 				Form_pg_attribute att_tup;
 
-				tp = SearchSysCache(ATTNUM,
-									ObjectIdGetDatum(rte->relid),
-									Int16GetDatum(attnum),
-									0, 0);
+				tp = SearchSysCache2(ATTNUM,
+									 ObjectIdGetDatum(rte->relid),
+									 Int16GetDatum(attnum));
 				if (!HeapTupleIsValid(tp))		/* shouldn't happen */
 					elog(ERROR, "cache lookup failed for attribute %d of relation %u",
 						 attnum, rte->relid);
@@ -2413,10 +2411,9 @@ get_rte_attribute_is_dropped(RangeTblEntry *rte, AttrNumber attnum)
 				HeapTuple	tp;
 				Form_pg_attribute att_tup;
 
-				tp = SearchSysCache(ATTNUM,
-									ObjectIdGetDatum(rte->relid),
-									Int16GetDatum(attnum),
-									0, 0);
+				tp = SearchSysCache2(ATTNUM,
+									 ObjectIdGetDatum(rte->relid),
+									 Int16GetDatum(attnum));
 				if (!HeapTupleIsValid(tp))		/* shouldn't happen */
 					elog(ERROR, "cache lookup failed for attribute %d of relation %u",
 						 attnum, rte->relid);
@@ -2467,10 +2464,9 @@ get_rte_attribute_is_dropped(RangeTblEntry *rte, AttrNumber attnum)
 					HeapTuple	tp;
 					Form_pg_attribute att_tup;
 
-					tp = SearchSysCache(ATTNUM,
-										ObjectIdGetDatum(funcrelid),
-										Int16GetDatum(attnum),
-										0, 0);
+					tp = SearchSysCache2(ATTNUM,
+										 ObjectIdGetDatum(funcrelid),
+										 Int16GetDatum(attnum));
 					if (!HeapTupleIsValid(tp))	/* shouldn't happen */
 						elog(ERROR, "cache lookup failed for attribute %d of relation %u",
 							 attnum, funcrelid);
@@ -2654,8 +2650,8 @@ errorMissingRTE(ParseState *pstate, RangeVar *relation)
 
 	/*
 	 * Check to see if there are any potential matches in the query's
-	 * rangetable.  (Note: cases involving a bad schema name in the
-	 * RangeVar will throw error immediately here.  That seems OK.)
+	 * rangetable.	(Note: cases involving a bad schema name in the RangeVar
+	 * will throw error immediately here.  That seems OK.)
 	 */
 	rte = searchRangeTable(pstate, relation);
 
@@ -2679,11 +2675,11 @@ errorMissingRTE(ParseState *pstate, RangeVar *relation)
 	if (rte)
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_TABLE),
-				 errmsg("invalid reference to FROM-clause entry for table \"%s\"",
-						relation->relname),
+			errmsg("invalid reference to FROM-clause entry for table \"%s\"",
+				   relation->relname),
 				 (badAlias ?
-				  errhint("Perhaps you meant to reference the table alias \"%s\".",
-						  badAlias) :
+			errhint("Perhaps you meant to reference the table alias \"%s\".",
+					badAlias) :
 				  errhint("There is an entry for table \"%s\", but it cannot be referenced from this part of the query.",
 						  rte->eref->aliasname)),
 				 parser_errposition(pstate, relation->location)));

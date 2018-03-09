@@ -511,6 +511,9 @@
 /* Define to 1 if you have the `rl_filename_completion_function' function. */
 #undef HAVE_RL_FILENAME_COMPLETION_FUNCTION
 
+/* Define to 1 if you have the `scandir' function. */
+#undef HAVE_SCANDIR
+
 /* Define to 1 if you have the <security/pam_appl.h> header file. */
 #undef HAVE_SECURITY_PAM_APPL_H
 
@@ -779,7 +782,7 @@
 /* Define to 1 if your compiler understands __VA_ARGS__ in macros. */
 #undef HAVE__VA_ARGS
 
-/* Define to the appropriate snprintf format for 64-bit ints, if any. */
+/* Define to the appropriate snprintf format for 64-bit ints. */
 #undef INT64_FORMAT
 
 /* Define to build with Kerberos 5 support. (--with-krb5) */
@@ -856,14 +859,14 @@
    RELSEG_SIZE requires an initdb. */
 #undef RELSEG_SIZE
 
+/* The size of `long', as computed by sizeof. */
+#undef SIZEOF_LONG
+
 /* The size of `off_t', as computed by sizeof. */
 #undef SIZEOF_OFF_T
 
 /* The size of `size_t', as computed by sizeof. */
 #undef SIZEOF_SIZE_T
-
-/* The size of `unsigned long', as computed by sizeof. */
-#undef SIZEOF_UNSIGNED_LONG
 
 /* The size of `void *', as computed by sizeof. */
 #undef SIZEOF_VOID_P
@@ -877,8 +880,7 @@
 /* Define to 1 if your <sys/time.h> declares `struct tm'. */
 #undef TM_IN_SYS_TIME
 
-/* Define to the appropriate snprintf format for unsigned 64-bit ints, if any.
-   */
+/* Define to the appropriate snprintf format for unsigned 64-bit ints. */
 #undef UINT64_FORMAT
 
 /* Define to 1 to build with assertion checks. (--enable-cassert) */

@@ -6,10 +6,10 @@
  *
  * Portions Copyright (c) 2005-2009, Greenplum inc.
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/relcache.h,v 1.65 2009/12/07 05:22:23 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/utils/relcache.h,v 1.69 2010/02/26 02:01:29 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -50,9 +50,9 @@ extern List *RelationGetIndexExpressions(Relation relation);
 extern List *RelationGetIndexPredicate(Relation relation);
 extern Bitmapset *RelationGetIndexAttrBitmap(Relation relation);
 extern void RelationGetExclusionInfo(Relation indexRelation,
-									 Oid **operators,
-									 Oid **procs,
-									 uint16 **strategies);
+						 Oid **operators,
+						 Oid **procs,
+						 uint16 **strategies);
 
 extern void RelationSetIndexList(Relation relation,
 					 List *indexIds, Oid oidIndex);
@@ -75,7 +75,14 @@ extern Relation RelationBuildLocalRelation(const char *relname,
 						   Oid relid,
 						   Oid reltablespace,
 			               char relkind,            /*CDB*/
-						   bool shared_relation);
+						   bool shared_relation,
+						   bool mapped_relation);
+
+/*
+ * Routine to manage assignment of new relfilenode to a relation
+ */
+extern void RelationSetNewRelfilenode(Relation relation,
+						  TransactionId freezeXid);
 
 /*
  * Routines for flushing/rebuilding relcache entries in various scenarios
@@ -86,11 +93,11 @@ extern void RelationCacheInvalidateEntry(Oid relationId);
 
 extern void RelationCacheInvalidate(void);
 
+extern void RelationCloseSmgrByOid(Oid relationId);
+
 extern void AtEOXact_RelationCache(bool isCommit);
 extern void AtEOSubXact_RelationCache(bool isCommit, SubTransactionId mySubid,
 						  SubTransactionId parentSubid);
-
-extern void RelationCacheMarkNewRelfilenode(Relation rel);
 
 /*
  * Routines to help manage rebuilding of relcache init files
@@ -111,6 +118,7 @@ extern void IndexSupportInitialize(oidvector *indclass,
 
 /* should be used only by relcache.c and catcache.c */
 extern bool criticalRelcachesBuilt;
+
 /* should be used only by relcache.c and postinit.c */
 extern bool criticalSharedRelcachesBuilt;
 

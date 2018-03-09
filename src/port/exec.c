@@ -4,12 +4,12 @@
  *		Functions for finding and validating executable files
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/port/exec.c,v 1.65 2009/11/14 15:39:36 mha Exp $
+ *	  $PostgreSQL: pgsql/src/port/exec.c,v 1.68 2010/02/26 02:01:38 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -626,7 +626,7 @@ AddUserToTokenDacl(HANDLE hToken)
 	DWORD		dwSize = 0;
 	DWORD		dwTokenInfoLength = 0;
 	PACL		pacl = NULL;
-	PTOKEN_USER	pTokenUser = NULL;
+	PTOKEN_USER pTokenUser = NULL;
 	TOKEN_DEFAULT_DACL tddNew;
 	TOKEN_DEFAULT_DACL *ptdd = NULL;
 	TOKEN_INFORMATION_CLASS tic = TokenDefaultDacl;
@@ -667,8 +667,8 @@ AddUserToTokenDacl(HANDLE hToken)
 	}
 
 	/*
-	 * Get the user token for the current user, which provides us with the
-	 * SID that is needed for creating the ACL.
+	 * Get the user token for the current user, which provides us with the SID
+	 * that is needed for creating the ACL.
 	 */
 	if (!GetTokenUser(hToken, &pTokenUser))
 	{

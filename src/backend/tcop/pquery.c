@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/tcop/pquery.c,v 1.133 2009/12/15 04:57:47 rhaas Exp $
+ *	  $PostgreSQL: pgsql/src/backend/tcop/pquery.c,v 1.137 2010/02/26 02:01:02 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -97,7 +97,8 @@ CreateQueryDesc(PlannedStmt *plannedstmt,
 	qd->crosscheck_snapshot = RegisterSnapshot(crosscheck_snapshot);
 	qd->dest = dest;			/* output dest */
 	qd->params = params;		/* parameter values passed into query */
-	qd->instrument_options = instrument_options;	/* instrumentation wanted? */
+	qd->instrument_options = instrument_options;		/* instrumentation
+														 * wanted? */
 
 	/* null these fields until set by ExecutorStart */
 	qd->tupDesc = NULL;
@@ -152,7 +153,7 @@ CreateUtilityQueryDesc(Node *utilitystmt,
 	qd->crosscheck_snapshot = InvalidSnapshot;	/* RI check snapshot */
 	qd->dest = dest;			/* output dest */
 	qd->params = params;		/* parameter values passed into query */
-	qd->instrument_options = false;	/* uninteresting for utilities */
+	qd->instrument_options = false;		/* uninteresting for utilities */
 
 	/* null these fields until set by ExecutorStart */
 	qd->tupDesc = NULL;
@@ -905,6 +906,7 @@ PortalRun(Portal portal, int64 count, bool isTopLevel,
 		  char *completionTag)
 {
 	bool		result = false;
+	uint32		nprocessed;
 	ResourceOwner saveTopTransactionResourceOwner;
 	MemoryContext saveTopTransactionContext;
 	Portal		saveActivePortal;
@@ -969,39 +971,35 @@ PortalRun(Portal portal, int64 count, bool isTopLevel,
 		switch (portal->strategy)
 		{
 			case PORTAL_ONE_SELECT:
-				(void) PortalRunSelect(portal, true, count, dest);
-
-				/* we know the query is supposed to set the tag */
-				if (completionTag && portal->commandTag)
-					strcpy(completionTag, portal->commandTag);
-
-				/* Mark portal not active */
-				portal->status = PORTAL_READY;
-
-				/*
-				 * Since it's a forward fetch, say DONE iff atEnd is now true.
-				 */
-				result = portal->atEnd;
-				break;
-
 			case PORTAL_ONE_RETURNING:
 			case PORTAL_UTIL_SELECT:
 
 				/*
 				 * If we have not yet run the command, do so, storing its
-				 * results in the portal's tuplestore.
+				 * results in the portal's tuplestore. Do this only for the
+				 * PORTAL_ONE_RETURNING and PORTAL_UTIL_SELECT cases.
 				 */
-				if (!portal->holdStore)
+				if (portal->strategy != PORTAL_ONE_SELECT && !portal->holdStore)
 					FillPortalStore(portal, isTopLevel);
 
 				/*
 				 * Now fetch desired portion of results.
 				 */
-				(void) PortalRunSelect(portal, true, count, dest);
+				nprocessed = PortalRunSelect(portal, true, count, dest);
 
-				/* we know the query is supposed to set the tag */
+				/*
+				 * If the portal result contains a command tag and the caller
+				 * gave us a pointer to store it, copy it. Patch the "SELECT"
+				 * tag to also provide the rowcount.
+				 */
 				if (completionTag && portal->commandTag)
-					strcpy(completionTag, portal->commandTag);
+				{
+					if (strcmp(portal->commandTag, "SELECT") == 0)
+						snprintf(completionTag, COMPLETION_TAG_BUFSIZE,
+								 "SELECT %u", nprocessed);
+					else
+						strcpy(completionTag, portal->commandTag);
+				}
 
 				/* Mark portal not active */
 				portal->status = PORTAL_READY;
@@ -1509,15 +1507,21 @@ PortalRunMulti(Portal portal, bool isTopLevel,
 	 * If a command completion tag was supplied, use it.  Otherwise use the
 	 * portal's commandTag as the default completion tag.
 	 *
-	 * Exception: clients will expect INSERT/UPDATE/DELETE tags to have
-	 * counts, so fake something up if necessary.  (This could happen if the
-	 * original query was replaced by a DO INSTEAD rule.)
+	 * Exception: Clients expect INSERT/UPDATE/DELETE tags to have counts, so
+	 * fake them with zeros.  This can happen with DO INSTEAD rules if there
+	 * is no replacement query of the same type as the original.  We print "0
+	 * 0" here because technically there is no query of the matching tag type,
+	 * and printing a non-zero count for a different query type seems wrong,
+	 * e.g.  an INSERT that does an UPDATE instead should not print "0 1" if
+	 * one row was updated.  See QueryRewrite(), step 3, for details.
 	 */
 	if (completionTag && completionTag[0] == '\0')
 	{
 		if (portal->commandTag)
 			strcpy(completionTag, portal->commandTag);
-		if (strcmp(completionTag, "INSERT") == 0)
+		if (strcmp(completionTag, "SELECT") == 0)
+			sprintf(completionTag, "SELECT 0 0");
+		else if (strcmp(completionTag, "INSERT") == 0)
 			strcpy(completionTag, "INSERT 0 0");
 		else if (strcmp(completionTag, "UPDATE") == 0)
 			strcpy(completionTag, "UPDATE 0");

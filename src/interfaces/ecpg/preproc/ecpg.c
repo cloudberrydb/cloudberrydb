@@ -1,7 +1,7 @@
-/* $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/ecpg.c,v 1.111 2009/08/05 11:42:20 meskes Exp $ */
+/* $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/ecpg.c,v 1.116 2010/07/06 19:19:00 momjian Exp $ */
 
 /* Main for ecpg, the PostgreSQL embedded SQL precompiler. */
-/* Copyright (c) 1996-2009, PostgreSQL Global Development Group */
+/* Copyright (c) 1996-2010, PostgreSQL Global Development Group */
 
 #include "postgres_fe.h"
 
@@ -419,8 +419,11 @@ main(int argc, char *const argv[])
 				/* and structure member lists */
 				memset(struct_member_list, 0, sizeof(struct_member_list));
 
-				/* and our variable counter for Informix compatibility */
-				ecpg_informix_var = 0;
+				/*
+				 * and our variable counter for out of scope cursors'
+				 * variables
+				 */
+				ecpg_internal_var = 0;
 
 				/* finally the actual connection */
 				connection = NULL;
@@ -466,6 +469,15 @@ main(int argc, char *const argv[])
 					fclose(yyin);
 				if (out_option == 0 && yyout != stdout)
 					fclose(yyout);
+
+				/*
+				 * If there was an error, delete the output file.
+				 */
+				if (ret_value != 0)
+				{
+					if (strcmp(output_filename, "-") != 0 && unlink(output_filename) != 0)
+						fprintf(stderr, _("could not remove output file \"%s\"\n"), output_filename);
+				}
 			}
 
 			if (output_filename && out_option == 0)

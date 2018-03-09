@@ -3,12 +3,12 @@
  * timestamp.c
  *	  Functions for the built-in SQL92 types "timestamp" and "interval".
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/timestamp.c,v 1.204 2009/11/10 18:41:24 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/timestamp.c,v 1.206 2010/02/26 02:01:10 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -3230,11 +3230,11 @@ interval_mi(PG_FUNCTION_ARGS)
 }
 
 /*
- *  There is no interval_abs():  it is unclear what value to return:
- *    http://archives.postgresql.org/pgsql-general/2009-10/msg01031.php
- *    http://archives.postgresql.org/pgsql-general/2009-11/msg00041.php
+ *	There is no interval_abs():  it is unclear what value to return:
+ *	  http://archives.postgresql.org/pgsql-general/2009-10/msg01031.php
+ *	  http://archives.postgresql.org/pgsql-general/2009-11/msg00041.php
  */
- 
+
 Datum
 interval_mul(PG_FUNCTION_ARGS)
 {

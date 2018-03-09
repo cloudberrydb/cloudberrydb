@@ -16,10 +16,10 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- *	$PostgreSQL: pgsql/src/backend/parser/analyze.c,v 1.398 2009/12/16 22:24:13 tgl Exp $
+ *	$PostgreSQL: pgsql/src/backend/parser/analyze.c,v 1.402 2010/02/26 02:00:49 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -102,7 +102,7 @@ static void coerceSetOpTypes(ParseState *pstate, Node *sop,
 							 List **colInfo);
 static void select_setop_types(ParseState *pstate, setop_types_ctx *ctx, SetOperation op, List **selected_types, List **selected_typmods);
 static void determineRecursiveColTypes(ParseState *pstate,
-									   Node *larg, List *lcolinfo);
+						   Node *larg, List *lcolinfo);
 static void applyColumnNames(List *dst, List *src);
 static Query *transformUpdateStmt(ParseState *pstate, UpdateStmt *stmt);
 static List *transformReturningList(ParseState *pstate, List *returningList);
@@ -111,7 +111,7 @@ static Query *transformDeclareCursorStmt(ParseState *pstate,
 static Query *transformExplainStmt(ParseState *pstate,
 					 ExplainStmt *stmt);
 static void transformLockingClause(ParseState *pstate, Query *qry,
-								   LockingClause *lc, bool pushedDown);
+					   LockingClause *lc, bool pushedDown);
 
 static void setQryDistributionPolicy(SelectStmt *stmt, Query *qry);
 
@@ -320,16 +320,12 @@ analyze_requires_snapshot(Node *parseTree)
 			break;
 
 		case T_ExplainStmt:
-
-			/*
-			 * We only need a snapshot in varparams case, but it doesn't seem
-			 * worth complicating this function's API to distinguish that.
-			 */
+			/* yes, because we must analyze the contained statement */
 			result = true;
 			break;
 
 		default:
-			/* utility statements don't have any active parse analysis */
+			/* other utility statements don't have any real parse analysis */
 			result = false;
 			break;
 	}
@@ -1439,6 +1435,13 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 
 	qry->commandType = CMD_SELECT;
 
+	/* process the WITH clause independently of all else */
+	if (stmt->withClause)
+	{
+		qry->hasRecursive = stmt->withClause->recursive;
+		qry->cteList = transformWithClause(pstate, stmt->withClause);
+	}
+
 	/* make FOR UPDATE/FOR SHARE info available to addRangeTableEntry */
 	pstate->p_locking_clause = stmt->lockingClause;
 
@@ -1447,13 +1450,6 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 	 * about them.
 	 */
 	pstate->p_windowdefs = stmt->windowClause;
-
-	/* process the WITH clause */
-	if (stmt->withClause)
-	{
-		qry->hasRecursive = stmt->withClause->recursive;
-		qry->cteList = transformWithClause(pstate, stmt->withClause);
-	}
 
 	/* process the FROM clause */
 	transformFromClause(pstate, stmt->fromClause);
@@ -1492,15 +1488,15 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 										  stmt->sortClause,
 										  &qry->targetList,
 										  EXPR_KIND_ORDER_BY,
-										  true, /* fix unknowns */
-                                          false /* allow SQL92 rules */);
+										  true /* fix unknowns */ ,
+										  false /* allow SQL92 rules */ );
 
 	qry->groupClause = transformGroupClause(pstate,
 											stmt->groupClause,
 											&qry->targetList,
 											qry->sortClause,
 											EXPR_KIND_GROUP_BY,
-                                            false /* allow SQL92 rules */);
+											false /* allow SQL92 rules */ );
 
 	/*
 	 * SCATTER BY clause on a table function TableValueExpr subquery.
@@ -1648,7 +1644,7 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 	Assert(stmt->scatterClause == NIL);
 	Assert(stmt->op == SETOP_NONE);
 
-	/* process the WITH clause */
+	/* process the WITH clause independently of all else */
 	if (stmt->withClause)
 	{
 		qry->hasRecursive = stmt->withClause->recursive;
@@ -1761,8 +1757,8 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 										  stmt->sortClause,
 										  &qry->targetList,
 										  EXPR_KIND_ORDER_BY,
-										  true, /* fix unknowns */
-                                          false /* allow SQL92 rules */);
+										  true /* fix unknowns */ ,
+										  false /* allow SQL92 rules */ );
 
 	qry->limitOffset = transformLimitClause(pstate, stmt->limitOffset,
 											EXPR_KIND_OFFSET, "OFFSET");
@@ -2021,8 +2017,8 @@ transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
 										  sortClause,
 										  &qry->targetList,
 										  EXPR_KIND_ORDER_BY,
-										  false /* no unknowns expected */,
-                                          false /* allow SQL92 rules */ );
+										  false /* no unknowns expected */ ,
+										  false /* allow SQL92 rules */ );
 
 	pstate->p_rtable = list_truncate(pstate->p_rtable, sv_rtable_length);
 	pstate->p_relnamespace = sv_relnamespace;
@@ -2267,10 +2263,10 @@ transformSetOperationTree_internal(ParseState *pstate, SelectStmt *stmt,
 				 errmsg("SELECT FOR UPDATE/SHARE is not allowed with UNION/INTERSECT/EXCEPT")));
 
 	/*
-	 * If an internal node of a set-op tree has ORDER BY, LIMIT, or FOR UPDATE
-	 * clauses attached, we need to treat it like a leaf node to generate an
-	 * independent sub-Query tree.	Otherwise, it can be represented by a
-	 * SetOperationStmt node underneath the parent Query.
+	 * If an internal node of a set-op tree has ORDER BY, LIMIT, FOR UPDATE,
+	 * or WITH clauses attached, we need to treat it like a leaf node to
+	 * generate an independent sub-Query tree.  Otherwise, it can be
+	 * represented by a SetOperationStmt node underneath the parent Query.
 	 */
 	if (stmt->op == SETOP_NONE)
 	{
@@ -2412,8 +2408,8 @@ transformSetOperationTree_internal(ParseState *pstate, SelectStmt *stmt,
 													  false, setop_types);
 
 		/*
-		 * If we are processing a recursive union query, now is the time
-		 * to examine the non-recursive term's output columns and mark the
+		 * If we are processing a recursive union query, now is the time to
+		 * examine the non-recursive term's output columns and mark the
 		 * containing CTE as having those result columns.  We should do this
 		 * only at the topmost setop of the CTE, of course.
 		 *
@@ -2574,25 +2570,25 @@ coerceSetOpTypes(ParseState *pstate, Node *sop,
 			}
 
 			/*
-			 * Verify the coercions are actually possible.  If not, we'd
-			 * fail later anyway, but we want to fail now while we have
-			 * sufficient context to produce an error cursor position.
+			 * Verify the coercions are actually possible.	If not, we'd fail
+			 * later anyway, but we want to fail now while we have sufficient
+			 * context to produce an error cursor position.
 			 *
 			 * The if-tests might look wrong, but they are correct: we should
 			 * verify if the input is non-UNKNOWN *or* if it is an UNKNOWN
 			 * Const (to verify the literal is valid for the target data type)
 			 * or Param (to possibly resolve the Param's type).  We should do
 			 * nothing if the input is say an UNKNOWN Var, which can happen in
-			 * some cases.  The planner is sometimes able to fold the Var to a
+			 * some cases.	The planner is sometimes able to fold the Var to a
 			 * constant before it has to coerce the type, so failing now would
 			 * just break cases that might work.
 			 */
 			if (lcoltype != UNKNOWNOID ||
-				IsA(lcolnode, Const) || IsA(lcolnode, Param))
+				IsA(lcolnode, Const) ||IsA(lcolnode, Param))
 				(void) coerce_to_common_type(pstate, lcolnode,
 											 rescoltype, context);
 			if (rcoltype != UNKNOWNOID ||
-				IsA(rcolnode, Const) || IsA(rcolnode, Param))
+				IsA(rcolnode, Const) ||IsA(rcolnode, Param))
 				(void) coerce_to_common_type(pstate, rcolnode,
 											 rescoltype, context);
 
@@ -2674,8 +2670,8 @@ determineRecursiveColTypes(ParseState *pstate, Node *larg, List *lcolinfo)
 	Assert(leftmostQuery != NULL);
 
 	/*
-	 * Generate dummy targetlist using column names of leftmost select
-	 * and dummy result expressions of the non-recursive term.
+	 * Generate dummy targetlist using column names of leftmost select and
+	 * dummy result expressions of the non-recursive term.
 	 */
 	targetList = NIL;
 	left_tlist = list_head(leftmostQuery->targetList);
@@ -2986,29 +2982,21 @@ transformDeclareCursorStmt(ParseState *pstate, DeclareCursorStmt *stmt)
  * transformExplainStmt -
  *	transform an EXPLAIN Statement
  *
- * EXPLAIN is just like other utility statements in that we emit it as a
- * CMD_UTILITY Query node with no transformation of the raw parse tree.
- * However, if p_coerce_param_hook is set, it could be that the client is
- * expecting us to resolve parameter types in something like
- *		EXPLAIN SELECT * FROM tab WHERE col = $1
- * To deal with such cases, we run parse analysis and throw away the result;
- * this is a bit grotty but not worth contorting the rest of the system for.
- * (The approach we use for DECLARE CURSOR won't work because the statement
- * being explained isn't necessarily a SELECT, and in particular might rewrite
- * to multiple parsetrees.)
+ * EXPLAIN is like other utility statements in that we emit it as a
+ * CMD_UTILITY Query node; however, we must first transform the contained
+ * query.  We used to postpone that until execution, but it's really necessary
+ * to do it during the normal parse analysis phase to ensure that side effects
+ * of parser hooks happen at the expected time.
  */
 static Query *
 transformExplainStmt(ParseState *pstate, ExplainStmt *stmt)
 {
 	Query	   *result;
 
-	if (pstate->p_coerce_param_hook != NULL)
-	{
-		/* Since parse analysis scribbles on its input, copy the tree first! */
-		(void) transformStmt(pstate, copyObject(stmt->query));
-	}
+	/* transform contained query */
+	stmt->query = (Node *) transformStmt(pstate, stmt->query);
 
-	/* Now return the untransformed command as a utility Query */
+	/* represent the command as a utility Query */
 	result = makeNode(Query);
 	result->commandType = CMD_UTILITY;
 	result->utilityStmt = (Node *) stmt;
@@ -3105,12 +3093,13 @@ transformLockingClause(ParseState *pstate, Query *qry, LockingClause *lc,
 				case RTE_SUBQUERY:
 					applyLockingClause(qry, i,
 									   lc->forUpdate, lc->noWait, pushedDown);
+
 					/*
 					 * FOR UPDATE/SHARE of subquery is propagated to all of
-					 * subquery's rels, too.  We could do this later (based
-					 * on the marking of the subquery RTE) but it is convenient
-					 * to have local knowledge in each query level about
-					 * which rels need to be opened with RowShareLock.
+					 * subquery's rels, too.  We could do this later (based on
+					 * the marking of the subquery RTE) but it is convenient
+					 * to have local knowledge in each query level about which
+					 * rels need to be opened with RowShareLock.
 					 */
 					transformLockingClause(pstate, rte->subquery,
 										   allrels, true);

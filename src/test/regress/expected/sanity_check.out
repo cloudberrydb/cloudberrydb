@@ -111,7 +111,6 @@ SELECT relname, relhasindex
  pg_language             | t
  pg_largeobject          | t
  pg_largeobject_metadata | t
- pg_listener             | f
  pg_namespace            | t
  pg_opclass              | t
  pg_operator             | t
@@ -131,8 +130,7 @@ SELECT relname, relhasindex
  pg_ts_template          | t
  pg_type                 | t
  pg_user_mapping         | t
- pg_window               | t
- point_tbl               | f
+ point_tbl               | t
  polygon_tbl             | t
  ramp                    | f
  real_city               | f
@@ -159,7 +157,7 @@ SELECT relname, relhasindex
  timetz_tbl              | f
  tinterval_tbl           | f
  varchar_tbl             | f
-(143 rows)
+(142 rows)
 
 --
 -- another sanity check: every system catalog that has OIDs should have

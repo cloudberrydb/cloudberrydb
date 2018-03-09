@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/outfuncs.c,v 1.375 2009/12/15 17:57:46 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/outfuncs.c,v 1.385 2010/03/30 21:58:10 tgl Exp $
  *
  * NOTES
  *	  Every node type that can appear in stored rules' parsetrees *must*
@@ -995,6 +995,7 @@ _outHash(StringInfo str, Hash *node)
 
 	WRITE_OID_FIELD(skewTable);
 	WRITE_INT_FIELD(skewColumn);
+	WRITE_BOOL_FIELD(skewInherit);
 	WRITE_OID_FIELD(skewColType);
 	WRITE_INT_FIELD(skewColTypmod);
 
@@ -1227,6 +1228,7 @@ _outRangeVar(StringInfo str, RangeVar *node)
 	 * we deliberately ignore catalogname here, since it is presently not
 	 * semantically meaningful
 	 */
+	WRITE_STRING_FIELD(catalogname);
 	WRITE_STRING_FIELD(schemaname);
 	WRITE_STRING_FIELD(relname);
 	WRITE_ENUM_FIELD(inhOpt, InhOption);
@@ -1679,6 +1681,7 @@ _outNullTest(StringInfo str, NullTest *node)
 
 	WRITE_NODE_FIELD(arg);
 	WRITE_ENUM_FIELD(nulltesttype, NullTestType);
+	WRITE_BOOL_FIELD(argisrow);
 }
 
 static void
@@ -2097,6 +2100,7 @@ _outPlannerInfo(StringInfo str, PlannerInfo *node)
 	WRITE_NODE_FIELD(sort_pathkeys);
 	WRITE_FLOAT_FIELD(total_table_pages, "%.0f");
 	WRITE_FLOAT_FIELD(tuple_fraction, "%.4f");
+	WRITE_BOOL_FIELD(hasInheritedTarget);
 	WRITE_BOOL_FIELD(hasJoinRTEs);
 	WRITE_BOOL_FIELD(hasHavingQual);
 	WRITE_BOOL_FIELD(hasPseudoConstantQuals);
@@ -2120,6 +2124,7 @@ _outRelOptInfo(StringInfo str, RelOptInfo *node)
 	/* WRITE_NODE_FIELD(cheapest_startup_path); */
 	/* WRITE_NODE_FIELD(cheapest_total_path);   */
 	WRITE_UINT_FIELD(relid);
+	WRITE_UINT_FIELD(reltablespace);
 	WRITE_ENUM_FIELD(rtekind, RTEKind);
 	WRITE_INT_FIELD(min_attr);
 	WRITE_INT_FIELD(max_attr);
@@ -2366,6 +2371,7 @@ _outCreateStmt(StringInfo str, CreateStmt *node)
 	WRITE_NODE_FIELD(inhRelations);
 	WRITE_NODE_FIELD(inhOids);
 	WRITE_INT_FIELD(parentOidCount);
+	WRITE_NODE_FIELD(ofTypename);
 	WRITE_NODE_FIELD(constraints);
 	WRITE_NODE_FIELD(options);
 	WRITE_ENUM_FIELD(oncommit, OnCommitAction);
@@ -3112,6 +3118,7 @@ _outNotifyStmt(StringInfo str, NotifyStmt *node)
 	WRITE_NODE_TYPE("NOTIFY");
 
 	WRITE_STRING_FIELD(conditionname);
+	WRITE_STRING_FIELD(payload);
 }
 
 static void
@@ -3459,6 +3466,7 @@ _outIndexElem(StringInfo str, IndexElem *node)
 
 	WRITE_STRING_FIELD(name);
 	WRITE_NODE_FIELD(expr);
+	WRITE_STRING_FIELD(indexcolname);
 	WRITE_NODE_FIELD(opclass);
 	WRITE_ENUM_FIELD(ordering, SortByDir);
 	WRITE_ENUM_FIELD(nulls_ordering, SortByNulls);
@@ -4148,12 +4156,11 @@ _outVacuumStmt(StringInfo str, VacuumStmt *node)
 	WRITE_NODE_FIELD(relation);
 	WRITE_NODE_FIELD(va_cols);
 
+	WRITE_BOOL_FIELD(skip_twophase);
 	WRITE_NODE_FIELD(expanded_relids);
 	WRITE_NODE_FIELD(appendonly_compaction_segno);
 	WRITE_NODE_FIELD(appendonly_compaction_insert_segno);
-	WRITE_BOOL_FIELD(appendonly_compaction_vacuum_cleanup);
-	WRITE_BOOL_FIELD(appendonly_compaction_vacuum_prepare);
-	WRITE_BOOL_FIELD(heap_truncate);
+	WRITE_ENUM_FIELD(appendonly_phase, AOVacuumPhase);
 }
 
 static void

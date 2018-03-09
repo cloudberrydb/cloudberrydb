@@ -23,10 +23,10 @@
  * for aborts (whether sync or async), since the post-crash assumption would
  * be that such transactions failed anyway.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/backend/access/transam/clog.c,v 1.53 2009/06/11 14:48:54 momjian Exp $
+ * $PostgreSQL: pgsql/src/backend/access/transam/clog.c,v 1.55 2010/01/02 16:57:35 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -397,7 +397,7 @@ TransactionIdGetStatus(TransactionId xid, XLogRecPtr *lsn)
 
 	/* lock is acquired by SimpleLruReadPage_ReadOnly */
 
-	slotno = SimpleLruReadPage_ReadOnly(ClogCtl, pageno, xid, NULL);
+	slotno = SimpleLruReadPage_ReadOnly(ClogCtl, pageno, xid);
 	byteptr = ClogCtl->shared->page_buffer[slotno] + byteno;
 
 	status = (*byteptr >> bshift) & CLOG_XACT_BITMASK;
@@ -683,7 +683,7 @@ ExtendCLOG(TransactionId newestXact)
 	LWLockAcquire(CLogControlLock, LW_EXCLUSIVE);
 
 	/* Zero the page and make an XLOG entry about it */
-	ZeroCLOGPage(pageno, true);
+	ZeroCLOGPage(pageno, !InRecovery);
 
 	LWLockRelease(CLogControlLock);
 }

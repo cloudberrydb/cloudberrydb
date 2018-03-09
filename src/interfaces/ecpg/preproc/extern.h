@@ -1,4 +1,4 @@
-/* $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/extern.h,v 1.76 2009/11/26 15:06:47 meskes Exp $ */
+/* $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/extern.h,v 1.78 2010/01/26 09:07:31 meskes Exp $ */
 
 #ifndef _ECPG_PREPROC_EXTERN_H
 #define _ECPG_PREPROC_EXTERN_H
@@ -26,9 +26,10 @@ extern int	braces_open,
 			questionmarks,
 			ret_value,
 			struct_level,
-			ecpg_informix_var,
+			ecpg_internal_var,
 			regression_mode,
 			auto_prepare;
+extern char *current_function;
 extern char *descriptor_index;
 extern char *descriptor_name;
 extern char *connection;
@@ -88,6 +89,7 @@ extern void add_descriptor(char *, char *);
 extern void drop_descriptor(char *, char *);
 extern struct descriptor *lookup_descriptor(char *, char *);
 extern struct variable *descriptor_variable(const char *name, int input);
+extern struct variable *sqlda_variable(const char *name);
 extern void add_variable_to_head(struct arguments **, struct variable *, struct variable *);
 extern void add_variable_to_tail(struct arguments **, struct variable *, struct variable *);
 extern void remove_variable_from_list(struct arguments ** list, struct variable * var);

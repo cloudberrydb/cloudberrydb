@@ -3,12 +3,12 @@
  * pg_constraint.c
  *	  routines to support manipulation of the pg_constraint relation
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/pg_constraint.c,v 1.50 2009/12/07 05:22:21 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/pg_constraint.c,v 1.53 2010/02/26 02:00:37 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -301,9 +301,9 @@ CreateConstraintEntry(const char *constraintName,
 	{
 		/*
 		 * Register normal dependency on the unique index that supports a
-		 * foreign-key constraint.  (Note: for indexes associated with
-		 * unique or primary-key constraints, the dependency runs the other
-		 * way, and is not made here.)
+		 * foreign-key constraint.	(Note: for indexes associated with unique
+		 * or primary-key constraints, the dependency runs the other way, and
+		 * is not made here.)
 		 */
 		ObjectAddress relobject;
 
@@ -345,11 +345,11 @@ CreateConstraintEntry(const char *constraintName,
 	}
 
 	/*
-	 * We don't bother to register dependencies on the exclusion operators
-	 * of an exclusion constraint.  We assume they are members of the opclass
-	 * supporting the index, so there's an indirect dependency via that.
-	 * (This would be pretty dicey for cross-type operators, but exclusion
-	 * operators can never be cross-type.)
+	 * We don't bother to register dependencies on the exclusion operators of
+	 * an exclusion constraint.  We assume they are members of the opclass
+	 * supporting the index, so there's an indirect dependency via that. (This
+	 * would be pretty dicey for cross-type operators, but exclusion operators
+	 * can never be cross-type.)
 	 */
 
 	if (conExpr != NULL)
@@ -530,9 +530,7 @@ RemoveConstraintById(Oid conId)
 
 	conDesc = heap_open(ConstraintRelationId, RowExclusiveLock);
 
-	tup = SearchSysCache(CONSTROID,
-						 ObjectIdGetDatum(conId),
-						 0, 0, 0);
+	tup = SearchSysCache1(CONSTROID, ObjectIdGetDatum(conId));
 	if (!HeapTupleIsValid(tup)) /* should not happen */
 		elog(ERROR, "cache lookup failed for constraint %u", conId);
 	con = (Form_pg_constraint) GETSTRUCT(tup);
@@ -563,9 +561,8 @@ RemoveConstraintById(Oid conId)
 			Form_pg_class classForm;
 
 			pgrel = heap_open(RelationRelationId, RowExclusiveLock);
-			relTup = SearchSysCacheCopy(RELOID,
-										ObjectIdGetDatum(con->conrelid),
-										0, 0, 0);
+			relTup = SearchSysCacheCopy1(RELOID,
+										 ObjectIdGetDatum(con->conrelid));
 			if (!HeapTupleIsValid(relTup))
 				elog(ERROR, "cache lookup failed for relation %u",
 					 con->conrelid);
@@ -649,9 +646,7 @@ RenameConstraintById(Oid conId, const char *newname)
 
 	conDesc = heap_open(ConstraintRelationId, RowExclusiveLock);
 
-	tuple = SearchSysCacheCopy(CONSTROID,
-							   ObjectIdGetDatum(conId),
-							   0, 0, 0);
+	tuple = SearchSysCacheCopy1(CONSTROID, ObjectIdGetDatum(conId));
 	if (!HeapTupleIsValid(tuple))
 		elog(ERROR, "cache lookup failed for constraint %u", conId);
 	con = (Form_pg_constraint) GETSTRUCT(tuple);
@@ -805,8 +800,8 @@ get_constraint_oid(Oid relid, const char *conname, bool missing_ok)
 			if (OidIsValid(conOid))
 				ereport(ERROR,
 						(errcode(ERRCODE_DUPLICATE_OBJECT),
-						 errmsg("table \"%s\" has multiple constraints named \"%s\"",
-								get_rel_name(relid), conname)));
+				 errmsg("table \"%s\" has multiple constraints named \"%s\"",
+						get_rel_name(relid), conname)));
 			conOid = HeapTupleGetOid(tuple);
 		}
 	}

@@ -5,10 +5,10 @@
  *	Lately it's also being used by psql and bin/scripts/ ...
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/bin/pg_dump/dumputils.c,v 1.52 2009/12/11 03:34:56 itagaki Exp $
+ * $PostgreSQL: pgsql/src/bin/pg_dump/dumputils.c,v 1.56 2010/03/03 20:10:48 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -343,10 +343,10 @@ appendByteaLiteral(PQExpBuffer buf, const unsigned char *str, size_t length,
 	static const char hextbl[] = "0123456789abcdef";
 
 	/*
-	 * This implementation is hard-wired to produce hex-format output.
-	 * We do not know the server version the output will be loaded into,
-	 * so making an intelligent format choice is impossible.  It might be
-	 * better to always use the old escaped format.
+	 * This implementation is hard-wired to produce hex-format output. We do
+	 * not know the server version the output will be loaded into, so making
+	 * an intelligent format choice is impossible.	It might be better to
+	 * always use the old escaped format.
 	 */
 	if (!enlargePQExpBuffer(buf, 2 * length + 5))
 		return;
@@ -486,7 +486,8 @@ parsePGArray(const char *atext, char ***itemarray, int *nitems)
  *	name: the object name, in the form to use in the commands (already quoted)
  *	subname: the sub-object name, if any (already quoted); NULL if none
  *	type: the object type (as seen in GRANT command: must be one of
- *		TABLE, SEQUENCE, FUNCTION, LANGUAGE, SCHEMA, DATABASE, or TABLESPACE)
+ *		TABLE, SEQUENCE, FUNCTION, LANGUAGE, SCHEMA, DATABASE, TABLESPACE,
+ *		FOREIGN DATA WRAPPER, SERVER, or LARGE OBJECT)
  *	acls: the ACL string fetched from the database
  *	owner: username of object owner (will be passed through fmtId); can be
  *		NULL or empty string to indicate "no owner known"
@@ -614,7 +615,7 @@ buildACLCommands(const char *name, const char *subname,
 										  fmtId(grantee->data));
 					if (privswgo->len > 0)
 						appendPQExpBuffer(firstsql,
-							  "%sGRANT %s ON %s %s TO %s WITH GRANT OPTION;\n",
+							"%sGRANT %s ON %s %s TO %s WITH GRANT OPTION;\n",
 										  prefix, privswgo->data, type, name,
 										  fmtId(grantee->data));
 				}
@@ -715,9 +716,9 @@ buildDefaultACLCommands(const char *type, const char *nspname,
 
 	/*
 	 * We incorporate the target role directly into the command, rather than
-	 * playing around with SET ROLE or anything like that.  This is so that
-	 * a permissions error leads to nothing happening, rather than
-	 * changing default privileges for the wrong user.
+	 * playing around with SET ROLE or anything like that.	This is so that a
+	 * permissions error leads to nothing happening, rather than changing
+	 * default privileges for the wrong user.
 	 */
 	appendPQExpBuffer(prefix, "ALTER DEFAULT PRIVILEGES FOR ROLE %s ",
 					  fmtId(owner));
@@ -862,7 +863,7 @@ do { \
 		CONVERT_PRIV('C', "CREATE");
 	else if (strcmp(type, "FOREIGN DATA WRAPPER") == 0)
 		CONVERT_PRIV('U', "USAGE");
-	else if (strcmp(type, "SERVER") == 0)
+	else if (strcmp(type, "FOREIGN SERVER") == 0)
 		CONVERT_PRIV('U', "USAGE");
 	else if (strcmp(type, "LARGE OBJECT") == 0)
 	{

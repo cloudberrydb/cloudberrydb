@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/joinrels.c,v 1.103 2009/11/28 00:46:19 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/joinrels.c,v 1.105 2010/02/26 02:00:45 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -387,10 +387,10 @@ join_is_legal(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2,
 			continue;
 
 		/*
-		 * If it's a semijoin and we already joined the RHS to any other
-		 * rels within either input, then we must have unique-ified the RHS
-		 * at that point (see below).  Therefore the semijoin is no longer
-		 * relevant in this join path.
+		 * If it's a semijoin and we already joined the RHS to any other rels
+		 * within either input, then we must have unique-ified the RHS at that
+		 * point (see below).  Therefore the semijoin is no longer relevant in
+		 * this join path.
 		 */
 		if (sjinfo->jointype == JOIN_SEMI)
 		{
@@ -509,9 +509,9 @@ join_is_legal(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2,
 	}
 
 	/*
-	 * Fail if violated some SJ's RHS and didn't match to another SJ.
-	 * However, "matching" to a semijoin we are implementing by
-	 * unique-ification doesn't count (think: it's really an inner join).
+	 * Fail if violated some SJ's RHS and didn't match to another SJ. However,
+	 * "matching" to a semijoin we are implementing by unique-ification
+	 * doesn't count (think: it's really an inner join).
 	 */
 	if (!is_valid_inner &&
 		(match_sjinfo == NULL || unique_ified))

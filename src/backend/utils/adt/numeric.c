@@ -11,10 +11,10 @@
  * Transactions on Mathematical Software, Vol. 24, No. 4, December 1998,
  * pages 359-367.
  *
- * Copyright (c) 1998-2009, PostgreSQL Global Development Group
+ * Copyright (c) 1998-2010, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/numeric.c,v 1.119 2009/08/10 18:29:27 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/numeric.c,v 1.123 2010/02/26 02:01:09 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -2880,14 +2880,14 @@ int2_sum(PG_FUNCTION_ARGS)
 	}
 
 	/*
-	 * If we're invoked by nodeAgg, we can cheat and modify our first
+	 * If we're invoked as an aggregate, we can cheat and modify our first
 	 * parameter in-place to avoid palloc overhead. If not, we need to return
 	 * the new value of the transition variable. (If int8 is pass-by-value,
 	 * then of course this is useless as well as incorrect, so just ifdef it
 	 * out.)
 	 */
 #ifndef USE_FLOAT8_BYVAL		/* controls int8 too */
-	if (fcinfo->context && IsA(fcinfo->context, AggState))
+	if (AggCheckCallContext(fcinfo, NULL))
 	{
 		int64	   *oldsum = (int64 *) PG_GETARG_POINTER(0);
 
@@ -2929,14 +2929,14 @@ int4_sum(PG_FUNCTION_ARGS)
 	}
 
 	/*
-	 * If we're invoked by nodeAgg, we can cheat and modify our first
+	 * If we're invoked as an aggregate, we can cheat and modify our first
 	 * parameter in-place to avoid palloc overhead. If not, we need to return
 	 * the new value of the transition variable. (If int8 is pass-by-value,
 	 * then of course this is useless as well as incorrect, so just ifdef it
 	 * out.)
 	 */
 #ifndef USE_FLOAT8_BYVAL		/* controls int8 too */
-	if (fcinfo->context && IsA(fcinfo->context, AggState))
+	if (AggCheckCallContext(fcinfo, NULL))
 	{
 		int64	   *oldsum = (int64 *) PG_GETARG_POINTER(0);
 
@@ -2979,7 +2979,7 @@ int8_sum(PG_FUNCTION_ARGS)
 	}
 
 	/*
-	 * Note that we cannot special-case the nodeAgg case here, as we do for
+	 * Note that we cannot special-case the aggregate case here, as we do for
 	 * int2_sum and int4_sum: numeric is of variable size, so we cannot modify
 	 * our first parameter in-place.
 	 */
@@ -4131,7 +4131,7 @@ static char *
 get_str_from_var_sci(NumericVar *var, int rscale)
 {
 	int32		exponent;
-	NumericVar  denominator;
+	NumericVar	denominator;
 	NumericVar	significand;
 	int			denom_scale;
 	size_t		len;
@@ -4194,9 +4194,9 @@ get_str_from_var_sci(NumericVar *var, int rscale)
 	/*
 	 * Allocate space for the result.
 	 *
-	 * In addition to the significand, we need room for the exponent decoration
-	 * ("e"), the sign of the exponent, up to 10 digits for the exponent
-	 * itself, and of course the null terminator.
+	 * In addition to the significand, we need room for the exponent
+	 * decoration ("e"), the sign of the exponent, up to 10 digits for the
+	 * exponent itself, and of course the null terminator.
 	 */
 	len = strlen(sig_out) + 13;
 	str = palloc(len);

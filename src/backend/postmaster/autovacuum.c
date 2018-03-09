@@ -50,12 +50,12 @@
  * there is a window (caused by pgstat delay) on which a worker may choose a
  * table that was already vacuumed; this is a bug in the current design.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/postmaster/autovacuum.c,v 1.105 2009/11/16 21:32:06 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/postmaster/autovacuum.c,v 1.110 2010/04/28 16:54:15 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -657,7 +657,7 @@ AutoVacLauncherMain(int argc, char *argv[])
 				 * of a worker will continue to fail in the same way.
 				 */
 				AutoVacuumShmem->av_signal[AutoVacForkFailed] = false;
-				pg_usleep(1000000L);		/* 1s */
+				pg_usleep(1000000L);	/* 1s */
 				SendPostmasterSignal(PMSIGNAL_START_AUTOVAC_WORKER);
 				continue;
 			}
@@ -1784,7 +1784,7 @@ get_database_list(void)
 	/*
 	 * Start a transaction so we can access pg_database, and get a snapshot.
 	 * We don't have a use for the snapshot itself, but we're interested in
-	 * the secondary effect that it sets RecentGlobalXmin.  (This is critical
+	 * the secondary effect that it sets RecentGlobalXmin.	(This is critical
 	 * for anything that reads heap pages, because HOT may decide to prune
 	 * them even if the process doesn't attempt to modify any tuples.)
 	 */
@@ -1800,7 +1800,7 @@ get_database_list(void)
 	while (HeapTupleIsValid(tup = heap_getnext(scan, ForwardScanDirection)))
 	{
 		Form_pg_database pgdatabase = (Form_pg_database) GETSTRUCT(tup);
-		avw_dbase   *avdb;
+		avw_dbase  *avdb;
 
 		/*
 		 * In GPDB, autovacuum is currently disabled, except for the
@@ -1887,9 +1887,7 @@ do_autovacuum(void)
 	 * zero in template and nonconnectable databases, else the system-wide
 	 * default.
 	 */
-	tuple = SearchSysCache(DATABASEOID,
-						   ObjectIdGetDatum(MyDatabaseId),
-						   0, 0, 0);
+	tuple = SearchSysCache1(DATABASEOID, ObjectIdGetDatum(MyDatabaseId));
 	if (!HeapTupleIsValid(tuple))
 		elog(ERROR, "cache lookup failed for database %u", MyDatabaseId);
 	dbForm = (Form_pg_database) GETSTRUCT(tuple);
@@ -2422,9 +2420,7 @@ table_recheck_autovac(Oid relid, HTAB *table_toast_map,
 	dbentry = pgstat_fetch_stat_dbentry(MyDatabaseId);
 
 	/* fetch the relation's relcache entry */
-	classTup = SearchSysCacheCopy(RELOID,
-								  ObjectIdGetDatum(relid),
-								  0, 0, 0);
+	classTup = SearchSysCacheCopy1(RELOID, ObjectIdGetDatum(relid));
 	if (!HeapTupleIsValid(classTup))
 		return NULL;
 	classForm = (Form_pg_class) GETSTRUCT(classTup);
@@ -2475,15 +2471,15 @@ table_recheck_autovac(Oid relid, HTAB *table_toast_map,
 		vac_cost_delay = (avopts && avopts->vacuum_cost_delay >= 0)
 			? avopts->vacuum_cost_delay
 			: (autovacuum_vac_cost_delay >= 0)
-				? autovacuum_vac_cost_delay
-				: VacuumCostDelay;
+			? autovacuum_vac_cost_delay
+			: VacuumCostDelay;
 
 		/* 0 or -1 in autovac setting means use plain vacuum_cost_limit */
 		vac_cost_limit = (avopts && avopts->vacuum_cost_limit > 0)
 			? avopts->vacuum_cost_limit
 			: (autovacuum_vac_cost_limit > 0)
-				? autovacuum_vac_cost_limit
-				: VacuumCostLimit;
+			? autovacuum_vac_cost_limit
+			: VacuumCostLimit;
 
 		/* these do not have autovacuum-specific settings */
 		freeze_min_age = (avopts && avopts->freeze_min_age >= 0)
@@ -2634,8 +2630,7 @@ relation_needs_vacanalyze(Oid relid,
 	{
 		reltuples = classForm->reltuples;
 		vactuples = tabentry->n_dead_tuples;
-		anltuples = tabentry->n_live_tuples + tabentry->n_dead_tuples -
-			tabentry->last_anl_tuples;
+		anltuples = tabentry->changes_since_analyze;
 
 		vacthresh = (float4) vac_base_thresh + vac_scale_factor * reltuples;
 		anlthresh = (float4) anl_base_thresh + anl_scale_factor * reltuples;
@@ -2819,10 +2814,6 @@ AutoVacuumShmemInit(void)
 		ShmemInitStruct("AutoVacuum Data",
 						AutoVacuumShmemSize(),
 						&found);
-	if (AutoVacuumShmem == NULL)
-		ereport(FATAL,
-				(errcode(ERRCODE_OUT_OF_MEMORY),
-				 errmsg("not enough shared memory for autovacuum")));
 
 	if (!IsUnderPostmaster)
 	{

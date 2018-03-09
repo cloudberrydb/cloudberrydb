@@ -4,10 +4,10 @@
  *	  prototypes for functions in backend/catalog/catalog.c
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/catalog.h,v 1.44 2009/06/11 14:49:09 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/catalog.h,v 1.49 2010/02/26 02:01:21 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -59,7 +59,7 @@ extern Oid GetNewOid(Relation relation);
 extern Oid GetNewOidWithIndex(Relation relation, Oid indexId,
 				   AttrNumber oidcolumn);
 extern Oid GetNewSequenceRelationOid(Relation relation);
-extern Oid GetNewRelFileNode(Oid reltablespace, bool relisshared);
+extern Oid GetNewRelFileNode(Oid reltablespace, Relation pg_class);
 
 const char *tablespace_version_directory(void);
 

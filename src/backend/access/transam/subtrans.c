@@ -19,10 +19,10 @@
  * data across crashes.  During database startup, we simply force the
  * currently-active page of SUBTRANS to zeroes.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/backend/access/transam/subtrans.c,v 1.24 2009/01/01 17:23:36 momjian Exp $
+ * $PostgreSQL: pgsql/src/backend/access/transam/subtrans.c,v 1.27 2010/02/26 02:00:34 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -87,7 +87,7 @@ SubTransGetData(TransactionId xid, SubTransData* subData)
 
 	/* lock is acquired by SimpleLruReadPage_ReadOnly */
 
-	slotno = SimpleLruReadPage_ReadOnly(SubTransCtl, pageno, xid, NULL);
+	slotno = SimpleLruReadPage_ReadOnly(SubTransCtl, pageno, xid);
 	ptr = (SubTransData *) SubTransCtl->shared->page_buffer[slotno];
 	ptr += entryno;
 
@@ -106,9 +106,11 @@ SubTransGetData(TransactionId xid, SubTransData* subData)
 
 /*
  * Record the parent of a subtransaction in the subtrans log.
+ *
+ * In some cases we may need to overwrite an existing value.
  */
 void
-SubTransSetParent(TransactionId xid, TransactionId parent)
+SubTransSetParent(TransactionId xid, TransactionId parent, bool overwriteOK)
 {
 	int			pageno = TransactionIdToPage(xid);
 	int			entryno = TransactionIdToEntry(xid);
@@ -129,6 +131,8 @@ SubTransSetParent(TransactionId xid, TransactionId parent)
 		subData.topMostParent = InvalidTransactionId;
 	}
 
+	Assert(TransactionIdIsValid(parent));
+
 	LWLockAcquire(SubtransControlLock, LW_EXCLUSIVE);
 
 	slotno = SimpleLruReadPage(SubTransCtl, pageno, true, xid);
@@ -136,8 +140,10 @@ SubTransSetParent(TransactionId xid, TransactionId parent)
 	ptr += entryno;
 
 	/* Current state should be 0 */
-	Assert(ptr->parent == InvalidTransactionId);
-	Assert(ptr->topMostParent == InvalidTransactionId);
+	Assert(ptr->parent == InvalidTransactionId ||
+		   (ptr->parent == parent && overwriteOK));
+	Assert(ptr->topMostParent == InvalidTransactionId ||
+		   (ptr->topMostParent == subData.topMostParent && overwriteOK));
 
 	ptr->parent = parent;
 	ptr->topMostParent = subData.topMostParent;

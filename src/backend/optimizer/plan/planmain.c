@@ -11,12 +11,12 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planmain.c,v 1.116 2009/11/28 00:46:19 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planmain.c,v 1.119 2010/07/06 19:18:56 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

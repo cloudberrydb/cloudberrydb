@@ -5,13 +5,13 @@
  *	  along with the relation's initial contents.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/pg_type.h,v 1.210 2009/09/26 22:42:03 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/pg_type.h,v 1.212 2010/01/05 01:06:57 tgl Exp $
  *
  * NOTES
- *	  the genbki.sh script reads this file and generates .bki
+ *	  the genbki.pl script reads this file and generates .bki
  *	  information from the DATA() statements.
  *
  *-------------------------------------------------------------------------
@@ -34,7 +34,7 @@
 #define TypeRelationId	1247
 #define TypeRelation_Rowtype_Id  71
 
-CATALOG(pg_type,1247) BKI_BOOTSTRAP BKI_ROWTYPE_OID(71)
+CATALOG(pg_type,1247) BKI_BOOTSTRAP BKI_ROWTYPE_OID(71) BKI_SCHEMA_MACRO
 {
 	NameData	typname;		/* type name */
 	Oid			typnamespace;	/* OID of namespace containing this type */
@@ -276,9 +276,7 @@ typedef FormData_pg_type *Form_pg_type;
  * Keep the following ordered by OID so that later changes can be made more
  * easily.
  *
- * For types used in the system catalogs, make sure the typlen, typbyval, and
- * typalign values here match the initial values for attlen, attbyval, and
- * attalign in both places in pg_attribute.h for every instance.  Also see
+ * For types used in the system catalogs, make sure the values here match
  * TypInfo[] in bootstrap.c.
  */
 

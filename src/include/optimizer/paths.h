@@ -6,10 +6,10 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/optimizer/paths.h,v 1.109 2009/11/28 00:46:19 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/optimizer/paths.h,v 1.110 2010/01/02 16:58:07 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

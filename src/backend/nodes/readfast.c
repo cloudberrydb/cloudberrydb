@@ -371,6 +371,7 @@ _readRangeVar(void)
 	local_node->catalogname = NULL;		/* not currently saved in output
 										 * format */
 
+	READ_STRING_FIELD(catalogname);
 	READ_STRING_FIELD(schemaname);
 	READ_STRING_FIELD(relname);
 	READ_ENUM_FIELD(inhOpt, InhOption); Assert(local_node->inhOpt <= INH_DEFAULT);
@@ -1094,6 +1095,7 @@ _readCreateStmt(void)
 	READ_NODE_FIELD(inhRelations);
 	READ_NODE_FIELD(inhOids);
 	READ_INT_FIELD(parentOidCount);
+	READ_NODE_FIELD(ofTypename);
 	READ_NODE_FIELD(constraints);
 
 	READ_NODE_FIELD(options);
@@ -2183,6 +2185,7 @@ _readHash(void)
 
 	READ_OID_FIELD(skewTable);
 	READ_INT_FIELD(skewColumn);
+	READ_BOOL_FIELD(skewInherit);
 	READ_OID_FIELD(skewColType);
 	READ_INT_FIELD(skewColTypmod);
 

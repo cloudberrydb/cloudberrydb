@@ -3023,7 +3023,7 @@ register_mdcache_invalidation_callbacks(void)
 		OPFAMILYOID,		/* pg_opfamily */
 		PARTOID,			/* pg_partition */
 		PARTRULEOID,		/* pg_partition_rule */
-		STATRELATT,			/* pg_statistics */
+		STATRELATTINH,			/* pg_statistics */
 		TYPEOID,			/* pg_type */
 		PROCOID,			/* pg_proc */
 

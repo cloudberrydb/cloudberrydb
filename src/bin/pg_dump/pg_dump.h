@@ -5,10 +5,10 @@
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump.h,v 1.159 2009/10/09 21:02:56 petere Exp $
+ * $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump.h,v 1.164 2010/02/26 02:01:17 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -120,8 +120,8 @@ typedef enum
 	DO_FDW,
 	DO_FOREIGN_SERVER,
 	DO_DEFAULT_ACL,
-	DO_BLOBS,
-	DO_BLOB_COMMENTS,
+	DO_BLOB,
+	DO_BLOB_DATA,
 	DO_EXTPROTOCOL,
 	DO_TYPE_STORAGE_OPTIONS
 } DumpableObjectType;
@@ -287,6 +287,7 @@ typedef struct _tableInfo
 	bool		hasoids;		/* does it have OIDs? */
 	uint32		frozenxid;		/* for restore frozen xid */
 	int			ncheck;			/* # of CHECK expressions */
+	char	   *reloftype;		/* underlying type for typed table */
 	/* these two are set only if table is a sequence owned by a column: */
 	Oid			owning_tab;		/* OID of table owning sequence */
 	int			owning_col;		/* attr # of column owning sequence */
@@ -302,13 +303,13 @@ typedef struct _tableInfo
 	char	  **atttypnames;	/* attribute type names */
 	int		   *atttypmod;		/* type-specific type modifiers */
 	int		   *attstattarget;	/* attribute statistics targets */
-	float4	   *attdistinct;	/* override ndistinct calculation */
 	char	   *attstorage;		/* attribute storage scheme */
 	char	   *typstorage;		/* type storage scheme */
 	bool	   *attisdropped;	/* true if attr is dropped; don't dump it */
 	int		   *attlen;			/* attribute length, used by binary_upgrade */
 	char	   *attalign;		/* attribute align, used by binary_upgrade */
 	bool	   *attislocal;		/* true if attr has local definition */
+	char	  **attoptions;		/* per-attribute options */
 	bool	   *notnull;		/* NOT NULL constraints on attributes */
 	bool	   *inhNotNull;		/* true if NOT NULL is inherited */
 	char	  **attencoding;	/* the attribute encoding values */
@@ -391,7 +392,7 @@ typedef struct _triggerInfo
  * to sort them the way we want.
  *
  * Note: condeferrable and condeferred are currently only valid for
- * unique/primary-key constraints.  Otherwise that info is in condef.
+ * unique/primary-key constraints.	Otherwise that info is in condef.
  */
 typedef struct _constraintInfo
 {
@@ -492,9 +493,16 @@ typedef struct _defaultACLInfo
 {
 	DumpableObject dobj;
 	char	   *defaclrole;
-	char	    defaclobjtype;
+	char		defaclobjtype;
 	char	   *defaclacl;
 } DefaultACLInfo;
+
+typedef struct _blobInfo
+{
+	DumpableObject dobj;
+	char	   *rolname;
+	char	   *blobacl;
+} BlobInfo;
 
 /*
  * We build an array of these with an entry for each object that is an

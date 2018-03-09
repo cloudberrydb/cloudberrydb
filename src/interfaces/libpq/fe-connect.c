@@ -52,7 +52,7 @@
 #endif
 #define near
 #include <shlobj.h>
-#ifdef WIN32_ONLY_COMPILER		/* mstcpip.h is missing on mingw */
+#ifdef WIN32_ONLY_COMPILER /* mstcpip.h is missing on mingw */
 #include <mstcpip.h>
 #endif
 #else
@@ -316,15 +316,14 @@ static const internalPQconninfoOption PQconninfoOptions[] = {
 	offsetof(struct pg_conn, gsslib)},
 #endif
 
+	{"replication", NULL, NULL, NULL,
+		"Replication", "D", 5,
+	offsetof(struct pg_conn, replication)},
 
     /* CDB: qExec wants some info from qDisp before GUCs are processed */
 	{"gpqeid", NULL, "", NULL,
 		"gp-debug-qeid", "D", 40,
 	offsetof(struct pg_conn, gpqeid)},
-
-	{"replication", NULL, NULL, NULL,
-		"Replication", "D", 5,
-	offsetof(struct pg_conn, replication)},
 
 	{GPCONN_TYPE, NULL, NULL, NULL,
 		"connection type", "D", 10,
@@ -1270,10 +1269,10 @@ setKeepalivesIdle(PGconn *conn)
 	if (setsockopt(conn->sock, IPPROTO_TCP, TCP_KEEPALIVE,
 				   (char *) &idle, sizeof(idle)) < 0)
 	{
-		char		sebuf[256];
+		char	sebuf[256];
 
 		appendPQExpBuffer(&conn->errorMessage,
-					 libpq_gettext("setsockopt(TCP_KEEPALIVE) failed: %s\n"),
+						  libpq_gettext("setsockopt(TCP_KEEPALIVE) failed: %s\n"),
 						  SOCK_STRERROR(SOCK_ERRNO, sebuf, sizeof(sebuf)));
 		return 0;
 	}
@@ -1345,7 +1344,8 @@ setKeepalivesCount(PGconn *conn)
 
 	return 1;
 }
-#else							/* Win32 */
+
+#else /* Win32 */
 #ifdef SIO_KEEPALIVE_VALS
 /*
  * Enable keepalives and set the keepalive values on Win32,
@@ -1354,20 +1354,20 @@ setKeepalivesCount(PGconn *conn)
 static int
 setKeepalivesWin32(PGconn *conn)
 {
-	struct tcp_keepalive ka;
-	DWORD		retsize;
-	int			idle = 0;
-	int			interval = 0;
+	struct tcp_keepalive 	ka;
+	DWORD					retsize;
+	int						idle = 0;
+	int						interval = 0;
 
 	if (conn->keepalives_idle)
 		idle = atoi(conn->keepalives_idle);
 	if (idle <= 0)
-		idle = 2 * 60 * 60;		/* 2 hours = default */
+		idle = 2 * 60 * 60; /* 2 hours = default */
 
 	if (conn->keepalives_interval)
 		interval = atoi(conn->keepalives_interval);
 	if (interval <= 0)
-		interval = 1;			/* 1 second = default */
+		interval = 1; /* 1 second = default */
 
 	ka.onoff = 1;
 	ka.keepalivetime = idle * 1000;
@@ -1385,14 +1385,14 @@ setKeepalivesWin32(PGconn *conn)
 		!= 0)
 	{
 		appendPQExpBuffer(&conn->errorMessage,
-				 libpq_gettext("WSAIoctl(SIO_KEEPALIVE_VALS) failed: %ui\n"),
+						  libpq_gettext("WSAIoctl(SIO_KEEPALIVE_VALS) failed: %ui\n"),
 						  WSAGetLastError());
 		return 0;
 	}
 	return 1;
 }
-#endif   /* SIO_KEEPALIVE_VALS */
-#endif   /* WIN32 */
+#endif /* SIO_KEEPALIVE_VALS */
+#endif /* WIN32 */
 
 /* ----------
  * connectDBStart -
@@ -1836,9 +1836,9 @@ keep_going:						/* We will come back to here until there is
 					 * We have three methods of blocking SIGPIPE during
 					 * send() calls to this socket:
 					 *
-					 *  - setsockopt(sock, SO_NOSIGPIPE)
-					 *  - send(sock, ..., MSG_NOSIGNAL)
-					 *  - setting the signal mask to SIG_IGN during send()
+					 *	- setsockopt(sock, SO_NOSIGPIPE)
+					 *	- send(sock, ..., MSG_NOSIGNAL)
+					 *	- setting the signal mask to SIG_IGN during send()
 					 *
 					 * The third method requires three syscalls per send,
 					 * so we prefer either of the first two, but they are
@@ -1860,7 +1860,7 @@ keep_going:						/* We will come back to here until there is
 					conn->sigpipe_flag = true;
 #else
 					conn->sigpipe_flag = false;
-#endif /* MSG_NOSIGNAL */
+#endif   /* MSG_NOSIGNAL */
 
 #ifdef SO_NOSIGPIPE
 					optval = 1;
@@ -1870,7 +1870,7 @@ keep_going:						/* We will come back to here until there is
 						conn->sigpipe_so = true;
 						conn->sigpipe_flag = false;
 					}
-#endif /* SO_NOSIGPIPE */
+#endif   /* SO_NOSIGPIPE */
 
 					/*
 					 * Start/make connection.  This should not block, since we
@@ -2668,7 +2668,7 @@ keep_going:						/* We will come back to here until there is
 		default:
 			appendPQExpBuffer(&conn->errorMessage,
 							  libpq_gettext("invalid connection state %d, "
-								 "probably indicative of memory corruption\n"),
+							   "probably indicative of memory corruption\n"),
 							  conn->status);
 			goto error_return;
 	}
@@ -4125,18 +4125,18 @@ parseServiceFile(const char *serviceFile,
 				}
 #endif
 
-					key = line;
-					val = strchr(line, '=');
-					if (val == NULL)
-					{
-						printfPQExpBuffer(errorMessage,
-										  libpq_gettext("syntax error in service file \"%s\", line %d\n"),
-										  serviceFile,
-										  linenr);
-						fclose(f);
-						return 3;
-					}
-					*val++ = '\0';
+				key = line;
+				val = strchr(line, '=');
+				if (val == NULL)
+				{
+					printfPQExpBuffer(errorMessage,
+									  libpq_gettext("syntax error in service file \"%s\", line %d\n"),
+									  serviceFile,
+									  linenr);
+					fclose(f);
+					return 3;
+				}
+				*val++ = '\0';
 
 				/*
 				 * Set the parameter --- but don't override any previous

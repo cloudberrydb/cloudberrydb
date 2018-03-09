@@ -4,12 +4,12 @@
  *	  lexical scanning for PL/pgSQL
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_scanner.c,v 1.2 2009/11/13 22:43:42 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_scanner.c,v 1.5 2010/02/26 02:01:35 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -23,8 +23,8 @@
 #define PG_KEYWORD(a,b,c) {a,b,c},
 
 
-/* Klugy flag to tell scanner whether to lookup identifiers */
-bool	plpgsql_LookupIdentifiers = true;
+/* Klugy flag to tell scanner how to look up identifiers */
+IdentifierLookup plpgsql_IdentifierLookup = IDENTIFIER_LOOKUP_NORMAL;
 
 /*
  * A word about keywords:
@@ -33,11 +33,10 @@ bool	plpgsql_LookupIdentifiers = true;
  * reserved keywords are passed to the core scanner, so they will be
  * recognized before (and instead of) any variable name.  Unreserved
  * words are checked for separately, after determining that the identifier
- * isn't a known variable name.  If plpgsql_LookupIdentifiers is off then
+ * isn't a known variable name.  If plpgsql_IdentifierLookup is DECLARE then
  * no variable names will be recognized, so the unreserved words always work.
  * (Note in particular that this helps us avoid reserving keywords that are
- * only needed in DECLARE sections, since we scan those sections with
- * plpgsql_LookupIdentifiers off.)
+ * only needed in DECLARE sections.)
  *
  * In certain contexts it is desirable to prefer recognizing an unreserved
  * keyword over recognizing a variable name.  Those cases are handled in
@@ -45,7 +44,7 @@ bool	plpgsql_LookupIdentifiers = true;
  *
  * For the most part, the reserved keywords are those that start a PL/pgSQL
  * statement (and so would conflict with an assignment to a variable of the
- * same name).  We also don't sweat it much about reserving keywords that
+ * same name).	We also don't sweat it much about reserving keywords that
  * are reserved in the core grammar.  Try to avoid reserving other words.
  */
 
@@ -155,7 +154,7 @@ typedef struct
 
 /*
  * Scanner working state.  At some point we might wish to fold all this
- * into a YY_EXTRA struct.  For the moment, there is no need for plpgsql's
+ * into a YY_EXTRA struct.	For the moment, there is no need for plpgsql's
  * lexer to be re-entrant, and the notational burden of passing a yyscanner
  * pointer around is great enough to not want to do it without need.
  */
@@ -168,14 +167,14 @@ static core_yy_extra_type core_yy;
 static const char *scanorig;
 
 /* Current token's length (corresponds to plpgsql_yylval and plpgsql_yylloc) */
-static int		plpgsql_yyleng;
+static int	plpgsql_yyleng;
 
 /* Token pushback stack */
 #define MAX_PUSHBACKS 4
 
-static int			num_pushbacks;
-static int			pushback_token[MAX_PUSHBACKS];
-static TokenAuxData	pushback_auxdata[MAX_PUSHBACKS];
+static int	num_pushbacks;
+static int	pushback_token[MAX_PUSHBACKS];
+static TokenAuxData pushback_auxdata[MAX_PUSHBACKS];
 
 /* State for plpgsql_location_to_lineno() */
 static const char *cur_line_start;
@@ -193,7 +192,7 @@ static void location_lineno_init(void);
  * It is a wrapper around the core lexer, with the ability to recognize
  * PL/pgSQL variables and return them as special T_DATUM tokens.  If a
  * word or compound word does not match any variable name, or if matching
- * is turned off by plpgsql_LookupIdentifiers, it is returned as
+ * is turned off by plpgsql_IdentifierLookup, it is returned as
  * T_WORD or T_CWORD respectively, or as an unreserved keyword if it
  * matches one of those.
  */
@@ -323,7 +322,7 @@ plpgsql_yylex(void)
 
 /*
  * Internal yylex function.  This wraps the core lexer and adds one feature:
- * a token pushback stack.  We also make a couple of trivial single-token
+ * a token pushback stack.	We also make a couple of trivial single-token
  * translations from what the core lexer does to what we want, in particular
  * interfacing from the core_YYSTYPE to YYSTYPE union.
  */
@@ -392,7 +391,7 @@ push_back_token(int token, TokenAuxData *auxdata)
 void
 plpgsql_push_back_token(int token)
 {
-	TokenAuxData	auxdata;
+	TokenAuxData auxdata;
 
 	auxdata.lval = plpgsql_yylval;
 	auxdata.lloc = plpgsql_yylloc;
@@ -427,7 +426,7 @@ plpgsql_append_source_text(StringInfo buf,
 int
 plpgsql_scanner_errposition(int location)
 {
-	int		pos;
+	int			pos;
 
 	if (location < 0 || scanorig == NULL)
 		return 0;				/* no-op if location is unknown */
@@ -460,7 +459,7 @@ plpgsql_yyerror(const char *message)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
-				 /* translator: %s is typically the translation of "syntax error" */
+		/* translator: %s is typically the translation of "syntax error" */
 				 errmsg("%s at end of input", _(message)),
 				 plpgsql_scanner_errposition(plpgsql_yylloc)));
 	}
@@ -468,15 +467,15 @@ plpgsql_yyerror(const char *message)
 	{
 		/*
 		 * If we have done any lookahead then flex will have restored the
-		 * character after the end-of-token.  Zap it again so that we
-		 * report only the single token here.  This modifies scanbuf but
-		 * we no longer care about that.
+		 * character after the end-of-token.  Zap it again so that we report
+		 * only the single token here.	This modifies scanbuf but we no longer
+		 * care about that.
 		 */
 		yytext[plpgsql_yyleng] = '\0';
 
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
-				 /* translator: first %s is typically the translation of "syntax error" */
+		/* translator: first %s is typically the translation of "syntax error" */
 				 errmsg("%s at or near \"%s\"", _(message), yytext),
 				 plpgsql_scanner_errposition(plpgsql_yylloc)));
 	}
@@ -528,10 +527,10 @@ location_lineno_init(void)
 	 * we will think "line 1" is what the programmer thinks of as line 1.
 	 *----------
 	 */
-    if (*cur_line_start == '\r')
-        cur_line_start++;
-    if (*cur_line_start == '\n')
-        cur_line_start++;
+	if (*cur_line_start == '\r')
+		cur_line_start++;
+	if (*cur_line_start == '\n')
+		cur_line_start++;
 
 	cur_line_end = strchr(cur_line_start, '\n');
 }
@@ -567,7 +566,7 @@ plpgsql_scanner_init(const char *str)
 	scanorig = str;
 
 	/* Other setup */
-	plpgsql_LookupIdentifiers = true;
+	plpgsql_IdentifierLookup = IDENTIFIER_LOOKUP_NORMAL;
 
 	num_pushbacks = 0;
 

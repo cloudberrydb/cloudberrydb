@@ -59,21 +59,27 @@
  *	  is used to run finalize functions and compute the output tuple;
  *	  this context can be reset once per output tuple.
  *
- *	  Beginning in PostgreSQL 8.1, the executor's AggState node is passed as
- *	  the fmgr "context" value in all transfunc and finalfunc calls.  It is
- *	  not really intended that the transition functions will look into the
- *	  AggState node, but they can use code like
- *			if (fcinfo->context && IsA(fcinfo->context, AggState))
- *	  to verify that they are being called by nodeAgg.c and not as ordinary
- *	  SQL functions.  The main reason a transition function might want to know
- *	  that is that it can avoid palloc'ing a fixed-size pass-by-ref transition
- *	  value on every call: it can instead just scribble on and return its left
- *	  input.  Ordinarily it is completely forbidden for functions to modify
- *	  pass-by-ref inputs, but in the aggregate case we know the left input is
- *	  either the initial transition value or a previous function result, and
- *	  in either case its value need not be preserved.  See int8inc() for an
- *	  example.	Notice that advance_transition_function() is coded to avoid a
- *	  data copy step when the previous transition value pointer is returned.
+ *	  The executor's AggState node is passed as the fmgr "context" value in
+ *	  all transfunc and finalfunc calls.  It is not recommended that the
+ *	  transition functions look at the AggState node directly, but they can
+ *	  use AggCheckCallContext() to verify that they are being called by
+ *	  nodeAgg.c (and not as ordinary SQL functions).  The main reason a
+ *	  transition function might want to know this is so that it can avoid
+ *	  palloc'ing a fixed-size pass-by-ref transition value on every call:
+ *	  it can instead just scribble on and return its left input.  Ordinarily
+ *	  it is completely forbidden for functions to modify pass-by-ref inputs,
+ *	  but in the aggregate case we know the left input is either the initial
+ *	  transition value or a previous function result, and in either case its
+ *	  value need not be preserved.  See int8inc() for an example.  Notice that
+ *	  advance_transition_function() is coded to avoid a data copy step when
+ *	  the previous transition value pointer is returned.  Also, some
+ *	  transition functions want to store working state in addition to the
+ *	  nominal transition value; they can use the memory context returned by
+ *	  AggCheckCallContext() to do that.
+ *
+ *	  Note: AggCheckCallContext() is available as of PostgreSQL 9.0.  The
+ *	  AggState is available as context in earlier releases (back to 8.1),
+ *	  but direct examination of the node is needed to use it before 9.0.
  *
  *	  As of 9.4, aggregate transition functions can also use AggGetAggref()
  *	  to get hold of the Aggref expression node for their aggregate call.
@@ -82,13 +88,14 @@
  *	  need some fallback logic to use this, since there's no Aggref node
  *	  for a window function.)
  *
+ *
  * Portions Copyright (c) 2007-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeAgg.c,v 1.170 2009/12/15 17:57:46 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeAgg.c,v 1.175 2010/02/26 02:00:41 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -572,7 +579,7 @@ advance_aggregates(AggState *aggstate, AggStatePerGroup pergroup,
 /*
  * Run the transition function for a DISTINCT or ORDER BY aggregate
  * with only one input.  This is called after we have completed
- * entering all the input values into the sort object.  We complete the
+ * entering all the input values into the sort object.	We complete the
  * sort, read out the values in sorted order, and run the transition
  * function on each value (applying DISTINCT if appropriate).
  *
@@ -667,7 +674,7 @@ process_ordered_aggregate_single(AggState *aggstate,
 /*
  * Run the transition function for a DISTINCT or ORDER BY aggregate
  * with more than one input.  This is called after we have completed
- * entering all the input values into the sort object.  We complete the
+ * entering all the input values into the sort object.	We complete the
  * sort, read out the values in sorted order, and run the transition
  * function on each value (applying DISTINCT if appropriate).
  *
@@ -996,9 +1003,9 @@ ExecAgg(AggState *node)
 #endif
 
 	/*
-	 * Exit if nothing left to do.  (We must do the ps_TupFromTlist check
-	 * first, because in some cases agg_done gets set before we emit the
-	 * final aggregate tuple, and we have to finish running SRFs for it.)
+	 * Exit if nothing left to do.	(We must do the ps_TupFromTlist check
+	 * first, because in some cases agg_done gets set before we emit the final
+	 * aggregate tuple, and we have to finish running SRFs for it.)
 	 */
 	if (node->agg_done)
 		return NULL;
@@ -1744,8 +1751,8 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 	 * structures and transition values.  NOTE: the details of what is stored
 	 * in aggcontext and what is stored in the regular per-query memory
 	 * context are driven by a simple decision: we want to reset the
-	 * aggcontext at group boundaries (if not hashing) and in ExecReScanAgg
-	 * to recover no-longer-wanted space.
+	 * aggcontext at group boundaries (if not hashing) and in ExecReScanAgg to
+	 * recover no-longer-wanted space.
 	 */
 	aggstate->aggcontext =
 		AllocSetContextCreate(CurrentMemoryContext,
@@ -1977,9 +1984,8 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 			HeapTuple	procTuple;
 			Oid			aggOwner;
 
-			procTuple = SearchSysCache(PROCOID,
-									   ObjectIdGetDatum(aggref->aggfnoid),
-									   0, 0, 0);
+			procTuple = SearchSysCache1(PROCOID,
+										ObjectIdGetDatum(aggref->aggfnoid));
 			if (!HeapTupleIsValid(procTuple))
 				elog(ERROR, "cache lookup failed for function %u",
 					 aggref->aggfnoid);
@@ -2481,7 +2487,6 @@ AggGetPerAggEContext(FunctionCallInfo fcinfo)
 	}
 	return NULL;
 }
-
 
 /*
  * aggregate_dummy - dummy execution routine for aggregate functions

@@ -8,11 +8,11 @@
  *	  This file contains only the public interface routines.
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtree.c,v 1.172 2009/07/29 20:56:18 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtree.c,v 1.177 2010/03/28 09:27:01 sriggs Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -61,7 +61,8 @@ typedef struct
 	IndexBulkDeleteCallback callback;
 	void	   *callback_state;
 	BTCycleId	cycleid;
-	BlockNumber lastUsedPage;
+	BlockNumber lastBlockVacuumed;		/* last blkno reached by Vacuum scan */
+	BlockNumber lastUsedPage;	/* blkno of last non-recyclable page */
 	BlockNumber totFreePages;	/* true total # of free pages */
 	MemoryContext pagedelcontext;
 } BTVacState;
@@ -824,12 +825,12 @@ btvacuumcleanup(PG_FUNCTION_ARGS)
 	IndexFreeSpaceMapVacuum(info->index);
 
 	/*
-	 * During a non-FULL vacuum it's quite possible for us to be fooled by
-	 * concurrent page splits into double-counting some index tuples, so
-	 * disbelieve any total that exceeds the underlying heap's count ... if we
-	 * know that accurately.  Otherwise this might just make matters worse.
+	 * It's quite possible for us to be fooled by concurrent page splits into
+	 * double-counting some index tuples, so disbelieve any total that exceeds
+	 * the underlying heap's count ... if we know that accurately.  Otherwise
+	 * this might just make matters worse.
 	 */
-	if (!info->vacuum_full && !info->estimated_count)
+	if (!info->estimated_count)
 	{
 		if (stats->num_index_tuples > info->num_heap_tuples)
 			stats->num_index_tuples = info->num_heap_tuples;
@@ -875,6 +876,7 @@ btvacuumscan(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
 	vstate.callback = callback;
 	vstate.callback_state = callback_state;
 	vstate.cycleid = cycleid;
+	vstate.lastBlockVacuumed = BTREE_METAPAGE;	/* Initialise at first block */
 	vstate.lastUsedPage = BTREE_METAPAGE;
 	vstate.totFreePages = 0;
 
@@ -931,24 +933,29 @@ btvacuumscan(IndexVacuumInfo *info, IndexBulkDeleteResult *stats,
 	}
 
 	/*
-	 * During VACUUM FULL, we truncate off any recyclable pages at the end of
-	 * the index.  In a normal vacuum it'd be unsafe to do this except by
-	 * acquiring exclusive lock on the index and then rechecking all the
-	 * pages; doesn't seem worth it.
+	 * InHotStandby we need to scan right up to the end of the index for
+	 * correct locking, so we may need to write a WAL record for the final
+	 * block in the index if it was not vacuumed. It's possible that VACUUMing
+	 * has actually removed zeroed pages at the end of the index so we need to
+	 * take care to issue the record for last actual block and not for the
+	 * last block that was scanned. Ignore empty indexes.
 	 */
-	if (info->vacuum_full && vstate.lastUsedPage < num_pages - 1)
+	if (XLogStandbyInfoActive() &&
+		num_pages > 1 && vstate.lastBlockVacuumed < (num_pages - 1))
 	{
-		BlockNumber new_pages = vstate.lastUsedPage + 1;
+		Buffer		buf;
 
 		/*
-		 * Okay to truncate.
+		 * We can't use _bt_getbuf() here because it always applies
+		 * _bt_checkpage(), which will barf on an all-zero page. We want to
+		 * recycle all-zero pages, not fail.  Also, we want to use a
+		 * nondefault buffer access strategy.
 		 */
-		RelationTruncate(rel, new_pages);
-
-		/* update statistics */
-		stats->pages_removed += num_pages - new_pages;
-		vstate.totFreePages -= (num_pages - new_pages);
-		num_pages = new_pages;
+		buf = ReadBufferExtended(rel, MAIN_FORKNUM, num_pages - 1, RBM_NORMAL,
+								 info->strategy);
+		LockBufferForCleanup(buf);
+		_bt_delitems_vacuum(rel, buf, NULL, 0, vstate.lastBlockVacuumed);
+		_bt_relbuf(rel, buf);
 	}
 
 	MemoryContextDelete(vstate.pagedelcontext);
@@ -1093,6 +1100,28 @@ restart:
 				itup = (IndexTuple) PageGetItem(page,
 												PageGetItemId(page, offnum));
 				htup = &(itup->t_tid);
+
+				/*
+				 * During Hot Standby we currently assume that
+				 * XLOG_BTREE_VACUUM records do not produce conflicts. That is
+				 * only true as long as the callback function depends only
+				 * upon whether the index tuple refers to heap tuples removed
+				 * in the initial heap scan. When vacuum starts it derives a
+				 * value of OldestXmin. Backends taking later snapshots could
+				 * have a RecentGlobalXmin with a later xid than the vacuum's
+				 * OldestXmin, so it is possible that row versions deleted
+				 * after OldestXmin could be marked as killed by other
+				 * backends. The callback function *could* look at the index
+				 * tuple state in isolation and decide to delete the index
+				 * tuple, though currently it does not. If it ever did, we
+				 * would need to reconsider whether XLOG_BTREE_VACUUM records
+				 * should cause conflicts. If they did cause conflicts they
+				 * would be fairly harsh conflicts, since we haven't yet
+				 * worked out a way to pass a useful value for
+				 * latestRemovedXid on the XLOG_BTREE_VACUUM records. This
+				 * applies to *any* type of index that marks index tuples as
+				 * killed.
+				 */
 				if (callback(htup, callback_state))
 					deletable[ndeletable++] = offnum;
 			}
@@ -1104,7 +1133,19 @@ restart:
 		 */
 		if (ndeletable > 0)
 		{
-			_bt_delitems(rel, buf, deletable, ndeletable, true);
+			BlockNumber lastBlockVacuumed = BufferGetBlockNumber(buf);
+
+			_bt_delitems_vacuum(rel, buf, deletable, ndeletable, vstate->lastBlockVacuumed);
+
+			/*
+			 * Keep track of the block number of the lastBlockVacuumed, so we
+			 * can scan those blocks as well during WAL replay. This then
+			 * provides concurrency protection and allows btrees to be used
+			 * while in recovery.
+			 */
+			if (lastBlockVacuumed > vstate->lastBlockVacuumed)
+				vstate->lastBlockVacuumed = lastBlockVacuumed;
+
 			stats->tuples_removed += ndeletable;
 			/* must recompute maxoff */
 			maxoff = PageGetMaxOffsetNumber(page);
@@ -1149,25 +1190,11 @@ restart:
 		MemoryContextReset(vstate->pagedelcontext);
 		oldcontext = MemoryContextSwitchTo(vstate->pagedelcontext);
 
-		ndel = _bt_pagedel(rel, buf, NULL, info->vacuum_full);
+		ndel = _bt_pagedel(rel, buf, NULL);
 
 		/* count only this page, else may double-count parent */
 		if (ndel)
 			stats->pages_deleted++;
-
-		/*
-		 * During VACUUM FULL it's okay to recycle deleted pages immediately,
-		 * since there can be no other transactions scanning the index.  Note
-		 * that we will only recycle the current page and not any parent pages
-		 * that _bt_pagedel might have recursed to; this seems reasonable in
-		 * the name of simplicity.	(Trying to do otherwise would mean we'd
-		 * have to sort the list of recyclable pages we're building.)
-		 */
-		if (ndel && info->vacuum_full)
-		{
-			RecordFreeIndexPage(rel, blkno);
-			vstate->totFreePages++;
-		}
 
 		MemoryContextSwitchTo(oldcontext);
 		/* pagedel released buffer, so we shouldn't */

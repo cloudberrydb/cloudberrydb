@@ -1,11 +1,11 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/cluster.sgml,v 1.47 2009/09/19 10:23:26 petere Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/cluster.sgml,v 1.50 2010/05/11 16:07:42 rhaas Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-CLUSTER">
  <refmeta>
-  <refentrytitle id="sql-cluster-title">CLUSTER</refentrytitle>
+  <refentrytitle>CLUSTER</refentrytitle>
   <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
@@ -30,12 +30,12 @@ CLUSTER [VERBOSE]
   <title>Description</title>
 
   <para>
-   <command>CLUSTER</command> instructs <productname>PostgreSQL</productname> 
+   <command>CLUSTER</command> instructs <productname>PostgreSQL</productname>
    to cluster the table specified
    by <replaceable class="parameter">table_name</replaceable>
    based on the index specified by
    <replaceable class="parameter">index_name</replaceable>. The index must
-   already have been defined on 
+   already have been defined on
    <replaceable class="parameter">table_name</replaceable>.
   </para>
 
@@ -46,16 +46,19 @@ CLUSTER [VERBOSE]
    not clustered.  That is, no attempt is made to store new or
    updated rows according to their index order.  (If one wishes, one can
    periodically recluster by issuing the command again.  Also, setting
-   the table's <literal>FILLFACTOR</literal> storage parameter to less than 100% can aid
-   in preserving cluster ordering during updates, since updated rows
-   are preferentially kept on the same page.)
+   the table's <literal>FILLFACTOR</literal> storage parameter to less than
+   100% can aid in preserving cluster ordering during updates, since updated
+   rows are kept on the same page if enough space is available there.)
   </para>
 
   <para>
    When a table is clustered, <productname>PostgreSQL</productname>
    remembers which index it was clustered by.  The form
    <command>CLUSTER <replaceable class="parameter">table_name</replaceable></command>
-   reclusters the table using the same index as before.
+   reclusters the table using the same index as before.  You can also
+   use the <literal>CLUSTER</literal> or <literal>SET WITHOUT CLUSTER</literal>
+   forms of <xref linkend="SQL-ALTERTABLE"> to set the index to be used for
+   future cluster operations, or to clear any previous setting.
   </para>
 
   <para>
@@ -152,8 +155,8 @@ CLUSTER [VERBOSE]
 
    <para>
     Because the planner records statistics about the ordering of
-    tables, it is advisable to run <xref linkend="sql-analyze"
-    endterm="sql-analyze-title"> on the newly clustered table.
+    tables, it is advisable to run <xref linkend="sql-analyze">
+    on the newly clustered table.
     Otherwise, the planner might make poor choices of query plans.
    </para>
 
@@ -237,7 +240,7 @@ CLUSTER <replaceable class="PARAMETER">index_name</replaceable> ON <replaceable 
   <title>See Also</title>
 
   <simplelist type="inline">
-   <member><xref linkend="app-clusterdb" endterm="app-clusterdb-title"></member>
+   <member><xref linkend="app-clusterdb"></member>
   </simplelist>
  </refsect1>
 </refentry>

@@ -3,10 +3,10 @@
  * explain.h
  *	  prototypes for explain.c
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994-5, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/commands/explain.h,v 1.44 2009/12/15 04:57:47 rhaas Exp $
+ * $PostgreSQL: pgsql/src/include/commands/explain.h,v 1.47 2010/02/26 02:01:24 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -37,7 +37,7 @@ typedef struct ExplainState
 	PlannedStmt *pstmt;			/* top of plan */
 	List	   *rtable;			/* range table */
 	int			indent;			/* current indentation level */
-	List	   *grouping_stack;	/* format-specific grouping state */
+	List	   *grouping_stack; /* format-specific grouping state */
 
     /* CDB */
     struct CdbExplain_ShowStatCtx  *showstatctx;    /* EXPLAIN ANALYZE info */
@@ -48,9 +48,9 @@ typedef struct ExplainState
 
 /* Hook for plugins to get control in ExplainOneQuery() */
 typedef void (*ExplainOneQuery_hook_type) (Query *query,
-										   ExplainState *es,
-										   const char *queryString,
-										   ParamListInfo params);
+													   ExplainState *es,
+													 const char *queryString,
+													   ParamListInfo params);
 extern PGDLLIMPORT ExplainOneQuery_hook_type ExplainOneQuery_hook;
 
 /* Hook for plugins to get control in explain_get_index_name() */
@@ -72,6 +72,8 @@ extern void ExplainOnePlan(PlannedStmt *plannedstmt, ExplainState *es,
 			   const char *queryString, ParamListInfo params);
 
 extern void ExplainPrintPlan(ExplainState *es, QueryDesc *queryDesc);
+
+extern void ExplainQueryText(ExplainState *es, QueryDesc *queryDesc);
 
 extern void ExplainBeginOutput(ExplainState *es);
 extern void ExplainEndOutput(ExplainState *es);

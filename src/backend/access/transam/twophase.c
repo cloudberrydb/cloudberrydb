@@ -3,11 +3,11 @@
  * twophase.c
  *		Two-phase commit support functions.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *		$PostgreSQL: pgsql/src/backend/access/transam/twophase.c,v 1.56 2009/11/23 09:58:36 heikki Exp $
+ *		$PostgreSQL: pgsql/src/backend/access/transam/twophase.c,v 1.62 2010/07/06 19:18:55 momjian Exp $
  *
  * NOTES
  *		Each global transaction is associated with a global transaction
@@ -63,6 +63,7 @@
 #include "storage/fd.h"
 #include "storage/ipc.h"
 #include "storage/procarray.h"
+#include "storage/sinvaladt.h"
 #include "storage/smgr.h"
 #include "utils/builtins.h"
 #include "utils/faultinjector.h"
@@ -116,7 +117,7 @@ extern List *expectedTLIs;
 typedef struct GlobalTransactionData
 {
 	PGPROC		proc;			/* dummy proc */
-	BackendId	dummyBackendId;	/* similar to backend id for backends */
+	BackendId	dummyBackendId; /* similar to backend id for backends */
 	TimestampTz prepared_at;	/* time of preparation */
 	XLogRecPtr  prepare_begin_lsn;  /* XLOG begging offset of prepare record */
 	XLogRecPtr	prepare_lsn;	/* XLOG offset of prepare record */
@@ -171,7 +172,10 @@ static void RecordTransactionCommitPrepared(TransactionId xid,
 								int nchildren,
 								TransactionId *children,
 								int nrels,
-								RelFileNode *rels);
+								RelFileNode *rels,
+								int ninvalmsgs,
+								SharedInvalidationMessage *invalmsgs,
+								bool initfileinval);
 static void RecordTransactionAbortPrepared(TransactionId xid,
 							   int nchildren,
 							   TransactionId *children,
@@ -347,14 +351,14 @@ TwoPhaseShmemInit(void)
 			/*
 			 * Assign a unique ID for each dummy proc, so that the range of
 			 * dummy backend IDs immediately follows the range of normal
-			 * backend IDs. We don't dare to assign a real backend ID to
-			 * dummy procs, because prepared transactions don't take part in
-			 * cache invalidation like a real backend ID would imply, but
-			 * having a unique ID for them is nevertheless handy. This
-			 * arrangement allows you to allocate an array of size
-			 * (MaxBackends + max_prepared_xacts + 1), and have a slot for
-			 * every backend and prepared transaction. Currently multixact.c
-			 * uses that technique.
+			 * backend IDs. We don't dare to assign a real backend ID to dummy
+			 * procs, because prepared transactions don't take part in cache
+			 * invalidation like a real backend ID would imply, but having a
+			 * unique ID for them is nevertheless handy. This arrangement
+			 * allows you to allocate an array of size (MaxBackends +
+			 * max_prepared_xacts + 1), and have a slot for every backend and
+			 * prepared transaction. Currently multixact.c uses that
+			 * technique.
 			 */
 			gxacts[i].dummyBackendId = MaxBackends + 1 + i;
 		}
@@ -884,7 +888,7 @@ pg_prepared_xact(PG_FUNCTION_ARGS)
 BackendId
 TwoPhaseGetDummyBackendId(TransactionId xid)
 {
-	PGPROC *proc = TwoPhaseGetDummyProc(xid);
+	PGPROC	   *proc = TwoPhaseGetDummyProc(xid);
 
 	return ((GlobalTransaction) proc)->dummyBackendId;
 }
@@ -949,10 +953,11 @@ TwoPhaseGetDummyProc(TransactionId xid)
  *	2. TransactionId[] (subtransactions)
  *	3. RelFileNode[] (files to be deleted at commit)
  *	4. RelFileNode[] (files to be deleted at abort)
- *	5. TwoPhaseRecordOnDisk
- *	6. ...
- *	7. TwoPhaseRecordOnDisk (end sentinel, rmid == TWOPHASE_RM_END_ID)
- *	8. CRC32
+ *	5. SharedInvalidationMessage[] (inval messages to be sent at commit)
+ *	6. TwoPhaseRecordOnDisk
+ *	7. ...
+ *	8. TwoPhaseRecordOnDisk (end sentinel, rmid == TWOPHASE_RM_END_ID)
+ *	9. CRC32
  *
  * Each segment except the final CRC32 is MAXALIGN'd.
  */
@@ -973,6 +978,8 @@ typedef struct TwoPhaseFileHeader
 	int32		nsubxacts;		/* number of following subxact XIDs */
 	int32		ncommitrels;	/* number of delete-on-commit rels */
 	int32		nabortrels;		/* number of delete-on-abort rels */
+	int32		ninvalmsgs;		/* number of cache invalidation messages */
+	bool		initfileinval;	/* does relcache init file need invalidation? */
 	char		gid[GIDSIZE];	/* GID for transaction */
 } TwoPhaseFileHeader;
 
@@ -1048,6 +1055,7 @@ StartPrepare(GlobalTransaction gxact)
 	TransactionId *children;
 	RelFileNode *commitrels;
 	RelFileNode *abortrels;
+	SharedInvalidationMessage *invalmsgs;
 
 	/* Initialize linked list */
 	records.head = palloc0(sizeof(XLogRecData));
@@ -1072,11 +1080,16 @@ StartPrepare(GlobalTransaction gxact)
 	hdr.nsubxacts = xactGetCommittedChildren(&children);
 	hdr.ncommitrels = smgrGetPendingDeletes(true, &commitrels, NULL);
 	hdr.nabortrels = smgrGetPendingDeletes(false, &abortrels, NULL);
+	hdr.ninvalmsgs = xactGetCommittedInvalidationMessages(&invalmsgs,
+														  &hdr.initfileinval);
 	StrNCpy(hdr.gid, gxact->gid, GIDSIZE);
 
 	save_state_data(&hdr, sizeof(TwoPhaseFileHeader));
 
-	/* Add the additional info about subxacts and deletable files */
+	/*
+	 * Add the additional info about subxacts, deletable files and cache
+	 * invalidation messages.
+	 */
 	if (hdr.nsubxacts > 0)
 	{
 		save_state_data(children, hdr.nsubxacts * sizeof(TransactionId));
@@ -1092,6 +1105,12 @@ StartPrepare(GlobalTransaction gxact)
 	{
 		save_state_data(abortrels, hdr.nabortrels * sizeof(RelFileNode));
 		pfree(abortrels);
+	}
+	if (hdr.ninvalmsgs > 0)
+	{
+		save_state_data(invalmsgs,
+						hdr.ninvalmsgs * sizeof(SharedInvalidationMessage));
+		pfree(invalmsgs);
 	}
 
 	SIMPLE_FAULT_INJECTOR(StartPrepareTx);
@@ -1235,6 +1254,42 @@ RegisterTwoPhaseRecord(TwoPhaseRmgrId rmid, uint16 info,
 }
 
 /*
+ * Confirms an xid is prepared, during recovery
+ */
+bool
+StandbyTransactionIdIsPrepared(TransactionId xid)
+{
+	/*
+	 * XXX: Not implemented in GPDB. We don't use the two-phase state
+	 * files, so we cannot use ReadTwoPhaseFile() here. Fortunately, this
+	 * isn't needed until we try to use Hot Standby.
+	 */
+	elog(ERROR, "Hot Standby not supported");
+#if 0
+	char	   *buf;
+	TwoPhaseFileHeader *hdr;
+	bool		result;
+
+	Assert(TransactionIdIsValid(xid));
+
+	if (max_prepared_xacts <= 0)
+		return false;			/* nothing to do */
+
+	/* Read and validate file */
+	buf = ReadTwoPhaseFile(xid, false);
+	if (buf == NULL)
+		return false;
+
+	/* Check header also */
+	hdr = (TwoPhaseFileHeader *) buf;
+	result = TransactionIdEquals(hdr->xid, xid);
+	pfree(buf);
+
+	return result;
+#endif
+}
+
+/*
  * FinishPreparedTransaction: execute COMMIT PREPARED or ROLLBACK PREPARED
  */
 bool
@@ -1251,6 +1306,7 @@ FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFo
 	RelFileNode *abortrels;
 	RelFileNode *delrels;
 	int			ndelrels;
+	SharedInvalidationMessage *invalmsgs;
 	int			i;
 
     XLogRecPtr   tfXLogRecPtr;
@@ -1286,7 +1342,7 @@ FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFo
 
     /* get the two phase information from the xlog */
 	XLogCloseReadRecord();
-	tfRecord = XLogReadRecord(&tfXLogRecPtr, false, LOG);
+	tfRecord = XLogReadRecord(&tfXLogRecPtr, LOG, false);
 	if (tfRecord == NULL)
 	{
 		/*
@@ -1326,6 +1382,8 @@ FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFo
 	bufptr += MAXALIGN(hdr->ncommitrels * sizeof(RelFileNode));
 	abortrels = (RelFileNode *) bufptr;
 	bufptr += MAXALIGN(hdr->nabortrels * sizeof(RelFileNode));
+	invalmsgs = (SharedInvalidationMessage *) bufptr;
+	bufptr += MAXALIGN(hdr->ninvalmsgs * sizeof(SharedInvalidationMessage));
 
 	/* compute latestXid among all children */
 	latestXid = TransactionIdLatest(xid, hdr->nsubxacts, children);
@@ -1358,7 +1416,9 @@ FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFo
 		RecordTransactionCommitPrepared(xid,
 										gid,
 										hdr->nsubxacts, children,
-										hdr->ncommitrels, commitrels);
+										hdr->ncommitrels, commitrels,
+										hdr->ninvalmsgs, invalmsgs,
+										hdr->initfileinval);
 	else
 		RecordTransactionAbortPrepared(xid,
 									   hdr->nsubxacts, children,
@@ -1403,6 +1463,18 @@ FinishPreparedTransaction(const char *gid, bool isCommit, bool raiseErrorIfNotFo
 		}
 		smgrclose(srel);
 	}
+
+	/*
+	 * Handle cache invalidation messages.
+	 *
+	 * Relcache init file invalidation requires processing both before and
+	 * after we send the SI messages. See AtEOXact_Inval()
+	 */
+	if (hdr->initfileinval)
+		RelationCacheInitFilePreInvalidate();
+	SendSharedInvalidMessages(invalmsgs, hdr->ninvalmsgs);
+	if (hdr->initfileinval)
+		RelationCacheInitFilePostInvalidate();
 
 	/* And now do the callbacks */
 	if (isCommit)
@@ -1531,9 +1603,13 @@ CheckPointTwoPhase(XLogRecPtr redo_horizon)
  * Our other responsibility is to determine and return the oldest valid XID
  * among the prepared xacts (if none, return ShmemVariableCache->nextXid).
  * This is needed to synchronize pg_subtrans startup properly.
+ *
+ * If xids_p and nxids_p are not NULL, pointer to a palloc'd array of all
+ * top-level xids is stored in *xids_p. The number of entries in the array
+ * is returned in *nxids_p.
  */
 TransactionId
-PrescanPreparedTransactions(void)
+PrescanPreparedTransactions(TransactionId **xids_p, int *nxids_p)
 {
 	prpt_map	*entry = NULL;
 	TransactionId origNextXid = ShmemVariableCache->nextXid;
@@ -1541,9 +1617,9 @@ PrescanPreparedTransactions(void)
 	XLogRecPtr *tfXLogRecPtr = NULL;
 	XLogRecord *tfRecord = NULL;
 	HASH_SEQ_STATUS hsStatus;
-	TwoPhaseFileHeader *hdr = NULL;
-	TransactionId xid;
-	TransactionId *subxids;
+	TransactionId *xids = NULL;
+	int			nxids = 0;
+	int			allocsize = 0;
 
 	if (crashRecoverPostCheckpointPreparedTransactions_map_ht != NULL)
 	{
@@ -1557,12 +1633,16 @@ PrescanPreparedTransactions(void)
 
 	while (tfXLogRecPtr != NULL)
 	{
-		tfRecord = XLogReadRecord(tfXLogRecPtr, false, LOG);
+		TwoPhaseFileHeader *hdr;
+		TransactionId xid;
+
+		tfRecord = XLogReadRecord(tfXLogRecPtr, LOG, false);
 		hdr = (TwoPhaseFileHeader *) XLogRecGetData(tfRecord);
 		xid = hdr->xid;
 
 		if (TransactionIdDidCommit(xid) == false && TransactionIdDidAbort(xid) == false)
 		{
+			TransactionId *subxids;
 			int			i;
 
 			/*
@@ -1589,6 +1669,25 @@ PrescanPreparedTransactions(void)
 					TransactionIdAdvance(ShmemVariableCache->nextXid);
 				}
 			}
+
+
+			if (xids_p)
+			{
+				if (nxids == allocsize)
+				{
+					if (nxids == 0)
+					{
+						allocsize = 10;
+						xids = palloc(allocsize * sizeof(TransactionId));
+					}
+					else
+					{
+						allocsize = allocsize * 2;
+						xids = repalloc(xids, allocsize * sizeof(TransactionId));
+					}
+				}
+				xids[nxids++] = xid;
+			}
 		}
 
 		/* Get the next entry */
@@ -1600,7 +1699,31 @@ PrescanPreparedTransactions(void)
 			tfXLogRecPtr = NULL;
 	}
 
+	if (xids_p)
+	{
+		*xids_p = xids;
+		*nxids_p = nxids;
+	}
+
 	return result;
+}
+
+/*
+ * StandbyRecoverPreparedTransactions
+ *
+ * Scan the pg_twophase directory and setup all the required information to
+ * allow standby queries to treat prepared transactions as still active.
+ * This is never called at the end of recovery - we use
+ * RecoverPreparedTransactions() at that point.
+ *
+ * Currently we simply call SubTransSetParent() for any subxids of prepared
+ * transactions. If overwriteOK is true, it's OK if some XIDs have already
+ * been marked in pg_subtrans.
+ */
+void
+StandbyRecoverPreparedTransactions(bool overwriteOK)
+{
+	elog(ERROR, "Hot Standby not supported");
 }
 
 /*
@@ -1641,6 +1764,7 @@ RecoverPreparedTransactions(void)
 	XLogRecord *tfRecord     = NULL;
 	LocalDistribXactData localDistribXactData;
 	HASH_SEQ_STATUS hsStatus;
+	bool		overwriteOK = false;
 
 	if (crashRecoverPostCheckpointPreparedTransactions_map_ht != NULL)
 	{
@@ -1664,20 +1788,31 @@ RecoverPreparedTransactions(void)
 		DistributedTransactionId distribXid;
 		int			i;
 
-		tfRecord = XLogReadRecord(tfXLogRecPtr, false, LOG);
+		tfRecord = XLogReadRecord(tfXLogRecPtr, LOG, false);
 
 		buf = XLogRecGetData(tfRecord);
 
 		/* Deconstruct header */
 		hdr = (TwoPhaseFileHeader *) buf;
 		xid = hdr->xid;
+
 		ereport(LOG,
 				(errmsg("recovering prepared transaction %u", xid)));
+
 		bufptr = buf + MAXALIGN(sizeof(TwoPhaseFileHeader));
 		subxids = (TransactionId *) bufptr;
 		bufptr += MAXALIGN(hdr->nsubxacts * sizeof(TransactionId));
 		bufptr += MAXALIGN(hdr->ncommitrels * sizeof(RelFileNode));
 		bufptr += MAXALIGN(hdr->nabortrels * sizeof(RelFileNode));
+		bufptr += MAXALIGN(hdr->ninvalmsgs * sizeof(SharedInvalidationMessage));
+
+		/*
+		 * It's possible that SubTransSetParent has been set before, if
+		 * the prepared transaction generated xid assignment records. Test
+		 * here must match one used in AssignTransactionId().
+		 */
+		if (InHotStandby && hdr->nsubxacts >= PGPROC_MAX_CACHED_SUBXIDS)
+			overwriteOK = true;
 
 		/*
 		 * Reconstruct subtrans state for the transaction --- needed
@@ -1687,7 +1822,7 @@ RecoverPreparedTransactions(void)
 		 * hierarchy, but there's no need to restore that exactly.
 		 */
 		for (i = 0; i < hdr->nsubxacts; i++)
-			SubTransSetParent(subxids[i], xid);
+			SubTransSetParent(subxids[i], xid, overwriteOK);
 
 		/*
 		 * Crack open the gid to get the DTM start time and distributed
@@ -1749,9 +1884,12 @@ RecordTransactionCommitPrepared(TransactionId xid,
 								int nchildren,
 								TransactionId *children,
 								int nrels,
-								RelFileNode *rels)
+								RelFileNode *rels,
+								int ninvalmsgs,
+								SharedInvalidationMessage *invalmsgs,
+								bool initfileinval)
 {
-	XLogRecData rdata[3];
+	XLogRecData rdata[4];
 	int			lastrdata = 0;
 	xl_xact_commit_prepared xlrec;
 	XLogRecPtr	recptr;
@@ -1777,6 +1915,8 @@ RecordTransactionCommitPrepared(TransactionId xid,
 	xlrec.crec.xtime = time(NULL);
 	xlrec.crec.nrels = nrels;
 	xlrec.crec.nsubxacts = nchildren;
+	xlrec.crec.nmsgs = ninvalmsgs;
+
 	rdata[0].data = (char *) (&xlrec);
 	rdata[0].len = MinSizeOfXactCommitPrepared;
 	rdata[0].buffer = InvalidBuffer;
@@ -1797,6 +1937,15 @@ RecordTransactionCommitPrepared(TransactionId xid,
 		rdata[2].len = nchildren * sizeof(TransactionId);
 		rdata[2].buffer = InvalidBuffer;
 		lastrdata = 2;
+	}
+	/* dump cache invalidation messages */
+	if (ninvalmsgs > 0)
+	{
+		rdata[lastrdata].next = &(rdata[3]);
+		rdata[3].data = (char *) invalmsgs;
+		rdata[3].len = ninvalmsgs * sizeof(SharedInvalidationMessage);
+		rdata[3].buffer = InvalidBuffer;
+		lastrdata = 3;
 	}
 	rdata[lastrdata].next = NULL;
 

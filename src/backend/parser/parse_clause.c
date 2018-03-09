@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_clause.c,v 1.194 2009/12/15 17:57:47 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_clause.c,v 1.198 2010/02/26 02:00:50 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -870,7 +870,7 @@ transformRangeFunction(ParseState *pstate, RangeFunction *r)
 		tupdesc = BuildDescFromLists(rte->eref->colnames,
 									 rte->funccoltypes,
 									 rte->funccoltypmods);
-		CheckAttributeNamesTypes(tupdesc, RELKIND_COMPOSITE_TYPE);
+		CheckAttributeNamesTypes(tupdesc, RELKIND_COMPOSITE_TYPE, false);
 	}
 
 	return rte;
@@ -1061,7 +1061,7 @@ transformFromClauseItem(ParseState *pstate, Node *n,
 			ListCell   *lx,
 					   *rx;
 
-			Assert(j->usingClause == NIL);	/* shouldn't have USING() too */
+			Assert(j->usingClause == NIL);		/* shouldn't have USING() too */
 
 			foreach(lx, l_colnames)
 			{
@@ -1648,9 +1648,9 @@ static List *findListTargetlistEntries(ParseState *pstate, Node *node,
  *
  * This function supports the old SQL92 ORDER BY interpretation, where the
  * expression is an output column name or number.  If we fail to find a
- * match of that sort, we fall through to the SQL99 rules.  For historical
+ * match of that sort, we fall through to the SQL99 rules.	For historical
  * reasons, Postgres also allows this interpretation for GROUP BY, though
- * the standard never did.  However, for GROUP BY we prefer a SQL99 match.
+ * the standard never did.	However, for GROUP BY we prefer a SQL99 match.
  * This function is *not* used for WINDOW definitions.
  *
  * node		the ORDER BY, GROUP BY, or DISTINCT ON expression to be matched
@@ -2455,20 +2455,18 @@ transformWindowDefinitions(ParseState *pstate,
 		 * almost exactly like top-level GROUP BY and ORDER BY clauses,
 		 * including the special handling of nondefault operator semantics.
 		 */
-		orderClause =
-			transformSortClause(pstate,
-								windef->orderClause,
-								targetlist,
-								EXPR_KIND_WINDOW_ORDER,
-								true /* fix unknowns */ ,
-								true /* force SQL99 rules */ );
-		partitionClause =
-			transformSortClause(pstate,
-								windef->partitionClause,
-								targetlist,
-								EXPR_KIND_WINDOW_PARTITION,
-								true /* fix unknowns */ ,
-								true /* force SQL99 rules */ );
+		orderClause = transformSortClause(pstate,
+										  windef->orderClause,
+										  targetlist,
+										  EXPR_KIND_WINDOW_ORDER,
+										  true /* fix unknowns */ ,
+										  true /* force SQL99 rules */ );
+		partitionClause = transformSortClause(pstate,
+											  windef->partitionClause,
+											  targetlist,
+											  EXPR_KIND_WINDOW_PARTITION,
+											  true /* fix unknowns */ ,
+											  true /* force SQL99 rules */ );
 
 		/*
 		 * And prepare the new WindowClause.

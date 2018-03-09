@@ -6,12 +6,13 @@ SELECT name, setting FROM pg_settings WHERE name LIKE 'enable%';
  enable_hashagg    | on
  enable_hashjoin   | on
  enable_indexscan  | on
+ enable_material   | on
  enable_mergejoin  | off
  enable_nestloop   | off
  enable_seqscan    | on
  enable_sort       | on
  enable_tidscan    | on
-(10 rows)
+(11 rows)
 
 DROP TABLE IF EXISTS foo;
 NOTICE:  table "foo" does not exist, skipping

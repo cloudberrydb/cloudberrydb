@@ -12,10 +12,10 @@
  *
  * Portions Copyright (c) 2006-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/parsenodes.h,v 1.419 2009/12/15 17:57:47 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/parsenodes.h,v 1.432 2010/02/26 02:01:25 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -494,7 +494,7 @@ typedef struct RangeFunction
  * in either "raw" form (an untransformed parse tree) or "cooked" form
  * (a post-parse-analysis, executable expression tree), depending on
  * how this ColumnDef node was created (by parsing, or by inheritance
- * from an existing relation).  We should never have both in the same node!
+ * from an existing relation).	We should never have both in the same node!
  *
  * The constraints list may contain a CONSTR_DEFAULT item in a raw
  * parsetree produced by gram.y, but transformCreateStmt will remove
@@ -509,6 +509,7 @@ typedef struct ColumnDef
 	int			inhcount;		/* number of times column is inherited */
 	bool		is_local;		/* column has local (non-inherited) def'n */
 	bool		is_not_null;	/* NOT NULL constraint specified? */
+	bool		is_from_type;	/* column definition came from table type */
 	AttrNumber	attnum;			/* attribute number */
 	char		storage;		/* attstorage setting, or 0 for default */
 	Node	   *raw_default;	/* default value (untransformed parse tree) */
@@ -529,12 +530,12 @@ typedef struct InhRelation
 
 typedef enum CreateStmtLikeOption
 {
-	CREATE_TABLE_LIKE_DEFAULTS		= 1 << 0,
-	CREATE_TABLE_LIKE_CONSTRAINTS	= 1 << 1,
-	CREATE_TABLE_LIKE_INDEXES		= 1 << 2,
-	CREATE_TABLE_LIKE_STORAGE		= 1 << 3,
-	CREATE_TABLE_LIKE_COMMENTS		= 1 << 4,
-	CREATE_TABLE_LIKE_ALL			= 0x7FFFFFFF
+	CREATE_TABLE_LIKE_DEFAULTS = 1 << 0,
+	CREATE_TABLE_LIKE_CONSTRAINTS = 1 << 1,
+	CREATE_TABLE_LIKE_INDEXES = 1 << 2,
+	CREATE_TABLE_LIKE_STORAGE = 1 << 3,
+	CREATE_TABLE_LIKE_COMMENTS = 1 << 4,
+	CREATE_TABLE_LIKE_ALL = 0x7FFFFFFF
 } CreateStmtLikeOption;
 
 /*
@@ -549,6 +550,7 @@ typedef struct IndexElem
 	NodeTag		type;
 	char	   *name;			/* name of attribute to index, or NULL */
 	Node	   *expr;			/* expression to index, or NULL */
+	char	   *indexcolname;	/* name for index column; NULL = default */
 	List	   *opclass;		/* name of desired opclass; NIL = default */
 	SortByDir	ordering;		/* ASC/DESC/default */
 	SortByNulls nulls_ordering; /* FIRST/LAST/default */
@@ -922,7 +924,7 @@ typedef struct WindowClause
 	char	   *refname;		/* referenced window name, if any */
 	List	   *partitionClause;	/* PARTITION BY list */
 	List	   *orderClause;	/* ORDER BY list */
-	int			frameOptions;	/* frame_clause options, copied from WindowDef */
+	int			frameOptions;	/* frame_clause options, see WindowDef */
 	Node	   *startOffset;	/* expression for starting bound, if any */
 	Node	   *endOffset;		/* expression for ending bound, if any */
 	Index		winref;			/* ID referenced by window functions */
@@ -1295,7 +1297,8 @@ typedef enum AlterTableType
 	AT_DropNotNull,				/* alter column drop not null */
 	AT_SetNotNull,				/* alter column set not null */
 	AT_SetStatistics,			/* alter column set statistics */
-	AT_SetDistinct,				/* alter column set statistics distinct */
+	AT_SetOptions,				/* alter column set ( options ) */
+	AT_ResetOptions,			/* alter column reset ( options ) */
 	AT_SetStorage,				/* alter column set storage */
 	AT_DropColumn,				/* drop column */
 	AT_DropColumnRecurse,		/* internal to commands/tablecmds.c */
@@ -1633,6 +1636,7 @@ typedef struct CreateStmt
 								 * inhRelation) */
 	List	   *inhOids;		/* list relations Oids to inherit from */
 	int			parentOidCount; /* count of parent with OIDs */
+	TypeName   *ofTypename;		/* OF typename */
 	List	   *constraints;	/* constraints (list of Constraint nodes) */
 	List	   *options;		/* options from WITH clause */
 	OnCommitAction oncommit;	/* what do we do at COMMIT? */
@@ -1932,6 +1936,14 @@ typedef struct DropTableSpaceStmt
 	bool		missing_ok;		/* skip error if missing? */
 } DropTableSpaceStmt;
 
+typedef struct AlterTableSpaceOptionsStmt
+{
+	NodeTag		type;
+	char	   *tablespacename;
+	List	   *options;
+	bool		isReset;
+} AlterTableSpaceOptionsStmt;
+
 /* ----------------------
  *		Create/Drop FOREIGN DATA WRAPPER Statements
  * ----------------------
@@ -2040,9 +2052,8 @@ typedef struct CreateTrigStmt
 	int16		events;			/* INSERT/UPDATE/DELETE/TRUNCATE */
 	List	   *columns;		/* column names, or NIL for all columns */
 	Node	   *whenClause;		/* qual expression, or NULL if none */
-
-	/* The following are used for constraint triggers (RI and unique checks) */
 	bool		isconstraint;	/* This is a constraint trigger */
+	/* The remaining fields are only used for constraint triggers */
 	bool		deferrable;		/* [NOT] DEFERRABLE */
 	bool		initdeferred;	/* INITIALLY {DEFERRED|IMMEDIATE} */
 	RangeVar   *constrrel;		/* opposite relation, if RI trigger */
@@ -2056,6 +2067,7 @@ typedef struct CreateTrigStmt
 typedef struct CreatePLangStmt
 {
 	NodeTag		type;
+	bool		replace;		/* T => replace if already exists */
 	char	   *plname;			/* PL name */
 	List	   *plhandler;		/* PL call handler function (qual. name) */
 	List	   *plinline;		/* optional inline function (qual. name) */
@@ -2422,7 +2434,7 @@ typedef struct IndexStmt
 	List	   *indexParams;	/* a list of IndexElem */
 	List	   *options;		/* options from WITH clause */
 	Node	   *whereClause;	/* qualification (partial-index predicate) */
-	List	   *excludeOpNames;	/* exclusion operator names, or NIL if none */
+	List	   *excludeOpNames; /* exclusion operator names, or NIL if none */
 	bool		is_part_child;	/* in service of a part of a partition? */
 	bool		unique;			/* is index unique? */
 	bool		primary;		/* is index on primary key? */
@@ -2507,7 +2519,7 @@ typedef struct InlineCodeBlock
 	NodeTag		type;
 	char	   *source_text;	/* source text of anonymous code block */
 	Oid			langOid;		/* OID of selected language */
-	bool        langIsTrusted;  /* trusted property of the language */
+	bool		langIsTrusted;	/* trusted property of the language */
 } InlineCodeBlock;
 
 /* ----------------------
@@ -2619,6 +2631,7 @@ typedef struct NotifyStmt
 {
 	NodeTag		type;
 	char	   *conditionname;	/* condition name to notify */
+	char	   *payload;		/* the payload string, or NULL if none */
 } NotifyStmt;
 
 /* ----------------------
@@ -2777,13 +2790,22 @@ typedef struct ClusterStmt
  */
 typedef enum VacuumOption
 {
-	VACOPT_VACUUM		= 1 << 0,	/* do VACUUM */
-	VACOPT_ANALYZE		= 1 << 1,	/* do ANALYZE */
-	VACOPT_VERBOSE		= 1 << 2,	/* print progress info */
-	VACOPT_FREEZE		= 1 << 3,	/* FREEZE option */
-	VACOPT_FULL			= 1 << 4,	/* FULL (non-concurrent) vacuum */
-	VACOPT_ROOTONLY		= 1 << 5	/* only ANALYZE root partition tables */
+	VACOPT_VACUUM = 1 << 0,		/* do VACUUM */
+	VACOPT_ANALYZE = 1 << 1,	/* do ANALYZE */
+	VACOPT_VERBOSE = 1 << 2,	/* print progress info */
+	VACOPT_FREEZE = 1 << 3,		/* FREEZE option */
+	VACOPT_FULL = 1 << 4,		/* FULL (non-concurrent) vacuum */
+	VACOPT_ROOTONLY = 1 << 5	/* only ANALYZE root partition tables */
 } VacuumOption;
+
+typedef enum AOVacuumPhase
+{
+	AOVAC_NONE = 0,
+	AOVAC_PREPARE,
+	AOVAC_COMPACT,
+	AOVAC_DROP,
+	AOVAC_CLEANUP
+} AOVacuumPhase;
 
 typedef struct VacuumStmt
 {
@@ -2797,6 +2819,7 @@ typedef struct VacuumStmt
 	/* Object IDs for relations which expand from partition definitions */
 	List	   *expanded_relids;
 
+	bool skip_twophase;
 	/*
 	 * AO segment file num to compact (integer).
 	 */
@@ -2814,38 +2837,27 @@ typedef struct VacuumStmt
 	List *appendonly_compaction_insert_segno;
 
 	/*
-	 * Iff true, the vacuum run is the cleanup phase of an append-only compaction.
-	 * In the cleanup phase, the following operations are performed
-	 * - Vacuum of append-only auxility relations
-	 * - Update of pg_class statistics of append-only relation
-	 */
-	bool appendonly_compaction_vacuum_cleanup;
-
-	/*
-	 * Iff true, the vacuum runs the prepare phase of an append-only compaction.
-	 * In the prepare phase, the following operations are performed
-	 * - Vacuum of indexes on append-only relation based on visimap.
-	 */
-	bool appendonly_compaction_vacuum_prepare;
-
-	/*
 	 * MPP-24168: If the appendonly table is empty, we should vacuum
 	 * auxiliary tables in prepare phase itself.  Othewise, age of
 	 * auxiliary heap relations never gets updated.
 	 */
 	bool appendonly_relation_empty;
 
-	bool heap_truncate;			/* true in the 2nd pass for heap vacuum full */
+	AOVacuumPhase appendonly_phase;
 } VacuumStmt;
 
 /* ----------------------
  *		Explain Statement
+ *
+ * The "query" field is either a raw parse tree (SelectStmt, InsertStmt, etc)
+ * or a Query node if parse analysis has been done.  Note that rewriting and
+ * planning of the query are always postponed until execution of EXPLAIN.
  * ----------------------
  */
 typedef struct ExplainStmt
 {
 	NodeTag		type;
-	Node	   *query;			/* the query (as a raw parse tree) */
+	Node	   *query;			/* the query (see comments above) */
 	List	   *options;		/* list of DefElem nodes */
 } ExplainStmt;
 

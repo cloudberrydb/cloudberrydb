@@ -7,11 +7,11 @@
  * by the PG_KEYWORD macro, which is not defined in this file; it can
  * be defined by the caller for special purposes.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/include/parser/kwlist.h,v 1.7 2009/12/07 05:22:23 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/include/parser/kwlist.h,v 1.12 2010/02/12 17:33:21 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -54,7 +54,7 @@ PG_KEYWORD("authorization", AUTHORIZATION, TYPE_FUNC_NAME_KEYWORD)
 PG_KEYWORD("backward", BACKWARD, UNRESERVED_KEYWORD)
 PG_KEYWORD("before", BEFORE, UNRESERVED_KEYWORD)
 PG_KEYWORD("begin", BEGIN_P, UNRESERVED_KEYWORD)
-PG_KEYWORD("between", BETWEEN, RESERVED_KEYWORD)
+PG_KEYWORD("between", BETWEEN, COL_NAME_KEYWORD)
 PG_KEYWORD("bigint", BIGINT, COL_NAME_KEYWORD)
 PG_KEYWORD("binary", BINARY, TYPE_FUNC_NAME_KEYWORD)
 PG_KEYWORD("bit", BIT, COL_NAME_KEYWORD)
@@ -85,7 +85,7 @@ PG_KEYWORD("comments", COMMENTS, UNRESERVED_KEYWORD)
 PG_KEYWORD("commit", COMMIT, UNRESERVED_KEYWORD)
 PG_KEYWORD("committed", COMMITTED, UNRESERVED_KEYWORD)
 PG_KEYWORD("concurrency", CONCURRENCY, UNRESERVED_KEYWORD)
-PG_KEYWORD("concurrently", CONCURRENTLY, UNRESERVED_KEYWORD)
+PG_KEYWORD("concurrently", CONCURRENTLY, TYPE_FUNC_NAME_KEYWORD)
 PG_KEYWORD("configuration", CONFIGURATION, UNRESERVED_KEYWORD)
 PG_KEYWORD("connection", CONNECTION, UNRESERVED_KEYWORD)
 PG_KEYWORD("constraint", CONSTRAINT, RESERVED_KEYWORD)

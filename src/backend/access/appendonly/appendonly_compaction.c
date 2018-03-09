@@ -294,7 +294,7 @@ AppendOnlyMoveTuple(MemTuple tuple,
 	/* insert index' tuples if needed */
 	if (resultRelInfo->ri_NumIndices > 0)
 	{
-		ExecInsertIndexTuples(slot, (ItemPointer) &newAoTupleId, estate, true);
+		ExecInsertIndexTuples(slot, (ItemPointer) &newAoTupleId, estate);
 		ResetPerTupleExprContext(estate);
 	}
 
@@ -779,9 +779,11 @@ AppendOnlyCompaction_IsRelationEmpty(Relation aorel)
 	while ((tuple = heap_getnext(aoscan, ForwardScanDirection)) != NULL &&
 		   empty)
 	{
-		if (0 < fastgetattr(tuple, Anum_tupcount,
-							pg_aoseg_dsc, NULL))
+		bool		isNull;
+
+		if (0 < fastgetattr(tuple, Anum_tupcount, pg_aoseg_dsc, &isNull))
 			empty = false;
+		Assert(!isNull);
 	}
 	heap_endscan(aoscan);
 	heap_close(pg_aoseg_rel, AccessShareLock);

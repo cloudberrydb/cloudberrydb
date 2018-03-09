@@ -2504,6 +2504,21 @@ select * from int4_tbl a full join int4_tbl b on true;
  -2147483647 | -2147483647
 (25 rows)
 
+select * from int4_tbl a full join int4_tbl b on false;
+     f1      |     f1      
+-------------+-------------
+             |           0
+             |      123456
+             |     -123456
+             |  2147483647
+             | -2147483647
+           0 |            
+      123456 |            
+     -123456 |            
+  2147483647 |            
+ -2147483647 |            
+(10 rows)
+
 --
 -- test handling of potential equivalence clauses above outer joins
 --

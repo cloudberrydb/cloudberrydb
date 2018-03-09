@@ -4,10 +4,10 @@
  *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/optimizer/subselect.h,v 1.38 2009/10/26 02:26:45 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/optimizer/subselect.h,v 1.39 2010/01/02 16:58:07 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

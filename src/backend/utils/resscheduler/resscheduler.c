@@ -23,7 +23,7 @@
 #include "catalog/indexing.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_resqueue.h"
-#include "catalog/pg_tablespace.h"
+#include "catalog/pg_resqueuecapability.h"
 #include "cdb/cdbllize.h"
 #include "cdb/cdbvars.h"
 #include "cdb/memquota.h"

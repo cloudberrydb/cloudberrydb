@@ -8,12 +8,12 @@
  *
  * Portions Copyright (c) 2006-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/gram.y,v 2.697 2009/12/15 17:57:47 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/gram.y,v 2.713 2010/06/13 17:43:12 rhaas Exp $
  *
  * HISTORY
  *	  AUTHOR			DATE			MAJOR EVENT
@@ -290,7 +290,8 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 
 %type <str>		copy_file_name
 				database_name access_method_clause access_method attr_name
-				index_name name cursor_name file_name cluster_index_specification
+				name cursor_name file_name
+				index_name opt_index_name cluster_index_specification
 
 %type <list>	func_name handler_name qual_Op qual_all_Op subquery_Op
 				opt_class opt_inline_handler opt_validator validator_clause
@@ -313,6 +314,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 
 %type <list>	stmtblock stmtmulti
 				OptTableElementList OptExtTableElementList TableElementList ExtTableElementList
+				OptTypedTableElementList TypedTableElementList
 				OptInherit definition
 				reloptions opt_reloptions
 				OptWith opt_distinct opt_definition func_args func_args_list
@@ -337,8 +339,8 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 				TableFuncElementList opt_type_modifiers
 				prep_type_clause
 				execute_param_clause using_clause returning_clause
-				opt_enum_val_list enum_val_list
-				table_func_column_list scatter_clause
+				opt_enum_val_list enum_val_list table_func_column_list
+				scatter_clause
 				create_generic_options alter_generic_options
 				relation_expr_list dostmt_opt_list
 				columnListUnique
@@ -371,7 +373,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <node>	overlay_placing substr_from substr_for
 
 %type <boolean> opt_instead
-%type <boolean> index_opt_unique opt_verbose opt_full
+%type <boolean> opt_unique opt_concurrently opt_verbose opt_full
 %type <boolean> opt_freeze opt_default opt_ordered opt_recheck
 %type <boolean> opt_rootonly_all
 %type <boolean> opt_dxl
@@ -393,8 +395,8 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <istmt>	insert_rest
 
 %type <vsetstmt> set_rest SetResetClause
-%type <node>	TableElement ConstraintElem TableFuncElement
-%type <node>	columnDef
+%type <node>	TableElement TypedTableElement ConstraintElem TableFuncElement
+%type <node>	columnDef columnOptions
 %type <defelt>	def_elem reloption_elem old_aggr_elem keyvalue_pair
 %type <node>	ExtTableElement
 %type <node>	ExtcolumnDef
@@ -415,6 +417,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <list>	OptCreateAs CreateAsList
 %type <node>	CreateAsElement ctext_expr
 %type <value>	NumericOnly
+%type <list>	NumericOnly_list
 %type <alias>	alias_clause
 %type <sortby>	sortby
 %type <ielem>	index_elem
@@ -449,8 +452,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <boolean> opt_varying opt_timezone
 
 %type <ival>	Iconst SignedIconst
-%type <list>	Iconst_list
-%type <str>		Sconst comment_text
+%type <str>		Sconst comment_text notify_payload
 %type <str>		RoleId opt_granted_by opt_boolean ColId_or_Sconst
 %type <str>		QueueId
 %type <list>	var_list
@@ -519,8 +521,8 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <node>	filter_clause
 %type <list>	window_clause window_definition_list opt_partition_clause
 %type <windef>	window_definition over_clause window_specification
+				opt_frame_clause frame_extent frame_bound
 %type <str>		opt_existing_window_name
-%type <windef>	opt_frame_clause frame_extent frame_bound
 %type <ival>	window_frame_exclusion
 
 
@@ -530,8 +532,8 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
  * the set of keywords.  PL/pgsql depends on this so that it can share the
  * same lexer.  If you add/change tokens here, fix PL/pgsql to match!
  *
- * DOT_DOT and COLON_EQUALS are unused in the core SQL grammar, and so will
- * always provoke parse errors.  They are needed by PL/pgsql.
+ * DOT_DOT is unused in the core SQL grammar, and so will always provoke
+ * parse errors.  It is needed by PL/pgsql.
  */
 %token <str>	IDENT FCONST SCONST BCONST XCONST Op
 %token <ival>	ICONST PARAM
@@ -2424,13 +2426,22 @@ alter_table_cmd:
 					n->def = (Node *) makeInteger($6);
 					$$ = (Node *)n;
 				}
-			/* ALTER TABLE <name> ALTER [COLUMN] <colname> SET STATISTICS DISTINCT <NumericOnly> */
-			| ALTER opt_column ColId SET STATISTICS DISTINCT NumericOnly
+			/* ALTER TABLE <name> ALTER [COLUMN] <colname> SET ( column_parameter = value [, ... ] ) */
+			| ALTER opt_column ColId SET reloptions
 				{
 					AlterTableCmd *n = makeNode(AlterTableCmd);
-					n->subtype = AT_SetDistinct;
+					n->subtype = AT_SetOptions;
 					n->name = $3;
-					n->def = (Node *) $7;
+					n->def = (Node *) $5;
+					$$ = (Node *)n;
+				}
+			/* ALTER TABLE <name> ALTER [COLUMN] <colname> SET ( column_parameter = value [, ... ] ) */
+			| ALTER opt_column ColId RESET reloptions
+				{
+					AlterTableCmd *n = makeNode(AlterTableCmd);
+					n->subtype = AT_ResetOptions;
+					n->name = $3;
+					n->def = (Node *) $5;
 					$$ = (Node *)n;
 				}
 			/* ALTER TABLE <name> ALTER [COLUMN] <colname> SET STORAGE <storagemode> */
@@ -3320,7 +3331,7 @@ ClosePortalStmt:
  *				{ PROGRAM 'command' | STDIN | STDOUT | 'filename' }
  *
  *				In the preferred syntax the options are comma-separated
- *				and use generic identifiers instead of keywords.  The pre-8.5
+ *				and use generic identifiers instead of keywords.  The pre-9.0
  *				syntax had a hard-wired, space-separated set of options.
  *
  *				Really old syntax, from versions 7.2 and prior:
@@ -3578,23 +3589,21 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 
 					$$ = (Node *)n;
 				}
-		| CREATE OptTemp TABLE qualified_name OF qualified_name
-			'(' OptTableElementList ')' OptWith OnCommitOption OptTableSpace OptDistributedBy OptTabPartitionBy
+		| CREATE OptTemp TABLE qualified_name OF any_name
+			OptTypedTableElementList OptWith OnCommitOption OptTableSpace OptDistributedBy OptTabPartitionBy
 				{
-					/* SQL99 CREATE TABLE OF <UDT> (cols) seems to be satisfied
-					 * by our inheritance capabilities. Let's try it...
-					 */
 					CreateStmt *n = makeNode(CreateStmt);
 					$4->istemp = $2;
 					n->relation = $4;
-					n->tableElts = $8;
-					n->inhRelations = list_make1($6);
+					n->tableElts = $7;
+					n->ofTypename = makeTypeNameFromNameList($6);
+					n->ofTypename->location = @6;
 					n->constraints = NIL;
-					n->options = $10;
-					n->oncommit = $11;
-					n->tablespacename = $12;
-					n->distributedBy = $13;
-					n->partitionBy = $14;
+					n->options = $8;
+					n->oncommit = $9;
+					n->tablespacename = $10;
+					n->distributedBy = $11;
+					n->partitionBy = $12;
 					n->relKind = RELKIND_RELATION;
 					n->policy = 0;
                     n->postCreate = NULL;
@@ -3624,6 +3633,11 @@ OptTableElementList:
 			| /*EMPTY*/							{ $$ = NIL; }
 		;
 
+OptTypedTableElementList:
+			'(' TypedTableElementList ')'		{ $$ = $2; }
+			| /*EMPTY*/							{ $$ = NIL; }
+		;
+
 TableElementList:
 			TableElement
 				{
@@ -3635,11 +3649,27 @@ TableElementList:
 				}
 		;
 
+TypedTableElementList:
+			TypedTableElement
+				{
+					$$ = list_make1($1);
+				}
+			| TypedTableElementList ',' TypedTableElement
+				{
+					$$ = lappend($1, $3);
+				}
+		;
+
 TableElement:
 			columnDef							{ $$ = $1; }
 			| TableLikeClause					{ $$ = $1; }
 			| TableConstraint					{ $$ = $1; }
 			| column_reference_storage_directive { $$ = $1; }
+		;
+
+TypedTableElement:
+			columnOptions						{ $$ = $1; }
+			| TableConstraint					{ $$ = $1; }
 		;
 
 column_reference_storage_directive:
@@ -3672,6 +3702,16 @@ columnDef:	ColId Typename ColQualList opt_storage_encoding
 					n->constraints = $3;
 					n->is_local = true;
 					n->encoding = $4;
+					$$ = (Node *)n;
+				}
+		;
+
+columnOptions:	ColId WITH OPTIONS ColQualList
+				{
+					ColumnDef *n = makeNode(ColumnDef);
+					n->colname = $1;
+					n->constraints = $4;
+					n->is_local = true;
 					$$ = (Node *)n;
 				}
 		;
@@ -5136,19 +5176,24 @@ NumericOnly:
 			| SignedIconst						{ $$ = makeInteger($1); }
 		;
 
+NumericOnly_list:	NumericOnly						{ $$ = list_make1($1); }
+				| NumericOnly_list ',' NumericOnly	{ $$ = lappend($1, $3); }
+		;
+
 /*****************************************************************************
  *
  *		QUERIES :
- *				CREATE PROCEDURAL LANGUAGE ...
- *				DROP PROCEDURAL LANGUAGE ...
+ *				CREATE [OR REPLACE] [TRUSTED] [PROCEDURAL] LANGUAGE ...
+ *				DROP [PROCEDURAL] LANGUAGE ...
  *
  *****************************************************************************/
 
 CreatePLangStmt:
-			CREATE opt_trusted opt_procedural LANGUAGE ColId_or_Sconst
+			CREATE opt_or_replace opt_trusted opt_procedural LANGUAGE ColId_or_Sconst
 			{
 				CreatePLangStmt *n = makeNode(CreatePLangStmt);
-				n->plname = $5;
+				n->replace = $2;
+				n->plname = $6;
 				/* parameters are all to be supplied by system */
 				n->plhandler = NIL;
 				n->plinline = NIL;
@@ -5156,15 +5201,16 @@ CreatePLangStmt:
 				n->pltrusted = false;
 				$$ = (Node *)n;
 			}
-			| CREATE opt_trusted opt_procedural LANGUAGE ColId_or_Sconst
+			| CREATE opt_or_replace opt_trusted opt_procedural LANGUAGE ColId_or_Sconst
 			  HANDLER handler_name opt_inline_handler opt_validator
 			{
 				CreatePLangStmt *n = makeNode(CreatePLangStmt);
-				n->plname = $5;
-				n->plhandler = $7;
-				n->plinline = $8;
-				n->plvalidator = $9;
-				n->pltrusted = $2;
+				n->replace = $2;
+				n->plname = $6;
+				n->plhandler = $8;
+				n->plinline = $9;
+				n->plvalidator = $10;
+				n->pltrusted = $3;
 				$$ = (Node *)n;
 			}
 		;
@@ -6184,15 +6230,25 @@ DefineStmt:
 					n->coldeflist = $6;
 					$$ = (Node *)n;
 				}
-			| CREATE opt_trusted PROTOCOL name definition
+			| CREATE opt_or_replace opt_trusted PROTOCOL name definition
 				{
+					/*
+					 * The opt_or_replace is here just to avoid a grammar conflict.
+					 * It's not actually supported.
+					 */
+					if ($2)
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("syntax error"),
+								 parser_errposition(@2)));
+
 					DefineStmt *n = makeNode(DefineStmt);
 					n->kind = OBJECT_EXTPROTOCOL;
 					n->oldstyle = false;
-					n->trusted = $2;
-					n->defnames = list_make1(makeString($4));
+					n->trusted = $3;
+					n->defnames = list_make1(makeString($5));
 					n->args = NIL;
-					n->definition = $5;
+					n->definition = $6;
 					$$ = (Node *)n;
 				}
 			| CREATE TYPE_P any_name AS ENUM_P '(' opt_enum_val_list ')'
@@ -7170,7 +7226,7 @@ privilege_target:
 					n->objs = $2;
 					$$ = n;
 				}
-			| LARGE_P OBJECT_P Iconst_list
+			| LARGE_P OBJECT_P NumericOnly_list
 				{
 					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
 					n->targtype = ACL_TARGET_OBJECT;
@@ -7423,36 +7479,17 @@ defacl_privilege_target:
  *
  *		QUERY: CREATE INDEX
  *
- * Note: we can't factor CONCURRENTLY into a separate production without
- * making it a reserved word.
- *
  * Note: we cannot put TABLESPACE clause after WHERE clause unless we are
  * willing to make TABLESPACE a fully reserved word.
  *****************************************************************************/
 
-IndexStmt:	CREATE index_opt_unique INDEX index_name
+IndexStmt:	CREATE opt_unique INDEX opt_concurrently opt_index_name
 			ON qualified_name access_method_clause '(' index_params ')'
 			opt_reloptions OptTableSpace where_clause
 				{
 					IndexStmt *n = makeNode(IndexStmt);
 					n->unique = $2;
-					n->concurrent = false;
-					n->idxname = $4;
-					n->relation = $6;
-					n->accessMethod = $7;
-					n->indexParams = $9;
-					n->options = $11;
-					n->tableSpace = $12;
-					n->whereClause = $13;
-					$$ = (Node *)n;
-				}
-			| CREATE index_opt_unique INDEX CONCURRENTLY index_name
-			ON qualified_name access_method_clause '(' index_params ')'
-			opt_reloptions OptTableSpace where_clause
-				{
-					IndexStmt *n = makeNode(IndexStmt);
-					n->unique = $2;
-					n->concurrent = true;
+					n->concurrent = $4;
 					n->idxname = $5;
 					n->relation = $7;
 					n->accessMethod = $8;
@@ -7461,7 +7498,7 @@ IndexStmt:	CREATE index_opt_unique INDEX index_name
 					n->tableSpace = $13;
 					n->whereClause = $14;
 
-                    if (!gp_create_index_concurrently)
+                    if (n->concurrent && !gp_create_index_concurrently)
 					{
 						/* MPP-9772, MPP-9773: remove support for
 						   CREATE INDEX CONCURRENTLY */
@@ -7475,9 +7512,19 @@ IndexStmt:	CREATE index_opt_unique INDEX index_name
 				}
 		;
 
-index_opt_unique:
+opt_unique:
 			UNIQUE									{ $$ = TRUE; }
 			| /*EMPTY*/								{ $$ = FALSE; }
+		;
+
+opt_concurrently:
+			CONCURRENTLY							{ $$ = TRUE; }
+			| /*EMPTY*/								{ $$ = FALSE; }
+		;
+
+opt_index_name:
+			index_name								{ $$ = $1; }
+			| /*EMPTY*/								{ $$ = NULL; }
 		;
 
 access_method_clause:
@@ -7499,6 +7546,7 @@ index_elem:	ColId opt_class opt_asc_desc opt_nulls_order
 					$$ = makeNode(IndexElem);
 					$$->name = $1;
 					$$->expr = NULL;
+					$$->indexcolname = NULL;
 					$$->opclass = $2;
 					$$->ordering = $3;
 					$$->nulls_ordering = $4;
@@ -7508,6 +7556,7 @@ index_elem:	ColId opt_class opt_asc_desc opt_nulls_order
 					$$ = makeNode(IndexElem);
 					$$->name = NULL;
 					$$->expr = $1;
+					$$->indexcolname = NULL;
 					$$->opclass = $2;
 					$$->ordering = $3;
 					$$->nulls_ordering = $4;
@@ -7517,6 +7566,7 @@ index_elem:	ColId opt_class opt_asc_desc opt_nulls_order
 					$$ = makeNode(IndexElem);
 					$$->name = NULL;
 					$$->expr = $2;
+					$$->indexcolname = NULL;
 					$$->opclass = $4;
 					$$->ordering = $5;
 					$$->nulls_ordering = $6;
@@ -8406,6 +8456,24 @@ RenameStmt: ALTER AGGREGATE func_name aggr_args RENAME TO name
 					n->newname = $6;
 					$$ = (Node *)n;
 				}
+			| ALTER TABLESPACE name SET reloptions
+				{
+					AlterTableSpaceOptionsStmt *n =
+						makeNode(AlterTableSpaceOptionsStmt);
+					n->tablespacename = $3;
+					n->options = $5;
+					n->isReset = FALSE;
+					$$ = (Node *)n;
+				}
+			| ALTER TABLESPACE name RESET reloptions
+				{
+					AlterTableSpaceOptionsStmt *n =
+						makeNode(AlterTableSpaceOptionsStmt);
+					n->tablespacename = $3;
+					n->options = $5;
+					n->isReset = TRUE;
+					$$ = (Node *)n;
+				}
 			| ALTER TEXT_P SEARCH PARSER any_name RENAME TO name
 				{
 					RenameStmt *n = makeNode(RenameStmt);
@@ -8595,11 +8663,11 @@ AlterOwnerStmt: ALTER AGGREGATE func_name aggr_args OWNER TO RoleId
 					n->newowner = $7;
 					$$ = (Node *)n;
 				}
-			| ALTER LARGE_P OBJECT_P Iconst OWNER TO RoleId
+			| ALTER LARGE_P OBJECT_P NumericOnly OWNER TO RoleId
 				{
 					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
 					n->objectType = OBJECT_LARGEOBJECT;
-					n->object = list_make1(makeInteger($4));
+					n->object = list_make1($4);
 					n->newowner = $7;
 					$$ = (Node *)n;
 				}
@@ -8799,12 +8867,18 @@ DropRuleStmt:
  *
  *****************************************************************************/
 
-NotifyStmt: NOTIFY ColId
+NotifyStmt: NOTIFY ColId notify_payload
 				{
 					NotifyStmt *n = makeNode(NotifyStmt);
 					n->conditionname = $2;
+					n->payload = $3;
 					$$ = (Node *)n;
 				}
+		;
+
+notify_payload:
+			',' Sconst							{ $$ = $2; }
+			| /*EMPTY*/							{ $$ = NULL; }
 		;
 
 ListenStmt: LISTEN ColId
@@ -12507,9 +12581,9 @@ func_expr_common_subexpr:
 			| OVERLAY '(' overlay_list ')'
 				{
 					/* overlay(A PLACING B FROM C FOR D) is converted to
-					 * substring(A, 1, C-1) || B || substring(A, C+1, C+D)
+					 * overlay(A, B, C, D)
 					 * overlay(A PLACING B FROM C) is converted to
-					 * substring(A, 1, C-1) || B || substring(A, C+1, C+char_length(B))
+					 * overlay(A, B, C)
 					 */
 					FuncCall *n = makeNode(FuncCall);
 					n->funcname = SystemFuncName("overlay");
@@ -13222,13 +13296,13 @@ func_arg_expr:  a_expr
 				{
 					$$ = $1;
 				}
-			| a_expr AS param_name
+			| param_name COLON_EQUALS a_expr
 				{
 					NamedArgExpr *na = makeNode(NamedArgExpr);
-					na->arg = (Expr *) $1;
-					na->name = $3;
+					na->name = $1;
+					na->arg = (Expr *) $3;
 					na->argnumber = -1;		/* until determined */
-					na->location = @3;
+					na->location = @1;
 					$$ = (Node *) na;
 				}
 		;
@@ -13282,6 +13356,7 @@ extract_arg:
  * SQL99 defines the OVERLAY() function:
  * o overlay(text placing text from int for int)
  * o overlay(text placing text from int)
+ * and similarly for binary strings
  */
 overlay_list:
 			a_expr overlay_placing substr_from substr_for
@@ -13770,7 +13845,7 @@ AexprConst: Iconst
 						if (IsA(arg, NamedArgExpr))
 							ereport(ERROR,
 								    (errcode(ERRCODE_SYNTAX_ERROR),
-								     errmsg("type modifier cannot have AS name"),
+								     errmsg("type modifier cannot have parameter name"),
 								     parser_errposition(arg->location)));
 					}
 					t->typmods = $3;
@@ -13826,10 +13901,6 @@ QueueId:	ColId									{ $$ = $1; };
 SignedIconst: Iconst								{ $$ = $1; }
 			| '+' Iconst							{ $$ = + $2; }
 			| '-' Iconst							{ $$ = - $2; }
-		;
-
-Iconst_list:	Iconst						{ $$ = list_make1(makeInteger($1)); }
-				| Iconst_list ',' Iconst	{ $$ = lappend($1, makeInteger($3)); }
 		;
 
 /*
@@ -13918,7 +13989,6 @@ unreserved_keyword:
 			| COMMIT
 			| COMMITTED
 			| CONCURRENCY
-			| CONCURRENTLY
 			| CONFIGURATION
 			| CONNECTION
 			| CONSTRAINTS
@@ -14241,7 +14311,6 @@ PartitionIdentKeyword: ABORT_P
 			| COMMIT
 			| COMMITTED
 			| CONCURRENCY
-			| CONCURRENTLY
 			| CONNECTION
 			| CONSTRAINTS
 			| CONTAINS
@@ -14511,7 +14580,8 @@ PartitionIdentKeyword: ABORT_P
  * looks too much like a function call for an LR(1) parser.
  */
 col_name_keyword:
-			  BIGINT
+			  BETWEEN
+			| BIGINT
 			| BIT
 			| BOOLEAN_P
 			| CHAR_P
@@ -14578,6 +14648,7 @@ col_name_keyword:
 type_func_name_keyword:
 			  AUTHORIZATION
 			| BINARY
+			| CONCURRENTLY
 			| CROSS
 			| CURRENT_SCHEMA
 			| FREEZE
@@ -14615,7 +14686,6 @@ reserved_keyword:
 			| AS
 			| ASC
 			| ASYMMETRIC
-			| BETWEEN
 			| BOTH
 			| CASE
 			| CAST

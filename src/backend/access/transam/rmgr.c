@@ -3,7 +3,7 @@
  *
  * Resource managers definition
  *
- * $PostgreSQL: pgsql/src/backend/access/transam/rmgr.c,v 1.27 2008/11/19 10:34:50 heikki Exp $
+ * $PostgreSQL: pgsql/src/backend/access/transam/rmgr.c,v 1.29 2010/02/07 20:48:09 tgl Exp $
  */
 #include "postgres.h"
 
@@ -23,6 +23,9 @@
 #include "commands/sequence.h"
 #include "commands/tablespace.h"
 #include "storage/freespace.h"
+#include "storage/standby.h"
+#include "utils/relmapper.h"
+
 #include "cdb/cdbappendonlyam.h"
 
 
@@ -34,8 +37,8 @@ const RmgrData RmgrTable[RM_MAX_ID + 1] = {
 	{"Database", dbase_redo, dbase_desc, NULL, NULL, NULL, NULL},
 	{"Tablespace", tblspc_redo, tblspc_desc, NULL, NULL, NULL, NULL},
 	{"MultiXact", multixact_redo, multixact_desc, NULL, NULL, NULL, NULL},
-	{"Reserved 7", NULL, NULL, NULL, NULL, NULL, NULL},
-	{"Reserved 8", NULL, NULL, NULL, NULL, NULL, NULL},
+	{"RelMap", relmap_redo, relmap_desc, NULL, NULL, NULL},
+	{"Standby", standby_redo, standby_desc, NULL, NULL, NULL},
 	{"Heap2", heap2_redo, heap2_desc, NULL, NULL, NULL, heap_mask},
 	{"Heap", heap_redo, heap_desc, NULL, NULL, NULL, heap_mask},
 	{"Btree", btree_redo, btree_desc, btree_xlog_startup, btree_xlog_cleanup, btree_safe_restartpoint, btree_mask},

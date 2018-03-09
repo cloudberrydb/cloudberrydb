@@ -4,10 +4,10 @@
  *	  Utility and convenience functions for fmgr functions that return
  *	  sets and/or composite types.
  *
- * Copyright (c) 2002-2009, PostgreSQL Global Development Group
+ * Copyright (c) 2002-2010, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/fmgr/funcapi.c,v 1.46 2009/10/08 02:39:23 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/fmgr/funcapi.c,v 1.49 2010/02/26 02:01:13 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -335,9 +335,7 @@ internal_get_result_type(Oid funcid,
 	TupleDesc	tupdesc;
 
 	/* First fetch the function's pg_proc row to inspect its rettype */
-	tp = SearchSysCache(PROCOID,
-						ObjectIdGetDatum(funcid),
-						0, 0, 0);
+	tp = SearchSysCache1(PROCOID, ObjectIdGetDatum(funcid));
 	if (!HeapTupleIsValid(tp))
 		elog(ERROR, "cache lookup failed for function %u", funcid);
 	procform = (Form_pg_proc) GETSTRUCT(tp);
@@ -833,8 +831,8 @@ get_func_input_arg_names(Datum proargnames, Datum proargmodes,
 
 	/*
 	 * We expect the arrays to be 1-D arrays of the right types; verify that.
-	 * For proargmodes, we don't need to use deconstruct_array()
-	 * since the array data is just going to look like a C array of values.
+	 * For proargmodes, we don't need to use deconstruct_array() since the
+	 * array data is just going to look like a C array of values.
 	 */
 	arr = DatumGetArrayTypeP(proargnames);		/* ensure not toasted */
 	if (ARR_NDIM(arr) != 1 ||
@@ -914,9 +912,7 @@ get_func_result_name(Oid functionId)
 	int			i;
 
 	/* First fetch the function's pg_proc row */
-	procTuple = SearchSysCache(PROCOID,
-							   ObjectIdGetDatum(functionId),
-							   0, 0, 0);
+	procTuple = SearchSysCache1(PROCOID, ObjectIdGetDatum(functionId));
 	if (!HeapTupleIsValid(procTuple))
 		elog(ERROR, "cache lookup failed for function %u", functionId);
 

@@ -5,7 +5,7 @@
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
  * Copyright (c) 1996-2010, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/backend/catalog/system_views.sql,v 1.63 2009/11/29 18:14:30 tgl Exp $
+ * $PostgreSQL: pgsql/src/backend/catalog/system_views.sql,v 1.66 2010/04/26 14:22:37 momjian Exp $
  */
 
 CREATE VIEW pg_roles AS 
@@ -118,6 +118,7 @@ CREATE VIEW pg_stats AS
         nspname AS schemaname, 
         relname AS tablename, 
         attname AS attname, 
+        stainherit AS inherited, 
         stanullfrac AS null_frac, 
         stawidth AS avg_width, 
         stadistinct AS n_distinct, 
@@ -357,13 +358,13 @@ CREATE VIEW pg_stat_activity AS
             S.usesysid,
             U.rolname AS usename,
             S.application_name,
-            S.current_query,
-            S.waiting,
-            S.xact_start,
-            S.query_start,
-            S.backend_start,
             S.client_addr,
             S.client_port,
+            S.backend_start,
+            S.xact_start,
+            S.query_start,
+            S.waiting,
+            S.current_query,
 
             S.waiting_reason,
             S.rsgid,

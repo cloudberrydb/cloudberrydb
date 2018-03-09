@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/copy.c,v 1.319 2009/12/15 04:57:47 rhaas Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/copy.c,v 1.327 2010/04/28 16:10:41 heikki Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1129,7 +1129,7 @@ DoCopyInternal(const CopyStmt *stmt, const char *queryString, CopyState cstate)
 
 		if (strcmp(defel->defname, "format") == 0)
 		{
-			char   *fmt = defGetString(defel);
+			char	   *fmt = defGetString(defel);
 
 			if (format_specified)
 				ereport(ERROR,
@@ -1137,7 +1137,7 @@ DoCopyInternal(const CopyStmt *stmt, const char *queryString, CopyState cstate)
 						 errmsg("conflicting or redundant options")));
 			format_specified = true;
 			if (strcmp(fmt, "text") == 0)
-				/* default format */ ;
+				 /* default format */ ;
 			else if (strcmp(fmt, "csv") == 0)
 				cstate->csv_mode = true;
 			else if (strcmp(fmt, "binary") == 0)
@@ -1216,9 +1216,9 @@ DoCopyInternal(const CopyStmt *stmt, const char *queryString, CopyState cstate)
 				force_quote = (List *) defel->arg;
 			else
 				ereport(ERROR,
-					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("argument to option \"%s\" must be a list of column names",
-							defel->defname)));
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("argument to option \"%s\" must be a list of column names",
+								defel->defname)));
 		}
 		else if (strcmp(defel->defname, "force_not_null") == 0)
 		{
@@ -1230,9 +1230,9 @@ DoCopyInternal(const CopyStmt *stmt, const char *queryString, CopyState cstate)
 				force_notnull = (List *) defel->arg;
 			else
 				ereport(ERROR,
-					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("argument to option \"%s\" must be a list of column names",
-							defel->defname)));
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("argument to option \"%s\" must be a list of column names",
+								defel->defname)));
 		}
 		else if (strcmp(defel->defname, "fill_missing_fields") == 0)
 		{
@@ -1564,9 +1564,7 @@ DoCopyInternal(const CopyStmt *stmt, const char *queryString, CopyState cstate)
 
 		/* check read-only transaction */
 		if (XactReadOnly && is_from && !cstate->rel->rd_islocaltemp)
-			ereport(ERROR,
-					(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
-					 errmsg("transaction is read-only")));
+			PreventCommandIfReadOnly("COPY FROM");
 
 		/* Don't allow COPY w/ OIDs to or from a table without them */
 		if (cstate->oids && !cstate->rel->rd_rel->relhasoids)
@@ -1677,7 +1675,7 @@ DoCopyInternal(const CopyStmt *stmt, const char *queryString, CopyState cstate)
 	cstate->force_quote_flags = (bool *) palloc0(num_phys_attrs * sizeof(bool));
 	if (force_quote_all)
 	{
-		int		i;
+		int			i;
 
 		for (i = 0; i < num_phys_attrs; i++)
 			cstate->force_quote_flags[i] = true;
@@ -5043,7 +5041,7 @@ PROCESS_SEGMENT_DATA:
 					}
 
 					if (resultRelInfo->ri_NumIndices > 0)
-						recheckIndexes = ExecInsertIndexTuples(slot, &insertedTid, estate, false);
+						recheckIndexes = ExecInsertIndexTuples(slot, &insertedTid, estate);
 
 					/* AFTER ROW INSERT Triggers */
 					if (resultRelInfo->ri_TrigDesc &&
@@ -5055,6 +5053,8 @@ PROCESS_SEGMENT_DATA:
 						ExecARInsertTriggers(estate, resultRelInfo, tuple,
 											 recheckIndexes);
 					}
+
+					list_free(recheckIndexes);
 
 					/*
 					 * We count only tuples not suppressed by a BEFORE INSERT trigger;

@@ -3,12 +3,12 @@
  * pg_aggregate.c
  *	  routines to support manipulation of the pg_aggregate relation
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/pg_aggregate.c,v 1.103 2009/10/08 02:39:18 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/pg_aggregate.c,v 1.106 2010/02/26 02:00:37 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -221,9 +221,7 @@ AggregateCreate(const char *aggName,
 						NameListToString(aggtransfnName),
 						format_type_be(aggTransType))));
 
-	tup = SearchSysCache(PROCOID,
-						 ObjectIdGetDatum(transfn),
-						 0, 0, 0);
+	tup = SearchSysCache1(PROCOID, ObjectIdGetDatum(transfn));
 	if (!HeapTupleIsValid(tup))
 		elog(ERROR, "cache lookup failed for function %u", transfn);
 	proc = (Form_pg_proc) GETSTRUCT(tup);
@@ -580,8 +578,8 @@ lookup_agg_function(List *fnName,
 			ereport(ERROR,
 					(errcode(ERRCODE_DATATYPE_MISMATCH),
 					 errmsg("function %s requires run-time type coercion",
-					 func_signature_string(fnName, nargs,
-										   NIL, true_oid_array))));
+							func_signature_string(fnName, nargs,
+												  NIL, true_oid_array))));
 	}
 
 	/* Check aggregate creator has permission to call the function */

@@ -46,12 +46,12 @@
  *
  * Portions Copyright (c) 2005-2010 Greenplum Inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/tablespace.c,v 1.63 2009/11/10 18:53:38 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/tablespace.c,v 1.76 2010/07/06 19:18:56 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -64,7 +64,9 @@
 #include <sys/stat.h>
 
 #include "access/heapam.h"
+#include "access/reloptions.h"
 #include "access/sysattr.h"
+#include "access/transam.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
 #include "catalog/dependency.h"
@@ -72,10 +74,13 @@
 #include "catalog/pg_tablespace.h"
 #include "catalog/pg_type.h"
 #include "commands/comment.h"
+#include "commands/defrem.h"
 #include "commands/tablespace.h"
 #include "miscadmin.h"
 #include "postmaster/bgwriter.h"
 #include "storage/fd.h"
+#include "storage/procarray.h"
+#include "storage/standby.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
@@ -83,6 +88,7 @@
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/rel.h"
+#include "utils/syscache.h"
 #include "utils/tqual.h"
 
 #include "catalog/heap.h"
@@ -97,7 +103,7 @@ char	   *temp_tablespaces = NULL;
 
 
 static void create_tablespace_directories(const char *location,
-										 const Oid tablespaceoid);
+							  const Oid tablespaceoid);
 static bool destroy_tablespace_directories(Oid tablespaceoid, bool redo);
 
 
@@ -105,7 +111,7 @@ static bool destroy_tablespace_directories(Oid tablespaceoid, bool redo);
  * Each database using a table space is isolated into its own name space
  * by a subdirectory named for the database OID.  On first creation of an
  * object in the tablespace, create the subdirectory.  If the subdirectory
- * already exists, just fall through quietly.
+ * already exists, fall through quietly.
  *
  * isRedo indicates that we are creating an object during WAL replay.
  * In this case we will cope with the possibility of the tablespace
@@ -157,7 +163,7 @@ TablespaceCreateDbspace(Oid spcNode, Oid dbNode, bool isRedo)
 			}
 			else
 			{
-				/* OK, go for it */
+				/* Directory creation failed? */
 				if (mkdir(dir, S_IRWXU) < 0)
 				{
 					char	   *parentdir;
@@ -171,8 +177,8 @@ TablespaceCreateDbspace(Oid spcNode, Oid dbNode, bool isRedo)
 
 					/*
 					 * Parent directories are missing during WAL replay, so
-					 * continue by creating simple parent directories
-					 * rather than a symlink.
+					 * continue by creating simple parent directories rather
+					 * than a symlink.
 					 */
 
 					/* create two parents up if not exist */
@@ -217,7 +223,7 @@ TablespaceCreateDbspace(Oid spcNode, Oid dbNode, bool isRedo)
 	}
 	else
 	{
-		/* be paranoid */
+		/* Is it not a directory? */
 		if (!S_ISDIR(st.st_mode))
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
@@ -283,7 +289,7 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 
 	/*
 	 * Check that location isn't too long. Remember that we're going to append
-	 * 'PG_XXX/<dboid>/<relid>.<nnn>'.  FYI, we never actually reference the
+	 * 'PG_XXX/<dboid>/<relid>.<nnn>'.	FYI, we never actually reference the
 	 * whole path, but mkdir() uses the first two parts.
 	 */
 	if (strlen(location) + 1 + strlen(tablespace_version_directory()) + 1 +
@@ -331,6 +337,7 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 	values[Anum_pg_tablespace_spclocation - 1] =
 		CStringGetTextDatum(location);
 	nulls[Anum_pg_tablespace_spcacl - 1] = true;
+	nulls[Anum_pg_tablespace_spcoptions - 1] = true;
 
 	tuple = heap_form_tuple(rel->rd_att, values, nulls);
 
@@ -581,8 +588,8 @@ DropTableSpace(DropTableSpaceStmt *stmt)
 static void
 create_tablespace_directories(const char *location, const Oid tablespaceoid)
 {
-	char *linkloc = palloc(OIDCHARS + OIDCHARS + 1);
-	char *location_with_version_dir = palloc(strlen(location) + 1 +
+	char	   *linkloc = palloc(OIDCHARS + OIDCHARS + 1);
+	char	   *location_with_version_dir = palloc(strlen(location) + 1 +
 										strlen(tablespace_version_directory()) + 1);
 
 	sprintf(linkloc, "pg_tblspc/%u", tablespaceoid);
@@ -627,8 +634,8 @@ create_tablespace_directories(const char *location, const Oid tablespaceoid)
 	}
 
 	/*
-	 * The creation of the version directory prevents more than one
-	 * 	tablespace in a single location.
+	 * The creation of the version directory prevents more than one tablespace
+	 * in a single location.
 	 */
 	if (mkdir(location_with_version_dir, S_IRWXU) < 0)
 	{
@@ -653,7 +660,7 @@ create_tablespace_directories(const char *location, const Oid tablespaceoid)
 					 errmsg("could not remove symbolic link \"%s\": %m",
 							linkloc)));
 	}
-	
+
 	/*
 	 * Create the symlink under PGDATA
 	 */
@@ -765,12 +772,12 @@ destroy_tablespace_directories(Oid tablespaceoid, bool redo)
 				(errcode_for_file_access(),
 				 errmsg("could not remove directory \"%s\": %m",
 						linkloc_with_version_dir)));
- 
+
 	/*
-	 * Try to remove the symlink.  We must however deal with the
-	 * possibility that it's a directory instead of a symlink --- this could
-	 * happen during WAL replay (see TablespaceCreateDbspace), and it is also
-	 * the case on Windows where junction points lstat() as directories.
+	 * Try to remove the symlink.  We must however deal with the possibility
+	 * that it's a directory instead of a symlink --- this could happen during
+	 * WAL replay (see TablespaceCreateDbspace), and it is also the case on
+	 * Windows where junction points lstat() as directories.
 	 */
 	linkloc = pstrdup(linkloc_with_version_dir);
 	get_parent_directory(linkloc);
@@ -1014,6 +1021,73 @@ AlterTableSpaceOwner(const char *name, Oid newOwnerId)
 	heap_close(rel, NoLock);
 }
 
+
+/*
+ * Alter table space options
+ */
+void
+AlterTableSpaceOptions(AlterTableSpaceOptionsStmt *stmt)
+{
+	Relation	rel;
+	ScanKeyData entry[1];
+	HeapScanDesc scandesc;
+	HeapTuple	tup;
+	Datum		datum;
+	Datum		newOptions;
+	Datum		repl_val[Natts_pg_tablespace];
+	bool		isnull;
+	bool		repl_null[Natts_pg_tablespace];
+	bool		repl_repl[Natts_pg_tablespace];
+	HeapTuple	newtuple;
+
+	/* Search pg_tablespace */
+	rel = heap_open(TableSpaceRelationId, RowExclusiveLock);
+
+	ScanKeyInit(&entry[0],
+				Anum_pg_tablespace_spcname,
+				BTEqualStrategyNumber, F_NAMEEQ,
+				CStringGetDatum(stmt->tablespacename));
+	scandesc = heap_beginscan(rel, SnapshotNow, 1, entry);
+	tup = heap_getnext(scandesc, ForwardScanDirection);
+	if (!HeapTupleIsValid(tup))
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+				 errmsg("tablespace \"%s\" does not exist",
+						stmt->tablespacename)));
+
+	/* Must be owner of the existing object */
+	if (!pg_tablespace_ownercheck(HeapTupleGetOid(tup), GetUserId()))
+		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_TABLESPACE,
+					   stmt->tablespacename);
+
+	/* Generate new proposed spcoptions (text array) */
+	datum = heap_getattr(tup, Anum_pg_tablespace_spcoptions,
+						 RelationGetDescr(rel), &isnull);
+	newOptions = transformRelOptions(isnull ? (Datum) 0 : datum,
+									 stmt->options, NULL, NULL, false,
+									 stmt->isReset);
+	(void) tablespace_reloptions(newOptions, true);
+
+	/* Build new tuple. */
+	memset(repl_null, false, sizeof(repl_null));
+	memset(repl_repl, false, sizeof(repl_repl));
+	if (newOptions != (Datum) 0)
+		repl_val[Anum_pg_tablespace_spcoptions - 1] = newOptions;
+	else
+		repl_null[Anum_pg_tablespace_spcoptions - 1] = true;
+	repl_repl[Anum_pg_tablespace_spcoptions - 1] = true;
+	newtuple = heap_modify_tuple(tup, RelationGetDescr(rel), repl_val,
+								 repl_null, repl_repl);
+
+	/* Update system catalog. */
+	simple_heap_update(rel, &newtuple->t_self, newtuple);
+	CatalogUpdateIndexes(rel, newtuple);
+	heap_freetuple(newtuple);
+
+	/* Conclude heap scan. */
+	heap_endscan(scandesc);
+	heap_close(rel, NoLock);
+}
 
 /*
  * Routines for handling the GUC variable 'default_tablespace'.
@@ -1508,11 +1582,32 @@ tblspc_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 	{
 		xl_tblspc_drop_rec *xlrec = (xl_tblspc_drop_rec *) XLogRecGetData(record);
 
+		/*
+		 * If we issued a WAL record for a drop tablespace it is because there
+		 * were no files in it at all. That means that no permanent objects
+		 * can exist in it at this point.
+		 *
+		 * It is possible for standby users to be using this tablespace as a
+		 * location for their temporary files, so if we fail to remove all
+		 * files then do conflict processing and try again, if currently
+		 * enabled.
+		 */
 		if (!destroy_tablespace_directories(xlrec->ts_id, true))
-			ereport(ERROR,
-					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-					 errmsg("tablespace %u is not empty",
-							xlrec->ts_id)));
+		{
+			ResolveRecoveryConflictWithTablespace(xlrec->ts_id);
+
+			/*
+			 * If we did recovery processing then hopefully the backends who
+			 * wrote temp files should have cleaned up and exited by now. So
+			 * lets recheck before we throw an error. If !process_conflicts
+			 * then this will just fail again.
+			 */
+			if (!destroy_tablespace_directories(xlrec->ts_id, true))
+				ereport(ERROR,
+						(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+						 errmsg("tablespace %u is not empty",
+								xlrec->ts_id)));
+		}
 	}
 	else
 		elog(PANIC, "tblspc_redo: unknown op code %u", info);

@@ -3,12 +3,12 @@
  * genam.c
  *	  general index access method routines
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/index/genam.c,v 1.77 2009/12/07 05:22:21 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/index/genam.c,v 1.81 2010/02/26 02:00:33 momjian Exp $
  *
  * NOTES
  *	  many of the old access method routines have been turned into
@@ -21,6 +21,7 @@
 
 #include "access/relscan.h"
 #include "access/transam.h"
+#include "catalog/index.h"
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "storage/bufmgr.h"
@@ -91,8 +92,19 @@ RelationGetIndexScan(Relation indexRelation,
 	else
 		scan->keyData = NULL;
 
+	/*
+	 * During recovery we ignore killed tuples and don't bother to kill them
+	 * either. We do this because the xmin on the primary node could easily be
+	 * later than the xmin on the standby node, so that what the primary
+	 * thinks is killed is supposed to be visible on standby. So for correct
+	 * MVCC for queries during recovery we must ignore these hints and check
+	 * all tuples. Do *not* set ignore_killed_tuples to true when running in a
+	 * transaction that was started during recovery. xactStartedInRecovery
+	 * should not be altered by index AMs.
+	 */
 	scan->kill_prior_tuple = false;
-	scan->ignore_killed_tuples = true;	/* default setting */
+	scan->xactStartedInRecovery = TransactionStartedDuringRecovery();
+	scan->ignore_killed_tuples = !scan->xactStartedInRecovery;
 
 	scan->opaque = NULL;
 
@@ -158,24 +170,24 @@ BuildIndexValueDescription(Relation indexRelation,
 
 	for (i = 0; i < natts; i++)
 	{
-		char   *val;
+		char	   *val;
 
 		if (isnull[i])
 			val = "null";
 		else
 		{
-			Oid		foutoid;
-			bool	typisvarlena;
+			Oid			foutoid;
+			bool		typisvarlena;
 
 			/*
-			 * The provided data is not necessarily of the type stored in
-			 * the index; rather it is of the index opclass's input type.
-			 * So look at rd_opcintype not the index tupdesc.
+			 * The provided data is not necessarily of the type stored in the
+			 * index; rather it is of the index opclass's input type. So look
+			 * at rd_opcintype not the index tupdesc.
 			 *
 			 * Note: this is a bit shaky for opclasses that have pseudotype
-			 * input types such as ANYARRAY or RECORD.  Currently, the
-			 * typoutput functions associated with the pseudotypes will
-			 * work okay, but we might have to try harder in future.
+			 * input types such as ANYARRAY or RECORD.	Currently, the
+			 * typoutput functions associated with the pseudotypes will work
+			 * okay, but we might have to try harder in future.
 			 */
 			getTypeOutputInfo(indexRelation->rd_opcintype[i],
 							  &foutoid, &typisvarlena);
@@ -422,7 +434,7 @@ systable_beginscan_ordered(Relation heapRelation,
 
 	/* REINDEX can probably be a hard error here ... */
 	if (ReindexIsProcessingIndex(RelationGetRelid(indexRelation)))
-		elog(ERROR, "cannot do ordered scan on index \"%s\", because it is the current REINDEX target",
+		elog(ERROR, "cannot do ordered scan on index \"%s\", because it is being reindexed",
 			 RelationGetRelationName(indexRelation));
 	/* ... but we only throw a warning about violating IgnoreSystemIndexes */
 	if (IgnoreSystemIndexes)

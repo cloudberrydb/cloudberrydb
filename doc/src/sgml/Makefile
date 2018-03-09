@@ -2,7 +2,7 @@
 #
 # PostgreSQL documentation makefile
 #
-# $PostgreSQL: pgsql/doc/src/sgml/Makefile,v 1.133 2009/10/06 20:00:44 petere Exp $
+# $PostgreSQL: pgsql/doc/src/sgml/Makefile,v 1.148 2010/06/12 21:40:31 tgl Exp $
 #
 #----------------------------------------------------------------------------
 
@@ -22,7 +22,9 @@ top_builddir = ../../..
 include $(top_builddir)/src/Makefile.global
 
 
-distprep: html man
+all: html man
+
+distprep: html distprep-man
 
 
 ifndef COLLATEINDEX
@@ -73,11 +75,10 @@ override SPFLAGS += -wall -wno-unused-param -wno-empty -wfully-tagged
 ## Man pages
 ##
 
-man: man-stamp
+man distprep-man: man-stamp
 
 man-stamp: stylesheet-man.xsl postgres.xml
 	$(XSLTPROC) $(XSLTPROCFLAGS) $(XSLTPROC_MAN_FLAGS) $^
-	rm man1/dblink*
 	touch $@
 
 
@@ -103,6 +104,14 @@ html-stamp: postgres.sgml $(ALLSGML) stylesheet.dsl
 	cp $(srcdir)/stylesheet.css html/
 	touch $@
 
+# single-page HTML
+postgres.html: postgres.sgml $(ALLSGML) stylesheet.dsl
+	$(JADE.html.call) -V nochunks -V rootchunk -V '(define %root-filename% #f)' -V '(define use-output-dir #f)' -i include-index $<
+
+# single-page text
+postgres.txt: postgres.html
+	$(LYNX) -force_html -dump -nolist $< > $@
+
 HTML.index: postgres.sgml $(ALMOSTALLSGML) stylesheet.dsl
 	@$(MKDIR_P) html
 	$(JADE.html.call) -V html-index $<
@@ -119,7 +128,7 @@ version.sgml: $(top_srcdir)/configure
 	{ \
 	  echo "<!entity version \"$(VERSION)\">"; \
 	  echo "<!entity majorversion \"$(MAJORVERSION)\">"; \
-	} >$@
+	} > $@
 
 features-supported.sgml: $(top_srcdir)/src/backend/catalog/sql_feature_packages.txt $(top_srcdir)/src/backend/catalog/sql_features.txt
 	$(PERL) $(srcdir)/mk_feature_tables.pl YES $^ > $@
@@ -143,13 +152,17 @@ features-unsupported.sgml: $(top_srcdir)/src/backend/catalog/sql_feature_package
 
 JADE.tex.call = $(JADE) $(JADEFLAGS) $(SGMLINCLUDE) $(CATALOG) -d $(srcdir)/stylesheet.dsl -t tex -V tex-backend -i output-print -i include-index
 
-%-A4.tex-ps %-US.tex-ps : JADE_OUTPUT=texdvi-output
-%-A4.tex-pdf %-US.tex-pdf : JADE_OUTPUT=texpdf-output
-%-A4.tex-ps %-A4.tex-pdf : JADE_PAPER=A4
-%-US.tex-ps %-US.tex-pdf : JADE_PAPER=USletter
+%-A4.tex-ps: %.sgml $(ALLSGML)
+	$(JADE.tex.call) -V texdvi-output -V '%paper-type%'=A4 -o $@ $<
 
-%-A4.tex-ps %-US.tex-ps %-A4.tex-pdf %-US.tex-pdf: %.sgml $(ALLSGML)
-	$(JADE.tex.call) -V $(JADE_OUTPUT) -V '%paper-type%'=$(JADE_PAPER) -o $@ $<
+%-US.tex-ps: %.sgml $(ALLSGML)
+	$(JADE.tex.call) -V texdvi-output -V '%paper-type%'=USletter -o $@ $<
+
+%-A4.tex-pdf: %.sgml $(ALLSGML)
+	$(JADE.tex.call) -V texpdf-output -V '%paper-type%'=A4 -o $@ $<
+
+%-US.tex-pdf: %.sgml $(ALLSGML)
+	$(JADE.tex.call) -V texpdf-output -V '%paper-type%'=USletter -o $@ $<
 
 %.dvi: %.tex-ps
 	@rm -f $*.aux $*.log
@@ -194,14 +207,14 @@ JADE.text = $(JADE) $(JADEFLAGS) $(SGMLINCLUDE) $(CATALOG) -d stylesheet.dsl -i 
 LYNX = lynx
 
 INSTALL HISTORY regress_README: % : %.html
-	$(PERL) -p -e 's/<H(1|2)$$/<H\1 align=center/g' $< | $(LYNX) -force_html -dump -nolist -stdin >$@
+	$(PERL) -p -e 's/<H(1|2)$$/<H\1 align=center/g' $< | $(LYNX) -force_html -dump -nolist -stdin > $@
 
 INSTALL.html: standalone-install.sgml installation.sgml version.sgml
-	$(JADE.text) -V nochunks standalone-install.sgml installation.sgml >$@
+	$(JADE.text) -V nochunks standalone-install.sgml installation.sgml > $@
 
 HISTORY.html: generate_history.pl $(wildcard $(srcdir)/release*.sgml)
 	$(PERL) $< "$(srcdir)" release.sgml >tempfile_HISTORY.sgml
-	$(JADE.text) -V nochunks tempfile_HISTORY.sgml >$@
+	$(JADE.text) -V nochunks tempfile_HISTORY.sgml > $@
 	rm tempfile_HISTORY.sgml
 
 regress_README.html: regress.sgml
@@ -209,7 +222,7 @@ regress_README.html: regress.sgml
 	  echo '<!entity % standalone-ignore "IGNORE">'; \
 	  echo '<!entity % standalone-include "INCLUDE"> ]>'; \
 	  cat $< ) >tempfile_regress_README.sgml
-	$(JADE.text) -V nochunks tempfile_regress_README.sgml >$@
+	$(JADE.text) -V nochunks tempfile_regress_README.sgml > $@
 	rm tempfile_regress_README.sgml
 
 
@@ -217,11 +230,15 @@ regress_README.html: regress.sgml
 ## XSLT processing
 ##
 
-postgres.xml: postgres.sgml $(ALMOSTALLSGML)
-	$(OSX) -D. -x lower $< | \
-	  $(PERL) -p -e 's/\[(amp|copy|egrave|gt|lt|mdash|nbsp|ouml|pi|quot|uuml) *\]/\&\1;/g;' \
-	             -e '$$_ .= qq{<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">\n} if $$. == 1;' \
-	  >$@
+# For obscure reasons, gmake 3.81 complains about circular dependencies
+# if we try to do "make all" in a VPATH build without the explicit
+# $(srcdir) on the postgres.sgml dependency in this rule.  gmake bug?
+postgres.xml: $(srcdir)/postgres.sgml $(ALMOSTALLSGML)
+	$(OSX) -D. -x lower $< >postgres.xmltmp
+	$(PERL) -p -e 's/\[(amp|copy|egrave|gt|lt|mdash|nbsp|ouml|pi|quot|uuml) *\]/\&\1;/g;' \
+	           -e '$$_ .= qq{<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN" "http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">\n} if $$. == 1;' \
+	  <postgres.xmltmp > $@
+	rm postgres.xmltmp
 # ' hello Emacs
 
 xslthtml: stylesheet.xsl postgres.xml
@@ -249,7 +266,7 @@ MAKEINFO = makeinfo
 	$(DB2X_XSLTPROC) -s texi -g output-file=$(basename $@) $< -o $@
 
 %.texi: %.texixml
-	$(DB2X_TEXIXML) --encoding=iso-8859-1//TRANSLIT $< --to-stdout >$@
+	$(DB2X_TEXIXML) --encoding=iso-8859-1//TRANSLIT $< --to-stdout > $@
 
 %.info: %.texi
 	$(MAKEINFO) --enable-encoding --no-split --no-validate $< -o $@
@@ -260,7 +277,7 @@ MAKEINFO = makeinfo
 ##
 
 # Quick syntax check without style processing
-check: postgres.sgml $(ALMOSTALLSGML)
+check: postgres.sgml $(ALMOSTALLSGML) check-tabs
 	$(NSGMLS) $(SPFLAGS) $(SGMLINCLUDE) -s $<
 
 
@@ -268,18 +285,11 @@ check: postgres.sgml $(ALMOSTALLSGML)
 ## Install
 ##
 
-vpathsearch = $(firstword $(wildcard $(addsuffix /$(1),$(subst :, ,. $(VPATH)))))
+install: install-html
 
-found_html = $(wildcard html-stamp $(srcdir)/html-stamp)
-
-ifneq ($(wildcard man-stamp $(srcdir)/man-stamp),)
-# SCO OpenServer's man system is sufficiently different to not bother.
 ifneq ($(PORTNAME), sco)
-found_man = yes
+install: install-man
 endif
-endif
-
-install: $(if $(found_html),install-html) $(if $(found_man),install-man)
 
 installdirs:
 	$(MKDIR_P) '$(DESTDIR)$(htmldir)'/html $(addprefix '$(DESTDIR)$(mandir)'/man, 1 3 $(sqlmansectnum))
@@ -313,35 +323,27 @@ fix_sqlmansectnum = sed -e '/^\.TH/s/"7"/"$(sqlmansect)"/' \
 			-e 's/\\fR(7)/\\fR($(sqlmansectnum))/g' \
 			-e '1s/^\.so man7/.so man$(sqlmansectnum)/g;1s/^\(\.so.*\)\.7$$/\1.$(sqlmansect)/g'
 
-nonsql_manpage_files := $(wildcard $(srcdir)/man1/*.1 $(srcdir)/man3/*.3)
-sql_manpage_files := $(wildcard $(srcdir)/man7/*.7)
+man: fixed-man-stamp
 
-fixed_nonsql_manpage_files = $(patsubst $(srcdir)/%,fixedman/%,$(nonsql_manpage_files))
-fixed_sql_manpage_files = $(patsubst $(srcdir)/man7/%.7,fixedman/man$(sqlmansectnum)/%.$(sqlmansect),$(sql_manpage_files))
+fixed-man-stamp: man-stamp
+	@$(MKDIR_P) $(addprefix fixedman/,man1 man3 man$(sqlmansectnum))
+	for file in $(call vpathsearch,man1)/*.1; do $(fix_sqlmansectnum) $$file >fixedman/man1/`basename $$file` || exit; done
+	for file in $(call vpathsearch,man3)/*.3; do $(fix_sqlmansectnum) $$file >fixedman/man3/`basename $$file` || exit; done
+	for file in $(call vpathsearch,man7)/*.7; do $(fix_sqlmansectnum) $$file >fixedman/man$(sqlmansectnum)/`basename $$file | sed s/\.7$$/.$(sqlmansect)/` || exit; done
 
-fixed_manpage_files = $(fixed_nonsql_manpage_files) $(fixed_sql_manpage_files)
-
-all: all-man
-all-man: $(fixed_manpage_files)
-
-$(fixed_nonsql_manpage_files): fixedman/%: %
-	@$(MKDIR_P) $(dir $@)
-	$(fix_sqlmansectnum) $< >$@
-
-$(fixed_sql_manpage_files): fixedman/man$(sqlmansectnum)/%.$(sqlmansect): man7/%.7
-	@$(MKDIR_P) $(dir $@)
-	$(fix_sqlmansectnum) $< >$@
-
-install-man: all-man
-	cp -R $(sort $(dir $(fixed_manpage_files))) '$(DESTDIR)$(mandir)'
+install-man:
+	cp -R $(foreach dir,man1 man3 man$(sqlmansectnum),fixedman/$(dir)) '$(DESTDIR)$(mandir)'
 
 clean: clean-man
 .PHONY: clean-man
 clean-man:
-	rm -rf fixedman/
+	rm -rf fixedman/ fixed-man-stamp
 
 endif # sqlmansectnum != 7
 
+# tabs are harmless, but it is best to avoid them in SGML files
+check-tabs:
+	@( ! grep '	' $(wildcard $(srcdir)/*.sgml $(srcdir)/ref/*.sgml) ) || (echo "Tabs appear in SGML files";  exit 1)
 
 ##
 ## Clean
@@ -357,12 +359,14 @@ clean:
 # text --- these are shipped, but not in this directory
 	rm -f INSTALL HISTORY regress_README
 	rm -f INSTALL.html HISTORY.html regress_README.html
+# single-page output
+	rm -f postgres.html postgres.txt
 # print
 	rm -f *.rtf *.tex-ps *.tex-pdf *.dvi *.aux *.log *.ps *.pdf *.out *.fot
 # index
 	rm -f HTML.index $(GENERATED_SGML)
 # XSLT
-	rm -f postgres.xml htmlhelp.hhp toc.hhc index.hhk *.fo
+	rm -f postgres.xml postgres.xmltmp htmlhelp.hhp toc.hhc index.hhk *.fo
 # Texinfo
 	rm -f *.texixml *.texi *.info db2texi.refs
 

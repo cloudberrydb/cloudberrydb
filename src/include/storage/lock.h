@@ -4,10 +4,10 @@
  *	  POSTGRES low-level lock mechanism
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/storage/lock.h,v 1.116 2009/04/04 17:40:36 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/storage/lock.h,v 1.119 2010/02/26 02:01:27 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -538,6 +538,11 @@ extern LockAcquireResult LockAcquire(const LOCKTAG *locktag,
 			LOCKMODE lockmode,
 			bool sessionLock,
 			bool dontWait);
+extern LockAcquireResult LockAcquireExtended(const LOCKTAG *locktag,
+					LOCKMODE lockmode,
+					bool sessionLock,
+					bool dontWait,
+					bool report_memory_error);
 extern bool LockRelease(const LOCKTAG *locktag,
 			LOCKMODE lockmode, bool sessionLock);
 extern void LockReleaseAll(LOCKMETHODID lockmethodid, bool allLocks);
@@ -557,6 +562,17 @@ extern void RemoveFromWaitQueue(PGPROC *proc, uint32 hashcode);
 extern void RemoveLocalLock(LOCALLOCK *locallock);
 extern Size LockShmemSize(void);
 extern LockData *GetLockStatusData(void);
+
+extern void ReportLockTableError(bool report);
+
+typedef struct xl_standby_lock
+{
+	TransactionId xid;			/* xid of holder of AccessExclusiveLock */
+	Oid			dbOid;
+	Oid			relOid;
+} xl_standby_lock;
+
+extern xl_standby_lock *GetRunningTransactionLocks(int *nlocks);
 extern const char *GetLockmodeName(LOCKMETHODID lockmethodid, LOCKMODE mode);
 
 extern void lock_twophase_recover(TransactionId xid, uint16 info,
@@ -565,6 +581,8 @@ extern void lock_twophase_postcommit(TransactionId xid, uint16 info,
 						 void *recdata, uint32 len);
 extern void lock_twophase_postabort(TransactionId xid, uint16 info,
 						void *recdata, uint32 len);
+extern void lock_twophase_standby_recover(TransactionId xid, uint16 info,
+							  void *recdata, uint32 len);
 
 extern DeadLockState DeadLockCheck(PGPROC *proc);
 extern PGPROC *GetBlockingAutoVacuumPgproc(void);

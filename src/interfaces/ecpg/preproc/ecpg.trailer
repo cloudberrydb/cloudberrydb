@@ -1,4 +1,4 @@
-/* $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/ecpg.trailer,v 1.16 2009/11/26 15:06:47 meskes Exp $ */
+/* $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/ecpg.trailer,v 1.26 2010/05/25 17:28:20 meskes Exp $ */
 
 statements: /*EMPTY*/
                 | statements statement
@@ -16,7 +16,17 @@ statement: ecpgstart at stmt ';'        { connection = NULL; }
                 | c_thing               { fprintf(yyout, "%s", $1); free($1); }
                 | CPP_LINE              { fprintf(yyout, "%s", $1); free($1); }
                 | '{'                   { braces_open++; fputs("{", yyout); }
-                | '}'                   { remove_typedefs(braces_open); remove_variables(braces_open--); fputs("}", yyout); }
+                | '}'
+		{
+			remove_typedefs(braces_open);
+			remove_variables(braces_open--);
+			if (braces_open == 0)
+			{
+				free(current_function);
+				current_function = NULL;
+			}
+			fputs("}", yyout);
+		}
                 ;
 
 CreateAsStmt: CREATE OptTemp TABLE create_as_target AS {FoundInto = 0;} SelectStmt opt_with_data OptDistributedBy OptTabPartitionBy
@@ -281,12 +291,18 @@ ECPGCursorStmt:  DECLARE cursor_name cursor_options CURSOR opt_hold FOR prepared
 			char *cursor_marker = $2[0] == ':' ? make_str("$0") : mm_strdup($2);
 			struct variable *thisquery = (struct variable *)mm_alloc(sizeof(struct variable));
 			const char *con = connection ? connection : "NULL";
+			char *comment;
 
 			for (ptr = cur; ptr != NULL; ptr = ptr->next)
 			{
 				if (strcmp($2, ptr->name) == 0)
+				{
 					/* re-definition is a bug */
-					mmerror(PARSE_ERROR, ET_ERROR, "cursor \"%s\" is already defined", $2);
+					if ($2[0] == ':')
+	                                        mmerror(PARSE_ERROR, ET_ERROR, "using variable \"%s\" in different declare statements is not supported", $2+1);
+        	                        else
+						mmerror(PARSE_ERROR, ET_ERROR, "cursor \"%s\" is already defined", $2);
+				}
 			}
 
 			this = (struct cursor *) mm_alloc(sizeof(struct cursor));
@@ -294,9 +310,11 @@ ECPGCursorStmt:  DECLARE cursor_name cursor_options CURSOR opt_hold FOR prepared
 			/* initial definition */
 			this->next = cur;
 			this->name = $2;
+			this->function = (current_function ? mm_strdup(current_function) : NULL);
 			this->connection = connection;
 			this->command =  cat_str(6, make_str("declare"), cursor_marker, $3, make_str("cursor"), $5, make_str("for $1"));
 			this->argsresult = NULL;
+			this->argsresult_oos = NULL;
 
 			thisquery->type = &ecpg_query;
 			thisquery->brace_level = 0;
@@ -305,6 +323,7 @@ ECPGCursorStmt:  DECLARE cursor_name cursor_options CURSOR opt_hold FOR prepared
 			sprintf(thisquery->name, "ECPGprepared_statement(%s, %s, __LINE__)", con, $7);
 
 			this->argsinsert = NULL;
+			this->argsinsert_oos = NULL;
 			if ($2[0] == ':')
 			{
 				struct variable *var = find_variable($2 + 1);
@@ -315,10 +334,14 @@ ECPGCursorStmt:  DECLARE cursor_name cursor_options CURSOR opt_hold FOR prepared
 
 			cur = this;
 
-			if (INFORMIX_MODE && braces_open > 0) /* we're in a function */
-				$$ = cat_str(4, make_str("ECPG_informix_reset_sqlca();"), make_str("/*"), mm_strdup(this->command), make_str("*/"));
+			comment = cat_str(3, make_str("/*"), mm_strdup(this->command), make_str("*/"));
+
+			if ((braces_open > 0) && INFORMIX_MODE) /* we're in a function */
+				$$ = cat_str(3, adjust_outofscope_cursor_vars(this),
+					make_str("ECPG_informix_reset_sqlca();"),
+					comment);
 			else
-				$$ = cat_str(3, make_str("/*"), mm_strdup(this->command), make_str("*/"));
+				$$ = cat2_str(adjust_outofscope_cursor_vars(this), comment);
 		}
 		;
 
@@ -369,13 +392,11 @@ sql_enddeclare: ecpgstart END_P DECLARE SQL_SECTION ';' {};
 
 var_type_declarations:	/*EMPTY*/			{ $$ = EMPTY; }
 		| vt_declarations			{ $$ = $1; }
-		| CPP_LINE				{ $$ = $1; }
 		;
 
-vt_declarations:  var_declaration			{ $$ = $1; }
-		| type_declaration			{ $$ = $1; }
-		| vt_declarations var_declaration	{ $$ = cat2_str($1, $2); }
-		| vt_declarations type_declaration	{ $$ = cat2_str($1, $2); }
+vt_declarations:  single_vt_declaration			{ $$ = $1; }
+		| CPP_LINE				{ $$ = $1; }
+		| vt_declarations single_vt_declaration	{ $$ = cat2_str($1, $2); }
 		| vt_declarations CPP_LINE		{ $$ = cat2_str($1, $2); }
 		;
 
@@ -402,6 +423,7 @@ var_declaration: storage_declaration
 		var_type
 		{
 			actual_type[struct_level].type_enum = $2.type_enum;
+			actual_type[struct_level].type_str = $2.type_str;
 			actual_type[struct_level].type_dimension = $2.type_dimension;
 			actual_type[struct_level].type_index = $2.type_index;
 			actual_type[struct_level].type_sizeof = $2.type_sizeof;
@@ -415,6 +437,7 @@ var_declaration: storage_declaration
 		| var_type
 		{
 			actual_type[struct_level].type_enum = $1.type_enum;
+			actual_type[struct_level].type_str = $1.type_str;
 			actual_type[struct_level].type_dimension = $1.type_dimension;
 			actual_type[struct_level].type_index = $1.type_index;
 			actual_type[struct_level].type_sizeof = $1.type_sizeof;
@@ -758,7 +781,7 @@ unsigned_type: SQL_UNSIGNED SQL_SHORT		{ $$ = ECPGt_unsigned_short; }
 		| SQL_UNSIGNED SQL_LONG INT_P		{ $$ = ECPGt_unsigned_long; }
 		| SQL_UNSIGNED SQL_LONG SQL_LONG
 		{
-#ifdef HAVE_LONG_LONG_INT_64
+#ifdef HAVE_LONG_LONG_INT
 			$$ = ECPGt_unsigned_long_long;
 #else
 			$$ = ECPGt_unsigned_long;
@@ -766,7 +789,7 @@ unsigned_type: SQL_UNSIGNED SQL_SHORT		{ $$ = ECPGt_unsigned_short; }
 		}
 		| SQL_UNSIGNED SQL_LONG SQL_LONG INT_P
 		{
-#ifdef HAVE_LONG_LONG_INT_64
+#ifdef HAVE_LONG_LONG_INT
 			$$ = ECPGt_unsigned_long_long;
 #else
 			$$ = ECPGt_unsigned_long;
@@ -782,7 +805,7 @@ signed_type: SQL_SHORT				{ $$ = ECPGt_short; }
 		| SQL_LONG INT_P			{ $$ = ECPGt_long; }
 		| SQL_LONG SQL_LONG
 		{
-#ifdef HAVE_LONG_LONG_INT_64
+#ifdef HAVE_LONG_LONG_INT
 			$$ = ECPGt_long_long;
 #else
 			$$ = ECPGt_long;
@@ -790,7 +813,7 @@ signed_type: SQL_SHORT				{ $$ = ECPGt_short; }
 		}
 		| SQL_LONG SQL_LONG INT_P
 		{
-#ifdef HAVE_LONG_LONG_INT_64
+#ifdef HAVE_LONG_LONG_INT
 			$$ = ECPGt_long_long;
 #else
 			$$ = ECPGt_long;
@@ -826,18 +849,18 @@ variable: opt_pointer ECPGColLabel opt_array_bounds opt_bit_field opt_initialize
 				case ECPGt_struct:
 				case ECPGt_union:
 					if (atoi(dimension) < 0)
-						type = ECPGmake_struct_type(struct_member_list[struct_level], actual_type[struct_level].type_enum, actual_type[struct_level].type_sizeof);
+						type = ECPGmake_struct_type(struct_member_list[struct_level], actual_type[struct_level].type_enum, actual_type[struct_level].type_str, actual_type[struct_level].type_sizeof);
 					else
-						type = ECPGmake_array_type(ECPGmake_struct_type(struct_member_list[struct_level], actual_type[struct_level].type_enum, actual_type[struct_level].type_sizeof), dimension);
+						type = ECPGmake_array_type(ECPGmake_struct_type(struct_member_list[struct_level], actual_type[struct_level].type_enum, actual_type[struct_level].type_str, actual_type[struct_level].type_sizeof), dimension);
 
 					$$ = cat_str(5, $1, mm_strdup($2), $3.str, $4, $5);
 					break;
 
 				case ECPGt_varchar:
 					if (atoi(dimension) < 0)
-						type = ECPGmake_simple_type(actual_type[struct_level].type_enum, length, yylineno);
+						type = ECPGmake_simple_type(actual_type[struct_level].type_enum, length, varchar_counter);
 					else
-						type = ECPGmake_array_type(ECPGmake_simple_type(actual_type[struct_level].type_enum, length, yylineno), dimension);
+						type = ECPGmake_array_type(ECPGmake_simple_type(actual_type[struct_level].type_enum, length, varchar_counter), dimension);
 					
 					if (strcmp(dimension, "0") == 0 || abs(atoi(dimension)) == 1)
 							*dim = '\0';
@@ -847,13 +870,14 @@ variable: opt_pointer ECPGColLabel opt_array_bounds opt_bit_field opt_initialize
 					if (atoi(length) < 0 || strcmp(length, "0") == 0)
 						mmerror(PARSE_ERROR, ET_ERROR, "pointers to varchar are not implemented");
 
-					/* make sure varchar struct name is unique by adding linenumer of its definition */
+					/* make sure varchar struct name is unique by adding a unique counter to its definition */
 					vcn = (char *) mm_alloc(strlen($2) + sizeof(int) * CHAR_BIT * 10 / 3);
-					sprintf(vcn, "%s_%d", $2, yylineno);
+					sprintf(vcn, "%s_%d", $2, varchar_counter);
 					if (strcmp(dimension, "0") == 0)
 						$$ = cat_str(7, make2_str(make_str(" struct varchar_"), vcn), make_str(" { int len; char arr["), mm_strdup(length), make_str("]; } *"), mm_strdup($2), $4, $5);
 					else
 						$$ = cat_str(8, make2_str(make_str(" struct varchar_"), vcn), make_str(" { int len; char arr["), mm_strdup(length), make_str("]; } "), mm_strdup($2), mm_strdup(dim), $4, $5);
+					varchar_counter++;
 					break;
 
 				case ECPGt_char:
@@ -947,7 +971,7 @@ execstring: char_variable
  * the exec sql free command to deallocate a previously
  * prepared statement
  */
-ECPGFree:	SQL_FREE name	{ $$ = $2; }
+ECPGFree:	SQL_FREE cursor_name	{ $$ = $2; }
 		| SQL_FREE ALL	{ $$ = make_str("all"); }
 		;
 
@@ -970,21 +994,36 @@ ecpg_using:	USING using_list 	{ $$ = EMPTY; }
 		| using_descriptor      { $$ = $1; }
 		;
 
-using_descriptor: USING opt_sql SQL_DESCRIPTOR quoted_ident_stringvar
+using_descriptor: USING SQL_SQL SQL_DESCRIPTOR quoted_ident_stringvar
 		{
 			add_variable_to_head(&argsinsert, descriptor_variable($4,0), &no_indicator);
 			$$ = EMPTY;
 		}
-		;
-
-into_descriptor: INTO opt_sql SQL_DESCRIPTOR quoted_ident_stringvar
+		| USING SQL_DESCRIPTOR name
 		{
-			add_variable_to_head(&argsresult, descriptor_variable($4,1), &no_indicator);
+			add_variable_to_head(&argsinsert, sqlda_variable($3), &no_indicator);
 			$$ = EMPTY;
 		}
 		;
 
-opt_sql: /*EMPTY*/ | SQL_SQL;
+into_descriptor: INTO SQL_SQL SQL_DESCRIPTOR quoted_ident_stringvar
+		{
+			add_variable_to_head(&argsresult, descriptor_variable($4,1), &no_indicator);
+			$$ = EMPTY;
+		}
+		| INTO SQL_DESCRIPTOR name
+		{
+			add_variable_to_head(&argsresult, sqlda_variable($3), &no_indicator);
+			$$ = EMPTY;
+		}
+		;
+
+into_sqlda: INTO name
+		{
+			add_variable_to_head(&argsresult, sqlda_variable($2), &no_indicator);
+			$$ = EMPTY;
+		}
+		;
 
 using_list: UsingValue | UsingValue ',' using_list;
 
@@ -1011,28 +1050,45 @@ UsingConst: Iconst			{ $$ = $1; }
 		;
 
 /*
- * We accept descibe but do nothing with it so far.
+ * We accept DESCRIBE [OUTPUT] but do nothing with DESCRIBE INPUT so far.
  */
-ECPGDescribe: SQL_DESCRIBE INPUT_P name using_descriptor
+ECPGDescribe: SQL_DESCRIBE INPUT_P prepared_name using_descriptor
 	{
 		const char *con = connection ? connection : "NULL";
 		mmerror(PARSE_ERROR, ET_WARNING, "using unsupported DESCRIBE statement");
-		$$ = (char *) mm_alloc(sizeof("1, ECPGprepared_statement(, \"\", __LINE__)") + strlen(con) + strlen($3));
-		sprintf($$, "1, ECPGprepared_statement(%s, \"%s\", __LINE__)", con, $3);
+		$$ = (char *) mm_alloc(sizeof("1, , ") + strlen(con) + strlen($3));
+		sprintf($$, "1, %s, %s", con, $3);
 	}
-	| SQL_DESCRIBE opt_output name using_descriptor
+	| SQL_DESCRIBE opt_output prepared_name using_descriptor
 	{
 		const char *con = connection ? connection : "NULL";
-		mmerror(PARSE_ERROR, ET_WARNING, "using unsupported DESCRIBE statement");
-		$$ = (char *) mm_alloc(sizeof("0, ECPGprepared_statement(, \"\", __LINE__)") + strlen(con) + strlen($3));
-		sprintf($$, "0, ECPGprepared_statement(%s, \"%s\", __LINE__)", con, $3);
+		struct variable *var;
+
+		var = argsinsert->variable;
+		remove_variable_from_list(&argsinsert, var);
+		add_variable_to_head(&argsresult, var, &no_indicator);
+
+		$$ = (char *) mm_alloc(sizeof("0, , ") + strlen(con) + strlen($3));
+		sprintf($$, "0, %s, %s", con, $3);
 	}
-	| SQL_DESCRIBE opt_output name into_descriptor
+	| SQL_DESCRIBE opt_output prepared_name into_descriptor
+	{
+		const char *con = connection ? connection : "NULL";
+		$$ = (char *) mm_alloc(sizeof("0, , ") + strlen(con) + strlen($3));
+		sprintf($$, "0, %s, %s", con, $3);
+	}
+	| SQL_DESCRIBE INPUT_P prepared_name into_sqlda
 	{
 		const char *con = connection ? connection : "NULL";
 		mmerror(PARSE_ERROR, ET_WARNING, "using unsupported DESCRIBE statement");
-		$$ = (char *) mm_alloc(sizeof("0, ECPGprepared_statement(, \"\", __LINE__)") + strlen(con) + strlen($3));
-		sprintf($$, "0, ECPGprepared_statement(%s, \"%s\", __LINE__)", con, $3);
+		$$ = (char *) mm_alloc(sizeof("1, , ") + strlen(con) + strlen($3));
+		sprintf($$, "1, %s, %s", con, $3);
+	}
+	| SQL_DESCRIBE opt_output prepared_name into_sqlda
+	{
+		const char *con = connection ? connection : "NULL";
+		$$ = (char *) mm_alloc(sizeof("0, , ") + strlen(con) + strlen($3));
+		sprintf($$, "0, %s, %s", con, $3);
 	}
 	;
 
@@ -1271,9 +1327,9 @@ ECPGVar: SQL_VAR
 					case ECPGt_struct:
 					case ECPGt_union:
 						if (atoi(dimension) < 0)
-							type = ECPGmake_struct_type(struct_member_list[struct_level], $5.type_enum, $5.type_sizeof);
+							type = ECPGmake_struct_type(struct_member_list[struct_level], $5.type_enum, $5.type_str, $5.type_sizeof);
 						else
-							type = ECPGmake_array_type(ECPGmake_struct_type(struct_member_list[struct_level], $5.type_enum,$5.type_sizeof), dimension);
+							type = ECPGmake_array_type(ECPGmake_struct_type(struct_member_list[struct_level], $5.type_enum, $5.type_str, $5.type_sizeof), dimension);
 						break;
 
 					case ECPGt_varchar:
@@ -1806,8 +1862,20 @@ ecpg_into: INTO into_list	{ $$ = EMPTY; }
         | into_descriptor	{ $$ = $1; }
 	;
 
-opt_ecpg_into:	/* EMPTY */	{ $$ = EMPTY; }
-	| ecpg_into		{ $$ = $1; }
+ecpg_fetch_into: ecpg_into	{ $$ = $1; }
+	| using_descriptor
+	{
+		struct variable *var;
+
+		var = argsinsert->variable;
+		remove_variable_from_list(&argsinsert, var);
+		add_variable_to_head(&argsresult, var, &no_indicator);
+		$$ = $1;
+	}
+	;
+
+opt_ecpg_fetch_into:	/* EMPTY */	{ $$ = EMPTY; }
+	| ecpg_fetch_into		{ $$ = $1; }
 	;
 
 %%

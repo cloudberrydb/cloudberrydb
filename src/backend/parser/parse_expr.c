@@ -3,12 +3,12 @@
  * parse_expr.c
  *	  handle expressions in parser
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_expr.c,v 1.251 2009/12/15 17:57:47 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_expr.c,v 1.256 2010/07/06 19:18:57 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -16,6 +16,9 @@
 #include "postgres.h"
 
 #include "catalog/namespace.h"
+#include "catalog/pg_attrdef.h"
+#include "catalog/pg_constraint.h"
+#include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
 #include "commands/dbcommands.h"
 #include "miscadmin.h"
@@ -35,6 +38,7 @@
 #include "parser/parse_type.h"
 #include "rewrite/rewriteManip.h"
 #include "utils/builtins.h"
+#include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 #include "utils/xml.h"
 
@@ -68,7 +72,7 @@ static Node *transformBooleanTest(ParseState *pstate, BooleanTest *b);
 static Node *transformCurrentOfExpr(ParseState *pstate, CurrentOfExpr *cexpr);
 static Node *transformColumnRef(ParseState *pstate, ColumnRef *cref);
 static Node *transformWholeRowRef(ParseState *pstate, RangeTblEntry *rte,
-								  int location);
+					 int location);
 static Node *transformIndirection(ParseState *pstate, Node *basenode,
 					 List *indirection);
 static Node *transformGroupingFunc(ParseState *pstate, GroupingFunc *gf);
@@ -203,6 +207,7 @@ transformExprRecurse(ParseState *pstate, Node *expr)
 						 */
 						targetType = getBaseTypeAndTypmod(targetType,
 														  &targetTypmod);
+
 						tc = copyObject(tc);
 						tc->arg = transformArrayExpr(pstate,
 													 (A_ArrayExpr *) tc->arg,
@@ -311,6 +316,7 @@ transformExprRecurse(ParseState *pstate, Node *expr)
 
 				n->arg = (Expr *) transformExprRecurse(pstate, (Node *) n->arg);
 				/* the argument can be any type, so don't coerce it */
+				n->argisrow = type_is_rowtype(exprType((Node *) n->arg));
 				result = expr;
 				break;
 			}
@@ -574,7 +580,8 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 	char	   *colname = NULL;
 	RangeTblEntry *rte;
 	int			levels_up;
-	enum {
+	enum
+	{
 		CRERR_NO_COLUMN,
 		CRERR_NO_RTE,
 		CRERR_WRONG_DB,
@@ -582,7 +589,7 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 	}			crerr = CRERR_NO_COLUMN;
 
 	/*
-	 * Give the PreParseColumnRefHook, if any, first shot.  If it returns
+	 * Give the PreParseColumnRefHook, if any, first shot.	If it returns
 	 * non-null then that's all, folks.
 	 */
 	if (pstate->p_pre_columnref_hook != NULL)
@@ -816,22 +823,22 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 				break;
 			}
 		default:
-			crerr = CRERR_TOO_MANY;			/* too many dotted names */
+			crerr = CRERR_TOO_MANY;		/* too many dotted names */
 			break;
 	}
 
 	/*
 	 * Now give the PostParseColumnRefHook, if any, a chance.  We pass the
 	 * translation-so-far so that it can throw an error if it wishes in the
-	 * case that it has a conflicting interpretation of the ColumnRef.
-	 * (If it just translates anyway, we'll throw an error, because we can't
-	 * undo whatever effects the preceding steps may have had on the pstate.)
-	 * If it returns NULL, use the standard translation, or throw a suitable
-	 * error if there is none.
+	 * case that it has a conflicting interpretation of the ColumnRef. (If it
+	 * just translates anyway, we'll throw an error, because we can't undo
+	 * whatever effects the preceding steps may have had on the pstate.) If it
+	 * returns NULL, use the standard translation, or throw a suitable error
+	 * if there is none.
 	 */
 	if (pstate->p_post_columnref_hook != NULL)
 	{
-		Node   *hookresult;
+		Node	   *hookresult;
 
 		hookresult = (*pstate->p_post_columnref_hook) (pstate, cref, node);
 		if (node == NULL)
@@ -873,15 +880,15 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 			case CRERR_WRONG_DB:
 				ereport(ERROR,
 						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						 errmsg("cross-database references are not implemented: %s",
-								NameListToString(cref->fields)),
+				  errmsg("cross-database references are not implemented: %s",
+						 NameListToString(cref->fields)),
 						 parser_errposition(pstate, cref->location)));
 				break;
 			case CRERR_TOO_MANY:
 				ereport(ERROR,
 						(errcode(ERRCODE_SYNTAX_ERROR),
-						 errmsg("improper qualified name (too many dotted names): %s",
-								NameListToString(cref->fields)),
+				errmsg("improper qualified name (too many dotted names): %s",
+					   NameListToString(cref->fields)),
 						 parser_errposition(pstate, cref->location)));
 				break;
 		}
@@ -896,7 +903,7 @@ transformParamRef(ParseState *pstate, ParamRef *pref)
 	Node	   *result;
 
 	/*
-	 * The core parser knows nothing about Params.  If a hook is supplied,
+	 * The core parser knows nothing about Params.	If a hook is supplied,
 	 * call it.  If not, or if the hook returns NULL, throw a generic error.
 	 */
 	if (pstate->p_paramref_hook != NULL)
@@ -2305,10 +2312,10 @@ transformCurrentOfExpr(ParseState *pstate, CurrentOfExpr *cexpr)
 
 	/*
 	 * Check to see if the cursor name matches a parameter of type REFCURSOR.
-	 * If so, replace the raw name reference with a parameter reference.
-	 * (This is a hack for the convenience of plpgsql.)
+	 * If so, replace the raw name reference with a parameter reference. (This
+	 * is a hack for the convenience of plpgsql.)
 	 */
-	if (cexpr->cursor_name != NULL)			/* in case already transformed */
+	if (cexpr->cursor_name != NULL)		/* in case already transformed */
 	{
 		ColumnRef  *cref = makeNode(ColumnRef);
 		Node	   *node = NULL;
@@ -2324,13 +2331,13 @@ transformCurrentOfExpr(ParseState *pstate, CurrentOfExpr *cexpr)
 			node = (*pstate->p_post_columnref_hook) (pstate, cref, NULL);
 
 		/*
-		 * XXX Should we throw an error if we get a translation that isn't
-		 * a refcursor Param?  For now it seems best to silently ignore
-		 * false matches.
+		 * XXX Should we throw an error if we get a translation that isn't a
+		 * refcursor Param?  For now it seems best to silently ignore false
+		 * matches.
 		 */
 		if (node != NULL && IsA(node, Param))
 		{
-			Param  *p = (Param *) node;
+			Param	   *p = (Param *) node;
 
 			if (p->paramkind == PARAM_EXTERN &&
 				p->paramtype == REFCURSOROID)

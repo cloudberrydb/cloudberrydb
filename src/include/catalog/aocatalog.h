@@ -25,6 +25,7 @@ extern bool CreateAOAuxiliaryTable(
 		char relkind,
 		TupleDesc tupledesc,
 		IndexInfo  *indexInfo,
+		List *indexColNames,
 		Oid	*classObjectId,
 		int16 *coloptions);
 

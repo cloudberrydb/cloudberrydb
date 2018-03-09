@@ -153,6 +153,7 @@ max_prepared_transactions = 250		# can be 0 or more
 
 #enable_bitmapscan = on
 #enable_indexscan = on
+#enable_material = on
 #enable_seqscan = on
 #enable_tidscan = on
 
@@ -249,8 +250,6 @@ optimizer_analyze_root_partition = on # stats collection on root partitions
 					#   fatal
 					#   panic
 
-#log_error_verbosity = default		# terse, default, or verbose messages
-
 #log_min_error_statement = error	# values in order of decreasing detail:
 				 	#   debug5
 					#   debug4
@@ -283,6 +282,7 @@ optimizer_analyze_root_partition = on # stats collection on root partitions
 #log_connections = off
 #log_disconnections = off
 #log_duration = off
+#log_error_verbosity = default		# terse, default, or verbose messages
 #log_hostname = off
 
 #log_statement = 'none'			# none, mod, ddl, all

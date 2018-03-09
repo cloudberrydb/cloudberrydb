@@ -4,9 +4,9 @@
  *	  POSTGRES definitions for external and compressed storage
  *	  of variable size attributes.
  *
- * Copyright (c) 2000-2009, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2010, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/include/access/tuptoaster.h,v 1.44 2009/07/22 01:21:22 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/access/tuptoaster.h,v 1.46 2010/02/26 02:01:21 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -33,7 +33,7 @@
 /*
  * Find the maximum size of a tuple if there are to be N tuples per page.
  */
-#define MaximumBytesPerTuple(tuplesPerPage)	\
+#define MaximumBytesPerTuple(tuplesPerPage) \
 	MAXALIGN_DOWN((BLCKSZ - \
 				   MAXALIGN(SizeOfPageHeaderData + (tuplesPerPage) * sizeof(ItemIdData))) \
 				  / (tuplesPerPage))
@@ -66,12 +66,12 @@
  * The code will also consider moving MAIN data out-of-line, but only as a
  * last resort if the previous steps haven't reached the target tuple size.
  * In this phase we use a different target size, currently equal to the
- * largest tuple that will fit on a heap page.  This is reasonable since
+ * largest tuple that will fit on a heap page.	This is reasonable since
  * the user has told us to keep the data in-line if at all possible.
  */
 #define TOAST_TUPLES_PER_PAGE_MAIN	1
 
-#define TOAST_TUPLE_TARGET_MAIN	MaximumBytesPerTuple(TOAST_TUPLES_PER_PAGE_MAIN)
+#define TOAST_TUPLE_TARGET_MAIN MaximumBytesPerTuple(TOAST_TUPLES_PER_PAGE_MAIN)
 
 /*
  * If an index value is larger than TOAST_INDEX_TARGET, we will try to

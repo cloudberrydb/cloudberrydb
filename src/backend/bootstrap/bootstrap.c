@@ -4,11 +4,11 @@
  *	  routines to support running postgres in 'bootstrap' mode
  *	bootstrap mode is used to create the initial template database
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/bootstrap/bootstrap.c,v 1.254 2009/12/07 05:22:21 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/bootstrap/bootstrap.c,v 1.261 2010/04/20 01:38:52 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -33,8 +33,8 @@
 #include "postmaster/bgwriter.h"
 #include "postmaster/walwriter.h"
 #include "replication/walreceiver.h"
-#include "storage/bufpage.h"
 #include "storage/bufmgr.h"
+#include "storage/bufpage.h"
 #include "storage/ipc.h"
 #include "storage/proc.h"
 #include "storage/procsignal.h"
@@ -43,6 +43,7 @@
 #include "utils/fmgroids.h"
 #include "utils/memutils.h"
 #include "utils/ps_status.h"
+#include "utils/relmapper.h"
 #include "utils/tqual.h"
 
 extern int	optind;
@@ -176,7 +177,7 @@ static IndexList *ILHead = NULL;
  *	 AuxiliaryProcessMain
  *
  *	 The main entry point for auxiliary processes, such as the bgwriter,
- *	 walwriter, bootstrapper and the shared memory checker code.
+ *	 walwriter, walreceiver, bootstrapper and the shared memory checker code.
  *
  *	 This code is here just because of historical reasons.
  */
@@ -325,11 +326,11 @@ AuxiliaryProcessMain(int argc, char *argv[])
 			case WalWriterProcess:
 				statmsg = "wal writer process";
 				break;
-			case CheckpointerProcess:
-				statmsg = "checkpointer process";
-				break;
 			case WalReceiverProcess:
 				statmsg = "wal receiver process";
+				break;
+			case CheckpointerProcess:
+				statmsg = "checkpointer process";
 				break;
 			default:
 				statmsg = "??? process";
@@ -382,7 +383,7 @@ AuxiliaryProcessMain(int argc, char *argv[])
 #endif
 
 		/*
-		 * Assign the ProcSignalSlot for an auxiliary process.  Since it
+		 * Assign the ProcSignalSlot for an auxiliary process.	Since it
 		 * doesn't have a BackendId, the slot is statically allocated based on
 		 * the auxiliary process type (MyAuxProcType).  Backends use slots indexed
 		 * in the range from 1 to MaxBackends (inclusive), so we use
@@ -409,14 +410,13 @@ AuxiliaryProcessMain(int argc, char *argv[])
 	switch (MyAuxProcType)
 	{
 		case CheckerProcess:
-			bootstrap_signals();
+			/* don't set signals, they're useless here */
 			CheckerModeMain();
 			proc_exit(1);		/* should never return */
 
 		case BootstrapProcess:
 			bootstrap_signals();
 			BootStrapXLOG();
-			StartupXLOG();
 			BootstrapModeMain();
 			proc_exit(1);		/* should never return */
 
@@ -432,7 +432,6 @@ AuxiliaryProcessMain(int argc, char *argv[])
 
 		case CheckpointerProcess:
 			/* don't set signals, checkpointer is similar to bgwriter and has its own agenda */
-			InitXLOGAccess();
 			CheckpointerMain();
 			proc_exit(1);		/* should never return */
 
@@ -456,23 +455,12 @@ AuxiliaryProcessMain(int argc, char *argv[])
 /*
  * In shared memory checker mode, all we really want to do is create shared
  * memory and semaphores (just to prove we can do it with the current GUC
- * settings).
+ * settings).  Since, in fact, that was already done by BaseInit(),
+ * we have nothing more to do here.
  */
 static void
 CheckerModeMain(void)
 {
-	/*
-	 * We must be getting invoked for bootstrap mode
-	 */
-	Assert(!IsUnderPostmaster);
-
-	SetProcessingMode(BootstrapProcessing);
-
-	/*
-	 * Do backend-like initialization for bootstrap mode
-	 */
-	InitProcess();
-	InitPostgres(NULL, InvalidOid, NULL, NULL);
 	proc_exit(0);
 }
 
@@ -496,6 +484,7 @@ BootstrapModeMain(void)
 	 * Do backend-like initialization for bootstrap mode
 	 */
 	InitProcess();
+
 	InitPostgres(NULL, InvalidOid, NULL, NULL);
 
 	/* Initialize stuff for bootstrap-file processing */
@@ -510,9 +499,11 @@ BootstrapModeMain(void)
 	 */
 	boot_yyparse();
 
-	/* Perform a checkpoint to ensure everything's down to disk */
-	SetProcessingMode(NormalProcessing);
-	CreateCheckPoint(CHECKPOINT_IS_SHUTDOWN | CHECKPOINT_IMMEDIATE);
+	/*
+	 * We should now know about all mapped relations, so it's okay to write
+	 * out the initial relation mapping files.
+	 */
+	RelationMapFinishBootstrap();
 
 	/* Clean up and exit */
 	cleanup();
@@ -756,7 +747,6 @@ DefineAttr(char *name, char *type, int attnum)
 	}
 
 	attrtypes[attnum]->attstattarget = -1;
-	attrtypes[attnum]->attdistinct = 0;
 	attrtypes[attnum]->attcacheoff = -1;
 	attrtypes[attnum]->atttypmod = -1;
 	attrtypes[attnum]->attislocal = true;

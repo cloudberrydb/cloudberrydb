@@ -4711,20 +4711,20 @@ NOTICE:  CREATE TABLE will create partition "mpp5427_1_prt_99" for table "mpp542
 NOTICE:  CREATE TABLE will create partition "mpp5427_1_prt_100" for table "mpp5427"
 insert into mpp5427 select i from generate_series(1, 100) i;
 select * from pg_stats where tablename like 'mpp5427%';
- schemaname | tablename | attname | null_frac | avg_width | n_distinct | most_common_vals | most_common_freqs | histogram_bounds | correlation 
-------------+-----------+---------+-----------+-----------+------------+------------------+-------------------+------------------+-------------
+ schemaname | tablename | attname | inherited | null_frac | avg_width | n_distinct | most_common_vals | most_common_freqs | histogram_bounds | correlation 
+------------+-----------+---------+-----------+-----------+-----------+------------+------------------+-------------------+------------------+-------------
 (0 rows)
 
 insert into mpp5427 select i from generate_series(1, 100000) i;
 select * from pg_stats where tablename like 'mpp5427%';
- schemaname | tablename | attname | null_frac | avg_width | n_distinct | most_common_vals | most_common_freqs | histogram_bounds | correlation 
-------------+-----------+---------+-----------+-----------+------------+------------------+-------------------+------------------+-------------
+ schemaname | tablename | attname | inherited | null_frac | avg_width | n_distinct | most_common_vals | most_common_freqs | histogram_bounds | correlation 
+------------+-----------+---------+-----------+-----------+-----------+------------+------------------+-------------------+------------------+-------------
 (0 rows)
 
 insert into mpp5427 select i from generate_series(1, 1000000) i;
 select * from pg_stats where tablename like 'mpp5427%';
- schemaname | tablename | attname | null_frac | avg_width | n_distinct | most_common_vals | most_common_freqs | histogram_bounds | correlation 
-------------+-----------+---------+-----------+-----------+------------+------------------+-------------------+------------------+-------------
+ schemaname | tablename | attname | inherited | null_frac | avg_width | n_distinct | most_common_vals | most_common_freqs | histogram_bounds | correlation 
+------------+-----------+---------+-----------+-----------+-----------+------------+------------------+-------------------+------------------+-------------
 (0 rows)
 
 truncate table mpp5427;
@@ -4732,26 +4732,26 @@ alter table mpp5427 add default partition default_part;
 NOTICE:  CREATE TABLE will create partition "mpp5427_1_prt_default_part" for table "mpp5427"
 insert into mpp5427 select i from generate_series(1, 100) i;
 select * from pg_stats where tablename like 'mpp5427%';
- schemaname | tablename | attname | null_frac | avg_width | n_distinct | most_common_vals | most_common_freqs | histogram_bounds | correlation 
-------------+-----------+---------+-----------+-----------+------------+------------------+-------------------+------------------+-------------
+ schemaname | tablename | attname | inherited | null_frac | avg_width | n_distinct | most_common_vals | most_common_freqs | histogram_bounds | correlation 
+------------+-----------+---------+-----------+-----------+-----------+------------+------------------+-------------------+------------------+-------------
 (0 rows)
 
 insert into mpp5427 select i from generate_series(1, 100000) i;
 select * from pg_stats where tablename like 'mpp5427%';
- schemaname | tablename | attname | null_frac | avg_width | n_distinct | most_common_vals | most_common_freqs | histogram_bounds | correlation 
-------------+-----------+---------+-----------+-----------+------------+------------------+-------------------+------------------+-------------
+ schemaname | tablename | attname | inherited | null_frac | avg_width | n_distinct | most_common_vals | most_common_freqs | histogram_bounds | correlation 
+------------+-----------+---------+-----------+-----------+-----------+------------+------------------+-------------------+------------------+-------------
 (0 rows)
 
 insert into mpp5427 select i from generate_series(1, 1000000) i;
 select * from pg_stats where tablename like 'mpp5427%';
- schemaname | tablename | attname | null_frac | avg_width | n_distinct | most_common_vals | most_common_freqs | histogram_bounds | correlation 
-------------+-----------+---------+-----------+-----------+------------+------------------+-------------------+------------------+-------------
+ schemaname | tablename | attname | inherited | null_frac | avg_width | n_distinct | most_common_vals | most_common_freqs | histogram_bounds | correlation 
+------------+-----------+---------+-----------+-----------+-----------+------------+------------------+-------------------+------------------+-------------
 (0 rows)
 
 insert into mpp5427 select i from generate_series(10000000, 15000000) i;
 select * from pg_stats where tablename like 'mpp5427%';
- schemaname | tablename | attname | null_frac | avg_width | n_distinct | most_common_vals | most_common_freqs | histogram_bounds | correlation 
-------------+-----------+---------+-----------+-----------+------------+------------------+-------------------+------------------+-------------
+ schemaname | tablename | attname | inherited | null_frac | avg_width | n_distinct | most_common_vals | most_common_freqs | histogram_bounds | correlation 
+------------+-----------+---------+-----------+-----------+-----------+------------+------------------+-------------------+------------------+-------------
 (0 rows)
 
 drop table mpp5427;
@@ -5155,8 +5155,8 @@ NOTICE:  CREATE TABLE will create partition "mpp6573_1_prt_1" for table "mpp6573
 NOTICE:  CREATE TABLE will create partition "mpp6573_1_prt_2" for table "mpp6573"
 alter table mpp6573 add primary key (id, date) ;
 NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "mpp6573_pkey" for table "mpp6573"
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "mpp6573_1_prt_1_pkey" for table "mpp6573_1_prt_1"
-NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "mpp6573_1_prt_2_pkey" for table "mpp6573_1_prt_2"
+NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "mpp6573_1_prt_1_idx" for table "mpp6573_1_prt_1"
+NOTICE:  ALTER TABLE / ADD PRIMARY KEY will create implicit index "mpp6573_1_prt_2_idx" for table "mpp6573_1_prt_2"
 \d mpp6573*
    Table "bfv_partition.mpp6573"
  Column |     Type      | Modifiers 
@@ -5177,13 +5177,13 @@ Table "bfv_partition.mpp6573_1_prt_1"
  date   | date          | not null
  amt    | numeric(10,2) | 
 Indexes:
-    "mpp6573_1_prt_1_pkey" PRIMARY KEY, btree (id, date)
+    "mpp6573_1_prt_1_idx" PRIMARY KEY, btree (id, date)
 Check constraints:
     "mpp6573_1_prt_1_check" CHECK (date >= '01-01-2008'::date AND date < '01-02-2008'::date)
 Inherits: mpp6573
 Distributed by: (id)
 
-Index "bfv_partition.mpp6573_1_prt_1_pkey"
+Index "bfv_partition.mpp6573_1_prt_1_idx"
  Column |  Type   | Definition 
 --------+---------+------------
  id     | integer | id
@@ -5197,13 +5197,13 @@ Table "bfv_partition.mpp6573_1_prt_2"
  date   | date          | not null
  amt    | numeric(10,2) | 
 Indexes:
-    "mpp6573_1_prt_2_pkey" PRIMARY KEY, btree (id, date)
+    "mpp6573_1_prt_2_idx" PRIMARY KEY, btree (id, date)
 Check constraints:
     "mpp6573_1_prt_2_check" CHECK (date >= '01-02-2008'::date AND date < '01-03-2008'::date)
 Inherits: mpp6573
 Distributed by: (id)
 
-Index "bfv_partition.mpp6573_1_prt_2_pkey"
+Index "bfv_partition.mpp6573_1_prt_2_idx"
  Column |  Type   | Definition 
 --------+---------+------------
  id     | integer | id

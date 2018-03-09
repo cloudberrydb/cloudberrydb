@@ -3,12 +3,12 @@
  * restrictinfo.c
  *	  RestrictInfo node manipulation routines.
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/restrictinfo.c,v 1.61 2009/07/06 18:26:30 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/restrictinfo.c,v 1.63 2010/02/26 02:00:49 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -299,15 +299,15 @@ make_restrictinfos_from_actual_clauses(PlannerInfo *root,
 
 	foreach(l, clause_list)
 	{
-		Expr   *clause = (Expr *) lfirst(l);
-		bool	pseudoconstant;
+		Expr	   *clause = (Expr *) lfirst(l);
+		bool		pseudoconstant;
 		RestrictInfo *rinfo;
 
 		/*
 		 * It's pseudoconstant if it contains no Vars and no volatile
 		 * functions.  We probably can't see any sublinks here, so
-		 * contain_var_clause() would likely be enough, but for safety
-		 * use contain_vars_of_level() instead.
+		 * contain_var_clause() would likely be enough, but for safety use
+		 * contain_vars_of_level() instead.
 		 */
 		pseudoconstant =
 			!contain_vars_of_level((Node *) clause, 0) &&

@@ -3,12 +3,12 @@
  * indexam.c
  *	  general index access method routines
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/index/indexam.c,v 1.115 2009/07/29 20:56:18 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/index/indexam.c,v 1.118 2010/02/26 02:00:34 momjian Exp $
  *
  * INTERFACE ROUTINES
  *		index_open		- open an index relation by relation OID
@@ -455,9 +455,12 @@ index_getnext(IndexScanDesc scan, ScanDirection direction)
 
 			/*
 			 * If we scanned a whole HOT chain and found only dead tuples,
-			 * tell index AM to kill its entry for that TID.
+			 * tell index AM to kill its entry for that TID. We do not do this
+			 * when in recovery because it may violate MVCC to do so. see
+			 * comments in RelationGetIndexScan().
 			 */
-			scan->kill_prior_tuple = scan->xs_hot_dead;
+			if (!scan->xactStartedInRecovery)
+				scan->kill_prior_tuple = scan->xs_hot_dead;
 
 			/*
 			 * The AM's gettuple proc finds the next index entry matching the

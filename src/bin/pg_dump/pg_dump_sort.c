@@ -4,12 +4,12 @@
  *	  Sort the items of a dump into a safe order for dumping
  *
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump_sort.c,v 1.26 2009/10/05 19:24:46 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump_sort.c,v 1.30 2010/02/26 02:01:17 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -47,7 +47,7 @@ static const int oldObjectTypePriority[] =
 	16,							/* DO_FK_CONSTRAINT */
 	2,							/* DO_PROCLANG */
 	2,							/* DO_CAST */
-	9,							/* DO_TABLE_DATA */
+	10,							/* DO_TABLE_DATA */
 	7,							/* DO_DUMMY_TYPE */
 	3,							/* DO_TSPARSER */
 	4,							/* DO_TSDICT */
@@ -56,8 +56,8 @@ static const int oldObjectTypePriority[] =
 	3,							/* DO_FDW */
 	4,							/* DO_FOREIGN_SERVER */
 	17,							/* DO_DEFAULT_ACL */
-	10,							/* DO_BLOBS */
-	11,							/* DO_BLOB_COMMENTS */
+	9,							/* DO_BLOB */
+	11,							/* DO_BLOB_DATA */
 	3,							/* DO_EXTPROTOCOL */
 	/* GPDB_84_MERGE_FIXME: missing DO_TYPE_STORAGE_OPTIONS? */
 };
@@ -87,7 +87,7 @@ static const int newObjectTypePriority[] =
 	26,							/* DO_FK_CONSTRAINT */
 	2,							/* DO_PROCLANG */
 	8,							/* DO_CAST */
-	19,							/* DO_TABLE_DATA */
+	20,							/* DO_TABLE_DATA */
 	17,							/* DO_DUMMY_TYPE */
 	10,							/* DO_TSPARSER */
 	12,							/* DO_TSDICT */
@@ -96,8 +96,8 @@ static const int newObjectTypePriority[] =
 	14,							/* DO_FDW */
 	15,							/* DO_FOREIGN_SERVER */
 	27,							/* DO_DEFAULT_ACL */
-	20,							/* DO_BLOBS */
-	21,							/* DO_BLOB_COMMENTS */
+	19,							/* DO_BLOB */
+	21,							/* DO_BLOB_DATA */
 	/* GPDB_84_MERGE_FIXME: Are these priorities sensible? */
 	8,							/* DO_EXTPROTOCOL */
 	22							/* DO_TYPE_STORAGE_OPTIONS */
@@ -170,7 +170,18 @@ DOTypeNameCompare(const void *p1, const void *p2)
 	if (cmpval != 0)
 		return cmpval;
 
-	/* Probably shouldn't get here, but if we do, sort by OID */
+	/* To have a stable sort order, break ties for some object types */
+	if (obj1->objType == DO_FUNC || obj1->objType == DO_AGG)
+	{
+		FuncInfo   *fobj1 = *(FuncInfo **) p1;
+		FuncInfo   *fobj2 = *(FuncInfo **) p2;
+
+		cmpval = fobj1->nargs - fobj2->nargs;
+		if (cmpval != 0)
+			return cmpval;
+	}
+
+	/* Usually shouldn't get here, but if we do, sort by OID */
 	return oidcmp(obj1->catId.oid, obj2->catId.oid);
 }
 
@@ -1167,14 +1178,14 @@ describeDumpableObject(DumpableObject *obj, char *buf, int bufsize)
 					 "DEFAULT ACL %s  (ID %d OID %u)",
 					 obj->name, obj->dumpId, obj->catId.oid);
 			return;
-		case DO_BLOBS:
+		case DO_BLOB:
 			snprintf(buf, bufsize,
-					 "BLOBS  (ID %d)",
-					 obj->dumpId);
+					 "BLOB  (ID %d OID %u)",
+					 obj->dumpId, obj->catId.oid);
 			return;
-		case DO_BLOB_COMMENTS:
+		case DO_BLOB_DATA:
 			snprintf(buf, bufsize,
-					 "BLOB COMMENTS  (ID %d)",
+					 "BLOB DATA  (ID %d)",
 					 obj->dumpId);
 			return;
 	}

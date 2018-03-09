@@ -3,7 +3,7 @@
  * copydir.c
  *	  copies a directory
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *	While "xcopy /e /i /q" works fine for copying directories, on Windows XP
@@ -11,7 +11,7 @@
  *	as a service.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/port/copydir.c,v 1.23 2009/01/01 17:24:04 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/file/copydir.c,v 1.2 2010/07/06 19:18:57 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 
 #include "storage/fd.h"
+#include "miscadmin.h"
 
 /*
  *	On Windows, call non-macro versions of palloc; we can't reference
@@ -37,6 +38,7 @@
 
 
 static void copy_file(char *fromfile, char *tofile);
+static void fsync_fname(char *fname, bool isdir);
 
 
 /*
@@ -68,6 +70,9 @@ copydir(char *fromdir, char *todir, bool recurse)
 	{
 		struct stat fst;
 
+		/* If we got a cancel signal during the copy of the directory, quit */
+		CHECK_FOR_INTERRUPTS();
+
 		if (strcmp(xlde->d_name, ".") == 0 ||
 			strcmp(xlde->d_name, "..") == 0)
 			continue;
@@ -89,8 +94,48 @@ copydir(char *fromdir, char *todir, bool recurse)
 		else if (S_ISREG(fst.st_mode))
 			copy_file(fromfile, tofile);
 	}
-
 	FreeDir(xldir);
+
+	/*
+	 * Be paranoid here and fsync all files to ensure the copy is really done.
+	 */
+	xldir = AllocateDir(todir);
+	if (xldir == NULL)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not open directory \"%s\": %m", todir)));
+
+	while ((xlde = ReadDir(xldir, todir)) != NULL)
+	{
+		struct stat fst;
+
+		if (strcmp(xlde->d_name, ".") == 0 ||
+			strcmp(xlde->d_name, "..") == 0)
+			continue;
+
+		snprintf(tofile, MAXPGPATH, "%s/%s", todir, xlde->d_name);
+
+		/*
+		 * We don't need to sync subdirectories here since the recursive
+		 * copydir will do it before it returns
+		 */
+		if (lstat(tofile, &fst) < 0)
+			ereport(ERROR,
+					(errcode_for_file_access(),
+					 errmsg("could not stat file \"%s\": %m", tofile)));
+
+		if (S_ISREG(fst.st_mode))
+			fsync_fname(tofile, false);
+	}
+	FreeDir(xldir);
+
+	/*
+	 * It's important to fsync the destination directory itself as individual
+	 * file fsyncs don't guarantee that the directory entry for the file is
+	 * synced. Recent versions of ext4 have made the window much wider but
+	 * it's been true for ext3 and other filesystems in the past.
+	 */
+	fsync_fname(todir, true);
 }
 
 /*
@@ -103,6 +148,7 @@ copy_file(char *fromfile, char *tofile)
 	int			srcfd;
 	int			dstfd;
 	int			nbytes;
+	off_t		offset;
 
 	/* Use palloc to ensure we get a maxaligned buffer */
 #define COPY_BUF_SIZE (8 * BLCKSZ)
@@ -128,8 +174,11 @@ copy_file(char *fromfile, char *tofile)
 	/*
 	 * Do the data copying.
 	 */
-	for (;;)
+	for (offset = 0;; offset += nbytes)
 	{
+		/* If we got a cancel signal during the copy of the file, quit */
+		CHECK_FOR_INTERRUPTS();
+
 		nbytes = read(srcfd, buffer, COPY_BUF_SIZE);
 		if (nbytes < 0)
 			ereport(ERROR,
@@ -147,15 +196,14 @@ copy_file(char *fromfile, char *tofile)
 					(errcode_for_file_access(),
 					 errmsg("could not write to file \"%s\": %m", tofile)));
 		}
-	}
 
-	/*
-	 * Be paranoid here to ensure we catch problems.
-	 */
-	if (pg_fsync(dstfd) != 0)
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not fsync file \"%s\": %m", tofile)));
+		/*
+		 * We fsync the files later but first flush them to avoid spamming the
+		 * cache and hopefully get the kernel to start writing them out before
+		 * the fsync comes.
+		 */
+		pg_flush_data(dstfd, offset, nbytes);
+	}
 
 	if (close(dstfd))
 		ereport(ERROR,
@@ -165,4 +213,60 @@ copy_file(char *fromfile, char *tofile)
 	close(srcfd);
 
 	pfree(buffer);
+}
+
+
+/*
+ * fsync a file
+ *
+ * Try to fsync directories but ignore errors that indicate the OS
+ * just doesn't allow/require fsyncing directories.
+ */
+static void
+fsync_fname(char *fname, bool isdir)
+{
+	int			fd;
+	int			returncode;
+
+	/*
+	 * Some OSs require directories to be opened read-only whereas other
+	 * systems don't allow us to fsync files opened read-only; so we need both
+	 * cases here
+	 */
+	if (!isdir)
+		fd = BasicOpenFile(fname,
+						   O_RDWR | PG_BINARY,
+						   S_IRUSR | S_IWUSR);
+	else
+		fd = BasicOpenFile(fname,
+						   O_RDONLY | PG_BINARY,
+						   S_IRUSR | S_IWUSR);
+
+	/*
+	 * Some OSs don't allow us to open directories at all (Windows returns
+	 * EACCES)
+	 */
+	if (fd < 0 && isdir && (errno == EISDIR || errno == EACCES))
+		return;
+
+	else if (fd < 0)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not open file \"%s\": %m", fname)));
+
+	returncode = pg_fsync(fd);
+
+	/* Some OSs don't allow us to fsync directories at all */
+	if (returncode != 0 && isdir && errno == EBADF)
+	{
+		close(fd);
+		return;
+	}
+
+	if (returncode != 0)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not fsync file \"%s\": %m", fname)));
+
+	close(fd);
 }

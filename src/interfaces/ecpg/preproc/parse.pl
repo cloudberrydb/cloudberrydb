@@ -1,9 +1,9 @@
 #!/usr/bin/perl
-# $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/parse.pl,v 1.6 2009/11/26 15:06:47 meskes Exp $
+# $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/parse.pl,v 1.9 2010/06/04 10:09:58 meskes Exp $
 # parser generater for ecpg
 # call with backend parser as stdin
 #
-# Copyright (c) 2007-2009, PostgreSQL Global Development Group
+# Copyright (c) 2007-2010, PostgreSQL Global Development Group
 #
 # Written by Mike Aubury <mike.aubury@aubit.com>
 #	     Michael Meskes <meskes@postgresql.org>
@@ -44,6 +44,8 @@ $replace_string{'WITH_TIME'} = 'with time';
 $replace_string{'NULLS_FIRST'} = 'nulls first';
 $replace_string{'NULLS_LAST'} = 'nulls last';
 $replace_string{'TYPECAST'} = '::';
+$replace_string{'DOT_DOT'} = '..';
+$replace_string{'COLON_EQUALS'} = ':=';
 
 # specific replace_types for specific non-terminals - never include the ':'
 # ECPG-only replace_types are defined in ecpg-replace_types
@@ -84,6 +86,7 @@ $replace_line{'VariableShowStmtSHOWvar_name'} = 'SHOW var_name ecpg_into';
 $replace_line{'VariableShowStmtSHOWTIMEZONE'} = 'SHOW TIME ZONE ecpg_into';
 $replace_line{'VariableShowStmtSHOWTRANSACTIONISOLATIONLEVEL'} = 'SHOW TRANSACTION ISOLATION LEVEL ecpg_into';
 $replace_line{'VariableShowStmtSHOWSESSIONAUTHORIZATION'} = 'SHOW SESSION AUTHORIZATION ecpg_into';
+$replace_line{'returning_clauseRETURNINGtarget_list'} = 'RETURNING target_list ecpg_into';
 $replace_line{'ExecuteStmtEXECUTEnameexecute_param_clause'} = 'EXECUTE prepared_name execute_param_clause execute_rest';
 $replace_line{'ExecuteStmtCREATEOptTempTABLEcreate_as_targetASEXECUTEnameexecute_param_clause'} = 'CREATE OptTemp TABLE create_as_target AS EXECUTE prepared_name execute_param_clause';
 $replace_line{'PrepareStmtPREPAREnameprep_type_clauseASPreparableStmt'} = 'PREPARE prepared_name prep_type_clause AS PreparableStmt';

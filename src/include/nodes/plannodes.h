@@ -7,10 +7,10 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/plannodes.h,v 1.113 2009/10/26 02:26:42 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/plannodes.h,v 1.117 2010/02/26 02:01:25 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -344,12 +344,12 @@ typedef struct Repeat
 typedef struct ModifyTable
 {
 	Plan		plan;
-	CmdType		operation;			/* INSERT, UPDATE, or DELETE */
+	CmdType		operation;		/* INSERT, UPDATE, or DELETE */
 	List	   *resultRelations;	/* integer list of RT indexes */
-	List	   *plans;				/* plan(s) producing source data */
-	List	   *returningLists;		/* per-target-table RETURNING tlists */
-	List	   *rowMarks;			/* PlanRowMarks (non-locking only) */
-	int			epqParam;			/* ID of Param for EvalPlanQual re-eval */
+	List	   *plans;			/* plan(s) producing source data */
+	List	   *returningLists; /* per-target-table RETURNING tlists */
+	List	   *rowMarks;		/* PlanRowMarks (non-locking only) */
+	int			epqParam;		/* ID of Param for EvalPlanQual re-eval */
 } ModifyTable;
 
 /* ----------------
@@ -638,7 +638,7 @@ typedef struct TidScan
  *
  * Note: subrtable is used just to carry the subquery rangetable from
  * createplan.c to setrefs.c; it should always be NIL by the time the
- * executor sees the plan.  Similarly for subrowmark.
+ * executor sees the plan.	Similarly for subrowmark.
  * ----------------
  */
 typedef struct SubqueryScan
@@ -1072,9 +1072,9 @@ typedef struct Unique
  *		hash build node
  *
  * If the executor is supposed to try to apply skew join optimization, then
- * skewTable/skewColumn identify the outer relation's join key column, from
- * which the relevant MCV statistics can be fetched.  Also, its type
- * information is provided to save a lookup.
+ * skewTable/skewColumn/skewInherit identify the outer relation's join key
+ * column, from which the relevant MCV statistics can be fetched.  Also, its
+ * type information is provided to save a lookup.
  * ----------------
  */
 typedef struct Hash
@@ -1083,6 +1083,7 @@ typedef struct Hash
 	bool		rescannable;            /* CDB: true => save rows for rescan */
 	Oid			skewTable;		/* outer join key's table OID, or InvalidOid */
 	AttrNumber	skewColumn;		/* outer join key's column #, or zero */
+	bool		skewInherit;	/* is outer join rel an inheritance tree? */
 	Oid			skewColType;	/* datatype of the outer key column */
 	int32		skewColTypmod;	/* typmod of the outer key column */
 	/* all other info is in the parent HashJoin node */
@@ -1276,7 +1277,7 @@ typedef enum RowMarkType
  *	   plan-time representation of FOR UPDATE/SHARE clauses
  *
  * When doing UPDATE, DELETE, or SELECT FOR UPDATE/SHARE, we create a separate
- * PlanRowMark node for each non-target relation in the query.  Relations that
+ * PlanRowMark node for each non-target relation in the query.	Relations that
  * are not specified as FOR UPDATE/SHARE are marked ROW_MARK_REFERENCE (if
  * real tables) or ROW_MARK_COPY (if not).
  *
@@ -1288,7 +1289,7 @@ typedef enum RowMarkType
  * prti == parent's RT index, and can therefore be recognized as children by
  * the fact that prti != rti.
  *
- * The AttrNumbers are filled in during preprocess_targetlist.  We use
+ * The AttrNumbers are filled in during preprocess_targetlist.	We use
  * different subsets of them for plain relations, inheritance children,
  * and non-table relations.
  */
@@ -1297,7 +1298,7 @@ typedef struct PlanRowMark
 	NodeTag		type;
 	Index		rti;			/* range table index of markable relation */
 	Index		prti;			/* range table index of parent relation */
-	RowMarkType	markType;		/* see enum above */
+	RowMarkType markType;		/* see enum above */
 	bool		noWait;			/* NOWAIT option */
 	bool		isParent;		/* true if this is a "dummy" parent entry */
 	AttrNumber	ctidAttNo;		/* resno of ctid junk attribute, if any */

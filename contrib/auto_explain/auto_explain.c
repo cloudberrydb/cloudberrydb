@@ -3,10 +3,10 @@
  * auto_explain.c
  *
  *
- * Copyright (c) 2008-2009, PostgreSQL Global Development Group
+ * Copyright (c) 2008-2010, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/contrib/auto_explain/auto_explain.c,v 1.10 2009/12/15 04:57:46 rhaas Exp $
+ *	  $PostgreSQL: pgsql/contrib/auto_explain/auto_explain.c,v 1.14 2010/02/26 02:00:31 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -27,11 +27,11 @@ static int	auto_explain_log_format = EXPLAIN_FORMAT_TEXT;
 static bool auto_explain_log_nested_statements = false;
 
 static const struct config_enum_entry format_options[] = {
-        {"text", EXPLAIN_FORMAT_TEXT, false},
-        {"xml", EXPLAIN_FORMAT_XML, false},
-        {"json", EXPLAIN_FORMAT_JSON, false},
-        {"yaml", EXPLAIN_FORMAT_YAML, false},
-        {NULL, 0, false}
+	{"text", EXPLAIN_FORMAT_TEXT, false},
+	{"xml", EXPLAIN_FORMAT_XML, false},
+	{"json", EXPLAIN_FORMAT_JSON, false},
+	{"yaml", EXPLAIN_FORMAT_YAML, false},
+	{NULL, 0, false}
 };
 
 /* Current nesting depth of ExecutorRun calls */
@@ -151,7 +151,7 @@ _PG_fini(void)
 /*
  * ExecutorStart hook: start up logging if needed
  */
-void
+static void
 explain_ExecutorStart(QueryDesc *queryDesc, int eflags)
 {
 	if (auto_explain_enabled())
@@ -191,7 +191,7 @@ explain_ExecutorStart(QueryDesc *queryDesc, int eflags)
 /*
  * ExecutorRun hook: all we need do is track nesting depth
  */
-void
+static void
 explain_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction, long count)
 {
 	nesting_level++;
@@ -214,7 +214,7 @@ explain_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction, long count)
 /*
  * ExecutorEnd hook: log results if needed
  */
-void
+static void
 explain_ExecutorEnd(QueryDesc *queryDesc)
 {
 	if (queryDesc->totaltime && auto_explain_enabled())
@@ -231,7 +231,7 @@ explain_ExecutorEnd(QueryDesc *queryDesc)
 		msec = queryDesc->totaltime->total * 1000.0;
 		if (msec >= auto_explain_log_min_duration)
 		{
-			ExplainState	es;
+			ExplainState es;
 
 			ExplainInitState(&es);
 			es.analyze = (queryDesc->instrument_options && auto_explain_log_analyze);
@@ -240,6 +240,7 @@ explain_ExecutorEnd(QueryDesc *queryDesc)
 			es.format = auto_explain_log_format;
 
 			ExplainBeginOutput(&es);
+			ExplainQueryText(&es, queryDesc);
 			ExplainPrintPlan(&es, queryDesc);
 			ExplainEndOutput(&es);
 
@@ -255,7 +256,8 @@ explain_ExecutorEnd(QueryDesc *queryDesc)
 			 */
 			ereport(LOG,
 					(errmsg("duration: %.3f ms  plan:\n%s",
-							msec, es.str->data)));
+							msec, es.str->data),
+					 errhidestmt(true)));
 
 			pfree(es.str->data);
 		}

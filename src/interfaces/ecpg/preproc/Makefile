@@ -2,13 +2,15 @@
 #
 # Makefile for src/interfaces/ecpg/preproc
 #
-# Copyright (c) 1998-2009, PostgreSQL Global Development Group
+# Copyright (c) 1998-2010, PostgreSQL Global Development Group
 #
-# $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/Makefile,v 1.147 2009/11/27 10:00:40 meskes Exp $
+# $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/Makefile,v 1.150 2010/07/05 18:54:38 tgl Exp $
 #
 #-------------------------------------------------------------------------
 
 PGFILEDESC = "ecpg - embedded SQL precompiler for C"
+PGAPPICON=win32
+
 subdir = src/interfaces/ecpg/preproc
 top_builddir = ../../../..
 include $(top_builddir)/src/Makefile.global
@@ -39,7 +41,7 @@ OBJS=	preproc.o type.o ecpg.o output.o parser.o \
 all: submake-libpgport ecpg
 
 ecpg: $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LIBS) $(PTHREAD_LIBS) -o $@$(X)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(LDFLAGS_EX) $^ $(LIBS) $(PTHREAD_LIBS) -o $@$(X)
 
 # pgc is compiled as part of preproc
 preproc.o: pgc.c

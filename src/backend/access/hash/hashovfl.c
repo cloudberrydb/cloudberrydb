@@ -3,12 +3,12 @@
  * hashovfl.c
  *	  Overflow page management code for the Postgres hash access method
  *
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/hash/hashovfl.c,v 1.67 2009/11/01 21:25:25 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/hash/hashovfl.c,v 1.69 2010/02/26 02:00:33 momjian Exp $
  *
  * NOTES
  *	  Overflow pages look like ordinary relation pages.
@@ -717,8 +717,8 @@ _hash_squeezebucket(Relation rel,
 
 		/*
 		 * If we reach here, there are no live tuples on the "read" page ---
-		 * it was empty when we got to it, or we moved them all.  So we
-		 * can just free the page without bothering with deleting tuples
+		 * it was empty when we got to it, or we moved them all.  So we can
+		 * just free the page without bothering with deleting tuples
 		 * individually.  Then advance to the previous "read" page.
 		 *
 		 * Tricky point here: if our read and write pages are adjacent in the

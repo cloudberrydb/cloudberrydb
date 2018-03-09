@@ -28,7 +28,6 @@ MASTER_ONLY_TABLES = [
     'gp_distribution_policy',
     'gp_segment_configuration',
     'pg_description',
-    'pg_listener',  # ???
     'pg_partition',
     'pg_partition_rule',
     'pg_shdescription',

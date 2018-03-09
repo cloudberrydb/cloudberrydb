@@ -325,32 +325,6 @@ SELECT dblink_disconnect('myconn');
 -- should get 'connection "myconn" not available' error
 SELECT dblink_disconnect('myconn');
 
--- test dropped columns in dblink_build_sql_insert, dblink_build_sql_update
-CREATE TEMP TABLE test_dropped
-(
-	col1 INT NOT NULL DEFAULT 111,
-	id SERIAL PRIMARY KEY,
-	col2 INT NOT NULL DEFAULT 112,
-	col2b INT NOT NULL DEFAULT 113
-);
-
-INSERT INTO test_dropped VALUES(default);
-
-ALTER TABLE test_dropped
-	DROP COLUMN col1,
-	DROP COLUMN col2,
-	ADD COLUMN col3 VARCHAR(10) NOT NULL DEFAULT 'foo',
-	ADD COLUMN col4 INT NOT NULL DEFAULT 42;
-
-SELECT dblink_build_sql_insert('test_dropped', '2', 1,
-                               ARRAY['1'::TEXT], ARRAY['2'::TEXT]);
-
-SELECT dblink_build_sql_update('test_dropped', '2', 1,
-                               ARRAY['1'::TEXT], ARRAY['2'::TEXT]);
-
-SELECT dblink_build_sql_delete('test_dropped', '2', 1,
-                               ARRAY['2'::TEXT]);
-
 -- test nested query for GPDB
 CREATE TEMPORARY TABLE result AS
 (SELECT * from dblink('dbname=contrib_regression','select * from foo where f1 > 2 and f1 < 7') as t1(f1 int, f2 text, f3 text[]))
@@ -406,3 +380,29 @@ SELECT notify_name, be_pid = (select t.be_pid from dblink('select pg_backend_pid
 SELECT * from dblink_get_notify();
 
 SELECT dblink_disconnect();
+
+-- test dropped columns in dblink_build_sql_insert, dblink_build_sql_update
+CREATE TEMP TABLE test_dropped
+(
+	col1 INT NOT NULL DEFAULT 111,
+	id SERIAL PRIMARY KEY,
+	col2 INT NOT NULL DEFAULT 112,
+	col2b INT NOT NULL DEFAULT 113
+);
+
+INSERT INTO test_dropped VALUES(default);
+
+ALTER TABLE test_dropped
+	DROP COLUMN col1,
+	DROP COLUMN col2,
+	ADD COLUMN col3 VARCHAR(10) NOT NULL DEFAULT 'foo',
+	ADD COLUMN col4 INT NOT NULL DEFAULT 42;
+
+SELECT dblink_build_sql_insert('test_dropped', '1', 1,
+                               ARRAY['1'::TEXT], ARRAY['2'::TEXT]);
+
+SELECT dblink_build_sql_update('test_dropped', '1', 1,
+                               ARRAY['1'::TEXT], ARRAY['2'::TEXT]);
+
+SELECT dblink_build_sql_delete('test_dropped', '1', 1,
+                               ARRAY['2'::TEXT]);

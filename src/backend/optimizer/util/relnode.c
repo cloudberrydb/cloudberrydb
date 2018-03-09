@@ -5,12 +5,12 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/relnode.c,v 1.96 2009/11/28 00:46:19 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/relnode.c,v 1.98 2010/02/26 02:00:47 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -440,9 +440,9 @@ build_join_rel(PlannerInfo *root,
 
 	/*
 	 * Also, if dynamic-programming join search is active, add the new joinrel
-	 * to the appropriate sublist.  Note: you might think the Assert on
-	 * number of members should be for equality, but some of the level 1
-	 * rels might have been joinrels already, so we can only assert <=.
+	 * to the appropriate sublist.	Note: you might think the Assert on number
+	 * of members should be for equality, but some of the level 1 rels might
+	 * have been joinrels already, so we can only assert <=.
 	 */
 	if (root->join_rel_level)
 	{

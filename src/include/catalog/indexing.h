@@ -7,10 +7,10 @@
  *
  * Portions Copyright (c) 2007-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present Pivotal Software, Inc.
- * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/indexing.h,v 1.111 2009/12/11 03:34:56 itagaki Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/indexing.h,v 1.117 2010/02/26 02:01:21 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -39,7 +39,7 @@ extern void CatalogUpdateIndexes(Relation heapRel, HeapTuple heapTuple);
 
 /*
  * These macros are just to keep the C compiler from spitting up on the
- * upcoming commands for genbki.sh.
+ * upcoming commands for genbki.pl.
  */
 #define DECLARE_INDEX(name,oid,decl) extern int no_such_variable
 #define DECLARE_UNIQUE_INDEX(name,oid,decl) extern int no_such_variable
@@ -47,7 +47,7 @@ extern void CatalogUpdateIndexes(Relation heapRel, HeapTuple heapTuple);
 
 
 /*
- * What follows are lines processed by genbki.sh to create the statements
+ * What follows are lines processed by genbki.pl to create the statements
  * the bootstrap parser will turn into DefineIndex commands.
  *
  * The keyword is DECLARE_INDEX or DECLARE_UNIQUE_INDEX.  The first two
@@ -165,6 +165,9 @@ DECLARE_UNIQUE_INDEX(pg_index_indexrelid_index, 2679, on pg_index using btree(in
 
 DECLARE_UNIQUE_INDEX(pg_inherits_relid_seqno_index, 2680, on pg_inherits using btree(inhrelid oid_ops, inhseqno int4_ops));
 #define InheritsRelidSeqnoIndexId  2680
+/* This following index is not used for a cache and is not unique */
+DECLARE_INDEX(pg_inherits_parent_index, 2187, on pg_inherits using btree(inhparent oid_ops));
+#define InheritsParentIndexId  2187
 
 DECLARE_UNIQUE_INDEX(pg_language_lanname_index, 2681, on pg_language using btree(lanname name_ops));
 #define LanguageNameIndexId  2681
@@ -217,8 +220,8 @@ DECLARE_INDEX(pg_shdepend_depender_index, 1232, on pg_shdepend using btree(dbid 
 DECLARE_INDEX(pg_shdepend_reference_index, 1233, on pg_shdepend using btree(refclassid oid_ops, refobjid oid_ops));
 #define SharedDependReferenceIndexId	1233
 
-DECLARE_UNIQUE_INDEX(pg_statistic_relid_att_index, 2696, on pg_statistic using btree(starelid oid_ops, staattnum int2_ops));
-#define StatisticRelidAttnumIndexId  2696
+DECLARE_UNIQUE_INDEX(pg_statistic_relid_att_inh_index, 2696, on pg_statistic using btree(starelid oid_ops, staattnum int2_ops, stainherit bool_ops));
+#define StatisticRelidAttnumInhIndexId	2696
 
 DECLARE_UNIQUE_INDEX(pg_tablespace_oid_index, 2697, on pg_tablespace using btree(oid oid_ops));
 #define TablespaceOidIndexId  2697
@@ -226,8 +229,8 @@ DECLARE_UNIQUE_INDEX(pg_tablespace_spcname_index, 2698, on pg_tablespace using b
 #define TablespaceNameIndexId  2698
 
 /* This following index is not used for a cache and is not unique */
-DECLARE_INDEX(pg_trigger_tgconstrname_index, 2699, on pg_trigger using btree(tgconstrname name_ops));
-#define TriggerConstrNameIndexId  2699
+DECLARE_INDEX(pg_trigger_tgconstraint_index, 2699, on pg_trigger using btree(tgconstraint oid_ops));
+#define TriggerConstraintIndexId  2699
 DECLARE_UNIQUE_INDEX(pg_trigger_tgrelid_tgname_index, 2701, on pg_trigger using btree(tgrelid oid_ops, tgname name_ops));
 #define TriggerRelidNameIndexId  2701
 DECLARE_UNIQUE_INDEX(pg_trigger_oid_index, 2702, on pg_trigger using btree(oid oid_ops));
@@ -280,7 +283,7 @@ DECLARE_UNIQUE_INDEX(pg_user_mapping_user_server_index, 175, on pg_user_mapping 
 #define UserMappingUserServerIndexId	175
 
 DECLARE_UNIQUE_INDEX(pg_default_acl_role_nsp_obj_index, 827, on pg_default_acl using btree(defaclrole oid_ops, defaclnamespace oid_ops, defaclobjtype char_ops));
-#define DefaultAclRoleNspObjIndexId	827
+#define DefaultAclRoleNspObjIndexId 827
 DECLARE_UNIQUE_INDEX(pg_default_acl_oid_index, 828, on pg_default_acl using btree(oid oid_ops));
 #define DefaultAclOidIndexId	828
 
