@@ -766,8 +766,6 @@ HasSerializableBackends(bool allDbs)
  * This is also used to determine where to truncate pg_subtrans.  allDbs
  * must be TRUE for that case, and ignoreVacuum FALSE.
  *
- * GPDB: ignoreVacuum is ignored.
- *
  * Note: it's possible for the calculated value to move backwards on repeated
  * calls. The calculated value is conservative, so that anything older is
  * definitely not considered as running by anyone anymore, but the exact
@@ -784,9 +782,45 @@ HasSerializableBackends(bool allDbs)
  * This ensures that if a just-started xact has not yet set its snapshot,
  * when it does set the snapshot it cannot set xmin less than what we compute.
  * See notes in src/backend/access/transam/README.
+ *
+ * GPDB: This also needs to deal with distributed snapshots. We keep track of
+ * the oldest local XID that is still visible to any distributed snapshot,
+ * in the DistributedLog subsystem. DistributedLog doesn't distinguish between
+ * different databases, nor vacuums, however. So in GPDB, the 'allDbs' and
+ * 'ignoreVacuum' arguments don't do much, because the value from the
+ * distributed log will include everything.
  */
 TransactionId
 GetOldestXmin(bool allDbs, bool ignoreVacuum)
+{
+	TransactionId result;
+
+	result = GetLocalOldestXmin(allDbs, ignoreVacuum);
+
+	/*
+	 * In QD node, all distributed transactions have an entry in the proc array,
+	 * so we're done.
+	 */
+	if (Gp_role != GP_ROLE_DISPATCH)
+	{
+		TransactionId distribOldestXmin;
+
+		distribOldestXmin = DistributedLog_GetOldestXmin(result);
+
+		if (TransactionIdIsValid(distribOldestXmin) &&
+			TransactionIdPrecedes(distribOldestXmin, result))
+			result = distribOldestXmin;
+	}
+
+	return result;
+}
+
+/*
+ * This is the upstream version of GetOldestXmin(). It doesn't take
+ * distributed transactions into account.
+ */
+TransactionId
+GetLocalOldestXmin(bool allDbs, bool ignoreVacuum)
 {
 	ProcArrayStruct *arrayP = procArray;
 	TransactionId result;
@@ -1846,7 +1880,7 @@ GetSnapshotData(Snapshot snapshot)
 	 * Unless we are the QD, in which case we already created a new distributed
 	 * snapshot above.
 	 *
-	 * (We do this after releasing ProcArrayLock, reduce contention.)
+	 * (We do this after releasing ProcArrayLock, to reduce contention.)
 	 */
 	if (DistributedTransactionContext != DTX_CONTEXT_QD_DISTRIBUTED_CAPABLE)
 		FillInDistributedSnapshot(snapshot);
@@ -1858,6 +1892,22 @@ GetSnapshotData(Snapshot snapshot)
 	 */
 	if (TransactionIdPrecedes(xmin, globalxmin))
 		globalxmin = xmin;
+
+	/*
+	 * In computing RecentGlobalXmin, also take distributed snapshots into
+	 * account.
+	 */
+	if (snapshot->haveDistribSnapshot)
+	{
+		DistributedSnapshot *ds = &snapshot->distribSnapshotWithLocalMapping.ds;
+
+		globalxmin =
+			DistributedLog_AdvanceOldestXmin(globalxmin,
+											 ds->distribTransactionTimeStamp,
+											 ds->xminAllDistributedSnapshots);
+	}
+	else
+		globalxmin = DistributedLog_GetOldestXmin(globalxmin);
 
 	/* Update global variables too */
 	RecentGlobalXmin = globalxmin;

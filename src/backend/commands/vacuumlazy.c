@@ -755,22 +755,6 @@ lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 							all_visible = false;
 							break;
 						}
-
-						/*
-						 * Like in HeapTupleSatisfiesVacuum(), even if the
-						 * test against OldestXmin says the tuple is visible
-						 * to everyone, we must also check against the distributed
-						 * snapshot mechanism.
-						 */
-						if (TransactionIdIsNormal(HeapTupleHeaderGetXmin(tuple.t_data)) &&
-							!(tuple.t_data->t_infomask2 & HEAP_XMIN_DISTRIBUTED_SNAPSHOT_IGNORE))
-						{
-							if (!localXidSatisfiesAnyDistributedSnapshot(HeapTupleHeaderGetXmin(tuple.t_data)))
-							{
-								all_visible = false;
-								break;
-							}
-						}
 					}
 					break;
 				case HEAPTUPLE_RECENTLY_DEAD:
@@ -810,8 +794,8 @@ lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 				 * Each non-removable tuple must be checked to see if it needs
 				 * freezing.  Note we already have exclusive buffer lock.
 				 */
-				if (heap_freeze_tuple(tuple.t_data, &FreezeLimit,
-									  InvalidBuffer, false))
+				if (heap_freeze_tuple(tuple.t_data, FreezeLimit,
+									  InvalidBuffer))
 					frozen[nfrozen++] = offnum;
 			}
 		}						/* scan along page */

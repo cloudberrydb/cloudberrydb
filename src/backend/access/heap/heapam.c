@@ -4041,64 +4041,38 @@ heap_inplace_update(Relation relation, HeapTuple tuple)
  * tuple status.  Also, getting exclusive lock makes it safe to adjust the
  * infomask bits.
  *
- * In GPDB, cutoff_xid is passed as pointer, as this function may change its
- * value. cutoff_xid passed in is just based on local visibility and hence may
- * not be met always. Function checks localxid from distributed aspect and may
- * not be able to freeze (remove) all xids lower than cutoff_xid if still
- * needed from distributed visibility perspective. So, for such cases the
- * cutoff_xid (freeze limit) is lowered and updated new lower value reflected
- * back to caller. Using the same caller can then correctly set *relfrozenxid*
- * of the relation. If this is not done, relation may have xids lower than
- * relfrozenxid which is wrong. As based on relfrozenxid, datfrozenxid gets
- * set, which finally controls cut-off point for clog or distributed commit
- * log. Not correctly reflecting relfrozenxid may end-up trying to read
- * non-existent clog files.
+ * In GPDB, the caller must ensure that the cutoff_xid covers any transactions
+ * that are no longer running locally, but are still visible to a distributed
+ * snapshot in the QD node. GetOldestXmin() will do that for you, and
+ * RecentGlobalXmin is fine, too.
  */
 bool
-heap_freeze_tuple(HeapTupleHeader tuple, TransactionId *cutoff_xid,
-				  Buffer buf, bool xlog_replay)
+heap_freeze_tuple(HeapTupleHeader tuple, TransactionId cutoff_xid,
+				  Buffer buf)
 {
 	bool		changed = false;
 	TransactionId xid;
 
 	xid = HeapTupleHeaderGetXmin(tuple);
 	if (TransactionIdIsNormal(xid) &&
-		TransactionIdPrecedes(xid, *cutoff_xid))
+		TransactionIdPrecedes(xid, cutoff_xid))
 	{
-		/*
-		 * Will consult distributed snapshot and freeze xmin only if globally
-		 * can be seen by *all* the transactions. Hence, protects against case
-		 * where xmin of tuple is lower than cutoff_xid but tuple may not be
-		 * seen via some distributed snapshot. Missing to check the
-		 * distributed perspective will go ahead to freeze the xmin, making
-		 * the tuple visible to everyone yielding wrong result means breakage
-		 * of snapshot isolation.
-		 */
-		if (xlog_replay ||
-			(tuple->t_infomask2 & HEAP_XMIN_DISTRIBUTED_SNAPSHOT_IGNORE) ||
-			localXidSatisfiesAnyDistributedSnapshot(xid) == false)
+		if (buf != InvalidBuffer)
 		{
-			if (buf != InvalidBuffer)
-			{
-				/* trade in share lock for exclusive lock */
-				LockBuffer(buf, BUFFER_LOCK_UNLOCK);
-				LockBuffer(buf, BUFFER_LOCK_EXCLUSIVE);
-				buf = InvalidBuffer;
-			}
-			HeapTupleHeaderSetXmin(tuple, FrozenTransactionId);
+			/* trade in share lock for exclusive lock */
+			LockBuffer(buf, BUFFER_LOCK_UNLOCK);
+			LockBuffer(buf, BUFFER_LOCK_EXCLUSIVE);
+			buf = InvalidBuffer;
+		}
+		HeapTupleHeaderSetXmin(tuple, FrozenTransactionId);
 
-			/*
-			 * Might as well fix the hint bits too; usually XMIN_COMMITTED will
-			 * already be set here, but there's a small chance not.
-			 */
-			Assert(!(tuple->t_infomask & HEAP_XMIN_INVALID));
-			tuple->t_infomask |= HEAP_XMIN_COMMITTED;
-			changed = true;
-		}
-		else
-		{
-			*cutoff_xid = xid;
-		}
+		/*
+		 * Might as well fix the hint bits too; usually XMIN_COMMITTED will
+		 * already be set here, but there's a small chance not.
+		 */
+		Assert(!(tuple->t_infomask & HEAP_XMIN_INVALID));
+		tuple->t_infomask |= HEAP_XMIN_COMMITTED;
+		changed = true;
 	}
 
 	/*
@@ -4113,54 +4087,27 @@ recheck_xmax:
 	{
 		xid = HeapTupleHeaderGetXmax(tuple);
 		if (TransactionIdIsNormal(xid) &&
-			TransactionIdPrecedes(xid, *cutoff_xid))
+			TransactionIdPrecedes(xid, cutoff_xid))
 		{
-			/*
-			 * Need to prevent case where due to distributed visibility the
-			 * tuple is visible, but it may still have xmax lower than local
-			 * cutoff_xid, in that case xmax shouldn't get treated as aborted
-			 * transaction and marked as InvalidTransactionId. Hence, first
-			 * check if xmax is committed or not. Only if committed and
-			 * hintbit for tuple says distributed snapshot can be ignored
-			 * which means globally there exists no snapshot with distributed
-			 * xid lower than this xmax, this tuple can be freezed. This
-			 * allows freezing of xmax for aborted delete scenarios in which
-			 * case distributedness doesn't matter. Visibility checks or
-			 * HeapTupleSatisfiesVacuum() called before reaching here will set
-			 * this hintbit, allowing us to avoid consulting the distributed
-			 * log again. Refer for further details
-			 * DistributedSnapshotWithLocalMapping_CommittedTest. For xlog
-			 * replay no need to check the hint-bits, just let the replay
-			 * perform its duties.
-			 */
-			if (xlog_replay ||
-				!(tuple->t_infomask & HEAP_XMAX_COMMITTED) ||
-				(tuple->t_infomask2 & HEAP_XMAX_DISTRIBUTED_SNAPSHOT_IGNORE))
+			if (buf != InvalidBuffer)
 			{
-				if (buf != InvalidBuffer)
-				{
-					/* trade in share lock for exclusive lock */
-					LockBuffer(buf, BUFFER_LOCK_UNLOCK);
-					LockBuffer(buf, BUFFER_LOCK_EXCLUSIVE);
-					buf = InvalidBuffer;
-					goto recheck_xmax;		/* see comment above */
-				}
-				HeapTupleHeaderSetXmax(tuple, InvalidTransactionId);
+				/* trade in share lock for exclusive lock */
+				LockBuffer(buf, BUFFER_LOCK_UNLOCK);
+				LockBuffer(buf, BUFFER_LOCK_EXCLUSIVE);
+				buf = InvalidBuffer;
+				goto recheck_xmax;		/* see comment above */
+			}
+			HeapTupleHeaderSetXmax(tuple, InvalidTransactionId);
 
-				/*
-				 * The tuple might be marked either XMAX_INVALID or XMAX_COMMITTED
-				 * + LOCKED.  Normalize to INVALID just to be sure no one gets
-				 * confused.
-				 */
-				tuple->t_infomask &= ~HEAP_XMAX_COMMITTED;
-				tuple->t_infomask |= HEAP_XMAX_INVALID;
-				HeapTupleHeaderClearHotUpdated(tuple);
-				changed = true;
-			}
-			else
-			{
-				*cutoff_xid = xid;
-			}
+			/*
+			 * The tuple might be marked either XMAX_INVALID or XMAX_COMMITTED
+			 * + LOCKED.  Normalize to INVALID just to be sure no one gets
+			 * confused.
+			 */
+			tuple->t_infomask &= ~HEAP_XMAX_COMMITTED;
+			tuple->t_infomask |= HEAP_XMAX_INVALID;
+			HeapTupleHeaderClearHotUpdated(tuple);
+			changed = true;
 		}
 	}
 	else
@@ -4193,7 +4140,7 @@ recheck_xvac:
 	{
 		xid = HeapTupleHeaderGetXvac(tuple);
 		if (TransactionIdIsNormal(xid) &&
-			TransactionIdPrecedes(xid, *cutoff_xid))
+			TransactionIdPrecedes(xid, cutoff_xid))
 		{
 			if (buf != InvalidBuffer)
 			{
@@ -4785,7 +4732,7 @@ heap_xlog_freeze(XLogRecPtr lsn, XLogRecord *record)
 			ItemId		lp = PageGetItemId(page, *offsets);
 			HeapTupleHeader tuple = (HeapTupleHeader) PageGetItem(page, lp);
 
-			(void) heap_freeze_tuple(tuple, &cutoff_xid, InvalidBuffer, true);
+			(void) heap_freeze_tuple(tuple, cutoff_xid, InvalidBuffer);
 			offsets++;
 		}
 	}

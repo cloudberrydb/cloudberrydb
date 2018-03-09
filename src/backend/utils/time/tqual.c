@@ -1306,23 +1306,6 @@ HeapTupleSatisfiesVacuum(Relation relation, HeapTupleHeader tuple, TransactionId
 	if (!TransactionIdPrecedes(HeapTupleHeaderGetXmax(tuple), OldestXmin))
 		return HEAPTUPLE_RECENTLY_DEAD;
 
-	/*
-	 * Okay here means based on local visibility rules the tuple can be
-	 * reported as DEAD, lets check from distributed visibility if its still
-	 * LIVE. This is performed to avoid removing the tuple still needed based
-	 * on distributed snapshot.
-	 */
-	if (TransactionIdIsNormal(HeapTupleHeaderGetXmax(tuple)) &&
-		!(tuple->t_infomask2 & HEAP_XMAX_DISTRIBUTED_SNAPSHOT_IGNORE))
-	{
-		if (localXidSatisfiesAnyDistributedSnapshot(HeapTupleHeaderGetXmax(tuple)))
-			return HEAPTUPLE_RECENTLY_DEAD;
-
-		tuple->t_infomask2 |= HEAP_XMAX_DISTRIBUTED_SNAPSHOT_IGNORE;
-		markDirty(buffer, relation, tuple, /* isXmin */ false);
-		return HEAPTUPLE_DEAD;
-	}
-
 	/* Otherwise, it's dead and removable */
 	return HEAPTUPLE_DEAD;
 }
@@ -1344,8 +1327,12 @@ XidInMVCCSnapshot(TransactionId xid, Snapshot snapshot,
 	 * snapshot since it covers the correct past view of in-progress distributed
 	 * transactions and also the correct future view of in-progress distributed
 	 * transactions that may yet arrive.
+	 *
+	 * In the QD, the distributed transactions become visible at the same time
+	 * as the corresponding local ones, so we can rely on the local XIDs.
 	 */
-	if (snapshot->haveDistribSnapshot && !distributedSnapshotIgnore)
+	if (snapshot->haveDistribSnapshot && !distributedSnapshotIgnore &&
+		Gp_segment != -1)
 	{
 		DistributedSnapshotCommitted	distributedSnapshotCommitted;
 

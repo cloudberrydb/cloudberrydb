@@ -1998,8 +1998,14 @@ vac_update_datfrozenxid(void)
 	 * reasonable approximation to the minimum relfrozenxid for not-yet-
 	 * committed pg_class entries for new tables; see AddNewRelationTuple().
 	 * Se we cannot produce a wrong minimum by starting with this.
+	 *
+	 * GPDB: Use GetLocalOldestXmin here, rather than GetOldestXmin. We don't
+	 * want to include effects of distributed transactions in this. If a
+	 * database's datfrozenxid is past the oldest XID as determined by
+	 * distributed transactions, we will nevertheless never encounter such
+	 * XIDs on disk.
 	 */
-	newFrozenXid = GetOldestXmin(true, true);
+	newFrozenXid = GetLocalOldestXmin(true, true);
 
 	/*
 	 * We must seqscan pg_class to find the minimum Xid, because there is no
@@ -2156,7 +2162,6 @@ vac_truncate_clog(TransactionId frozenXID)
 
 	/* Truncate CLOG to the oldest frozenxid */
 	TruncateCLOG(frozenXID);
-	DistributedLog_Truncate(frozenXID);
 
 	/*
 	 * Update the wrap limit for GetNewTransactionId.  Note: this function
@@ -3336,8 +3341,8 @@ scan_heap(VRelStats *vacrelstats, Relation onerel,
 				 * Each non-removable tuple must be checked to see if it needs
 				 * freezing.
 				 */
-				if (heap_freeze_tuple(tuple.t_data, &FreezeLimit,
-									  InvalidBuffer, false))
+				if (heap_freeze_tuple(tuple.t_data, FreezeLimit,
+									  InvalidBuffer))
 					frozen[nfrozen++] = offnum;
 			}
 		}						/* scan along page */
@@ -3809,10 +3814,8 @@ repair_frag(VRelStats *vacrelstats, Relation onerel,
 			 * separately movable chain, ignoring any intervening DEAD ones.
 			 */
 			if (((tuple.t_data->t_infomask & HEAP_UPDATED) &&
-				 (!TransactionIdPrecedes(HeapTupleHeaderGetXmin(tuple.t_data),
-										 OldestXmin) ||
-				  (!(tuple.t_data->t_infomask2 & HEAP_XMIN_DISTRIBUTED_SNAPSHOT_IGNORE) &&
-				   localXidSatisfiesAnyDistributedSnapshot(HeapTupleHeaderGetXmin(tuple.t_data))))) ||
+				 !TransactionIdPrecedes(HeapTupleHeaderGetXmin(tuple.t_data),
+										OldestXmin)) ||
 				(!(tuple.t_data->t_infomask & (HEAP_XMAX_INVALID |
 											   HEAP_IS_LOCKED)) &&
 				 !(ItemPointerEquals(&(tuple.t_self),
@@ -4000,10 +4003,8 @@ repair_frag(VRelStats *vacrelstats, Relation onerel,
 
 					/* Done if at beginning of chain */
 					if (!(tp.t_data->t_infomask & HEAP_UPDATED) ||
-						(TransactionIdPrecedes(HeapTupleHeaderGetXmin(tp.t_data),
-											   OldestXmin) &&
-						 ((tuple.t_data->t_infomask2 & HEAP_XMIN_DISTRIBUTED_SNAPSHOT_IGNORE) ||
-							 !localXidSatisfiesAnyDistributedSnapshot(HeapTupleHeaderGetXmin(tp.t_data)))))
+					 TransactionIdPrecedes(HeapTupleHeaderGetXmin(tp.t_data),
+										   OldestXmin))
 						break;	/* out of check-all-items loop */
 
 					/* Move to tuple with prior row version */

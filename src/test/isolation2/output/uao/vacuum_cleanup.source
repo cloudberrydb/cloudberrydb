@@ -116,8 +116,8 @@ VACUUM
 1: select age(relfrozenxid), regexp_replace(replace(relname, 'ao_@orientation@_vacuum_cleanup3'::regclass::oid::text, '<oid>'), 'ao.*seg', '<seg>') from gp_dist_random('pg_class') where relkind in ('r','t','o','b','m') and relstorage not in ('x','f','v') and (relname like '%' || 'ao_@orientation@_vacuum_cleanup3'::regclass::oid || '%') and gp_segment_id = 0;
 age|regexp_replace    
 ---+------------------
-1  |pg_<seg>_<oid>    
-1  |pg_aovisimap_<oid>
+2  |pg_<seg>_<oid>    
+2  |pg_aovisimap_<oid>
 (2 rows)
 
 -- Validate that the drop phase was skipped. segfile 1 should be in state 2
