@@ -113,10 +113,6 @@ namespace gpopt
 				return m_pdshashedEquiv;
 			}
 
-			// set equivalent hashed distribution, caller should not increment
-			// the reference count of the input argument 'pdshashedEquiv'
-			void SetHashedEquiv(CDistributionSpecHashed *pdshashedEquiv);
-
 			// columns used by distribution expressions
 			virtual
 			CColRefSet *PcrsUsed(IMemoryPool *pmp) const;

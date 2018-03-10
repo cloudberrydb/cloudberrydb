@@ -203,8 +203,7 @@ LOJ-Condition-False FOJ-Condition-False FullOuterJoin FullOuterJoin2
 LeftJoin-With-Pred-On-Inner LeftJoin-With-Pred-On-Inner2
 LeftJoin-With-Col-Const-Pred LeftJoin-With-Coalesce LOJWithFalsePred
 LOJ-IsNullPred Select-Proj-OuterJoin OuterJoin-With-OuterRefs Join-Disj-Subqs
-Join-Dist-Key-No-Motion RightJoin-NonDistKey-EquivClass EffectOfLocalPredOnJoin
-EffectOfLocalPredOnJoin2 EffectOfLocalPredOnJoin3
+EffectOfLocalPredOnJoin EffectOfLocalPredOnJoin2 EffectOfLocalPredOnJoin3
 LeftJoin-UnsupportedFilter-Cardinality LeftOuter2InnerUnionAllAntiSemiJoin
 LOJ_IDF_no_convert_outer_ref_predicate_with_NULL
 LOJ_IDF_no_convert_outer_ref_predicate_with_inner_ref LOJ_convert_to_inner_with_inner_predicate_IDF
