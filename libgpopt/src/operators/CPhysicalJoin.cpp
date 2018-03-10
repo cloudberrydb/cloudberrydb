@@ -346,7 +346,7 @@ CPhysicalJoin::PdsRequired
 CDistributionSpec *
 CPhysicalJoin::PdsDerive
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *, // pmp,
 	CExpressionHandle &exprhdl
 	)
 	const
@@ -365,21 +365,24 @@ CPhysicalJoin::PdsDerive
 			CDistributionSpec::EdtHashed == pdsInner->Edt() &&
 			(CUtils::FPhysicalInnerJoin(exprhdl.Pop()) || CUtils::FPhysicalOuterJoin(exprhdl.Pop())))
 	{
-		CDistributionSpecHashed *pdsOuterHashed = CDistributionSpecHashed::PdsConvert(pdsOuter);
-		CDistributionSpecHashed *pdsInnerHashed = CDistributionSpecHashed::PdsConvert(pdsInner);
-
-		// Create a distribution spec with the union of inner and outer
-		// equivalent specs in a chain. This is pretty useful for such case
+		// If both inner and outer children are hash distributed or
+		// redistributed by the join key, and the join is a inner join
+		// or outer join, set the outer's distribution spec as inner's
+		// equiv hashed distribution spec, and return inner's
+		// distribution spec. This is pretty useful for such case
 		// 'R left join S on R.a = S.a left join T on T.a = S.a'
 		// (R, S, T are distributed by a). Without equiv hashed spec,
 		// Orca will assume (R left join S) is hash distributed by R.a,
 		// ignores the facts that it is also distributed by S.a, and
 		// request a redistribute motion on S.a, which is redundant.
-		// With the complete chain of equiv hashed spec set for inner
-		// distribution, Orca will know that the equivclass has the same
-		// distribution spec during distribution spec matching.
-		CDistributionSpecHashed *pdsOutput = pdsOuterHashed->PdsHashedEquivMerge(pmp, pdsInnerHashed);
-		return pdsOutput;
+		// With the equiv hashed spec set for inner distribution, Orca
+		// will know that the equivclass has the same distribution
+		// spec during distribution spec matching.
+		CDistributionSpecHashed *pdsOuterHashed = CDistributionSpecHashed::PdsConvert(pdsOuter);
+		CDistributionSpecHashed *pdsInnerHashed = CDistributionSpecHashed::PdsConvert(pdsInner);
+		pdsInnerHashed->SetHashedEquiv(pdsOuterHashed);
+		pdsInnerHashed->AddRef();
+		return pdsInnerHashed;
 	}
 
 	// otherwise, return outer distribution

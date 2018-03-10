@@ -379,6 +379,35 @@ CDistributionSpecHashed::PcrsUsed
 	return CUtils::PcrsExtractColumns(pmp, m_pdrgpexpr);
 }
 
+
+// set equivalent hashed distribution. It doesn't replace existing equivalent
+// hashed distribution if it has one, instead it adds input hashed distribution
+// into equivalent hashed distribution chain, recursively. Caller should not
+// increment the reference count of the input argument 'pdshashedEquiv', this
+// function will take care of whether and when to increment.
+void
+CDistributionSpecHashed::SetHashedEquiv
+	(
+	CDistributionSpecHashed *pdshashedEquiv
+	)
+{
+	if (pdshashedEquiv == NULL || pdshashedEquiv == this)
+	{
+		// avoid self referencing
+		return;
+	}
+	else if (m_pdshashedEquiv == NULL)
+	{
+		pdshashedEquiv->AddRef();
+		m_pdshashedEquiv = pdshashedEquiv;
+	}
+	else
+	{
+		m_pdshashedEquiv->SetHashedEquiv(pdshashedEquiv);
+	}
+}
+
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CDistributionSpecHashed::FMatchHashedDistribution
@@ -442,7 +471,7 @@ CDistributionSpecHashed::FMatch
 	if (NULL != m_pdshashedEquiv && m_pdshashedEquiv->FMatch(pdshashed))
 	{
 		return true;
-	}
+	 }
 
 	if (NULL != pdshashed->PdshashedEquiv() && pdshashed->PdshashedEquiv()->FMatch(this))
 	{
@@ -486,45 +515,6 @@ CDistributionSpecHashed::PdshashedMaximal
 	return pdshashed;
 }
 
-// merge the distribution spec of the object with the given distribution spec
-//Spec 1 (this object):
-// Spec A -> Equiv Spec B -> Equiv Spec: NULL
-//
-//Spec 2:
-// Spec A -> Equi Spec: D -> Equi Spec: NULL
-//
-//Output Spec
-// Equi Spec: D -> Equi Spec: A -> Equi Spec: B -> Equi Spec: NULL
-CDistributionSpecHashed *
-CDistributionSpecHashed::PdsHashedEquivMerge
-	(
-	IMemoryPool *pmp,
-	CDistributionSpecHashed *pds
-	)
-{
-	GPOS_ASSERT(pds != NULL);
-
-	CDistributionSpecHashed *pdsOutput = this;
-	pdsOutput->AddRef();
-
-	while (pds != NULL)
-	{
-		// match only the current distribution spec not the equivalent
-		// specs in the chain as we need to append the current spec if
-		// it does not already exists in output, thus not using FMatch
-		// which checks recursively
-		if (!this->FMatchHashedDistribution(pds))
-		{
-			// append distribution spec in equivalent chain
-			DrgPexpr *pdrgpexprTemp = pds->Pdrgpexpr();
-			pdrgpexprTemp->AddRef();
-			pdsOutput = GPOS_NEW(pmp) CDistributionSpecHashed(pdrgpexprTemp, pds->FNullsColocated(), pdsOutput);
-		}
-		pds = pds->PdshashedEquiv();
-	}
-
-	return pdsOutput;
-}
 
 //---------------------------------------------------------------------------
 //	@function:
