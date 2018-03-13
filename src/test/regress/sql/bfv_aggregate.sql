@@ -47,10 +47,6 @@ create aggregate mysum1(int4) (sfunc = int4_sum, prefunc=int8pl, stype=bigint);
 create aggregate mysum2(int4) (sfunc = int4_sum, stype=bigint);
 
 -- TEST
--- start_ignore
--- GPDB_84_MERGE_FIXME: QP team should look at this query (the implementation
--- changed in the window func merge)
--- end_ignore
 select
    id, val,
    sum(val) over (w),
@@ -182,11 +178,7 @@ select count_operator('select max(b) over (partition by a) from foo order by 1;'
 select string_agg(b) over (partition by a+1) from foo order by 1;
 select string_agg(b || 'txt') over (partition by a) from foo order by 1;
 select string_agg(b || 'txt') over (partition by a+1) from foo order by 1;
--- fall back and planner's plan produces unsupported execution
--- start_ignore
--- GPDB_84_MERGE_FIXME: QP team should look at these three queries (the
--- implementation changed in the window func merge)
--- end_ignore
+-- fall back
 select string_agg(b) over (partition by a order by a) from foo order by 1;
 select string_agg(b || 'txt') over (partition by a,b order by a,b) from foo order by 1;
 select '1' || string_agg(b) over (partition by a+1 order by a+1) from foo;

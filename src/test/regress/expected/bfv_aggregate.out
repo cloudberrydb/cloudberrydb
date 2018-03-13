@@ -300,7 +300,7 @@ select string_agg(b || 'txt') over (partition by a+1) from foo order by 1;
  ccctxt
 (3 rows)
 
--- fall back and planner's plan produces unsupported execution
+-- fall back
 select string_agg(b) over (partition by a order by a) from foo order by 1;
  string_agg 
 ------------
