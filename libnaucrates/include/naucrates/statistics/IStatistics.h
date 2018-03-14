@@ -1,6 +1,6 @@
-	//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2012 EMC Corp.
+//	Copyright (C) 2018 Pivotal, Inc.
 //
 //	@filename:
 //		IStatistics.h
@@ -144,6 +144,12 @@ namespace gpnaucrates
 			// create new statistics structure after applying the filter
 			virtual
 			IStatistics *PstatsFilter(IMemoryPool *, CStatsPred *pstatspred, BOOL fCapNdvs) const = 0;
+
+			virtual
+			HMUlDouble *PHMUlDoubleWidth() const = 0;
+
+			virtual
+			ULONG UlNumberOfPredicates() const = 0;
 
 			// inner join with another stats structure
 			virtual

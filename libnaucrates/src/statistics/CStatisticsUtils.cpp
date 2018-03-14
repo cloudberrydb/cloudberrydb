@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright 2013 EMC Corp.
+//	Copyright 2018 Pivotal, Inc.
 //
 //	@filename:
 //		CStatisticsUtils.cpp
@@ -23,6 +23,7 @@
 #include "gpopt/optimizer/COptimizerConfig.h"
 
 #include "naucrates/statistics/CStatisticsUtils.h"
+#include "naucrates/statistics/CJoinStatsProcessor.h"
 #include "naucrates/statistics/CStatistics.h"
 #include "naucrates/statistics/CStatsPredUtils.h"
 #include "naucrates/statistics/CStatsPredDisj.h"
@@ -1100,69 +1101,6 @@ CStatisticsUtils::PdatumNull
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsUtils::PstatsDeriveWithOuterRefs
-//
-//	@doc:
-//		Derive statistics when scalar expression uses outer references,
-//		we pull statistics for outer references from the passed statistics
-//		context, and use Join statistics derivation in this case
-//
-//		For example:
-//
-//			Join
-//			 |--Get(R)
-//			 +--Join
-//				|--Get(S)
-//				+--Select(T.t=R.r)
-//					+--Get(T)
-//
-//		when deriving statistics on 'Select(T.t=R.r)', we join T with the
-//		cross product (R x S) based on the condition (T.t=R.r)
-//
-//---------------------------------------------------------------------------
-IStatistics *
-CStatisticsUtils::PstatsDeriveWithOuterRefs
-	(
-	IMemoryPool *pmp,
-	BOOL fOuterJoin,
-	CExpressionHandle &
-#ifdef GPOS_DEBUG
-	exprhdl // handle attached to the logical expression we want to derive stats for
-#endif // GPOS_DEBUG
-	,
-	CExpression *pexprScalar, // scalar condition to be used for stats derivation
-	IStatistics *pstats, // statistics object of the attached expression
-	DrgPstat *pdrgpstatOuter // array of stats objects where outer references are defined
-	)
-{
-	GPOS_ASSERT(exprhdl.FHasOuterRefs() && "attached expression does not have outer references");
-	GPOS_ASSERT(NULL != pexprScalar);
-	GPOS_ASSERT(NULL != pstats);
-	GPOS_ASSERT(NULL != pdrgpstatOuter);
-	GPOS_ASSERT(0 < pdrgpstatOuter->UlLength());
-
-	// join outer stats object based on given scalar expression,
-	// we use inner join semantics here to consider all relevant combinations of outer tuples
-	IStatistics *pstatsOuter = PstatsJoinArray(pmp, false /*fOuterJoin*/, pdrgpstatOuter, pexprScalar);
-	CDouble dRowsOuter = pstatsOuter->DRows();
-
-	// join passed stats object and outer stats based on the passed join type
-	DrgPstat *pdrgpstat = GPOS_NEW(pmp) DrgPstat(pmp);
-	pdrgpstat->Append(pstatsOuter);
-	pstats->AddRef();
-	pdrgpstat->Append(pstats);
-	IStatistics *pstatsJoined = PstatsJoinArray(pmp, fOuterJoin, pdrgpstat, pexprScalar);
-	pdrgpstat->Release();
-
-	// scale result using cardinality of outer stats and set number of rebinds of returned stats
-	IStatistics *pstatsResult = pstatsJoined->PstatsScale(pmp, CDouble(1.0/dRowsOuter));
-	pstatsResult->SetRebinds(dRowsOuter);
-	pstatsJoined->Release();
-
-	return pstatsResult;
-}
 
 
 //---------------------------------------------------------------------------
@@ -1205,7 +1143,13 @@ CStatisticsUtils::PstatsFilter
 	if (exprhdl.FHasOuterRefs() && 0 < pdrgpstatOuter->UlLength())
 	{
 		// derive stats based on outer references
-		IStatistics *pstats = PstatsDeriveWithOuterRefs(pmp, false /*fOuterJoin*/, exprhdl, pexprScalarOuterRefs, pstatsResult, pdrgpstatOuter);
+		IStatistics *pstats = CJoinStatsProcessor::PstatsDeriveWithOuterRefs(pmp,
+																				 exprhdl,
+																				 pexprScalarOuterRefs,
+																				 pstatsResult,
+																				 pdrgpstatOuter,
+																				 IStatistics::EsjtInnerJoin
+																				);
 		pstatsResult->Release();
 		pstatsResult = pstats;
 	}
@@ -1214,207 +1158,9 @@ CStatisticsUtils::PstatsFilter
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsUtils::PstatsJoinArray
-//
-//	@doc:
-//		Derive statistics for the given join predicate
-//
-//---------------------------------------------------------------------------
-IStatistics *
-CStatisticsUtils::PstatsJoinArray
-	(
-	IMemoryPool *pmp,
-	BOOL fOuterJoin,
-	DrgPstat *pdrgpstat,
-	CExpression *pexprScalar
-	)
-{
-	GPOS_ASSERT(NULL != pexprScalar);
-	GPOS_ASSERT(NULL != pdrgpstat);
-	GPOS_ASSERT(0 < pdrgpstat->UlLength());
-	GPOS_ASSERT_IMP(fOuterJoin, 2 == pdrgpstat->UlLength());
-
-	// create an empty set of outer references for statistics derivation
-	CColRefSet *pcrsOuterRefs = GPOS_NEW(pmp) CColRefSet(pmp);
-
-	// join statistics objects one by one using relevant predicates in given scalar expression
-	const ULONG ulStats = pdrgpstat->UlLength();
-	IStatistics *pstats = (*pdrgpstat)[0]->PstatsCopy(pmp);
-	CDouble dRowsOuter = pstats->DRows();
-
-	for (ULONG ul = 1; ul < ulStats; ul++)
-	{
-		IStatistics *pstatsCurrent = (*pdrgpstat)[ul];
-
-		DrgPcrs *pdrgpcrsOutput= GPOS_NEW(pmp) DrgPcrs(pmp);
-		pdrgpcrsOutput->Append(pstats->Pcrs(pmp));
-		pdrgpcrsOutput->Append(pstatsCurrent->Pcrs(pmp));
-
-		CStatsPred *pstatspredUnsupported = NULL;
-		DrgPstatspredjoin *pdrgpstatspredjoin = CStatsPredUtils::PdrgpstatspredjoinExtract
-															(
-															pmp,
-															pexprScalar,
-															pdrgpcrsOutput,
-															pcrsOuterRefs,
-															&pstatspredUnsupported
-															);
-		IStatistics *pstatsNew = NULL;
-		if (fOuterJoin)
-		{
-			pstatsNew = pstats->PstatsLOJ(pmp, pstatsCurrent, pdrgpstatspredjoin);
-		}
-		else
-		{
-			pstatsNew = pstats->PstatsInnerJoin(pmp, pstatsCurrent, pdrgpstatspredjoin);
-		}
-		pstats->Release();
-		pstats = pstatsNew;
-
-		if (NULL != pstatspredUnsupported)
-		{
-			// apply the unsupported join filters as a filter on top of the join results.
-			// TODO,  June 13 2014 we currently only cap NDVs for filters
-			// immediately on top of tables.
-			IStatistics *pstatsAfterJoinFilter = pstats->PstatsFilter
-															(
-															pmp,
-															pstatspredUnsupported,
-															false /* fCapNdvs */
-															);
-
-			// If it is outer join and the cardinality after applying the unsupported join
-			// filters is less than the cardinality of outer child, we don't use this stats.
-			// Because we need to make sure that Card(LOJ) >= Card(Outer child of LOJ).
-			if (fOuterJoin && pstatsAfterJoinFilter->DRows() < dRowsOuter)
-			{
-				pstatsAfterJoinFilter->Release();
-			}
-			else
-			{
-				pstats->Release();
-				pstats = pstatsAfterJoinFilter;
-			}
-
-			pstatspredUnsupported->Release();
-		}
-
-		pdrgpstatspredjoin->Release();
-		pdrgpcrsOutput->Release();
-	}
-
-	// clean up
-	pcrsOuterRefs->Release();
-
-	return pstats;
-}
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsUtils::PstatsJoinWithOuterRefs
-//
-//	@doc:
-//		Helper for deriving statistics for join operation based on given scalar expression
-//
-//---------------------------------------------------------------------------
-IStatistics *
-CStatisticsUtils::PstatsJoinWithOuterRefs
-	(
-	IMemoryPool *pmp,
-	CExpressionHandle &exprhdl,
-	DrgPstat *pdrgpstatChildren,
-	CExpression *pexprScalarLocal, // filter expression on local columns only
-	CExpression *pexprScalarOuterRefs, // filter expression involving outer references
-	DrgPstat *pdrgpstatOuter
-	)
-{
-	GPOS_ASSERT(NULL != pdrgpstatChildren);
-	GPOS_ASSERT(NULL != pexprScalarLocal);
-	GPOS_ASSERT(NULL != pexprScalarOuterRefs);
-	GPOS_ASSERT(NULL != pdrgpstatOuter);
 
-	COperator::EOperatorId eopid = exprhdl.Pop()->Eopid();
-	GPOS_ASSERT(COperator::EopLogicalLeftOuterJoin == eopid ||
-			COperator::EopLogicalInnerJoin == eopid ||
-			COperator::EopLogicalNAryJoin == eopid);
-
-	BOOL fOuterJoin = (COperator::EopLogicalLeftOuterJoin == eopid);
-
-	// derive stats based on local join condition
-	IStatistics *pstatsResult = PstatsJoinArray(pmp, fOuterJoin, pdrgpstatChildren, pexprScalarLocal);
-
-	if (exprhdl.FHasOuterRefs() && 0 < pdrgpstatOuter->UlLength())
-	{
-		// derive stats based on outer references
-		IStatistics *pstats = PstatsDeriveWithOuterRefs(pmp, fOuterJoin, exprhdl, pexprScalarOuterRefs, pstatsResult, pdrgpstatOuter);
-		pstatsResult->Release();
-		pstatsResult = pstats;
-	}
-
-	return pstatsResult;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsUtils::PstatsJoin
-//
-//	@doc:
-//		 Derive statistics for join operation given array of statistics object
-//
-//---------------------------------------------------------------------------
-IStatistics *
-CStatisticsUtils::PstatsJoin
-	(
-	IMemoryPool *pmp,
-	CExpressionHandle &exprhdl,
-	DrgPstat *pdrgpstatCtxt
-	)
-{
-	GPOS_ASSERT(CLogical::EspNone < CLogical::PopConvert(exprhdl.Pop())->Esp(exprhdl));
-
-	DrgPstat *pdrgpstat = GPOS_NEW(pmp) DrgPstat(pmp);
-	const ULONG ulArity = exprhdl.UlArity();
-	for (ULONG ul = 0; ul < ulArity - 1; ul++)
-	{
-		IStatistics *pstatsChild = exprhdl.Pstats(ul);
-		pstatsChild->AddRef();
-		pdrgpstat->Append(pstatsChild);
-	}
-
-	CExpression *pexprJoinPred = NULL;
-	if (exprhdl.Pdpscalar(ulArity - 1)->FHasSubquery())
-	{
-		// in case of subquery in join predicate, assume join condition is True
-		pexprJoinPred = CUtils::PexprScalarConstBool(pmp, true /*fVal*/);
-	}
-	else
-	{
-		// remove implied predicates from join condition to avoid cardinality under-estimation
-		pexprJoinPred = CPredicateUtils::PexprRemoveImpliedConjuncts(pmp, exprhdl.PexprScalarChild(ulArity - 1), exprhdl);
-	}
-
-	// split join predicate into local predicate and predicate involving outer references
-	CExpression *pexprLocal = NULL;
-	CExpression *pexprOuterRefs = NULL;
-
-	// get outer references from expression handle
-	CColRefSet *pcrsOuter = exprhdl.Pdprel()->PcrsOuter();
-
-	CPredicateUtils::SeparateOuterRefs(pmp, pexprJoinPred, pcrsOuter, &pexprLocal, &pexprOuterRefs);
-	pexprJoinPred->Release();
-
-	IStatistics *pstatsJoin = PstatsJoinWithOuterRefs(pmp, exprhdl, pdrgpstat, pexprLocal, pexprOuterRefs, pdrgpstatCtxt);
-	pexprLocal->Release();
-	pexprOuterRefs->Release();
-
-	pdrgpstat->Release();
-
-	return pstatsJoin;
-}
 
 
 //---------------------------------------------------------------------------
@@ -2087,41 +1833,6 @@ CStatisticsUtils::PcrsGrpColsForStats
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CStatisticsUtils::DNullFreqLASJ
-//
-//	@doc:
-//		Compute the null frequency for LASJ
-//
-//---------------------------------------------------------------------------
-CDouble
-CStatisticsUtils::DNullFreqLASJ
-	(
-	CStatsPred::EStatsCmpType escmpt,
-	const CHistogram *phistOuter,
-	const CHistogram *phistInner
-	)
-{
-	GPOS_ASSERT(NULL != phistOuter);
-	GPOS_ASSERT(NULL != phistInner);
-
-	if (CStatsPred::EstatscmptINDF != escmpt)
-	{
-		// for equality predicate NULLs on the outer side of the join
-		// will not join with those in the inner side
-		return phistOuter->DNullFreq();
-	}
-
-	if (CStatistics::DEpsilon < phistInner->DNullFreq())
-	{
-		// for INDF predicate NULLs on the outer side of the join
-		// will join with those in the inner side if they are present
-		return CDouble(0.0);
-	}
-
-	return phistOuter->DNullFreq();
-}
 
 
 //---------------------------------------------------------------------------
@@ -2241,6 +1952,69 @@ CStatisticsUtils::DDefaultColumnWidth
        }
 
        return dWidth;
+}
+
+//	add width information
+void
+CStatisticsUtils::AddWidthInfo
+		(
+				IMemoryPool *pmp,
+				HMUlDouble *phmuldoubleSrc,
+				HMUlDouble *phmuldoubleDest
+		)
+{
+	HMIterUlDouble hmiteruldouble(phmuldoubleSrc);
+	while (hmiteruldouble.FAdvance())
+	{
+		ULONG ulColId = *(hmiteruldouble.Pk());
+		BOOL fPresent = (NULL != phmuldoubleDest->PtLookup(&ulColId));
+		if (!fPresent)
+		{
+			const CDouble *pdWidth = hmiteruldouble.Pt();
+			CDouble *pdWidthCopy = GPOS_NEW(pmp) CDouble(*pdWidth);
+			phmuldoubleDest->FInsert(GPOS_NEW(pmp) ULONG(ulColId), pdWidthCopy);
+		}
+
+		GPOS_CHECK_ABORT;
+	}
+}
+
+
+//	for the output statistics object, compute its upper bound cardinality
+// 	mapping based on the bounding method estimated output cardinality
+//  and information maintained in the current statistics object
+void
+CStatisticsUtils::ComputeCardUpperBounds
+		(
+		IMemoryPool *pmp,
+		const CStatistics *pstatsInput,
+		CStatistics *pstatsOutput, // output statistics object that is to be updated
+		CDouble dRowsOutput, // estimated output cardinality of the operator
+		CStatistics::ECardBoundingMethod ecbm // technique used to estimate max source cardinality in the output stats object
+		)
+{
+	GPOS_ASSERT(NULL != pstatsOutput);
+	GPOS_ASSERT(CStatistics::EcbmSentinel != ecbm);
+
+	const DrgPubndvs *pdrgubndvInput = pstatsInput->Pdrgundv();
+	ULONG ulLen = pdrgubndvInput->UlLength();
+	for (ULONG ul = 0; ul < ulLen; ul++)
+	{
+		const CUpperBoundNDVs *pubndv = (*pdrgubndvInput)[ul];
+		CDouble dUpperBoundNDVInput = pubndv->DUpperBoundNDVs();
+		CDouble dUpperBoundNDVOutput = dRowsOutput;
+		if (CStatistics::EcbmInputSourceMaxCard == ecbm)
+		{
+			dUpperBoundNDVOutput = dUpperBoundNDVInput;
+		}
+		else if (CStatistics::EcbmMin == ecbm)
+		{
+			dUpperBoundNDVOutput = std::min(dUpperBoundNDVInput.DVal(), dRowsOutput.DVal());
+		}
+
+		CUpperBoundNDVs *pubndvCopy = pubndv->PubndvCopy(pmp, dUpperBoundNDVOutput);
+		pstatsOutput->AddCardUpperBound(pubndvCopy);
+	}
 }
 
 // EOF

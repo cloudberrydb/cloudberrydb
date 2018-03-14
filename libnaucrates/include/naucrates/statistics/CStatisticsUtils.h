@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright 2012 EMC Corp.
+//	Copyright 2018 Pivotal, Inc.
 //
 //	@filename:
 //		CStatisticsUtils.h
@@ -149,18 +149,6 @@ namespace gpnaucrates
 					CDouble dDistinctTotal,
 					DrgPbucket *pdrgpbucket
 					);
-
-			// helper for deriving statistics for join operation based on given scalar expression
-			static
-			IStatistics *PstatsJoinWithOuterRefs
-				(
-				IMemoryPool *pmp,
-				CExpressionHandle &exprhdl,
-				DrgPstat *pdrgpstatChildren,
-				CExpression *pexprScalarLocal, // filter expression on local columns only
-				CExpression *pexprScalarOuterRefs, // filter expression involving outer references
-				DrgPstat *pdrgpstatOuter
-				);
 
 			// add the NDVs for all of the grouping columns
 			static
@@ -324,17 +312,7 @@ namespace gpnaucrates
 			void PrintHistogramMap(IOstream &os, HMUlHist *phmulhist);
 #endif // GPOS_DEBUG
 
-			// derive statistics when scalar expression has outer references
-			static
-			IStatistics *PstatsDeriveWithOuterRefs
-				(
-				IMemoryPool *pmp,
-				BOOL fOuterJoin, // use outer join semantics for statistics derivation
-				CExpressionHandle &exprhdl, // handle attached to the logical expression we want to derive stats for
-				CExpression *pexprScalar, // scalar condition used for stats derivation
-				IStatistics *pstats, // statistics object of attached expression
-				DrgPstat *pdrgpstatOuter // array of stats objects where outer references are defined
-				);
+
 
 			// derive statistics for filter operation based on given scalar expression
 			static
@@ -347,14 +325,6 @@ namespace gpnaucrates
 				CExpression *pexprScalarOuterRefs, // filter expression involving outer references
 				DrgPstat *pdrgpstatOuter
 				);
-
-			// derive statistics for the given join predicate
-			static
-			IStatistics *PstatsJoinArray(IMemoryPool *pmp, BOOL fOuterJoin, DrgPstat *pdrgpstat, CExpression *pexprScalar);
-
-			// derive statistics for join operation given array of statistics object
-			static
-			IStatistics *PstatsJoin(IMemoryPool *pmp, CExpressionHandle &exprhdl, DrgPstat *pdrgpstatCtxt);
 
 			// derive statistics of dynamic scan based on part-selector stats in the given map
 			static
@@ -436,9 +406,7 @@ namespace gpnaucrates
 							CColRefSet *pcrsGrpColComputed // output set of grouping columns that are computed attributes
 							);
 
-		 	// compute the null frequency for LASJ
-			static
-			CDouble DNullFreqLASJ(CStatsPred::EStatsCmpType escmpt, const CHistogram *phistOuter, const CHistogram *phistInner);
+
 
 			// return the total number of distinct values in the given array of buckets
 			static
@@ -455,6 +423,23 @@ namespace gpnaucrates
 			// return the default column width
 			static
 			CDouble DDefaultColumnWidth(const IMDType *pmdtype);
+
+			// helper method to add width information
+			static
+			void AddWidthInfo(IMemoryPool *pmp, HMUlDouble *phmuldoubleSrc, HMUlDouble *phmuldoubleDest);
+
+
+			// for the output stats object, compute its upper bound cardinality mapping based on the bounding method
+			// estimated output cardinality and information maintained in the current stats object
+			static
+			void ComputeCardUpperBounds
+				(
+				IMemoryPool *pmp, // memory pool
+				const CStatistics *pstatsInput,
+				CStatistics *pstatsOutput, // output statistics object that is to be updated
+				CDouble dRowsOutput, // estimated output cardinality of the operator
+				CStatistics::ECardBoundingMethod ecbm // technique used to estimate max source cardinality in the output stats object
+				);
 
 	}; // class CStatisticsUtils
 

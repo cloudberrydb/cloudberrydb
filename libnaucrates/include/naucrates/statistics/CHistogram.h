@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2012 EMC Corp.
+//	Copyright (C) 2018 Pivotal, Inc.
 //
 //	@filename:
 //		CHistogram.h
@@ -121,15 +121,15 @@ namespace gpnaucrates
 
 			static
 			void AddBuckets
-				(
-				IMemoryPool *pmp,
-				DrgPbucket *pdrgppbucketSrc,
-				DrgPbucket *pdrgppbucketDest,
-				CDouble dRows,
-				DrgPdouble *pdrgpdouble,
-				ULONG ulBegin,
-				ULONG ulEnd
-				);
+					(
+					IMemoryPool *pmp,
+					DrgPbucket *pdrgppbucketSrc,
+					DrgPbucket *pdrgppbucketDest,
+					CDouble dRows,
+					DrgPdouble *pdrgpdouble,
+					ULONG ulBegin,
+					ULONG ulEnd
+					);
 
 			// check if we can compute NDVRemain for JOIN histogram for the given input histograms
 			static
@@ -156,14 +156,14 @@ namespace gpnaucrates
 			CHistogram(DrgPbucket *pdrgppbucket, BOOL fWellDefined = true);
 
 			CHistogram
-				(
-				DrgPbucket *pdrgppbucket,
-				BOOL fWellDefined,
-				CDouble dNullFreq,
-				CDouble dDistinctRemain,
-				CDouble dFreqRemain,
-				BOOL fColStatsMissing = false
-				);
+					(
+					DrgPbucket *pdrgppbucket,
+					BOOL fWellDefined,
+					CDouble dNullFreq,
+					CDouble dDistinctRemain,
+					CDouble dFreqRemain,
+					BOOL fColStatsMissing = false
+					);
 
 			// set null frequency
 			void SetNullFrequency(CDouble dNullFreq);
@@ -440,9 +440,9 @@ namespace gpnaucrates
 			static
 			BOOL FSupportsFilter(CStatsPred::EStatsCmpType escmpt);
 
-			// is comparison type supported for joins
+			// is the join predicate's comparison type supported
 			static
-			BOOL FSupportsJoin(CStatsPred::EStatsCmpType escmpt);
+			BOOL FSupportsJoinPred(CStatsPred::EStatsCmpType escmpt);
 
 			// create the default histogram for a given column reference
 			static

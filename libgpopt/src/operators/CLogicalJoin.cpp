@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2011 EMC Corp.
+//	Copyright (C) 2018 Pivotal, Inc.
 //
 //	@filename:
 //		CLogicalJoin.cpp
@@ -18,7 +18,7 @@
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CLogicalJoin.h"
 #include "gpopt/operators/CPredicateUtils.h"
-#include "naucrates/statistics/CStatisticsUtils.h"
+#include "naucrates/statistics/CJoinStatsProcessor.h"
 
 using namespace gpopt;
 
@@ -77,7 +77,7 @@ CLogicalJoin::PstatsDerive
 	)
 	const
 {
-	return CStatisticsUtils::PstatsJoin(pmp, exprhdl, pdrgpstatCtxt);
+	return CJoinStatsProcessor::PstatsJoin(pmp, exprhdl, pdrgpstatCtxt);
 }
 
 // EOF

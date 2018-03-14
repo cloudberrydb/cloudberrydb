@@ -165,13 +165,13 @@ namespace gpopt
 			// compute required stat columns of the n-th child
 			virtual
 			CColRefSet *PcrsStat
-				(
-				IMemoryPool *pmp,
-				CExpressionHandle &exprhdl,
-				CColRefSet *pcrsInput,
-				ULONG ulChildIndex
-				)
-				const
+					(
+					IMemoryPool *pmp,
+					CExpressionHandle &exprhdl,
+					CColRefSet *pcrsInput,
+					ULONG ulChildIndex
+					)
+					const
 			{
 				const ULONG ulArity = exprhdl.UlArity();
 

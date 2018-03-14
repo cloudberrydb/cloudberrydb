@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2012 EMC Corp.
+//	Copyright (C) 2018 Pivotal, Inc.
 //
 //	@filename:
 //		CStatistics.h
@@ -67,6 +67,9 @@ namespace gpnaucrates
 					EcbmSentinel
 				};
 
+		// helper method to copy stats on columns that are not excluded by bitset
+		void AddNotExcludedHistograms(IMemoryPool *pmp, CBitSet *pbsExcludedColIds, HMUlHist *phmulhist) const;
+
 		private:
 
 			// private copy ctor
@@ -114,136 +117,20 @@ namespace gpnaucrates
 			static
 			const ULONG ulStatsEstimationNoRisk;
 
-			// helper method to copy stats on columns that are not excluded by bitset
-			void AddNotExcludedHistograms(IMemoryPool *pmp, CBitSet *pbsExcludedColIds, HMUlHist *phmulhist) const;
 
-			// main driver to generate join stats
-			virtual
-			CStatistics *PstatsJoinDriver
-							(
-							IMemoryPool *pmp,
-							const IStatistics *pistatsOther,
-							DrgPstatspredjoin *pdrgpstatspredjoin,
-							IStatistics::EStatsJoinType ejst,
-							BOOL fIgnoreLasjHistComputation
-							)
-							const;
 
 			// cap the total number of distinct values (NDV) in buckets to the number of rows
 			static
 			void CapNDVs(CDouble dRows, HMUlHist *phmulhist);
 
-			// create a new hash map of histograms from the results of the inner join and the histograms of the outer child
-			static
-			HMUlHist *PhmulhistLOJ
-						(
-						IMemoryPool *pmp,
-						const CStatistics *pstatsOuter,
-						const CStatistics *pstatsInner,
-						CStatistics *pstatsInnerJoin,
-						DrgPstatspredjoin *pdrgpstatspredjoin,
-						CDouble dRowsInnerJoin,
-						CDouble *pdRowsLASJ
-						);
-
-			// helper method to add width information
-			static
-			void AddWidthInfo(IMemoryPool *pmp, HMUlDouble *phmuldoubleSrc, HMUlDouble *phmuldoubleDest);
 
 			// helper method to add histograms where the column ids have been remapped
 			static
 			void AddHistogramsWithRemap(IMemoryPool *pmp, HMUlHist *phmulhistSrc, HMUlHist *phmulhistDest, HMUlCr *phmulcr, BOOL fMustExist);
 
-			// helper method to add histograms of the inner side of a LOJ
-			static
-			void AddHistogramsLOJInner
-				(
-				IMemoryPool *pmp,
-				const CStatistics *pstatsInnerJoin,
-				DrgPul *pdrgpulInnerColId,
-				CDouble dRowsLASJ,
-				CDouble dRowsInnerJoin,
-				HMUlHist *phmulhistLOJ
-				);
-
 			// helper method to add width information where the column ids have been remapped
 			static
 			void AddWidthInfoWithRemap(IMemoryPool *pmp, HMUlDouble *phmuldoubleSrc, HMUlDouble *phmuldoubleDest, HMUlCr *phmulcr, BOOL fMustExist);
-
-			// helper for inner-joining histograms
-			static
-			void InnerJoinHistograms
-				(
-				IMemoryPool *pmp,
-				CHistogram *phist1,
-				CHistogram *phist2,
-				CStatsPredJoin *pstatsjoin,
-				CDouble dRows1,
-				CDouble dRows2,
-				CHistogram **pphist1, // output: histogram 1 after join
-				CHistogram **pphist2, // output: histogram 2 after join
-				CDouble *pdScaleFactor, // output: scale factor based on the join
-				BOOL fEmptyInput // if true, one of the inputs is empty
-				);
-
-			// helper for LAS-joining histograms
-			static
-			void LASJoinHistograms
-				(
-				IMemoryPool *pmp,
-				CHistogram *phist1,
-				CHistogram *phist2,
-				CStatsPredJoin *pstatsjoin,
-				CDouble dRows1,
-				CDouble dRows2,
-				CHistogram **pphist1, // output: histogram 1 after join
-				CHistogram **pphist2, // output: histogram 2 after join
-				CDouble *pdScaleFactor, // output: scale factor based on the join
-				BOOL fEmptyInput, // if true, one of the inputs is empty
-				BOOL fIgnoreLasjHistComputation
-				);
-
-			// helper for joining histograms
-			static
-			void JoinHistograms
-				(
-				IMemoryPool *pmp,
-				CHistogram *phist1,
-				CHistogram *phist2,
-				CStatsPredJoin *pstatsjoin,
-				CDouble dRows1,
-				CDouble dRows2,
-				BOOL fLASJ, // if true, use anti-semi join semantics, otherwise use inner join semantics
-				CHistogram **pphist1, // output: histogram 1 after join
-				CHistogram **pphist2, // output: histogram 2 after join
-				CDouble *pdScaleFactor, // output: scale factor based on the join
-				BOOL fEmptyInput, // if true, one of the inputs is empty
-				BOOL fIgnoreLasjHistComputation
-				);
-
-			// return join cardinality based on scaling factor and join type
-			static
-			CDouble DJoinCardinality
-						(
-						CStatisticsConfig *pstatsconf,
-						CDouble dRowsLeft,
-						CDouble dRowsRight,
-						DrgPdouble *pdrgpd,
-						IStatistics::EStatsJoinType esjt
-						);
-
-			//	check if the join statistics object is empty output based on the input
-			//	histograms and the join histograms
-			static
-			BOOL FEmptyJoinStats
-					(
-					BOOL fEmptyOuter,
-					BOOL fEmptyOutput,
-					BOOL fLASJ,
-					CHistogram *phistOuter,
-					CHistogram *phistInner,
-					CHistogram *phistJoin
-					);
 
 		public:
 
@@ -262,7 +149,13 @@ namespace gpnaucrates
 			virtual
 			~CStatistics();
 
-			// actual number of rows
+			virtual
+			HMUlDouble *PHMUlDoubleWidth() const
+			{
+				return m_phmuldoubleWidth;
+			}
+
+		// actual number of rows
 			virtual
 			CDouble DRows() const;
 
@@ -427,18 +320,6 @@ namespace gpnaucrates
 			virtual
 			IOstream &OsPrint(IOstream &os) const;
 
-			// for the output stats object, compute its upper bound cardinality mapping based on the bounding method
-			// estimated output cardinality and information maintained in the current stats object
-			virtual
-			void ComputeCardUpperBounds
-					(
-					IMemoryPool *pmp, // memory pool
-					CStatistics *pstatsOutput, // output statistics object that is to be updated
-					CDouble dRowsOutput, // estimated output cardinality of the operator
-					CStatistics::ECardBoundingMethod ecbm // technique used to estimate max source cardinality in the output stats object
-					)
-					const;
-
 			// add upper bound of source cardinality
 			virtual
 			void AddCardUpperBound(CUpperBoundNDVs *pubndv);
@@ -455,6 +336,21 @@ namespace gpnaucrates
 			virtual
 			DrgPul *PdrgulColIds(IMemoryPool *pmp) const;
 
+			virtual
+			ULONG
+			UlNumberOfPredicates() const
+			{
+				return m_ulNumPredicates;
+			}
+			CStatisticsConfig *PStatsConf() const
+			{
+				return	m_pstatsconf;
+			}
+
+			DrgPubndvs *Pdrgundv() const
+			{
+				return m_pdrgpubndvs;
+			}
 			// create an empty statistics object
 			static
 			CStatistics *PstatsEmpty
