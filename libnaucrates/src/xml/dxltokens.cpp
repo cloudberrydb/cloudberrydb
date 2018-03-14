@@ -720,7 +720,6 @@ CDXLTokens::Init
 
 			{EdxltokenCtasOptionType, GPOS_WSZ_LIT("CtasOptionType")},
 			{EdxltokenVarTypeModList, GPOS_WSZ_LIT("VarTypeModList")},
-			{EdxltokenNestloopFactor, GPOS_WSZ_LIT("NestloopFactor")}
 	};
 	
 	m_pstrmap = GPOS_NEW_ARRAY(m_pmp, SStrMapElem, EdxltokenSentinel);

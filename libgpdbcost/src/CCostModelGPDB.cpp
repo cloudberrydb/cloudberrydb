@@ -1059,10 +1059,6 @@ CCostModelGPDB::CostNLJoin
 	CColRefSet *pcrsUsed = CDrvdPropScalar::Pdpscalar(pexprJoinCond->PdpDerive())->PcrsUsed();
 	const ULONG ulColsUsed = pcrsUsed->CElements();
 
-	// fetch the penalization factor for NLJ
-	COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
-	ULONG ulNestloopFactor = poconf->Phint()->UlNestloopFactor();
-
 	// cost of nested loop join contains three parts:
 	// 1. feeding outer tuples. This part is correlated with rows and width of outer tuples
 	// and the number of columns used.
@@ -1112,7 +1108,7 @@ CCostModelGPDB::CostNLJoin
 		}
 	}
 
-	return CCost(costTotal * dPenalization * ulNestloopFactor);
+	return CCost(costTotal * dPenalization);
 }
 
 

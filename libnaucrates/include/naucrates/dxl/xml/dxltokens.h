@@ -699,7 +699,6 @@ namespace gpdxl
 
 		EdxltokenCtasOptionType,
 		EdxltokenVarTypeModList,
-		EdxltokenNestloopFactor,
 
 		EdxltokenSentinel
 	};

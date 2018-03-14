@@ -17,7 +17,6 @@
 
 #define JOIN_ORDER_DP_THRESHOLD ULONG(10)
 #define BROADCAST_THRESHOLD ULONG(10000000)
-#define NESTLOOP_FACTOR ULONG(1)
 
 namespace gpopt
 {
@@ -46,8 +45,6 @@ namespace gpopt
 
 			ULONG m_ulBroadcastThreshold;
 
-			ULONG m_ulNestloopFactor;
-
 			BOOL m_fEnforceConstraintsOnDML;
 
 			// private copy ctor
@@ -63,7 +60,6 @@ namespace gpopt
 				ULONG ulArrayExpansionThreshold,
 				ULONG ulJoinOrderDPLimit,
 				ULONG ulBroadcastThreshold,
-				ULONG ulNestloopFactor,
 				BOOL fEnforceConstraintsOnDML
 				)
 				:
@@ -72,7 +68,6 @@ namespace gpopt
 				m_ulArrayExpansionThreshold(ulArrayExpansionThreshold),
 				m_ulJoinOrderDPLimit(ulJoinOrderDPLimit),
 				m_ulBroadcastThreshold(ulBroadcastThreshold),
-				m_ulNestloopFactor(ulNestloopFactor),
 				m_fEnforceConstraintsOnDML(fEnforceConstraintsOnDML)
 			{
 			}
@@ -116,11 +111,6 @@ namespace gpopt
 				return m_ulBroadcastThreshold;
 			}
 
-			ULONG UlNestloopFactor() const
-			{
-				return m_ulNestloopFactor;
-			}
-
 			// If true, ORCA will add Assertion nodes to the plan to enforce CHECK
 			// and NOT NULL constraints on inserted/updated values. (Otherwise it
 			// is up to the executor to enforce them.)
@@ -141,7 +131,6 @@ namespace gpopt
 										INT_MAX, /* ulArrayExpansionThreshold */
 										JOIN_ORDER_DP_THRESHOLD, /*ulJoinOrderDPLimit*/
 										BROADCAST_THRESHOLD, /*ulBroadcastThreshold*/
-										NESTLOOP_FACTOR, /*ulOptimizerNestloopFactor */
 										true /* fEnforceConstraintsOnDML */
 										);
 			}
