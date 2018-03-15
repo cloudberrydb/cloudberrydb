@@ -13109,6 +13109,18 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 			int i_relname = 0;
 			int i_parname = 0;
 			int i_partitionrank = 0;
+
+			/*
+			 * The multiple JOINs below trigger an apparent planner bug which
+			 * may effectively hang the backend. This bug is present in both
+			 * released versions of GPDB and the current development tip at time
+			 * of writing. Disable nestloops temporarily as a workaround.
+			 *
+			 * TODO: when this bug is fixed, version-gate this code so that we
+			 * don't run it on well-behaved backends.
+			 */
+			do_sql_command(g_conn, "SET enable_nestloop TO off");
+
 			resetPQExpBuffer(query);
 			appendPQExpBuffer(query, "SELECT c.relname, pr.parname,"
 					"CASE WHEN p.parkind <> '%c'::char OR pr.parisdefault THEN NULL::bigint "
@@ -13132,6 +13144,7 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 			i_parname = PQfnumber(res, "parname");
 			i_partitionrank = PQfnumber(res, "partitionrank");
 
+			/* FIXME: does this code handle external SUBPARTITIONs correctly? */
 			for (i = 0; i < ntups; i++)
 			{
 				char tmpExtTable[500] = {0};
@@ -13163,6 +13176,9 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 			}
 
 			PQclear(res);
+
+			/* TODO: version-gate this when the planner bug is fixed; see above. */
+			do_sql_command(g_conn, "SET enable_nestloop TO on");
 		}
 
 		/*
