@@ -1660,3 +1660,11 @@ EXPLAIN SELECT count(*) over (PARTITION BY a ORDER BY b, c, d) as count1,
        count(*) over (PARTITION BY a ORDER BY c, b, d) as count3
 FROM foo;
 drop table foo;
+
+-- test predicate push down in subqueries for quals containing windowref nodes
+-- start_ignore
+create table windowagg(a int, b int);
+-- end_ignore
+
+-- predicate should be pushed down
+explain select b from (select b, row_number() over (partition by b) from windowagg ) f where b = 1;

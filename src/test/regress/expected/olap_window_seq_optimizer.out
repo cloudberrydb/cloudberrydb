@@ -8222,3 +8222,25 @@ FROM foo;
 (31 rows)
 
 drop table foo;
+-- test predicate push down in subqueries for quals containing windowref nodes
+-- start_ignore
+create table windowagg(a int, b int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+-- end_ignore
+-- predicate should be pushed down
+explain select b from (select b, row_number() over (partition by b) from windowagg ) f where b = 1;
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+   ->  WindowAgg  (cost=0.00..431.00 rows=1 width=4)
+         Partition By: b
+         ->  Sort  (cost=0.00..431.00 rows=1 width=4)
+               Sort Key: b
+               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+                     Hash Key: b
+                     ->  Table Scan on windowagg  (cost=0.00..431.00 rows=1 width=4)
+                           Filter: b = 1
+ Optimizer: PQO version 2.55.15
+(10 rows)
+
