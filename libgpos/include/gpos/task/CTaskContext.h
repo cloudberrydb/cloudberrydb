@@ -100,6 +100,11 @@ namespace gpos
 			{
 				m_eloc = eloc;
 			}
+
+			CBitSet *PbsCopyTraceFlags(IMemoryPool *pmp) const
+			{
+				return GPOS_NEW(pmp) CBitSet(pmp, *m_pbs);
+			}
 		
 	}; // class CTaskContext
 }

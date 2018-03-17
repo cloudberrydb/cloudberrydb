@@ -40,6 +40,7 @@
 #include "unittest/dxl/CDXLUtilsTest.h"
 #include "unittest/dxl/CParseHandlerManagerTest.h"
 #include "unittest/dxl/CParseHandlerTest.h"
+#include "unittest/dxl/CParseHandlerOptimizerConfigSerializeTest.h"
 
 #include "unittest/dxl/CXMLSerializerTest.h"
 
@@ -166,6 +167,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CMinidumpWithConstExprEvaluatorTest),
 	GPOS_UNITTEST_STD(CParseHandlerManagerTest),
 	GPOS_UNITTEST_STD(CParseHandlerTest),
+	GPOS_UNITTEST_STD(CParseHandlerOptimizerConfigSerializeTest),
 	GPOS_UNITTEST_STD(CStatisticsTest),
 	GPOS_UNITTEST_STD(CPointTest),
 	GPOS_UNITTEST_STD(CBucketTest),

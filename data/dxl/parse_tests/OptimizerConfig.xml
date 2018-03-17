@@ -1,14 +1,1 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
-  <dxl:Thread>
-    <dxl:OptimizerConfig>
-      <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
-      <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
-      <dxl:CTEConfig CTEInliningCutoff="0"/> 
-      <dxl:WindowOids RowNumber="7000" Rank="7001"/>
-      <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3"/>
-      <dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="7" ArrayExpansionThreshold="25" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000" EnforceConstraintsOnDML="false"/>
-      <dxl:TraceFlags Value="102120,103001,103014,103015,103022,104003,104004,104005,105000"/>
-    </dxl:OptimizerConfig>
-  </dxl:Thread>
-</dxl:DXLMessage>
+<?xml version="1.0" encoding="UTF-8"?><dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/"><dxl:OptimizerConfig><dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/><dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/><dxl:CTEConfig CTEInliningCutoff="0"/><dxl:WindowOids RowNumber="7000" Rank="7001"/><dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3"/><dxl:Hint MinNumOfPartsToRequireSortOnInsert="2147483647" JoinArityForAssociativityCommutativity="7" ArrayExpansionThreshold="25" JoinOrderDynamicProgThreshold="10" BroadcastThreshold="10000000" EnforceConstraintsOnDML="false"/><dxl:TraceFlags Value=""/></dxl:OptimizerConfig></dxl:DXLMessage>

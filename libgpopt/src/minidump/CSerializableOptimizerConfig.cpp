@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2013 EMC Corp.
+//	Copyright (C) 2018 Pivotal, Inc..
 //
 //	@filename:
 //		CSerializableOptimizerConfig.cpp
@@ -12,18 +12,15 @@
 #include "gpos/base.h"
 #include "gpos/error/CErrorContext.h"
 #include "gpos/task/CTask.h"
-#include "gpos/task/CTraceFlagIter.h"
 
 #include "naucrates/dxl/xml/CDXLSections.h"
-#include "naucrates/dxl/xml/dxltokens.h"
 #include "naucrates/dxl/CDXLUtils.h"
+#include "naucrates/dxl/xml/CXMLSerializer.h"
 
-#include "gpopt/engine/CEnumeratorConfig.h"
-#include "gpopt/engine/CStatisticsConfig.h"
-#include "gpopt/engine/CCTEConfig.h"
 #include "gpopt/optimizer/COptimizerConfig.h"
 #include "gpopt/mdcache/CMDAccessor.h"
 #include "gpopt/minidump/CSerializableOptimizerConfig.h"
+#include "gpopt/base/COptCtxt.h"
 
 using namespace gpos;
 using namespace gpopt;
@@ -67,48 +64,6 @@ CSerializableOptimizerConfig::~CSerializableOptimizerConfig()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CSerializableOptimizerConfig::SerializeTraceflags
-//
-//	@doc:
-//		Serialize traceflags into provided stream
-//
-//---------------------------------------------------------------------------
-void
-CSerializableOptimizerConfig::SerializeTraceflags
-	(
-	COstream& oos
-	)
-{
-	// copy prefix
-	oos << CDXLSections::m_wszTraceFlagsSectionPrefix;
-	
-	// populate traceflags
-	CTraceFlagIter tfi;
-	ULONG ul = 0;
-	const CWStringConst *pstrComma = CDXLTokens::PstrToken(EdxltokenComma);
-	WCHAR wszTF[GPOPT_MAX_TRACEFLAG_CODE_LENGTH + 2];
-	CWStringStatic str(wszTF, GPOPT_MAX_TRACEFLAG_CODE_LENGTH + 2);
-	
-	while (tfi.FAdvance())
-	{
-		if (0 < ul)
-		{
-			str.AppendFormat(GPOS_WSZ_LIT("%ls"), pstrComma->Wsz());
-		}
-		
-		str.AppendFormat(GPOS_WSZ_LIT("%d"), tfi.UlBit());
-
-		oos << str.Wsz();
-		ul++;
-		str.Reset();
-	}
-	
-	// copy suffix
-	oos << CDXLSections::m_wszTraceFlagsSectionSuffix;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CSerializableOptimizerConfig::Serialize
 //
 //	@doc:
@@ -121,11 +76,12 @@ CSerializableOptimizerConfig::Serialize
 	COstream &oos
 	)
 {
-	CDXLUtils::SerializeOptimizerConfig(m_pmp, oos, m_poconf, false /*fIndent*/);
-	SerializeTraceflags(oos);
+	CXMLSerializer xmlser(m_pmp, oos, false /*Indent*/);
 
-	// Footer
-	oos << CDXLSections::m_wszOptimizerConfigFooter;
+	// Copy traceflags from global state
+	CBitSet *pbs = CTask::PtskSelf()->Ptskctxt()->PbsCopyTraceFlags(m_pmp);
+	m_poconf->Serialize(m_pmp, &xmlser, pbs);
+	pbs->Release();
 }
 
 // EOF

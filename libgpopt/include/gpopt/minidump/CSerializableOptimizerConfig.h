@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2013 EMC Corp.
+//	Copyright (C) 2018 Pivotal, Inc.
 //
 //	@filename:
 //		CSerializableOptimizerConfig.h
@@ -45,9 +45,6 @@ namespace gpopt
 
 			// private copy ctor
 			CSerializableOptimizerConfig(const CSerializableOptimizerConfig&);
-
-			// serialize traceflags to passed stream
-			void SerializeTraceflags(COstream& oos);
 			
 		public:
 

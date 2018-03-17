@@ -19,6 +19,7 @@
 #include "gpos/io/COstreamString.h"
 #include "gpos/task/CAutoTraceFlag.h"
 #include "gpos/task/CWorker.h"
+#include "gpos/task/CTraceFlagIter.h"
 
 #include "gpopt/engine/CEnumeratorConfig.h"
 #include "gpopt/engine/CStatisticsConfig.h"
@@ -83,13 +84,13 @@ CDXLUtils::PphdxlParseDXL
 	// setup own memory manager
 	CDXLMemoryManager *pmm = GPOS_NEW(pmp) CDXLMemoryManager(pmp);
 	SAX2XMLReader* pxmlreader = XMLReaderFactory::createXMLReader(pmm);
-	
+
 #ifdef GPOS_DEBUG
 	CWorker::PwrkrSelf()->ResetTimeSlice();
 #endif // GPOS_DEBUG
 
 	XMLCh *xmlszXSDPath = NULL;
-	
+
 	if (NULL != szXSDPath)
 	{
 		// setup XSD validation
@@ -566,6 +567,10 @@ CDXLUtils::PoptimizerConfigParseDXL
 
 	// create and install a parse handler for the DXL document
 	CParseHandlerDXL *pphdxl = PphdxlParseDXL(pmp, szDXL, szXSDPath);
+	// though we could access the traceflags member of the CParseHandlerDXL
+	// here we don't access them or store them anywhere,
+	// so, if using this function, note that any traceflags present
+	// in the DXL being parsed will be discarded
 	CAutoP<CParseHandlerDXL> a_pphdxl(pphdxl);
 
 	// collect optimizer conf from dxl parse handler
@@ -1182,73 +1187,6 @@ CDXLUtils::PstrSerializeMetadata
 	return pstr;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CDXLUtils::PstrSerializeOptimizerConfig
-//
-//	@doc:
-//		Serialize optimizer configuration
-//
-//---------------------------------------------------------------------------
-void
-CDXLUtils::SerializeOptimizerConfig
-	(
-	IMemoryPool *pmp,
-	IOstream &os,
-	const COptimizerConfig *poconf,
-	BOOL fIndent
-	)
-{
-	GPOS_ASSERT(NULL != pmp);
-
-	const CEnumeratorConfig *pec = poconf->Pec();
-	const CStatisticsConfig *pstatsconf = poconf->Pstatsconf();
-	const CCTEConfig *pcteconf = poconf->Pcteconf();
-	const ICostModel *pcm = poconf->Pcm();
-	const CHint *phint = poconf->Phint();
-	const CWindowOids *pwindowoids = poconf->Pwindowoids();
-
-	CXMLSerializer xmlser(pmp, os, fIndent);
-
-	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenOptimizerConfig));
-	
-	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenEnumeratorConfig));
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenPlanId), pec->UllPlanId());
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenPlanSamples), pec->UllPlanId());
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenCostThreshold), pec->UllPlanId());
-
-	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenEnumeratorConfig));
-
-	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenStatisticsConfig));
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenDampingFactorFilter), pstatsconf->DDampingFactorFilter());
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenDampingFactorJoin), pstatsconf->DDampingFactorJoin());
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenDampingFactorGroupBy), pstatsconf->DDampingFactorGroupBy());
-	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenStatisticsConfig));
-
-	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenCTEConfig));
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenCTEInliningCutoff), pcteconf->UlCTEInliningCutoff());
-	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenCTEConfig));
-	
-	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenWindowOids));
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenOidRowNumber), pwindowoids->OidRowNumber());
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenOidRank), pwindowoids->OidRank());
-	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenWindowOids));
-
-	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenCostModelConfig));
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenCostModelType), pcm->Ecmt());
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenSegmentsForCosting), pcm->UlHosts());
-	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenCostModelConfig));
-
-	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenHint));
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenMinNumOfPartsToRequireSortOnInsert), phint->UlMinNumOfPartsToRequireSortOnInsert());
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenJoinArityForAssociativityCommutativity), phint->UlJoinArityForAssociativityCommutativity());
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenArrayExpansionThreshold), phint->UlArrayExpansionThreshold());
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenJoinOrderDPThreshold), phint->UlJoinOrderDPLimit());
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenBroadcastThreshold), phint->UlBroadcastThreshold());
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenEnforceConstraintsOnDML), phint->FEnforceConstraintsOnDML());
-	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenHint));
-}
-
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -1368,14 +1306,14 @@ CDXLUtils::SerializeMDRequest
 	{
 		SerializeHeader(pmp, &xmlser);
 	}
-	
+
 	pmdr->Serialize(&xmlser);
-	
+
 	if (fSerializeHeaderFooter)
 	{
 		SerializeFooter(&xmlser);
 	}
-	
+
 	return;
 }
 
@@ -1407,20 +1345,20 @@ CDXLUtils::SerializeMDRequest
 	{
 		SerializeHeader(pmp, &xmlser);
 	}
-	
+
 	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenMDRequest));
 
-	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenMdid));				
+	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenMdid));
 	pmdid->Serialize(&xmlser, CDXLTokens::PstrToken(EdxltokenValue));
 	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenMdid));
-	
+
 	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenMDRequest));
 
 	if (fSerializeHeaderFooter)
 	{
 		SerializeFooter(&xmlser);
 	}
-	
+
 	return;
 }
 

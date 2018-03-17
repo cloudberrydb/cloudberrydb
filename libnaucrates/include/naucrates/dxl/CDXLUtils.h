@@ -77,12 +77,12 @@ namespace gpdxl
 				const CHAR *szXSDPath
 				);
 			
+
+
+		public:
 			// helper functions for serializing DXL document header and footer, respectively
 			static void SerializeHeader(IMemoryPool *, CXMLSerializer *);
 			static void SerializeFooter(CXMLSerializer *);
-
-		public:
-			
 			// helper routine which initializes and starts the xerces parser, 
 			// and returns the top-level parse handler which can be used to
 			// retrieve the parsed elements
@@ -328,7 +328,7 @@ namespace gpdxl
 				BOOL fDocumentHeaderFooter,
 				BOOL fIndent
 				);
-			
+
 			// serialize a list of metadata objects into DXL
 			static 
 			CWStringDynamic *PstrSerializeMetadata
@@ -348,17 +348,7 @@ namespace gpdxl
 				BOOL fDocumentHeaderFooter,
 				BOOL fIndent
 				);
-			
-			// serialize optimizer configuration
-			static
-			void SerializeOptimizerConfig
-				(
-				IMemoryPool *pmp,
-				IOstream &os,
-				const COptimizerConfig *poconf,
-				BOOL fIndent
-				);
-			
+
 			// serialize sample plans
 			static
 			CWStringDynamic *PstrSerializeSamplePlans

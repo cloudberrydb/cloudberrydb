@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2013 EMC Corp.
+//	Copyright (C) 2018 Pivotal, Inc.
 //
 //	@filename:
 //		COptimizerConfig.h
@@ -8,6 +8,7 @@
 //	@doc:
 //		Configurations used by the optimizer
 //---------------------------------------------------------------------------
+
 #ifndef GPOPT_COptimizerConfig_H
 #define GPOPT_COptimizerConfig_H
 
@@ -25,7 +26,7 @@ namespace gpopt
 {
 	using namespace gpos;
 
-	// fwd decl
+	// forward decl
 	class ICostModel;
 
 	//---------------------------------------------------------------------------
@@ -120,6 +121,8 @@ namespace gpopt
 			// generate default optimizer configurations with the given cost model
 			static
 			COptimizerConfig *PoconfDefault(IMemoryPool *pmp, ICostModel *pcm);
+
+			void Serialize(IMemoryPool *pmp, CXMLSerializer *pxmlser, CBitSet *pbsTrace) const;
 
 	}; // class COptimizerConfig
 
