@@ -547,6 +547,7 @@ namespace gpopt
 
 			//-------------------------------------------------------------------------------------
 			// Enforced Properties
+			// See CEngine::FCheckEnfdProps() for comments on usage.
 			//-------------------------------------------------------------------------------------
 
 			// return order property enforcing type for this operator

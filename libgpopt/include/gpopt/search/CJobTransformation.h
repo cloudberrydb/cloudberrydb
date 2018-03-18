@@ -28,7 +28,7 @@ namespace gpopt
 	//		CJobTransformation
 	//
 	//	@doc:
-	//		Transform group expression job
+	//		Runs the given transformation (XForm) rule.
 	//
 	//---------------------------------------------------------------------------
 	class CJobTransformation : public CJob

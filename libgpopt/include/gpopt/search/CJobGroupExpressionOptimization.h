@@ -31,6 +31,12 @@ namespace gpopt
 	//	@doc:
 	//		Group expression optimization job
 	//
+	//		Responsible for finding the best plan rooted by a given group
+	//		expression, such that the identified plan satisfies given required plan
+	//		properties. Note that a group optimization job entails running a group
+	//		expression optimization job for each group expression in the underlying
+	//		group.
+	//
 	//---------------------------------------------------------------------------
 	class CJobGroupExpressionOptimization : public CJobGroupExpression
 	{

@@ -40,7 +40,12 @@ namespace gpopt
 
 		public:
 
-			// definition of property enforcing type for a given operator
+			// Definition of property enforcing type for a given operator.
+			//
+			// Each enforced property is queried in CEngine::FCheckEnfdProps() to
+			// determine if enforcers are required, optional, unnecessary or
+			// prohibited over an operator given an optimization context of
+			// properties required of it.
 			//
 			// - Required: operator cannot deliver the required properties on its
 			// own, e.g., requiring a sort order from a table scan
@@ -56,6 +61,10 @@ namespace gpopt
 			// own, e.g., requiring a sort order on column A from a sort operator that
 			// provides sorting on column A. If the required property spec is empty, any
 			// operator satisfies it so its type falls into this category.
+			//
+			// NB: 'Prohibited' prevents ANY enforcer to be added for the given
+			// operator & optimization context, even if one is required by some other
+			// enforced property.
 
 			enum EPropEnforcingType
 			{

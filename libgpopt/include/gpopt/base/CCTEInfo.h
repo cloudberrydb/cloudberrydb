@@ -36,7 +36,10 @@ namespace gpopt
 	//		CCTEInfo
 	//
 	//	@doc:
-	//		Global CTE information
+	//		Global information about common table expressions (CTEs) including:
+	//		- the expression tree that defines each CTE
+	//		- the number of consumers created by the optimizer
+	//		- a mapping from consumer columns to producer columns
 	//
 	//---------------------------------------------------------------------------
 	class CCTEInfo : public CRefCount

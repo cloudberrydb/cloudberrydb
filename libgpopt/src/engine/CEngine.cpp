@@ -524,8 +524,14 @@ CEngine::EolDamp
 //		CEngine::FOptimizeChild
 //
 //	@doc:
-//		Check if parent group expression can optimize child group expression
+//		Check if parent group expression needs to optimize child group expression.
+//		This method is called right before a group optimization job is about to
+//		schedule a group expression optimization job.
 //
+//		Relation properties as well the optimizing parent group expression is
+//		available to make the decision. So, operators can reject being optimized
+//		under specific parent operators. For example, a GatherMerge under a Sort
+//		can be prevented here since it destroys the order from a GatherMerge.
 //---------------------------------------------------------------------------
 BOOL
 CEngine::FOptimizeChild
@@ -2140,8 +2146,39 @@ CEngine::SamplePlans()
 //		CEngine::FCheckEnfdProps
 //
 //	@doc:
-//		Check enforceable properties;
-//		return false if it's impossible for the operator to satisfy one or more;
+//		Check enforceable properties and append enforcers to the current group if
+//		required.
+//
+//		This check is done in two steps:
+//
+//		First, it determines if any particular property needs to be enforced at
+//		all. For example, the EopttraceDisableSort traceflag can disable order
+//		enforcement. Also, if there are no partitioned tables referenced in the
+//		subtree, partition propagation enforcement can be skipped.
+//
+//		Second, EPET methods are called for each property to determine if an
+//		enforcer needs to be added. These methods in turn call into virtual
+//		methods in the different operators. For example, CPhysical::EpetOrder()
+//		is used to determine a Sort node needs to be added to the group. These
+//		methods are passed an expression handle (to access derived properties of
+//		the subtree) and the required properties as a object of a subclass of
+//		CEnfdProp.
+//
+//		Finally, based on return values of the EPET methods,
+//		CEnfdProp::AppendEnforcers() is called for each of the enforced
+//		properties.
+//
+//		Returns true if no enforcers were created because they were deemed
+//		unnecessary or optional i.e all enforced properties were satisfied for
+//		the group expression under the current optimization context.  Returns
+//		false otherwise.
+//
+//		NB: This method is only concerned with a certain enforcer needs to be
+//		added into the group. Once added, there is no connection between the
+//		enforcer and the operator that created it. That is although some group
+//		expression X created the enforcer E, later, during costing, E can still
+//		decide to pick some other group expression Y for its child, since
+//		theoretically, all group expressions in a group are equivalent.
 //
 //---------------------------------------------------------------------------
 BOOL
@@ -2191,6 +2228,7 @@ CEngine::FCheckEnfdProps
 		return false;
 	}
 
+	// Determine if any property enforcement is disable or unnecessary
 	BOOL fOrderReqd =
 		!GPOS_FTRACE(EopttraceDisableSort) &&
 		!prpp->Peo()->PosRequired()->FEmpty();
@@ -2207,6 +2245,10 @@ CEngine::FCheckEnfdProps
 		!GPOS_FTRACE(EopttraceDisablePartPropagation) &&
 		prpp->Pepp()->PppsRequired()->FPartPropagationReqd();
 
+	// Determine if adding an enforcer to the group is required, optional,
+	// unnecessary or prohibited over the group expression and given the current
+	// optimization context (required properties)
+
 	// get order enforcing type
 	CEnfdProp::EPropEnforcingType epetOrder =
 			prpp->Peo()->Epet(exprhdl, popPhysical, fOrderReqd);
@@ -2222,7 +2264,14 @@ CEngine::FCheckEnfdProps
 	CEnfdProp::EPropEnforcingType epetPartitionPropagation =
 			prpp->Pepp()->Epet(exprhdl, popPhysical, fPartPropagationReqd);
 
-	// add enforcers only if their combination can satisfy all enforceable properties
+	// Skip adding enforcers entirely if any property determines it to be
+	// 'prohibited'. In this way, a property may veto out the creation of an
+	// enforcer for the current group expression and optimization context.
+	//
+	// NB: Even though an enforcer E is not added because of some group
+	// expression G because it was prohibited, some other group expression H may
+	// decide to add it. And if E is added, it is possible for E to consider both
+	// G and H as its child.
 	if (FProhibited(epetOrder, epetDistribution, epetRewindability, epetPartitionPropagation))
 	{
 		return false;
@@ -2382,9 +2431,17 @@ CEngine::FCheckReqdPartPropagation
 //		CEngine::FCheckReqdProps
 //
 //	@doc:
-//		Check required properties;
-//		return false if it's impossible for the operator to satisfy one or more;
+//		Determine if checking required properties is needed.
+//		This method is called after a group expression optimization job has
+//		started executing and can be used to cancel the job early.
 //
+//		This is useful to prevent deadlocks when an enforcer optimizes same
+//		group with the same optimization context. Also, in case the subtree
+//		doesn't provide the required columns we can save optimization time by
+//		skipping this optimization request.
+//
+//		NB: Only relational properties are available at this stage to make this
+//		decision.
 //---------------------------------------------------------------------------
 BOOL
 CEngine::FCheckReqdProps

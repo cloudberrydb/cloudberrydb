@@ -36,8 +36,13 @@ namespace gpopt
 	//		CColumnFactory
 	//
 	//	@doc:
-	//		Manager of column references; owns the memory in which they are
-	//		allocated, provides factory methods to generate new column references
+	//		Singleton factory class used to generate and manage CColRefs in ORCA.
+	//		The created CColRef objects are maintained in a hash table keyed by
+	//		Column ID.  CColumnFactory provides various overloaded PcrCreate()
+	//		methods to create CColRef and a PcrLookup() method to probe the hash
+	//		table.
+	//		NB: The class also owns the memory pool in which CColRefs are
+	//		allocated.
 	//
 	//---------------------------------------------------------------------------
 	class CColumnFactory

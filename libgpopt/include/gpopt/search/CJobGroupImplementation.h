@@ -29,6 +29,11 @@ namespace gpopt
 	//	@doc:
 	//		Group implementation job
 	//
+	//		Responsible for creating the physical implementations of all
+	//		expressions in a given group. This happens by firing implementation
+	//		transformations that perform physical implementation (e.g.,
+	//		implementing InnerJoin as HashJoin)
+	//
 	//---------------------------------------------------------------------------
 	class CJobGroupImplementation : public CJobGroup
 	{

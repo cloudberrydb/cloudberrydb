@@ -37,6 +37,18 @@ namespace gpopt
 	//	@doc:
 	//		Highly concurrent job factory
 	//
+	//		The factory uses bulk memory allocation to create and recycle jobs with
+	//		minimal synchronization. The factory maintains a lock-free list defined
+	//		by the class CSyncPool for each job type. This allows concurrent
+	//		retrieval of jobs from the lists without the need for synchronization
+	//		through heavy locking operations.
+	//		A lock-free list is pre-allocated as an array of given size. The
+	//		allocation of lock-free lists happens lazily when the first job of a
+	//		given type is created.
+	//		Each job is given a unique id. When a job needs to be retrieved from
+	//		the list, atomic operations are used to reserve a free job object and
+	//		return it to the caller.
+	//
 	//---------------------------------------------------------------------------
 	class CJobFactory
 	{

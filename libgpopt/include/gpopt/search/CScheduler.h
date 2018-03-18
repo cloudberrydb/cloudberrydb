@@ -35,6 +35,23 @@ namespace gpopt
 	//	@doc:
 	//		MT-scheduler for optimization jobs
 	//
+	//		Maintaining job dependencies and controlling the order of job execution
+	//		are the main responsibilities of job scheduler.
+	//		The scheduler maintains a list of jobs to be run. These are the jobs
+	//		with no dependencies.  Iteratively, the scheduler picks a runnable
+	//		(with no dependencies) job and calls CJob::FExecute() function using
+	//		that job object.
+	//		The function CJob::FExecute() hides the complexity of job execution
+	//		from the job scheduler. The expectation is that CJob::FExecute()
+	//		returns TRUE only when job execution is finished.  Otherwise, job
+	//		execution is not finished and the scheduler moves the job to a pending
+	//		state.
+	//
+	//		On completion of job J1, the scheduler also takes care of notifying all
+	//		jobs in the job queue attached to J1 that the execution of J1 is now
+	//		complete. At this point, a queued job can be terminated if it does not
+	//		have any further dependencies.
+	//
 	//---------------------------------------------------------------------------
 	class CScheduler
 	{	

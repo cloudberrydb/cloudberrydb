@@ -26,13 +26,64 @@
 using namespace gpopt;
 
 
-// State transition diagram for group optimization job state machine;
+// State transition diagram for group optimization job state machine:
+// 
+//     eevImplementing   +------------------------------+
+//  +------------------ |       estInitialized:        |
+//  |                   |   EevtStartOptimization()    |
+//  +-----------------> |                              | -+
+//                      +------------------------------+  |
+//                        |                               |
+//                        | eevImplemented                |
+//                        v                               |
+//                      +------------------------------+  |
+//      eevOptimizing   |                              |  |
+//  +------------------ |                              |  |
+//  |                   |    estOptimizingChildren:    |  |
+//  +-----------------> |    EevtOptimizeChildren()    |  |
+//                      |                              |  |
+//  +-----------------> |                              |  |
+//  |                   +------------------------------+  |
+//  |                     |                               |
+//  | eevOptimizing       | eevOptimizedCurrentLevel      |
+//  |                     v                               |
+//  |                   +------------------------------+  |
+//  |                   | estDampingOptimizationLevel: |  |
+//  +------------------ |  EevtCompleteOptimization()  |  |
+//                      +------------------------------+  |
+//                        |                               |
+//                        | eevOptimized                  | eevOptimized
+//                        v                               |
+//                      +------------------------------+  |
+//                      |         estCompleted         | <+
+//                      +------------------------------+
+//
 const CJobGroupOptimization::EEvent rgeev[CJobGroupOptimization::estSentinel][CJobGroupOptimization::estSentinel] =
 {
-	{ CJobGroupOptimization::eevImplementing, CJobGroupOptimization::eevImplemented,  CJobGroupOptimization::eevSentinel, CJobGroupOptimization::eevOptimized}, // estInitialized
-	{ CJobGroupOptimization::eevSentinel, CJobGroupOptimization::eevOptimizing, CJobGroupOptimization::eevOptimizedCurrentLevel, CJobGroupOptimization::eevSentinel }, // estOptimizingChildren
-	{ CJobGroupOptimization::eevSentinel, CJobGroupOptimization::eevOptimizing, CJobGroupOptimization::eevSentinel, CJobGroupOptimization::eevOptimized }, // estDampingOptimizationLevel
-	{ CJobGroupOptimization::eevSentinel, CJobGroupOptimization::eevSentinel, CJobGroupOptimization::eevSentinel, CJobGroupOptimization::eevSentinel }, // estCompleted
+	{  // estInitialized
+		CJobGroupOptimization::eevImplementing,
+		CJobGroupOptimization::eevImplemented,
+		CJobGroupOptimization::eevSentinel,
+		CJobGroupOptimization::eevOptimized
+	},
+	{  // estOptimizingChildren
+		CJobGroupOptimization::eevSentinel,
+		CJobGroupOptimization::eevOptimizing,
+		CJobGroupOptimization::eevOptimizedCurrentLevel,
+		CJobGroupOptimization::eevSentinel
+	},
+	{  // estDampingOptimizationLevel
+		CJobGroupOptimization::eevSentinel,
+		CJobGroupOptimization::eevOptimizing,
+		CJobGroupOptimization::eevSentinel,
+		CJobGroupOptimization::eevOptimized
+	},
+	{  // estCompleted
+		CJobGroupOptimization::eevSentinel,
+		CJobGroupOptimization::eevSentinel,
+		CJobGroupOptimization::eevSentinel,
+		CJobGroupOptimization::eevSentinel
+	},
 };
 
 #ifdef GPOS_DEBUG

@@ -41,6 +41,11 @@ namespace gpopt
 	//	@doc:
 	//		Derived logical properties container.
 	//
+	//		These are properties than can be inferred from logical expressions or
+	//		Memo groups. This includes output columns, outer references, primary
+	//		keys. These properties hold regardless of the physical implementation
+	//		of an expression.
+	//
 	//---------------------------------------------------------------------------
 	class CDrvdPropRelational : public CDrvdProp
 	{

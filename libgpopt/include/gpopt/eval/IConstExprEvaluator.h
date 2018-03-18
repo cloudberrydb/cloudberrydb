@@ -32,7 +32,9 @@ namespace gpopt
 	//		IConstExprEvaluator
 	//
 	//	@doc:
-	//		Interface for constant expression evaluator in the optimizer
+	//		Interface to access the underlying evaluator of constant expressions
+	//		(expressions that can be evaluated independent of the contents of the
+	//		database)
 	//
 	//---------------------------------------------------------------------------
 	class IConstExprEvaluator : public CRefCount

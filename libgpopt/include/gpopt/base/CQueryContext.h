@@ -28,7 +28,23 @@ namespace gpopt
 	//		CQueryContext
 	//
 	//	@doc:
-	//		Query context object
+	//		Query specific information that optimizer receives as input
+	//		representing the requirements that need to be satisfied by the final
+	//		plan. This includes:
+	//		- Input logical expression
+	//		- Required columns
+	//		- Required plan (physical) properties at the top level of the query.
+	//		  This will include sort order, rewindability etc requested by the entire
+	//		  query.
+	//
+	//		The function CQueryContext::PqcGenerate() is the main routine that
+	//		generates a query context object for a given logical expression and
+	//		required output columns. See there for more details of how
+	//		CQueryContext is constructed.
+	//
+	//		NB: One instance of CQueryContext is created per query. It is then used
+	//		to initialize the CEngine.
+	//
 	//
 	//---------------------------------------------------------------------------
 	class CQueryContext

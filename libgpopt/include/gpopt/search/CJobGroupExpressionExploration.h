@@ -26,6 +26,11 @@ namespace gpopt
 	//	@doc:
 	//		Explore group expression optimization job
 	//
+	//		Responsible for creating the logical rewrites of a given group
+	//		expression. Note that a group exploration job entails running a group
+	//		expression exploration job for each group expression in the underlying
+	//		group.
+	//
 	//---------------------------------------------------------------------------
 	class CJobGroupExpressionExploration : public CJobGroupExpression
 	{

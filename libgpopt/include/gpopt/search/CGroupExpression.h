@@ -180,7 +180,7 @@ namespace gpopt
 			void SetOptimizationLevel();
 
 			// check validity of group expression
-			BOOL FValid(IMemoryPool *pmp, COptimizationContext *poc, DrgPoc *pdrgpocChild);
+			BOOL FValidContext(IMemoryPool *pmp, COptimizationContext *poc, DrgPoc *pdrgpocChild);
 			
 			// remove cost context in hash table
 			CCostContext *PccRemove(COptimizationContext *poc, ULONG ulOptReq);

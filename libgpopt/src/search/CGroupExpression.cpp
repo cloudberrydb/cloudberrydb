@@ -237,14 +237,30 @@ CGroupExpression::SetOptimizationLevel()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CGroupExpression::FValid
+//		CGroupExpression::FValidContext
 //
 //	@doc:
 //		Check if group expression is valid with respect to given child contexts
 //
+//		This is called during cost computation phase in group expression
+//		optimization after enforcement is complete. Since it is called bottom-up,
+//		for the given physical group expression, all the derived properties are
+//		already computed.
+//
+//		Since property enforcement in CEngine::FCheckEnfdProps() only determines
+//		whether or not an enforcer is added to the group, it is possible for the
+//		enforcer group expression to select a child group expression that did not
+//		create the enforcer. This could lead to invalid plans that could not have
+//		been prevented earlier because derived physical properties weren't
+//		available. For example, a Motion group expression may select as a child a
+//		DynamicTableScan that has unresolved part propagators, instead of picking
+//		the PartitionSelector enforcer which would resolve it.
+//
+//		This method can be used to reject such plans.
+//
 //---------------------------------------------------------------------------
 BOOL
-CGroupExpression::FValid
+CGroupExpression::FValidContext
 	(
 	IMemoryPool *pmp,
 	COptimizationContext *poc,
@@ -449,7 +465,7 @@ CGroupExpression::PccComputeCost
 	GPOS_ASSERT(NULL != poc);
 	GPOS_ASSERT_IMP(!fPruned, NULL != pdrgpoc);
 
-	if (!fPruned && !FValid(pmp, poc, pdrgpoc))
+	if (!fPruned && !FValidContext(pmp, poc, pdrgpoc))
 	{
 		return NULL;
 	}

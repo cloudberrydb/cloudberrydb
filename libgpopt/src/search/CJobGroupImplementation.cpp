@@ -27,11 +27,44 @@ using namespace gpopt;
 
 
 // State transition diagram for group implementation job state machine;
+//
+// +---------------------------+   eevExploring
+// |      estInitialized:      | ------------------+
+// | EevtStartImplementation() |                   |
+// |                           | <-----------------+
+// +---------------------------+
+//   |
+//   | eevExplored
+//   v
+// +---------------------------+   eevImplementing
+// | estImplementingChildren:  | ------------------+
+// |  EevtImplementChildren()  |                   |
+// |                           | <-----------------+
+// +---------------------------+
+//   |
+//   | eevImplemented
+//   v
+// +---------------------------+
+// |       estCompleted        |
+// +---------------------------+
+//
 const CJobGroupImplementation::EEvent rgeev[CJobGroupImplementation::estSentinel][CJobGroupImplementation::estSentinel] =
 {
-	{ CJobGroupImplementation::eevExploring, CJobGroupImplementation::eevExplored,  CJobGroupImplementation::eevSentinel}, // estInitialized
-	{ CJobGroupImplementation::eevSentinel, CJobGroupImplementation::eevImplementing, CJobGroupImplementation::eevImplemented }, // estImplementingChildren
-	{ CJobGroupImplementation::eevSentinel, CJobGroupImplementation::eevSentinel, CJobGroupImplementation::eevSentinel }, // estCompleted
+	{ // estInitialized
+		CJobGroupImplementation::eevExploring,
+		CJobGroupImplementation::eevExplored,
+		CJobGroupImplementation::eevSentinel
+	},
+	{ // estImplementingChildren
+		CJobGroupImplementation::eevSentinel,
+		CJobGroupImplementation::eevImplementing,
+		CJobGroupImplementation::eevImplemented
+	},
+	{ // estCompleted
+		CJobGroupImplementation::eevSentinel,
+		CJobGroupImplementation::eevSentinel,
+		CJobGroupImplementation::eevSentinel
+	},
 };
 
 #ifdef GPOS_DEBUG

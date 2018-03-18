@@ -420,6 +420,13 @@ CExpressionHandle::DeriveProps
 	// check if expression already has derived props
 	if (NULL != m_pexpr->Pdp(m_pexpr->Ept()))
 	{
+		// When an expression handle is attached to a group expression, there is no
+		// actual work that needs to happen in terms of property derivation. This
+		// is because a group expression must originate from a Memo group. At the
+		// first time a Memo group is created, the relational/scalar properties are
+		// copied from the expression that caused the creation of the group to the
+		// property containers of the group itself. So, simply copy the properties
+		// from the group to the handle.
 		CopyExprProps();
 		return;
 	}

@@ -190,6 +190,7 @@ CQueryContext::PqcGenerate
 	CColumnFactory *pcf = poptctxt->Pcf();
 	GPOS_ASSERT(NULL != pcf);
 
+	// Collect required column references (pdrgpcr)
 	const ULONG ulLen = pdrgpulQueryOutputColRefId->UlLength();
 	for (ULONG ul = 0; ul < ulLen; ul++)
 	{
@@ -203,6 +204,11 @@ CQueryContext::PqcGenerate
 		pdrgpcr->Append(pcr);
 	}
 
+	// Collect required properties (prpp) at the top level:
+
+	// By default no sort order requirement is added, unless the root operator in
+	// the input logical expression is a LIMIT. This is because Orca always
+	// attaches top level Sort to a LIMIT node.
 	COrderSpec *pos = NULL;
 	CExpression *pexprResult = pexpr;
 	COperator *popTop = PopTop(pexpr);
@@ -223,6 +229,8 @@ CQueryContext::PqcGenerate
 	BOOL fDML = CUtils::FLogicalDML(pexpr->Pop());
 	poptctxt->MarkDMLQuery(fDML);
 
+	// DML commands do not have distribution requirement. Otherwise the
+	// distribution requirement is Singleton.
 	if (fDML)
 	{
 		pds = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
@@ -232,19 +240,24 @@ CQueryContext::PqcGenerate
 		pds = GPOS_NEW(pmp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
 	}
 
+	// By default, no rewindability requirement needs to be satisfied at the top level
 	CRewindabilitySpec *prs = GPOS_NEW(pmp) CRewindabilitySpec(CRewindabilitySpec::ErtNone /*ert*/);
 
+	// Ensure order, distribution and rewindability meet 'satisfy' matching at the top level
 	CEnfdOrder *peo = GPOS_NEW(pmp) CEnfdOrder(pos, CEnfdOrder::EomSatisfy);
-
-	// we require satisfy matching on distribution since final query results must be sent to master
 	CEnfdDistribution *ped = GPOS_NEW(pmp) CEnfdDistribution(pds, CEnfdDistribution::EdmSatisfy);
-
 	CEnfdRewindability *per = GPOS_NEW(pmp) CEnfdRewindability(prs, CEnfdRewindability::ErmSatisfy);
 
+	// Required CTEs are obtained from the CTEInfo global information in the optimizer context
 	CCTEReq *pcter = poptctxt->Pcteinfo()->PcterProducers(pmp);
+
+	// NB: Partition propagation requirements are not initialized here.  They are
+	// constructed later based on derived relation properties (CPartInfo) by
+	// CReqdPropPlan::InitReqdPartitionPropagation().
 
 	CReqdPropPlan *prpp = GPOS_NEW(pmp) CReqdPropPlan(pcrs, peo, ped, per, pcter);
 
+	// Finally, create the CQueryContext
 	pdrgpmdname->AddRef();
 	return GPOS_NEW(pmp) CQueryContext(pmp, pexprResult, prpp, pdrgpcr, pdrgpmdname, fDeriveStats);
 }

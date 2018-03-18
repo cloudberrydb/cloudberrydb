@@ -28,14 +28,104 @@
 using namespace gpopt;
 
 // State transition diagram for group expression optimization job state machine;
+//
+//                 +------------------------+
+//                 |    estInitialized:     |
+//  +------------- |    EevtInitialize()    |
+//  |              +------------------------+
+//  |                |
+//  |                | eevOptimizingChildren
+//  |                v
+//  |              +------------------------+   eevOptimizingChildren
+//  |              | estOptimizingChildren: | ------------------------+
+//  |              | EevtOptimizeChildren() |                         |
+//  +------------- |                        | <-----------------------+
+//  |              +------------------------+
+//  |                |
+//  | eevFinalized   | eevChildrenOptimized
+//  |                v
+//  |              +------------------------+
+//  |              | estChildrenOptimized:  |
+//  +------------- |   EevtAddEnforcers()   |
+//  |              +------------------------+
+//  |                |
+//  |                | eevOptimizingSelf
+//  |                v
+//  |              +------------------------+   eevOptimizingSelf
+//  |              |  estEnfdPropsChecked:  | ------------------------+
+//  |              |   EevtOptimizeSelf()   |                         |
+//  +------------- |                        | <-----------------------+
+//  |              +------------------------+
+//  |                |
+//  |                | eevSelfOptimized
+//  |                v
+//  |              +------------------------+
+//  |              |   estSelfOptimized:    |
+//  | eevFinalized |     EevtFinalize()     |
+//  |              +------------------------+
+//  |                |
+//  |                |
+//  |                |
+//  |                |
+//  +----------------+
+//                   |
+//                   |
+//                   | eevFinalized
+//                   v
+//                 +------------------------+
+//                 |      estCompleted      |
+//                 +------------------------+
+//
 const CJobGroupExpressionOptimization::EEvent rgeev[CJobGroupExpressionOptimization::estSentinel][CJobGroupExpressionOptimization::estSentinel] =
 {
-	{ CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevOptimizingChildren, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevFinalized }, // estInitialized
-	{ CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevOptimizingChildren, CJobGroupExpressionOptimization::eevChildrenOptimized, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevFinalized }, // estOptimizingChildren
-	{ CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevOptimizingSelf, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevFinalized }, // estChildrenOptimized
-	{ CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevOptimizingSelf, CJobGroupExpressionOptimization::eevSelfOptimized, CJobGroupExpressionOptimization::eevFinalized  }, // estEnfdPropsChecked
-	{ CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevFinalized }, // estSelfOptimized
-	{ CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel, CJobGroupExpressionOptimization::eevSentinel }, // estCompleted
+	{ // estInitialized
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevOptimizingChildren,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevFinalized
+	},
+	{ // estOptimizingChildren
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevOptimizingChildren,
+		CJobGroupExpressionOptimization::eevChildrenOptimized,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevFinalized
+	},
+	{ // estChildrenOptimized
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevOptimizingSelf,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevFinalized
+	},
+	{ // estEnfdPropsChecked
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevOptimizingSelf,
+		CJobGroupExpressionOptimization::eevSelfOptimized,
+		CJobGroupExpressionOptimization::eevFinalized
+	},
+	{ // estSelfOptimized
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevFinalized
+	},
+	{ // estCompleted
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel,
+		CJobGroupExpressionOptimization::eevSentinel
+	},
 };
 
 #ifdef GPOS_DEBUG
@@ -511,9 +601,17 @@ CJobGroupExpressionOptimization::EevtAddEnforcers
 		psc->Peng()->FCheckEnfdProps(psc->PmpGlobal(), pjgeo->m_pgexpr, pjgeo->m_poc, pjgeo->m_ulOptReq, pjgeo->m_pdrgpoc);
 	if (fCheckEnfdProps)
 	{
+		// No new enforcers group expressions were added because they were either
+		// optional or unnecessary. So, move on to optimize the current group
+		// expression.
 		return eevOptimizingSelf;
 	}
 
+	// Either adding enforcers was prohibited or at least one enforcer was added
+	// because it was required. In any case, this job can be finalized, since
+	// optimizing the current group expression is not needed (because of the
+	// prohibition) or the newly created enforcer group expression job will get
+	// to it later on.
 	pjgeo->Cleanup();
 	return eevFinalized;
 }

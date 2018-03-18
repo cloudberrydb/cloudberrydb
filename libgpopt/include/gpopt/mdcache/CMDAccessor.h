@@ -75,8 +75,18 @@ namespace gpopt
 	//		CMDAccessor
 	//
 	//	@doc:
-	//		Metadata cache accessor serving requests for metadata cache objects
-	//		in an optimization session
+	//		Gives the optimizer access to metadata information of a particular
+	//		object (e.g., a Table).
+	//
+	//		CMDAccessor maintains a cache of metadata objects (IMDCacheObject)
+	//		keyed on CMDKey (wrapper over IMDId). It also provides various accessor
+	//		methods (such as Pmdagg(), Pmdrel() etc.) to request for corresponding
+	//		metadata objects (such as aggregates and relations respectively). These
+	//		methods in turn call the private method Pimdobj().
+	//
+	//		Pimdobj() first looks up the object in the MDCache. If no information
+	//		is available in the cache, it goes to a CMDProvider (e.g., GPDB
+	//		relcache or Minidump) to retrieve the required information.
 	//
 	//---------------------------------------------------------------------------
 	class CMDAccessor

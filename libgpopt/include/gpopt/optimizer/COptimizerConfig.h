@@ -34,7 +34,14 @@ namespace gpopt
 	//		COptimizerConfig
 	//
 	//	@doc:
-	//		Configurations used by the optimizer
+	//		Configuration parameters of the optimizer including damping factors used
+	//		during statistics derivation, CTE inlining cut-off threshold, Id of plan to
+	//		be extracted (if plan enumeration is enabled), number of plans to be sampled
+	//		from the space (if plan sampling is enabled) etc.
+	//
+	//		Most of these configurations can be changed from outside ORCA through
+	//		GUCs. They are also included in optimizer’s minidumps under
+	//		<dxl:OptimizerConfig> element
 	//
 	//---------------------------------------------------------------------------
 	class COptimizerConfig : public CRefCount

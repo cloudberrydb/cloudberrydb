@@ -28,6 +28,11 @@ namespace gpopt
 	//	@doc:
 	//		Group exploration job
 	//
+	//		Responsible for creating the logical rewrites of all expressions in a
+	//		given group. This happens by firing exploration transformations that
+	//		perform logical rewriting (e.g., rewriting InnerJoin(A,B) as
+	//		InnerJoin(B,A))
+	//
 	//---------------------------------------------------------------------------
 	class CJobGroupExploration : public CJobGroup
 	{

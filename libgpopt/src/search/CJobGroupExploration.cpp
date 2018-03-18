@@ -23,11 +23,43 @@
 using namespace gpopt;
 
 // State transition diagram for group exploration job state machine;
+//
+// +------------------------+
+// |    estInitialized:     |
+// | EevtStartExploration() |
+// +------------------------+
+//   |
+//   | eevStartedExploration
+//   v
+// +------------------------+   eevNewChildren
+// | estExploringChildren:  | -----------------+
+// | EevtExploreChildren()  |                  |
+// |                        | <----------------+
+// +------------------------+
+//   |
+//   | eevExplored
+//   v
+// +------------------------+
+// |      estCompleted      |
+// +------------------------+
+//
 const CJobGroupExploration::EEvent rgeev[CJobGroupExploration::estSentinel][CJobGroupExploration::estSentinel] =
 {
-	{ CJobGroupExploration::eevSentinel, CJobGroupExploration::eevStartedExploration, CJobGroupExploration::eevSentinel }, // estInitialized
-	{ CJobGroupExploration::eevSentinel, CJobGroupExploration::eevNewChildren, CJobGroupExploration::eevExplored }, // estExploringChildren
-	{ CJobGroupExploration::eevSentinel, CJobGroupExploration::eevSentinel, CJobGroupExploration::eevSentinel }, // estCompleted
+	{ // estInitialized
+		CJobGroupExploration::eevSentinel,
+		CJobGroupExploration::eevStartedExploration,
+		CJobGroupExploration::eevSentinel
+	},
+	{ // estExploringChildren
+		CJobGroupExploration::eevSentinel,
+		CJobGroupExploration::eevNewChildren,
+		CJobGroupExploration::eevExplored
+	},
+	{ // estCompleted
+		CJobGroupExploration::eevSentinel,
+		CJobGroupExploration::eevSentinel,
+		CJobGroupExploration::eevSentinel
+	},
 };
 
 #ifdef GPOS_DEBUG

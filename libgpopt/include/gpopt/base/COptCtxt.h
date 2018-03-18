@@ -35,7 +35,15 @@ namespace gpopt
 	//		COptCtxt
 	//
 	//	@doc:
-	//		Optimizer context object
+	//		"Optimizer Context" is a container of global objects (mostly
+	//		singletons) that are needed by the optimizer.
+	//
+	//		A COptCtxt object is instantiated in COptimizer::PdxlnOptimize() via
+	//		COptCtxt::PoctxtCreate() and stored as a task local object. The global
+	//		information contained in it can be accessed by calling
+	//		COptCtxt::PoctxtFromTLS(), instead of passing a pointer to it all
+	//		around. For example to get the global CMDAccessor:
+	//			CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
 	//
 	//---------------------------------------------------------------------------
 	class COptCtxt : public CTaskLocalStorageObject

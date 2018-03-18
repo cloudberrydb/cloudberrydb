@@ -25,12 +25,60 @@
 using namespace gpopt;
 
 // State transition diagram for group expression implementation job state machine;
+//
+// +-------------------------+   eevImplementingChildren
+// |     estInitialized:     | --------------------------+
+// | EevtImplementChildren() |                           |
+// |                         | <-------------------------+
+// +-------------------------+
+//   |
+//   | eevChildrenImplemented
+//   v
+// +-------------------------+   eevImplementingSelf
+// | estChildrenImplemented: | --------------------------+
+// |   EevtImplementSelf()   |                           |
+// |                         | <-------------------------+
+// +-------------------------+
+//   |
+//   | eevSelfImplemented
+//   v
+// +-------------------------+
+// |   estSelfImplemented:   |
+// |     EevtFinalize()      |
+// +-------------------------+
+//   |
+//   | eevFinalized
+//   v
+// +-------------------------+
+// |      estCompleted       |
+// +-------------------------+
+//
 const CJobGroupExpressionImplementation::EEvent rgeev[CJobGroupExpressionImplementation::estSentinel][CJobGroupExpressionImplementation::estSentinel] =
 {
-	{ CJobGroupExpressionImplementation::eevImplementingChildren, CJobGroupExpressionImplementation::eevChildrenImplemented, CJobGroupExpressionImplementation::eevSentinel, CJobGroupExpressionImplementation::eevSentinel }, // estInitialized
-	{ CJobGroupExpressionImplementation::eevSentinel, CJobGroupExpressionImplementation::eevImplementingSelf, CJobGroupExpressionImplementation::eevSelfImplemented, CJobGroupExpressionImplementation::eevSentinel }, // estChildrenImplemented
-	{ CJobGroupExpressionImplementation::eevSentinel, CJobGroupExpressionImplementation::eevSentinel, CJobGroupExpressionImplementation::eevSentinel, CJobGroupExpressionImplementation::eevFinalized }, // estSelfImplemented
-	{ CJobGroupExpressionImplementation::eevSentinel, CJobGroupExpressionImplementation::eevSentinel, CJobGroupExpressionImplementation::eevSentinel, CJobGroupExpressionImplementation::eevSentinel }, // estCompleted
+	{ // estInitialized
+		CJobGroupExpressionImplementation::eevImplementingChildren,
+		CJobGroupExpressionImplementation::eevChildrenImplemented,
+		CJobGroupExpressionImplementation::eevSentinel,
+		CJobGroupExpressionImplementation::eevSentinel
+	},
+	{ // estChildrenImplemented
+		CJobGroupExpressionImplementation::eevSentinel,
+		CJobGroupExpressionImplementation::eevImplementingSelf,
+		CJobGroupExpressionImplementation::eevSelfImplemented,
+		CJobGroupExpressionImplementation::eevSentinel
+	},
+	{ // estSelfImplemented
+		CJobGroupExpressionImplementation::eevSentinel,
+		CJobGroupExpressionImplementation::eevSentinel,
+		CJobGroupExpressionImplementation::eevSentinel,
+		CJobGroupExpressionImplementation::eevFinalized
+	},
+	{ // estCompleted
+		CJobGroupExpressionImplementation::eevSentinel,
+		CJobGroupExpressionImplementation::eevSentinel,
+		CJobGroupExpressionImplementation::eevSentinel,
+		CJobGroupExpressionImplementation::eevSentinel
+	},
 };
 
 #ifdef GPOS_DEBUG

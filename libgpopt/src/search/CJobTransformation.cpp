@@ -22,10 +22,28 @@
 using namespace gpopt;
 
 // State transition diagram for transformation job state machine;
+//
+// +-----------------+
+// | estInitialized: |
+// | EevtTransform() |
+// +-----------------+
+//   |
+//   | eevCompleted
+//   v
+// +-----------------+
+// |  estCompleted   |
+// +-----------------+
+//
 const CJobTransformation::EEvent rgeev[CJobTransformation::estSentinel][CJobTransformation::estSentinel] =
 {
-	{ CJobTransformation::eevSentinel, CJobTransformation::eevCompleted    }, // estInitialized
-	{ CJobTransformation::eevSentinel, CJobTransformation::eevSentinel }, // estCompleted
+	{ // estInitialized
+		CJobTransformation::eevSentinel,
+		CJobTransformation::eevCompleted
+	},
+	{ // estCompleted
+		CJobTransformation::eevSentinel,
+		CJobTransformation::eevSentinel
+	},
 };
 
 #ifdef GPOS_DEBUG

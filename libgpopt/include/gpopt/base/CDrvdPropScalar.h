@@ -34,6 +34,9 @@ namespace gpopt
 	//	@doc:
 	//		Derived scalar properties container.
 	//
+	//		These are properties specific to scalar expressions like predicates and
+	//		project list. This includes used and defined columns.
+	//
 	//---------------------------------------------------------------------------
 	class CDrvdPropScalar : public CDrvdProp
 	{

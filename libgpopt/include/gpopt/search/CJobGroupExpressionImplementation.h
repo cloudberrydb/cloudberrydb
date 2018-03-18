@@ -27,6 +27,11 @@ namespace gpopt
 	//	@doc:
 	//		Implement group expression optimization job
 	//
+	//		Responsible for creating the physical implementations of a given group
+	//		expression. Note that a group implementation job entails running a
+	//		group expression implementation job for each group expression in the
+	//		underlying group.
+	//
 	//---------------------------------------------------------------------------
 	class CJobGroupExpressionImplementation : public CJobGroupExpression
 	{

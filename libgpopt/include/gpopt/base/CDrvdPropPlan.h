@@ -38,6 +38,10 @@ namespace gpopt
 	//	@doc:
 	//		Derived plan properties container.
 	//
+	//		These are properties that are expression-specific and they depend on
+	//		the physical implementation. This includes sort order, distribution,
+	//		rewindability, partition propagation spec and CTE map.
+	//
 	//---------------------------------------------------------------------------
 	class CDrvdPropPlan : public CDrvdProp
 	{
