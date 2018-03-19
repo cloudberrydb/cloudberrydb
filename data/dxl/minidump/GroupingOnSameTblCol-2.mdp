@@ -4110,7 +4110,7 @@
         </dxl:LogicalGroupBy>
       </dxl:LogicalProject>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="32">
+    <dxl:Plan Id="0" SpaceSize="24">
       <dxl:Result>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="35621640.727753" Rows="17210680.000000" Width="4"/>

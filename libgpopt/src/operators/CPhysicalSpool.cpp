@@ -385,5 +385,56 @@ CPhysicalSpool::EpetRewindability
 }
 
 
+BOOL
+CPhysicalSpool::FValidContext
+	(
+	IMemoryPool *,
+	COptimizationContext *,
+	DrgPoc *pdrgpocChild
+	)
+	const
+{
+	GPOS_ASSERT(NULL != pdrgpocChild);
+	GPOS_ASSERT(1 == pdrgpocChild->UlLength());
+
+	COptimizationContext *pocChild = (*pdrgpocChild)[0];
+	CCostContext *pccBest = pocChild->PccBest();
+	GPOS_ASSERT(NULL != pccBest);
+
+	// partition selections that happen outside of a physical spool does not do
+	// any good on rescan: a physical spool blocks the rescan from the entire
+	// subtree (in particular, any dynamic scan) underneath it. That means when
+	// we have a dynamic scan under a spool, and a corresponding partition
+	// selector outside the spool, we run the risk of materializing the wrong
+	// results.
+
+	// For example, the following plan is invalid because the partition selector
+	// won't be able to influence inner side of the nested loop join as intended
+	// ("blocked" by the spool):
+
+	// +--CPhysicalMotionGather(master)
+	//    +--CPhysicalInnerNLJoin
+	//       |--CPhysicalPartitionSelector
+	//       |  +--CPhysicalMotionBroadcast
+	//       |     +--CPhysicalTableScan "foo" ("foo")
+	//       |--CPhysicalSpool
+	//       |  +--CPhysicalLeftOuterHashJoin
+	//       |     |--CPhysicalDynamicTableScan "pt" ("pt")
+	//       |     |--CPhysicalMotionHashDistribute
+	//       |     |  +--CPhysicalTableScan "bar" ("bar")
+	//       |     +--CScalarCmp (=)
+	//       |        |--CScalarIdent "d" (19)
+	//       |        +--CScalarIdent "dk" (9)
+	//       +--CScalarCmp (<)
+	//          |--CScalarIdent "a" (0)
+	//          +--CScalarIdent "partkey" (10)
+
+	CDrvdPropPlan *pdpplanChild = pccBest->Pdpplan();
+	if (pdpplanChild->Ppim()->FContainsUnresolved())
+	{
+		return false;
+	}
+	return true;
+}
 // EOF
 

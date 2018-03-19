@@ -263,7 +263,10 @@ namespace gpopt
 
 				return dynamic_cast<CPhysicalSpool*>(pop);
 			}
-					
+
+			virtual BOOL
+			FValidContext(IMemoryPool *pmp, COptimizationContext *poc, DrgPoc *pdrgpocChild) const;
+
 	}; // class CPhysicalSpool
 
 }

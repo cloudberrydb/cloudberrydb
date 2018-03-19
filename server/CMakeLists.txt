@@ -219,6 +219,10 @@ AggregatesConstraintDeriveNegation CTEConstraintDeriveNegation;
 
 CNonRedistributableColTest:
 JOIN-NonRedistributableCol DQA-NonRedistributableCol
+MotionHazard-NoMaterializeHashAggUnderResult;
+
+CInvalidCostContextTest:
+SpoolShouldInvalidateUnresolvedDynamicScans
 ")
 
 set(mdp_dir "../data/dxl/minidump/")
