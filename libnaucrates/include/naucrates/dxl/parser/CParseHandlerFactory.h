@@ -98,7 +98,7 @@ namespace gpdxl
 				CParseHandlerManager *pphm,
 				CParseHandlerBase *pphRoot
 				);
-			
+
 			// construct a metadata parse handler
 			static
 			CParseHandlerBase *PphMetadata

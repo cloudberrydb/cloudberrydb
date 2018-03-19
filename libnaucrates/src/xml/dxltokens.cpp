@@ -57,6 +57,7 @@ CDXLTokens::Init
 	SWszMapElem rgStrMap[] = 
 	{
 			{EdxltokenDXLMessage, GPOS_WSZ_LIT("DXLMessage")},
+			{EdxltokenComment, GPOS_WSZ_LIT("Comment")},
 			{EdxltokenPlan, GPOS_WSZ_LIT("Plan")},
 			{EdxltokenPlanId, GPOS_WSZ_LIT("Id")},
 			{EdxltokenPlanSpaceSize, GPOS_WSZ_LIT("SpaceSize")},

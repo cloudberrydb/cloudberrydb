@@ -7,6 +7,7 @@
 	<xsd:element name="DXLMessage">
 		<xsd:complexType>
 			<xsd:sequence>
+				<xsd:element name="Comment" minOccurs="0" type="xsd:string"/>
 				<xsd:element name="Metadata" minOccurs="0">
 				<xsd:complexType>
 					<xsd:sequence>

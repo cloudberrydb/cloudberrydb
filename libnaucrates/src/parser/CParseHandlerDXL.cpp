@@ -352,7 +352,7 @@ CParseHandlerDXL::FValidStartElement
 		CDXLTokens::XmlstrToken(EdxltokenStackTrace),
 		CDXLTokens::XmlstrToken(EdxltokenSearchStrategy),
 		CDXLTokens::XmlstrToken(EdxltokenCostParams),
-		CDXLTokens::XmlstrToken(EdxltokenScalarExpr)
+		CDXLTokens::XmlstrToken(EdxltokenScalarExpr),
 		};
 
 	BOOL fValidStartElement = false;
@@ -388,7 +388,8 @@ CParseHandlerDXL::StartElement
 #endif // GPOS_DEBUG
 	
 	if (0 == XMLString::compareString(xmlszLocalname, CDXLTokens::XmlstrToken(EdxltokenDXLMessage)) ||
-		0 == XMLString::compareString(xmlszLocalname, CDXLTokens::XmlstrToken(EdxltokenThread)))
+		0 == XMLString::compareString(xmlszLocalname, CDXLTokens::XmlstrToken(EdxltokenThread)) ||
+		0 == XMLString::compareString(xmlszLocalname, CDXLTokens::XmlstrToken(EdxltokenComment)))
 	{
 		// beginning of DXL document or a new thread info
 		;

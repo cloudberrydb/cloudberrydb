@@ -33,7 +33,9 @@ namespace gpdxl
 	enum Edxltoken
 	{
 		EdxltokenDXLMessage,
-		
+
+		EdxltokenComment,
+
 		EdxltokenPlan,
 		EdxltokenPlanId,
 		EdxltokenPlanSpaceSize,
