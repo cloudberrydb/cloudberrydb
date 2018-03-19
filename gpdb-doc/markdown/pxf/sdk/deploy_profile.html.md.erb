@@ -1,15 +1,40 @@
 ---
 title: Deploying a Profile
 ---
-As a developer using the PXF SDK, you may extend the plug-in classes of PXF built-in connectors or you may implement your own plug-in classes. You or the Greenplum Database administrator may then choose to register and deploy a profile definition(s) for the connector as a convenience for the end user.
 
-A PXF profile encapulates access to a specific format of data from a specific external data source using a simple name. PXF is installed with HDFS, Hive, and HBase connectors that expose a number of built-in profiles that support specific data formats in these data stores. The [PXF Profiles](../using_pxf.html#built-inprofiles) section in the PXF end user documentation identifies the list of PXF built-in profiles. 
+A PXF profile encapsulates access to a specific format of data from a specific external data source using a simple name. PXF is installed with HDFS, Hive, and HBase connectors that expose a number of built-in profiles supporting specific data formats in these data stores. The [PXF Profiles](../using_pxf.html#built-inprofiles) section in the PXF end user documentation identifies the list of PXF built-in profiles.
 
-A profile definition for a connector includes the name of the profile, a description, and the Java classes (plug-ins) that PXF will use to access and manipulate data to/from the external data source.
+As a developer using the PXF SDK, you may extend the plug-in classes of PXF built-in connectors or you may implement your own plug-in classes. You or the Greenplum Database administrator may then choose to register and deploy one or more connector profile definitions as a convenience for the end user.
 
-Profile definitions for PXF built-in connectors are defined in the `$GPHOME/pxf/conf/pxf-profiles-default.xml` configuration file. The Greenplum Database administrator registers profile definitions for third-party connectors in the `$GPHOME/pxf/conf/pxf-profiles.xml` file.
 
-The built-in `HdfsTextSimple` profile definition is reproduced below:
+## <a id="construct_profile"></a>Constructing a Profile Definition
+
+A profile definition for a connector is an XML block that identifies the name of the profile, a description, and the plug-in classes that implement access to the external data source.
+
+``` xml
+<profile>
+    <name>profile_name</name>
+    <description>profile_description</description>
+    <plugins>
+        <fragmenter>fully.qualified.fragmenter.classname</fragmenter>
+        <accessor>fully.qualified.accessor.classname</accessor>
+        <resolver>fully.qualified.resolver.classname</resolver>
+    </plugins>
+</profile>
+```
+
+The profile \<name\> provides a simple mapping to the \<plugins\> classes. The Greenplum Database end user provides the profile name or the Java plug-in class names when creating an external table to access the external data.
+
+
+### <a id="select_classes"></a>Specifying the Plug-in Class Names
+
+The profile \<plugins\> identify the fully-qualified names of the Java classes that PXF will use to split (\<fragmenter\>), read and/or write (\<accessor\>), and deserialize/serialize (\<resolver\>) the external data. 
+
+When you define a profile that supports a read operation from an external data store, you must provide one each of \<fragmenter\>, \<accessor\>, and \<resolver\> plug-in class names. You must provide both an \<accessor\> and a \<resolver\> plug-in class name for a profile that supports a write operation to an external data store.
+
+You can use a profile or set of plug-ins for both reading *and* writing when the \<accessor\> plug-in class implements both the `ReadAccessor` and the `WriteAccessor` interfaces and the \<resolver\> plug-in class implements both the `ReadResolver` and the `WriteResolver` interfaces.
+
+You can re-use a single plug-in class name in multiple profile definitions. For example, the PXF built-in HDFS connector `HdfsTextSimple` and `HdfsTextMulti` profiles use the same \<fragmenter\> and \<resolver\> plug-in classes.
 
 ``` xml
 <profile>
@@ -23,32 +48,7 @@ The built-in `HdfsTextSimple` profile definition is reproduced below:
         <resolver>org.apache.hawq.pxf.plugins.hdfs.StringPassResolver</resolver>
     </plugins>
 </profile>
-```
 
-The profile \<plugins\> identify the Java classes that PXF will use to split (\<fragmenter\>), read and/or write (\<accessor\>), and deserialize/serialize (\<resolver\>) the external data. The profile \<name\> provides a simple mapping to these plug-in classes. The Greenplum Database end user provides the profile name or the Java plug-in class names when creating an external table to access the external data.
-
-
-## <a id="define_profile"></a>Defining a New Profile
-
-When you define a new profile, you:
-
-- Choose a name for the profile.
-- Specify the *Fragmenter*, *Resolver*, and *Accessor* plug-in class names.
-- Construct a profile definition in XML format.
-- Register the profile with PXF and Greenplum Database.
-
-
-### <a id="select_classes"></a>Specifying the Plug-in Class Names
-
-The plug-in class name that you specify in a profile definition must be a fully-qualified Java class name.
-
-When you define a profile that supports reading from an external data store, you must provide one each of *Fragmenter*, *Accessor*, and *Resolver* plug-in class names. You must provide both an *Accessor* and a *Resolver* plug-in class name for a profile that supports writing to an external data store.
-
-You can use a profile or set of plug-ins for both reading *and* writing when the *Accessor* plug-in class implements both the `ReadAccessor` and the `WriteAccessor` interfaces and the *Resolver* plug-in class implements both the `ReadResolver` and the `WriteResolver` interfaces.
-
-You can re-use a single plug-in class name in multiple profile definitions. For example, the `HdfsTextSimple` and `HdfsTextMulti` profiles exposed by the PXF built-in HDFS connector use the same *Fragmenter* and *Resolver* plug-in classes. Refer to the `HdfsTextSimple` profile definition above.
-
-``` xml
 <profile>
     <name>HdfsTextMulti</name>
     <description>This profile is suitable for using when reading delimited single
@@ -63,25 +63,10 @@ You can re-use a single plug-in class name in multiple profile definitions. For 
 </profile>
 ```
 
-### <a id="construct_profile"></a>Constructing a Profile Definition
 
-A profile definition is a complete \<profile\> ... \<\profile\> XML block that identifies the name of the profile, a text description, and the fully-qualified class names of the *Fragmenter* (read), *Accessor*, and *Resolver* classes that implement access to the external data source.
+## <a id="reg_profile"></a>Registering a New Profile
 
-``` xml
-<profile>
-    <name>profile_name</name>
-    <description>profile_description</description>
-    <plugins>
-        <fragmenter>fully.qualified.fragmenter.classname</fragmenter>
-        <accessor>fully.qualified.accessor.classname</accessor>
-        <resolver>fully.qualified.resolver.classname</resolver>
-    </plugins>
-</profile>
-```
-
-### <a id="reg_profile"></a>Registering a New Profile
-
-When you register a new profile with PXF, you add the profile definition to the `$GPHOME/pxf/conf/pxf-profiles.xml` file. When you update `pxf-profiles.xml`, ensure that you add the profile definition between the \<profiles\> and \<\profiles\> (notice the *s*) keywords in the file.
+When you register a new profile with PXF, you add the profile definition to the `$GPHOME/pxf/conf/pxf-profiles.xml` file. Ensure that you add the profile definition between the \<profiles\> and \<\profiles\> (notice the **s**) keywords when you edit the `pxf-profiles.xml` file.
 
 **Note**: In a typical Greenplum Database deployment, the `pxf-profiles.xml` file contains multiple third-party profile definitions.
 
@@ -99,11 +84,11 @@ gpadmin@gpmaster$ gpssh -e -v -f seghostfile "/usr/local/greenplum-db/pxf/bin/px
 
 ## <a id="verify_profile_reg"></a>Verifying Profile Registration
 
-To verify the registration and deployment of a new profile, you create a Greenplum Database external table specifying the profile name and invoke `SELECT` and/or `INSERT` commands on the table to test read and write operations on the external data source.
+To verify that you registered and deployed a new profile correctly, you create a Greenplum Database external table specifying the profile name and invoke `SELECT` and/or `INSERT` commands on the table to test read and write operations on the external data source.
 
 ## <a id="example_profile"></a>Example: Defining and Deploying Demo Connector Profiles
 
-In this exercise, you define and register a read profile and a write profile for the *Demo* connector, deploy the profiles, and verify the deploy operation.
+In this exercise, you define and register both a read profile and a write profile for the *Demo* connector, deploy the profiles, and verify the deploy operation.
 
 
 ### <a id="profile_prereqs"></a>Prerequisites

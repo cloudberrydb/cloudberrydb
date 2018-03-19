@@ -9,9 +9,24 @@ This topic introduces concepts central to developing with the PXF SDK. These con
 
 ## <a id="architecture"></a>Plug-ins, Connectors, and Profiles
 
-The PXF API includes the *Fragmenter* class and read and write *Accessor* and *Resolver* interfaces. You implement theses classes and interfaces when you extend PXF to add support for a new external data source, data format, or data access API. The classes that you create are called *plug-ins*. A set of a single *Fragmenter*, *Accessor*, and *Resolver* plug-in class together comprise a *read connector*. An *Accessor* and *Resolver* plug-in pair comprise a *write connector*. A single *Accessor* or *Resolver* class may support both read and write operations.
+The PXF API includes the *Fragmenter* class and read and write *Accessor* and *Resolver* interfaces. You implement theses classes and interfaces when you extend PXF to add support for a new external data source, data format, or data access API. The classes that you create are called *plug-in*s.
+
+A connector is a set of plug-in classes that support read and/or write operation(s) to an external data source:
+
+- A set of a single *Fragmenter*, *Accessor*, and *Resolver* plug-in class together comprise a *read connector*. 
+- An *Accessor* and *Resolver* plug-in pair comprise a *write connector*. 
+- A single *Accessor* or *Resolver* class may implement both read and write operations.
 
 A *profile* is a simple name mapping to a set of connector plug-in class names. You or the Greenplum Database administrator may choose to configure one or more profiles for your connector as a convenience for the Greenplum Database end user.
+
+Summary of terms:
+
+| Term       | Description                                |
+|------------------|--------------------------------------------|
+| Plug-in       | A *Fragmenter*, *Accessor*, or *Resolver* class implementation.    |
+| Connector       | A set of plug-in classes that support the read and/or write operation to an external data source.    |
+| Profile       | A name mapping to a set of connector plug-in class names.   |
+
 
 ## <a id="dataflow"></a>Data Flow
 
