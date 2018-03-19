@@ -348,35 +348,6 @@ CPhysicalConstTableGet::EpetOrder
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalConstTableGet::EpetDistribution
-//
-//	@doc:
-//		Return the enforcing type for distribution property based on this operator
-//
-//---------------------------------------------------------------------------
-CEnfdProp::EPropEnforcingType
-CPhysicalConstTableGet::EpetDistribution
-	(
-	CExpressionHandle &exprhdl,
-	const CEnfdDistribution *ped
-	)
-	const
-{
-	GPOS_ASSERT(NULL != ped);
-
-	CDistributionSpec *pds = CDrvdPropPlan::Pdpplan(exprhdl.Pdp())->Pds();
-	
-	if (ped->FCompatible(pds))
-	{
-		return CEnfdProp::EpetUnnecessary;
-	}
-
-	return CEnfdProp::EpetRequired;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CPhysicalConstTableGet::EpetRewindability
 //
 //	@doc:

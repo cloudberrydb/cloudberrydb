@@ -407,34 +407,6 @@ CPhysicalRowTrigger::FMatch
 			CUtils::FEqual(m_pdrgpcrNew, pdrgpcrNew);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPhysicalRowTrigger::EpetDistribution
-//
-//	@doc:
-//		Return the enforcing type for distribution property based on this operator
-//
-//---------------------------------------------------------------------------
-CEnfdProp::EPropEnforcingType
-CPhysicalRowTrigger::EpetDistribution
-	(
-	CExpressionHandle &exprhdl,
-	const CEnfdDistribution *ped
-	)
-	const
-{
-	GPOS_ASSERT(NULL != ped);
-
-	CDistributionSpec *pds = CDrvdPropPlan::Pdpplan(exprhdl.Pdp())->Pds();
-	if (ped->FCompatible(pds))
-	{
-	 	// required distribution is already provided
-	 	return CEnfdProp::EpetUnnecessary;
-	}
-
-	// required distribution will be enforced on trigger output
-	return CEnfdProp::EpetRequired;
-}
 
 //---------------------------------------------------------------------------
 //	@function:

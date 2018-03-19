@@ -32,7 +32,7 @@ using namespace gpopt;
 BOOL
 CPhysicalMotion::FValidContext
 	(
-	IMemoryPool *pmp,
+	IMemoryPool *,
 	COptimizationContext *poc,
 	DrgPoc *pdrgpocChild
 	)
@@ -48,15 +48,6 @@ CPhysicalMotion::FValidContext
 	CDrvdPropPlan *pdpplanChild = pccBest->Pdpplan();
 	if (pdpplanChild->Ppim()->FContainsUnresolved())
 	{
-		return false;
-	}
-
-	CExpressionHandle exprhdl(pmp);
-	exprhdl.Attach(pccBest);
-	exprhdl.DeriveProps(NULL /*CDrvdPropCtxt*/);
-	if (exprhdl.FHasOuterRefs())
-	{
-		// disallow plans with outer references below motion operator
 		return false;
 	}
 

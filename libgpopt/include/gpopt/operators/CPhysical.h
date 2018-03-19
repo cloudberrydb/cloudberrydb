@@ -563,7 +563,7 @@ namespace gpopt
 				(
 				CExpressionHandle &exprhdl,
 				const CEnfdDistribution *ped
-				) const = 0;
+				) const;
 
 			// return rewindability property enforcing type for this operator
 			virtual

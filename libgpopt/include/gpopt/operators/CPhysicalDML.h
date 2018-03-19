@@ -365,14 +365,6 @@ namespace gpopt
 			// Enforced Properties
 			//-------------------------------------------------------------------------------------
 
-			// return distribution property enforcing type for this operator
-			virtual
-			CEnfdProp::EPropEnforcingType EpetDistribution
-				(
-				CExpressionHandle &exprhdl,
-				const CEnfdDistribution *ped
-				) 
-				const;
 
 			// return rewindability property enforcing type for this operator
 			virtual

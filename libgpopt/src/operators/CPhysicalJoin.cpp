@@ -418,38 +418,6 @@ CPhysicalJoin::PrsDerive
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalJoin::EpetDistribution
-//
-//	@doc:
-//		Return the enforcing type for distribution property based on this operator
-//
-//---------------------------------------------------------------------------
-CEnfdProp::EPropEnforcingType
-CPhysicalJoin::EpetDistribution
-	(
-	CExpressionHandle &exprhdl,
-	const CEnfdDistribution *ped
-	)
-	const
-{
-	GPOS_ASSERT(NULL != ped);
-
-	// get distribution delivered by the join node
-	CDistributionSpec *pds = CDrvdPropPlan::Pdpplan(exprhdl.Pdp())->Pds();
-
-	if (ped->FCompatible(pds))
-	{
-		// required distribution will be established by the join operator
-		return CEnfdProp::EpetUnnecessary;
-	}
-
-	// required distribution will be enforced on join's output
-	return CEnfdProp::EpetRequired;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CPhysicalJoin::EpetRewindability
 //
 //	@doc:

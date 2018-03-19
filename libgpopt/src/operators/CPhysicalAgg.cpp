@@ -633,12 +633,6 @@ CPhysicalAgg::EpetDistribution
 
 	}
 
-	// if there are outer refs, we cannot have a motion on top
-	if (exprhdl.FHasOuterRefs())
-	{
-		return CEnfdProp::EpetProhibited;
-	}
-
 	// required distribution will be enforced on Agg's output
 	return CEnfdProp::EpetRequired;
 }

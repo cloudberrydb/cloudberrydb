@@ -405,37 +405,6 @@ CPhysicalSequence::PrsDerive
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CPhysicalSequence::EpetDistribution
-//
-//	@doc:
-//		Return the enforcing type for distribution property based on this operator
-//
-//---------------------------------------------------------------------------
-CEnfdProp::EPropEnforcingType
-CPhysicalSequence::EpetDistribution
-	(
-	CExpressionHandle &exprhdl,
-	const CEnfdDistribution *ped
-	)
-	const
-{
-	GPOS_ASSERT(NULL != ped);
-
-	// get distribution delivered by the sequence node
-	CDistributionSpec *pds = CDrvdPropPlan::Pdpplan(exprhdl.Pdp())->Pds();
-
-	if (ped->FCompatible(pds))
-	{
-		// required distribution will be established by the sequence operator
-		return CEnfdProp::EpetUnnecessary;
-	}
-
-	// required distribution will be enforced on sequence's output
-	return CEnfdProp::EpetRequired;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CPhysicalSequence::EpetOrder
 //
 //	@doc:

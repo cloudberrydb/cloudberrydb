@@ -172,8 +172,28 @@ CEnfdDistribution::Epet
 		{
 			return CEnfdProp::EpetProhibited;
 		}
-	 	
-		return popPhysical->EpetDistribution(exprhdl, this);
+
+		// N.B.: subtlety ahead:
+		// We used to do the following check in CPhysicalMotion::FValidContext
+		// which was correct but more costly. We are able to move the outer
+		// reference check here because:
+		// 1. The fact that execution has reached here means that we are about
+		// to add ("enforce") a motion into this group.
+		// 2. The number of outer references is a logical ("relational")
+		// property, which means *every* group expression in the current group
+		// has the same number of outer references.
+		// 3. The following logic ensures that *none* of the group expressions
+		// will add a motion into this group.
+		EPropEnforcingType epet = popPhysical->EpetDistribution(exprhdl, this);
+		if (FEnforce(epet) && exprhdl.FHasOuterRefs())
+		{
+			// disallow plans with outer references below motion operator
+			return EpetProhibited;
+		}
+		else
+		{
+			return epet;
+		}
 	}
 
 	return EpetUnnecessary;

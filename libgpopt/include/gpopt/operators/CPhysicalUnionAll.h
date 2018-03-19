@@ -211,14 +211,6 @@ namespace gpopt
 			// Enforced Properties
 			//-------------------------------------------------------------------------------------
 
-			// return the enforcing type for distribution property based on this operator
-			virtual
-			CEnfdProp::EPropEnforcingType EpetDistribution
-				(
-					CExpressionHandle &exprhdl,
-					const CEnfdDistribution *ped
-				)
-			const;
 
 			// return order property enforcing type for this operator
 			virtual

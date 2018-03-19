@@ -371,41 +371,6 @@ CPhysicalTVF::EpetOrder
 	return CEnfdProp::EpetRequired;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPhysicalTVF::EpetDistribution
-//
-//	@doc:
-//		Return the enforcing type for distribution property based on this operator
-//
-//---------------------------------------------------------------------------
-CEnfdProp::EPropEnforcingType
-CPhysicalTVF::EpetDistribution
-	(
-	CExpressionHandle & exprhdl,
-	const CEnfdDistribution *ped
-	)
-	const
-{
-	GPOS_ASSERT(NULL != ped);
-
-	// get distribution delivered by the TVF node
-	CDistributionSpec *pds = CDrvdPropPlan::Pdpplan(exprhdl.Pdp())->Pds();
-	if (ped->FCompatible(pds))
-	{
-	 	// required distribution is already provided
-	 	return CEnfdProp::EpetUnnecessary;
-	}
-
-	if (exprhdl.FHasOuterRefs())
-	{
-		return CEnfdProp::EpetProhibited;
-	}
-
-	// required distribution will be enforced on TVF's output
-	return CEnfdProp::EpetRequired;
-}
-
 
 //---------------------------------------------------------------------------
 //	@function:
