@@ -694,11 +694,6 @@ anchors:
         BUCKET_PATH: clusters/
         BUCKET_NAME: {{tf-bucket-name}}
 
-- &pulse_properties
-  PULSE_URL: {{pulse_url}}
-  PULSE_USERNAME: {{pulse_username}}
-  PULSE_PASSWORD: {{pulse_password}}
-
 - &cs_ccp_aggregate_dpm_start
   - get: gpdb_src
     tags: ["ccp"]
