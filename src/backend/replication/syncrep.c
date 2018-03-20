@@ -219,7 +219,7 @@ SyncRepWaitForLSN(XLogRecPtr XactCommitLSN)
 	}
 
 	/* Inform this backend is waiting for replication to pg_stat_activity */
-	pgstat_report_waiting(PGBE_WAITING_REPLICATION);
+	gpstat_report_waiting(PGBE_WAITING_REPLICATION);
 
 	/*
 	 * Wait for specified LSN to be confirmed.
@@ -350,7 +350,7 @@ SyncRepWaitForLSN(XLogRecPtr XactCommitLSN)
 	}
 
 	/* Now inform no more waiting for replication */
-	pgstat_report_waiting(PGBE_WAITING_NONE);
+	gpstat_report_waiting(PGBE_WAITING_NONE);
 }
 
 /*

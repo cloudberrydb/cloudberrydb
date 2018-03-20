@@ -2331,7 +2331,7 @@ waitOnGroup(ResGroupData *group)
 
 	groupAwaited = NULL;
 
-	pgstat_report_waiting(PGBE_WAITING_NONE);
+	gpstat_report_waiting(PGBE_WAITING_NONE);
 }
 
 /*
@@ -2524,7 +2524,7 @@ groupWaitCancel(void)
 	LWLockRelease(ResGroupLock);
 
 	groupAwaited = NULL;
-	pgstat_report_waiting(PGBE_WAITING_NONE);
+	gpstat_report_waiting(PGBE_WAITING_NONE);
 }
 
 static void
