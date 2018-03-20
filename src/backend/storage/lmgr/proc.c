@@ -277,11 +277,12 @@ InitProcess(void)
 	int			i;
 
 	/*
-	 * Autovacuum, WAL sender and FTS handler processes are marked as
-	 * GP_ROLE_UTILITY to prevent unwanted GP_ROLE_DISPATCH MyProc settings
+	 * Autovacuum, WAL sender, FTS handler and FTS daemon processes are marked
+	 * as GP_ROLE_UTILITY to prevent unwanted GP_ROLE_DISPATCH MyProc settings
 	 * such as mppSessionId being valid and mppIsWriter set to true.
 	 */
-	if (IsAutoVacuumWorkerProcess() || am_walsender || am_ftshandler)
+	if (IsAutoVacuumWorkerProcess() || am_walsender || am_ftshandler ||
+		am_ftsprobe)
 		Gp_role = GP_ROLE_UTILITY;
 
 	/*

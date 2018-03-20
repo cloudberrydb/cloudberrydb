@@ -1022,7 +1022,7 @@ ResWaitOnLock(LOCALLOCK *locallock, ResourceOwner owner, ResPortalIncrement *inc
 	/* Report change to waiting status */
 	if (update_process_title)
 	{
-		old_status = get_ps_display(&len);
+		old_status = get_real_act_ps_display(&len);
 		new_status = (char *) palloc(len + 8 + 1);
 		memcpy(new_status, old_status, len);
 		strcpy(new_status + len, " queuing");

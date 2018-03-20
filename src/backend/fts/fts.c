@@ -72,6 +72,7 @@
 /* maximum number of segments */
 #define MAX_NUM_OF_SEGMENTS  32768
 
+bool am_ftsprobe = false;
 bool am_ftshandler = false;
 
 #define GpConfigHistoryRelName    "gp_configuration_history"
@@ -81,7 +82,6 @@ bool am_ftshandler = false;
  * STATIC VARIABLES
  */
 
-static bool am_ftsprobe = false;
 static bool skipFtsProbe = false;
 
 static volatile bool shutdown_requested = false;
