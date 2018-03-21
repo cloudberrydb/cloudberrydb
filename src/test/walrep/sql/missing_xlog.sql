@@ -110,7 +110,7 @@ end;
 $$ language plpgsql;
 
 -- checkpoint to ensure clean xlog replication before bring down mirror
-select checkpoint_and_wait_for_replication_replay(200);
+select checkpoint_and_wait_for_replication_replay(500);
 
 create extension if not exists gp_inject_fault;
 -- Prevent FTS from probing segments as we don't want a change in
@@ -137,14 +137,14 @@ select move_xlog((select datadir || '/pg_xlog' from gp_segment_configuration c w
 select pg_ctl((select datadir from gp_segment_configuration c where c.role='m' and c.content=0), 'start', (select port from gp_segment_configuration where content = 0 and preferred_role = 'm'), 0);
 
 -- check the view, we expect to see error
-select wait_for_replication_error('walread', 0, 200);
+select wait_for_replication_error('walread', 0, 500);
 select sync_error from gp_stat_replication where gp_segment_id = 0;
 
 -- bring the missing xlog back on segment 0
 select move_xlog('/tmp/missing_xlog', (select datadir || '/pg_xlog' from gp_segment_configuration c where c.role='p' and c.content=0));
 
 -- the error should go away
-select wait_for_replication_error('none', 0, 200);
+select wait_for_replication_error('none', 0, 500);
 select sync_error from gp_stat_replication where gp_segment_id = 0;
 
 -- Resume FTS probes and perform a probe scan.
