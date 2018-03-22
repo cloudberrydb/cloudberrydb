@@ -2410,13 +2410,6 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 									   result_plan->total_cost,
 									   current_pathkeys,
 									   dNumDistinctRows);
-
-			/* GPDB_84_MERGE_FIXME: The hash Agg we build for DISTINCT currently
-			 * loses the GROUP_ID() information, so don't use it if there's a
-			 * GROUP_ID().
-			 */
-			if (use_hashed_distinct && contain_group_id((Node *) result_plan->targetlist))
-				use_hashed_distinct = false;
 		}
 
 		/*
