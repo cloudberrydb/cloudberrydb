@@ -159,6 +159,7 @@ typedef struct ResGroupMemOperations
 	void (*group_mem_on_alter) (Oid groupId, ResGroupData *group);
 	void (*group_mem_on_drop) (Oid groupId, ResGroupData *group);
 	void (*group_mem_on_notify) (ResGroupData *group);
+	void (*group_mem_on_dump) (ResGroupData *group, StringInfo str);
 } ResGroupMemOperations;
 
 /*
@@ -330,10 +331,12 @@ static void bindGroupOperation(ResGroupData *group);
 static void groupMemOnAlterForVmtracker(Oid groupId, ResGroupData *group);
 static void groupMemOnDropForVmtracker(Oid groupId, ResGroupData *group);
 static void groupMemOnNotifyForVmtracker(ResGroupData *group);
+static void groupMemOnDumpForVmtracker(ResGroupData *group, StringInfo str);
 
 static void groupMemOnAlterForCgroup(Oid groupId, ResGroupData *group);
 static void groupMemOnDropForCgroup(Oid groupId, ResGroupData *group);
 static void groupMemOnNotifyForCgroup(ResGroupData *group);
+static void groupMemOnDumpForCgroup(ResGroupData *group, StringInfo str);
 static void groupApplyCgroupMemInc(ResGroupData *group);
 static void groupApplyCgroupMemDec(ResGroupData *group);
 
@@ -355,6 +358,7 @@ static const ResGroupMemOperations resgroup_memory_operations_vmtracker = {
 	.group_mem_on_alter		= groupMemOnAlterForVmtracker,
 	.group_mem_on_drop		= groupMemOnDropForVmtracker,
 	.group_mem_on_notify	= groupMemOnNotifyForVmtracker,
+	.group_mem_on_dump		= groupMemOnDumpForVmtracker,
 };
 
 /*
@@ -365,6 +369,7 @@ static const ResGroupMemOperations resgroup_memory_operations_cgroup = {
 	.group_mem_on_alter		= groupMemOnAlterForCgroup,
 	.group_mem_on_drop		= groupMemOnDropForCgroup,
 	.group_mem_on_notify	= groupMemOnNotifyForCgroup,
+	.group_mem_on_dump		= groupMemOnDumpForCgroup,
 };
 
 /*
@@ -841,33 +846,9 @@ groupDumpMemUsage(ResGroupData *group)
 
 	initStringInfo(&memUsage);
 
-	appendStringInfo(&memUsage, "{");
-	appendStringInfo(&memUsage, "\"used\":%d, ",
-					 VmemTracker_ConvertVmemChunksToMB(group->memUsage));
-	appendStringInfo(&memUsage, "\"available\":%d, ",
-					 VmemTracker_ConvertVmemChunksToMB(
-						group->memQuotaGranted + group->memSharedGranted - group->memUsage));
-	appendStringInfo(&memUsage, "\"quota_used\":%d, ",
-					 VmemTracker_ConvertVmemChunksToMB(group->memQuotaUsed));
-	appendStringInfo(&memUsage, "\"quota_available\":%d, ",
-					 VmemTracker_ConvertVmemChunksToMB(
-						group->memQuotaGranted - group->memQuotaUsed));
-	appendStringInfo(&memUsage, "\"quota_granted\":%d, ",
-					 VmemTracker_ConvertVmemChunksToMB(group->memQuotaGranted));
-	appendStringInfo(&memUsage, "\"quota_proposed\":%d, ",
-					 VmemTracker_ConvertVmemChunksToMB(
-						groupGetMemQuotaExpected(&group->caps)));
-	appendStringInfo(&memUsage, "\"shared_used\":%d, ",
-					 VmemTracker_ConvertVmemChunksToMB(group->memSharedUsage));
-	appendStringInfo(&memUsage, "\"shared_available\":%d, ",
-					 VmemTracker_ConvertVmemChunksToMB(
-						group->memSharedGranted - group->memSharedUsage));
-	appendStringInfo(&memUsage, "\"shared_granted\":%d, ",
-					 VmemTracker_ConvertVmemChunksToMB(group->memSharedGranted));
-	appendStringInfo(&memUsage, "\"shared_proposed\":%d",
-					 VmemTracker_ConvertVmemChunksToMB(
-						groupGetMemSharedExpected(&group->caps)));
-	appendStringInfo(&memUsage, "}");
+	Assert(group->groupMemOps != NULL);
+	if (group->groupMemOps->group_mem_on_dump)
+		group->groupMemOps->group_mem_on_dump(group, &memUsage);
 
 	return memUsage.data;
 }
@@ -3282,6 +3263,42 @@ groupMemOnNotifyForVmtracker(ResGroupData *group)
 }
 
 /*
+ * Operation for resource groups with vmtracker memory auditor
+ * when dump memory statistics.
+ */
+static void
+groupMemOnDumpForVmtracker(ResGroupData *group, StringInfo str)
+{
+	appendStringInfo(str, "{");
+	appendStringInfo(str, "\"used\":%d, ",
+			VmemTracker_ConvertVmemChunksToMB(group->memUsage));
+	appendStringInfo(str, "\"available\":%d, ",
+			VmemTracker_ConvertVmemChunksToMB(
+				group->memQuotaGranted + group->memSharedGranted - group->memUsage));
+	appendStringInfo(str, "\"quota_used\":%d, ",
+			VmemTracker_ConvertVmemChunksToMB(group->memQuotaUsed));
+	appendStringInfo(str, "\"quota_available\":%d, ",
+			VmemTracker_ConvertVmemChunksToMB(
+				group->memQuotaGranted - group->memQuotaUsed));
+	appendStringInfo(str, "\"quota_granted\":%d, ",
+			VmemTracker_ConvertVmemChunksToMB(group->memQuotaGranted));
+	appendStringInfo(str, "\"quota_proposed\":%d, ",
+			VmemTracker_ConvertVmemChunksToMB(
+				groupGetMemQuotaExpected(&group->caps)));
+	appendStringInfo(str, "\"shared_used\":%d, ",
+			VmemTracker_ConvertVmemChunksToMB(group->memSharedUsage));
+	appendStringInfo(str, "\"shared_available\":%d, ",
+			VmemTracker_ConvertVmemChunksToMB(
+				group->memSharedGranted - group->memSharedUsage));
+	appendStringInfo(str, "\"shared_granted\":%d, ",
+			VmemTracker_ConvertVmemChunksToMB(group->memSharedGranted));
+	appendStringInfo(str, "\"shared_proposed\":%d",
+			VmemTracker_ConvertVmemChunksToMB(
+				groupGetMemSharedExpected(&group->caps)));
+	appendStringInfo(str, "}");
+}
+
+/*
  * Operation for resource groups with cgroup memory auditor
  * when alter its memory limit.
  */
@@ -3394,4 +3411,21 @@ groupMemOnNotifyForCgroup(ResGroupData *group)
 
 	if (group->memGap < 0)
 		groupApplyCgroupMemInc(group);
+}
+
+/*
+ * Operation for resource groups with cgroup memory auditor
+ * when dump memory statistics.
+ */
+static void
+groupMemOnDumpForCgroup(ResGroupData *group, StringInfo str)
+{
+	appendStringInfo(str, "{");
+	appendStringInfo(str, "\"usage\":%d, ",
+			VmemTracker_ConvertVmemChunksToMB(
+				ResGroupOps_GetMemoryUsage(group->groupId) / ResGroupGetSegmentNum()));
+	appendStringInfo(str, "\"limit\":%d",
+			VmemTracker_ConvertVmemChunksToMB(
+				ResGroupOps_GetMemoryLimit(group->groupId) / ResGroupGetSegmentNum()));
+	appendStringInfo(str, "}");
 }
