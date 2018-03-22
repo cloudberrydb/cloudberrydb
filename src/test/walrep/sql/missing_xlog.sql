@@ -36,6 +36,8 @@ $$
 declare
 	i int;
 	checkpoint_locs text[];
+	replay_locs text[];
+	failed_for_segment text[];
 	r record;
 	all_caught_up bool;
 begin
@@ -72,8 +74,12 @@ begin
 			-- With WAL positions smaller than 10/00000000, this
 			-- should work. PostgreSQL 9.4 got a pg_lsn datatype
 			-- that we could use here, once we merge up to 9.4.
+			replay_locs[r.gp_segment_id] = r.loc;
 			if r.loc < checkpoint_locs[r.gp_segment_id] then
 				all_caught_up = false;
+				failed_for_segment[r.gp_segment_id] = 1;
+			else
+				failed_for_segment[r.gp_segment_id] = 0;
 			end if;
 		end loop;
 
@@ -82,6 +88,9 @@ begin
 		end if;
 
 		if i >= retries then
+			RAISE INFO 'checkpoint_locs:    %', checkpoint_locs;
+			RAISE INFO 'replay_locs:        %', replay_locs;
+			RAISE INFO 'failed_for_segment: %', failed_for_segment;
 			return false;
 		end if;
 		perform pg_sleep(0.1);
