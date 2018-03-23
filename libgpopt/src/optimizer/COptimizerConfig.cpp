@@ -14,6 +14,7 @@
 
 #include "gpopt/cost/ICostModel.h"
 #include "gpopt/optimizer/COptimizerConfig.h"
+#include "naucrates/dxl/CCostModelConfigSerializer.h"
 #include "naucrates/dxl/xml/CXMLSerializer.h"
 #include "gpos/common/CBitSetIter.h"
 
@@ -161,10 +162,8 @@ COptimizerConfig::Serialize(IMemoryPool *pmp, CXMLSerializer *pxmlser, CBitSet *
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenOidRank), m_pwindowoids->OidRank());
 	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenWindowOids));
 
-	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenCostModelConfig));
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenCostModelType), m_pcm->Ecmt());
-	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenSegmentsForCosting), m_pcm->UlHosts());
-	pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenCostModelConfig));
+	CCostModelConfigSerializer cmcSerializer(m_pcm);
+	cmcSerializer.Serialize(*pxmlser);
 
 	pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenHint));
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenMinNumOfPartsToRequireSortOnInsert), m_phint->UlMinNumOfPartsToRequireSortOnInsert());

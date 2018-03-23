@@ -265,7 +265,7 @@ namespace gpopt
 			// default value of tuple update bandwidth
 			static
 			const CDouble DTupUpdateBandwidthVal;
-			
+
 			// default value of network bandwidth
 			static
 			const CDouble DNetBandwidthVal;
@@ -346,6 +346,12 @@ namespace gpopt
 			// print function
 			virtual
 			IOstream &OsPrint(IOstream &os) const;
+
+			virtual BOOL
+			FEquals(ICostModelParams *pcm) const;
+
+			virtual const CHAR *
+			SzNameLookup(ULONG ulId) const;
 
 	}; // class CCostModelParamsGPDB
 

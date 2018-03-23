@@ -194,7 +194,7 @@ namespace gpdbcost
 		public:
 
 			// ctor
-			CCostModelGPDB(IMemoryPool *pmp, ULONG ulSegments, DrgPcp *pdrgpcp = NULL);
+			CCostModelGPDB(IMemoryPool *pmp, ULONG ulSegments, CCostModelParamsGPDB *pcp = NULL);
 
 			// dtor
 			virtual
@@ -217,11 +217,11 @@ namespace gpdbcost
 				return m_pcp;
 			}
 
-			
+
 			// main driver for cost computation
 			virtual
 			CCost Cost(CExpressionHandle &exprhdl, const SCostingInfo *pci) const;
-			
+
 			// cost model type
 			virtual
 			ECostModelType Ecmt() const

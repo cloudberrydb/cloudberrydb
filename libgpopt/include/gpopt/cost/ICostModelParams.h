@@ -112,6 +112,13 @@ namespace gpopt
 						return m_dUpperBound;
 					}
 
+					BOOL FEquals(SCostParam *pcm) const
+					{
+						return UlId() == pcm->UlId() && DVal() == pcm->DVal() &&
+							   DLowerBound() == pcm->DLowerBound() &&
+							   DUpperBound() == pcm->DUpperBound();
+					}
+
 			}; // struct SCostParam
 
 			// lookup param by id
@@ -133,6 +140,12 @@ namespace gpopt
 			// print function
 			virtual
 			IOstream &OsPrint(IOstream &os) const = 0;
+
+			virtual BOOL
+			FEquals(ICostModelParams *pcm) const = 0;
+
+			virtual const CHAR *
+			SzNameLookup(ULONG ulId) const = 0;
 	};
 }
 

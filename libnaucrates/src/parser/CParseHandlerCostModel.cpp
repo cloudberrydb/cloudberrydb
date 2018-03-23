@@ -6,7 +6,7 @@
 //		CParseHandlerCostModel.cpp
 //
 //	@doc:
-//		Implementation of the SAX parse handler class for parsing cost model 
+//		Implementation of the SAX parse handler class for parsing cost model
 //		config params
 //---------------------------------------------------------------------------
 
@@ -15,7 +15,7 @@
 #include "naucrates/dxl/parser/CParseHandlerCostModel.h"
 #include "naucrates/dxl/parser/CParseHandlerManager.h"
 #include "naucrates/dxl/parser/CParseHandlerFactory.h"
-
+#include "naucrates/dxl/parser/CParseHandlerCostParams.h"
 
 #include "naucrates/dxl/operators/CDXLOperatorFactory.h"
 #include "naucrates/traceflags/traceflags.h"
@@ -46,7 +46,9 @@ CParseHandlerCostModel::CParseHandlerCostModel
 	)
 	:
 	CParseHandlerBase(pmp, pphm, pphRoot),
-	m_pcm(NULL)
+	m_ulSegments(0),
+	m_pcm(NULL),
+	m_pphcp(NULL)
 {
 }
 
@@ -61,6 +63,7 @@ CParseHandlerCostModel::CParseHandlerCostModel
 CParseHandlerCostModel::~CParseHandlerCostModel()
 {
 	CRefCount::SafeRelease(m_pcm);
+	GPOS_DELETE(m_pphcp);
 }
 
 //---------------------------------------------------------------------------
@@ -74,32 +77,35 @@ CParseHandlerCostModel::~CParseHandlerCostModel()
 void
 CParseHandlerCostModel::StartElement
 	(
-	const XMLCh* const , //xmlszUri,
+	const XMLCh* const xmlszUri,
 	const XMLCh* const xmlszLocalname,
-	const XMLCh* const , //xmlszQname,
+	const XMLCh* const xmlszQname,
 	const Attributes& attrs
 	)
-{	
-	if (0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostModelConfig), xmlszLocalname))
+{
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostModelConfig), xmlszLocalname))
+	{
+		m_ulSegments = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenSegmentsForCosting,
+															 EdxltokenCostModelConfig);
+
+		m_ecmt = (ICostModel::ECostModelType) CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs,
+																					EdxltokenCostModelType,
+																					EdxltokenCostModelConfig);
+	}
+	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostParams), xmlszLocalname))
+	{
+		CParseHandlerBase *pphCostParams = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenCostParams), m_pphm, this);
+		m_pphcp = static_cast<CParseHandlerCostParams *>(pphCostParams);
+		m_pphm->ActivateParseHandler(pphCostParams);
+
+		pphCostParams->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+	}
+	else
 	{
 		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
 	}
-	
-	ULONG ulSegments = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenSegmentsForCosting, EdxltokenCostModelConfig);
-	ICostModel::ECostModelType ecmt = (ICostModel::ECostModelType) CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenCostModelType, EdxltokenCostModelConfig);
-	
-	
-	if (ICostModel::EcmtGPDBLegacy == ecmt)
-	{
-		m_pcm = GPOS_NEW(m_pmp) CCostModelGPDBLegacy(m_pmp, ulSegments); 
-	}
-	else
-	{
-		GPOS_ASSERT(ICostModel::EcmtGPDBCalibrated == ecmt);
-		m_pcm = GPOS_NEW(m_pmp) CCostModelGPDB(m_pmp, ulSegments);
-	}
-} 
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -122,8 +128,34 @@ CParseHandlerCostModel::EndElement
 		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
 		GPOS_RAISE( gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
 	}
-	
-	// deactivate handler
+
+	switch (m_ecmt)
+	{
+		case ICostModel::EcmtGPDBLegacy:
+			m_pcm = GPOS_NEW(m_pmp) CCostModelGPDBLegacy(m_pmp, m_ulSegments);
+			break;
+		case ICostModel::EcmtGPDBCalibrated:
+			CCostModelParamsGPDB *pcp;
+
+			if (NULL == m_pphcp)
+			{
+				pcp = NULL;
+				GPOS_ASSERT(false && "CostModelParam handler not set");
+			}
+			else
+			{
+				pcp = dynamic_cast<CCostModelParamsGPDB *>(m_pphcp->Pcp());
+				GPOS_ASSERT(NULL != pcp);
+				pcp->AddRef();
+			}
+			m_pcm = GPOS_NEW(m_pmp) CCostModelGPDB(m_pmp, m_ulSegments, pcp);
+			break;
+		case ICostModel::EcmtSentinel:
+			GPOS_ASSERT(false && "Unexpected cost model type");
+			break;
+	}
+
+    // deactivate handler
 	m_pphm->DeactivateHandler();
 }
 

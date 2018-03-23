@@ -107,7 +107,7 @@ CCostModelGPDB::CCostModelGPDB
 	(
 	IMemoryPool *pmp,
 	ULONG ulSegments,
-	DrgPcp *pdrgpcp
+	CCostModelParamsGPDB *pcp
 	)
 	:
 	m_pmp(pmp),
@@ -115,8 +115,16 @@ CCostModelGPDB::CCostModelGPDB
 {
 	GPOS_ASSERT(0 < ulSegments);
 
-	m_pcp = GPOS_NEW(pmp) CCostModelParamsGPDB(pmp);
-	SetParams(pdrgpcp);
+	if (NULL == pcp)
+	{
+		m_pcp = GPOS_NEW(pmp) CCostModelParamsGPDB(pmp);
+	}
+	else
+	{
+		GPOS_ASSERT(NULL != pcp);
+
+		m_pcp = pcp;
+	}
 }
 
 
@@ -883,17 +891,17 @@ CCostModelGPDB::CostHashJoin
 	// currently, we hard coded a spilling memory threshold for judging whether hash join spills or not
 	// In the future, we should calculate it based on the number of memory-intensive operators and statement memory available
 	CCost costLocal(0);
-    
+
     // inner tuples fit in memory
 	if (dRowsInner * dWidthInner <= dHJSpillingMemThreshold)
-	{	
+	{
 		// hash join cost contains four parts:
 		// 1. build hash table with inner tuples. This part is correlated with rows and width of
 		// inner tuples and the number of columns used in join condition.
 		// 2. feeding outer tuples. This part is correlated with rows and width of outer tuples
 		// and the number of columns used.
 		// 3. matching inner tuples. This part is correlated with rows and width of inner tuples.
-		// 4. output tuples. This part is correlated with outer rows and width of the join result.  
+		// 4. output tuples. This part is correlated with outer rows and width of the join result.
 		costLocal = CCost(pci->DRebinds() * (
 			// cost of building hash table
 			dRowsInner * (
@@ -917,7 +925,7 @@ CCostModelGPDB::CostHashJoin
         // inner tuples spill
 
 		// hash join cost if spilling is the same as the non-spilling case, except that
-		// parameter values are different. 
+		// parameter values are different.
 		costLocal = CCost(pci->DRebinds() * (
 			dHJHashTableInitCostFactor + dRowsInner * (
 				ulColsUsed * dHJHashTableColumnCostUnit
@@ -1141,11 +1149,11 @@ CCostModelGPDB::CostMotion
 
 	const DOUBLE dRowsOuter = pci->PdRows()[0];
 	const DOUBLE dWidthOuter = pci->PdWidth()[0];
-	
+
 	// motion cost contains three parts: sending cost, interconnect cost, and receiving cost.
 	// TODO 2014-03-18
-	// in current cost model, interconnect cost is tied with receiving cost. Because we 
-	// only have one set calibration results in the dimension of the number of segments. 
+	// in current cost model, interconnect cost is tied with receiving cost. Because we
+	// only have one set calibration results in the dimension of the number of segments.
 	// Once we calibrate the cost model with different number of segments, I will update
 	// the function.
 
@@ -1475,7 +1483,7 @@ CCostModelGPDB::CostScan
 
 	const CDouble dInitScan = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpInitScanFactor)->DVal();
 	const CDouble dTableWidth = CPhysicalScan::PopConvert(pop)->PstatsBaseTable()->DWidth();
-	
+
 	// Get total rows for each host to scan
 	const CDouble dTableScanCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpTableScanCostUnit)->DVal();
 	GPOS_ASSERT(0 < dTableScanCostUnit);

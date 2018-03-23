@@ -142,6 +142,11 @@ namespace gpopt
 			virtual
 			IOstream &OsPrint(IOstream &os) const;
 
+			virtual BOOL
+			FEquals(ICostModelParams *pcm) const;
+
+			virtual const CHAR *
+			SzNameLookup(ULONG ulId) const;
 
 	}; // class CCostModelParamsGPDBLegacy
 

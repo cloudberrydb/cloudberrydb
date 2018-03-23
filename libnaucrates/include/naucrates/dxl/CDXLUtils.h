@@ -231,15 +231,6 @@ namespace gpdxl
 				CDXLStatsDerivedColumn *pdxlstatsdercol
 				);
 
-			// validate an XML document against the DXL schema
-			static 
-			void ValidateDXL
-				(
-				IMemoryPool *,
-				const CHAR *szDXL,
-				const CHAR *szXSDPath				
-				);
-
 			// serialize a DXL query tree into DXL Document
 			static 
 			void SerializeQuery
