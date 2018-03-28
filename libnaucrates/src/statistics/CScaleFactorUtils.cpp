@@ -46,7 +46,7 @@ const CDouble CScaleFactorUtils::DInvalidScaleFactor(0.0);
 CDouble
 CScaleFactorUtils::DCumulativeJoinScaleFactor
 	(
-	CStatisticsConfig *pstatsconf,
+	const CStatisticsConfig *pstatsconf,
 	DrgPdouble *pdrgpd
 	)
 {
@@ -88,7 +88,7 @@ CScaleFactorUtils::DCumulativeJoinScaleFactor
 CDouble
 CScaleFactorUtils::DDampingJoin
 	(
-	CStatisticsConfig *pstatsconf,
+	const CStatisticsConfig *pstatsconf,
 	ULONG ulNumColumns
 	)
 {
@@ -112,7 +112,7 @@ CScaleFactorUtils::DDampingJoin
 CDouble
 CScaleFactorUtils::DDampingFilter
 	(
-	CStatisticsConfig *pstatsconf,
+	const CStatisticsConfig *pstatsconf,
 	ULONG ulNumColumns
 	)
 {
@@ -138,7 +138,7 @@ CScaleFactorUtils::DDampingFilter
 CDouble
 CScaleFactorUtils::DDampingGroupBy
 	(
-	CStatisticsConfig *pstatsconf,
+	const CStatisticsConfig *pstatsconf,
 	ULONG ulNumColumns
 	)
 {
@@ -281,7 +281,7 @@ CScaleFactorUtils::IDoubleCmp
 CDouble
 CScaleFactorUtils::DScaleFactorCumulativeConj
 	(
-	CStatisticsConfig *pstatsconf,
+	const CStatisticsConfig *pstatsconf,
 	DrgPdouble *pdrgpdScaleFactor
 	)
 {
@@ -323,7 +323,7 @@ CScaleFactorUtils::DScaleFactorCumulativeConj
 CDouble
 CScaleFactorUtils::DScaleFactorCumulativeDisj
 	(
-	CStatisticsConfig *pstatsconf,
+	const CStatisticsConfig *pstatsconf,
 	DrgPdouble *pdrgpdScaleFactor,
 	CDouble dRowsTotal
 	)

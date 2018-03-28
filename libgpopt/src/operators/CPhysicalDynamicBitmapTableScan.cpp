@@ -26,7 +26,7 @@
 #include "gpopt/operators/CPredicateUtils.h"
 
 #include "naucrates/statistics/CStatisticsUtils.h"
-
+#include "naucrates/statistics/CFilterStatsProcessor.h"
 using namespace gpopt;
 using namespace gpos;
 
@@ -111,7 +111,7 @@ CPhysicalDynamicBitmapTableScan::PstatsDerive
 
 	CPredicateUtils::SeparateOuterRefs(pmp, pexprCondChild, pcrsOuter, &pexprLocal, &pexprOuterRefs);
 
-	IStatistics *pstats = CStatisticsUtils::PstatsFilter
+	IStatistics *pstats = CFilterStatsProcessor::PstatsFilterForScalarExpr
 							(
 							pmp,
 							exprhdl,

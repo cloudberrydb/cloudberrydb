@@ -12,8 +12,6 @@
 #include "naucrates/dxl/CDXLUtils.h"
 #include "naucrates/statistics/CStatistics.h"
 #include "naucrates/statistics/CStatisticsUtils.h"
-#include "naucrates/statistics/CHistogramUtils.h"
-
 #include "naucrates/statistics/CScaleFactorUtils.h"
 
 #include "naucrates/statistics/CJoinStatsProcessor.h"
@@ -124,91 +122,6 @@ CStatistics::CapNDVs
 		CHistogram *phist = const_cast<CHistogram *>(hmiterulhist.Pt());
 		phist->CapNDVs(dRows);
 	}
-}
-
-// create new structure from a list of statistics filters
-CStatistics *
-CStatistics::PstatsFilter
-	(
-	IMemoryPool *pmp,
-	CStatsPred *pstatspredBase,
-	BOOL fCapNdvs
-	)
-	const
-{
-	GPOS_ASSERT(NULL != pstatspredBase);
-
-	CDouble dRowsInput = std::max(DMinRows.DVal(), m_dRows.DVal());
-	CDouble dScaleFactor(1.0);
-	ULONG ulNumPredicates = 1;
-	CDouble dRowsFilter = DMinRows;
-	HMUlHist *phmulhistNew = NULL;
-	if (FEmpty())
-	{
-		phmulhistNew = GPOS_NEW(pmp) HMUlHist(pmp);
-		CHistogramUtils::AddEmptyHistogram(pmp, phmulhistNew, m_phmulhist);
-	}
-	else
-	{
-		if (CStatsPred::EsptDisj == pstatspredBase->Espt())
-		{
-			CStatsPredDisj *pstatspred = CStatsPredDisj::PstatspredConvert(pstatspredBase);
-
-			phmulhistNew  = CHistogramUtils::PhmulhistApplyDisjFilter
-												(
-												pmp,
-												m_pstatsconf,
-												m_phmulhist,
-												dRowsInput,
-												pstatspred,
-												&dScaleFactor
-												);
-		}
-		else
-		{
-			GPOS_ASSERT(CStatsPred::EsptConj == pstatspredBase->Espt());
-			CStatsPredConj *pstatspred = CStatsPredConj::PstatspredConvert(pstatspredBase);
-			ulNumPredicates = pstatspred->UlFilters();
-			phmulhistNew = CHistogramUtils::PhmulhistApplyConjFilter
-											(
-											pmp,
-											m_pstatsconf,
-											m_phmulhist,
-											dRowsInput,
-											pstatspred,
-											&dScaleFactor
-											);
-		}
-
-		GPOS_ASSERT(DMinRows.DVal() <= dScaleFactor.DVal());
-		dRowsFilter = dRowsInput / dScaleFactor;
-		dRowsFilter = std::max(DMinRows.DVal(), dRowsFilter.DVal());
-	}
-
-	GPOS_ASSERT(dRowsFilter.DVal() <= dRowsInput.DVal());
-	m_phmuldoubleWidth->AddRef();
-
-	if (fCapNdvs)
-	{
-		CapNDVs(dRowsFilter, phmulhistNew);
-	}
-
-	CStatistics *pstatsFilter = GPOS_NEW(pmp) CStatistics
-												(
-												pmp,
-												phmulhistNew,
-												m_phmuldoubleWidth,
-												dRowsFilter,
-												FEmpty(),
-												m_ulNumPredicates + ulNumPredicates
-												);
-
-	// since the filter operation is reductive, we choose the bounding method that takes
-	// the minimum of the cardinality upper bound of the source column (in the input hash map)
-	// and estimated output cardinality
-	CStatisticsUtils::ComputeCardUpperBounds(pmp, this, pstatsFilter, dRowsFilter, CStatistics::EcbmMin /* ecbm */);
-
-	return pstatsFilter;
 }
 
 // helper print function
@@ -364,7 +277,7 @@ CStatistics::PstatsDummy
 	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
 
 	BOOL fEmpty = (CStatistics::DEpsilon >= dRows);
-	CHistogramUtils::AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhist, phmuldoubleWidth, pdrgpulColIds, fEmpty);
+	CHistogram::AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhist, phmuldoubleWidth, pdrgpulColIds, fEmpty);
 
 	CStatistics *pstats = GPOS_NEW(pmp) CStatistics(pmp, phmulhist, phmuldoubleWidth, dRows, fEmpty);
 	CreateAndInsertUpperBoundNDVs(pmp, pstats, pdrgpulColIds, dRows);
@@ -542,192 +455,6 @@ CStatistics::PstatsLASJoin
 	return CLeftAntiSemiJoinStatsProcessor::PstatsLASJoinStatic(pmp, this, pistatsOther, pdrgpstatspredjoin, fIgnoreLasjHistComputation);
 }
 
-// return statistics object after Group by computation
-CStatistics *
-CStatistics::PstatsGroupBy
-	(
-	IMemoryPool *pmp,
-	DrgPul *pdrgpulGC,
-	DrgPul *pdrgpulAgg,
-	CBitSet *pbsKeys
-	)
-	const
-{
-	// create hash map from colid -> histogram for resultant structure
-	HMUlHist *phmulhist = GPOS_NEW(pmp) HMUlHist(pmp);
-
-	// hash map colid -> width
-	HMUlDouble *phmuldoubleWidth = GPOS_NEW(pmp) HMUlDouble(pmp);
-
-	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
-
-	CStatistics *pstatsAgg = NULL;
-	CDouble dRowsAgg = DMinRows;
-	if (FEmpty())
-	{
-		// add dummy histograms for the aggregates and grouping columns
-		CHistogramUtils::AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhist, phmuldoubleWidth, pdrgpulAgg, true /* fEmpty */);
-		CHistogramUtils::AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhist, phmuldoubleWidth, pdrgpulGC, true /* fEmpty */);
-
-		pstatsAgg = GPOS_NEW(pmp) CStatistics(pmp, phmulhist, phmuldoubleWidth, dRowsAgg, true /* fEmpty */);
-	}
-	else
-	{
-		// for computed aggregates, we're not going to be very smart right now
-		CHistogramUtils::AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhist, phmuldoubleWidth, pdrgpulAgg, false /* fEmpty */);
-
-		CColRefSet *pcrsGrpColComputed = GPOS_NEW(pmp) CColRefSet(pmp);
-		CColRefSet *pcrsGrpColsForStats = CStatisticsUtils::PcrsGrpColsForStats(pmp, pdrgpulGC, pcrsGrpColComputed);
-
-		// add statistical information of columns (1) used to compute the cardinality of the aggregate
-		// and (2) the grouping columns that are computed
-		CStatisticsUtils::AddGrpColStats(pmp, this, pcrsGrpColsForStats, phmulhist, phmuldoubleWidth);
-		CStatisticsUtils::AddGrpColStats(pmp, this, pcrsGrpColComputed, phmulhist, phmuldoubleWidth);
-
-		DrgPdouble *pdrgpdNDV = CStatisticsUtils::PdrgPdoubleNDV(pmp, m_pstatsconf, this, pcrsGrpColsForStats, pbsKeys);
-		CDouble dGroups = CStatisticsUtils::DNumOfDistinctVal(m_pstatsconf, pdrgpdNDV);
-
-		// clean up
-		pcrsGrpColsForStats->Release();
-		pcrsGrpColComputed->Release();
-		pdrgpdNDV->Release();
-
-		dRowsAgg = std::min(std::max(DMinRows.DVal(), dGroups.DVal()), m_dRows.DVal());
-
-		// create a new stats object for the output
-		pstatsAgg = GPOS_NEW(pmp) CStatistics(pmp, phmulhist, phmuldoubleWidth, dRowsAgg, FEmpty());
-	}
-
-	// In the output statistics object, the upper bound source cardinality of the grouping column
-	// cannot be greater than the upper bound source cardinality information maintained in the input
-	// statistics object. Therefore we choose CStatistics::EcbmMin the bounding method which takes
-	// the minimum of the cardinality upper bound of the source column (in the input hash map)
-	// and estimated group by cardinality.
-
-	// modify source id to upper bound card information
-	CStatisticsUtils::ComputeCardUpperBounds(pmp, this, pstatsAgg, dRowsAgg, CStatistics::EcbmMin /* ecbm */);
-
-	return pstatsAgg;
-}
-
-
-//  return a statistics object for a project operation
-CStatistics *
-CStatistics::PstatsProject
-	(
-	IMemoryPool *pmp,
-	DrgPul *pdrgpulProjColIds,
-	HMUlDatum *phmuldatum
-	)
-	const
-{
-	GPOS_ASSERT(NULL != pdrgpulProjColIds);
-
-	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
-
-	// create hash map from colid -> histogram for resultant structure
-	HMUlHist *phmulhistNew = GPOS_NEW(pmp) HMUlHist(pmp);
-
-	// column ids on which widths are to be computed
-	HMUlDouble *phmuldoubleWidth = GPOS_NEW(pmp) HMUlDouble(pmp);
-
-	const ULONG ulLen = pdrgpulProjColIds->UlLength();
-	for (ULONG ul = 0; ul < ulLen; ul++)
-	{
-		ULONG ulColId = *(*pdrgpulProjColIds)[ul];
-		CHistogram *phist = m_phmulhist->PtLookup(&ulColId);
-
-		if (NULL == phist)
-		{
-
-			// create histogram for the new project column
-			DrgPbucket *pdrgbucket = GPOS_NEW(pmp) DrgPbucket(pmp);
-			CDouble dNullFreq = 0.0;
-
-			BOOL fWellDefined = false;
-			if (NULL != phmuldatum)
-			{
-				IDatum *pdatum = phmuldatum->PtLookup(&ulColId);
-				if (NULL != pdatum)
-				{
-					fWellDefined = true;
-					if (!pdatum->FNull())
-					{
-						pdrgbucket->Append(CBucket::PbucketSingleton(pmp, pdatum));
-					}
-					else
-					{
-						dNullFreq = 1.0;
-					}
-				}
-			}
-
-			CHistogram *phistPrCol = NULL;
-			CColRef *pcr = pcf->PcrLookup(ulColId);
-			GPOS_ASSERT(NULL != pcr);
-
-			if (0 == pdrgbucket->UlLength() && IMDType::EtiBool == pcr->Pmdtype()->Eti())
-			{
-				pdrgbucket->Release();
-			 	phistPrCol = CHistogram::PhistDefaultBoolColStats(pmp);
-			}
-			else
-			{
-				phistPrCol = GPOS_NEW(pmp) CHistogram
-										(
-										pdrgbucket,
-										fWellDefined,
-										dNullFreq,
-										CHistogram::DDefaultNDVRemain,
-										CHistogram::DDefaultNDVFreqRemain
-										);
-			}
-
-			phmulhistNew->FInsert(GPOS_NEW(pmp) ULONG(ulColId), phistPrCol);
-		}
-		else
-		{
-			phmulhistNew->FInsert(GPOS_NEW(pmp) ULONG(ulColId), phist->PhistCopy(pmp));
-		}
-
-		// look up width
-		CDouble *pdWidth = m_phmuldoubleWidth->PtLookup(&ulColId);
-		if (NULL == pdWidth)
-		{
-			CColRef *pcr = pcf->PcrLookup(ulColId);
-			GPOS_ASSERT(NULL != pcr);
-
-			CDouble dWidth = CStatisticsUtils::DDefaultColumnWidth(pcr->Pmdtype());
-			phmuldoubleWidth->FInsert(GPOS_NEW(pmp) ULONG(ulColId), GPOS_NEW(pmp) CDouble(dWidth));
-		}
-		else
-		{
-			phmuldoubleWidth->FInsert(GPOS_NEW(pmp) ULONG(ulColId), GPOS_NEW(pmp) CDouble(*pdWidth));
-		}
-	}
-
-	// create an output stats object
-	CStatistics *pstatsProject = GPOS_NEW(pmp) CStatistics
-											(
-											pmp,
-											phmulhistNew,
-											phmuldoubleWidth,
-											m_dRows,
-											FEmpty(),
-											m_ulNumPredicates
-											);
-
-	// In the output statistics object, the upper bound source cardinality of the project column
-	// is equivalent the estimate project cardinality.
-
-	CStatisticsUtils::ComputeCardUpperBounds(pmp, this, pstatsProject, m_dRows, CStatistics::EcbmInputSourceMaxCard /* ecbm */);
-
-	// add upper bound card information for the project columns
-	CreateAndInsertUpperBoundNDVs(pmp, pstatsProject, pdrgpulProjColIds, m_dRows);
-
-	return pstatsProject;
-}
-
 //	helper method to copy statistics on columns that are not excluded by bitset
 void
 CStatistics::AddNotExcludedHistograms
@@ -755,158 +482,64 @@ CStatistics::AddNotExcludedHistograms
 	}
 }
 
-// return statistics object after union all operation with input statistics object
-CStatistics *
-CStatistics::PstatsUnionAll
+HMUlDouble *
+CStatistics::CopyWidths
 	(
-	IMemoryPool *pmp,
-	const IStatistics *pistatsOther,
-	DrgPul *pdrgpulOutput,
-	DrgPul *pdrgpulInput1,
-	DrgPul *pdrgpulInput2
+	IMemoryPool *pmp
 	)
 	const
 {
-	GPOS_ASSERT(NULL != pmp);
-	GPOS_ASSERT(NULL != pistatsOther);
+	HMUlDouble *phmuldoubleCoopy = GPOS_NEW(pmp) HMUlDouble(pmp);
+	CStatisticsUtils::AddWidthInfo(pmp, m_phmuldoubleWidth, phmuldoubleCoopy);
 
-	// lengths must match
-	GPOS_ASSERT(pdrgpulOutput->UlLength() == pdrgpulInput1->UlLength());
-	GPOS_ASSERT(pdrgpulOutput->UlLength() == pdrgpulInput2->UlLength());
-
-	const CStatistics *pstatsOther = dynamic_cast<const CStatistics *> (pistatsOther);
-
-	// create hash map from colid -> histogram for resultant structure
-	HMUlHist *phmulhistNew = GPOS_NEW(pmp) HMUlHist(pmp);
-
-	// column ids on which widths are to be computed
-	HMUlDouble *phmuldoubleWidth = GPOS_NEW(pmp) HMUlDouble(pmp);
-
-	BOOL fEmptyUnionAll = FEmpty() && pistatsOther->FEmpty();
-	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
-	CDouble dRowsUnionAll = DMinRows;
-	if (fEmptyUnionAll)
-	{
-		CHistogramUtils::AddDummyHistogramAndWidthInfo(pmp, pcf, phmulhistNew, phmuldoubleWidth, pdrgpulOutput, true /*fEmpty*/);
-	}
-	else
-	{
-		const ULONG ulLen = pdrgpulOutput->UlLength();
-		for (ULONG ul = 0; ul < ulLen; ul++)
-		{
-			ULONG ulColIdOutput = *(*pdrgpulOutput)[ul];
-			ULONG ulColIdInput1 = *(*pdrgpulInput1)[ul];
-			ULONG ulColIdInput2 = *(*pdrgpulInput2)[ul];
-
-			CHistogram *phistInput1 = m_phmulhist->PtLookup(&ulColIdInput1);
-			GPOS_ASSERT(NULL != phistInput1);
-			CHistogram *phistInput2 = pstatsOther->m_phmulhist->PtLookup(&ulColIdInput2);
-			GPOS_ASSERT(NULL != phistInput2);
-
-			if (phistInput1->FWellDefined() || phistInput2->FWellDefined())
-			{
-				CHistogram *phistOutput = phistInput1->PhistUnionAllNormalized(pmp, DRows(), phistInput2, pstatsOther->DRows());
-				CStatisticsUtils::AddHistogram(pmp, ulColIdOutput, phistOutput, phmulhistNew);
-				GPOS_DELETE(phistOutput);
-			}
-			else
-			{
-				CColRef *pcr = pcf->PcrLookup(ulColIdOutput);
-				GPOS_ASSERT(NULL != pcr);
-
-				CHistogram *phistDummy = CHistogram::PhistDefault(pmp, pcr, false /* fEmpty*/);
-				phmulhistNew->FInsert(GPOS_NEW(pmp) ULONG(ulColIdOutput), phistDummy);
-			}
-
-			// look up width
-			CDouble *pdWidth = m_phmuldoubleWidth->PtLookup(&ulColIdInput1);
-			GPOS_ASSERT(NULL != pdWidth);
-			phmuldoubleWidth->FInsert(GPOS_NEW(pmp) ULONG(ulColIdOutput), GPOS_NEW(pmp) CDouble(*pdWidth));
-		}
-
-		dRowsUnionAll = m_dRows + pstatsOther->m_dRows;
-	}
-
-	// release inputs
-	pdrgpulOutput->Release();
-	pdrgpulInput1->Release();
-	pdrgpulInput2->Release();
-
-	// create an output stats object
-	CStatistics *pstatsUnionAll = GPOS_NEW(pmp) CStatistics
-											(
-											pmp,
-											phmulhistNew,
-											phmuldoubleWidth,
-											dRowsUnionAll,
-											fEmptyUnionAll,
-											0 /* m_ulNumPredicates */
-											);
-
-	// In the output statistics object, the upper bound source cardinality of the UNION ALL column
-	// is the estimate union all cardinality.
-
-	// modify upper bound card information
-	CStatisticsUtils::ComputeCardUpperBounds(pmp, this, pstatsUnionAll, dRowsUnionAll, CStatistics::EcbmOutputCard /* ecbm */);
-
-	return pstatsUnionAll;
+	return phmuldoubleCoopy;
 }
 
-//	compute the statistics of a limit operation
-CStatistics *
-CStatistics::PstatsLimit
+void
+CStatistics::CopyWidthsInto
 	(
 	IMemoryPool *pmp,
-	CDouble dLimitCount
+	HMUlDouble *phmuldouble
+	)
+	const
+{
+	CStatisticsUtils::AddWidthInfo(pmp, m_phmuldoubleWidth, phmuldouble);
+}
+
+HMUlHist *
+CStatistics::CopyHistograms
+	(
+	IMemoryPool *pmp
 	)
 	const
 {
 	// create hash map from colid -> histogram for resultant structure
-	HMUlHist *phmulhistNew = GPOS_NEW(pmp) HMUlHist(pmp);
+	HMUlHist *phmulhistCopy = GPOS_NEW(pmp) HMUlHist(pmp);
 
-	CDouble dRowsLimit = DMinRows;
-	if (FEmpty())
+	BOOL fEmpty = FEmpty();
+
+	HMIterUlHist hmiterulhist(m_phmulhist);
+	while (hmiterulhist.FAdvance())
 	{
-		CHistogramUtils::AddEmptyHistogram(pmp, phmulhistNew, m_phmulhist);
-	}
-	else
-	{
-		HMIterUlHist hmiterulhist(m_phmulhist);
-		while (hmiterulhist.FAdvance())
+		ULONG ulColId = *(hmiterulhist.Pk());
+		const CHistogram *phist = hmiterulhist.Pt();
+		CHistogram *phistCopy = NULL;
+		if (fEmpty)
 		{
-			ULONG ulColId = *(hmiterulhist.Pk());
-			const CHistogram *phist = hmiterulhist.Pt();
-			CStatisticsUtils::AddHistogram(pmp, ulColId, phist, phmulhistNew);
+			phistCopy =  GPOS_NEW(pmp) CHistogram(GPOS_NEW(pmp) DrgPbucket(pmp), false /* fWellDefined */);
+		}
+		else
+		{
+			phistCopy = phist->PhistCopy(pmp);
 		}
 
-		// TODO:  Sept 23rd 2014, fix this to the minimum of input card and limit count
-		dRowsLimit = dLimitCount;
+		phmulhistCopy->FInsert(GPOS_NEW(pmp) ULONG(ulColId), phistCopy);
 	}
 
-	m_phmuldoubleWidth->AddRef();
-
-	// create an output stats object
-	CStatistics *pstatsLimit = GPOS_NEW(pmp) CStatistics
-											(
-											pmp,
-											phmulhistNew,
-											m_phmuldoubleWidth,
-											dRowsLimit,
-											FEmpty(),
-											m_ulNumPredicates
-											);
-
-	// In the output statistics object, the upper bound source cardinality of the join column
-	// cannot be greater than the upper bound source cardinality information maintained in the input
-	// statistics object. Therefore we choose CStatistics::EcbmMin the bounding method which takes
-	// the minimum of the cardinality upper bound of the source column (in the input hash map)
-	// and estimated limit cardinality.
-
-	// modify source id to upper bound card information
-	CStatisticsUtils::ComputeCardUpperBounds(pmp, this, pstatsLimit, dRowsLimit, CStatistics::EcbmMin /* ecbm */);
-
-	return pstatsLimit;
+	return phmulhistCopy;
 }
+
+
 
 //	return required props associated with statistics object
 CReqdPropRelational *
@@ -945,7 +578,7 @@ CStatistics::AppendStats
 {
 	CStatistics *pstats = CStatistics::PstatsConvert(pstatsInput);
 
-	CHistogramUtils::AddHistograms(pmp, pstats->m_phmulhist, m_phmulhist);
+	CHistogram::AddHistograms(pmp, pstats->m_phmulhist, m_phmulhist);
 	GPOS_CHECK_ABORT;
 
 	CStatisticsUtils::AddWidthInfo(pmp, pstats->m_phmuldoubleWidth, m_phmuldoubleWidth);
@@ -975,7 +608,7 @@ CStatistics::PstatsScale
 	HMUlHist *phmulhistNew = GPOS_NEW(pmp) HMUlHist(pmp);
 	HMUlDouble *phmuldoubleNew = GPOS_NEW(pmp) HMUlDouble(pmp);
 
-	CHistogramUtils::AddHistograms(pmp, m_phmulhist, phmulhistNew);
+	CHistogram::AddHistograms(pmp, m_phmulhist, phmulhistNew);
 	GPOS_CHECK_ABORT;
 
 	CStatisticsUtils::AddWidthInfo(pmp, m_phmuldoubleWidth, phmuldoubleNew);

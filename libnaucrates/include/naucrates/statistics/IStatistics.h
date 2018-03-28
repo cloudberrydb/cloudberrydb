@@ -141,13 +141,6 @@ namespace gpnaucrates
 			virtual
 			CDouble DNDV(const CColRef *pcr) = 0;
 
-			// create new statistics structure after applying the filter
-			virtual
-			IStatistics *PstatsFilter(IMemoryPool *, CStatsPred *pstatspred, BOOL fCapNdvs) const = 0;
-
-			virtual
-			HMUlDouble *PHMUlDoubleWidth() const = 0;
-
 			virtual
 			ULONG UlNumberOfPredicates() const = 0;
 
@@ -189,48 +182,6 @@ namespace gpnaucrates
 						const IStatistics *pistatsOther,
 						DrgPstatspredjoin *pdrgpstatspredjoin,
 						BOOL fIgnoreLasjHistComputation
-						)
-						const = 0;
-
-			// project
-			virtual
-			IStatistics *PstatsProject
-							(
-							IMemoryPool *pmp,
-							DrgPul *pdrgpul,
-							HMUlDatum *phmuldatum
-							)
-							const = 0;
-
-			// group by
-			virtual
-			IStatistics *PstatsGroupBy
-							(
-							IMemoryPool *pmp,
-							DrgPul *pdrgpulGC,
-							DrgPul *pdrgpulAgg,
-							CBitSet *pbsKeys
-							)
-							const = 0;
-
-			// union all
-			virtual
-			IStatistics *PstatsUnionAll
-						(
-						IMemoryPool *pmp,
-						const IStatistics *pistatsOther,
-						DrgPul *pdrgpulOutput,
-						DrgPul *pdrgpulInput1,
-						DrgPul *pdrgpulInput2
-						)
-						const = 0;
-
-			// limit
-			virtual
-			IStatistics *PstatsLimit
-						(
-						IMemoryPool *pmp,
-						CDouble dLimitRows
 						)
 						const = 0;
 

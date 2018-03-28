@@ -1,69 +1,22 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2017 Pivotal Inc.
+//	Copyright (C) 2018 Pivotal, Inc.
 //
 //	@filename:
-//		CHistogramUtils.h
+//		CFilterStatsProcessor.h
 //
 //	@doc:
-//		Utility functions that operate on histograms
+//		Compute statistics for filter operation
 //---------------------------------------------------------------------------
-#ifndef GPNAUCRATES_CHistogramUtils_H
-#define GPNAUCRATES_CHistogramUtils_H
-
-#include "gpos/base.h"
-#include "gpos/string/CWStringDynamic.h"
-#include "gpos/sync/CMutex.h"
-
-#include "naucrates/statistics/CStatsPredDisj.h"
-#include "naucrates/statistics/CStatsPredConj.h"
-#include "naucrates/statistics/CStatsPredLike.h"
-#include "naucrates/statistics/CStatsPredUnsupported.h"
-
-#include "naucrates/statistics/CHistogram.h"
-#include "gpos/common/CBitSet.h"
-
-namespace gpopt
-{
-	class CStatisticsConfig;
-	class CColumnFactory;
-}
+#ifndef GPNAUCRATES_CFilterStatsProcessor_H
+#define GPNAUCRATES_CFilterStatsProcessor_H
 
 namespace gpnaucrates
 {
-	using namespace gpos;
-	using namespace gpopt;
 
-	//---------------------------------------------------------------------------
-	//	@class:
-	//		CHistogramUtils
-	//
-	//	@doc:
-	//		Utility functions that operate on histograms
-	//---------------------------------------------------------------------------
-	class CHistogramUtils
+	class CFilterStatsProcessor
 	{
-		public:
-
-			// helper method to append histograms from one map to the other
-			static
-			void AddHistograms(IMemoryPool *pmp, HMUlHist *phmulhistSrc, HMUlHist *phmulhistDest);
-
-			// add dummy histogram buckets and column width for the array of columns
-			static
-			void AddDummyHistogramAndWidthInfo
-				(
-				IMemoryPool *pmp,
-				CColumnFactory *pcf,
-				HMUlHist *phmulhistOutput,
-				HMUlDouble *phmuldoubleWidthOutput,
-				const DrgPul *pdrgpul,
-				BOOL fEmpty
-				);
-
-			// add dummy histogram buckets for the columns in the input histogram
-			static
-			void AddEmptyHistogram(IMemoryPool *pmp, HMUlHist *phmulhistOutput, HMUlHist *phmulhistInput);
+		private:
 
 			// create a new histogram after applying the filter that is not an AND/OR predicate
 			static
@@ -118,7 +71,7 @@ namespace gpnaucrates
 			HMUlHist *PhmulhistApplyConjOrDisjFilter
 				(
 				IMemoryPool *pmp,
-				CStatisticsConfig *pstatsconf,
+				const CStatisticsConfig *pstatsconf,
 				HMUlHist *phmulhistInput,
 				CDouble dRowsInput,
 				CStatsPred *pstatspred,
@@ -130,7 +83,7 @@ namespace gpnaucrates
 			HMUlHist *PhmulhistApplyConjFilter
 				(
 				IMemoryPool *pmp,
-				CStatisticsConfig *pstatsconf,
+				const CStatisticsConfig *pstatsconf,
 				HMUlHist *phmulhistIntermediate,
 				CDouble dRowsInput,
 				CStatsPredConj *pstatspredConj,
@@ -142,7 +95,7 @@ namespace gpnaucrates
 			HMUlHist *PhmulhistApplyDisjFilter
 				(
 				IMemoryPool *pmp,
-				CStatisticsConfig *pstatsconf,
+				const CStatisticsConfig *pstatsconf,
 				HMUlHist *phmulhistInput,
 				CDouble dRowsInput,
 				CStatsPredDisj *pstatspred,
@@ -153,13 +106,27 @@ namespace gpnaucrates
 			static
 			BOOL FNewStatsColumn(ULONG ulColId, ULONG ulColIdLast);
 
-			// check if the cardinality estimation should be done only via NDVs
-			static
-			BOOL FNDVBasedCardEstimation(const CHistogram *phist);
+		public:
 
-	}; // class CHistogramUtils
+		// filter
+		static
+		CStatistics *PstatsFilter(IMemoryPool *pmp, const CStatistics *pstatsInput, CStatsPred *pstatspredBase, BOOL fCapNdvs);
+
+		// derive statistics for filter operation based on given scalar expression
+		static
+		IStatistics *PstatsFilterForScalarExpr
+						(
+						IMemoryPool *pmp,
+						CExpressionHandle &exprhdl,
+						IStatistics *pstatsChild,
+						CExpression *pexprScalarLocal, // filter expression on local columns only
+						CExpression *pexprScalarOuterRefs, // filter expression involving outer references
+						DrgPstat *pdrgpstatOuter
+						);
+	};
 }
 
-#endif // !GPNAUCRATES_CHistogramUtils_H
+#endif // !GPNAUCRATES_CFilterStatsProcessor_H
 
 // EOF
+

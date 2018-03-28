@@ -21,6 +21,8 @@
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CLogicalGbAgg.h"
 
+#include "naucrates/statistics/CGroupByStatsProcessor.h"
+
 using namespace gpopt;
 
 
@@ -631,7 +633,7 @@ CLogicalGbAgg::PstatsDerive
 		pdrgpulGroupingCols->Append(GPOS_NEW(pmp) ULONG(pcr->UlId()));
 	}
 
-	IStatistics *pstats = pstatsChild->PstatsGroupBy(pmp, pdrgpulGroupingCols, pdrgpulComputedCols, pbsKeys);
+	IStatistics *pstats = CGroupByStatsProcessor::PstatsGroupBy(pmp, dynamic_cast<CStatistics *>(pstatsChild), pdrgpulGroupingCols, pdrgpulComputedCols, pbsKeys);
 
 	// clean up
 	pdrgpulGroupingCols->Release();

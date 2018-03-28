@@ -165,7 +165,7 @@ namespace gpnaucrates
 			CDouble DMaxGroupsFromSource
 						(
 						IMemoryPool *pmp,
-						CStatisticsConfig *pstatsconf,
+						const CStatisticsConfig *pstatsconf,
 						CStatistics *pstatsInput,
 						const DrgPul *pdrgpulPerSrc
 						);
@@ -312,20 +312,6 @@ namespace gpnaucrates
 			void PrintHistogramMap(IOstream &os, HMUlHist *phmulhist);
 #endif // GPOS_DEBUG
 
-
-
-			// derive statistics for filter operation based on given scalar expression
-			static
-			IStatistics *PstatsFilter
-				(
-				IMemoryPool *pmp,
-				CExpressionHandle &exprhdl,
-				IStatistics *pstatsChild,
-				CExpression *pexprScalarLocal, // filter expression on local columns only
-				CExpression *pexprScalarOuterRefs, // filter expression involving outer references
-				DrgPstat *pdrgpstatOuter
-				);
-
 			// derive statistics of dynamic scan based on part-selector stats in the given map
 			static
 			IStatistics *PstatsDynamicScan(IMemoryPool *pmp, CExpressionHandle &exprhdl, ULONG ulPartIndexId, CPartFilterMap *ppfm);
@@ -341,7 +327,7 @@ namespace gpnaucrates
 			// compute the cumulative number of distinct values (NDV) of the group by operator
 			// from the array of NDV of the individual grouping columns
 			static
-			CDouble DNumOfDistinctVal(CStatisticsConfig *pstatsconf, DrgPdouble *pdrgpdNDV);
+			CDouble DNumOfDistinctVal(const CStatisticsConfig *pstatsconf, DrgPdouble *pdrgpdNDV);
 
 			// return the mapping between the table column used for grouping to the logical operator id where it was defined.
 			// If the grouping column is not a table column then the logical op id is initialized to ULONG_MAX
@@ -359,7 +345,7 @@ namespace gpnaucrates
 			DrgPdouble *PdrgPdoubleNDV
 				(
 				IMemoryPool *pmp,
-				CStatisticsConfig *pstatsconf,
+				const CStatisticsConfig *pstatsconf,
 				const IStatistics *pstats,
 				CColRefSet *pcrsGrpCols, // grouping columns
 				CBitSet *pbsKeys // keys derived during optimization
@@ -371,7 +357,7 @@ namespace gpnaucrates
 					(
 					IMemoryPool *pmp, 
 					IStatistics *pstats, 
-					CStatisticsConfig *pstatsconf, 
+					const CStatisticsConfig *pstatsconf,
 					DrgPul *pdrgpulGC, 
 					CBitSet *pbsKeys
 					);

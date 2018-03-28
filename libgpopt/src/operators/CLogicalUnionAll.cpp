@@ -14,6 +14,7 @@
 #include "gpopt/base/CUtils.h"
 #include "gpopt/operators/CLogicalUnionAll.h"
 #include "gpopt/operators/CExpressionHandle.h"
+#include "naucrates/statistics/CUnionAllStatsProcessor.h"
 
 using namespace gpopt;
 
@@ -187,10 +188,11 @@ CLogicalUnionAll::PstatsDeriveUnionAll
 	for (ULONG ul = 1; ul < ulArity; ul++)
 	{
 		IStatistics *pstatsChild = exprhdl.Pstats(ul);
-		IStatistics *pstats = pstatsResult->PstatsUnionAll
+		CStatistics *pstats = CUnionAllStatsProcessor::PstatsUnionAll
 											(
 											pmp,
-											pstatsChild,
+											dynamic_cast<CStatistics *>(pstatsResult),
+											dynamic_cast<CStatistics *>(pstatsChild),
 											CColRef::Pdrgpul(pmp, pdrgpcrOutput),
 											CColRef::Pdrgpul(pmp, (*pdrgpdrgpcrInput)[0]),
 											CColRef::Pdrgpul(pmp, (*pdrgpdrgpcrInput)[ul])

@@ -48,11 +48,6 @@ CLeftOuterJoinStatsProcessor::PstatsLOJStatic
 			&dRowsLASJ
 			);
 
-	HMUlDouble *phmuldoubleWidth = GPOS_NEW(pmp) HMUlDouble(pmp);
-	CStatisticsUtils::AddWidthInfo(pmp, pstatsInnerJoin->PHMUlDoubleWidth(), phmuldoubleWidth);
-
-	pstatsInnerJoin->Release();
-
 	// cardinality of LOJ is at least the cardinality of the outer child
 	CDouble dRowsLOJ = std::max(pstatsOuter->DRows(), dRowsInnerJoin + dRowsLASJ);
 
@@ -61,11 +56,13 @@ CLeftOuterJoinStatsProcessor::PstatsLOJStatic
 			(
 			pmp,
 			phmulhistLOJ,
-			phmuldoubleWidth,
+			pstatsInnerJoin->CopyWidths(pmp),
 			dRowsLOJ,
 			pstatsOuter->FEmpty(),
 			pstatsOuter->UlNumberOfPredicates()
 			);
+
+	pstatsInnerJoin->Release();
 
 	// In the output statistics object, the upper bound source cardinality of the join column
 	// cannot be greater than the upper bound source cardinality information maintained in the input

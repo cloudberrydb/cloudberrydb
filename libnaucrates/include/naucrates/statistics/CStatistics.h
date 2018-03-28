@@ -117,13 +117,6 @@ namespace gpnaucrates
 			static
 			const ULONG ulStatsEstimationNoRisk;
 
-
-
-			// cap the total number of distinct values (NDV) in buckets to the number of rows
-			static
-			void CapNDVs(CDouble dRows, HMUlHist *phmulhist);
-
-
 			// helper method to add histograms where the column ids have been remapped
 			static
 			void AddHistogramsWithRemap(IMemoryPool *pmp, HMUlHist *phmulhistSrc, HMUlHist *phmulhistDest, HMUlCr *phmulcr, BOOL fMustExist);
@@ -150,12 +143,15 @@ namespace gpnaucrates
 			~CStatistics();
 
 			virtual
-			HMUlDouble *PHMUlDoubleWidth() const
-			{
-				return m_phmuldoubleWidth;
-			}
+			HMUlDouble *CopyWidths(IMemoryPool *pmp) const;
 
-		// actual number of rows
+			virtual
+			void CopyWidthsInto(IMemoryPool *pmp, HMUlDouble *phmuldouble) const;
+
+			virtual
+			HMUlHist *CopyHistograms(IMemoryPool *pmp) const;
+
+			// actual number of rows
 			virtual
 			CDouble DRows() const;
 
@@ -225,10 +221,6 @@ namespace gpnaucrates
 				m_ulStatsEstimationRisk = ulRisk;
 			}
 
-			// create new statistics structure after applying the filter
-			virtual
-			CStatistics *PstatsFilter(IMemoryPool *pmp, CStatsPred *pstatspred, BOOL fCapNdvs) const;
-
 			// inner join with another stats structure
 			virtual
 			CStatistics *PstatsInnerJoin(IMemoryPool *pmp, const IStatistics *pistatsOther, DrgPstatspredjoin *pdrgpstatspredjoin) const;
@@ -251,30 +243,6 @@ namespace gpnaucrates
 			// semi join stats computation
 			virtual
 			CStatistics *PstatsLSJoin(IMemoryPool *pmp, const IStatistics *pstatsInner, DrgPstatspredjoin *pdrgpstatspredjoin) const;
-
-			// group by
-			virtual
-			CStatistics *PstatsGroupBy(IMemoryPool *pmp, DrgPul *pdrgpulGC, DrgPul *pdrgpulAgg, CBitSet *pbsKeys) const;
-
-			// project
-			virtual
-			CStatistics *PstatsProject(IMemoryPool *pmp, DrgPul *pdrgpul, HMUlDatum *phmuldatum) const;
-
-			// union all
-			virtual
-			CStatistics *PstatsUnionAll
-							(
-							IMemoryPool *pmp,
-							const IStatistics *pistatsOther,
-							DrgPul *pdrgpulOutput,
-							DrgPul *pdrgpulInput1,
-							DrgPul *pdrgpulInput2
-							)
-							const;
-
-			// limit
-			virtual
-			CStatistics *PstatsLimit(IMemoryPool *pmp, CDouble dLimitRows) const;
 
 			// return required props associated with stats object
 			virtual
@@ -342,6 +310,7 @@ namespace gpnaucrates
 			{
 				return m_ulNumPredicates;
 			}
+
 			CStatisticsConfig *PStatsConf() const
 			{
 				return	m_pstatsconf;
@@ -419,6 +388,10 @@ namespace gpnaucrates
 			// add upper bound ndvs information for a given set of columns
 			static
 			void CreateAndInsertUpperBoundNDVs(IMemoryPool *pmp, CStatistics *pstats, DrgPul *pdrgpulColIds, CDouble dRows);
+
+			// cap the total number of distinct values (NDV) in buckets to the number of rows
+			static
+			void CapNDVs(CDouble dRows, HMUlHist *phmulhist);
 	}; // class CStatistics
 
 }

@@ -23,7 +23,7 @@
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CLogicalLimit.h"
 
-
+#include "naucrates/statistics/CLimitStatsProcessor.h"
 
 using namespace gpopt;
 
@@ -361,7 +361,7 @@ CLogicalLimit::PstatsDerive
 		return pstatsChild;
 	}
 
-	return pstatsChild->PstatsLimit(pmp, dRowsMax);
+	return CLimitStatsProcessor::PstatsLimit(pmp, dynamic_cast<CStatistics*>(pstatsChild), dRowsMax);
 }
 
 // EOF

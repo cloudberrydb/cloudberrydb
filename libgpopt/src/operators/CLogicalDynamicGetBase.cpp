@@ -25,7 +25,7 @@
 #include "gpopt/metadata/CName.h"
 
 #include "naucrates/statistics/CStatsPredUtils.h"
-
+#include "naucrates/statistics/CFilterStatsProcessor.h"
 
 using namespace gpopt;
 
@@ -374,7 +374,7 @@ CLogicalDynamicGetBase::PstatsDeriveFilter
 	}
 
 
-	IStatistics *pstatsFullTable = PstatsBaseTable(pmp, exprhdl, m_ptabdesc, pcrsStat);
+	CStatistics *pstatsFullTable = dynamic_cast<CStatistics *>(PstatsBaseTable(pmp, exprhdl, m_ptabdesc, pcrsStat));
 	
 	pcrsStat->Release();
 	
@@ -391,12 +391,7 @@ CLogicalDynamicGetBase::PstatsDeriveFilter
 												);
 	pexprFilterNew->Release();
 
-	IStatistics *pstatsResult = pstatsFullTable->PstatsFilter
-													(
-													pmp, 
-													pstatspred, 
-													true /* fCapNdvs */ 
-													);
+	IStatistics *pstatsResult = CFilterStatsProcessor::PstatsFilter(pmp, pstatsFullTable, pstatspred, true /* fCapNdvs */);
 	pstatspred->Release();
 	pstatsFullTable->Release();
 

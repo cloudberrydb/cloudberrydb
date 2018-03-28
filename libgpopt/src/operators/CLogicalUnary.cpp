@@ -14,6 +14,8 @@
 #include "gpopt/operators/CLogicalUnary.h"
 #include "gpopt/xforms/CXformUtils.h"
 
+#include "naucrates/statistics/CProjectStatsProcessor.h"
+
 using namespace gpopt;
 
 //---------------------------------------------------------------------------
@@ -87,7 +89,7 @@ CLogicalUnary::PstatsDeriveProject
 	DrgPul *pdrgpulColIds = GPOS_NEW(pmp) DrgPul(pmp);
 	pcrs->ExtractColIds(pmp, pdrgpulColIds);
 
-	IStatistics *pstats = pstatsChild->PstatsProject(pmp, pdrgpulColIds, phmuldatum);
+	IStatistics *pstats = CProjectStatsProcessor::PstatsProject(pmp, dynamic_cast<CStatistics *>(pstatsChild), pdrgpulColIds, phmuldatum);
 
 	// clean up
 	pdrgpulColIds->Release();

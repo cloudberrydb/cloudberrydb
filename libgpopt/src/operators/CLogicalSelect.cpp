@@ -23,7 +23,7 @@
 #include "gpopt/operators/CPredicateUtils.h"
 
 #include "naucrates/statistics/CStatisticsUtils.h"
-
+#include "naucrates/statistics/CFilterStatsProcessor.h"
 using namespace gpopt;
 
 //---------------------------------------------------------------------------
@@ -190,7 +190,7 @@ CLogicalSelect::PstatsDerive
 	CPredicateUtils::SeparateOuterRefs(pmp, pexprPredicate, pcrsOuter, &pexprLocal, &pexprOuterRefs);
 	pexprPredicate->Release();
 
-	IStatistics *pstats = CStatisticsUtils::PstatsFilter(pmp, exprhdl, pstatsChild, pexprLocal, pexprOuterRefs, pdrgpstatCtxt);
+	IStatistics *pstats = CFilterStatsProcessor::PstatsFilterForScalarExpr(pmp, exprhdl, pstatsChild, pexprLocal, pexprOuterRefs, pdrgpstatCtxt);
 	pexprLocal->Release();
 	pexprOuterRefs->Release();
 

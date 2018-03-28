@@ -21,6 +21,7 @@
 #include "gpopt/cost/ICostModel.h"
 
 #include "naucrates/statistics/CStatisticsUtils.h"
+#include "naucrates/statistics/CFilterStatsProcessor.h"
 
 using namespace gpopt;
 
@@ -211,7 +212,7 @@ CPhysicalDynamicIndexScan::PstatsDerive
 
 	CPredicateUtils::SeparateOuterRefs(pmp, pexprScalar, pcrsOuter, &pexprLocal, &pexprOuterRefs);
 
-	IStatistics *pstats = CStatisticsUtils::PstatsFilter(pmp, exprhdl, pstatsBaseTable, pexprLocal, pexprOuterRefs, pdrgpstatCtxt);
+	IStatistics *pstats = CFilterStatsProcessor::PstatsFilterForScalarExpr(pmp, exprhdl, pstatsBaseTable, pexprLocal, pexprOuterRefs, pdrgpstatCtxt);
 
 	pstatsBaseTable->Release();
 	pexprLocal->Release();

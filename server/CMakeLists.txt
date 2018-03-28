@@ -20,6 +20,7 @@ if (COMPILER_HAS_WNO_LONG_LONG)
                                 src/unittest/dxl/statistics/CHistogramTest.cpp
                                 src/unittest/dxl/statistics/CMCVTest.cpp
                                 src/unittest/dxl/statistics/CJoinCardinalityTest.cpp
+                                src/unittest/dxl/statistics/CFilterCardinalityTest.cpp
                                 src/unittest/gpopt/base/CConstraintTest.cpp
                                 src/unittest/gpopt/metadata/CPartConstraintTest.cpp
                                 PROPERTIES COMPILE_FLAGS "-Wno-long-long")
@@ -342,6 +343,7 @@ add_orca_test(CHistogramTest)
 add_orca_test(CMCVTest)
 add_orca_test(CJoinCardinalityTest)
 add_orca_test(CJoinCardinalityNDVBasedEqPredTest)
+add_orca_test(CFilterCardinalityTest)
 add_orca_test(CTranslatorDXLToExprTest)
 add_orca_test(CTranslatorExprToDXLTest)
 add_orca_test(CXMLSerializerTest)

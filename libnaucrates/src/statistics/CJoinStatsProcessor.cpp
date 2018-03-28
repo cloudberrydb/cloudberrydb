@@ -15,6 +15,7 @@
 #include "naucrates/statistics/CStatisticsUtils.h"
 #include "naucrates/statistics/CJoinStatsProcessor.h"
 #include "naucrates/statistics/CLeftAntiSemiJoinStatsProcessor.h"
+#include "naucrates/statistics/CFilterStatsProcessor.h"
 #include "naucrates/statistics/CScaleFactorUtils.h"
 
 using namespace gpopt;
@@ -191,12 +192,7 @@ CJoinStatsProcessor::PstatsJoinArray
 			// apply the unsupported join filters as a filter on top of the join results.
 			// TODO,  June 13 2014 we currently only cap NDVs for filters
 			// immediately on top of tables.
-			IStatistics *pstatsAfterJoinFilter = pstats->PstatsFilter
-					(
-							pmp,
-							pstatspredUnsupported,
-							false /* fCapNdvs */
-					);
+			IStatistics *pstatsAfterJoinFilter = CFilterStatsProcessor::PstatsFilter(pmp, dynamic_cast<CStatistics *>(pstats), pstatspredUnsupported, false /* fCapNdvs */);
 
 			// If it is outer join and the cardinality after applying the unsupported join
 			// filters is less than the cardinality of outer child, we don't use this stats.
@@ -342,11 +338,10 @@ CJoinStatsProcessor::PstatsJoinDriver
 	pdrgpd->Release();
 	pbsJoinColIds->Release();
 
-	HMUlDouble *phmuldoubleWidthResult = GPOS_NEW(pmp) HMUlDouble(pmp);
-	CStatisticsUtils::AddWidthInfo(pmp, pstatsOuter->PHMUlDoubleWidth(), phmuldoubleWidthResult);
+	HMUlDouble *phmuldoubleWidthResult = pstatsOuter->CopyWidths(pmp);
 	if (!fSemiJoin)
 	{
-		CStatisticsUtils::AddWidthInfo(pmp, pstatsInner->PHMUlDoubleWidth(), phmuldoubleWidthResult);
+		pstatsInner->CopyWidthsInto(pmp, phmuldoubleWidthResult);
 	}
 
 	// create an output stats object

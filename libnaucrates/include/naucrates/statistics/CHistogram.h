@@ -18,6 +18,8 @@
 namespace gpopt
 {
 	class CColRef;
+	class CStatisticsConfig;
+	class CColumnFactory;
 }
 
 namespace gpnaucrates
@@ -35,6 +37,22 @@ namespace gpnaucrates
 	//---------------------------------------------------------------------------
 	class CHistogram
 	{
+
+		// hash map from column id to a histogram
+		typedef CHashMap<ULONG, CHistogram, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
+							CleanupDelete<ULONG>, CleanupDelete<CHistogram> > HMUlHist;
+
+		// iterator
+		typedef CHashMapIter<ULONG, CHistogram, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
+							CleanupDelete<ULONG>, CleanupDelete<CHistogram> > HMIterUlHist;
+
+		// hash map from column ULONG to CDouble
+		typedef CHashMap<ULONG, CDouble, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
+						CleanupDelete<ULONG>, CleanupDelete<CDouble> > HMUlDouble;
+
+		// iterator
+		typedef CHashMapIter<ULONG, CDouble, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
+						CleanupDelete<ULONG>, CleanupDelete<CDouble> > HMIterUlDouble;
 
 		private:
 			// all the buckets in the histogram
@@ -151,6 +169,11 @@ namespace gpnaucrates
 					CDouble *pdDistinctRemain,
 					CDouble *pFreqRemain
 					);
+
+
+			// check if the cardinality estimation should be done only via NDVs
+			static
+			BOOL FNDVBasedCardEstimation(const CHistogram *phist);
 
 		public:
 
@@ -454,6 +477,26 @@ namespace gpnaucrates
 			// create the default non empty histogram for a boolean column
 			static
 			CHistogram *PhistDefaultBoolColStats(IMemoryPool *pmp);
+
+			// helper method to append histograms from one map to the other
+			static
+			void AddHistograms(IMemoryPool *pmp, HMUlHist *phmulhistSrc, HMUlHist *phmulhistDest);
+
+			// add dummy histogram buckets and column width for the array of columns
+			static
+			void AddDummyHistogramAndWidthInfo
+				(
+				IMemoryPool *pmp,
+				CColumnFactory *pcf,
+				HMUlHist *phmulhistOutput,
+				HMUlDouble *phmuldoubleWidthOutput,
+				const DrgPul *pdrgpul,
+				BOOL fEmpty
+				);
+
+			// add dummy histogram buckets for the columns in the input histogram
+			static
+			void AddEmptyHistogram(IMemoryPool *pmp, HMUlHist *phmulhistOutput, HMUlHist *phmulhistInput);
 
 			// default histogram selectivity
 			static const CDouble DDefaultSelectivity;

@@ -22,7 +22,6 @@
 #include "naucrates/statistics/CStatisticsUtils.h"
 #include "naucrates/statistics/CLeftAntiSemiJoinStatsProcessor.h"
 #include "naucrates/statistics/CScaleFactorUtils.h"
-#include "naucrates/statistics/CHistogramUtils.h"
 
 #include "gpopt/base/CColRef.h"
 
@@ -1099,8 +1098,8 @@ CHistogram::PhistJoinEquality
 	CDouble dDistinctRemain(0.0);
 	CDouble dFreqRemain(0.0);
 
-	BOOL fNDVBasedJoinCardEstimation1 = CHistogramUtils::FNDVBasedCardEstimation(this);
-	BOOL fNDVBasedJoinCardEstimation2 = CHistogramUtils::FNDVBasedCardEstimation(phist);
+	BOOL fNDVBasedJoinCardEstimation1 = FNDVBasedCardEstimation(this);
+	BOOL fNDVBasedJoinCardEstimation2 = FNDVBasedCardEstimation(phist);
 
 	if (fNDVBasedJoinCardEstimation1 || fNDVBasedJoinCardEstimation2)
 	{
@@ -2042,6 +2041,125 @@ CHistogram::PhistDefaultBoolColStats
 						true /*fColStatsMissing */
 						);
 }
+
+// check if the join cardinality estimation can be done based on NDV alone
+BOOL
+CHistogram::FNDVBasedCardEstimation
+	(
+	const CHistogram *phist
+	)
+{
+	GPOS_ASSERT(NULL != phist);
+
+	if (0 == phist->UlBuckets())
+	{
+		// no buckets, so join cardinality estimation is based solely on NDV remain
+		return true;
+	}
+
+	const IBucket *pbucket = (*phist->Pdrgpbucket())[0];
+
+	IDatum *pdatum = pbucket->PpLower()->Pdatum();
+
+	IMDType::ETypeInfo eti = pdatum->Eti();
+	if (IMDType::EtiInt2 == eti ||
+		IMDType::EtiInt4 == eti ||
+		IMDType::EtiInt8 == eti ||
+		IMDType::EtiBool == eti ||
+		IMDType::EtiOid == eti )
+	{
+		return false;
+	}
+
+	BOOL fRes = true;
+	if (pdatum->FStatsMappable())
+	{
+		IDatumStatisticsMappable *pdatumMappable = (IDatumStatisticsMappable *) pdatum;
+
+		if (pdatumMappable->FHasStatsDoubleMapping())
+		{
+			fRes = false;
+		}
+	}
+
+	return fRes;
+}
+
+// append given histograms to current object
+void
+CHistogram::AddHistograms
+	(
+	IMemoryPool *pmp,
+	HMUlHist *phmulhistSrc,
+	HMUlHist *phmulhistDest
+	)
+{
+	HMIterUlHist hmiterulhist(phmulhistSrc);
+	while (hmiterulhist.FAdvance())
+	{
+		ULONG ulColId = *(hmiterulhist.Pk());
+		const CHistogram *phist = hmiterulhist.Pt();
+		CStatisticsUtils::AddHistogram(pmp, ulColId, phist, phmulhistDest);
+	}
+}
+
+// add dummy histogram buckets and column information for the array of columns
+void
+CHistogram::AddDummyHistogramAndWidthInfo
+	(
+	IMemoryPool *pmp,
+	CColumnFactory *pcf,
+	HMUlHist *phmulhistOutput,
+	HMUlDouble *phmuldoubleWidthOutput,
+	const DrgPul *pdrgpul,
+	BOOL fEmpty
+	)
+{
+	GPOS_ASSERT(NULL != pcf);
+	GPOS_ASSERT(NULL != phmulhistOutput);
+	GPOS_ASSERT(NULL != phmuldoubleWidthOutput);
+	GPOS_ASSERT(NULL != pdrgpul);
+
+	const ULONG ulCount = pdrgpul->UlLength();
+	// for computed aggregates, we're not going to be very smart right now
+	for (ULONG ul = 0; ul < ulCount; ul++)
+	{
+		ULONG ulColId = *(*pdrgpul)[ul];
+
+		CColRef *pcr = pcf->PcrLookup(ulColId);
+		GPOS_ASSERT(NULL != pcr);
+
+		CHistogram *phist = CHistogram::PhistDefault(pmp, pcr, fEmpty);
+		phmulhistOutput->FInsert(GPOS_NEW(pmp) ULONG(ulColId), phist);
+
+		CDouble dWidth = CStatisticsUtils::DDefaultColumnWidth(pcr->Pmdtype());
+		phmuldoubleWidthOutput->FInsert(GPOS_NEW(pmp) ULONG(ulColId), GPOS_NEW(pmp) CDouble(dWidth));
+	}
+}
+
+//	add empty histogram for the columns in the input histogram
+void
+CHistogram::AddEmptyHistogram
+	(
+	IMemoryPool *pmp,
+	HMUlHist *phmulhistOutput,
+	HMUlHist *phmulhistInput
+	)
+{
+	GPOS_ASSERT(NULL != phmulhistOutput);
+	GPOS_ASSERT(NULL != phmulhistInput);
+
+	HMIterUlHist hmiterulhist(phmulhistInput);
+	while (hmiterulhist.FAdvance())
+	{
+		ULONG ulColId = *(hmiterulhist.Pk());
+
+		// empty histogram
+		CHistogram *phist =  GPOS_NEW(pmp) CHistogram(GPOS_NEW(pmp) DrgPbucket(pmp), false /* fWellDefined */);
+		phmulhistOutput->FInsert(GPOS_NEW(pmp) ULONG(ulColId), phist);
+	}
+}
+
 
 // EOF
 

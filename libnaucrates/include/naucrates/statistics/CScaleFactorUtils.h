@@ -34,19 +34,19 @@ namespace gpnaucrates
 
 			// calculate the cumulative join scaling factor
 			static
-			CDouble DCumulativeJoinScaleFactor(CStatisticsConfig *pstatsconf, DrgPdouble *pdrgpd);
+			CDouble DCumulativeJoinScaleFactor(const CStatisticsConfig *pstatsconf, DrgPdouble *pdrgpd);
 
 			// return scaling factor of the join predicate after apply damping
 			static
-			CDouble DDampingJoin(CStatisticsConfig *pstatsconf, ULONG ulNumColumns);
+			CDouble DDampingJoin(const CStatisticsConfig *pstatsconf, ULONG ulNumColumns);
 
 			// return scaling factor of the filter after apply damping
 			static
-			CDouble DDampingFilter(CStatisticsConfig *pstatsconf, ULONG ulNumColumns);
+			CDouble DDampingFilter(const CStatisticsConfig *pstatsconf, ULONG ulNumColumns);
 
 			// return scaling factor of the group by predicate after apply damping
 			static
-			CDouble DDampingGroupBy(CStatisticsConfig *pstatsconf, ULONG ulNumColumns);
+			CDouble DDampingGroupBy(const CStatisticsConfig *pstatsconf, ULONG ulNumColumns);
 
 			// sort the array of scaling factor
 			static
@@ -54,11 +54,11 @@ namespace gpnaucrates
 
 			// calculate the cumulative scaling factor for conjunction after applying damping multiplier
 			static
-			CDouble DScaleFactorCumulativeConj(CStatisticsConfig *pstatsconf, DrgPdouble *pdrgpdScaleFactor);
+			CDouble DScaleFactorCumulativeConj(const CStatisticsConfig *pstatsconf, DrgPdouble *pdrgpdScaleFactor);
 
 			// calculate the cumulative scaling factor for disjunction after applying damping multiplier
 			static
-			CDouble DScaleFactorCumulativeDisj(CStatisticsConfig *pstatsconf, DrgPdouble *pdrgpdScaleFactor, CDouble dRowsTotal);
+			CDouble DScaleFactorCumulativeDisj(const CStatisticsConfig *pstatsconf, DrgPdouble *pdrgpdScaleFactor, CDouble dRowsTotal);
 
 			// comparison function in descending order
 			static

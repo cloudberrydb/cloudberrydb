@@ -11,6 +11,7 @@
 
 #include "gpopt/operators/ops.h"
 #include "naucrates/statistics/CLeftSemiJoinStatsProcessor.h"
+#include "naucrates/statistics/CGroupByStatsProcessor.h"
 
 using namespace gpopt;
 
@@ -40,9 +41,10 @@ CLeftSemiJoinStatsProcessor::PstatsLSJoinStatic
 
 	// dummy agg columns required for group by derivation
 	DrgPul *pdrgpulAgg = GPOS_NEW(pmp) DrgPul(pmp);
-	IStatistics *pstatsInnerNoDups = pistatsInner->PstatsGroupBy
+	IStatistics *pstatsInnerNoDups = CGroupByStatsProcessor::PstatsGroupBy
 			(
 			pmp,
+			dynamic_cast<const CStatistics *>(pistatsInner),
 			pdrgpulInnerColumnIds,
 			pdrgpulAgg,
 			NULL // pbsKeys: no keys, use all grouping cols
