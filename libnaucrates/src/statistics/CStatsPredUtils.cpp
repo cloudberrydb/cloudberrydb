@@ -130,7 +130,8 @@ CStatsPredUtils::PstatspredUnsupported
 	CColRefSet * //pcrsOuterRefs
 	)
 {
-	return GPOS_NEW(pmp) CStatsPredUnsupported(ULONG_MAX, CStatsPred::EstatscmptOther);
+	return GPOS_NEW(pmp)
+		CStatsPredUnsupported(gpos::ulong_max, CStatsPred::EstatscmptOther);
 }
 
 //---------------------------------------------------------------------------
@@ -575,15 +576,9 @@ CStatsPredUtils::AddSupportedStatsFilters
 
 	if (COperator::EopScalarConst == pexprPred->Pop()->Eopid())
 	{
-		pdrgpstatspred->Append
-							(
-							GPOS_NEW(pmp) CStatsPredUnsupported
-										(
-										ULONG_MAX,
-										CStatsPred::EstatscmptOther,
-										CHistogram::DNeutralScaleFactor
-										)
-							);
+        pdrgpstatspred->Append(GPOS_NEW(pmp) CStatsPredUnsupported(
+            gpos::ulong_max, CStatsPred::EstatscmptOther,
+            CHistogram::DNeutralScaleFactor));
 
 		return;
 	}
@@ -877,7 +872,8 @@ CStatsPredUtils::PstatspredLike
 
 	if (NULL == pexprScIdent || NULL == pexprScConst)
 	{
-		return GPOS_NEW(pmp) CStatsPredUnsupported(ULONG_MAX, CStatsPred::EstatscmptLike);
+		return GPOS_NEW(pmp)
+			CStatsPredUnsupported(gpos::ulong_max, CStatsPred::EstatscmptLike);
 	}
 
 	CScalarIdent *popScalarIdent = CScalarIdent::PopConvert(pexprScIdent->Pop());
@@ -942,7 +938,8 @@ CStatsPredUtils::ProcessArrayCmp
 	if (!fCompareToConstAndScalarIdents)
 	{
 		// unsupported predicate for stats calculations
-		pdrgpstatspred->Append(GPOS_NEW(pmp) CStatsPredUnsupported(ULONG_MAX, CStatsPred::EstatscmptOther));
+		pdrgpstatspred->Append(GPOS_NEW(pmp) CStatsPredUnsupported(
+			gpos::ulong_max, CStatsPred::EstatscmptOther));
 
 		return;
 	}
@@ -1024,7 +1021,7 @@ CStatsPredUtils::PstatspredBoolean
 	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
 
 	IDatum *pdatum = NULL;
-	ULONG ulColId = ULONG_MAX;
+	ULONG ulColId = gpos::ulong_max;
 
 	if (CPredicateUtils::FBooleanScalarIdent(pexprPred))
 	{
@@ -1048,7 +1045,7 @@ CStatsPredUtils::PstatspredBoolean
 	}
 
 
-	GPOS_ASSERT(NULL != pdatum && ULONG_MAX != ulColId);
+	GPOS_ASSERT(NULL != pdatum && gpos::ulong_max != ulColId);
 
 	return GPOS_NEW(pmp) CStatsPredPoint(ulColId, CStatsPred::EstatscmptEq, GPOS_NEW(pmp) CPoint(pdatum));
 }
@@ -1101,7 +1098,8 @@ CStatsPredUtils::PstatsjoinExtract
 		ULONG ulIndexLeft = CUtils::UlPcrIndexContainingSet(pdrgpcrsOutput, pcrLeft);
 		ULONG ulIndexRight = CUtils::UlPcrIndexContainingSet(pdrgpcrsOutput, pcrRight);
 
-		if (ULONG_MAX != ulIndexLeft && ULONG_MAX != ulIndexRight && ulIndexLeft != ulIndexRight)
+		if (gpos::ulong_max != ulIndexLeft && gpos::ulong_max != ulIndexRight &&
+			ulIndexLeft != ulIndexRight)
 		{
 			if (ulIndexLeft < ulIndexRight)
 			{
@@ -1308,7 +1306,8 @@ CStatsPredUtils::FUnsupportedPredOnDefinedCol
 	CStatsPred *pstatspred
 	)
 {
-	return ((CStatsPred::EsptUnsupported == pstatspred->Espt()) && (ULONG_MAX == pstatspred->UlColId()));
+	return ((CStatsPred::EsptUnsupported == pstatspred->Espt()) &&
+			(gpos::ulong_max == pstatspred->UlColId()));
 }
 
 

@@ -108,7 +108,7 @@ namespace gpopt
 			// maintains the mapping between CTE identifier and DXL representation of the corresponding CTE producer
 			HMUlPdxln *m_phmulpdxlnCTEProducer;
 
-			// id of CTE that we are currently processing (ULONG_MAX for main query)
+			// id of CTE that we are currently processing (gpos::ulong_max for main query)
 			ULONG m_ulCTEId;
 
 			// DXL operator translators indexed by the operator id

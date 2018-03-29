@@ -173,10 +173,10 @@ gpos::UllAdd
 	ULLONG ullSnd
 	)
 {
-	if (ullFst > ULLONG_MAX - ullSnd)
+	if (ullFst > gpos::ullong_max - ullSnd)
 	{
-		// if addition result overflows, we have (a + b > ULLONG_MAX),
-		// then we need to check for  (a > ULLONG_MAX - b)
+		// if addition result overflows, we have (a + b > gpos::ullong_max),
+		// then we need to check for  (a > gpos::ullong_max - b)
 		GPOS_RAISE(CException::ExmaSystem, CException::ExmiOverflow);
 	}
 
@@ -201,11 +201,10 @@ gpos::UllMultiply
 	ULLONG ullSnd
 	)
 {
-	if (0 < ullSnd &&
-		ullFst > ULLONG_MAX / ullSnd)
+	if (0 < ullSnd && ullFst > gpos::ullong_max / ullSnd)
 	{
-		// if multiplication result overflows, we have (a * b > ULLONG_MAX),
-		// then we need to check for  (a > ULLONG_MAX / b)
+		// if multiplication result overflows, we have (a * b > gpos::ullong_max),
+		// then we need to check for  (a > gpos::ullong_max / b)
 		GPOS_RAISE(CException::ExmaSystem, CException::ExmiOverflow);
 
 	}

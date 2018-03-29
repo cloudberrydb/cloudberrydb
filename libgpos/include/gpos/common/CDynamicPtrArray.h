@@ -218,9 +218,10 @@ namespace gpos
 
                 return NULL;
             }
-			
+
 			// lookup object position
-			ULONG UlPos(const T *pt) const
+            ULONG
+            UlPos(const T *pt) const
             {
                 GPOS_ASSERT(NULL != pt);
 
@@ -232,7 +233,7 @@ namespace gpos
                     }
                 }
 
-                return ULONG_MAX;
+                return gpos::ulong_max;
             }
 
 #ifdef GPOS_DEBUG

@@ -823,7 +823,7 @@ CStatistics::UlIndexUpperBoundNDVs
  	 	}
 	}
 
-	return ULONG_MAX;
+	return gpos::ulong_max;
 }
 
 // add upper bound of source cardinality

@@ -233,7 +233,7 @@ CFilterStatsProcessor::PhmulhistApplyConjFilter
 
 	// properties of last seen column
 	CDouble dScaleFactorLast(1.0);
-	ULONG ulColIdLast = ULONG_MAX;
+	ULONG ulColIdLast = gpos::ulong_max;
 
 	// iterate over filters and update corresponding histograms
 	const ULONG ulFilters = pstatspredConj->UlFilters();
@@ -265,7 +265,7 @@ CFilterStatsProcessor::PhmulhistApplyConjFilter
 
 		if (CStatsPred::EsptDisj != pstatspredChild->Espt())
 		{
-			GPOS_ASSERT(ULONG_MAX != ulColId);
+			GPOS_ASSERT(gpos::ulong_max != ulColId);
 			phistBefore = phmulhistResult->PtLookup(&ulColId)->PhistCopy(pmp);
 			GPOS_ASSERT(NULL != phistBefore);
 
@@ -297,7 +297,7 @@ CFilterStatsProcessor::PhmulhistApplyConjFilter
 			CDouble dScaleFactorDisj(1.0);
 			CDouble dRowsDisjInput(CStatistics::DMinRows.DVal());
 
-			if (ULONG_MAX != ulColId)
+			if (gpos::ulong_max != ulColId)
 			{
 				// The disjunction predicate uses a single column. The input rows to the disjunction
 				// is obtained by scaling attained so far on that column
@@ -321,7 +321,7 @@ CFilterStatsProcessor::PhmulhistApplyConjFilter
 											);
 
 			// replace intermediate result with the newly generated result from the disjunction
-			if (ULONG_MAX != ulColId)
+			if (gpos::ulong_max != ulColId)
 			{
 				CHistogram *phistResult = phmulhistAfterDisj->PtLookup(&ulColId);
 				CStatisticsUtils::AddHistogram(pmp, ulColId, phistResult, phmulhistResult, true /* fReplaceOld */);
@@ -382,7 +382,7 @@ CFilterStatsProcessor::PhmulhistApplyDisjFilter
 	HMUlHist *phmulhistResultDisj = GPOS_NEW(pmp) HMUlHist(pmp);
 
 	CHistogram *phistPrev = NULL;
-	ULONG ulColIdPrev = ULONG_MAX;
+	ULONG ulColIdPrev = gpos::ulong_max;
 	CDouble dScaleFactorPrev(dRowsInput);
 
 	CDouble dRowsCumulative(CStatistics::DMinRows.DVal());
@@ -424,7 +424,7 @@ CFilterStatsProcessor::PhmulhistApplyDisjFilter
 		CHistogram *phistDisjChildCol = NULL;
 
 		BOOL fPredSimple = !CStatsPredUtils::FConjOrDisjPred(pstatspredChild);
-		BOOL fColIdPresent = (ULONG_MAX != ulColId);
+		BOOL fColIdPresent = (gpos::ulong_max != ulColId);
 		HMUlHist *phmulhistChild = NULL;
 		CDouble dScaleFactorChild(1.0);
 
@@ -454,7 +454,8 @@ CFilterStatsProcessor::PhmulhistApplyDisjFilter
 								&dScaleFactorChild
 								);
 
-			GPOS_ASSERT_IMP(CStatsPred::EsptDisj == pstatspredChild->Espt(), ULONG_MAX != ulColId);
+			GPOS_ASSERT_IMP(CStatsPred::EsptDisj == pstatspredChild->Espt(),
+							gpos::ulong_max != ulColId);
 
 			if (fColIdPresent)
 			{
@@ -680,7 +681,7 @@ CFilterStatsProcessor::FNewStatsColumn
 	ULONG ulColIdLast
 	)
 {
-	return (ULONG_MAX == ulColId || ulColId != ulColIdLast);
+	return (gpos::ulong_max == ulColId || ulColId != ulColIdLast);
 }
 
 // EOF

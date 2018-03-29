@@ -3465,7 +3465,7 @@ UlIndexFilter(Edxlopid edxlopid)
 			return EdxlresultIndexFilter;
 		default:
 			GPOS_RTL_ASSERT("Unexpected operator. Expected operators that contain a filter child");
-			return ULONG_MAX;
+			return gpos::ulong_max;
 	}
 }
 
@@ -3512,7 +3512,7 @@ CTranslatorExprToDXL::PdxlnResultFromNLJoinOuter
 			// get the original condition from the filter node
 			// create a new AND expression
 			ULONG ulIndexFilter = UlIndexFilter(edxlopid);
-			GPOS_ASSERT(ulIndexFilter != ULONG_MAX);
+			GPOS_ASSERT(ulIndexFilter != gpos::ulong_max);
 			CDXLNode *pdxlnOrigFilter = (*pdxlnResult)[ulIndexFilter];
 			GPOS_ASSERT(EdxlopScalarFilter == pdxlnOrigFilter->Pdxlop()->Edxlop());
 			CDXLNode *pdxlnOrigCond = (*pdxlnOrigFilter)[0];

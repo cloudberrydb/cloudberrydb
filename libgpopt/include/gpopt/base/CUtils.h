@@ -509,8 +509,10 @@ namespace gpopt
 			//-------------------------------------------------------------------
 
 			// column reference array print helper
-			static
-			IOstream &OsPrintDrgPcr(IOstream &os, const DrgPcr *, ULONG = ULONG_MAX);
+			static IOstream &
+			OsPrintDrgPcr(IOstream &os,
+						  const DrgPcr *pdrgpcr,
+						  ULONG = gpos::ulong_max);
 
 			//-------------------------------------------------------------------
 			// Helpers for column reference sets

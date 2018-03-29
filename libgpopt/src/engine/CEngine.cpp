@@ -1158,7 +1158,8 @@ CEngine::OptimizeGroupExpression
 
 		// check if group expression optimization can be early terminated without optimizing any child
 		CCost costLowerBound(GPOPT_INVALID_COST);
-		if (FSafeToPrune(pgexpr, poc->Prpp(), NULL /*pccChild*/, ULONG_MAX /*ulChildIndex*/, &costLowerBound))
+		if (FSafeToPrune(pgexpr, poc->Prpp(), NULL /*pccChild*/,
+						 gpos::ulong_max /*ulChildIndex*/, &costLowerBound))
 		{
 			(void) pgexpr->PccComputeCost(m_pmp, poc, ul, NULL /*pdrgpoc*/, true /*fPruned*/, costLowerBound);
 			continue;

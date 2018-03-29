@@ -62,8 +62,8 @@ CParseHandlerDXL::CParseHandlerDXL
 	m_pdrgpsysid(NULL),
 	m_pdrgpdxlstatsderrel(NULL),
 	m_pdrgpss(NULL),
-	m_ullPlanId(ULLONG_MAX),
-	m_ullPlanSpaceSize(ULLONG_MAX),
+	m_ullPlanId(gpos::ullong_max),
+	m_ullPlanSpaceSize(gpos::ullong_max),
 	m_pcp(NULL)
 {}
 

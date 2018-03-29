@@ -44,7 +44,7 @@ CLogicalDynamicIndexGet::CLogicalDynamicIndexGet
 	:
 	CLogicalDynamicGetBase(pmp),
 	m_pindexdesc(NULL),
-	m_ulOriginOpId(ULONG_MAX),
+	m_ulOriginOpId(gpos::ulong_max),
 	m_pos(NULL)
 {
 }

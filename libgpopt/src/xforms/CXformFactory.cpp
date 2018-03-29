@@ -352,12 +352,8 @@ CXformFactory::EresInit()
 	GPOS_RESULT eres = GPOS_OK;
 
 	// create xform factory memory pool
-	IMemoryPool *pmp = CMemoryPoolManager::Pmpm()->PmpCreate
-							(
-							CMemoryPoolManager::EatTracker,
-							true /*fThreadSafe*/,
-							ULLONG_MAX
-							);
+	IMemoryPool *pmp = CMemoryPoolManager::Pmpm()->PmpCreate(
+		CMemoryPoolManager::EatTracker, true /*fThreadSafe*/, gpos::ullong_max);
 	GPOS_TRY
 	{
 		// create xform factory instance

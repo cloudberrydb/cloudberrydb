@@ -1018,7 +1018,7 @@ CXformJoin2IndexApply::FMatchDistKeyAndIndexKey
 	{
 		const IMDColumn *pmdCol = pmdrel->PmdcolDistrColumn(ul);
 		ULONG ulPos = pmdrel->UlPosFromAttno(pmdCol->IAttno());
-		if (pmdindex->UlPosInKey(ulPos) == ULONG_MAX)
+		if (pmdindex->UlPosInKey(ulPos) == gpos::ulong_max)
 		{
 			return false;
 		}

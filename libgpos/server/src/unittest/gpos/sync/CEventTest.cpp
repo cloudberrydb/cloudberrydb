@@ -142,7 +142,7 @@ CEventTest::EresUnittest_TimedWait()
 			atp.Schedule(ptsk);
 
 			// test wait with no timeout expiration
-			if (GPOS_OK != event.EresTimedWait(ULONG_MAX))
+			if (GPOS_OK != event.EresTimedWait(gpos::ulong_max))
 			{
 				return GPOS_FAILED;
 			}
@@ -177,7 +177,7 @@ CEventTest::EresUnittest_TimedWait()
 			event.Signal();
 
 			// test wait with no timeout expiration
-			if (GPOS_OK != event.EresTimedWait(ULONG_MAX))
+			if (GPOS_OK != event.EresTimedWait(gpos::ulong_max))
 			{
 				return GPOS_FAILED;
 			}
@@ -295,7 +295,7 @@ CEventTest::PvUnittest_TimedWait
 	pevent->Signal();
 
 	// wait for signal - no expiration
-	pevent->EresTimedWait(ULONG_MAX);
+	pevent->EresTimedWait(gpos::ulong_max);
 
 	// signal complete
 	pevent->Signal();

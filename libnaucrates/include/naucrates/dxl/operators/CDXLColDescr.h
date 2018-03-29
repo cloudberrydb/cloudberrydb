@@ -79,9 +79,9 @@ namespace gpdxl
 				IMDId *pmdidType,
 				INT iTypeModifier,
 				BOOL fDropped,
-				ULONG ulWidth = ULONG_MAX
+				ULONG ulWidth = gpos::ulong_max
 				);
-			
+
 			//dtor
 			~CDXLColDescr();
 			

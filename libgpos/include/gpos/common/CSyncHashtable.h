@@ -144,8 +144,9 @@ namespace gpos
 				)
 				const
 			{
-				GPOS_ASSERT(ULONG_MAX != m_cKeyOffset && "Key offset not initialized.");
-			
+				GPOS_ASSERT(gpos::ulong_max != m_cKeyOffset &&
+							"Key offset not initialized.");
+
 				K &k = *(K*)((BYTE*)pt + m_cKeyOffset);
 
 				return k;
@@ -172,7 +173,7 @@ namespace gpos
 				m_rgbucket(NULL),
 				m_cSize(0),
 				m_ulpEntries(0),
-				m_cKeyOffset(ULONG_MAX),
+				m_cKeyOffset(gpos::ulong_max),
 				m_pkeyInvalid(NULL)
 			{}
 		

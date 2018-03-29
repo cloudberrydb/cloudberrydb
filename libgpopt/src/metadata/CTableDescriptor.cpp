@@ -152,7 +152,7 @@ CTableDescriptor::UlPosition
 	const
 {
 	GPOS_ASSERT(NULL != m_pdrgpcoldesc);
-	ULONG ulPos = ULONG_MAX;
+	ULONG ulPos = gpos::ulong_max;
 	ULONG ulArity = m_pdrgpcoldesc->UlLength();
 
 	for (ULONG ul = 0; ul < ulArity; ul++)
@@ -163,7 +163,7 @@ CTableDescriptor::UlPosition
 			ulPos = ul;
 		}
 	}
-	GPOS_ASSERT(ULONG_MAX != ulPos);
+	GPOS_ASSERT(gpos::ulong_max != ulPos);
 
 	return ulPos;
 }

@@ -389,7 +389,7 @@ CExpressionTest::EresUnittest_BitmapGet()
 							(
 							pmp,
 							ptabdesc,
-							ULONG_MAX, // pgexprOrigin
+							gpos::ulong_max, // pgexprOrigin
 							GPOS_NEW(pmp) CName(pmp, CName(&strRelAlias)),
 							pdrgpcrTable
 							),

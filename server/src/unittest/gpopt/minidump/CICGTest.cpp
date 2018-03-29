@@ -424,13 +424,13 @@ CICGTest::EresUnittest_PreferHashJoinVersusIndexJoinWhenRiskIsHigh()
 
 	// When the risk threshold is infinite, we should pick index join
 	DrgPcp *pdrgpcpUnlimited = GPOS_NEW(pmp) DrgPcp(pmp);
-	ICostModelParams::SCostParam *pcpUnlimited = GPOS_NEW(pmp) ICostModelParams::SCostParam
-								(
-								CCostModelParamsGPDB::EcpIndexJoinAllowedRiskThreshold,
-								ULONG_MAX,  // dVal
-								0,  // dLowerBound
-								ULONG_MAX  // dUpperBound
-								);
+	ICostModelParams::SCostParam *pcpUnlimited =
+		GPOS_NEW(pmp) ICostModelParams::SCostParam(
+			CCostModelParamsGPDB::EcpIndexJoinAllowedRiskThreshold,
+			gpos::ulong_max,  // dVal
+			0,				  // dLowerBound
+			gpos::ulong_max   // dUpperBound
+		);
 	pdrgpcpUnlimited->Append(pcpUnlimited);
 	GPOS_RESULT eres = CTestUtils::EresCheckOptimizedPlan
 			(

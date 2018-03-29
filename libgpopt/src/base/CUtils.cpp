@@ -4088,7 +4088,7 @@ CUtils::PexprConjINDFCond
 	return pexprScCond;
 }
 
-// return index of the set containing given column; if column is not found, return ULONG_MAX
+// return index of the set containing given column; if column is not found, return gpos::ulong_max
 ULONG
 CUtils::UlPcrIndexContainingSet
 	(
@@ -4108,7 +4108,7 @@ CUtils::UlPcrIndexContainingSet
 		}
 	}
 
-	return ULONG_MAX;
+	return gpos::ulong_max;
 }
 
 // cast the input expression to the destination mdid

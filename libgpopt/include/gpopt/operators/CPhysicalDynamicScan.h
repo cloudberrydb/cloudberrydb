@@ -40,8 +40,7 @@ namespace gpopt
 	class CPhysicalDynamicScan : public CPhysicalScan
 	{
 		private:
-
-			// origin operator id -- ULONG_MAX if operator was not generated via a transformation
+			// origin operator id -- gpos::ulong_max if operator was not generated via a transformation
 			ULONG m_ulOriginOpId;
 
 			// true iff it is a partial scan
@@ -86,7 +85,7 @@ namespace gpopt
 			virtual
 			~CPhysicalDynamicScan();
 
-			// origin operator id -- ULONG_MAX if operator was not generated via a transformation
+			// origin operator id -- gpos::ulong_max if operator was not generated via a transformation
 			ULONG UlOriginOpId() const
 			{
 				return m_ulOriginOpId;

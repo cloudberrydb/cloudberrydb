@@ -147,9 +147,9 @@ CExceptionTest::EresUnittest_AdditionOverflow()
 	GPOS_TRY
 	{
 		// additions that must pass
-		(void) gpos::UllAdd(ULLONG_MAX - 2, 1);
-		(void) gpos::UllAdd(ULLONG_MAX, 0);
-		(void) gpos::UllAdd(ULLONG_MAX - 2, 2);
+		(void) gpos::UllAdd(gpos::ullong_max - 2, 1);
+		(void) gpos::UllAdd(gpos::ullong_max, 0);
+		(void) gpos::UllAdd(gpos::ullong_max - 2, 2);
 	}
 	GPOS_CATCH_EX(ex)
 	{
@@ -159,7 +159,7 @@ CExceptionTest::EresUnittest_AdditionOverflow()
 	GPOS_CATCH_END;
 
 	// addition that throws overflow exception
-	(void) gpos::UllAdd(ULLONG_MAX, 1);
+	(void) gpos::UllAdd(gpos::ullong_max, 1);
 
 	GPOS_ASSERT(!"Must not add numbers successfully");
 
@@ -180,10 +180,10 @@ CExceptionTest::EresUnittest_MultiplicationOverflow()
 	GPOS_TRY
 	{
 		// multiplications that must pass
-		(void) gpos::UllMultiply(ULLONG_MAX, 1);
-		(void) gpos::UllMultiply(ULLONG_MAX, 0);
-		(void) gpos::UllMultiply(ULLONG_MAX / 2, 2);
-		(void) gpos::UllMultiply(ULLONG_MAX / 2 - 1, 2);
+		(void) gpos::UllMultiply(gpos::ullong_max, 1);
+		(void) gpos::UllMultiply(gpos::ullong_max, 0);
+		(void) gpos::UllMultiply(gpos::ullong_max / 2, 2);
+		(void) gpos::UllMultiply(gpos::ullong_max / 2 - 1, 2);
 	}
 	GPOS_CATCH_EX(ex)
 	{
@@ -193,7 +193,7 @@ CExceptionTest::EresUnittest_MultiplicationOverflow()
 	GPOS_CATCH_END;
 
 	// multiplication that throws overflow exception
-	(void) gpos::UllMultiply(ULLONG_MAX - 4, 2);
+	(void) gpos::UllMultiply(gpos::ullong_max - 4, 2);
 
 	GPOS_ASSERT(!"Must not multiply numbers successfully");
 

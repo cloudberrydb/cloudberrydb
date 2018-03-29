@@ -77,9 +77,9 @@ namespace gpmd
 				BOOL fNullable,
 				BOOL fDropped,
 				gpdxl::CDXLNode *pdxnlDefaultValue,
-				ULONG ulLength = ULONG_MAX
+				ULONG ulLength = gpos::ulong_max
 				);
-			
+
 			// dtor
 			virtual
 			~CMDColumn();

@@ -183,7 +183,7 @@ CGroup::CGroup
 	m_estate(estUnexplored),
 	m_eolMax(EolLow),
 	m_fHasNewLogicalOperators(false),
-	m_ulCTEProducerId(ULONG_MAX),
+	m_ulCTEProducerId(gpos::ulong_max),
 	m_fCTEConsumer(false)
 {
 	GPOS_ASSERT(NULL != pmp);
@@ -643,7 +643,7 @@ CGroup::Insert
 
 		if (COperator::EopLogicalCTEProducer == pop->Eopid())
 		{
-			GPOS_ASSERT(ULONG_MAX == m_ulCTEProducerId);
+			GPOS_ASSERT(gpos::ulong_max == m_ulCTEProducerId);
 			m_ulCTEProducerId = CLogicalCTEProducer::PopConvert(pop)->UlCTEId();;
 		}
 	}
@@ -2163,7 +2163,9 @@ CGroup::CostLowerBound
 
 		if (!CUtils::FEnforcer(pgexprCurrent->Pop()))
 		{
-			CCost costLowerBoundGExpr = pgexprCurrent->CostLowerBound(pmp, prppInput, NULL /*pccChild*/, ULONG_MAX /*ulChildIndex*/);
+			CCost costLowerBoundGExpr =
+				pgexprCurrent->CostLowerBound(pmp, prppInput, NULL /*pccChild*/,
+											  gpos::ulong_max /*ulChildIndex*/);
 			if (costLowerBoundGExpr < costLowerBound)
 			{
 				costLowerBound = costLowerBoundGExpr;

@@ -93,18 +93,13 @@ namespace gpnaucrates
 			CHistogram* PhistExampleInt4Dim(IMemoryPool *pmp);
 
 			// helper function that generates an array of ULONG pointers
-			static
-			DrgPul *Pdrgpul
-					(
-					IMemoryPool *pmp,
-					ULONG ul1,
-					ULONG ul2 = ULONG_MAX
-					)
+			static DrgPul *
+			Pdrgpul(IMemoryPool *pmp, ULONG ul1, ULONG ul2 = gpos::ulong_max)
 			{
 				DrgPul *pdrgpul = GPOS_NEW(pmp) DrgPul(pmp);
 				pdrgpul->Append(GPOS_NEW(pmp) ULONG (ul1));
 
-				if (ULONG_MAX != ul2)
+				if (gpos::ulong_max != ul2)
 				{
 					pdrgpul->Append(GPOS_NEW(pmp) ULONG (ul2));
 				}

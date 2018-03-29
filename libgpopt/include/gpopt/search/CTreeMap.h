@@ -242,7 +242,7 @@ namespace gpopt
                         m_ul(ul),
                         m_pt(pt),
                         m_pdrgdrgptn(NULL),
-                        m_ullCount(ULLONG_MAX),
+                        m_ullCount(gpos::ullong_max),
                         m_ulIncoming(0),
                         m_ens(EnsUncounted)
                     {

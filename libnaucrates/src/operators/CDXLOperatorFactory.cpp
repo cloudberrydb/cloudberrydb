@@ -1800,8 +1800,8 @@ CDXLOperatorFactory::Pdxlcd
 						EdxltokenColDescr
 						);
 	}
-	
-	ULONG ulColLen = ULONG_MAX;
+
+	ULONG ulColLen = gpos::ulong_max;
 
 	// parse column length from attributes
 	const XMLCh *xmlszColumnLength =  attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenColWidth));
@@ -2041,7 +2041,7 @@ CDXLOperatorFactory::UllValueFromXmlstr
 	LINT liVal = clib::LStrToLL(sz, ppszEnd, 10 /*ulBase*/);
 
 	if ((NULL != ppszEnd && sz == *ppszEnd) ||
-		LINT_MAX == liVal || LINT_MIN == liVal || 0 > liVal)
+		gpos::lint_max == liVal || gpos::lint_min == liVal || 0 > liVal)
 	{
 		GPOS_RAISE
 			(

@@ -20,7 +20,6 @@
 
 namespace gpopt
 {
-	using namespace gpos;
 	using namespace gpmd;
 	
 	//---------------------------------------------------------------------------
@@ -66,7 +65,7 @@ namespace gpopt
 				const CName &name,
 				INT iAttno,
 				BOOL fNullable,
-				ULONG ulWidth = ULONG_MAX
+				ULONG ulWidth = gpos::ulong_max
 				);
 
 			// dtor

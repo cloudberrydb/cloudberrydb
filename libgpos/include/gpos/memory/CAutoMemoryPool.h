@@ -68,7 +68,7 @@ namespace gpos
 				ELeakCheck elc = ElcExc,
 				CMemoryPoolManager::EAllocType ept = CMemoryPoolManager::EatTracker,
 				BOOL fThreadSafe = true,
-				ULLONG ullCapacity = ULLONG_MAX
+				ULLONG ullCapacity = gpos::ullong_max
 				);
 
 			// dtor

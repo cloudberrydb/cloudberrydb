@@ -17,7 +17,6 @@
 #ifndef GPOS_types_H
 #define GPOS_types_H
 
-#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdarg.h>
@@ -66,24 +65,23 @@ namespace gpos
 
 	typedef uint32_t ULONG;
 	GPOS_CPL_ASSERT(4 == sizeof(ULONG));
-	
-#ifdef ULONG_MAX
-#undef ULONG_MAX
-#endif // ULONG_MAX
-#define ULONG_MAX		((ULONG)-1)
+	enum
+	{
+		ulong_max = ((::gpos::ULONG) -1)
+	};
 
 	typedef uint64_t ULLONG;
 	GPOS_CPL_ASSERT(8 == sizeof(ULLONG));
-#ifdef ULLONG_MAX
-#undef ULLONG_MAX
-#endif // ULLONG_MAX
-#define ULLONG_MAX		((ULLONG)-1)
+	enum
+	{
+		ullong_max = ((::gpos::ULLONG) -1)
+	};
 
 	typedef uintptr_t	ULONG_PTR;
 #ifdef GPOS_32BIT
-#define ULONG_PTR_MAX	(ULONG_MAX)
+#define ULONG_PTR_MAX (gpos::ulong_max)
 #else
-#define ULONG_PTR_MAX	(ULLONG_MAX)
+#define ULONG_PTR_MAX (gpos::ullong_max)
 #endif
 
 	typedef uint16_t USINT;
@@ -97,40 +95,28 @@ namespace gpos
 	GPOS_CPL_ASSERT(4 == sizeof(INT));
 	GPOS_CPL_ASSERT(8 == sizeof(LINT));
 
-#ifdef INT_MAX
-#undef INT_MAX
-#endif // INT_MAX
-#define INT_MAX			((INT) (ULONG_MAX >> 1))
+	enum
+	{
+		int_max = ((::gpos::INT)(gpos::ulong_max >> 1)),
+		int_min = (-gpos::int_max - 1)
+    };
 
-#ifdef INT_MIN
-#undef INT_MIN
-#endif // INT_MIN
-#define INT_MIN			(-INT_MAX - 1)
+    enum
+    {
+		lint_max = ((::gpos::LINT)(gpos::ullong_max >> 1)),
+		lint_min = (-gpos::lint_max - 1)
+    };
 
-#ifdef LINT_MAX
-#undef LINT_MAX
-#endif // LINT_MAX
-#define LINT_MAX		((LINT) (ULLONG_MAX >> 1))
+    enum
+    {
+		usint_max = ((::gpos::USINT) - 1)
+    };
 
-#ifdef LINT_MIN
-#undef LINT_MIN
-#endif // LINT_MIN
-#define LINT_MIN		(-LINT_MAX - 1)
-
-#ifdef USINT_MAX
-#undef USINT_MAX
-#endif // USINT_MAX
-#define USINT_MAX		((USINT)-1)
-
-#ifdef SINT_MAX
-#undef SINT_MAX
-#endif // SINT_MAX
-#define SINT_MAX		((SINT) (USINT_MAX >> 1))
-
-#ifdef SINT_MIN
-#undef SINT_MIN
-#endif // SINT_MIN
-#define SINT_MIN		(-SINT_MAX - 1)
+    enum
+    {
+		sint_max = ((::gpos::SINT) (gpos::usint_max >> 1)),
+		sint_min = (-gpos::sint_max - 1)
+	};
 
 	typedef double DOUBLE;
 

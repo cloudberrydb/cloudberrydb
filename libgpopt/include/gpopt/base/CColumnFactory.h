@@ -112,7 +112,7 @@ namespace gpopt
 				ULONG ulId,
 				const CName &name,
 				ULONG ulOpSource,
-				ULONG ulWidth = ULONG_MAX
+				ULONG ulWidth = gpos::ulong_max
 				);
 
 			// create a column reference with the same type as passed column reference

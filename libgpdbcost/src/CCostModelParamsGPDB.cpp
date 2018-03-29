@@ -289,7 +289,7 @@ CCostModelParamsGPDB::CCostModelParamsGPDB
 	m_rgpcp[EcpHJFactor] = GPOS_NEW(pmp) SCostParam(EcpHJFactor, DHJFactorVal, DHJFactorVal - 1.0, DHJFactorVal + 1.0);
 	m_rgpcp[EcpHashFactor] = GPOS_NEW(pmp) SCostParam(EcpHashFactor, DHashFactorVal, DHashFactorVal - 1.0, DHashFactorVal + 1.0);
 	m_rgpcp[EcpDefaultCost] = GPOS_NEW(pmp) SCostParam(EcpDefaultCost, DDefaultCostVal, DDefaultCostVal - 32.0, DDefaultCostVal + 32.0);
-	m_rgpcp[EcpIndexJoinAllowedRiskThreshold] = GPOS_NEW(pmp) SCostParam(EcpIndexJoinAllowedRiskThreshold, DIndexJoinAllowedRiskThreshold, 0, ULONG_MAX);
+	m_rgpcp[EcpIndexJoinAllowedRiskThreshold] = GPOS_NEW(pmp) SCostParam(EcpIndexJoinAllowedRiskThreshold, DIndexJoinAllowedRiskThreshold, 0, gpos::ulong_max);
 	m_rgpcp[EcpBitmapIOCostLargeNDV] = GPOS_NEW(pmp) SCostParam(EcpBitmapIOCostLargeNDV, DBitmapIOCostLargeNDV, DBitmapIOCostLargeNDV - 0.0001, DBitmapIOCostLargeNDV + 0.0001);
 	m_rgpcp[EcpBitmapIOCostSmallNDV] = GPOS_NEW(pmp) SCostParam(EcpBitmapIOCostSmallNDV, DBitmapIOCostSmallNDV, DBitmapIOCostSmallNDV - 0.0001, DBitmapIOCostSmallNDV + 0.0001);
 	m_rgpcp[EcpBitmapPageCostLargeNDV] = GPOS_NEW(pmp) SCostParam(EcpBitmapPageCostLargeNDV, DBitmapPageCostLargeNDV, DBitmapPageCostLargeNDV - 1.0, DBitmapPageCostLargeNDV + 1.0);

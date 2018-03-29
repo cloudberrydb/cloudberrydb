@@ -138,7 +138,7 @@ CPhysicalUnionAll::PdrgpdrgpcrInput() const
 }
 
 // if this unionall is needed for partial indexes then return the scan
-// id, otherwise return ULONG_MAX
+// id, otherwise return gpos::ulong_max
 ULONG
 CPhysicalUnionAll::UlScanIdPartialIndex() const
 {
@@ -149,7 +149,7 @@ CPhysicalUnionAll::UlScanIdPartialIndex() const
 BOOL
 CPhysicalUnionAll::FPartialIndex() const
 {
-	return (ULONG_MAX > m_ulScanIdPartialIndex);
+	return (gpos::ulong_max > m_ulScanIdPartialIndex);
 }
 
 CPhysicalUnionAll *

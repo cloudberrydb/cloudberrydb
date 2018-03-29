@@ -129,8 +129,8 @@ CDXLUtilsTest::EresUnittest_SerializePlan()
 	// read DXL file
 	CHAR *szDXL = CDXLUtils::SzRead(pmp, szPlanFile);
 
-	ULLONG ullPlanId = ULLONG_MAX;
-	ULLONG ullPlanSpaceSize = ULLONG_MAX;
+	ULLONG ullPlanId = gpos::ullong_max;
+	ULLONG ullPlanSpaceSize = gpos::ullong_max;
 	CDXLNode *pdxln = CDXLUtils::PdxlnParsePlan(pmp, szDXL, NULL /*szXSDPath*/, &ullPlanId, &ullPlanSpaceSize);
 	
 	// serialize with document header

@@ -136,13 +136,13 @@ namespace gpos
             m_ulObjs(ulSize),
             m_ulBitMapSize(ulSize / BITS_PER_ULONG + 1),
             m_ulpLast(0),
-            m_ulIdOffset(ULONG_MAX)
+            m_ulIdOffset(gpos::ulong_max)
             {}
 
 			// dtor
 			~CSyncPool()
             {
-                if (ULONG_MAX != m_ulIdOffset)
+                if (gpos::ulong_max != m_ulIdOffset)
                 {
                     GPOS_ASSERT(NULL != m_rgtObjs);
                     GPOS_ASSERT(NULL != m_rgulBitMapReserved);
@@ -200,7 +200,7 @@ namespace gpos
 			// find unreserved object and reserve it
 			T *PtRetrieve()
             {
-                GPOS_ASSERT(ULONG_MAX != m_ulIdOffset && "Id offset not initialized.");
+                GPOS_ASSERT(gpos::ulong_max != m_ulIdOffset && "Id offset not initialized.");
 
                 // iterate over all objects twice (two full clock rotations);
                 // objects marked as recycled cannot be reserved on the first round;
@@ -246,7 +246,7 @@ namespace gpos
 
                 // no object is currently available, create a new one
                 T *pt = GPOS_NEW(m_pmp) T();
-                *(ULONG*) (((BYTE *) pt) + m_ulIdOffset) = ULONG_MAX;
+                *(ULONG*) (((BYTE *) pt) + m_ulIdOffset) = gpos::ulong_max;
 
                 return pt;
             }
@@ -254,10 +254,10 @@ namespace gpos
 			// recycle reserved object
 			void Recycle(T *pt)
             {
-                GPOS_ASSERT(ULONG_MAX != m_ulIdOffset && "Id offset not initialized.");
+                GPOS_ASSERT(gpos::ulong_max != m_ulIdOffset && "Id offset not initialized.");
 
                 ULONG ulOffset = *(ULONG *) (((BYTE *) pt) + m_ulIdOffset);
-                if (ULONG_MAX == ulOffset)
+                if (gpos::ulong_max == ulOffset)
                 {
                     // object does not belong to the array, delete it
                     GPOS_DELETE(pt);

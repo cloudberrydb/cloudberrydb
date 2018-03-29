@@ -126,15 +126,14 @@ namespace gpopt
 			static
 			CHint *PhintDefault(IMemoryPool *pmp)
 			{
-				return GPOS_NEW(pmp) CHint
-										(
-										INT_MAX, /* ulMinNumOfPartsToRequireSortOnInsert */
-										INT_MAX, /* ulJoinArityForAssociativityCommutativity */
-										INT_MAX, /* ulArrayExpansionThreshold */
-										JOIN_ORDER_DP_THRESHOLD, /*ulJoinOrderDPLimit*/
-										BROADCAST_THRESHOLD, /*ulBroadcastThreshold*/
-										true /* fEnforceConstraintsOnDML */
-										);
+				return GPOS_NEW(pmp) CHint(
+					gpos::int_max, /* ulMinNumOfPartsToRequireSortOnInsert */
+					gpos::int_max, /* ulJoinArityForAssociativityCommutativity */
+					gpos::int_max,			 /* ulArrayExpansionThreshold */
+					JOIN_ORDER_DP_THRESHOLD, /*ulJoinOrderDPLimit*/
+					BROADCAST_THRESHOLD,	 /*ulBroadcastThreshold*/
+					true					 /* fEnforceConstraintsOnDML */
+				);
 			}
 
 	}; // class CHint

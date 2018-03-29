@@ -155,7 +155,7 @@ CEvent::Wait()
 #ifdef GPOS_DEBUG
 	GPOS_RESULT eres =
 #endif // GPOS_DEBUG
-	EresTimedWait(ULONG_MAX);
+		EresTimedWait(gpos::ulong_max);
 
 	GPOS_ASSERT(GPOS_OK == eres && "Failed to receive a signal on the event");
 }

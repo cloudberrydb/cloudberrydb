@@ -574,7 +574,7 @@ CPhysical::PcrsChildReqd
 
 	// request was not found in map -- we need to compute it
 	pcrs = GPOS_NEW(pmp) CColRefSet(pmp, *pcrsRequired);
-	if (ULONG_MAX != ulScalarIndex)
+	if (gpos::ulong_max != ulScalarIndex)
 	{
 		// include used columns and exclude defined columns of scalar child
 		pcrs->Union(exprhdl.Pdpscalar(ulScalarIndex)->PcrsUsed());
@@ -764,7 +764,8 @@ CPhysical::PcterNAry
 	if (EceoLeftToRight == Eceo())
 	{
 		ULONG ulLastNonScalarChild = exprhdl.UlLastNonScalarChild();
-		if (ULONG_MAX != ulLastNonScalarChild && ulChildIndex < ulLastNonScalarChild)
+		if (gpos::ulong_max != ulLastNonScalarChild &&
+			ulChildIndex < ulLastNonScalarChild)
 		{
 			return pcter->PcterAllOptional(pmp);
 		}
@@ -774,7 +775,8 @@ CPhysical::PcterNAry
 		GPOS_ASSERT(EceoRightToLeft == Eceo());
 
 		ULONG ulFirstNonScalarChild = exprhdl.UlFirstNonScalarChild();
-		if (ULONG_MAX != ulFirstNonScalarChild && ulChildIndex > ulFirstNonScalarChild)
+		if (gpos::ulong_max != ulFirstNonScalarChild &&
+			ulChildIndex > ulFirstNonScalarChild)
 		{
 			return pcter->PcterAllOptional(pmp);
 		}

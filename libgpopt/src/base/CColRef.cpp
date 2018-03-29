@@ -15,7 +15,7 @@
 using namespace gpopt;
 
 // invalid key
-const ULONG CColRef::m_ulInvalid = ULONG_MAX;
+const ULONG CColRef::m_ulInvalid = gpos::ulong_max;
 
 //---------------------------------------------------------------------------
 //	@function:

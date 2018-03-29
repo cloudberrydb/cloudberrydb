@@ -82,7 +82,7 @@ CLogicalDynamicBitmapTableGet::CLogicalDynamicBitmapTableGet
 	)
 	:
 	CLogicalDynamicGetBase(pmp),
-	m_ulOriginOpId(ULONG_MAX)
+	m_ulOriginOpId(gpos::ulong_max)
 {
 }
 

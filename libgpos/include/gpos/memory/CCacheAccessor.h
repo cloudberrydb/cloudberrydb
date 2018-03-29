@@ -161,12 +161,9 @@ namespace gpos
 				GPOS_ASSERT(NULL == m_pmp);
 
 				// construct a memory pool for cache entry
-				m_pmp = CMemoryPoolManager::Pmpm()->PmpCreate
-						(
-						CMemoryPoolManager::EatTracker,
-						true /*fThreadSafe*/,
-						ULLONG_MAX
-						);
+                m_pmp = CMemoryPoolManager::Pmpm()->PmpCreate(
+                    CMemoryPoolManager::EatTracker, true /*fThreadSafe*/,
+                    gpos::ullong_max);
 
 				return m_pmp;
 			}

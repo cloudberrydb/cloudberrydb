@@ -98,7 +98,8 @@ namespace gpos
                 GPOS_ASSERT(MAX_ALIGNED(pv));
                 GPOS_ASSERT(MAX_ALIGNED(m_cOffset));
 
-                GPOS_ASSERT(ULONG_MAX != m_cOffset && "Link offset not initialized.");
+                GPOS_ASSERT(gpos::ulong_max != m_cOffset &&
+                            "Link offset not initialized.");
                 SLink &link = *(SLink*)(((BYTE*)pv) + m_cOffset);
                 return link;
             }
@@ -106,9 +107,9 @@ namespace gpos
 		public:
 				
 			// ctor
-			CList() 
+			CList()
 				:
-				m_cOffset(ULONG_MAX),
+				m_cOffset(gpos::ulong_max),
 				m_ulSize(0),
 				m_ptHead(NULL),
 				m_ptTail(NULL)

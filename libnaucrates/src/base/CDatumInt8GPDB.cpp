@@ -52,7 +52,7 @@ CDatumInt8GPDB::CDatumInt8GPDB
 	if (FNull())
 	{
 		// needed for hash computation
-		m_lVal = LINT(ULONG_MAX >> 1);
+		m_lVal = LINT(gpos::ulong_max >> 1);
 	}
 }
 
@@ -81,7 +81,7 @@ CDatumInt8GPDB::CDatumInt8GPDB
 	if (FNull())
 	{
 		// needed for hash computation
-		m_lVal = LINT(ULONG_MAX >> 1);
+		m_lVal = LINT(gpos::ulong_max >> 1);
 	}
 }
 

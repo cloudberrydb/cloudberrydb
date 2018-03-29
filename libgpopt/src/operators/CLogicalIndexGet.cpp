@@ -42,7 +42,7 @@ CLogicalIndexGet::CLogicalIndexGet
 	CLogical(pmp),
 	m_pindexdesc(NULL),
 	m_ptabdesc(NULL),
-	m_ulOriginOpId(ULONG_MAX),
+	m_ulOriginOpId(gpos::ulong_max),
 	m_pnameAlias(NULL),
 	m_pdrgpcrOutput(NULL),
 	m_pcrsOutput(NULL),

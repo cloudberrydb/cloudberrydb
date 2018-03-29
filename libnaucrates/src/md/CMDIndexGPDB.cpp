@@ -201,7 +201,7 @@ CMDIndexGPDB::UlPosInKey
 		}
 	}
 
-	return ULONG_MAX;
+	return gpos::ulong_max;
 }
 
 //---------------------------------------------------------------------------
@@ -263,7 +263,7 @@ CMDIndexGPDB::UlPosInIncludedCol
 
 	GPOS_ASSERT("Column not found in Index's included columns");
 
-	return ULONG_MAX;
+	return gpos::ulong_max;
 }
 
 //---------------------------------------------------------------------------

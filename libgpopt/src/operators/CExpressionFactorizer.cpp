@@ -401,7 +401,7 @@ CExpressionFactorizer::FOpSourceIdOrComputedColumn
 	GPOS_ASSERT(NULL != ulOpSourceId);
 	GPOS_ASSERT(NULL != ppcrComputedColumn);
 
-	*ulOpSourceId = ULONG_MAX;
+	*ulOpSourceId = gpos::ulong_max;
 	*ppcrComputedColumn = NULL;
 
 	CColRefSet* pcrsUsed = PcrsUsedByPushableScalar(pexpr);
@@ -410,7 +410,7 @@ CExpressionFactorizer::FOpSourceIdOrComputedColumn
 		return false;
 	}
 
-	ULONG ulComputedOpSourceId = ULONG_MAX;
+	ULONG ulComputedOpSourceId = gpos::ulong_max;
 	CColRefSetIter crsi(*pcrsUsed);
 	while (crsi.FAdvance())
 	{
@@ -435,7 +435,7 @@ CExpressionFactorizer::FOpSourceIdOrComputedColumn
 		}
 
 		const CColRefTable *pcrTable = CColRefTable::PcrConvert(pcr);
-		if (ULONG_MAX == ulComputedOpSourceId)
+		if (gpos::ulong_max == ulComputedOpSourceId)
 		{
 			ulComputedOpSourceId = pcrTable->UlSourceOpId();
 		}
@@ -571,7 +571,7 @@ CExpressionFactorizer::StoreBaseOpToColumnExpr
 
 	DrgPdrgPexpr *pdrgpdrgpexpr = NULL;
 
-	if (ULONG_MAX != ulOpSourceId)
+	if (gpos::ulong_max != ulOpSourceId)
 	{
 		pdrgpdrgpexpr = PdrgPdrgpexprDisjunctArrayForSourceId
 						(

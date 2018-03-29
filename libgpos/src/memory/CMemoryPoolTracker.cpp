@@ -168,7 +168,7 @@ CMemoryPoolTracker::FReserve
 {
 	BOOL fAvailableMem = false;
 
-	if (ULLONG_MAX == m_ullCapacity)
+	if (gpos::ullong_max == m_ullCapacity)
 	{
 		fAvailableMem = true;
 	}
@@ -260,7 +260,7 @@ CMemoryPoolTracker::Free
 	PmpUnderlying()->Free(pah);
 
 	// update committed memory value
-	if (m_ullCapacity != ULLONG_MAX)
+	if (m_ullCapacity != gpos::ullong_max)
 	{
 		SLock(as);
 

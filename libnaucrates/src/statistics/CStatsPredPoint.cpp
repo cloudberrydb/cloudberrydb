@@ -57,7 +57,7 @@ CStatsPredPoint::CStatsPredPoint
 	IDatum *pdatum
 	)
 	:
-	CStatsPred(ULONG_MAX),
+	CStatsPred(gpos::ulong_max),
 	m_escmpt(escmpt),
 	m_ppoint(NULL)
 {

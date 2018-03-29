@@ -2494,7 +2494,7 @@ CPredicateUtils::FCompatibleIndexPredicate
 
 	CColRef *pcrIndexKey = pcrsUsed->PcrFirst();
 	ULONG ulKeyPos = pdrgpcrIndex->UlPos(pcrIndexKey);
-	GPOS_ASSERT(ULONG_MAX != ulKeyPos);
+	GPOS_ASSERT(gpos::ulong_max != ulKeyPos);
 
 	return (pmdindex->FCompatible(pmdobjScCmp, ulKeyPos));
 }
@@ -2653,7 +2653,7 @@ CPredicateUtils::CollectGrandChildrenUnionUnionAll
 	{
 		const CColRef *pcr = (*pdrgpcrInputExpected)[ulColIdx];
 		ULONG ulPos = pdrgpcrOuputChild->UlPos(pcr);
-		GPOS_ASSERT(ULONG_MAX != ulPos);
+		GPOS_ASSERT(gpos::ulong_max != ulPos);
 		pdrgpul->Append(GPOS_NEW(pmp) ULONG(ulPos));
 	}
 

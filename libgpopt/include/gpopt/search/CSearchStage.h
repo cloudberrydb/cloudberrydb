@@ -67,7 +67,7 @@ namespace gpopt
 			CSearchStage
 				(
 				CXformSet *pxfs,
-				ULONG ulTimeThreshold = ULONG_MAX,
+				ULONG ulTimeThreshold = gpos::ulong_max,
 				CCost costThreshold = CCost(0.0)
 				);
 
@@ -79,16 +79,16 @@ namespace gpopt
 			// Restart() is a costly method, so avoid calling unnecessarily
 			void RestartTimer()
 			{
-				if (m_ulTimeThreshold != ULONG_MAX)
+				if (m_ulTimeThreshold != gpos::ulong_max)
 					m_timer.Restart();
 			}
 
 			// is search stage timed-out?
-			// if threshold is ULONG_MAX, its the default and we need not time out
+			// if threshold is gpos::ulong_max, its the default and we need not time out
 			// UlElapsedMS() is a costly method, so avoid calling unnecesarily
 			BOOL FTimedOut() const
 			{
-				if (m_ulTimeThreshold == ULONG_MAX)
+				if (m_ulTimeThreshold == gpos::ulong_max)
 					return false;
 				return m_timer.UlElapsedMS() > m_ulTimeThreshold;
 			}

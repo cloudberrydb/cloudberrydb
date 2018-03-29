@@ -27,7 +27,7 @@
 #include "gpopt/operators/CLogical.h"
 #include "gpopt/search/CTreeMap.h"
 
-#define GPOPT_INVALID_GROUP_ID	ULONG_MAX
+#define GPOPT_INVALID_GROUP_ID gpos::ulong_max
 
 namespace gpopt
 {
@@ -552,7 +552,7 @@ namespace gpopt
 			// check if there are any CTE producers in the group
 			BOOL FHasCTEProducer() const
 			{
-				return (ULONG_MAX != m_ulCTEProducerId);
+				return (gpos::ulong_max != m_ulCTEProducerId);
 			}
 
 			// check if there are any CTE consumers in the group

@@ -162,7 +162,7 @@ CWStringTest::EresUnittest_AppendFormat()
 	GPOS_TRY
 	{
 		// exhaust memory pool
-		for (ULONG i = 0; i < ULONG_MAX; i++)
+		for (ULONG i = 0; i < gpos::ulong_max; i++)
 		{
 			pstr1->AppendFormat(GPOS_WSZ_LIT("%ls world %d"), cstr1.Wsz(), 123);
 		}

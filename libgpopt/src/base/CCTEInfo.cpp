@@ -129,7 +129,7 @@ CCTEInfo::CCTEInfoEntry::AddConsumerCols
 //
 //	@doc:
 //		Return position of given consumer column,
-//		return ULONG_MAX if column is not found in local map
+//		return gpos::ulong_max if column is not found in local map
 //
 //---------------------------------------------------------------------------
 ULONG
@@ -143,7 +143,7 @@ CCTEInfo::CCTEInfoEntry::UlConsumerColPos
 	ULONG *pul = m_phmcrulConsumers->PtLookup(pcr);
 	if (NULL == pul)
 	{
-		return ULONG_MAX;
+		return gpos::ulong_max;
 	}
 
 	return *pul;
@@ -442,7 +442,7 @@ CCTEInfo::UlConsumers
 	const
 {
 	// find consumers in main query
-	ULONG ulConsumers = UlConsumersInParent(ulCTEId, ULONG_MAX);
+	ULONG ulConsumers = UlConsumersInParent(ulCTEId, gpos::ulong_max);
 
 	// find consumers in other CTEs
 	HMUlCTEInfoEntryIter hmulei(m_phmulcteinfoentry);
@@ -723,7 +723,7 @@ CCTEInfo::MarkUnusedCTEs()
 
 	// start with the main query and find out which CTEs are used there
 	CStack<ULONG> stack(m_pmp);
-	FindConsumersInParent(ULONG_MAX, pbsUnusedConsumers, &stack);
+	FindConsumersInParent(gpos::ulong_max, pbsUnusedConsumers, &stack);
 
 	// repeatedly find CTEs that are used in these CTEs
 	while (!stack.FEmpty())
@@ -778,7 +778,7 @@ CCTEInfo::PhmulcrConsumerToProducer
 		CColRef *pcr = crsi.Pcr();
 		ULONG ulPos = UlConsumerColPos(ulCTEId, pcr);
 
-		if (ULONG_MAX != ulPos)
+		if (gpos::ulong_max != ulPos)
 		{
 			GPOS_ASSERT(ulPos < pdrgpcrProducer->UlLength());
 

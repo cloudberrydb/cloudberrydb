@@ -37,7 +37,7 @@ CStatsPredLike::CStatsPredLike
 	m_pexprRight(pexprRight),
 	m_dDefaultScaleFactor(dDefaultScaleFactor)
 {
-	GPOS_ASSERT(ULONG_MAX != ulColId);
+	GPOS_ASSERT(gpos::ulong_max != ulColId);
 	GPOS_ASSERT(NULL != pexprLeft);
 	GPOS_ASSERT(NULL != pexprRight);
 	GPOS_ASSERT(0 < dDefaultScaleFactor);

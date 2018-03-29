@@ -84,12 +84,8 @@ CSchedulerContext::Init
 
 	GPOS_ASSERT(!FInit() && "Scheduling context is already initialized");
 
-	m_pmpLocal = CMemoryPoolManager::Pmpm()->PmpCreate
-					(
-					CMemoryPoolManager::EatStack,
-					false /*fThreadSafe*/,
-					ULLONG_MAX
-					);
+	m_pmpLocal = CMemoryPoolManager::Pmpm()->PmpCreate(
+		CMemoryPoolManager::EatStack, false /*fThreadSafe*/, gpos::ullong_max);
 
 	m_pmpGlobal = pmpGlobal;
 	m_pjf = pjf;

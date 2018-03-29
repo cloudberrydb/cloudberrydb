@@ -54,7 +54,7 @@ CDatumInt4GPDB::CDatumInt4GPDB
 	if (FNull())
 	{
 		// needed for hash computation
-		m_iVal = INT_MAX;
+		m_iVal = gpos::int_max;
 	}
 }
 
@@ -83,7 +83,7 @@ CDatumInt4GPDB::CDatumInt4GPDB
 	if (FNull())
 	{
 		// needed for hash computation
-		m_iVal = INT_MAX;
+		m_iVal = gpos::int_max;
 	}
 }
 

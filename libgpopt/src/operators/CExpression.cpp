@@ -68,8 +68,8 @@ CExpression::CExpression
 	m_pdpscalar(NULL),
 	m_pgexpr(pgexpr),
 	m_cost(GPOPT_INVALID_COST),
-	m_ulOriginGrpId(ULONG_MAX),
-	m_ulOriginGrpExprId(ULONG_MAX)
+	m_ulOriginGrpId(gpos::ulong_max),
+	m_ulOriginGrpExprId(gpos::ulong_max)
 {
 	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(NULL != pop);
@@ -106,8 +106,8 @@ CExpression::CExpression
 	m_pdpscalar(NULL),
 	m_pgexpr(NULL),
 	m_cost(GPOPT_INVALID_COST),
-	m_ulOriginGrpId(ULONG_MAX),
-	m_ulOriginGrpExprId(ULONG_MAX)
+	m_ulOriginGrpId(gpos::ulong_max),
+	m_ulOriginGrpExprId(gpos::ulong_max)
 {
 	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(NULL != pop);
@@ -146,8 +146,8 @@ CExpression::CExpression
 	m_pdpscalar(NULL),
 	m_pgexpr(NULL),
 	m_cost(GPOPT_INVALID_COST),
-	m_ulOriginGrpId(ULONG_MAX),
-	m_ulOriginGrpExprId(ULONG_MAX)
+	m_ulOriginGrpId(gpos::ulong_max),
+	m_ulOriginGrpExprId(gpos::ulong_max)
 {
 	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(NULL != pop);
@@ -190,8 +190,8 @@ CExpression::CExpression
 	m_pdpscalar(NULL),
 	m_pgexpr(NULL),
 	m_cost(GPOPT_INVALID_COST),
-	m_ulOriginGrpId(ULONG_MAX),
-	m_ulOriginGrpExprId(ULONG_MAX)
+	m_ulOriginGrpId(gpos::ulong_max),
+	m_ulOriginGrpExprId(gpos::ulong_max)
 {
 	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(NULL != pop);
@@ -234,8 +234,8 @@ CExpression::CExpression
 	m_pdpscalar(NULL),
 	m_pgexpr(NULL),
 	m_cost(GPOPT_INVALID_COST),
-	m_ulOriginGrpId(ULONG_MAX),
-	m_ulOriginGrpExprId(ULONG_MAX)
+	m_ulOriginGrpId(gpos::ulong_max),
+	m_ulOriginGrpExprId(gpos::ulong_max)
 {
 	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(NULL != pop);
@@ -271,8 +271,8 @@ CExpression::CExpression
 	m_pdpscalar(NULL),
 	m_pgexpr(pgexpr),
 	m_cost(cost),
-	m_ulOriginGrpId(ULONG_MAX),
-	m_ulOriginGrpExprId(ULONG_MAX)
+	m_ulOriginGrpId(gpos::ulong_max),
+	m_ulOriginGrpExprId(gpos::ulong_max)
 {
 	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(NULL != pop);
@@ -1256,7 +1256,7 @@ CExpression::OsPrint
 	{
 		os << "   cost:" << m_cost;
 	}
-	if (ULONG_MAX != m_ulOriginGrpId)
+	if (gpos::ulong_max != m_ulOriginGrpId)
 	{
 		os << "   origin: [Grp:" << m_ulOriginGrpId << ", GrpExpr:" << m_ulOriginGrpExprId<< "]";
 	}

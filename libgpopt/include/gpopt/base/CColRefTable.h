@@ -71,10 +71,10 @@ namespace gpopt
 				INT iTypeModifier,
 				INT iAttno,
 				BOOL fNullable,
-				ULONG ulId, 
+				ULONG ulId,
 				const CName *pname,
 				ULONG ulOpSource,
-				ULONG ulWidth = ULONG_MAX
+				ULONG ulWidth = gpos::ulong_max
 				);
 
 			// dtor

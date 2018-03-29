@@ -288,7 +288,7 @@ namespace gpnaucrates
 			HMUlHist *PhmulhistCopy(IMemoryPool *pmp, HMUlHist *phmulhist);
 
 			// return the column identifier of the filter if the predicate is
-			// on a single column else	return ULONG_MAX
+			// on a single column else	return gpos::ulong_max
 			static
 			ULONG UlColId(const DrgPstatspred *pdrgpstatspred);
 
@@ -330,7 +330,7 @@ namespace gpnaucrates
 			CDouble DNumOfDistinctVal(const CStatisticsConfig *pstatsconf, DrgPdouble *pdrgpdNDV);
 
 			// return the mapping between the table column used for grouping to the logical operator id where it was defined.
-			// If the grouping column is not a table column then the logical op id is initialized to ULONG_MAX
+			// If the grouping column is not a table column then the logical op id is initialized to gpos::ulong_max
 			static
 			HMUlPdrgpul *PhmpuldrgpulTblOpIdToGrpColsMap
 							(

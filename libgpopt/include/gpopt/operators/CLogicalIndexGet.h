@@ -43,7 +43,7 @@ namespace gpopt
 			// table descriptor
 			CTableDescriptor *m_ptabdesc;
 
-			// origin operator id -- ULONG_MAX if operator was not generated via a transformation
+			// origin operator id -- gpos::ulong_max if operator was not generated via a transformation
 			ULONG m_ulOriginOpId;
 
 			// alias for table
@@ -111,7 +111,7 @@ namespace gpopt
 				return m_pdrgpcrOutput;
 			}
 
-			// origin operator id -- ULONG_MAX if operator was not generated via a transformation
+			// origin operator id -- gpos::ulong_max if operator was not generated via a transformation
 			ULONG UlOriginOpId() const
 			{
 				return m_ulOriginOpId;

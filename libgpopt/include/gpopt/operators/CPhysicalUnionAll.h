@@ -24,7 +24,7 @@ namespace gpopt
 			DrgDrgPcr *const m_pdrgpdrgpcrInput;
 
 			// if this union is needed for partial indexes then store the scan
-			// id, otherwise this will be ULONG_MAX
+			// id, otherwise this will be gpos::ulong_max
 			const ULONG m_ulScanIdPartialIndex;
 
 			// set representation of input columns
@@ -88,7 +88,7 @@ namespace gpopt
 			DrgDrgPcr *PdrgpdrgpcrInput() const;
 
 			// if this unionall is needed for partial indexes then return the scan
-			// id, otherwise return ULONG_MAX
+			// id, otherwise return gpos::ulong_max
 			ULONG UlScanIdPartialIndex() const;
 
 			// is this unionall needed for a partial index

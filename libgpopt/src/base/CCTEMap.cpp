@@ -98,14 +98,14 @@ CCTEMap::Insert
 CDrvdPropPlan *
 CCTEMap::PdpplanProducer
 	(
-	ULONG *pulId // output: CTE producer Id, set to ULONG_MAX if no producer found
+	ULONG *pulId // output: CTE producer Id, set to gpos::ulong_max if no producer found
 	)
 	const
 {
 	GPOS_ASSERT(NULL != pulId);
 
 	CDrvdPropPlan *pdpplanProducer = NULL;
-	*pulId = ULONG_MAX;
+	*pulId = gpos::ulong_max;
 	HMCteMapIter hmcmi(m_phmcm);
 	while (NULL == pdpplanProducer && hmcmi.FAdvance())
 	{

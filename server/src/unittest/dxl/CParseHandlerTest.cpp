@@ -232,8 +232,8 @@ CParseHandlerTest::EresUnittest_ErrSAXParseException()
 	CHAR *szDXL = CDXLUtils::SzRead(pmp, m_rgszXerceTestFileNames[0]);
 	
 	// function call should throw an exception
-	ULLONG ullPlanId = ULLONG_MAX;
-	ULLONG ullPlanSpaceSize = ULLONG_MAX;
+	ULLONG ullPlanId = gpos::ullong_max;
+	ULLONG ullPlanSpaceSize = gpos::ullong_max;
 	(void) CDXLUtils::PdxlnParsePlan(pmp, szDXL, CTestUtils::m_szXSDPath, &ullPlanId, &ullPlanSpaceSize);
 
 	return GPOS_FAILED;
@@ -466,8 +466,8 @@ CParseHandlerTest::EresParseAndSerializePlan
 	}
 
 	// the root of the parsed DXL tree
-	ULLONG ullPlanId = ULLONG_MAX;
-	ULLONG ullPlanSpaceSize = ULLONG_MAX;
+	ULLONG ullPlanId = gpos::ullong_max;
+	ULLONG ullPlanSpaceSize = gpos::ullong_max;
 	CDXLNode *pdxlnRoot = CDXLUtils::PdxlnParsePlan(pmp, szDXL, szValidationPath, &ullPlanId, &ullPlanSpaceSize);
 	
 	GPOS_CHECK_ABORT;

@@ -446,7 +446,7 @@ CPartIndexMap::Epim
 //
 //	@doc:
 //		Number of expected propagators of the entry with the given scan id.
-//		Returns ULONG_MAX if no entry with the given scan id is found
+//		Returns gpos::ulong_max if no entry with the given scan id is found
 //
 //---------------------------------------------------------------------------
 ULONG
@@ -459,7 +459,7 @@ CPartIndexMap::UlExpectedPropagators
 	CPartTableInfo* ppti = m_pim->PtLookup(&ulScanId);
 	if (NULL == ppti)
 	{
-		return ULONG_MAX;
+		return gpos::ulong_max;
 	}
 
 	return ppti->UlExpectedPropagators();
@@ -615,7 +615,7 @@ CPartIndexMap::ResolvePropagator
 		}
 		else
 		{
-			*pulExpectedPropagatorsResult = ULONG_MAX;
+			*pulExpectedPropagatorsResult = gpos::ulong_max;
 			*pepimResult = EpimConsumer;
 		}
 	}
@@ -628,7 +628,7 @@ CPartIndexMap::ResolvePropagator
 		}
 		else
 		{
-			*pulExpectedPropagatorsResult = ULONG_MAX;
+			*pulExpectedPropagatorsResult = gpos::ulong_max;
 			*pepimResult = EpimConsumer;
 		}
 	}
@@ -895,8 +895,9 @@ CPartIndexMap::FSatisfiesEntry
 	}
 
 	ULONG ulExpectedPropagators = pptiDrvd->UlExpectedPropagators();
-	return ULONG_MAX == ulExpectedPropagators ||
-			(0 != ulExpectedPropagators && ulExpectedPropagators == pptiReqd->UlExpectedPropagators());
+	return gpos::ulong_max == ulExpectedPropagators ||
+		   (0 != ulExpectedPropagators &&
+			ulExpectedPropagators == pptiReqd->UlExpectedPropagators());
 }
 
 //---------------------------------------------------------------------------

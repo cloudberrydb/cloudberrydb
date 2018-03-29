@@ -69,7 +69,8 @@ CPhysicalSpool::PcrsRequired
 {
 	GPOS_ASSERT(0 == ulChildIndex);
 
-	return PcrsChildReqd(pmp, exprhdl, pcrsRequired, ulChildIndex, ULONG_MAX);
+	return PcrsChildReqd(pmp, exprhdl, pcrsRequired, ulChildIndex,
+						 gpos::ulong_max);
 }
 
 

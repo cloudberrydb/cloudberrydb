@@ -17,8 +17,8 @@
 #include "gpos/base.h"
 #include "gpos/common/CRefCount.h"
 
-// use ULONG_MAX instead of ULLONG_MAX to make sure arithmetic does not cause overflows
-#define GPOPT_MAX_CARD	((ULLONG)(ULONG_MAX))
+// use gpos::ulong_max instead of gpos::ullong_max to make sure arithmetic does not cause overflows
+#define GPOPT_MAX_CARD ((ULLONG)(gpos::ulong_max))
 
 namespace gpopt
 {

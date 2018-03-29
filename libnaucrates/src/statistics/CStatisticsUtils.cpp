@@ -632,7 +632,7 @@ CStatisticsUtils::ExtractUsedColIds
 	GPOS_ASSERT(NULL != pstatspred);
 	GPOS_ASSERT(NULL != pdrgpulColIds);
 
-	if (ULONG_MAX != pstatspred->UlColId())
+	if (gpos::ulong_max != pstatspred->UlColId())
 	{
 		// the predicate is on a single column
 
@@ -666,7 +666,7 @@ CStatisticsUtils::ExtractUsedColIds
 		CStatsPred *pstatspredCurr = (*pdrgpstatspred)[ul];
 		ULONG ulColId = pstatspredCurr->UlColId();
 
-		if (ULONG_MAX != ulColId)
+		if (gpos::ulong_max != ulColId)
 		{
 			if (!pbsColIds->FBit(ulColId))
 			{
@@ -707,9 +707,10 @@ CStatisticsUtils::UpdateDisjStatistics
 	GPOS_ASSERT(NULL != pbsDontUpdateStats);
 	GPOS_ASSERT(NULL != phmulhistResultDisj);
 
-	if (NULL != phistPrev && ULONG_MAX != ulColId && !pbsDontUpdateStats->FBit(ulColId))
+	if (NULL != phistPrev && gpos::ulong_max != ulColId &&
+		!pbsDontUpdateStats->FBit(ulColId))
 	{
-		// 1. the filter is on the same column because ULONG_MAX != ulColId
+		// 1. the filter is on the same column because gpos::ulong_max != ulColId
 		// 2. the histogram of the column can be updated
 		CHistogram *phistResult = phmulhistResultDisj->PtLookup(&ulColId);
 		if (NULL != phistResult)
@@ -778,7 +779,7 @@ CStatisticsUtils::PbsNonUpdatableHistForDisj
 	CBitSet *pbsNonUpdateable = GPOS_NEW(pmp) CBitSet(pmp);
 
 	const ULONG ulDisjColId = pstatspred->UlColId();
-	if (ULONG_MAX != ulDisjColId)
+	if (gpos::ulong_max != ulDisjColId)
 	{
 		// disjunction predicate on a single column so all are updatable
 		return pbsNonUpdateable;
@@ -1044,7 +1045,7 @@ CStatisticsUtils::PhmulhistCopy
 //
 //	@doc:
 //		Return the column identifier of the filter if the predicate is
-// 		on a single column else	return ULONG_MAX
+// 		on a single column else	return gpos::ulong_max
 //
 //---------------------------------------------------------------------------
 ULONG
@@ -1055,7 +1056,7 @@ CStatisticsUtils::UlColId
 {
 	GPOS_ASSERT(NULL != pdrgpstatspred);
 
-	ULONG ulColIdResult = ULONG_MAX;
+	ULONG ulColIdResult = gpos::ulong_max;
 	BOOL fSameCol = true;
 
 	const ULONG ulLen = pdrgpstatspred->UlLength();
@@ -1063,7 +1064,7 @@ CStatisticsUtils::UlColId
 	{
 		CStatsPred *pstatspred = (*pdrgpstatspred)[ul];
 		ULONG ulColId =  pstatspred->UlColId();
-		if (ULONG_MAX == ulColIdResult)
+		if (gpos::ulong_max == ulColIdResult)
 		{
 			ulColIdResult = ulColId;
 		}
@@ -1075,7 +1076,7 @@ CStatisticsUtils::UlColId
 		return ulColIdResult;
 	}
 
-	return ULONG_MAX;
+	return gpos::ulong_max;
 }
 
 
@@ -1305,7 +1306,7 @@ CStatisticsUtils::PstatsBitmapTableGet
 //	@doc:
 //		Return the mapping between the table column used for grouping to the
 //	    logical operator id where it was defined. If the grouping column is
-//      not a table column then the logical op id is initialized to ULONG_MAX
+//      not a table column then the logical op id is initialized to gpos::ulong_max
 //---------------------------------------------------------------------------
 HMUlPdrgpul *
 CStatisticsUtils::PhmpuldrgpulTblOpIdToGrpColsMap
@@ -1434,7 +1435,7 @@ CStatisticsUtils::PdrgPdoubleNDV
 		ULONG ulSourceId = *(hmiterulpdrgpul.Pk());
 		const DrgPul *pdrgpulPerSrc = hmiterulpdrgpul.Pt();
 
-		if (ULONG_MAX == ulSourceId)
+		if (gpos::ulong_max == ulSourceId)
 		{
 			// this array of grouping columns represents computed columns.
 			// Since we currently do not cap computed columns, we add all of their NDVs as is

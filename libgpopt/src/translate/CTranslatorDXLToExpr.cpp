@@ -81,7 +81,7 @@ CTranslatorDXLToExpr::CTranslatorDXLToExpr
 	m_pdrgpulOutputColRefs(NULL),
 	m_pdrgpmdname(NULL),
 	m_phmulpdxlnCTEProducer(NULL),
-	m_ulCTEId(ULONG_MAX),
+	m_ulCTEId(gpos::ulong_max),
 	m_pcf(NULL)
 {
 	// initialize hash tables
@@ -991,7 +991,7 @@ CTranslatorDXLToExpr::PcrLookup
 	)
 {
 	GPOS_ASSERT(NULL != phmulcr);
-	GPOS_ASSERT(ULONG_MAX != ulColId);
+	GPOS_ASSERT(gpos::ulong_max != ulColId);
 
 	// get its column reference from the hash map
 	CColRef *pcr = phmulcr->PtLookup(&ulColId);

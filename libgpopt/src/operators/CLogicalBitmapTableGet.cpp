@@ -70,7 +70,7 @@ CLogicalBitmapTableGet::CLogicalBitmapTableGet
 	:
 	CLogical(pmp),
 	m_ptabdesc(NULL),
-	m_ulOriginOpId(ULONG_MAX),
+	m_ulOriginOpId(gpos::ulong_max),
 	m_pnameTableAlias(NULL),
 	m_pdrgpcrOutput(NULL)
 {}
