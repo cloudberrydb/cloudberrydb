@@ -125,6 +125,7 @@
 #include "unittest/dxl/statistics/CHistogramTest.h"
 #include "unittest/dxl/statistics/CMCVTest.h"
 #include "unittest/dxl/statistics/CJoinCardinalityTest.h"
+#include "unittest/dxl/statistics/CJoinCardinalityNDVBasedEqPredTest.h"
 #include "unittest/gpopt/cost/CCostTest.h"
 #include "unittest/gpopt/minidump/MinidumpTestHeaders.h" // auto generated header file
 
@@ -176,6 +177,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CHistogramTest),
 	GPOS_UNITTEST_STD(CMCVTest),
 	GPOS_UNITTEST_STD(CJoinCardinalityTest),
+	GPOS_UNITTEST_STD(CJoinCardinalityNDVBasedEqPredTest),
 	GPOS_UNITTEST_STD(CTranslatorDXLToExprTest),
 	GPOS_UNITTEST_STD(CTranslatorExprToDXLTest),
 	GPOS_UNITTEST_STD(CXMLSerializerTest),

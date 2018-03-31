@@ -1074,6 +1074,11 @@ namespace gpopt
 			// return true if the given expression is a cross join
 			static
 			BOOL FCrossJoin(CExpression *pexpr);
+
+			// extract scalar ident column reference from scalar expression containing
+			// only one scalar ident in the tree
+			const static
+			CColRef *PcrExtractFromScExpression(CExpression *pexpr);
 	}; // class CUtils
 
 	// hash set from expressions

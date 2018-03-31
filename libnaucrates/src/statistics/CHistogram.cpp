@@ -652,6 +652,16 @@ CHistogram::PhistJoinNormalized
 {
 	GPOS_ASSERT(NULL != phistOther);
 
+	if (CStatsPred::EstatscmptEqNDV == escmpt)
+	{
+		*pdScaleFactor = std::max
+								 (
+								  std::max(CHistogram::DMinDistinct.DVal(), DDistinct().DVal()),
+								  std::max(CHistogram::DMinDistinct.DVal(), phistOther->DDistinct().DVal())
+								  );
+		return PhistJoinEqualityNDV(pmp, phistOther);
+	}
+
 	BOOL fEqOrINDF = (CStatsPred::EstatscmptEq == escmpt || CStatsPred::EstatscmptINDF == escmpt);
 	if (!fEqOrINDF)
 	{
@@ -1077,7 +1087,6 @@ CHistogram::PhistJoinEquality
 	)
 	const
 {
-	DrgPbucket *pdrgppbucketJoin = GPOS_NEW(pmp) DrgPbucket(pmp);
 	ULONG ul1 = 0; // index on buckets from this histogram
 	ULONG ul2 = 0; // index on buckets from other histogram
 
@@ -1095,53 +1104,10 @@ CHistogram::PhistJoinEquality
 
 	if (fNDVBasedJoinCardEstimation1 || fNDVBasedJoinCardEstimation2)
 	{
-		// compute the number of non-null distinct values in the input histograms
-		CDouble dNDV1 = this->DDistinct();
-		CDouble dFreqRemain1 = this->DFrequency();
-		CDouble dNullFreq1 = this->DNullFreq();
-		if (CStatistics::DEpsilon < dNullFreq1)
-		{
-			dNDV1 = std::max(CDouble(0.0), (dNDV1 - 1.0));
-			dFreqRemain1 = dFreqRemain1 - dNullFreq1;
-		}
-
-		CDouble dNDV2 = phist->DDistinct();
-		CDouble dFreqRemain2 = phist->DFrequency();
-		CDouble dNullFreq2 = phist->DNullFreq();
-		if (CStatistics::DEpsilon < phist->DNullFreq())
-		{
-			dNDV2 = std::max(CDouble(0.0), (dNDV2 - 1.0));
-			dFreqRemain2 = dFreqRemain2 - dNullFreq2;
-		}
-
-		// the estimated number of distinct value is the minimum of the non-null
-		// distinct values of the two inputs.
-		dDistinctRemain = std::min(dNDV1, dNDV2);
-
-		// the frequency of a tuple in this histogram (with frequency dFreqRemain1) joining with
-		// a tuple in another relation (with frequency dFreqRemain2) is a product of the two frequencies divided by
-		// the maximum NDV of the two inputs
-
-		// Example: consider two relations A and B with 10 tuples each. Let both relations have no nulls.
-		// Let A have 2 distinct values, while B have 5 distinct values. Under uniform distribution of NDVs
-		// for statistics purposes we can view A = (1,2,1,2,1,2,1,2,1,2) and B = (1,2,3,4,5,1,2,3,4,5)
-		// Join Cardinality is 20, with frequency of the join tuple being 0.2 (since cartesian product is 100).
-		// dFreqRemain1 = dFreqRemain2 = 1, and std::max(dNDV1, dNDV2) = 5. Therefore dFreqRemain = 1/5 = 0.2
-		if (CStatistics::DEpsilon < dDistinctRemain)
-		{
-			dFreqRemain = dFreqRemain1 * dFreqRemain2 / std::max(dNDV1, dNDV2);
-		}
-
-		return GPOS_NEW(pmp) CHistogram
-								(
-								pdrgppbucketJoin,
-								true /*fWellDefined*/,
-								0.0 /*dNullFreq*/,
-								dDistinctRemain,
-								dFreqRemain
-								);
+		return PhistJoinEqualityNDV(pmp, phist);
 	}
 
+	DrgPbucket *pdrgppbucketJoin = GPOS_NEW(pmp) DrgPbucket(pmp);
 	while (ul1 < ulBuckets1 && ul2 < ulBuckets2)
 	{
 		CBucket *pbucket1 = (*m_pdrgppbucket)[ul1];
@@ -1199,6 +1165,66 @@ CHistogram::PhistJoinEquality
 		);
 
 	return GPOS_NEW(pmp) CHistogram(pdrgppbucketJoin, true /*fWellDefined*/, 0.0 /*dNullFreq*/, dDistinctRemain, dFreqRemain);
+}
+
+// construct a new histogram for NDV based cardinality estimation
+CHistogram *
+CHistogram::PhistJoinEqualityNDV
+(
+ IMemoryPool *pmp,
+ const CHistogram *phist
+ )
+const
+{
+	CDouble dDistinctRemain(0.0);
+	CDouble dFreqRemain(0.0);
+	DrgPbucket *pdrgppbucketJoin = GPOS_NEW(pmp) DrgPbucket(pmp);
+	
+	// compute the number of non-null distinct values in the input histograms
+	CDouble dNDV1 = this->DDistinct();
+	CDouble dFreqRemain1 = this->DFrequency();
+	CDouble dNullFreq1 = this->DNullFreq();
+	if (CStatistics::DEpsilon < dNullFreq1)
+	{
+		dNDV1 = std::max(CDouble(0.0), (dNDV1 - 1.0));
+		dFreqRemain1 = dFreqRemain1 - dNullFreq1;
+	}
+	
+	CDouble dNDV2 = phist->DDistinct();
+	CDouble dFreqRemain2 = phist->DFrequency();
+	CDouble dNullFreq2 = phist->DNullFreq();
+	if (CStatistics::DEpsilon < phist->DNullFreq())
+	{
+		dNDV2 = std::max(CDouble(0.0), (dNDV2 - 1.0));
+		dFreqRemain2 = dFreqRemain2 - dNullFreq2;
+	}
+	
+	// the estimated number of distinct value is the minimum of the non-null
+	// distinct values of the two inputs.
+	dDistinctRemain = std::min(dNDV1, dNDV2);
+	
+	// the frequency of a tuple in this histogram (with frequency dFreqRemain1) joining with
+	// a tuple in another relation (with frequency dFreqRemain2) is a product of the two frequencies divided by
+	// the maximum NDV of the two inputs
+	
+	// Example: consider two relations A and B with 10 tuples each. Let both relations have no nulls.
+	// Let A have 2 distinct values, while B have 5 distinct values. Under uniform distribution of NDVs
+	// for statistics purposes we can view A = (1,2,1,2,1,2,1,2,1,2) and B = (1,2,3,4,5,1,2,3,4,5)
+	// Join Cardinality is 20, with frequency of the join tuple being 0.2 (since cartesian product is 100).
+	// dFreqRemain1 = dFreqRemain2 = 1, and std::max(dNDV1, dNDV2) = 5. Therefore dFreqRemain = 1/5 = 0.2
+	if (CStatistics::DEpsilon < dDistinctRemain)
+	{
+		dFreqRemain = dFreqRemain1 * dFreqRemain2 / std::max(dNDV1, dNDV2);
+	}
+
+	return GPOS_NEW(pmp) CHistogram
+	(
+	 pdrgppbucketJoin,
+	 true /*fWellDefined*/,
+	 0.0 /*dNullFreq*/,
+	 dDistinctRemain,
+	 dFreqRemain
+	 );
 }
 
 // construct a new histogram for an INDF join predicate
