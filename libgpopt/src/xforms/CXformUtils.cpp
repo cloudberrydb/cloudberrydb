@@ -139,20 +139,7 @@ CXformUtils::ExfpExpandJoinOrder
 			return CXform::ExfpNone;
 		}
 
-		COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
-		const CHint *phint = poconf->Phint();
-
 		const ULONG ulArity = exprhdl.UlArity();
-
-		// since the last child of the join operator is a scalar child
-		// defining the join predicate, ignore it.
-		const ULONG ulRelChild = ulArity - 1;
-
-		if (ulRelChild > phint->UlJoinOrderDPLimit())
-		{
-			return CXform::ExfpNone;
-		}
-
 		for (ULONG ul = 0; ul < ulArity; ul++)
 		{
 			CGroup *pgroupChild = (*exprhdl.Pgexpr())[ul];

@@ -12,6 +12,8 @@
 #include "gpos/base.h"
 
 #include "gpopt/base/CUtils.h"
+#include "gpopt/engine/CHint.h"
+#include "gpopt/optimizer/COptimizerConfig.h"
 #include "gpopt/operators/ops.h"
 #include "gpopt/operators/CNormalizer.h"
 #include "gpopt/operators/CPredicateUtils.h"
@@ -66,6 +68,20 @@ CXformExpandNAryJoinDP::Exfp
 	)
 	const
 {
+	COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
+	const CHint *phint = poconf->Phint();
+
+	const ULONG ulArity = exprhdl.UlArity();
+
+	// since the last child of the join operator is a scalar child
+	// defining the join predicate, ignore it.
+	const ULONG ulRelChild = ulArity - 1;
+
+	if (ulRelChild > phint->UlJoinOrderDPLimit())
+	{
+		return CXform::ExfpNone;
+	}
+
 	return CXformUtils::ExfpExpandJoinOrder(exprhdl);
 }
 
