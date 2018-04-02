@@ -748,7 +748,7 @@ CTranslatorRelcacheToDXL::Pdrgpmdcol
 			pdxlnDefault = PdxlnDefaultColumnValue(pmp, pmda, rel->rd_att, att->attnum);
 		}
 
-		ULONG ulColLen = ULONG_MAX;
+		ULONG ulColLen = gpos::ulong_max;
 		CMDIdGPDB *pmdidCol = GPOS_NEW(pmp) CMDIdGPDB(att->atttypid);
 		HeapTuple heaptupleStats = gpdb::HtAttrStats(rel->rd_id, ul+1);
 
@@ -1488,7 +1488,7 @@ CTranslatorRelcacheToDXL::UlPosition
 {
 	ULONG ulIndex = (ULONG) (GPDXL_SYSTEM_COLUMNS + iAttno);
 	ULONG ulPos = pul[ulIndex];
-	GPOS_ASSERT(ULONG_MAX != ulPos);
+	GPOS_ASSERT(gpos::ulong_max != ulPos);
 
 	return ulPos;
 }
@@ -1517,7 +1517,7 @@ CTranslatorRelcacheToDXL::PulAttnoPositionMap
 
 	for (ULONG ul = 0; ul < ulSize; ul++)
 	{
-		pul[ul] = ULONG_MAX;
+		pul[ul] = gpos::ulong_max;
 	}
 
 	for (ULONG ul = 0;  ul < ulIncludedCols; ul++)
@@ -2659,7 +2659,7 @@ CTranslatorRelcacheToDXL::UlTableCount
 {
        GPOS_ASSERT(InvalidOid != oidRelation);
 
-       ULONG ulTableCount = ULONG_MAX;
+       ULONG ulTableCount = gpos::ulong_max;
        if (gpdb::FRelPartIsNone(oidRelation))
        {
     	   // not a partitioned table
@@ -2674,7 +2674,7 @@ CTranslatorRelcacheToDXL::UlTableCount
        {
            ulTableCount = gpdb::UlLeafPartitions(oidRelation);
        }
-       GPOS_ASSERT(ULONG_MAX != ulTableCount);
+       GPOS_ASSERT(gpos::ulong_max != ulTableCount);
 
        return ulTableCount;
 }
@@ -3222,10 +3222,10 @@ CTranslatorRelcacheToDXL::PulAttnoMapping
 	const ULONG ulCols = pdrgpmdcol->UlLength();
 	ULONG *pul = GPOS_NEW_ARRAY(pmp, ULONG, ulMaxCols);
 
-	// initialize all positions to ULONG_MAX
+	// initialize all positions to gpos::ulong_max
 	for (ULONG ul = 0;  ul < ulMaxCols; ul++)
 	{
-		pul[ul] = ULONG_MAX;
+		pul[ul] = gpos::ulong_max;
 	}
 	
 	for (ULONG ul = 0;  ul < ulCols; ul++)
