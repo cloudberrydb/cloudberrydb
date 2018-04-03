@@ -770,6 +770,8 @@ destroy_datumstreamread(DatumStreamRead * ds)
 
 	if (ds->large_object_buffer)
 		pfree(ds->large_object_buffer);
+	if (ds->datum_upgrade_buffer)
+		pfree(ds->datum_upgrade_buffer);
 
 	AppendOnlyStorageRead_FinishSession(&ds->ao_read);
 
@@ -1582,4 +1584,34 @@ datumstreamread_find_block(DatumStreamRead * datumStream,
 	}
 
 	return true;
+}
+
+/*
+ * Ensures that the stream's datum_upgrade_buffer is at least len bytes long.
+ * Returns a pointer to the (possibly newly allocated) upgrade buffer space. If
+ * additional space is needed, it will be allocated in the stream's memory
+ * context.
+ */
+void *
+datumstreamread_get_upgrade_space(DatumStreamRead *ds, size_t len)
+{
+	if (ds->datum_upgrade_buffer_size < len)
+	{
+		MemoryContext oldcontext = MemoryContextSwitchTo(ds->memctxt);
+
+		/*
+		 * FIXME: looks like at least one realloc() implementation can't handle
+		 * NULL pointers?
+		 */
+		if (ds->datum_upgrade_buffer)
+			ds->datum_upgrade_buffer = repalloc(ds->datum_upgrade_buffer, len);
+		else
+			ds->datum_upgrade_buffer = palloc(len);
+
+		ds->datum_upgrade_buffer_size = len;
+
+		MemoryContextSwitchTo(oldcontext);
+	}
+
+	return ds->datum_upgrade_buffer;
 }
