@@ -649,7 +649,6 @@ namespace gpopt
 				IMemoryPool *pmp,
 				const CHAR *szMDFilePath,
 				const CHAR *rgszFileNames[],
-				ULONG ulTests,
 				ULONG *pulTestCounter,
 				ULONG ulSessionId,
 				ULONG ulCmdId,

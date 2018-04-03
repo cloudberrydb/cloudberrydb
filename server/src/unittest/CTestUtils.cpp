@@ -3280,6 +3280,7 @@ CTestUtils::FPlanMatch
 	if (NULL != pdxlnActual && NULL == pdxlnExpected)
 	{
 		CAutoTrace at(pmp);
+		at.Os() << "Plan comparison *** FAILED ***" << std::endl;
 		at.Os() << "Expected plan is NULL. Actual: " << std::endl;
 		CDXLUtils::SerializePlan(pmp, at.Os(), pdxlnActual, ullPlanIdActual, ullPlanSpaceSizeActual, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
 		at.Os() << std::endl;
@@ -3290,6 +3291,7 @@ CTestUtils::FPlanMatch
 	if (NULL == pdxlnActual && NULL != pdxlnExpected)
 	{
 		CAutoTrace at(pmp);
+		at.Os() << "Plan comparison *** FAILED ***" << std::endl;
 		at.Os()  << "Actual plan is NULL. Expected: " << std::endl;
 		CDXLUtils::SerializePlan(pmp, at.Os(), pdxlnExpected, ullPlanIdExpected, ullPlanSpaceSizeExpected, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
 		at.Os()  << std::endl;
@@ -3330,6 +3332,7 @@ CTestUtils::FPlanMatch
 		{
 			CAutoTrace at(pmp);
 
+			at.Os() << "Plan comparison *** FAILED ***" << std::endl;
 			at.Os() << "Actual: " << std::endl;
 			at.Os()  << strActual.Wsz() << std::endl;
 		}
@@ -3366,6 +3369,8 @@ CTestUtils::FPlanCompare
 	INT iCmpSpaceSize
 	)
 {
+	BOOL fPlanSpaceUnchanged = true;
+
 	if (!fMatchPlans)
 	{
 		return true;
@@ -3391,16 +3396,16 @@ CTestUtils::FPlanCompare
 		)
 	{
 		at.Os()
-				<< "Plan space size comparison failed." << std::endl
+				<< "Plan space size comparison *** FAILED ***" << std::endl
 				<< "Required comparison: " << iCmpSpaceSize << std::endl
 				<< "\tActual size: " << ullPlanSpaceSizeActual << std::endl
 				<< "\tExpected size: " << ullPlanSpaceSizeExpected << std::endl;
 
-		return false;
+		fPlanSpaceUnchanged = false;
 	}
 
 	// perform deep matching on plan bodies
-	return FPlanMatch(pmp, os, pdxlnActual, ullPlanIdActual, ullPlanSpaceSizeActual, pdxlnExpected, ullPlanIdExpected, ullPlanSpaceSizeExpected);
+	return FPlanMatch(pmp, os, pdxlnActual, ullPlanIdActual, ullPlanSpaceSizeActual, pdxlnExpected, ullPlanIdExpected, ullPlanSpaceSizeExpected) && fPlanSpaceUnchanged;
 }
 
 //---------------------------------------------------------------------------
@@ -3628,8 +3633,9 @@ CTestUtils::EresRunMinidumps
 	)
 {
 	GPOS_RESULT eres = GPOS_OK;
-	
-	for (ULONG ul = *pulTestCounter; eres == GPOS_OK && ul < ulTests; ul++)
+	BOOL fSuccess = true;
+
+	for (ULONG ul = *pulTestCounter; ul < ulTests; ul++)
 	{
 		// each test uses a new memory pool to keep total memory consumption low
 		CAutoMemoryPool amp;
@@ -3647,7 +3653,6 @@ CTestUtils::EresRunMinidumps
 				pmp,
 				rgszFileNames[ul],
 				&rgszFileNames[ul],
-				1, // ulTests
 				pulTestCounter,
 				ulSessionId,
 				ulCmdId,
@@ -3655,6 +3660,11 @@ CTestUtils::EresRunMinidumps
 				0, // iCmpSpaceSize
 				pceeval
 				);
+
+			if (GPOS_FAILED == eres)
+			{
+				fSuccess = false;
+			}
 		}
 
 		if (GPOS_OK == eres && fTestSpacePruning)
@@ -3673,7 +3683,6 @@ CTestUtils::EresRunMinidumps
 				pmp,
 				rgszFileNames[ul],
 				&rgszFileNames[ul],
-				1, // ulTests
 				pulTestCounter,
 				ulSessionId,
 				ulCmdId,
@@ -3681,11 +3690,21 @@ CTestUtils::EresRunMinidumps
 				-1, // iCmpSpaceSize
 				pceeval
 				);
+
+			if (GPOS_FAILED == eres)
+			{
+				fSuccess = false;
+			}
 		}
 	}
 
 	*pulTestCounter = 0;
-	return eres;
+
+	// return GPOS_OK if all the minidump tests passed.
+	// the minidump test runner, EresRunMinidump(), only returns
+	// GPOS_FAILED in case of a failure, hence remaining error codes need
+	// not be handled here
+	return fSuccess ? GPOS_OK : GPOS_FAILED;
 }
 
 
@@ -3703,7 +3722,6 @@ CTestUtils::EresRunMinidumpsUsingOneMDFile
 	IMemoryPool *pmp,
 	const CHAR *szMDFilePath,
 	const CHAR *rgszFileNames[],
-	ULONG ulTests,
 	ULONG *pulTestCounter,
 	ULONG ulSessionId,
 	ULONG ulCmdId,
@@ -3741,10 +3759,7 @@ CTestUtils::EresRunMinidumpsUsingOneMDFile
 	{	// scope for MD accessor
 		CMDAccessor mda(pmp, CMDCache::Pcache(), pdrgpsysid, pdrgpmdp);
 
-		for (ULONG ul = *pulTestCounter; eres == GPOS_OK && ul < ulTests; ul++)
-		{
-			eres = EresRunMinidump(pmp, &mda, rgszFileNames[ul], pulTestCounter, ulSessionId, ulCmdId, fMatchPlans, iCmpSpaceSize, pceeval);
-		}
+		eres = EresRunMinidump(pmp, &mda, rgszFileNames[0], pulTestCounter, ulSessionId, ulCmdId, fMatchPlans, iCmpSpaceSize, pceeval);
 
 		*pulTestCounter = 0;
 	}
