@@ -757,6 +757,23 @@ PGAC_ARG_BOOL(enable, cassert, no, [enable assertion checks (for debugging)],
               [AC_DEFINE([USE_ASSERT_CHECKING], 1,
                          [Define to 1 to build with assertion checks. (--enable-cassert)])])
 
+# If assertions are enabled, also attempt to enable stack protection. Try
+# enabling -strong protection first, then the slower -all, and then finally fall
+# back to the standard -fstack-protector.
+if test "$enable_cassert" = yes; then
+	CFLAGS_STACK=
+	PGAC_PROG_CC_VAR_OPT(CFLAGS_STACK, [-fstack-protector-strong])
+
+	if test x"$CFLAGS_STACK" = x""; then
+		PGAC_PROG_CC_VAR_OPT(CFLAGS_STACK, [-fstack-protector-all])
+	fi
+	if test x"$CFLAGS_STACK" = x""; then
+		PGAC_PROG_CC_VAR_OPT(CFLAGS_STACK, [-fstack-protector])
+	fi
+
+	CFLAGS="$CFLAGS $CFLAGS_STACK"
+fi
+
 # Enable debug ntuplestore
 PGAC_ARG_BOOL(enable, debugntuplestore, no, [enable debug_ntuplestore (for debugging)],
               [AC_DEFINE([USE_DEBUG_NTUPLESTORE], 1,
