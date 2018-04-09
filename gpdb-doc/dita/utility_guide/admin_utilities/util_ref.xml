@@ -46,7 +46,6 @@
             <xref href="gpdeletesystem.xml#topic1" type="topic" format="dita"/>
           </p>
           <p> gpdetective (deprecated)</p>
-          <p> gp_dump (deprecated)</p>
           <p>
             <xref href="gpexpand.xml#topic1" type="topic" format="dita"/>
           </p>
@@ -65,11 +64,11 @@
           <p>
             <xref href="gplogfilter.xml#topic1" type="topic" format="dita"/>
           </p>
+        </stentry>
+        <stentry>
           <p>
             <xref href="gpmapreduce.xml#topic1" type="topic" format="dita"/>
           </p>
-        </stentry>
-        <stentry>
           <!-- hidden until testing is complete -msk
             <p>
             <xref href="gpmovemirrors.xml#topic1"/>
@@ -89,7 +88,6 @@
           </p>
           <p>
             <xref href="gprestore.xml" type="topic" format="dita"/></p>
-          <p> gp_restore (deprecated)</p>
           <p>gpsizecalc (deprecated)</p>
           <p>
             <xref href="gpscp.xml#topic1" type="topic" format="dita"/>
