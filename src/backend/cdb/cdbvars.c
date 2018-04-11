@@ -78,6 +78,8 @@ bool		Debug_burn_xids;
 
 bool		gp_external_enable_exec = true; /* allow ext tables with EXECUTE */
 
+bool		verify_gpfdists_cert; /* verifies gpfdist's certificate */
+
 int			gp_external_max_segs;	/* max segdbs per gpfdist/gpfdists URI */
 
 int			gp_safefswritesize; /* set for safe AO writes in non-mature fs */
