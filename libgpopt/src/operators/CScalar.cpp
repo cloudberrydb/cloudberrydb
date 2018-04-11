@@ -423,5 +423,34 @@ CScalar::PpartinfoDeriveCombineScalar
 	return ppartinfo;
 }
 
+BOOL
+CScalar::FHasScalarArrayCmp
+	(
+	CExpressionHandle &exprhdl
+	)
+{
+	// if operator is a ScalarArrayCmp, return immediately
+	if (COperator::EopScalarArrayCmp == exprhdl.Pop()->Eopid())
+	{
+		return true;
+	}
+
+	// otherwise, iterate over scalar children
+	const ULONG ulArity = exprhdl.UlArity();
+	for (ULONG i = 0; i < ulArity; i++)
+	{
+		if (exprhdl.FScalarChild(i))
+		{
+			CDrvdPropScalar *pdpscalar = exprhdl.Pdpscalar(i);
+			if (pdpscalar->FHasScalarArrayCmp())
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 // EOF
 

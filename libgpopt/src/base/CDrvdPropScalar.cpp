@@ -36,7 +36,8 @@ CDrvdPropScalar::CDrvdPropScalar()
 	m_pfp(NULL),
 	m_fHasNonScalarFunction(false),
 	m_ulDistinctAggs(0),
-	m_fHasMultipleDistinctAggs(false)
+	m_fHasMultipleDistinctAggs(false),
+	m_fHasScalarArrayCmp(false)
 {}
 
 
@@ -139,6 +140,8 @@ CDrvdPropScalar::Derive
 			m_pcrsSetReturningFunction->Include(pspeProject->Pcr());
 		}
 	}
+
+	m_fHasScalarArrayCmp = popScalar->FHasScalarArrayCmp(exprhdl);
 }
 
 

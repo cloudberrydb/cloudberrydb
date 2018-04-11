@@ -1566,14 +1566,10 @@ CPredicateUtils::PexprExtractPredicatesOnPartKeys
 	DrgPexpr *pdrgpexprConjuncts = PdrgpexprConjuncts(pmp, pexprScalar);
 	DrgPcrs *pdrgpcrsChild = NULL;
 	CConstraint *pcnstr = NULL;
-	if (GPOS_FTRACE(EopttraceArrayConstraints))
-	{
-		// previously, we expanded array expressions. However, there is now code to handle array
-		// constraints in the DXL translator and therefore, it is unnecessary work to expanded arrays
-		// into disjunctions, so we skip that step
-		pcnstr = CConstraint::PcnstrFromScalarExpr(pmp, pexprScalar, &pdrgpcrsChild);
-	}
-	else
+	(void) pexprScalar->PdpDerive();
+	CDrvdPropScalar *pdpScalar = CDrvdPropScalar::Pdpscalar(pexprScalar->Pdp(CDrvdProp::EptScalar));
+	if (pdpScalar->FHasScalarArrayCmp() &&
+	    !GPOS_FTRACE(EopttraceArrayConstraints))
 	{
 		// if we have any Array Comparisons, we expand them into conjunctions/disjunctions
 		// of comparison predicates and then reconstruct scalar expression. This is because the
@@ -1587,6 +1583,16 @@ CPredicateUtils::PexprExtractPredicatesOnPartKeys
 
 		pcnstr = CConstraint::PcnstrFromScalarExpr(pmp, pexprExpandedScalar, &pdrgpcrsChild);
 		pexprExpandedScalar->Release();
+	}
+	else
+	{
+		// skip this step when
+		// 1. there are any Array comparisons
+		// 2. previously, we expanded array expressions. However, there is now code to handle array
+		// constraints in the DXL translator and therefore, it is unnecessary work to expand arrays
+		// into disjunctions
+		pcnstr = CConstraint::PcnstrFromScalarExpr(pmp, pexprScalar, &pdrgpcrsChild);
+
 	}
 	CRefCount::SafeRelease(pdrgpcrsChild);
 

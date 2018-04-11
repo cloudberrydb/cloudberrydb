@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Comment><![CDATA[
      Intent: For large multi column ANY/ALL lists with constants, ORCA does not
      derive any constraints from them if they exceed the threshold as it is
      very expensive to do so. This results into loss of some optimization
@@ -10,10 +11,10 @@
      CREATE TABLE pt(a INT, b INT, c INT) PARTITION BY RANGE(b) (START(1) END(100) EVERY(10));
      INSERT INTO pt SELECT i, i+1, i+2 FROM generate_series(1,98)i;
 
-     SET optimizer_constraint_derivation_threshold=5;
+     SET optimizer_array_expansion_threshold=5;
      EXPLAIN SELECT * FROM pt WHERE (a,b,c) IN ((101,102,103), (201,202,203), (301,302,303), (401,402,403), (501,502,503), (2,65,3));
--->
-<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  ]]>
+  </dxl:Comment>
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>

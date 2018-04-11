@@ -72,6 +72,9 @@ namespace gpopt
 			// only applicable to project lists
 			BOOL m_fHasMultipleDistinctAggs;
 
+			// does expression contain ScalarArrayCmp generated for "scalar op ANY/ALL (array)" construct
+			BOOL m_fHasScalarArrayCmp;
+
 			// private copy ctor
 			CDrvdPropScalar(const CDrvdPropScalar &);
 
@@ -152,6 +155,11 @@ namespace gpopt
 			BOOL FHasMultipleDistinctAggs() const
 			{
 				return m_fHasMultipleDistinctAggs;
+			}
+
+			BOOL FHasScalarArrayCmp() const
+			{
+				return m_fHasScalarArrayCmp;
 			}
 
 			// short hand for conversion

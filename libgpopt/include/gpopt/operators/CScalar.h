@@ -187,6 +187,9 @@ namespace gpopt
 			virtual
 			BOOL FHasNonScalarFunction(CExpressionHandle &exprhdl);
 
+			virtual
+			BOOL FHasScalarArrayCmp(CExpressionHandle &exprhdl);
+
 			// boolean expression evaluation
 			virtual
 			EBoolEvalResult Eber
