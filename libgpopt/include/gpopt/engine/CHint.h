@@ -72,7 +72,6 @@ namespace gpopt
 			{
 			}
 
-
 			// Minimum number of partitions required for sorting tuples during
 			// insertion in an append only row-oriented partitioned table
 			ULONG UlMinNumOfPartsToRequireSortOnInsert() const
@@ -90,9 +89,12 @@ namespace gpopt
 			}
 
 			// Maximum number of elements in the scalar comparison with an array which
-			// will be expanded during constraint derivation. The benefits of using a smaller number
+			// will be expanded for constraint derivation. The benefits of using a smaller number
 			// are avoiding expensive expansion of constraints in terms of memory and optimization
-			// time
+			// time. This is used to restrict constructs of following types when the constant-array
+			// size is greater than threshold:
+			// "(expression) scalar op ANY/ALL (array of constants)" OR
+			// "(expression1, expression2) scalar op ANY/ALL ((const-x1, const-y1), ... (const-xn, const-yn))"
 			ULONG UlArrayExpansionThreshold() const
 			{
 				return m_ulArrayExpansionThreshold;

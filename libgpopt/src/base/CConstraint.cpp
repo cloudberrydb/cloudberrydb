@@ -77,6 +77,7 @@ CConstraint::~CConstraint()
 //
 //	@doc:
 //		Create constraint from scalar array comparison expression
+//		originally generated for "scalar op ANY/ALL (array)" construct
 //
 //---------------------------------------------------------------------------
 CConstraint *
@@ -108,7 +109,8 @@ CConstraint::PcnstrFromScalarArrayCmp
 
 		const ULONG ulArity = CUtils::UlScalarArrayArity(pexprArray);
 
-		// When array size exceeds the threshold, don't expand it into a DNF
+		// When array size exceeds the constraint derivation threshold,
+		// don't expand it into a DNF and don't derive constraints
 		COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
 		ULONG ulArrayExpansionThreshold = poconf->Phint()->UlArrayExpansionThreshold();
 
@@ -423,10 +425,26 @@ CConstraint::PcnstrFromScalarBoolOp
 	GPOS_ASSERT(NULL != ppdrgpcrs);
 	GPOS_ASSERT(NULL == *ppdrgpcrs);
 
+	const ULONG ulArity= pexpr->UlArity();
+
+	// Large IN/NOT IN lists that can not be converted into
+	// CScalarArrayCmp, are expanded into its disjunctive normal form,
+	// represented by a large boolean expression tree.
+	// For instance constructs of the form:
+	// "(expression1, expression2) scalar op ANY/ALL ((const-x1,const-y1), ... (const-xn,const-yn))"
+	// Deriving constraints from this is quite expensive; hence don't
+	// bother when the arity of OR exceeds the threshold
+	COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
+	ULONG ulArrayExpansionThreshold = poconf->Phint()->UlArrayExpansionThreshold();
+
+	if (CPredicateUtils::FOr(pexpr) && ulArity > ulArrayExpansionThreshold)
+	{
+		return NULL;
+	}
+
 	*ppdrgpcrs = GPOS_NEW(pmp) DrgPcrs(pmp);
 	DrgPcnstr *pdrgpcnstr = GPOS_NEW(pmp) DrgPcnstr(pmp);
 
-	const ULONG ulArity= pexpr->UlArity();
 	for (ULONG ul = 0; ul < ulArity; ul++)
 	{
 		DrgPcrs *pdrgpcrsChild = NULL;

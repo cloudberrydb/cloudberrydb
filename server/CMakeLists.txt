@@ -159,7 +159,7 @@ PartTbl-DisablePartSelectionJoin PartTbl-JoinOverUnion-1
 PartTbl-JoinOverUnion-2 PartTbl-JoinOverIntersect PartTbl-JoinOverExcept
 PartTbl-RangeJoinPred PartTbl-ArrayIn PartTbl-ArrayCoerce PartTbl-Disjunction
 PartTbl-ComplexPredicate1 PartTbl-ComplexPredicate2 PartTbl-ComplexPredicate3
-PartTbl-ComplexPredicate4 PartTbl-ComplexPredicate5;
+PartTbl-ComplexPredicate4 PartTbl-ComplexPredicate5 LargeMultiColumnInList;
 
 CPartTbl5Test:
 PartTbl-IsNullPredicate PartTbl-IsNotNullPredicate PartTbl-IndexOnDefPartOnly
