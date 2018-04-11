@@ -1299,6 +1299,7 @@ jobs:
         disk_size: 128
         number_of_nodes: 1
         default_image_user: root
+        instance_type: n1-standard-4
   - task: gen_cluster
     file: ccp_src/ci/tasks/gen_cluster.yml
     params:
@@ -1338,6 +1339,7 @@ jobs:
         disk_size: 128
         number_of_nodes: 1
         default_image_user: root
+        instance_type: n1-standard-4
   - task: gen_cluster
     file: ccp_src/ci/tasks/gen_cluster.yml
     params:
