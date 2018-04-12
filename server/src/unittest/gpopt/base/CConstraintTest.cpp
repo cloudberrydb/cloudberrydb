@@ -1286,7 +1286,7 @@ CConstraintTest::EresUnittest_NegativeTests()
 	const IMDType *pmdtype = mda.Pmdtype(&CMDIdGPDB::m_mdidText);
 	CWStringConst str(GPOS_WSZ_LIT("text_col"));
 	CName name(pmp, &str);
-	CAutoP<CColRef> pcr(COptCtxt::PoctxtFromTLS()->Pcf()->PcrCreate(pmdtype, IDefaultTypeModifier, name));
+	CAutoP<CColRef> pcr(COptCtxt::PoctxtFromTLS()->Pcf()->PcrCreate(pmdtype, IDefaultTypeModifier, OidInvalidCollation, name));
 
 	// create a text interval: ['baz', 'foobar')
 	CAutoP<CWStringDynamic> pstrLower1(GPOS_NEW(pmp) CWStringDynamic(pmp, GPOS_WSZ_LIT("AAAAB2Jheg==")));
@@ -1346,7 +1346,7 @@ CConstraintTest::EresUnittest_ConstraintsOnDates()
 	const IMDType *pmdtype = mda.Pmdtype(&CMDIdGPDB::m_mdidDate);
 	CWStringConst str(GPOS_WSZ_LIT("date_col"));
 	CName name(pmp, &str);
-	CAutoP<CColRef> pcr(COptCtxt::PoctxtFromTLS()->Pcf()->PcrCreate(pmdtype, IDefaultTypeModifier, name));
+	CAutoP<CColRef> pcr(COptCtxt::PoctxtFromTLS()->Pcf()->PcrCreate(pmdtype, IDefaultTypeModifier, OidInvalidCollation, name));
 
 	// create a date interval: ['01-01-2012', '01-21-2012')
 	CWStringDynamic pstrLowerDate1(pmp, wszInternalRepresentationFor2012_01_01);

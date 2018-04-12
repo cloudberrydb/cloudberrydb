@@ -185,6 +185,7 @@ namespace gpopt
 						const CColRef *pcr,
 						const IMDType *pmdtype,
 						INT iTypeModifier,
+						OID oidCollation,
 						BOOL fStoreMapping,
 						ULONG ulColId
 						);
@@ -428,6 +429,7 @@ namespace gpopt
 				GPOS_ASSERT(NULL != m_pdrgpmdname);
 				return m_pdrgpmdname;
 			}
+
 	};
 }
 

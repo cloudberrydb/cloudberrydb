@@ -275,7 +275,7 @@ namespace
 
 			void AddIntColumn(CWStringConst strColumnName, int iAttno, BOOL fNullable)
 			{
-				CColumnDescriptor *pcoldesc = GPOS_NEW(m_pmp) CColumnDescriptor(m_pmp, m_pmdtypeint4, IDefaultTypeModifier, CName(&strColumnName), iAttno, fNullable);
+				CColumnDescriptor *pcoldesc = GPOS_NEW(m_pmp) CColumnDescriptor(m_pmp, m_pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, CName(&strColumnName), iAttno, fNullable);
 				m_ptabdesc->AddColumn(pcoldesc);
 			}
 

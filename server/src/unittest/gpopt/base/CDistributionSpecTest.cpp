@@ -377,8 +377,8 @@ CDistributionSpecTest::EresUnittest_Hashed()
 		
 	const IMDTypeInt4 *pmdtypeint4 = mda.PtMDType<IMDTypeInt4>(CTestUtils::m_sysidDefault);
 
-	CColRef *pcrA = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, nameA);
-	CColRef *pcrB = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, nameB);
+	CColRef *pcrA = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, nameA);
+	CColRef *pcrB = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier,  OidInvalidCollation, nameB);
 	
 	CExpression *pexprScalarA = CUtils::PexprScalarIdent(pmp, pcrA);
 	CExpression *pexprScalarB = CUtils::PexprScalarIdent(pmp, pcrB);

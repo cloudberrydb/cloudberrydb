@@ -43,6 +43,8 @@ namespace gpopt
 			// type modifier
 			const INT m_iTypeModifier;
 
+			const OID m_oidCollation;
+
 			// name of column -- owned
 			CName m_name;			
 			
@@ -63,6 +65,7 @@ namespace gpopt
 				IMemoryPool *pmp,
 				const IMDType *pmdtype,
 				INT iTypeModifier,
+				OID oidCollation,
 				const CName &name,
 				INT iAttno,
 				BOOL fNullable,
@@ -89,6 +92,11 @@ namespace gpopt
 			INT ITypeModifier() const
 			{
 				return m_iTypeModifier;
+			}
+
+			OID OidCollation() const
+			{
+				return m_oidCollation;
 			}
 			
 			// return attribute number

@@ -228,7 +228,7 @@ CTestUtils::PtabdescPlainWithColNameFormat
 		CWStringConst strName(pstrName->Wsz());
 		CName nameColumnInt(&strName);
 
-		CColumnDescriptor *pcoldescInt = GPOS_NEW(pmp) CColumnDescriptor(pmp, pmdtypeint4, IDefaultTypeModifier, nameColumnInt, i + 1, fNullable);
+		CColumnDescriptor *pcoldescInt = GPOS_NEW(pmp) CColumnDescriptor(pmp, pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, nameColumnInt, i + 1, fNullable);
 		ptabdesc->AddColumn(pcoldescInt);
 	}
 
@@ -1758,7 +1758,7 @@ CTestUtils::PexprPrjElemWithSum
 	const IMDType *pmdtype = pmda->Pmdtype(pmdidType);
 	CWStringConst str(GPOS_WSZ_LIT("sum_col"));
 	CName name(pmp, &str);
-	CColRef *pcrComputed = COptCtxt::PoctxtFromTLS()->Pcf()->PcrCreate(pmdtype, pop->ITypeModifier(), name);
+	CColRef *pcrComputed = COptCtxt::PoctxtFromTLS()->Pcf()->PcrCreate(pmdtype, pop->ITypeModifier(), OidInvalidCollation, name);
 
 	return CUtils::PexprScalarProjectElement(pmp, pcrComputed, pexprScalarAgg);
 }
@@ -1888,6 +1888,7 @@ CTestUtils::PexprConstTableGet
 													pmp,
 													pmdtypeint4,
 													IDefaultTypeModifier,
+													OidInvalidCollation,
 													name,
 													1 /* iAttno */,
 													false /*FNullable*/
@@ -2233,7 +2234,7 @@ CTestUtils::PexprLogicalTVF
 	CWStringConst strName(GPOS_WSZ_LIT("generate_series"));
 	CName name(&strName);
 
-	CColumnDescriptor *pcoldescInt = GPOS_NEW(pmp) CColumnDescriptor(pmp, pmdtypeint8, IDefaultTypeModifier, name, 1 /* iAttno */, false /*FNullable*/);
+	CColumnDescriptor *pcoldescInt = GPOS_NEW(pmp) CColumnDescriptor(pmp, pmdtypeint8, IDefaultTypeModifier, OidInvalidCollation, name, 1 /* iAttno */, false /*FNullable*/);
 
 	DrgPcoldesc *pdrgpcoldesc = GPOS_NEW(pmp) DrgPcoldesc(pmp);
 	pdrgpcoldesc->Append(pcoldescInt);
@@ -2540,7 +2541,7 @@ CTestUtils::PexprLogicalSequenceProject
 							)
 				);
 	// window function call is not a cast and so does not need a type modifier
-	CColRef *pcrComputed = pcf->PcrCreate(pmda->Pmdtype(pmdfunc->PmdidTypeResult()), IDefaultTypeModifier);
+	CColRef *pcrComputed = pcf->PcrCreate(pmda->Pmdtype(pmdfunc->PmdidTypeResult()), IDefaultTypeModifier, OidInvalidCollation);
 
 	CExpression *pexprPrjList =
 		GPOS_NEW(pmp) CExpression

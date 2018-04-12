@@ -865,13 +865,13 @@ CSubqueryHandler::FCreateOuterApplyForExistOrQuant
 		CExpression *pexprCount = CUtils::PexprCountStar(pmp);
 		CScalarAggFunc *popCount = CScalarAggFunc::PopConvert(pexprCount->Pop());
 		const IMDType *pmdtypeCount = pmda->Pmdtype(popCount->PmdidType());
-		pcrCount = pcf->PcrCreate(pmdtypeCount, popCount->ITypeModifier());
+		pcrCount = pcf->PcrCreate(pmdtypeCount, popCount->ITypeModifier(), OidInvalidCollation);
 		CExpression *pexprPrjElemCount = CUtils::PexprScalarProjectElement(pmp, pcrCount, pexprCount);
 
 		CExpression *pexprSum = CUtils::PexprSum(pmp, pcr);
 		CScalarAggFunc *popSum = CScalarAggFunc::PopConvert(pexprSum->Pop());
 		const IMDType *pmdtypeSum = pmda->Pmdtype(popSum->PmdidType());
-		pcrSum = pcf->PcrCreate(pmdtypeSum, popSum->ITypeModifier());
+		pcrSum = pcf->PcrCreate(pmdtypeSum, popSum->ITypeModifier(), OidInvalidCollation);
 		CExpression *pexprPrjElemSum = CUtils::PexprScalarProjectElement(pmp, pcrSum, pexprSum);
 		pexprPrjList = GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarProjectList(pmp), pexprPrjElemCount, pexprPrjElemSum);
 	}

@@ -127,6 +127,16 @@ CParseHandlerMetadataColumn::StartElement
 								IDefaultTypeModifier
 								);
 
+	m_oidCollation = CDXLOperatorFactory::OidValueFromAttrs
+								(
+								m_pphm->Pmm(),
+								attrs,
+								EdxltokenCollation,
+								EdxltokenColDescr,
+								true,
+								OidInvalidCollation
+								);
+
 	// parse attribute number
 	m_fNullable = CDXLOperatorFactory::FValueFromAttrs
 								(
@@ -218,6 +228,7 @@ CParseHandlerMetadataColumn::EndElement
 							m_iAttNo,
 							m_pmdidType,
 							m_iTypeModifier,
+							m_oidCollation,
 							m_fNullable,
 							m_fDropped,
 							m_pdxlnDefaultValue,

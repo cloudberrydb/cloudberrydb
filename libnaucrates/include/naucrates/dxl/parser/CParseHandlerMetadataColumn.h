@@ -48,6 +48,8 @@ namespace gpdxl
 
 			INT m_iTypeModifier;
 
+			OID m_oidCollation;
+
 			// are nulls allowed for this column
 			BOOL m_fNullable;
 			

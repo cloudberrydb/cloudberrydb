@@ -81,6 +81,7 @@ namespace gpopt
 				CColumnFactory *pcf,
 				IMDId *pmdid,
 				INT iTypeModifier,
+				OID oidCollation,
 				const WCHAR *wszName
 				);
 

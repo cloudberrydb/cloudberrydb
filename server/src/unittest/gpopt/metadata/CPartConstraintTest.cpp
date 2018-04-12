@@ -111,7 +111,7 @@ CPartConstraintTest::EresUnittest_Basic()
 
 	const IMDTypeInt4 *pmdtypeint4 = mda.PtMDType<IMDTypeInt4>(CTestUtils::m_sysidDefault);
 	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
-	CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier);
+	CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation);
 	
 	// create a constraint col \in [1,3)
 	CConstraint *pcnstr13 = PcnstrInterval(pmp, pcr, 1 /*ulLeft*/, 3 /*ulRight*/);
@@ -221,7 +221,7 @@ CPartConstraintTest::EresUnittest_DateIntervals()
 	const IMDType *pmdtype = mda.Pmdtype(&CMDIdGPDB::m_mdidDate);
 	CWStringConst str(GPOS_WSZ_LIT("date_col"));
 	CName name(pmp, &str);
-	CAutoP<CColRef> pcr(COptCtxt::PoctxtFromTLS()->Pcf()->PcrCreate(pmdtype, IDefaultTypeModifier, name));
+	CAutoP<CColRef> pcr(COptCtxt::PoctxtFromTLS()->Pcf()->PcrCreate(pmdtype, IDefaultTypeModifier, OidInvalidCollation, name));
 
 	// create a date interval: ['01-01-2012', '01-21-2012')
 	CWStringDynamic pstrLowerDate1(pmp, wszInternalRepresentationFor2012_01_01);

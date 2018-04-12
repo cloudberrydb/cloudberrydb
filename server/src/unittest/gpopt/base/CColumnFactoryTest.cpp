@@ -72,13 +72,13 @@ CColumnFactoryTest::EresUnittest_Basic()
 	CColumnFactory cf;
 
 	// typed colref
-	CColRef *pcrOne = cf.PcrCreate(pmdtypeint4, IDefaultTypeModifier);
+	CColRef *pcrOne = cf.PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation);
 	GPOS_ASSERT(pcrOne == cf.PcrLookup(pcrOne->m_ulId));
 	cf.Destroy(pcrOne);
 
 	// typed/named colref
 	CWStringConst strName(GPOS_WSZ_LIT("C_CustKey"));
-	CColRef *pcrTwo = cf.PcrCreate(pmdtypeint4, IDefaultTypeModifier, CName(&strName));
+	CColRef *pcrTwo = cf.PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, CName(&strName));
 	GPOS_ASSERT(pcrTwo == cf.PcrLookup(pcrTwo->m_ulId));
 
 	// clone previous colref

@@ -1213,7 +1213,7 @@ CXformUtils::PexprLogicalPartitionSelector
 	CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
 	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
 	const IMDTypeOid *pmdtype = pmda->PtMDType<IMDTypeOid>();
-	CColRef *pcrOid = pcf->PcrCreate(pmdtype, IDefaultTypeModifier);
+	CColRef *pcrOid = pcf->PcrCreate(pmdtype, IDefaultTypeModifier, OidInvalidCollation);
 	DrgPexpr *pdrgpexprFilters = PdrgpexprPartEqFilters(pmp, ptabdesc, pdrgpcr);
 
 	CLogicalPartitionSelector *popSelector = GPOS_NEW(pmp) CLogicalPartitionSelector(pmp, pmdidRel, pdrgpexprFilters, pcrOid);
@@ -1744,7 +1744,7 @@ CXformUtils::PexprAssertUpdateCardinality
 
 	CScalar *pop = CScalar::PopConvert(pexprCountStar->Pop());
 	const IMDType *pmdtype = pmda->Pmdtype(pop->PmdidType());
-	CColRef *pcrProjElem = pcf->PcrCreate(pmdtype, pop->ITypeModifier());
+	CColRef *pcrProjElem = pcf->PcrCreate(pmdtype, pop->ITypeModifier(), OidInvalidCollation /* FIXME COLLATION */);
 	 
 	CExpression *pexprProjElem = GPOS_NEW(pmp) CExpression
 									(
@@ -1935,7 +1935,7 @@ CXformUtils::AddMinAggs
 			CScalar *popMin = CScalar::PopConvert(pexprMinAgg->Pop());
 			
 			const IMDType *pmdtypeMin = pmda->Pmdtype(popMin->PmdidType());
-			pcrNew = pcf->PcrCreate(pmdtypeMin, popMin->ITypeModifier());
+			pcrNew = pcf->PcrCreate(pmdtypeMin, popMin->ITypeModifier(), OidInvalidCollation /* FIXME COLLATION */);
 			CExpression *pexprProjElemMin = GPOS_NEW(pmp) CExpression
 											(
 											pmp,
@@ -2416,7 +2416,7 @@ CXformUtils::PexprWindowWithRowNumber
 	CScalarWindowFunc *popScWindowFunc = CScalarWindowFunc::PopConvert(pexprScWindowFunc->Pop());
 	const IMDType *pmdtype = COptCtxt::PoctxtFromTLS()->Pmda()->Pmdtype(popScWindowFunc->PmdidType());
 	CName name(popScWindowFunc->PstrFunc());
-	CColRef *pcr = COptCtxt::PoctxtFromTLS()->Pcf()->PcrCreate(pmdtype, popScWindowFunc->ITypeModifier(), name);
+	CColRef *pcr = COptCtxt::PoctxtFromTLS()->Pcf()->PcrCreate(pmdtype, popScWindowFunc->ITypeModifier(), OidInvalidCollation /* FIXME COLLATION */, name);
 
 	// new project element
 	CScalarProjectElement *popScPrEl = GPOS_NEW(pmp) CScalarProjectElement(pmp, pcr);

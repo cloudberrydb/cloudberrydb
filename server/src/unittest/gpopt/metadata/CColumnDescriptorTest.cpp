@@ -74,7 +74,7 @@ CColumnDescriptorTest::EresUnittest_Basic()
 
 	CWStringConst strName(GPOS_WSZ_LIT("column desc test"));
 	CName name(&strName);
-	CColumnDescriptor *pcdesc = GPOS_NEW(pmp) CColumnDescriptor(pmp, pmdtypeint4, IDefaultTypeModifier, name, 1, false /*FNullable*/);
+	CColumnDescriptor *pcdesc = GPOS_NEW(pmp) CColumnDescriptor(pmp, pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, name, 1, false /*FNullable*/);
 
 	GPOS_ASSERT(name.FEquals(pcdesc->Name()));
 

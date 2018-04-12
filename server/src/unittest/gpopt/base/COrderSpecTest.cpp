@@ -77,9 +77,9 @@ COrderSpecTest::EresUnittest_Basics()
 	
 	const IMDTypeInt4 *pmdtypeint4 = mda.PtMDType<IMDTypeInt4>(CTestUtils::m_sysidDefault);		
 
-	CColRef *pcr1 = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, name);
-	CColRef *pcr2 = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, name);
-	CColRef *pcr3 = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, name);
+	CColRef *pcr1 = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, name);
+	CColRef *pcr2 = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, name);
+	CColRef *pcr3 = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, name);
 	
 	
 	COrderSpec *pos1 = GPOS_NEW(pmp) COrderSpec(pmp);

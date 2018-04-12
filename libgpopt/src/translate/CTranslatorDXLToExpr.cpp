@@ -473,6 +473,7 @@ CTranslatorDXLToExpr::PexprLogicalTVF
 													m_pmp,
 													pmdtype,
 													pdxlcoldesc->ITypeModifier(),
+													pdxlcoldesc->OidCollation(),
 													CName(m_pmp, &strColName),
 													iAttNo,
 													true, // fNullable
@@ -827,6 +828,7 @@ CTranslatorDXLToExpr::BuildSetOpChild
 
 		const IMDType *pmdtype = m_pmda->Pmdtype(pmdidDest);
 		INT iTypeModifier = pdxlcdOutput->ITypeModifier();
+		OID oidCollation = pdxlcdOutput->OidCollation();
 
 		BOOL fEqualTypes = IMDId::FEqualMDId(pmdidSource, pmdidDest);
 		BOOL fFirstChild = (0 == ulChildIndex);
@@ -837,7 +839,7 @@ CTranslatorDXLToExpr::BuildSetOpChild
 			// input column is an outer reference, add a project element for input column
 
 			// add the colref to the hash map between DXL ColId and colref as they can used above the setop
-			CColRef *pcrNew = PcrCreate(pcr, pmdtype, iTypeModifier, fFirstChild, pdxlcdOutput->UlID());
+			CColRef *pcrNew = PcrCreate(pcr, pmdtype, iTypeModifier, oidCollation, fFirstChild, pdxlcdOutput->UlID());
 			(*ppdrgpcrChild)->Append(pcrNew);
 
 			CExpression *pexprChildProjElem = NULL;
@@ -872,7 +874,7 @@ CTranslatorDXLToExpr::BuildSetOpChild
 		if (fUnionOrUnionAll || fFirstChild)
 		{
 			// add the colref to the hash map between DXL ColId and colref as they can used above the setop
-			CColRef *pcrNew = PcrCreate(pcr, pmdtype, iTypeModifier, fFirstChild, pdxlcdOutput->UlID());
+			CColRef *pcrNew = PcrCreate(pcr, pmdtype, iTypeModifier, oidCollation, fFirstChild, pdxlcdOutput->UlID());
 			(*ppdrgpcrChild)->Append(pcrNew);
 
 			// introduce cast expression for input column
@@ -1019,13 +1021,14 @@ CTranslatorDXLToExpr::PcrCreate
 	const CColRef *pcr,
 	const IMDType *pmdtype,
 	INT iTypeModifier,
+	OID oidCollation,
 	BOOL fStoreMapping,
 	ULONG ulColId
 	)
 {
 	// generate a new column reference
 	CName name(pcr->Name().Pstr());
-	CColRef *pcrNew = m_pcf->PcrCreate(pmdtype, iTypeModifier, name);
+	CColRef *pcrNew = m_pcf->PcrCreate(pmdtype, iTypeModifier, oidCollation, name);
 
 	if (fStoreMapping)
 	{
@@ -1065,7 +1068,7 @@ CTranslatorDXLToExpr::Pdrgpcr
 
 		CName name(pdxlcd->Pmdname()->Pstr());
 		// generate a new column reference
-		CColRef *pcr = m_pcf->PcrCreate(pmdtype, pdxlcd->ITypeModifier(), name);
+		CColRef *pcr = m_pcf->PcrCreate(pmdtype, pdxlcd->ITypeModifier(), pdxlcd->OidCollation(), name);
 		pdrgpcrOutput->Append(pcr);
 	}
 
@@ -1720,7 +1723,7 @@ CTranslatorDXLToExpr::PexprLogicalSeqPr
 			CName name(pdxlopPrEl->PmdnameAlias()->Pstr());
 
 			// generate a new column reference
-			CColRef *pcr = m_pcf->PcrCreate(pmdtype, popScalar->ITypeModifier(), name);
+			CColRef *pcr = m_pcf->PcrCreate(pmdtype, popScalar->ITypeModifier(), OidInvalidCollation /* FIXME COLLATION */, name);
 			CScalarProjectElement *popScPrEl = GPOS_NEW(m_pmp) CScalarProjectElement(m_pmp, pcr);
 
 			// store colid -> colref mapping
@@ -2129,6 +2132,7 @@ CTranslatorDXLToExpr::Ptabdesc
 													m_pmp,
 													pmdtype,
 													pdxlcoldesc->ITypeModifier(),
+													pdxlcoldesc->OidCollation(),
 													CName(m_pmp, &strColName),
 													iAttNo,
 													fNullable,
@@ -2205,9 +2209,10 @@ CTranslatorDXLToExpr::RegisterMDRelationCtas
 				pdxlcd->IAttno(),
 				pdxlcd->PmdidType(),
 				pdxlcd->ITypeModifier(),
+				pdxlcd->OidCollation(),
 				true, // fNullable,
 				pdxlcd->FDropped(),
-				NULL, // pdxlnDefaultValue,
+				NULL, // pdxlnDefaultValue
 				pdxlcd->UlWidth()
 				);
 		pdrgpmdcol->Append(pmdcol);
@@ -2332,6 +2337,7 @@ CTranslatorDXLToExpr::PtabdescFromCTAS
 													m_pmp,
 													pmdtype,
 													pdxlcoldesc->ITypeModifier(),
+													pdxlcoldesc->OidCollation(),
 													CName(m_pmp, &strColName),
 													iAttNo,
 													fNullable,
@@ -2423,6 +2429,7 @@ CTranslatorDXLToExpr::PexprLogicalConstTableGet
 														m_pmp,
 														pmdtype,
 														pdxlcd->ITypeModifier(),
+														pdxlcd->OidCollation(),
 														name,
 														ulColIdx + 1, // iAttno
 														true, // FNullable
@@ -3862,7 +3869,7 @@ CTranslatorDXLToExpr::PexprScalarProjElem
 	CName name(pdxlopPrEl->PmdnameAlias()->Pstr());
 	
 	// generate a new column reference
-	CColRef *pcr = m_pcf->PcrCreate(pmdtype, popScalar->ITypeModifier(), name);
+	CColRef *pcr = m_pcf->PcrCreate(pmdtype, popScalar->ITypeModifier(), OidInvalidCollation /* FIXME COLLATION */, name);
 	
 	// store colid -> colref mapping
 #ifdef GPOS_DEBUG

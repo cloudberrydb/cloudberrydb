@@ -346,7 +346,7 @@ CExpressionTest::EresUnittest_BitmapGet()
 	// create an index on the first column
 	const IMDColumn *pmdcol = pmdrel->Pmdcol(0);
 	const IMDType *pmdtype = mda.Pmdtype(pmdcol->PmdidType());
-	CColRef *pcrFirst = pcf->PcrCreate(pmdtype, pmdcol->ITypeModifier());
+	CColRef *pcrFirst = pcf->PcrCreate(pmdtype, pmdcol->ITypeModifier(), pmdcol->ITypeModifier());
 
 	CExpression *pexprIndexCond = CUtils::PexprScalarEqCmp
 								(
@@ -370,7 +370,7 @@ CExpressionTest::EresUnittest_BitmapGet()
 	{
 		const IMDColumn *pmdcol = pmdrel->Pmdcol(ul);
 		const IMDType *pmdtype = mda.Pmdtype(pmdcol->PmdidType());
-		CColRef *pcr = pcf->PcrCreate(pmdtype, pmdcol->ITypeModifier());
+		CColRef *pcr = pcf->PcrCreate(pmdtype, pmdcol->ITypeModifier(), pmdcol->OidCollation());
 		pdrgpcrTable->Append(pcr);
 	}
 
@@ -696,7 +696,7 @@ CExpressionTest::EresUnittest_FValidPlan()
 		CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
 
 		// Creating the column reference with the column factory ensures that it's a brand new column.
-		CColRef *pcrComputed = pcf->PcrCreate(pmdtype, IDefaultTypeModifier);
+		CColRef *pcrComputed = pcf->PcrCreate(pmdtype, IDefaultTypeModifier, OidInvalidCollation);
 		pcrsInvalid->Include(pcrComputed);
 
 		CReqdPropPlan *prpp = PrppCreateRequiredProperties(pmp, pcrsInvalid);
@@ -1024,7 +1024,7 @@ CExpressionTest::EresUnittest_FValidPlanError()
 	{
 		CColRefSet *pcrsInvalid = GPOS_NEW(pmp) CColRefSet(pmp);
 		CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
-		CColRef *pcrComputed = pcf->PcrCreate(pmdtype, IDefaultTypeModifier);
+		CColRef *pcrComputed = pcf->PcrCreate(pmdtype, IDefaultTypeModifier, OidInvalidCollation);
 		pcrsInvalid->Include(pcrComputed);
 
 		CReqdPropPlan *prpp = PrppCreateRequiredProperties(pmp, pcrsInvalid);

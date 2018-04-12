@@ -30,12 +30,14 @@ CColRef::CColRef
 	(
 	const IMDType *pmdtype,
 	const INT iTypeModifier,
+	const OID oidCollation,
 	ULONG ulId,
 	const CName *pname
 	)
 	:
 	m_pmdtype(pmdtype),
 	m_iTypeModifier(iTypeModifier),
+	m_oidCollation(oidCollation),
 	m_pname(pname),
 	m_ulId(ulId)
 {

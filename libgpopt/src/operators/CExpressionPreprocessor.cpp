@@ -859,7 +859,7 @@ CExpressionPreprocessor::PexprProjBelowSubquery
 		if (NULL != prcsOutput && !prcsOutput->FMember(pcrSubquery))
 		{
 			CColumnFactory *pcf = COptCtxt::PoctxtFromTLS()->Pcf();
-			CColRef *pcrNewSubquery = pcf->PcrCreate(pcrSubquery->Pmdtype(), pcrSubquery->ITypeModifier());
+			CColRef *pcrNewSubquery = pcf->PcrCreate(pcrSubquery->Pmdtype(), pcrSubquery->ITypeModifier(), pcrSubquery->OidCollation());
 
 			CExpression *pexprPrEl = CUtils::PexprScalarProjectElement(pmp, pcrNewSubquery, CUtils::PexprScalarIdent(pmp, pcrSubquery));
 			CExpression *pexprProjList =  GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarProjectList(pmp), pexprPrEl);

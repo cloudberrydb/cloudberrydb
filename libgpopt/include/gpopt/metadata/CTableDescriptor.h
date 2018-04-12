@@ -107,7 +107,7 @@ namespace gpopt
 				IMDRelation::Erelstoragetype erelstoragetype,
 				ULONG ulExecuteAsUser
 				);
-				
+
 			// dtor
 			virtual
 			~CTableDescriptor();

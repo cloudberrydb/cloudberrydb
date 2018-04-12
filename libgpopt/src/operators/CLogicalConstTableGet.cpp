@@ -320,6 +320,7 @@ CLogicalConstTableGet::PdrgpcoldescMapping
 													pmp,
 													pcr->Pmdtype(),
 													pcr->ITypeModifier(),
+													pcr->OidCollation(),
 													pcr->Name(),
 													ul + 1, //iAttno
 													true, // FNullable

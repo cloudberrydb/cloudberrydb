@@ -28,11 +28,12 @@ CColRefComputed::CColRefComputed
 	(
 	const IMDType *pmdtype,
 	INT iTypeModifier,
+	OID oidCollation,
 	ULONG ulId,
 	const CName *pname
 	)
 	:
-	CColRef(pmdtype, iTypeModifier, ulId, pname)
+	CColRef(pmdtype, iTypeModifier, oidCollation, ulId, pname)
 {
 	GPOS_ASSERT(NULL != pmdtype);
 	GPOS_ASSERT(pmdtype->Pmdid()->FValid());

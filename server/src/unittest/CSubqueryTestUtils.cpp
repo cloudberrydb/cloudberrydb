@@ -190,7 +190,7 @@ CSubqueryTestUtils::PexprProjectWithAggSubquery
 	// generate a computed column
 	CScalarSubquery *popSubquery = CScalarSubquery::PopConvert(pexprSubq->Pop());
 	const IMDType *pmdtype = pmda->Pmdtype(popSubquery->PmdidType());
-	CColRef *pcrComputed = pcf->PcrCreate(pmdtype, popSubquery->ITypeModifier());
+	CColRef *pcrComputed = pcf->PcrCreate(pmdtype, popSubquery->ITypeModifier(), OidInvalidCollation);
 
 	// generate a scalar project list
 	CExpression *pexprPrjElem = CUtils::PexprScalarProjectElement(pmp, pcrComputed, pexprSubq);
@@ -1451,21 +1451,21 @@ CSubqueryTestUtils::PexprProjectWithSubqueries
 	// generate agg subquery
 	CExpression *pexprAggSubquery = PexprSubqueryAgg(pmp, pexprOuter, pexprInner, fCorrelated);
 	const CColRef *pcr = CScalarSubquery::PopConvert(pexprAggSubquery->Pop())->Pcr();
-	pcrComputed = pcf->PcrCreate(pcr->Pmdtype(), pcr->ITypeModifier());
+	pcrComputed = pcf->PcrCreate(pcr->Pmdtype(), pcr->ITypeModifier(), pcr->OidCollation());
 	pexprPrjElem = CUtils::PexprScalarProjectElement(pmp, pcrComputed, pexprAggSubquery);
 	pdrgpexpr->Append(pexprPrjElem);
 
 	// generate ALL subquery
 	pexprGet = CTestUtils::PexprLogicalGet(pmp);
 	CExpression *pexprSubqueryAll = PexprSubqueryQuantified(pmp, COperator::EopScalarSubqueryAll, pexprOuter, pexprGet, fCorrelated);
-	pcrComputed = pcf->PcrCreate(pmdtypebool, IDefaultTypeModifier);
+	pcrComputed = pcf->PcrCreate(pmdtypebool, IDefaultTypeModifier, OidInvalidCollation);
 	pexprPrjElem = CUtils::PexprScalarProjectElement(pmp, pcrComputed, pexprSubqueryAll);
 	pdrgpexpr->Append(pexprPrjElem);
 
 	// generate existential subquery
 	pexprGet =CTestUtils::PexprLogicalGet(pmp);
 	CExpression *pexprSubqueryExists = PexprSubqueryExistential(pmp, COperator::EopScalarSubqueryExists, pexprOuter, pexprGet, fCorrelated);
-	pcrComputed = pcf->PcrCreate(pmdtypebool, IDefaultTypeModifier);
+	pcrComputed = pcf->PcrCreate(pmdtypebool, IDefaultTypeModifier, OidInvalidCollation);
 	pexprPrjElem = CUtils::PexprScalarProjectElement(pmp, pcrComputed, pexprSubqueryExists);
 	pdrgpexpr->Append(pexprPrjElem);
 
@@ -1590,7 +1590,7 @@ CSubqueryTestUtils::PexprProjectWithSubqueryQuantified
 	// generate a computed column
 	CScalarSubqueryQuantified *pop = CScalarSubqueryQuantified::PopConvert(pexprSubqueryQuantified->Pop());
 	const IMDType *pmdtype = pmda->Pmdtype(pop->PmdidType());
-	CColRef *pcrComputed = pcf->PcrCreate(pmdtype, pop->ITypeModifier());
+	CColRef *pcrComputed = pcf->PcrCreate(pmdtype, pop->ITypeModifier(), OidInvalidCollation);
 
 	// generate a scalar project list
 	CExpression *pexprPrjElem =  CUtils::PexprScalarProjectElement(pmp, pcrComputed, pexprSubqueryQuantified);
@@ -1717,7 +1717,7 @@ CSubqueryTestUtils::PexprProjectWithSubqueryExistential
 	// generate a computed column
 	CScalarSubqueryExistential *pop = CScalarSubqueryExistential::PopConvert(pexprSubqueryExistential->Pop());
 	const IMDType *pmdtype = pmda->Pmdtype(pop->PmdidType());
-	CColRef *pcrComputed = pcf->PcrCreate(pmdtype, pop->ITypeModifier());
+	CColRef *pcrComputed = pcf->PcrCreate(pmdtype, pop->ITypeModifier(), OidInvalidCollation);
 
 	// generate a scalar project list
 	CExpression *pexprPrjElem = CUtils::PexprScalarProjectElement(pmp, pcrComputed, pexprSubqueryExistential);

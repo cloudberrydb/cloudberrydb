@@ -127,7 +127,7 @@ CXformUpdate2DML::Transform
 	pdrgpcrInsert->AddRef();
 
 	const IMDType *pmdtype = pmda->PtMDType<IMDTypeInt4>();
-	CColRef *pcrAction = pcf->PcrCreate(pmdtype, IDefaultTypeModifier);
+	CColRef *pcrAction = pcf->PcrCreate(pmdtype, IDefaultTypeModifier, OidInvalidCollation);
 	
 	CExpression *pexprProjElem = GPOS_NEW(pmp) CExpression
 											(

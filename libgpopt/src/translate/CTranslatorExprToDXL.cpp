@@ -2924,7 +2924,7 @@ CTranslatorExprToDXL::PdxlnProjectBoolConst
 
 	CDXLDatumBool *pdxldatum = GPOS_NEW(m_pmp) CDXLDatumBool(m_pmp, pmdid, false /* fNull */,  fVal);
 	CDXLScalarConstValue *pdxlopConstValue = GPOS_NEW(m_pmp) CDXLScalarConstValue(m_pmp, pdxldatum);
-	CColRef *pcr = m_pcf->PcrCreate(pmdtypebool, IDefaultTypeModifier);
+	CColRef *pcr = m_pcf->PcrCreate(pmdtypebool, IDefaultTypeModifier, OidInvalidCollation);
 	CDXLNode *pdxlnPrEl = PdxlnProjElem(pcr, GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlopConstValue));
 
 	CDXLScalarProjList *pdxlopPrL = GPOS_NEW(m_pmp) CDXLScalarProjList(m_pmp);
@@ -3218,7 +3218,7 @@ CTranslatorExprToDXL::PdxlnCorrelatedNLJoin
 		CMDName *pmdname = GPOS_NEW(m_pmp) CMDName(m_pmp, pcr->Name().Pstr());
 		IMDId *pmdid = pcr->Pmdtype()->Pmdid();
 		pmdid->AddRef();
-		CDXLColRef *pdxlcr = GPOS_NEW(m_pmp) CDXLColRef(m_pmp, pmdname, pcr->UlId(), pmdid, pcr->ITypeModifier());
+		CDXLColRef *pdxlcr = GPOS_NEW(m_pmp) CDXLColRef(m_pmp, pmdname, pcr->UlId(), pmdid, pcr->ITypeModifier(), pcr->OidCollation());
 		pdrgdxlcr->Append(pdxlcr);
 	}
 
@@ -3349,7 +3349,7 @@ CTranslatorExprToDXL::PdxlnBooleanScalarWithSubPlan
 	CDXLDatumBool *pdxldatum = GPOS_NEW(m_pmp) CDXLDatumBool(m_pmp, pmdid, false /* fNull */, true /* fVal */);
 	CDXLScalarConstValue *pdxlopConstValue = GPOS_NEW(m_pmp) CDXLScalarConstValue(m_pmp, pdxldatum);
 
-	CColRef *pcr = m_pcf->PcrCreate(pmdtypebool, IDefaultTypeModifier);
+	CColRef *pcr = m_pcf->PcrCreate(pmdtypebool, IDefaultTypeModifier, OidInvalidCollation);
 
 	CDXLNode *pdxlnPrEl = PdxlnProjElem(pcr, GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlopConstValue));
 
@@ -5396,7 +5396,7 @@ CTranslatorExprToDXL::PdxlnCTAS
 		const CColumnDescriptor *pcd = ptabdesc->Pcoldesc(ul);
 
 		CMDName *pmdnameCol = GPOS_NEW(m_pmp) CMDName(m_pmp, pcd->Name().Pstr());
-		CColRef *pcr = m_pcf->PcrCreate(pcd->Pmdtype(), pcd->ITypeModifier(), pcd->Name());
+		CColRef *pcr = m_pcf->PcrCreate(pcd->Pmdtype(), pcd->ITypeModifier(), pcd->OidCollation(), pcd->Name());
 
 		// use the col ref id for the corresponding output output column as 
 		// colid for the dxl column
@@ -5411,6 +5411,7 @@ CTranslatorExprToDXL::PdxlnCTAS
 											pcd->IAttno(),
 											pmdidColType,
 											pcr->ITypeModifier(),
+											pcr->OidCollation(),
 											false /* fdropped */,
 											pcd->UlWidth()
 											);
@@ -7194,7 +7195,7 @@ CTranslatorExprToDXL::Pdxltabdesc
 		}
 		else
 		{
-			pcr = m_pcf->PcrCreate(pcd->Pmdtype(), pcd->ITypeModifier(), pcd->Name());
+			pcr = m_pcf->PcrCreate(pcd->Pmdtype(), pcd->ITypeModifier(), pcd->OidCollation(), pcd->Name());
 		}
 
 		// use the col ref id for the corresponding output output column as 
@@ -7210,6 +7211,7 @@ CTranslatorExprToDXL::Pdxltabdesc
 											pcd->IAttno(),
 											pmdidColType,
 											pcr->ITypeModifier(),
+											pcr->OidCollation(),
 											false /* fdropped */,
 											pcd->UlWidth()
 											);

@@ -1255,13 +1255,14 @@ CTranslatorExprToDXLUtils::PcrCreate
 	CColumnFactory *pcf,
 	IMDId *pmdidType,
 	INT iTypeModifier,
+	OID oidCollation,
 	const WCHAR *wszName
 	)
 {
 	const IMDType *pmdtype = pmda->Pmdtype(pmdidType);
 	
 	CName *pname = GPOS_NEW(pmp) CName(GPOS_NEW(pmp) CWStringConst(wszName), true /*fOwnsMemory*/);
-	CColRef *pcr = pcf->PcrCreate(pmdtype, iTypeModifier, *pname);
+	CColRef *pcr = pcf->PcrCreate(pmdtype, iTypeModifier, oidCollation, *pname);
 	GPOS_DELETE(pname);
 	return pcr;
 }
@@ -1433,7 +1434,7 @@ CTranslatorExprToDXLUtils::PdxlnPrLPartitionSelector
 		if (NULL == pcrOid)
 		{
 			const IMDTypeOid *pmdtype = pmda->PtMDType<IMDTypeOid>();
-			pcrOid = pcf->PcrCreate(pmdtype, IDefaultTypeModifier);
+			pcrOid = pcf->PcrCreate(pmdtype, IDefaultTypeModifier, OidInvalidCollation);
 		}
 
 		CMDName *pmdname = GPOS_NEW(pmp) CMDName(pmp, pcrOid->Name().Pstr());
@@ -1535,7 +1536,7 @@ CTranslatorExprToDXLUtils::ReplaceSubplan
 	IMDId *pmdidType = pcr->Pmdtype()->Pmdid();
 	pmdidType->AddRef();
 	CMDName *pmdname = GPOS_NEW(pmp) CMDName(pmp, pdxlopPrEl->PmdnameAlias()->Pstr());
-	CDXLColRef *pdxlcr = GPOS_NEW(pmp) CDXLColRef(pmp, pmdname, pdxlopPrEl->UlId(), pmdidType, pcr->ITypeModifier());
+	CDXLColRef *pdxlcr = GPOS_NEW(pmp) CDXLColRef(pmp, pmdname, pdxlopPrEl->UlId(), pmdidType, pcr->ITypeModifier(), pcr->OidCollation());
 	CDXLScalarIdent *pdxlnScId = GPOS_NEW(pmp) CDXLScalarIdent(pmp, pdxlcr);
 	CDXLNode *pdxln = GPOS_NEW(pmp) CDXLNode(pmp, pdxlnScId);
 #ifdef GPOS_DEBUG
@@ -1636,7 +1637,7 @@ CTranslatorExprToDXLUtils::PdxlnIdent
 	IMDId *pmdid = pcr->Pmdtype()->Pmdid();
 	pmdid->AddRef();
 
-	CDXLColRef *pdxlcr = GPOS_NEW(pmp) CDXLColRef(pmp, pmdname, pcr->UlId(), pmdid, pcr->ITypeModifier());
+	CDXLColRef *pdxlcr = GPOS_NEW(pmp) CDXLColRef(pmp, pmdname, pcr->UlId(), pmdid, pcr->ITypeModifier(), pcr->OidCollation());
 	
 	CDXLScalarIdent *pdxlop = GPOS_NEW(pmp) CDXLScalarIdent(pmp, pdxlcr);
 	return GPOS_NEW(pmp) CDXLNode(pmp, pdxlop);

@@ -66,7 +66,7 @@ CEquivalenceClassesTest::EresUnittest_NotDisjointEquivalanceClasses()
 	ULONG ulCols = 10;
 	for (ULONG i = 0; i < ulCols; i++)
 	{
-		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, name);
+		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, name);
 		pcrs->Include(pcr);
 
 		GPOS_ASSERT(pcrs->FMember(pcr));
@@ -79,7 +79,7 @@ CEquivalenceClassesTest::EresUnittest_NotDisjointEquivalanceClasses()
 
 	CColRefSet *pcrsThree = GPOS_NEW(pmp) CColRefSet(pmp);
 	GPOS_ASSERT(pcrsThree->CElements() == 0);
-	CColRef *pcrThree = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, name);
+	CColRef *pcrThree = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, name);
 	pcrsThree->Include(pcrThree);
 	GPOS_ASSERT(pcrsThree->CElements() == 1);
 
@@ -141,7 +141,7 @@ CEquivalenceClassesTest::EresUnittest_IntersectEquivalanceClasses()
 	ULONG ulCols = 10;
 	for (ULONG i = 0; i < ulCols; i++)
 	{
-		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, name);
+		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, name);
 		pcrs->Include(pcr);
 
 		GPOS_ASSERT(pcrs->FMember(pcr));

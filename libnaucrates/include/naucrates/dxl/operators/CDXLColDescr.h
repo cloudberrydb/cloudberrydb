@@ -59,6 +59,8 @@ namespace gpdxl
 
 			INT m_iTypeModifier;
 
+			OID m_oidCollation;
+
 			// is column dropped from the table: needed for correct restoring of attribute numbers in the range table entries
 			BOOL m_fDropped;
 
@@ -78,9 +80,23 @@ namespace gpdxl
 				INT iAttno,
 				IMDId *pmdidType,
 				INT iTypeModifier,
+				OID oidCollation,
 				BOOL fDropped,
 				ULONG ulWidth = ULONG_MAX
 				);
+
+			// ctor for invalid collation oid
+			CDXLColDescr
+					(
+					IMemoryPool *,
+					CMDName *,
+					ULONG ulId,
+					INT iAttno,
+					IMDId *pmdidType,
+					INT iTypeModifier,
+					BOOL fDropped,
+					ULONG ulWidth = ULONG_MAX
+					);
 			
 			//dtor
 			~CDXLColDescr();
@@ -101,6 +117,8 @@ namespace gpdxl
 			IMDId *PmdidType() const;
 
 			INT ITypeModifier() const;
+
+			OID OidCollation() const;
 
 			// column width
 			ULONG UlWidth() const;

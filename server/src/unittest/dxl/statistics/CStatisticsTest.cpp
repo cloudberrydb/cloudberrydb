@@ -877,6 +877,7 @@ CStatisticsTest::PtabdescTwoColumnSource
 											pmp,
 											pmdtype,
 											IDefaultTypeModifier,
+											OidInvalidCollation,
 											nameColumn,
 											ul + 1,
 											false /*fNullable*/
@@ -920,6 +921,7 @@ CStatisticsTest::EresUnittest_CStatisticsBasic()
 				(
 				pmdtypeint4,
 				IDefaultTypeModifier,
+				OidInvalidCollation,
 				0 /* iAttno */,
 				false /*FNullable*/,
 				1 /* ulId */,
@@ -934,6 +936,7 @@ CStatisticsTest::EresUnittest_CStatisticsBasic()
 				(
 				pmdtypeint4,
 				IDefaultTypeModifier,
+				OidInvalidCollation,
 				1 /* iAttno */,
 				false /*FNullable*/,
 				2 /* ulId */,

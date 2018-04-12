@@ -59,11 +59,24 @@ namespace gpdxl
 			// column type modifier
 			INT m_iTypeModifer;
 
+			OID m_oidCollation;
+
 			// private copy ctor
 			CDXLColRef(const CDXLColRef &);
 		
 		public:
-			// ctor/dtor
+			// ctor
+			CDXLColRef
+				(
+				IMemoryPool *pmp,
+				CMDName *pmdname,
+				ULONG ulId,
+				IMDId *pmdidType,
+				INT iTypeModifier,
+				OID oidCollation
+				);
+
+			// ctor for invalid collation
 			CDXLColRef
 				(
 				IMemoryPool *pmp,
@@ -73,6 +86,7 @@ namespace gpdxl
 				INT iTypeModifier
 				);
 
+			// dtor
 			~CDXLColRef();
 			
 			// accessors
@@ -81,6 +95,8 @@ namespace gpdxl
 			IMDId *PmdidType() const;
 
 			INT ITypeModifier() const;
+
+			OID OidCollation() const;
 
 			ULONG UlID() const;
 

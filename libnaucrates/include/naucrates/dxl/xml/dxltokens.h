@@ -273,6 +273,7 @@ namespace gpdxl
 
 		// CoerceToDomain and CoerceViaIO and ArrayCoerceExpr related tokens
 		EdxltokenTypeMod,
+		EdxltokenCollation,
 		EdxltokenCoercionForm,
 		EdxltokenLocation,
 		EdxltokenElementFunc,

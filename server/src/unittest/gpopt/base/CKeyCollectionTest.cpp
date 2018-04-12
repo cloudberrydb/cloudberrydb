@@ -89,7 +89,7 @@ CKeyCollectionTest::EresUnittest_Basics()
 	const ULONG ulCols = 10;
 	for(ULONG i = 0; i < ulCols; i++)
 	{
-		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, name);
+		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, name);
 		pcrs->Include(pcr);
 	}
 
@@ -114,7 +114,7 @@ CKeyCollectionTest::EresUnittest_Basics()
 //		CKeyCollectionTest::EresUnittest_Subsumes
 //
 //	@doc:
-//		Basic test for triming key collections
+//		Basic test for trimming key collections
 //
 //---------------------------------------------------------------------------
 GPOS_RESULT
@@ -157,7 +157,7 @@ CKeyCollectionTest::EresUnittest_Subsumes()
 	const ULONG ulLen1 = 3;
 	for(ULONG ul = 0; ul < ulCols; ul++)
 	{
-		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, name);
+		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, name);
 		pcrs0->Include(pcr);
 
 		if (ul < ulLen1)
