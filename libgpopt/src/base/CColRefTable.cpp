@@ -34,7 +34,7 @@ CColRefTable::CColRefTable
 	ULONG ulOpSource
 	)
 	:
-	CColRef(pcoldesc->Pmdtype(), pcoldesc->ITypeModifier(), pcoldesc->OidCollation(), ulId, pname),
+	CColRef(pcoldesc->Pmdtype(), pcoldesc->ITypeModifier(), ulId, pname),
 	m_iAttno(0),
 	m_ulSourceOpId(ulOpSource),
 	m_ulWidth(pcoldesc->UlWidth())
@@ -58,7 +58,6 @@ CColRefTable::CColRefTable
 	(
 	const IMDType *pmdtype,
 	INT iTypeModifier,
-	OID oidCollation,
 	INT iAttno,
 	BOOL fNullable,
 	ULONG ulId,
@@ -67,7 +66,7 @@ CColRefTable::CColRefTable
 	ULONG ulWidth
 	)
 	:
-	CColRef(pmdtype, iTypeModifier, oidCollation, ulId, pname),
+	CColRef(pmdtype, iTypeModifier, ulId, pname),
 	m_iAttno(iAttno),
 	m_fNullable(fNullable),
 	m_ulSourceOpId(ulOpSource),

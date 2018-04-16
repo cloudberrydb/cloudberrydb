@@ -77,10 +77,10 @@ CFunctionalDependencyTest::EresUnittest_Basics()
 	CColRefSet *pcrsRight = GPOS_NEW(pmp) CColRefSet(pmp);
 	for (ULONG ul = 0; ul < ulCols; ul++)
 	{
-		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, name);
+		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, name);
 		pcrsLeft->Include(pcr);
 
-		pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, name);
+		pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, name);
 		pcrsRight->Include(pcr);
 	}
 

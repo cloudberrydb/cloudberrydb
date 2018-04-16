@@ -35,7 +35,6 @@ CDXLColDescr::CDXLColDescr
 	INT iAttno,
 	IMDId *pmdidType,
 	INT iTypeModifier,
-	OID oidCollation,
 	BOOL fDropped,
 	ULONG ulWidth
 	)
@@ -46,34 +45,8 @@ CDXLColDescr::CDXLColDescr
 	m_iAttno(iAttno),
 	m_pmdidType(pmdidType),
 	m_iTypeModifier(iTypeModifier),
-	m_oidCollation(oidCollation),
 	m_fDropped(fDropped),
 	m_ulWidth(ulWidth)
-{
-	GPOS_ASSERT_IMP(m_fDropped, 0 == m_pmdname->Pstr()->UlLength());
-}
-
-// ctor for invalid collation oid
-CDXLColDescr::CDXLColDescr
-		(
-		IMemoryPool *pmp,
-		CMDName *pmdname,
-		ULONG ulId,
-		INT iAttno,
-		IMDId *pmdidType,
-		INT iTypeModifier,
-		BOOL fDropped,
-		ULONG ulWidth
-		)
-		:
-		m_pmp(pmp),
-		m_pmdname(pmdname),
-		m_ulId(ulId),
-		m_iAttno(iAttno),
-		m_pmdidType(pmdidType),
-		m_iTypeModifier(iTypeModifier),
-		m_fDropped(fDropped),
-		m_ulWidth(ulWidth)
 {
 	GPOS_ASSERT_IMP(m_fDropped, 0 == m_pmdname->Pstr()->UlLength());
 }
@@ -154,12 +127,6 @@ CDXLColDescr::ITypeModifier() const
 	return m_iTypeModifier;
 }
 
-OID
-CDXLColDescr::OidCollation() const
-{
-	return m_oidCollation;
-}
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CDXLColDescr::FDropped
@@ -215,11 +182,6 @@ CDXLColDescr::SerializeToDXL
 	if (IDefaultTypeModifier != ITypeModifier())
 	{
 		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
-	}
-
-	if (OidInvalidCollation != OidCollation())
-	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenCollation), OidCollation());
 	}
 
 	if (m_fDropped)

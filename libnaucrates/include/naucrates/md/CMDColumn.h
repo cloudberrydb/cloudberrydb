@@ -51,8 +51,6 @@ namespace gpmd
 
 			INT m_iTypeModifier;
 
-			OID m_oidCollation;
-
 			// is NULL an allowed value for the attribute
 			BOOL m_fNullable;
 
@@ -70,20 +68,6 @@ namespace gpmd
 		
 		public:
 			// ctor
-			CMDColumn
-				(
-				CMDName *pmdname,
-				INT iAttNo,
-				IMDId *pmdidType,
-				INT iTypeModifier,
-				OID oidCollation,
-				BOOL fNullable,
-				BOOL fDropped,
-				gpdxl::CDXLNode *pdxnlDefaultValue,
-				ULONG ulLength = ULONG_MAX
-				);
-
-			// ctor for invalid collation
 			CMDColumn
 				(
 				CMDName *pmdname,
@@ -110,9 +94,6 @@ namespace gpmd
 
 			virtual
 			INT ITypeModifier() const;
-
-			virtual
-			OID OidCollation() const;
 
 			// attribute number
 			virtual

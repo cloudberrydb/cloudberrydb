@@ -39,7 +39,6 @@ namespace gpmd
 	class CSystemId;
 
 	static const INT IDefaultTypeModifier = -1;
-	static const OID OidInvalidCollation = 0;
 	
 	//---------------------------------------------------------------------------
 	//	@class:

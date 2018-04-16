@@ -58,8 +58,6 @@ namespace gpopt
 			// type modifier
 			const INT m_iTypeModifier;
 
-			const OID m_oidCollation;
-
 			// name: SQL alias or artificial name
 			const CName *m_pname;
 
@@ -77,7 +75,7 @@ namespace gpopt
 			};
 		
 			// ctor
-			CColRef(const IMDType *pmdtype, const INT iTypeModifier, OID oidCollation, ULONG ulId, const CName *pname);
+			CColRef(const IMDType *pmdtype, const INT iTypeModifier, ULONG ulId, const CName *pname);
 
 			// dtor
 			virtual
@@ -94,12 +92,7 @@ namespace gpopt
 			{
 				return m_iTypeModifier;
 			}
-
-			OID OidCollation() const
-			{
-				return m_oidCollation;
-			}
-
+			
 			// name
 			const CName &Name() const
 			{

@@ -290,7 +290,7 @@ CXformSplitDQA::PexprSplitIntoLocalDQAGlobalAgg
 
 			const IMDAggregate *pmdagg = pmda->Pmdagg(popScAggFunc->Pmdid());
 			const IMDType *pmdtype = pmda->Pmdtype(pmdagg->PmdidTypeIntermediate());
-			CColRef *pcrLocal = pcf->PcrCreate(pmdtype, IDefaultTypeModifier, OidInvalidCollation);
+			CColRef *pcrLocal = pcf->PcrCreate(pmdtype, IDefaultTypeModifier);
 
 			CExpression *pexprPrElLocal = CUtils::PexprScalarProjectElement
 													(
@@ -576,7 +576,7 @@ CXformSplitDQA::PopulatePrLMultiPhaseAgg
 	const IMDType *pmdtype = pmda->Pmdtype(pmdagg->PmdidTypeIntermediate());
 
 	// create new column reference for the first stage (local) project element
-	CColRef *pcrLocal = pcf->PcrCreate(pmdtype, IDefaultTypeModifier, OidInvalidCollation);
+	CColRef *pcrLocal = pcf->PcrCreate(pmdtype, IDefaultTypeModifier);
 
 	CExpression *pexprPrElFirstStage = PexprPrElAgg(pmp, pexprAggFunc, EaggfuncstageLocal, NULL /*pcrPreviousStage*/, pcrLocal);
 	pdrgpexprPrElFirstStage->Append(pexprPrElFirstStage);
@@ -592,7 +592,7 @@ CXformSplitDQA::PopulatePrLMultiPhaseAgg
 	else
 	{
 		// create a new column reference for the second stage (intermediate) project element
-		pcrSecondStage = pcf->PcrCreate(pmdtype, IDefaultTypeModifier, OidInvalidCollation);
+		pcrSecondStage = pcf->PcrCreate(pmdtype, IDefaultTypeModifier);
 	}
 
 	CExpression *pexprPrElSecondStage = PexprPrElAgg(pmp, pexprAggFunc, eaggfuncstage, pcrLocal, pcrSecondStage);
@@ -643,7 +643,7 @@ CXformSplitDQA::PcrAggFuncArgument
 	CScalar *popScalar = CScalar::PopConvert(pexprArg->Pop());
 	// computed argument to the input
 	const IMDType *pmdtype = pmda->Pmdtype(popScalar->PmdidType());
-	CColRef *pcrAdditionalGrpCol = pcf->PcrCreate(pmdtype, popScalar->ITypeModifier(), OidInvalidCollation);
+	CColRef *pcrAdditionalGrpCol = pcf->PcrCreate(pmdtype, popScalar->ITypeModifier());
 
 	pexprArg->AddRef();
 	CExpression *pexprPrElNew = CUtils::PexprScalarProjectElement(pmp, pcrAdditionalGrpCol, pexprArg);

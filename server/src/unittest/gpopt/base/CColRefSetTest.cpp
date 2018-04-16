@@ -85,7 +85,7 @@ CColRefSetTest::EresUnittest_Basics()
 	ULONG ulCols = 10;
 	for(ULONG i = 0; i < ulCols; i++)
 	{
-		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, OidInvalidCollation, name);
+		CColRef *pcr = pcf->PcrCreate(pmdtypeint4, IDefaultTypeModifier, name);
 		pcrs->Include(pcr);
 
 		GPOS_ASSERT(pcrs->FMember(pcr));

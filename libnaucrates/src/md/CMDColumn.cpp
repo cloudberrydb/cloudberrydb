@@ -32,7 +32,6 @@ CMDColumn::CMDColumn
 	INT iAttNo,
 	IMDId *pmdidType,
 	INT iTypeModifier,
-	OID oidCollation,
 	BOOL fNullable,
 	BOOL fDropped,
 	CDXLNode *pdxnlDefaultValue,
@@ -43,35 +42,10 @@ CMDColumn::CMDColumn
 	m_iAttNo(iAttNo),
 	m_pmdidType(pmdidType),
 	m_iTypeModifier(iTypeModifier),
-	m_oidCollation(oidCollation),
 	m_fNullable(fNullable),
 	m_fDropped(fDropped),
 	m_ulLength(ulLength),
 	m_pdxlnDefaultValue(pdxnlDefaultValue)
-{
-}
-
-// ctor for invalid collation
-CMDColumn::CMDColumn
-		(
-		CMDName *pmdname,
-		INT iAttNo,
-		IMDId *pmdidType,
-		INT iTypeModifier,
-		BOOL fNullable,
-		BOOL fDropped,
-		CDXLNode *pdxnlDefaultValue,
-		ULONG ulLength
-		)
-		:
-		m_pmdname(pmdname),
-		m_iAttNo(iAttNo),
-		m_pmdidType(pmdidType),
-		m_iTypeModifier(iTypeModifier),
-		m_fNullable(fNullable),
-		m_fDropped(fDropped),
-		m_ulLength(ulLength),
-		m_pdxlnDefaultValue(pdxnlDefaultValue)
 {
 }
 
@@ -139,12 +113,6 @@ CMDColumn::ITypeModifier() const
 	return m_iTypeModifier;
 }
 
-OID
-CMDColumn::OidCollation() const
-{
-	return m_oidCollation;
-}
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CMDColumn::FNullable
@@ -198,11 +166,6 @@ CMDColumn::Serialize
 	if (IDefaultTypeModifier != ITypeModifier())
 	{
 		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenTypeMod), ITypeModifier());
-	}
-
-	if (OidInvalidCollation != OidCollation())
-	{
-		pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenCollation), OidCollation());
 	}
 
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenColumnNullable), m_fNullable);

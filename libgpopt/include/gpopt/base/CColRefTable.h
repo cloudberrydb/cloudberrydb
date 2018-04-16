@@ -69,7 +69,6 @@ namespace gpopt
 				(
 				const IMDType *pmdtype,
 				INT iTypeModifier,
-				OID oidCollation,
 				INT iAttno,
 				BOOL fNullable,
 				ULONG ulId, 

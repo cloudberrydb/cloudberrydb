@@ -1785,16 +1785,6 @@ CDXLOperatorFactory::Pdxlcd
 						IDefaultTypeModifier
 						);
 
-	OID oidCollation = OidValueFromAttrs
-						(
-						pmm,
-						attrs,
-						EdxltokenCollation,
-						EdxltokenColDescr,
-						true,
-						OidInvalidCollation
-						);
-
 	BOOL fColDropped = false;
 	
 	const XMLCh *xmlszColDropped = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenColDropped));
@@ -1834,7 +1824,7 @@ CDXLOperatorFactory::Pdxlcd
 	
 	GPOS_DELETE(pstrColumnName);
 	
-	return GPOS_NEW(pmp) CDXLColDescr(pmp, pmdname, ulId, iAttno, pmdidType, iTypeModifier, oidCollation, fColDropped, ulColLen);
+	return GPOS_NEW(pmp) CDXLColDescr(pmp, pmdname, ulId, iAttno, pmdidType, iTypeModifier, fColDropped, ulColLen);
 }
 
 //---------------------------------------------------------------------------
@@ -1905,18 +1895,8 @@ CDXLOperatorFactory::Pdxlcr
 						true,
 						IDefaultTypeModifier
 						);
-
-	OID oidCollation = OidValueFromAttrs
-						(
-						pmm,
-						attrs,
-						EdxltokenCollation,
-						edxltokenElement,
-						true,
-						OidInvalidCollation
-						);
 	
-	return GPOS_NEW(pmp) CDXLColRef(pmp, pmdname, ulId, pmdidType, iTypeModifier, oidCollation);
+	return GPOS_NEW(pmp) CDXLColRef(pmp, pmdname, ulId, pmdidType, iTypeModifier);
 }
 
 //---------------------------------------------------------------------------

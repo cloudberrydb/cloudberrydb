@@ -46,7 +46,6 @@ namespace gpopt
 				(
 				const IMDType *pmdtype,
 				INT iTypeModifier,
-				OID oidCollation,
 				ULONG ulId, 
 				const CName *pname
 				);

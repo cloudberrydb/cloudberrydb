@@ -62,8 +62,6 @@ namespace gpdxl
 
 			INT ITypeModifier() const;
 
-			OID OidCollation() const;
-
 			// serialize operator in DXL format
 			virtual
 			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
