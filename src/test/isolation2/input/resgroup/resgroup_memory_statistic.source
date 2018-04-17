@@ -152,4 +152,3 @@ DROP ROLE role1_memory_test;
 DROP ROLE role2_memory_test;
 DROP RESOURCE GROUP rg1_memory_test;
 DROP RESOURCE GROUP rg2_memory_test;
-DROP VIEW memory_result;
