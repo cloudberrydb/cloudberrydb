@@ -773,30 +773,28 @@ ResGroupOps_Name(void)
 bool
 ResGroupOps_Probe(void)
 {
-	bool result = true;
-
 	/*
 	 * We only have to do these checks and initialization once on each host,
 	 * so only let postmaster do the job.
 	 */
 	if (IsUnderPostmaster)
-		return result;
+		return true;
 
 	/*
 	 * Ignore the error even if cgroup mount point can not be successfully
 	 * probed, the error will be reported in Bless() later.
 	 */
 	if (!detectCgroupMountPoint())
-		result = false;
+		return false;
 
 	/*
 	 * Probe for optional features like the 'cgroup' memory auditor,
 	 * do not raise any errors.
 	 */
 	if (!checkPermission(RESGROUP_ROOT_ID, false))
-		return result;
+		return false;
 
-	return result;
+	return true;
 }
 
 /* Check whether the OS group implementation is available and useable */
