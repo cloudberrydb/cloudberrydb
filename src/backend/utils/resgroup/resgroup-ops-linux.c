@@ -99,9 +99,6 @@ static bool detectCgroupMountPoint(void);
 static Oid currentGroupIdInCGroup = InvalidOid;
 static char cgdir[MAXPGPATH];
 
-bool gp_resource_group_enable_cgroup_memory = false;
-bool gp_resource_group_enable_cgroup_swap = false;
-
 /*
  * These checks should keep in sync with gpMgmt/bin/gpcheckresgroupimpl
  */
