@@ -740,7 +740,7 @@ sorted_insert_list(List *list, HeapTuple tuple)
  * is all associated with the hash table and is allocated in the given
  * memory context, so it will be easy to free in bulk.
  */
-void
+static void
 record_constraints(Relation pgcon,
 				   MemoryContext context,
 				   HTAB *hash_tbl,

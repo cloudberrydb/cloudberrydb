@@ -569,7 +569,7 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
 /*
  * Function apply_motion_mutator() is the workhorse for apply_motion().
  */
-Node *
+static Node *
 apply_motion_mutator(Node *node, ApplyMotionState *context)
 {
 	Node	   *newnode;
@@ -831,7 +831,7 @@ done:
 /*
  * Helper code for ApplyMotionState -- Assign motion id to new Motion node.
  */
-void
+static void
 assignMotionID(Node *newnode, ApplyMotionState *context, Node *oldnode)
 {
 	Assert(IsA(newnode, Motion) &&context != NULL);
@@ -1034,7 +1034,7 @@ make_explicit_motion(Plan *lefttree, AttrNumber segidColIdx, bool useExecutorVar
  * with values between 0 and numSegs-1
  * --------------------------------------------------------------------
  */
-int *
+static int *
 makeDefaultSegIdxArray(int numSegs)
 {
 	int		   *segIdx = palloc(numSegs * sizeof(int));
@@ -1173,7 +1173,7 @@ request_explicit_motion(Plan *plan, Index resultRelationsIdx, List *rtable)
  * Find the index of the segid column of the requested relation (relid) in the
  * target list
  */
-AttrNumber
+static AttrNumber
 find_segid_column(List *tlist, Index relid)
 {
 	if (NIL == tlist)

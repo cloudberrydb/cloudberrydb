@@ -263,7 +263,7 @@ adjust_setop_arguments(PlannerInfo *root, List *planlist, GpSetOpType setop_type
  *
  * A NULL result indicates either a NULL argument or a problem.
  */
-Flow *
+static Flow *
 copyFlow(Flow *model_flow, bool withExprs, bool withSort)
 {
 	Flow	   *new_flow = NULL;
@@ -400,7 +400,7 @@ make_motion_hash(PlannerInfo *root __attribute__((unused)), Plan *subplan, List 
  *
  * Returns the newly allocate expression list for a Motion node.
  */
-List *
+static List *
 makeHashExprsFromNonjunkTargets(List *targetlist)
 {
 	ListCell   *cell;
