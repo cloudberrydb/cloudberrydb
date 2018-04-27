@@ -59,6 +59,15 @@ const CHAR *rgszSubqueryFileNames[] =
 		"../data/dxl/minidump/ScSubqueryWithOuterRef.mdp",
 		"../data/dxl/minidump/ExprOnScSubqueryWithOuterRef.mdp",
 		"../data/dxl/minidump/SubqEnforceSubplan.mdp",
+		"../data/dxl/minidump/SubqAll-InsideScalarExpression.mdp",
+		"../data/dxl/minidump/SubqAny-InsideScalarExpression.mdp",
+		"../data/dxl/minidump/ExistentialSubquriesInsideScalarExpression.mdp",
+		"../data/dxl/minidump/SubqueryInsideScalarIf.mdp",
+		"../data/dxl/minidump/SubqueryNullTest.mdp",
+		"../data/dxl/minidump/ExistsSubqInsideExpr.mdp",
+		"../data/dxl/minidump/AnySubq-With-NonScalarSubqueryChild-1.mdp",
+		"../data/dxl/minidump/AnySubq-With-NonScalarSubqueryChild-2.mdp",
+		"../data/dxl/minidump/AnySubq-With-NonScalarSubqueryChild-3.mdp",
 	#ifndef GPOS_32BIT
 		// TODO:  - 05/14/2014: the plan generates a different plan only for
 		// 32-bit rhel
