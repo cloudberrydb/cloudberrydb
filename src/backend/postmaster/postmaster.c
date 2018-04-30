@@ -81,7 +81,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <limits.h>
-#include "access/xlog.h"
+
 /* headers required for process affinity bindings */
 #ifdef HAVE_NUMA_H
 #define NUMA_VERSION1_COMPATIBILITY 1
@@ -1900,7 +1900,6 @@ ProcessStartupPacket(Port *port, bool SSLdone)
 	ProtocolVersion proto;
 	MemoryContext oldcontext;
     char       *gpqeid = NULL;
-	XLogRecPtr  recptr;
 
 	if (pq_getbytes((char *) &len, 4) == EOF)
 	{
@@ -2077,43 +2076,6 @@ retry1:
 								 errmsg("cannot handle FTS connection on master")));
 					am_ftshandler = true;
 					am_mirror = IsRoleMirror();
-
-#ifdef FAULT_INJECTOR
-					if (FaultInjector_InjectFaultIfSet(
-							FTSConnStartupPacket,
-							DDLNotSpecified,
-							"" /* databaseName */,
-							"" /* tableName */) == FaultInjectorTypeSkip)
-					{
-						/*
-						 * If this fault is set to skip, report recovery is
-						 * hung. Without this fault recovery is reported as
-						 * progressing.
-						 */
-						if (FaultInjector_InjectFaultIfSet(
-							FTSRecoveryInProgress,
-							DDLNotSpecified,
-							"" /* databaseName */,
-							"" /* tableName */) == FaultInjectorTypeSkip)
-						{
-							recptr = last_xlog_replay_location();
-						}
-						else
-						{
-							time_t counter = time(NULL);
-
-							recptr.xlogid = counter;
-							recptr.xrecoff = counter;
-						}
-
-						ereport(FATAL,
-								(errcode(ERRCODE_CANNOT_CONNECT_NOW),
-								 errSendAlert(true),
-								 errmsg(POSTMASTER_IN_RECOVERY_MSG),
-								 errdetail(POSTMASTER_IN_RECOVERY_DETAIL_MSG " %s",
-										   XLogLocationToString(&recptr))));
-					}
-#endif
 				}
 				else
 					ereport(FATAL,
@@ -2243,14 +2205,10 @@ retry1:
 					 errmsg("the database system is shutting down")));
 			break;
 		case CAC_RECOVERY:
-			recptr = last_xlog_replay_location();
-
 			ereport(FATAL,
 					(errcode(ERRCODE_CANNOT_CONNECT_NOW),
 					 errSendAlert(true),
-					 errmsg(POSTMASTER_IN_RECOVERY_MSG),
-					 errdetail(POSTMASTER_IN_RECOVERY_DETAIL_MSG " %s",
-						   XLogLocationToString(&recptr))));
+					 errmsg(POSTMASTER_IN_RECOVERY_MSG)));
 			break;
 		case CAC_TOOMANY:
 			ereport(FATAL,
@@ -2268,14 +2226,10 @@ retry1:
 				Assert(am_mirror);
 				break;
 			}
-
-			recptr = last_xlog_replay_location();
 			ereport(FATAL,
 					(errcode(ERRCODE_MIRROR_READY),
 					 errSendAlert(true),
-					 errmsg(POSTMASTER_IN_RECOVERY_MSG),
-					 errdetail(POSTMASTER_IN_RECOVERY_DETAIL_MSG " %s",
-						   XLogLocationToString(&recptr))));
+					 errmsg(POSTMASTER_IN_RECOVERY_MSG)));
 			break;
 		case CAC_OK:
 			break;
