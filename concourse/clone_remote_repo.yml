@@ -1,0 +1,13 @@
+platform: linux
+image_resource:
+  type: docker-image
+  source:
+    repository: yolo/orcadev
+    tag: centos6
+inputs:
+  - name: orca_main_src
+  - name: gporca-commits-to-test
+outputs:
+  - name: package_tarball
+run:
+  path: orca_main_src/concourse/clone_remote_repo.py
