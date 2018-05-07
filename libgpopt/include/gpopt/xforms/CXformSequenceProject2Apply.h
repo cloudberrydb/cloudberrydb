@@ -61,13 +61,6 @@ namespace gpopt
 				return "CXformSequenceProject2Apply";
 			}
 
-			// is transformation a subquery unnesting (Subquery To Apply) xform?
-			virtual
-			BOOL FSubqueryUnnesting() const
-			{
-				return true;
-			}
-
 	}; // class CXformSequenceProject2Apply
 
 }

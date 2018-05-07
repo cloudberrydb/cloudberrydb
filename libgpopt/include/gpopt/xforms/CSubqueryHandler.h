@@ -42,35 +42,6 @@ namespace gpopt
 
 		private:
 
-			// definition of scalar operator handler
-			typedef BOOL(FnHandler)
-				(
-				CSubqueryHandler &sh,
-				CExpression *pexprOuter,
-				CExpression *pexprScalar,
-				ESubqueryCtxt esqctxt,
-				CExpression **ppexprNewOuter,
-				CExpression **ppexprResidualScalar
-				);
-
-			//---------------------------------------------------------------------------
-			//	@struct:
-			//		SOperatorHandler
-			//
-			//	@doc:
-			//		Mapping of a scalar operator to a handler function
-			//
-			//---------------------------------------------------------------------------
-			struct SOperatorHandler
-			{
-				// scalar operator id
-				COperator::EOperatorId m_eopid;
-
-				// pointer to handler function
-				FnHandler *m_pfnh;
-
-			}; // struct SOperatorHandler
-
 			//---------------------------------------------------------------------------
 			//	@struct:
 			//		SSubqueryDesc
@@ -132,10 +103,6 @@ namespace gpopt
 
 			// enforce using correlated apply for unnesting subqueries
 			BOOL m_fEnforceCorrelatedApply;
-
-			// array of mappings
-			static
-			const SOperatorHandler m_rgophdlr[];
 
 			// private copy ctor
 			CSubqueryHandler(const CSubqueryHandler &);

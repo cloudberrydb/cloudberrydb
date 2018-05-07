@@ -359,27 +359,6 @@ CXformSubqJoin2Apply::Transform
 	pxfres->Add(pexprNormalized);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CXformSubqJoin2Apply::Transform
-//
-//	@doc:
-//		Actual transformation
-//
-//---------------------------------------------------------------------------
-void
-CXformSubqJoin2Apply::Transform
-	(
-	CXformContext *pxfctxt,
-	CXformResult *pxfres,
-	CExpression *pexpr
-	)
-	const
-{
-	Transform(pxfctxt, pxfres, pexpr, false /*fEnforceCorrelatedApply*/);
-	Transform(pxfctxt, pxfres, pexpr, true /*fEnforceCorrelatedApply*/);
-}
-
 
 // EOF
 

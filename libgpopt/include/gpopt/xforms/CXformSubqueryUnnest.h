@@ -40,6 +40,10 @@ namespace gpopt
 			static
 			CExpression *PexprSubqueryUnnest(IMemoryPool *pmp, CExpression *pexpr, BOOL fEnforceCorrelatedApply);
 
+			// actual transform
+			virtual
+			void Transform(CXformContext *pxfctxt, CXformResult *pxfres, CExpression *pexpr, BOOL fEnforceCorrelatedApply) const;
+
 		public:
 
 			// ctor
@@ -65,6 +69,12 @@ namespace gpopt
 			virtual
 			void Transform(CXformContext *pxfctxt, CXformResult *pxfres, CExpression *pexpr) const;
 
+			// is transformation a subquery unnesting (Subquery To Apply) xform?
+			virtual
+			BOOL FSubqueryUnnesting() const
+			{
+				return true;
+			}
 
 	}; // class CXformSubqueryUnnest
 

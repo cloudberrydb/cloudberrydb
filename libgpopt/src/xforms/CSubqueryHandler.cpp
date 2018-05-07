@@ -36,40 +36,6 @@
 
 using namespace gpopt;
 
-// initialization of handlers array
-const CSubqueryHandler::SOperatorHandler CSubqueryHandler::m_rgophdlr[] =
-{
-	{COperator::EopScalarSubquery, FRemoveScalarSubquery},
-	{COperator::EopScalarSubqueryAny, FRemoveAnySubquery},
-	{COperator::EopScalarSubqueryAll, FRemoveAllSubquery},
-	{COperator::EopScalarSubqueryExists, FRemoveExistsSubquery},
-	{COperator::EopScalarSubqueryNotExists, FRemoveNotExistsSubquery},
-	{COperator::EopScalarBoolOp, FRecursiveHandler},
-	{COperator::EopScalarProjectList, FRecursiveHandler},
-	{COperator::EopScalarProjectElement, FRecursiveHandler},
-	{COperator::EopScalarCmp, FRecursiveHandler},
-	{COperator::EopScalarOp, FRecursiveHandler},
-	{COperator::EopScalarIsDistinctFrom, FRecursiveHandler},
-	{COperator::EopScalarNullTest, FRecursiveHandler},
-	{COperator::EopScalarBooleanTest, FRecursiveHandler},
-	{COperator::EopScalarIf, FRecursiveHandler},
-	{COperator::EopScalarFunc, FRecursiveHandler},
-	{COperator::EopScalarCast, FRecursiveHandler},
-	{COperator::EopScalarCoerceToDomain, FRecursiveHandler},
-	{COperator::EopScalarCoerceViaIO, FRecursiveHandler},
-	{COperator::EopScalarArrayCoerceExpr, FRecursiveHandler},
-	{COperator::EopScalarAggFunc, FRecursiveHandler},
-	{COperator::EopScalarWindowFunc, FRecursiveHandler},
-	{COperator::EopScalarArray, FRecursiveHandler},
-	{COperator::EopScalarArrayCmp, FRecursiveHandler},
-	{COperator::EopScalarCoalesce, FRecursiveHandler},
-	{COperator::EopScalarCaseTest, FRecursiveHandler},
-	{COperator::EopScalarNullIf, FRecursiveHandler},
-	{COperator::EopScalarSwitch, FRecursiveHandler},
-	{COperator::EopScalarSwitchCase, FRecursiveHandler},
-};
-
-
 #ifdef GPOS_DEBUG
 //---------------------------------------------------------------------------
 //	@function:
@@ -1769,25 +1735,103 @@ CSubqueryHandler::FProcessScalarOperator
 	AssertValidArguments(pmp, pexprOuter, pexprScalar, ppexprNewOuter, ppexprResidualScalar);
 #endif // GPOS_DEBUG
 
-	FnHandler *pfnh = NULL;
+	BOOL fSuccess = false;
 	COperator::EOperatorId eopid = pexprScalar->Pop()->Eopid();
-	const ULONG ulSize = GPOS_ARRAY_SIZE(m_rgophdlr);
-	// find the handler corresponding to the given operator
-	for (ULONG ul = 0; pfnh == NULL && ul < ulSize; ul++)
+	switch(eopid)
 	{
-		if (eopid == m_rgophdlr[ul].m_eopid)
-		{
-			pfnh = m_rgophdlr[ul].m_pfnh;
-		}
+		case COperator::EopScalarSubquery:
+			fSuccess = FRemoveScalarSubquery
+							(
+							sh,
+							pexprOuter,
+							pexprScalar,
+							esqctxt,
+							ppexprNewOuter,
+							ppexprResidualScalar
+							);
+			break;
+		case COperator::EopScalarSubqueryAny:
+			fSuccess = FRemoveAnySubquery
+							(
+							sh,
+							pexprOuter,
+							pexprScalar,
+							esqctxt,
+							ppexprNewOuter,
+							ppexprResidualScalar
+							);
+			break;
+		case COperator::EopScalarSubqueryAll:
+			fSuccess = FRemoveAllSubquery
+							(
+							sh,
+							pexprOuter,
+							pexprScalar,
+							esqctxt,
+							ppexprNewOuter,
+							ppexprResidualScalar
+							);
+			break;
+		case COperator::EopScalarSubqueryExists:
+			fSuccess = FRemoveExistsSubquery
+							(
+							sh,
+							pexprOuter,
+							pexprScalar,
+							esqctxt,
+							ppexprNewOuter,
+							ppexprResidualScalar
+							);
+			break;
+		case COperator::EopScalarSubqueryNotExists:
+			fSuccess = FRemoveNotExistsSubquery
+							(
+							sh,
+							pexprOuter,
+							pexprScalar,
+							esqctxt,
+							ppexprNewOuter,
+							ppexprResidualScalar
+							);
+			break;
+		case COperator::EopScalarBoolOp:
+		case COperator::EopScalarProjectList:
+		case COperator::EopScalarProjectElement:
+		case COperator::EopScalarCmp:
+		case COperator::EopScalarOp:
+		case COperator::EopScalarIsDistinctFrom:
+		case COperator::EopScalarNullTest:
+		case COperator::EopScalarBooleanTest:
+		case COperator::EopScalarIf:
+		case COperator::EopScalarFunc:
+		case COperator::EopScalarCast:
+		case COperator::EopScalarCoerceToDomain:
+		case COperator::EopScalarCoerceViaIO:
+		case COperator::EopScalarArrayCoerceExpr:
+		case COperator::EopScalarAggFunc:
+		case COperator::EopScalarWindowFunc:
+		case COperator::EopScalarArray:
+		case COperator::EopScalarArrayCmp:
+		case COperator::EopScalarCoalesce:
+		case COperator::EopScalarCaseTest:
+		case COperator::EopScalarNullIf:
+		case COperator::EopScalarSwitch:
+		case COperator::EopScalarSwitchCase:
+			fSuccess = FRecursiveHandler
+							(
+							sh,
+							pexprOuter,
+							pexprScalar,
+							esqctxt,
+							ppexprNewOuter,
+							ppexprResidualScalar
+							);
+			break;
+		default:
+			GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnexpectedOp, GPOS_WSZ_LIT("Subquery in unexpected context"));
+
 	}
 
-	if (NULL == pfnh)
-	{
-		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnexpectedOp, GPOS_WSZ_LIT("Subquery in unexpected context"));
-	}
-
-	// call scalar operator handler
-	BOOL fSuccess = pfnh(sh, pexprOuter, pexprScalar, esqctxt, ppexprNewOuter, ppexprResidualScalar);
 	if (fSuccess)
 	{
 		// clean-up unnecessary equality operations

@@ -160,6 +160,26 @@ CXformSubqueryUnnest::PexprSubqueryUnnest
 	return pexprPullUpProjections;
 }
 
+void
+CXformSubqueryUnnest::Transform
+	(
+	CXformContext *pxfctxt,
+	CXformResult *pxfres,
+	CExpression *pexpr,
+	BOOL fEnforceCorrelatedApply
+	)
+	const
+{
+	IMemoryPool *pmp = pxfctxt->Pmp();
+
+	CExpression *pexprAvoidCorrelatedApply = PexprSubqueryUnnest(pmp, pexpr, fEnforceCorrelatedApply);
+	if (NULL != pexprAvoidCorrelatedApply)
+	{
+		// add alternative to results
+		pxfres->Add(pexprAvoidCorrelatedApply);
+	}
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CXformSubqueryUnnest::Transform
@@ -183,24 +203,8 @@ CXformSubqueryUnnest::Transform
 	GPOS_ASSERT(FPromising(pxfctxt->Pmp(), this, pexpr));
 	GPOS_ASSERT(FCheckPattern(pexpr));
 
-	IMemoryPool *pmp = pxfctxt->Pmp();
-
-	// first, generate the alternative where a regular (uncorrelated) Apply
-	// is generated whenever possible
-	CExpression *pexprAvoidCorrelatedApply = PexprSubqueryUnnest(pmp, pexpr, false /*fEnforceCorrelatedApply*/);
-	if (NULL != pexprAvoidCorrelatedApply)
-	{
-		// add alternative to results
-		pxfres->Add(pexprAvoidCorrelatedApply);
-	}
-
-	// second, generate the alternative where a correlated Apply always enforced
-	CExpression *pexprCorrelatedApply = PexprSubqueryUnnest(pmp, pexpr, true /*fEnforceCorrelatedApply*/);
-	if (NULL != pexprCorrelatedApply)
-	{
-		// add alternative to results
-		pxfres->Add(pexprCorrelatedApply);
-	}
+	Transform(pxfctxt, pxfres, pexpr, false /*fEnforceCorrelatedApply*/);
+	Transform(pxfctxt, pxfres, pexpr, true /*fEnforceCorrelatedApply*/);
 }
 
 // EOF

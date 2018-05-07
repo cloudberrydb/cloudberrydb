@@ -65,13 +65,6 @@ namespace gpopt
 			virtual
 			EXformPromise Exfp(CExpressionHandle &exprhdl) const;
 
-			// is transformation a subquery unnesting (Subquery To Apply) xform?
-			virtual
-			BOOL FSubqueryUnnesting() const
-			{
-				return true;
-			}
-
 	}; // class CXformGbAgg2Apply
 
 }
