@@ -342,9 +342,19 @@ rg_perseg_mem = ((RAM * (vm.overcommit_ratio / 100) + SWAP) * gp_resource_group_
           can selectively set this limit on a per-query basis at the session level with the
               <codeph><xref href="../ref_guide/config_params/guc-list.xml#memory_spill_ratio"
               type="section"/></codeph> server configuration parameter.</p>
+
+        <section id="topic833low" xml:lang="en">
+          <title>memory_spill_ratio and Low Memory Queries </title>
+            <p>A <codeph>memory_spill_ratio</codeph> setting of zero (0) has been shown
+              to increase the performance of queries with low memory requirements. Use
+              the <codeph>memory_spill_ratio</codeph> server configuration parameter
+              to override the setting on a per-query basis. For example:
+              <codeblock>SET memory_spill_ratio=0;</codeblock></p>
+        </section>
         </body>
       </topic>
       </topic>
+      
       <topic id="topic833cons" xml:lang="en">
         <title>Other Memory Considerations</title>
         <body>
