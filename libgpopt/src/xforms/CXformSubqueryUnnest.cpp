@@ -96,7 +96,6 @@ CXformSubqueryUnnest::PexprSubqueryUnnest
 			sh,
 			pexprOuter,
 			pexprScalar,
-			false /* fDisjunctionOrNegation */,
 			esqctxt,
 			&pexprNewOuter,
 			&pexprResidualScalar

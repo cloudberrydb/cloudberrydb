@@ -48,7 +48,6 @@ namespace gpopt
 				CSubqueryHandler &sh,
 				CExpression *pexprOuter,
 				CExpression *pexprScalar,
-				BOOL fDisjunctionOrNegation,
 				ESubqueryCtxt esqctxt,
 				CExpression **ppexprNewOuter,
 				CExpression **ppexprResidualScalar
@@ -122,9 +121,6 @@ namespace gpopt
 					m_fValueSubquery(false),
 					m_fCorrelatedExecution(false)
 				{}
-
-				// set value-based subquery flag
-				void SetValueSubquery(BOOL fDisjunctionOrNegation, ESubqueryCtxt esqctxt);
 
 				// set correlated execution flag
 				void SetCorrelatedExecution();
@@ -231,7 +227,6 @@ namespace gpopt
 				IMemoryPool *pmp,
 				CExpression *pexprOuter,
 				CExpression *pexprSubquery,
-				BOOL fDisjunction,
 				ESubqueryCtxt esqctxt,
 				CExpression **ppexprNewOuter,
 				CExpression **ppexprResidualScalar
@@ -244,7 +239,6 @@ namespace gpopt
 				IMemoryPool *pmp,
 				CExpression *pexprOuter,
 				CExpression *pexprSubquery,
-				BOOL fDisjunction,
 				ESubqueryCtxt esqctxt,
 				CExpression **ppexprNewOuter,
 				CExpression **ppexprResidualScalar
@@ -257,7 +251,6 @@ namespace gpopt
 				IMemoryPool *pmp,
 				CExpression *pexprOuter,
 				CExpression *pexprSubquery,
-				BOOL fDisjunctionOrNegation,
 				ESubqueryCtxt esqctxt,
 				CExpression **ppexprNewOuter,
 				CExpression **ppexprResidualScalar
@@ -265,7 +258,7 @@ namespace gpopt
 
 			// create subquery descriptor
 			static
-			SSubqueryDesc *Psd(IMemoryPool *pmp, CExpression *pexprSubquery, CExpression *pexprOuter, BOOL fDisjunctionOrNegation, ESubqueryCtxt esqctxt);
+			SSubqueryDesc *Psd(IMemoryPool *pmp, CExpression *pexprSubquery, CExpression *pexprOuter, ESubqueryCtxt esqctxt);
 
 			// detect subqueries with expressions over count aggregate similar to
 			// (SELECT 'abc' || (SELECT count(*) from X))
@@ -289,7 +282,6 @@ namespace gpopt
 				CSubqueryHandler &sh,
 				CExpression *pexprOuter,
 				CExpression *pexprSubquery,
-				BOOL fDisjunctionOrNegation,
 				ESubqueryCtxt esqctxt,
 				CExpression **ppexprNewOuter,
 				CExpression **ppexprResidualScalar
@@ -302,7 +294,6 @@ namespace gpopt
 				IMemoryPool *pmp,
 				CExpression *pexprOuter,
 				CExpression *pexprSubquery,
-				BOOL fDisjunctionOrNegation,
 				ESubqueryCtxt esqctxt,
 				CSubqueryHandler::SSubqueryDesc *psd,
 				BOOL fEnforceCorrelatedApply,
@@ -317,7 +308,6 @@ namespace gpopt
 				IMemoryPool *pmp,
 				CExpression *pexprOuter,
 				CExpression *pexprSubquery,
-				BOOL fDisjunctionOrNegation,
 				ESubqueryCtxt esqctxt,
 				SSubqueryDesc *psd,
 				BOOL fEnforceCorrelatedApply,
@@ -332,7 +322,6 @@ namespace gpopt
 				CSubqueryHandler &sh,
 				CExpression *pexprOuter,
 				CExpression *pexprSubquery,
-				BOOL fDisjunctionOrNegation,
 				ESubqueryCtxt esqctxt,
 				CExpression **ppexprNewOuter,
 				CExpression **ppexprResidualScalar
@@ -345,7 +334,6 @@ namespace gpopt
 				CSubqueryHandler &sh,
 				CExpression *pexprOuter,
 				CExpression *pexprSubquery,
-				BOOL fDisjunctionOrNegation,
 				ESubqueryCtxt esqctxt,
 				CExpression **ppexprNewOuter,
 				CExpression **ppexprResidualScalar
@@ -359,7 +347,6 @@ namespace gpopt
 				COperator::EOperatorId eopid,
 				CExpression *pexprOuter,
 				CExpression *pexprSubquery,
-				BOOL fDisjunctionOrNegation,
 				ESubqueryCtxt esqctxt,
 				CExpression **ppexprNewOuter,
 				CExpression **ppexprResidualScalar
@@ -372,7 +359,6 @@ namespace gpopt
 				CSubqueryHandler &sh,
 				CExpression *pexprOuter,
 				CExpression *pexprSubquery,
-				BOOL fDisjunctionOrNegation,
 				ESubqueryCtxt esqctxt,
 				CExpression **ppexprNewOuter,
 				CExpression **ppexprResidualScalar
@@ -385,7 +371,6 @@ namespace gpopt
 				CSubqueryHandler &sh,
 				CExpression *pexprOuter,
 				CExpression *pexprSubquery,
-				BOOL fDisjunctionOrNegation,
 				ESubqueryCtxt esqctxt,
 				CExpression **ppexprNewOuter,
 				CExpression **ppexprResidualScalar
@@ -398,7 +383,6 @@ namespace gpopt
 				CSubqueryHandler &sh,
 				CExpression *pexprOuter,
 				CExpression *pexprScalar,
-				BOOL fDisjunctionOrNegation,
 				ESubqueryCtxt esqctxt,
 				CExpression **ppexprNewOuter,
 				CExpression **ppexprNewScalar
@@ -411,7 +395,6 @@ namespace gpopt
 				CSubqueryHandler &sh,
 				CExpression *pexprOuter,
 				CExpression *pexprScalar,
-				BOOL fDisjunctionOrNegation,
 				ESubqueryCtxt esqctxt,
 				CExpression **ppexprNewOuter,
 				CExpression **ppexprNewScalar
@@ -450,7 +433,6 @@ namespace gpopt
 				CSubqueryHandler &sh,
 				CExpression *pexprOuter, // logical child of a SELECT node
 				CExpression *pexprScalar, // scalar child of a SELECT node
-				BOOL fDisjunctionOrNegation, // did we encounter a disjunction/negation on the way here
 				ESubqueryCtxt esqctxt,	// context in which subquery occurs
 				CExpression **ppexprNewOuter, // an Apply logical expression produced as output
 				CExpression **ppexprResidualScalar // residual scalar expression produced as output
