@@ -256,8 +256,11 @@ CXformSubqJoin2Apply::PexprSubqueryPushDown
 
 			// unnest subqueries in newly created child
 			CExpression *pexprUnnested = PexprSubqueryUnnest(pmp, pexprNewChild, fEnforceCorrelatedApply);
-			pexprNewChild->Release();
-			pexprNewChild = pexprUnnested;
+			if (NULL != pexprUnnested)
+			{
+				pexprNewChild->Release();
+				pexprNewChild = pexprUnnested;
+			}
 		}
 
 		pdrgpexprNewChildren->Append(pexprNewChild);

@@ -58,6 +58,7 @@ const CHAR *rgszSubqueryFileNames[] =
 		"../data/dxl/minidump/OrderByOuterRef.mdp",
 		"../data/dxl/minidump/ScSubqueryWithOuterRef.mdp",
 		"../data/dxl/minidump/ExprOnScSubqueryWithOuterRef.mdp",
+		"../data/dxl/minidump/SubqEnforceSubplan.mdp",
 	#ifndef GPOS_32BIT
 		// TODO:  - 05/14/2014: the plan generates a different plan only for
 		// 32-bit rhel
