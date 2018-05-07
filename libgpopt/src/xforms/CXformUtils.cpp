@@ -828,10 +828,9 @@ CXformUtils::SubqueryAnyToAgg
 	CExpression *pexprInner = (*pexprSubquery)[0];
 
 	// build subquery quantified comparison
-	CScalarSubqueryQuantified *popSubquery = CScalarSubqueryQuantified::PopConvert(pexprSubquery->Pop());
 	CExpression *pexprResult = NULL;
 	CSubqueryHandler sh(pmp, false /* fEnforceCorrelatedApply */);
-	CExpression *pexprSubqPred = popSubquery->PexprSubqueryPred(sh, pexprInner, pexprSubquery, &pexprResult);
+	CExpression *pexprSubqPred = sh.PexprSubqueryPred(pexprInner, pexprSubquery, &pexprResult);
 
 	const CColRef *pcrSubq = CScalarSubqueryQuantified::PopConvert(pexprSubquery->Pop())->Pcr();
 	BOOL fUsesNullableCol = CUtils::FUsesNullableCol(pmp, pexprSubqPred, pexprResult);

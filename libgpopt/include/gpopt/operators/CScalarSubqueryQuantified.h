@@ -113,17 +113,6 @@ namespace gpopt
 				CExpressionHandle &exprhdl
 				) 
 				const;
-			
-			// build an expression for the quantified comparison of the subquery
-			virtual
-			CExpression *PexprSubqueryPred
-				(
-				CSubqueryHandler &sh,
-				CExpression *pexprOuter,
-				CExpression *pexprSubquery,
-				CExpression **ppexprResult
-				)
-				const;
 
 			// conversion function
 			static
