@@ -36,7 +36,6 @@ namespace gpopt
 			enum ESubqueryCtxt
 			{
 				EsqctxtValue,		// subquery appears in a project list
-				EsqctxtNullTest,	// subquery appears in a null check
 				EsqctxtFilter		// subquery appears in a comparison predicate
 			};
 
