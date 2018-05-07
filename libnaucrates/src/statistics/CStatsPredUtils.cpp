@@ -944,13 +944,7 @@ CStatsPredUtils::ProcessArrayCmp
 		return;
 	}
 
-	BOOL fAny = (CScalarArrayCmp::EarrcmpAny == popScArrayCmp->Earrcmpt());
-
 	DrgPstatspred *pdrgpstatspredChild = pdrgpstatspred;
-	if (fAny)
-	{
-		pdrgpstatspredChild = GPOS_NEW(pmp) DrgPstatspred(pmp);
-	}
 
 	const ULONG ulConstants = CUtils::UlScalarArrayArity(pexprArray);
 	// comparison semantics for statistics purposes is looser than regular comparison.
@@ -965,6 +959,12 @@ CStatsPredUtils::ProcessArrayCmp
 		pdrgpstatspred->Append(GPOS_NEW(pmp) CStatsPredUnsupported(pcr->UlId(), escmpt));
 
 		return;
+	}
+
+	BOOL fAny = (CScalarArrayCmp::EarrcmpAny == popScArrayCmp->Earrcmpt());
+	if (fAny)
+	{
+		pdrgpstatspredChild = GPOS_NEW(pmp) DrgPstatspred(pmp);
 	}
 
 	for (ULONG ul = 0; ul < ulConstants; ul++)

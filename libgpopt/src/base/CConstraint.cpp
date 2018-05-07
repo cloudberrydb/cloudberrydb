@@ -105,6 +105,14 @@ CConstraint::PcnstrFromScalarArrayCmp
 
 		// get comparison type
 		IMDType::ECmpType ecmpt = CUtils::Ecmpt(popScArrayCmp->PmdidOp());
+
+		if (IMDType::EcmptOther == ecmpt )
+		{
+			// unsupported comparison operator for constraint derivation
+
+			return NULL;
+		}
+
 		CExpression *pexprArray = CUtils::PexprScalarArrayChild(pexpr);
 
 		const ULONG ulArity = CUtils::UlScalarArrayArity(pexprArray);
