@@ -295,6 +295,23 @@ rg_perseg_mem = ((RAM * (vm.overcommit_ratio / 100) + SWAP) * gp_resource_group_
         when memory usage exceeds its fixed memory allotment, no available resource group
         shared memory exists, and the transaction requests more memory.</note>
       </body>
+      
+      <topic id="topic833glob" xml:lang="en">
+        <title>Global Shared Memory</title>
+         <body>
+         <p>The sum of the <codeph>MEMORY_LIMIT</codeph>s configured for all resource
+           groups (including the default <codeph>admin_group</codeph> and <codeph>default_group</codeph>
+           groups) identifies the percentage of reserved resource group memory. If this
+           sum is less than 100, Greenplum Database allocates any unreserved memory to a
+           resource group global shared memory pool.</p>
+         <p>Resource group global shared memory
+           is available only to role-based groups.</p>
+         <p>When available, Greenplum Database allocates global shared memory
+          to a transaction after first allocating slot and resource group shared
+          memory. Greenplum Database allocates resource group global shared memory to
+          transactions on a first-come first-served basis.</p>
+        </body>
+      </topic>
 
       <topic id="topic833sp" xml:lang="en">
         <title>Query Operator Memory</title>
@@ -314,8 +331,8 @@ rg_perseg_mem = ((RAM * (vm.overcommit_ratio / 100) + SWAP) * gp_resource_group_
           among operators more optimally by re-allocating memory released by operators that have 
           completed their processing to operators in a later query stage.</p>
         <p><codeph>MEMORY_SPILL_RATIO</codeph> identifies the memory usage threshold for
-          memory-intensive operators in a transaction. When the transaction reaches this memory
-          threshold, it spills to disk. Greenplum Database uses the
+          memory-intensive operators in a transaction. When this threshold is reached, 
+          a transaction spills to disk. Greenplum Database uses the
             <codeph>MEMORY_SPILL_RATIO</codeph> to determine the initial memory to allocate to a
           transaction.</p>
         <p> The minimum <codeph>MEMORY_SPILL_RATIO</codeph> percentage that you can specify for a
@@ -793,6 +810,12 @@ gpstart
             <p>A transaction submitted in a resource group fails and exits when memory usage exceeds its fixed memory allotment, no available resource group shared memory exists, and the transaction requests more memory.</p></li>
           <li><b>Why did my query return a "memory limit reached" error?</b>
             <p>Greenplum Database automatically adjusts transaction and group memory to the new settings when you use <codeph>ALTER RESOURCE GROUP</codeph> to change a resource group's memory and/or concurrency limits. An "out of memory" error may occur if you recently altered resource group attributes and there is no longer a sufficient amount of memory available for a currently running query.</p></li>
+            <li><b>Why does the actual memory usage of my resource group exceed the amount configured for the group?</b>
+              <p>The actual memory usage of a resource group may exceed the configured amount when one or more queries running in the group is allocated memory from the global shared memory pool.  (If no global shared memory is available, queries fail and do not impact the memory resources of other resource groups.)</p><p>When global shared memory is available, memory usage may also exceed the configured amount when a transaction spills to disk. Greenplum Database statements continue to request memory when they start to spill to disk because:<ul> 
+                <li>Spilling to disk requires extra memory to work.</li>
+                <li>Other operators may continue to request memory.</li>
+                </ul>
+                Memory usage grows in spill situations; when global shared memory is available, the resource group may eventually use up to 200-300% of its configured group memory limit.</p></li>
         </ul>
       </section>
       <section id="topic797" xml:lang="en">
