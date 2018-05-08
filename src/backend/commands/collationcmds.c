@@ -763,3 +763,4 @@ pg_import_system_collations(PG_FUNCTION_ARGS)
 
 	PG_RETURN_INT32(ncreated);
 }
+
