@@ -1362,6 +1362,7 @@ Feature: gptransfer tests
         Then gptransfer should return a return code of 0
         And gptransfer should print "Validation of gptest.public.heap_employee successful" to stdout
 
+   @skip_source_43
    Scenario: gptransfer table that includes implicit sequence
        Given the gptransfer test is initialized
        And the user runs "dropdb -U $GPTRANSFER_SOURCE_USER -p $GPTRANSFER_SOURCE_PORT -h $GPTRANSFER_SOURCE_HOST gptransfer_testdb6"
@@ -1373,6 +1374,7 @@ Feature: gptransfer tests
        And verify that table "test_sequence" in "gptransfer_testdb6" has "100" rows
        And verify that sequence "test_sequence_id_seq" last value is "101" in database "gptransfer_testdb6"
 
+   @skip_source_43
    Scenario: gptransfer table that includes implicit sequence with -t option
        Given the gptransfer test is initialized
        And the user runs "dropdb -U $GPTRANSFER_SOURCE_USER -p $GPTRANSFER_SOURCE_PORT -h $GPTRANSFER_SOURCE_HOST gptransfer_testdb6"
