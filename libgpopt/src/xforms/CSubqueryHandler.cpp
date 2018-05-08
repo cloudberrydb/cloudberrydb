@@ -177,6 +177,25 @@ CSubqueryHandler::PexprSubqueryPred
 	CExpression *pexprScalarChild = (*pexprSubquery)[1];
 	CSubqueryHandler::ESubqueryCtxt esqctxt = CSubqueryHandler::EsqctxtFilter;
 
+	// If pexprScalarChild is a non-scalar subquery such as follows,
+	// EXPLAIN SELECT * FROM t3 WHERE (c = ANY(SELECT c FROM t2)) IN (SELECT b from t1);
+	// EXPLAIN SELECT * FROM t3 WHERE (NOT EXISTS(SELECT c FROM t2)) IN (SELECT b from t1);
+	// then it must be treated in "Value" context such that the
+	// corresponding subquery unnesting routines correctly return a column
+	// identifier for the subquery outcome, which can then be referenced
+	// correctly inside the quantified comparison expression.
+
+	// This is not needed if pexprScalarChild is a scalar subquery such as
+	// follows, since FRemoveScalarSubquery() always produces a column
+	// identifier for the subquery projection.
+	// EXPLAIN SELECT * FROM t3 WHERE (SELECT c FROM t2) IN (SELECT b from t1);
+	if (CUtils::FQuantifiedSubquery(pexprScalarChild->Pop()) ||
+	    CUtils::FExistentialSubquery(pexprScalarChild->Pop()) ||
+	    CPredicateUtils::FAnd(pexprScalarChild))
+	{
+		esqctxt = EsqctxtValue;
+	}
+
 	if (!FProcess(pexprOuter, pexprScalarChild, esqctxt, &pexprNewLogical, &pexprNewScalar))
 	{
 		// subquery unnesting failed; attempt to create a predicate directly
@@ -1756,8 +1775,37 @@ CSubqueryHandler::FRecursiveHandler
 	for (ULONG ul = 0; ul < ulArity; ul++)
 	{
 		CExpression *pexprScalarChild = (*pexprScalar)[ul];
+		COperator *popScalarChild = pexprScalarChild->Pop();
 		CExpression *pexprNewLogical = NULL;
 		CExpression *pexprNewScalar = NULL;
+
+		// Set the subquery context to Value for a non-scalar subquery nested in a
+		// scalar expression such that the corresponding subquery unnesting routines
+		// will return a column identifier. The identifier is then used to replace the
+		// subquery node in the scalar expression.
+		//
+		// Note that conjunction is special cased here. Multiple non-scalar subqueries
+		// will produce nested Apply expressions which are implicitly AND-ed. Thus,
+		// unlike disjuctions or negations, it is not neccesary to use the Value
+		// context for disjuctions.  This enables us to generate optimal plans with
+		// nested joins for queries like:
+		// SELECT * FROM t3 WHERE EXISTS(SELECT c FROM t2) AND NOT EXISTS (SELECT c from t3);
+		//
+		// However, if the AND is nested inside another scalar expression then it must
+		// be treated in Value context from this point onwards because an implicit AND
+		// does not apply within a scalar expression:
+		// SELECT * FROM t1 WHERE b = (EXISTS(SELECT c FROM t2) AND NOT EXISTS (SELECT c from t3));
+		//
+		// Also note that at this stage we would never have a AND expression whose
+		// immediate child is another AND since the conjuncts are always unnested
+		// during preprocessing - but this case is handled in anyway.
+		if (!CPredicateUtils::FAnd(pexprScalar) &&
+		    (CPredicateUtils::FAnd(pexprScalarChild) ||
+		     CUtils::FExistentialSubquery(popScalarChild) ||
+		     CUtils::FQuantifiedSubquery(popScalarChild)))
+		{
+			esqctxt = EsqctxtValue;
+		}
 
 		if (!FProcess(pexprCurrentOuter, pexprScalarChild, esqctxt, &pexprNewLogical, &pexprNewScalar))
 		{
