@@ -190,7 +190,7 @@ CreateExecutorState(void)
 	estate->es_got_eos = false;
 	estate->cancelUnfinished = false;
 
-	estate->dispatcherState = palloc0(sizeof(struct CdbDispatcherState));
+	estate->dispatcherState = NULL;
 
 	estate->currentSliceIdInPlan = 0;
 	estate->currentExecutingSliceId = 0;
@@ -267,11 +267,7 @@ FreeExecutorState(EState *estate)
 		/* FreeExprContext removed the list link for us */
 	}
 
-	if (estate->dispatcherState)
-	{
-		pfree(estate->dispatcherState);
-		estate->dispatcherState = NULL;
-	}
+	estate->dispatcherState = NULL;
 
 	/*
 	 * Free dynamicTableScanInfo.
@@ -2255,7 +2251,7 @@ void mppExecutorFinishup(QueryDesc *queryDesc)
 	/*
 	 * If QD, wait for QEs to finish and check their results.
 	 */
-	if (estate->dispatcherState->primaryResults)
+	if (estate->dispatcherState && estate->dispatcherState->primaryResults)
 	{
 		CdbDispatchResults *pr = estate->dispatcherState->primaryResults;
 		HTAB 			   *aopartcounts = NULL;
@@ -2353,7 +2349,7 @@ void mppExecutorFinishup(QueryDesc *queryDesc)
 		 * error, report it and exit to our error handler via PG_THROW.
 		 * NB: This call doesn't wait, because we already waited above.
 		 */
-		cdbdisp_finishCommand(estate->dispatcherState);
+		cdbdisp_finishCommand(estate->dispatcherState, NULL, NULL, true);
 	}
 
 	/* Teardown the Interconnect */
@@ -2366,7 +2362,7 @@ void mppExecutorFinishup(QueryDesc *queryDesc)
 		 * mark the estate to "cancelUnfinished" and then try to do a
 		 * normal interconnect teardown).
 		 */
-		TeardownInterconnect(estate->interconnect_context, estate->motionlayer_context, estate->cancelUnfinished, false);
+		TeardownInterconnect(estate->interconnect_context, estate->cancelUnfinished, false);
 		estate->es_interconnect_is_setup = false;
 	}
 }
@@ -2438,7 +2434,7 @@ void mppExecutorCleanup(QueryDesc *queryDesc)
 	/* Clean up the interconnect. */
 	if (estate->es_interconnect_is_setup)
 	{
-		TeardownInterconnect(estate->interconnect_context, estate->motionlayer_context, true /* force EOS */, true);
+		TeardownInterconnect(estate->interconnect_context, true /* force EOS */, true);
 		estate->es_interconnect_is_setup = false;
 	}
 
@@ -2908,6 +2904,7 @@ int RootSliceIndex(EState *estate)
 
 	return result;
 }
+
 
 #ifdef USE_ASSERT_CHECKING
 /**

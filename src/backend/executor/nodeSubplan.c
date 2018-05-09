@@ -954,7 +954,6 @@ ExecSetParamPlan(SubPlanState *node, ExprContext *econtext, QueryDesc *queryDesc
 
 	bool		needDtxTwoPhase;
 	bool		shouldDispatch = false;
-	volatile bool shouldTeardownInterconnect = false;
 	volatile bool explainRecvStats = false;
 
 	if (Gp_role == GP_ROLE_DISPATCH &&
@@ -988,15 +987,16 @@ PG_TRY();
 		 * command to the appropriate segdbs.  It does not wait for them
 		 * to finish unless an error is detected before all are dispatched.
 		 */
-		CdbDispatchPlan(queryDesc, needDtxTwoPhase, true, queryDesc->estate->dispatcherState);
+		CdbDispatchPlan(queryDesc, needDtxTwoPhase, true);
 
 		/*
 		 * Set up the interconnect for execution of the initplan root slice.
 		 */
-		shouldTeardownInterconnect = true;
 		Assert(!(queryDesc->estate->interconnect_context));
 		SetupInterconnect(queryDesc->estate);
 		Assert((queryDesc->estate->interconnect_context));
+
+		UpdateMotionExpectedReceivers(queryDesc->estate->motionlayer_context, queryDesc->estate->es_sliceTable);
 
 		ExecUpdateTransportState(planstate, queryDesc->estate->interconnect_context);
 
@@ -1176,21 +1176,19 @@ PG_TRY();
 		 * If the dispatcher or any QE had an error, report it and
 		 * exit to our error handler (below) via PG_THROW.
 		 */
-		cdbdisp_finishCommand(queryDesc->estate->dispatcherState);
+		cdbdisp_finishCommand(queryDesc->estate->dispatcherState, NULL, NULL, true);
 	}
 
 	/* teardown the sequence server */
 	TeardownSequenceServer();
 
 	/* Clean up the interconnect. */
-	if (shouldTeardownInterconnect)
+	if (queryDesc && queryDesc->estate && queryDesc->estate->es_interconnect_is_setup)
 	{
-		shouldTeardownInterconnect = false;
-
 		TeardownInterconnect(queryDesc->estate->interconnect_context,
-							 queryDesc->estate->motionlayer_context,
 							 false, false); /* following success on QD */
 		queryDesc->estate->interconnect_context = NULL;
+		queryDesc->estate->es_interconnect_is_setup = false;
 	}
 }
 PG_CATCH();
@@ -1200,13 +1198,11 @@ PG_CATCH();
 	{
 		cdbexplain_localExecStats(planstate, econtext->ecxt_estate->showstatctx);
 		if (!explainRecvStats &&
-			shouldDispatch)
+			shouldDispatch &&
+			queryDesc->estate->dispatcherState)
 		{
-			Assert(queryDesc != NULL &&
-				   queryDesc->estate != NULL);
 			/* Wait for all gangs to finish.  Cancel slowpokes. */
-			CdbCheckDispatchResult(queryDesc->estate->dispatcherState,
-								   DISPATCH_WAIT_CANCEL);
+			cdbdisp_cancelDispatch(queryDesc->estate->dispatcherState);
 
 			cdbexplain_recvExecStats(planstate,
 									 queryDesc->estate->dispatcherState->primaryResults,
@@ -1223,8 +1219,11 @@ PG_CATCH();
 	 * Wait for them to finish and clean up the dispatching structures.
 	 * Replace current error info with QE error info if more interesting.
 	 */
-	if (shouldDispatch && queryDesc && queryDesc->estate && queryDesc->estate->dispatcherState && queryDesc->estate->dispatcherState->primaryResults)
+	if (shouldDispatch && queryDesc && queryDesc->estate &&
+		queryDesc->estate->dispatcherState)
+	{
 		CdbDispatchHandleError(queryDesc->estate->dispatcherState);
+	}
 		
 	/* teardown the sequence server */
 	TeardownSequenceServer();
@@ -1233,12 +1232,12 @@ PG_CATCH();
 	 * Clean up the interconnect.
 	 * CDB TODO: Is this needed following failure on QD?
 	 */
-	if (shouldTeardownInterconnect)
+	if (queryDesc && queryDesc->estate && queryDesc->estate->es_interconnect_is_setup)
 	{
 		TeardownInterconnect(queryDesc->estate->interconnect_context,
-							 queryDesc->estate->motionlayer_context,
 							 true, false);
 		queryDesc->estate->interconnect_context = NULL;
+		queryDesc->estate->es_interconnect_is_setup = false;
 	}
 	PG_RE_THROW();
 }

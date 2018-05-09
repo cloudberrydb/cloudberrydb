@@ -871,7 +871,6 @@ cdbdisp_returnResults(CdbDispatchResults *primaryResults, CdbPgResults *cdb_pgre
 
 	/* tell the caller how many sets we're returning. */
 	cdb_pgresults->numResults = nresults;
-
 }
 
 /*

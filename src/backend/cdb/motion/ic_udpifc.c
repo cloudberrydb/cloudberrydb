@@ -695,23 +695,20 @@ static void icBufferListFree(ICBufferList *list);
 static inline ICBuffer *icBufferListAppend(ICBufferList *list, ICBuffer *buf);
 static void icBufferListReturn(ICBufferList *list, bool inExpirationQueue);
 
-static void SetupUDPIFCInterconnect_Internal(EState *estate);
-static inline TupleChunkListItem RecvTupleChunkFromAnyUDPIFC_Internal(MotionLayerState *mlStates,
-									 ChunkTransportState *transportStates,
+static ChunkTransportState *SetupUDPIFCInterconnect_Internal(SliceTable *sliceTable);
+static inline TupleChunkListItem RecvTupleChunkFromAnyUDPIFC_Internal(ChunkTransportState *transportStates,
 									 int16 motNodeID,
 									 int16 *srcRoute);
 static inline TupleChunkListItem RecvTupleChunkFromUDPIFC_Internal(ChunkTransportState *transportStates,
 								  int16 motNodeID,
 								  int16 srcRoute);
 static void TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
-									MotionLayerState *mlStates,
 									bool forceEOS);
 
 static void freeDisorderedPackets(MotionConn *conn);
 
 static void prepareRxConnForRead(MotionConn *conn);
-static TupleChunkListItem RecvTupleChunkFromAnyUDPIFC(MotionLayerState *mlStates,
-							ChunkTransportState *transportStates,
+static TupleChunkListItem RecvTupleChunkFromAnyUDPIFC(ChunkTransportState *transportStates,
 							int16 motNodeID,
 							int16 *srcRoute);
 
@@ -721,9 +718,9 @@ static TupleChunkListItem RecvTupleChunkFromUDPIFC(ChunkTransportState *transpor
 static TupleChunkListItem receiveChunksUDPIFC(ChunkTransportState *pTransportStates, ChunkTransportStateEntry *pEntry,
 					int16 motNodeID, int16 *srcRoute, MotionConn *conn);
 
-static void SendEosUDPIFC(MotionLayerState *mlStates, ChunkTransportState *transportStates,
+static void SendEosUDPIFC(ChunkTransportState *transportStates,
 			  int motNodeID, TupleChunkListItem tcItem);
-static bool SendChunkUDPIFC(MotionLayerState *mlStates, ChunkTransportState *transportStates,
+static bool SendChunkUDPIFC(ChunkTransportState *transportStates,
 				ChunkTransportStateEntry *pEntry, MotionConn *conn, TupleChunkListItem tcItem, int16 motionId);
 
 static void doSendStopMessageUDPIFC(ChunkTransportState *transportStates, int16 motNodeID);
@@ -2953,8 +2950,8 @@ handleCachedPackets(void)
  * SetupUDPIFCInterconnect_Internal
  * 		Internal function for setting up UDP interconnect.
  */
-static void
-SetupUDPIFCInterconnect_Internal(EState *estate)
+static ChunkTransportState *
+SetupUDPIFCInterconnect_Internal(SliceTable *sliceTable)
 {
 	int			i,
 				n;
@@ -2968,44 +2965,38 @@ SetupUDPIFCInterconnect_Internal(EState *estate)
 	int			expectedTotalOutgoing = 0;
 
 	ChunkTransportStateEntry *sendingChunkTransportState = NULL;
+	ChunkTransportState *interconnect_context;
 
 	pthread_mutex_lock(&ic_control_info.lock);
 
-	gp_interconnect_id = estate->es_sliceTable->ic_instance_id;
+	gp_interconnect_id = sliceTable->ic_instance_id;
 
 	Assert(gp_interconnect_id > 0);
 
-	estate->interconnect_context = palloc0(sizeof(ChunkTransportState));
-
-	/* add back-pointer for dispatch check. */
-	estate->interconnect_context->estate = estate;
+	interconnect_context = palloc0(sizeof(ChunkTransportState));
 
 	/* initialize state variables */
-	Assert(estate->interconnect_context->size == 0);
-	estate->interconnect_context->size = CTS_INITIAL_SIZE;
-	estate->interconnect_context->states = palloc0(CTS_INITIAL_SIZE * sizeof(ChunkTransportStateEntry));
+	Assert(interconnect_context->size == 0);
+	interconnect_context->size = CTS_INITIAL_SIZE;
+	interconnect_context->states = palloc0(CTS_INITIAL_SIZE * sizeof(ChunkTransportStateEntry));
 
-	estate->interconnect_context->teardownActive = false;
-	estate->interconnect_context->activated = false;
-	estate->interconnect_context->incompleteConns = NIL;
-	estate->interconnect_context->sliceTable = NULL;
-	estate->interconnect_context->sliceId = -1;
+	interconnect_context->teardownActive = false;
+	interconnect_context->activated = false;
+	interconnect_context->incompleteConns = NIL;
+	interconnect_context->sliceTable = copyObject(sliceTable);
+	interconnect_context->sliceId = sliceTable->localSlice;
 
-	estate->interconnect_context->sliceTable = estate->es_sliceTable;
+	interconnect_context->RecvTupleChunkFrom = RecvTupleChunkFromUDPIFC;
+	interconnect_context->RecvTupleChunkFromAny = RecvTupleChunkFromAnyUDPIFC;
+	interconnect_context->SendEos = SendEosUDPIFC;
+	interconnect_context->SendChunk = SendChunkUDPIFC;
+	interconnect_context->doSendStopMessage = doSendStopMessageUDPIFC;
 
-	estate->interconnect_context->sliceId = LocallyExecutingSliceIndex(estate);
-
-	estate->interconnect_context->RecvTupleChunkFrom = RecvTupleChunkFromUDPIFC;
-	estate->interconnect_context->RecvTupleChunkFromAny = RecvTupleChunkFromAnyUDPIFC;
-	estate->interconnect_context->SendEos = SendEosUDPIFC;
-	estate->interconnect_context->SendChunk = SendChunkUDPIFC;
-	estate->interconnect_context->doSendStopMessage = doSendStopMessageUDPIFC;
-
-	mySlice = (Slice *) list_nth(estate->interconnect_context->sliceTable->slices, LocallyExecutingSliceIndex(estate));
+	mySlice = (Slice *) list_nth(interconnect_context->sliceTable->slices, sliceTable->localSlice);
 
 	Assert(mySlice &&
 		   IsA(mySlice, Slice) &&
-		   mySlice->sliceIndex == LocallyExecutingSliceIndex(estate));
+		   mySlice->sliceIndex == sliceTable->localSlice);
 
 #ifdef USE_ASSERT_CHECKING
 	set_test_mode();
@@ -3044,16 +3035,15 @@ SetupUDPIFCInterconnect_Internal(EState *estate)
 		int			numProcs;
 		int			childId = lfirst_int(cell);
 		ChunkTransportStateEntry *pEntry = NULL;
-		int			numValidProcs = 0;
 
-		aSlice = (Slice *) list_nth(estate->interconnect_context->sliceTable->slices, childId);
+		aSlice = (Slice *) list_nth(interconnect_context->sliceTable->slices, childId);
 		numProcs = list_length(aSlice->primaryProcesses);
 
 		if (gp_log_interconnect >= GPVARS_VERBOSITY_DEBUG)
 			elog(DEBUG1, "Setup recving connections: my slice %d, childId %d",
 				 mySlice->sliceIndex, childId);
 
-		pEntry = createChunkTransportState(estate->interconnect_context, aSlice, mySlice, numProcs);
+		pEntry = createChunkTransportState(interconnect_context, aSlice, mySlice, numProcs);
 
 		Assert(pEntry);
 		Assert(pEntry->valid);
@@ -3065,7 +3055,7 @@ SetupUDPIFCInterconnect_Internal(EState *estate)
 
 			if (conn->cdbProc)
 			{
-				numValidProcs++;
+				expectedTotalIncoming++;
 
 				/* rx_buffer_queue */
 				conn->pkt_q_capacity = Gp_interconnect_queue_depth;
@@ -3111,11 +3101,6 @@ SetupUDPIFCInterconnect_Internal(EState *estate)
 				connAddHash(&ic_control_info.connHtab, conn);
 			}
 		}
-
-		expectedTotalIncoming += numValidProcs;
-
-		/* let cdbmotion know how many receivers to expect. */
-		setExpectedReceivers(estate->motionlayer_context, childId, numValidProcs);
 	}
 
 	snd_control_info.cwnd = 0;
@@ -3132,7 +3117,7 @@ SetupUDPIFCInterconnect_Internal(EState *estate)
 		ic_control_info.lastPacketSendTime = ic_control_info.lastExpirationCheckTime;
 		ic_control_info.lastDeadlockCheckTime = ic_control_info.lastExpirationCheckTime;
 
-		sendingChunkTransportState = startOutgoingUDPConnections(estate->interconnect_context, mySlice, &expectedTotalOutgoing);
+		sendingChunkTransportState = startOutgoingUDPConnections(interconnect_context, mySlice, &expectedTotalOutgoing);
 		n = sendingChunkTransportState->numConns;
 
 		for (i = 0; i < n; i++)
@@ -3141,7 +3126,7 @@ SetupUDPIFCInterconnect_Internal(EState *estate)
 
 			if (conn->cdbProc)
 			{
-				setupOutgoingUDPConnection(estate->interconnect_context, sendingChunkTransportState, conn);
+				setupOutgoingUDPConnection(interconnect_context, sendingChunkTransportState, conn);
 				outgoing_count++;
 			}
 		}
@@ -3173,30 +3158,23 @@ SetupUDPIFCInterconnect_Internal(EState *estate)
 	if (gp_interconnect_cache_future_packets)
 		handleCachedPackets();
 
-	estate->interconnect_context->activated = true;
+	interconnect_context->activated = true;
 
 	pthread_mutex_unlock(&ic_control_info.lock);
+	return interconnect_context;
 }
 
 /*
  * SetupUDPIFCInterconnect
  * 		setup UDP interconnect.
  */
-void
-SetupUDPIFCInterconnect(EState *estate)
+ChunkTransportState *
+SetupUDPIFCInterconnect(SliceTable *sliceTable)
 {
-	if (estate->interconnect_context)
-	{
-		elog(FATAL, "SetupUDPInterconnect: already initialized.");
-	}
-	else if (!estate->es_sliceTable)
-	{
-		elog(FATAL, "SetupUDPInterconnect: no slice table ?");
-	}
-
+	ChunkTransportState *icContext = NULL;
 	PG_TRY();
 	{
-		SetupUDPIFCInterconnect_Internal(estate);
+		icContext = SetupUDPIFCInterconnect_Internal(sliceTable);
 
 		/* Internal error if we locked the mutex but forgot to unlock it. */
 		Assert(pthread_mutex_unlock(&ic_control_info.lock) != 0);
@@ -3207,6 +3185,7 @@ SetupUDPIFCInterconnect(EState *estate)
 		PG_RE_THROW();
 	}
 	PG_END_TRY();
+	return icContext;
 }
 
 
@@ -3282,7 +3261,6 @@ computeNetworkStatistics(uint64 value, uint64 *min, uint64 *max, double *sum)
  */
 static void
 TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
-									MotionLayerState *mlStates,
 									bool forceEOS)
 {
 	ChunkTransportStateEntry *pEntry = NULL;
@@ -3591,12 +3569,11 @@ TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
  */
 void
 TeardownUDPIFCInterconnect(ChunkTransportState *transportStates,
-						   MotionLayerState *mlStates,
 						   bool forceEOS)
 {
 	PG_TRY();
 	{
-		TeardownUDPIFCInterconnect_Internal(transportStates, mlStates, forceEOS);
+		TeardownUDPIFCInterconnect_Internal(transportStates, forceEOS);
 
 		Assert(pthread_mutex_unlock(&ic_control_info.errorLock) != 0);
 		Assert(pthread_mutex_unlock(&ic_control_info.lock) != 0);
@@ -3776,8 +3753,7 @@ receiveChunksUDPIFC(ChunkTransportState *pTransportStates, ChunkTransportStateEn
  * 		Receive tuple chunks from any route (connections)
  */
 static inline TupleChunkListItem
-RecvTupleChunkFromAnyUDPIFC_Internal(MotionLayerState *mlStates,
-									 ChunkTransportState *transportStates,
+RecvTupleChunkFromAnyUDPIFC_Internal(ChunkTransportState *transportStates,
 									 int16 motNodeID,
 									 int16 *srcRoute)
 {
@@ -3859,8 +3835,7 @@ RecvTupleChunkFromAnyUDPIFC_Internal(MotionLayerState *mlStates,
  * 		Receive tuple chunks from any route (connections)
  */
 static TupleChunkListItem
-RecvTupleChunkFromAnyUDPIFC(MotionLayerState *mlStates,
-							ChunkTransportState *transportStates,
+RecvTupleChunkFromAnyUDPIFC(ChunkTransportState *transportStates,
 							int16 motNodeID,
 							int16 *srcRoute)
 {
@@ -3868,7 +3843,7 @@ RecvTupleChunkFromAnyUDPIFC(MotionLayerState *mlStates,
 
 	PG_TRY();
 	{
-		icItem = RecvTupleChunkFromAnyUDPIFC_Internal(mlStates, transportStates, motNodeID, srcRoute);
+		icItem = RecvTupleChunkFromAnyUDPIFC_Internal(transportStates, motNodeID, srcRoute);
 
 		/* error if mutex still held (debug build only) */
 		Assert(pthread_mutex_unlock(&ic_control_info.errorLock) != 0);
@@ -5298,8 +5273,7 @@ computeTimeout(MotionConn *conn, int retry)
  *	 motionId - Node Motion Id.
  */
 static bool
-SendChunkUDPIFC(MotionLayerState *mlStates,
-				ChunkTransportState *transportStates,
+SendChunkUDPIFC(ChunkTransportState *transportStates,
 				ChunkTransportStateEntry *pEntry,
 				MotionConn *conn,
 				TupleChunkListItem tcItem,
@@ -5406,8 +5380,7 @@ SendChunkUDPIFC(MotionLayerState *mlStates,
  *
  */
 static void
-SendEosUDPIFC(MotionLayerState *mlStates,
-			  ChunkTransportState *transportStates,
+SendEosUDPIFC(ChunkTransportState *transportStates,
 			  int motNodeID,
 			  TupleChunkListItem tcItem)
 {
@@ -5443,7 +5416,7 @@ SendEosUDPIFC(MotionLayerState *mlStates,
 	 * we want to add our tcItem onto each of the outgoing buffers -- this is
 	 * guaranteed to leave things in a state where a flush is *required*.
 	 */
-	doBroadcast(mlStates, transportStates, pEntry, tcItem, NULL);
+	doBroadcast(transportStates, pEntry, tcItem, NULL);
 
 	pEntry->sendingEos = true;
 
