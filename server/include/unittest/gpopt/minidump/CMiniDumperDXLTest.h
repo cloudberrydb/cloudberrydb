@@ -16,6 +16,8 @@
 
 namespace gpopt
 {
+	using namespace gpos;
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CMiniDumperDXLTest

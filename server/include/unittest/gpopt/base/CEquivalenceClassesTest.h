@@ -7,9 +7,12 @@
 #define GPOPT_CEquivalenceClassesTest_H
 
 #include "gpos/base.h"
+#include "gpopt/base/CColRefSet.h"
 
 namespace gpopt
 {
+	using namespace gpos;
+
 	// Static unit tests for equivalence classes
 	class CEquivalenceClassesTest
 	{

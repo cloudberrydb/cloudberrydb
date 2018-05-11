@@ -11,8 +11,12 @@
 #ifndef GPOPT_CFunctionalDependencyTest_H
 #define GPOPT_CFunctionalDependencyTest_H
 
+#include "gpos/base.h"
+
 namespace gpopt
 {
+	using namespace gpos;
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CFunctionalDependencyTest

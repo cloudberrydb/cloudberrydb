@@ -13,6 +13,7 @@
 
 #include "gpos/base.h"
 #include "gpos/common/CBitSetIter.h"
+#include "gpos/task/CTask.h"
 
 
 namespace gpos

@@ -12,6 +12,7 @@
 #define GPOPT_CJobTransformation_H
 
 #include "gpopt/search/CJob.h"
+#include "gpopt/search/CJobStateMachine.h"
 
 
 namespace gpopt

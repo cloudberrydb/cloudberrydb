@@ -11,6 +11,8 @@
 #ifndef GPOS_CBitSetTest_H
 #define GPOS_CBitSetTest_H
 
+#include "gpos/base.h"
+
 namespace gpos
 {
 	//---------------------------------------------------------------------------

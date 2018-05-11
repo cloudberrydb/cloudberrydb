@@ -15,6 +15,7 @@
 
 #include "gpopt/eval/CConstExprEvaluatorDefault.h"
 #include "gpopt/search/CSearchStage.h"
+#include "naucrates/dxl/operators/CDXLNode.h"
 
 namespace gpdxl
 {
@@ -36,6 +37,8 @@ namespace gpopt
 	// forward declarations
 	class ICostModel;
 	class COptimizerConfig;
+	class CQueryContext;
+	class CEnumeratorConfig;
 
 	//---------------------------------------------------------------------------
 	//	@class:

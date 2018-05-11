@@ -19,6 +19,8 @@
 
 namespace gpopt
 {
+	using namespace gpos;
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CRangeTest

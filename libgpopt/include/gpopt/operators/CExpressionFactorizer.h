@@ -20,7 +20,9 @@
 
 #include "gpos/base.h"
 
+#include "gpopt/base/CUtils.h"
 #include "gpopt/operators/COperator.h"
+#include "gpopt/operators/CExpression.h"
 
 namespace gpopt
 {
@@ -28,7 +30,7 @@ namespace gpopt
 	using namespace gpos;
 
 	// fwd declarations
-	class CExpression;
+	class ExprMap;
 
 	//---------------------------------------------------------------------------
 	//	@class:

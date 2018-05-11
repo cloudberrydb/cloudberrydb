@@ -11,6 +11,8 @@
 #ifndef GPOS_CSpinlockTest_H
 #define GPOS_CSpinlockTest_H
 
+#include "gpos/base.h"
+
 namespace gpos
 {
 	//---------------------------------------------------------------------------

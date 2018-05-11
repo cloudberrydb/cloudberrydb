@@ -26,8 +26,7 @@ if (COMPILER_HAS_WNO_UNUSED_VARIABLE)
     PROPERTIES COMPILE_FLAGS "-Wno-unused-variable")
 endif()
 
-file(GLOB_RECURSE hdrs ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h
-                       ${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl)
+file(GLOB_RECURSE hdrs ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
 file(GLOB_RECURSE srcs ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 
 # Add headers to make them visible in some IDEs (Clion, VS, Xcode)

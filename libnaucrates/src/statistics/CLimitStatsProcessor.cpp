@@ -9,10 +9,6 @@
 //		Statistics helper routines for processing limit operations
 //---------------------------------------------------------------------------
 
-#include "gpopt/operators/ops.h"
-#include "gpopt/optimizer/COptimizerConfig.h"
-
-#include "naucrates/statistics/CStatisticsUtils.h"
 #include "naucrates/statistics/CLimitStatsProcessor.h"
 
 using namespace gpopt;

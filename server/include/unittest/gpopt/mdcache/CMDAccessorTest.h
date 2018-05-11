@@ -16,6 +16,7 @@
 #include "gpos/base.h"
 
 #include "gpopt/mdcache/CMDAccessor.h"
+#include "gpopt/operators/CExpression.h"
 
 namespace gpopt
 {

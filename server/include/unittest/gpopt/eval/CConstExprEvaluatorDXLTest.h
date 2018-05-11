@@ -30,6 +30,8 @@ namespace gpdxl
 
 namespace gpopt
 {
+	using namespace gpos;
+
 	// forward decl
 	class CMDAccessor;
 

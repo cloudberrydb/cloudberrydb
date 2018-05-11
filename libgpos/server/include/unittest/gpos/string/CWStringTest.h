@@ -11,6 +11,8 @@
 #ifndef GPOS_CWStringTest_H
 #define GPOS_CWStringTest_H
 
+#include "gpos/base.h"
+
 namespace gpos
 {
 	//---------------------------------------------------------------------------

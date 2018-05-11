@@ -12,6 +12,7 @@
 #define GPOPT_CCastUtils_H
 
 #include "gpopt/base/CColRef.h"
+#include "gpopt/operators/CExpression.h"
 
 namespace gpmd
 {

@@ -25,6 +25,8 @@ namespace gpmd
 {
 	using namespace gpos;
 
+	class CMDName;
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		IMDColumn

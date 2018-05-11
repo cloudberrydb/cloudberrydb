@@ -12,6 +12,9 @@
 #define GPOPT_CXformLeftAntiSemiJoinNotIn2CrossProduct_H
 
 #include "gpos/base.h"
+#include "gpopt/operators/CPatternTree.h"
+#include "gpopt/operators/CPatternLeaf.h"
+#include "gpopt/operators/CLogicalLeftAntiSemiJoinNotIn.h"
 #include "gpopt/xforms/CXformLeftAntiSemiJoin2CrossProduct.h"
 
 namespace gpopt

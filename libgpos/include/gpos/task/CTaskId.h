@@ -13,6 +13,7 @@
 #define GPOS_CTaskId_H
 
 #include "gpos/types.h"
+#include "gpos/utils.h"
 #include "gpos/sync/CAtomicCounter.h"
 
 namespace gpos

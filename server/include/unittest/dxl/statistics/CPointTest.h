@@ -11,8 +11,11 @@
 #ifndef GPNAUCRATES_CPointTest_H
 #define GPNAUCRATES_CPointTest_H
 
+#include "gpos/base.h"
+
 namespace gpnaucrates
 {
+	using namespace gpos;
 
 	//---------------------------------------------------------------------------
 	//	@class:

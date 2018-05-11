@@ -13,6 +13,7 @@
 
 #include "gpos/base.h"
 #include "gpos/common/CRefCount.h"
+#include "gpos/common/CHashMap.h"
 #include "gpopt/base/CDrvdProp.h"
 
 
@@ -21,6 +22,8 @@ namespace gpnaucrates
 	// forward declarations
 	class IStatistics;
 }
+
+using gpnaucrates::IStatistics;
 
 namespace gpopt
 {

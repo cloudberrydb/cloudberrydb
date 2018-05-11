@@ -18,6 +18,8 @@
 #define GPOS_CMemoryPoolBasicTest_H
 
 #include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPool.h"
+#include "gpos/memory/CMemoryPoolManager.h"
 
 namespace gpos
 {

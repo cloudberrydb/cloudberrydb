@@ -11,6 +11,8 @@
 #ifndef GPOS_CDoubleTest_H
 #define GPOS_CDoubleTest_H
 
+#include "gpos/base.h"
+
 namespace gpos
 {
 	//---------------------------------------------------------------------------

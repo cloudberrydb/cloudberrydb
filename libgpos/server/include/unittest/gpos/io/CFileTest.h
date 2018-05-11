@@ -12,8 +12,7 @@
 #ifndef GPOS_CFileTest_H
 #define GPOS_CFileTest_H
 
-#include "gpos/types.h"
-#include "gpos/assert.h"
+#include "gpos/base.h"
 #include "gpos/io/ioutils.h"
 #include "gpos/io/CFileWriter.h"
 #include "gpos/io/CFileReader.h"

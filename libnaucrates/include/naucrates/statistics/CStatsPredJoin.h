@@ -13,6 +13,8 @@
 
 #include "gpos/base.h"
 #include "gpos/common/CRefCount.h"
+#include "gpos/common/CDynamicPtrArray.h"
+#include "naucrates/statistics/CStatsPred.h"
 #include "naucrates/md/IMDType.h"
 
 namespace gpnaucrates

@@ -13,8 +13,11 @@
 
 #include "gpos/base.h"
 #include "gpos/common/CHashMap.h"
+#include "gpos/common/CBitSet.h"
 #include "gpos/io/IOstream.h"
+#include "gpopt/base/CUtils.h"
 #include "gpopt/xforms/CJoinOrder.h"
+#include "gpopt/operators/CExpression.h"
 
 
 namespace gpopt

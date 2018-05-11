@@ -12,9 +12,13 @@
 #define GPOPT_CXformTest_H
 
 #include "gpos/base.h"
+#include "gpopt/operators/CExpression.h"
+#include "gpopt/mdcache/CMDAccessor.h"
 
 namespace gpopt
 {
+	using namespace gpos;
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CXformTest

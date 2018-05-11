@@ -9,7 +9,6 @@
 //		Implementation of file handler for raw input
 //---------------------------------------------------------------------------
 
-#include <fcntl.h>
 #include "gpos/base.h"
 #include "gpos/io/ioutils.h"
 #include "gpos/io/CFileReader.h"

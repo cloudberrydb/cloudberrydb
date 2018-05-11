@@ -11,8 +11,11 @@
 #ifndef GPOS_COrderSpecTest_H
 #define GPOS_COrderSpecTest_H
 
+#include "gpos/base.h"
+
 namespace gpopt
 {
+	using namespace gpos;
 
 	//---------------------------------------------------------------------------
 	//	@class:

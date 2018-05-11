@@ -11,8 +11,12 @@
 #ifndef GPOS_CKeyCollectionTest_H
 #define GPOS_CKeyCollectionTest_H
 
+#include "gpos/base.h"
+
 namespace gpopt
 {
+	using namespace gpos;
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CKeyCollectionTest

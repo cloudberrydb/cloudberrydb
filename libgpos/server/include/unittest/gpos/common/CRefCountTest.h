@@ -12,6 +12,7 @@
 #define GPOS_CRefCountTest_H
 
 #include "gpos/base.h"
+#include "gpos/common/CRefCount.h"
 
 namespace gpos
 {

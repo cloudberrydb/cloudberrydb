@@ -4,6 +4,8 @@
 #ifndef GPNAUCRATES_CJoinCardinalityNDVBasedEqPredTest_H
 #define GPNAUCRATES_CJoinCardinalityNDVBasedEqPredTest_H
 
+#include "gpos/base.h"
+
 namespace gpnaucrates
 {
 	class CJoinCardinalityNDVBasedEqPredTest

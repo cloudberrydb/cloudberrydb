@@ -11,6 +11,8 @@
 #ifndef GPOS_CStringTest_H
 #define GPOS_CStringTest_H
 
+#include "gpos/base.h"
+
 namespace gpos
 {
 	//---------------------------------------------------------------------------

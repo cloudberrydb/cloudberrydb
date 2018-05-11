@@ -17,6 +17,7 @@
 #define GPOS_CCACHEENTRY_H_
 
 #include "gpos/memory/IMemoryPool.h"
+#include "gpos/common/CList.h"
 
 
 // setting the cache quota to 0 means unlimited

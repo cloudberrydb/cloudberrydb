@@ -11,14 +11,19 @@
 #ifndef GPNAUCRATES_CFilterCardinalityTest_H
 #define GPNAUCRATES_CFilterCardinalityTest_H
 
+#include "gpos/base.h"
+
 #include "naucrates/statistics/CPoint.h"
 #include "naucrates/statistics/CBucket.h"
 #include "naucrates/statistics/CHistogram.h"
 #include "naucrates/statistics/CStatistics.h"
 #include "naucrates/statistics/CStatsPredDisj.h"
 
+#include "naucrates/dxl/CDXLUtils.h"
+
 namespace gpnaucrates
 {
+	using namespace gpos;
 
 	//---------------------------------------------------------------------------
 	//	@class:

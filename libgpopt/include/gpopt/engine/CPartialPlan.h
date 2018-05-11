@@ -21,10 +21,15 @@
 #include "gpos/common/CRefCount.h"
 
 #include "gpopt/base/CReqdProp.h"
+#include "gpopt/cost/ICostModel.h"
 
 namespace gpopt
 {
 	using namespace gpos;
+
+	class CGroupExpression;
+	class CCost;
+	class CCostContext;
 
 	//---------------------------------------------------------------------------
 	//	@class:

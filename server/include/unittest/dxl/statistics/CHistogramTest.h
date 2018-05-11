@@ -11,6 +11,9 @@
 #ifndef GPNAUCRATES_CHistogramTest_H
 #define GPNAUCRATES_CHistogramTest_H
 
+#include "gpos/base.h"
+#include "naucrates/statistics/CHistogram.h"
+
 namespace gpnaucrates
 {
 

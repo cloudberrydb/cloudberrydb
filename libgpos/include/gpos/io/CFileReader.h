@@ -12,6 +12,7 @@
 #ifndef GPOS_CFileReader_H
 #define GPOS_CFileReader_H
 
+#include <fcntl.h>
 #include "gpos/io/CFileDescriptor.h"
 
 namespace gpos

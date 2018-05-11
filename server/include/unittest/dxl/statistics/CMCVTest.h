@@ -11,8 +11,11 @@
 #ifndef GPNAUCRATES_CMCVTest_H
 #define GPNAUCRATES_CMCVTest_H
 
+#include "gpos/base.h"
+
 namespace gpnaucrates
 {
+	using namespace gpos;
 
 	//---------------------------------------------------------------------------
 	//	@class:

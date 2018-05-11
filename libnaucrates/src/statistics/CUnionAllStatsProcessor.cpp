@@ -9,10 +9,6 @@
 //		Statistics helper routines for processing union all operations
 //---------------------------------------------------------------------------
 
-#include "gpopt/operators/ops.h"
-#include "gpopt/optimizer/COptimizerConfig.h"
-
-#include "naucrates/statistics/CStatistics.h"
 #include "naucrates/statistics/CUnionAllStatsProcessor.h"
 #include "naucrates/statistics/CStatisticsUtils.h"
 

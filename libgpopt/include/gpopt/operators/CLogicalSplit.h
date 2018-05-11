@@ -13,6 +13,7 @@
 
 #include "gpos/base.h"
 #include "gpopt/operators/CLogical.h"
+#include "gpopt/operators/CExpressionHandle.h"
 
 namespace gpopt
 {

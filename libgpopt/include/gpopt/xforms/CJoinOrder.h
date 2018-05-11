@@ -12,6 +12,7 @@
 #define GPOPT_CJoinOrder_H
 
 #include "gpos/base.h"
+#include "gpopt/operators/CExpression.h"
 #include "gpos/io/IOstream.h"
 
 namespace gpopt

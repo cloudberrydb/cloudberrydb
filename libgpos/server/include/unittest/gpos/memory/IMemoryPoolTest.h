@@ -16,6 +16,8 @@
 #ifndef GPOS_IMemoryPoolTest_H
 #define GPOS_IMemoryPoolTest_H
 
+#include "gpos/base.h"
+
 namespace gpos
 {
 	//---------------------------------------------------------------------------

@@ -23,8 +23,7 @@ configure_file(config.h.in
 # for the generated config.h file.
 include_directories(${PROJECT_BINARY_DIR}/libgpos/include/)
 
-file(GLOB_RECURSE hdrs ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h
-                       ${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl)
+file(GLOB_RECURSE hdrs ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
 file(GLOB_RECURSE srcs ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 
 # Add headers to make them visible in some IDEs (Clion, VS, Xcode)

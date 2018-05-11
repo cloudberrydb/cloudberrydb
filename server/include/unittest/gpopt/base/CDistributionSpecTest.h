@@ -11,8 +11,11 @@
 #ifndef GPOS_CDistributionSpecTest_H
 #define GPOS_CDistributionSpecTest_H
 
+#include "gpos/base.h"
+
 namespace gpopt
 {
+	using namespace gpos;
 
 	//---------------------------------------------------------------------------
 	//	@class:

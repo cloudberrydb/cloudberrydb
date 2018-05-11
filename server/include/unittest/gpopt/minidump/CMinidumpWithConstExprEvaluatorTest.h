@@ -22,6 +22,8 @@
 
 namespace gpopt
 {
+	using namespace gpos;
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CMinidumpWithConstExprEvaluatorTest
